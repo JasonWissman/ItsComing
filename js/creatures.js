@@ -57,10 +57,10 @@ const CREATURES = {
         const ph = g + (s > 0 ? 0 : Math.PI);
         const swing = Math.sin(ph) * 0.05 * (1 - raise);
         const sx = s * 0.21 + sway * 0.6, sy = 1.95 + bob;
-        const ex = s * lerp(0.24, 0.44, raise) + swing, ey = lerp(1.38, 1.72, raise);
-        const hx = s * lerp(0.27, 0.24, raise) + swing * 2, hy = lerp(0.72, 1.52, raise);
+        const ex = s * lerp(0.24, 0.52, raise) + swing, ey = lerp(1.38, 1.55, raise);
+        const hx = s * lerp(0.27, 0.4, raise) + swing * 2, hy = lerp(0.72, 1.95, raise);
         P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
-        const ang = lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.85 : Math.PI * 0.15, raise);
+        const ang = lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise);
         fingers(ctx, hx, hy, ang, lerp(0.16, 0.3, raise), 0.17 + raise * 0.05, 0.018, body);
       }
       // neck and head with a snapping tilt
@@ -357,7 +357,7 @@ const CREATURES = {
       strands(ctx, 0, 0.3, 9, 0.34, black, 5, t);
       P_ell(ctx, 0, 0.22, 0.13, 0.16, skin);
       P_ell(ctx, -0.052, 0.25, 0.036, 0.042, black); P_ell(ctx, 0.052, 0.25, 0.036, 0.042, black);
-      P_ell(ctx, 0, 0.1, 0.045, 0.06 + near * 0.04 + lunge * 0.05, black);
+      P_ell(ctx, 0, 0.1, 0.045 + lunge * 0.01, 0.055 + near * 0.025 + lunge * 0.03, black);
       ctx.restore();
       if (hurt) { ctx.globalAlpha = 0.5; P_ell(ctx, 0, 1.1, 0.7, 0.9, blood); ctx.globalAlpha = 1; }
     }

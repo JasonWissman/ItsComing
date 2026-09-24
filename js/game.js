@@ -275,7 +275,7 @@ function update(dt) {
     if (G.stateT > 0.95) { G.fade = 1; G.fadeTarget = 1; }
     if (G.stateT > 1.9) {
       setState('dead');
-      showOverlay('<h1 class="red">It got you</h1><p class="intro">It reached you after ' + Math.round(G.deathTime) + ' seconds.<br>' + deathLine(L) + '</p><p class="prompt">Press Enter or click to try that night again</p>');
+      showOverlay('<h1 class="red">It got you</h1><p class="intro">It reached you after ' + Math.max(1, Math.round(G.deathTime)) + ' second' + (Math.round(G.deathTime) > 1 ? 's' : '') + '.<br>' + deathLine(L) + '</p><p class="prompt">Press Enter or click to try that night again</p>');
     }
   } else if (G.state === 'title') {
     L.t += dt * 0.25; L.creature.t += dt * 0.25;
