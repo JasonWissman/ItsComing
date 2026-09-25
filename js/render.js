@@ -8,7 +8,8 @@ const R = (() => {
   let canvas = null, ctx = null, W = 1, H = 1, DPR = 1;
   let f = 1, cosY = 1, sinY = 0, cosP = 1, sinP = 0, eyeH = 1.65, pitch = 0, yaw = 0, zoom = 1;
   let pal = null, fogDist = 100, fogColor = [0, 0, 0];
-  let list = [];
+  let list = [];      // dynamic renderables this frame
+  let statics = [];   // the level's static props, sorted once, culled by view angle per frame
   let hits = [];
   let hoverRef = null;
   let time = 0;
@@ -130,7 +131,7 @@ const R = (() => {
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
   // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, noFog?, layer?, hit?, dist?, fogScale?, onRect?}
-  function add(p) {
+  function measure(p) {
     if (p.dist === undefined) {
       if (p.kind === 'poly') {
         let s = 0;
@@ -139,7 +140,25 @@ const R = (() => {
       } else p.dist = Math.hypot(p.x, p.z);
     }
     if (p.layer === undefined) p.layer = 1;
-    list.push(p);
+  }
+  function add(p) { measure(p); list.push(p); }
+  // angular extent of a static prop around the eye, for view culling
+  function extent(p) {
+    let sx = 0, sz = 0;
+    const angles = [];
+    if (p.kind === 'poly') { for (const v of p.pts) { const a = Math.atan2(v[0], v[2]); angles.push(a); sx += Math.sin(a); sz += Math.cos(a); } }
+    else { const a = Math.atan2(p.x, p.z), half = Math.atan2(Math.max(p.w, p.h) * 0.6, Math.max(0.1, p.dist)); angles.push(a - half, a + half); sx = Math.sin(a); sz = Math.cos(a); }
+    const center = Math.atan2(sx, sz);
+    let half = 0;
+    for (const a of angles) half = Math.max(half, Math.abs(wrapPi(a - center)));
+    p.aCenter = center; p.aHalf = half;
+    p.noCull = half > 1.3 || p.dist < 4;   // near props can show at the bottom edge when looking down
+  }
+  const order = (a, b) => (a.layer - b.layer) || (b.dist - a.dist);
+  // register a level's static props: measured, given an extent, sorted once
+  function prepare(props) {
+    for (const p of props) { measure(p); extent(p); }
+    statics = props.slice().sort(order);
   }
 
   function drawPoly(p) {
@@ -235,8 +254,17 @@ const R = (() => {
   }
 
   function flush() {
-    list.sort((a, b) => (a.layer - b.layer) || (b.dist - a.dist));
-    for (let i = 0; i < list.length; i++) { const p = list[i]; if (p.kind === 'poly') drawPoly(p); else drawSprite(p); }
+    list.sort(order);
+    const hfov = Math.atan((W / 2) / f) + 0.12;
+    let i = 0, j = 0;
+    while (i < statics.length || j < list.length) {
+      let p;
+      if (j >= list.length || (i < statics.length && order(statics[i], list[j]) <= 0)) {
+        p = statics[i++];
+        if (!p.noCull && Math.abs(wrapPi(p.aCenter - yaw)) > p.aHalf + hfov) continue;
+      } else p = list[j++];
+      if (p.kind === 'poly') drawPoly(p); else drawSprite(p);
+    }
     list.length = 0;
   }
 
@@ -278,7 +306,7 @@ const R = (() => {
   }
 
   return {
-    attach, resize, begin, add, flush, post, screenPos, projectRect, fogAmt,
+    attach, resize, begin, add, prepare, flush, post, screenPos, projectRect, fogAmt,
     get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; },
     get hits() { return hits; },
     set hover(v) { hoverRef = v; },

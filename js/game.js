@@ -121,6 +121,7 @@ function startLevel(i, withCard) {
   G.levelIndex = i;
   G.inv = []; G.active = 0; G.hover = null; G.invSig = ''; G.holding = null; G.throwing = null; G.error = null;
   G.L = buildLevel(i);
+  R.prepare(G.L.props);
   const c = G.cam;
   c.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8;
   c.tYaw = c.yaw = c.dirIdx * 45 * DEG; c.tPitch = c.pitch = 0; c.zoom = 1; c.zoomHeld = false;
@@ -153,6 +154,7 @@ function showTitle() {
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
   G.inv = [];
   G.L = buildLevel(0);
+  R.prepare(G.L.props);
   const c = G.cam; c.tYaw = c.yaw = 0; c.tPitch = c.pitch = 0; c.zoom = 1;
   G.fade = 0.35; G.fadeTarget = 0.35;
   setState('title');
@@ -592,12 +594,18 @@ function render() {
   const wob = (c.zoom - 1) * 0.0018;
   const view = { yaw: c.yaw + Math.sin(G.t * 1.7) * wob + Math.sin(G.t * 2.9) * wob * 0.5, pitch: c.pitch + Math.cos(G.t * 1.3) * wob, zoom: c.zoom, shakeX: c.shakeX, shakeY: c.shakeY };
   R.begin(view, L, G.t);
-  for (let i = 0; i < L.props.length; i++) R.add(L.props[i]);
-  for (const it of L.items) if (!it.taken) R.add({
-    kind: 'sprite', x: it.x, y: it.y, z: it.z, w: it.w, h: it.h, flat: it.flat, hit: { kind: 'item', ref: it }, hitPad: 8,
-    draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); }
-  });
-  for (const t of L.targets) if (!t.hidden) R.add({ kind: 'sprite', x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, hit: { kind: 'target', ref: t }, draw: () => {}, noHover: !t.flat && t.w > 1.5 });
+  const rend = L.rend || (L.rend = new Map());
+  for (const it of L.items) if (!it.taken) {
+    let p = rend.get(it);
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'item', ref: it }, hitPad: 8, draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); } }; rend.set(it, p); }
+    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
+    R.add(p);
+  }
+  for (const t of L.targets) if (!t.hidden) {
+    let p = rend.get(t);
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
+    R.add(p);
+  }
   if (G.throwing) {
     const th = G.throwing, k = th.t / th.dur, arc = Math.sin(k * Math.PI) * 0.8;
     const x = lerp(th.from.x, th.to.x, k), y = lerp(th.from.y, th.to.y, k) + arc, z = lerp(th.from.z, th.to.z, k);
@@ -606,13 +614,12 @@ function render() {
   if (L.dynamic) L.dynamic();
   const canUse = G.state === 'play' && !!activeUse(L);
   for (const cr of L.creatures) {
-    const CR = cr.CR, p = cr.pos();
-    R.add({
-      kind: 'sprite', x: p.x, y: p.y + cr.yOff, z: p.z, w: CR.w, h: CR.h, dist: cr.dist, fogScale: 0.85,
-      hit: (canUse && !cr.dead) ? { kind: 'creature', ref: cr } : null, hitPad: 12, noHover: true,
-      draw: (ctx, P) => CR.draw(ctx, cr, P),
-      onRect: rect => { cr.rect = rect; }
-    });
+    const CR = cr.CR, pos = cr.pos();
+    let p = rend.get(cr);
+    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => CR.draw(ctx, cr, P), onRect: rect => { cr.rect = rect; } }; rend.set(cr, p); }
+    p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = cr.dist; p.layer = 1;
+    p.hit = (canUse && !cr.dead) ? p.hitRef : null;
+    R.add(p);
   }
   R.hover = G.hover ? G.hover.ref : null;
   R.flush();
