@@ -1,12 +1,14 @@
 'use strict';
 CREATURES.smiler = {
   name: 'the smiler', h: 1.95, w: 1.0, faceY: 1.72, stepRate: 1.3, catchDist: 1.4, sound: 'smiler',
+  death: { delay: 0.5, dur: 1.3, sting: 'stingHum' },
+  voice: { kind: 'hum', every: [6, 12] },
   init(c) { c.nextHitch = 4.5; c.hitchT = 0; c.hitchFlash = 0; },
   speedMult(c, dt, seen) {
     c.hitchT += dt;
     if (c.hitchFlash > 0) c.hitchFlash -= dt;
     if (c.hitchT >= c.nextHitch && !c.frozen) {
-      c.hitchT = 0; c.nextHitch = 3.2 + Math.random() * 3;
+      c.hitchT = 0; c.nextHitch = 3.2 + c.rand() * 3;
       c.u = Math.min(0.995, c.u + 0.02); c.hitchFlash = 0.18; c.hitched = true;
     }
     return 1;
@@ -19,7 +21,7 @@ CREATURES.smiler = {
     const white = P.col([246, 242, 236]);
     const black = P.col([4, 4, 6]);
     const bob = Math.abs(Math.sin(g)) * 0.028;
-    const jx = c.hitchFlash > 0 ? (Math.random() - 0.5) * 0.09 : 0;
+    const jx = c.hitchFlash > 0 ? (c.rand() - 0.5) * 0.09 : 0;
     const lunge = c.lunge || 0;
     ctx.save(); ctx.translate(jx, 0);
     // legs

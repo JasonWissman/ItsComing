@@ -1,11 +1,12 @@
 'use strict';
 CREATURES.watcher = {
   name: 'the watcher', h: 2.15, w: 1.5, faceY: 1.8, stepRate: 0.8, catchDist: 1.6, sound: null, silentWhenSeen: true,
+  death: { delay: 0.05, dur: 0.04, sting: 'stingStone' },
   init(c) { c.pose = 0; c.seenLast = true; },
   onSeen(c) {
     // it is never in the same pose twice in a row
-    let p; do { p = 1 + Math.floor(Math.random() * 3); } while (p === c.pose);
-    if (c.dist < 4) p = Math.random() < 0.5 ? 1 : 2;
+    let p; do { p = 1 + Math.floor(c.rand() * 3); } while (p === c.pose);
+    if (c.dist < 4) p = c.rand() < 0.5 ? 1 : 2;
     c.pose = p;
   },
   speedMult(c, dt, seen) { return seen ? 0 : 1; },

@@ -14,6 +14,7 @@ const R = (() => {
   let hoverRef = null;
   let time = 0;
   let vignette = null, grains = [], grainIdx = 0;
+  let skyCache = null, dangerCv = null, dangerCvSize = 0;
 
   function attach(cv) { canvas = cv; ctx = cv.getContext('2d'); }
   function resize() {
@@ -70,6 +71,13 @@ const R = (() => {
   }
 
   function drawSkyGround() {
+    // the bands depend only on pitch, zoom, palette and lightning: keep them in an offscreen strip while nothing changes
+    const key = pitch.toFixed(3) + '|' + zoom.toFixed(3) + '|' + W + 'x' + H + '|' + (pal.id || pal.fog.join(',')) + '|' + fogDist.toFixed(1) + '|' + LIGHT.global.toFixed(2);
+    if (skyCache && skyCache.key === key) { ctx.drawImage(skyCache.cv, -8, -4, W + 16, H + 8); return; }
+    if (!skyCache || skyCache.cv.width !== W + 16 || skyCache.cv.height !== H + 8) { const cv = document.createElement('canvas'); cv.width = W + 16; cv.height = H + 8; skyCache = { cv, key: '' }; }
+    skyCache.key = key;
+    const sc = skyCache.cv.getContext('2d');
+    sc.setTransform(1, 0, 0, 1, 8, 4);
     const step = H > 900 ? 4 : 3;
     const skyTop = pal.skyTop, ground = pal.ground, fog = pal.fog;
     for (let y = -4; y < H + 4; y += step) {
@@ -83,9 +91,10 @@ const R = (() => {
         const d = eyeH / Math.tan(-ang);
         col = mixc(ground, fog, fogAmt(d));
       }
-      ctx.fillStyle = rgba(col);
-      ctx.fillRect(-8, y, W + 16, step + 1);
+      sc.fillStyle = rgba(col);
+      sc.fillRect(-8, y, W + 16, step + 1);
     }
+    ctx.drawImage(skyCache.cv, -8, -4, W + 16, H + 8);
   }
 
   // ---- transforms ----
@@ -255,10 +264,13 @@ const R = (() => {
       for (const [u, v] of [[-p.w / 2, 0], [p.w / 2, 0], [p.w / 2, p.h], [-p.w / 2, p.h]]) { xs.push(b[0] + ax * u + bx * v); ys.push(b[1] + ay * u + by * v); }
       rect = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
       if (rect.x > W + 20 || rect.x + rect.w < -20 || rect.y > H + 20 || rect.y + rect.h < -20) { if (p.onRect) p.onRect(rect); return; }
+      const hov = hoverRef && p.hit && p.hit.ref === hoverRef && !p.noHover;
+      if (hov) { ctx.save(); ctx.transform(ax, ay, bx, by, b[0], b[1]); ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 16; ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'lighter'; p.draw(ctx, spriteP(p), s); ctx.restore(); }
       ctx.save();
       ctx.transform(ax, ay, bx, by, b[0], b[1]);
       p.draw(ctx, spriteP(p), s);
       ctx.restore();
+      if (hov && p.hit.kind === 'target') { ctx.save(); ctx.transform(ax, ay, bx, by, b[0], b[1]); ctx.strokeStyle = 'rgba(255,236,190,0.55)'; ctx.lineWidth = 0.02; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 10; ctx.strokeRect(-p.w / 2, 0, p.w, p.h); ctx.restore(); }
     } else {
       const top = toCam(p.x, p.y + p.h, p.z);
       let hpx = p.h * s;
@@ -267,19 +279,18 @@ const R = (() => {
       rect = { x: b[0] - wpx / 2, y: b[1] - hpx, w: wpx, h: hpx };
       if (rect.x > W + 40 || rect.x + rect.w < -40 || rect.y > H + 40 || rect.y + rect.h < -40) { if (p.onRect) p.onRect(rect); return; }
       if (hpx < 0.7 && wpx < 0.7) { if (p.onRect) p.onRect(rect); return; }
+      const hov = hoverRef && p.hit && p.hit.ref === hoverRef && !p.noHover;
+      if (hov && p.hit.kind === 'item') { ctx.save(); ctx.translate(b[0], b[1]); ctx.scale(s, -(hpx / p.h)); ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 16; ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'lighter'; p.draw(ctx, spriteP(p), s); ctx.restore(); }
       ctx.save();
       ctx.translate(b[0], b[1]);
       ctx.scale(s, -(hpx / p.h));
       p.draw(ctx, spriteP(p), s);
       ctx.restore();
+      if (hov && p.hit.kind === 'target') { ctx.save(); ctx.strokeStyle = 'rgba(255,236,190,0.5)'; ctx.lineWidth = 1.5; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 12; ctx.strokeRect(rect.x + 2, rect.y + 2, rect.w - 4, rect.h - 4); ctx.restore(); }
     }
     if (p.hit) {
       const m = p.hitPad || 0;
       hits.push({ x: rect.x - m, y: rect.y - m + viewY, w: rect.w + 2 * m, h: rect.h + 2 * m, kind: p.hit.kind, ref: p.hit.ref });
-      if (hoverRef && p.hit.ref === hoverRef && !p.noHover) {
-        ctx.strokeStyle = 'rgba(255,240,210,0.45)'; ctx.lineWidth = 1.5;
-        ctx.strokeRect(rect.x - 3, rect.y - 3, rect.w + 6, rect.h + 6);
-      }
     }
     if (p.onRect) p.onRect(rect);
   }
@@ -316,15 +327,21 @@ const R = (() => {
       ctx.globalCompositeOperation = 'source-over';
     }
     if (fx.drawOverlay) fx.drawOverlay(ctx, W, H);
+    HANDS.draw(ctx, W, H);
     // vignette
     ctx.globalAlpha = 0.9;
     ctx.drawImage(vignette, 0, 0, W, H);
     ctx.globalAlpha = 1;
     // danger pulse (red edge)
     if (fx.danger > 0.001) {
-      const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.7);
-      g.addColorStop(0, 'rgba(120,0,0,0)'); g.addColorStop(1, 'rgba(120,0,0,' + ((fx.dangerCap || 0.75) * fx.danger) + ')');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      if (!dangerCv || dangerCvSize !== W * 10000 + H) {
+        dangerCv = document.createElement('canvas'); dangerCv.width = W; dangerCv.height = H; dangerCvSize = W * 10000 + H;
+        const dc = dangerCv.getContext('2d');
+        const g = dc.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.7);
+        g.addColorStop(0, 'rgba(120,0,0,0)'); g.addColorStop(1, 'rgba(120,0,0,1)');
+        dc.fillStyle = g; dc.fillRect(0, 0, W, H);
+      }
+      ctx.globalAlpha = (fx.dangerCap || 0.75) * fx.danger; ctx.drawImage(dangerCv, 0, 0); ctx.globalAlpha = 1;
     }
     // film grain
     grainIdx = (grainIdx + 1) & 3;

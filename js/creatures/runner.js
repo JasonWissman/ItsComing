@@ -1,6 +1,8 @@
 'use strict';
 CREATURES.runner = {
   name: 'the runner', h: 2.05, w: 1.7, faceY: 1.8, stepRate: 0.7, catchDist: 1.4, sound: 'runner',
+  death: { delay: 0.1, dur: 0.22, sting: 'stingHit' },
+  voice: { kind: 'pant', every: [3, 6] },
   init(c) { c.mode = 'crouch'; c.modeT = -0.5; c.hits = 0; c.wounded = false; c.dead = false; c.hurtFlash = 0; },
   speedMult(c, dt, seen) {
     if (c.dead) return 0;

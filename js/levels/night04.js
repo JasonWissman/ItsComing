@@ -4,7 +4,7 @@ LEVELS.push({
   id: 'quarry', title: 'The Quarry', facing: 270, eyeH: 1.65,
   pal: { skyTop: [96, 102, 112], fog: [152, 156, 160], ground: [64, 66, 58], fogDist: 48 },
   ambient: { wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 },
-  weather: { kind: 'mist', density: 1.2, wind: 0.5 },
+  weather: { kind: 'mist', density: 1.2, wind: 0.5, fogRoll: { period: 33, depth: 0.4, phase: 2 } },
   text: {
     intro: 'It only moves when nothing is looking at it.<br>It is standing at the far end of the quarry with its hands over its face.',
     hint: 'You will have to look away to find the chain and the lock. Be quick about it.',

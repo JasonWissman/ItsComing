@@ -1,6 +1,7 @@
 'use strict';
 CREATURES.walker = {
   name: 'the walker', h: 2.45, w: 1.5, faceY: 2.25, stepRate: 0.55, catchDist: 1.5, sound: 'walker',
+  voice: { kind: 'exhale', every: [5, 10] },
   init(c) { },
   speedMult(c, dt, seen) { return 1; },
   draw(ctx, c, P) {

@@ -186,6 +186,18 @@ const AUDIO = (() => {
       default: break;
     }
   }
+  // creature voices: quiet, panned, sparse
+  function voice(kind, vol, pan) {
+    if (!ac || vol < 0.004) return;
+    switch (kind) {
+      case 'exhale': noise(0.9, { freq: 260, q: 0.6, vol: vol * 0.7, attack: 0.25, pan }); tone(58, 0.8, { vol: vol * 0.25, endFreq: 42, attack: 0.2, pan }); break;
+      case 'hum': { const notes = [196, 220, 233, 262, 294]; const f = notes[Math.floor(Math.random() * notes.length)]; tone(f, 1.4, { vol: vol * 0.35, type: 'sine', attack: 0.3, pan }); tone(f * 1.5, 1.2, { vol: vol * 0.12, type: 'sine', attack: 0.4, pan, delay: 0.2 }); break; }
+      case 'clicks': for (let i = 0; i < 4 + Math.floor(Math.random() * 3); i++) noise(0.018, { type: 'bandpass', freq: 2600 + Math.random() * 1500, q: 6, vol: vol * 0.8, delay: i * (0.05 + Math.random() * 0.04), pan }); break;
+      case 'pant': for (let i = 0; i < 2; i++) { noise(0.16, { freq: 900, q: 0.8, vol: vol * 0.55, attack: 0.03, delay: i * 0.32, pan }); tone(110, 0.12, { vol: vol * 0.15, endFreq: 80, delay: i * 0.32, pan }); } break;
+      case 'slow': noise(2.4, { freq: 140, q: 0.5, vol: vol * 0.8, attack: 0.9, pan }); tone(36, 2.2, { vol: vol * 0.3, endFreq: 28, attack: 0.6, pan }); break;
+      default: break;
+    }
+  }
   function sfx(name, pan) {
     if (!ac) return;
     switch (name) {
@@ -224,6 +236,10 @@ const AUDIO = (() => {
       case 'ratchet': tone(320, 0.04, { vol: 0.18, type: 'square', endFreq: 200 }); noise(0.05, { freq: 1400, vol: 0.25, delay: 0.03 }); break;
       case 'thunder': noise(2.2, { freq: 160, vol: 0.55, attack: 0.15 }); tone(38, 1.8, { vol: 0.45, endFreq: 22, attack: 0.1 }); noise(0.5, { freq: 700, vol: 0.25, delay: 0.3 }); break;
       case 'hiss': noise(0.6, { type: 'bandpass', freq: 3000, q: 0.6, vol: 0.18, attack: 0.05 }); break;
+      case 'stingShriek': tone(900, 0.9, { vol: 0.5, type: 'sawtooth', endFreq: 2400 }); noise(1.0, { type: 'bandpass', freq: 3000, q: 2, vol: 0.9, attack: 0.002 }); tone(50, 1.2, { vol: 0.6, endFreq: 30, delay: 0.1 }); break;
+      case 'stingHum': for (const f of [196, 233, 277, 330]) tone(f, 1.1, { vol: 0.18, type: 'sine', attack: 0.4 }); noise(0.3, { freq: 200, vol: 0.9, delay: 1.25 }); tone(40, 0.6, { vol: 0.8, endFreq: 26, delay: 1.25 }); break;
+      case 'stingStone': noise(0.5, { type: 'bandpass', freq: 240, q: 3, vol: 0.9, attack: 0.002 }); noise(0.9, { freq: 900, vol: 0.6, delay: 0.08 }); tone(34, 1.4, { vol: 0.8, endFreq: 22 }); for (let i = 0; i < 5; i++) noise(0.04, { type: 'bandpass', freq: 1500 + i * 500, q: 5, vol: 0.4, delay: 0.1 + i * 0.05 }); break;
+      case 'stingHit': noise(0.18, { freq: 500, vol: 1.0, attack: 0.001 }); tone(70, 0.4, { vol: 0.9, endFreq: 30 }); noise(1.2, { freq: 1200, vol: 0.5, delay: 0.05, attack: 0.05 }); tone(300, 0.9, { vol: 0.3, type: 'sawtooth', endFreq: 60, delay: 0.1 }); break;
       case 'sting':
         noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002 });
         tone(400, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 40 });
@@ -237,5 +253,5 @@ const AUDIO = (() => {
     }
   }
 
-  return { init, on, resume, suspend, setMuted, setVolume, startAmbient, stopAmbient, setLoop, stopLoop, heartbeat, footstep, sfx, get muted() { return muted; } };
+  return { init, on, resume, suspend, setMuted, setVolume, startAmbient, stopAmbient, setLoop, stopLoop, heartbeat, footstep, voice, sfx, get muted() { return muted; } };
 })();

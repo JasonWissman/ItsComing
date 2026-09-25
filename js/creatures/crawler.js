@@ -1,6 +1,8 @@
 'use strict';
 CREATURES.crawler = {
   name: 'the crawler', h: 1.1, w: 2.0, faceY: 0.3, stepRate: 2.4, catchDist: 1.3, sound: 'crawler',
+  death: { delay: 0.08, dur: 0.28, sting: 'stingShriek' },
+  voice: { kind: 'clicks', every: [3, 7] },
   init(c) { c.mode = 'pause'; c.modeT = 0.4; },
   speedMult(c, dt, seen) {
     c.modeT += dt;

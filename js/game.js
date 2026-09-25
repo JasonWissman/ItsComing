@@ -66,7 +66,7 @@ function buildLevel(i) {
   G.attempt++;
   const rand = mulberry32((G.runSeed * 7919 + i * 131 + G.attempt * 17) >>> 0);
   const L = {
-    def, index: i, night: i + 1, t: 0, facing: def.facing * DEG, eyeH: def.eyeH || 1.65, pal: def.pal, diff,
+    def, index: i, night: i + 1, t: 0, facing: def.facing * DEG, eyeH: def.eyeH || 1.65, pal: Object.assign({ id: def.id }, def.pal), diff,
     props: [], items: [], targets: [], creatures: [], recipes: [], s: {}, won: false, aftermathT: 0, after: null,
     rand, usedSpots: new Set(), placed: [],
     floor: { poly: def.floor ? def.floor.poly : null, y: def.floor && def.floor.y !== undefined ? def.floor.y : (def.floorY || 0) },
@@ -495,7 +495,11 @@ function update(dt) {
   G.fade += (G.fadeTarget - G.fade) * (1 - Math.exp(-dt * 3.5));
   if (G.toastT > 0) { G.toastT -= dt; if (G.toastT <= 0) UI.toast.classList.remove('show'); }
   if (L.s.recoil > 0) L.s.recoil = Math.max(0, L.s.recoil - dt * 4);
+  HANDS.update(dt);
   if (G.state !== 'paused') {
+    // fog rolls: visibility breathes, and a scripted bank can swallow the thing for a while
+    const fr = L.def.weather && L.def.weather.fogRoll;
+    if (fr) L.pal.fogDist = L.def.pal.fogDist * (1 - fr.depth * 0.5 * (1 + Math.sin(G.t * TAU / fr.period + (fr.phase || 0)))) * (L.fogBank !== undefined ? L.fogBank : 1);
     LIGHT.set(L.dynamicLights ? L.lights.concat(L.dynamicLights()) : L.lights);
     LIGHT.update(dt, G.t);
     WEATHER.update(dt, G.t);
@@ -569,6 +573,12 @@ function updateCreature(L, c, dt, live) {
   const prevGait = c.gait;
   c.gait += moved * CR.stepRate * Math.PI;
   c.moving = moved > 0.0004;
+  if (!c.moving && !c.dead) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
+  if (CR.voice && !c.dead && !G.muted && live) {
+    if (c.voiceT === undefined) c.voiceT = CR.voice.every[0] + c.rand() * (CR.voice.every[1] - CR.voice.every[0]);
+    c.voiceT -= dt * (1 + clamp(1 - d / 40, 0, 1));
+    if (c.voiceT <= 0) { c.voiceT = CR.voice.every[0] + c.rand() * (CR.voice.every[1] - CR.voice.every[0]); AUDIO.voice(CR.voice.kind, clamp(3 / (d + 2), 0, 0.7), Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); }
+  }
   const pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
   if (CR.sound && Math.floor(c.gait / Math.PI) !== Math.floor(prevGait / Math.PI) && !G.muted) AUDIO.footstep(CR.sound, clamp(2.4 / (d + 1.6), 0, 0.85) * 0.6, pan);
   if (CR.silentWhenSeen && !G.muted && c.idx === 0) AUDIO.setLoop((!seen && c.moving && !L.won) ? 'grind' : null, clamp(0.15 + 3 / (d + 2), 0, 0.6), pan);
@@ -624,7 +634,7 @@ function render() {
   for (const cr of L.creatures) {
     const CR = cr.CR, pos = cr.pos();
     let p = rend.get(cr);
-    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => CR.draw(ctx, cr, P), onRect: rect => { cr.rect = rect; } }; rend.set(cr, p); }
+    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); if (!cr.moving) ctx.rotate(0.008 * Math.sin(cr.t * 0.7)); } CR.draw(ctx, cr, P); }, onRect: rect => { cr.rect = rect; } }; rend.set(cr, p); }
     p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = cr.dist; p.layer = 1;
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);
@@ -645,19 +655,7 @@ function render() {
 function drawGunOverlay(ctx, W, H) {
   const L = G.L;
   const u = activeUse(L);
-  if (!u || u.tool !== 'shotgun' || G.state === 'dead' || G.state === 'dying') return;
-  const up = clamp(G.cam.pitch / PITCH_DOWN, 0, 1);
-  const k = L.s.recoil || 0;
-  const bx = W * 0.72 + k * 20, by = H + up * 260 - k * 60;
-  ctx.save();
-  ctx.translate(bx, by); ctx.rotate(-0.55 + k * 0.12);
-  const len = Math.min(W, H) * 0.7;
-  ctx.fillStyle = '#0d0d10';
-  ctx.fillRect(-28, -len, 26, len + 40); ctx.fillRect(2, -len, 26, len + 40);
-  ctx.fillStyle = '#1a1a20';
-  ctx.fillRect(-26, -len, 8, len); ctx.fillRect(4, -len, 8, len);
-  ctx.fillStyle = '#3a2a1c'; ctx.fillRect(-40, -len * 0.35, 80, len * 0.4);
-  ctx.restore();
+  if (!u || G.state === 'dead' || G.state === 'dying') return;
   if (G.cam.pitch < 0.3 && G.state === 'play' && G.mouse.x >= 0 && (!u.ammo || G.hasItem(u.ammo))) {
     ctx.strokeStyle = 'rgba(255,230,200,0.5)'; ctx.lineWidth = 1;
     const mx = G.mouse.x, my = G.mouse.y - R.viewY;
@@ -732,7 +730,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - G._last) / 1000); G._last = now;
   G.fps = lerp(G.fps, 1 / Math.max(dt, 1e-3), 0.05);
   if (!document.hidden && G.state !== 'error') {
-    try { update(dt); render(); }
+    try { const t0 = G.benching ? performance.now() : 0; update(dt); render(); if (G.benching) G.benching.push(performance.now() - t0); }
     catch (e) {
       G.errorCount++;
       console.error(e);
@@ -777,9 +775,30 @@ function init() {
   G.seed = isNaN(sd) ? null : sd;
   G.runSeed = G.seed !== null ? G.seed : (Date.now() % 1000000);
   showTitle();
+  if (q.has('bench')) startBench(parseInt(q.get('bench'), 10) || 1);
   if (q.has('level')) { const n = parseInt(q.get('level'), 10); if (!isNaN(n)) startLevel(clamp(n - 1, 0, LEVELS.length - 1), !q.has('go')); }
   if (G.debug) { const probs = validateContent(); if (probs.length) console.warn('content problems:\n' + probs.join('\n')); else console.log('content ok'); }
   G._last = performance.now();
   if (!G.noRaf) requestAnimationFrame(frame);
+}
+// ?bench=N: play night N and sweep every direction and pitch, measuring frame times; results in G.bench
+function startBench(n) {
+  startLevel(clamp(n - 1, 0, LEVELS.length - 1), false);
+  G.benching = [];
+  const views = []; for (let d = 0; d < 8; d++) for (const down of [false, true]) views.push({ d, down });
+  let frames = 0;
+  const tick = () => {
+    frames++;
+    const v = views[Math.min(views.length - 1, Math.floor(frames / 60))];
+    G.cam.dirIdx = v.d; G.cam.tYaw = G.cam.yaw = v.d * 45 * DEG; G.cam.tPitch = G.cam.pitch = v.down ? PITCH_DOWN : 0;
+    if (frames < views.length * 60) requestAnimationFrame(tick);
+    else {
+      const s = G.benching.slice(10).sort((a, b) => a - b); G.benching = null;
+      G.bench = { night: n, frames: s.length, mean: +(s.reduce((a, b) => a + b, 0) / s.length).toFixed(2), p50: +s[Math.floor(s.length * 0.5)].toFixed(2), p95: +s[Math.floor(s.length * 0.95)].toFixed(2), max: +s[s.length - 1].toFixed(2) };
+      console.log('bench (ms of update+render per frame)', JSON.stringify(G.bench));
+      if (G.debug) UI.debug.textContent = 'bench ' + JSON.stringify(G.bench);
+    }
+  };
+  requestAnimationFrame(tick);
 }
 window.addEventListener('DOMContentLoaded', init);
