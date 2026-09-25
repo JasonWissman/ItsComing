@@ -7,7 +7,7 @@
 function spotKey(s) { return s.key || (s.deg !== undefined ? 'p' + s.deg + ':' + s.dist : 'c' + s.x.toFixed(1) + ':' + s.z.toFixed(1)); }
 function spotLocal(s) { return s.x !== undefined ? [s.x, s.z] : [Math.sin(s.deg * DEG) * s.dist, Math.cos(s.deg * DEG) * s.dist]; }
 function pickSpot(L, spots) {
-  const clear = s => { const p = spotLocal(s); return L.placed.every(q => Math.hypot(p[0] - q[0], p[1] - q[1]) >= 0.6); };
+  const clear = s => { const p = spotLocal(s); return L.placed.every(q => Math.hypot(p[0] - q[0], p[1] - q[1]) >= 0.8); };
   let pool = spots.filter(s => !L.usedSpots.has(spotKey(s)) && clear(s));
   if (!pool.length) pool = spots.filter(s => !L.usedSpots.has(spotKey(s)));
   if (!pool.length) pool = spots;
