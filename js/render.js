@@ -78,6 +78,7 @@ const R = (() => {
       if (ang > 0) {
         const k = clamp(ang / (Math.PI / 2.6), 0, 1);
         col = mixc(fog, skyTop, Math.pow(k, 0.6));
+        if (LIGHT.global > 0.01) col = mixc(col, [225, 228, 245], Math.min(0.85, LIGHT.global * 0.9));
       } else {
         const d = eyeH / Math.tan(-ang);
         col = mixc(ground, fog, fogAmt(d));
@@ -140,10 +141,13 @@ const R = (() => {
   function measure(p) {
     if (p.dist === undefined) {
       if (p.kind === 'poly') {
-        let s = 0;
-        for (const v of p.pts) s += Math.hypot(v[0], v[2]);
-        p.dist = s / p.pts.length;
+        let s = 0, cx = 0, cy = 0, cz = 0;
+        for (const v of p.pts) { s += Math.hypot(v[0], v[2]); cx += v[0]; cy += v[1]; cz += v[2]; }
+        p.dist = s / p.pts.length; p.cx = cx / p.pts.length; p.cy = cy / p.pts.length; p.cz = cz / p.pts.length;
       } else p.dist = Math.hypot(p.x, p.z);
+    } else if (p.kind === 'poly' && p.cx === undefined) {
+      let cx = 0, cy = 0, cz = 0; for (const v of p.pts) { cx += v[0]; cy += v[1]; cz += v[2]; }
+      p.cx = cx / p.pts.length; p.cy = cy / p.pts.length; p.cz = cz / p.pts.length;
     }
     if (p.layer === undefined) p.layer = 1;
   }
@@ -190,22 +194,43 @@ const R = (() => {
       }
       return;
     }
-    const col = p.noFog ? p.color : fogged(p.color, p.dist);
+    const li = (LIGHT.list.length || LIGHT.global) && !p.noLight ? LIGHT.at(p.cx, p.cy, p.cz) : null;
+    const base = li ? LIGHT.apply(p.color, li) : p.color;
+    const col = p.noFog ? base : fogged(base, p.dist);
     if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
     if (p.stroke) {
       ctx.strokeStyle = rgba(col); ctx.lineWidth = Math.max(0.6, (p.lw || 0.02) * f / Math.max(NEAR, cs[0][2]));
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-    } else { ctx.closePath(); ctx.fillStyle = rgba(col); ctx.fill(); }
+    } else {
+      ctx.closePath(); ctx.fillStyle = rgba(col); ctx.fill();
+      // surface texture: multiply a tileable pattern through an affine fit of the quad, only when it is near and big
+      if (p.tex && cs.length === 4 && p.pts.length === 4 && (maxx - minx) * (maxy - miny) > 4000 && cs[0][2] < 14) {
+        const s0 = proj(cs[0]), s1 = proj(cs[1]), s3 = proj(cs[3]);
+        const lu = Math.hypot(p.pts[1][0] - p.pts[0][0], p.pts[1][1] - p.pts[0][1], p.pts[1][2] - p.pts[0][2]);
+        const lv = Math.hypot(p.pts[3][0] - p.pts[0][0], p.pts[3][1] - p.pts[0][1], p.pts[3][2] - p.pts[0][2]);
+        if (lu > 0.01 && lv > 0.01) {
+          const ppm = TEX.N / (p.texScale || 1);
+          const pat = TEX.pattern(ctx, p.tex);
+          pat.setTransform(new DOMMatrix([(s1[0] - s0[0]) / (lu * ppm), (s1[1] - s0[1]) / (lu * ppm), (s3[0] - s0[0]) / (lv * ppm), (s3[1] - s0[1]) / (lv * ppm), s0[0], s0[1]]));
+          ctx.globalCompositeOperation = 'multiply';
+          ctx.globalAlpha = (p.alpha === undefined ? 1 : p.alpha) * (p.texAlpha || 0.7);
+          ctx.fillStyle = pat; ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
     if (p.alpha !== undefined) ctx.globalAlpha = 1;
     if (hoverRef && p.hit && p.hit.ref === hoverRef) { ctx.strokeStyle = 'rgba(255,240,210,0.35)'; ctx.lineWidth = 1.5; ctx.stroke(); }
   }
 
   function spriteP(p) {
     const fa = p.noFog ? 0 : fogAmt(p.dist) * (p.fogScale === undefined ? 1 : p.fogScale);
+    const li = (LIGHT.list.length || LIGHT.global) && !p.noFog && !p.noLight ? LIGHT.at(p.x, p.y + (p.h || 0) * 0.5, p.z) : null;
     return {
-      fog: fa, fogColor, t: time,
-      col: c => rgba(mixc(c, fogColor, fa)),
-      cola: (c, a) => rgba(mixc(c, fogColor, fa), a),
+      fog: fa, fogColor, t: time, lit: li ? Math.min(1, li.lit) : 0,
+      col: c => rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)),
+      cola: (c, a) => rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa), a),
       raw: c => rgba(c),
     };
   }
@@ -278,6 +303,7 @@ const R = (() => {
   function post(fx) {
     ctx.setTransform(DPR, 0, 0, DPR, 0, viewY * DPR);
     if (viewY) { ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); }
+    WEATHER.draw(ctx);
     // radial glow (headlights, lantern) requested by the level
     if (fx.glows) for (const g of fx.glows) {
       const sp = screenPos(g.x, g.y, g.z);

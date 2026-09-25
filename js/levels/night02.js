@@ -3,7 +3,9 @@
 LEVELS.push({
   id: 'road', title: 'The Road', facing: 0, eyeH: 1.15,
   pal: { skyTop: [3, 3, 7], fog: [15, 15, 20], ground: [20, 19, 16], fogDist: 70 },
-  ambient: { wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220 },
+  ambient: { wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220, rain: 0.8 },
+  weather: { kind: 'rain', density: 0.8, wind: 0.4 },
+  lights: [{ x: 0.4, y: 0.75, z: 1.6, r: 52, i: 1.25, color: [228, 218, 178], cone: { x: 0, y: -0.06, z: 1, deg: 24 } }, { x: 0, y: 0.9, z: 0.55, r: 0.9, i: 0.1, color: [90, 200, 120] }],
   text: {
     intro: 'The engine died on the county road, miles from anything.<br>Something is coming up the middle of the road, low, in the headlights.',
     hint: 'The keys fell somewhere when the car stalled. The engine has been flooding all night.',
@@ -18,9 +20,8 @@ LEVELS.push({
   build(L) {
     const body = [44, 22, 24], bodyD = [24, 13, 15], dash = [26, 24, 26], dashD = [16, 15, 17], seat = [46, 40, 38], floor = [15, 14, 14];
     SC.stars(L, 7, 120, 0.5);
-    const head = z => clamp(1 - (z - 4) / 44, 0, 1) * 0.8;
-    SC.road(L, -2.6, 3.4, 1.2, 220, [46, 46, 52], 28, head);
-    for (let z = 6; z < 130; z += 9) SC.floorQ(L, 0.28, z, 0.55, z + 3, 0.02, mixc([80, 74, 44], [210, 200, 130], head(z)));
+    SC.road(L, -2.6, 3.4, 1.2, 220, [46, 46, 52], 40, null);
+    for (let z = 6; z < 130; z += 9) SC.floorQ(L, 0.28, z, 0.55, z + 3, 0.02, [150, 142, 90]);
     SC.groundDots(L, 9, 90, 3, 60, 80, [40, 38, 34], 0.3);
     const rng = mulberry32(21);
     for (let i = 0; i < 44; i++) { const side = rng() < 0.5 ? -1 : 1; const z = 8 + rng() * 120; const kind = rng() < 0.7 ? 'bare' : 'round'; const h = 6 + rng() * 8; const x = side * ((kind === 'round' ? 6 + h * 0.5 : 6) + rng() * 12) + 0.4; SC.tree(L, x, z, h, kind, (rng() * 1e6) | 0); }
@@ -30,8 +31,8 @@ LEVELS.push({
     SC.floorQ(L, -0.45, -1.0, 1.25, 0.75, 0.35, floor);
     SC.quad(L, [-0.5, 0.95, 0.55], [1.3, 0.95, 0.55], [1.3, 1.02, 0.95], [-0.5, 1.02, 0.95], dash);
     SC.quad(L, [-0.5, 0.5, 0.55], [1.3, 0.5, 0.55], [1.3, 0.95, 0.55], [-0.5, 0.95, 0.55], dashD);
-    SC.quad(L, [-0.28, 0.84, 0.54], [0.28, 0.84, 0.54], [0.28, 0.93, 0.54], [-0.28, 0.93, 0.54], [14, 24, 18], { noFog: true });
-    for (const x of [-0.16, 0.0, 0.16]) SC.quad(L, [x - 0.035, 0.865, 0.535], [x + 0.035, 0.865, 0.535], [x + 0.035, 0.905, 0.535], [x - 0.035, 0.905, 0.535], [22, 52, 34], { noFog: true });
+    SC.quad(L, [-0.28, 0.84, 0.54], [0.28, 0.84, 0.54], [0.28, 0.93, 0.54], [-0.28, 0.93, 0.54], [14, 24, 18], { noFog: true, noLight: true });
+    for (const x of [-0.16, 0.0, 0.16]) SC.quad(L, [x - 0.035, 0.865, 0.535], [x + 0.035, 0.865, 0.535], [x + 0.035, 0.905, 0.535], [x - 0.035, 0.905, 0.535], [22, 52, 34], { noFog: true, noLight: true });
     SC.sprite(L, 0.18, 0.74, 0.5, 0.1, 0.1, (ctx, P) => { ctx.scale(0.1, 0.1); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([110, 110, 116])); P_ell(ctx, 0, 0.5, 0.3, 0.3, P.col([18, 18, 20])); P_rect(ctx, -0.05, 0.28, 0.1, 0.44, P.col([80, 80, 86])); });
     SC.quad(L, [-0.55, 1.02, 0.95], [1.35, 1.02, 0.95], [1.3, 0.92, 2.5], [-0.5, 0.92, 2.5], body);
     { // steering wheel + column
@@ -85,7 +86,6 @@ LEVELS.push({
     L.isWon = () => L.flags.started;
     L.objectiveText = () => L.flags.started ? 'Drive.' : L.flags.keyIn ? 'Turn the key.' : 'Find the keys. Start the car.';
     L.dynamic = () => { if (L.flags.keyIn) R.add(iconSprite(L, 'keys', 0.19, 0.7, 0.49, 0.1, 0.16)); };
-    L.creatureLit = c => clamp(1 - (c.dist - 3) / 42, 0, 1) * 0.95;
     L.floor = { poly: [[-0.4, -0.9], [1.2, -0.9], [1.2, 0.7], [-0.4, 0.7]], y: 0.36 };
     L.onEnd = () => AUDIO.stopLoop();
   }

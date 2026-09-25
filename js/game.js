@@ -92,7 +92,15 @@ function buildLevel(i) {
   if (L.barrierDist === undefined) L.barrierDist = L.lane.barrierDist || 0;
   L.uses = def.uses || L.uses || [];
   if (def.startInv) for (const id of def.startInv) { const it = L.items.find(x => x.id === id); if (it) { it.taken = true; G.inv.push(it); } }
+  // lights are declared in the local frame; cones carry a direction
+  L.lights = (L.lights || []).concat((def.lights || []).map(l => worldLight(L, l)));
   return L;
+}
+function worldLight(L, l) {
+  const p = L.pt(l.x, l.y, l.z);
+  const w = Object.assign({}, l, { x: p[0], y: p[1], z: p[2], seed: L.rand() * 10 });
+  if (l.cone) { const d = rotY(l.cone.x, l.cone.z, L.facing); const len = Math.hypot(d[0], l.cone.y, d[1]) || 1; w.cone = { x: d[0] / len, y: l.cone.y / len, z: d[1] / len, cos: Math.cos((l.cone.deg || 25) * DEG) }; }
+  return w;
 }
 // the whole content set, checked for problems: run under ?debug and from the tests
 function validateContent() {
@@ -122,6 +130,7 @@ function startLevel(i, withCard) {
   G.inv = []; G.active = 0; G.hover = null; G.invSig = ''; G.holding = null; G.throwing = null; G.error = null;
   G.L = buildLevel(i);
   R.prepare(G.L.props);
+  WEATHER.set(G.L.def.weather, G.runSeed + i);
   const c = G.cam;
   c.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8;
   c.tYaw = c.yaw = c.dirIdx * 45 * DEG; c.tPitch = c.pitch = 0; c.zoom = 1; c.zoomHeld = false;
@@ -155,6 +164,7 @@ function showTitle() {
   G.inv = [];
   G.L = buildLevel(0);
   R.prepare(G.L.props);
+  WEATHER.set(G.L.def.weather, G.runSeed);
   const c = G.cam; c.tYaw = c.yaw = 0; c.tPitch = c.pitch = 0; c.zoom = 1;
   G.fade = 0.35; G.fadeTarget = 0.35;
   setState('title');
@@ -485,6 +495,11 @@ function update(dt) {
   G.fade += (G.fadeTarget - G.fade) * (1 - Math.exp(-dt * 3.5));
   if (G.toastT > 0) { G.toastT -= dt; if (G.toastT <= 0) UI.toast.classList.remove('show'); }
   if (L.s.recoil > 0) L.s.recoil = Math.max(0, L.s.recoil - dt * 4);
+  if (G.state !== 'paused') {
+    LIGHT.set(L.dynamicLights ? L.lights.concat(L.dynamicLights()) : L.lights);
+    LIGHT.update(dt, G.t);
+    WEATHER.update(dt, G.t);
+  }
 
   if (G.state === 'play' || G.state === 'won') {
     L.t += dt;
@@ -558,7 +573,8 @@ function updateCreature(L, c, dt, live) {
   if (CR.sound && Math.floor(c.gait / Math.PI) !== Math.floor(prevGait / Math.PI) && !G.muted) AUDIO.footstep(CR.sound, clamp(2.4 / (d + 1.6), 0, 0.85) * 0.6, pan);
   if (CR.silentWhenSeen && !G.muted && c.idx === 0) AUDIO.setLoop((!seen && c.moving && !L.won) ? 'grind' : null, clamp(0.15 + 3 / (d + 2), 0, 0.6), pan);
   c.lat = CR.lateral ? CR.lateral(c) : 0;
-  c.lit = L.creatureLit ? L.creatureLit(c) : 0;
+  const cp = c.pos(), li = LIGHT.list.length ? LIGHT.at(cp.x, cp.y + CR.h * 0.5, cp.z) : null;
+  c.lit = Math.max(L.creatureLit ? L.creatureLit(c) : 0, li ? Math.min(1, li.lit) : 0);
   if (live && !L.won && L.barrierDist && !c.reached && d <= L.barrierDist) { c.reached = true; if (L.onReach) L.onReach(c); }
   if (live && !L.won && d <= c.catchDist && !c.dead) {
     if (L.onCatch && L.onCatch(c)) return;
@@ -603,6 +619,7 @@ function render() {
     R.add({ kind: 'sprite', x, y, z, w: th.it.w, h: th.it.h, draw: (ctx, P) => { ctx.scale(th.it.w, th.it.h); th.it.icon(ctx, P); } });
   }
   if (L.dynamic) L.dynamic();
+  if (L.clouds) for (const cl of L.clouds) { const yaw = cl.yaw0 + G.t * cl.drift; const r = 800 * Math.cos(Math.asin(cl.y / 800)); cl.x = Math.sin(yaw) * r; cl.z = Math.cos(yaw) * r; R.add(cl); }
   const canUse = G.state === 'play' && !!activeUse(L);
   for (const cr of L.creatures) {
     const CR = cr.CR, pos = cr.pos();

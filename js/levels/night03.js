@@ -3,7 +3,8 @@
 LEVELS.push({
   id: 'graveyard', title: 'The Graveyard', facing: 45, eyeH: 1.65,
   pal: { skyTop: [22, 14, 32], fog: [74, 60, 72], ground: [42, 46, 36], fogDist: 64 },
-  ambient: { wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300 },
+  ambient: { wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300, rain: 0.35 },
+  weather: { kind: 'rain', density: 0.45, wind: 0.2 },
   text: {
     intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
     hint: 'The old rules for the chapel door: salt across the threshold, and a light beside it.',
@@ -18,13 +19,14 @@ LEVELS.push({
   build(L) {
     const stone = [80, 76, 72], stoneD = [58, 54, 52], floor = [66, 62, 58], iron = [30, 30, 32];
     SC.stars(L, 13, 60, 0.35);
-    SC.floorQ(L, -2.2, -1.7, 2.2, 1.9, 0.01, floor);
-    SC.wallV(L, -2.2, -1.7, 2.2, -1.7, 0, 3.4, stone);
+    SC.clouds(L, 14, 6, [58, 44, 62], 0.28);
+    SC.floorQ(L, -2.2, -1.7, 2.2, 1.9, 0.01, floor, { tex: 'stone', texScale: 1.2 });
+    SC.wallV(L, -2.2, -1.7, 2.2, -1.7, 0, 3.4, stone, { tex: 'stone', texScale: 1.6 });
     SC.wallV(L, -0.7, -1.69, 0.7, -1.69, 0, 2.4, [36, 28, 24]);
     SC.wallV(L, -0.03, -1.68, 0.03, -1.68, 0, 2.4, [24, 18, 16]);
     for (let y = 0.4; y < 2.4; y += 0.5) SC.wallV(L, -0.7, -1.68, 0.7, -1.68, y, y + 0.04, [24, 18, 16]);
-    SC.wallV(L, -2.2, -1.7, -2.2, 1.9, 0, 3.4, stoneD);
-    SC.wallV(L, 2.2, -1.7, 2.2, 1.9, 0, 3.4, stoneD);
+    SC.wallV(L, -2.2, -1.7, -2.2, 1.9, 0, 3.4, stoneD, { tex: 'stone', texScale: 1.6 });
+    SC.wallV(L, 2.2, -1.7, 2.2, 1.9, 0, 3.4, stoneD, { tex: 'stone', texScale: 1.6 });
     SC.box(L, -2.2, -1.8, 0, 3.4, 1.6, 2.0, stone); SC.box(L, 1.8, 2.2, 0, 3.4, 1.6, 2.0, stone);
     SC.wallV(L, -2.2, 1.95, 2.2, 1.95, 3.0, 3.4, stone);
     SC.box(L, 1.95, 2.2, 1.1, 1.16, -0.6, 0.4, stoneD);           // ledge on the east wall
@@ -82,7 +84,9 @@ LEVELS.push({
       if (thr.count) R.add(SC.mkQuad(L, [-1.05, 0.02, 1.6], [1.05, 0.02, 1.6], [1.05, 0.02, 1.92], [-1.05, 0.02, 1.92], [228, 224, 216], { alpha: thr.count >= 2 ? 0.92 : 0.35 }));
       if (hook.hung) R.add(SC.mkSprite(L, 0.78, 1.3, 1.77, 0.3, 0.44, (ctx, P) => { P.lit = hook.lit; ctx.scale(0.3, 0.44); ICONS.lantern(ctx, P); }));
 };
-    L.glows = () => { if (!hook.lit) return null; const p = L.pt(0.78, 1.52, 1.77); return [{ x: p[0], y: p[1], z: p[2], r: 3.2 + Math.sin(L.t * 9) * 0.12 + Math.sin(L.t * 23) * 0.05, color: [255, 190, 110], a: 0.3 }]; };
+    L.glows = () => { if (!hook.lit) return null; const p = L.pt(0.78, 1.52, 1.77); return [{ x: p[0], y: p[1], z: p[2], r: 2.2 + Math.sin(L.t * 9) * 0.12 + Math.sin(L.t * 23) * 0.05, color: [255, 190, 110], a: 0.22 }]; };
+    const lampP = L.pt(0.78, 1.5, 1.77);
+    L.dynamicLights = () => hook.lit ? [{ x: lampP[0], y: lampP[1], z: lampP[2], r: 7, i: 0.9, color: [255, 180, 100], flicker: 0.7, seed: 3 }] : [];
     L.floor = { poly: [[-2.1, -1.6], [2.1, -1.6], [2.1, 1.8], [-2.1, 1.8]], y: 0 };
   }
 });

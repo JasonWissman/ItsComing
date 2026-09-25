@@ -4,6 +4,8 @@ LEVELS.push({
   id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
   pal: { skyTop: [6, 8, 16], fog: [54, 60, 74], ground: [126, 132, 148], fogDist: 120 },
   ambient: { wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 },
+  weather: { kind: 'snow', density: 1, wind: 0.5 },
+  lights: [{ x: 1.7, y: 1.7, z: -1.45, r: 6, i: 0.55, color: [255, 190, 110], flicker: 0.15 }],
   text: {
     intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming straight for the porch.',
     hint: 'The shotgun is somewhere on the porch, and so is the box of shells. There are three, and you will need two.',
@@ -25,12 +27,13 @@ LEVELS.push({
   build(L) {
     const logs = [60, 44, 32], logsD = [42, 30, 22], porch = [76, 62, 50];
     SC.stars(L, 51, 220, 0.9);
+    SC.clouds(L, 52, 4, [26, 30, 44], 0.4);
     SC.moon(L, 150, 21, 6, [220, 224, 235]);
-    SC.floorQ(L, -3.2, -1.6, 3.2, 1.6, 0.35, porch);
+    SC.floorQ(L, -3.2, -1.6, 3.2, 1.6, 0.35, porch, { tex: 'planks', texScale: 1.3 });
     for (let x = -3.0; x < 3.2; x += 0.42) SC.floorQ(L, x, -1.6, x + 0.03, 1.6, 0.355, logsD);
     SC.wallV(L, -3.2, 1.6, 3.2, 1.6, 0, 0.35, logsD);
     SC.box(L, -0.8, 0.8, 0, 0.18, 1.6, 2.2, porch);
-    SC.wallV(L, -3.4, -1.6, 3.4, -1.6, 0, 3.0, logs);
+    SC.wallV(L, -3.4, -1.6, 3.4, -1.6, 0, 3.0, logs, { tex: 'logs', texScale: 1.0 });
     for (let y = 0.3; y < 3; y += 0.32) SC.wallV(L, -3.4, -1.59, 3.4, -1.59, y, y + 0.05, logsD);
     SC.wallV(L, -0.55, -1.58, 0.55, -1.58, 0.35, 2.3, [32, 24, 18]);
     SC.wallV(L, 1.2, -1.58, 2.2, -1.58, 1.3, 2.1, [222, 162, 82], { noFog: true });

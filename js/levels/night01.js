@@ -4,6 +4,8 @@ LEVELS.push({
   id: 'field', title: 'The Field', facing: 0, eyeH: 1.65,
   pal: { skyTop: [6, 8, 18], fog: [46, 52, 68], ground: [36, 46, 32], fogDist: 105 },
   ambient: { wind: 1, drone: 0.8, droneFreq: 50, windFreq: 380 },
+  weather: { kind: 'mist', density: 0.7, wind: 0.3 },
+  lights: [{ x: 0, y: 1.6, z: -2.2, r: 4.5, i: 0.4, color: [140, 160, 220] }],
   text: {
     intro: 'You woke up at the back door, and it was open.<br>Something is walking across the field toward the house. It has been walking for a while.',
     hint: 'There are planks somewhere in the house, and a hammer.',
@@ -17,6 +19,7 @@ LEVELS.push({
   build(L) {
     const wood = [50, 40, 33], woodD = [38, 30, 25], frame = [96, 76, 52], floor = [46, 37, 30];
     SC.stars(L, 3, 170, 0.8);
+    SC.clouds(L, 4, 5, [34, 38, 54], 0.4);
     SC.moon(L, 24, 13, 8, [228, 222, 200]);
     const rng = mulberry32(11);
     for (let i = 0; i < 32; i++) { const x = (rng() * 2 - 1) * 120, z = 60 + rng() * 70; SC.tree(L, x, z, 7 + rng() * 7, 'bare', (rng() * 1e6) | 0); }
@@ -24,14 +27,14 @@ LEVELS.push({
     SC.fenceLine(L, -45, 17, 45, 17, 2.7, 1.15, [44, 40, 34]);
     SC.groundDots(L, 5, 220, 6, 60, 110, [28, 36, 24], 0.22);
     // the house you are standing in: the back door looks out over the field
-    SC.floorQ(L, -2.8, -2.4, 2.8, 2.6, 0.006, floor);
+    SC.floorQ(L, -2.8, -2.4, 2.8, 2.6, 0.006, floor, { tex: 'planks', texScale: 1.2 });
     SC.quad(L, [-2.8, 2.7, -2.4], [2.8, 2.7, -2.4], [2.8, 2.7, 2.6], [-2.8, 2.7, 2.6], [30, 24, 20]);
-    SC.wallV(L, -7, 2.6, -0.8, 2.6, 0, 2.7, wood);
-    SC.wallV(L, 0.8, 2.6, 7, 2.6, 0, 2.7, wood);
-    SC.wallV(L, -0.8, 2.6, 0.8, 2.6, 2.12, 2.7, wood);
-    SC.wallV(L, -2.8, -2.4, -2.8, 2.6, 0, 2.7, woodD);
-    SC.wallV(L, 2.8, -2.4, 2.8, 2.6, 0, 2.7, woodD);
-    SC.wallV(L, -2.8, -2.4, 2.8, -2.4, 0, 2.7, woodD);
+    SC.wallV(L, -7, 2.6, -0.8, 2.6, 0, 2.7, wood, { tex: 'planks', texScale: 1.4 });
+    SC.wallV(L, 0.8, 2.6, 7, 2.6, 0, 2.7, wood, { tex: 'planks', texScale: 1.4 });
+    SC.wallV(L, -0.8, 2.6, 0.8, 2.6, 2.12, 2.7, wood, { tex: 'planks', texScale: 1.4 });
+    SC.wallV(L, -2.8, -2.4, -2.8, 2.6, 0, 2.7, woodD, { tex: 'planks', texScale: 1.4 });
+    SC.wallV(L, 2.8, -2.4, 2.8, 2.6, 0, 2.7, woodD, { tex: 'planks', texScale: 1.4 });
+    SC.wallV(L, -2.8, -2.4, 2.8, -2.4, 0, 2.7, woodD, { tex: 'planks', texScale: 1.4 });
     for (let y = 0.28; y < 2.7; y += 0.3) { SC.wallV(L, -7, 2.59, -0.8, 2.59, y, y + 0.03, [30, 24, 20]); SC.wallV(L, 0.8, 2.59, 7, 2.59, y, y + 0.03, [30, 24, 20]); SC.wallV(L, -2.79, -2.4, -2.79, 2.6, y, y + 0.03, [26, 21, 17]); SC.wallV(L, 2.79, -2.4, 2.79, 2.6, y, y + 0.03, [26, 21, 17]); SC.wallV(L, -2.8, -2.39, 2.8, -2.39, y, y + 0.03, [26, 21, 17]); }
     // a window in the back wall with a little moonlight in it
     SC.wallV(L, -0.7, -2.39, 0.7, -2.39, 1.1, 2.0, [36, 42, 60]);

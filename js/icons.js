@@ -232,14 +232,28 @@ const SC = {
       P_ell(ctx, r * 0.25, gw / 2 - r * 0.3, r * 0.16, r * 0.14, rgba(scalec(color, 0.88)));
     } });
   },
+  clouds(L, seed, n, color, alpha) {
+    const rng = mulberry32(seed | 0);
+    for (let i = 0; i < n; i++) {
+      const yaw0 = rng() * TAU, el = (8 + rng() * 30) * DEG, D = 800, w = 120 + rng() * 260, h = w * (0.18 + rng() * 0.15), drift = (0.002 + rng() * 0.004) * (rng() < 0.5 ? -1 : 1);
+      const a = alpha === undefined ? 0.35 : alpha;
+      const blobs = []; for (let k = 0; k < 4; k++) blobs.push([(rng() - 0.5) * 0.7, rng() * 0.4, 0.25 + rng() * 0.3]);
+      const c = { kind: 'sprite', x: 0, y: Math.sin(el) * D, z: 0, w, h, noFog: true, noLight: true, layer: 0, dist: D, yaw0, drift, draw: (ctx, P) => {
+        ctx.scale(w, h);
+        for (const [bx, by, br] of blobs) P_ell(ctx, bx, by, br, br * 0.9, rgba(color, a * (LIGHT.global > 0.01 ? 1.6 : 1)));
+      } };
+      L.clouds = L.clouds || []; L.clouds.push(c);
+    }
+  },
   stars(L, seed, n, alpha) {
     const rng = mulberry32(seed | 0);
     for (let i = 0; i < n; i++) {
       const yaw = rng() * TAU, el = (4 + rng() * 70) * DEG, D = 900;
       const x = Math.sin(yaw) * D * Math.cos(el), z = Math.cos(yaw) * D * Math.cos(el), y = Math.sin(el) * D;
       const b = 0.35 + rng() * 0.65, s = 0.9 + rng() * 1.4;
-      L.props.push({ kind: 'sprite', x, y, z, w: s, h: s, noFog: true, layer: 0, dist: D, draw: (ctx) => {
-        ctx.fillStyle = 'rgba(220,225,255,' + (b * (alpha === undefined ? 1 : alpha)) + ')';
+      const ph = rng() * TAU, tw = 0.5 + rng() * 2;
+      L.props.push({ kind: 'sprite', x, y, z, w: s, h: s, noFog: true, noLight: true, layer: 0, dist: D, draw: (ctx, P) => {
+        ctx.fillStyle = 'rgba(220,225,255,' + (b * (alpha === undefined ? 1 : alpha) * (0.72 + 0.28 * Math.sin(P.t * tw + ph))) + ')';
         ctx.beginPath(); ctx.arc(0, s / 2, s / 2, 0, TAU); ctx.fill();
       } });
     }

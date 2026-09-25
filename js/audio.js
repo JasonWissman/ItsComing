@@ -103,6 +103,13 @@ const AUDIO = (() => {
     lfo2.connect(lfo2G); lfo2G.connect(wg.gain);
     src.connect(lp); lp.connect(wg); wg.connect(g);
     nodes.push(src, lfo, lfo2);
+    if (p.rain) {   // rain: bright hiss with a slow swell
+      const rs = ac.createBufferSource(); rs.buffer = noiseBuf; rs.loop = true;
+      const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2200;
+      const rg = ac.createGain(); rg.gain.value = 0.09 * p.rain;
+      const rl = ac.createOscillator(); rl.frequency.value = 0.07; const rlg = ac.createGain(); rlg.gain.value = 0.03 * p.rain; rl.connect(rlg); rlg.connect(rg.gain);
+      rs.connect(hp); hp.connect(rg); rg.connect(g); rs.start(); rl.start(); nodes.push(rs, rl);
+    }
     // drone: two detuned oscillators, very quiet
     const dg = ac.createGain(); dg.gain.value = 0.05 * (p.drone === undefined ? 1 : p.drone);
     const base = p.droneFreq || 52;
@@ -215,6 +222,7 @@ const AUDIO = (() => {
       case 'empty': tone(900, 0.03, { vol: 0.15, type: 'square' }); tone(600, 0.04, { vol: 0.12, type: 'square', delay: 0.06 }); break;
       case 'load': tone(300, 0.06, { vol: 0.2, type: 'square', endFreq: 220 }); noise(0.05, { freq: 900, vol: 0.2, delay: 0.12 }); tone(400, 0.05, { vol: 0.2, type: 'square', endFreq: 260, delay: 0.2 }); break;
       case 'ratchet': tone(320, 0.04, { vol: 0.18, type: 'square', endFreq: 200 }); noise(0.05, { freq: 1400, vol: 0.25, delay: 0.03 }); break;
+      case 'thunder': noise(2.2, { freq: 160, vol: 0.55, attack: 0.15 }); tone(38, 1.8, { vol: 0.45, endFreq: 22, attack: 0.1 }); noise(0.5, { freq: 700, vol: 0.25, delay: 0.3 }); break;
       case 'hiss': noise(0.6, { type: 'bandpass', freq: 3000, q: 0.6, vol: 0.18, attack: 0.05 }); break;
       case 'sting':
         noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002 });

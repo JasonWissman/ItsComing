@@ -4,6 +4,7 @@ LEVELS.push({
   id: 'quarry', title: 'The Quarry', facing: 270, eyeH: 1.65,
   pal: { skyTop: [96, 102, 112], fog: [152, 156, 160], ground: [64, 66, 58], fogDist: 48 },
   ambient: { wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 },
+  weather: { kind: 'mist', density: 1.2, wind: 0.5 },
   text: {
     intro: 'It only moves when nothing is looking at it.<br>It is standing at the far end of the quarry with its hands over its face.',
     hint: 'You will have to look away to find the chain and the lock. Be quick about it.',
@@ -19,7 +20,7 @@ LEVELS.push({
     const stone = [100, 102, 98], stoneD = [72, 74, 72];
     const wallH = 1.5;
     for (const [x0, z0, x1, z1] of [[-3.2, -3, -3.2, 2.6], [3.2, -3, 3.2, 2.6], [-3.2, -3, 3.2, -3], [-3.2, 2.6, -1.2, 2.6], [1.2, 2.6, 3.2, 2.6]])
-      SC.box(L, Math.min(x0, x1) - 0.2, Math.max(x0, x1) + 0.2, 0, wallH, Math.min(z0, z1) - 0.2, Math.max(z0, z1) + 0.2, stone);
+      SC.box(L, Math.min(x0, x1) - 0.2, Math.max(x0, x1) + 0.2, 0, wallH, Math.min(z0, z1) - 0.2, Math.max(z0, z1) + 0.2, stone, { tex: 'stone', texScale: 1.1 });
     SC.box(L, -1.35, -1.05, 0, 2.1, 2.45, 2.75, stoneD); SC.box(L, 1.05, 1.35, 0, 2.1, 2.45, 2.75, stoneD);
     SC.box(L, -0.5, 0.6, 0.4, 0.48, -2.4, -2.0, [72, 62, 50]);
     for (const [x, z] of [[-0.45, -2.35], [0.55, -2.35], [-0.45, -2.05], [0.55, -2.05]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [60, 50, 40]);
