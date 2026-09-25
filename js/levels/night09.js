@@ -12,7 +12,7 @@ LEVELS.push({
     intro: 'The box is warm and the line is empty both ways, except that it is not. Something is walking the sleepers toward you, in step, the way a man walks who has done it every night for forty years.<br>Something else is coming across the field. The last train is late.',
     hint: 'The signal lever holds him where he is, for a while. The points lever chooses which line the train takes. The bar goes across the door.',
     objective: 'Let the train have him. Bar the door.',
-    death: { default: 'The window glass did not slow him down.', crawler: 'It came up the stairs faster than you could bar them.' },
+    death: { default: 'The window glass did not slow him down.', crawler: 'It came up the stairs faster than you could bar them.', road: 'It came up the ladder from the road faster than you could bar the door.' },
     win: 'The train did not stop for him. Afterwards something scratched at the door until it got light, and you sat with your back to the levers and did not answer it.',
     fragment: 'Two tonight. You counted them, and got to three, and stopped counting.',
   },
@@ -23,7 +23,7 @@ LEVELS.push({
   ],
   creatures: [
     { type: 'signalman', lane: 0, startDist: 60, time: 42, gamma: 0.9, unseenMult: 1.15 },
-    { type: 'crawler', lanes: [1, 2], startDist: 70, time: 58, gamma: 0.75, unseenMult: 1.35 },
+    { type: 'crawler', lanes: [1, 2], startDist: 70, time: 58, gamma: 0.75, unseenMult: 1.2 },
   ],
   aftermath: { type: 'custom' },
   build(L) {
@@ -101,7 +101,7 @@ LEVELS.push({
     });
     if (needOil) mkItem(L, 'oilcan', 'Oil can', [{ x: 1.6, y: FL + 0.03, z: 0.4 }, { x: -1.6, y: FL + 0.03, z: -0.1 }, { x: 1.2, y: FL + 0.75, z: -0.3 }], { w: 0.28, h: 0.36 });
     if (decoy) mkItem(L, 'watercan', 'Oil can', [{ x: 0.5, y: FL + 0.03, z: 0.3 }, { x: -1.6, y: FL + 0.03, z: 0.9 }], { w: 0.28, h: 0.36, icon: 'oilcan', decoy: true, decoyText: 'Water. The wick just hisses.' });
-    Object.assign(s, { points: 'far', red: 0, stiff: 0, holdFor: L.tier(8, 7, 6), lampLit: !needOil, frameLocked: locked, barred: {}, trainAt: L.tier(45, 40, 36) + (L.rand() - 0.5) * 8, train: null, hornAt: null, taken: false, passed: false, belled: false });
+    Object.assign(s, { points: 'far', red: 0, stiff: 0, holdFor: L.tier(8, 7, 8), lampLit: !needOil, frameLocked: locked, barred: {}, trainAt: L.tier(45, 40, 36) + (L.rand() - 0.5) * 8, train: null, hornAt: null, taken: false, passed: false, belled: false });
     const smc = () => L.creatures[0], crc = () => L.creatures[1];   // the creatures are made after build
     const frameOk = () => { if (s.frameLocked) { G.say('The frame is padlocked.', 'Locked.'); AUDIO.sfx('nope'); return false; } return true; };
     if (locked) mkTarget(L, {
@@ -133,7 +133,7 @@ LEVELS.push({
     const mkDoor = (id, name, laneIdx, deg) => mkTarget(L, {
       id, name, deg, dist: laneIdx === 1 ? 1.75 : 1.45, y: FL, w: 1.6, h: 2.0, accepts: ['beam'],
       hint() { return s.barred[laneIdx] ? 'Barred.' : 'Shut, but not barred.'; },
-      use() { s.barred[laneIdx] = true; AUDIO.sfx('bar'); G.say('The bar is across.', 'Barred.'); return true; },
+      use() { if (s.barred[laneIdx]) return false; s.barred[laneIdx] = true; AUDIO.sfx('bar'); G.say('The bar is across.', 'Barred.'); return true; },
     });
     mkDoor('stairdoor', 'Stair door', 1, 270); mkDoor('roaddoor', 'Road door', 2, 180);
     // the train: a route distance r along the line from 300 m out; it takes whichever line the points give it
@@ -145,7 +145,7 @@ LEVELS.push({
       return [-12 - (r - 314), 9, -1];
     };
     L.update = dt => {
-      if (s.red > 0) { s.red -= dt; if (s.red <= 0) { s.red = 0; s.stiff = 5; AUDIO.sfx('clunk'); G.say('The lever springs back. He walks.', 'He walks.'); } }
+      if (s.red > 0) { s.red -= dt; if (s.red <= 0) { s.red = 0; s.stiff = L.tier(5, 5, 3); AUDIO.sfx('clunk'); G.say('The lever springs back. He walks.', 'He walks.'); } }
       if (s.stiff > 0) s.stiff -= dt;
       const sm = smc();
       sm.held = s.red > 0;
@@ -171,7 +171,7 @@ LEVELS.push({
       if (s.barred[c.lane.idx]) { c.hold = c.lane.barrierDist; if (!s.scratching) { s.scratching = Seq.play({ dur: 600, beats: [{ every: 1.3, do: () => { if (G.state === 'play') AUDIO.sfx('scrape', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); } }] }); G.toast('It is at the door.'); } }
     };
     L.isWon = () => s.taken && !!s.barred[crc().lane.idx];
-    L.deathCause = c => c.type === 'crawler' ? 'crawler' : null;
+    L.deathCause = c => c.type === 'crawler' ? (c.lane.idx === 2 ? 'road' : 'crawler') : null;
     L.objectiveText = () => (s.taken ? 'The train had him. ' : (s.lampLit ? '' : 'Oil the signal lamp. ') + 'Hold him with the signal. Set the points to the near line' + (s.points === 'near' ? ' (set). ' : '. ')) + (s.barred[crc().lane.idx] ? 'Door barred.' : 'Bar the ' + (crc().lane.idx === 1 ? 'stair' : 'road') + ' door.');
     L.dynamic = () => {
       // levers, the padlock, the signal lamp and the bell inside; the signal and the points outside
@@ -209,7 +209,8 @@ LEVELS.push({
     };
     L.glows = () => { const sm = smc(), sp = sm.pos(); const out = [{ x: sp.x, y: 0.75, z: sp.z, r: 0.9, color: [255, 190, 110], a: 0.25 }]; if (s.train) { const f = route(s.train.r), p = L.pt(f[0], 2.6, f[1]); out.push({ x: p[0], y: p[1], z: p[2], r: 3.5, color: [255, 240, 200], a: 0.3 }); } return out; };
     L.aftermath = (t, dt) => {
-      if (!s.after) { s.after = true; Seq.play({ dur: 6, beats: [{ every: 1.15, from: 0.6, do: () => AUDIO.sfx('scrape', Math.sin(wrapPi(crc().yaw - G.cam.yaw)) * 0.85) }, { at: 3.5, toast: 'Something is at the door. It stays there.' }] }); }
+      // the scratching only plays if the crawler actually got to a door; on Easy it can still be out in the snow
+      if (!s.after) { s.after = true; const near = crc().dist < 12; Seq.play({ dur: 6, beats: near ? [{ every: 1.15, from: 0.6, do: () => AUDIO.sfx('scrape', Math.sin(wrapPi(crc().yaw - G.cam.yaw)) * 0.85) }, { at: 3.5, toast: 'Something is at the door. It stays there.' }] : [] }); }
       return t >= 6;
     };
     L.onEnd = () => AUDIO.stopLoop();

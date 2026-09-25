@@ -18,7 +18,7 @@ LEVELS.push({
   },
   lanes: [
     { follow: 'behind', name: 'behind you', barrierDist: 0, default: true },
-    { deg: 30, name: 'the pedestal', barrierDist: 2.1, noSwitch: true },
+    { deg: 30, name: 'the pedestal', barrierDist: 2.1, noSwitch: true, blockers: [[3.95, 99]] }, // the hall wall: it comes in through the boards
     { deg: 180, name: 'the carousel', barrierDist: 0, noSwitch: true },
   ],
   creatures: [{ type: 'other', startDist: 30, time: 70, gamma: 0.8, seenMult: 0, unseenMult: 1.0 }],
@@ -87,16 +87,17 @@ LEVELS.push({
       onClick() {
         if (!s.placed) return false;
         if (s.playing) { G.say('Let it play.', 'Playing.'); return true; }
-        if (!G.hasItem('boxkey')) { G.say('It needs its key.', 'Not like this.'); AUDIO.sfx('nope'); return true; }
+        if (!G.hasItem('boxkey')) { G.say(G.hasItem('oldkey') ? 'The key does not fit the box.' : 'It needs its key.', G.hasItem('oldkey') ? 'It does not fit.' : 'Not like this.'); AUDIO.sfx('nope'); return true; }
         s.wound++; AUDIO.sfx('ratchet');
-        if (s.wound >= need) { s.wound = 0; s.playing = true; s.playT = runsDown ? 20 : Infinity; s.tune = 0; const c = c0(); if (c.lane.follow) { c.retarget(1); c.lured = true; c.ignoresGaze = true; L.lane = c.lane; L.laneIdx = 1; L.barrierDist = 2.1; } c.hold = null; G.say('The tune starts. Something behind you turns its head.', 'It plays.'); }
+        if (s.wound >= need) { s.wound = 0; s.playing = true; s.playT = runsDown ? 9 : Infinity; s.tune = 0; const c = c0(); if (c.lane.follow) { c.retarget(1); c.lured = true; c.ignoresGaze = true; L.lane = c.lane; L.laneIdx = 1; L.barrierDist = 2.1; c.dist = Math.min(c.dist, 3.9); c.distFn = (cr, dt) => Math.max(2.1, cr.dist - dt * 0.13); } c.hold = null; /* it steps in through the boards and walks the last metres slowly, to the tune */ G.say('The tune starts. Something behind you turns its head.', 'It plays.'); }
         return true;
       },
     });
+    if (L.diff.tier >= 3) SC.box(L, 1.28, 1.32, 0.5, 3.2, -3.36, -3.34, [150, 130, 90]); // the rope itself, hanging through the roof where the target is
     if (L.diff.tier >= 3) mkTarget(L, {
-      id: 'rope', name: 'Bell rope', x: 1.3, y: 0.5, z: -3.35, w: 0.2, h: 1.6, hold: 2.0,
+      id: 'rope', name: 'Bell rope', x: 1.3, y: 0.5, z: -3.35, w: 0.2, h: 1.6, hold: 2.0, hidden: true, // the second lure: only there once the spring has run down
       hint() { return s.luredOut ? 'Rung.' : 'A rope through the roof. The carousel bell is on the other end.'; },
-      use(item) { if (item !== null) return false; s.luredOut = true; AUDIO.sfx('bell'); const c = c0(); c.retarget(2); c.lured = true; c.ignoresGaze = true; c.hold = null; c.distFn = (cr, dt) => cr.dist + dt * 1.4; L.lane = c.lane; L.laneIdx = 2; G.say('The bell. It goes out to the carousel.', 'It goes.'); return true; },
+      use(item) { if (item !== null) return false; s.luredOut = true; L.text.win = 'It walked out to the carousel and stood under the bell while the ash came down, and did not look back once.'; AUDIO.sfx('bell'); const c = c0(); c.retarget(2); c.lured = true; c.ignoresGaze = true; c.hold = null; c.distFn = (cr, dt) => cr.dist + dt * 1.4; L.lane = c.lane; L.laneIdx = 2; G.say('The bell. It goes out to the carousel.', 'It goes.'); return true; },
     });
     // seen means: a live mirror is on screen. Once lured it is out in the open and seen the usual way.
     L.visFrac = c => {
@@ -117,7 +118,8 @@ LEVELS.push({
       const c = c0();
       if (s.playing) {
         s.tune -= dt; if (s.tune <= 0) { s.tune = 3.2; AUDIO.sfx('musicbox', Math.sin(wrapPi((L.facing) - G.cam.yaw)) * 0.7); }
-        if (s.playT !== Infinity) { s.playT -= dt; if (s.playT <= 0) { s.playing = false; c.hold = c.dist; G.say('The spring runs down. It stops where it is.', 'It stops.'); } }
+        // on Nightmare the spring runs down part way through the walk (never during the aftermath); the bell rope shows itself then
+        if (s.playT !== Infinity && !L.won) { s.playT -= dt; if (s.playT <= 0) { s.playing = false; c.hold = c.dist; G.say('The spring runs down. It stops where it is.', 'It stops.'); const rope = L.targets.find(t => t.id === 'rope'); if (rope) rope.hidden = false; } }
       }
     };
     L.dynamic = () => {
@@ -131,7 +133,7 @@ LEVELS.push({
       for (const [k] of [[0], [1]]) if (sheets && !s.mirrors[k].live) SC.withYaw(L, s.mirrors[k].deg, () => R.add(SC.mkQuad(L, [-0.95, 0.1, 3.44], [0.95, 0.1, 3.44], [0.95, 2.6, 3.44], [-0.95, 2.6, 3.44], [170, 160, 140])));
       if (s.placed) R.add(SC.mkSprite(L, 1.2, 1.1, 2.08, 0.34, 0.34, (ctx, P) => { ctx.scale(0.34, 0.34); ICONS.musicbox(ctx, P); if (s.playing) { ctx.translate(0, 0.72); ctx.rotate(Math.sin(L.t * 4) * 0.4); P_ell(ctx, 0, 0.06, 0.045, 0.08, P.col([230, 220, 210])); } }));
     };
-    L.aftermath = (t, dt) => { if (!s.after) { s.after = true; Seq.play({ dur: 6, beats: [{ at: 2.5, toast: 'It sways.' }] }); } return t >= 6; };
+    L.aftermath = (t, dt) => { if (!s.after) { s.after = true; Seq.play({ dur: 6, beats: [{ at: 2.5, toast: s.luredOut ? 'It goes.' : 'It sways.' }] }); } return t >= 6; };
     L.floor = { poly: [[-3.3, -3.3], [3.3, -3.3], [3.3, 3.3], [-3.3, 3.3]], y: 0 };
   }
 });

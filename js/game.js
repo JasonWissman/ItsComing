@@ -146,7 +146,7 @@ function startLevel(i, withCard) {
     setState('card');
     const d = G.diff(), T = G.L.text;
     const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.' : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
+    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
   } else {
     setState('play');
     hideOverlay();
