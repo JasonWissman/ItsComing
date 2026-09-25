@@ -66,6 +66,9 @@ The choice is remembered.
 
 Every way it can come is fully visible from where you stand: the approach lanes are checked by
 `validateContent()` so the thing is never hidden behind a wall on its way in.
+On Hard and Nightmare a shot fired out of range still spends a shell; Easy and Normal refuse it
+for free. On nights where more than one way must be shut, a way you have shut holds it for a
+moment, and then it goes round to the open one.
 
 With hints off, the level card gives only the situation, not the solution; the
 objective line at the top of the screen is hidden; hovering a target shows its
@@ -155,7 +158,7 @@ LEVELS.push({
   lanes: [{ deg: 0, name: 'back door', barrierDist: 2.75, apertures: [{ z, x0, x1, y0, y1 }], blockers: [[d0, d1]] }],
   creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
   aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang' },   // held, stand, retreat, down, custom
-  uses: [{ tool, ammo, range, onHit(c, hits, L), onMiss(L) }],       // things you use on the creature itself
+  uses: [{ tool, ammo, dudAmmo, range, onHit(c, hits, L), onMiss(L) }], // things you use on the creature itself
   build(L) { ... }
 });
 ```
@@ -181,7 +184,10 @@ LEVELS.push({
 - **Hooks** set inside `build`: `L.isWon()`, `L.barrierDist`, `L.floor = { poly, y }` (where
   dropped items may land), `L.dynamic()` (per-frame props via `SC.mkQuad` and friends),
   `L.update(dt)`, `L.onReach(c)`, `L.onCatch(c)`, `L.onPickup(it)`, `L.onDrop(it)`, `L.glows()`,
-  `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`.
+  `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`, `L.deathCause(c)` (a key into `text.death`),
+  `L.onDecoy(t, item)`, `L.onLaneSwitch(c, lane)`, and `L.sealed(lane)` on nights where more than one
+  way must be shut: a creature reaching a sealed way stands at the barrier for a moment, then goes
+  round to an open way if it has one (with that way's `cue`) instead of walking through.
 - **Feedback text** goes through `G.say(specific, vague)`: the first is shown with hints on, the
   second otherwise.
 - Every night has a solution in `test/nights/nightNN.js` so the suite can play it.

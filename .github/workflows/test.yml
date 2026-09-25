@@ -19,6 +19,6 @@ jobs:
       - name: lanes, switches, story, flow, features
         run: node test/lanes.js && node test/switch.js && node test/story.js && node test/flow.js && node test/features.js
       - name: every night's solution (normal, one seed)
-        run: SEEDS=1 node test/play.js
+        run: TIERS=normal,hard,nightmare SEEDS=1 node test/play.js
       - name: clickability sweep
         run: N=8 node test/hittest.js

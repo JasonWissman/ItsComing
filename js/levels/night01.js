@@ -64,7 +64,7 @@ LEVELS.push({
     SC.box(L, -2.2, -1.7, 0.42, 0.48, -2.1, -1.6, [68, 52, 40]); SC.box(L, -2.2, -1.7, 0.48, 1.0, -2.1, -2.04, [68, 52, 40]);
     STORY.lamp(L, 1.85, 0.78, -0.05);                          // the lamp on the table, unlit
     // items
-    const need = L.tier(3, 4, 4), nails = L.diff.tier >= 2, decoy = !!L.diff.decoys;
+    const need = L.tier(3, 4, 5), nails = L.diff.tier >= 2, decoy = !!L.diff.decoys; // Nightmare needs both piles
     mkItem(L, 'hammer', 'Hammer', [
       { x: 1.25, y: 0, z: 0.35 },                       // on the floor by the table
       { x: -2.2, y: 0, z: 0.7 },                        // under the shelf
@@ -98,7 +98,7 @@ LEVELS.push({
     const mkDoor = (id, name, deg, dist, w, lane) => {
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0, w, h: 2.1, accepts: ['planks'].concat(decoy ? ['rotten'] : []), requires: nails ? ['hammer', 'nails'] : ['hammer'], needed: need, lane,
-        hint() { return t.done ? 'Boarded up.' : (lane === 1 && s.frontOpen) ? 'The front door stands open.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
+        hint() { return t.done ? 'Boarded up.' : lane !== L.lane.idx ? 'The ' + name.toLowerCase() + '. Nothing is coming this way.' : (lane === 1 && s.frontOpen) ? 'The front door stands open.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
         onClick() { if (lane === 1 && s.frontOpen) { s.frontOpen = false; s.frontClosing = 0.8; AUDIO.sfx('creak'); return true; } return false; },
         use() {
           if (lane === 1 && (s.frontOpen || s.frontClosing > 0)) { G.say('Shut it first.', 'Not like this.'); return false; }
@@ -125,7 +125,9 @@ LEVELS.push({
       if (L.diff.tier >= 3) { const a = s.frontA, hx = -0.7, hz = -2.35; R.add(SC.mkWallV(L, hx, hz, hx + Math.sin(a) * 1.4, hz + Math.cos(a) * 1.4, 0, 2.08, [58, 46, 36])); }
       else R.add(SC.mkWallV(L, -0.7, -2.36, -0.7 + Math.sin(10 * DEG) * 1.4, -2.36 + Math.cos(10 * DEG) * 1.4, 0, 2.08, [58, 46, 36]));
     };
-    L.onReach = c => { const t = doorOf(c.lane); if (t.count > 0 && !t.done) { t.count = 0; AUDIO.sfx('smash'); G.shake(0.8); G.toast('It tears the boards off.'); } };
+    // it is on you a fraction of a second after it reaches the door, so the death line says what happened rather than a toast
+    L.onReach = c => { const t = doorOf(c.lane); if (t.count > 0 && !t.done) { t.count = 0; s.torn = true; AUDIO.sfx('smash'); G.shake(0.8); } };
+    L.deathCause = () => (s.torn ? 'reached' : 'default');
     L.floor = { poly: [[-2.7, -2.3], [2.7, -2.3], [2.7, 2.5], [-2.7, 2.5]], y: 0 };
   }
 });

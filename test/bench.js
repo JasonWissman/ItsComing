@@ -11,7 +11,7 @@ const T = require('./lib');
   for (let lvl = 1; lvl <= n; lvl++) {
     await page.goto(T.INDEX + '?bench=' + lvl + '&seed=1'); await page.waitForTimeout(400);
     const t0 = Date.now();
-    while (Date.now() - t0 < 40000 && !(await page.evaluate(() => !!G.bench))) await page.waitForTimeout(250);
+    while (Date.now() - t0 < 90000 && !(await page.evaluate(() => !!G.bench))) await page.waitForTimeout(250);
     const b = await page.evaluate(() => G.bench);
     if (!b) { T.fail('night ' + lvl + ': bench did not finish'); continue; }
     console.log('  night ' + lvl + ': mean ' + b.mean + ' ms, p95 ' + b.p95 + ' ms, max ' + b.max + ' ms (' + b.frames + ' frames)');

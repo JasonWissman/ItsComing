@@ -6,8 +6,8 @@ const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 const DIFFICULTIES = [
   { id: 'easy', name: 'Easy', desc: 'It comes slower. Hints on.', tier: 0, time: 1.35, unseen: 0.85, hints: true, steps: 0, lane: 'default', tick: true, variance: 0.05, decoys: 0, hardShots: false },
   { id: 'normal', name: 'Normal', desc: 'As intended. No hints.', tier: 1, time: 1.0, unseen: 1.0, hints: false, steps: 0, lane: 'default', tick: true, variance: 0.1, decoys: 0, hardShots: false },
-  { id: 'hard', name: 'Hard', desc: 'Faster, an extra step, and it may come another way. No hints.', tier: 2, time: 0.72, unseen: 1.25, hints: false, steps: 1, lane: 'seeded', tick: true, variance: 0.1, decoys: 0, hardShots: true },
-  { id: 'nightmare', name: 'Nightmare', desc: 'Much less time, two extra steps, no compass mark. It comes from wherever it likes.', tier: 3, time: 0.6, unseen: 1.4, hints: false, steps: 2, lane: 'random', tick: false, variance: 0.15, decoys: 1, hardShots: true, laneSwitch: true },
+  { id: 'hard', name: 'Hard', desc: 'Faster, an extra step, and it may come another way. No hints. Out-of-range shots waste ammo.', tier: 2, time: 0.72, unseen: 1.25, hints: false, steps: 1, lane: 'seeded', tick: true, variance: 0.1, decoys: 0, hardShots: true },
+  { id: 'nightmare', name: 'Nightmare', desc: 'Much less time, two extra steps, no compass mark. It comes from wherever it likes. Out-of-range shots waste ammo.', tier: 3, time: 0.6, unseen: 1.4, hints: false, steps: 2, lane: 'random', tick: false, variance: 0.15, decoys: 1, hardShots: true, laneSwitch: true },
 ];
 
 const G = {
@@ -361,7 +361,7 @@ function useTarget(t) {
   }
   if (item.decoy) {
     const c = L.creature; c.u = Math.min(0.995, c.u + 0.03); c.hitched = true;
-    G.say(item.decoyText || 'That is not it.', 'No.'); AUDIO.sfx('nope');
+    G.toast(item.decoyText || 'That is not it.'); AUDIO.sfx('nope'); // decoys only exist where hints are off, so their line is feedback, not a hint
     if (L.onDecoy) L.onDecoy(t, item);
     return;
   }
@@ -458,6 +458,7 @@ function startAftermath(L) {
 }
 function win() {
   const L = G.L; L.won = true; L.aftermathT = 0;
+  for (const c of L.creatures) if (c.sealHold) { c.hold = null; c.sealHold = false; } // the aftermath decides where it stands now
   setState('won');
   SAVE.unlock(L.diff.id, L.index + 1);
   SAVE.recordWin(L.def.id, L.diff.id, L.t);
@@ -472,13 +473,13 @@ function die(c, cause) {
   G.shake(1.4);
   c.lunge = 0; c.frozen = true; c.lungeFrom = c.dist;
   G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = c.lane.elev < -0.3 ? PITCH_DOWN : 0; G.cam.zoomHeld = false;
-  G.deathTime = L.t;
+  G.deathTime = L.t; G.deathAt = G.t; // the night clock for the card, the global clock for the toast test (toasts are stamped with G.t)
   SAVE.recordTry(L.def.id, L.diff.id);
 }
 function deathLine(L) {
   const T = L.text.death || {};
   let line = T[G.deathCause] || T.default || '';
-  if (G.lastToast.msg && G.deathTime - G.lastToast.t < 1.2 && !line.includes(G.lastToast.msg)) line = G.lastToast.msg + (line ? ' ' + line : '');
+  if (G.lastToast.msg && G.deathAt - G.lastToast.t < 1.2 && !line.includes(G.lastToast.msg)) line = G.lastToast.msg + (line ? ' ' + line : '');
   return line;
 }
 
@@ -632,6 +633,22 @@ function updateCreature(L, c, dt, live) {
   c.lit = Math.max(L.creatureLit ? L.creatureLit(c) : 0, li ? Math.min(1, li.lit) : 0);
   if (live) maybeSwitchLane(L, c);
   if (live && !L.won && barrier && !c.reached && d <= barrier) { c.reached = true; if (L.onReach) L.onReach(c); }
+  // a sealed way (L.sealed(lane), on nights where more than one way must be shut) holds it at the barrier before the night is
+  // won; after a moment it goes round to an open way if it has one, with that way's cue, and otherwise stands there
+  if (live && !L.won && barrier && L.sealed && !c.distFn && d <= barrier + 0.01) {
+    if (c.hold === null && L.sealed(c.lane)) { c.hold = barrier; c.sealHold = true; c.sealHeldAt = L.t; c.dist = d = barrier; }
+    else if (c.hold !== null && c.sealHeldAt !== undefined && L.t - c.sealHeldAt > 2.5) {
+      c.sealHeldAt = undefined;
+      const open = c.fixedLane ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && !L.sealed(l) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
+      if (open.length) {
+        const ln = open[Math.floor(c.rand() * open.length)];
+        c.hold = null; c.sealHold = false; c.retarget(ln.idx); c.reached = false;
+        if (c.idx === 0) { L.laneIdx = ln.idx; L.lane = ln; L.barrierDist = ln.barrierDist || 0; }
+        if (ln.cue) AUDIO.sfx(ln.cue, Math.sin(wrapPi(ln.yaw - G.cam.yaw)) * 0.85);
+        if (L.onLaneSwitch) L.onLaneSwitch(c, ln);
+      }
+    }
+  }
   if (live && !L.won && d <= c.catchDist && !c.dead) {
     if (L.onCatch && L.onCatch(c)) return;
     die(c, (L.deathCause && L.deathCause(c)) || (c.reached && L.text.death.reached ? 'reached' : 'default'));
@@ -717,7 +734,7 @@ function drawGunOverlay(ctx, W, H) {
   const L = G.L;
   const u = activeUse(L);
   if (!u || G.state === 'dead' || G.state === 'dying') return;
-  if (G.cam.pitch < 0.3 && G.state === 'play' && G.mouse.x >= 0 && (!u.ammo || G.hasItem(u.ammo))) {
+  if (G.cam.pitch < 0.3 && G.state === 'play' && G.mouse.x >= 0 && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
     ctx.strokeStyle = 'rgba(255,230,200,0.5)'; ctx.lineWidth = 1;
     const mx = G.mouse.x, my = G.mouse.y - R.viewY;
     ctx.beginPath(); ctx.moveTo(mx - 12, my); ctx.lineTo(mx - 4, my); ctx.moveTo(mx + 4, my); ctx.lineTo(mx + 12, my); ctx.moveTo(mx, my - 12); ctx.lineTo(mx, my - 4); ctx.moveTo(mx, my + 4); ctx.lineTo(mx, my + 12); ctx.stroke();

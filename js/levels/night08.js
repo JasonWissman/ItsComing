@@ -79,21 +79,22 @@ LEVELS.push({
     SC.box(L, 4.2, 6.0, 0.25, 0.85, 8.2, 12.0, [38, 36, 46]); SC.box(L, 4.4, 5.8, 0.85, 1.35, 9.2, 11.0, [28, 28, 36]);
     for (const [x, z] of [[4.2, 9], [6.0, 9], [4.2, 11.2], [6.0, 11.2]]) SC.box(L, x - 0.12, x + 0.12, 0, 0.5, z - 0.3, z + 0.3, [14, 14, 16]);
     SC.box(L, 8.6, 10.2, 0, 1.3, 6.6, 7.6, [40, 60, 44]);
-    SC.wallV(L, -40, 48, -10, 48, 0, 7, [22, 20, 24]); SC.wallV(L, -6, 50, 20, 50, 0, 5, [20, 18, 22]); SC.wallV(L, 24, 46, 50, 46, 0, 9, [24, 22, 26]);
+    // the far facades leave gaps where the two lanes cross them (deg 0 at x 0, deg 330 at x -27.7 by z 48), so it is in view from its first step
+    SC.wallV(L, -40, 48, -29.5, 48, 0, 7, [22, 20, 24]); SC.wallV(L, -26, 48, -10, 48, 0, 7, [22, 20, 24]); SC.wallV(L, -6, 50, -1.5, 50, 0, 5, [20, 18, 22]); SC.wallV(L, 1.5, 50, 20, 50, 0, 5, [20, 18, 22]); SC.wallV(L, 24, 46, 50, 46, 0, 9, [24, 22, 26]);
     for (const [x, y, z] of [[-30, 4, 47.9], [-22, 2.5, 47.9], [10, 3, 49.9], [30, 6, 45.9]]) SC.sprite(L, x, y, z, 0.8, 1.1, (ctx, P) => { ctx.scale(0.8, 1.1); P_rect(ctx, -0.5, 0, 1, 1, P.raw([200, 170, 110])); }, { noFog: true, noLight: true });
     const rng = mulberry32(88);
-    for (let i = 0; i < 14; i++) { const side = rng() < 0.5 ? -1 : 1, x = side * (14 + rng() * 26), z = 38 + rng() * 10; SC.tree(L, x, z, 6 + rng() * 6, 'bare', (rng() * 1e6) | 0); }
+    for (let i = 0; i < 14; i++) { const side = rng() < 0.5 ? -1 : 1, x = side * (14 + rng() * 26), z = 38 + rng() * 10; if (Math.abs(x) < 1.5 || Math.abs(x + 0.577 * z) < 1.5) continue; SC.tree(L, x, z, 6 + rng() * 6, 'bare', (rng() * 1e6) | 0); }
     // items: only the harder tiers have any
     const decoy = !!L.diff.decoys;
     const needCrank = L.diff.tier >= 2;
     if (needCrank) mkItem(L, 'crank', 'Shutter crank', [
       { x: 2.4, y: 0, z: -0.3 },                        // on the floor behind the counter
-      { x: -2.2, y: 1.0, z: 1.05 },                     // on the counter
-      { x: 3.3, y: 0.9, z: -2.1 },                      // on the back counter, by the coffee machine
+      { x: 1.3, y: 1.0, z: 1.05 },                      // on the counter, clear of the lamp
+      { x: 2.7, y: 0.9, z: -2.15 },                     // on the back counter, beside the coffee machine
       { x: -0.5, y: 1.02, z: -2.4 },                    // on the ledge of the kitchen pass
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
     ], { w: 0.42, h: 0.42, flat: true, tool: true });
-    if (decoy) mkItem(L, 'bentcrank', 'Shutter crank', [{ x: 1.0, y: 0, z: -0.6 }, { x: 2.9, y: 1.02, z: -2.4 }], { w: 0.42, h: 0.42, flat: true, decoy: true, decoyText: 'Bent. It will not turn.' });
+    if (decoy) mkItem(L, 'bentcrank', 'Shutter crank', [{ x: 1.0, y: 0, z: -0.6 }, { x: 3.3, y: 1.5, z: -2.25 }], { w: 0.42, h: 0.42, flat: true, decoy: true, decoyText: 'Bent. It will not turn.' });
     Object.assign(s, { tubes: [1, 1, 1, 1], nextDie: 12 + L.rand() * 3, dying: -1, mainOn: true, fixed: false, brk: [false, false, false], panelOpen: false, shutN: false, shutD: false, dark: false, rang: false, tapped: false, amb: 1 });
     // the shutters: hold-click targets over the window and the door; on the harder tiers the crank comes first
     const apN = L.addAperture(0, { z: 5.0, x0: -2.0, x1: 1.75, y0: 0, y1: 2.7 });
@@ -139,6 +140,7 @@ LEVELS.push({
       },
     }));
     const shut = lane => lane.idx === 0 ? s.shutN : s.shutD;
+    L.sealed = lane => shut(lane);
     L.isWon = () => s.fixed && L.tier(shut(L.lane), shut(L.lane), s.shutN && s.shutD);
     L.objectiveText = () => {
       const sh = L.diff.tier >= 3 ? ((s.shutN ? 'Window shuttered. ' : 'Shutter the window. ') + (s.shutD ? 'Door shuttered. ' : 'Shutter the door. ')) : shut(L.lane) ? 'Shutter down. ' : 'Pull down the shutter on the ' + L.lane.name + '. ';

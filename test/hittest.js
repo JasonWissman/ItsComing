@@ -11,8 +11,8 @@ const T = require('./lib'); const URL = T.INDEX;
   for (let lvl = 1; lvl <= NLEVELS; lvl++) {
     const found = {};
     for (const seed of seeds) {
-      await page.goto(URL + '?level=' + lvl + '&go&seed=' + seed); await page.waitForTimeout(200);
-      const ids = await page.evaluate(() => G.L.items.map(i => i.id));
+      await page.goto(URL + '?level=' + lvl + '&go&seed=' + seed + '&diff=' + (seed % 2 ? 'normal' : 'nightmare')); await page.waitForTimeout(200); // every other layout on Nightmare, so tier-only items are checked too
+      const ids = await page.evaluate(() => G.L.items.filter(i => !i.taken).map(i => i.id)); // not what the night starts you holding
       const seenFrom = {};
       for (const down of [true, false]) for (let d = 0; d < 8; d++) {
         await page.evaluate(([d, down]) => { G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = down ? PITCH_DOWN : 0; G.mouse.x = -1; }, [d, down]);

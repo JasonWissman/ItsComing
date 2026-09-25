@@ -5,6 +5,14 @@ const WEATHER = (() => {
   let parts = [], kind = null, wind = 0, spec = null, rng = null;
   let nextBolt = 0, thunderAt = 0, bolt = 0;
   const COUNT = { rain: 380, snow: 240, ash: 140, mist: 26, motes: 140 };
+  let mistSpr = null;
+  function mistSprite() {
+    if (mistSpr) return mistSpr;
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, 'rgba(180,180,190,1)'); g.addColorStop(1, 'rgba(180,180,190,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    return mistSpr = c;
+  }
   function spawn(p, fresh) {
     p.a = rng() * TAU; p.r = 0.6 + rng() * 6.5; p.ph = rng() * TAU; p.s = 0.6 + rng() * 0.8;
     if (kind === 'rain') { p.y = fresh ? rng() * 4.5 : 4.5; p.v = 8 + rng() * 4; p.len = 0.25 + rng() * 0.25; }
@@ -72,15 +80,16 @@ const WEATHER = (() => {
         ctx.fillRect(sp.x, sp.y, s, s);
       }
     } else if (kind === 'mist') {
+      // one soft blob rendered once, then drawn scaled: a fresh radial gradient per bank per frame is what software rasterizers choke on
+      const spr = mistSprite();
       for (const p of parts) {
         const x = Math.sin(p.a) * p.r, z = Math.cos(p.a) * p.r;
         const sp = R.screenPos(x, p.y, z); if (!sp) continue;
-        const w = p.w * sp.scale, h = w * 0.22;
-        const g = ctx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, w / 2);
-        g.addColorStop(0, 'rgba(180,180,190,' + (0.11 * p.s) + ')'); g.addColorStop(1, 'rgba(180,180,190,0)');
-        ctx.fillStyle = g; ctx.save(); ctx.translate(sp.x, sp.y); ctx.scale(1, 0.22); ctx.translate(-sp.x, -sp.y); ctx.fillRect(sp.x - w / 2, sp.y - w / 2, w, w); ctx.restore();
-        void h;
+        const w = Math.min(p.w * sp.scale, R.W * 1.5), h = w * 0.22;
+        ctx.globalAlpha = 0.11 * p.s;
+        ctx.drawImage(spr, sp.x - w / 2, sp.y - h / 2, w, h);
       }
+      ctx.globalAlpha = 1;
     } else if (kind === 'motes') {
       ctx.fillStyle = 'rgba(255,245,220,0.55)';
       for (const p of parts) {

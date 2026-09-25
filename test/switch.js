@@ -19,17 +19,18 @@ const { check } = T;
         for (let d = 0; d < 8; d++) { const y = d * 45 * DEG; const gap = Math.min(...G.L.lanes.map(l => Math.abs(wrapPi(l.yaw - y)))); if (gap > bestGap) { bestGap = gap; bestYaw = y; } }
         G.cam.dirIdx = Math.round(bestYaw / (45 * DEG)) % 8; G.cam.yaw = G.cam.tYaw = bestYaw; G.cam.pitch = G.cam.tPitch = PITCH_DOWN;
         // any creature on the night may switch; each is watched for a jump in distance and for being seen
-        const cs = G.L.creatures, lanes = cs.map(x => x.lane.idx), out = { switched: false, jump: 0, seenAt: null, u: null };
-        for (let k = 0; k < 2400 && G.state === 'play'; k++) {
+        const cs = G.L.creatures, lanes = cs.map(x => x.lane.idx), out = { switched: false, jump: 0, seenAt: null, u: null, gait: 0 };
+        for (let k = 0; k < 2400 && G.state === 'play' && cs.some(x => x.u < 0.6); k++) { // a switch comes before u = 0.4, so stop once everything is past 0.6
           const before = cs.map(x => x.dist);
           G.step(0.04);
-          cs.forEach((x, i) => { if (x.lane.idx !== lanes[i]) { out.switched = true; out.jump = Math.max(out.jump, Math.abs(x.dist - before[i])); out.seenAt = out.seenAt || x.seen; out.u = Math.max(out.u || 0, +x.u.toFixed(2)); lanes[i] = x.lane.idx; } });
+          cs.forEach((x, i) => { const moved = Math.abs(x.dist - before[i]); if (x.lane.idx !== lanes[i]) { out.switched = true; out.jump = Math.max(out.jump, moved); out.seenAt = out.seenAt || x.seen; out.u = Math.max(out.u || 0, +x.u.toFixed(2)); lanes[i] = x.lane.idx; } else out.gait = Math.max(out.gait, moved); });
         }
         void c;
         return out;
       });
       runs++;
-      if (r.switched) { switched++; if (r.jump > 0.5) jumps++; if (r.seenAt) seenSwitch++; if (r.u > 0.5) jumps++; }
+      // a jump is more than the thing moves in any ordinary step (some of them lurch); a late switch counts as one too
+      if (r.switched) { switched++; if (r.jump > Math.max(0.5, r.gait * 1.2)) jumps++; if (r.seenAt) seenSwitch++; if (r.u > 0.5) jumps++; }
     }
     if (info.flagged) check(switched >= 3 && jumps === 0 && seenSwitch === 0, 'night ' + lvl + ' (' + info.id + '): switches lanes on Nightmare while unseen, early, without a jump (' + switched + '/' + runs + ' runs switched, jumps ' + jumps + ', seen ' + seenSwitch + ')');
     else check(switched === 0, 'night ' + lvl + ' (' + info.id + '): opted out of lane switches (' + switched + ' switched)');

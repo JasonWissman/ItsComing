@@ -9,7 +9,7 @@ LEVELS.push({
     intro: 'The water door has been open all night, and the water has not been still.<br>Something is swimming in toward the boathouse. It goes under for a while, and when it comes up it is closer.',
     hint: 'The winch lowers the water door, once it has its handle. The side door takes the bar.',
     objective: 'Seal the door it is coming for.',
-    death: { default: 'It came up over the sill with its hand first.', reached: 'The door was not down. It came up under it.' },
+    death: { default: 'It came up over the sill with its hand first.', reached: 'The door was not down. It came up under it.', side: 'The bar was not across. It came in with the door.' },
     win: 'It pushed at the slats until the tide turned. When you looked again the water was flat all the way out.',
     fragment: 'Your knees were wet until noon. Nothing else in the house was.',
   },
@@ -100,7 +100,11 @@ LEVELS.push({
       use(item) {
         if (item.id === 'handle') {
           s.handleIn = true; winch.accepts = s.needPin ? ['pin'] : [];
-          winch.crank = { n: need, sfx: 'ratchet', decay: s.needPin ? { after: 1.2, rate: 1.4 } : null, onTurn() { G.shake(0.05); }, onComplete() { s.sealedN = true; AUDIO.sfx('bar'); G.say('The water door is down.', 'Down.'); } };
+          winch.crank = { n: need, sfx: 'ratchet', decay: s.needPin ? { after: 1.2, rate: 1.4 } : null, onTurn() { G.shake(0.05); }, onComplete() {
+            // without the pawl the drum will not hold: the door runs straight back up (crankTarget has already marked it done, so undo that)
+            if (s.needPin) { winch.done = false; winch.count = 0; AUDIO.sfx('clunk'); G.say('It runs straight back up. Nothing holds the drum.', 'It slips.'); return; }
+            s.sealedN = true; AUDIO.sfx('bar'); G.say('The water door is down.', 'Down.');
+          } };
           AUDIO.sfx('fit'); G.say('The handle fits. Crank it.', 'It fits.'); return true;
         }
         if (item.id === 'pin') { s.needPin = false; winch.accepts = []; winch.crank.decay = null; AUDIO.sfx('fit'); G.say('The pawl drops in. It will hold now.', 'That holds.'); return true; }
@@ -122,6 +126,7 @@ LEVELS.push({
       },
     });
     const sealed = lane => lane.idx === 0 ? s.sealedN : s.sealedE;
+    L.sealed = lane => (lane.idx === 0 ? s.sealedN : s.sealedE);
     L.isWon = () => L.tier(sealed(L.lane), sealed(L.lane), s.sealedN && s.sealedE);
     L.objectiveText = () => {
       const n = s.sealedN ? 'Water door down.' : !s.handleIn ? 'Find the winch handle.' : 'Crank the water door down (' + Math.min(need, Math.floor(winch.count || 0)) + '/' + need + ').';
@@ -129,12 +134,15 @@ LEVELS.push({
       return L.diff.tier >= 3 ? n + ' ' + e : L.lane.idx === 0 ? n : e;
     };
     L.update = dt => {
+      if (s.holdT > 0) { s.holdT -= dt; if (s.holdT <= 0 && s.heldC) { s.heldC.hold = null; s.heldC = null; } }
       if (s.doorClosing > 0) { s.doorClosing -= dt; s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
       const k = Math.floor(winch.count || 0);
       if (k < s.lastK && !winch.done) AUDIO.sfx('clunk');
       s.lastK = k;
     };
-    L.onReach = c => { if (c.lane.idx === 1 && s.doorClosed && !s.sealedE) { s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); G.toast('The side door bangs open.'); } };
+    L.deathCause = c => (c.lane.idx === 1 ? 'side' : null);
+    // a shut, unbarred door really does slow it: it bangs the door open and stands in it for a moment, long enough to shut and bar it
+    L.onReach = c => { if (c.lane.idx === 1 && s.doorClosed && !s.sealedE) { s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); G.toast('The side door bangs open.'); c.hold = c.dist; s.heldC = c; s.holdT = 2.5; } };
     const lampX = () => Math.sin(L.t * 1.9) * 0.55;
     L.dynamic = () => {
       // the water door: slats come down from the top as the winch turns

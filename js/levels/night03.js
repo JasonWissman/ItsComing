@@ -56,7 +56,7 @@ LEVELS.push({
     }
     for (const [x, z] of [[-1.3, fz], [1.3, fz], [fz, -1.4], [fz, 1.4]]) SC.box(L, x - 0.12, x + 0.12, 0, 1.7, z - 0.12, z + 0.12, [40, 40, 42]);
     const rng = mulberry32(31);
-    for (let i = 0; i < 70; i++) { const x = (rng() - 0.5) * 80, z = -20 + Math.pow(rng(), 1.1) * 80; if (Math.abs(x) < 1.6 && z > 1 && z < 30) continue; if (Math.abs(z) < 1.6 && x > 1.2 && x < 30) continue; if (Math.abs(x) < 3 && Math.abs(z) < 3) continue; SC.gravestone(L, x, z, (rng() * 1e6) | 0); }
+    for (let i = 0; i < 70; i++) { const x = (rng() - 0.5) * 80, z = -20 + Math.pow(rng(), 1.1) * 80; if (Math.abs(x) < 1.6 && z > 1) continue; if (Math.abs(z) < 1.6 && x > 1.2) continue; /* both walking lines stay clear all the way out */ if (Math.abs(x) < 3 && Math.abs(z) < 3) continue; SC.gravestone(L, x, z, (rng() * 1e6) | 0); }
     for (let i = 0; i < 11; i++) { const x = (rng() - 0.5) * 90, z = -10 + rng() * 65; if (Math.abs(x) < 3 || Math.abs(z) < 3) continue; SC.tree(L, x, z, 7 + rng() * 6, 'bare', (rng() * 1e6) | 0); }
     SC.groundDots(L, 17, 90, 3, 45, 120, [30, 34, 26], 0.4);
     // items
@@ -85,18 +85,19 @@ LEVELS.push({
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0.0, w, h: 0.55, flat: true, accepts: ['salt'].concat(decoy ? ['sugar'] : []), needed: pours,
         hint() { return t.done ? 'A line of salt.' : t.count ? 'The line is thin. Pour more.' : 'The threshold. Bare stone.'; },
-        use() { t.count++; AUDIO.sfx('pour'); if (t.count >= pours) t.done = true; return true; },
+        use() { if (t.done) return false; t.count++; AUDIO.sfx('pour'); if (t.count >= pours) t.done = true; return true; }, // a finished line takes no more salt
       });
       return t;
     };
     const thr = mkThreshold('threshold', 'Threshold', 0, 1.75, 2.2), thrE = mkThreshold('sidethreshold', 'Side gate threshold', 90, 1.95, 1.3);
     const thrOf = lane => lane.idx === 0 ? thr : thrE;
+    L.sealed = lane => thrOf(lane).done;
     const hook = mkTarget(L, {
       id: 'hook', name: 'Lantern hook', x: 0.78, y: 1.35, z: 1.77, w: 0.36, h: 0.5, accepts: ['lantern'],
       hint() { return hook.lit ? 'Burning.' : hook.hung ? 'Hung, unlit. Needs a match.' : 'An empty hook beside the door.'; },
       use(item) {
         if (item.id === 'lantern') { hook.hung = true; hook.accepts = ['matches']; AUDIO.sfx('chain'); return true; }
-        if (item.id === 'matches') { if (!hook.hung) return false; hook.lit = true; hook.done = true; AUDIO.sfx('strike'); setTimeout(() => AUDIO.sfx('candle'), 300); return true; }
+        if (item.id === 'matches') { if (!hook.hung || hook.lit) return false; hook.lit = true; hook.done = true; hook.accepts = []; AUDIO.sfx('strike'); setTimeout(() => AUDIO.sfx('candle'), 300); return true; }
         return false;
       },
     });

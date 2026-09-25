@@ -8,7 +8,7 @@ LEVELS.push({
   lights: [{ x: 0.4, y: 0.75, z: 1.6, r: 52, i: 1.25, color: [228, 218, 178], cone: { x: 0, y: -0.06, z: 1, deg: 24 } }, { x: 0, y: 0.9, z: 0.55, r: 0.9, i: 0.1, color: [90, 200, 120] }],
   text: {
     intro: 'The engine died on the county road, miles from anything.<br>Something is coming up the road, low, at the edge of the headlights.',
-    hint: 'The keys fell somewhere when the car stalled. The engine has been flooding all night.',
+    hint: 'The keys fell somewhere when the car stalled.',
     objective: 'Start the car.',
     death: { default: 'It came through the windshield.' },
     win: 'It caught. You did not look in the mirror.',
@@ -31,7 +31,7 @@ LEVELS.push({
     for (let z = 6; z < 130; z += 9) SC.floorQ(L, 0.28, z, 0.55, z + 3, 0.02, [150, 142, 90]);
     SC.groundDots(L, 9, 90, 3, 60, 80, [40, 38, 34], 0.3);
     const rng = mulberry32(21);
-    for (let i = 0; i < 44; i++) { const side = rng() < 0.5 ? -1 : 1; const z = 8 + rng() * 120; const kind = rng() < 0.7 ? 'bare' : 'round'; const h = 6 + rng() * 8; const x = side * ((kind === 'round' ? 6 + h * 0.5 : 6) + rng() * 12) + 0.4; SC.tree(L, x, z, h, kind, (rng() * 1e6) | 0); }
+    for (let i = 0; i < 44; i++) { const side = rng() < 0.5 ? -1 : 1; const z = 8 + rng() * 120; const kind = rng() < 0.7 ? 'bare' : 'round'; const h = 6 + rng() * 8; const x = side * ((kind === 'round' ? 6 + h * 0.5 : 6) + rng() * 12) + 0.4; if (Math.abs(Math.abs(Math.atan2(x, z)) - 11 * DEG) < 2 * DEG) continue; SC.tree(L, x, z, h, kind, (rng() * 1e6) | 0); } // nothing stands on the verge lanes
     for (let i = 0; i < 16; i++) { const side = rng() < 0.5 ? -1 : 1; const z = -8 - rng() * 60; const x = side * (5 + rng() * 14); SC.tree(L, x, z, 6 + rng() * 8, 'bare', (rng() * 1e6) | 0); }
     for (let i = 0; i < 8; i++) { const z = -20 + i * 30; SC.sprite(L, -5.5, 0, z, 0.3, 8, (ctx, P) => { ctx.scale(0.3, 8); P_rect(ctx, -0.5, 0, 1, 1, P.col([30, 28, 26])); P_rect(ctx, -2.2, 0.88, 4.4, 0.03, P.col([30, 28, 26])); }); }
     // the car: you are in the driver's seat, the passenger side is to your right
@@ -41,7 +41,7 @@ LEVELS.push({
     SC.quad(L, [-0.28, 0.84, 0.54], [0.28, 0.84, 0.54], [0.28, 0.93, 0.54], [-0.28, 0.93, 0.54], [14, 24, 18], { noFog: true, noLight: true });
     for (const x of [-0.16, 0.0, 0.16]) SC.quad(L, [x - 0.035, 0.865, 0.535], [x + 0.035, 0.865, 0.535], [x + 0.035, 0.905, 0.535], [x - 0.035, 0.905, 0.535], [22, 52, 34], { noFog: true, noLight: true });
     SC.sprite(L, 0.18, 0.74, 0.5, 0.1, 0.1, (ctx, P) => { ctx.scale(0.1, 0.1); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([110, 110, 116])); P_ell(ctx, 0, 0.5, 0.3, 0.3, P.col([18, 18, 20])); P_rect(ctx, -0.05, 0.28, 0.1, 0.44, P.col([80, 80, 86])); });
-    SC.quad(L, [-0.55, 1.02, 0.95], [1.35, 1.02, 0.95], [1.3, 0.92, 2.5], [-0.5, 0.92, 2.5], body);
+    SC.quad(L, [-0.55, 1.02, 0.95], [1.35, 1.02, 0.95], [1.3, 0.8, 2.5], [-0.5, 0.8, 2.5], body); // the hood falls away below the dash line so the dash is the real occluder, as the lane apertures say
     { // steering wheel + column
       const pts = []; const cy = 0.92, cz = 0.52, r = 0.17;
       for (let i = 0; i < 24; i++) { const a = i / 24 * TAU; pts.push(L.pt(Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, cz - Math.sin(a) * r * 0.55)); }
@@ -77,9 +77,9 @@ LEVELS.push({
     mkItem(L, 'bottle', 'Empty bottle', [
       { x: 0.9, y: 0.36, z: -0.45, flat: false },       // rear floor
       { x: 0.95, y: 1.02, z: 0.78, flat: false },       // on the dash
-      { x: 1.0, y: 0.95, z: -0.1, flat: false, key: 'seat' }, // on the passenger seat
+      { x: 1.05, y: 0.95, z: 0.0, flat: false, key: 'seat' }, // on the passenger seat, in front of the seat back
     ], { w: 0.09, h: 0.24, icon: 'bottle' });
-    Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), needChoke: L.diff.tier >= 2, choke: false, floods: L.diff.tier >= 3, lastCrank: -10 });
+    Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * (L.diff.tier >= 3 ? 2 : 3)), needChoke: L.diff.tier >= 2, choke: false, floods: L.diff.tier >= 3, lastCrank: -10 });
     const ign = mkTarget(L, {
       id: 'ignition', name: 'Ignition', x: 0.18, y: 0.78, z: 0.5, w: 0.16, h: 0.18, accepts: ['keys'].concat(decoy ? ['housekeys'] : []),
       hint() { return s.started ? 'Running.' : s.keyIn ? (s.needChoke && !s.choke ? 'Turn the key. It will want the choke.' : 'Turn the key.') : 'The ignition. No key in it.'; },

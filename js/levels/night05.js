@@ -10,7 +10,7 @@ LEVELS.push({
     intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming for the porch.',
     hint: 'The shotgun is somewhere on the porch, and so are the shells. You will need two that fire.',
     objective: 'Get the gun. Load it. Wait.',
-    death: { default: 'It did not even slow down on the steps.' },
+    death: { default: 'It did not even slow down on the steps.', wounded: 'It got back up faster than you could fire again.' },
     win: 'You sat on the porch with the gun across your knees until it got light, and nothing else came out of the trees. This time.',
     fragment: 'Your shoulder was bruised in the morning, a neat oval, as if you had held something hard against it all night.',
   },
@@ -22,7 +22,7 @@ LEVELS.push({
   creatures: [{ type: 'runner', startDist: 115, time: 56, gamma: 0.72, unseenMult: 1.3 }],
   aftermath: { type: 'down', dur: 3.6 },
   uses: [{
-    tool: 'shotgun', ammo: 'shells', range: 32, sfx: 'shot', flash: 0.55, emptyText: 'Click. Nothing in it.', fireText: 'Fire.',
+    tool: 'shotgun', ammo: 'shells', dudAmmo: 'duds', range: 32, sfx: 'shot', flash: 0.55, emptyText: 'Click.', fireText: 'Fire.',
     onHit(c, hits, L) {
       if (hits === 1) { c.wounded = true; c.mode = 'stumble'; c.modeT = 0; G.toast('It went down. It is getting back up.'); }
       else { c.dead = true; c.latHold = c.lat; G.toast('It stopped.'); }
@@ -84,12 +84,14 @@ LEVELS.push({
     // shells: one box; two boxes on Hard; on Nightmare one of the two is duds
     if (L.diff.tier < 2) mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true });
     else {
-      mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 2, tool: true });
+      mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: L.diff.tier >= 3 ? 3 : 2, tool: true }); // Nightmare's one real box keeps a spare, since out-of-range shots waste there
       if (L.diff.tier >= 3) mkItem(L, 'duds', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 2, tool: true, icon: 'shells' });
       else mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 1, tool: true });
     }
     L.floor = { poly: [[-3.1, -1.5], [3.1, -1.5], [3.1, 1.5], [-3.1, 1.5]], y: 0.36 };
-    L.onPickup = it => { if ((it.id === 'shotgun' && G.hasItem('shells')) || (it.id === 'shells' && G.hasItem('shotgun'))) AUDIO.sfx('load'); };
+    const box = id => id === 'shells' || id === 'duds'; // the dud box clicks in like the real one
+    L.onPickup = it => { if ((it.id === 'shotgun' && (G.hasItem('shells') || G.hasItem('duds'))) || (box(it.id) && G.hasItem('shotgun'))) AUDIO.sfx('load'); };
+    L.deathCause = c => (c.wounded ? 'wounded' : 'default');
     L.isWon = () => L.creature.dead;
     L.objectiveText = () => { const s = G.inv.filter(i => i.id === 'shells').reduce((a, i) => a + i.uses, 0); return L.creature.dead ? 'It is down.' : !G.hasItem('shotgun') ? 'Get the gun.' : !s ? 'Load it.' : (s + ' shell' + (s > 1 ? 's' : '') + '. Let it get close.'); };
   }

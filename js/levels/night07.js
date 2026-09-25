@@ -16,9 +16,9 @@ LEVELS.push({
     fragment: 'There were scratches on the wardrobe door in the morning, high up, where nobody could reach.',
   },
   lanes: [
-    { deg: 0, name: 'below the rail', elev: -65, barrierDist: 0, default: true },
-    { deg: 45, name: 'right face', elev: -65, barrierDist: 0 },
-    { deg: -45, name: 'left face', elev: -65, barrierDist: 0 },
+    { deg: 0, name: 'below the rail', elev: -65, barrierDist: 0, cue: 'scrape', default: true },
+    { deg: 45, name: 'right face', elev: -65, barrierDist: 0, cue: 'scrape' },
+    { deg: -45, name: 'left face', elev: -65, barrierDist: 0, cue: 'scrape' },
   ],
   creatures: [{ type: 'climber', startDist: 26, time: 65, gamma: 0.8, seenMult: 0, unseenMult: 1 }],
   aftermath: { type: 'custom' },
@@ -102,7 +102,7 @@ LEVELS.push({
       id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1] - 0.22, z: fb[2], w: 0.36, h: 0.44, accepts: [],
       hint() { return s.power ? 'Live.' : !s.open ? 'The fuse box. Shut.' : 'Open. The fuse holder is empty.'; },
       onClick() { if (!s.open) { s.open = true; box.accepts = ['fuse'].concat(decoy ? ['oldfuse'] : []); AUDIO.sfx('creak'); G.say('The fuse holder is empty.', 'Empty.'); return true; } return false; },
-      use(item) { if (item.id !== 'fuse') return false; s.power = true; box.accepts = []; box.done = true; AUDIO.sfx('fit'); setTimeout(() => AUDIO.sfx('lampOn'), 250); G.say('The lamp comes on. Now it has to turn.', 'Light.'); return true; },
+      use(item) { if (item.id !== 'fuse') return false; s.power = true; box.accepts = []; box.done = true; AUDIO.sfx('fit'); setTimeout(() => AUDIO.sfx('lampOn'), 250); G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now it has to turn.', 'Light.'); return true; },
     });
     const need = L.tier(5, 5, 8);
     const winder = mkTarget(L, {
@@ -183,6 +183,6 @@ LEVELS.push({
       if (!on) s.crossing = false;
       return t >= 8.5;
     };
-    L.floor = { poly: [[-1.4, -0.9], [1.4, -0.9], [1.4, 0.3], [-1.4, 0.3]], y: 0 };
+    L.floor = { poly: [[-1.4, -0.9], [1.4, -0.9], [1.4, 0.0], [-1.4, 0.0]], y: 0 }; // inside the rail at every facing
   }
 });

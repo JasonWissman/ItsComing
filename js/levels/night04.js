@@ -15,8 +15,8 @@ LEVELS.push({
   },
   // the gap between the gate posts, no lintel; a second gap in the wall behind you
   lanes: [
-    { deg: 0, name: 'gate', barrierDist: 2.95, cue: 'chain', apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }], default: true },
-    { deg: 180, name: 'back gate', barrierDist: 2.95, cue: 'gate', apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }] },
+    { deg: 0, name: 'gate', barrierDist: 2.95, cue: 'scrape', apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }], default: true },
+    { deg: 180, name: 'back gate', barrierDist: 2.95, cue: 'clunk', apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }] },
   ],
   creatures: [{ type: 'watcher', startDist: 50, time: 30, gamma: 0.8, seenMult: 0, unseenMult: 1 }],
   aftermath: { type: 'stand', dur: 3.6 },
@@ -68,7 +68,9 @@ LEVELS.push({
         id, name, deg, dist: 2.6, y: 0, w: 2.3, h: 2.0, accepts: ['chain'], chained: false, locked: false, closing: 0, angle: Math.PI / 2, sign,
         hint() { return t.locked ? 'Chained and locked.' : t.chained ? (t.closing > 0 ? 'Closing.' : 'Chained. It needs a lock.') : 'The gate stands open.'; },
         use(item) {
-          if (item.id === 'chain') { t.chained = true; t.closing = 1.0; t.accepts = ['padlock'].concat(decoy ? ['oldlock'] : []); AUDIO.sfx('creak'); return true; }
+          if (item.id === 'chain') {
+            if (L.diff.tier < 3 && t !== gateOf(L.lane)) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // below Nightmare only its own gate counts, so the one chain is not wasted here
+            t.chained = true; t.closing = 1.0; t.accepts = ['padlock'].concat(decoy ? ['oldlock'] : []); AUDIO.sfx('creak'); return true; }
           if (item.id === 'padlock') {
             if (!t.chained || t.closing > 0) { G.say('Wait for it to close.', 'Not yet.'); return false; }
             if (keyed && !G.hasItem('gatekey')) { G.say('The padlock is shut. It wants its key.', 'It is shut.'); return false; }
@@ -81,6 +83,7 @@ LEVELS.push({
     };
     const gate = mkGate('gate', 'Gate', 0, 1), gate2 = mkGate('backgate', 'Back gate', 180, -1);
     const gateOf = lane => lane.idx === 0 ? gate : gate2;
+    L.sealed = lane => gateOf(lane).locked;
     L.update = dt => {
       for (const g of [gate, gate2]) if (g.closing > 0) {
         g.closing -= dt;
