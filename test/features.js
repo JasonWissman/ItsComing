@@ -135,9 +135,9 @@ const hoverHit = lookFor;
 
   console.log('== captions, gamepad, touch ==');
   await page.goto(URL + '?level=1&go&seed=1'); await page.waitForTimeout(300);
-  await page.evaluate(() => { ensureAudio(); MENU.applySetting('captions', true); AUDIO.sfx('bang', 0.9); });
-  await page.waitForTimeout(80);
-  check(await page.evaluate(() => { const c = document.getElementById('caption'); return c.classList.contains('show') && /boards/.test(c.textContent) && /\u25B6/.test(c.textContent); }), 'a captioned sound shows its line with a side marker');
+  // read the caption in the same call as the sound, before the clock tick or anything else can replace it
+  const cap = await page.evaluate(() => { ensureAudio(); MENU.applySetting('captions', true); AUDIO.sfx('bang', 0.9); const c = document.getElementById('caption'); return c.classList.contains('show') ? c.textContent : ''; });
+  check(/boards/.test(cap) && /\u25B6/.test(cap), 'a captioned sound shows its line with a side marker (' + cap + ')');
   await page.evaluate(() => { MENU.applySetting('captions', false); document.getElementById('caption').classList.remove('caption'); });
   check(await page.evaluate(() => !!document.getElementById('tUse') && !!document.getElementById('tPause')), 'the touch pad has Use and Pause buttons');
   // a fake gamepad: the d-pad turns, A uses whatever is nearest the middle of the view, Start pauses

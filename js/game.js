@@ -143,7 +143,7 @@ function startLevel(i, withCard) {
   G.hb.next = 0; G.hb.last = -10; G.danger = 0; G.shakeAmt = 0; G.flashAmt = 0;
   G.fade = 1; G.fadeTarget = 0;
   if (withCard) {
-    setState('card');
+    setState('card'); MENU.clear(); // the card is click-anywhere, whatever screen led here
     const d = G.diff(), T = G.L.text;
     const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
     showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
@@ -163,7 +163,7 @@ function beginPlay() {
 function setState(s) { G.state = s; G.stateT = 0; }
 
 // ---------------- overlays ----------------
-function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); G.overlayArmed = G.t + 0.15; }
+function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); G.overlayArmed = G.t + 0.35; } // a double-click cannot skip a card
 function hideOverlay() { UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
@@ -177,7 +177,7 @@ function showTitle() {
   G.fade = 0.35; G.fadeTarget = 0.35; G.white = 0; G.whiteTarget = 0;
   STORY.theme(SAVE.data.settings.theme === 'day');
   setState('title');
-  MENU.show('title');
+  MENU.show('title'); G.overlayArmed = 0; // nothing on the title can be skipped by accident, so it takes a click or Enter at once
 }
 function showEnd() {
   setState('end');
@@ -217,7 +217,7 @@ function onKeyDown(e) {
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); return; }
   if (G.state === 'title' && k >= '1' && k <= String(DIFFICULTIES.length)) { setDifficulty(k.charCodeAt(0) - 49); return; }
   if (G.state !== 'play') {
-    if (k === 'Enter') proceed();
+    if (k === 'Enter' && !['nights', 'settings', 'fragments'].includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
     if ((k === 'c' || k === 'C') && G.state === 'title' && G.unlocked > 0 && G.unlocked < LEVELS.length) { ensureAudio(); startLevel(G.unlocked, true); }
     if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = true;
     return;
@@ -283,7 +283,7 @@ function onMouseDown(e) {
 function onMouseUp() { G.holding = null; }
 function onClick(e) {
   if (e.target.closest && e.target.closest('#touch')) return;
-  if (G.state !== 'play') { proceed(); return; }
+  if (G.state !== 'play') { if (['nights', 'settings', 'fragments'].includes(MENU.kind)) return; proceed(); return; } // the list screens are not click-anywhere; the title and the cards are
   ensureAudio();
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   updateHover();
@@ -353,7 +353,7 @@ function useTarget(t) {
   if (t.crank && !t.done && !(act && t.accepts.includes(act.id))) { crankTarget(t); return; }
   if (t.done && !t.accepts.length) { G.toast(G.hints() && t.hint ? t.hint() : 'Done.'); return; }
   let item = G.inv[G.active];
-  if (!item || !t.accepts.includes(item.id)) item = G.inv.find(i => t.accepts.includes(i.id));
+  if (!item || !t.accepts.includes(item.id)) item = G.inv.find(i => t.accepts.includes(i.id) && !i.decoy) || G.inv.find(i => t.accepts.includes(i.id)); // the genuine thing before a decoy, unless the decoy was chosen
   if (!item) {
     if (t.accepts.length) G.say(t.hint ? t.hint() : 'You need something for this.', 'Not with what you have.');
     else if (t.hint) G.say(t.hint(), t.name);
@@ -576,7 +576,7 @@ function update(dt) {
     const k = clamp((G.stateT - delay) / dur, 0, 1);
     cr.lunge = k; cr.lat = lerp(cr.lat, 0, 0.3); cr.t += dt * cr.timeScale;
     cr.dist = lerp(cr.lungeFrom, 0.55, easeIn(k));
-    cr.yOff = lerp(0, L.eyeH - CR.faceY - cr.lane.y - (cr.lane.elev ? cr.dist * Math.sin(cr.lane.elev) : 0), smoothstep(k));
+    cr.yOff = lerp(0, L.eyeH - CR.faceY - cr.pos().y, smoothstep(k)); // from wherever its feet really are (flat, raised, ramp or behind you) up to eye level
     if (spec.pose) spec.pose(cr, k);
     G.danger = Math.min(1, G.danger + dt * 3);
     if (G.stateT > delay + dur + 0.25) { G.fade = 1; G.fadeTarget = 1; }
@@ -657,7 +657,7 @@ function updateCreature(L, c, dt, live) {
 // On Nightmare a flagged night lets the thing change its approach once, early on and only while it is
 // unseen; the new lane's cue sound is the only warning. dist is a function of progress, so nothing jumps.
 function maybeSwitchLane(L, c) {
-  if (!L.diff.laneSwitch || L.def.laneSwitch === false || L.lanes.length < 2 || c.switched || c.fixedLane || L.won || c.dead) return;
+  if (!L.diff.laneSwitch || L.def.laneSwitch === false || L.lanes.length < 2 || c.switched || c.fixedLane || L.won || c.dead || c.hold !== null) return; // never while it is held somewhere
   if (c.switchAt === undefined) c.switchAt = 0.12 + c.rand() * 0.28;
   if (c.u < c.switchAt || c.seen) return;
   const options = L.lanes.filter(l => l !== c.lane && !l.noSwitch && (!c.laneOptions || c.laneOptions.includes(l.idx)));
@@ -855,13 +855,15 @@ function bindTouch() {
 function frame(now) {
   const dt = Math.min(0.05, (now - G._last) / 1000); G._last = now;
   G.fps = lerp(G.fps, 1 / Math.max(dt, 1e-3), 0.05);
+  if (G.state === 'error') { try { pollGamepad(); } catch (e2) { void e2; } } // a pad can still restart
   if (!document.hidden && G.state !== 'error') {
     try { const t0 = G.benching ? performance.now() : 0; pollGamepad(); update(dt); render(); CAPTIONS.update(); if (G.benching) G.benching.push(performance.now() - t0); }
     catch (e) {
       G.errorCount++;
       console.error(e);
       G.error = e; setState('error');
-      showOverlay('<h1 class="red">Something broke</h1><p class="intro">' + escapeHtml(e.message) + '<br>seed ' + G.runSeed + '</p><p class="prompt">Press R to start the night over</p>');
+      showOverlay('<h1 class="red">Something broke</h1><p class="intro">' + escapeHtml(e.message) + '<br>seed ' + G.runSeed + '</p><p class="prompt">Press R, click or tap to start the night over</p>');
+      G.overlayArmed = 0; // the clock does not run in the error state, so the overlay must not wait on it
     }
   }
   if (!G.noRaf) requestAnimationFrame(frame);
@@ -891,7 +893,7 @@ function init() {
   G.difficulty = clamp(SAVE.data.settings.difficulty | 0, 0, DIFFICULTIES.length - 1);
   setMuted(!!SAVE.data.settings.muted);
   MENU.applyAll();
-  document.addEventListener('visibilitychange', () => { if (document.hidden) AUDIO.suspend(); else if (G.state === 'play') AUDIO.resume(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) AUDIO.suspend(); else if (G.state !== 'paused') AUDIO.resume(); }); // only a paused game stays silent on return
   const q = new URLSearchParams(location.search);
   G.debug = q.has('debug');
   if (G.debug) UI.debug.style.display = 'block';
