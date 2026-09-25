@@ -33,11 +33,28 @@ Headphones are recommended. Sound starts after your first click.
 | hold `Shift` (or `Z` / `Space`) | zoom in on whatever you are facing |
 | click | pick up an item, place it, use a target, fire |
 | `1`–`6`, `Tab` | choose which held item is active |
+| `R` | restart the current night |
 | `Esc` | pause |
 | `M` | mute |
 
 `WASD` also works for turning and looking. Touch controls appear on phones and
 tablets. Clicking the floor while looking down puts the active item back down.
+
+## Difficulty
+
+Pick a difficulty on the title screen (click a button or press `1`, `2`, `3`).
+The choice is remembered.
+
+| | Time before it reaches you | Speed while you look away | Hints |
+| --- | --- | --- | --- |
+| Easy | 35% more | a little slower | on |
+| Normal | as designed | as designed | off |
+| Hard | 28% less | 25% faster | off |
+
+With hints off, the level card gives only the situation, not the solution; the
+objective line at the top of the screen is hidden; hovering a target shows its
+name rather than what it needs; and failed attempts get a vague response. You
+have to work out what each night wants from what you can find and try.
 
 ## The nights
 
@@ -57,7 +74,7 @@ some on the ground, so you have to turn and look down to find them.
    sprints again. Get the shotgun, load it, and wait for it to come close enough.
 
 Creatures move faster when you are not looking at them, and all of them
-accelerate as they close in. Some pause, some lurch, one only moves when unseen.
+accelerate as they close in. Difficulty scales both. Some pause, some lurch, one only moves when unseen.
 Progress is saved in `localStorage`; the title screen offers to continue from
 the furthest night reached.
 

@@ -26,6 +26,7 @@ const LEVELS = [
     pal: { skyTop: [6, 8, 18], fog: [46, 52, 68], ground: [36, 46, 32], fogDist: 105 },
     ambient: { wind: 1, drone: 0.8, droneFreq: 50, windFreq: 380 },
     intro: 'You woke up at the back door, and it was open.<br>Something is walking across the field toward the house. It has been walking for a while.',
+    hint: 'There are planks somewhere in the house, and a hammer.',
     objective: 'Board up the back door.',
     creature: { type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 },
     build(L) {
@@ -90,7 +91,8 @@ const LEVELS = [
     id: 'road', title: 'The Road', facing: 0, eyeH: 1.15,
     pal: { skyTop: [3, 3, 7], fog: [15, 15, 20], ground: [20, 19, 16], fogDist: 70 },
     ambient: { wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220 },
-    intro: 'The engine died on the county road, miles from anything.<br>Something is coming up the middle of the road, low, in the headlights. The keys fell somewhere when the car stalled.',
+    intro: 'The engine died on the county road, miles from anything.<br>Something is coming up the middle of the road, low, in the headlights.',
+    hint: 'The keys fell somewhere when the car stalled. The engine has been flooding all night.',
     objective: 'Start the car.',
     creature: { type: 'crawler', startDist: 85, time: 48, gamma: 0.75, unseenMult: 1.35 },
     build(L) {
@@ -138,7 +140,7 @@ const LEVELS = [
       const ign = mkTarget(L, {
         id: 'ignition', name: 'Ignition', x: 0.18, y: 0.78, z: 0.5, w: 0.16, h: 0.18, accepts: ['keys'],
         hint() { return L.flags.started ? 'Running.' : L.flags.keyIn ? 'Turn the key.' : 'The ignition. No key in it.'; },
-        use() { L.flags.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.toast('The key is in. Turn it.'); return true; },
+        use() { L.flags.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.toast(G.hints() ? 'The key is in. Turn it.' : 'The key is in.'); return true; },
         onClick() {
           if (!L.flags.keyIn) return false;
           if (L.flags.cranking > 0 || L.flags.started) return true;
@@ -166,7 +168,8 @@ const LEVELS = [
     id: 'graveyard', title: 'The Graveyard', facing: 45, eyeH: 1.65,
     pal: { skyTop: [22, 14, 32], fog: [74, 60, 72], ground: [42, 46, 36], fogDist: 64 },
     ambient: { wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300 },
-    intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.<br>The old rules for the chapel door: salt across the threshold, and a light beside it.',
+    intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
+    hint: 'The old rules for the chapel door: salt across the threshold, and a light beside it.',
     objective: 'Salt the threshold. Light the lantern.',
     creature: { type: 'smiler', startDist: 95, time: 88, gamma: 0.72, unseenMult: 1.55 },
     build(L) {
@@ -231,7 +234,8 @@ const LEVELS = [
     id: 'quarry', title: 'The Quarry', facing: 270, eyeH: 1.65,
     pal: { skyTop: [96, 102, 112], fog: [152, 156, 160], ground: [64, 66, 58], fogDist: 48 },
     ambient: { wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 },
-    intro: 'It only moves when nothing is looking at it.<br>It is standing at the far end of the quarry with its hands over its face. You will have to look away to lock the gate. Be quick.',
+    intro: 'It only moves when nothing is looking at it.<br>It is standing at the far end of the quarry with its hands over its face.',
+    hint: 'You will have to look away to chain and lock the gate. Be quick about it.',
     objective: 'Chain and padlock the gate.',
     creature: { type: 'watcher', startDist: 50, time: 24, gamma: 0.8, seenMult: 0, unseenMult: 1 },
     build(L) {
@@ -292,7 +296,8 @@ const LEVELS = [
     id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
     pal: { skyTop: [6, 8, 16], fog: [54, 60, 74], ground: [126, 132, 148], fogDist: 120 },
     ambient: { wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 },
-    intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming straight for the porch. The shotgun is above the door. The shells are in the box. There are three, and you will need two.',
+    intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming straight for the porch.',
+    hint: 'The shotgun is above the door. The shells are in the box on the porch. There are three, and you will need two.',
     objective: 'Get the gun. Load it. Wait.',
     creature: { type: 'runner', startDist: 115, time: 56, gamma: 0.72, unseenMult: 1.3 },
     build(L) {

@@ -3,16 +3,25 @@
 const PITCH_DOWN = 58 * DEG;
 const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 const SAVE_KEY = 'itscoming.unlocked';
+const DIFF_KEY = 'itscoming.difficulty';
+const MUTE_KEY = 'itscoming.muted';
+// difficulty scales how long the thing takes to arrive, how much faster it moves unseen, and whether hints show
+const DIFFICULTIES = [
+  { id: 'easy', name: 'Easy', desc: 'It comes slower. Hints on.', time: 1.35, unseen: 0.85, hints: true },
+  { id: 'normal', name: 'Normal', desc: 'As intended. No hints.', time: 1.0, unseen: 1.0, hints: false },
+  { id: 'hard', name: 'Hard', desc: 'Faster, and much faster when you look away. No hints.', time: 0.72, unseen: 1.25, hints: false },
+];
 
 const G = {
   state: 'title', levelIndex: 0, L: null,
   cam: { yaw: 0, pitch: 0, zoom: 1, tYaw: 0, tPitch: 0, dirIdx: 0, zoomHeld: false, shakeX: 0, shakeY: 0 },
   inv: [], active: 0, hover: null, mouse: { x: -1, y: -1 },
   t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, danger: 0,
-  hb: { next: 0, last: -10 }, toastT: 0, unlocked: 0, invSig: '', debug: false, paused: false,
+  hb: { next: 0, last: -10 }, toastT: 0, unlocked: 0, invSig: '', debug: false, paused: false, difficulty: 1, muted: false,
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
+  hints() { return DIFFICULTIES[G.difficulty].hints; },
   removeFromInv(it) { const i = G.inv.indexOf(it); if (i >= 0) G.inv.splice(i, 1); if (G.active >= G.inv.length) G.active = Math.max(0, G.inv.length - 1); },
   toast(msg, dur) { const el = UI.toast; el.textContent = msg; el.classList.add('show'); G.toastT = dur || 2.6; },
 };
@@ -30,10 +39,10 @@ function buildLevel(i) {
   L.pt = (x, y, z) => { const r = rotY(x, z, L.facing); return [r[0], y, r[1]]; };
   L.at = (deg, dist, y) => L.pt(Math.sin(deg * DEG) * dist, y, Math.cos(deg * DEG) * dist);
   def.build(L);
-  const cd = def.creature, CR = CREATURES[cd.type];
+  const cd = def.creature, CR = CREATURES[cd.type], diff = DIFFICULTIES[G.difficulty];
   L.creature = {
-    type: cd.type, CR, yaw: L.facing, D0: cd.startDist, T: cd.time, gamma: cd.gamma || 0.72,
-    seenMult: cd.seenMult === undefined ? 1 : cd.seenMult, unseenMult: cd.unseenMult === undefined ? 1.3 : cd.unseenMult,
+    type: cd.type, CR, yaw: L.facing, D0: cd.startDist, T: cd.time * diff.time, gamma: cd.gamma || 0.72,
+    seenMult: cd.seenMult === undefined ? 1 : cd.seenMult, unseenMult: (cd.unseenMult === undefined ? 1.3 : cd.unseenMult) * diff.unseen,
     u: 0, dist: cd.startDist, gait: 0, t: 0, visible: true, seenLast: true, lit: 0, lat: 0, yOff: 0, lunge: 0, frozen: false, reached: false, rect: null,
   };
   CR.init(L.creature);
@@ -53,7 +62,8 @@ function startLevel(i, withCard) {
   G.fade = 1; G.fadeTarget = 0;
   if (withCard) {
     setState('card');
-    showOverlay('<div class="kicker">Level ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + G.L.def.intro + '</p><p class="hint">' + G.L.def.objective + '</p><p class="prompt">Click or press Enter when you are ready</p>');
+    const d = DIFFICULTIES[G.difficulty], def = G.L.def;
+    showOverlay('<div class="kicker">Level ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + def.title + '</h1><p class="intro">' + def.intro + (d.hints && def.hint ? '<br>' + def.hint : '') + '</p>' + (d.hints ? '<p class="hint">' + def.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
   } else {
     setState('play');
     hideOverlay();
@@ -80,13 +90,14 @@ function showTitle() {
   G.fade = 0.35; G.fadeTarget = 0.35;
   setState('title');
   let cont = '';
-  if (G.unlocked > 0 && G.unlocked < LEVELS.length) cont = '<p class="prompt">Press Enter or click to begin from the start<br><span class="alt">Press <b>C</b> to continue from level ' + (G.unlocked + 1) + ' — ' + LEVELS[G.unlocked].title + '</span></p>';
+  if (G.unlocked > 0 && G.unlocked < LEVELS.length) cont = '<p class="prompt">Press Enter or click to begin from the start<br><span class="alt">Press <b>C</b> to continue from level ' + (G.unlocked + 1) + ' &mdash; ' + LEVELS[G.unlocked].title + '</span></p>';
   else cont = '<p class="prompt">Press Enter or click to begin</p>';
+  const diffs = '<div class="diffs">' + DIFFICULTIES.map((d, i) => '<button type="button" class="diff' + (i === G.difficulty ? ' sel' : '') + '" data-diff="' + i + '"><span class="key">' + (i + 1) + '</span>' + d.name + '<small>' + d.desc + '</small></button>').join('') + '</div>';
   showOverlay(
     '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
     '<p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>' +
-    '<div class="controls"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
-    cont + '<p class="fine">Headphones recommended. Sound is synthesized in your browser.</p>'
+    '<div class="controls"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
+    diffs + cont + '<p class="fine">Headphones recommended. Sound is synthesized in your browser.</p>'
   );
 }
 function showEnd() {
@@ -99,6 +110,8 @@ function onKeyDown(e) {
   const k = e.key;
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k)) e.preventDefault();
   if (k === 'm' || k === 'M') { toggleMute(); return; }
+  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
+  if (G.state === 'title' && k >= '1' && k <= String(DIFFICULTIES.length)) { setDifficulty(k.charCodeAt(0) - 49); return; }
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); return; }
   if (G.state !== 'play') {
     if (k === 'Enter' || k === ' ') proceed();
@@ -115,9 +128,28 @@ function onKeyDown(e) {
   else if (k === 'Tab') { e.preventDefault(); if (G.inv.length) { G.active = (G.active + 1) % G.inv.length; AUDIO.sfx('ui'); } }
 }
 function onKeyUp(e) { const k = e.key; if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = false; }
-function ensureAudio() { if (!AUDIO.on()) { AUDIO.init(); if (G.muted) AUDIO.on(); } AUDIO.resume(); }
-function toggleMute() { G.muted = !G.muted; UI.mute.textContent = G.muted ? 'muted (M)' : 'sound on (M)'; if (AUDIO.on()) AUDIO.resume(); document.documentElement.classList.toggle('muted', G.muted); }
-function pauseGame() { setState('paused'); showOverlay('<h1>Paused</h1><p class="intro">It is not.</p><p class="prompt">Press Esc to keep going</p>'); }
+function ensureAudio() { if (!AUDIO.on()) AUDIO.init(); AUDIO.resume(); }
+function toggleMute() { setMuted(!G.muted); }
+function setMuted(m) {
+  G.muted = !!m;
+  AUDIO.setMuted(G.muted);
+  UI.mute.textContent = G.muted ? 'muted (M)' : 'sound on (M)';
+  UI.mute.classList.toggle('off', G.muted);
+  try { localStorage.setItem(MUTE_KEY, G.muted ? '1' : '0'); } catch (e) {}
+}
+function setDifficulty(i) {
+  G.difficulty = clamp(i | 0, 0, DIFFICULTIES.length - 1);
+  try { localStorage.setItem(DIFF_KEY, String(G.difficulty)); } catch (e) {}
+  UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty));
+  AUDIO.sfx('ui');
+}
+function restartLevel() {
+  if (!G.L) return;
+  ensureAudio();
+  startLevel(G.levelIndex, false);
+  G.toast('Again.');
+}
+function pauseGame() { setState('paused'); showOverlay('<h1>Paused</h1><p class="intro">It is not.</p><p class="prompt">Press Esc to keep going<br><span class="alt"><b>R</b> to start the night over</span></p>'); }
 function resumeGame() { setState('play'); hideOverlay(); }
 
 function proceed() {
@@ -183,11 +215,11 @@ function useTarget(t) {
   let item = G.inv[G.active];
   if (!item || !t.accepts.includes(item.id)) item = G.inv.find(i => t.accepts.includes(i.id));
   if (!item) {
-    if (t.accepts.length) G.toast(t.hint ? t.hint() : 'You need something for this.');
+    if (t.accepts.length) G.toast(G.hints() ? (t.hint ? t.hint() : 'You need something for this.') : 'Not with what you have.');
     AUDIO.sfx('nope'); return;
   }
   const missing = (t.requires || []).filter(id => !G.hasItem(id));
-  if (missing.length) { G.toast('You need the ' + missing[0] + ' for that.'); AUDIO.sfx('nope'); return; }
+  if (missing.length) { G.toast(G.hints() ? 'You need the ' + missing[0] + ' for that.' : 'Not like this.'); AUDIO.sfx('nope'); return; }
   const ok = t.use(item);
   if (!ok) { AUDIO.sfx('nope'); return; }
   if (!item.tool) { item.uses--; if (item.uses <= 0) G.removeFromInv(item); }
@@ -223,7 +255,7 @@ function updateHover() {
   let tip = '';
   if (h) {
     if (h.kind === 'item') tip = h.ref.name + (h.ref.uses > 1 ? ' ×' + h.ref.uses : '');
-    else if (h.kind === 'target') tip = h.ref.hint ? h.ref.hint() : h.ref.name;
+    else if (h.kind === 'target') tip = (G.hints() && h.ref.hint) ? h.ref.hint() : h.ref.name;
     else if (h.kind === 'creature') tip = G.L.gunLoaded && G.L.gunLoaded() ? (G.L.creature.dist < 32 ? 'Fire.' : 'Too far.') : '';
   } else if (G.state === 'play' && G.cam.pitch > 0.5 && G.inv.length && !(G.L.shoot && G.L.gun.have && false)) tip = 'Put down the ' + G.inv[G.active].name.toLowerCase();
   UI.tooltip.textContent = tip;
@@ -288,7 +320,7 @@ function deathLine(L) {
     road: 'It came through the windshield.',
     graveyard: 'It was still smiling when it stepped over the threshold.',
     quarry: 'You looked away. It only needed a moment.',
-    clearing: 'The shells were in the box. The box was on the porch.',
+    clearing: 'It did not even slow down on the steps.',
   };
   return lines[L.def.id] || '';
 }
@@ -412,7 +444,7 @@ function updateHUD() {
   }
   UI.pitch.textContent = c.tPitch > 0.1 ? '▼ looking down' : '▲ looking ahead';
   UI.zoom.style.opacity = c.zoom > 1.2 ? 1 : 0;
-  const obj = L.objectiveText ? L.objectiveText() : L.def.objective;
+  const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.def.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
   // inventory
   const sig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active;
@@ -461,10 +493,16 @@ function init() {
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('blur', () => { G.cam.zoomHeld = false; });
   UI.canvas.addEventListener('click', onClick);
-  UI.overlay.addEventListener('click', onClick);
-  UI.mute.addEventListener('click', e => { e.stopPropagation(); toggleMute(); });
+  UI.overlay.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-diff]');
+    if (b) { e.stopPropagation(); ensureAudio(); setDifficulty(+b.dataset.diff); return; }
+    onClick(e);
+  });
+  UI.mute.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); toggleMute(); });
   bindTouch();
   try { G.unlocked = parseInt(localStorage.getItem(SAVE_KEY) || '0', 10) || 0; } catch (e) { G.unlocked = 0; }
+  try { const d = parseInt(localStorage.getItem(DIFF_KEY), 10); if (!isNaN(d)) G.difficulty = clamp(d, 0, DIFFICULTIES.length - 1); } catch (e) {}
+  try { setMuted(localStorage.getItem(MUTE_KEY) === '1'); } catch (e) {}
   const q = new URLSearchParams(location.search);
   G.debug = q.has('debug');
   if (G.debug) UI.debug.style.display = 'block';

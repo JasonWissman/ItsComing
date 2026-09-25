@@ -1,7 +1,7 @@
 'use strict';
 // ---------- Web Audio: everything is synthesized, no sound files ----------
 const AUDIO = (() => {
-  let ac = null, master = null, noiseBuf = null;
+  let ac = null, master = null, noiseBuf = null, muted = false;
   let amb = null;     // ambient bed (wind + drone)
   let loopNode = null; // creature loop (stone grind / engine)
 
@@ -11,7 +11,7 @@ const AUDIO = (() => {
       const AC = window.AudioContext || window.webkitAudioContext;
       ac = new AC();
       master = ac.createGain();
-      master.gain.value = 0.85;
+      master.gain.value = muted ? 0.0001 : 0.85;
       const comp = ac.createDynamicsCompressor();
       comp.threshold.value = -18; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.25;
       master.connect(comp); comp.connect(ac.destination);
@@ -24,6 +24,10 @@ const AUDIO = (() => {
   }
   const on = () => !!ac;
   function resume() { if (ac && ac.state !== 'running') ac.resume().catch(() => {}); }
+  function setMuted(m) {
+    muted = !!m;
+    if (master) { master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(muted ? 0.0001 : 0.85, ac.currentTime, 0.03); }
+  }
   const now = () => ac.currentTime;
 
   function panNode(pan) {
@@ -210,5 +214,5 @@ const AUDIO = (() => {
     }
   }
 
-  return { init, on, resume, startAmbient, stopAmbient, setLoop, stopLoop, heartbeat, footstep, sfx };
+  return { init, on, resume, setMuted, startAmbient, stopAmbient, setLoop, stopLoop, heartbeat, footstep, sfx, get muted() { return muted; } };
 })();
