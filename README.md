@@ -85,39 +85,85 @@ the furthest night reached.
 ## Project layout
 
 ```
-index.html        page shell, HUD and styles
-js/util.js        math, color and drawing helpers
-js/audio.js       Web Audio synthesis: wind, drones, heartbeat, footsteps, effects
-js/render.js      tiny painter's-algorithm 3D renderer on Canvas 2D (sky, ground, props, billboards, fog, post effects)
-js/creatures.js   the five creatures: procedural drawing plus movement behavior
-js/icons.js       item icons and scenery builders (walls, boxes, trees, fences, gravestones, road, moon, stars)
-js/levels.js      the five level definitions
-js/game.js        game state, input, interaction, HUD, main loop
+index.html              page shell, HUD and styles
+js/util.js              math, color and drawing helpers
+js/audio.js             Web Audio synthesis: wind, drones, heartbeat, footsteps, effects
+js/render.js            tiny painter's-algorithm 3D renderer on Canvas 2D (sky, ground, props, billboards, fog, post effects)
+js/approach.js          approach lanes: apertures, blockers, how much of the thing you can see, lane validation
+js/seq.js               beat sequencer for aftermaths, deaths and set pieces
+js/save.js              versioned saved progress and settings
+js/creatures.js         drawing helpers and the CREATURES registry
+js/creatures/<name>.js  one creature each: procedural drawing plus movement behavior
+js/icons.js             item icons and scenery builders (walls, boxes, trees, fences, openings, road, moon, stars)
+js/levels.js            item, target, container and recipe helpers and the LEVELS list
+js/levels/nightNN.js    one night each
+js/game.js              game state, input, interaction, HUD, main loop
+test/                   headless Playwright suite (see Testing)
 ```
 
-### Adding a level
+### Anatomy of a night
 
-Add an object to `LEVELS` in `js/levels.js`. A level is defined in a local frame
-where the creature comes from local "ahead" (+z); `facing` rotates the whole
-level so the compass shows a different world direction. In `build(L)`:
+A night is an object pushed onto `LEVELS` from `js/levels/nightNN.js`. It is defined in a local
+frame where the default lane points along +z; `facing` rotates the whole night so the compass
+shows a different world direction.
 
-- place scenery with the `SC` helpers (`wallV`, `floorQ`, `box`, `tree`, ...);
-- place items with `mkItem(L, id, name, spot | [spots...], {w, h, flat, uses, tool})`, where a
-  spot is `{deg, dist, y}` or `{x, y, z}` in the local frame; with a list, one spot is
-  chosen at random on each load (never the same spot twice in one level), and a spot's
-  optional `setup(L, spot)` adds props that belong with it;
-- place targets with `mkTarget(L, {...accepts, requires, needed, use(item), hint()})`;
-- set `L.isWon()`, `L.barrierDist`, `L.aftermath(t, dt)` and `L.aftermathText`;
-- optionally `L.dynamic()` for per-frame props, `L.update(dt)`, `L.onReach()`,
-  `L.glows()`, `L.creatureLit(c)`.
+```js
+LEVELS.push({
+  id: 'field', title: 'The Field', facing: 0, eyeH: 1.65,
+  pal: { skyTop, fog, ground, fogDist }, ambient: { wind, drone, droneFreq, windFreq },
+  text: { intro, hint, objective, death: { default, reached }, win, fragment },
+  lanes: [{ deg: 0, name: 'back door', barrierDist: 2.75, apertures: [{ z, x0, x1, y0, y1 }], blockers: [[d0, d1]] }],
+  creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
+  aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang' },   // held, stand, retreat, down, custom
+  uses: [{ tool, ammo, range, onHit(c, hits, L), onMiss(L) }],       // things you use on the creature itself
+  build(L) { ... }
+});
+```
 
-Creatures are registered in `CREATURES` (`js/creatures.js`) with a `draw(ctx, c, P)`
-that paints in meters with the feet at the origin, and a `speedMult(c, dt, seen)`
-that shapes how it moves.
+- **Lanes** are the directions the thing may come from. Each must be fully visible along its
+  whole length; `apertures` describe the openings it is seen through (a doorway, a window, a gap
+  between posts) and `blockers` the stretches where it is hidden regardless. `SC.doorway`,
+  `SC.window` and `SC.gap` build the wall pieces and return the matching aperture. `buildLevel`
+  picks the lane (the default below Hard, a seeded pick on Hard, random on Nightmare, or the
+  night's own `laneMode`) and `validateContent()` fails a lane that is not at least 85% visible
+  at every metre. `L.lane` is the chosen lane inside `build`.
+- **Creatures** are listed in `creatures`; each gets its own lane, timer and seeded random
+  stream. `CREATURES[type]` provides `draw`, `speedMult`, optional `onSeen`, `lateral`,
+  `timeScale` (slow motion), `death` ({ delay, dur, sting, pose }) and `seenFrac`.
+- **Items and targets** are placed in `build(L)`: `mkItem(L, id, name, spot | [spots], opts)`
+  picks one of several spots per load (never the same spot twice, never within 0.8 m of another
+  item); `mkTarget(L, { accepts, requires, needed, use(item), hint(), onClick(), hold, crank })`
+  for anything you use things on; `mkContainer(L, { opens, yields, spot })` for drawers and boxes;
+  `mkRecipe(L, { parts, result })` for combining two held items. Items can be `tool` (never
+  consumed), `throwable`, or `decoy`.
+- **Difficulty tiers**: `L.tier(normal, hard, nightmare)` and `L.extra(minTier, fn)` scale
+  counts, add prerequisites or items. `L.diff` is the profile in play.
+- **Hooks** set inside `build`: `L.isWon()`, `L.barrierDist`, `L.floor = { poly, y }` (where
+  dropped items may land), `L.dynamic()` (per-frame props via `SC.mkQuad` and friends),
+  `L.update(dt)`, `L.onReach(c)`, `L.onCatch(c)`, `L.onPickup(it)`, `L.onDrop(it)`, `L.glows()`,
+  `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`.
+- **Feedback text** goes through `G.say(specific, vague)`: the first is shown with hints on, the
+  second otherwise.
+- Every night has a solution in `test/nights/nightNN.js` so the suite can play it.
 
-### Debugging
+## Testing
 
-- `index.html?level=3` jumps to a level's title card.
-- `index.html?level=3&go` skips the card.
-- `index.html?debug` shows distance, progress, visibility and FPS in the corner.
-- `index.html?seed=42` fixes the random layout so a night can be reproduced.
+```
+npm install            # Playwright (or set PW_CHROMIUM to a Chromium binary)
+npm test               # nights, flow, features, lanes, clickability sweep
+npm run test:play      # NIGHTS=1,3 TIERS=normal,hard SEEDS=1,2 narrow it
+npm run test:spots     # screenshot every item spot into montages under test/shots
+```
+
+`test/play.js` runs each night's declared solution per tier and seed. `test/flow.js` covers the
+screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
+difficulty, hints, restart and mute. `test/lanes.js` runs `validateContent()` and checks every
+lane gets picked on Nightmare. `test/hittest.js` checks every item is visible and clickable from
+some direction across many layouts.
+
+## Debugging
+
+- `index.html?level=3` jumps to a night's card; `&go` skips the card; `&diff=hard` picks a difficulty.
+- `index.html?seed=42` reproduces a whole run (layout, creature timing, drops).
+- `index.html?debug` shows the seed, lane, distance, visibility and FPS, and runs `validateContent()`.
+- `index.html?nofr` disables the frame loop so `G.step(dt, n)` can advance the game by hand.
