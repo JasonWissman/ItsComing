@@ -50,7 +50,7 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state === 'title' && G.difficulty === 0 && JSON.parse(localStorage.getItem('itscoming.v2')).settings.difficulty === 0), 'clicking Easy selects it without starting the game, and saves it');
   await page.keyboard.press('3'); await page.waitForTimeout(100);
   check(await page.evaluate(() => G.difficulty === 2 && document.querySelector('.diff.sel').textContent.includes('Hard')), 'key 3 selects Hard');
-  await page.keyboard.press('Enter'); await page.waitForTimeout(300);
+  await page.keyboard.press('Enter'); await page.waitForTimeout(500);
   let v = await page.evaluate(() => ({ T: G.L.creature.T, um: G.L.creature.unseenMult, kicker: document.querySelector('.kicker').textContent, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
   check(v.T > 80 * 0.72 * 0.92 && v.T < 80 * 0.72 * 1.08 && Math.abs(v.um - 1.35 * 1.25) < 1e-6, 'Hard scales time and unseen speed (' + v.T.toFixed(1) + 's, x' + v.um.toFixed(2) + ')');
   check(v.kicker.includes('Hard') && !v.hasHint && !/planks|hammer/i.test(v.intro), 'Hard card shows no objective and no solution hint');
@@ -68,7 +68,7 @@ const hoverHit = lookFor;
 
   console.log('== easy shows hints ==');
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.difficulty = 0; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
-  await page.goto(URL + '?level=1'); await page.waitForTimeout(300);
+  await page.goto(URL + '?level=1'); await page.waitForTimeout(500);
   v = await page.evaluate(() => ({ d: G.difficulty, T: G.L.creature.T, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
   check(v.d === 0 && v.T > 80 * 1.35 * 0.92 && v.T < 80 * 1.35 * 1.08, 'difficulty restored from storage, Easy gives more time (' + v.T.toFixed(1) + 's)');
   check(v.hasHint && /planks/.test(v.intro), 'Easy card shows the objective and the hint');

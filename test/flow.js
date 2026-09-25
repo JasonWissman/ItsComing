@@ -7,7 +7,7 @@ const { check, st, face, findHit, clickAt, lookForAndClick } = T;
   console.log('== title -> card -> play ==');
   await T.open(page, '');
   check((await st(page)).state === 'title', 'title state');
-  await page.keyboard.press('Enter'); await page.waitForTimeout(200);
+  await page.keyboard.press('Enter'); await page.waitForTimeout(450);
   check((await st(page)).state === 'card', 'Enter opens night 1 card');
   check(await page.evaluate(() => AUDIO.on()), 'audio context created on first gesture');
   await page.keyboard.press(' '); await page.waitForTimeout(150);
@@ -19,7 +19,7 @@ const { check, st, face, findHit, clickAt, lookForAndClick } = T;
   for (let i = 0; i < 3; i++) { await clickAt(page, await findHit(page, 'target', 'door')); await page.waitForTimeout(150); }
   check((await st(page)).won, 'night 1 won');
   const t0 = Date.now(); while (Date.now() - t0 < 12000 && (await st(page)).state !== 'survived') await page.waitForTimeout(200);
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(600); // overlays arm 350 ms after they show
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
   let s = await st(page); check(s.state === 'card' && s.level === 1, 'advanced to night 2 card');
   check(await page.evaluate(() => JSON.parse(localStorage.getItem('itscoming.v2')).unlocked.normal === 1), 'progress saved');

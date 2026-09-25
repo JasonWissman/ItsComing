@@ -163,7 +163,7 @@ function beginPlay() {
 function setState(s) { G.state = s; G.stateT = 0; }
 
 // ---------------- overlays ----------------
-function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = G.t + 0.35; } // a double-click cannot skip a card
+function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350; } // a double-click cannot skip a card
 function hideOverlay() { UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
@@ -245,9 +245,9 @@ function setDifficulty(i) {
   G.difficulty = clamp(i | 0, 0, DIFFICULTIES.length - 1);
   SAVE.setSetting('difficulty', G.difficulty);
   AUDIO.sfx('ui');
-  if (G.state === 'title') G.overlayArmed = 0;
-  UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty)); // in place, no re-render
-  const begin = UI.overlay.querySelector('button[data-act="begin"]'); if (begin && G.state === 'title') begin.focus(); // the next thing to press is Begin, so Enter begins
+  // the title and the Nights list are built per difficulty (Continue, unlocks), so they are rebuilt; focus lands on Begin, the next thing to press
+  if (G.state === 'title' && (MENU.kind === 'title' || MENU.kind === 'nights')) { const kind = MENU.kind; MENU.show(kind, kind === 'nights' ? { from: 'title' } : undefined); G.overlayArmed = 0; const begin = UI.overlay.querySelector('button[data-act="begin"]'); if (begin) begin.focus(); }
+  else UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty));
 }
 function restartLevel() {
   if (!G.L) return;
@@ -259,7 +259,7 @@ function pauseGame() { setState('paused'); MENU.show('pause'); AUDIO.suspend(); 
 function resumeGame() { setState('play'); hideOverlay(); MENU.clear(); AUDIO.resume(); }
 
 function proceed() {
-  if (G.t < G.overlayArmed) return;
+  if (performance.now() < G.overlayArmed) return; // the arm is on the wall clock, so it is 350 ms whatever the frame rate
   ensureAudio();
   switch (G.state) {
     case 'title': startLevel(0, true); break;
@@ -863,7 +863,7 @@ function frame(now) {
     catch (e) {
       G.errorCount++;
       console.error(e);
-      G.error = e; setState('error');
+      G.error = e; setState('error'); MENU.clear(); // whatever screen was up, the error overlay is click-anywhere
       showOverlay('<h1 class="red">Something broke</h1><p class="intro">' + escapeHtml(e.message) + '<br>seed ' + G.runSeed + '</p><p class="prompt">Press R, click or tap to start the night over</p>');
       G.overlayArmed = 0; // the clock does not run in the error state, so the overlay must not wait on it
     }
