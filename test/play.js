@@ -33,7 +33,7 @@ const T = require('./lib');
   s = await st(page); check(s.state === 'survived', 'aftermath finished -> survived overlay');
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
   s = await st(page); check(s.state === 'card' && s.level === 1, 'advanced to night 2 card');
-  check(await page.evaluate(() => localStorage.getItem('itscoming.unlocked') === '1'), 'progress saved');
+  check(await page.evaluate(() => JSON.parse(localStorage.getItem('itscoming.v2')).unlocked.normal === 1), 'progress saved');
 
   console.log('== night 2: the road ==');
   await start(2);

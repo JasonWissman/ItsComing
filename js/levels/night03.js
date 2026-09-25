@@ -4,10 +4,17 @@ LEVELS.push({
   id: 'graveyard', title: 'The Graveyard', facing: 45, eyeH: 1.65,
   pal: { skyTop: [22, 14, 32], fog: [74, 60, 72], ground: [42, 46, 36], fogDist: 64 },
   ambient: { wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300 },
-  intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
-  hint: 'The old rules for the chapel door: salt across the threshold, and a light beside it.',
-  objective: 'Salt the threshold. Light the lantern.',
-  creature: { type: 'smiler', startDist: 95, time: 88, gamma: 0.72, unseenMult: 1.55 },
+  text: {
+    intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
+    hint: 'The old rules for the chapel door: salt across the threshold, and a light beside it.',
+    objective: 'Salt the threshold. Light the lantern.',
+    death: { default: 'It was still smiling when it stepped over the threshold.' },
+    win: 'It stood at the salt line until morning, smiling at you. It never once looked at the lantern.',
+  },
+  // the porch opening between the two columns, under the lintel
+  lanes: [{ deg: 0, name: 'path', barrierDist: 2.6, apertures: [{ z: 1.8, x0: -1.8, x1: 1.8, y0: 0, y1: 3.0 }] }],
+  creatures: [{ type: 'smiler', startDist: 95, time: 88, gamma: 0.72, unseenMult: 1.55 }],
+  aftermath: { type: 'stand', dur: 4.2 },
   build(L) {
     const stone = [80, 76, 72], stoneD = [58, 54, 52], floor = [66, 62, 58], iron = [30, 30, 32];
     SC.stars(L, 13, 60, 0.35);
@@ -76,7 +83,6 @@ LEVELS.push({
       if (hook.hung) R.add(SC.mkSprite(L, 0.78, 1.3, 1.77, 0.3, 0.44, (ctx, P) => { P.lit = hook.lit; ctx.scale(0.3, 0.44); ICONS.lantern(ctx, P); }));
 };
     L.glows = () => { if (!hook.lit) return null; const p = L.pt(0.78, 1.52, 1.77); return [{ x: p[0], y: p[1], z: p[2], r: 3.2 + Math.sin(L.t * 9) * 0.12 + Math.sin(L.t * 23) * 0.05, color: [255, 190, 110], a: 0.3 }]; };
-    L.aftermath = t => t > 4.2;
-    L.aftermathText = 'It stood at the salt line until morning, smiling at you. It never once looked at the lantern.';
+    L.floor = { poly: [[-2.1, -1.6], [2.1, -1.6], [2.1, 1.8], [-2.1, 1.8]], y: 0 };
   }
 });

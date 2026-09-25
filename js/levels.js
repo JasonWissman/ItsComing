@@ -33,11 +33,45 @@ function mkItem(L, id, name, pos, o) {
   return it;
 }
 function mkTarget(L, o) {
-  const p = o.x !== undefined ? L.pt(o.x, o.y, o.z) : L.at(o.deg, o.dist, o.y);
-  const t = Object.assign({ w: 1, h: 1, flat: false, accepts: [], requires: [], needed: 1, count: 0, done: false }, o, { x: p[0], y: p[1], z: p[2] });
+  const local = o.x !== undefined ? [o.x, o.y, o.z] : [Math.sin(o.deg * DEG) * o.dist, o.y, Math.cos(o.deg * DEG) * o.dist];
+  const p = L.pt(local[0], local[1], local[2]);
+  const t = Object.assign({ w: 1, h: 1, flat: false, accepts: [], requires: [], needed: 1, count: 0, done: false }, o, { x: p[0], y: p[1], z: p[2], local });
   L.targets.push(t);
   return t;
 }
+// a container: a drawer, box or cabinet that yields items when opened (optionally with a key item)
+function mkContainer(L, o) {
+  const spot = Array.isArray(o.spot) ? pickSpot(L, o.spot) : o.spot;
+  const local = spot.x !== undefined ? [spot.x, spot.y, spot.z] : [Math.sin(spot.deg * DEG) * spot.dist, spot.y, Math.cos(spot.deg * DEG) * spot.dist];
+  const t = mkTarget(L, {
+    id: o.id, name: o.name, x: local[0], y: local[1], z: local[2], w: o.w || 0.5, h: o.h || 0.4, flat: !!o.flat,
+    accepts: o.opens ? [o.opens] : [], open: false, kind: 'container',
+    hint() { return t.open ? (o.emptyText || 'Empty now.') : (o.opens ? (o.lockedText || 'Locked.') : (o.closedText || 'Closed.')); },
+    onClick() { if (t.open) { G.say(o.emptyText || 'Empty now.', 'Nothing more.'); return true; } if (o.opens) return false; openIt(); return true; },
+    use(item) { if (t.open) return false; openIt(); return true; },
+  });
+  function openIt() {
+    t.open = true; t.done = true; AUDIO.sfx(o.sfx || 'creak');
+    (o.yields || []).forEach((y, k) => {
+      const it = mkItem(L, y.id, y.name, { x: local[0] + (k - (o.yields.length - 1) / 2) * 0.22, y: local[1] + (o.liftY || 0.02), z: local[2] + 0.05 }, Object.assign({ flat: true }, y.opts || {}));
+      if (o.onYield) o.onYield(it);
+    });
+    if (o.onOpen) o.onOpen(t);
+  }
+  if (spot.setup) spot.setup(L, spot);
+  // a visible box that opens
+  const w = o.w || 0.5, hh = o.h || 0.4, col = o.color || [70, 54, 40];
+  L.props.push(SC.mkSprite(L, local[0], local[1], local[2], w, hh, (ctx, P) => {
+    ctx.scale(w, hh);
+    const c = P.col(col), d = P.col(scalec(col, 0.65));
+    P_rect(ctx, -0.5, 0, 1, 0.75, c); P_rect(ctx, -0.5, 0.7, 1, 0.08, d);
+    if (t.open) { P_rect(ctx, -0.5, 0.78, 1, 0.22, P.col(scalec(col, 0.4))); P_rect(ctx, -0.5, 0.74, 1, 0.05, d); }
+    else { P_rect(ctx, -0.5, 0.74, 1, 0.26, P.col(scalec(col, 0.85))); P_rect(ctx, -0.08, 0.6, 0.16, 0.12, d); }
+  }, { flat: !!o.flat }));
+  return t;
+}
+// two held items become one: select one, click the other in the inventory
+function mkRecipe(L, o) { L.recipes.push(o); return o; }
 function iconSprite(L, id, x, y, z, w, h, opts) {
   return SC.mkSprite(L, x, y, z, w, h, (ctx, P) => { ctx.scale(w, h); ICONS[id](ctx, P); }, opts);
 }

@@ -4,10 +4,16 @@ LEVELS.push({
   id: 'field', title: 'The Field', facing: 0, eyeH: 1.65,
   pal: { skyTop: [6, 8, 18], fog: [46, 52, 68], ground: [36, 46, 32], fogDist: 105 },
   ambient: { wind: 1, drone: 0.8, droneFreq: 50, windFreq: 380 },
-  intro: 'You woke up at the back door, and it was open.<br>Something is walking across the field toward the house. It has been walking for a while.',
-  hint: 'There are planks somewhere in the house, and a hammer.',
-  objective: 'Board up the back door.',
-  creature: { type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 },
+  text: {
+    intro: 'You woke up at the back door, and it was open.<br>Something is walking across the field toward the house. It has been walking for a while.',
+    hint: 'There are planks somewhere in the house, and a hammer.',
+    objective: 'Board up the back door.',
+    death: { default: 'The boards were not enough, or were not there.', reached: 'It tore the boards off.' },
+    win: 'It hit the boards until sunrise. They held.',
+  },
+  lanes: [{ deg: 0, name: 'back door', barrierDist: 2.75, apertures: [{ z: 2.45, x0: -0.8, x1: 0.8, y0: 0, y1: 2.12 }] }],
+  creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
+  aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang', shake: 0.5 },
   build(L) {
     const wood = [50, 40, 33], woodD = [38, 30, 25], frame = [96, 76, 52], floor = [46, 37, 30];
     SC.stars(L, 3, 170, 0.8);
@@ -74,8 +80,7 @@ LEVELS.push({
         for (const x of [-0.86, 0.86]) R.add(SC.mkQuad(L, [x - 0.015, yc - 0.015 + tl * 0.9 * (x < 0 ? 1 : -1), 2.41], [x + 0.015, yc - 0.015 + tl * 0.9 * (x < 0 ? 1 : -1), 2.41], [x + 0.015, yc + 0.015 + tl * 0.9 * (x < 0 ? 1 : -1), 2.41], [x - 0.015, yc + 0.015 + tl * 0.9 * (x < 0 ? 1 : -1), 2.41], [30, 28, 26]));
       }
 };
-    L.onReach = () => { if (door.count > 0) { door.count = 0; AUDIO.sfx('smash'); G.shake(0.8); G.toast('It tore the boards off.'); } };
-    L.aftermath = (t, dt) => { if (Math.floor(t / 0.75) !== Math.floor((t - dt) / 0.75)) { AUDIO.sfx('bang'); G.shake(0.5); } return t > 3.8; };
-    L.aftermathText = 'It hit the boards until sunrise. They held.';
+    L.onReach = () => { if (door.count > 0) { door.count = 0; AUDIO.sfx('smash'); G.shake(0.8); } };
+    L.floor = { poly: [[-2.7, -2.3], [2.7, -2.3], [2.7, 2.5], [-2.7, 2.5]], y: 0 };
   }
 });

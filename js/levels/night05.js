@@ -4,10 +4,24 @@ LEVELS.push({
   id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
   pal: { skyTop: [6, 8, 16], fog: [54, 60, 74], ground: [126, 132, 148], fogDist: 120 },
   ambient: { wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 },
-  intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming straight for the porch.',
-  hint: 'The shotgun is somewhere on the porch, and so is the box of shells. There are three, and you will need two.',
-  objective: 'Get the gun. Load it. Wait.',
-  creature: { type: 'runner', startDist: 115, time: 56, gamma: 0.72, unseenMult: 1.3 },
+  text: {
+    intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming straight for the porch.',
+    hint: 'The shotgun is somewhere on the porch, and so is the box of shells. There are three, and you will need two.',
+    objective: 'Get the gun. Load it. Wait.',
+    death: { default: 'It did not even slow down on the steps.' },
+    win: 'You sat on the porch with the gun across your knees until it got light, and nothing else came out of the trees. This time.',
+  },
+  lanes: [{ deg: 0, name: 'porch', barrierDist: 0 }],
+  creatures: [{ type: 'runner', startDist: 115, time: 56, gamma: 0.72, unseenMult: 1.3 }],
+  aftermath: { type: 'down', dur: 3.6 },
+  uses: [{
+    tool: 'shotgun', ammo: 'shells', range: 32, sfx: 'shot', flash: 0.55, emptyText: 'Click. Nothing in it.', fireText: 'Fire.',
+    onHit(c, hits, L) {
+      if (hits === 1) { c.wounded = true; c.mode = 'stumble'; c.modeT = 0; G.toast('It went down. It is getting back up.'); }
+      else { c.dead = true; c.latHold = c.lat; G.toast('It stopped.'); }
+    },
+    onMiss(L) { const s = G.inv.find(i => i.id === 'shells'); G.toast(s ? 'Missed.' : 'Missed. That was the last one.'); },
+  }],
   build(L) {
     const logs = [60, 44, 32], logsD = [42, 30, 22], porch = [76, 62, 50];
     SC.stars(L, 51, 220, 0.9);
@@ -49,32 +63,9 @@ LEVELS.push({
       { x: -2.65, y: 0.85, z: -1.15, jitter: 0.04, key: 'crate' },  // on the crate
       { x: 2.5, y: 1.1, z: -0.5, jitter: 0.06, key: 'woodpile' },   // on the woodpile
     ], { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true });
-    L.gun = { have: false, recoil: 0 };
-    L.floorY = 0.36;
-    L.onPickup = it => {
-      if (it.id === 'shotgun') { L.gun.have = true; if (G.hasItem('shells')) AUDIO.sfx('load'); }
-      if (it.id === 'shells' && L.gun.have) AUDIO.sfx('load');
-};
-    L.gunLoaded = () => L.gun.have && G.hasItem('shells');
-    L.creatureHittable = () => L.gun.have;
-    L.shoot = (hit) => {
-      const c = L.creature;
-      const shells = G.inv.find(i => i.id === 'shells');
-      if (!shells) { AUDIO.sfx('empty'); G.toast('Click. Nothing in it.'); return; }
-      shells.uses--; if (shells.uses <= 0) G.removeFromInv(shells);
-      AUDIO.sfx('shot'); G.flash(0.55); G.shake(0.7); L.gun.recoil = 1;
-      if (hit && c.dist < 32 && !c.dead) {
-        c.hits++; c.hurtFlash = 0.35;
-        if (c.hits === 1) { c.wounded = true; c.mode = 'stumble'; c.modeT = 0; G.toast('It went down. It is getting back up.'); }
-        else { c.dead = true; c.latHold = c.lat; G.toast('It stopped.'); }
-      } else if (hit) G.toast('Too far. Wait.');
-      else G.toast(shells.uses > 0 ? 'Missed.' : 'Missed. That was the last one.');
-};
-    L.update = dt => { if (L.gun.recoil > 0) L.gun.recoil = Math.max(0, L.gun.recoil - dt * 4); };
+    L.floor = { poly: [[-3.1, -1.5], [3.1, -1.5], [3.1, 1.5], [-3.1, 1.5]], y: 0.36 };
+    L.onPickup = it => { if ((it.id === 'shotgun' && G.hasItem('shells')) || (it.id === 'shells' && G.hasItem('shotgun'))) AUDIO.sfx('load'); };
     L.isWon = () => L.creature.dead;
-    L.objectiveText = () => { const s = G.inv.find(i => i.id === 'shells'); return L.creature.dead ? 'It is down.' : !L.gun.have ? 'Get the gun.' : !s ? 'Load it.' : (s.uses + ' shell' + (s.uses > 1 ? 's' : '') + '. Let it get close.'); };
-    L.barrierDist = 0;
-    L.aftermath = t => t > 3.6;
-    L.aftermathText = 'You sat on the porch with the gun across your knees until it got light, and nothing else came out of the trees. This time.';
+    L.objectiveText = () => { const s = G.inv.find(i => i.id === 'shells'); return L.creature.dead ? 'It is down.' : !G.hasItem('shotgun') ? 'Get the gun.' : !s ? 'Load it.' : (s.uses + ' shell' + (s.uses > 1 ? 's' : '') + '. Let it get close.'); };
   }
 });

@@ -4,10 +4,17 @@ LEVELS.push({
   id: 'quarry', title: 'The Quarry', facing: 270, eyeH: 1.65,
   pal: { skyTop: [96, 102, 112], fog: [152, 156, 160], ground: [64, 66, 58], fogDist: 48 },
   ambient: { wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 },
-  intro: 'It only moves when nothing is looking at it.<br>It is standing at the far end of the quarry with its hands over its face.',
-  hint: 'You will have to look away to chain and lock the gate. Be quick about it.',
-  objective: 'Chain and padlock the gate.',
-  creature: { type: 'watcher', startDist: 50, time: 24, gamma: 0.8, seenMult: 0, unseenMult: 1 },
+  text: {
+    intro: 'It only moves when nothing is looking at it.<br>It is standing at the far end of the quarry with its hands over its face.',
+    hint: 'You will have to look away to find the chain and the lock. Be quick about it.',
+    objective: 'Chain and padlock the gate.',
+    death: { default: 'You looked away. It only needed a moment.' },
+    win: 'You did not look away again until the sun came up. It was still there. It is still there.',
+  },
+  // the gap between the gate posts, no lintel
+  lanes: [{ deg: 0, name: 'gate', barrierDist: 2.95, apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }] }],
+  creatures: [{ type: 'watcher', startDist: 50, time: 24, gamma: 0.8, seenMult: 0, unseenMult: 1 }],
+  aftermath: { type: 'stand', dur: 3.6 },
   build(L) {
     const stone = [100, 102, 98], stoneD = [72, 74, 72];
     const wallH = 1.5;
@@ -46,7 +53,7 @@ LEVELS.push({
       use(item) {
         if (item.id === 'chain') { gate.chained = true; gate.closing = 1.0; gate.accepts = ['padlock']; AUDIO.sfx('creak'); return true; }
         if (item.id === 'padlock') {
-          if (!gate.chained || gate.closing > 0) { G.toast('Wait for it to close.'); return false; }
+          if (!gate.chained || gate.closing > 0) { G.say('Wait for it to close.', 'Not yet.'); return false; }
           gate.locked = true; gate.done = true; AUDIO.sfx('lock'); return true;
         }
         return false;
@@ -70,7 +77,6 @@ LEVELS.push({
     L.isWon = () => gate.locked;
     L.objectiveText = () => gate.locked ? 'Locked. Do not look away.' : gate.chained ? 'Now the padlock.' : 'Chain the gate shut, then padlock it.';
     L.barrierDist = 2.95;
-    L.aftermath = t => t > 3.6;
-    L.aftermathText = 'You did not look away again until the sun came up. It was still there. It is still there.';
+    L.floor = { poly: [[-3, -2.8], [3, -2.8], [3, 2.4], [-3, 2.4]], y: 0 };
   }
 });

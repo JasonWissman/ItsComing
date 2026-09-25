@@ -246,6 +246,39 @@ const SC = {
   }
 };
 
+// ---- build in a rotated local frame (deg = 0 is the level's own forward) ----
+SC.withYaw = function (L, deg, fn) {
+  if (!deg) return fn();
+  const orig = L.pt, r = deg * DEG;
+  L.pt = (x, y, z) => { const q = rotY(x, z, r); return orig(q[0], y, q[1]); };
+  try { return fn(); } finally { L.pt = orig; }
+};
+// ---- openings: build the wall pieces around a hole and return the aperture the lane logic needs ----
+// a doorway in a wall at depth z facing the lane, opening w wide and h high, walls wallH high from x=left..right
+SC.doorway = function (L, o) {
+  const x = o.x || 0, w = o.w, h = o.h, wallH = o.wallH || h + 0.5, left = o.left === undefined ? -7 : o.left, right = o.right === undefined ? 7 : o.right;
+  SC.withYaw(L, o.deg || 0, () => {
+    SC.wallV(L, left, o.z, x - w / 2, o.z, 0, wallH, o.color, o.opts);
+    SC.wallV(L, x + w / 2, o.z, right, o.z, 0, wallH, o.color, o.opts);
+    if (wallH > h) SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, h, wallH, o.color, o.opts);
+    if (o.frame) { const f = o.frame, fw = f.w || 0.1; SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x - w / 2, o.z - 0.05, 0, h + fw, f.color); SC.wallV(L, x + w / 2, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, 0, h + fw, f.color); SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, h, h + fw, f.color); }
+  });
+  return { z: o.z, x0: x - w / 2, x1: x + w / 2, y0: 0, y1: h };
+};
+// a window: wall with a hole from y0 to y1
+SC.window = function (L, o) {
+  const x = o.x || 0, w = o.w, wallH = o.wallH, left = o.left === undefined ? -7 : o.left, right = o.right === undefined ? 7 : o.right;
+  SC.withYaw(L, o.deg || 0, () => {
+    SC.wallV(L, left, o.z, x - w / 2, o.z, 0, wallH, o.color, o.opts);
+    SC.wallV(L, x + w / 2, o.z, right, o.z, 0, wallH, o.color, o.opts);
+    SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, 0, o.y0, o.color, o.opts);
+    SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, o.y1, wallH, o.color, o.opts);
+  });
+  return { z: o.z, x0: x - w / 2, x1: x + w / 2, y0: o.y0, y1: o.y1 };
+};
+// a gap between two posts (no lintel): builds nothing, describes the opening
+SC.gap = function (L, o) { return { z: o.z, x0: (o.x || 0) - o.w / 2, x1: (o.x || 0) + o.w / 2, y0: o.y0 || 0, y1: o.h || 99 }; };
+
 // ---- per-frame (dynamic) variants: return the renderable instead of registering it ----
 SC.mkQuad = function (L, a, b, c, d, color, opts) {
   return Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {});

@@ -24,6 +24,10 @@
   #tooltip { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%); font-size: 15px; color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 12px #000; display: none; font-style: italic; }
   #toast { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); font-size: 17px; color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 14px #000; opacity: 0; transition: opacity .35s; white-space: nowrap; }
   #toast.show { opacity: 1; }
+  #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
+  #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
+  .linkbtn { font: inherit; background: none; border: none; color: #efe6d2; text-decoration: underline; cursor: pointer; padding: 0; letter-spacing: inherit; }
+  .fragment { display: block; margin-top: 10px; font-size: 15px; color: rgba(207,200,186,.6); }
   #inventory { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
   .slot { width: 64px; height: 64px; border: 1px solid rgba(207,200,186,.18); background: rgba(0,0,0,.45); position: relative; cursor: pointer; transition: border-color .15s; }
   .slot canvas { width: 64px; height: 64px; display: block; }
@@ -68,6 +72,7 @@
   <div id="objective"></div>
   <div id="tooltip"></div>
   <div id="toast"></div>
+  <div id="holdbar"><div id="holdfill"></div></div>
   <div id="inventory"></div>
   <div id="debug"></div>
 </div>
@@ -83,6 +88,9 @@
 <script src="js/util.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/render.js"></script>
+<script src="js/approach.js"></script>
+<script src="js/seq.js"></script>
+<script src="js/save.js"></script>
 <script src="js/creatures.js"></script>
 <script src="js/creatures/walker.js"></script>
 <script src="js/creatures/crawler.js"></script>

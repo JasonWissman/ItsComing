@@ -94,6 +94,25 @@ const R = (() => {
     const p = proj(c);
     return { x: p[0], y: p[1], depth: c[2], scale: f / c[2] };
   }
+  // screen rect of an upright billboard (w x h metres, base at x,y,z), for the current camera or a given
+  // one ({yaw, pitch, zoom, W, H, eyeH}); pure math, used by the approach-lane visibility test
+  function projectRect(x, y, z, w, h, cam) {
+    let cy = cosY, sy = sinY, cp = cosP, sp = sinP, ff = f, eh = eyeH, Wd = W, Hd = H;
+    if (cam) {
+      cy = Math.cos(cam.yaw); sy = Math.sin(cam.yaw); cp = Math.cos(cam.pitch); sp = Math.sin(cam.pitch);
+      Wd = cam.W; Hd = cam.H; eh = cam.eyeH; ff = (Hd / 2) / Math.tan(VFOV / 2) * (cam.zoom || 1);
+    }
+    const tc = (px, py, pz) => { const dy = py - eh; const cx = px * cy - pz * sy; const cz = px * sy + pz * cy; return [cx, dy * cp + cz * sp, -dy * sp + cz * cp]; };
+    const base = tc(x, y, z);
+    if (base[2] < NEAR) return null;
+    const bx = Wd / 2 + ff * base[0] / base[2], by = Hd / 2 - ff * base[1] / base[2];
+    const s = ff / base[2];
+    const top = tc(x, y + h, z);
+    let hpx = h * s;
+    if (top[2] >= NEAR) hpx = Math.max(0.5, by - (Hd / 2 - ff * top[1] / top[2]));
+    const wpx = w * s;
+    return { x: bx - wpx / 2, y: by - hpx, w: wpx, h: hpx };
+  }
   function clipNear(pts) {
     const out = [], n = pts.length;
     for (let i = 0; i < n; i++) {
@@ -259,7 +278,7 @@ const R = (() => {
   }
 
   return {
-    attach, resize, begin, add, flush, post, screenPos, fogAmt,
+    attach, resize, begin, add, flush, post, screenPos, projectRect, fogAmt,
     get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; },
     get hits() { return hits; },
     set hover(v) { hoverRef = v; },

@@ -4,10 +4,17 @@ LEVELS.push({
   id: 'road', title: 'The Road', facing: 0, eyeH: 1.15,
   pal: { skyTop: [3, 3, 7], fog: [15, 15, 20], ground: [20, 19, 16], fogDist: 70 },
   ambient: { wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220 },
-  intro: 'The engine died on the county road, miles from anything.<br>Something is coming up the middle of the road, low, in the headlights.',
-  hint: 'The keys fell somewhere when the car stalled. The engine has been flooding all night.',
-  objective: 'Start the car.',
-  creature: { type: 'crawler', startDist: 85, time: 48, gamma: 0.75, unseenMult: 1.35 },
+  text: {
+    intro: 'The engine died on the county road, miles from anything.<br>Something is coming up the middle of the road, low, in the headlights.',
+    hint: 'The keys fell somewhere when the car stalled. The engine has been flooding all night.',
+    objective: 'Start the car.',
+    death: { default: 'It came through the windshield.' },
+    win: 'It caught. You did not look in the mirror.',
+  },
+  // the windshield is the opening; the hood hides the last metres of road
+  lanes: [{ deg: 0, name: 'road', barrierDist: 0, apertures: [{ z: 0.95, x0: -0.5, x1: 1.3, y0: 1.02, y1: 1.45 }], blockers: [[0, 7.5]] }],
+  creatures: [{ type: 'crawler', startDist: 85, time: 48, gamma: 0.75, unseenMult: 1.35 }],
+  aftermath: { type: 'retreat', dur: 3.2, speed: 4, accel: 1.5, shake: 0.06 },
   build(L) {
     const body = [44, 22, 24], bodyD = [24, 13, 15], dash = [26, 24, 26], dashD = [16, 15, 17], seat = [46, 40, 38], floor = [15, 14, 14];
     SC.stars(L, 7, 120, 0.5);
@@ -73,15 +80,13 @@ LEVELS.push({
         return true;
       }
 });
-    L.flags = { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3) };
+    Object.assign(L.s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3) });
     L.update = dt => { if (L.flags.cranking > 0) L.flags.cranking -= dt; };
     L.isWon = () => L.flags.started;
     L.objectiveText = () => L.flags.started ? 'Drive.' : L.flags.keyIn ? 'Turn the key.' : 'Find the keys. Start the car.';
     L.dynamic = () => { if (L.flags.keyIn) R.add(iconSprite(L, 'keys', 0.19, 0.7, 0.49, 0.1, 0.16)); };
     L.creatureLit = c => clamp(1 - (c.dist - 3) / 42, 0, 1) * 0.95;
-    L.barrierDist = 0;
-    L.aftermath = (t, dt) => { L.creature.frozen = true; L.creature.dist += dt * (4 + t * 6); G.shake(0.06); return t > 3.2; };
-    L.aftermathText = 'It caught. You did not look in the mirror.';
+    L.floor = { poly: [[-0.4, -0.9], [1.2, -0.9], [1.2, 0.7], [-0.4, 0.7]], y: 0.36 };
     L.onEnd = () => AUDIO.stopLoop();
   }
 });
