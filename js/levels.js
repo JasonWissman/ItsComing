@@ -2,10 +2,33 @@
 // ---------- level content. Everything is defined in a local frame where the creature comes from +z; ----------
 // ---------- `facing` rotates the whole level so the compass shows a different world direction.   ----------
 
+// pos is one spot, or a list of candidate spots; one is chosen at random each time the level loads.
+// A spot is {x,y,z} or {deg,dist,y} in the local frame, plus optional flat, jitter and setup(L, spot) for props that belong with it.
+function spotKey(s) { return s.key || (s.deg !== undefined ? 'p' + s.deg + ':' + s.dist : 'c' + s.x.toFixed(1) + ':' + s.z.toFixed(1)); }
+function spotLocal(s) { return s.x !== undefined ? [s.x, s.z] : [Math.sin(s.deg * DEG) * s.dist, Math.cos(s.deg * DEG) * s.dist]; }
+function pickSpot(L, spots) {
+  const clear = s => { const p = spotLocal(s); return L.placed.every(q => Math.hypot(p[0] - q[0], p[1] - q[1]) >= 0.6); };
+  let pool = spots.filter(s => !L.usedSpots.has(spotKey(s)) && clear(s));
+  if (!pool.length) pool = spots.filter(s => !L.usedSpots.has(spotKey(s)));
+  if (!pool.length) pool = spots;
+  const s = pool[Math.floor(L.rand() * pool.length)];
+  L.usedSpots.add(spotKey(s));
+  L.placed.push(spotLocal(s));
+  return s;
+}
 function mkItem(L, id, name, pos, o) {
-  const p = pos.x !== undefined ? L.pt(pos.x, pos.y, pos.z) : L.at(pos.deg, pos.dist, pos.y);
-  const it = Object.assign({ id, name, w: 0.4, h: 0.4, flat: false, uses: 1, tool: false, taken: false, icon: id }, o || {}, { x: p[0], y: p[1], z: p[2] });
+  const spot = Array.isArray(pos) ? pickSpot(L, pos) : pos;
+  const it = Object.assign({ id, name, w: 0.4, h: 0.4, flat: false, uses: 1, tool: false, taken: false, icon: id }, o || {});
+  if (spot.flat !== undefined) it.flat = spot.flat;
+  let lx, ly, lz;
+  if (spot.x !== undefined) { lx = spot.x; ly = spot.y; lz = spot.z; }
+  else { lx = Math.sin(spot.deg * DEG) * spot.dist; ly = spot.y; lz = Math.cos(spot.deg * DEG) * spot.dist; }
+  const jit = spot.jitter !== undefined ? spot.jitter : (it.flat ? 0.12 : 0);
+  if (jit) { lx += (L.rand() - 0.5) * 2 * jit; lz += (L.rand() - 0.5) * 2 * jit; }
+  const p = L.pt(lx, ly, lz);
+  it.x = p[0]; it.y = p[1]; it.z = p[2];
   if (typeof it.icon === 'string') it.icon = ICONS[it.icon];
+  if (spot.setup) spot.setup(L, spot);
   L.items.push(it);
   return it;
 }
@@ -61,9 +84,24 @@ const LEVELS = [
       SC.box(L, -0.8, -0.3, 0.42, 0.48, -2.1, -1.6, [68, 52, 40]); SC.box(L, -0.8, -0.3, 0.48, 1.0, -2.1, -2.04, [68, 52, 40]);
       SC.box(L, 1.7, 2.0, 0.78, 1.0, -0.2, 0.1, [40, 34, 30]);   // a lamp base on the table, unlit
       // items
-      mkItem(L, 'hammer', 'Hammer', { x: 1.25, y: 0, z: 0.35 }, { w: 0.42, h: 0.42, flat: true, tool: true });
-      mkItem(L, 'planks', 'Planks', { deg: 225, dist: 1.75, y: 0 }, { w: 1.0, h: 0.7, flat: true, uses: 3 });
-      mkItem(L, 'bottle', 'Empty bottle', { x: -2.6, y: 1.28, z: 0.5 }, { w: 0.13, h: 0.36 });
+      mkItem(L, 'hammer', 'Hammer', [
+        { x: 1.25, y: 0, z: 0.35 },                       // on the floor by the table
+        { x: -2.2, y: 0, z: 0.7 },                        // under the shelf
+        { x: -0.1, y: 0, z: -1.75 },                      // beside the chair
+        { x: 1.9, y: 0, z: 1.85 },                        // in the corner by the door
+        { x: -2.55, y: 1.28, z: -0.05, flat: false },     // on the shelf
+      ], { w: 0.42, h: 0.42, flat: true, tool: true });
+      mkItem(L, 'planks', 'Planks', [
+        { deg: 225, dist: 1.75, y: 0 },                   // south-west corner
+        { x: -1.5, y: 0, z: 1.6 },                        // north-west, by the front wall
+        { x: 1.4, y: 0, z: -1.7 },                        // south-east
+        { x: 0.7, y: 0, z: -1.9 },                        // along the back wall
+      ], { w: 1.0, h: 0.7, flat: true, uses: 3 });
+      mkItem(L, 'bottle', 'Empty bottle', [
+        { x: -2.55, y: 1.28, z: 1.0 },                     // on the shelf
+        { x: 2.05, y: 0.78, z: 0.05 },                    // on the table
+        { x: 0.45, y: 1.1, z: -2.3 },                     // on the windowsill
+      ], { w: 0.13, h: 0.36 });
       // the doorway
       const door = mkTarget(L, {
         id: 'door', name: 'Back door', deg: 0, dist: 2.45, y: 0, w: 1.75, h: 2.1, accepts: ['planks'], requires: ['hammer'], needed: 3,
@@ -134,9 +172,19 @@ const LEVELS = [
       SC.box(L, -0.45, 1.25, 0.35, 1.15, -1.0, -0.6, seat);
       SC.wallV(L, -0.47, -1.05, 1.27, -1.05, 1.15, 1.25, bodyD);
       // items and the ignition
-      mkItem(L, 'keys', 'Car keys', { x: 0.66, y: 0.36, z: 0.48 }, { w: 0.2, h: 0.2, flat: true });
+      mkItem(L, 'keys', 'Car keys', [
+        { x: 0.66, y: 0.36, z: 0.48, jitter: 0.06 },      // passenger footwell
+        { x: -0.15, y: 0.36, z: 0.42, jitter: 0.06 },     // your own footwell
+        { x: 0.36, y: 0.36, z: -0.12, jitter: 0.05 },     // between the seats
+        { x: 0.4, y: 0.36, z: -0.5, jitter: 0.05 },       // behind the seats
+        { x: 0.85, y: 0.95, z: 0.05, jitter: 0.04, key: 'seat' }, // on the passenger seat
+      ], { w: 0.2, h: 0.2, flat: true });
       L.floorY = 0.36;
-      mkItem(L, 'bottle', 'Empty bottle', { x: 0.9, y: 0.36, z: -0.45 }, { w: 0.09, h: 0.24, icon: 'bottle' });
+      mkItem(L, 'bottle', 'Empty bottle', [
+        { x: 0.9, y: 0.36, z: -0.45, flat: false },       // rear floor
+        { x: 0.95, y: 1.02, z: 0.78, flat: false },       // on the dash
+        { x: 1.0, y: 0.95, z: -0.1, flat: false, key: 'seat' }, // on the passenger seat
+      ], { w: 0.09, h: 0.24, icon: 'bottle' });
       const ign = mkTarget(L, {
         id: 'ignition', name: 'Ignition', x: 0.18, y: 0.78, z: 0.5, w: 0.16, h: 0.18, accepts: ['keys'],
         hint() { return L.flags.started ? 'Running.' : L.flags.keyIn ? 'Turn the key.' : 'The ignition. No key in it.'; },
@@ -145,12 +193,12 @@ const LEVELS = [
           if (!L.flags.keyIn) return false;
           if (L.flags.cranking > 0 || L.flags.started) return true;
           L.flags.cranks++; L.flags.cranking = 1.15;
-          if (L.flags.cranks >= 3) { L.flags.started = true; AUDIO.sfx('start'); G.shake(0.3); }
+          if (L.flags.cranks >= L.flags.cranksNeeded) { L.flags.started = true; AUDIO.sfx('start'); G.shake(0.3); }
           else { AUDIO.sfx('crank'); G.shake(0.12); G.toast(L.flags.cranks === 1 ? 'It turns over. It does not catch.' : 'Come on. Come on.'); }
           return true;
         }
       });
-      L.flags = { keyIn: false, cranks: 0, cranking: 0, started: false };
+      L.flags = { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3) };
       L.update = dt => { if (L.flags.cranking > 0) L.flags.cranking -= dt; };
       L.isWon = () => L.flags.started;
       L.objectiveText = () => L.flags.started ? 'Drive.' : L.flags.keyIn ? 'Turn the key.' : 'Find the keys. Start the car.';
@@ -199,9 +247,25 @@ const LEVELS = [
       for (let i = 0; i < 55; i++) { const x = (rng() - 0.5) * 70, z = 5 + Math.pow(rng(), 1.3) * 60; if (Math.abs(x) < 1.6 && z < 30) continue; SC.gravestone(L, x, z, (rng() * 1e6) | 0); }
       for (let i = 0; i < 9; i++) { const x = (rng() - 0.5) * 90, z = 12 + rng() * 55; if (Math.abs(x) < 3) continue; SC.tree(L, x, z, 7 + rng() * 6, 'bare', (rng() * 1e6) | 0); }
       SC.groundDots(L, 17, 90, 3, 45, 120, [30, 34, 26], 0.4);
-      mkItem(L, 'salt', 'Bag of salt', { deg: 225, dist: 1.6, y: 0 }, { w: 0.34, h: 0.42, flat: true, uses: 2 });
-      mkItem(L, 'matches', 'Matches', { x: 2.05, y: 1.16, z: -0.1 }, { w: 0.16, h: 0.16, tool: true });
-      mkItem(L, 'lantern', 'Lantern', { deg: 270, dist: 1.7, y: 0 }, { w: 0.3, h: 0.44 });
+      mkItem(L, 'salt', 'Bag of salt', [
+        { deg: 225, dist: 1.6, y: 0 },                    // south-west
+        { x: 1.25, y: 0, z: -1.2 },                       // south-east
+        { x: -1.3, y: 0, z: -0.45 },                      // in front of the bench
+        { x: -1.4, y: 0, z: 1.15 },                       // by the west column
+        { x: -1.9, y: 0.5, z: -0.3, jitter: 0.05 },       // on the bench
+      ], { w: 0.34, h: 0.42, flat: true, uses: 2 });
+      mkItem(L, 'matches', 'Matches', [
+        { x: 2.05, y: 1.16, z: -0.25, flat: false },      // on the ledge
+        { x: -1.9, y: 0.5, z: -1.0, flat: false, jitter: 0 }, // on the bench
+        { x: 1.35, y: 0, z: -1.35, flat: true },          // on the floor, south-east
+        { x: 1.5, y: 0, z: 1.0, flat: true },             // on the floor, by the east column
+      ], { w: 0.16, h: 0.16, tool: true });
+      mkItem(L, 'lantern', 'Lantern', [
+        { x: -1.4, y: 0, z: 0.55 },                       // west, past the end of the bench
+        { x: 0.55, y: 0, z: -1.4 },                       // beside the chapel door
+        { x: 2.05, y: 1.16, z: 0.38, jitter: 0 },         // on the ledge
+        { x: -1.55, y: 0, z: 1.25 },                      // by the west column
+      ], { w: 0.3, h: 0.44 });
       const thr = mkTarget(L, {
         id: 'threshold', name: 'Threshold', deg: 0, dist: 1.75, y: 0.0, w: 2.2, h: 0.55, flat: true, accepts: ['salt'], needed: 2,
         hint() { return thr.done ? 'A line of salt.' : thr.count ? 'The line is thin. Pour more.' : 'The threshold. Bare stone.'; },
@@ -247,15 +311,29 @@ const LEVELS = [
       SC.box(L, -0.5, 0.6, 0.4, 0.48, -2.4, -2.0, [72, 62, 50]);
       for (const [x, z] of [[-0.45, -2.35], [0.55, -2.35], [-0.45, -2.05], [0.55, -2.05]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [60, 50, 40]);
       SC.groundDots(L, 23, 90, 0.8, 3.0, 360, [50, 56, 40], 0.07);
-      SC.box(L, 2.6, 2.98, 0.9, 0.96, 0.1, 0.5, stoneD);                       // a hook bracket on the east wall
       const rng = mulberry32(41);
       for (let i = 0; i < 28; i++) { const x = (rng() - 0.5) * 70, z = 5 + Math.pow(rng(), 1.2) * 45; if (Math.abs(x) < 1.8 && z < 25) continue; SC.boulder(L, x, z, 0.6 + rng() * 1.8, (rng() * 1e6) | 0); }
       SC.wallV(L, -140, 64, 140, 64, 0, 30, [90, 94, 96]);
       for (let i = 0; i < 7; i++) { const x = (rng() - 0.5) * 60, z = 8 + rng() * 40; if (Math.abs(x) < 3) continue; SC.tree(L, x, z, 5 + rng() * 5, 'bare', (rng() * 1e6) | 0); }
       SC.groundDots(L, 29, 100, 3, 50, 120, [52, 54, 46], 0.5);
-      mkItem(L, 'chain', 'Chain', { x: 2.92, y: 0.85, z: 0.3 }, { w: 0.6, h: 0.75 });
-      mkItem(L, 'padlock', 'Padlock', { deg: 180, dist: 1.7, y: 0 }, { w: 0.22, h: 0.26, flat: true });
-      mkItem(L, 'rope', 'Rotten rope', { deg: 135, dist: 1.9, y: 0 }, { w: 0.4, h: 0.3, flat: true });
+      const bracket = (L, s) => SC.box(L, Math.min(s.x, s.bx), Math.max(s.x, s.bx), 0.9, 0.96, Math.min(s.z, s.bz), Math.max(s.z, s.bz), stoneD);
+      mkItem(L, 'chain', 'Chain', [
+        { x: 2.92, y: 0.85, z: 0.3, bx: 2.6, bz: 0.5, setup: bracket },     // hanging on the east wall
+        { x: -2.92, y: 0.85, z: -0.6, bx: -2.6, bz: -0.4, setup: bracket }, // hanging on the west wall
+        { x: 0.9, y: 0.85, z: -2.72, bx: 1.1, bz: -2.4, setup: bracket },   // hanging on the back wall
+        { x: 1.9, y: 0, z: -0.5, flat: true },                               // coiled on the ground
+      ], { w: 0.6, h: 0.75 });
+      mkItem(L, 'padlock', 'Padlock', [
+        { deg: 180, dist: 1.7, y: 0 },                    // south
+        { x: 1.5, y: 0, z: 1.5 },                         // north-east
+        { x: -1.7, y: 0, z: 1.2 },                        // north-west
+        { x: -1.8, y: 0, z: -0.4 },                       // west
+      ], { w: 0.22, h: 0.26, flat: true });
+      mkItem(L, 'rope', 'Rotten rope', [
+        { deg: 135, dist: 1.9, y: 0 },
+        { x: -0.9, y: 0, z: 1.9 },
+        { x: 1.7, y: 0, z: 0.9 },
+      ], { w: 0.4, h: 0.3, flat: true });
       const gate = mkTarget(L, {
         id: 'gate', name: 'Gate', deg: 0, dist: 2.6, y: 0, w: 2.3, h: 2.0, accepts: ['chain'],
         hint() { return gate.locked ? 'Chained and locked.' : gate.chained ? (gate.closing > 0 ? 'Closing.' : 'Chained. It needs a lock.') : 'The gate stands open.'; },
@@ -297,7 +375,7 @@ const LEVELS = [
     pal: { skyTop: [6, 8, 16], fog: [54, 60, 74], ground: [126, 132, 148], fogDist: 120 },
     ambient: { wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 },
     intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming straight for the porch.',
-    hint: 'The shotgun is above the door. The shells are in the box on the porch. There are three, and you will need two.',
+    hint: 'The shotgun is somewhere on the porch, and so is the box of shells. There are three, and you will need two.',
     objective: 'Get the gun. Load it. Wait.',
     creature: { type: 'runner', startDist: 115, time: 56, gamma: 0.72, unseenMult: 1.3 },
     build(L) {
@@ -313,7 +391,6 @@ const LEVELS = [
       SC.wallV(L, -0.55, -1.58, 0.55, -1.58, 0.35, 2.3, [32, 24, 18]);
       SC.wallV(L, 1.2, -1.58, 2.2, -1.58, 1.3, 2.1, [222, 162, 82], { noFog: true });
       SC.wallV(L, 1.68, -1.57, 1.72, -1.57, 1.3, 2.1, logsD); SC.wallV(L, 1.2, -1.57, 2.2, -1.57, 1.68, 1.72, logsD);
-      SC.box(L, -0.45, -0.35, 2.36, 2.42, -1.62, -1.5, logsD); SC.box(L, 0.35, 0.45, 2.36, 2.42, -1.62, -1.5, logsD);
       for (const x of [-3.0, 3.0]) SC.box(L, x - 0.08, x + 0.08, 0.35, 2.95, 1.42, 1.58, logsD);
       SC.quad(L, [-3.4, 2.95, 1.75], [3.4, 2.95, 1.75], [3.4, 3.2, -1.6], [-3.4, 3.2, -1.6], [28, 20, 15]);
       for (const [x0, x1] of [[-3.0, -0.9], [0.9, 3.0]]) {
@@ -327,8 +404,21 @@ const LEVELS = [
       for (let i = 0; i < 14; i++) { const x = (rng() < 0.5 ? -1 : 1) * (9 + rng() * 30), z = 6 + rng() * 60; SC.tree(L, x, z, 7 + rng() * 6, 'fir', (rng() * 1e6) | 0); }
       for (let i = 0; i < 22; i++) { const x = (rng() - 0.5) * 90, z = -8 - rng() * 45; SC.tree(L, x, z, 9 + rng() * 8, 'fir', (rng() * 1e6) | 0); }
       for (let i = 0; i < 14; i++) { const x = (rng() - 0.5) * 50, z = 4 + rng() * 40; if (Math.abs(x) < 1.5) continue; SC.boulder(L, x, z, 0.3 + rng() * 0.5, (rng() * 1e6) | 0); }
-      mkItem(L, 'shotgun', 'Shotgun', { x: 0, y: 2.28, z: -1.52 }, { w: 1.1, h: 0.36, tool: true });
-      mkItem(L, 'shells', 'Shells', { deg: 90, dist: 1.5, y: 0.36 }, { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true });
+      const pegs = (L, s) => { for (const dx of [-0.4, 0.4]) SC.box(L, s.x + dx - 0.05, s.x + dx + 0.05, s.y + 0.08, s.y + 0.14, -1.62, -1.5, logsD); };
+      mkItem(L, 'shotgun', 'Shotgun', [
+        { x: 0, y: 2.28, z: -1.52, setup: pegs },         // on pegs above the door
+        { x: 1.6, y: 2.05, z: -1.52, setup: pegs },       // on pegs by the window
+        { x: -1.3, y: 1.9, z: -1.52, setup: pegs },       // on pegs left of the door
+        { x: 2.5, y: 1.1, z: -0.8, flat: true, key: 'woodpile' },   // lying on the woodpile
+        { x: -2.65, y: 0.85, z: -1.15, flat: true, key: 'crate' }, // lying on the crate
+      ], { w: 1.1, h: 0.36, tool: true });
+      mkItem(L, 'shells', 'Shells', [
+        { deg: 90, dist: 1.5, y: 0.36 },                  // porch floor, right
+        { x: -1.4, y: 0.36, z: 0.4 },                     // porch floor, left
+        { x: 0.7, y: 0.36, z: -1.2 },                     // by the door
+        { x: -2.65, y: 0.85, z: -1.15, jitter: 0.04, key: 'crate' },  // on the crate
+        { x: 2.5, y: 1.1, z: -0.5, jitter: 0.06, key: 'woodpile' },   // on the woodpile
+      ], { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true });
       L.gun = { have: false, recoil: 0 };
       L.floorY = 0.36;
       L.onPickup = it => {

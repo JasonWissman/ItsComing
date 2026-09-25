@@ -17,7 +17,7 @@ const G = {
   cam: { yaw: 0, pitch: 0, zoom: 1, tYaw: 0, tPitch: 0, dirIdx: 0, zoomHeld: false, shakeX: 0, shakeY: 0 },
   inv: [], active: 0, hover: null, mouse: { x: -1, y: -1 },
   t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, danger: 0,
-  hb: { next: 0, last: -10 }, toastT: 0, unlocked: 0, invSig: '', debug: false, paused: false, difficulty: 1, muted: false,
+  hb: { next: 0, last: -10 }, toastT: 0, unlocked: 0, invSig: '', debug: false, paused: false, difficulty: 1, muted: false, seed: null,
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
@@ -36,14 +36,17 @@ function buildLevel(i) {
     def, index: i, t: 0, facing: def.facing * DEG, eyeH: def.eyeH || 1.65, pal: def.pal,
     props: [], items: [], targets: [], flags: {}, won: false, aftermathT: 0,
   };
+  L.rand = G.seed !== null ? mulberry32(G.seed * 7919 + i * 131) : Math.random;
+  L.usedSpots = new Set(); L.placed = [];
   L.pt = (x, y, z) => { const r = rotY(x, z, L.facing); return [r[0], y, r[1]]; };
   L.at = (deg, dist, y) => L.pt(Math.sin(deg * DEG) * dist, y, Math.cos(deg * DEG) * dist);
   def.build(L);
   const cd = def.creature, CR = CREATURES[cd.type], diff = DIFFICULTIES[G.difficulty];
+  const vDist = 0.9 + L.rand() * 0.2, vTime = 0.93 + L.rand() * 0.14;   // a little variance in how far off it starts and how fast it comes
   L.creature = {
-    type: cd.type, CR, yaw: L.facing, D0: cd.startDist, T: cd.time * diff.time, gamma: cd.gamma || 0.72,
+    type: cd.type, CR, yaw: L.facing, D0: cd.startDist * vDist, T: cd.time * diff.time * vTime, gamma: cd.gamma || 0.72,
     seenMult: cd.seenMult === undefined ? 1 : cd.seenMult, unseenMult: (cd.unseenMult === undefined ? 1.3 : cd.unseenMult) * diff.unseen,
-    u: 0, dist: cd.startDist, gait: 0, t: 0, visible: true, seenLast: true, lit: 0, lat: 0, yOff: 0, lunge: 0, frozen: false, reached: false, rect: null,
+    u: 0, dist: cd.startDist * vDist, gait: 0, t: 0, visible: true, seenLast: true, lit: 0, lat: 0, yOff: 0, lunge: 0, frozen: false, reached: false, rect: null,
   };
   CR.init(L.creature);
   return L;
@@ -248,7 +251,17 @@ function updateHover() {
   const hits = R.hits, mx = G.mouse.x, my = G.mouse.y;
   let h = null;
   if (G.state === 'play' && mx >= 0) {
-    for (let i = hits.length - 1; i >= 0; i--) { const r = hits[i]; if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) { h = r; break; } }
+    // things under the cursor: prefer items and the creature over targets (whose boxes are big),
+    // and among items prefer the smallest, so a bag beside a doorway is still clickable
+    let best = null, bestArea = Infinity, target = null;
+    for (let i = hits.length - 1; i >= 0; i--) {
+      const r = hits[i];
+      if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) continue;
+      if (r.kind === 'target') { if (!target) target = r; continue; }
+      const area = r.w * r.h;
+      if (area < bestArea) { best = r; bestArea = area; }
+    }
+    h = best || target;
   }
   G.hover = h;
   // tooltip
@@ -505,6 +518,7 @@ function init() {
   try { setMuted(localStorage.getItem(MUTE_KEY) === '1'); } catch (e) {}
   const q = new URLSearchParams(location.search);
   G.debug = q.has('debug');
+  if (q.has('seed')) { const sd = parseInt(q.get('seed'), 10); if (!isNaN(sd)) G.seed = sd; }
   if (G.debug) UI.debug.style.display = 'block';
   G.fps = 60;
   showTitle();

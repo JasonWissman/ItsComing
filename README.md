@@ -74,7 +74,11 @@ some on the ground, so you have to turn and look down to find them.
    sprints again. Get the shotgun, load it, and wait for it to come close enough.
 
 Creatures move faster when you are not looking at them, and all of them
-accelerate as they close in. Difficulty scales both. Some pause, some lurch, one only moves when unseen.
+accelerate as they close in. Difficulty scales both.
+
+Each night is a little different every time it loads: every item has several
+places it might be, the creature's starting distance and pace vary slightly,
+and the car takes a different number of tries to start. Some pause, some lurch, one only moves when unseen.
 Progress is saved in `localStorage`; the title screen offers to continue from
 the furthest night reached.
 
@@ -98,7 +102,10 @@ where the creature comes from local "ahead" (+z); `facing` rotates the whole
 level so the compass shows a different world direction. In `build(L)`:
 
 - place scenery with the `SC` helpers (`wallV`, `floorQ`, `box`, `tree`, ...);
-- place items with `mkItem(L, id, name, {deg, dist, y} | {x, y, z}, {w, h, flat, uses, tool})`;
+- place items with `mkItem(L, id, name, spot | [spots...], {w, h, flat, uses, tool})`, where a
+  spot is `{deg, dist, y}` or `{x, y, z}` in the local frame; with a list, one spot is
+  chosen at random on each load (never the same spot twice in one level), and a spot's
+  optional `setup(L, spot)` adds props that belong with it;
 - place targets with `mkTarget(L, {...accepts, requires, needed, use(item), hint()})`;
 - set `L.isWon()`, `L.barrierDist`, `L.aftermath(t, dt)` and `L.aftermathText`;
 - optionally `L.dynamic()` for per-frame props, `L.update(dt)`, `L.onReach()`,
@@ -113,3 +120,4 @@ that shapes how it moves.
 - `index.html?level=3` jumps to a level's title card.
 - `index.html?level=3&go` skips the card.
 - `index.html?debug` shows distance, progress, visibility and FPS in the corner.
+- `index.html?seed=42` fixes the random layout so a night can be reproduced.
