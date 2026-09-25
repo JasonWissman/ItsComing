@@ -62,7 +62,7 @@ const ICONS = {
     ctx.strokeStyle = frame; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.arc(0, 0.78, 0.14, Math.PI, 0, true); ctx.stroke();
     P_rect(ctx, -0.07, 0.14, 0.14, 0.28, wax);
     P_line(ctx, 0, 0.42, 0, 0.47, 0.02, frame);
-    if (P.lit) {
+    if (P.lit === true) { // the renderer also passes light intensity as P.lit for sprites; only a true flag means the flame is lit
       const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.5);
       g.addColorStop(0, 'rgba(255,220,140,0.95)'); g.addColorStop(1, 'rgba(255,180,80,0)');
       ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1);

@@ -160,6 +160,17 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state === 'paused'), 'Start pauses');
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
+  console.log('== the last night, holding on ==');
+  await T.open(page, 'level=13&go&seed=1&diff=normal&nofr');
+  await page.evaluate(() => { G.L.creature.u = 0.985; G.step(0.05, 400); });
+  check(await page.evaluate(() => G.state === 'dead' && !!G.deathScreen && /holding/.test(G.deathScreen.text)), 'reaching you with something in your hands is a death, and the line says so');
+  check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') !== 'day'), 'no morning for the one who held on');
+  // tapping the held thing again while looking down puts it down
+  await T.open(page, 'level=13&go&seed=1&diff=normal&nofr');
+  await page.evaluate(() => { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.step(0.05, 3); document.querySelector('#inventory .slot.active').click(); });
+  check(await page.evaluate(() => G.inv.length === 2), 'tapping the held thing again while looking down puts it down');
+  await page.evaluate(() => localStorage.clear());
+
   if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }
   console.log(failures ? ('\n' + failures + ' FAILURES') : '\nALL CHECKS PASSED');
   await browser.close();

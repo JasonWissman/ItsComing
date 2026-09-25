@@ -17,8 +17,8 @@ LEVELS.push({
   },
   // north: the yard, the hoist chute up to the loft door (a ramp lane). East: the barn floor and the ladder at the open edge.
   lanes: [
-    { deg: 0, name: 'the loft door', elev: -39.5, ramp: true, barrierDist: 9.5, cue: 'creak', default: true, apertures: [{ z: 2 / Math.cos(39.5 * DEG), x0: -1.2, x1: 1.2, y0: 3.0, y1: 5.2 }] },
-    { deg: 90, name: 'the ladder', elev: -73, ramp: true, barrierDist: 9.5, cue: 'clunk' },
+    { deg: 0, name: 'the loft door', elev: -22.4, ramp: true, barrierDist: 12.4, cue: 'creak', default: true, apertures: [{ z: 4 / Math.cos(22.4 * DEG), x0: -1.2, x1: 1.2, y0: 3.0, y1: 5.2 }] }, // up the chute to the door at the loft's north edge
+    { deg: 90, name: 'the ladder', elev: -73, ramp: true, barrierDist: 25.7, cue: 'clunk' }, // along the barn floor past the hay, then up the ladder
   ],
   creatures: [{ type: 'carrier', startDist: 34, time: 70, gamma: 0.8, unseenMult: 1.25 }],
   aftermath: { type: 'custom' },
@@ -46,20 +46,20 @@ LEVELS.push({
     SC.wallV(L, 16.5, -4, 16.5, -2, 0, 6.5, woodD, ptex); SC.wallV(L, 16.5, 2, 16.5, 4, 0, 6.5, woodD, ptex); SC.wallV(L, 16.5, -2, 16.5, 2, 4.2, 6.5, woodD, ptex);
     SC.quad(L, [-5, 6.5, -4.5], [17, 6.5, -4.5], [17, 8.6, 0], [-5, 8.6, 0], [30, 24, 18]); SC.quad(L, [-5, 6.5, 4.5], [17, 6.5, 4.5], [17, 8.6, 0], [-5, 8.6, 0], [26, 20, 16]);
     for (let x = -4; x < 16; x += 3) SC.box(L, x - 0.1, x + 0.1, 0, 6.5, -3.95, -3.75, wood);
-    SC.box(L, -4.5, 0.5, FL - 0.2, FL, -4, 2.0, woodD);
-    SC.floorQ(L, -4.5, -4, 0.5, 2.0, FL + 0.01, [92, 76, 56], ptex);
-    SC.box(L, 0.3, 0.5, FL - 0.2, FL + 0.15, -4, 2.0, wood);
+    SC.box(L, -4.5, 0.5, FL - 0.2, FL, -4, 4.0, woodD);
+    SC.floorQ(L, -4.5, -4, 0.5, 4.0, FL + 0.01, [92, 76, 56], ptex);
+    SC.box(L, 0.3, 0.5, FL - 0.2, FL + 0.15, -4, 4.0, wood);
     for (const x of [-3.5, -1.5]) SC.box(L, x - 0.12, x + 0.12, 0, FL - 0.2, -3.9, -3.66, wood);
     // the loft door north, the hoist beam above it, and the chute down to the yard
     for (const [x0, x1] of [[-1.35, -1.2], [1.2, 1.35]]) SC.box(L, x0, x1, FL, 5.35, 3.95, 4.1, wood);
     SC.box(L, -1.35, 1.35, 5.2, 5.35, 3.95, 4.1, wood);
     SC.box(L, -0.1, 0.1, 5.35, 5.5, 3.5, 5.2, wood);
-    SC.quad(L, [-0.9, FL, 4.0], [0.9, FL, 4.0], [0.9, 0.05, 7.6], [-0.9, 0.05, 7.6], [58, 46, 34]);
-    for (let k = 0; k < 8; k++) { const u = k / 8, y = FL - u * FL + 0.03, z = 4.0 + u * 3.6; SC.box(L, -0.9, 0.9, y, y + 0.06, z - 0.04, z + 0.04, woodD); }
+    SC.quad(L, [-0.9, FL, 4.0], [0.9, FL, 4.0], [0.9, 0.05, 11.3], [-0.9, 0.05, 11.3], [58, 46, 34]);
+    for (let k = 0; k < 8; k++) { const u = k / 8, y = FL - u * FL + 0.03, z = 4.0 + u * 7.3; SC.box(L, -0.9, 0.9, y, y + 0.06, z - 0.04, z + 0.04, woodD); }
     // the ladder up the east edge, drawn to be pulled up when it is
     // the hay: a stack in the yard under the loft door, and a stack on the barn floor to the east
-    SC.box(L, -2.2, 2.2, 0, 1.6, 8.6, 11.4, hay); SC.box(L, -1.6, 1.6, 1.6, 2.3, 9.0, 11.0, hayD); SC.box(L, 2.3, 3.6, 0, 1.0, 9.0, 10.4, hay);
-    SC.box(L, 7.8, 11.2, 0, 1.6, -3.2, 0.6, hay); SC.box(L, 8.3, 10.7, 1.6, 2.4, -2.8, 0.2, hayD); SC.box(L, 8.0, 10.0, 0, 1.2, 1.2, 2.6, hayD);
+    SC.box(L, -2.2, 2.2, 0, 1.6, 12.0, 14.8, hay); SC.box(L, -1.6, 1.6, 1.6, 2.3, 12.4, 14.4, hayD); SC.box(L, 2.3, 3.6, 0, 1.0, 12.4, 13.8, hay);
+    SC.box(L, 7.8, 11.2, 0, 1.6, -3.9, -1.3, hay); SC.box(L, 8.3, 10.7, 1.6, 2.4, -3.5, -1.7, hayD); SC.box(L, 8.0, 10.0, 0, 1.2, 1.2, 2.6, hayD);
     // loft clutter: the oil drum with its tap, crates, a lantern on one of them, sacks
     SC.box(L, -3.0, -2.2, FL, FL + 0.9, -2.6, -1.8, iron); SC.box(L, -2.9, -2.3, FL + 0.9, FL + 0.96, -2.5, -1.9, [70, 68, 72]); SC.box(L, -2.25, -2.05, FL + 0.28, FL + 0.36, -2.3, -2.1, [100, 90, 60]);
     SC.box(L, -2.6, -1.8, FL, FL + 0.6, -3.7, -3.1, [84, 68, 50]); SC.box(L, -1.7, -1.0, FL, FL + 0.45, -3.7, -3.2, [84, 68, 50]);
@@ -70,7 +70,7 @@ LEVELS.push({
     mkItem(L, 'lantern', 'Lantern', [
       { x: -1.2, y: FL + 0.45, z: -3.4 },              // on the low crate
       { x: -3.8, y: FL + 1.5, z: -0.2 },               // on the sacks
-      { x: 1.0, y: FL + 0.02, z: 1.2, flat: true },    // on the floor by the loft door
+      { x: 0.1, y: FL + 0.02, z: 1.2, flat: true },    // on the floor towards the loft door
       { x: -0.5, y: FL + 0.02, z: -2.5, flat: true },  // on the floor by the drum
     ], { w: 0.3, h: 0.44 });
     mkItem(L, 'matches', 'Matches', [
@@ -107,14 +107,14 @@ LEVELS.push({
         hint() { return s[flag] ? 'Burning.' : s[wet] > 0 ? 'Soaked. It will not catch yet.' : 'Dry hay. It would go up in a moment.'; },
         use(item) {
           if (item.id !== 'lantern_lit') return false;
-          if (s[wet] > 0) { G.say('The lantern hisses out in the wet hay.', 'It goes out.'); return true; }
+          if (s[wet] > 0) { G.say('The lantern hisses out in the wet hay. It comes back to you unlit.', 'It goes out.'); G.inv.push(newItem(L, 'lantern_full', 'Lantern, filled', { w: 0.3, h: 0.44, icon: 'lantern' })); G.active = G.inv.length - 1; return false; } // the soaking is temporary, so the lantern is not lost
           s[flag] = true; s.fireT = 0; AUDIO.sfx('hiss'); setTimeout(() => AUDIO.sfx('thunder'), 200); G.shake(0.3); WEATHER.set({ kind: 'ash', density: 0.9, wind: 0.4 }, G.runSeed + 11);
           G.say('It goes up all at once.', 'Fire.'); return true;
         },
       });
       return t;
     };
-    const hayN = mkHay('hayN', 'The hay in the yard', 0, 10.0, 4.4, 'fireN', 'wetN'), hayE = mkHay('hayE', 'The hay in the barn', 90, 9.5, 3.6, 'fireE', 'wetE');
+    const hayN = mkHay('hayN', 'The hay in the yard', 0, 13.4, 4.4, 'fireN', 'wetN'), hayE = mkHay('hayE', 'The hay in the barn', 105.3, 9.85, 3.6, 'fireE', 'wetE'); // the barn stack sits south of its walking line
     // a decoy pail soaks whichever hay it is thrown at
     const wetHay = (t) => { const k = t === hayN ? 'wetN' : 'wetE'; s[k] = 25; };
     void hayE;
@@ -125,10 +125,11 @@ LEVELS.push({
       use(item) { if (item !== null) return false; s.ladderUp = true; AUDIO.sfx('clunk'); G.say('The ladder is up. Nothing climbs that way now.', 'Up.'); return true; },
     });
     void ladder;
-    const sealed = lane => lane.idx === 0 ? s.fireN : (s.fireE || s.ladderUp);
+    const sealed = lane => lane.idx === 0 ? s.fireN : (s.fireE || (L.diff.tier >= 3 && s.ladderUp)); // the ladder only counts where it is the extra step
+    L.sealed = sealed;
     // Nightmare wants the ladder up as well as a fire, whichever way it comes
     L.isWon = () => L.diff.tier >= 3 ? (s.ladderUp && (s.fireN || s.fireE) && sealed(c0().lane)) : sealed(c0().lane);
-    L.objectiveText = () => { const c = c0(); const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (sealed(c.lane) ? 'Sealed. ' : c.lane.idx === 0 ? 'Fire in the yard hay. ' : 'Fire in the barn hay, or pull the ladder up. ') + (L.diff.tier >= 3 && !s.ladderUp ? 'Pull the ladder up too. ' : '') + 'Carrying ' + load + '.'; };
+    L.objectiveText = () => { const c = c0(); const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (sealed(c.lane) ? 'Sealed. ' : c.lane.idx === 0 ? 'Fire in the yard hay. ' : (L.diff.tier >= 3 ? 'Fire in the barn hay, or pull the ladder up. ' : 'Fire in the barn hay. ')) + (L.diff.tier >= 3 && !s.ladderUp ? 'Pull the ladder up too. ' : '') + 'Carrying ' + load + '.'; };
     L.update = dt => {
       const c = c0();
       c.load = G.inv.reduce((a, i) => a + (i.weight || 1), 0);
@@ -142,20 +143,20 @@ LEVELS.push({
       for (const dz of [-0.35, 0.35]) R.add(SC.mkQuad(L, [fx, fy, dz - 0.04], [fx, fy, dz + 0.04], [tx, ty, dz + 0.04], [tx, ty, dz - 0.04], wood));
       for (let r = 0; r < 9; r++) { const u = r / 9 + 0.05, x = fx + (tx - fx) * u, y = fy + (ty - fy) * u; R.add(SC.mkQuad(L, [x, y - 0.03, -0.35], [x, y - 0.03, 0.35], [x, y + 0.03, 0.35], [x, y + 0.03, -0.35], woodD)); }
       // fire: flames over whichever hay is burning
-      for (const [on, cx, cz, w] of [[s.fireN, 0, 10, 4.4], [s.fireE, 9.5, -1.3, 3.6]]) if (on) {
+      for (const [on, cx, cz, w] of [[s.fireN, 0, 13.4, 4.4], [s.fireE, 9.5, -2.6, 3.6]]) if (on) {
         for (let i = 0; i < 7; i++) { const ph = i * 1.7, fh = 2.2 + Math.sin(L.t * 9 + ph) * 0.6 + Math.sin(L.t * 23 + ph * 2) * 0.3, fw = 0.9 + Math.sin(L.t * 5 + ph) * 0.2; const x = cx + (i - 3) * w / 7, z = cz + Math.sin(ph) * 0.8;
           R.add(SC.mkSprite(L, x, 1.5, z, fw, fh, (ctx, P) => { ctx.scale(fw, fh); const g = ctx.createLinearGradient(0, 0, 0, 1); g.addColorStop(0, 'rgba(255,220,120,0.95)'); g.addColorStop(0.5, 'rgba(255,120,30,0.7)'); g.addColorStop(1, 'rgba(120,20,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-0.5, 0); ctx.quadraticCurveTo(-0.55, 0.5, 0, 1); ctx.quadraticCurveTo(0.55, 0.5, 0.5, 0); ctx.closePath(); ctx.fill(); }, { noFog: true, noLight: true })); }
       }
     };
     L.dynamicLights = () => {
       const out = [];
-      if (s.fireN) { const p = L.pt(0, 2.5, 10); out.push({ x: p[0], y: p[1], z: p[2], r: 16, i: 1.3, color: [255, 150, 60], flicker: 0.6, seed: 4 }); }
-      if (s.fireE) { const p = L.pt(9.5, 2.5, -1.3); out.push({ x: p[0], y: p[1], z: p[2], r: 16, i: 1.3, color: [255, 150, 60], flicker: 0.6, seed: 6 }); }
+      if (s.fireN) { const p = L.pt(0, 2.5, 13.4); out.push({ x: p[0], y: p[1], z: p[2], r: 16, i: 1.3, color: [255, 150, 60], flicker: 0.6, seed: 4 }); }
+      if (s.fireE) { const p = L.pt(9.5, 2.5, -2.6); out.push({ x: p[0], y: p[1], z: p[2], r: 16, i: 1.3, color: [255, 150, 60], flicker: 0.6, seed: 6 }); }
       if (G.hasItem('lantern_lit')) { const p = L.pt(Math.sin(G.cam.yaw - L.facing) * 0.5, L.eyeH - 0.4, Math.cos(G.cam.yaw - L.facing) * 0.5); out.push({ x: p[0], y: p[1], z: p[2], r: 6, i: 0.7, color: [255, 190, 110], flicker: 0.3, seed: 8 }); }
       return out;
     };
-    L.glows = () => { const out = []; if (s.fireN) { const p = L.pt(0, 2.2, 10); out.push({ x: p[0], y: p[1], z: p[2], r: 5 + Math.sin(L.t * 7) * 0.4, color: [255, 140, 50], a: 0.28 }); } if (s.fireE) { const p = L.pt(9.5, 2.2, -1.3); out.push({ x: p[0], y: p[1], z: p[2], r: 5 + Math.sin(L.t * 7) * 0.4, color: [255, 140, 50], a: 0.28 }); } return out; };
-    L.aftermath = (t, dt) => { const c = c0(); if (t > 3.2 && !c.sitting) { c.sitting = true; c.hold = c.dist; } return t >= 6.5; };
-    L.floor = { poly: [[-4.3, -3.8], [0.3, -3.8], [0.3, 1.8], [-4.3, 1.8]], y: FL + 0.02 };
+    L.glows = () => { const out = []; if (s.fireN) { const p = L.pt(0, 2.2, 13.4); out.push({ x: p[0], y: p[1], z: p[2], r: 5 + Math.sin(L.t * 7) * 0.4, color: [255, 140, 50], a: 0.28 }); } if (s.fireE) { const p = L.pt(9.5, 2.2, -2.6); out.push({ x: p[0], y: p[1], z: p[2], r: 5 + Math.sin(L.t * 7) * 0.4, color: [255, 140, 50], a: 0.28 }); } return out; };
+    L.aftermath = (t, dt) => { const c = c0(); if (!s.after) { s.after = true; if (c.lane.idx === 1) L.text.win = 'It stood on the barn floor with its arms round itself, looking up at where the ladder had been, and stayed there until the light came.'; } if (t > 3.2 && !c.sitting) { c.sitting = true; c.hold = c.dist; } return t >= 6.5; };
+    L.floor = { poly: [[-4.3, -3.8], [0.3, -3.8], [0.3, 3.8], [-4.3, 3.8]], y: FL + 0.02 };
   }
 });

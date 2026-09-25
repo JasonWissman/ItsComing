@@ -41,7 +41,8 @@ const MENU = (() => {
         // the odd sentence at the end of each survived night, collected; unread ones stay blank
         let rows = '';
         for (let i = 0; i < LEVELS.length; i++) {
-          const def = LEVELS[i], seen = SAVE.data.fragments.includes(def.id) && def.text && def.text.fragment;
+          const def = LEVELS[i]; if (!(def.text && def.text.fragment)) continue; // the last night has no fragment: it has the morning
+          const seen = SAVE.data.fragments.includes(def.id);
           rows += '<div class="frag' + (seen ? '' : ' unseen') + '"><span class="fn">' + (i + 1) + '.</span> ' + (seen ? '<em>' + def.text.fragment + '</em>' : '<span class="fdots">&hellip;</span>') + '</div>';
         }
         return '<div class="kicker">Fragments</div><h1>What was left in the morning</h1><div class="frags">' + rows + '</div><div class="mrow">' + btn('nights', 'Back') + '</div>';

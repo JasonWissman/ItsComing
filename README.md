@@ -42,7 +42,8 @@ down puts the active item back down.
 
 Touch controls appear on phones and tablets: turn, look, hold to zoom, Use
 (whatever is nearest the middle of the view, or put the held thing down when
-looking down) and Pause. A gamepad works too: d-pad or left stick turns and
+looking down) and Pause; tapping the held item again while looking down also puts it
+down. A gamepad works too: d-pad or left stick turns and
 looks, A uses, B puts the held thing down, a trigger zooms, Start pauses, and
 in menus the d-pad moves between buttons.
 

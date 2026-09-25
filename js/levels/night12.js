@@ -40,12 +40,15 @@ LEVELS.push({
       use(item) { if (item.id !== 'bulb') return false; s.fitted = true; lampT.accepts = []; AUDIO.sfx('fit'); G.say('The bulb goes in. Now the switch.', 'In.'); return true; },
       onClick() {
         if (!s.fitted) return false;
-        if (!s.plugged) { G.say('Nothing. The cord is loose somewhere. Look down beside the bed.', 'Nothing.'); AUDIO.sfx('switch'); return true; }
+        if (!s.plugged) { G.say('Nothing. The cord is loose somewhere. Look down beside the bed.', 'Nothing. The cord.'); AUDIO.sfx('switch'); return true; }
         if (s.lampOn) { G.say('It is on. Leave it.', 'On.'); return true; }
         if (sticks && ++s.clicks < 3) { AUDIO.sfx('switch'); G.say('The switch sticks.', 'Sticks.'); return true; }
-        s.clicks = 0; s.lampOn = true; s.lampT = 12 + L.rand() * 6; AUDIO.sfx('switch'); AUDIO.sfx('tubeOn'); G.say('Light. It slows.', 'Light.'); return true;
+        s.clicks = 0; s.lampOn = true; s.lampT = 12 + L.rand() * 6; AUDIO.sfx('switch'); AUDIO.sfx('lampOn'); G.say('Light. It slows.', 'Light.'); return true;
       },
     });
+    if (unplugged) { // the cord lies on the floor beside the bed, pulled out of its socket
+      SC.box(L, -1.34, -0.86, 0.02, 0.05, -0.32, -0.28, [30, 28, 30]); SC.box(L, -1.46, -1.3, 0.02, 0.08, -0.38, -0.22, [40, 36, 40]);
+    }
     if (unplugged) mkTarget(L, {
       id: 'socket', name: 'Cord', x: -1.3, y: 0.02, z: -0.3, w: 0.5, h: 0.3, flat: true,
       hint() { return s.plugged ? 'Plugged in.' : 'The lamp cord, out of its socket.'; },
@@ -60,6 +63,7 @@ LEVELS.push({
     L.objectiveText = () => (s.lampOn ? 'Lamp on. ' : !s.fitted ? 'Find a bulb (the drawer). Fit it. ' : !s.plugged ? 'Plug the cord in (down, beside the bed). ' : 'Switch the lamp on. ') + (s.coversUp ? 'Covers up.' : 'Pull the covers up (hold).');
     L.update = dt => {
       const c = c0();
+      c.unseenMult = Math.min(c.unseenMult, 2.5); // this night already charges a lot for looking away; the tiers do not stack on top
       if (s.lampOn && !L.won) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out.', 'Dark.'); } }
       c.inLight = s.lampOn;
       if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', -0.4); } }
@@ -75,6 +79,7 @@ LEVELS.push({
     L.glows = () => { if (!s.lampOn) return null; const p = L.pt(1.2, 1.0, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }]; };
     // dawn: the room goes grey, the clock is loud, it stands at the foot of the bed
     L.aftermath = (t, dt) => {
+      if (!s.after) { s.after = true; const c = c0(); G.cam.tPitch = 0; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); if (c.lane.idx === 1) L.text.win = 'It stood beside the bed, in front of the closet, until the room went grey. You could hear the clock the whole time.'; } // look up from the covers at it
       s.grey = clamp(t / 8, 0, 1);
       L.pal.ambient = 1 + s.grey * 0.9; L.pal.fog = mixc([26, 24, 30], [150, 152, 158], s.grey); L.pal.skyTop = mixc([8, 8, 16], [120, 128, 150], s.grey);
       return t >= 9;

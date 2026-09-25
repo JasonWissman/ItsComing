@@ -612,7 +612,7 @@ function updateCreature(L, c, dt, live) {
   else if (c.distFn) d = c.distFn(c, dt);
   else { c.u = clamp(c.u + dt * m / c.T, 0, 1); d = c.D0 * Math.pow(1 - c.u, c.gamma); }
   const barrier = c.idx === 0 ? L.barrierDist : (c.lane.barrierDist || 0);
-  if (L.won && barrier && !c.distFn && c.hold === null) d = Math.max(d, barrier);
+  if (L.won && barrier && !c.distFn && c.hold === null) d = Math.max(d, Math.min(barrier, prevDist)); // held at the barrier, or where it already was if it got inside
   if (c.hitched) { c.hitched = false; G.shake(0.05); }
   c.dist = d;
   const moved = Math.abs(prevDist - d);
@@ -777,6 +777,7 @@ function updateHUD() {
       slot.addEventListener('click', e => {
         e.stopPropagation();
         if (idx !== G.active && G.inv[G.active] && combine(G.inv[G.active], it)) { G.invSig = ''; return; }
+        if (idx === G.active && G.state === 'play' && G.cam.pitch > 0.5) { dropActive(); G.invSig = ''; return; } // tap the held thing again while looking down: put it down (touch has no empty floor to tap on a crowded night)
         G.active = idx; G.invSig = ''; AUDIO.sfx('ui');
       });
       UI.inv.appendChild(slot);

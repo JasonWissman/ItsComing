@@ -6,9 +6,11 @@ const T = require('./lib'); const URL = T.INDEX;
   const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
   let problems = 0, checks = 0;
   const seeds = [...Array(parseInt(process.env.N || '24')).keys()].map(i => i + 1);
+  const NIGHTS = process.env.NIGHTS ? process.env.NIGHTS.split(',').map(Number) : null; // NIGHTS=11,12 narrows it
   await page.goto(T.INDEX); await page.waitForTimeout(200);
   const NLEVELS = await page.evaluate(() => LEVELS.length);
   for (let lvl = 1; lvl <= NLEVELS; lvl++) {
+    if (NIGHTS && !NIGHTS.includes(lvl)) continue;
     const found = {};
     for (const seed of seeds) {
       await page.goto(URL + '?level=' + lvl + '&go&seed=' + seed + '&diff=' + (seed % 2 ? 'normal' : 'nightmare')); await page.waitForTimeout(200); // every other layout on Nightmare, so tier-only items are checked too
