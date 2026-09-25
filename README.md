@@ -49,8 +49,8 @@ in menus the d-pad moves between buttons.
 
 Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
 dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
-line at a time, with a marker for which side a sound came from) and a text size
-slider. The two reduction settings default on when your system asks for reduced
+line at a time, with a marker for which side a sound came from), a text size
+slider and a switch to put the touch controls on the left. The two reduction settings default on when your system asks for reduced
 motion.
 
 ## Difficulty

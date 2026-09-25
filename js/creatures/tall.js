@@ -3,7 +3,7 @@
 // hanging clothes, moving in extreme slow motion. Its own clock runs at timeScale so every jerk is slowed.
 // Light slows it further (c.inLight is set by the night).
 CREATURES.tall = {
-  name: 'the tall one', h: 3.0, w: 1.4, faceY: 2.6, stepRate: 0.4, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
+  name: 'the tall one', h: 3.0, w: 1.4, faceY: 2.6, stepRate: 1.3, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
   death: { delay: 0.6, dur: 1.4, sting: 'stingHum' },
   voice: { kind: 'slow', every: [6, 12] },
   init(c) { c.inLight = false; },

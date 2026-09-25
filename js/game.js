@@ -131,7 +131,7 @@ function startLevel(i, withCard) {
   if (G.L && G.L.onEnd) G.L.onEnd();
   STORY.theme(false); if (i === 0) SAVE.setSetting('theme', '');
   G.white = 0; G.whiteTarget = 0;
-  AUDIO.stopLoop(); Seq.clear();
+  AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear(); MENU.clear(); // nothing of the last screen or night carries over
   G.levelIndex = i;
   G.inv = []; G.active = 0; G.hover = null; G.invSig = ''; G.holding = null; G.throwing = null; G.error = null;
   G.L = buildLevel(i);
@@ -143,7 +143,7 @@ function startLevel(i, withCard) {
   G.hb.next = 0; G.hb.last = -10; G.danger = 0; G.shakeAmt = 0; G.flashAmt = 0;
   G.fade = 1; G.fadeTarget = 0;
   if (withCard) {
-    setState('card'); MENU.clear(); // the card is click-anywhere, whatever screen led here
+    setState('card');
     const d = G.diff(), T = G.L.text;
     const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
     showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
@@ -163,8 +163,8 @@ function beginPlay() {
 function setState(s) { G.state = s; G.stateT = 0; }
 
 // ---------------- overlays ----------------
-function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); G.overlayArmed = G.t + 0.35; } // a double-click cannot skip a card
-function hideOverlay() { UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); }
+function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = G.t + 0.35; } // a double-click cannot skip a card
+function hideOverlay() { UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
   if (G.L && G.L.onEnd) G.L.onEnd();
@@ -184,7 +184,7 @@ function showEnd() {
   MENU.show('end', { text: LEVELS.length + ' nights. ' + LEVELS.length + ' things that came straight at you, and none of them got there.<br>You will keep checking the field, though. And the road. And the tree line.' });
 }
 function startMorning() {
-  const L = G.L;
+  const L = G.L; MENU.clear();
   SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id); SAVE.setSetting('theme', 'day');
   if (L.onEnd) L.onEnd();
   AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear();
@@ -209,12 +209,12 @@ function proceedFromSurvived() {
 // ---------------- input ----------------
 function onKeyDown(e) {
   const k = e.key;
-  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k)) e.preventDefault();
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
   if (e.repeat) return;
   if (k === 'm' || k === 'M') { toggleMute(); return; }
-  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
+  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card' && G.state !== 'morning') { restartLevel(); return; }
   if (G.state !== 'play' && MENU.onKey(e)) return;
-  if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); return; }
+  if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
   if (G.state === 'title' && k >= '1' && k <= String(DIFFICULTIES.length)) { setDifficulty(k.charCodeAt(0) - 49); return; }
   if (G.state !== 'play') {
     if (k === 'Enter' && !['nights', 'settings', 'fragments'].includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
@@ -245,8 +245,8 @@ function setDifficulty(i) {
   G.difficulty = clamp(i | 0, 0, DIFFICULTIES.length - 1);
   SAVE.setSetting('difficulty', G.difficulty);
   AUDIO.sfx('ui');
-  if (G.state === 'title') { MENU.show('title'); G.overlayArmed = 0; }
-  else UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty));
+  if (G.state === 'title') G.overlayArmed = 0;
+  UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty)); // in place, so the focused button survives
 }
 function restartLevel() {
   if (!G.L) return;
@@ -620,13 +620,13 @@ function updateCreature(L, c, dt, live) {
   c.gait += moved * CR.stepRate * Math.PI;
   c.moving = moved > 0.0004;
   if (!c.moving && !c.dead) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
-  if (CR.voice && !c.dead && !G.muted && live) {
+  if (CR.voice && !c.dead && live) { // muted or not: the captions still need these
     if (c.voiceT === undefined) c.voiceT = CR.voice.every[0] + c.rand() * (CR.voice.every[1] - CR.voice.every[0]);
     c.voiceT -= dt * (1 + clamp(1 - d / 40, 0, 1));
     if (c.voiceT <= 0) { c.voiceT = CR.voice.every[0] + c.rand() * (CR.voice.every[1] - CR.voice.every[0]); AUDIO.voice(CR.voice.kind, clamp(3 / (d + 2), 0, 0.7), Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); }
   }
   const pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
-  if (CR.sound && Math.floor(c.gait / Math.PI) !== Math.floor(prevGait / Math.PI) && !G.muted) AUDIO.footstep(CR.sound, clamp(2.4 / (d + 1.6), 0, 0.85) * 0.6, pan);
+  if (CR.sound && Math.floor(c.gait / Math.PI) !== Math.floor(prevGait / Math.PI)) AUDIO.footstep(CR.sound, clamp(2.4 / (d + 1.6), 0, 0.85) * 0.6, pan);
   if (CR.silentWhenSeen && !G.muted && c.idx === 0) AUDIO.setLoop((!seen && c.moving && !L.won) ? 'grind' : null, clamp(0.15 + 3 / (d + 2), 0, 0.6), pan);
   c.lat = CR.lateral ? CR.lateral(c) : 0;
   const cp = c.pos(), li = LIGHT.list.length ? LIGHT.at(cp.x, cp.y + CR.h * 0.5, cp.z) : null;
@@ -725,6 +725,7 @@ function render() {
     glows: L.glows ? L.glows() : null,
     drawOverlay: (ctx, W, H) => drawGunOverlay(ctx, W, H),
     grain: G.state === 'title' ? 0.05 : G.state === 'morning' ? 0.03 : 0.07 + G.danger * 0.05,
+    vignette: G.state === 'morning' ? 0.25 : 0.9,
   });
   updateHover();
   updateHUD();
@@ -767,9 +768,9 @@ function updateHUD() {
     G.inv.forEach((it, idx) => {
       const slot = document.createElement('div');
       slot.className = 'slot' + (idx === G.active ? ' active' : '');
-      const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
+      const dpr = Math.min(window.devicePixelRatio || 1, 3); const cv = document.createElement('canvas'); cv.width = cv.height = 64 * dpr; // sharp on phones and retina screens
       const x = cv.getContext('2d');
-      x.translate(32, 58); x.scale(52, -52);
+      x.scale(dpr, dpr); x.translate(32, 58); x.scale(52, -52);
       it.icon(x, { col: cc => rgba(cc), cola: (cc, a) => rgba(cc, a), raw: cc => rgba(cc), fog: 0, t: 0 });
       slot.appendChild(cv);
       const lab = document.createElement('div'); lab.className = 'label'; lab.textContent = it.name + (it.uses > 1 ? ' ×' + it.uses : '');
@@ -838,7 +839,7 @@ function gamepadUse() {
 function bindTouch() {
   const press = (id, down, up) => {
     const el = $(id); if (!el) return;
-    const d = e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); if (G.state !== 'play') { proceed(); return; } down(); };
+    const d = e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); if (G.state !== 'play') { if (!['nights', 'settings', 'fragments'].includes(MENU.kind)) proceed(); return; } down(); };
     const u = e => { e.preventDefault(); if (up) up(); };
     el.addEventListener('pointerdown', d); el.addEventListener('pointerup', u); el.addEventListener('pointercancel', u); el.addEventListener('pointerleave', u);
   };

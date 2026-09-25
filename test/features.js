@@ -160,6 +160,13 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state === 'paused'), 'Start pauses');
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
+  console.log('== a v1 save on Easy keeps its progress ==');
+  await page.goto(T.INDEX); await page.waitForTimeout(200);
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('itscoming.unlocked', '3'); localStorage.setItem('itscoming.difficulty', '0'); });
+  await page.goto(T.INDEX); await page.waitForTimeout(300);
+  check(await page.evaluate(() => G.difficulty === 0 && G.unlocked === 3 && !!document.querySelector('#overlay button[data-act="continue"]')), 'the difficulty they were on is credited and Continue is offered');
+  await page.evaluate(() => localStorage.clear());
+
   console.log('== the last night, holding on ==');
   await T.open(page, 'level=13&go&seed=1&diff=normal&nofr');
   await page.evaluate(() => { G.L.creature.u = 0.985; G.step(0.05, 400); });

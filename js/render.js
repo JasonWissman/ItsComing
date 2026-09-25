@@ -72,7 +72,9 @@ const R = (() => {
 
   function drawSkyGround() {
     // the bands depend only on pitch, zoom, palette and lightning: keep them in an offscreen strip while nothing changes
-    const key = pitch.toFixed(3) + '|' + zoom.toFixed(3) + '|' + W + 'x' + H + '|' + (pal.id || pal.fog.join(',')) + '|' + fogDist.toFixed(1) + '|' + LIGHT.global.toFixed(2);
+    // coarse enough that fog rolls and the zoom wobble do not rebuild it every frame, and keyed on the colours so an animated palette (night 12's dawn) is not stale
+    const cols = a => (a ? a.map(v => v | 0).join(',') : '');
+    const key = (Math.round(pitch * 200) / 200).toFixed(3) + '|' + zoom.toFixed(2) + '|' + W + 'x' + H + '|' + pal.id + '|' + Math.round(fogDist) + '|' + LIGHT.global.toFixed(2) + '|' + cols(pal.skyTop) + '|' + cols(pal.fog) + '|' + cols(pal.ground);
     if (skyCache && skyCache.key === key) { ctx.drawImage(skyCache.cv, -8, -4, W + 16, H + 8); return; }
     if (!skyCache || skyCache.cv.width !== W + 16 || skyCache.cv.height !== H + 8) { const cv = document.createElement('canvas'); cv.width = W + 16; cv.height = H + 8; skyCache = { cv, key: '' }; }
     skyCache.key = key;
@@ -166,10 +168,15 @@ const R = (() => {
     let sx = 0, sz = 0, yLow = Infinity;
     const angles = [];
     if (p.kind === 'poly') { for (const v of p.pts) { const a = Math.atan2(v[0], v[2]); angles.push(a); sx += Math.sin(a); sz += Math.cos(a); if (v[1] < yLow) yLow = v[1]; } }
-    else { const a = Math.atan2(p.x, p.z), half = Math.atan2(Math.max(p.w, p.h) * 0.6, Math.max(0.1, p.dist)); angles.push(a - half, a + half); sx = Math.sin(a); sz = Math.cos(a); yLow = p.y; }
+    else { const a = Math.atan2(p.x, p.z), half = Math.atan2(Math.max(p.w, p.h) * 0.6, Math.max(0.1, Math.hypot(p.x, p.z))); angles.push(a - half, a + half); sx = Math.sin(a); sz = Math.cos(a); yLow = p.y; }
     const center = Math.atan2(sx, sz);
     let half = 0;
     for (const a of angles) half = Math.max(half, Math.abs(wrapPi(a - center)));
+    // the nearest the prop comes to the eye in the ground plane: the culling test must use this, not the sort distance, or a long wall whose near end is on screen gets dropped when looking down
+    let dNear = Infinity;
+    if (p.kind === 'poly') { const n = p.pts.length; for (let i = 0; i < n; i++) { const a = p.pts[i], b = p.pts[(i + 1) % n]; const dx = b[0] - a[0], dz = b[2] - a[2], l2 = dx * dx + dz * dz; const t = l2 > 1e-9 ? clamp(-(a[0] * dx + a[2] * dz) / l2, 0, 1) : 0; dNear = Math.min(dNear, Math.hypot(a[0] + dx * t, a[2] + dz * t)); } }
+    else dNear = Math.hypot(p.x, p.z);
+    p.dNear = Math.max(0.1, dNear);
     p.aCenter = center; p.aHalf = half; p.yLow = yLow;
     p.noCull = half > 1.3;
   }
@@ -179,7 +186,7 @@ const R = (() => {
   function culled(p, k, sp, cp) {
     const phi = Math.abs(wrapPi(p.aCenter - yaw)) - p.aHalf - 0.12;
     if (phi <= 0) return false;
-    return Math.sin(phi) * p.dist > k * (Math.max(0, eyeH - p.yLow) * sp + p.dist * Math.cos(phi) * cp) + 0.35;
+    return Math.sin(phi) * p.dNear > k * (Math.max(0, eyeH - p.yLow) * sp + p.dNear * Math.cos(phi) * cp) + 0.35;
   }
   const order = (a, b) => (a.layer - b.layer) || (b.dist - a.dist);
   // register a level's static props: measured, given an extent, sorted once
@@ -338,7 +345,7 @@ const R = (() => {
     if (fx.drawOverlay) fx.drawOverlay(ctx, W, H);
     HANDS.draw(ctx, W, H);
     // vignette
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = fx.vignette === undefined ? 0.9 : fx.vignette; // lighter for the morning
     ctx.drawImage(vignette, 0, 0, W, H);
     ctx.globalAlpha = 1;
     // danger pulse (red edge)

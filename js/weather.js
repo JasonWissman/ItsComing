@@ -40,7 +40,7 @@ const WEATHER = (() => {
       else if (kind === 'motes') { p.a += Math.sin(t * 0.7 + p.ph) * 0.02 * dt; if (p.y < 0.1 || p.y > 3.2) p.v = -p.v; }
       if (p.y < -0.3) spawn(p, false);
     }
-    if (spec && spec.lightning) {
+    if (spec && spec.lightning && (G.state === 'play' || G.state === 'won')) { // no thunder over the death screen or the card
       nextBolt -= dt;
       if (nextBolt <= 0) {
         bolt = 1; nextBolt = spec.lightning[0] + Math.random() * (spec.lightning[1] - spec.lightning[0]);

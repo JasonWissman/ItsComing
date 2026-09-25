@@ -12,7 +12,7 @@ const SAVE = (() => {
       best: {},                                                  // best[levelId][diff] = { time, wins, tries }
       fragments: [],                                             // ids of fragments seen
       complete: {},                                              // complete[diff] = true once night 13 is won
-      settings: { difficulty: 1, muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night' },
+      settings: { difficulty: 1, muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', touchLeft: false },
     };
   }
   let data = fresh();
@@ -24,7 +24,7 @@ const SAVE = (() => {
       const m = localStorage.getItem('itscoming.muted') === '1';
       data = fresh();
       data.unlocked.normal = u;
-      if (!isNaN(d)) data.settings.difficulty = clamp(d, 0, DIFFS.length - 1);
+      if (!isNaN(d)) { data.settings.difficulty = clamp(d, 0, DIFFS.length - 1); const k = DIFFS[data.settings.difficulty]; data.unlocked[k] = Math.max(data.unlocked[k] || 0, u); } // the difficulty they were on keeps its progress too
       data.settings.muted = m;
       if (u || !isNaN(d) || m) persist();
     } catch (e) {}
@@ -35,11 +35,10 @@ const SAVE = (() => {
       if (raw) {
         const d = JSON.parse(raw);
         if (d && d.v === 2) {
+          // defaults first, then what was stored: a key added later still gets its default for an older save
           const f = fresh();
-          data = Object.assign(f, d);
-          data.unlocked = Object.assign(f.unlocked, d.unlocked || {});
-          data.settings = Object.assign(f.settings, d.settings || {});
-          data.best = d.best || {}; data.fragments = d.fragments || []; data.complete = d.complete || {};
+          const unlocked = Object.assign(f.unlocked, d.unlocked || {}), settings = Object.assign(f.settings, d.settings || {});
+          data = Object.assign(f, d, { unlocked, settings, best: d.best || {}, fragments: d.fragments || [], complete: d.complete || {} });
           return data;
         }
       }

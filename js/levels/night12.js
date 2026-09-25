@@ -12,7 +12,7 @@ LEVELS.push({
     hint: 'The lamp is dead; there is a bulb in the drawer. Light slows it. Then pull the covers up and hold on.',
     objective: 'Get the lamp on. Pull the covers up.',
     death: { default: 'It leaned down over the bed and its face was the only thing in the room.' },
-    win: 'It stood at the foot of the bed until the room went grey. You could hear the clock the whole time.',
+    win: 'It stood at the foot of the bed until the room went grey, and never came a step closer.',
     fragment: 'It stood there until the room went grey. You could hear the clock the whole time.',
   },
   lanes: [
@@ -66,7 +66,7 @@ LEVELS.push({
       c.unseenMult = Math.min(c.unseenMult, 2.5); // this night already charges a lot for looking away; the tiers do not stack on top
       if (s.lampOn && !L.won) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out.', 'Dark.'); } }
       c.inLight = s.lampOn;
-      if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', -0.4); } }
+      if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', Math.sin(wrapPi(-Math.PI / 4 - G.cam.yaw)) * 0.7); } } // the clock is on the dresser to the north-west, whichever way you face
     };
     L.dynamic = () => {
       // the covers: flat on the bed, rising toward you as you pull
@@ -79,7 +79,7 @@ LEVELS.push({
     L.glows = () => { if (!s.lampOn) return null; const p = L.pt(1.2, 1.0, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }]; };
     // dawn: the room goes grey, the clock is loud, it stands at the foot of the bed
     L.aftermath = (t, dt) => {
-      if (!s.after) { s.after = true; const c = c0(); G.cam.tPitch = 0; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); if (c.lane.idx === 1) L.text.win = 'It stood beside the bed, in front of the closet, until the room went grey. You could hear the clock the whole time.'; } // look up from the covers at it
+      if (!s.after) { s.after = true; const c = c0(); G.cam.tPitch = 0; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); if (c.lane.idx === 1) L.text.win = 'It stood beside the bed, in front of the closet, until the room went grey, and never came a step closer.'; } // look up from the covers at it
       s.grey = clamp(t / 8, 0, 1);
       L.pal.ambient = 1 + s.grey * 0.9; L.pal.fog = mixc([26, 24, 30], [150, 152, 158], s.grey); L.pal.skyTop = mixc([8, 8, 16], [120, 128, 150], s.grey);
       return t >= 9;
