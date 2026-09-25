@@ -492,7 +492,9 @@ function updateHover() {
     for (let i = hits.length - 1; i >= 0; i--) {
       const r = hits[i];
       if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) continue;
-      const area = r.w * r.h;
+      // smaller wins; among things of a size, the one whose middle is nearest the cursor
+      const dd = Math.hypot(mx - (r.x + r.w / 2), my - (r.y + r.h / 2)) / Math.max(1, Math.hypot(r.w, r.h));
+      const area = r.w * r.h * (1 + dd);
       if (r.kind === 'target') { if (area < targetArea) { target = r; targetArea = area; } continue; }
       if (area < bestArea) { best = r; bestArea = area; }
     }

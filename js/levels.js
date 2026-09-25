@@ -53,7 +53,7 @@ function mkContainer(L, o) {
   function openIt() {
     t.open = true; t.done = true; AUDIO.sfx(o.sfx || 'creak');
     (o.yields || []).forEach((y, k) => {
-      const it = mkItem(L, y.id, y.name, { x: local[0] + (k - (o.yields.length - 1) / 2) * 0.22, y: local[1] + (o.liftY || 0.02), z: local[2] + 0.05 }, Object.assign({ flat: true }, y.opts || {}));
+      const it = mkItem(L, y.id, y.name, { x: local[0] + (k - (o.yields.length - 1) / 2) * 0.36, y: local[1] + (o.liftY || 0.02), z: local[2] + 0.05 }, Object.assign({ flat: true }, y.opts || {}));
       if (o.onYield) o.onYield(it);
     });
     if (o.onOpen) o.onOpen(t);
