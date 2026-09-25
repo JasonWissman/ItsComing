@@ -1,0 +1,17 @@
+{
+  "name": "itscoming",
+  "version": "0.2.0",
+  "private": true,
+  "description": "A first-person browser horror game. Static site, no build step.",
+  "scripts": {
+    "start": "npx serve .",
+    "test": "node test/play.js && node test/features.js && node test/hittest.js",
+    "test:play": "node test/play.js",
+    "test:features": "node test/features.js",
+    "test:hit": "node test/hittest.js",
+    "test:spots": "node test/spots.js && node test/montage.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}

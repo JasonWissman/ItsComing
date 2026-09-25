@@ -1,0 +1,114 @@
+// Tests for difficulty, hint hiding, restart key and mute.
+const { chromium } = require('playwright');
+const path = require('path');
+const T = require('./lib'); const URL = T.INDEX;
+let failures = 0;
+function check(cond, msg) { if (!cond) { failures++; console.log('  FAIL: ' + msg); } else console.log('  ok: ' + msg); }
+const shot = (page, n) => page.screenshot({ path: path.join(__dirname, 'shots', n + '.png') });
+async function face(page, d, down) {
+  await page.evaluate(([d, down]) => { G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = down ? PITCH_DOWN : 0; }, [d, !!down]);
+  await page.waitForTimeout(120);
+}
+async function findHit(page, kind, id) {
+  return page.evaluate(([kind, id]) => {
+    const h = [...R.hits].reverse().find(h => h.kind === kind && h.ref.id === id);
+    if (!h) return null;
+    const x0 = Math.max(0, h.x), y0 = Math.max(0, h.y), x1 = Math.min(R.W, h.x + h.w), y1 = Math.min(R.H, h.y + h.h);
+    if (x1 - x0 < 4 || y1 - y0 < 4) return null;
+    return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, frac: ((x1 - x0) * (y1 - y0)) / (h.w * h.h) };
+  }, [kind, id]);
+}
+// turn until the thing is best in frame, then hover it
+async function lookFor(page, kind, id) {
+  let best = null;
+  for (const down of [true, false]) for (let d = 0; d < 8; d++) {
+    await face(page, d, down);
+    const r = await findHit(page, kind, id);
+    if (r && (!best || r.frac > best.frac + 0.05)) best = { d, down, frac: r.frac };
+    if (best && best.frac > 0.98) break;
+  }
+  if (!best) { failures++; console.log('  FAIL: could not find ' + id); return null; }
+  await face(page, best.d, best.down);
+  const r = await findHit(page, kind, id);
+  await page.mouse.move(r.x, r.y); await page.waitForTimeout(150);
+  return r;
+}
+const hoverHit = lookFor;
+(async () => {
+  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
+  const errors = [];
+  page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
+  page.on('console', m => { if (m.type() === 'error') errors.push('console.error: ' + m.text()); });
+
+  console.log('== difficulty picker ==');
+  await page.goto(URL); await page.waitForTimeout(300);
+  check(await page.evaluate(() => G.difficulty === 1), 'defaults to Normal');
+  check(await page.evaluate(() => document.querySelectorAll('.diff').length === 3 && document.querySelector('.diff.sel').textContent.includes('Normal')), 'three buttons, Normal highlighted');
+  await shot(page, 'title-diff');
+  await page.click('.diff[data-diff="0"]'); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'title' && G.difficulty === 0 && localStorage.getItem('itscoming.difficulty') === '0'), 'clicking Easy selects it without starting the game, and saves it');
+  await page.keyboard.press('3'); await page.waitForTimeout(100);
+  check(await page.evaluate(() => G.difficulty === 2 && document.querySelector('.diff.sel').textContent.includes('Hard')), 'key 3 selects Hard');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(300);
+  let v = await page.evaluate(() => ({ T: G.L.creature.T, um: G.L.creature.unseenMult, kicker: document.querySelector('.kicker').textContent, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
+  check(v.T > 80 * 0.72 * 0.92 && v.T < 80 * 0.72 * 1.08 && Math.abs(v.um - 1.35 * 1.25) < 1e-6, 'Hard scales time and unseen speed (' + v.T.toFixed(1) + 's, x' + v.um.toFixed(2) + ')');
+  check(v.kicker.includes('Hard') && !v.hasHint && !/planks|hammer/i.test(v.intro), 'Hard card shows no objective and no solution hint');
+  await shot(page, 'card-hard');
+  await page.mouse.click(640, 380); await page.waitForTimeout(300);
+  check(await page.evaluate(() => document.getElementById('objective').textContent === ''), 'HUD objective hidden on Hard');
+  await hoverHit(page, 'target', 'door');
+  check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Back door'), 'target tooltip is just the name on Hard');
+  await hoverHit(page, 'item', 'hammer');
+  check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Hammer'), 'item names still show');
+  await face(page, 0, false);
+  const r = await findHit(page, 'target', 'door');
+  await page.mouse.click(r.x, r.y); await page.waitForTimeout(100);
+  check(await page.evaluate(() => document.getElementById('toast').textContent === 'Not with what you have.'), 'failure feedback is vague on Hard');
+
+  console.log('== easy shows hints ==');
+  await page.evaluate(() => localStorage.setItem('itscoming.difficulty', '0'));
+  await page.goto(URL + '?level=1'); await page.waitForTimeout(300);
+  v = await page.evaluate(() => ({ d: G.difficulty, T: G.L.creature.T, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
+  check(v.d === 0 && v.T > 80 * 1.35 * 0.92 && v.T < 80 * 1.35 * 1.08, 'difficulty restored from storage, Easy gives more time (' + v.T.toFixed(1) + 's)');
+  check(v.hasHint && /planks/.test(v.intro), 'Easy card shows the objective and the hint');
+  await shot(page, 'card-easy');
+  await page.mouse.click(640, 380); await page.waitForTimeout(300);
+  check(await page.evaluate(() => document.getElementById('objective').textContent.startsWith('Board up')), 'HUD objective visible on Easy');
+  await hoverHit(page, 'target', 'door');
+  check(await page.evaluate(() => /plank/.test(document.getElementById('tooltip').textContent)), 'target tooltip gives the hint on Easy');
+
+  console.log('== restart key ==');
+  const hh = await lookFor(page, 'item', 'hammer');
+  await page.mouse.click(hh.x, hh.y); await page.waitForTimeout(100);
+  await page.evaluate(() => { G.L.creature.u = 0.5; });
+  check(await page.evaluate(() => G.inv.length === 1), 'holding the hammer before restart');
+  await page.keyboard.press('r'); await page.waitForTimeout(300);
+  v = await page.evaluate(() => ({ s: G.state, inv: G.inv.length, dist: G.L.creature.dist, dir: G.cam.dirIdx, lvl: G.levelIndex }));
+  check(v.s === 'play' && v.inv === 0 && v.dist > 100 && v.dir === 0 && v.lvl === 0, 'R restarts the level fresh (' + JSON.stringify(v) + ')');
+  await page.evaluate(() => { G.L.creature.u = 0.995; }); await page.waitForTimeout(2600);
+  check(await page.evaluate(() => G.state === 'dead'), 'died');
+  await page.keyboard.press('R'); await page.waitForTimeout(300);
+  check(await page.evaluate(() => G.state === 'play' && G.L.creature.dist > 100), 'R on the death screen restarts too');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(100);
+  await page.keyboard.press('r'); await page.waitForTimeout(200);
+  check(await page.evaluate(() => G.state === 'play'), 'R from the pause screen restarts and resumes play');
+
+  console.log('== mute ==');
+  check(await page.evaluate(() => AUDIO.on() && !AUDIO.muted), 'audio running, not muted');
+  await page.click('#mute'); await page.waitForTimeout(100);
+  check(await page.evaluate(() => G.muted && AUDIO.muted && document.getElementById('mute').textContent === 'muted (M)' && localStorage.getItem('itscoming.muted') === '1'), 'clicking the button mutes the audio engine and saves the state');
+  await page.keyboard.press('m'); await page.waitForTimeout(100);
+  check(await page.evaluate(() => !G.muted && !AUDIO.muted), 'M unmutes');
+  await page.goto(URL); await page.waitForTimeout(300);
+  await page.click('#mute'); await page.waitForTimeout(100);
+  check(await page.evaluate(() => G.state === 'title' && G.muted), 'mute button works on the title screen without starting the game');
+  await page.reload(); await page.waitForTimeout(300);
+  check(await page.evaluate(() => G.muted && AUDIO.muted !== false || G.muted), 'mute state restored after reload');
+  await page.evaluate(() => localStorage.clear());
+
+  if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }
+  console.log(failures ? ('\n' + failures + ' FAILURES') : '\nALL CHECKS PASSED');
+  await browser.close();
+  process.exit(failures ? 1 : 0);
+})();
