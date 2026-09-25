@@ -756,6 +756,7 @@ function init() {
   G.debug = q.has('debug');
   if (G.debug) UI.debug.style.display = 'block';
   G.noRaf = q.has('nofr');
+  if (q.has('diff')) { const di = DIFFICULTIES.findIndex(d => d.id === q.get('diff')); if (di >= 0) G.difficulty = di; }
   const sd = parseInt(q.get('seed'), 10);
   G.seed = isNaN(sd) ? null : sd;
   G.runSeed = G.seed !== null ? G.seed : (Date.now() % 1000000);

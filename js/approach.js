@@ -59,7 +59,8 @@ const APPROACH = (() => {
     const o = opts || {};
     const viewports = o.viewports || [{ W: 1280, H: 760 }];
     const problems = [];
-    for (const cr of L.creatures.filter(c => c.lane === lane)) {
+    const onLane = L.creatures.filter(c => c.lane === lane);
+    for (const cr of (onLane.length ? onLane : L.creatures)) {
       for (const vp of viewports) {
         const cam = { yaw: lane.yaw, pitch: lane.elev < -0.3 ? PITCH_DOWN : 0, zoom: 1, W: vp.W, H: vp.H, eyeH: L.eyeH };
         for (let d = 3; d <= cr.D0; d += 1) {

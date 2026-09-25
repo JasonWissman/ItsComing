@@ -5,9 +5,11 @@
   "description": "A first-person browser horror game. Static site, no build step.",
   "scripts": {
     "start": "npx serve .",
-    "test": "node test/play.js && node test/features.js && node test/hittest.js",
+    "test": "node test/play.js && node test/flow.js && node test/features.js && node test/lanes.js && node test/hittest.js",
     "test:play": "node test/play.js",
+    "test:flow": "node test/flow.js",
     "test:features": "node test/features.js",
+    "test:lanes": "node test/lanes.js",
     "test:hit": "node test/hittest.js",
     "test:spots": "node test/spots.js && node test/montage.js"
   },
