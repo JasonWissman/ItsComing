@@ -37,8 +37,20 @@ Headphones are recommended. Sound starts after your first click.
 | `Esc` | pause |
 | `M` | mute |
 
-`WASD` also works for turning and looking. Touch controls appear on phones and
-tablets. Clicking the floor while looking down puts the active item back down.
+`WASD` also works for turning and looking. Clicking the floor while looking
+down puts the active item back down.
+
+Touch controls appear on phones and tablets: turn, look, hold to zoom, Use
+(whatever is nearest the middle of the view, or put the held thing down when
+looking down) and Pause. A gamepad works too: d-pad or left stick turns and
+looks, A uses, B puts the held thing down, a trigger zooms, Start pauses, and
+in menus the d-pad moves between buttons.
+
+Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
+dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
+line at a time, with a marker for which side a sound came from) and a text size
+slider. The two reduction settings default on when your system asks for reduced
+motion.
 
 ## Difficulty
 
@@ -84,9 +96,25 @@ some on the ground, so you have to turn and look down to find them.
 8. **The Diner.** A man-shaped thing in the lot that only moves while you are
    looking at it, and freely once the lights are gone. Hold the shutter down
    and reset the breakers before the last tube dies.
+9. **The Crossing.** Two things. A signalman walks the line straight at your box
+   and obeys the signal; something else comes across the field for the stairs.
+   Hold him with the signal, set the points, let the train have him, bar the door.
+10. **The Mirror Maze.** It is always behind you and you only ever see it in the
+    glass. It moves while no mirror shows it. Wind the music box and it comes
+    to the tune instead of to you.
+11. **The Barn.** It goes faster the more you carry. Fill the lantern, light it,
+    and throw it into the hay between you, carrying as little as you can.
+12. **The Bedroom.** You are in bed. It is already in the doorway, or in the
+    closet, moving in extreme slow motion. Get the lamp on, pull the covers up.
+13. **The Void.** Everything you ever held against it lies around you, and you
+    start the night holding some of it. Holding anything makes it angrier.
 
 Creatures move faster when you are not looking at them, and all of them
-accelerate as they close in. Difficulty scales both.
+accelerate as they close in. Difficulty scales both. A thread runs through the
+nights that the text never states: the same lamp is somewhere in every room, a
+clock ticks for the first ten seconds of each night from the same direction, and
+surviving a night leaves a fragment, one odd sentence, collected on the Nights
+screen. Finishing the last night switches the game to a light theme.
 
 Each night is a little different every time it loads: every item has several
 places it might be, the creature's starting distance and pace vary slightly,
@@ -173,6 +201,8 @@ difficulty, hints, restart and mute. `test/lanes.js` runs `validateContent()` an
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
 unseen, early, without a jump in distance, and never on nights that opt out or on lower tiers.
 `test/hittest.js` checks every item is visible and clickable from some direction across many layouts.
+`test/story.js` checks the lamp is in every room, the clock ticks, and no text before the last night uses
+the words that would give the ending away.
 
 ## Debugging
 

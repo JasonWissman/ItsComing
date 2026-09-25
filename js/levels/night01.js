@@ -7,7 +7,7 @@ LEVELS.push({
   weather: { kind: 'mist', density: 0.7, wind: 0.3 },
   lights: [{ x: 0, y: 1.6, z: -0.2, r: 4.5, i: 0.35, color: [140, 160, 220] }],
   text: {
-    intro: 'You woke up at the back door, and it was open. So was the front.<br>Something is walking toward the house. It has been walking for a while.',
+    intro: 'You found yourself at the back door, and it was open. So was the front.<br>Something is walking toward the house. It has been walking for a while.',
     hint: 'There are planks somewhere in the house, and a hammer.',
     objective: 'Board up the door it is coming for.',
     death: { default: 'The boards were not enough, or were not there.', reached: 'It tore the boards off.' },
@@ -62,7 +62,7 @@ LEVELS.push({
     for (const [x, z] of [[1.55, -0.5], [2.55, -0.5], [1.55, 0.4], [2.55, 0.4]]) SC.box(L, x - 0.04, x + 0.04, 0, 0.72, z - 0.04, z + 0.04, [62, 46, 34]);
     SC.box(L, -2.78, -2.45, 1.22, 1.28, -0.2, 1.3, [66, 52, 40]);
     SC.box(L, -2.2, -1.7, 0.42, 0.48, -2.1, -1.6, [68, 52, 40]); SC.box(L, -2.2, -1.7, 0.48, 1.0, -2.1, -2.04, [68, 52, 40]);
-    SC.box(L, 1.7, 2.0, 0.78, 1.0, -0.2, 0.1, [40, 34, 30]);   // a lamp base on the table, unlit
+    STORY.lamp(L, 1.85, 0.78, -0.05);                          // the lamp on the table, unlit
     // items
     const need = L.tier(3, 4, 4), nails = L.diff.tier >= 2, decoy = !!L.diff.decoys;
     mkItem(L, 'hammer', 'Hammer', [

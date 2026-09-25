@@ -11,7 +11,7 @@ LEVELS.push({
     objective: 'Salt the threshold. Light the lantern.',
     death: { default: 'It was still smiling when it stepped over the threshold.' },
     win: 'It stood at the salt line until morning, smiling at you. It never once looked at the lantern.',
-    fragment: 'There was salt in the bed in the morning, a whole line of it, and no one had been near the kitchen.',
+    fragment: 'There was a line of salt across the floor in the morning, and no one had been near the kitchen.',
   },
   // the porch opens to the path between the two columns; a side gate in the east wall opens on the graves
   lanes: [
@@ -38,6 +38,7 @@ LEVELS.push({
     SC.wallV(L, -2.2, 1.95, 2.2, 1.95, 3.0, 3.4, stone);
     SC.box(L, 1.95, 2.2, 1.1, 1.16, -1.55, -0.75, stoneD);         // ledge on the east wall, beside the side gate
     SC.box(L, -2.15, -1.6, 0.42, 0.5, -1.2, 0.2, [62, 50, 40]);   // bench on the west
+    STORY.lamp(L, -1.9, 0.5, 0.1, { scale: 0.8 });
     SC.box(L, 0.86, 0.96, 0, 2.0, 1.72, 1.82, [42, 38, 34]);      // lantern post
     SC.quad(L, [0.7, 1.72, 1.77], [0.96, 1.72, 1.77], [0.96, 1.78, 1.77], [0.7, 1.78, 1.77], [42, 38, 34]);
     SC.floorQ(L, -0.9, 1.9, 0.9, 30, 0.012, [60, 58, 52]);

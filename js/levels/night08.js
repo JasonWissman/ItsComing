@@ -46,6 +46,7 @@ LEVELS.push({
     for (const x of [-3, -1.5, 0, 1.5, 3]) { SC.box(L, x - 0.04, x + 0.04, 0, 0.72, 1.96, 2.04, chrome); SC.box(L, x - 0.2, x + 0.2, 0.72, 0.84, 1.8, 2.2, red); }
     SC.box(L, -0.9, -0.65, 1.0, 1.16, 0.95, 1.1, chrome); SC.box(L, 0.4, 0.5, 1.0, 1.2, 1.0, 1.1, [150, 30, 20]); SC.box(L, 0.6, 0.7, 1.0, 1.14, 1.0, 1.1, [190, 170, 60]);
     SC.box(L, -3.4, -2.8, 1.0, 1.3, 0.85, 1.35, [60, 60, 66]); SC.box(L, -3.35, -2.85, 1.3, 1.34, 0.85, 1.35, [40, 40, 44]);
+    STORY.lamp(L, -2.3, 1.0, 1.1, { scale: 0.8 });
     SC.sprite(L, 2.3, 1.0, 1.1, 0.4, 0.34, (ctx, P) => { ctx.scale(0.4, 0.34); P_rect(ctx, -0.5, 0, 1, 0.1, P.col(chrome)); P_ell(ctx, 0, 0.1, 0.45, 0.85, P.cola([200, 210, 220], 0.35)); P_rect(ctx, -0.3, 0.15, 0.6, 0.3, P.col([170, 120, 90])); });
     for (const x of [-3.3, 3.3]) { SC.box(L, x - 0.4, x + 0.4, 0.72, 0.78, 2.9, 3.7, [200, 190, 165]); SC.box(L, x - 0.04, x + 0.04, 0, 0.72, 3.26, 3.34, chrome); }
     // the window wall: floor-to-ceiling glass, a double glass door at the north-west, a neon in the glass

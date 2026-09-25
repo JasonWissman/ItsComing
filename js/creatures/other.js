@@ -6,7 +6,7 @@ CREATURES.other = {
   death: { delay: 0.4, dur: 0.6, sting: 'stingHum' },
   voice: { kind: 'hum', every: [6, 11] },
   init(c) { c.lured = false; c.dance = 0; },
-  speedMult(c, dt, seen) { if (c.lured) return 0.9; return seen ? 0 : 1; },
+  speedMult(c, dt, seen) { if (c.lured) return 2.4; return seen ? 0 : 1; },
   draw(ctx, c, P) {
     const t = c.t, near = clamp(1 - c.dist / 9, 0, 1), lunge = c.lunge || 0;
     const body = P.col([8, 6, 10]), rim = P.cola([255, 214, 160], 0.75), rimD = P.cola([255, 170, 90], 0.35), smear = P.cola([230, 200, 170], 0.5);

@@ -1,0 +1,24 @@
+name: test
+on:
+  push:
+    branches: ['**']
+  pull_request:
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: lint
+        run: npx eslint js test
+      - name: lanes, switches, story, flow, features
+        run: node test/lanes.js && node test/switch.js && node test/story.js && node test/flow.js && node test/features.js
+      - name: every night's solution (normal, one seed)
+        run: SEEDS=1 node test/play.js
+      - name: clickability sweep
+        run: N=8 node test/hittest.js

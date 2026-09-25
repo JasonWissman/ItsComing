@@ -56,6 +56,7 @@ LEVELS.push({
     SC.wallV(L, -3.1, -1.5, -3.1, 1.5, 1.2, 1.3, logsD); SC.wallV(L, -3.1, -1.5, -3.1, 1.5, 0.8, 0.85, logsD);
     for (let z = -1.3; z < 1.5; z += 0.45) SC.wallV(L, -3.1, z, -3.1, z + 0.05, 0.36, 1.2, logsD);
     SC.box(L, 2.0, 3.0, 0.35, 1.1, -1.35, -0.3, [72, 54, 38]);
+    STORY.lamp(L, 2.2, 1.1, -1.1, { scale: 0.8 });
     SC.box(L, -3.0, -2.3, 0.35, 0.85, -1.4, -0.9, [70, 56, 44]);
     const rng = mulberry32(55);
     for (let i = 0; i < 90; i++) { const a = (rng() - 0.5) * 170 * DEG, d = 105 + rng() * 90; SC.tree(L, Math.sin(a) * d, Math.cos(a) * d, 10 + rng() * 10, 'fir', (rng() * 1e6) | 0); }

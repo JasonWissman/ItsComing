@@ -18,7 +18,7 @@ LEVELS.push({
   },
   lanes: [
     { follow: 'behind', name: 'behind you', barrierDist: 0, default: true },
-    { deg: 0, name: 'the pedestal', barrierDist: 2.1, noSwitch: true },
+    { deg: 30, name: 'the pedestal', barrierDist: 2.1, noSwitch: true },
     { deg: 180, name: 'the carousel', barrierDist: 0, noSwitch: true },
   ],
   creatures: [{ type: 'other', startDist: 30, time: 70, gamma: 0.8, seenMult: 0, unseenMult: 1.0 }],
@@ -58,14 +58,14 @@ LEVELS.push({
     for (let i = 0; i < 14; i++) { const x = (rng() - 0.5) * 60, z = -8 - rng() * 50; if (Math.abs(x) < 6 && z > -22) continue; SC.box(L, x - 1.5, x + 1.5, 0, 2.2 + rng() * 2, z - 1, z + 1, [40, 34, 34]); }
     SC.sprite(L, -60, 0, 8, 40, 6, (ctx, P) => { ctx.scale(40, 6); const g = ctx.createRadialGradient(0, 0.15, 0.02, 0, 0.15, 0.6); g.addColorStop(0, 'rgba(255,120,40,0.7)'); g.addColorStop(1, 'rgba(255,90,30,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); }, { noFog: true, noLight: true, dist: 100 });
     // furniture: the pedestal in the middle of the north side, a shelf with a lamp, a chair
-    SC.box(L, -0.25, 0.25, 0, 1.05, 2.15, 2.65, [60, 52, 50]); SC.box(L, -0.3, 0.3, 1.05, 1.1, 2.1, 2.7, [80, 70, 64]);
-    SC.box(L, 2.2, 3.4, 0.98, 1.03, 2.2, 3.4, [70, 56, 44]); SC.sprite(L, 2.6, 1.03, 2.6, 0.28, 0.4, (ctx, P) => { P.lit = true; ctx.scale(0.28, 0.4); ICONS.lantern(ctx, P); });
+    SC.box(L, 0.95, 1.45, 0, 1.05, 1.83, 2.33, [60, 52, 50]); SC.box(L, 0.9, 1.5, 1.05, 1.1, 1.78, 2.38, [80, 70, 64]);
+    SC.box(L, 2.2, 3.4, 0.98, 1.03, 2.2, 3.4, [70, 56, 44]); STORY.lamp(L, 2.6, 1.03, 2.6, { lit: true, scale: 0.85 });
     SC.box(L, 2.8, 3.25, 0.4, 0.45, -1.7, -1.3, [88, 70, 50]); SC.box(L, 2.8, 3.25, 0.45, 0.95, -1.36, -1.3, [88, 70, 50]);
     for (const [x, z] of [[2.83, -1.67], [3.22, -1.67], [2.83, -1.33], [3.22, -1.33]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [70, 56, 40]);
     // items
     const decoy = !!L.diff.decoys, broken = L.diff.tier >= 2, sheets = L.diff.tier >= 2, runsDown = L.diff.tier >= 3, need = L.tier(4, 4, 6);
     const boxSpots = [{ x: 2.6, y: 1.03, z: 3.0 }, { x: -2.2, y: 0, z: -2.0 }, { x: 3.0, y: 0.45, z: -1.5 }, { x: 0.9, y: 0, z: -3.1 }, { x: -3.0, y: 0, z: 1.6 }];
-    const keySpots = [{ x: 0, y: 1.1, z: 2.4 }, { x: 1.8, y: 0, z: 2.2 }, { x: 3.1, y: 0, z: 0.9 }, { x: 2.9, y: 1.03, z: 2.4 }, { x: -1.6, y: 0, z: -2.6 }];
+    const keySpots = [{ x: 1.2, y: 1.1, z: 2.08 }, { x: 1.8, y: 0, z: 2.2 }, { x: 3.1, y: 0, z: 0.9 }, { x: 2.9, y: 1.03, z: 2.4 }, { x: -1.6, y: 0, z: -2.6 }];
     mkItem(L, 'boxkey', 'Small key', keySpots, { w: 0.16, h: 0.16, flat: true, tool: true, icon: 'keys' });
     if (!broken) mkItem(L, 'musicbox', 'Music box', boxSpots, { w: 0.34, h: 0.34, flat: true });
     else {
@@ -81,7 +81,7 @@ LEVELS.push({
     }
     Object.assign(s, { placed: false, wound: 0, playing: false, playT: 0, luredOut: false, tune: 0 });
     const ped = mkTarget(L, {
-      id: 'pedestal', name: 'Pedestal', x: 0, y: 1.1, z: 2.4, w: 0.7, h: 0.7, accepts: ['musicbox'],
+      id: 'pedestal', name: 'Pedestal', x: 1.2, y: 1.1, z: 2.08, w: 0.7, h: 0.7, accepts: ['musicbox'],
       hint() { return !s.placed ? 'An empty pedestal, waiting for something.' : s.playing ? 'Playing.' : 'The music box. Wind it. ' + Math.max(0, need - s.wound) + ' more.'; },
       use(item) { s.placed = true; ped.accepts = []; AUDIO.sfx('drop'); G.say('The box sits on the pedestal. It needs winding.', 'There.'); return true; },
       onClick() {
@@ -89,14 +89,14 @@ LEVELS.push({
         if (s.playing) { G.say('Let it play.', 'Playing.'); return true; }
         if (!G.hasItem('boxkey')) { G.say('It needs its key.', 'Not like this.'); AUDIO.sfx('nope'); return true; }
         s.wound++; AUDIO.sfx('ratchet');
-        if (s.wound >= need) { s.wound = 0; s.playing = true; s.playT = runsDown ? 20 : Infinity; s.tune = 0; const c = c0(); if (c.lane.follow) { c.retarget(1); c.lured = true; L.lane = c.lane; L.laneIdx = 1; L.barrierDist = 2.1; } c.hold = null; G.say('The tune starts. Something behind you turns its head.', 'It plays.'); }
+        if (s.wound >= need) { s.wound = 0; s.playing = true; s.playT = runsDown ? 20 : Infinity; s.tune = 0; const c = c0(); if (c.lane.follow) { c.retarget(1); c.lured = true; c.ignoresGaze = true; L.lane = c.lane; L.laneIdx = 1; L.barrierDist = 2.1; } c.hold = null; G.say('The tune starts. Something behind you turns its head.', 'It plays.'); }
         return true;
       },
     });
     if (L.diff.tier >= 3) mkTarget(L, {
       id: 'rope', name: 'Bell rope', x: 1.3, y: 0.5, z: -3.35, w: 0.2, h: 1.6, hold: 2.0,
       hint() { return s.luredOut ? 'Rung.' : 'A rope through the roof. The carousel bell is on the other end.'; },
-      use(item) { if (item !== null) return false; s.luredOut = true; AUDIO.sfx('bell'); const c = c0(); c.retarget(2); c.lured = true; c.hold = null; c.distFn = (cr, dt) => cr.dist + dt * 1.4; L.lane = c.lane; L.laneIdx = 2; G.say('The bell. It goes out to the carousel.', 'It goes.'); return true; },
+      use(item) { if (item !== null) return false; s.luredOut = true; AUDIO.sfx('bell'); const c = c0(); c.retarget(2); c.lured = true; c.ignoresGaze = true; c.hold = null; c.distFn = (cr, dt) => cr.dist + dt * 1.4; L.lane = c.lane; L.laneIdx = 2; G.say('The bell. It goes out to the carousel.', 'It goes.'); return true; },
     });
     // seen means: a live mirror is on screen. Once lured it is out in the open and seen the usual way.
     L.visFrac = c => {
@@ -129,7 +129,7 @@ LEVELS.push({
         R.add({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w: CR.w, h: CR.h, dist: dd, fogScale: 0.6, draw: (ctx, P) => CR.draw(ctx, c, P) });
       }
       for (const [k] of [[0], [1]]) if (sheets && !s.mirrors[k].live) SC.withYaw(L, s.mirrors[k].deg, () => R.add(SC.mkQuad(L, [-0.95, 0.1, 3.44], [0.95, 0.1, 3.44], [0.95, 2.6, 3.44], [-0.95, 2.6, 3.44], [170, 160, 140])));
-      if (s.placed) R.add(SC.mkSprite(L, 0, 1.1, 2.4, 0.34, 0.34, (ctx, P) => { ctx.scale(0.34, 0.34); ICONS.musicbox(ctx, P); if (s.playing) { ctx.translate(0, 0.72); ctx.rotate(Math.sin(L.t * 4) * 0.4); P_ell(ctx, 0, 0.06, 0.045, 0.08, P.col([230, 220, 210])); } }));
+      if (s.placed) R.add(SC.mkSprite(L, 1.2, 1.1, 2.08, 0.34, 0.34, (ctx, P) => { ctx.scale(0.34, 0.34); ICONS.musicbox(ctx, P); if (s.playing) { ctx.translate(0, 0.72); ctx.rotate(Math.sin(L.t * 4) * 0.4); P_ell(ctx, 0, 0.06, 0.045, 0.08, P.col([230, 220, 210])); } }));
     };
     L.aftermath = (t, dt) => { if (!s.after) { s.after = true; Seq.play({ dur: 6, beats: [{ at: 2.5, toast: 'It sways.' }] }); } return t >= 6; };
     L.floor = { poly: [[-3.3, -3.3], [3.3, -3.3], [3.3, 3.3], [-3.3, 3.3]], y: 0 };

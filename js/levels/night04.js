@@ -28,6 +28,7 @@ LEVELS.push({
       SC.box(L, Math.min(x0, x1) - 0.2, Math.max(x0, x1) + 0.2, 0, wallH, Math.min(z0, z1) - 0.2, Math.max(z0, z1) + 0.2, stone, { tex: 'stone', texScale: 1.1 });
     for (const z of [2.6, -2.6]) { SC.box(L, -1.35, -1.05, 0, 2.1, z - 0.15, z + 0.15, stoneD); SC.box(L, 1.05, 1.35, 0, 2.1, z - 0.15, z + 0.15, stoneD); }
     SC.box(L, -0.5, 0.6, 0.4, 0.48, -1.9, -1.5, [72, 62, 50]);
+    STORY.lamp(L, 0.4, 0.48, -1.7, { scale: 0.8 });
     for (const [x, z] of [[-0.45, -1.85], [0.55, -1.85], [-0.45, -1.55], [0.55, -1.55]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [60, 50, 40]);
     SC.groundDots(L, 23, 90, 0.8, 3.0, 360, [50, 56, 40], 0.07);
     const rng = mulberry32(41);

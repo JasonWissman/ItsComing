@@ -80,7 +80,7 @@ LEVELS.push({
     // inside: the lever frame to the north, the desk to the east with the lamp, the stove, a clock, the bell
     SC.box(L, -1.2, 1.2, FL + 0.05, FL + 0.5, 0.85, 1.15, iron);
     SC.box(L, 0.9, 1.7, FL + 0.05, FL + 0.75, -1.2, -0.1, [84, 68, 52]);
-    SC.sprite(L, 1.3, FL + 0.75, -0.65, 0.3, 0.42, (ctx, P) => { P.lit = true; ctx.scale(0.3, 0.42); ICONS.lantern(ctx, P); });
+    STORY.lamp(L, 1.3, FL + 0.75, -0.65, { lit: true, scale: 0.9 });
     SC.box(L, -1.7, -1.1, FL + 0.05, FL + 0.7, -1.4, -0.9, [40, 38, 40]); SC.box(L, -1.45, -1.35, FL + 0.7, FL + 2.5, -1.2, -1.1, [30, 28, 30]);
     SC.wallV(L, -1.55, -1.39, -1.25, -1.39, FL + 0.2, FL + 0.45, [255, 110, 40], { noFog: true, noLight: true });
     SC.sprite(L, 1.55, FL + 1.7, 1.42, 0.36, 0.36, (ctx, P) => { ctx.scale(0.36, 0.36); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([40, 40, 44])); P_ell(ctx, 0, 0.5, 0.44, 0.44, P.col([230, 226, 216])); P_line(ctx, 0, 0.5, 0, 0.82, 0.03, P.col([30, 30, 30])); P_line(ctx, 0, 0.5, 0.22, 0.38, 0.03, P.col([30, 30, 30])); });
@@ -164,6 +164,11 @@ LEVELS.push({
         else AUDIO.setLoop('engine', 0.05, 0);
         if (s.trainLine === 'far' && route(tr.r)[0] < -60) s.passed = true;
       }
+    };
+    // a barred door holds the crawler at the threshold, scratching; an unbarred one lets it in
+    L.onReach = c => {
+      if (c.type !== 'crawler') return;
+      if (s.barred[c.lane.idx]) { c.hold = c.lane.barrierDist; if (!s.scratching) { s.scratching = Seq.play({ dur: 600, beats: [{ every: 1.3, do: () => { if (G.state === 'play') AUDIO.sfx('scrape', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); } }] }); G.toast('It is at the door.'); } }
     };
     L.isWon = () => s.taken && !!s.barred[crc().lane.idx];
     L.deathCause = c => c.type === 'crawler' ? 'crawler' : null;

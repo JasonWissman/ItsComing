@@ -4,10 +4,8 @@
 const LIGHT = (() => {
   let lights = [];
   let global = 0;       // lightning: brightens everything for a moment
-  let tNow = 0;
   function set(list) { lights = list || []; }
   function update(dt, t) {
-    tNow = t;
     for (const l of lights) l.fl = l.flicker ? 1 + l.flicker * 0.35 * (Math.sin(t * 17.3 + (l.seed || 0)) + 0.6 * Math.sin(t * 29.1 + (l.seed || 0) * 2) + 0.4 * Math.sin(t * 7.7)) : 1;
     global = Math.max(0, global - dt * 3.5);
   }

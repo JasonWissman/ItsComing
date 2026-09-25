@@ -61,6 +61,7 @@ LEVELS.push({
     SC.box(L, 0.55, 1.15, 0.95, 1.4, -0.25, -0.1, seat);
     SC.box(L, -0.45, 1.25, 0.35, 1.15, -1.0, -0.6, seat);
     SC.wallV(L, -0.47, -1.05, 1.27, -1.05, 1.15, 1.25, bodyD);
+    STORY.lamp(L, 0.95, 0.95, 0.3, { scale: 0.7 });          // a bedside lamp on the passenger seat, of all things
     // items and the ignition
     const decoy = !!L.diff.decoys;
     const keySpots = [

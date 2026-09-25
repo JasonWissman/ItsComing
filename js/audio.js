@@ -185,6 +185,8 @@ const AUDIO = (() => {
         noise(0.08, { freq: 260, vol: vol, pan }); tone(90, 0.06, { vol: vol * 0.6, endFreq: 50, pan }); break;
       case 'climber':
         noise(0.1, { type: 'bandpass', freq: 2200, q: 3, vol: vol * 0.6, pan }); tone(160, 0.08, { vol: vol * 0.3, endFreq: 120, pan, delay: 0.04 }); break;
+      case 'tall':
+        noise(0.4, { freq: 90, vol: vol * 1.2, attack: 0.03, pan }); tone(34, 0.5, { vol: vol * 0.9, endFreq: 24, attack: 0.02, pan }); break;
       case 'shoes':
         noise(0.025, { type: 'highpass', freq: 2200, vol: vol * 0.9, pan }); tone(420, 0.04, { vol: vol * 0.35, type: 'square', endFreq: 300, pan }); break;
       default: break;
@@ -269,6 +271,12 @@ const AUDIO = (() => {
       case 'horn': for (const f of [311, 370, 466]) tone(f, 1.6, { vol: 0.14, type: 'sawtooth', attack: 0.15, pan }); noise(1.4, { type: 'bandpass', freq: 900, q: 1.5, vol: 0.12, attack: 0.2, pan }); break;
       case 'brakes': noise(2.4, { type: 'bandpass', freq: 2600, q: 5, vol: 0.55, attack: 0.1 }); tone(1900, 2.2, { vol: 0.12, type: 'sawtooth', endFreq: 1500, attack: 0.2 }); noise(1.8, { freq: 300, vol: 0.4, delay: 0.3, attack: 0.1 }); break;
       case 'musicbox': [[880, 0], [1175, 0.25], [1319, 0.5], [1175, 0.75], [988, 1.0], [880, 1.3], [1319, 1.7], [1568, 1.95], [1319, 2.3], [1175, 2.55]].forEach(([f, d]) => tone(f, 0.55, { vol: 0.06, type: 'triangle', delay: d, pan })); break;
+      case 'tick': noise(0.012, { type: 'bandpass', freq: 3200, q: 4, vol: 0.14, pan }); tone(1600, 0.02, { vol: 0.05, type: 'square', pan }); break;
+      case 'knock': for (const d of [0, 0.32]) { noise(0.06, { freq: 500, vol: 0.5, delay: d, pan }); tone(160, 0.12, { vol: 0.3, endFreq: 100, delay: d, pan }); } break;
+      case 'hangers': for (let i = 0; i < 6; i++) tone(2200 + Math.random() * 1400, 0.05, { vol: 0.045, type: 'triangle', delay: i * 0.06 + Math.random() * 0.03, pan }); break;
+      case 'switch': tone(900, 0.02, { vol: 0.14, type: 'square', endFreq: 500 }); noise(0.02, { freq: 2500, vol: 0.2, delay: 0.02 }); break;
+      case 'flicker': for (let i = 0; i < 4; i++) noise(0.02, { type: 'highpass', freq: 3000, vol: 0.15, delay: i * 0.09 + Math.random() * 0.04 }); tone(120, 0.5, { vol: 0.06, type: 'sawtooth', endFreq: 40, delay: 0.3 }); break;
+      case 'birds': { const f0 = 2200 + Math.random() * 1200; for (let i = 0; i < 4 + Math.floor(Math.random() * 4); i++) tone(f0 + Math.random() * 600, 0.07, { vol: 0.05, type: 'sine', endFreq: f0 + 300 + Math.random() * 500, delay: i * 0.11, pan }); break; }
       case 'stingWet': noise(0.5, { freq: 1600, vol: 1.0, attack: 0.002 }); noise(1.4, { type: 'bandpass', freq: 500, q: 1, vol: 0.7, delay: 0.1, attack: 0.05 }); tone(42, 1.4, { vol: 0.7, endFreq: 26 }); tone(700, 0.9, { vol: 0.3, type: 'sawtooth', endFreq: 200, delay: 0.15 }); break;
       case 'stingScrape': noise(1.1, { type: 'bandpass', freq: 2400, q: 3, vol: 0.9, attack: 0.002 }); tone(1400, 0.8, { vol: 0.35, type: 'sawtooth', endFreq: 3000 }); tone(45, 1.3, { vol: 0.7, endFreq: 28, delay: 0.1 }); break;
       case 'stingGlass': noise(0.15, { type: 'highpass', freq: 3000, vol: 1.0, attack: 0.001 }); for (let i = 0; i < 9; i++) tone(2500 + Math.random() * 3500, 0.3 + Math.random() * 0.5, { vol: 0.14, type: 'triangle', delay: 0.02 + i * 0.05 }); tone(50, 1.4, { vol: 0.7, endFreq: 30, delay: 0.05 }); noise(1.2, { freq: 400, vol: 0.4, delay: 0.1, attack: 0.05 }); break;

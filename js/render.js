@@ -362,6 +362,7 @@ const R = (() => {
     // flashes / fades
     if (fx.flash > 0.001) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(fx.flash, fx.flashCap || 1) + ')'; ctx.fillRect(0, 0, W, H); }
     if (fx.fade > 0.001) { ctx.fillStyle = 'rgba(0,0,0,' + fx.fade + ')'; ctx.fillRect(0, 0, W, H); }
+    if (fx.white > 0.001) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, fx.white) + ')'; ctx.fillRect(0, 0, W, H); }
   }
 
   return {

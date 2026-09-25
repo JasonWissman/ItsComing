@@ -1,5 +1,7 @@
 'use strict';
 // ---------- saved progress and settings, versioned; migrates the v1 keys ----------
+// the two reduction settings start on when the system asks for reduced motion
+function prefersReduced() { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } }
 const SAVE = (() => {
   const KEY = 'itscoming.v2';
   const DIFFS = ['easy', 'normal', 'hard', 'nightmare'];
@@ -10,7 +12,7 @@ const SAVE = (() => {
       best: {},                                                  // best[levelId][diff] = { time, wins, tries }
       fragments: [],                                             // ids of fragments seen
       complete: {},                                              // complete[diff] = true once night 13 is won
-      settings: { difficulty: 1, muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: false, reducedMotion: false, captions: false, textSize: 1, theme: 'night' },
+      settings: { difficulty: 1, muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night' },
     };
   }
   let data = fresh();

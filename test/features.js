@@ -133,6 +133,33 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.muted && AUDIO.muted !== false || G.muted), 'mute state restored after reload');
   await page.evaluate(() => localStorage.clear());
 
+  console.log('== captions, gamepad, touch ==');
+  await page.goto(URL + '?level=1&go&seed=1'); await page.waitForTimeout(300);
+  await page.evaluate(() => { ensureAudio(); MENU.applySetting('captions', true); AUDIO.sfx('bang', 0.9); });
+  await page.waitForTimeout(80);
+  check(await page.evaluate(() => { const c = document.getElementById('caption'); return c.classList.contains('show') && /boards/.test(c.textContent) && /\u25B6/.test(c.textContent); }), 'a captioned sound shows its line with a side marker');
+  await page.evaluate(() => { MENU.applySetting('captions', false); document.getElementById('caption').classList.remove('caption'); });
+  check(await page.evaluate(() => !!document.getElementById('tUse') && !!document.getElementById('tPause')), 'the touch pad has Use and Pause buttons');
+  // a fake gamepad: the d-pad turns, A uses whatever is nearest the middle of the view, Start pauses
+  await page.evaluate(() => {
+    window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) };
+    navigator.getGamepads = () => [window._pad];
+  });
+  const dir0 = await page.evaluate(() => G.cam.dirIdx);
+  await page.evaluate(() => { window._pad.buttons[15].pressed = true; }); await page.waitForTimeout(80);
+  await page.evaluate(() => { window._pad.buttons[15].pressed = false; }); await page.waitForTimeout(80);
+  check(await page.evaluate(d => G.cam.dirIdx === (d + 1) % 8, dir0), 'the d-pad turns one step to the right');
+  const w = await hoverHit(page, 'item', 'hammer');
+  if (w) {
+    await page.evaluate(() => { G.mouse.x = -1; G.mouse.y = -1; window._pad.buttons[0].pressed = true; }); await page.waitForTimeout(80);
+    await page.evaluate(() => { window._pad.buttons[0].pressed = false; }); await page.waitForTimeout(80);
+    check(await page.evaluate(() => G.inv.some(i => i.id === 'hammer')), 'A picks up the thing nearest the middle of the view');
+  }
+  await page.evaluate(() => { window._pad.buttons[9].pressed = true; }); await page.waitForTimeout(80);
+  await page.evaluate(() => { window._pad.buttons[9].pressed = false; }); await page.waitForTimeout(80);
+  check(await page.evaluate(() => G.state === 'paused'), 'Start pauses');
+  await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
+
   if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }
   console.log(failures ? ('\n' + failures + ' FAILURES') : '\nALL CHECKS PASSED');
   await browser.close();

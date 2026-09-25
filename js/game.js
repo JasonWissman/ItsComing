@@ -14,7 +14,7 @@ const G = {
   state: 'title', levelIndex: 0, L: null,
   cam: { yaw: 0, pitch: 0, zoom: 1, tYaw: 0, tPitch: 0, dirIdx: 0, zoomHeld: false, shakeX: 0, shakeY: 0 },
   inv: [], active: 0, hover: null, mouse: { x: -1, y: -1 }, holding: null, throwing: null,
-  t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, danger: 0,
+  t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, white: 0, whiteTarget: 0, danger: 0,
   hb: { next: 0, last: -10 }, toastT: 0, lastToast: { msg: '', t: -10 }, invSig: '', debug: false, paused: false,
   difficulty: 1, muted: false, seed: null, runSeed: 0, attempt: 0, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
@@ -63,8 +63,9 @@ function makeCreature(L, cd, k) {
   CR.init(c);
   return c;
 }
-function buildLevel(i) {
-  const def = LEVELS[i], diff = DIFFICULTIES[G.difficulty];
+function buildLevel(i) { return buildLevelDef(LEVELS[i], i); }
+function buildLevelDef(def, i) {
+  const diff = DIFFICULTIES[G.difficulty];
   G.attempt++;
   const rand = mulberry32((G.runSeed * 7919 + i * 131 + G.attempt * 17) >>> 0);
   const L = {
@@ -128,6 +129,8 @@ function validateContent() {
 
 function startLevel(i, withCard) {
   if (G.L && G.L.onEnd) G.L.onEnd();
+  STORY.theme(false); if (i === 0) SAVE.setSetting('theme', '');
+  G.white = 0; G.whiteTarget = 0;
   AUDIO.stopLoop(); Seq.clear();
   G.levelIndex = i;
   G.inv = []; G.active = 0; G.hover = null; G.invSig = ''; G.holding = null; G.throwing = null; G.error = null;
@@ -155,6 +158,7 @@ function beginPlay() {
   L.t = 0; for (const c of L.creatures) c.t = 0;
   if (AUDIO.on()) { AUDIO.resume(); AUDIO.startAmbient(L.def.ambient); }
   G.fadeTarget = 0;
+  STORY.startNight(L);
 }
 function setState(s) { G.state = s; G.stateT = 0; }
 
@@ -170,13 +174,32 @@ function showTitle() {
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed);
   const c = G.cam; c.tYaw = c.yaw = 0; c.tPitch = c.pitch = 0; c.zoom = 1;
-  G.fade = 0.35; G.fadeTarget = 0.35;
+  G.fade = 0.35; G.fadeTarget = 0.35; G.white = 0; G.whiteTarget = 0;
+  STORY.theme(SAVE.data.settings.theme === 'day');
   setState('title');
   MENU.show('title');
 }
 function showEnd() {
   setState('end');
   MENU.show('end', { text: LEVELS.length + ' nights. ' + LEVELS.length + ' things that came straight at you, and none of them got there.<br>You will keep checking the field, though. And the road. And the tree line.' });
+}
+function startMorning() {
+  const L = G.L;
+  SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id); SAVE.setSetting('theme', 'day');
+  if (L.onEnd) L.onEnd();
+  AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear();
+  G.inv = []; G.hover = null;
+  const def = STORY.morningDef();
+  G.L = buildLevelDef(def, LEVELS.length);
+  R.prepare(G.L.props);
+  WEATHER.set(def.weather, 7);
+  const c = G.cam; c.dirIdx = 1; c.tYaw = c.yaw = 45 * DEG; c.tPitch = c.pitch = 0; c.zoom = 1; c.zoomHeld = false;
+  G.danger = 0; G.fade = 0; G.fadeTarget = 0; G.white = 1; G.whiteTarget = 0;
+  STORY.theme(true);
+  setState('morning');
+  hideOverlay();
+  if (AUDIO.on()) AUDIO.startAmbient({ wind: 0.25, drone: 0 });
+  Seq.play({ dur: 11, beats: [{ every: 2.2, from: 1, do: () => AUDIO.sfx('birds', Math.random() - 0.5) }, { at: 6.5, do: () => showOverlay('<h1 class="big">IT\'S MORNING.</h1>') }], then: () => { setState('end'); MENU.show('nights', { from: 'title' }); } });
 }
 function proceedFromSurvived() {
   const next = G.levelIndex + 1;
@@ -338,7 +361,9 @@ function useTarget(t) {
   }
   if (item.decoy) {
     const c = L.creature; c.u = Math.min(0.995, c.u + 0.03); c.hitched = true;
-    G.say(item.decoyText || 'That is not it.', 'No.'); AUDIO.sfx('nope'); return;
+    G.say(item.decoyText || 'That is not it.', 'No.'); AUDIO.sfx('nope');
+    if (L.onDecoy) L.onDecoy(t, item);
+    return;
   }
   const missing = (t.requires || []).filter(id => !G.hasItem(id));
   if (missing.length) {
@@ -503,6 +528,7 @@ function update(dt) {
   c.shakeX = (Math.random() - 0.5) * sh; c.shakeY = (Math.random() - 0.5) * sh;
   G.flashAmt = Math.max(0, G.flashAmt - dt * 3);
   G.fade += (G.fadeTarget - G.fade) * (1 - Math.exp(-dt * 3.5));
+  G.white += (G.whiteTarget - G.white) * (1 - Math.exp(-dt * (G.whiteTarget > G.white ? 1.2 : 0.9)));
   if (G.toastT > 0) { G.toastT -= dt; if (G.toastT <= 0) UI.toast.classList.remove('show'); }
   if (L.s.recoil > 0) L.s.recoil = Math.max(0, L.s.recoil - dt * 4);
   HANDS.update(dt);
@@ -518,6 +544,7 @@ function update(dt) {
   if (G.state === 'play' || G.state === 'won') {
     L.t += dt;
     if (L.update) L.update(dt);
+    STORY.update(L, dt);
     updateTargets(L, dt);
     updateThrow(dt);
     Seq.update(dt);
@@ -528,7 +555,8 @@ function update(dt) {
       G.danger *= Math.exp(-dt * 2);
       const a = L.after;
       const done = a.custom ? L.aftermath(L.aftermathT, dt) : L.aftermathT >= a.dur;
-      if (done) {
+      if (done && L.def.ending) { if (G.white > 0.97) startMorning(); }
+      else if (done) {
         if (G.fadeTarget < 1) { G.fadeTarget = 1; AUDIO.sfx('win'); AUDIO.stopAmbient(); }
         if (G.fade > 0.97) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
@@ -558,6 +586,9 @@ function update(dt) {
   } else if (G.state === 'title') {
     L.t += dt * 0.25; for (const cr of L.creatures) cr.t += dt * 0.25;
     c.tYaw = Math.sin(G.t * 0.05) * 0.25;
+  } else if (G.state === 'morning') {
+    L.t += dt; Seq.update(dt);
+    c.tYaw = 45 * DEG + Math.sin(L.t * 0.12) * 0.35; c.tPitch = Math.max(0, Math.sin(L.t * 0.09)) * 0.15;
   }
 }
 
@@ -570,7 +601,7 @@ function updateCreature(L, c, dt, live) {
   c.seen = seen; c.visible = seen;
   if (CR.onSeen && seen && !c.seenLast) CR.onSeen(c);
   c.seenLast = seen;
-  let m = CR.speedMult(c, dt, seen) * (seen ? c.seenMult : c.unseenMult);
+  let m = CR.speedMult(c, dt, seen) * ((CR.ignoresGaze || c.ignoresGaze) ? 1 : (seen ? c.seenMult : c.unseenMult));
   if (c.frozen || c.dead) m = 0;
   const prevDist = c.dist;
   let d;
@@ -671,10 +702,10 @@ function render() {
   R.flush();
   const S = SAVE.data.settings;
   R.post({
-    danger: G.danger, flash: G.flashAmt, fade: G.fade, dangerCap: S.reducedFlash ? 0.35 : 0.75, flashCap: S.reducedFlash ? 0.2 : 1,
+    danger: G.danger, flash: G.flashAmt, fade: G.fade, white: G.white, dangerCap: S.reducedFlash ? 0.35 : 0.75, flashCap: S.reducedFlash ? 0.2 : 1,
     glows: L.glows ? L.glows() : null,
     drawOverlay: (ctx, W, H) => drawGunOverlay(ctx, W, H),
-    grain: G.state === 'title' ? 0.05 : 0.07 + G.danger * 0.05,
+    grain: G.state === 'title' ? 0.05 : G.state === 'morning' ? 0.03 : 0.07 + G.danger * 0.05,
   });
   updateHover();
   updateHUD();

@@ -78,6 +78,7 @@ LEVELS.push({
     const fb = at(FB, 2.24, 1.06), wd = at(WD, 2.24, 0.78), bk = at(BK, 2.24, 1.45);
     // the lens on its pedestal, inside the glass
     SC.box(L, AX - 0.45, AX + 0.45, 0, 0.9, AZ - 0.45, AZ + 0.45, [50, 50, 56]);
+    { const lp = at(100 * DEG, 2.5, 0); STORY.lamp(L, lp[0], 0, lp[2], { scale: 0.8 }); }
     // items
     const decoy = !!L.diff.decoys;
     const spots = [

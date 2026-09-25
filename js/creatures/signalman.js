@@ -2,7 +2,7 @@
 // The signalman: tall, a long coat and a cap, walking the sleepers in step with a lamp in one hand,
 // eyes shut. He obeys the signal: while c.held is set he stands. The train is the only thing that stops him.
 CREATURES.signalman = {
-  name: 'the signalman', h: 2.3, w: 1.2, faceY: 2.05, stepRate: 0.6, catchDist: 1.6, sound: 'walker',
+  name: 'the signalman', h: 2.3, w: 1.2, faceY: 2.05, stepRate: 0.6, catchDist: 1.6, sound: 'walker', ignoresGaze: true,
   death: { delay: 0.3, dur: 0.5, sting: 'stingGlass' },
   voice: { kind: 'hum', every: [7, 13] },
   init(c) { c.held = false; c.taken = false; },
