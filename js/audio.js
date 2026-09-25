@@ -86,6 +86,7 @@ const AUDIO = (() => {
 
   // ---- ambient bed ----
   function startAmbient(p) {
+    if (typeof CAPTIONS !== 'undefined') CAPTIONS.ambient(p);
     if (!ac) return;
     stopAmbient();
     p = p || {};
@@ -172,6 +173,7 @@ const AUDIO = (() => {
     tone(48, 0.17, { vol: vol * 0.8, endFreq: 32, delay: fast ? 0.13 : 0.19 });
   }
   function footstep(kind, vol, pan) {
+    if (typeof CAPTIONS !== 'undefined' && vol >= 0.08) CAPTIONS.footstep(kind, pan);
     if (!ac || vol < 0.003) return;
     switch (kind) {
       case 'walker':
@@ -194,6 +196,7 @@ const AUDIO = (() => {
   }
   // creature voices: quiet, panned, sparse
   function voice(kind, vol, pan) {
+    if (typeof CAPTIONS !== 'undefined' && vol >= 0.06) CAPTIONS.voice(kind, pan);
     if (!ac || vol < 0.004) return;
     switch (kind) {
       case 'exhale': noise(0.9, { freq: 260, q: 0.6, vol: vol * 0.7, attack: 0.25, pan }); tone(58, 0.8, { vol: vol * 0.25, endFreq: 42, attack: 0.2, pan }); break;
@@ -206,6 +209,7 @@ const AUDIO = (() => {
     }
   }
   function sfx(name, pan) {
+    if (typeof CAPTIONS !== 'undefined') CAPTIONS.sfx(name, pan);
     if (!ac) return;
     switch (name) {
       case 'ui': tone(660, 0.05, { vol: 0.08, type: 'triangle' }); break;

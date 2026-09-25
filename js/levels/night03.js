@@ -21,7 +21,6 @@ LEVELS.push({
   creatures: [{ type: 'smiler', startDist: 95, time: 88, gamma: 0.72, unseenMult: 1.55 }],
   aftermath: { type: 'stand', dur: 4.2 },
   build(L) {
-    const s = L.s;
     const stone = [80, 76, 72], stoneD = [58, 54, 52], floor = [66, 62, 58], iron = [30, 30, 32];
     const stex = { tex: 'stone', texScale: 1.6 };
     SC.stars(L, 13, 60, 0.35);

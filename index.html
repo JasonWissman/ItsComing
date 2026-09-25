@@ -93,7 +93,12 @@
   .diff.sel { border-color: rgba(239,230,210,.85); color: #efe6d2; box-shadow: 0 0 12px rgba(239,230,210,.12); }
   .diff.sel small { color: rgba(207,200,186,.75); }
   @keyframes breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
-  #touch { display: none; position: fixed; right: 14px; bottom: 14px; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(2, 52px); gap: 6px; z-index: 5; }
+  #touch { display: none; position: fixed; right: 14px; bottom: 14px; grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(2, 52px); gap: 6px; z-index: 5; }
+  #touch #tUse { grid-column: 4; grid-row: 1; font-size: 11px; letter-spacing: .1em; }
+  #touch #tPause { grid-column: 4; grid-row: 2; font-size: 14px; }
+  #caption { position: absolute; bottom: 190px; left: 50%; transform: translateX(-50%); font-size: 14px; font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+  #caption.show { opacity: 1; }
+  :root[data-theme="day"] #caption { color: #2e2823; text-shadow: 0 1px 2px #fff; }
   #touch button { background: rgba(0,0,0,.5); border: 1px solid rgba(207,200,186,.3); color: #efe6d2; font-size: 18px; border-radius: 6px; touch-action: none; -webkit-tap-highlight-color: transparent; }
   #touch #tZoom { grid-column: 3; grid-row: 1 / span 2; font-size: 11px; letter-spacing: .1em; }
   @media (pointer: coarse) { #touch { display: grid; } #inventory { left: 18px; transform: none; } #tooltip, #toast { bottom: 140px; } }
@@ -110,6 +115,7 @@
   <div id="tooltip"></div>
   <div id="toast"></div>
   <div id="holdbar"><div id="holdfill"></div></div>
+  <div id="caption" aria-live="polite"></div>
   <div id="inventory"></div>
   <div id="debug"></div>
 </div>
@@ -117,6 +123,8 @@
   <button id="tLeft" aria-label="turn left">◀</button>
   <button id="tUp" aria-label="look ahead">▲</button>
   <button id="tZoom" aria-label="zoom">ZOOM</button>
+  <button id="tUse" aria-label="use">USE</button>
+  <button id="tPause" aria-label="pause">II</button>
   <button id="tDown" aria-label="look down">▼</button>
   <button id="tRight" aria-label="turn right">▶</button>
 </div>
@@ -133,6 +141,7 @@
 <script src="js/save.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/hands.js"></script>
+<script src="js/captions.js"></script>
 <script src="js/creatures.js"></script>
 <script src="js/creatures/walker.js"></script>
 <script src="js/creatures/crawler.js"></script>

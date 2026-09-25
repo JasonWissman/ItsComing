@@ -54,14 +54,24 @@ async function runStep(page, step) {
         const s0 = await st(page);
         check(s0.state === 'play' && s0.level === n - 1, 'night ' + n + ' playing on ' + tier);
         check(await page.evaluate(() => G.L.diff.id) === tier, 'difficulty applied');
+        const [id, ending] = await page.evaluate(() => [G.L.def.id, !!G.L.def.ending]);
         for (const step of steps) await runStep(page, step);
+        if (ending) { // the last night ends in the morning and the Nights screen, not the survived card
+          const t0 = Date.now();
+          while (Date.now() - t0 < 30000 && (await st(page)).state !== 'end') await page.waitForTimeout(200);
+          const s = await st(page);
+          check(s.state === 'end', 'the ending played out -> end (' + s.state + ')');
+          const done = await page.evaluate(tier => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.complete && d.complete[tier] === true && d.best[LEVELS[LEVELS.length - 1].id] && d.best[LEVELS[LEVELS.length - 1].id][tier].wins >= 1; }, tier);
+          check(done, 'campaign marked complete in the save');
+          continue;
+        }
         let s = await st(page);
         check(s.won, 'won');
         const t0 = Date.now();
         while (Date.now() - t0 < 12000 && (await st(page)).state !== 'survived') await page.waitForTimeout(200);
         s = await st(page);
         check(s.state === 'survived', 'aftermath finished -> survived (' + s.state + ')');
-        const saved = await page.evaluate(([id, tier]) => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.best[id] && d.best[id][tier] && d.best[id][tier].wins >= 1 && d.unlocked[tier] >= 1; }, [await page.evaluate(() => G.L.def.id), tier]);
+        const saved = await page.evaluate(([id, tier]) => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.best[id] && d.best[id][tier] && d.best[id][tier].wins >= 1 && d.unlocked[tier] >= 1; }, [id, tier]);
         check(saved, 'win recorded in the save');
       }
     }

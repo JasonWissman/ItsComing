@@ -21,7 +21,6 @@ LEVELS.push({
   creatures: [{ type: 'watcher', startDist: 50, time: 30, gamma: 0.8, seenMult: 0, unseenMult: 1 }],
   aftermath: { type: 'stand', dur: 3.6 },
   build(L) {
-    const s = L.s;
     const stone = [100, 102, 98], stoneD = [72, 74, 72];
     const wallH = 1.5;
     for (const [x0, z0, x1, z1] of [[-3.2, -2.6, -3.2, 2.6], [3.2, -2.6, 3.2, 2.6], [-3.2, -2.6, -1.2, -2.6], [1.2, -2.6, 3.2, -2.6], [-3.2, 2.6, -1.2, 2.6], [1.2, 2.6, 3.2, 2.6]])

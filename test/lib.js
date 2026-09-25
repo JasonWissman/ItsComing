@@ -49,6 +49,9 @@ async function clickAt(page, r) { if (!r) { fail('nothing to click'); return; } 
 async function hoverAt(page, r) { if (!r) { fail('nothing to hover'); return; } await page.mouse.move(r.x, r.y); await page.waitForTimeout(150); }
 // look around like a player: pick the view where the thing is most fully in frame
 async function lookFor(page, kind, id) {
+  // already in frame: do not sweep (sweeping costs seconds, and some nights charge for every second spent looking away)
+  const here = await findHit(page, kind, id);
+  if (here && here.frac > 0.98) { const [d, down] = await page.evaluate(() => [G.cam.dirIdx, G.cam.pitch > 0.5]); return { d, down, r: here }; }
   let best = null;
   for (const down of [true, false]) for (let d = 0; d < 8; d++) {
     await face(page, d, down);

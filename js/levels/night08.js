@@ -119,7 +119,7 @@ LEVELS.push({
       hint() { return 'The breaker panel. Shut.'; },
       onClick() { s.panelOpen = true; panel.hidden = true; for (const t of L.targets) if (t.brk !== undefined) t.hidden = false; AUDIO.sfx('creak'); G.say('Three breakers tripped, and the main.', 'Breakers.'); return true; },
     });
-    const main = mkTarget(L, {
+    mkTarget(L, {
       id: 'main', name: 'Main breaker', x: 2.2, y: 1.36, z: -2.4, w: 0.16, h: 0.2, hidden: true, brk: 'main',
       hint() { return s.mainOn ? 'The main. On, and humming.' : 'The main. Off.'; },
       onClick() {

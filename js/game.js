@@ -771,6 +771,51 @@ function updateHUD() {
   }
 }
 
+// ---------------- gamepad ----------------
+const PAD = { dir: 0, a: false, start: false, b: false, zoom: false };
+function pollGamepad() {
+  if (!navigator.getGamepads) return;
+  const pads = navigator.getGamepads(); let pad = null;
+  for (const p of pads) if (p && p.connected) { pad = p; break; }
+  if (!pad) return;
+  const ax = pad.axes[0] || 0, ay = pad.axes[1] || 0;
+  const left = pad.buttons[14] && pad.buttons[14].pressed || ax < -0.6, right = pad.buttons[15] && pad.buttons[15].pressed || ax > 0.6;
+  const up = pad.buttons[12] && pad.buttons[12].pressed || ay < -0.6, down = pad.buttons[13] && pad.buttons[13].pressed || ay > 0.6;
+  const dir = left ? 1 : right ? 2 : up ? 3 : down ? 4 : 0;
+  const a = pad.buttons[0] && pad.buttons[0].pressed, b = pad.buttons[1] && pad.buttons[1].pressed, start = pad.buttons[9] && pad.buttons[9].pressed;
+  const zoom = (pad.buttons[7] && pad.buttons[7].pressed) || (pad.buttons[6] && pad.buttons[6].pressed) || (pad.buttons[5] && pad.buttons[5].pressed);
+  const fake = key => ({ key, preventDefault() {}, shiftKey: false });
+  if (dir !== PAD.dir && dir) {
+    if (G.state === 'play') onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir]));
+    else MENU.onKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'));
+  }
+  PAD.dir = dir;
+  if (a && !PAD.a) {
+    if (G.state === 'play') gamepadUse();
+    else { const f = document.activeElement; if (f && f.tagName === 'BUTTON') f.click(); else proceed(); }
+  }
+  PAD.a = a;
+  if (start && !PAD.start) { if (G.state === 'play') pauseGame(); else proceed(); }
+  PAD.start = start;
+  if (b && !PAD.b && G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); }
+  PAD.b = b;
+  if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play') G.cam.zoomHeld = PAD.zoom; }
+}
+// use whatever is nearest the middle of the view; with nothing there, put the held thing down when looking down
+function gamepadUse() {
+  ensureAudio();
+  let best = null, bestD = Infinity;
+  for (const r of R.hits) { const dx = r.x + r.w / 2 - R.W / 2, dy = r.y + r.h / 2 - R.viewY - R.H / 2, d = Math.hypot(dx, dy); if (d < bestD) { best = r; bestD = d; } }
+  if (best && bestD < Math.min(R.W, R.H) * 0.45) {
+    G.mouse.x = best.x + best.w / 2; G.mouse.y = best.y + best.h / 2; updateHover();
+    const h = G.hover;
+    if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; setTimeout(() => { if (G.holding === h.ref && !h.ref.done) G.holding = null; }, (h.ref.hold + 0.5) * 1000); return; }
+    onClick({ clientX: G.mouse.x, clientY: G.mouse.y, target: UI.canvas, button: 0 });
+    return;
+  }
+  if (G.cam.pitch > 0.5 && G.inv.length) dropActive();
+}
+
 // ---------------- touch controls ----------------
 function bindTouch() {
   const press = (id, down, up) => {
@@ -784,6 +829,8 @@ function bindTouch() {
   press('tUp', () => onKeyDown({ key: 'ArrowUp', preventDefault() {} }));
   press('tDown', () => onKeyDown({ key: 'ArrowDown', preventDefault() {} }));
   press('tZoom', () => { G.cam.zoomHeld = true; }, () => { G.cam.zoomHeld = false; });
+  press('tUse', () => gamepadUse());
+  press('tPause', () => pauseGame());
 }
 
 // ---------------- boot ----------------
@@ -791,7 +838,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - G._last) / 1000); G._last = now;
   G.fps = lerp(G.fps, 1 / Math.max(dt, 1e-3), 0.05);
   if (!document.hidden && G.state !== 'error') {
-    try { const t0 = G.benching ? performance.now() : 0; update(dt); render(); if (G.benching) G.benching.push(performance.now() - t0); }
+    try { const t0 = G.benching ? performance.now() : 0; pollGamepad(); update(dt); render(); CAPTIONS.update(); if (G.benching) G.benching.push(performance.now() - t0); }
     catch (e) {
       G.errorCount++;
       console.error(e);
