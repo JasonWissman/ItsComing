@@ -246,7 +246,8 @@ function setDifficulty(i) {
   SAVE.setSetting('difficulty', G.difficulty);
   AUDIO.sfx('ui');
   if (G.state === 'title') G.overlayArmed = 0;
-  UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty)); // in place, so the focused button survives
+  UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty)); // in place, no re-render
+  const begin = UI.overlay.querySelector('button[data-act="begin"]'); if (begin && G.state === 'title') begin.focus(); // the next thing to press is Begin, so Enter begins
 }
 function restartLevel() {
   if (!G.L) return;
