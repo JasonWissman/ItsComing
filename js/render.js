@@ -5,7 +5,7 @@
 const R = (() => {
   const NEAR = 0.05;
   const VFOV = 62 * DEG;
-  let canvas = null, ctx = null, W = 1, H = 1, DPR = 1;
+  let canvas = null, ctx = null, W = 1, H = 1, DPR = 1, pageW = 1, pageH = 1, viewY = 0;
   let f = 1, cosY = 1, sinY = 0, cosP = 1, sinP = 0, eyeH = 1.65, pitch = 0, yaw = 0, zoom = 1;
   let pal = null, fogDist = 100, fogColor = [0, 0, 0];
   let list = [];      // dynamic renderables this frame
@@ -18,9 +18,14 @@ const R = (() => {
   function attach(cv) { canvas = cv; ctx = cv.getContext('2d'); }
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 1.5);
-    W = Math.max(1, window.innerWidth); H = Math.max(1, window.innerHeight);
-    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    pageW = Math.max(1, window.innerWidth); pageH = Math.max(1, window.innerHeight);
+    // portrait screens get a letterboxed 3:2 view so a 45° turn still overlaps the last view
+    W = pageW; H = pageH; viewY = 0;
+    if (pageW / pageH < 1.25) { H = Math.round(pageW / 1.5); viewY = Math.round((pageH - H) / 2); }
+    document.documentElement.style.setProperty('--view-top', viewY + 'px');
+    document.documentElement.style.setProperty('--view-bottom', (pageH - viewY - H) + 'px');
+    canvas.width = Math.round(pageW * DPR); canvas.height = Math.round(pageH * DPR);
+    canvas.style.width = pageW + 'px'; canvas.style.height = pageH + 'px';
     buildVignette();
     if (!grains.length) buildGrain();
   }
@@ -53,6 +58,7 @@ const R = (() => {
   function begin(cam, level, t) {
     time = t;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    if (viewY) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, pageW, pageH); ctx.translate(0, viewY); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); }
     yaw = cam.yaw; pitch = cam.pitch; zoom = cam.zoom;
     cosY = Math.cos(yaw); sinY = Math.sin(yaw); cosP = Math.cos(pitch); sinP = Math.sin(pitch);
     f = (H / 2) / Math.tan(VFOV / 2) * zoom;
@@ -177,7 +183,7 @@ const R = (() => {
       i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]);
     }
     if (maxx < -20 || minx > W + 20 || maxy < -20 || miny > H + 20) return;
-    if (p.hit) hits.push({ x: minx, y: miny, w: maxx - minx, h: maxy - miny, kind: p.hit.kind, ref: p.hit.ref });
+    if (p.hit) hits.push({ x: minx, y: miny + viewY, w: maxx - minx, h: maxy - miny, kind: p.hit.kind, ref: p.hit.ref });
     if (p.invisible) {
       if (hoverRef && p.hit && p.hit.ref === hoverRef) {
         ctx.closePath(); ctx.strokeStyle = 'rgba(255,240,210,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
@@ -244,7 +250,7 @@ const R = (() => {
     }
     if (p.hit) {
       const m = p.hitPad || 0;
-      hits.push({ x: rect.x - m, y: rect.y - m, w: rect.w + 2 * m, h: rect.h + 2 * m, kind: p.hit.kind, ref: p.hit.ref });
+      hits.push({ x: rect.x - m, y: rect.y - m + viewY, w: rect.w + 2 * m, h: rect.h + 2 * m, kind: p.hit.kind, ref: p.hit.ref });
       if (hoverRef && p.hit.ref === hoverRef && !p.noHover) {
         ctx.strokeStyle = 'rgba(255,240,210,0.45)'; ctx.lineWidth = 1.5;
         ctx.strokeRect(rect.x - 3, rect.y - 3, rect.w + 6, rect.h + 6);
@@ -270,7 +276,8 @@ const R = (() => {
 
   // ---- screen-space post effects ----
   function post(fx) {
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, viewY * DPR);
+    if (viewY) { ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); }
     // radial glow (headlights, lantern) requested by the level
     if (fx.glows) for (const g of fx.glows) {
       const sp = screenPos(g.x, g.y, g.z);
@@ -290,7 +297,7 @@ const R = (() => {
     // danger pulse (red edge)
     if (fx.danger > 0.001) {
       const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.7);
-      g.addColorStop(0, 'rgba(120,0,0,0)'); g.addColorStop(1, 'rgba(120,0,0,' + (0.75 * fx.danger) + ')');
+      g.addColorStop(0, 'rgba(120,0,0,0)'); g.addColorStop(1, 'rgba(120,0,0,' + ((fx.dangerCap || 0.75) * fx.danger) + ')');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     }
     // film grain
@@ -301,13 +308,13 @@ const R = (() => {
     ctx.save(); ctx.translate((Math.random() * 160) | 0, (Math.random() * 160) | 0); ctx.fillRect(-160, -160, W + 320, H + 320); ctx.restore();
     ctx.globalAlpha = 1;
     // flashes / fades
-    if (fx.flash > 0.001) { ctx.fillStyle = 'rgba(255,255,255,' + fx.flash + ')'; ctx.fillRect(0, 0, W, H); }
+    if (fx.flash > 0.001) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(fx.flash, fx.flashCap || 1) + ')'; ctx.fillRect(0, 0, W, H); }
     if (fx.fade > 0.001) { ctx.fillStyle = 'rgba(0,0,0,' + fx.fade + ')'; ctx.fillRect(0, 0, W, H); }
   }
 
   return {
     attach, resize, begin, add, prepare, flush, post, screenPos, projectRect, fogAmt,
-    get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; },
+    get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageH() { return pageH; },
     get hits() { return hits; },
     set hover(v) { hoverRef = v; },
     get yaw() { return yaw; },

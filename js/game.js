@@ -158,24 +158,15 @@ function showTitle() {
   const c = G.cam; c.tYaw = c.yaw = 0; c.tPitch = c.pitch = 0; c.zoom = 1;
   G.fade = 0.35; G.fadeTarget = 0.35;
   setState('title');
-  renderTitle();
-}
-function renderTitle() {
-  const unlocked = G.unlocked;
-  let cont = '';
-  if (unlocked > 0 && unlocked < LEVELS.length) cont = '<p class="prompt">Press Enter or click to begin from the start<br><span class="alt"><button type="button" class="linkbtn" data-continue="1">Continue from night ' + (unlocked + 1) + ' &mdash; ' + LEVELS[unlocked].title + '</button> (or press <b>C</b>)</span></p>';
-  else cont = '<p class="prompt">Press Enter or click to begin</p>';
-  const diffs = '<div class="diffs">' + DIFFICULTIES.map((d, i) => '<button type="button" class="diff' + (i === G.difficulty ? ' sel' : '') + '" data-diff="' + i + '"><span class="key">' + (i + 1) + '</span>' + d.name + '<small>' + d.desc + '</small></button>').join('') + '</div>';
-  showOverlay(
-    '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
-    '<p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>' +
-    '<div class="controls"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
-    diffs + cont + '<p class="fine">Headphones recommended. Sound is synthesized in your browser.</p>'
-  );
+  MENU.show('title');
 }
 function showEnd() {
   setState('end');
-  showOverlay('<div class="kicker">The end</div><h1>You saw all of them</h1><p class="intro">' + LEVELS.length + ' nights. ' + LEVELS.length + ' things that came straight at you, and none of them got there.<br>You will keep checking the field, though. And the road. And the tree line.</p><p class="prompt">Press Enter or click to go back to the beginning</p>');
+  MENU.show('end', { text: LEVELS.length + ' nights. ' + LEVELS.length + ' things that came straight at you, and none of them got there.<br>You will keep checking the field, though. And the road. And the tree line.' });
+}
+function proceedFromSurvived() {
+  const next = G.levelIndex + 1;
+  if (next >= LEVELS.length) showEnd(); else startLevel(next, true);
 }
 
 // ---------------- input ----------------
@@ -185,6 +176,7 @@ function onKeyDown(e) {
   if (e.repeat) return;
   if (k === 'm' || k === 'M') { toggleMute(); return; }
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
+  if (G.state !== 'play' && MENU.onKey(e)) return;
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); return; }
   if (G.state === 'title' && k >= '1' && k <= String(DIFFICULTIES.length)) { setDifficulty(k.charCodeAt(0) - 49); return; }
   if (G.state !== 'play') {
@@ -216,7 +208,7 @@ function setDifficulty(i) {
   G.difficulty = clamp(i | 0, 0, DIFFICULTIES.length - 1);
   SAVE.setSetting('difficulty', G.difficulty);
   AUDIO.sfx('ui');
-  if (G.state === 'title') { renderTitle(); G.overlayArmed = 0; }
+  if (G.state === 'title') { MENU.show('title'); G.overlayArmed = 0; }
   else UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty));
 }
 function restartLevel() {
@@ -225,8 +217,8 @@ function restartLevel() {
   startLevel(G.levelIndex, false);
   G.toast('Again.');
 }
-function pauseGame() { setState('paused'); showOverlay('<h1>Paused</h1><p class="intro">It is not.</p><p class="prompt">Press Esc to keep going<br><span class="alt"><b>R</b> to start the night over</span></p>'); }
-function resumeGame() { setState('play'); hideOverlay(); }
+function pauseGame() { setState('paused'); MENU.show('pause'); AUDIO.suspend(); }
+function resumeGame() { setState('play'); hideOverlay(); MENU.clear(); AUDIO.resume(); }
 
 function proceed() {
   if (G.t < G.overlayArmed) return;
@@ -235,11 +227,7 @@ function proceed() {
     case 'title': startLevel(0, true); break;
     case 'card': hideOverlay(); setState('play'); beginPlay(); break;
     case 'dead': startLevel(G.levelIndex, false); break;
-    case 'survived': {
-      const next = G.levelIndex + 1;
-      if (next >= LEVELS.length) showEnd(); else startLevel(next, true);
-      break;
-    }
+    case 'survived': proceedFromSurvived(); break;
     case 'end': showTitle(); break;
     case 'paused': resumeGame(); break;
     case 'error': restartLevel(); break;
@@ -490,7 +478,8 @@ function update(dt) {
   const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : 1;
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * 8));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
-  const sh = G.shakeAmt * 16 + G.danger * 2;
+  const S = SAVE.data.settings;
+  const sh = S.reducedMotion ? G.shakeAmt * 6 : G.shakeAmt * 16 + G.danger * 2;
   c.shakeX = (Math.random() - 0.5) * sh; c.shakeY = (Math.random() - 0.5) * sh;
   G.flashAmt = Math.max(0, G.flashAmt - dt * 3);
   G.fade += (G.fadeTarget - G.fade) * (1 - Math.exp(-dt * 3.5));
@@ -515,7 +504,8 @@ function update(dt) {
         if (G.fade > 0.97) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
           if (L.text.fragment) SAVE.seeFragment(L.def.id);
-          showOverlay('<div class="kicker">' + L.def.title + '</div><h1>You survived</h1><p class="intro">' + L.text.win + (L.text.fragment ? '<br><em class="fragment">' + L.text.fragment + '</em>' : '') + '</p><p class="prompt">' + (L.index + 1 < LEVELS.length ? 'Press Enter or click for the next night' : 'Press Enter or click') + '</p>');
+          G.survivedScreen = { title: L.def.title, text: L.text.win + (L.text.fragment ? '<br><em class="fragment">' + L.text.fragment + '</em>' : ''), last: L.index + 1 >= LEVELS.length };
+          MENU.show('survived', G.survivedScreen);
         }
       }
     }
@@ -533,7 +523,8 @@ function update(dt) {
     if (G.stateT > delay + dur + 1.2) {
       setState('dead');
       const secs = Math.max(1, Math.round(G.deathTime));
-      showOverlay('<h1 class="red">It got you</h1><p class="intro">It reached you after ' + secs + ' second' + (secs > 1 ? 's' : '') + '.<br>' + deathLine(L) + '</p><p class="prompt">Press Enter or click to try that night again</p>' + (G.debug ? '<p class="fine">seed ' + G.runSeed + '</p>' : ''));
+      G.deathScreen = { text: 'It reached you after ' + secs + ' second' + (secs > 1 ? 's' : '') + '.<br>' + deathLine(L) };
+      MENU.show('dead', G.deathScreen);
     }
   } else if (G.state === 'title') {
     L.t += dt * 0.25; for (const cr of L.creatures) cr.t += dt * 0.25;
@@ -584,14 +575,14 @@ function heartbeat(dt) {
     G.hb.last = G.t; G.hb.next = G.t + interval;
   }
   const pulse = Math.exp(-(G.t - G.hb.last) / 0.22);
-  G.danger = Math.pow(prox, 2.2) * (0.35 + 0.65 * pulse);
+  G.danger = Math.pow(prox, 2.2) * (SAVE.data.settings.reducedFlash ? 0.6 : (0.35 + 0.65 * pulse));
 }
 
 // ---------------- render ----------------
 function render() {
   const L = G.L; if (!L) return;
   const c = G.cam;
-  const wob = (c.zoom - 1) * 0.0018;
+  const wob = SAVE.data.settings.reducedMotion ? 0 : (c.zoom - 1) * 0.0018;
   const view = { yaw: c.yaw + Math.sin(G.t * 1.7) * wob + Math.sin(G.t * 2.9) * wob * 0.5, pitch: c.pitch + Math.cos(G.t * 1.3) * wob, zoom: c.zoom, shakeX: c.shakeX, shakeY: c.shakeY };
   R.begin(view, L, G.t);
   const rend = L.rend || (L.rend = new Map());
@@ -623,8 +614,9 @@ function render() {
   }
   R.hover = G.hover ? G.hover.ref : null;
   R.flush();
+  const S = SAVE.data.settings;
   R.post({
-    danger: G.danger, flash: G.flashAmt, fade: G.fade,
+    danger: G.danger, flash: G.flashAmt, fade: G.fade, dangerCap: S.reducedFlash ? 0.35 : 0.75, flashCap: S.reducedFlash ? 0.2 : 1,
     glows: L.glows ? L.glows() : null,
     drawOverlay: (ctx, W, H) => drawGunOverlay(ctx, W, H),
     grain: G.state === 'title' ? 0.05 : 0.07 + G.danger * 0.05,
@@ -651,7 +643,7 @@ function drawGunOverlay(ctx, W, H) {
   ctx.restore();
   if (G.cam.pitch < 0.3 && G.state === 'play' && G.mouse.x >= 0 && (!u.ammo || G.hasItem(u.ammo))) {
     ctx.strokeStyle = 'rgba(255,230,200,0.5)'; ctx.lineWidth = 1;
-    const mx = G.mouse.x, my = G.mouse.y;
+    const mx = G.mouse.x, my = G.mouse.y - R.viewY;
     ctx.beginPath(); ctx.moveTo(mx - 12, my); ctx.lineTo(mx - 4, my); ctx.moveTo(mx + 4, my); ctx.lineTo(mx + 12, my); ctx.moveTo(mx, my - 12); ctx.lineTo(mx, my - 4); ctx.moveTo(mx, my + 4); ctx.lineTo(mx, my + 12); ctx.stroke();
   }
 }
@@ -750,8 +742,6 @@ function init() {
   UI.overlay.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('[data-diff]');
     if (b) { e.stopPropagation(); ensureAudio(); setDifficulty(+b.dataset.diff); return; }
-    const cont = e.target.closest && e.target.closest('[data-continue]');
-    if (cont) { e.stopPropagation(); ensureAudio(); startLevel(G.unlocked, true); return; }
     onClick(e);
   });
   UI.mute.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); toggleMute(); });
@@ -759,6 +749,8 @@ function init() {
   SAVE.load();
   G.difficulty = clamp(SAVE.data.settings.difficulty | 0, 0, DIFFICULTIES.length - 1);
   setMuted(!!SAVE.data.settings.muted);
+  MENU.applyAll();
+  document.addEventListener('visibilitychange', () => { if (document.hidden) AUDIO.suspend(); else if (G.state === 'play') AUDIO.resume(); });
   const q = new URLSearchParams(location.search);
   G.debug = q.has('debug');
   if (G.debug) UI.debug.style.display = 'block';

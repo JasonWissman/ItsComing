@@ -41,8 +41,27 @@
   #overlay h1.big { font-size: 64px; letter-spacing: .22em; }
   #overlay h1.red { color: #b3161e; }
   #overlay .kicker { font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: rgba(207,200,186,.5); }
-  #overlay .intro { font-size: 18px; line-height: 1.6; color: #cfc8ba; margin: 0 auto 14px; }
-  #overlay .hint { font-style: italic; color: rgba(239,230,210,.85); font-size: 17px; }
+  :root { --text-scale: 1; }
+  #overlay .intro { font-size: calc(18px * var(--text-scale)); line-height: 1.6; color: #cfc8ba; margin: 0 auto 14px; }
+  .mrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 18px auto 6px; }
+  .mcol { display: flex; flex-direction: column; gap: 8px; align-items: center; margin: 18px auto 6px; }
+  .mbtn { font-family: inherit; font-size: calc(15px * var(--text-scale)); letter-spacing: .12em; text-transform: uppercase; background: rgba(0,0,0,.45); border: 1px solid rgba(207,200,186,.3); color: #efe6d2; padding: 10px 22px; min-width: 200px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .mbtn:hover, .mbtn:focus-visible { border-color: rgba(239,230,210,.9); background: rgba(40,36,32,.6); outline: none; box-shadow: 0 0 12px rgba(239,230,210,.15); }
+  .mbtn.danger { border-color: rgba(179,22,30,.5); color: #d08a8e; }
+  .mbtn.danger:hover, .mbtn.danger:focus-visible { border-color: #b3161e; }
+  .nights { display: flex; flex-direction: column; gap: 6px; margin: 8px auto; max-height: 52vh; overflow-y: auto; padding: 4px; }
+  .nrow { display: flex; align-items: center; gap: 14px; justify-content: center; }
+  .nrow .nbtn { min-width: 260px; text-align: left; text-transform: none; letter-spacing: .04em; }
+  .nrow .times { display: flex; gap: 10px; font-size: 12px; color: rgba(207,200,186,.6); min-width: 240px; text-align: left; }
+  .nrow .bt small { display: block; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: rgba(207,200,186,.4); }
+  .nrow.locked .nlock { display: inline-block; min-width: 260px; text-align: left; padding: 10px 22px; color: rgba(207,200,186,.3); border: 1px solid rgba(207,200,186,.1); }
+  .settings { display: flex; flex-direction: column; gap: 10px; margin: 10px auto; text-align: left; width: max-content; max-width: 100%; }
+  .opt { display: flex; align-items: center; gap: 12px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.85); cursor: pointer; }
+  .opt span { min-width: 90px; }
+  .opt input[type=range] { width: 180px; accent-color: #efe6d2; }
+  .opt input[type=checkbox] { accent-color: #efe6d2; width: 16px; height: 16px; }
+  button:focus-visible, .diff:focus-visible { outline: 1px solid rgba(239,230,210,.9); outline-offset: 2px; }
+  #overlay .hint { font-style: italic; color: rgba(239,230,210,.85); font-size: calc(17px * var(--text-scale)); }
   #overlay .prompt { margin-top: 28px; font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: rgba(207,200,186,.55); animation: breathe 3s ease-in-out infinite; }
   #overlay .prompt .alt { display: inline-block; margin-top: 10px; text-transform: none; letter-spacing: .06em; font-size: 13px; color: rgba(207,200,186,.7); }
   #overlay .fine { font-size: 11px; color: rgba(207,200,186,.35); margin-top: 28px; letter-spacing: .06em; }
@@ -60,7 +79,7 @@
   #touch button { background: rgba(0,0,0,.5); border: 1px solid rgba(207,200,186,.3); color: #efe6d2; font-size: 18px; border-radius: 6px; touch-action: none; -webkit-tap-highlight-color: transparent; }
   #touch #tZoom { grid-column: 3; grid-row: 1 / span 2; font-size: 11px; letter-spacing: .1em; }
   @media (pointer: coarse) { #touch { display: grid; } #inventory { left: 18px; transform: none; } #tooltip, #toast { bottom: 140px; } }
-  @media (max-width: 700px) { #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: 15px; } #objective { max-width: 48vw; font-size: 12px; } #compass { gap: 10px; font-size: 11px; } }
+  @media (max-width: 700px) { #compass { top: 44px; } #pitch { top: 74px; } #zoom { top: 94px; } #objective { top: 44px; } #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: 15px; } #objective { max-width: 48vw; font-size: 12px; } #compass { gap: 10px; font-size: 11px; } }
 </style>
 </head>
 <body>
@@ -91,6 +110,7 @@
 <script src="js/approach.js"></script>
 <script src="js/seq.js"></script>
 <script src="js/save.js"></script>
+<script src="js/menu.js"></script>
 <script src="js/creatures.js"></script>
 <script src="js/creatures/walker.js"></script>
 <script src="js/creatures/crawler.js"></script>

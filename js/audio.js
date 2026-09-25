@@ -2,6 +2,8 @@
 // ---------- Web Audio: everything is synthesized, no sound files ----------
 const AUDIO = (() => {
   let ac = null, master = null, noiseBuf = null, muted = false;
+  const bus = { effects: null, ambient: null };
+  const volume = { master: 1, effects: 1, ambient: 1 };
   let amb = null;     // ambient bed (wind + drone)
   let loopNode = null; // creature loop (stone grind / engine)
 
@@ -11,10 +13,12 @@ const AUDIO = (() => {
       const AC = window.AudioContext || window.webkitAudioContext;
       ac = new AC();
       master = ac.createGain();
-      master.gain.value = muted ? 0.0001 : 0.85;
+      master.gain.value = muted ? 0.0001 : 0.85 * volume.master;
       const comp = ac.createDynamicsCompressor();
       comp.threshold.value = -18; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.25;
       master.connect(comp); comp.connect(ac.destination);
+      bus.effects = ac.createGain(); bus.effects.gain.value = volume.effects; bus.effects.connect(master);
+      bus.ambient = ac.createGain(); bus.ambient.gain.value = volume.ambient; bus.ambient.connect(master);
       const len = ac.sampleRate * 2;
       noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
       const d = noiseBuf.getChannelData(0);
@@ -26,8 +30,15 @@ const AUDIO = (() => {
   function resume() { if (ac && ac.state !== 'running') ac.resume().catch(() => {}); }
   function setMuted(m) {
     muted = !!m;
-    if (master) { master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(muted ? 0.0001 : 0.85, ac.currentTime, 0.03); }
+    if (master) { master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(muted ? 0.0001 : 0.85 * volume.master, ac.currentTime, 0.03); }
   }
+  function setVolume(which, v) {
+    volume[which] = clamp(+v || 0, 0, 1);
+    if (!ac) return;
+    if (which === 'master') setMuted(muted);
+    else if (bus[which]) bus[which].gain.setTargetAtTime(Math.max(0.0001, volume[which]), ac.currentTime, 0.03);
+  }
+  function suspend() { if (ac && ac.state === 'running') ac.suspend().catch(() => {}); }
   const now = () => ac.currentTime;
 
   function panNode(pan) {
@@ -36,7 +47,7 @@ const AUDIO = (() => {
   }
   function chain(last, pan) {
     const p = panNode(pan);
-    if (p) { last.connect(p); p.connect(master); } else last.connect(master);
+    if (p) { last.connect(p); p.connect(bus.effects); } else last.connect(bus.effects);
   }
 
   // filtered noise burst
@@ -78,7 +89,7 @@ const AUDIO = (() => {
     if (!ac) return;
     stopAmbient();
     p = p || {};
-    const g = ac.createGain(); g.gain.value = 0.0001; g.connect(master);
+    const g = ac.createGain(); g.gain.value = 0.0001; g.connect(bus.ambient);
     const nodes = [];
     // wind: brown-ish noise through a slowly wandering low-pass
     const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
@@ -118,7 +129,9 @@ const AUDIO = (() => {
     if (!kind) { stopLoop(); return; }
     if (loopNode && loopNode.kind !== kind) stopLoop();
     if (!loopNode) {
-      const g = ac.createGain(); g.gain.value = 0.0001; g.connect(master);
+      const g = ac.createGain(); g.gain.value = 0.0001;
+      const p = panNode(pan);
+      if (p) { g.connect(p); p.connect(bus.effects); } else g.connect(bus.effects);
       const nodes = [];
       if (kind === 'grind') {
         const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
@@ -134,8 +147,9 @@ const AUDIO = (() => {
         o.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); nodes.push(o, o2);
       }
       nodes.forEach(n => n.start());
-      loopNode = { kind, g, nodes, pan: panNode(pan) };
+      loopNode = { kind, g, nodes, pan: p };
     }
+    if (loopNode.pan && pan !== undefined) loopNode.pan.pan.setTargetAtTime(clamp(pan, -1, 1), now(), 0.1);
     loopNode.g.gain.setTargetAtTime(Math.max(0.0001, vol), now(), 0.08);
   }
   function stopLoop() {
@@ -186,7 +200,7 @@ const AUDIO = (() => {
         for (let i = 0; i < 6; i++) { g.gain.setValueAtTime(0.28, t0 + 0.05 + i * 0.16); g.gain.linearRampToValueAtTime(0.06, t0 + 0.05 + i * 0.16 + 0.08); }
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.05);
         const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500;
-        o.connect(lp); lp.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 1.1);
+        o.connect(lp); lp.connect(g); g.connect(bus.effects); o.start(t0); o.stop(t0 + 1.1);
         break;
       }
       case 'start': setLoop('engine', 0.35); tone(45, 1.2, { vol: 0.4, type: 'sawtooth', endFreq: 120 }); noise(0.6, { freq: 400, vol: 0.4 }); break;
@@ -215,5 +229,5 @@ const AUDIO = (() => {
     }
   }
 
-  return { init, on, resume, setMuted, startAmbient, stopAmbient, setLoop, stopLoop, heartbeat, footstep, sfx, get muted() { return muted; } };
+  return { init, on, resume, suspend, setMuted, setVolume, startAmbient, stopAmbient, setLoop, stopLoop, heartbeat, footstep, sfx, get muted() { return muted; } };
 })();
