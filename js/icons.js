@@ -109,6 +109,103 @@ const ICONS = {
     const r = P.col([150, 130, 90]);
     ctx.strokeStyle = r; ctx.lineWidth = 0.07;
     for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(0, 0.45, 0.36 - i * 0.07, 0.2 - i * 0.03, 0, 0, TAU); ctx.stroke(); }
+  },
+  // a winch handle: an iron crank with a wooden grip
+  handle(ctx, P) {
+    const iron = P.col([70, 70, 76]), grip = P.col([110, 80, 50]);
+    P_line(ctx, -0.35, 0.2, -0.35, 0.55, 0.09, iron);
+    P_line(ctx, -0.35, 0.55, 0.15, 0.55, 0.08, iron);
+    P_line(ctx, 0.15, 0.55, 0.15, 0.85, 0.08, iron);
+    P_line(ctx, 0.15, 0.85, 0.42, 0.85, 0.12, grip);
+    P_rect(ctx, -0.45, 0.08, 0.2, 0.16, iron);
+  },
+  // the bar beam: a long squared timber
+  beam(ctx, P) {
+    const w = P.col([104, 78, 48]), d = P.col([74, 54, 32]);
+    ctx.save(); ctx.rotate(-0.08);
+    P_rect(ctx, -0.5, 0.3, 1.0, 0.2, w); P_rect(ctx, -0.5, 0.3, 1.0, 0.05, d);
+    P_line(ctx, -0.35, 0.42, 0.3, 0.41, 0.012, d); P_line(ctx, -0.1, 0.35, 0.45, 0.36, 0.008, d);
+    ctx.restore();
+  },
+  // a pawl pin: a steel pin on a short chain
+  pin(ctx, P) {
+    const st = P.col([150, 150, 156]), d = P.col([80, 80, 86]);
+    P_rect(ctx, -0.07, 0.25, 0.14, 0.5, st); P_rect(ctx, -0.14, 0.72, 0.28, 0.1, st); P_rect(ctx, -0.07, 0.25, 0.05, 0.5, d);
+    ctx.strokeStyle = d; ctx.lineWidth = 0.025;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(0.18 + i * 0.07, 0.78 - i * 0.12, 0.045, 0.03, 0.6, 0, TAU); ctx.stroke(); }
+  },
+  oar(ctx, P) {
+    const w = P.col([120, 96, 62]), d = P.col([80, 60, 36]);
+    ctx.save(); ctx.rotate(0.5);
+    P_line(ctx, 0, 0.05, 0, 0.7, 0.06, w);
+    ctx.fillStyle = d; ctx.beginPath(); ctx.ellipse(0, 0.82, 0.1, 0.18, 0, 0, TAU); ctx.fill();
+    ctx.restore();
+  },
+  // fuses: a good one, a blown one (dark glass), and a coil of wire
+  fuse(ctx, P) {
+    const brass = P.col([170, 140, 70]), glass = P.col([180, 190, 170]), wire = P.col([90, 90, 96]);
+    P_rect(ctx, -0.32, 0.36, 0.64, 0.24, glass); P_rect(ctx, -0.42, 0.33, 0.14, 0.3, brass); P_rect(ctx, 0.28, 0.33, 0.14, 0.3, brass);
+    P_line(ctx, -0.26, 0.48, 0.26, 0.48, 0.02, wire);
+  },
+  fusebody(ctx, P) {
+    const brass = P.col([150, 124, 64]), glass = P.col([70, 60, 56]), wire = P.col([90, 90, 96]);
+    P_rect(ctx, -0.32, 0.36, 0.64, 0.24, glass); P_rect(ctx, -0.42, 0.33, 0.14, 0.3, brass); P_rect(ctx, 0.28, 0.33, 0.14, 0.3, brass);
+    P_line(ctx, -0.26, 0.48, -0.08, 0.5, 0.02, wire); P_line(ctx, 0.05, 0.44, 0.26, 0.48, 0.02, wire);
+    P_ell(ctx, -0.02, 0.48, 0.06, 0.05, P.col([30, 24, 22]));
+  },
+  wire(ctx, P) {
+    const c = P.col([160, 110, 60]);
+    ctx.strokeStyle = c; ctx.lineWidth = 0.035;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(0, 0.42 + i * 0.02, 0.28 - i * 0.03, 0.16 - i * 0.02, 0, 0, TAU); ctx.stroke(); }
+    P_line(ctx, 0.2, 0.5, 0.42, 0.78, 0.035, c);
+  },
+  // a box of nails, some spilled
+  nails(ctx, P) {
+    const box = P.col([120, 100, 70]), boxD = P.col([80, 64, 44]), nail = P.col([170, 170, 176]);
+    P_rect(ctx, -0.34, 0.1, 0.68, 0.38, box); P_rect(ctx, -0.34, 0.42, 0.68, 0.08, boxD);
+    for (let i = 0; i < 5; i++) P_line(ctx, -0.26 + i * 0.12, 0.52, -0.22 + i * 0.12, 0.78, 0.025, nail);
+    P_line(ctx, 0.1, 0.06, 0.42, 0.02, 0.025, nail); P_line(ctx, -0.45, 0.05, -0.2, 0.09, 0.025, nail);
+  },
+  // an oil can with a long spout
+  oilcan(ctx, P) {
+    const tin = P.col([120, 118, 110]), tinD = P.col([76, 74, 68]), oil = P.col([60, 44, 20]);
+    P_rect(ctx, -0.3, 0.05, 0.5, 0.42, tin); P_rect(ctx, -0.3, 0.05, 0.5, 0.06, tinD); P_rect(ctx, -0.3, 0.42, 0.5, 0.05, tinD);
+    P_line(ctx, 0.15, 0.4, 0.44, 0.86, 0.045, tin); P_ell(ctx, 0.44, 0.88, 0.025, 0.02, oil);
+    P_line(ctx, -0.34, 0.5, -0.12, 0.5, 0.05, tinD); P_ell(ctx, -0.12, 0.3, 0.08, 0.05, tinD);
+  },
+  // a music box: a small lacquered case with a crank and a dancer under the lid; a broken one gapes open
+  musicbox(ctx, P) {
+    const lac = P.col([90, 30, 40]), lacD = P.col([50, 16, 24]), brass = P.col([180, 150, 80]), pale = P.col([230, 220, 210]);
+    P_rect(ctx, -0.34, 0.08, 0.68, 0.38, lac); P_rect(ctx, -0.34, 0.42, 0.68, 0.05, lacD);
+    P_poly(ctx, [[-0.34, 0.47], [0.34, 0.47], [0.3, 0.72], [-0.3, 0.72]], lacD);
+    P_ell(ctx, 0, 0.78, 0.045, 0.08, pale); P_ell(ctx, 0, 0.9, 0.03, 0.03, pale);
+    P_line(ctx, 0.36, 0.25, 0.48, 0.25, 0.04, brass); P_line(ctx, 0.48, 0.25, 0.48, 0.36, 0.04, brass);
+    P_rect(ctx, -0.04, 0.2, 0.08, 0.1, brass);
+  },
+  brokenbox(ctx, P) {
+    const lac = P.col([90, 30, 40]), lacD = P.col([50, 16, 24]), brass = P.col([180, 150, 80]), dark = P.col([20, 12, 14]);
+    P_rect(ctx, -0.34, 0.08, 0.68, 0.38, lac); P_rect(ctx, -0.3, 0.14, 0.6, 0.28, dark);
+    P_poly(ctx, [[-0.34, 0.46], [-0.1, 0.46], [-0.2, 0.9], [-0.44, 0.9]], lacD);
+    P_line(ctx, 0.36, 0.25, 0.48, 0.25, 0.04, brass);
+    P_line(ctx, -0.05, 0.2, 0.2, 0.34, 0.02, brass);
+  },
+  spring(ctx, P) {
+    const st = P.col([150, 150, 156]);
+    ctx.strokeStyle = st; ctx.lineWidth = 0.035; ctx.beginPath();
+    for (let i = 0; i < 40; i++) { const u = i / 39, a = u * TAU * 4; const x = Math.cos(a) * 0.18, y = 0.15 + u * 0.6 + Math.sin(a) * 0.05; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  },
+  // the shutter crank: a bent steel rod with a hook end
+  crank(ctx, P) {
+    const st = P.col([120, 120, 126]), d = P.col([70, 70, 76]);
+    P_line(ctx, -0.3, 0.1, -0.3, 0.7, 0.06, st); P_line(ctx, -0.3, 0.7, 0.05, 0.7, 0.06, st); P_line(ctx, 0.05, 0.7, 0.05, 0.9, 0.06, st);
+    P_line(ctx, -0.42, 0.1, -0.18, 0.1, 0.05, d); P_line(ctx, -0.3, 0.02, -0.3, 0.2, 0.09, d);
+    P_line(ctx, 0.05, 0.9, 0.3, 0.9, 0.09, P.col([40, 36, 34]));
+  },
+  bentcrank(ctx, P) {
+    const st = P.col([110, 104, 96]);
+    P_line(ctx, -0.3, 0.1, -0.22, 0.6, 0.06, st); P_line(ctx, -0.22, 0.6, 0.1, 0.5, 0.06, st); P_line(ctx, 0.1, 0.5, 0.2, 0.85, 0.06, st);
+    P_line(ctx, 0.2, 0.85, 0.42, 0.8, 0.09, P.col([40, 36, 34]));
   }
 };
 
@@ -270,14 +367,14 @@ SC.withYaw = function (L, deg, fn) {
 // ---- openings: build the wall pieces around a hole and return the aperture the lane logic needs ----
 // a doorway in a wall at depth z facing the lane, opening w wide and h high, walls wallH high from x=left..right
 SC.doorway = function (L, o) {
-  const x = o.x || 0, w = o.w, h = o.h, wallH = o.wallH || h + 0.5, left = o.left === undefined ? -7 : o.left, right = o.right === undefined ? 7 : o.right;
+  const x = o.x || 0, w = o.w, y0 = o.y0 || 0, h = o.h, wallH = o.wallH || y0 + h + 0.5, left = o.left === undefined ? -7 : o.left, right = o.right === undefined ? 7 : o.right;
   SC.withYaw(L, o.deg || 0, () => {
-    SC.wallV(L, left, o.z, x - w / 2, o.z, 0, wallH, o.color, o.opts);
-    SC.wallV(L, x + w / 2, o.z, right, o.z, 0, wallH, o.color, o.opts);
-    if (wallH > h) SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, h, wallH, o.color, o.opts);
-    if (o.frame) { const f = o.frame, fw = f.w || 0.1; SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x - w / 2, o.z - 0.05, 0, h + fw, f.color); SC.wallV(L, x + w / 2, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, 0, h + fw, f.color); SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, h, h + fw, f.color); }
+    SC.wallV(L, left, o.z, x - w / 2, o.z, y0, wallH, o.color, o.opts);
+    SC.wallV(L, x + w / 2, o.z, right, o.z, y0, wallH, o.color, o.opts);
+    if (wallH > y0 + h) SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, y0 + h, wallH, o.color, o.opts);
+    if (o.frame) { const f = o.frame, fw = f.w || 0.1; SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x - w / 2, o.z - 0.05, y0, y0 + h + fw, f.color); SC.wallV(L, x + w / 2, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, y0, y0 + h + fw, f.color); SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, y0 + h, y0 + h + fw, f.color); }
   });
-  return { z: o.z, x0: x - w / 2, x1: x + w / 2, y0: 0, y1: h };
+  return { z: o.z, x0: x - w / 2, x1: x + w / 2, y0, y1: y0 + h };
 };
 // a window: wall with a hole from y0 to y1
 SC.window = function (L, o) {

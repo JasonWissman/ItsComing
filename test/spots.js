@@ -7,7 +7,9 @@ const T = require('./lib'); const URL = T.INDEX;
   const page = await browser.newPage({ viewport: { width: 640, height: 400 } });
   const dir = path.join(__dirname, 'shots', 'spots'); fs.mkdirSync(dir, { recursive: true });
   const seeds = [1, 2, 3, 4, 5, 6];
-  for (let lvl = 1; lvl <= 5; lvl++) {
+  await page.goto(URL); await page.waitForTimeout(200);
+  const NLEVELS = await page.evaluate(() => LEVELS.length);
+  for (let lvl = 1; lvl <= NLEVELS; lvl++) {
     const seen = {};
     for (const seed of seeds) {
       await page.goto(URL + '?level=' + lvl + '&go&seed=' + seed); await page.waitForTimeout(250);

@@ -7,7 +7,7 @@ const R = (() => {
   const VFOV = 62 * DEG;
   let canvas = null, ctx = null, W = 1, H = 1, DPR = 1, pageW = 1, pageH = 1, viewY = 0;
   let f = 1, cosY = 1, sinY = 0, cosP = 1, sinP = 0, eyeH = 1.65, pitch = 0, yaw = 0, zoom = 1;
-  let pal = null, fogDist = 100, fogColor = [0, 0, 0];
+  let pal = null, fogDist = 100, fogColor = [0, 0, 0], ambient = 1;   // pal.ambient dims every surface colour (a room whose lights have gone)
   let list = [];      // dynamic renderables this frame
   let statics = [];   // the level's static props, sorted once, culled by view angle per frame
   let hits = [];
@@ -63,7 +63,7 @@ const R = (() => {
     yaw = cam.yaw; pitch = cam.pitch; zoom = cam.zoom;
     cosY = Math.cos(yaw); sinY = Math.sin(yaw); cosP = Math.cos(pitch); sinP = Math.sin(pitch);
     f = (H / 2) / Math.tan(VFOV / 2) * zoom;
-    eyeH = level.eyeH; pal = level.pal; fogDist = pal.fogDist; fogColor = pal.fog;
+    eyeH = level.eyeH; pal = level.pal; fogDist = pal.fogDist; fogColor = pal.fog; ambient = pal.ambient === undefined ? 1 : pal.ambient;
     list.length = 0; hits.length = 0;
     // shake: applied as a translation of the whole scene
     if (cam.shakeX || cam.shakeY) ctx.translate(cam.shakeX, cam.shakeY);
@@ -163,15 +163,23 @@ const R = (() => {
   function add(p) { measure(p); list.push(p); }
   // angular extent of a static prop around the eye, for view culling
   function extent(p) {
-    let sx = 0, sz = 0;
+    let sx = 0, sz = 0, yLow = Infinity;
     const angles = [];
-    if (p.kind === 'poly') { for (const v of p.pts) { const a = Math.atan2(v[0], v[2]); angles.push(a); sx += Math.sin(a); sz += Math.cos(a); } }
-    else { const a = Math.atan2(p.x, p.z), half = Math.atan2(Math.max(p.w, p.h) * 0.6, Math.max(0.1, p.dist)); angles.push(a - half, a + half); sx = Math.sin(a); sz = Math.cos(a); }
+    if (p.kind === 'poly') { for (const v of p.pts) { const a = Math.atan2(v[0], v[2]); angles.push(a); sx += Math.sin(a); sz += Math.cos(a); if (v[1] < yLow) yLow = v[1]; } }
+    else { const a = Math.atan2(p.x, p.z), half = Math.atan2(Math.max(p.w, p.h) * 0.6, Math.max(0.1, p.dist)); angles.push(a - half, a + half); sx = Math.sin(a); sz = Math.cos(a); yLow = p.y; }
     const center = Math.atan2(sx, sz);
     let half = 0;
     for (const a of angles) half = Math.max(half, Math.abs(wrapPi(a - center)));
-    p.aCenter = center; p.aHalf = half;
-    p.noCull = half > 1.3 || p.dist < 4;   // near props can show at the bottom edge when looking down
+    p.aCenter = center; p.aHalf = half; p.yLow = yLow;
+    p.noCull = half > 1.3;
+  }
+  // is a static prop outside the horizontal extent of the view? Looking down, the frustum's lower edge sweeps
+  // round behind the eye, so the test allows for how far below the eye the prop reaches (conservative: never
+  // culls anything that could be on screen)
+  function culled(p, k, sp, cp) {
+    const phi = Math.abs(wrapPi(p.aCenter - yaw)) - p.aHalf - 0.12;
+    if (phi <= 0) return false;
+    return Math.sin(phi) * p.dist > k * (Math.max(0, eyeH - p.yLow) * sp + p.dist * Math.cos(phi) * cp) + 0.35;
   }
   const order = (a, b) => (a.layer - b.layer) || (b.dist - a.dist);
   // register a level's static props: measured, given an extent, sorted once
@@ -204,7 +212,8 @@ const R = (() => {
       return;
     }
     const li = (LIGHT.list.length || LIGHT.global) && !p.noLight ? LIGHT.at(p.cx, p.cy, p.cz) : null;
-    const base = li ? LIGHT.apply(p.color, li) : p.color;
+    const base0 = ambient !== 1 && !p.noLight ? scalec(p.color, ambient) : p.color;
+    const base = li ? LIGHT.apply(base0, li) : base0;
     const col = p.noFog ? base : fogged(base, p.dist);
     if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
     if (p.stroke) {
@@ -238,8 +247,8 @@ const R = (() => {
     const li = (LIGHT.list.length || LIGHT.global) && !p.noFog && !p.noLight ? LIGHT.at(p.x, p.y + (p.h || 0) * 0.5, p.z) : null;
     return {
       fog: fa, fogColor, t: time, lit: li ? Math.min(1, li.lit) : 0,
-      col: c => rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)),
-      cola: (c, a) => rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa), a),
+      col: c => { if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)); },
+      cola: (c, a) => { if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa), a); },
       raw: c => rgba(c),
     };
   }
@@ -297,13 +306,13 @@ const R = (() => {
 
   function flush() {
     list.sort(order);
-    const hfov = Math.atan((W / 2) / f) + 0.12;
+    const k = (W / 2) / f, sp = Math.sin(pitch), cp = Math.cos(pitch);
     let i = 0, j = 0;
     while (i < statics.length || j < list.length) {
       let p;
       if (j >= list.length || (i < statics.length && order(statics[i], list[j]) <= 0)) {
         p = statics[i++];
-        if (!p.noCull && Math.abs(wrapPi(p.aCenter - yaw)) > p.aHalf + hfov) continue;
+        if (!p.noCull && culled(p, k, sp, cp)) continue;
       } else p = list[j++];
       if (p.kind === 'poly') drawPoly(p); else drawSprite(p);
     }

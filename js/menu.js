@@ -21,7 +21,7 @@ const MENU = (() => {
       case 'pause':
         return '<h1>Paused</h1><p class="intro">It is not.</p><div class="mcol">' + btn('resume', 'Resume') + btn('restart', 'Start the night over') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('title', 'Back to the title') + '</div><p class="fine">Esc resumes</p>';
       case 'dead':
-        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + (G.debug ? '<p class="fine">seed ' + G.runSeed + '</p>' : '');
+        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + (G.debug || G.diff().tier >= 3 ? '<p class="fine">seed ' + G.runSeed + '</p>' : '');
       case 'survived':
         return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', d.last ? 'Go on' : 'The next night') + btn('nights', 'Nights') + '</div>';
       case 'nights': {
@@ -34,7 +34,17 @@ const MENU = (() => {
             rows += '<div class="nrow">' + btn('night', (i + 1) + '. ' + def.title, i, 'nbtn') + '<span class="times">' + times + '</span></div>';
           } else rows += '<div class="nrow locked"><span class="nlock">' + (i + 1) + '. &hellip;</span></div>';
         }
-        return '<div class="kicker">Nights &middot; ' + diff.name + '</div><h1>Nights</h1><div class="nights">' + rows + '</div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
+        const complete = SAVE.data.complete && SAVE.data.complete[diff.id] ? '<p class="fine">Every night survived on ' + diff.name + '.</p>' : '';
+        return '<div class="kicker">Nights &middot; ' + diff.name + '</div><h1>Nights</h1><div class="nights">' + rows + '</div>' + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('fragments', 'Fragments', d.from || 'title') + '</div>';
+      }
+      case 'fragments': {
+        // the odd sentence at the end of each survived night, collected; unread ones stay blank
+        let rows = '';
+        for (let i = 0; i < LEVELS.length; i++) {
+          const def = LEVELS[i], seen = SAVE.data.fragments.includes(def.id) && def.text && def.text.fragment;
+          rows += '<div class="frag' + (seen ? '' : ' unseen') + '"><span class="fn">' + (i + 1) + '.</span> ' + (seen ? '<em>' + def.text.fragment + '</em>' : '<span class="fdots">&hellip;</span>') + '</div>';
+        }
+        return '<div class="kicker">Fragments</div><h1>What was left in the morning</h1><div class="frags">' + rows + '</div><div class="mrow">' + btn('nights', 'Back') + '</div>';
       }
       case 'settings': {
         const chk = (k, label) => '<label class="opt"><input type="checkbox" data-set="' + k + '"' + (S[k] ? ' checked' : '') + '> ' + label + '</label>';
@@ -78,8 +88,9 @@ const MENU = (() => {
     switch (a) {
       case 'begin': startLevel(0, true); break;
       case 'continue': startLevel(G.unlocked, true); break;
-      case 'nights': show('nights', { from: current && (current.kind === 'pause' ? 'pause' : current.kind === 'dead' ? 'dead' : current.kind === 'survived' ? 'survived' : 'title') }); break;
+      case 'nights': show('nights', { from: current && (current.kind === 'fragments' ? current.data.from : current.kind === 'pause' ? 'pause' : current.kind === 'dead' ? 'dead' : current.kind === 'survived' ? 'survived' : 'title') }); break;
       case 'settings': show('settings', { from: arg || 'title' }); break;
+      case 'fragments': show('fragments', { from: arg || 'title' }); break;
       case 'resume': resumeGame(); break;
       case 'restart': restartLevel(); break;
       case 'retry': startLevel(G.levelIndex, false); break;
@@ -108,6 +119,7 @@ const MENU = (() => {
     const idx = btns.indexOf(document.activeElement);
     if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'd' || k === 'Tab' && !e.shiftKey) { e.preventDefault(); btns[(idx + 1 + btns.length) % btns.length].focus(); return true; }
     if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'a' || k === 'Tab' && e.shiftKey) { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); return true; }
+    if (k === 'Escape' && current.kind === 'fragments') { act('nights'); return true; }
     if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings')) { act('back', current.data.from); return true; }
     if (k === 'Enter' && idx >= 0) return true;   // the focused button handles it
     return false;

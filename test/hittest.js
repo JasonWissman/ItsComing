@@ -6,7 +6,9 @@ const T = require('./lib'); const URL = T.INDEX;
   const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
   let problems = 0, checks = 0;
   const seeds = [...Array(parseInt(process.env.N || '24')).keys()].map(i => i + 1);
-  for (let lvl = 1; lvl <= 5; lvl++) {
+  await page.goto(T.INDEX); await page.waitForTimeout(200);
+  const NLEVELS = await page.evaluate(() => LEVELS.length);
+  for (let lvl = 1; lvl <= NLEVELS; lvl++) {
     const found = {};
     for (const seed of seeds) {
       await page.goto(URL + '?level=' + lvl + '&go&seed=' + seed); await page.waitForTimeout(200);

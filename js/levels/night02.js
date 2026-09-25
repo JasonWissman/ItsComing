@@ -1,23 +1,30 @@
 'use strict';
 // ============================================================ 2. THE ROAD ============================================================
 LEVELS.push({
-  id: 'road', title: 'The Road', facing: 0, eyeH: 1.15,
+  id: 'road', title: 'The Road', facing: 0, eyeH: 1.15, laneSwitch: false,
   pal: { skyTop: [3, 3, 7], fog: [15, 15, 20], ground: [20, 19, 16], fogDist: 70 },
   ambient: { wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220, rain: 0.8 },
   weather: { kind: 'rain', density: 0.8, wind: 0.4 },
   lights: [{ x: 0.4, y: 0.75, z: 1.6, r: 52, i: 1.25, color: [228, 218, 178], cone: { x: 0, y: -0.06, z: 1, deg: 24 } }, { x: 0, y: 0.9, z: 0.55, r: 0.9, i: 0.1, color: [90, 200, 120] }],
   text: {
-    intro: 'The engine died on the county road, miles from anything.<br>Something is coming up the middle of the road, low, in the headlights.',
+    intro: 'The engine died on the county road, miles from anything.<br>Something is coming up the road, low, at the edge of the headlights.',
     hint: 'The keys fell somewhere when the car stalled. The engine has been flooding all night.',
     objective: 'Start the car.',
     death: { default: 'It came through the windshield.' },
     win: 'It caught. You did not look in the mirror.',
+    fragment: 'The car has not started on the first turn since. You have stopped mentioning it.',
   },
-  // the windshield is the opening; the hood hides the last metres of road
-  lanes: [{ deg: 0, name: 'road', barrierDist: 0, apertures: [{ z: 0.95, x0: -0.5, x1: 1.3, y0: 1.02, y1: 1.45 }], blockers: [[0, 7.5]] }],
+  // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
+  // the road or along either verge, just off the beam
+  lanes: [
+    { deg: 0, name: 'road', barrierDist: 0, apertures: [{ z: 0.95, x0: -0.5, x1: 1.3, y0: 1.02, y1: 1.45 }], blockers: [[0, 7.5]], default: true },
+    { deg: 11, name: 'right verge', barrierDist: 0, apertures: [{ z: 0.97, x0: -0.68, x1: 1.12, y0: 1.02, y1: 1.45 }], blockers: [[0, 7.5]] },
+    { deg: -11, name: 'left verge', barrierDist: 0, apertures: [{ z: 0.97, x0: -0.32, x1: 1.48, y0: 1.02, y1: 1.45 }], blockers: [[0, 7.5]] },
+  ],
   creatures: [{ type: 'crawler', startDist: 85, time: 48, gamma: 0.75, unseenMult: 1.35 }],
   aftermath: { type: 'retreat', dur: 3.2, speed: 4, accel: 1.5, shake: 0.06 },
   build(L) {
+    const s = L.s;
     const body = [44, 22, 24], bodyD = [24, 13, 15], dash = [26, 24, 26], dashD = [16, 15, 17], seat = [46, 40, 38], floor = [15, 14, 14];
     SC.stars(L, 7, 120, 0.5);
     SC.road(L, -2.6, 3.4, 1.2, 220, [46, 46, 52], 40, null);
@@ -55,37 +62,51 @@ LEVELS.push({
     SC.box(L, -0.45, 1.25, 0.35, 1.15, -1.0, -0.6, seat);
     SC.wallV(L, -0.47, -1.05, 1.27, -1.05, 1.15, 1.25, bodyD);
     // items and the ignition
-    mkItem(L, 'keys', 'Car keys', [
+    const decoy = !!L.diff.decoys;
+    const keySpots = [
       { x: 0.66, y: 0.36, z: 0.48, jitter: 0.06 },      // passenger footwell
       { x: -0.15, y: 0.36, z: 0.42, jitter: 0.06 },     // your own footwell
       { x: 0.36, y: 0.36, z: -0.12, jitter: 0.05 },     // between the seats
       { x: 0.4, y: 0.36, z: -0.5, jitter: 0.05 },       // behind the seats
       { x: 0.85, y: 0.95, z: 0.05, jitter: 0.04, key: 'seat' }, // on the passenger seat
-    ], { w: 0.2, h: 0.2, flat: true });
+    ];
+    mkItem(L, 'keys', 'Car keys', keySpots, { w: 0.2, h: 0.2, flat: true });
+    if (decoy) mkItem(L, 'housekeys', 'Keys', keySpots, { w: 0.2, h: 0.2, flat: true, icon: 'keys', decoy: true, decoyText: 'House keys. Not these.' });
     L.floorY = 0.36;
     mkItem(L, 'bottle', 'Empty bottle', [
       { x: 0.9, y: 0.36, z: -0.45, flat: false },       // rear floor
       { x: 0.95, y: 1.02, z: 0.78, flat: false },       // on the dash
       { x: 1.0, y: 0.95, z: -0.1, flat: false, key: 'seat' }, // on the passenger seat
     ], { w: 0.09, h: 0.24, icon: 'bottle' });
+    Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), needChoke: L.diff.tier >= 2, choke: false, floods: L.diff.tier >= 3, lastCrank: -10 });
     const ign = mkTarget(L, {
-      id: 'ignition', name: 'Ignition', x: 0.18, y: 0.78, z: 0.5, w: 0.16, h: 0.18, accepts: ['keys'],
-      hint() { return L.flags.started ? 'Running.' : L.flags.keyIn ? 'Turn the key.' : 'The ignition. No key in it.'; },
-      use() { L.flags.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.toast(G.hints() ? 'The key is in. Turn it.' : 'The key is in.'); return true; },
+      id: 'ignition', name: 'Ignition', x: 0.18, y: 0.78, z: 0.5, w: 0.16, h: 0.18, accepts: ['keys'].concat(decoy ? ['housekeys'] : []),
+      hint() { return s.started ? 'Running.' : s.keyIn ? (s.needChoke && !s.choke ? 'Turn the key. It will want the choke.' : 'Turn the key.') : 'The ignition. No key in it.'; },
+      use(item) { if (item.id !== 'keys') return false; s.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.toast(G.hints() ? 'The key is in. Turn it.' : 'The key is in.'); return true; },
       onClick() {
-        if (!L.flags.keyIn) return false;
-        if (L.flags.cranking > 0 || L.flags.started) return true;
-        L.flags.cranks++; L.flags.cranking = 1.15;
-        if (L.flags.cranks >= L.flags.cranksNeeded) { L.flags.started = true; AUDIO.sfx('start'); G.shake(0.3); }
-        else { AUDIO.sfx('crank'); G.shake(0.12); G.toast(L.flags.cranks === 1 ? 'It turns over. It does not catch.' : 'Come on. Come on.'); }
+        if (!s.keyIn) return false;
+        if (s.cranking > 0 || s.started) return true;
+        if (s.floods && L.t - s.lastCrank < 3 && s.cranks > 0) { s.cranks = 0; s.cranking = 1.15; s.lastCrank = L.t; AUDIO.sfx('crank'); G.say('Too soon. It floods. Give it a moment.', 'It floods.'); return true; }
+        s.lastCrank = L.t; s.cranking = 1.15;
+        if (s.needChoke && !s.choke) { AUDIO.sfx('crank'); G.shake(0.1); G.say('It turns over and dies. It wants the choke.', 'It turns over and dies.'); return true; }
+        s.cranks++;
+        if (s.cranks >= s.cranksNeeded) { s.started = true; AUDIO.sfx('start'); G.shake(0.3); }
+        else { AUDIO.sfx('crank'); G.shake(0.12); G.toast(s.cranks === 1 ? 'It turns over. It does not catch.' : 'Come on. Come on.'); }
         return true;
-      }
-});
-    Object.assign(L.s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3) });
-    L.update = dt => { if (L.flags.cranking > 0) L.flags.cranking -= dt; };
-    L.isWon = () => L.flags.started;
-    L.objectiveText = () => L.flags.started ? 'Drive.' : L.flags.keyIn ? 'Turn the key.' : 'Find the keys. Start the car.';
-    L.dynamic = () => { if (L.flags.keyIn) R.add(iconSprite(L, 'keys', 0.19, 0.7, 0.49, 0.1, 0.16)); };
+      },
+    });
+    if (s.needChoke) mkTarget(L, {
+      id: 'choke', name: 'Choke', x: 0.62, y: 0.86, z: 0.52, w: 0.12, h: 0.12,
+      hint() { return s.choke ? 'Pulled out.' : 'The choke. Pull it.'; },
+      onClick() { if (s.choke) { G.say('Already out.', 'Out.'); return true; } s.choke = true; AUDIO.sfx('lever'); G.say('The choke is out.', 'Click.'); return true; },
+    });
+    L.update = dt => { if (s.cranking > 0) s.cranking -= dt; };
+    L.isWon = () => s.started;
+    L.objectiveText = () => s.started ? 'Drive.' : s.keyIn ? (s.needChoke && !s.choke ? 'Pull the choke. Turn the key.' : 'Turn the key.' + (s.floods ? ' Wait between tries.' : '')) : 'Find the keys. Start the car.';
+    L.dynamic = () => {
+      if (s.keyIn) R.add(iconSprite(L, 'keys', 0.19, 0.7, 0.49, 0.1, 0.16));
+      if (s.needChoke) R.add(SC.mkSprite(L, 0.62, 0.8, 0.52, 0.12, 0.12, (ctx, P) => { ctx.scale(0.12, 0.12); P_rect(ctx, -0.3, 0.3, 0.6, 0.4, P.col([40, 38, 40])); P_ell(ctx, 0, s.choke ? 0.9 : 0.62, 0.32, 0.22, P.col([90, 88, 92])); }));
+    };
     L.floor = { poly: [[-0.4, -0.9], [1.2, -0.9], [1.2, 0.7], [-0.4, 0.7]], y: 0.36 };
     L.onEnd = () => AUDIO.stopLoop();
   }

@@ -42,14 +42,18 @@ tablets. Clicking the floor while looking down puts the active item back down.
 
 ## Difficulty
 
-Pick a difficulty on the title screen (click a button or press `1`, `2`, `3`).
+Pick a difficulty on the title screen (click a button or press `1` to `4`).
 The choice is remembered.
 
-| | Time before it reaches you | Speed while you look away | Hints |
-| --- | --- | --- | --- |
-| Easy | 35% more | a little slower | on |
-| Normal | as designed | as designed | off |
-| Hard | 28% less | 25% faster | off |
+| | Time before it reaches you | Speed while you look away | Hints | Extra steps | Where it comes from |
+| --- | --- | --- | --- | --- | --- |
+| Easy | 35% more | a little slower | on, and the card names the direction | none | the usual way |
+| Normal | as designed | as designed | off | none | the usual way |
+| Hard | 28% less | 25% faster | off | one (a pawl, a choke, a key, a crank, a blown fuse to mend) | either way, fixed per run |
+| Nightmare | 40% less | 40% faster | off | two, plus a decoy item | anywhere, no compass mark, and on some nights it changes its mind once while you are not looking |
+
+Every way it can come is fully visible from where you stand: the approach lanes are checked by
+`validateContent()` so the thing is never hidden behind a wall on its way in.
 
 With hints off, the level card gives only the situation, not the solution; the
 objective line at the top of the screen is hidden; hovering a target shows its
@@ -72,6 +76,14 @@ some on the ground, so you have to turn and look down to find them.
    You must look away to chain and padlock the gate. Every glance away costs you.
 5. **The Clearing.** Something that sprints, drops to all fours to watch, and
    sprints again. Get the shotgun, load it, and wait for it to come close enough.
+6. **The Boathouse.** Something swims in across the water, going under for a
+   while and coming up closer. Crank the water door down, or bar the side door.
+7. **The Lighthouse.** The lamp is out and something is climbing the outside of
+   the tower. You only see it by looking over the rail. Fit the fuse and wind
+   the clockwork so the beam turns.
+8. **The Diner.** A man-shaped thing in the lot that only moves while you are
+   looking at it, and freely once the lights are gone. Hold the shutter down
+   and reset the breakers before the last tube dies.
 
 Creatures move faster when you are not looking at them, and all of them
 accelerate as they close in. Difficulty scales both.
@@ -150,7 +162,7 @@ LEVELS.push({
 
 ```
 npm install            # Playwright (or set PW_CHROMIUM to a Chromium binary)
-npm test               # nights, flow, features, lanes, clickability sweep
+npm test               # nights, flow, features, lanes, lane switches, clickability sweep
 npm run test:play      # NIGHTS=1,3 TIERS=normal,hard SEEDS=1,2 narrow it
 npm run test:spots     # screenshot every item spot into montages under test/shots
 ```
@@ -158,8 +170,9 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 `test/play.js` runs each night's declared solution per tier and seed. `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
 difficulty, hints, restart and mute. `test/lanes.js` runs `validateContent()` and checks every
-lane gets picked on Nightmare. `test/hittest.js` checks every item is visible and clickable from
-some direction across many layouts.
+lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
+unseen, early, without a jump in distance, and never on nights that opt out or on lower tiers.
+`test/hittest.js` checks every item is visible and clickable from some direction across many layouts.
 
 ## Debugging
 

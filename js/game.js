@@ -45,7 +45,9 @@ function makeCreature(L, cd, k) {
   if (!CR) throw new Error('unknown creature type "' + cd.type + '" in ' + L.def.id);
   const diff = L.diff;
   const vDist = 1 - diff.variance + L.rand() * 2 * diff.variance, vTime = 1 - diff.variance * 0.7 + L.rand() * 1.4 * diff.variance;
-  const lane = L.lanes[cd.lane !== undefined ? cd.lane : L.laneIdx];
+  let laneIdx = cd.lane !== undefined ? cd.lane : L.laneIdx;
+  if (cd.lanes) { const mode = diff.tier === 0 ? 'default' : (L.def.laneMode || diff.lane); laneIdx = mode === 'default' ? cd.lanes[0] : cd.lanes[Math.floor(L.rand() * cd.lanes.length)]; }
+  const lane = L.lanes[laneIdx];
   const c = {
     type: cd.type, CR, lane, yaw: lane.yaw, idx: k,
     D0: cd.startDist * vDist, T: cd.time * diff.time * vTime, gamma: cd.gamma || 0.72,
@@ -53,9 +55,9 @@ function makeCreature(L, cd, k) {
     u: 0, dist: 0, gait: 0, t: 0, seen: true, seenLast: true, visFrac: 1, visible: true, lit: 0, lat: 0, yOff: 0, lunge: 0,
     frozen: false, reached: false, rect: null, hits: 0, dead: false, moving: false,
     timeScale: CR.timeScale || 1, rand: mulberry32((L.rand() * 4294967295) >>> 0), distFn: null, hold: null,
-    catchDist: cd.catchDist || CR.catchDist,
+    catchDist: cd.catchDist || CR.catchDist, laneOptions: cd.lanes || null, fixedLane: cd.lane !== undefined && !cd.lanes,
     retarget(laneIdx) { const ln = L.lanes[laneIdx]; if (ln) { this.lane = ln; this.yaw = ln.yaw; } },
-    pos() { return APPROACH.position(this.lane, this.dist, this.lat, L.eyeH); },
+    pos() { if (this.lane.follow) return { x: Math.sin(this.yaw) * this.dist, y: this.lane.y, z: Math.cos(this.yaw) * this.dist }; return APPROACH.position(this.lane, this.dist, this.lat, L.eyeH); },
   };
   c.dist = c.D0;
   CR.init(c);
@@ -89,6 +91,7 @@ function buildLevel(i) {
   const cds = def.creatures && def.creatures.length ? def.creatures : [def.creature];
   cds.forEach((cd, k) => L.creatures.push(makeCreature(L, cd, k)));
   L.creature = L.creatures[0];
+  L.lane = L.creature.lane; L.laneIdx = L.lane.idx;   // the level's lane is the first creature's
   if (L.barrierDist === undefined) L.barrierDist = L.lane.barrierDist || 0;
   L.uses = def.uses || L.uses || [];
   if (def.startInv) for (const id of def.startInv) { const it = L.items.find(x => x.id === id); if (it) { it.taken = true; G.inv.push(it); } }
@@ -139,7 +142,8 @@ function startLevel(i, withCard) {
   if (withCard) {
     setState('card');
     const d = G.diff(), T = G.L.text;
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
+    const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
+    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.' : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
   } else {
     setState('play');
     hideOverlay();
@@ -322,7 +326,8 @@ function combine(a, b) {
 function useTarget(t) {
   const L = G.L;
   if (t.onClick && t.onClick()) return;
-  if (t.crank && !t.done) { crankTarget(t); return; }
+  const act = G.inv[G.active];
+  if (t.crank && !t.done && !(act && t.accepts.includes(act.id))) { crankTarget(t); return; }
   if (t.done && !t.accepts.length) { G.toast(G.hints() && t.hint ? t.hint() : 'Done.'); return; }
   let item = G.inv[G.active];
   if (!item || !t.accepts.includes(item.id)) item = G.inv.find(i => t.accepts.includes(i.id));
@@ -406,7 +411,12 @@ function fireUse(L, u, ammo) {
 // ---- winning, dying ----
 const AFTERMATHS = {
   stand: (L, s) => ({ dur: s.dur || 3.6 }),
-  held: (L, s) => ({ dur: s.dur || 3.8, seq: { dur: s.dur || 3.8, beats: [{ every: s.every || 0.75, sfx: s.sfx || 'bang', shake: s.shake === undefined ? 0.5 : s.shake }] } }),
+  held: (L, s) => ({ dur: s.dur || 3.8, seq: { dur: s.dur || 3.8, beats: s.beats || [{ every: s.every || 0.75, sfx: s.sfx || 'bang', shake: s.shake === undefined ? 0.5 : s.shake }] } }),
+  away: (L, s) => {
+    const c = L.creature, wait = s.wait === undefined ? 2.5 : s.wait;
+    c.hold = c.dist;
+    return { dur: s.dur || 6, seq: { dur: s.dur || 6, beats: (s.beats || []).concat([{ at: wait, sfx: s.sfx, do: () => { c.hold = null; c.away = true; c.frozen = true; c.distFn = (cr, dt) => cr.dist + dt * (s.speed || 1.1); if (s.toast) G.toast(s.toast); } }]) } };
+  },
   retreat: (L, s) => {
     const c = L.creature; c.frozen = true;
     c.distFn = (cr, dt) => cr.dist + dt * (s.speed || 4) * (1 + L.aftermathT * (s.accel === undefined ? 1.5 : s.accel));
@@ -453,12 +463,12 @@ function updateHover() {
   let h = null;
   if (G.state === 'play' && mx >= 0) {
     // prefer items and the creature over targets (whose boxes are big), and the smallest item under the cursor
-    let best = null, bestArea = Infinity, target = null;
+    let best = null, bestArea = Infinity, target = null, targetArea = Infinity;
     for (let i = hits.length - 1; i >= 0; i--) {
       const r = hits[i];
       if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) continue;
-      if (r.kind === 'target') { if (!target) target = r; continue; }
       const area = r.w * r.h;
+      if (r.kind === 'target') { if (area < targetArea) { target = r; targetArea = area; } continue; }
       if (area < bestArea) { best = r; bestArea = area; }
     }
     h = best || target;
@@ -535,7 +545,7 @@ function update(dt) {
     const k = clamp((G.stateT - delay) / dur, 0, 1);
     cr.lunge = k; cr.lat = lerp(cr.lat, 0, 0.3); cr.t += dt * cr.timeScale;
     cr.dist = lerp(cr.lungeFrom, 0.55, easeIn(k));
-    cr.yOff = lerp(0, L.eyeH - CR.faceY - (cr.lane.elev ? cr.dist * Math.sin(cr.lane.elev) : 0), smoothstep(k));
+    cr.yOff = lerp(0, L.eyeH - CR.faceY - cr.lane.y - (cr.lane.elev ? cr.dist * Math.sin(cr.lane.elev) : 0), smoothstep(k));
     if (spec.pose) spec.pose(cr, k);
     G.danger = Math.min(1, G.danger + dt * 3);
     if (G.stateT > delay + dur + 0.25) { G.fade = 1; G.fadeTarget = 1; }
@@ -554,7 +564,8 @@ function update(dt) {
 function updateCreature(L, c, dt, live) {
   const CR = c.CR;
   c.t += dt * c.timeScale;
-  c.visFrac = APPROACH.visFrac(L, c.lane, c, null);
+  if (c.lane.follow === 'behind' && !c.frozen && !c.dead) c.yaw = G.cam.yaw + Math.PI;
+  c.visFrac = L.visFrac ? L.visFrac(c) : (CR.hidden && CR.hidden(c)) ? 0 : APPROACH.visFrac(L, c.lane, c, null);
   const seen = c.visFrac >= (CR.seenFrac === undefined ? 0.2 : CR.seenFrac);
   c.seen = seen; c.visible = seen;
   if (CR.onSeen && seen && !c.seenLast) CR.onSeen(c);
@@ -566,10 +577,11 @@ function updateCreature(L, c, dt, live) {
   if (c.hold !== null) d = c.hold;
   else if (c.distFn) d = c.distFn(c, dt);
   else { c.u = clamp(c.u + dt * m / c.T, 0, 1); d = c.D0 * Math.pow(1 - c.u, c.gamma); }
-  if (L.won && L.barrierDist && !c.distFn && c.hold === null) d = Math.max(d, L.barrierDist);
+  const barrier = c.idx === 0 ? L.barrierDist : (c.lane.barrierDist || 0);
+  if (L.won && barrier && !c.distFn && c.hold === null) d = Math.max(d, barrier);
   if (c.hitched) { c.hitched = false; G.shake(0.05); }
   c.dist = d;
-  const moved = Math.max(0, prevDist - d);
+  const moved = Math.abs(prevDist - d);
   const prevGait = c.gait;
   c.gait += moved * CR.stepRate * Math.PI;
   c.moving = moved > 0.0004;
@@ -585,11 +597,27 @@ function updateCreature(L, c, dt, live) {
   c.lat = CR.lateral ? CR.lateral(c) : 0;
   const cp = c.pos(), li = LIGHT.list.length ? LIGHT.at(cp.x, cp.y + CR.h * 0.5, cp.z) : null;
   c.lit = Math.max(L.creatureLit ? L.creatureLit(c) : 0, li ? Math.min(1, li.lit) : 0);
-  if (live && !L.won && L.barrierDist && !c.reached && d <= L.barrierDist) { c.reached = true; if (L.onReach) L.onReach(c); }
+  if (live) maybeSwitchLane(L, c);
+  if (live && !L.won && barrier && !c.reached && d <= barrier) { c.reached = true; if (L.onReach) L.onReach(c); }
   if (live && !L.won && d <= c.catchDist && !c.dead) {
     if (L.onCatch && L.onCatch(c)) return;
-    die(c, c.reached && L.text.death.reached ? 'reached' : 'default');
+    die(c, (L.deathCause && L.deathCause(c)) || (c.reached && L.text.death.reached ? 'reached' : 'default'));
   }
+}
+// On Nightmare a flagged night lets the thing change its approach once, early on and only while it is
+// unseen; the new lane's cue sound is the only warning. dist is a function of progress, so nothing jumps.
+function maybeSwitchLane(L, c) {
+  if (!L.diff.laneSwitch || L.def.laneSwitch === false || L.lanes.length < 2 || c.switched || c.fixedLane || L.won || c.dead) return;
+  if (c.switchAt === undefined) c.switchAt = 0.12 + c.rand() * 0.28;
+  if (c.u < c.switchAt || c.seen) return;
+  const options = L.lanes.filter(l => l !== c.lane && !l.noSwitch && (!c.laneOptions || c.laneOptions.includes(l.idx)));
+  c.switched = true;
+  if (!options.length) return;
+  const ln = options[Math.floor(c.rand() * options.length)];
+  c.retarget(ln.idx); c.reached = false;
+  if (c.idx === 0) { L.laneIdx = ln.idx; L.lane = ln; L.barrierDist = ln.barrierDist || 0; }
+  if (ln.cue) AUDIO.sfx(ln.cue, Math.sin(wrapPi(ln.yaw - G.cam.yaw)) * 0.85);
+  if (L.onLaneSwitch) L.onLaneSwitch(c, ln);
 }
 function nearestCreature(L) { let best = null; for (const c of L.creatures) if (!c.dead && (!best || c.dist < best.dist)) best = c; return best || L.creature; }
 function heartbeat(dt) {
