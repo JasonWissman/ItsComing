@@ -85,7 +85,7 @@ LEVELS.push({
     if (L.diff.tier < 2) mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true });
     else {
       mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: L.diff.tier >= 3 ? 3 : 2, tool: true }); // Nightmare's one real box keeps a spare, since out-of-range shots waste there
-      if (L.diff.tier >= 3) mkItem(L, 'duds', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 2, tool: true, icon: 'shells' });
+      if (L.diff.tier >= 3) mkItem(L, 'duds', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true, icon: 'shells' }); // the same count as the real box, so the label gives nothing away
       else mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 1, tool: true });
     }
     L.floor = { poly: [[-3.1, -1.5], [3.1, -1.5], [3.1, 1.5], [-3.1, 1.5]], y: 0.36 };

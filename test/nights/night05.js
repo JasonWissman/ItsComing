@@ -6,5 +6,5 @@ const shoot = [hold, ['wait', 400], ['shoot'], ['expect', 'G.L.creature.wounded'
 module.exports = {
   normal: [['pickup', 'shotgun'], ['pickup', 'shells']].concat(shoot),
   hard: [['pickup', 'shotgun'], ['pickup', 'shells'], ['pickup', 'shells'], ['expect', "G.inv.filter(i => i.id === 'shells').length === 2", 'both boxes picked up']].concat(shoot),
-  nightmare: [['pickup', 'shotgun'], ['pickup', 'duds'], hold, ['wait', 400], ['shoot'], ['expect', "!G.L.creature.wounded && G.inv.some(i => i.id === 'duds' && i.uses === 2)", 'the duds do not fire'], ['pickup', 'shells'], ['expect', "G.inv.some(i => i.id === 'shells' && i.uses === 3)", 'the real box, with a spare']].concat(shoot),
+  nightmare: [['pickup', 'shotgun'], ['pickup', 'duds'], hold, ['wait', 400], ['shoot'], ['expect', "!G.L.creature.wounded && G.inv.some(i => i.id === 'duds' && i.uses === 3)", 'the duds do not fire'], ['pickup', 'shells'], ['expect', "G.inv.some(i => i.id === 'shells' && i.uses === 3)", 'the real box, with a spare']].concat(shoot),
 };

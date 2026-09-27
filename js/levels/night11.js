@@ -85,7 +85,7 @@ LEVELS.push({
       mkItem(L, 'sack', 'Feed sack', [{ x: -2.8, y: FL + 0.02, z: 0.9 }, { x: 0.1, y: FL + 0.02, z: -1.8 }], { w: 0.4, h: 0.5, weight: 2 });
       mkItem(L, 'chain', 'Chain', [{ x: -3.9, y: FL + 0.02, z: -2.4, flat: true }, { x: -0.8, y: FL + 0.02, z: 2.4, flat: true }], { w: 0.5, h: 0.5, weight: 2 });
     }
-    Object.assign(s, { tapStuck: stuck, fireN: false, fireE: false, fireT: 0, wetN: 0, wetE: 0, ladderUp: false, ladderK: 0 });
+    Object.assign(s, { tapStuck: stuck, fireN: false, fireE: false, wetN: 0, wetE: 0, ladderUp: false, ladderK: 0 });
     const c0 = () => L.creatures[0];
     const drum = mkTarget(L, {
       id: 'drum', name: 'Oil drum', x: -2.6, y: FL, z: -2.2, w: 0.9, h: 1.0, accepts: ['lantern'].concat(stuck ? ['wrench'] : []),
@@ -108,7 +108,7 @@ LEVELS.push({
         use(item) {
           if (item.id !== 'lantern_lit') return false;
           if (s[wet] > 0) { G.say('The lantern hisses out in the wet hay. It comes back to you unlit.', 'It goes out.'); G.inv.push(newItem(L, 'lantern_full', 'Lantern, filled', { w: 0.3, h: 0.44, icon: 'lantern' })); G.active = G.inv.length - 1; return false; } // the soaking is temporary, so the lantern is not lost
-          s[flag] = true; s.fireT = 0; AUDIO.sfx('hiss'); setTimeout(() => AUDIO.sfx('thunder'), 200); G.shake(0.3); WEATHER.set({ kind: 'ash', density: 0.9, wind: 0.4 }, G.runSeed + 11);
+          s[flag] = true; AUDIO.sfx('hiss'); setTimeout(() => AUDIO.sfx('thunder'), 200); G.shake(0.3); WEATHER.set({ kind: 'ash', density: 0.9, wind: 0.4 }, G.runSeed + 11);
           G.say('It goes up all at once.', 'Fire.'); return true;
         },
       });
@@ -133,7 +133,6 @@ LEVELS.push({
     L.update = dt => {
       const c = c0();
       c.load = G.inv.reduce((a, i) => a + (i.weight || 1), 0);
-      if (s.fireN || s.fireE) s.fireT += dt;
       if (s.wetN > 0) s.wetN -= dt; if (s.wetE > 0) s.wetE -= dt;
       if (!s.ladderUp) s.ladderK = Math.max(0, s.ladderK - dt); else s.ladderK = Math.min(1, s.ladderK + dt * 1.5);
     };

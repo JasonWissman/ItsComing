@@ -27,7 +27,7 @@
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
   .linkbtn { font: inherit; background: none; border: none; color: #efe6d2; text-decoration: underline; cursor: pointer; padding: 0; letter-spacing: inherit; }
-  .fragment { display: block; margin-top: 10px; font-size: 15px; color: rgba(207,200,186,.6); }
+  .fragment { display: block; margin-top: 10px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.6); }
   #inventory { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
   .slot { width: 64px; height: 64px; border: 1px solid rgba(207,200,186,.18); background: rgba(0,0,0,.45); position: relative; cursor: pointer; transition: border-color .15s; }
   .slot canvas { width: 64px; height: 64px; display: block; }
@@ -58,7 +58,9 @@
   :root[data-theme="day"] #overlay h1 { color: #2e2823; text-shadow: none; }
   :root[data-theme="day"] #overlay h1.big { color: #2e2823; }
   :root[data-theme="day"] #overlay .kicker { color: rgba(58,51,44,.55); }
-  :root[data-theme="day"] #overlay .intro, :root[data-theme="day"] .frag, :root[data-theme="day"] .controls, :root[data-theme="day"] .fine { color: #3a332c; }
+  :root[data-theme="day"] #overlay .intro, :root[data-theme="day"] .frag, :root[data-theme="day"] #overlay .controls, :root[data-theme="day"] #overlay .fine { color: #3a332c; }
+  :root[data-theme="day"] button:focus-visible, :root[data-theme="day"] .diff:focus-visible { outline-color: #2e2823; }
+  :root[data-theme="day"] .opt input { accent-color: #2e2823; }
   :root[data-theme="day"] .mbtn, :root[data-theme="day"] .diff { background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); color: #2e2823; }
   :root[data-theme="day"] .mbtn:hover, :root[data-theme="day"] .mbtn:focus-visible, :root[data-theme="day"] .diff.sel { border-color: #2e2823; background: rgba(255,255,255,.85); box-shadow: 0 0 12px rgba(58,51,44,.12); }
   :root[data-theme="day"] .frag .fn { color: #8a8072; }
@@ -96,7 +98,7 @@
   #touch { display: none; position: fixed; right: 14px; bottom: 14px; grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(2, 52px); gap: 6px; z-index: 5; }
   #touch #tUse { grid-column: 4; grid-row: 1; font-size: 11px; letter-spacing: .1em; }
   #touch #tPause { grid-column: 4; grid-row: 2; font-size: 14px; }
-  #caption { position: fixed; z-index: 6; bottom: 190px; left: 50%; transform: translateX(-50%); font-size: calc(14px * var(--text-scale)); font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+  #caption { position: fixed; z-index: 6; pointer-events: none; bottom: 190px; left: 50%; transform: translateX(-50%); font-size: calc(14px * var(--text-scale)); font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
   #caption.show { opacity: 1; }
   :root[data-theme="day"] #caption { color: #2e2823; text-shadow: 0 1px 2px #fff; }
   :root[data-theme="day"] .opt, :root[data-theme="day"] #overlay .controls b, :root[data-theme="day"] .diff.sel small { color: #2e2823; }
@@ -107,8 +109,8 @@
   body.menu #touch { display: none; }
   #touch button { background: rgba(0,0,0,.5); border: 1px solid rgba(207,200,186,.3); color: #efe6d2; font-size: 18px; border-radius: 6px; touch-action: none; -webkit-tap-highlight-color: transparent; }
   #touch #tZoom { grid-column: 3; grid-row: 1 / span 2; font-size: 11px; letter-spacing: .1em; }
-  @media (pointer: coarse) { #touch { display: grid; } #inventory { left: 18px; width: 172px; transform: none; flex-wrap: wrap-reverse; column-gap: 6px; row-gap: 18px; } :root[data-touch-left] #inventory { left: auto; right: 18px; } .slot, .slot canvas { width: 50px; height: 50px; } #tooltip, #toast { bottom: 150px; } #caption { bottom: 200px; } }
-  @media (max-width: 700px) { #compass { top: 44px; } #pitch { top: 74px; } #zoom { top: 94px; } #objective { top: 44px; } #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: calc(15px * var(--text-scale)); } #objective { max-width: 48vw; font-size: 12px; } #compass { gap: 10px; font-size: 11px; } }
+  @media (pointer: coarse) { #touch { display: grid; } #inventory { left: 18px; width: min(172px, calc(100vw - 266px)); transform: none; flex-wrap: wrap-reverse; column-gap: 6px; row-gap: 18px; } :root[data-touch-left] #inventory { left: auto; right: 18px; } .slot, .slot canvas { width: 50px; height: 50px; } #tooltip, #toast { bottom: 150px; } #caption { bottom: 200px; } }
+  @media (max-width: 700px) { #compass { top: 44px; } #pitch { top: 74px; } #zoom { top: 94px; } #objective { top: 44px; } #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: calc(15px * var(--text-scale)); } #objective { max-width: 48vw; font-size: calc(12px * var(--text-scale)); } #compass { gap: 10px; font-size: 11px; } }
 </style>
 </head>
 <body>

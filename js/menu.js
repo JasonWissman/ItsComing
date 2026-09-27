@@ -23,7 +23,7 @@ const MENU = (() => {
       case 'dead':
         return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + (G.debug || G.diff().tier >= 3 ? '<p class="fine">seed ' + G.runSeed + '</p>' : '');
       case 'survived':
-        return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', d.last ? 'Go on' : 'The next night') + btn('nights', 'Nights') + '</div>';
+        return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'The next night') + btn('nights', 'Nights') + '</div>';
       case 'nights': {
         const diff = G.diff(), unlocked = G.unlocked;
         let rows = '';
@@ -56,8 +56,6 @@ const MENU = (() => {
           '<label class="opt"><span>Text size</span><input type="range" min="0.85" max="1.4" step="0.05" data-set="textSize" value="' + S.textSize + '"></label>' +
           '</div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('reset', d.confirmReset ? 'Really erase all progress?' : 'Erase progress', undefined, 'danger') + '</div>';
       }
-      case 'end':
-        return '<div class="kicker">The end</div><h1>' + (d.title || 'You saw all of them') + '</h1><p class="intro">' + d.text + '</p><div class="mrow">' + btn('title', 'Back to the beginning') + btn('nights', 'Nights') + '</div>';
       default: return '';
     }
   }
@@ -120,7 +118,8 @@ const MENU = (() => {
     const btns = [...UI.overlay.querySelectorAll('button[data-act], button.diff, input[data-set]')]; // sliders and checkboxes are in the ring too
     if (!btns.length) return false;
     const idx = btns.indexOf(document.activeElement);
-    if (document.activeElement && document.activeElement.tagName === 'INPUT' && ['ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' '].includes(k)) return false; // the control itself handles these
+    const f = document.activeElement; // the control keeps the keys it uses: Space ticks a box, left and right move a slider
+    if (f && f.tagName === 'INPUT' && (k === ' ' || (f.type === 'range' && (k === 'ArrowLeft' || k === 'ArrowRight')))) return false;
     if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'd' || k === 'Tab' && !e.shiftKey) { e.preventDefault(); btns[(idx + 1 + btns.length) % btns.length].focus(); return true; }
     if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'a' || k === 'Tab' && e.shiftKey) { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); return true; }
     if (k === 'Escape' && current.kind === 'fragments') { act('nights'); return true; }

@@ -101,7 +101,7 @@ LEVELS.push({
     });
     if (needOil) mkItem(L, 'oilcan', 'Oil can', [{ x: 1.6, y: FL + 0.03, z: 0.4 }, { x: -1.6, y: FL + 0.03, z: -0.1 }, { x: 1.2, y: FL + 0.75, z: -0.3 }], { w: 0.28, h: 0.36 });
     if (decoy) mkItem(L, 'watercan', 'Oil can', [{ x: 0.5, y: FL + 0.03, z: 0.3 }, { x: -1.6, y: FL + 0.03, z: 0.9 }], { w: 0.28, h: 0.36, icon: 'oilcan', decoy: true, decoyText: 'Water. The wick just hisses.' });
-    Object.assign(s, { points: 'far', red: 0, stiff: 0, holdFor: L.tier(8, 7, 8), lampLit: !needOil, frameLocked: locked, barred: {}, trainAt: L.tier(45, 40, 36) + (L.rand() - 0.5) * 8, train: null, hornAt: null, taken: false, passed: false, belled: false });
+    Object.assign(s, { points: 'far', red: 0, stiff: 0, holdFor: L.tier(8, 7, 8), lampLit: !needOil, frameLocked: locked, barred: {}, trainAt: L.tier(45, 40, 36) + (L.rand() - 0.5) * 8, train: null, taken: false, belled: false });
     const smc = () => L.creatures[0], crc = () => L.creatures[1];   // the creatures are made after build
     const frameOk = () => { if (s.frameLocked) { G.say('The frame is padlocked.', 'Locked.'); AUDIO.sfx('nope'); return false; } return true; };
     if (locked) mkTarget(L, {
@@ -162,7 +162,6 @@ LEVELS.push({
         if (dist < 40 && !s.belled) { s.belled = true; AUDIO.sfx('bell'); }
         if (tr.v > 0.1) { AUDIO.setLoop('engine', clamp(0.05 + 4 / (dist + 3), 0, 0.5), Math.sin(wrapPi(Math.atan2(front[0], front[1]) - G.cam.yaw)) * 0.8); G.shake(clamp(0.06 - dist * 0.001, 0, 0.06) * (dist < 30 ? 1 : 0)); }
         else AUDIO.setLoop('engine', 0.05, 0);
-        if (s.trainLine === 'far' && route(tr.r)[0] < -60) s.passed = true;
       }
     };
     // a barred door holds the crawler at the threshold, scratching; an unbarred one lets it in
@@ -187,8 +186,8 @@ LEVELS.push({
         const car = (rFront, len, h, col) => {
           const f = route(rFront), b = route(rFront + len);
           if (b[0] > 320) return;
-          const px = -f[3] === undefined ? 0 : 0, dirx = f[2], dirz = f[3] === undefined ? 0 : f[3];
-          const rx = -dirz * 1.5, rz = dirx * 1.5; void px;
+          const dirx = f[2], dirz = f[3] === undefined ? 0 : f[3];
+          const rx = -dirz * 1.5, rz = dirx * 1.5;
           R.add(SC.mkQuad(L, [f[0] + rx, 0.35, f[1] + rz], [b[0] + rx, 0.35, b[1] + rz], [b[0] + rx, h, b[1] + rz], [f[0] + rx, h, f[1] + rz], col, { dist: Math.hypot((f[0] + b[0]) / 2, (f[1] + b[1]) / 2) }));
           R.add(SC.mkQuad(L, [f[0] - rx, 0.35, f[1] - rz], [b[0] - rx, 0.35, b[1] - rz], [b[0] - rx, h, b[1] - rz], [f[0] - rx, h, f[1] - rz], scalec(col, 0.8), { dist: Math.hypot((f[0] + b[0]) / 2, (f[1] + b[1]) / 2) }));
           R.add(SC.mkQuad(L, [f[0] + rx, h, f[1] + rz], [b[0] + rx, h, b[1] + rz], [b[0] - rx, h, b[1] - rz], [f[0] - rx, h, f[1] - rz], scalec(col, 1.1), { dist: Math.hypot((f[0] + b[0]) / 2, (f[1] + b[1]) / 2) }));

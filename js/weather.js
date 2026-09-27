@@ -3,7 +3,7 @@
 // spec: { kind: 'rain'|'snow'|'ash'|'mist'|'motes', density, wind, lightning: [minGap, maxGap] }
 const WEATHER = (() => {
   let parts = [], kind = null, wind = 0, spec = null, rng = null;
-  let nextBolt = 0, thunderAt = 0, bolt = 0;
+  let nextBolt = 0, thunderAt = 0;
   const COUNT = { rain: 380, snow: 240, ash: 140, mist: 26, motes: 140 };
   let mistSpr = null;
   function mistSprite() {
@@ -24,7 +24,7 @@ const WEATHER = (() => {
   }
   function set(s, seed) {
     spec = s || null; kind = s ? s.kind : null; wind = s ? (s.wind || 0) : 0;
-    parts = []; nextBolt = s && s.lightning ? 4 + Math.random() * 6 : Infinity; thunderAt = 0; bolt = 0;
+    parts = []; nextBolt = s && s.lightning ? 4 + Math.random() * 6 : Infinity; thunderAt = 0;
     if (!kind) return;
     rng = mulberry32((seed || 1) + 99);
     const n = Math.round((COUNT[kind] || 150) * (s.density || 1));
@@ -43,7 +43,7 @@ const WEATHER = (() => {
     if (spec && spec.lightning && (G.state === 'play' || G.state === 'won')) { // no thunder over the death screen or the card
       nextBolt -= dt;
       if (nextBolt <= 0) {
-        bolt = 1; nextBolt = spec.lightning[0] + Math.random() * (spec.lightning[1] - spec.lightning[0]);
+        nextBolt = spec.lightning[0] + Math.random() * (spec.lightning[1] - spec.lightning[0]);
         const reduced = SAVE.data.settings.reducedFlash;
         LIGHT.flash(reduced ? 0.35 : 0.9); G.flash(reduced ? 0.15 : 0.32);
         thunderAt = t + 1 + Math.random() * 3;
@@ -102,5 +102,5 @@ const WEATHER = (() => {
       ctx.globalAlpha = 1;
     }
   }
-  return { set, update, draw, get kind() { return kind; }, get bolt() { return bolt; } };
+  return { set, update, draw, get kind() { return kind; } };
 })();

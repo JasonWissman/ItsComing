@@ -208,8 +208,8 @@ const AUDIO = (() => {
       default: break;
     }
   }
-  function sfx(name, pan) {
-    if (typeof CAPTIONS !== 'undefined') CAPTIONS.sfx(name, pan);
+  function sfx(name, pan, soft) { // soft: a background sound whose caption never replaces one that is still up
+    if (typeof CAPTIONS !== 'undefined') CAPTIONS.sfx(name, pan, soft);
     if (!ac) return;
     switch (name) {
       case 'ui': tone(660, 0.05, { vol: 0.08, type: 'triangle' }); break;

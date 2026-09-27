@@ -1,7 +1,7 @@
 'use strict';
 // A static site with plain script files: every module is a global, so they are declared here rather than imported.
 const globals = {
-  window: 'readonly', document: 'readonly', location: 'readonly', localStorage: 'readonly', performance: 'readonly', requestAnimationFrame: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly', console: 'readonly', URLSearchParams: 'readonly', DOMMatrix: 'readonly', AudioContext: 'readonly', navigator: 'readonly',
+  window: 'readonly', document: 'readonly', Event: 'readonly', location: 'readonly', localStorage: 'readonly', performance: 'readonly', requestAnimationFrame: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly', console: 'readonly', URLSearchParams: 'readonly', DOMMatrix: 'readonly', AudioContext: 'readonly', navigator: 'readonly',
   TAU: 'readonly', DEG: 'readonly', clamp: 'readonly', lerp: 'readonly', smoothstep: 'readonly', easeOut: 'readonly', easeIn: 'readonly', wrapPi: 'readonly', mixc: 'readonly', scalec: 'readonly', rgba: 'readonly', mulberry32: 'readonly', rotY: 'readonly',
   P_poly: 'readonly', P_limb: 'readonly', P_ell: 'readonly', P_rect: 'readonly', P_line: 'readonly', headTiltJerk: 'readonly', fingers: 'readonly', strands: 'readonly',
   AUDIO: 'readonly', TEX: 'readonly', LIGHT: 'readonly', WEATHER: 'readonly', R: 'readonly', APPROACH: 'readonly', Seq: 'readonly', SAVE: 'readonly', MENU: 'readonly', HANDS: 'readonly', STORY: 'readonly', CAPTIONS: 'readonly',

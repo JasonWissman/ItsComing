@@ -16,9 +16,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: lint
         run: npx eslint js test
+      - name: every sound exists and every cue has a caption
+        run: node test/sounds.js
       - name: lanes, switches, story, flow, features
         run: node test/lanes.js && node test/switch.js && node test/story.js && node test/flow.js && node test/features.js
-      - name: every night's solution (normal, one seed)
+      - name: every night's solution (every tier, one seed)
         run: TIERS=normal,hard,nightmare SEEDS=1 node test/play.js
       - name: clickability sweep
         run: N=8 node test/hittest.js

@@ -30,7 +30,7 @@ LEVELS.push({
     const c0 = () => L.creatures[0];
     // the drawer in the nightstand holds the bulb (and, on the harder tiers, one that will not fit)
     mkContainer(L, {
-      id: 'drawer', name: 'Drawer', w: 0.46, h: 0.2, color: [58, 44, 34], spot: { x: 1.2, y: 0.28, z: -0.13 }, closedText: 'The nightstand drawer.', emptyText: 'Nothing else in it.',
+      id: 'drawer', name: 'Drawer', w: 0.46, h: 0.2, color: [58, 44, 34], spot: { x: 1.2, y: 0.28, z: -0.13 }, closedText: 'The nightstand drawer.', emptyText: 'Nothing else in it.', sfx: 'scrape', /* not the creak that warns of the doorway */
       yields: [{ id: 'bulb', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb' } }].concat(decoy ? [{ id: 'bulb2', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb', decoy: true, decoyText: 'The wrong fitting. It will not go in.' } }] : []),
       liftY: 0.36,
     });
@@ -66,7 +66,7 @@ LEVELS.push({
       c.unseenMult = Math.min(c.unseenMult, 2.5); // this night already charges a lot for looking away; the tiers do not stack on top
       if (s.lampOn && !L.won) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out.', 'Dark.'); } }
       c.inLight = s.lampOn;
-      if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', Math.sin(wrapPi(-Math.PI / 4 - G.cam.yaw)) * 0.7); } } // the clock is on the dresser to the north-west, whichever way you face
+      if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', Math.sin(wrapPi(-Math.PI / 4 - G.cam.yaw)) * 0.7, true); } } // the clock is on the dresser to the north-west, whichever way you face
     };
     L.dynamic = () => {
       // the covers: flat on the bed, rising toward you as you pull

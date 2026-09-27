@@ -44,8 +44,9 @@ Touch controls appear on phones and tablets: turn, look, hold to zoom, Use
 (whatever is nearest the middle of the view, or put the held thing down when
 looking down) and Pause; tapping the held item again while looking down also puts it
 down. A gamepad works too: d-pad or left stick turns and
-looks, A uses, B puts the held thing down, a trigger zooms, Start pauses, and
-in menus the d-pad moves between buttons.
+looks, A uses, B puts the held thing down, a trigger zooms, Start pauses. In
+menus the d-pad moves between buttons and settings, left and right move a
+slider, A presses or ticks, and B goes back.
 
 Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
 dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
@@ -68,8 +69,8 @@ The choice is remembered.
 Every way it can come is fully visible from where you stand: the approach lanes are checked by
 `validateContent()` so the thing is never hidden behind a wall on its way in.
 On Hard and Nightmare a shot fired out of range still spends a shell; Easy and Normal refuse it
-for free. On nights where more than one way must be shut, a way you have shut holds it for a
-moment, and then it goes round to the open one.
+for free. A way you have shut holds it where it is. On Nightmare, where more than one way must be
+shut, it waits there a moment and then goes round to a way that is still open.
 
 With hints off, the level card gives only the situation, not the solution; the
 objective line at the top of the screen is hidden; hovering a target shows its
@@ -186,9 +187,10 @@ LEVELS.push({
   dropped items may land), `L.dynamic()` (per-frame props via `SC.mkQuad` and friends),
   `L.update(dt)`, `L.onReach(c)`, `L.onCatch(c)`, `L.onPickup(it)`, `L.onDrop(it)`, `L.glows()`,
   `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`, `L.deathCause(c)` (a key into `text.death`),
-  `L.onDecoy(t, item)`, `L.onLaneSwitch(c, lane)`, and `L.sealed(lane)` on nights where more than one
-  way must be shut: a creature reaching a sealed way stands at the barrier for a moment, then goes
-  round to an open way if it has one (with that way's `cue`) instead of walking through.
+  `L.onDecoy(t, item)`, `L.onLaneSwitch(c, lane)`, and `L.sealed(lane)`: a creature reaching a
+  sealed way is held at the barrier (or where it is, if it got inside first) until the night is won.
+  On Nightmare it goes round after 2.5 s to a way that is still open, starting 3 m outside that way's
+  barrier and announced by its `cue`; below Nightmare it never changes its way.
 - **Feedback text** goes through `G.say(specific, vague)`: the first is shown with hints on, the
   second otherwise.
 - Every night has a solution in `test/nights/nightNN.js` so the suite can play it.
@@ -197,8 +199,10 @@ LEVELS.push({
 
 ```
 npm install            # Playwright (or set PW_CHROMIUM to a Chromium binary)
-npm test               # nights, flow, features, lanes, lane switches, clickability sweep
+npm test               # sounds, nights, flow, features, lanes, lane switches, story, clickability sweep
 npm run test:play      # NIGHTS=1,3 TIERS=normal,hard SEEDS=1,2 narrow it
+npm run test:sounds    # no browser: every sound exists, every cue has a caption
+npm run test:bench     # frame time per night at 1920x1080 (BUDGET=8 ms p95 by default)
 npm run test:spots     # screenshot every item spot into montages under test/shots
 ```
 
@@ -209,7 +213,9 @@ lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch
 unseen, early, without a jump in distance, and never on nights that opt out or on lower tiers.
 `test/hittest.js` checks every item is visible and clickable from some direction across many layouts.
 `test/story.js` checks the lamp is in every room, the clock ticks, and no text before the last night uses
-the words that would give the ending away.
+the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
+the game asks for exists in the synthesiser and that every lane cue, death sting, footstep and voice has a
+caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
 
 ## Debugging
 

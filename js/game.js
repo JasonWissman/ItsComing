@@ -1,5 +1,6 @@
 'use strict';
 // ---------- game state, input, interaction, HUD and the main loop ----------
+const LIST_SCREENS = ['nights', 'settings', 'fragments']; // menu screens with their own buttons: not click-anywhere
 const PITCH_DOWN = 58 * DEG;
 const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // difficulty is a table of knobs read by buildLevel and by each night's build(L) through L.tier()
@@ -53,7 +54,7 @@ function makeCreature(L, cd, k) {
     D0: cd.startDist * vDist, T: cd.time * diff.time * vTime, gamma: cd.gamma || 0.72,
     seenMult: cd.seenMult === undefined ? 1 : cd.seenMult, unseenMult: (cd.unseenMult === undefined ? 1.3 : cd.unseenMult) * diff.unseen,
     u: 0, dist: 0, gait: 0, t: 0, seen: true, seenLast: true, visFrac: 1, visible: true, lit: 0, lat: 0, yOff: 0, lunge: 0,
-    frozen: false, reached: false, rect: null, hits: 0, dead: false, moving: false,
+    frozen: false, reached: false, hits: 0, dead: false, moving: false,
     timeScale: CR.timeScale || 1, rand: mulberry32((L.rand() * 4294967295) >>> 0), distFn: null, hold: null,
     catchDist: cd.catchDist || CR.catchDist, laneOptions: cd.lanes || null, fixedLane: cd.lane !== undefined && !cd.lanes,
     retarget(laneIdx) { const ln = L.lanes[laneIdx]; if (ln) { this.lane = ln; this.yaw = ln.yaw; } },
@@ -179,10 +180,6 @@ function showTitle() {
   setState('title');
   MENU.show('title'); G.overlayArmed = 0; // nothing on the title can be skipped by accident, so it takes a click or Enter at once
 }
-function showEnd() {
-  setState('end');
-  MENU.show('end', { text: LEVELS.length + ' nights. ' + LEVELS.length + ' things that came straight at you, and none of them got there.<br>You will keep checking the field, though. And the road. And the tree line.' });
-}
 function startMorning() {
   const L = G.L; MENU.clear();
   SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id); SAVE.setSetting('theme', 'day');
@@ -203,7 +200,7 @@ function startMorning() {
 }
 function proceedFromSurvived() {
   const next = G.levelIndex + 1;
-  if (next >= LEVELS.length) showEnd(); else startLevel(next, true);
+  if (next >= LEVELS.length) showTitle(); else startLevel(next, true); // the last night ends in the morning, not here
 }
 
 // ---------------- input ----------------
@@ -217,7 +214,7 @@ function onKeyDown(e) {
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
   if (G.state === 'title' && k >= '1' && k <= String(DIFFICULTIES.length)) { setDifficulty(k.charCodeAt(0) - 49); return; }
   if (G.state !== 'play') {
-    if (k === 'Enter' && !['nights', 'settings', 'fragments'].includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
+    if (k === 'Enter' && !LIST_SCREENS.includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
     if ((k === 'c' || k === 'C') && G.state === 'title' && G.unlocked > 0 && G.unlocked < LEVELS.length) { ensureAudio(); startLevel(G.unlocked, true); }
     if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = true;
     return;
@@ -284,7 +281,7 @@ function onMouseDown(e) {
 function onMouseUp() { G.holding = null; }
 function onClick(e) {
   if (e.target.closest && e.target.closest('#touch')) return;
-  if (G.state !== 'play') { if (['nights', 'settings', 'fragments'].includes(MENU.kind)) return; proceed(); return; } // the list screens are not click-anywhere; the title and the cards are
+  if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) return; proceed(); return; } // the list screens are not click-anywhere; the title and the cards are
   ensureAudio();
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   updateHover();
@@ -473,7 +470,7 @@ function die(c, cause) {
   AUDIO.sfx(spec.sting || 'sting'); AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear();
   G.shake(1.4);
   c.lunge = 0; c.frozen = true; c.lungeFrom = c.dist;
-  G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = c.lane.elev < -0.3 ? PITCH_DOWN : 0; G.cam.zoomHeld = false;
+  G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = 0; G.cam.zoomHeld = false; // it rises to eye level, so the view comes up to meet it
   G.deathTime = L.t; G.deathAt = G.t; // the night clock for the card, the global clock for the toast test (toasts are stamped with G.t)
   SAVE.recordTry(L.def.id, L.diff.id);
 }
@@ -539,7 +536,7 @@ function update(dt) {
   if (G.state !== 'paused') {
     // fog rolls: visibility breathes, and a scripted bank can swallow the thing for a while
     const fr = L.def.weather && L.def.weather.fogRoll;
-    if (fr) L.pal.fogDist = L.def.pal.fogDist * (1 - fr.depth * 0.5 * (1 + Math.sin(G.t * TAU / fr.period + (fr.phase || 0)))) * (L.fogBank !== undefined ? L.fogBank : 1);
+    if (fr) L.pal.fogDist = L.def.pal.fogDist * (1 - fr.depth * 0.5 * (1 + Math.sin(G.t * TAU / fr.period + (fr.phase || 0))));
     LIGHT.set(L.dynamicLights ? L.lights.concat(L.dynamicLights()) : L.lights);
     LIGHT.update(dt, G.t);
     WEATHER.update(dt, G.t);
@@ -565,7 +562,7 @@ function update(dt) {
         if (G.fade > 0.97) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
           if (L.text.fragment) SAVE.seeFragment(L.def.id);
-          G.survivedScreen = { title: L.def.title, text: L.text.win + (L.text.fragment ? '<br><em class="fragment">' + L.text.fragment + '</em>' : ''), last: L.index + 1 >= LEVELS.length };
+          G.survivedScreen = { title: L.def.title, text: L.text.win + (L.text.fragment ? '<br><em class="fragment">' + L.text.fragment + '</em>' : '') };
           MENU.show('survived', G.survivedScreen);
         }
       }
@@ -619,7 +616,7 @@ function updateCreature(L, c, dt, live) {
   const moved = Math.abs(prevDist - d);
   const prevGait = c.gait;
   c.gait += moved * CR.stepRate * Math.PI;
-  c.moving = moved > 0.0004;
+  c.moving = moved > 0.024 * dt; // a rate, not a per-frame distance, so the slowest walkers step at any refresh rate
   if (!c.moving && !c.dead) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
   if (CR.voice && !c.dead && live) { // muted or not: the captions still need these
     if (c.voiceT === undefined) c.voiceT = CR.voice.every[0] + c.rand() * (CR.voice.every[1] - CR.voice.every[0]);
@@ -634,16 +631,18 @@ function updateCreature(L, c, dt, live) {
   c.lit = Math.max(L.creatureLit ? L.creatureLit(c) : 0, li ? Math.min(1, li.lit) : 0);
   if (live) maybeSwitchLane(L, c);
   if (live && !L.won && barrier && !c.reached && d <= barrier) { c.reached = true; if (L.onReach) L.onReach(c); }
-  // a sealed way (L.sealed(lane), on nights where more than one way must be shut) holds it at the barrier before the night is
-  // won; after a moment it goes round to an open way if it has one, with that way's cue, and otherwise stands there
+  // a sealed way (L.sealed(lane)) holds it at the barrier, or where it already is if it got inside first, until the night is
+  // won. On Nightmare, after a moment, it goes round to an open way if it has one (with that way's cue), starting outside that
+  // way's barrier; below Nightmare it never changes its way, so it stands there.
   if (live && !L.won && barrier && L.sealed && !c.distFn && d <= barrier + 0.01) {
-    if (c.hold === null && L.sealed(c.lane)) { c.hold = barrier; c.sealHold = true; c.sealHeldAt = L.t; c.dist = d = barrier; }
+    if (c.hold === null && L.sealed(c.lane)) { c.hold = Math.min(barrier, d); c.sealHold = true; c.sealHeldAt = L.t; c.dist = d = c.hold; }
     else if (c.hold !== null && c.sealHeldAt !== undefined && L.t - c.sealHeldAt > 2.5) {
       c.sealHeldAt = undefined;
-      const open = c.fixedLane ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && !L.sealed(l) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
+      const open = (c.fixedLane || !L.diff.laneSwitch) ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && !L.sealed(l) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
       if (open.length) {
         const ln = open[Math.floor(c.rand() * open.length)];
         c.hold = null; c.sealHold = false; c.retarget(ln.idx); c.reached = false;
+        const dn = Math.max(d, (ln.barrierDist || 0) + 3); c.u = clamp(1 - Math.pow(dn / c.D0, 1 / c.gamma), 0, 1); c.dist = d = c.D0 * Math.pow(1 - c.u, c.gamma); // going round takes it back out
         if (c.idx === 0) { L.laneIdx = ln.idx; L.lane = ln; L.barrierDist = ln.barrierDist || 0; }
         if (ln.cue) AUDIO.sfx(ln.cue, Math.sin(wrapPi(ln.yaw - G.cam.yaw)) * 0.85);
         if (L.onLaneSwitch) L.onLaneSwitch(c, ln);
@@ -713,7 +712,7 @@ function render() {
   for (const cr of L.creatures) {
     const CR = cr.CR, pos = cr.pos();
     let p = rend.get(cr);
-    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); if (!cr.moving) ctx.rotate(0.008 * Math.sin(cr.t * 0.7)); } CR.draw(ctx, cr, P); }, onRect: rect => { cr.rect = rect; } }; rend.set(cr, p); }
+    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); if (!cr.moving) ctx.rotate(0.008 * Math.sin(cr.t * 0.7)); } CR.draw(ctx, cr, P); } }; rend.set(cr, p); }
     p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = cr.dist; p.layer = 1;
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);
@@ -807,17 +806,25 @@ function pollGamepad() {
   const fake = key => ({ key, preventDefault() {}, shiftKey: false });
   if (dir !== PAD.dir && dir) {
     if (G.state === 'play') onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir]));
-    else MENU.onKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'));
+    else {
+      const f = document.activeElement;
+      if (f && f.tagName === 'INPUT' && f.type === 'range' && dir <= 2) { if (dir === 1) f.stepDown(); else f.stepUp(); f.dispatchEvent(new Event('input')); } // left and right move a slider
+      else MENU.onKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'));
+    }
   }
   PAD.dir = dir;
   if (a && !PAD.a) {
     if (G.state === 'play') gamepadUse();
-    else { const f = document.activeElement; if (f && f.tagName === 'BUTTON') f.click(); else proceed(); }
+    else { // A presses the focused button or ticks the focused box; only the click-anywhere screens go on with it
+      const f = document.activeElement;
+      if (f && (f.tagName === 'BUTTON' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();
+      else if (!(f && f.tagName === 'INPUT') && !LIST_SCREENS.includes(MENU.kind)) proceed();
+    }
   }
   PAD.a = a;
-  if (start && !PAD.start) { if (G.state === 'play') pauseGame(); else proceed(); }
+  if (start && !PAD.start) { if (G.state === 'play') pauseGame(); else if (LIST_SCREENS.includes(MENU.kind)) MENU.onKey(fake('Escape')); else proceed(); }
   PAD.start = start;
-  if (b && !PAD.b && G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); }
+  if (b && !PAD.b) { if (G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); } else if (G.state !== 'play') MENU.onKey(fake('Escape')); } // B goes back in menus
   PAD.b = b;
   if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play') G.cam.zoomHeld = PAD.zoom; }
 }
@@ -840,7 +847,7 @@ function gamepadUse() {
 function bindTouch() {
   const press = (id, down, up) => {
     const el = $(id); if (!el) return;
-    const d = e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); if (G.state !== 'play') { if (!['nights', 'settings', 'fragments'].includes(MENU.kind)) proceed(); return; } down(); };
+    const d = e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); if (G.state !== 'play') { if (!LIST_SCREENS.includes(MENU.kind)) proceed(); return; } down(); };
     const u = e => { e.preventDefault(); if (up) up(); };
     el.addEventListener('pointerdown', d); el.addEventListener('pointerup', u); el.addEventListener('pointercancel', u); el.addEventListener('pointerleave', u);
   };

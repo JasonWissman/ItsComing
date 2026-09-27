@@ -49,7 +49,6 @@ const HANDS = (() => {
     ctx.translate(hx - s * 0.06, hy - s * 0.02);
     ctx.rotate(-0.25 + sway * 0.08);
     ctx.scale(size, -size);
-    ctx.scale(Math.max(it.w, it.h) / Math.max(it.w, 0.01) * (it.w >= it.h ? 1 : it.w / it.h), 1);
     it.icon(ctx, { col: cc => rgba(scalec(cc, 0.75)), cola: (cc, a) => rgba(scalec(cc, 0.75), a), raw: cc => rgba(cc), fog: 0, t: G.t, lit: 0 });
     ctx.restore();
     // fingers over the item

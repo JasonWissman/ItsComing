@@ -102,7 +102,7 @@ LEVELS.push({
           s.handleIn = true; winch.accepts = s.needPin ? ['pin'] : [];
           winch.crank = { n: need, sfx: 'ratchet', decay: s.needPin ? { after: 1.2, rate: 1.4 } : null, onTurn() { G.shake(0.05); }, onComplete() {
             // without the pawl the drum will not hold: the door runs straight back up (crankTarget has already marked it done, so undo that)
-            if (s.needPin) { winch.done = false; winch.count = 0; AUDIO.sfx('clunk'); G.say('It runs straight back up. Nothing holds the drum.', 'It slips.'); return; }
+            if (s.needPin) { winch.done = false; winch.count = 0; s.lastK = 0; AUDIO.sfx('clunk'); /* one clunk: L.update will not count this as a slip too */ G.say('It runs straight back up. Nothing holds the drum.', 'It slips.'); return; }
             s.sealedN = true; AUDIO.sfx('bar'); G.say('The water door is down.', 'Down.');
           } };
           AUDIO.sfx('fit'); G.say('The handle fits. Crank it.', 'It fits.'); return true;

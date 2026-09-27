@@ -32,10 +32,10 @@ const STORY = (() => {
   function update(L, dt) {
     if (!st || G.state !== 'play' || L.def.ending) return;
     st.t += dt;
-    if (st.t < 10) { st.tick -= dt; if (st.tick <= 0) { st.tick = 1.0; AUDIO.sfx('tick', pan(-Math.PI / 4)); } }
+    if (st.t < 10) { st.tick -= dt; if (st.tick <= 0) { st.tick = 1.0; AUDIO.sfx('tick', pan(-Math.PI / 4), true); } }
     const c = L.creature;
     if (c && !st.knocked && c.u > 0.5) { st.knocked = true; AUDIO.sfx('knock', pan(Math.PI / 2)); }
-    st.hang -= dt; if (st.hang <= 0) { st.hang = 28 + L.rand() * 30; if (!L.lanes.some(l => l.cue === 'hangers')) AUDIO.sfx('hangers', pan(-Math.PI / 2)); } // not where the clink is the closet's own warning
+    st.hang -= dt; if (st.hang <= 0) { st.hang = 28 + L.rand() * 30; if (!L.lanes.some(l => l.cue === 'hangers')) AUDIO.sfx('hangers', pan(-Math.PI / 2), true); } // not where the clink is the closet's own warning
   }
   // the bedroom: you are in the bed with your back to the south wall. Night 12 and the ending both build it.
   // Returns the pieces the night needs to animate.

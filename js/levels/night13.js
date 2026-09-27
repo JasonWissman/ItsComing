@@ -29,7 +29,7 @@ LEVELS.push({
   }],
   build(L) {
     const s = L.s;
-    Object.assign(s, { extra: 0, ending: false, calm: 0, white: 0, tick: 0 });
+    Object.assign(s, { extra: 0, ending: false });
     // a floor that is only a floor near you
     for (let r = 0; r < 12; r++) { const r0 = r * 1.2, r1 = r0 + 1.2, k = 1 - r / 12, col = [10 + 26 * k * k, 10 + 26 * k * k, 12 + 30 * k * k]; for (let i = 0; i < 16; i++) { const a0 = i / 16 * TAU, a1 = (i + 1) / 16 * TAU; SC.quad(L, [Math.sin(a0) * r0, 0, Math.cos(a0) * r0], [Math.sin(a1) * r0, 0, Math.cos(a1) * r0], [Math.sin(a1) * r1, 0, Math.cos(a1) * r1], [Math.sin(a0) * r1, 0, Math.cos(a0) * r1], col, { layer: 0, noLight: true }); } }
     // the ring of everything, and what you start the night holding

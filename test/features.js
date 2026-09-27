@@ -160,6 +160,60 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state === 'paused'), 'Start pauses');
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
+  console.log('== sealed ways ==');
+  // below Nightmare a sealed way holds it where it is, for good: salt the threshold with it already inside the line
+  await page.goto(URL + '?level=3&go&seed=1&diff=normal&nofr'); await page.waitForTimeout(250);
+  let sw = await page.evaluate(() => {
+    const L = G.L, c = L.creature, thr = L.targets.find(t => t.id === (L.lane.idx === 0 ? 'threshold' : 'sidethreshold'));
+    const inside = (L.barrierDist + c.catchDist) / 2; c.u = 1 - Math.pow(inside / c.D0, 1 / c.gamma); G.step(0.001);
+    thr.count = thr.needed; thr.done = true; G.step(0.001);
+    const heldAt = c.dist, lane = c.lane.idx; G.step(0.05, 120);
+    return { inside, heldAt, after: c.dist, sameLane: c.lane.idx === lane, held: c.hold !== null, state: G.state };
+  });
+  check(Math.abs(sw.heldAt - sw.inside) < 0.05, 'a way sealed with it already inside holds it where it is (' + sw.heldAt.toFixed(2) + ' m, not snapped out)');
+  check(sw.held && sw.sameLane && sw.state === 'play' && Math.abs(sw.after - sw.heldAt) < 0.01, 'below Nightmare it stays on its way and stands there (6 s later)');
+  sw = await page.evaluate(() => { const hook = G.L.targets.find(t => t.id === 'hook'); hook.hung = true; hook.lit = true; hook.done = true; G.step(0.05, 2); return G.L.won; });
+  check(sw, 'lighting the lantern then wins the night');
+  // on Nightmare it goes round to the open way, starting outside that way's barrier
+  await page.goto(URL + '?level=4&go&seed=1&diff=nightmare&nofr'); await page.waitForTimeout(250);
+  sw = await page.evaluate(() => {
+    const L = G.L, c = L.creature; c.switched = true;
+    const g = L.targets.find(t => t.id === (L.lane.idx === 0 ? 'gate' : 'backgate')); g.chained = true; g.locked = true; g.done = true;
+    const from = c.lane.idx; c.u = 1 - Math.pow((L.barrierDist + 0.05) / c.D0, 1 / c.gamma);
+    for (let k = 0; k < 200 && c.lane.idx === from && G.state === 'play'; k++) G.step(0.05);
+    return { moved: c.lane.idx !== from, dist: c.dist, need: (c.lane.barrierDist || 0) + 3 - 0.05, held: c.hold !== null, state: G.state };
+  });
+  check(sw.moved && !sw.held && sw.state === 'play', 'on Nightmare a locked gate sends it round to the open one');
+  check(sw.dist >= sw.need, 'going round starts it outside the other gate (' + sw.dist.toFixed(2) + ' m)');
+
+  console.log('== the death camera ==');
+  await page.goto(URL + '?level=7&go&seed=1&diff=normal&nofr'); await page.waitForTimeout(250);
+  const dc = await page.evaluate(() => { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; const c = G.L.creature; c.u = 0.9995; G.step(0.05, 4); return { state: G.state, tPitch: G.cam.tPitch }; });
+  check(dc.state === 'dying' && dc.tPitch === 0, 'on a lane below the rail the view comes up to meet it (' + dc.state + ')');
+
+  console.log('== gamepad in menus, captions let clicks through ==');
+  await page.goto(URL); await page.waitForTimeout(400);
+  check(await page.evaluate(() => getComputedStyle(document.getElementById('caption')).pointerEvents === 'none'), 'the caption line never takes a click');
+  await page.evaluate(() => {
+    window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) };
+    navigator.getGamepads = () => [window._pad];
+    MENU.act('settings', 'title');
+  });
+  await page.waitForTimeout(100);
+  const tap = async i => { await page.evaluate(i => { window._pad.buttons[i].pressed = true; }, i); await page.waitForTimeout(80); await page.evaluate(i => { window._pad.buttons[i].pressed = false; }, i); await page.waitForTimeout(80); };
+  const cap0 = await page.evaluate(() => { document.querySelector('input[data-set="captions"]').focus(); return !!SAVE.data.settings.captions; });
+  await tap(0);
+  check(await page.evaluate(c0 => G.state === 'title' && MENU.kind === 'settings' && !!SAVE.data.settings.captions === !c0, cap0), 'A on a focused box ticks it and does not start the night');
+  await page.evaluate(() => document.querySelector('input[data-set="master"]').focus());
+  const vol0 = await page.evaluate(() => SAVE.data.settings.master);
+  await tap(14);
+  check(await page.evaluate(v => Math.abs(SAVE.data.settings.master - (v - 0.05)) < 1e-6 && MENU.kind === 'settings', vol0), 'left on a focused slider turns it down');
+  await tap(0);
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'settings'), 'A on a focused slider does nothing else');
+  await tap(1);
+  check(await page.evaluate(() => MENU.kind === 'title'), 'B goes back to the title');
+  await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
+
   console.log('== a v1 save on Easy keeps its progress ==');
   await page.goto(T.INDEX); await page.waitForTimeout(200);
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem('itscoming.unlocked', '3'); localStorage.setItem('itscoming.difficulty', '0'); });
