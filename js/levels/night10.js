@@ -18,7 +18,7 @@ LEVELS.push({
   },
   lanes: [
     { follow: 'behind', name: 'behind you', barrierDist: 0, default: true },
-    { deg: 30, name: 'the pedestal', barrierDist: 2.1, noSwitch: true, blockers: [[3.95, 99]] }, // the hall wall: it comes in through the boards
+    { deg: 30, name: 'the pedestal', barrierDist: 2.8, noSwitch: true, blockers: [[3.95, 99]] }, // the hall wall: it comes in through the boards
     { deg: 180, name: 'the carousel', barrierDist: 0, noSwitch: true },
   ],
   creatures: [{ type: 'other', startDist: 30, time: 70, gamma: 0.8, seenMult: 0, unseenMult: 1.0 }],
@@ -89,7 +89,7 @@ LEVELS.push({
         if (s.playing) { G.say('Let it play.', 'Playing.'); return true; }
         if (!G.hasItem('boxkey')) { G.say(G.hasItem('oldkey') ? 'The key does not fit the box.' : 'It needs its key.', G.hasItem('oldkey') ? 'It does not fit.' : 'Not like this.'); AUDIO.sfx('nope'); return true; }
         s.wound++; AUDIO.sfx('ratchet');
-        if (s.wound >= need) { s.wound = 0; s.playing = true; s.playT = runsDown ? 9 : Infinity; s.tune = 0; const c = c0(); if (c.lane.follow) { c.retarget(1); c.lured = true; c.ignoresGaze = true; L.lane = c.lane; L.laneIdx = 1; L.barrierDist = 2.1; c.dist = Math.min(c.dist, 3.9); c.distFn = (cr, dt) => Math.max(2.1, cr.dist - dt * 0.13); } c.hold = null; /* it steps in through the boards and walks the last metres slowly, to the tune */ G.say('The tune starts. Something behind you turns its head.', 'It plays.'); }
+        if (s.wound >= need) { s.wound = 0; s.playing = true; s.playT = runsDown ? 9 : Infinity; s.tune = 0; const c = c0(); if (c.lane.follow) { c.retarget(1); c.lured = true; c.ignoresGaze = true; L.lane = c.lane; L.laneIdx = 1; L.barrierDist = 2.8; c.dist = Math.min(c.dist, 3.9); c.distFn = (cr, dt) => Math.max(2.8, cr.dist - dt * 0.09); } c.hold = null; /* it steps in through the boards and walks slowly to the tune, to stand behind the pedestal */ G.say('The tune starts. Something behind you turns its head.', 'It plays.'); }
         return true;
       },
     });
@@ -112,7 +112,7 @@ LEVELS.push({
       }
       return best;
     };
-    L.isWon = () => { const c = c0(); return (s.playing && c.lane.idx === 1 && c.dist <= 2.15) || (s.luredOut && c.dist >= 12); };
+    L.isWon = () => { const c = c0(); return (s.playing && c.lane.idx === 1 && c.dist <= 2.85) || (s.luredOut && c.dist >= 12); };
     L.objectiveText = () => s.luredOut ? 'It is going out to the carousel.' : !s.placed ? 'Find the music box and its key. Put the box on the pedestal.' : s.playing ? 'It is coming to the box. Keep still.' : 'Wind the music box (' + s.wound + '/' + need + ').';
     L.update = dt => {
       const c = c0();

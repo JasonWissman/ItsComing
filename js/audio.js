@@ -267,6 +267,7 @@ const AUDIO = (() => {
       case 'clunk': tone(140, 0.08, { vol: 0.35, type: 'square', endFreq: 90, pan }); noise(0.06, { freq: 700, vol: 0.4, pan }); break;
       case 'lever': noise(0.12, { freq: 900, vol: 0.35 }); tone(180, 0.2, { vol: 0.3, type: 'square', endFreq: 110, delay: 0.08 }); noise(0.05, { freq: 500, vol: 0.5, delay: 0.25 }); break;
       case 'lampOn': tone(60, 1.6, { vol: 0.25, type: 'sine', endFreq: 90, attack: 0.3 }); noise(0.25, { freq: 900, vol: 0.2 }); tone(240, 0.5, { vol: 0.06, type: 'sawtooth', attack: 0.2, delay: 0.3 }); break;
+      case 'drawer': noise(0.45, { type: 'bandpass', freq: 700, q: 1.5, vol: 0.22, attack: 0.05, pan }); tone(150, 0.12, { vol: 0.12, type: 'triangle', endFreq: 110, delay: 0.38, pan }); break;
       case 'scrape': noise(0.4, { type: 'bandpass', freq: 1800, q: 4, vol: 0.4, attack: 0.02, pan }); tone(230, 0.35, { vol: 0.12, type: 'sawtooth', endFreq: 180, pan }); break;
       case 'bell': for (const [f, d] of [[2093, 0], [2637, 0.05], [2093, 0.13], [2637, 0.2]]) tone(f, 0.7, { vol: 0.1, type: 'sine', delay: d, pan }); noise(0.03, { type: 'highpass', freq: 5000, vol: 0.15, pan }); break;
       case 'tubeDie': for (let i = 0; i < 5; i++) noise(0.03, { type: 'highpass', freq: 3500, vol: 0.18, delay: i * 0.07 + Math.random() * 0.03 }); tone(120, 0.5, { vol: 0.08, type: 'sawtooth', endFreq: 60, delay: 0.3 }); break;

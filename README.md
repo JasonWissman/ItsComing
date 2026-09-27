@@ -46,7 +46,7 @@ looking down) and Pause; tapping the held item again while looking down also put
 down. A gamepad works too: d-pad or left stick turns and
 looks, A uses, B puts the held thing down, a trigger zooms, Start pauses. In
 menus the d-pad moves between buttons and settings, left and right move a
-slider, A presses or ticks, and B goes back.
+slider, A presses or ticks, and B goes back as Escape does.
 
 Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
 dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
@@ -159,7 +159,7 @@ LEVELS.push({
   text: { intro, hint, objective, death: { default, reached }, win, fragment },
   lanes: [{ deg: 0, name: 'back door', barrierDist: 2.75, apertures: [{ z, x0, x1, y0, y1 }], blockers: [[d0, d1]] }],
   creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
-  aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang' },   // held, stand, retreat, down, custom
+  aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang' },   // held, stand, retreat, down, away, custom
   uses: [{ tool, ammo, dudAmmo, range, onHit(c, hits, L), onMiss(L) }], // things you use on the creature itself
   build(L) { ... }
 });
@@ -191,6 +191,12 @@ LEVELS.push({
   sealed way is held at the barrier (or where it is, if it got inside first) until the night is won.
   On Nightmare it goes round after 2.5 s to a way that is still open, starting 3 m outside that way's
   barrier and announced by its `cue`; below Nightmare it never changes its way.
+- **Changing ways**: on Nightmare the thing may switch ways once, early and unseen, and goes round
+  sealed ways as above. Neither ever picks a lane marked `noSwitch` (a lure's destination), a lane
+  outside a creature's own `lanes` list, or moves a creature given a fixed `lane`; a night with
+  `laneSwitch: false` opts out of both. `laneMode: 'default'` or `'random'` overrides how the first
+  way is picked (Easy always takes the default; Hard keeps one way for the whole run; Nightmare rolls
+  again on every attempt).
 - **Feedback text** goes through `G.say(specific, vague)`: the first is shown with hints on, the
   second otherwise.
 - Every night has a solution in `test/nights/nightNN.js` so the suite can play it.
@@ -198,7 +204,8 @@ LEVELS.push({
 ## Testing
 
 ```
-npm install            # Playwright (or set PW_CHROMIUM to a Chromium binary)
+npm ci                 # Playwright and ESLint at the versions in package-lock.json
+npx playwright install chromium   # the browser (or set PW_CHROMIUM to a Chromium binary)
 npm test               # sounds, nights, flow, features, lanes, lane switches, story, clickability sweep
 npm run test:play      # NIGHTS=1,3 TIERS=normal,hard SEEDS=1,2 narrow it
 npm run test:sounds    # no browser: every sound exists, every cue has a caption
@@ -208,11 +215,12 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 
 `test/play.js` runs each night's declared solution per tier and seed. `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
-difficulty, hints, restart and mute. `test/lanes.js` runs `validateContent()` and checks every
+difficulty, hints, restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
+camera, save migration and the last night's two endings. `test/lanes.js` runs `validateContent()` and checks every
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
 unseen, early, without a jump in distance, and never on nights that opt out or on lower tiers.
 `test/hittest.js` checks every item is visible and clickable from some direction across many layouts.
-`test/story.js` checks the lamp is in every room, the clock ticks, and no text before the last night uses
+`test/story.js` checks the lamp is in every room, the clock ticks, and no text before the bedroom uses
 the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
 the game asks for exists in the synthesiser and that every lane cue, death sting, footstep and voice has a
 caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.

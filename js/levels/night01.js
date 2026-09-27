@@ -101,6 +101,7 @@ LEVELS.push({
         hint() { return t.done ? 'Boarded up.' : lane !== L.lane.idx ? 'The ' + name.toLowerCase() + '. Nothing is coming this way.' : (lane === 1 && s.frontOpen) ? 'The front door stands open.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
         onClick() { if (lane === 1 && s.frontOpen) { s.frontOpen = false; s.frontClosing = 0.8; AUDIO.sfx('creak'); return true; } return false; },
         use() {
+          if (L.diff.tier < 3 && lane !== L.lane.idx) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // below Nightmare only its own door counts, so no plank is wasted here
           if (lane === 1 && (s.frontOpen || s.frontClosing > 0)) { G.say('Shut it first.', 'Not like this.'); return false; }
           t.count++; AUDIO.sfx('hammer'); G.shake(0.15); if (t.count >= need) t.done = true; return true;
         },

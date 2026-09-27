@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 const fs = require('fs'); const path = require('path');
 (async () => {
   const dir = path.join(__dirname, 'shots', 'spots');
-  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: require('./lib').CHROMIUM });
   const NLEVELS = Math.max(...fs.readdirSync(dir).map(f => (f.match(/^L(\d+)-/) || [0, 0])[1]).map(Number));
   for (let lvl = 1; lvl <= NLEVELS; lvl++) {
     const files = fs.readdirSync(dir).filter(f => f.startsWith('L' + lvl + '-')).sort();

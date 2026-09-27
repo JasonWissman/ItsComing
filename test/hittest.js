@@ -2,8 +2,10 @@
 const { chromium } = require('playwright');
 const T = require('./lib'); const URL = T.INDEX;
 (async () => {
-  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: require('./lib').CHROMIUM });
   const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
+  const errors = [];
+  page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
   let problems = 0, checks = 0;
   const seeds = [...Array(parseInt(process.env.N || '24')).keys()].map(i => i + 1);
   const NIGHTS = process.env.NIGHTS ? process.env.NIGHTS.split(',').map(Number) : null; // NIGHTS=11,12 narrows it
@@ -46,6 +48,8 @@ const T = require('./lib'); const URL = T.INDEX;
     }
     console.log('L' + lvl + ': items visible in every layout: ' + Object.entries(found).map(([k, v]) => k + ' ' + v + '/' + seeds.length).join(', '));
   }
+  if (errors.length) { problems += errors.length; console.log('PAGE ERRORS:\n' + errors.join('\n')); }
   console.log(checks + ' checks, ' + problems + ' problems');
   await browser.close();
+  process.exit(problems ? 1 : 0);
 })();

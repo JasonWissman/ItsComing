@@ -7,6 +7,8 @@ const fs = require('fs');
 const INDEX = 'file://' + path.resolve(__dirname, '..', 'index.html');
 const SHOTS = path.join(__dirname, 'shots');
 const SEED = process.env.SEED ? '&seed=' + process.env.SEED : '';
+// the browser: PW_CHROMIUM, else the preinstalled one here, else Playwright's own (npx playwright install chromium)
+const CHROMIUM = process.env.PW_CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 let failures = 0;
 function check(cond, msg) { if (!cond) { failures++; console.log('  FAIL: ' + msg); } else console.log('  ok: ' + msg); }
@@ -15,7 +17,7 @@ function failureCount() { return failures; }
 
 async function launch(opts) {
   const browser = await chromium.launch({
-    executablePath: process.env.PW_CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined),
+    executablePath: CHROMIUM,
     args: ['--autoplay-policy=no-user-gesture-required'],
   });
   const page = await browser.newPage({ viewport: (opts && opts.viewport) || { width: 1280, height: 760 } });
@@ -48,8 +50,11 @@ async function findHit(page, kind, id) {
 async function clickAt(page, r) { if (!r) { fail('nothing to click'); return; } await page.mouse.move(r.x, r.y); await page.waitForTimeout(60); await page.mouse.click(r.x, r.y); await page.waitForTimeout(120); }
 async function hoverAt(page, r) { if (!r) { fail('nothing to hover'); return; } await page.mouse.move(r.x, r.y); await page.waitForTimeout(150); }
 // look around like a player: pick the view where the thing is most fully in frame
+// wait until the game has drawn at least one whole frame since now, so R.hits matches the camera as it is
+const nextFrame = page => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 async function lookFor(page, kind, id) {
   // already in frame: do not sweep (sweeping costs seconds, and some nights charge for every second spent looking away)
+  await nextFrame(page);
   const here = await findHit(page, kind, id);
   if (here && here.frac > 0.98) { const [d, down] = await page.evaluate(() => [G.cam.dirIdx, G.cam.pitch > 0.5]); return { d, down, r: here }; }
   let best = null;
@@ -77,4 +82,4 @@ async function finish(browser, errors, label) {
 }
 async function shot(page, name) { fs.mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: path.join(SHOTS, name + '.png') }); }
 
-module.exports = { INDEX, SHOTS, SEED, launch, open, st, face, findHit, clickAt, hoverAt, lookFor, lookForAndClick, check, fail, failureCount, finish, shot };
+module.exports = { INDEX, SHOTS, SEED, CHROMIUM, nextFrame, launch, open, st, face, findHit, clickAt, hoverAt, lookFor, lookForAndClick, check, fail, failureCount, finish, shot };

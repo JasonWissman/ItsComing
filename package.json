@@ -18,6 +18,7 @@
     "test:sounds": "node test/sounds.js"
   },
   "devDependencies": {
-    "playwright": "^1.56.1"
+    "eslint": "10.1.0",
+    "playwright": "1.56.1"
   }
 }

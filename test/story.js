@@ -1,6 +1,6 @@
 'use strict';
 // The thread through the nights: the lamp is somewhere on every night before the last; the clock ticks for the
-// first ten seconds of each; and no card or fragment before night 13 uses the words that would give it away.
+// first ten seconds of each; and no text before the bedroom (the last two nights) uses the words that would give it away.
 const T = require('./lib');
 const { check } = T;
 (async () => {

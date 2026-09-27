@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 (async () => {
   const [name, query, ...actions] = process.argv.slice(2);
-  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = await chromium.launch({ executablePath: require('./lib').CHROMIUM, args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
   const errors = [];
   page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));

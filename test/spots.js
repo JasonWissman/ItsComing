@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 const fs = require('fs'); const path = require('path');
 const T = require('./lib'); const URL = T.INDEX;
 (async () => {
-  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: require('./lib').CHROMIUM });
   const page = await browser.newPage({ viewport: { width: 640, height: 400 } });
   const dir = path.join(__dirname, 'shots', 'spots'); fs.mkdirSync(dir, { recursive: true });
   const seeds = [1, 2, 3, 4, 5, 6];

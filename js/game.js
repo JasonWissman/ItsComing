@@ -34,12 +34,18 @@ const UI = {};
 function $(id) { return document.getElementById(id); }
 
 // ---------------- level construction ----------------
+// Hard ('seeded') keeps the same way for the whole run, retry after retry; Nightmare ('random') rolls again every attempt.
+// The level's generator is drawn from either way, so item layouts do not depend on the mode.
+function laneRoll(L, mode, salt) {
+  const roll = L.rand();
+  return mode === 'seeded' ? mulberry32((G.runSeed * 7919 + L.index * 131 + salt * 977 + 12345) >>> 0)() : roll;
+}
 function pickLane(def, diff, L) {
   const n = L.lanes.length;
   if (n === 1) return 0;
   const mode = diff.tier === 0 ? 'default' : (def.laneMode || diff.lane);
   if (mode === 'default') { const d = L.lanes.findIndex(l => l.default); return d >= 0 ? d : 0; }
-  return Math.floor(L.rand() * n);
+  return Math.floor(laneRoll(L, mode, 0) * n);
 }
 function makeCreature(L, cd, k) {
   const CR = CREATURES[cd.type];
@@ -47,7 +53,7 @@ function makeCreature(L, cd, k) {
   const diff = L.diff;
   const vDist = 1 - diff.variance + L.rand() * 2 * diff.variance, vTime = 1 - diff.variance * 0.7 + L.rand() * 1.4 * diff.variance;
   let laneIdx = cd.lane !== undefined ? cd.lane : L.laneIdx;
-  if (cd.lanes) { const mode = diff.tier === 0 ? 'default' : (L.def.laneMode || diff.lane); laneIdx = mode === 'default' ? cd.lanes[0] : cd.lanes[Math.floor(L.rand() * cd.lanes.length)]; }
+  if (cd.lanes) { const mode = diff.tier === 0 ? 'default' : (L.def.laneMode || diff.lane); laneIdx = mode === 'default' ? cd.lanes[0] : cd.lanes[Math.floor(laneRoll(L, mode, k + 1) * cd.lanes.length)]; }
   const lane = L.lanes[laneIdx];
   const c = {
     type: cd.type, CR, lane, yaw: lane.yaw, idx: k,
@@ -633,12 +639,12 @@ function updateCreature(L, c, dt, live) {
   if (live && !L.won && barrier && !c.reached && d <= barrier) { c.reached = true; if (L.onReach) L.onReach(c); }
   // a sealed way (L.sealed(lane)) holds it at the barrier, or where it already is if it got inside first, until the night is
   // won. On Nightmare, after a moment, it goes round to an open way if it has one (with that way's cue), starting outside that
-  // way's barrier; below Nightmare it never changes its way, so it stands there.
+  // way's barrier; below Nightmare, or on a night that opts out of changing ways (laneSwitch: false), it stands there.
   if (live && !L.won && barrier && L.sealed && !c.distFn && d <= barrier + 0.01) {
     if (c.hold === null && L.sealed(c.lane)) { c.hold = Math.min(barrier, d); c.sealHold = true; c.sealHeldAt = L.t; c.dist = d = c.hold; }
     else if (c.hold !== null && c.sealHeldAt !== undefined && L.t - c.sealHeldAt > 2.5) {
       c.sealHeldAt = undefined;
-      const open = (c.fixedLane || !L.diff.laneSwitch) ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && !L.sealed(l) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
+      const open = (c.fixedLane || !L.diff.laneSwitch || L.def.laneSwitch === false) ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && !L.sealed(l) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
       if (open.length) {
         const ln = open[Math.floor(c.rand() * open.length)];
         c.hold = null; c.sealHold = false; c.retarget(ln.idx); c.reached = false;
@@ -824,7 +830,7 @@ function pollGamepad() {
   PAD.a = a;
   if (start && !PAD.start) { if (G.state === 'play') pauseGame(); else if (LIST_SCREENS.includes(MENU.kind)) MENU.onKey(fake('Escape')); else proceed(); }
   PAD.start = start;
-  if (b && !PAD.b) { if (G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); } else if (G.state !== 'play') MENU.onKey(fake('Escape')); } // B goes back in menus
+  if (b && !PAD.b) { if (G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); } else if (G.state !== 'play') onKeyDown(fake('Escape')); } // B goes back, as Escape does
   PAD.b = b;
   if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play') G.cam.zoomHeld = PAD.zoom; }
 }

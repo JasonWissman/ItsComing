@@ -94,7 +94,7 @@ LEVELS.push({
       { x: -0.5, y: 1.02, z: -2.4 },                    // on the ledge of the kitchen pass
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
     ], { w: 0.42, h: 0.42, flat: true, tool: true });
-    if (decoy) mkItem(L, 'bentcrank', 'Shutter crank', [{ x: 1.0, y: 0, z: -0.6 }, { x: 3.3, y: 1.5, z: -2.25 }], { w: 0.42, h: 0.42, flat: true, decoy: true, decoyText: 'Bent. It will not turn.' });
+    if (decoy) mkItem(L, 'bentcrank', 'Shutter crank', [{ x: 1.0, y: 0, z: -0.6 }, { x: 2.6, y: 0.9, z: -2.2 }], { w: 0.42, h: 0.42, flat: true, decoy: true, decoyText: 'Bent. It will not turn.' });
     Object.assign(s, { tubes: [1, 1, 1, 1], nextDie: 12 + L.rand() * 3, dying: -1, mainOn: true, fixed: false, brk: [false, false, false], panelOpen: false, shutN: false, shutD: false, dark: false, rang: false, tapped: false, amb: 1 });
     // the shutters: hold-click targets over the window and the door; on the harder tiers the crank comes first
     const apN = L.addAperture(0, { z: 5.0, x0: -2.0, x1: 1.75, y0: 0, y1: 2.7 });

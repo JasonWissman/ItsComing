@@ -209,7 +209,7 @@ LEVELS.push({
     L.glows = () => { const sm = smc(), sp = sm.pos(); const out = [{ x: sp.x, y: 0.75, z: sp.z, r: 0.9, color: [255, 190, 110], a: 0.25 }]; if (s.train) { const f = route(s.train.r), p = L.pt(f[0], 2.6, f[1]); out.push({ x: p[0], y: p[1], z: p[2], r: 3.5, color: [255, 240, 200], a: 0.3 }); } return out; };
     L.aftermath = (t, dt) => {
       // the scratching only plays if the crawler actually got to a door; on Easy it can still be out in the snow
-      if (!s.after) { s.after = true; const near = crc().dist < 12; Seq.play({ dur: 6, beats: near ? [{ every: 1.15, from: 0.6, do: () => AUDIO.sfx('scrape', Math.sin(wrapPi(crc().yaw - G.cam.yaw)) * 0.85) }, { at: 3.5, toast: 'Something is at the door. It stays there.' }] : [] }); }
+      if (!s.after) { s.after = true; const near = crc().reached; Seq.play({ dur: 6, beats: near ? [{ every: 1.15, from: 0.6, do: () => AUDIO.sfx('scrape', Math.sin(wrapPi(crc().yaw - G.cam.yaw)) * 0.85) }, { at: 3.5, toast: 'Something is at the door. It stays there.' }] : [] }); }
       return t >= 6;
     };
     L.onEnd = () => AUDIO.stopLoop();

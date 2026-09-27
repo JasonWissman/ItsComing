@@ -35,7 +35,7 @@ async function lookFor(page, kind, id) {
 }
 const hoverHit = lookFor;
 (async () => {
-  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = await chromium.launch({ executablePath: require('./lib').CHROMIUM, args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
   const errors = [];
   page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
@@ -178,6 +178,8 @@ const hoverHit = lookFor;
   await page.goto(URL + '?level=4&go&seed=1&diff=nightmare&nofr'); await page.waitForTimeout(250);
   sw = await page.evaluate(() => {
     const L = G.L, c = L.creature; c.switched = true;
+    // look away from it, as a player locking one gate and turning to the other would, and draw a frame so seeing is real
+    G.cam.yaw = G.cam.tYaw = c.yaw + Math.PI; G.cam.dirIdx = ((Math.round(G.cam.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0; G.step(0.001);
     const g = L.targets.find(t => t.id === (L.lane.idx === 0 ? 'gate' : 'backgate')); g.chained = true; g.locked = true; g.done = true;
     const from = c.lane.idx; c.u = 1 - Math.pow((L.barrierDist + 0.05) / c.D0, 1 / c.gamma);
     for (let k = 0; k < 200 && c.lane.idx === from && G.state === 'play'; k++) G.step(0.05);
@@ -199,7 +201,7 @@ const hoverHit = lookFor;
     navigator.getGamepads = () => [window._pad];
     MENU.act('settings', 'title');
   });
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(450); // past the overlay's 350 ms arming, so a stray proceed() would really start the night
   const tap = async i => { await page.evaluate(i => { window._pad.buttons[i].pressed = true; }, i); await page.waitForTimeout(80); await page.evaluate(i => { window._pad.buttons[i].pressed = false; }, i); await page.waitForTimeout(80); };
   const cap0 = await page.evaluate(() => { document.querySelector('input[data-set="captions"]').focus(); return !!SAVE.data.settings.captions; });
   await tap(0);

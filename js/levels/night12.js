@@ -30,7 +30,7 @@ LEVELS.push({
     const c0 = () => L.creatures[0];
     // the drawer in the nightstand holds the bulb (and, on the harder tiers, one that will not fit)
     mkContainer(L, {
-      id: 'drawer', name: 'Drawer', w: 0.46, h: 0.2, color: [58, 44, 34], spot: { x: 1.2, y: 0.28, z: -0.13 }, closedText: 'The nightstand drawer.', emptyText: 'Nothing else in it.', sfx: 'scrape', /* not the creak that warns of the doorway */
+      id: 'drawer', name: 'Drawer', w: 0.46, h: 0.2, color: [58, 44, 34], spot: { x: 1.2, y: 0.28, z: -0.13 }, closedText: 'The nightstand drawer.', emptyText: 'Nothing else in it.', sfx: 'drawer', /* its own sound: not the creak that warns of the doorway, nor a creature's scratching */
       yields: [{ id: 'bulb', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb' } }].concat(decoy ? [{ id: 'bulb2', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb', decoy: true, decoyText: 'The wrong fitting. It will not go in.' } }] : []),
       liftY: 0.36,
     });
@@ -46,9 +46,6 @@ LEVELS.push({
         s.clicks = 0; s.lampOn = true; s.lampT = 12 + L.rand() * 6; AUDIO.sfx('switch'); AUDIO.sfx('lampOn'); G.say('Light. It slows.', 'Light.'); return true;
       },
     });
-    if (unplugged) { // the cord lies on the floor beside the bed, pulled out of its socket
-      SC.box(L, -1.34, -0.86, 0.02, 0.05, -0.32, -0.28, [30, 28, 30]); SC.box(L, -1.46, -1.3, 0.02, 0.08, -0.38, -0.22, [40, 36, 40]);
-    }
     if (unplugged) mkTarget(L, {
       id: 'socket', name: 'Cord', x: -1.3, y: 0.02, z: -0.3, w: 0.5, h: 0.3, flat: true,
       hint() { return s.plugged ? 'Plugged in.' : 'The lamp cord, out of its socket.'; },
@@ -69,6 +66,10 @@ LEVELS.push({
       if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', Math.sin(wrapPi(-Math.PI / 4 - G.cam.yaw)) * 0.7, true); } } // the clock is on the dresser to the north-west, whichever way you face
     };
     L.dynamic = () => {
+      if (!s.plugged) { // the lamp cord lies on the floor beside the bed, pulled out of its socket, until it is plugged in
+        R.add(SC.mkQuad(L, [-1.34, 0.03, -0.32], [-0.86, 0.03, -0.32], [-0.86, 0.03, -0.28], [-1.34, 0.03, -0.28], [30, 28, 30]));
+        R.add(SC.mkQuad(L, [-1.46, 0.06, -0.38], [-1.3, 0.06, -0.38], [-1.3, 0.06, -0.22], [-1.46, 0.06, -0.22], [40, 36, 40]));
+      }
       // the covers: flat on the bed, rising toward you as you pull
       const p = s.coversUp ? 1 : (covers.progress || 0);
       const z1 = 1.9, z0 = 0.35 + (1 - p) * 0.0, y = 0.6 + p * 0.28;
@@ -79,7 +80,7 @@ LEVELS.push({
     L.glows = () => { if (!s.lampOn) return null; const p = L.pt(1.2, 1.0, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }]; };
     // dawn: the room goes grey, the clock is loud, it stands at the foot of the bed
     L.aftermath = (t, dt) => {
-      if (!s.after) { s.after = true; const c = c0(); G.cam.tPitch = 0; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); if (c.lane.idx === 1) L.text.win = 'It stood beside the bed, in front of the closet, until the room went grey, and never came a step closer.'; } // look up from the covers at it
+      if (!s.after) { s.after = true; const c = c0(); G.cam.tPitch = 0; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; if (c.lane.idx === 1) L.text.win = 'It stood beside the bed, in front of the closet, until the room went grey, and never came a step closer.'; } // look up from the covers at it
       s.grey = clamp(t / 8, 0, 1);
       L.pal.ambient = 1 + s.grey * 0.9; L.pal.fog = mixc([26, 24, 30], [150, 152, 158], s.grey); L.pal.skyTop = mixc([8, 8, 16], [120, 128, 150], s.grey);
       return t >= 9;
