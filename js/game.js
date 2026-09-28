@@ -45,7 +45,8 @@ function pickLane(def, diff, L) {
   if (n === 1) return 0;
   const mode = diff.tier === 0 ? 'default' : (def.laneMode || diff.lane);
   if (mode === 'default') { const d = L.lanes.findIndex(l => l.default); return d >= 0 ? d : 0; }
-  return Math.floor(laneRoll(L, mode, 0) * n);
+  const pool = L.lanes.filter(l => !l.noSwitch).map(l => l.idx);   // a lure or go-round destination is never where it starts
+  return pool.length ? pool[Math.floor(laneRoll(L, mode, 0) * pool.length)] : 0;
 }
 function makeCreature(L, cd, k) {
   const CR = CREATURES[cd.type];

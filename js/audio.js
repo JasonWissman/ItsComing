@@ -272,6 +272,7 @@ const AUDIO = (() => {
       case 'bell': for (const [f, d] of [[2093, 0], [2637, 0.05], [2093, 0.13], [2637, 0.2]]) tone(f, 0.7, { vol: 0.1, type: 'sine', delay: d, pan }); noise(0.03, { type: 'highpass', freq: 5000, vol: 0.15, pan }); break;
       case 'tubeDie': for (let i = 0; i < 5; i++) noise(0.03, { type: 'highpass', freq: 3500, vol: 0.18, delay: i * 0.07 + Math.random() * 0.03 }); tone(120, 0.5, { vol: 0.08, type: 'sawtooth', endFreq: 60, delay: 0.3 }); break;
       case 'tubeOn': tone(120, 0.35, { vol: 0.1, type: 'sawtooth', attack: 0.05 }); noise(0.08, { type: 'highpass', freq: 3000, vol: 0.15 }); break;
+      case 'glassGive': tone(90, 0.9, { vol: 0.12, type: 'sawtooth', endFreq: 55, pan }); for (let i = 0; i < 6; i++) noise(0.025, { type: 'highpass', freq: 4200, vol: 0.16, delay: 0.1 + i * 0.09 + Math.random() * 0.04, pan }); tone(2400, 0.12, { vol: 0.06, type: 'triangle', endFreq: 1700, delay: 0.55, pan }); break;
       case 'glassTap': for (let i = 0; i < 3; i++) tone(1900, 0.04, { vol: 0.14, type: 'triangle', endFreq: 1500, delay: i * 0.28, pan }); break;
       case 'horn': for (const f of [311, 370, 466]) tone(f, 1.6, { vol: 0.14, type: 'sawtooth', attack: 0.15, pan }); noise(1.4, { type: 'bandpass', freq: 900, q: 1.5, vol: 0.12, attack: 0.2, pan }); break;
       case 'brakes': noise(2.4, { type: 'bandpass', freq: 2600, q: 5, vol: 0.55, attack: 0.1 }); tone(1900, 2.2, { vol: 0.12, type: 'sawtooth', endFreq: 1500, attack: 0.2 }); noise(1.8, { freq: 300, vol: 0.4, delay: 0.3, attack: 0.1 }); break;

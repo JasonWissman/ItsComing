@@ -1,6 +1,7 @@
 'use strict';
 // ============================================================ 8. THE DINER ============================================================
-// The inversion: it moves only while you are looking at it, and freely once the lights are gone.
+// The inversion: it moves only while you are looking at it, and freely once the lights are gone. Once its way in is
+// shuttered it walks along the glass to the pane under the OPEN sign and waits there for as long as there is light.
 LEVELS.push({
   id: 'diner', title: 'The Diner', facing: 180, eyeH: 1.65,
   pal: { skyTop: [5, 5, 10], fog: [20, 17, 24], ground: [18, 16, 20], fogDist: 90 },
@@ -11,8 +12,8 @@ LEVELS.push({
     { x: 2.9, y: 2.2, z: 4.8, r: 3.5, i: 0.5, color: [255, 80, 200], flicker: 0.2 },
   ],
   text: {
-    intro: 'The last customer left at ten. Something that is not a customer has been standing at the far end of the lot since, and every time you look up it is closer.<br>It only moves while you are looking at it. The lights keep going.',
-    hint: 'Pull the shutter down over the window it is coming for, and hold on until it is all the way down. Then see to the breakers on the back wall: main off, reset the three, main on.',
+    intro: 'The last customer left at ten. Something that is not a customer has been standing at the far end of the lot since, and every time you look up it is closer.<br>It only moves while you are looking at it. But the tubes have started going out, one at a time, and in the dark it will not need you to look.',
+    hint: 'Pull the shutter down over the window it is coming for, and hold on until it is all the way down. The lights keep tripping: the breaker panel is on the back wall. Main off, reset the three, main on.',
     objective: 'Shutter the window. Keep the lights on.',
     death: { default: 'You looked.', dark: 'The lights went, and it did not need you to look any more.' },
     win: 'It stood under the sign until it got light, and then turned around and walked away like it had somewhere to be.',
@@ -21,9 +22,9 @@ LEVELS.push({
   lanes: [
     { deg: 0, name: 'window', barrierDist: 5.3, cue: 'glassTap', default: true },
     { deg: 330, name: 'door', barrierDist: 6.0, cue: 'bell' },
+    { deg: 30, name: 'sign window', barrierDist: 6.3, noSwitch: true },   // never where it starts: where it goes once its way in is shuttered
   ],
   creatures: [{ type: 'customer', startDist: 60, time: 70, gamma: 0.72, unseenMult: 1.3 }],
-  aftermath: { type: 'away', dur: 6.5, wait: 3.0, speed: 1.2 },
   build(L) {
     const s = L.s;
     const cream = [96, 88, 72], creamD = [72, 65, 54], red = [104, 32, 32], chrome = [118, 120, 126], tileA = [82, 77, 70], tileB = [34, 31, 30], dark = [34, 34, 38];
@@ -95,11 +96,13 @@ LEVELS.push({
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
     ], { w: 0.42, h: 0.42, flat: true, tool: true });
     if (decoy) mkItem(L, 'bentcrank', 'Shutter crank', [{ x: 1.0, y: 0, z: -0.6 }, { x: 2.6, y: 0.9, z: -2.2 }], { w: 0.42, h: 0.42, flat: true, decoy: true, decoyText: 'Bent. It will not turn.' });
-    Object.assign(s, { tubes: [1, 1, 1, 1], nextDie: 12 + L.rand() * 3, dying: -1, mainOn: true, fixed: false, brk: [false, false, false], panelOpen: false, shutN: false, shutD: false, dark: false, rang: false, tapped: false, amb: 1 });
+    Object.assign(s, { tubes: [1, 1, 1, 1], nextDie: 5 + L.rand() * 2, dying: -1, mainOn: true, fixed: false, brk: [false, false, false], panelOpen: false, shutN: false, shutD: false, dark: false, rang: false, tapped: false, amb: 1, route: 'lane', wayIdx: -1, tappedSign: false, gave: false });
     // the shutters: hold-click targets over the window and the door; on the harder tiers the crank comes first
     const apN = L.addAperture(0, { z: 5.0, x0: -2.0, x1: 1.75, y0: 0, y1: 2.7 });
     const apD = L.addAperture(1, { z: 5.77, x0: -0.78, x1: 0.78, y0: 0, y1: 2.4 });
     L.addAperture(0, { z: 1.0, x0: -9, x1: 9, y0: 0.95, y1: 99 }); L.addAperture(1, { z: 1.15, x0: -9, x1: 9, y0: 0.95, y1: 99 });
+    // the pane under the sign (x 1.75..4.0 at z 5) is slanted to its lane: this is its outline projected onto a plane across the lane
+    L.addAperture(2, { z: 5.77, x0: -1.09, x1: 0.88, y0: 0.24, y1: 2.6 }); L.addAperture(2, { z: 1.15, x0: -9, x1: 9, y0: 0.95, y1: 99 });
     const mkShutter = (id, name, x, z, w, h, flag) => {
       const t = mkTarget(L, {
         id, name, x, y: 0.1, z, w, h, hold: needCrank ? 0 : 2.5, accepts: needCrank ? ['crank'].concat(decoy ? ['bentcrank'] : []) : [],
@@ -118,15 +121,15 @@ LEVELS.push({
     const panel = mkTarget(L, {
       id: 'panel', name: 'Breaker panel', x: 2.2, y: 1.0, z: -2.4, w: 0.56, h: 0.56,
       hint() { return 'The breaker panel. Shut.'; },
-      onClick() { s.panelOpen = true; panel.hidden = true; for (const t of L.targets) if (t.brk !== undefined) t.hidden = false; AUDIO.sfx('creak'); G.say('Three breakers tripped, and the main.', 'Breakers.'); return true; },
+      onClick() { s.panelOpen = true; panel.hidden = true; for (const t of L.targets) if (t.brk !== undefined) t.hidden = false; AUDIO.sfx('creak'); G.say('Three breakers have tripped. The main has to go off before they will reset.', 'Three breakers have tripped.'); return true; },
     });
     mkTarget(L, {
       id: 'main', name: 'Main breaker', x: 2.2, y: 1.36, z: -2.4, w: 0.16, h: 0.2, hidden: true, brk: 'main',
       hint() { return s.mainOn ? 'The main. On, and humming.' : 'The main. Off.'; },
       onClick() {
-        if (s.mainOn) { s.mainOn = false; AUDIO.sfx('clunk'); G.shake(0.1); G.say('Everything goes off. Now the three, then the main again.', 'Everything goes off.'); return true; }
-        if (!s.brk.every(b => b)) { G.say('The main will not hold with a breaker still tripped.', 'It will not stay.'); AUDIO.sfx('nope'); return true; }
-        s.mainOn = true; s.fixed = true; s.tubes = [1, 1, 1, 1]; s.dying = -1; AUDIO.sfx('clunk'); setTimeout(() => AUDIO.sfx('tubeOn'), 200); G.shake(0.1); G.say('The lights come back, all of them.', 'Light.');
+        if (s.mainOn) { s.mainOn = false; AUDIO.sfx('clunk'); G.shake(0.1); G.say('Everything goes dark. Now the three, then the main again. Quickly.', 'Everything goes dark.'); return true; }
+        if (!s.brk.every(b => b)) { G.say('The main will not hold with a breaker still tripped.'); AUDIO.sfx('nope'); return true; }
+        s.mainOn = true; s.fixed = true; s.tubes = [1, 1, 1, 1]; s.dying = -1; AUDIO.sfx('clunk'); setTimeout(() => AUDIO.sfx('tubeOn'), 200); G.shake(0.1); G.say('The lights come back, all of them, and this time they stay.');
         return true;
       },
     });
@@ -135,16 +138,39 @@ LEVELS.push({
       hint() { return s.brk[k] ? 'Reset.' : 'Tripped.'; },
       onClick() {
         if (s.brk[k]) { G.say('Already reset.', 'Done.'); return true; }
-        if (s.mainOn) { G.say('It will not move with the main on.', 'Stuck.'); AUDIO.sfx('nope'); return true; }
-        s.brk[k] = true; AUDIO.sfx('lever'); G.say('Reset. ' + (s.brk.every(b => b) ? 'Now the main.' : ''), 'Click.'); return true;
+        if (s.mainOn) { G.say('It will not move with the main on.'); AUDIO.sfx('nope'); return true; }
+        s.brk[k] = true; AUDIO.sfx('lever'); G.say('Reset.' + (s.brk.every(b => b) ? ' Now the main.' : ''), 'Reset.'); return true;
       },
     }));
-    const shut = lane => lane.idx === 0 ? s.shutN : s.shutD;
-    L.sealed = lane => shut(lane);
-    L.isWon = () => s.fixed && L.tier(shut(L.lane), shut(L.lane), s.shutN && s.shutD);
+    const SIGN = 2;
+    const shut = lane => lane.idx === 0 ? s.shutN : lane.idx === 1 ? s.shutD : false;
+    const way = () => s.wayIdx >= 0 ? L.lanes[s.wayIdx] : L.lane;   // the way in it came by, even once it has gone round to the sign
+    // a shuttered way in holds it; the pane under the sign holds it only while there is light
+    L.sealed = lane => lane.idx === SIGN ? !s.dark : shut(lane);
+    L.isWon = () => s.fixed && L.tier(shut(way()), shut(way()), s.shutN && s.shutD);
     L.objectiveText = () => {
-      const sh = L.diff.tier >= 3 ? ((s.shutN ? 'Window shuttered. ' : 'Shutter the window. ') + (s.shutD ? 'Door shuttered. ' : 'Shutter the door. ')) : shut(L.lane) ? 'Shutter down. ' : 'Pull down the shutter on the ' + L.lane.name + '. ';
+      const sh = L.diff.tier >= 3 ? ((s.shutN ? 'Window shuttered. ' : 'Shutter the window. ') + (s.shutD ? 'Door shuttered. ' : 'Shutter the door. ')) : shut(way()) ? 'Shutter down. ' : 'Pull down the shutter on the ' + way().name + '. ';
       return sh + (s.fixed ? 'Lights fixed.' : s.mainOn ? 'Breakers: main off, reset the three, main on.' : 'Main is off. Reset the three, then main on.');
+    };
+    // once its way in is shuttered it walks along the front to the pane under the sign, keeping its distance (or to the
+    // glass, if it was nearer): the same spot re-measured along the sign's lane, then a straight walk onto that lane
+    const walkToSign = c => {
+      const ln = L.lanes[SIGN], p = c.pos();
+      const a0 = p.x * ln.dirX + p.z * ln.dirZ, l0 = p.x * Math.cos(ln.yaw) - p.z * Math.sin(ln.yaw), q = Math.max(ln.barrierDist, Math.hypot(p.x, p.z));
+      const len = Math.max(0.01, Math.hypot(q - a0, l0));
+      s.wayIdx = c.lane.idx; s.route = 'walk';
+      c.retarget(SIGN); c.fixedLane = true; c.switched = true; c.hold = null; c.sealHold = false; c.reached = false;
+      L.laneIdx = SIGN; L.lane = ln; L.barrierDist = ln.barrierDist;
+      c.dist = a0; c.lat = c.shiftLat = l0;
+      let k = 0;
+      c.distFn = (cr, dt) => {
+        const k1 = Math.min(1, k + dt * (L.won ? Math.max(1.8, len / 3) : 1.8) / len);   // a brisk walk; once the night is won it gets there within 3 s
+        const lat = lerp(l0, 0, k1);
+        cr.gait += Math.abs(lat - cr.shiftLat) * cr.CR.stepRate * Math.PI;   // the sideways part of each step (updateCreature counts the rest)
+        cr.shiftLat = lat; k = k1;
+        if (k >= 1) { s.route = 'sign'; cr.distFn = null; cr.shiftLat = 0; cr.u = clamp(1 - Math.pow(q / cr.D0, 1 / cr.gamma), 0, 1); }
+        return lerp(a0, q, k1);
+      };
     };
     L.update = dt => {
       // the tubes die one by one until the breakers are reset
@@ -152,16 +178,34 @@ LEVELS.push({
       if (!s.fixed && s.mainOn && alive > 0) {
         s.nextDie -= dt;
         if (s.nextDie < 1.6 && s.dying < 0) { const pool = s.tubes.map((t, k) => t ? k : -1).filter(k => k >= 0); s.dying = pool[Math.floor(L.rand() * pool.length)]; AUDIO.sfx('tubeDie'); }
-        if (s.nextDie <= 0) { s.tubes[s.dying] = 0; s.dying = -1; s.nextDie = 12 + L.rand() * 3; if (alive === 1) G.toast('The last light goes.'); }
+        if (s.nextDie <= 0) { s.tubes[s.dying] = 0; s.dying = -1; s.nextDie = 12 + L.rand() * 3; G.toast(alive === 4 ? 'A light goes out.' : alive === 2 ? 'Another light goes out. One left.' : alive === 1 ? 'The last light goes.' : 'Another light goes out.'); }
       }
       s.dark = !s.mainOn || !s.tubes.some(t => t);
       s.amb += ((s.dark ? 0.28 : 1) - s.amb) * Math.min(1, dt * 7); L.pal.ambient = s.amb;
       for (const c of L.creatures) c.dark = s.dark;
       apN.y1 = 2.7 * (1 - (shN.progress || 0)); apD.y1 = 2.4 * (1 - (shD.progress || 0));
-      const c = L.creature;
+      const c = L.creature, pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
       if (!L.won && c.lane.idx === 1 && c.dist < 6 && !s.rang) { s.rang = true; AUDIO.sfx('bell'); }
       if (!L.won && c.lane.idx === 0 && c.dist < 6.5 && !s.tapped) { s.tapped = true; AUDIO.sfx('glassTap'); }
+      // its way in is shut: round to the sign (unless it was already in, when the shutter holds it where it stands)
+      if (s.route === 'lane' && !c.dead && shut(c.lane)) { if (c.dist > (c.lane.barrierDist || 0) - 0.5) walkToSign(c); else s.route = 'inside'; }
+      if (c.lane.idx === SIGN && !L.won) {
+        const atGlass = c.dist <= L.lanes[SIGN].barrierDist + 0.05;
+        c.darkSpeed = atGlass ? 0.2 : 1;   // in the dark it comes through the glass, but slowly: the breakers take a few seconds
+        if (c.hold !== null && !s.dark && !s.tappedSign) { s.tappedSign = true; AUDIO.sfx('glassTap', pan); }
+        if (c.hold !== null && s.dark) {
+          c.hold = null; c.sealHold = false; c.sealHeldAt = undefined;
+          if (!s.gave) { s.gave = true; AUDIO.sfx('glassGive', pan); G.toast('The glass under the sign gives.'); }
+        }
+      }
+      // won: it stands where it is for a while, then turns and walks away like it had somewhere to be
+      if (L.won) {
+        if (s.route === 'lane') s.route = 'inside';
+        if ((s.route === 'sign' || s.route === 'inside') && s.standUntil === undefined) { s.standUntil = L.t + 2.5; c.hold = c.dist; }
+        if (s.standUntil !== undefined && L.t >= s.standUntil && !c.away) { c.hold = null; c.away = true; c.frozen = true; c.distFn = (cr, dt2) => cr.dist + dt2 * 1.2; s.awayAt = L.t; }
+      }
     };
+    L.aftermath = t => (L.creature.away && L.t - s.awayAt > 3) || t > 14;
     L.deathCause = c => c.dark ? 'dark' : null;
     L.dynamic = () => {
       // the fluorescent tubes
@@ -179,7 +223,7 @@ LEVELS.push({
         }
       }
       // the breaker panel: its door, or its switches
-      if (!s.panelOpen) R.add(SC.mkSprite(L, 2.2, 1.0, -2.41, 0.56, 0.56, (ctx, P) => { ctx.scale(0.56, 0.56); P_rect(ctx, -0.5, 0, 1, 1, P.col([100, 102, 108])); P_rect(ctx, -0.44, 0.06, 0.88, 0.88, P.col([84, 86, 92])); P_rect(ctx, 0.3, 0.45, 0.1, 0.1, P.col([40, 40, 44])); }));
+      if (!s.panelOpen) R.add(SC.mkSprite(L, 2.2, 1.0, -2.41, 0.56, 0.56, (ctx, P) => { ctx.scale(0.56, 0.56); P_rect(ctx, -0.5, 0, 1, 1, P.col([100, 102, 108])); P_rect(ctx, -0.44, 0.06, 0.88, 0.88, P.col([84, 86, 92])); P_rect(ctx, 0.3, 0.45, 0.1, 0.1, P.col([40, 40, 44])); if (!s.fixed && Math.sin(L.t * 5) > 0) P_ell(ctx, -0.3, 0.84, 0.06, 0.06, P.raw([255, 60, 40])); }));
       else {
         R.add(SC.mkSprite(L, 2.2, 1.0, -2.41, 0.56, 0.56, (ctx, P) => { ctx.scale(0.56, 0.56); P_rect(ctx, -0.5, 0, 1, 1, P.col([100, 102, 108])); P_rect(ctx, -0.44, 0.06, 0.88, 0.88, P.col([30, 30, 34])); }));
         R.add(SC.mkSprite(L, 2.2, 1.36, -2.4, 0.16, 0.2, (ctx, P) => { ctx.scale(0.16, 0.2); P_rect(ctx, -0.5, 0, 1, 1, P.col([50, 50, 56])); P_rect(ctx, -0.3, s.mainOn ? 0.5 : 0.1, 0.6, 0.4, P.col(s.mainOn ? [190, 60, 50] : [120, 122, 130])); }));

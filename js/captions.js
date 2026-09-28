@@ -3,7 +3,7 @@
 const CAPTIONS = (() => {
   const SFX = {
     bang: 'something hits the boards', crack: 'a board cracks', smash: 'the boards tear away', hammer: 'hammering', splash: 'a splash', dive: 'something goes under', wetThud: 'a wet blow',
-    thunder: 'thunder', horn: 'a train horn', brakes: 'brakes screaming', bell: 'a bell', glassTap: 'a tap on the glass', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
+    thunder: 'thunder', horn: 'a train horn', brakes: 'brakes screaming', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
     clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click',
     scrape: 'scratching', drawer: 'a drawer slides open', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', tick: 'a clock ticks', musicbox: 'a music box', birds: 'birdsong', start: 'the engine catches',
     crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', bar: 'a bar drops into place',

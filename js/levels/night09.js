@@ -9,8 +9,8 @@ LEVELS.push({
   weather: { kind: 'snow', density: 0.8, wind: 0.35 },
   lights: [{ x: 1.3, y: 2.1, z: -0.6, r: 5, i: 0.45, color: [255, 200, 130], flicker: 0.2 }, { x: -1.4, y: 1.7, z: -1.15, r: 3, i: 0.35, color: [255, 120, 50], flicker: 0.5 }],
   text: {
-    intro: 'The box is warm and the line is empty both ways, except that it is not. Something is walking the sleepers toward you, in step, the way a man walks who has done it every night for forty years.<br>Something else is coming across the field. The last train is late.',
-    hint: 'The signal lever holds him where he is, for a while. The points lever chooses which line the train takes. The bar goes across the door.',
+    intro: 'The box is warm and the line is empty both ways, except that it is not. Something is walking the sleepers toward you, in step, the way a man walks who has done it every night for forty years. He still stops for a red signal.<br>The last train is due inside the minute, and it will go down whichever line the points give it. Something else is coming across the snow to your door.',
+    hint: 'Pull the signal lever to hold him at danger for a while. Set the points lever to the near line, his line, before the train gets there. Bar the door the other one is coming to.',
     objective: 'Let the train have him. Bar the door.',
     death: { default: 'The window glass did not slow him down.', crawler: 'It came up the stairs faster than you could bar them.', road: 'It came up the ladder from the road faster than you could bar the door.' },
     win: 'The train did not stop for him. Afterwards something scratched at the door until it got light, and you sat with your back to the levers and did not answer it.',
@@ -112,7 +112,7 @@ LEVELS.push({
     const points = mkTarget(L, {
       id: 'points', name: 'Points lever', x: -0.55, y: FL + 0.45, z: 0.95, w: 0.3, h: 0.75,
       hint() { return 'The points. Set to the ' + (s.points === 'near' ? 'near line, straight at the buffers.' : 'far line, round past the box.'); },
-      onClick() { if (!frameOk()) return true; if (s.train && s.train.r > 270) { G.say('Too late. It is over the points.', 'Too late.'); AUDIO.sfx('nope'); return true; } s.points = s.points === 'near' ? 'far' : 'near'; AUDIO.sfx('lever'); G.shake(0.1); G.say('Points set to the ' + (s.points === 'near' ? 'near line.' : 'far line.'), 'Clunk.'); return true; },
+      onClick() { if (!frameOk()) return true; if (s.train && s.train.r > 270) { G.say('Too late. It is over the points.', 'Too late.'); AUDIO.sfx('nope'); return true; } s.points = s.points === 'near' ? 'far' : 'near'; AUDIO.sfx('lever'); G.shake(0.1); G.say(s.points === 'near' ? 'Points to the near line: his line, straight at the buffers.' : 'Points to the far line, round past the box.', s.points === 'near' ? 'Points to the near line.' : 'Points to the far line.'); return true; },
     });
     const signal = mkTarget(L, {
       id: 'signal', name: 'Signal lever', x: 0.55, y: FL + 0.45, z: 0.95, w: 0.3, h: 0.75,
@@ -122,7 +122,7 @@ LEVELS.push({
         if (!s.lampLit) { G.say('The lamp is dark. The signal shows nothing.', 'Nothing happens.'); AUDIO.sfx('lever'); return true; }
         if (s.red > 0) { G.say('Already at danger.', 'Already.'); return true; }
         if (s.stiff > 0) { G.say('It will not go over again yet.', 'Stiff.'); AUDIO.sfx('nope'); return true; }
-        s.red = s.holdFor; AUDIO.sfx('lever'); G.shake(0.1); G.say('Danger. He stops.', 'Red.'); return true;
+        s.red = s.holdFor; AUDIO.sfx('lever'); G.shake(0.1); G.say('The signal drops to danger. He stops.'); return true;
       },
     });
     if (needOil) mkTarget(L, {
@@ -145,16 +145,16 @@ LEVELS.push({
       return [-12 - (r - 314), 9, -1];
     };
     L.update = dt => {
-      if (s.red > 0) { s.red -= dt; if (s.red <= 0) { s.red = 0; s.stiff = L.tier(5, 5, 3); AUDIO.sfx('clunk'); G.say('The lever springs back. He walks.', 'He walks.'); } }
+      if (s.red > 0) { s.red -= dt; if (s.red <= 0) { s.red = 0; s.stiff = L.tier(5, 5, 3); AUDIO.sfx('clunk'); G.say('The signal lever springs back. He walks on.'); } }
       if (s.stiff > 0) s.stiff -= dt;
       const sm = smc();
       sm.held = s.red > 0;
       // the train appears far down the line and arrives on time, more or less
       const t0 = s.trainAt - 300 / 14;
-      if (!s.train && L.t >= t0) { s.train = { r: 0, v: 14 }; s.trainLine = null; AUDIO.sfx('horn', 0.6); }
+      if (!s.train && L.t >= t0) { s.train = { r: 0, v: 14 }; s.trainLine = null; AUDIO.sfx('horn', 0.6); G.toast('A light, far down the line. The train.'); }
       const tr = s.train;
       if (tr) {
-        if (tr.r >= 286 && !s.trainLine) { s.trainLine = s.points; if (s.trainLine === 'far') G.say('It takes the far line.', 'The far line.'); }
+        if (tr.r >= 286 && !s.trainLine) { s.trainLine = s.points; G.toast(s.trainLine === 'far' ? 'It takes the far line, round past the box.' : 'It takes the near line.'); }
         if (s.trainLine === 'near') { const x = 14 - (tr.r - 286); if (x < 18) tr.v = Math.max(0, tr.v - dt * 4.5); }
         tr.r += tr.v * dt;
         const front = route(tr.r), dist = Math.hypot(front[0], front[1]);

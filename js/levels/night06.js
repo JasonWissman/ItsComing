@@ -84,7 +84,7 @@ LEVELS.push({
       { x: 1.5, y: 0.92, z: -2.0 },                     // across the workbench
       { x: 1.6, y: 0, z: 1.0 },                         // near the side door
     ], { w: 1.6, h: 0.5, flat: true });
-    if (decoy) mkItem(L, 'oar', 'Oar', [{ x: -2.1, y: 0, z: 1.6 }, { x: 0.3, y: 0, z: -1.6 }], { w: 0.5, h: 1.2, flat: true, decoy: true, decoyText: 'It does not fit the winch.' });
+    if (decoy) mkItem(L, 'oar', 'Oar', [{ x: -2.1, y: 0, z: 1.6 }, { x: 2.3, y: 0, z: 1.7, flat: false }], { w: 0.5, h: 1.2, flat: true, decoy: true, decoyText: 'It does not fit the winch.' });
     Object.assign(s, { handleIn: false, needPin: L.diff.tier >= 2, sealedN: false, sealedE: false, doorOpen: true, doorClosing: 0, doorClosed: false, doorA: 72 * DEG, lastK: 0 });
     if (s.needPin) mkContainer(L, {
       id: 'tacklebox', name: 'Tackle box', w: 0.45, h: 0.3, color: [62, 88, 72],
