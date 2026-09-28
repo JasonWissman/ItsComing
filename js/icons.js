@@ -1,5 +1,21 @@
 'use strict';
 // ---------- item icons. Each draws inside a unit box: x in [-0.5,0.5], y in [0,1], +y up ----------
+// a heart: the music box's keyhole plate, and the bow of its own key
+function heartShape(ctx, x, y, s, col, hole) {
+  P_ell(ctx, x - s * 0.5, y + s * 0.25, s * 0.52, s * 0.5, col); P_ell(ctx, x + s * 0.5, y + s * 0.25, s * 0.52, s * 0.5, col);
+  P_poly(ctx, [[x - s * 1.0, y + s * 0.15], [x + s * 1.0, y + s * 0.15], [x, y - s * 0.95]], col);
+  if (hole) P_ell(ctx, x, y + s * 0.1, s * 0.25, s * 0.25, hole);
+}
+// a small key, pointing down, told apart from the others only by the shape of its bow
+function smallKey(ctx, P, bow, rgb) {
+  const m = P.col(rgb), d = P.col(scalec(rgb, 0.55));
+  P_line(ctx, 0, 0.62, 0, 0.12, 0.09, m);
+  P_rect(ctx, 0, 0.1, 0.16, 0.07, m); P_rect(ctx, 0, 0.22, 0.11, 0.06, m);
+  if (bow === 'heart') heartShape(ctx, 0, 0.76, 0.2, m, d);
+  else if (bow === 'square') { P_rect(ctx, -0.17, 0.62, 0.34, 0.3, m); P_rect(ctx, -0.08, 0.7, 0.16, 0.14, d); }
+  else if (bow === 'clover') { for (const [x, y] of [[-0.1, 0.76], [0.1, 0.76], [0, 0.92]]) P_ell(ctx, x, y, 0.1, 0.1, m); P_ell(ctx, 0, 0.8, 0.04, 0.04, d); }
+  else { P_ell(ctx, 0, 0.78, 0.18, 0.18, m); P_ell(ctx, 0, 0.78, 0.08, 0.08, d); }
+}
 const ICONS = {
   hammer(ctx, P) {
     ctx.save(); ctx.rotate(-0.55);
@@ -185,14 +201,21 @@ const ICONS = {
     P_poly(ctx, [[-0.34, 0.47], [0.34, 0.47], [0.3, 0.72], [-0.3, 0.72]], lacD);
     P_ell(ctx, 0, 0.78, 0.045, 0.08, pale); P_ell(ctx, 0, 0.9, 0.03, 0.03, pale);
     P_line(ctx, 0.36, 0.25, 0.48, 0.25, 0.04, brass); P_line(ctx, 0.48, 0.25, 0.48, 0.36, 0.04, brass);
-    P_rect(ctx, -0.04, 0.2, 0.08, 0.1, brass);
+    heartShape(ctx, 0, 0.25, 0.075, brass, P.col([30, 12, 16]));
   },
+  // the Mirror Maze's keys: only the heart fits the box
+  boxkey(ctx, P) { smallKey(ctx, P, 'heart', [204, 170, 92]); },
+  keyRound(ctx, P) { smallKey(ctx, P, 'round', [176, 168, 146]); },
+  keySquare(ctx, P) { smallKey(ctx, P, 'square', [184, 156, 104]); },
+  keyClover(ctx, P) { smallKey(ctx, P, 'clover', [156, 134, 88]); },
+  keyIron(ctx, P) { smallKey(ctx, P, 'round', [96, 94, 98]); },
   brokenbox(ctx, P) {
     const lac = P.col([90, 30, 40]), lacD = P.col([50, 16, 24]), brass = P.col([180, 150, 80]), dark = P.col([20, 12, 14]);
     P_rect(ctx, -0.34, 0.08, 0.68, 0.38, lac); P_rect(ctx, -0.3, 0.14, 0.6, 0.28, dark);
     P_poly(ctx, [[-0.34, 0.46], [-0.1, 0.46], [-0.2, 0.9], [-0.44, 0.9]], lacD);
     P_line(ctx, 0.36, 0.25, 0.48, 0.25, 0.04, brass);
     P_line(ctx, -0.05, 0.2, 0.2, 0.34, 0.02, brass);
+    heartShape(ctx, 0.2, 0.2, 0.06, brass, dark);
   },
   spring(ctx, P) {
     const st = P.col([150, 150, 156]);

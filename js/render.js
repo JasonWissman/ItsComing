@@ -150,6 +150,7 @@ const R = (() => {
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
   // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, noFog?, layer?, hit?, dist?, fogScale?, onRect?}
+  // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   function measure(p) {
     if (p.dist === undefined) {
       if (p.kind === 'poly') {
@@ -162,6 +163,7 @@ const R = (() => {
       p.cx = cx / p.pts.length; p.cy = cy / p.pts.length; p.cz = cz / p.pts.length;
     }
     if (p.layer === undefined) p.layer = 1;
+    p.sd = p.sortDist === undefined ? p.dist : p.sortDist;
   }
   function add(p) { measure(p); list.push(p); }
   // angular extent of a static prop around the eye, for view culling
@@ -189,7 +191,7 @@ const R = (() => {
     if (phi <= 0) return false;
     return Math.sin(phi) * p.dNear > k * (Math.max(0, eyeH - p.yLow) * sp + p.dNear * Math.cos(phi) * cp) + 0.35;
   }
-  const order = (a, b) => (a.layer - b.layer) || (b.dist - a.dist);
+  const order = (a, b) => (a.layer - b.layer) || (b.sd - a.sd);
   // register a level's static props: measured, given an extent, sorted once
   function prepare(props) {
     for (const p of props) { measure(p); extent(p); }
