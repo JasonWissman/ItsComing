@@ -58,7 +58,8 @@ function makeCreature(L, cd, k) {
   const lane = L.lanes[laneIdx];
   const c = {
     type: cd.type, CR, lane, yaw: lane.yaw, idx: k,
-    D0: cd.startDist * vDist, T: cd.time * diff.time * vTime, gamma: cd.gamma || 0.72,
+    // a lane may set its own start distance, and a limit on it (the back of a closet)
+    D0: Math.min(lane.maxStart || Infinity, (lane.startDist || cd.startDist) * vDist), T: cd.time * diff.time * vTime, gamma: cd.gamma || 0.72,
     seenMult: cd.seenMult === undefined ? 1 : cd.seenMult, unseenMult: (cd.unseenMult === undefined ? 1.3 : cd.unseenMult) * diff.unseen,
     u: 0, dist: 0, gait: 0, t: 0, seen: true, seenLast: true, visFrac: 1, visible: true, lit: 0, lat: 0, yOff: 0, lunge: 0,
     frozen: false, reached: false, hits: 0, dead: false, moving: false,
@@ -187,23 +188,15 @@ function showTitle() {
   setState('title');
   MENU.show('title'); G.overlayArmed = 0; // nothing on the title can be skipped by accident, so it takes a click or Enter at once
 }
-function startMorning() {
-  const L = G.L; MENU.clear();
+// the end of the last night: it has glittered away and the room is the bedroom, in the morning; the campaign is marked
+// complete for this difficulty, the light theme stays on the title until a new run, and the last screen offers one
+function finishEnding() {
+  const L = G.L;
   SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id); SAVE.setSetting('theme', 'day');
-  if (L.onEnd) L.onEnd();
-  AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear();
-  G.inv = []; G.hover = null;
-  const def = STORY.morningDef();
-  G.L = buildLevelDef(def, LEVELS.length);
-  R.prepare(G.L.props);
-  WEATHER.set(def.weather, 7);
-  const c = G.cam; c.dirIdx = 1; c.tYaw = c.yaw = 45 * DEG; c.tPitch = c.pitch = 0; c.zoom = 1; c.zoomHeld = false;
-  G.danger = 0; G.fade = 0; G.fadeTarget = 0; G.white = 1; G.whiteTarget = 0;
+  AUDIO.stopLoop(); Seq.clear();
   STORY.theme(true);
-  setState('morning');
-  hideOverlay();
-  if (AUDIO.on()) AUDIO.startAmbient({ wind: 0.25, drone: 0 });
-  Seq.play({ dur: 11, beats: [{ every: 2.2, from: 1, do: () => AUDIO.sfx('birds', Math.random() - 0.5) }, { at: 6.5, do: () => showOverlay('<h1 class="big">IT\'S MORNING.</h1>') }], then: () => { setState('end'); MENU.show('nights', { from: 'title' }); } });
+  setState('end');
+  MENU.show('ending');
 }
 function proceedFromSurvived() {
   const next = G.levelIndex + 1;
@@ -216,7 +209,7 @@ function onKeyDown(e) {
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
   if (e.repeat) return;
   if (k === 'm' || k === 'M') { toggleMute(); return; }
-  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card' && G.state !== 'morning') { restartLevel(); return; }
+  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
   if (G.state !== 'play' && MENU.onKey(e)) return;
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
   if (G.state === 'title' && k >= '1' && k <= String(DIFFICULTIES.length)) { setDifficulty(k.charCodeAt(0) - 49); return; }
@@ -541,7 +534,7 @@ function update(dt) {
   if (watching) lookAtCreature(G.L.creature);
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
-  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching ? 1.35 : 1;
+  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? 1.35 : 1;
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
@@ -575,7 +568,7 @@ function update(dt) {
       G.danger *= Math.exp(-dt * 2);
       const a = L.after;
       const done = a.custom ? L.aftermath(L.aftermathT, dt) : L.aftermathT >= a.dur;
-      if (done && L.def.ending) { if (G.white > 0.97) startMorning(); }
+      if (done && L.def.ending) finishEnding();
       else if (done) {
         if (G.fadeTarget < 1) { G.fadeTarget = 1; AUDIO.sfx('win'); AUDIO.stopAmbient(); }
         if (G.fade > 0.97) {
@@ -606,9 +599,9 @@ function update(dt) {
   } else if (G.state === 'title') {
     L.t += dt * 0.25; for (const cr of L.creatures) cr.t += dt * 0.25;
     c.tYaw = Math.sin(G.t * 0.05) * 0.25;
-  } else if (G.state === 'morning') {
-    L.t += dt; Seq.update(dt);
-    c.tYaw = 45 * DEG + Math.sin(L.t * 0.12) * 0.35; c.tPitch = Math.max(0, Math.sin(L.t * 0.09)) * 0.15;
+  } else if (G.state === 'end') {
+    L.t += dt;   // the morning after: the view wanders the room a little behind the last screen
+    c.tYaw = c.yaw + wrapPi(L.facing + Math.sin(L.t * 0.12) * 0.35 - c.yaw); c.tPitch = Math.max(0, Math.sin(L.t * 0.09)) * 0.12;
   }
 }
 
@@ -745,8 +738,8 @@ function render() {
     danger: G.danger, flash: G.flashAmt, fade: G.fade, white: G.white, dangerCap: S.reducedFlash ? 0.35 : 0.75, flashCap: S.reducedFlash ? 0.2 : 1,
     glows: L.glows ? L.glows() : null,
     drawOverlay: (ctx, W, H) => drawGunOverlay(ctx, W, H),
-    grain: G.state === 'title' ? 0.05 : G.state === 'morning' ? 0.03 : 0.07 + G.danger * 0.05,
-    vignette: G.state === 'morning' ? 0.25 : 0.9,
+    grain: G.state === 'title' ? 0.05 : 0.07 + G.danger * 0.05 - (L.s.reveal || 0) * 0.04,
+    vignette: 0.9 - (L.s.reveal || 0) * 0.65,   // the last night's morning is bright to the corners
   });
   updateHover();
   updateHUD();
@@ -766,7 +759,7 @@ function drawGunOverlay(ctx, W, H) {
 // ---------------- HUD ----------------
 function updateHUD() {
   const L = G.L, c = G.cam;
-  const playing = G.state === 'play' || G.state === 'won';
+  const playing = G.state === 'play' || (G.state === 'won' && !L.def.ending);   // the ending plays without the compass
   UI.hud.style.opacity = playing ? 1 : 0;
   if (!playing) return;
   const cur = c.dirIdx;

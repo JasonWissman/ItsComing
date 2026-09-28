@@ -11,7 +11,7 @@ const APPROACH = (() => {
     return {
       idx, name: def.name || ('lane' + idx), deg, elev, yaw, y: def.y || 0,
       apertures: (def.apertures || []).slice(), blockers: (def.blockers || []).slice(),
-      barrierDist: def.barrierDist, cue: def.cue || null, follow: def.follow || null, ramp: !!def.ramp, noSwitch: !!def.noSwitch,
+      barrierDist: def.barrierDist, startDist: def.startDist, maxStart: def.maxStart, cue: def.cue || null, follow: def.follow || null, ramp: !!def.ramp, noSwitch: !!def.noSwitch,
       dirX: Math.sin(yaw), dirZ: Math.cos(yaw),
     };
   }

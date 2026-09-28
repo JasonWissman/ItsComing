@@ -85,29 +85,6 @@ const STORY = (() => {
     SC.wallV(L, 0.2, -1.09, 1.0, -1.09, 1.5, 2.1, day ? [180, 190, 170] : [40, 44, 40]); SC.wallV(L, 0.16, -1.085, 1.04, -1.085, 1.46, 1.5, wood); SC.wallV(L, 0.16, -1.085, 1.04, -1.085, 2.1, 2.14, wood);
     return { apN, apW, lamp: [1.2, 0.62, 0.15] };
   }
-  // the ending: the same room in the morning, sun through the window, dust in the air, no one in the doorway
-  function morningDef() {
-    return {
-      id: 'morning', title: 'Morning', facing: 0, eyeH: 1.15, laneMode: 'default', laneSwitch: false,
-      pal: { skyTop: [150, 190, 240], fog: [236, 236, 238], ground: [200, 190, 170], fogDist: 60 },
-      ambient: { wind: 0.25, drone: 0 },
-      weather: { kind: 'motes', density: 1.2, wind: 0.1 },
-      lights: [{ x: 3.4, y: 2.4, z: 1.6, r: 12, i: 0.55, color: [255, 244, 210], cone: { x: -1, y: -0.45, z: -0.15, deg: 40 } }],
-      text: { intro: '', hint: '', objective: '', death: {}, win: '' },
-      lanes: [{ deg: 0, name: 'the doorway', barrierDist: 0 }],
-      creatures: [{ type: 'none', startDist: 200, time: 1e9 }],
-      aftermath: { type: 'stand' },
-      build(L) {
-        buildBedroom(L, true);
-        lamp(L, 1.2, 0.62, 0.15, { lit: false });
-        L.isWon = () => false;
-        L.glows = () => { const p = L.pt(2.2, 1.45, 1.6); return [{ x: p[0], y: p[1], z: p[2], r: 2.2, color: [255, 246, 220], a: 0.4 }]; };
-        L.floor = { poly: [[-0.7, -0.9], [0.7, -0.9], [0.7, 1.8], [-0.7, 1.8]], y: 0.58 };
-      },
-    };
-  }
   function theme(day) { if (day) document.documentElement.setAttribute('data-theme', 'day'); else document.documentElement.removeAttribute('data-theme'); }
-  return { lamp, clock, startNight, update, buildBedroom, morningDef, theme };
+  return { lamp, clock, startNight, update, buildBedroom, theme };
 })();
-// nothing at all: the morning's creature
-CREATURES.none = { name: 'nothing', h: 0.1, w: 0.1, faceY: 0.05, stepRate: 0, catchDist: 0, sound: null, init(c) { c.dead = true; }, hidden() { return true; }, speedMult() { return 0; }, draw() {} };

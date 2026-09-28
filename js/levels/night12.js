@@ -16,10 +16,10 @@ LEVELS.push({
     fragment: 'It stood there until the room went grey. You could hear the clock the whole time.',
   },
   lanes: [
-    { deg: 0, name: 'the doorway', barrierDist: 1.9, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
-    { deg: 270, name: 'the closet', barrierDist: 1.6, cue: 'hangers', apertures: [{ z: 3.2, x0: -0.9, x1: 0.9, y0: 0, y1: 2.2 }] },
+    { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.0, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
+    { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 3.6, maxStart: 3.85, cue: 'hangers', apertures: [{ z: 3.2, x0: -0.9, x1: 0.9, y0: 0, y1: 2.2 }] },
   ],
-  creatures: [{ type: 'tall', startDist: 3.4, time: 70, gamma: 0.9, unseenMult: 2.5 }],
+  creatures: [{ type: 'tall', startDist: 4.0, time: 70, gamma: 0.9, unseenMult: 2.5 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;

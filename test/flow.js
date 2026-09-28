@@ -14,9 +14,11 @@ const { check, st, face, findHit, clickAt, lookForAndClick } = T;
   check((await st(page)).state === 'card', 'Space does not skip the card');
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
   check((await st(page)).state === 'play', 'click starts the night');
-  await lookForAndClick(page, 'item', 'hammer'); await lookForAndClick(page, 'item', 'planks');
+  await lookForAndClick(page, 'item', 'hammer');
+  const planks = await page.evaluate(() => G.L.items.filter(i => i.id === 'planks' && !i.taken).length);   // loose planks all round the house, every one needed
+  for (let i = 0; i < planks; i++) await lookForAndClick(page, 'item', 'planks');
   await face(page, 0, false);
-  for (let i = 0; i < 3; i++) { await clickAt(page, await findHit(page, 'target', 'door')); await page.waitForTimeout(150); }
+  for (let i = 0; i < planks; i++) { await clickAt(page, await findHit(page, 'target', 'door')); await page.waitForTimeout(150); }
   check((await st(page)).won, 'night 1 won');
   const t0 = Date.now(); while (Date.now() - t0 < 12000 && (await st(page)).state !== 'survived') await page.waitForTimeout(200);
   await page.waitForTimeout(600); // overlays arm 350 ms after they show

@@ -7,5 +7,5 @@ module.exports = {
   normal: [['pickup', 'keys'], ['use', 'ignition'], ['expect', 'G.L.s.keyIn', 'key inserted'], ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6]],
   hard: [['pickup', 'keys'], ['use', 'ignition'], ['expect', 'G.L.s.keyIn', 'key inserted'], ['use', 'choke'], ['expect', 'G.L.s.choke', 'choke pulled'], ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6]],
   nightmare: [['pickup', 'housekeys'], ['use', 'ignition'], ['expect', '!G.L.s.keyIn', 'house keys refused'], ['pickup', 'keys'], ['use', 'ignition'], ['expect', 'G.L.s.keyIn', 'key inserted'], ['use', 'choke'], ['expect', 'G.L.s.choke', 'choke pulled'],
-    ['click', 'ignition'], ['waitUntil', 'G.L.s.cranking <= 0 && G.L.s.cranks === 1', 4000], ['click', 'ignition'], ['expect', 'G.L.s.cranks === 0 && G.L.s.cranking > 0', 'a second crank inside three seconds floods it'], crankWhenReady, ['expect', 'G.L.s.started', 'engine started']],
+    ['use', 'ignition'], ['waitUntil', 'G.L.s.cranking <= 0 && G.L.s.cranks === 1', 4000], ['click', 'ignition'], ['expect', 'G.L.s.cranks === 0 && G.L.s.cranking > 0', 'a second crank inside three seconds floods it'], crankWhenReady, ['expect', 'G.L.s.started', 'engine started']],
 };

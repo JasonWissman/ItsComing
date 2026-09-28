@@ -22,6 +22,8 @@ const MENU = (() => {
         return '<h1>Paused</h1><p class="intro">It is not.</p><div class="mcol">' + btn('resume', 'Resume') + btn('restart', 'Start the night over') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('title', 'Back to the title') + '</div><p class="fine">Esc resumes</p>';
       case 'dead':
         return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + (G.debug || G.diff().tier >= 3 ? '<p class="fine">seed ' + G.runSeed + '</p>' : '');
+      case 'ending':   // the last screen of the last night, over the morning room
+        return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('again', 'Play again') + '</div>';
       case 'survived':
         return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'The next night') + btn('nights', 'Nights') + '</div>';
       case 'nights': {
@@ -90,6 +92,7 @@ const MENU = (() => {
   function act(a, arg) {
     switch (a) {
       case 'begin': startLevel(0, true); break;
+      case 'again': if (G.seed === null) G.runSeed = Date.now() % 1000000; startLevel(0, true); break;   // a new run: new layouts, unless the seed is fixed
       case 'continue': startLevel(G.unlocked, true); break;
       case 'nights': show('nights', { from: current && (current.kind === 'fragments' ? current.data.from : current.kind === 'pause' ? 'pause' : current.kind === 'dead' ? 'dead' : current.kind === 'survived' ? 'survived' : 'title') }); break;
       case 'settings': show('settings', { from: arg || 'title' }); break;

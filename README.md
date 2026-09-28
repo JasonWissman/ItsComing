@@ -51,8 +51,9 @@ slider, A presses or ticks, and B goes back as Escape does.
 Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
 dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
 line at a time, with a marker for which side a sound came from), a text size
-slider and a switch to put the touch controls on the left. The two reduction settings default on when your system asks for reduced
-motion.
+slider, a switch to put the touch controls on the left, and one for surface detail (boards, logs and stone
+built into walls and floors; off is faster on slow machines). The two reduction settings default on when your
+system asks for reduced motion.
 
 ## Difficulty
 
@@ -84,7 +85,7 @@ Items are scattered around you in different directions, some at eye level and
 some on the ground, so you have to turn and look down to find them.
 
 1. **The Field.** A tall thin walker crosses a moonlit field toward the open back
-   door of a farmhouse. Find the hammer and the planks and board the door up.
+   door of a farmhouse. Find the hammer and every loose plank around the house, and board the door up.
 2. **The Road.** Your car has stalled. Something pale comes up the road on all
    fours, in bursts, in the headlights. Find the keys and start the engine.
 3. **The Graveyard.** A smiling man walks between the graves and never stops
@@ -99,27 +100,31 @@ some on the ground, so you have to turn and look down to find them.
    the tower. You only see it by looking over the rail. Fit the fuse and wind
    the clockwork so the beam turns.
 8. **The Diner.** A man-shaped thing in the lot that only moves while you are
-   looking at it, and freely once the lights are gone. Hold the shutter down
-   and reset the breakers before the last tube dies.
+   looking at it, and freely once the lights are gone. Hold the shutter down over
+   its way in and it goes round to the window under the OPEN sign, where only the
+   light holds it; reset the breakers before the last tube dies.
 9. **The Crossing.** Two things. A signalman walks the line straight at your box
-   and obeys the signal; something else comes across the field for the stairs.
-   Hold him with the signal, set the points, let the train have him, bar the door.
-10. **The Mirror Maze.** It is always behind you and you only ever see it in the
-    glass. It moves while no mirror shows it. Wind the music box and it comes
-    to the tune instead of to you.
+   and stops for a red signal; something else comes across the snow for the door.
+   Hold him at danger, set the points to his line before the train comes, bar the door.
+10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
+    it in the glass: facing a mirror holds it. One of the four mirrors is not like the
+    others. Put the music box on that mirror's pedestal, fit the key with the heart and
+    wind it, and it comes to the tune, smiling, instead of to you.
 11. **The Barn.** It goes faster the more you carry. Fill the lantern, light it,
     and throw it into the hay between you, carrying as little as you can.
 12. **The Bedroom.** You are in bed. It is already in the doorway, or in the
     closet, moving in extreme slow motion. Get the lamp on, pull the covers up.
 13. **The Void.** Everything you ever held against it lies around you, and you
-    start the night holding some of it. Holding anything makes it angrier.
+    start the night holding some of it. Holding anything enrages it. Put it all down
+    and let it come.
 
 Creatures move faster when you are not looking at them, and all of them
 accelerate as they close in. Difficulty scales both. A thread runs through the
 nights that the text never states: the same lamp is somewhere in every room, a
 clock ticks for the first ten seconds of each night from the same direction, and
 surviving a night leaves a fragment, one odd sentence, collected on the Nights
-screen. Finishing the last night switches the game to a light theme.
+screen. Finishing the last night lightens the void into the bedroom, in the morning,
+and switches the game to a light theme.
 
 Each night is a little different every time it loads: every item has several
 places it might be, the creature's starting distance and pace vary slightly,
@@ -171,7 +176,8 @@ LEVELS.push({
   `SC.window` and `SC.gap` build the wall pieces and return the matching aperture. `buildLevel`
   picks the lane (the default below Hard, a seeded pick on Hard, random on Nightmare, or the
   night's own `laneMode`) and `validateContent()` fails a lane that is not at least 85% visible
-  at every metre. `L.lane` is the chosen lane inside `build`.
+  at every metre. `L.lane` is the chosen lane inside `build`. A lane may set its own `startDist`
+  (and a `maxStart` cap, for the back of a closet).
 - **Creatures** are listed in `creatures`; each gets its own lane, timer and seeded random
   stream. `CREATURES[type]` provides `draw`, `speedMult`, optional `onSeen`, `lateral`,
   `timeScale` (slow motion), `death` ({ delay, dur, sting, pose }) and `seenFrac`.
@@ -197,6 +203,10 @@ LEVELS.push({
   `laneSwitch: false` opts out of both. `laneMode: 'default'` or `'random'` overrides how the first
   way is picked (Easy always takes the default; Hard keeps one way for the whole run; Nightmare rolls
   again on every attempt).
+- **Surfaces and drawing order**: `SC.quad(..., { tex: 'planks' | 'logs' | 'stone' | 'tin', texScale })`
+  builds boards, logs, stone blocks or tin bands as real pieces on top of the quad (dropped with
+  distance, and switched off by the surface detail setting). A renderable's `sortDist` orders it
+  without changing its fog, and `alpha` fades polys and sprites (the last night's room comes up that way).
 - **Feedback text** goes through `G.say(specific, vague)`: the first is shown with hints on, the
   second otherwise.
 - Every night has a solution in `test/nights/nightNN.js` so the suite can play it.

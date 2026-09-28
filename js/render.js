@@ -149,7 +149,7 @@ const R = (() => {
 
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
-  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, noFog?, layer?, hit?, dist?, fogScale?, onRect?}
+  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   function measure(p) {
     if (p.dist === undefined) {
@@ -200,6 +200,7 @@ const R = (() => {
 
   function drawPoly(p) {
     if (p.detail && !detailOn) return; // surface detail (boards, stone) can be switched off in Settings
+    if (p.alpha !== undefined && p.alpha <= 0.004) return; // faded out entirely (the last night's room, before the light)
     let cs = new Array(p.pts.length);
     let anyIn = false;
     for (let i = 0; i < p.pts.length; i++) { const v = p.pts[i]; cs[i] = toCam(v[0], v[1], v[2]); if (cs[i][2] >= NEAR) anyIn = true; }
@@ -250,6 +251,7 @@ const R = (() => {
   }
 
   function drawSprite(p) {
+    if (p.alpha !== undefined && p.alpha <= 0.004) { if (p.onRect) p.onRect(null); return; }
     const base = toCam(p.x, p.y, p.z);
     if (base[2] < NEAR) { if (p.onRect) p.onRect(null); return; }
     const b = proj(base);
@@ -273,6 +275,7 @@ const R = (() => {
       if (hov) { ctx.save(); ctx.transform(ax, ay, bx, by, b[0], b[1]); ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 16; ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'lighter'; p.draw(ctx, spriteP(p), s); ctx.restore(); }
       ctx.save();
       ctx.transform(ax, ay, bx, by, b[0], b[1]);
+      if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
       p.draw(ctx, spriteP(p), s);
       ctx.restore();
       if (hov && p.hit.kind === 'target') { ctx.save(); ctx.transform(ax, ay, bx, by, b[0], b[1]); ctx.strokeStyle = 'rgba(255,236,190,0.55)'; ctx.lineWidth = 0.02; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 10; ctx.strokeRect(-p.w / 2, 0, p.w, p.h); ctx.restore(); }
@@ -289,6 +292,7 @@ const R = (() => {
       ctx.save();
       ctx.translate(b[0], b[1]);
       ctx.scale(s, -(hpx / p.h));
+      if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
       p.draw(ctx, spriteP(p), s);
       ctx.restore();
       if (hov && p.hit.kind === 'target') { ctx.save(); ctx.strokeStyle = 'rgba(255,236,190,0.5)'; ctx.lineWidth = 1.5; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 12; ctx.strokeRect(rect.x + 2, rect.y + 2, rect.w - 4, rect.h - 4); ctx.restore(); }

@@ -1,9 +1,9 @@
 'use strict';
-// The tall one: the walker's shape, three metres of it, ducking under the door frame or standing among the
+// The tall one: the walker's shape, a head taller than anyone, ducking under the door frame or standing among the
 // hanging clothes, moving in extreme slow motion. Its own clock runs at timeScale so every jerk is slowed.
 // Light slows it further (c.inLight is set by the night).
 CREATURES.tall = {
-  name: 'the tall one', h: 3.0, w: 1.4, faceY: 2.6, stepRate: 1.3, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
+  name: 'the tall one', h: 2.3, w: 1.1, faceY: 2.0, stepRate: 1.3, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
   death: { delay: 0.6, dur: 1.4, sting: 'stingHum' },
   voice: { kind: 'slow', every: [6, 12] },
   init(c) { c.inLight = false; },
@@ -12,6 +12,7 @@ CREATURES.tall = {
     const g = c.gait, t = c.t, near = clamp(1 - c.dist / 3.2, 0, 1), lunge = c.lunge || 0;
     const body = P.col([8, 7, 10]), skin = P.col([120, 108, 110]), eye = P.col([232, 228, 214]), black = P.col([2, 2, 3]);
     const duck = 0.18;   // it is too tall for the room
+    ctx.save(); ctx.scale(0.77, 0.77);   // drawn at three metres, stood at two and a bit
     const bob = Math.abs(Math.sin(g)) * 0.03, sway = Math.sin(g) * 0.03;
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? Math.PI : 0), lift = Math.max(0, Math.sin(ph)) * 0.22;
@@ -38,6 +39,7 @@ CREATURES.tall = {
     P_ell(ctx, -0.04, 0.36, 0.007, 0.007, black); P_ell(ctx, 0.04, 0.36, 0.007, 0.007, black);
     const mouth = 0.015 + near * 0.04 + lunge * 0.05;
     P_ell(ctx, 0, 0.23, 0.03 + near * 0.015, mouth, black);
+    ctx.restore();
     ctx.restore();
   }
 };

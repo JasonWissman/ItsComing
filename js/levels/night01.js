@@ -90,7 +90,8 @@ LEVELS.push({
       { x: 0.9, y: 0, z: -1.9 },                        // on the floor by the front door
       { x: -1.95, y: 0.48, z: -1.85 },                  // on the chair
     ], { w: 0.22, h: 0.22, flat: true, tool: true });
-    if (decoy) mkItem(L, 'rotten', 'Plank', [{ x: 0.6, y: 0, z: 0.9 }, { x: -1.9, y: 0, z: -0.6 }], { w: 1.1, h: 0.26, flat: true, icon: 'planks', decoy: true, decoyText: 'Rotten. They come apart in your hands.' });
+    if (decoy) mkItem(L, 'rotten', 'Plank', [{ x: 0.0, y: 0, z: -0.95 }, { x: -0.9, y: 0, z: 0.95 }],   // nearer than any real plank's spot, so never lying across one
+      { w: 1.1, h: 0.26, flat: true, icon: 'planks', decoy: true, decoyText: 'Rotten. They come apart in your hands.' });
     mkItem(L, 'bottle', 'Empty bottle', [
       { x: -2.55, y: 1.28, z: 1.0 },                     // on the shelf
       { x: 2.05, y: 0.78, z: 0.05 },                    // on the table
