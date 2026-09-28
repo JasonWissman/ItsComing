@@ -1,7 +1,7 @@
 'use strict';
 // ---------- game state, input, interaction, HUD and the main loop ----------
 const LIST_SCREENS = ['nights', 'settings', 'fragments']; // menu screens with their own buttons: not click-anywhere
-const PITCH_DOWN = 58 * DEG;
+const PITCH_DOWN = 45 * DEG; // looking down: enough to see the floor around you without a lurch of the view
 const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // difficulty is a table of knobs read by buildLevel and by each night's build(L) through L.tier()
 const DIFFICULTIES = [
@@ -304,6 +304,9 @@ function onClick(e) {
 
 // ---------------- inventory / interaction ----------------
 function pickup(it) {
+  // things that stack (single planks) join the pile already in hand instead of taking a new slot
+  const pile = it.stack && G.inv.find(i => i.id === it.id && i !== it);
+  if (pile) { pile.uses += it.uses; it.taken = true; G.active = G.inv.indexOf(pile); G.invSig = ''; AUDIO.sfx('pickup'); if (G.L.onPickup) G.L.onPickup(it); G.hover = null; return; }
   if (G.inv.length >= 6) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); return; }
   it.taken = true; G.inv.push(it); G.active = G.inv.length - 1;
   AUDIO.sfx('pickup');
@@ -460,6 +463,13 @@ function startAftermath(L) {
   L.after = maker(L, spec);
   if (L.after.seq) Seq.play(L.after.seq);
 }
+// aim the view at a creature: turn toward where it really is and tilt to its chest, no lower than looking down
+function lookAtCreature(cr) {
+  const cp = cr.pos(), hd = Math.max(0.3, Math.hypot(cp.x, cp.z)), yawTo = Math.atan2(cp.x, cp.z);
+  G.cam.tYaw = G.cam.yaw + wrapPi(yawTo - G.cam.yaw);
+  G.cam.dirIdx = ((Math.round(yawTo / (45 * DEG)) % 8) + 8) % 8;
+  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH - (cp.y + (cr.yOff || 0) + cr.CR.h * 0.6), hd), 0, PITCH_DOWN);
+}
 function win() {
   const L = G.L; L.won = true; L.aftermathT = 0;
   for (const c of L.creatures) if (c.sealHold) { c.hold = null; c.sealHold = false; } // the aftermath decides where it stands now
@@ -525,10 +535,13 @@ function update(dt) {
   G.t += dt;
   const L = G.L; if (!L) return;
   const c = G.cam;
-  c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * 11));
-  c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * 10));
-  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : 1;
-  c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * 8));
+  // once the night is won the view turns slowly to follow the thing and closes in a little, so you see how it ends
+  const watching = G.state === 'won' && G.L && G.L.creature;
+  if (watching) lookAtCreature(G.L.creature);
+  c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
+  c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
+  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching ? 1.35 : 1;
+  c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
   const sh = S.reducedMotion ? G.shakeAmt * 6 : G.shakeAmt * 16 + G.danger * 2;
@@ -538,7 +551,6 @@ function update(dt) {
   G.white += (G.whiteTarget - G.white) * (1 - Math.exp(-dt * (G.whiteTarget > G.white ? 1.2 : 0.9)));
   if (G.toastT > 0) { G.toastT -= dt; if (G.toastT <= 0) UI.toast.classList.remove('show'); }
   if (L.s.recoil > 0) L.s.recoil = Math.max(0, L.s.recoil - dt * 4);
-  HANDS.update(dt);
   if (G.state !== 'paused') {
     // fog rolls: visibility breathes, and a scripted bank can swallow the thing for a while
     const fr = L.def.weather && L.def.weather.fogRoll;
@@ -678,7 +690,9 @@ function maybeSwitchLane(L, c) {
 function nearestCreature(L) { let best = null; for (const c of L.creatures) if (!c.dead && (!best || c.dist < best.dist)) best = c; return best || L.creature; }
 function heartbeat(dt) {
   const L = G.L, c = nearestCreature(L);
-  const prox = clamp(1 - (c.dist - 2) / 48, 0, 1);
+  // silent until it has come half of its way in (and never beyond 50 m), strongest as it reaches you
+  const from = Math.min(50, c.D0 / 2), to = c.catchDist || 1.5;
+  const prox = clamp(1 - (c.dist - to) / Math.max(0.5, from - to), 0, 1);
   const interval = lerp(1.35, 0.32, Math.pow(prox, 1.5));
   if (G.t >= G.hb.next) {
     if (!G.muted && prox > 0.02) AUDIO.heartbeat(0.04 + prox * 0.5, prox > 0.7);

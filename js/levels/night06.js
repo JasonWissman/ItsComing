@@ -90,7 +90,7 @@ LEVELS.push({
       id: 'tacklebox', name: 'Tackle box', w: 0.45, h: 0.3, color: [62, 88, 72],
       spot: [{ x: 1.9, y: 0.92, z: -2.0 }, { x: -2.2, y: 1.55, z: 0.6 }, { x: 2.0, y: 0, z: -1.6 }, { x: -1.5, y: 0.55, z: -1.2 }],
       closedText: 'A tackle box.', emptyText: 'Hooks and line. Nothing else.',
-      yields: [{ id: 'pin', name: 'Pawl pin', opts: { w: 0.2, h: 0.26, flat: false } }],
+      yields: [{ id: 'pin', name: 'Pawl pin', opts: { w: 0.2, h: 0.26, flat: false } }, { id: 'brackets', name: 'Door brackets', opts: { w: 0.3, h: 0.24, flat: false } }],
     });
     // the winch: fit the handle, then crank the water door down. Without the pawl it slips back.
     const need = L.tier(6, 6, 7);
@@ -111,16 +111,20 @@ LEVELS.push({
         return false;
       },
     });
-    // the side door: close it, then bar it. A closed door on its own only slows it down.
+    // the side door: close it, then bar it (on the harder tiers the brackets for the bar go on first, from the tackle box).
+    // A closed door on its own only slows it down.
+    const needBrackets = L.diff.tier >= 2;
+    s.bracketsOn = !needBrackets;
     const sd = mkTarget(L, {
-      id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: ['beam'],
-      hint() { return s.sealedE ? 'Barred.' : s.doorOpen ? 'The side door stands open.' : s.doorClosing > 0 ? 'Swinging shut.' : 'Shut. The bar would hold it.'; },
+      id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: needBrackets ? ['brackets'] : ['beam'],
+      hint() { return s.sealedE ? 'Barred.' : s.doorOpen ? 'The side door stands open.' : s.doorClosing > 0 ? 'Swinging shut.' : s.bracketsOn ? 'Shut. The bar would hold it.' : 'Shut. There is nothing on the frame to hold a bar.'; },
       onClick() {
         if (s.doorOpen) { s.doorOpen = false; s.doorClosing = 0.9; AUDIO.sfx('creak'); return true; }
         if (s.doorClosing > 0) { G.say('Wait for it to shut.', 'Not yet.'); return true; }
         return false;
       },
       use(item) {
+        if (item.id === 'brackets') { s.bracketsOn = true; sd.accepts = ['beam']; AUDIO.sfx('fit'); G.say('The brackets go on either side of the frame. Now the bar.', 'Brackets on.'); return true; }
         if (s.doorOpen || s.doorClosing > 0) { G.say('Shut it first.', 'Not like this.'); return false; }
         s.sealedE = true; sd.done = true; sd.accepts = []; AUDIO.sfx('bar'); G.say('The bar is across.', 'Barred.'); return true;
       },
@@ -145,6 +149,7 @@ LEVELS.push({
     L.onReach = c => { if (c.lane.idx === 1 && s.doorClosed && !s.sealedE) { s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); G.toast('The side door bangs open.'); c.hold = c.dist; s.heldC = c; s.holdT = 2.5; } };
     const lampX = () => Math.sin(L.t * 1.9) * 0.55;
     L.dynamic = () => {
+      if (needBrackets && s.bracketsOn) for (const z of [-0.72, 0.72]) R.add(SC.mkWallV(L, 2.3, z - 0.07, 2.3, z + 0.07, 0.94, 1.12, [44, 44, 48])); // the brackets on the frame
       // the water door: slats come down from the top as the winch turns
       const covered = 2.4 * clamp((winch.count || 0) / need, 0, 1);
       for (let y = 2.4; y > 2.4 - covered; y -= 0.3) {

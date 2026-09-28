@@ -52,7 +52,7 @@ const MENU = (() => {
         const rng = (k, label) => '<label class="opt"><span>' + label + '</span><input type="range" min="0" max="1" step="0.05" data-set="' + k + '" value="' + S[k] + '"></label>';
         return '<h1>Settings</h1><div class="settings">' +
           rng('master', 'Volume') + rng('effects', 'Effects') + rng('ambient', 'Ambience') + chk('muted', 'Mute') +
-          chk('reducedFlash', 'Reduce flashing (softer red pulse, dimmer flashes)') + chk('reducedMotion', 'Reduce motion (no jitter or sway)') + chk('captions', 'Captions for sounds') + chk('touchLeft', 'Touch controls on the left') +
+          chk('reducedFlash', 'Reduce flashing (softer red pulse, dimmer flashes)') + chk('reducedMotion', 'Reduce motion (no jitter or sway)') + chk('captions', 'Captions for sounds') + chk('touchLeft', 'Touch controls on the left') + chk('textures', 'Surface detail: boards and stone (off is faster)') +
           '<label class="opt"><span>Text size</span><input type="range" min="0.85" max="1.4" step="0.05" data-set="textSize" value="' + S.textSize + '"></label>' +
           '</div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('reset', d.confirmReset ? 'Really erase all progress?' : 'Erase progress', undefined, 'danger') + '</div>';
       }
@@ -78,12 +78,14 @@ const MENU = (() => {
     else if (k === 'master' || k === 'effects' || k === 'ambient') AUDIO.setVolume(k, v);
     else if (k === 'textSize') document.documentElement.style.setProperty('--text-scale', v);
     else if (k === 'touchLeft') document.documentElement.toggleAttribute('data-touch-left', !!v);
+    else if (k === 'textures') R.detail = !!v;
   }
   function applyAll() {
     const S = SAVE.data.settings;
     AUDIO.setVolume('master', S.master); AUDIO.setVolume('effects', S.effects); AUDIO.setVolume('ambient', S.ambient);
     document.documentElement.style.setProperty('--text-scale', S.textSize);
     document.documentElement.toggleAttribute('data-touch-left', !!S.touchLeft);
+    R.detail = S.textures !== false;
   }
   function act(a, arg) {
     switch (a) {

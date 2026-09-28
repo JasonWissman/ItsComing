@@ -8,7 +8,7 @@ LEVELS.push({
   lights: [{ x: 0, y: 1.6, z: -0.2, r: 4.5, i: 0.35, color: [140, 160, 220] }],
   text: {
     intro: 'You found yourself at the back door, and it was open. So was the front.<br>Something is walking toward the house. It has been walking for a while.',
-    hint: 'There are planks somewhere in the house, and a hammer.',
+    hint: 'There are loose planks all over the house, and a hammer. Every one of them is needed.',
     objective: 'Board up the door it is coming for.',
     death: { default: 'The boards were not enough, or were not there.', reached: 'It tore the boards off.' },
     win: 'It hit the boards until sunrise. They held.',
@@ -64,7 +64,7 @@ LEVELS.push({
     SC.box(L, -2.2, -1.7, 0.42, 0.48, -2.1, -1.6, [68, 52, 40]); SC.box(L, -2.2, -1.7, 0.48, 1.0, -2.1, -2.04, [68, 52, 40]);
     STORY.lamp(L, 1.85, 0.78, -0.05);                          // the lamp on the table, unlit
     // items
-    const need = L.tier(3, 4, 5), nails = L.diff.tier >= 2, decoy = !!L.diff.decoys; // Nightmare needs both piles
+    const need = L.tier(3, 4, 5), nails = L.diff.tier >= 2, decoy = !!L.diff.decoys; // one loose plank per board needed
     mkItem(L, 'hammer', 'Hammer', [
       { x: 1.25, y: 0, z: 0.35 },                       // on the floor by the table
       { x: -2.2, y: 0, z: 0.7 },                        // under the shelf
@@ -78,16 +78,19 @@ LEVELS.push({
       { x: 2.2, y: 0, z: -1.7 },                        // south-east
       { x: -0.6, y: 0, z: 1.9 },                        // along the back wall
       { x: 2.3, y: 0, z: 1.0 },                         // east wall
+      { x: 0.35, y: 0, z: -1.75 },                      // by the front door
+      { x: -2.25, y: 0, z: -0.8 },                      // under the west window
+      { x: 0.9, y: 0, z: 1.25 },                        // in the middle of the room, towards the back door
     ];
-    mkItem(L, 'planks', 'Planks', plankSpots, { w: 1.0, h: 0.7, flat: true, uses: L.tier(3, 4, 4) });
-    if (L.diff.tier >= 3) mkItem(L, 'planks', 'Planks', plankSpots, { w: 1.0, h: 0.7, flat: true, uses: 3 });
+    // the planks lie about the house one by one; each boards one gap, so every one of them has to be found
+    for (let k = 0; k < need; k++) mkItem(L, 'planks', 'Plank', plankSpots, { w: 1.1, h: 0.26, flat: true, stack: true, icon: 'planks' });
     if (nails) mkItem(L, 'nails', 'Nails', [
       { x: 2.05, y: 0.78, z: -0.35 },                   // on the table
       { x: -2.55, y: 1.28, z: 0.8 },                    // on the shelf
       { x: 0.9, y: 0, z: -1.9 },                        // on the floor by the front door
       { x: -1.95, y: 0.48, z: -1.85 },                  // on the chair
     ], { w: 0.22, h: 0.22, flat: true, tool: true });
-    if (decoy) mkItem(L, 'rotten', 'Planks', [{ x: 0.6, y: 0, z: 0.9 }, { x: -1.9, y: 0, z: -0.6 }], { w: 1.0, h: 0.7, flat: true, icon: 'planks', decoy: true, decoyText: 'Rotten. They come apart in your hands.' });
+    if (decoy) mkItem(L, 'rotten', 'Plank', [{ x: 0.6, y: 0, z: 0.9 }, { x: -1.9, y: 0, z: -0.6 }], { w: 1.1, h: 0.26, flat: true, icon: 'planks', decoy: true, decoyText: 'Rotten. They come apart in your hands.' });
     mkItem(L, 'bottle', 'Empty bottle', [
       { x: -2.55, y: 1.28, z: 1.0 },                     // on the shelf
       { x: 2.05, y: 0.78, z: 0.05 },                    // on the table

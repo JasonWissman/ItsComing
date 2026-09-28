@@ -128,6 +128,11 @@ const ICONS = {
     ctx.restore();
   },
   // a pawl pin: a steel pin on a short chain
+  // a pair of iron brackets: the hooks a door bar drops into
+  brackets(ctx, P) {
+    const st = P.col([96, 96, 104]), d = P.col([52, 52, 58]);
+    for (const x of [-0.26, 0.14]) { P_rect(ctx, x, 0.2, 0.1, 0.55, st); P_rect(ctx, x, 0.2, 0.26, 0.1, st); P_rect(ctx, x + 0.16, 0.2, 0.1, 0.24, st); P_ell(ctx, x + 0.05, 0.62, 0.025, 0.025, d); P_ell(ctx, x + 0.05, 0.4, 0.025, 0.025, d); }
+  },
   pin(ctx, P) {
     const st = P.col([150, 150, 156]), d = P.col([80, 80, 86]);
     P_rect(ctx, -0.07, 0.25, 0.14, 0.5, st); P_rect(ctx, -0.14, 0.72, 0.28, 0.1, st); P_rect(ctx, -0.07, 0.25, 0.05, 0.5, d);
@@ -239,7 +244,9 @@ const ICONS = {
 // ---------- scenery builders: everything is pushed into L.props in the level's local frame ----------
 const SC = {
   quad(L, a, b, c, d, color, opts) {
-    L.props.push(Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {}));
+    const p = Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {});
+    L.props.push(p);
+    if (p.tex) SC.detail(L, p, a, b, c, d);
   },
   // vertical quad from (x0,z0) to (x1,z1), y0..y1
   wallV(L, x0, z0, x1, z1, y0, y1, color, opts) { SC.quad(L, [x0, y0, z0], [x1, y0, z1], [x1, y1, z1], [x0, y1, z0], color, opts); },
@@ -418,6 +425,59 @@ SC.window = function (L, o) {
 SC.gap = function (L, o) { return { z: o.z, x0: (o.x || 0) - o.w / 2, x1: (o.x || 0) + o.w / 2, y0: o.y0 || 0, y1: o.h || 99 }; };
 
 // ---- per-frame (dynamic) variants: return the renderable instead of registering it ----
+// Surface detail: boards, log courses, stone courses or blocks and tin bands, built once as real geometry over a quad, so it
+// stays put however the view turns. The pieces share the quad's sort distance and are pushed straight after it, so the stable
+// sort draws them over it, and the quad shows through the gaps as the seams (in its darker seam colour while detail is on).
+// Pieces grow with distance from the eye so none gets much smaller than about a dozen pixels, and far faces get none.
+SC.detail = function (L, base, a, b, c, d) {
+  const K = {
+    planks: { size: 0.2, gap: 0.016, seam: 0.5, jit: 0.24 },
+    logs: { size: 0.3, gap: 0.03, seam: 0.4, jit: 0.16 },
+    stone: { size: 0.3, gap: 0.028, seam: 0.55, jit: 0.24, block: 0.6 },
+    tin: { size: 0.45, gap: 0.014, seam: 0.66, jit: 0.1 },
+  }[base.tex];
+  if (!K) return;
+  const sc = base.texScale || 1;
+  const mix = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t];
+  const at = (s, t) => mix(mix(a, b, s), mix(d, c, s), t);
+  const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
+  const U = Math.hypot(u[0], u[1], u[2]), V = Math.hypot(v[0], v[1], v[2]);
+  if (U < 0.1 || V < 0.1) return;
+  let dN = Infinity; // nearest point of the quad to the eye, which sits at the local origin
+  for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) { const q = at(i / 6, j / 6); dN = Math.min(dN, Math.hypot(q[0], q[1] - L.eyeH, q[2])); }
+  if (dN > 60) return;
+  const vertical = Math.abs(u[2] * v[0] - u[0] * v[2]) / (U * V) < 0.5;
+  // boards run level on walls and along the longer side on floors; k is the across-the-boards axis, r the along axis
+  const alongS = vertical ? Math.abs(v[1]) >= Math.abs(u[1]) : U >= V;
+  const kLen = alongS ? V : U, rLen = alongS ? U : V, kUp = (alongS ? v[1] : u[1]) >= 0;
+  const P = (r, k) => (alongS ? at(r, k) : at(k, r));
+  const size = Math.max(K.size * sc, dN / 55);
+  const n = Math.round(kLen / size);
+  if (n < 2) return;
+  const rng = mulberry32((Math.round(a[0] * 97) * 73856093 ^ Math.round(a[1] * 89) * 19349663 ^ Math.round(a[2] * 83) * 83492791 ^ Math.round(c[0] * 79 + c[2] * 71) * 2654435761) >>> 0);
+  const dist = base.dist !== undefined ? base.dist : base.pts.reduce((s, w) => s + Math.hypot(w[0], w[2]), 0) / base.pts.length;
+  const shade = (k) => scalec(base.color, k);
+  const push = (r0, r1, k0, k1, col) => {
+    const q = [P(r0, k0), P(r1, k0), P(r1, k1), P(r0, k1)];
+    L.props.push({ kind: 'poly', pts: q.map(w => L.pt(w[0], w[1], w[2])), color: col, layer: base.layer, dist, detail: true, alpha: base.alpha, noFog: base.noFog, noLight: base.noLight });
+  };
+  base.seam = shade(K.seam);
+  const gk = K.gap / kLen / 2;
+  const blocks = base.tex === 'stone' && dN < 14 && vertical;
+  const slabs = base.tex === 'stone' && dN < 14 && !vertical;
+  for (let i = 0; i < n; i++) {
+    const k0 = i / n + gk, k1 = (i + 1) / n - gk;
+    const jit = () => 1 - K.jit / 2 + K.jit * rng();
+    if (base.tex === 'logs') { // a log: its upper half catches the light, its lower half is in shadow
+      const km = (k0 + k1) / 2, j = jit(), hi = kUp ? [km, k1] : [k0, km], lo = kUp ? [k0, km] : [km, k1];
+      push(0, 1, lo[0], lo[1], shade(0.84 * j)); push(0, 1, hi[0], hi[1], shade(1.08 * j));
+    } else if (blocks || slabs) { // stone: blocks along each course, staggered from course to course (slabs on floors)
+      const unit = (slabs ? K.size * 1.8 : K.block) * sc, gr = K.gap / rLen / 2;
+      let r = -rng() * unit / rLen;
+      while (r < 1) { const len = unit * (0.7 + 0.6 * rng()) / rLen; const r0 = Math.max(0, r) + gr, r1 = Math.min(1, r + len) - gr; if (r1 - r0 > gr) push(r0, r1, k0, k1, shade(jit())); r += len; }
+    } else push(0, 1, k0, k1, shade(jit()));
+  }
+};
 SC.mkQuad = function (L, a, b, c, d, color, opts) {
   return Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {});
 };

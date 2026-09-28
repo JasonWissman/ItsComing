@@ -12,7 +12,7 @@ const SAVE = (() => {
       best: {},                                                  // best[levelId][diff] = { time, wins, tries }
       fragments: [],                                             // ids of fragments seen
       complete: {},                                              // complete[diff] = true once night 13 is won
-      settings: { difficulty: 1, muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', touchLeft: false },
+      settings: { difficulty: 1, muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', touchLeft: false, textures: true },
     };
   }
   let data = fresh();

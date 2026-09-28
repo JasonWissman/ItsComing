@@ -61,7 +61,9 @@ LEVELS.push({
     // the gallery floor, the rail, the lamp room and its roof
     for (let i = 0; i < N; i++) {
       const a0 = i / N * TAU, a1 = (i + 1) / N * TAU, am = (a0 + a1) / 2;
-      SC.quad(L, at(a0, 2.0, 0), at(a1, 2.0, 0), at(a1, 3.25, 0), at(a0, 3.25, 0), [58, 60, 64], { tex: 'tin', texScale: 1.6, layer: 0 });
+      // the floor sorts by its true distance from the eye, like the tower below it, so it covers the tower where it overhangs
+      const fc = at(am, 2.62, 0);
+      SC.quad(L, at(a0, 2.0, 0), at(a1, 2.0, 0), at(a1, 3.25, 0), at(a0, 3.25, 0), [58, 60, 64], { tex: 'tin', texScale: 1.6, dist: Math.hypot(fc[0], fc[2], 1.65) });
       SC.quad(L, at(a0, 3.25, 0), at(a1, 3.25, 0), at(a1, 3.25, -0.12), at(a0, 3.25, -0.12), ironL);
       SC.quad(L, at(a0, 2.0, 0), at(a1, 2.0, 0), at(a1, 2.0, 0.85), at(a0, 2.0, 0.85), iron);
       SC.quad(L, at(a0, 2.0, 0.85), at(a1, 2.0, 0.85), at(a1, 2.0, 2.75), at(a0, 2.0, 2.75), [140, 165, 195], { alpha: 0.2 });
@@ -69,8 +71,9 @@ LEVELS.push({
       SC.quad(L, at(a0, 2.15, 2.72), at(a1, 2.15, 2.72), at(a1, 2.15, 2.9), at(a0, 2.15, 2.9), iron);
       SC.quad(L, at(a0, 2.15, 2.9), at(a1, 2.15, 2.9), at(am, 0.05, 4.4), at(am, 0.05, 4.4), [30, 32, 36]);
       for (const yy of [0.5, 1.02]) SC.quad(L, at(a0, 3.25, yy), at(a1, 3.25, yy), at(a1, 3.25, yy + 0.05), at(a0, 3.25, yy + 0.05), ironL);
-      const p = at(a0, 3.25, 0);
-      SC.sprite(L, p[0], 0, p[2], 0.06, 1.07, (ctx, P) => { ctx.scale(0.06, 1.07); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
+      // rail posts only at every third segment, and none near the three faces it climbs, so none stands between you and it
+      const p = at(a0, 3.25, 0), az = Math.atan2(p[0], p[2]);
+      if (i % 3 === 0 && [0, 45, -45].every(l => Math.abs(wrapPi(az - l * DEG)) > 22 * DEG)) SC.sprite(L, p[0], 0, p[2], 0.06, 1.07, (ctx, P) => { ctx.scale(0.06, 1.07); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
     }
     // stanchions on the lamp room that carry the fuse box, the clockwork and the brake
     const FB = 60 * DEG, WD = 120 * DEG, BK = 97 * DEG;

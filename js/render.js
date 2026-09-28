@@ -11,6 +11,7 @@ const R = (() => {
   let list = [];      // dynamic renderables this frame
   let statics = [];   // the level's static props, sorted once, culled by view angle per frame
   let hits = [];
+  let detailOn = true; // surface detail on or off (Settings)
   let hoverRef = null;
   let time = 0;
   let vignette = null, grains = [], grainIdx = 0;
@@ -196,6 +197,7 @@ const R = (() => {
   }
 
   function drawPoly(p) {
+    if (p.detail && !detailOn) return; // surface detail (boards, stone) can be switched off in Settings
     let cs = new Array(p.pts.length);
     let anyIn = false;
     for (let i = 0; i < p.pts.length; i++) { const v = p.pts[i]; cs[i] = toCam(v[0], v[1], v[2]); if (cs[i][2] >= NEAR) anyIn = true; }
@@ -219,7 +221,8 @@ const R = (() => {
       return;
     }
     const li = (LIGHT.list.length || LIGHT.global) && !p.noLight ? LIGHT.at(p.cx, p.cy, p.cz) : null;
-    const base0 = ambient !== 1 && !p.noLight ? scalec(p.color, ambient) : p.color;
+    const pc = detailOn && p.seam ? p.seam : p.color; // with detail on, a textured quad shows as the seams between its pieces
+    const base0 = ambient !== 1 && !p.noLight ? scalec(pc, ambient) : pc;
     const base = li ? LIGHT.apply(base0, li) : base0;
     const col = p.noFog ? base : fogged(base, p.dist);
     if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
@@ -228,22 +231,6 @@ const R = (() => {
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
     } else {
       ctx.closePath(); ctx.fillStyle = rgba(col); ctx.fill();
-      // surface texture: multiply a tileable pattern through an affine fit of the quad, only when it is near and big
-      if (p.tex && cs.length === 4 && p.pts.length === 4 && (maxx - minx) * (maxy - miny) > 4000 && cs[0][2] < 14) {
-        const s0 = proj(cs[0]), s1 = proj(cs[1]), s3 = proj(cs[3]);
-        const lu = Math.hypot(p.pts[1][0] - p.pts[0][0], p.pts[1][1] - p.pts[0][1], p.pts[1][2] - p.pts[0][2]);
-        const lv = Math.hypot(p.pts[3][0] - p.pts[0][0], p.pts[3][1] - p.pts[0][1], p.pts[3][2] - p.pts[0][2]);
-        if (lu > 0.01 && lv > 0.01) {
-          const ppm = TEX.N / (p.texScale || 1);
-          const pat = TEX.pattern(ctx, p.tex);
-          pat.setTransform(new DOMMatrix([(s1[0] - s0[0]) / (lu * ppm), (s1[1] - s0[1]) / (lu * ppm), (s3[0] - s0[0]) / (lv * ppm), (s3[1] - s0[1]) / (lv * ppm), s0[0], s0[1]]));
-          ctx.globalCompositeOperation = 'multiply';
-          ctx.globalAlpha = (p.alpha === undefined ? 1 : p.alpha) * (p.texAlpha || 0.7);
-          ctx.fillStyle = pat; ctx.fill();
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.globalAlpha = 1;
-        }
-      }
     }
     if (p.alpha !== undefined) ctx.globalAlpha = 1;
     if (hoverRef && p.hit && p.hit.ref === hoverRef) { ctx.strokeStyle = 'rgba(255,240,210,0.35)'; ctx.lineWidth = 1.5; ctx.stroke(); }
@@ -343,7 +330,6 @@ const R = (() => {
       ctx.globalCompositeOperation = 'source-over';
     }
     if (fx.drawOverlay) fx.drawOverlay(ctx, W, H);
-    HANDS.draw(ctx, W, H);
     // vignette
     ctx.globalAlpha = fx.vignette === undefined ? 0.9 : fx.vignette; // lighter for the morning
     ctx.drawImage(vignette, 0, 0, W, H);
@@ -376,6 +362,7 @@ const R = (() => {
     attach, resize, begin, add, prepare, flush, post, screenPos, projectRect, fogAmt,
     get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageH() { return pageH; },
     get hits() { return hits; },
+    get detail() { return detailOn; }, set detail(v) { detailOn = !!v; },
     set hover(v) { hoverRef = v; },
     get yaw() { return yaw; },
   };
