@@ -1,5 +1,21 @@
 'use strict';
 // ---------- item icons. Each draws inside a unit box: x in [-0.5,0.5], y in [0,1], +y up ----------
+// a heart: the music box's keyhole plate, and the bow of its own key
+function heartShape(ctx, x, y, s, col, hole) {
+  P_ell(ctx, x - s * 0.5, y + s * 0.25, s * 0.52, s * 0.5, col); P_ell(ctx, x + s * 0.5, y + s * 0.25, s * 0.52, s * 0.5, col);
+  P_poly(ctx, [[x - s * 1.0, y + s * 0.15], [x + s * 1.0, y + s * 0.15], [x, y - s * 0.95]], col);
+  if (hole) P_ell(ctx, x, y + s * 0.1, s * 0.25, s * 0.25, hole);
+}
+// a small key, pointing down, told apart from the others only by the shape of its bow
+function smallKey(ctx, P, bow, rgb) {
+  const m = P.col(rgb), d = P.col(scalec(rgb, 0.55));
+  P_line(ctx, 0, 0.62, 0, 0.12, 0.09, m);
+  P_rect(ctx, 0, 0.1, 0.16, 0.07, m); P_rect(ctx, 0, 0.22, 0.11, 0.06, m);
+  if (bow === 'heart') heartShape(ctx, 0, 0.76, 0.2, m, d);
+  else if (bow === 'square') { P_rect(ctx, -0.17, 0.62, 0.34, 0.3, m); P_rect(ctx, -0.08, 0.7, 0.16, 0.14, d); }
+  else if (bow === 'clover') { for (const [x, y] of [[-0.1, 0.76], [0.1, 0.76], [0, 0.92]]) P_ell(ctx, x, y, 0.1, 0.1, m); P_ell(ctx, 0, 0.8, 0.04, 0.04, d); }
+  else { P_ell(ctx, 0, 0.78, 0.18, 0.18, m); P_ell(ctx, 0, 0.78, 0.08, 0.08, d); }
+}
 const ICONS = {
   hammer(ctx, P) {
     ctx.save(); ctx.rotate(-0.55);
@@ -62,7 +78,7 @@ const ICONS = {
     ctx.strokeStyle = frame; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.arc(0, 0.78, 0.14, Math.PI, 0, true); ctx.stroke();
     P_rect(ctx, -0.07, 0.14, 0.14, 0.28, wax);
     P_line(ctx, 0, 0.42, 0, 0.47, 0.02, frame);
-    if (P.lit) {
+    if (P.lit === true) { // the renderer also passes light intensity as P.lit for sprites; only a true flag means the flame is lit
       const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.5);
       g.addColorStop(0, 'rgba(255,220,140,0.95)'); g.addColorStop(1, 'rgba(255,180,80,0)');
       ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1);
@@ -109,13 +125,151 @@ const ICONS = {
     const r = P.col([150, 130, 90]);
     ctx.strokeStyle = r; ctx.lineWidth = 0.07;
     for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(0, 0.45, 0.36 - i * 0.07, 0.2 - i * 0.03, 0, 0, TAU); ctx.stroke(); }
+  },
+  // a winch handle: an iron crank with a wooden grip
+  handle(ctx, P) {
+    const iron = P.col([70, 70, 76]), grip = P.col([110, 80, 50]);
+    P_line(ctx, -0.35, 0.2, -0.35, 0.55, 0.09, iron);
+    P_line(ctx, -0.35, 0.55, 0.15, 0.55, 0.08, iron);
+    P_line(ctx, 0.15, 0.55, 0.15, 0.85, 0.08, iron);
+    P_line(ctx, 0.15, 0.85, 0.42, 0.85, 0.12, grip);
+    P_rect(ctx, -0.45, 0.08, 0.2, 0.16, iron);
+  },
+  // the bar beam: a long squared timber
+  beam(ctx, P) {
+    const w = P.col([104, 78, 48]), d = P.col([74, 54, 32]);
+    ctx.save(); ctx.rotate(-0.08);
+    P_rect(ctx, -0.5, 0.3, 1.0, 0.2, w); P_rect(ctx, -0.5, 0.3, 1.0, 0.05, d);
+    P_line(ctx, -0.35, 0.42, 0.3, 0.41, 0.012, d); P_line(ctx, -0.1, 0.35, 0.45, 0.36, 0.008, d);
+    ctx.restore();
+  },
+  // a pawl pin: a steel pin on a short chain
+  // a pair of iron brackets: the hooks a door bar drops into
+  brackets(ctx, P) {
+    const st = P.col([96, 96, 104]), d = P.col([52, 52, 58]);
+    for (const x of [-0.26, 0.14]) { P_rect(ctx, x, 0.2, 0.1, 0.55, st); P_rect(ctx, x, 0.2, 0.26, 0.1, st); P_rect(ctx, x + 0.16, 0.2, 0.1, 0.24, st); P_ell(ctx, x + 0.05, 0.62, 0.025, 0.025, d); P_ell(ctx, x + 0.05, 0.4, 0.025, 0.025, d); }
+  },
+  pin(ctx, P) {
+    const st = P.col([150, 150, 156]), d = P.col([80, 80, 86]);
+    P_rect(ctx, -0.07, 0.25, 0.14, 0.5, st); P_rect(ctx, -0.14, 0.72, 0.28, 0.1, st); P_rect(ctx, -0.07, 0.25, 0.05, 0.5, d);
+    ctx.strokeStyle = d; ctx.lineWidth = 0.025;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(0.18 + i * 0.07, 0.78 - i * 0.12, 0.045, 0.03, 0.6, 0, TAU); ctx.stroke(); }
+  },
+  oar(ctx, P) {
+    const w = P.col([120, 96, 62]), d = P.col([80, 60, 36]);
+    ctx.save(); ctx.rotate(0.5);
+    P_line(ctx, 0, 0.05, 0, 0.7, 0.06, w);
+    ctx.fillStyle = d; ctx.beginPath(); ctx.ellipse(0, 0.82, 0.1, 0.18, 0, 0, TAU); ctx.fill();
+    ctx.restore();
+  },
+  // fuses: a good one, a blown one (dark glass), and a coil of wire
+  fuse(ctx, P) {
+    const brass = P.col([170, 140, 70]), glass = P.col([180, 190, 170]), wire = P.col([90, 90, 96]);
+    P_rect(ctx, -0.32, 0.36, 0.64, 0.24, glass); P_rect(ctx, -0.42, 0.33, 0.14, 0.3, brass); P_rect(ctx, 0.28, 0.33, 0.14, 0.3, brass);
+    P_line(ctx, -0.26, 0.48, 0.26, 0.48, 0.02, wire);
+  },
+  fusebody(ctx, P) {
+    const brass = P.col([150, 124, 64]), glass = P.col([70, 60, 56]), wire = P.col([90, 90, 96]);
+    P_rect(ctx, -0.32, 0.36, 0.64, 0.24, glass); P_rect(ctx, -0.42, 0.33, 0.14, 0.3, brass); P_rect(ctx, 0.28, 0.33, 0.14, 0.3, brass);
+    P_line(ctx, -0.26, 0.48, -0.08, 0.5, 0.02, wire); P_line(ctx, 0.05, 0.44, 0.26, 0.48, 0.02, wire);
+    P_ell(ctx, -0.02, 0.48, 0.06, 0.05, P.col([30, 24, 22]));
+  },
+  wire(ctx, P) {
+    const c = P.col([160, 110, 60]);
+    ctx.strokeStyle = c; ctx.lineWidth = 0.035;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(0, 0.42 + i * 0.02, 0.28 - i * 0.03, 0.16 - i * 0.02, 0, 0, TAU); ctx.stroke(); }
+    P_line(ctx, 0.2, 0.5, 0.42, 0.78, 0.035, c);
+  },
+  // a box of nails, some spilled
+  nails(ctx, P) {
+    const box = P.col([120, 100, 70]), boxD = P.col([80, 64, 44]), nail = P.col([170, 170, 176]);
+    P_rect(ctx, -0.34, 0.1, 0.68, 0.38, box); P_rect(ctx, -0.34, 0.42, 0.68, 0.08, boxD);
+    for (let i = 0; i < 5; i++) P_line(ctx, -0.26 + i * 0.12, 0.52, -0.22 + i * 0.12, 0.78, 0.025, nail);
+    P_line(ctx, 0.1, 0.06, 0.42, 0.02, 0.025, nail); P_line(ctx, -0.45, 0.05, -0.2, 0.09, 0.025, nail);
+  },
+  // an oil can with a long spout
+  oilcan(ctx, P) {
+    const tin = P.col([120, 118, 110]), tinD = P.col([76, 74, 68]), oil = P.col([60, 44, 20]);
+    P_rect(ctx, -0.3, 0.05, 0.5, 0.42, tin); P_rect(ctx, -0.3, 0.05, 0.5, 0.06, tinD); P_rect(ctx, -0.3, 0.42, 0.5, 0.05, tinD);
+    P_line(ctx, 0.15, 0.4, 0.44, 0.86, 0.045, tin); P_ell(ctx, 0.44, 0.88, 0.025, 0.02, oil);
+    P_line(ctx, -0.34, 0.5, -0.12, 0.5, 0.05, tinD); P_ell(ctx, -0.12, 0.3, 0.08, 0.05, tinD);
+  },
+  // a music box: a small lacquered case with a crank and a dancer under the lid; a broken one gapes open
+  musicbox(ctx, P) {
+    const lac = P.col([90, 30, 40]), lacD = P.col([50, 16, 24]), brass = P.col([180, 150, 80]), pale = P.col([230, 220, 210]);
+    P_rect(ctx, -0.34, 0.08, 0.68, 0.38, lac); P_rect(ctx, -0.34, 0.42, 0.68, 0.05, lacD);
+    P_poly(ctx, [[-0.34, 0.47], [0.34, 0.47], [0.3, 0.72], [-0.3, 0.72]], lacD);
+    P_ell(ctx, 0, 0.78, 0.045, 0.08, pale); P_ell(ctx, 0, 0.9, 0.03, 0.03, pale);
+    P_line(ctx, 0.36, 0.25, 0.48, 0.25, 0.04, brass); P_line(ctx, 0.48, 0.25, 0.48, 0.36, 0.04, brass);
+    heartShape(ctx, 0, 0.25, 0.075, brass, P.col([30, 12, 16]));
+  },
+  // the Mirror Maze's keys: only the heart fits the box
+  boxkey(ctx, P) { smallKey(ctx, P, 'heart', [204, 170, 92]); },
+  keyRound(ctx, P) { smallKey(ctx, P, 'round', [176, 168, 146]); },
+  keySquare(ctx, P) { smallKey(ctx, P, 'square', [184, 156, 104]); },
+  keyClover(ctx, P) { smallKey(ctx, P, 'clover', [156, 134, 88]); },
+  keyIron(ctx, P) { smallKey(ctx, P, 'round', [96, 94, 98]); },
+  brokenbox(ctx, P) {
+    const lac = P.col([90, 30, 40]), lacD = P.col([50, 16, 24]), brass = P.col([180, 150, 80]), dark = P.col([20, 12, 14]);
+    P_rect(ctx, -0.34, 0.08, 0.68, 0.38, lac); P_rect(ctx, -0.3, 0.14, 0.6, 0.28, dark);
+    P_poly(ctx, [[-0.34, 0.46], [-0.1, 0.46], [-0.2, 0.9], [-0.44, 0.9]], lacD);
+    P_line(ctx, 0.36, 0.25, 0.48, 0.25, 0.04, brass);
+    P_line(ctx, -0.05, 0.2, 0.2, 0.34, 0.02, brass);
+    heartShape(ctx, 0.2, 0.2, 0.06, brass, dark);
+  },
+  spring(ctx, P) {
+    const st = P.col([150, 150, 156]);
+    ctx.strokeStyle = st; ctx.lineWidth = 0.035; ctx.beginPath();
+    for (let i = 0; i < 40; i++) { const u = i / 39, a = u * TAU * 4; const x = Math.cos(a) * 0.18, y = 0.15 + u * 0.6 + Math.sin(a) * 0.05; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  },
+  // a wrench, a water pail and a feed sack: heavy things for the barn
+  wrench(ctx, P) {
+    const st = P.col([130, 130, 138]), stD = P.col([80, 80, 88]);
+    ctx.save(); ctx.rotate(-0.7);
+    P_line(ctx, 0, 0.1, 0, 0.7, 0.09, st); P_line(ctx, 0, 0.1, 0, 0.7, 0.03, stD);
+    P_ell(ctx, 0, 0.78, 0.16, 0.14, st); P_rect(ctx, -0.06, 0.74, 0.12, 0.18, P.col([40, 40, 46]));
+    ctx.restore();
+  },
+  pail(ctx, P) {
+    const tin = P.col([110, 112, 118]), tinD = P.col([70, 72, 78]), water = P.col([60, 90, 120]);
+    P_poly(ctx, [[-0.3, 0.05], [0.3, 0.05], [0.36, 0.6], [-0.36, 0.6]], tin); P_rect(ctx, -0.36, 0.58, 0.72, 0.05, tinD);
+    P_ell(ctx, 0, 0.6, 0.33, 0.07, water);
+    ctx.strokeStyle = tinD; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.arc(0, 0.62, 0.34, Math.PI, 0, false); ctx.stroke();
+  },
+  sack(ctx, P) {
+    const cloth = P.col([150, 128, 92]), clothD = P.col([104, 86, 60]);
+    ctx.fillStyle = cloth; ctx.beginPath(); ctx.moveTo(-0.3, 0.05); ctx.quadraticCurveTo(-0.42, 0.5, -0.2, 0.78); ctx.lineTo(0.2, 0.78); ctx.quadraticCurveTo(0.42, 0.5, 0.3, 0.05); ctx.closePath(); ctx.fill();
+    P_line(ctx, -0.22, 0.78, 0.22, 0.78, 0.05, clothD); P_line(ctx, -0.1, 0.9, 0.1, 0.9, 0.06, clothD);
+    P_line(ctx, -0.15, 0.3, 0.15, 0.3, 0.012, clothD); P_line(ctx, -0.12, 0.45, 0.12, 0.45, 0.012, clothD);
+  },
+  // a light bulb
+  bulb(ctx, P) {
+    const glass = P.col([214, 212, 200]), brass = P.col([150, 130, 70]), fil = P.col([120, 110, 90]);
+    P_ell(ctx, 0, 0.62, 0.26, 0.3, glass); P_poly(ctx, [[-0.16, 0.4], [0.16, 0.4], [0.12, 0.2], [-0.12, 0.2]], glass);
+    P_rect(ctx, -0.12, 0.05, 0.24, 0.16, brass); P_line(ctx, -0.12, 0.1, 0.12, 0.1, 0.015, P.col([90, 76, 40])); P_line(ctx, -0.12, 0.16, 0.12, 0.16, 0.015, P.col([90, 76, 40]));
+    P_line(ctx, -0.06, 0.45, 0, 0.7, 0.012, fil); P_line(ctx, 0, 0.7, 0.06, 0.45, 0.012, fil);
+  },
+  // the shutter crank: a bent steel rod with a hook end
+  crank(ctx, P) {
+    const st = P.col([120, 120, 126]), d = P.col([70, 70, 76]);
+    P_line(ctx, -0.3, 0.1, -0.3, 0.7, 0.06, st); P_line(ctx, -0.3, 0.7, 0.05, 0.7, 0.06, st); P_line(ctx, 0.05, 0.7, 0.05, 0.9, 0.06, st);
+    P_line(ctx, -0.42, 0.1, -0.18, 0.1, 0.05, d); P_line(ctx, -0.3, 0.02, -0.3, 0.2, 0.09, d);
+    P_line(ctx, 0.05, 0.9, 0.3, 0.9, 0.09, P.col([40, 36, 34]));
+  },
+  bentcrank(ctx, P) {
+    const st = P.col([110, 104, 96]);
+    P_line(ctx, -0.3, 0.1, -0.22, 0.6, 0.06, st); P_line(ctx, -0.22, 0.6, 0.1, 0.5, 0.06, st); P_line(ctx, 0.1, 0.5, 0.2, 0.85, 0.06, st);
+    P_line(ctx, 0.2, 0.85, 0.42, 0.8, 0.09, P.col([40, 36, 34]));
   }
 };
 
 // ---------- scenery builders: everything is pushed into L.props in the level's local frame ----------
 const SC = {
   quad(L, a, b, c, d, color, opts) {
-    L.props.push(Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {}));
+    const p = Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {});
+    L.props.push(p);
+    if (p.tex) SC.detail(L, p, a, b, c, d);
   },
   // vertical quad from (x0,z0) to (x1,z1), y0..y1
   wallV(L, x0, z0, x1, z1, y0, y1, color, opts) { SC.quad(L, [x0, y0, z0], [x1, y0, z1], [x1, y1, z1], [x0, y1, z0], color, opts); },
@@ -232,21 +386,121 @@ const SC = {
       P_ell(ctx, r * 0.25, gw / 2 - r * 0.3, r * 0.16, r * 0.14, rgba(scalec(color, 0.88)));
     } });
   },
+  clouds(L, seed, n, color, alpha) {
+    const rng = mulberry32(seed | 0);
+    for (let i = 0; i < n; i++) {
+      const yaw0 = rng() * TAU, el = (8 + rng() * 30) * DEG, D = 800, w = 120 + rng() * 260, h = w * (0.18 + rng() * 0.15), drift = (0.002 + rng() * 0.004) * (rng() < 0.5 ? -1 : 1);
+      const a = alpha === undefined ? 0.35 : alpha;
+      const blobs = []; for (let k = 0; k < 4; k++) blobs.push([(rng() - 0.5) * 0.7, rng() * 0.4, 0.25 + rng() * 0.3]);
+      const c = { kind: 'sprite', x: 0, y: Math.sin(el) * D, z: 0, w, h, noFog: true, noLight: true, layer: 0, dist: D, yaw0, drift, draw: (ctx, P) => {
+        ctx.scale(w, h);
+        for (const [bx, by, br] of blobs) P_ell(ctx, bx, by, br, br * 0.9, rgba(color, a * (LIGHT.global > 0.01 ? 1.6 : 1)));
+      } };
+      L.clouds = L.clouds || []; L.clouds.push(c);
+    }
+  },
   stars(L, seed, n, alpha) {
     const rng = mulberry32(seed | 0);
     for (let i = 0; i < n; i++) {
       const yaw = rng() * TAU, el = (4 + rng() * 70) * DEG, D = 900;
       const x = Math.sin(yaw) * D * Math.cos(el), z = Math.cos(yaw) * D * Math.cos(el), y = Math.sin(el) * D;
       const b = 0.35 + rng() * 0.65, s = 0.9 + rng() * 1.4;
-      L.props.push({ kind: 'sprite', x, y, z, w: s, h: s, noFog: true, layer: 0, dist: D, draw: (ctx) => {
-        ctx.fillStyle = 'rgba(220,225,255,' + (b * (alpha === undefined ? 1 : alpha)) + ')';
+      const ph = rng() * TAU, tw = 0.5 + rng() * 2;
+      L.props.push({ kind: 'sprite', x, y, z, w: s, h: s, noFog: true, noLight: true, layer: 0, dist: D, draw: (ctx, P) => {
+        ctx.fillStyle = 'rgba(220,225,255,' + (b * (alpha === undefined ? 1 : alpha) * (0.72 + 0.28 * Math.sin(P.t * tw + ph))) + ')';
         ctx.beginPath(); ctx.arc(0, s / 2, s / 2, 0, TAU); ctx.fill();
       } });
     }
   }
 };
 
+// ---- build in a rotated local frame (deg = 0 is the level's own forward) ----
+SC.withYaw = function (L, deg, fn) {
+  if (!deg) return fn();
+  const orig = L.pt, r = deg * DEG;
+  L.pt = (x, y, z) => { const q = rotY(x, z, r); return orig(q[0], y, q[1]); };
+  try { return fn(); } finally { L.pt = orig; }
+};
+// ---- openings: build the wall pieces around a hole and return the aperture the lane logic needs ----
+// a doorway in a wall at depth z facing the lane, opening w wide and h high, walls wallH high from x=left..right
+SC.doorway = function (L, o) {
+  const x = o.x || 0, w = o.w, y0 = o.y0 || 0, h = o.h, wallH = o.wallH || y0 + h + 0.5, left = o.left === undefined ? -7 : o.left, right = o.right === undefined ? 7 : o.right;
+  SC.withYaw(L, o.deg || 0, () => {
+    SC.wallV(L, left, o.z, x - w / 2, o.z, y0, wallH, o.color, o.opts);
+    SC.wallV(L, x + w / 2, o.z, right, o.z, y0, wallH, o.color, o.opts);
+    if (wallH > y0 + h) SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, y0 + h, wallH, o.color, o.opts);
+    if (o.frame) { const f = o.frame, fw = f.w || 0.1; SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x - w / 2, o.z - 0.05, y0, y0 + h + fw, f.color); SC.wallV(L, x + w / 2, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, y0, y0 + h + fw, f.color); SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, y0 + h, y0 + h + fw, f.color); }
+  });
+  return { z: o.z, x0: x - w / 2, x1: x + w / 2, y0, y1: y0 + h };
+};
+// a window: wall with a hole from y0 to y1
+SC.window = function (L, o) {
+  const x = o.x || 0, w = o.w, wallH = o.wallH, left = o.left === undefined ? -7 : o.left, right = o.right === undefined ? 7 : o.right;
+  SC.withYaw(L, o.deg || 0, () => {
+    SC.wallV(L, left, o.z, x - w / 2, o.z, 0, wallH, o.color, o.opts);
+    SC.wallV(L, x + w / 2, o.z, right, o.z, 0, wallH, o.color, o.opts);
+    SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, 0, o.y0, o.color, o.opts);
+    SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, o.y1, wallH, o.color, o.opts);
+  });
+  return { z: o.z, x0: x - w / 2, x1: x + w / 2, y0: o.y0, y1: o.y1 };
+};
+// a gap between two posts (no lintel): builds nothing, describes the opening
+SC.gap = function (L, o) { return { z: o.z, x0: (o.x || 0) - o.w / 2, x1: (o.x || 0) + o.w / 2, y0: o.y0 || 0, y1: o.h || 99 }; };
+
 // ---- per-frame (dynamic) variants: return the renderable instead of registering it ----
+// Surface detail: boards, log courses, stone courses or blocks and tin bands, built once as real geometry over a quad, so it
+// stays put however the view turns. The pieces share the quad's sort distance and are pushed straight after it, so the stable
+// sort draws them over it, and the quad shows through the gaps as the seams (in its darker seam colour while detail is on).
+// Pieces grow with distance from the eye so none gets much smaller than about a dozen pixels, and far faces get none.
+SC.detail = function (L, base, a, b, c, d) {
+  const K = {
+    planks: { size: 0.2, gap: 0.016, seam: 0.5, jit: 0.24 },
+    logs: { size: 0.3, gap: 0.03, seam: 0.4, jit: 0.16 },
+    stone: { size: 0.3, gap: 0.028, seam: 0.55, jit: 0.24, block: 0.6 },
+    tin: { size: 0.45, gap: 0.014, seam: 0.66, jit: 0.1 },
+  }[base.tex];
+  if (!K) return;
+  const sc = base.texScale || 1;
+  const mix = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t];
+  const at = (s, t) => mix(mix(a, b, s), mix(d, c, s), t);
+  const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
+  const U = Math.hypot(u[0], u[1], u[2]), V = Math.hypot(v[0], v[1], v[2]);
+  if (U < 0.1 || V < 0.1) return;
+  let dN = Infinity; // nearest point of the quad to the eye, which sits at the local origin
+  for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) { const q = at(i / 6, j / 6); dN = Math.min(dN, Math.hypot(q[0], q[1] - L.eyeH, q[2])); }
+  if (dN > 60) return;
+  const vertical = Math.abs(u[2] * v[0] - u[0] * v[2]) / (U * V) < 0.5;
+  // boards run level on walls and along the longer side on floors; k is the across-the-boards axis, r the along axis
+  const alongS = vertical ? Math.abs(v[1]) >= Math.abs(u[1]) : U >= V;
+  const kLen = alongS ? V : U, rLen = alongS ? U : V, kUp = (alongS ? v[1] : u[1]) >= 0;
+  const P = (r, k) => (alongS ? at(r, k) : at(k, r));
+  const size = Math.max(K.size * sc, dN / 55);
+  const n = Math.round(kLen / size);
+  if (n < 2) return;
+  const rng = mulberry32((Math.round(a[0] * 97) * 73856093 ^ Math.round(a[1] * 89) * 19349663 ^ Math.round(a[2] * 83) * 83492791 ^ Math.round(c[0] * 79 + c[2] * 71) * 2654435761) >>> 0);
+  const dist = base.dist !== undefined ? base.dist : base.pts.reduce((s, w) => s + Math.hypot(w[0], w[2]), 0) / base.pts.length;
+  const shade = (k) => scalec(base.color, k);
+  const push = (r0, r1, k0, k1, col) => {
+    const q = [P(r0, k0), P(r1, k0), P(r1, k1), P(r0, k1)];
+    L.props.push({ kind: 'poly', pts: q.map(w => L.pt(w[0], w[1], w[2])), color: col, layer: base.layer, dist, detail: true, alpha: base.alpha, noFog: base.noFog, noLight: base.noLight });
+  };
+  base.seam = shade(K.seam);
+  const gk = K.gap / kLen / 2;
+  const blocks = base.tex === 'stone' && dN < 14 && vertical;
+  const slabs = base.tex === 'stone' && dN < 14 && !vertical;
+  for (let i = 0; i < n; i++) {
+    const k0 = i / n + gk, k1 = (i + 1) / n - gk;
+    const jit = () => 1 - K.jit / 2 + K.jit * rng();
+    if (base.tex === 'logs') { // a log: its upper half catches the light, its lower half is in shadow
+      const km = (k0 + k1) / 2, j = jit(), hi = kUp ? [km, k1] : [k0, km], lo = kUp ? [k0, km] : [km, k1];
+      push(0, 1, lo[0], lo[1], shade(0.84 * j)); push(0, 1, hi[0], hi[1], shade(1.08 * j));
+    } else if (blocks || slabs) { // stone: blocks along each course, staggered from course to course (slabs on floors)
+      const unit = (slabs ? K.size * 1.8 : K.block) * sc, gr = K.gap / rLen / 2;
+      let r = -rng() * unit / rLen;
+      while (r < 1) { const len = unit * (0.7 + 0.6 * rng()) / rLen; const r0 = Math.max(0, r) + gr, r1 = Math.min(1, r + len) - gr; if (r1 - r0 > gr) push(r0, r1, k0, k1, shade(jit())); r += len; }
+    } else push(0, 1, k0, k1, shade(jit()));
+  }
+};
 SC.mkQuad = function (L, a, b, c, d, color, opts) {
   return Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {});
 };
