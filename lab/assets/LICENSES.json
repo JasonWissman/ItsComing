@@ -1,0 +1,19 @@
+{
+  "_about": "One record per external asset the lab ships or loads, kept from the day it was obtained (the report's licensing ledger). The lab itself ships no art: the walker, the field and every texture are generated in code. Add a record before committing any model, texture, sound or font.",
+  "assets": [
+    {
+      "asset": "three.js 0.186.1 (lab/vendor/three)",
+      "creator": "three.js authors",
+      "source": "https://www.npmjs.com/package/three",
+      "obtained": "2026-10-08",
+      "license": "MIT",
+      "commercialUse": true,
+      "modificationAllowed": true,
+      "attributionRequired": true,
+      "attributionText": "three.js, MIT License, Copyright 2010-2026 three.js authors (lab/vendor/three/LICENSE)",
+      "proofFile": "lab/vendor/three/LICENSE",
+      "modified": false,
+      "notes": "Only the modules the lab imports are vendored (lab/tools/vendor.js). The Draco decoder (Apache-2.0, Google) and the Basis Universal transcoder (Apache-2.0, Binomial) ship with it under addons/libs."
+    }
+  ]
+}

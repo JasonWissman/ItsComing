@@ -8,8 +8,20 @@ const globals = {
   CREATURES: 'readonly', ICONS: 'readonly', SC: 'readonly', LEVELS: 'readonly', G: 'readonly', UI: 'readonly', DIFFICULTIES: 'readonly', DIR_NAMES: 'readonly', PITCH_DOWN: 'readonly', AFTERMATHS: 'readonly',
   mkItem: 'readonly', mkTarget: 'readonly', mkContainer: 'readonly', mkRecipe: 'readonly', iconSprite: 'readonly', spotKey: 'readonly', spotLocal: 'readonly', pickSpot: 'readonly', newItem: 'readonly', combine: 'readonly', useTarget: 'readonly', dropActive: 'readonly', win: 'readonly', die: 'readonly', worldLight: 'readonly', validateContent: 'readonly', buildLevel: 'readonly', buildLevelDef: 'readonly', ensureAudio: 'readonly', showOverlay: 'readonly', hideOverlay: 'readonly', setMuted: 'readonly', setDifficulty: 'readonly', startLevel: 'readonly', restartLevel: 'readonly', resumeGame: 'readonly', pauseGame: 'readonly', showTitle: 'readonly', proceedFromSurvived: 'readonly', proceed: 'readonly', activeUse: 'readonly', updateHover: 'readonly', setState: 'readonly', escapeHtml: 'readonly', startMorning: 'readonly', throwItem: 'readonly', pointInPoly: 'readonly',
 };
+// the lab (lab/js) is ES modules importing three; its browser globals are the usual ones
+const labGlobals = { window: 'readonly', document: 'readonly', location: 'readonly', localStorage: 'readonly', performance: 'readonly', requestAnimationFrame: 'readonly', setTimeout: 'readonly', console: 'readonly', URLSearchParams: 'readonly', URL: 'readonly', Blob: 'readonly', Promise: 'readonly', Uint8Array: 'readonly', Uint16Array: 'readonly', Float32Array: 'readonly', Float64Array: 'readonly', WeakMap: 'readonly', Map: 'readonly', Set: 'readonly', Number: 'readonly', String: 'readonly', Object: 'readonly', Array: 'readonly', Math: 'readonly', JSON: 'readonly', Date: 'readonly', Error: 'readonly', Infinity: 'readonly', isNaN: 'readonly', parseFloat: 'readonly', parseInt: 'readonly', navigator: 'readonly' };
 module.exports = [
-  { ignores: ['node_modules/**', 'test/shots/**'] },
+  { ignores: ['node_modules/**', 'test/shots/**', 'lab/vendor/**'] },
+  {
+    files: ['lab/js/**/*.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: labGlobals },
+    rules: { 'no-undef': 'error', 'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }], 'no-empty': ['error', { allowEmptyCatch: true }] },
+  },
+  {
+    files: ['lab/tools/**/*.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { require: 'readonly', module: 'writable', process: 'readonly', __dirname: 'readonly', console: 'readonly', JSON: 'readonly', Array: 'readonly' } },
+    rules: { 'no-undef': 'error', 'no-empty': ['error', { allowEmptyCatch: true }] },
+  },
   {
     files: ['js/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals },

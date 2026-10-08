@@ -16,7 +16,9 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: lint
-        run: npx eslint js test
+        run: npx eslint js test lab
+      - name: the vendored three matches the pinned package
+        run: node lab/tools/vendor.js && git diff --exit-code --stat -- lab/vendor
       - name: every sound exists and every cue has a caption
         run: node test/sounds.js
       - name: lanes, switches, story, flow, features
@@ -25,3 +27,11 @@ jobs:
         run: TIERS=normal,hard,nightmare SEEDS=1 node test/play.js
       - name: clickability sweep
         run: N=8 node test/hittest.js
+      - name: the 3D lab (software WebGL)
+        run: node test/lab.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lab-shots
+          path: test/shots/lab-*.png
+          if-no-files-found: ignore
