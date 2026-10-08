@@ -13,6 +13,7 @@ CREATURES.gaunt = {
     const bob = Math.abs(Math.sin(g)) * 0.06, lean = near * 0.14;
     // legs: long, knees knobbed, the stride wide
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'legL' : 'legR', s * 0.08, 1.08);
       const ph = g + (s > 0 ? Math.PI : 0), lift = Math.max(0, Math.sin(ph)) * 0.3;
       const hx = s * 0.08, hy = 1.08 + bob, kx = s * 0.14 + lift * 0.25, ky = 0.55 + lift * 0.5, fx = s * 0.16 + lift * 0.1, fy = lift * 0.6 + 0.03;
       P_limb(ctx, [[hx, hy], [kx, ky], [fx, fy]], 0.055, body);
@@ -20,6 +21,7 @@ CREATURES.gaunt = {
       fingers(ctx, fx, fy, s > 0 ? 0.2 : Math.PI - 0.2, 0.28, 0.1, 0.012, bodyD);
     }
     // the torso: narrow, the belly sunk, the ribs as hatching
+    P.part('body', 0, 1.0);
     const torso = [[-0.13, 1.0 + bob], [0.13, 1.0 + bob], [0.2 + lean, 1.62 + bob], [-0.2 + lean, 1.62 + bob]];
     P_poly(ctx, torso, body);
     P_hatch(ctx, [[-0.18 + lean * 0.7, 1.25 + bob], [0.18 + lean * 0.7, 1.25 + bob], [0.2 + lean, 1.58 + bob], [-0.2 + lean, 1.58 + bob]], 0.032, 0.15, 0.009, bodyD);
@@ -28,6 +30,7 @@ CREATURES.gaunt = {
     // arms: swinging wide, claws
     const raise = smoothstep(Math.max(near * 0.6, lunge));
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'armL' : 'armR', s * 0.2 + lean, 1.58);
       const ph = g + (s > 0 ? 0 : Math.PI), swing = Math.sin(ph) * 0.18 * (1 - raise);
       const sx = s * 0.2 + lean, sy = 1.58 + bob, ex = s * lerp(0.36, 0.5, raise) + swing, ey = lerp(1.2, 1.45, raise) + swing * 0.3, hx = s * lerp(0.32, 0.42, raise) + swing * 2, hy = lerp(0.72, 1.85, raise);
       P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.045, body);
@@ -36,6 +39,7 @@ CREATURES.gaunt = {
     }
     // the neck and head: grey, the eyes huge, the mouth all teeth, the hair standing up
     const tilt = headTiltJerk(t, 3.1, 0.22) * (1 - lunge) - lean * 0.6;
+    P.part('head', lean * 0.9, 1.6);
     ctx.save(); ctx.translate(lean * 0.9, 1.6 + bob); ctx.rotate(tilt);
     P_line(ctx, 0, 0, 0, 0.14, 0.07, head);
     for (let i = 0; i < 4; i++) P_line(ctx, -0.03, 0.02 + i * 0.03, 0.03, 0.02 + i * 0.03, 0.006, headD);   // the strings of the neck

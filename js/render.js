@@ -249,6 +249,7 @@ const R = (() => {
       col: c => { if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)); },
       cola: (c, a) => { if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa), a); },
       raw: c => rgba(c),
+      part() {},   // creatures may name a part here (head, armL, ...): the ink lab's recorder listens, the game does not
     };
   }
 

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-85 0 170 205" width="170cm" height="205cm" data-creature="runner" data-height="2.05" data-width="1.7">
+  <title>the runner (It's Coming)</title>
+  <desc>Exported from the code at rest. One unit is one centimetre of the creature; the feet stand on the bottom edge of #bounds, which sets the scale, so keep it. Each top-level group is a part the lab animates (head, armL, armR, legL, legR, body, and any other name is a still part); the magenta dot in a group is its joint: move the dot to change where the part turns. Edit the shapes freely, add or remove shapes, keep the group names.</desc>
+  <rect id="bounds" x="-85" y="0" width="170" height="205" fill="none" stroke="none"/>
+  <g id="body">
+    <circle id="body-pivot" cx="0" cy="205" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#1a1616" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" d="M-22 143 L-60 150 L-72 203"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" d="M-25 130 L-48 165 L-42 203"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M-42 203 L-49.79 194.57"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M-42 203 L-54.45 196.6"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M-42 203 L-55.89 201.25"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M-42 203 L-53.19 205.56"/>
+    <path fill="none" stroke="#1a1616" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" d="M22 143 L60 150 L72 203"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" d="M25 130 L48 165 L42 203"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M42 203 L53.19 205.56"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M42 203 L55.89 201.25"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M42 203 L54.45 196.6"/>
+    <path fill="none" stroke="#c4b8ac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M42 203 L49.79 194.57"/>
+    <path fill="#1a1616" d="M-34 175 C-30 105 30 105 34 175 Z"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-12.09 140.11 L-25.4 151.71"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-9.09 140.08 L-28.05 170.57"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-6.09 140.06 L-14.45 162.51"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-3.09 140.03 L-5.97 158.47"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-0.09 140 L0.91 175.97"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M2.91 139.97 L6.35 157.3"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M5.91 139.95 L14.71 163.64"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.91 139.92 L26.95 169.93"/>
+    <path fill="none" stroke="#060406" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M11.91 139.89 L24.96 151.23"/>
+    <path fill="#c4b8ac" d="M14 149.87 C13.91 140.48 7.57 132.93 -0.16 133 C-7.89 133.07 -14.09 140.74 -14 150.13 C-13.91 159.52 -7.57 167.07 0.16 167 C7.89 166.93 14.09 159.26 14 149.87"/>
+    <path fill="#060406" d="M-1.93 147.02 C-1.95 144.81 -3.58 143.03 -5.56 143.05 C-7.55 143.07 -9.15 144.88 -9.13 147.08 C-9.11 149.29 -7.48 151.07 -5.49 151.05 C-3.5 151.03 -1.91 149.23 -1.93 147.02"/>
+    <path fill="#060406" d="M9.07 146.92 C9.05 144.71 7.42 142.93 5.44 142.95 C3.45 142.97 1.85 144.77 1.87 146.98 C1.89 149.19 3.52 150.97 5.51 150.95 C7.5 150.93 9.09 149.13 9.07 146.92"/>
+    <path fill="#060406" d="M4.59 159.96 C4.56 156.64 2.52 153.98 0.04 154 C-2.45 154.02 -4.44 156.73 -4.41 160.04 C-4.38 163.35 -2.34 166.02 0.15 166 C2.63 165.98 4.62 163.27 4.59 159.96"/>
+  </g>
+</svg>

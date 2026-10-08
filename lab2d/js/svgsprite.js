@@ -33,17 +33,32 @@ const SVGSPRITE = (() => {
     if (st) { const m = new RegExp('(?:^|;)\\s*' + name + '\\s*:\\s*([^;]+)').exec(st); if (m) return m[1].trim(); }
     return el.getAttribute(name);
   }
-  function parse(text) {
-    const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
-    const root = doc.documentElement;
-    if (!root || root.nodeName.toLowerCase() !== 'svg') throw new Error('not an SVG');
+  function viewBoxOf(root) {
     let vb = (root.getAttribute('viewBox') || '').split(/[\s,]+/).map(parseFloat);
     if (vb.length !== 4 || vb.some(isNaN)) vb = [0, 0, parseFloat(root.getAttribute('width')) || 100, parseFloat(root.getAttribute('height')) || 100];
+    return vb;
+  }
+  // the shapes under an element, as Path2D objects with their colours and baked transforms; skip(el) leaves one out
+  // the document's <clipPath> definitions, each as the shapes it holds (in the user space of what it clips)
+  function clipDefs(root) {
+    const doc = root.ownerDocument || root, defs = {};
+    for (const cp of Array.from(doc.getElementsByTagName('clipPath'))) {
+      const id = cp.getAttribute('id'); if (!id) continue;
+      defs[id] = parseNode(cp, null, null, true).map(p => p);
+    }
+    return defs;
+  }
+  function parseNode(root, vb, skip, inner) {
     const paths = [];
+    const clips = inner ? {} : clipDefs(root);
     function walk(el, inherited) {
+      if (skip && skip(el)) return;
       const tag = el.nodeName.toLowerCase();
-      if (tag === 'defs' || tag === 'clippath' || tag === 'mask' || tag === 'metadata' || tag === 'title' || tag === 'desc' || tag === 'style') return;
+      if ((tag === 'defs' || tag === 'clippath') && !inner) return;
+      if (tag === 'mask' || tag === 'metadata' || tag === 'title' || tag === 'desc' || tag === 'style') return;
       const st = Object.assign({}, inherited);
+      const cp = /url\(#([^)]+)\)/.exec(styleOf(el, 'clip-path') || '');
+      if (cp && clips[cp[1]]) st.clips = (inherited.clips || []).concat([{ shapes: clips[cp[1]], m: st.m || inherited.m }]);
       const f = styleOf(el, 'fill'); if (f !== null && f !== undefined) st.fill = f;
       const sk = styleOf(el, 'stroke'); if (sk !== null && sk !== undefined) st.stroke = sk;
       const sw = styleOf(el, 'stroke-width'); if (sw) st.lw = parseFloat(sw);
@@ -61,11 +76,19 @@ const SVGSPRITE = (() => {
       else if (tag === 'ellipse') { p = new Path2D(); p.ellipse(parseFloat(el.getAttribute('cx') || 0), parseFloat(el.getAttribute('cy') || 0), parseFloat(el.getAttribute('rx') || 0), parseFloat(el.getAttribute('ry') || 0), 0, 0, TAU); }
       if (p) {
         const fill = st.fill === undefined ? [0, 0, 0] : parseColor(st.fill), stroke = parseColor(st.stroke);
-        if (fill || stroke) paths.push({ path: p, fill, stroke, lw: st.lw || 1, alpha: st.alpha, m: st.m });
+        if (fill || stroke) paths.push({ path: p, fill, stroke, lw: st.lw || 1, alpha: st.alpha, m: st.m, clips: st.clips || null });
       }
       for (const ch of el.children) walk(ch, st);
     }
-    walk(root, { m: new DOMMatrix(), alpha: 1 });
+    walk(root, { m: new DOMMatrix(), alpha: 1, clips: null });
+    return paths;
+  }
+  function parse(text) {
+    const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+    const root = doc.documentElement;
+    if (!root || root.nodeName.toLowerCase() !== 'svg') throw new Error('not an SVG');
+    const vb = viewBoxOf(root);
+    const paths = parseNode(root, vb);
     // the drawing's bounds: rendered small and scanned (Path2D has no bounds of its own)
     const N = 256, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d', { willReadFrequently: true });
     const k = N / Math.max(vb[2], vb[3]);
@@ -78,13 +101,20 @@ const SVGSPRITE = (() => {
     return { paths, viewBox: vb, bbox, count: paths.length };
   }
   function drawPaths(ctx, paths, colorOf, alphaScale) {
-    let lastM = null;
+    let lastM = null, lastClips = null;
+    ctx.save();
     for (const p of paths) {
-      if (p.m !== lastM) { ctx.restore(); ctx.save(); ctx.transform(p.m.a, p.m.b, p.m.c, p.m.d, p.m.e, p.m.f); lastM = p.m; }
+      if (p.m !== lastM || p.clips !== lastClips) {
+        ctx.restore(); ctx.save();
+        // each clip region with its own transform baked in, applied here (a clip set inside save/restore would be undone)
+        if (p.clips) for (const c of p.clips) { const region = new Path2D(), cm = new DOMMatrix([c.m.a, c.m.b, c.m.c, c.m.d, c.m.e, c.m.f]); for (const s of c.shapes) region.addPath(s.path, cm.multiply(new DOMMatrix([s.m.a, s.m.b, s.m.c, s.m.d, s.m.e, s.m.f]))); ctx.clip(region); }
+        ctx.transform(p.m.a, p.m.b, p.m.c, p.m.d, p.m.e, p.m.f); lastM = p.m; lastClips = p.clips;
+      }
       ctx.globalAlpha = p.alpha * alphaScale;
       if (p.fill) { ctx.fillStyle = colorOf(p.fill); ctx.fill(p.path); }
       if (p.stroke) { ctx.strokeStyle = colorOf(p.stroke); ctx.lineWidth = p.lw; ctx.stroke(p.path); }
     }
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
   // a sprite h metres tall: the drawing's bounds fit the box, feet at the bottom, centred
@@ -125,5 +155,5 @@ const SVGSPRITE = (() => {
   }
   async function fromFile(file) { return parse(await file.text()); }
   async function fromUrl(url) { const r = await fetch(url); if (!r.ok) throw new Error('could not load ' + url + ': ' + r.status); return parse(await r.text()); }
-  return { parse, makeSprite, fromFile, fromUrl };
+  return { parse, parseNode, viewBoxOf, drawPaths, makeSprite, fromFile, fromUrl };
 })();

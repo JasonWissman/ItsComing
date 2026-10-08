@@ -15,6 +15,7 @@ CREATURES.walker = {
     const hipY = 1.22 + bob;
     // legs (front view: feet lift alternately)
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'legL' : 'legR', s * 0.08, hipY);
       const ph = g + (s > 0 ? Math.PI : 0);
       const lift = Math.max(0, Math.sin(ph)) * 0.24;
       const hx = s * 0.08 + sway, kx = s * 0.12 + sway * 0.6, fx = s * 0.15 + sway * 0.3;
@@ -22,10 +23,12 @@ CREATURES.walker = {
       P_line(ctx, fx - 0.03, lift + 0.03, fx + s * 0.09, lift + 0.03, 0.07, body);
     }
     // torso: far too narrow
+    P.part('body', 0, hipY);
     P_poly(ctx, [[-0.15 + sway, hipY - 0.06], [0.15 + sway, hipY - 0.06], [0.22 + sway * 0.6, 2.0 + bob], [-0.22 + sway * 0.6, 2.0 + bob]], body);
     // arms: hang to the knees; rise toward you when close
     const raise = smoothstep(Math.max(near, c.lunge || 0));
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'armL' : 'armR', s * 0.21, 1.95);
       const ph = g + (s > 0 ? 0 : Math.PI);
       const swing = Math.sin(ph) * 0.05 * (1 - raise);
       const sx = s * 0.21 + sway * 0.6, sy = 1.95 + bob;
@@ -37,6 +40,7 @@ CREATURES.walker = {
     }
     // neck and head with a snapping tilt
     const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0));
+    P.part('head', 0, 2.0);
     ctx.save();
     ctx.translate(sway * 0.6, 2.0 + bob);
     ctx.rotate(tilt);

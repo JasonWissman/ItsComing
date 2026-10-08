@@ -26,16 +26,19 @@ CREATURES.smiler = {
     ctx.save(); ctx.translate(jx, 0);
     // legs
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'legL' : 'legR', s * 0.1, 0.95);
       const ph = g + (s > 0 ? Math.PI : 0);
       const lift = Math.max(0, Math.sin(ph)) * 0.16;
       P_limb(ctx, [[s * 0.1, 0.95 + bob], [s * 0.12, 0.5 + lift * 0.6], [s * 0.13, lift + 0.03]], 0.11, coat);
       P_line(ctx, s * 0.1, lift + 0.03, s * 0.18, lift + 0.03, 0.06, black);
     }
     // long coat
+    P.part('body', 0, 0.62);
     P_poly(ctx, [[-0.27, 0.62 + bob], [0.27, 0.62 + bob], [0.25, 1.62 + bob], [-0.25, 1.62 + bob]], coat);
     P_poly(ctx, [[-0.04, 1.0 + bob], [0.04, 1.0 + bob], [0.05, 1.6 + bob], [-0.05, 1.6 + bob]], coatL);
     // arms: perfectly still at the sides
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'armL' : 'armR', s * 0.26, 1.58);
       const ex = s * lerp(0.3, 0.36, lunge), hy = lerp(0.82, 1.35, lunge), hx = s * lerp(0.31, 0.22, lunge);
       P_limb(ctx, [[s * 0.26, 1.58 + bob], [ex, 1.15 + bob], [hx, hy + bob]], 0.075, coat);
       P_ell(ctx, hx, hy - 0.04 + bob, 0.04, 0.07, skin);
@@ -43,6 +46,7 @@ CREATURES.smiler = {
     }
     // head, tilting further as it comes
     const tilt = (0.06 + near * 0.55 + lunge * 0.3) * (Math.floor(t / 7) % 2 ? -1 : 1);
+    P.part('head', 0, 1.62);
     ctx.save(); ctx.translate(0, 1.62 + bob); ctx.rotate(tilt);
     P_line(ctx, 0, 0, 0, 0.08, 0.09, skin);
     P_ell(ctx, 0, 0.22, 0.125, 0.155, skin);

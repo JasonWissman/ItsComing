@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-80 0 160 170" width="160cm" height="170cm" data-creature="carrier" data-height="1.7" data-width="1.6">
+  <title>the carrier (It's Coming)</title>
+  <desc>Exported from the code at rest. One unit is one centimetre of the creature; the feet stand on the bottom edge of #bounds, which sets the scale, so keep it. Each top-level group is a part the lab animates (head, armL, armR, legL, legR, body, and any other name is a still part); the magenta dot in a group is its joint: move the dot to change where the part turns. Edit the shapes freely, add or remove shapes, keep the group names.</desc>
+  <rect id="bounds" x="-80" y="0" width="160" height="170" fill="none" stroke="none"/>
+  <g id="body">
+    <circle id="body-pivot" cx="0" cy="170" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#3e3224" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" d="M-16 94.9 L-22 130 L-20 167"/>
+    <path fill="none" stroke="#3e3224" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" d="M16 94.9 L22 130 L20 167"/>
+    <path fill="#60503c" d="M50 74.9 C50 47.29 27.61 24.9 0 24.9 C-27.61 24.9 -50 47.29 -50 74.9 C-50 102.52 -27.61 124.9 0 124.9 C27.61 124.9 50 102.52 50 74.9"/>
+    <path fill="#60503c" d="M-42 99.9 L42 99.9 L36 52.4 L-36 52.4 Z"/>
+    <path fill="none" stroke="#3e3224" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-30 94.9 L-25 49.9"/>
+    <path fill="none" stroke="#3e3224" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-10 94.9 L-5 49.9"/>
+    <path fill="none" stroke="#3e3224" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M10 94.9 L15 49.9"/>
+    <path fill="none" stroke="#3e3224" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M30 94.9 L35 49.9"/>
+    <path fill="#3e3224" d="M-12 84.9 L10 84.9 L10 68.9 L-12 68.9 Z"/>
+    <path fill="none" stroke="#60503c" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" d="M-38 54.9 L-10 74.9 L25 64.9"/>
+    <path fill="none" stroke="#60503c" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" d="M38 54.9 L10 74.9 L-25 64.9"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-16.5 12.9 L-40.75 29"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-13.5 12.9 L-26.45 21.99"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-10.5 12.9 L-30.46 36.45"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-7.5 12.9 L-17.95 30.47"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-4.5 12.9 L-9.35 28.09"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-1.5 12.9 L-2.91 42.86"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M1.5 12.9 L3.6 27.3"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.9 L10.59 33.09"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.9 L19.6 39.1"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M10.5 12.9 L20.05 23.37"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M13.5 12.9 L35.31 32.25"/>
+    <path fill="none" stroke="#78643c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.9 L40.62 26.89"/>
+    <path fill="#a08c7a" d="M20 32.9 C20 20.75 11.05 10.9 0 10.9 C-11.05 10.9 -20 20.75 -20 32.9 C-20 45.05 -11.05 54.9 0 54.9 C11.05 54.9 20 45.05 20 32.9"/>
+    <path fill="#080606" d="M-4.5 27.9 C-4.5 26.52 -6.07 25.4 -8 25.4 C-9.93 25.4 -11.5 26.52 -11.5 27.9 C-11.5 29.28 -9.93 30.4 -8 30.4 C-6.07 30.4 -4.5 29.28 -4.5 27.9"/>
+    <path fill="#080606" d="M11.5 27.9 C11.5 26.52 9.93 25.4 8 25.4 C6.07 25.4 4.5 26.52 4.5 27.9 C4.5 29.28 6.07 30.4 8 30.4 C9.93 30.4 11.5 29.28 11.5 27.9"/>
+    <path fill="#080606" d="M8 44.9 C8 43.8 4.42 42.9 0 42.9 C-4.42 42.9 -8 43.8 -8 44.9 C-8 46.01 -4.42 46.9 0 46.9 C4.42 46.9 8 46.01 8 44.9"/>
+  </g>
+</svg>

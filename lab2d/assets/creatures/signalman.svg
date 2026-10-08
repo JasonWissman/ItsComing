@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 0 120 230" width="120cm" height="230cm" data-creature="signalman" data-height="2.3" data-width="1.2">
+  <title>the signalman (It's Coming)</title>
+  <desc>Exported from the code at rest. One unit is one centimetre of the creature; the feet stand on the bottom edge of #bounds, which sets the scale, so keep it. Each top-level group is a part the lab animates (head, armL, armR, legL, legR, body, and any other name is a still part); the magenta dot in a group is its joint: move the dot to change where the part turns. Edit the shapes freely, add or remove shapes, keep the group names.</desc>
+  <rect id="bounds" x="-60" y="0" width="120" height="230" fill="none" stroke="none"/>
+  <g id="body">
+    <circle id="body-pivot" cx="0" cy="230" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#18161a" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" d="M-10 125 L-14 175 L-15 227"/>
+    <path fill="#060406" d="M-5 227 C-5 224.79 -9.48 223 -15 223 C-20.52 223 -25 224.79 -25 227 C-25 229.21 -20.52 231 -15 231 C-9.48 231 -5 229.21 -5 227"/>
+    <path fill="none" stroke="#18161a" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" d="M10 125 L14 175 L15 227"/>
+    <path fill="#060406" d="M25 227 C25 224.79 20.52 223 15 223 C9.48 223 5 224.79 5 227 C5 229.21 9.48 231 15 231 C20.52 231 25 229.21 25 227"/>
+    <path fill="#18161a" d="M-34 175 L34 175 L30 35 L-30 35 Z"/>
+    <path fill="#2c282e" d="M-3 170 L3 170 L3 40 L-3 40 Z"/>
+    <path fill="#aa8c46" d="M10 145 C10 143.9 9.1 143 8 143 C6.9 143 6 143.9 6 145 C6 146.1 6.9 147 8 147 C9.1 147 10 146.1 10 145"/>
+    <path fill="#aa8c46" d="M10 117 C10 115.9 9.1 115 8 115 C6.9 115 6 115.9 6 117 C6 118.1 6.9 119 8 119 C9.1 119 10 118.1 10 117"/>
+    <path fill="#aa8c46" d="M10 89 C10 87.9 9.1 87 8 87 C6.9 87 6 87.9 6 89 C6 90.1 6.9 91 8 91 C9.1 91 10 90.1 10 89"/>
+    <path fill="#aa8c46" d="M10 61 C10 59.9 9.1 59 8 59 C6.9 59 6 59.9 6 61 C6 62.1 6.9 63 8 63 C9.1 63 10 62.1 10 61"/>
+    <path fill="none" stroke="#18161a" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" d="M-30 45 L-36 95 L-33 135"/>
+    <path fill="#cec4b8" d="M-28 140 C-28 136.13 -30.24 133 -33 133 C-35.76 133 -38 136.13 -38 140 C-38 143.87 -35.76 147 -33 147 C-30.24 147 -28 143.87 -28 140"/>
+    <path fill="none" stroke="#18161a" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" d="M30 45 L42.13 90 L44.19 125"/>
+    <path fill="#cec4b8" d="M49.19 130 C49.19 126.13 46.95 123 44.19 123 C41.43 123 39.19 126.13 39.19 130 C39.19 133.87 41.43 137 44.19 137 C46.95 137 49.19 133.87 49.19 130"/>
+    <path fill="#1e1c1e" d="M39.99 168.28 L52.47 168.29 L52.47 166.25 L39.99 166.24 Z"/>
+    <path fill="#5a5446" d="M40.95 166.58 L51.51 166.59 L51.53 145.51 L40.97 145.5 Z"/>
+    <path fill="#1e1c1e" d="M40.01 146.18 L52.49 146.19 L52.49 143.81 L40.01 143.8 Z"/>
+    <path fill="#1e1c1e" d="M39.87 166.58 L41.07 166.58 L41.09 145.5 L39.89 145.5 Z"/>
+    <path fill="#1e1c1e" d="M51.39 166.59 L52.59 166.59 L52.61 145.51 L51.41 145.51 Z"/>
+    <path fill="none" stroke="#1e1c1e" stroke-width="1.14" stroke-linecap="round" stroke-linejoin="round" d="M42.89 143.46 C42.9 140.84 44.4 138.71 46.26 138.71 C48.11 138.71 49.62 140.84 49.61 143.47"/>
+    <path fill="#e6e0c8" d="M44.55 165.23 L47.91 165.23 L47.92 155.71 L44.56 155.71 Z"/>
+    <path fill="none" stroke="#1e1c1e" stroke-width="0.57" stroke-linecap="round" stroke-linejoin="round" d="M46.24 155.71 L46.24 154.01"/>
+    <path fill="#ffb450" fill-opacity="0" d="M34.23 169.98 L58.23 170 L58.26 136 L34.26 135.98 Z"/>
+    <path fill="#ffebaa" d="M47.09 151.72 C47.09 150.28 46.71 149.11 46.25 149.11 C45.78 149.11 45.41 150.28 45.41 151.72 C45.4 153.16 45.78 154.33 46.24 154.33 C46.71 154.33 47.08 153.16 47.09 151.72"/>
+    <path fill="none" stroke="#cec4b8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" d="M0 38 L0 30"/>
+    <path fill="#cec4b8" d="M12 14 C12 4.61 6.63 -3 0 -3 C-6.63 -3 -12 4.61 -12 14 C-12 23.39 -6.63 31 0 31 C6.63 31 12 23.39 12 14"/>
+    <path fill="none" stroke="#786460" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-7.5 11 L-2 11"/>
+    <path fill="none" stroke="#786460" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.5 11 L2 11"/>
+    <path fill="none" stroke="#786460" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-4 25 L4 25"/>
+    <path fill="#18161a" d="M14 0 C14 -2.76 7.73 -5 0 -5 C-7.73 -5 -14 -2.76 -14 0 C-14 2.76 -7.73 5 0 5 C7.73 5 14 2.76 14 0"/>
+    <path fill="#18161a" d="M-12 2 L12 2 L12 -8 L-12 -8 Z"/>
+    <path fill="none" stroke="#2c282e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M-13 2 L14 2"/>
+  </g>
+</svg>

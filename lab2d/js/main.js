@@ -22,6 +22,9 @@ const LAB2 = (() => {
   function toast(msg, dur) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); toastT = dur || 2.6; }
   function overlay(html) { const el = $('overlay'); el.innerHTML = html; el.classList.toggle('show', !!html); }
   const registry = () => Object.assign({}, CREATURES, EXTRA);
+  // a creature's drawing as an SVG of parts (lab2d/js/record.js): the editing master
+  function exportSvg(id) { const CR = registry()[id]; if (!CR) throw new Error('no creature ' + id); return RECORD.exportSvg(id, CR); }
+  function downloadText(text, name, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type || 'image/svg+xml' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
   const labIds = () => Object.keys(CREATURES).filter(k => CREATURES[k].lab);
   const gameIds = () => Object.keys(CREATURES).filter(k => !CREATURES[k].lab);
 
@@ -219,6 +222,8 @@ const LAB2 = (() => {
       case 'bench': bench().then(r => toast('bench: p50 ' + r.p50 + ' ms, p95 ' + r.p95 + ' ms', 6)).catch(showError); break;
       case 'sweep': sweep().then(() => toast('Cost sweep done: see the readout.', 4)).catch(showError); break;
       case 'defaults': Object.assign(settings, PANEL.DEFAULTS); PANEL.save(settings); panel.refresh(); setScene(settings.scene); resetThings(); break;
+      case 'exportSvg': { const id = one ? one.type : settings.creature; try { downloadText(exportSvg(id), id + '.svg'); toast('Exported ' + id + '.svg: edit it, drop it back here.', 4); } catch (e) { showError(e); } break; }
+      case 'exportAll': { for (const id of labIds().concat(gameIds())) { try { downloadText(exportSvg(id), id + '.svg'); } catch (e) { showError(e); } } toast('Exported every creature.', 4); break; }
       default: break;
     }
   }
@@ -237,7 +242,18 @@ const LAB2 = (() => {
   }
   function creatureOptions() {
     const reg = registry();
-    return Object.keys(reg).map(k => [k, reg[k].name + (reg[k].lab ? '  (new)' : reg[k].svg ? '  (svg)' : '')]);
+    return Object.keys(reg).map(k => [k, reg[k].name + (reg[k].edited ? '' : reg[k].lab ? '  (new)' : reg[k].svg ? '  (svg)' : '')]);
+  }
+  // an edited export comes back as a rigged creature; any other SVG as a sprite
+  function addRig(text, name) {
+    const rig = RIG.parseRig(text);
+    const baseId = rig.creature || Object.keys(CREATURES).find(k => name.toLowerCase().startsWith(k)) || null;
+    const id = 'edit:' + name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    EXTRA[id] = RIG.makeCreature(rig, baseId, (baseId && CREATURES[baseId] ? CREATURES[baseId].name : name) + ' (edited)');
+    panel.setOptions('creature', creatureOptions(), id);
+    settings.creature = id; settings.mode = 'approach'; PANEL.save(settings); panel.refresh(); resetThings();
+    toast(EXTRA[id].name + ': ' + rig.parts.length + ' part' + (rig.parts.length === 1 ? '' : 's') + ', ' + rig.count + ' shapes' + (baseId ? ', moving like the ' + baseId : '') + '.', 5);
+    return id;
   }
   function addSvg(parsed, name) {
     const id = 'svg:' + name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
@@ -258,7 +274,7 @@ const LAB2 = (() => {
     window.addEventListener('drop', async e => {
       e.preventDefault(); depth = 0; dz.classList.remove('show');
       const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!file) return;
-      try { addSvg(await SVGSPRITE.fromFile(file), file.name.replace(/\.svg$/i, '')); } catch (err) { showError(err); }
+      try { const text = await file.text(), name = file.name.replace(/\.svg$/i, ''); if (RIG.hasParts(text)) addRig(text, name); else addSvg(SVGSPRITE.parse(text), name); } catch (err) { showError(err); }
     });
   }
 
@@ -327,6 +343,7 @@ const LAB2 = (() => {
     try {
       R.attach($('view')); R.resize();
       window.addEventListener('resize', R.resize);
+      RIG.installAll();   // edited creatures committed under lab2d/js/creatures/edited
       panel = PANEL.create($('panel'), settings, { change: onChange, action });
       panel.setOptions('creature', creatureOptions(), settings.creature);
       if (!registry()[settings.creature]) settings.creature = 'grinner';
@@ -344,6 +361,7 @@ const LAB2 = (() => {
       $('overlay').addEventListener('click', () => action('reset'));
       bindDrop();
       if (q.has('svg')) SVGSPRITE.fromUrl(q.get('svg')).then(p => addSvg(p, q.get('svg').split('/').pop().replace(/\.svg$/i, ''))).catch(showError);
+      if (q.has('rig')) fetch(q.get('rig')).then(r => r.text()).then(t => addRig(t, q.get('rig').split('/').pop().replace(/\.svg$/i, ''))).catch(showError);
       S.ready = true; last = performance.now();
       if (!S.noRaf) requestAnimationFrame(tick);
       if (q.has('bench')) setTimeout(() => bench(parseInt(q.get('bench'), 10) || 60).catch(showError), 400);
@@ -357,6 +375,7 @@ const LAB2 = (() => {
     step(dt, n) { for (let i = 0; i < (n || 1); i++) frame(dt === undefined ? 1 / 60 : dt); },
     setDist, reset: () => action('reset'), action, bench, sweep, pct, setScene, resetThings, addSvg, registry, labIds, gameIds,
     loadSvgText: (text, name) => addSvg(SVGSPRITE.parse(text), name || 'svg'),
+    loadRigText: (text, name) => addRig(text, name || 'edit'), exportSvg,
   });
 })();
 

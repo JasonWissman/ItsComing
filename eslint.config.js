@@ -13,7 +13,7 @@ const labGlobals = { window: 'readonly', document: 'readonly', location: 'readon
 // lab2d (the ink lab) is classic scripts like the game, over the game's globals and its own
 const lab2dGlobals = Object.assign({}, globals, { DOMMatrix: 'readonly', DOMParser: 'readonly', Path2D: 'readonly', fetch: 'readonly', Blob: 'readonly', URL: 'readonly', Promise: 'readonly', Map: 'readonly', Set: 'readonly', Float64Array: 'readonly', Uint8Array: 'readonly', Number: 'readonly', Object: 'readonly', Array: 'readonly', String: 'readonly', Math: 'readonly', JSON: 'readonly', Error: 'readonly', isNaN: 'readonly', parseFloat: 'readonly', parseInt: 'readonly',
   hashf: 'readonly', P_hatch: 'readonly', P_hatchEll: 'readonly', tornEdge: 'readonly', P_tatter: 'readonly', P_ragged: 'readonly', P_drip: 'readonly', P_flame: 'readonly', P_halo: 'readonly', P_ribs: 'readonly', P_wildHair: 'readonly', P_stripes: 'readonly', P_brush: 'readonly',
-  PASSES: 'readonly', POST2D: 'readonly', HANDS: 'readonly', SVGSPRITE: 'readonly', SCENES: 'readonly', PANEL: 'readonly', LAB2: 'readonly' });
+  PASSES: 'readonly', POST2D: 'readonly', HANDS: 'readonly', SVGSPRITE: 'readonly', SCENES: 'readonly', PANEL: 'readonly', LAB2: 'readonly', RECORD: 'readonly', RIG: 'readonly', EDITED_CREATURES: 'readonly' });
 module.exports = [
   { ignores: ['node_modules/**', 'test/shots/**', 'lab/vendor/**'] },
   {
@@ -25,6 +25,11 @@ module.exports = [
     files: ['lab/js/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: labGlobals },
     rules: { 'no-undef': 'error', 'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }], 'no-empty': ['error', { allowEmptyCatch: true }] },
+  },
+  {
+    files: ['lab2d/tools/**/*.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { require: 'readonly', module: 'writable', process: 'readonly', __dirname: 'readonly', console: 'readonly', JSON: 'readonly', Array: 'readonly', Promise: 'readonly', Date: 'readonly', window: 'readonly', LAB2: 'readonly' } },
+    rules: { 'no-undef': 'error', 'no-empty': ['error', { allowEmptyCatch: true }] },
   },
   {
     files: ['lab/tools/**/*.js'],

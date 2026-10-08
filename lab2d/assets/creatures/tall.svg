@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-55 0 110 230" width="110cm" height="230cm" data-creature="tall" data-height="2.3" data-width="1.1">
+  <title>the tall one (It's Coming)</title>
+  <desc>Exported from the code at rest. One unit is one centimetre of the creature; the feet stand on the bottom edge of #bounds, which sets the scale, so keep it. Each top-level group is a part the lab animates (head, armL, armR, legL, legR, body, and any other name is a still part); the magenta dot in a group is its joint: move the dot to change where the part turns. Edit the shapes freely, add or remove shapes, keep the group names.</desc>
+  <rect id="bounds" x="-55" y="0" width="110" height="230" fill="none" stroke="none"/>
+  <g id="body">
+    <circle id="body-pivot" cx="0" cy="230" r="1.2" fill="#ff00ff"/>
+    <path fill="#08070a" d="M-13.09 118.35 L13.09 118.35 L20.02 59.06 L-20.02 59.06 Z"/>
+  </g>
+  <g id="legL">
+    <circle id="legL-pivot" cx="-7.7" cy="114.5" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#08070a" stroke-width="6.54" stroke-linecap="round" stroke-linejoin="round" d="M-7.7 114.5 L-10.78 172.25 L-13.86 227.69"/>
+    <path fill="none" stroke="#08070a" stroke-width="6.16" stroke-linecap="round" stroke-linejoin="round" d="M-16.17 227.69 L-22.33 227.69"/>
+  </g>
+  <g id="legR">
+    <circle id="legR-pivot" cx="7.7" cy="114.5" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#08070a" stroke-width="6.54" stroke-linecap="round" stroke-linejoin="round" d="M7.7 114.5 L10.78 172.25 L13.86 227.69"/>
+    <path fill="none" stroke="#08070a" stroke-width="6.16" stroke-linecap="round" stroke-linejoin="round" d="M11.55 227.69 L22.33 227.69"/>
+  </g>
+  <g id="armL">
+    <circle id="armL-pivot" cx="-19.25" cy="65.22" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#08070a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M-19.25 65.22 L-21.56 106.8 L-23.1 164.55"/>
+    <path fill="none" stroke="#08070a" stroke-width="1.54" stroke-linecap="round" stroke-linejoin="round" d="M-23.1 164.55 L-26.7 179.27"/>
+    <path fill="none" stroke="#08070a" stroke-width="1.54" stroke-linecap="round" stroke-linejoin="round" d="M-23.1 164.55 L-24.58 182.97"/>
+    <path fill="none" stroke="#08070a" stroke-width="1.54" stroke-linecap="round" stroke-linejoin="round" d="M-23.1 164.55 L-21.62 182.97"/>
+    <path fill="none" stroke="#08070a" stroke-width="1.54" stroke-linecap="round" stroke-linejoin="round" d="M-23.1 164.55 L-19.5 179.27"/>
+  </g>
+  <g id="armR">
+    <circle id="armR-pivot" cx="19.25" cy="65.22" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#08070a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M19.25 65.22 L21.56 106.8 L23.1 164.55"/>
+    <path fill="none" stroke="#08070a" stroke-width="1.54" stroke-linecap="round" stroke-linejoin="round" d="M23.1 164.55 L19.5 179.27"/>
+    <path fill="none" stroke="#08070a" stroke-width="1.54" stroke-linecap="round" stroke-linejoin="round" d="M23.1 164.55 L21.62 182.97"/>
+    <path fill="none" stroke="#08070a" stroke-width="1.54" stroke-linecap="round" stroke-linejoin="round" d="M23.1 164.55 L24.58 182.97"/>
+    <path fill="none" stroke="#08070a" stroke-width="1.54" stroke-linecap="round" stroke-linejoin="round" d="M23.1 164.55 L26.7 179.27"/>
+  </g>
+  <g id="head">
+    <circle id="head-pivot" cx="0" cy="59.06" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#08070a" stroke-width="6.16" stroke-linecap="round" stroke-linejoin="round" d="M0 59.06 L-0.68 48.3"/>
+    <path fill="#08070a" d="M8.34 32.3 C7.81 23.81 2.9 17.21 -2.62 17.56 C-8.14 17.91 -12.17 25.07 -11.64 33.56 C-11.1 42.05 -6.2 48.65 -0.68 48.3 C4.84 47.95 8.88 40.79 8.34 32.3"/>
+    <path fill="#786c6e" d="M5.75 34.01 C5.35 27.64 1.75 22.69 -2.28 22.94 C-6.31 23.2 -9.25 28.56 -8.85 34.93 C-8.45 41.3 -4.86 46.25 -0.82 46 C3.21 45.74 6.15 40.37 5.75 34.01"/>
+    <path fill="#e8e4d6" d="M-3.28 31.49 C-3.32 30.81 -4.05 30.31 -4.9 30.36 C-5.75 30.41 -6.4 31.01 -6.36 31.69 C-6.31 32.36 -5.59 32.87 -4.74 32.82 C-3.89 32.76 -3.24 32.17 -3.28 31.49"/>
+    <path fill="#e8e4d6" d="M2.87 31.1 C2.82 30.43 2.1 29.92 1.25 29.97 C0.4 30.03 -0.25 30.62 -0.21 31.3 C-0.17 31.98 0.56 32.48 1.41 32.43 C2.26 32.38 2.91 31.78 2.87 31.1"/>
+    <path fill="#020203" d="M-4.28 31.55 C-4.3 31.26 -4.56 31.03 -4.85 31.05 C-5.15 31.07 -5.38 31.33 -5.36 31.62 C-5.34 31.92 -5.08 32.15 -4.79 32.13 C-4.49 32.11 -4.26 31.85 -4.28 31.55"/>
+    <path fill="#020203" d="M1.87 31.17 C1.85 30.87 1.59 30.64 1.29 30.66 C1 30.68 0.77 30.94 0.79 31.24 C0.81 31.53 1.07 31.76 1.36 31.74 C1.66 31.72 1.89 31.46 1.87 31.17"/>
+    <path fill="#020203" d="M1.19 41.24 C1.15 40.6 0.09 40.15 -1.19 40.23 C-2.46 40.31 -3.46 40.89 -3.42 41.53 C-3.38 42.17 -2.32 42.62 -1.04 42.54 C0.23 42.46 1.23 41.88 1.19 41.24"/>
+  </g>
+</svg>

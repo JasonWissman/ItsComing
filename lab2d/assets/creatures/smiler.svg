@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 0 100 195" width="100cm" height="195cm" data-creature="smiler" data-height="1.95" data-width="1">
+  <title>the smiler (It's Coming)</title>
+  <desc>Exported from the code at rest. One unit is one centimetre of the creature; the feet stand on the bottom edge of #bounds, which sets the scale, so keep it. Each top-level group is a part the lab animates (head, armL, armR, legL, legR, body, and any other name is a still part); the magenta dot in a group is its joint: move the dot to change where the part turns. Edit the shapes freely, add or remove shapes, keep the group names.</desc>
+  <rect id="bounds" x="-50" y="0" width="100" height="195" fill="none" stroke="none"/>
+  <g id="body">
+    <circle id="body-pivot" cx="0" cy="195" r="1.2" fill="#ff00ff"/>
+    <path fill="#100e14" d="M-27 133 L27 133 L25 33 L-25 33 Z"/>
+    <path fill="#1e1b24" d="M-4 95 L4 95 L5 35 L-5 35 Z"/>
+  </g>
+  <g id="legL">
+    <circle id="legL-pivot" cx="-10" cy="100" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#100e14" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" d="M-10 100 L-12 145 L-13 192"/>
+    <path fill="none" stroke="#040406" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" d="M-10 192 L-18 192"/>
+  </g>
+  <g id="legR">
+    <circle id="legR-pivot" cx="10" cy="100" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#100e14" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" d="M10 100 L12 145 L13 192"/>
+    <path fill="none" stroke="#040406" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" d="M10 192 L18 192"/>
+  </g>
+  <g id="armL">
+    <circle id="armL-pivot" cx="-26" cy="37" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#100e14" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" d="M-26 37 L-30 80 L-31 113"/>
+    <path fill="#d8d0c6" d="M-27 117 C-27 113.13 -28.79 110 -31 110 C-33.21 110 -35 113.13 -35 117 C-35 120.87 -33.21 124 -31 124 C-28.79 124 -27 120.87 -27 117"/>
+  </g>
+  <g id="armR">
+    <circle id="armR-pivot" cx="26" cy="37" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#100e14" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" d="M26 37 L30 80 L31 113"/>
+    <path fill="#d8d0c6" d="M35 117 C35 113.13 33.21 110 31 110 C28.79 110 27 113.13 27 117 C27 120.87 28.79 124 31 124 C33.21 124 35 120.87 35 117"/>
+  </g>
+  <g id="head">
+    <circle id="head-pivot" cx="0" cy="33" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#d8d0c6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" d="M0 33 L-0.48 25.01"/>
+    <path fill="#d8d0c6" d="M11.16 10.29 C10.64 1.75 4.64 -4.85 -2.25 -4.43 C-9.14 -4.02 -14.31 3.24 -13.8 11.79 C-13.28 20.33 -7.28 26.93 -0.39 26.51 C6.5 26.1 11.67 18.84 11.16 10.29"/>
+    <path fill="#100e14" d="M-13.98 8.79 L-12.14 -2.34 L-2.34 -5.93 L7.82 -3.53 L10.98 7.3 L4.13 1.7 L-7.85 2.42 Z"/>
+    <path fill="#f6f2ec" d="M-3.57 8.67 C-3.66 7.16 -4.89 6.01 -6.32 6.1 C-7.76 6.19 -8.85 7.48 -8.76 8.98 C-8.67 10.49 -7.43 11.64 -6 11.55 C-4.56 11.46 -3.47 10.18 -3.57 8.67"/>
+    <path fill="#f6f2ec" d="M5.82 8.11 C5.73 6.6 4.49 5.45 3.06 5.54 C1.63 5.62 0.54 6.91 0.63 8.42 C0.72 9.92 1.95 11.07 3.39 10.99 C4.82 10.9 5.91 9.61 5.82 8.11"/>
+    <path fill="#040406" d="M-5.35 8.98 C-5.38 8.48 -5.76 8.1 -6.2 8.13 C-6.64 8.15 -6.98 8.58 -6.95 9.07 C-6.92 9.57 -6.54 9.95 -6.09 9.92 C-5.65 9.9 -5.32 9.47 -5.35 8.98"/>
+    <path fill="#040406" d="M4.03 8.41 C4 7.92 3.62 7.54 3.18 7.56 C2.74 7.59 2.41 8.01 2.44 8.51 C2.47 9.01 2.85 9.39 3.29 9.36 C3.73 9.33 4.06 8.91 4.03 8.41"/>
+    <path fill="#f6f2ec" d="M-9.38 18.54 Q-0.83 19.15 7.59 17.52 Q-0.31 27.91 -9.38 18.54 Z"/>
+  </g>
+</svg>

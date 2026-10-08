@@ -13,12 +13,14 @@ CREATURES.candlebearer = {
     const sway = Math.sin(t * 0.9) * 0.025, breathe = Math.sin(t * 0.6) * 0.01;
     ctx.save(); ctx.translate(sway, 0);
     // the banners hang from the horns, behind everything
+    P.part('banners', 0, 2.6);
     for (const s of [-1, 1]) {
       const x = s * 0.36, ripple = Math.sin(t * 1.4 + s) * 0.02;
       P_tatter(ctx, [[x - 0.05, 2.62], [x + 0.05, 2.62], [x + 0.06 + ripple, 1.25, 't'], [x - 0.06 + ripple, 1.3]], robeD, 11 + s, 0.05, 5);
       for (let i = 0; i < 6; i++) P_line(ctx, x - 0.025, 2.45 - i * 0.18, x + 0.025 * (i % 2 ? 1 : -1), 2.4 - i * 0.18, 0.008, rune);
     }
     // the robe: a tall shape widening to a torn hem that spreads on the ground, the shoulders hunched and high
+    P.part('body', 0, 1.4);
     const hem = [[-0.2, 2.1 + breathe], [0.2, 2.1 + breathe], [0.42, 2.0], [0.26, 1.4], [0.62, 0.0, 't'], [-0.62, 0.0], [-0.26, 1.4], [-0.42, 2.0]];
     P_tatter(ctx, hem, robe, 5, 0.12, 14);
     P_hatch(ctx, [[0.0, 2.05], [0.42, 2.0], [0.26, 1.4], [0.6, 0.02], [0.05, 0.02]], 0.05, 1.25, 0.009, robeD, { from: 0.05, to: 1.6 });
@@ -26,6 +28,7 @@ CREATURES.candlebearer = {
     // arms out to the sides, long hands open, fingers running
     const raise = smoothstep(Math.max(near * 0.7, lunge));
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'armL' : 'armR', s * 0.4, 2.0);
       const sx = s * 0.4, sy = 2.0, ex = s * lerp(0.78, 0.6, raise), ey = lerp(1.72, 2.05, raise), hx = s * lerp(0.95, 0.55, raise), hy = lerp(1.5, 2.2, raise);
       P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.075, robe);
       P_limb(ctx, [[ex, ey], [hx, hy]], 0.045, boneD);
@@ -35,6 +38,7 @@ CREATURES.candlebearer = {
       for (let i = 0; i < 3; i++) { const a = ang + (i - 1) * lerp(0.22, 0.34, raise); P_drip(ctx, hx + Math.cos(a) * 0.3, hy + Math.sin(a) * 0.3, 0.14, 0.014, blood, t, 20 + s * 3 + i); }
     }
     // the head: a long skull, eye sockets, a wedge of a snout, the horns, and the candles on the horns
+    P.part('head', 0, 2.08);
     ctx.save(); ctx.translate(0, 2.08 + breathe); ctx.rotate(Math.sin(t * 0.5) * 0.04);
     P_poly(ctx, [[-0.15, 0.0], [0.15, 0.0], [0.2, 0.3], [-0.2, 0.3]], robeD);   // the cowl behind
     P_ell(ctx, 0, 0.26, 0.105, 0.17, bone);

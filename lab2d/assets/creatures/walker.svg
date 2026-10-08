@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-75 0 150 245" width="150cm" height="245cm" data-creature="walker" data-height="2.45" data-width="1.5">
+  <title>the walker (It's Coming)</title>
+  <desc>Exported from the code at rest. One unit is one centimetre of the creature; the feet stand on the bottom edge of #bounds, which sets the scale, so keep it. Each top-level group is a part the lab animates (head, armL, armR, legL, legR, body, and any other name is a still part); the magenta dot in a group is its joint: move the dot to change where the part turns. Edit the shapes freely, add or remove shapes, keep the group names.</desc>
+  <rect id="bounds" x="-75" y="0" width="150" height="245" fill="none" stroke="none"/>
+  <g id="body">
+    <circle id="body-pivot" cx="0" cy="245" r="1.2" fill="#ff00ff"/>
+    <path fill="#06060a" d="M-15 129 L15 129 L22 45 L-22 45 Z"/>
+  </g>
+  <g id="legL">
+    <circle id="legL-pivot" cx="-8" cy="123" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#06060a" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" d="M-8 123 L-12 184 L-15 242"/>
+    <path fill="none" stroke="#06060a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" d="M-18 242 L-24 242"/>
+  </g>
+  <g id="legR">
+    <circle id="legR-pivot" cx="8" cy="123" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#06060a" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" d="M8 123 L12 184 L15 242"/>
+    <path fill="none" stroke="#06060a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" d="M12 242 L24 242"/>
+  </g>
+  <g id="armL">
+    <circle id="armL-pivot" cx="-21" cy="50" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#06060a" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" d="M-21 50 L-24 107 L-27 173"/>
+    <path fill="none" stroke="#06060a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M-27 173 L-30.31 186.54"/>
+    <path fill="none" stroke="#06060a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M-27 173 L-28.36 189.95"/>
+    <path fill="none" stroke="#06060a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M-27 173 L-25.64 189.95"/>
+    <path fill="none" stroke="#06060a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M-27 173 L-23.69 186.54"/>
+  </g>
+  <g id="armR">
+    <circle id="armR-pivot" cx="21" cy="50" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#06060a" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" d="M21 50 L24 107 L27 173"/>
+    <path fill="none" stroke="#06060a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M27 173 L23.69 186.54"/>
+    <path fill="none" stroke="#06060a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M27 173 L25.64 189.95"/>
+    <path fill="none" stroke="#06060a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M27 173 L28.36 189.95"/>
+    <path fill="none" stroke="#06060a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M27 173 L30.31 186.54"/>
+  </g>
+  <g id="head">
+    <circle id="head-pivot" cx="0" cy="45" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#06060a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" d="M0 45 L0 33"/>
+    <path fill="#06060a" d="M11.5 15 C11.5 5.34 6.35 -2.5 0 -2.5 C-6.35 -2.5 -11.5 5.34 -11.5 15 C-11.5 24.66 -6.35 32.5 0 32.5 C6.35 32.5 11.5 24.66 11.5 15"/>
+  </g>
+</svg>

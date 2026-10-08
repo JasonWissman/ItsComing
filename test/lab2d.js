@@ -64,6 +64,21 @@ async function run(page, errors) {
     check(!(await err()) && r && r.h > 250, 'drawn as ' + mode + (r ? ' (' + r.w + '×' + r.h + ' px at 4 m)' : ''));
   }
 
+  console.log('== out as an editing master, back as a rig ==');
+  await open('scene=stage');
+  const masters = await page.evaluate(() => { const out = {}; for (const id of LAB2.labIds().concat(LAB2.gameIds())) out[id] = LAB2.exportSvg(id); return out; });
+  let okAll = true, parted = 0;
+  for (const id in masters) { const svg = masters[id]; const ok = /^<\?xml/.test(svg) && /<svg /.test(svg) && /id="bounds"/.test(svg) && (svg.match(/<path /g) || []).length > 5; okAll = okAll && ok; if ((svg.match(/<g id="/g) || []).length > 1) parted++; }
+  check(okAll, 'every creature exports as an SVG with #bounds and shapes (' + Object.keys(masters).length + ' files, ' + parted + ' with named parts)');
+  const g = masters.grinner;
+  check((g.match(/<g id="(legL|legR|armL|armR|head|body)">/g) || []).length === 6 && /head-pivot/.test(g) && /clipPath/.test(g), 'the grinner\'s master has its six parts, joints and clips');
+  // a tool-style edit: the head scaled about its joint, as Figma or Illustrator would write it
+  const edited = g.replace(/<g id="head">\s*<circle id="head-pivot" cx="([-\d.]+)" cy="([-\d.]+)"/, (m, cx, cy) => '<g id="head" transform="translate(' + cx + ' ' + cy + ') scale(1.5) translate(' + (-cx) + ' ' + (-cy) + ')"><circle id="head-pivot" cx="' + cx + '" cy="' + cy + '"');
+  const rig = await page.evaluate(t => { const id = LAB2.loadRigText(t, 'grinner'); LAB2.setDist(4); LAB2.one.hold = LAB2.one.dist; LAB2.one.moving = true; LAB2.one.gait = 1; LAB2.step(1 / 60, 3); const e = LAB2.extra[id]; return { roles: e.rig.parts.map(p => p.role).sort().join(','), shapes: e.rig.count, h: e.h, name: e.name, clipped: e.rig.parts.some(p => p.paths.some(q => q.clips)), err: LAB2.error && LAB2.error.split('\n')[0] }; }, edited);
+  check(!rig.err && rig.roles === 'armL,armR,body,head,legL,legR' && rig.shapes > 40 && rig.h === 1.35 && rig.clipped, 'back as a rig: ' + rig.name + ', ' + rig.shapes + ' shapes in six parts, the hatching still clipped' + (rig.err ? ': ' + rig.err : ''));
+  const r2 = await hitOf();
+  check(r2 && r2.h > 180, 'the edited grinner draws at its height (' + (r2 ? r2.w + '×' + r2.h : '?') + ' px at 4 m)');
+
   console.log('== it reaches you ==');
   await open('scene=corridor&creature=gaunt&dist=1.5');
   await step(4, 0.1);

@@ -14,12 +14,14 @@ CREATURES.grinner = {
     const bob = c.moving ? Math.abs(Math.sin(g)) * 0.02 : 0;
     // legs: pyjama trousers, straight, small dark shoes
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'legL' : 'legR', s * 0.09, 0.62);
       const ph = g + (s > 0 ? Math.PI : 0), lift = c.moving ? Math.max(0, Math.sin(ph)) * 0.08 : 0;
       P_poly(ctx, [[s * 0.03, 0.62 + bob], [s * 0.15, 0.62 + bob], [s * 0.14, 0.08 + lift], [s * 0.05, 0.08 + lift]], cloth);
       P_hatch(ctx, [[s * 0.03, 0.62 + bob], [s * 0.15, 0.62 + bob], [s * 0.14, 0.08 + lift], [s * 0.05, 0.08 + lift]], 0.025, 1.1, 0.006, clothD, { from: s > 0 ? -0.02 : 0.3, to: s > 0 ? 0.3 : -0.02 });
       P_ell(ctx, s * 0.1, 0.035 + lift, 0.075, 0.035, ink);
     }
     // the one-piece: a loose top, a collar in a V, buttons down the front, a pocket
+    P.part('body', 0, 0.62);
     const top = [[-0.19, 0.6 + bob], [0.19, 0.6 + bob], [0.21, 1.03 + bob], [-0.21, 1.03 + bob]];
     P_poly(ctx, top, cloth);
     P_hatch(ctx, top, 0.028, 1.2, 0.006, clothD, { from: 0.0, to: 0.3 });
@@ -28,6 +30,7 @@ CREATURES.grinner = {
     P_rect(ctx, 0.06, 0.82 + bob, 0.09, 0.08, clothD); P_line(ctx, 0.06, 0.9 + bob, 0.15, 0.9 + bob, 0.006, ink);
     // arms straight at the sides in striped sleeves, fists
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'armL' : 'armR', s * 0.24, 1.01);
       const sleeve = [[s * 0.19, 1.02 + bob], [s * 0.29, 1.0 + bob], [s * 0.3, 0.62 + bob], [s * 0.2, 0.62 + bob]];
       P_stripes(ctx, sleeve, 6, cloth, stripe);
       P_ell(ctx, s * 0.25, 0.57 + bob, 0.045, 0.05, skin);
@@ -35,6 +38,7 @@ CREATURES.grinner = {
     }
     // the head: a hole, long hair hanging either side of it, and in the hole two eyes and the grin
     const tilt = (0.08 + near * 0.12) * (Math.floor(t / 9) % 2 ? -1 : 1) * (1 - lunge);
+    P.part('head', 0, 1.04);
     ctx.save(); ctx.translate(0, 1.04 + bob); ctx.rotate(tilt);
     P_line(ctx, 0, 0, 0, 0.06, 0.07, ink);
     for (const s of [-1, 1]) P_tatter(ctx, [[s * 0.06, 0.3], [s * 0.19, 0.22], [s * 0.21, -0.3, 't'], [s * 0.1, -0.26]], hair, 3 + s, 0.05, 6);

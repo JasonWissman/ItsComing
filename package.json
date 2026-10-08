@@ -19,7 +19,9 @@
     "lab": "npx serve .",
     "lab:vendor": "node lab/tools/vendor.js",
     "test:lab": "node test/lab.js",
-    "test:lab2d": "node test/lab2d.js"
+    "test:lab2d": "node test/lab2d.js",
+    "lab2d:export": "node lab2d/tools/export-creatures.js",
+    "lab2d:import": "node lab2d/tools/import-creature.js"
   },
   "devDependencies": {
     "eslint": "10.1.0",

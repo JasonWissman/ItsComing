@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-85 0 170 195" width="170cm" height="195cm" data-creature="sackhead" data-height="1.95" data-width="1.7">
+  <title>the sackhead (It's Coming)</title>
+  <desc>Exported from the code at rest. One unit is one centimetre of the creature; the feet stand on the bottom edge of #bounds, which sets the scale, so keep it. Each top-level group is a part the lab animates (head, armL, armR, legL, legR, body, and any other name is a still part); the magenta dot in a group is its joint: move the dot to change where the part turns. Edit the shapes freely, add or remove shapes, keep the group names.</desc>
+  <defs>
+    <clipPath id="clip1"><path d="M-17 100 L17 100 L39 45 L-1 43 Z"/></clipPath>
+    <clipPath id="clip2"><path d="M0.51 39.05 L34.45 40.97 L38.42 6.13 L33.71 0.86 L5.76 -0.72 L0.48 3.99 Z"/></clipPath>
+  </defs>
+  <rect id="bounds" x="-85" y="0" width="170" height="195" fill="none" stroke="none"/>
+  <g id="body">
+    <circle id="body-pivot" cx="0" cy="195" r="1.2" fill="#ff00ff"/>
+    <path fill="#962824" d="M-17 100 L17 100 L39 45 L-1 43 Z"/>
+    <g clip-path="url(#clip1)"><path fill="none" stroke="#5c1412" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" d="M-32.69 75.6 L49.37 50.21 M-33.58 72.73 L48.49 47.34 M-34.47 69.86 L47.6 44.48 M-35.35 67 L46.72 41.61 M-36.24 64.13 L45.83 38.74 M-37.13 61.27 L44.94 35.88 M-38.01 58.4 L44.06 33.01 M-38.9 55.53 L43.17 30.15 M-39.79 52.67 L42.28 27.28 M-40.67 49.8 L41.4 24.41 M-41.56 46.94 L40.51 21.55 M-42.45 44.07 L39.62 18.68 M-43.33 41.2 L38.74 15.82 M-44.22 38.34 L37.85 12.95"/></g>
+    <path fill="none" stroke="#c45046" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" d="M-4 83 L32 85"/>
+    <path fill="none" stroke="#c45046" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" d="M-3 75 L32 77"/>
+    <path fill="none" stroke="#c45046" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" d="M-2 67 L32 69"/>
+    <path fill="none" stroke="#c45046" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" d="M-1 59 L32 61"/>
+  </g>
+  <g id="rag">
+    <circle id="rag-pivot" cx="-20" cy="45" r="1.2" fill="#ff00ff"/>
+    <path fill="#161416" d="M-30 45 L5 40 L10 115 L4.97 124.9 L-1.89 117.35 L-7.19 124.69 L-13.89 118.51 L-19.39 124.01 L-25.91 119.64 L-31.01 128.85 L-38 120 Z"/>
+  </g>
+  <g id="legL">
+    <circle id="legL-pivot" cx="-10" cy="95" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#962824" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" d="M-10 95 L-10 140 L-15 192"/>
+    <path fill="none" stroke="#c45046" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M-10 95 L-10 140"/>
+    <path fill="#5c1412" d="M-5.5 140 C-5.5 137.79 -7.51 136 -10 136 C-12.49 136 -14.5 137.79 -14.5 140 C-14.5 142.21 -12.49 144 -10 144 C-7.51 144 -5.5 142.21 -5.5 140"/>
+    <path fill="none" stroke="#5c1412" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M-15 192 L-24.14 185.05"/>
+    <path fill="none" stroke="#5c1412" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M-15 192 L-28.15 187.2"/>
+    <path fill="none" stroke="#5c1412" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M-15 192 L-28.98 191.3"/>
+    <path fill="none" stroke="#5c1412" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M-15 192 L-26.12 194.84"/>
+  </g>
+  <g id="legR">
+    <circle id="legR-pivot" cx="10" cy="95" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#962824" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" d="M10 95 L34 140 L25 192"/>
+    <path fill="none" stroke="#c45046" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M10 95 L34 140"/>
+    <path fill="#5c1412" d="M38.5 140 C38.5 137.79 36.49 136 34 136 C31.51 136 29.5 137.79 29.5 140 C29.5 142.21 31.51 144 34 144 C36.49 144 38.5 142.21 38.5 140"/>
+    <path fill="none" stroke="#5c1412" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M25 192 L36.12 194.84"/>
+    <path fill="none" stroke="#5c1412" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M25 192 L38.98 191.3"/>
+    <path fill="none" stroke="#5c1412" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M25 192 L38.15 187.2"/>
+    <path fill="none" stroke="#5c1412" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M25 192 L34.14 185.05"/>
+  </g>
+  <g id="armL">
+    <circle id="armL-pivot" cx="-8" cy="50" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#962824" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" d="M-8 50 L-40 85 L-36 133"/>
+    <path fill="none" stroke="#c45046" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M-8 50 L-40 85"/>
+    <path fill="#5c1412" d="M-31.5 133 C-31.5 130.24 -33.51 128 -36 128 C-38.49 128 -40.5 130.24 -40.5 133 C-40.5 135.76 -38.49 138 -36 138 C-33.51 138 -31.5 135.76 -31.5 133"/>
+    <path fill="none" stroke="#962824" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M-36 133 L-41.71 144.81"/>
+    <path fill="none" stroke="#962824" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M-36 133 L-38.39 148.82"/>
+    <path fill="none" stroke="#962824" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M-36 133 L-33.61 148.82"/>
+    <path fill="none" stroke="#962824" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M-36 133 L-30.29 144.81"/>
+  </g>
+  <g id="armR">
+    <circle id="armR-pivot" cx="32" cy="50" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#962824" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" d="M32 50 L40 85 L36 133"/>
+    <path fill="none" stroke="#c45046" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M32 50 L40 85"/>
+    <path fill="#5c1412" d="M40.5 133 C40.5 130.24 38.49 128 36 128 C33.51 128 31.5 130.24 31.5 133 C31.5 135.76 33.51 138 36 138 C38.49 138 40.5 135.76 40.5 133"/>
+    <path fill="none" stroke="#962824" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M36 133 L30.29 144.81"/>
+    <path fill="none" stroke="#962824" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M36 133 L33.61 148.82"/>
+    <path fill="none" stroke="#962824" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M36 133 L38.39 148.82"/>
+    <path fill="none" stroke="#962824" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M36 133 L41.71 144.81"/>
+    <path fill="none" stroke="#dcd4c4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M39 138 L42 175"/>
+    <path fill="none" stroke="#dcd4c4" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M42 175 L43 183"/>
+    <path fill="none" stroke="#82080c" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" d="M42.5 179 L42.5 183.53"/>
+    <path fill="none" stroke="#82080c" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round" d="M42.5 183.53 L42.5 185.48"/>
+    <path fill="#82080c" d="M43.1 185.48 C43.1 185.04 42.83 184.68 42.5 184.68 C42.17 184.68 41.9 185.04 41.9 185.48 C41.9 185.92 42.17 186.28 42.5 186.28 C42.83 186.28 43.1 185.92 43.1 185.48"/>
+  </g>
+  <g id="head">
+    <circle id="head-pivot" cx="17.2" cy="45" r="1.2" fill="#ff00ff"/>
+    <path fill="none" stroke="#962824" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" d="M17.2 45 L17.65 37.01"/>
+    <path fill="#d0c8ba" d="M0.51 39.05 L34.45 40.97 L38.42 6.13 L33.71 0.86 L5.76 -0.72 L0.48 3.99 Z"/>
+    <g clip-path="url(#clip2)"><path fill="none" stroke="#8c8476" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round" d="M2.26 45.33 L26.94 -8.89 M0.26 44.42 L24.94 -9.8 M-1.74 43.5 L22.94 -10.72 M-3.74 42.59 L20.93 -11.63 M-5.75 41.68 L18.93 -12.54 M-7.75 40.77 L16.93 -13.45 M-9.75 39.86 L14.93 -14.36 M-11.75 38.95 L12.93 -15.27 M-13.76 38.04 L10.92 -16.18 M-15.76 37.12 L8.92 -17.1 M-17.76 36.21 L6.92 -18.01 M-19.76 35.3 L4.92 -18.92 M-21.76 34.39 L2.91 -19.83 M-23.77 33.48 L0.91 -20.74 M-25.77 32.57 L-1.09 -21.65 M-27.77 31.66 L-3.09 -22.56 M-29.77 30.75 L-5.1 -23.48"/></g>
+    <path fill="none" stroke="#8c8476" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" d="M7.7 0.39 L10.52 3.56"/>
+    <path fill="none" stroke="#8c8476" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" d="M15.68 0.84 L18.51 4.01"/>
+    <path fill="none" stroke="#8c8476" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" d="M23.67 1.29 L26.5 4.46"/>
+    <path fill="none" stroke="#8c8476" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" d="M31.66 1.75 L34.48 4.91"/>
+    <path fill="#050304" d="M15.09 14.83 C15.21 12.85 13.87 11.16 12.1 11.06 C10.34 10.96 8.82 12.49 8.71 14.47 C8.59 16.46 9.93 18.15 11.7 18.25 C13.46 18.35 14.98 16.82 15.09 14.83"/>
+    <path fill="#050304" d="M29.07 15.62 C29.18 13.64 27.85 11.95 26.08 11.85 C24.32 11.75 22.79 13.28 22.68 15.26 C22.57 17.25 23.91 18.94 25.68 19.04 C27.44 19.14 28.96 17.61 29.07 15.62"/>
+    <path fill="#050304" d="M20.9 29.18 C20.99 27.53 19.81 26.12 18.27 26.03 C16.73 25.94 15.4 27.21 15.31 28.87 C15.21 30.52 16.39 31.93 17.93 32.02 C19.48 32.11 20.8 30.84 20.9 29.18"/>
+    <path fill="#82080c" d="M0.51 39.05 L34.45 40.97 L32.85 33.86 L2.79 34.17 Z"/>
+    <path fill="none" stroke="#82080c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M22.53 39.29 L22.3 43.37"/>
+    <path fill="none" stroke="#82080c" stroke-width="0.66" stroke-linecap="round" stroke-linejoin="round" d="M22.3 43.37 L22.2 45.12"/>
+    <path fill="#82080c" d="M22.92 45.16 C22.95 44.63 22.65 44.18 22.26 44.16 C21.86 44.14 21.51 44.55 21.48 45.08 C21.45 45.61 21.75 46.05 22.15 46.08 C22.54 46.1 22.89 45.69 22.92 45.16"/>
+    <path fill="none" stroke="#82080c" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" d="M8.55 38.5 L8.24 44.09"/>
+    <path fill="none" stroke="#82080c" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round" d="M8.24 44.09 L8.1 46.49"/>
+    <path fill="#82080c" d="M8.73 50.55 C8.76 49.87 8.41 49.31 7.94 49.28 C7.48 49.26 7.06 49.78 7.03 50.45 C6.99 51.12 7.34 51.69 7.81 51.71 C8.28 51.74 8.69 51.22 8.73 50.55"/>
+  </g>
+</svg>

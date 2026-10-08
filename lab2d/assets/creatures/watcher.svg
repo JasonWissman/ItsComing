@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-75 0 150 215" width="150cm" height="215cm" data-creature="watcher" data-height="2.15" data-width="1.5">
+  <title>the watcher (It's Coming)</title>
+  <desc>Exported from the code at rest. One unit is one centimetre of the creature; the feet stand on the bottom edge of #bounds, which sets the scale, so keep it. Each top-level group is a part the lab animates (head, armL, armR, legL, legR, body, and any other name is a still part); the magenta dot in a group is its joint: move the dot to change where the part turns. Edit the shapes freely, add or remove shapes, keep the group names.</desc>
+  <rect id="bounds" x="-75" y="0" width="150" height="215" fill="none" stroke="none"/>
+  <g id="body">
+    <circle id="body-pivot" cx="0" cy="215" r="1.2" fill="#ff00ff"/>
+    <path fill="#686a6c" d="M-55 215 L55 215 L30 65 L-30 65 Z"/>
+    <path fill="#3a3c40" d="M-12 215 L2 215 L6 70 L-8 70 Z"/>
+    <path fill="#3a3c40" d="M25 215 L42 215 L24 73 L16 73 Z"/>
+    <path fill="#686a6c" d="M-33 73 L33 73 L24 10 L0 0 L-24 10 Z"/>
+    <path fill="#08080a" d="M-20 65 L20 65 L15 15 L0 9 L-15 15 Z"/>
+    <path fill="none" stroke="#686a6c" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" d="M-30 70 L-42 105 L-10 43"/>
+    <path fill="#848688" d="M1.24 39.1 C2.88 32.68 0.52 26.53 -4.03 25.37 C-8.58 24.21 -13.6 28.48 -15.24 34.9 C-16.88 41.32 -14.52 47.47 -9.97 48.63 C-5.42 49.79 -0.4 45.52 1.24 39.1"/>
+    <path fill="none" stroke="#686a6c" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" d="M30 70 L42 105 L10 43"/>
+    <path fill="#848688" d="M15.24 34.9 C13.6 28.48 8.58 24.21 4.03 25.37 C-0.52 26.53 -2.88 32.68 -1.24 39.1 C0.4 45.52 5.42 49.79 9.97 48.63 C14.52 47.47 16.88 41.32 15.24 34.9"/>
+    <path fill="none" stroke="#3a3c40" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M-20 185 L-10 145 L-16 120 M30 195 L22 160"/>
+  </g>
+</svg>

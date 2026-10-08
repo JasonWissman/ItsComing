@@ -15,14 +15,17 @@ CREATURES.tall = {
     ctx.save(); ctx.scale(0.77, 0.77);   // drawn at three metres, stood at two and a bit
     const bob = Math.abs(Math.sin(g)) * 0.03, sway = Math.sin(g) * 0.03;
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'legL' : 'legR', s * 0.1, 1.5);
       const ph = g + (s > 0 ? Math.PI : 0), lift = Math.max(0, Math.sin(ph)) * 0.22;
       P_limb(ctx, [[s * 0.1 + sway, 1.5 + bob], [s * 0.14 + sway * 0.6, 0.75 + lift * 0.7], [s * 0.18 + sway * 0.3, lift + 0.03]], 0.085, body);
       P_line(ctx, s * 0.18 + sway * 0.3 - 0.03, lift + 0.03, s * 0.18 + sway * 0.3 + s * 0.11, lift + 0.03, 0.08, body);
     }
+    P.part('body', 0, 1.45);
     P_poly(ctx, [[-0.17 + sway, 1.45 + bob], [0.17 + sway, 1.45 + bob], [0.26 + sway * 0.6, 2.4 + bob - duck], [-0.26 + sway * 0.6, 2.4 + bob - duck]], body);
     // arms: down to the knees, rising very slowly as it comes
     const raise = smoothstep(Math.max(near * 0.8, lunge));
     for (const s of [-1, 1]) {
+      P.part(s < 0 ? 'armL' : 'armR', s * 0.25, 2.32 - duck);
       const sx = s * 0.25 + sway * 0.6, sy = 2.32 + bob - duck;
       const ex = s * lerp(0.28, 0.62, raise), ey = lerp(1.6, 1.9, raise);
       const hx = s * lerp(0.3, 0.5, raise), hy = lerp(0.85, 2.35, raise);
@@ -31,6 +34,7 @@ CREATURES.tall = {
     }
     // the head, bent under the frame, the face lit by the moon and turned to you
     const tilt = headTiltJerk(t, 2.7, 0.3) * (1 - lunge) + 0.35 * duck;
+    P.part('head', 0, 2.4 - duck);
     ctx.save(); ctx.translate(sway * 0.6, 2.4 + bob - duck); ctx.rotate(tilt);
     P_line(ctx, 0, 0, 0, 0.14, 0.08, body);
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
