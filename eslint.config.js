@@ -10,8 +10,17 @@ const globals = {
 };
 // the lab (lab/js) is ES modules importing three; its browser globals are the usual ones
 const labGlobals = { window: 'readonly', document: 'readonly', location: 'readonly', localStorage: 'readonly', performance: 'readonly', requestAnimationFrame: 'readonly', setTimeout: 'readonly', console: 'readonly', URLSearchParams: 'readonly', URL: 'readonly', Blob: 'readonly', Promise: 'readonly', Uint8Array: 'readonly', Uint16Array: 'readonly', Float32Array: 'readonly', Float64Array: 'readonly', WeakMap: 'readonly', Map: 'readonly', Set: 'readonly', Number: 'readonly', String: 'readonly', Object: 'readonly', Array: 'readonly', Math: 'readonly', JSON: 'readonly', Date: 'readonly', Error: 'readonly', Infinity: 'readonly', isNaN: 'readonly', parseFloat: 'readonly', parseInt: 'readonly', navigator: 'readonly' };
+// lab2d (the ink lab) is classic scripts like the game, over the game's globals and its own
+const lab2dGlobals = Object.assign({}, globals, { DOMMatrix: 'readonly', DOMParser: 'readonly', Path2D: 'readonly', fetch: 'readonly', Blob: 'readonly', URL: 'readonly', Promise: 'readonly', Map: 'readonly', Set: 'readonly', Float64Array: 'readonly', Uint8Array: 'readonly', Number: 'readonly', Object: 'readonly', Array: 'readonly', String: 'readonly', Math: 'readonly', JSON: 'readonly', Error: 'readonly', isNaN: 'readonly', parseFloat: 'readonly', parseInt: 'readonly',
+  hashf: 'readonly', P_hatch: 'readonly', P_hatchEll: 'readonly', tornEdge: 'readonly', P_tatter: 'readonly', P_ragged: 'readonly', P_drip: 'readonly', P_flame: 'readonly', P_halo: 'readonly', P_ribs: 'readonly', P_wildHair: 'readonly', P_stripes: 'readonly', P_brush: 'readonly',
+  PASSES: 'readonly', POST2D: 'readonly', HANDS: 'readonly', SVGSPRITE: 'readonly', SCENES: 'readonly', PANEL: 'readonly', LAB2: 'readonly' });
 module.exports = [
   { ignores: ['node_modules/**', 'test/shots/**', 'lab/vendor/**'] },
+  {
+    files: ['lab2d/js/**/*.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: lab2dGlobals },
+    rules: { 'no-undef': 'error', 'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }], 'no-redeclare': 'off', 'no-empty': ['error', { allowEmptyCatch: true }] },
+  },
   {
     files: ['lab/js/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: labGlobals },

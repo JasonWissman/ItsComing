@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>It's Coming · ink lab</title>
+<meta name="description" content="An experiment on the game's own Canvas 2D renderer: ink outlines, hatching, screentone, rim light, spot colour, a torch, paper and dither, first-person hands, five new creatures, and traced SVG art as sprites, with the cost of each.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23000%27/%3E%3Cellipse cx=%2716%27 cy=%2712%27 rx=%275%27 ry=%277%27 fill=%27%23d8d0c0%27/%3E%3Ccircle cx=%2714%27 cy=%2711%27 r=%271%27/%3E%3Ccircle cx=%2718%27 cy=%2711%27 r=%271%27/%3E%3Cellipse cx=%2716%27 cy=%2715.5%27 rx=%271.4%27 ry=%272%27/%3E%3Cpath d=%27M11 30 L13 19 L19 19 L21 30 Z%27 fill=%27%23111%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../lab/lab.css">
+<link rel="stylesheet" href="lab2d.css">
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="hud">
+  <div id="title"><b>It's Coming</b> · ink lab · the game's renderer, more ink</div>
+  <div id="keys"><b>← →</b> turn &nbsp; <b>↑ ↓</b> look ahead / down &nbsp; <b>hold Shift</b> zoom &nbsp; <b>click</b> or <b>F</b> reach<br><b>C</b> compare &nbsp; <b>L</b> line-up &nbsp; <b>R</b> reset &nbsp; <b>H</b> panel &nbsp; <b>P</b> pause &nbsp; <b>B</b> bench</div>
+  <div id="toast"></div>
+  <div id="status"></div>
+  <div id="stats"></div>
+</div>
+<div id="panel"></div>
+<div id="drop">Drop an .svg here</div>
+<div id="overlay"></div>
+<div id="error"></div>
+<!-- the game's own code: everything that draws, and every creature -->
+<script src="../js/util.js"></script>
+<script src="js/stubs.js"></script>
+<script src="../js/light.js"></script>
+<script src="../js/weather.js"></script>
+<script src="../js/render.js"></script>
+<script src="../js/creatures.js"></script>
+<script src="../js/creatures/walker.js"></script>
+<script src="../js/creatures/crawler.js"></script>
+<script src="../js/creatures/smiler.js"></script>
+<script src="../js/creatures/watcher.js"></script>
+<script src="../js/creatures/runner.js"></script>
+<script src="../js/creatures/swimmer.js"></script>
+<script src="../js/creatures/climber.js"></script>
+<script src="../js/creatures/customer.js"></script>
+<script src="../js/creatures/signalman.js"></script>
+<script src="../js/creatures/other.js"></script>
+<script src="../js/creatures/carrier.js"></script>
+<script src="../js/creatures/tall.js"></script>
+<script src="../js/creatures/demon.js"></script>
+<script src="../js/icons.js"></script>
+<!-- the lab -->
+<script src="js/ink.js"></script>
+<script src="js/passes.js"></script>
+<script src="js/post.js"></script>
+<script src="js/hands.js"></script>
+<script src="js/svgsprite.js"></script>
+<script src="js/creatures/grinner.js"></script>
+<script src="js/creatures/candlebearer.js"></script>
+<script src="js/creatures/haloed.js"></script>
+<script src="js/creatures/sackhead.js"></script>
+<script src="js/creatures/gaunt.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/panel.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+/* on top of ../lab/lab.css */
+#view { background: #000; }
+#panel { width: 320px; }
+#drop { border-color: rgba(239,230,210,.5); }

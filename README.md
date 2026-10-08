@@ -235,15 +235,20 @@ the words that would give the ending away. `test/sounds.js` reads the sources an
 the game asks for exists in the synthesiser and that every lane cue, death sting, footstep and voice has a
 caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
 
-## The 3D lab
+## The labs
 
-`lab/` is an experiment, separate from the game: night 1 rebuilt on [Three.js](https://threejs.org) with the
-walker as a rigged, skinned, toon-shaded character, the field as instanced scenery, real fog, bloom and grain, a
-GLB pipeline (Draco, KTX2 and Meshopt decoders wired, drag-and-drop), quality tiers and frame-time readouts. It
-exists to find out what it takes to reach the look of a game like Typing Dead while keeping this game's feel, and
-to measure it. It needs an HTTP server (it is ES modules): `npm run lab`, then open `/lab/`. `npm run test:lab`
-runs its headless test. Everything about it, including what has been learned so far and the path from the lab
-back into the game, is in [`lab/README.md`](lab/README.md). The game itself is untouched by it.
+Two experiments sit next to the game, each asking what it would take to make it richer to look at.
+
+- **`lab2d/`, the ink lab:** the game's own renderer and creatures, with more ink: outlines, hatching and
+  screentone, rim light, monochrome with a spot colour, a torch circle, paper, dither, your hands in the frame,
+  five new creatures drawn with new primitives, and traced SVG art as sprites, each with its cost. Plain scripts:
+  double-click `lab2d/index.html`, or `npm run lab` and open `/lab2d/`. `npm run test:lab2d` runs its test.
+  See [`lab2d/README.md`](lab2d/README.md). The one change to the game is an inert hook, `R.style.ink`.
+- **`lab/`, the 3D lab:** night 1 rebuilt on [Three.js](https://threejs.org) with the walker as a rigged,
+  skinned, toon-shaded character, the field as instanced scenery, real fog, bloom and grain, a GLB pipeline
+  (Draco, KTX2 and Meshopt wired, drag-and-drop), quality tiers and frame-time readouts. It needs an HTTP server
+  (it is ES modules): `npm run lab`, then open `/lab/`. `npm run test:lab` runs its test. See
+  [`lab/README.md`](lab/README.md).
 
 ## Debugging
 

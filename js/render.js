@@ -12,6 +12,7 @@ const R = (() => {
   let statics = [];   // the level's static props, sorted once, culled by view angle per frame
   let hits = [];
   let detailOn = true; // surface detail on or off (Settings)
+  const style = { ink: 0 }; // ink: stroke every poly's edge this many pixels wide (thinner with distance); 0 is the game as it is
   let hoverRef = null;
   let time = 0;
   let vignette = null, grains = [], grainIdx = 0;
@@ -234,6 +235,7 @@ const R = (() => {
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
     } else {
       ctx.closePath(); ctx.fillStyle = rgba(col); ctx.fill();
+      if (style.ink > 0 && !p.detail && !p.noInk) { ctx.strokeStyle = rgba(p.noFog ? scalec(base, 0.25) : fogged(scalec(base, 0.25), p.dist)); ctx.lineWidth = Math.max(0.5, style.ink * Math.min(1, 8 / Math.max(1, p.dist))); ctx.lineJoin = 'round'; ctx.stroke(); }
     }
     if (p.alpha !== undefined) ctx.globalAlpha = 1;
     if (hoverRef && p.hit && p.hit.ref === hoverRef) { ctx.strokeStyle = 'rgba(255,240,210,0.35)'; ctx.lineWidth = 1.5; ctx.stroke(); }
@@ -369,6 +371,7 @@ const R = (() => {
     get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageH() { return pageH; },
     get hits() { return hits; },
     get detail() { return detailOn; }, set detail(v) { detailOn = !!v; },
+    get style() { return style; },
     set hover(v) { hoverRef = v; },
     get yaw() { return yaw; },
   };

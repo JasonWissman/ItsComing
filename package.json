@@ -2,7 +2,7 @@
   "name": "itscoming",
   "version": "0.2.0",
   "private": true,
-  "description": "A first-person browser horror game. Static site, no build step. lab/ is a Three.js experiment towards 3D characters.",
+  "description": "A first-person browser horror game. Static site, no build step. lab/ and lab2d/ are experiments: a Three.js rebuild of night 1, and the game's own renderer with more ink.",
   "scripts": {
     "start": "npx serve .",
     "test": "node test/sounds.js && node test/play.js && node test/flow.js && node test/features.js && node test/lanes.js && node test/switch.js && node test/story.js && node test/hittest.js",
@@ -18,7 +18,8 @@
     "test:sounds": "node test/sounds.js",
     "lab": "npx serve .",
     "lab:vendor": "node lab/tools/vendor.js",
-    "test:lab": "node test/lab.js"
+    "test:lab": "node test/lab.js",
+    "test:lab2d": "node test/lab2d.js"
   },
   "devDependencies": {
     "eslint": "10.1.0",

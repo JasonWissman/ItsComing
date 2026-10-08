@@ -186,7 +186,7 @@ function boot() {
   catch (e) { showError(e); return; }
   panel = createPanel($('panel'), settings, { change: onChange, action }); LAB.panel = panel;
   panel.show(!settings.panelHidden && !q.has('bare'));
-  if (q.has('bare')) $('hud').style.display = 'none';     // ?bare: the picture alone, for screenshots
+  if (q.has('bare')) { $('hud').style.display = 'none'; $('panel').style.display = 'none'; }     // ?bare: the picture alone, for screenshots
   syncCharacter();
   model.speedScale = settings.speed; model.gazeRule = settings.gaze;
   window.addEventListener('resize', view.resize);

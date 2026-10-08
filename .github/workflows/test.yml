@@ -29,9 +29,11 @@ jobs:
         run: N=8 node test/hittest.js
       - name: the 3D lab (software WebGL)
         run: node test/lab.js
+      - name: the ink lab (the game's renderer, more ink)
+        run: node test/lab2d.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: lab-shots
-          path: test/shots/lab-*.png
+          path: test/shots/lab*.png
           if-no-files-found: ignore
