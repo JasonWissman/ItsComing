@@ -7,7 +7,7 @@ LEVELS.push({
   weather: { kind: 'rain', density: 0.45, wind: 0.25, fogRoll: { period: 37, depth: 0.35, phase: 1 } },
   text: {
     intro: 'The water door has been open all night, and the water has not been still.<br>Something is swimming in toward the boathouse. It goes under for a while, and when it comes up it is closer.',
-    hint: 'Put the handle on the winch and crank the water door down. Or shut the side door and drop the bar across it.',
+    hint: 'It is coming for the water door. Put the handle on the winch and crank the door down.',
     objective: 'Seal the door it is coming for.',
     death: { default: 'It came up over the sill with its hand first.', reached: 'The door was not down. It came up under it.', side: 'The bar was not across. It came in with the door.' },
     win: 'It pushed at the slats until the tide turned. When you looked again the water was flat all the way out.',
@@ -78,7 +78,7 @@ LEVELS.push({
       { x: -1.7, y: 0.55, z: 0.3 },                     // on the rowboat's hull
       { x: -1.9, y: 0, z: 2.2 },                        // in the corner by the water door
     ], { w: 0.45, h: 0.45, flat: true });
-    mkItem(L, 'beam', 'Bar beam', [
+    mkItem(L, 'beam', 'Door bar', [
       { x: -1.0, y: 0, z: -0.6 },                       // on the deck by the boat
       { x: -0.6, y: 0, z: -2.05 },                      // along the back wall
       { x: 1.5, y: 0.92, z: -2.0 },                     // across the workbench
@@ -91,7 +91,7 @@ LEVELS.push({
       id: 'tacklebox', name: 'Tackle box', w: 0.45, h: 0.3, color: [62, 88, 72],
       spot: [{ x: 1.9, y: 0.92, z: -2.0 }, { x: -2.2, y: 1.55, z: 0.6 }, { x: 2.0, y: 0, z: -1.6 }, { x: -1.5, y: 0.55, z: -1.2 }],
       closedText: 'A tackle box.', emptyText: 'Hooks and line. Nothing else.',
-      yields: [{ id: 'winchkey', name: 'Small key', opts: { w: 0.16, h: 0.16, flat: false, tool: true, icon: 'keys' } }],
+      yields: [{ id: 'winchkey', name: 'Small key', opts: { w: 0.16, h: 0.16, flat: false, tool: true, icon: 'keyIron' } }],
     });
     // the winch: fit the handle, then crank the water door down (on Nightmare, unlock it first)
     const need = L.tier(6, 7);
@@ -128,7 +128,7 @@ LEVELS.push({
     L.sealed = lane => (lane.idx === 0 ? s.sealedN : s.sealedE);
     L.isWon = () => L.tier(sealed(L.lane), s.sealedN && s.sealedE);
     L.objectiveText = () => {
-      const n = s.sealedN ? 'Water door down.' : (s.locked ? 'Unlock the winch. ' : '') + (!s.handleIn ? 'Find the winch handle.' : 'Crank the water door down (' + Math.min(need, Math.floor(winch.count || 0)) + '/' + need + ').');
+      const n = s.sealedN ? 'Water door down.' : (s.locked ? 'Unlock the winch. ' : '') + (!s.handleIn ? (G.hasItem('handle') ? 'Put the handle on the winch.' : 'Find the winch handle.') : 'Crank the water door down (' + Math.min(need, Math.floor(winch.count || 0)) + '/' + need + ').');
       const e = s.sealedE ? 'Side door barred.' : s.doorOpen ? 'Shut the side door and bar it.' : 'Bar the side door.';
       return L.nightmare ? n + ' ' + e : L.lane.idx === 0 ? n : e;
     };
@@ -142,7 +142,7 @@ LEVELS.push({
     const lampX = () => Math.sin(L.t * 1.9) * 0.55;
     L.dynamic = () => {
       for (const z of [-0.72, 0.72]) R.add(SC.mkWallV(L, 2.3, z - 0.07, 2.3, z + 0.07, 0.94, 1.12, [44, 44, 48])); // the brackets on the frame that take the bar
-      if (s.locked) { R.add(iconSprite(L, 'chain', 1.95, 0.62, 2.4, 0.4, 0.44)); R.add(iconSprite(L, 'padlock', 1.95, 0.6, 2.38, 0.16, 0.2)); } // the chain round the drum, and its padlock
+      if (s.locked) { R.add(iconSprite(L, 'chain', 1.95, 0.95, 2.4, 0.5, 0.44)); R.add(iconSprite(L, 'padlock', 1.95, 0.92, 2.38, 0.16, 0.2)); } // the chain round the drum, and its padlock
       // the water door: slats come down from the top as the winch turns
       const covered = 2.4 * clamp((winch.count || 0) / need, 0, 1);
       for (let y = 2.4; y > 2.4 - covered; y -= 0.3) {

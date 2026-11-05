@@ -99,15 +99,16 @@ LEVELS.push({
     mkItem(L, 'bulb', 'Bulb', spots, { w: 0.2, h: 0.3, flat: false });
     if (needFuse) mkContainer(L, { id: 'locker', name: 'Tool locker', w: 0.5, h: 0.42, color: [52, 56, 62], spot: spots.slice(0, 4), closedText: 'A tool locker.', emptyText: 'Rags and a tin of grease.', yields: [{ id: 'fuse', name: 'Fuse', opts: { w: 0.26, h: 0.26, flat: false } }] });
     if (needFuse && decoy) mkItem(L, 'oldfuse', 'Fuse', spots, { w: 0.3, h: 0.3, flat: true, icon: 'fuse', decoy: true, decoyText: 'This one is blown as well.' });
-    const powerUp = () => { if (!(s.bulb && s.fuse) || s.power) return false; s.power = true; setTimeout(() => AUDIO.sfx('lampOn'), 250); return true; };
+    const powerUp = () => { if (!(s.bulb && s.fuse) || s.power) return false; s.power = true; lamp.done = true; setTimeout(() => AUDIO.sfx('lampOn'), 250); return true; };
     // the lamp: the bulb goes in here
     const lamp = mkTarget(L, {
       id: 'lamp', name: 'Lamp', x: AX, y: 0.9, z: AZ, w: 1.1, h: 1.5, accepts: ['bulb'],
       hint() { return s.power ? 'Lit.' : s.bulb ? 'A new bulb in it, and no light: no power. The fuse box.' : 'The big lamp. Its bulb has blown.'; },
+      onClick() { if (s.bulb && !s.power) { G.say('The bulb is in, but there is no power. Try the fuse box.', 'The new bulb is in. Still dark.'); return true; } return false; },
       use(item) {
         if (item.id !== 'bulb' || s.bulb) return false;
-        s.bulb = true; lamp.accepts = []; lamp.done = true; AUDIO.sfx('fit');
-        if (powerUp()) G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', 'Light.');
+        s.bulb = true; lamp.accepts = []; AUDIO.sfx('fit');
+        if (powerUp()) G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go round.');
         else G.say('The bulb is in. Nothing: there is no power. Try the fuse box.', 'The bulb is in. Nothing.');
         return true;
       },
@@ -121,7 +122,7 @@ LEVELS.push({
         use(item) {
           if (item.id !== 'fuse') return false;
           s.fuse = true; box.accepts = []; box.done = true; AUDIO.sfx('fit');
-          if (powerUp()) G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', 'Light.'); else G.say('The new fuse is in. Now the bulb.', 'Click.');
+          if (powerUp()) G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go round.'); else G.say('The new fuse is in. Now the bulb.', 'It goes in. Still dark.');
           return true;
         },
       });

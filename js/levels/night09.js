@@ -104,10 +104,10 @@ LEVELS.push({
     Object.assign(s, { points: 'far', red: 0, stiff: 0, holdFor: 8, lampLit: !needOil, frameLocked: locked, barred: {}, trainAt: L.tier(45, 36) + (L.rand() - 0.5) * 8, train: null, taken: false, belled: false });
     const smc = () => L.creatures[0], crc = () => L.creatures[1];   // the creatures are made after build
     const frameOk = () => { if (s.frameLocked) { G.say('The levers are padlocked. The key will be somewhere in the box.', 'They will not move. There is a padlock through them.'); AUDIO.sfx('nope'); return false; } return true; };
-    if (locked) mkTarget(L, {
+    const frame = locked && mkTarget(L, {
       id: 'frame', name: 'Padlock', x: 0, y: FL + 0.42, z: 0.88, w: 0.22, h: 0.26, accepts: ['framekey'],
       hint() { return s.frameLocked ? 'A padlock through the levers. They will not move.' : 'Unlocked.'; },
-      use(item) { s.frameLocked = false; AUDIO.sfx('lock'); G.say('The padlock comes off. The levers are free.', 'The padlock comes off.'); return true; },
+      use(item) { if (!s.frameLocked) return false; s.frameLocked = false; frame.hidden = true; AUDIO.sfx('lock'); G.say('The padlock comes off. The levers are free.', 'The padlock comes off.'); return true; },
     });
     const points = mkTarget(L, {
       id: 'points', name: 'Track switch', x: -0.55, y: FL + 0.45, z: 0.95, w: 0.3, h: 0.75,

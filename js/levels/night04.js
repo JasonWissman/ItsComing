@@ -57,7 +57,7 @@ LEVELS.push({
       { x: 2.5, y: 0, z: -1.3 },                        // south-east
       { x: -0.9, y: 0, z: 2.1 },                        // by the gate post
     ], { w: 0.16, h: 0.16, flat: true, tool: true, icon: 'keys' });
-    if (decoy) mkItem(L, 'oldlock', 'Padlock', [{ x: 0.9, y: 0, z: 1.6 }, { x: -2.4, y: 0, z: -1.6 }], { w: 0.22, h: 0.26, flat: true, icon: 'padlock', decoy: true, decoyText: 'Rusted solid. The shackle will not move.' });
+    if (decoy) mkItem(L, 'oldlock', 'Padlock', [{ x: 0.9, y: 0, z: 1.6 }, { x: -2.4, y: 0, z: -1.6 }], { w: 0.22, h: 0.26, flat: true, icon: 'padlock', decoy: true, decoyText: 'Rusted solid. Nothing will ever open it.' });
     mkItem(L, 'rope', 'Rotten rope', [
       { deg: 120, dist: 1.9, y: 0 },
       { x: -0.9, y: 0, z: 1.9 },
@@ -66,14 +66,14 @@ LEVELS.push({
     const mkGate = (id, name, deg, sign) => {
       const t = mkTarget(L, {
         id, name, deg, dist: 2.6, y: 0, w: 2.3, h: 2.0, accepts: ['chain'], chained: false, locked: false, closing: 0, angle: Math.PI / 2, sign,
-        hint() { return t.locked ? 'Chained and locked.' : t.chained ? (t.closing > 0 ? 'Closing.' : 'Chained. It needs a lock.') : 'The gate stands open.'; },
+        hint() { return t.locked ? 'Chained and locked.' : (!L.nightmare && t !== gateOf(L.lane)) ? 'The ' + name.toLowerCase() + '. Nothing is coming this way.' : t.chained ? (t.closing > 0 ? 'Closing.' : 'Chained. It needs a lock.') : 'The ' + name.toLowerCase() + ' stands open.'; },
         use(item) {
           if (item.id === 'chain') {
             if (!L.nightmare && t !== gateOf(L.lane)) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // below Nightmare only its own gate counts, so the one chain is not wasted here
             t.chained = true; t.closing = 1.0; t.accepts = ['padlock'].concat(decoy ? ['oldlock'] : []); AUDIO.sfx('creak'); return true; }
           if (item.id === 'padlock') {
             if (!t.chained || t.closing > 0) { G.say('Wait for it to close.', 'Not yet.'); return false; }
-            if (keyed && !G.hasItem('gatekey')) { G.say('The padlock is shut. It wants its key.', 'It is shut.'); return false; }
+            if (keyed && !G.hasItem('gatekey')) { G.say('The padlock is shut. It wants its key.', 'The padlock is locked shut. It will not open by hand.'); return false; }
             t.locked = true; t.done = true; t.accepts = []; AUDIO.sfx('lock'); return true;
           }
           return false;

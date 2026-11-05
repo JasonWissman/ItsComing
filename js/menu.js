@@ -13,7 +13,7 @@ const MENU = (() => {
         const diffs = '<div class="diffs">' + DIFFICULTIES.map((x, i) => '<button type="button" class="diff' + (i === G.difficulty ? ' sel' : '') + '" data-diff="' + i + '"><span class="key">' + (i + 1) + '</span>' + x.name + '<small>' + x.desc + '</small></button>').join('') + '</div>';
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
           '<p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>' +
-          '<div class="controls"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
+          '<div class="controls"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>look down, click the floor</b> put down what you hold</div><div><b>click one held thing, then another</b> use them together</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
           diffs +
           '<div class="mrow">' + btn('begin', 'Begin') + (unlocked > 0 && unlocked < LEVELS.length ? btn('continue', 'Continue &middot; night ' + (unlocked + 1)) : '') + btn('nights', 'Nights') + btn('settings', 'Settings', 'title') + '</div>' +
           '<p class="fine">Headphones recommended. Sound is synthesized in your browser.</p>';
@@ -103,7 +103,7 @@ const MENU = (() => {
       case 'next': proceedFromSurvived(); break;
       case 'night': startLevel(parseInt(arg, 10), true); break;
       case 'title': showTitle(); break;
-      case 'reset': if (current.data.confirmReset) { SAVE.reset(); G.difficulty = 1; setMuted(false); applyAll(); showTitle(); } else show('settings', Object.assign({}, current.data, { confirmReset: true })); break;
+      case 'reset': if (current.data.confirmReset) { SAVE.reset(); G.difficulty = SAVE.data.settings.difficulty | 0; setMuted(false); applyAll(); showTitle(); } else show('settings', Object.assign({}, current.data, { confirmReset: true })); break;
       case 'back': {
         const from = arg || 'title';
         if (from === 'title') showTitle();

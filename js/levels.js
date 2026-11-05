@@ -52,8 +52,10 @@ function mkContainer(L, o) {
   });
   function openIt() {
     t.open = true; t.done = true; AUDIO.sfx(o.sfx || 'creak');
+    // what comes out lands a little nearer the eye than the box, so it is drawn in front of it
+    const r = Math.max(0.3, Math.hypot(local[0], local[2])), pull = 1 - 0.12 / r;
     (o.yields || []).forEach((y, k) => {
-      const it = mkItem(L, y.id, y.name, { x: local[0] + (k - (o.yields.length - 1) / 2) * 0.36, y: local[1] + (o.liftY || 0.02), z: local[2] + 0.05 }, Object.assign({ flat: true }, y.opts || {}));
+      const it = mkItem(L, y.id, y.name, { x: local[0] * pull + (k - (o.yields.length - 1) / 2) * 0.36, y: local[1] + (o.liftY || 0.02), z: local[2] * pull }, Object.assign({ flat: true }, y.opts || {}));
       if (o.onYield) o.onYield(it);
     });
     if (o.onOpen) o.onOpen(t);

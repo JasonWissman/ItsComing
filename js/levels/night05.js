@@ -8,7 +8,7 @@ LEVELS.push({
   lights: [{ x: 1.7, y: 1.7, z: -1.45, r: 6, i: 0.55, color: [255, 190, 110], flicker: 0.15 }],
   text: {
     intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming for the porch.',
-    hint: 'The shotgun is somewhere on the porch, and so are the shells. You will need two that fire.',
+    hint: 'The shotgun is somewhere on the porch, and so are the shells. It takes two hits to put it down. Let it get close before you fire.',
     objective: 'Get the gun. Load it. Wait.',
     death: { default: 'It did not even slow down on the steps.', wounded: 'It got back up faster than you could fire again.' },
     win: 'You sat on the porch with the gun across your knees until it got light, and nothing else came out of the trees. This time.',
@@ -22,12 +22,12 @@ LEVELS.push({
   creatures: [{ type: 'runner', startDist: 115, time: 56, gamma: 0.72, unseenMult: 1.3 }],
   aftermath: { type: 'down', dur: 3.6 },
   uses: [{
-    tool: 'shotgun', ammo: 'shells', dudAmmo: 'duds', range: 32, sfx: 'shot', flash: 0.55, emptyText: 'Click.', fireText: 'Fire.',
+    tool: 'shotgun', ammo: 'shells', dudAmmo: 'duds', range: 32, sfx: 'shot', flash: 0.55, emptyText: () => (G.hasItem('duds') ? 'Click. The shell does not go off.' : 'Click.'), fireText: 'Fire.',
     onHit(c, hits, L) {
       if (hits === 1) { c.wounded = true; c.mode = 'stumble'; c.modeT = 0; G.toast('It went down. It is getting back up.'); }
       else { c.dead = true; c.latHold = c.lat; G.toast('It stopped.'); }
     },
-    onMiss(L) { const s = G.inv.find(i => i.id === 'shells'); G.toast(s ? 'Missed.' : 'Missed. That was the last one.'); },
+    onMiss(L) { const s = G.inv.find(i => i.id === 'shells'); G.toast(s ? 'Too far. The shot went wide.' : 'Too far. That was the last one.'); },
   }],
   build(L) {
     const logs = [60, 44, 32], logsD = [42, 30, 22], porch = [76, 62, 50];
@@ -89,6 +89,6 @@ LEVELS.push({
     L.onPickup = it => { if ((it.id === 'shotgun' && (G.hasItem('shells') || G.hasItem('duds'))) || (box(it.id) && G.hasItem('shotgun'))) AUDIO.sfx('load'); };
     L.deathCause = c => (c.wounded ? 'wounded' : 'default');
     L.isWon = () => L.creature.dead;
-    L.objectiveText = () => { const s = G.inv.filter(i => i.id === 'shells').reduce((a, i) => a + i.uses, 0); return L.creature.dead ? 'It is down.' : !G.hasItem('shotgun') ? 'Get the gun.' : !s ? 'Load it.' : (s + ' shell' + (s > 1 ? 's' : '') + '. Let it get close.'); };
+    L.objectiveText = () => { const s = G.inv.filter(i => i.id === 'shells').reduce((a, i) => a + i.uses, 0); return L.creature.dead ? 'It is down.' : !G.hasItem('shotgun') ? 'Get the gun.' : !s ? 'Find the shells.' : (s + ' shell' + (s > 1 ? 's' : '') + '. Let it get close.'); };
   }
 });

@@ -15,7 +15,7 @@ const G = {
   inv: [], active: 0, hover: null, mouse: { x: -1, y: -1 }, holding: null, throwing: null,
   t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, white: 0, whiteTarget: 0, danger: 0,
   hb: { next: 0, last: -10 }, toastT: 0, lastToast: { msg: '', t: -10 }, invSig: '', debug: false, paused: false,
-  difficulty: 1, muted: false, seed: null, runSeed: 0, attempt: 0, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
+  difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
@@ -367,7 +367,7 @@ function useTarget(t) {
   const missing = (t.requires || []).filter(id => !G.hasItem(id));
   if (missing.length) {
     const m = L.items.find(i => i.id === missing[0]);
-    G.say('You need the ' + (m ? m.name.toLowerCase() : missing[0]) + ' for that.', 'Not like this.'); AUDIO.sfx('nope'); return;
+    G.say('You need the ' + (m ? m.name.toLowerCase() : missing[0]) + ' for that.', t.missingText || 'Something is missing for this.'); AUDIO.sfx('nope'); return;
   }
   if (item.throwable && !t.noThrow) { throwItem(item, { x: t.x, y: t.y + t.h * 0.4, z: t.z }, () => applyUse(t, item)); return; }
   applyUse(t, item);
@@ -416,7 +416,7 @@ function useOnCreature(L, c) {
   const u = activeUse(L);
   if (!u || c.dead) return false;
   const ammo = u.ammo ? G.inv.find(i => i.id === u.ammo) : null;
-  if (u.ammo && !ammo) { AUDIO.sfx('empty'); G.toast(u.emptyText || 'Click. Nothing in it.'); return true; }
+  if (u.ammo && !ammo) { AUDIO.sfx('empty'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Click. Nothing in it.'); return true; }
   if (c.dist > u.range) {
     if (!L.diff.hardShots) { G.toast('Too far.'); return true; }
     fireUse(L, u, ammo); if (u.onMiss) u.onMiss(L, c); else G.toast('Too far. That one is gone.'); return true;

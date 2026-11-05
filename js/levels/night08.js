@@ -107,6 +107,7 @@ LEVELS.push({
       const t = mkTarget(L, {
         id, name, x, y: 0.1, z, w, h, hold: needCrank ? 0 : 2.5, accepts: needCrank ? ['crank'].concat(decoy ? ['bentcrank'] : []) : [],
         hint() { return t.done ? 'Down.' : t.hold ? 'Pull the shutter down. Hold on to it.' : 'The shutter. Its crank is missing.'; },
+        onClick() { if (!t.hold && !t.done && !G.inv.some(i => t.accepts.includes(i.id))) { G.say('The shutter. Its crank is missing.', 'It will not come down by hand.'); AUDIO.sfx('nope'); return true; } return false; },
         use(item) {
           if (item === null) { s[flag] = true; AUDIO.sfx('bar'); G.say('The shutter is down.', 'Down.'); return true; }
           if (item.id !== 'crank') return false;
@@ -144,7 +145,7 @@ LEVELS.push({
     L.isWon = () => s.fixed && L.tier(shut(way()), s.shutN && s.shutD);
     L.objectiveText = () => {
       const sh = L.nightmare ? ((s.shutN ? 'Window shuttered. ' : 'Shutter the window. ') + (s.shutD ? 'Door shuttered. ' : 'Shutter the door. ')) : shut(way()) ? 'Shutter down. ' : 'Pull down the shutter on the ' + way().name + '. ';
-      return sh + (s.fixed ? 'Lights fixed.' : 'Flip the tripped breakers back up (' + tripped() + ' down).');
+      return sh + (s.fixed ? 'Lights fixed.' : 'Flip the tripped breakers back up (' + tripped() + ' to go).');
     };
     // once its way in is shuttered it walks along the front to the pane under the sign, keeping its distance (or to the
     // glass, if it was nearer): the same spot re-measured along the sign's lane, then a straight walk onto that lane

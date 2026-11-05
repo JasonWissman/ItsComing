@@ -62,7 +62,7 @@ The choice is remembered.
 
 | | Time before it reaches you | Speed while you look away | Hints | What you have to do | Where it comes from |
 | --- | --- | --- | --- | --- | --- |
-| Normal | 10% more than designed | a little slower | on, and the card names the direction | the short version | the usual way |
+| Normal | 10% more than designed | a little slower | on, and the card names the direction | the short version | the usual way (the last two nights choose for themselves) |
 | Nightmare | 40% less | 40% faster | off | more steps (both doors, a key to find first, a gearstick, a fuse), plus something lying about that looks right and is not | anywhere, no compass mark, and on some nights it changes its mind once while you are not looking |
 
 Every task is something you would do in a real house on a bad night: board a door with a hammer

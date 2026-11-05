@@ -10,7 +10,7 @@ LEVELS.push({
     intro: 'You found yourself at the back door, and it was open. So was the front.<br>Something is walking toward the house. It has been walking for a while.',
     hint: 'There are loose planks all over the house, and a hammer. Every one of them is needed.',
     objective: 'Board up the door it is coming for.',
-    death: { default: 'The boards were not enough, or were not there.', reached: 'It tore the boards off.' },
+    death: { default: 'The boards were not enough, or were not there.', reached: 'It tore the boards off.', other: 'It came in through the other door.' },
     win: 'It hit the boards until sunrise. They held.',
     fragment: 'In the morning there were three nails on the kitchen table, bent, and you could not remember owning a hammer.',
   },
@@ -91,22 +91,24 @@ LEVELS.push({
       { x: -1.95, y: 0.48, z: -1.85 },                  // on the chair
     ], { w: 0.22, h: 0.22, flat: true, tool: true });
     if (decoy) mkItem(L, 'rotten', 'Plank', [{ x: 0.0, y: 0, z: -0.95 }, { x: -0.9, y: 0, z: 0.95 }],   // nearer than any real plank's spot, so never lying across one
-      { w: 1.1, h: 0.26, flat: true, icon: 'planks', decoy: true, decoyText: 'Rotten. They come apart in your hands.' });
+      { w: 1.1, h: 0.26, flat: true, icon: 'planks', decoy: true, decoyText: 'Rotten through. This one would never hold.' });
     mkItem(L, 'bottle', 'Empty bottle', [
       { x: -2.55, y: 1.28, z: 1.0 },                     // on the shelf
       { x: 2.05, y: 0.78, z: 0.05 },                    // on the table
       { x: 1.85, y: 1.1, z: -2.3 },                     // on the windowsill
     ], { w: 0.13, h: 0.36 });
     // the two doorways; on Nightmare the front door has to be shut before it can be boarded
-    Object.assign(s, { frontOpen: L.nightmare, frontClosing: 0, frontA: 10 * DEG });
+    // the front door stands open on both; it is shut by a click, and on Nightmare it must be shut before it can be boarded
+    Object.assign(s, { frontOpen: true, frontClosing: 0, frontA: 10 * DEG });
     const mkDoor = (id, name, deg, dist, w, lane) => {
       const t = mkTarget(L, {
-        id, name, deg, dist, y: 0, w, h: 2.1, accepts: ['planks'].concat(decoy ? ['rotten'] : []), requires: nails ? ['hammer', 'nails'] : ['hammer'], needed: need, lane,
-        hint() { return t.done ? 'Boarded up.' : lane !== L.lane.idx ? 'The ' + name.toLowerCase() + '. Nothing is coming this way.' : (lane === 1 && s.frontOpen) ? 'The front door stands open.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
+        id, name, deg, dist, y: 0, w, h: 2.1, accepts: ['planks'].concat(decoy ? ['rotten'] : []), requires: nails ? ['hammer', 'nails'] : ['hammer'], needed: need, lane, missingText: 'The planks will not stay up on their own.',
+        hint() { return t.done ? 'Boarded up.' : (lane === 1 && s.frontOpen) ? 'The front door stands open.' : lane !== L.lane.idx ? 'The ' + name.toLowerCase() + '. Nothing is coming this way.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
         onClick() { if (lane === 1 && s.frontOpen) { s.frontOpen = false; s.frontClosing = 0.8; AUDIO.sfx('creak'); return true; } return false; },
         use() {
-          if (!L.nightmare && lane !== L.lane.idx) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // below Nightmare only its own door counts, so no plank is wasted here
-          if (lane === 1 && (s.frontOpen || s.frontClosing > 0)) { G.say('Shut it first.', 'Not like this.'); return false; }
+          if (!L.nightmare && lane !== L.lane.idx) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // on Normal only its own door counts, so no plank is wasted here
+          if (lane === 1 && s.frontClosing > 0) { G.say('Let it shut first.', 'It is still swinging shut.'); return false; }
+          if (lane === 1 && s.frontOpen) { G.say('Shut it first.', 'It stands open.'); return false; }
           t.count++; AUDIO.sfx('hammer'); G.shake(0.15); if (t.count >= need) t.done = true; return true;
         },
       });
@@ -126,13 +128,12 @@ LEVELS.push({
     };
     L.dynamic = () => {
       boards(back, 2.42, -1); boards(front, -2.28, 1);
-      // the front door leaf, swung into the room or shut in its frame (it only stands open on Nightmare)
-      if (L.nightmare) { const a = s.frontA, hx = -0.7, hz = -2.35; R.add(SC.mkWallV(L, hx, hz, hx + Math.sin(a) * 1.4, hz + Math.cos(a) * 1.4, 0, 2.08, [58, 46, 36])); }
-      else R.add(SC.mkWallV(L, -0.7, -2.36, -0.7 + Math.sin(10 * DEG) * 1.4, -2.36 + Math.cos(10 * DEG) * 1.4, 0, 2.08, [58, 46, 36]));
+      // the front door leaf, swung into the room or shut in its frame
+      { const a = s.frontA, hx = -0.7, hz = -2.35; R.add(SC.mkWallV(L, hx, hz, hx + Math.sin(a) * 1.4, hz + Math.cos(a) * 1.4, 0, 2.08, [58, 46, 36])); }
     };
     // it is on you a fraction of a second after it reaches the door, so the death line says what happened rather than a toast
     L.onReach = c => { const t = doorOf(c.lane); if (t.count > 0 && !t.done) { t.count = 0; s.torn = true; AUDIO.sfx('smash'); G.shake(0.8); } };
-    L.deathCause = () => (s.torn ? 'reached' : 'default');
+    L.deathCause = () => (s.torn ? 'reached' : (doorOf(L.lane).count === 0 && (back.count || front.count)) ? 'other' : 'default');
     L.floor = { poly: [[-2.7, -2.3], [2.7, -2.3], [2.7, 2.5], [-2.7, 2.5]], y: 0 };
   }
 });

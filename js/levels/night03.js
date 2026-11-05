@@ -7,9 +7,9 @@ LEVELS.push({
   weather: { kind: 'rain', density: 0.45, wind: 0.2, fogRoll: { period: 41, depth: 0.5 } },
   text: {
     intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
-    hint: 'The old rules: pour a line of salt across the doorway it is coming for, and hang the lantern by the door and light it.',
+    hint: 'The old rules: pour a line of salt across the doorway it is coming for, then hang the lantern on the hook by the doorway and light it.',
     objective: 'Salt the doorway. Light the lantern.',
-    death: { default: 'It was still smiling when it stepped over the threshold.' },
+    death: { default: 'It was still smiling when it stepped over the threshold.', thin: 'It stepped over the salt. The line was too thin to stop it.' },
     win: 'It stood at the salt line until morning, smiling at you. It never once looked at the lantern.',
     fragment: 'There was a line of salt across the floor in the morning, and no one had been near the kitchen.',
   },
@@ -84,8 +84,8 @@ LEVELS.push({
     const mkThreshold = (id, name, deg, dist, w) => {
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0.0, w, h: 0.55, flat: true, accepts: ['salt'].concat(decoy ? ['sugar'] : []), needed: pours,
-        hint() { return t.done ? 'A line of salt.' : t.count ? 'The line is thin. Pour more.' : 'The ' + name.toLowerCase() + '. Bare stone. Salt would go across it.'; },
-        use() { if (t.done) return false; t.count++; AUDIO.sfx('pour'); if (t.count >= pours) t.done = true; return true; }, // a finished line takes no more salt
+        hint() { return t.done ? 'A line of salt.' : (!L.nightmare && t !== thrOf(L.lane)) ? 'The ' + name.toLowerCase() + '. Nothing is coming this way.' : t.count ? 'The line is thin. Pour more.' : 'The ' + name.toLowerCase() + '. Bare stone. Salt would go across it.'; },
+        use() { if (t.done) return false; if (!L.nightmare && t !== thrOf(L.lane)) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } t.count++; AUDIO.sfx('pour'); if (t.count >= pours) t.done = true; return true; }, // a finished line takes no more salt
       });
       return t;
     };
@@ -94,7 +94,7 @@ LEVELS.push({
     L.sealed = lane => thrOf(lane).done;
     const hook = mkTarget(L, {
       id: 'hook', name: 'Lantern hook', x: 0.78, y: 1.35, z: 1.77, w: 0.36, h: 0.5, accepts: ['lantern'],
-      hint() { return hook.lit ? 'Burning.' : hook.hung ? 'Hung, unlit. Needs a match.' : 'An empty hook beside the door.'; },
+      hint() { return hook.lit ? 'Burning.' : hook.hung ? 'Hung, unlit. Needs a match.' : 'An empty hook beside the doorway. The lantern hangs here.'; },
       use(item) {
         if (item.id === 'lantern') { hook.hung = true; hook.accepts = ['matches']; AUDIO.sfx('chain'); return true; }
         if (item.id === 'matches') { if (!hook.hung || hook.lit) return false; hook.lit = true; hook.done = true; hook.accepts = []; AUDIO.sfx('strike'); setTimeout(() => AUDIO.sfx('candle'), 300); return true; }
@@ -105,7 +105,7 @@ LEVELS.push({
     L.objectiveText = () => {
       const st = t => t.done ? 'done' : t.count + '/' + pours;
       const salt = L.nightmare ? 'Salt both ways in (doorway ' + st(thr) + ', side gate ' + st(thrE) + ').' : 'Salt the ' + (L.lane.idx === 0 ? 'doorway' : 'side gate') + ' (' + st(thrOf(L.lane)) + ').';
-      return salt + ' Light the lantern (' + (hook.lit ? 'done' : hook.hung ? 'unlit' : 'no lantern') + ').';
+      return salt + ' Hang the lantern and light it (' + (hook.lit ? 'done' : hook.hung ? 'hung, not lit' : 'not hung yet') + ').';
     };
     L.dynamic = () => {
       if (thr.count) R.add(SC.mkQuad(L, [-1.05, 0.02, 1.6], [1.05, 0.02, 1.6], [1.05, 0.02, 1.92], [-1.05, 0.02, 1.92], [228, 224, 216], { alpha: thr.done ? 0.92 : 0.35 }));
@@ -115,6 +115,7 @@ LEVELS.push({
     L.glows = () => { if (!hook.lit) return null; const p = L.pt(0.78, 1.52, 1.77); return [{ x: p[0], y: p[1], z: p[2], r: 2.2 + Math.sin(L.t * 9) * 0.12 + Math.sin(L.t * 23) * 0.05, color: [255, 190, 110], a: 0.22 }]; };
     const lampP = L.pt(0.78, 1.5, 1.77);
     L.dynamicLights = () => hook.lit ? [{ x: lampP[0], y: lampP[1], z: lampP[2], r: 7, i: 0.9, color: [255, 180, 100], flicker: 0.7, seed: 3 }] : [];
+    L.deathCause = c => { const t = thrOf(c.lane); return t.count > 0 && !t.done ? 'thin' : 'default'; };
     L.floor = { poly: [[-2.1, -1.6], [2.1, -1.6], [2.1, 1.8], [-2.1, 1.8]], y: 0 };
   }
 });
