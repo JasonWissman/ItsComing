@@ -24,11 +24,11 @@ LEVELS.push({
   build(L) {
     const s = L.s;
     const parts = STORY.buildBedroom(L, false);
-    const decoy = !!L.diff.decoys, unplugged = L.diff.tier >= 2, sticks = L.diff.tier >= 3;
+    const decoy = !!L.diff.decoys, unplugged = L.nightmare, sticks = L.nightmare;
     Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, grey: 0, tick: 0 });
     STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => s.lampOn });
     const c0 = () => L.creatures[0];
-    // the drawer in the nightstand holds the bulb (and, on the harder tiers, one that will not fit)
+    // the drawer in the nightstand holds the bulb (and, on Nightmare, one that will not fit)
     mkContainer(L, {
       id: 'drawer', name: 'Drawer', w: 0.46, h: 0.2, color: [58, 44, 34], spot: { x: 1.2, y: 0.28, z: -0.13 }, closedText: 'The nightstand drawer.', emptyText: 'Nothing else in it.', sfx: 'drawer', /* its own sound: not the creak that warns of the doorway, nor a creature's scratching */
       yields: [{ id: 'bulb', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb' } }].concat(decoy ? [{ id: 'bulb2', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb', decoy: true, decoyText: 'The wrong fitting. It will not go in.' } }] : []),

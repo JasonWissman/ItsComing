@@ -9,9 +9,9 @@ LEVELS.push({
   weather: { kind: 'snow', density: 0.8, wind: 0.35 },
   lights: [{ x: 1.3, y: 2.1, z: -0.6, r: 5, i: 0.45, color: [255, 200, 130], flicker: 0.2 }, { x: -1.4, y: 1.7, z: -1.15, r: 3, i: 0.35, color: [255, 120, 50], flicker: 0.5 }],
   text: {
-    intro: 'The box is warm and the line is empty both ways, except that it is not. Something is walking the sleepers toward you, in step, the way a man walks who has done it every night for forty years. He still stops for a red signal.<br>The last train is due inside the minute, and it will go down whichever line the points give it. Something else is coming across the snow to your door.',
-    hint: 'Pull the signal lever to hold him at danger for a while. Set the points lever to the near line, his line, before the train gets there. Bar the door the other one is coming to.',
-    objective: 'Let the train have him. Bar the door.',
+    intro: 'The signal box is warm and the line is empty both ways, except that it is not. Something is walking down the track toward you, in step, the way a man walks who has done it every night for forty years. He still stops for a red light.<br>The last train is due inside the minute, and it goes down whichever track the switch sends it. Something else is coming across the snow to your door.',
+    hint: 'Pull the signal lever and the light turns red: he stops for a while. Throw the track switch so the train comes down his track. Drop the bar across the door the other one is coming to.',
+    objective: 'Send the train down his track. Bar the door.',
     death: { default: 'The window glass did not slow him down.', crawler: 'It came up the stairs faster than you could bar them.', road: 'It came up the ladder from the road faster than you could bar the door.' },
     win: 'The train did not stop for him. Afterwards something scratched at the door until it got light, and you sat with your back to the levers and did not answer it.',
     fragment: 'Two tonight. You counted them, and got to three, and stopped counting.',
@@ -86,13 +86,13 @@ LEVELS.push({
     SC.sprite(L, 1.55, FL + 1.7, 1.42, 0.36, 0.36, (ctx, P) => { ctx.scale(0.36, 0.36); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([40, 40, 44])); P_ell(ctx, 0, 0.5, 0.44, 0.44, P.col([230, 226, 216])); P_line(ctx, 0, 0.5, 0, 0.82, 0.03, P.col([30, 30, 30])); P_line(ctx, 0, 0.5, 0.22, 0.38, 0.03, P.col([30, 30, 30])); });
     SC.sprite(L, -1.35, FL + 0.5, 0.98, 0.2, 0.24, (ctx, P) => { ctx.scale(0.2, 0.24); P_ell(ctx, 0, 0.62, 0.42, 0.38, P.col([170, 140, 70])); P_rect(ctx, -0.05, 0.95, 0.1, 0.05, P.col([90, 80, 60])); });
     // items
-    const decoy = !!L.diff.decoys, locked = L.diff.tier >= 2, needOil = L.diff.tier >= 3;
+    const decoy = !!L.diff.decoys, locked = L.nightmare, needOil = L.nightmare;
     mkItem(L, 'beam', 'Bar', [
       { x: 1.4, y: FL + 0.03, z: 0.9 },                 // by the frame, east end
       { x: -1.4, y: FL + 0.03, z: -0.5 },               // by the stove
       { x: 0.4, y: FL + 0.03, z: -1.25 },               // by the road door
       { x: -1.3, y: FL + 0.03, z: 1.1 },                // by the frame, west end
-    ], { w: 1.4, h: 0.45, flat: true, uses: L.tier(1, 1, 2) });
+    ], { w: 1.4, h: 0.45, flat: true, uses: L.tier(1, 2) });
     if (locked) mkContainer(L, {
       id: 'tin', name: 'Tobacco tin', w: 0.3, h: 0.16, color: [140, 60, 40],
       spot: [{ x: 1.3, y: FL + 0.75, z: -1.0 }, { x: -0.9, y: FL + 0.5, z: 1.0 }, { x: 1.5, y: FL + 0.03, z: 0.5 }, { x: -1.5, y: FL + 0.7, z: -1.15 }],
@@ -101,34 +101,34 @@ LEVELS.push({
     });
     if (needOil) mkItem(L, 'oilcan', 'Oil can', [{ x: 1.6, y: FL + 0.03, z: 0.4 }, { x: -1.6, y: FL + 0.03, z: -0.1 }, { x: 1.2, y: FL + 0.75, z: -0.3 }], { w: 0.28, h: 0.36 });
     if (decoy) mkItem(L, 'watercan', 'Oil can', [{ x: 0.5, y: FL + 0.03, z: 0.3 }, { x: -1.6, y: FL + 0.03, z: 0.9 }], { w: 0.28, h: 0.36, icon: 'oilcan', decoy: true, decoyText: 'Water. The wick just hisses.' });
-    Object.assign(s, { points: 'far', red: 0, stiff: 0, holdFor: L.tier(8, 7, 8), lampLit: !needOil, frameLocked: locked, barred: {}, trainAt: L.tier(45, 40, 36) + (L.rand() - 0.5) * 8, train: null, taken: false, belled: false });
+    Object.assign(s, { points: 'far', red: 0, stiff: 0, holdFor: 8, lampLit: !needOil, frameLocked: locked, barred: {}, trainAt: L.tier(45, 36) + (L.rand() - 0.5) * 8, train: null, taken: false, belled: false });
     const smc = () => L.creatures[0], crc = () => L.creatures[1];   // the creatures are made after build
-    const frameOk = () => { if (s.frameLocked) { G.say('The frame is padlocked.', 'Locked.'); AUDIO.sfx('nope'); return false; } return true; };
+    const frameOk = () => { if (s.frameLocked) { G.say('The levers are padlocked. The key will be somewhere in the box.', 'They will not move. There is a padlock through them.'); AUDIO.sfx('nope'); return false; } return true; };
     if (locked) mkTarget(L, {
-      id: 'frame', name: 'Lever frame padlock', x: 0, y: FL + 0.42, z: 0.88, w: 0.22, h: 0.26, accepts: ['framekey'],
-      hint() { return s.frameLocked ? 'A padlock through the frame. The levers will not move.' : 'Unlocked.'; },
-      use(item) { s.frameLocked = false; AUDIO.sfx('lock'); G.say('The padlock comes off. The levers are free.', 'Free.'); return true; },
+      id: 'frame', name: 'Padlock', x: 0, y: FL + 0.42, z: 0.88, w: 0.22, h: 0.26, accepts: ['framekey'],
+      hint() { return s.frameLocked ? 'A padlock through the levers. They will not move.' : 'Unlocked.'; },
+      use(item) { s.frameLocked = false; AUDIO.sfx('lock'); G.say('The padlock comes off. The levers are free.', 'The padlock comes off.'); return true; },
     });
     const points = mkTarget(L, {
-      id: 'points', name: 'Points lever', x: -0.55, y: FL + 0.45, z: 0.95, w: 0.3, h: 0.75,
-      hint() { return 'The points. Set to the ' + (s.points === 'near' ? 'near line, straight at the buffers.' : 'far line, round past the box.'); },
-      onClick() { if (!frameOk()) return true; if (s.train && s.train.r > 270) { G.say('Too late. It is over the points.', 'Too late.'); AUDIO.sfx('nope'); return true; } s.points = s.points === 'near' ? 'far' : 'near'; AUDIO.sfx('lever'); G.shake(0.1); G.say(s.points === 'near' ? 'Points to the near line: his line, straight at the buffers.' : 'Points to the far line, round past the box.', s.points === 'near' ? 'Points to the near line.' : 'Points to the far line.'); return true; },
+      id: 'points', name: 'Track switch', x: -0.55, y: FL + 0.45, z: 0.95, w: 0.3, h: 0.75,
+      hint() { return 'The track switch. The train will ' + (s.points === 'near' ? 'come straight down his track.' : 'go round on the other track, past the box.'); },
+      onClick() { if (!frameOk()) return true; if (s.train && s.train.r > 270) { G.say('Too late. It is already over the switch.', 'Too late.'); AUDIO.sfx('nope'); return true; } s.points = s.points === 'near' ? 'far' : 'near'; AUDIO.sfx('lever'); G.shake(0.1); G.say(s.points === 'near' ? 'Switched to his track. The train will come straight down it.' : 'Switched back to the other track, round past the box.', s.points === 'near' ? 'Switched to his track.' : 'Switched to the other track.'); return true; },
     });
     const signal = mkTarget(L, {
       id: 'signal', name: 'Signal lever', x: 0.55, y: FL + 0.45, z: 0.95, w: 0.3, h: 0.75,
-      hint() { return !s.lampLit ? 'The signal. Its lamp is dark; it will show nothing.' : s.red > 0 ? 'At danger. He stands.' : s.stiff > 0 ? 'It will not go over again yet.' : 'The signal. Pull it and he stops, for a while.'; },
+      hint() { return !s.lampLit ? 'The signal lever. The lamp in the signal is out, so it shows nothing.' : s.red > 0 ? 'Red. He is standing still.' : s.stiff > 0 ? 'It will not go over again yet.' : 'The signal lever. Pull it and the light turns red: he stops, for a while.'; },
       onClick() {
         if (!frameOk()) return true;
-        if (!s.lampLit) { G.say('The lamp is dark. The signal shows nothing.', 'Nothing happens.'); AUDIO.sfx('lever'); return true; }
-        if (s.red > 0) { G.say('Already at danger.', 'Already.'); return true; }
+        if (!s.lampLit) { G.say('The lever goes over, but the lamp in the signal is out. There is no light to see.', 'The lever goes over. Nothing lights up.'); AUDIO.sfx('lever'); return true; }
+        if (s.red > 0) { G.say('Already red.', 'Already.'); return true; }
         if (s.stiff > 0) { G.say('It will not go over again yet.', 'Stiff.'); AUDIO.sfx('nope'); return true; }
-        s.red = s.holdFor; AUDIO.sfx('lever'); G.shake(0.1); G.say('The signal drops to danger. He stops.'); return true;
+        s.red = s.holdFor; AUDIO.sfx('lever'); G.shake(0.1); G.say('The light turns red. He stops.'); return true;
       },
     });
     if (needOil) mkTarget(L, {
       id: 'lamp', name: 'Signal lamp', x: 1.05, y: FL + 0.45, z: 0.95, w: 0.24, h: 0.34, accepts: ['oilcan'].concat(decoy ? ['watercan'] : []),
-      hint() { return s.lampLit ? 'Burning.' : 'The signal lamp. Dry.'; },
-      use(item) { if (item.id !== 'oilcan') return false; s.lampLit = true; AUDIO.sfx('strike'); G.say('The lamp takes. The signal will show now.', 'Lit.'); return true; },
+      hint() { return s.lampLit ? 'Burning.' : 'The signal lamp. Out of oil.'; },
+      use(item) { if (item.id !== 'oilcan') return false; s.lampLit = true; AUDIO.sfx('strike'); G.say('The lamp takes. The signal will show red now.', 'Lit.'); return true; },
     });
     const mkDoor = (id, name, laneIdx, deg) => mkTarget(L, {
       id, name, deg, dist: laneIdx === 1 ? 1.75 : 1.45, y: FL, w: 1.6, h: 2.0, accepts: ['beam'],
@@ -145,7 +145,7 @@ LEVELS.push({
       return [-12 - (r - 314), 9, -1];
     };
     L.update = dt => {
-      if (s.red > 0) { s.red -= dt; if (s.red <= 0) { s.red = 0; s.stiff = L.tier(5, 5, 3); AUDIO.sfx('clunk'); G.say('The signal lever springs back. He walks on.'); } }
+      if (s.red > 0) { s.red -= dt; if (s.red <= 0) { s.red = 0; s.stiff = L.tier(5, 3); AUDIO.sfx('clunk'); G.say('The light goes back to green. He walks on.'); } }
       if (s.stiff > 0) s.stiff -= dt;
       const sm = smc();
       sm.held = s.red > 0;
@@ -154,7 +154,7 @@ LEVELS.push({
       if (!s.train && L.t >= t0) { s.train = { r: 0, v: 14 }; s.trainLine = null; AUDIO.sfx('horn', 0.6); G.toast('A light, far down the line. The train.'); }
       const tr = s.train;
       if (tr) {
-        if (tr.r >= 286 && !s.trainLine) { s.trainLine = s.points; G.toast(s.trainLine === 'far' ? 'It takes the far line, round past the box.' : 'It takes the near line.'); }
+        if (tr.r >= 286 && !s.trainLine) { s.trainLine = s.points; G.toast(s.trainLine === 'far' ? 'It goes round on the other track, past the box.' : 'It comes straight down his track.'); }
         if (s.trainLine === 'near') { const x = 14 - (tr.r - 286); if (x < 18) tr.v = Math.max(0, tr.v - dt * 4.5); }
         tr.r += tr.v * dt;
         const front = route(tr.r), dist = Math.hypot(front[0], front[1]);
@@ -171,7 +171,7 @@ LEVELS.push({
     };
     L.isWon = () => s.taken && !!s.barred[crc().lane.idx];
     L.deathCause = c => c.type === 'crawler' ? (c.lane.idx === 2 ? 'road' : 'crawler') : null;
-    L.objectiveText = () => (s.taken ? 'The train had him. ' : (s.lampLit ? '' : 'Oil the signal lamp. ') + 'Hold him with the signal. Set the points to the near line' + (s.points === 'near' ? ' (set). ' : '. ')) + (s.barred[crc().lane.idx] ? 'Door barred.' : 'Bar the ' + (crc().lane.idx === 1 ? 'stair' : 'road') + ' door.');
+    L.objectiveText = () => (s.taken ? 'The train had him. ' : (s.frameLocked ? 'Unlock the levers. ' : '') + (s.lampLit ? '' : 'Fill the signal lamp with oil. ') + 'Pull the signal lever to stop him. Switch the train to his track' + (s.points === 'near' ? ' (done). ' : '. ')) + (s.barred[crc().lane.idx] ? 'Door barred.' : 'Bar the ' + (crc().lane.idx === 1 ? 'stair' : 'road') + ' door.');
     L.dynamic = () => {
       // levers, the padlock, the signal lamp and the bell inside; the signal and the points outside
       for (const [t, on] of [[points, s.points === 'near'], [signal, s.red > 0]]) R.add(SC.mkSprite(L, t.local[0], FL + 0.45, 0.95, 0.3, 0.75, (ctx, P) => { ctx.scale(0.3, 0.75); ctx.save(); ctx.translate(0, 0.05); ctx.rotate(on ? 0.55 : -0.35); P_line(ctx, 0, 0, 0, 0.95, 0.18, P.col([120, 122, 130])); P_ell(ctx, 0, 0.95, 0.16, 0.06, P.col(t === points ? [40, 40, 160] : [160, 40, 40])); ctx.restore(); }));
@@ -208,7 +208,7 @@ LEVELS.push({
     };
     L.glows = () => { const sm = smc(), sp = sm.pos(); const out = [{ x: sp.x, y: 0.75, z: sp.z, r: 0.9, color: [255, 190, 110], a: 0.25 }]; if (s.train) { const f = route(s.train.r), p = L.pt(f[0], 2.6, f[1]); out.push({ x: p[0], y: p[1], z: p[2], r: 3.5, color: [255, 240, 200], a: 0.3 }); } return out; };
     L.aftermath = (t, dt) => {
-      // the scratching only plays if the crawler actually got to a door; on Easy it can still be out in the snow
+      // the scratching only plays if the crawler actually got to a door; on Normal it can still be out in the snow
       if (!s.after) { s.after = true; const near = crc().reached; Seq.play({ dur: 6, beats: near ? [{ every: 1.15, from: 0.6, do: () => AUDIO.sfx('scrape', Math.sin(wrapPi(crc().yaw - G.cam.yaw)) * 0.85) }, { at: 3.5, toast: 'Something is at the door. It stays there.' }] : [] }); }
       return t >= 6;
     };

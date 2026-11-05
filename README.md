@@ -57,21 +57,26 @@ system asks for reduced motion.
 
 ## Difficulty
 
-Pick a difficulty on the title screen (click a button or press `1` to `4`).
+Pick a difficulty on the title screen (click a button or press `1` or `2`).
 The choice is remembered.
 
-| | Time before it reaches you | Speed while you look away | Hints | Extra steps | Where it comes from |
+| | Time before it reaches you | Speed while you look away | Hints | What you have to do | Where it comes from |
 | --- | --- | --- | --- | --- | --- |
-| Easy | 35% more | a little slower | on, and the card names the direction | none | the usual way |
-| Normal | as designed | as designed | off | none | the usual way |
-| Hard | 28% less | 25% faster | off | one (a pawl, a choke, a key, a crank, a blown fuse to mend) | either way, fixed per run |
-| Nightmare | 40% less | 40% faster | off | two, plus a decoy item | anywhere, no compass mark, and on some nights it changes its mind once while you are not looking |
+| Normal | 10% more than designed | a little slower | on, and the card names the direction | the short version | the usual way |
+| Nightmare | 40% less | 40% faster | off | more steps (both doors, a key to find first, a gearstick, a fuse), plus something lying about that looks right and is not | anywhere, no compass mark, and on some nights it changes its mind once while you are not looking |
+
+Every task is something you would do in a real house on a bad night: board a door with a hammer
+and planks, chain and padlock a gate, put a new bulb in a lamp, flip a tripped breaker back up,
+drop a bar across a door. Nightmare asks for more of them, never for something stranger.
 
 Every way it can come is fully visible from where you stand: the approach lanes are checked by
 `validateContent()` so the thing is never hidden behind a wall on its way in.
-On Hard and Nightmare a shot fired out of range still spends a shell; Easy and Normal refuse it
+On Nightmare a shot fired out of range still spends a shell; Normal refuses it
 for free. A way you have shut holds it where it is. On Nightmare, where more than one way must be
 shut, it waits there a moment and then goes round to a way that is still open.
+
+Saves from the four-difficulty version carry over: Easy and Normal progress becomes Normal, Hard and
+Nightmare progress becomes Nightmare.
 
 With hints off, the level card gives only the situation, not the solution; the
 objective line at the top of the screen is hidden; hovering a target shows its
@@ -87,7 +92,8 @@ some on the ground, so you have to turn and look down to find them.
 1. **The Field.** A tall thin walker crosses a moonlit field toward the open back
    door of a farmhouse. Find the hammer and every loose plank around the house, and board the door up.
 2. **The Road.** Your car has stalled. Something pale comes up the road on all
-   fours, in bursts, in the headlights. Find the keys and start the engine.
+   fours, in bursts, in the headlights. Find the keys and start the engine (on Nightmare,
+   put the stick back in park first).
 3. **The Graveyard.** A smiling man walks between the graves and never stops
    smiling. Salt the chapel threshold and light the lantern by the door.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
@@ -97,15 +103,15 @@ some on the ground, so you have to turn and look down to find them.
 6. **The Boathouse.** Something swims in across the water, going under for a
    while and coming up closer. Crank the water door down, or bar the side door.
 7. **The Lighthouse.** The lamp is out and something is climbing the outside of
-   the tower. You only see it by looking over the rail. Fit the fuse and wind
-   the clockwork so the beam turns.
+   the tower. You only see it by looking over the rail. Put the spare bulb in the
+   lamp and turn the crank so the beam goes round (on Nightmare, a new fuse first).
 8. **The Diner.** A man-shaped thing in the lot that only moves while you are
    looking at it, and freely once the lights are gone. Hold the shutter down over
    its way in and it goes round to the window under the OPEN sign, where only the
-   light holds it; reset the breakers before the last tube dies.
+   light holds it; flip the tripped breakers back up before the last tube dies.
 9. **The Crossing.** Two things. A signalman walks the line straight at your box
    and stops for a red signal; something else comes across the snow for the door.
-   Hold him at danger, set the points to his line before the train comes, bar the door.
+   Stop him with the red light, throw the track switch so the train comes down his track, bar the door.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass: facing a mirror holds it. One of the four mirrors is not like the
     others. Put the music box on that mirror's pedestal, fit the key with the heart and
@@ -174,7 +180,7 @@ LEVELS.push({
   whole length; `apertures` describe the openings it is seen through (a doorway, a window, a gap
   between posts) and `blockers` the stretches where it is hidden regardless. `SC.doorway`,
   `SC.window` and `SC.gap` build the wall pieces and return the matching aperture. `buildLevel`
-  picks the lane (the default below Hard, a seeded pick on Hard, random on Nightmare, or the
+  picks the lane (the default on Normal, random on Nightmare, or the
   night's own `laneMode`) and `validateContent()` fails a lane that is not at least 85% visible
   at every metre. `L.lane` is the chosen lane inside `build`. A lane may set its own `startDist`
   (and a `maxStart` cap, for the back of a closet).
@@ -187,8 +193,9 @@ LEVELS.push({
   for anything you use things on; `mkContainer(L, { opens, yields, spot })` for drawers and boxes;
   `mkRecipe(L, { parts, result })` for combining two held items. Items can be `tool` (never
   consumed), `throwable`, or `decoy`.
-- **Difficulty tiers**: `L.tier(normal, hard, nightmare)` and `L.extra(minTier, fn)` scale
-  counts, add prerequisites or items. `L.diff` is the profile in play.
+- **Difficulty**: `L.tier(normal, nightmare)` picks a value for the mode in play and `L.nightmare`
+  is true on Nightmare; use them to scale counts and add prerequisites or items. `L.diff` is the
+  profile in play.
 - **Hooks** set inside `build`: `L.isWon()`, `L.barrierDist`, `L.floor = { poly, y }` (where
   dropped items may land), `L.dynamic()` (per-frame props via `SC.mkQuad` and friends),
   `L.update(dt)`, `L.onReach(c)`, `L.onCatch(c)`, `L.onPickup(it)`, `L.onDrop(it)`, `L.glows()`,
@@ -201,8 +208,7 @@ LEVELS.push({
   sealed ways as above. Neither ever picks a lane marked `noSwitch` (a lure's destination), a lane
   outside a creature's own `lanes` list, or moves a creature given a fixed `lane`; a night with
   `laneSwitch: false` opts out of both. `laneMode: 'default'` or `'random'` overrides how the first
-  way is picked (Easy always takes the default; Hard keeps one way for the whole run; Nightmare rolls
-  again on every attempt).
+  way is picked (Normal takes the default; Nightmare rolls again on every attempt).
 - **Surfaces and drawing order**: `SC.quad(..., { tex: 'planks' | 'logs' | 'stone' | 'tin', texScale })`
   builds boards, logs, stone blocks or tin bands as real pieces on top of the quad (dropped with
   distance, and switched off by the surface detail setting). A renderable's `sortDist` orders it
@@ -217,7 +223,7 @@ LEVELS.push({
 npm ci                 # Playwright and ESLint at the versions in package-lock.json
 npx playwright install chromium   # the browser (or set PW_CHROMIUM to a Chromium binary)
 npm test               # sounds, nights, flow, features, lanes, lane switches, story, clickability sweep
-npm run test:play      # NIGHTS=1,3 TIERS=normal,hard SEEDS=1,2 narrow it
+npm run test:play      # NIGHTS=1,3 TIERS=normal,nightmare SEEDS=1,2 narrow it
 npm run test:sounds    # no browser: every sound exists, every cue has a caption
 npm run test:bench     # frame time per night at 1920x1080 (BUDGET=8 ms p95 by default)
 npm run test:spots     # screenshot every item spot into montages under test/shots
@@ -228,7 +234,7 @@ screens, death and retry, pause, mute, drops and the error overlay. `test/featur
 difficulty, hints, restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
 camera, save migration and the last night's two endings. `test/lanes.js` runs `validateContent()` and checks every
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
-unseen, early, without a jump in distance, and never on nights that opt out or on lower tiers.
+unseen, early, without a jump in distance, and never on nights that opt out or on Normal.
 `test/hittest.js` checks every item is visible and clickable from some direction across many layouts.
 `test/story.js` checks the lamp is in every room, the clock ticks, and no text before the bedroom uses
 the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
@@ -237,7 +243,7 @@ caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narro
 
 ## Debugging
 
-- `index.html?level=3` jumps to a night's card; `&go` skips the card; `&diff=hard` picks a difficulty.
+- `index.html?level=3` jumps to a night's card; `&go` skips the card; `&diff=nightmare` picks a difficulty.
 - `index.html?seed=42` reproduces a whole run (layout, creature timing, drops).
 - `index.html?debug` shows the seed, lane, distance, visibility and FPS, and runs `validateContent()`.
 - `index.html?nofr` disables the frame loop so `G.step(dt, n)` can advance the game by hand.

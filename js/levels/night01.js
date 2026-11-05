@@ -64,7 +64,7 @@ LEVELS.push({
     SC.box(L, -2.2, -1.7, 0.42, 0.48, -2.1, -1.6, [68, 52, 40]); SC.box(L, -2.2, -1.7, 0.48, 1.0, -2.1, -2.04, [68, 52, 40]);
     STORY.lamp(L, 1.85, 0.78, -0.05);                          // the lamp on the table, unlit
     // items
-    const need = L.tier(3, 4, 5), nails = L.diff.tier >= 2, decoy = !!L.diff.decoys; // one loose plank per board needed
+    const need = L.tier(3, 5), nails = L.nightmare, decoy = !!L.diff.decoys; // one loose plank per board needed
     mkItem(L, 'hammer', 'Hammer', [
       { x: 1.25, y: 0, z: 0.35 },                       // on the floor by the table
       { x: -2.2, y: 0, z: 0.7 },                        // under the shelf
@@ -98,14 +98,14 @@ LEVELS.push({
       { x: 1.85, y: 1.1, z: -2.3 },                     // on the windowsill
     ], { w: 0.13, h: 0.36 });
     // the two doorways; on Nightmare the front door has to be shut before it can be boarded
-    Object.assign(s, { frontOpen: L.diff.tier >= 3, frontClosing: 0, frontA: 10 * DEG });
+    Object.assign(s, { frontOpen: L.nightmare, frontClosing: 0, frontA: 10 * DEG });
     const mkDoor = (id, name, deg, dist, w, lane) => {
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0, w, h: 2.1, accepts: ['planks'].concat(decoy ? ['rotten'] : []), requires: nails ? ['hammer', 'nails'] : ['hammer'], needed: need, lane,
         hint() { return t.done ? 'Boarded up.' : lane !== L.lane.idx ? 'The ' + name.toLowerCase() + '. Nothing is coming this way.' : (lane === 1 && s.frontOpen) ? 'The front door stands open.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
         onClick() { if (lane === 1 && s.frontOpen) { s.frontOpen = false; s.frontClosing = 0.8; AUDIO.sfx('creak'); return true; } return false; },
         use() {
-          if (L.diff.tier < 3 && lane !== L.lane.idx) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // below Nightmare only its own door counts, so no plank is wasted here
+          if (!L.nightmare && lane !== L.lane.idx) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // below Nightmare only its own door counts, so no plank is wasted here
           if (lane === 1 && (s.frontOpen || s.frontClosing > 0)) { G.say('Shut it first.', 'Not like this.'); return false; }
           t.count++; AUDIO.sfx('hammer'); G.shake(0.15); if (t.count >= need) t.done = true; return true;
         },
@@ -127,7 +127,7 @@ LEVELS.push({
     L.dynamic = () => {
       boards(back, 2.42, -1); boards(front, -2.28, 1);
       // the front door leaf, swung into the room or shut in its frame (it only stands open on Nightmare)
-      if (L.diff.tier >= 3) { const a = s.frontA, hx = -0.7, hz = -2.35; R.add(SC.mkWallV(L, hx, hz, hx + Math.sin(a) * 1.4, hz + Math.cos(a) * 1.4, 0, 2.08, [58, 46, 36])); }
+      if (L.nightmare) { const a = s.frontA, hx = -0.7, hz = -2.35; R.add(SC.mkWallV(L, hx, hz, hx + Math.sin(a) * 1.4, hz + Math.cos(a) * 1.4, 0, 2.08, [58, 46, 36])); }
       else R.add(SC.mkWallV(L, -0.7, -2.36, -0.7 + Math.sin(10 * DEG) * 1.4, -2.36 + Math.cos(10 * DEG) * 1.4, 0, 2.08, [58, 46, 36]));
     };
     // it is on you a fraction of a second after it reaches the door, so the death line says what happened rather than a toast

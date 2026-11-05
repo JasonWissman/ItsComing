@@ -7,8 +7,8 @@ LEVELS.push({
   weather: { kind: 'rain', density: 0.45, wind: 0.2, fogRoll: { period: 41, depth: 0.5 } },
   text: {
     intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
-    hint: 'The old rules for a threshold: salt across it, and a light beside it.',
-    objective: 'Salt the threshold. Light the lantern.',
+    hint: 'The old rules: pour a line of salt across the doorway it is coming for, and hang the lantern by the door and light it.',
+    objective: 'Salt the doorway. Light the lantern.',
     death: { default: 'It was still smiling when it stepped over the threshold.' },
     win: 'It stood at the salt line until morning, smiling at you. It never once looked at the lantern.',
     fragment: 'There was a line of salt across the floor in the morning, and no one had been near the kitchen.',
@@ -60,14 +60,14 @@ LEVELS.push({
     for (let i = 0; i < 11; i++) { const x = (rng() - 0.5) * 90, z = -10 + rng() * 65; if (Math.abs(x) < 3 || Math.abs(z) < 3) continue; SC.tree(L, x, z, 7 + rng() * 6, 'bare', (rng() * 1e6) | 0); }
     SC.groundDots(L, 17, 90, 3, 45, 120, [30, 34, 26], 0.4);
     // items
-    const decoy = !!L.diff.decoys, pours = L.tier(2, 3, 2);
+    const decoy = !!L.diff.decoys, pours = 2;
     mkItem(L, 'salt', 'Bag of salt', [
       { deg: 225, dist: 1.6, y: 0 },                    // south-west
       { x: 1.25, y: 0, z: -1.2 },                       // south-east
       { x: -1.3, y: 0, z: -0.45 },                      // in front of the bench
       { x: -1.4, y: 0, z: 1.15 },                       // by the west column
       { x: -1.9, y: 0.5, z: -0.3, jitter: 0.05 },       // on the bench
-    ], { w: 0.34, h: 0.42, flat: true, uses: L.tier(2, 3, 4) });
+    ], { w: 0.34, h: 0.42, flat: true, uses: L.tier(2, 4) });
     if (decoy) mkItem(L, 'sugar', 'Bag of salt', [{ x: 0.9, y: 0, z: 0.9 }, { x: -0.5, y: 0, z: -1.3 }], { w: 0.34, h: 0.42, flat: true, icon: 'salt', decoy: true, decoyText: 'Sugar. It is sugar.' });
     mkItem(L, 'matches', 'Matches', [
       { x: 2.05, y: 1.16, z: -1.15, flat: false },      // on the ledge
@@ -84,12 +84,12 @@ LEVELS.push({
     const mkThreshold = (id, name, deg, dist, w) => {
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0.0, w, h: 0.55, flat: true, accepts: ['salt'].concat(decoy ? ['sugar'] : []), needed: pours,
-        hint() { return t.done ? 'A line of salt.' : t.count ? 'The line is thin. Pour more.' : 'The threshold. Bare stone.'; },
+        hint() { return t.done ? 'A line of salt.' : t.count ? 'The line is thin. Pour more.' : 'The ' + name.toLowerCase() + '. Bare stone. Salt would go across it.'; },
         use() { if (t.done) return false; t.count++; AUDIO.sfx('pour'); if (t.count >= pours) t.done = true; return true; }, // a finished line takes no more salt
       });
       return t;
     };
-    const thr = mkThreshold('threshold', 'Threshold', 0, 1.75, 2.2), thrE = mkThreshold('sidethreshold', 'Side gate threshold', 90, 1.95, 1.3);
+    const thr = mkThreshold('threshold', 'Doorway', 0, 1.75, 2.2), thrE = mkThreshold('sidethreshold', 'Side gate', 90, 1.95, 1.3);
     const thrOf = lane => lane.idx === 0 ? thr : thrE;
     L.sealed = lane => thrOf(lane).done;
     const hook = mkTarget(L, {
@@ -101,10 +101,10 @@ LEVELS.push({
         return false;
       },
     });
-    L.isWon = () => hook.lit && L.tier(thrOf(L.lane).done, thrOf(L.lane).done, thr.done && thrE.done);
+    L.isWon = () => hook.lit && L.tier(thrOf(L.lane).done, thr.done && thrE.done);
     L.objectiveText = () => {
       const st = t => t.done ? 'done' : t.count + '/' + pours;
-      const salt = L.diff.tier >= 3 ? 'Salt both thresholds (path ' + st(thr) + ', side gate ' + st(thrE) + ').' : 'Salt the ' + (L.lane.idx === 0 ? 'threshold' : 'side gate threshold') + ' (' + st(thrOf(L.lane)) + ').';
+      const salt = L.nightmare ? 'Salt both ways in (doorway ' + st(thr) + ', side gate ' + st(thrE) + ').' : 'Salt the ' + (L.lane.idx === 0 ? 'doorway' : 'side gate') + ' (' + st(thrOf(L.lane)) + ').';
       return salt + ' Light the lantern (' + (hook.lit ? 'done' : hook.hung ? 'unlit' : 'no lantern') + ').';
     };
     L.dynamic = () => {

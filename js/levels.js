@@ -67,7 +67,7 @@ function mkContainer(L, o) {
     P_rect(ctx, -0.5, 0, 1, 0.75, c); P_rect(ctx, -0.5, 0.7, 1, 0.08, d);
     if (t.open) { P_rect(ctx, -0.5, 0.78, 1, 0.22, P.col(scalec(col, 0.4))); P_rect(ctx, -0.5, 0.74, 1, 0.05, d); }
     else { P_rect(ctx, -0.5, 0.74, 1, 0.26, P.col(scalec(col, 0.85))); P_rect(ctx, -0.08, 0.6, 0.16, 0.12, d); }
-  }, { flat: !!o.flat }));
+  }, { flat: !!o.flat, card: true }));   // a card, as items are: it faces you and never goes edge-on
   return t;
 }
 // two held items become one: select one, click the other in the inventory

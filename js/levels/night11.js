@@ -9,8 +9,8 @@ LEVELS.push({
   lights: [{ x: -2.2, y: 4.1, z: -2.2, r: 5, i: 0.4, color: [255, 200, 130], flicker: 0.2 }, { x: 0, y: 1.5, z: 42, r: 10, i: 0.4, color: [255, 200, 120] }],
   text: {
     intro: 'The loft is full of last summer, dry as paper, and something is coming across the yard for it. It is bent double under something it carries, and it goes faster the more you are carrying yourself.<br>Put things down.',
-    hint: 'The lantern wants filling at the drum and lighting with the matches. Then it wants throwing into the hay. Carry as little as you can.',
-    objective: 'Fire between you and it. Carry less.',
+    hint: 'Fill the lantern with oil at the drum, light it with the matches, and throw it into the hay between you and it. It comes faster the more you carry, so carry as little as you can.',
+    objective: 'Set the hay alight between you and it. Carry little.',
     death: { default: 'It did not put down what it was carrying. It put you with it.' },
     win: 'It paced the line of the fire for an hour and then sat down in the yard with its arms round itself, facing the loft, and stayed there until the light came.',
     fragment: 'Your hand hurt in the morning from holding on to something all night. It knew what you were holding. It always knows.',
@@ -68,7 +68,7 @@ LEVELS.push({
     STORY.lamp(L, -2.2, FL + 0.6, -3.4, { lit: true, scale: 0.9 });
     SC.box(L, -4.2, -3.4, FL, FL + 0.9, -1.0, 0.6, [124, 106, 70]); SC.box(L, -4.2, -3.6, FL + 0.9, FL + 1.5, -0.8, 0.4, [110, 92, 62]);
     // items
-    const decoy = !!L.diff.decoys, stuck = L.diff.tier >= 2;
+    const decoy = !!L.diff.decoys, stuck = L.nightmare;
     mkItem(L, 'lantern', 'Lantern', [
       { x: -1.2, y: FL + 0.45, z: -3.4 },              // on the low crate
       { x: -3.8, y: FL + 1.5, z: -0.2 },               // on the sacks
@@ -121,16 +121,16 @@ LEVELS.push({
     const wetHay = (t) => { const k = t === hayN ? 'wetN' : 'wetE'; s[k] = 25; };
     void hayE;
     L.onDecoy = (t, item) => { if (item.id === 'pail') wetHay(t); };
-    if (L.diff.tier >= 3) mkTarget(L, { // only Nightmare asks for the ladder, so only Nightmare offers it
+    if (L.nightmare) mkTarget(L, { // only Nightmare asks for the ladder, so only Nightmare offers it
       id: 'ladder', name: 'Ladder', x: 0.9, y: FL - 0.6, z: 0, w: 0.9, h: 1.4, hold: 3.0,
       hint() { return s.ladderUp ? 'Pulled up onto the loft.' : 'The ladder up from the barn floor. It could be pulled up.'; },
       use(item) { if (item !== null) return false; s.ladderUp = true; AUDIO.sfx('clunk'); G.say('The ladder is up. Nothing climbs that way now.', 'Up.'); return true; },
     });
-    const sealed = lane => lane.idx === 0 ? s.fireN : (s.fireE || (L.diff.tier >= 3 && s.ladderUp)); // the ladder only counts where it is the extra step
+    const sealed = lane => lane.idx === 0 ? s.fireN : (s.fireE || (L.nightmare && s.ladderUp)); // the ladder only counts where it is the extra step
     L.sealed = sealed;
     // Nightmare wants the ladder up as well as a fire, whichever way it comes
-    L.isWon = () => L.diff.tier >= 3 ? (s.ladderUp && (s.fireN || s.fireE) && sealed(c0().lane)) : sealed(c0().lane);
-    L.objectiveText = () => { const c = c0(); const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (sealed(c.lane) ? 'Sealed. ' : c.lane.idx === 0 ? 'Fire in the yard hay. ' : (L.diff.tier >= 3 ? 'Fire in the barn hay, or pull the ladder up. ' : 'Fire in the barn hay. ')) + (L.diff.tier >= 3 && !s.ladderUp ? 'Pull the ladder up too. ' : '') + 'Carrying ' + load + '.'; };
+    L.isWon = () => L.nightmare ? (s.ladderUp && (s.fireN || s.fireE) && sealed(c0().lane)) : sealed(c0().lane);
+    L.objectiveText = () => { const c = c0(); const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (sealed(c.lane) ? 'Sealed. ' : c.lane.idx === 0 ? 'Fire in the yard hay. ' : (L.nightmare ? 'Fire in the barn hay, or pull the ladder up. ' : 'Fire in the barn hay. ')) + (L.nightmare && !s.ladderUp ? 'Pull the ladder up too. ' : '') + 'Carrying ' + load + '.'; };
     L.update = dt => {
       const c = c0();
       c.load = G.inv.reduce((a, i) => a + (i.weight || 1), 0);

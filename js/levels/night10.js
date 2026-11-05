@@ -90,11 +90,11 @@ LEVELS.push({
     SC.box(L, 2.2, 3.4, 0.98, 1.03, 2.2, 3.4, [70, 56, 44]); STORY.lamp(L, 2.6, 1.03, 2.6, { lit: true, scale: 0.85 });
     SC.box(L, 2.8, 3.25, 0.4, 0.45, -1.7, -1.3, [88, 70, 50]); SC.box(L, 2.8, 3.25, 0.45, 0.95, -1.36, -1.3, [88, 70, 50]);
     for (const [x, z] of [[2.83, -1.67], [3.22, -1.67], [2.83, -1.33], [3.22, -1.33]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [70, 56, 40]);
-    // items: the box (broken on the harder tiers) and a handful of small keys, only one of them its own
-    const broken = L.diff.tier >= 2, sheets = L.diff.tier >= 2, runsDown = L.diff.tier >= 3, need = L.tier(4, 4, 6);
+    // items: the box (broken on Nightmare) and a handful of small keys, only one of them its own
+    const broken = L.nightmare, sheets = L.nightmare, runsDown = L.nightmare, need = L.tier(4, 6);
     const boxSpots = [{ x: 2.6, y: 1.03, z: 3.0 }, { x: -2.7, y: 0, z: -2.7 }, { x: 2.0, y: 0, z: -2.6 }, { x: -2.6, y: 0, z: 1.4 }, { x: -1.3, y: 0, z: 3.0 }];
     const keySpots = [{ x: 2.95, y: 1.03, z: 2.45 }, { x: 3.02, y: 0.45, z: -1.52 }, { x: -2.9, y: 0, z: 2.9 }, { x: 2.9, y: 0, z: -2.9 }, { x: 1.6, y: 0, z: 3.1 }, { x: -3.1, y: 0, z: -1.0 }, { x: 3.1, y: 0, z: 1.2 }, { x: 1.2, y: 0, z: -3.1 }];
-    const decoyKeys = [['roundkey', 'keyRound'], ['squarekey', 'keySquare']].concat(L.diff.tier >= 2 ? [['cloverkey', 'keyClover']] : [], L.diff.tier >= 3 ? [['ironkey', 'keyIron']] : []);
+    const decoyKeys = [['roundkey', 'keyRound'], ['squarekey', 'keySquare']].concat(L.nightmare ? [['cloverkey', 'keyClover']] : [], L.nightmare ? [['ironkey', 'keyIron']] : []);
     const keyIds = ['boxkey'].concat(decoyKeys.map(d => d[0]));
     mkItem(L, 'boxkey', 'Small key', keySpots, { w: 0.16, h: 0.16, flat: true, tool: true, icon: 'boxkey' });
     for (const [id, icon] of decoyKeys) mkItem(L, id, 'Small key', keySpots, { w: 0.16, h: 0.16, flat: true, tool: true, icon, decoy: true, decoyText: 'It does not fit the box.' });
@@ -104,7 +104,7 @@ LEVELS.push({
       mkItem(L, 'spring', 'Box spring', boxSpots, { w: 0.2, h: 0.24, flat: true });
       mkRecipe(L, { parts: ['brokenbox', 'spring'], result: { id: 'musicbox', name: 'Music box', opts: { w: 0.34, h: 0.34 } }, sfx: 'fit', text: 'The spring goes back in. It might hold.' });
     }
-    // the harder tiers put dust sheets over two of the mirrors, chosen by the night
+    // Nightmare puts dust sheets over two of the mirrors, chosen by the night
     if (sheets) {
       const order = [0, 1, 2, 3];
       for (let i = 3; i > 0; i--) { const j = Math.floor(L.rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }

@@ -43,40 +43,43 @@ const hoverHit = lookFor;
 
   console.log('== difficulty picker ==');
   await page.goto(URL); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.difficulty === 1), 'defaults to Normal');
-  check(await page.evaluate(() => document.querySelectorAll('.diff').length === 4 && document.querySelector('.diff.sel').textContent.includes('Normal')), 'four buttons, Normal highlighted');
+  check(await page.evaluate(() => G.difficulty === 0), 'defaults to Normal');
+  check(await page.evaluate(() => document.querySelectorAll('.diff').length === 2 && document.querySelector('.diff.sel').textContent.includes('Normal')), 'two buttons, Normal highlighted');
   await shot(page, 'title-diff');
-  await page.click('.diff[data-diff="0"]'); await page.waitForTimeout(150);
-  check(await page.evaluate(() => G.state === 'title' && G.difficulty === 0 && JSON.parse(localStorage.getItem('itscoming.v2')).settings.difficulty === 0), 'clicking Easy selects it without starting the game, and saves it');
-  await page.keyboard.press('3'); await page.waitForTimeout(100);
-  check(await page.evaluate(() => G.difficulty === 2 && document.querySelector('.diff.sel').textContent.includes('Hard')), 'key 3 selects Hard');
+  await page.click('.diff[data-diff="1"]'); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'title' && G.difficulty === 1 && JSON.parse(localStorage.getItem('itscoming.v2')).settings.difficulty === 1), 'clicking Nightmare selects it without starting the game, and saves it');
+  await page.keyboard.press('1'); await page.waitForTimeout(100);
+  check(await page.evaluate(() => G.difficulty === 0 && document.querySelector('.diff.sel').textContent.includes('Normal')), 'key 1 selects Normal');
+  await page.keyboard.press('2'); await page.waitForTimeout(100);
+  check(await page.evaluate(() => G.difficulty === 1 && document.querySelector('.diff.sel').textContent.includes('Nightmare')), 'key 2 selects Nightmare');
   await page.keyboard.press('Enter'); await page.waitForTimeout(500);
   let v = await page.evaluate(() => ({ T: G.L.creature.T, um: G.L.creature.unseenMult, kicker: document.querySelector('.kicker').textContent, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
-  check(v.T > 80 * 0.72 * 0.92 && v.T < 80 * 0.72 * 1.08 && Math.abs(v.um - 1.35 * 1.25) < 1e-6, 'Hard scales time and unseen speed (' + v.T.toFixed(1) + 's, x' + v.um.toFixed(2) + ')');
-  check(v.kicker.includes('Hard') && !v.hasHint && !/planks|hammer/i.test(v.intro), 'Hard card shows no objective and no solution hint');
-  await shot(page, 'card-hard');
+  check(v.T > 80 * 0.6 * 0.88 && v.T < 80 * 0.6 * 1.12 && Math.abs(v.um - 1.35 * 1.4) < 1e-6, 'Nightmare scales time and unseen speed (' + v.T.toFixed(1) + 's, x' + v.um.toFixed(2) + ')');
+  check(v.kicker.includes('Nightmare') && !v.hasHint && !/planks|hammer/i.test(v.intro), 'Nightmare card shows no objective and no solution hint');
+  await shot(page, 'card-nightmare');
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
-  check(await page.evaluate(() => document.getElementById('objective').textContent === ''), 'HUD objective hidden on Hard');
+  check(await page.evaluate(() => document.getElementById('objective').textContent === ''), 'HUD objective hidden on Nightmare');
+  await page.evaluate(() => { G.L.lane = G.L.lanes[0]; G.L.creature.retarget(0); });   // the back door, wherever it was coming from
   await hoverHit(page, 'target', 'door');
-  check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Back door'), 'target tooltip is just the name on Hard');
+  check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Back door'), 'target tooltip is just the name on Nightmare');
   await hoverHit(page, 'item', 'hammer');
   check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Hammer'), 'item names still show');
   await face(page, 0, false);
   const r = await findHit(page, 'target', 'door');
   await page.mouse.click(r.x, r.y); await page.waitForTimeout(100);
-  check(await page.evaluate(() => document.getElementById('toast').textContent === 'Not with what you have.'), 'failure feedback is vague on Hard');
+  check(await page.evaluate(() => document.getElementById('toast').textContent === 'Not with what you have.'), 'failure feedback is vague on Nightmare');
 
-  console.log('== easy shows hints ==');
+  console.log('== Normal shows hints ==');
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.difficulty = 0; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.goto(URL + '?level=1'); await page.waitForTimeout(500);
   v = await page.evaluate(() => ({ d: G.difficulty, T: G.L.creature.T, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
-  check(v.d === 0 && v.T > 80 * 1.35 * 0.92 && v.T < 80 * 1.35 * 1.08, 'difficulty restored from storage, Easy gives more time (' + v.T.toFixed(1) + 's)');
-  check(v.hasHint && /planks/.test(v.intro), 'Easy card shows the objective and the hint');
-  await shot(page, 'card-easy');
+  check(v.d === 0 && v.T > 80 * 1.1 * 0.93 && v.T < 80 * 1.1 * 1.07, 'difficulty restored from storage, Normal gives a little more time (' + v.T.toFixed(1) + 's)');
+  check(v.hasHint && /planks/.test(v.intro), 'Normal card shows the objective and the hint');
+  await shot(page, 'card-normal');
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
-  check(await page.evaluate(() => document.getElementById('objective').textContent.startsWith('Board up')), 'HUD objective visible on Easy');
+  check(await page.evaluate(() => document.getElementById('objective').textContent.startsWith('Board up')), 'HUD objective visible on Normal');
   await hoverHit(page, 'target', 'door');
-  check(await page.evaluate(() => /plank/.test(document.getElementById('tooltip').textContent)), 'target tooltip gives the hint on Easy');
+  check(await page.evaluate(() => /plank/.test(document.getElementById('tooltip').textContent)), 'target tooltip gives the hint on Normal');
 
   console.log('== restart key ==');
   const hh = await lookFor(page, 'item', 'hammer');
@@ -216,11 +219,22 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => MENU.kind === 'title'), 'B goes back to the title');
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
-  console.log('== a v1 save on Easy keeps its progress ==');
+  console.log('== a v1 save on Hard keeps its progress, as Nightmare ==');
   await page.goto(T.INDEX); await page.waitForTimeout(200);
-  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('itscoming.unlocked', '3'); localStorage.setItem('itscoming.difficulty', '0'); });
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('itscoming.unlocked', '3'); localStorage.setItem('itscoming.difficulty', '2'); });
   await page.goto(T.INDEX); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.difficulty === 0 && G.unlocked === 3 && !!document.querySelector('#overlay button[data-act="continue"]')), 'the difficulty they were on is credited and Continue is offered');
+  check(await page.evaluate(() => G.difficulty === 1 && G.unlocked === 3 && !!document.querySelector('#overlay button[data-act="continue"]')), 'the difficulty they were on is credited and Continue is offered');
+
+  console.log('== a four-difficulty save folds into two ==');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('itscoming.v2', JSON.stringify({ v: 2, unlocked: { easy: 5, normal: 2, hard: 1, nightmare: 7 }, complete: { easy: true }, fragments: ['field'],
+      best: { field: { easy: { time: 40, wins: 1, tries: 2 }, normal: { time: 31.5, wins: 2, tries: 3 }, hard: { time: 50, wins: 1, tries: 4 } } }, settings: { difficulty: 3, muted: true } }));
+  });
+  await page.goto(T.INDEX); await page.waitForTimeout(300);
+  v = await page.evaluate(() => ({ d: G.difficulty, u: SAVE.data.unlocked, c: SAVE.data.complete, b: SAVE.data.best.field, m: SAVE.data.settings.muted, f: SAVE.data.fragments }));
+  check(v.d === 1 && v.u.normal === 5 && v.u.nightmare === 7 && v.c.normal === true && !v.c.nightmare && v.m && v.f[0] === 'field', 'Easy and Normal became Normal, Hard and Nightmare became Nightmare (' + JSON.stringify(v.u) + ')');
+  check(v.b.normal.time === 31.5 && v.b.normal.wins === 3 && v.b.normal.tries === 5 && v.b.nightmare.time === 50 && v.b.nightmare.wins === 1, 'best times and counts kept');
   await page.evaluate(() => localStorage.clear());
 
   console.log('== the last night, holding on ==');

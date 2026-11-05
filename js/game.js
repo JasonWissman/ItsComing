@@ -3,12 +3,10 @@
 const LIST_SCREENS = ['nights', 'settings', 'fragments']; // menu screens with their own buttons: not click-anywhere
 const PITCH_DOWN = 45 * DEG; // looking down: enough to see the floor around you without a lurch of the view
 const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-// difficulty is a table of knobs read by buildLevel and by each night's build(L) through L.tier()
+// difficulty is a table of knobs read by buildLevel and by each night's build(L) through L.tier() and L.nightmare
 const DIFFICULTIES = [
-  { id: 'easy', name: 'Easy', desc: 'It comes slower. Hints on.', tier: 0, time: 1.35, unseen: 0.85, hints: true, steps: 0, lane: 'default', tick: true, variance: 0.05, decoys: 0, hardShots: false },
-  { id: 'normal', name: 'Normal', desc: 'As intended. No hints.', tier: 1, time: 1.0, unseen: 1.0, hints: false, steps: 0, lane: 'default', tick: true, variance: 0.1, decoys: 0, hardShots: false },
-  { id: 'hard', name: 'Hard', desc: 'Faster, an extra step, and it may come another way. No hints. Out-of-range shots waste ammo.', tier: 2, time: 0.72, unseen: 1.25, hints: false, steps: 1, lane: 'seeded', tick: true, variance: 0.1, decoys: 0, hardShots: true },
-  { id: 'nightmare', name: 'Nightmare', desc: 'Much less time, two extra steps, no compass mark. It comes from wherever it likes. Out-of-range shots waste ammo.', tier: 3, time: 0.6, unseen: 1.4, hints: false, steps: 2, lane: 'random', tick: false, variance: 0.15, decoys: 1, hardShots: true, laneSwitch: true },
+  { id: 'normal', name: 'Normal', desc: 'Hints on: the card says what to do and where it is coming from.', tier: 0, time: 1.1, unseen: 0.95, hints: true, lane: 'default', tick: true, variance: 0.08, decoys: 0, hardShots: false },
+  { id: 'nightmare', name: 'Nightmare', desc: 'Much less time, more to do, no hints and no compass mark. It comes from wherever it likes, and some things that look right are not.', tier: 1, time: 0.6, unseen: 1.4, hints: false, lane: 'random', tick: false, variance: 0.15, decoys: 1, hardShots: true, laneSwitch: true },
 ];
 
 const G = {
@@ -34,7 +32,7 @@ const UI = {};
 function $(id) { return document.getElementById(id); }
 
 // ---------------- level construction ----------------
-// Hard ('seeded') keeps the same way for the whole run, retry after retry; Nightmare ('random') rolls again every attempt.
+// 'seeded' keeps the same way for the whole run, retry after retry; 'random' (Nightmare) rolls again every attempt.
 // The level's generator is drawn from either way, so item layouts do not depend on the mode.
 function laneRoll(L, mode, salt) {
   const roll = L.rand();
@@ -43,7 +41,7 @@ function laneRoll(L, mode, salt) {
 function pickLane(def, diff, L) {
   const n = L.lanes.length;
   if (n === 1) return 0;
-  const mode = diff.tier === 0 ? 'default' : (def.laneMode || diff.lane);
+  const mode = def.laneMode || diff.lane;
   if (mode === 'default') { const d = L.lanes.findIndex(l => l.default); return d >= 0 ? d : 0; }
   const pool = L.lanes.filter(l => !l.noSwitch).map(l => l.idx);   // a lure or go-round destination is never where it starts
   return pool.length ? pool[Math.floor(laneRoll(L, mode, 0) * pool.length)] : 0;
@@ -54,7 +52,7 @@ function makeCreature(L, cd, k) {
   const diff = L.diff;
   const vDist = 1 - diff.variance + L.rand() * 2 * diff.variance, vTime = 1 - diff.variance * 0.7 + L.rand() * 1.4 * diff.variance;
   let laneIdx = cd.lane !== undefined ? cd.lane : L.laneIdx;
-  if (cd.lanes) { const mode = diff.tier === 0 ? 'default' : (L.def.laneMode || diff.lane); laneIdx = mode === 'default' ? cd.lanes[0] : cd.lanes[Math.floor(laneRoll(L, mode, k + 1) * cd.lanes.length)]; }
+  if (cd.lanes) { const mode = L.def.laneMode || diff.lane; laneIdx = mode === 'default' ? cd.lanes[0] : cd.lanes[Math.floor(laneRoll(L, mode, k + 1) * cd.lanes.length)]; }
   const lane = L.lanes[laneIdx];
   const c = {
     type: cd.type, CR, lane, yaw: lane.yaw, idx: k,
@@ -84,8 +82,8 @@ function buildLevelDef(def, i) {
     floor: { poly: def.floor ? def.floor.poly : null, y: def.floor && def.floor.y !== undefined ? def.floor.y : (def.floorY || 0) },
   };
   L.flags = L.s;   // older nights call it flags
-  L.tier = (n, h, nm) => diff.tier >= 3 ? (nm !== undefined ? nm : (h !== undefined ? h : n)) : diff.tier === 2 ? (h !== undefined ? h : n) : n;
-  L.extra = (minTier, fn) => { if (diff.tier >= minTier) fn(L); };
+  L.nightmare = diff.id === 'nightmare';
+  L.tier = (normal, nightmare) => (L.nightmare && nightmare !== undefined ? nightmare : normal);
   L.pt = (x, y, z) => { const r = rotY(x, z, L.facing); return [r[0], y, r[1]]; };
   L.at = (deg, dist, y) => L.pt(Math.sin(deg * DEG) * dist, y, Math.cos(deg * DEG) * dist);
   L.text = Object.assign({ intro: def.intro || '', hint: def.hint || '', objective: def.objective || '', death: {}, win: '', fragment: '' }, def.text || {});
@@ -707,12 +705,12 @@ function render() {
   for (const it of L.items) if (!it.taken) {
     let p = rend.get(it);
     if (!p) { p = { kind: 'sprite', hit: { kind: 'item', ref: it }, hitPad: 8, draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); } }; rend.set(it, p); }
-    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
+    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.card = true; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
     R.add(p);
   }
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
-    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
     R.add(p);
   }
   if (G.throwing) {

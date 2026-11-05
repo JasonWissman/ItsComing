@@ -38,7 +38,7 @@ LEVELS.push({
     for (let i = 0; i < 12; i++) { const x = (rng() - 0.5) * 60, z = (rng() < 0.5 ? 1 : -1) * (8 + rng() * 40); if (Math.abs(x) < 3) continue; SC.tree(L, x, z, 5 + rng() * 5, 'bare', (rng() * 1e6) | 0); }
     SC.groundDots(L, 29, 100, 3, 50, 360, [52, 54, 46], 0.5);
     const bracket = (L, sp) => SC.box(L, Math.min(sp.x, sp.bx), Math.max(sp.x, sp.bx), 0.9, 0.96, Math.min(sp.z, sp.bz), Math.max(sp.z, sp.bz), stoneD);
-    const decoy = !!L.diff.decoys, keyed = L.diff.tier >= 2, both = L.diff.tier >= 3;
+    const decoy = !!L.diff.decoys, keyed = L.nightmare, both = L.nightmare;
     mkItem(L, 'chain', 'Chain', [
       { x: 2.92, y: 0.85, z: 0.3, bx: 2.6, bz: 0.5, setup: bracket },     // hanging on the east wall
       { x: -2.92, y: 0.85, z: -0.6, bx: -2.6, bz: -0.4, setup: bracket }, // hanging on the west wall
@@ -69,7 +69,7 @@ LEVELS.push({
         hint() { return t.locked ? 'Chained and locked.' : t.chained ? (t.closing > 0 ? 'Closing.' : 'Chained. It needs a lock.') : 'The gate stands open.'; },
         use(item) {
           if (item.id === 'chain') {
-            if (L.diff.tier < 3 && t !== gateOf(L.lane)) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // below Nightmare only its own gate counts, so the one chain is not wasted here
+            if (!L.nightmare && t !== gateOf(L.lane)) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // below Nightmare only its own gate counts, so the one chain is not wasted here
             t.chained = true; t.closing = 1.0; t.accepts = ['padlock'].concat(decoy ? ['oldlock'] : []); AUDIO.sfx('creak'); return true; }
           if (item.id === 'padlock') {
             if (!t.chained || t.closing > 0) { G.say('Wait for it to close.', 'Not yet.'); return false; }
@@ -100,7 +100,7 @@ LEVELS.push({
         if (g.locked) R.add(iconSprite(L, 'padlock', 1.0 * sg, 0.5, 2.57 * sg, 0.2, 0.24));
       }
     };
-    L.isWon = () => L.tier(gateOf(L.lane).locked, gateOf(L.lane).locked, gate.locked && gate2.locked);
+    L.isWon = () => L.tier(gateOf(L.lane).locked, gate.locked && gate2.locked);
     L.objectiveText = () => {
       const st = g => g.locked ? 'locked' : g.chained ? 'chained, needs the padlock' : 'open';
       return (both ? 'Chain and padlock both gates (gate ' + st(gate) + ', back gate ' + st(gate2) + ').' : 'Chain and padlock the ' + gateOf(L.lane).name.toLowerCase() + ' (' + st(gateOf(L.lane)) + ').') + (keyed ? ' The padlock needs its key.' : '') + (gateOf(L.lane).locked ? ' Do not look away.' : '');

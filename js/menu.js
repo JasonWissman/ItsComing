@@ -21,7 +21,7 @@ const MENU = (() => {
       case 'pause':
         return '<h1>Paused</h1><p class="intro">It is not.</p><div class="mcol">' + btn('resume', 'Resume') + btn('restart', 'Start the night over') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('title', 'Back to the title') + '</div><p class="fine">Esc resumes</p>';
       case 'dead':
-        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + (G.debug || G.diff().tier >= 3 ? '<p class="fine">seed ' + G.runSeed + '</p>' : '');
+        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + (G.debug || G.diff().id === 'nightmare' ? '<p class="fine">seed ' + G.runSeed + '</p>' : '');
       case 'ending':   // the last screen of the last night, over the morning room
         return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('again', 'Play again') + '</div>';
       case 'survived':

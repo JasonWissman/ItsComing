@@ -81,13 +81,9 @@ LEVELS.push({
       { x: 2.5, y: 1.1, z: -0.5, jitter: 0.06, key: 'woodpile' },   // on the woodpile
       { x: -2.2, y: 0.36, z: 1.2 },                     // porch floor, far left
     ];
-    // shells: one box; two boxes on Hard; on Nightmare one of the two is duds
-    if (L.diff.tier < 2) mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true });
-    else {
-      mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: L.diff.tier >= 3 ? 3 : 2, tool: true }); // Nightmare's one real box keeps a spare, since out-of-range shots waste there
-      if (L.diff.tier >= 3) mkItem(L, 'duds', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true, icon: 'shells' }); // the same count as the real box, so the label gives nothing away
-      else mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 1, tool: true });
-    }
+    // shells: one box; on Nightmare two, and one of them is duds
+    mkItem(L, 'shells', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true }); // three: a spare, since out-of-range shots waste on Nightmare
+    if (L.nightmare) mkItem(L, 'duds', 'Shells', shellSpots, { w: 0.3, h: 0.3, flat: true, uses: 3, tool: true, icon: 'shells' }); // the same count as the real box, so the label gives nothing away
     L.floor = { poly: [[-3.1, -1.5], [3.1, -1.5], [3.1, 1.5], [-3.1, 1.5]], y: 0.36 };
     const box = id => id === 'shells' || id === 'duds'; // the dud box clicks in like the real one
     L.onPickup = it => { if ((it.id === 'shotgun' && (G.hasItem('shells') || G.hasItem('duds'))) || (box(it.id) && G.hasItem('shotgun'))) AUDIO.sfx('load'); };

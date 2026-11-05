@@ -1,7 +1,7 @@
 // The Mirror Maze: find the odd mirror, put the box on the pedestal before it, fit its own key (the one with the heart)
-// and wind it, and it comes in beside the box to the tune. Easy first tries a wrong pedestal (the tune plays for nobody
-// and the box comes back); Nightmare first tries a wrong key. Hard and Nightmare pull the dust sheets and mend the spring;
-// on Nightmare the spring runs down part way (the bell rope shows itself then) and the box is rewound as needed.
+// and wind it, and it comes in beside the box to the tune. Normal first tries a wrong pedestal (the tune plays for nobody
+// and the box comes back); Nightmare first tries a wrong key, pulls the dust sheets and mends the spring, and the spring
+// runs down part way (the bell rope shows itself then) and the box is rewound as needed.
 const byOdd = f => [3, 2, 1, 0].reduce((otherwise, k) => [['branch', 'G.L.s.odd === ' + k, f(k), otherwise]], []);
 const ped = k => 'pedestal' + k;
 const place = k => [['use', ped(k)], ['expect', 'G.L.s.placedAt === ' + k, 'box on pedestal ' + k]];
@@ -19,8 +19,6 @@ const rewind = ['waitUntil', "G.L.won ? true : ((!G.L.s.playing && G.L.s.placedA
 const finish = [rewind, ['expect', 'G.L.won', 'it came to the music box']];
 const runDown = [['waitUntil', 'G.L.won || !G.L.s.playing', 15000], ['expect', "G.L.won || !G.L.targets.find(t => t.id === 'rope').hidden", 'the spring ran down and the bell rope showed itself']];
 module.exports = {
-  easy: [['pickup', 'boxkey'], ['pickup', 'musicbox']].concat(byOdd(k => wrong(k).concat(right(k))), finish),
-  normal: [['pickup', 'boxkey'], ['pickup', 'musicbox']].concat(byOdd(right), finish),
-  hard: sheets.concat([['expect', 'G.L.s.mirrors.every(m => m.live)', 'sheets pulled'], ['pickup', 'boxkey']], mend, byOdd(right), finish),
+  normal: [['pickup', 'boxkey'], ['pickup', 'musicbox']].concat(byOdd(k => wrong(k).concat(right(k))), finish),
   nightmare: [['expect', "G.L.targets.find(t => t.id === 'rope').hidden", 'no bell rope yet']].concat(sheets, mend, byOdd(wrongKey), runDown, finish),
 };

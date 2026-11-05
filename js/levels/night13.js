@@ -48,7 +48,7 @@ LEVELS.push({
     for (const p of voidProps) p.alpha0 = p.alpha === undefined ? 1 : p.alpha;
     for (const p of roomProps) { p.alpha0 = p.alpha === undefined ? 1 : p.alpha; p.alpha = 0; }
     // the ring of everything, and what you start the night holding
-    const hold = L.tier(3, 5, 6), ringR = L.tier(2.0, 1.7, 1.7);
+    const hold = L.tier(3, 6), ringR = L.tier(2.0, 1.7);
     const rng = mulberry32((G.runSeed * 31 + 13) >>> 0);
     const order = VOID_TOOLS.slice().sort(() => rng() - 0.5);
     order.forEach(([id, name, w, h], k) => {

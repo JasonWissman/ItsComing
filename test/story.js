@@ -12,7 +12,7 @@ const { check } = T;
     const info = await page.evaluate(i => {
       const def = LEVELS[i], T = def.text || {};
       const words = [T.intro, T.hint, T.objective, T.win, T.fragment].concat(Object.values(T.death || {})).join(' | ');
-      G.inv = []; G.difficulty = 1;
+      G.inv = []; G.difficulty = 0;
       const L = buildLevel(i);
       // the lamp is a sprite drawn by STORY.lamp: it is tagged by its draw function's source
       const lamps = L.props.filter(p => p.kind === 'sprite' && p.draw && /shadeD/.test(p.draw.toString())).length;
