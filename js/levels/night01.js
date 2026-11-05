@@ -97,13 +97,12 @@ LEVELS.push({
       { x: 2.05, y: 0.78, z: 0.05 },                    // on the table
       { x: 1.85, y: 1.1, z: -2.3 },                     // on the windowsill
     ], { w: 0.13, h: 0.36 });
-    // the two doorways; on Nightmare the front door has to be shut before it can be boarded
     // the front door stands open on both; it is shut by a click, and on Nightmare it must be shut before it can be boarded
     Object.assign(s, { frontOpen: true, frontClosing: 0, frontA: 10 * DEG });
     const mkDoor = (id, name, deg, dist, w, lane) => {
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0, w, h: 2.1, accepts: ['planks'].concat(decoy ? ['rotten'] : []), requires: nails ? ['hammer', 'nails'] : ['hammer'], needed: need, lane, missingText: 'The planks will not stay up on their own.',
-        hint() { return t.done ? 'Boarded up.' : (lane === 1 && s.frontOpen) ? 'The front door stands open.' : lane !== L.lane.idx ? 'The ' + name.toLowerCase() + '. Nothing is coming this way.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
+        hint() { return t.done ? 'Boarded up.' : (lane !== L.lane.idx && !L.nightmare) ? (lane === 1 && s.frontOpen ? 'The front door stands open, but nothing is coming this way.' : 'The ' + name.toLowerCase() + '. Nothing is coming this way.') : (lane === 1 && s.frontOpen) ? 'The front door stands open.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
         onClick() { if (lane === 1 && s.frontOpen) { s.frontOpen = false; s.frontClosing = 0.8; AUDIO.sfx('creak'); return true; } return false; },
         use() {
           if (!L.nightmare && lane !== L.lane.idx) { G.say('Nothing is coming this way.', 'Not this one.'); return false; } // on Normal only its own door counts, so no plank is wasted here

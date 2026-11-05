@@ -104,9 +104,12 @@ LEVELS.push({
     void drum;
     mkRecipe(L, { parts: ['lantern_full', 'matches'], result: { id: 'lantern_lit', name: 'Lantern, lit', opts: { w: 0.3, h: 0.44, throwable: true, icon: (ctx, P) => { P.lit = true; ICONS.lantern(ctx, P); } } }, sfx: 'strike', text: 'It catches. Now throw it.', onCombine: (it, L2) => { const m = L2.items.find(i => i.id === 'matches'); if (m) { m.taken = true; G.inv.push(m); } } });
     const mkHay = (id, name, deg, dist, w, flag, wet) => {
+      const away = () => !L.nightmare && (flag === 'fireN') !== (c0().lane.idx === 0);
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0, w, h: 2.4, accepts: ['lantern_lit', 'lantern', 'lantern_full'].concat(decoy ? ['pail'] : []),
-        hint() { const away = !L.nightmare && (flag === 'fireN') !== (c0().lane.idx === 0); return s[flag] ? (away ? 'Burning, but it is not coming this way.' : 'Burning.') : s[wet] > 0 ? 'Soaked. It will not catch yet.' : away ? 'Dry hay, but it is not coming this way.' : 'Dry hay. It would go up in a moment.'; },
+        // on Normal the hay it is not coming past is refused before the lantern leaves your hand
+        onClick() { if (away() && G.hasItem('lantern_lit')) { G.say('Nothing is coming this way.', 'Not this one.'); AUDIO.sfx('nope'); return true; } return false; },
+        hint() { return s[flag] ? (away() ? 'Burning, but it is not coming this way.' : 'Burning.') : s[wet] > 0 ? 'Soaked. It will not catch yet.' : away() ? 'Dry hay, but it is not coming this way.' : 'Dry hay. It would go up in a moment.'; },
         use(item) {
           if (item.id === 'lantern' || item.id === 'lantern_full') { G.say(item.id === 'lantern' ? 'The lantern is empty. Fill it at the oil drum.' : 'It is not lit. Use the matches on it first.', 'It is not lit.'); return false; }
           if (item.id !== 'lantern_lit') return false;
@@ -138,7 +141,7 @@ LEVELS.push({
       if (s.wetN > 0) s.wetN -= dt; if (s.wetE > 0) s.wetE -= dt;
       if (!s.ladderUp) s.ladderK = Math.max(0, s.ladderK - dt); else s.ladderK = Math.min(1, s.ladderK + dt * 1.5);
       // on Nightmare a fire or the ladder holds it, but the night wants both: say what it is waiting at, once
-      if (L.nightmare && c.sealHold && !L.won && !s.toldHeld) { s.toldHeld = true; G.say(s.ladderUp ? 'It stops below the loft and waits. There is no fire between you yet.' : 'It stops at the fire and waits. The ladder is still down.', s.ladderUp ? 'It stops below the loft, and waits.' : 'It stops at the fire, and waits. Behind you the ladder is still down.'); }
+      if (L.nightmare && c.sealHold && !L.won && !s.toldHeld) { s.toldHeld = true; G.say(s.ladderUp ? 'It stops below the loft and waits. There is no fire between you yet.' : 'It stops at the fire and waits. The ladder is still down.', s.ladderUp ? 'It stops below the loft, and waits. There is no fire between you yet.' : 'It stops at the fire, and waits. The ladder is still down.'); }
     };
     L.dynamic = () => {
       // the ladder, standing at the edge or hauled up onto the boards

@@ -145,7 +145,7 @@ LEVELS.push({
     L.isWon = () => s.fixed && L.tier(shut(way()), s.shutN && s.shutD);
     L.objectiveText = () => {
       const sh = L.nightmare ? ((s.shutN ? 'Window shuttered. ' : 'Shutter the window. ') + (s.shutD ? 'Door shuttered. ' : 'Shutter the door. ')) : shut(way()) ? 'Shutter down. ' : 'Pull down the shutter on the ' + way().name + '. ';
-      return sh + (s.fixed ? 'Lights fixed.' : 'Flip the tripped breakers back up (' + tripped() + ' to go).');
+      return sh + (s.fixed ? 'Lights fixed.' : 'Flip the tripped switches back up (' + tripped() + ' to go).');
     };
     // once its way in is shuttered it walks along the front to the pane under the sign, keeping its distance (or to the
     // glass, if it was nearer): the same spot re-measured along the sign's lane, then a straight walk onto that lane

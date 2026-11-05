@@ -119,7 +119,7 @@ LEVELS.push({
     // the tune: on the odd mirror's pedestal it lures the thing in beside the box; on any other it plays for nobody
     const startTune = k => {
       const c = c0();
-      s.playing = true; s.playT = runsDown ? 9 : Infinity; s.tune = 0;
+      s.playing = true; s.playT = runsDown ? 5 : Infinity; s.tune = 0;   // on Nightmare it runs down before the walk is over
       if (!c.lane.follow) { c.hold = null; G.say('The tune starts again. It walks on to the box.', 'It plays.'); return; }   // rewound on Nightmare
       if (k !== s.odd) {
         s.playing = false; s.placedAt = -1; s.keyIn = false; s.wrongAt = L.t;
@@ -186,7 +186,7 @@ LEVELS.push({
       if (s.playing) {
         s.tune -= dt; if (s.tune <= 0) { s.tune = 3.2; const p = peds[s.placedAt] || peds[0]; AUDIO.sfx('musicbox', Math.sin(wrapPi(Math.atan2(p.x, p.z) + L.facing - G.cam.yaw)) * 0.7); }
         // on Nightmare the spring runs down part way through the walk (never during the aftermath); the bell rope shows itself then
-        if (s.playT !== Infinity && !L.won) { s.playT -= dt; if (s.playT <= 0) { s.playing = false; c.hold = c.dist; G.say('The spring runs down. It stops where it is.', 'The tune runs down. It stops where it is. Behind you, a rope drops through the roof.'); const rope = L.targets.find(t => t.id === 'rope'); if (rope) rope.hidden = false; } }
+        if (s.playT !== Infinity && !L.won) { s.playT -= dt; if (s.playT <= 0) { s.playing = false; c.hold = c.dist; G.say('The spring runs down. It stops where it is.', 'The tune runs down. It stops where it is. By the south mirror, a rope drops through the roof.'); const rope = L.targets.find(t => t.id === 'rope'); if (rope) rope.hidden = false; } }
       }
     };
     L.dynamic = () => {

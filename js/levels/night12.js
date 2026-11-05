@@ -43,7 +43,7 @@ LEVELS.push({
         if (!s.plugged) { G.say('Nothing. The cord is loose somewhere. Look down beside the bed.', 'Nothing. It is not plugged in.'); AUDIO.sfx('switch'); return true; }
         if (s.lampOn) { G.say('It is on. Leave it.', 'On.'); return true; }
         if (sticks && ++s.clicks < 3) { AUDIO.sfx('switch'); G.say('The switch sticks.', 'Sticks.'); return true; }
-        s.clicks = 0; s.lampOn = true; s.lampT = 12 + L.rand() * 6; AUDIO.sfx('switch'); AUDIO.sfx('lampOn'); G.say('Light. It slows.', 'Light.'); return true;
+        s.clicks = 0; s.lampOn = true; s.wasLit = true; s.lampT = 12 + L.rand() * 6; AUDIO.sfx('switch'); AUDIO.sfx('lampOn'); G.say('Light. It slows.', 'Light.'); return true;
       },
     });
     const socket = unplugged && mkTarget(L, {
@@ -54,7 +54,7 @@ LEVELS.push({
     const covers = mkTarget(L, {
       id: 'covers', name: 'Covers', x: 0, y: 0.6, z: 1.1, w: 1.4, h: 0.6, flat: true, hold: 3.0,
       hint() { return s.coversUp ? 'Up over you.' : 'The covers. Hold on to them until they are all the way up; they slip back if you let go too soon.'; },
-      use(item) { if (item !== null) return false; s.coversUp = true; AUDIO.sfx('hiss'); G.say(s.lampOn ? 'The covers are up.' : 'The covers are up, but the lamp has gone out. Switch it back on.', s.lampOn ? 'Up.' : 'Up. It is dark.'); return true; },
+      use(item) { if (item !== null) return false; s.coversUp = true; AUDIO.sfx('hiss'); G.say(s.lampOn ? 'The covers are up.' : !s.fitted ? 'The covers are up. Now the lamp: there is a bulb in the drawer.' : s.wasLit ? 'The covers are up, but the lamp has gone out. Switch it back on.' : 'The covers are up. Now switch the lamp on.', s.lampOn ? 'Up.' : 'Up. It is dark.'); return true; },
     });
     L.isWon = () => s.lampOn && s.coversUp;
     L.objectiveText = () => (s.lampOn ? 'Lamp on. ' : !s.fitted ? 'Find a bulb (the drawer). Fit it. ' : !s.plugged ? 'Plug the cord in (down, beside the bed). ' : 'Switch the lamp on. ') + (s.coversUp ? 'Covers up.' : 'Pull the covers up (hold).');

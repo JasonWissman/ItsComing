@@ -89,7 +89,7 @@ LEVELS.push({
       onClick() {
         if (!s.keyIn) return false;
         if (s.cranking > 0 || s.started) return true;
-        if (s.inDrive) { AUDIO.sfx('nope'); G.say('Nothing, not even a click. It will not start in drive: put it in park.', 'Nothing. Not even a click. The stick is still in D.'); return true; }
+        if (s.inDrive) { AUDIO.sfx('nope'); G.say('Nothing, not even a click. It will not start in drive: put it in park.', 'Nothing. Not even a click. The gearstick is still in drive.'); return true; }
         s.lastCrank = L.t; s.cranking = 1.15;
         s.cranks++;
         if (s.cranks >= s.cranksNeeded) { s.started = true; AUDIO.sfx('start'); G.shake(0.3); }

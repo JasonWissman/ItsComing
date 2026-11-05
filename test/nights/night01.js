@@ -1,5 +1,5 @@
 // The Field: hammer (and nails on Nightmare), then every loose plank in the house (they stack in one slot),
-// then board up the door it comes for. On Nightmare the front door stands open and must be shut first.
+// then board up the door it comes for. The front door stands open; on Nightmare it must be shut before it can be boarded.
 const board = (id, n) => [['use', id, n, 200], ['expect', "G.L.targets.find(t => t.id === '" + id + "').done", id + ' boarded up']];
 const planks = n => Array.from({ length: n }, () => ['pickup', 'planks']).concat([['expect', "G.inv.filter(i => i.id === 'planks').length === 1 && G.inv.find(i => i.id === 'planks').uses === " + n, n + ' planks in one pile']]);
 module.exports = {
