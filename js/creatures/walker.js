@@ -4,7 +4,10 @@ CREATURES.walker = {
   voice: { kind: 'exhale', every: [5, 10] },
   init(c) { },
   speedMult(c, dt, seen) { return 1; },
+  // a night can send it sideways, running (The Field's run round the house): c.runLat metres to its right, c.runPose on
+  lateral(c) { return c.runLat || 0; },
   draw(ctx, c, P) {
+    if (c.runPose) { this.drawRun(ctx, c, P); return; }
     const g = c.gait, t = c.t;
     const near = clamp(1 - c.dist / 22, 0, 1);
     const body = P.col([6, 6, 10]);
@@ -55,5 +58,39 @@ CREATURES.walker = {
       ctx.globalAlpha = 1;
     }
     ctx.restore();
-  }
+  },
+  // flat out, seen from the side: leaning far forward, the long legs reaching and kicking up behind, the arms pumping,
+  // the head pushed out ahead. c.runDir is +1 running to the right of the view, -1 to the left; c.runGait its stride.
+  drawRun(ctx, c, P) {
+    const g = c.runGait || 0, body = P.col([6, 6, 10]), eye = P.col([225, 218, 205]);
+    const lean = 0.42, thigh = 0.62, shin = 0.64, upper = 0.56, fore = 0.52;
+    ctx.save(); ctx.scale(c.runDir || 1, 1);
+    const legs = [0, Math.PI].map(o => {
+      const ph = g + o, a = Math.sin(ph) * 0.75, bend = 0.25 + 1.4 * Math.max(0, Math.cos(ph));   // the knee folds as the leg swings through
+      const kx = Math.sin(a) * thigh, ky = -Math.cos(a) * thigh;
+      return { ph, kx, ky, fx: kx + Math.sin(a - bend) * shin, fy: ky - Math.cos(a - bend) * shin };
+    });
+    const hipY = 0.03 - Math.min(legs[0].fy, legs[1].fy), hipX = 0;   // whichever foot is lowest is on the ground
+    const sx = hipX + Math.sin(lean) * 0.82, sy = hipY + Math.cos(lean) * 0.82;
+    const limb = l => {
+      P_limb(ctx, [[hipX, hipY], [hipX + l.kx, hipY + l.ky], [hipX + l.fx, hipY + l.fy]], 0.075, body);
+      P_line(ctx, hipX + l.fx - 0.02, hipY + l.fy, hipX + l.fx + 0.11, hipY + l.fy - 0.01, 0.065, body);   // the foot, toes forward
+      // the arm on the other side swings against this leg
+      const aa = -Math.sin(l.ph) * 1.0, ex = sx + Math.sin(aa) * upper, ey = sy - Math.cos(aa) * upper, fa = aa + 1.0;
+      const hx = ex + Math.sin(fa) * fore, hy = ey - Math.cos(fa) * fore;
+      P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
+      fingers(ctx, hx, hy, Math.atan2(hy - ey, hx - ex), 0.14, 0.17, 0.018, body);
+    };
+    limb(legs[1]);   // the far side first
+    P_poly(ctx, [[hipX - 0.12, hipY - 0.05], [hipX + 0.1, hipY - 0.05], [sx + 0.13, sy], [sx - 0.15, sy - 0.02]], body);   // the torso, side on: still far too narrow
+    limb(legs[0]);
+    // the neck and the head, thrust forward of the shoulders
+    const nx = sx + Math.sin(lean + 0.5) * 0.16, ny = sy + Math.cos(lean + 0.5) * 0.16;
+    P_line(ctx, sx, sy, nx, ny, 0.07, body);
+    const hx = nx + Math.sin(lean + 0.3) * 0.17, hy = ny + Math.cos(lean + 0.3) * 0.17;
+    P_ell(ctx, hx, hy, 0.12, 0.16, body, -lean * 0.6);
+    const faceA = clamp((26 - c.dist) / 22, 0, 1);
+    if (faceA > 0) { ctx.globalAlpha = faceA; P_ell(ctx, hx + 0.07, hy + 0.03, 0.018, 0.013, eye); ctx.globalAlpha = 1; }
+    ctx.restore();
+  },
 };
