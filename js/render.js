@@ -1,6 +1,9 @@
 'use strict';
 // ---------- a tiny painter's-algorithm 3D renderer on Canvas 2D ----------
-// World: x = east, y = up, z = north. The eye is always at (0, eyeH, 0).
+// World: x = east, y = up, z = north. The eye stands at (0, eyeH, 0) plus the level's eye offset, level.eye = {x, y, z}
+// (absent or zero almost always: the night 2 car drives off with it). Renderables and lights flagged attach ride with
+// the eye: their coordinates are relative to where it started, so a car's body, dash and headlights stay with the player
+// while the road, the trees and the thing slide past. While the offset is zero none of this costs anything.
 // Yaw 0 faces north (+z), increases clockwise. Pitch > 0 looks down.
 const R = (() => {
   const NEAR = 0.05;
@@ -8,6 +11,9 @@ const R = (() => {
   let canvas = null, ctx = null, W = 1, H = 1, DPR = 1, pageW = 1, pageH = 1, viewY = 0;
   let f = 1, cosY = 1, sinY = 0, cosP = 1, sinP = 0, eyeH = 1.65, pitch = 0, yaw = 0, zoom = 1;
   let pal = null, fogDist = 100, fogColor = [0, 0, 0], ambient = 1;   // pal.ambient dims every surface colour (a room whose lights have gone)
+  let ex = 0, ey = 0, ez = 0, moving = false, wasMoving = false;   // the eye's offset this frame, and whether there is one
+  let ox = 0, oy = 0, oz = 0;   // the offset toCam takes off: the eye's, or zero while drawing something attached to it
+  let moved = [];     // the statics, sorted by distance from the eye while it is away from where it started
   let list = [];      // dynamic renderables this frame
   let statics = [];   // the level's static props, sorted once, culled by view angle per frame
   let hits = [];
@@ -65,6 +71,11 @@ const R = (() => {
     cosY = Math.cos(yaw); sinY = Math.sin(yaw); cosP = Math.cos(pitch); sinP = Math.sin(pitch);
     f = (H / 2) / Math.tan(VFOV / 2) * zoom;
     eyeH = level.eyeH; pal = level.pal; fogDist = pal.fogDist; fogColor = pal.fog; ambient = pal.ambient === undefined ? 1 : pal.ambient;
+    const e = level.eye;
+    ex = e ? e.x || 0 : 0; ey = e ? e.y || 0 : 0; ez = e ? e.z || 0 : 0;
+    moving = !!(ex || ey || ez); ox = ex; oy = ey; oz = ez;
+    if (wasMoving && !moving) for (const p of statics) p.sd = p.sortDist === undefined ? p.dist : p.sortDist;   // back where it started: the prepared order holds again
+    wasMoving = moving;
     list.length = 0; hits.length = 0;
     // shake: applied as a translation of the whole scene
     if (cam.shakeX || cam.shakeY) ctx.translate(cam.shakeX, cam.shakeY);
@@ -75,7 +86,7 @@ const R = (() => {
     // the bands depend only on pitch, zoom, palette and lightning: keep them in an offscreen strip while nothing changes
     // coarse enough that fog rolls and the zoom wobble do not rebuild it every frame, and keyed on the colours so an animated palette (night 12's dawn) is not stale
     const cols = a => (a ? a.map(v => v | 0).join(',') : '');
-    const key = (Math.round(pitch * 200) / 200).toFixed(3) + '|' + zoom.toFixed(2) + '|' + W + 'x' + H + '|' + pal.id + '|' + Math.round(fogDist) + '|' + LIGHT.global.toFixed(2) + '|' + cols(pal.skyTop) + '|' + cols(pal.fog) + '|' + cols(pal.ground);
+    const key = (Math.round(pitch * 200) / 200).toFixed(3) + '|' + zoom.toFixed(2) + '|' + W + 'x' + H + '|' + pal.id + '|' + Math.round(fogDist) + '|' + LIGHT.global.toFixed(2) + '|' + cols(pal.skyTop) + '|' + cols(pal.fog) + '|' + cols(pal.ground) + (ey ? '|' + ey.toFixed(2) : '');
     if (skyCache && skyCache.key === key) { ctx.drawImage(skyCache.cv, -8, -4, W + 16, H + 8); return; }
     if (!skyCache || skyCache.cv.width !== W + 16 || skyCache.cv.height !== H + 8) { const cv = document.createElement('canvas'); cv.width = W + 16; cv.height = H + 8; skyCache = { cv, key: '' }; }
     skyCache.key = key;
@@ -91,7 +102,7 @@ const R = (() => {
         col = mixc(fog, skyTop, Math.pow(k, 0.6));
         if (LIGHT.global > 0.01) col = mixc(col, [225, 228, 245], Math.min(0.85, LIGHT.global * 0.9));
       } else {
-        const d = eyeH / Math.tan(-ang);
+        const d = (eyeH + ey) / Math.tan(-ang);
         col = mixc(ground, fog, fogAmt(d));
       }
       sc.fillStyle = rgba(col);
@@ -102,7 +113,8 @@ const R = (() => {
 
   // ---- transforms ----
   function toCam(x, y, z) {
-    const dy = y - eyeH;
+    const dy = y - eyeH - oy;
+    x -= ox; z -= oz;
     const cx = x * cosY - z * sinY;
     const cz = x * sinY + z * cosY;
     return [cx, dy * cosP + cz * sinP, -dy * sinP + cz * cosP];
@@ -115,14 +127,15 @@ const R = (() => {
     return { x: p[0], y: p[1], depth: c[2], scale: f / c[2] };
   }
   // screen rect of an upright billboard (w x h metres, base at x,y,z), for the current camera or a given
-  // one ({yaw, pitch, zoom, W, H, eyeH}); pure math, used by the approach-lane visibility test
+  // one ({yaw, pitch, zoom, W, H, eyeH, eye?}); pure math, used by the approach-lane visibility test
   function projectRect(x, y, z, w, h, cam) {
-    let cy = cosY, sy = sinY, cp = cosP, sp = sinP, ff = f, eh = eyeH, Wd = W, Hd = H;
+    let cy = cosY, sy = sinY, cp = cosP, sp = sinP, ff = f, eh = eyeH + ey, Wd = W, Hd = H, qx = ex, qz = ez;
     if (cam) {
       cy = Math.cos(cam.yaw); sy = Math.sin(cam.yaw); cp = Math.cos(cam.pitch); sp = Math.sin(cam.pitch);
-      Wd = cam.W; Hd = cam.H; eh = cam.eyeH; ff = (Hd / 2) / Math.tan(VFOV / 2) * (cam.zoom || 1);
+      Wd = cam.W; Hd = cam.H; eh = cam.eyeH + (cam.eye ? cam.eye.y || 0 : 0); ff = (Hd / 2) / Math.tan(VFOV / 2) * (cam.zoom || 1);
+      qx = cam.eye ? cam.eye.x || 0 : 0; qz = cam.eye ? cam.eye.z || 0 : 0;
     }
-    const tc = (px, py, pz) => { const dy = py - eh; const cx = px * cy - pz * sy; const cz = px * sy + pz * cy; return [cx, dy * cp + cz * sp, -dy * sp + cz * cp]; };
+    const tc = (px, py, pz) => { const dy = py - eh; px -= qx; pz -= qz; const cx = px * cy - pz * sy; const cz = px * sy + pz * cy; return [cx, dy * cp + cz * sp, -dy * sp + cz * cp]; };
     const base = tc(x, y, z);
     if (base[2] < NEAR) return null;
     const bx = Wd / 2 + ff * base[0] / base[2], by = Hd / 2 - ff * base[1] / base[2];
@@ -151,6 +164,7 @@ const R = (() => {
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
   // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
+  // attach? rides with the eye (see the top): its coordinates and dist are taken from where the eye started
   function measure(p) {
     if (p.dist === undefined) {
       if (p.kind === 'poly') {
@@ -165,7 +179,19 @@ const R = (() => {
     if (p.layer === undefined) p.layer = 1;
     p.sd = p.sortDist === undefined ? p.dist : p.sortDist;
   }
-  function add(p) { measure(p); list.push(p); }
+  function add(p) { measure(p); if (moving) fromEye(p); list.push(p); }
+  // while the eye is away from where it started, fog and drawing order go by each renderable's own distance from it
+  // (sortDist keeps its offset from dist); an attached one keeps the distance it was measured with. Surface detail
+  // pieces are not kept with their quad here: a night that moves the eye builds its ground without them.
+  function fromEye(p) {
+    if (p.attach) { p.fd = p.dist; return; }
+    let d = 0;
+    if (p.kind === 'poly') { for (const v of p.pts) d += Math.hypot(v[0] - ex, v[2] - ez); d /= p.pts.length; }
+    else d = Math.hypot(p.x - ex, p.z - ez);
+    p.fd = d; p.sd = p.sortDist === undefined ? d : d + p.sortDist - p.dist;
+  }
+  // the offset toCam takes off for the renderable about to be drawn
+  function offsetFor(attached) { ox = attached ? 0 : ex; oy = attached ? 0 : ey; oz = attached ? 0 : ez; }
   // angular extent of a static prop around the eye, for view culling
   function extent(p) {
     let sx = 0, sz = 0, yLow = Infinity;
@@ -196,6 +222,7 @@ const R = (() => {
   function prepare(props) {
     for (const p of props) { measure(p); extent(p); }
     statics = props.slice().sort(order);
+    wasMoving = false; moved.length = 0;
   }
 
   function drawPoly(p) {
@@ -223,11 +250,11 @@ const R = (() => {
       }
       return;
     }
-    const li = (LIGHT.list.length || LIGHT.global) && !p.noLight ? LIGHT.at(p.cx, p.cy, p.cz) : null;
+    const li = (LIGHT.list.length || LIGHT.global) && !p.noLight ? LIGHT.at(p.cx + ex - ox, p.cy + ey - oy, p.cz + ez - oz) : null;   // lit where it really is: an attached poly has come along with the eye
     const pc = detailOn && p.seam ? p.seam : p.color; // with detail on, a textured quad shows as the seams between its pieces
     const base0 = ambient !== 1 && !p.noLight ? scalec(pc, ambient) : pc;
     const base = li ? LIGHT.apply(base0, li) : base0;
-    const col = p.noFog ? base : fogged(base, p.dist);
+    const col = p.noFog ? base : fogged(base, moving ? p.fd : p.dist);
     if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
     if (p.stroke) {
       ctx.strokeStyle = rgba(col); ctx.lineWidth = Math.max(0.6, (p.lw || 0.02) * f / Math.max(NEAR, cs[0][2]));
@@ -240,8 +267,8 @@ const R = (() => {
   }
 
   function spriteP(p) {
-    const fa = p.noFog ? 0 : fogAmt(p.dist) * (p.fogScale === undefined ? 1 : p.fogScale);
-    const li = (LIGHT.list.length || LIGHT.global) && !p.noFog && !p.noLight ? LIGHT.at(p.x, p.y + (p.h || 0) * 0.5, p.z) : null;
+    const fa = p.noFog ? 0 : fogAmt(moving ? p.fd : p.dist) * (p.fogScale === undefined ? 1 : p.fogScale);
+    const li = (LIGHT.list.length || LIGHT.global) && !p.noFog && !p.noLight ? LIGHT.at(p.x + ex - ox, p.y + (p.h || 0) * 0.5 + ey - oy, p.z + ez - oz) : null;
     return {
       fog: fa, fogColor, t: time, lit: li ? Math.min(1, li.lit) : 0,
       col: c => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)); },
@@ -254,7 +281,7 @@ const R = (() => {
   // which leans from lying flat (or standing) just far enough that the line of sight meets it at CARD_MIN or more
   const CARD_MIN = 50 * DEG;
   function cardAxes(x, y, z, flat) {
-    const e = Math.atan2(eyeH - y, Math.hypot(x, z));   // how far below the eye it sits, as an angle
+    const e = Math.atan2(eyeH + oy - y, Math.hypot(x - ox, z - oz));   // how far below the eye it sits, as an angle
     const phi = clamp(flat ? 0 : Math.PI / 2, CARD_MIN - e, Math.PI - CARD_MIN - e);
     const c = Math.cos(phi);
     return [cosY, -sinY, c * sinY, Math.sin(phi), c * cosY];
@@ -321,15 +348,21 @@ const R = (() => {
   function flush() {
     list.sort(order);
     const k = (W / 2) / f, sp = Math.sin(pitch), cp = Math.cos(pitch);
+    // with the eye away from where it started the statics are sorted again by distance from it, and only the attached
+    // ones can be culled by angle (the culling extents are measured from where it started)
+    let src = statics;
+    if (moving) { moved.length = 0; for (const p of statics) { fromEye(p); moved.push(p); } moved.sort(order); src = moved; }
     let i = 0, j = 0;
-    while (i < statics.length || j < list.length) {
+    while (i < src.length || j < list.length) {
       let p;
-      if (j >= list.length || (i < statics.length && order(statics[i], list[j]) <= 0)) {
-        p = statics[i++];
-        if (!p.noCull && culled(p, k, sp, cp)) continue;
+      if (j >= list.length || (i < src.length && order(src[i], list[j]) <= 0)) {
+        p = src[i++];
+        if (!p.noCull && (!moving || p.attach) && culled(p, k, sp, cp)) continue;
       } else p = list[j++];
+      if (moving) offsetFor(p.attach);
       if (p.kind === 'poly') drawPoly(p); else drawSprite(p);
     }
+    if (moving) offsetFor(false);
     list.length = 0;
   }
 
@@ -337,10 +370,14 @@ const R = (() => {
   function post(fx) {
     ctx.setTransform(DPR, 0, 0, DPR, 0, viewY * DPR);
     if (viewY) { ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); }
+    if (moving) offsetFor(true);   // the rain falls round the eye, wherever it has gone
     WEATHER.draw(ctx);
-    // radial glow (headlights, lantern) requested by the level
+    if (moving) offsetFor(false);
+    // radial glow (headlights, lantern) requested by the level; one flagged attach rides with the eye
     if (fx.glows) for (const g of fx.glows) {
+      if (moving) offsetFor(g.attach);
       const sp = screenPos(g.x, g.y, g.z);
+      if (moving) offsetFor(false);
       if (!sp) continue;
       const r = g.r * sp.scale;
       const grd = ctx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, Math.max(1, r));

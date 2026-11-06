@@ -1,10 +1,13 @@
-// The Boathouse: fit the winch handle and crank the water door down, or shut and bar the side door.
-// Normal seals the way it comes for (sealing it wins at once); Nightmare must seal both, and the winch is chained
-// and padlocked: the key is in the tackle box. The handle will not go on while the padlock is there.
-const winch = [['pickup', 'handle'], ['use', 'winch'], ['expect', 'G.L.s.handleIn', 'handle fitted'], ['clickUntil', 'winch', 'G.L.s.sealedN', 250, 12]];
-const lockedWinch = [['pickup', 'handle'], ['use', 'winch'], ['expect', 'G.L.s.locked && !G.L.s.handleIn', 'the handle will not go on a padlocked winch'], ['use', 'tacklebox'], ['pickup', 'winchkey'], ['use', 'winch'], ['expect', '!G.L.s.locked', 'padlock off'],
+// The Boathouse: both ways must be shut. The winch is chained and padlocked, and the key is in the tackle box; the handle
+// will not go on while the padlock is there. Unlock it, fit the handle and crank the water door down, then shut the side
+// door and bar it. The player tries the handle first, then the oar (a decoy: it does not fit), before opening the tackle box.
+const winch = [['pickup', 'handle'], ['use', 'winch'], ['expect', 'G.L.s.locked && !G.L.s.handleIn', 'the handle will not go on a padlocked winch'],
+  ['pickup', 'oar'], ['expect', 'G.inv[G.active].id === "oar"', 'the oar is in hand'], ['use', 'winch'],
+  ['expect', 'G.L.s.locked && !G.L.s.handleIn && G.lastToast.msg === "It does not fit the winch."', 'the oar does not fit the winch'],
+  ['use', 'tacklebox'], ['expect', 'G.L.targets.find(t => t.id === "tacklebox").open', 'the tackle box is open'],
+  ['pickup', 'winchkey'], ['use', 'winch'], ['expect', '!G.L.s.locked', 'padlock off'],
   ['use', 'winch'], ['expect', 'G.L.s.handleIn', 'handle fitted'], ['clickUntil', 'winch', 'G.L.s.sealedN', 250, 12]];
 const door = [['pickup', 'beam'], ['use', 'sidedoor'], ['waitUntil', 'G.L.s.doorClosed', 3000], ['use', 'sidedoor'], ['expect', 'G.L.s.sealedE', 'side door barred']];
 module.exports = {
-  nightmare: lockedWinch.concat(door),
+  nightmare: winch.concat(door),
 };

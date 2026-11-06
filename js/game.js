@@ -106,6 +106,14 @@ function buildLevelDef(def, i) {
   L.lights = (L.lights || []).concat((def.lights || []).map(l => worldLight(L, l)));
   return L;
 }
+// a level may move its eye (L.eye, a world offset from where it stands; the night 2 car drives off): lights flagged
+// attach ride with it, so they are handed to LIGHT where the eye is now. Nothing changes while there is no offset.
+function eyeMoved(L) { const e = L.eye; return !!(e && (e.x || e.y || e.z)); }
+function placeLights(L, list) {
+  if (!eyeMoved(L)) return list;
+  const e = L.eye;
+  return list.map(l => (l.attach ? Object.assign({}, l, { x: l.x + e.x, y: l.y + (e.y || 0), z: l.z + e.z }) : l));
+}
 function worldLight(L, l) {
   const p = L.pt(l.x, l.y, l.z);
   const w = Object.assign({}, l, { x: p[0], y: p[1], z: p[2], seed: L.rand() * 10 });
@@ -446,11 +454,13 @@ function startAftermath(L) {
   if (L.after.seq) Seq.play(L.after.seq);
 }
 // aim the view at a creature: turn toward where it really is and tilt to its chest, no lower than looking down
-function lookAtCreature(cr) {
-  const cp = cr.pos(), hd = Math.max(0.3, Math.hypot(cp.x, cp.z)), yawTo = Math.atan2(cp.x, cp.z);
+function lookAtCreature(cr) { const cp = cr.pos(); lookAtPoint({ x: cp.x, y: cp.y + (cr.yOff || 0) + cr.CR.h * 0.6, z: cp.z }); }
+function lookAtPoint(p) {
+  const e = G.L.eye || { x: 0, y: 0, z: 0 };   // from where the eye is, if the night has moved it
+  const dx = p.x - e.x, dz = p.z - e.z, hd = Math.max(0.3, Math.hypot(dx, dz)), yawTo = Math.atan2(dx, dz);
   G.cam.tYaw = G.cam.yaw + wrapPi(yawTo - G.cam.yaw);
   G.cam.dirIdx = ((Math.round(yawTo / (45 * DEG)) % 8) + 8) % 8;
-  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH - (cp.y + (cr.yOff || 0) + cr.CR.h * 0.6), hd), 0, PITCH_DOWN);
+  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH + (e.y || 0) - p.y, hd), 0, PITCH_DOWN);
 }
 function win() {
   const L = G.L; L.won = true; L.aftermathT = 0;
@@ -519,7 +529,7 @@ function update(dt) {
   const c = G.cam;
   // once the night is won the view turns slowly to follow the thing and closes in a little, so you see how it ends
   const watching = G.state === 'won' && G.L && G.L.creature;
-  if (watching) lookAtCreature(G.L.creature);
+  if (watching) { const wp = L.watchPoint && L.watchPoint(); if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
   const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? 1.35 : 1;
@@ -537,7 +547,8 @@ function update(dt) {
     // fog rolls: visibility breathes, and a scripted bank can swallow the thing for a while
     const fr = L.def.weather && L.def.weather.fogRoll;
     if (fr) L.pal.fogDist = L.def.pal.fogDist * (1 - fr.depth * 0.5 * (1 + Math.sin(G.t * TAU / fr.period + (fr.phase || 0))));
-    LIGHT.set(L.dynamicLights ? L.lights.concat(L.dynamicLights()) : L.lights);
+    L.lightsNow = L.dynamicLights ? L.lights.concat(L.dynamicLights()) : L.lights;
+    LIGHT.set(placeLights(L, L.lightsNow));
     LIGHT.update(dt, G.t);
     WEATHER.update(dt, G.t);
   }
@@ -690,17 +701,18 @@ function render() {
   const c = G.cam;
   const wob = SAVE.data.settings.reducedMotion ? 0 : (c.zoom - 1) * 0.0018;
   const view = { yaw: c.yaw + Math.sin(G.t * 1.7) * wob + Math.sin(G.t * 2.9) * wob * 0.5, pitch: c.pitch + Math.cos(G.t * 1.3) * wob, zoom: c.zoom, shakeX: c.shakeX, shakeY: c.shakeY };
+  if (L.lightsNow && eyeMoved(L)) LIGHT.set(placeLights(L, L.lightsNow));   // the lights that ride with the eye, where it is this frame
   R.begin(view, L, G.t);
   const rend = L.rend || (L.rend = new Map());
   for (const it of L.items) if (!it.taken) {
     let p = rend.get(it);
     if (!p) { p = { kind: 'sprite', hit: { kind: 'item', ref: it }, hitPad: 8, draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); } }; rend.set(it, p); }
-    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.card = true; p.worn = !!it.decoy; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
+    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.card = true; p.worn = !!it.decoy; p.attach = !!it.attach; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
     R.add(p);
   }
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
-    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
     R.add(p);
   }
   if (G.throwing) {
