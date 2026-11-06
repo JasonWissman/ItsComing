@@ -4,9 +4,8 @@ const LIST_SCREENS = ['nights', 'settings', 'fragments']; // menu screens with t
 const PITCH_DOWN = 45 * DEG; // looking down: enough to see the floor around you without a lurch of the view
 const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // difficulty is a table of knobs read by buildLevel and by each night's build(L) through L.tier() and L.nightmare
-const DIFFICULTIES = [
-  { id: 'normal', name: 'Normal', desc: 'Hints on: the card says what to do and where it is coming from.', tier: 0, time: 1.1, unseen: 0.95, hints: true, lane: 'default', tick: true, variance: 0.08, decoys: 0, hardShots: false },
-  { id: 'nightmare', name: 'Nightmare', desc: 'Much less time, more to do, no hints and no compass mark. It comes from wherever it likes, and some things that look right are not.', tier: 1, time: 0.6, unseen: 1.4, hints: false, lane: 'random', tick: false, variance: 0.15, decoys: 1, hardShots: true, laneSwitch: true },
+const DIFFICULTIES = [   // one game: the table stays so a night's knobs (L.tier, L.nightmare, hints) keep one place to read from
+  { id: 'nightmare', name: 'Nightmare', tier: 1, time: 0.6, unseen: 1.4, hints: false, lane: 'random', tick: false, variance: 0.15, decoys: 1, hardShots: true, laneSwitch: true },
 ];
 
 const G = {
@@ -57,7 +56,7 @@ function makeCreature(L, cd, k) {
   const c = {
     type: cd.type, CR, lane, yaw: lane.yaw, idx: k,
     // a lane may set its own start distance, and a limit on it (the back of a closet)
-    D0: Math.min(lane.maxStart || Infinity, (lane.startDist || cd.startDist) * vDist), T: cd.time * diff.time * vTime, gamma: cd.gamma || 0.72,
+    D0: Math.min(lane.maxStart || Infinity, (lane.startDist || cd.startDist) * vDist), T: cd.time * diff.time * vTime, gamma: cd.gamma || 1,   // 1: a steady pace all the way in, not faster as it closes
     seenMult: cd.seenMult === undefined ? 1 : cd.seenMult, unseenMult: (cd.unseenMult === undefined ? 1.3 : cd.unseenMult) * diff.unseen,
     u: 0, dist: 0, gait: 0, t: 0, seen: true, seenLast: true, visFrac: 1, visible: true, lit: 0, lat: 0, yOff: 0, lunge: 0,
     frozen: false, reached: false, hits: 0, dead: false, moving: false,
@@ -153,7 +152,7 @@ function startLevel(i, withCard) {
     setState('card');
     const d = G.diff(), T = G.L.text;
     const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
+    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
   } else {
     setState('play');
     hideOverlay();
@@ -210,7 +209,6 @@ function onKeyDown(e) {
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
   if (G.state !== 'play' && MENU.onKey(e)) return;
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
-  if (G.state === 'title' && k >= '1' && k <= String(DIFFICULTIES.length)) { setDifficulty(k.charCodeAt(0) - 49); return; }
   if (G.state !== 'play') {
     if (k === 'Enter' && !LIST_SCREENS.includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
     if ((k === 'c' || k === 'C') && G.state === 'title' && G.unlocked > 0 && G.unlocked < LEVELS.length) { ensureAudio(); startLevel(G.unlocked, true); }
@@ -235,14 +233,6 @@ function setMuted(m) {
   UI.mute.textContent = G.muted ? 'muted (M)' : 'sound on (M)';
   UI.mute.classList.toggle('off', G.muted);
   SAVE.setSetting('muted', G.muted);
-}
-function setDifficulty(i) {
-  G.difficulty = clamp(i | 0, 0, DIFFICULTIES.length - 1);
-  SAVE.setSetting('difficulty', G.difficulty);
-  AUDIO.sfx('ui');
-  // the title and the Nights list are built per difficulty (Continue, unlocks), so they are rebuilt; focus lands on Begin, the next thing to press
-  if (G.state === 'title' && (MENU.kind === 'title' || MENU.kind === 'nights')) { const kind = MENU.kind; MENU.show(kind, kind === 'nights' ? { from: 'title' } : undefined); G.overlayArmed = 0; const begin = UI.overlay.querySelector('button[data-act="begin"]'); if (begin) begin.focus(); }
-  else UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty));
 }
 function restartLevel() {
   if (!G.L) return;
@@ -705,7 +695,7 @@ function render() {
   for (const it of L.items) if (!it.taken) {
     let p = rend.get(it);
     if (!p) { p = { kind: 'sprite', hit: { kind: 'item', ref: it }, hitPad: 8, draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); } }; rend.set(it, p); }
-    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.card = true; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
+    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.card = true; p.worn = !!it.decoy; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
     R.add(p);
   }
   for (const t of L.targets) if (!t.hidden) {
@@ -783,7 +773,8 @@ function updateHUD() {
       const dpr = Math.min(window.devicePixelRatio || 1, 3); const cv = document.createElement('canvas'); cv.width = cv.height = 64 * dpr; // sharp on phones and retina screens
       const x = cv.getContext('2d');
       x.scale(dpr, dpr); x.translate(32, 58); x.scale(52, -52);
-      it.icon(x, { col: cc => rgba(cc), cola: (cc, a) => rgba(cc, a), raw: cc => rgba(cc), fog: 0, t: 0 });
+      const wc = it.decoy ? wornc : (cc => cc);   // a thing that will not work looks it, in the hand too
+      it.icon(x, { col: cc => rgba(wc(cc)), cola: (cc, a) => rgba(wc(cc), a), raw: cc => rgba(cc), fog: 0, t: 0 });
       slot.appendChild(cv);
       const lab = document.createElement('div'); lab.className = 'label'; lab.textContent = it.name + (it.uses > 1 ? ' ×' + it.uses : '');
       slot.appendChild(lab);
@@ -903,15 +894,11 @@ function init() {
   window.addEventListener('blur', () => { G.cam.zoomHeld = false; G.holding = null; });
   UI.canvas.addEventListener('mousedown', onMouseDown);
   UI.canvas.addEventListener('click', onClick);
-  UI.overlay.addEventListener('click', e => {
-    const b = e.target.closest && e.target.closest('[data-diff]');
-    if (b) { e.stopPropagation(); ensureAudio(); setDifficulty(+b.dataset.diff); return; }
-    onClick(e);
-  });
+  UI.overlay.addEventListener('click', onClick);
   UI.mute.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); toggleMute(); });
   bindTouch();
   SAVE.load();
-  G.difficulty = clamp(SAVE.data.settings.difficulty | 0, 0, DIFFICULTIES.length - 1);
+  G.difficulty = 0;
   setMuted(!!SAVE.data.settings.muted);
   MENU.applyAll();
   document.addEventListener('visibilitychange', () => { if (document.hidden) AUDIO.suspend(); else if (G.state !== 'paused') AUDIO.resume(); }); // only a paused game stays silent on return
@@ -919,7 +906,6 @@ function init() {
   G.debug = q.has('debug');
   if (G.debug) UI.debug.style.display = 'block';
   G.noRaf = q.has('nofr');
-  if (q.has('diff')) { const di = DIFFICULTIES.findIndex(d => d.id === q.get('diff')); if (di >= 0) G.difficulty = di; }
   const sd = parseInt(q.get('seed'), 10);
   G.seed = isNaN(sd) ? null : sd;
   G.runSeed = G.seed !== null ? G.seed : (Date.now() % 1000000);

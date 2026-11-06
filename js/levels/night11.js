@@ -20,7 +20,7 @@ LEVELS.push({
     { deg: 0, name: 'the loft door', elev: -22.4, ramp: true, barrierDist: 16.2, cue: 'creak', default: true, apertures: [{ z: 4 / Math.cos(22.4 * DEG), x0: -1.2, x1: 1.2, y0: 3.0, y1: 5.2 }] }, // up the chute to the door at the loft's north edge
     { deg: 90, name: 'the ladder', elev: -73, ramp: true, barrierDist: 25.7, cue: 'clunk' }, // along the barn floor past the hay, then up the ladder
   ],
-  creatures: [{ type: 'carrier', startDist: 34, time: 70, gamma: 0.8, unseenMult: 1.25 }],
+  creatures: [{ type: 'carrier', startDist: 34, time: 70, unseenMult: 1.25 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s, FL = 3.0;

@@ -18,7 +18,7 @@ LEVELS.push({
     { deg: 0, name: 'gate', barrierDist: 2.95, cue: 'scrape', apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }], default: true },
     { deg: 180, name: 'back gate', barrierDist: 2.95, cue: 'clunk', apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }] },
   ],
-  creatures: [{ type: 'watcher', startDist: 50, time: 30, gamma: 0.8, seenMult: 0, unseenMult: 1 }],
+  creatures: [{ type: 'watcher', startDist: 50, time: 30, seenMult: 0, unseenMult: 1 }],
   aftermath: { type: 'stand', dur: 3.6 },
   build(L) {
     const stone = [100, 102, 98], stoneD = [72, 74, 72];

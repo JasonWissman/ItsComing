@@ -20,7 +20,7 @@ LEVELS.push({
     { deg: 45, name: 'right face', elev: -65, barrierDist: 0, cue: 'scrape' },
     { deg: -45, name: 'left face', elev: -65, barrierDist: 0, cue: 'scrape' },
   ],
-  creatures: [{ type: 'climber', startDist: 26, time: 65, gamma: 0.8, seenMult: 0, unseenMult: 1 }],
+  creatures: [{ type: 'climber', startDist: 26, time: 65, seenMult: 0, unseenMult: 1 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;

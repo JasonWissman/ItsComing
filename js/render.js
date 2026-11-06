@@ -149,7 +149,7 @@ const R = (() => {
 
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
-  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
+  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   function measure(p) {
     if (p.dist === undefined) {
@@ -244,8 +244,8 @@ const R = (() => {
     const li = (LIGHT.list.length || LIGHT.global) && !p.noFog && !p.noLight ? LIGHT.at(p.x, p.y + (p.h || 0) * 0.5, p.z) : null;
     return {
       fog: fa, fogColor, t: time, lit: li ? Math.min(1, li.lit) : 0,
-      col: c => { if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)); },
-      cola: (c, a) => { if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa), a); },
+      col: c => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)); },
+      cola: (c, a) => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa), a); },
       raw: c => rgba(c),
     };
   }

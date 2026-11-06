@@ -19,6 +19,5 @@ const rewind = ['waitUntil', "G.L.won ? true : ((!G.L.s.playing && G.L.s.placedA
 const finish = [rewind, ['expect', 'G.L.won', 'it came to the music box']];
 const runDown = [['waitUntil', 'G.L.won || !G.L.s.playing', 15000], ['expect', "G.L.won || !G.L.targets.find(t => t.id === 'rope').hidden", 'the spring ran down and the bell rope showed itself']];
 module.exports = {
-  normal: [['pickup', 'boxkey'], ['pickup', 'musicbox']].concat(byOdd(k => wrong(k).concat(right(k))), finish),
   nightmare: [['expect', "G.L.targets.find(t => t.id === 'rope').hidden", 'no bell rope yet']].concat(sheets, mend, byOdd(wrongKey), runDown, finish),
 };

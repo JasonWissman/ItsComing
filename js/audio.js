@@ -287,6 +287,15 @@ const AUDIO = (() => {
       case 'stingScrape': noise(1.1, { type: 'bandpass', freq: 2400, q: 3, vol: 0.9, attack: 0.002 }); tone(1400, 0.8, { vol: 0.35, type: 'sawtooth', endFreq: 3000 }); tone(45, 1.3, { vol: 0.7, endFreq: 28, delay: 0.1 }); break;
       case 'stingGlass': noise(0.15, { type: 'highpass', freq: 3000, vol: 1.0, attack: 0.001 }); for (let i = 0; i < 9; i++) tone(2500 + Math.random() * 3500, 0.3 + Math.random() * 0.5, { vol: 0.14, type: 'triangle', delay: 0.02 + i * 0.05 }); tone(50, 1.4, { vol: 0.7, endFreq: 30, delay: 0.05 }); noise(1.2, { freq: 400, vol: 0.4, delay: 0.1, attack: 0.05 }); break;
       case 'crack': noise(0.06, { freq: 2500, vol: 0.5, pan }); break;
+      // the phone booth
+      case 'receiver': noise(0.05, { freq: 700, vol: 0.35 }); tone(260, 0.06, { vol: 0.2, type: 'square', endFreq: 180 }); tone(350, 0.9, { vol: 0.035, type: 'sine', delay: 0.12 }); tone(440, 0.9, { vol: 0.035, type: 'sine', delay: 0.12 }); break;
+      case 'dial': { const lo = [697, 770, 852, 941][Math.floor(Math.random() * 4)], hi = [1209, 1336, 1477][Math.floor(Math.random() * 3)]; tone(lo, 0.13, { vol: 0.07, type: 'sine' }); tone(hi, 0.13, { vol: 0.07, type: 'sine' }); break; }
+      case 'ringback': for (const d of [0, 3]) { tone(440, 1.8, { vol: 0.05, type: 'sine', attack: 0.02, delay: d }); tone(480, 1.8, { vol: 0.05, type: 'sine', attack: 0.02, delay: d }); } break;
+      case 'noService': [[950, 0], [1400, 0.33], [1800, 0.66]].forEach(([f, d]) => tone(f, 0.28, { vol: 0.07, type: 'sine', delay: d })); break;
+      case 'answer': noise(0.05, { freq: 900, vol: 0.3 }); for (let i = 0; i < 6; i++) noise(0.11 + Math.random() * 0.08, { type: 'bandpass', freq: 380 + Math.random() * 380, q: 2.5, vol: 0.16, attack: 0.03, delay: 0.35 + i * 0.2 }); break;
+      case 'phoneRing': for (let i = 0; i < 16; i++) tone(i % 2 ? 1300 : 1000, 0.05, { vol: 0.06, type: 'square', delay: i * 0.055, pan }); break;
+      // the car pulling away
+      case 'rev': tone(55, 2.4, { vol: 0.45, type: 'sawtooth', endFreq: 190, attack: 0.05 }); noise(1.6, { type: 'bandpass', freq: 2400, q: 6, vol: 0.35, attack: 0.02 }); noise(2.2, { freq: 300, vol: 0.35, attack: 0.1 }); break;
       default: break;
     }
   }

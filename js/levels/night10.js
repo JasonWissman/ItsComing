@@ -28,7 +28,7 @@ LEVELS.push({
     // the way out through the south wall, right of the mirror as you face it, to the carousel (the bell rope's lure)
     { deg: 213.3, name: 'the carousel', barrierDist: 0, noSwitch: true },
   ],
-  creatures: [{ type: 'other', startDist: 30, time: 70, gamma: 0.8, seenMult: 0, unseenMult: 1.0 }],
+  creatures: [{ type: 'other', startDist: 30, time: 70, seenMult: 0, unseenMult: 1.0 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s, CR = CREATURES.other, c0 = () => L.creatures[0];

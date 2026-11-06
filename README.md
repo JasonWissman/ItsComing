@@ -55,33 +55,24 @@ slider, a switch to put the touch controls on the left, and one for surface deta
 built into walls and floors; off is faster on slow machines). The two reduction settings default on when your
 system asks for reduced motion.
 
-## Difficulty
+## One game
 
-Pick a difficulty on the title screen (click a button or press `1` or `2`).
-The choice is remembered.
+There is no difficulty to pick: the game is one hard game.
 
-| | Time before it reaches you | Speed while you look away | Hints | What you have to do | Where it comes from |
-| --- | --- | --- | --- | --- | --- |
-| Normal | 10% more than designed | a little slower | on, and the card names the direction | the short version | the usual way (the last two nights choose for themselves) |
-| Nightmare | 40% less | 40% faster | off | more steps (both doors, a key to find first, a gearstick, a fuse), plus something lying about that looks right and is not | anywhere, no compass mark, and on some nights it changes its mind once while you are not looking |
-
-Every task is something you would do in a real house on a bad night: board a door with a hammer
-and planks, chain and padlock a gate, put a new bulb in a lamp, flip a tripped breaker back up,
-drop a bar across a door. Nightmare asks for more of them, never for something stranger.
+- It gives you about 40% less time than the nights were first built around, and it moves 40% faster while you look away.
+- There are no hints. The card gives only the situation, there is no objective line, and hovering a target shows only its name.
+- When something does not work, the line you get says what is wrong without saying what to do.
+- It can come from any way a night allows, with no compass mark, and on some nights it changes its mind once while you are not looking.
+- Lying about are things that look right and are not: a rotten plank, a set of house keys, a bag of sugar, a rusted padlock. They look worn, drained toward rust-brown, so a careful eye can tell them apart.
+- Every task is something you would do in a real place on a bad night: board a doorway with a hammer and planks, chain and padlock a gate, put a new bulb in a lamp, crank a shutter down, make a phone call.
 
 Every way it can come is fully visible from where you stand: the approach lanes are checked by
 `validateContent()` so the thing is never hidden behind a wall on its way in.
-On Nightmare a shot fired out of range still spends a shell; Normal refuses it
-for free. A way you have shut holds it where it is. On Nightmare, where more than one way must be
-shut, it waits there a moment and then goes round to a way that is still open.
+A shot fired out of range still spends a shell. A way you have shut holds it where it is; where more
+than one way must be shut, it waits there a moment and then goes round to a way that is still open.
 
-Saves from the four-difficulty version carry over: Easy and Normal progress becomes Normal, Hard and
-Nightmare progress becomes Nightmare.
-
-With hints off, the level card gives only the situation, not the solution; the
-objective line at the top of the screen is hidden; hovering a target shows its
-name rather than what it needs; and failed attempts get a vague response. You
-have to work out what each night wants from what you can find and try.
+Saves from versions with several difficulties carry over: the furthest night reached on any of them,
+and the best time on any of them, count for the one game.
 
 ## The nights
 
@@ -124,8 +115,8 @@ some on the ground, so you have to turn and look down to find them.
     start the night holding some of it. Holding anything enrages it. Put it all down
     and let it come.
 
-Creatures move faster when you are not looking at them, and all of them
-accelerate as they close in. Difficulty scales both. A thread runs through the
+Creatures move faster when you are not looking at them, but otherwise they
+come at a steady pace, no faster at the end than at the start. A thread runs through the
 nights that the text never states: the same lamp is somewhere in every room, a
 clock ticks for the first ten seconds of each night from the same direction, and
 surviving a night leaves a fragment, one odd sentence, collected on the Nights
@@ -180,7 +171,7 @@ LEVELS.push({
   whole length; `apertures` describe the openings it is seen through (a doorway, a window, a gap
   between posts) and `blockers` the stretches where it is hidden regardless. `SC.doorway`,
   `SC.window` and `SC.gap` build the wall pieces and return the matching aperture. `buildLevel`
-  picks the lane (the default on Normal, random on Nightmare, or the
+  picks the lane (random, or the
   night's own `laneMode`) and `validateContent()` fails a lane that is not at least 85% visible
   at every metre. `L.lane` is the chosen lane inside `build`. A lane may set its own `startDist`
   (and a `maxStart` cap, for the back of a closet).
@@ -193,9 +184,8 @@ LEVELS.push({
   for anything you use things on; `mkContainer(L, { opens, yields, spot })` for drawers and boxes;
   `mkRecipe(L, { parts, result })` for combining two held items. Items can be `tool` (never
   consumed), `throwable`, or `decoy`.
-- **Difficulty**: `L.tier(normal, nightmare)` picks a value for the mode in play and `L.nightmare`
-  is true on Nightmare; use them to scale counts and add prerequisites or items. `L.diff` is the
-  profile in play.
+- **Difficulty**: there is one profile, `L.diff` (Nightmare). `L.tier(normal, nightmare)` and `L.nightmare` remain,
+  always answering for Nightmare, so a second, easier profile could come back without touching the nights.
 - **Hooks** set inside `build`: `L.isWon()`, `L.barrierDist`, `L.floor = { poly, y }` (where
   dropped items may land), `L.dynamic()` (per-frame props via `SC.mkQuad` and friends),
   `L.update(dt)`, `L.onReach(c)`, `L.onCatch(c)`, `L.onPickup(it)`, `L.onDrop(it)`, `L.glows()`,
@@ -208,7 +198,7 @@ LEVELS.push({
   sealed ways as above. Neither ever picks a lane marked `noSwitch` (a lure's destination), a lane
   outside a creature's own `lanes` list, or moves a creature given a fixed `lane`; a night with
   `laneSwitch: false` opts out of both. `laneMode: 'default'` or `'random'` overrides how the first
-  way is picked (Normal takes the default; Nightmare rolls again on every attempt).
+  way is picked (the profile rolls again on every attempt).
 - **Surfaces and drawing order**: `SC.quad(..., { tex: 'planks' | 'logs' | 'stone' | 'tin', texScale })`
   builds boards, logs, stone blocks or tin bands as real pieces on top of the quad (dropped with
   distance, and switched off by the surface detail setting). A renderable's `sortDist` orders it
@@ -223,7 +213,7 @@ LEVELS.push({
 npm ci                 # Playwright and ESLint at the versions in package-lock.json
 npx playwright install chromium   # the browser (or set PW_CHROMIUM to a Chromium binary)
 npm test               # sounds, nights, flow, features, lanes, lane switches, story, clickability sweep
-npm run test:play      # NIGHTS=1,3 TIERS=normal,nightmare SEEDS=1,2 narrow it
+npm run test:play      # NIGHTS=1,3 SEEDS=1,2 narrow it
 npm run test:sounds    # no browser: every sound exists, every cue has a caption
 npm run test:bench     # frame time per night at 1920x1080 (BUDGET=8 ms p95 by default)
 npm run test:spots     # screenshot every item spot into montages under test/shots
@@ -231,10 +221,10 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 
 `test/play.js` runs each night's declared solution per tier and seed. `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
-difficulty, hints, restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
+the one game (no picker, no hints), restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
 camera, save migration and the last night's two endings. `test/lanes.js` runs `validateContent()` and checks every
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
-unseen, early, without a jump in distance, and never on nights that opt out or on Normal.
+unseen, early, without a jump in distance, and never on nights that opt out.
 `test/hittest.js` checks every item is visible and clickable from some direction across many layouts.
 `test/story.js` checks the lamp is in every room, the clock ticks, and no text before the bedroom uses
 the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
@@ -243,7 +233,7 @@ caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narro
 
 ## Debugging
 
-- `index.html?level=3` jumps to a night's card; `&go` skips the card; `&diff=nightmare` picks a difficulty.
+- `index.html?level=3` jumps to a night's card; `&go` skips the card.
 - `index.html?seed=42` reproduces a whole run (layout, creature timing, drops).
 - `index.html?debug` shows the seed, lane, distance, visibility and FPS, and runs `validateContent()`.
 - `index.html?nofr` disables the frame loop so `G.step(dt, n)` can advance the game by hand.

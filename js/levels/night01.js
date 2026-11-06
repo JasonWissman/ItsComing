@@ -19,7 +19,7 @@ LEVELS.push({
     { deg: 0, name: 'back door', barrierDist: 2.75, cue: 'bang', default: true },
     { deg: 180, name: 'front door', barrierDist: 2.7, cue: 'creak' },
   ],
-  creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
+  creatures: [{ type: 'walker', startDist: 130, time: 80, unseenMult: 1.35 }],
   aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang', shake: 0.5 },
   build(L) {
     const s = L.s;

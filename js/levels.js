@@ -63,14 +63,36 @@ function mkContainer(L, o) {
     if (o.onOpen) o.onOpen(t);
   }
   if (spot.setup) spot.setup(L, spot);
-  // a visible box that opens
-  const w = o.w || 0.5, hh = o.h || 0.4, col = o.color || [70, 54, 40];
+  // a visible box that opens, drawn so its state reads at a glance: shut, it is a solid box with its lid down, a latch
+  // and a handle; open, the lid stands up behind it, its lighter inside showing, over a dark open mouth. A drawer
+  // (style 'drawer') pulls out of its cabinet instead, showing its dark inside above the front.
+  const w = o.w || 0.5, hh = o.h || 0.4, col = o.color || [70, 54, 40], style = o.style || 'box';
   L.props.push(SC.mkSprite(L, local[0], local[1], local[2], w, hh, (ctx, P) => {
     ctx.scale(w, hh);
-    const c = P.col(col), d = P.col(scalec(col, 0.65));
-    P_rect(ctx, -0.5, 0, 1, 0.75, c); P_rect(ctx, -0.5, 0.7, 1, 0.08, d);
-    if (t.open) { P_rect(ctx, -0.5, 0.78, 1, 0.22, P.col(scalec(col, 0.4))); P_rect(ctx, -0.5, 0.74, 1, 0.05, d); }
-    else { P_rect(ctx, -0.5, 0.74, 1, 0.26, P.col(scalec(col, 0.85))); P_rect(ctx, -0.08, 0.6, 0.16, 0.12, d); }
+    const c = P.col(col), d = P.col(scalec(col, 0.62)), lite = P.col(mixc(col, [230, 220, 200], 0.35)), dark = P.col([10, 9, 9]), metal = P.col([150, 146, 138]);
+    if (style === 'drawer') {
+      P_rect(ctx, -0.5, 0, 1, 1, d);                                      // the cabinet face
+      if (!t.open) { P_rect(ctx, -0.44, 0.12, 0.88, 0.76, c); P_ell(ctx, 0, 0.5, 0.07, 0.07, metal); }
+      else {
+        P_rect(ctx, -0.44, 0.5, 0.88, 0.42, dark);                         // the hole it came out of
+        P_rect(ctx, -0.5, 0.3, 1, 0.3, P.col(scalec(col, 0.45)));          // the drawer's inside, seen from above
+        P_rect(ctx, -0.56, -0.08, 1.12, 0.44, c); P_ell(ctx, 0, 0.14, 0.07, 0.07, metal);   // its front, pulled toward you
+      }
+      return;
+    }
+    P_rect(ctx, -0.5, 0, 1, 0.66, c);                                     // the body
+    P_rect(ctx, -0.5, 0, 1, 0.06, d); P_rect(ctx, -0.5, 0.6, 1, 0.06, d);
+    for (const x of [-0.5, 0.42]) P_rect(ctx, x, 0, 0.08, 0.66, metal);   // corner straps
+    if (!t.open) {
+      P_rect(ctx, -0.52, 0.64, 1.04, 0.22, lite); P_rect(ctx, -0.52, 0.64, 1.04, 0.04, d);   // the lid, down
+      P_rect(ctx, -0.18, 0.86, 0.36, 0.05, metal); P_rect(ctx, -0.18, 0.86, 0.05, 0.12, metal); P_rect(ctx, 0.13, 0.86, 0.05, 0.12, metal); P_rect(ctx, -0.18, 0.96, 0.36, 0.05, metal); // the handle
+      P_rect(ctx, -0.07, 0.5, 0.14, 0.2, metal); P_rect(ctx, -0.03, 0.52, 0.06, 0.08, dark);  // the latch, shut
+    } else {
+      P_poly(ctx, [[-0.46, 0.7], [0.46, 0.7], [0.42, 1.55], [-0.42, 1.55]], P.col(mixc(col, [240, 232, 214], 0.55)));   // the lid, standing up behind, its inside toward you
+      P_rect(ctx, -0.46, 0.7, 0.92, 0.05, d);
+      P_rect(ctx, -0.48, 0.5, 0.96, 0.2, dark);                            // the open mouth, dark inside
+      P_rect(ctx, -0.07, 0.4, 0.14, 0.14, metal);                          // the latch, hanging open
+    }
   }, { flat: !!o.flat, card: true }));   // a card, as items are: it faces you and never goes edge-on
   return t;
 }

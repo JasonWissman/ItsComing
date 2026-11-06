@@ -22,8 +22,8 @@ LEVELS.push({
     { deg: 180, name: 'the road', elev: -47.7, ramp: true, barrierDist: 2.8, cue: 'bang' },
   ],
   creatures: [
-    { type: 'signalman', lane: 0, startDist: 60, time: 42, gamma: 0.9, unseenMult: 1.15 },
-    { type: 'crawler', lanes: [1, 2], startDist: 70, time: 58, gamma: 0.75, unseenMult: 1.2 },
+    { type: 'signalman', lane: 0, startDist: 60, time: 42, unseenMult: 1.15 },
+    { type: 'crawler', lanes: [1, 2], startDist: 70, time: 58, unseenMult: 1.2 },
   ],
   aftermath: { type: 'custom' },
   build(L) {

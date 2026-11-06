@@ -21,7 +21,7 @@ LEVELS.push({
     { deg: 11, name: 'right verge', barrierDist: 0, apertures: [{ z: 0.97, x0: -0.68, x1: 1.12, y0: 1.02, y1: 1.45 }], blockers: [[0, 7.5]] },
     { deg: -11, name: 'left verge', barrierDist: 0, apertures: [{ z: 0.97, x0: -0.32, x1: 1.48, y0: 1.02, y1: 1.45 }], blockers: [[0, 7.5]] },
   ],
-  creatures: [{ type: 'crawler', startDist: 85, time: 48, gamma: 0.75, unseenMult: 1.35 }],
+  creatures: [{ type: 'crawler', startDist: 85, time: 48, unseenMult: 1.35 }],
   aftermath: { type: 'retreat', dur: 3.2, speed: 4, accel: 1.5, shake: 0.06 },
   build(L) {
     const s = L.s;

@@ -18,7 +18,7 @@ LEVELS.push({
     { deg: 0, name: 'path', barrierDist: 2.6, cue: 'gate', apertures: [{ z: 1.8, x0: -1.8, x1: 1.8, y0: 0, y1: 3.0 }, { z: 3.6, x0: -1.2, x1: 1.2, y0: 0, y1: 99 }], default: true },
     { deg: 90, name: 'side gate', barrierDist: 2.5, cue: 'creak', apertures: [{ z: 3.6, x0: -1.3, x1: 1.3, y0: 0, y1: 99 }] },
   ],
-  creatures: [{ type: 'smiler', startDist: 95, time: 88, gamma: 0.72, unseenMult: 1.55 }],
+  creatures: [{ type: 'smiler', startDist: 95, time: 88, unseenMult: 1.55 }],
   aftermath: { type: 'stand', dur: 4.2 },
   build(L) {
     const stone = [80, 76, 72], stoneD = [58, 54, 52], floor = [66, 62, 58], iron = [30, 30, 32];

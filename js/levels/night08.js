@@ -24,7 +24,7 @@ LEVELS.push({
     { deg: 330, name: 'door', barrierDist: 6.0, cue: 'bell' },
     { deg: 30, name: 'sign window', barrierDist: 6.3, noSwitch: true },   // never where it starts: where it goes once its way in is shuttered
   ],
-  creatures: [{ type: 'customer', startDist: 60, time: 70, gamma: 0.72, unseenMult: 1.3 }],
+  creatures: [{ type: 'customer', startDist: 60, time: 70, unseenMult: 1.3 }],
   build(L) {
     const s = L.s;
     const cream = [96, 88, 72], creamD = [72, 65, 54], red = [104, 32, 32], chrome = [118, 120, 126], tileA = [82, 77, 70], tileB = [34, 31, 30], dark = [34, 34, 38];

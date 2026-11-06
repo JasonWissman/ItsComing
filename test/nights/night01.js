@@ -3,6 +3,5 @@
 const board = (id, n) => [['use', id, n, 200], ['expect', "G.L.targets.find(t => t.id === '" + id + "').done", id + ' boarded up']];
 const planks = n => Array.from({ length: n }, () => ['pickup', 'planks']).concat([['expect', "G.inv.filter(i => i.id === 'planks').length === 1 && G.inv.find(i => i.id === 'planks').uses === " + n, n + ' planks in one pile']]);
 module.exports = {
-  normal: [['pickup', 'hammer']].concat(planks(3), [['branch', 'G.L.lane.idx === 0', board('door', 3), board('frontdoor', 3)]]),
   nightmare: [['pickup', 'hammer'], ['pickup', 'nails']].concat(planks(5), [['branch', 'G.L.lane.idx === 0', board('door', 5), [['use', 'frontdoor'], ['waitUntil', 'G.L.s.frontClosing <= 0 && !G.L.s.frontOpen', 3000]].concat(board('frontdoor', 5))]]),
 };

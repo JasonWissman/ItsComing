@@ -25,7 +25,7 @@ LEVELS.push({
     fragment: '',
   },
   lanes: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].map((name, k) => ({ deg: k * 45, name, barrierDist: 0, default: k === 0 })),
-  creatures: [{ type: 'demon', startDist: 40, time: 75, gamma: 0.85, unseenMult: 1.3 }],
+  creatures: [{ type: 'demon', startDist: 40, time: 75, unseenMult: 1.3 }],
   aftermath: { type: 'custom' },
   uses: [{
     tool: 'shotgun', ammo: 'shells', range: 40, sfx: 'shot', flash: 0.45, emptyText: 'Click.', fireText: 'Fire.',

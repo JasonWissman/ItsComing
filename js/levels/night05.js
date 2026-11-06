@@ -19,7 +19,7 @@ LEVELS.push({
     { deg: 0, name: 'porch steps', barrierDist: 0, cue: 'crack', default: true },
     { deg: 90, name: 'porch side', barrierDist: 0, cue: 'crack' },
   ],
-  creatures: [{ type: 'runner', startDist: 115, time: 56, gamma: 0.72, unseenMult: 1.3 }],
+  creatures: [{ type: 'runner', startDist: 115, time: 56, unseenMult: 1.3 }],
   aftermath: { type: 'down', dur: 3.6 },
   uses: [{
     tool: 'shotgun', ammo: 'shells', dudAmmo: 'duds', range: 32, sfx: 'shot', flash: 0.55, emptyText: () => (G.hasItem('duds') ? 'Click. The shell does not go off.' : 'Click.'), fireText: 'Fire.',

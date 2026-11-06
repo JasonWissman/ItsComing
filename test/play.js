@@ -1,11 +1,12 @@
 'use strict';
 // Runs every night's declared solution (test/nights/nightNN.js) and asserts the win and the survived screen.
-// NIGHTS=1,3 TIERS=normal,nightmare SEEDS=1,2 narrow the run; default is all nights, normal, seeds 1 and 2.
+// NIGHTS=1,3 SEEDS=1,2 narrow the run; default is all nights, seeds 1 and 2. There is one game, Nightmare; each night's
+// solution file names its steps under that key.
 const T = require('./lib');
 const fs = require('fs'); const path = require('path');
 const { check, fail, st, face, findHit, clickAt, lookForAndClick } = T;
 const NIGHTS = process.env.NIGHTS ? process.env.NIGHTS.split(',').map(Number) : null;
-const TIERS = (process.env.TIERS || 'normal').split(',');
+const TIERS = (process.env.TIERS || 'nightmare').split(',');
 const SEEDS = (process.env.SEEDS || '1,2').split(',').map(Number);
 
 async function runStep(page, step) {
@@ -47,10 +48,10 @@ async function runStep(page, step) {
     if (NIGHTS && !NIGHTS.includes(n)) continue;
     const sol = require('./nights/' + f);
     for (const tier of TIERS) {
-      const steps = sol[tier] || sol.normal;
+      const steps = sol[tier];
       for (const seed of SEEDS) {
         console.log('== night ' + n + ' (' + tier + ', seed ' + seed + ') ==');
-        await page.goto(T.INDEX + '?level=' + n + '&go&seed=' + seed + '&diff=' + tier); await page.waitForTimeout(300);
+        await page.goto(T.INDEX + '?level=' + n + '&go&seed=' + seed); await page.waitForTimeout(300);
         const s0 = await st(page);
         check(s0.state === 'play' && s0.level === n - 1, 'night ' + n + ' playing on ' + tier);
         check(await page.evaluate(() => G.L.diff.id) === tier, 'difficulty applied');

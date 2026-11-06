@@ -18,7 +18,7 @@ LEVELS.push({
     { deg: 0, name: 'water door', barrierDist: 2.9, y: -0.15, cue: 'splash', default: true },
     { deg: 90, name: 'side door', barrierDist: 2.7, y: -0.15, cue: 'splash' },
   ],
-  creatures: [{ type: 'swimmer', startDist: 70, time: 105, gamma: 0.75, unseenMult: 1.3 }],
+  creatures: [{ type: 'swimmer', startDist: 70, time: 105, unseenMult: 1.3 }],
   aftermath: { type: 'held', dur: 4.2, beats: [{ every: 0.95, sfx: 'wetThud', shake: 0.45 }, { at: 0.5, sfx: 'splash' }, { at: 2.1, sfx: 'splash' }, { at: 3.7, sfx: 'dive' }] },
   build(L) {
     const s = L.s;

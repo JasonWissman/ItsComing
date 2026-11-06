@@ -19,7 +19,7 @@ LEVELS.push({
     { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.0, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
     { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 3.6, maxStart: 3.85, cue: 'hangers', apertures: [{ z: 3.2, x0: -0.9, x1: 0.9, y0: 0, y1: 2.2 }] },
   ],
-  creatures: [{ type: 'tall', startDist: 4.0, time: 70, gamma: 0.9, unseenMult: 2.5 }],
+  creatures: [{ type: 'tall', startDist: 4.0, time: 70, unseenMult: 2.5 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;
@@ -30,7 +30,7 @@ LEVELS.push({
     const c0 = () => L.creatures[0];
     // the drawer in the nightstand holds the bulb (and, on Nightmare, one that will not fit)
     mkContainer(L, {
-      id: 'drawer', name: 'Drawer', w: 0.46, h: 0.2, color: [58, 44, 34], spot: { x: 1.2, y: 0.28, z: -0.13 }, closedText: 'The nightstand drawer.', emptyText: 'Nothing else in it.', sfx: 'drawer', /* its own sound: not the creak that warns of the doorway, nor a creature's scratching */
+      id: 'drawer', name: 'Drawer', style: 'drawer', w: 0.46, h: 0.2, color: [58, 44, 34], spot: { x: 1.2, y: 0.28, z: -0.13 }, closedText: 'The nightstand drawer.', emptyText: 'Nothing else in it.', sfx: 'drawer', /* its own sound: not the creak that warns of the doorway, nor a creature's scratching */
       yields: [{ id: 'bulb', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb' } }].concat(decoy ? [{ id: 'bulb2', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb', decoy: true, decoyText: 'Wrong kind of bulb. It will not go in.' } }] : []),
       liftY: 0.36,
     });

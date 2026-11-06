@@ -6,6 +6,5 @@ const lockedWinch = [['pickup', 'handle'], ['use', 'winch'], ['expect', 'G.L.s.l
   ['use', 'winch'], ['expect', 'G.L.s.handleIn', 'handle fitted'], ['clickUntil', 'winch', 'G.L.s.sealedN', 250, 12]];
 const door = [['pickup', 'beam'], ['use', 'sidedoor'], ['waitUntil', 'G.L.s.doorClosed', 3000], ['use', 'sidedoor'], ['expect', 'G.L.s.sealedE', 'side door barred']];
 module.exports = {
-  normal: [['branch', 'G.L.lane.idx === 0', winch, door]],
   nightmare: lockedWinch.concat(door),
 };

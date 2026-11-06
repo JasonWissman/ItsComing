@@ -11,6 +11,5 @@ const ending = [
   ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"again\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true", 'the last screen, Play again, campaign marked complete'],
 ];
 module.exports = {
-  normal: [['expect', 'G.inv.length === 3', 'holding three things'], ['waitUntil', 'G.L.creature.rage > 0.6', 4000]].concat(letGo, ending),
   nightmare: [['expect', 'G.inv.length === 6', 'holding six things']].concat(letGo, ending),
 };
