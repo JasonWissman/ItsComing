@@ -9,8 +9,8 @@ LEVELS.push({
   weather: { kind: 'rain', density: 1.0, wind: 0.8, lightning: [7, 15] },
   text: {
     intro: 'The lamp went out an hour ago. Since then something has been climbing the outside of the tower.<br>You can hear it when you are not looking. Look over the rail.',
-    hint: 'The fuse box is on the lamp room, behind you. The clockwork wants winding.',
-    objective: 'Get the light turning.',
+    hint: 'The bulb in the big lamp behind you has blown, and there is a spare lying about. Put it in, then turn the crank until the light goes round.',
+    objective: 'New bulb in the lamp. Turn the crank.',
     death: { default: 'It came over the rail with its face already turned up to you.' },
     win: 'The beam went round and round. Every time it came past, the thing slid a little further down the wet stone. By morning it was in the water, still looking up.',
     fragment: 'There were scratches on the wardrobe door in the morning, high up, where nobody could reach.',
@@ -75,10 +75,10 @@ LEVELS.push({
       const p = at(a0, 3.25, 0), az = Math.atan2(p[0], p[2]);
       if (i % 3 === 0 && [0, 45, -45].every(l => Math.abs(wrapPi(az - l * DEG)) > 22 * DEG)) SC.sprite(L, p[0], 0, p[2], 0.06, 1.07, (ctx, P) => { ctx.scale(0.06, 1.07); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
     }
-    // stanchions on the lamp room that carry the fuse box, the clockwork and the brake
-    const FB = 60 * DEG, WD = 120 * DEG, BK = 97 * DEG;
-    for (const th of [FB, WD, BK]) { const p = at(th, 2.0, 0); SC.box(L, p[0] - 0.19, p[0] + 0.19, 0, 2.75, p[2] - 0.19, p[2] + 0.19, iron); }
-    const fb = at(FB, 2.24, 1.06), wd = at(WD, 2.24, 0.78), bk = at(BK, 2.24, 1.45);
+    // stanchions on the lamp room that carry the crank and, on Nightmare, the fuse box
+    const FB = 60 * DEG, WD = 120 * DEG;
+    for (const th of L.nightmare ? [FB, WD] : [WD]) { const p = at(th, 2.0, 0); SC.box(L, p[0] - 0.19, p[0] + 0.19, 0, 2.75, p[2] - 0.19, p[2] + 0.19, iron); }
+    const fb = at(FB, 2.24, 1.06), wd = at(WD, 2.24, 0.78);
     // the lens on its pedestal, inside the glass
     SC.box(L, AX - 0.45, AX + 0.45, 0, 0.9, AZ - 0.45, AZ + 0.45, [50, 50, 56]);
     { const lp = at(100 * DEG, 2.5, 0); STORY.lamp(L, lp[0], 0, lp[2], { scale: 0.8 }); }
@@ -92,48 +92,51 @@ LEVELS.push({
       { x: at(75 * DEG, 3.0, 0)[0], y: 0, z: at(75 * DEG, 3.0, 0)[2] },
       { x: at(108 * DEG, 3.0, 0)[0], y: 0, z: at(108 * DEG, 3.0, 0)[2] },
     ];
-    Object.assign(s, { open: false, power: false, turning: false, beamA: 0, locked: false, wrongLock: 0, beamSpeed: 1, needBrake: L.diff.tier >= 2, crossing: false });
-    if (!s.needBrake) mkItem(L, 'fuse', 'Fuse', spots, { w: 0.3, h: 0.3, flat: true });
-    else {
-      mkItem(L, 'fusebody', 'Blown fuse', spots, { w: 0.3, h: 0.3, flat: true });
-      mkContainer(L, { id: 'locker', name: 'Tool locker', w: 0.5, h: 0.42, color: [52, 56, 62], spot: spots.slice(0, 4), closedText: 'A tool locker.', emptyText: 'Rags and a tin of grease.', yields: [{ id: 'wire', name: 'Fuse wire', opts: { w: 0.26, h: 0.26, flat: false } }] });
-      mkRecipe(L, { parts: ['fusebody', 'wire'], result: { id: 'fuse', name: 'Fuse', opts: { w: 0.3, h: 0.3 } }, sfx: 'fit', text: 'A fuse, of a sort.' });
-    }
-    if (decoy) mkItem(L, 'oldfuse', 'Fuse', spots, { w: 0.3, h: 0.3, flat: true, icon: 'fuse', decoy: true, decoyText: 'This one is blown as well.' });
-    // the fuse box: open it, fit the fuse
-    const box = mkTarget(L, {
-      id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1] - 0.22, z: fb[2], w: 0.36, h: 0.44, accepts: [],
-      hint() { return s.power ? 'Live.' : !s.open ? 'The fuse box. Shut.' : 'Open. The fuse holder is empty.'; },
-      onClick() { if (!s.open) { s.open = true; box.accepts = ['fuse'].concat(decoy ? ['oldfuse'] : []); AUDIO.sfx('creak'); G.say('The fuse holder is empty.', 'Empty.'); return true; } return false; },
-      use(item) { if (item.id !== 'fuse') return false; s.power = true; box.accepts = []; box.done = true; AUDIO.sfx('fit'); setTimeout(() => AUDIO.sfx('lampOn'), 250); G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now it has to turn.', 'Light.'); return true; },
-    });
-    const need = L.tier(5, 5, 8);
-    const winder = mkTarget(L, {
-      id: 'winder', name: 'Clockwork', x: wd[0], y: wd[1] - 0.25, z: wd[2], w: 0.5, h: 0.5,
-      crank: { n: need, sfx: 'ratchet', onTurn() { G.shake(0.04); }, onComplete() { s.turning = true; s.beamA = L.creature.yaw + Math.PI; AUDIO.sfx('lever'); G.say(s.power ? 'The lens begins to turn.' : 'The lens turns, dark.', 'It turns.'); } },
-      hint() { return s.turning ? 'Turning.' : 'The clockwork that turns the lens. Wind it. ' + Math.max(0, need - Math.floor(winder.count || 0)) + ' more.'; },
-    });
-    const onLane = () => Math.abs(wrapPi(s.beamA - L.creature.yaw)) < 22.5 * DEG;
-    s.beamOnLane = onLane;
-    if (s.needBrake) mkTarget(L, {
-      id: 'brake', name: 'Brake lever', x: bk[0], y: bk[1] - 0.22, z: bk[2], w: 0.3, h: 0.45,
-      hint() { return s.locked ? 'On. The beam is held on it.' : s.wrongLock > 0 ? 'On. The beam is held on the wrong side.' : 'The brake. Pull it when the beam is on it.'; },
-      onClick() {
-        if (!s.turning || !s.power) { G.say('Nothing is turning.', 'Not yet.'); AUDIO.sfx('nope'); return true; }
-        if (s.locked || s.wrongLock > 0) { G.say('The brake is on.', 'Stuck.'); AUDIO.sfx('nope'); return true; }
-        AUDIO.sfx('lever'); G.shake(0.15);
-        if (onLane()) { s.locked = true; G.toast('The beam stops on it.'); }
-        else { s.wrongLock = 12; G.say('The beam is held on the wrong face. It will be a while before the brake lets go.', 'Wrong.'); }
+    // the lamp's bulb has blown: a spare lies about, and on Nightmare there is no power until a new fuse is in the box
+    // (the new fuse is in the tool locker; a blown one lies about as well)
+    const needFuse = L.nightmare;
+    Object.assign(s, { open: false, bulb: false, fuse: !needFuse, power: false, turning: false, beamA: 0, beamSpeed: 1, crossing: false });
+    mkItem(L, 'bulb', 'Bulb', spots, { w: 0.2, h: 0.3, flat: false });
+    if (needFuse) mkContainer(L, { id: 'locker', name: 'Tool locker', w: 0.5, h: 0.42, color: [52, 56, 62], spot: spots.slice(0, 4), closedText: 'A tool locker.', emptyText: 'Rags and a tin of grease.', yields: [{ id: 'fuse', name: 'Fuse', opts: { w: 0.26, h: 0.26, flat: false } }] });
+    if (needFuse && decoy) mkItem(L, 'oldfuse', 'Fuse', spots, { w: 0.3, h: 0.3, flat: true, icon: 'fuse', decoy: true, decoyText: 'This one is blown as well.' });
+    const powerUp = () => { if (!(s.bulb && s.fuse) || s.power) return false; s.power = true; lamp.done = true; setTimeout(() => AUDIO.sfx('lampOn'), 250); return true; };
+    // the lamp: the bulb goes in here
+    const lamp = mkTarget(L, {
+      id: 'lamp', name: 'Lamp', x: AX, y: 0.9, z: AZ, w: 1.1, h: 1.5, accepts: ['bulb'],
+      hint() { return s.power ? 'Lit.' : s.bulb ? 'A new bulb in it, and no light: no power. The fuse box.' : 'The big lamp. Its bulb has blown.'; },
+      onClick() { if (s.bulb && !s.power) { G.say('The bulb is in, but there is no power. Try the fuse box.', 'The new bulb is in. Still dark.'); return true; } return false; },
+      use(item) {
+        if (item.id !== 'bulb' || s.bulb) return false;
+        s.bulb = true; lamp.accepts = []; AUDIO.sfx('fit');
+        if (powerUp()) G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go round.');
+        else G.say('The bulb is in. Nothing: there is no power. Try the fuse box.', 'The bulb is in. Nothing.');
         return true;
       },
     });
-    L.isWon = () => s.power && s.turning && (!s.needBrake || s.locked);
-    L.objectiveText = () => (s.power ? 'Lit. ' : !s.open ? 'Find the fuse. Open the fuse box. ' : 'Fit the fuse. ') + (s.turning ? 'Turning.' : 'Wind the clockwork (' + Math.min(need, Math.floor(winder.count || 0)) + '/' + need + ').') + (s.needBrake && s.turning && s.power ? (s.locked ? ' Held on it.' : ' Pull the brake when the beam is on it.') : '');
-    L.update = dt => {
-      if (s.wrongLock > 0) { s.wrongLock -= dt; if (s.wrongLock <= 0) { s.wrongLock = 0; AUDIO.sfx('clunk'); G.say('The brake lets go. The beam moves again.', 'It moves again.'); } }
-      if (s.turning && !s.locked && s.wrongLock <= 0) s.beamA += dt * TAU / 12 * s.beamSpeed;
-      if (s.locked) s.beamA = L.creature.yaw;
-    };
+    // the fuse box (Nightmare): open it, put the new fuse in
+    if (needFuse) {
+      const box = mkTarget(L, {
+        id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1] - 0.22, z: fb[2], w: 0.36, h: 0.44, accepts: [],
+        hint() { return s.fuse ? 'A good fuse in it.' : !s.open ? 'The fuse box. Shut.' : 'Open. The fuse in it is blown.'; },
+        onClick() { if (!s.open) { s.open = true; box.accepts = ['fuse'].concat(decoy ? ['oldfuse'] : []); AUDIO.sfx('creak'); G.say('The fuse in it is black. Blown.', 'A blown fuse.'); return true; } return false; },
+        use(item) {
+          if (item.id !== 'fuse') return false;
+          s.fuse = true; box.accepts = []; box.done = true; AUDIO.sfx('fit');
+          if (powerUp()) G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go round.'); else G.say('The new fuse is in. Now the bulb.', 'It goes in. Still dark.');
+          return true;
+        },
+      });
+    }
+    const need = L.tier(5, 8);
+    const winder = mkTarget(L, {
+      id: 'winder', name: 'Crank', x: wd[0], y: wd[1] - 0.25, z: wd[2], w: 0.5, h: 0.5,
+      crank: { n: need, sfx: 'ratchet', onTurn() { G.shake(0.04); }, onComplete() { s.turning = true; s.beamA = L.creature.yaw + Math.PI; AUDIO.sfx('lever'); G.say(s.power ? 'The light begins to go round.' : 'The lamp goes round, dark.', 'It turns.'); } },
+      hint() { return s.turning ? 'Turning.' : 'The crank that turns the lamp. Turn it. ' + Math.max(0, need - Math.floor(winder.count || 0)) + ' more.'; },
+    });
+    const onLane = () => Math.abs(wrapPi(s.beamA - L.creature.yaw)) < 22.5 * DEG;
+    L.isWon = () => s.power && s.turning;
+    L.objectiveText = () => (s.power ? 'Lit. ' : (s.bulb ? '' : 'Put the new bulb in the lamp. ') + (s.fuse ? '' : 'Put a new fuse in the fuse box. ')) + (s.turning ? 'Turning.' : 'Turn the crank (' + Math.min(need, Math.floor(winder.count || 0)) + '/' + need + ').');
+    L.update = dt => { if (s.turning) s.beamA += dt * TAU / 12 * s.beamSpeed; };
     const lensW = L.pt(AX, 1.9, AZ);
     L.dynamic = () => {
       // the lens: dark glass, or a burning core
@@ -141,6 +144,7 @@ LEVELS.push({
         ctx.scale(1.1, 1.5);
         P_ell(ctx, 0, 0.5, 0.42, 0.48, s.power ? P.cola([255, 236, 190], 0.55) : P.col([46, 52, 60]));
         for (let k = 0; k < 5; k++) P_line(ctx, -0.4 + k * 0.2, 0.05, -0.4 + k * 0.2, 0.95, 0.012, P.col([70, 72, 78]));
+        if (s.bulb && !s.power) { ctx.save(); ctx.translate(0, 0.32); ctx.scale(0.22, 0.36); ICONS.bulb(ctx, P); ctx.restore(); } // the new bulb, dark
         if (s.power) { const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.45); g.addColorStop(0, 'rgba(255,250,225,1)'); g.addColorStop(0.4, 'rgba(255,230,170,0.55)'); g.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); }
       }));
       // the beam itself, a long faint wedge, drawn over everything
@@ -150,11 +154,11 @@ LEVELS.push({
           R.add({ kind: 'poly', pts: [lensW, [lensW[0] + Math.sin(A - sp) * far, lensW[1] - drop, lensW[2] + Math.cos(A - sp) * far], [lensW[0] + Math.sin(A + sp) * far, lensW[1] - drop, lensW[2] + Math.cos(A + sp) * far]], color: [255, 242, 205], alpha: al, noFog: true, noLight: true, dist: 0.3 });
         }
       }
-      // the fuse box, the clockwork and the brake, showing their state
-      R.add(SC.mkSprite(L, fb[0], fb[1] - 0.22, fb[2], 0.36, 0.44, (ctx, P) => {
+      // the fuse box and the crank, showing their state
+      if (needFuse) R.add(SC.mkSprite(L, fb[0], fb[1] - 0.22, fb[2], 0.36, 0.44, (ctx, P) => {
         ctx.scale(0.36, 0.44);
         P_rect(ctx, -0.5, 0, 1, 1, P.col([74, 76, 84])); P_rect(ctx, -0.44, 0.06, 0.88, 0.88, P.col(s.open ? [24, 24, 28] : [88, 90, 98]));
-        if (s.open) { P_rect(ctx, -0.3, 0.4, 0.6, 0.2, P.col([50, 50, 56])); if (s.power) { ctx.scale(0.6, 0.5); ctx.translate(0, 0.7); ICONS.fuse(ctx, P); } }
+        if (s.open) { P_rect(ctx, -0.3, 0.4, 0.6, 0.2, P.col([50, 50, 56])); if (s.fuse) { ctx.scale(0.6, 0.5); ctx.translate(0, 0.7); ICONS.fuse(ctx, P); } else P_rect(ctx, -0.16, 0.44, 0.32, 0.12, P.col([20, 16, 14])); }
         else P_ell(ctx, 0.3, 0.5, 0.05, 0.05, P.col([30, 30, 34]));
       }));
       R.add(SC.mkSprite(L, wd[0], wd[1] - 0.25, wd[2], 0.5, 0.5, (ctx, P) => {
@@ -162,12 +166,6 @@ LEVELS.push({
         ctx.strokeStyle = P.col([120, 122, 130]); ctx.lineWidth = 0.08; ctx.beginPath(); ctx.arc(0, 0, 0.4, 0, TAU); ctx.stroke();
         for (let k = 0; k < 4; k++) P_line(ctx, 0, 0, Math.cos(k * Math.PI / 2) * 0.4, Math.sin(k * Math.PI / 2) * 0.4, 0.06, P.col([120, 122, 130]));
         P_line(ctx, 0.4, 0, 0.62, 0, 0.12, P.col([110, 80, 50]));
-      }));
-      if (s.needBrake) R.add(SC.mkSprite(L, bk[0], bk[1] - 0.22, bk[2], 0.3, 0.45, (ctx, P) => {
-        ctx.scale(0.3, 0.45);
-        P_rect(ctx, -0.5, 0.35, 1, 0.14, P.col([60, 62, 68]));
-        const on = s.locked || s.wrongLock > 0;
-        ctx.save(); ctx.translate(0, 0.42); ctx.rotate(on ? 0.9 : -0.6); P_line(ctx, 0, 0, 0, 0.55, 0.16, P.col([130, 132, 140])); P_ell(ctx, 0, 0.55, 0.14, 0.1, P.col(on ? [150, 40, 40] : [90, 30, 30])); ctx.restore();
       }));
     };
     L.dynamicLights = () => {
@@ -180,7 +178,7 @@ LEVELS.push({
     // aftermath: the beam goes round faster and every pass slides it further down the wall
     L.aftermath = (t, dt) => {
       const c = L.creature;
-      if (!c.distFn) { c.frozen = true; c.slideTo = c.dist; c.distFn = (cr, dt2) => cr.dist + (cr.slideTo - cr.dist) * Math.min(1, dt2 * 5); s.beamSpeed = 3; s.locked = false; s.wrongLock = 0; s.crossing = false; }
+      if (!c.distFn) { c.frozen = true; c.slideTo = c.dist; c.distFn = (cr, dt2) => cr.dist + (cr.slideTo - cr.dist) * Math.min(1, dt2 * 5); s.beamSpeed = 3; s.crossing = false; }
       const on = onLane();
       if (on && !s.crossing) { s.crossing = true; c.slideTo += 1.8; AUDIO.sfx('scrape', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.2); }
       if (!on) s.crossing = false;

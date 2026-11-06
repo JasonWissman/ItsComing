@@ -9,7 +9,7 @@ LEVELS.push({
   lights: [{ x: 3.4, y: 2.3, z: 1.6, r: 6, i: 0.28, color: [150, 170, 230], cone: { x: -1, y: -0.35, z: -0.2, deg: 36 } }],
   text: {
     intro: 'You are in bed. You have been awake for a while. So has it.',
-    hint: 'The lamp is dead; there is a bulb in the drawer. Light slows it. Then pull the covers up and hold on.',
+    hint: 'The lamp is dead; there is a bulb in the drawer. Light slows it. Then hold the covers until they are all the way up.',
     objective: 'Get the lamp on. Pull the covers up.',
     death: { default: 'It leaned down over the bed and its face was the only thing in the room.' },
     win: 'It stood at the foot of the bed until the room went grey, and never came a step closer.',
@@ -24,14 +24,14 @@ LEVELS.push({
   build(L) {
     const s = L.s;
     const parts = STORY.buildBedroom(L, false);
-    const decoy = !!L.diff.decoys, unplugged = L.diff.tier >= 2, sticks = L.diff.tier >= 3;
+    const decoy = !!L.diff.decoys, unplugged = L.nightmare, sticks = L.nightmare;
     Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, grey: 0, tick: 0 });
     STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => s.lampOn });
     const c0 = () => L.creatures[0];
-    // the drawer in the nightstand holds the bulb (and, on the harder tiers, one that will not fit)
+    // the drawer in the nightstand holds the bulb (and, on Nightmare, one that will not fit)
     mkContainer(L, {
       id: 'drawer', name: 'Drawer', w: 0.46, h: 0.2, color: [58, 44, 34], spot: { x: 1.2, y: 0.28, z: -0.13 }, closedText: 'The nightstand drawer.', emptyText: 'Nothing else in it.', sfx: 'drawer', /* its own sound: not the creak that warns of the doorway, nor a creature's scratching */
-      yields: [{ id: 'bulb', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb' } }].concat(decoy ? [{ id: 'bulb2', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb', decoy: true, decoyText: 'The wrong fitting. It will not go in.' } }] : []),
+      yields: [{ id: 'bulb', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb' } }].concat(decoy ? [{ id: 'bulb2', name: 'Bulb', opts: { w: 0.14, h: 0.2, flat: false, icon: 'bulb', decoy: true, decoyText: 'Wrong kind of bulb. It will not go in.' } }] : []),
       liftY: 0.36,
     });
     const lampT = mkTarget(L, {
@@ -40,21 +40,21 @@ LEVELS.push({
       use(item) { if (item.id !== 'bulb') return false; s.fitted = true; lampT.accepts = []; AUDIO.sfx('fit'); G.say('The bulb goes in. Now the switch.', 'In.'); return true; },
       onClick() {
         if (!s.fitted) return false;
-        if (!s.plugged) { G.say('Nothing. The cord is loose somewhere. Look down beside the bed.', 'Nothing. The cord.'); AUDIO.sfx('switch'); return true; }
+        if (!s.plugged) { G.say('Nothing. The cord is loose somewhere. Look down beside the bed.', 'Nothing. It is not plugged in.'); AUDIO.sfx('switch'); return true; }
         if (s.lampOn) { G.say('It is on. Leave it.', 'On.'); return true; }
         if (sticks && ++s.clicks < 3) { AUDIO.sfx('switch'); G.say('The switch sticks.', 'Sticks.'); return true; }
-        s.clicks = 0; s.lampOn = true; s.lampT = 12 + L.rand() * 6; AUDIO.sfx('switch'); AUDIO.sfx('lampOn'); G.say('Light. It slows.', 'Light.'); return true;
+        s.clicks = 0; s.lampOn = true; s.wasLit = true; s.lampT = 12 + L.rand() * 6; AUDIO.sfx('switch'); AUDIO.sfx('lampOn'); G.say('Light. It slows.', 'Light.'); return true;
       },
     });
-    if (unplugged) mkTarget(L, {
+    const socket = unplugged && mkTarget(L, {
       id: 'socket', name: 'Cord', x: -1.3, y: 0.02, z: -0.3, w: 0.5, h: 0.3, flat: true,
       hint() { return s.plugged ? 'Plugged in.' : 'The lamp cord, out of its socket.'; },
-      onClick() { if (s.plugged) return false; s.plugged = true; AUDIO.sfx('clunk'); G.say('Plugged in.', 'Click.'); return true; },
+      onClick() { if (s.plugged) return false; s.plugged = true; socket.hidden = true; AUDIO.sfx('clunk'); G.say('Plugged in.', 'Click.'); return true; },
     });
     const covers = mkTarget(L, {
       id: 'covers', name: 'Covers', x: 0, y: 0.6, z: 1.1, w: 1.4, h: 0.6, flat: true, hold: 3.0,
-      hint() { return s.coversUp ? 'Up over you.' : 'The covers. Pull them up and hold on; they slip back if you let go.'; },
-      use(item) { if (item !== null) return false; s.coversUp = true; AUDIO.sfx('hiss'); G.say('The covers are up. Do not let go.', 'Up.'); return true; },
+      hint() { return s.coversUp ? 'Up over you.' : 'The covers. Hold on to them until they are all the way up; they slip back if you let go too soon.'; },
+      use(item) { if (item !== null) return false; s.coversUp = true; AUDIO.sfx('hiss'); G.say(s.lampOn ? 'The covers are up.' : !s.fitted ? 'The covers are up. Now the lamp: there is a bulb in the drawer.' : s.wasLit ? 'The covers are up, but the lamp has gone out. Switch it back on.' : 'The covers are up. Now switch the lamp on.', s.lampOn ? 'Up.' : 'Up. It is dark.'); return true; },
     });
     L.isWon = () => s.lampOn && s.coversUp;
     L.objectiveText = () => (s.lampOn ? 'Lamp on. ' : !s.fitted ? 'Find a bulb (the drawer). Fit it. ' : !s.plugged ? 'Plug the cord in (down, beside the bed). ' : 'Switch the lamp on. ') + (s.coversUp ? 'Covers up.' : 'Pull the covers up (hold).');

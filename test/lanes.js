@@ -12,7 +12,7 @@ const { check } = T;
   const n = await page.evaluate(() => LEVELS.length);
   for (let lvl = 1; lvl <= n; lvl++) {
     const info = await page.evaluate(i => {
-      G.difficulty = 3; G.inv = []; const def = LEVELS[i], L = buildLevel(i);
+      G.difficulty = 1; G.inv = []; const def = LEVELS[i], L = buildLevel(i);
       const expected = new Set(), mode = def.laneMode || 'random';
       for (const cd of def.creatures) {
         if (cd.lane !== undefined) expected.add(cd.lane);

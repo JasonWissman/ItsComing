@@ -74,39 +74,48 @@ LEVELS.push({
     mkItem(L, 'keys', 'Car keys', keySpots, { w: 0.2, h: 0.2, flat: true });
     if (decoy) mkItem(L, 'housekeys', 'Keys', keySpots, { w: 0.2, h: 0.2, flat: true, icon: 'keys', decoy: true, decoyText: 'House keys. Not these.' });
     L.floorY = 0.36;
+    const GX = 0.36, GY = 0.6, GZ = 0.32;   // the gearstick's spot on the console
     mkItem(L, 'bottle', 'Empty bottle', [
       { x: 0.9, y: 0.36, z: -0.45, flat: false },       // rear floor
       { x: 0.95, y: 1.02, z: 0.78, flat: false },       // on the dash
       { x: 1.05, y: 0.95, z: 0.0, flat: false, key: 'seat' }, // on the passenger seat, in front of the seat back
     ], { w: 0.09, h: 0.24, icon: 'bottle' });
-    Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * (L.diff.tier >= 3 ? 2 : 3)), needChoke: L.diff.tier >= 2, choke: false, floods: L.diff.tier >= 3, lastCrank: -10 });
+    // on Nightmare it stalled in drive, and it will not start until the stick is back in park
+    Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), inDrive: L.nightmare, lastCrank: -10 });
     const ign = mkTarget(L, {
       id: 'ignition', name: 'Ignition', x: 0.18, y: 0.78, z: 0.5, w: 0.16, h: 0.18, accepts: ['keys'].concat(decoy ? ['housekeys'] : []),
-      hint() { return s.started ? 'Running.' : s.keyIn ? (s.needChoke && !s.choke ? 'Turn the key. It will want the choke.' : 'Turn the key.') : 'The ignition. No key in it.'; },
+      hint() { return s.started ? 'Running.' : s.keyIn ? (s.inDrive ? 'Turn the key. It is still in drive, though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
       use(item) { if (item.id !== 'keys') return false; s.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.toast(G.hints() ? 'The key is in. Turn it.' : 'The key is in.'); return true; },
       onClick() {
         if (!s.keyIn) return false;
         if (s.cranking > 0 || s.started) return true;
-        if (s.floods && L.t - s.lastCrank < 3 && s.cranks > 0) { s.cranks = 0; s.cranking = 1.15; s.lastCrank = L.t; AUDIO.sfx('crank'); G.say('Too soon. It floods. Give it a moment.', 'It floods.'); return true; }
+        if (s.inDrive) { AUDIO.sfx('nope'); G.say('Nothing, not even a click. It will not start in drive: put it in park.', 'Nothing. Not even a click. The gearstick is still in drive.'); return true; }
         s.lastCrank = L.t; s.cranking = 1.15;
-        if (s.needChoke && !s.choke) { AUDIO.sfx('crank'); G.shake(0.1); G.say('It turns over and dies. It wants the choke.', 'It turns over and dies.'); return true; }
         s.cranks++;
         if (s.cranks >= s.cranksNeeded) { s.started = true; AUDIO.sfx('start'); G.shake(0.3); }
         else { AUDIO.sfx('crank'); G.shake(0.12); G.toast(s.cranks === 1 ? 'It turns over. It does not catch.' : 'Come on. Come on.'); }
         return true;
       },
     });
-    if (s.needChoke) mkTarget(L, {
-      id: 'choke', name: 'Choke', x: 0.62, y: 0.86, z: 0.52, w: 0.12, h: 0.12,
-      hint() { return s.choke ? 'Pulled out.' : 'The choke. Pull it.'; },
-      onClick() { if (s.choke) { G.say('Already out.', 'Out.'); return true; } s.choke = true; AUDIO.sfx('lever'); G.say('The choke is out.', 'Click.'); return true; },
+    // the gearstick between the seats, P R N D on its plate
+    if (L.nightmare) mkTarget(L, {
+      id: 'gear', name: 'Gearstick', x: GX, y: GY, z: GZ, w: 0.16, h: 0.26,
+      hint() { return s.inDrive ? 'In drive. It will not start in drive.' : 'In park.'; },
+      onClick() { if (!s.inDrive) { G.say('Already in park.', 'In park.'); return true; } s.inDrive = false; AUDIO.sfx('lever'); G.shake(0.06); G.say('Into park. Now the key.', 'Into park.'); return true; },
     });
     L.update = dt => { if (s.cranking > 0) s.cranking -= dt; };
     L.isWon = () => s.started;
-    L.objectiveText = () => s.started ? 'Drive.' : s.keyIn ? (s.needChoke && !s.choke ? 'Pull the choke. Turn the key.' : 'Turn the key.' + (s.floods ? ' Wait between tries.' : '')) : 'Find the keys. Start the car.';
+    L.objectiveText = () => s.started ? 'Drive.' : (s.inDrive ? 'Put it in park. ' : '') + (s.keyIn ? 'Turn the key until it starts.' : 'Find the keys. Start the car.');
     L.dynamic = () => {
       if (s.keyIn) R.add(iconSprite(L, 'keys', 0.19, 0.7, 0.49, 0.1, 0.16));
-      if (s.needChoke) R.add(SC.mkSprite(L, 0.62, 0.8, 0.52, 0.12, 0.12, (ctx, P) => { ctx.scale(0.12, 0.12); P_rect(ctx, -0.3, 0.3, 0.6, 0.4, P.col([40, 38, 40])); P_ell(ctx, 0, s.choke ? 0.9 : 0.62, 0.32, 0.22, P.col([90, 88, 92])); }));
+      if (L.nightmare) R.add(SC.mkSprite(L, GX, GY, GZ, 0.16, 0.26, (ctx, P) => {
+        // the plate, the lit letter, and the stick leaning toward it
+        ctx.scale(0.16, 0.26);
+        P_rect(ctx, -0.5, 0, 1, 0.3, P.col([28, 26, 28]));
+        ['P', 'R', 'N', 'D'].forEach((ch, k) => { const on = (ch === 'D') === s.inDrive && (ch === 'D' || ch === 'P'); P_rect(ctx, -0.42 + k * 0.22, 0.08, 0.16, 0.14, on ? P.raw([255, 180, 90]) : P.col([70, 68, 70])); });
+        const lean = s.inDrive ? 0.24 : -0.3;
+        P_line(ctx, 0, 0.3, lean, 0.86, 0.12, P.col([46, 44, 48])); P_ell(ctx, lean, 0.9, 0.2, 0.11, P.col([70, 66, 70]));
+      }));
     };
     L.floor = { poly: [[-0.4, -0.9], [1.2, -0.9], [1.2, 0.7], [-0.4, 0.7]], y: 0.36 };
     L.onEnd = () => AUDIO.stopLoop();

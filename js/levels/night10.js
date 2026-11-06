@@ -90,36 +90,36 @@ LEVELS.push({
     SC.box(L, 2.2, 3.4, 0.98, 1.03, 2.2, 3.4, [70, 56, 44]); STORY.lamp(L, 2.6, 1.03, 2.6, { lit: true, scale: 0.85 });
     SC.box(L, 2.8, 3.25, 0.4, 0.45, -1.7, -1.3, [88, 70, 50]); SC.box(L, 2.8, 3.25, 0.45, 0.95, -1.36, -1.3, [88, 70, 50]);
     for (const [x, z] of [[2.83, -1.67], [3.22, -1.67], [2.83, -1.33], [3.22, -1.33]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [70, 56, 40]);
-    // items: the box (broken on the harder tiers) and a handful of small keys, only one of them its own
-    const broken = L.diff.tier >= 2, sheets = L.diff.tier >= 2, runsDown = L.diff.tier >= 3, need = L.tier(4, 4, 6);
+    // items: the box (broken on Nightmare) and a handful of small keys, only one of them its own
+    const broken = L.nightmare, sheets = L.nightmare, runsDown = L.nightmare, need = L.tier(4, 6);
     const boxSpots = [{ x: 2.6, y: 1.03, z: 3.0 }, { x: -2.7, y: 0, z: -2.7 }, { x: 2.0, y: 0, z: -2.6 }, { x: -2.6, y: 0, z: 1.4 }, { x: -1.3, y: 0, z: 3.0 }];
     const keySpots = [{ x: 2.95, y: 1.03, z: 2.45 }, { x: 3.02, y: 0.45, z: -1.52 }, { x: -2.9, y: 0, z: 2.9 }, { x: 2.9, y: 0, z: -2.9 }, { x: 1.6, y: 0, z: 3.1 }, { x: -3.1, y: 0, z: -1.0 }, { x: 3.1, y: 0, z: 1.2 }, { x: 1.2, y: 0, z: -3.1 }];
-    const decoyKeys = [['roundkey', 'keyRound'], ['squarekey', 'keySquare']].concat(L.diff.tier >= 2 ? [['cloverkey', 'keyClover']] : [], L.diff.tier >= 3 ? [['ironkey', 'keyIron']] : []);
+    const decoyKeys = [['roundkey', 'keyRound'], ['squarekey', 'keySquare']].concat(L.nightmare ? [['cloverkey', 'keyClover']] : [], L.nightmare ? [['ironkey', 'keyIron']] : []);
     const keyIds = ['boxkey'].concat(decoyKeys.map(d => d[0]));
-    mkItem(L, 'boxkey', 'Small key', keySpots, { w: 0.16, h: 0.16, flat: true, tool: true, icon: 'boxkey' });
+    mkItem(L, 'boxkey', L.nightmare ? 'Small key' : 'Key with a heart', keySpots, { w: 0.16, h: 0.16, flat: true, tool: true, icon: 'boxkey' });
     for (const [id, icon] of decoyKeys) mkItem(L, id, 'Small key', keySpots, { w: 0.16, h: 0.16, flat: true, tool: true, icon, decoy: true, decoyText: 'It does not fit the box.' });
     if (!broken) mkItem(L, 'musicbox', 'Music box', boxSpots, { w: 0.34, h: 0.34, flat: true });
     else {
-      mkItem(L, 'brokenbox', 'Music box', boxSpots, { w: 0.34, h: 0.34, flat: true });
-      mkItem(L, 'spring', 'Box spring', boxSpots, { w: 0.2, h: 0.24, flat: true });
+      mkItem(L, 'brokenbox', 'Broken music box', boxSpots, { w: 0.34, h: 0.34, flat: true });
+      mkItem(L, 'spring', 'Spring', boxSpots, { w: 0.2, h: 0.24, flat: true });
       mkRecipe(L, { parts: ['brokenbox', 'spring'], result: { id: 'musicbox', name: 'Music box', opts: { w: 0.34, h: 0.34 } }, sfx: 'fit', text: 'The spring goes back in. It might hold.' });
     }
-    // the harder tiers put dust sheets over two of the mirrors, chosen by the night
+    // Nightmare puts dust sheets over two of the mirrors, chosen by the night
     if (sheets) {
       const order = [0, 1, 2, 3];
       for (let i = 3; i > 0; i--) { const j = Math.floor(L.rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
       for (const k of order.slice(0, 2)) {
         const m = s.mirrors[k]; m.live = false;
-        mkTarget(L, { id: 'sheet' + k, name: 'Dust sheet', deg: m.deg, dist: 3.4, y: 0.2, w: 1.75, h: 2.4, hint() { return m.live ? 'Pulled down.' : 'A dust sheet over the glass.'; }, onClick() { if (m.live) return false; m.live = true; AUDIO.sfx('hiss'); G.say('The sheet comes down. Glass.', 'Glass.'); return true; } });
+        mkTarget(L, { id: 'sheet' + k, name: 'Dust sheet', deg: m.deg, dist: 3.4, y: 0.2, w: 1.75, h: 2.4, hint() { return m.live ? 'Pulled down.' : 'A dust sheet over the glass.'; }, onClick() { if (m.live) return false; m.live = true; this.hidden = true; AUDIO.sfx('hiss'); G.say('The sheet comes down. Glass.', 'Glass.'); return true; } });
       }
     }
     Object.assign(s, { placedAt: -1, keyIn: false, wound: 0, playing: false, playT: 0, luredOut: false, tune: 0, wrongAt: -99 });
     const pedTargets = [];
-    const refresh = () => pedTargets.forEach((t, k) => { t.accepts = s.placedAt < 0 ? ['musicbox'] : (s.placedAt === k && !s.keyIn) ? keyIds.slice() : []; });
+    const refresh = () => pedTargets.forEach((t, k) => { t.accepts = s.placedAt < 0 ? ['musicbox'].concat(broken ? ['brokenbox'] : []) : (s.placedAt === k && !s.keyIn) ? keyIds.slice() : []; });
     // the tune: on the odd mirror's pedestal it lures the thing in beside the box; on any other it plays for nobody
     const startTune = k => {
       const c = c0();
-      s.playing = true; s.playT = runsDown ? 9 : Infinity; s.tune = 0;
+      s.playing = true; s.playT = runsDown ? 5 : Infinity; s.tune = 0;   // on Nightmare it runs down before the walk is over
       if (!c.lane.follow) { c.hold = null; G.say('The tune starts again. It walks on to the box.', 'It plays.'); return; }   // rewound on Nightmare
       if (k !== s.odd) {
         s.playing = false; s.placedAt = -1; s.keyIn = false; s.wrongAt = L.t;
@@ -137,12 +137,13 @@ LEVELS.push({
     };
     peds.forEach((p, k) => {
       const t = mkTarget(L, {
-        id: 'pedestal' + k, name: 'Pedestal', x: p.x, y: 0, z: p.z, w: 0.6, h: 1.2, accepts: ['musicbox'],
+        id: 'pedestal' + k, name: 'Pedestal', x: p.x, y: 0, z: p.z, w: 0.6, h: 1.2, accepts: ['musicbox'].concat(broken ? ['brokenbox'] : []),
         hint() {
           if (s.placedAt === k) return s.playing ? 'Playing.' : !s.keyIn ? 'The music box. It needs its own key.' : 'Wind it. ' + (need - s.wound) + ' more.';
           return s.placedAt >= 0 ? 'An empty pedestal.' : k === s.odd ? 'The pedestal before the odd mirror.' : 'A pedestal before the ' + DIRS[k] + ' mirror.';
         },
         use(item) {
+          if (item.id === 'brokenbox') { G.say('It is broken. Its spring has come out.', 'It is broken. Something has come out of it.'); return false; }
           if (item.id === 'musicbox') { if (s.placedAt >= 0) return false; s.placedAt = k; s.wound = 0; AUDIO.sfx('drop'); G.say('The box sits on the pedestal. It needs its own key, and winding.', 'There.'); refresh(); return true; }
           if (item.id === 'boxkey') { if (s.placedAt !== k || s.keyIn) return false; s.keyIn = true; AUDIO.sfx('fit'); G.say('The key with the heart fits. Now wind it.', 'It fits.'); refresh(); return true; }
           return false;
@@ -158,7 +159,6 @@ LEVELS.push({
       });
       pedTargets.push(t);
     });
-    if (runsDown) SC.box(L, -1.32, -1.28, 0.5, 3.2, -3.36, -3.34, [150, 130, 90]); // the rope itself, hanging through the roof where the target is
     if (runsDown) mkTarget(L, {
       id: 'rope', name: 'Bell rope', x: -1.3, y: 0.5, z: -3.35, w: 0.2, h: 1.6, hold: 2.0, hidden: true, // the second lure: only there once the spring has run down
       hint() { return s.luredOut ? 'Rung.' : 'A rope through the roof. The carousel bell is on the other end.'; },
@@ -186,10 +186,12 @@ LEVELS.push({
       if (s.playing) {
         s.tune -= dt; if (s.tune <= 0) { s.tune = 3.2; const p = peds[s.placedAt] || peds[0]; AUDIO.sfx('musicbox', Math.sin(wrapPi(Math.atan2(p.x, p.z) + L.facing - G.cam.yaw)) * 0.7); }
         // on Nightmare the spring runs down part way through the walk (never during the aftermath); the bell rope shows itself then
-        if (s.playT !== Infinity && !L.won) { s.playT -= dt; if (s.playT <= 0) { s.playing = false; c.hold = c.dist; G.say('The spring runs down. It stops where it is.', 'It stops.'); const rope = L.targets.find(t => t.id === 'rope'); if (rope) rope.hidden = false; } }
+        if (s.playT !== Infinity && !L.won) { s.playT -= dt; if (s.playT <= 0) { s.playing = false; c.hold = c.dist; G.say('The spring runs down. It stops where it is.', 'The tune runs down. It stops where it is. By the south mirror, a rope drops through the roof.'); const rope = L.targets.find(t => t.id === 'rope'); if (rope) rope.hidden = false; } }
       }
     };
     L.dynamic = () => {
+      // the bell rope, once it has dropped through the roof
+      if (runsDown) { const rope = L.targets.find(t => t.id === 'rope'); if (rope && !rope.hidden) R.add(SC.mkQuad(L, [-1.32, 0.5, -3.35], [-1.28, 0.5, -3.35], [-1.28, 3.2, -3.35], [-1.32, 3.2, -3.35], [150, 130, 90])); }
       const c = c0();
       // what the mirrors show: the thing, at the distance a reflection would be; in the odd one it has its back to you
       if (c.lane.follow && !L.won) for (const m of s.mirrors) {

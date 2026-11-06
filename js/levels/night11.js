@@ -9,8 +9,8 @@ LEVELS.push({
   lights: [{ x: -2.2, y: 4.1, z: -2.2, r: 5, i: 0.4, color: [255, 200, 130], flicker: 0.2 }, { x: 0, y: 1.5, z: 42, r: 10, i: 0.4, color: [255, 200, 120] }],
   text: {
     intro: 'The loft is full of last summer, dry as paper, and something is coming across the yard for it. It is bent double under something it carries, and it goes faster the more you are carrying yourself.<br>Put things down.',
-    hint: 'The lantern wants filling at the drum and lighting with the matches. Then it wants throwing into the hay. Carry as little as you can.',
-    objective: 'Fire between you and it. Carry less.',
+    hint: 'Fill the lantern with oil at the drum, light it with the matches, and throw it into the hay between you and it. It comes faster the more you carry, so carry as little as you can.',
+    objective: 'Set the hay alight between you and it. Carry little.',
     death: { default: 'It did not put down what it was carrying. It put you with it.' },
     win: 'It paced the line of the fire for an hour and then sat down in the yard with its arms round itself, facing the loft, and stayed there until the light came.',
     fragment: 'Your hand hurt in the morning from holding on to something all night. It knew what you were holding. It always knows.',
@@ -68,7 +68,7 @@ LEVELS.push({
     STORY.lamp(L, -2.2, FL + 0.6, -3.4, { lit: true, scale: 0.9 });
     SC.box(L, -4.2, -3.4, FL, FL + 0.9, -1.0, 0.6, [124, 106, 70]); SC.box(L, -4.2, -3.6, FL + 0.9, FL + 1.5, -0.8, 0.4, [110, 92, 62]);
     // items
-    const decoy = !!L.diff.decoys, stuck = L.diff.tier >= 2;
+    const decoy = !!L.diff.decoys, stuck = L.nightmare;
     mkItem(L, 'lantern', 'Lantern', [
       { x: -1.2, y: FL + 0.45, z: -3.4 },              // on the low crate
       { x: -3.8, y: FL + 1.5, z: -0.2 },               // on the sacks
@@ -102,12 +102,16 @@ LEVELS.push({
       },
     });
     void drum;
-    mkRecipe(L, { parts: ['lantern_full', 'matches'], result: { id: 'lantern_lit', name: 'Lantern, lit', opts: { w: 0.3, h: 0.44, throwable: true, icon: (ctx, P) => { P.lit = true; ICONS.lantern(ctx, P); } } }, sfx: 'strike', text: 'It catches. Throw it before it goes out.', onCombine: (it, L2) => { const m = L2.items.find(i => i.id === 'matches'); if (m) { m.taken = true; G.inv.push(m); } } });
+    mkRecipe(L, { parts: ['lantern_full', 'matches'], result: { id: 'lantern_lit', name: 'Lantern, lit', opts: { w: 0.3, h: 0.44, throwable: true, icon: (ctx, P) => { P.lit = true; ICONS.lantern(ctx, P); } } }, sfx: 'strike', text: 'It catches. Now throw it.', onCombine: (it, L2) => { const m = L2.items.find(i => i.id === 'matches'); if (m) { m.taken = true; G.inv.push(m); } } });
     const mkHay = (id, name, deg, dist, w, flag, wet) => {
+      const away = () => !L.nightmare && (flag === 'fireN') !== (c0().lane.idx === 0);
       const t = mkTarget(L, {
-        id, name, deg, dist, y: 0, w, h: 2.4, accepts: ['lantern_lit'].concat(decoy ? ['pail'] : []),
-        hint() { return s[flag] ? 'Burning.' : s[wet] > 0 ? 'Soaked. It will not catch yet.' : 'Dry hay. It would go up in a moment.'; },
+        id, name, deg, dist, y: 0, w, h: 2.4, accepts: ['lantern_lit', 'lantern', 'lantern_full'].concat(decoy ? ['pail'] : []),
+        // on Normal the hay it is not coming past is refused before the lantern leaves your hand
+        onClick() { if (away() && G.hasItem('lantern_lit')) { G.say('Nothing is coming this way.', 'Not this one.'); AUDIO.sfx('nope'); return true; } return false; },
+        hint() { return s[flag] ? (away() ? 'Burning, but it is not coming this way.' : 'Burning.') : s[wet] > 0 ? 'Soaked. It will not catch yet.' : away() ? 'Dry hay, but it is not coming this way.' : 'Dry hay. It would go up in a moment.'; },
         use(item) {
+          if (item.id === 'lantern' || item.id === 'lantern_full') { G.say(item.id === 'lantern' ? 'The lantern is empty. Fill it at the oil drum.' : 'It is not lit. Use the matches on it first.', 'It is not lit.'); return false; }
           if (item.id !== 'lantern_lit') return false;
           if (s[wet] > 0) { G.say('The lantern hisses out in the wet hay. It comes back to you unlit.', 'It goes out.'); G.inv.push(newItem(L, 'lantern_full', 'Lantern, filled', { w: 0.3, h: 0.44, icon: 'lantern' })); G.active = G.inv.length - 1; return false; } // the soaking is temporary, so the lantern is not lost
           s[flag] = true; AUDIO.sfx('hiss'); setTimeout(() => AUDIO.sfx('thunder'), 200); G.shake(0.3); WEATHER.set({ kind: 'ash', density: 0.9, wind: 0.4 }, G.runSeed + 11);
@@ -121,21 +125,23 @@ LEVELS.push({
     const wetHay = (t) => { const k = t === hayN ? 'wetN' : 'wetE'; s[k] = 25; };
     void hayE;
     L.onDecoy = (t, item) => { if (item.id === 'pail') wetHay(t); };
-    if (L.diff.tier >= 3) mkTarget(L, { // only Nightmare asks for the ladder, so only Nightmare offers it
+    if (L.nightmare) mkTarget(L, { // only Nightmare asks for the ladder, so only Nightmare offers it
       id: 'ladder', name: 'Ladder', x: 0.9, y: FL - 0.6, z: 0, w: 0.9, h: 1.4, hold: 3.0,
       hint() { return s.ladderUp ? 'Pulled up onto the loft.' : 'The ladder up from the barn floor. It could be pulled up.'; },
       use(item) { if (item !== null) return false; s.ladderUp = true; AUDIO.sfx('clunk'); G.say('The ladder is up. Nothing climbs that way now.', 'Up.'); return true; },
     });
-    const sealed = lane => lane.idx === 0 ? s.fireN : (s.fireE || (L.diff.tier >= 3 && s.ladderUp)); // the ladder only counts where it is the extra step
+    const sealed = lane => lane.idx === 0 ? s.fireN : (s.fireE || (L.nightmare && s.ladderUp)); // the ladder only counts where it is the extra step
     L.sealed = sealed;
     // Nightmare wants the ladder up as well as a fire, whichever way it comes
-    L.isWon = () => L.diff.tier >= 3 ? (s.ladderUp && (s.fireN || s.fireE) && sealed(c0().lane)) : sealed(c0().lane);
-    L.objectiveText = () => { const c = c0(); const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (sealed(c.lane) ? 'Sealed. ' : c.lane.idx === 0 ? 'Fire in the yard hay. ' : (L.diff.tier >= 3 ? 'Fire in the barn hay, or pull the ladder up. ' : 'Fire in the barn hay. ')) + (L.diff.tier >= 3 && !s.ladderUp ? 'Pull the ladder up too. ' : '') + 'Carrying ' + load + '.'; };
+    L.isWon = () => L.nightmare ? (s.ladderUp && (s.fireN || s.fireE) && sealed(c0().lane)) : sealed(c0().lane);
+    L.objectiveText = () => { const c = c0(); const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (sealed(c.lane) ? 'Sealed. ' : c.lane.idx === 0 ? 'Fire in the yard hay. ' : (L.nightmare ? 'Fire in the barn hay, or pull the ladder up. ' : 'Fire in the barn hay. ')) + (L.nightmare && !s.ladderUp ? 'Pull the ladder up too. ' : '') + 'Carrying ' + load + '.'; };
     L.update = dt => {
       const c = c0();
       c.load = G.inv.reduce((a, i) => a + (i.weight || 1), 0);
       if (s.wetN > 0) s.wetN -= dt; if (s.wetE > 0) s.wetE -= dt;
       if (!s.ladderUp) s.ladderK = Math.max(0, s.ladderK - dt); else s.ladderK = Math.min(1, s.ladderK + dt * 1.5);
+      // on Nightmare a fire or the ladder holds it, but the night wants both: say what it is waiting at, once
+      if (L.nightmare && c.sealHold && !L.won && !s.toldHeld) { s.toldHeld = true; G.say(s.ladderUp ? 'It stops below the loft and waits. There is no fire between you yet.' : 'It stops at the fire and waits. The ladder is still down.', s.ladderUp ? 'It stops below the loft, and waits. There is no fire between you yet.' : 'It stops at the fire, and waits. The ladder is still down.'); }
     };
     L.dynamic = () => {
       // the ladder, standing at the edge or hauled up onto the boards

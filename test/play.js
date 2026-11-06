@@ -1,6 +1,6 @@
 'use strict';
 // Runs every night's declared solution (test/nights/nightNN.js) and asserts the win and the survived screen.
-// NIGHTS=1,3 TIERS=normal,hard SEEDS=1,2 narrow the run; default is all nights, normal, seeds 1 and 2.
+// NIGHTS=1,3 TIERS=normal,nightmare SEEDS=1,2 narrow the run; default is all nights, normal, seeds 1 and 2.
 const T = require('./lib');
 const fs = require('fs'); const path = require('path');
 const { check, fail, st, face, findHit, clickAt, lookForAndClick } = T;

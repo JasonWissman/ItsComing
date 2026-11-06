@@ -7,7 +7,7 @@ LEVELS.push({
   weather: { kind: 'rain', density: 0.45, wind: 0.25, fogRoll: { period: 37, depth: 0.35, phase: 1 } },
   text: {
     intro: 'The water door has been open all night, and the water has not been still.<br>Something is swimming in toward the boathouse. It goes under for a while, and when it comes up it is closer.',
-    hint: 'The winch lowers the water door, once it has its handle. The side door takes the bar.',
+    hint: 'It is coming for the water door. Put the handle on the winch and crank the door down.',
     objective: 'Seal the door it is coming for.',
     death: { default: 'It came up over the sill with its hand first.', reached: 'The door was not down. It came up under it.', side: 'The bar was not across. It came in with the door.' },
     win: 'It pushed at the slats until the tide turned. When you looked again the water was flat all the way out.',
@@ -78,78 +78,71 @@ LEVELS.push({
       { x: -1.7, y: 0.55, z: 0.3 },                     // on the rowboat's hull
       { x: -1.9, y: 0, z: 2.2 },                        // in the corner by the water door
     ], { w: 0.45, h: 0.45, flat: true });
-    mkItem(L, 'beam', 'Bar beam', [
+    mkItem(L, 'beam', 'Door bar', [
       { x: -1.0, y: 0, z: -0.6 },                       // on the deck by the boat
       { x: -0.6, y: 0, z: -2.05 },                      // along the back wall
       { x: 1.5, y: 0.92, z: -2.0 },                     // across the workbench
       { x: 1.6, y: 0, z: 1.0 },                         // near the side door
     ], { w: 1.6, h: 0.5, flat: true });
     if (decoy) mkItem(L, 'oar', 'Oar', [{ x: -2.1, y: 0, z: 1.6 }, { x: 2.3, y: 0, z: 1.7, flat: false }], { w: 0.5, h: 1.2, flat: true, decoy: true, decoyText: 'It does not fit the winch.' });
-    Object.assign(s, { handleIn: false, needPin: L.diff.tier >= 2, sealedN: false, sealedE: false, doorOpen: true, doorClosing: 0, doorClosed: false, doorA: 72 * DEG, lastK: 0 });
-    if (s.needPin) mkContainer(L, {
+    // on Nightmare the winch is chained and padlocked, and the key is in the tackle box
+    Object.assign(s, { handleIn: false, locked: L.nightmare, sealedN: false, sealedE: false, doorOpen: true, doorClosing: 0, doorClosed: false, doorA: 72 * DEG });
+    if (s.locked) mkContainer(L, {
       id: 'tacklebox', name: 'Tackle box', w: 0.45, h: 0.3, color: [62, 88, 72],
       spot: [{ x: 1.9, y: 0.92, z: -2.0 }, { x: -2.2, y: 1.55, z: 0.6 }, { x: 2.0, y: 0, z: -1.6 }, { x: -1.5, y: 0.55, z: -1.2 }],
       closedText: 'A tackle box.', emptyText: 'Hooks and line. Nothing else.',
-      yields: [{ id: 'pin', name: 'Pawl pin', opts: { w: 0.2, h: 0.26, flat: false } }, { id: 'brackets', name: 'Door brackets', opts: { w: 0.3, h: 0.24, flat: false } }],
+      yields: [{ id: 'winchkey', name: 'Small key', opts: { w: 0.16, h: 0.16, flat: false, tool: true, icon: 'keyIron' } }],
     });
-    // the winch: fit the handle, then crank the water door down. Without the pawl it slips back.
-    const need = L.tier(6, 6, 7);
+    // the winch: fit the handle, then crank the water door down (on Nightmare, unlock it first)
+    const need = L.tier(6, 7);
+    const unlock = () => { s.locked = false; winch.accepts = ['handle'].concat(decoy ? ['oar'] : []); AUDIO.sfx('lock'); setTimeout(() => AUDIO.sfx('chain'), 200); G.say('The padlock opens and the chain comes off the drum.', 'The chain comes off.'); };
     const winch = mkTarget(L, {
-      id: 'winch', name: 'Winch', x: 1.95, y: 0.85, z: 2.45, w: 0.7, h: 0.75, accepts: ['handle'].concat(decoy ? ['oar'] : []),
-      hint() { return winch.done ? 'The door is down.' : !s.handleIn ? 'The winch. Its handle is gone.' : s.needPin ? 'It turns, but it slips back. The pawl pin is missing.' : 'Crank it. ' + Math.max(0, need - Math.floor(winch.count || 0)) + ' more.'; },
+      id: 'winch', name: 'Winch', x: 1.95, y: 0.85, z: 2.45, w: 0.7, h: 0.75, accepts: ['handle'].concat(s.locked ? ['winchkey'] : [], decoy ? ['oar'] : []),
+      hint() { return winch.done ? 'The door is down.' : s.locked ? 'The winch. A chain through the drum, and a padlock on it.' : !s.handleIn ? 'The winch. Its handle is gone.' : 'Crank it. ' + Math.max(0, need - Math.floor(winch.count || 0)) + ' more.'; },
+      // with the key on you, the padlock comes first, whatever is in your hand
+      onClick() { if (s.locked && G.hasItem('winchkey')) { unlock(); return true; } return false; },
       use(item) {
-        if (item.id === 'handle') {
-          s.handleIn = true; winch.accepts = s.needPin ? ['pin'] : [];
-          winch.crank = { n: need, sfx: 'ratchet', decay: s.needPin ? { after: 1.2, rate: 1.4 } : null, onTurn() { G.shake(0.05); }, onComplete() {
-            // without the pawl the drum will not hold: the door runs straight back up (crankTarget has already marked it done, so undo that)
-            if (s.needPin) { winch.done = false; winch.count = 0; s.lastK = 0; AUDIO.sfx('clunk'); /* one clunk: L.update will not count this as a slip too */ G.say('It runs straight back up. Nothing holds the drum.', 'It slips.'); return; }
-            s.sealedN = true; AUDIO.sfx('bar'); G.say('The water door is down.', 'Down.');
-          } };
-          AUDIO.sfx('fit'); G.say('The handle fits. Crank it.', 'It fits.'); return true;
-        }
-        if (item.id === 'pin') { s.needPin = false; winch.accepts = []; winch.crank.decay = null; AUDIO.sfx('fit'); G.say('The pawl drops in. It will hold now.', 'That holds.'); return true; }
-        return false;
+        if (item.id === 'winchkey') { unlock(); return true; }
+        if (item.id !== 'handle') return false;
+        if (s.locked) { G.say('The drum is chained and padlocked. It will not turn.', 'It will not turn. There is a padlock on it.'); return false; }
+        s.handleIn = true; winch.accepts = [];
+        winch.crank = { n: need, sfx: 'ratchet', onTurn() { G.shake(0.05); }, onComplete() { s.sealedN = true; AUDIO.sfx('bar'); G.say('The water door is down.', 'Down.'); } };
+        AUDIO.sfx('fit'); G.say('The handle fits. Crank it.', 'It fits.'); return true;
       },
     });
-    // the side door: close it, then bar it (on the harder tiers the brackets for the bar go on first, from the tackle box).
-    // A closed door on its own only slows it down.
-    const needBrackets = L.diff.tier >= 2;
-    s.bracketsOn = !needBrackets;
+    // the side door: close it, then bar it. A closed door on its own only slows it down.
     const sd = mkTarget(L, {
-      id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: needBrackets ? ['brackets'] : ['beam'],
-      hint() { return s.sealedE ? 'Barred.' : s.doorOpen ? 'The side door stands open.' : s.doorClosing > 0 ? 'Swinging shut.' : s.bracketsOn ? 'Shut. The bar would hold it.' : 'Shut. There is nothing on the frame to hold a bar.'; },
+      id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: ['beam'],
+      hint() { return s.sealedE ? 'Barred.' : s.doorOpen ? 'The side door stands open.' : s.doorClosing > 0 ? 'Swinging shut.' : 'Shut. The bar would hold it.'; },
       onClick() {
         if (s.doorOpen) { s.doorOpen = false; s.doorClosing = 0.9; AUDIO.sfx('creak'); return true; }
         if (s.doorClosing > 0) { G.say('Wait for it to shut.', 'Not yet.'); return true; }
         return false;
       },
       use(item) {
-        if (item.id === 'brackets') { s.bracketsOn = true; sd.accepts = ['beam']; AUDIO.sfx('fit'); G.say('The brackets go on either side of the frame. Now the bar.', 'Brackets on.'); return true; }
         if (s.doorOpen || s.doorClosing > 0) { G.say('Shut it first.', 'Not like this.'); return false; }
         s.sealedE = true; sd.done = true; sd.accepts = []; AUDIO.sfx('bar'); G.say('The bar is across.', 'Barred.'); return true;
       },
     });
     const sealed = lane => lane.idx === 0 ? s.sealedN : s.sealedE;
     L.sealed = lane => (lane.idx === 0 ? s.sealedN : s.sealedE);
-    L.isWon = () => L.tier(sealed(L.lane), sealed(L.lane), s.sealedN && s.sealedE);
+    L.isWon = () => L.tier(sealed(L.lane), s.sealedN && s.sealedE);
     L.objectiveText = () => {
-      const n = s.sealedN ? 'Water door down.' : !s.handleIn ? 'Find the winch handle.' : 'Crank the water door down (' + Math.min(need, Math.floor(winch.count || 0)) + '/' + need + ').';
+      const n = s.sealedN ? 'Water door down.' : (s.locked ? 'Unlock the winch. ' : '') + (!s.handleIn ? (G.hasItem('handle') ? 'Put the handle on the winch.' : 'Find the winch handle.') : 'Crank the water door down (' + Math.min(need, Math.floor(winch.count || 0)) + '/' + need + ').');
       const e = s.sealedE ? 'Side door barred.' : s.doorOpen ? 'Shut the side door and bar it.' : 'Bar the side door.';
-      return L.diff.tier >= 3 ? n + ' ' + e : L.lane.idx === 0 ? n : e;
+      return L.nightmare ? n + ' ' + e : L.lane.idx === 0 ? n : e;
     };
     L.update = dt => {
       if (s.holdT > 0) { s.holdT -= dt; if (s.holdT <= 0 && s.heldC) { s.heldC.hold = null; s.heldC = null; } }
       if (s.doorClosing > 0) { s.doorClosing -= dt; s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
-      const k = Math.floor(winch.count || 0);
-      if (k < s.lastK && !winch.done) AUDIO.sfx('clunk');
-      s.lastK = k;
     };
     L.deathCause = c => (c.lane.idx === 1 ? 'side' : null);
     // a shut, unbarred door really does slow it: it bangs the door open and stands in it for a moment, long enough to shut and bar it
     L.onReach = c => { if (c.lane.idx === 1 && s.doorClosed && !s.sealedE) { s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); G.toast('The side door bangs open.'); c.hold = c.dist; s.heldC = c; s.holdT = 2.5; } };
     const lampX = () => Math.sin(L.t * 1.9) * 0.55;
     L.dynamic = () => {
-      if (needBrackets && s.bracketsOn) for (const z of [-0.72, 0.72]) R.add(SC.mkWallV(L, 2.3, z - 0.07, 2.3, z + 0.07, 0.94, 1.12, [44, 44, 48])); // the brackets on the frame
+      for (const z of [-0.72, 0.72]) R.add(SC.mkWallV(L, 2.3, z - 0.07, 2.3, z + 0.07, 0.94, 1.12, [44, 44, 48])); // the brackets on the frame that take the bar
+      if (s.locked) { R.add(iconSprite(L, 'chain', 1.95, 0.95, 2.4, 0.5, 0.44)); R.add(iconSprite(L, 'padlock', 1.95, 0.92, 2.38, 0.16, 0.2)); } // the chain round the drum, and its padlock
       // the water door: slats come down from the top as the winch turns
       const covered = 2.4 * clamp((winch.count || 0) / need, 0, 1);
       for (let y = 2.4; y > 2.4 - covered; y -= 0.3) {

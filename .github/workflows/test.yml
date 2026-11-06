@@ -5,7 +5,8 @@ on:
   pull_request:
 jobs:
   headless:
-    runs-on: ubuntu-latest
+    # pinned: Playwright 1.56 cannot install its browser on ubuntu-latest once that is 26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -22,6 +23,6 @@ jobs:
       - name: lanes, switches, story, flow, features
         run: node test/lanes.js && node test/switch.js && node test/story.js && node test/flow.js && node test/features.js
       - name: every night's solution (every tier, one seed)
-        run: TIERS=normal,hard,nightmare SEEDS=1 node test/play.js
+        run: TIERS=normal,nightmare SEEDS=1 node test/play.js
       - name: clickability sweep
         run: N=8 node test/hittest.js

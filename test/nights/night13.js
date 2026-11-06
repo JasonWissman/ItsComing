@@ -12,6 +12,5 @@ const ending = [
 ];
 module.exports = {
   normal: [['expect', 'G.inv.length === 3', 'holding three things'], ['waitUntil', 'G.L.creature.rage > 0.6', 4000]].concat(letGo, ending),
-  hard: [['expect', 'G.inv.length === 5', 'holding five things']].concat(letGo, ending),
   nightmare: [['expect', 'G.inv.length === 6', 'holding six things']].concat(letGo, ending),
 };

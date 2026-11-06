@@ -149,7 +149,7 @@ const R = (() => {
 
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
-  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
+  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   function measure(p) {
     if (p.dist === undefined) {
@@ -250,6 +250,15 @@ const R = (() => {
     };
   }
 
+  // a card's axes: across (the screen's horizontal, so the card is never skewed at the edge of the view) and up the card,
+  // which leans from lying flat (or standing) just far enough that the line of sight meets it at CARD_MIN or more
+  const CARD_MIN = 50 * DEG;
+  function cardAxes(x, y, z, flat) {
+    const e = Math.atan2(eyeH - y, Math.hypot(x, z));   // how far below the eye it sits, as an angle
+    const phi = clamp(flat ? 0 : Math.PI / 2, CARD_MIN - e, Math.PI - CARD_MIN - e);
+    const c = Math.cos(phi);
+    return [cosY, -sinY, c * sinY, Math.sin(phi), c * cosY];
+  }
   function drawSprite(p) {
     if (p.alpha !== undefined && p.alpha <= 0.004) { if (p.onRect) p.onRect(null); return; }
     const base = toCam(p.x, p.y, p.z);
@@ -257,11 +266,16 @@ const R = (() => {
     const b = proj(base);
     const s = f / base[2];
     let rect;
-    if (p.flat) {
-      // decal lying on the ground, oriented so its "up" points away from the viewer
-      const rx = cosY, rz = -sinY, fx = sinY, fz = cosY;
+    if (p.flat || p.card) {
+      // a decal lying on the ground, its "up" pointing away from the viewer; or a card (an item), which stands on its
+      // spot facing the eye and tips back toward it so it is never seen edge-on, however near or high it sits
+      let rx = cosY, rz = -sinY, fx = sinY, fz = cosY, fy = 0;
+      if (p.card) {
+        const c = cardAxes(p.x, p.y, p.z, p.flat);
+        rx = c[0]; rz = c[1]; fx = c[2]; fy = c[3]; fz = c[4];
+      }
       const cu = toCam(p.x + rx * p.w, p.y, p.z + rz * p.w);
-      const cv = toCam(p.x + fx * p.h, p.y, p.z + fz * p.h);
+      const cv = toCam(p.x + fx * p.h, p.y + fy * p.h, p.z + fz * p.h);
       if (cu[2] < NEAR || cv[2] < NEAR) { if (p.onRect) p.onRect(null); return; }
       const pu = proj(cu), pv = proj(cv);
       const ax = (pu[0] - b[0]) / p.w, ay = (pu[1] - b[1]) / p.w;   // screen delta per meter along u

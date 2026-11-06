@@ -13,7 +13,7 @@ LEVELS.push({
   ],
   text: {
     intro: 'The last customer left at ten. Something that is not a customer has been standing at the far end of the lot since, and every time you look up it is closer.<br>It only moves while you are looking at it. But the tubes have started going out, one at a time, and in the dark it will not need you to look.',
-    hint: 'Pull the shutter down over the window it is coming for, and hold on until it is all the way down. The lights keep tripping: the breaker panel is on the back wall. Main off, reset the three, main on.',
+    hint: 'Pull the shutter down over the window it is coming for, and hold on until it is all the way down. The lights keep going out: the breaker panel is on the back wall. Flip the tripped switches back up.',
     objective: 'Shutter the window. Keep the lights on.',
     death: { default: 'You looked.', dark: 'The lights went, and it did not need you to look any more.' },
     win: 'It stood under the sign until it got light, and then turned around and walked away like it had somewhere to be.',
@@ -85,9 +85,9 @@ LEVELS.push({
     for (const [x, y, z] of [[-30, 4, 47.9], [-22, 2.5, 47.9], [10, 3, 49.9], [30, 6, 45.9]]) SC.sprite(L, x, y, z, 0.8, 1.1, (ctx, P) => { ctx.scale(0.8, 1.1); P_rect(ctx, -0.5, 0, 1, 1, P.raw([200, 170, 110])); }, { noFog: true, noLight: true });
     const rng = mulberry32(88);
     for (let i = 0; i < 14; i++) { const side = rng() < 0.5 ? -1 : 1, x = side * (14 + rng() * 26), z = 38 + rng() * 10; if (Math.abs(x) < 1.5 || Math.abs(x + 0.577 * z) < 1.5) continue; SC.tree(L, x, z, 6 + rng() * 6, 'bare', (rng() * 1e6) | 0); }
-    // items: only the harder tiers have any
+    // items: only Nightmare has any
     const decoy = !!L.diff.decoys;
-    const needCrank = L.diff.tier >= 2;
+    const needCrank = L.nightmare;
     if (needCrank) mkItem(L, 'crank', 'Shutter crank', [
       { x: 2.4, y: 0, z: -0.3 },                        // on the floor behind the counter
       { x: 1.3, y: 1.0, z: 1.05 },                      // on the counter, clear of the lamp
@@ -96,8 +96,8 @@ LEVELS.push({
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
     ], { w: 0.42, h: 0.42, flat: true, tool: true });
     if (decoy) mkItem(L, 'bentcrank', 'Shutter crank', [{ x: 1.0, y: 0, z: -0.6 }, { x: 2.6, y: 0.9, z: -2.2 }], { w: 0.42, h: 0.42, flat: true, decoy: true, decoyText: 'Bent. It will not turn.' });
-    Object.assign(s, { tubes: [1, 1, 1, 1], nextDie: 5 + L.rand() * 2, dying: -1, mainOn: true, fixed: false, brk: [false, false, false], panelOpen: false, shutN: false, shutD: false, dark: false, rang: false, tapped: false, amb: 1, route: 'lane', wayIdx: -1, tappedSign: false, gave: false });
-    // the shutters: hold-click targets over the window and the door; on the harder tiers the crank comes first
+    Object.assign(s, { tubes: [1, 1, 1, 1], nextDie: 5 + L.rand() * 2, dying: -1, fixed: false, brk: [false, false, false], panelOpen: false, shutN: false, shutD: false, dark: false, rang: false, tapped: false, amb: 1, route: 'lane', wayIdx: -1, tappedSign: false, gave: false });
+    // the shutters: hold-click targets over the window and the door; on Nightmare the crank comes first
     const apN = L.addAperture(0, { z: 5.0, x0: -2.0, x1: 1.75, y0: 0, y1: 2.7 });
     const apD = L.addAperture(1, { z: 5.77, x0: -0.78, x1: 0.78, y0: 0, y1: 2.4 });
     L.addAperture(0, { z: 1.0, x0: -9, x1: 9, y0: 0.95, y1: 99 }); L.addAperture(1, { z: 1.15, x0: -9, x1: 9, y0: 0.95, y1: 99 });
@@ -107,6 +107,7 @@ LEVELS.push({
       const t = mkTarget(L, {
         id, name, x, y: 0.1, z, w, h, hold: needCrank ? 0 : 2.5, accepts: needCrank ? ['crank'].concat(decoy ? ['bentcrank'] : []) : [],
         hint() { return t.done ? 'Down.' : t.hold ? 'Pull the shutter down. Hold on to it.' : 'The shutter. Its crank is missing.'; },
+        onClick() { if (!t.hold && !t.done && !G.inv.some(i => t.accepts.includes(i.id))) { G.say('The shutter. Its crank is missing.', 'It will not come down by hand.'); AUDIO.sfx('nope'); return true; } return false; },
         use(item) {
           if (item === null) { s[flag] = true; AUDIO.sfx('bar'); G.say('The shutter is down.', 'Down.'); return true; }
           if (item.id !== 'crank') return false;
@@ -117,29 +118,23 @@ LEVELS.push({
     };
     const shN = mkShutter('shutterN', 'Window shutter', -0.125, 4.85, 3.6, 2.55, 'shutN');
     const shD = mkShutter('shutterD', 'Door shutter', -2.9, 4.85, 1.9, 2.45, 'shutD');
-    // the breaker panel: open it, then main off, reset the three, main on
+    // the breaker panel: open it and flip the tripped switches back up (two of the three on Normal, all three on Nightmare)
+    if (!L.nightmare) s.brk[Math.floor(L.rand() * 3)] = true;
+    const tripped = () => s.brk.filter(b => !b).length;
     const panel = mkTarget(L, {
       id: 'panel', name: 'Breaker panel', x: 2.2, y: 1.0, z: -2.4, w: 0.56, h: 0.56,
       hint() { return 'The breaker panel. Shut.'; },
-      onClick() { s.panelOpen = true; panel.hidden = true; for (const t of L.targets) if (t.brk !== undefined) t.hidden = false; AUDIO.sfx('creak'); G.say('Three breakers have tripped. The main has to go off before they will reset.', 'Three breakers have tripped.'); return true; },
-    });
-    mkTarget(L, {
-      id: 'main', name: 'Main breaker', x: 2.2, y: 1.36, z: -2.4, w: 0.16, h: 0.2, hidden: true, brk: 'main',
-      hint() { return s.mainOn ? 'The main. On, and humming.' : 'The main. Off.'; },
-      onClick() {
-        if (s.mainOn) { s.mainOn = false; AUDIO.sfx('clunk'); G.shake(0.1); G.say('Everything goes dark. Now the three, then the main again. Quickly.', 'Everything goes dark.'); return true; }
-        if (!s.brk.every(b => b)) { G.say('The main will not hold with a breaker still tripped.'); AUDIO.sfx('nope'); return true; }
-        s.mainOn = true; s.fixed = true; s.tubes = [1, 1, 1, 1]; s.dying = -1; AUDIO.sfx('clunk'); setTimeout(() => AUDIO.sfx('tubeOn'), 200); G.shake(0.1); G.say('The lights come back, all of them, and this time they stay.');
-        return true;
-      },
+      onClick() { s.panelOpen = true; panel.hidden = true; for (const t of L.targets) if (t.brk !== undefined) t.hidden = false; AUDIO.sfx('creak'); const n = tripped(); G.say((n === 3 ? 'All three' : 'Two') + ' of the switches have tripped. Flip them back up.', (n === 3 ? 'Three' : 'Two') + ' switches are down.'); return true; },
     });
     ['brkA', 'brkB', 'brkC'].forEach((id, k) => mkTarget(L, {
       id, name: 'Breaker ' + (k + 1), x: 2.05 + k * 0.15, y: 1.08, z: -2.4, w: 0.12, h: 0.16, hidden: true, brk: k,
-      hint() { return s.brk[k] ? 'Reset.' : 'Tripped.'; },
+      hint() { return s.brk[k] ? 'On.' : 'Tripped. Flip it back up.'; },
       onClick() {
-        if (s.brk[k]) { G.say('Already reset.', 'Done.'); return true; }
-        if (s.mainOn) { G.say('It will not move with the main on.'); AUDIO.sfx('nope'); return true; }
-        s.brk[k] = true; AUDIO.sfx('lever'); G.say('Reset.' + (s.brk.every(b => b) ? ' Now the main.' : ''), 'Reset.'); return true;
+        if (s.brk[k]) { G.say('That one is on.', 'On.'); return true; }
+        s.brk[k] = true; AUDIO.sfx('lever'); G.shake(0.05);
+        if (tripped() > 0) { G.say('Up. ' + (tripped() === 1 ? 'One more.' : 'Two more.'), 'Up.'); return true; }
+        s.fixed = true; s.tubes = [1, 1, 1, 1]; s.dying = -1; setTimeout(() => AUDIO.sfx('tubeOn'), 200); G.say('The lights come back, all of them, and this time they stay.', 'The lights come back.');
+        return true;
       },
     }));
     const SIGN = 2;
@@ -147,10 +142,10 @@ LEVELS.push({
     const way = () => s.wayIdx >= 0 ? L.lanes[s.wayIdx] : L.lane;   // the way in it came by, even once it has gone round to the sign
     // a shuttered way in holds it; the pane under the sign holds it only while there is light
     L.sealed = lane => lane.idx === SIGN ? !s.dark : shut(lane);
-    L.isWon = () => s.fixed && L.tier(shut(way()), shut(way()), s.shutN && s.shutD);
+    L.isWon = () => s.fixed && L.tier(shut(way()), s.shutN && s.shutD);
     L.objectiveText = () => {
-      const sh = L.diff.tier >= 3 ? ((s.shutN ? 'Window shuttered. ' : 'Shutter the window. ') + (s.shutD ? 'Door shuttered. ' : 'Shutter the door. ')) : shut(way()) ? 'Shutter down. ' : 'Pull down the shutter on the ' + way().name + '. ';
-      return sh + (s.fixed ? 'Lights fixed.' : s.mainOn ? 'Breakers: main off, reset the three, main on.' : 'Main is off. Reset the three, then main on.');
+      const sh = L.nightmare ? ((s.shutN ? 'Window shuttered. ' : 'Shutter the window. ') + (s.shutD ? 'Door shuttered. ' : 'Shutter the door. ')) : shut(way()) ? 'Shutter down. ' : 'Pull down the shutter on the ' + way().name + '. ';
+      return sh + (s.fixed ? 'Lights fixed.' : 'Flip the tripped switches back up (' + tripped() + ' to go).');
     };
     // once its way in is shuttered it walks along the front to the pane under the sign, keeping its distance (or to the
     // glass, if it was nearer): the same spot re-measured along the sign's lane, then a straight walk onto that lane
@@ -175,12 +170,12 @@ LEVELS.push({
     L.update = dt => {
       // the tubes die one by one until the breakers are reset
       const alive = s.tubes.filter(t => t).length;
-      if (!s.fixed && s.mainOn && alive > 0) {
+      if (!s.fixed && alive > 0) {
         s.nextDie -= dt;
         if (s.nextDie < 1.6 && s.dying < 0) { const pool = s.tubes.map((t, k) => t ? k : -1).filter(k => k >= 0); s.dying = pool[Math.floor(L.rand() * pool.length)]; AUDIO.sfx('tubeDie'); }
         if (s.nextDie <= 0) { s.tubes[s.dying] = 0; s.dying = -1; s.nextDie = 12 + L.rand() * 3; G.toast(alive === 4 ? 'A light goes out.' : alive === 2 ? 'Another light goes out. One left.' : alive === 1 ? 'The last light goes.' : 'Another light goes out.'); }
       }
-      s.dark = !s.mainOn || !s.tubes.some(t => t);
+      s.dark = !s.tubes.some(t => t);
       s.amb += ((s.dark ? 0.28 : 1) - s.amb) * Math.min(1, dt * 7); L.pal.ambient = s.amb;
       for (const c of L.creatures) c.dark = s.dark;
       apN.y1 = 2.7 * (1 - (shN.progress || 0)); apD.y1 = 2.4 * (1 - (shD.progress || 0));
@@ -210,7 +205,7 @@ LEVELS.push({
     L.dynamic = () => {
       // the fluorescent tubes
       s.tubes.forEach((alive, k) => {
-        const cx = k < 2 ? -2.2 : 2.2, cz = (k % 2) ? 3.2 : 0.2, on = alive && s.mainOn, dying = s.dying === k;
+        const cx = k < 2 ? -2.2 : 2.2, cz = (k % 2) ? 3.2 : 0.2, on = alive, dying = s.dying === k;
         const col = on ? (dying && Math.sin(L.t * 37 + k) > 0.2 ? [140, 146, 136] : [240, 246, 230]) : [70, 72, 68];
         R.add(SC.mkQuad(L, [cx - 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz + 0.07], [cx - 0.65, 2.96, cz + 0.07], col, on ? { noFog: true, noLight: true } : {}));
       });
@@ -226,12 +221,10 @@ LEVELS.push({
       if (!s.panelOpen) R.add(SC.mkSprite(L, 2.2, 1.0, -2.41, 0.56, 0.56, (ctx, P) => { ctx.scale(0.56, 0.56); P_rect(ctx, -0.5, 0, 1, 1, P.col([100, 102, 108])); P_rect(ctx, -0.44, 0.06, 0.88, 0.88, P.col([84, 86, 92])); P_rect(ctx, 0.3, 0.45, 0.1, 0.1, P.col([40, 40, 44])); if (!s.fixed && Math.sin(L.t * 5) > 0) P_ell(ctx, -0.3, 0.84, 0.06, 0.06, P.raw([255, 60, 40])); }));
       else {
         R.add(SC.mkSprite(L, 2.2, 1.0, -2.41, 0.56, 0.56, (ctx, P) => { ctx.scale(0.56, 0.56); P_rect(ctx, -0.5, 0, 1, 1, P.col([100, 102, 108])); P_rect(ctx, -0.44, 0.06, 0.88, 0.88, P.col([30, 30, 34])); }));
-        R.add(SC.mkSprite(L, 2.2, 1.36, -2.4, 0.16, 0.2, (ctx, P) => { ctx.scale(0.16, 0.2); P_rect(ctx, -0.5, 0, 1, 1, P.col([50, 50, 56])); P_rect(ctx, -0.3, s.mainOn ? 0.5 : 0.1, 0.6, 0.4, P.col(s.mainOn ? [190, 60, 50] : [120, 122, 130])); }));
         for (let k = 0; k < 3; k++) R.add(SC.mkSprite(L, 2.05 + k * 0.15, 1.08, -2.4, 0.12, 0.16, (ctx, P) => { ctx.scale(0.12, 0.16); P_rect(ctx, -0.5, 0, 1, 1, P.col([50, 50, 56])); P_rect(ctx, -0.3, s.brk[k] ? 0.5 : 0.1, 0.6, 0.4, P.col(s.brk[k] ? [120, 122, 130] : [200, 150, 50])); }));
       }
     };
     L.dynamicLights = () => {
-      if (!s.mainOn) return [];
       const out = [];
       s.tubes.forEach((alive, k) => { if (alive) { const p = L.pt(k < 2 ? -2.2 : 2.2, 2.9, (k % 2) ? 3.2 : 0.2); out.push({ x: p[0], y: p[1], z: p[2], r: 8, i: 0.55, color: [205, 235, 215], flicker: s.dying === k ? 0.8 : 0.04, seed: k * 3 }); } });
       return out;

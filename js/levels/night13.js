@@ -7,7 +7,7 @@
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.16, 0.16],
   ['chain', 'Chain', 0.6, 0.75], ['padlock', 'Padlock', 0.22, 0.26], ['shotgun', 'Shotgun', 1.1, 0.36], ['shells', 'Shells', 0.3, 0.3], ['handle', 'Winch handle', 0.45, 0.45],
-  ['fuse', 'Fuse', 0.3, 0.3], ['crank', 'Shutter crank', 0.42, 0.42], ['musicbox', 'Music box', 0.34, 0.34], ['beam', 'Bar', 1.4, 0.45], ['oilcan', 'Oil can', 0.28, 0.36], ['bulb', 'Bulb', 0.14, 0.2],
+  ['fuse', 'Fuse', 0.3, 0.3], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['beam', 'Bar', 1.4, 0.45], ['oilcan', 'Oil can', 0.28, 0.36], ['bulb', 'Bulb', 0.14, 0.2],
 ];
 // the void, and the same place in the morning (night 12's room with the sun in it)
 const VOID_PAL = { skyTop: [0, 0, 0], fog: [0, 0, 0], ground: [10, 10, 12], fogDist: 14 };
@@ -48,9 +48,11 @@ LEVELS.push({
     for (const p of voidProps) p.alpha0 = p.alpha === undefined ? 1 : p.alpha;
     for (const p of roomProps) { p.alpha0 = p.alpha === undefined ? 1 : p.alpha; p.alpha = 0; }
     // the ring of everything, and what you start the night holding
-    const hold = L.tier(3, 5, 6), ringR = L.tier(2.0, 1.7, 1.7);
+    const hold = L.tier(3, 6), ringR = L.tier(2.0, 1.7);
     const rng = mulberry32((G.runSeed * 31 + 13) >>> 0);
-    const order = VOID_TOOLS.slice().sort(() => rng() - 0.5);
+    // only what this difficulty ever put in your hands: the fuse and the oil can are Nightmare's
+    const tools = VOID_TOOLS.filter(([id]) => L.nightmare || !['fuse', 'oilcan'].includes(id));
+    const order = tools.slice().sort(() => rng() - 0.5);
     order.forEach(([id, name, w, h], k) => {
       const a = k / order.length * TAU + 0.2, r = ringR + (k % 2) * 0.5;
       const it = mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, tool: id === 'shotgun' || id === 'matches' || id === 'hammer', uses: id === 'shells' ? 3 : 1 });
@@ -87,7 +89,7 @@ LEVELS.push({
       c.soft = rv;
       // everything on the floor goes with the dark, one thing at a time
       const left = L.items.filter(i => !i.taken);
-      if (rv > 0.08 && left.length && rv > s.gone) { left[0].taken = true; s.gone = rv + 0.5 / VOID_TOOLS.length; }
+      if (rv > 0.08 && left.length && rv > s.gone) { left[0].taken = true; s.gone = rv + 0.5 / tools.length; }
       if (rv > 0.05 && !s.dawn) { s.dawn = true; AUDIO.stopAmbient(); if (AUDIO.on()) AUDIO.startAmbient({ wind: 0.25, drone: 0 }); WEATHER.set({ kind: 'motes', density: 1.2, wind: 0.1 }, 7); Seq.play({ dur: 14, beats: [{ every: 2.3, from: 1.5, do: () => AUDIO.sfx('birds', Math.random() - 0.5) }] }); }
       // then it dances at the foot of the bed to the little tune, and glitters away
       c.dance = t > 8.4 && t < 12.9 ? Math.min(1, (t - 8.4) * 2, (12.9 - t) * 2) : 0;

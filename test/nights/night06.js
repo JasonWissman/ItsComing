@@ -1,12 +1,11 @@
 // The Boathouse: fit the winch handle and crank the water door down, or shut and bar the side door.
-// Normal and Hard seal the lane it comes for (sealing it wins at once); Nightmare must seal both.
-// On Hard and Nightmare the tackle box holds the pawl pin for the winch and the brackets the side door's bar needs.
+// Normal seals the way it comes for (sealing it wins at once); Nightmare must seal both, and the winch is chained
+// and padlocked: the key is in the tackle box. The handle will not go on while the padlock is there.
 const winch = [['pickup', 'handle'], ['use', 'winch'], ['expect', 'G.L.s.handleIn', 'handle fitted'], ['clickUntil', 'winch', 'G.L.s.sealedN', 250, 12]];
-const pinWinch = [['use', 'tacklebox'], ['pickup', 'pin'], ['pickup', 'handle'], ['use', 'winch'], ['expect', 'G.L.s.handleIn', 'handle fitted'], ['use', 'winch'], ['expect', '!G.L.s.needPin', 'pawl pin fitted'], ['clickUntil', 'winch', 'G.L.s.sealedN', 250, 12]];
+const lockedWinch = [['pickup', 'handle'], ['use', 'winch'], ['expect', 'G.L.s.locked && !G.L.s.handleIn', 'the handle will not go on a padlocked winch'], ['use', 'tacklebox'], ['pickup', 'winchkey'], ['use', 'winch'], ['expect', '!G.L.s.locked', 'padlock off'],
+  ['use', 'winch'], ['expect', 'G.L.s.handleIn', 'handle fitted'], ['clickUntil', 'winch', 'G.L.s.sealedN', 250, 12]];
 const door = [['pickup', 'beam'], ['use', 'sidedoor'], ['waitUntil', 'G.L.s.doorClosed', 3000], ['use', 'sidedoor'], ['expect', 'G.L.s.sealedE', 'side door barred']];
-const bracketDoor = [['pickup', 'beam'], ['use', 'sidedoor'], ['waitUntil', 'G.L.s.doorClosed', 3000], ['use', 'sidedoor'], ['expect', 'G.L.s.bracketsOn && !G.L.s.sealedE', 'brackets on, not yet barred'], ['use', 'sidedoor'], ['expect', 'G.L.s.sealedE', 'side door barred']];
 module.exports = {
   normal: [['branch', 'G.L.lane.idx === 0', winch, door]],
-  hard: [['branch', 'G.L.lane.idx === 0', pinWinch, [['use', 'tacklebox'], ['pickup', 'brackets']].concat(bracketDoor)]],
-  nightmare: pinWinch.concat([['pickup', 'brackets']], bracketDoor),
+  nightmare: lockedWinch.concat(door),
 };
