@@ -713,6 +713,7 @@ function render() {
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
     if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
+    p.w = t.w; p.h = t.h;   // a target can change size (an opened box's lid stands up)
     R.add(p);
   }
   if (G.throwing) {

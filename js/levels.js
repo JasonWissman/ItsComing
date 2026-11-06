@@ -47,17 +47,22 @@ function mkContainer(L, o) {
     id: o.id, name: o.name, x: local[0], y: local[1], z: local[2], w: o.w || 0.5, h: o.h || 0.4, flat: !!o.flat,
     accepts: o.opens ? [o.opens] : [], open: false, kind: 'container',
     hint() { return t.open ? (o.emptyText || 'Empty now.') : (o.opens ? (o.lockedText || 'Locked.') : (o.closedText || 'Closed.')); },
-    onClick() { if (t.open) { G.say(o.emptyText || 'Empty now.', 'Nothing more.'); return true; } if (o.opens) return false; openIt(); return true; },
+    onClick() {
+      if (t.open) { const left = (t.yielded || []).some(i => !i.taken); G.say(left ? 'Take what is in it.' : (o.emptyText || 'Empty now.'), left ? 'Something is still in it.' : 'Nothing more.'); return true; }
+      if (o.opens) return false; openIt(); return true;
+    },
     use(item) { if (t.open) return false; openIt(); return true; },
   });
   function openIt() {
-    t.open = true; t.done = true; AUDIO.sfx(o.sfx || 'creak');
+    t.open = true; t.done = true; AUDIO.sfx(o.sfx || 'creak'); t.yielded = [];
+    if (style === 'box') { box.h = hh * (0.7 + lidH); t.h = box.h; }   // the lid stands up: what you can see and click grows with it
     // what comes out lands a little nearer the eye than the box, so it is drawn in front of it
     // (and, when there are several, side by side across the line of sight)
     const r = Math.max(0.3, Math.hypot(local[0], local[2])), pull = 1 - 0.12 / r, ux = local[2] / r, uz = -local[0] / r;
     (o.yields || []).forEach((y, k) => {
       const off = (k - (o.yields.length - 1) / 2) * 0.24;
       const it = mkItem(L, y.id, y.name, { x: local[0] * pull + ux * off, y: local[1] + (o.liftY || 0.02), z: local[2] * pull + uz * off, jitter: 0 }, Object.assign({ flat: true }, y.opts || {}));
+      t.yielded.push(it);
       if (o.onYield) o.onYield(it);
     });
     if (o.onOpen) o.onOpen(t);
@@ -66,8 +71,8 @@ function mkContainer(L, o) {
   // a visible box that opens, drawn so its state reads at a glance: shut, it is a solid box with its lid down, a latch
   // and a handle; open, the lid stands up behind it, its lighter inside showing, over a dark open mouth. A drawer
   // (style 'drawer') pulls out of its cabinet instead, showing its dark inside above the front.
-  const w = o.w || 0.5, hh = o.h || 0.4, col = o.color || [70, 54, 40], style = o.style || 'box';
-  L.props.push(SC.mkSprite(L, local[0], local[1], local[2], w, hh, (ctx, P) => {
+  const w = o.w || 0.5, hh = o.h || 0.4, col = o.color || [70, 54, 40], style = o.style || 'box', lidH = o.lidH || 0.7;   // lidH: the open lid's height, as a share of the box's
+  const box = SC.mkSprite(L, local[0], local[1], local[2], w, hh, (ctx, P) => {
     ctx.scale(w, hh);
     const c = P.col(col), d = P.col(scalec(col, 0.62)), lite = P.col(mixc(col, [230, 220, 200], 0.35)), dark = P.col([10, 9, 9]), metal = P.col([150, 146, 138]);
     if (style === 'drawer') {
@@ -88,12 +93,15 @@ function mkContainer(L, o) {
       P_rect(ctx, -0.18, 0.86, 0.36, 0.05, metal); P_rect(ctx, -0.18, 0.86, 0.05, 0.12, metal); P_rect(ctx, 0.13, 0.86, 0.05, 0.12, metal); P_rect(ctx, -0.18, 0.96, 0.36, 0.05, metal); // the handle
       P_rect(ctx, -0.07, 0.5, 0.14, 0.2, metal); P_rect(ctx, -0.03, 0.52, 0.06, 0.08, dark);  // the latch, shut
     } else {
-      P_poly(ctx, [[-0.46, 0.7], [0.46, 0.7], [0.42, 1.55], [-0.42, 1.55]], P.col(mixc(col, [240, 232, 214], 0.55)));   // the lid, standing up behind, its inside toward you
-      P_rect(ctx, -0.46, 0.7, 0.92, 0.05, d);
+      const top = 0.7 + lidH;   // the lid, standing up behind on its hinge, its inside toward you: the box's own colour, lighter, in a dark rim
+      P_poly(ctx, [[-0.47, 0.68], [0.47, 0.68], [0.43, top], [-0.43, top]], d);
+      P_poly(ctx, [[-0.41, 0.72], [0.41, 0.72], [0.38, top - 0.05], [-0.38, top - 0.05]], P.col(mixc(col, [255, 248, 236], 0.28)));
+      P_rect(ctx, -0.12, 0.66, 0.06, 0.06, metal); P_rect(ctx, 0.06, 0.66, 0.06, 0.06, metal);   // the hinges
       P_rect(ctx, -0.48, 0.5, 0.96, 0.2, dark);                            // the open mouth, dark inside
       P_rect(ctx, -0.07, 0.4, 0.14, 0.14, metal);                          // the latch, hanging open
     }
-  }, { flat: !!o.flat, card: true }));   // a card, as items are: it faces you and never goes edge-on
+  }, { flat: !!o.flat, card: true });   // a card, as items are: it faces you and never goes edge-on
+  L.props.push(box);
   return t;
 }
 // two held items become one: select one, click the other in the inventory

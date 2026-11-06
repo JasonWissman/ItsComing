@@ -249,18 +249,6 @@ const ICONS = {
     P_ell(ctx, 0, 0.62, 0.26, 0.3, glass); P_poly(ctx, [[-0.16, 0.4], [0.16, 0.4], [0.12, 0.2], [-0.12, 0.2]], glass);
     P_rect(ctx, -0.12, 0.05, 0.24, 0.16, brass); P_line(ctx, -0.12, 0.1, 0.12, 0.1, 0.015, P.col([90, 76, 40])); P_line(ctx, -0.12, 0.16, 0.12, 0.16, 0.015, P.col([90, 76, 40]));
     P_line(ctx, -0.06, 0.45, 0, 0.7, 0.012, fil); P_line(ctx, 0, 0.7, 0.06, 0.45, 0.012, fil);
-  },
-  // the shutter crank: a bent steel rod with a hook end
-  crank(ctx, P) {
-    const st = P.col([120, 120, 126]), d = P.col([70, 70, 76]);
-    P_line(ctx, -0.3, 0.1, -0.3, 0.7, 0.06, st); P_line(ctx, -0.3, 0.7, 0.05, 0.7, 0.06, st); P_line(ctx, 0.05, 0.7, 0.05, 0.9, 0.06, st);
-    P_line(ctx, -0.42, 0.1, -0.18, 0.1, 0.05, d); P_line(ctx, -0.3, 0.02, -0.3, 0.2, 0.09, d);
-    P_line(ctx, 0.05, 0.9, 0.3, 0.9, 0.09, P.col([40, 36, 34]));
-  },
-  bentcrank(ctx, P) {
-    const st = P.col([110, 104, 96]);
-    P_line(ctx, -0.3, 0.1, -0.22, 0.6, 0.06, st); P_line(ctx, -0.22, 0.6, 0.1, 0.5, 0.06, st); P_line(ctx, 0.1, 0.5, 0.2, 0.85, 0.06, st);
-    P_line(ctx, 0.2, 0.85, 0.42, 0.8, 0.09, P.col([40, 36, 34]));
   }
 };
 

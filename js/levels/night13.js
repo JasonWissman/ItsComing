@@ -6,9 +6,11 @@
 // until it is plainly the bedroom, in the morning, and always was. It dances at the foot of the bed and glitters away.
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.16, 0.16],
-  ['chain', 'Chain', 0.6, 0.75], ['padlock', 'Padlock', 0.22, 0.26], ['shotgun', 'Shotgun', 1.1, 0.36], ['shells', 'Shells', 0.3, 0.3], ['handle', 'Winch handle', 0.45, 0.45],
-  ['fuse', 'Fuse', 0.3, 0.3], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['beam', 'Bar', 1.4, 0.45], ['oilcan', 'Oil can', 0.28, 0.36], ['bulb', 'Bulb', 0.14, 0.2],
+  ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['shotgun', 'Shotgun', 1.1, 0.36], ['shells', 'Shells', 0.3, 0.3], ['handle', 'Winch handle', 0.45, 0.45],
+  ['fuse', 'Fuse', 0.3, 0.3], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['beam', 'Bar', 1.4, 0.45], ['journal', 'Notebook', 0.2, 0.26], ['bulb', 'Bulb', 0.14, 0.2],
 ];
+// each looks as it did on its own night (those nights define their own icons)
+const VOID_ICONS = { keys: 'carkeys', chain: 'coiledchain', journal: 'notebook' };
 // the void, and the same place in the morning (night 12's room with the sun in it)
 const VOID_PAL = { skyTop: [0, 0, 0], fog: [0, 0, 0], ground: [10, 10, 12], fogDist: 14 };
 const MORNING_PAL = { skyTop: [150, 190, 240], fog: [236, 236, 238], ground: [200, 190, 170], fogDist: 60 };
@@ -50,12 +52,11 @@ LEVELS.push({
     // the ring of everything, and what you start the night holding
     const hold = L.tier(3, 6), ringR = L.tier(2.0, 1.7);
     const rng = mulberry32((G.runSeed * 31 + 13) >>> 0);
-    // only what this difficulty ever put in your hands: the fuse and the oil can are Nightmare's
-    const tools = VOID_TOOLS.filter(([id]) => L.nightmare || !['fuse', 'oilcan'].includes(id));
+    const tools = VOID_TOOLS;
     const order = tools.slice().sort(() => rng() - 0.5);
     order.forEach(([id, name, w, h], k) => {
       const a = k / order.length * TAU + 0.2, r = ringR + (k % 2) * 0.5;
-      const it = mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, tool: id === 'shotgun' || id === 'matches' || id === 'hammer', uses: id === 'shells' ? 3 : 1 });
+      const it = mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: VOID_ICONS[id] || id, tool: id === 'shotgun' || id === 'matches' || id === 'hammer', uses: id === 'shells' ? 3 : 1 });
       if (k < hold) { it.taken = true; G.inv.push(it); }
     });
     G.active = 0;

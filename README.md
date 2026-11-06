@@ -63,7 +63,7 @@ There is no difficulty to pick: the game is one hard game.
 - There are no hints. The card gives only the situation, there is no objective line, and hovering a target shows only its name.
 - When something does not work, the line you get says what is wrong without saying what to do.
 - It can come from any way a night allows, with no compass mark, and on some nights it changes its mind once while you are not looking.
-- Lying about are things that look right and are not: a rotten plank, a set of house keys, a bag of sugar, a rusted padlock. They look worn, drained toward rust-brown, so a careful eye can tell them apart.
+- Lying about are things that look right and are not: a rotten plank, a set of house keys, a bag of sugar, a rusted padlock, a blown fuse. They look worn and off-colour (drained toward rust-brown, the plank grey-green with rot, the house keys' cover red where the car keys' is green, the sugar in a red bag), so a careful eye can tell them apart.
 - Every task is something you would do in a real place on a bad night: board a doorway with a hammer and planks, chain and padlock a gate, put a new bulb in a lamp, crank a shutter down, make a phone call.
 
 Every way it can come is fully visible from where you stand: the approach lanes are checked by
@@ -80,29 +80,36 @@ Each level is one thing coming at you and a small set of steps to survive it.
 Items are scattered around you in different directions, some at eye level and
 some on the ground, so you have to turn and look down to find them.
 
-1. **The Field.** A tall thin walker crosses a moonlit field toward the open back
-   door of a farmhouse. Find the hammer and every loose plank around the house, and board the door up.
-2. **The Road.** Your car has stalled. Something pale comes up the road on all
-   fours, in bursts, in the headlights. Find the keys and start the engine (on Nightmare,
-   put the stick back in park first).
+1. **The Field.** A tall thin walker crosses a moonlit field toward a farmhouse whose
+   two doorways have no doors. Find the hammer, the nails and the loose planks, and board
+   up both: board the one it is coming for and it runs round the house to the other.
+2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
+   fours, in bursts, in the headlights. Find the car keys (the green ones), put the stick in
+   park and turn the key until it catches; then pick a gear and hit the gas. Reverse always
+   gets away; drive does only if it is coming along a verge. The whole road slides past as
+   you go.
 3. **The Graveyard.** A smiling man walks between the graves and never stops
-   smiling. Salt the chapel threshold and light the lantern by the door.
+   smiling. Salt both ways in, the doorway and the side gate, and hang and light a
+   lantern by each. The sugar comes in a red bag.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
-   You must look away to chain and padlock the gate. Every glance away costs you.
+   You must look away to shut both gates, chain each with its own chain, and padlock
+   them. One padlock is rusted solid. Every glance away costs you.
 5. **The Clearing.** Something that sprints, drops to all fours to watch, and
    sprints again. Get the shotgun, load it, and wait for it to come close enough.
 6. **The Boathouse.** Something swims in across the water, going under for a
-   while and coming up closer. Crank the water door down, or bar the side door.
+   while and coming up closer. The winch is chained and padlocked: the key is in the
+   tackle box. Crank the water door down, and shut and bar the side door.
 7. **The Lighthouse.** The lamp is out and something is climbing the outside of
-   the tower. You only see it by looking over the rail. Put the spare bulb in the
-   lamp and turn the crank so the beam goes round (on Nightmare, a new fuse first).
-8. **The Diner.** A man-shaped thing in the lot that only moves while you are
-   looking at it, and freely once the lights are gone. Hold the shutter down over
-   its way in and it goes round to the window under the OPEN sign, where only the
-   light holds it; flip the tripped breakers back up before the last tube dies.
-9. **The Crossing.** Two things. A signalman walks the line straight at your box
-   and stops for a red signal; something else comes across the snow for the door.
-   Stop him with the red light, throw the track switch so the train comes down his track, bar the door.
+   the tower; you see it by looking over the rail, and it climbs faster while you do
+   not. Put the spare bulb in the lamp, open the fuse box, pull the blown fuse and put
+   in the new one from the toolbox, and turn the crank so the beam goes round.
+8. **The Diner.** A man-shaped thing in the lot is drawn to the light: while the
+   lights are on it comes fast. Throw the power main on the back wall, find the crank,
+   and crank all three shutters down; each time its window shuts it slides along the
+   glass to one still open.
+9. **The Phone Booth.** It is raining and a man in a long coat is walking down the
+   street toward the booth. Find the number in your notebook and dial it. It rings
+   for seven seconds before anyone answers, and he keeps coming the whole time.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass: facing a mirror holds it. One of the four mirrors is not like the
     others. Put the music box on that mirror's pedestal, fit the key with the heart and
@@ -190,6 +197,9 @@ LEVELS.push({
   dropped items may land), `L.dynamic()` (per-frame props via `SC.mkQuad` and friends),
   `L.update(dt)`, `L.onReach(c)`, `L.onCatch(c)`, `L.onPickup(it)`, `L.onDrop(it)`, `L.glows()`,
   `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`, `L.deathCause(c)` (a key into `text.death`),
+  `L.aftermath(t, dt)` (a custom aftermath; return true when it is over), `L.watchPoint()` (where the win camera
+  looks instead of at the thing), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
+  and lights flagged `attach: true` ride with it, everything else slides past; the night 2 car drives off this way),
   `L.onDecoy(t, item)`, `L.onLaneSwitch(c, lane)`, and `L.sealed(lane)`: a creature reaching a
   sealed way is held at the barrier (or where it is, if it got inside first) until the night is won.
   On Nightmare it goes round after 2.5 s to a way that is still open, starting 3 m outside that way's

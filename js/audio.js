@@ -109,7 +109,7 @@ const AUDIO = (() => {
       const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2200;
       const rg = ac.createGain(); rg.gain.value = 0.09 * p.rain;
       const rl = ac.createOscillator(); rl.frequency.value = 0.07; const rlg = ac.createGain(); rlg.gain.value = 0.03 * p.rain; rl.connect(rlg); rlg.connect(rg.gain);
-      rs.connect(hp); hp.connect(rg); rg.connect(g); rs.start(); rl.start(); nodes.push(rs, rl);
+      rs.connect(hp); hp.connect(rg); rg.connect(g); nodes.push(rs, rl);   // started with the rest below, once
     }
     // drone: two detuned oscillators, very quiet
     const dg = ac.createGain(); dg.gain.value = 0.05 * (p.drone === undefined ? 1 : p.drone);
@@ -274,8 +274,6 @@ const AUDIO = (() => {
       case 'tubeOn': tone(120, 0.35, { vol: 0.1, type: 'sawtooth', attack: 0.05 }); noise(0.08, { type: 'highpass', freq: 3000, vol: 0.15 }); break;
       case 'glassGive': tone(90, 0.9, { vol: 0.12, type: 'sawtooth', endFreq: 55, pan }); for (let i = 0; i < 6; i++) noise(0.025, { type: 'highpass', freq: 4200, vol: 0.16, delay: 0.1 + i * 0.09 + Math.random() * 0.04, pan }); tone(2400, 0.12, { vol: 0.06, type: 'triangle', endFreq: 1700, delay: 0.55, pan }); break;
       case 'glassTap': for (let i = 0; i < 3; i++) tone(1900, 0.04, { vol: 0.14, type: 'triangle', endFreq: 1500, delay: i * 0.28, pan }); break;
-      case 'horn': for (const f of [311, 370, 466]) tone(f, 1.6, { vol: 0.14, type: 'sawtooth', attack: 0.15, pan }); noise(1.4, { type: 'bandpass', freq: 900, q: 1.5, vol: 0.12, attack: 0.2, pan }); break;
-      case 'brakes': noise(2.4, { type: 'bandpass', freq: 2600, q: 5, vol: 0.55, attack: 0.1 }); tone(1900, 2.2, { vol: 0.12, type: 'sawtooth', endFreq: 1500, attack: 0.2 }); noise(1.8, { freq: 300, vol: 0.4, delay: 0.3, attack: 0.1 }); break;
       case 'musicbox': [[880, 0], [1175, 0.25], [1319, 0.5], [1175, 0.75], [988, 1.0], [880, 1.3], [1319, 1.7], [1568, 1.95], [1319, 2.3], [1175, 2.55]].forEach(([f, d]) => tone(f, 0.55, { vol: 0.06, type: 'triangle', delay: d, pan })); break;
       case 'tick': noise(0.012, { type: 'bandpass', freq: 3200, q: 4, vol: 0.14, pan }); tone(1600, 0.02, { vol: 0.05, type: 'square', pan }); break;
       case 'knock': for (const d of [0, 0.32]) { noise(0.06, { freq: 500, vol: 0.5, delay: d, pan }); tone(160, 0.12, { vol: 0.3, endFreq: 100, delay: d, pan }); } break;

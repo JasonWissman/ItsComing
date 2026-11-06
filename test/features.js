@@ -68,8 +68,9 @@ const hoverHit = lookFor;
   await page.evaluate(() => { G.L.creature.u = 0.5; });
   check(await page.evaluate(() => G.inv.length === 1), 'holding the hammer before restart');
   await page.keyboard.press('r'); await page.waitForTimeout(300);
-  v = await page.evaluate(() => ({ s: G.state, inv: G.inv.length, dist: G.L.creature.dist, dir: G.cam.dirIdx, lvl: G.levelIndex }));
-  check(v.s === 'play' && v.inv === 0 && v.dist > 100 && v.dir === 0 && v.lvl === 0, 'R restarts the level fresh (' + JSON.stringify(v) + ')');
+  // a restart rolls its way in again, and the view starts facing whichever way that is
+  v = await page.evaluate(() => ({ s: G.state, inv: G.inv.length, dist: G.L.creature.dist, dir: G.cam.dirIdx, want: ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8, lvl: G.levelIndex }));
+  check(v.s === 'play' && v.inv === 0 && v.dist > 100 && v.dir === v.want && v.lvl === 0, 'R restarts the level fresh (' + JSON.stringify(v) + ')');
   await page.evaluate(() => { G.L.creature.u = 0.995; }); await page.waitForTimeout(2600);
   check(await page.evaluate(() => G.state === 'dead'), 'died');
   await page.keyboard.press('R'); await page.waitForTimeout(300);
