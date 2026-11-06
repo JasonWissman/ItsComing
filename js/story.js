@@ -12,7 +12,7 @@ const STORY = (() => {
       P_rect(ctx, -0.18, 0, 0.36, 0.08, base); P_rect(ctx, -0.04, 0.08, 0.08, 0.42, base);
       ctx.fillStyle = shade; ctx.beginPath(); ctx.moveTo(-0.5, 0.5); ctx.lineTo(0.5, 0.5); ctx.lineTo(0.3, 1.0); ctx.lineTo(-0.3, 1.0); ctx.closePath(); ctx.fill();
       P_line(ctx, -0.5, 0.5, 0.5, 0.5, 0.03, shadeD);
-      if (on) { const g = ctx.createRadialGradient(0, 0.72, 0.05, 0, 0.72, 0.75); g.addColorStop(0, 'rgba(255,225,170,0.6)'); g.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = g; ctx.fillRect(-0.8, 0.05, 1.6, 1.3); }
+      if (on) { const g = ctx.createRadialGradient(0, 0.72, 0.05, 0, 0.72, 0.75); g.addColorStop(0, 'rgba(255,225,170,0.6)'); g.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = g; ctx.fillRect(-0.8, -0.04, 1.6, 1.52); }   // the whole of the glow's circle, so it has no hard top or bottom edge
     }, o.opts);
   }
   // a small round clock, stopped at ten past three
