@@ -27,16 +27,18 @@ Object.assign(ICONS, {
   const ROAD = -0.12;          // the road is a kerb's height below the pavement the booth stands on
   // ---------------- the notebook ----------------
   // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice; {n} an ordinary number, {k} the one to ring
-  const POOL = [
-    ['#shop', 'milk', '~bread', 'batteries, the square kind', 'bulbs, 60', '~stamps', 'something for the cough'],
+  const NAMES = ['Danny: {n}, after six', 'Mrs Pell upstairs: {n}', 'the garage: {n}', 'ask for Ray'];   // always in the notebook
+  const NUMBERED = [   // pages with someone ordinary's number on them: at least one more of these is always in it
     ['#dentist', 'Dr Okafor, Tuesday the 14th', 'twenty to ten', 'if you can\'t make it ring {n}'],
-    ['#Ruth\'s old address', '22 Corder Lane, top flat', 'the bell doesn\'t work,', 'go round the back', '(she moved. write anyway)'],
-    ['Danny: {n}, after six', 'Mrs Pell upstairs: {n}', 'the garage: {n}', 'ask for Ray'],
     ['#night bus', 'from the corner, :15 and :45', 'last one 12.45, not Sundays', 'Star Cabs: {n}'],
-    ['pay the gas', '~library books (3)', 'bins Thursday', '~ring Mum back', 'fix the hall light'],
-    ['#soup', '2 onions, carrots', 'a stock cube', 'an hour, low', 'salt at the end'],
     ['#rota', 'Mon, Tue lates', 'Wed off', 'ask K. about the spare keys', 'K. is on {n}'],
     ['#surgery', 'Dr Marsh: {n}', 'repeat prescription', 'Fridays, before eleven'],
+  ];
+  const PLAIN = [
+    ['#shop', 'milk', '~bread', 'batteries, the square kind', 'bulbs, 60', '~stamps', 'something for the cough'],
+    ['#Ruth\'s old address', '22 Corder Lane, top flat', 'the bell doesn\'t work,', 'go round the back', '(she moved. write anyway)'],
+    ['pay the gas', '~library books (3)', 'bins Thursday', '~ring Mum back', 'fix the hall light'],
+    ['#soup', '2 onions, carrots', 'a stock cube', 'an hour, low', 'salt at the end'],
     ['#birthdays', 'Mum, 3rd March', 'Danny, the 19th', 'Ruth ?'],
   ];
   const COAT = ['saw the man in the coat again', 'same corner, same time', 'he doesn\'t look at the cars', 'he doesn\'t look at anything'];
@@ -45,15 +47,16 @@ Object.assign(ICONS, {
     ['If you see him again,', 'ring {k}.', '!Don\'t wait for him to get close.'],
     ['when he comes back', '{k}', '!straight away. Don\'t wait.'],
   ];
-  // seven pages: the man in the coat, five ordinary ones and the one with the number, never first; every number distinct
+  // seven pages: the man in the coat, five ordinary ones and the one with the number, never first; every number distinct.
+  // The five always include the names with their numbers and one more numbered page, so there are always a few
+  // ordinary numbers to mistake for the one
   function writeNotebook(rand) {
     const used = new Set(), others = [];
     const num = () => { let n; do { n = Math.floor(rand() * 100); } while (used.has(n)); used.add(n); return '555-01' + String(n).padStart(2, '0'); };
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
     const key = num();
-    const pool = POOL.slice();
-    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
-    const pages = pool.slice(0, 5).concat([COAT]);
-    for (let i = pages.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const t = pages[i]; pages[i] = pages[j]; pages[j] = t; }
+    const numbered = shuffle(NUMBERED.slice());
+    const pages = shuffle([NAMES, numbered[0], COAT].concat(shuffle(numbered.slice(1).concat(PLAIN)).slice(0, 3)));
     const keyPage = 1 + Math.floor(rand() * pages.length);
     pages.splice(keyPage, 0, KEY[Math.floor(rand() * KEY.length)]);
     const filled = pages.map(lines => lines.map(l => l.replace('{k}', key).replace(/\{n\}/g, () => { const n = num(); others.push(n); return n; })));
@@ -70,15 +73,15 @@ Object.assign(ICONS, {
   }
   const LETTERS = { 2: 'ABC', 3: 'DEF', 4: 'GHI', 5: 'JKL', 6: 'MNO', 7: 'PQRS', 8: 'TUV', 9: 'WXYZ', 0: 'OPER' };
   const CSS = `
-.pb-nb { position: fixed; left: 22px; bottom: 22px; width: 380px; max-width: calc(50vw - 34px); transform: rotate(-1.3deg); transform-origin: 30% 100%; filter: drop-shadow(0 10px 16px rgba(0,0,0,.75)); -webkit-user-select: none; user-select: none; cursor: default; }
+.pb-nb { --lh: 26px; --pt: 26px; --mx: 40px; position: fixed; left: 22px; bottom: 22px; width: 380px; max-width: max(260px, calc(50vw - 215px)); transform: rotate(-1.3deg); transform-origin: 30% 100%; filter: drop-shadow(0 10px 16px rgba(0,0,0,.75)); -webkit-user-select: none; user-select: none; cursor: default; }
 .pb-cover { position: relative; padding: 18px 12px 42px; border-radius: 7px 9px 12px 10px; background: radial-gradient(ellipse at 30% 18%, #5c3a2d, #3a231b 72%); box-shadow: inset 0 0 0 2px #22140e, inset 0 0 24px rgba(0,0,0,.6); }
 .pb-cover::after { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(circle at 90% 88%, rgba(255,230,200,.09) 0 14px, transparent 15px), radial-gradient(ellipse at 4% 55%, rgba(0,0,0,.3) 0 22px, transparent 23px), linear-gradient(100deg, transparent 60%, rgba(255,240,220,.05) 61% 63%, transparent 64%); }
 .pb-rings { position: absolute; left: 24px; right: 24px; top: 7px; height: 17px; z-index: 2; background: repeating-linear-gradient(90deg, transparent 0 8px, #6f7178 8px 10px, #d0d2d6 10px 11px, #55575d 11px 13px, transparent 13px 22px); }
 .pb-sheet { position: relative; z-index: 1; min-height: 212px; border-radius: 2px 2px 3px 4px; background-color: #e3d9be; box-shadow: 0 2px 0 #cdc2a5, 0 4px 0 #d9cfb3, 0 6px 0 #c2b694, inset 0 0 34px rgba(120,92,46,.3);
-  background-image: radial-gradient(circle at 80% 74%, rgba(140,100,40,.15) 0 24px, rgba(140,100,40,.09) 25px 29px, transparent 30px), linear-gradient(90deg, transparent 0 40px, rgba(178,72,72,.45) 40px 41px, transparent 41px), repeating-linear-gradient(180deg, transparent 0 25px, rgba(78,98,140,.33) 25px 26px);
-  background-position: 0 0, 0 0, 0 24px; }
+  background-image: radial-gradient(circle at 80% 74%, rgba(140,100,40,.15) 0 24px, rgba(140,100,40,.09) 25px 29px, transparent 30px), linear-gradient(90deg, transparent 0 var(--mx), rgba(178,72,72,.45) var(--mx) calc(var(--mx) + 1px), transparent calc(var(--mx) + 1px)), repeating-linear-gradient(180deg, transparent 0 calc(var(--lh) - 1px), rgba(78,98,140,.33) calc(var(--lh) - 1px) var(--lh));
+  background-position: 0 0, 0 0, 0 calc(var(--pt) - 2px); }
 .pb-sheet::before { content: ''; position: absolute; top: 5px; left: 24px; right: 24px; height: 7px; background: radial-gradient(circle at 10.5px 3.5px, #2a1d16 0 2.6px, transparent 3.2px) 0 0 / 22px 7px repeat-x; }
-.pb-page { position: relative; padding: 26px 18px 10px 52px; min-height: 176px; font-family: 'Segoe Print', 'Bradley Hand', Noteworthy, 'Chalkboard SE', 'Comic Sans MS', 'Liberation Serif', Georgia, serif; font-style: italic; font-size: calc(16px * var(--text-scale)); line-height: 26px; color: #22305c; }
+.pb-page { position: relative; padding: var(--pt) 18px 10px calc(var(--mx) + 12px); min-height: 176px; font-family: 'Segoe Print', 'Bradley Hand', Noteworthy, 'Chalkboard SE', 'Comic Sans MS', 'Liberation Serif', Georgia, serif; font-style: italic; font-size: calc(16px * var(--text-scale)); line-height: var(--lh); color: #22305c; }
 .pb-l { transform-origin: 0 70%; text-decoration-color: rgba(34,48,92,.8); }
 .pb-l.h { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .pb-l.s { text-decoration: line-through; text-decoration-thickness: 2px; color: rgba(34,48,92,.7); }
@@ -106,6 +109,15 @@ Object.assign(ICONS, {
 .pb-hang:hover { background: #34373c; }
 @media (pointer: coarse) { .pb-kp, .pb-nb { bottom: 150px; } }
 @media (max-width: 700px) { .pb-nb { left: 8px; width: calc(58vw - 16px); max-width: none; } .pb-kp { right: 8px; width: calc(40vw - 16px); padding: 8px; } .pb-k { height: 34px; } }
+@media (pointer: coarse) and (max-height: 520px) {
+  .pb-kp { bottom: 128px; right: 10px; width: 198px; padding: 12px 13px; transform: scale(.72); transform-origin: 100% 100%; }
+  .pb-k { height: 42px; }
+  .pb-nb { --lh: 21px; --pt: 15px; --mx: 30px; bottom: 128px; left: 10px; width: 300px; max-width: calc(100vw - 190px); }
+  .pb-cover { padding: 15px 10px 34px; }
+  .pb-sheet, .pb-page { min-height: 0; }
+  .pb-page { padding-bottom: 8px; font-size: calc(13.5px * var(--text-scale)); }
+  .pb-nav { bottom: 4px; }
+}
 `;
 
   LEVELS.push({
@@ -116,9 +128,9 @@ Object.assign(ICONS, {
     lights: [{ x: 0, y: 2.25, z: -0.12, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
     startInv: ['journal'],
     text: {
-      intro: 'It has rained since the last bus, and the phone booth on the corner is the only light on the street.<br>Someone in a long coat is walking toward it from a long way off, in step, swinging a lantern. You have seen him before. The last time, you wrote something down.',
+      intro: 'It has rained since the last bus, and the phone booth on the corner is the only dry place on the street.<br>Someone in a long coat is walking toward it from a long way off, in step, swinging a lantern. You have seen him before. The last time, you wrote something down.',
       death: { default: 'He came through the glass as if it were rain.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.' },
-      win: 'Someone picked up and said your name, once, quietly, the way you call something home. Out in the rain he stopped at the edge of the light and stood there for a long time. Then he turned round and walked back the way he had come.',
+      win: 'Someone picked up and said your name, once, quietly, the way you call something home. Out in the rain he stopped where he was and stood there for a long time. Then he turned round and walked back the way he had come.',
       fragment: 'The number is still in the notebook, in your own handwriting. You do not remember writing it down, and you have not crossed it out.',
     },
     // three streets, each seen whole through a pane of the booth: up the main street through the door, and both ways along
@@ -278,7 +290,10 @@ Object.assign(ICONS, {
       side(-B, B, B, B); side(B, B, B, -BK); side(B, -BK, -B, -BK); side(-B, -BK, -B, B);
       SC.quad(L, [-B, 2.36, -BK], [B, 2.36, -BK], [B, 2.36, B], [-B, 2.36, B], [36, 38, 44]);
       SC.quad(L, [-0.3, 2.35, -0.17], [0.3, 2.35, -0.17], [0.3, 2.35, -0.07], [-0.3, 2.35, -0.07], [236, 242, 255], { noFog: true, noLight: true });
-      SC.box(L, 0.35, 0.38, 0.92, 1.34, B - 0.075, B - 0.045, [150, 154, 160]);   // the door's handle (the door is the north pane)
+      // the door's pull (the door is the north pane): a dull bar on two stand-offs from the glass, so it reads as part of the
+      // door and not as something lying loose to be picked up
+      SC.box(L, 0.355, 0.375, 0.94, 1.32, B - 0.07, B - 0.05, [92, 96, 104]);
+      for (const y of [0.97, 1.27]) SC.box(L, 0.358, 0.372, y, y + 0.022, B - 0.05, B - 0.004, [76, 80, 88]);
       // the pay phone on the back wall: its plate, the housing, an instruction card, the coin slot, the keypad, the coin return
       const PZ = -BK + 0.1, face = { sortDist: -PZ - 0.01 }, detail = { sortDist: -PZ - 0.015 };   // PZ: the housing's front
       SC.box(L, -0.22, 0.24, 0.98, 2.04, -BK + 0.005, -BK + 0.02, [58, 62, 68]);
@@ -288,13 +303,35 @@ Object.assign(ICONS, {
       for (let k = 0; k < 4; k++) SC.wallV(L, -0.085, PZ + 0.0015, 0.0, PZ + 0.0015, 1.665 + k * 0.024, 1.671 + k * 0.024, [90, 96, 120], detail);
       SC.wallV(L, 0.05, PZ + 0.001, 0.095, PZ + 0.001, 1.71, 1.76, [44, 46, 50], face); SC.wallV(L, 0.066, PZ + 0.0015, 0.079, PZ + 0.0015, 1.718, 1.752, [8, 8, 10], detail);
       SC.wallV(L, -0.07, PZ + 0.001, 0.07, PZ + 0.001, 1.36, 1.605, [96, 100, 106], face);
-      for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) { const x = (c - 1) * 0.045, y = 1.555 - r * 0.052; SC.wallV(L, x - 0.017, PZ + 0.0015, x + 0.017, PZ + 0.0015, y - 0.017, y + 0.017, [212, 214, 216], detail); }
+      // the keys, each with its figure on it, as on the keypad that comes up when you dial (facing the phone, +x is on your left)
+      const KEYS = ['123', '456', '789', '*0#'];
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+        const x = (1 - c) * 0.045, y = 1.555 - r * 0.052, ch = KEYS[r][c];
+        SC.wallV(L, x - 0.017, PZ + 0.0015, x + 0.017, PZ + 0.0015, y - 0.017, y + 0.017, [212, 214, 216], detail);
+        SC.sprite(L, x, y - 0.013, PZ + 0.002, 0.026, 0.026, (ctx, P) => {
+          ctx.translate(0, 0.013); ctx.scale(0.00105, -0.00105);
+          ctx.font = 'bold 20px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = P.col([30, 32, 38]); ctx.fillText(ch, 0, ch === '*' ? 5 : 1);
+        }, { sortDist: -PZ - 0.02 });
+      }
       SC.wallV(L, -0.045, PZ + 0.001, 0.045, PZ + 0.001, 1.28, 1.33, [30, 30, 34], face);
-      // the shelf under it, and the phone book chained to it
+      // the shelf under it, and the phone book chained to it: a fat directory lying with its spine to the wall, so what faces
+      // you is the block of pages between its yellow covers. Only the faces the eye can see are built (the eye is almost in
+      // line with its near side, which would only ever show as a sliver drawn over the cover)
       SC.box(L, -0.32, 0.32, 1.0, 1.03, -BK + 0.02, -BK + 0.24, [96, 100, 106]);
-      SC.box(L, -0.25, -0.01, 1.03, 1.1, -BK + 0.04, -BK + 0.2, [188, 160, 64]);
-      SC.box(L, -0.255, -0.005, 1.03, 1.045, -BK + 0.035, -BK + 0.205, [220, 214, 196]);
-      SC.quad(L, [-0.27, 1.08, -BK + 0.12], [-0.3, 1.035, -BK + 0.09], [-0.3, 1.035, -BK + 0.09], [-0.27, 1.08, -BK + 0.12], [130, 132, 138], { stroke: true, lw: 0.006 });
+      const PB = { x0: -0.25, x1: -0.01, z0: -BK + 0.04, z1: -BK + 0.2, y0: 1.03, y1: 1.1 }, cv = 0.008;
+      const yellow = [200, 166, 54], yellowD = scalec(yellow, 0.72);
+      SC.quad(L, [PB.x0, PB.y1, PB.z0], [PB.x1, PB.y1, PB.z0], [PB.x1, PB.y1, PB.z1], [PB.x0, PB.y1, PB.z1], yellow);   // the cover
+      SC.wallV(L, PB.x0, PB.z1, PB.x1, PB.z1, PB.y1 - cv, PB.y1, yellowD);                                             // its edge
+      SC.wallV(L, PB.x0 + 0.004, PB.z1 - 0.003, PB.x1 - 0.004, PB.z1 - 0.003, PB.y0 + cv, PB.y1 - cv, [216, 208, 184]);   // the pages
+      for (const y of [1.052, 1.07]) SC.wallV(L, PB.x0 + 0.004, PB.z1 - 0.0025, PB.x1 - 0.004, PB.z1 - 0.0025, y, y + 0.0025, [170, 160, 136], { sortDist: -PB.z1 - 0.004 });
+      SC.wallV(L, PB.x0, PB.z1, PB.x1, PB.z1, PB.y0, PB.y0 + cv, yellowD);                                             // the back cover's edge
+      // on the cover, toward the spine: the black band the title is printed in, and a line of small print under it
+      const onCover = (z0, z1, col) => SC.quad(L, [PB.x0 + 0.022, PB.y1 + 0.001, z0], [PB.x1 - 0.022, PB.y1 + 0.001, z0], [PB.x1 - 0.022, PB.y1 + 0.001, z1], [PB.x0 + 0.022, PB.y1 + 0.001, z1], col, { sortDist: -PB.z1 + 0.02 });
+      onCover(PB.z0 + 0.024, PB.z0 + 0.056, [34, 30, 26]); onCover(PB.z0 + 0.07, PB.z0 + 0.078, [120, 96, 34]);
+      // the chain, from the book's corner down to a ring at the back of the shelf
+      SC.quad(L, [PB.x0, 1.07, PB.z0 + 0.03], [-0.268, 1.046, PB.z0 + 0.02], [-0.284, 1.034, PB.z0 + 0.005], [-0.296, 1.04, -BK + 0.03], [140, 142, 148], { stroke: true, lw: 0.005 });
+      SC.box(L, -0.304, -0.288, 1.03, 1.05, -BK + 0.02, -BK + 0.03, [120, 122, 128]);
 
       // ---------------- the notebook, the receiver, the keypad, the phone book ----------------
       const journal = mkItem(L, 'journal', 'Notebook', { x: 0.2, y: 1.03, z: -BK + 0.14 }, { w: 0.18, h: 0.22, tool: true, icon: 'notebook' });
@@ -309,7 +346,8 @@ Object.assign(ICONS, {
         dom.prev.disabled = s.page === 0; dom.next.disabled = s.page === pageHtml.length - 1;
         if (flip) { dom.sheet.classList.remove('pb-flip'); void dom.sheet.offsetWidth; dom.sheet.classList.add('pb-flip'); }
       };
-      // the panels are made the first time they are wanted, behind the game's own overlay so a menu always covers them
+      // the panels are made the first time they are wanted, under the HUD (the toast, the tooltip and what you hold are always
+      // drawn over them) and so under the game's own overlay (a menu always covers them)
       const ensureDom = () => {
         if (dom) return;
         const style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
@@ -318,7 +356,7 @@ Object.assign(ICONS, {
         const kpEl = document.createElement('div'); kpEl.className = 'pb-kp'; kpEl.style.display = 'none'; kpEl.setAttribute('aria-label', 'Keypad');
         kpEl.innerHTML = '<button type="button" class="pb-kx" aria-label="Put the keypad away">×</button><div class="pb-lcd"><div class="pb-num"></div><div class="pb-st"></div></div><div class="pb-grid">' +
           ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(k => '<button type="button" class="pb-k" data-k="' + k + '">' + k + '<small>' + (LETTERS[k] || '') + '</small></button>').join('') + '</div><button type="button" class="pb-hang">Hang up</button>';
-        const before = document.getElementById('overlay');
+        const before = document.getElementById('hud') || document.getElementById('overlay');
         for (const el of [nbEl, kpEl]) {
           if (before) document.body.insertBefore(el, before); else document.body.appendChild(el);
           el.addEventListener('mousedown', e => e.preventDefault());               // no focus, no text selection
@@ -375,8 +413,10 @@ Object.assign(ICONS, {
         id: 'keypad', name: 'Keypad', x: 0, y: 1.35, z: PZ + 0.01, w: 0.16, h: 0.27,
         onClick() { if (s.hook !== 'off') { G.say('The receiver is still on its hook.', 'The receiver is on its hook.'); AUDIO.sfx('nope'); } else if (s.line !== 'answered') { openPad(); AUDIO.sfx('ui'); } return true; },
       });
+      // what you click is the whole book as the eye sees it: up the plane of its front edge to where the back of its cover shows
+      const bookTop = L.eyeH + (PB.y1 - L.eyeH) * PB.z1 / PB.z0;
       mkTarget(L, {
-        id: 'book', name: 'Phone book', x: -0.13, y: 1.03, z: -BK + 0.2, w: 0.3, h: 0.1,
+        id: 'book', name: 'Phone book', x: (PB.x0 + PB.x1) / 2, y: PB.y0 - 0.004, z: PB.z1, w: PB.x1 - PB.x0 + 0.016, h: bookTop - PB.y0 + 0.012,
         onClick() { AUDIO.sfx('nope'); G.say('The phone book has been out in the damp too long. The pages will not come apart.', 'The pages are swollen with damp. They will not come apart.'); return true; },
       });
       const sm = () => L.creatures[0];
@@ -424,9 +464,28 @@ Object.assign(ICONS, {
       const drng = mulberry32(4242);
       for (const [x0, z0, x1, z1, nx, nz] of [[-B, B, B, B, 0, 1], [B, B, B, -BK, 1, 0], [B, -BK, -B, -BK, 0, -1], [-B, -BK, -B, B, -1, 0]])
         for (let k = 0; k < 11; k++) drops.push({ x0, z0, x1, z1, nx, nz, u: 0.06 + drng() * 0.88, v: 0.04 + drng() * drng() * 0.4, ph: drng() * 10, len: 0.015 + drng() * 0.04 });
-      const Z = PZ - 0.02;   // the cord comes out of the bottom of the housing
-      const cordPts = off => (off ? [[0.1, 1.26, Z], [0.115, 1.08, Z + 0.06], [0.14, 0.92, Z + 0.2], [0.16, 0.82, Z + 0.37], [0.18, 0.76, Z + 0.54], [0.2, 0.74, Z + 0.68]]
-        : [[0.1, 1.26, Z], [0.112, 1.16, Z + 0.01], [0.14, 1.1, Z + 0.02], [0.163, 1.16, Z + 0.03], [0.166, 1.28, Z + 0.03]]).map(p => L.pt(p[0], p[1], p[2]));
+      // the cord: steel-armoured, out of the bottom of the housing. On the hook it hangs in a loop to the bottom of the
+      // handset; lifted, it runs over the front of the shelf and away toward you, out of the bottom of the view. It is a
+      // smooth curve through a few points with a twist drawn along it for the armour, in short lengths so that each is as
+      // thick as it is near
+      const Z = PZ - 0.02;
+      const cord = (ctrl, sd) => {
+        const out = [];
+        for (let i = 0; i < ctrl.length - 1; i++) {
+          const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)], seg = [];
+          const n = Math.max(6, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]) / 0.009));   // a twist every centimetre or so
+          for (let k = 0; k <= n; k++) { const t = k / n, t2 = t * t, t3 = t2 * t; seg.push([0, 1, 2].map(j => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3))); }
+          const twist = seg.map((p, k) => { const q = seg[Math.min(n, k + 1)], r = seg[Math.max(0, k - 1)], dx = q[0] - r[0], dy = q[1] - r[1], l = Math.hypot(dx, dy) || 1, s = (k & 1 ? 1 : -1) * 0.0028; return [p[0] + dy / l * s, p[1] - dx / l * s, p[2]]; });
+          const w = pts => pts.map(p => L.pt(p[0], p[1], p[2]));
+          out.push({ kind: 'poly', pts: w(seg), color: [54, 56, 62], stroke: true, lw: 0.0075, sortDist: sd - i * 0.0001 });
+          out.push({ kind: 'poly', pts: w(twist), color: [124, 126, 132], stroke: true, lw: 0.0016, sortDist: sd - i * 0.0001 - 0.00005 });
+        }
+        return out;
+      };
+      const cords = {
+        on: cord([[0.1, 1.26, Z], [0.104, 1.17, Z + 0.01], [0.13, 1.115, Z + 0.02], [0.158, 1.17, Z + 0.03], [0.166, 1.28, Z + 0.03]], -PZ - 0.035),
+        off: cord([[0.1, 1.26, Z], [0.104, 1.1, Z + 0.1], [0.11, 1.042, -BK + 0.245], [0.13, 0.9, -0.42], [0.15, 0.86, -0.3], [0.17, 1.0, -0.15], [0.18, 1.2, -0.05]], 0.3),
+      };
       // the handset, drawn as a billboard: the eye only ever sees it from where you stand
       const handset = SC.mkSprite(L, 0.166, 1.27, PZ + 0.03, 0.1, 0.44, (ctx, P) => {
         ctx.scale(0.1, 0.44);
@@ -437,20 +496,31 @@ Object.assign(ICONS, {
         P_line(ctx, -0.09, 0.26, -0.09, 0.74, 0.05, kl);                                    // the light along it
         for (const y of [0.86, 0.14]) for (const x of [-0.18, 0, 0.18]) P_ell(ctx, x, y, 0.05, 0.012, kd);
       }, { sortDist: -PZ - 0.04 });
+      // the empty cradle the handset hangs in, seen once it is lifted: a dark arm with a cup for each end, so what is left
+      // to click (the hook) is a thing you can see, the shape of what was taken from it
+      const cradle = SC.mkSprite(L, 0.166, 1.27, PZ + 0.03, 0.1, 0.44, (ctx, P) => {
+        ctx.scale(0.1, 0.44);
+        const arm = P.col([22, 23, 27]), cup = P.col([34, 35, 40]), hole = P.col([6, 6, 8]), bolt = P.col([96, 98, 104]);
+        P_rect(ctx, -0.16, 0.15, 0.32, 0.7, arm);
+        for (const y of [0.86, 0.14]) { P_ell(ctx, 0, y, 0.42, 0.062, cup); P_ell(ctx, 0, y + (y > 0.5 ? 0.01 : -0.01), 0.3, 0.034, hole); }
+        for (const y of [0.32, 0.68]) P_ell(ctx, 0, y, 0.055, 0.012, bolt);
+      }, { sortDist: -PZ - 0.025 });
       L.dynamic = () => {
         sync();
         const off = s.hook === 'off';
         const hy = off ? 1.665 : 1.615;   // the hook rises when the weight comes off it
+        if (off) R.add(cradle);
         R.add(SC.mkQuad(L, [0.12, hy, PZ - 0.012], [0.15, hy, PZ - 0.012], [0.15, hy + 0.018, PZ - 0.012], [0.12, hy + 0.018, PZ - 0.012], [150, 154, 160], { sortDist: -PZ - 0.03 }));
         R.add(SC.mkQuad(L, [0.15, hy - 0.01, PZ - 0.012], [0.158, hy - 0.01, PZ - 0.012], [0.158, hy + 0.018, PZ - 0.012], [0.15, hy + 0.018, PZ - 0.012], [120, 124, 130], { sortDist: -PZ - 0.031 }));
         if (!off) R.add(handset);
-        R.add({ kind: 'poly', pts: cordPts(off), color: [126, 128, 134], stroke: true, lw: 0.008, sortDist: off ? 0.3 : -PZ - 0.035 });
-        // rain on the outside of the glass: thin runs, each sliding down at its own pace
+        for (const c of off ? cords.off : cords.on) R.add(c);
+        // rain on the outside of the glass: thin runs, each sliding down at its own pace with a bead of water at its foot
         for (const d of drops) {
           const x = d.x0 + (d.x1 - d.x0) * d.u + d.nx * 0.012, z = d.z0 + (d.z1 - d.z0) * d.u + d.nz * 0.012;
           const y = 2.02 - ((L.t * d.v + d.ph) % 1.7);
           if (y < 0.3) continue;
-          R.add(SC.mkQuad(L, [x - d.nz * 0.0025, y, z - d.nx * 0.0025], [x + d.nz * 0.0025, y, z + d.nx * 0.0025], [x + d.nz * 0.0025, y + d.len, z + d.nx * 0.0025], [x - d.nz * 0.0025, y + d.len, z - d.nx * 0.0025], [196, 208, 228], { alpha: 0.35, noFog: true, noLight: true }));
+          const at = (a, dy) => [x + d.nz * a, y + dy, z + d.nx * a];   // a along the pane, dy up it
+          R.add({ kind: 'poly', pts: [at(-0.0008, d.len), at(0.0008, d.len), at(0.0009, 0.006), at(0.0026, 0.0032), at(0, 0), at(-0.0026, 0.0032), at(-0.0009, 0.006)].map(p => L.pt(p[0], p[1], p[2])), color: [196, 208, 228], alpha: 0.3, noFog: true, noLight: true });
         }
       };
       // his lantern: a warm light that walks with him, and its glow
