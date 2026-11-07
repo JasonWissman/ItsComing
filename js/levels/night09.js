@@ -527,7 +527,17 @@ Object.assign(ICONS, {
       // his lantern: a warm light that walks with him, and its glow
       const lanternAt = () => { const c = sm(), p = c.pos(), side = c.away ? -0.46 : 0.46; return { x: p.x + Math.cos(c.yaw) * side, y: p.y + 0.75, z: p.z - Math.sin(c.yaw) * side }; };
       L.dynamicLights = () => { const p = lanternAt(); return [{ x: p.x, y: p.y, z: p.z, r: 4.5, i: 0.6, color: [255, 190, 110], flicker: 0.3, seed: 5, cone: { x: 0, y: -1, z: 0, cos: Math.cos(75 * DEG) } }]; };
-      L.glows = () => { const p = lanternAt(); return lampGlows.concat([{ x: p.x, y: p.y, z: p.z, r: 1.5, color: [255, 190, 110], a: 0.42 }]); };
+      // a street lamp's halo is drawn over everything, so one behind him (inside his outline as seen from the booth) is left out
+      const behindHim = g => {
+        const c = L.creatures[0]; if (!c || c.dead) return false;
+        const cp = c.pos(), cd = Math.hypot(cp.x, cp.z), gd = Math.hypot(g.x, g.z);
+        if (gd <= cd) return false;
+        const da = Math.abs(wrapPi(Math.atan2(g.x, g.z) - Math.atan2(cp.x, cp.z)));
+        if (da > (c.CR.w * 0.5) / Math.max(0.5, cd) + g.r / gd) return false;
+        const ty = (g.y - L.eyeH) / gd, top = (cp.y + (c.yOff || 0) + c.CR.h - L.eyeH) / cd, bot = (cp.y + (c.yOff || 0) - L.eyeH) / cd;
+        return ty < top + g.r / gd && ty > bot - g.r / gd;
+      };
+      L.glows = () => { const p = lanternAt(); return lampGlows.filter(g => !behindHim(g)).concat([{ x: p.x, y: p.y, z: p.z, r: 1.5, color: [255, 190, 110], a: 0.42 }]); };
       L.floor = { poly: [[-0.48, -BK + 0.08], [0.48, -BK + 0.08], [0.48, 0.48], [-0.48, 0.48]], y: 0.03 };
     },
   });

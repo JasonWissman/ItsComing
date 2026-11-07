@@ -108,8 +108,13 @@ LEVELS.push({
     // the hay: a stack in the yard under the loft door, and a stack on the barn floor to the east
     // the yard hay stands either side of the chute's foot, leaving the way up it clear (it is never hidden on its way in);
     // lit, the fire spreads across the gap and it stands beyond it (barrier 15 m out along the ground)
+    const hayAt0 = L.props.length;
     SC.box(L, -3.4, -1.1, 0, 1.4, 11.6, 14.0, hay); SC.box(L, 1.1, 3.4, 0, 1.4, 11.6, 14.0, hay); SC.box(L, -3.0, -1.5, 1.4, 2.0, 11.9, 13.7, hayD); SC.box(L, 1.5, 3.0, 1.4, 2.0, 11.9, 13.7, hayD);
-    SC.box(L, 7.8, 11.2, 0, 1.6, -3.9, -1.3, hay); SC.box(L, 8.3, 10.7, 1.6, 2.4, -3.5, -1.7, hayD); SC.box(L, 8.0, 10.0, 0, 1.2, 1.2, 2.6, hayD);
+    const hayYard = L.props.slice(hayAt0);
+    const hayAt1 = L.props.length;
+    SC.box(L, 7.8, 11.2, 0, 1.6, -3.9, -1.3, hay); SC.box(L, 8.3, 10.7, 1.6, 2.4, -3.5, -1.7, hayD);
+    const hayBarn = L.props.slice(hayAt1);
+    SC.box(L, 8.0, 10.0, 0, 1.2, 1.2, 2.6, hayD);
     // loft clutter: the oil drum with its tap, crates, a lantern on one of them, sacks
     // the oil drum: a sprite (a drum looks the same from every side) on the target's own spot, so the outline you see when you
     // point at it is round the drum. Hoops, a lid with its bungs, and at the front the tap: rusted solid, rust-red with its
@@ -217,6 +222,11 @@ LEVELS.push({
       const c = c0();
       c.load = G.inv.reduce((a, i) => a + (i.weight || 1), 0);
       if (s.wetN > 0) s.wetN -= dt; if (s.wetE > 0) s.wetE -= dt;
+      // soaked hay looks it: the stack darkens, and lightens again as it dries over its last seconds
+      for (const [props, k] of [[hayYard, 'wetN'], [hayBarn, 'wetE']]) {
+        const w = clamp(s[k] / 5, 0, 1);
+        for (const p of props) { if (!p.dry) p.dry = p.color; p.color = w > 0 ? mixc(p.dry, [44, 40, 30], 0.62 * w) : p.dry; }
+      }
       if (!s.ladderUp) s.ladderK = Math.max(0, s.ladderK - dt); else s.ladderK = Math.min(1, s.ladderK + dt * 1.5);
       // on Nightmare a fire or the ladder holds it, but the night wants both: say what it is waiting at, once
       if (L.nightmare && c.sealHold && !L.won && !s.toldHeld) { s.toldHeld = true; G.say(s.ladderUp ? 'It stops below the loft and waits. There is no fire between you yet.' : 'It stops at the fire and waits. The ladder is still down.', s.ladderUp ? 'It stops below the loft, and waits. There is no fire between you yet.' : 'It stops at the fire, and waits. The ladder is still down.'); }

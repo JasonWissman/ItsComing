@@ -286,10 +286,12 @@ const ICONS = {
     heartShape(ctx, 0.2, 0.2, 0.06, brass, dark);
   },
   spring(ctx, P) {
-    const st = P.col([150, 150, 156]);
-    ctx.strokeStyle = st; ctx.lineWidth = 0.035; ctx.beginPath();
-    for (let i = 0; i < 40; i++) { const u = i / 39, a = u * TAU * 4; const x = Math.cos(a) * 0.18, y = 0.15 + u * 0.6 + Math.sin(a) * 0.05; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
-    ctx.stroke();
+    // a copper coil over a dark edge, so it reads on light and dark floors alike
+    const coil = () => { ctx.beginPath(); for (let i = 0; i < 40; i++) { const u = i / 39, a = u * TAU * 4; const x = Math.cos(a) * 0.2, y = 0.12 + u * 0.66 + Math.sin(a) * 0.06; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); };
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = P.col([30, 22, 18]); ctx.lineWidth = 0.11; coil();
+    ctx.strokeStyle = P.col([196, 118, 64]); ctx.lineWidth = 0.065; coil();
+    ctx.strokeStyle = P.cola([255, 214, 168], 0.6); ctx.lineWidth = 0.02; coil();
   },
   // a wrench, a water pail and a feed sack: heavy things for the barn
   wrench(ctx, P) {

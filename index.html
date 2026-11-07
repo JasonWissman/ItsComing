@@ -22,7 +22,7 @@
   #mute:hover { color: #efe6d2; }
   #mute.off { color: #b3161e; }
   #tooltip { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%); font-size: calc(15px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 12px #000; display: none; font-style: italic; padding: 4px 30px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
-  #toast { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); font-size: calc(17px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 14px #000; opacity: 0; transition: opacity .35s; white-space: nowrap; padding: 6px 36px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
+  #toast { position: absolute; top: calc(var(--view-top, 0px) + 86px); left: 50%;   /* up under the compass: never across what you just used */ transform: translateX(-50%); font-size: calc(17px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 14px #000; opacity: 0; transition: opacity .35s; white-space: nowrap; padding: 6px 36px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast.show { opacity: 1; }
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
@@ -107,8 +107,8 @@
   body.menu #touch { display: none; }
   #touch button { background: rgba(0,0,0,.5); border: 1px solid rgba(207,200,186,.3); color: #efe6d2; font-size: 18px; border-radius: 6px; touch-action: none; -webkit-tap-highlight-color: transparent; }
   #touch #tZoom { grid-column: 3; grid-row: 1 / span 2; font-size: 11px; letter-spacing: .1em; }
-  @media (pointer: coarse) { #touch { display: grid; } #inventory { left: 18px; width: min(172px, calc(100vw - 266px)); transform: none; flex-wrap: wrap-reverse; column-gap: 6px; row-gap: 18px; } :root[data-touch-left] #inventory { left: auto; right: 18px; } .slot, .slot canvas { width: 50px; height: 50px; } #tooltip, #toast { bottom: 150px; } #caption { bottom: 200px; } }
-  @media (max-width: 700px) { #compass { top: 44px; } #pitch { top: 74px; } #zoom { top: 94px; } #objective { top: 44px; } #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: calc(15px * var(--text-scale)); } #objective { max-width: 48vw; font-size: calc(12px * var(--text-scale)); } #compass { gap: 10px; font-size: 11px; } }
+  @media (pointer: coarse) { #touch { display: grid; } #inventory { left: 18px; width: min(172px, calc(100vw - 266px)); transform: none; flex-wrap: wrap-reverse; column-gap: 6px; row-gap: 18px; } :root[data-touch-left] #inventory { left: auto; right: 18px; } .slot, .slot canvas { width: 50px; height: 50px; } #tooltip { bottom: 150px; } #caption { bottom: 200px; } }
+  @media (max-width: 700px) { #compass { top: 44px; } #pitch { top: 74px; } #zoom { top: 94px; } #toast { top: calc(var(--view-top, 0px) + 116px); } #objective { top: 44px; } #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: calc(15px * var(--text-scale)); } #objective { max-width: 48vw; font-size: calc(12px * var(--text-scale)); } #compass { gap: 10px; font-size: 11px; } }
 </style>
 </head>
 <body>

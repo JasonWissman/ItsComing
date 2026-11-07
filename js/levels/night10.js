@@ -73,7 +73,7 @@ LEVELS.push({
     }
     // the way out onto the dark fair, curtains pulled aside: the bell six metres out, the carousel beyond
     const CAR = L.lanes[CAROUSEL].deg * DEG, carAt = d => [Math.sin(CAR) * d, Math.cos(CAR) * d];
-    for (const [x0, x1] of [[-2.9, -2.62], [-1.98, -1.7]]) SC.wallV(L, x0, -3.52, x1, -3.52, 0, 2.3, [70, 20, 30], { alpha: 0.85 });
+    for (const [x0, x1] of [[-2.9, -2.62], [-1.98, -1.7]]) SC.wallV(L, x0, -3.52, x1, -3.52, 0, 2.3, [70, 20, 30]);
     // the aperture of the way out, seen along its lane: the doorway (x -2.9..-1.7 in the south wall) projected across the lane
     L.addAperture(CAROUSEL, { z: 4.19, x0: -0.54, x1: 0.47, y0: 0.12, y1: 2.25 });
     SC.floorQ(L, -80, -80, 80, -3.6, -0.01, [46, 42, 40]);

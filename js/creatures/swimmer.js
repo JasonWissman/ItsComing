@@ -25,7 +25,7 @@ CREATURES.swimmer = {
     const fresh = clamp(1 - (G.L.t - c.surfaced) / 1.2, 0, 1);
     // it rises a little as it closes, and all the way out when it lunges; the water line is y = 0 until the lunge lifts the
     // whole drawing toward the eye (c.yOff): then it is y = -c.yOff, and the rings stay down there on the water and fade
-    const rise = 0.02 + near * 0.08 + lunge * 0.55 + Math.sin(t * 1.1) * 0.015;
+    const rise = (0.02 + near * 0.08 + Math.sin(t * 1.1) * 0.015) * (1 - lunge);   // the death lift is the game's: the face ends at eye height
     const wl = -(c.yOff || 0), calm = 1 - lunge;
     for (let i = 0; i < 3; i++) { const k = (fresh + i * 0.33 + t * 0.12) % 1; P_ell(ctx, 0, wl, 0.26 + k * 0.55, 0.04 + k * 0.05, P.cola(ring, 0.32 * (1 - k) * calm)); }
     ctx.save(); ctx.beginPath(); ctx.rect(-1, wl, 2, 3 - wl); ctx.clip(); // nothing below the water line is drawn: the water shows there

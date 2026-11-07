@@ -56,7 +56,7 @@ LEVELS.push({
     // ---- the room: tiles, walls, ceiling, the kitchen pass and the back counter ----
     for (let x = -4; x < 4; x++) for (let z = -2.5; z < 5; z++) SC.floorQ(L, x, z, x + 1, Math.min(z + 1, 5), 0.004, ((x + Math.floor(z)) & 1) ? tileA : tileB);
     SC.quad(L, [-4, 3, -2.5], [4, 3, -2.5], [4, 3, 5], [-4, 3, 5], [70, 66, 60]);
-    SC.wallV(L, -4, -2.5, 4, -2.5, 0, 3, cream); SC.wallV(L, -4, -2.49, 4, -2.49, 1.05, 1.2, red);
+    SC.wallV(L, -4, -2.5, 4, -2.5, 0, 3, cream); SC.wallV(L, -4, -2.49, -1, -2.49, 1.05, 1.2, red); SC.wallV(L, 1, -2.49, 4, -2.49, 1.05, 1.2, red);   // the stripe stops at the kitchen pass
     SC.wallV(L, 4, -2.5, 4, 5, 0, 3, creamD); SC.wallV(L, -4, -2.5, -4, 5, 0, 3, creamD);
     SC.wallV(L, 3.99, -2.5, 3.99, 5, 1.05, 1.2, red); SC.wallV(L, -3.99, -2.5, -3.99, 5, 1.05, 1.2, red);
     // the door to the back, on the staff side of the counter: a dark frame, the door, a round window and a push plate
@@ -212,7 +212,7 @@ LEVELS.push({
       { x: 2.4, y: 0, z: -0.3 },                        // on the floor behind the counter
       { x: 1.3, y: 1.0, z: 1.05 },                      // on the counter, clear of the lamp
       { x: 2.7, y: 0.9, z: -2.15 },                     // on the back counter, beside the coffee machine
-      { x: -0.5, y: 1.02, z: -2.4 },                    // on the ledge of the kitchen pass
+      { x: -0.5, y: 1.02, z: -2.36, jitter: 0 },        // on the ledge of the kitchen pass, at its front edge (no jitter: the ledge is 20 cm deep)
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
     ], { w: 0.5, h: 0.5, flat: true, tool: true, icon: 'shutterCrank' });
 

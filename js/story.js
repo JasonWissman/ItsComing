@@ -63,6 +63,7 @@ const STORY = (() => {
     for (const s of [-1, 1]) { const hx = -3.2, hz = s * 0.9, a = 160 * DEG; SC.wallV(L, hx, hz, hx + Math.sin(a) * 0.85, hz - s * Math.cos(a) * 0.85, 0, 2.15, wood); }
     // the hall beyond the doorway
     SC.floorQ(L, -1.2, 3.6, 1.2, 8, 0.002, day ? [150, 128, 96] : [20, 16, 14]);
+    SC.quad(L, [-1.2, 2.5, 3.6], [1.2, 2.5, 3.6], [1.2, 2.5, 8], [-1.2, 2.5, 8], day ? [228, 222, 210] : [24, 20, 22]);   // its ceiling
     SC.wallV(L, -1.2, 8, 1.2, 8, 0, 2.5, day ? [206, 196, 180] : [14, 12, 12]); SC.wallV(L, -1.2, 3.62, -1.2, 8, 0, 2.5, day ? [190, 178, 160] : [16, 13, 13]); SC.wallV(L, 1.2, 3.62, 1.2, 8, 0, 2.5, day ? [190, 178, 160] : [16, 13, 13]);
     if (day) SC.wallV(L, -0.4, 7.98, 0.4, 7.98, 0.3, 2.2, [255, 250, 230], { noFog: true, noLight: true });
     // the window: glass, a sill, curtains

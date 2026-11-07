@@ -454,7 +454,7 @@ const R = (() => {
   }
   // a dynamic renderable touching the statics: an item on a table, a chain on its peg, covers on a bed
   function settleDynamic(p) {
-    if (p.layer < 1 || p.detail || p.invisible || (p.sortDist !== undefined && early(p))) return;
+    if (p.layer < 1 || p.detail || p.invisible || p.noContact || (p.sortDist !== undefined && early(p))) return;   // noContact: the creature, which stands on its lane, not on what it passes
     after(p, touching(contacts, p));
   }
 
@@ -543,7 +543,11 @@ const R = (() => {
       let bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
       // a card keeps its apparent height but stands straight up on screen: at the edge of a downward view perspective
       // would otherwise shear it into a slanted parallelogram
-      if (p.card) { by = -Math.hypot(bx, by); bx = 0; }
+      if (p.card) {
+        // a card whose top would project below its base is behind or under the eye, against the near plane: not drawn
+        if (by >= 0 || cv[2] < base[2] * 0.5) { if (p.onRect) p.onRect(null); return; }
+        by = -Math.hypot(bx, by); bx = 0;
+      }
       // corners of the box centered at x (u from -w/2..w/2), v from 0..h
       const xs = [], ys = [];
       for (const [u, v] of [[-p.w / 2, 0], [p.w / 2, 0], [p.w / 2, p.h], [-p.w / 2, p.h]]) { xs.push(b[0] + ax * u + bx * v); ys.push(b[1] + ay * u + by * v); }

@@ -729,7 +729,7 @@ function render() {
     const CR = cr.CR, pos = cr.pos();
     let p = rend.get(cr);
     if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); if (!cr.moving) ctx.rotate(0.008 * Math.sin(cr.t * 0.7)); } CR.draw(ctx, cr, P); } }; rend.set(cr, p); }
-    p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = Math.hypot(cr.dist, cr.lat || 0); p.layer = 1;   // its sideways offset counts: it sorts by how far it really is
+    p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = Math.hypot(cr.dist, cr.lat || 0); p.layer = 1; p.noContact = true;   // its sideways offset counts: it sorts by how far it really is
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);
   }
@@ -773,7 +773,7 @@ function updateHUD() {
     for (let i = 0; i < 8; i++) html += '<span class="' + (i === cur ? 'cur' : '') + (ticks.includes(i) ? ' thing' : '') + '">' + DIR_NAMES[i] + '</span>';
     UI.compass.innerHTML = html;
   }
-  UI.pitch.textContent = c.tPitch > 0.1 ? '▼ looking down' : '▲ looking ahead';
+  UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : '▲ looking ahead';   // the win camera's small tilt is not looking down
   UI.zoom.style.opacity = c.zoomHeld && G.state === 'play' && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
