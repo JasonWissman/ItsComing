@@ -12,10 +12,20 @@ CREATURES.carrier = {
     const sack = P.col([96, 80, 60]), sackD = P.col([62, 50, 36]), skin = P.col([160, 140, 122]), black = P.col([8, 6, 6]), teeth = P.col([220, 210, 190]);
     const load = clamp((c.load || 0) / 6, 0, 1);
     if (c.sitting) {
-      // sat in the yard, facing the loft, arms round its knees
-      P_ell(ctx, 0, 0.42, 0.62, 0.42, sack); P_ell(ctx, 0, 0.35, 0.5, 0.2, sackD);
-      P_ell(ctx, 0, 0.95, 0.24, 0.26, sack); P_ell(ctx, 0, 0.92, 0.17, 0.19, skin);
-      P_ell(ctx, -0.07, 0.96, 0.03, 0.02, black); P_ell(ctx, 0.07, 0.96, 0.03, 0.02, black);
+      // sat facing the loft, knees drawn up and its arms locked round them, its head sunk between its shoulders and its
+      // eyes still on you: a hunched shape, not a ring (a dark middle drawn inside the body read as a hole at a distance)
+      P_poly(ctx, [[-0.5, 0.02], [0.5, 0.02], [0.46, 0.46], [0.3, 0.78], [-0.3, 0.78], [-0.46, 0.46]], sackD);   // its back and haunches
+      P_ell(ctx, 0, 0.62, 0.44, 0.24, sack);                                                                    // the hunched shoulders
+      for (const sx of [-1, 1]) { P_ell(ctx, sx * 0.2, 0.06, 0.13, 0.06, sackD); P_ell(ctx, sx * 0.16, 0.38, 0.15, 0.25, sack); }   // feet; the knees, drawn up
+      P_line(ctx, -0.02, 0.2, -0.02, 0.56, 0.012, sackD); P_line(ctx, 0.3, 0.56, 0.36, 0.7, 0.012, sackD);       // a seam or two
+      for (const sx of [-1, 1]) P_limb(ctx, [[sx * 0.42, 0.64], [sx * 0.36, 0.36], [sx * 0.07, 0.3]], 0.1, sackD);   // the arms round the knees
+      P_ell(ctx, -0.05, 0.3, 0.06, 0.045, skin); P_ell(ctx, 0.06, 0.31, 0.06, 0.045, skin);                      // the hands, clasped
+      ctx.save(); ctx.translate(Math.sin(t * 0.9) * 0.012, 0);
+      strands(ctx, 0, 0.97, 12, 0.28, P.col([120, 100, 60]), 9, t);
+      P_ell(ctx, 0, 0.79, 0.17, 0.19, skin);
+      P_ell(ctx, -0.07, 0.83, 0.032, 0.022, black); P_ell(ctx, 0.07, 0.83, 0.032, 0.022, black);
+      P_ell(ctx, 0, 0.71, 0.05, 0.012, black);
+      ctx.restore();
       return;
     }
     const bob = c.moving ? Math.abs(Math.sin(g)) * 0.06 : Math.sin(t * 1.4) * 0.02, hunch = 0.25 + load * 0.15;

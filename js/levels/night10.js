@@ -57,12 +57,18 @@ LEVELS.push({
         SC.quad(L, [-0.86, 0.2, 3.61], [0.86, 0.2, 3.61], [0.86, 0.62, 3.61], [-0.86, 0.62, 3.61], [44, 38, 36], { dist: 59.5, sortDist: 7.15 });
         SC.quad(L, [-0.8, 0.25, 3.48], [0.8, 0.25, 3.48], [0.8, 2.45, 3.48], [-0.8, 2.45, 3.48], [120, 140, 170], { alpha: 0.2, noLight: true });
         SC.quad(L, [-0.7, 1.9, 3.475], [-0.5, 1.9, 3.475], [0.1, 2.4, 3.475], [-0.1, 2.4, 3.475], [230, 230, 240], { alpha: 0.12, noLight: true });
+        // the seams between the boards: each is cut to the wall piece it lies on and drawn straight after it (sorted by
+        // that piece's distance), so every wall shows them, not only the pieces whose own distance happens to be larger
+        const pieceDist = (a, b) => (Math.hypot(a, 3.5) + Math.hypot(b, 3.5)) / 2 - 0.005;
         for (let y = 0.5; y < 3.2; y += 0.5) {
-          SC.wallV(L, -3.5, 3.49, -0.92, 3.49, y, y + 0.04, boardD);
-          if (!south || y > 2.3) SC.wallV(L, 0.92, 3.49, 3.5, 3.49, y, y + 0.04, boardD);
-          else { SC.wallV(L, 0.92, 3.49, 1.7, 3.49, y, y + 0.04, boardD); SC.wallV(L, 2.9, 3.49, 3.5, 3.49, y, y + 0.04, boardD); }
+          const seam = (x0, x1, a, b) => SC.wallV(L, x0, 3.49, x1, 3.49, y, y + 0.04, boardD, { sortDist: pieceDist(a, b) });
+          seam(-3.5, -0.92, -3.5, -0.8);
+          if (y > 2.9) seam(-0.92, 0.92, -0.8, 0.8);   // above the crest the seam runs on across the mirror's wall
+          if (!south) seam(0.92, 3.5, 0.8, 3.5);
+          else { seam(0.92, 1.7, 0.8, 1.7); if (y > 2.3) seam(1.7, 2.9, 1.7, 2.9); seam(2.9, 3.5, 2.9, 3.5); }
         }
-        for (let x = -3.1; x < 3.5; x += 0.6) if (Math.abs(x) > 1.1) SC.sprite(L, x, 2.85, 3.46, 0.1, 0.12, (ctx, P) => { ctx.scale(0.1, 0.12); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([70, 60, 50])); });
+        // a row of fairground bulbs, unlit after closing: a dim glass bulb on a brass socket
+        for (let x = -3.1; x < 3.5; x += 0.6) if (Math.abs(x) > 1.1) SC.sprite(L, x, 2.85, 3.46, 0.1, 0.12, (ctx, P) => { ctx.scale(0.1, 0.12); P_rect(ctx, -0.26, 0, 0.52, 0.3, P.col([96, 76, 40])); P_ell(ctx, 0, 0.6, 0.4, 0.38, P.col([106, 92, 74])); P_ell(ctx, -0.13, 0.7, 0.1, 0.1, P.col([150, 138, 116])); });
       });
     }
     // the way out onto the dark fair, curtains pulled aside: the bell six metres out, the carousel beyond
@@ -71,8 +77,20 @@ LEVELS.push({
     // the aperture of the way out, seen along its lane: the doorway (x -2.9..-1.7 in the south wall) projected across the lane
     L.addAperture(CAROUSEL, { z: 4.19, x0: -0.54, x1: 0.47, y0: 0.12, y1: 2.25 });
     SC.floorQ(L, -80, -80, 80, -3.6, -0.01, [46, 42, 40]);
-    const bp = carAt(6);
-    SC.box(L, bp[0] - 0.1, bp[0] + 0.1, 0, 3.4, bp[1] - 0.1, bp[1] + 0.1, [40, 36, 34]); SC.sprite(L, bp[0], 3.4, bp[1], 0.35, 0.4, (ctx, P) => { ctx.scale(0.35, 0.4); P_ell(ctx, 0, 0.55, 0.45, 0.42, P.col([170, 140, 70])); P_rect(ctx, -0.06, 0.95, 0.12, 0.05, P.col([90, 80, 60])); });
+    // the bell: its post stands beside the path, out of the line of the doorway, and it hangs over the path from an arm,
+    // high enough that the thing walks out under it and is never hidden by it; seen through the doorway, it swings when rung
+    const laneAt = (d, lat) => [Math.sin(CAR) * d + Math.cos(CAR) * lat, Math.cos(CAR) * d - Math.sin(CAR) * lat];
+    const post = laneAt(6, -0.95), hook = laneAt(6, 0.1), bell = laneAt(6, 0);
+    SC.box(L, post[0] - 0.06, post[0] + 0.06, 0, 2.56, post[1] - 0.06, post[1] + 0.06, [40, 36, 34]);
+    SC.quad(L, [post[0], 2.46, post[1]], [hook[0], 2.46, hook[1]], [hook[0], 2.54, hook[1]], [post[0], 2.54, post[1]], [52, 46, 42]);
+    SC.sprite(L, bell[0], 2.08, bell[1], 0.34, 0.38, (ctx, P) => {
+      const k = s.rungAt === undefined ? 99 : L.t - s.rungAt;
+      ctx.translate(0, 0.38); ctx.rotate(Math.sin(k * 6.5) * 0.5 * Math.exp(-k / 3)); ctx.translate(0, -0.38); ctx.scale(0.34, 0.38);
+      const g = P.col([150, 122, 60]), gd = P.col([100, 78, 36]);
+      P_rect(ctx, -0.05, 0.86, 0.1, 0.14, gd);
+      P_poly(ctx, [[-0.2, 0.86], [0.2, 0.86], [0.26, 0.5], [0.46, 0.16], [-0.46, 0.16], [-0.26, 0.5]], g);
+      P_rect(ctx, -0.48, 0.12, 0.96, 0.06, gd); P_ell(ctx, 0, 0.08, 0.07, 0.07, P.col([30, 24, 20]));
+    });
     const [X, Z] = carAt(14);
     for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; SC.box(L, X + Math.sin(a) * 5 - 0.1, X + Math.sin(a) * 5 + 0.1, 0, 2.6, Z + Math.cos(a) * 5 - 0.1, Z + Math.cos(a) * 5 + 0.1, [60, 50, 44]); }
     SC.quad(L, [X - 5.5, 2.6, Z + 5.5], [X + 5.5, 2.6, Z + 5.5], [X + 5.5, 2.6, Z - 5.5], [X - 5.5, 2.6, Z - 5.5], [90, 40, 44]);
@@ -85,10 +103,24 @@ LEVELS.push({
       SC.box(L, x - 1.5, x + 1.5, 0, h, z - 1, z + 1, [40, 34, 34]);
     }
     SC.sprite(L, -60, 0, 8, 40, 6, (ctx, P) => { ctx.scale(40, 6); const g = ctx.createRadialGradient(0, 0.15, 0.02, 0, 0.15, 0.6); g.addColorStop(0, 'rgba(255,120,40,0.7)'); g.addColorStop(1, 'rgba(255,90,30,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); }, { noFog: true, noLight: true, dist: 100 });
-    // furniture: a pedestal before each mirror, a shelf with a lamp, a chair
-    const peds = s.mirrors.map(m => { const x = +(Math.sin(m.deg * DEG) * 2.2).toFixed(2), z = +(Math.cos(m.deg * DEG) * 2.2).toFixed(2); SC.box(L, x - 0.2, x + 0.2, 0, 0.7, z - 0.2, z + 0.2, [60, 52, 50]); SC.box(L, x - 0.26, x + 0.26, 0.7, 0.75, z - 0.26, z + 0.26, [80, 70, 64]); return { x, z }; });
+    // furniture: a pedestal before each mirror, a table with a lamp, a chair.
+    // A pedestal is a plinth, a column and a cap with a gilt edge, like the frames. It stands square on the line of sight,
+    // so only the faces turned to the eye are built (the sides and backs never show, and drawn they would poke through the cap)
+    const peds = s.mirrors.map(m => {
+      SC.withYaw(L, m.deg, () => {
+        const top = (w, z0, z1, y, col) => SC.quad(L, [-w, y, z0], [w, y, z0], [w, y, z1], [-w, y, z1], col);
+        top(0.25, 1.95, 2.45, 0.09, [86, 64, 46]); SC.wallV(L, -0.25, 1.95, 0.25, 1.95, 0, 0.09, [62, 45, 33]);
+        SC.wallV(L, -0.16, 2.04, 0.16, 2.04, 0.09, 0.64, [84, 60, 42]);
+        top(0.27, 1.93, 2.47, 0.75, [104, 78, 54]); SC.wallV(L, -0.27, 1.93, 0.27, 1.93, 0.64, 0.72, [80, 58, 40]); SC.wallV(L, -0.27, 1.93, 0.27, 1.93, 0.72, 0.75, gilt);
+      });
+      return { x: +(Math.sin(m.deg * DEG) * 2.2).toFixed(2), z: +(Math.cos(m.deg * DEG) * 2.2).toFixed(2) };
+    });
+    // the lamp's table on four legs, each drawn before the parts of the top that hide its upper end (the near leg before
+    // the top's front edges, the others before the top itself) and after the walls behind it
     SC.box(L, 2.2, 3.4, 0.98, 1.03, 2.2, 3.4, [70, 56, 44]); STORY.lamp(L, 2.6, 1.03, 2.6, { lit: true, scale: 0.85 });
-    SC.box(L, 2.8, 3.25, 0.4, 0.45, -1.7, -1.3, [88, 70, 50]); SC.box(L, 2.8, 3.25, 0.45, 0.95, -1.36, -1.3, [88, 70, 50]);
+    for (const [x, z] of [[2.27, 2.27], [3.33, 2.27], [2.27, 3.33], [3.33, 3.33]]) SC.sprite(L, x, 0, z, 0.05, 0.98, (ctx, P) => { ctx.scale(0.05, 0.98); P_rect(ctx, -0.5, 0, 1, 1, P.col([54, 43, 34])); }, { sortDist: x + z < 5 ? 3.9 : 4.15 });
+    // the chair stands with its back to the east wall, facing into the room, so what lies on its seat is in plain view
+    SC.box(L, 2.8, 3.19, 0.4, 0.45, -1.7, -1.3, [88, 70, 50]); SC.box(L, 3.19, 3.25, 0.4, 0.95, -1.7, -1.3, [88, 70, 50]);
     for (const [x, z] of [[2.83, -1.67], [3.22, -1.67], [2.83, -1.33], [3.22, -1.33]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [70, 56, 40]);
     // items: the box (broken on Nightmare) and a handful of small keys, only one of them its own
     const broken = L.nightmare, sheets = L.nightmare, runsDown = L.nightmare, need = L.tier(4, 6);
@@ -113,7 +145,7 @@ LEVELS.push({
         mkTarget(L, { id: 'sheet' + k, name: 'Dust sheet', deg: m.deg, dist: 3.4, y: 0.2, w: 1.75, h: 2.4, hint() { return m.live ? 'Pulled down.' : 'A dust sheet over the glass.'; }, onClick() { if (m.live) return false; m.live = true; this.hidden = true; AUDIO.sfx('hiss'); G.say('The sheet comes down. Glass.', 'Glass.'); return true; } });
       }
     }
-    Object.assign(s, { placedAt: -1, keyIn: false, wound: 0, playing: false, playT: 0, luredOut: false, tune: 0, wrongAt: -99 });
+    Object.assign(s, { placedAt: -1, keyIn: false, wound: 0, playing: false, playT: 0, luredOut: false, tune: 0, wrongAt: -99, keyA: 0 });
     const pedTargets = [];
     const refresh = () => pedTargets.forEach((t, k) => { t.accepts = s.placedAt < 0 ? ['musicbox'].concat(broken ? ['brokenbox'] : []) : (s.placedAt === k && !s.keyIn) ? keyIds.slice() : []; });
     // the tune: on the odd mirror's pedestal it lures the thing in beside the box; on any other it plays for nobody
@@ -160,9 +192,9 @@ LEVELS.push({
       pedTargets.push(t);
     });
     if (runsDown) mkTarget(L, {
-      id: 'rope', name: 'Bell rope', x: -1.3, y: 0.5, z: -3.35, w: 0.2, h: 1.6, hold: 2.0, hidden: true, // the second lure: only there once the spring has run down
+      id: 'rope', name: 'Bell rope', x: -1.3, y: 0.34, z: -3.35, w: 0.2, h: 1.76, hold: 2.0, hidden: true, // the second lure: only there once the spring has run down (its box takes in the tassel)
       hint() { return s.luredOut ? 'Rung.' : 'A rope through the roof. The carousel bell is on the other end.'; },
-      use(item) { if (item !== null) return false; s.luredOut = true; L.text.win = 'It walked out to the carousel and stood under the bell while the ash came down, and did not look back once.'; AUDIO.sfx('bell'); const c = c0(); c.retarget(CAROUSEL); c.lured = true; c.ignoresGaze = true; c.hold = null; c.distFn = (cr, dt) => cr.dist + dt * 1.4; L.lane = c.lane; L.laneIdx = CAROUSEL; G.say('The bell. It goes out to the carousel.', 'It goes.'); return true; },
+      use(item) { if (item !== null) return false; s.luredOut = true; L.text.win = 'It walked out to the carousel and stood under the bell while the ash came down, and did not look back once.'; AUDIO.sfx('bell'); s.rungAt = L.t; const c = c0(); c.retarget(CAROUSEL); c.lured = true; c.back = true; c.ignoresGaze = true; c.hold = null; c.distFn = (cr, dt) => cr.dist + dt * 1.4; L.lane = c.lane; L.laneIdx = CAROUSEL; G.say('The bell. It goes out to the carousel.', 'It goes.'); return true; },
     });
     // seen means: a live mirror is square in front of you. Once lured it is out in the open and seen the usual way.
     L.visFrac = c => {
@@ -183,24 +215,89 @@ LEVELS.push({
       : s.placedAt < 0 ? 'The odd mirror is the ' + DIRS[s.odd] + ' one. Put the music box on its pedestal.' : !s.keyIn ? 'Fit the key with the heart.' : 'Wind the music box (' + s.wound + '/' + need + ').';
     L.update = dt => {
       const c = c0();
+      // the key in the box turns a step with every wind, and slowly back while the tune plays
+      if (s.playing) s.keyA += dt * 1.6;
+      else { const to = -s.wound * TAU / need; s.keyA = to + wrapPi(s.keyA - to); s.keyA += (to - s.keyA) * (1 - Math.exp(-dt * 14)); }
       if (s.playing) {
         s.tune -= dt; if (s.tune <= 0) { s.tune = 3.2; const p = peds[s.placedAt] || peds[0]; AUDIO.sfx('musicbox', Math.sin(wrapPi(Math.atan2(p.x, p.z) + L.facing - G.cam.yaw)) * 0.7); }
         // on Nightmare the spring runs down part way through the walk (never during the aftermath); the bell rope shows itself then
         if (s.playT !== Infinity && !L.won) { s.playT -= dt; if (s.playT <= 0) { s.playing = false; c.hold = c.dist; G.say('The spring runs down. It stops where it is.', 'The tune runs down. It stops where it is. By the south mirror, a rope drops through the roof.'); const rope = L.targets.find(t => t.id === 'rope'); if (rope) rope.hidden = false; } }
       }
     };
+    // a dust sheet thrown over a mirror: it hangs from the top of the frame in long folds to an uneven hem, drawn over the
+    // glass, its glint and the frame, under the crest, which still shows above it; pulled down, it lies in a heap at the foot
+    const sheetAt = {}, heapAt = {};
+    const poly = (pts, color, sortDist) => ({ kind: 'poly', pts: pts.map(q => L.pt(q[0], q[1], q[2])), color, sortDist });
+    s.mirrors.forEach((m, k) => SC.withYaw(L, m.deg, () => {
+      const Z = 3.43, cloth = [156, 148, 132], fold = [114, 106, 94], lite = [180, 172, 156];
+      const outline = [[-0.9, 2.62], [0.9, 2.62], [0.97, 2.56], [1.0, 1.4], [1.05, 0.1], [0.8, 0.05], [0.52, 0.11], [0.2, 0.03], [-0.1, 0.1], [-0.42, 0.04], [-0.74, 0.1], [-1.04, 0.07], [-1.0, 1.4], [-0.97, 2.56]];
+      const list = [poly(outline.map(([x, y]) => [x, y, Z]), cloth, 3.48)];
+      for (const [xa, xb, w] of [[-0.66, -0.72, 0.13], [0.04, 0.1, 0.15], [0.58, 0.68, 0.12]]) {
+        list.push(poly([[xa, 2.5, Z - 0.004], [xb + w / 2, 0.15, Z - 0.004], [xb - w / 2, 0.15, Z - 0.004]], fold, 3.475));
+        list.push(poly([[xa + 0.02, 2.5, Z - 0.004], [xb + w / 2 + 0.07, 0.15, Z - 0.004], [xb + w / 2, 0.15, Z - 0.004]], lite, 3.475));
+      }
+      sheetAt[k] = list;
+      heapAt[k] = SC.mkSprite(L, 0, 0, 3.22, 1.3, 0.3, (ctx, P) => {
+        ctx.scale(1.3, 0.3);
+        P_poly(ctx, [[-0.5, 0], [-0.47, 0.32], [-0.32, 0.56], [-0.14, 0.5], [0.02, 0.82], [0.2, 0.64], [0.36, 0.72], [0.48, 0.36], [0.5, 0]], P.col([150, 142, 126]));
+        for (const [x0, y0, x1, y1] of [[-0.32, 0.08, -0.16, 0.46], [0.06, 0.06, 0.16, 0.6], [0.3, 0.1, 0.38, 0.56]]) P_line(ctx, x0, y0, x1, y1, 0.035, P.col([112, 104, 92]));
+      });
+    }));
+    // the music box on its pedestal: shut, its heart keyhole on the front; with its own key in, the key turns a step with
+    // every wind; playing, the lid stands open (a little round mirror in its lining) and the dancer turns
+    const drawBox = (ctx, P) => {
+      ctx.scale(0.34, 0.34);
+      const lac = P.col([90, 30, 40]), lacD = P.col([50, 16, 24]), brass = P.col([180, 150, 80]), dark = P.col([24, 10, 14]), pale = P.col([230, 220, 210]);
+      if (s.playing) {
+        P_poly(ctx, [[-0.34, 0.45], [0.34, 0.45], [0.31, 0.93], [-0.31, 0.93]], lacD);
+        P_poly(ctx, [[-0.28, 0.5], [0.28, 0.5], [0.26, 0.88], [-0.26, 0.88]], P.col([150, 70, 84]));
+        P_ell(ctx, 0, 0.72, 0.12, 0.11, P.col([120, 96, 48])); P_ell(ctx, 0, 0.72, 0.095, 0.085, P.col([118, 134, 160]));
+      }
+      P_rect(ctx, -0.34, 0.06, 0.68, 0.4, lac); P_rect(ctx, -0.36, 0.03, 0.72, 0.05, lacD);
+      if (s.playing) P_rect(ctx, -0.32, 0.42, 0.64, 0.05, dark);
+      else { P_rect(ctx, -0.36, 0.44, 0.72, 0.1, lacD); P_rect(ctx, -0.36, 0.52, 0.72, 0.02, P.col([124, 50, 60])); }
+      P_line(ctx, 0.36, 0.25, 0.47, 0.25, 0.04, brass); P_line(ctx, 0.47, 0.25, 0.47, 0.36, 0.04, brass);
+      heartShape(ctx, 0, 0.25, 0.075, brass, dark);
+      if (s.keyIn) {
+        const gold = P.col([228, 198, 120]);
+        ctx.save(); ctx.translate(0, 0.255); ctx.rotate(s.keyA);
+        P_rect(ctx, -0.022, -0.01, 0.044, 0.1, gold); heartShape(ctx, 0, 0.16, 0.07, gold, P.col([140, 112, 56]));
+        ctx.restore();
+      }
+      if (s.playing) {
+        ctx.save(); ctx.translate(0, 0.45); ctx.scale(Math.cos(L.t * 3.2), 1);
+        P_line(ctx, 0, 0, 0, 0.1, 0.02, brass);
+        P_line(ctx, -0.012, 0.1, -0.02, 0.22, 0.022, pale); P_line(ctx, 0.012, 0.1, 0.04, 0.2, 0.022, pale);
+        P_ell(ctx, 0, 0.24, 0.11, 0.035, P.col([210, 160, 172])); P_rect(ctx, -0.025, 0.24, 0.05, 0.12, pale);
+        P_line(ctx, 0, 0.34, -0.07, 0.43, 0.016, pale); P_line(ctx, 0, 0.34, 0.07, 0.43, 0.016, pale); P_ell(ctx, 0, 0.42, 0.032, 0.032, pale);
+        ctx.restore();
+      }
+    };
     L.dynamic = () => {
-      // the bell rope, once it has dropped through the roof
-      if (runsDown) { const rope = L.targets.find(t => t.id === 'rope'); if (rope && !rope.hidden) R.add(SC.mkQuad(L, [-1.32, 0.5, -3.35], [-1.28, 0.5, -3.35], [-1.28, 3.2, -3.35], [-1.32, 3.2, -3.35], [150, 130, 90])); }
+      // the bell rope, once it has dropped through the roof: a rope with a gilt tassel on its end, to pull
+      if (runsDown) {
+        const rope = L.targets.find(t => t.id === 'rope');
+        if (rope && !rope.hidden) {
+          R.add(SC.mkQuad(L, [-1.325, 0.56, -3.35], [-1.275, 0.56, -3.35], [-1.275, 3.2, -3.35], [-1.325, 3.2, -3.35], [150, 130, 90]));
+          R.add(SC.mkSprite(L, -1.3, 0.34, -3.34, 0.14, 0.26, (ctx, P) => {
+            ctx.scale(0.14, 0.26);
+            const g = P.col([176, 140, 70]), gd = P.col([112, 88, 42]);
+            P_poly(ctx, [[-0.2, 0.74], [0.2, 0.74], [0.46, 0.06], [-0.46, 0.06]], g);
+            for (let x = -0.3; x <= 0.31; x += 0.15) P_line(ctx, x * 0.6, 0.6, x, 0.08, 0.04, gd);
+            P_rect(ctx, -0.5, 0.0, 1.0, 0.08, g); P_ell(ctx, 0, 0.84, 0.22, 0.14, gd);
+          }));
+        }
+      }
       const c = c0();
-      // what the mirrors show: the thing, at the distance a reflection would be; in the odd one it has its back to you
+      // what the mirrors show: the thing, at the distance a reflection would be; in the odd one it has its back to you.
+      // Once it has you, it has turned to face you, so the glass behind it shows its back
       if (c.lane.follow && !L.won) for (const m of s.mirrors) {
         if (!m.live) continue;
-        const dd = 7 + c.dist, p = L.at(m.deg, dd, 0), odd = m.odd;
+        const dd = 7 + c.dist, p = L.at(m.deg, dd, 0), odd = m.odd || G.state === 'dying';
         R.add({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w: CR.w, h: CR.h, dist: dd, sortDist: 7.1, fogScale: 0.6, draw: (ctx, P) => { c.back = odd; CR.draw(ctx, c, P); c.back = false; } });
       }
-      for (const m of s.mirrors) if (!m.live) SC.withYaw(L, m.deg, () => R.add(SC.mkQuad(L, [-0.95, 0.1, 3.44], [0.95, 0.1, 3.44], [0.95, 2.6, 3.44], [-0.95, 2.6, 3.44], [170, 160, 140])));
-      if (s.placedAt >= 0) { const p = peds[s.placedAt]; R.add(SC.mkSprite(L, p.x, 0.75, p.z, 0.34, 0.34, (ctx, P) => { ctx.scale(0.34, 0.34); ICONS.musicbox(ctx, P); if (s.playing) { ctx.translate(0, 0.72); ctx.rotate(Math.sin(L.t * 4) * 0.4); P_ell(ctx, 0, 0.06, 0.045, 0.08, P.col([230, 220, 210])); } })); }
+      s.mirrors.forEach((m, k) => { if (!m.live) for (const q of sheetAt[k]) R.add(q); else if (L.targets.some(t => t.id === 'sheet' + k)) R.add(heapAt[k]); });
+      if (s.placedAt >= 0) { const p = peds[s.placedAt]; R.add(SC.mkSprite(L, p.x, 0.75, p.z, 0.34, 0.34, drawBox, { sortDist: 2.15 })); }
     };
     L.aftermath = (t, dt) => { if (!s.after) { s.after = true; Seq.play({ dur: 6, beats: [{ at: 2.5, toast: s.luredOut ? 'It goes.' : 'It sways.' }] }); } return t >= 6; };
     L.floor = { poly: [[-3.3, -3.3], [3.3, -3.3], [3.3, 3.3], [-3.3, 3.3]], y: 0 };

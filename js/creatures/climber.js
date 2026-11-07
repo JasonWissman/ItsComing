@@ -47,7 +47,7 @@ CREATURES.climber = {
     const ph = c.climbPh || 0, p = (ph / Math.PI) % 1, lead = (Math.floor(ph / Math.PI) & 1) ? 1 : -1;   // lead: the side whose hand reaches in this step
     const heave = (p > 0.5 ? Math.sin((p - 0.5) * 2 * Math.PI) : 0) * (1 - slip);
     const lean = (p < 0.5 ? Math.sin(p * 2 * Math.PI) : 0) * lead * 0.06 * (1 - slip);   // it leans into a reach
-    const shY = 1.4 + heave * 0.07, shX = lean, hipX = -lead * 0.07 * heave, hipY = 0.8 + heave * 0.04;
+    const shY = 1.4 + heave * 0.15, shX = lean, hipX = -lead * 0.07 * heave, hipY = 0.8 + heave * 0.08;   // a heave big enough to read from the rail
     // legs: frog-bent, knees out, toes hooked into the stone; the one opposite the reaching hand draws up, then pushes
     for (const s of [-1, 1]) {
       const st = climbLimb(ph + (s < 0 ? Math.PI : 0)), h = lerp(st.h, 0, slip);
@@ -72,7 +72,7 @@ CREATURES.climber = {
     for (const s of [-1, 1]) {
       const st = climbLimb(ph + (s > 0 ? Math.PI : 0)), h = lerp(st.h, 1, slip), free = st.free && slip < 0.5;
       const sh = [shX + s * 0.24, shY - 0.03];
-      let hx = s * (0.4 + 0.13 * h), hy = shY + 0.2 + 0.42 * h + Math.sin(t * 29 + s) * 0.04 * slip;   // always above the shoulder: it hangs from them
+      let hx = s * (0.4 + 0.13 * h), hy = shY + 0.2 + 0.55 * h + Math.sin(t * 29 + s) * 0.04 * slip;   // always above the shoulder: it hangs from them
       hx = lerp(hx, s * 0.36, lunge); hy = lerp(hy, 1.62, lunge);   // at the end it reaches for you
       const el = climbJoint(sh, [hx, hy], 0.37, 0.37, s);
       P_limb(ctx, [sh, el, [hx, hy]], 0.07, grey);

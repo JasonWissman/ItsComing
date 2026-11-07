@@ -43,21 +43,31 @@ LEVELS.push({
     const at = (th, r, y) => [AX + Math.cos(th) * r, y, AZ + Math.sin(th) * r];
     const N = 24, iron = [40, 42, 46], ironL = [62, 64, 70];
     const rad = y => 3.25 + 0.466 * Math.max(0, -y);   // the tower flares out below the gallery, 25 degrees from the vertical
+    // the farthest and nearest a piece comes to you across the floor: a long piece whose near end is close must not sort in
+    // front of what is fixed in front of its far end (the fuse box and the crank on their stanchions, an item by the rail)
+    const far = (...ps) => Math.max(...ps.map(p => Math.hypot(p[0], p[2]))), near = (...ps) => Math.min(...ps.map(p => Math.hypot(p[0], p[2])));
     SC.stars(L, 71, 50, 0.3);
     SC.clouds(L, 72, 8, [30, 34, 46], 0.55);
-    // the sea, far below, in rings so the fog is right
-    const seaR = [12, 17, 30, 60, 120, 320];
-    for (let k = 0; k < seaR.length - 1; k++) for (let i = 0; i < 12; i++) {
-      const a0 = i / 12 * TAU, a1 = (i + 1) / 12 * TAU, r0 = seaR[k], r1 = seaR[k + 1], rm = (r0 + r1) / 2;
-      SC.quad(L, at(a0, r0, -24.6), at(a1, r0, -24.6), at(a1, r1, -24.6), at(a0, r1, -24.6), k === 0 ? [30, 38, 48] : [18, 26, 36], { dist: Math.hypot(rm, 26.2), layer: 0 });
+    // the sea, far below, in rings fine enough that the fog fades across them instead of stepping from one to the next; paler
+    // where the surf breaks round the foot of the tower
+    const seaR = [12, 14.7, 17, 20, 24, 29, 36, 45, 58, 76, 100, 140, 200, 320], SEA = 24;
+    for (let k = 0; k < seaR.length - 1; k++) for (let i = 0; i < SEA; i++) {
+      const a0 = i / SEA * TAU, a1 = (i + 1) / SEA * TAU, r0 = seaR[k], r1 = seaR[k + 1], rm = (r0 + r1) / 2;
+      SC.quad(L, at(a0, r0, -24.6), at(a1, r0, -24.6), at(a1, r1, -24.6), at(a0, r1, -24.6), r0 < 17 ? [30, 38, 48] : [18, 26, 36], { dist: Math.hypot(rm, 26.2), layer: 0 });
     }
+    // rocks breaking the surface, as they look from far above: grey, ragged, the surf pale on their seaward side. Those near the
+    // three faces it climbs (the sea foreshortens a lot from up here) lie further out, well above it in the view, so it is
+    // always seen against open water.
     const rng = mulberry32(77);
     for (let i = 0; i < 26; i++) {
-      const th = rng() * TAU, r = 15.5 + rng() * 12, size = 1.2 + rng() * 2.2, p = at(th, r, -24.6);
-      const pts = []; for (let k = 0; k < 7; k++) { const a = Math.PI * (k / 6); pts.push([Math.cos(a) * 0.5 * (0.8 + rng() * 0.3), Math.sin(a) * (0.4 + rng() * 0.6)]); }
-      const v = rng() * 20, col = [38 + v, 42 + v, 46 + v];
-      SC.sprite(L, p[0], -24.6, p[2], size * 1.3, size, (ctx, P) => { ctx.scale(size * 1.3, size); P_poly(ctx, pts, P.col(col)); }, { dist: Math.hypot(p[0], p[2], 26.3) });
-      SC.quad(L, at(th - 0.06, r + 1, -24.55), at(th + 0.06, r + 1, -24.55), at(th + 0.05, r + 2.5, -24.55), at(th - 0.05, r + 2.5, -24.55), [120, 130, 140], { dist: Math.hypot(p[0], p[2], 26.25), alpha: 0.25 });
+      const th = rng() * TAU, r0 = 15.5 + rng() * 12, size0 = 1.2 + rng() * 2.2, v = rng() * 14, a0 = at(th, r0, -24.6);
+      const out = [0, 45, -45].some(l => Math.abs(wrapPi(Math.atan2(a0[0], a0[2]) - l * DEG)) < 25 * DEG);
+      const r = out ? r0 + 24 : r0, size = out ? size0 * 1.4 : size0, c = at(th, r, -24.6);
+      const rr = []; for (let k = 0; k < 9; k++) rr.push(size * 0.5 * (0.55 + rng() * 0.7));
+      const d = Math.hypot(c[0], c[2], 26.3), sx = Math.cos(th) * size * 0.25, sz = Math.sin(th) * size * 0.25;
+      const blob = (k, y, dx, dz) => rr.map((q, j) => { const a = j / rr.length * TAU; return L.pt(c[0] + dx + Math.cos(a) * q * k, y, c[2] + dz + Math.sin(a) * q * k); });
+      L.props.push({ kind: 'poly', pts: blob(1.3, -24.59, sx, sz), color: [160, 170, 178], alpha: 0.14, dist: d + 0.2 });   // the surf, breaking on it from the sea
+      L.props.push({ kind: 'poly', pts: blob(1, -24.56, 0, 0), color: [42 + v, 46 + v, 50 + v], dist: d });                // the rock
     }
     // a town across the water: a scatter of lights low on the horizon
     for (let i = 0; i < 16; i++) { const th = (150 + rng() * 60) * DEG, d = 180 + rng() * 60, p = at(th, d, -22 + rng() * 2), w = 0.8 + rng() * 1.2; SC.sprite(L, p[0], p[1], p[2], w, w * 0.7, (ctx, P) => { ctx.scale(w, w * 0.7); P_rect(ctx, -0.5, 0, 1, 1, P.raw([230, 200, 140])); }, { noFog: true, noLight: true, dist: d }); }
@@ -73,7 +83,9 @@ LEVELS.push({
         SC.quad(L, at(a0, r0, y0), at(a1, r0, y0), at(a1, r1, y1), at(a0, r1, y1), [shade, shade - 2, shade - 6], opts);
       }
     }
-    // the gallery floor, the rail, the lamp room and its roof
+    // the gallery floor, the rail, the lamp room and its roof. The rail stands a hand's breadth in from the edge of the floor,
+    // so its top bar lies at or below the line the thing climbs on every face: you look over it, never through it.
+    const RR = 3.1;
     for (let i = 0; i < N; i++) {
       const a0 = i / N * TAU, a1 = (i + 1) / N * TAU, am = (a0 + a1) / 2;
       // the floor sorts by its true distance from the eye, like the tower below it, so it covers the tower where it overhangs
@@ -82,14 +94,18 @@ LEVELS.push({
       // the lamp room's own floor, seen through its glass: drawn over the far side of the tower, under all that stands on it
       SC.quad(L, at(a0, 2.0, 0), at(a1, 2.0, 0), [AX, 0, AZ], [AX, 0, AZ], [46, 48, 52], { sortDist: 3.6 });
       SC.quad(L, at(a0, 3.25, 0), at(a1, 3.25, 0), at(a1, 3.25, -0.12), at(a0, 3.25, -0.12), ironL);
-      SC.quad(L, at(a0, 2.0, 0), at(a1, 2.0, 0), at(a1, 2.0, 0.85), at(a0, 2.0, 0.85), iron);
-      SC.quad(L, at(a0, 2.0, 0.85), at(a1, 2.0, 0.85), at(a1, 2.0, 2.75), at(a0, 2.0, 2.75), [140, 165, 195], { alpha: 0.2 });
-      SC.quad(L, at(a0 - 0.012, 2.02, 0.85), at(a0 + 0.012, 2.02, 0.85), at(a0 + 0.012, 2.02, 2.75), at(a0 - 0.012, 2.02, 2.75), [34, 36, 40]);
-      SC.quad(L, at(a0, 2.15, 2.72), at(a1, 2.15, 2.72), at(a1, 2.15, 2.9), at(a0, 2.15, 2.9), iron);
-      SC.quad(L, at(a0, 2.15, 2.9), at(a1, 2.15, 2.9), at(am, 0.05, 4.4), at(am, 0.05, 4.4), [30, 32, 36]);
-      for (const yy of [0.5, 1.02]) SC.quad(L, at(a0, 3.25, yy), at(a1, 3.25, yy), at(a1, 3.25, yy + 0.05), at(a0, 3.25, yy + 0.05), ironL);
+      // the lamp room's wall, glass, eave and roof sort by their far ends, behind the fuse box and the crank on its stanchions
+      const ring = (r, y0, y1, col, o) => { const q = [at(a0, r, y0), at(a1, r, y0), at(a1, r, y1), at(a0, r, y1)]; SC.quad(L, q[0], q[1], q[2], q[3], col, Object.assign({ sortDist: far(...q) }, o)); };
+      ring(2.0, 0, 0.85, iron);
+      ring(2.0, 0.85, 2.75, [140, 165, 195], { alpha: 0.2 });
+      // the glazing bars, each in front of the glass either side of it; none on the line from you to the lamp
+      if (i !== N / 4) { const q = [at(a0 - 0.012, 2.02, 0.85), at(a0 + 0.012, 2.02, 0.85), at(a0 + 0.012, 2.02, 2.75), at(a0 - 0.012, 2.02, 2.75)]; SC.quad(L, q[0], q[1], q[2], q[3], [34, 36, 40], { sortDist: near(...q) }); }
+      ring(2.15, 2.72, 2.9, iron);
+      { const q = [at(a0, 2.15, 2.9), at(a1, 2.15, 2.9), at(am, 0.05, 4.4)]; SC.quad(L, q[0], q[1], q[2], q[2], [30, 32, 36], { sortDist: far(...q) }); }
+      // the rail's bars sort by their far ends too, so nothing standing inside the rail is ever drawn under them
+      for (const yy of [0.5, 1.02]) ring(RR, yy, yy + 0.05, ironL);
       // rail posts only at every third segment, and none near the three faces it climbs, so none stands between you and it
-      const p = at(a0, 3.25, 0), az = Math.atan2(p[0], p[2]);
+      const p = at(a0, RR, 0), az = Math.atan2(p[0], p[2]);
       if (i % 3 === 0 && [0, 45, -45].every(l => Math.abs(wrapPi(az - l * DEG)) > 22 * DEG)) SC.sprite(L, p[0], 0, p[2], 0.06, 1.07, (ctx, P) => { ctx.scale(0.06, 1.07); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
     }
     // two stanchions on the lamp room: the fuse box on one at chest height, the crank on the other at the waist. Each is
@@ -101,6 +117,7 @@ LEVELS.push({
     const FBW = 0.44, FBH = 0.52, fb = [fbP[0], 1.1, fbP[2] + 0.22];   // the fuse box: its foot at 1.1 m, on the face toward you
     const WDS = 0.5, wd = [wdP[0], 0.7, wdP[2] + 0.22];                // the crank: its foot at 0.7 m, so nothing on the floor is behind it
     const mounted = (x, z) => Math.hypot(x, z) + 0.012;   // just behind its outline (at its own distance), well in front of the iron
+    const LW = 1.1, LH = 1.5;                             // the lamp's lens, standing on its pedestal
     // the lens on its pedestal, inside the glass
     SC.box(L, AX - 0.45, AX + 0.45, 0, 0.9, AZ - 0.45, AZ + 0.45, [50, 50, 56]);
     { const lp = at(100 * DEG, 2.5, 0); STORY.lamp(L, lp[0], 0, lp[2], { scale: 0.8 }); }
@@ -122,7 +139,7 @@ LEVELS.push({
     const powerUp = () => { if (!(s.bulb && s.fuse) || s.power) return false; s.power = true; lamp.done = true; setTimeout(() => AUDIO.sfx('lampOn'), 250); return true; };
     // the lamp: the bulb goes in here
     const lamp = mkTarget(L, {
-      id: 'lamp', name: 'Lamp', x: AX, y: 0.9, z: AZ, w: 1.1, h: 1.5, accepts: ['bulb'],
+      id: 'lamp', name: 'Lamp', x: AX, y: 0.9, z: AZ, w: LW, h: LH, accepts: ['bulb'],
       hint() { return s.power ? 'Lit.' : s.bulb ? 'A new bulb in it, and no light: no power. The fuse box.' : 'The big lamp. Its bulb has blown.'; },
       onClick() {
         if (s.power) { G.say('Lit.', 'Lit.'); return true; }
@@ -143,10 +160,14 @@ LEVELS.push({
       id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1], z: fb[2], w: FBW, h: FBH, accepts: [],
       hint() { return s.fuse ? 'A good fuse in it.' : !s.open ? 'The fuse box. Shut.' : s.blownIn ? 'Open. The fuse in it is blown. Take it out.' : 'Open. The fuse holder is empty.'; },
       onClick() {
-        if (!s.open) { s.open = true; blown.hidden = false; AUDIO.sfx('creak'); G.say('Inside, the fuse is black and split. Blown.', 'The fuse inside is black and split.'); return true; }
+        if (!s.open) { s.open = true; blown.hidden = false; door.hidden = false; AUDIO.sfx('creak'); G.say('Inside, the fuse is black and split. Blown.', 'The fuse inside is black and split.'); return true; }
         if (s.fuse) { G.say('A good fuse in it.', 'A new fuse in it.'); return true; }
         if (s.blownIn) { G.say('Take the blown fuse out first.', 'The blown fuse is still in it.'); AUDIO.sfx('nope'); return true; }
-        if (!G.inv.some(i => box.accepts.includes(i.id))) { G.say(G.hasItem('blownfuse') ? 'That is the one that blew.' : 'The holder is empty. There is a new fuse in the toolbox.', G.hasItem('blownfuse') ? 'That is the one that blew.' : 'The fuse holder is empty.'); AUDIO.sfx('nope'); return true; }
+        if (!G.inv.some(i => box.accepts.includes(i.id))) {
+          // only the blown fuse in hand is "the one that blew"; anything else, or nothing, finds the holder empty
+          const act = G.inv[G.active], old = !!act && act.id === 'blownfuse';
+          G.say(old ? 'That is the one that blew.' : 'The holder is empty. There is a new fuse in the toolbox.', old ? 'That is the one that blew.' : 'The fuse holder is empty.'); AUDIO.sfx('nope'); return true;
+        }
         return false;
       },
       use(item) {
@@ -156,6 +177,18 @@ LEVELS.push({
         return true;
       },
     });
+    // its door, swung open to the left of it: part of the fuse box, so pointing at it or clicking it is the fuse box. Its hit
+    // box stands a touch nearer you along your line of sight (the same size on screen), so its outline draws over the door.
+    const door = (() => {
+      const fd = Math.hypot(fb[0], fb[2]), off = -0.68 * FBW, k = 0.97;
+      const x = fb[0] + fb[2] / fd * off, z = fb[2] - fb[0] / fd * off;
+      return mkTarget(L, {
+        id: 'fusedoor', name: 'Fuse box', x: x * k, y: L.eyeH + (fb[1] - L.eyeH) * k, z: z * k, w: 0.36 * FBW * k, h: FBH * k, hidden: true,
+        hint: () => box.hint(), onClick: () => box.onClick(), use: item => box.use(item),
+      });
+    })();
+    Object.defineProperty(door, 'accepts', { get: () => box.accepts, set() {} });
+    Object.defineProperty(door, 'done', { get: () => box.done, set() {} });
     // the blown fuse in its clips: only there once the door is open; it comes out into your hand, and looks it
     const blown = mkTarget(L, {
       id: 'blownfuse', name: 'Blown fuse', x: fb[0], y: fb[1] + FBH * 0.39, z: fb[2], w: 0.26, h: FBH * 0.22, hidden: true,
@@ -211,30 +244,58 @@ LEVELS.push({
       else for (const x of [-0.17, 0.17]) P_line(ctx, x, 0.5, x * 0.6, 0.5, 0.02, P.col([90, 90, 96]));   // empty: two stubs of burned wire left in the clips
       if (s.power) P_ell(ctx, 0.3, 0.88, 0.04, 0.03, P.raw([255, 210, 120]));
     };
+    // the lamp: a lighthouse lens on its pedestal, a barrel of glass rings in a bronze frame, and in the middle of it the bulb:
+    // the old one, smoked and burned black; the new one, pale and dark; or a burning core with the whole lens alight
+    const barrel = [[-0.3, 0.07], [-0.38, 0.2], [-0.42, 0.48], [-0.38, 0.76], [-0.3, 0.89], [0.3, 0.89], [0.38, 0.76], [0.42, 0.48], [0.38, 0.2], [0.3, 0.07]];
+    const halfAt = y => 0.3 + 0.12 * Math.sin(clamp((y - 0.07) / 0.82, 0, 1) * Math.PI);   // the barrel's half-width at a height
+    const oldBulb = (ctx, P) => {
+      const smoke = P.col([112, 104, 90]), soot = P.col([22, 18, 16]), brass = P.col([110, 94, 52]);
+      P_ell(ctx, 0, 0.62, 0.26, 0.3, smoke); P_poly(ctx, [[-0.16, 0.4], [0.16, 0.4], [0.12, 0.2], [-0.12, 0.2]], smoke);
+      P_ell(ctx, 0.02, 0.74, 0.17, 0.14, soot);                                                      // burned black inside the top
+      P_rect(ctx, -0.12, 0.05, 0.24, 0.16, brass);
+      P_line(ctx, -0.06, 0.45, -0.03, 0.56, 0.015, P.col([150, 140, 120])); P_line(ctx, 0.06, 0.45, 0.04, 0.54, 0.015, P.col([150, 140, 120]));   // the filament, snapped
+    };
+    const drawLens = (ctx, P) => {
+      ctx.scale(LW, LH);
+      const on = s.power, bronze = P.col([116, 94, 52]), bronzeD = P.col([72, 58, 34]);
+      P_poly(ctx, barrel, on ? P.raw([255, 236, 190]) : P.col([62, 74, 82]));
+      for (const y of [0.13, 0.19, 0.25, 0.31, 0.65, 0.71, 0.77, 0.83]) { const hw = halfAt(y) - 0.03; P_line(ctx, -hw, y, hw, y, 0.014, on ? P.raw([255, 250, 236]) : P.col([110, 124, 132])); }   // the prism rings
+      P_rect(ctx, -0.41, 0.37, 0.82, 0.24, on ? P.raw([255, 244, 214]) : P.col([74, 88, 96]));     // the drum round the bulb
+      P_rect(ctx, -0.36, 0, 0.72, 0.07, bronze); P_rect(ctx, -0.36, 0.055, 0.72, 0.015, bronzeD);    // the frame: its foot,
+      P_poly(ctx, [[-0.32, 0.89], [0.32, 0.89], [0.2, 0.97], [-0.2, 0.97]], bronze); P_rect(ctx, -0.05, 0.97, 0.1, 0.03, bronzeD);   // its cap,
+      for (const x of [-0.25, 0.25]) P_line(ctx, x, 0.075, x, 0.885, 0.018, bronzeD);              // and two ribs clear of the bulb
+      P_line(ctx, -0.42, 0.37, 0.42, 0.37, 0.012, bronzeD); P_line(ctx, -0.42, 0.61, 0.42, 0.61, 0.012, bronzeD);
+      // the bulb, kept round inside the tall box: its own box is as wide as it is high in metres
+      ctx.save(); ctx.translate(0, 0.33); ctx.scale(0.3 * LH / LW, 0.3);
+      if (!s.bulb) oldBulb(ctx, P); else ICONS.bulb(ctx, P);
+      ctx.restore();
+      if (on) { const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.5); g.addColorStop(0, 'rgba(255,252,232,1)'); g.addColorStop(0.35, 'rgba(255,234,180,0.7)'); g.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); }
+    };
+    // the crank: a spoked wheel on a gearbox bolted to its stanchion, the wooden grip on its rim; all of it inside its own box,
+    // however it turns, so the outline you point at holds it
+    const drawCrank = (ctx, P) => {
+      ctx.scale(WDS, WDS);
+      const box = P.col([62, 64, 70]), boxD = P.col([36, 38, 42]), steel = P.col([132, 134, 142]), brass = P.col([168, 138, 72]), wood = P.col([128, 88, 50]), woodD = P.col([86, 58, 34]);
+      P_rect(ctx, -0.22, 0.22, 0.44, 0.56, box); P_rect(ctx, -0.22, 0.22, 0.44, 0.04, boxD); P_rect(ctx, -0.22, 0.74, 0.44, 0.04, boxD);   // the gearbox
+      for (const [x, y] of [[-0.16, 0.3], [0.16, 0.3], [-0.16, 0.7], [0.16, 0.7]]) P_ell(ctx, x, y, 0.022, 0.022, boxD);           // its bolts
+      ctx.translate(0, 0.5); ctx.rotate((winder.count || 0) * 1.1 + (s.turning ? L.t * 0.8 : 0));
+      ctx.strokeStyle = steel; ctx.lineWidth = 0.07; ctx.beginPath(); ctx.arc(0, 0, 0.31, 0, TAU); ctx.stroke();
+      for (let k = 0; k < 4; k++) P_line(ctx, 0, 0, Math.cos(k * Math.PI / 2 + Math.PI / 4) * 0.31, Math.sin(k * Math.PI / 2 + Math.PI / 4) * 0.31, 0.05, steel);
+      P_ell(ctx, 0, 0, 0.075, 0.075, brass); P_ell(ctx, 0, 0, 0.03, 0.03, boxD);                    // the hub
+      P_line(ctx, 0.31, 0, 0.44, 0, 0.11, wood); P_ell(ctx, 0.44, 0, 0.055, 0.055, woodD);           // the grip, out on the rim
+    };
     L.dynamic = () => {
-      // the lens: dark glass, or a burning core
-      R.add(SC.mkSprite(L, AX, 0.9, AZ, 1.1, 1.5, (ctx, P) => {
-        ctx.scale(1.1, 1.5);
-        P_ell(ctx, 0, 0.5, 0.42, 0.48, s.power ? P.cola([255, 236, 190], 0.55) : P.col([46, 52, 60]));
-        for (let k = 0; k < 5; k++) P_line(ctx, -0.4 + k * 0.2, 0.05, -0.4 + k * 0.2, 0.95, 0.012, P.col([70, 72, 78]));
-        if (s.bulb && !s.power) { ctx.save(); ctx.translate(0, 0.32); ctx.scale(0.22, 0.36); ICONS.bulb(ctx, P); ctx.restore(); } // the new bulb, dark
-        if (s.power) { const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.45); g.addColorStop(0, 'rgba(255,250,225,1)'); g.addColorStop(0.4, 'rgba(255,230,170,0.55)'); g.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); }
-      }));
+      R.add(SC.mkSprite(L, AX, 0.9, AZ, LW, LH, drawLens));
       // the beam itself, a long faint wedge, drawn over everything
       if (s.power && s.turning) {
-        const A = s.beamA, far = 55, drop = 30;
+        const A = s.beamA, reach = 55, drop = 30;
         for (const [sp, al] of [[0.22, 0.08], [0.09, 0.11]]) {
-          R.add({ kind: 'poly', pts: [lensW, [lensW[0] + Math.sin(A - sp) * far, lensW[1] - drop, lensW[2] + Math.cos(A - sp) * far], [lensW[0] + Math.sin(A + sp) * far, lensW[1] - drop, lensW[2] + Math.cos(A + sp) * far]], color: [255, 242, 205], alpha: al, noFog: true, noLight: true, dist: 0.3 });
+          R.add({ kind: 'poly', pts: [lensW, [lensW[0] + Math.sin(A - sp) * reach, lensW[1] - drop, lensW[2] + Math.cos(A - sp) * reach], [lensW[0] + Math.sin(A + sp) * reach, lensW[1] - drop, lensW[2] + Math.cos(A + sp) * reach]], color: [255, 242, 205], alpha: al, noFog: true, noLight: true, dist: 0.3 });
         }
       }
       // the fuse box and the crank, showing their state
       R.add(SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, drawFuseBox, { sortDist: mounted(fb[0], fb[2]) }));
-      R.add(SC.mkSprite(L, wd[0], wd[1], wd[2], WDS, WDS, (ctx, P) => {
-        ctx.scale(WDS, WDS); P_rect(ctx, -0.12, 0.38, 0.24, 0.24, P.col([60, 62, 68])); ctx.translate(0, 0.5); ctx.rotate((winder.count || 0) * 1.1 + (s.turning ? L.t * 0.8 : 0));
-        ctx.strokeStyle = P.col([120, 122, 130]); ctx.lineWidth = 0.08; ctx.beginPath(); ctx.arc(0, 0, 0.4, 0, TAU); ctx.stroke();
-        for (let k = 0; k < 4; k++) P_line(ctx, 0, 0, Math.cos(k * Math.PI / 2) * 0.4, Math.sin(k * Math.PI / 2) * 0.4, 0.06, P.col([120, 122, 130]));
-        P_line(ctx, 0.4, 0, 0.62, 0, 0.12, P.col([110, 80, 50]));
-      }, { sortDist: mounted(wd[0], wd[2]) }));
+      R.add(SC.mkSprite(L, wd[0], wd[1], wd[2], WDS, WDS, drawCrank, { sortDist: mounted(wd[0], wd[2]) }));
     };
     L.dynamicLights = () => {
       if (!s.power) return [];
@@ -252,6 +313,8 @@ LEVELS.push({
       if (!on) s.crossing = false;
       return t >= 8.5;
     };
-    L.floor = { poly: [[-1.4, -0.9], [1.4, -0.9], [1.4, 0.0], [-1.4, 0.0]], y: 0 }; // inside the rail at every facing
+    // where a dropped thing lands: on the gallery floor inside the rail (no more than 3 m from the axis) and clear of the
+    // lamp room's wall, at every facing
+    L.floor = { poly: [[-1.6, -0.75], [1.6, -0.75], [1.5, -0.3], [0.75, -0.02], [-0.75, -0.02], [-1.5, -0.3]], y: 0 };
   }
 });
