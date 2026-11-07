@@ -615,7 +615,7 @@ function updateCreature(L, c, dt, live) {
   c.seenLast = seen;
   let m = CR.speedMult(c, dt, seen) * ((CR.ignoresGaze || c.ignoresGaze) ? 1 : (seen ? c.seenMult : c.unseenMult));
   if (c.frozen || c.dead) m = 0;
-  const prevDist = c.dist;
+  const prevDist = c.dist, prevGait = c.gait;   // before a night's distFn, which may walk it (and its legs) itself
   let d;
   if (c.hold !== null) d = c.hold;
   else if (c.distFn) d = c.distFn(c, dt);
@@ -625,7 +625,6 @@ function updateCreature(L, c, dt, live) {
   if (c.hitched) { c.hitched = false; G.shake(0.05); }
   c.dist = d;
   const moved = Math.abs(prevDist - d);
-  const prevGait = c.gait;
   c.gait += moved * CR.stepRate * Math.PI;
   c.moving = moved > 0.024 * dt; // a rate, not a per-frame distance, so the slowest walkers step at any refresh rate
   if (!c.moving && !c.dead) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }

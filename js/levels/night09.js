@@ -423,7 +423,8 @@ Object.assign(ICONS, {
       // the exchange: a wrong number is not in service; the right one connects, rings for seven seconds from the last digit, and is answered
       L.update = () => {
         if (s.line === 'checking' && L.t - s.doneAt > 0.7) { s.line = 'dead'; AUDIO.sfx('noService'); G.say('The number you have dialled is not in service.', 'The number you have dialled is not in service.', 3.2); drawPad(); }
-        if (s.line === 'connecting' && L.t - s.doneAt > 0.9) { s.line = 'ringing'; s.ringFrom = s.doneAt; AUDIO.sfx('ringback'); G.say('It is ringing.', 'It is ringing.'); drawPad(); }
+        if (s.line === 'connecting' && L.t - s.doneAt > 0.9) { s.line = 'ringing'; s.ringFrom = s.doneAt; s.nextRing = L.t + 3; AUDIO.sfx('ringback'); G.say('It is ringing.', 'It is ringing.'); drawPad(); }
+        if (s.line === 'ringing' && L.t >= s.nextRing) { s.nextRing = L.t + 3; AUDIO.sfx('ringback'); }   // one ring every 3 s, only while it rings: hanging up stops it
         if (s.line === 'ringing' && L.t - s.ringFrom >= 7) {
           s.line = 'answered'; s.answeredAt = L.t; AUDIO.sfx('answer'); G.say('Someone picks up.', 'Someone picks up.', 3.5);
           s.nbOpen = false; s.padOpen = false; drawPad(); sync();

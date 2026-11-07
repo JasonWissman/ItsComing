@@ -288,7 +288,7 @@ const AUDIO = (() => {
       // the phone booth
       case 'receiver': noise(0.05, { freq: 700, vol: 0.35 }); tone(260, 0.06, { vol: 0.2, type: 'square', endFreq: 180 }); tone(350, 0.9, { vol: 0.035, type: 'sine', delay: 0.12 }); tone(440, 0.9, { vol: 0.035, type: 'sine', delay: 0.12 }); break;
       case 'dial': { const lo = [697, 770, 852, 941][Math.floor(Math.random() * 4)], hi = [1209, 1336, 1477][Math.floor(Math.random() * 3)]; tone(lo, 0.13, { vol: 0.07, type: 'sine' }); tone(hi, 0.13, { vol: 0.07, type: 'sine' }); break; }
-      case 'ringback': for (const d of [0, 3]) { tone(440, 1.8, { vol: 0.05, type: 'sine', attack: 0.02, delay: d }); tone(480, 1.8, { vol: 0.05, type: 'sine', attack: 0.02, delay: d }); } break;
+      case 'ringback': tone(440, 1.8, { vol: 0.05, type: 'sine', attack: 0.02 }); tone(480, 1.8, { vol: 0.05, type: 'sine', attack: 0.02 }); break;   // one ring: the caller rings again every 3 s, and can stop
       case 'noService': [[950, 0], [1400, 0.33], [1800, 0.66]].forEach(([f, d]) => tone(f, 0.28, { vol: 0.07, type: 'sine', delay: d })); break;
       case 'answer': noise(0.05, { freq: 900, vol: 0.3 }); for (let i = 0; i < 6; i++) noise(0.11 + Math.random() * 0.08, { type: 'bandpass', freq: 380 + Math.random() * 380, q: 2.5, vol: 0.16, attack: 0.03, delay: 0.35 + i * 0.2 }); break;
       case 'phoneRing': for (let i = 0; i < 16; i++) tone(i % 2 ? 1300 : 1000, 0.05, { vol: 0.06, type: 'square', delay: i * 0.055, pan }); break;

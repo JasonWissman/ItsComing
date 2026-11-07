@@ -104,9 +104,11 @@ some on the ground, so you have to turn and look down to find them.
    not. Put the spare bulb in the lamp, open the fuse box, pull the blown fuse and put
    in the new one from the toolbox, and turn the crank so the beam goes round.
 8. **The Diner.** A man-shaped thing in the lot is drawn to the light: while the
-   lights are on it comes fast. Throw the power main on the back wall, find the crank,
-   and crank all three shutters down; each time its window shuts it slides along the
-   glass to one still open.
+   lights are on it comes fast, too fast to shutter every window. Throw the power main
+   on the back wall in the first ten seconds or so, find the crank, and crank all three
+   shutters down; each time its window shuts it goes to one still open, along the glass
+   if it is already there, across the lot if not. If it reaches an open window it comes
+   through the glass.
 9. **The Phone Booth.** It is raining and a man in a long coat is walking down the
    street toward the booth. Find the number in your notebook and dial it. It rings
    for seven seconds before anyone answers, and he keeps coming the whole time.
