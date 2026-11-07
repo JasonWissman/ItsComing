@@ -1,18 +1,19 @@
 'use strict';
 // ============================================================ 8. THE DINER ============================================================
 // It is drawn to the light. While the diner is lit it crosses the lot far faster than three shutters can be cranked, and
-// it does not matter whether you watch it; with the power main thrown it walks at an ordinary pace. Three windows across
-// the front, a roll-down shutter on each and one crank: shut the window it is coming for and it slides along the glass to
-// one that is still open. With all three down it stands at the glass until it gets light.
+// it does not matter whether you watch it; with the power main thrown it walks, slowly. Three windows across the front, a
+// roll-down shutter on each and one crank: shut the window it is coming for and it goes to one that is still open (along
+// the glass if it is already there, across the lot if not). With all three down it stands at the glass until it gets light.
 Object.assign(ICONS, {
   // the shutter crank: a long bright steel rod with a hook at the top, a crank bend and a red rubber grip, edged dark so it
-  // reads on a pale tile and on a dark one, with the lights out
+  // reads on a pale tile and on a dark one, with the lights out. Drawn bold: it lies on the floor or a counter some way off.
   shutterCrank(ctx, P) {
-    const edge = P.col([34, 34, 38]), steel = P.col([200, 202, 208]), grip = P.col([186, 46, 36]);
-    const rod = [[0.34, 0.88], [0.34, 0.97], [0.2, 0.97], [0.2, 0.36], [-0.22, 0.36]];
-    P_limb(ctx, rod, 0.1, edge); P_line(ctx, -0.22, 0.36, -0.22, 0.04, 0.16, edge);
-    P_limb(ctx, rod, 0.055, steel);
-    P_line(ctx, -0.22, 0.3, -0.22, 0.07, 0.11, grip);
+    const edge = P.col([34, 34, 38]), steel = P.col([200, 202, 208]), shine = P.col([236, 238, 242]), grip = P.col([186, 46, 36]), gripD = P.col([130, 30, 24]);
+    const rod = [[0.36, 0.84], [0.36, 0.96], [0.2, 0.96], [0.2, 0.36], [-0.22, 0.36]];
+    P_limb(ctx, rod, 0.13, edge); P_line(ctx, -0.22, 0.36, -0.22, 0.03, 0.2, edge);
+    P_limb(ctx, rod, 0.075, steel);
+    P_line(ctx, 0.18, 0.88, 0.18, 0.42, 0.022, shine);                           // a glint down the shaft
+    P_line(ctx, -0.22, 0.3, -0.22, 0.07, 0.14, grip); P_line(ctx, -0.18, 0.28, -0.18, 0.09, 0.03, gripD);
   },
 });
 LEVELS.push({
@@ -21,11 +22,11 @@ LEVELS.push({
   ambient: { wind: 0.25, drone: 1.0, droneFreq: 60, windFreq: 300 },
   lights: [
     { x: 3.1, y: 5.4, z: 11.6, r: 18, i: 0.9, color: [255, 172, 70] },                    // the lamp over the lot
-    { x: -4.2, y: 4.9, z: 15, r: 14, i: 0.75, color: [255, 70, 190], flicker: 0.12 },     // the sign out by the road
+    { x: -10.5, y: 4.9, z: 26, r: 20, i: 0.75, color: [255, 70, 190], flicker: 0.12 },     // the sign out by the road: pink on the ground round it, and on it as it passes
   ],
   text: {
     intro: 'The last customer left at ten. Since then something that is not a customer has stood at the far end of the lot, looking at the lit windows.<br>Now it is coming for the light, and every light in the place is on.',
-    death: { default: 'One window was still open. It found it.', lit: 'The lights were still on. It came straight to them.' },
+    death: { default: 'One window was still open. It found it.', through: 'It came through the glass before the shutter was down.', lit: 'The lights were still on. It came straight to them.' },
     win: 'It stood at the shutters until it got light, and then it turned and walked off across the lot like it had somewhere to be.',
     fragment: 'There is a switch by your door that does not seem to do anything. You flip it every night anyway.',
   },
@@ -36,15 +37,21 @@ LEVELS.push({
     { deg: 0, name: 'middle window', barrierDist: 5.45 },
     { deg: 30, name: 'right window', barrierDist: 6.29 },
   ],
-  creatures: [{ type: 'customer', startDist: 42, time: 85 }],
+  // its time is its walk in the dark: slow enough that the main thrown within the first ten seconds or so still leaves
+  // room to find the crank and bring all three shutters down (the lit pace is set in build, from LIT_T)
+  creatures: [{ type: 'customer', startDist: 42, time: 175 }],
   build(L) {
     const s = L.s, eye = L.eyeH;
     const cream = [96, 88, 72], creamD = [72, 65, 54], red = [104, 32, 32], chrome = [118, 120, 126], tileA = [82, 77, 70], tileB = [34, 31, 30], dark = [34, 34, 38], steel = [128, 126, 118];
     // the glass of each window (x from..to on the front wall), the glass and shutter planes, and how far a shutter travels
     const PANES = [[-3.85, -1.55], [-1.25, 1.25], [1.55, 3.85]], ZW = 5.0, ZG = 5.02, ZS = 5.1, TOP = 2.6, BOT = 0.1;
-    // a shutter takes eight turns, and the crank goes round no faster than once in half a second: 11.5 s and more for all
-    // three. Lit, it crosses the whole lot in 11.5 s and is through the glass in about 10, so the lights have to go first.
-    const TURNS = 8, TURN = 0.5, LIT_T = 11.5, DARK_AMB = 0.42;
+    // a shutter takes ten turns, and the crank goes round no faster than once in 0.65 s: nearly 19 s for all three. Lit, it
+    // is at the glass LIT_T s after it sets off, whatever its start: too soon for all three even from a hand that has the
+    // crank at once and never misses a turn. (Shut its window just as it gets there and it slides along to the next, but
+    // lit it slides quickly: no more than two more turns fit in before it is at the last glass, and the 28th turn cannot
+    // come before 17.5 s.) So the lights have to go first; thrown within the first ten seconds or so, there is room to find
+    // the crank and bring all three down at an ordinary pace.
+    const TURNS = 10, TURN = 0.65, LIT_T = 17, DARK_AMB = 0.42;
     SC.stars(L, 81, 40, 0.25);
     // ---- the room: tiles, walls, ceiling, the kitchen pass and the back counter ----
     for (let x = -4; x < 4; x++) for (let z = -2.5; z < 5; z++) SC.floorQ(L, x, z, x + 1, Math.min(z + 1, 5), 0.004, ((x + Math.floor(z)) & 1) ? tileA : tileB);
@@ -52,36 +59,75 @@ LEVELS.push({
     SC.wallV(L, -4, -2.5, 4, -2.5, 0, 3, cream); SC.wallV(L, -4, -2.49, 4, -2.49, 1.05, 1.2, red);
     SC.wallV(L, 4, -2.5, 4, 5, 0, 3, creamD); SC.wallV(L, -4, -2.5, -4, 5, 0, 3, creamD);
     SC.wallV(L, 3.99, -2.5, 3.99, 5, 1.05, 1.2, red); SC.wallV(L, -3.99, -2.5, -3.99, 5, 1.05, 1.2, red);
-    SC.wallV(L, -3.99, 1.2, -3.99, 2.1, 0, 2.1, [58, 44, 36]);                                           // the door to the back
+    // the door to the back, on the staff side of the counter: a dark frame, the door, a round window and a push plate
+    SC.wallV(L, -3.985, -2.02, -3.985, -0.88, 0, 2.2, [40, 32, 28], { sortDist: 4.3 });
+    SC.wallV(L, -3.98, -1.94, -3.98, -0.96, 0, 2.12, [74, 56, 44], { sortDist: 4.29 });
+    const disc = (cz, cy, r, color, sd) => L.props.push({ kind: 'poly', pts: Array.from({ length: 10 }, (_, k) => L.pt(-3.975, cy + Math.sin(k * TAU / 10) * r, cz + Math.cos(k * TAU / 10) * r)), color, sortDist: sd });
+    disc(-1.45, 1.55, 0.17, [118, 120, 126], 4.28); disc(-1.45, 1.55, 0.13, [18, 16, 18], 4.27);
+    SC.wallV(L, -3.975, -1.12, -3.975, -1.04, 0.92, 1.22, [118, 120, 126], { sortDist: 4.27 });
     SC.wallV(L, -1, -2.49, 1, -2.49, 1.0, 2.0, [14, 10, 10]); SC.box(L, -1.1, 1.1, 0.95, 1.02, -2.5, -2.3, chrome); // the kitchen pass
     SC.box(L, 1.2, 3.8, 1.9, 1.95, -2.5, -2.3, [90, 74, 56]);
     for (let x = 1.4; x < 3.7; x += 0.3) SC.box(L, x, x + 0.16, 1.95, 2.1, -2.48, -2.34, [230, 226, 214]);
     SC.box(L, 2.4, 3.8, 0, 0.9, -2.45, -1.85, [150, 138, 118]); SC.box(L, 3.0, 3.6, 0.9, 1.5, -2.4, -2.0, chrome); SC.box(L, 3.05, 3.55, 0.9, 1.0, -2.0, -1.9, [60, 40, 30]);
     SC.sprite(L, -2.4, 2.1, -2.45, 0.42, 0.42, (ctx, P) => { ctx.scale(0.42, 0.42); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([40, 40, 44])); P_ell(ctx, 0, 0.5, 0.44, 0.44, P.col([230, 226, 216])); P_line(ctx, 0, 0.5, 0, 0.82, 0.03, P.col([30, 30, 30])); P_line(ctx, 0, 0.5, 0.22, 0.38, 0.03, P.col([30, 30, 30])); });
     // ---- the counter you stand behind, the stools, the booths ----
-    SC.box(L, -3.6, 3.6, 0, 0.95, 0.8, 1.4, [108, 34, 34]); SC.box(L, -3.7, 3.7, 0.95, 1.0, 0.75, 1.45, [130, 122, 104]);
-    for (const x of [-3, -1.5, 0, 1.5, 3]) { SC.box(L, x - 0.04, x + 0.04, 0, 0.72, 1.96, 2.04, chrome); SC.box(L, x - 0.2, x + 0.2, 0.72, 0.84, 1.8, 2.2, red); }
+    // The counter runs the width of the room, so the middle of all of it says little about what is in front of it: its top
+    // is drawn after the whole of the red body under it (or the body's top shows through it), and the stools on the far
+    // side before the whole counter (or their posts show over its front). reorder moves the last n faces' drawing order
+    // together, so they keep their own order among themselves.
+    const reorder = (n, f) => {
+      const ps = L.props.slice(-n), ds = ps.map(p => p.pts.reduce((a, v) => a + Math.hypot(v[0], v[2]), 0) / p.pts.length), k = f(Math.min(...ds), Math.max(...ds));
+      ps.forEach((p, i) => { p.sortDist = ds[i] + k; });
+    };
+    SC.box(L, -3.6, 3.6, 0, 0.95, 0.8, 1.4, [108, 34, 34]);
+    SC.box(L, -3.7, 3.7, 0.95, 1.0, 0.75, 1.45, [112, 104, 90]); reorder(5, (lo, hi) => 3.6 - hi);   // a little dim: under the tubes it is the brightest thing in the room
+    for (const x of [-3, -1.5, 0, 1.5, 3]) { SC.box(L, x - 0.04, x + 0.04, 0, 0.72, 1.96, 2.04, chrome); SC.box(L, x - 0.2, x + 0.2, 0.72, 0.84, 1.8, 2.2, red); reorder(10, lo => 3.9 - lo); }
     SC.box(L, -0.9, -0.65, 1.0, 1.16, 0.95, 1.1, chrome); SC.box(L, 0.4, 0.5, 1.0, 1.2, 1.0, 1.1, [150, 30, 20]); SC.box(L, 0.6, 0.7, 1.0, 1.14, 1.0, 1.1, [190, 170, 60]);
     SC.box(L, -3.4, -2.8, 1.0, 1.3, 0.85, 1.35, [60, 60, 66]); SC.box(L, -3.35, -2.85, 1.3, 1.34, 0.85, 1.35, [40, 40, 44]);
     STORY.lamp(L, -2.3, 1.0, 1.1, { scale: 0.8 });
-    SC.sprite(L, 2.3, 1.0, 1.1, 0.4, 0.34, (ctx, P) => { ctx.scale(0.4, 0.34); P_rect(ctx, -0.5, 0, 1, 0.1, P.col(chrome)); P_ell(ctx, 0, 0.1, 0.45, 0.85, P.cola([200, 210, 220], 0.35)); P_rect(ctx, -0.3, 0.15, 0.6, 0.3, P.col([170, 120, 90])); });
+    // a pie under a glass dome: the dome sits on its stand, it does not reach down through the counter
+    SC.sprite(L, 2.3, 1.0, 1.1, 0.4, 0.34, (ctx, P) => {
+      ctx.scale(0.4, 0.34);
+      P_rect(ctx, -0.5, 0, 1, 0.1, P.col(chrome));
+      P_rect(ctx, -0.32, 0.1, 0.64, 0.24, P.col([170, 120, 90])); P_rect(ctx, -0.32, 0.3, 0.64, 0.05, P.col([206, 160, 112]));
+      ctx.fillStyle = P.cola([200, 210, 220], 0.3); ctx.beginPath(); ctx.ellipse(0, 0.1, 0.45, 0.8, 0, 0, Math.PI); ctx.closePath(); ctx.fill();
+      P_line(ctx, -0.26, 0.5, -0.18, 0.7, 0.03, P.cola([236, 240, 246], 0.5));   // a glint on the glass
+      P_ell(ctx, 0, 0.92, 0.05, 0.04, P.col(chrome));                            // its knob
+    });
     for (const x of [-3.4, 3.4]) { SC.box(L, x - 0.35, x + 0.35, 0.72, 0.78, 3.0, 3.7, [200, 190, 165]); SC.box(L, x - 0.04, x + 0.04, 0, 0.72, 3.31, 3.39, chrome); }
     // ---- the front: three tall windows between narrow piers, a header above, a kick plate below ----
     for (const [x0, x1] of [[-4, -3.85], [-1.55, -1.25], [1.25, 1.55], [3.85, 4]]) SC.box(L, x0, x1, 0, 3, 4.95, 5.05, dark);
     SC.wallV(L, -4, ZW, 4, ZW, TOP, 3.0, creamD);
     SC.box(L, -4, 4, 0, BOT, 4.95, 5.05, dark);
-    PANES.forEach(([x0, x1]) => {
+    // a shutter is drawn behind everything inside and in front of anything outside: the nearest point of its own plane, a
+    // little less. Its gearbox and drive rod are inside the glass, so they come after it.
+    const shutterSort = (x0, x1) => Math.min(Math.hypot(x0, ZS), Math.hypot(x1, ZS), x0 < 0 && x1 > 0 ? ZS : Infinity) - 0.05;
+    const GEAR = PANES.map(([x0]) => x0 + 0.15);   // each window's gearbox, just inside the left edge of its own glass
+    const glass = PANES.map(([x0, x1], i) => {
       SC.wallV(L, x0, ZG, x1, ZG, BOT, TOP, [150, 170, 200], { alpha: 0.1 });
+      const pane = L.props[L.props.length - 1];
       SC.box(L, x0, x1, TOP - 0.05, TOP, 5.04, 5.16, [40, 40, 44]);                                       // the slot the shutter comes out of
       for (const gx of [x0, x1 - 0.05]) SC.box(L, gx, gx + 0.05, BOT, TOP, 5.06, 5.14, [62, 62, 66]);     // its guide rails
-      // the gearbox on the pier beside the glass, with the eye the crank goes into
-      SC.sprite(L, x0 - 0.15, 0.95, 4.92, 0.13, 0.2, (ctx, P) => { ctx.scale(0.13, 0.2); P_rect(ctx, -0.5, 0, 1, 1, P.col([70, 72, 76])); P_rect(ctx, -0.42, 0.06, 0.84, 0.88, P.col([96, 98, 102])); P_ell(ctx, 0, 0.62, 0.3, 0.2, P.col([24, 24, 26])); P_ell(ctx, 0, 0.62, 0.13, 0.08, P.col([150, 150, 156])); });
+      // the gearbox, with the eye the crank goes into, and the rod from it up to the shutter's roll, so it is plain which
+      // window it works
+      const gx = GEAR[i], sd = shutterSort(x0, x1) - 0.1;
+      SC.wallV(L, gx - 0.016, ZG - 0.05, gx + 0.016, ZG - 0.05, 1.08, TOP - 0.02, [46, 46, 50], { sortDist: sd + 0.01 });
+      SC.wallV(L, gx - 0.05, ZG - 0.05, gx + 0.05, ZG - 0.05, TOP - 0.14, TOP - 0.02, [46, 46, 50], { sortDist: sd + 0.01 });   // where it goes into the roll
+      SC.sprite(L, gx, 0.86, ZG - 0.07, 0.17, 0.26, (ctx, P) => {
+        ctx.scale(0.17, 0.26);
+        P_rect(ctx, -0.5, 0, 1, 1, P.col([40, 40, 44])); P_rect(ctx, -0.42, 0.05, 0.84, 0.9, P.col([104, 106, 112]));
+        P_rect(ctx, -0.42, 0.05, 0.84, 0.12, P.col([80, 82, 88]));
+        for (const y of [0.12, 0.88]) for (const x of [-0.3, 0.3]) P_ell(ctx, x, y, 0.05, 0.03, P.col([50, 50, 54]));   // its bolts
+        P_ell(ctx, 0, 0.55, 0.32, 0.21, P.col([20, 20, 22])); P_ell(ctx, 0, 0.55, 0.15, 0.1, P.col([176, 176, 182]));
+        P_rect(ctx, -0.05, 0.52, 0.1, 0.06, P.col([20, 20, 22]));                                                         // the slot the hook catches in
+      }, { sortDist: sd });
+      return pane;
     });
     // the OPEN sign hanging high in the middle window: lit while the power is on
     SC.sprite(L, 0, 2.18, 4.9, 1.0, 0.36, (ctx, P) => {
       ctx.scale(1.0, 0.36);
       const on = lightsOn();
-      ctx.strokeStyle = on ? P.raw([255, 90, 210]) : P.col([70, 46, 66]); ctx.lineWidth = 0.05; ctx.lineCap = 'round';
+      ctx.strokeStyle = on ? P.raw([255, 90, 210]) : P.col([70, 46, 66]); ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.lineJoin = 'round';   // round joins: no spikes off the N
       ctx.beginPath(); ctx.ellipse(-0.36, 0.5, 0.1, 0.32, 0, 0, TAU); ctx.moveTo(-0.16, 0.18); ctx.lineTo(-0.16, 0.82); ctx.lineTo(-0.02, 0.82); ctx.lineTo(-0.02, 0.5); ctx.lineTo(-0.16, 0.5);
       ctx.moveTo(0.22, 0.18); ctx.lineTo(0.08, 0.18); ctx.lineTo(0.08, 0.82); ctx.lineTo(0.22, 0.82); ctx.moveTo(0.08, 0.5); ctx.lineTo(0.2, 0.5);
       ctx.moveTo(0.3, 0.18); ctx.lineTo(0.3, 0.82); ctx.lineTo(0.46, 0.18); ctx.lineTo(0.46, 0.82); ctx.stroke();
@@ -93,11 +139,20 @@ LEVELS.push({
     SC.floorQ(L, -80, 30, 80, 38, -0.02, [22, 22, 24]);
     for (let x = -60; x < 60; x += 6) SC.floorQ(L, x, 33.9, x + 3, 34.1, -0.01, [140, 140, 110], { alpha: 0.6 });
     SC.floorQ(L, -80, 38, 80, 95, -0.02, [26, 26, 26]);
-    // the lamp and the sign stand between the ways it can come, so neither ever hides it
+    // the lamp and the sign stand between the ways it can come, so neither ever hides it. The lamp's head is above the
+    // window line, out of sight from behind the counter (only its light shows, on the lot); the sign stands out by the road,
+    // where the whole of it shows through the left window, clear of the left way
     SC.box(L, 3.0, 3.2, 0, 5.4, 11.5, 11.7, dark);
     SC.sprite(L, 3.1, 5.3, 11.6, 0.7, 0.3, (ctx, P) => { ctx.scale(0.7, 0.3); P_rect(ctx, -0.5, 0, 1, 1, P.raw([255, 200, 120])); }, { noFog: true, noLight: true });
-    SC.box(L, -4.3, -4.1, 0, 4.2, 14.9, 15.1, dark);
-    SC.sprite(L, -4.2, 4.2, 15, 2.8, 1.5, (ctx, P) => { ctx.scale(2.8, 1.5); P_rect(ctx, -0.5, 0, 1, 1, P.col([26, 22, 30])); ctx.strokeStyle = P.raw([255, 90, 210]); ctx.lineWidth = 0.05; ctx.strokeRect(-0.45, 0.1, 0.9, 0.8); P_rect(ctx, -0.36, 0.42, 0.72, 0.16, P.raw([255, 120, 220])); P_rect(ctx, -0.3, 0.2, 0.6, 0.1, P.raw([255, 90, 210])); }, { noFog: true, noLight: true });
+    SC.box(L, -10.6, -10.4, 0, 4.2, 25.9, 26.1, dark, { noLight: true });   // its post, a dark line under the board (lit, it glowed like a tube)
+    SC.sprite(L, -10.5, 4.2, 26, 2.8, 1.5, (ctx, P) => {   // EAT, in pink neon on a dark board
+      ctx.scale(2.8, 1.5); P_rect(ctx, -0.5, 0, 1, 1, P.col([26, 22, 30]));
+      ctx.strokeStyle = P.raw([255, 90, 210]); ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeRect(-0.45, 0.1, 0.9, 0.8);
+      ctx.strokeStyle = P.raw([255, 130, 225]); ctx.lineWidth = 0.06; ctx.beginPath();
+      ctx.moveTo(-0.16, 0.25); ctx.lineTo(-0.3, 0.25); ctx.lineTo(-0.3, 0.75); ctx.lineTo(-0.16, 0.75); ctx.moveTo(-0.3, 0.5); ctx.lineTo(-0.19, 0.5);
+      ctx.moveTo(-0.08, 0.25); ctx.lineTo(0.01, 0.75); ctx.lineTo(0.1, 0.25); ctx.moveTo(-0.045, 0.45); ctx.lineTo(0.065, 0.45);
+      ctx.moveTo(0.17, 0.75); ctx.lineTo(0.31, 0.75); ctx.moveTo(0.24, 0.75); ctx.lineTo(0.24, 0.25); ctx.stroke();
+    }, { noFog: true, noLight: true });
     SC.box(L, 7.6, 9.4, 0.25, 0.85, 7.2, 11.0, [38, 36, 46]); SC.box(L, 7.8, 9.2, 0.85, 1.35, 8.2, 10.0, [28, 28, 36]);
     for (const [x, z] of [[7.6, 8], [9.4, 8], [7.6, 10.2], [9.4, 10.2]]) SC.box(L, x - 0.12, x + 0.12, 0, 0.5, z - 0.3, z + 0.3, [14, 14, 16]);
     SC.box(L, -10.4, -8.8, 0, 1.3, 6.4, 7.4, [40, 60, 44]);
@@ -107,10 +162,12 @@ LEVELS.push({
     const rng = mulberry32(88), tan30 = Math.tan(30 * DEG);
     for (let i = 0; i < 14; i++) { const side = rng() < 0.5 ? -1 : 1, x = side * (14 + rng() * 26), z = 38 + rng() * 10; if ([-tan30, 0, tan30].some(t => Math.abs(x - t * z) < 2.5)) continue; SC.tree(L, x, z, 6 + rng() * 6, 'bare', (rng() * 1e6) | 0); }
 
-    // ---- the power main: a big lever switch on the back wall, on one side of the kitchen pass or the other ----
+    // ---- the power main: a big lever switch on the back wall, on one side of the kitchen pass or the other (either way in
+    // view from straight back, and square in the view a turn to that side) ----
     Object.assign(s, { power: true, offAt: -9, lever: 1, amb: 1, down: [false, false, false], shown: [0, 0, 0], turnAt: [-9, -9, -9], lastTurn: -9, queued: null, slide: null, slides: 0, through: false, byHand: false, rattle: [0, 0, 0], beats: {}, dawn: 0 });
-    const mainX = [-3.1, 1.75][Math.floor(L.rand() * 2)], MW = 0.72, MH = 0.95, MY = 0.95;
-    SC.wallV(L, mainX - 0.05, -2.485, mainX + 0.05, -2.485, 0, MY + 0.06, [74, 76, 80]);   // its conduit, down into the floor
+    const mainX = [-1.75, 1.75][Math.floor(L.rand() * 2)], MW = 0.72, MH = 0.95, MY = 0.95;
+    SC.wallV(L, mainX - 0.11, -2.485, mainX - 0.06, -2.485, 0, MY + 0.06, [48, 50, 54]);   // its conduit, down into the floor, clamped to the wall
+    for (const y of [0.3, 0.7]) SC.wallV(L, mainX - 0.13, -2.483, mainX - 0.04, -2.483, y, y + 0.04, [70, 72, 76]);
     SC.sprite(L, mainX, MY, -2.44, MW, MH, (ctx, P) => {
       ctx.scale(MW, MH);
       const body = P.col([92, 96, 100]), bodyD = P.col([58, 60, 64]), ink = P.col([24, 24, 26]), plate = P.col([214, 208, 196]);
@@ -126,6 +183,9 @@ LEVELS.push({
       ctx.moveTo(x + 0.02, y0); ctx.lineTo(x + 0.02, y1); x += 0.07;
       ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.lineTo(x + 0.07, y0); ctx.lineTo(x + 0.07, y1); ctx.stroke();
       P_ell(ctx, -0.36, 0.17, 0.04, 0.03, s.power ? P.raw([120, 255, 140]) : P.col([30, 50, 34]));                      // the pilot light
+      // I and O beside the lever's two ends, as on any switch: on is up, off is down
+      P_line(ctx, 0.14, 0.78, 0.14, 0.88, 0.022, ink);
+      ctx.strokeStyle = ink; ctx.lineWidth = 0.018; ctx.beginPath(); ctx.ellipse(0.14, 0.15, 0.03, 0.045, 0, 0, TAU); ctx.stroke();
       // the lever: a pivot on the side of the box and a long arm with a red grip, up for on and down for off
       const a = lerp(Math.PI - 0.32, 0.32, s.lever), px = 0.3, py = 0.5, ex = px + Math.sin(a) * 0.4, ey = py + Math.cos(a) * 0.4;
       P_rect(ctx, 0.2, 0.36, 0.14, 0.28, bodyD);
@@ -137,10 +197,10 @@ LEVELS.push({
       id: 'main', name: 'Main switch', x: mainX, y: MY, z: -2.42, w: MW, h: MH,
       onClick() {
         if (!s.power) { G.say('The main is off, and it stays off.', 'The power is off.'); return true; }
-        s.power = false; s.offAt = L.t; AUDIO.sfx('lever'); G.shake(0.12);
-        setTimeout(() => { AUDIO.sfx('clunk'); AUDIO.sfx('tubeDie'); }, 140);
+        s.power = false; s.offAt = L.t; s.clunked = false; AUDIO.sfx('lever'); G.shake(0.12);   // the clunk and the tubes follow from L.update
         if (AUDIO.on()) AUDIO.startAmbient(Object.assign({}, L.def.ambient, { drone: 0.12 }));   // the hum of the place stops with it
-        G.say('Every light in the place goes out at once. Out in the lot, it slows down.', 'Every light in the place goes out. Out in the lot, it slows down.');
+        if (s.through) G.say('Every light in the place goes out at once.', 'Every light in the place goes out.');
+        else G.say('Every light in the place goes out at once. Out in the lot, it slows down.', 'Every light in the place goes out. Out in the lot, it slows down.');
         return true;
       },
     });
@@ -154,7 +214,7 @@ LEVELS.push({
       { x: 2.7, y: 0.9, z: -2.15 },                     // on the back counter, beside the coffee machine
       { x: -0.5, y: 1.02, z: -2.4 },                    // on the ledge of the kitchen pass
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
-    ], { w: 0.42, h: 0.42, flat: true, tool: true, icon: 'shutterCrank' });
+    ], { w: 0.5, h: 0.5, flat: true, tool: true, icon: 'shutterCrank' });
 
     // ---- the shutters: each its own way in, each cranked down with the crank in hand ----
     // the aperture a slanted way sees through its pane: the pane projected from the eye onto a plane across the way where
@@ -167,9 +227,7 @@ LEVELS.push({
       const top = y => eye + (y - eye) * zp / (y >= eye ? aMax : aMin);
       const ap = L.addAperture(i, { z: zp, x0: across(x0) * zp / along(x0), x1: across(x1) * zp / along(x1), y0: eye - (eye - BOT) * zp / aMax, y1: top(TOP) });
       L.addAperture(i, { z: 0.75 / cs, x0: -9, x1: 9, y0: 1.0, y1: 99 });   // the counter top, between you and the glass
-      // drawn behind everything inside and in front of anything outside: the nearest point of its own plane, a little less
-      const sortD = Math.min(Math.hypot(x0, ZS), Math.hypot(x1, ZS), x0 < 0 && x1 > 0 ? ZS : Infinity) - 0.05;
-      return { ap, top, sortD, glassD: ZG / cs };
+      return { ap, top, sortD: shutterSort(x0, x1), glassD: ZG / cs };
     });
     Object.assign(s, { turns: TURNS, turn: TURN, glassD: panes.map(q => q.glassD) });   // for the tests
     const shutters = PANES.map(([x0, x1], i) => {
@@ -177,6 +235,7 @@ LEVELS.push({
         id: 'shutter' + i, name: ['Left', 'Middle', 'Right'][i] + ' shutter', x: (x0 + x1) / 2, y: BOT, z: 4.95, w: x1 - x0, h: TOP - BOT,
         crank: { n: TURNS, sfx: 'ratchet', onTurn() { s.turnAt[i] = L.t; }, onComplete() { shutterDown(i); } },
         onClick() {
+          if (s.through) { s.queued = null; G.say('Too late. It is inside.', 'Too late. It is inside.'); AUDIO.sfx('nope'); return true; }
           if (t.done) { G.say('That shutter is down.', 'That shutter is down.'); return true; }
           if (!G.hasItem('crank')) { s.byHand = true; G.say('It will not come down by hand. It needs its crank.', 'The shutter is rolled up. It will not come down by hand.'); AUDIO.sfx('nope'); return true; }
           if (L.t - s.lastTurn < TURN) { s.queued = t; return true; }   // the ratchet is still going round: this turn comes next
@@ -185,50 +244,61 @@ LEVELS.push({
       });
       return t;
     });
-    const cr = () => L.creature;   // made after build; s.target is the window it is making for, even while it slides there
-    // it slides along the glass to window k: a straight line from where it is to the same distance out on k's way (no
-    // nearer than just outside k's glass), quickly, its feet still. It keeps coming while it slides.
+    const cr = () => L.creature;   // made after build; s.target is the window it is making for, even while it goes there
+    // its window is shut: it goes to window k. At the glass it slides along it, quickly, its feet still, to the same
+    // distance out on k's way (no nearer than just outside k's glass). Out in the lot it turns across to k's way at a brisk
+    // walk instead (a few metres a second, so it is soon in k's window). Either way it keeps coming at its own pace while it
+    // goes, and it walks a way of its own that turns to point at it, so its distance is its real distance and it is drawn
+    // behind the shutters and piers it passes. Returns whether it was at the glass.
     const slideTo = k => {
       const c = cr(), ln = L.lanes[k], p0 = c.pos(), keep = ln.barrierDist + 0.15;
-      const r0 = Math.max(Math.hypot(p0.x, p0.z), keep), len = Math.hypot(Math.sin(ln.yaw) * r0 - p0.x, Math.cos(ln.yaw) * r0 - p0.z), dur = clamp(len / 4.5, 0.5, 1.3);
+      const r0 = Math.max(Math.hypot(p0.x, p0.z), keep), atGlass = r0 < keep + 2;
+      const yaw0 = Math.atan2(p0.x, p0.z), turn = wrapPi(ln.yaw - yaw0);
+      // (lit, it is quicker along the glass too: a slide there buys a hand cranking with the lights on almost nothing)
+      const len = Math.hypot(Math.sin(ln.yaw) * r0 - p0.x, Math.cos(ln.yaw) * r0 - p0.z), dur = atGlass ? clamp(len / 4.5, 0.5, 1.3) * (s.power ? 0.4 : 1) : clamp(r0 * Math.abs(turn) / 2.5, 1.5, 8);
       c.u = clamp(1 - r0 / c.D0, 0, 1);
-      // on the way it walks a way of its own that turns to point at it, so its distance is its real distance and it is
-      // drawn behind the shutters and piers it passes
-      const way = Object.assign({}, ln, { apertures: [], blockers: [], name: 'along the glass' });
+      const way = Object.assign({}, ln, { apertures: [], blockers: [], name: atGlass ? 'along the glass' : 'across the lot' });
       const place = (x, z) => { const yaw = Math.atan2(x, z); way.yaw = yaw; way.dirX = Math.sin(yaw); way.dirZ = Math.cos(yaw); c.lane = way; c.yaw = yaw; return Math.hypot(x, z); };
-      s.slide = { to: k, from: s.target }; s.target = k; s.slides++;
+      s.slide = { to: k, from: s.target, atGlass }; s.target = k; s.slides++;
       L.lane = ln; L.laneIdx = k; L.barrierDist = ln.barrierDist;
       c.hold = null; c.reached = false; c.dist = place(p0.x, p0.z); c.lat = 0;
-      let e0 = 0;
+      let e0 = 0, yawWas = yaw0;
       c.distFn = (cc, dt) => {
         const m = cc.frozen || cc.dead ? 0 : cc.CR.speedMult(cc, dt, cc.seen);
         cc.u = clamp(cc.u + dt * m / cc.T, 0, 1);
         const r = Math.max(cc.D0 * (1 - cc.u), keep);
         e0 = Math.min(1, e0 + dt / dur);
-        const e = smoothstep(e0), d = place(lerp(p0.x, Math.sin(ln.yaw) * r, e), lerp(p0.z, Math.cos(ln.yaw) * r, e));
+        if (!atGlass) e0 = Math.max(e0, clamp((r0 - r) / (r0 - keep), 0, 1));   // out in the lot it is on k's way by the time it reaches the glass: the turn never holds it back
+        const e = smoothstep(e0), yaw = yaw0 + turn * e;
+        // out in the lot it walks the turn: its steps go with the ground it covers sideways as well as the way in
+        if (!atGlass) { cc.gait += r * Math.abs(yaw - yawWas) * cc.CR.stepRate * Math.PI; yawWas = yaw; }
+        const d = atGlass ? place(lerp(p0.x, Math.sin(ln.yaw) * r, e), lerp(p0.z, Math.cos(ln.yaw) * r, e)) : place(Math.sin(yaw) * r, Math.cos(yaw) * r);
         if (e0 >= 1) { cc.distFn = null; cc.retarget(k); cc.u = clamp(1 - d / cc.D0, 0, 1); s.slide = null; }
         return d;
       };
-      const pan = Math.sin(wrapPi(ln.yaw - G.cam.yaw)) * 0.85;
-      if (r0 < keep + 2) AUDIO.sfx('glassTap', pan);   // near enough to touch the glass as it goes
+      if (atGlass) AUDIO.sfx('glassTap', Math.sin(wrapPi(ln.yaw - G.cam.yaw)) * 0.85);   // near enough to touch the glass as it goes
+      return atGlass;
     };
     const shutterDown = i => {
       s.down[i] = true; AUDIO.sfx('clunk'); G.shake(0.15);
+      if (s.through) return;   // it is inside: nothing to say about a shutter now
       const open = [0, 1, 2].filter(k => !s.down[k]);
-      if (s.target !== i || s.through || !open.length) { G.say('The shutter is down.', 'The shutter is down.'); return; }
-      // it was coming for this one: along the glass to the nearest window still open
+      if (s.target !== i || !open.length) { G.say('The shutter is down.', 'The shutter is down.'); return; }
+      // it was coming for this one: to the nearest window still open
       const p = cr().pos(), yaw = Math.atan2(p.x, p.z), gap = k => Math.abs(wrapPi(L.lanes[k].yaw - yaw));
       const best = Math.min(...open.map(gap)), near = open.filter(k => gap(k) < best + 0.01);
-      slideTo(near[Math.floor(cr().rand() * near.length)]);
-      G.say('The shutter is down. It slides along the glass to a window that is still open.', 'The shutter is down. It moves along the glass to another window.');
+      if (slideTo(near[Math.floor(cr().rand() * near.length)])) G.say('The shutter is down. It slides along the glass to a window that is still open.', 'The shutter is down. It moves along the glass to another window.');
+      else G.say('The shutter is down. Out in the lot, it turns for a window that is still open.', 'The shutter is down. Out in the lot, it turns for another window.');
     };
     L.isWon = () => s.down.every(Boolean) && !s.through;
-    L.deathCause = () => (s.power ? 'lit' : null);
+    L.deathCause = () => (s.power ? 'lit' : s.through ? 'through' : null);
 
     L.update = dt => {
       const c = cr();
       if (s.target === undefined) s.target = c.lane.idx;
-      c.drawn = s.power; c.drawnMult = c.T / LIT_T;
+      // lit, it is at the glass LIT_T s after it sets off, however far out it started
+      c.drawn = s.power; c.drawnMult = c.T * (1 - panes[c.lane.idx].glassD / c.D0) / LIT_T;
+      if (!s.power && !s.clunked && L.t - s.offAt >= 0.14) { s.clunked = true; AUDIO.sfx('clunk'); AUDIO.sfx('tubeDie'); }   // the main's clunk, and the tubes dying
       s.lever = Math.max(s.power ? 1 : 0, s.lever - dt * 5);
       s.amb += ((lightsOn() ? 1 : DARK_AMB + 0.22 * s.dawn) - s.amb) * Math.min(1, dt * (s.power ? 6 : 14)); L.pal.ambient = s.amb;
       // a turn clicked while the crank was still going round
@@ -240,16 +310,31 @@ LEVELS.push({
         panes[i].ap.y1 = panes[i].top(TOP - (TOP - BOT) * s.shown[i]);
         s.rattle[i] = Math.max(0, s.rattle[i] - dt * 1.6);
       });
-      // at an open window it does not stop: it comes through the glass
+      // at an open window it does not stop: it comes through the glass, and it has you. The pane it came through is gone,
+      // broken (L.dynamic), and the crank is no use now; it does not walk the room between the stools and over the counter,
+      // it comes straight from the glass at your face.
       if (!s.slide && !s.through && !L.won && !c.dead && c.dist < panes[c.lane.idx].glassD) {
-        s.through = true; AUDIO.sfx('glassGive', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.4);
+        s.through = true; s.throughWin = c.lane.idx; s.queued = null; glass[c.lane.idx].alpha = 0;
+        AUDIO.sfx('glassGive', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.4);
+        c.hold = null; c.catchDist = Infinity;
       }
     };
     // won: wherever it is, it comes straight up to the last shutter (you hear it, quick, on the other side) and stands at the
-    // glass. It tries the shutter, then it is quiet; it gets light at the cracks, and it walks away.
+    // glass. It tries the shutter, then it is quiet; it gets light at the cracks, and it walks away. If it was sliding along
+    // the glass it gets where it was going first; if it was turning across the lot it finishes the turn on its way in.
     L.aftermath = t => {
       const c = cr(), pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85, b = L.barrierDist;
-      if (!s.won0) { s.won0 = true; s.slide = null; const v = Math.max(1.5, (c.dist - b) / 2); c.hold = null; c.distFn = (cc, dt) => Math.max(b, cc.dist - dt * v); }
+      if (!s.won0) {
+        if (s.slide && s.slide.atGlass) return false;
+        s.won0 = true; s.slide = null; c.hold = null; c.lat = 0;
+        const ln = L.lanes[s.target], d0 = Math.max(c.dist, b), yaw0 = c.yaw, turn = wrapPi(ln.yaw - yaw0), v = Math.max(1.5, (d0 - b) / 2);
+        const way = Object.assign({}, ln, { apertures: [], blockers: [], name: 'to the glass' });
+        c.distFn = (cc, dt) => {
+          const d = Math.max(b, cc.dist - dt * v), yaw = yaw0 + turn * smoothstep(d0 > b ? (d0 - d) / (d0 - b) : 1);
+          way.yaw = yaw; way.dirX = Math.sin(yaw); way.dirZ = Math.cos(yaw); cc.lane = way; cc.yaw = yaw;
+          return d;
+        };
+      }
       if (s.arriveT === undefined && c.dist <= b + 0.01) s.arriveT = t;
       if (s.arriveT === undefined) return false;
       const a = t - s.arriveT;
@@ -269,6 +354,17 @@ LEVELS.push({
       for (const [cx, cz] of TUBES) R.add(SC.mkQuad(L, [cx - 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz + 0.07], [cx - 0.65, 2.96, cz + 0.07], on ? [240, 246, 230] : [60, 62, 58], on ? { noFog: true, noLight: true } : {}));
       // the shutters, outside the glass, coming down from the slot at the top: steel slats, a heavy bottom rail
       PANES.forEach(([x0, x1], i) => {
+        // the crank in its gearbox, going once round with each turn, its grip swinging about the eye, then still a moment
+        if (L.t - s.turnAt[i] < 0.9 && !L.won) {
+          const rot = -clamp((L.t - s.turnAt[i]) / (TURN * 0.85), 0, 1) * TAU;
+          R.add(SC.mkSprite(L, GEAR[i], 0.833, ZG - 0.1, 0.34, 0.34, (ctx, P) => {
+            ctx.scale(0.34, 0.34); ctx.translate(0, 0.5);
+            const ex = Math.sin(rot) * 0.36, ey = Math.cos(rot) * 0.36, edge = P.col([34, 34, 38]);
+            P_line(ctx, 0, 0, ex, ey, 0.13, edge); P_line(ctx, 0, 0, ex, ey, 0.075, P.col([200, 202, 208]));
+            P_ell(ctx, 0, 0, 0.09, 0.09, edge); P_ell(ctx, 0, 0, 0.055, 0.055, P.col([200, 202, 208]));
+            P_ell(ctx, ex, ey, 0.1, 0.1, edge); P_ell(ctx, ex, ey, 0.075, 0.075, P.col([186, 46, 36]));   // the grip, end on
+          }, { sortDist: panes[i].sortD - 0.12 }));
+        }
         const cov = (TOP - BOT) * s.shown[i];
         if (cov < 0.01) return;
         const yb = TOP - cov, sd = panes[i].sortD, w = s.rattle[i] * 0.03 * Math.sin(L.t * 47), z = ZS + w;
@@ -277,12 +373,30 @@ LEVELS.push({
         for (let y = TOP - 0.15; y > yb + 0.08; y -= 0.15) R.add(SC.mkQuad(L, [x0, y, z - 0.004], [x1, y, z - 0.004], [x1, y + 0.022, z - 0.004], [x0, y + 0.022, z - 0.004], seam, Object.assign({ sortDist: sd - 0.001 }, so)));
         R.add(SC.mkQuad(L, [x0, yb, z - 0.008], [x1, yb, z - 0.008], [x1, yb + 0.08, z - 0.008], [x0, yb + 0.08, z - 0.008], [50, 48, 46], { sortDist: sd - 0.002 }));
         if (s.dawn > 0 && s.down[i]) R.add(SC.mkQuad(L, [x0, BOT - 0.02, z - 0.01], [x1, BOT - 0.02, z - 0.01], [x1, BOT + 0.012, z - 0.01], [x0, BOT + 0.012, z - 0.01], mixc([50, 48, 46], [250, 240, 214], s.dawn), { sortDist: sd - 0.003, noLight: true, noFog: true }));
-        // the crank in the gearbox, going round, for a moment after each turn
-        if (L.t - s.turnAt[i] < 0.9 && !L.won) {
-          const rot = (shutters[i].count || 0) * 1.3 + clamp((L.t - s.turnAt[i]) / 0.3, 0, 1) * 1.3;
-          R.add(SC.mkSprite(L, x0 - 0.15, 0.9, 4.88, 0.34, 0.34, (ctx, P) => { ctx.translate(0, 0.17); ctx.rotate(rot); ctx.translate(0, -0.17); ctx.scale(0.34, 0.34); ICONS.shutterCrank(ctx, P); }));
-        }
       });
+      if (s.through) for (const p of broken()) R.add(p);
+    };
+    // the pane it came through: jagged pieces left in the frame, edged bright, and glass on the floor inside. The pieces are in
+    // the glass, inside the shutter, so they come after it; the floor pieces come after the tile they lie on.
+    let shards = null;
+    const broken = () => {
+      if (shards) return shards;
+      const [x0, x1] = PANES[s.throughWin], sd = panes[s.throughWin].sortD - 0.01, z = ZG - 0.006;
+      const at3 = ([u, v]) => L.pt(lerp(x0, x1, u), lerp(BOT, TOP, v), z);
+      shards = [
+        [[0, 0], [0.3, 0], [0.12, 0.1], [0, 0.38]], [[0.44, 0], [0.6, 0], [0.52, 0.13]], [[1, 0], [1, 0.52], [0.9, 0.2], [0.72, 0]],
+        [[0, 1], [0.4, 1], [0.1, 0.84], [0, 0.6]], [[1, 1], [0.62, 1], [0.86, 0.9], [1, 0.74]], [[0, 0.5], [0.07, 0.56], [0, 0.66]],
+      ].map(q => q.map(at3)).flatMap(pts => [
+        { kind: 'poly', pts, color: [190, 208, 228], alpha: 0.26, sortDist: sd },
+        { kind: 'poly', pts: pts.concat([pts[0]]), color: [232, 240, 248], alpha: 0.8, stroke: true, lw: 0.012, sortDist: sd - 0.001 },
+      ]);
+      const rng = mulberry32(17 + s.throughWin);
+      for (let k = 0; k < 14; k++) {
+        const x = lerp(x0 + 0.2, x1 - 0.2, rng()), zz = 4.25 + rng() * 0.62, a = rng() * TAU, r = 0.03 + rng() * 0.05;
+        const pts = [0, 2.1, 4.2].map(b => L.pt(x + Math.cos(a + b) * r, 0.006, zz + Math.sin(a + b) * r * 0.8));
+        shards.push({ kind: 'poly', pts, color: [200, 214, 230], alpha: 0.75, layer: 0, sortDist: Math.hypot(x, zz) - 0.9 });
+      }
+      return shards;
     };
     const at = (x, y, z) => { const p = L.pt(x, y, z); return { x: p[0], y: p[1], z: p[2] }; };
     const roomLights = TUBES.map(([x, z], k) => Object.assign(at(x, 2.9, z), { r: 7, i: 0.3, color: [205, 235, 215], flicker: 0.04, seed: k * 3 }))
@@ -290,8 +404,16 @@ LEVELS.push({
       .concat([Object.assign(at(0, 2.2, 4.7), { r: 2.5, i: 0.3, color: [255, 80, 200], flicker: 0.2, seed: 9 })]);
     L.dynamicLights = () => (lightsOn() ? roomLights : []);
     const glow = (x, y, z, r, color, a) => Object.assign(at(x, y, z), { r, color, a });
-    const glowsOut = [glow(-4.2, 4.95, 15, 3.5, [255, 70, 190], 0.25), glow(3.1, 5.4, 11.6, 2.5, [255, 180, 80], 0.3)], glowsAll = glowsOut.concat([glow(0, 2.36, 4.9, 1.2, [255, 80, 200], 0.28)]);
-    L.glows = () => (lightsOn() ? glowsAll : glowsOut);
+    // the sign's halo shows through the left window until its shutter comes down over it (a glow is drawn over everything,
+    // so one whose source cannot be seen, like the lamp's head above the window line, has none)
+    const signGlow = glow(-10.5, 4.95, 26, 2.6, [255, 70, 190], 0.22), openGlow = glow(0, 2.36, 4.9, 1.2, [255, 80, 200], 0.28), glows = [];
+    L.glows = () => {
+      glows.length = 0;
+      const k = clamp(1 - s.shown[0] / 0.13, 0, 1);
+      if (k > 0) { signGlow.a = 0.22 * k; glows.push(signGlow); }
+      if (lightsOn()) glows.push(openGlow);
+      return glows;
+    };
     L.floor = { poly: [[-3.8, -2.3], [3.8, -2.3], [3.8, 0.65], [-3.8, 0.65]], y: 0 };
   }
 });
