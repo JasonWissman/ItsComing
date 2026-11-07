@@ -1,7 +1,9 @@
 'use strict';
 CREATURES.runner = {
   name: 'the runner', h: 2.05, w: 1.7, faceY: 1.8, stepRate: 0.7, catchDist: 1.4, sound: 'runner',
-  death: { delay: 0.1, dur: 0.22, sting: 'stingHit' },
+  // the night stands it on what is under its feet (c.stand, the height of the step or the deck, which it keeps in
+  // c.yOff); the lunge starts from there, rather than from the ground under the boards
+  death: { delay: 0.1, dur: 0.22, sting: 'stingHit', pose(c, k) { if (c.stand) c.yOff += c.stand * (1 - smoothstep(k)); } },
   voice: { kind: 'pant', every: [3, 6] },
   init(c) { c.mode = 'crouch'; c.modeT = -0.5; c.hits = 0; c.wounded = false; c.dead = false; c.hurtFlash = 0; },
   speedMult(c, dt, seen) {
