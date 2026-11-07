@@ -56,6 +56,28 @@
     padlocks(ctx, P) {
       for (const [x, y] of [[-0.19, 0.24], [0.19, 0.02]]) { ctx.save(); ctx.translate(x, y); ctx.scale(0.74, 0.74); ICONS.padlock(ctx, P); ctx.restore(); }
     },
+    // the padlocks' key: one stout key in the same brass as the locks, lying across its card (a round bow with a hole, a
+    // long shank, a two-toothed bit), a bright edge down it so it catches the eye on the dark ground
+    padkey(ctx, P) {
+      const brass = P.col([170, 144, 66]), dark = P.col([92, 76, 34]), lit = P.col([226, 206, 140]), hole = P.col([26, 22, 16]);
+      ctx.save(); ctx.translate(0.02, 0.5); ctx.rotate(0.62);
+      P_line(ctx, -0.14, 0, 0.4, 0, 0.1, brass);                                                   // the shank
+      P_rect(ctx, 0.24, -0.17, 0.07, 0.17, brass); P_rect(ctx, 0.35, -0.13, 0.06, 0.13, brass);  // the bit's two teeth
+      P_rect(ctx, 0.24, -0.17, 0.07, 0.03, dark); P_rect(ctx, 0.35, -0.13, 0.06, 0.03, dark);
+      P_ell(ctx, -0.27, 0, 0.18, 0.18, brass); P_ell(ctx, -0.27, 0, 0.075, 0.075, hole);         // the bow and its hole
+      ctx.lineWidth = 0.03; ctx.strokeStyle = dark; ctx.beginPath(); ctx.arc(-0.27, 0, 0.165, 3.6, 5.6); ctx.stroke();
+      P_line(ctx, -0.08, 0.03, 0.38, 0.03, 0.022, lit); ctx.strokeStyle = lit; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.arc(-0.27, 0, 0.15, 0.5, 2.0); ctx.stroke();
+      ctx.restore();
+    },
+    // a coil of old rope gone soft and green-black with rot, a frayed end trailing off it: plainly rope, plainly no use
+    rottenrope(ctx, P) {
+      const rope = P.col([116, 106, 76]), dark = P.col([60, 58, 42]), rot = P.col([66, 74, 50]), fray = P.col([140, 128, 94]);
+      for (let i = 0; i < 3; i++) { ctx.strokeStyle = i === 1 ? P.col([96, 88, 62]) : rope; ctx.lineWidth = 0.075; ctx.beginPath(); ctx.ellipse(0.02 * i, 0.44 + i * 0.03, 0.36 - i * 0.08, 0.2 - i * 0.04, 0, 0, TAU); ctx.stroke(); }
+      for (let k = 0; k < 16; k++) { const a = k / 16 * TAU, x = Math.cos(a) * 0.36, y = 0.44 + Math.sin(a) * 0.2; P_line(ctx, x - 0.018, y - 0.022, x + 0.018, y + 0.022, 0.012, dark); }  // the lay of its strands
+      for (const a of [0.7, 2.5, 4.3]) P_ell(ctx, Math.cos(a) * 0.36, 0.44 + Math.sin(a) * 0.2, 0.065, 0.045, rot);                                                                // rotten patches
+      P_line(ctx, 0.3, 0.33, 0.42, 0.12, 0.065, rope);                                             // the loose end, frayed
+      for (const [dx, dy] of [[0.06, -0.03], [0.02, -0.08], [0.07, 0.02]]) P_line(ctx, 0.42, 0.12, 0.42 + dx, 0.12 + dy, 0.016, fray);
+    },
   });
 }
 LEVELS.push({
@@ -82,9 +104,11 @@ LEVELS.push({
   build(L) {
     const stone = [100, 102, 98], stoneD = [72, 74, 72];
     const wallH = 1.5;
-    for (const [x0, z0, x1, z1] of [[-3.2, -2.6, -3.2, 2.6], [3.2, -2.6, 3.2, 2.6], [-3.2, -2.6, -1.2, -2.6], [1.2, -2.6, 3.2, -2.6], [-3.2, 2.6, -1.2, 2.6], [1.2, 2.6, 3.2, 2.6]])
-      SC.box(L, Math.min(x0, x1) - 0.2, Math.max(x0, x1) + 0.2, 0, wallH, Math.min(z0, z1) - 0.2, Math.max(z0, z1) + 0.2, stone, { tex: 'stone', texScale: 1.1 });
-    for (const z of [2.6, -2.6]) { SC.box(L, -1.35, -1.05, 0, 2.1, z - 0.15, z + 0.15, stoneD); SC.box(L, 1.05, 1.35, 0, 2.1, z - 0.15, z + 0.15, stoneD); }
+    // the side walls run the whole length; the gate walls stop inside the gate posts, which are thicker than the wall, so
+    // no end of wall pokes out past a post into the gateway and each post stands proud of the wall on both sides
+    for (const [x0, x1, z0, z1] of [[-3.4, -3.0, -2.8, 2.8], [3.0, 3.4, -2.8, 2.8], [-3.0, -1.2, -2.8, -2.4], [1.2, 3.0, -2.8, -2.4], [-3.0, -1.2, 2.4, 2.8], [1.2, 3.0, 2.4, 2.8]])
+      SC.box(L, x0, x1, 0, wallH, z0, z1, stone, { tex: 'stone', texScale: 1.1 });
+    for (const z of [2.6, -2.6]) { SC.box(L, -1.4, -1.05, 0, 2.1, z - 0.25, z + 0.25, stoneD); SC.box(L, 1.05, 1.4, 0, 2.1, z - 0.25, z + 0.25, stoneD); }
     SC.box(L, -0.5, 0.6, 0.4, 0.48, -1.9, -1.5, [72, 62, 50]);
     STORY.lamp(L, 0.4, 0.48, -1.7, { scale: 0.8 });
     for (const [x, z] of [[-0.45, -1.85], [0.55, -1.85], [-0.45, -1.55], [0.55, -1.55]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [60, 50, 40]);
@@ -92,10 +116,30 @@ LEVELS.push({
     const rng = mulberry32(41);
     for (let i = 0; i < 28; i++) { const x = (rng() - 0.5) * 70, z = 5 + Math.pow(rng(), 1.2) * 45; if (Math.abs(x) < 1.8 && z < 25) continue; SC.boulder(L, x, z, 0.6 + rng() * 1.8, (rng() * 1e6) | 0); }
     for (let i = 0; i < 24; i++) { const x = (rng() - 0.5) * 70, z = -5 - Math.pow(rng(), 1.2) * 45; if (Math.abs(x) < 1.8 && z > -25) continue; SC.boulder(L, x, z, 0.6 + rng() * 1.8, (rng() * 1e6) | 0); }
-    SC.wallV(L, -140, 64, 140, 64, 0, 30, [90, 94, 96]);
-    SC.wallV(L, -140, -62, 140, -62, 0, 24, [88, 92, 94]);
+    // the quarry's sides: a ring of rock faces all round the pit, far out in the mist, cut in two benches (a lower face and
+    // the upper one set back behind it), their tops broken and uneven and their colour only a little darker than the mist,
+    // so they loom rather than stand there as slabs. Never nearer than 60 m along either way in: it starts in front of them
+    const qr = mulberry32(57);
+    const bench = (rFwd, rBack, rSide, hLo, hHi, col, n) => {
+      const v = [];
+      for (let i = 0; i < n; i++) {
+        const a = (i + 0.5) / n * TAU, r = 1 / Math.hypot(Math.sin(a) / rSide, Math.cos(a) / (Math.cos(a) > 0 ? rFwd : rBack)) + (qr() - 0.5) * 4;
+        v.push([Math.sin(a) * r, Math.cos(a) * r, hLo + qr() * (hHi - hLo)]);
+      }
+      for (let i = 0; i < n; i++) {
+        const p = v[i], q = v[(i + 1) % n], m = 0.3 + qr() * 0.4, mx = p[0] + (q[0] - p[0]) * m, mz = p[1] + (q[1] - p[1]) * m;
+        const top = Math.min(p[2], q[2]) - (hHi - hLo) * (0.1 + qr() * 0.4);   // a dip in the rim between two crags
+        L.props.push({ kind: 'poly', pts: [[p[0], 0, p[1]], [q[0], 0, q[1]], [q[0], q[2], q[1]], [mx, top, mz], [p[0], p[2], p[1]]].map(w => L.pt(w[0], w[1], w[2])), color: scalec(col, 0.93 + qr() * 0.14) });
+      }
+    };
+    bench(77, 75, 70, 15, 19, [44, 46, 49], 30);   // the upper face, set back
+    bench(64, 62, 57, 7, 10, [50, 52, 54], 34);    // the lower face
     for (let i = 0; i < 12; i++) { const x = (rng() - 0.5) * 60, z = (rng() < 0.5 ? 1 : -1) * (8 + rng() * 40); if (Math.abs(x) < 3) continue; SC.tree(L, x, z, 5 + rng() * 5, 'bare', (rng() * 1e6) | 0); }
+    const nDots = L.props.length;
     SC.groundDots(L, 29, 100, 3, 50, 360, [52, 54, 46], 0.5);
+    // the big dark patches belong to the quarry floor outside: inside the walls they read as rugs or shadows of nothing
+    const inYard = p => p.pts.some(w => { const q = rotY(w[0], w[2], -L.facing); return Math.abs(q[0]) < 3.45 && Math.abs(q[1]) < 2.85; });
+    L.props.splice(nDots, L.props.length - nDots, ...L.props.slice(nDots).filter(p => !inYard(p)));
     // an iron peg driven into the wall (wx, wz is the wall's face behind the chain), at the height the chain hangs from
     const peg = (L, sp) => SC.box(L, Math.min(sp.x, sp.wx) - 0.025, Math.max(sp.x, sp.wx) + 0.025, 1.16, 1.22, Math.min(sp.z, sp.wz) - 0.025, Math.max(sp.z, sp.wz) + 0.025, [40, 39, 38]);
     // two chains, one for each gate, each in its own place: hung on a peg in a wall, or dropped in a coil on the ground
@@ -112,7 +156,9 @@ LEVELS.push({
       const c = mkItem(L, id, 'Chain', chainSpots, { w: 0.6, h: 0.6, icon: 'coiledchain' });
       if (c.y > 0.2) Object.assign(c, { icon: ICONS.hungchain, w: 0.42, h: 0.8 });   // hung up: a long loop down from its peg
     }
-    L.onDrop = it => { if (CHAINS.includes(it.id)) Object.assign(it, { icon: ICONS.coiledchain, w: 0.6, h: 0.6 }); };   // put down, it lies in a coil
+    // taken down off its peg or put down again, a chain is the same coil in the hand and on the ground as one found coiled
+    const coil = it => { if (CHAINS.includes(it.id)) Object.assign(it, { icon: ICONS.coiledchain, w: 0.6, h: 0.6 }); };
+    L.onPickup = coil; L.onDrop = coil;
     // one padlock item for both gates, drawn as the pair it is until one of them is on a gate
     const lock = mkItem(L, 'padlock', 'Padlock', [
       { deg: 150, dist: 1.7, y: 0 },                    // south-south-east
@@ -125,13 +171,13 @@ LEVELS.push({
       { x: -2.6, y: 0, z: 1.9 },                        // north-west corner
       { x: 2.5, y: 0, z: -1.3 },                        // south-east
       { x: -0.9, y: 0, z: 2.1 },                        // by the gate post
-    ], { w: 0.16, h: 0.16, flat: true, tool: true, icon: 'keys' });
+    ], { w: 0.2, h: 0.2, flat: true, tool: true, icon: 'padkey' });
     mkItem(L, 'oldlock', 'Padlock', [{ x: 0.9, y: 0, z: 1.6 }, { x: -2.4, y: 0, z: -1.6 }], { w: 0.24, h: 0.28, flat: true, icon: 'rustlock', decoy: true, decoyText: 'Rusted solid. Nothing will ever open it.' });
     mkItem(L, 'rope', 'Rotten rope', [
       { deg: 120, dist: 1.9, y: 0 },
-      { x: -0.9, y: 0, z: 1.9 },
+      { x: 2.4, y: 0, z: 1.0 },                         // east, by the wall (clear of every key and chain spot)
       { x: 1.7, y: 0, z: 0.9 },
-    ], { w: 0.4, h: 0.3, flat: true });
+    ], { w: 0.4, h: 0.3, flat: true, icon: 'rottenrope' });
     // a gate is open, then pulled shut (it swings closed on its own weight), then chained through the bars, then padlocked
     const holding = ids => G.inv.some(i => ids.includes(i.id));
     const nope = (specific, vague) => { G.say(specific, vague); AUDIO.sfx('nope'); return true; };
@@ -155,7 +201,7 @@ LEVELS.push({
         use(item) {
           if (CHAINS.includes(item.id)) { t.chained = true; t.accepts = LOCKS.slice(); AUDIO.sfx('chain'); G.say('You wind the chain through the bars and round the post.', 'The chain goes through the bars.'); return true; }
           if (item.id === 'padlock') {
-            if (!G.hasItem('gatekey')) { G.say('The padlock is shut. It wants its key.', 'The padlock is locked shut. It will not open by hand.'); return false; }
+            if (!G.hasItem('gatekey')) { G.say('The padlock is shut. It wants its key.', 'The padlock is locked shut, and the shackle will not pull open.'); return false; }
             t.locked = true; t.done = true; t.accepts = []; AUDIO.sfx('lock'); G.say('The padlock snaps shut on the chain.', 'The padlock snaps shut.'); return true;
           }
           return false;
@@ -172,7 +218,9 @@ LEVELS.push({
           g.closing -= dt;
           g.angle = (Math.PI / 2) * Math.pow(clamp(g.closing, 0, 1), 1.4);
           if (g.closing <= 0) { g.closing = 0; g.angle = 0; g.shut = true; g.accepts = CHAINS.slice(); AUDIO.sfx('gate'); G.shake(0.2); }
-        } else if (!g.shut && (g.chained || g.locked)) { g.shut = true; g.angle = 0; }   // set chained from outside (a test): it is shut
+        } else if (!g.shut && (g.chained || g.locked)) {   // set chained or locked from outside (a test): it is shut, and takes what comes next
+          g.shut = true; g.angle = 0; g.accepts = g.locked ? [] : g.chained ? LOCKS.slice() : CHAINS.slice();
+        }
       }
     };
     L.dynamic = () => {
@@ -180,9 +228,10 @@ LEVELS.push({
         const a = g.angle, sg = g.sign, dx = sg * Math.cos(a), dz = sg * Math.sin(a), hx = -1.05 * sg, hz = 2.6 * sg, len = 2.1, ironC = [38, 38, 42];
         for (let i = 0; i <= 7; i++) { const u = i / 7 * len; R.add(SC.mkWallV(L, hx + dx * (u - 0.025), hz + dz * (u - 0.025), hx + dx * (u + 0.025), hz + dz * (u + 0.025), 0, 1.9, ironC)); }
         for (const yy of [0.3, 1.0, 1.65]) R.add(SC.mkWallV(L, hx, hz, hx + dx * len, hz + dz * len, yy - 0.03, yy + 0.03, ironC));
-        // the chain round the gate's end and its post, and the lock on it, just inside the post so they are drawn over it
-        if (g.chained) R.add(iconSprite(L, 'gatechain', 1.0 * sg, 0.5, 2.4 * sg, 0.5, 0.75));
-        if (g.locked) R.add(iconSprite(L, 'padlock', 1.01 * sg, 0.36, 2.38 * sg, 0.2, 0.24));
+        // the chain round the gate's end and its post, and the lock on it, just in front of the post's face (z 2.35) so they
+        // are drawn over it whichever way the faces are ordered
+        if (g.chained) R.add(iconSprite(L, 'gatechain', 1.0 * sg, 0.5, 2.3 * sg, 0.5, 0.75));
+        if (g.locked) R.add(iconSprite(L, 'padlock', 1.01 * sg, 0.36, 2.28 * sg, 0.2, 0.24));
       }
     };
     L.isWon = () => gate.locked && gate2.locked;
