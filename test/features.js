@@ -134,7 +134,10 @@ const hoverHit = lookFor;
   await page.evaluate(() => { window._pad.buttons[15].pressed = true; }); await page.waitForTimeout(80);
   await page.evaluate(() => { window._pad.buttons[15].pressed = false; }); await page.waitForTimeout(80);
   check(await page.evaluate(d => G.cam.dirIdx === (d + 1) % 8, dir0), 'the d-pad turns one step to the right');
-  const w = await hoverHit(page, 'item', 'hammer');
+  // the hammer is laid exactly where the middle of the downward view meets the floor, so it is the nearest thing there
+  await page.evaluate(() => { const h = G.L.items.find(i => i.id === 'hammer'), y = G.cam.dirIdx * 45 * DEG, d = (G.L.eyeH - 0) / Math.tan(PITCH_DOWN); h.x = Math.sin(y) * d; h.z = Math.cos(y) * d; h.y = 0; G.cam.yaw = G.cam.tYaw = y; G.cam.pitch = G.cam.tPitch = PITCH_DOWN; });
+  await page.waitForTimeout(150);
+  const w = await findHit(page, 'item', 'hammer');
   if (w) {
     await page.evaluate(() => { G.mouse.x = -1; G.mouse.y = -1; window._pad.buttons[0].pressed = true; }); await page.waitForTimeout(80);
     await page.evaluate(() => { window._pad.buttons[0].pressed = false; }); await page.waitForTimeout(80);
