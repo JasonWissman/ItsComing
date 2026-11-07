@@ -608,7 +608,9 @@ function updateCreature(L, c, dt, live) {
   const CR = c.CR;
   c.t += dt * c.timeScale;
   if (c.lane.follow === 'behind' && !c.frozen && !c.dead) c.yaw = G.cam.yaw + Math.PI;
-  c.visFrac = L.visFrac ? L.visFrac(c) : (CR.hidden && CR.hidden(c)) ? 0 : APPROACH.visFrac(L, c.lane, c, null);
+  // seen or not is judged with the unzoomed view: peering at it with zoom never counts as looking away
+  const seeCam = G.cam.zoom > 1.001 ? { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH, eye: L.eye } : null;
+  c.visFrac = L.visFrac ? L.visFrac(c) : (CR.hidden && CR.hidden(c)) ? 0 : APPROACH.visFrac(L, c.lane, c, seeCam);
   const seen = c.visFrac >= (CR.seenFrac === undefined ? 0.2 : CR.seenFrac);
   c.seen = seen; c.visible = seen;
   if (CR.onSeen && seen && !c.seenLast) CR.onSeen(c);
@@ -712,7 +714,7 @@ function render() {
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
     if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
-    p.w = t.w; p.h = t.h;   // a target can change size (an opened box's lid stands up)
+    p.x = t.x; p.y = t.y; p.z = t.z; p.w = t.w; p.h = t.h;   // a target can move or change size (an opened box's lid stands up)
     R.add(p);
   }
   if (G.throwing) {
@@ -727,7 +729,7 @@ function render() {
     const CR = cr.CR, pos = cr.pos();
     let p = rend.get(cr);
     if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); if (!cr.moving) ctx.rotate(0.008 * Math.sin(cr.t * 0.7)); } CR.draw(ctx, cr, P); } }; rend.set(cr, p); }
-    p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = cr.dist; p.layer = 1;
+    p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = Math.hypot(cr.dist, cr.lat || 0); p.layer = 1;   // its sideways offset counts: it sorts by how far it really is
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);
   }
@@ -772,7 +774,7 @@ function updateHUD() {
     UI.compass.innerHTML = html;
   }
   UI.pitch.textContent = c.tPitch > 0.1 ? '▼ looking down' : '▲ looking ahead';
-  UI.zoom.style.opacity = c.zoom > 1.2 ? 1 : 0;
+  UI.zoom.style.opacity = c.zoomHeld && G.state === 'play' && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
   const isig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active;

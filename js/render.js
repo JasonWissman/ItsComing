@@ -540,7 +540,10 @@ const R = (() => {
       if (cu[2] < NEAR || cv[2] < NEAR) { if (p.onRect) p.onRect(null); return; }
       const pu = proj(cu), pv = proj(cv);
       const ax = (pu[0] - b[0]) / p.w, ay = (pu[1] - b[1]) / p.w;   // screen delta per meter along u
-      const bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
+      let bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
+      // a card keeps its apparent height but stands straight up on screen: at the edge of a downward view perspective
+      // would otherwise shear it into a slanted parallelogram
+      if (p.card) { by = -Math.hypot(bx, by); bx = 0; }
       // corners of the box centered at x (u from -w/2..w/2), v from 0..h
       const xs = [], ys = [];
       for (const [u, v] of [[-p.w / 2, 0], [p.w / 2, 0], [p.w / 2, p.h], [-p.w / 2, p.h]]) { xs.push(b[0] + ax * u + bx * v); ys.push(b[1] + ay * u + by * v); }

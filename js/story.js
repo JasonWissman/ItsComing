@@ -59,7 +59,8 @@ const STORY = (() => {
       SC.sprite(L, -3.58, 1.72, z, 0.22, 0.3, (ctx, P) => { ctx.scale(0.22, 0.3); ctx.strokeStyle = P.col([150, 150, 156]); ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(0, 1); ctx.lineTo(0, 0.86); ctx.moveTo(-0.5, 0.6); ctx.lineTo(0, 0.86); ctx.lineTo(0.5, 0.6); ctx.stroke(); });
       if (!day && k % 3 !== 1) SC.sprite(L, -3.6, 0.45, z + 0.02, 0.36, 1.3, (ctx, P) => { ctx.scale(0.36, 1.3); P_poly(ctx, [[-0.4, 0], [0.4, 0], [0.5, 0.95], [-0.5, 0.95]], P.col(k % 2 ? [40, 34, 40] : [56, 46, 40])); });
     }
-    for (const s of [-1, 1]) { const hx = -3.2, hz = s * 0.9, a = 75 * DEG; SC.wallV(L, hx, hz, hx + Math.sin(a) * 0.85, hz - s * Math.cos(a) * 0.85, 0, 2.15, wood); }
+    // the doors swung right back, nearly flat to the wall either side, so they read as doors and not as two posts
+    for (const s of [-1, 1]) { const hx = -3.2, hz = s * 0.9, a = 160 * DEG; SC.wallV(L, hx, hz, hx + Math.sin(a) * 0.85, hz - s * Math.cos(a) * 0.85, 0, 2.15, wood); }
     // the hall beyond the doorway
     SC.floorQ(L, -1.2, 3.6, 1.2, 8, 0.002, day ? [150, 128, 96] : [20, 16, 14]);
     SC.wallV(L, -1.2, 8, 1.2, 8, 0, 2.5, day ? [206, 196, 180] : [14, 12, 12]); SC.wallV(L, -1.2, 3.62, -1.2, 8, 0, 2.5, day ? [190, 178, 160] : [16, 13, 13]); SC.wallV(L, 1.2, 3.62, 1.2, 8, 0, 2.5, day ? [190, 178, 160] : [16, 13, 13]);
@@ -79,6 +80,7 @@ const STORY = (() => {
     SC.box(L, -2.9, -1.5, 0, 0.95, 3.05, 3.55, wood); SC.box(L, -2.85, -1.55, 0.95, 1.0, 3.0, 3.6, day ? [160, 124, 84] : [58, 44, 34]);
     SC.wallV(L, -2.7, 3.58, -1.7, 3.58, 1.05, 2.05, day ? [200, 212, 224] : [24, 22, 30], { noLight: !day });
     SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 1.0, 1.05, wood); SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 2.05, 2.1, wood);
+    SC.wallV(L, -2.75, 3.57, -2.7, 3.57, 1.0, 2.1, wood); SC.wallV(L, -1.7, 3.57, -1.65, 3.57, 1.0, 2.1, wood);   // the mirror's sides
     clock(L, -2.2, 1.0, 3.3, 0.3);
     SC.box(L, -2.6, -2.15, 0.42, 0.47, -0.9, -0.45, wood); SC.box(L, -2.6, -2.15, 0.47, 0.95, -0.9, -0.85, wood);
     for (const [x, z] of [[-2.57, -0.87], [-2.18, -0.87], [-2.57, -0.48], [-2.18, -0.48]]) SC.box(L, x - 0.025, x + 0.025, 0, 0.42, z - 0.025, z + 0.025, wood);

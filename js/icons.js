@@ -555,7 +555,7 @@ SC.detail = function (L, base, a, b, c, d) {
   // order (and turn it away with the quad when that is a box's face turned from the eye)
   const push = (r0, r1, k0, k1, col) => {
     const q = [P(r0, k0), P(r1, k0), P(r1, k1), P(r0, k1)];
-    L.props.push({ kind: 'poly', pts: q.map(w => L.pt(w[0], w[1], w[2])), color: col, layer: base.layer, dist, detail: true, alpha: base.alpha, noFog: base.noFog, noLight: base.noLight, of: base, bf: base.bf });
+    L.props.push({ kind: 'poly', pts: q.map(w => L.pt(w[0], w[1], w[2])), color: col, layer: base.layer, dist, sortDist: base.sortDist, attach: base.attach, detail: true, alpha: base.alpha, noFog: base.noFog, noLight: base.noLight, of: base, bf: base.bf });
   };
   base.seam = shade(K.seam);
   const gk = K.gap / kLen / 2;
