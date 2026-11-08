@@ -402,8 +402,8 @@ LEVELS.push({
         for (const [v, x0, x1] of GRAIN[k]) strip(v * b.hh, v * b.hh + 0.009, scalec(col, 0.8), clamp(x0, -1, 1) * hw, clamp(x1, -1, 1) * hw);   // grain
         for (const e of [-1, 1]) strip(-b.hh, b.hh, scalec(col, 0.78), e < 0 ? -hw : hw - 0.022, e < 0 ? -hw + 0.022 : hw, 0.003);   // the sawn ends, darker
         if (k === 2) {   // the last has split along the grain from one end
-          const zf = zz + sign * 0.005, y0 = yAt(hw) + 0.04;
-          R.add(SC.mkQuad(L, [hw * 0.15, yAt(hw * 0.15) + 0.06, zf], [hw, y0 - 0.008, zf], [hw, y0 + 0.016, zf], [hw * 0.15, yAt(hw * 0.15) + 0.062, zf], scalec(col, 0.35)));
+          const zf = zz + sign * 0.005, y0 = yAt(hw) + 0.085;   // between the nails at that end
+          R.add(SC.mkQuad(L, [hw * 0.15, yAt(hw * 0.15) + 0.11, zf], [hw, y0 - 0.008, zf], [hw, y0 + 0.016, zf], [hw * 0.15, yAt(hw * 0.15) + 0.112, zf], scalec(col, 0.35)));
         }
         const kx = [0.32, -0.42, 0.12][k], ky = yAt(kx) + [0.05, -0.07, 0.09][k];   // a knot
         R.add(SC.mkQuad(L, [kx - 0.035, ky, zz + sign * 0.006], [kx, ky - 0.022, zz + sign * 0.006], [kx + 0.035, ky, zz + sign * 0.006], [kx, ky + 0.022, zz + sign * 0.006], scalec(col, 0.58)));
@@ -415,11 +415,6 @@ LEVELS.push({
         }
       }
     };
-    // The thing is drawn in order by how far along its way it is. Off to one side of a doorway, running round the house
-    // near it, that order put it in front of the walls between it and the eye, running across the boards of the back
-    // wall. So while it is outside the house it goes by how far it really is, and never nearer than behind every wall
-    // of the house (see STEPS_AT): the walls, the frames and the boards are all drawn over it, as they stand in front
-    // of it. Once it is through the doorway it is drawn as usual, over everything behind it.
     // Its fingers, hooked over the edge of the board under the gap while it has hold of it: they come over onto this side
     // of the board, so they are drawn over it (the hand behind is the walker's own, in the gap). Long and black, the nails
     // pale; the fingers lean in toward its face. side is +1 for the hand on the right of the view.
@@ -432,11 +427,16 @@ LEVELS.push({
       }
     };
     const PLANE = t => (t === back ? [2.42, -1] : [-2.28, 1]);   // where a doorway's boards are, and the way into the house
+    // The thing is drawn in order by how far along its way it is. Off to one side of a doorway, running round the house
+    // near it, that order put it in front of the walls between it and the eye, running across the boards of the back
+    // wall. So while it is outside the house it goes by how far it really is, and never nearer than behind every wall
+    // of the house (see STEPS_AT): the walls, the frames and the boards are all drawn over it, as they stand in front
+    // of it. Once it is through the doorway it is drawn as usual, over everything behind it.
     L.dynamic = () => {
       boards(back, ...PLANE(back)); boards(front, ...PLANE(front));
       const c = L.creature, cp = L.rend && L.rend.get(c);
       if (cp) { const p = c.pos(); cp.sortDist = c.dist > c.lane.apertures[0].z + 0.05 ? Math.max(Math.hypot(p.x, p.z), BEHIND_WALLS) : undefined; }
-      if (s.hitAt !== undefined && c.peer > 0.6) {
+      if (s.hitAt !== undefined && c.peer > 0.6) {   // at the boards: its fingers over the one under the gap (grip; the night faces north, so x is the boards' own)
         const t = doorOf(c.lane), [z, sign] = PLANE(t), { zz, yAt } = boardAt(t, 0, z, sign), zb = Math.abs(zz) - 0.012;
         for (const side of [-1, 1]) {
           if (c.handLift && c.handLift[side > 0 ? 1 : 0] > 0.2) continue;   // that hand is up, to strike
