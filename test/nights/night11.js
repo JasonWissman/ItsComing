@@ -1,7 +1,14 @@
-// The Barn: lantern to the drum, a match, throw it into the hay on its lane (or pull the ladder up on the east lane).
-// Nightmare frees the tap with the wrench first and pulls the ladder up. The harness carries little either way.
-const light = [['pickup', 'lantern'], ['pickup', 'matches'], ['use', 'drum'], ['expect', "G.inv.some(i => i.id === 'lantern_full')", 'lantern filled'], ['combine', 'lantern_full', 'matches'], ['expect', "G.inv.some(i => i.id === 'lantern_lit')", 'lantern lit']];
-const fire = [['branch', 'G.L.creature.lane.idx === 0', [['use', 'hayN'], ['waitUntil', 'G.L.s.fireN', 4000], ['expect', 'G.L.s.fireN', 'yard hay burning']], [['use', 'hayE'], ['waitUntil', 'G.L.s.fireE', 4000], ['expect', 'G.L.s.fireE', 'barn hay burning']]]];
+// The Barn: a bottle and a rag, fill the bottle at the oil drum, stuff the rag in, light it with the matches and throw it
+// into the hay it is coming past; it runs round to the other way in, so the second bottle goes into the other stack.
+// The matches are picked up once and kept. The harness carries little: one bottle and one rag at a time.
+const bottle = [['pickup', 'bottle'], ['pickup', 'rag'], ['use', 'drum'], ['expect', "G.inv.some(i => i.id === 'bottle_oil')", 'bottle filled at the drum'],
+  ['combine', 'bottle_oil', 'rag'], ['combine', 'cocktail', 'matches'], ['expect', "G.inv.some(i => i.id === 'cocktail_lit') && G.inv.some(i => i.id === 'matches')", 'bottle lit, matches kept']];
+const into = (k, id) => [['use', id], ['waitUntil', 'G.L.s.fire[' + k + ']', 4000], ['expect', 'G.L.s.fire[' + k + ']', id + ' burning']];
 module.exports = {
-  nightmare: [['pickup', 'wrench'], ['use', 'drum'], ['expect', '!G.L.s.tapStuck', 'tap freed'], ['eval', 'G.active = G.inv.findIndex(i => i.id === "wrench"); G.cam.pitch = G.cam.tPitch = PITCH_DOWN; dropActive();'], ['hold', 'ladder', 8000], ['expect', 'G.L.s.ladderUp', 'ladder pulled up']].concat(light, fire),
+  nightmare: [['pickup', 'matches']].concat(bottle, [
+    ['branch', 'G.L.creature.lane.idx === 0', into(0, 'hayN'), into(1, 'hayE')],
+    ['expect', '!!G.L.s.run && !G.L.won', 'the fire in its way sends it round, and one fire does not hold it'],
+  ], bottle, [
+    ['branch', 'G.L.s.fire[0]', into(1, 'hayE'), into(0, 'hayN')],
+  ]),
 };
