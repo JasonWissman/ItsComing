@@ -292,6 +292,14 @@ const AUDIO = (() => {
       case 'noService': [[950, 0], [1400, 0.33], [1800, 0.66]].forEach(([f, d]) => tone(f, 0.28, { vol: 0.07, type: 'sine', delay: d })); break;
       case 'answer': noise(0.05, { freq: 900, vol: 0.3 }); for (let i = 0; i < 6; i++) noise(0.11 + Math.random() * 0.08, { type: 'bandpass', freq: 380 + Math.random() * 380, q: 2.5, vol: 0.16, attack: 0.03, delay: 0.35 + i * 0.2 }); break;
       case 'phoneRing': for (let i = 0; i < 16; i++) tone(i % 2 ? 1300 : 1000, 0.05, { vol: 0.06, type: 'square', delay: i * 0.055, pan }); break;
+      case 'keyClick': noise(0.015, { type: 'bandpass', freq: 1800, q: 3, vol: 0.2 }); tone(300, 0.02, { vol: 0.06, type: 'square', endFreq: 200 }); break;   // a pay phone key with no line behind it
+      case 'coin': tone(2600, 0.05, { vol: 0.12, type: 'triangle', endFreq: 2300 }); for (let i = 0; i < 4; i++) noise(0.025, { type: 'bandpass', freq: 3000 + Math.random() * 1500, q: 5, vol: 0.12, delay: 0.06 + i * 0.05 + Math.random() * 0.02 }); tone(180, 0.06, { vol: 0.16, type: 'square', endFreq: 120, delay: 0.3 }); tone(1046, 0.14, { vol: 0.05, type: 'sine', delay: 0.42 }); break;
+      case 'coinReturn': for (let i = 0; i < 7; i++) noise(0.02, { type: 'bandpass', freq: 2600 + Math.random() * 1800, q: 5, vol: 0.12, delay: i * 0.045 + Math.random() * 0.015 }); tone(2900, 0.08, { vol: 0.1, type: 'triangle', endFreq: 2500, delay: 0.4 }); tone(3300, 0.06, { vol: 0.06, type: 'triangle', delay: 0.47 }); break;
+      // the car that comes for you at the phone booth
+      case 'carCome': tone(48, 3.4, { vol: 0.22, type: 'sawtooth', endFreq: 74, attack: 2.4, pan }); noise(3.0, { type: 'bandpass', freq: 1500, q: 0.6, vol: 0.2, attack: 2.6, pan }); noise(3.2, { freq: 240, vol: 0.25, attack: 2.4, pan }); break;
+      case 'brake': noise(1.1, { type: 'bandpass', freq: 2600, q: 1.2, vol: 0.3, attack: 0.05, pan }); tone(70, 1.0, { vol: 0.18, type: 'sawtooth', endFreq: 40, pan }); break;
+      case 'horn': for (const d of [0, 0.32]) { tone(392, 0.22, { vol: 0.12, type: 'square', delay: d, pan }); tone(494, 0.22, { vol: 0.09, type: 'square', delay: d, pan }); } break;
+      case 'carDoor': noise(0.05, { freq: 1600, vol: 0.35, pan }); tone(160, 0.08, { vol: 0.25, type: 'square', endFreq: 100, pan }); tone(240, 0.5, { vol: 0.05, type: 'sawtooth', endFreq: 200, delay: 0.08, pan }); break;
       // the car pulling away
       case 'rev': tone(55, 2.4, { vol: 0.45, type: 'sawtooth', endFreq: 190, attack: 0.05 }); noise(1.6, { type: 'bandpass', freq: 2400, q: 6, vol: 0.35, attack: 0.02 }); noise(2.2, { freq: 300, vol: 0.35, attack: 0.1 }); break;
       default: break;

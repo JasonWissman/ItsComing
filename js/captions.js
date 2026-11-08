@@ -3,6 +3,7 @@
 const CAPTIONS = (() => {
   const SFX = {
     bang: 'something hits the boards', crack: 'a board cracks', receiver: 'the receiver lifts, a dial tone', dial: 'a button beeps', ringback: 'ringing on the line', noService: 'three rising tones', answer: 'someone picks up', phoneRing: 'a phone rings', rev: 'the engine roars', smash: 'the boards tear away', hammer: 'hammering', splash: 'a splash', dive: 'something goes under', wetThud: 'a wet blow',
+    keyClick: 'a key clicks', coin: 'a coin drops in', coinReturn: 'a coin rattles into the return', carCome: 'a car, coming fast', brake: 'tyres hiss on the wet road', horn: 'a car horn, twice', carDoor: 'a car door opens',   // the pay phone's keys and coin, the car that comes
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
     clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click',
     scrape: 'scratching', drawer: 'a drawer slides open', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', tick: 'a clock ticks', musicbox: 'a music box', birds: 'birdsong', start: 'the engine catches',
