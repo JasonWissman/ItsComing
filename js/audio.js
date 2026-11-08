@@ -270,6 +270,9 @@ const AUDIO = (() => {
       case 'splash': noise(0.35, { freq: 1800, q: 0.7, vol: 0.5, attack: 0.005, pan }); noise(0.9, { type: 'bandpass', freq: 600, q: 0.8, vol: 0.25, delay: 0.08, attack: 0.05, pan }); tone(120, 0.25, { vol: 0.2, endFreq: 60, pan }); break;
       case 'dive': noise(0.5, { type: 'bandpass', freq: 400, q: 1.2, vol: 0.3, attack: 0.02, pan }); tone(90, 0.4, { vol: 0.15, endFreq: 40, pan }); break;
       case 'wetThud': noise(0.2, { freq: 220, vol: 0.8, pan }); noise(0.3, { type: 'bandpass', freq: 900, q: 1, vol: 0.3, delay: 0.03, pan }); tone(50, 0.3, { vol: 0.6, endFreq: 32, pan }); break;
+      // a body thrown against a barred door from the water: a deep boom, the wet slap of it, and the boards and the bar rattling
+      case 'wetPound': noise(0.24, { freq: 240, vol: 1.0, attack: 0.002, pan }); tone(44, 0.45, { vol: 0.95, endFreq: 26, pan }); noise(0.4, { type: 'bandpass', freq: 750, q: 0.9, vol: 0.45, delay: 0.015, pan }); for (let i = 0; i < 5; i++) noise(0.03, { type: 'bandpass', freq: 1500 + i * 450, q: 5, vol: 0.24, delay: 0.05 + i * 0.03 + Math.random() * 0.02, pan }); break;
+      case 'slosh': noise(0.12, { type: 'bandpass', freq: 1100, q: 0.9, vol: 0.42, attack: 0.004, pan }); noise(0.55, { type: 'bandpass', freq: 520, q: 0.7, vol: 0.3, delay: 0.05, attack: 0.03, pan }); noise(0.25, { type: 'highpass', freq: 2600, vol: 0.12, delay: 0.1, attack: 0.02, pan }); break;
       case 'bar': noise(0.15, { freq: 400, vol: 0.6 }); tone(80, 0.3, { vol: 0.5, endFreq: 45 }); noise(0.06, { freq: 1500, vol: 0.3, delay: 0.16 }); break;
       case 'fit': tone(520, 0.05, { vol: 0.18, type: 'square', endFreq: 380 }); noise(0.05, { freq: 1200, vol: 0.2, delay: 0.05 }); break;
       case 'clunk': tone(140, 0.08, { vol: 0.35, type: 'square', endFreq: 90, pan }); noise(0.06, { freq: 700, vol: 0.4, pan }); break;

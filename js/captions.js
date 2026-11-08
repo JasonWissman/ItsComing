@@ -2,7 +2,7 @@
 // ---------- captions for sounds: one short line, with a side marker from the pan, throttled per sound ----------
 const CAPTIONS = (() => {
   const SFX = {
-    bang: 'something hits the boards', crack: 'a board cracks', receiver: 'the receiver lifts, a dial tone', dial: 'a button beeps', ringback: 'ringing on the line', noService: 'three rising tones', answer: 'someone picks up', phoneRing: 'a phone rings', rev: 'the engine roars', smash: 'the boards tear away', hammer: 'hammering', splash: 'a splash', dive: 'something goes under', wetThud: 'a wet blow',
+    bang: 'something hits the boards', crack: 'a board cracks', receiver: 'the receiver lifts, a dial tone', dial: 'a button beeps', ringback: 'ringing on the line', noService: 'three rising tones', answer: 'someone picks up', phoneRing: 'a phone rings', rev: 'the engine roars', smash: 'the boards tear away', hammer: 'hammering', splash: 'a splash', dive: 'something goes under', wetThud: 'a wet blow', wetPound: 'something pounds on the door', slosh: 'water slapping',
     keyClick: 'a key clicks', coin: 'a coin drops in', coinReturn: 'a coin rattles into the return', carCome: 'a car, coming fast', brake: 'tyres hiss on the wet road', horn: 'a car horn, twice', carDoor: 'a car door opens',   // the pay phone's keys and coin, the car that comes
     boardRattle: 'the boards rattle on their nails',
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
