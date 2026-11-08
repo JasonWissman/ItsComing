@@ -117,38 +117,6 @@ const ICONS = {
     P_rect(ctx, -0.3, 0.08, 0.6, 0.07, brassD); P_rect(ctx, -0.3, 0.53, 0.6, 0.05, brassL); P_rect(ctx, 0.24, 0.15, 0.06, 0.38, brassD);
     P_ell(ctx, 0, 0.38, 0.055, 0.055, dark); P_poly(ctx, [[-0.028, 0.37], [0.028, 0.37], [0.045, 0.21], [-0.045, 0.21]], dark);
   },
-  // a double-barrelled shotgun, side on: the barrels with the light along them, the fore-end, the action with its trigger
-  // guard, and the stock ending in a dark butt plate
-  shotgun(ctx, P) {
-    const steel = P.col([76, 78, 86]), steelL = P.col([132, 134, 146]), steelD = P.col([38, 38, 44]);
-    const wood = P.col([122, 80, 46]), woodL = P.col([160, 114, 68]), woodD = P.col([74, 48, 28]);
-    ctx.save(); ctx.translate(0, 0.45); ctx.rotate(0.06);
-    P_rect(ctx, -0.5, 0.0, 0.66, 0.1, steel);
-    P_line(ctx, -0.49, 0.05, 0.15, 0.05, 0.01, steelD);
-    P_line(ctx, -0.49, 0.09, 0.15, 0.09, 0.014, steelL);
-    P_poly(ctx, [[-0.3, 0.0], [-0.04, 0.0], [-0.06, -0.07], [-0.28, -0.07]], wood);
-    P_line(ctx, -0.28, -0.012, -0.06, -0.012, 0.012, woodL);
-    ctx.strokeStyle = steelD; ctx.lineWidth = 0.02; ctx.beginPath(); ctx.ellipse(0.19, -0.075, 0.055, 0.045, 0, Math.PI, TAU); ctx.stroke();
-    P_line(ctx, 0.19, -0.06, 0.175, -0.1, 0.016, steelD);
-    P_rect(ctx, 0.12, -0.065, 0.13, 0.175, steelD);
-    P_poly(ctx, [[0.23, 0.1], [0.31, 0.075], [0.5, 0.025], [0.5, -0.17], [0.42, -0.17], [0.31, -0.075], [0.23, -0.055]], wood);
-    P_line(ctx, 0.3, 0.06, 0.47, 0.018, 0.016, woodL);
-    P_rect(ctx, 0.47, -0.17, 0.035, 0.195, woodD);
-    ctx.restore();
-  },
-  // a box of shotgun shells, three standing up in it
-  shells(ctx, P) {
-    const card = P.col([124, 94, 60]), cardD = P.col([86, 62, 38]), label = P.col([194, 176, 134]);
-    const red = P.col([170, 34, 32]), redD = P.col([112, 22, 22]), brass = P.col([184, 152, 78]);
-    for (let i = 0; i < 3; i++) {
-      const x = -0.2 + i * 0.2;
-      P_rect(ctx, x - 0.065, 0.36, 0.13, 0.44, red); P_rect(ctx, x + 0.025, 0.36, 0.04, 0.44, redD);
-      P_line(ctx, x - 0.04, 0.775, x + 0.04, 0.775, 0.016, redD);
-      P_rect(ctx, x - 0.065, 0.42, 0.13, 0.1, brass);
-    }
-    P_rect(ctx, -0.33, 0.05, 0.66, 0.42, card); P_rect(ctx, -0.33, 0.4, 0.66, 0.07, cardD);
-    P_rect(ctx, -0.2, 0.14, 0.4, 0.15, label); P_rect(ctx, -0.12, 0.19, 0.24, 0.05, red);
-  },
   // a bow: a wooden stave whose tips flick outward, the grip wrapped in leather, and the string. It takes the shape of what
   // it is drawn on, measured in the card's own height so it is never squashed: in a square slot it lies corner to corner; on
   // a long card it lies along it, string up (or hangs by its string from a nail, opts.hang); on a tall one it stands, leaning

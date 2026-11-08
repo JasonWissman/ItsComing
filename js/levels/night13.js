@@ -6,7 +6,7 @@
 // until it is plainly the bedroom, in the morning, and always was. It dances at the foot of the bed and glitters away.
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
-  ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['shotgun', 'Shotgun', 1.1, 0.36], ['shells', 'Shells', 0.3, 0.3], ['handle', 'Winch handle', 0.45, 0.45],
+  ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['handle', 'Winch handle', 0.45, 0.45],
   ['fuse', 'Fuse', 0.34, 0.34], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['beam', 'Bar', 1.4, 0.45], ['journal', 'Notebook', 0.2, 0.26], ['bulb', 'Bulb', 0.2, 0.3],
 ];
 // each looks as it did on its own night, at about the size it was there (those nights define their own icons)
@@ -34,14 +34,9 @@ LEVELS.push({
   lanes: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].map((name, k) => ({ deg: k * 45, name, barrierDist: 0, default: k === 0 })),
   creatures: [{ type: 'demon', startDist: 40, time: 75, unseenMult: 1.3 }],
   aftermath: { type: 'custom' },
-  uses: [{
-    tool: 'shotgun', ammo: 'shells', range: 40, sfx: 'shot', flash: 0.45, emptyText: 'Click.', fireText: 'Fire.',
-    onHit(c, hits, L) { L.s.extra += 1; G.toast('It does not slow. It is angrier.'); },
-    onMiss(L) { L.s.extra += 1; G.toast('It heard that.'); },
-  }],
   build(L) {
     const s = L.s;
-    Object.assign(s, { extra: 0, ending: false, endT: 0, reveal: 0, gone: 0, glitterAt: -1 });
+    Object.assign(s, { ending: false, endT: 0, reveal: 0, gone: 0, glitterAt: -1 });
     // a floor that is only a floor near you (and the lamp, off, a little way out): the void's own props, which fade as the room comes
     const v0 = L.props.length;
     // (in narrow rings of many sides, so it darkens smoothly instead of in visible steps; drawn before the room's floors,
@@ -79,7 +74,7 @@ LEVELS.push({
     const nRing = order.length - hold;
     order.forEach(([id, name, w, h], k) => {
       const j = k < hold ? k : k - hold, a = j / (k < hold ? hold : nRing) * TAU + 0.2, r = ringR + (j % 2) * 0.5;
-      const it = mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(ICONS[VOID_ICONS[id] || id]), tool: id === 'shotgun' || id === 'matches' || id === 'hammer', uses: id === 'shells' ? 3 : 1 });
+      const it = mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(ICONS[VOID_ICONS[id] || id]), tool: id === 'bow' || id === 'matches' || id === 'hammer', uses: id === 'arrows' ? 3 : 1 });
       if (k < hold) { it.taken = true; G.inv.push(it); }
     });
     // put down, a thing lands where you put it unless it would lie over something else, when it goes the least way to the
@@ -130,7 +125,7 @@ LEVELS.push({
     const sun = (() => { const d = [-1, -0.45, -0.15], n = Math.hypot(d[0], d[1], d[2]); return { x: 3.4, y: 2.4, z: 1.6, r: 12, i: 0.55, color: [255, 244, 210], cone: { x: d[0] / n, y: d[1] / n, z: d[2] / n, cos: Math.cos(40 * DEG) } }; })();
     L.update = dt => {
       const c = c0();
-      c.anger = G.inv.length + s.extra;
+      c.anger = G.inv.length;
       c.rage += ((c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0) - c.rage) * Math.min(1, dt * 4);   // anything held and it is plainly enraged
       // empty-handed and facing it, the view lifts to its face as it looms in over the last few metres: you look up at it.
       // Looking down (a target below the horizon), or turning away, takes the view back as it was.

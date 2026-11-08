@@ -31,7 +31,8 @@ Headphones are recommended. Sound starts after your first click.
 | `↑` | look straight ahead |
 | `↓` | look down at the ground in front of you |
 | hold `Shift` (or `Z` / `Space`) | zoom in on whatever you are facing |
-| click | pick up an item, place it, use a target, fire |
+| click | pick up an item, place it, use a target |
+| hold the button, then let go | draw a bow, and loose the arrow |
 | `1`–`6`, `Tab` | choose which held item is active |
 | `R` | restart the current night |
 | `Esc` | pause |
@@ -42,11 +43,15 @@ down puts the active item back down.
 
 Touch controls appear on phones and tablets: turn, look, hold to zoom, Use
 (whatever is nearest the middle of the view, or put the held thing down when
-looking down) and Pause; tapping the held item again while looking down also puts it
+looking down; hold Use to draw a bow, as holding A does on a gamepad) and Pause; tapping the held item again while looking down also puts it
 down. A gamepad works too: d-pad or left stick turns and
 looks, A uses, B puts the held thing down, a trigger zooms, Start pauses. In
 menus the d-pad moves between buttons and settings, left and right move a
 slider, A presses or ticks, and B goes back as Escape does.
+
+On the Phone Booth, facing the pay phone brings the view in close to it: click or tap its keys, or type the number
+with the number keys. With a gamepad the d-pad moves a highlight over the phone (receiver, coin slot, keys, coin
+return; past the last one in a direction it turns as usual) and A presses what is highlighted.
 
 Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
 dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
@@ -68,8 +73,11 @@ There is no difficulty to pick: the game is one hard game.
 
 Every way it can come is fully visible from where you stand: the approach lanes are checked by
 `validateContent()` so the thing is never hidden behind a wall on its way in.
-A shot fired out of range still spends a shell. A way you have shut holds it where it is; where more
-than one way must be shut, it waits there a moment and then goes round to a way that is still open.
+An arrow let go out of range, short of the green or past it still spends the arrow. A way you have shut holds it
+where it is; where more than one way must be shut, it waits there a moment and then goes round to a way that is still
+open (a thing that can run is seen running there, side on, as the walker runs round the house on the first night).
+Where you cannot see it any more once you have won (behind a shut door or shutter), you hear and feel it beating on
+that door instead, hard and fast, until the night fades.
 
 Saves from versions with several difficulties carry over: the furthest night reached on any of them,
 and the best time on any of them, count for the one game.
@@ -82,44 +90,89 @@ some on the ground, so you have to turn and look down to find them.
 
 1. **The Field.** A tall thin walker crosses a moonlit field toward a farmhouse whose
    two doorways have no doors. Find the hammer, the nails and the loose planks, and board
-   up both: board the one it is coming for and it runs round the house to the other.
+   up both: board the one it is coming for and it runs round the house to the other. The
+   planks are wide old boards, and three of them close most of a doorway, leaving a slit at
+   eye level. Once the last one is up it charges that doorway, hits the boards, stoops to
+   look in at you through the slit with its fingers over the board, and pounds on them until
+   the night fades.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
    fours, in bursts, in the headlights. Find the car keys (the green ones), put the stick in
-   park and turn the key until it catches; then pick a gear and hit the gas. Reverse always
-   gets away; drive does only if it is coming along a verge. The whole road slides past as
-   you go.
+   park and turn the key in the dash beside the dials until it catches; then pick a gear and
+   hit the gas. Reverse always gets away; drive does only if it is coming along a verge, and
+   then, if it is near the road, it scuttles sideways out of your lights as you pass. The
+   whole road slides past as you go.
 3. **The Graveyard.** A smiling man walks between the graves and never stops
    smiling. Salt both ways in, the doorway and the side gate, and hang and light a
-   lantern by each. The sugar comes in a red bag.
+   lantern by each. The sugar comes in a red bag. A salted way stops him at the line,
+   looking down at the salt; if the other way is still bare he runs round to it. When the
+   last lantern is lit he comes right up to the salt, looks down at it, then turns round
+   and walks back into the dark.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
    You must look away to shut both gates, chain each with its own chain, and padlock
-   them. One padlock is rusted solid. Every glance away costs you.
+   them. One padlock is rusted solid. Every glance away costs you. The gates are open in
+   the middle, so you can watch it through a shut one. Lock the gate it is coming to and it
+   tries it, then runs round the outside of the yard to the other one, but only while
+   nothing is looking: catch it going round and it stops dead, mid-stride. At the end it
+   comes on only when you blink, up to the gate, and shakes it on its chain.
 5. **The Clearing.** Something that sprints, drops to all fours to watch, and
-   sprints again. Get the shotgun, load it, and wait for it to come close enough.
+   sprints again; out in the tree line it sometimes breaks sideways to a new place,
+   running side on. On the porch are a bow and a quiver of three arrows. Hold the button
+   (or the touch Use button, or A) to draw. A power bar fills beside your aim, and a green
+   band on it marks how far to draw to reach it from where it is right now: the further
+   away, the more draw it needs, and beyond the bow's 50 m there is no band and the bar
+   says too far. Let go with the bar in the green and it in your sights. Short of the green
+   the arrow drops into the snow; past it, or held until the string slips, it goes wild; in
+   the green but off it, it misses. A click looses nothing: the bow comes up and is let
+   down again. The first hit drops it for a moment and the second puts it down. With all
+   three arrows gone and it still up, it comes flat out.
 6. **The Boathouse.** Something swims in across the water, going under for a
    while and coming up closer. The winch is chained and padlocked: the key is in the
-   tackle box. Crank the water door down, and shut and bar the side door.
-7. **The Lighthouse.** The lamp is out and something is climbing the outside of
-   the tower; you see it by looking over the rail, and it climbs faster while you do
-   not. Put the spare bulb in the lamp, open the fuse box, pull the blown fuse and put
-   in the new one from the toolbox, and turn the crank so the beam goes round.
+   tackle box. Crank the water door down, and shut and bar the side door (the door or
+   either iron bracket beside it will do). Shut one way first and, once it has been held
+   there a moment, it goes under, swims round and comes across into the other side on.
+   With both shut it throws itself at the door it came to, harder and faster, the boards
+   bowing in and the water coming in under them, until it lets go and goes under.
+7. **The Lighthouse.** The lamp is out and something is clinging to the outside of
+   the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
+   and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
+   box, pull the blown fuse and put in the new one from the toolbox, and turn the crank so
+   the beam goes round: every pass of the light knocks it sliding back down the wall.
 8. **The Diner.** A man-shaped thing in the lot is drawn to the light: while the
    lights are on it comes fast, too fast to shutter every window. Throw the power main
    on the back wall in the first ten seconds or so, find the crank, and crank all three
-   shutters down; each time its window shuts it goes to one still open, along the glass
-   if it is already there, across the lot if not. If it reaches an open window it comes
-   through the glass.
-9. **The Phone Booth.** It is raining and a man in a long coat is walking down the
-   street toward the booth. Find the number in your notebook and dial it. It rings
-   for seven seconds before anyone answers, and he keeps coming the whole time.
+   shutters down; each time its window shuts it turns side on and runs to one still
+   open, along the glass if it is already there, across the lot if not. If it reaches an
+   open window it comes through the glass. With the last shutter down it runs up to it
+   and beats on it, hard and fast, until the night fades.
+9. **The Phone Booth.** It is raining and a man in a long coat is walking toward the
+   booth, up the main street or along the pavement from the east. The pay phone is on the
+   west wall, so using it means looking away from him; facing it brings the view in close.
+   Find the number in your notebook and a coin (in the coin return, on the shelf or on the
+   floor by the phone), then do what the card beside the keys says: lift the receiver, put
+   the coin in and dial on the phone's own keys. It rings for seven seconds before anyone
+   answers, and he keeps coming the whole time. A wrong number is not in service, and
+   hanging up drops the coin back into the coin return. When someone answers, a car comes
+   down his street and pulls up at the kerb for you.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass: facing a mirror holds it. One of the four mirrors is not like the
-    others. Put the music box on that mirror's pedestal, fit the key with the heart and
-    wind it, and it comes to the tune, smiling, instead of to you.
-11. **The Barn.** It goes faster the more you carry. Fill the lantern, light it,
-    and throw it into the hay between you, carrying as little as you can.
+    others, and two are under dust sheets. The music box lies in one place and its crank
+    in another. Put the box on the odd mirror's pedestal (no other will take it, and while
+    you try, something behind you takes three quick steps), fit the crank to its side and
+    turn it. Each turn plays a few notes of its tune. On the last, the doll comes running
+    out through the glass for the box, smiling, lifts it off the pedestal and takes it back
+    in with it.
+11. **The Barn.** Something bent double under a bundle is coming for the hayloft,
+    across the yard to the loft door or in at the far end of the barn and up the ladder,
+    and it goes faster the more you carry. A stack of hay stands in each way in, and both
+    must burn. Fill a bottle at the oil drum, stuff a rag in its neck, light the rag with
+    the matches (they light the second one too) and throw it into the hay. Fire in the
+    stack it is coming past sends it running round, side on, to the other way; fire it is
+    already past is no use. Carry one bottle and one rag at a time.
 12. **The Bedroom.** You are in bed. It is already in the doorway, or in the
-    closet, moving in extreme slow motion. Get the lamp on, pull the covers up.
+    closet, moving in extreme slow motion. Get the lamp on, pull the covers up. Then they
+    come up over your eyes and the rest happens under them: its steps to the bed, the
+    shadow of its hand on the lamp-lit cloth, three hard pulls that the covers hold, and
+    the light through them going grey.
 13. **The Void.** Everything you ever held against it lies around you, and you
     start the night holding some of it. Holding anything enrages it. Put it all down
     and let it come, and face it when it does: as it looms in the view lifts to its face.
@@ -172,7 +225,7 @@ LEVELS.push({
   lanes: [{ deg: 0, name: 'back door', barrierDist: 2.75, apertures: [{ z, x0, x1, y0, y1 }], blockers: [[d0, d1]] }],
   creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
   aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang' },   // held, stand, retreat, down, away, custom
-  uses: [{ tool, ammo, dudAmmo, range, onHit(c, hits, L), onMiss(L) }], // things you use on the creature itself
+  uses: [{ tool, ammo, dudAmmo, range, onHit(c, hits, L), onMiss(L), draw: { band(c), loose(outcome, c, aim, power, L), fill, min }, inHands(ctx, W, H, draw, L, aim) }], // things you use on the creature itself
   build(L) { ... }
 });
 ```
@@ -187,7 +240,19 @@ LEVELS.push({
   (and a `maxStart` cap, for the back of a closet).
 - **Creatures** are listed in `creatures`; each gets its own lane, timer and seeded random
   stream. `CREATURES[type]` provides `draw`, `speedMult`, optional `onSeen`, `lateral`,
-  `timeScale` (slow motion), `death` ({ delay, dur, sting, pose }) and `seenFrac`.
+  `timeScale` (slow motion), `death` ({ delay, dur, sting, pose }) and `seenFrac`, and `drawRun` (a side-on run,
+  drawn by the creature's own `draw` while `c.runPose` is set; see Changing ways) with `runW` (how wide that run is
+  drawn, stride and all, when it is wider than `w`). A night can send its creature running sideways: `c.runPose` on,
+  `c.runDir` (+1 to the right of the view), `c.runGait`, and either `c.runLat` (the walker, night 1) or the night
+  moving it along a way of its own (the customer, night 8, which also takes `c.runTurn` and `c.runAmt`).
+  `CREATURES[type].body(c)` gives the part of its box its pose fills (what a bow must be aimed at). A creature need
+  not be drawn on its lane: the climber takes `c.wallAt(c)` and `c.wallFrame(c)` from its night and is drawn on the
+  tower's stone, and the night's `L.visFrac(c)` judges whether it is seen where it is drawn.
+- **A bow** (`uses[].draw`): held, the button (Use, A) draws it, and the power bar beside the aim fills over `fill`
+  seconds. `band(c)` is the green stretch [lo, hi] for where the thing is now (null: out of range), asked again
+  every frame. Let go in it with the aim on the thing's body and `loose('hit', ...)` is called; below it is 'short';
+  past it, or held at the top until the string slips, is 'over'; in it but off the thing is 'miss'. Each spends one
+  of the ammo. Let go before `min` seconds and nothing is loosed. `inHands` draws what you hold over the view.
 - **Items and targets** are placed in `build(L)`: `mkItem(L, id, name, spot | [spots], opts)`
   picks one of several spots per load (never the same spot twice, never within 0.8 m of another
   item); `mkTarget(L, { accepts, requires, needed, use(item), hint(), onClick(), hold, crank })`
@@ -201,12 +266,18 @@ LEVELS.push({
   `L.update(dt)`, `L.onReach(c)`, `L.onCatch(c)`, `L.onPickup(it)`, `L.onDrop(it)`, `L.glows()`,
   `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`, `L.deathCause(c)` (a key into `text.death`),
   `L.aftermath(t, dt)` (a custom aftermath; return true when it is over), `L.watchPoint()` (where the win camera
-  looks instead of at the thing), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
+  looks instead of at the thing; it may also return a `zoom`), `L.watchZoom()` (close the win camera in further),
+  `L.watchPitch` (how far down the win camera may look), `L.viewZoom()` (a zoom the view comes in to while playing:
+  the pay phone close up), `L.padDir(dir)` and `L.padUse()` (a night may take the gamepad's d-pad and A before the
+  game does), `L.overlay(ctx, W, H)` (a night's own picture over the view: the covers over your eyes), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
   and lights flagged `attach: true` ride with it, everything else slides past; the night 2 car drives off this way),
   `L.onDecoy(t, item)`, `L.onLaneSwitch(c, lane)`, and `L.sealed(lane)`: a creature reaching a
   sealed way is held at the barrier (or where it is, if it got inside first) until the night is won.
   On Nightmare it goes round after 2.5 s to a way that is still open, starting 3 m outside that way's
-  barrier and announced by its `cue`; below Nightmare it never changes its way.
+  barrier and announced by its `cue`; below Nightmare it never changes its way. A creature whose type defines
+  `drawRun` goes round on its feet instead (`goRound` in game.js, modelled on night 1's run round the house): it
+  sprints sideways out of the way's opening, is heard running while out of sight, and comes in 3 m outside the open
+  way's barrier from the side it went round by.
 - **Changing ways**: on Nightmare the thing may switch ways once, early and unseen, and goes round
   sealed ways as above. Neither ever picks a lane marked `noSwitch` (a lure's destination), a lane
   outside a creature's own `lanes` list, or moves a creature given a fixed `lane`; a night with
@@ -232,7 +303,8 @@ npm run test:bench     # frame time per night at 1920x1080 (BUDGET=8 ms p95 by d
 npm run test:spots     # screenshot every item spot into montages under test/shots
 ```
 
-`test/play.js` runs each night's declared solution per tier and seed. `test/flow.js` covers the
+`test/play.js` runs each night's declared solution per tier and seed (a night's steps can `draw` a bow: let go at
+once, short, in the green, past it, at the top, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
 the one game (no picker, no hints), restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
 camera, save migration and the last night's two endings. `test/lanes.js` runs `validateContent()` and checks every
