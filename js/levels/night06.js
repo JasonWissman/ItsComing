@@ -355,7 +355,7 @@ LEVELS.push({
     Object.assign(s, { jolts: [], drops: [], splats: [], surges: [], wet: 0, swing: 0, swingT: 0 });
     const blow = (a, k) => {
       const c = L.creature, side = a.door === 1, x = (fx() - 0.5) * (side ? 0.5 : 1.6);   // where it lands, across the door
-      s.jolts.push({ t: L.t, k, x, seed: fx() * 100 });
+      s.jolts.push({ t: L.t, k, x });
       s.surges.push({ t: L.t, k, x });
       AUDIO.sfx('wetPound', panOf(c.yaw)); if (a.n % 2 === 0 || k > 1) AUDIO.sfx('slosh', panOf(c.yaw));
       G.shake(0.38 + 0.32 * k);
