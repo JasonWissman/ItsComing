@@ -243,6 +243,9 @@ const AUDIO = (() => {
       case 'gate': noise(0.2, { freq: 400, vol: 0.5, pan }); tone(140, 0.4, { vol: 0.3, type: 'square', endFreq: 90, pan }); break;
       case 'shot': noise(0.5, { freq: 1500, vol: 1.0, attack: 0.002 }); tone(70, 0.5, { vol: 0.7, endFreq: 30 }); noise(1.2, { freq: 300, vol: 0.3, delay: 0.05, attack: 0.02 }); break;
       case 'empty': tone(900, 0.03, { vol: 0.15, type: 'square' }); tone(600, 0.04, { vol: 0.12, type: 'square', delay: 0.06 }); break;
+      case 'bowCreak': tone(150 + Math.random() * 70, 0.16, { vol: 0.05, type: 'sawtooth', endFreq: 120 + Math.random() * 40 }); noise(0.12, { type: 'bandpass', freq: 700 + Math.random() * 500, q: 4, vol: 0.09, attack: 0.02 }); break;   // a grain of it: drawing plays one every few tenths of a second
+      case 'twang': tone(98, 0.45, { vol: 0.3, type: 'triangle', endFreq: 88 }); tone(196, 0.25, { vol: 0.12, type: 'triangle', endFreq: 180 }); noise(0.06, { type: 'highpass', freq: 2500, vol: 0.25 }); noise(0.35, { type: 'bandpass', freq: 1800, q: 1.5, vol: 0.12, delay: 0.03, attack: 0.03 }); break;
+      case 'thunk': noise(0.09, { freq: 450, vol: 0.8, pan }); tone(85, 0.16, { vol: 0.6, endFreq: 55, pan }); noise(0.03, { type: 'bandpass', freq: 2200, q: 3, vol: 0.25, pan }); break;
       case 'load': tone(300, 0.06, { vol: 0.2, type: 'square', endFreq: 220 }); noise(0.05, { freq: 900, vol: 0.2, delay: 0.12 }); tone(400, 0.05, { vol: 0.2, type: 'square', endFreq: 260, delay: 0.2 }); break;
       case 'ratchet': tone(320, 0.04, { vol: 0.18, type: 'square', endFreq: 200 }); noise(0.05, { freq: 1400, vol: 0.25, delay: 0.03 }); break;
       case 'thunder': noise(2.2, { freq: 160, vol: 0.55, attack: 0.15 }); tone(38, 1.8, { vol: 0.45, endFreq: 22, attack: 0.1 }); noise(0.5, { freq: 700, vol: 0.25, delay: 0.3 }); break;

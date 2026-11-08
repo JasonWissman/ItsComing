@@ -159,6 +159,62 @@ const ICONS = {
     P_rect(ctx, -0.33, 0.05, 0.66, 0.42, card); P_rect(ctx, -0.33, 0.4, 0.66, 0.07, cardD);
     P_rect(ctx, -0.2, 0.14, 0.4, 0.15, label); P_rect(ctx, -0.12, 0.19, 0.24, 0.05, red);
   },
+  // a bow: a wooden stave whose tips flick outward, the grip wrapped in leather, and the string. It takes the shape of what
+  // it is drawn on, measured in the card's own height so it is never squashed: in a square slot it lies corner to corner; on
+  // a long card it lies along it, string up (or hangs by its string from a nail, opts.hang); on a tall one it stands, leaning
+  bow(ctx, P, opts) {
+    const m = ctx.getTransform(), asp = Math.hypot(m.a, m.b) / Math.max(1e-6, Math.hypot(m.c, m.d));
+    const wide = asp > 1.8, tall = asp < 0.55, hang = wide && !!(opts && opts.hang);
+    const wood = P.col([124, 82, 46]), woodL = P.col([178, 130, 80]), woodD = P.col([66, 42, 24]);
+    const grip = P.col([54, 38, 28]), wrap = P.col([30, 22, 16]), string = P.col([226, 218, 196]);
+    ctx.save(); ctx.scale(1 / asp, 1);   // from here x is in the same units as y
+    // the middle of the string, the way along the stave, the way the stave bows out from the string, how far, and how thick
+    let cx, cy, ax, ay, nx, ny, hl, bulge, flick, th, sw;
+    if (wide) { cx = 0; cy = hang ? 0.7 : 0.84; ax = 1; ay = 0; nx = 0; ny = -1; hl = asp * 0.47; bulge = hang ? 0.52 : 0.6; flick = 0.12; th = 0.12; sw = 0.022; }
+    else if (tall) { const a = 0.1; cx = 0.02; cy = 0.5; ax = Math.sin(a); ay = Math.cos(a); nx = -ay; ny = ax; hl = 0.47; bulge = 0.12; flick = 0.025; th = 0.034; sw = 0.0055; }
+    else { cx = 0.06; cy = 0.47; ax = 0.62; ay = 0.785; nx = -ay; ny = ax; hl = 0.56; bulge = 0.2; flick = 0.06; th = 0.075; sw = 0.022; }
+    const pt = s => { const b = bulge * (1 - s * s) + flick * Math.pow(Math.max(0, (Math.abs(s) - 0.78) / 0.22), 2); return [cx + ax * s * hl + nx * b, cy + ay * s * hl + ny * b]; };
+    // the string first, so the stave lies over its ends
+    const t0 = pt(-1), t1 = pt(1);
+    if (hang) { P_line(ctx, t0[0], t0[1], 0, 0.97, sw, string); P_line(ctx, 0, 0.97, t1[0], t1[1], sw, string); }
+    else P_line(ctx, t0[0], t0[1], t1[0], t1[1], sw, string);
+    for (let i = 0; i < 20; i++) {   // thick at the grip, thin at the tips, with the light along its back
+      const s0 = -1 + i / 10, s1 = s0 + 0.1, a = pt(s0), b = pt(s1), w = th * (1 - 0.5 * Math.abs(s0 + 0.05));
+      P_line(ctx, a[0], a[1], b[0], b[1], w, wood);
+      P_line(ctx, a[0] + nx * w * 0.28, a[1] + ny * w * 0.28, b[0] + nx * w * 0.28, b[1] + ny * w * 0.28, w * 0.3, woodL);
+    }
+    for (const s of [-1, 1]) { const p = pt(s * 0.98); P_ell(ctx, p[0], p[1], th * 0.45, th * 0.45, woodD); }   // the nocks, where the string is tied
+    const g0 = pt(-0.13), g1 = pt(0.13);
+    P_line(ctx, g0[0], g0[1], g1[0], g1[1], th * 1.45, grip);
+    for (const s of [-0.08, 0, 0.08]) { const p = pt(s); P_line(ctx, p[0] - ny * th * 0.65, p[1] + nx * th * 0.65, p[0] + ny * th * 0.65, p[1] - nx * th * 0.65, th * 0.16, wrap); }
+    ctx.restore();
+  },
+  // a quiver of arrows (n of them, three unless said): a leather tube with its straps, the fletched ends standing out of its
+  // mouth. Measured in the card's height, as the bow is; on a long card (put down on the boards) it lies on its side
+  arrows(ctx, P, n) {
+    n = n === undefined ? 3 : n;
+    const m = ctx.getTransform(), asp = Math.hypot(m.a, m.b) / Math.max(1e-6, Math.hypot(m.c, m.d));
+    const leather = P.col([112, 70, 40]), leatherD = P.col([66, 40, 24]), leatherL = P.col([156, 108, 66]), strap = P.col([46, 30, 20]);
+    const shaft = P.col([200, 168, 116]), nock = P.col([40, 30, 24]), fA = P.col([182, 46, 38]), fB = P.col([228, 218, 196]);
+    ctx.save(); ctx.scale(1 / asp, 1);
+    if (asp > 1.8) { const k = asp * 0.94; ctx.translate(-k / 2, 0.5); ctx.rotate(-Math.PI / 2); ctx.scale(k, k); }   // lying, its mouth to the right
+    else { ctx.translate(0, 0.02); ctx.rotate(asp < 0.55 ? -0.07 : -0.3); ctx.scale(0.95, 0.95); }
+    const body = [[-0.085, 0], [0.085, 0], [0.12, 0.6], [-0.12, 0.6]];
+    P_ell(ctx, 0, 0.6, 0.12, 0.035, leatherD);   // the dark inside of its mouth, behind the arrows
+    for (let i = 0; i < n; i++) {   // the arrows, fanned a little, each with its two vanes and a dark nock
+      const off = (i - (n - 1) / 2) * 0.055, a = (i - (n - 1) / 2) * 0.07, tx = off + Math.sin(a) * 0.42, ty = 0.5 + Math.cos(a) * 0.42;
+      P_line(ctx, off, 0.5, tx, ty, 0.022, shaft);
+      const ux = Math.sin(a), uy = Math.cos(a), f = (k, w, col, side) => P_poly(ctx, [[off + ux * k, 0.5 + uy * k], [off + ux * (k + 0.13), 0.5 + uy * (k + 0.13)], [off + ux * (k + 0.11) + side * uy * w, 0.5 + uy * (k + 0.11) - side * ux * w], [off + ux * (k + 0.02) + side * uy * w, 0.5 + uy * (k + 0.02) - side * ux * w]], col);
+      f(0.26, 0.05, fA, -1); f(0.26, 0.05, fB, 1);
+      P_line(ctx, tx - ux * 0.02, ty - uy * 0.02, tx, ty, 0.03, nock);
+    }
+    P_poly(ctx, body, leather);
+    P_poly(ctx, [[0.04, 0], [0.085, 0], [0.12, 0.6], [0.07, 0.6]], leatherD);   // its shadowed side
+    P_line(ctx, -0.07, 0.04, -0.1, 0.56, 0.018, leatherL);                     // the light down the other
+    for (const y of [0.1, 0.5]) P_line(ctx, -0.09 - y * 0.06, y, 0.09 + y * 0.06, y, 0.035, strap);   // two bands round it
+    P_line(ctx, -0.12, 0.59, 0.12, 0.59, 0.03, leatherL);                    // the rolled lip of the mouth
+    ctx.restore();
+  },
   bottle(ctx, P) {
     const g = P.col([40, 70, 40]), hl = P.col([120, 160, 110]);
     ctx.fillStyle = g; ctx.beginPath();
