@@ -1,71 +1,104 @@
 'use strict';
 // ============================================================ 11. THE BARN ============================================================
-// The hayloft. It comes across the yard for the loft door, up the hoist chute, or in through the barn and up
-// the ladder at the open edge. It goes faster the more you carry. Fire between you and it, and carry less.
+// The hayloft. It comes across the yard for the loft door and up the hoist chute, or in at the barn's far end and along
+// the barn floor to the ladder at the open edge. A stack of hay stands in each way in. Fire in the one it is coming past
+// sends it running round to the other way; only both burning hold it. The fire is a bottle: fill it with lamp oil at the
+// drum, stuff a rag in its neck, light the rag, throw it. It goes faster the more you carry.
 
-// the barn's own things: an oil lantern (a hurricane lantern with a glass font, so you can see whether there is oil in it:
-// empty, filled amber, lit), and a feed sack that reads as a sack, tied at the neck
-function barnLantern(ctx, P, mode) {
-  const tin = P.col([96, 94, 88]), tinD = P.col([58, 56, 54]), glass = P.col([78, 80, 74]), wick = P.col([30, 26, 22]);
-  ctx.strokeStyle = tinD; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.arc(0, 0.82, 0.19, 0.1, Math.PI - 0.1); ctx.stroke();   // the bail
-  P_line(ctx, -0.31, 0.2, -0.31, 0.72, 0.045, tin); P_line(ctx, 0.31, 0.2, 0.31, 0.72, 0.045, tin);                     // the side tubes
-  P_line(ctx, -0.31, 0.72, -0.14, 0.76, 0.04, tin); P_line(ctx, 0.31, 0.72, 0.14, 0.76, 0.04, tin);
-  if (mode === 'lit') {
-    const g = ctx.createRadialGradient(0, 0.48, 0.02, 0, 0.48, 0.42);
-    g.addColorStop(0, 'rgba(255,224,150,0.95)'); g.addColorStop(0.5, 'rgba(255,190,96,0.5)'); g.addColorStop(1, 'rgba(255,170,70,0)');
-    ctx.fillStyle = g; ctx.fillRect(-0.5, 0.06, 1, 0.9);
-    P_ell(ctx, 0, 0.49, 0.19, 0.2, P.raw([250, 206, 128]));                                                                // the globe, full of light
-    P_ell(ctx, 0, 0.45 + Math.sin(P.t * 23) * 0.008, 0.04, 0.085 + Math.sin(P.t * 17) * 0.012, P.raw([255, 246, 210]));   // the flame
-  } else {
-    P_ell(ctx, 0, 0.49, 0.19, 0.2, glass);                                                                                 // the globe, dark
-    P_line(ctx, -0.1, 0.4, -0.1, 0.58, 0.025, P.col([128, 130, 120]));                                                    // a glint on the glass
+// the barn's own things. A bottle of clear glass, so what is in it shows: empty it is dark and hollow with the light on its
+// edges; filled, amber oil to the shoulder; with a rag twisted into its neck and trailing down its side; lit, a flame on the
+// rag's end. spin turns the glass (in flight); the flame always burns upward from wherever the rag's end is.
+function barnBottle(ctx, P, mode, spin) {
+  const glass = P.col([150, 184, 158]), glassD = P.col([50, 66, 56]), glassL = P.col([224, 238, 226]);
+  const oil = P.col([196, 124, 34]), oilL = P.col([242, 186, 92]), oilD = P.col([136, 78, 20]);
+  const rag = P.col([206, 196, 170]), ragD = P.col([150, 134, 104]), stain = P.col([130, 98, 52]);
+  const body = () => {
+    ctx.beginPath(); ctx.moveTo(-0.23, 0.03); ctx.quadraticCurveTo(-0.27, 0.03, -0.27, 0.09); ctx.lineTo(-0.27, 0.48); ctx.quadraticCurveTo(-0.26, 0.62, -0.09, 0.68);
+    ctx.lineTo(-0.08, 0.86); ctx.lineTo(0.08, 0.86); ctx.lineTo(0.09, 0.68); ctx.quadraticCurveTo(0.26, 0.62, 0.27, 0.48); ctx.lineTo(0.27, 0.09); ctx.quadraticCurveTo(0.27, 0.03, 0.23, 0.03); ctx.closePath();
+  };
+  ctx.save();
+  if (spin) { ctx.translate(0, 0.45); ctx.rotate(spin); ctx.translate(0, -0.45); }
+  ctx.fillStyle = glass; body(); ctx.fill();                                                                     // the glass, its edges catching the light
+  ctx.save(); ctx.translate(0, 0.46); ctx.scale(0.82, 0.93); ctx.translate(0, -0.46); ctx.fillStyle = glassD; body(); ctx.fill(); ctx.restore();   // the inside, dark
+  if (mode !== 'empty') {   // the oil, to the shoulder, a bright line where it meets the glass
+    ctx.save(); ctx.translate(0, 0.46); ctx.scale(0.82, 0.93); ctx.translate(0, -0.46); body(); ctx.clip();
+    P_rect(ctx, -0.3, 0, 0.6, 0.52, oil); P_rect(ctx, 0.09, 0, 0.2, 0.52, oilD); P_ell(ctx, 0, 0.52, 0.24, 0.04, oilL);
+    ctx.restore();
   }
-  P_rect(ctx, -0.05, 0.3, 0.1, 0.07, wick);                                                                                // the burner
-  for (const x of [-0.2, 0.2]) P_line(ctx, x, 0.32, x * 1.1, 0.66, 0.018, tinD);                                          // the wire guard
-  P_line(ctx, -0.2, 0.49, 0.2, 0.49, 0.018, tinD);
-  P_poly(ctx, [[-0.17, 0.68], [0.17, 0.68], [0.1, 0.8], [-0.1, 0.8]], tin); P_rect(ctx, -0.06, 0.8, 0.12, 0.04, tinD);   // the cap
-  P_rect(ctx, -0.17, 0.26, 0.34, 0.05, tinD);                                                                              // the collar
-  // the font: glass, so the oil shows; empty it is dark and hollow
-  P_ell(ctx, 0, 0.16, 0.33, 0.13, tinD);
-  P_ell(ctx, 0, 0.16, 0.29, 0.1, mode === 'empty' ? P.col([34, 34, 32]) : P.col([182, 120, 40]));
-  if (mode !== 'empty') P_ell(ctx, -0.1, 0.19, 0.1, 0.03, P.col([226, 176, 92]));
-  else P_line(ctx, -0.2, 0.2, 0.08, 0.22, 0.02, P.col([96, 98, 92]));
+  P_line(ctx, -0.17, 0.12, -0.17, 0.46, 0.045, glassL); P_line(ctx, -0.045, 0.7, -0.045, 0.82, 0.024, glassL); P_ell(ctx, 0, 0.06, 0.2, 0.025, glassL);   // the shine down one side, on the neck, round the base
+  P_rect(ctx, -0.095, 0.84, 0.19, 0.05, glass);                                                                   // the lip
+  if (mode === 'rag' || mode === 'lit') {   // the rag: a twist of cloth stuffed in the neck, its tail hanging down the side
+    P_limb(ctx, [[0.05, 0.88], [0.17, 0.82], [0.27, 0.66], [0.28, 0.44]], 0.08, ragD);
+    P_limb(ctx, [[0.04, 0.88], [0.15, 0.83], [0.25, 0.67], [0.26, 0.46]], 0.06, rag);
+    P_poly(ctx, [[-0.08, 0.86], [0.08, 0.86], [0.11, 0.95], [0.03, 1.0], [-0.05, 0.97], [-0.1, 0.92]], rag);
+    P_ell(ctx, 0.24, 0.6, 0.025, 0.04, stain); P_ell(ctx, 0.0, 0.92, 0.03, 0.02, stain);
+  }
+  ctx.restore();
+  if (mode === 'lit') {   // the flame on the rag's end, upright whatever way the bottle turns
+    const a = spin || 0, tx = -Math.sin(a) * 0.53, ty = 0.45 + Math.cos(a) * 0.53, f = Math.sin(P.t * 21) * 0.02, f2 = Math.sin(P.t * 13 + 1) * 0.025;
+    const g = ctx.createRadialGradient(tx, ty + 0.08, 0.01, tx, ty + 0.08, 0.4);
+    g.addColorStop(0, 'rgba(255,214,130,0.75)'); g.addColorStop(0.5, 'rgba(255,150,60,0.28)'); g.addColorStop(1, 'rgba(255,120,40,0)');
+    ctx.fillStyle = g; ctx.fillRect(tx - 0.42, ty - 0.32, 0.84, 0.84);
+    const tongue = (w, h, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(tx - w, ty); ctx.quadraticCurveTo(tx - w * 1.1, ty + h * 0.5, tx + f, ty + h); ctx.quadraticCurveTo(tx + w * 1.1, ty + h * 0.5, tx + w, ty); ctx.quadraticCurveTo(tx, ty - w * 0.6, tx - w, ty); ctx.fill(); };
+    tongue(0.11, 0.36 + f2, P.raw([255, 132, 40])); tongue(0.07, 0.24 + f, P.raw([255, 204, 96])); tongue(0.035, 0.12, P.raw([255, 244, 208]));
+  }
+}
+// a flame on burning hay, in a unit box (base at 0, tip at 1): a red-orange tongue round a yellow one round a white core,
+// its tip swaying and licking
+function barnFlame(ctx, t, ph) {
+  const sway = Math.sin(t * 5.3 + ph) * 0.1, lick = Math.sin(t * 9.7 + ph * 1.7) * 0.07;
+  const tongue = (hw, top, c0, c1) => {
+    const g = ctx.createLinearGradient(0, 0, 0, top); g.addColorStop(0, c0); g.addColorStop(1, c1);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-hw, 0.02);
+    ctx.bezierCurveTo(-hw * 1.2, top * 0.35, -hw * 0.45 + sway * 0.5, top * 0.7, sway + lick, top);
+    ctx.bezierCurveTo(hw * 0.45 + sway * 0.5, top * 0.7, hw * 1.2, top * 0.35, hw, 0.02);
+    ctx.quadraticCurveTo(0, -0.04, -hw, 0.02); ctx.fill();
+  };
+  tongue(0.5, 1, 'rgba(255,118,28,0.9)', 'rgba(160,26,0,0)');
+  tongue(0.33, 0.74, 'rgba(255,186,64,0.95)', 'rgba(255,120,30,0)');
+  tongue(0.17, 0.42, 'rgba(255,244,196,0.95)', 'rgba(255,210,120,0)');
 }
 Object.assign(ICONS, {
-  barnLantern(ctx, P) { barnLantern(ctx, P, 'empty'); },
-  barnLanternFull(ctx, P) { barnLantern(ctx, P, 'full'); },
-  barnLanternLit(ctx, P) { barnLantern(ctx, P, 'lit'); },
-  feedSack(ctx, P) {
-    const cloth = P.col([150, 128, 92]), clothD = P.col([106, 88, 60]), twine = P.col([70, 54, 34]), mark = P.col([96, 60, 44]);
-    ctx.fillStyle = cloth; ctx.beginPath();   // slumped, wide at the foot, gathered to a neck
-    ctx.moveTo(-0.38, 0.04); ctx.quadraticCurveTo(-0.48, 0.42, -0.22, 0.66); ctx.lineTo(-0.07, 0.74); ctx.lineTo(0.07, 0.74); ctx.lineTo(0.22, 0.66);
-    ctx.quadraticCurveTo(0.48, 0.42, 0.38, 0.04); ctx.quadraticCurveTo(0, -0.03, -0.38, 0.04); ctx.closePath(); ctx.fill();
-    P_poly(ctx, [[-0.07, 0.74], [-0.2, 0.92], [-0.05, 0.84], [0, 0.95], [0.05, 0.84], [0.19, 0.9], [0.07, 0.74]], cloth);   // the ears above the tie
-    P_line(ctx, -0.1, 0.75, 0.1, 0.75, 0.05, twine);
-    P_line(ctx, -0.18, 0.6, -0.05, 0.72, 0.014, clothD); P_line(ctx, 0.18, 0.6, 0.05, 0.72, 0.014, clothD);                   // folds into the neck
-    P_rect(ctx, -0.22, 0.26, 0.44, 0.15, mark); P_rect(ctx, -0.16, 0.31, 0.32, 0.05, cloth);                                 // a stencilled band
-    P_line(ctx, -0.34, 0.08, 0.34, 0.08, 0.016, clothD);
+  barnBottle(ctx, P) { barnBottle(ctx, P, 'empty'); },
+  barnBottleOil(ctx, P) { barnBottle(ctx, P, 'oil'); },
+  barnCocktail(ctx, P) { barnBottle(ctx, P, 'rag'); },
+  barnCocktailLit(ctx, P) { barnBottle(ctx, P, 'lit'); },
+  // a rag: a crumpled square of old sheet, frayed at its ends and blotched with oil
+  barnRag(ctx, P) {
+    const cloth = P.col([204, 194, 168]), fold = P.col([152, 140, 112]), dark = P.col([108, 96, 74]), stain = P.col([132, 100, 54]);
+    const edge = [[-0.44, 0.2], [-0.3, 0.1], [-0.08, 0.16], [0.16, 0.07], [0.42, 0.16], [0.47, 0.36], [0.37, 0.5], [0.42, 0.66], [0.2, 0.74], [-0.04, 0.66], [-0.26, 0.74], [-0.45, 0.6], [-0.38, 0.4]];
+    P_poly(ctx, edge.map(([x, y]) => [x + 0.02, y - 0.03]), dark);   // its shadow side, under the edge
+    P_poly(ctx, edge, cloth);
+    ctx.save(); ctx.beginPath(); edge.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.clip();
+    for (const y of [0.26, 0.31, 0.56]) P_line(ctx, -0.5, y - 0.06, 0.5, y + 0.06, 0.035, P.col([120, 128, 150]));   // the faded stripes of an old tea towel
+    ctx.restore();
+    P_poly(ctx, [[-0.08, 0.16], [0.16, 0.07], [0.1, 0.34], [-0.04, 0.4]], fold);   // a fold lying over
+    P_line(ctx, -0.3, 0.3, 0.1, 0.36, 0.018, fold); P_line(ctx, -0.18, 0.56, 0.3, 0.5, 0.018, fold); P_line(ctx, 0.12, 0.6, 0.36, 0.42, 0.014, fold);
+    P_ell(ctx, 0.22, 0.32, 0.09, 0.06, stain); P_ell(ctx, -0.24, 0.48, 0.06, 0.045, stain); P_ell(ctx, 0.0, 0.58, 0.04, 0.03, stain);
+    for (const [x, y, dx, dy] of [[-0.44, 0.2, -0.05, -0.04], [-0.45, 0.6, -0.06, 0.02], [-0.42, 0.42, -0.06, 0], [0.47, 0.36, 0.06, 0.01], [0.42, 0.66, 0.05, 0.04], [0.42, 0.16, 0.05, -0.04]]) P_line(ctx, x, y, x + dx, y + dy, 0.012, cloth);   // loose threads
   },
 });
 LEVELS.push({
-  id: 'barn', title: 'The Barn', facing: 90, eyeH: 4.65, laneSwitch: false,
+  id: 'barn', title: 'The Barn', facing: 90, eyeH: 4.65, laneSwitch: false,   // it changes its way in only by running round when the hay in its way goes up (build)
   pal: { skyTop: [8, 8, 16], fog: [36, 34, 40], ground: [40, 38, 30], fogDist: 90 },
   ambient: { wind: 0.8, drone: 0.7, droneFreq: 47, windFreq: 330 },
-  lights: [{ x: -2.2, y: 4.1, z: -2.2, r: 5, i: 0.4, color: [255, 200, 130], flicker: 0.2 }, { x: 0, y: 1.5, z: 42, r: 10, i: 0.4, color: [255, 200, 120] }],
+  lights: [{ x: -2.2, y: 4.1, z: -2.2, r: 5, i: 0.4, color: [255, 200, 130], flicker: 0.2 }, { x: 0, y: 1.5, z: 42, r: 10, i: 0.4, color: [255, 200, 120] }, { x: 23, y: 2.2, z: 0, r: 9, i: 0.3, color: [150, 160, 200] }],
   text: {
-    intro: 'The loft is full of last summer, dry as paper, and something is coming across the yard for it. It is bent double under something it carries, and it goes faster the more you are carrying yourself.<br>Put things down.',
-    hint: 'Fill the lantern with oil at the drum, light it with the matches, and throw it into the hay between you and it. It comes faster the more you carry, so carry as little as you can.',
-    objective: 'Set the hay alight between you and it. Carry little.',
-    death: { default: 'It did not put down what it was carrying. It put you with it.' },
+    intro: 'The loft is full of last summer, dry as paper, and something is coming for it: across the yard to the loft door, or in at the far end of the barn and up the ladder. A stack of hay stands in each way in. It is bent double under something it carries, and it goes faster the more you are carrying yourself.<br>Carry little.',
+    hint: 'Fill a bottle with oil at the drum, stuff a rag in its neck, light the rag with the matches and throw it into the hay it is coming past. It will run round to the other way in: do the same there. Only both fires hold it. It comes faster the more you carry.',
+    objective: 'Set both stacks of hay alight. Carry little.',
+    death: { default: 'It did not put down what it was carrying. It put you with it.', behind: 'The hay went up behind it. It did not look back.' },
     win: 'It paced the line of the fire for an hour and then sat down in the yard with its arms round itself, facing the loft, and stayed there until the light came.',
     fragment: 'Your hand hurt in the morning from holding on to something all night. It knew what you were holding. It always knows.',
   },
-  // north: the yard, the hoist chute up to the loft door (a ramp lane). East: the barn floor and the ladder at the open edge.
+  // north: the yard, and the hoist chute up to the loft door (a ramp lane). East: in at the barn's far doorway, along the
+  // barn floor between the hay, and up the ladder at the open edge. A lane's distance runs along the sight line from your
+  // eye, so the two are given start distances (and fire lines) that are the same walk on the ground: see build.
   lanes: [
-    { deg: 0, name: 'the loft door', elev: -22.4, ramp: true, barrierDist: 16.2, cue: 'creak', default: true, apertures: [{ z: 4 / Math.cos(22.4 * DEG), x0: -1.2, x1: 1.2, y0: 3.0, y1: 5.2 }] }, // up the chute to the door at the loft's north edge
-    { deg: 90, name: 'the ladder', elev: -73, ramp: true, barrierDist: 25.7, cue: 'clunk' }, // along the barn floor past the hay, then up the ladder
+    { deg: 0, name: 'the loft door', elev: -22.4, ramp: true, startDist: 29.3, barrierDist: 16.2, cue: 'creak', default: true, apertures: [{ z: 4 / Math.cos(22.4 * DEG), x0: -1.2, x1: 1.2, y0: 3.0, y1: 5.2 }] }, // up the chute to the door at the loft's north edge
+    { deg: 90, name: 'the ladder', elev: -73, ramp: true, startDist: 84.0, barrierDist: 12.2 / Math.cos(73 * DEG), cue: 'clunk', apertures: [{ z: 16.5 / Math.cos(73 * DEG), x0: -2, x1: 2, y0: 0, y1: 4.2 }] }, // in at the far doorway, along the barn floor past the hay, then up the ladder
   ],
-  creatures: [{ type: 'carrier', startDist: 34, time: 70, unseenMult: 1.25 }],
+  creatures: [{ type: 'carrier', time: 130, unseenMult: 1.25 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s, FL = 3.0;
@@ -88,9 +121,14 @@ LEVELS.push({
     // loft (sortDist via dist, which its boards share) and in front of what is below it. Nothing under the loft can be seen
     // from up here, so the walls and posts there start at the loft floor instead of being drawn over its boards; the one
     // piece below it that shows past the open edge (the wall under the loft door) is ordered behind it.
+    // The north wall has a side door near the far end, out to the yard: the way it leaves the barn floor when the hay there
+    // goes up while it is already inside.
     SC.floorQ(L, -4.5, -4, 16.5, 4, 0.01, [52, 44, 34]);
     SC.wallV(L, -4.5, -4, 16.5, -4, 0, 6.5, woodD, ptex); SC.wallV(L, -4.5, -4, -4.5, 4, FL, 6.5, woodD, ptex);
-    SC.wallV(L, -4.5, 4, -1.2, 4, FL, 6.5, woodD, ptex); SC.wallV(L, 1.2, 4, 16.5, 4, 0, 6.5, woodD, ptex);
+    SC.wallV(L, -4.5, 4, -1.2, 4, FL, 6.5, woodD, ptex); SC.wallV(L, 1.2, 4, 13.4, 4, 0, 6.5, woodD, ptex);
+    SC.wallV(L, 13.4, 4, 15.6, 4, 2.8, 6.5, woodD, ptex); SC.wallV(L, 15.6, 4, 16.5, 4, 0, 6.5, woodD, ptex);
+    for (const x of [13.3, 15.6]) SC.box(L, x, x + 0.1, 0, 2.9, 3.86, 3.98, wood);   // the side door's frame
+    SC.box(L, 13.3, 15.7, 2.8, 2.9, 3.86, 3.98, wood);
     SC.wallV(L, 0.5, 4, 1.2, 4, 0, FL, woodD, Object.assign({ dist: 7 }, ptex)); SC.wallV(L, -1.2, 4, 1.2, 4, 5.2, 6.5, woodD, ptex);
     SC.wallV(L, 16.5, -4, 16.5, -2, 0, 6.5, woodD, ptex); SC.wallV(L, 16.5, 2, 16.5, 4, 0, 6.5, woodD, ptex); SC.wallV(L, 16.5, -2, 16.5, 2, 4.2, 6.5, woodD, ptex);
     SC.quad(L, [-5, 6.5, -4.5], [17, 6.5, -4.5], [17, 8.6, 0], [-5, 8.6, 0], [30, 24, 18]); SC.quad(L, [-5, 6.5, 4.5], [17, 6.5, 4.5], [17, 8.6, 0], [-5, 8.6, 0], [26, 20, 16]);
@@ -104,26 +142,45 @@ LEVELS.push({
     SC.box(L, -0.1, 0.1, 5.35, 5.5, 3.5, 5.2, wood);
     SC.quad(L, [-0.9, FL, 4.0], [0.9, FL, 4.0], [0.9, 0.05, 11.3], [-0.9, 0.05, 11.3], [58, 46, 34]);
     for (let k = 0; k < 8; k++) { const u = k / 8, y = FL - u * FL + 0.03, z = 4.0 + u * 7.3; SC.box(L, -0.9, 0.9, y, y + 0.06, z - 0.04, z + 0.04, woodD); }
-    // (the ladder up the east edge is drawn in L.dynamic, so that it can be pulled up)
-    // the hay: a stack in the yard under the loft door, and a stack on the barn floor to the east
-    // the yard hay stands either side of the chute's foot, leaving the way up it clear (it is never hidden on its way in);
-    // lit, the fire spreads across the gap and it stands beyond it (barrier 15 m out along the ground)
+    // The ladder leans on the lip of the open edge, its foot out on the barn floor: scenery, the way it climbs up. It is a
+    // little steeper than the way the thing comes up it (that way runs straight at your eyes, so a ladder along it would show
+    // as a line), and its stiles run on a metre past the edge, as a ladder's do: from up here you see the top of it at your
+    // feet, two stiles and rungs. A piece wholly below the loft floor is ordered behind the floor, which hides it.
+    {
+      const E = [0.52, FL + 0.15], len = 4.16, hw = 0.3, foot = [1.15, 0.02];
+      const d = Math.hypot(foot[0] - E[0], foot[1] - E[1]), th = Math.atan2(E[1] - foot[1], foot[0] - E[0]);
+      const ax = -Math.cos(th), ay = Math.sin(th), at = u => [foot[0] + ax * len * u, foot[1] + ay * len * u];
+      void d;
+      const under = (p, q) => (Math.max(p[1], q[1]) < FL + 0.02 ? { sortDist: 7 } : {});
+      const stileC = [104, 82, 56], rungC = [88, 69, 48];
+      for (const [u0, u1] of [[0, 0.37], [0.37, 0.73], [0.73, 1]]) {
+        const p = at(u0), q = at(u1);
+        for (const z of [-hw, hw]) SC.quad(L, [p[0], p[1], z - 0.03], [p[0], p[1], z + 0.03], [q[0], q[1], z + 0.03], [q[0], q[1], z - 0.03], stileC, under(p, q));
+      }
+      for (let r = 0; r < 12; r++) {   // each rung both ways across, so it reads as round
+        const c = at(0.045 + r * 0.0835), o = under(c, c), t = 0.018, z0 = -hw + 0.02, z1 = hw - 0.02;
+        SC.quad(L, [c[0] - ax * t, c[1] - ay * t, z0], [c[0] - ax * t, c[1] - ay * t, z1], [c[0] + ax * t, c[1] + ay * t, z1], [c[0] + ax * t, c[1] + ay * t, z0], rungC, o);
+        SC.quad(L, [c[0] - ay * t, c[1] + ax * t, z0], [c[0] - ay * t, c[1] + ax * t, z1], [c[0] + ay * t, c[1] - ax * t, z1], [c[0] + ay * t, c[1] - ax * t, z0], scalec(rungC, 0.82), o);
+      }
+    }
+    // the hay: two stacks in the yard either side of the chute's foot, and two on the barn floor either side of the way
+    // down it, so each way in passes between a pair and is never hidden on its way. Lit, the fire runs across the gap
+    // between them too, low on the ground (spilt straw), and what stands beyond can be seen over it.
     const hayAt0 = L.props.length;
     SC.box(L, -3.4, -1.1, 0, 1.4, 11.6, 14.0, hay); SC.box(L, 1.1, 3.4, 0, 1.4, 11.6, 14.0, hay); SC.box(L, -3.0, -1.5, 1.4, 2.0, 11.9, 13.7, hayD); SC.box(L, 1.5, 3.0, 1.4, 2.0, 11.9, 13.7, hayD);
-    const hayYard = L.props.slice(hayAt0);
     const hayAt1 = L.props.length;
     SC.box(L, 7.8, 11.2, 0, 1.6, -3.9, -1.3, hay); SC.box(L, 8.3, 10.7, 1.6, 2.4, -3.5, -1.7, hayD);
-    const hayBarn = L.props.slice(hayAt1);
-    SC.box(L, 8.0, 10.0, 0, 1.2, 1.2, 2.6, hayD);
-    // loft clutter: the oil drum with its tap, crates, a lantern on one of them, sacks
+    SC.box(L, 7.9, 10.9, 0, 1.4, 1.3, 3.9, hay); SC.box(L, 8.4, 10.4, 1.4, 2.0, 1.7, 3.5, hayD);
+    const hayProps = [L.props.slice(hayAt0, hayAt1), L.props.slice(hayAt1)];
+    // loft clutter: the oil drum with its tap, crates with the lamp on one, sacks
     // the oil drum: a sprite (a drum looks the same from every side) on the target's own spot, so the outline you see when you
-    // point at it is round the drum. Hoops, a lid with its bungs, and at the front the tap: rusted solid, rust-red with its
-    // handle across, until the wrench frees it; then bright, its handle turned up and a drip of oil under the spout.
+    // point at it is round the drum. Hoops, a lid with its bungs, and at the front the brass tap, a drip under its spout; as a
+    // bottle fills, a thin run of oil from the spout.
     const DR = 0.4, drumC = [50, 62, 55], drumLift = 0.12;
     SC.sprite(L, -2.6, FL - drumLift, -2.2, 0.86, 1.04 + drumLift, (ctx, P) => {
       ctx.translate(0, drumLift);
       const body = P.col(drumC), dark = P.col(scalec(drumC, 0.62)), lite = P.col(mixc(drumC, [190, 200, 190], 0.2)), rim = P.col(scalec(drumC, 0.8));
-      const top = 0.92, free = !s.tapStuck;
+      const top = 0.92;
       ctx.fillStyle = body; ctx.beginPath(); ctx.moveTo(-DR, top); ctx.lineTo(-DR, 0); ctx.ellipse(0, 0, DR, 0.11, 0, Math.PI, TAU, false); ctx.lineTo(DR, top); ctx.closePath(); ctx.fill();
       P_rect(ctx, -DR, 0, 0.09, top, dark); P_rect(ctx, DR - 0.09, 0, 0.09, top, dark); P_rect(ctx, -0.2, 0.04, 0.06, top - 0.06, lite);   // round: dark at the sides, a sheen
       for (const [y, ry] of [[0.3, 0.1], [0.62, 0.095]]) {   // the rolling hoops, curving round toward you
@@ -132,140 +189,291 @@ LEVELS.push({
       }
       P_ell(ctx, 0, top, DR, 0.085, rim); P_ell(ctx, 0, top + 0.004, DR - 0.03, 0.065, P.col(mixc(drumC, [150, 160, 150], 0.22)));   // the lid
       P_ell(ctx, 0.2, top + 0.01, 0.045, 0.018, dark); P_ell(ctx, -0.22, top - 0.01, 0.03, 0.012, dark);                               // its bungs
-      // the tap, low on the front
-      const tap = free ? P.col([176, 146, 80]) : P.col([128, 66, 36]), tapD = free ? P.col([110, 88, 44]) : P.col([82, 42, 26]);
-      if (!free) for (const [x, y, r] of [[-0.07, 0.24, 0.05], [0.09, 0.15, 0.04], [0.02, 0.31, 0.03]]) P_ell(ctx, x, y, r, r * 0.8, P.col([100, 56, 34]));   // rust round it
-      P_rect(ctx, -0.045, 0.16, 0.09, 0.1, tap); P_rect(ctx, -0.025, 0.08, 0.05, 0.09, tapD);   // the body of the tap, the spout
-      if (free) { P_line(ctx, 0, 0.27, 0, 0.36, 0.03, tap); P_ell(ctx, 0, 0.37, 0.035, 0.02, tap); P_ell(ctx, 0, 0.05, 0.016, 0.022, P.col([46, 34, 14])); }   // handle turned up; a drip
-      else P_line(ctx, -0.1, 0.28, 0.1, 0.28, 0.03, tap);   // handle across, rusted shut
+      // the tap, low on the front: brass, its handle up
+      const tap = P.col([176, 146, 80]), tapD = P.col([110, 88, 44]);
+      P_rect(ctx, -0.045, 0.16, 0.09, 0.1, tap); P_rect(ctx, -0.025, 0.08, 0.05, 0.09, tapD);
+      P_line(ctx, 0, 0.27, 0, 0.36, 0.03, tap); P_ell(ctx, 0, 0.37, 0.035, 0.02, tap);
+      const pour = P.t - (s.pourT === undefined ? -9 : s.pourT);
+      if (pour >= 0 && pour < 0.9) P_line(ctx, 0, 0.08, 0, -0.1, 0.022 * Math.sin(Math.PI * pour / 0.9), P.col([200, 132, 40]));   // running
+      else P_ell(ctx, 0, 0.05, 0.016, 0.022, P.col([46, 34, 14]));   // a drip
     });
     SC.box(L, -2.6, -1.8, FL, FL + 0.6, -3.7, -3.1, [84, 68, 50]); SC.box(L, -1.7, -1.0, FL, FL + 0.45, -3.7, -3.2, [84, 68, 50]);
     STORY.lamp(L, -2.2, FL + 0.6, -3.4, { lit: true, scale: 0.9 });
     SC.box(L, -4.2, -3.4, FL, FL + 0.9, -1.0, 0.6, [124, 106, 70]); SC.box(L, -4.2, -3.6, FL + 0.9, FL + 1.5, -0.8, 0.4, [110, 92, 62]);
-    // items
-    const decoy = !!L.diff.decoys, stuck = L.nightmare;
-    mkItem(L, 'lantern', 'Lantern', [
-      { x: -1.2, y: FL + 0.45, z: -3.4 },              // on the low crate
-      { x: -3.8, y: FL + 1.5, z: -0.2 },               // on the sacks
-      { x: -0.05, y: FL + 0.02, z: 1.2, flat: true },  // on the floor towards the loft door (clear of the lip at the edge)
-      { x: -0.5, y: FL + 0.02, z: -2.5, flat: true },  // on the floor by the drum
-    ], { w: 0.3, h: 0.44, icon: 'barnLantern' });
-    mkItem(L, 'matches', 'Matches', [
-      { x: -2.5, y: FL + 0.92, z: -2.2, flat: false },  // on the drum's lid
-      { x: -2.0, y: FL + 0.6, z: -3.5, flat: false },   // on the crate
-      { x: 0.0, y: FL + 0.02, z: 3.4, flat: true },     // by the loft door sill (clear of the lip)
-      { x: -3.8, y: FL + 0.02, z: 2.0, flat: true },    // north-west corner (clear of the feed sack's spot in front of it)
-    ], { w: 0.16, h: 0.16, tool: true });
-    // no spot sits behind the drum, the crates or the sacks as you see them from where you stand
-    if (stuck) mkItem(L, 'wrench', 'Wrench', [{ x: -1.7, y: FL + 0.02, z: -2.3, flat: true }, { x: 0.0, y: FL + 0.02, z: -0.8, flat: true }, { x: -1.4, y: FL + 0.45, z: -3.35 }], { w: 0.34, h: 0.34, tool: true, weight: 2 });   // the last on the low crate, not above it
-    if (decoy) {
-      mkItem(L, 'pail', 'Water pail', [{ x: -1.0, y: FL + 0.02, z: 0.6 }, { x: 0.0, y: FL + 0.02, z: -3.2 }], { w: 0.34, h: 0.38, weight: 2, decoy: true, decoyText: 'Water. The hay is soaked now; it will not take a flame for a while.' });
-      mkItem(L, 'sack', 'Feed sack', [{ x: -2.8, y: FL + 0.02, z: 0.9 }, { x: 0.1, y: FL + 0.02, z: -1.8 }], { w: 0.4, h: 0.5, weight: 2, icon: 'feedSack' });
-      mkItem(L, 'chain', 'Chain', [{ x: -4.0, y: FL + 0.02, z: -1.8, flat: true }, { x: -0.8, y: FL + 0.02, z: 2.4, flat: true }], { w: 0.5, h: 0.5, weight: 2 });
-    }
-    Object.assign(s, { tapStuck: stuck, fireN: false, fireE: false, wetN: 0, wetE: 0, ladderUp: false, ladderK: 0 });
+    // items: two empty bottles, two rags, one box of matches (it lights both). No spot sits behind the drum, the crates or
+    // the sacks as you see them from where you stand.
+    const BW = 0.2, BH = 0.36, RW = 0.36, RH = 0.26;
+    const bottleSpots = [
+      { x: -1.35, y: FL + 0.45, z: -3.42 },             // on the low crate
+      { x: -3.8, y: FL + 1.5, z: -0.2 },                // on the sacks
+      { x: -1.1, y: FL + 0.02, z: 2.3 },                // on the boards toward the loft door
+      { x: -3.5, y: FL + 0.02, z: 2.9 },                // in the corner by the loft door
+      { x: -0.7, y: FL + 0.02, z: -2.4 },               // on the boards by the drum
+    ];
+    const ragSpots = [
+      { x: -2.5, y: FL + 0.94, z: -2.15 },              // over the drum's lid
+      { x: -0.45, y: FL + 0.02, z: -1.2, flat: true },  // on the boards
+      { x: 0.0, y: FL + 0.02, z: 3.35, flat: true },    // by the loft door's sill (clear of the lip)
+      { x: -2.8, y: FL + 0.02, z: 1.0, flat: true },    // before the sacks
+    ];
+    const matchSpots = [
+      { x: -2.4, y: FL + 0.92, z: -2.0 },               // on the drum's lid
+      { x: -2.0, y: FL + 0.6, z: -3.5 },                // on the crate, by the lamp
+      { x: -3.8, y: FL + 0.02, z: 1.9, flat: true },    // on the boards in the corner
+      { x: -1.6, y: FL + 0.02, z: 0.5, flat: true },    // on the boards
+    ];
+    for (let k = 0; k < 2; k++) mkItem(L, 'bottle', 'Empty bottle', bottleSpots, { w: BW, h: BH, icon: 'barnBottle' });
+    for (let k = 0; k < 2; k++) mkItem(L, 'rag', 'Rag', ragSpots, { w: RW, h: RH, icon: 'barnRag' });
+    mkItem(L, 'matches', 'Matches', matchSpots, { w: 0.16, h: 0.16, tool: true });
+    Object.assign(s, { fire: [false, false], fireT: [0, 0], burst: null, run: null });
     const c0 = () => L.creatures[0];
-    const drum = mkTarget(L, {
+    mkTarget(L, {
       id: 'drum', name: 'Oil drum', x: -2.6, y: FL - drumLift, z: -2.2, w: 0.86, h: 1.04 + drumLift,   // the drum sprite's own box
-      accepts: ['lantern'].concat(stuck ? ['wrench'] : []),
-      hint() { return s.tapStuck ? 'The drum. Its tap is rusted shut.' : 'The oil drum. The tap turns.'; },
-      use(item) {
-        if (item.id === 'wrench') { if (!s.tapStuck) { G.say('The tap already turns.', 'Done.'); return false; } s.tapStuck = false; AUDIO.sfx('lever'); G.say('The tap frees. Put the wrench down; it is heavy.', 'It turns.'); return true; }
-        if (s.tapStuck) { G.say('The tap will not turn. It wants a wrench.', 'Stuck.'); return false; }
-        G.removeFromInv(item);
-        const full = newItem(L, 'lantern_full', 'Lantern, filled', { w: 0.3, h: 0.44, icon: 'barnLanternFull' });
-        G.inv.push(full); G.active = G.inv.length - 1; AUDIO.sfx('pour'); G.say('Filled. Now a match.', 'Filled.');
+      accepts: ['bottle'],
+      hint() { return 'Lamp oil. The tap turns.'; },
+      use(item) {   // one bottle at a time, filled where it is in your hands
+        const i = G.inv.indexOf(item), full = newItem(L, 'bottle_oil', 'Bottle of oil', { w: BW, h: BH, icon: 'barnBottleOil' });
+        if (i >= 0) { G.inv.splice(i, 1, full); G.active = i; } else { G.inv.push(full); G.active = G.inv.length - 1; }
+        s.pourT = G.t; AUDIO.sfx('pour'); G.say('Full to the shoulder.', 'Full.');
         return true;
       },
     });
-    void drum;
-    mkRecipe(L, { parts: ['lantern_full', 'matches'], result: { id: 'lantern_lit', name: 'Lantern, lit', opts: { w: 0.3, h: 0.44, throwable: true, icon: 'barnLanternLit' } }, sfx: 'strike', text: 'It catches. Now throw it.', onCombine: (it, L2) => { const m = L2.items.find(i => i.id === 'matches'); if (m) { m.taken = true; G.inv.push(m); } } });
-    const mkHay = (id, name, deg, dist, w, flag, wet) => {
-      const away = () => !L.nightmare && (flag === 'fireN') !== (c0().lane.idx === 0);
-      const t = mkTarget(L, {
-        id, name, deg, dist, y: 0, w, h: 2.4, accepts: ['lantern_lit', 'lantern', 'lantern_full'].concat(decoy ? ['pail'] : []),
-        // on Normal the hay it is not coming past is refused before the lantern leaves your hand
-        onClick() { if (away() && G.hasItem('lantern_lit')) { G.say('Nothing is coming this way.', 'Not this one.'); AUDIO.sfx('nope'); return true; } return false; },
-        hint() { return s[flag] ? (away() ? 'Burning, but it is not coming this way.' : 'Burning.') : s[wet] > 0 ? 'Soaked. It will not catch yet.' : away() ? 'Dry hay, but it is not coming this way.' : 'Dry hay. It would go up in a moment.'; },
-        use(item) {
-          if (item.id === 'lantern' || item.id === 'lantern_full') { G.say(item.id === 'lantern' ? 'The lantern is empty. Fill it at the oil drum.' : 'It is not lit. Use the matches on it first.', 'It is not lit.'); return false; }
-          if (item.id !== 'lantern_lit') return false;
-          if (s[wet] > 0) { G.say('The lantern hisses out in the wet hay. It comes back to you unlit.', 'It goes out.'); G.inv.push(newItem(L, 'lantern_full', 'Lantern, filled', { w: 0.3, h: 0.44, icon: 'barnLanternFull' })); G.active = G.inv.length - 1; return false; } // the soaking is temporary, so the lantern is not lost
-          s[flag] = true; AUDIO.sfx('hiss'); setTimeout(() => AUDIO.sfx('thunder'), 200); G.shake(0.3); WEATHER.set({ kind: 'ash', density: 0.9, wind: 0.4 }, G.runSeed + 11);
-          G.say('It goes up all at once.', 'Fire.'); return true;
-        },
-      });
-      return t;
+    mkRecipe(L, { parts: ['bottle_oil', 'rag'], result: { id: 'cocktail', name: 'Bottle and rag', opts: { w: BW, h: BH, icon: 'barnCocktail' } }, sfx: 'cloth', text: 'The rag goes into its neck.' });
+    // lighting it keeps the matches: they light the second one too
+    mkRecipe(L, {
+      parts: ['cocktail', 'matches'], result: { id: 'cocktail_lit', name: 'Lit bottle', opts: { w: BW, h: BH, throwable: true } }, sfx: 'strike', text: 'The rag catches.',
+      onCombine: (it, L2) => {
+        it.icon = (ctx, P) => barnBottle(ctx, P, 'lit', G.throwing && G.throwing.it === it ? G.throwing.t * 11 : 0);   // it turns over in the air
+        const m = L2.items.find(i => i.id === 'matches'); if (m) { m.taken = true; G.inv.push(m); }
+      },
+    });
+
+    // ---- the two ways in, as walks ----
+    // A lane's distance is measured along the sight line from your eye. That line drops 22 degrees to the yard and 73 to
+    // the barn floor, so a metre of it is 0.92 m of yard but only 0.29 m of barn floor, until the line meets the chute or
+    // the ladder and the thing climbs along it. Walked on distance, it crossed the yard three times as fast as the barn
+    // floor and then shot up the ladder. So it walks its path instead: path metres left (pathLeft) fall at one pace on both
+    // ways, along the ground and then up, and the lane distance is worked out from them each step.
+    const geo = lane => { const e = -lane.elev; return { dF: L.eyeH / Math.sin(e), k: Math.cos(e) }; };
+    const sOf = (lane, d) => { const g = geo(lane); return d <= g.dF ? d : g.dF + (d - g.dF) * g.k; };
+    const dOf = (lane, p) => { const g = geo(lane); return p <= g.dF ? p : g.dF + (p - g.dF) / g.k; };
+    const pathLeft = c => sOf(c.lane, c.dist);
+    const sBar = lane => sOf(lane, lane.barrierDist);   // the fire line: just beyond the hay, on either way
+    const ground = (lane, d) => d * Math.cos(lane.elev);   // how far out along the ground (on the ground)
+    const walk = (cr, dt) => {
+      const m = cr.frozen || cr.dead ? 0 : cr.CR.speedMult(cr, dt, cr.seen) * (cr.seen ? cr.seenMult : cr.unseenMult);
+      cr.u = clamp(cr.u + dt * m / cr.T, 0, 1);
+      return dOf(cr.lane, cr.S0 * (1 - cr.u));
     };
-    const hayN = mkHay('hayN', 'The hay in the yard', 0, 12.8, 6.8, 'fireN', 'wetN'), hayE = mkHay('hayE', 'The hay in the barn', 105.3, 9.85, 3.6, 'fireE', 'wetE'); // the barn stack sits south of its walking line
-    // a decoy pail soaks whichever hay it is thrown at
-    const wetHay = (t) => { const k = t === hayN ? 'wetN' : 'wetE'; s[k] = 25; };
-    void hayE;
-    L.onDecoy = (t, item) => { if (item.id === 'pail') wetHay(t); };
-    // The ladder leans on the lip of the open edge, its foot out on the barn floor. It climbs a little steeper than the way
-    // the thing comes up it (that way runs straight at your eyes, so a ladder along it would show as a line), and its stiles
-    // run on a metre past the edge, as a ladder's do: from up here you see the top of it at your feet, two stiles and rungs.
-    // Hauled up, it tips back over the lip as it slides up, and comes down on the boards with its foot end resting on the lip.
-    const LAD = { E: [0.52, FL + 0.15], len: 4.16, hw: 0.3, foot: [1.15, 0.02], d1: 0.24, th1: -Math.atan(0.12 / 3.92) };
-    LAD.D0 = Math.hypot(LAD.foot[0] - LAD.E[0], LAD.foot[1] - LAD.E[1]); LAD.th0 = Math.atan2(LAD.E[1] - LAD.foot[1], LAD.foot[0] - LAD.E[0]);
-    const ladder = L.nightmare ? mkTarget(L, { // only Nightmare asks for the ladder, so only Nightmare offers it
-      id: 'ladder', name: 'Ladder', x: 0.36, y: FL + 0.05, z: 0, w: 1.4, h: 1.0, hold: 3.0,   // round the part of it you can see: its top
-      hint() { return s.ladderUp ? 'Pulled up onto the loft.' : 'The ladder up from the barn floor. It could be pulled up.'; },
-      use(item) { if (item !== null) return false; s.ladderUp = true; ladder.hidden = true; AUDIO.sfx('clunk'); G.say('The ladder is up. Nothing climbs that way now.', 'Up.'); return true; },   // up, it is plainly done: nothing to point at
-    }) : null;
-    const sealed = lane => lane.idx === 0 ? s.fireN : (s.fireE || (L.nightmare && s.ladderUp)); // the ladder only counts where it is the extra step
-    L.sealed = sealed;
-    // Nightmare wants the ladder up as well as a fire, whichever way it comes
-    L.isWon = () => L.nightmare ? (s.ladderUp && (s.fireN || s.fireE) && sealed(c0().lane)) : sealed(c0().lane);
-    L.objectiveText = () => { const c = c0(); const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (sealed(c.lane) ? 'Sealed. ' : c.lane.idx === 0 ? 'Fire in the yard hay. ' : (L.nightmare ? 'Fire in the barn hay, or pull the ladder up. ' : 'Fire in the barn hay. ')) + (L.nightmare && !s.ladderUp ? 'Pull the ladder up too. ' : '') + 'Carrying ' + load + '.'; };
+    const ready = c => { if (c.S0 === undefined) { c.S0 = sOf(c.lane, c.D0); c.distFn = walk; } };
+    // inside: past the fire line of the way it is on, so that fire is behind it and no use
+    const inside = c => !s.run && pathLeft(c) < sBar(c.lane) - 0.02;
+
+    // ---- the run round to the other way ----
+    // The hay in its way goes up while it is still outside it: it rears back from the fire, then runs flat out sideways,
+    // side on, out of sight (across the yard past the loft door, or out of the far doorway, or, if it was already in the
+    // barn, through the side door), goes round the barn out of sight (its feet, a blow on the wall as it passes), and comes
+    // in from the side to the other way: never nearer than GAP path metres outside that way's fire line.
+    const RUN = { recoil: 0.7, out: 1.2, round: 1.5, in: 1.1 }, GAP = 6.5;
+    const T1 = RUN.recoil, T2 = T1 + RUN.out, T3 = T2 + RUN.round, T4 = T3 + RUN.in;
+    const panTo = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
+    const yardLat = h => 0.3 * h + 1.4;            // far enough to the side of the loft door to be wholly behind the wall
+    const doorLat = x => -(2 * x / 16.5 + 1.4);   // the same past the side of the far doorway (to the north)
+    const startRun = c => {
+      const from = c.lane, to = L.lanes[1 - from.idx], r = { t: 0, from, to, p0: pathLeft(c), d0: c.dist, steps: 0, banged: false, arrived: false };
+      if (from.idx === 0) { r.dOut = c.dist; r.latOut = yardLat(ground(from, c.dist)); r.outDir = 1; }
+      else {
+        const x = ground(from, c.dist), outside = x > 16.0, tx = outside ? Math.max(x, 17.5) : 14.5;
+        r.dOut = tx / Math.cos(from.elev); r.latOut = outside ? doorLat(tx) : -4.9; r.outDir = -1;
+      }
+      s.run = r; s.ran = true;
+      c.hold = c.dist;
+    };
+    const updateRun = (c, dt) => {
+      const r = s.run;
+      if (L.won && r.t < T3) r.t = T3;   // both burning while it was still going round: it comes round now, to the way it was running to
+      r.t += dt;
+      r.hidden = false;
+      if (r.t < T1) { c.recoil = Math.min(1, r.t / 0.2) * (1 - smoothstep((r.t - 0.45) / 0.25)); return; }   // it rears back from the flames
+      c.recoil = 0;
+      if (r.t >= T4) { c.runPose = false; c.runLat = 0; c.hold = null; s.run = null; return; }   // and walks on from where it came round
+      c.runPose = true; c.runPace = 1;
+      c.runGait = (c.runGait || 0) + dt * 15;
+      let yaw;
+      if (r.t < T2) {          // flat out to one side, out of sight
+        const k = (r.t - T1) / RUN.out;
+        c.runDir = r.outDir; c.runLat = r.latOut * Math.pow(k, 1.4);
+        c.hold = lerp(r.d0, r.dOut, easeOut(Math.min(1, k * 1.6)));
+        yaw = r.from.yaw + Math.atan2(c.runLat, ground(r.from, c.hold));
+      } else if (r.t < T3) {   // round the barn, out of sight
+        const k = (r.t - T2) / RUN.round;
+        r.hidden = true; c.runLat = r.latOut;
+        yaw = r.from.yaw + wrapPi(r.to.yaw - r.from.yaw) * k;
+        if (!r.banged && k > 0.45) { r.banged = true; AUDIO.sfx('thud', panTo(yaw)); G.shake(0.1); }   // a blow on the barn wall as it goes by
+      } else {                 // round the corner and across the other way in, then it turns to it
+        if (!r.arrived) {
+          r.arrived = true;
+          const p = Math.max(r.p0, sBar(r.to) + GAP), d = dOf(r.to, p);
+          c.retarget(r.to.idx); c.reached = false;
+          c.D0 = dOf(r.to, c.S0); c.u = clamp(1 - p / c.S0, 0, 0.995); c.hold = c.dist = d;
+          L.lane = r.to; L.laneIdx = r.to.idx; L.barrierDist = r.to.barrierDist;
+          r.latIn = r.to.idx === 0 ? yardLat(ground(r.to, d)) : doorLat(ground(r.to, d)); r.inDir = r.to.idx === 0 ? -1 : 1;
+          AUDIO.sfx(r.to.cue, panTo(r.to.yaw));
+        }
+        c.runDir = r.inDir; c.runLat = r.latIn * (1 - easeOut((r.t - T3) / RUN.in));
+        yaw = r.to.yaw + Math.atan2(c.runLat, ground(r.to, c.dist));
+      }
+      // running feet, loud enough to hear across the yard
+      const n = Math.floor(c.runGait / Math.PI);
+      if (n !== r.steps) { r.steps = n; AUDIO.footstep('runner', r.hidden ? 0.16 : 0.3, panTo(yaw)); }
+    };
+
+    // ---- the hay ----
+    // a lit bottle thrown into a stack bursts and the fire runs out from where it broke across the pair and the gap; it is
+    // the fire in its way, while it is still outside it, that turns it
+    // each fire: its middle, the axis its pair of stacks runs along as you see it, its width, the stacks' height, and where
+    // its flames stand: [along, across, low] (low: in the gap, on the ground)
+    const fireSpots = (alongs, depths) => [].concat(...alongs.map(a => [-a, a]).flat().map(a => depths.map(d => [a, d, false])), [[-0.6, 0, true], [0, 0.1, true], [0.6, 0, true]]);
+    const FIRES = [
+      { cx: 0, cz: 12.8, axis: 'x', w: 6.8, top: 2.0, spots: fireSpots([1.4, 1.95, 2.5, 3.05], [-0.55, 0.55]) },
+      { cx: 9.5, cz: 0, axis: 'z', w: 7.8, top: 2.2, spots: fireSpots([1.6, 2.2, 2.8, 3.4], [-0.8, 0.7]) },
+    ];
+    const ignite = (k, t) => {
+      s.fire[k] = true; s.fireT[k] = L.t; s.burst = { t: L.t, x: t.x, y: t.y + t.h * 0.4, z: t.z };
+      AUDIO.sfx('burst', panTo(L.lanes[k].yaw)); G.shake(0.35);
+      if (!s.ash) { s.ash = true; WEATHER.set({ kind: 'ash', density: 0.9, wind: 0.4 }, G.runSeed + 11); }
+      const c = c0();
+      if (!s.run && !L.won && c.lane.idx === k && !inside(c) && !s.fire[1 - k]) startRun(c);
+      if (inside(c) && c.lane.idx === k) s.behind = true;
+    };
+    const mkHay = (k, id, name, x, z, w) => mkTarget(L, {
+      id, name, x, y: 0, z, w, h: 2.4, accepts: ['cocktail_lit', 'cocktail', 'bottle_oil'],
+      onClick() {
+        if (s.fire[k]) { G.say('It is already burning.', 'Burning.'); AUDIO.sfx('nope'); return true; }
+        const lit = G.inv.findIndex(i => i.id === 'cocktail_lit');   // a lit bottle before an unlit one
+        if (lit >= 0 && !(G.inv[G.active] && G.inv[G.active].id === 'cocktail_lit')) G.active = lit;
+        return false;
+      },
+      hint() { return s.fire[k] ? 'Burning.' : 'Dry hay. It would go up in a moment.'; },
+      use(item) {
+        if (item.id !== 'cocktail_lit') { G.say(item.id === 'cocktail' ? 'The rag is not lit.' : 'Oil will not light the hay on its own. It wants a wick, and a flame.', 'It is not lit.'); return false; }
+        ignite(k, this); return true;
+      },
+    });
+    const hayN = mkHay(0, 'hayN', 'The hay in the yard', 0, 12.8, 6.8), hayE = mkHay(1, 'hayE', 'The hay in the barn', 9.5, 0, 7.8);
+    void hayN; void hayE;
+    L.isWon = () => s.fire[0] && s.fire[1] && !inside(c0());
+    L.objectiveText = () => { const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (s.fire[0] && s.fire[1] ? 'Both burning. ' : 'Hay alight: ' + (+s.fire[0] + +s.fire[1]) + ' of 2. ') + 'Carrying ' + load + '.'; };
+    L.deathCause = () => (s.behind ? 'behind' : 'default');
     L.update = dt => {
       const c = c0();
+      ready(c);
       c.load = G.inv.reduce((a, i) => a + (i.weight || 1), 0);
-      if (s.wetN > 0) s.wetN -= dt; if (s.wetE > 0) s.wetE -= dt;
-      // soaked hay looks it: the stack darkens, and lightens again as it dries over its last seconds
-      for (const [props, k] of [[hayYard, 'wetN'], [hayBarn, 'wetE']]) {
-        const w = clamp(s[k] / 5, 0, 1);
-        for (const p of props) { if (!p.dry) p.dry = p.color; p.color = w > 0 ? mixc(p.dry, [44, 40, 30], 0.62 * w) : p.dry; }
+      if (s.run) updateRun(c, dt);
+      // both burning: once it has come round, if it was going round, it hurries to the fire in its way (fast enough that
+      // the whole of what follows fits in a few seconds) and is stopped there
+      if (L.won && !s.run && !s.rush) {
+        s.rush = { v: Math.max(3, (pathLeft(c) - sBar(c.lane)) / 1.8) };
+        c.hold = null;
+        c.distFn = (cr, dt2) => dOf(cr.lane, Math.max(sBar(cr.lane), pathLeft(cr) - dt2 * s.rush.v));
       }
-      if (!s.ladderUp) s.ladderK = Math.max(0, s.ladderK - dt); else s.ladderK = Math.min(1, s.ladderK + dt * 1.5);
-      // on Nightmare a fire or the ladder holds it, but the night wants both: say what it is waiting at, once
-      if (L.nightmare && c.sealHold && !L.won && !s.toldHeld) { s.toldHeld = true; G.say(s.ladderUp ? 'It stops below the loft and waits. There is no fire between you yet.' : 'It stops at the fire and waits. The ladder is still down.', s.ladderUp ? 'It stops below the loft, and waits. There is no fire between you yet.' : 'It stops at the fire, and waits. The ladder is still down.'); }
     };
+    // the aftermath: at the fire line it rears back from the flames, paces along them side on, one way and back, and sits
+    // down with its arms round itself, facing the loft
+    L.aftermath = (t, dt) => {
+      const c = c0();
+      if (!s.after) {
+        s.after = { at: null };
+        L.text.win = c.lane.idx === 0
+          ? 'It paced the line of the fire in the yard for an hour and then sat down with its arms round itself, facing the loft, and stayed there until the light came.'
+          : 'It paced behind the fire on the barn floor for an hour, then sat down on the boards with its arms round itself, facing the ladder, and stayed there until the light came.';
+      }
+      const a = s.after;
+      if (t > 14) return true;
+      if (a.at === null) { if (s.rush && pathLeft(c) <= sBar(c.lane) + 0.02) { a.at = t; c.hold = c.dist; G.shake(0.2); } return false; }
+      const k = t - a.at;
+      if (k < 0.9) { c.recoil = Math.min(1, k / 0.2) * (1 - smoothstep((k - 0.6) / 0.3)); return false; }
+      c.recoil = 0;
+      if (k < 2.9) {   // pacing the fire, side on
+        const u = (k - 0.9) / 2.0, side = a.side || (a.side = c.rand() < 0.5 ? 1 : -1);
+        c.runPose = true; c.runPace = 0.45; c.runGait = (c.runGait || 0) + dt * 7;
+        c.runLat = side * 1.5 * Math.sin(Math.PI * u); c.runDir = Math.cos(Math.PI * u) >= 0 ? side : -side;
+        const n = Math.floor(c.runGait / Math.PI);
+        if (n !== a.steps) { a.steps = n; AUDIO.footstep('walker', 0.18, panTo(c.yaw)); }
+        return false;
+      }
+      c.runPose = false; c.runLat = 0; c.sitting = true;
+      return k >= 4.4;
+    };
+    // the thing is drawn in order by how far away it really is, and fogged by it: on the barn floor its lane distance is
+    // more than three times that, which put it behind the far wall and deep in the fog. While it goes round out of sight
+    // it is not drawn at all.
     L.dynamic = () => {
-      // the ladder: pivoting on the lip as it is hauled up, lying on the boards once up. A piece wholly below the loft floor
-      // is ordered behind the floor, which hides it wherever it is under the loft.
-      const k = smoothstep(s.ladderK), th = lerp(LAD.th0, LAD.th1, k), d = lerp(LAD.D0, LAD.d1, k);
-      const ax = -Math.cos(th), ay = Math.sin(th), E = LAD.E, foot = [E[0] - ax * d, E[1] - ay * d];
-      const at = u => [foot[0] + ax * LAD.len * u, foot[1] + ay * LAD.len * u];
-      const under = (p, q) => (Math.max(p[1], q[1]) < FL + 0.02 ? { sortDist: 7 } : null);
-      const stileC = [104, 82, 56], rungC = [88, 69, 48];
-      for (const [u0, u1] of [[0, 0.37], [0.37, 0.73], [0.73, 1]]) {
-        const p = at(u0), q = at(u1);
-        for (const z of [-LAD.hw, LAD.hw]) R.add(SC.mkQuad(L, [p[0], p[1], z - 0.03], [p[0], p[1], z + 0.03], [q[0], q[1], z + 0.03], [q[0], q[1], z - 0.03], stileC, under(p, q)));
+      const c = c0(), cp = L.rend && L.rend.get(c);
+      if (cp) {
+        const p = c.pos(), real = Math.max(0.3, Math.hypot(p.x, p.z)), laneD = Math.max(0.3, Math.hypot(c.dist, c.lat || 0));
+        cp.sortDist = real; cp.fogScale = 0.85 * R.fogAmt(real) / Math.max(1e-4, R.fogAmt(laneD));
+        cp.alpha = s.run && s.run.hidden ? 0 : undefined;
       }
-      for (let r = 0; r < 12; r++) {   // each rung both ways across, so it shows whether the ladder stands or lies
-        const c = at(0.045 + r * 0.0835), o = under(c, c), t = 0.018, z0 = -LAD.hw + 0.02, z1 = LAD.hw - 0.02;
-        R.add(SC.mkQuad(L, [c[0] - ax * t, c[1] - ay * t, z0], [c[0] - ax * t, c[1] - ay * t, z1], [c[0] + ax * t, c[1] + ay * t, z1], [c[0] + ax * t, c[1] + ay * t, z0], rungC, o));
-        R.add(SC.mkQuad(L, [c[0] - ay * t, c[1] + ax * t, z0], [c[0] - ay * t, c[1] + ax * t, z1], [c[0] + ay * t, c[1] - ax * t, z1], [c[0] + ay * t, c[1] - ax * t, z0], scalec(rungC, 0.82), o));
+      // the fires: flames run out from where the bottle broke, over both stacks of the pair and low across the gap
+      // between them, growing as they go; sparks go up off them
+      FIRES.forEach((F, k) => {
+        if (!s.fire[k]) return;
+        const age = L.t - s.fireT[k], reach = clamp(age / 1.3, 0, 1) * (F.w / 2 + 0.8);
+        F.spots.forEach(([along, depth, low], i) => {
+          const ph = i * 1.93 + k, grow = smoothstep(clamp((reach - Math.abs(along)) / 1.0, 0, 1));
+          if (grow <= 0) return;
+          const x = F.axis === 'x' ? F.cx + along : F.cx + depth, z = F.axis === 'x' ? F.cz + depth : F.cz + along;
+          const fw = (low ? 0.75 : 1.15) * (0.95 + Math.sin(L.t * 5 + ph) * 0.12) * (0.5 + 0.5 * grow);
+          const fh = (low ? 0.85 : 2.6 + Math.sin(ph * 3.1) * 0.6) * (1 + Math.sin(L.t * 8.3 + ph) * 0.14 + Math.sin(L.t * 19 + ph * 2) * 0.07) * grow;
+          R.add(SC.mkSprite(L, x, low ? 0.02 : F.top - 0.9, z, fw, fh, (ctx) => { ctx.scale(fw, fh); barnFlame(ctx, L.t, ph); }, { noFog: true, noLight: true }));
+        });
+        for (let i = 0; i < 10; i++) {   // sparks
+          const life = 1.6, q = ((L.t * 0.9 + i * 0.37) % life) / life, along = Math.sin(i * 7.3) * F.w * 0.45 * Math.min(1, reach / (F.w / 2));
+          const x = F.axis === 'x' ? F.cx + along + Math.sin(L.t * 2 + i) * 0.3 : F.cx + Math.sin(i * 3.1) * 0.6, z = F.axis === 'x' ? F.cz + Math.sin(i * 3.1) * 0.6 : F.cz + along + Math.sin(L.t * 2 + i) * 0.3;
+          const sz = 0.06 * (1 - q), p = L.pt(x, F.top + q * 4.5, z);
+          R.add({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w: sz, h: sz, noFog: true, noLight: true, draw: (ctx) => { ctx.fillStyle = 'rgba(255,' + (200 - q * 120 | 0) + ',90,' + (1 - q).toFixed(2) + ')'; ctx.fillRect(-sz / 2, 0, sz, sz); } });
+        }
+      });
+      // the bottle bursting: a ball of fire blooming out of the broken glass, and the glass flying
+      const b = s.burst, bt = b ? L.t - b.t : 9;
+      if (b && bt < 0.8) {
+        const k = bt / 0.8, r = 0.5 + 2.4 * easeOut(k), a = 1 - k;
+        R.add({ kind: 'sprite', x: b.x, y: b.y - r * 0.45, z: b.z, w: r * 2, h: r * 2, noFog: true, noLight: true, draw: (ctx) => {
+          ctx.scale(r * 2, r * 2); const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.5);
+          g.addColorStop(0, 'rgba(255,246,200,' + (0.95 * a).toFixed(3) + ')'); g.addColorStop(0.35, 'rgba(255,170,60,' + (0.8 * a).toFixed(3) + ')'); g.addColorStop(1, 'rgba(200,60,10,0)');
+          ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1);
+        } });
+        if (bt < 0.5) for (let i = 0; i < 10; i++) {
+          const ang = i * 2.39 + 0.4, sp = 2.2 + (i % 3) * 0.9, q = bt;
+          const gx = b.x + Math.cos(ang) * sp * q, gz = b.z + Math.sin(ang) * sp * q, gy = b.y + (1.6 + (i % 4) * 0.5) * q - 4.9 * q * q;
+          R.add({ kind: 'sprite', x: gx, y: gy, z: gz, w: 0.07, h: 0.07, noFog: true, noLight: true, draw: (ctx) => { ctx.fillStyle = 'rgba(255,236,190,' + (1 - q * 2).toFixed(3) + ')'; ctx.fillRect(-0.5 * 0.07, 0, 0.07, 0.07); } });
+        }
       }
-      // fire: flames over whichever hay is burning. In the yard the fire runs across the gap at the chute's foot too: there
-      // the flames burn low on the ground (spilt straw), not in the air at the height of the stacks, and what stands beyond
-      // them can be seen over them
-      for (const [on, cx, cz, w, gap] of [[s.fireN, 0, 12.8, 6.8, 1.1], [s.fireE, 9.5, -2.6, 3.6, 0]]) if (on) {
-        for (let i = 0; i < 7; i++) { const ph = i * 1.7, x = cx + (i - 3) * w / 7, z = cz + Math.sin(ph) * 0.8, low = Math.abs(x - cx) < gap, fw = 0.9 + Math.sin(L.t * 5 + ph) * 0.2;
-          const fh = (2.2 + Math.sin(L.t * 9 + ph) * 0.6 + Math.sin(L.t * 23 + ph * 2) * 0.3) * (low ? 0.45 : 1);
-          R.add(SC.mkSprite(L, x, low ? 0.05 : 1.5, z, fw, fh, (ctx, P) => { ctx.scale(fw, fh); const g = ctx.createLinearGradient(0, 0, 0, 1); g.addColorStop(0, 'rgba(255,220,120,0.95)'); g.addColorStop(0.5, 'rgba(255,120,30,0.7)'); g.addColorStop(1, 'rgba(120,20,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-0.5, 0); ctx.quadraticCurveTo(-0.55, 0.5, 0, 1); ctx.quadraticCurveTo(0.55, 0.5, 0.5, 0); ctx.closePath(); ctx.fill(); }, { noFog: true, noLight: true })); }
+      // a lit bottle in flight leaves its flame behind it in the air
+      const th = G.throwing;
+      if (th && th.it.id === 'cocktail_lit') {
+        for (let j = 1; j <= 5; j++) {
+          const k = th.t / th.dur - j * 0.035; if (k <= 0) break;
+          const x = lerp(th.from.x, th.to.x, k), y = lerp(th.from.y, th.to.y, k) + Math.sin(k * Math.PI) * 0.8 + th.it.h * 0.85, z = lerp(th.from.z, th.to.z, k), sz = 0.16 * (1 - j / 6), al = 0.7 * (1 - j / 6);
+          R.add({ kind: 'sprite', x, y, z, w: sz, h: sz, noFog: true, noLight: true, draw: (ctx) => { ctx.scale(sz, sz); const g = ctx.createRadialGradient(0, 0.5, 0, 0, 0.5, 0.5); g.addColorStop(0, 'rgba(255,214,120,' + al.toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,110,30,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); } });
+        }
       }
     };
+    // soaked in firelight: the stacks darken to embers' colour once they are well alight
+    const hayLit = () => { hayProps.forEach((props, k) => { const f = s.fire[k] ? smoothstep(clamp((L.t - s.fireT[k]) / 3, 0, 1)) : 0; for (const p of props) { if (!p.dry) p.dry = p.color; p.color = f > 0 ? mixc(p.dry, [52, 30, 18], 0.7 * f) : p.dry; } }); };
+    const upd = L.update; L.update = dt => { upd(dt); hayLit(); };
     L.dynamicLights = () => {
       const out = [];
-      if (s.fireN) { const p = L.pt(0, 2.5, 12.8); out.push({ x: p[0], y: p[1], z: p[2], r: 16, i: 1.3, color: [255, 150, 60], flicker: 0.6, seed: 4 }); }
-      if (s.fireE) { const p = L.pt(9.5, 2.5, -2.6); out.push({ x: p[0], y: p[1], z: p[2], r: 16, i: 1.3, color: [255, 150, 60], flicker: 0.6, seed: 6 }); }
-      if (G.hasItem('lantern_lit')) { const p = L.pt(Math.sin(G.cam.yaw - L.facing) * 0.5, L.eyeH - 0.4, Math.cos(G.cam.yaw - L.facing) * 0.5); out.push({ x: p[0], y: p[1], z: p[2], r: 6, i: 0.7, color: [255, 190, 110], flicker: 0.3, seed: 8 }); }
+      FIRES.forEach((F, k) => { if (!s.fire[k]) return; const f = smoothstep(clamp((L.t - s.fireT[k]) / 1.2, 0, 1)), p = L.pt(F.cx, 2.5, F.cz); out.push({ x: p[0], y: p[1], z: p[2], r: 14, i: 0.25 + 0.55 * f, color: [255, 140, 60], flicker: 0.6, seed: 4 + k * 2 }); });
+      if (G.hasItem('cocktail_lit')) { const p = L.pt(Math.sin(G.cam.yaw - L.facing) * 0.5, L.eyeH - 0.4, Math.cos(G.cam.yaw - L.facing) * 0.5); out.push({ x: p[0], y: p[1], z: p[2], r: 5, i: 0.6, color: [255, 180, 100], flicker: 0.4, seed: 8 }); }
       return out;
     };
-    L.glows = () => { const out = []; if (s.fireN) { const p = L.pt(0, 2.2, 12.8); out.push({ x: p[0], y: p[1], z: p[2], r: 5 + Math.sin(L.t * 7) * 0.4, color: [255, 140, 50], a: 0.28 }); } if (s.fireE) { const p = L.pt(9.5, 2.2, -2.6); out.push({ x: p[0], y: p[1], z: p[2], r: 5 + Math.sin(L.t * 7) * 0.4, color: [255, 140, 50], a: 0.28 }); } return out; };
-    L.aftermath = (t, dt) => { const c = c0(); if (!s.after) { s.after = true; if (c.lane.idx === 1) L.text.win = s.ladderUp ? 'It stood on the barn floor with its arms round itself, looking up at where the ladder had been, and stayed there until the light came.' : 'It paced the line of the fire on the barn floor for an hour, then sat down under the loft with its arms round itself and stayed there until the light came.'; } if (t > 3.2 && !c.sitting) { c.sitting = true; c.hold = c.dist; } return t >= 6.5; };
+    L.glows = () => {
+      const out = [];
+      FIRES.forEach((F, k) => { if (!s.fire[k]) return; const f = smoothstep(clamp((L.t - s.fireT[k]) / 1.2, 0, 1)), p = L.pt(F.cx, 2.2, F.cz); out.push({ x: p[0], y: p[1], z: p[2], r: (5 + Math.sin(L.t * 7) * 0.4) * (0.4 + 0.6 * f), color: [255, 140, 50], a: 0.28 }); });
+      return out;
+    };
     L.floor = { poly: [[-4.3, -3.8], [0.3, -3.8], [0.3, 3.8], [-4.3, 3.8]], y: FL + 0.02 };
   }
 });

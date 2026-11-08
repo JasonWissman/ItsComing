@@ -236,6 +236,8 @@ const AUDIO = (() => {
       case 'start': setLoop('engine', 0.35); tone(45, 1.2, { vol: 0.4, type: 'sawtooth', endFreq: 120 }); noise(0.6, { freq: 400, vol: 0.4 }); break;
       case 'pour': noise(0.9, { type: 'bandpass', freq: 5200, q: 1.2, vol: 0.22, attack: 0.1 }); break;
       case 'strike': noise(0.12, { type: 'highpass', freq: 2500, vol: 0.35 }); noise(0.5, { freq: 900, vol: 0.12, delay: 0.1, attack: 0.08 }); break;
+      case 'cloth': noise(0.35, { type: 'bandpass', freq: 1400, q: 0.9, vol: 0.14, attack: 0.04 }); noise(0.2, { type: 'bandpass', freq: 900, q: 1.2, vol: 0.1, delay: 0.22, attack: 0.03 }); break;
+      case 'burst': noise(0.12, { type: 'highpass', freq: 3500, vol: 0.45, pan }); for (let i = 0; i < 5; i++) tone(2600 + Math.random() * 2600, 0.15, { vol: 0.07, type: 'triangle', delay: 0.02 + i * 0.04, pan }); noise(1.4, { freq: 260, vol: 0.55, attack: 0.08, delay: 0.05, pan }); tone(48, 1.0, { vol: 0.4, endFreq: 30, attack: 0.05, delay: 0.05, pan }); break;   // a bottle breaking, and the fire going up
       case 'candle': tone(880, 0.4, { vol: 0.05, type: 'sine', endFreq: 1200 }); break;
       case 'chain': for (let i = 0; i < 7; i++) { tone(1800 + Math.random() * 1200, 0.04, { vol: 0.08, type: 'square', delay: i * 0.07 }); noise(0.03, { type: 'highpass', freq: 4000, vol: 0.08, delay: i * 0.07 }); } break;
       case 'lock': tone(500, 0.05, { vol: 0.2, type: 'square', endFreq: 300 }); tone(220, 0.1, { vol: 0.25, type: 'square', endFreq: 200, delay: 0.09 }); break;
