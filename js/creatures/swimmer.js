@@ -8,6 +8,9 @@ CREATURES.swimmer = {
   voice: { kind: 'gurgle', every: [4, 9] },
   init(c) { c.mode = 'up'; c.modeT = -1.0; c.upFor = 3.2; c.downFor = 2 + c.rand() * 2; c.diveDist = c.dist; c.diveT = 0; c.surfaced = 0; },
   hidden(c) { return c.mode === 'down' && !c.lunge && !c.frozen && !G.L.won; },
+  // a night can send it sideways, swimming (The Boathouse's way round from a shut door to an open one): c.runLat metres
+  // to its right, c.runPose on, c.runDir +1 swimming to the right of the view and -1 to the left, c.runGait its stroke
+  lateral(c) { return c.runLat || 0; },
   speedMult(c, dt, seen) {
     if (c.frozen || c.dead || G.L.won) { c.mode = 'up'; return 0; }
     c.modeT += dt;
@@ -18,6 +21,7 @@ CREATURES.swimmer = {
   },
   draw(ctx, c, P) {
     if (c.mode === 'down' && !c.lunge && !G.L.won) return;
+    if (c.runPose && !c.lunge) { this.drawSwim(ctx, c, P); return; }
     const t = c.t, near = clamp(1 - c.dist / 10, 0, 1), lunge = c.lunge || 0;
     const skin = P.col([146, 156, 148]), skinD = P.col([98, 110, 102]), socket = P.col([36, 40, 38]), moss = P.col([52, 76, 40]), mossL = P.col([78, 102, 56]);
     const weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]), iris = P.col([128, 132, 122]), mouth = P.col([10, 8, 8]);
@@ -50,5 +54,57 @@ CREATURES.swimmer = {
     // drips off the chin and the weed, and the ring where the water meets it
     for (let i = 0; i < 3; i++) { const k = (t * 0.9 + i * 0.37) % 1, y = rise + 0.05 - k * 0.12; if (y > wl) P_ell(ctx, -0.1 + i * 0.1, y, 0.008, 0.014, P.cola([200, 214, 210], 0.6 * (1 - k))); }
     if (calm > 0.01) P_ell(ctx, 0, wl, 0.24, 0.025, P.cola(ring, 0.5 * calm));
-  }
+  },
+  // flat out across the water, seen from the side: low in it, the head pushed ahead with its chin in the water and turned
+  // to look at you, the long grey arms coming over one after the other and clawing in ahead, the weed streaming back off
+  // the crown, the back breaking the surface behind, a wake spreading out after it. Nothing under the water line shows.
+  drawSwim(ctx, c, P) {
+    const g = c.runGait || 0, t = c.t;
+    const skin = P.col([146, 156, 148]), skinD = P.col([98, 110, 102]), near = P.col([122, 134, 124]), far = P.col([80, 92, 84]), socket = P.col([36, 40, 38]);
+    const moss = P.col([52, 76, 40]), mossL = P.col([78, 102, 56]), weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]), iris = P.col([128, 132, 122]);
+    const ring = [150, 165, 175], foam = [214, 224, 228];
+    ctx.save(); ctx.scale(c.runDir || 1, 1);
+    // the wake behind it, and the wave its head pushes ahead
+    for (let i = 0; i < 5; i++) { const k = (t * 1.6 + i / 5) % 1; P_ell(ctx, -0.35 - k * 1.1, 0, 0.16 + k * 0.32, 0.02 + k * 0.025, P.cola(ring, 0.38 * (1 - k))); }
+    P_ell(ctx, 0.32, 0.004, 0.13, 0.026, P.cola(foam, 0.6));
+    ctx.save(); ctx.beginPath(); ctx.rect(-3, 0, 6, 3); ctx.clip();   // above the water only
+    const bob = Math.sin(g * 2) * 0.012;
+    // an arm over the water: out behind, up and over with the elbow high, in ahead with the long fingers hooked down. The
+    // pull, under the water, does not show
+    const arm = (ph, sx, col, w) => {
+      const u = (((ph % TAU) + TAU) % TAU) / Math.PI;   // 0..1 coming over, 1..2 pulling under
+      if (u > 1.15) return;
+      const k = Math.min(u, 1), lift = Math.sin(k * Math.PI);
+      const hx = lerp(-0.42, 0.62, k), hy = lift * 0.34 - Math.max(0, u - 1) * 0.6;
+      const ex = lerp(sx - 0.24, sx + 0.18, k), ey = 0.12 + lift * 0.3;
+      P_limb(ctx, [[sx, -0.02], [ex, ey], [hx, hy]], w, col);
+      fingers(ctx, hx, hy, -0.9 - (1 - k) * 0.9, 0.22, 0.12, w * 0.45, col);
+    };
+    arm(g + Math.PI, -0.02, far, 0.032);   // the far arm, behind the head
+    // the back and shoulders just breaking the surface, moss on them
+    P_ell(ctx, -0.3, -0.01 + bob * 0.5, 0.3, 0.075, skinD);
+    P_ell(ctx, -0.36, 0.03, 0.09, 0.03, moss); P_ell(ctx, -0.18, 0.04, 0.06, 0.022, mossL);
+    // the weed off the crown, streaming back along the water
+    for (let i = 0; i < 9; i++) {
+      const y0 = 0.16 - i * 0.012, l = 0.4 + ((i * 37) % 11) / 11 * 0.35, sw = Math.sin(t * 3 + i * 1.3) * 0.02;
+      P_limb(ctx, [[0.02 - i * 0.012, y0 + bob], [-0.15 - l * 0.4, y0 * 0.5 + sw], [-0.1 - l, 0.01 + sw * 0.5]], 0.011, weed);
+    }
+    // the head, low and long, its chin in the water, turned three quarters to you: both eyes, the nearer one larger
+    ctx.save(); ctx.translate(0.08, 0.02 + bob); ctx.rotate(-0.12);
+    P_ell(ctx, 0, 0.02, 0.24, 0.15, skin); P_ell(ctx, -0.06, 0, 0.18, 0.12, skinD);
+    for (const [x, y, rx, ry, c2] of [[-0.08, 0.13, 0.12, 0.04, moss], [-0.17, 0.09, 0.06, 0.04, mossL], [0, 0.15, 0.06, 0.025, mossL]]) P_ell(ctx, x, y, rx, ry, c2);
+    P_ell(ctx, -0.04, 0.15, 0.05, 0.012, P.cola([230, 240, 235], 0.3), -0.2);
+    for (const [x, k] of [[0.09, 1], [0.17, 0.75]]) { P_ell(ctx, x, 0.065, 0.045 * k, 0.03 * k, socket); P_ell(ctx, x, 0.062, 0.027 * k, 0.018 * k, eye); P_ell(ctx, x + 0.004, 0.062, 0.01 * k, 0.01 * k, iris); }
+    ctx.restore();
+    arm(g, -0.08, near, 0.04);   // the near arm, over the head
+    ctx.restore();
+    // where a hand goes in, a burst of water and a ring of foam
+    for (const ph of [g, g + Math.PI]) {
+      const u = (((ph % TAU) + TAU) % TAU) / Math.PI, s = (u - 0.92) / 0.5;
+      if (s < 0 || s > 1) continue;
+      P_ell(ctx, 0.62, 0, 0.07 + s * 0.16, 0.018 + s * 0.012, P.cola(foam, 0.55 * (1 - s)));
+      for (let i = 0; i < 6; i++) P_ell(ctx, 0.62 + (i - 2.5) * 0.045 * (1 + s), Math.sin(s * Math.PI) * (0.05 + (i % 3) * 0.035), 0.012, 0.018, P.cola(foam, 0.75 * (1 - s)));
+    }
+    ctx.restore();
+  },
 };

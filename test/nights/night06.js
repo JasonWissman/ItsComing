@@ -10,7 +10,27 @@ const winch = [['pickup', 'handle'], ['use', 'winch'], ['expect', 'G.L.s.locked 
   ['pickup', 'winchkey'], ['use', 'winch'], ['expect', '!G.L.s.locked', 'padlock off'],
   ['expect', '!G.hasItem("winchkey") && G.inv[G.active].id === "handle"', 'the key stays in the padlock, and the handle is in hand'],
   ['use', 'winch'], ['expect', 'G.L.s.handleIn', 'handle fitted'], ['clickUntil', 'winch', 'G.L.s.sealedN', 250, 12]];
-const door = [['pickup', 'beam'], ['use', 'sidedoor'], ['waitUntil', 'G.L.s.doorClosed', 3000], ['use', 'sidedoor'], ['expect', 'G.L.s.sealedE', 'side door barred']];
+// The side door's parts on screen, facing east: its own (the largest), and the brackets either side of it that take the
+// bar, the north one to the left and the south one to the right. part(which) points the mouse at one, as a player would,
+// and part(which, true) clicks it there.
+const parts = 'R.hits.filter(h => h.kind === "target" && h.ref.id === "sidedoor")';
+const part = (which, click) => ['eval', `(() => {
+  const hs = ${parts}, door = hs.reduce((a, b) => (b.w * b.h > a.w * a.h ? b : a)), br = hs.filter(h => h !== door).sort((a, b) => a.x - b.x);
+  const h = ${JSON.stringify(which)} === 'door' ? door : br[${JSON.stringify(which)} === 'north' ? 0 : 1];
+  const at = { clientX: h.x + h.w / 2, clientY: h.y + h.h / 2, bubbles: true };
+  UI.canvas.dispatchEvent(new MouseEvent('mousemove', at));
+  if (${!!click}) UI.canvas.dispatchEvent(new MouseEvent('click', at));
+})()`];
+const showsDoor = 'G.hover && G.hover.ref.id === "sidedoor" && UI.tooltip.textContent === "Side door"';
+// The brackets are part of the door: pointing at either shows the side door, and clicking either does what clicking the
+// door does. The door is shut by its leaf and barred from a bracket: the north one on odd seeds, the south one on even.
+const door = [['pickup', 'beam'], ['face', 2], ['expect', parts + '.length === 3', 'facing the side door, the door and both its brackets can be pointed at'],
+  part('north'), ['wait', 150], ['expect', showsDoor, 'pointing at the north bracket shows the side door'],
+  part('south'), ['wait', 150], ['expect', showsDoor, 'pointing at the south bracket shows the side door'],
+  part('door', true), ['expect', '!G.L.s.doorOpen', 'clicking the door shuts it'], ['waitUntil', 'G.L.s.doorClosed', 3000],
+  ['branch', 'G.runSeed % 2 === 1',
+    [part('north', true), ['expect', 'G.L.s.sealedE && !G.hasItem("beam")', 'clicking the north bracket puts the bar across']],
+    [part('south', true), ['expect', 'G.L.s.sealedE && !G.hasItem("beam")', 'clicking the south bracket puts the bar across']]]];
 module.exports = {
   nightmare: winch.concat(door),
 };

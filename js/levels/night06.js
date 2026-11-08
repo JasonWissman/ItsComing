@@ -40,7 +40,8 @@ LEVELS.push({
     { deg: 90, name: 'side door', barrierDist: 2.7, y: -0.15, cue: 'splash' },
   ],
   creatures: [{ type: 'swimmer', startDist: 70, time: 105, unseenMult: 1.3 }],
-  aftermath: { type: 'held', dur: 4.2, beats: [{ every: 0.95, sfx: 'wetThud', shake: 0.45 }, { at: 0.5, sfx: 'splash' }, { at: 2.1, sfx: 'splash' }, { at: 3.7, sfx: 'dive' }] },
+  // the aftermath is the night's own (L.aftermath in build): it comes on to the door it was coming for and pounds on it
+  aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;
     const wood = [50, 43, 36], woodD = [38, 32, 27], frameC = [76, 64, 50], deck = [56, 48, 39], water = [22, 30, 38], iron = [48, 48, 54], WL = -0.15;
@@ -300,6 +301,10 @@ LEVELS.push({
         s.sealedE = true; sd.done = true; sd.accepts = []; AUDIO.sfx('bar'); G.say('The bar is across.', 'The bar is across the side door.'); return true;
       },
     });
+    // the brackets are part of the door: clicking either does what clicking the door does (shuts it, or puts the bar
+    // across), and pointing at one lights the door as the target, the brackets with it. An invisible face over each cradle,
+    // a little proud of it, drawn after it so the outline it gets when lit shows over the iron
+    const grips = [-0.74, 0.74].map(zc => SC.mkWallV(L, 2.2, zc - 0.12, 2.2, zc + 0.12, 0.86, 1.31, [0, 0, 0], { invisible: true, hit: { kind: 'target', ref: sd }, sortDist: 2.05 }));
     // both ways must be shut
     L.sealed = lane => (lane.idx === 0 ? s.sealedN : s.sealedE);
     L.isWon = () => s.sealedN && s.sealedE;
@@ -308,38 +313,217 @@ LEVELS.push({
       const e = s.sealedE ? 'Side door barred.' : s.doorOpen ? 'Shut the side door and bar it.' : 'Bar the side door.';
       return n + ' ' + e;
     };
+    const panOf = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
+    // ---- the way round ----
+    // Held at a way you have shut, after a moment it goes round to one still open (the game moves it there, 3 m out). It
+    // goes under at the shut one, swims round out of sight, comes up off to one side of the open one and swims across into
+    // it side on, from the side it came round by (the north-east corner: from your left at the side door, from your right
+    // at the water door); then it turns to the door and comes on. Its early change of mind, unseen, is only a dive: it
+    // comes up on the new way.
+    L.onLaneSwitch = (c, ln) => {
+      c.diveT = -10;   // no rings on the new way, where it did not go under
+      if (!s.wasHeld) { if (c.mode === 'up') { c.mode = 'down'; c.modeT = 0; } return; }
+      const ap = ln.apertures[0], out = Math.max(Math.abs(ap.x0), Math.abs(ap.x1)) * c.dist / ap.z + 0.9;   // wholly out of the doorway's view, wake and all
+      s.swim = { t: 0, side: ln.idx === 1 ? -1 : 1, out, across: 0.55 + out * 0.22, strokes: 0, up: false };
+      c.hold = c.dist; c.mode = 'down'; c.modeT = 0; c.runLat = s.swim.side * out;
+    };
+    const swimRound = (c, dt) => {
+      const sw = s.swim, T1 = 0.7, T2 = T1 + sw.across;
+      sw.t += dt;
+      if (L.won || sw.t >= T2) {   // across: it turns to the door and comes on (or the night is won, and the aftermath has it)
+        c.runPose = false; c.runLat = 0; s.swim = null;
+        c.hold = null; if (!L.won) { c.mode = 'up'; c.modeT = 0; }
+        return;
+      }
+      if (sw.t < T1) { c.mode = 'down'; c.modeT = 0; return; }   // under the water, going round
+      if (!sw.up) { sw.up = true; c.surfaced = L.t; AUDIO.sfx('splash', panOf(c.yaw)); }
+      c.mode = 'up'; c.modeT = 0; c.runPose = true; c.runDir = -sw.side;
+      c.runGait = (c.runGait || 0) + dt * 7.5;
+      c.runLat = sw.side * sw.out * (1 - easeOut((sw.t - T1) / sw.across));
+      const n = Math.floor(c.runGait / Math.PI);   // a hand going in
+      if (n !== sw.strokes) { sw.strokes = n; AUDIO.sfx('slosh', panOf(c.yaw + Math.atan2(c.runLat, c.dist))); }
+    };
+    // ---- after the win: it throws itself at the door ----
+    // It comes on to the door it was coming for, fast now and under the water, and throws itself at it: blow on blow,
+    // quicker and quicker, the boards jumping and bowing in at the bottom where it hits, water bursting in under them and
+    // through the gaps, the bar jumping in its brackets, the lamp swinging; then one last blow, and it lets go and goes
+    // under. [time after it reaches the door, how hard]
+    const BLOWS = [[0, 1], [0.48, 0.8], [0.9, 0.95], [1.24, 0.8], [1.52, 0.9], [1.78, 0.8], [2.02, 1], [2.24, 0.85], [2.44, 0.95], [2.64, 0.9], [3.22, 1.35]];
+    const LETGO = 3.8, DONE = 4.6, fx = mulberry32(64);
+    Object.assign(s, { jolts: [], drops: [], splats: [], surges: [], wet: 0, swing: 0, swingT: 0 });
+    const blow = (a, k) => {
+      const c = L.creature, side = a.door === 1, x = (fx() - 0.5) * (side ? 0.5 : 1.6);   // where it lands, across the door
+      s.jolts.push({ t: L.t, k, x, seed: fx() * 100 });
+      s.surges.push({ t: L.t, k, x });
+      AUDIO.sfx('wetPound', panOf(c.yaw)); if (a.n % 2 === 0 || k > 1) AUDIO.sfx('slosh', panOf(c.yaw));
+      G.shake(0.38 + 0.32 * k);
+      s.swingT = Math.min(0.3, s.swingT + 0.07 * k); s.wet = Math.min(1, s.wet + 0.18 * k);
+      // the water it drives in: most of it in under the door, some through the gaps higher up
+      for (let i = 0, n = Math.round(12 + 12 * k); i < n; i++) {
+        const across = x + (fx() - 0.5) * (side ? 0.7 : 1.4), up = fx() < 0.75 ? 0.02 + fx() * 0.08 : 0.15 + fx() * 0.7;
+        const sp = 0.8 + fx() * 1.6 * k, lift = 0.6 + fx() * 2.2, drift = (fx() - 0.5) * 1.4, r = 0.004 + fx() * 0.009;
+        if (side) s.drops.push({ x: 2.33, y: up, z: clamp(across, -0.5, 0.5), vx: -sp, vy: lift, vz: drift, r });
+        else s.drops.push({ x: clamp(across, -1.45, 1.45), y: up, z: 2.5, vx: drift, vy: lift, vz: -sp, r });
+      }
+    };
+    L.aftermath = t => {
+      const c = L.creature;
+      let a = s.after;
+      if (!a) {
+        a = s.after = { door: c.lane.idx, n: 0 };
+        if (a.door === 1) L.text.win = 'It threw itself at the side door until the tide turned, and the bar held. When you looked again the water was flat all the way out.';
+        // still out on the water: it comes on fast now, under it, so the blows start in a second or two
+        const barrier = c.lane.barrierDist, far = c.dist - barrier;
+        if (far > 0.05) {
+          const v = Math.max(5, far / 1.4);
+          c.hold = null; c.distFn = (cr, dt) => Math.max(Math.min(cr.dist, barrier), cr.dist - dt * v);
+          if (far > 3) AUDIO.sfx('splash', panOf(c.yaw));
+        }
+      }
+      if (a.arrive === undefined && (c.dist <= c.lane.barrierDist + 0.05 || t > 2.5)) a.arrive = Math.max(t, 0.35);   // not on the same beat as the bar going across
+      if (a.arrive === undefined) return false;
+      const since = t - a.arrive;
+      while (a.n < BLOWS.length && since >= BLOWS[a.n][0]) { blow(a, BLOWS[a.n][1]); a.n++; }
+      if (since >= LETGO && !a.gone) { a.gone = true; AUDIO.sfx('dive', panOf(c.yaw)); }
+      return since >= DONE;
+    };
+    // the win camera watches the door it is at, low, where it hits and where the water comes in (no lower: the view would
+    // read as looking down)
+    L.watchPoint = () => { const p = L.creature.lane.idx === 1 ? L.pt(2.4, 0.72, 0) : L.pt(0, 0.62, 2.58); return { x: p[0], y: p[1], z: p[2] }; };
+    // how far a blow has driven the door in at a point across it, now: in hard, then springing back, shuddering
+    const jolt = across => {
+      let d = 0;
+      for (const j of s.jolts) {
+        const tau = L.t - j.t; if (tau < 0) continue;
+        const e = tau < 0.035 ? tau / 0.035 : Math.exp(-(tau - 0.035) * 7) * (0.7 + 0.3 * Math.cos((tau - 0.035) * 30));
+        d += j.k * e * (0.45 + 0.55 * Math.exp(-Math.pow((across - j.x) / 0.55, 2)));
+      }
+      return Math.min(d, 1.5);
+    };
+    const rattle = () => { let r = 0; for (const j of s.jolts) { const tau = L.t - j.t; if (tau >= 0) r += j.k * Math.exp(-tau * 12); } return Math.min(r, 1.5); };
     L.update = dt => {
       if (s.holdT > 0) { s.holdT -= dt; if (s.holdT <= 0 && s.heldC) { s.heldC.hold = null; s.heldC = null; } }
       s.crankA += ((winch.count || 0) * 1.3 - s.crankA) * (1 - Math.exp(-dt * 12));   // the crank goes round smoothly to where it was turned
       if (s.doorClosing > 0) { s.doorClosing -= dt; s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
+      const c = L.creature;
+      if (s.swim) swimRound(c, dt);
+      s.wasHeld = !!c.sealHold;   // read by L.onLaneSwitch, which the game calls after this, when it sends it round
+      // the water it throws in: flying, then splashing down on the deck
+      for (let i = s.drops.length - 1; i >= 0; i--) {
+        const d = s.drops[i];
+        d.vy -= 9.8 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt;
+        if (d.y <= 0.012) { s.splats.push({ x: d.x, z: d.z, t: L.t, r: d.r * 2.5 }); s.drops.splice(i, 1); }
+      }
+      s.splats = s.splats.filter(p => L.t - p.t < 0.6);
+      s.jolts = s.jolts.filter(j => L.t - j.t < 1.5);
+      s.surges = s.surges.filter(j => L.t - j.t < 1.8);
+      s.swing += (s.swingT - s.swing) * (1 - Math.exp(-dt * 3)); s.swingT *= Math.exp(-dt * 0.4);
     };
     L.deathCause = c => (c.lane.idx === 1 ? 'side' : null);
     // a shut, unbarred door really does slow it: it bangs the door open and stands in it for a moment, long enough to shut and bar it
     L.onReach = c => { if (c.lane.idx === 1 && s.doorClosed && !s.sealedE) { s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); G.toast('The side door bangs open.'); c.hold = c.dist; s.heldC = c; s.holdT = 2.5; } };
-    const lampX = () => Math.sin(L.t * 1.9) * 0.55;
+    const lampX = () => Math.sin(L.t * 1.9) * (0.55 + s.swing);   // the blows on the door set it swinging harder
     // the bar across the inside of the shut side door, in its brackets: a little into the room from the leaf (x 2.4) and
-    // the frame (2.35), and drawn after both and before the brackets' lips (see the brackets above)
+    // the frame (2.35), and drawn after both and before the brackets' lips (see the brackets above). A blow on the door
+    // drives it in against the brackets' straps (dx) and makes it jump in them (dy)
     const barC = [108, 82, 50];
-    const bar = [
-      SC.mkQuad(L, [2.24, 1.19, -0.88], [2.34, 1.19, -0.88], [2.34, 1.19, 0.88], [2.24, 1.19, 0.88], scalec(barC, 1.18), { sortDist: 2.21 }), // its top
-      SC.mkWallV(L, 2.24, -0.88, 2.24, 0.88, 0.97, 1.19, barC, { sortDist: 2.2 }),                                                   // its face
-      SC.mkWallV(L, 2.238, -0.88, 2.238, 0.88, 0.97, 0.99, scalec(barC, 0.6), { sortDist: 2.19 }),                                    // its lower edge
-      SC.mkWallV(L, 2.238, -0.7, 2.238, 0.5, 1.09, 1.098, scalec(barC, 0.74), { sortDist: 2.19 }),                                     // the grain
-      SC.mkWallV(L, 2.238, -0.3, 2.238, 0.8, 1.13, 1.136, scalec(barC, 0.78), { sortDist: 2.19 }),
+    const barAt = (dx, dy) => [
+      SC.mkQuad(L, [2.24 - dx, 1.19 + dy, -0.88], [2.34 - dx, 1.19 + dy, -0.88], [2.34 - dx, 1.19 + dy, 0.88], [2.24 - dx, 1.19 + dy, 0.88], scalec(barC, 1.18), { sortDist: 2.21 }), // its top
+      SC.mkWallV(L, 2.24 - dx, -0.88, 2.24 - dx, 0.88, 0.97 + dy, 1.19 + dy, barC, { sortDist: 2.2 }),                                                           // its face
+      SC.mkWallV(L, 2.238 - dx, -0.88, 2.238 - dx, 0.88, 0.97 + dy, 0.99 + dy, scalec(barC, 0.6), { sortDist: 2.19 }),                                            // its lower edge
+      SC.mkWallV(L, 2.238 - dx, -0.7, 2.238 - dx, 0.5, 1.09 + dy, 1.098 + dy, scalec(barC, 0.74), { sortDist: 2.19 }),                                             // the grain
+      SC.mkWallV(L, 2.238 - dx, -0.3, 2.238 - dx, 0.8, 1.13 + dy, 1.136 + dy, scalec(barC, 0.78), { sortDist: 2.19 }),
     ];
-    L.dynamic = () => {
-      // the water door: slats come down from the top as the winch turns
-      const covered = 2.4 * clamp((winch.count || 0) / need, 0, 1);
-      for (let y = 2.4; y > 2.4 - covered; y -= 0.3) {
-        const y0 = Math.max(y - 0.3, 2.4 - covered);
-        R.add(SC.mkQuad(L, [-1.5, y0, 2.58], [1.5, y0, 2.58], [1.5, y, 2.58], [-1.5, y, 2.58], (Math.round(y / 0.3) % 2) ? [80, 72, 60] : [70, 62, 52]));
+    const bar = barAt(0, 0);
+    // a door being pounded is drawn in pieces so it can bow; each piece is lit, fogged and ordered as the whole board it is
+    // part of, so no seams of light show between them and it sorts where the whole board did
+    const asWhole = (q, pts) => {
+      let d = 0, cx = 0, cy = 0, cz = 0;
+      for (const p of pts) { const w = L.pt(p[0], p[1], p[2]); d += Math.hypot(w[0], w[2]); cx += w[0]; cy += w[1]; cz += w[2]; }
+      return Object.assign(q, { dist: d / pts.length, cx: cx / pts.length, cy: cy / pts.length, cz: cz / pts.length });
+    };
+    const slatX = [-1.5, -1.125, -0.75, -0.375, 0, 0.375, 0.75, 1.125, 1.5], leafZ = [-0.55, -0.33, -0.11, 0.11, 0.33, 0.55], leafY = [0, 0.25, 0.5, 0.75, 1.0, 1.3, 1.65, 2.08];
+    const leafBow = y => (y < 1.08 ? 0.16 + 0.84 * Math.pow(1 - y / 1.08, 1.3) : 0.16 + 0.22 * Math.sin(Math.PI * Math.min(1, (y - 1.08) / 1.0)));   // the bar holds it at its middle
+    // the water it has driven in, on the deck inside the door: a tongue spreading in from under it at each blow, its edge
+    // white, and the boards darkening where it has been. foot(u) is where the door meets the deck u metres across it, as
+    // it bows; at(u, d) the point on the deck d metres in from there, and along(a, b) the door's foot from a to b, which
+    // closes each shape so nothing of it lies under the bowed door
+    const wash = (door, foot) => {
+      const side = door === 1, at = (u, d) => (side ? [foot(u) - d, 0.014, u] : [u, 0.014, foot(u) - d]);
+      const along = (a, b) => { const out = []; for (let i = 1; i < 8; i++) out.push(at(lerp(a, b, i / 8), 0)); return out; };
+      const poly = (pts, color, alpha, o) => Object.assign({ kind: 'poly', pts: pts.map(p => L.pt(p[0], p[1], p[2])), color, alpha }, o || {});
+      if (s.wet > 0.01) {   // where it has been
+        const half = side ? 0.85 : 1.45, deep = side ? 0.75 : 0.95, pts = [];
+        for (let i = 0; i <= 10; i++) { const u = -1 + i / 5; pts.push(at(u * half, deep * (1 - u * u * 0.55) * (0.92 + 0.08 * Math.sin(i * 2.1)))); }
+        pts.push(at(half, 0), ...along(half, -half), at(-half, 0));
+        R.add(poly(pts, [12, 16, 20], 0.32 * s.wet));
       }
-      if (covered > 0.05) R.add(SC.mkQuad(L, [-1.52, 2.4 - covered, 2.575], [1.52, 2.4 - covered, 2.575], [1.52, 2.4 - covered + 0.06, 2.575], [-1.52, 2.4 - covered + 0.06, 2.575], [40, 40, 44]));
-      // the side door leaf, swung out over the water or shut in its frame, and the bar
+      const lim = side ? 0.55 : 1.5, wide = side ? 1.0 : 1.5;   // it comes in under the door, and spreads out once it is in
+      for (const j of s.surges) {
+        const tau = L.t - j.t, k = j.k, grow = easeOut(tau / 0.45), reach = (0.3 + 0.5 * k) * grow, fade = clamp(1 - tau / 1.4, 0, 1);
+        if (reach < 0.02 || fade <= 0) continue;
+        const half = ((side ? 0.32 : 0.6) + 0.25 * k) * (1 + 0.45 * grow), a0 = clamp(j.x - half, -lim, lim), a1 = clamp(j.x + half, -lim, lim), front = [];
+        for (let i = 0; i <= 16; i++) {   // a ragged front, lobed where it runs on between the boards
+          const u = -1 + i / 8, lobe = 0.9 + 0.07 * Math.sin(i * 0.9 + j.x * 9) + 0.03 * Math.sin(i * 2.1 + tau * 3);
+          front.push(at(clamp(clamp(j.x + u * half, -lim, lim) + u * (wide - lim) * grow * 0.8, -wide, wide), reach * Math.sqrt(Math.max(0, 1 - u * u)) * lobe));
+        }
+        R.add(poly(front.concat(along(a1, a0)), [70, 92, 106], 0.26 * fade));
+        if (tau < 0.8) R.add(poly(front, [176, 194, 204], 0.5 * (1 - tau / 0.8), { stroke: true, lw: 0.01 }));
+      }
+    };
+    L.dynamic = () => {
+      const pounding = s.after && s.jolts.length ? s.after.door : -1;
+      // the water door: slats come down from the top as the winch turns. Pounded, the slats bow in at the bottom, where it
+      // hits from the water, and jump in their runners
+      const covered = 2.4 * clamp((winch.count || 0) / need, 0, 1);
+      const bowN = pounding === 0 ? slatX.map(x => 0.17 * jolt(x) * Math.cos(Math.PI * x / 3.04)) : null, rat = pounding >= 0 ? rattle() : 0;
+      const zN = (i, y) => 2.58 - (bowN ? bowN[i] * Math.exp(-y / 0.85) : 0);
+      for (let y = 2.4; y > 2.4 - covered; y -= 0.3) {
+        const y0 = Math.max(y - 0.3, 2.4 - covered), col = (Math.round(y / 0.3) % 2) ? [80, 72, 60] : [70, 62, 52];
+        if (!bowN) { R.add(SC.mkQuad(L, [-1.5, y0, 2.58], [1.5, y0, 2.58], [1.5, y, 2.58], [-1.5, y, 2.58], col)); continue; }
+        const dy = rat * 0.012 * Math.sin(L.t * 47), whole = [[-1.5, y0, 2.58], [1.5, y0, 2.58], [1.5, y, 2.58], [-1.5, y, 2.58]];
+        for (let i = 0; i < 8; i++) {
+          const x1 = slatX[i + 1] + (i < 7 ? 0.02 : 0);   // a little over the next piece, so no seam shows between them
+          R.add(asWhole(SC.mkQuad(L, [slatX[i], y0 + dy, zN(i, y0)], [x1, y0 + dy, zN(i + 1, y0)], [x1, y + dy, zN(i + 1, y)], [slatX[i], y + dy, zN(i, y)], col), whole));
+        }
+      }
+      if (covered > 0.05) {
+        const yb = 2.4 - covered;
+        if (!bowN) R.add(SC.mkQuad(L, [-1.52, yb, 2.575], [1.52, yb, 2.575], [1.52, yb + 0.06, 2.575], [-1.52, yb + 0.06, 2.575], [40, 40, 44]));
+        else for (let i = 0; i < 8; i++) R.add(asWhole(SC.mkQuad(L, [slatX[i], yb, zN(i, yb) - 0.005], [slatX[i + 1], yb, zN(i + 1, yb) - 0.005], [slatX[i + 1], yb + 0.06, zN(i + 1, yb + 0.06) - 0.005], [slatX[i], yb + 0.06, zN(i, yb + 0.06) - 0.005], [40, 40, 44]), [[-1.52, yb, 2.575], [1.52, yb, 2.575], [1.52, yb + 0.06, 2.575], [-1.52, yb + 0.06, 2.575]]));
+      }
+      if (pounding === 0) wash(0, u => 2.57 - 0.17 * jolt(u) * Math.cos(Math.PI * u / 3.04));
+      // the side door leaf, swung out over the water or shut in its frame, and the bar. Pounded, the leaf bows in at the
+      // bottom where it hits and above the bar, the bar holding it at its middle, and the bar is driven in and jumps
       const hx = 2.4, hz = -0.55, a = s.doorA, ex = hx + Math.sin(a) * 1.1, ez = hz + Math.cos(a) * 1.1;
-      R.add(SC.mkWallV(L, hx, hz, ex, ez, 0, 2.08, [64, 52, 40]));
-      for (const yy of [0.5, 1.5]) R.add(SC.mkWallV(L, hx + Math.sin(a) * 0.02, hz + Math.cos(a) * 0.02, ex - Math.sin(a) * 0.02, ez - Math.cos(a) * 0.02, yy, yy + 0.05, [44, 36, 28]));
-      if (s.sealedE) for (const q of bar) R.add(q);
+      if (pounding === 1 && a === 0) {
+        const bowE = leafZ.map(z => 0.1 * jolt(z) * Math.cos(Math.PI * z / 1.14)), xE = (i, y) => hx - bowE[i] * leafBow(y);
+        const whole = [[hx, 0, hz], [ex, 0, ez], [ex, 2.08, ez], [hx, 2.08, hz]];
+        for (let i = 0; i < 5; i++) for (let j = 0; j < 7; j++) {
+          const z1 = leafZ[i + 1] + (i < 4 ? 0.015 : 0), y0 = leafY[j], y1 = leafY[j + 1] + (j < 6 ? 0.015 : 0);
+          R.add(asWhole(SC.mkQuad(L, [xE(i, y0), y0, leafZ[i]], [xE(i + 1, y0), y0, z1], [xE(i + 1, y1), y1, z1], [xE(i, y1), y1, leafZ[i]], [64, 52, 40]), whole));
+        }
+        for (const yy of [0.5, 1.5]) for (let i = 0; i < 5; i++) {
+          const z0 = Math.max(leafZ[i], -0.53), z1 = Math.min(leafZ[i + 1] + (i < 4 ? 0.015 : 0), 0.53), ym = yy + 0.025;
+          R.add(asWhole(SC.mkQuad(L, [xE(i, ym) - 0.003, yy, z0], [xE(i + 1, ym) - 0.003, yy, z1], [xE(i + 1, ym) - 0.003, yy + 0.05, z1], [xE(i, ym) - 0.003, yy + 0.05, z0], [44, 36, 28]), [[hx, yy, -0.53], [hx, yy, 0.53], [hx, yy + 0.05, 0.53], [hx, yy + 0.05, -0.53]]));
+        }
+        if (s.sealedE) for (const q of barAt(Math.min(0.04, 0.1 * jolt(0) * leafBow(1.08) * 1.6), 0.018 * rat * Math.abs(Math.sin(L.t * 41)))) R.add(q);
+        wash(1, u => hx - 0.1 * jolt(u) * Math.cos(Math.PI * u / 1.14) - 0.02);
+      } else {
+        R.add(SC.mkWallV(L, hx, hz, ex, ez, 0, 2.08, [64, 52, 40]));
+        for (const yy of [0.5, 1.5]) R.add(SC.mkWallV(L, hx + Math.sin(a) * 0.02, hz + Math.cos(a) * 0.02, ex - Math.sin(a) * 0.02, ez - Math.cos(a) * 0.02, yy, yy + 0.05, [44, 36, 28]));
+        if (s.sealedE) for (const q of bar) R.add(q);
+      }
+      for (const q of grips) R.add(q);
+      // the water flying in, and where it lands
+      for (const d of s.drops) {
+        const r = d.r, sp = Math.hypot(d.vx, d.vy, d.vz), long = 1 + Math.min(3, sp * 0.6);
+        R.add(SC.mkSprite(L, d.x, d.y, d.z, r * 2, r * 2 * long, (ctx, P) => P_ell(ctx, 0, r * long, r, r * long, P.cola([178, 198, 208], 0.6))));
+      }
+      for (const p of s.splats) {   // a ring on the deck (a decal runs away from the eye from its base: it starts half a ring nearer)
+        const k = clamp((L.t - p.t) / 0.6, 0, 1), w = p.r * (1 + k * 1.5), wp = L.pt(p.x, 0, p.z);
+        R.add({ kind: 'sprite', x: wp[0] - Math.sin(G.cam.yaw) * w / 2, y: 0.016, z: wp[2] - Math.cos(G.cam.yaw) * w / 2, w, h: w, flat: true, draw: (ctx, P) => { ctx.scale(w, w); ctx.strokeStyle = P.cola([200, 214, 222], 0.55 * (1 - k)); ctx.lineWidth = 0.08; ctx.beginPath(); ctx.ellipse(0, 0.5, 0.45, 0.45, 0, 0, TAU); ctx.stroke(); } });
+      }
       // the hurricane lamp, swinging on its chain
       const lx = lampX();
       R.add(SC.mkQuad(L, [lx * 0.05 - 0.01, 2.84, 0.3], [lx * 0.05 + 0.01, 2.84, 0.3], [lx + 0.01, 2.4, 0.3], [lx - 0.01, 2.4, 0.3], [40, 40, 44]));
@@ -356,6 +540,10 @@ LEVELS.push({
           ctx.lineWidth = 0.035; ctx.beginPath(); ctx.ellipse(0, 0.5, 0.3, 0.3, 0, 0, TAU); ctx.stroke();
         } });
       }
+      // out beyond the water door it is behind the slats, which by their middles come out nearer than it does: while it
+      // is out there and any are down it is drawn before them, so they hide it
+      const cp = L.rend && L.rend.get(c);
+      if (cp) cp.sortDist = c.lane.idx === 0 && covered > 0.05 && c.dist > 2.62 && !c.lunge ? Math.max(Math.hypot(c.dist, c.lat || 0), 3.05) : undefined;
     };
     L.dynamicLights = () => { const p = L.pt(lampX(), 2.05, 0.3); return [{ x: p[0], y: p[1], z: p[2], r: 5.5, i: 0.42, color: [255, 210, 160], flicker: 0.3, seed: 2 }]; };
     L.glows = () => { const p = L.pt(lampX(), 2.15, 0.3); return [{ x: p[0], y: p[1], z: p[2], r: 1.6 + Math.sin(L.t * 11) * 0.08, color: [255, 190, 110], a: 0.2 }]; };
