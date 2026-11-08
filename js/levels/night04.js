@@ -340,7 +340,7 @@ LEVELS.push({
       // goes there, below, and it is there by the first blink)
       const off = Math.abs(wrapPi((s.run ? s.run.to.yaw : c.yaw) - G.cam.yaw)), turn = off > Math.PI / 2 ? 1.0 : off > Math.PI / 4 ? 0.4 : 0;
       const b = s.run ? s.run.to.barrierDist : (c.lane.barrierDist || 0), d0 = s.run ? s.run.d2 : c.dist, steps = [];
-      if (s.run || d0 - b > 0.3) { if (d0 - b > 8) steps.push({ d: lerp(d0, b, 0.55) }); steps.push({ d: b + 0.9 }); }
+      if (s.run || d0 - b > 1.2) { if (d0 - b > 8) steps.push({ d: lerp(d0, b, 0.55) }); steps.push({ d: b + 0.9 }); }   // never a blink that puts it further off
       for (const pose of [4, 5, 2]) steps.push({ d: b, pose, shake: true });
       const times = steps.map((st, i) => 1.1 + turn + i * 0.72);
       return { steps, times, next: 0, d: s.run ? c.dist : d0, end: times[times.length - 1] + 1.6, rattles: 0 };
