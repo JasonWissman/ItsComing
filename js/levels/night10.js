@@ -109,11 +109,13 @@ LEVELS.push({
     // the chair stands with its back to the east wall, facing into the room, so what lies on its seat is in plain view
     SC.box(L, 2.8, 3.19, 0.4, 0.45, -1.7, -1.3, [88, 70, 50]); SC.box(L, 3.19, 3.25, 0.4, 0.95, -1.7, -1.3, [88, 70, 50]);
     for (const [x, z] of [[2.83, -1.67], [3.22, -1.67], [2.83, -1.33], [3.22, -1.33]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [70, 56, 40]);
-    // items: the music box in one place and its crank in another, well apart (never in the same corner)
+    // items: the music box in one place and its crank in another, well apart and in another direction from you (never in
+    // the same corner, nor the two along one wall where the first view finds both)
     const boxSpots = [{ x: 2.6, y: 1.03, z: 3.0 }, { x: -2.7, y: 0, z: -2.7 }, { x: 2.0, y: 0, z: -2.6 }, { x: -2.6, y: 0, z: 1.4 }, { x: -1.3, y: 0, z: 3.0 }];
     const crankSpots = [{ x: 2.95, y: 1.03, z: 2.45 }, { x: 3.02, y: 0.45, z: -1.52 }, { x: -2.9, y: 0, z: 2.9 }, { x: 2.9, y: 0, z: -2.9 }, { x: 1.6, y: 0, z: 3.1 }, { x: -3.1, y: 0, z: -1.0 }, { x: 3.1, y: 0, z: 1.2 }, { x: 1.2, y: 0, z: -3.1 }];
     const box = mkItem(L, 'musicbox', 'Music box', boxSpots, { w: 0.36, h: 0.36, flat: true });
-    mkItem(L, 'crank', 'Crank handle', crankSpots.filter(p => Math.hypot(p.x - box.x, p.z - box.z) > 2.2), { w: 0.28, h: 0.28, flat: true, icon: 'boxcrank' });
+    const apart = p => Math.hypot(p.x - box.x, p.z - box.z) > 2.2 && Math.abs(wrapPi(Math.atan2(p.x, p.z) - Math.atan2(box.x, box.z))) > 60 * DEG;
+    mkItem(L, 'crank', 'Crank handle', crankSpots.filter(apart), { w: 0.28, h: 0.28, flat: true, icon: 'boxcrank' });
     // Nightmare puts dust sheets over two of the mirrors, chosen by the night
     if (L.nightmare) {
       const order = [0, 1, 2, 3];
@@ -151,7 +153,8 @@ LEVELS.push({
           if (item.id === 'musicbox') {
             if (s.placedAt >= 0) return false;
             if (k !== s.odd) { wrongPedestal(); return false; }
-            s.placedAt = k; AUDIO.sfx('drop'); G.say('The box sits on the pedestal before the odd mirror. Now its crank.', 'There.'); refresh(); return true;
+            s.placedAt = k; this.name = 'Music box';   // hovering the box on it, it is the box you are turning
+            AUDIO.sfx('drop'); G.say('The box sits on the pedestal before the odd mirror. Now its crank.', 'There.'); refresh(); return true;
           }
           if (item.id === 'crank') {
             if (s.placedAt !== k) { G.say(s.placedAt < 0 ? 'The crank has nothing to turn. The music box goes on the pedestal first.' : 'The music box is not on this pedestal.', 'Nothing here for it to turn.'); return false; }
