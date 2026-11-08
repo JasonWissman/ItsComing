@@ -275,7 +275,7 @@ LEVELS.push({
         if (drive.passedAt < 0 && carZ > drive.cz - 0.5) drive.passedAt = drive.t;
         if (drive.passedAt < 0) {   // out of the way of the car: side-on, scuttling flat out across the verge while it goes
           const bx = drive.cx;
-          toward(0.4 + drive.side * 4.6, drive.cz - 0.6 * dt, 9);
+          toward(0.4 + drive.side * Math.max(4.6, drive.side * (bx - 0.4)), drive.cz - 0.6 * dt, 9);   // only ever outward: far up the verge it is off the road already
           const moved = Math.abs(drive.cx - bx);
           c.runPose = moved > 1e-3; c.runDir = drive.side; c.runGait = (c.runGait || 0) + moved * 5.5;
         } else {   // after it, never as fast as the car
