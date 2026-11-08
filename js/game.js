@@ -881,7 +881,7 @@ function render() {
   R.post({
     danger: G.danger, flash: G.flashAmt, fade: G.fade, white: G.white, dangerCap: S.reducedFlash ? 0.35 : 0.75, flashCap: S.reducedFlash ? 0.2 : 1,
     glows: L.glows ? L.glows() : null,
-    drawOverlay: (ctx, W, H) => drawGunOverlay(ctx, W, H),
+    drawOverlay: (ctx, W, H) => { if (L.overlay) L.overlay(ctx, W, H); drawGunOverlay(ctx, W, H); },   // a night's own picture over the view (the covers over your eyes), under the vignette, grain and fades
     grain: G.state === 'title' ? 0.05 : 0.07 + G.danger * 0.05 - (L.s.reveal || 0) * 0.04,
     vignette: 0.9 - (L.s.reveal || 0) * 0.65,   // the last night's morning is bright to the corners
   });

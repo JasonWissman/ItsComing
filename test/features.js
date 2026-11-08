@@ -149,7 +149,9 @@ const hoverHit = lookFor;
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
   console.log('== sealed ways ==');
-  // on Nightmare it goes round to the open way, starting outside that way's barrier
+  // on Nightmare it goes round to the open way, starting outside that way's barrier. The Quarry's statue runs round the
+  // yard to it, and only while nothing is looking at it: facing the open gate you see it come round and it stops dead,
+  // mid-stride; look down and it goes on round
   await page.goto(URL + '?level=4&go&seed=1&nofr'); await page.waitForTimeout(250);
   let sw = await page.evaluate(() => {
     const L = G.L, c = L.creature; c.switched = true;
@@ -157,9 +159,15 @@ const hoverHit = lookFor;
     G.cam.yaw = G.cam.tYaw = c.yaw + Math.PI; G.cam.dirIdx = ((Math.round(G.cam.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0; G.step(0.001);
     const g = L.targets.find(t => t.id === (L.lane.idx === 0 ? 'gate' : 'backgate')); g.chained = true; g.locked = true; g.done = true;
     const from = c.lane.idx; c.u = 1 - Math.pow((L.barrierDist + 0.05) / c.D0, 1 / c.gamma);
+    for (let k = 0; k < 200 && !(c.runPose && c.seen) && c.lane.idx === from && G.state === 'play'; k++) G.step(0.05);
+    const p0 = c.pos(), caught = !!c.runPose && c.seen && c.lane.idx === from;
+    G.step(0.05, 20);
+    const p1 = c.pos(), stood = caught && c.seen && Math.hypot(p1.x - p0.x, p1.z - p0.z) < 1e-6 && c.lane.idx === from;
+    G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.step(0.001);   // looking down, at the ground in front of the open gate
     for (let k = 0; k < 200 && c.lane.idx === from && G.state === 'play'; k++) G.step(0.05);
-    return { moved: c.lane.idx !== from, dist: c.dist, need: (c.lane.barrierDist || 0) + 3 - 0.05, held: c.hold !== null, state: G.state };
+    return { caught, stood, moved: c.lane.idx !== from, dist: c.dist, need: (c.lane.barrierDist || 0) + 3 - 0.05, held: c.hold !== null, state: G.state };
   });
+  check(sw.caught && sw.stood, 'seen coming round to the open gate, the statue stops dead, mid-stride, and stays');
   check(sw.moved && !sw.held && sw.state === 'play', 'a locked gate sends it round to the open one');
   check(sw.dist >= sw.need, 'going round starts it outside the other gate (' + sw.dist.toFixed(2) + ' m)');
   // a creature that can run (drawRun: the smiler on night 3) goes round on its feet: it is seen sprinting sideways out of
