@@ -27,7 +27,7 @@ LEVELS.push({
     intro: 'Nothing. No door, no field, no line. Around you on the floor lies everything you ever held against it.<br>It is coming, from wherever it likes, and it knows what you are holding.',
     hint: 'Put them down. All of them.',
     objective: 'Put everything down.',
-    death: { default: 'You were still holding on.' },
+    death: { default: 'You were still holding on.', away: 'You put it all down, and then you looked away.' },
     win: '',
     fragment: '',
   },
@@ -108,9 +108,12 @@ LEVELS.push({
     const c0 = () => L.creatures[0];
     L.isWon = () => false;
     L.objectiveText = () => G.inv.length ? 'Put everything down (' + G.inv.length + ' still held).' : 'Empty-handed. Let it come.';
-    // being caught empty-handed is the ending, not a death: it stops, and walks round to the foot of the bed
+    // being caught empty-handed, and looking at it, is the ending, not a death: it stops, and walks round to the foot of
+    // the bed. Turned away from it, or looking at the floor, as it reaches you is a death even with nothing in your hands.
+    const facingIt = c => Math.abs(wrapPi(c.yaw - G.cam.yaw)) < 30 * DEG && G.cam.pitch < PITCH_DOWN * 0.5;
+    L.deathCause = () => G.inv.length ? 'default' : 'away';
     L.onCatch = c => {
-      if (G.inv.length > 0) return false;
+      if (G.inv.length > 0 || !facingIt(c)) return false;
       s.ending = true; s.endT = 0; c.frozen = true; c.hold = null;
       c.lane = Object.assign({}, c.lane, { follow: 'free', apertures: [], blockers: [] });   // placed by yaw and distance from here on
       const yaw0 = c.yaw, d0 = c.dist, yaw1 = L.facing;   // the foot of the bed is north
@@ -129,6 +132,13 @@ LEVELS.push({
       const c = c0();
       c.anger = G.inv.length + s.extra;
       c.rage += ((c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0) - c.rage) * Math.min(1, dt * 4);   // anything held and it is plainly enraged
+      // empty-handed and facing it, the view lifts to its face as it looms in over the last few metres: you look up at it.
+      // Looking down (a target below the horizon), or turning away, takes the view back as it was.
+      if (!s.ending && G.state === 'play') {
+        const near = smoothstep(clamp((6 - c.dist) / 4.5, 0, 1));
+        if (near > 0 && !G.inv.length && G.cam.tPitch <= 0 && facingIt(c)) G.cam.tPitch = -Math.atan2(c.CR.faceY - L.eyeH, Math.max(c.dist, 0.6)) * 0.8 * near;
+        else if (G.cam.tPitch < 0) G.cam.tPitch = 0;
+      }
       if (!s.ending) return;
       s.endT += dt; const t = s.endT;
       c.calm = clamp((t - 0.4) / 1.8, 0, 1);

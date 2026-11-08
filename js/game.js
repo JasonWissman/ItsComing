@@ -773,7 +773,7 @@ function updateHUD() {
     for (let i = 0; i < 8; i++) html += '<span class="' + (i === cur ? 'cur' : '') + (ticks.includes(i) ? ' thing' : '') + '">' + DIR_NAMES[i] + '</span>';
     UI.compass.innerHTML = html;
   }
-  UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : '▲ looking ahead';   // the win camera's small tilt is not looking down
+  UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : c.tPitch < -0.05 ? '▲ looking up' : '▲ looking ahead';   // the win camera's small tilt is not looking down
   UI.zoom.style.opacity = c.zoomHeld && G.state === 'play' && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;

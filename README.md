@@ -122,7 +122,8 @@ some on the ground, so you have to turn and look down to find them.
     closet, moving in extreme slow motion. Get the lamp on, pull the covers up.
 13. **The Void.** Everything you ever held against it lies around you, and you
     start the night holding some of it. Holding anything enrages it. Put it all down
-    and let it come.
+    and let it come, and face it when it does: as it looms in the view lifts to its face.
+    Turned away from it, or looking at the floor, when it reaches you is a death too.
 
 Creatures move faster when you are not looking at them, but otherwise they
 come at a steady pace, no faster at the end than at the start. A thread runs through the

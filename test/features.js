@@ -221,6 +221,27 @@ const hoverHit = lookFor;
   await page.evaluate(() => { G.L.creature.u = 0.985; G.step(0.05, 400); });
   check(await page.evaluate(() => G.state === 'dead' && !!G.deathScreen && /holding/.test(G.deathScreen.text)), 'reaching you with something in your hands is a death, and the line says so');
   check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') !== 'day'), 'no morning for the one who held on');
+  // empty-handed is not enough: turned away from it, or looking at the floor, as it reaches you is a death too
+  for (const [how, cam] of [['turned away', 'G.cam.dirIdx = (dir + 2) % 8; G.cam.pitch = G.cam.tPitch = 0;'], ['looking at the floor', 'G.cam.dirIdx = dir; G.cam.pitch = G.cam.tPitch = PITCH_DOWN;']]) {
+    await T.open(page, 'level=13&go&seed=1&nofr');
+    await page.evaluate(cam => {
+      for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
+      G.L.creature.switched = true;   // it keeps to its way (it would change it once, unseen in the dark, far out)   // nothing held, without the drop's own rules
+      const dir = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; new Function('dir', cam)(dir); G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG;
+      G.L.creature.u = 0.985; G.step(0.05, 400);
+    }, cam);
+    check(await page.evaluate(() => G.inv.length === 0 && G.state === 'dead' && /looked away/.test(G.deathScreen.text) && !G.L.s.ending), 'empty-handed but ' + how + ' as it reaches you is a death, and the line says so');
+  }
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  const faced = await page.evaluate(() => {
+    for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
+      G.L.creature.switched = true;   // it keeps to its way (it would change it once, unseen in the dark, far out)
+    G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+    G.L.creature.u = 0.9; let up = 0;
+    for (let i = 0; i < 600 && !G.L.won; i++) { G.step(0.05, 1); up = Math.min(up, G.cam.pitch); }
+    return { won: G.L.won && G.L.s.ending, up };
+  });
+  check(faced.won && faced.up < -0.15, 'empty-handed and looking up at it as it reaches you is the ending (' + JSON.stringify(faced) + ')');
   // tapping the held thing again while looking down puts it down
   await T.open(page, 'level=13&go&seed=1&nofr');
   const held = await page.evaluate(() => G.inv.length);
