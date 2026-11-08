@@ -62,7 +62,7 @@ Object.assign(ICONS, {
   barnBottle(ctx, P) { barnBottle(ctx, P, 'empty'); },
   barnBottleOil(ctx, P) { barnBottle(ctx, P, 'oil'); },
   barnCocktail(ctx, P) { barnBottle(ctx, P, 'rag'); },
-  barnCocktailLit(ctx, P) { barnBottle(ctx, P, 'lit'); },
+  barnCocktailLit(ctx, P) { ctx.save(); ctx.scale(0.8, 0.8); barnBottle(ctx, P, 'lit'); ctx.restore(); },   // a little smaller, so its flame stays inside the slot
   // a rag: a crumpled square of old sheet, frayed at its ends and blotched with oil
   barnRag(ctx, P) {
     const cloth = P.col([204, 194, 168]), fold = P.col([152, 140, 112]), dark = P.col([108, 96, 74]), stain = P.col([132, 100, 54]);
@@ -229,7 +229,7 @@ LEVELS.push({
     const c0 = () => L.creatures[0];
     mkTarget(L, {
       id: 'drum', name: 'Oil drum', x: -2.6, y: FL - drumLift, z: -2.2, w: 0.86, h: 1.04 + drumLift,   // the drum sprite's own box
-      accepts: ['bottle', 'bottle_oil', 'cocktail', 'cocktail_lit'],
+      accepts: ['bottle', 'bottle_oil', 'cocktail', 'cocktail_lit'], noThrow: true,   // a lit bottle is never thrown at it (and lost)
       onClick() {   // an empty bottle before a full one, whichever is in hand
         const e = G.inv.findIndex(i => i.id === 'bottle');
         if (e >= 0 && !(G.inv[G.active] && G.inv[G.active].id === 'bottle')) G.active = e;
@@ -237,6 +237,7 @@ LEVELS.push({
       },
       hint() { return 'Lamp oil. The tap turns.'; },
       use(item) {   // one bottle at a time, filled where it is in your hands
+        if (item.id === 'cocktail_lit') { G.say('Not with that alight. The drum would go up.', 'Not with that alight.'); return false; }
         if (item.id !== 'bottle') { G.say('That one is full already.', 'Full already.'); return false; }
         const i = G.inv.indexOf(item), full = newItem(L, 'bottle_oil', 'Bottle of oil', { w: BW, h: BH, icon: 'barnBottleOil' });
         if (i >= 0) { G.inv.splice(i, 1, full); G.active = i; } else { G.inv.push(full); G.active = G.inv.length - 1; }
@@ -258,7 +259,7 @@ LEVELS.push({
     mkRecipe(L, {
       parts: ['cocktail', 'matches'], result: { id: 'cocktail_lit', name: 'Lit bottle', opts: { w: BW, h: BH, throwable: true } }, sfx: 'strike', text: 'The rag catches.',
       onCombine: (it, L2) => {
-        it.icon = (ctx, P) => barnBottle(ctx, P, 'lit', G.throwing && G.throwing.it === it ? G.throwing.t * 11 : 0);   // it turns over in the air
+        it.icon = (ctx, P) => (G.throwing && G.throwing.it === it ? barnBottle(ctx, P, 'lit', G.throwing.t * 11) : ICONS.barnCocktailLit(ctx, P));   // it turns over in the air
         const m = L2.items.find(i => i.id === 'matches'); if (m) { m.taken = true; G.inv.push(m); }
       },
     });
@@ -289,8 +290,9 @@ LEVELS.push({
     // The hay in its way goes up while it is still outside it: it rears back from the fire, then runs flat out sideways,
     // side on, out of sight (across the yard past the loft door, or out of the far doorway, or, if it was already in the
     // barn, through the side door), goes round the barn out of sight (its feet, a blow on the wall as it passes), and comes
-    // in from the side to the other way: never nearer than GAP path metres outside that way's fire line.
-    const RUN = { recoil: 0.45, out: 1.0, round: 1.5, in: 1.1 }, GAP = 6.5;
+    // in from the side to the other way: never nearer than GAP path metres outside that way's fire line (nor further than it
+    // started). GAP leaves as long for the second bottle as the first had: about the same pace of work wins either half.
+    const RUN = { recoil: 0.45, out: 1.0, round: 1.5, in: 1.1 }, GAP = 8;
     const T1 = RUN.recoil, T2 = T1 + RUN.out, T3 = T2 + RUN.round, T4 = T3 + RUN.in;
     const panTo = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
     const yardLat = h => 0.3 * h + 1.4;            // far enough to the side of the loft door to be wholly behind the wall
@@ -329,7 +331,7 @@ LEVELS.push({
       } else {                 // round the corner and across the other way in, then it turns to it
         if (!r.arrived) {
           r.arrived = true;
-          const p = Math.max(r.p0, sBar(r.to) + GAP), d = dOf(r.to, p);
+          const p = Math.min(c.S0, Math.max(r.p0, sBar(r.to) + GAP)), d = dOf(r.to, p);
           c.retarget(r.to.idx); c.reached = false;
           c.D0 = dOf(r.to, c.S0); c.u = clamp(1 - p / c.S0, 0, 0.995); c.hold = c.dist = d;
           L.lane = r.to; L.laneIdx = r.to.idx; L.barrierDist = r.to.barrierDist;
