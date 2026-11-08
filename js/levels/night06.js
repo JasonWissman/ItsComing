@@ -318,13 +318,13 @@ LEVELS.push({
     // Held at a way you have shut, after a moment it goes round to one still open (the game moves it there, 3 m out). It
     // goes under at the shut one, swims round out of sight, comes up off to one side of the open one and swims across into
     // it side on, from the side it came round by (the north-east corner: from your left at the side door, from your right
-    // at the water door); then it turns to the door and comes on. Its early change of mind, unseen, is only a dive: it
-    // comes up on the new way.
+    // at the water door), closing on it a little as it comes (going round costs you less time than it costs it); then it
+    // turns to the door and comes on. Its early change of mind, unseen, is only a dive: it comes up on the new way.
     L.onLaneSwitch = (c, ln) => {
       c.diveT = -10;   // no rings on the new way, where it did not go under
       if (!s.wasHeld) { if (c.mode === 'up') { c.mode = 'down'; c.modeT = 0; } return; }
       const ap = ln.apertures[0], out = Math.max(Math.abs(ap.x0), Math.abs(ap.x1)) * c.dist / ap.z + 0.9;   // wholly out of the doorway's view, wake and all
-      s.swim = { t: 0, side: ln.idx === 1 ? -1 : 1, out, across: 0.55 + out * 0.22, strokes: 0, up: false };
+      s.swim = { t: 0, side: ln.idx === 1 ? -1 : 1, out, across: 0.55 + out * 0.22, d0: c.dist, strokes: 0, up: false };
       c.hold = c.dist; c.mode = 'down'; c.modeT = 0; c.runLat = s.swim.side * out;
     };
     const swimRound = (c, dt) => {
@@ -332,14 +332,16 @@ LEVELS.push({
       sw.t += dt;
       if (L.won || sw.t >= T2) {   // across: it turns to the door and comes on (or the night is won, and the aftermath has it)
         c.runPose = false; c.runLat = 0; s.swim = null;
-        c.hold = null; if (!L.won) { c.mode = 'up'; c.modeT = 0; }
+        c.hold = null; c.u = clamp(1 - Math.pow(c.dist / c.D0, 1 / c.gamma), 0, 0.995);   // on from where it has got to
+        if (!L.won) { c.mode = 'up'; c.modeT = 0; }
         return;
       }
       if (sw.t < T1) { c.mode = 'down'; c.modeT = 0; return; }   // under the water, going round
       if (!sw.up) { sw.up = true; c.surfaced = L.t; AUDIO.sfx('splash', panOf(c.yaw)); }
       c.mode = 'up'; c.modeT = 0; c.runPose = true; c.runDir = -sw.side;
       c.runGait = (c.runGait || 0) + dt * 7.5;
-      c.runLat = sw.side * sw.out * (1 - easeOut((sw.t - T1) / sw.across));
+      const k = 1 - Math.pow(1 - (sw.t - T1) / sw.across, 2);   // slowing as it comes into the doorway
+      c.runLat = sw.side * sw.out * (1 - k); c.hold = sw.d0 - 0.8 * k;
       const n = Math.floor(c.runGait / Math.PI);   // a hand going in
       if (n !== sw.strokes) { sw.strokes = n; AUDIO.sfx('slosh', panOf(c.yaw + Math.atan2(c.runLat, c.dist))); }
     };
@@ -349,7 +351,7 @@ LEVELS.push({
     // through the gaps, the bar jumping in its brackets, the lamp swinging; then one last blow, and it lets go and goes
     // under. [time after it reaches the door, how hard]
     const BLOWS = [[0, 1], [0.48, 0.8], [0.9, 0.95], [1.24, 0.8], [1.52, 0.9], [1.78, 0.8], [2.02, 1], [2.24, 0.85], [2.44, 0.95], [2.64, 0.9], [3.22, 1.35]];
-    const LETGO = 3.8, DONE = 4.6, fx = mulberry32(64);
+    const LETGO = 3.75, DONE = 4.4, fx = mulberry32(64);
     Object.assign(s, { jolts: [], drops: [], splats: [], surges: [], wet: 0, swing: 0, swingT: 0 });
     const blow = (a, k) => {
       const c = L.creature, side = a.door === 1, x = (fx() - 0.5) * (side ? 0.5 : 1.6);   // where it lands, across the door
@@ -357,7 +359,7 @@ LEVELS.push({
       s.surges.push({ t: L.t, k, x });
       AUDIO.sfx('wetPound', panOf(c.yaw)); if (a.n % 2 === 0 || k > 1) AUDIO.sfx('slosh', panOf(c.yaw));
       G.shake(0.38 + 0.32 * k);
-      s.swingT = Math.min(0.3, s.swingT + 0.07 * k); s.wet = Math.min(1, s.wet + 0.18 * k);
+      s.swingT = Math.min(0.16, s.swingT + 0.05 * k); s.wet = Math.min(1, s.wet + 0.18 * k);
       // the water it drives in: most of it in under the door, some through the gaps higher up
       for (let i = 0, n = Math.round(12 + 12 * k); i < n; i++) {
         const across = x + (fx() - 0.5) * (side ? 0.7 : 1.4), up = fx() < 0.75 ? 0.02 + fx() * 0.08 : 0.15 + fx() * 0.7;
@@ -370,7 +372,8 @@ LEVELS.push({
       const c = L.creature;
       let a = s.after;
       if (!a) {
-        a = s.after = { door: c.lane.idx, n: 0 };
+        // the first blow waits for the view to come round to the door, if it has far to turn
+        a = s.after = { door: c.lane.idx, n: 0, wait: 0.35 + 0.55 * clamp(Math.abs(wrapPi(c.yaw - G.cam.yaw)) / (Math.PI / 2), 0, 1) };
         if (a.door === 1) L.text.win = 'It threw itself at the side door until the tide turned, and the bar held. When you looked again the water was flat all the way out.';
         // still out on the water: it comes on fast now, under it, so the blows start in a second or two
         const barrier = c.lane.barrierDist, far = c.dist - barrier;
@@ -380,11 +383,11 @@ LEVELS.push({
           if (far > 3) AUDIO.sfx('splash', panOf(c.yaw));
         }
       }
-      if (a.arrive === undefined && (c.dist <= c.lane.barrierDist + 0.05 || t > 2.5)) a.arrive = Math.max(t, 0.35);   // not on the same beat as the bar going across
+      if (a.arrive === undefined && (c.dist <= c.lane.barrierDist + 0.05 || t > 2.5)) a.arrive = Math.max(t, a.wait);   // and never on the same beat as the bar going across
       if (a.arrive === undefined) return false;
       const since = t - a.arrive;
       while (a.n < BLOWS.length && since >= BLOWS[a.n][0]) { blow(a, BLOWS[a.n][1]); a.n++; }
-      if (since >= LETGO && !a.gone) { a.gone = true; AUDIO.sfx('dive', panOf(c.yaw)); }
+      if (since >= LETGO && !a.gone) { a.gone = true; AUDIO.sfx('dive', panOf(c.yaw)); s.surges.push({ t: L.t, k: 0.3, x: 0 }); }   // it lets go: the water slops in once more as it goes down
       return since >= DONE;
     };
     // the win camera watches the door it is at, low, where it hits and where the water comes in (no lower: the view would
@@ -508,7 +511,7 @@ LEVELS.push({
           R.add(asWhole(SC.mkQuad(L, [xE(i, ym) - 0.003, yy, z0], [xE(i + 1, ym) - 0.003, yy, z1], [xE(i + 1, ym) - 0.003, yy + 0.05, z1], [xE(i, ym) - 0.003, yy + 0.05, z0], [44, 36, 28]), [[hx, yy, -0.53], [hx, yy, 0.53], [hx, yy + 0.05, 0.53], [hx, yy + 0.05, -0.53]]));
         }
         if (s.sealedE) for (const q of barAt(Math.min(0.04, 0.1 * jolt(0) * leafBow(1.08) * 1.6), 0.018 * rat * Math.abs(Math.sin(L.t * 41)))) R.add(q);
-        wash(1, u => hx - 0.1 * jolt(u) * Math.cos(Math.PI * u / 1.14) - 0.02);
+        wash(1, u => Math.min(hx - 0.02 - 0.1 * jolt(u) * Math.cos(Math.PI * u / 1.14), 2.38 - Math.max(0, Math.abs(u) - 0.5) * 0.6));   // in front of the frame either side
       } else {
         R.add(SC.mkWallV(L, hx, hz, ex, ez, 0, 2.08, [64, 52, 40]));
         for (const yy of [0.5, 1.5]) R.add(SC.mkWallV(L, hx + Math.sin(a) * 0.02, hz + Math.cos(a) * 0.02, ex - Math.sin(a) * 0.02, ez - Math.cos(a) * 0.02, yy, yy + 0.05, [44, 36, 28]));
