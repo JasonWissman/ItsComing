@@ -31,7 +31,7 @@ LEVELS.push({
     hint: 'Unlock the winch, put the handle on and crank the water door down; then shut the side door and bar it.',
     objective: 'Shut both ways in: crank the water door down, and shut and bar the side door.',
     death: { default: 'It came up over the sill with its hand first.', reached: 'The door was not down. It came up under it.', side: 'The bar was not across. It came in with the door.' },
-    win: 'It pushed at the slats until the tide turned. When you looked again the water was flat all the way out.',
+    win: 'It threw itself at the slats until the tide turned, and they held. When you looked again the water was flat all the way out.',
     fragment: 'Your knees were wet until noon. Nothing else in the house was.',
   },
   // the thing swims: its feet are at the water line, a little below the deck
@@ -377,6 +377,9 @@ LEVELS.push({
         if (a.door === 1) L.text.win = 'It threw itself at the side door until the tide turned, and the bar held. When you looked again the water was flat all the way out.';
         // still out on the water: it comes on fast now, under it, so the blows start in a second or two
         const barrier = c.lane.barrierDist, far = c.dist - barrier;
+        // a close finish, with it already under the door's line as the last slat came down or the door shut on it (the game
+        // holds it where it is): it is out on the water side of the door now, where it throws itself at it, not in the room
+        if (far < 0) { c.dist = barrier; if (s.heldC === c) { s.heldC = null; s.holdT = 0; } c.hold = null; }
         if (far > 0.05) {
           const v = Math.max(5, far / 1.4);
           c.hold = null; c.distFn = (cr, dt) => Math.max(Math.min(cr.dist, barrier), cr.dist - dt * v);
