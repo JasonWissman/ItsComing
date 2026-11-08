@@ -1,8 +1,8 @@
 // The Diner: it is drawn to the light. Lit, it crosses the lot several times as fast as it walks in the dark: too fast for
 // the crank to bring three shutters down. The solution plays it three times. First, lit from the start, with the crank in
 // hand at once and a turn the moment the crank is free: it is through the glass before the third shutter is down, and it
-// has you at once. Then a look at the slide: its window shut as it reaches the glass, it slides along the glass to one
-// still open (it runs there side on, its heels ringing, and turns back to the glass). Last, at a player's pace: it
+// has you at once. Then a look at the run: its window shut as it reaches the glass, it runs along the glass to one still
+// open, side on, its heels ringing, and turns back to the glass. Last, at a player's pace: it
 // watches for a few seconds, tries the shutter by hand (it will not come down), turns round and throws the power main
 // about nine seconds in, takes a few seconds to find the crank in the dark, faces the windows and cranks at a click every
 // quarter of a second, the one it is coming for first, then wherever it goes (it runs across the lot for it); the third
@@ -35,7 +35,7 @@ const nightmare = [
   ['eval', 'window.__lit = ' + litRun],
   ['expect', '__lit.state === "dying" && __lit.cause === "lit" && __lit.down < 3 && G.L.s.through', 'cranked with the lights on from the start: it came through the glass first'],
   ['eval', 'restartLevel()'], ['wait', 300],
-  // the slide along the glass: power off, crank in hand, its window one turn from down as it reaches the glass
+  // the run along the glass: power off, crank in hand, its window one turn from down as it reaches the glass
   ['eval', `(() => { const L = G.L, s = L.s, c = L.creature, it = L.items.find(i => i.id === 'crank');
     useTarget(L.targets.find(t => t.id === 'main')); it.taken = true; G.inv.push(it);
     const k = s.target, ln = L.lanes[k]; L.targets.find(t => t.id === 'shutter' + k).count = s.turns - 1;

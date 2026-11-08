@@ -47,8 +47,8 @@ LEVELS.push({
     const PANES = [[-3.85, -1.55], [-1.25, 1.25], [1.55, 3.85]], ZW = 5.0, ZG = 5.02, ZS = 5.1, TOP = 2.6, BOT = 0.1;
     // a shutter takes ten turns, and the crank goes round no faster than once in 0.65 s: nearly 19 s for all three. Lit, it
     // is at the glass LIT_T s after it sets off, whatever its start: too soon for all three even from a hand that has the
-    // crank at once and never misses a turn. (Shut its window just as it gets there and it slides along to the next, but
-    // lit it slides quickly: no more than two more turns fit in before it is at the last glass, and the 28th turn cannot
+    // crank at once and never misses a turn. (Shut its window just as it gets there and it runs along to the next, but
+    // lit it runs quickly: no more than two more turns fit in before it is at the last glass, and the 28th turn cannot
     // come before 17.5 s.) So the lights have to go first; thrown within the first ten seconds or so, there is room to find
     // the crank and bring all three down at an ordinary pace.
     const TURNS = 10, TURN = 0.65, LIT_T = 17, DARK_AMB = 0.42;
@@ -280,9 +280,8 @@ LEVELS.push({
       s.slide = { to: k, from: s.target, atGlass, dir }; s.target = k; s.slides++;
       L.lane = ln; L.laneIdx = k; L.barrierDist = ln.barrierDist;
       c.hold = null; c.reached = false; c.dist = place(p0.x, p0.z); c.lat = 0;
-      // the turn side on starts from wherever it already is: from the front, or running already (the other way: it spins
-      // round through edge on)
-      // (going the same way already, it does not slow down to start again: its run picks up from the speed it has)
+      // the turn side on starts from wherever it already is: from the front, or running already (the other way, it spins
+      // round through edge on; the same way, it does not slow down to start again but picks up from the speed it has)
       const was = c.runPose ? c.runTurn : 0, back = c.runPose && was >= 0.5 && c.runDir !== dir;
       const x0 = c.runPose && !back && was >= 0.5 ? RUN.ramp * clamp(c.runAmt, 0, 1) : 0, e00 = runAt(x0);
       if (!c.runPose) Object.assign(c, { runPose: true, runAmt: 0, runGait: 0, runStep: 0 });
@@ -319,8 +318,8 @@ LEVELS.push({
       // it was coming for this one: to the nearest window still open
       const p = cr().pos(), yaw = Math.atan2(p.x, p.z), gap = k => Math.abs(wrapPi(L.lanes[k].yaw - yaw));
       const best = Math.min(...open.map(gap)), near = open.filter(k => gap(k) < best + 0.01);
-      if (slideTo(near[Math.floor(cr().rand() * near.length)])) G.say('The shutter is down. It slides along the glass to a window that is still open.', 'The shutter is down. It moves along the glass to another window.');
-      else G.say('The shutter is down. Out in the lot, it turns for a window that is still open.', 'The shutter is down. Out in the lot, it turns for another window.');
+      if (slideTo(near[Math.floor(cr().rand() * near.length)])) G.say('The shutter is down. It runs along the glass to a window that is still open.', 'The shutter is down. It runs along the glass to another window.');
+      else G.say('The shutter is down. Out in the lot, it runs for a window that is still open.', 'The shutter is down. Out in the lot, it runs for another window.');
     };
     L.isWon = () => s.down.every(Boolean) && !s.through;
     L.deathCause = () => (s.power ? 'lit' : s.through ? 'through' : null);
@@ -405,12 +404,14 @@ LEVELS.push({
         return [x, y + jy + 0.4 * (a * (y - hy) + b * (y - my)), ZS - 0.07 * (a + b) - dz];
       };
       R.add(SC.mkQuad(L, [x0, yb + jy, ZS], [x1, yb + jy, ZS], [x1, TOP, ZS], [x0, TOP, ZS], steel, { sortDist: sd }));
-      const N = 12, dx = (x1 - x0) / N;
-      for (let q = 0; q < N; q++) {
-        const xa = x0 + q * dx, xc = xa + dx;
-        for (let y = TOP - 0.15; y > yb + 0.08; y -= 0.15) R.add(SC.mkQuad(L, at(xa, y, 0.004), at(xc, y, 0.004), at(xc, y + 0.022, 0.004), at(xa, y + 0.022, 0.004), SEAM, { sortDist: sd - 0.001 }));
-        R.add(SC.mkQuad(L, at(xa, yb, 0.008), at(xc, yb, 0.008), at(xc, yb + 0.08, 0.008), at(xa, yb + 0.08, 0.008), RAIL, { sortDist: sd - 0.002 }));
-      }
+      // each seam (and the bottom rail) in short pieces, so it can bow; a seam the bulge does not reach is one straight piece
+      const N = 12, bent = y => Math.abs(bump(hx, y)) + Math.abs(bowl(mx, y)) > 0.01;
+      const seam = (y, h, dz, col, sdk) => {
+        const n = bent(y) || bent(y + h) ? N : 1, w = (x1 - x0) / n;
+        for (let q = 0; q < n; q++) { const xa = x0 + q * w, xc = xa + w; R.add(SC.mkQuad(L, at(xa, y, dz), at(xc, y, dz), at(xc, y + h, dz), at(xa, y + h, dz), col, { sortDist: sd - sdk })); }
+      };
+      for (let y = TOP - 0.15; y > yb + 0.08; y -= 0.15) seam(y, 0.022, 0.004, SEAM, 0.001);
+      seam(yb, 0.08, 0.008, RAIL, 0.002);
       // the light on the bulge: soft, bright over it and dark under it (the other way round as it springs back out)
       const shade = (x, y, w, ht, amt) => {
         if (Math.abs(amt) < 0.02) return;
