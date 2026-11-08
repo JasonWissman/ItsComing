@@ -66,7 +66,7 @@ CREATURES.customer = {
     const g = c.runGait || 0, k = c.runAmt === undefined ? 1 : c.runAmt, near = clamp(1 - c.dist / 8, 0, 1);
     const suit = P.col([14, 12, 16]), suitL = P.col([30, 28, 34]), suitD = P.col([7, 6, 9]), shirt = P.col([210, 206, 198]), skin = P.col([212, 198, 186]), skinD = P.col([170, 152, 140]), black = P.col([6, 4, 6]);
     ctx.save(); ctx.scale(c.runDir || 1, 1);
-    const hipY = lerp(1.03, 0.94, k), top = hipY + 0.7, S = 0.42 * k, lift = 0.36 * k, seg = 0.5;
+    const hipY = lerp(1.03, 0.94, k), top = 1.66, S = 0.42 * k, lift = 0.36 * k, seg = 0.5;   // the head as high as it stands face on, however hard it runs
     // a foot: on the ground and going back under it for half the stride, then up behind and through to the front. The
     // knee is wherever two equal bones from the hip put it, bending forward.
     const leg = o => {

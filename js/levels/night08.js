@@ -17,7 +17,7 @@ Object.assign(ICONS, {
   },
 });
 LEVELS.push({
-  id: 'diner', title: 'The Diner', facing: 180, eyeH: 1.65, laneSwitch: false,   // its only change of way is the slide along the glass
+  id: 'diner', title: 'The Diner', facing: 180, eyeH: 1.65, laneSwitch: false,   // its only change of way is its run to a window still open
   pal: { skyTop: [5, 5, 10], fog: [20, 17, 24], ground: [18, 16, 20], fogDist: 90 },
   ambient: { wind: 0.25, drone: 1.0, droneFreq: 60, windFreq: 300 },
   lights: [
@@ -255,6 +255,7 @@ LEVELS.push({
     // over the last quarter
     const runAt = x => { const a = RUN.ramp, v = 1 / (1 - a); return x < a ? v * x * x / (2 * a) : x > 1 - a ? 1 - v * (1 - x) * (1 - x) / (2 * a) : v * (x - a / 2); };
     const stride = (c, moved, dt) => {
+      if (!(c.runGait >= 0)) Object.assign(c, { runAmt: 0, runGait: 0, runStep: 0 });   // it has not run yet tonight (its own window shut last): it starts from a standstill
       c.runAmt += (clamp(moved / Math.max(dt, 1e-3) / RUN.full, 0, 1) - c.runAmt) * Math.min(1, dt * 14);
       c.runGait += moved / RUN.step * Math.PI;
       const n = Math.floor(c.runGait / Math.PI);

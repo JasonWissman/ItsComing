@@ -51,6 +51,19 @@ const nightmare = [
   ['expect', 'Math.abs(wrapPi(G.L.creature.yaw - __y)) > 25 * DEG && G.L.creature.dist > G.L.creature.lane.barrierDist && !G.L.s.through && G.L.creature.lane.idx === G.L.s.target', 'it ran sideways along the glass to the window it is making for, and is still outside it'],
   ['expect', '__run >= 2 && !G.L.creature.runPose', 'its heels rang as it ran, and it has turned back to face the glass'],
   ['eval', 'restartLevel()'], ['wait', 300],
+  // its own window shut last: it never ran tonight, and shut out it comes up to the glass at a run, a heel to a stride (not
+  // a clatter at every frame), and beats on it. The save is left alone: the win that counts comes at a player's pace.
+  ['eval', `(() => { const L = G.L, s = L.s, c = L.creature, it = L.items.find(i => i.id === 'crank');
+    window.__save = [SAVE.recordWin, SAVE.unlock]; SAVE.recordWin = SAVE.unlock = () => {};
+    useTarget(L.targets.find(t => t.id === 'main')); it.taken = true; G.inv.push(it);
+    const k = s.target; c.u = 1 - (L.lanes[k].barrierDist + 3) / c.D0;
+    window.__run = 0; AUDIO.footstep = (kk, v, p) => { if (kk === 'shoesRun') __run++; return __step(kk, v, p); };
+    [0, 1, 2].filter(i => i !== k).concat([k]).forEach(i => { const t = L.targets.find(t => t.id === 'shutter' + i); t.count = s.turns - 1; s.lastTurn = -9; useTarget(t); }); })()`],
+  ['expect', 'G.L.won && G.L.s.slides === 0', 'its own window shut last: it never ran, and the night is won'],
+  ['waitUntil', 'G.L.s.blows >= 3', 4000],
+  ['expect', '__run >= 1 && __run <= 12', 'it ran up to the glass, a heel to a stride'],
+  ['eval', 'AUDIO.footstep = __step; SAVE.recordWin = __save[0]; SAVE.unlock = __save[1]'],
+  ['eval', 'restartLevel()'], ['wait', 300],
   // at a player's pace: watch it come, try the shutter of its window by hand
   ['waitUntil', 'G.L.t >= 5', 8000],
   onTarget(k => [['use', 'shutter' + k]]),
