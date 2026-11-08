@@ -607,7 +607,8 @@ function update(dt) {
   if (watching) { const wp = L.watchPoint && L.watchPoint(); if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
-  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? (L.watchZoom ? L.watchZoom() : 1.35) : 1;   // a night may close in further (a long way off, it is small)
+  // a night may close in further once won (a long way off, it is small), or bring the view in close in play (facing the pay phone)
+  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? (L.watchZoom ? L.watchZoom() : 1.35) : (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
@@ -928,7 +929,7 @@ function pollGamepad() {
   const zoom = (pad.buttons[7] && pad.buttons[7].pressed) || (pad.buttons[6] && pad.buttons[6].pressed) || (pad.buttons[5] && pad.buttons[5].pressed);
   const fake = key => ({ key, preventDefault() {}, shiftKey: false });
   if (dir !== PAD.dir && dir) {
-    if (G.state === 'play') onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir]));
+    if (G.state === 'play') { if (!(G.L.padDir && G.L.padDir(dir))) onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir])); }   // a night may take the d-pad first (the pay phone's keys)
     else {
       const f = document.activeElement;
       if (f && f.tagName === 'INPUT' && f.type === 'range' && dir <= 2) { if (dir === 1) f.stepDown(); else f.stepUp(); f.dispatchEvent(new Event('input')); } // left and right move a slider
@@ -938,7 +939,7 @@ function pollGamepad() {
   PAD.dir = dir;
   if (!a && PAD.a) drawLetGo('pad');   // A let go: a bow drawn by holding it is loosed
   if (a && !PAD.a) {
-    if (G.state === 'play') gamepadUse('pad');
+    if (G.state === 'play') { if (!(G.L.padUse && G.L.padUse())) gamepadUse('pad'); }
     else { // A presses the focused button or ticks the focused box; only the click-anywhere screens go on with it
       const f = document.activeElement;
       if (f && (f.tagName === 'BUTTON' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();

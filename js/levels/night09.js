@@ -1,11 +1,15 @@
 'use strict';
 // ============================================================ 9. THE PHONE BOOTH ============================================================
 // A phone booth on a corner, at night, in the rain, with glass all round. A man in a long coat is walking toward it from a long
-// way off, down one of three streets, swinging a lantern. Somewhere in your notebook, among the shopping and the dentist, is the
-// number to ring. Find the page, lift the receiver and dial it: it rings for seven seconds while he keeps coming, and then
-// someone picks up and he turns round. Every other number in the notebook belongs to someone ordinary, and is not in service.
-// The notebook and the keypad are panels at the bottom of the screen, made here and taken away in onEnd, so the street stays
-// in view while you read and dial; the night goes on behind them.
+// way off, up the main street or along the pavement from the east, swinging a lantern. The pay phone is on the west wall, the
+// side that looks along the pavement away from both, so using it means turning your back on him. Somewhere in your notebook,
+// among the shopping and the dentist, is the number to ring. It is a pay phone: lift the receiver, put a coin in (there is one
+// lying about in the booth) and dial on its own keys; it rings for seven seconds while he keeps coming, and then someone picks
+// up and a car comes for you. Every other number in the notebook belongs to someone ordinary and is not in service, and hanging
+// up gives the coin back, into the coin return.
+// The notebook is a panel at the bottom of the screen, made here and taken away in onEnd, so the street stays in view while you
+// read; the night goes on behind it. Facing the phone brings the view in close to it (L.viewZoom), so its keys are big enough
+// to click or tap; the number keys dial too, and a gamepad's d-pad moves a highlight over the phone (L.padDir, L.padUse).
 Object.assign(ICONS, {
   // a small battered notebook, spiral at the top, held shut with an elastic band
   notebook(ctx, P) {
@@ -20,10 +24,27 @@ Object.assign(ICONS, {
     for (let k = 0; k < 6; k++) { P_ell(ctx, -0.27 + k * 0.1, 0.86, 0.022, 0.05, ring); }
     ctx.restore();
   },
+  // a ten pence piece: a milled silver rim round a face with the figure on it, catching the light along its top
+  coin(ctx, P) {
+    const rim = P.col([132, 134, 140]), face = P.col([196, 198, 204]), face2 = P.col([172, 174, 180]), ink = P.col([104, 106, 114]), shine = P.col([238, 240, 244]);
+    P_ell(ctx, 0, 0.5, 0.46, 0.46, P.col([70, 72, 78]));          // its edge, in shadow
+    P_ell(ctx, 0, 0.52, 0.44, 0.44, rim);
+    for (let k = 0; k < 28; k++) { const a = k / 28 * TAU; P_line(ctx, Math.cos(a) * 0.4, 0.52 + Math.sin(a) * 0.4, Math.cos(a) * 0.44, 0.52 + Math.sin(a) * 0.44, 0.014, ink); }   // the milling
+    P_ell(ctx, 0, 0.52, 0.36, 0.36, face2); P_ell(ctx, -0.03, 0.55, 0.33, 0.33, face);
+    ctx.save(); ctx.translate(0.0, 0.42); ctx.scale(0.0125, -0.0125);
+    ctx.font = 'bold 22px Georgia, "Liberation Serif", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = ink; ctx.fillText('10', 0, 0);
+    ctx.restore();
+    P_line(ctx, -0.24, 0.79, 0.12, 0.84, 0.035, shine);            // the light along its top
+    // lying about, it catches the light now and then: a glint at its edge (still in the hand, where the time is nought)
+    const g = Math.pow(Math.max(0, Math.sin((P.t || 0) * 2.3)), 12);
+    if (g > 0.02) { ctx.globalAlpha = g; P_line(ctx, 0.24, 0.6, 0.24, 1.02, 0.04, P.raw([255, 252, 236])); P_line(ctx, 0.04, 0.81, 0.44, 0.81, 0.04, P.raw([255, 252, 236])); P_ell(ctx, 0.24, 0.81, 0.06, 0.06, P.raw([255, 255, 248])); ctx.globalAlpha = 1; }
+  },
 });
 (() => {
-  const B = 0.55;              // the booth's half-width: the glass is this far from the eye ahead and to either side
-  const BK = 0.8;              // and this far behind, where the pay phone is
+  const XW = -0.8;             // the west wall, where the pay phone is, is this far from the eye
+  const B = 0.55;              // and the glass on the other three sides (the door to the north, east, and the back) this far
+  const PX = XW + 0.1;         // the front of the phone's housing
+  const PHONE_DIR = 6;         // facing the phone is facing west
   const ROAD = -0.12;          // the road is a kerb's height below the pavement the booth stands on
   // ---------------- the notebook ----------------
   // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice; {n} an ordinary number, {k} the one to ring
@@ -89,29 +110,15 @@ Object.assign(ICONS, {
 .pb-pno { position: absolute; right: 14px; bottom: 4px; font: italic 13px Georgia, 'Liberation Serif', serif; color: rgba(34,48,92,.5); }
 .pb-nav { position: absolute; z-index: 1; left: 12px; right: 12px; bottom: 7px; height: 28px; display: flex; align-items: center; justify-content: space-between; }
 .pb-nav span { font: 11px Georgia, 'Liberation Serif', serif; letter-spacing: .3em; color: rgba(234,223,196,.42); }
-.pb-nb button, .pb-kp .pb-kx { background: rgba(0,0,0,.28); border: 1px solid rgba(234,223,196,.28); color: #eadfc4; font: 20px Georgia, 'Liberation Serif', serif; width: 46px; height: 28px; border-radius: 4px; cursor: pointer; line-height: 1; padding: 0; }
-.pb-nb button:hover:not(:disabled), .pb-kp .pb-kx:hover { border-color: rgba(234,223,196,.75); background: rgba(0,0,0,.45); }
+.pb-nb button { background: rgba(0,0,0,.28); border: 1px solid rgba(234,223,196,.28); color: #eadfc4; font: 20px Georgia, 'Liberation Serif', serif; width: 46px; height: 28px; border-radius: 4px; cursor: pointer; line-height: 1; padding: 0; }
+.pb-nb button:hover:not(:disabled) { border-color: rgba(234,223,196,.75); background: rgba(0,0,0,.45); }
 .pb-nb button:disabled { opacity: .28; cursor: default; }
-.pb-nb .pb-close, .pb-kp .pb-kx { position: absolute; top: -11px; right: -11px; width: 28px; height: 28px; border-radius: 50%; font-size: 17px; z-index: 3; background: #2a1d16; }
+.pb-nb .pb-close { position: absolute; top: -11px; right: -11px; width: 28px; height: 28px; border-radius: 50%; font-size: 17px; z-index: 3; background: #2a1d16; }
 .pb-flip { animation: pbflip .17s ease-out; }
 @keyframes pbflip { from { transform: translateY(-10px); opacity: .15; } to { transform: none; opacity: 1; } }
-.pb-kp { position: fixed; right: 22px; bottom: 22px; width: 198px; padding: 12px 13px; border-radius: 9px; background: linear-gradient(165deg, #a0a4ab 0%, #6e7279 46%, #4c5056 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -3px 8px rgba(0,0,0,.45), 0 10px 26px rgba(0,0,0,.7); font-family: Arial, Helvetica, 'Liberation Sans', sans-serif; -webkit-user-select: none; user-select: none; }
-.pb-kp .pb-kx { background: #2a2c30; font: 16px Arial, 'Liberation Sans', sans-serif; }
-.pb-lcd { background: #142018; border-radius: 3px; box-shadow: inset 0 2px 6px #000; padding: 5px 9px 3px; margin-bottom: 10px; }
-.pb-num { font: 20px 'Courier New', 'Liberation Mono', monospace; letter-spacing: 2px; color: #a8e2a4; height: 23px; white-space: nowrap; overflow: hidden; }
-.pb-st { font: 10px Arial, 'Liberation Sans', sans-serif; letter-spacing: .16em; text-transform: uppercase; color: rgba(168,226,164,.62); height: 13px; white-space: nowrap; }
-.pb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-.pb-k { height: 42px; border-radius: 5px; border: 1px solid #2a2c30; background: linear-gradient(#f2f3f4, #b6b9be); color: #151515; font: bold 19px Arial, 'Liberation Sans', sans-serif; box-shadow: 0 3px 0 #2b2d31, inset 0 1px 0 #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; line-height: 1; }
-.pb-k small { font-size: 7.5px; letter-spacing: .1em; color: #4a4a4a; margin-top: 2px; font-weight: normal; height: 8px; }
-.pb-k:hover { background: linear-gradient(#ffffff, #c9ccd1); }
-.pb-k:active, .pb-k.dn { transform: translateY(2px); box-shadow: 0 1px 0 #2b2d31, inset 0 1px 3px rgba(0,0,0,.35); }
-.pb-hang { margin-top: 11px; width: 100%; height: 30px; border-radius: 4px; border: 1px solid #17181b; background: #26282c; color: #d9d3c5; font: 11px Arial, 'Liberation Sans', sans-serif; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; }
-.pb-hang:hover { background: #34373c; }
-@media (pointer: coarse) { .pb-kp, .pb-nb { bottom: 150px; } }
-@media (max-width: 700px) { .pb-nb { left: 8px; width: calc(58vw - 16px); max-width: none; } .pb-kp { right: 8px; width: calc(40vw - 16px); padding: 8px; } .pb-k { height: 34px; } }
+@media (pointer: coarse) { .pb-nb { bottom: 150px; } }
+@media (max-width: 700px) { .pb-nb { left: 8px; width: calc(58vw - 16px); max-width: none; } }
 @media (pointer: coarse) and (max-height: 520px) {
-  .pb-kp { bottom: 128px; right: 10px; width: 198px; padding: 12px 13px; transform: scale(.72); transform-origin: 100% 100%; }
-  .pb-k { height: 42px; }
   .pb-nb { --lh: 21px; --pt: 15px; --mx: 30px; bottom: 128px; left: 10px; width: 300px; max-width: calc(100vw - 190px); }
   .pb-cover { padding: 15px 10px 34px; }
   .pb-sheet, .pb-page { min-height: 0; }
@@ -125,34 +132,36 @@ Object.assign(ICONS, {
     pal: { skyTop: [12, 11, 16], fog: [50, 45, 47], ground: [22, 22, 26], fogDist: 82 },
     ambient: { wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 },
     weather: { kind: 'rain', density: 0.9, wind: 0.25 },
-    lights: [{ x: 0, y: 2.25, z: -0.12, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
+    lights: [{ x: -0.12, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
     startInv: ['journal'],
     text: {
       intro: 'It has rained since the last bus, and the phone booth on the corner is the only dry place on the street.<br>Someone in a long coat is walking toward it from a long way off, in step, swinging a lantern. You have seen him before. The last time, you wrote something down.',
-      death: { default: 'He came through the glass as if it were rain.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.' },
-      win: 'Someone picked up and said your name, once, quietly, the way you call something home. Out in the rain he stopped where he was and stood there for a long time. Then he turned round and walked back the way he had come.',
+      death: { default: 'He came through the glass as if it were rain.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.', nocoin: 'You were still pressing the keys of a phone that would not dial when he came through the glass.' },
+      win: 'Someone picked up and said your name, once, quietly, the way you call something home. Then there were headlights in the rain, and a car drew up at the kerb and its back door swung open. He had stopped in the street, in the lights, and he stood there while you got in. When you looked back he had turned round and was walking away the way he had come.',
       fragment: 'The number is still in the notebook, in your own handwriting. You do not remember writing it down, and you have not crossed it out.',
     },
-    // three streets, each seen whole through a pane of the booth: up the main street through the door, and both ways along
-    // the pavement the booth stands on. The pay phone is on the fourth side, so nothing comes from behind it.
+    // two streets, each seen whole through a pane of the booth: up the main street through the door, and along the pavement
+    // to the east through the east pane. The pay phone is on the west wall, so nothing comes that way, and the back of the
+    // booth looks at a shuttered shop
     lanes: [
       { deg: 0, name: 'up the street', y: ROAD, apertures: [{ z: B, x0: -0.46, x1: 0.3, y0: 1.06, y1: 2.04 }] },
       { deg: 90, name: 'along to the east', apertures: [{ z: B, x0: -0.46, x1: 0.46, y0: 1.06, y1: 2.04 }] },
-      { deg: 270, name: 'along to the west', apertures: [{ z: B, x0: -0.46, x1: 0.46, y0: 1.06, y1: 2.04 }] },
     ],
     laneSwitch: false,   // he keeps to the street he started down: the race is with the phone, not with finding him
-    // he reaches the glass in 33 to 41 s. A careful reader finds the number by page four on average, has dialled it by about
-    // 17 s and is answered by 24; with the number on the last page and his quickest walk there are a few seconds to spare,
-    // and a wrong number first costs about six
-    creatures: [{ type: 'signalman', startDist: 55, time: 64 }],
-    aftermath: { type: 'away', dur: 7.5, wait: 2.6, speed: 1.3 },
+    // he reaches the glass in about 37 to 46 s. A careful player finds the number by page four on average and the coin in a
+    // few seconds, has dialled by about 21 s and is answered by 28; with the number on the last page and his quickest walk
+    // there are several seconds to spare, but hardly any after a wrong number as well, which costs about eight (the coin has
+    // to be taken out of the return and put back in)
+    creatures: [{ type: 'signalman', startDist: 55, time: 72 }],
+    aftermath: { type: 'custom' },   // L.aftermath: the car that comes for you, and what he does
     build(L) {
       const s = L.s;
       const nb = writeNotebook(L.rand);
       const inkRand = mulberry32((L.rand() * 4294967295) >>> 0);
       const pageHtml = nb.pages.map(p => pageHTML(p, inkRand));
       Object.assign(s, { pages: nb.pages, keyPage: nb.keyPage, number: nb.number, numberText: nb.numberText, others: nb.others,
-        hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, padOpen: false, page: 0 });
+        hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, page: 0,
+        credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null });
 
       // ---------------- the street ----------------
       const roadC = [27, 28, 33], paveC = [54, 54, 58], kerbC = [88, 88, 92], paint = [150, 148, 138];
@@ -275,10 +284,11 @@ Object.assign(ICONS, {
       L.lights = lampLights.map(l => worldLight(L, l));
 
       // ---------------- the booth ----------------
-      // a metre and a bit across and a little deeper: you stand nearer the door, with the phone at arm's length behind you
+      // a metre and a third across and a little over a metre deep: the pay phone is on the west wall at arm's length, and
+      // the door (the north pane), the east pane and the back look out on the street, the pavement and the shuttered shop
       const metal = [70, 74, 80], metalD = [52, 55, 61], glass = [150, 172, 198], band = [44, 46, 52];
-      SC.floorQ(L, -B, -BK, B, B, 0.03, [62, 64, 70], { tex: 'tin', texScale: 0.35 });
-      for (const [x, z] of [[-B, -BK], [B, -BK], [-B, B], [B, B]]) SC.box(L, x - 0.035, x + 0.035, 0, 2.36, z - 0.035, z + 0.035, metal);
+      SC.floorQ(L, XW, -B, B, B, 0.03, [62, 64, 70], { tex: 'tin', texScale: 0.35 });
+      for (const [x, z] of [[XW, -B], [B, -B], [XW, B], [B, B]]) SC.box(L, x - 0.035, x + 0.035, 0, 2.36, z - 0.035, z + 0.035, metal);
       const side = (x0, z0, x1, z1) => {
         const ux = Math.sign(x1 - x0) * 0.035, uz = Math.sign(z1 - z0) * 0.035, a = [x0 + ux, z0 + uz], b = [x1 - ux, z1 - uz];
         SC.wallV(L, a[0], a[1], b[0], b[1], 0.03, 0.26, metalD);
@@ -287,159 +297,260 @@ Object.assign(ICONS, {
         SC.wallV(L, a[0], a[1], b[0], b[1], 1.04, 2.06, glass, { alpha: 0.08, noLight: true });
         SC.wallV(L, a[0], a[1], b[0], b[1], 2.06, 2.36, band);
       };
-      side(-B, B, B, B); side(B, B, B, -BK); side(B, -BK, -B, -BK); side(-B, -BK, -B, B);
-      SC.quad(L, [-B, 2.36, -BK], [B, 2.36, -BK], [B, 2.36, B], [-B, 2.36, B], [36, 38, 44]);
-      SC.quad(L, [-0.3, 2.35, -0.17], [0.3, 2.35, -0.17], [0.3, 2.35, -0.07], [-0.3, 2.35, -0.07], [236, 242, 255], { noFog: true, noLight: true });
+      side(XW, B, B, B); side(B, B, B, -B); side(B, -B, XW, -B); side(XW, -B, XW, B);
+      SC.quad(L, [XW, 2.36, -B], [B, 2.36, -B], [B, 2.36, B], [XW, 2.36, B], [36, 38, 44]);
+      SC.quad(L, [-0.17, 2.35, -0.3], [-0.07, 2.35, -0.3], [-0.07, 2.35, 0.3], [-0.17, 2.35, 0.3], [236, 242, 255], { noFog: true, noLight: true });
       // the door's pull (the door is the north pane): a dull bar on two stand-offs from the glass, so it reads as part of the
       // door and not as something lying loose to be picked up
       SC.box(L, 0.355, 0.375, 0.94, 1.32, B - 0.07, B - 0.05, [92, 96, 104]);
       for (const y of [0.97, 1.27]) SC.box(L, 0.358, 0.372, y, y + 0.022, B - 0.05, B - 0.004, [76, 80, 88]);
-      // the pay phone on the back wall: its plate, the housing, an instruction card, the coin slot, the keypad, the coin return
-      const PZ = -BK + 0.1, face = { sortDist: -PZ - 0.01 }, detail = { sortDist: -PZ - 0.015 };   // PZ: the housing's front
-      SC.box(L, -0.22, 0.24, 0.98, 2.04, -BK + 0.005, -BK + 0.02, [58, 62, 68]);
-      SC.box(L, -0.12, 0.12, 1.26, 1.84, -BK + 0.02, PZ, [128, 132, 140]);
-      SC.box(L, -0.125, 0.125, 1.82, 1.85, -BK + 0.02, PZ + 0.01, [96, 100, 108]);
-      SC.wallV(L, -0.095, PZ + 0.001, 0.025, PZ + 0.001, 1.64, 1.77, [214, 208, 190], face);
-      for (let k = 0; k < 4; k++) SC.wallV(L, -0.085, PZ + 0.0015, 0.0, PZ + 0.0015, 1.665 + k * 0.024, 1.671 + k * 0.024, [90, 96, 120], detail);
-      SC.wallV(L, 0.05, PZ + 0.001, 0.095, PZ + 0.001, 1.71, 1.76, [44, 46, 50], face); SC.wallV(L, 0.066, PZ + 0.0015, 0.079, PZ + 0.0015, 1.718, 1.752, [8, 8, 10], detail);
-      SC.wallV(L, -0.07, PZ + 0.001, 0.07, PZ + 0.001, 1.36, 1.605, [96, 100, 106], face);
-      // the keys, each with its figure on it, as on the keypad that comes up when you dial (facing the phone, +x is on your left)
-      const KEYS = ['123', '456', '789', '*0#'];
-      for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
-        const x = (1 - c) * 0.045, y = 1.555 - r * 0.052, ch = KEYS[r][c];
-        SC.wallV(L, x - 0.017, PZ + 0.0015, x + 0.017, PZ + 0.0015, y - 0.017, y + 0.017, [212, 214, 216], detail);
-        SC.sprite(L, x, y - 0.013, PZ + 0.002, 0.026, 0.026, (ctx, P) => {
-          ctx.translate(0, 0.013); ctx.scale(0.00105, -0.00105);
-          ctx.font = 'bold 20px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillStyle = P.col([30, 32, 38]); ctx.fillText(ch, 0, ch === '*' ? 5 : 1);
-        }, { sortDist: -PZ - 0.02 });
-      }
-      SC.wallV(L, -0.045, PZ + 0.001, 0.045, PZ + 0.001, 1.28, 1.33, [30, 30, 34], face);
+
+      // ---------------- the pay phone, on the west wall ----------------
+      // Everything on it is placed by where it lies on the wall: u across it (to your right as you face it, which is north),
+      // y up, and d out from the wall toward you. A plate on the wall; the housing, with the display and the coin slot along
+      // its top, the keys under them and the coin return at the bottom; the receiver hanging on its right; the instruction
+      // card on the plate to its left; the shelf under it all, with the phone book chained to it.
+      const FD = -PX;                                                       // how far the face of the housing is from the eye
+      const face = { sortDist: FD - 0.01 }, detail = { sortDist: FD - 0.015 };
+      const faceQ = (u0, u1, y0, y1, d, col, opts) => SC.wallV(L, XW + d, u0, XW + d, u1, y0, y1, col, opts);
+      const LCD = { u0: -0.108, u1: 0.035, y0: 1.655, y1: 1.725 }, SLOT = { u0: 0.052, u1: 0.105, y0: 1.655, y1: 1.725 };
+      const RET = { u0: -0.05, u1: 0.05, y0: 1.3, y1: 1.375 }, RX = 0.19;   // the coin return; where the receiver hangs
+      const KEYS = ['123', '456', '789', '*0#'], KEY_Y0 = 1.598, KEY_DY = 0.052, KEY_DU = 0.045;
+      SC.box(L, XW + 0.005, XW + 0.02, 0.98, 2.02, -0.25, 0.26, [58, 62, 68]);                    // the plate
+      SC.box(L, XW + 0.02, PX, 1.29, 1.765, -0.13, 0.13, [128, 132, 140]);                        // the housing
+      SC.box(L, XW + 0.02, PX + 0.01, 1.755, 1.785, -0.135, 0.135, [96, 100, 108]);               // its cap
+      faceQ(LCD.u0 - 0.009, LCD.u1 + 0.009, LCD.y0 - 0.009, LCD.y1 + 0.009, 0.1005, [62, 64, 70], face);   // the display's bezel (the display is drawn each frame)
+      faceQ(SLOT.u0, SLOT.u1, SLOT.y0, SLOT.y1, 0.1005, [176, 180, 188], face);                    // the coin slot's chrome plate,
+      faceQ(SLOT.u0 + 0.004, SLOT.u1 - 0.004, SLOT.y0 + 0.004, SLOT.y1 - 0.004, 0.101, [138, 142, 150], detail);
+      faceQ(0.0735, 0.0835, 1.666, 1.714, 0.1015, [6, 6, 8], { sortDist: FD - 0.02 });            // and the slot in it
+      faceQ(-0.075, 0.075, 1.41, 1.63, 0.1005, [92, 96, 102], face);                             // the keypad's plate
+      faceQ(RET.u0, RET.u1, RET.y0, RET.y1, 0.1005, [160, 164, 172], face);                       // the coin return: a chrome surround
+      faceQ(RET.u0 + 0.008, RET.u1 - 0.008, RET.y0 + 0.008, RET.y1 - 0.006, 0.101, [12, 12, 14], detail);   // and its dark mouth
+      // the instruction card, on the plate to the left of the housing: a printed heading, and the three steps in the order
+      // the phone wants them (as on any pay phone), big enough to read in the close view
+      faceQ(-0.232, -0.142, 1.43, 1.67, 0.021, [214, 208, 190]);
+      SC.wallV(L, XW + 0.0215, -0.226, XW + 0.0215, -0.148, 1.625, 1.655, [150, 40, 36], { sortDist: 0.79 });
+      SC.sprite(L, XW + 0.022, 1.43, -0.187, 0.09, 0.24, (ctx, P) => {
+        const print = (t, x, y, px, col, weight) => { ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = (weight || 'bold') + ' ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col; ctx.fillText(t, 0, 0); ctx.restore(); };
+        ctx.save(); ctx.translate(0, 0.2); ctx.scale(0.001, -0.001); ctx.font = 'bold 13px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = P.col([236, 226, 210]); ctx.fillText('TO CALL', 0, 0); ctx.restore();
+        const ink = P.col([36, 42, 70]), red = P.col([150, 40, 36]);
+        [['1', 'LIFT', 'the receiver'], ['2', 'INSERT', 'a coin'], ['3', 'DIAL', 'the number']].forEach(([n, a, b], i) => {
+          const y = 0.158 - i * 0.064;
+          print(n, -0.041, y - 0.021, 30, red);
+          print(a, -0.019, y, 13, ink); print(b, -0.019, y - 0.017, 9.5, ink, 'normal');
+        });
+      }, { sortDist: 0.785 });
       // the shelf under it, and the phone book chained to it: a fat directory lying with its spine to the wall, so what faces
       // you is the block of pages between its yellow covers. Only the faces the eye can see are built (the eye is almost in
       // line with its near side, which would only ever show as a sliver drawn over the cover)
-      SC.box(L, -0.32, 0.32, 1.0, 1.03, -BK + 0.02, -BK + 0.24, [96, 100, 106]);
-      const PB = { x0: -0.25, x1: -0.01, z0: -BK + 0.04, z1: -BK + 0.2, y0: 1.03, y1: 1.1 }, cv = 0.008;
+      SC.box(L, XW + 0.02, XW + 0.24, 1.0, 1.03, -0.32, 0.32, [96, 100, 106]);
+      const PB = { u0: -0.25, u1: -0.01, d0: 0.04, d1: 0.2, y0: 1.03, y1: 1.1 }, cv = 0.008, xN = XW + PB.d1, xF = XW + PB.d0;   // its near edge, and its spine
       const yellow = [200, 166, 54], yellowD = scalec(yellow, 0.72);
-      SC.quad(L, [PB.x0, PB.y1, PB.z0], [PB.x1, PB.y1, PB.z0], [PB.x1, PB.y1, PB.z1], [PB.x0, PB.y1, PB.z1], yellow);   // the cover
-      SC.wallV(L, PB.x0, PB.z1, PB.x1, PB.z1, PB.y1 - cv, PB.y1, yellowD);                                             // its edge
-      SC.wallV(L, PB.x0 + 0.004, PB.z1 - 0.003, PB.x1 - 0.004, PB.z1 - 0.003, PB.y0 + cv, PB.y1 - cv, [216, 208, 184]);   // the pages
-      for (const y of [1.052, 1.07]) SC.wallV(L, PB.x0 + 0.004, PB.z1 - 0.0025, PB.x1 - 0.004, PB.z1 - 0.0025, y, y + 0.0025, [170, 160, 136], { sortDist: -PB.z1 - 0.004 });
-      SC.wallV(L, PB.x0, PB.z1, PB.x1, PB.z1, PB.y0, PB.y0 + cv, yellowD);                                             // the back cover's edge
+      SC.quad(L, [xF, PB.y1, PB.u0], [xF, PB.y1, PB.u1], [xN, PB.y1, PB.u1], [xN, PB.y1, PB.u0], yellow);   // the cover
+      SC.wallV(L, xN, PB.u0, xN, PB.u1, PB.y1 - cv, PB.y1, yellowD);                                       // its edge
+      SC.wallV(L, xN - 0.003, PB.u0 + 0.004, xN - 0.003, PB.u1 - 0.004, PB.y0 + cv, PB.y1 - cv, [216, 208, 184]);   // the pages
+      for (const y of [1.052, 1.07]) SC.wallV(L, xN - 0.0025, PB.u0 + 0.004, xN - 0.0025, PB.u1 - 0.004, y, y + 0.0025, [170, 160, 136], { sortDist: -xN - 0.004 });
+      SC.wallV(L, xN, PB.u0, xN, PB.u1, PB.y0, PB.y0 + cv, yellowD);                                       // the back cover's edge
       // on the cover, toward the spine: the black band the title is printed in, and a line of small print under it
-      const onCover = (z0, z1, col) => SC.quad(L, [PB.x0 + 0.022, PB.y1 + 0.001, z0], [PB.x1 - 0.022, PB.y1 + 0.001, z0], [PB.x1 - 0.022, PB.y1 + 0.001, z1], [PB.x0 + 0.022, PB.y1 + 0.001, z1], col, { sortDist: -PB.z1 + 0.02 });
-      onCover(PB.z0 + 0.024, PB.z0 + 0.056, [34, 30, 26]); onCover(PB.z0 + 0.07, PB.z0 + 0.078, [120, 96, 34]);
+      const onCover = (d0, d1, col) => SC.quad(L, [XW + d0, PB.y1 + 0.001, PB.u0 + 0.022], [XW + d0, PB.y1 + 0.001, PB.u1 - 0.022], [XW + d1, PB.y1 + 0.001, PB.u1 - 0.022], [XW + d1, PB.y1 + 0.001, PB.u0 + 0.022], col, { sortDist: -xN + 0.02 });
+      onCover(PB.d0 + 0.024, PB.d0 + 0.056, [34, 30, 26]); onCover(PB.d0 + 0.07, PB.d0 + 0.078, [120, 96, 34]);
       // the chain, from the book's corner down to a ring at the back of the shelf
-      SC.quad(L, [PB.x0, 1.07, PB.z0 + 0.03], [-0.268, 1.046, PB.z0 + 0.02], [-0.284, 1.034, PB.z0 + 0.005], [-0.296, 1.04, -BK + 0.03], [140, 142, 148], { stroke: true, lw: 0.005 });
-      SC.box(L, -0.304, -0.288, 1.03, 1.05, -BK + 0.02, -BK + 0.03, [120, 122, 128]);
+      SC.quad(L, [XW + 0.07, 1.07, PB.u0], [XW + 0.06, 1.046, -0.268], [XW + 0.045, 1.034, -0.284], [XW + 0.03, 1.04, -0.296], [140, 142, 148], { stroke: true, lw: 0.005 });
+      SC.box(L, XW + 0.02, XW + 0.03, 1.03, 1.05, -0.304, -0.288, [120, 122, 128]);
 
-      // ---------------- the notebook, the receiver, the keypad, the phone book ----------------
-      const journal = mkItem(L, 'journal', 'Notebook', { x: 0.2, y: 1.03, z: -BK + 0.14 }, { w: 0.18, h: 0.22, tool: true, icon: 'notebook' });
+      // ---------------- the notebook, the coin, the receiver, the keys, the coin slot and return, the phone book ----------------
+      const journal = mkItem(L, 'journal', 'Notebook', { x: XW + 0.14, y: 1.03, z: 0.2 }, { w: 0.18, h: 0.22, tool: true, icon: 'notebook' });
+      // the coin: left in the coin return by the last person to use the phone, on the shelf, or dropped on the floor of the
+      // booth, in one of the corners by the phone (the far corners: the rest of the floor is under your feet, at the bottom
+      // edge of the view looking down)
+      const COIN_RET = { x: XW + 0.122, y: RET.y0 + 0.006, z: 0 };
+      const coin = mkItem(L, 'coin', 'Coin', [
+        Object.assign({ key: 'return', jitter: 0 }, COIN_RET),
+        { key: 'shelf', x: XW + 0.13, y: 1.03, z: 0.17, flat: true, jitter: 0.02 },
+        { key: 'floorSW', x: -0.66, y: 0.03, z: -0.42, flat: true, jitter: 0.03 },
+        { key: 'floorNW', x: -0.66, y: 0.03, z: 0.42, flat: true, jitter: 0.03 },
+      ], { w: 0.07, h: 0.07, icon: 'coin' });
+      if (coin.y < 0.5) coin.w = coin.h = 0.09;   // on the floor, a little further off and lower in the view, drawn a little bigger
+      const coinInCup = () => !coin.taken && Math.abs(coin.x - COIN_RET.x) < 0.01 && Math.abs(coin.y - COIN_RET.y) < 0.01;
+      const coinBack = () => {   // a call that never went through gives the coin back: it rattles down into the return
+        const p = L.pt(COIN_RET.x, COIN_RET.y, COIN_RET.z);
+        Object.assign(coin, { x: p[0], y: p[1], z: p[2], w: 0.07, h: 0.07, flat: false, taken: false, uses: 1 });
+      };
       let dom = null;
-      const shown = { nb: false, kp: false };
+      const shown = { nb: false };
       const fmt = d => d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d;
-      const STATUS = { idle: '', tone: 'dial tone', dialing: '', checking: '', dead: 'not in service', connecting: '', ringing: 'ringing', answered: 'connected' };
-      const drawPad = () => { if (!dom) return; dom.num.textContent = fmt(s.dialed); dom.st.textContent = STATUS[s.line] || ''; };
       const drawPage = flip => {
         if (!dom) return;
         dom.page.innerHTML = pageHtml[s.page]; dom.pno.textContent = String(s.page + 1);
         dom.prev.disabled = s.page === 0; dom.next.disabled = s.page === pageHtml.length - 1;
         if (flip) { dom.sheet.classList.remove('pb-flip'); void dom.sheet.offsetWidth; dom.sheet.classList.add('pb-flip'); }
       };
-      // the panels are made the first time they are wanted, under the HUD (the toast, the tooltip and what you hold are always
-      // drawn over them) and so under the game's own overlay (a menu always covers them)
+      // the panel is made the first time it is wanted, under the HUD (the toast, the tooltip and what you hold are always
+      // drawn over it) and so under the game's own overlay (a menu always covers it)
       const ensureDom = () => {
         if (dom) return;
         const style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
         const nbEl = document.createElement('div'); nbEl.className = 'pb-nb'; nbEl.style.display = 'none'; nbEl.setAttribute('aria-label', 'Notebook');
         nbEl.innerHTML = '<div class="pb-cover"><div class="pb-rings"></div><button type="button" class="pb-close" aria-label="Close the notebook">×</button><div class="pb-sheet"><div class="pb-page"></div><div class="pb-pno"></div></div><div class="pb-nav"><button type="button" class="pb-prev" aria-label="Previous page">‹</button><span>← →</span><button type="button" class="pb-next" aria-label="Next page">›</button></div></div>';
-        const kpEl = document.createElement('div'); kpEl.className = 'pb-kp'; kpEl.style.display = 'none'; kpEl.setAttribute('aria-label', 'Keypad');
-        kpEl.innerHTML = '<button type="button" class="pb-kx" aria-label="Put the keypad away">×</button><div class="pb-lcd"><div class="pb-num"></div><div class="pb-st"></div></div><div class="pb-grid">' +
-          ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(k => '<button type="button" class="pb-k" data-k="' + k + '">' + k + '<small>' + (LETTERS[k] || '') + '</small></button>').join('') + '</div><button type="button" class="pb-hang">Hang up</button>';
         const before = document.getElementById('hud') || document.getElementById('overlay');
-        for (const el of [nbEl, kpEl]) {
-          if (before) document.body.insertBefore(el, before); else document.body.appendChild(el);
-          el.addEventListener('mousedown', e => e.preventDefault());               // no focus, no text selection
-          el.addEventListener('mousemove', e => { e.stopPropagation(); G.mouse.x = -1; G.mouse.y = -1; });   // nothing behind the panel is hovered
-          el.addEventListener('click', e => e.stopPropagation());
-        }
-        dom = { style, nbEl, kpEl, page: nbEl.querySelector('.pb-page'), pno: nbEl.querySelector('.pb-pno'), sheet: nbEl.querySelector('.pb-sheet'), prev: nbEl.querySelector('.pb-prev'), next: nbEl.querySelector('.pb-next'), num: kpEl.querySelector('.pb-num'), st: kpEl.querySelector('.pb-st') };
+        if (before) document.body.insertBefore(nbEl, before); else document.body.appendChild(nbEl);
+        nbEl.addEventListener('mousedown', e => e.preventDefault());               // no focus, no text selection
+        nbEl.addEventListener('mousemove', e => { e.stopPropagation(); G.mouse.x = -1; G.mouse.y = -1; });   // nothing behind the panel is hovered
+        nbEl.addEventListener('click', e => e.stopPropagation());
+        dom = { style, nbEl, page: nbEl.querySelector('.pb-page'), pno: nbEl.querySelector('.pb-pno'), sheet: nbEl.querySelector('.pb-sheet'), prev: nbEl.querySelector('.pb-prev'), next: nbEl.querySelector('.pb-next') };
         dom.prev.addEventListener('click', () => turn(-1)); dom.next.addEventListener('click', () => turn(1));
         nbEl.querySelector('.pb-close').addEventListener('click', () => setNotebook(false));
-        kpEl.querySelector('.pb-kx').addEventListener('click', () => { s.padOpen = false; AUDIO.sfx('ui'); sync(); });
-        kpEl.querySelector('.pb-hang').addEventListener('click', () => { if (s.hook === 'off' && s.line !== 'answered') hangUp(); });
-        for (const b of kpEl.querySelectorAll('.pb-k')) b.addEventListener('click', () => press(b.dataset.k, false));
-        drawPage(false); drawPad();
+        drawPage(false);
       };
-      // show what is wanted, and only while the night is being played: a pause, a death or the win puts both away
+      // show the notebook while it is wanted, and only while the night is being played: a pause, a death or the win puts it away
       const sync = () => {
         if (!G.inv.includes(journal)) s.nbOpen = false;          // put down, it cannot be read
-        if (s.hook !== 'off' || s.line === 'answered') s.padOpen = false;
         receiver.name = s.hook === 'off' ? 'Hook' : 'Receiver';   // with the receiver in your hand, what is left to click is the hook
-        const live = G.L === L && G.state === 'play';
-        const nbShow = live && s.nbOpen, kpShow = live && s.padOpen;
-        if ((nbShow || kpShow) && !dom) ensureDom();
+        const nbShow = G.L === L && G.state === 'play' && s.nbOpen;
+        if (nbShow && !dom) ensureDom();
         if (!dom) return;
         if (nbShow !== shown.nb) { dom.nbEl.style.display = nbShow ? '' : 'none'; shown.nb = nbShow; }
-        if (kpShow !== shown.kp) { dom.kpEl.style.display = kpShow ? '' : 'none'; shown.kp = kpShow; }
       };
       const setNotebook = open => { s.nbOpen = open; AUDIO.sfx(open ? 'pickup' : 'ui'); sync(); };
       const turn = d => { const p = clamp(s.page + d, 0, pageHtml.length - 1); if (p === s.page) return; s.page = p; AUDIO.sfx('ui'); drawPage(true); };
-      const openPad = () => { s.padOpen = true; sync(); drawPad(); };
-      const lift = () => { s.hook = 'off'; s.line = 'tone'; s.dialed = ''; AUDIO.sfx('receiver'); G.say('You lift the receiver. A dial tone.', 'A dial tone.'); openPad(); };
+      // a pay phone, in the order it wants: lift the receiver (a dial tone), put the coin in, dial. A coin put in with the
+      // receiver on its hook drops straight through to the return; hanging up on a call that was never answered gives it back
+      const lift = () => { s.hook = 'off'; s.line = 'tone'; s.dialed = ''; AUDIO.sfx('receiver'); G.say('You lift the receiver. A dial tone.', 'A dial tone.'); };
       const hangUp = () => {
         const ringing = s.line === 'ringing' || s.line === 'connecting';
         s.hook = 'on'; s.line = 'idle'; s.dialed = ''; s.ringFrom = null; AUDIO.sfx('clunk');
+        if (s.credit) { s.credit = 0; s.returnAt = L.t + 0.45; AUDIO.sfx('coinReturn'); }
         if (ringing) G.say('You hung up. The ringing stops.', 'The ringing stops.');
-        sync(); drawPad();
       };
-      // one press of a key: a beep whatever happens; only a live line that is still being dialled takes the digit
-      const press = (k, fromKey) => {
-        if (s.hook !== 'off' || s.line === 'answered') return;
+      // one press of a key: it goes down whatever happens; it beeps only on a live line with credit, and only a line that is
+      // still being dialled takes the digit
+      const NO_CREDIT = ['It will not dial until a coin is in it.', 'Nothing. No credit.'];
+      const press = ch => {
+        if (G.state !== 'play') return;
+        s.keyT[ch] = L.t;
+        if (s.line === 'answered') return;
+        if (s.hook !== 'off') { AUDIO.sfx('keyClick'); G.say('The receiver is still on its hook.', 'The receiver is on its hook.'); return; }
+        if (!s.credit) { AUDIO.sfx('keyClick'); s.deadKeys++; G.say(NO_CREDIT[0], NO_CREDIT[1]); return; }
         AUDIO.sfx('dial');
-        if (fromKey && dom) { const b = dom.kpEl.querySelector('[data-k="' + k + '"]'); if (b) { b.classList.add('dn'); setTimeout(() => b.classList.remove('dn'), 120); } }
-        if (k === '*' || k === '#') return;
+        if (ch === '*' || ch === '#') return;
         if (s.line === 'dead') { G.say('The line is dead. Hang up and try again.', 'The line is dead.'); return; }
         if (s.line !== 'tone' && s.line !== 'dialing') return;
-        s.dialed += k; s.line = 'dialing';
+        s.dialed += ch; s.line = 'dialing';
         if (s.dialed.length === 7) { s.line = s.dialed === s.number ? 'connecting' : 'checking'; s.doneAt = L.t; }
-        drawPad();
       };
       const receiver = mkTarget(L, {
-        id: 'receiver', name: 'Receiver', x: 0.166, y: 1.27, z: PZ + 0.03, w: 0.11, h: 0.44,
+        id: 'receiver', name: 'Receiver', x: XW + 0.135, y: 1.3, z: RX, w: 0.11, h: 0.44,
         onClick() { if (s.line === 'answered') return true; if (s.hook === 'on') lift(); else hangUp(); return true; },
       });
-      mkTarget(L, {
-        id: 'keypad', name: 'Keypad', x: 0, y: 1.35, z: PZ + 0.01, w: 0.16, h: 0.27,
-        onClick() { if (s.hook !== 'off') { G.say('The receiver is still on its hook.', 'The receiver is on its hook.'); AUDIO.sfx('nope'); } else if (s.line !== 'answered') { openPad(); AUDIO.sfx('ui'); } return true; },
+      // a target stands a little in front of the face, so it is drawn (and outlined when hovered) after what is on the face,
+      // and is placed and sized so that on screen it covers just what it stands for there
+      const front = (u, y0, w, h, d) => { const k = (-XW - (d || 0.125)) / (-XW - 0.104); return { x: XW + (d || 0.125), z: u * k, y: L.eyeH + (y0 - L.eyeH) * k, w: w * k, h: h * k }; };
+      // the keys: each a target of its own, a little bigger than the key, and drawn each frame so it can go down when pressed
+      const keys = [], KEY_NAME = { '*': 'star', '#': 'hash' };
+      const drawKey = (ctx, P, ch) => {
+        const dn = s.keyT[ch] !== undefined && L.t - s.keyT[ch] < 0.16;      // down for a moment after each press
+        P_rect(ctx, -0.0205, 0.0015, 0.041, 0.041, P.col([30, 32, 36]));     // the hole in the plate it stands in
+        const y0 = dn ? 0.0035 : 0.0085;
+        if (!dn) P_rect(ctx, -0.017, 0.0045, 0.034, 0.0045, P.col([112, 114, 120]));   // its lower side, while it stands proud
+        P_rect(ctx, -0.017, y0, 0.034, 0.032, P.col(dn ? [150, 152, 158] : [214, 216, 218]));
+        if (!dn) P_rect(ctx, -0.017, y0 + 0.0285, 0.034, 0.0035, P.col([240, 241, 243]));   // the light along its top edge
+        ctx.save(); ctx.translate(0, y0 + (LETTERS[ch] ? 0.0195 : 0.016)); ctx.scale(0.00105, -0.00105);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.col(dn ? [16, 18, 22] : [30, 32, 38]);
+        ctx.font = 'bold 20px Arial, Helvetica, sans-serif'; ctx.fillText(ch, 0, ch === '*' ? 5 : 1);
+        if (LETTERS[ch]) { ctx.font = 'bold 7px Arial, Helvetica, sans-serif'; ctx.fillText(LETTERS[ch], 0, 12.5); }
+        ctx.restore();
+      };
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+        const ch = KEYS[r][c], u = (c - 1) * KEY_DU, yc = KEY_Y0 - r * KEY_DY;
+        const t = mkTarget(L, Object.assign(front(u, yc - 0.023, 0.042, 0.046), { id: 'key' + (KEY_NAME[ch] || ch), name: '', onClick() { press(ch); return true; } }));   // (no name: what it is is printed on it)
+        keys.push({ ch, u, y: yc, w: 0.042, h: 0.046, t, spr: SC.mkSprite(L, XW + 0.104, yc - 0.022, u, 0.044, 0.044, (ctx, P) => drawKey(ctx, P, ch), { sortDist: FD - 0.016 }) });
+      }
+      const slot = mkTarget(L, {
+        ...front((SLOT.u0 + SLOT.u1) / 2, SLOT.y0 - 0.004, SLOT.u1 - SLOT.u0 + 0.01, SLOT.y1 - SLOT.y0 + 0.008), id: 'slot', name: 'Coin slot', accepts: ['coin'],
+        onClick() { if (s.credit) { G.say('There is a coin in it already.', 'It has a coin in it.'); return true; } return false; },
+        use() {
+          if (s.hook !== 'off') { s.returnAt = L.t + 0.5; AUDIO.sfx('coinReturn'); G.say('The coin drops straight through. Lift the receiver first.', 'It drops straight through.'); return true; }
+          s.credit = 10; AUDIO.sfx('coin');
+          if (G.toastT > 0 && NO_CREDIT.includes(G.lastToast.msg)) G.toastT = 0.001;   // there is credit now: the line that said there was none goes
+          return true;
+        },
+      });
+      const ret = mkTarget(L, {
+        ...front(0, RET.y0 - 0.004, RET.u1 - RET.u0 + 0.012, RET.y1 - RET.y0 + 0.008, 0.115), id: 'return', name: 'Coin return',
+        onClick() {
+          if (coinInCup()) { coin.taken = true; G.inv.push(coin); G.active = G.inv.length - 1; G.hover = null; AUDIO.sfx('pickup'); return true; }   // (as picking it up)
+          AUDIO.sfx('nope'); G.say('There is nothing in the coin return.', 'Empty.'); return true;
+        },
       });
       // what you click is the whole book as the eye sees it: up the plane of its front edge to where the back of its cover shows
-      const bookTop = L.eyeH + (PB.y1 - L.eyeH) * PB.z1 / PB.z0;
+      const bookTop = L.eyeH + (PB.y1 - L.eyeH) * (-xN) / (-xF);
       mkTarget(L, {
-        id: 'book', name: 'Phone book', x: (PB.x0 + PB.x1) / 2, y: PB.y0 - 0.004, z: PB.z1, w: PB.x1 - PB.x0 + 0.016, h: bookTop - PB.y0 + 0.012,
+        id: 'book', name: 'Phone book', x: xN, y: PB.y0 - 0.004, z: (PB.u0 + PB.u1) / 2, w: PB.u1 - PB.u0 + 0.016, h: bookTop - PB.y0 + 0.012,
         onClick() { AUDIO.sfx('nope'); G.say('The phone book has been out in the damp too long. The pages will not come apart.', 'The pages are swollen with damp. They will not come apart.'); return true; },
       });
       const sm = () => L.creatures[0];
       // the exchange: a wrong number is not in service; the right one connects, rings for seven seconds from the last digit, and is answered
+      // facing the phone, the view tips down to the middle of its face; brought in closer than the whole face will fit (on a
+      // small screen), to the display and the keys
+      const phonePitch = () => Math.atan2(L.eyeH - (L.viewZoom() > 1.5 ? 1.56 : 1.515), FD);
       L.update = () => {
-        if (s.line === 'checking' && L.t - s.doneAt > 0.7) { s.line = 'dead'; AUDIO.sfx('noService'); G.say('The number you have dialled is not in service.', 'The number you have dialled is not in service.', 3.2); drawPad(); }
-        if (s.line === 'connecting' && L.t - s.doneAt > 0.9) { s.line = 'ringing'; s.ringFrom = s.doneAt; s.nextRing = L.t + 3; AUDIO.sfx('ringback'); G.say('It is ringing.', 'It is ringing.'); drawPad(); }
+        if (G.state === 'play') {   // the close view of the phone holds its tilt while you face it, and lets it go when you turn away
+          const cam = G.cam;
+          if (closeUp()) { s.pitch = phonePitch(); if (cam.tPitch !== s.pitch) cam.tPitch = s.pitch; } else { s.padSel = null; if (s.pitch !== undefined && cam.tPitch === s.pitch) cam.tPitch = 0; }
+        }
+        if (s.returnAt && L.t >= s.returnAt) { s.returnAt = 0; coinBack(); }
+        if (s.line === 'checking' && L.t - s.doneAt > 0.7) { s.line = 'dead'; AUDIO.sfx('noService'); G.say('The number you have dialled is not in service.', 'The number you have dialled is not in service.', 3.2); }
+        if (s.line === 'connecting' && L.t - s.doneAt > 0.9) { s.line = 'ringing'; s.ringFrom = s.doneAt; s.nextRing = L.t + 3; AUDIO.sfx('ringback'); G.say('It is ringing.', 'It is ringing.'); }
         if (s.line === 'ringing' && L.t >= s.nextRing) { s.nextRing = L.t + 3; AUDIO.sfx('ringback'); }   // one ring every 3 s, only while it rings: hanging up stops it
         if (s.line === 'ringing' && L.t - s.ringFrom >= 7) {
           s.line = 'answered'; s.answeredAt = L.t; AUDIO.sfx('answer'); G.say('Someone picks up.', 'Someone picks up.', 3.5);
-          s.nbOpen = false; s.padOpen = false; drawPad(); sync();
+          s.nbOpen = false; sync();
         }
       };
       L.isWon = () => s.line === 'answered';
-      L.onCatch = () => { s.nbOpen = false; s.padOpen = false; sync(); return false; };
-      L.deathCause = () => (s.line === 'ringing' || s.line === 'connecting') ? 'ringing' : s.line === 'dead' ? 'dead' : null;
+      L.onCatch = () => { s.nbOpen = false; sync(); return false; };
+      L.deathCause = () => (s.line === 'ringing' || s.line === 'connecting') ? 'ringing' : s.line === 'dead' ? 'dead' : (s.hook === 'off' && !s.credit && s.deadKeys) ? 'nocoin' : null;
 
-      // ---------------- input: the notebook from the inventory, the keys while a panel is open ----------------
+      // ---------------- facing the phone: the view comes in close, and the keys take the number keys and the d-pad ----------------
+      const closeUp = () => G.L === L && G.state === 'play' && G.cam.dirIdx === PHONE_DIR && G.cam.tPitch < PITCH_DOWN * 0.5;
+      // close enough that the keys are a comfortable size to click or tap (about 46 px apart), and at least close enough that
+      // the face of the phone fills the view between the line along the top of the screen and what you hold along the
+      // bottom: 1.3 at 1280x760, about 2.2 on a phone held sideways
+      L.viewZoom = () => (closeUp() ? clamp(46 / (KEY_DU / FD * (R.H / 2) / Math.tan(31 * DEG)), 1.3, 2.6) : 0);   // (the renderer's view is 62 degrees high)
+      // a gamepad: the d-pad moves a highlight over the receiver, the coin slot, the keys and the coin return, as they lie on
+      // the phone; past the last thing that way it turns (or looks down) as it always does. A presses what is highlighted.
+      const controls = keys.concat([{ t: receiver, u: RX, y: 1.52, w: 0.11, h: 0.44 }, { t: slot, u: (SLOT.u0 + SLOT.u1) / 2, y: (SLOT.y0 + SLOT.y1) / 2, w: 0.063, h: 0.078 }, { t: ret, u: 0, y: (RET.y0 + RET.y1) / 2, w: 0.112, h: 0.073 }]);
+      L.padDir = dir => {
+        if (!closeUp()) return false;
+        const D = [null, [-1, 0], [1, 0], [0, 1], [0, -1]][dir], from = s.padSel || { u: 0, y: 1.52 };
+        let best = null, bestS = Infinity;
+        for (const c of controls) {
+          if (c === s.padSel) continue;
+          const du = c.u - from.u, dy = c.y - from.y, d = Math.hypot(du, dy), cos = d > 1e-6 ? (du * D[0] + dy * D[1]) / d : 0;
+          if (cos < 0.5) continue;                                         // within sixty degrees of the way it was pushed
+          const sc = d * (1 + 3 * (1 - cos));
+          if (sc < bestS) { bestS = sc; best = c; }
+        }
+        if (!best) { s.padSel = null; return false; }
+        s.padSel = best; AUDIO.sfx('ui'); return true;
+      };
+      L.padUse = () => {
+        if (!closeUp()) return false;
+        ensureAudio();
+        if (!s.padSel) {   // nothing highlighted yet: what is nearest the middle of the view, as the Use button does
+          let bd = Infinity;
+          for (const c of controls) { const p = R.screenPos(XW + 0.11, c.y, c.u); const d = p ? Math.hypot(p.x - R.W / 2, p.y - R.H / 2) : Infinity; if (d < bd) { bd = d; s.padSel = c; } }
+        }
+        if (s.padSel) useTarget(s.padSel.t);
+        return true;
+      };
+
+      // ---------------- input: the notebook from the inventory, and the number keys while you face the phone ----------------
       const invEl = document.getElementById('inventory');
       const onInv = e => {
         if (G.L !== L || G.state !== 'play') return;
-        const slot = e.target && e.target.closest ? e.target.closest('.slot') : null; if (!slot) return;
-        const idx = Array.prototype.indexOf.call(invEl.children, slot);
+        const slotEl = e.target && e.target.closest ? e.target.closest('.slot') : null; if (!slotEl) return;
+        const idx = Array.prototype.indexOf.call(invEl.children, slotEl);
         if (G.inv[idx] !== journal) return;
         e.stopPropagation();                                     // clicking the notebook opens it (or shuts it); it is never put down this way
         G.active = idx; G.invSig = '';
@@ -448,7 +559,7 @@ Object.assign(ICONS, {
       const onKey = e => {
         if (G.L !== L || G.state !== 'play') return;
         const k = e.key;
-        if (shown.kp && k && k.length === 1 && '0123456789*#'.includes(k)) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) press(k, true); return; }   // the number keys dial instead of choosing what you hold
+        if (closeUp() && k && k.length === 1 && '0123456789*#'.includes(k)) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) press(k); return; }   // facing the phone the number keys press its keys instead of choosing what you hold
         if (shown.nb && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) turn(k === 'ArrowLeft' ? -1 : 1); }   // A and D still turn
       };
       if (invEl) invEl.addEventListener('click', onInv, true);
@@ -456,27 +567,27 @@ Object.assign(ICONS, {
       L.onEnd = () => {
         window.removeEventListener('keydown', onKey, true);
         if (invEl) invEl.removeEventListener('click', onInv, true);
-        if (dom) { dom.nbEl.remove(); dom.kpEl.remove(); dom.style.remove(); dom = null; }
-        shown.nb = shown.kp = false;
+        if (dom) { dom.nbEl.remove(); dom.style.remove(); dom = null; }
+        shown.nb = false;
       };
 
-      // ---------------- every frame: the receiver, its cord, rain running down the glass ----------------
+      // ---------------- every frame: the receiver, its cord, the keys, the display, rain running down the glass ----------------
       const drops = [];
       const drng = mulberry32(4242);
-      for (const [x0, z0, x1, z1, nx, nz] of [[-B, B, B, B, 0, 1], [B, B, B, -BK, 1, 0], [B, -BK, -B, -BK, 0, -1], [-B, -BK, -B, B, -1, 0]])
+      for (const [x0, z0, x1, z1, nx, nz] of [[XW, B, B, B, 0, 1], [B, B, B, -B, 1, 0], [B, -B, XW, -B, 0, -1], [XW, -B, XW, B, -1, 0]])
         for (let k = 0; k < 11; k++) drops.push({ x0, z0, x1, z1, nx, nz, u: 0.06 + drng() * 0.88, v: 0.04 + drng() * drng() * 0.4, ph: drng() * 10, len: 0.015 + drng() * 0.04 });
       // the cord: steel-armoured, out of the bottom of the housing. On the hook it hangs in a loop to the bottom of the
       // handset; lifted, it runs over the front of the shelf and away toward you, out of the bottom of the view. It is a
-      // smooth curve through a few points with a twist drawn along it for the armour, in short lengths so that each is as
-      // thick as it is near
-      const Z = PZ - 0.02;
+      // smooth curve through a few points (u, y, d, as on the phone) with a twist drawn along it for the armour, in short
+      // lengths so that each is as thick as it is near
       const cord = (ctrl, sd) => {
         const out = [];
+        ctrl = ctrl.map(([u, y, d]) => [XW + d, y, u]);
         for (let i = 0; i < ctrl.length - 1; i++) {
           const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)], seg = [];
           const n = Math.max(6, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]) / 0.009));   // a twist every centimetre or so
           for (let k = 0; k <= n; k++) { const t = k / n, t2 = t * t, t3 = t2 * t; seg.push([0, 1, 2].map(j => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3))); }
-          const twist = seg.map((p, k) => { const q = seg[Math.min(n, k + 1)], r = seg[Math.max(0, k - 1)], dx = q[0] - r[0], dy = q[1] - r[1], l = Math.hypot(dx, dy) || 1, s = (k & 1 ? 1 : -1) * 0.0028; return [p[0] + dy / l * s, p[1] - dx / l * s, p[2]]; });
+          const twist = seg.map((p, k) => { const q = seg[Math.min(n, k + 1)], r = seg[Math.max(0, k - 1)], dz = q[2] - r[2], dy = q[1] - r[1], l = Math.hypot(dz, dy) || 1, w = (k & 1 ? 1 : -1) * 0.0028; return [p[0], p[1] - dz / l * w, p[2] + dy / l * w]; });
           const w = pts => pts.map(p => L.pt(p[0], p[1], p[2]));
           out.push({ kind: 'poly', pts: w(seg), color: [54, 56, 62], stroke: true, lw: 0.0075, sortDist: sd - i * 0.0001 });
           out.push({ kind: 'poly', pts: w(twist), color: [124, 126, 132], stroke: true, lw: 0.0016, sortDist: sd - i * 0.0001 - 0.00005 });
@@ -484,11 +595,11 @@ Object.assign(ICONS, {
         return out;
       };
       const cords = {
-        on: cord([[0.1, 1.26, Z], [0.104, 1.17, Z + 0.01], [0.13, 1.115, Z + 0.02], [0.158, 1.17, Z + 0.03], [0.166, 1.28, Z + 0.03]], -PZ - 0.035),
-        off: cord([[0.1, 1.26, Z], [0.104, 1.1, Z + 0.1], [0.11, 1.042, -BK + 0.245], [0.13, 0.9, -0.42], [0.15, 0.86, -0.3], [0.17, 1.0, -0.15], [0.18, 1.2, -0.05]], 0.3),
+        on: cord([[0.1, 1.29, 0.08], [0.104, 1.2, 0.09], [0.13, 1.145, 0.1], [0.165, 1.2, 0.11], [RX - 0.002, 1.31, 0.12]], FD - 0.035),
+        off: cord([[0.1, 1.29, 0.08], [0.104, 1.13, 0.18], [0.11, 1.042, 0.245], [0.13, 0.9, 0.38], [0.15, 0.86, 0.5], [0.17, 1.0, 0.65], [0.18, 1.2, 0.75]], 0.3),
       };
       // the handset, drawn as a billboard: the eye only ever sees it from where you stand
-      const handset = SC.mkSprite(L, 0.166, 1.27, PZ + 0.03, 0.1, 0.44, (ctx, P) => {
+      const handset = SC.mkSprite(L, XW + 0.13, 1.3, RX, 0.1, 0.44, (ctx, P) => {
         ctx.scale(0.1, 0.44);
         const k = P.col([20, 20, 22]), kl = P.col([58, 58, 64]), kd = P.col([6, 6, 8]);
         P_ell(ctx, 0, 0.885, 0.46, 0.1, k); P_rect(ctx, -0.46, 0.8, 0.92, 0.085, k);       // the earpiece
@@ -496,25 +607,54 @@ Object.assign(ICONS, {
         P_ell(ctx, 0, 0.11, 0.46, 0.1, k); P_rect(ctx, -0.46, 0.11, 0.92, 0.09, k);         // the mouthpiece
         P_line(ctx, -0.09, 0.26, -0.09, 0.74, 0.05, kl);                                    // the light along it
         for (const y of [0.86, 0.14]) for (const x of [-0.18, 0, 0.18]) P_ell(ctx, x, y, 0.05, 0.012, kd);
-      }, { sortDist: -PZ - 0.04 });
+      }, { sortDist: FD - 0.04 });
       // the empty cradle the handset hangs in, seen once it is lifted: a dark arm with a cup for each end, so what is left
       // to click (the hook) is a thing you can see, the shape of what was taken from it
-      const cradle = SC.mkSprite(L, 0.166, 1.27, PZ + 0.03, 0.1, 0.44, (ctx, P) => {
+      const cradle = SC.mkSprite(L, XW + 0.13, 1.3, RX, 0.1, 0.44, (ctx, P) => {
         ctx.scale(0.1, 0.44);
         const arm = P.col([22, 23, 27]), cup = P.col([34, 35, 40]), hole = P.col([6, 6, 8]), bolt = P.col([96, 98, 104]);
         P_rect(ctx, -0.16, 0.15, 0.32, 0.7, arm);
         for (const y of [0.86, 0.14]) { P_ell(ctx, 0, y, 0.42, 0.062, cup); P_ell(ctx, 0, y + (y > 0.5 ? 0.01 : -0.01), 0.3, 0.034, hole); }
         for (const y of [0.32, 0.68]) P_ell(ctx, 0, y, 0.055, 0.012, bolt);
-      }, { sortDist: -PZ - 0.025 });
+      }, { sortDist: FD - 0.025 });
+      // the display: dark while the receiver is on its hook; lifted, it lights and shows the credit (or what the line is
+      // doing) over the number as it is dialled
+      const lcdText = () => {
+        if (s.hook !== 'off') return null;
+        const top = s.line === 'dead' ? 'NOT IN SERVICE' : (s.line === 'checking' || s.line === 'connecting' || s.line === 'ringing') ? 'CALLING' : s.line === 'answered' ? 'CONNECTED' : 'CREDIT ' + (s.credit ? '10p' : '0p');
+        return [top, fmt(s.dialed)];
+      };
+      const lcd = SC.mkSprite(L, PX + 0.0015, LCD.y0, (LCD.u0 + LCD.u1) / 2, LCD.u1 - LCD.u0, LCD.y1 - LCD.y0, (ctx, P) => {
+        const w = LCD.u1 - LCD.u0, h = LCD.y1 - LCD.y0, txt = lcdText();
+        P_rect(ctx, -w / 2, 0, w, h, txt ? P.raw([140, 180, 124]) : P.col([38, 48, 40]));
+        if (!txt) return;
+        ctx.fillStyle = P.raw([20, 34, 22]); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        ctx.save(); ctx.translate(-w / 2 + 0.006, h - 0.016); ctx.scale(0.0006, -0.0006); ctx.font = 'bold 20px Arial, Helvetica, sans-serif'; ctx.fillText(txt[0], 0, 0); ctx.restore();
+        ctx.save(); ctx.translate(-w / 2 + 0.006, 0.01); ctx.scale(0.00125, -0.00125); ctx.font = 'bold 20px "Courier New", "Liberation Mono", monospace'; ctx.fillText(txt[1], 0, 0); ctx.restore();
+      }, { sortDist: FD - 0.016, noLight: true });
+      // the front lip of the coin return, drawn over a coin lying in it
+      const lip = SC.mkWallV(L, XW + 0.104, RET.u0 + 0.008, XW + 0.104, RET.u1 - 0.008, RET.y0 + 0.006, RET.y0 + 0.017, [150, 154, 162], { sortDist: FD - 0.035 });
+      // the gamepad's highlight, round whatever it is on
+      const hl = { kind: 'sprite', x: 0, y: 0, z: 0, w: 0.05, h: 0.05, noFog: true, noLight: true, sortDist: FD - 0.05, dist: FD, draw: (ctx) => {
+        ctx.save(); ctx.strokeStyle = 'rgba(255,236,190,0.95)'; ctx.lineWidth = 0.0035; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 12;
+        ctx.strokeRect(-hl.w / 2, 0, hl.w, hl.h); ctx.restore();
+      } };
       L.dynamic = () => {
         sync();
         const off = s.hook === 'off';
-        const hy = off ? 1.665 : 1.615;   // the hook rises when the weight comes off it
+        const hy = off ? 1.695 : 1.645;   // the hook rises when the weight comes off it
         if (off) R.add(cradle);
-        R.add(SC.mkQuad(L, [0.12, hy, PZ - 0.012], [0.15, hy, PZ - 0.012], [0.15, hy + 0.018, PZ - 0.012], [0.12, hy + 0.018, PZ - 0.012], [150, 154, 160], { sortDist: -PZ - 0.03 }));
-        R.add(SC.mkQuad(L, [0.15, hy - 0.01, PZ - 0.012], [0.158, hy - 0.01, PZ - 0.012], [0.158, hy + 0.018, PZ - 0.012], [0.15, hy + 0.018, PZ - 0.012], [120, 124, 130], { sortDist: -PZ - 0.031 }));
+        R.add(SC.mkQuad(L, [XW + 0.088, hy, 0.13], [XW + 0.088, hy, 0.16], [XW + 0.088, hy + 0.018, 0.16], [XW + 0.088, hy + 0.018, 0.13], [150, 154, 160], { sortDist: FD - 0.03 }));
+        R.add(SC.mkQuad(L, [XW + 0.088, hy - 0.01, 0.16], [XW + 0.088, hy - 0.01, 0.168], [XW + 0.088, hy + 0.018, 0.168], [XW + 0.088, hy + 0.018, 0.16], [120, 124, 130], { sortDist: FD - 0.031 }));
         if (!off) R.add(handset);
         for (const c of off ? cords.off : cords.on) R.add(c);
+        for (const k of keys) R.add(k.spr);
+        R.add(lcd); R.add(lip);
+        if (closeUp() && s.padSel) {
+          const c = s.padSel, f = front(c.u, c.y - c.h / 2 - 0.003, c.w + 0.01, c.h + 0.006, 0.13), p = L.pt(f.x, f.y, f.z);
+          Object.assign(hl, { x: p[0], y: p[1], z: p[2], w: f.w, h: f.h });
+          R.add(hl);
+        }
         // rain on the outside of the glass: thin runs, each sliding down at its own pace with a bead of water at its foot
         for (const d of drops) {
           const x = d.x0 + (d.x1 - d.x0) * d.u + d.nx * 0.012, z = d.z0 + (d.z1 - d.z0) * d.u + d.nz * 0.012;
@@ -523,10 +663,233 @@ Object.assign(ICONS, {
           const at = (a, dy) => [x + d.nz * a, y + dy, z + d.nx * a];   // a along the pane, dy up it
           R.add({ kind: 'poly', pts: [at(-0.0008, d.len), at(0.0008, d.len), at(0.0009, 0.006), at(0.0026, 0.0032), at(0, 0), at(-0.0026, 0.0032), at(-0.0009, 0.006)].map(p => L.pt(p[0], p[1], p[2])), color: [196, 208, 228], alpha: 0.3, noFog: true, noLight: true });
         }
+        if (s.end && s.end.pose) for (const p of carParts()) R.add(p);
       };
-      // his lantern: a warm light that walks with him, and its glow
-      const lanternAt = () => { const c = sm(), p = c.pos(), side = c.away ? -0.46 : 0.46; return { x: p.x + Math.cos(c.yaw) * side, y: p.y + 0.75, z: p.z - Math.sin(c.yaw) * side }; };
-      L.dynamicLights = () => { const p = lanternAt(); return [{ x: p.x, y: p.y, z: p.z, r: 4.5, i: 0.6, color: [255, 190, 110], flicker: 0.3, seed: 5, cone: { x: 0, y: -1, z: 0, cos: Math.cos(75 * DEG) } }]; };
+
+      // ---------------- the car that comes for you ----------------
+      // Once someone has picked up, a car comes fast down his street, passing him, and pulls up hard at the kerb by the booth
+      // with its back door to you: down the main street in its left-hand lane, left round the corner and across to the kerb
+      // a few steps east of the booth (so the door that opens is its right-hand one), or along the cross street from the east.
+      // Either way it stands where it is seen whole through the east pane, door and all, and not right outside the glass
+      // (where the eye would only look down on its roof) or along the pavement to the west (behind the pay phone). It sounds
+      // its horn and the back door swings open on a lit inside, with someone at the wheel. If he is standing in its way it
+      // stops short of him, its lights on him. It is built each frame from boxes in its own frame: a along it (forward), b
+      // across it (to its left, or for the car that came round the corner, mirrored, to its right: toward the kerb either
+      // way), y up from the road.
+      const CAR = { col: [150, 140, 112], V: 20, BRAKE: 20, T0: 0.3, FROM: 50 };
+      const carPath = (laneN, stopX) => {
+        const pts = [];
+        const line = (x0, z0, x1, z1) => { const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.2)); for (let i = pts.length ? 1 : 0; i <= n; i++) pts.push([lerp(x0, x1, i / n), lerp(z0, z1, i / n)]); };
+        if (laneN) {
+          const r = 3.2, cx = 1.75 + r, cz = 2.15 + r, n = Math.ceil(r * Math.PI / 2 / 0.2);
+          line(1.75, CAR.FROM, 1.75, cz);
+          for (let i = 1; i <= n; i++) { const a = Math.PI + Math.PI / 2 * i / n; pts.push([cx + r * Math.cos(a), cz + r * Math.sin(a)]); }
+          line(cx, 2.15, Math.max(stopX, cx + 0.4), 2.15);
+        } else line(CAR.FROM, 2.15, stopX, 2.15);
+        const sAt = [0];
+        for (let i = 1; i < pts.length; i++) sAt.push(sAt[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+        return { pts, sAt, len: sAt[sAt.length - 1], m: laneN };
+      };
+      const poseAt = (path, sv) => {
+        let i = 1;
+        while (i < path.pts.length - 1 && path.sAt[i] < sv) i++;
+        const a = path.pts[i - 1], b = path.pts[i], k = clamp((sv - path.sAt[i - 1]) / Math.max(1e-6, path.sAt[i] - path.sAt[i - 1]), 0, 1);
+        const fx = b[0] - a[0], fz = b[1] - a[1], fl = Math.hypot(fx, fz) || 1;
+        return { x: lerp(a[0], b[0], k), z: lerp(a[1], b[1], k), fx: fx / fl, fz: fz / fl, m: path.m };
+      };
+      // a point in the car's frame, in the night's (b mirrored for the car that pulls up with its right side to the kerb)
+      const carPt = (P, a, b, y) => { if (P.m) b = -b; return [P.x + a * P.fx - b * P.fz, ROAD + y, P.z + a * P.fz + b * P.fx]; };
+      // where along its path it has to stop: the end, or short of him if its front would come within reach of him
+      const stopShort = (path, him) => {
+        for (let sv = 0; sv <= path.len; sv += 0.2) {
+          const P = poseAt(path, sv), l = carPt(P, 2.25, 0.9, 0), r = carPt(P, 2.25, -0.9, 0);
+          const ex = r[0] - l[0], ez = r[2] - l[2], k = clamp(((him.x - l[0]) * ex + (him.z - l[2]) * ez) / (ex * ex + ez * ez), 0, 1);
+          if (Math.hypot(him.x - (l[0] + ex * k), him.z - (l[2] + ez * k)) < 0.7) return Math.max(0, sv - 0.4);
+        }
+        return path.len;
+      };
+      // the car, built for where it is this frame: a low body with chrome bumpers and a strip along each side, a cabin that
+      // narrows to a dark vinyl roof with the glass sloping in all round, and the wheels. Each part is closed, so a face
+      // turned from the eye is simply left out; what lies on a face (a lamp, a window, a seam) is drawn just after it.
+      const carParts = () => {
+        const e = s.end, P = e.pose, out = [], col = CAR.col, eye = [0, L.eyeH, 0];
+        const W = (a, b, y) => { const p = carPt(P, a, b, y); return L.pt(p[0], p[1], p[2]); };
+        const meanD = pts => pts.reduce((acc, v) => acc + Math.hypot(v[0], v[2]), 0) / pts.length;
+        const sub = (u, v) => [u[0] - v[0], u[1] - v[1], u[2] - v[2]], dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+        const avg = pts => [0, 1, 2].map(j => pts.reduce((acc, v) => acc + v[j], 0) / pts.length);
+        // a closed part from its faces (in the car's frame, [a, b, y] corners): the faces that look at the eye, shaded as
+        // SC.box shades (lighter on top, darker at the ends than along the sides); opts.early draws them that much earlier
+        const part = (faces, c0, opts) => {
+          const fw = faces.map(f => f.map(q => W(q[0], q[1], q[2]))), mid = avg(fw.flat()), res = [];
+          for (const pts of fw) {
+            const u = sub(pts[1], pts[0]), v = sub(pts[2], pts[0]);
+            let n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+            const fc = avg(pts);
+            if (dot(n, sub(fc, mid)) < 0) n = n.map(x => -x);
+            if (dot(n, sub(eye, fc)) <= 1e-7) { res.push(null); continue; }
+            const nl = Math.hypot(n[0], n[1], n[2]) || 1, along = Math.abs(n[0] * P.fx + n[2] * P.fz) / nl;
+            const k = n[1] / nl > 0.6 ? 1.08 : along > 0.7 ? 0.66 : 0.78;
+            const r = Object.assign({ kind: 'poly', pts, color: scalec(c0, k) }, opts || {});
+            if (r.early) r.sortDist = meanD(pts) + r.early;
+            out.push(r); res.push(r);
+          }
+          return res;
+        };
+        const box = (a0, a1, b0, b1, y0, y1, c0, opts) => part([
+          [[a0, b0, y0], [a0, b1, y0], [a0, b1, y1], [a0, b0, y1]], [[a1, b0, y0], [a1, b1, y0], [a1, b1, y1], [a1, b0, y1]],
+          [[a0, b0, y0], [a1, b0, y0], [a1, b0, y1], [a0, b0, y1]], [[a0, b1, y0], [a1, b1, y0], [a1, b1, y1], [a0, b1, y1]],
+          [[a0, b0, y1], [a1, b0, y1], [a1, b1, y1], [a0, b1, y1]],
+        ], c0, opts);   // back, front, right, left, top
+        const on = (f, pts, cl, opts, d) => { if (!f) return null; const r = Object.assign({ kind: 'poly', pts: pts.map(q => W(q[0], q[1], q[2])), color: cl, sortDist: meanD(f.pts) - (d || 0.004) }, opts || {}); out.push(r); return r; };   // (d: how soon after the face)
+        const lit = e.doorT !== undefined, bright = { noLight: true, noFog: true };   // the light inside is on once the door is open
+        const glassC = lit ? [128, 98, 64] : [22, 26, 32], glassO = lit ? bright : {};
+        for (const a0 of [-1.73, 1.11]) for (const b of [-1, 1]) {   // the wheels: under the body, so with no top to them
+          const a1 = a0 + 0.62, b0 = b > 0 ? 0.6 : -0.905, b1 = b > 0 ? 0.905 : -0.6;
+          part([[[a0, b0, 0], [a0, b1, 0], [a0, b1, 0.56], [a0, b0, 0.56]], [[a1, b0, 0], [a1, b1, 0], [a1, b1, 0.56], [a1, b0, 0.56]], [[a0, b0, 0], [a1, b0, 0], [a1, b0, 0.56], [a0, b0, 0.56]], [[a0, b1, 0], [a1, b1, 0], [a1, b1, 0.56], [a0, b1, 0.56]]], [18, 18, 20], { early: 3 });   // drawn before the body, which hides all but their feet
+        }
+        const body = box(-2.2, 2.2, -0.9, 0.9, 0.3, 0.78, col);
+        if (body[4]) body[4].sortDist = meanD(body[4].pts) + 0.2;   // its top is under the cabin: drawn before it from anywhere
+        for (const s0 of [-1, 1]) box(s0 > 0 ? 2.2 : -2.27, s0 > 0 ? 2.27 : -2.2, -0.88, 0.88, 0.3, 0.42, [168, 170, 176]);   // the bumpers
+        // the cabin: its foot along the body, its roof narrower and shorter, so the glass slopes in on every side
+        const A0 = -1.35, A1 = 0.9, BB = 0.84, YB = 0.78, T0 = -1.05, T1 = 0.42, BT = 0.72, YT = 1.3;
+        const cab = part([
+          [[A0, -BB, YB], [A0, BB, YB], [T0, BT, YT], [T0, -BT, YT]], [[A1, -BB, YB], [A1, BB, YB], [T1, BT, YT], [T1, -BT, YT]],
+          [[A0, -BB, YB], [A1, -BB, YB], [T1, -BT, YT], [T0, -BT, YT]], [[A0, BB, YB], [A1, BB, YB], [T1, BT, YT], [T0, BT, YT]],
+          [[T0, -BT, YT], [T1, -BT, YT], [T1, BT, YT], [T0, BT, YT]],
+        ], col);
+        if (cab[4]) cab[4].color = [70, 64, 58];   // a dark vinyl roof
+        // a point on a side of the cabin, k of the way along it (back to front) and h of the way up
+        const cs = (sd, k, h) => [lerp(lerp(A0, A1, k), lerp(T0, T1, k), h), sd * lerp(BB, BT, h) + sd * 0.001, lerp(YB, YT, h)];
+        for (const [f, sd] of [[cab[3], 1], [cab[2], -1]]) {
+          on(f, [cs(sd, 0.06, 0.1), cs(sd, 0.47, 0.1), cs(sd, 0.47, 0.9), cs(sd, 0.08, 0.9)], glassC, glassO);   // the back side window
+          on(f, [cs(sd, 0.52, 0.1), cs(sd, 0.95, 0.1), cs(sd, 0.9, 0.9), cs(sd, 0.52, 0.9)], glassC, glassO);    // the front one
+        }
+        const ce = (a0, a1, sd, h) => [lerp(a0, a1, h), sd * lerp(BB, BT, h) * 0.9, lerp(YB, YT, h)];   // a point on its sloping front or back
+        on(cab[1], [ce(A1 + 0.002, T1 + 0.002, -1, 0.08), ce(A1 + 0.002, T1 + 0.002, 1, 0.08), ce(A1 + 0.002, T1 + 0.002, 1, 0.92), ce(A1 + 0.002, T1 + 0.002, -1, 0.92)], glassC, glassO);   // the windscreen
+        on(cab[0], [ce(A0 - 0.002, T0 - 0.002, -1, 0.1), ce(A0 - 0.002, T0 - 0.002, 1, 0.1), ce(A0 - 0.002, T0 - 0.002, 1, 0.9), ce(A0 - 0.002, T0 - 0.002, -1, 0.9)], glassC, glassO);   // the back window
+        // someone at the wheel, on the right: a shape against the light inside, seen through the near side's front window
+        if (lit) on(cab[3], [cs(1, 0.66, 0.12), cs(1, 0.84, 0.12), cs(1, 0.83, 0.62), cs(1, 0.79, 0.78), cs(1, 0.72, 0.8), cs(1, 0.67, 0.64)], [14, 12, 12], bright, 0.006);
+        // on the body: the lamps, the grille, the chrome strip along each side, the seams of the doors and their handles
+        const lamp = [255, 246, 214], red = [210, 34, 26];
+        for (const b of [-1, 1]) {
+          on(body[1], [[2.201, b * 0.54, 0.5], [2.201, b * 0.82, 0.5], [2.201, b * 0.82, 0.66], [2.201, b * 0.54, 0.66]], lamp, bright);
+          on(body[0], [[-2.201, b * 0.56, 0.5], [-2.201, b * 0.84, 0.5], [-2.201, b * 0.84, 0.64], [-2.201, b * 0.56, 0.64]], red, bright);
+          const f = b > 0 ? body[3] : body[2], bb = b * 0.902;
+          on(f, [[1.98, bb, 0.52], [2.18, bb, 0.52], [2.18, bb, 0.64], [1.98, bb, 0.64]], [255, 200, 120], bright);   // the lamps round the corners
+          on(f, [[-2.18, bb, 0.52], [-1.98, bb, 0.52], [-1.98, bb, 0.64], [-2.18, bb, 0.64]], red, bright);
+          on(f, [[-2.16, bb, 0.6], [2.16, bb, 0.6], [2.16, bb, 0.625], [-2.16, bb, 0.625]], [176, 178, 184]);
+          for (const a of [0.92, -0.1, -1.12]) on(f, [[a - 0.008, bb, 0.33], [a + 0.008, bb, 0.33], [a + 0.008, bb, 0.77], [a - 0.008, bb, 0.77]], scalec(col, 0.45));
+          for (const a of [0.12, -0.9]) on(f, [[a, bb, 0.66], [a + 0.13, bb, 0.66], [a + 0.13, bb, 0.69], [a, bb, 0.69]], [176, 178, 184]);
+        }
+        on(body[1], [[2.201, -0.44, 0.47], [2.201, 0.44, 0.47], [2.201, 0.44, 0.66], [2.201, -0.44, 0.66]], [30, 30, 32]);   // the grille
+        // the back door on the kerb side (its left), hinged at its front edge: open, it stands out toward the booth over a lit
+        // doorway with the back seat in it
+        const th = e.doorT === undefined ? 0 : 65 * DEG * smoothstep((L.aftermathT - e.doorT) / 0.7);
+        if (th > 0.01) {
+          on(body[3], [[-1.11, 0.903, 0.31], [-0.11, 0.903, 0.31], [-0.11, 0.903, 0.78], [-1.11, 0.903, 0.78]], [150, 112, 72], bright, 0.006);
+          on(body[3], [[-1.0, 0.904, 0.4], [-0.2, 0.904, 0.4], [-0.24, 0.904, 0.76], [-0.96, 0.904, 0.76]], [80, 58, 42], bright, 0.008);   // the seat
+          on(cab[3], [cs(1, 0.04, 0.0), cs(1, 0.49, 0.0), cs(1, 0.49, 0.92), cs(1, 0.06, 0.92)], [140, 106, 70], bright, 0.007);
+          const ca = Math.cos(th), sa = Math.sin(th);
+          const D = (k, y) => W(-0.11 - ca * k, 0.9 + sa * k, y);    // a point k along the open door from its hinge
+          const n0 = carPt(P, 0, 0, 0), n1 = carPt(P, sa, ca, 0), n = [n1[0] - n0[0], n1[2] - n0[2]];   // its outer face's normal: out from the car's side, turned forward as it opens
+          const mid = D(0.5, 0.55), outer = (eye[0] - mid[0]) * n[0] + (eye[2] - mid[2]) * n[1] > 0;
+          out.push({ kind: 'poly', pts: [D(0, 0.3), D(1.0, 0.3), D(1.0, 0.78), D(0, 0.78)], color: outer ? scalec(col, 0.8) : [104, 88, 70] });
+          out.push({ kind: 'poly', pts: [D(0.02, 0.78), D(0.98, 0.78), D(0.74, 1.26), D(0.02, 1.26)], color: [150, 172, 198], alpha: 0.16, noLight: true });   // its window
+          out.push({ kind: 'poly', pts: [D(0.74, 1.24), D(0.98, 0.78), D(1.0, 0.78), D(0.76, 1.27)], color: scalec(col, 0.7) });   // and the frame round it
+          if (outer) out.push({ kind: 'poly', pts: [D(0.78, 0.66), D(0.91, 0.66), D(0.91, 0.69), D(0.78, 0.69)], color: [176, 178, 184] });
+        }
+        // the beams through the rain, and, while its lamps are toward you, their glare on the wet road, which stops at the kerb
+        const facing = -carPt(P, 2.2, 0, 0)[0] * P.fx - carPt(P, 2.2, 0, 0)[2] * P.fz > 0;
+        for (const b of [-0.69, 0.69]) {
+          const beam = [W(2.25, b - 0.1, 0.6), W(2.25, b + 0.1, 0.6), W(15, b * 2.6 + 1.6, 0.04), W(15, b * 2.6 - 1.6, 0.04)];
+          out.push({ kind: 'poly', pts: beam, color: [255, 242, 210], alpha: 0.05, noLight: true, noFog: true });
+          if (!facing) continue;
+          const foot = W(2.4, b, 0.006), fd = Math.hypot(foot[0], foot[2]) || 1, qx = -foot[2] / fd, qz = foot[0] / fd;
+          const tEnd = Math.max(0.5, 1.15 / Math.max(0.01, Math.abs(foot[2])));
+          for (let k = 0; k < 4; k++) {
+            const t0 = lerp(1, tEnd, k / 4), t1 = lerp(1, tEnd, (k + 1) / 4), w0 = 0.16 - k * 0.03, w1 = 0.13 - k * 0.03;
+            if (t1 >= t0) break;
+            out.push({ kind: 'poly', pts: [[foot[0] * t0 + qx * w0, ROAD + 0.006, foot[2] * t0 + qz * w0], [foot[0] * t0 - qx * w0, ROAD + 0.006, foot[2] * t0 - qz * w0], [foot[0] * t1 - qx * w1, ROAD + 0.006, foot[2] * t1 - qz * w1], [foot[0] * t1 + qx * w1, ROAD + 0.006, foot[2] * t1 + qz * w1]], color: [255, 236, 200], alpha: 0.16 * (1 - k / 4), noLight: true, layer: 0, sortDist: 0.4 });
+          }
+        }
+        // it comes out of the rain at the far end of the street rather than appearing there
+        const fade = clamp((L.aftermathT - CAR.T0) / 0.6, 0, 1);
+        if (fade < 1) for (const p of out) p.alpha = (p.alpha === undefined ? 1 : p.alpha) * fade;
+        return out;
+      };
+      const carLamps = () => {   // the headlamps (and the light inside, once the door is open), for the lights and the glows
+        const e = s.end; if (!e || !e.pose) return null;
+        const P = e.pose, W = (a, b, y) => { const p = carPt(P, a, b, y); return L.pt(p[0], p[1], p[2]); };
+        const front = W(2.2, 0, 0.6), facing = (0 - front[0]) * P.fx + (0 - front[2]) * P.fz > 0;   // is its front toward you?
+        return { P, heads: [W(2.25, -0.69, 0.58), W(2.25, 0.69, 0.58)], front, facing, inside: e.doorT !== undefined ? W(-0.5, 0.2, 1.15) : null };
+      };
+      // the watch after the call: on him, then round to take in the car at the kerb as well
+      L.watchPoint = () => {
+        const e = s.end; if (!e) return null;
+        const c = sm(), cp = c.pos(), hy = Math.atan2(cp.x, cp.z), hd = Math.hypot(cp.x, cp.z);
+        const hp = Math.atan2(L.eyeH - (cp.y + c.CR.h * 0.6), hd);
+        const t = L.aftermathT, w = lerp(e.w1 * smoothstep((t - (e.tStop - 1.0)) / 1.6), e.w2, smoothstep((t - (e.tStop + 1.3)) / 1.2));
+        const yaw = hy + wrapPi(e.doorYaw - hy) * w, pitch = lerp(hp, e.doorPitch, w * 0.6);
+        return { x: Math.sin(yaw) * 6, y: L.eyeH - 6 * Math.tan(pitch), z: Math.cos(yaw) * 6 };
+      };
+      // the aftermath: he comes on (quickly, if he is still far off) and stops dead in the street; the car comes, passes him,
+      // pulls up, sounds its horn and opens its door; he turns round and walks back the way he came
+      const STOP_D = 12;
+      L.aftermath = t => {
+        const c = sm();
+        if (!s.end) {
+          const D = c.dist, laneN = c.lane.deg === 0, e = s.end = {};
+          if (D > STOP_D) {
+            const v = clamp((D - STOP_D) / 2.2, 2, 5);
+            e.hurryEnd = t + Math.min(2.6, (D - STOP_D) / v); e.dFin = Math.max(STOP_D, D - v * (e.hurryEnd - t));
+            c.hold = null; c.distFn = (cr, dt2) => Math.max(e.dFin, cr.dist - dt2 * v);
+          } else { e.hurryEnd = t; e.dFin = D; c.hold = D; }
+          const him = APPROACH.position(c.lane, e.dFin, 0, L.eyeH);
+          // it draws up at the kerb east of the booth: just past the corner, coming round from the main street; short of the
+          // booth, coming along the cross street (and short of him, so its door does not open into him)
+          e.path = carPath(laneN, laneN ? 6.4 : Math.min(4.0, him.x - 2.6));
+          e.S = stopShort(e.path, him);
+          e.B = Math.min(CAR.BRAKE, e.S); e.tc = (e.S - e.B) / CAR.V; e.Tb = 2 * e.B / CAR.V;
+          e.tStop = CAR.T0 + e.tc + e.Tb;
+          const fin = poseAt(e.path, e.S), door = carPt(fin, -0.6, 0.9, 0.75);
+          e.doorYaw = Math.atan2(door[0], door[2]); e.doorPitch = Math.atan2(L.eyeH - door[1], Math.hypot(door[0], door[2]));
+          // the view takes in both the car's open door and him if they are near enough together; if not it goes to the door
+          // as it opens, and back to him as he turns away
+          const sep = Math.abs(wrapPi(e.doorYaw - Math.atan2(him.x, him.z)));
+          e.w1 = sep < 50 * DEG ? 0.5 : 0.95; e.w2 = sep < 50 * DEG ? 0.5 : 0.15;
+          // he turns round once the view is back on him (it is there all along when it holds both), and the night ends a
+          // couple of seconds into his walk away
+          e.turnAt = e.tStop + (sep < 50 * DEG ? 1.4 : 2.6); e.done = e.turnAt + 2.2;
+        }
+        const e = s.end;
+        const once = (k, at, fn) => { if (!e[k] && t >= at) { e[k] = true; fn(); } };
+        const pan = p => Math.sin(wrapPi(Math.atan2(p.x, p.z) - G.cam.yaw)) * 0.85;
+        if (c.distFn && !c.away && t >= e.hurryEnd) { c.distFn = null; c.hold = c.dist; }   // he stops dead where he is
+        const tau = t - CAR.T0;
+        if (tau >= 0) {
+          const sv = tau < e.tc ? CAR.V * tau : e.S - e.B * Math.pow(Math.max(0, 1 - (tau - e.tc) / e.Tb), 2);
+          e.pose = poseAt(e.path, Math.min(sv, e.S));
+        }
+        once('come', CAR.T0 - 0.2, () => AUDIO.sfx('carCome', pan({ x: e.path.pts[0][0], z: e.path.pts[0][1] })));
+        once('brake', CAR.T0 + e.tc, () => AUDIO.sfx('brake', pan(e.pose)));
+        once('idle', e.tStop, () => AUDIO.setLoop('engine', 0.1, pan(e.pose)));
+        once('horn', e.tStop + 0.2, () => AUDIO.sfx('horn', pan(e.pose)));
+        once('door', e.tStop + 0.6, () => { AUDIO.sfx('carDoor', pan(e.pose)); e.doorT = t; });
+        once('turn', e.turnAt, () => { c.hold = null; c.away = true; c.frozen = true; c.distFn = (cr, dt2) => cr.dist + dt2 * 1.3; });
+        return t >= e.done;
+      };
+      // his lantern: a warm light that walks with him, and its glow; the car's headlamps, and the light inside it
+      const lanternAt = () => { const c = sm(), p = c.pos(), sd = c.away ? -0.46 : 0.46; return { x: p.x + Math.cos(c.yaw) * sd, y: p.y + 0.75, z: p.z - Math.sin(c.yaw) * sd }; };
+      L.dynamicLights = () => {
+        const p = lanternAt(), out = [{ x: p.x, y: p.y, z: p.z, r: 4.5, i: 0.6, color: [255, 190, 110], flicker: 0.3, seed: 5, cone: { x: 0, y: -1, z: 0, cos: Math.cos(75 * DEG) } }];
+        const k = carLamps();
+        if (k) {
+          const n = Math.hypot(k.P.fx, 0.06, k.P.fz);
+          out.push({ x: k.front[0], y: k.front[1], z: k.front[2], r: 24, i: 0.6, color: [235, 228, 200], cone: { x: k.P.fx / n, y: -0.06 / n, z: k.P.fz / n, cos: Math.cos(22 * DEG) } });
+          if (k.inside) out.push({ x: k.inside[0], y: k.inside[1], z: k.inside[2], r: 2.6, i: 0.6, color: [255, 196, 120] });
+        }
+        return out;
+      };
       // a street lamp's halo is drawn over everything, so one behind him (inside his outline as seen from the booth) is left out
       const behindHim = g => {
         const c = L.creatures[0]; if (!c || c.dead) return false;
@@ -537,8 +900,23 @@ Object.assign(ICONS, {
         const ty = (g.y - L.eyeH) / gd, top = (cp.y + (c.yOff || 0) + c.CR.h - L.eyeH) / cd, bot = (cp.y + (c.yOff || 0) - L.eyeH) / cd;
         return ty < top + g.r / gd && ty > bot - g.r / gd;
       };
-      L.glows = () => { const p = lanternAt(); return lampGlows.filter(g => !behindHim(g)).concat([{ x: p.x, y: p.y, z: p.z, r: 1.5, color: [255, 190, 110], a: 0.42 }]); };
-      L.floor = { poly: [[-0.48, -BK + 0.08], [0.48, -BK + 0.08], [0.48, 0.48], [-0.48, 0.48]], y: 0.03 };
+      // and so is one along the pavement to the west that the eye sees through the pay phone's plate on that wall
+      const behindPhone = g => {
+        if (g.x >= XW) return false;
+        const k = XW / g.x, u = g.z * k, y = L.eyeH + (g.y - L.eyeH) * k;
+        return u > -0.25 && u < 0.26 && y > 0.98 && y < 2.02;
+      };
+      L.glows = () => {
+        const p = lanternAt(), out = lampGlows.filter(g => !behindHim(g) && !behindPhone(g)).concat([{ x: p.x, y: p.y, z: p.z, r: 1.5, color: [255, 190, 110], a: 0.42 }]);
+        const k = carLamps();
+        if (k) {
+          const fade = clamp((L.aftermathT - CAR.T0) / 0.6, 0, 1);
+          for (const h of k.heads) out.push({ x: h[0], y: h[1], z: h[2], r: k.facing ? 1.1 : 0.5, color: [255, 240, 206], a: (k.facing ? 0.75 : 0.3) * fade });
+          if (k.inside) out.push({ x: k.inside[0], y: k.inside[1], z: k.inside[2], r: 0.7, color: [255, 200, 130], a: 0.22 });
+        }
+        return out;
+      };
+      L.floor = { poly: [[XW + 0.08, -B + 0.07], [B - 0.07, -B + 0.07], [B - 0.07, B - 0.07], [XW + 0.08, B - 0.07]], y: 0.03 };
     },
   });
 })();
