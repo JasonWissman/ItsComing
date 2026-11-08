@@ -274,7 +274,7 @@ LEVELS.push({
     // side on, out of sight (across the yard past the loft door, or out of the far doorway, or, if it was already in the
     // barn, through the side door), goes round the barn out of sight (its feet, a blow on the wall as it passes), and comes
     // in from the side to the other way: never nearer than GAP path metres outside that way's fire line.
-    const RUN = { recoil: 0.7, out: 1.2, round: 1.5, in: 1.1 }, GAP = 6.5;
+    const RUN = { recoil: 0.45, out: 1.0, round: 1.5, in: 1.1 }, GAP = 6.5;
     const T1 = RUN.recoil, T2 = T1 + RUN.out, T3 = T2 + RUN.round, T4 = T3 + RUN.in;
     const panTo = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
     const yardLat = h => 0.3 * h + 1.4;            // far enough to the side of the loft door to be wholly behind the wall
@@ -294,7 +294,7 @@ LEVELS.push({
       if (L.won && r.t < T3) r.t = T3;   // both burning while it was still going round: it comes round now, to the way it was running to
       r.t += dt;
       r.hidden = false;
-      if (r.t < T1) { c.recoil = Math.min(1, r.t / 0.2) * (1 - smoothstep((r.t - 0.45) / 0.25)); return; }   // it rears back from the flames
+      if (r.t < T1) { c.recoil = Math.min(1, r.t / 0.15) * (1 - smoothstep((r.t - 0.3) / 0.15)); return; }   // it rears back from the flames
       c.recoil = 0;
       if (r.t >= T4) { c.runPose = false; c.runLat = 0; c.hold = null; s.run = null; return; }   // and walks on from where it came round
       c.runPose = true; c.runPace = 1;
@@ -365,6 +365,8 @@ LEVELS.push({
     L.isWon = () => s.fire[0] && s.fire[1] && !inside(c0());
     L.objectiveText = () => { const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (s.fire[0] && s.fire[1] ? 'Both burning. ' : 'Hay alight: ' + (+s.fire[0] + +s.fire[1]) + ' of 2. ') + 'Carrying ' + load + '.'; };
     L.deathCause = () => (s.behind ? 'behind' : 'default');
+    // a lit bottle is not put down on these boards
+    L.onDrop = it => { if (it.id !== 'cocktail_lit') return; it.taken = true; G.inv.push(it); G.active = G.inv.length - 1; G.say('Not on these boards. The whole loft would go.', 'Not in here.'); };
     L.update = dt => {
       const c = c0();
       ready(c);
@@ -394,16 +396,16 @@ LEVELS.push({
       const k = t - a.at;
       if (k < 0.9) { c.recoil = Math.min(1, k / 0.2) * (1 - smoothstep((k - 0.6) / 0.3)); return false; }
       c.recoil = 0;
-      if (k < 2.9) {   // pacing the fire, side on
-        const u = (k - 0.9) / 2.0, side = a.side || (a.side = c.rand() < 0.5 ? 1 : -1);
+      if (k < 2.6) {   // pacing the fire, side on
+        const u = (k - 0.9) / 1.7, side = a.side || (a.side = c.rand() < 0.5 ? 1 : -1);
         c.runPose = true; c.runPace = 0.45; c.runGait = (c.runGait || 0) + dt * 7;
-        c.runLat = side * 1.5 * Math.sin(Math.PI * u); c.runDir = Math.cos(Math.PI * u) >= 0 ? side : -side;
+        c.runLat = side * 0.9 * Math.sin(Math.PI * u); c.runDir = Math.cos(Math.PI * u) >= 0 ? side : -side;
         const n = Math.floor(c.runGait / Math.PI);
         if (n !== a.steps) { a.steps = n; AUDIO.footstep('walker', 0.18, panTo(c.yaw)); }
         return false;
       }
       c.runPose = false; c.runLat = 0; c.sitting = true;
-      return k >= 4.4;
+      return k >= 3.8;
     };
     // the thing is drawn in order by how far away it really is, and fogged by it: on the barn floor its lane distance is
     // more than three times that, which put it behind the far wall and deep in the fog. While it goes round out of sight
@@ -419,9 +421,9 @@ LEVELS.push({
       // between them, growing as they go; sparks go up off them
       FIRES.forEach((F, k) => {
         if (!s.fire[k]) return;
-        const age = L.t - s.fireT[k], reach = clamp(age / 1.3, 0, 1) * (F.w / 2 + 0.8);
+        const age = L.t - s.fireT[k], reach = Math.min(F.w / 2 + 0.8, age < 0.35 ? age / 0.35 * 1.2 : 1.2 + (age - 0.35) * 1.3);   // the gap at once, then out along the stacks, slower than it runs
         F.spots.forEach(([along, depth, low], i) => {
-          const ph = i * 1.93 + k, grow = smoothstep(clamp((reach - Math.abs(along)) / 1.0, 0, 1));
+          const ph = i * 1.93 + k, grow = smoothstep(clamp((reach - Math.abs(along)) / 0.8, 0, 1));
           if (grow <= 0) return;
           const x = F.axis === 'x' ? F.cx + along : F.cx + depth, z = F.axis === 'x' ? F.cz + depth : F.cz + along;
           const fw = (low ? 0.75 : 1.15) * (0.95 + Math.sin(L.t * 5 + ph) * 0.12) * (0.5 + 0.5 * grow);
