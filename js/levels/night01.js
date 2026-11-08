@@ -308,8 +308,10 @@ LEVELS.push({
     // anywhere in the field it is at the boards in CHARGE.most seconds or less, picking up speed over CHARGE.ramp. It hits
     // them, and the aftermath (L.aftermath) has it stoop to look in at you through the gap, get its hands on the board
     // under the gap and pound on them, a hand at a time, until the night fades. While it charges its stride is a
-    // runner's, long and loud (CHARGING: the walker, striding out).
-    const CHARGE = { stop: 0.3, ramp: 0.35, most: 2.6 };
+    // runner's, long and loud (CHARGING: the walker, striding out), and its legs and arms go at the pace of its run round
+    // the house (CHARGE.pace, radians of stride a second, as runGait) however fast it is going: a stride fixed in metres
+    // had them pumping in slow motion on a short charge, from the ten metres or so it comes round to.
+    const CHARGE = { stop: 0.3, ramp: 0.35, most: 2.6, pace: 15 };
     const CHARGING = Object.assign(Object.create(CREATURES.walker), { stepRate: 0.22, sound: 'runner' });
     const hitBoards = c => {
       s.hitAt = L.t; c.charge = 0; c.CR = CREATURES.walker; c.peer = 0.35; c.blow = 1;
@@ -322,6 +324,7 @@ LEVELS.push({
         s.closing = true;
         const D = Math.max(0, c.dist - L.barrierDist), T = clamp(0.8 + D / 22, 0.6, CHARGE.most);
         s.charge = { t: s.cutShort ? 0 : -CHARGE.stop, from: c.dist, V: D / (T - CHARGE.ramp / 2) };   // just round the corner, it is running already
+        CHARGING.stepRate = CHARGE.pace / (Math.PI * Math.max(s.charge.V, 2));   // the gait goes by the metres it moves
         c.hold = c.dist;
       }
       const ch = s.charge;
