@@ -2,8 +2,8 @@
 // ============================================================ 8. THE DINER ============================================================
 // It is drawn to the light. While the diner is lit it crosses the lot far faster than three shutters can be cranked, and
 // it does not matter whether you watch it; with the power main thrown it walks, slowly. Three windows across the front, a
-// roll-down shutter on each and one crank: shut the window it is coming for and it goes to one that is still open (along
-// the glass if it is already there, across the lot if not). With all three down it stands at the glass until it gets light.
+// roll-down shutter on each and one crank: shut the window it is coming for and it runs to one that is still open (along
+// the glass if it is already there, across the lot if not). With all three down it beats on the last one it came to.
 Object.assign(ICONS, {
   // the shutter crank: a long bright steel rod with a hook at the top, a crank bend and a red rubber grip, edged dark so it
   // reads on a pale tile and on a dark one, with the lights out. Drawn bold: it lies on the floor or a counter some way off.
@@ -27,7 +27,7 @@ LEVELS.push({
   text: {
     intro: 'The last customer left at ten. Since then something that is not a customer has stood at the far end of the lot, looking at the lit windows.<br>Now it is coming for the light, and every light in the place is on.',
     death: { default: 'One window was still open. It found it.', through: 'It came through the glass before the shutter was down.', lit: 'The lights were still on. It came straight to them.' },
-    win: 'It stood at the shutters until it got light, and then it turned and walked off across the lot like it had somewhere to be.',
+    win: 'It beat on the shutter until long after its hands should have broken. Then it stood at the steel until it got light, and walked off across the lot like it had somewhere to be.',
     fragment: 'There is a switch by your door that does not seem to do anything. You flip it every night anyway.',
   },
   // three windows across the front, left to right as you face them; it comes for one. It stands at the glass on a line
@@ -164,7 +164,7 @@ LEVELS.push({
 
     // ---- the power main: a big lever switch on the back wall, on one side of the kitchen pass or the other (either way in
     // view from straight back, and square in the view a turn to that side) ----
-    Object.assign(s, { power: true, offAt: -9, lever: 1, amb: 1, down: [false, false, false], shown: [0, 0, 0], turnAt: [-9, -9, -9], lastTurn: -9, queued: null, slide: null, slides: 0, through: false, byHand: false, rattle: [0, 0, 0], beats: {}, dawn: 0 });
+    Object.assign(s, { power: true, offAt: -9, lever: 1, amb: 1, down: [false, false, false], shown: [0, 0, 0], turnAt: [-9, -9, -9], lastTurn: -9, queued: null, slide: null, slides: 0, through: false, byHand: false, dent: [0, 0, 0], hit: null, blows: 0 });
     const mainX = [-1.75, 1.75][Math.floor(L.rand() * 2)], MW = 0.72, MH = 0.95, MY = 0.95;
     SC.wallV(L, mainX - 0.11, -2.485, mainX - 0.06, -2.485, 0, MY + 0.06, [48, 50, 54]);   // its conduit, down into the floor, clamped to the wall
     for (const y of [0.3, 0.7]) SC.wallV(L, mainX - 0.13, -2.483, mainX - 0.04, -2.483, y, y + 0.04, [70, 72, 76]);
@@ -245,38 +245,70 @@ LEVELS.push({
       return t;
     });
     const cr = () => L.creature;   // made after build; s.target is the window it is making for, even while it goes there
-    // its window is shut: it goes to window k. At the glass it slides along it, quickly, its feet still, to the same
-    // distance out on k's way (no nearer than just outside k's glass). Out in the lot it turns across to k's way at a brisk
-    // walk instead (a few metres a second, so it is soon in k's window). Either way it keeps coming at its own pace while it
-    // goes, and it walks a way of its own that turns to point at it, so its distance is its real distance and it is drawn
-    // behind the shutters and piers it passes. Returns whether it was at the glass.
+    const panTo = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
+    // ---- the run: from a shut window to one still open it runs, side on (as the walker runs round the farmhouse) ----
+    // It turns side on where it stands (stiffly, on the spot, RUN.pivot s), runs to the new window's way, slows, and turns
+    // back to face the glass. Its legs go with the ground it really covers sideways, and its heels ring at every stride;
+    // its walking steps are not counted while it runs.
+    const RUN = { pivot: 0.16, glass: 3.8, lot: 5.5, step: 0.95, full: 3.2, ramp: 0.25 };
+    // how far along the run it is at x (0..1) of the run's time: up to speed over the first quarter, flat out, down again
+    // over the last quarter
+    const runAt = x => { const a = RUN.ramp, v = 1 / (1 - a); return x < a ? v * x * x / (2 * a) : x > 1 - a ? 1 - v * (1 - x) * (1 - x) / (2 * a) : v * (x - a / 2); };
+    const stride = (c, moved, dt) => {
+      c.runAmt += (clamp(moved / Math.max(dt, 1e-3) / RUN.full, 0, 1) - c.runAmt) * Math.min(1, dt * 14);
+      c.runGait += moved / RUN.step * Math.PI;
+      const n = Math.floor(c.runGait / Math.PI);
+      if (n !== c.runStep) { c.runStep = n; AUDIO.footstep('shoesRun', clamp(4 / (c.dist + 4), 0.12, 0.7), panTo(c.yaw)); }
+    };
+    const endRun = c => Object.assign(c, { runPose: false, runTurn: 0, runAmt: 0 });
+    // its window is shut: it goes to window k. At the glass it runs along it, quickly, to the same distance out on k's way
+    // (no nearer than just outside k's glass). Out in the lot it runs across to k's way, round on the arc it is on, so it
+    // is soon in k's window. Either way it keeps coming at its own pace while it goes, and it is on a way of its own that
+    // turns to point at it, so its distance is its real distance and it is drawn behind the shutters and piers it passes.
+    // Sent on again before it got there, it carries on without stopping (turning round first if it was going the other
+    // way). Returns whether it was at the glass.
     const slideTo = k => {
       const c = cr(), ln = L.lanes[k], p0 = c.pos(), keep = ln.barrierDist + 0.15;
       const r0 = Math.max(Math.hypot(p0.x, p0.z), keep), atGlass = r0 < keep + 2;
-      const yaw0 = Math.atan2(p0.x, p0.z), turn = wrapPi(ln.yaw - yaw0);
-      // (lit, it is quicker along the glass too: a slide there buys a hand cranking with the lights on almost nothing)
-      const len = Math.hypot(Math.sin(ln.yaw) * r0 - p0.x, Math.cos(ln.yaw) * r0 - p0.z), dur = atGlass ? clamp(len / 4.5, 0.5, 1.3) * (s.power ? 0.4 : 1) : clamp(r0 * Math.abs(turn) / 2.5, 1.5, 8);
+      const yaw0 = Math.atan2(p0.x, p0.z), turn = wrapPi(ln.yaw - yaw0), dir = turn >= 0 ? 1 : -1;
+      // lit, it runs quicker: a run along the glass buys a hand cranking with the lights on almost nothing
+      const len = atGlass ? Math.hypot(Math.sin(ln.yaw) * r0 - p0.x, Math.cos(ln.yaw) * r0 - p0.z) : r0 * Math.abs(turn);
+      const run = atGlass ? clamp(len / RUN.glass, 0.5, 1.3) * (s.power ? 0.4 : 1) : clamp(len / RUN.lot, 1.2, 5) * (s.power ? 0.5 : 1), piv = RUN.pivot;
       c.u = clamp(1 - r0 / c.D0, 0, 1);
       const way = Object.assign({}, ln, { apertures: [], blockers: [], name: atGlass ? 'along the glass' : 'across the lot' });
       const place = (x, z) => { const yaw = Math.atan2(x, z); way.yaw = yaw; way.dirX = Math.sin(yaw); way.dirZ = Math.cos(yaw); c.lane = way; c.yaw = yaw; return Math.hypot(x, z); };
-      s.slide = { to: k, from: s.target, atGlass }; s.target = k; s.slides++;
+      s.slide = { to: k, from: s.target, atGlass, dir }; s.target = k; s.slides++;
       L.lane = ln; L.laneIdx = k; L.barrierDist = ln.barrierDist;
       c.hold = null; c.reached = false; c.dist = place(p0.x, p0.z); c.lat = 0;
-      let e0 = 0, yawWas = yaw0;
+      // the turn side on starts from wherever it already is: from the front, or running already (the other way: it spins
+      // round through edge on)
+      // (going the same way already, it does not slow down to start again: its run picks up from the speed it has)
+      const was = c.runPose ? c.runTurn : 0, back = c.runPose && was >= 0.5 && c.runDir !== dir;
+      const x0 = c.runPose && !back && was >= 0.5 ? RUN.ramp * clamp(c.runAmt, 0, 1) : 0, e00 = runAt(x0);
+      if (!c.runPose) Object.assign(c, { runPose: true, runAmt: 0, runGait: 0, runStep: 0 });
+      let T = (back ? 1 - was : was) * piv, e0 = 0, out = -1, px = p0.x, pz = p0.z;
       c.distFn = (cc, dt) => {
         const m = cc.frozen || cc.dead ? 0 : cc.CR.speedMult(cc, dt, cc.seen);
         cc.u = clamp(cc.u + dt * m / cc.T, 0, 1);
         const r = Math.max(cc.D0 * (1 - cc.u), keep);
-        e0 = Math.min(1, e0 + dt / dur);
-        if (!atGlass) e0 = Math.max(e0, clamp((r0 - r) / (r0 - keep), 0, 1));   // out in the lot it is on k's way by the time it reaches the glass: the turn never holds it back
-        const e = smoothstep(e0), yaw = yaw0 + turn * e;
-        // out in the lot it walks the turn: its steps go with the ground it covers sideways as well as the way in
-        if (!atGlass) { cc.gait += r * Math.abs(yaw - yawWas) * cc.CR.stepRate * Math.PI; yawWas = yaw; }
-        const d = atGlass ? place(lerp(p0.x, Math.sin(ln.yaw) * r, e), lerp(p0.z, Math.cos(ln.yaw) * r, e)) : place(Math.sin(yaw) * r, Math.cos(yaw) * r);
-        if (e0 >= 1) { cc.distFn = null; cc.retarget(k); cc.u = clamp(1 - d / cc.D0, 0, 1); s.slide = null; }
+        T += dt;
+        e0 = Math.max(e0, (runAt(x0 + (1 - x0) * clamp((T - piv) / run, 0, 1)) - e00) / (1 - e00));
+        if (!atGlass) e0 = Math.max(e0, clamp((r0 - r) / (r0 - keep), 0, 1));   // out in the lot it is on k's way by the time it reaches the glass: the run never holds it back
+        const yaw = yaw0 + turn * e0;
+        const d = atGlass ? place(lerp(p0.x, Math.sin(ln.yaw) * r, e0), lerp(p0.z, Math.cos(ln.yaw) * r, e0)) : place(Math.sin(yaw) * r, Math.cos(yaw) * r);
+        // the ground it covered sideways (across the line from you to it, not along it) drives its stride
+        const x = Math.sin(cc.yaw) * d, z = Math.cos(cc.yaw) * d;
+        stride(cc, Math.abs(x * (z - pz) - z * (x - px)) / Math.max(d, 0.1), dt); px = x; pz = z;
+        cc.gait -= Math.abs(cc.dist - d) * cc.CR.stepRate * Math.PI;   // its walking steps wait for its walk
+        if (out < 0 && e0 >= 1) out = T;
+        if (out < 0) {   // turning side on, then running
+          const h = Math.min(1, T / piv);
+          if (back && h < 0.5) { cc.runDir = -dir; cc.runTurn = 1 - h; } else { cc.runDir = dir; cc.runTurn = back ? Math.max(h, 0.5) : h; }
+        } else cc.runTurn = 1 - Math.min(1, (T - out) / piv);   // there: turning back to the glass
+        if (out >= 0 && T - out >= piv) { cc.distFn = null; cc.retarget(k); cc.u = clamp(1 - d / cc.D0, 0, 1); s.slide = null; endRun(cc); }
         return d;
       };
-      if (atGlass) AUDIO.sfx('glassTap', Math.sin(wrapPi(ln.yaw - G.cam.yaw)) * 0.85);   // near enough to touch the glass as it goes
+      if (atGlass) AUDIO.sfx('glassTap', panTo(ln.yaw));   // near enough to touch the glass as it goes
       return atGlass;
     };
     const shutterDown = i => {
@@ -300,7 +332,7 @@ LEVELS.push({
       c.drawn = s.power; c.drawnMult = c.T * (1 - panes[c.lane.idx].glassD / c.D0) / LIT_T;
       if (!s.power && !s.clunked && L.t - s.offAt >= 0.14) { s.clunked = true; AUDIO.sfx('clunk'); AUDIO.sfx('tubeDie'); }   // the main's clunk, and the tubes dying
       s.lever = Math.max(s.power ? 1 : 0, s.lever - dt * 5);
-      s.amb += ((lightsOn() ? 1 : DARK_AMB + 0.22 * s.dawn) - s.amb) * Math.min(1, dt * (s.power ? 6 : 14)); L.pal.ambient = s.amb;
+      s.amb += ((lightsOn() ? 1 : DARK_AMB) - s.amb) * Math.min(1, dt * (s.power ? 6 : 14)); L.pal.ambient = s.amb;
       // a turn clicked while the crank was still going round
       if (s.queued && L.t - s.lastTurn >= TURN && G.state === 'play') { const t = s.queued; s.queued = null; if (!t.done && G.hasItem('crank')) useTarget(t); }
       // each shutter comes down a step at a time as the crank goes round, and the glass it covers stops showing the lot
@@ -308,7 +340,6 @@ LEVELS.push({
         const want = t.done ? 1 : (t.count || 0) / TURNS;
         s.shown[i] += (want - s.shown[i]) * Math.min(1, dt * 9);
         panes[i].ap.y1 = panes[i].top(TOP - (TOP - BOT) * s.shown[i]);
-        s.rattle[i] = Math.max(0, s.rattle[i] - dt * 1.6);
       });
       // at an open window it does not stop: it comes through the glass, and it has you. The pane it came through is gone,
       // broken (L.dynamic), and the crank is no use now; it does not walk the room between the stools and over the counter,
@@ -319,36 +350,83 @@ LEVELS.push({
         c.hold = null; c.catchDist = Infinity;
       }
     };
-    // won: wherever it is, it comes straight up to the last shutter (you hear it, quick, on the other side) and stands at the
-    // glass. It tries the shutter, then it is quiet; it gets light at the cracks, and it walks away. If it was sliding along
-    // the glass it gets where it was going first; if it was turning across the lot it finishes the turn on its way in.
+    // won: wherever it is, it comes straight up to the last shutter (its heels, running, on the other side; from far out it
+    // is there in under two seconds) and sets about it with both fists: blow after blow, fast and hard, in flurries, the
+    // steel bowing in where they land and ringing back, the whole shutter jumping in its rails, and the blows go on as it
+    // all fades. It cannot get in. If it was running along the glass it gets where it was going first; if it was running
+    // across the lot it finishes the turn on its way in.
+    const GAPS = [0.3, 0.24, 0.22, 0.46, 0.27, 0.23, 0.21, 0.5];   // between blows: a flurry, a breath, another
+    const blow = c => {
+      const i = s.target, hard = s.blows % 4 === 0 ? 1 : 0.65 + 0.3 * c.rand();
+      s.blows++;
+      AUDIO.sfx('shutterBang', panTo(c.yaw)); G.shake(0.25 + 0.3 * hard);
+      s.hit = { i, at: L.t, k: hard, x: lerp(0.28, 0.72, c.rand()), y: lerp(1.0, 1.8, c.rand()) };   // where it lands: across the shutter (0..1), and how high
+      s.dent[i] = Math.min(0.6, s.dent[i] + 0.07 * hard);   // and every one leaves the steel a little further in
+    };
     L.aftermath = t => {
-      const c = cr(), pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85, b = L.barrierDist;
+      const c = cr(), b = L.barrierDist;
       if (!s.won0) {
         if (s.slide && s.slide.atGlass) return false;
         s.won0 = true; s.slide = null; c.hold = null; c.lat = 0;
-        const ln = L.lanes[s.target], d0 = Math.max(c.dist, b), yaw0 = c.yaw, turn = wrapPi(ln.yaw - yaw0), v = Math.max(1.5, (d0 - b) / 2);
+        const ln = L.lanes[s.target], d0 = Math.max(c.dist, b), yaw0 = c.yaw, turn = wrapPi(ln.yaw - yaw0), v = Math.max(2.5, (d0 - b) / 1.8);
         const way = Object.assign({}, ln, { apertures: [], blockers: [], name: 'to the glass' });
         c.distFn = (cc, dt) => {
           const d = Math.max(b, cc.dist - dt * v), yaw = yaw0 + turn * smoothstep(d0 > b ? (d0 - d) / (d0 - b) : 1);
           way.yaw = yaw; way.dirX = Math.sin(yaw); way.dirZ = Math.cos(yaw); cc.lane = way; cc.yaw = yaw;
+          stride(cc, Math.abs(cc.dist - d), dt); cc.gait -= Math.abs(cc.dist - d) * cc.CR.stepRate * Math.PI;   // running, not walking
+          if (cc.runPose) { cc.runTurn -= dt / RUN.pivot; if (cc.runTurn <= 0) endRun(cc); }   // running across the lot: it turns in to the glass as it comes
           return d;
         };
       }
-      if (s.arriveT === undefined && c.dist <= b + 0.01) s.arriveT = t;
+      if (s.arriveT === undefined && c.dist <= b + 0.01) { s.arriveT = t; s.nextBlow = 0.15; }
       if (s.arriveT === undefined) return false;
       const a = t - s.arriveT;
-      const beat = (k, when, fn) => { if (!s.beats[k] && a >= when) { s.beats[k] = true; fn(); } };
-      const rattle = k => { AUDIO.sfx('gate', pan); G.shake(0.3 * k); s.rattle[s.target] = k; };
-      beat('a', 0.4, () => rattle(1)); beat('b', 1.3, () => rattle(1)); beat('c', 2.4, () => rattle(0.6));
-      beat('dawn', 3.3, () => { s.dawnAt = L.t; });
-      beat('away', 4.4, () => { c.away = true; c.frozen = true; c.distFn = (cc, dt) => cc.dist + dt * 1.3; });
-      if (s.dawnAt !== undefined) s.dawn = clamp((L.t - s.dawnAt) / 2.5, 0, 1);
-      return a > 7.4;
+      if (a >= s.nextBlow) { blow(c); s.nextBlow += GAPS[(s.blows - 1) % GAPS.length] * (0.9 + 0.2 * c.rand()); }
+      return a > 3.4;
     };
 
     // ---- what changes from frame to frame ----
-    const TUBES = [[-2.6, 0.4], [0, 0.4], [2.6, 0.4], [-2.6, 3.2], [0, 3.2], [2.6, 3.2]];
+    const TUBES = [[-2.6, 0.4], [0, 0.4], [2.6, 0.4], [-2.6, 3.2], [0, 3.2], [2.6, 3.2]], SEAM = [70, 68, 62], RAIL = [50, 48, 46];
+    // the shutter it is beating on. Where a blow lands the steel bows in at you and rings back: the slats round it spread
+    // apart as it bows (and crowd together as it springs back), the top of the bulge catches the light and its underside
+    // goes dark, so it shows head on as well as from the side. Every blow leaves it bowed a little further in, and the
+    // whole curtain jumps in its rails. The rails and the roll hold it: it does not bow at its edges or its top.
+    const battered = (i, x0, x1, yb, sd) => {
+      const h = s.hit && s.hit.i === i ? s.hit : null, e = h ? L.t - h.at : 9, k = h ? h.k : 0;
+      // in hard as the fist lands, held there a moment, then springing back and ringing; the curtain jumping up in its rails
+      const ring = k * (e < 0.03 ? e / 0.03 : e < 0.12 ? 1 : Math.exp(-(e - 0.12) * 7) * Math.cos((e - 0.12) * 26));
+      const jy = k * 0.06 * Math.exp(-e * 8) * Math.abs(Math.sin(e * 20 + 0.6));
+      const hx = h ? lerp(x0, x1, h.x) : 0, hy = h ? h.y : 0, mx = (x0 + x1) / 2, my = 1.4, dent = s.dent[i];
+      const pin = (x, y) => Math.sin(Math.PI * clamp((x - x0) / (x1 - x0), 0, 1)) * clamp((TOP - y) / 0.6, 0, 1);
+      const bump = (x, y) => ring * Math.exp(-(((x - hx) / 0.55) ** 2) - (((y - hy) / 0.45) ** 2));
+      const bowl = (x, y) => dent * Math.exp(-(((x - mx) / 0.8) ** 2) - (((y - my) / 0.65) ** 2));
+      const at = (x, y, dz) => {   // where a point of the curtain shows: pushed in toward the glass (no further than the gap), the slats spread
+        const p = pin(x, y), a = bump(x, y) * p, b = bowl(x, y) * p;
+        return [x, y + jy + 0.4 * (a * (y - hy) + b * (y - my)), ZS - 0.07 * (a + b) - dz];
+      };
+      R.add(SC.mkQuad(L, [x0, yb + jy, ZS], [x1, yb + jy, ZS], [x1, TOP, ZS], [x0, TOP, ZS], steel, { sortDist: sd }));
+      const N = 12, dx = (x1 - x0) / N;
+      for (let q = 0; q < N; q++) {
+        const xa = x0 + q * dx, xc = xa + dx;
+        for (let y = TOP - 0.15; y > yb + 0.08; y -= 0.15) R.add(SC.mkQuad(L, at(xa, y, 0.004), at(xc, y, 0.004), at(xc, y + 0.022, 0.004), at(xa, y + 0.022, 0.004), SEAM, { sortDist: sd - 0.001 }));
+        R.add(SC.mkQuad(L, at(xa, yb, 0.008), at(xc, yb, 0.008), at(xc, yb + 0.08, 0.008), at(xa, yb + 0.08, 0.008), RAIL, { sortDist: sd - 0.002 }));
+      }
+      // the light on the bulge: soft, bright over it and dark under it (the other way round as it springs back out)
+      const shade = (x, y, w, ht, amt) => {
+        if (Math.abs(amt) < 0.02) return;
+        const lo = amt > 0 ? [16, 14, 12] : [226, 222, 208], hi = amt > 0 ? [226, 222, 208] : [16, 14, 12], a = Math.min(0.7, Math.abs(amt) * 0.7);
+        R.add(SC.mkSprite(L, x, y - ht / 2, ZS - 0.012, w, ht, (ctx, P) => {
+          ctx.scale(w, ht);
+          for (const r of [0.5, 0.4, 0.3]) {
+            const g = ctx.createLinearGradient(0, 0.5 - r, 0, 0.5 + r);
+            g.addColorStop(0, P.cola(lo, a * 0.45)); g.addColorStop(0.5, P.cola(lo, 0)); g.addColorStop(0.62, P.cola(hi, 0)); g.addColorStop(1, P.cola(hi, a * 0.45));
+            ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0.5, r, r, 0, 0, TAU); ctx.fill();
+          }
+        }, { sortDist: sd - 0.0015 }));
+      };
+      if (h) shade(hx, hy + jy, 1.15 * pin(hx, hy) + 0.2, 1.0, ring * pin(hx, hy));
+      shade(mx, my + jy, 1.7, 1.4, dent * 1.2);
+    };
     L.dynamic = () => {
       const on = lightsOn();
       for (const [cx, cz] of TUBES) R.add(SC.mkQuad(L, [cx - 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz + 0.07], [cx - 0.65, 2.96, cz + 0.07], on ? [240, 246, 230] : [60, 62, 58], on ? { noFog: true, noLight: true } : {}));
@@ -367,12 +445,11 @@ LEVELS.push({
         }
         const cov = (TOP - BOT) * s.shown[i];
         if (cov < 0.01) return;
-        const yb = TOP - cov, sd = panes[i].sortD, w = s.rattle[i] * 0.03 * Math.sin(L.t * 47), z = ZS + w;
-        const seam = s.dawn > 0 ? mixc([70, 68, 62], [236, 226, 200], s.dawn * 0.85) : [70, 68, 62], so = s.dawn > 0 ? { noLight: true, noFog: true } : {};
+        const yb = TOP - cov, sd = panes[i].sortD, z = ZS;
+        if (s.dent[i] > 0) { battered(i, x0, x1, yb, sd); return; }
         R.add(SC.mkQuad(L, [x0, yb, z], [x1, yb, z], [x1, TOP, z], [x0, TOP, z], steel, { sortDist: sd }));
-        for (let y = TOP - 0.15; y > yb + 0.08; y -= 0.15) R.add(SC.mkQuad(L, [x0, y, z - 0.004], [x1, y, z - 0.004], [x1, y + 0.022, z - 0.004], [x0, y + 0.022, z - 0.004], seam, Object.assign({ sortDist: sd - 0.001 }, so)));
-        R.add(SC.mkQuad(L, [x0, yb, z - 0.008], [x1, yb, z - 0.008], [x1, yb + 0.08, z - 0.008], [x0, yb + 0.08, z - 0.008], [50, 48, 46], { sortDist: sd - 0.002 }));
-        if (s.dawn > 0 && s.down[i]) R.add(SC.mkQuad(L, [x0, BOT - 0.02, z - 0.01], [x1, BOT - 0.02, z - 0.01], [x1, BOT + 0.012, z - 0.01], [x0, BOT + 0.012, z - 0.01], mixc([50, 48, 46], [250, 240, 214], s.dawn), { sortDist: sd - 0.003, noLight: true, noFog: true }));
+        for (let y = TOP - 0.15; y > yb + 0.08; y -= 0.15) R.add(SC.mkQuad(L, [x0, y, z - 0.004], [x1, y, z - 0.004], [x1, y + 0.022, z - 0.004], [x0, y + 0.022, z - 0.004], SEAM, { sortDist: sd - 0.001 }));
+        R.add(SC.mkQuad(L, [x0, yb, z - 0.008], [x1, yb, z - 0.008], [x1, yb + 0.08, z - 0.008], [x0, yb + 0.08, z - 0.008], RAIL, { sortDist: sd - 0.002 }));
       });
       if (s.through) for (const p of broken()) R.add(p);
     };

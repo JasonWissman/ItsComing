@@ -2,14 +2,16 @@
 // the crank to bring three shutters down. The solution plays it three times. First, lit from the start, with the crank in
 // hand at once and a turn the moment the crank is free: it is through the glass before the third shutter is down, and it
 // has you at once. Then a look at the slide: its window shut as it reaches the glass, it slides along the glass to one
-// still open. Last, at a player's pace: it watches for a few seconds, tries the shutter by hand (it will not come down),
-// turns round and throws the power main about nine seconds in, takes a few seconds to find the crank in the dark, faces
-// the windows and cranks at a click every quarter of a second, the one it is coming for first, then wherever it goes; the
-// third wins, with metres to spare.
+// still open (it runs there side on, its heels ringing, and turns back to the glass). Last, at a player's pace: it
+// watches for a few seconds, tries the shutter by hand (it will not come down), turns round and throws the power main
+// about nine seconds in, takes a few seconds to find the crank in the dark, faces the windows and cranks at a click every
+// quarter of a second, the one it is coming for first, then wherever it goes (it runs across the lot for it); the third
+// wins, with metres to spare, and it beats on that shutter, hard and fast, until it all fades.
 const onTarget = mk => ['branch', 'G.L.s.target === 0', mk(0), [['branch', 'G.L.s.target === 1', mk(1), mk(2)]]];
 const crank = k => [['clickUntil', 'shutter' + k, 'G.L.s.down[' + k + ']', 70, 60]];   // with the click's own pauses, about four clicks a second
 const went = n => [
   ['expect', 'G.L.s.slides === ' + n + ' && !G.L.s.down[G.L.s.target] && G.L.creature.lane.idx === G.L.s.target', 'its window shut: it goes for a window still open (' + n + ')'],
+  ['expect', 'G.L.s.slide && G.L.creature.runPose && G.L.creature.runDir === G.L.s.slide.dir && G.L.s.slide.dir === Math.sign(wrapPi(G.L.lanes[G.L.s.slide.to].yaw - G.L.creature.yaw))', 'it runs for it, side on, facing the way it is going'],
   ['expect', 'G.L.creature.dist > G.L.s.glassD[G.L.s.target] && !G.L.s.through', 'it is still outside the glass'],
 ];
 // lit from the start: the crank in hand, its window first, then wherever it goes, every turn as soon as the crank is free.
@@ -39,10 +41,15 @@ const nightmare = [
     const k = s.target, ln = L.lanes[k]; L.targets.find(t => t.id === 'shutter' + k).count = s.turns - 1;
     c.u = 1 - (ln.barrierDist + 0.6) / c.D0; window.__k = k; window.__y = c.yaw; })()`],
   ['wait', 200],
+  ['eval', 'window.__run = 0; window.__step = AUDIO.footstep; AUDIO.footstep = (k, v, p) => { if (k === "shoesRun") __run++; return __step(k, v, p); }'],
   ['eval', 'G.L.s.lastTurn = -9; useTarget(G.L.targets.find(t => t.id === "shutter" + __k))'],
-  ['expect', 'G.L.s.down[__k] && G.L.s.slide && G.L.s.slide.atGlass && G.L.s.target !== __k', 'its window shut at the glass: it slides along it'],
+  ['expect', 'G.L.s.down[__k] && G.L.s.slide && G.L.s.slide.atGlass && G.L.s.target !== __k', 'its window shut at the glass: it goes along it'],
+  ['expect', 'G.L.creature.runPose && G.L.s.slide.dir === Math.sign(wrapPi(G.L.lanes[G.L.s.slide.to].yaw - G.L.lanes[G.L.s.slide.from].yaw))', 'it turns side on to run, the way the window it is going for is'],
+  ['waitUntil', 'G.L.s.slide && G.L.creature.runTurn === 1 && G.L.creature.runAmt > 0.8 && G.L.creature.runDir === G.L.s.slide.dir', 2000],   // flat out, side on
   ['waitUntil', '!G.L.s.slide', 3000],
-  ['expect', 'Math.abs(wrapPi(G.L.creature.yaw - __y)) > 25 * DEG && G.L.creature.dist > G.L.creature.lane.barrierDist && !G.L.s.through && G.L.creature.lane.idx === G.L.s.target', 'it slid sideways along the glass to the window it is making for, and is still outside it'],
+  ['eval', 'AUDIO.footstep = __step'],
+  ['expect', 'Math.abs(wrapPi(G.L.creature.yaw - __y)) > 25 * DEG && G.L.creature.dist > G.L.creature.lane.barrierDist && !G.L.s.through && G.L.creature.lane.idx === G.L.s.target', 'it ran sideways along the glass to the window it is making for, and is still outside it'],
+  ['expect', '__run >= 2 && !G.L.creature.runPose', 'its heels rang as it ran, and it has turned back to face the glass'],
   ['eval', 'restartLevel()'], ['wait', 300],
   // at a player's pace: watch it come, try the shutter of its window by hand
   ['waitUntil', 'G.L.t >= 5', 8000],
@@ -63,5 +70,12 @@ const nightmare = [
   onTarget(crank),
   ['expect', 'G.L.s.down.every(Boolean) && G.L.won', 'all three shutters down: it is held at the glass'],
   ['expect', '(() => { const c = G.L.creature, s = G.L.s; return c.D0 * (1 - c.u) - s.glassD[s.target] > 1; })()', 'with more than a metre to spare'],
+  // it cannot get in, and it shows it: it comes to the last shutter and beats on it, hard and fast, before the fade
+  ['eval', 'window.__bangs = 0; window.__sfx = AUDIO.sfx; AUDIO.sfx = (n, p, q) => { if (n === "shutterBang") __bangs++; return __sfx(n, p, q); }; window.__shakes = 0; window.__shake = G.shake; G.shake = a => { if (a >= 0.25) __shakes++; __shake(a); }'],
+  ['waitUntil', 'G.L.s.blows >= 5', 7000],
+  ['expect', 'G.state === "won" && G.fadeTarget < 1 && G.L.creature.dist <= G.L.barrierDist + 0.01 && G.L.s.hit && G.L.s.hit.i === G.L.s.target && G.L.s.dent[G.L.s.target] > 0', 'it beats on the shutter it came to, the steel bowing in, before the fade'],
+  ['expect', '__bangs >= 4 && __shakes >= 4', 'loud blows, each one shaking the view'],
+  ['expect', 'G.L.pal.ambient < 0.45', 'and nothing gets light while it does'],
+  ['eval', 'AUDIO.sfx = __sfx; G.shake = __shake'],
 ];
 module.exports = { nightmare };
