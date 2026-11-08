@@ -26,7 +26,10 @@ const reverse = [['clickUntil', 'gear', "G.L.s.gear === 'R'", 200, 3], ['expect'
 const forward = [['clickUntil', 'gear', "G.L.s.gear === 'D'", 200, 3], ['expect', "G.L.s.gear === 'D' && G.L.creature.lane.idx !== 0", 'it is on a verge: into drive, to go past it']];
 module.exports = {
   nightmare: [...drove, lane,
-    ['pickup', 'housekeys'], ['use', 'ignition'], ['expect', '!G.L.s.keyIn', 'house keys refused'], ['pickup', 'keys'], ['use', 'ignition'], ['expect', 'G.L.s.keyIn', 'key inserted'],
+    ['pickup', 'housekeys'], ['use', 'ignition'], ['expect', '!G.L.s.keyIn', 'house keys refused'], ['pickup', 'keys'],
+    // the ignition is in the dash beside the dials: in view looking straight ahead at the wheel, and the key goes in from there
+    ['face', 0, false], ['expect', "(() => { const h = R.hits.find(h => h.kind === 'target' && h.ref.id === 'ignition'); return !!h && h.x >= 0 && h.y >= 0 && h.x + h.w <= R.W && h.y + h.h <= R.H; })()", 'looking straight ahead at the wheel, the ignition is in view'],
+    ['use', 'ignition'], ['expect', 'G.L.s.keyIn && G.cam.dirIdx === 0 && G.cam.pitch < 0.1', 'key inserted, looking ahead'],
     ['use', 'ignition'], ['expect', "G.L.s.cranks === 0 && G.L.s.gear === 'D'", 'in drive the key does nothing'], ['use', 'gear'], ['expect', "G.L.s.gear === 'P'", 'into park'],
     ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6], ['expect', 'G.L.s.started', 'engine started'],
     ['use', 'gas'], ['expect', "!G.L.s.gone && G.L.s.gear === 'P' && G.state === 'play'", 'in park the gas only revs'],

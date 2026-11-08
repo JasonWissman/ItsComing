@@ -273,8 +273,13 @@ LEVELS.push({
         if (tire === 0) c.frozen = true;
       } else {
         if (drive.passedAt < 0 && carZ > drive.cz - 0.5) drive.passedAt = drive.t;
-        if (drive.passedAt < 0) toward(0.4 + drive.side * 4.6, drive.cz - 0.6 * dt, 9);   // out of the way of the car
-        else {   // after it, never as fast as the car
+        if (drive.passedAt < 0) {   // out of the way of the car: side-on, scuttling flat out across the verge while it goes
+          const bx = drive.cx;
+          toward(0.4 + drive.side * 4.6, drive.cz - 0.6 * dt, 9);
+          const moved = Math.abs(drive.cx - bx);
+          c.runPose = moved > 1e-3; c.runDir = drive.side; c.runGait = (c.runGait || 0) + moved * 5.5;
+        } else {   // after it, never as fast as the car
+          c.runPose = false;
           const tire = clamp(1 - (drive.t - drive.passedAt - 1.4) / 1.6, 0, 1);
           toward(0.4, carZ - 4, Math.min(burst * 1.2, drive.v * 0.8) * tire);
           if (tire === 0) c.frozen = true;
