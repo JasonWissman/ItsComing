@@ -8,7 +8,7 @@
 // and it is let down again. Two hits put it down (the first drops it for a moment); with all three arrows gone and it
 // still up, it stops watching and comes flat out. (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
 const CLEARING_BOW = (() => {
-  const RANGE = 70, FILL = 1.5, MIN = 0.18;
+  const RANGE = 50, FILL = 1.5, MIN = 0.18;
   // the band for where it is now: [lo, hi] of the bar, or null out of range
   function band(c) {
     const d = Math.hypot(c.dist, c.lat || 0);
@@ -130,7 +130,7 @@ LEVELS.push({
     { deg: 0, name: 'porch steps', barrierDist: 0, cue: 'crack', default: true },
     { deg: 90, name: 'porch side', barrierDist: 0, cue: 'crack' },
   ],
-  creatures: [{ type: 'runner', startDist: 115, time: 56, unseenMult: 1.3 }],
+  creatures: [{ type: 'runner', startDist: 115, time: 50, unseenMult: 1.3 }],
   aftermath: { type: 'down', dur: 3.8 },
   uses: [{
     tool: 'bow', ammo: 'arrows', range: CLEARING_BOW.RANGE, sfx: 'twang', shake: 0.1, emptyText: 'No arrows.', fireText: 'Draw.',
@@ -300,7 +300,10 @@ LEVELS.push({
         const f = flights[i]; f.t += dt;
         if (f.t < f.dur) continue;
         flights.splice(i, 1); s.lastLand = L.t;
-        if (f.stick) { const a = pathAt(f, 1), b = pathAt(f, 0.96), u = [a[0] - b[0], a[1] - b[1], a[2] - b[2]], l = Math.hypot(u[0], u[1], u[2]) || 1; stuck.push({ head: add3(a, u, 0.06 / l), tail: add3(a, u, -0.62 / l) }); }
+        if (f.stick) {   // it stands in the snow where it came down, its tail up and back toward you
+          const a = pathAt(f, 1), b = pathAt(f, 0.96), hl = Math.hypot(a[0] - b[0], a[2] - b[2]) || 1, hx = (a[0] - b[0]) / hl, hz = (a[2] - b[2]) / hl;
+          stuck.push({ head: [a[0] + hx * 0.03, 0, a[2] + hz * 0.03], tail: [a[0] - hx * 0.4, 0.48, a[2] - hz * 0.4] });
+        }
         if (f.done) f.done();
       }
       if (spentAll(c) && G.state === 'play' && L.t - s.lastLand > 1.2) { c.reckless = true; G.toast('That was the last arrow.'); }
@@ -316,12 +319,13 @@ LEVELS.push({
       s.bowLit = 0.85 + 0.15 * Math.max(0, Math.cos(wrapPi(G.cam.yaw - L.facing - Math.PI)));   // facing the lit wall, the bow is lit a little more
     };
     L.dynamic = () => {
-      const arrow = (tail, head, alpha) => {
-        const u = [head[0] - tail[0], head[1] - tail[1], head[2] - tail[2]], l = Math.hypot(u[0], u[1], u[2]) || 1, at = k => add3(tail, u, k / l);
+      const arrow = (tail, head, alpha, w) => {   // w: thicker for one standing in the snow out there, so it reads from the porch
+        const u = [head[0] - tail[0], head[1] - tail[1], head[2] - tail[2]], l = Math.hypot(u[0], u[1], u[2]) || 1, at = k => add3(tail, u, k / l), k = w || 1;
         const o = { kind: 'poly', stroke: true, noContact: true, alpha };
-        R.add(Object.assign({ pts: [tail, head], color: [176, 142, 98], lw: 0.018 }, o));
-        R.add(Object.assign({ pts: [tail, at(0.14)], color: [176, 46, 38], lw: 0.05 }, o));         // the fletching
-        if (l > 0.3) R.add(Object.assign({ pts: [at(l - 0.06), head], color: [150, 152, 160], lw: 0.03 }, o));   // the head
+        R.add(Object.assign({ pts: [tail, head], color: [176, 142, 98], lw: 0.018 * k }, o));
+        R.add(Object.assign({ pts: [tail, at(0.14)], color: [176, 46, 38], lw: 0.04 * k }, o));          // the fletching, red
+        R.add(Object.assign({ pts: [tail, at(0.04)], color: [222, 212, 190], lw: 0.04 * k }, o));        // and pale at the nock end
+        if (l > 0.3) R.add(Object.assign({ pts: [at(l - 0.06), head], color: [150, 152, 160], lw: 0.03 * k }, o));   // the head
       };
       for (const f of flights) {
         const k = f.t / f.dur, h = pathAt(f, Math.min(1, k)), b = pathAt(f, Math.max(0, k - 0.02)), u = [h[0] - b[0], h[1] - b[1], h[2] - b[2]], l = Math.hypot(u[0], u[1], u[2]) || 1;
@@ -331,7 +335,7 @@ LEVELS.push({
         R.add({ kind: 'poly', pts, stroke: true, color: [214, 208, 196], lw: 0.012, alpha: 0.3 * fade, noContact: true, noFog: true });
         arrow(add3(h, u, -0.75 / l), h, f.fade ? fade : undefined);
       }
-      for (const a of stuck) arrow(a.tail, a.head);
+      for (const a of stuck) arrow(a.tail, a.head, undefined, 1.8);
     };
     // the win: watch it go down, closer in the further off it is, and the view lowered to it as it falls
     L.watchPoint = () => { const c = L.creature, p = c.pos(), k = c.dead ? clamp((c.deadT || 0) / 0.85, 0, 1) : 0; return { x: p.x, y: p.y + (c.yOff || 0) + lerp(1.0, 0.3, k), z: p.z }; };
