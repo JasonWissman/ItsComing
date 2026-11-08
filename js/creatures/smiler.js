@@ -10,6 +10,7 @@
 //  - walking off (c.away, or c.turn at 1): from behind, the slick back of his head.
 CREATURES.smiler = {
   name: 'the smiler', h: 1.95, w: 1.0, faceY: 1.72, stepRate: 1.3, catchDist: 1.4, sound: 'smiler',
+  runW: 1.7,   // how wide the side-on run is drawn, the trailing heel to the leading toe (0.83 m behind him, 0.7 m ahead)
   death: { delay: 0.5, dur: 1.3, sting: 'stingHum' },
   voice: { kind: 'hum', every: [6, 12] },
   init(c) { c.nextHitch = 4.5; c.hitchT = 0; c.hitchFlash = 0; },
@@ -69,8 +70,10 @@ CREATURES.smiler = {
     P_line(ctx, 0, 0, 0, 0.08, 0.09, skin);
     if (bow) { ctx.translate(0, 0.07); ctx.scale(1, 1 - bow * 0.12); ctx.translate(0, -0.07); }   // foreshortened, tipped toward you
     P_ell(ctx, 0, 0.22, 0.125, 0.155, skin);
-    // hair: slick, dark
-    P_poly(ctx, [[-0.125, 0.25 - fy], [-0.1, 0.36], [0, 0.39], [0.1, 0.36], [0.125, 0.25 - fy], [0.06, 0.31 - fy * 1.3], [-0.06, 0.31 - fy * 1.3]], coat);
+    // hair: slick, dark (bowed, it comes lower down the sides of the head, out over the curve of it, so no rim of skin shows)
+    const hx = 0.118 + bow * 0.01;
+    P_poly(ctx, bow ? [[-0.125, 0.25 - fy], [-hx, 0.27], [-0.1, 0.36], [0, 0.39], [0.1, 0.36], [hx, 0.27], [0.125, 0.25 - fy], [0.06, 0.31 - fy * 1.3], [-0.06, 0.31 - fy * 1.3]]
+      : [[-0.125, 0.25], [-0.1, 0.36], [0, 0.39], [0.1, 0.36], [0.125, 0.25], [0.06, 0.31], [-0.06, 0.31]], coat);
     // eyes: wide, whites showing
     const er = 0.026 + near * 0.014 + lunge * 0.01, ey = 0.245 - fy;
     P_ell(ctx, -0.047, ey, er, er * 1.05, white); P_ell(ctx, 0.047, ey, er, er * 1.05, white);
@@ -81,7 +84,9 @@ CREATURES.smiler = {
       ctx.restore();
     }
     // the grin
-    const gw = 0.085 + near * 0.03 + lunge * 0.02, gd = (0.045 + near * 0.03 + lunge * 0.03) * (1 - bow * 0.35), my = 0.15 - fy * 0.8;
+    const gd = (0.045 + near * 0.03 + lunge * 0.03) * (1 - bow * 0.35), my = 0.15 - fy * 0.5;
+    let gw = 0.085 + near * 0.03 + lunge * 0.02;
+    if (bow) gw = lerp(gw, Math.min(gw, 0.125 * Math.sqrt(Math.max(0, 1 - Math.pow((my - 0.22) / 0.155, 2)))), bow);   // bowed, the face is shorter: the grin's corners stay on it
     ctx.fillStyle = white; ctx.beginPath();
     ctx.moveTo(-gw, my); ctx.quadraticCurveTo(0, my - gd * 0.25, gw, my);
     ctx.quadraticCurveTo(0, my - gd * 2.2, -gw, my); ctx.closePath(); ctx.fill();

@@ -695,11 +695,13 @@ function maybeSwitchLane(L, c) {
 // sideways across it at that distance; then it turns to it and walks on. Won while it is going round, it comes round now.
 const ROUND = { wait: 0.8, out: [0.55, 0.85], round: 0.5, in: [0.65, 1.2], speedOut: 4.5, speedIn: 5.5, gap: 3 };
 // how far to the side it must be to be out of the way's view at distance d: wholly behind the frame of the nearest opening
-// in front of it (a doorway's jamb, a porch column), or, on an open side, well off to the side
+// in front of it (a doorway's jamb, a porch column), or, on an open side, well off to the side. Wholly means all of it as it
+// is drawn running (CR.runW, its stride from heel to toe, if that is wider than w): it runs on the spot there while it is
+// going round, and a trailing foot kicked out past the jamb every stride gave it away
 function roundLat(c, lane, d, side) {
   const ap = lane.apertures.filter(a => a.z < d).sort((a, b) => a.z - b.z)[0];
   if (!ap) return d * 0.42 + 2.5;
-  return Math.max(0, (side > 0 ? ap.x1 : -ap.x0) * d / ap.z) + c.CR.w / 2 + 0.15;
+  return Math.max(0, (side > 0 ? ap.x1 : -ap.x0) * d / ap.z) + Math.max(c.CR.w, c.CR.runW || 0) / 2 + 0.15;
 }
 function startRound(L, c, to) {
   const from = c.lane, turn = wrapPi(to.yaw - from.yaw);
