@@ -350,8 +350,9 @@ LEVELS.push({
     // aftermath: the light goes round fast, a turn every three seconds, starting from the far side of the tower. If the
     // thing is a long way down it scrambles up the wall at you, to where you see it plainly, as the beam comes round onto
     // it; the light knocks its hands off the stone and it slides, clawing, down the wet wall until its hooks catch. It
-    // clings there, its face still turned up at you, and starts up again, and the next pass knocks it further down.
-    const AFTER = { near: 5.5, rush: 1.25, climb: 0.3, cling: 0.7, knock: [3, 4.5], end: 6.6 };
+    // clings there, its face still turned up at you, and starts up again, and the next pass knocks it further down. Once
+    // the light is going it comes no nearer than `closest` (if it was nearer than that, it holds where it is).
+    const AFTER = { near: 5.5, rush: 1.25, climb: 0.3, closest: 2.5, cling: 0.7, knock: [3, 4.5], end: 6.6 };
     // the view follows it down over the rail, further down than you can look yourself, so the wall it is on fills the view
     L.watchPitch = 70 * DEG;
     L.watchPoint = () => { const p = wallFrame(L.creature).at; return { x: p[0], y: p[1], z: p[2] }; };
@@ -364,7 +365,7 @@ LEVELS.push({
         c.frozen = true; c.slideTo = null; c.slideV = 0;   // (slideTo is only set while it slides: the climber claws as it goes)
         c.distFn = (cr, dt2) => {
           if (a.mode === 'rush') { const d = Math.max(AFTER.near, cr.dist - dt2 * rate); if (d <= AFTER.near) a.mode = 'climb'; return d; }
-          if (a.mode === 'climb') return cr.dist - dt2 * AFTER.climb;
+          if (a.mode === 'climb') return Math.max(Math.min(cr.dist, AFTER.closest), cr.dist - dt2 * AFTER.climb);
           if (a.mode === 'slide') {   // faster and faster down the wet stone, until the hooks catch with a jolt
             cr.slideV = Math.min(7, cr.slideV + dt2 * 16);
             const d = Math.min(cr.slideTo, cr.dist + cr.slideV * dt2);

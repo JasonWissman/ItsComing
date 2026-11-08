@@ -11,9 +11,10 @@
 // frog-bent, knees out. Its body is a little rig on the wall (x across, a up the wall, o out from the stone) projected
 // with the wall's own directions on screen, so it lies the way the wall does from wherever you look at it.
 //
-// It climbs in diagonal pairs: one hand and the other foot come off the stone, reach up and hook in again while the other
-// two hold, and then it heaves itself up on all four. A hand or foot on the stone stays where it bit: as the thing comes
-// up the wall at you, it grows past its holds the way anything coming at you grows, and the holds stay put on the stone.
+// It climbs one limb at a time, hand over hand: one hand comes off the stone, reaches up and hooks in again while the
+// other three hold, and it heaves itself up on all four; then the foot on the other side, then the other hand, then the
+// other foot. A hand or foot on the stone stays where it bit: as the thing comes up the wall at you, it grows past its
+// holds the way anything coming at you grows, and the holds stay put on the stone.
 // The beam knocks its hooks out of the stone and it slides, clawing, back down the wall (c.slip). Going round the tower to
 // another face (c.scuttle, +1 toward its right, -1 its left) it turns side on and runs across the stone.
 
@@ -25,6 +26,7 @@ const CLIMB = {
   along: 0.55, out: 0.5,                         // how much of its length, and of its depth off the stone, shows from the rail
   vp: -1.2,                                      // where the wall runs away to, along it: its holds close on that as it nears
   mid: [0, -0.12, 0.1],                          // the middle of it, put on the point it is at
+  order: ['h-1', 'f1', 'h1', 'f-1'],             // the limb that moves in each step of a cycle: a hand, the other foot, the other hand, its foot
 };
 // a bent joint in the rig: half way from a to b, pushed out along `bend` far enough for two bones of length l
 function climbJoint(a, b, l, bend) {
@@ -64,17 +66,16 @@ CREATURES.climber = {
     const p = (c.climbPh / Math.PI) % 1;
     return p < 0.5 ? 0.35 : 0.35 + 2.04 * Math.sin((p - 0.5) * 2 * Math.PI);
   },
-  // move the climbing cycle on to phase ph: a pair lets go at the start of each step and hooks in again half way through
+  // move the climbing cycle on to phase ph: one limb lets go at the start of each step and hooks in again half way through
   stepTo(c, ph) {
     const k0 = Math.floor(c.climbPh / (Math.PI / 2)), k1 = Math.floor(ph / (Math.PI / 2));
     c.climbPh = ph;
-    for (let k = Math.max(k0 + 1, k1 - 3); k <= k1; k++) {
-      const lead = ((k >> 1) & 1) ? 1 : -1, hand = c.grip['h' + lead], foot = c.grip['f' + -lead];
-      if (k & 1) {   // half way: the reaching hand and foot hook in where they reached, a little different every time
+    for (let k = Math.max(k0 + 1, k1 - 7); k <= k1; k++) {
+      const key = CLIMB.order[(k >> 1) & 3], g = c.grip[key], s = +key.slice(1);
+      if (k & 1) {   // half way: the reaching hand or foot hooks in where it reached, a little different every time
         const j = Math.sin(k * 12.9898) * 0.5;
-        Object.assign(hand, { x: lead * (CLIMB.hand[0] + j * 0.06), a: CLIMB.hand[1] + j * 0.08, d: c.dist });
-        Object.assign(foot, { x: -lead * (CLIMB.foot[0] - j * 0.05), a: CLIMB.foot[1] - j * 0.06, d: c.dist });
-      } else { hand.liftD = c.dist; foot.liftD = c.dist; }   // the start of a step: they let go from where they are
+        Object.assign(g, key[0] === 'h' ? { x: s * (CLIMB.hand[0] + j * 0.06), a: CLIMB.hand[1] + j * 0.08, d: c.dist } : { x: s * (CLIMB.foot[0] - j * 0.05), a: CLIMB.foot[1] - j * 0.06, d: c.dist });
+      } else g.liftD = c.dist;   // the start of a step: it lets go from where it is
     }
   },
   // its holds, all at once, back on the stone where its hands and feet rest (after a slide or a run across)
@@ -126,14 +127,14 @@ CREATURES.climber = {
     const wh = c.struck || 0, K = v => P.col(wh ? mixc(v, [252, 248, 236], wh * 0.85) : v);   // caught in the beam, it goes white
     const grey = K([118, 118, 124]), greyD = K([66, 66, 72]), greyL = K([140, 140, 146]), face = K([206, 202, 194]), faceD = K([150, 144, 136]);
     const black = P.col([10, 8, 10]), eye = K([236, 236, 230]);
-    const ph = c.climbPh || 0, step = Math.floor(ph / Math.PI), p = (ph / Math.PI) % 1, lead = (step & 1) ? 1 : -1;
+    const ph = c.climbPh || 0, step = Math.floor(ph / Math.PI), p = (ph / Math.PI) % 1, mover = CLIMB.order[step & 3], lead = +mover.slice(1), legs = mover[0] === 'f';
     const reach = p < 0.5 ? p / 0.5 : 1, live = (1 - slip) * (sc ? 0 : 1);
     // the body heaves up the wall toward its new hold through the second half of a step and hangs back on its holds
-    // through the first, while a pair reaches: the head and shoulders further than the hips, and the shoulders hunch out
-    // from the stone as the arms pull
+    // through the first, while a limb reaches: after a hand the head and shoulders pull up further than the hips, and the
+    // shoulders hunch out from the stone as the arms pull; after a foot the hips push up further
     const surge = p < 0.5 ? 1 - smoothstep(reach) : smoothstep((p - 0.5) / 0.5), pull = p < 0.5 ? 0 : Math.sin((p - 0.5) / 0.5 * Math.PI);
-    const bs = (surge * 0.2 - 0.1) * live, bh = (surge * 0.1 - 0.05) * live, hunch = pull * 0.06 * live;
-    const sway = (p < 0.5 ? Math.sin(reach * Math.PI) * lead * 0.06 : 0) * live;   // it leans toward the side that reaches
+    const bs = (surge * (legs ? 0.12 : 0.2) - (legs ? 0.06 : 0.1)) * live, bh = (surge * (legs ? 0.16 : 0.1) - (legs ? 0.08 : 0.05)) * live, hunch = pull * (legs ? 0.03 : 0.06) * live;
+    const sway = (p < 0.5 ? Math.sin(reach * Math.PI) * lead * (legs ? 0.04 : 0.06) : 0) * live;   // it leans toward the side that reaches
     const run = sc ? Math.sin(c.scutPh) : 0, runB = sc ? Math.cos(c.scutPh) : 0;   // running across: its limbs in pairs, fast
     const jit = (s, f) => [Math.sin(t * f + s * 2.1) * 0.08 * slip, Math.cos(t * f * 1.3 + s) * 0.1 * slip, Math.max(0, Math.sin(t * f * 0.7 + s)) * 0.14 * slip];
     // its body turns side on to run across the stone
@@ -150,7 +151,7 @@ CREATURES.climber = {
         const rest = isHand ? [s * 0.5, 0.42, 0] : [s * 0.5, -0.78, 0];
         return { at: T([rest[0] + w * 0.28, rest[1] + w * 0.1 * s, lift * 0.18]), lift };
       }
-      const reaching = slip < 0.5 && p < 0.5 && (isHand ? s === lead : s === -lead);
+      const reaching = slip < 0.5 && p < 0.5 && key === mover;
       if (!reaching) { const h = this.held(g, r); return { at: [h[0] + j[0], h[1] + j[1], h[2] + j[2]], lift: slip }; }
       const q = smoothstep(reach), from = this.held(g, (g.liftD || c.dist) / (g.d || c.dist)), arc = Math.sin(q * Math.PI);
       const to = [s * (isHand ? CLIMB.hand[0] : CLIMB.foot[0]), isHand ? CLIMB.hand[1] : CLIMB.foot[1]];
