@@ -35,6 +35,9 @@ Object.assign(ICONS, {
     ctx.font = 'bold 22px Georgia, "Liberation Serif", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = ink; ctx.fillText('10', 0, 0);
     ctx.restore();
     P_line(ctx, -0.24, 0.79, 0.12, 0.84, 0.035, shine);            // the light along its top
+    // lying about, it catches the light now and then: a glint at its edge (still in the hand, where the time is nought)
+    const g = Math.pow(Math.max(0, Math.sin((P.t || 0) * 2.3)), 12);
+    if (g > 0.02) { ctx.globalAlpha = g; P_line(ctx, 0.24, 0.6, 0.24, 1.02, 0.04, P.raw([255, 252, 236])); P_line(ctx, 0.04, 0.81, 0.44, 0.81, 0.04, P.raw([255, 252, 236])); P_ell(ctx, 0.24, 0.81, 0.06, 0.06, P.raw([255, 255, 248])); ctx.globalAlpha = 1; }
   },
 });
 (() => {
@@ -147,8 +150,8 @@ Object.assign(ICONS, {
     laneSwitch: false,   // he keeps to the street he started down: the race is with the phone, not with finding him
     // he reaches the glass in about 37 to 46 s. A careful player finds the number by page four on average and the coin in a
     // few seconds, has dialled by about 21 s and is answered by 28; with the number on the last page and his quickest walk
-    // there are a few seconds to spare, and a wrong number first costs about eight (the coin has to be fished out of the
-    // return and put back in)
+    // there are several seconds to spare, but hardly any after a wrong number as well, which costs about eight (the coin has
+    // to be taken out of the return and put back in)
     creatures: [{ type: 'signalman', startDist: 55, time: 72 }],
     aftermath: { type: 'custom' },   // L.aftermath: the car that comes for you, and what he does
     build(L) {
@@ -357,10 +360,11 @@ Object.assign(ICONS, {
         { key: 'floorSW', x: -0.66, y: 0.03, z: -0.42, flat: true, jitter: 0.03 },
         { key: 'floorNW', x: -0.66, y: 0.03, z: 0.42, flat: true, jitter: 0.03 },
       ], { w: 0.07, h: 0.07, icon: 'coin' });
+      if (coin.y < 0.5) coin.w = coin.h = 0.09;   // on the floor, a little further off and lower in the view, drawn a little bigger
       const coinInCup = () => !coin.taken && Math.abs(coin.x - COIN_RET.x) < 0.01 && Math.abs(coin.y - COIN_RET.y) < 0.01;
       const coinBack = () => {   // a call that never went through gives the coin back: it rattles down into the return
         const p = L.pt(COIN_RET.x, COIN_RET.y, COIN_RET.z);
-        Object.assign(coin, { x: p[0], y: p[1], z: p[2], flat: false, taken: false, uses: 1 });
+        Object.assign(coin, { x: p[0], y: p[1], z: p[2], w: 0.07, h: 0.07, flat: false, taken: false, uses: 1 });
       };
       let dom = null;
       const shown = { nb: false };
