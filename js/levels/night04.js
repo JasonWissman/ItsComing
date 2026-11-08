@@ -90,7 +90,7 @@ LEVELS.push({
     hint: 'You will have to look away to shut the gates and find the chains and the lock. Be quick about it.',
     objective: 'Shut, chain and padlock both gates.',
     death: { default: 'You looked away. It only needed a moment.' },
-    win: 'You did not look away again until the sun came up. It was still there. It is still there.',
+    win: 'Every time you blinked it was nearer, and then it was at the gate, shaking it on its chain. You did not look away again until the sun came up. It is still there.',
     fragment: 'You kept your eyes open so long they hurt in the morning. Something in the corner of the room had not moved. You are almost sure.',
   },
   // the gap between the gate posts, no lintel; a second gap in the wall behind you
@@ -100,8 +100,9 @@ LEVELS.push({
   ],
   // every gate is three steps now (pull it shut, chain it, padlock it) and there are two chains to find: a little more time
   creatures: [{ type: 'watcher', startDist: 50, time: 36, seenMult: 0, unseenMult: 1 }],
-  aftermath: { type: 'stand', dur: 3.6 },
+  aftermath: { type: 'custom' },
   build(L) {
+    const s = L.s;
     const stone = [100, 102, 98], stoneD = [72, 74, 72];
     const wallH = 1.5;
     // the side walls run the whole length; the gate walls stop inside the gate posts, which are thicker than the wall, so
@@ -213,6 +214,8 @@ LEVELS.push({
     const gateOf = lane => lane.idx === 0 ? gate : gate2;
     L.sealed = lane => gateOf(lane).locked;
     L.update = dt => {
+      runOn(dt);
+      if (L.won && s.after) L.creature.hold = s.after.d;   // in the end it is where the blinks have put it
       for (const g of [gate, gate2]) {
         if (g.closing > 0) {
           g.closing -= dt;
@@ -223,17 +226,141 @@ LEVELS.push({
         }
       }
     };
+    // ---- going round ----
+    // A gate it reaches locked holds it there (the generic sealed way), and it tries the gate: the gate clangs and jolts
+    // on its chain. Then, whenever nothing is looking at it, it runs: sideways along the outside of that gate's wall to
+    // the corner, down the outside of the side wall, round the far corner and in from the side to a few metres outside
+    // the other gate, where that gate's sound says it has come. It is a statue that only moves unseen, so the run only
+    // goes on while nothing is looking at it: caught going round, it is a stone figure stopped mid-stride, side-on, its
+    // head and shoulders over the wall (the run's own visibility, below, counts what shows over the walls, and through
+    // the open middle of a gate)
+    const RUN = { v: 7, side: 4.6, corner: 3.6, gap: 3.2, tryT: 0.35 };   // gap: how far outside the other gate's barrier it comes in
+    s.run = null;
+    const lanePt = (lane, lx, lz) => ({ x: lane.dirX * lz + Math.cos(lane.yaw) * lx, y: 0, z: lane.dirZ * lz - Math.sin(lane.yaw) * lx });
+    const runVis = cr => {
+      const p = cr.pos(), cam = { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH };
+      const r = R.projectRect(p.x, p.y, p.z, cr.CR.w, cr.CR.h, cam);
+      if (!r) return 0;
+      const w = Math.min(r.x + r.w, R.W) - Math.max(r.x, 0), h = Math.min(r.y + r.h, R.H) - Math.max(r.y, 0);
+      if (w <= 0 || h <= 0) return 0;
+      const q = rotY(p.x, p.z, -L.facing), d = Math.hypot(q[0], q[1]), sn = Math.abs(q[0]) / d, cs = Math.abs(q[1]) / d;
+      const wall = Math.min(sn > 1e-4 ? 3.2 / sn : Infinity, cs > 1e-4 ? 2.6 / cs : Infinity);   // where the line to it leaves the yard
+      const gateway = cs > 1e-4 && 2.6 / cs <= wall + 1e-6 && Math.abs(q[0]) * 2.6 / Math.abs(q[1]) < 1.05;
+      const hide = gateway ? 0 : Math.max(0, L.eyeH - (L.eyeH - 1.5) * d / wall);   // below the line over the wall's top
+      return (w * h) / (r.w * r.h) * clamp((cr.CR.h - hide) / cr.CR.h, 0, 1);
+    };
+    function startRun(c) {
+      const from = c.lane, to = L.lanes[from.idx === 0 ? 1 : 0], side = c.rand() < 0.5 ? 1 : -1, b = c.dist, d2 = (to.barrierDist || 0) + RUN.gap;
+      const path = [[0, b], [side * RUN.side, RUN.corner], [side * RUN.side, -RUN.corner], [0, -d2]];   // the way round, in the from-gate's frame
+      const lens = path.slice(1).map((q, i) => Math.hypot(q[0] - path[i][0], q[1] - path[i][1]));
+      s.run = { t: 0, s: 0, from, to, side, d2, path, lens, total: lens.reduce((a, l) => a + l, 0), pos0: c.pos };
+      c.sealHold = false; c.sealHeldAt = undefined;   // it is the night's now: the generic going round never comes
+      const g = gateOf(from), pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
+      g.rattleAt = L.t; AUDIO.sfx('gate', pan); AUDIO.sfx('chain', pan); G.shake(0.2);   // it tries the gate (it got here unseen)
+    }
+    function runAt(r, dist) {   // where along the way round, in the world, and which way it is going
+      let k = 0, u = dist;
+      while (k < r.lens.length - 1 && u > r.lens[k]) { u -= r.lens[k]; k++; }
+      const a = r.path[k], b = r.path[k + 1], f = clamp(u / r.lens[k], 0, 1);
+      return { p: lanePt(r.from, lerp(a[0], b[0], f), lerp(a[1], b[1], f)), t: lanePt(r.from, b[0] - a[0], b[1] - a[1]) };
+    }
+    function endRun(c) {
+      const r = s.run, to = r.to;
+      s.run = null; L.visFrac = null;
+      c.pos = r.pos0; c.runPose = false; c.retarget(to.idx); c.reached = false;
+      c.u = clamp(1 - Math.pow(r.d2 / c.D0, 1 / c.gamma), 0, 1); c.hold = null; c.dist = r.d2;
+      L.laneIdx = to.idx; L.lane = to; L.barrierDist = to.barrierDist || 0;
+      if (to.cue && !L.won) AUDIO.sfx(to.cue, Math.sin(wrapPi(to.yaw - G.cam.yaw)) * 0.85);
+    }
+    function runOn(dt) {
+      const c = L.creature;
+      if (!s.run && c.sealHold && !L.won) startRun(c);
+      const r = s.run;
+      if (!r || L.won) return;
+      if (!c.seen) {   // seen, it stands as it is, mid-stride
+        r.t += dt;
+        if (r.t > RUN.tryT) { r.s = Math.min(r.total, r.s + RUN.v * dt); c.runGait = (c.runGait || 0) + dt * 13; }
+      }
+      if (r.t <= RUN.tryT) return;
+      if (r.s >= r.total) { endRun(c); return; }
+      const at = runAt(r, r.s), p = at.p;
+      c.runPose = true; c.pos = () => p; L.visFrac = runVis;
+      c.hold = Math.hypot(p.x, p.z); c.yaw = Math.atan2(p.x, p.z);
+      const dir = at.t.x * Math.cos(c.yaw) - at.t.z * Math.sin(c.yaw);   // across the view of someone looking at it: right or left
+      if (Math.abs(dir) > 1e-3) c.runDir = Math.sign(dir);
+    }
+
+    // Each gate is an arched iron frame: a stile at each end, a rail along the bottom and the arch over the top, and in a
+    // narrow panel at each end two bars, two short rails and a ring between them. The middle is open, so through a shut
+    // gate the whole of it shows, from its feet to the top of its head, however far off it is and even right at the gate:
+    // the bottom rail is under its feet, the arch over its head, the end panels outside its shoulders. A gate that has
+    // just been shaken (g.rattleAt) jolts on its hinges and its chain, and settles
+    const LEN = 2.1, TOP = 1.9, RISE = 0.38, FOOT = 0.1, PANEL = 0.3, ironC = [38, 38, 42];
+    const archY = u => TOP + RISE * (1 - Math.pow((u - LEN / 2) / (LEN / 2), 2));
     L.dynamic = () => {
       for (const g of [gate, gate2]) {
-        const a = g.angle, sg = g.sign, dx = sg * Math.cos(a), dz = sg * Math.sin(a), hx = -1.05 * sg, hz = 2.6 * sg, len = 2.1, ironC = [38, 38, 42];
-        for (let i = 0; i <= 7; i++) { const u = i / 7 * len; R.add(SC.mkWallV(L, hx + dx * (u - 0.025), hz + dz * (u - 0.025), hx + dx * (u + 0.025), hz + dz * (u + 0.025), 0, 1.9, ironC)); }
-        for (const yy of [0.3, 1.0, 1.65]) R.add(SC.mkWallV(L, hx, hz, hx + dx * len, hz + dz * len, yy - 0.03, yy + 0.03, ironC));
+        const e = L.t - (g.rattleAt === undefined ? -9 : g.rattleAt), k = e >= 0 && e < 1 ? Math.exp(-e * 5) : 0;
+        const jolt = Math.sin(e * 34) * k * 0.07, hop = Math.abs(Math.sin(e * 29)) * k * 0.045;   // in and out on its chain, and up off its hinges
+        const a = g.angle + jolt, sg = g.sign, dx = sg * Math.cos(a), dz = sg * Math.sin(a), hx = -1.05 * sg, hz = 2.6 * sg;
+        const at = u => [hx + dx * u, hz + dz * u];
+        const bar = (u, y0, y1, w) => { const p = at(u - w), q = at(u + w); R.add(SC.mkWallV(L, p[0], p[1], q[0], q[1], y0 + hop, y1 + hop, ironC)); };
+        const rail = (u0, u1, y, w) => { const p = at(u0), q = at(u1); R.add(SC.mkWallV(L, p[0], p[1], q[0], q[1], y - w + hop, y + w + hop, ironC)); };
+        bar(0.025, 0.04, archY(0.025), 0.025); bar(LEN - 0.025, 0.04, archY(LEN - 0.025), 0.025);   // the stiles
+        rail(0, LEN, FOOT, 0.03);                                                                    // the bottom rail
+        for (let i = 0; i < 14; i++) {                                                               // the arch
+          const u0 = i / 14 * LEN, u1 = (i + 1) / 14 * LEN, p = at(u0), q = at(u1), y0 = archY(u0) + hop, y1 = archY(u1) + hop;
+          R.add(SC.mkQuad(L, [p[0], y0 - 0.032, p[1]], [q[0], y1 - 0.032, q[1]], [q[0], y1 + 0.032, q[1]], [p[0], y0 + 0.032, p[1]], ironC));
+        }
+        for (const [u0, u1] of [[0, PANEL], [LEN - PANEL, LEN]]) {                                    // the end panels
+          const um = (u0 + u1) / 2, ui = u0 === 0 ? u1 : u0;
+          bar(ui, FOOT, archY(ui), 0.02); bar(um, FOOT, archY(um), 0.013);
+          rail(u0, u1, 0.55, 0.022); rail(u0, u1, 1.45, 0.022);
+          const ring = [];
+          for (let j = 0; j <= 16; j++) { const t = j / 16 * TAU, p = at(um + Math.cos(t) * 0.1); ring.push(L.pt(p[0], 1.0 + hop + Math.sin(t) * 0.12, p[1])); }
+          R.add({ kind: 'poly', pts: ring, color: ironC, stroke: true, lw: 0.022 });
+          const tip = at(ui), ty = archY(ui) + 0.03 + hop;                                                   // a point on the arch over the inner bar
+          R.add(SC.mkQuad(L, [tip[0] - dx * 0.035, ty, tip[1] - dz * 0.035], [tip[0] + dx * 0.035, ty, tip[1] + dz * 0.035], [tip[0], ty + 0.11, tip[1]], [tip[0], ty + 0.11, tip[1]], ironC));
+        }
         // the chain round the gate's end and its post, and the lock on it, just in front of the post's face (z 2.35) so they
-        // are drawn over it whichever way the faces are ordered
-        if (g.chained) R.add(iconSprite(L, 'gatechain', 1.0 * sg, 0.5, 2.3 * sg, 0.5, 0.75));
-        if (g.locked) R.add(iconSprite(L, 'padlock', 1.01 * sg, 0.36, 2.28 * sg, 0.2, 0.24));
+        // are drawn over it whichever way the faces are ordered; they jump with the gate when it is shaken
+        const lift = Math.abs(jolt) * 1.4 + hop * 1.5;
+        if (g.chained) R.add(iconSprite(L, 'gatechain', 1.0 * sg, 0.5 + lift, 2.3 * sg, 0.5, 0.75));
+        if (g.locked) R.add(iconSprite(L, 'padlock', 1.01 * sg, 0.36 + lift * 1.4, 2.28 * sg, 0.2, 0.24));
       }
     };
+    // ---- how it ends ----
+    // Both gates locked, the view goes to it and you do not look away; it only moves in the moments your eyes close. Each
+    // blink it is nearer, in a new pose (and, if it was going round, round), until it is at the gate; each blink after that
+    // it has the bars in its hands and the gate has just been shaken: it clangs and jolts on its chain, and the chain and
+    // the lock jump, and it is still there, holding the bars either side of the open middle, its face in the gap. It does
+    // not get in. Then the fade
+    const BLINK = 0.26;
+    function plan(c) {
+      // a longer look round to it first: to where it is, or, if it was going round, to the gate it was going to (the view
+      // goes there, below, and it is there by the first blink)
+      const off = Math.abs(wrapPi((s.run ? s.run.to.yaw : c.yaw) - G.cam.yaw)), turn = off > Math.PI / 2 ? 1.0 : off > Math.PI / 4 ? 0.4 : 0;
+      const b = s.run ? s.run.to.barrierDist : (c.lane.barrierDist || 0), d0 = s.run ? s.run.d2 : c.dist, steps = [];
+      if (s.run || d0 - b > 0.3) { if (d0 - b > 8) steps.push({ d: lerp(d0, b, 0.55) }); steps.push({ d: b + 0.9 }); }
+      for (const pose of [4, 5, 2]) steps.push({ d: b, pose, shake: true });
+      const times = steps.map((st, i) => 1.1 + turn + i * 0.72);
+      return { steps, times, next: 0, d: s.run ? c.dist : d0, end: times[times.length - 1] + 1.6, rattles: 0 };
+    }
+    L.aftermath = t => {
+      const c = L.creature, a = s.after || (s.after = plan(c)), rf = SAVE.data.settings.reducedFlash;
+      let dark = 0;
+      for (const bt of a.times) { const u = (t - bt) / (rf ? BLINK * 1.5 : BLINK); if (u >= 0 && u <= 1) dark = Math.max(dark, Math.sin(u * Math.PI)); }
+      if (t < a.end) G.fade = G.fadeTarget = dark * (rf ? 0.8 : 1);   // after that the night's own fade
+      while (a.next < a.steps.length && t >= a.times[a.next] + BLINK / 2) {   // in the dark of a blink, it moves
+        const st = a.steps[a.next++], pan = () => Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
+        if (s.run) endRun(c);
+        a.d = c.hold = c.dist = st.d;
+        if (st.pose) c.pose = st.pose; else { let p; do { p = 1 + Math.floor(c.rand() * 3); } while (p === c.pose); c.pose = p; }
+        if (st.shake) { gateOf(c.lane).rattleAt = L.t; a.rattles++; AUDIO.sfx('gate', pan()); AUDIO.sfx('chain', pan()); G.shake(0.45); }
+        else AUDIO.sfx('thud', pan());
+      }
+      return t >= a.end;
+    };
+    L.watchPoint = () => (L.won && s.run ? lanePt(s.run.to, 0, s.run.d2) : null);
     L.isWon = () => gate.locked && gate2.locked;
     L.objectiveText = () => {
       const st = g => g.locked ? 'locked' : g.chained ? 'chained' : g.shut ? 'shut' : 'open';
