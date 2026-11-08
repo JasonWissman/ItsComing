@@ -148,6 +148,7 @@ function startLevel(i, withCard) {
   AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear(); MENU.clear(); // nothing of the last screen or night carries over
   G.levelIndex = i;
   G.inv = []; G.active = 0; G.hover = null; G.invSig = ''; G.holding = null; G.throwing = null; G.error = null;
+  G.draw = null; G.drawBtn = null;   // no bow half drawn from the last night
   G.L = buildLevel(i);
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed + i);
@@ -268,15 +269,18 @@ function proceed() {
 
 function onMouseMove(e) { G.mouse.x = e.clientX; G.mouse.y = e.clientY; }
 function onMouseDown(e) {
+  G.drawSwallow = false;
   if (G.state !== 'play' || e.button !== 0) return;
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   updateHover();
   const h = G.hover;
   if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; e.preventDefault(); }
+  else if (drawPress(G.L, h, 'mouse')) e.preventDefault();   // a bow: held, the button draws it
 }
-function onMouseUp() { G.holding = null; }
+function onMouseUp() { G.holding = null; drawLetGo('mouse'); }
 function onClick(e) {
   if (e.target.closest && e.target.closest('#touch')) return;
+  if (G.drawSwallow) { G.drawSwallow = false; if (G.state === 'play') return; }   // the click that ends a draw is not another use
   if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) return; proceed(); return; } // the list screens are not click-anywhere; the title and the cards are
   ensureAudio();
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
@@ -413,6 +417,7 @@ function activeUse(L) { return (L.uses || []).find(u => G.hasItem(u.tool)) || nu
 function useOnCreature(L, c) {
   const u = activeUse(L);
   if (!u || c.dead) return false;
+  if (u.draw) return true;   // a bow is drawn by holding the button (drawPress), never by a click
   const ammo = u.ammo ? G.inv.find(i => i.id === u.ammo) : null;
   if (u.ammo && !ammo) { AUDIO.sfx('empty'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Click. Nothing in it.'); return true; }
   if (c.dist > u.range) {
@@ -429,6 +434,74 @@ function fireUse(L, u, ammo) {
   if (ammo) { ammo.uses--; if (ammo.uses <= 0) G.removeFromInv(ammo); }
   AUDIO.sfx(u.sfx || 'shot'); G.flash(u.flash === undefined ? 0.5 : u.flash); G.shake(u.shake === undefined ? 0.7 : u.shake); L.s.recoil = 1;
 }
+// ---- a bow: hold to draw, let go to loose ----
+// A use with draw: { band(c, L), loose(outcome, c, aim, power, L), fill, min } is drawn by holding the button (or A, or the
+// touch Use button). The power bar fills over `fill` seconds; band(c) is the stretch of it, [lo, hi], that reaches the thing
+// from where it is now (null: out of range), asked again every frame. Let go in the band with the aim on the thing: 'hit';
+// below it: 'short'; above it, or held at the top until the string slips: 'over'; in it but off the thing: 'miss'. Each of
+// those spends one of the ammo and hands the outcome to loose(). Let go before `min` seconds and nothing is loosed: the bow
+// is let back down ('easing'), which is what a click shows. G.draw is the draw (state drawing, easing or loosed, then a
+// moment to nock the next); G.drawBtn which button holds it.
+const DRAW_FILL = 1.5, DRAW_MIN = 0.18, DRAW_STRAIN = 0.25;
+function drawUse(L) { const u = L && activeUse(L); return u && u.draw ? u : null; }
+function drawPress(L, h, src) {
+  const u = drawUse(L);
+  if (!u || G.state !== 'play' || G.cam.pitch > 0.5 || (h && h.kind !== 'creature')) return false;   // looking down, or at something to take or use: not a draw
+  if (src === 'mouse') G.drawSwallow = true;
+  if (!G.hasItem(u.ammo)) { AUDIO.sfx('nope'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Nothing to loose.'); return true; }
+  G.drawBtn = src;
+  return true;
+}
+function drawLetGo(src, cancel) {
+  if (!G.drawBtn || (src && G.drawBtn !== src)) return;
+  G.drawBtn = null;
+  const d = G.draw, u = drawUse(G.L);
+  if (d && d.state === 'drawing') looseDraw(G.L, d, cancel || G.state !== 'play');
+  else if (!d && u && G.state === 'play') G.draw = { state: 'easing', t: 0, dur: 0.45, from: 0.05, power: 0, band: null, u, src };   // let go before a frame went by: it still starts to come up, and goes back down
+}
+function updateDraw(L, dt) {
+  let d = G.draw;
+  if (d && d.state !== 'drawing') { d.t += dt; if (d.t >= d.dur) G.draw = d = null; }   // letting it back down, or nocking the next
+  const u = drawUse(L);
+  if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, strain: 0, creak: 0, band: null, u, src: G.drawBtn };
+  if (!d || d.state !== 'drawing') return;
+  if (G.state !== 'play' || !u) { looseDraw(L, d, true); return; }
+  d.t += dt; d.power = Math.min(1, d.t / (u.draw.fill || DRAW_FILL));
+  d.band = u.draw.band(nearestCreature(L), L);
+  if (d.t - d.creak >= 0.3) { d.creak = d.t; AUDIO.sfx('bowCreak'); }
+  if (d.power >= 1 && (d.strain += dt) >= DRAW_STRAIN) { G.drawBtn = null; looseDraw(L, d); }   // held at the top, the string slips (the next takes a new press)
+}
+function looseDraw(L, d, cancel) {
+  const u = d.u;
+  if (cancel || d.t < (u.draw.min || DRAW_MIN)) { Object.assign(d, { state: 'easing', from: d.power, t: 0, dur: 0.45 }); return; }
+  const c = nearestCreature(L), aim = drawAim(d.src), b = d.band, p = d.power;
+  const outcome = p >= 1 || (b && p > b[1]) ? 'over' : !b || p < b[0] ? 'short' : overCreature(c, aim) ? 'hit' : 'miss';
+  const ammo = G.inv.find(i => i.id === u.ammo);
+  if (ammo) { ammo.uses--; if (ammo.uses <= 0) G.removeFromInv(ammo); }
+  AUDIO.sfx(u.sfx || 'twang'); G.shake(u.shake === undefined ? 0.12 : u.shake);
+  Object.assign(d, { state: 'loosed', outcome, from: p, t: 0, dur: 0.6, aim });
+  u.draw.loose(outcome, c, aim, p, L);
+}
+// where it is aimed (page coordinates): the pointer; from a pad or the touch Use button, the middle of the view, or the
+// thing itself if it is the nearest thing to the middle (where firing from a pad has always aimed)
+function drawAim(src) {
+  if (src === 'mouse') return { x: G.mouse.x, y: G.mouse.y };
+  const mid = { x: R.W / 2, y: R.viewY + R.H / 2 };
+  let best = null, bestD = Infinity;
+  for (const r of R.hits) { const dd = Math.hypot(r.x + r.w / 2 - mid.x, r.y + r.h / 2 - mid.y); if (dd < bestD) { best = r; bestD = dd; } }
+  if (best && best.kind === 'creature' && bestD < Math.min(R.W, R.H) * 0.45) { const b = creatureBox(best.ref); if (b) return { x: b.x + b.w / 2, y: b.y + b.h / 2 }; }
+  return mid;
+}
+// the screen rect (page coordinates) of the thing's body as it stands now: CR.body(c), [x0, x1, y0, y1] in its own metres
+// with its feet at 0, narrows its sprite box to what its pose fills (crouched, it is half its height)
+function creatureBox(c) {
+  const CR = c.CR, p = c.pos(), r = R.projectRect(p.x, p.y + (c.yOff || 0), p.z, CR.w, CR.h);
+  if (!r) return null;
+  const b = CR.body ? CR.body(c) : [-CR.w / 2, CR.w / 2, 0, CR.h];
+  const x0 = r.x + r.w * (0.5 + b[0] / CR.w), x1 = r.x + r.w * (0.5 + b[1] / CR.w), y0 = r.y + r.h * (1 - b[3] / CR.h), y1 = r.y + r.h * (1 - b[2] / CR.h);
+  return { x: x0, y: y0 + R.viewY, w: x1 - x0, h: y1 - y0 };
+}
+function overCreature(c, aim) { const b = c && !c.dead && creatureBox(c), m = 6; return !!b && aim.x >= b.x - m && aim.x <= b.x + b.w + m && aim.y >= b.y - m && aim.y <= b.y + b.h + m; }
 
 // ---- winning, dying ----
 const AFTERMATHS = {
@@ -532,7 +605,7 @@ function update(dt) {
   if (watching) { const wp = L.watchPoint && L.watchPoint(); if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
-  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? 1.35 : 1;
+  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? (L.watchZoom ? L.watchZoom() : 1.35) : 1;   // a night may close in further (a long way off, it is small)
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
@@ -559,6 +632,7 @@ function update(dt) {
     STORY.update(L, dt);
     updateTargets(L, dt);
     updateThrow(dt);
+    updateDraw(L, dt);
     Seq.update(dt);
     for (const cr of L.creatures) updateCreature(L, cr, dt, G.state === 'play');
     if (G.state === 'play') { heartbeat(dt); if (!L.won && L.isWon && L.isWon()) win(); }
@@ -751,9 +825,11 @@ function drawGunOverlay(ctx, W, H) {
   const L = G.L;
   const u = activeUse(L);
   if (!u || G.state === 'dead' || G.state === 'dying') return;
-  if (G.cam.pitch < 0.3 && G.state === 'play' && G.mouse.x >= 0 && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
+  if (u.inHands) u.inHands(ctx, W, H, G.draw, L, G.draw ? (G.draw.state === 'loosed' ? G.draw.aim : drawAim(G.draw.src)) : null);   // what you hold up to use it (night 5's bow), under the crosshair; aimed where it is drawn
+  const padDraw = G.draw && G.draw.src !== 'mouse' && G.draw.state === 'drawing';   // drawn from a pad or the touch button: the sights are where it is aimed
+  if (G.cam.pitch < 0.3 && G.state === 'play' && (G.mouse.x >= 0 || padDraw) && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
     ctx.strokeStyle = 'rgba(255,230,200,0.5)'; ctx.lineWidth = 1;
-    const mx = G.mouse.x, my = G.mouse.y - R.viewY;
+    const at = padDraw ? drawAim(G.draw.src) : G.mouse, mx = at.x, my = at.y - R.viewY;
     ctx.beginPath(); ctx.moveTo(mx - 12, my); ctx.lineTo(mx - 4, my); ctx.moveTo(mx + 4, my); ctx.lineTo(mx + 12, my); ctx.moveTo(mx, my - 12); ctx.lineTo(mx, my - 4); ctx.moveTo(mx, my + 4); ctx.lineTo(mx, my + 12); ctx.stroke();
   }
 }
@@ -775,6 +851,7 @@ function updateHUD() {
   }
   UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : '▲ looking ahead';   // the win camera's small tilt is not looking down
   UI.zoom.style.opacity = c.zoomHeld && G.state === 'play' && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
+  updateDrawBar();
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
   const isig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active;
@@ -807,6 +884,28 @@ function updateHUD() {
   }
 }
 
+// the bow's power bar, beside where it is aimed: the fill rises as it is drawn (pale below the band, green in it, red past
+// it), the green band is where letting go reaches the thing from where it is now, the notch is the least draw that looses
+// anything; out of range there is no band and it says so. It stays a moment after letting go, showing where it stopped.
+function updateDrawBar() {
+  const d = G.draw, show = !!d && G.state === 'play';
+  if (UI.drawbar.style.display !== (show ? 'block' : 'none')) UI.drawbar.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const p = d.state === 'drawing' ? d.power : d.state === 'easing' ? d.from * (1 - smoothstep(d.t / d.dur)) : d.from;
+  const aim = d.state === 'loosed' ? d.aim : drawAim(d.src), BH = 150;
+  UI.drawbar.style.left = clamp(aim.x + 34, 8, window.innerWidth - 90) + 'px';
+  UI.drawbar.style.top = clamp(aim.y - BH / 2, 8, window.innerHeight - BH - 120) + 'px';
+  const b = d.band;
+  UI.drawfill.style.height = (p * 100).toFixed(1) + '%';
+  UI.drawfill.className = b && p > b[1] || p >= 1 ? 'over' : b && p >= b[0] ? 'in' : '';
+  UI.drawbar.classList.toggle('strain', d.state === 'drawing' && d.power >= 1);
+  UI.drawband.style.display = b ? 'block' : 'none';
+  if (b) { UI.drawband.style.bottom = (b[0] * 100).toFixed(1) + '%'; UI.drawband.style.height = ((b[1] - b[0]) * 100).toFixed(1) + '%'; }
+  UI.drawmin.style.bottom = ((d.u.draw.min || DRAW_MIN) / (d.u.draw.fill || DRAW_FILL) * 100).toFixed(1) + '%';
+  const lab = b ? '' : 'too far';
+  if (UI.drawlabel.textContent !== lab) UI.drawlabel.textContent = lab;
+}
+
 // ---------------- gamepad ----------------
 const PAD = { dir: 0, a: false, start: false, b: false, zoom: false };
 function pollGamepad() {
@@ -830,8 +929,9 @@ function pollGamepad() {
     }
   }
   PAD.dir = dir;
+  if (!a && PAD.a) drawLetGo('pad');   // A let go: a bow drawn by holding it is loosed
   if (a && !PAD.a) {
-    if (G.state === 'play') gamepadUse();
+    if (G.state === 'play') gamepadUse('pad');
     else { // A presses the focused button or ticks the focused box; only the click-anywhere screens go on with it
       const f = document.activeElement;
       if (f && (f.tagName === 'BUTTON' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();
@@ -846,10 +946,11 @@ function pollGamepad() {
   if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play') G.cam.zoomHeld = PAD.zoom; }
 }
 // use whatever is nearest the middle of the view; with nothing there, put the held thing down when looking down
-function gamepadUse() {
+function gamepadUse(src) {
   ensureAudio();
   let best = null, bestD = Infinity;
   for (const r of R.hits) { const dx = r.x + r.w / 2 - R.W / 2, dy = r.y + r.h / 2 - R.viewY - R.H / 2, d = Math.hypot(dx, dy); if (d < bestD) { best = r; bestD = d; } }
+  if (!(best && bestD < Math.min(R.W, R.H) * 0.45 && best.kind !== 'creature') && drawPress(G.L, null, src || 'pad')) return;   // a bow: held, A (or Use) draws it
   if (best && bestD < Math.min(R.W, R.H) * 0.45) {
     G.mouse.x = best.x + best.w / 2; G.mouse.y = best.y + best.h / 2; updateHover();
     const h = G.hover;
@@ -873,7 +974,7 @@ function bindTouch() {
   press('tUp', () => onKeyDown({ key: 'ArrowUp', preventDefault() {} }));
   press('tDown', () => onKeyDown({ key: 'ArrowDown', preventDefault() {} }));
   press('tZoom', () => { G.cam.zoomHeld = true; }, () => { G.cam.zoomHeld = false; });
-  press('tUse', () => gamepadUse());
+  press('tUse', () => gamepadUse('touch'), () => drawLetGo('touch'));
   press('tPause', () => pauseGame());
 }
 
@@ -900,12 +1001,13 @@ function init() {
   UI.canvas = $('game'); UI.hud = $('hud'); UI.compass = $('compass'); UI.objective = $('objective'); UI.pitch = $('pitch');
   UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute');
   UI.holdbar = $('holdbar'); UI.holdfill = $('holdfill');
+  UI.drawbar = $('drawbar'); UI.drawfill = $('drawfill'); UI.drawband = $('drawband'); UI.drawmin = $('drawmin'); UI.drawlabel = $('drawlabel');
   R.attach(UI.canvas); R.resize();
   window.addEventListener('resize', R.resize);
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp);
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);
-  window.addEventListener('blur', () => { G.cam.zoomHeld = false; G.holding = null; });
+  window.addEventListener('blur', () => { G.cam.zoomHeld = false; G.holding = null; drawLetGo(null, true); });   // a bow half drawn is let back down
   UI.canvas.addEventListener('mousedown', onMouseDown);
   UI.canvas.addEventListener('click', onClick);
   UI.overlay.addEventListener('click', onClick);

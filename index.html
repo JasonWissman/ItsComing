@@ -26,6 +26,15 @@
   #toast.show { opacity: 1; }
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
+  /* the bow's power bar, beside where it is aimed: it fills upward as you hold; let go in the green band */
+  #drawbar { display: none; position: absolute; left: 0; top: 0; width: 10px; height: 150px; background: rgba(9,8,8,.62); border: 1px solid rgba(207,200,186,.34); box-shadow: 0 0 12px rgba(0,0,0,.6); }
+  #drawbar.strain { border-color: #b3161e; }
+  #drawfill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: #efe6d2; }
+  #drawfill.in { background: #8fca6c; }
+  #drawfill.over { background: #b3161e; }
+  #drawband { position: absolute; left: -4px; right: -4px; background: rgba(110,176,84,.38); border-top: 2px solid #8fca6c; border-bottom: 2px solid #8fca6c; box-sizing: border-box; }
+  #drawmin { position: absolute; left: 0; right: 0; height: 1px; background: rgba(207,200,186,.45); }
+  #drawlabel { position: absolute; left: 16px; top: -3px; font-size: calc(10px * var(--text-scale)); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; color: rgba(207,200,186,.75); text-shadow: 0 1px 2px #000, 0 0 6px #000; }
   .linkbtn { font: inherit; background: none; border: none; color: #efe6d2; text-decoration: underline; cursor: pointer; padding: 0; letter-spacing: inherit; }
   .fragment { display: block; margin-top: 10px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.6); }
   #inventory { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
@@ -121,6 +130,7 @@
   <div id="tooltip"></div>
   <div id="toast"></div>
   <div id="holdbar"><div id="holdfill"></div></div>
+  <div id="drawbar"><div id="drawfill"></div><div id="drawband"></div><div id="drawmin"></div><div id="drawlabel"></div></div>
   <div id="inventory"></div>
   <div id="debug"></div>
 </div>
