@@ -473,7 +473,7 @@ LEVELS.push({
       if (th && th.it.id === 'cocktail_lit') {
         for (let j = 1; j <= 5; j++) {
           const k = th.t / th.dur - j * 0.035; if (k <= 0) break;
-          const x = lerp(th.from.x, th.to.x, k), y = lerp(th.from.y, th.to.y, k) + Math.sin(k * Math.PI) * 0.8 + th.it.h * 0.85, z = lerp(th.from.z, th.to.z, k), sz = 0.16 * (1 - j / 6), al = 0.7 * (1 - j / 6);
+          const x = lerp(th.from.x, th.to.x, k), y = lerp(th.from.y, th.to.y, k) + Math.sin(k * Math.PI) * 0.8 + th.it.h * 0.45, z = lerp(th.from.z, th.to.z, k), sz = 0.3 * (1 - j / 6), al = 0.85 * (1 - j / 6);
           R.add({ kind: 'sprite', x, y, z, w: sz, h: sz, noFog: true, noLight: true, draw: (ctx) => { ctx.scale(sz, sz); const g = ctx.createRadialGradient(0, 0.5, 0, 0, 0.5, 0.5); g.addColorStop(0, 'rgba(255,214,120,' + al.toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,110,30,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); } });
         }
       }
