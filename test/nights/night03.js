@@ -19,5 +19,12 @@ module.exports = {
     ['pickup', 'lantern'], ['pickup', 'lantern2'], ['pickup', 'matches'],
   ], lantern('hook'), [['expect', '!G.L.won', 'one lantern is not enough']], lantern('hookE'), [
     ['expect', "G.hasItem('matches')", 'matches kept (tool)'],
+    // how it ends, all before the fade: it runs in (hurried from wherever it was) and stops at the salt line of its way,
+    // looks down at the salt, turns round and walks back the way it came
+    ['expect', 'G.L.won && G.L.creature.rush === 1', 'won: it runs in to the salt line'],
+    ['waitUntil', "G.L.s.end && G.L.s.end.phase === 'stand' && Math.abs(G.L.creature.dist - G.L.creature.lane.barrierDist) < 0.02 && G.fade < 0.05", 5000],
+    ['waitUntil', 'G.L.creature.bow > 0.95 && G.fade < 0.05', 4000],
+    ['waitUntil', 'G.L.creature.turn > 0.3 && G.L.creature.turn < 1 && G.fade < 0.05', 4000],
+    ['waitUntil', 'G.L.creature.away && G.L.creature.dist > G.L.creature.lane.barrierDist + 1 && G.fade < 0.05', 4000],
   ]),
 };

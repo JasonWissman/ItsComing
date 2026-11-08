@@ -41,7 +41,7 @@ LEVELS.push({
     hint: 'The old rules: a line of salt across the doorway and another across the side gate, and a lantern hung by each and lit. The bag holds just enough salt for the two lines.',
     objective: 'Salt both ways in. Light a lantern by each.',
     death: { default: 'It was still smiling when it stepped over the threshold.', open: 'One way in had salt across it. It came in by the other.' },
-    win: 'It stood at the salt line until morning, smiling at you. It never once looked at the lanterns.',
+    win: 'It came to the salt line and looked down at it for a long time. Then it turned round and walked back between the graves, still smiling. It never once looked at the lanterns.',
     fragment: 'There was a line of salt across the floor in the morning, and no one had been near the kitchen.',
   },
   // the porch opens to the path between the two columns; a side gate in the east wall opens on the graves
@@ -49,8 +49,9 @@ LEVELS.push({
     { deg: 0, name: 'path', barrierDist: 2.6, cue: 'gate', apertures: [{ z: 1.8, x0: -1.8, x1: 1.8, y0: 0, y1: 3.0 }, { z: 3.6, x0: -1.2, x1: 1.2, y0: 0, y1: 99 }], default: true },
     { deg: 90, name: 'side gate', barrierDist: 2.5, cue: 'creak', apertures: [{ z: 3.6, x0: -1.3, x1: 1.3, y0: 0, y1: 99 }] },
   ],
+  // a salted way holds it; it goes round to the other on its feet if that one is bare (game.js: the smiler can run)
   creatures: [{ type: 'smiler', startDist: 95, time: 88, unseenMult: 1.55 }],
-  aftermath: { type: 'stand', dur: 4.2 },
+  // the aftermath is the night's own (L.aftermath in build): it comes to the salt line, looks down at it, and walks away
   build(L) {
     const stone = [80, 76, 72], stoneD = [58, 54, 52], floor = [66, 62, 58], iron = [30, 30, 32], post = [42, 38, 34];
     const stex = { tex: 'stone', texScale: 1.6 };
@@ -226,6 +227,9 @@ LEVELS.push({
         if (t.done) R.add(t.salt);
       }
       for (const h of hooks) R.add(h.hung ? h.lanternSprite : h.hookSprite);
+      // walking off at the end, it goes into the murk: more and more of the fog's colour over it, until it is gone in it
+      const c = L.creature, cp = L.rend && L.rend.get(c), a = L.s.end;
+      if (cp && a && a.phase === 'walk') { const p = c.pos(), f = R.fogAmt(Math.hypot(p.x, p.z)); cp.fogScale = Math.max(0.85, lerp(f * 0.85, 0.93, smoothstep((L.aftermathT - a.walkAt) / a.walkDur * 1.25 - 0.15)) / Math.max(0.01, f)); }
     };
     // a lit lantern warms the porch round it without washing the stone, or the thing at the salt line, out to orange
     L.glows = () => hooks.filter(h => h.lit).map(h => {
@@ -235,6 +239,73 @@ LEVELS.push({
     const lampP = hooks.map(h => L.pt(h.local[0], 1.5, h.local[2]));
     L.dynamicLights = () => hooks.filter(h => h.lit).map(h => { const p = lampP[hooks.indexOf(h)]; return { x: p[0], y: p[1], z: p[2], r: 4.5, i: 0.34, color: [255, 180, 100], flicker: 0.7, seed: h.seed }; });
     L.deathCause = () => (thr.done || thrE.done) ? 'open' : 'default';
+
+    // ---- held at the salt ----
+    // Held at a salted way it looks down at the salt for a while, then up at you again; if the other way is bare it goes
+    // round to it on its feet first (game.js, ROUND), and stops looking down to run.
+    const s = L.s;
+    const bowTo = (c, want, rate, dt) => { c.bow = clamp((c.bow || 0) + clamp(want - (c.bow || 0), -rate * dt, rate * dt), 0, 1); };
+    L.update = dt => {
+      const c = L.creature;
+      if (L.won) return;   // the aftermath has it now
+      if (c.sealHold) { if (s.heldAt === undefined) s.heldAt = L.t; } else s.heldAt = undefined;
+      if (c.runPose) c.bow = 0;
+      else bowTo(c, s.heldAt !== undefined && L.t - s.heldAt < 1.8 ? 1 : 0, 3, dt);
+    };
+
+    // ---- how it ends ----
+    // Won, it comes for the salt line across the way it is on: from out among the graves it runs (hurried, so the run takes
+    // no more than END.run seconds however far out it was), and stops dead at the line. It looks down at the salt, looks up at you
+    // again, turns round and walks back the way it came, into the dark, and the night fades while it walks. If it was going
+    // round when you won, it comes round first (game.js hurries that).
+    const END = { run: 2.5, stop: 0.4, bow: 0.45, look: 1.3, rise: 0.3, turn: 0.75, walk: 2.8, walkSpeed: 2.2, runCadence: 17 };
+    const saltDist = lane => (lane.idx === 0 ? 1.77 : 2.0);   // how far out the line is poured across each way
+    L.aftermath = (t, dt) => {
+      const c = L.creature, a = s.end || (s.end = { phase: 'round' });
+      const b = c.lane.barrierDist;
+      c.frozen = true;   // no more hitches
+      if (a.phase === 'round') {
+        if (c.round) return false;
+        a.phase = 'come';
+        if (c.dist > b + 0.01) {   // it runs in to the line
+          const v = (c.dist - b) / clamp((c.dist - b) / 8, 0.4, END.run), sr = c.CR.stepRate * Math.PI;
+          c.distFn = (cr, dt2) => { const nd = Math.max(b, cr.dist - v * dt2); cr.gait += END.runCadence * dt2 - (cr.dist - nd) * sr; return nd; };   // quick short steps, not ten a second
+          c.rush = 1;
+        }
+      }
+      if (a.phase === 'come') {
+        if (c.distFn && c.dist > b + 0.001) return false;
+        const at = Math.min(c.dist, b);   // at the line (or where it already stood, if it had got inside the barrier)
+        c.distFn = () => at; c.rush = 0;
+        a.phase = 'stand'; a.t0 = t;
+      }
+      const u = t - a.t0, T1 = END.stop, T2 = T1 + END.bow, T3 = T2 + END.look, T4 = T3 + END.rise, T5 = T4 + END.turn;
+      if (a.phase === 'stand') {
+        bowTo(c, u >= T1 && u < T3 ? 1 : 0, 1 / (u < T3 ? END.bow : END.rise), dt);   // it looks down at the salt, then up at you
+        if (u >= T4) {
+          if (c.turnDir === undefined) c.turnDir = c.rand() < 0.5 ? 1 : -1;
+          c.turn = clamp((u - T4) / END.turn, 0, 1);
+        }
+        if (u >= T5) {   // and walks back the way it came, humming
+          a.phase = 'walk'; a.walkAt = t; a.walkDur = END.walk; c.turn = 1; c.away = true; c.bow = 0;
+          c.distFn = (cr, dt2) => cr.dist + dt2 * END.walkSpeed;
+          AUDIO.voice('hum', 0.35, Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85);
+        }
+        return false;
+      }
+      return t >= a.walkAt + END.walk;
+    };
+    // the win camera follows it, except while it stands at the line: then it widens and tilts to take in the whole of it,
+    // from the salt across the stone at the bottom of the view to the top of its head, clear of the compass
+    const HALF = 31 * DEG;   // half the view's height at no zoom (render.js VFOV)
+    L.watchPoint = () => {
+      const c = L.creature, a = s.end;
+      if (!a || a.phase !== 'stand') return null;
+      const p = c.pos(), d = Math.max(0.5, c.dist), top = Math.atan2(L.eyeH - c.CR.h - 0.05, d), salt = Math.atan2(L.eyeH, saltDist(c.lane) - 0.1);
+      const half = Math.min(HALF, (salt - top) / 2 / 0.78), zoom = clamp(Math.tan(HALF) / Math.tan(half), 1, 1.35);
+      const pitch = salt - Math.atan(Math.tan(HALF) / zoom) * 0.86;
+      return { x: p.x, y: L.eyeH - Math.tan(pitch) * d, z: p.z, zoom };
+    };
     L.floor = { poly: [[-2.1, -1.6], [2.1, -1.6], [2.1, 1.8], [-2.1, 1.8]], y: 0 };
   }
 });

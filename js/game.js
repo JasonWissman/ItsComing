@@ -529,10 +529,11 @@ function update(dt) {
   const c = G.cam;
   // once the night is won the view turns slowly to follow the thing and closes in a little, so you see how it ends
   const watching = G.state === 'won' && G.L && G.L.creature;
-  if (watching) { const wp = L.watchPoint && L.watchPoint(); if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
+  const wp = watching && L.watchPoint && L.watchPoint();
+  if (watching) { if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
-  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? 1.35 : 1;
+  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? ((wp && wp.zoom) || 1.35) : 1;   // and widen the view (zoom) to take in more
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
@@ -608,6 +609,7 @@ function updateCreature(L, c, dt, live) {
   const CR = c.CR;
   c.t += dt * c.timeScale;
   if (c.lane.follow === 'behind' && !c.frozen && !c.dead) c.yaw = G.cam.yaw + Math.PI;
+  if (c.round) goRound(L, c, dt);   // going round a sealed way on its feet (below): where it is this frame
   // seen or not is judged with the unzoomed view: peering at it with zoom never counts as looking away
   const seeCam = G.cam.zoom > 1.001 ? { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH, eye: L.eye } : null;
   c.visFrac = L.visFrac ? L.visFrac(c) : (CR.hidden && CR.hidden(c)) ? 0 : APPROACH.visFrac(L, c.lane, c, seeCam);
@@ -638,7 +640,7 @@ function updateCreature(L, c, dt, live) {
   const pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
   if (CR.sound && Math.floor(c.gait / Math.PI) !== Math.floor(prevGait / Math.PI)) AUDIO.footstep(CR.sound, clamp(2.4 / (d + 1.6), 0, 0.85) * 0.6, pan);
   if (CR.silentWhenSeen && !G.muted && c.idx === 0) AUDIO.setLoop((!seen && c.moving && !L.won) ? 'grind' : null, clamp(0.15 + 3 / (d + 2), 0, 0.6), pan);
-  c.lat = CR.lateral ? CR.lateral(c) : 0;
+  c.lat = CR.lateral ? CR.lateral(c) : (c.runLat || 0);
   const cp = c.pos(), li = LIGHT.list.length ? LIGHT.at(cp.x, cp.y + CR.h * 0.5, cp.z) : null;
   c.lit = Math.max(L.creatureLit ? L.creatureLit(c) : 0, li ? Math.min(1, li.lit) : 0);
   if (live) maybeSwitchLane(L, c);
@@ -646,12 +648,14 @@ function updateCreature(L, c, dt, live) {
   // a sealed way (L.sealed(lane)) holds it at the barrier, or where it already is if it got inside first, until the night is
   // won. On Nightmare, after a moment, it goes round to an open way if it has one (with that way's cue), starting outside that
   // way's barrier; below Nightmare, or on a night that opts out of changing ways (laneSwitch: false), it stands there.
+  // A creature that can run (its type has drawRun) goes round on its feet instead, after a shorter moment (goRound).
   if (live && !L.won && barrier && L.sealed && !c.distFn && d <= barrier + 0.01) {
     if (c.hold === null && L.sealed(c.lane)) { c.hold = Math.min(barrier, d); c.sealHold = true; c.sealHeldAt = L.t; c.dist = d = c.hold; }
-    else if (c.hold !== null && c.sealHeldAt !== undefined && L.t - c.sealHeldAt > 2.5) {
+    else if (c.hold !== null && c.sealHeldAt !== undefined && L.t - c.sealHeldAt > (CR.drawRun ? ROUND.wait : 2.5)) {
       c.sealHeldAt = undefined;
       const open = (c.fixedLane || !L.diff.laneSwitch || L.def.laneSwitch === false) ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && !L.sealed(l) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
-      if (open.length) {
+      if (open.length && CR.drawRun) startRound(L, c, open[Math.floor(c.rand() * open.length)]);
+      else if (open.length) {
         const ln = open[Math.floor(c.rand() * open.length)];
         c.hold = null; c.sealHold = false; c.retarget(ln.idx); c.reached = false;
         const dn = Math.max(d, (ln.barrierDist || 0) + 3); c.u = clamp(1 - Math.pow(dn / c.D0, 1 / c.gamma), 0, 1); c.dist = d = c.D0 * Math.pow(1 - c.u, c.gamma); // going round takes it back out
@@ -670,6 +674,7 @@ function updateCreature(L, c, dt, live) {
 // unseen; the new lane's cue sound is the only warning. dist is a function of progress, so nothing jumps.
 function maybeSwitchLane(L, c) {
   if (!L.diff.laneSwitch || L.def.laneSwitch === false || L.lanes.length < 2 || c.switched || c.fixedLane || L.won || c.dead || c.hold !== null) return; // never while it is held somewhere
+  if (c.round) return;   // nor while it is going round on its feet
   if (c.switchAt === undefined) c.switchAt = 0.12 + c.rand() * 0.28;
   if (c.u < c.switchAt || c.seen) return;
   const options = L.lanes.filter(l => l !== c.lane && !l.noSwitch && (!c.laneOptions || c.laneOptions.includes(l.idx)));
@@ -680,6 +685,65 @@ function maybeSwitchLane(L, c) {
   if (c.idx === 0) { L.laneIdx = ln.idx; L.lane = ln; L.barrierDist = ln.barrierDist || 0; }
   if (ln.cue) AUDIO.sfx(ln.cue, Math.sin(wrapPi(ln.yaw - G.cam.yaw)) * 0.85);
   if (L.onLaneSwitch) L.onLaneSwitch(c, ln);
+}
+// ---- going round a sealed way on its feet ----
+// Only a creature whose type defines drawRun (drawn side on while c.runPose is set; c.runDir +1 runs to the right of the
+// view, c.runGait is its stride) does this; every other one jumps round as above. Modelled on the run round the house in
+// night 1: it stands at the sealed way a moment (ROUND.wait), then sprints sideways (c.runLat, metres to the right of its
+// lane) out of that way's view, is heard running while it is out of sight going round, and comes in at the other way from
+// the side it went round by, ROUND.gap metres outside that way's barrier (where it arrives, with the way's cue), running
+// sideways across it at that distance; then it turns to it and walks on. Won while it is going round, it comes round now.
+const ROUND = { wait: 0.8, out: [0.55, 0.85], round: 0.5, in: [0.65, 1.2], speedOut: 4.5, speedIn: 5.5, gap: 3 };
+// how far to the side it must be to be out of the way's view at distance d: wholly behind the frame of the nearest opening
+// in front of it (a doorway's jamb, a porch column), or, on an open side, well off to the side
+function roundLat(c, lane, d, side) {
+  const ap = lane.apertures.filter(a => a.z < d).sort((a, b) => a.z - b.z)[0];
+  if (!ap) return d * 0.42 + 2.5;
+  return Math.max(0, (side > 0 ? ap.x1 : -ap.x0) * d / ap.z) + c.CR.w / 2 + 0.15;
+}
+function startRound(L, c, to) {
+  const from = c.lane, turn = wrapPi(to.yaw - from.yaw);
+  const side = Math.abs(turn) > Math.PI - 0.05 ? (c.rand() < 0.5 ? 1 : -1) : (Math.sign(turn) || 1);   // the short way round
+  const d = c.dist, d2 = Math.max(d, (to.barrierDist || 0) + ROUND.gap), lat0 = roundLat(c, from, d, side), lat1 = roundLat(c, to, d2, -side);
+  const T1 = clamp(lat0 / ROUND.speedOut, ROUND.out[0], ROUND.out[1]), T2 = T1 + ROUND.round, T3 = T2 + clamp(lat1 / ROUND.speedIn, ROUND.in[0], ROUND.in[1]);
+  c.round = { t: 0, from, to, side, d, d2, lat0, lat1, T1, T2, T3, steps: Math.floor((c.runGait || 0) / Math.PI), arrived: false, pin: null };
+  c.hold = d; c.sealHold = false;
+}
+function goRound(L, c, dt) {
+  const r = c.round;
+  if (L.won && r.t < r.T2) r.t = r.T2;   // won while it was going round: it comes round now, to the way it was making for
+  r.t += dt;
+  if (r.t >= r.T3 && r.arrived) {   // across the way: it turns to it and walks on, from where it is
+    c.runPose = false; c.runLat = 0; if (c.distFn === r.pin) c.distFn = null; c.round = null; return;
+  }
+  c.runPose = true; c.runDir = r.side;
+  c.runGait = (c.runGait || 0) + dt * 15;
+  let yaw;
+  if (r.t < r.T1) {          // flat out to one side, across the way it was held at and out of its view
+    c.runLat = r.side * r.lat0 * Math.pow(r.t / r.T1, 1.5); c.hold = r.d;
+    yaw = r.from.yaw + Math.atan2(c.runLat, r.d);
+  } else if (r.t < r.T2) {   // out of sight, going round: only its feet, moving across
+    c.runLat = r.side * r.lat0; c.hold = r.d;
+    const y0 = r.from.yaw + r.side * Math.atan2(r.lat0, r.d), y1 = r.to.yaw - r.side * Math.atan2(r.lat1, r.d2);
+    yaw = y0 + wrapPi(y1 - y0) * (r.t - r.T1) / (r.T2 - r.T1);
+  } else {                   // round, and across the other way, at the distance it came in at
+    const arriving = !r.arrived;
+    if (arriving) {
+      r.arrived = true;
+      c.hold = null; c.retarget(r.to.idx); c.reached = false;
+      c.u = clamp(1 - Math.pow(r.d2 / c.D0, 1 / c.gamma), 0, 1); c.dist = r.d2 = c.D0 * Math.pow(1 - c.u, c.gamma);
+      r.pin = () => r.d2; c.distFn = r.pin;   // it keeps that distance, without being held, until it has crossed
+      if (c.idx === 0) { L.laneIdx = r.to.idx; L.lane = r.to; L.barrierDist = r.to.barrierDist || 0; }
+    }
+    c.runLat = -r.side * r.lat1 * (1 - easeOut((r.t - r.T2) / (r.T3 - r.T2)));
+    c.lat = c.CR.lateral ? c.CR.lateral(c) : c.runLat;
+    yaw = r.to.yaw + Math.atan2(c.runLat, r.d2);
+    if (arriving && r.to.cue) AUDIO.sfx(r.to.cue, Math.sin(wrapPi(r.to.yaw - G.cam.yaw)) * 0.85);
+    if (arriving && L.onLaneSwitch) L.onLaneSwitch(c, r.to);
+  }
+  c.lat = c.CR.lateral ? c.CR.lateral(c) : c.runLat;   // already, so whether it is seen this frame is judged where it is
+  const n = Math.floor(c.runGait / Math.PI);   // running feet, panned to where it is
+  if (n !== r.steps) { r.steps = n; AUDIO.footstep('runner', clamp(4 / (c.dist + 4), 0.12, 0.7), Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85); }
 }
 function nearestCreature(L) { let best = null; for (const c of L.creatures) if (!c.dead && (!best || c.dist < best.dist)) best = c; return best || L.creature; }
 function heartbeat(dt) {
