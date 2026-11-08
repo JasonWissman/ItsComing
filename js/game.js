@@ -535,7 +535,7 @@ function lookAtPoint(p) {
   const dx = p.x - e.x, dz = p.z - e.z, hd = Math.max(0.3, Math.hypot(dx, dz)), yawTo = Math.atan2(dx, dz);
   G.cam.tYaw = G.cam.yaw + wrapPi(yawTo - G.cam.yaw);
   G.cam.dirIdx = ((Math.round(yawTo / (45 * DEG)) % 8) + 8) % 8;
-  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH + (e.y || 0) - p.y, hd), 0, PITCH_DOWN);
+  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH + (e.y || 0) - p.y, hd), 0, G.L.watchPitch || PITCH_DOWN);   // a night may let the win camera look further down than you can (the tower)
 }
 function win() {
   const L = G.L; L.won = true; L.aftermathT = 0;

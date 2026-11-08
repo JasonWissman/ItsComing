@@ -66,26 +66,30 @@ LEVELS.push({
       const rr = []; for (let k = 0; k < 9; k++) rr.push(size * 0.5 * (0.55 + rng() * 0.7));
       const d = Math.hypot(c[0], c[2], 26.3), sx = Math.cos(th) * size * 0.25, sz = Math.sin(th) * size * 0.25;
       const blob = (k, y, dx, dz) => rr.map((q, j) => { const a = j / rr.length * TAU; return L.pt(c[0] + dx + Math.cos(a) * q * k, y, c[2] + dz + Math.sin(a) * q * k); });
-      L.props.push({ kind: 'poly', pts: blob(1.3, -24.59, sx, sz), color: [160, 170, 178], alpha: 0.14, dist: d + 0.2 });   // the surf, breaking on it from the sea
-      L.props.push({ kind: 'poly', pts: blob(1, -24.56, 0, 0), color: [42 + v, 46 + v, 50 + v], dist: d });                // the rock
+      // (drawn before the whole tower: its foot hides the ones that lie behind it)
+      L.props.push({ kind: 'poly', pts: blob(1.3, -24.59, sx, sz), color: [160, 170, 178], alpha: 0.14, dist: d + 0.2, sortDist: 100 + d + 0.2 });   // the surf, breaking on it from the sea
+      L.props.push({ kind: 'poly', pts: blob(1, -24.56, 0, 0), color: [42 + v, 46 + v, 50 + v], dist: d, sortDist: 100 + d });                // the rock
     }
     // a town across the water: a scatter of lights low on the horizon
     for (let i = 0; i < 16; i++) { const th = (150 + rng() * 60) * DEG, d = 180 + rng() * 60, p = at(th, d, -22 + rng() * 2), w = 0.8 + rng() * 1.2; SC.sprite(L, p[0], p[1], p[2], w, w * 0.7, (ctx, P) => { ctx.scale(w, w * 0.7); P_rect(ctx, -0.5, 0, 1, 1, P.raw([230, 200, 140])); }, { noFog: true, noLight: true, dist: d }); }
-    // the tower wall below the gallery, in bands sorted by their true distance from the eye so the climber draws over them
+    // the tower wall below the gallery, in bands. Nothing is ever behind the wall but the sea and the rocks, and the thing
+    // is always on it: the whole wall is drawn before it, wherever on it it is (its hands reach up the wall over bands
+    // nearer you than it is), in the bands' own order by their true distance from the eye
     const edges = [0, -0.7, -1.8, -3.5, -6, -9, -13, -18, -24.6];
     for (let b = 0; b < edges.length - 1; b++) {
       const y0 = edges[b], y1 = edges[b + 1], r0 = rad(y0), r1 = rad(y1), ym = (y0 + y1) / 2, rm = rad(ym), shade = 148 - b * 9;
       for (let i = 0; i < N; i++) {
         const a0 = i / N * TAU, a1 = (i + 1) / N * TAU, am = (a0 + a1) / 2;
-        const cx = AX + Math.cos(am) * rm, cz = AZ + Math.sin(am) * rm;
-        const opts = { dist: Math.hypot(cx, cz, 1.65 - ym) + 0.7 };
+        const cx = AX + Math.cos(am) * rm, cz = AZ + Math.sin(am) * rm, dd = Math.hypot(cx, cz, 1.65 - ym);
+        const opts = { dist: dd + 0.7, sortDist: 40 + dd * 0.1 };
         if (b < 5) { opts.tex = 'stone'; opts.texScale = 2.2; }
         SC.quad(L, at(a0, r0, y0), at(a1, r0, y0), at(a1, r1, y1), at(a0, r1, y1), [shade, shade - 2, shade - 6], opts);
       }
     }
-    // the gallery floor, the rail, the lamp room and its roof. The rail stands a hand's breadth in from the edge of the floor,
-    // so its top bar lies at or below the line the thing climbs on every face: you look over it, never through it.
-    const RR = 3.1;
+    // the gallery floor, the rail, the lamp room and its roof. The rail stands a little in from the edge of the floor and
+    // not quite waist high, so looking down over it its top bar is low in the view, below the wall it climbs until the
+    // thing is nearly at the top.
+    const RR = 3.07;
     for (let i = 0; i < N; i++) {
       const a0 = i / N * TAU, a1 = (i + 1) / N * TAU, am = (a0 + a1) / 2;
       // the floor sorts by its true distance from the eye, like the tower below it, so it covers the tower where it overhangs
@@ -103,10 +107,10 @@ LEVELS.push({
       ring(2.15, 2.72, 2.9, iron);
       { const q = [at(a0, 2.15, 2.9), at(a1, 2.15, 2.9), at(am, 0.05, 4.4)]; SC.quad(L, q[0], q[1], q[2], q[2], [30, 32, 36], { sortDist: far(...q) }); }
       // the rail's bars sort by their far ends too, so nothing standing inside the rail is ever drawn under them
-      for (const yy of [0.5, 1.02]) ring(RR, yy, yy + 0.05, ironL);
+      for (const yy of [0.47, 0.96]) ring(RR, yy, yy + 0.05, ironL);
       // rail posts only at every third segment, and none near the three faces it climbs, so none stands between you and it
       const p = at(a0, RR, 0), az = Math.atan2(p[0], p[2]);
-      if (i % 3 === 0 && [0, 45, -45].every(l => Math.abs(wrapPi(az - l * DEG)) > 22 * DEG)) SC.sprite(L, p[0], 0, p[2], 0.06, 1.07, (ctx, P) => { ctx.scale(0.06, 1.07); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
+      if (i % 3 === 0 && [0, 45, -45].every(l => Math.abs(wrapPi(az - l * DEG)) > 22 * DEG)) SC.sprite(L, p[0], 0, p[2], 0.06, 1.01, (ctx, P) => { ctx.scale(0.06, 1.01); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
     }
     // two stanchions on the lamp room: the fuse box on one at chest height, the crank on the other at the waist. Each is
     // fixed to the face of its stanchion that looks your way, and drawn after the stanchion and before its own outline,
@@ -120,7 +124,9 @@ LEVELS.push({
     const LW = 1.1, LH = 1.5;                             // the lamp's lens, standing on its pedestal
     // the lens on its pedestal, inside the glass
     SC.box(L, AX - 0.45, AX + 0.45, 0, 0.9, AZ - 0.45, AZ + 0.45, [50, 50, 56]);
-    { const lp = at(100 * DEG, 2.5, 0); STORY.lamp(L, lp[0], 0, lp[2], { scale: 0.8 }); }
+    // the keeper's crate, against the lamp room in the corner by the fuse box's stanchion, and on it a bedside lamp, of all
+    // things: below the fuse box as you look at it, behind you to the right, clear of every spot an item may lie in
+    { const cp = at(75 * DEG, 2.17, 0); SC.box(L, cp[0] - 0.18, cp[0] + 0.18, 0, 0.4, cp[2] - 0.15, cp[2] + 0.15, [84, 64, 44], { tex: 'planks', texScale: 0.7 }); STORY.lamp(L, cp[0], 0.4, cp[2], { scale: 0.8 }); }
     // items: on the gallery floor where you can see them, none of them round behind a stanchion or under the crank
     const floorAt = (deg, r) => { const p = at(deg * DEG, r, 0); return { x: p[0], y: 0, z: p[2] }; };
     const spots = [floorAt(60, 2.7), floorAt(120, 2.7), floorAt(45, 2.9), floorAt(135, 2.9), floorAt(75, 3.0), floorAt(108, 3.0)];
@@ -205,13 +211,50 @@ LEVELS.push({
     const need = 8;
     const winder = mkTarget(L, {
       id: 'winder', name: 'Crank', x: wd[0], y: wd[1], z: wd[2], w: WDS, h: WDS,
-      crank: { n: need, sfx: 'ratchet', onTurn() { G.shake(0.04); }, onComplete() { s.turning = true; s.beamA = L.creature.yaw + Math.PI; AUDIO.sfx('lever'); G.say(s.power ? 'The light begins to go round.' : 'The lamp goes round, dark.', s.power ? 'The light goes round.' : 'The lamp goes round, dark.'); } },
+      crank: { n: need, sfx: 'ratchet', onTurn() { G.shake(0.04); }, onComplete() { s.turning = true; s.beamA = azOf(L.creature) + Math.PI; AUDIO.sfx('lever'); G.say(s.power ? 'The light begins to go round.' : 'The lamp goes round, dark.', s.power ? 'The light goes round.' : 'The lamp goes round, dark.'); } },
       hint() { return s.turning ? 'Turning.' : 'The crank that turns the lamp. Turn it. ' + Math.max(0, need - Math.floor(winder.count || 0)) + ' more.'; },
     });
-    const onLane = () => Math.abs(wrapPi(s.beamA - L.creature.yaw)) < 22.5 * DEG;
+    // ---- where it is on the wall ----
+    // Its lane is a ray from your eye, and the tower flares at the lane's own slope, so on its lane it would hang in the air
+    // beside the stone, over the sea. It is put on the stone: on the line straight down the face its way climbs (FACE, in
+    // degrees round the tower's axis: you are at 90), at the height its lane gives it, SINK lower, so that all of it, hands
+    // and feet, lies on wall you can see from the rail. Its box (being seen, the light on it, the view that follows it) is
+    // centred there, and the climber lays its body along the wall as the wall runs on screen.
+    const FACE = [90, 80, 100], SINK = 0.4, SLOPE = 0.466, H2 = CREATURES.climber.h / 2;
+    const wallFrame = c => {
+      const y = L.eyeH + c.dist * Math.sin(c.lane.elev), th = c.wallTh * DEG, r = rad(y), k = y < 0 ? SLOPE : 0, un = Math.hypot(1, k);
+      const p = at(th, r, y - SINK * clamp((c.dist - 4) / 6, 0, 1)), cs = Math.cos(th), sn = Math.sin(th);
+      const up = rotY(-cs * k / un, -sn * k / un, L.facing), out = rotY(cs / un, sn / un, L.facing), across = rotY(-sn, cs, L.facing);
+      return { at: L.pt(p[0], p[1], p[2]), up: [up[0], 1 / un, up[1]], out: [out[0], k / un, out[1]], across: [across[0], 0, across[1]] };
+    };
+    const wallAt = c => { const p = wallFrame(c).at; return { x: p[0], y: p[1] - H2, z: p[2] }; };
+    // its bearing from the tower's axis (the beam's own reckoning), in the world
+    const azOf = c => { const th = (c.wallTh === undefined ? FACE[c.lane.idx] : c.wallTh) * DEG, v = rotY(Math.cos(th), Math.sin(th), L.facing); return Math.atan2(v[0], v[1]); };
+    // seen or not is judged where it is drawn, with the view unzoomed
+    L.visFrac = c => {
+      const p = c.pos(), r = R.projectRect(p.x, p.y + (c.yOff || 0), p.z, c.CR.w, c.CR.h, { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH });
+      if (!r) return 0;
+      const w = Math.min(r.x + r.w, R.W) - Math.max(r.x, 0), h = Math.min(r.y + r.h, R.H) - Math.max(r.y, 0);
+      return w > 0 && h > 0 ? w * h / Math.max(1e-6, r.w * r.h) : 0;
+    };
+    // going round to another face (the Nightmare change of way, which only happens while you are not looking at it): it
+    // runs across the stone sideways, round the tower, to the face it has chosen, climbing all the while
+    L.onLaneSwitch = c => { s.scut = { from: c.wallTh, to: FACE[c.lane.idx] }; };
+    const onLane = () => Math.abs(wrapPi(s.beamA - azOf(L.creature))) < 22.5 * DEG;
     L.isWon = () => s.power && s.turning;
     L.objectiveText = () => (s.power ? 'Lit. ' : (s.bulb ? '' : 'Put the new bulb in the lamp. ') + (s.fuse ? '' : s.blownIn ? 'Take the blown fuse out of the fuse box. ' : 'Put a new fuse in the fuse box. ')) + (s.turning ? 'Turning.' : 'Turn the crank (' + Math.min(need, Math.floor(winder.count || 0)) + '/' + need + ').');
-    L.update = dt => { if (s.turning) s.beamA += dt * TAU / 12 * s.beamSpeed; };
+    L.update = dt => {
+      const c = L.creature;
+      if (!c.wallAt) { c.wallTh = FACE[c.lane.idx]; c.wallAt = wallAt; c.wallFrame = wallFrame; }
+      c.wallYOff = c.yOff || 0;
+      if (s.scut) {   // across the stone at a run, 1.6 m a second round the tower at the height it is at
+        const r = rad(L.eyeH + c.dist * Math.sin(c.lane.elev)), dir = Math.sign(s.scut.to - s.scut.from), step = dt * 1.6 / r / DEG;
+        c.wallTh += dir * Math.min(step, Math.abs(s.scut.to - c.wallTh));
+        c.scuttle = dir;
+        if (Math.abs(s.scut.to - c.wallTh) < 1e-6) { c.wallTh = s.scut.to; c.scuttle = 0; s.scut = null; }
+      }
+      if (s.turning) s.beamA += dt * TAU / 12 * s.beamSpeed;
+    };
     const lensW = L.pt(AX, 1.9, AZ);
     // the fuse box, as it stands: a grey cabinet with a yellow lightning-bolt label and a handle; open, its door swings
     // out to the left and inside is the fuse in its clips: blown (black, split), gone, or new
@@ -300,21 +343,51 @@ LEVELS.push({
     L.dynamicLights = () => {
       if (!s.power) return [];
       const out = [{ x: lensW[0], y: lensW[1], z: lensW[2], r: 5.5, i: 0.9, color: [255, 232, 176], flicker: 0.08, seed: 1 }];
-      if (s.turning) { const A = s.beamA; out.push({ x: lensW[0], y: lensW[1], z: lensW[2], r: 60, i: 1.6, color: [255, 245, 210], cone: { x: Math.sin(A) * 0.714, y: -0.7, z: Math.cos(A) * 0.714, cos: Math.cos(36 * DEG) } }); }
+      if (s.turning) { const A = s.beamA; out.push({ x: lensW[0], y: lensW[1], z: lensW[2], r: 60, i: 1.6, color: [255, 245, 210], cone: { x: Math.sin(A) * 0.99, y: -0.12, z: Math.cos(A) * 0.99, cos: Math.cos(24 * DEG) } }); }   // out over the sea: the gallery floor keeps it off the wall below
       return out;
     };
     L.glows = () => s.power ? [{ x: lensW[0], y: lensW[1], z: lensW[2], r: 2.6 + Math.sin(L.t * 7) * 0.1, color: [255, 225, 160], a: 0.3 }] : null;
-    // aftermath: the beam goes round faster and every pass slides it further down the wall
+    // aftermath: the light goes round fast, a turn every three seconds, starting from the far side of the tower. If the
+    // thing is a long way down it scrambles up the wall at you, to where you see it plainly, as the beam comes round onto
+    // it; the light knocks its hands off the stone and it slides, clawing, down the wet wall until its hooks catch. It
+    // clings there, its face still turned up at you, and starts up again, and the next pass knocks it further down. Once
+    // the light is going it comes no nearer than `closest` (if it was nearer than that, it holds where it is).
+    const AFTER = { near: 5.5, rush: 1.25, climb: 0.3, closest: 2.5, cling: 0.7, knock: [3, 4.5], end: 6.6 };
+    // the view follows it down over the rail, further down than you can look yourself, so the wall it is on fills the view
+    L.watchPitch = 70 * DEG;
+    L.watchPoint = () => { const p = wallFrame(L.creature).at; return { x: p[0], y: p[1], z: p[2] }; };
     L.aftermath = (t, dt) => {
       const c = L.creature;
-      if (!c.distFn) { c.frozen = true; c.slideTo = c.dist; c.distFn = (cr, dt2) => cr.dist + (cr.slideTo - cr.dist) * Math.min(1, dt2 * 5); s.beamSpeed = 3; s.crossing = false; }
+      if (!s.after) {
+        const a = s.after = { mode: c.dist > AFTER.near + 0.3 ? 'rush' : 'climb', cling: 0, hits: 0 };
+        const rate = Math.max(2.5, (c.dist - AFTER.near) / AFTER.rush);
+        s.beamSpeed = 4; s.crossing = onLane();
+        c.frozen = true; c.slideTo = null; c.slideV = 0;   // (slideTo is only set while it slides: the climber claws as it goes)
+        c.distFn = (cr, dt2) => {
+          if (a.mode === 'rush') { const d = Math.max(AFTER.near, cr.dist - dt2 * rate); if (d <= AFTER.near) a.mode = 'climb'; return d; }
+          if (a.mode === 'climb') return Math.max(Math.min(cr.dist, AFTER.closest), cr.dist - dt2 * AFTER.climb);
+          if (a.mode === 'slide') {   // faster and faster down the wet stone, until the hooks catch with a jolt
+            cr.slideV = Math.min(7, cr.slideV + dt2 * 16);
+            const d = Math.min(cr.slideTo, cr.dist + cr.slideV * dt2);
+            if (d >= cr.slideTo - 1e-4) { a.mode = 'cling'; a.cling = AFTER.cling; cr.slideTo = null; G.shake(0.1); }
+            return d;
+          }
+          return cr.dist;   // clinging
+        };
+      }
+      const a = s.after;
+      c.climbRate = a.mode === 'rush' ? 9 : a.mode === 'climb' ? 2.6 : 0;   // the climbing cycle, fast as it rushes up
+      if (a.mode === 'cling' && (a.cling -= dt) <= 0) a.mode = 'climb';
       const on = onLane();
-      if (on && !s.crossing) { s.crossing = true; c.slideTo += 1.8; AUDIO.sfx('scrape', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.2); }
-      if (!on) s.crossing = false;
-      return t >= 8.5;
+      if (on && !s.crossing) {
+        a.mode = 'slide'; c.slideV = 0.6; c.slideTo = c.dist + AFTER.knock[Math.min(a.hits, 1)]; a.hits++; c.struck = 1;   // white in the beam
+        AUDIO.sfx('scrape', Math.sin(wrapPi(azOf(c) - G.cam.yaw)) * 0.85); G.shake(0.2);
+      }
+      s.crossing = on;
+      return t >= AFTER.end;
     };
-    // where a dropped thing lands: on the gallery floor inside the rail (no more than 3 m from the axis) and clear of the
-    // lamp room's wall, at every facing
-    L.floor = { poly: [[-1.6, -0.75], [1.6, -0.75], [1.5, -0.3], [0.75, -0.02], [-0.75, -0.02], [-1.5, -0.3]], y: 0 };
+    // where a dropped thing lands: on the gallery floor inside the rail (no more than 3 m from the axis), clear of the lamp
+    // room's wall and of the crate, at every facing
+    L.floor = { poly: [[-1.6, -0.75], [0.33, -0.75], [0.33, -0.58], [0.8, -0.58], [0.8, -0.75], [1.6, -0.75], [1.5, -0.3], [0.75, -0.02], [-0.75, -0.02], [-1.5, -0.3]], y: 0 };   // (not on the crate)
   }
 });
