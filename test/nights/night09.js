@@ -46,6 +46,7 @@ module.exports = {
     ['expect', "/No credit/.test(G.lastToast.msg) && G.L.s.dialed === '' && G.L.s.keyT['5'] !== undefined", 'without a coin the key goes down and nothing is dialled'],
     ['click', 'slot'],
     ['expect', "G.L.s.credit > 0 && !G.hasItem('coin')", 'the coin goes in the slot'],
+    ['waitUntil', "!document.getElementById('toast').classList.contains('show') || !/No credit/.test(document.getElementById('toast').textContent)", 1000],
     ['expect', clickKeys('G.L.s.others[0]'), 'the keys of an ordinary number are clicked on the phone'],
     ['expect', 'G.L.s.dialed === G.L.s.others[0]', 'the display has the number dialled'],
     ['waitUntil', "G.L.s.line === 'dead'", 3000],
@@ -84,6 +85,8 @@ module.exports = {
     ['expect', '!' + visible('.pb-nb'), 'the notebook is put away'],
     ['waitUntil', 'G.L.s.end && G.L.s.end.pose && G.L.s.end.doorT !== undefined', 8000],
     ['expect', "G.L.s.end.doorT >= G.L.s.end.tStop && G.state === 'won'", 'a car comes, pulls up and opens its door before the fade'],
+    ['waitUntil', 'G.L.aftermathT > G.L.s.end.doorT + 0.6', 3000],
+    ['expect', 'Math.abs(wrapPi(G.L.s.end.doorYaw - G.cam.yaw)) < 35 * DEG && Math.abs(wrapPi(G.L.s.end.doorYaw + 90 * DEG)) > 25 * DEG', 'the open door is in view, and not behind the pay phone'],
     ['waitUntil', 'G.L.creature.away', 4000],
   ],
 };

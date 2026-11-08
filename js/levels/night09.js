@@ -137,7 +137,7 @@ Object.assign(ICONS, {
     text: {
       intro: 'It has rained since the last bus, and the phone booth on the corner is the only dry place on the street.<br>Someone in a long coat is walking toward it from a long way off, in step, swinging a lantern. You have seen him before. The last time, you wrote something down.',
       death: { default: 'He came through the glass as if it were rain.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.', nocoin: 'You were still pressing the keys of a phone that would not dial when he came through the glass.' },
-      win: 'Someone picked up and said your name, once, quietly, the way you call something home. Then there were headlights in the rain, and a car drew up at the kerb with its back door already open. He had stopped in the street, in the lights, and he stood there while you got in. When you looked back he had turned round and was walking away the way he had come.',
+      win: 'Someone picked up and said your name, once, quietly, the way you call something home. Then there were headlights in the rain, and a car drew up at the kerb and its back door swung open. He had stopped in the street, in the lights, and he stood there while you got in. When you looked back he had turned round and was walking away the way he had come.',
       fragment: 'The number is still in the notebook, in your own handwriting. You do not remember writing it down, and you have not crossed it out.',
     },
     // two streets, each seen whole through a pane of the booth: up the main street through the door, and along the pavement
@@ -326,10 +326,20 @@ Object.assign(ICONS, {
       faceQ(-0.075, 0.075, 1.41, 1.63, 0.1005, [92, 96, 102], face);                             // the keypad's plate
       faceQ(RET.u0, RET.u1, RET.y0, RET.y1, 0.1005, [160, 164, 172], face);                       // the coin return: a chrome surround
       faceQ(RET.u0 + 0.008, RET.u1 - 0.008, RET.y0 + 0.008, RET.y1 - 0.006, 0.101, [12, 12, 14], detail);   // and its dark mouth
-      // the instruction card, on the plate to the left of the housing: a printed heading and a few lines
+      // the instruction card, on the plate to the left of the housing: a printed heading, and the three steps in the order
+      // the phone wants them (as on any pay phone), big enough to read in the close view
       faceQ(-0.232, -0.142, 1.43, 1.67, 0.021, [214, 208, 190]);
       SC.wallV(L, XW + 0.0215, -0.226, XW + 0.0215, -0.148, 1.625, 1.655, [150, 40, 36], { sortDist: 0.79 });
-      for (let k = 0; k < 6; k++) SC.wallV(L, XW + 0.0215, -0.224, XW + 0.0215, k % 3 === 2 ? -0.172 : -0.152, 1.59 - k * 0.026, 1.597 - k * 0.026, [90, 96, 120], { sortDist: 0.79 });
+      SC.sprite(L, XW + 0.022, 1.43, -0.187, 0.09, 0.24, (ctx, P) => {
+        const print = (t, x, y, px, col, weight) => { ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = (weight || 'bold') + ' ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col; ctx.fillText(t, 0, 0); ctx.restore(); };
+        ctx.save(); ctx.translate(0, 0.2); ctx.scale(0.001, -0.001); ctx.font = 'bold 13px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = P.col([236, 226, 210]); ctx.fillText('TO CALL', 0, 0); ctx.restore();
+        const ink = P.col([36, 42, 70]), red = P.col([150, 40, 36]);
+        [['1', 'LIFT', 'the receiver'], ['2', 'INSERT', 'a coin'], ['3', 'DIAL', 'the number']].forEach(([n, a, b], i) => {
+          const y = 0.158 - i * 0.064;
+          print(n, -0.041, y - 0.021, 30, red);
+          print(a, -0.019, y, 13, ink); print(b, -0.019, y - 0.017, 9.5, ink, 'normal');
+        });
+      }, { sortDist: 0.785 });
       // the shelf under it, and the phone book chained to it: a fat directory lying with its spine to the wall, so what faces
       // you is the block of pages between its yellow covers. Only the faces the eye can see are built (the eye is almost in
       // line with its near side, which would only ever show as a sliver drawn over the cover)
@@ -414,12 +424,13 @@ Object.assign(ICONS, {
       };
       // one press of a key: it goes down whatever happens; it beeps only on a live line with credit, and only a line that is
       // still being dialled takes the digit
+      const NO_CREDIT = ['It will not dial until a coin is in it.', 'Nothing. No credit.'];
       const press = ch => {
         if (G.state !== 'play') return;
         s.keyT[ch] = L.t;
         if (s.line === 'answered') return;
         if (s.hook !== 'off') { AUDIO.sfx('keyClick'); G.say('The receiver is still on its hook.', 'The receiver is on its hook.'); return; }
-        if (!s.credit) { AUDIO.sfx('keyClick'); s.deadKeys++; G.say('It will not dial until a coin is in it.', 'Nothing. No credit.'); return; }
+        if (!s.credit) { AUDIO.sfx('keyClick'); s.deadKeys++; G.say(NO_CREDIT[0], NO_CREDIT[1]); return; }
         AUDIO.sfx('dial');
         if (ch === '*' || ch === '#') return;
         if (s.line === 'dead') { G.say('The line is dead. Hang up and try again.', 'The line is dead.'); return; }
@@ -459,7 +470,9 @@ Object.assign(ICONS, {
         onClick() { if (s.credit) { G.say('There is a coin in it already.', 'It has a coin in it.'); return true; } return false; },
         use() {
           if (s.hook !== 'off') { s.returnAt = L.t + 0.5; AUDIO.sfx('coinReturn'); G.say('The coin drops straight through. Lift the receiver first.', 'It drops straight through.'); return true; }
-          s.credit = 10; AUDIO.sfx('coin'); return true;
+          s.credit = 10; AUDIO.sfx('coin');
+          if (G.toastT > 0 && NO_CREDIT.includes(G.lastToast.msg)) G.toastT = 0.001;   // there is credit now: the line that said there was none goes
+          return true;
         },
       });
       const ret = mkTarget(L, {
@@ -655,33 +668,37 @@ Object.assign(ICONS, {
 
       // ---------------- the car that comes for you ----------------
       // Once someone has picked up, a car comes fast down his street, passing him, and pulls up hard at the kerb by the booth
-      // with its back door to you: down the main street in its left-hand lane and round the corner into the kerb, or along
-      // the cross street from the east. It sounds its horn and the back door swings open on a lit inside, with someone at the
-      // wheel. If he is standing in its way it stops short of him, its lights on him. It is built each frame from boxes in its
-      // own frame: a along it (forward), b across it (to its left), y up from the road.
+      // with its back door to you: down the main street in its left-hand lane, left round the corner and across to the kerb
+      // a few steps east of the booth (so the door that opens is its right-hand one), or along the cross street from the east.
+      // Either way it stands where it is seen whole through the east pane, door and all, and not right outside the glass
+      // (where the eye would only look down on its roof) or along the pavement to the west (behind the pay phone). It sounds
+      // its horn and the back door swings open on a lit inside, with someone at the wheel. If he is standing in its way it
+      // stops short of him, its lights on him. It is built each frame from boxes in its own frame: a along it (forward), b
+      // across it (to its left, or for the car that came round the corner, mirrored, to its right: toward the kerb either
+      // way), y up from the road.
       const CAR = { col: [150, 140, 112], V: 20, BRAKE: 20, T0: 0.3, FROM: 50 };
       const carPath = (laneN, stopX) => {
         const pts = [];
         const line = (x0, z0, x1, z1) => { const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.2)); for (let i = pts.length ? 1 : 0; i <= n; i++) pts.push([lerp(x0, x1, i / n), lerp(z0, z1, i / n)]); };
         if (laneN) {
-          const r = 3.2, cx = 1.75 - r, cz = 2.15 + r, n = Math.ceil(r * Math.PI / 2 / 0.2);
+          const r = 3.2, cx = 1.75 + r, cz = 2.15 + r, n = Math.ceil(r * Math.PI / 2 / 0.2);
           line(1.75, CAR.FROM, 1.75, cz);
-          for (let i = 1; i <= n; i++) { const a = -Math.PI / 2 * i / n; pts.push([cx + r * Math.cos(a), cz + r * Math.sin(a)]); }
-          line(cx, 2.15, stopX, 2.15);
+          for (let i = 1; i <= n; i++) { const a = Math.PI + Math.PI / 2 * i / n; pts.push([cx + r * Math.cos(a), cz + r * Math.sin(a)]); }
+          line(cx, 2.15, Math.max(stopX, cx + 0.4), 2.15);
         } else line(CAR.FROM, 2.15, stopX, 2.15);
         const sAt = [0];
         for (let i = 1; i < pts.length; i++) sAt.push(sAt[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-        return { pts, sAt, len: sAt[sAt.length - 1] };
+        return { pts, sAt, len: sAt[sAt.length - 1], m: laneN };
       };
       const poseAt = (path, sv) => {
         let i = 1;
         while (i < path.pts.length - 1 && path.sAt[i] < sv) i++;
         const a = path.pts[i - 1], b = path.pts[i], k = clamp((sv - path.sAt[i - 1]) / Math.max(1e-6, path.sAt[i] - path.sAt[i - 1]), 0, 1);
         const fx = b[0] - a[0], fz = b[1] - a[1], fl = Math.hypot(fx, fz) || 1;
-        return { x: lerp(a[0], b[0], k), z: lerp(a[1], b[1], k), fx: fx / fl, fz: fz / fl };
+        return { x: lerp(a[0], b[0], k), z: lerp(a[1], b[1], k), fx: fx / fl, fz: fz / fl, m: path.m };
       };
-      // a point in the car's frame, in the night's
-      const carPt = (P, a, b, y) => [P.x + a * P.fx - b * P.fz, ROAD + y, P.z + a * P.fz + b * P.fx];
+      // a point in the car's frame, in the night's (b mirrored for the car that pulls up with its right side to the kerb)
+      const carPt = (P, a, b, y) => { if (P.m) b = -b; return [P.x + a * P.fx - b * P.fz, ROAD + y, P.z + a * P.fz + b * P.fx]; };
       // where along its path it has to stop: the end, or short of him if its front would come within reach of him
       const stopShort = (path, him) => {
         for (let sv = 0; sv <= path.len; sv += 0.2) {
@@ -774,7 +791,7 @@ Object.assign(ICONS, {
           on(cab[3], [cs(1, 0.04, 0.0), cs(1, 0.49, 0.0), cs(1, 0.49, 0.92), cs(1, 0.06, 0.92)], [140, 106, 70], bright, 0.007);
           const ca = Math.cos(th), sa = Math.sin(th);
           const D = (k, y) => W(-0.11 - ca * k, 0.9 + sa * k, y);    // a point k along the open door from its hinge
-          const n = [P.fx * sa - P.fz * ca, P.fz * sa + P.fx * ca];    // its outer face's normal: the car's left, turned forward as it opens
+          const n0 = carPt(P, 0, 0, 0), n1 = carPt(P, sa, ca, 0), n = [n1[0] - n0[0], n1[2] - n0[2]];   // its outer face's normal: out from the car's side, turned forward as it opens
           const mid = D(0.5, 0.55), outer = (eye[0] - mid[0]) * n[0] + (eye[2] - mid[2]) * n[1] > 0;
           out.push({ kind: 'poly', pts: [D(0, 0.3), D(1.0, 0.3), D(1.0, 0.78), D(0, 0.78)], color: outer ? scalec(col, 0.8) : [104, 88, 70] });
           out.push({ kind: 'poly', pts: [D(0.02, 0.78), D(0.98, 0.78), D(0.74, 1.26), D(0.02, 1.26)], color: [150, 172, 198], alpha: 0.16, noLight: true });   // its window
@@ -811,7 +828,7 @@ Object.assign(ICONS, {
         const e = s.end; if (!e) return null;
         const c = sm(), cp = c.pos(), hy = Math.atan2(cp.x, cp.z), hd = Math.hypot(cp.x, cp.z);
         const hp = Math.atan2(L.eyeH - (cp.y + c.CR.h * 0.6), hd);
-        const t = L.aftermathT, w = lerp(e.w1 * smoothstep((t - (e.tStop - 1.0)) / 1.6), e.w2, smoothstep((t - (e.tStop + 1.5)) / 1.2));
+        const t = L.aftermathT, w = lerp(e.w1 * smoothstep((t - (e.tStop - 1.0)) / 1.6), e.w2, smoothstep((t - (e.tStop + 1.3)) / 1.2));
         const yaw = hy + wrapPi(e.doorYaw - hy) * w, pitch = lerp(hp, e.doorPitch, w * 0.6);
         return { x: Math.sin(yaw) * 6, y: L.eyeH - 6 * Math.tan(pitch), z: Math.cos(yaw) * 6 };
       };
@@ -828,18 +845,21 @@ Object.assign(ICONS, {
             c.hold = null; c.distFn = (cr, dt2) => Math.max(e.dFin, cr.dist - dt2 * v);
           } else { e.hurryEnd = t; e.dFin = D; c.hold = D; }
           const him = APPROACH.position(c.lane, e.dFin, 0, L.eyeH);
-          // it draws up a few steps along the kerb: past the booth's corner coming round from the main street, short of it
-          // coming along the cross street (and short of him, so its door does not open into him)
-          e.path = carPath(laneN, laneN ? -3.2 : Math.min(4.0, him.x - 2.6));
+          // it draws up at the kerb east of the booth: just past the corner, coming round from the main street; short of the
+          // booth, coming along the cross street (and short of him, so its door does not open into him)
+          e.path = carPath(laneN, laneN ? 6.4 : Math.min(4.0, him.x - 2.6));
           e.S = stopShort(e.path, him);
           e.B = Math.min(CAR.BRAKE, e.S); e.tc = (e.S - e.B) / CAR.V; e.Tb = 2 * e.B / CAR.V;
-          e.tStop = CAR.T0 + e.tc + e.Tb; e.done = e.tStop + 3.6;
+          e.tStop = CAR.T0 + e.tc + e.Tb;
           const fin = poseAt(e.path, e.S), door = carPt(fin, -0.6, 0.9, 0.75);
           e.doorYaw = Math.atan2(door[0], door[2]); e.doorPitch = Math.atan2(L.eyeH - door[1], Math.hypot(door[0], door[2]));
           // the view takes in both the car's open door and him if they are near enough together; if not it goes to the door
           // as it opens, and back to him as he turns away
           const sep = Math.abs(wrapPi(e.doorYaw - Math.atan2(him.x, him.z)));
-          e.w1 = sep < 50 * DEG ? 0.5 : 0.85; e.w2 = sep < 50 * DEG ? 0.5 : 0.15;
+          e.w1 = sep < 50 * DEG ? 0.5 : 0.95; e.w2 = sep < 50 * DEG ? 0.5 : 0.15;
+          // he turns round once the view is back on him (it is there all along when it holds both), and the night ends a
+          // couple of seconds into his walk away
+          e.turnAt = e.tStop + (sep < 50 * DEG ? 1.4 : 2.6); e.done = e.turnAt + 2.2;
         }
         const e = s.end;
         const once = (k, at, fn) => { if (!e[k] && t >= at) { e[k] = true; fn(); } };
@@ -855,7 +875,7 @@ Object.assign(ICONS, {
         once('idle', e.tStop, () => AUDIO.setLoop('engine', 0.1, pan(e.pose)));
         once('horn', e.tStop + 0.2, () => AUDIO.sfx('horn', pan(e.pose)));
         once('door', e.tStop + 0.6, () => { AUDIO.sfx('carDoor', pan(e.pose)); e.doorT = t; });
-        once('turn', e.tStop + 1.4, () => { c.hold = null; c.away = true; c.frozen = true; c.distFn = (cr, dt2) => cr.dist + dt2 * 1.3; });
+        once('turn', e.turnAt, () => { c.hold = null; c.away = true; c.frozen = true; c.distFn = (cr, dt2) => cr.dist + dt2 * 1.3; });
         return t >= e.done;
       };
       // his lantern: a warm light that walks with him, and its glow; the car's headlamps, and the light inside it
