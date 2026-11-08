@@ -718,7 +718,7 @@ function goRound(L, c, dt) {
   }
   c.runPose = true; c.runDir = r.side;
   c.runGait = (c.runGait || 0) + dt * 15;
-  let yaw;
+  let yaw, arriving = false;
   if (r.t < r.T1) {          // flat out to one side, across the way it was held at and out of its view
     c.runLat = r.side * r.lat0 * Math.pow(r.t / r.T1, 1.5); c.hold = r.d;
     yaw = r.from.yaw + Math.atan2(c.runLat, r.d);
@@ -727,21 +727,19 @@ function goRound(L, c, dt) {
     const y0 = r.from.yaw + r.side * Math.atan2(r.lat0, r.d), y1 = r.to.yaw - r.side * Math.atan2(r.lat1, r.d2);
     yaw = y0 + wrapPi(y1 - y0) * (r.t - r.T1) / (r.T2 - r.T1);
   } else {                   // round, and across the other way, at the distance it came in at
-    const arriving = !r.arrived;
-    if (arriving) {
-      r.arrived = true;
+    if (!r.arrived) {
+      r.arrived = arriving = true;
       c.hold = null; c.retarget(r.to.idx); c.reached = false;
       c.u = clamp(1 - Math.pow(r.d2 / c.D0, 1 / c.gamma), 0, 1); c.dist = r.d2 = c.D0 * Math.pow(1 - c.u, c.gamma);
       r.pin = () => r.d2; c.distFn = r.pin;   // it keeps that distance, without being held, until it has crossed
       if (c.idx === 0) { L.laneIdx = r.to.idx; L.lane = r.to; L.barrierDist = r.to.barrierDist || 0; }
     }
     c.runLat = -r.side * r.lat1 * (1 - easeOut((r.t - r.T2) / (r.T3 - r.T2)));
-    c.lat = c.CR.lateral ? c.CR.lateral(c) : c.runLat;
     yaw = r.to.yaw + Math.atan2(c.runLat, r.d2);
-    if (arriving && r.to.cue) AUDIO.sfx(r.to.cue, Math.sin(wrapPi(r.to.yaw - G.cam.yaw)) * 0.85);
-    if (arriving && L.onLaneSwitch) L.onLaneSwitch(c, r.to);
   }
   c.lat = c.CR.lateral ? c.CR.lateral(c) : c.runLat;   // already, so whether it is seen this frame is judged where it is
+  if (arriving && r.to.cue) AUDIO.sfx(r.to.cue, Math.sin(wrapPi(r.to.yaw - G.cam.yaw)) * 0.85);
+  if (arriving && L.onLaneSwitch) L.onLaneSwitch(c, r.to);
   const n = Math.floor(c.runGait / Math.PI);   // running feet, panned to where it is
   if (n !== r.steps) { r.steps = n; AUDIO.footstep('runner', clamp(4 / (c.dist + 4), 0.12, 0.7), Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85); }
 }

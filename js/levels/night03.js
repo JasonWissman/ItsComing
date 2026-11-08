@@ -241,8 +241,8 @@ LEVELS.push({
     L.deathCause = () => (thr.done || thrE.done) ? 'open' : 'default';
 
     // ---- held at the salt ----
-    // Held at a salted way it looks down at the salt for a while, then up at you again; if the other way is bare it goes
-    // round to it on its feet first (game.js, ROUND), and stops looking down to run.
+    // Held at a salted way it looks down at the salt for a while, then up at you again. If the other way is bare it runs
+    // round to it after a moment (game.js, ROUND), and does not look down while it runs.
     const s = L.s;
     const bowTo = (c, want, rate, dt) => { c.bow = clamp((c.bow || 0) + clamp(want - (c.bow || 0), -rate * dt, rate * dt), 0, 1); };
     L.update = dt => {
@@ -254,28 +254,29 @@ LEVELS.push({
     };
 
     // ---- how it ends ----
-    // Won, it comes for the salt line across the way it is on: from out among the graves it runs (hurried, so the run takes
-    // no more than END.run seconds however far out it was), and stops dead at the line. It looks down at the salt, looks up at you
-    // again, turns round and walks back the way it came, into the dark, and the night fades while it walks. If it was going
+    // Won, it comes for the salt line across the way it is on, right up to it, its toes at the salt (nearer than the way
+    // held it while the night was on): from out among the graves it runs, hurried, so the run takes no more than END.run
+    // seconds however far out it was, and stops dead; from the barrier it steps up. It looks down at the salt, looks up at you
+    // again, turns round and walks back the way it came, into the murk, and the night fades while it walks. If it was going
     // round when you won, it comes round first (game.js hurries that).
     const END = { run: 2.5, stop: 0.4, bow: 0.45, look: 1.3, rise: 0.3, turn: 0.75, walk: 2.8, walkSpeed: 2.2, runCadence: 17 };
     const saltDist = lane => (lane.idx === 0 ? 1.77 : 2.0);   // how far out the line is poured across each way
     L.aftermath = (t, dt) => {
       const c = L.creature, a = s.end || (s.end = { phase: 'round' });
-      const b = c.lane.barrierDist;
       c.frozen = true;   // no more hitches
       if (a.phase === 'round') {
         if (c.round) return false;
-        a.phase = 'come';
-        if (c.dist > b + 0.01) {   // it runs in to the line
-          const v = (c.dist - b) / clamp((c.dist - b) / 8, 0.4, END.run), sr = c.CR.stepRate * Math.PI;
-          c.distFn = (cr, dt2) => { const nd = Math.max(b, cr.dist - v * dt2); cr.gait += END.runCadence * dt2 - (cr.dist - nd) * sr; return nd; };   // quick short steps, not ten a second
-          c.rush = 1;
+        a.phase = 'come'; a.at = Math.min(c.dist, saltDist(c.lane) + 0.25);   // where it stops: at the line, or where it already stood
+        const far = c.dist - a.at;
+        if (far > 0.01) {
+          const v = far / clamp(far / 8, 0.4, END.run), sr = c.CR.stepRate * Math.PI, at = a.at;
+          c.distFn = (cr, dt2) => { const nd = Math.max(at, cr.dist - v * dt2); if (v > 4) cr.gait += END.runCadence * dt2 - (cr.dist - nd) * sr; return nd; };   // running, quick short steps, not ten a second
+          c.rush = clamp((v - 2) / 4, 0, 1);
         }
       }
       if (a.phase === 'come') {
-        if (c.distFn && c.dist > b + 0.001) return false;
-        const at = Math.min(c.dist, b);   // at the line (or where it already stood, if it had got inside the barrier)
+        if (c.distFn && c.dist > a.at + 0.001) return false;
+        const at = a.at;
         c.distFn = () => at; c.rush = 0;
         a.phase = 'stand'; a.t0 = t;
       }
