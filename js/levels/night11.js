@@ -229,9 +229,15 @@ LEVELS.push({
     const c0 = () => L.creatures[0];
     mkTarget(L, {
       id: 'drum', name: 'Oil drum', x: -2.6, y: FL - drumLift, z: -2.2, w: 0.86, h: 1.04 + drumLift,   // the drum sprite's own box
-      accepts: ['bottle'],
+      accepts: ['bottle', 'bottle_oil', 'cocktail', 'cocktail_lit'],
+      onClick() {   // an empty bottle before a full one, whichever is in hand
+        const e = G.inv.findIndex(i => i.id === 'bottle');
+        if (e >= 0 && !(G.inv[G.active] && G.inv[G.active].id === 'bottle')) G.active = e;
+        return false;
+      },
       hint() { return 'Lamp oil. The tap turns.'; },
       use(item) {   // one bottle at a time, filled where it is in your hands
+        if (item.id !== 'bottle') { G.say('That one is full already.', 'Full already.'); return false; }
         const i = G.inv.indexOf(item), full = newItem(L, 'bottle_oil', 'Bottle of oil', { w: BW, h: BH, icon: 'barnBottleOil' });
         if (i >= 0) { G.inv.splice(i, 1, full); G.active = i; } else { G.inv.push(full); G.active = G.inv.length - 1; }
         s.pourT = G.t; AUDIO.sfx('pour'); G.say('Full to the shoulder.', 'Full.');
@@ -239,6 +245,15 @@ LEVELS.push({
       },
     });
     mkRecipe(L, { parts: ['bottle_oil', 'rag'], result: { id: 'cocktail', name: 'Bottle and rag', opts: { w: BW, h: BH, icon: 'barnCocktail' } }, sfx: 'cloth', text: 'The rag goes into its neck.' });
+    // the likely wrong ways round say what is wrong and leave both things in your hands as they were
+    const notYet = (a, b, name, icon, text) => mkRecipe(L, {
+      parts: [a, b], result: { id: a, name, opts: { w: a === 'rag' ? RW : BW, h: a === 'rag' ? RH : BH, icon } }, sfx: 'nope', text,
+      onCombine: (it, L2) => { const back = L2.items.find(i => i.id === b && i.taken && !G.inv.includes(i)); if (back) G.inv.push(back); G.active = G.inv.indexOf(it); },
+    });
+    notYet('bottle', 'rag', 'Empty bottle', 'barnBottle', 'The bottle is empty.');
+    notYet('bottle', 'matches', 'Empty bottle', 'barnBottle', 'There is nothing to light.');
+    notYet('bottle_oil', 'matches', 'Bottle of oil', 'barnBottleOil', 'It will not catch like that.');
+    notYet('rag', 'matches', 'Rag', 'barnRag', 'Not on its own.');
     // lighting it keeps the matches: they light the second one too
     mkRecipe(L, {
       parts: ['cocktail', 'matches'], result: { id: 'cocktail_lit', name: 'Lit bottle', opts: { w: BW, h: BH, throwable: true } }, sfx: 'strike', text: 'The rag catches.',
@@ -260,8 +275,9 @@ LEVELS.push({
     const pathLeft = c => sOf(c.lane, c.dist);
     const sBar = lane => sOf(lane, lane.barrierDist);   // the fire line: just beyond the hay, on either way
     const ground = (lane, d) => d * Math.cos(lane.elev);   // how far out along the ground (on the ground)
+    // past the fire line of its way there is nothing left to stop it, and it comes on three times as fast
     const walk = (cr, dt) => {
-      const m = cr.frozen || cr.dead ? 0 : cr.CR.speedMult(cr, dt, cr.seen) * (cr.seen ? cr.seenMult : cr.unseenMult);
+      const m = cr.frozen || cr.dead ? 0 : cr.CR.speedMult(cr, dt, cr.seen) * (cr.seen ? cr.seenMult : cr.unseenMult) * (inside(cr) ? 3 : 1);
       cr.u = clamp(cr.u + dt * m / cr.T, 0, 1);
       return dOf(cr.lane, cr.S0 * (1 - cr.u));
     };
