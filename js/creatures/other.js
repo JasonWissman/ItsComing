@@ -1,7 +1,8 @@
 'use strict';
 // The other: a porcelain doll the size of a small girl, always behind you, only ever seen in a mirror. It moves only
 // while no mirror you are facing shows it. Lured to the music box it steps in through the boards, smiling, and dances.
-// c.back (set by the night while it draws a reflection) draws it from behind.
+// c.back draws it from behind: the night sets it for the reflection in the odd mirror and in the glass behind it while it
+// lunges, and when the bell sends it walking away.
 CREATURES.other = {
   name: 'the doll', h: 1.35, w: 0.72, faceY: 1.14, stepRate: 1.6, catchDist: 1.3, sound: null, seenFrac: 0.6,
   death: { delay: 0.4, dur: 0.6, sting: 'stingHum' },

@@ -15,7 +15,7 @@ const T = require('./lib'); const URL = T.INDEX;
     if (NIGHTS && !NIGHTS.includes(lvl)) continue;
     const found = {};
     for (const seed of seeds) {
-      await page.goto(URL + '?level=' + lvl + '&go&seed=' + seed + '&diff=' + (seed % 2 ? 'normal' : 'nightmare')); await page.waitForTimeout(200); // every other layout on Nightmare, so tier-only items are checked too
+      await page.goto(URL + '?level=' + lvl + '&go&seed=' + seed); await page.waitForTimeout(200);
       const ids = await page.evaluate(() => G.L.items.filter(i => !i.taken).map(i => i.id)); // not what the night starts you holding
       const seenFrom = {};
       for (const down of [true, false]) for (let d = 0; d < 8; d++) {

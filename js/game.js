@@ -4,9 +4,8 @@ const LIST_SCREENS = ['nights', 'settings', 'fragments']; // menu screens with t
 const PITCH_DOWN = 45 * DEG; // looking down: enough to see the floor around you without a lurch of the view
 const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // difficulty is a table of knobs read by buildLevel and by each night's build(L) through L.tier() and L.nightmare
-const DIFFICULTIES = [
-  { id: 'normal', name: 'Normal', desc: 'Hints on: the card says what to do and where it is coming from.', tier: 0, time: 1.1, unseen: 0.95, hints: true, lane: 'default', tick: true, variance: 0.08, decoys: 0, hardShots: false },
-  { id: 'nightmare', name: 'Nightmare', desc: 'Much less time, more to do, no hints and no compass mark. It comes from wherever it likes, and some things that look right are not.', tier: 1, time: 0.6, unseen: 1.4, hints: false, lane: 'random', tick: false, variance: 0.15, decoys: 1, hardShots: true, laneSwitch: true },
+const DIFFICULTIES = [   // one game: the table stays so a night's knobs (L.tier, L.nightmare, hints) keep one place to read from
+  { id: 'nightmare', name: 'Nightmare', tier: 1, time: 0.6, unseen: 1.4, hints: false, lane: 'random', tick: false, variance: 0.15, decoys: 1, hardShots: true, laneSwitch: true },
 ];
 
 const G = {
@@ -57,7 +56,7 @@ function makeCreature(L, cd, k) {
   const c = {
     type: cd.type, CR, lane, yaw: lane.yaw, idx: k,
     // a lane may set its own start distance, and a limit on it (the back of a closet)
-    D0: Math.min(lane.maxStart || Infinity, (lane.startDist || cd.startDist) * vDist), T: cd.time * diff.time * vTime, gamma: cd.gamma || 0.72,
+    D0: Math.min(lane.maxStart || Infinity, (lane.startDist || cd.startDist) * vDist), T: cd.time * diff.time * vTime, gamma: cd.gamma || 1,   // 1: a steady pace all the way in, not faster as it closes
     seenMult: cd.seenMult === undefined ? 1 : cd.seenMult, unseenMult: (cd.unseenMult === undefined ? 1.3 : cd.unseenMult) * diff.unseen,
     u: 0, dist: 0, gait: 0, t: 0, seen: true, seenLast: true, visFrac: 1, visible: true, lit: 0, lat: 0, yOff: 0, lunge: 0,
     frozen: false, reached: false, hits: 0, dead: false, moving: false,
@@ -107,6 +106,14 @@ function buildLevelDef(def, i) {
   L.lights = (L.lights || []).concat((def.lights || []).map(l => worldLight(L, l)));
   return L;
 }
+// a level may move its eye (L.eye, a world offset from where it stands; the night 2 car drives off): lights flagged
+// attach ride with it, so they are handed to LIGHT where the eye is now. Nothing changes while there is no offset.
+function eyeMoved(L) { const e = L.eye; return !!(e && (e.x || e.y || e.z)); }
+function placeLights(L, list) {
+  if (!eyeMoved(L)) return list;
+  const e = L.eye;
+  return list.map(l => (l.attach ? Object.assign({}, l, { x: l.x + e.x, y: l.y + (e.y || 0), z: l.z + e.z }) : l));
+}
 function worldLight(L, l) {
   const p = L.pt(l.x, l.y, l.z);
   const w = Object.assign({}, l, { x: p[0], y: p[1], z: p[2], seed: L.rand() * 10 });
@@ -153,7 +160,7 @@ function startLevel(i, withCard) {
     setState('card');
     const d = G.diff(), T = G.L.text;
     const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + ' &middot; ' + d.name + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
+    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
   } else {
     setState('play');
     hideOverlay();
@@ -210,7 +217,6 @@ function onKeyDown(e) {
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
   if (G.state !== 'play' && MENU.onKey(e)) return;
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
-  if (G.state === 'title' && k >= '1' && k <= String(DIFFICULTIES.length)) { setDifficulty(k.charCodeAt(0) - 49); return; }
   if (G.state !== 'play') {
     if (k === 'Enter' && !LIST_SCREENS.includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
     if ((k === 'c' || k === 'C') && G.state === 'title' && G.unlocked > 0 && G.unlocked < LEVELS.length) { ensureAudio(); startLevel(G.unlocked, true); }
@@ -235,14 +241,6 @@ function setMuted(m) {
   UI.mute.textContent = G.muted ? 'muted (M)' : 'sound on (M)';
   UI.mute.classList.toggle('off', G.muted);
   SAVE.setSetting('muted', G.muted);
-}
-function setDifficulty(i) {
-  G.difficulty = clamp(i | 0, 0, DIFFICULTIES.length - 1);
-  SAVE.setSetting('difficulty', G.difficulty);
-  AUDIO.sfx('ui');
-  // the title and the Nights list are built per difficulty (Continue, unlocks), so they are rebuilt; focus lands on Begin, the next thing to press
-  if (G.state === 'title' && (MENU.kind === 'title' || MENU.kind === 'nights')) { const kind = MENU.kind; MENU.show(kind, kind === 'nights' ? { from: 'title' } : undefined); G.overlayArmed = 0; const begin = UI.overlay.querySelector('button[data-act="begin"]'); if (begin) begin.focus(); }
-  else UI.overlay.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('sel', +b.dataset.diff === G.difficulty));
 }
 function restartLevel() {
   if (!G.L) return;
@@ -456,11 +454,13 @@ function startAftermath(L) {
   if (L.after.seq) Seq.play(L.after.seq);
 }
 // aim the view at a creature: turn toward where it really is and tilt to its chest, no lower than looking down
-function lookAtCreature(cr) {
-  const cp = cr.pos(), hd = Math.max(0.3, Math.hypot(cp.x, cp.z)), yawTo = Math.atan2(cp.x, cp.z);
+function lookAtCreature(cr) { const cp = cr.pos(); lookAtPoint({ x: cp.x, y: cp.y + (cr.yOff || 0) + cr.CR.h * 0.6, z: cp.z }); }
+function lookAtPoint(p) {
+  const e = G.L.eye || { x: 0, y: 0, z: 0 };   // from where the eye is, if the night has moved it
+  const dx = p.x - e.x, dz = p.z - e.z, hd = Math.max(0.3, Math.hypot(dx, dz)), yawTo = Math.atan2(dx, dz);
   G.cam.tYaw = G.cam.yaw + wrapPi(yawTo - G.cam.yaw);
   G.cam.dirIdx = ((Math.round(yawTo / (45 * DEG)) % 8) + 8) % 8;
-  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH - (cp.y + (cr.yOff || 0) + cr.CR.h * 0.6), hd), 0, PITCH_DOWN);
+  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH + (e.y || 0) - p.y, hd), 0, PITCH_DOWN);
 }
 function win() {
   const L = G.L; L.won = true; L.aftermathT = 0;
@@ -529,7 +529,7 @@ function update(dt) {
   const c = G.cam;
   // once the night is won the view turns slowly to follow the thing and closes in a little, so you see how it ends
   const watching = G.state === 'won' && G.L && G.L.creature;
-  if (watching) lookAtCreature(G.L.creature);
+  if (watching) { const wp = L.watchPoint && L.watchPoint(); if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
   const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? 1.35 : 1;
@@ -547,7 +547,8 @@ function update(dt) {
     // fog rolls: visibility breathes, and a scripted bank can swallow the thing for a while
     const fr = L.def.weather && L.def.weather.fogRoll;
     if (fr) L.pal.fogDist = L.def.pal.fogDist * (1 - fr.depth * 0.5 * (1 + Math.sin(G.t * TAU / fr.period + (fr.phase || 0))));
-    LIGHT.set(L.dynamicLights ? L.lights.concat(L.dynamicLights()) : L.lights);
+    L.lightsNow = L.dynamicLights ? L.lights.concat(L.dynamicLights()) : L.lights;
+    LIGHT.set(placeLights(L, L.lightsNow));
     LIGHT.update(dt, G.t);
     WEATHER.update(dt, G.t);
   }
@@ -607,14 +608,16 @@ function updateCreature(L, c, dt, live) {
   const CR = c.CR;
   c.t += dt * c.timeScale;
   if (c.lane.follow === 'behind' && !c.frozen && !c.dead) c.yaw = G.cam.yaw + Math.PI;
-  c.visFrac = L.visFrac ? L.visFrac(c) : (CR.hidden && CR.hidden(c)) ? 0 : APPROACH.visFrac(L, c.lane, c, null);
+  // seen or not is judged with the unzoomed view: peering at it with zoom never counts as looking away
+  const seeCam = G.cam.zoom > 1.001 ? { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH, eye: L.eye } : null;
+  c.visFrac = L.visFrac ? L.visFrac(c) : (CR.hidden && CR.hidden(c)) ? 0 : APPROACH.visFrac(L, c.lane, c, seeCam);
   const seen = c.visFrac >= (CR.seenFrac === undefined ? 0.2 : CR.seenFrac);
   c.seen = seen; c.visible = seen;
   if (CR.onSeen && seen && !c.seenLast) CR.onSeen(c);
   c.seenLast = seen;
   let m = CR.speedMult(c, dt, seen) * ((CR.ignoresGaze || c.ignoresGaze) ? 1 : (seen ? c.seenMult : c.unseenMult));
   if (c.frozen || c.dead) m = 0;
-  const prevDist = c.dist;
+  const prevDist = c.dist, prevGait = c.gait;   // before a night's distFn, which may walk it (and its legs) itself
   let d;
   if (c.hold !== null) d = c.hold;
   else if (c.distFn) d = c.distFn(c, dt);
@@ -624,7 +627,6 @@ function updateCreature(L, c, dt, live) {
   if (c.hitched) { c.hitched = false; G.shake(0.05); }
   c.dist = d;
   const moved = Math.abs(prevDist - d);
-  const prevGait = c.gait;
   c.gait += moved * CR.stepRate * Math.PI;
   c.moving = moved > 0.024 * dt; // a rate, not a per-frame distance, so the slowest walkers step at any refresh rate
   if (!c.moving && !c.dead) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
@@ -700,17 +702,19 @@ function render() {
   const c = G.cam;
   const wob = SAVE.data.settings.reducedMotion ? 0 : (c.zoom - 1) * 0.0018;
   const view = { yaw: c.yaw + Math.sin(G.t * 1.7) * wob + Math.sin(G.t * 2.9) * wob * 0.5, pitch: c.pitch + Math.cos(G.t * 1.3) * wob, zoom: c.zoom, shakeX: c.shakeX, shakeY: c.shakeY };
+  if (L.lightsNow && eyeMoved(L)) LIGHT.set(placeLights(L, L.lightsNow));   // the lights that ride with the eye, where it is this frame
   R.begin(view, L, G.t);
   const rend = L.rend || (L.rend = new Map());
   for (const it of L.items) if (!it.taken) {
     let p = rend.get(it);
     if (!p) { p = { kind: 'sprite', hit: { kind: 'item', ref: it }, hitPad: 8, draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); } }; rend.set(it, p); }
-    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.card = true; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
+    p.x = it.x; p.y = it.y; p.z = it.z; p.w = it.w; p.h = it.h; p.flat = it.flat; p.card = true; p.worn = !!it.decoy; p.attach = !!it.attach; p.dist = Math.hypot(it.x, it.z); p.layer = 1;
     R.add(p);
   }
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
-    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
+    p.x = t.x; p.y = t.y; p.z = t.z; p.w = t.w; p.h = t.h;   // a target can move or change size (an opened box's lid stands up)
     R.add(p);
   }
   if (G.throwing) {
@@ -725,7 +729,7 @@ function render() {
     const CR = cr.CR, pos = cr.pos();
     let p = rend.get(cr);
     if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); if (!cr.moving) ctx.rotate(0.008 * Math.sin(cr.t * 0.7)); } CR.draw(ctx, cr, P); } }; rend.set(cr, p); }
-    p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = cr.dist; p.layer = 1;
+    p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = Math.hypot(cr.dist, cr.lat || 0); p.layer = 1; p.noContact = true;   // its sideways offset counts: it sorts by how far it really is
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);
   }
@@ -769,8 +773,8 @@ function updateHUD() {
     for (let i = 0; i < 8; i++) html += '<span class="' + (i === cur ? 'cur' : '') + (ticks.includes(i) ? ' thing' : '') + '">' + DIR_NAMES[i] + '</span>';
     UI.compass.innerHTML = html;
   }
-  UI.pitch.textContent = c.tPitch > 0.1 ? '▼ looking down' : '▲ looking ahead';
-  UI.zoom.style.opacity = c.zoom > 1.2 ? 1 : 0;
+  UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : '▲ looking ahead';   // the win camera's small tilt is not looking down
+  UI.zoom.style.opacity = c.zoomHeld && G.state === 'play' && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
   const isig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active;
@@ -783,7 +787,8 @@ function updateHUD() {
       const dpr = Math.min(window.devicePixelRatio || 1, 3); const cv = document.createElement('canvas'); cv.width = cv.height = 64 * dpr; // sharp on phones and retina screens
       const x = cv.getContext('2d');
       x.scale(dpr, dpr); x.translate(32, 58); x.scale(52, -52);
-      it.icon(x, { col: cc => rgba(cc), cola: (cc, a) => rgba(cc, a), raw: cc => rgba(cc), fog: 0, t: 0 });
+      const wc = it.decoy ? wornc : (cc => cc);   // a thing that will not work looks it, in the hand too
+      it.icon(x, { col: cc => rgba(wc(cc)), cola: (cc, a) => rgba(wc(cc), a), raw: cc => rgba(cc), fog: 0, t: 0 });
       slot.appendChild(cv);
       const lab = document.createElement('div'); lab.className = 'label'; lab.textContent = it.name + (it.uses > 1 ? ' ×' + it.uses : '');
       slot.appendChild(lab);
@@ -903,15 +908,11 @@ function init() {
   window.addEventListener('blur', () => { G.cam.zoomHeld = false; G.holding = null; });
   UI.canvas.addEventListener('mousedown', onMouseDown);
   UI.canvas.addEventListener('click', onClick);
-  UI.overlay.addEventListener('click', e => {
-    const b = e.target.closest && e.target.closest('[data-diff]');
-    if (b) { e.stopPropagation(); ensureAudio(); setDifficulty(+b.dataset.diff); return; }
-    onClick(e);
-  });
+  UI.overlay.addEventListener('click', onClick);
   UI.mute.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); toggleMute(); });
   bindTouch();
   SAVE.load();
-  G.difficulty = clamp(SAVE.data.settings.difficulty | 0, 0, DIFFICULTIES.length - 1);
+  G.difficulty = 0;
   setMuted(!!SAVE.data.settings.muted);
   MENU.applyAll();
   document.addEventListener('visibilitychange', () => { if (document.hidden) AUDIO.suspend(); else if (G.state !== 'paused') AUDIO.resume(); }); // only a paused game stays silent on return
@@ -919,7 +920,6 @@ function init() {
   G.debug = q.has('debug');
   if (G.debug) UI.debug.style.display = 'block';
   G.noRaf = q.has('nofr');
-  if (q.has('diff')) { const di = DIFFICULTIES.findIndex(d => d.id === q.get('diff')); if (di >= 0) G.difficulty = di; }
   const sd = parseInt(q.get('seed'), 10);
   G.seed = isNaN(sd) ? null : sd;
   G.runSeed = G.seed !== null ? G.seed : (Date.now() % 1000000);

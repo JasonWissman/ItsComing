@@ -23,10 +23,12 @@ CREATURES.swimmer = {
     const weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]), iris = P.col([128, 132, 122]), mouth = P.col([10, 8, 8]);
     const wet = P.cola([230, 240, 235], 0.3), ring = [150, 165, 175];
     const fresh = clamp(1 - (G.L.t - c.surfaced) / 1.2, 0, 1);
-    // it rises a little as it closes, and all the way out when it lunges; the water line is y = 0
-    const rise = 0.02 + near * 0.08 + lunge * 0.55 + Math.sin(t * 1.1) * 0.015;
-    for (let i = 0; i < 3; i++) { const k = (fresh + i * 0.33 + t * 0.12) % 1; P_ell(ctx, 0, 0.0, 0.26 + k * 0.55, 0.04 + k * 0.05, P.cola(ring, 0.32 * (1 - k))); }
-    ctx.save(); ctx.beginPath(); ctx.rect(-1, 0, 2, 3); ctx.clip(); // nothing below the water line is drawn: the water shows there
+    // it rises a little as it closes, and all the way out when it lunges; the water line is y = 0 until the lunge lifts the
+    // whole drawing toward the eye (c.yOff): then it is y = -c.yOff, and the rings stay down there on the water and fade
+    const rise = (0.02 + near * 0.08 + Math.sin(t * 1.1) * 0.015) * (1 - lunge);   // the death lift is the game's: the face ends at eye height
+    const wl = -(c.yOff || 0), calm = 1 - lunge;
+    for (let i = 0; i < 3; i++) { const k = (fresh + i * 0.33 + t * 0.12) % 1; P_ell(ctx, 0, wl, 0.26 + k * 0.55, 0.04 + k * 0.05, P.cola(ring, 0.32 * (1 - k) * calm)); }
+    ctx.save(); ctx.beginPath(); ctx.rect(-1, wl, 2, 3 - wl); ctx.clip(); // nothing below the water line is drawn: the water shows there
     ctx.translate(0, rise);
     // the head: a long drowned skull, grey and wet, moss grown over the crown in patches
     P_ell(ctx, 0, 0.1, 0.17, 0.27, skin);
@@ -46,7 +48,7 @@ CREATURES.swimmer = {
     }
     ctx.restore();
     // drips off the chin and the weed, and the ring where the water meets it
-    for (let i = 0; i < 3; i++) { const k = (t * 0.9 + i * 0.37) % 1, y = rise + 0.05 - k * 0.12; if (y > 0) P_ell(ctx, -0.1 + i * 0.1, y, 0.008, 0.014, P.cola([200, 214, 210], 0.6 * (1 - k))); }
-    P_ell(ctx, 0, 0.0, 0.24, 0.025, P.cola(ring, 0.5));
+    for (let i = 0; i < 3; i++) { const k = (t * 0.9 + i * 0.37) % 1, y = rise + 0.05 - k * 0.12; if (y > wl) P_ell(ctx, -0.1 + i * 0.1, y, 0.008, 0.014, P.cola([200, 214, 210], 0.6 * (1 - k))); }
+    if (calm > 0.01) P_ell(ctx, 0, wl, 0.24, 0.025, P.cola(ring, 0.5 * calm));
   }
 };

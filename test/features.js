@@ -1,4 +1,4 @@
-// Tests for difficulty, hint hiding, restart key and mute.
+// Tests for the one game (no difficulty to pick), hint hiding, restart key and mute.
 const { chromium } = require('playwright');
 const path = require('path');
 const T = require('./lib'); const URL = T.INDEX;
@@ -41,45 +41,26 @@ const hoverHit = lookFor;
   page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console.error: ' + m.text()); });
 
-  console.log('== difficulty picker ==');
+  console.log('== one game, no difficulty to pick ==');
   await page.goto(URL); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.difficulty === 0), 'defaults to Normal');
-  check(await page.evaluate(() => document.querySelectorAll('.diff').length === 2 && document.querySelector('.diff.sel').textContent.includes('Normal')), 'two buttons, Normal highlighted');
-  await shot(page, 'title-diff');
-  await page.click('.diff[data-diff="1"]'); await page.waitForTimeout(150);
-  check(await page.evaluate(() => G.state === 'title' && G.difficulty === 1 && JSON.parse(localStorage.getItem('itscoming.v2')).settings.difficulty === 1), 'clicking Nightmare selects it without starting the game, and saves it');
-  await page.keyboard.press('1'); await page.waitForTimeout(100);
-  check(await page.evaluate(() => G.difficulty === 0 && document.querySelector('.diff.sel').textContent.includes('Normal')), 'key 1 selects Normal');
-  await page.keyboard.press('2'); await page.waitForTimeout(100);
-  check(await page.evaluate(() => G.difficulty === 1 && document.querySelector('.diff.sel').textContent.includes('Nightmare')), 'key 2 selects Nightmare');
+  check(await page.evaluate(() => G.difficulty === 0 && DIFFICULTIES.length === 1 && G.diff().id === 'nightmare' && !document.querySelector('.diff, [data-diff]')), 'the title offers no difficulty: there is one game');
+  await shot(page, 'title');
   await page.keyboard.press('Enter'); await page.waitForTimeout(500);
   let v = await page.evaluate(() => ({ T: G.L.creature.T, um: G.L.creature.unseenMult, kicker: document.querySelector('.kicker').textContent, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
-  check(v.T > 80 * 0.6 * 0.88 && v.T < 80 * 0.6 * 1.12 && Math.abs(v.um - 1.35 * 1.4) < 1e-6, 'Nightmare scales time and unseen speed (' + v.T.toFixed(1) + 's, x' + v.um.toFixed(2) + ')');
-  check(v.kicker.includes('Nightmare') && !v.hasHint && !/planks|hammer/i.test(v.intro), 'Nightmare card shows no objective and no solution hint');
-  await shot(page, 'card-nightmare');
+  check(v.T > 80 * 0.6 * 0.88 && v.T < 80 * 0.6 * 1.12 && Math.abs(v.um - 1.35 * 1.4) < 1e-6, 'the time and unseen speed are Nightmare\'s (' + v.T.toFixed(1) + 's, x' + v.um.toFixed(2) + ')');
+  check(/^Night 1 of \d+$/.test(v.kicker.trim()) && !v.hasHint && !/planks|hammer/i.test(v.intro), 'the card names the night only, with no objective and no solution hint (' + v.kicker + ')');
+  await shot(page, 'card');
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
-  check(await page.evaluate(() => document.getElementById('objective').textContent === ''), 'HUD objective hidden on Nightmare');
+  check(await page.evaluate(() => document.getElementById('objective').textContent === ''), 'no HUD objective');
   await page.evaluate(() => { G.L.lane = G.L.lanes[0]; G.L.creature.retarget(0); });   // the back door, wherever it was coming from
   await hoverHit(page, 'target', 'door');
-  check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Back door'), 'target tooltip is just the name on Nightmare');
+  check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Back door'), 'a target\'s tooltip is just its name');
   await hoverHit(page, 'item', 'hammer');
-  check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Hammer'), 'item names still show');
+  check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Hammer'), 'item names show');
   await face(page, 0, false);
   const r = await findHit(page, 'target', 'door');
   await page.mouse.click(r.x, r.y); await page.waitForTimeout(100);
-  check(await page.evaluate(() => document.getElementById('toast').textContent === 'Not with what you have.'), 'failure feedback is vague on Nightmare');
-
-  console.log('== Normal shows hints ==');
-  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.difficulty = 0; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
-  await page.goto(URL + '?level=1'); await page.waitForTimeout(500);
-  v = await page.evaluate(() => ({ d: G.difficulty, T: G.L.creature.T, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
-  check(v.d === 0 && v.T > 80 * 1.1 * 0.93 && v.T < 80 * 1.1 * 1.07, 'difficulty restored from storage, Normal gives a little more time (' + v.T.toFixed(1) + 's)');
-  check(v.hasHint && /planks/.test(v.intro), 'Normal card shows the objective and the hint');
-  await shot(page, 'card-normal');
-  await page.mouse.click(640, 380); await page.waitForTimeout(300);
-  check(await page.evaluate(() => document.getElementById('objective').textContent.startsWith('Board up')), 'HUD objective visible on Normal');
-  await hoverHit(page, 'target', 'door');
-  check(await page.evaluate(() => /plank/.test(document.getElementById('tooltip').textContent)), 'target tooltip gives the hint on Normal');
+  check(await page.evaluate(() => document.getElementById('toast').textContent === 'Not with what you have.'), 'failure feedback is vague');
 
   console.log('== restart key ==');
   const hh = await lookFor(page, 'item', 'hammer');
@@ -87,8 +68,9 @@ const hoverHit = lookFor;
   await page.evaluate(() => { G.L.creature.u = 0.5; });
   check(await page.evaluate(() => G.inv.length === 1), 'holding the hammer before restart');
   await page.keyboard.press('r'); await page.waitForTimeout(300);
-  v = await page.evaluate(() => ({ s: G.state, inv: G.inv.length, dist: G.L.creature.dist, dir: G.cam.dirIdx, lvl: G.levelIndex }));
-  check(v.s === 'play' && v.inv === 0 && v.dist > 100 && v.dir === 0 && v.lvl === 0, 'R restarts the level fresh (' + JSON.stringify(v) + ')');
+  // a restart rolls its way in again, and the view starts facing whichever way that is
+  v = await page.evaluate(() => ({ s: G.state, inv: G.inv.length, dist: G.L.creature.dist, dir: G.cam.dirIdx, want: ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8, lvl: G.levelIndex }));
+  check(v.s === 'play' && v.inv === 0 && v.dist > 100 && v.dir === v.want && v.lvl === 0, 'R restarts the level fresh (' + JSON.stringify(v) + ')');
   await page.evaluate(() => { G.L.creature.u = 0.995; }); await page.waitForTimeout(2600);
   check(await page.evaluate(() => G.state === 'dead'), 'died');
   await page.keyboard.press('R'); await page.waitForTimeout(300);
@@ -120,7 +102,7 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title'), 'Back to title from pause');
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
-  check(await page.evaluate(() => JSON.parse(localStorage.getItem('itscoming.v2')).unlocked.normal >= 0 && !!document.querySelector('#overlay button[data-act="nights"]')), 'title has a Nights button');
+  check(await page.evaluate(() => JSON.parse(localStorage.getItem('itscoming.v2')).unlocked.nightmare >= 0 && !!document.querySelector('#overlay button[data-act="nights"]')), 'title has a Nights button');
 
   console.log('== mute ==');
   await page.evaluate(() => ensureAudio());
@@ -152,7 +134,10 @@ const hoverHit = lookFor;
   await page.evaluate(() => { window._pad.buttons[15].pressed = true; }); await page.waitForTimeout(80);
   await page.evaluate(() => { window._pad.buttons[15].pressed = false; }); await page.waitForTimeout(80);
   check(await page.evaluate(d => G.cam.dirIdx === (d + 1) % 8, dir0), 'the d-pad turns one step to the right');
-  const w = await hoverHit(page, 'item', 'hammer');
+  // the hammer is laid exactly where the middle of the downward view meets the floor, so it is the nearest thing there
+  await page.evaluate(() => { const h = G.L.items.find(i => i.id === 'hammer'), y = G.cam.dirIdx * 45 * DEG, d = (G.L.eyeH - 0) / Math.tan(PITCH_DOWN); h.x = Math.sin(y) * d; h.z = Math.cos(y) * d; h.y = 0; G.cam.yaw = G.cam.tYaw = y; G.cam.pitch = G.cam.tPitch = PITCH_DOWN; });
+  await page.waitForTimeout(150);
+  const w = await findHit(page, 'item', 'hammer');
   if (w) {
     await page.evaluate(() => { G.mouse.x = -1; G.mouse.y = -1; window._pad.buttons[0].pressed = true; }); await page.waitForTimeout(80);
     await page.evaluate(() => { window._pad.buttons[0].pressed = false; }); await page.waitForTimeout(80);
@@ -164,22 +149,9 @@ const hoverHit = lookFor;
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
   console.log('== sealed ways ==');
-  // below Nightmare a sealed way holds it where it is, for good: salt the threshold with it already inside the line
-  await page.goto(URL + '?level=3&go&seed=1&diff=normal&nofr'); await page.waitForTimeout(250);
-  let sw = await page.evaluate(() => {
-    const L = G.L, c = L.creature, thr = L.targets.find(t => t.id === (L.lane.idx === 0 ? 'threshold' : 'sidethreshold'));
-    const inside = (L.barrierDist + c.catchDist) / 2; c.u = 1 - Math.pow(inside / c.D0, 1 / c.gamma); G.step(0.001);
-    thr.count = thr.needed; thr.done = true; G.step(0.001);
-    const heldAt = c.dist, lane = c.lane.idx; G.step(0.05, 120);
-    return { inside, heldAt, after: c.dist, sameLane: c.lane.idx === lane, held: c.hold !== null, state: G.state };
-  });
-  check(Math.abs(sw.heldAt - sw.inside) < 0.05, 'a way sealed with it already inside holds it where it is (' + sw.heldAt.toFixed(2) + ' m, not snapped out)');
-  check(sw.held && sw.sameLane && sw.state === 'play' && Math.abs(sw.after - sw.heldAt) < 0.01, 'below Nightmare it stays on its way and stands there (6 s later)');
-  sw = await page.evaluate(() => { const hook = G.L.targets.find(t => t.id === 'hook'); hook.hung = true; hook.lit = true; hook.done = true; G.step(0.05, 2); return G.L.won; });
-  check(sw, 'lighting the lantern then wins the night');
   // on Nightmare it goes round to the open way, starting outside that way's barrier
-  await page.goto(URL + '?level=4&go&seed=1&diff=nightmare&nofr'); await page.waitForTimeout(250);
-  sw = await page.evaluate(() => {
+  await page.goto(URL + '?level=4&go&seed=1&nofr'); await page.waitForTimeout(250);
+  let sw = await page.evaluate(() => {
     const L = G.L, c = L.creature; c.switched = true;
     // look away from it, as a player locking one gate and turning to the other would, and draw a frame so seeing is real
     G.cam.yaw = G.cam.tYaw = c.yaw + Math.PI; G.cam.dirIdx = ((Math.round(G.cam.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0; G.step(0.001);
@@ -188,11 +160,11 @@ const hoverHit = lookFor;
     for (let k = 0; k < 200 && c.lane.idx === from && G.state === 'play'; k++) G.step(0.05);
     return { moved: c.lane.idx !== from, dist: c.dist, need: (c.lane.barrierDist || 0) + 3 - 0.05, held: c.hold !== null, state: G.state };
   });
-  check(sw.moved && !sw.held && sw.state === 'play', 'on Nightmare a locked gate sends it round to the open one');
+  check(sw.moved && !sw.held && sw.state === 'play', 'a locked gate sends it round to the open one');
   check(sw.dist >= sw.need, 'going round starts it outside the other gate (' + sw.dist.toFixed(2) + ' m)');
 
   console.log('== the death camera ==');
-  await page.goto(URL + '?level=7&go&seed=1&diff=normal&nofr'); await page.waitForTimeout(250);
+  await page.goto(URL + '?level=7&go&seed=1&nofr'); await page.waitForTimeout(250);
   const dc = await page.evaluate(() => { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; const c = G.L.creature; c.u = 0.9995; G.step(0.05, 4); return { state: G.state, tPitch: G.cam.tPitch }; });
   check(dc.state === 'dying' && dc.tPitch === 0, 'on a lane below the rail the view comes up to meet it (' + dc.state + ')');
 
@@ -219,33 +191,41 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => MENU.kind === 'title'), 'B goes back to the title');
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
-  console.log('== a v1 save on Hard keeps its progress, as Nightmare ==');
+  console.log('== a v1 save keeps its progress ==');
   await page.goto(T.INDEX); await page.waitForTimeout(200);
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem('itscoming.unlocked', '3'); localStorage.setItem('itscoming.difficulty', '2'); });
   await page.goto(T.INDEX); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.difficulty === 1 && G.unlocked === 3 && !!document.querySelector('#overlay button[data-act="continue"]')), 'the difficulty they were on is credited and Continue is offered');
+  check(await page.evaluate(() => G.difficulty === 0 && G.unlocked === 3 && !!document.querySelector('#overlay button[data-act="continue"]')), 'its progress is credited and Continue is offered');
 
-  console.log('== a four-difficulty save folds into two ==');
+  console.log('== saves with several difficulties fold into the one game ==');
   await page.evaluate(() => {
     localStorage.clear();
-    localStorage.setItem('itscoming.v2', JSON.stringify({ v: 2, unlocked: { easy: 5, normal: 2, hard: 1, nightmare: 7 }, complete: { easy: true }, fragments: ['field'],
+    localStorage.setItem('itscoming.v2', JSON.stringify({ v: 2, unlocked: { easy: 5, normal: 2, hard: 1, nightmare: 4 }, complete: { easy: true }, fragments: ['field'],
       best: { field: { easy: { time: 40, wins: 1, tries: 2 }, normal: { time: 31.5, wins: 2, tries: 3 }, hard: { time: 50, wins: 1, tries: 4 } } }, settings: { difficulty: 3, muted: true } }));
   });
   await page.goto(T.INDEX); await page.waitForTimeout(300);
-  v = await page.evaluate(() => ({ d: G.difficulty, u: SAVE.data.unlocked, c: SAVE.data.complete, b: SAVE.data.best.field, m: SAVE.data.settings.muted, f: SAVE.data.fragments }));
-  check(v.d === 1 && v.u.normal === 5 && v.u.nightmare === 7 && v.c.normal === true && !v.c.nightmare && v.m && v.f[0] === 'field', 'Easy and Normal became Normal, Hard and Nightmare became Nightmare (' + JSON.stringify(v.u) + ')');
-  check(v.b.normal.time === 31.5 && v.b.normal.wins === 3 && v.b.normal.tries === 5 && v.b.nightmare.time === 50 && v.b.nightmare.wins === 1, 'best times and counts kept');
+  v = await page.evaluate(() => ({ d: G.difficulty, u: SAVE.data.unlocked, c: SAVE.data.complete, b: SAVE.data.best.field, m: SAVE.data.settings.muted, f: SAVE.data.fragments, s: SAVE.data.settings }));
+  check(v.d === 0 && v.u.nightmare === 5 && Object.keys(v.u).length === 1 && v.c.nightmare === true && v.m && v.f[0] === 'field' && v.s.difficulty === undefined, 'a four-difficulty save: the furthest night reached on any of them, and the campaign complete (' + JSON.stringify(v.u) + ')');
+  check(v.b.nightmare.time === 31.5 && v.b.nightmare.wins === 4 && v.b.nightmare.tries === 9 && Object.keys(v.b).length === 1, 'best time kept, wins and tries added up');
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('itscoming.v2', JSON.stringify({ v: 3, unlocked: { normal: 6, nightmare: 2 }, complete: {}, fragments: [], best: { road: { normal: { time: 20, wins: 1, tries: 1 }, nightmare: { time: 25, wins: 1, tries: 3 } } }, settings: { difficulty: 1 } }));
+  });
+  await page.goto(T.INDEX); await page.waitForTimeout(300);
+  v = await page.evaluate(() => ({ u: SAVE.data.unlocked, b: SAVE.data.best.road }));
+  check(v.u.nightmare === 6 && v.b.nightmare.time === 20 && v.b.nightmare.wins === 2 && v.b.nightmare.tries === 4, 'a two-difficulty save folds the same way');
   await page.evaluate(() => localStorage.clear());
 
   console.log('== the last night, holding on ==');
-  await T.open(page, 'level=13&go&seed=1&diff=normal&nofr');
+  await T.open(page, 'level=13&go&seed=1&nofr');
   await page.evaluate(() => { G.L.creature.u = 0.985; G.step(0.05, 400); });
   check(await page.evaluate(() => G.state === 'dead' && !!G.deathScreen && /holding/.test(G.deathScreen.text)), 'reaching you with something in your hands is a death, and the line says so');
   check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') !== 'day'), 'no morning for the one who held on');
   // tapping the held thing again while looking down puts it down
-  await T.open(page, 'level=13&go&seed=1&diff=normal&nofr');
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  const held = await page.evaluate(() => G.inv.length);
   await page.evaluate(() => { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.step(0.05, 3); document.querySelector('#inventory .slot.active').click(); });
-  check(await page.evaluate(() => G.inv.length === 2), 'tapping the held thing again while looking down puts it down');
+  check(await page.evaluate(n => G.inv.length === n - 1, held), 'tapping the held thing again while looking down puts it down');
   await page.evaluate(() => localStorage.clear());
 
   if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }

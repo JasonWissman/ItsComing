@@ -10,34 +10,32 @@ const MENU = (() => {
     switch (kind) {
       case 'title': {
         const unlocked = G.unlocked;
-        const diffs = '<div class="diffs">' + DIFFICULTIES.map((x, i) => '<button type="button" class="diff' + (i === G.difficulty ? ' sel' : '') + '" data-diff="' + i + '"><span class="key">' + (i + 1) + '</span>' + x.name + '<small>' + x.desc + '</small></button>').join('') + '</div>';
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
           '<p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>' +
           '<div class="controls"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>look down, click the floor</b> put down what you hold</div><div><b>with one held thing chosen, click another</b> use them together</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
-          diffs +
           '<div class="mrow">' + btn('begin', 'Begin') + (unlocked > 0 && unlocked < LEVELS.length ? btn('continue', 'Continue &middot; night ' + (unlocked + 1)) : '') + btn('nights', 'Nights') + btn('settings', 'Settings', 'title') + '</div>' +
           '<p class="fine">Headphones recommended. Sound is synthesized in your browser.</p>';
       }
       case 'pause':
         return '<h1>Paused</h1><p class="intro">It is not.</p><div class="mcol">' + btn('resume', 'Resume') + btn('restart', 'Start the night over') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('title', 'Back to the title') + '</div><p class="fine">Esc resumes</p>';
       case 'dead':
-        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + (G.debug || G.diff().id === 'nightmare' ? '<p class="fine">seed ' + G.runSeed + '</p>' : '');
+        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + '<p class="fine">seed ' + G.runSeed + '</p>';
       case 'ending':   // the last screen of the last night, over the morning room
         return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('again', 'Play again') + '</div>';
       case 'survived':
         return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'The next night') + btn('nights', 'Nights') + '</div>';
       case 'nights': {
-        const diff = G.diff(), unlocked = G.unlocked;
+        const diff = G.diff(), unlocked = G.unlocked, b0 = id => ((SAVE.data.best[id] || {})[diff.id]) || null;
         let rows = '';
         for (let i = 0; i < LEVELS.length; i++) {
-          const def = LEVELS[i], b = (SAVE.data.best[def.id] || {});
+          const def = LEVELS[i];
           if (i <= unlocked) {
-            const times = SAVE.DIFFS.map(k => b[k] && b[k].wins ? '<span class="bt"><small>' + k + '</small>' + fmtTime(b[k].time) + '</span>' : '').join('');
+            const e = b0(def.id), times = e && e.wins ? '<span class="bt"><small>best</small>' + fmtTime(e.time) + '</span>' : '';
             rows += '<div class="nrow">' + btn('night', (i + 1) + '. ' + def.title, i, 'nbtn') + '<span class="times">' + times + '</span></div>';
           } else rows += '<div class="nrow locked"><span class="nlock">' + (i + 1) + '. &hellip;</span></div>';
         }
-        const complete = SAVE.data.complete && SAVE.data.complete[diff.id] ? '<p class="fine">Every night survived on ' + diff.name + '.</p>' : '';
-        return '<div class="kicker">Nights &middot; ' + diff.name + '</div><h1>Nights</h1><div class="nights">' + rows + '</div>' + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('fragments', 'Fragments', d.from || 'title') + '</div>';
+        const complete = SAVE.data.complete && SAVE.data.complete[diff.id] ? '<p class="fine">Every night survived.</p>' : '';
+        return '<h1>Nights</h1><div class="nights">' + rows + '</div>' + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('fragments', 'Fragments', d.from || 'title') + '</div>';
       }
       case 'fragments': {
         // the odd sentence at the end of each survived night, collected; unread ones stay blank
@@ -103,7 +101,7 @@ const MENU = (() => {
       case 'next': proceedFromSurvived(); break;
       case 'night': startLevel(parseInt(arg, 10), true); break;
       case 'title': showTitle(); break;
-      case 'reset': if (current.data.confirmReset) { SAVE.reset(); G.difficulty = SAVE.data.settings.difficulty | 0; setMuted(false); applyAll(); showTitle(); } else show('settings', Object.assign({}, current.data, { confirmReset: true })); break;
+      case 'reset': if (current.data.confirmReset) { SAVE.reset(); setMuted(false); applyAll(); showTitle(); } else show('settings', Object.assign({}, current.data, { confirmReset: true })); break;
       case 'back': {
         const from = arg || 'title';
         if (from === 'title') showTitle();
@@ -120,7 +118,7 @@ const MENU = (() => {
   function onKey(e) {
     if (!current) return false;
     const k = e.key;
-    const btns = [...UI.overlay.querySelectorAll('button[data-act], button.diff, input[data-set]')]; // sliders and checkboxes are in the ring too
+    const btns = [...UI.overlay.querySelectorAll('button[data-act], input[data-set]')]; // sliders and checkboxes are in the ring too
     if (!btns.length) return false;
     const idx = btns.indexOf(document.activeElement);
     const f = document.activeElement; // the control keeps the keys it uses: Space ticks a box, left and right move a slider

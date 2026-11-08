@@ -12,7 +12,7 @@ const { check } = T;
     if (info.lanes < 2) continue;
     let switched = 0, jumps = 0, seenSwitch = 0, runs = 0;
     for (let seed = 1; seed <= 6; seed++) {
-      await page.goto(T.INDEX + '?level=' + lvl + '&go&seed=' + seed + '&diff=nightmare&nofr'); await page.waitForTimeout(150);
+      await page.goto(T.INDEX + '?level=' + lvl + '&go&seed=' + seed + '&nofr'); await page.waitForTimeout(150);
       const r = await page.evaluate(() => {
         // look away from every lane it could take: face the direction furthest from all of them, and down
         const c = G.L.creature; let bestYaw = 0, bestGap = -1;
@@ -36,9 +36,5 @@ const { check } = T;
     if (info.flagged) check(switched >= 3 && jumps === 0 && seenSwitch === 0, 'night ' + lvl + ' (' + info.id + '): switches lanes on Nightmare while unseen, early, without a jump (' + switched + '/' + runs + ' runs switched, jumps ' + jumps + ', seen ' + seenSwitch + ')');
     else check(switched === 0, 'night ' + lvl + ' (' + info.id + '): opted out of lane switches (' + switched + ' switched)');
   }
-  // never on Normal
-  await page.goto(T.INDEX + '?level=6&go&seed=1&diff=normal&nofr'); await page.waitForTimeout(150);
-  const normalSwitch = await page.evaluate(() => { const c = G.L.creature; G.cam.dirIdx = 4; G.cam.yaw = G.cam.tYaw = Math.PI; const l0 = c.lane.idx; for (let k = 0; k < 1500 && G.state === 'play'; k++) G.step(0.04); return c.lane.idx !== l0; });
-  check(!normalSwitch, 'no lane switch on Normal');
   await T.finish(browser, errors, 'switch');
 })();

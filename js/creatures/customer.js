@@ -1,17 +1,16 @@
 'use strict';
 // The customer: man-shaped, dressed like someone, too straight, its features smoothed away.
-// It moves only while you are looking at it (faster the better you see it), and freely in the dark.
-// c.dark is set by the night each frame, and c.darkSpeed (default 1) scales how fast the dark lets it come.
+// It is drawn to light, and it does not care whether you look at it. While the place it is coming for is lit it comes
+// fast; in the dark it walks at an ordinary pace. The night sets c.drawn (whether its light is on) and c.drawnMult (how
+// much faster the light makes it) every frame.
 CREATURES.customer = {
-  name: 'the customer', h: 2.0, w: 1.2, faceY: 1.82, stepRate: 0.75, catchDist: 1.5, sound: 'shoes',
+  name: 'the customer', h: 2.0, w: 1.2, faceY: 1.82, stepRate: 0.75, catchDist: 1.5, sound: 'shoes', ignoresGaze: true,
   death: { delay: 0.35, dur: 0.55, sting: 'stingGlass' },
-  init(c) { c.dark = false; c.away = false; },
-  speedMult(c, dt, seen) {
+  init(c) { c.drawn = false; c.drawnMult = 1; c.away = false; },
+  speedMult(c) {
     if (c.dead) return 0;
-    if (c.dark) return (seen ? Math.max(1, 1.6 * c.visFrac) : 1) * (c.darkSpeed || 1);
-    return seen ? 1.6 * c.visFrac : 0;
+    return c.drawn ? c.drawnMult : 1;
   },
-  lateral: c => c.shiftLat || 0,   // the Diner walks it sideways along the glass
   draw(ctx, c, P) {
     const g = c.gait, near = clamp(1 - c.dist / 8, 0, 1), lunge = c.lunge || 0;
     const suit = P.col([14, 12, 16]), suitL = P.col([30, 28, 34]), shirt = P.col([210, 206, 198]), skin = P.col([212, 198, 186]), skinD = P.col([170, 152, 140]), black = P.col([6, 4, 6]);

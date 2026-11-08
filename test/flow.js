@@ -15,16 +15,21 @@ const { check, st, face, findHit, clickAt, lookForAndClick } = T;
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
   check((await st(page)).state === 'play', 'click starts the night');
   await lookForAndClick(page, 'item', 'hammer');
+  await lookForAndClick(page, 'item', 'nails');
   const planks = await page.evaluate(() => G.L.items.filter(i => i.id === 'planks' && !i.taken).length);   // loose planks all round the house, every one needed
   for (let i = 0; i < planks; i++) await lookForAndClick(page, 'item', 'planks');
-  await face(page, 0, false);
-  for (let i = 0; i < planks; i++) { await clickAt(page, await findHit(page, 'target', 'door')); await page.waitForTimeout(150); }
+  // both doorways: the one it is coming for first, then the other, where it runs round to
+  const first = await page.evaluate(() => G.L.creature.lane.idx);
+  for (const [id, dir] of first === 0 ? [['door', 0], ['frontdoor', 4]] : [['frontdoor', 4], ['door', 0]]) {
+    await face(page, dir, false);
+    for (let i = 0; i < planks / 2; i++) { await clickAt(page, await findHit(page, 'target', id)); await page.waitForTimeout(150); }
+  }
   check((await st(page)).won, 'night 1 won');
   const t0 = Date.now(); while (Date.now() - t0 < 12000 && (await st(page)).state !== 'survived') await page.waitForTimeout(200);
   await page.waitForTimeout(600); // overlays arm 350 ms after they show
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
   let s = await st(page); check(s.state === 'card' && s.level === 1, 'advanced to night 2 card');
-  check(await page.evaluate(() => JSON.parse(localStorage.getItem('itscoming.v2')).unlocked.normal === 1), 'progress saved');
+  check(await page.evaluate(() => JSON.parse(localStorage.getItem('itscoming.v2')).unlocked.nightmare === 1), 'progress saved');
 
   console.log('== death and retry ==');
   await T.open(page, 'level=1&go');

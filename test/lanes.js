@@ -12,7 +12,7 @@ const { check } = T;
   const n = await page.evaluate(() => LEVELS.length);
   for (let lvl = 1; lvl <= n; lvl++) {
     const info = await page.evaluate(i => {
-      G.difficulty = 1; G.inv = []; const def = LEVELS[i], L = buildLevel(i);
+      G.difficulty = 0; G.inv = []; const def = LEVELS[i], L = buildLevel(i);
       const expected = new Set(), mode = def.laneMode || 'random';
       for (const cd of def.creatures) {
         if (cd.lane !== undefined) expected.add(cd.lane);
@@ -26,7 +26,7 @@ const { check } = T;
     if (info.expected.length < 2) continue;
     const seen = new Set();
     for (let seed = 1; seed <= 30 && seen.size < info.expected.length; seed++) {
-      await page.goto(T.INDEX + '?level=' + lvl + '&go&seed=' + seed + '&diff=nightmare'); await page.waitForTimeout(120);
+      await page.goto(T.INDEX + '?level=' + lvl + '&go&seed=' + seed); await page.waitForTimeout(120);
       for (const k of await page.evaluate(() => G.L.creatures.map(c => c.lane.idx))) if (info.expected.includes(k)) seen.add(k);
     }
     check(seen.size === info.expected.length, 'night ' + lvl + ': every lane it can take gets taken on Nightmare (' + [...seen].map(k => info.names[k]).join(', ') + ')');

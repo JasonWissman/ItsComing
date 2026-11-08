@@ -63,3 +63,8 @@ function P_ell(ctx, x, y, rx, ry, color, rot) {
 }
 function P_rect(ctx, x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); }
 function P_line(ctx, x1, y1, x2, y2, w, color) { P_limb(ctx, [[x1, y1], [x2, y2]], w, color); }
+// the look of a thing that will not work (a decoy): its colours drained toward rust-brown and darkened, the same on every night
+function wornc(c) {
+  const l = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+  return mixc(c, [l * 0.95 + 22, l * 0.72 + 8, l * 0.5], 0.6).map(v => v * 0.8);
+}
