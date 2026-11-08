@@ -101,7 +101,7 @@ CREATURES.runner = {
       }
       ctx.fillStyle = rags; ctx.beginPath(); ctx.moveTo(-0.34, 0.3); ctx.bezierCurveTo(-0.3, 1.0, 0.3, 1.0, 0.34, 0.3); ctx.closePath(); ctx.fill();
       if (stumble) P_ell(ctx, 0.1, 0.55, 0.14, 0.1, blood);
-      c.arrows.forEach((a, i) => this.arrow(ctx, P, 0.08 - i * 0.18, 0.6 + i * 0.08, i));
+      c.arrows.forEach((a, i) => this.arrow(ctx, P, i ? -0.19 : 0.2, 0.47 + i * 0.05, i));   // in its back either side of its raised head, which hid them
       const hy = 0.55 + lift * 0.22;
       ctx.save(); ctx.translate(0, hy); ctx.rotate(Math.sin(t * 2.2) * 0.12);
       strands(ctx, 0, 0.1, 9, 0.36, black, 5, t);

@@ -457,13 +457,15 @@ function drawLetGo(src, cancel) {
   G.drawBtn = null;
   const d = G.draw, u = drawUse(G.L);
   if (d && d.state === 'drawing') looseDraw(G.L, d, cancel || G.state !== 'play');
-  else if (!d && u && G.state === 'play') G.draw = { state: 'easing', t: 0, dur: 0.45, from: 0.05, power: 0, band: null, u, src };   // let go before a frame went by: it still starts to come up, and goes back down
+  else if (!d && u && G.state === 'play') G.draw = { state: 'easing', t: 0, dur: 0.45, from: 0.05, power: 0, band: u.draw.band(nearestCreature(G.L), G.L), u, src };   // let go before a frame went by: it still starts to come up, and goes back down
 }
 function updateDraw(L, dt) {
   let d = G.draw;
   if (d && d.state !== 'drawing') { d.t += dt; if (d.t >= d.dur) G.draw = d = null; }   // letting it back down, or nocking the next
   const u = drawUse(L);
+  if (d && d.state === 'easing' && G.drawBtn && G.state === 'play') G.draw = d = null;   // pressed again while it was being let down (after a click): it draws again at once
   if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, strain: 0, creak: 0, band: null, u, src: G.drawBtn };
+  if (d && d.state === 'easing') d.band = d.u.draw.band(nearestCreature(L), L);   // let down, the bar still shows the green for where it is now (a click shows there is a band to reach)
   if (!d || d.state !== 'drawing') return;
   if (G.state !== 'play' || !u) { looseDraw(L, d, true); return; }
   d.t += dt; d.power = Math.min(1, d.t / (u.draw.fill || DRAW_FILL));
@@ -893,7 +895,12 @@ function updateDrawBar() {
   if (!show) return;
   const p = d.state === 'drawing' ? d.power : d.state === 'easing' ? d.from * (1 - smoothstep(d.t / d.dur)) : d.from;
   const aim = d.state === 'loosed' ? d.aim : drawAim(d.src), BH = 150;
-  UI.drawbar.style.left = clamp(aim.x + 34, 8, window.innerWidth - 90) + 'px';
+  // beside the aim, but never over the thing it is aimed at (close in, it is wide): then just to its right, or its left at the edge
+  const cr = nearestCreature(G.L), cb = cr && !cr.dead ? creatureBox(cr) : null;
+  let bx = aim.x + 34;
+  if (cb && aim.x > cb.x - 24 && aim.x < cb.x + cb.w + 24 && aim.y > cb.y - 24 && aim.y < cb.y + cb.h + 24) { bx = Math.max(bx, cb.x + cb.w + 16); if (bx > window.innerWidth - 90) bx = Math.min(aim.x - 44, cb.x - 26); }
+  if (d.state === 'loosed' && d.barX !== undefined) bx = d.barX; else d.barX = bx;   // once loosed it stays where it was
+  UI.drawbar.style.left = clamp(bx, 8, window.innerWidth - 90) + 'px';
   UI.drawbar.style.top = clamp(aim.y - BH / 2, 8, window.innerHeight - BH - 120) + 'px';
   const b = d.band;
   UI.drawfill.style.height = (p * 100).toFixed(1) + '%';

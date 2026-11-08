@@ -266,6 +266,7 @@ LEVELS.push({
       const ray = CLEARING_BOW.rayAt(aim), eye = [0, L.eyeH, 0], from = add3(add3(eye, ray, 0.9), [0, -1, 0], 0.14);
       const dReal = Math.hypot(c.dist, c.lat || 0), hl = Math.hypot(ray[0], ray[2]) || 1, hd = [ray[0] / hl, 0, ray[2] / hl];
       const ground = dist => add3([0, 0.02, 0], hd, dist);
+      const CLEAR = 4.6;   // the nearest an arrow comes down: past the porch and its steps (any nearer stood in the boards, its head under them)
       s.spent++; s.outcomes.push(outcome);
       if (outcome === 'hit') {
         const at = () => { const p = c.pos(), b = c.CR.body(c); return [p.x, p.y + (c.yOff || 0) + (b[2] + b[3]) / 2, p.z]; };
@@ -273,7 +274,7 @@ LEVELS.push({
         return;
       }
       if (outcome === 'short') {   // it drops into the snow short of it: the less drawn, the shorter
-        const r = clamp(CLEARING_BOW.reach(power), 3.5, Math.max(3.5, dReal - 2.5));
+        const r = clamp(CLEARING_BOW.reach(power), CLEAR, Math.max(CLEAR, dReal - 2.5));
         fly({ from, to: () => ground(r), arc: 0.05 * r + 0.3, dur: 0.15 + r / 45, stick: true });
         if (dReal > CLEARING_BOW.RANGE) G.say('Too far for the bow. It fell short.', 'Too far. It fell short.');
         else G.say('Not drawn far enough. It fell short.', 'It fell short.');
@@ -283,7 +284,7 @@ LEVELS.push({
         if (power >= 1) G.say('Held too long. The string slipped and it went wild.', 'The string slipped. It went wild.');
         else G.say('Overdrawn. It went wild, over it.', 'Overdrawn. It went wild.');
       } else {   // in the green, but not at it: along the aim, about as far as it is, into the snow
-        const r = ray[1] < -0.005 ? Math.min(L.eyeH / -ray[1] * hl, dReal + 8) : dReal + 8;
+        const r = Math.max(CLEAR, ray[1] < -0.005 ? Math.min(L.eyeH / -ray[1] * hl, dReal + 8) : dReal + 8);
         fly({ from, to: () => ground(r), arc: 0.02 * r + 0.2, dur: 0.1 + r / 70, stick: true });
         G.say('Drawn right, but not at it. Missed.', 'Missed.');
       }
