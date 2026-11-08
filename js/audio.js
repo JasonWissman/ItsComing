@@ -221,6 +221,7 @@ const AUDIO = (() => {
         break;
       case 'smash': noise(0.35, { freq: 900, vol: 0.7 }); tone(90, 0.3, { vol: 0.5, endFreq: 40 }); for (let i = 0; i < 5; i++) noise(0.04, { type: 'bandpass', freq: 2000 + i * 400, q: 4, vol: 0.3, delay: 0.05 + i * 0.04 }); break;
       case 'bang': noise(0.25, { freq: 300, vol: 0.8, pan }); tone(60, 0.25, { vol: 0.6, endFreq: 35, pan }); break;
+      case 'boardRattle': for (let i = 0; i < 6; i++) noise(0.035, { type: 'bandpass', freq: 520 + Math.random() * 640, q: 5, vol: 0.42 * (1 - i * 0.12), pan, delay: 0.05 + i * (0.035 + Math.random() * 0.02) }); tone(110, 0.12, { vol: 0.2, endFreq: 70, pan, delay: 0.05 }); break;
       case 'keys': for (let i = 0; i < 4; i++) tone(2400 + Math.random() * 1500, 0.03, { vol: 0.06, type: 'triangle', delay: i * 0.05 }); break;
       case 'crank': {
         // starter motor: chugging sawtooth for ~1s
