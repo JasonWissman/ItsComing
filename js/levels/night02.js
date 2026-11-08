@@ -63,7 +63,7 @@ LEVELS.push({
     const s = L.s;
     const body = [44, 22, 24], bodyD = [24, 13, 15], dash = [26, 24, 26], dashD = [16, 15, 17], seat = [46, 40, 38], floor = [15, 14, 14];
     const GAUGES = [-0.16, 0.0, 0.16];                                     // the three dials behind the wheel
-    const IX = 0.18, IY = 0.79, IZ = 0.5;                                  // the centre of the ignition lock, on the dash right of the column
+    const IX = 0.33, IY = 0.905, IZ = 0.545;                               // the centre of the ignition lock, in the dash face right of the dials
     const GX = 0.36, GY = 0.56, GZ = 0.12, GW = 0.2, GH = 0.28;            // the gearstick's plate, standing on the console
     const CX0 = 0.27, CX1 = 0.45, CZ0 = -0.04, CZ1 = 0.36, CY = GY;       // the console between the seats
     const PX = 0.16, PY = 0.36, PZ = 0.47, PW = 0.11, PH = 0.22;           // the gas pedal, in your own footwell
@@ -148,7 +148,7 @@ LEVELS.push({
     Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), gear: 'D', lastCrank: -10, gone: false, dir: 0, pressT: -10, keyAng: 0, ram: null, floored: false });
     const GEAR_NAME = { P: 'park', R: 'reverse', D: 'drive' };
     const ign = mkTarget(L, {   // the box is the lock and the key in it, as they are drawn
-      id: 'ignition', name: 'Ignition', x: IX, y: IY - 0.08, z: IZ, w: 0.14, h: 0.16, accepts: ['keys', 'housekeys'], attach: true,
+      id: 'ignition', name: 'Ignition', x: IX, y: IY - 0.075, z: IZ, w: 0.11, h: 0.12, accepts: ['keys', 'housekeys'], attach: true,
       hint() { return s.started ? 'Running.' : s.keyIn ? (s.gear !== 'P' ? 'Turn the key. It is still in ' + GEAR_NAME[s.gear] + ', though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
       use(item) { if (item.id !== 'keys') return false; s.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.say('The key is in. Turn it.', 'The key is in.'); return true; },
       onClick() {
@@ -299,21 +299,23 @@ LEVELS.push({
     };
 
     // the ignition: a chrome ring round a dark face, four marks for its positions (lock, accessory, on, start) and the
-    // keyhole. With the key in, its green head stands out of the lock and shows how far it is turned (s.keyAng); the
-    // ring and the little plain key hang below it. Drawn over the wheel and the column, which never come in front of it
+    // keyhole, set in the dash face beside the dials, so it is there in front of you as you look over the wheel at the
+    // road. With the key in, its green head stands out of the lock and shows how far it is turned (s.keyAng); the ring
+    // and the little plain key hang below it. Drawn over the dash face it is set in (and over the wheel, though from the
+    // seat the wheel never comes in front of it)
     const metal = [178, 174, 162], metalD = [112, 108, 100], green = [46, 160, 78];
-    const lock = SC.mkSprite(L, IX, IY - 0.15, IZ, 0.14, 0.22, (ctx, P) => {
-      ctx.translate(0, 0.15);
+    const lock = SC.mkSprite(L, IX, IY - 0.08, IZ, 0.12, 0.125, (ctx, P) => {
+      ctx.translate(0, 0.08); ctx.scale(0.82, 0.82);
       P_ell(ctx, 0, 0, 0.05, 0.05, P.col([38, 38, 44]));
       P_ell(ctx, 0, 0, 0.045, 0.045, P.col([150, 150, 156]));
       P_ell(ctx, 0, 0, 0.029, 0.029, P.col([26, 26, 30]));
       for (const a of [0, 30, 60, 90]) { ctx.save(); ctx.rotate(-a * DEG); P_rect(ctx, -0.003, 0.032, 0.006, 0.01, P.col([58, 58, 64])); ctx.restore(); }
       if (!s.keyIn) { P_rect(ctx, -0.0045, -0.017, 0.009, 0.034, P.col([4, 4, 5])); return; }
-      P_line(ctx, 0, 0, 0.003, -0.05, 0.003, P.col(metalD));
-      ctx.strokeStyle = P.col(metal); ctx.lineWidth = 0.004; ctx.beginPath(); ctx.arc(0.003, -0.069, 0.019, 0, TAU); ctx.stroke();
-      P_ell(ctx, 0.008, -0.094, 0.009, 0.009, P.col(metal)); P_ell(ctx, 0.008, -0.094, 0.0035, 0.0035, P.col([26, 26, 30]));
-      P_rect(ctx, 0.005, -0.136, 0.007, 0.036, P.col(metal));
-      for (let k = 0; k < 3; k++) P_rect(ctx, 0.011, -0.132 + k * 0.009, 0.005, 0.004, P.col(metal));
+      P_line(ctx, 0, 0, 0.003, -0.03, 0.003, P.col(metalD));   // short, so it all stays in view over the wheel
+      ctx.strokeStyle = P.col(metal); ctx.lineWidth = 0.004; ctx.beginPath(); ctx.arc(0.004, -0.044, 0.014, 0, TAU); ctx.stroke();
+      P_ell(ctx, 0.009, -0.062, 0.0075, 0.0075, P.col(metal)); P_ell(ctx, 0.009, -0.062, 0.003, 0.003, P.col([26, 26, 30]));
+      P_rect(ctx, 0.006, -0.09, 0.006, 0.024, P.col(metal));
+      for (let k = 0; k < 3; k++) P_rect(ctx, 0.011, -0.086 + k * 0.007, 0.005, 0.0035, P.col(metal));
       ctx.save(); ctx.rotate(-s.keyAng);
       P_rect(ctx, -0.019, -0.009, 0.038, 0.062, P.col(green));
       P_rect(ctx, -0.019, 0.045, 0.038, 0.008, P.col(mixc(green, [220, 255, 220], 0.35)));
