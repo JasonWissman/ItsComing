@@ -214,6 +214,49 @@ const hoverHit = lookFor;
     return { far, half: CREATURES.smiler.runW / 2 };
   });
   check(runSpan.far > 0.5 && runSpan.far <= runSpan.half, 'the smiler\'s run is drawn within its runW (' + runSpan.far.toFixed(2) + ' m from the middle, half of runW ' + runSpan.half + ')');
+  // night 3: a way is only finished with its salt and its lantern lit. With the way it comes by finished and the other one
+  // bare, it comes up to the salt, looks down at it, and goes round to the bare one (it used to be able to stand there for
+  // good); with the other one salted but its lantern dark it goes round to that one, and that line holds it only a while
+  // before it steps over. Either way it never stands anywhere for long while the night is not won.
+  const n3 = (seed, lane, other) => page.goto(URL + '?level=3&go&seed=' + seed + '&nofr').then(() => page.waitForTimeout(150)).then(() => page.evaluate(([lane, other]) => {
+    const L = G.L, c = L.creature; c.switched = true;
+    c.retarget(lane); L.laneIdx = lane; L.lane = c.lane; L.barrierDist = c.lane.barrierDist;
+    const thr = idx => L.targets.find(t => t.id === (idx === 0 ? 'threshold' : 'sidethreshold')), hk = idx => L.targets.find(t => t.id === (idx === 0 ? 'hook' : 'hookE'));
+    const salt = idx => { const t = thr(idx); t.done = true; t.count = 1; t.accepts = []; };
+    const lamp = idx => { const h = hk(idx); h.hung = 'lantern'; h.lit = true; h.done = true; h.accepts = []; };
+    salt(lane); lamp(lane); if (other === 'dark') salt(1 - lane);
+    c.u = 1 - Math.pow((L.barrierDist + 1) / c.D0, 1 / c.gamma);
+    const o = { held: [], bow: 0, round: null, stood: 0, still: 0, at: null };
+    for (let k = 0; k < 30 * 14 && G.state === 'play'; k++) {
+      G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0;
+      const p0 = c.pos(); G.step(1 / 30); const p1 = c.pos();
+      if (c.sealHold && !o.held.includes(c.lane.idx)) o.held.push(c.lane.idx);
+      if (c.sealHold && c.lane.idx === lane) o.bow = Math.max(o.bow, c.bow || 0);
+      if (c.round && !o.round) o.round = { to: c.round.to.idx, d: c.dist, t: L.t };
+      o.still = Math.hypot(p1.x - p0.x, p1.z - p0.z) < 1e-6 ? o.still + 1 / 30 : 0; o.stood = Math.max(o.stood, o.still);
+    }
+    return Object.assign(o, { state: G.state, lane: c.lane.idx, cause: G.deathCause, salted: L.sealed(L.lanes[lane]) });
+  }, [lane, other]));
+  for (const seed of [1, 2, 3]) for (const lane of [0, 1]) {
+    const r = await n3(seed, lane, 'bare');
+    check(r.held[0] === lane && r.bow > 0.95 && !!r.round && r.round.to === 1 - lane && r.round.d <= 2.61 && r.lane === 1 - lane && r.state === 'dying' && r.cause === 'open' && r.stood < 1,
+      'night 3 (seed ' + seed + ', way ' + lane + ' finished, the other bare): it stops at the salt, looks down at it, goes round to the bare way and comes in there (' + JSON.stringify(r) + ')');
+  }
+  for (const seed of [1, 2]) {
+    const r = await n3(seed, seed - 1, 'dark');
+    check(r.held.join() === [seed - 1, 2 - seed].join() && !!r.round && r.round.to === 2 - seed && r.state === 'dying' && r.cause === 'unlit' && r.stood > 5 && r.stood < 6.5,
+      'night 3 (seed ' + seed + ', one way finished, the other salted with its lantern dark): it goes round to the dark one, stands at its salt a while, then steps over (' + JSON.stringify(r) + ')');
+  }
+  // a lurch (the smiler hitches forward now and then) from just outside a salted way's line still stops at the line
+  await page.goto(URL + '?level=3&go&seed=1&nofr'); await page.waitForTimeout(150);
+  const lurch = await page.evaluate(() => {
+    const L = G.L, c = L.creature; c.switched = true;
+    const t = L.targets.find(t => t.id === (c.lane.idx === 0 ? 'threshold' : 'sidethreshold')); t.done = true; t.accepts = [];
+    c.u = 1 - Math.pow((L.barrierDist + 0.3) / c.D0, 1 / c.gamma); c.hitchT = 0; G.step(1 / 60);
+    const before = c.dist; c.hitchT = c.nextHitch; G.step(1 / 30);
+    return { before, hold: c.hold, dist: c.dist, barrier: L.barrierDist, state: G.state, lurched: c.hitchFlash > 0 };
+  });
+  check(lurch.lurched && lurch.before > lurch.barrier && lurch.state === 'play' && lurch.hold === lurch.barrier && lurch.dist === lurch.barrier,'night 3: a lurch across a salted line in one frame is held at the line, not past it (' + JSON.stringify(lurch) + ')');
 
   console.log('== the death camera ==');
   await page.goto(URL + '?level=7&go&seed=1&nofr'); await page.waitForTimeout(250);
