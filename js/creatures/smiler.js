@@ -309,8 +309,8 @@ CREATURES.smiler = {
     if (run) {
       const arm = armTo(runA); nh = arm[1];
       P_limb(ctx, [[sx, sy - 0.04]].concat(arm), 0.068, K.coat);
-      const b = lean + 0.2, su = Math.sin(b), cu = Math.cos(b);
-      this.staff(ctx, K, nh[0] - su * 0.55, nh[1] - cu * 0.55, nh[0] + su * 0.7, nh[1] + cu * 0.7, 1, near);
+      const b = lean + 0.6, su = Math.sin(b), cu = Math.cos(b);   // slanting up across his chest, the hook out under his chin (steeper, the face covered it)
+      this.staff(ctx, K, nh[0] - su * 0.6, nh[1] - cu * 0.6, nh[0] + su * 0.62, nh[1] + cu * 0.62, 1, near);
     } else {
       nh = [sx + 0.2, sy - 0.32];
       this.staff(ctx, K, nh[0] + 0.035, 0, nh[0] + 0.01, 1.6, 1, near);
