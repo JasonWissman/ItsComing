@@ -9,9 +9,9 @@ const NIGHTS = process.env.NIGHTS ? process.env.NIGHTS.split(',').map(Number) : 
 const TIERS = (process.env.TIERS || 'nightmare').split(',');
 const SEEDS = (process.env.SEEDS || '1,2').split(',').map(Number);
 
-// a bow (night 5): press and hold, then let go. `when`: 'click' (let go at once), 'short' (just past the least draw, below
-// the green), 'good' (once the bar is in the green), 'over' (past the green), 'top' (hold until the string slips), or a number of
-// ms; `where`: on the thing (its body, followed while drawing, as a player keeps it in the sights) or 'off' (well to one side
+// a bow (night 5): press and hold, then let go. `when`: 'click' (let go at once), 'short' (just past the least draw, well
+// short of full), 'full' (as soon as the bar is full), or a number of ms (held that long, past full if it is long enough);
+// `where`: on the thing (its body, followed while drawing, as a player keeps it in the sights) or 'off' (well to one side
 // of it); `via`: 'mouse' (default), 'touch' (the Use button) or 'pad' (A), which both aim at the middle of the view
 async function drawBow(page, when, where, via) {
   via = via || 'mouse';
@@ -27,16 +27,15 @@ async function drawBow(page, when, where, via) {
   };
   if (via === 'mouse') { const p = await aim(); check(!!p, 'the thing is in view to draw on'); if (!p) return; await page.mouse.move(p.x, p.y); await page.waitForTimeout(60); }
   await press(true);
-  if (typeof when === 'number') await page.waitForTimeout(when);
-  else if (when === 'click') await page.waitForTimeout(via === 'pad' ? 40 : 0);   // a pad is read once a frame
-  else {   // one look per round (the draw and where it is now), so letting go follows the bar closely; 'good' goes early in the band
-    const t0 = Date.now();
-    while (Date.now() - t0 < 5000) {
+  if (when === 'click') await page.waitForTimeout(via === 'pad' ? 40 : 0);   // a pad is read once a frame
+  else {   // one look per round (the draw and where it is now), so letting go follows the bar closely
+    const t0 = Date.now(), limit = typeof when === 'number' ? when : 5000;
+    while (Date.now() - t0 < limit) {
       const st = await page.evaluate(w => {
         const d = G.draw, box = creatureBox(G.L.creature), at = box && { x: box.x + box.w / 2, y: box.y + box.h / 2 };
-        if (!d || d.state !== 'drawing') return { done: w === 'top' && !!d && d.state === 'loosed', at };
-        const b = d.band, p = d.power, m = (d.u.draw.min || 0.18) / (d.u.draw.fill || 1.5);
-        return { done: w === 'short' ? p > m + 0.03 : w === 'good' ? !!b && p >= b[0] + 0.015 : w === 'over' ? (b ? p > b[1] + 0.05 : p > 0.95) : false, at };
+        if (!d || d.state !== 'drawing') return { done: false, at };
+        const m = (d.u.draw.min || 0.18) / (d.u.draw.fill || 1.5);
+        return { done: w === 'short' ? d.power > m + 0.03 : w === 'full' ? d.power >= 1 : false, at };
       }, when);
       if (st.done) break;
       if (via === 'mouse' && st.at) await page.mouse.move(where === 'off' ? st.at.x + (st.at.x > 640 ? -260 : 260) : st.at.x, st.at.y);

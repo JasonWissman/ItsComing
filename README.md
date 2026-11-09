@@ -73,7 +73,7 @@ There is no difficulty to pick: the game is one hard game.
 
 Every way it can come is fully visible from where you stand: the approach lanes are checked by
 `validateContent()` so the thing is never hidden behind a wall on its way in.
-An arrow let go out of range, short of the green or past it still spends the arrow. A way you have shut holds it
+An arrow let go before the bow is fully drawn, or drawn full but not at it, still spends the arrow. A way you have shut holds it
 where it is; where more than one way must be shut, it waits there a moment and then goes round to a way that is still
 open (a thing that can run is seen running there, side on, as the walker runs round the house on the first night).
 Where you cannot see it any more once you have won (behind a shut door or shutter), you hear and feel it beating on
@@ -117,15 +117,17 @@ some on the ground, so you have to turn and look down to find them.
    comes on only when you blink, up to the gate, and shakes it on its chain.
 5. **The Clearing.** Something that sprints, drops to all fours to watch, and
    sprints again; out in the tree line it sometimes breaks sideways to a new place,
-   running side on. On the porch are a bow and a quiver of three arrows. Hold the button
-   (or the touch Use button, or A) to draw. A power bar fills beside your aim, and a green
-   band on it marks how far to draw to reach it from where it is right now: the further
-   away, the more draw it needs, and beyond the bow's 50 m there is no band and the bar
-   says too far. Let go with the bar in the green and it in your sights. Short of the green
-   the arrow drops into the snow; past it, or held until the string slips, it goes wild; in
-   the green but off it, it misses. A click looses nothing: the bow comes up and is let
-   down again. The first hit drops it for a moment and the second puts it down. With all
-   three arrows gone and it still up, it comes flat out.
+   running side on. The bow is on the porch, and its three arrows lie about, each in a
+   place of its own (driven into the wall or a post, along a rail, on the woodpile, the
+   crate or the boards, stood against the wall); picked up, they go together in one slot,
+   "Arrows ×2". Hold the button (or the touch Use button, or A) to draw. A power bar fills
+   beside your aim, and when it tops out it is full: it turns green and says so, the string
+   comes tight with a click and shines, the bow bent hard back, and it stays full for as long as
+   you hold it. Let go full with it in your sights and the arrow goes in, however far off it
+   is (the further, the smaller it is to aim at). Let go before full and the arrow drops into
+   the snow short of it; full but off it, it misses. A click looses nothing: the bow comes up
+   and is let down again. The first hit drops it for a moment and the second puts it down.
+   With all three arrows gone and it still up, it comes flat out.
 6. **The Boathouse.** Something swims in across the water, going under for a
    while and coming up closer. The winch is chained and padlocked: the key is in the
    tackle box. Crank the water door down, and shut and bar the side door (the door or
@@ -231,7 +233,7 @@ LEVELS.push({
   lanes: [{ deg: 0, name: 'back door', barrierDist: 2.75, apertures: [{ z, x0, x1, y0, y1 }], blockers: [[d0, d1]] }],
   creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
   aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang' },   // held, stand, retreat, down, away, custom
-  uses: [{ tool, ammo, dudAmmo, range, onHit(c, hits, L), onMiss(L), draw: { band(c), loose(outcome, c, aim, power, L), fill, min }, inHands(ctx, W, H, draw, L, aim) }], // things you use on the creature itself
+  uses: [{ tool, ammo, dudAmmo, range, onHit(c, hits, L), onMiss(L), draw: { loose(outcome, c, aim, power, L), fill, min }, inHands(ctx, W, H, draw, L, aim) }], // things you use on the creature itself
   build(L) { ... }
 });
 ```
@@ -255,10 +257,11 @@ LEVELS.push({
   not be drawn on its lane: the climber takes `c.wallAt(c)` and `c.wallFrame(c)` from its night and is drawn on the
   tower's stone, and the night's `L.visFrac(c)` judges whether it is seen where it is drawn.
 - **A bow** (`uses[].draw`): held, the button (Use, A) draws it, and the power bar beside the aim fills over `fill`
-  seconds. `band(c)` is the green stretch [lo, hi] for where the thing is now (null: out of range), asked again
-  every frame. Let go in it with the aim on the thing's body and `loose('hit', ...)` is called; below it is 'short';
-  past it, or held at the top until the string slips, is 'over'; in it but off the thing is 'miss'. Each spends one
-  of the ammo. Let go before `min` seconds and nothing is loosed. `inHands` draws what you hold over the view.
+  seconds to full (it turns green, and `bowFull` clicks), and stays full for as long as it is held. All that matters
+  is whether it is full when you let go: full with the aim on the thing's body, at any distance, and
+  `loose('hit', ...)` is called; full but off the thing is 'miss'; before full is 'short'. Each spends one of the ammo.
+  Let go before `min` seconds and nothing is loosed. `inHands` draws what you hold over the view. Items that share an
+  id and are made with `stack: true` (night 1's planks, night 5's arrows) go together in one slot as they are picked up.
 - **Items and targets** are placed in `build(L)`: `mkItem(L, id, name, spot | [spots], opts)`
   picks one of several spots per load (never the same spot twice, never within 0.8 m of another
   item); `mkTarget(L, { accepts, requires, needed, use(item), hint(), onClick(), hold, crank })`
@@ -310,13 +313,13 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 ```
 
 `test/play.js` runs each night's declared solution per tier and seed (a night's steps can `draw` a bow: let go at
-once, short, in the green, past it, at the top, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
+once, short of full, as soon as it is full, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
 the one game (no picker, no hints), restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
 camera, save migration and the last night's two endings. `test/lanes.js` runs `validateContent()` and checks every
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
 unseen, early, without a jump in distance, and never on nights that opt out.
-`test/hittest.js` checks every item is visible and clickable from some direction across many layouts.
+`test/hittest.js` checks every item (each one, where several share an id) is visible and clickable from some direction across many layouts.
 `test/story.js` checks the lamp is in every room, the clock ticks, and no text before the bedroom uses
 the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
 the game asks for exists in the synthesiser and that every lane cue, death sting, footstep and voice has a
