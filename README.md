@@ -101,10 +101,15 @@ some on the ground, so you have to turn and look down to find them.
    hit the gas. Reverse always gets away; drive does only if it is coming along a verge, and
    then, if it is near the road, it scuttles sideways out of your lights as you pass. The
    whole road slides past as you go.
-3. **The Graveyard.** A smiling man walks between the graves and never stops
-   smiling. Salt both ways in, the doorway and the side gate, and hang and light a
-   lantern by each. The sugar comes in a red bag. A salted way stops him at the line,
-   looking down at the salt; if the other way is still bare he runs round to it. When the
+3. **The Graveyard.** The old warden walks between the graves and never stops
+   smiling: a crypt keeper bent double over the hump on his back, his bald head jutting
+   forward low, white wisps of hair, a long ragged coat and cape, a ring of keys at his
+   belt and a hooked staff with no lantern on it. Salt both ways in, the doorway and the
+   side gate, and hang and light a lantern by each: a way is done only with both. The
+   sugar comes in a red bag. A salt line stops him; he comes up to it and looks down at
+   it, and if the other way is not done (bare, or its lantern dark while this one burns)
+   he runs round to it, side on. With nowhere better to go, a line with no light by it
+   holds him only a while: he looks down at the salt once more and steps over. When the
    last lantern is lit he comes right up to the salt, looks down at it, then turns round
    and walks back into the dark.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
@@ -272,9 +277,12 @@ LEVELS.push({
   game does), `L.overlay(ctx, W, H)` (a night's own picture over the view: the covers over your eyes), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
   and lights flagged `attach: true` ride with it, everything else slides past; the night 2 car drives off this way),
   `L.onDecoy(t, item)`, `L.onLaneSwitch(c, lane)`, and `L.sealed(lane)`: a creature reaching a
-  sealed way is held at the barrier (or where it is, if it got inside first) until the night is won.
+  sealed way is held at the barrier (or where it is, if it got inside first; a lurch across the line in
+  one frame still stops at it) until the night is won.
   On Nightmare it goes round after 2.5 s to a way that is still open, starting 3 m outside that way's
-  barrier and announced by its `cue`; below Nightmare it never changes its way. A creature whose type defines
+  barrier and announced by its `cue`; below Nightmare it never changes its way. `L.roundOpen(lane, c)`
+  lets a night judge for itself which ways it goes round to (night 3: one weaker than the way it is held
+  at); the night is then asked every frame while the thing is held, until it has somewhere to go. A creature whose type defines
   `drawRun` goes round on its feet instead (`goRound` in game.js, modelled on night 1's run round the house): it
   sprints sideways out of the way's opening, is heard running while out of sight, and comes in 3 m outside the open
   way's barrier from the side it went round by.
