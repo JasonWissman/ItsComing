@@ -333,7 +333,7 @@ LEVELS.push({
   closed round the thing, and the thing in its own icon, lit as the night lights a thing at your chest (a lamp-lit room,
   a dark field) and a shade darker than what lies about. It breathes, lags a moment as you turn and bobs as you look
   up or down (none of that with reduced motion), is lowered when you look down so it does not hide the floor, and dips a
-  little when it is in front of something you could take. A new active thing swaps in (the old one goes down, the new
+  little when it is in front of something you could take or a small thing you could use (a lock, a switch). A new active thing swaps in (the old one goes down, the new
   one comes up), a thing picked up comes from where it lay up into the hand, a use pushes the hand toward the target
   (`G.thrust(target, item, release)`; a thing used up is let go of there), and the hand goes down out of view when you
   hold nothing or the night is won or lost. It keeps clear of the middle of the view, the hover line, the inventory and
@@ -388,7 +388,8 @@ LEVELS.push({
   `t.onWrong(item)`, `t.onEmpty()`, `t.onMissing(item, missing)`, `t.onDecoy(item)` and `t.onRefuse(item)` (each replaces
   the animation for its case), `t.fumble` (a preset's name, or options for every case, with per-case entries `wrong`,
   `missing`, `decoy` and `refuse`, each a preset's name, options or false; false for none at all) and `t.reach` (a style,
-  or options; false for none).
+  or options; false for none). A click a target's own `onClick` takes (returning true: the ignition with no key to hand,
+  a gearstick, a gate) shows nothing of this by itself: the night calls `G.fumble`, `G.reach` or `G.thrust` there.
 - Every night has a solution in `test/nights/nightNN.js` so the suite can play it.
 
 ## Testing
