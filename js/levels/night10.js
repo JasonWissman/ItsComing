@@ -3,9 +3,11 @@
 // The look-away night turned inside out: it is always behind you and you only ever see it in the glass.
 // It moves while the mirror you are facing does not show it. A mirror in the middle of every wall and a pedestal
 // before each; one mirror is not like the others (a moon on its crest, and in it the thing has its back to you).
-// The music box lies in one place and its crank in another. The box goes on the odd mirror's pedestal, then the crank on
-// the box's side, and a few turns of the crank play its tune: the doll comes out through that glass for the box, quickly,
-// lifts it off the pedestal, and takes it back in with it and away.
+// The music box lies in one place and its crank in another. The box goes on any pedestal and the crank on the box's side,
+// and a few turns of the crank before the odd mirror play its tune: the doll comes out through that glass for the box,
+// quickly, lifts it off the pedestal, and takes it back in with it and away. Before any other mirror the first turn plays
+// wrong notes and the crank sticks: in the glass the doll's face turns angry and it hops at you (three quick steps). A click
+// on the box then lifts it back off, crank and all, to put before another mirror.
 LEVELS.push({
   id: 'mirrors', title: 'The Mirror Maze', facing: 0, eyeH: 1.65, laneMode: 'default', laneSwitch: false,
   pal: { skyTop: [14, 8, 8], fog: [58, 40, 36], ground: [30, 26, 26], fogDist: 40 },
@@ -14,7 +16,7 @@ LEVELS.push({
   lights: [{ x: -40, y: 2, z: 5, r: 60, i: 0.5, color: [255, 120, 40], flicker: 0.4 }, { x: 2.6, y: 1.3, z: 2.6, r: 5, i: 0.4, color: [255, 200, 140], flicker: 0.15 }],
   text: {
     intro: 'A hall of mirrors at the edge of the fair, after closing. Something is burning to the west and the ash is coming down through the roof.<br>There is someone behind you. There is always someone behind you. You can only see it in the glass, and it only comes while the glass in front of you does not show it. One of the mirrors is not like the others.',
-    hint: 'Face a mirror square on to hold it. The odd mirror has a moon on its frame, and in it the thing has its back to you: put the music box on the pedestal in front of that one, then fit the crank to the box and turn it.',
+    hint: 'Face a mirror square on to hold it. The odd mirror has a moon on its frame, and in it the thing has its back to you: put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is angry: click the box to take it back.',
     objective: 'Find the odd mirror. Put the music box on its pedestal, fit the crank, turn it.',
     death: { default: 'You turned round.', wrong: 'It was not that mirror, and it was already behind you.' },
     win: 'It came out of the glass for the music box, smiling its painted smile, and took it back in with it. The tune went on somewhere behind the mirror for a long time, getting smaller.',
@@ -130,44 +132,67 @@ LEVELS.push({
     // that way it would be seen through the doorway, outside the hall
     const sideRoll = L.rand();
     s.side = s.mirrors[s.odd].deg === 180 || sideRoll < 0.5 ? -1 : 1; s.flip = s.side > 0;
-    Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99 });
+    // placedAt: the pedestal the box is on (-1: none); crankIn: its crank is in its side; turns: turns before the odd mirror;
+    // sour: it has played wrong where it is, and its crank sticks; angryTill: the doll is angry until then
+    Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99, sour: false, angryTill: -99 });
     const panTo = (x, z) => Math.sin(wrapPi(Math.atan2(x, z) + L.facing - G.cam.yaw)) * 0.7;
     const pedTargets = [];
     const refresh = () => pedTargets.forEach(t => { t.accepts = s.placedAt < 0 ? ['musicbox', 'crank'] : s.crankIn ? [] : ['crank']; });
-    // the box will not go on any other pedestal, and while you try, something behind you takes three quick steps
-    const wrongPedestal = () => {
-      const c = c0(); s.wrongAt = L.t;
+    // lifted off a pedestal with its crank in, the box keeps it: you carry it so, and it goes down on the next one so
+    const boxWithCrank = (ctx, P) => ICONS.musicbox(ctx, P, { crank: 0 });
+    // the first turn before a wrong mirror: the comb drags out wrong notes and the crank sticks; in the glass its painted face
+    // turns angry, and behind you something takes three quick steps (it hops in to two thirds of how far off it was, never
+    // right up to you). The crank stays stuck, so a box turned before the wrong mirror costs one hop, not one a click
+    const wrongTurn = p => {
+      const c = c0(); s.wrongAt = L.t; s.sour = true; s.angryTill = L.t + 5; c.angry = 1;
+      s.crankTo -= TAU * 0.6; G.shake(0.04);
+      AUDIO.sfx('musicSour', panTo(p.x, p.z));
       const d = Math.max(c.catchDist + 1.5, c.dist * 0.65); c.u = clamp(1 - Math.pow(d / c.D0, 1 / c.gamma), c.u, 0.995); c.hitched = true;
       G.shake(0.25);
       for (let i = 0; i < 3; i++) setTimeout(() => { if (G.state === 'play') AUDIO.footstep('smiler', 0.45, 0); }, 120 + i * 150);
-      G.say('Not this mirror: the box belongs before the odd one. Behind you something takes three quick steps.', 'The box will not sit still on this one. Behind you something takes three quick steps.');
+      G.say('Not the odd mirror: the notes come out wrong and the crank sticks, and in the glass its face has changed. Behind you something takes three quick steps.', 'The notes come out wrong. Behind you something takes three quick steps.');
+    };
+    // a click on the box on a pedestal lifts it back off, its crank in it if it was fitted
+    const lift = k => {
+      const t = pedTargets[k], withCrank = s.crankIn;
+      s.placedAt = -1; s.crankIn = false; s.sour = false; t.name = 'Pedestal';
+      s.crankA = s.crankTo = Math.round(s.crankTo / TAU) * TAU;   // the stuck crank comes back round to rest as you lift it
+      box.withCrank = withCrank; box.icon = withCrank ? boxWithCrank : ICONS.musicbox;
+      box.uses = 1; box.taken = true; G.inv.push(box); G.active = G.inv.length - 1;
+      AUDIO.sfx('pickup'); G.hover = null;
+      G.say(withCrank ? 'You lift the box off the pedestal, its crank still in it.' : 'You lift the box off the pedestal.', 'You take the box back.');
+      refresh();
     };
     peds.forEach((p, k) => {
       const t = mkTarget(L, {
         id: 'pedestal' + k, name: 'Pedestal', x: p.x, y: 0, z: p.z, w: 0.6, h: 1.2, accepts: ['musicbox', 'crank'],
         hint() {
-          if (s.placedAt === k) return !s.crankIn ? 'The music box. Its crank fits its side.' : 'Turn the crank. ' + (TURNS - s.turns) + ' more.';
+          if (s.placedAt === k) return s.sour ? 'The music box. Its crank sticks here: take it back.' : !s.crankIn ? (G.hasItem('crank') ? 'The music box. Its crank fits its side.' : 'The music box. Take it back.') : 'Turn the crank. ' + (TURNS - s.turns) + ' more.';
           return s.placedAt >= 0 ? 'An empty pedestal.' : k === s.odd ? 'The pedestal before the odd mirror.' : 'A pedestal before the ' + DIRS[k] + ' mirror.';
         },
         use(item) {
           if (item.id === 'musicbox') {
             if (s.placedAt >= 0) return false;
-            if (k !== s.odd) { wrongPedestal(); return false; }
-            s.placedAt = k; this.name = 'Music box';   // hovering the box on it, it is the box you are turning
-            AUDIO.sfx('drop'); G.say('The box sits on the pedestal before the odd mirror. Now its crank.', 'There.'); refresh(); return true;
+            // any pedestal takes it, and it sits the same on every one
+            s.placedAt = k; s.crankIn = !!box.withCrank; s.sour = false; this.name = 'Music box';   // hovering the box on it, it is the box you are turning
+            AUDIO.sfx('drop');
+            G.say(s.crankIn ? 'The box sits on the pedestal, its crank in its side. Turn it.' : 'The box sits on the pedestal. Now its crank.', 'There.'); refresh(); return true;
           }
           if (item.id === 'crank') {
-            if (s.placedAt !== k) { G.say(s.placedAt < 0 ? 'The crank has nothing to turn. The music box goes on the pedestal first.' : 'The music box is not on this pedestal.', 'Nothing here for it to turn.'); return false; }
+            if (s.placedAt !== k) { G.say(s.placedAt < 0 ? 'The crank has nothing to turn. The music box goes on a pedestal first.' : 'The music box is not on this pedestal.', 'Nothing here for it to turn.'); return false; }
             s.crankIn = true; AUDIO.sfx('fit'); G.say('The crank fits the side of the box. Turn it.', 'It fits.'); refresh(); return true;
           }
           return false;
         },
-        // with the box on it and its crank in, a click turns the crank once round: a few notes of the tune each time, and on
-        // the last turn the whole tune
+        // with the box on it and its crank in, a click turns the crank once round: before the odd mirror a few notes of the
+        // tune each time, and on the last turn the whole tune; before any other, wrong notes, and the crank sticks. A click on
+        // the box with its crank stuck, or with no crank in it and none in your hands, lifts it back off
         onClick() {
-          if (s.placedAt !== k || !s.crankIn) return false;   // what you carry is tried
+          if (s.placedAt !== k) return false;   // what you carry is tried
+          if (!s.crankIn) { if (G.hasItem('crank')) return false; lift(k); return true; }
+          if (k !== s.odd) { if (s.sour) lift(k); else wrongTurn(p); return true; }
           if (s.turns >= TURNS) return true;
-          s.turns++; s.crankTo -= TAU; G.shake(0.04);
+          s.turns++; s.crankTo -= TAU; G.shake(0.04); s.angryTill = Math.min(s.angryTill, L.t);   // the right tune calms it
           AUDIO.sfx(s.turns < TURNS ? 'musicTurn' : 'musicbox', panTo(p.x, p.z));
           if (s.turns >= TURNS) s.tuneAt = L.t;
           return true;
@@ -191,7 +216,9 @@ LEVELS.push({
     L.isWon = () => s.turns >= TURNS;
     L.deathCause = () => (L.t - s.wrongAt < 8 ? 'wrong' : null);
     L.objectiveText = () => L.won ? 'It is coming for the box.'
-      : s.placedAt < 0 ? 'The odd mirror is the ' + DIRS[s.odd] + ' one. Put the music box on its pedestal.' : !s.crankIn ? 'Fit the crank to the music box.' : 'Turn the crank (' + s.turns + '/' + TURNS + ').';
+      : s.placedAt < 0 ? 'The odd mirror is the ' + DIRS[s.odd] + ' one. Put the music box on its pedestal.'
+        : s.placedAt !== s.odd ? 'That is the ' + DIRS[s.placedAt] + ' mirror. Take the box back and put it before the ' + DIRS[s.odd] + ' one.'
+          : !s.crankIn ? 'Fit the crank to the music box.' : 'Turn the crank (' + s.turns + '/' + TURNS + ').';
 
     // ---- the fetch ----
     // The last turn plays the whole tune and it comes for the box. In the odd mirror it turns round (its back, its side, its
@@ -211,8 +238,8 @@ LEVELS.push({
     // a point on that box (u, v in its own unit box) as the doll sees it: in the plane it stands in, from its own middle
     const onBox = (b, u, v, c) => { const k = c.dist / b.d; return [(b.lat + u * b.w) * k - c.lat, L.eyeH - (L.eyeH - (b.y + v * b.w)) * k]; };
     const sill = d => Math.sin(Math.PI * clamp((d - 3.15) / 0.7, 0, 1)) * 0.27;   // up over the bottom of the frame as it goes through
-    // a point d along the odd mirror's line and lat to its right (as its lane places the thing), y up
-    const onLine = (d, lat, y) => { const r = s.mirrors[s.odd].deg * DEG; return L.pt(Math.sin(r) * d + Math.cos(r) * lat, y, Math.cos(r) * d - Math.sin(r) * lat); };
+    // a point d along the odd mirror's line (or mirror k's) and lat to its right (as its lane places the thing), y up
+    const onLine = (d, lat, y, k) => { const r = s.mirrors[k === undefined ? s.odd : k].deg * DEG; return L.pt(Math.sin(r) * d + Math.cos(r) * lat, y, Math.cos(r) * d - Math.sin(r) * lat); };
     const carryHand = side => [side * 0.165, CA.y + CA.w * 0.27 + 0.01];
     const fetch = dt => {
       const c = c0(), m = s.mirrors[s.odd];
@@ -272,6 +299,12 @@ LEVELS.push({
       // the crank goes a whole turn round with each click and the dancer turns with it; once the box plays she spins
       s.crankA += (s.crankTo - s.crankA) * (1 - Math.exp(-dt * 7));
       s.spin = L.won ? s.spin + dt * 3.4 : -s.crankA * 0.5;
+      // the doll's temper: angry at once when the box plays wrong, for a few seconds and as long as the box sits there
+      // stuck; then its face eases back to the painted one. Coming out for the box, it smiles
+      const c = c0();
+      if (L.won) c.angry = 0;
+      else if (s.sour || L.t < s.angryTill) c.angry = 1;
+      else if (c.angry) c.angry = Math.max(0, c.angry - dt / 0.8);
       if (L.won) fetch(dt);
     };
     L.watchPoint = () => { const q = L.at(s.mirrors[s.odd].deg, 2.6, 1.0); return { x: q[0], y: q[1], z: q[2] }; };
@@ -320,9 +353,10 @@ LEVELS.push({
         else if (L.targets.some(t => t.id === 'sheet' + k)) R.add(heapAt[k]);
       });
       if (s.ripples) for (const rp of s.ripples) { const a = (L.t - rp.t0) / 0.9; if (a < 1) R.add(ripple(onLine(3.47, rp.lat, 0.35), a)); }
-      // the music box on its pedestal, or on its way off it into the doll's arms: over the pedestal's cap and the doll
+      // the music box on its pedestal (whichever it is on), or on its way off it into the doll's arms: over the pedestal's
+      // cap and the doll
       if (s.placedAt >= 0 && !s.held) {
-        const b = liftedBox(s.lift || 0), q = onLine(b.d, b.lat, b.y);
+        const b = liftedBox(s.lift || 0), q = onLine(b.d, b.lat, b.y, s.placedAt);
         R.add(SC.mkSprite(L, 0, 0, 0, b.w, b.w, (ctx, P) => { ctx.scale(b.w, b.w); drawBox(ctx, P); }, { x: q[0], y: q[1], z: q[2], sortDist: 2.15 }));
       }
     };

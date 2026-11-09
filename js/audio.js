@@ -296,6 +296,9 @@ const AUDIO = (() => {
         [[[880, 0], [1175, 0.25], [1319, 0.5]], [[1175, 0], [988, 0.25], [880, 0.55]], [[1319, 0], [1568, 0.25], [1319, 0.6]], [[1175, 0], [988, 0.25], [880, 0.5]]][sfx.turnN++ % 4].forEach(([f, d]) => tone(f, 0.55, { vol: 0.06, type: 'triangle', delay: d, pan }));
         noise(0.025, { type: 'bandpass', freq: 2400, q: 6, vol: 0.14, pan }); break;
       }
+      // a turn of the crank where the box will not play: the comb drags its notes flat and out of tune against each other, and the crank sticks
+      case 'musicSour': [[880, 0, 790], [1245, 0.26, 1050], [1109, 0.6, 930]].forEach(([f, d, e]) => { tone(f, 0.7, { vol: 0.06, type: 'triangle', delay: d, endFreq: e, pan }); tone(f * 1.06, 0.6, { vol: 0.04, type: 'triangle', delay: d + 0.02, endFreq: e * 1.04, pan }); });
+        noise(0.025, { type: 'bandpass', freq: 2400, q: 6, vol: 0.14, pan }); tone(140, 0.08, { vol: 0.3, type: 'square', endFreq: 90, delay: 0.85, pan }); noise(0.06, { freq: 700, vol: 0.35, delay: 0.85, pan }); break;
       case 'tick': noise(0.012, { type: 'bandpass', freq: 3200, q: 4, vol: 0.14, pan }); tone(1600, 0.02, { vol: 0.05, type: 'square', pan }); break;
       case 'knock': for (const d of [0, 0.32]) { noise(0.06, { freq: 500, vol: 0.5, delay: d, pan }); tone(160, 0.12, { vol: 0.3, endFreq: 100, delay: d, pan }); } break;
       case 'hangers': for (let i = 0; i < 6; i++) tone(2200 + Math.random() * 1400, 0.05, { vol: 0.045, type: 'triangle', delay: i * 0.06 + Math.random() * 0.03, pan }); break;
