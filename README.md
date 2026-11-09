@@ -172,8 +172,12 @@ some on the ground, so you have to turn and look down to find them.
     and it goes faster the more you carry. A stack of hay stands in each way in, and both
     must burn. Fill a bottle at the oil drum, stuff a rag in its neck, light the rag with
     the matches (they light the second one too) and throw it into the hay. Fire in the
-    stack it is coming past sends it running round, side on, to the other way; fire it is
-    already past is no use. Carry one bottle and one rag at a time.
+    stack it is coming to, or walking in between, sends it running round, side on, to the
+    other way; fire in a stack it has already walked past does not turn it. Once both burn
+    it cannot reach you, wherever it is, unless it is already up in the loft: out beyond a
+    fire it rears back from the flames, paces them and sits down; caught between a fire and
+    you, it rears back, backs away from you into the smoke and sits down there. The rags
+    are squares of old grey-blue cloth. Carry one bottle and one rag at a time.
 12. **The Bedroom.** You are in bed. It is already in the doorway, or in the
     closet, moving in extreme slow motion. Get the lamp on, pull the covers up. Then they
     come up over your eyes and the rest happens under them: its steps to the bed, the
