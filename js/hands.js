@@ -380,7 +380,7 @@ const HANDS = (() => {
   function screenOf(p) { const q = R.screenPos(p.x, p.y, p.z); return q ? { x: q.x, y: q.y, scale: q.scale } : null; }
   function draw(ctx, W, Hv) {
     const L = G.L; if (!L || H.yaw === undefined) return;
-    if (G.state !== 'play' && G.state !== 'won' && !H.cur && !H.reach) return;
+    if (!(H.cur && H.up > 0.001) && !H.reach && !H.fly && !(H.off.cur && H.off.up > 0.001)) { H.box = null; H.covering = false; return; }   // nothing in view
     const lit = lighting(L), C = handColours(L, lit);
     ctx.save();
     let box = null;

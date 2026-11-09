@@ -365,10 +365,11 @@ LEVELS.push({
   preset's own), `land` (`{ x, y, z }`), `side` (-1 / 1), `floorY`, `flat` and `restAngle` (how it lies), `speed`,
   `sortDist`, `sfx: { hit, land }` (by default by what it is made of: `item.material` 'metal',
   'wood', 'glass' or 'soft', or a guess from its name: a light metal `tink`, a wooden `woodKnock`, a soft `pat`; it lands
-  with a `clatter`, or a `flop`), and `onHit(fx)`, `onLand(item, fx)`, `onDone(fx)`. Only one is ever in the air: another
-  while it is returns null, so fast clicks do not start a second. `G.fumbling` is the one in the air. Input is never
-  locked; using the thing after all while it is on its way back puts it straight in hand.
-  `G.reach(target, opts)` is the empty hand: it comes up to the target (all the way within arm's length, out toward it
+  with a `clatter`, or a `flop`), and `onHit(fx)`, `onLand(item, fx)`, `onDone(fx)`. One leaves the hand at a time: another
+  while it is on its way returns null, so fast clicks do not start a second (one already falling to the floor goes on by
+  itself). `G.fumbling` is the one in play. Input is never locked; using the thing after all while it is on its way back
+  puts it straight in hand.
+  `G.reach(target, opts)` is the empty hand: it comes up to the target (all the way to a thing within a step, out toward it
   further off), and `style` 'touch', 'push', 'knock', 'rattle' or 'pull' (with `at`, `sfx`, `onTouch(target)`; the
   target's `touchedAt` is set to the night's clock at the first touch); clicked again while it is there it stays for
   another go.
