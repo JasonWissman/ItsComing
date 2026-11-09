@@ -273,7 +273,8 @@ LEVELS.push({
   `L.aftermath(t, dt)` (a custom aftermath; return true when it is over), `L.watchPoint()` (where the win camera
   looks instead of at the thing; it may also return a `zoom`), `L.watchZoom()` (close the win camera in further),
   `L.watchPitch` (how far down the win camera may look), `L.watchUp` (how far up it may look: the last night, into its face),
-  `L.onPress()` (a won night waiting on a click, key, tap or A; true when it took the press: the last night's meadow), `L.viewZoom()` (a zoom the view comes in to while playing:
+  `L.onPress(e)` (a won night waiting on a click, key, tap or A; true when it took the press: the last night's meadow,
+  where a modifier, a chord or a function key, as for alt-tab or a screenshot, does not go on), `L.viewZoom()` (a zoom the view comes in to while playing:
   the pay phone close up), `L.padDir(dir)` and `L.padUse()` (a night may take the gamepad's d-pad and A before the
   game does), `L.overlay(ctx, W, H)` (a night's own picture over the view: the covers over your eyes), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
   and lights flagged `attach: true` ride with it, everything else slides past; the night 2 car drives off this way),

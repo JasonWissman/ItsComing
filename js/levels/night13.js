@@ -228,10 +228,12 @@ LEVELS.push({
     };
     // the meadow waits for as long as you like: a click, a key, a tap or A goes on (not in the first moment of it, so a press
     // made while it was still coming does not throw it away). From the moment it reaches you the ending takes every press, so
-    // nothing (R included) can cut it short while it holds you, and nothing but going on is done in the meadow.
-    L.onPress = () => {
+    // nothing (R included) can cut it short while it holds you, and nothing but going on is done in the meadow. A key that only
+    // goes somewhere else (alt-tab, a screenshot's chord, a function key) is not a press: the meadow stays.
+    const aside = e => !!e && (e.ctrlKey || e.metaKey || e.altKey || /^(Shift|Control|Alt|AltGraph|Meta|OS|CapsLock|NumLock|ScrollLock|Fn|FnLock|ContextMenu|PrintScreen|Unidentified|F\d{1,2})$/.test(e.key || ''));
+    L.onPress = e => {
       if (!s.ending) return false;
-      if (s.wait && !s.leaving && s.endT >= END.arm) { s.leaving = true; s.leaveT = 0; s.glitterAt = s.endT + 0.3; AUDIO.sfx('win'); }
+      if (!aside(e) && s.wait && !s.leaving && s.endT >= END.arm) { s.leaving = true; s.leaveT = 0; s.glitterAt = s.endT + 0.3; AUDIO.sfx('win'); }
       return true;
     };
     L.aftermath = () => s.leaving && s.leaveT >= END.leave;

@@ -215,7 +215,7 @@ function onKeyDown(e) {
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
   if (e.repeat) return;
   if (k === 'm' || k === 'M') { toggleMute(); return; }
-  if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress()) return;   // a won night may be waiting on any press (the last night's meadow)
+  if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress(e)) return;   // a won night may be waiting on any press (the last night's meadow)
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
   if (G.state !== 'play' && MENU.onKey(e)) return;
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
