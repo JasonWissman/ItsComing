@@ -12,9 +12,10 @@
 // read; the night goes on behind it. Facing the phone brings the view in close to it (L.viewZoom), so its keys are big enough
 // to click or tap; the number keys dial too, and a gamepad's d-pad moves a highlight over the phone (L.padDir, L.padUse).
 // It is done with your hands (js/hands.js): the lifted receiver is in your left hand (L.offHand), your right fingertip
-// presses the keys (G.reach, going from key to key), and what will not work shows on the phone itself: a key pressed for
-// nothing clicks and the display blinks at you, a coin put in on the hook drops through into the coin return, the empty
-// return is felt with the fingers, the phone book's cover lifts a crack and drops back.
+// presses the keys (G.reach, going from key to key, in turn when they are pressed faster than it can go), and what will
+// not work shows on the phone itself: a key pressed for nothing clicks and the display blinks at you, a coin put in on the
+// hook goes into the slot and drops through into the coin return, the empty return is felt with the fingers, the phone
+// book's cover lifts a crack and drops back.
 Object.assign(ICONS, {
   // a small battered notebook, spiral at the top, held shut with an elastic band
   notebook(ctx, P) {
@@ -234,7 +235,7 @@ Object.assign(ICONS, {
       const pageHtml = nb.pages.map(p => pageHTML(p, inkRand));
       Object.assign(s, { pages: nb.pages, keyPage: nb.keyPage, number: nb.number, numberText: nb.numberText, others: nb.others,
         hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, page: 0,
-        credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null, lands: [], lagN: 0, keyHit: {}, blinkAt: -9, handsetT: -9, coinDropT: -9 });
+        credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null, lands: [], lagN: 0, keyHit: {}, blinkAt: -9, handsetT: -9, coinDropT: -9, finger: null, fingerAt: 0, glides: [] });
 
       // ---------------- the street ----------------
       const roadC = [27, 28, 33], paveC = [54, 54, 58], kerbC = [88, 88, 92], paint = [150, 148, 138];
@@ -509,27 +510,33 @@ Object.assign(ICONS, {
       const hangUp = () => {
         const ringing = s.line === 'ringing' || s.line === 'connecting';
         s.hook = 'on'; s.line = 'idle'; s.dialed = ''; s.lagN = 0; s.ringFrom = null; s.handsetT = L.t; AUDIO.sfx('clunk');
-        for (const l of s.lands) l.digit = false;
+        for (const l of s.lands) { l.digit = false; l.sfx = 'keyClick'; }   // (keys still to be pressed, pressed on a dead phone)
         if (s.credit) { s.credit = 0; s.returnAt = L.t + 0.45; AUDIO.sfx('coinReturn'); }
         if (ringing) G.say('You hung up. The ringing stops.', 'The ringing stops.');
       };
       // your fingertip on the keys: the hand comes up to the key (what you hold goes down meanwhile) and, dialling, goes on
       // from key to key without going back down first; the key goes down, and clicks or beeps, when the finger gets there.
-      // Returns how long that is. (The reach is the empty hand's (G.reach), kept quiet: the key makes the sound.)
+      // Returns how long that is. (The reach is the empty hand's (G.reach), kept quiet: the key makes the sound.) Keys pressed
+      // faster than it can go are pressed in turn, each once the one before is down (s.glides: the keys it goes on to;
+      // s.fingerAt: when it is down on the last key it was sent to; s.finger: the reach that is the fingertip)
       const GLIDE = 0.09;
       const invSmooth = k => { let a = 0, b = 1; for (let i = 0; i < 14; i++) { const m = (a + b) / 2; if (smoothstep(m) < k) a = m; else b = m; } return (a + b) / 2; };
+      const glideTo = (rc, to, target) => {
+        const into = rc.T - rc.out;
+        if (into > rc.hold) rc.T = rc.out * invSmooth(1 - smoothstep((into - rc.hold) / rc.back));   // on its way back down: on its way out again from there
+        else if (into > 0) rc.T = rc.out;                                                               // at a key: a new press from here
+        rc.glide = { from: Object.assign({}, rc.at), to, t0: L.t }; rc.target = target; rc.hold = 0.3; rc.touched = 99;
+      };
       const fingerTo = t => {
         const at = HANDS.pointOn(t, undefined, 0.02), rc = G.hand.reach;
-        if (rc && keys.some(q => q.t === rc.target) && rc.T < rc.out + rc.hold + rc.back) {
-          const into = rc.T - rc.out;
-          if (into > rc.hold) rc.T = rc.out * invSmooth(1 - smoothstep((into - rc.hold) / rc.back));   // on its way back down: on its way out again from there
-          else if (into > 0) rc.T = rc.out;                                                               // at a key: a new press from here
-          rc.glide = { from: Object.assign({}, rc.at), to: at, t0: L.t }; rc.target = t; rc.hold = 0.3; rc.touched = 99;
-          return Math.max(GLIDE, rc.out - rc.T);
+        if (rc && rc === s.finger && rc.T < rc.out + rc.hold + rc.back) {
+          if (s.fingerAt > L.t) { s.glides.push({ to: at, t0: s.fingerAt, target: t }); s.fingerAt += GLIDE; return s.fingerAt - L.t; }   // not down on the last key yet
+          glideTo(rc, at, t); s.fingerAt = L.t + Math.max(GLIDE, rc.out - rc.T);
+          return s.fingerAt - L.t;
         }
         const r = G.reach(t, { style: 'touch' });
         if (!r) return 0;
-        r.touched = 99; r.hold = 0.3;
+        r.touched = 99; r.hold = 0.3; s.finger = r; s.glides = []; s.fingerAt = L.t + r.out;
         return r.out;
       };
       // one press of a key: it goes down whatever happens; it beeps only on a live line with credit, and only a line that is
@@ -580,10 +587,20 @@ Object.assign(ICONS, {
       const slot = mkTarget(L, {
         ...front((SLOT.u0 + SLOT.u1) / 2, SLOT.y0 - 0.004, SLOT.u1 - SLOT.u0 + 0.01, SLOT.y1 - SLOT.y0 + 0.008), id: 'slot', name: 'Coin slot', accepts: ['coin'],
         onClick() { if (s.credit) { G.reach(this, 'touch'); G.say('There is a coin in it already.', 'It has a coin in it.'); return true; } return false; },   // (fingers on it: it is full)
-        // with the receiver on its hook the coin goes in, rattles down through the works and drops into the coin return
-        // below, where it lies to be taken out again (coinBack)
+        // with the receiver on its hook the coin goes from your fingers to the slot and in, rattles down through the works and
+        // drops into the coin return below, where it lies to be taken out again (coinBack). (Lifted while it was on its way,
+        // it counts.)
         use() {
-          if (s.hook !== 'off') { s.returnAt = L.t + 0.55; AUDIO.sfx('coinReturn'); G.say('The coin drops straight through. Lift the receiver first.', 'It drops straight through.'); return true; }
+          if (s.hook !== 'off') {
+            G.say('The coin drops straight through. Lift the receiver first.', 'It drops straight through.');
+            const through = () => { s.returnAt = L.t + 0.5; AUDIO.sfx('coinReturn'); };
+            const fx = G.fumble(coin, this, { preset: 'return', drop: false, scale: 0.042 / coin.w, sfx: { hit: 'tink' }, onHit: () => {   // (a coin's size at the slot)
+              G.removeFromInv(coin);
+              if (s.hook === 'off') { s.credit = 10; AUDIO.sfx('coin'); } else through();
+            } });
+            if (!fx) { through(); return true; }   // (something else on its way from the hand: it is let go of at once)
+            return G.refuse(false);
+          }
           s.credit = 10; AUDIO.sfx('coin');
           if (G.toastT > 0 && NO_CREDIT.includes(G.lastToast.msg)) G.toastT = 0.001;   // there is credit now: the line that said there was none goes
           return true;
@@ -597,13 +614,14 @@ Object.assign(ICONS, {
         },
       });
       // what you click is the whole book as the eye sees it: up the plane of its front edge to where the back of its cover shows.
-      // It will not open: the hand takes the cover and pulls, twice, and the swollen pages lift it a crack and let it drop
-      // back (touchedAt: when the hand first had it), the chain jerking on its ring
+      // It will not open: the hand takes the cover by its front edge (about 0.4 up what you click: the edge the cover lifts
+      // at, away from its spine) and pulls, twice, and the swollen pages lift it a crack and let it drop back (touchedAt:
+      // when the hand first had it), the chain jerking on its ring
       const bookTop = L.eyeH + (PB.y1 - L.eyeH) * (-xN) / (-xF);
       const book = mkTarget(L, {
         id: 'book', name: 'Phone book', x: xN, y: PB.y0 - 0.004, z: (PB.u0 + PB.u1) / 2, w: PB.u1 - PB.u0 + 0.016, h: bookTop - PB.y0 + 0.012,
         onClick() {
-          G.reach(this, { style: 'pull', at: [0.25, 0.85], sfx: 'flop', onTouch: () => AUDIO.sfx('rattle') });
+          G.reach(this, { style: 'pull', at: [0.3, 0.42], sfx: 'flop', onTouch: () => AUDIO.sfx('rattle') });
           G.say('The phone book has been out in the damp too long. The pages will not come apart.', 'The pages are swollen with damp. They will not come apart.'); return true;
         },
       });
@@ -633,8 +651,10 @@ Object.assign(ICONS, {
           if (l.digit && s.lagN > 0) s.lagN--;
           if (l.blink) s.blinkAt = L.t;
         }
-        // the finger going from key to key
+        // the finger going on from key to key, each once the one before is down (none if the hand is wanted elsewhere)
         const rc = G.hand.reach;
+        if (s.glides.length && rc !== s.finger) s.glides = [];
+        while (s.glides.length && L.t >= s.glides[0].t0) { const q = s.glides.shift(); glideTo(rc, q.to, q.target); }
         if (rc && rc.glide) { const k = smoothstep((L.t - rc.glide.t0) / GLIDE), a = rc.glide.from, b = rc.glide.to; rc.at = { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), z: lerp(a.z, b.z, k) }; if (k >= 1) rc.glide = null; }
         // the phone book's cover lifts a crack each time the hand pulls at it (with each pull of G.reach's 'pull', two to a
         // hold of 0.46 s), and drops back

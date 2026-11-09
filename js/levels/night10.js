@@ -139,7 +139,7 @@ LEVELS.push({
         mkTarget(L, { id: 'sheet' + k, name: 'Dust sheet', deg: m.deg, dist: 3.4, y: 0.2, w: 1.75, h: 2.4, hint() { return m.live ? 'Pulled down.' : 'A dust sheet over the glass.'; }, onClick() {
           if (m.live) return false;
           m.live = true; this.hidden = true; G.say('The sheet comes down. Glass.', 'Glass.');
-          const r = G.reach(this, { style: 'pull', at: [0.28, 0.1], sfx: 'flop' });
+          const r = G.reach(this, { style: 'pull', at: [0.4, 0.4], sfx: 'flop' });
           s.sheetFall = { k, t0: L.t + (r ? r.out : 0) };   // (L.update hisses as it goes)
           return true;
         } });
@@ -193,6 +193,7 @@ LEVELS.push({
     peds.forEach((p, k) => {
       const t = mkTarget(L, {
         id: 'pedestal' + k, name: 'Pedestal', x: p.x, y: 0, z: p.z, w: 0.6, h: 1.2, accepts: ['musicbox', 'crank'],
+        reach: { style: 'touch', at: [0, 0.64] },   // with nothing in hand the hand goes out to the top of it (its cap, 0.75 m up)
         hint() {
           if (s.placedAt === k) return s.sour ? 'The music box. Its crank sticks here: take it back.' : !s.crankIn ? (G.hasItem('crank') ? 'The music box. Its crank fits its side.' : 'The music box. Take it back.') : 'Turn the crank. ' + (TURNS - s.turns) + ' more.';
           return s.placedAt >= 0 ? 'An empty pedestal.' : k === s.odd ? 'The pedestal before the odd mirror.' : 'A pedestal before the ' + DIRS[k] + ' mirror.';

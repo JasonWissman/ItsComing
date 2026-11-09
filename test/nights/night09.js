@@ -12,7 +12,9 @@
 // What you do happens in your hands: the phone book's cover lifts a crack as the hand pulls at it and drops back; a key is
 // pressed by your fingertip (what you hold goes down meanwhile and comes back up after) and only goes down when the finger
 // gets there; a key the phone will not take blinks its display at you; the lifted receiver is in your left hand until it
-// goes back on its hook; the coin given back drops into the cup with a clink; the hand feels in the empty coin return.
+// goes back on its hook; the coin given back drops into the cup with a clink; the hand feels in the empty coin return; a
+// coin put in on the hook goes from your fingers into the slot before it drops into the cup; keys typed faster than the
+// finger can go are pressed in turn.
 const key = k => "document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '" + k + "', bubbles: true }))";
 const visible = sel => "(document.querySelector('" + sel + "') && document.querySelector('" + sel + "').style.display !== 'none')";
 // click the phone's keys for a string of digits where they are drawn, as a mouse would
@@ -84,9 +86,12 @@ module.exports = {
     ['waitUntil', inCup, 2000],
     ['pickup', 'coin'],
     ['expect', "G.hasItem('coin')", 'the coin came back into the coin return, and is taken out of it'],
+    watch('inslot', "G.fumbling && G.fumbling.it.id === 'coin' && G.fumbling.target.id === 'slot' && G.fumbling.phase === 'contact'"),
     ['click', 'slot'],
     ['expect', "/drops straight through/.test(G.lastToast.msg) && G.L.s.credit === 0", 'a coin put in with the receiver on its hook drops straight through'],
+    ...saw('inslot', 'the coin goes from your fingers into the slot'),
     ['waitUntil', inCup, 2000],
+    ['expect', inCup + " && !G.hasItem('coin') && G.L.s.credit === 0 && !G.fumbling", 'and comes out in the coin return'],
     ['pickup', 'coin'],
     ['click', 'receiver'],
     ['click', 'slot'],
@@ -103,8 +108,10 @@ module.exports = {
     ['eval', 'navigator.getGamepads = () => []'],
     ['face', 6, false],
     ['wait', 500],
-    ['eval', "for (const d of window.__num) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: d, bubbles: true })); window.__dialT = G.L.t; window.__dialMs = Date.now()"],
+    ['eval', "for (const d of window.__num) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: d, bubbles: true })); window.__dialT = G.L.t; window.__dialMs = Date.now(); window.__landAt = G.L.s.lands.map(l => l.at)"],
     ['expect', "G.L.s.dialed === window.__num && G.inv.every(i => i.id === 'journal')", 'the number keys dialled it'],
+    ['expect', 'window.__landAt.length === 7 && window.__landAt.every((t, i, a) => !i || t - a[i - 1] > 0.08)', 'typed faster than the finger can go, it presses the keys in turn, one after another'],
+    ['waitUntil', "!G.L.s.lands.length && G.L.s.lagN === 0", 3000],
     ['waitUntil', "G.L.s.line === 'ringing'", 3000],
     ['wait', 3000],
     ['expect', "G.L.s.line === 'ringing' && !G.L.won && G.state === 'play'", 'still ringing three seconds on, and he is still coming'],

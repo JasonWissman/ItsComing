@@ -7,7 +7,8 @@
 // all round for each pedestal. Before any of that it watches the doll dance in every glass: drawn at one moment, the odd
 // mirror's doll is in the mirror image of the others' pose and the others are in the same pose; each glass draws the pose
 // it should; and held in a glass it dances on the spot.
-// It happens in your hands: a sheet is pulled down by the hand, the crank tried on a pedestal with no box feels about its top
+// It happens in your hands: a sheet is pulled down by the hand, an empty pedestal clicked with nothing in hand is touched on
+// its top, the crank tried on a pedestal with no box feels about its top
 // and comes back to your hand, the hand turns the crank, wrenches at it when it jams, and the box lifted off comes up off
 // the pedestal into your hand.
 const ped = k => 'pedestal' + k;
@@ -109,7 +110,9 @@ const right = k => [
   ['expect', 'G.L.creature.angry < 1', 'the right tune calms it'],
   ['click', ped(k)], ['expect', 'G.L.won && G.L.s.turns === 4', 'the fourth turn plays the tune'],
 ];
+// with nothing in hand a click on an empty pedestal brings the hand out to its top
+const emptyTouch = [look(0), ['click', ped(0)], ['expect', "!G.inv.length && G.L.s.placedAt < 0 && G.hand.reach && G.hand.reach.target.id === 'pedestal0' && Math.abs(G.hand.reach.at.y - 0.77) < 0.05", 'with nothing in hand, the hand goes out to the top of an empty pedestal'], ['waitUntil', '!G.hand.reach', 2000]];
 const fetched = [['waitUntil', 'G.L.s.held && G.L.creature.lane.idx === 1 + G.L.s.odd', 8000], ['expect', 'G.L.s.held && !G.L.creature.angry && G.L.creature.dance === 0 && G.L.creature.danceMir === -G.L.s.lead', 'it came out through the odd mirror and took the box, smiling, its dance over']];
 module.exports = {
-  nightmare: sheets.concat(dance, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
+  nightmare: sheets.concat(dance, emptyTouch, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
 };

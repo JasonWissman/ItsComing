@@ -162,9 +162,10 @@ some on the ground, so you have to turn and look down to find them.
    floor by the phone), then do what the card beside the keys says: lift the receiver, put
    the coin in and dial on the phone's own keys. Lifted, the receiver is in your left hand, its cord running down out of
    the view, and your right hand presses each key with a fingertip, going from key to key as you dial (what it held goes
-   down meanwhile); a key goes down when the finger gets there, and one the phone will not take only clicks, the display
-   blinking its credit at you (or NOT IN SERVICE). A coin put in with the receiver on its hook rattles down through the
-   works and drops into the coin return, to be taken out again. The phone book's cover lifts a crack when you pull at it
+   down meanwhile; keys pressed faster than it can go are pressed in turn); a key goes down when the finger gets there, and
+   one the phone will not take only clicks, the display blinking its credit at you (or NOT IN SERVICE). A coin put in with
+   the receiver on its hook goes from your fingers into the slot, rattles down through the works and drops into the coin
+   return, to be taken out again. The phone book's cover lifts a crack when you pull at it
    and drops back: its pages are swollen shut with damp. It rings for seven seconds before anyone
    answers, and he keeps coming the whole time. A wrong number is not in service, and
    hanging up drops the coin back into the coin return. When someone answers, a car comes
@@ -190,8 +191,8 @@ some on the ground, so you have to turn and look down to find them.
     is in, a click on the box takes it back too, unless you are holding the crank (then the
     click fits it). It is your hand on the crank, turn by turn; when it jams the box jumps on the pedestal and the hand
     wrenches at it, and the box taken back comes up off the pedestal into your hand. The crank tried on a pedestal with no
-    box on it feels about the bare top for something to fit and comes back to your hand. A dust sheet is pulled down by
-    hand and slides off the glass into a heap.
+    box on it feels about the bare top for something to fit and comes back to your hand; with nothing in hand, the hand
+    goes out to the empty top. A dust sheet is pulled down by hand and slides off the glass into a heap.
 11. **The Barn.** Something bent double under a bundle is coming for the hayloft,
     across the yard to the loft door or in at the far end of the barn and up the ladder,
     and it goes faster the more you carry. A stack of hay stands in each way in, and both
