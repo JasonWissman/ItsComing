@@ -157,13 +157,14 @@ some on the ground, so you have to turn and look down to find them.
     it in the glass: facing a mirror holds it. One of the four mirrors is not like the
     others, and two are under dust sheets. The music box lies in one place and its crank
     in another. Any pedestal takes the box, and the crank fits its side on any of them, but
-    it plays only before the odd mirror: there each turn plays a few notes of its tune, and
+    its tune plays only before the odd mirror: there each turn plays a few notes of it, and
     on the last the doll comes running out through the glass for the box, smiling, lifts it
     off the pedestal and takes it back in with it. Before any other mirror the first turn
     plays wrong notes and the crank sticks; in the glass the doll's face turns angry (brows
     down, a red glare, its teeth bared, its fists out) and behind you it takes three quick
-    steps. A click on the box lifts it back off, its crank still in it, to put before another
-    mirror; before the crank is in, a click on the box just takes it back.
+    steps. The next click on the box lifts it back off, its crank still in it, to put before
+    another mirror. Before the crank is in, a click on the box takes it back too, unless you
+    are holding the crank (then the click fits it).
 11. **The Barn.** Something bent double under a bundle is coming for the hayloft,
     across the yard to the loft door or in at the far end of the barn and up the ladder,
     and it goes faster the more you carry. A stack of hay stands in each way in, and both

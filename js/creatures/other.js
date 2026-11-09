@@ -86,11 +86,14 @@ CREATURES.other = {
       }
       if (fury > 0) P_ell(ctx, 0, 0.115, 0.1, 0.105, P.cola([214, 64, 64], 0.42 * fury));
       P_ell(ctx, 0, 0.225, 0.118, 0.055, K.hair);
+      // far back in the glass the glare is what reads: its red points are kept a pixel or two across, and the fog does not
+      // dull them
+      const m = ctx.getTransform(), px = 1 / Math.max(1e-6, Math.hypot(m.a, m.b));
       for (const s of [-1, 1]) {
         const ey = eyeY(s);
         if (fury > 0.5) {
           P_ell(ctx, s * 0.045, ey - 0.01, 0.04, 0.028, P.cola([255, 40, 24], 0.45 * fury));
-          P_ell(ctx, s * 0.043, ey - 0.011, 0.014, 0.012, P.cola([255, 84, 56], fury));
+          P_ell(ctx, s * 0.043, ey - 0.011, Math.max(0.014, px * 1.1), Math.max(0.012, px), P.raw([255, 70, 44]));
           P_line(ctx, s * 0.094, ey + 0.05, s * 0.01, ey + 0.004, 0.02, K.hair);   // the painted brow, pulled down hard
         } else {
           P_ell(ctx, s * 0.045 + 0.009, ey + 0.01, 0.007, 0.007, P.cola([255, 255, 255], 0.75));
