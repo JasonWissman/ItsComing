@@ -30,6 +30,8 @@ const tryLoose = k => [['face', DIR[k]], ['click', DOOR[k]],
 const tryRotten = k => [['face', DIR[k]], ['click', DOOR[k]], ['wait', 150],
   ['expect', target(DOOR[k]) + ".count === 0 && !G.hasItem('rotten') && /rotten/i.test(G.lastToast.msg) && G.fumbling && G.fumbling.preset === 'slip'", 'the rotten plank goes up on the ' + DOOR[k] + ' and leaves the hand'],
   ['eval', 'window.__it = G.fumbling.it'],
+  // clicked again while it hangs there: nothing more (its line stays said, and nothing else goes up under it)
+  ['click', DOOR[k]], ['expect', target(DOOR[k]) + ".count === 0 && /rotten/i.test(G.lastToast.msg) && G.fumbling && G.fumbling.it === window.__it && !G.hand.reach", 'a second click while it is up there does nothing more'],
   ['waitUntil', "!G.fumbling && !G.L.items.find(i => i.id === 'rotten').taken", 4000],
   ['expect', "(it => it.y === G.L.floor.y && !G.hasItem('rotten'))(G.L.items.find(i => i.id === 'rotten'))", 'it dropped to the floor and lies there'],
   ['expect', 'G.L.s.crumbs.some(c => c.chunk) && G.L.s.crumbs.filter(c => !c.dust && !c.chunk).length >= 12', 'it tore away from the nail: a stub of it left there, and crumbs of rotten wood'],

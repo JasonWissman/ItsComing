@@ -143,7 +143,7 @@ LEVELS.push({
       { x: 0.9, y: 0.36, z: -0.45, flat: false },       // rear floor
       { x: 0.95, y: 0.973, z: 0.68, flat: false },      // on the dash
       { x: 0.78, y: 0.95, z: 0.0, flat: false, key: 'seat' }, // on the passenger seat, in front of the seat back
-    ], { w: 0.09, h: 0.24, icon: 'bottle', attach: true });
+    ], { w: 0.09, h: 0.24, icon: 'bottle', attach: true, held: { size: 0.27 } });   // (held larger than its size would have it: the fist hid all but its neck)
     // it stalled in drive, and it will not start until the stick is in park. Once it runs, the stick goes to reverse or
     // drive and the gas takes you away; straight ahead is only a way out if the thing is not in the road
     Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), gear: 'D', lastCrank: -10, gone: false, dir: 0, pressT: -10, keyAng: 0, ram: null, floored: false,
@@ -186,6 +186,10 @@ LEVELS.push({
       hint() { return s.started ? 'Running.' : s.keyIn ? (s.gear !== 'P' ? 'Turn the key. It is still in ' + GEAR_NAME[s.gear] + ', though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
       use(item) { if (item.id !== 'keys') return false; s.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.say('The key is in. Turn it.', 'The key is in.'); return true; },
       onClick() {
+        // the house keys still at the keyhole, out of the hand: another click does nothing more until they drop (it would
+        // say there is no key over their line, or put the car key in under them)
+        const fx = G.fumbling;
+        if (fx && fx.target === ign && fx.drop && (fx.phase === 'wait' || fx.phase === 'out' || fx.phase === 'contact')) return true;
         if (!s.keyIn) {
           if (G.inv.some(i => ign.accepts.includes(i.id))) return false;   // the keys in hand go in (or are refused)
           G.say('No key. They fell somewhere when it stalled.', 'There is no key in the ignition.');
@@ -219,9 +223,18 @@ LEVELS.push({
     const gearK = () => smoothstep(clamp((L.t - s.gearAt) / 0.18, 0, 1));   // how far over it is to the gear it is going to
     const shownGear = () => (gearK() >= 0.5 ? s.gear : s.gearFrom);
     // the knob, in the world, with the stick over lx (as the plate draws it: the knob leans out over the letter, at 0.25 up),
-    // a little toward the eye, where the hand takes it
+    // a little toward the eye, where the hand takes it. The plate is drawn square to the view, so the knob is where it is
+    // drawn on it: looking down at the console from ahead, straight up from the plate's foot in the world is well off it
+    // on the view. So it is the point on the line of sight to the knob as drawn, at the plate's depth.
     const knobAt = lx => {
       const yaw = Math.atan2(GX, GZ), u = lx * 0.6, x = GX + Math.cos(yaw) * u, z = GZ - Math.sin(yaw) * u, y = GY + 0.25;
+      const b = L.pt(GX, GY, GZ), tp = L.pt(GX, GY + GH, GZ), q = R.screenPos(b[0], b[1], b[2]), qt = R.screenPos(tp[0], tp[1], tp[2]);
+      if (q && qt) {
+        const sx = q.x + u * q.scale, sy = q.y - (q.y - qt.y) * 0.25 / GH, depth = q.depth - 0.02, c = G.cam, e = L.eye || {};
+        const xc = (sx - R.W / 2) / R.f, yc = -(sy - R.H / 2) / R.f, cp = Math.cos(c.pitch), sp = Math.sin(c.pitch), cy = Math.cos(c.yaw), sy2 = Math.sin(c.yaw);
+        const vy = yc * cp - sp, vz = yc * sp + cp;
+        return { x: (e.x || 0) + (xc * cy + vz * sy2) * depth, y: L.eyeH + (e.y || 0) + vy * depth, z: (e.z || 0) + (-xc * sy2 + vz * cy) * depth };
+      }
       const dx = -x, dy = L.eyeH - y, dz = -z, dl = Math.hypot(dx, dy, dz), p = L.pt(x + dx / dl * 0.02, y + dy / dl * 0.02, z + dz / dl * 0.02);
       return { x: p[0], y: p[1], z: p[2] };
     };

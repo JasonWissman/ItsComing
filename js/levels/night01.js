@@ -334,6 +334,9 @@ LEVELS.push({
         if (fx) s.rot = { fx, tear: 0.14 + hold, n: 0, blows: nailed ? 0 : 3, nailed }; else if (!G.fumbling) AUDIO.sfx('nope');
       },
     });
+    // a plank gone up on this doorway that will not stay, until it falls: a click there meanwhile does nothing more (with it
+    // out of the hand, another click would say something else over its line, or nail a good plank up where it hangs)
+    const atDoor = t => { const fx = G.fumbling; return !!fx && fx.target === t && fx.drop && (fx.phase === 'wait' || fx.phase === 'out' || fx.phase === 'contact'); };
     // the empty hand at a doorway: on the boards already up it knocks, and they shudder on their nails; on a bare doorway it
     // lays its fingers on the frame
     const feel = t => {
@@ -391,7 +394,10 @@ LEVELS.push({
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0, w, h: 2.1, accepts: ['planks', 'rotten'], requires: ['hammer', 'nails'], needed: need, lane,
         hint() { return t.done ? 'Boarded up.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
-        onClick() { if (!t.done) return false; G.say('Boarded up.', 'It is boarded up.'); feel(t); return true; },   // a knock on the boards: they hold
+        onClick() {
+          if (atDoor(t)) return true;   // a plank is up there failing already: that is the answer (and its line stays said)
+          if (!t.done) return false; G.say('Boarded up.', 'It is boarded up.'); feel(t); return true;   // a knock on the boards: they hold
+        },
         use() {
           // once it is in this doorway it is too late to board it: the plank is knocked out of your hands, and it comes on
           const c = L.creature;
