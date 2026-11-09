@@ -279,8 +279,9 @@ LEVELS.push({
       }
     }
     // where things go on it, across and up the drawing: the padlock, and the square boss in the middle of the wheel; and the
-    // point each thing leads with, in its icon: the handle's socket, the oar's grip end, the bar's sawn end
-    const AT = { lock: [0, 0.1], boss: [0, 0.36] }, TIP = { handle: [-0.35, 0.145], oar: [-0.02, 0.06], beam: [0.44, 0.41] };
+    // point each thing leads with, in its icon: the handle's socket, the oar's grip end, the bar's near end (the one toward
+    // the middle of the view as it is carried, so it is jabbed at it, not turned end over end on the way)
+    const AT = { lock: [0, 0.1], boss: [0, 0.36] }, TIP = { handle: [-0.35, 0.145], oar: [-0.02, 0.06], beam: [-0.47, 0.41] };
     const lockPt = (() => { const p = L.pt(WX, WY + WS * 0.1, WZ); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; })();
     const unlock = () => {
       s.locked = false; winch.accepts = ['handle'].concat(decoy ? ['oar'] : []);
@@ -348,7 +349,7 @@ LEVELS.push({
         if (s.doorClosing > 0) {
           G.say('Wait for it to shut.', 'The door is still swinging shut.');
           const act = G.inv[G.active];
-          if (act && act.id === 'beam') s.leafSlow = !!G.fumble(act, sd, knockedBack()); else G.reach(sd, 'push');
+          if (act && act.id === 'beam') { if (G.fumble(act, sd, knockedBack())) s.leafSlow = true; } else G.reach(sd, 'push');   // (a click more while it is on its way leaves the leaf slowed)
           return true;
         }
         return false;
