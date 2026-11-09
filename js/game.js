@@ -215,6 +215,7 @@ function onKeyDown(e) {
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
   if (e.repeat) return;
   if (k === 'm' || k === 'M') { toggleMute(); return; }
+  if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress(e)) return;   // a won night may be waiting on any press (the last night's meadow)
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
   if (G.state !== 'play' && MENU.onKey(e)) return;
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
@@ -261,6 +262,7 @@ function proceed() {
     case 'dead': startLevel(G.levelIndex, false); break;
     case 'survived': proceedFromSurvived(); break;
     case 'end': showTitle(); break;
+    case 'won': if (G.L && G.L.onPress) G.L.onPress(); break;   // a click, a tap, A or Start, to a night waiting on one
     case 'paused': resumeGame(); break;
     case 'error': restartLevel(); break;
     default: break;
@@ -532,7 +534,7 @@ function lookAtPoint(p) {
   const dx = p.x - e.x, dz = p.z - e.z, hd = Math.max(0.3, Math.hypot(dx, dz)), yawTo = Math.atan2(dx, dz);
   G.cam.tYaw = G.cam.yaw + wrapPi(yawTo - G.cam.yaw);
   G.cam.dirIdx = ((Math.round(yawTo / (45 * DEG)) % 8) + 8) % 8;
-  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH + (e.y || 0) - p.y, hd), 0, G.L.watchPitch || PITCH_DOWN);   // a night may let the win camera look further down than you can (the tower)
+  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH + (e.y || 0) - p.y, hd), -(G.L.watchUp || 0), G.L.watchPitch || PITCH_DOWN);   // a night may let the win camera look further down than you can (the tower), or up (the last night: up into its face)
 }
 function win() {
   const L = G.L; L.won = true; L.aftermathT = 0;

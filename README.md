@@ -189,15 +189,20 @@ some on the ground, so you have to turn and look down to find them.
 13. **The Void.** Everything you ever held against it lies around you, and you
     start the night holding some of it. Holding anything enrages it. Put it all down
     and let it come, and face it when it does: as it looms in the view lifts to its face.
-    Turned away from it, or looking at the floor, when it reaches you is a death too.
+    Turned away from it, or looking at the floor, when it reaches you is a death too. Faced
+    empty-handed, it stops close in front of you and slowly reaches its open hands out to you,
+    and its arms close round you, its hands over the top of the view. While it holds you its
+    face goes slowly through rage, anguish, fear, sorrow and calm until it is happy. Then it
+    lets you go and the dark opens into a green meadow in the sun (wild flowers, trees, clouds,
+    birdsong and a breeze), where it dances a little; the meadow stays as long as you like.
 
 Creatures move faster when you are not looking at them, but otherwise they
 come at a steady pace, no faster at the end than at the start. A thread runs through the
 nights that the text never states: the same lamp is somewhere in every room, a
 clock ticks for the first ten seconds of each night from the same direction, and
 surviving a night leaves a fragment, one odd sentence, collected on the Nights
-screen. Finishing the last night lightens the void into the bedroom, in the morning,
-and switches the game to a light theme.
+screen. Finishing the last night ends in that meadow; a click, key, tap or A there fades
+the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme.
 
 Each night is a little different every time it loads: every item has several
 places it might be, the creature's starting distance and pace vary slightly,
@@ -281,7 +286,9 @@ LEVELS.push({
   `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`, `L.deathCause(c)` (a key into `text.death`),
   `L.aftermath(t, dt)` (a custom aftermath; return true when it is over), `L.watchPoint()` (where the win camera
   looks instead of at the thing; it may also return a `zoom`), `L.watchZoom()` (close the win camera in further),
-  `L.watchPitch` (how far down the win camera may look), `L.viewZoom()` (a zoom the view comes in to while playing:
+  `L.watchPitch` (how far down the win camera may look), `L.watchUp` (how far up it may look: the last night, into its face),
+  `L.onPress(e)` (a won night waiting on a click, key, tap or A; true when it took the press: the last night's meadow,
+  where a modifier, a chord or a function key, as for alt-tab or a screenshot, does not go on), `L.viewZoom()` (a zoom the view comes in to while playing:
   the pay phone close up), `L.padDir(dir)` and `L.padUse()` (a night may take the gamepad's d-pad and A before the
   game does), `L.overlay(ctx, W, H)` (a night's own picture over the view: the covers over your eyes), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
   and lights flagged `attach: true` ride with it, everything else slides past; the night 2 car drives off this way),
