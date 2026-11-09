@@ -258,7 +258,17 @@ LEVELS.push({
     // nothing holds, and it swings out a little and falls back shut with a clang; a chained or a locked one you take hold of
     // and shake, and it jolts on its chain.
     const W = (x, y, z) => { const p = L.pt(x, y, z); return { x: p[0], y: p[1], z: p[2] }; };
-    const latch = (g, y, x) => W((x === undefined ? 1.0 : x) * g.sign, y, 2.26 * g.sign);   // the gate's free end, at its post, y up (x: in from it)
+    const endAt = (g, y, x) => W((x === undefined ? 1.0 : x) * g.sign, y, 2.26 * g.sign);   // the gate's free end, at its post, y up (x: in from it)
+    // there, or as near it as is not behind what you hold: on a phone the hand sits up over the touch buttons, where the low
+    // end of a gate can be, so it is tried higher up the chain, or further along the gate
+    const latch = (g, y, x) => {
+      const b = G.hand.box, x0 = x === undefined ? 1.0 : x;
+      if (!b) return endAt(g, y, x0);
+      const mx = (b.x1 - b.x0) * 0.25, my = (b.y1 - b.y0) * 0.25;
+      const clear = p => { const q = R.screenPos(p.x, p.y, p.z); return !!q && !(q.x > b.x0 - mx && q.x < b.x1 + mx && q.y > b.y0 - my && q.y < b.y1 + my); };
+      for (const dy of [0, 0.15, 0.3, 0.45, 0.6, 0.75]) for (const dx of [0, 0.2, 0.4]) { const p = endAt(g, y + dy, x0 - dx); if (clear(p)) return p; }
+      return endAt(g, y, x0);
+    };
     const ON_BARS = 0.8;   // a chain is tried on the end of the gate itself, where it shows against the bars, not on the dark post
     const LOCK_Y = 0.5, CHAIN_Y = 0.9, LOCK_K = 0.7;   // where the lock hangs and the chain goes round; a padlock's size there (as the one on a gate)
     const NUDGE = { dur: 0.8, open: 0.3 };
@@ -266,11 +276,11 @@ LEVELS.push({
     function trying(it) { const f = G.fumbling; return !!f && f.from === it && f.phase !== 'wait' && f.phase !== 'done'; }
     const shake = g => { g.rattleAt = L.t; AUDIO.sfx('gate', panOf(g)); };
     const OUT = 0.4, SETTLE = 0.14;   // about how long a thing takes from the hand to the gate (js/hands.js), and to settle there
-    // what is tried, by what state the gate is in: options for G.fumble, or for G.reach with nothing in hand (null: nothing)
+    // what is tried, by what state the gate is in (G.fumble, or G.reach with nothing in hand); true when something was shown
     function tryAt(g, act, state) {
       let o;
       if (!act) {
-        o = state === 'shut' ? { style: 'push', at: W(0.2 * g.sign, 1.0, 2.55 * g.sign), onTouch: () => { g.nudgeAt = L.t; AUDIO.sfx('creak', panOf(g)); } }
+        o = state === 'shut' ? { style: 'push', at: W(0.2 * g.sign, 1.0, 2.55 * g.sign), onTouch: () => { if (g.nudgeAt === undefined) { g.nudgeAt = L.t; AUDIO.sfx('creak', panOf(g)); } } }
           : state === 'swinging' ? { style: 'touch', at: latch(g, 1.0) }
           : { style: 'rattle', at: latch(g, CHAIN_Y), onTouch: () => shake(g) };
         return !!G.reach(g, o);

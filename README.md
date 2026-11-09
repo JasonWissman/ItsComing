@@ -107,7 +107,10 @@ some on the ground, so you have to turn and look down to find them.
    forward low, white wisps of hair, a long ragged coat and cape, a ring of keys at his
    belt and a hooked staff with no lantern on it. Salt both ways in, the doorway and the
    side gate, and hang and light a lantern by each: a way is done only with both. The
-   sugar comes in a red bag. A salt line stops him; he comes up to it and looks down at
+   sugar comes in a red bag: poured across a way, it lies there a moment and the wind takes
+   it off the stone in a drift of grains, and the bag is let fall by the slab. A match struck
+   at a hook with no lantern on it flares, finds nothing to light and is shaken out, and
+   anything knocked against a hook or its lantern sets it swinging. A salt line stops him; he comes up to it and looks down at
    it, and if the other way is not done (bare, or its lantern dark while this one burns)
    he runs round to it, side on. With nowhere better to go, a line with no light by it
    holds him only a while: he looks down at the salt once more and steps over. When the
@@ -115,7 +118,10 @@ some on the ground, so you have to turn and look down to find them.
    and walks back into the dark.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
    You must look away to shut both gates, chain each with its own chain, and padlock
-   them. One padlock is rusted solid. Every glance away costs you. The gates are barred right
+   them. One padlock is rusted solid: pressed down on the chain it will not snap shut, and
+   drops. A chain thrown round a gate still swinging shut is knocked off to the ground as the
+   gate meets its post, and a shut gate with nothing to hold it, pushed, swings out a little
+   and falls back shut. Every glance away costs you. The gates are barred right
    across with thin iron bars, too close for it to get through and far enough apart that you
    can watch it through a shut one. Lock the gate it is coming to and it
    tries it, then runs round the outside of the yard to the other one, but only while

@@ -180,7 +180,7 @@ LEVELS.push({
         onDecoy(item) { pourSugar(t, item); },   // the sugar: poured across it, and the wind takes it off the stone
         use() { if (t.done) return false; t.count = 1; t.done = true; t.accepts = []; AUDIO.sfx('pour'); return true; },
       });
-      t.line = line;
+      t.line = line; t.sd = sd;
       t.hitQuad = SC.mkQuad(L, [x0, 0.02, z0], [x1, 0.02, z0], [x1, 0.02, z1], [x0, 0.02, z1], [255, 240, 210], { layer: 0, sortDist: sd - 0.02, invisible: true, hit: { kind: 'target', ref: t } });
       t.lift = SC.mkQuad(L, [x0, 0.02, z0], [x1, 0.02, z0], [x1, 0.02, z1], [x0, 0.02, z1], [255, 240, 210], { layer: 0, sortDist: sd - 0.005, alpha: 0.1, noFog: true, noLight: true });   // the slab lifts a little under the cursor
       t.salt = saltLine(line[0], line[1], line[2], line[3], line[4], sd - 0.01, id.length * 7 + 3);
@@ -261,7 +261,7 @@ LEVELS.push({
 
     // ---- what will not do, played out where you tried it (js/hands.js) ----
     // The sugar is poured across the stone in a line from the tipped bag, lies there a moment, and then the wind takes it
-    // off the stone, end to end, in a drift of grains; the empty-handed bag is let fall by the slab, to be picked up again
+    // off the stone, end to end, in a drift of grains; the emptied bag is let fall by the slab, to be picked up again
     // (and it costs the time a decoy does). The salt held over a line already poured is tipped over it and taken back with
     // nothing poured. Anything else tried on the stone is set down on it and lifted again, and the empty hand brushes it. A
     // match struck at a hook with no lantern on it flares there, lighting the wall a moment, finds nothing to light and is
@@ -300,7 +300,7 @@ LEVELS.push({
     const sugarC = [240, 236, 226];
     const grainQuad = (x, y, z, r, color, alpha) => {   // a speck facing the eye
       const e = G.cam.yaw, rx = Math.cos(e) * r, rz = -Math.sin(e) * r;
-      return { kind: 'poly', pts: [[x - rx, y - r, z - rz], [x + rx, y - r, z + rz], [x + rx, y + r, z + rz], [x - rx, y + r, z - rz]], color, alpha, noLight: false };
+      return { kind: 'poly', pts: [[x - rx, y - r, z - rz], [x + rx, y - r, z + rz], [x + rx, y + r, z + rz], [x - rx, y + r, z - rz]], color, alpha };
     };
     function drawSugar() {
       for (let i = sugars.length - 1; i >= 0; i--) {
@@ -320,17 +320,15 @@ LEVELS.push({
           const k = 0.008 + w * 0.01;
           R.add({ kind: 'poly', pts: [[top[0] - rx * k, top[1], top[2] - rz * k], [top[0] + rx * k, top[1], top[2] + rz * k], [top[0] + rx * k * 0.6, 0.02, top[2] + rz * k * 0.6], [top[0] - rx * k * 0.6, 0.02, top[2] - rz * k * 0.6]], color: sugarC, alpha: 0.85 });
         }
-        // the line: N pieces along it, each taken by the wind in turn, from the end it blows from
+        // the line: N pieces along it, each taken by the wind in turn, from the end it blows from; what is left of it is one
+        // band along the stone (its edges uneven as poured, thinning to nothing where the wind has taken it)
+        const top = [], bot = [], at = (s, n) => L.pt(cx + ux * s + nx * n, 0.021, cz + uz * s + nz * n);
         for (let k = 0; k < SUGAR.N; k++) {
           const s0 = -half + len * k / SUGAR.N, s1 = s0 + len / SUGAR.N, sm = (s0 + s1) / 2;
           const order = 1 - (k + 0.5) / SUGAR.N;   // upwind first (the wind blows back along the line)
           const lift = T0 + order * SUGAR.blow * 0.6 + rnd() * 0.25, gone = clamp((u - lift) / 0.35, 0, 1);
-          const p0 = Math.max(a, s0), p1 = Math.min(b, s1);
           const wdt = 0.055 * (1 - gone) * (0.85 + rnd() * 0.3);
-          if (p1 > p0 && wdt > 0.004) {
-            const at = (s, n) => L.pt(cx + ux * s + nx * n, 0.021, cz + uz * s + nz * n);
-            R.add({ kind: 'poly', pts: [at(p0, -wdt), at(p1, -wdt), at(p1, wdt), at(p0, wdt)], color: sugarC, layer: 0, sortDist: sd });
-          }
+          if (sm >= a && sm <= b) { top.push(at(clamp(sm, a, b), wdt)); bot.push(at(clamp(sm, a, b), -wdt * (0.9 + 0.2 * Math.sin(k * 2.3)))); }
           // its grains, lifted off and carried away, rising and falling, thinning out
           for (let g = 0; g < SUGAR.grains; g++) {
             const d = rnd(), lat = (rnd() - 0.5) * 0.09, v = 1.1 + rnd() * 1.4, rise = 0.15 + rnd() * 0.5, ph = rnd() * TAU, size = 0.006 + rnd() * 0.008;
@@ -341,6 +339,10 @@ LEVELS.push({
             const w = L.pt(lx, y, lz);
             R.add(grainQuad(w[0], w[1], w[2], size, sugarC, clamp(1.3 - e, 0, 1) * 0.95));
           }
+        }
+        if (b - a > 0.01 && top.length) {   // its two ends, tapered, where the pour has got to
+          const ends = [at(a, 0), at(b, 0)];
+          if (top.some((p, k) => Math.hypot(p[0] - bot[k][0], p[2] - bot[k][2]) > 0.008)) R.add({ kind: 'poly', pts: [ends[0]].concat(top, [ends[1]], bot.reverse()), color: sugarC, layer: 0, sortDist: sd });
         }
         if (!sg.blew && u >= T0) { sg.blew = true; AUDIO.sfx('hiss', Math.sin(wrapPi(Math.atan2(t.x, t.z) - G.cam.yaw)) * 0.85); }   // the wind takes it
       }
