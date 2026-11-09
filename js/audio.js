@@ -218,6 +218,14 @@ const AUDIO = (() => {
       case 'pickup': tone(420, 0.06, { vol: 0.12, type: 'triangle', endFreq: 520 }); noise(0.05, { type: 'highpass', freq: 3000, vol: 0.06 }); break;
       case 'drop': noise(0.08, { freq: 500, vol: 0.2 }); tone(120, 0.07, { vol: 0.15, endFreq: 70 }); break;
       case 'nope': tone(160, 0.12, { vol: 0.1, type: 'square', endFreq: 110 }); break;
+      // a thing tried where it will not go (a fumble), and the empty hand: a light metal tick, a wooden clunk, a thing
+      // clattering down on the floor, a soft thing dropping, a hand laid on something, a rattle
+      case 'tink': tone(2900, 0.06, { vol: 0.09, type: 'triangle', endFreq: 2650, pan }); tone(4300, 0.03, { vol: 0.04, type: 'sine', pan }); noise(0.015, { type: 'bandpass', freq: 4200, q: 5, vol: 0.12, pan }); break;
+      case 'woodKnock': noise(0.05, { type: 'bandpass', freq: 750, q: 1.6, vol: 0.4, pan }); tone(200, 0.09, { vol: 0.22, type: 'triangle', endFreq: 150, pan }); break;
+      case 'clatter': for (const [d, f, v] of [[0, 1, 1], [0.07, 1.25, 0.65], [0.12, 0.85, 0.5], [0.2, 1.1, 0.35], [0.26, 1.3, 0.2]]) { noise(0.04, { type: 'bandpass', freq: 1500 * f, q: 2.5, vol: 0.3 * v, delay: d, pan }); tone(310 * f, 0.05, { vol: 0.08 * v, type: 'triangle', endFreq: 260 * f, delay: d, pan }); } noise(0.08, { freq: 300, vol: 0.18, pan }); break;
+      case 'flop': noise(0.14, { freq: 320, vol: 0.3, attack: 0.005, pan }); tone(80, 0.1, { vol: 0.12, endFreq: 55, pan }); break;
+      case 'pat': noise(0.06, { type: 'bandpass', freq: 900, q: 1, vol: 0.2, pan }); tone(140, 0.05, { vol: 0.07, endFreq: 100, pan }); break;
+      case 'rattle': for (let i = 0; i < 5; i++) { noise(0.03, { type: 'bandpass', freq: 900 + Math.random() * 700, q: 4, vol: 0.26 * (1 - i * 0.14), delay: i * 0.06, pan }); tone(180 + Math.random() * 60, 0.04, { vol: 0.07, type: 'square', endFreq: 140, delay: i * 0.06, pan }); } break;
       case 'hammer':
         for (let i = 0; i < 3; i++) { noise(0.05, { freq: 1200, vol: 0.5, delay: i * 0.22 }); tone(210, 0.08, { vol: 0.3, endFreq: 120, delay: i * 0.22 }); }
         break;

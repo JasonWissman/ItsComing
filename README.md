@@ -240,6 +240,7 @@ js/icons.js             item icons and scenery builders (walls, boxes, trees, fe
 js/levels.js            item, target, container and recipe helpers and the LEVELS list
 js/levels/nightNN.js    one night each
 js/game.js              game state, input, interaction, HUD, main loop
+js/hands.js             your hands: what you hold drawn over the view, a thing tried where it will not go (the fumble), the reach
 test/                   headless Playwright suite (see Testing)
 ```
 
@@ -326,7 +327,62 @@ LEVELS.push({
   distance, and switched off by the surface detail setting). A renderable's `sortDist` orders it
   without changing its fog, and `alpha` fades polys and sprites (the last night's room comes up that way).
 - **Feedback text** goes through `G.say(specific, vague)`: the first is shown with hints on, the
-  second otherwise.
+  second otherwise. It is still said when something does not work, for the captions, but what you see happen is the
+  feedback (below).
+- **What you hold** (`js/hands.js`) is drawn in your right hand at the bottom right of the view: a sleeve, the hand
+  closed round the thing, and the thing in its own icon, lit as the night lights a thing at your chest (a lamp-lit room,
+  a dark field) and a shade darker than what lies about. It breathes, lags a moment as you turn and bobs as you look
+  up or down (none of that with reduced motion), is lowered when you look down so it does not hide the floor, and dips a
+  little when it is in front of something you could take. A new active thing swaps in (the old one goes down, the new
+  one comes up), a thing picked up comes from where it lay up into the hand, a use pushes the hand toward the target
+  (`G.thrust(target, item, release)`; a thing used up is let go of there), and the hand goes down out of view when you
+  hold nothing or the night is won or lost. It keeps clear of the middle of the view, the hover line, the inventory and
+  the touch buttons, measured from where they are on the page: on a phone it moves in from them, up over them or
+  shrinks. How a thing sits in the hand comes from its shape (long: carried in both hands at your side; small: between
+  finger and thumb; tall: in a fist; wide and low: on the palm; a key by its bow; a chain hanging), and a few shared
+  icons know better (the hammer by its handle, the lantern hanging by its bail). `item.held` overrides any of it:
+  `{ grip: 'fist' | 'pinch' | 'flat' | 'hang', hands: 1 | 2, at: [x, y] (where the hand closes on it, in its icon's units:
+  x -0.5..0.5 across, y 0..1 up), axis (the line the fingers close round, off the icon's upright, radians clockwise),
+  angle (its tilt in the hand, clockwise), size (its longer side as a share of the view's height), scale, x, y (a nudge),
+  off: [x, y] (where the other hand takes a two-handed thing), swing (how freely a hanging thing swings), tip: [x, y]
+  (the point it is pushed in with: a key's blade) }`; `G.heldSpec(item)` gives what is used. A night's own
+  `uses[].inHands` (the bow) replaces it whenever that tool is held. `L.heldItem(item)` may return another item to draw,
+  or null to show nothing (undefined keeps the default); `L.offHand()` returns an item to draw in the left hand, at the
+  bottom left; `L.keepHeld` keeps it up once the night is won; `L.hands = { glove, skin, sleeve, lit }` dresses the hands.
+- **When a thing will not go**, it is tried there and fails, in the world: `G.fumble(item, target, opts)` takes it from
+  your hand to a spot on the target (drawn by the renderer, in the scene's order, fog and light) and fails there, by a
+  preset: `'bump'` (pokes the spot, jiggles and drops: keys at a keyhole), `'slip'` (is put in place, hangs a beat, tips
+  off one end and drops: a plank on a doorway without nails), `'bounce'` (hits and rebounds toward you, and drops),
+  `'clatter'` (hits and is knocked aside, spinning, and drops) and `'return'` (bumps and comes back to the hand). A thing
+  that drops leaves the inventory at once (one of a pile, if it is a pile) and falls with a bounce to the floor in front
+  of the target, where it is an ordinary item again (`taken` false, on `L.floor`, `L.onDrop(item, fx)` called): inside the
+  floor's outline, in sight from where you stand, clear of every other item and of any target lying on the floor, near
+  enough to see looking down, and never behind you; with nowhere like that, it comes back to the hand instead.
+  `G.landSpot(target, item, opts)` says where it would land. Options: `at` (`[u, v]` across and up the target, or a
+  world point), `standoff` (how far in front of it, along your line of sight), `angle` (its turn at the target), `tip`
+  (the point it leads with: a key's blade goes to the spot, the rest of it trailing back toward your hand), `pivot`
+  ('left' / 'right': the end a slipping thing hangs from), `hold` (how long it hangs), `drop` (true / false over the
+  preset's own), `land` (`{ x, y, z }`), `side` (-1 / 1), `floorY`, `flat` and `restAngle` (how it lies), `speed`,
+  `sortDist`, `sfx: { hit, land }` (by default by what it is made of: `item.material` 'metal',
+  'wood', 'glass' or 'soft', or a guess from its name: a light metal `tink`, a wooden `woodKnock`, a soft `pat`; it lands
+  with a `clatter`, or a `flop`), and `onHit(fx)`, `onLand(item, fx)`, `onDone(fx)`. Only one is ever in the air: another
+  while it is returns null, so fast clicks do not start a second. `G.fumbling` is the one in the air. Input is never
+  locked; using the thing after all while it is on its way back puts it straight in hand.
+  `G.reach(target, opts)` is the empty hand: it comes up to the target (all the way within arm's length, out toward it
+  further off), and `style` 'touch', 'push', 'knock', 'rattle' or 'pull' (with `at`, `sfx`, `onTouch(target)`; the
+  target's `touchedAt` is set to the night's clock at the first touch); clicked again while it is there it stays for
+  another go.
+- **What useTarget does when nothing works**, before a night says otherwise: a wrong thing in hand (nothing in the
+  inventory the target takes) is tried there and comes back (`'return'`); nothing in hand brings the empty hand up to it
+  (`G.reach`); a thing whose target needs something you have not got (`requires`) is put in place and falls off
+  (`'slip'`, onto the floor); a decoy is tried there and drops (`'bump'`; the time it costs and `L.onDecoy` stay); a
+  night's own refusal inside `t.use(item)` (returning false) is a `'return'`, or `return G.refuse(preset | opts | false)`
+  picks another. A box opened brings the hand to it, and each turn of a crank. The right thing picked from the inventory
+  for you (the active one would not do) is swapped into your hand first. A target chooses for itself with
+  `t.onWrong(item)`, `t.onEmpty()`, `t.onMissing(item, missing)`, `t.onDecoy(item)` and `t.onRefuse(item)` (each replaces
+  the animation for its case), `t.fumble` (a preset's name, or options for every case, with per-case entries `wrong`,
+  `missing`, `decoy` and `refuse`, each a preset's name, options or false; false for none at all) and `t.reach` (a style,
+  or options; false for none).
 - Every night has a solution in `test/nights/nightNN.js` so the suite can play it.
 
 ## Testing
@@ -345,7 +401,9 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 once, short of full, as soon as it is full, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
 the one game (no picker, no hints), restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
-camera, save migration and the last night's two endings. `test/lanes.js` runs `validateContent()` and checks every
+camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
+reduced motion, clear of the touch buttons on a phone), a wrong thing coming back, a plank falling to the floor where a
+click takes it again, a decoy dropping, the empty hand's reach, one fumble for many fast clicks, and a target's own choices. `test/lanes.js` runs `validateContent()` and checks every
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
 unseen, early, without a jump in distance, and never on nights that opt out.
 `test/hittest.js` checks every item (each one, where several share an id) is visible and clickable from some direction across many layouts.

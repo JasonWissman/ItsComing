@@ -1,4 +1,4 @@
-// The Graveyard: the red bag looks like salt and is not; try it first, then one pour of the real salt across each way in
+// The Graveyard: the red bag looks like salt and is not; try it first (it drops from your hand by the doorway), then one pour of the real salt across each way in
 // (the bag holds exactly two), then hang a lantern on each hook and light it (the matches are kept).
 const sel = id => ['eval', "G.active = G.inv.findIndex(i => i.id === '" + id + "')"];
 const tgt = id => "G.L.targets.find(t => t.id === '" + id + "')";
@@ -9,7 +9,8 @@ const atLine = "(c => { const t = G.L.targets.find(t => t.id === (c.lane.idx ===
 module.exports = {
   nightmare: [
     ['pickup', 'sugar'], sel('sugar'), ['use', 'threshold', 1, 200],
-    ['expect', '!' + tgt('threshold') + '.done && G.hasItem(\'sugar\') && /sugar/i.test(G.lastToast.msg)', 'the sugar does not salt the doorway'],
+    ['expect', '!' + tgt('threshold') + '.done && !G.hasItem(\'sugar\') && /sugar/i.test(G.lastToast.msg)', 'the sugar does not salt the doorway'],
+    ['waitUntil', "!G.fumbling && !G.L.items.find(i => i.id === 'sugar').taken", 4000],
     ['pickup', 'salt'],
   ].concat(salt('threshold'), [
     ['expect', 'G.L.sealed(G.L.lanes[0]) && !G.L.sealed(G.L.lanes[1])', 'the salted doorway seals the path, and only the path'],
