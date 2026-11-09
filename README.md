@@ -146,10 +146,16 @@ some on the ground, so you have to turn and look down to find them.
    and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
    box, pull the blown fuse and put in the new one from the toolbox, and turn the crank so
    the beam goes round: its first pass knocks it sliding back down the wall, and the next
-   knocks it off the tower, to fall all the way down into the sea.
+   knocks it off the tower, to fall all the way down into the sea. The lamp turns with the
+   crank, lit or dark. A fuse tried with the blown one still in knocks against it and comes
+   back to your hand; a blown fuse pushed into the empty clips (the one you pulled, or the
+   worn one lying about) sits there a beat with nothing coming on and drops out onto the
+   floor.
 8. **The Diner.** A man-shaped thing in the lot is drawn to the light: while the
    lights are on it comes fast, too fast to shutter every window. Throw the power main
-   on the back wall in the first ten seconds or so, find the crank, and crank all three
+   on the back wall in the first ten seconds or so (your hand takes the lever and pulls it
+   down, and the lights go with it), find the crank (without it, your hand tries a
+   window's gearbox and it will not move), and crank all three
    shutters down; each time its window shuts it turns side on and runs to one still
    open, along the glass if it is already there, across the lot if not. If it reaches an
    open window it comes through the glass. With the last shutter down it runs up to it
