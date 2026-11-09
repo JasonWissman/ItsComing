@@ -98,6 +98,22 @@ const CLEARING_BOW = (() => {
       P_poly(ctx, [V(h0, DIR, 0.03), V(V(h0, DIR, -0.012), [-DIR[1], DIR[0]], 0.011), V(V(h0, DIR, -0.012), [DIR[1], -DIR[0]], 0.011)], col(COL.head));   // the broadhead
       seg(ctx, V(h0, DIR, 0.026), V(h0, DIR, -0.008), 0.003, col(COL.headL));
     }
+    // no arrow to nock (the button pressed with none left): the drawing hand comes up to the string, its fingers open, feels
+    // up along the shelf where an arrow should lie, twice, finds nothing there and drops away, and the bow is let down
+    const gr = s.groping;
+    if (gr && !d) {
+      const t = gr.t, k = smoothstep(clamp((t - 0.06) / 0.2, 0, 1)) * (1 - smoothstep(clamp((t - 0.7) / 0.26, 0, 1)));
+      const feel = t > 0.26 && t < 0.7 ? Math.sin((t - 0.26) / 0.44 * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5 : 0;   // two strokes up the shelf and back
+      const to = V(nock, DIR, 0.01 + feel * 0.13), from = V(nock, [0.62, 0.78], 0.8), h = [lerp(from[0], to[0], k), lerp(from[1], to[1], k)];
+      seg(ctx, V(h, [0.95, 0.3], 0.02), V(h, [0.95, 0.3], 0.6), 0.075, col(COL.sleeve));
+      ctx.save(); ctx.translate(h[0], h[1]); ctx.rotate(Math.atan2(DIR[1], DIR[0]));   // x up the shelf, toward where the arrow's head would be
+      ctx.fillStyle = col(COL.glove); ctx.beginPath(); ctx.ellipse(-0.014, 0.004, 0.038, 0.031, 0, 0, TAU); ctx.fill();
+      const spread = 0.002 + 0.004 * Math.sin(t * 17);   // the two fingers working, finding nothing between them
+      for (const [y, len] of [[-0.009 - spread, 0.05], [0.01 + spread, 0.046]]) { seg(ctx, [0.008, y], [len, y * 1.15], 0.019, col(COL.glove)); seg(ctx, [0.014, y - 0.004], [len - 0.004, y * 1.15 - 0.004], 0.005, col(COL.gloveL, 0.9)); }
+      seg(ctx, [-0.006, -0.026], [0.026, -0.036], 0.016, col(COL.glove, 1.15));   // the thumb
+      for (const y of [-0.012, 0.0, 0.012]) { ctx.fillStyle = col(COL.gloveL); ctx.beginPath(); ctx.ellipse(-0.004, y, 0.008, 0.006, 0, 0, TAU); ctx.fill(); }   // the knuckles
+      ctx.restore();
+    }
     // the drawing hand at the nock while it is drawn, two fingers hooked on the string, its sleeve going off to the right
     // (at full draw the hand is back at your jaw, out of view); loosed, the hand has let go and dropped away
     if (d && (d.state === 'drawing' || d.state === 'easing') && nock[1] < 0.9) {
@@ -110,7 +126,7 @@ const CLEARING_BOW = (() => {
     }
     ctx.restore();
   }
-  return { FILL, MIN, rayAt, inHands };
+  return { FILL, MIN, COL, rayAt, inHands };
 })();
 LEVELS.push({
   id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
@@ -133,11 +149,14 @@ LEVELS.push({
   ],
   creatures: [{ type: 'runner', startDist: 115, time: 62, unseenMult: 1.3 }],   // three arrows to find now: more time (on Nightmare about 37 s in if watched, about 20 if not)
   aftermath: { type: 'down', dur: 3.8 },
+  // The bow pressed with no arrows: the hand feels on the string for one (emptyText is what the game says when the draw finds
+  // no ammo; it starts that too). The arrows on their own, clicked at it: a use for the arrows whose 'ammo' is the bow, so a
+  // click on it with no bow finds the bow missing, and the arrow is raised to a bow that is not there and drops to the boards.
   uses: [{
-    tool: 'bow', ammo: 'arrows', range: Infinity, sfx: 'twang', shake: 0.1, emptyText: 'No arrows.', fireText: 'Draw.',
+    tool: 'bow', ammo: 'arrows', range: Infinity, sfx: 'twang', shake: 0.1, emptyText: L => { L.s.grope(); return 'No arrows.'; }, fireText: 'Draw.',
     draw: { fill: CLEARING_BOW.FILL, min: CLEARING_BOW.MIN, loose: (outcome, c, aim, power, L) => L.s.loose(outcome, c, aim, power) },
     inHands: (ctx, W, H, d, L, aim) => CLEARING_BOW.inHands(ctx, W, H, d, L, aim),
-  }],
+  }, { tool: 'arrows', ammo: 'bow', range: Infinity, fireText: 'Draw.', emptyText: L => { L.s.noBow(); return 'No bow.'; } }],
   build(L) {
     const s = L.s;
     const logs = [60, 44, 32], logsD = [42, 30, 22], porch = [76, 62, 50];
@@ -234,7 +253,7 @@ LEVELS.push({
     // crate), one is down on the boards or the steps (lying, or stood against the wall or a rail), and the third
     // is anywhere well apart from both. Picked up, they go together in one slot, as many as you have ("Arrows ×2"); put
     // down, they lie together, tied. Each is a card the shape of the way it lies (ICONS.arrows draws to the card).
-    const ARROW_CARD = { lie: [0.8, 0.14], up: [0.16, 0.8], stuck: [0.6, 0.4], bundle: [0.8, 0.24] };
+    const ARROW_CARD = { lie: [0.8, 0.14], up: [0.16, 0.8], stuck: [0.6, 0.4], bundle: [0.8, 0.24], held: [0.62, 0.62] };
     let picked = null;
     const at = (rest, o) => Object.assign({ rest, flat: rest === 'lie', jitter: 0, setup: (Lv, sp) => { picked = sp; } }, o);
     const HIGH = [
@@ -257,21 +276,47 @@ LEVELS.push({
       at('up', { x: -2.25, y: 0.36, z: 1.38 }),                   // stood against the front rail, far left
       at('up', { x: 2.88, y: 0.36, z: 1.36 }),                    // stood against the corner post, far right
     ];
-    const arrowCard = (it, k, flip) => { it.rest = k; it.flip = !!flip; const c = ARROW_CARD[k === 'lie' && it.uses > 1 ? 'bundle' : k]; if (c) { it.w = c[0]; it.h = c[1]; } };   // held: in the hand, drawn to the slot
+    const arrowCard = (it, k, flip) => { it.rest = k; it.flip = !!flip; const c = ARROW_CARD[k === 'lie' && it.uses > 1 ? 'bundle' : k]; if (c) { it.w = c[0]; it.h = c[1]; } };   // held: in the hand, drawn corner to corner
+    // its name and its drawing go by its own count and the way it lies (one let go of from a bundle is a new arrow of its own)
+    const dress = it => {
+      Object.defineProperty(it, 'name', { get() { return this.uses > 1 ? 'Arrows' : 'Arrow'; }, configurable: true, enumerable: true });   // "Arrows ×2" in the hand
+      it.icon = (ctx, P) => ICONS.arrows(ctx, P, it.uses, { stuck: it.rest === 'stuck', flip: it.flip });   // one, or the bundle it has become
+    };
+    // held in the fist a little below their middle, their heads up and leaning in toward the middle of the view
+    const ARROWS_HELD = { grip: 'fist', at: [-0.12, 0.38], axis: 0.8, angle: -1.15, size: 0.36 };
     const local = it => rotY(it.x, it.z, -L.facing);
     const arrows = [];
     for (const spots of [HIGH, LOW, null]) {
       // the third: anywhere at least 1.6 m from both of the others
       const far = spots || HIGH.concat(LOW).filter(sp => arrows.every(o => { const q = local(o), p = spotLocal(sp); return Math.hypot(p[0] - q[0], p[1] - q[1]) >= 1.6; }));
-      const it = mkItem(L, 'arrows', 'Arrow', far.length ? far : HIGH.concat(LOW), { stack: true, tool: true });
-      Object.defineProperty(it, 'name', { get() { return this.uses > 1 ? 'Arrows' : 'Arrow'; }, configurable: true });   // "Arrows ×2" in the hand
-      it.icon = (ctx, P) => ICONS.arrows(ctx, P, it.uses, { stuck: it.rest === 'stuck', flip: it.flip });   // one, or the bundle it has become
+      const it = mkItem(L, 'arrows', 'Arrow', far.length ? far : HIGH.concat(LOW), { stack: true, tool: true, material: 'wood', held: ARROWS_HELD });
+      dress(it);
       arrowCard(it, picked.rest, picked.flip);
       arrows.push(it);
     }
     L.floor = { poly: [[-3.1, -1.5], [3.1, -1.5], [3.1, 1.5], [-3.1, 1.5]], y: 0.36 };
     L.onPickup = it => { if (it.id === 'arrows') arrowCard(it, 'held'); };
-    L.onDrop = it => { if (it.id === 'bow') bowCard('lie'); if (it.id === 'arrows') arrowCard(it, 'lie'); };   // put down, they lie on the boards
+    L.onDrop = it => { if (it.id === 'bow') bowCard('lie'); if (it.id === 'arrows') { dress(it); arrowCard(it, 'lie'); } };   // put down (or dropped), they lie on the boards
+    // in your hands it is cold, and the hands are gloved, as they are on the bow
+    L.hands = { glove: true, sleeve: CLEARING_BOW.COL.sleeve };
+
+    // ---- what will not go ----
+    // The bow pressed with no arrows on you: it comes up, the drawing hand feels on the string and along the shelf for an
+    // arrow, twice, and finds none (CLEARING_BOW.inHands draws it); the bow is let down again.
+    s.groping = null;
+    s.grope = () => { if (!s.groping || s.groping.t > 0.6) s.groping = { t: 0, pats: 0 }; };
+    // An arrow with no bow, clicked at it: it is raised to shoot, out in front of you where the bow's shelf would be, finds
+    // nothing to sit on and nothing to nock to, tips head first out of the fingers and drops to the boards at your feet,
+    // where you have to pick it up again (one from the bundle; the rest stay in hand).
+    s.noBow = () => {
+      const pile = G.inv.find(i => i.id === 'arrows');
+      if (!pile || G.fumbling) return;
+      const ray = CLEARING_BOW.rayAt(G.mouse.x >= 0 ? G.mouse : { x: R.W / 2, y: R.viewY + R.H / 2 }), D = 1.3, hl = Math.hypot(ray[0], ray[2]) || 1;
+      const at = { x: ray[0] / hl * D, y: L.eyeH - 0.15, z: ray[2] / hl * D }, spot = { id: 'nobow', name: 'Bow', x: at.x, y: at.y - 0.4, z: at.z, w: 0.8, h: 0.8 };
+      arrowCard(pile, 'lie');   // the one that goes takes the card of one arrow (its landing is judged by it), the rest stay a bundle in hand
+      G.fumble(pile, spot, { preset: 'slip', at, hold: 0.16, pivot: 'left', angle: -2.6, scale: 1, sfx: { hit: null } });
+      if (G.inv.includes(pile)) arrowCard(pile, 'held');
+    };
 
     // ---- arrows in flight, and where they end up ----
     // Each flight goes from just in front of the eye, below it (where the bow is), to a point it asks for every frame
@@ -339,7 +384,9 @@ LEVELS.push({
       s.bowShow = toward(s.bowShow || 0, ahead ? 1 : 0, dt * 7);
       // up while it is drawn (or the button is still held for the next); let back down, it comes up a moment and goes down again;
       // loosed, it comes down out of the arrow's way
-      const raised = !!d && G.state === 'play' && (d.state === 'drawing' || !!G.drawBtn || (d.state === 'easing' && d.t < 0.15));
+      const gr = s.groping;
+      if (gr) { gr.t += dt; while (gr.pats < 2 && gr.t >= [0.37, 0.59][gr.pats]) { gr.pats++; AUDIO.sfx('pat', 0.2); } if (gr.t > 1.05 || d || G.state !== 'play') s.groping = null; }   // the fingertips at the empty shelf
+      const raised = (!!d && G.state === 'play' && (d.state === 'drawing' || !!G.drawBtn || (d.state === 'easing' && d.t < 0.15))) || (!!s.groping && s.groping.t < 0.78);
       s.bowUp = toward(s.bowUp || 0, raised ? 1 : 0, dt * (raised ? 10 : d ? 8 : 5));
       const pt = !d ? 0 : d.state === 'drawing' ? Math.pow(d.power, 0.75) : d.state === 'easing' ? Math.pow(d.from, 0.75) * (1 - smoothstep(d.t / d.dur)) : 0;
       s.pull = d && d.state === 'loosed' ? 0 : toward(s.pull || 0, pt, dt * 20);

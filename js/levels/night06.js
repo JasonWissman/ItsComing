@@ -140,7 +140,10 @@ LEVELS.push({
     ], { w: 1.6, h: 0.5, flat: true });
     // the oar: on the deck inside the water door, clear of the rowboat (behind its end, the boat hid it) and of the corner
     // where the handle can lie, or leaning in the corner by the winch
-    if (decoy) mkItem(L, 'oar', 'Oar', [{ x: -0.4, y: 0, z: 1.4 }, { x: 2.3, y: 0, z: 1.7, flat: false }], { w: 0.5, h: 1.2, flat: true, decoy: true, decoyText: 'It does not fit the winch.' });
+    // held in both hands along its loom, the lower hand near its grip end and the other further up toward the blade (the
+    // icon draws it slanting, so the hands go where its shaft is)
+    if (decoy) mkItem(L, 'oar', 'Oar', [{ x: -0.4, y: 0, z: 1.4 }, { x: 2.3, y: 0, z: 1.7, flat: false }], { w: 0.5, h: 1.2, flat: true, decoy: true, decoyText: 'It does not fit the winch.',
+      held: { hands: 2, grip: 'fist', at: [-0.08, 0.15], off: [-0.25, 0.47], axis: -0.22, angle: -0.5 } });
     // the winch is chained and padlocked, and the key is in the tackle box
     Object.assign(s, { handleIn: false, locked: true, sealedN: false, sealedE: false, doorOpen: true, doorClosing: 0, doorClosed: false, doorA: 72 * DEG, crankA: 0 });
     // a green tackle box: shut, a solid box with its lid down; open, the lid thrown back and the trays folded out either side,
@@ -150,7 +153,8 @@ LEVELS.push({
       id: 'tacklebox', name: 'Tackle box', w: boxW, h: boxH, color: boxC, sfx: 'clunk',
       spot: [{ x: 1.9, y: 0.92, z: -2.0 }, { x: -2.2, y: 1.55, z: 0.6 }, { x: 2.0, y: 0, z: -1.6 }, { x: -1.5, y: 0.45, z: -1.2 }],
       closedText: 'A tackle box.', emptyText: 'Hooks and line. Nothing else.',
-      yields: [{ id: 'winchkey', name: 'Small key', opts: { w: 0.26, h: 0.26, tool: true, icon: 'winchKey' } }],
+      // held by its bow between finger and thumb, the blade up and forward, the ring and the float hanging under the hand
+      yields: [{ id: 'winchkey', name: 'Small key', opts: { w: 0.26, h: 0.26, tool: true, icon: 'winchKey', held: { grip: 'pinch', at: [-0.33, 0.56], angle: 2.62, scale: 1.25, tip: [-0.33, 0.07] } } }],
       onOpen(t) {
         // the lid stands up and the trays fold out: what you can see and click is the whole open box, trays and lid
         t.w = boxW * OPEN_W; t.h = boxH * OPEN_H;
@@ -162,6 +166,10 @@ LEVELS.push({
     // and rests as the shut box does, and nothing of the default open box is left under it. (js/levels.js could take this
     // as an option, o.drawOpen(ctx, P); until then the box's sprite is found by where it stands.) Its size covers the open
     // box from the start, so the angle culling of the night's props, worked out once, never drops a tray that is on screen.
+    // Open, a click on it again goes through it: the hand rummages in the trays, the hooks and lures rattle, and there is
+    // nothing more in it (what you hold is lowered meanwhile)
+    const boxClick = box.onClick;
+    box.onClick = () => { const was = box.open, r = boxClick(); if (was) G.reach(box, { style: 'rattle', at: [0, 0.5], sfx: 'rattle', onTouch: () => { s.rummageT = L.t; } }); return r; };
     const OPEN_W = 2.2, OPEN_H = 1.6;
     const boxArt = L.props.find(p => p.kind === 'sprite' && p.card && p.x === box.x && p.y === box.y && p.z === box.z);
     if (boxArt) {
@@ -192,14 +200,17 @@ LEVELS.push({
         P_rect(ctx, x0, 0.64, 0.66, 0.22, tray); P_rect(ctx, x0, 0.64, 0.66, 0.05, trayD);
         for (let k = 0; k < 3; k++) P_rect(ctx, x0 + 0.04 + k * 0.21, 0.79, 0.17, 0.05, well);
         for (let k = 1; k < 3; k++) P_rect(ctx, x0 + k * 0.21 + 0.01, 0.69, 0.02, 0.17, trayD);
+        const rum = L.t - (s.rummageT === undefined ? -9 : s.rummageT), rj = rum >= 0 && rum < 0.6 ? 1 - rum / 0.6 : 0;   // gone through by hand: the lures jump in their wells
         (sx < 0 ? ['bob', 'spoon', 'jig'] : ['jig', 'bob', 'spoon']).forEach((kind, k) => {
-          const x = x0 + 0.125 + k * 0.21;
+          const x = x0 + 0.125 + k * 0.21 + rj * 0.03 * Math.sin(L.t * 47 + k * 2.1 + sx);
+          ctx.save(); ctx.translate(0, rj * 0.025 * Math.abs(Math.sin(L.t * 39 + k * 1.7 + sx)));
           if (kind === 'bob') { // a red and white float
             P_ell(ctx, x, 0.9, 0.07, 0.07, P.col([228, 224, 212]));
             ctx.save(); ctx.beginPath(); ctx.rect(x - 0.08, 0.9, 0.16, 0.09); ctx.clip(); P_ell(ctx, x, 0.9, 0.07, 0.07, P.col([206, 44, 36])); ctx.restore();
             P_line(ctx, x, 0.96, x, 1.03, 0.016, P.col([40, 40, 40]));
           } else if (kind === 'spoon') { P_ell(ctx, x, 0.9, 0.045, 0.085, P.col([200, 202, 208]), 0.5); P_ell(ctx, x + 0.012, 0.91, 0.016, 0.036, P.col([150, 60, 46]), 0.5); }
           else { P_poly(ctx, [[x - 0.065, 0.83], [x + 0.065, 0.83], [x, 0.99]], P.col([226, 190, 50])); P_ell(ctx, x, 0.95, 0.032, 0.032, P.col([200, 60, 40])); }
+          ctx.restore();
         });
       }
     }
@@ -210,6 +221,13 @@ LEVELS.push({
     // the handle on, the crank turns the wheel round a step at every turn. What you click is the drawing: the same size and place
     const need = 7, WS = 0.62, WX = 1.95, WY = 0.9, WZ = 2.5;
     SC.sprite(L, WX, WY, WZ, WS, WS, (ctx, P) => { ctx.scale(WS, WS); drawWinch(ctx, P); });
+    // Tried before it will go, the winch answers in its own iron. A turn forced against the chain (the handle put on the
+    // padlocked winch, or the bar knocked against it) snaps the chain taut: the padlock jumps on it and the wheel rocks a
+    // little and back. A hand on the padlock rattles it on its chain. A hand on the wheel with no handle moves it a hair
+    // and no further. joltT, rattleT and nudgeT are when each began (the night's clock); snapTaut() snaps it.
+    Object.assign(s, { joltT: -9, rattleT: -9, nudgeT: -9 });
+    const decay = (t0, rate) => { const a = L.t - t0; return a >= 0 && a < 0.8 ? Math.exp(-a * rate) * Math.min(1, a / 0.03) : 0; };
+    const snapTaut = () => { s.joltT = L.t; G.shake(0.04); };
     function drawWinch(ctx, P) {
       const plate = P.col([40, 40, 46]), iron = P.col([70, 70, 78]), ironD = P.col([30, 30, 34]), ironL = P.col([118, 118, 126]);
       const drum = P.col([96, 92, 86]), drumD = P.col([58, 56, 52]), cable = P.col([156, 146, 120]), cableD = P.col([108, 100, 80]), chain = P.col([132, 128, 118]);
@@ -222,7 +240,8 @@ LEVELS.push({
       P_rect(ctx, -0.24, 0.68, 0.48, 0.16, cable); for (let k = 0; k < 7; k++) P_line(ctx, -0.21 + k * 0.07, 0.685, -0.19 + k * 0.07, 0.835, 0.012, cableD);
       P_line(ctx, 0, 0.86, 0, 1, 0.03, cable);
       // the wheel, which the crank turns, and the square boss in its middle
-      const turn = -(s.crankA + Math.PI * 0.8);
+      const jk = decay(s.joltT, 6), nk = decay(s.nudgeT, 5), rat = L.t >= s.rattleT && L.t < s.rattleT + 0.5 ? 1 - (L.t - s.rattleT) / 0.5 : 0;
+      const turn = -(s.crankA + Math.PI * 0.8) - jk * 0.2 * Math.cos((L.t - s.joltT) * 22) - nk * 0.17 * Math.sin(Math.min(Math.PI, (L.t - s.nudgeT) * 9));
       ctx.save(); ctx.translate(0, 0.36); ctx.rotate(turn);
       for (let k = 0; k < 16; k++) { ctx.save(); ctx.rotate(k * TAU / 16); P_rect(ctx, -0.022, 0.19, 0.044, 0.045, iron); ctx.restore(); }
       P_ell(ctx, 0, 0, 0.2, 0.2, iron); P_ell(ctx, 0, 0, 0.165, 0.165, ironD);
@@ -234,10 +253,12 @@ LEVELS.push({
         ctx.strokeStyle = chain; ctx.lineWidth = 0.02;
         for (let i = 0; i < n; i++) { const u = (i + 0.5) / n; ctx.beginPath(); ctx.ellipse(x0 + (x1 - x0) * u, y0 + (y1 - y0) * u, 0.04, i % 2 ? 0.012 : 0.024, ang, 0, TAU); ctx.stroke(); }
       };
-      if (s.locked) {
+      if (s.locked || s.keyGoing) {
         // round the drum, down through the wheel either side, and the padlock where the two ends meet
-        links(-0.25, 0.76, 0.25, 0.76, 8); links(-0.22, 0.72, -0.03, 0.21, 9); links(0.22, 0.72, 0.03, 0.21, 9);
-        ctx.save(); ctx.scale(0.27, 0.27); ICONS.padlock(ctx, P); ctx.restore();
+        // (snapped taut, the padlock is pulled up and swings; rattled, it shakes on the chain)
+        const lx = jk * 0.016 * Math.sin((L.t - s.joltT) * 48) + rat * 0.04 * Math.sin(L.t * 57), ly = jk * 0.05 + rat * 0.03 * Math.abs(Math.sin(L.t * 43));
+        links(-0.25, 0.76 + jk * 0.006, 0.25, 0.76 + jk * 0.006, 8); links(-0.22, 0.72, -0.03 + lx, 0.21 + ly, 9); links(0.22, 0.72, 0.03 + lx, 0.21 + ly, 9);
+        ctx.save(); ctx.translate(lx, ly); ctx.rotate(lx * 6); ctx.scale(0.27, 0.27); ICONS.padlock(ctx, P); ctx.restore();
       } else {
         // off the drum, hanging from the cheek, and the padlock open at the end of it with the key still in it
         links(-0.34, 0.88, -0.34, 0.39, 8);
@@ -257,23 +278,43 @@ LEVELS.push({
         ctx.restore();
       }
     }
+    // where things go on it, across and up the drawing: the padlock, and the square boss in the middle of the wheel; and the
+    // point each thing leads with, in its icon: the handle's socket, the oar's grip end, the bar's sawn end
+    const AT = { lock: [0, 0.1], boss: [0, 0.36] }, TIP = { handle: [-0.35, 0.145], oar: [-0.02, 0.06], beam: [0.44, 0.41] };
+    const lockPt = (() => { const p = L.pt(WX, WY + WS * 0.1, WZ); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; })();
     const unlock = () => {
       s.locked = false; winch.accepts = ['handle'].concat(decoy ? ['oar'] : []);
-      // the key stays in the padlock; the slot it leaves goes to the handle if you have it, not to whatever came after the key
+      // the key stays in the padlock (the hand puts it in and lets go of it there); the slot it leaves goes to the handle
+      // if you have it, not to whatever came after the key
       const k = G.inv.find(i => i.id === 'winchkey');
-      if (k) { G.removeFromInv(k); const h = G.inv.findIndex(i => i.id === 'handle'); if (h >= 0) G.active = h; }
-      AUDIO.sfx('lock'); setTimeout(() => AUDIO.sfx('chain'), 200); G.say('The padlock opens and the chain comes off the drum.', 'The padlock is open. The chain is off the drum.');
+      // (the padlock springs open, with its click and the chain sliding off, as the key gets there: see L.update)
+      if (k) { G.thrust(lockPt, k, true); s.keyGoing = { k, t: L.t }; G.removeFromInv(k); const h = G.inv.findIndex(i => i.id === 'handle'); if (h >= 0) G.active = h; }
+      else springOpen();
+      G.say('The padlock opens and the chain comes off the drum.', 'The padlock is open. The chain is off the drum.');
     };
+    function springOpen() { s.keyGoing = null; AUDIO.sfx('lock'); setTimeout(() => AUDIO.sfx('chain'), 200); }
+    const keyThere = () => { const th = G.hand.thrust, g = s.keyGoing; return !(th && th.item === g.k && (th.wait !== undefined || th.t < th.dur * 0.45)) || L.t - g.t > 1.2; };
+    // a thing it does not take, knocked against it: it comes back to the hand (the bar, end first, at the wheel)
+    const knock = (item, onHit) => G.fumble(item, winch, { preset: 'return', at: AT.boss, tip: TIP[item.id], sfx: { hit: s.locked ? 'chain' : 'tink' }, onHit });
     const winch = mkTarget(L, {
       id: 'winch', name: 'Winch', x: WX, y: WY, z: WZ, w: WS, h: WS, accepts: ['handle', 'winchkey'].concat(decoy ? ['oar'] : []),
       hint() { return winch.done ? 'The door is down.' : s.locked ? 'The winch. A chain through the drum, and a padlock on it.' : !s.handleIn ? 'The winch. Its handle is gone.' : 'Crank it. ' + Math.max(0, need - Math.floor(winch.count || 0)) + ' more.'; },
+      // the oar, its grip end jammed at the boss: it will not go in, slips and clatters to the deck
+      fumble: { decoy: { preset: 'bump', at: AT.boss, tip: TIP.oar } },
       onClick() {
         // with the key on you, the padlock comes first, whatever is in your hand
         if (s.locked && G.hasItem('winchkey')) { unlock(); return true; }
-        // with nothing it takes, say what is wrong with it
+        // with nothing it takes, say what is wrong with it, and show it: locked, the hand rattles the padlock on its chain
+        // (or what you hold knocks the chain taut); unlocked, the hand takes the wheel and it will not turn without its handle
         if (!s.handleIn && !winch.accepts.some(id => G.hasItem(id))) {
-          if (s.locked) { AUDIO.sfx('chain'); G.say('The winch. A chain through the drum, and a padlock on it.', 'The winch is chained, and the chain is padlocked.'); }
-          else { AUDIO.sfx('nope'); G.say('The winch. Its handle is gone.', 'The winch has no handle.'); }
+          const act = G.inv[G.active];
+          if (s.locked) {
+            G.say('The winch. A chain through the drum, and a padlock on it.', 'The winch is chained, and the chain is padlocked.');
+            if (act) knock(act, snapTaut); else G.reach(winch, { style: 'rattle', at: AT.lock, sfx: 'chain', onTouch: () => { s.rattleT = L.t; } });
+          } else {
+            G.say('The winch. Its handle is gone.', 'The winch has no handle.');
+            if (act) knock(act, () => { s.nudgeT = L.t; }); else G.reach(winch, { style: 'pull', at: AT.boss, sfx: 'clunk', onTouch: () => { s.nudgeT = L.t; } });
+          }
           return true;
         }
         return false;
@@ -281,23 +322,37 @@ LEVELS.push({
       use(item) {
         if (item.id === 'winchkey') { unlock(); return true; }
         if (item.id !== 'handle') return false;
-        if (s.locked) { G.say('The drum is chained and padlocked. It will not turn.', 'It will not turn. There is a padlock on the chain.'); return false; }
+        // the handle goes on the boss and is leaned on: the chain snaps taut, the padlock jumps, and it comes off again
+        if (s.locked) { G.say('The drum is chained and padlocked. It will not turn.', 'It will not turn. There is a padlock on the chain.'); return G.refuse({ preset: 'return', at: AT.boss, tip: TIP.handle, scale: 0.75, sfx: { hit: 'chain' }, onHit: snapTaut }); }
         s.handleIn = true; winch.accepts = [];
         winch.crank = { n: need, sfx: 'ratchet', onTurn() { G.shake(0.05); }, onComplete() { s.sealedN = true; AUDIO.sfx('bar'); G.say('The water door is down.', 'The water door is down.'); } };
         AUDIO.sfx('fit'); G.say('The handle fits. Crank it.', 'The handle is on the winch.'); return true;
       },
     });
     // the side door: close it, then bar it. A closed door on its own only slows it down.
+    // Open, the hand reaches out for the leaf's edge and pulls it to. While it is still swinging shut, the bar put up to the
+    // brackets gets there before the leaf does (the leaf slows as it comes): the leaf comes round into it with a thud and
+    // swings back a little, and the bar is knocked back into your hands; then the leaf goes on and shuts (anything else in
+    // hand, the hand only helps it shut). Shut and not barred, or barred, an empty hand pushes on it and it holds.
+    const leafEdge = (() => { const p = L.pt(3.25, 1.05, -0.27); return { x: p[0], y: p[1], z: p[2] }; })();
+    const knockedBack = () => ({ preset: 'bounce', drop: false, at: [0, 0.51], angle: 0, sfx: { hit: 'woodKnock' },   // held level, across the brackets
+      onHit: () => { if (s.doorClosing > 0) { s.doorClosing = Math.min(0.9, s.doorClosing + 0.2); AUDIO.sfx('thud'); G.shake(0.1); } s.leafSlow = false; },
+      onDone: () => { s.leafSlow = false; } });
     const sd = mkTarget(L, {
-      id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: ['beam'],
+      id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: ['beam'], reach: 'push',
       hint() { return s.sealedE ? 'Barred.' : s.doorOpen ? 'The side door stands open.' : s.doorClosing > 0 ? 'Swinging shut.' : 'Shut. The bar would hold it.'; },
       onClick() {
-        if (s.doorOpen) { s.doorOpen = false; s.doorClosing = 0.9; AUDIO.sfx('creak'); return true; }
-        if (s.doorClosing > 0) { G.say('Wait for it to shut.', 'The door is still swinging shut.'); return true; }
+        if (s.doorOpen) { s.doorOpen = false; s.doorClosing = 0.9; AUDIO.sfx('creak'); G.reach(sd, { style: 'pull', at: leafEdge }); return true; }
+        if (s.doorClosing > 0) {
+          G.say('Wait for it to shut.', 'The door is still swinging shut.');
+          const act = G.inv[G.active];
+          if (act && act.id === 'beam') s.leafSlow = !!G.fumble(act, sd, knockedBack()); else G.reach(sd, 'push');
+          return true;
+        }
         return false;
       },
       use(item) {
-        if (s.doorOpen || s.doorClosing > 0) { G.say('Shut it first.', 'The side door is standing open.'); return false; }
+        if (s.doorOpen || s.doorClosing > 0) { G.say('Shut it first.', 'The side door is standing open.'); return G.refuse(knockedBack()); }
         s.sealedE = true; sd.done = true; sd.accepts = []; AUDIO.sfx('bar'); G.say('The bar is across.', 'The bar is across the side door.'); return true;
       },
     });
@@ -408,9 +463,10 @@ LEVELS.push({
     };
     const rattle = () => { let r = 0; for (const j of s.jolts) { const tau = L.t - j.t; if (tau >= 0) r += j.k * Math.exp(-tau * 12); } return Math.min(r, 1.5); };
     L.update = dt => {
+      if (s.keyGoing && keyThere()) springOpen();
       if (s.holdT > 0) { s.holdT -= dt; if (s.holdT <= 0 && s.heldC) { s.heldC.hold = null; s.heldC = null; } }
       s.crankA += ((winch.count || 0) * 1.3 - s.crankA) * (1 - Math.exp(-dt * 12));   // the crank goes round smoothly to where it was turned
-      if (s.doorClosing > 0) { s.doorClosing -= dt; s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
+      if (s.doorClosing > 0) { s.doorClosing -= dt * (s.leafSlow ? 0.25 : 1); s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
       const c = L.creature;
       if (s.swim) swimRound(c, dt);
       s.wasHeld = !!c.sealHold;   // read by L.onLaneSwitch, which the game calls after this, when it sends it round
