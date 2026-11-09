@@ -20,6 +20,7 @@ module.exports = {
     ['pickup', 'sugar'], sel('sugar'), ['use', 'threshold', 1, 200],
     ['expect', '!' + tgt('threshold') + ".done && !G.hasItem('sugar') && /sugar/i.test(G.lastToast.msg) && G.fumbling && G.fumbling.it === " + item('sugar'), 'the sugar does not salt the doorway: it leaves the hand for the stone'],
     ['waitUntil', 'G.L.s.sugars.length === 1 && G.L.s.sugars[0].t === ' + tgt('threshold') + ' && G.fumbling && G.fumbling.phase === "contact"', 3000],
+    ['click', 'threshold'], ['expect', '/sugar/i.test(G.lastToast.msg) && !G.hand.reach && G.fumbling && G.fumbling.it === ' + item('sugar'), 'clicked again while it pours: nothing more is tried, its line stays'],
     ['waitUntil', '!G.fumbling && !' + item('sugar') + '.taken && ' + item('sugar') + '.y === G.L.floor.y && G.L.s.sugars.length === 1', 4000],
     ['pickup', 'sugar'],   // poured, the bag was let fall by the slab, where it is seen and taken again
     // the matches at a hook with no lantern on it: struck, it burns there a moment, finds nothing to light, and is shaken out

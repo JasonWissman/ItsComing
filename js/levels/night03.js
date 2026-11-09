@@ -173,8 +173,8 @@ LEVELS.push({
         // what will not do is tried there (below, "what will not do"): a bag over a line already poured is tipped and
         // taken back; anything else is set on the stone and lifted again; the empty hand brushes the stone
         onClick() {
-          if (t.done) { G.say(t.hint(), 'A line of salt runs across it.'); refuseStone(t); return true; }
-          if (!G.inv.some(i => t.accepts.includes(i.id))) { G.say(t.hint(), 'Bare stone. Nothing across it.'); refuseStone(t); return true; }
+          if (t.done) { if (!again(t)) { G.say(t.hint(), 'A line of salt runs across it.'); refuseStone(t); } return true; }
+          if (!G.inv.some(i => t.accepts.includes(i.id))) { if (!again(t)) { G.say(t.hint(), 'Bare stone. Nothing across it.'); refuseStone(t); } return true; }
           return false;
         },
         onDecoy(item) { pourSugar(t, item); },   // the sugar: poured across it, and the wind takes it off the stone
@@ -204,8 +204,8 @@ LEVELS.push({
         // what will not do is tried there (below, "what will not do"): a match struck at an empty hook flares and is shaken
         // out; anything else knocks against the hook or the lantern and sets it swinging, as the empty hand does
         onClick() {
-          if (h.lit) { G.say(h.hint(), 'The lantern is burning.'); refuseHook(h); return true; }
-          if (!G.inv.some(i => h.accepts.includes(i.id))) { G.say(h.hint(), h.hung ? 'The lantern hangs dark.' : 'An empty hook.'); refuseHook(h); return true; }
+          if (h.lit) { if (!again(h)) { G.say(h.hint(), 'The lantern is burning.'); refuseHook(h); } return true; }
+          if (!G.inv.some(i => h.accepts.includes(i.id))) { if (!again(h)) { G.say(h.hint(), h.hung ? 'The lantern hangs dark.' : 'An empty hook.'); refuseHook(h); } return true; }
           return false;
         },
         use(item) {
@@ -274,6 +274,9 @@ LEVELS.push({
       if (!shown && !G.fumbling) AUDIO.sfx('nope');
     };
     const bag = it => it.id === 'salt' || it.id === 'sugar';
+    // the last thing tried there is still there (the sugar still pouring, a match still burning): a click that would only be
+    // refused again is taken, and nothing more said, so its line stays up and the hand stays with it
+    const again = t => !!G.fumbling && G.fumbling.target === t;
     // over the line across a way, nearest the part of the stone in view: s along the line (from its middle), and the place
     // in the world `up` metres over it
     const overLine = (t, up) => {
