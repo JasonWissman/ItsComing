@@ -554,7 +554,7 @@ function die(c, cause) {
   G.shake(1.4);
   c.lunge = 0; c.frozen = true; c.lungeFrom = c.dist;
   G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = 0; G.cam.zoomHeld = false; // it rises to eye level, so the view comes up to meet it
-  G.deathTime = L.t; G.deathAt = G.t; // the night clock for the card, the global clock for the toast test (toasts are stamped with G.t)
+  G.deathTime = L.t; G.deathAt = G.t; // the night clock, and the global clock for the toast test (toasts are stamped with G.t)
   SAVE.recordTry(L.def.id, L.diff.id);
 }
 function deathLine(L) {
@@ -670,8 +670,7 @@ function update(dt) {
     if (G.stateT > delay + dur + 0.25) { G.fade = 1; G.fadeTarget = 1; }
     if (G.stateT > delay + dur + 1.2) {
       setState('dead');
-      const secs = Math.max(1, Math.round(G.deathTime));
-      G.deathScreen = { text: 'It reached you after ' + secs + ' second' + (secs > 1 ? 's' : '') + '.<br>' + deathLine(L) };
+      G.deathScreen = { text: deathLine(L) };   // the night's own line (and the toast it cut off): no count of the seconds
       MENU.show('dead', G.deathScreen);
     }
   } else if (G.state === 'title') {
