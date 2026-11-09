@@ -121,7 +121,7 @@ some on the ground, so you have to turn and look down to find them.
    crate or the boards, stood against the wall); picked up, they go together in one slot,
    "Arrows ×2". Hold the button (or the touch Use button, or A) to draw. A power bar fills
    beside your aim, and when it tops out it is full: it turns green and says so, the string
-   comes tight with a click and the bow is bent hard back, and it stays full for as long as
+   comes tight with a click and shines, the bow bent hard back, and it stays full for as long as
    you hold it. Let go full with it in your sights and the arrow goes in, however far off it
    is (the further, the smaller it is to aim at). Let go before full and the arrow drops into
    the snow short of it; full but off it, it misses. A click looses nothing: the bow comes up

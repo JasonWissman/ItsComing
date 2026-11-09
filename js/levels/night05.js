@@ -1,7 +1,7 @@
 'use strict';
 // ============================================================ 5. THE CLEARING ============================================================
 // A bow somewhere on the porch, and three arrows lying about it, each in a place of its own. Hold the button to draw: a
-// power bar beside the aim fills, and at the top it is full (it goes green, and the string comes tight with a click), and
+// power bar beside the aim fills, and at the top it is full (it goes green, the string comes tight with a click and shines), and
 // it stays full for as long as you hold it. Let go full with the aim on it and the arrow goes in, however far off it is (the
 // further, the smaller it is to aim at); full but off it, it misses; let go before it is full and it drops into the snow
 // short of it. A tap looses nothing: the bow comes up, the string starts back, and it is let down again. Two hits put it
@@ -22,7 +22,7 @@ const CLEARING_BOW = (() => {
   // leans away from where it is aimed and nothing of it crosses the aim. Drawing, the string and the arrow's nock come back
   // toward you (down and right, off the bottom of the view at full draw), the limbs bend and their tips come back and in.
   // Not drawing, it is held low at the bottom right, just in view while you look ahead.
-  const COL = { wood: [80, 54, 34], woodL: [126, 90, 56], woodD: [38, 25, 16], grip: [46, 32, 24], wrap: [22, 16, 11], string: [206, 198, 178],
+  const COL = { wood: [80, 54, 34], woodL: [126, 90, 56], woodD: [38, 25, 16], grip: [46, 32, 24], wrap: [22, 16, 11], string: [206, 198, 178], stringL: [250, 244, 222],
     shaft: [180, 146, 100], head: [146, 148, 156], headL: [206, 208, 214], fA: [176, 44, 36], fB: [220, 210, 188], glove: [30, 27, 27], gloveL: [64, 58, 56], sleeve: [40, 35, 34], sleeveL: [62, 55, 52] };
   const DIR = [-0.36, -0.933], W_ = [0.38, -0.925], BACK = [0.925, 0.38], OUT = [-0.925, -0.38];   // the arrow's way, up the bow, toward you, away
   const V = (a, b, k) => [a[0] + b[0] * k, a[1] + b[1] * k];
@@ -77,6 +77,13 @@ const CLEARING_BOW = (() => {
     ctx.restore();
     // the string, from each tip back to the nock
     for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0035 + 0.001 * taut, col(COL.string, 1 + 0.25 * taut));
+    // drawn full, and for as long as it is held there, the string shines: a bright glint along it the moment it tops out
+    // (with the click), settling to a steady pale sheen, so the bow itself says it is full
+    if (d && d.state === 'drawing' && d.full) {
+      const since = d.t - (d.u.draw.fill || FILL), glint = Math.exp(-since * 5);
+      for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.008 + 0.006 * glint, rgba(COL.stringL, 0.16 + 0.3 * glint));
+      for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0045, rgba(COL.stringL));
+    }
     // the arrow on the string: nocked while it is drawn or ready; just loosed, the string is bare, then the next is
     // brought up and nocked (if there is one)
     let arrowAt = null;
@@ -124,7 +131,7 @@ LEVELS.push({
     { deg: 0, name: 'porch steps', barrierDist: 0, cue: 'crack', default: true },
     { deg: 90, name: 'porch side', barrierDist: 0, cue: 'crack' },
   ],
-  creatures: [{ type: 'runner', startDist: 115, time: 56, unseenMult: 1.3 }],   // three arrows to find now: a little more time (on Nightmare about 35 s in if watched, under 20 if not)
+  creatures: [{ type: 'runner', startDist: 115, time: 62, unseenMult: 1.3 }],   // three arrows to find now: more time (on Nightmare about 37 s in if watched, about 20 if not)
   aftermath: { type: 'down', dur: 3.8 },
   uses: [{
     tool: 'bow', ammo: 'arrows', range: Infinity, sfx: 'twang', shake: 0.1, emptyText: 'No arrows.', fireText: 'Draw.',
@@ -224,7 +231,7 @@ LEVELS.push({
     }
     // the arrows: three, each in a place of its own, never in a quiver. One is somewhere about eye height (driven into a
     // log of the wall or a corner post where a shot went wide, along the top of the side rail, on the woodpile or the
-    // crate, across the bottom of the window frame), one is down on the boards or the steps (lying, or stood against the wall or a rail), and the third
+    // crate), one is down on the boards or the steps (lying, or stood against the wall or a rail), and the third
     // is anywhere well apart from both. Picked up, they go together in one slot, as many as you have ("Arrows ×2"); put
     // down, they lie together, tied. Each is a card the shape of the way it lies (ICONS.arrows draws to the card).
     const ARROW_CARD = { lie: [0.8, 0.14], up: [0.16, 0.8], stuck: [0.6, 0.4], bundle: [0.8, 0.24] };
@@ -236,7 +243,7 @@ LEVELS.push({
       at('stuck', { x: -2.9, y: 1.42, z: 1.4 }),                  // in the corner post, front left
       at('stuck', { x: 2.9, y: 1.42, z: 1.4, flip: true }),       // in the corner post, front right
       at('lie', { x: -2.98, y: 1.31, z: 0.25, flip: true }),      // along the top of the side rail
-      at('lie', { x: 1.7, y: 1.31, z: -1.5 }),                    // across the bottom of the window frame
+      at('stuck', { x: 2.55, y: 1.62, z: -1.53, flip: true }),    // in the wall beside the window, over the lamp
       at('lie', { x: 2.5, y: 1.1, z: -1.24, key: 'woodpileA', flip: true }),   // on the woodpile
       at('lie', { x: -2.64, y: 0.85, z: -1.12, key: 'crateA' }),  // on the crate
     ];
