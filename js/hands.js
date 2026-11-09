@@ -225,7 +225,7 @@ const HANDS = (() => {
   }
   // the forearm in its sleeve, from the wrist off the edge of the view (dir: its way out, as an angle)
   function arm(ctx, C, wx, wy, dir, u) {
-    const ex = wx + Math.cos(dir) * u * 6, ey = wy + Math.sin(dir) * u * 6;
+    const ex = wx + Math.cos(dir) * u * 16, ey = wy + Math.sin(dir) * u * 16;   // (long enough to leave the view from a hand reaching up to the top of it)
     ctx.lineCap = 'round';
     ctx.strokeStyle = C.sleeveD; ctx.lineWidth = u * 0.86; ctx.beginPath(); ctx.moveTo(wx + Math.cos(dir) * u * 0.3, wy + Math.sin(dir) * u * 0.3); ctx.lineTo(ex, ey); ctx.stroke();
     ctx.strokeStyle = C.sleeve; ctx.lineWidth = u * 0.74; ctx.beginPath(); ctx.moveTo(wx + Math.cos(dir) * u * 0.25, wy + Math.sin(dir) * u * 0.25); ctx.lineTo(ex, ey); ctx.stroke();
