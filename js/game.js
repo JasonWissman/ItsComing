@@ -724,11 +724,14 @@ function updateCreature(L, c, dt, live) {
   // won. On Nightmare, after a moment, it goes round to an open way if it has one (with that way's cue), starting outside that
   // way's barrier; below Nightmare, or on a night that opts out of changing ways (laneSwitch: false), it stands there.
   // A creature that can run (its type has drawRun) goes round on its feet instead, after a shorter moment (goRound).
+  // A night may judge for itself which ways it goes round to (L.roundOpen(lane, c); by default a way that is not sealed):
+  // it is then asked again every frame while the thing is held, until it has somewhere to go.
   if (live && !L.won && barrier && L.sealed && !c.distFn && d <= barrier + 0.01) {
+    if (c.hold === null && L.sealed(c.lane) && prevDist > barrier && d < barrier) { d = barrier; c.u = clamp(1 - Math.pow(barrier / c.D0, 1 / c.gamma), 0, 1); }   // a lurch across the line in one frame still stops at it
     if (c.hold === null && L.sealed(c.lane)) { c.hold = Math.min(barrier, d); c.sealHold = true; c.sealHeldAt = L.t; c.dist = d = c.hold; }
     else if (c.hold !== null && c.sealHeldAt !== undefined && L.t - c.sealHeldAt > (CR.drawRun ? ROUND.wait : 2.5)) {
-      c.sealHeldAt = undefined;
-      const open = (c.fixedLane || !L.diff.laneSwitch || L.def.laneSwitch === false) ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && !L.sealed(l) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
+      const open = (c.fixedLane || !L.diff.laneSwitch || L.def.laneSwitch === false) ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && (L.roundOpen ? L.roundOpen(l, c) : !L.sealed(l)) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
+      if (open.length || !L.roundOpen) c.sealHeldAt = undefined;
       if (open.length && CR.drawRun) startRound(L, c, open[Math.floor(c.rand() * open.length)]);
       else if (open.length) {
         const ln = open[Math.floor(c.rand() * open.length)];

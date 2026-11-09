@@ -40,7 +40,7 @@ LEVELS.push({
     intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
     hint: 'The old rules: a line of salt across the doorway and another across the side gate, and a lantern hung by each and lit. The bag holds just enough salt for the two lines.',
     objective: 'Salt both ways in. Light a lantern by each.',
-    death: { default: 'It was still smiling when it stepped over the threshold.', open: 'One way in had salt across it. It came in by the other.' },
+    death: { default: 'It was still smiling when it stepped over the threshold.', open: 'One way in had salt across it. It came in by the other.', unlit: 'It looked down at the salt for a long time. No light burned beside the line, and in the end it stepped over.' },
     win: 'It came to the salt line and looked down at it for a long time. Then it turned round and walked back between the graves, still smiling. It never once looked at the lanterns.',
     fragment: 'There was a line of salt across the floor in the morning, and no one had been near the kitchen.',
   },
@@ -49,7 +49,7 @@ LEVELS.push({
     { deg: 0, name: 'path', barrierDist: 2.6, cue: 'gate', apertures: [{ z: 1.8, x0: -1.8, x1: 1.8, y0: 0, y1: 3.0 }, { z: 3.6, x0: -1.2, x1: 1.2, y0: 0, y1: 99 }], default: true },
     { deg: 90, name: 'side gate', barrierDist: 2.5, cue: 'creak', apertures: [{ z: 3.6, x0: -1.3, x1: 1.3, y0: 0, y1: 99 }] },
   ],
-  // a salted way holds it; it goes round to the other on its feet if that one is bare (game.js: the smiler can run)
+  // a salt line stops it; it goes round to the other way on its feet while that one is weaker (L.roundOpen; game.js: the smiler can run)
   creatures: [{ type: 'smiler', startDist: 95, time: 88, unseenMult: 1.55 }],
   // the aftermath is the night's own (L.aftermath in build): it comes to the salt line, looks down at it, and walks away
   build(L) {
@@ -182,7 +182,13 @@ LEVELS.push({
     const thr = mkThreshold('threshold', 'Doorway', [-1.15, 1.58, 1.15, 1.94], [0, 1.77, 1, 0, 2.16]);
     const thrE = mkThreshold('sidethreshold', 'Side gate', [1.75, -0.7, 2.25, 0.7], [2.0, 0, 0, 1, 1.32]);
     const thrOf = lane => lane.idx === 0 ? thr : thrE;
-    L.sealed = lane => thrOf(lane).done;   // a salted way holds it; it goes round to the other if that one is bare
+    // A salt line stops it, and it looks down at the salt. A way is only finished with its lantern lit as well: it goes round
+    // to the other way whenever that one is weaker than this (bare, or a lantern alone, which it never looks at: 0; salt
+    // with its lantern dark: 1; salt and a lit lantern: 2), and is stopped for good only once both are finished (won).
+    // Where it has nowhere weaker to go, a line with no light by it holds it only a while (L.update): it steps over.
+    const strength = lane => !thrOf(lane).done ? 0 : hookOf(lane).lit ? 2 : 1;
+    L.sealed = lane => thrOf(lane).done && L.s.crossed !== lane.idx;
+    L.roundOpen = (lane, c) => strength(lane) < strength(c.lane);
     // a hook by each way in: hang a lantern on it, then light it. Its box runs from the bottom of a hung lantern up to the arm
     const mkHook = (id, x, z, seed) => {
       const h = mkTarget(L, {
@@ -202,7 +208,7 @@ LEVELS.push({
       return h;
     };
     const hook = mkHook('hook', 0.78, 1.77, 3), hookE = mkHook('hookE', 1.92, 1.0, 7);
-    const hooks = [hook, hookE];
+    const hooks = [hook, hookE], hookOf = lane => lane.idx === 0 ? hook : hookE;
     L.isWon = () => thr.done && thrE.done && hook.lit && hookE.lit;
     L.objectiveText = () => {
       const s = t => t.done ? 'salted' : 'bare';
@@ -238,19 +244,27 @@ LEVELS.push({
     });
     const lampP = hooks.map(h => L.pt(h.local[0], 1.5, h.local[2]));
     L.dynamicLights = () => hooks.filter(h => h.lit).map(h => { const p = lampP[hooks.indexOf(h)]; return { x: p[0], y: p[1], z: p[2], r: 4.5, i: 0.34, color: [255, 180, 100], flicker: 0.7, seed: h.seed }; });
-    L.deathCause = () => (thr.done || thrE.done) ? 'open' : 'default';
+    L.deathCause = () => L.s.crossed !== undefined ? 'unlit' : (thr.done || thrE.done) ? 'open' : 'default';
 
     // ---- held at the salt ----
-    // Held at a salted way it looks down at the salt for a while, then up at you again. If the other way is bare it runs
-    // round to it after a moment (game.js, ROUND), and does not look down while it runs.
+    // Held at a salted way it looks down at the salt for a while, then up at you again. If the other way is weaker it runs
+    // round to it after a moment (game.js, ROUND, asking L.roundOpen), and does not look down while it runs. Where it has
+    // nowhere weaker to go and no lantern burns by this line, it stands there SALT.hold seconds, looks down at the salt once
+    // more, and steps over it.
     const s = L.s;
+    const SALT = { hold: 6, look: 1.2 };
     const bowTo = (c, want, rate, dt) => { c.bow = clamp((c.bow || 0) + clamp(want - (c.bow || 0), -rate * dt, rate * dt), 0, 1); };
     L.update = dt => {
       const c = L.creature;
       if (L.won) return;   // the aftermath has it now
       if (c.sealHold) { if (s.heldAt === undefined) s.heldAt = L.t; } else s.heldAt = undefined;
+      const held = s.heldAt !== undefined ? L.t - s.heldAt : -1, dark = held >= 0 && strength(c.lane) < 2;
+      if (dark && held >= SALT.hold && !c.round) {   // over the line: it walks on from where it stood
+        s.crossed = c.lane.idx; c.hold = null; c.sealHold = false; c.sealHeldAt = undefined; s.heldAt = undefined;
+        c.u = clamp(1 - Math.pow(c.dist / c.D0, 1 / c.gamma), 0, 1);
+      }
       if (c.runPose) c.bow = 0;
-      else bowTo(c, s.heldAt !== undefined && L.t - s.heldAt < 1.8 ? 1 : 0, 3, dt);
+      else bowTo(c, held >= 0 && (held < 1.8 || (dark && held > SALT.hold - SALT.look)) ? 1 : 0, 3, dt);
     };
 
     // ---- how it ends ----
