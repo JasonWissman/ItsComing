@@ -163,17 +163,25 @@ some on the ground, so you have to turn and look down to find them.
    hanging up drops the coin back into the coin return. When someone answers, a car comes
    down his street and pulls up at the kerb for you.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
-    it in the glass: facing a mirror holds it. One of the four mirrors is not like the
-    others, and two are under dust sheets. The music box lies in one place and its crank
-    in another. Any pedestal takes the box, and the crank fits its side on any of them, but
-    its tune plays only before the odd mirror: there each turn plays a few notes of it, and
-    on the last the doll comes running out through the glass for the box, smiling, lifts it
-    off the pedestal and takes it back in with it. Before any other mirror the first turn
-    plays wrong notes and the crank sticks; in the glass the doll's face turns angry (brows
-    down, a red glare, its teeth bared, its fists out) and behind you it takes three quick
-    steps. The next click on the box lifts it back off, its crank still in it, to put before
-    another mirror. Before the crank is in, a click on the box takes it back too, unless you
-    are holding the crank (then the click fits it).
+    it in the glass: facing a mirror holds it. In every glass it dances on the spot, a slow,
+    jerky wind-up doll's dance (an arm going up and coming down in little ticks, a wrist
+    rolling, a knee coming up, the head snapping over to one side, a rock from foot to
+    foot), in step in all of them. One of the four mirrors is not like the others: in it the
+    doll dances the other way round, the mirror image of the rest (the arm the others raise,
+    it raises on the other side, and its head goes over the other way; which arm the others
+    raise changes from one load to the next, so only comparing tells). The mirrors are
+    otherwise alike, and two are under dust sheets. The music box lies in one place and its
+    crank in another. Any pedestal takes the box, and the crank fits its side on any of them,
+    but its tune plays only before the odd mirror: there each turn plays a few notes of it,
+    and on the last the doll stops dancing, turns round once on the spot like the dancer on
+    the box, and comes running out through the glass for the box, smiling, lifts it off the
+    pedestal and takes it back in with it. Before any other mirror the first turn plays wrong
+    notes and the crank sticks; in the glass the doll stops dancing dead, its face turns
+    angry (brows down, a red glare, its teeth bared, its fists out) and behind you it takes
+    three quick steps; it dances again once its temper has gone. The next click on the box
+    lifts it back off, its crank still in it, to put before another mirror. Before the crank
+    is in, a click on the box takes it back too, unless you are holding the crank (then the
+    click fits it).
 11. **The Barn.** Something bent double under a bundle is coming for the hayloft,
     across the yard to the loft door or in at the far end of the barn and up the ladder,
     and it goes faster the more you carry. A stack of hay stands in each way in, and both

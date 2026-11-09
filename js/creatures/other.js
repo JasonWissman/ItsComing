@@ -1,7 +1,7 @@
 'use strict';
 // The other: a porcelain doll the size of a small girl, always behind you, only ever seen in a mirror. It moves only
-// while no mirror you are facing shows it. c.back draws it from behind: the night sets it for the reflection in the odd
-// mirror and in the glass behind it while it lunges.
+// while no mirror you are facing shows it. c.back draws it from behind: the night sets it for the glass behind it while
+// it lunges, and as it turns round on the spot before it comes out for the box.
 // When the music box plays on the odd mirror's pedestal it comes out through that glass for the box, and the night drives
 // it: c.rush (0..1) runs it at you, rocking hard on its stiff legs (c.runGait its stride); c.smile paints the smile on;
 // c.arms[-1 | 1] = { k: 0..1, to: [x, y] } puts that arm out to a point (its own left of the view is -1); c.carry draws
@@ -9,14 +9,54 @@
 // walker runs round the house). c.angry (0..1) is its temper when the box is cranked before the wrong mirror: the painted
 // brows come down hard, the lids drop over the glass eyes to a red glare, the face flushes, the lips draw back off its
 // little teeth, and it stands stiff with its fists out from its sides, its head down.
+// In the glass it dances on the spot (dancePose): c.dance (0..1) is how far it is in its dance, c.danceT the dance's
+// clock (the night runs it, so every mirror shows the same moment), and c.danceMir -1 draws the mirror image of it.
+// c.tint (a light, as LIGHT.at gives) lights it by hand where the night has the renderer leave it unlit.
 CREATURES.other = {
   name: 'the doll', h: 1.35, w: 0.72, faceY: 1.14, stepRate: 1.6, catchDist: 1.3, sound: null, seenFrac: 0.6,
   death: { delay: 0.4, dur: 0.6, sting: 'stingHum' },
   voice: { kind: 'hum', every: [6, 11] },
   carryAt: { y: 0.55, w: 0.34 },   // where c.carry's box sits in its arms: base height and size, in metres
-  init(c) { c.back = false; },
+  init(c) { c.back = false; c.dance = 1; c.danceT = 0; c.danceMir = 1; },
   speedMult(c, dt, seen) { return seen ? 0 : 1; },
   lateral(c) { return c.runLat || 0; },
+  // The dance: a wind-up doll's, slow and stiff, every move made in little clockwork ticks with a stop between (the ticks of
+  // its arms, its rock from foot to foot and its wrist fall between one another, so it is never still for more than a
+  // moment). Its lead arm (the one on the left of the view) goes out with the forearm hanging off the elbow, up high,
+  // flops over at the wrist and rolls it, and comes down bent like a broken toy's; the knee on the other side comes up,
+  // twice; the head snaps over, mostly away from the lead arm; and all the while it rocks from foot to foot. Each key is
+  // one beat's pose: aL/aR each upper arm's angle out from hanging (radians), bL/bR each forearm's bend out from its upper
+  // arm, kL/kR each knee's lift (0..1), tilt the head's (+: toward the left of the view) and sway the body's lean (+: to
+  // the left).
+  danceBeat: 1.05,
+  danceKeys: [
+    { aL: 0.39, bL: -0.21, aR: 0.39, bR: -0.21, kL: 0, kR: 0, tilt: 0.1, sway: 0 },          // standing, waiting
+    { aL: 1.45, bL: -1.25, aR: 0.45, bR: -0.2, kL: 0, kR: 0, tilt: -0.3, sway: 0.03 },       // the lead arm out, its forearm dangling
+    { aL: 2.5, bL: 0.3, aR: 0.5, bR: -0.25, kL: 0, kR: 0.95, tilt: -0.38, sway: 0.06 },      // up high, and the other knee up
+    { aL: 2.6, bL: -0.95, aR: 0.4, bR: -0.2, kL: 0, kR: 0.1, tilt: 0.26, sway: 0.03 },       // the hand flops over; the head snaps to it
+    { aL: 1.6, bL: 1.25, aR: 1.1, bR: -0.95, kL: 0, kR: 0, tilt: -0.32, sway: -0.04 },       // bent up square; the other arm half out, hanging
+    { aL: 0.7, bL: -0.3, aR: 1.0, bR: -1.05, kL: 0, kR: 0.85, tilt: -0.36, sway: 0.05 },     // the knee again
+    { aL: 0.42, bL: -0.2, aR: 0.55, bR: -0.4, kL: 0, kR: 0, tilt: 0.3, sway: -0.03 },        // arms down, the head over the other way
+    { aL: 0.6, bL: 1.5, aR: 0.6, bR: 1.5, kL: 0.3, kR: 0, tilt: 0.05, sway: -0.02 },          // both forearms jerk up, even, and drop again
+  ],
+  // from 0 to 1 in n clockwork ticks over the first `over` of a beat: each a quick snap and a stop
+  tick(f, n, over) { const x = clamp(f / over, 0, 1) * n, i = Math.min(n - 1, Math.floor(x)); return (i + smoothstep(clamp((x - i) / 0.45, 0, 1))) / n; },
+  // its pose at dance time t; mir -1 is exactly the same pose with left and right swapped (rL/rR: each wrist's roll)
+  dancePose(t, mir) {
+    const K = this.danceKeys, N = K.length, b = t / this.danceBeat, n = Math.floor(b), f = b - n;
+    const A = K[((n % N) + N) % N], B = K[(((n + 1) % N) + N) % N], e = this.tick(f, 3, 0.66), h = smoothstep(clamp((f - 0.22) / 0.1, 0, 1));
+    const p = {};
+    for (const k of ['aL', 'bL', 'aR', 'bR', 'kL', 'kR', 'sway']) p[k] = lerp(A[k], B[k], e);
+    p.tilt = lerp(A.tilt, B.tilt, h);   // the head does not tick round: it snaps
+    // from foot to foot every beat, in three ticks over the whole of it, the foot it comes off lifting a little
+    const tock = Math.cos(Math.PI * (n + this.tick(f, 3, 1)));
+    p.sway += tock * 0.035; p.kR = Math.min(1, p.kR + Math.max(0, tock) * 0.2); p.kL = Math.min(1, p.kL + Math.max(0, -tock) * 0.2);
+    // a raised hand rolls at the wrist, over and back, in four ticks over the beat
+    const roll = Math.cos(Math.PI * (n + this.tick(f, 4, 1)));
+    p.rL = roll * 1.3 * clamp((p.aL - 0.8) / 1.2, 0, 1); p.rR = -roll * 0.6 * clamp((p.aR - 0.8) / 1.2, 0, 1);
+    return mir < 0 ? this.mirrorPose(p) : p;
+  },
+  mirrorPose(p) { return { aL: p.aR, bL: p.bR, rL: p.rR, kL: p.kR, aR: p.aL, bR: p.bL, rR: p.rL, kR: p.kL, tilt: -p.tilt, sway: -p.sway }; },
   colours(P) {
     return {
       porcelain: P.col([234, 224, 210]), porcelainD: P.col([198, 186, 172]), hair: P.col([40, 27, 22]), hairL: P.col([68, 46, 34]),
@@ -25,17 +65,28 @@ CREATURES.other = {
     };
   },
   draw(ctx, c, P) {
+    if (c.tint) { const li = c.tint, Q = P; P = Object.assign({}, Q, { col: k => Q.col(LIGHT.apply(k, li)), cola: (k, a) => Q.cola(LIGHT.apply(k, li), a) }); }
     if (c.runPose) { this.drawRun(ctx, c, P); return; }
     const t = c.t, lunge = c.lunge || 0, back = !!c.back, rush = c.rush || 0, g = rush ? (c.runGait || 0) : (c.gait || 0);
     const K = this.colours(P), fury = clamp(c.angry || 0, 0, 1) * (1 - rush), fist = c.carry ? 0 : fury;
+    // its dance, as far as it is in it (the night eases it out when it is angry or comes for the box; lunging, running or
+    // reaching it has none), and the pose it is in: pose[s] for its arm and knee on that side of the view
+    const w = clamp(c.dance || 0, 0, 1) * (1 - lunge) * (1 - rush) * (c.carry || c.arms ? 0 : 1);
+    const dp = w > 0 ? this.dancePose(c.danceT || 0, c.danceMir || 1) : null;
+    c.pose = dp;
+    const pose = dp && { [-1]: { a: dp.aL, b: dp.bL, r: dp.rL, k: dp.kL }, 1: { a: dp.aR, b: dp.bR, r: dp.rR, k: dp.kR } };
+    // far back in the glass its arms are kept two pixels across and its legs one and a half, so the dance still reads
+    const m0 = ctx.getTransform(), pxM = 1 / Math.max(1e-6, Math.hypot(m0.a, m0.b)), armW = Math.max(0.045, pxM * 2);
     // a doll does not walk: it rocks from foot to foot, stiffly. Running at you it rocks harder and kicks its feet up
     const stepping = c.moving || rush > 0;
     const rock = stepping ? Math.sin(g) * (0.07 + 0.05 * rush) : 0;
-    ctx.save(); ctx.rotate(rock);
+    ctx.save(); ctx.rotate(rock + (dp ? dp.sway * w : 0));
     for (const s of [-1, 1]) {
       const lift = stepping ? Math.max(0, Math.sin(g + (s > 0 ? Math.PI : 0))) * (0.04 + 0.08 * rush) : 0;
-      P_line(ctx, s * 0.07, 0.44, s * 0.075, 0.06 + lift, 0.07, K.stocking);
-      P_ell(ctx, s * 0.085, 0.035 + lift, 0.06, 0.035, K.shoe);
+      // a knee coming up: the foot rises off the floor and the knee turns out under the hem, stiffly, as a doll's would
+      const kn = pose ? pose[s].k * w : 0, fy = 0.06 + lift + 0.2 * kn;
+      P_limb(ctx, [[s * 0.07, 0.44], [s * (0.072 + 0.075 * kn), 0.25 + 0.17 * kn], [s * (0.075 + 0.02 * kn), fy]], Math.max(0.07, pxM * 1.5), K.stocking);
+      P_ell(ctx, s * (0.085 + 0.02 * kn), fy - 0.025, 0.06, 0.035, K.shoe);
     }
     // the dress: a bell of faded pink over petticoats, a scalloped lace hem, a sash tied at the back
     P_poly(ctx, [[-0.13, 0.8], [0.13, 0.8], [0.3, 0.43], [-0.3, 0.43]], K.dress);
@@ -46,17 +97,30 @@ CREATURES.other = {
     else { P_ell(ctx, -0.045, 0.975, 0.05, 0.03, K.lace); P_ell(ctx, 0.045, 0.975, 0.05, 0.03, K.lace); }
     // arms: jointed and stiff, a little out from the sides, swinging as it runs; reaching, one goes out to what it wants
     for (const s of [-1, 1]) {
-      P_ell(ctx, s * 0.13, 0.94 + fury * 0.025, 0.05, 0.045, K.dress);   // angry, its shoulders come up
+      P_ell(ctx, s * 0.13, 0.94 + fury * 0.025 * (1 - w), 0.05, 0.045, K.dress);   // angry, its shoulders come up (as the dance goes out of it)
       if (c.carry) continue;
       const swing = rush ? Math.sin(g + (s > 0 ? 0 : Math.PI)) * 0.09 * rush : 0;
       let ex = s * (0.19 + lunge * 0.05 + fist * 0.05), ey = 0.8 + lunge * 0.12 + swing * 0.4, hx = s * (0.22 + lunge * 0.14 + fist * 0.11), hy = 0.64 + lunge * 0.36 + swing - fist * 0.03;
+      let hand = [hx, hy - 0.01, 0.028 + fist * 0.006, 0.034 - fist * 0.004, 0], thumb = 0;   // balled into a fist when it is angry
+      if (pose) {
+        // dancing: the upper arm out at its angle from the shoulder, the forearm bent off it, stiff as a jointed doll's;
+        // the hand hangs off the end along the forearm, and rolls: narrowing as it turns edge on, its thumb coming round
+        const q = pose[s], dx = s * (0.14 + 0.13 * Math.sin(q.a)), dy = 0.92 - 0.13 * Math.cos(q.a), fa = q.a + q.b;
+        const gx = dx + s * 0.163 * Math.sin(fa), gy = dy - 0.163 * Math.cos(fa), rot = Math.atan2(gx - dx, dy - gy);
+        ex = lerp(ex, dx, w); ey = lerp(ey, dy, w); hx = lerp(hx, gx, w); hy = lerp(hy, gy, w);
+        const along = [Math.sin(rot) * 0.012, -Math.cos(rot) * 0.012];
+        hand = [lerp(hand[0], hx + along[0], w), lerp(hand[1], hy + along[1], w), lerp(hand[2], 0.028 * (0.55 + 0.45 * Math.abs(Math.cos(q.r))), w), lerp(hand[3], 0.036, w), rot * w];
+        thumb = s * Math.sin(q.r) * w;
+      }
       const arm = c.arms && c.arms[s];
       if (arm && arm.k > 0) {
         const k = smoothstep(arm.k), [tx, ty] = arm.to;
         ex = lerp(ex, (s * 0.14 + tx) / 2, k); ey = lerp(ey, (0.92 + ty) / 2 + 0.03, k); hx = lerp(hx, tx, k); hy = lerp(hy, ty, k);
+        hand = [hx, hy - 0.01, 0.028 + fist * 0.006, 0.034 - fist * 0.004, 0];
       }
-      P_limb(ctx, [[s * 0.14, 0.92], [ex, ey], [hx, hy]], 0.045, K.porcelainD);
-      P_ell(ctx, hx, hy - 0.01, 0.028 + fist * 0.006, 0.034 - fist * 0.004, K.porcelain);   // balled into a fist when it is angry
+      P_limb(ctx, [[s * 0.14, 0.92], [ex, ey], [hx, hy]], armW, K.porcelainD);
+      P_ell(ctx, hand[0], hand[1], hand[2], hand[3], K.porcelain, hand[4]);
+      if (thumb) P_ell(ctx, hand[0] + Math.cos(hand[4]) * thumb * 0.026, hand[1] + Math.sin(hand[4]) * thumb * 0.026 + 0.004, 0.01 * Math.abs(thumb), 0.014 * Math.abs(thumb), K.porcelain, hand[4]);
     }
     // holding the box: it is in front of it in both arms, its hands on the box's sides
     if (c.carry) {
@@ -65,9 +129,9 @@ CREATURES.other = {
       ctx.save(); ctx.translate(0, A.y); ctx.scale(A.w, A.w); c.carry(ctx, P); ctx.restore();
       for (const s of [-1, 1]) P_ell(ctx, s * 0.165, A.y + A.w * 0.27, 0.028, 0.034, K.porcelain);
     }
-    // the head: too big for the body, tilted, snapping now and then to the other side
-    const tilt = headTiltJerk(t, 2.7, 0.16) * (1 - lunge) * (1 - rush * 0.7) * (1 - fury);   // angry, it holds its head still, and down
-    ctx.save(); ctx.translate(0, 1.0 - fury * 0.02); ctx.rotate(tilt);
+    // the head: too big for the body, tilted, snapping now and then to the other side; dancing, it goes where the dance puts it
+    const tilt = lerp(headTiltJerk(t, 2.7, 0.16) * (1 - lunge) * (1 - rush * 0.7) * (1 - fury), dp ? dp.tilt : 0, w);   // angry, it holds its head still, and down
+    ctx.save(); ctx.translate(0, 1.0 - fury * 0.02 * (1 - w)); ctx.rotate(tilt);
     P_rect(ctx, -0.025, -0.02, 0.05, 0.05, K.porcelainD);
     if (back) {
       // from behind: a mass of ringlets and the bow, no face at all

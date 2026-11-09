@@ -2,12 +2,14 @@
 // ============================================================ 10. THE MIRROR MAZE ============================================================
 // The look-away night turned inside out: it is always behind you and you only ever see it in the glass.
 // It moves while the mirror you are facing does not show it. A mirror in the middle of every wall and a pedestal
-// before each; one mirror is not like the others (a moon on its crest, and in it the thing has its back to you).
+// before each, all alike. In every glass it dances on the spot, a stiff, jerky wind-up doll's dance, in step in all of
+// them; one mirror is not like the others: in it the dance is the mirror image of the rest (left and right swapped).
 // The music box lies in one place and its crank in another. The box goes on any pedestal and the crank on the box's side,
-// and a few turns of the crank before the odd mirror play its tune: the doll comes out through that glass for the box,
-// quickly, lifts it off the pedestal, and takes it back in with it and away. Before any other mirror the first turn plays
-// wrong notes and the crank sticks: in the glass the doll's face turns angry and it hops at you (three quick steps). A click
-// on the box then lifts it back off, crank and all, to put before another mirror.
+// and a few turns of the crank before the odd mirror play its tune: the doll stops dancing, turns round once on the spot
+// like the dancer on the box, and comes out through that glass for the box, quickly, lifts it off the pedestal, and takes
+// it back in with it and away. Before any other mirror the first turn plays wrong notes and the crank sticks: in the glass
+// the doll stops dancing, its face turns angry and it hops at you (three quick steps). A click on the box then lifts it
+// back off, crank and all, to put before another mirror.
 LEVELS.push({
   id: 'mirrors', title: 'The Mirror Maze', facing: 0, eyeH: 1.65, laneMode: 'default', laneSwitch: false,
   pal: { skyTop: [14, 8, 8], fog: [58, 40, 36], ground: [30, 26, 26], fogDist: 40 },
@@ -16,7 +18,7 @@ LEVELS.push({
   lights: [{ x: -40, y: 2, z: 5, r: 60, i: 0.5, color: [255, 120, 40], flicker: 0.4 }, { x: 2.6, y: 1.3, z: 2.6, r: 5, i: 0.4, color: [255, 200, 140], flicker: 0.15 }],
   text: {
     intro: 'A hall of mirrors at the edge of the fair, after closing. Something is burning to the west and the ash is coming down through the roof.<br>There is someone behind you. There is always someone behind you. You can only see it in the glass, and it only comes while the glass in front of you does not show it. One of the mirrors is not like the others.',
-    hint: 'Face a mirror square on to hold it. The odd mirror has a moon on its frame, and in it the thing has its back to you: put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is angry: click the box to take it back.',
+    hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is angry: click the box to take it back.',
     objective: 'Find the odd mirror. Put the music box on its pedestal, fit the crank, turn it.',
     death: { default: 'You turned round.', wrong: 'It was not that mirror, and it was already behind you.' },
     win: 'It came out of the glass for the music box, smiling its painted smile, and took it back in with it. The tune went on somewhere behind the mirror for a long time, getting smaller.',
@@ -43,9 +45,15 @@ LEVELS.push({
     // four mirrors, one in the middle of each wall, each a hole in a painted wall with a dark room behind the glass
     s.odd = Math.floor(L.rand() * 4);
     s.mirrors = [0, 90, 180, 270].map((deg, k) => ({ deg, live: true, odd: k === s.odd }));
-    const crest = (ctx, P, odd) => {
+    // which way round the doll dances in mirror k: s.lead in the three alike and the other way round in the odd one. Which
+    // arm leads is rolled with each load (below), so the odd mirror is told only by comparing it with the others, never by
+    // which arm one glass shows going up. s.shown[k] is what that glass last drew (when, its dance time, which way round,
+    // and the pose)
+    const sideOf = k => (s.mirrors[k].odd ? -1 : 1) * s.lead;
+    s.shown = {};
+    // every frame has the same crest, a gilt sun: the odd mirror shows itself only by what dances in it
+    const crest = (ctx, P) => {
       const g = P.col(gilt), gd = P.col([104, 80, 38]);
-      if (odd) { P_ell(ctx, 0, 0.5, 0.34, 0.34, g); P_ell(ctx, 0.15, 0.57, 0.28, 0.28, P.col(board)); return; }   // a moon: a gilt disc with a bite of wall out of it
       for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; P_line(ctx, Math.cos(a) * 0.24, 0.5 + Math.sin(a) * 0.24, Math.cos(a) * 0.42, 0.5 + Math.sin(a) * 0.42, 0.06, g); }
       P_ell(ctx, 0, 0.5, 0.26, 0.26, g); P_ell(ctx, 0, 0.5, 0.15, 0.15, gd);                                  // a sun
     };
@@ -55,7 +63,7 @@ LEVELS.push({
       if (south) SC.doorway(L, { deg: 180, z: 3.5, x: 2.3, w: 1.2, h: 2.3, wallH: 3.2, left: 1.7, right: 3.5, color: board });
       SC.withYaw(L, m.deg, () => {
         for (const [x0, x1, y0, y1] of [[-0.92, -0.8, 0.13, 2.57], [0.8, 0.92, 0.13, 2.57], [-0.92, 0.92, 0.13, 0.25], [-0.92, 0.92, 2.45, 2.57]]) SC.wallV(L, x0, 3.47, x1, 3.47, y0, y1, gilt);
-        SC.sprite(L, 0, 2.55, 3.46, 0.3, 0.3, (ctx, P) => { ctx.scale(0.3, 0.3); crest(ctx, P, m.odd); });
+        SC.sprite(L, 0, 2.55, 3.46, 0.3, 0.3, (ctx, P) => { ctx.scale(0.3, 0.3); crest(ctx, P); });
         SC.quad(L, [-0.86, 0.2, 3.62], [0.86, 0.2, 3.62], [0.86, 2.5, 3.62], [-0.86, 2.5, 3.62], [20, 16, 22], { dist: 60, sortDist: 7.2 });   // drawn over anything behind the wall, under the reflection
         SC.quad(L, [-0.86, 0.2, 3.61], [0.86, 0.2, 3.61], [0.86, 0.62, 3.61], [-0.86, 0.62, 3.61], [44, 38, 36], { dist: 59.5, sortDist: 7.15 });
         SC.quad(L, [-0.8, 0.25, 3.48], [0.8, 0.25, 3.48], [0.8, 2.45, 3.48], [-0.8, 2.45, 3.48], [120, 140, 170], { alpha: 0.2, noLight: true });
@@ -132,6 +140,7 @@ LEVELS.push({
     // that way it would be seen through the doorway, outside the hall
     const sideRoll = L.rand();
     s.side = s.mirrors[s.odd].deg === 180 || sideRoll < 0.5 ? -1 : 1; s.flip = s.side > 0;
+    s.lead = (sideRoll * 2) % 1 < 0.5 ? 1 : -1;   // the next bit of the same roll, so the layout and the doll's start are as they were
     // placedAt: the pedestal the box is on (-1: none); crankIn: its crank is in its side; turns: turns before the odd mirror;
     // sour: it has played wrong where it is, and its crank sticks; angryTill: the doll is angry until then
     Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99, sour: false, angryTill: -99 });
@@ -221,12 +230,13 @@ LEVELS.push({
           : !s.crankIn ? 'Fit the crank to the music box.' : 'Turn the crank (' + s.turns + '/' + TURNS + ').';
 
     // ---- the fetch ----
-    // The last turn plays the whole tune and it comes for the box. In the odd mirror it turns round (its back, its side, its
+    // The last turn plays the whole tune and it comes for the box. In the odd mirror its dance stops dead and it lets its
+    // arms down, then turns round once on the spot, like the dancer on the box (its side, its back, its other side, its
     // face, smiling), runs at you down the glass and out through it (stepping up over the frame, the glass rippling), to one
     // side of the pedestal; however far off it was, it is there within about two and a half seconds. It reaches over, lifts
     // the box off the pedestal and takes it in both arms, backs into the glass with it, still smiling, and runs off side on
     // behind the glass, out of the frame. The mirror is empty, the pedestal bare, and the tune plays on.
-    const F = { turn: 0.65, reach: 0.35, lift: 0.8, back: 1.1, run: 1.3, after: 1.0 };
+    const F = { settle: 0.22, turn: 0.95, reach: 0.35, lift: 0.8, back: 1.1, run: 1.3, after: 1.0 };
     const AT = 2.3, LAT = 0.58, IN = 4.4, RUNLAT = 2.4, BOXW = 0.4, BOXY = 0.75, CA = CR.carryAt;
     const drawBox = (ctx, P) => { if (s.flip) ctx.scale(-1, 1); ICONS.musicbox(ctx, P, { crank: s.crankIn ? s.crankA : undefined, spin: s.spin }); };
     // where the box is while it is lifted (lift 0..1): off the pedestal, up over its cap, and down into the doll's arms in
@@ -244,10 +254,11 @@ LEVELS.push({
     const fetch = dt => {
       const c = c0(), m = s.mirrors[s.odd];
       if (!s.fetch) {
-        // its reflection in the odd mirror becomes the thing itself, on that mirror's line, as far behind the glass
+        // its reflection in the odd mirror becomes the thing itself, on that mirror's line, as far behind the glass, in the
+        // pose that glass showed (its dance the other way round), which it now eases out of
         s.fetch = { t: 0, D: 7 + c.dist, steps: 0, prev: 7 + c.dist };
         s.fetch.ap = clamp(0.9 + (s.fetch.D - AT) * 0.045, 1.3, 2.4);
-        c.retarget(1 + s.odd); c.dist = c.hold = s.fetch.D; c.lat = 0; c.back = true; c.smile = false;
+        c.retarget(1 + s.odd); c.dist = c.hold = s.fetch.D; c.lat = 0; c.back = false; c.smile = false; c.danceMir = sideOf(s.odd);
         L.lane = c.lane; L.laneIdx = c.lane.idx;
         if (!m.live) { m.live = true; s.sheetFall = { k: s.odd, t0: L.t }; const sh = L.targets.find(q => q.id === 'sheet' + s.odd); if (sh) sh.hidden = true; AUDIO.sfx('hiss'); }   // a sheet over it slides off
         s.ripples = [];
@@ -257,8 +268,9 @@ LEVELS.push({
       const t = f.t;
       let d = c.hold, lat = 0, run = false;
       c.rush = 0; c.arms = null; c.yOff = 0;
-      if (t < T1) {                       // it turns round: its back, its side, its face
-        c.back = t < 0.3; c.runPose = t >= 0.3 && t < 0.46; c.runDir = s.side; c.runGait = 0; c.smile = t >= 0.46;
+      if (t < T1) {                       // it stops dancing, then turns round once: its side, its back, its other side, its face
+        const r = t - F.settle;
+        c.back = r >= 0.14 && r < 0.4; c.runPose = (r >= 0 && r < 0.14) || (r >= 0.4 && r < 0.54); c.runDir = r < 0.2 ? -s.side : s.side; c.runGait = 0; c.smile = r >= 0.54;
       } else if (t < T2) {                // it runs at you, out through the glass, and to the side of the pedestal
         c.back = false; c.runPose = false; c.smile = true;
         const k = (t - T1) / f.ap;
@@ -305,6 +317,12 @@ LEVELS.push({
       if (L.won) c.angry = 0;
       else if (s.sour || L.t < s.angryTill) c.angry = 1;
       else if (c.angry) c.angry = Math.max(0, c.angry - dt / 0.8);
+      // its dance in the glass: one clock for every mirror, so they all show the same moment of it. The clock runs while it
+      // is calm and stops dead when the box plays wrong (it eases out of the dance into its angry stance, and back into it
+      // once its temper has gone) or when the tune fetches it (it lets its arms down, quickly, to turn round)
+      const calm = !L.won && !s.sour && L.t >= s.angryTill;
+      if (calm) c.danceT += dt;
+      c.dance = calm ? Math.min(1, c.dance + dt / 0.7) : Math.max(0, c.dance - dt / (L.won ? F.settle : 0.35));
       if (L.won) fetch(dt);
     };
     L.watchPoint = () => { const q = L.at(s.mirrors[s.odd].deg, 2.6, 1.0); return { x: q[0], y: q[1], z: q[2] }; };
@@ -335,17 +353,32 @@ LEVELS.push({
     }, { x: q[0], y: q[1], z: q[2], noLight: true, sortDist: 3.46 });
     L.dynamic = () => {
       const c = c0();
-      // what the mirrors show: the thing, at the distance a reflection would be; in the odd one it has its back to you.
-      // Once it has you, it has turned to face you, so the glass behind it shows its back
-      if (c.lane.follow) for (const m of s.mirrors) {
-        if (!m.live) continue;
-        const dd = 7 + c.dist, q = L.at(m.deg, dd, 0), odd = m.odd || G.state === 'dying';
-        R.add({ kind: 'sprite', x: q[0], y: q[1], z: q[2], w: CR.w, h: CR.h, dist: dd, sortDist: 7.1, fogScale: 0.6, draw: (ctx, P) => { c.back = odd; CR.draw(ctx, c, P); c.back = false; } });
-      }
+      // what the mirrors show: the thing, at the distance a reflection would be, dancing; in the odd one its dance is the
+      // mirror image of the others'. Once it has you, it has turned to face you, so the glass behind it shows its back.
+      // What each glass last drew is kept in s.shown (its dance time, which way round, and the pose). Every glass shows it
+      // alike otherwise: unlit by the fire out to the west, which would warm the one in the west glass and no other
+      if (c.lane.follow) s.mirrors.forEach((m, k) => {
+        if (!m.live) return;
+        const dd = 7 + c.dist, q = L.at(m.deg, dd, 0), back = G.state === 'dying';
+        R.add({ kind: 'sprite', x: q[0], y: q[1], z: q[2], w: CR.w, h: CR.h, dist: dd, sortDist: 7.1, fogScale: 0.6, noLight: true, draw: (ctx, P) => {
+          c.back = back; c.danceMir = sideOf(k); CR.draw(ctx, c, P);
+          s.shown[k] = { at: L.t, t: c.danceT, mir: c.danceMir, pose: c.pose };
+          c.back = false; c.danceMir = 1;
+        } });
+      });
       // come out for the box it is the thing itself, drawn by the game: behind the glass it goes over the dark of the mirror
       // room and under the walls and the glass, as its reflection did; through it, by how far it really is
       const cp = L.rend && L.rend.get(c);
-      if (cp) { const behind = !c.lane.follow && c.dist > 3.48; cp.sortDist = behind ? 7.1 : undefined; cp.fogScale = behind ? 0.6 : 0.85; }
+      if (cp) { const behind = !c.lane.follow && c.dist > 3.48; cp.sortDist = behind ? 7.1 : undefined; cp.fogScale = behind ? 0.6 : 0.85; cp.noLight = behind; }
+      // behind the glass it is lit by hand: as its reflection was (not at all) as it comes out of the dance, and more and more
+      // as it really is the nearer it runs to the glass, so it comes out into the room's light without a jump (and once it has
+      // been through, as it really is)
+      c.tint = null;
+      if (cp && cp.noLight && s.fetch) {
+        const k = s.ripples.length ? 1 : smoothstep((s.fetch.D - c.dist) / Math.max(0.01, s.fetch.D - 3.48)), p = c.pos();
+        const li = k > 0 && LIGHT.at(p.x, p.y + c.yOff + CR.h / 2, p.z);
+        if (li) c.tint = { lit: li.lit * k, color: li.color };
+      }
       s.mirrors.forEach((m, k) => {
         const sf = s.sheetFall && s.sheetFall.k === k ? clamp((L.t - s.sheetFall.t0) / 0.25, 0, 1) : 1;
         if (!m.live) for (const q of sheetAt[k]) R.add(q);
