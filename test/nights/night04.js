@@ -3,8 +3,9 @@
 // the padlock without its key, then finds the key and locks it. At the back gate they shut it, find they have no chain left,
 // fetch the second one, chain it and lock it. On the way it checks a click while the gate swings shut (no chain used up)
 // and the padlock tried on a shut gate before its chain. The watcher is held still because the harness spends its unseen budget scanning.
-// With both gates shut it is put at its own gate and looked at: through the gate's open middle it is seen whole. Once both
-// are locked, in the blinks of the ending it comes to its gate and shakes it three times, and does not get in.
+// With both gates shut it is put at its own gate and looked at: through the gate's thin bars it is seen whole, and the bars
+// are close enough to hold it, with a gap, not a bar, in the middle. Once both are locked, in the blinks of the ending it
+// comes to its gate and shakes it three times with its fists on the bars, and does not get in.
 const gate = id => "G.L.targets.find(t => t.id === '" + id + "')";
 const said = text => "G.lastToast.msg.includes('" + text + "')";
 const select = id => ['eval', "G.active = G.inv.findIndex(i => i.id === '" + id + "')"];
@@ -25,10 +26,13 @@ module.exports = {
     ['pickup', 'chain2'], ['use', 'backgate'], ['expect', gate('backgate') + ".chained && !G.hasItem('chain2')", 'the second chain goes on the back gate'],
     ['eval', '(() => { const c = G.L.creature; window.__hold = c.hold; c.hold = c.lane.barrierDist; G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.pitch = G.cam.tPitch = 0; })()'], ['wait', 250],
     ['expect', 'G.L.creature.seen && G.L.creature.visFrac > 0.99 && ' + gate('gate') + '.shut && ' + gate('backgate') + '.shut', 'at its gate, through the shut gate, it is seen whole'],
+    ['expect', 'G.L.s.bars.every((x, i, b) => i === 0 || x - b[i - 1] < 0.3) && !G.L.s.bars.some(x => Math.abs(x) < 0.08)', 'the bars are under 30 cm apart all the way across, with a gap in the middle'],
     ['eval', 'G.L.creature.hold = window.__hold;'],
     ['use', 'backgate'], ['expect', gate('backgate') + ".locked && !G.hasItem('padlock')", 'back gate locked with the second padlock'],
     ['eval', 'G.L.creature.hold = null;'],
     ['waitUntil', 'G.L.s.after && G.L.s.after.rattles === 3', 9000],
     ['expect', "G.state === 'won' && G.L.creature.dist <= G.L.creature.lane.barrierDist + 0.01", 'in the blinks it came to its gate and shook it three times, and did not get in'],
+    // seen from where you stand (the gate is at 2.6 m, it is further off), its fists are on bars and the hand it reaches with is in a gap
+    ['expect', '(() => { const c = G.L.creature, k = 2.6 / c.dist, on = x => G.L.s.bars.some(b => Math.abs(b - x * k) < 0.004); return on(c.grip) && on(-c.grip) && !G.L.s.bars.some(b => Math.abs(b - c.reach * k) < 0.08); })()', 'its fists are on the bars, and its reaching hand is through a gap'],
   ],
 };

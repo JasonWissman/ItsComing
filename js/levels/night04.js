@@ -233,7 +233,7 @@ LEVELS.push({
     // the other gate, where that gate's sound says it has come. It is a statue that only moves unseen, so the run only
     // goes on while nothing is looking at it: caught going round, it is a stone figure stopped mid-stride, side-on, its
     // head and shoulders over the wall (the run's own visibility, below, counts what shows over the walls, and through
-    // the open middle of a gate)
+    // the bars of a gate)
     const RUN = { v: 7, side: 4.6, corner: 3.6, gap: 3.2, tryT: 0.35 };   // gap: how far outside the other gate's barrier it comes in
     s.run = null;
     const lanePt = (lane, lx, lz) => ({ x: lane.dirX * lz + Math.cos(lane.yaw) * lx, y: 0, z: lane.dirZ * lz - Math.sin(lane.yaw) * lx });
@@ -290,13 +290,17 @@ LEVELS.push({
       if (Math.abs(dir) > 1e-3) c.runDir = Math.sign(dir);
     }
 
-    // Each gate is an arched iron frame: a stile at each end, a rail along the bottom and the arch over the top, and in a
-    // narrow panel at each end two bars, two short rails and a ring between them. The middle is open, so through a shut
-    // gate the whole of it shows, from its feet to the top of its head, however far off it is and even right at the gate:
-    // the bottom rail is under its feet, the arch over its head, the end panels outside its shoulders. A gate that has
-    // just been shaken (g.rattleAt) jolts on its hinges and its chain, and settles
-    const LEN = 2.1, TOP = 1.9, RISE = 0.38, FOOT = 0.1, PANEL = 0.3, ironC = [38, 38, 42];
+    // Each gate is an arched iron frame (a stile at each end, a rail along the bottom and the arch over the top) barred
+    // right across: thin upright bars, NGAP gaps of a hand's span or so, each bar run up through the arch to a point, and
+    // low down a second rail with a ring in every gap between it and the bottom rail. Every gap is far narrower than it is,
+    // so a shut gate plainly holds it; but the bars are thin and nothing crosses the gate at the height of its body or
+    // head, so through a shut gate nearly all of it shows, however far off it is and even right at the gate, and the middle
+    // of the gate is a gap, not a bar, so its face is in a gap when it stands at the gate. A gate that has just been shaken
+    // (g.rattleAt) jolts on its hinges and its chain, and settles
+    const LEN = 2.1, TOP = 1.9, RISE = 0.38, FOOT = 0.1, BAND = 0.42, NGAP = 9, BARW = 0.011, GRIP = 2, ironC = [38, 38, 42];
     const archY = u => TOP + RISE * (1 - Math.pow((u - LEN / 2) / (LEN / 2), 2));
+    const barU = k => 0.025 + k * (LEN - 0.05) / NGAP;   // along the gate from its hinge: k 0 and NGAP are the stiles
+    s.bars = Array.from({ length: NGAP + 1 }, (_, k) => barU(k) - LEN / 2);   // across a shut gate from its middle (the tests read it)
     L.dynamic = () => {
       for (const g of [gate, gate2]) {
         const e = L.t - (g.rattleAt === undefined ? -9 : g.rattleAt), k = e >= 0 && e < 1 ? Math.exp(-e * 5) : 0;
@@ -306,20 +310,21 @@ LEVELS.push({
         const bar = (u, y0, y1, w) => { const p = at(u - w), q = at(u + w); R.add(SC.mkWallV(L, p[0], p[1], q[0], q[1], y0 + hop, y1 + hop, ironC)); };
         const rail = (u0, u1, y, w) => { const p = at(u0), q = at(u1); R.add(SC.mkWallV(L, p[0], p[1], q[0], q[1], y - w + hop, y + w + hop, ironC)); };
         bar(0.025, 0.04, archY(0.025), 0.025); bar(LEN - 0.025, 0.04, archY(LEN - 0.025), 0.025);   // the stiles
-        rail(0, LEN, FOOT, 0.03);                                                                    // the bottom rail
+        rail(0, LEN, FOOT, 0.03); rail(0, LEN, BAND, 0.022);                                         // the bottom rail, and the one over the rings
         for (let i = 0; i < 14; i++) {                                                               // the arch
           const u0 = i / 14 * LEN, u1 = (i + 1) / 14 * LEN, p = at(u0), q = at(u1), y0 = archY(u0) + hop, y1 = archY(u1) + hop;
           R.add(SC.mkQuad(L, [p[0], y0 - 0.032, p[1]], [q[0], y1 - 0.032, q[1]], [q[0], y1 + 0.032, q[1]], [p[0], y0 + 0.032, p[1]], ironC));
         }
-        for (const [u0, u1] of [[0, PANEL], [LEN - PANEL, LEN]]) {                                    // the end panels
-          const um = (u0 + u1) / 2, ui = u0 === 0 ? u1 : u0;
-          bar(ui, FOOT, archY(ui), 0.02); bar(um, FOOT, archY(um), 0.013);
-          rail(u0, u1, 0.55, 0.022); rail(u0, u1, 1.45, 0.022);
-          const ring = [];
-          for (let j = 0; j <= 16; j++) { const t = j / 16 * TAU, p = at(um + Math.cos(t) * 0.1); ring.push(L.pt(p[0], 1.0 + hop + Math.sin(t) * 0.12, p[1])); }
-          R.add({ kind: 'poly', pts: ring, color: ironC, stroke: true, lw: 0.022 });
-          const tip = at(ui), ty = archY(ui) + 0.03 + hop;                                                   // a point on the arch over the inner bar
-          R.add(SC.mkQuad(L, [tip[0] - dx * 0.035, ty, tip[1] - dz * 0.035], [tip[0] + dx * 0.035, ty, tip[1] + dz * 0.035], [tip[0], ty + 0.11, tip[1]], [tip[0], ty + 0.11, tip[1]], ironC));
+        for (let b = 1; b < NGAP; b++) {                                                             // the bars, each to a point over the arch
+          const u = barU(b), top = archY(u) + 0.06;
+          bar(u, FOOT, top, BARW);
+          const tip = at(u), ty = top + hop;
+          R.add(SC.mkQuad(L, [tip[0] - dx * 0.026, ty, tip[1] - dz * 0.026], [tip[0] + dx * 0.026, ty, tip[1] + dz * 0.026], [tip[0], ty + 0.09, tip[1]], [tip[0], ty + 0.09, tip[1]], ironC));
+        }
+        for (let b = 0; b < NGAP; b++) {                                                             // a ring in each gap, between the two low rails
+          const um = (barU(b) + barU(b + 1)) / 2, r = (barU(b + 1) - barU(b)) / 2 - BARW, ym = (FOOT + BAND) / 2 + hop, ring = [];
+          for (let j = 0; j <= 16; j++) { const t = j / 16 * TAU, p = at(um + Math.cos(t) * r); ring.push(L.pt(p[0], ym + Math.sin(t) * 0.135, p[1])); }
+          R.add({ kind: 'poly', pts: ring, color: ironC, stroke: true, lw: 0.018 });
         }
         // the chain round the gate's end and its post, and the lock on it, just in front of the post's face (z 2.35) so they
         // are drawn over it whichever way the faces are ordered; they jump with the gate when it is shaken
@@ -332,8 +337,8 @@ LEVELS.push({
     // Both gates locked, the view goes to it and you do not look away; it only moves in the moments your eyes close. Each
     // blink it is nearer, in a new pose (and, if it was going round, round), until it is at the gate; each blink after that
     // it has the bars in its hands and the gate has just been shaken: it clangs and jolts on its chain, and the chain and
-    // the lock jump, and it is still there, holding the bars either side of the open middle, its face in the gap. It does
-    // not get in. Then the fade
+    // the lock jump, and it is still there, holding two of the bars, its face in the gap in the middle. It does not get
+    // in. Then the fade
     const BLINK = 0.26;
     function plan(c) {
       // a longer look round to it first: to where it is, or, if it was going round, to the gate it was going to (the view
@@ -342,6 +347,11 @@ LEVELS.push({
       const b = s.run ? s.run.to.barrierDist : (c.lane.barrierDist || 0), d0 = s.run ? s.run.d2 : c.dist, steps = [];
       if (s.run || d0 - b > 1.2) { if (d0 - b > 8) steps.push({ d: lerp(d0, b, 0.55) }); steps.push({ d: b + 0.9 }); }   // never a blink that puts it further off
       for (const pose of [4, 5, 2]) steps.push({ d: b, pose, shake: true });
+      // at the gate its hands are on bars, GRIP bars out from the first either side of the gap in the middle, and a hand
+      // goes through the gap next to the middle one: told to it in its own measure where it stands (b), seen through the
+      // gate (z 2.6), so its fists are on the bars from where you stand
+      const m = Math.ceil(NGAP / 2), k = b / 2.6;
+      c.grip = (barU(m + GRIP) - LEN / 2) * k; c.reach = ((barU(m) + barU(m + 1)) / 2 - LEN / 2) * k;
       const times = steps.map((st, i) => 1.1 + turn + i * 0.72);
       return { steps, times, next: 0, d: s.run ? c.dist : d0, end: times[times.length - 1] + 1.6, rattles: 0 };
     }
