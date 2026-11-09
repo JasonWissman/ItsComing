@@ -124,30 +124,52 @@ LEVELS.push({
     const BOARDS = [{ y: 1.23, hh: 0.27, tl: 0.022 }, { y: 2.04, hh: 0.25, tl: -0.016 }, { y: 0.61, hh: 0.27, tl: 0.018 }];
     const BOARD_Y = BOARDS.map(b => b.y);
     const BOARD = 0.27, doorH = 8 * BOARD, flatLit = { noLight: true }, doorWallOpts = Object.assign({}, tex, flatLit);
-    const doorWall = (z, hw, color, seam) => {
-      SC.wallV(L, -2.8, z, -hw, z, 0, 2.7, color, doorWallOpts); SC.wallV(L, hw, z, 2.8, z, 0, 2.7, color, doorWallOpts);
+    // the window beside the front doorway, a real hole in the wall on whole courses (so the boards round it line up with
+    // the boards beside it), its top level with the doorways'
+    const WIN = { x0: 1.3, x1: 2.4, y0: 4 * BOARD, y1: doorH, z: -2.4 };
+    const doorWall = (z, hw, color, seam, win) => {
+      SC.wallV(L, -2.8, z, -hw, z, 0, 2.7, color, doorWallOpts);
+      if (win) {   // the wall to the right of the doorway, round the window
+        SC.wallV(L, hw, z, win.x0, z, 0, 2.7, color, doorWallOpts); SC.wallV(L, win.x1, z, 2.8, z, 0, 2.7, color, doorWallOpts);
+        SC.wallV(L, win.x0, z, win.x1, z, 0, win.y0, color, doorWallOpts); SC.wallV(L, win.x0, z, win.x1, z, win.y1, 2.7, color, doorWallOpts);
+      } else SC.wallV(L, hw, z, 2.8, z, 0, 2.7, color, doorWallOpts);
       SC.wallV(L, -hw, z, hw, z, doorH, 2.7, color, doorWallOpts);
       // a dark line along every seam between courses (the boards themselves, with surface detail off), over the doorway too
       const zs = z - Math.sign(z) * 0.01;
       for (let i = 1; i < 10; i++) {
         const y = i * BOARD - 0.015, y1 = y + 0.03;
-        SC.wallV(L, -2.8, zs, -hw, zs, y, y1, seam, flatLit); SC.wallV(L, hw, zs, 2.8, zs, y, y1, seam, flatLit);
+        SC.wallV(L, -2.8, zs, -hw, zs, y, y1, seam, flatLit);
+        if (win && y > win.y0 && y < win.y1) { SC.wallV(L, hw, zs, win.x0, zs, y, y1, seam, flatLit); SC.wallV(L, win.x1, zs, 2.8, zs, y, y1, seam, flatLit); }   // not across the window
+        else SC.wallV(L, hw, zs, 2.8, zs, y, y1, seam, flatLit);
         if (y > doorH) SC.wallV(L, -hw, zs, hw, zs, y, y1, seam, flatLit);
       }
       return { z: Math.abs(z), x0: -hw, x1: hw, y0: 0, y1: doorH };   // the opening, as the lane sees it
     };
     L.addAperture(0, doorWall(2.6, 0.8, wood, [30, 24, 20]));
-    L.addAperture(1, doorWall(-2.4, 0.7, woodD, [26, 21, 17]));
+    L.addAperture(1, doorWall(-2.4, 0.7, woodD, [26, 21, 17], WIN));
     SC.wallV(L, -2.8, -2.4, -2.8, 2.6, 0, 2.7, woodD, tex);
     SC.wallV(L, 2.8, -2.4, 2.8, 2.6, 0, 2.7, woodD, tex);
     for (let i = 1; i < 10; i++) {
       const y = i * BOARD - 0.015, y1 = y + 0.03;
       SC.wallV(L, -2.79, -2.4, -2.79, 2.6, y, y1, [26, 21, 17]); SC.wallV(L, 2.79, -2.4, 2.79, 2.6, y, y1, [26, 21, 17]);
     }
-    // a window beside the front doorway with a little moonlight in it, and a sill under it
-    SC.wallV(L, 1.3, -2.39, 2.4, -2.39, 1.1, 2.0, [36, 42, 60]);
-    SC.wallV(L, 1.82, -2.38, 1.88, -2.38, 1.1, 2.0, woodD); SC.wallV(L, 1.3, -2.38, 2.4, -2.38, 1.52, 1.58, woodD);
-    SC.box(L, 1.24, 2.46, 1.04, 1.1, -2.39, -2.25, [70, 56, 42]);
+    // The window beside the front doorway: you see out of it, over the field to the south-east in the moonlight, and the
+    // thing too, if it runs past (see the run round the house). A little dark glass in it, with the moon's sheen across
+    // each pane, drawn after everything outside (the thing goes no nearer than BEHIND_WALLS, below) and before the
+    // window's own wood: a mullion down the middle and a transom a course below the head, a frame round it like the
+    // doorways', and the sill under it.
+    {
+      const { x0, x1, y0, y1, z } = WIN, xm = (x0 + x1) / 2, yt = y1 - BOARD, zi = z + 0.012, glassAt = Math.hypot(xm, z) + 0.25;
+      SC.wallV(L, x0, z, x1, z, y0, y1, [40, 50, 72], { alpha: 0.24, noLight: true, sortDist: glassAt });
+      for (const [a, b, c, d] of [[x0, xm, y0, yt], [xm, x1, y0, yt], [x0, xm, yt, y1], [xm, x1, yt, y1]]) {   // the sheen: a pale streak across each pane
+        const w = b - a, h = d - c, k = 0.24;
+        SC.quad(L, [a + w * 0.12, c + h * 0.1, z + 0.004], [a + w * (0.12 + k * 0.5), c + h * 0.1, z + 0.004], [a + w * (0.62 + k * 0.4), d - h * 0.08, z + 0.004], [a + w * 0.62, d - h * 0.08, z + 0.004], [170, 186, 220], { alpha: 0.045, noLight: true, sortDist: glassAt - 0.01 });
+      }
+      SC.wallV(L, xm - 0.026, zi, xm + 0.026, zi, y0, y1, woodD); SC.wallV(L, x0, zi, x1, zi, yt - 0.02, yt + 0.02, woodD);   // mullion, transom
+      const zf = z + 0.05;
+      SC.wallV(L, x0 - 0.07, zf, x0 + 0.015, zf, y0, y1 + 0.07, frame); SC.wallV(L, x1 - 0.015, zf, x1 + 0.07, zf, y0, y1 + 0.07, frame); SC.wallV(L, x0 - 0.07, zf, x1 + 0.07, zf, y1 - 0.015, y1 + 0.07, frame);
+      SC.box(L, x0 - 0.06, x1 + 0.06, 1.04, 1.1, z + 0.01, z + 0.15, [70, 56, 42]);
+    }
     // the empty door frames, the pale scars where hinges were, old nail holes in pairs down the other side where boards
     // have been nailed across before (the new ones cover them), and the steps outside
     for (const [z, w] of [[2.55, 0.8], [-2.35, 0.7]]) {
@@ -291,13 +313,34 @@ LEVELS.push({
     // sideways out of that doorway's view, goes round the outside of the house (running feet, a blow on the side wall as
     // it passes), and comes up to the other doorway (the creak of its step) from the same side, at about the distance it
     // was: never nearer than RUN.gap metres outside that doorway, so there is time to turn round, but not much.
+    // The walls hide it all the way round except where the window beside the front doorway genuinely shows it: going round
+    // it does not stop and run on the spot behind the wall but keeps on, flat out, the way it ran, so run out of the front
+    // doorway on the window's side it is seen through the window running past and on out of it; and coming round to the
+    // front doorway on that side it comes from beyond the window (inLat), running across it and behind the wall to the
+    // doorway, at the same pace (so it comes round that much sooner, RUN.lead, and is at the doorway when it would be).
     const RUN = { stop: 0.35, out: 1.1, round: 1.0, in: 0.8, gap: 10 };
     const outLat = d => d * 0.42 + 2.5;   // far enough to the side to be wholly behind the wall at distance d
     const panTo = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
+    // whether any of it, running (as wide as its stride), shows through the window at `lat` on way `ln`, `d` metres out
+    const inWindow = (ln, d, lat) => {
+      const p = APPROACH.position(ln, d, lat, L.eyeH), hw = Math.max(L.creature.CR.w, L.creature.CR.runW || 0) / 2 + 0.15;
+      if (p.z >= WIN.z) return false;
+      const k = WIN.z / p.z;
+      return (p.x + hw) * k > WIN.x0 && (p.x - hw) * k < WIN.x1;
+    };
+    // how far to the side it comes round to way ln at distance d, on the side sgn: wholly behind the wall, and beyond the
+    // window if the window looks out on that side of it
+    const inLat = (ln, d, sgn) => {
+      let far = 0;
+      for (let lat = outLat(d); lat < outLat(d) + 2 * d + 4; lat += 0.25) if (inWindow(ln, d, sgn * lat)) far = lat;
+      return far ? far + 0.25 : outLat(d);
+    };
     const boarded = t => {
       const c = L.creature, other = t === back ? front : back;
       if (other.done || s.run || c.lane.idx !== t.lane) return;   // both up (the night is won), already going round, or not coming this way
       s.run = { t: 0, from: c.lane, to: L.lanes[other.lane], side: c.rand() < 0.5 ? 1 : -1, d: c.dist, d2: c.dist, u0: c.u, steps: 0, banged: false, arrived: false };
+      const r = s.run, d2 = Math.max(r.d, (r.to.barrierDist || 0) + RUN.gap);
+      r.lead = clamp(RUN.in * (inLat(r.to, d2, -r.side) / outLat(d2) - 1), 0, RUN.round * 0.7);   // coming round beyond the window, it comes round sooner
       s.ranFrom = { lane: c.lane.idx, dist: c.dist };
       s.ran = true;
       c.hold = c.dist;
@@ -337,25 +380,25 @@ LEVELS.push({
         }
       }
       if (!r) return;
-      const T1 = RUN.stop, T2 = T1 + RUN.out, T3 = T2 + RUN.round, T4 = T3 + RUN.in;
-      if (L.won && r.t < T3) { r.t = T3; s.cutShort = true; }   // won while it was still going round: it comes round the corner now, to the doorway it was running to
+      const T1 = RUN.stop, T2 = T1 + RUN.out, T3 = T2 + RUN.round - r.lead;
+      if (L.won && !r.arrived && r.t < T3) { r.t = T3; s.cutShort = true; }   // won while it was still going round: it comes round the corner now, to the doorway it was running to
       r.t += dt;
       if (r.t < T1) return;   // it stops dead in the field, as the last board goes up in front of it
-      if (r.t >= T4) { c.runPose = false; c.runLat = 0; c.hold = null; s.run = null; return; }   // and walks on, at its own pace, from where it came round
+      if (r.arrived && r.t >= r.inAt + r.inT) { c.runPose = false; c.runLat = 0; c.hold = null; s.run = null; return; }   // and walks on, at its own pace, from where it came round
       c.runPose = true; c.runDir = r.side;
       c.runGait = (c.runGait || 0) + dt * 15;
       let yaw;
       if (r.t < T2) {          // flat out to one side, across the doorway and out of it
         c.runLat = r.side * outLat(r.d) * Math.pow((r.t - T1) / RUN.out, 1.5);
         yaw = r.from.yaw + Math.atan2(c.runLat, r.d);
-      } else if (r.t < T3) {   // out of sight, going round the house
-        const a0 = Math.atan2(outLat(r.d), r.d), k = (r.t - T2) / RUN.round;
-        c.runLat = r.side * outLat(r.d);
+      } else if (!r.arrived && r.t < T3) {   // going round the house, out of sight but through the window: on the way it ran, still flat out
+        const a0 = Math.atan2(outLat(r.d), r.d), k = (r.t - T2) / (T3 - T2), e = (r.t - T2) / RUN.out;
+        c.runLat = r.side * outLat(r.d) * (1 + 1.5 * e + 0.6 * e * e);   // on at the pace it ran out at, and faster
         yaw = r.from.yaw + r.side * lerp(a0, Math.PI - a0, k);
         if (!r.banged && k > 0.4) { r.banged = true; AUDIO.sfx('thud', panTo(r.from.yaw + r.side * Math.PI / 2)); G.shake(0.12); }   // a blow on the side wall, not on the boards
       } else {                 // round the corner and in front of the other doorway, then it turns to it
         if (!r.arrived) {
-          r.arrived = true;
+          r.arrived = true; r.inAt = Math.min(r.t, T3);
           r.d2 = Math.max(r.d, (r.to.barrierDist || 0) + RUN.gap);
           c.retarget(r.to.idx); c.reached = false;
           // a rotten plank tried while it was going round (it held still, so its progress only moved by that) still costs
@@ -363,9 +406,10 @@ LEVELS.push({
           r.d2 = c.D0 * Math.pow(1 - c.u, c.gamma); c.hold = c.dist = r.d2;
           L.lane = r.to; L.laneIdx = r.to.idx; L.barrierDist = r.to.barrierDist || 0;
           AUDIO.sfx(r.to.cue || 'creak', panTo(r.to.yaw));
+          r.lat2 = inLat(r.to, r.d2, -r.side); r.inT = RUN.in * r.lat2 / outLat(r.d2);   // from beyond the window, at the same pace
         }
         // it comes in from the side it went round by, which is the other hand of this doorway
-        c.runLat = -r.side * outLat(r.d2) * (1 - easeOut((r.t - T3) / RUN.in));
+        c.runLat = -r.side * r.lat2 * (1 - easeOut((r.t - r.inAt) / r.inT));
         yaw = r.to.yaw + Math.atan2(c.runLat, r.d2);
       }
       // running feet, loud enough to hear across the field

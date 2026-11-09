@@ -16,7 +16,7 @@ const drove = [
   ['waitUntil', "G.state === 'dying'", 3000],
   ['expect', "G.deathCause === 'drove' && G.L.creature.lungeFrom < 3 && Math.abs(G.L.creature.dist - Math.hypot(G.L.creature.pos().x - G.L.eye.x, G.L.creature.pos().z - G.L.eye.z)) < 0.05", 'it came up over the hood: the lunge starts at the car, where the car is now'],
   ['waitUntil', "G.state === 'dead'", 4000],
-  ['expect', "/^It reached you after \\d+ seconds?\\.<br>/.test(G.deathScreen.text) && G.deathScreen.text.endsWith('<br>' + G.L.text.death.drove)", 'the card says what happened, and nothing the gearstick said'],
+  ['expect', "G.deathScreen.text === G.L.text.death.drove && !/second/.test(G.deathScreen.text)", 'the card says what happened, and nothing the gearstick said (and no count of the seconds)'],
   ['eval', 'G.attempt = __att0 - 1; restartLevel()'],   // the attempt number feeds the layout: the same night again
   ['expect', "G.state === 'play' && !G.L.s.started && !G.L.s.keyIn && G.L.s.gear === 'D' && !G.L.eye && __layout() === __lay0", 'the same night again, from the start'],
 ];

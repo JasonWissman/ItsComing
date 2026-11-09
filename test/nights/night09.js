@@ -1,5 +1,5 @@
 // The Phone Booth: try the phone book (its pages are stuck), open the notebook from the inventory and turn its pages with
-// the arrow keys until the one that says not to wait, read the number off it, shut it. Find the coin (in the coin return, on
+// the arrow keys until the one with the number scrawled large across it in red, alone on its page, read it off, shut it. Find the coin (in the coin return, on
 // the shelf under the phone or on the floor in a corner by it) and pick it up. Face the phone, on the west wall: the view
 // comes in close. A key does nothing with the receiver on its hook; lift the receiver; a key still does nothing without a
 // coin; put the coin in; dial one of the ordinary numbers on the phone's own keys (not in service); hang up, and the coin
@@ -27,8 +27,10 @@ module.exports = {
     ['expect', "/will not come apart/.test(G.lastToast.msg)", 'the phone book is no use: its pages are stuck'],
     ['eval', "window.__dir = G.cam.dirIdx; document.querySelector('#inventory .slot').click()"],
     ['expect', visible('.pb-nb'), 'clicking the notebook in the inventory opens it'],
-    ['waitUntil', "(() => { const t = document.querySelector('.pb-page').textContent, m = /wait/i.test(t) && t.match(/555-01\\d\\d/); if (m) { window.__num = m[0].replace('-', ''); return true; } " + key('ArrowRight') + "; return false; })()", 20000],
-    ['expect', 'window.__num === G.L.s.number', 'the number on the page that says not to wait is the one'],
+    ['waitUntil', "(() => { const b = document.querySelector('.pb-page .pb-blood'); if (b) { const r = b.getBoundingClientRect(); window.__num = b.getAttribute('aria-label').replace('-', ''); window.__blood = { alone: !document.querySelector('.pb-page .pb-l') && document.querySelector('.pb-page').textContent.trim() === '', w: r.width, h: r.height, page: G.L.s.page }; return true; } " + key('ArrowRight') + "; return false; })()", 20000],
+    ['expect', 'window.__num === G.L.s.number && __blood.page === G.L.s.keyPage && __blood.page > 0', 'the number scrawled in red is the one, and it is not on the first page'],
+    ['expect', '__blood.alone && __blood.w > 300 && __blood.h > 150', 'it has the page to itself, written large across it'],
+    ['expect', "G.L.s.pages.filter(p => p.some(l => l[0] === '%')).length === 1 && G.L.s.pages.every((p, i) => i === G.L.s.keyPage || !p.join(' ').includes(G.L.s.numberText))", 'no other page is scrawled in red, and the number is written nowhere else'],
     ['expect', 'G.cam.dirIdx === window.__dir', 'the arrow keys turned the pages, not the view'],
     ['eval', "document.querySelector('.pb-close').click()"],
     ['expect', '!' + visible('.pb-nb'), 'the notebook shuts'],

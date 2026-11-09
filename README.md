@@ -91,10 +91,11 @@ some on the ground, so you have to turn and look down to find them.
 1. **The Field.** A tall thin walker crosses a moonlit field toward a farmhouse whose
    two doorways have no doors. Find the hammer, the nails and the loose planks, and board
    up both: board the one it is coming for and it runs round the house to the other. The
-   planks are wide old boards, and three of them close most of a doorway, leaving a slit at
-   eye level. Once the last one is up it charges that doorway, hits the boards, stoops to
-   look in at you through the slit with its fingers over the board, and pounds on them until
-   the night fades.
+   window beside the front doorway is glass you can see out of, over the field, and if it
+   runs round that side you see it go past. The planks are wide old boards, and three of
+   them close most of a doorway, leaving a slit at eye level. Once the last one is up it
+   charges that doorway, hits the boards, stoops to look in at you through the slit with its
+   fingers over the board, and pounds on them until the night fades.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
    fours, in bursts, in the headlights. Find the car keys (the green ones), put the stick in
    park and turn the key in the dash beside the dials until it catches; then pick a gear and
@@ -156,7 +157,8 @@ some on the ground, so you have to turn and look down to find them.
 9. **The Phone Booth.** It is raining and a man in a long coat is walking toward the
    booth, up the main street or along the pavement from the east. The pay phone is on the
    west wall, so using it means looking away from him; facing it brings the view in close.
-   Find the number in your notebook and a coin (in the coin return, on the shelf or on the
+   Find the number in your notebook (it has a page to itself, scrawled large across it in red
+   that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
    floor by the phone), then do what the card beside the keys says: lift the receiver, put
    the coin in and dial on the phone's own keys. It rings for seven seconds before anyone
    answers, and he keeps coming the whole time. A wrong number is not in service, and

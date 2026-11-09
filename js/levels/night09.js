@@ -3,7 +3,8 @@
 // A phone booth on a corner, at night, in the rain, with glass all round. A man in a long coat is walking toward it from a long
 // way off, up the main street or along the pavement from the east, swinging a lantern. The pay phone is on the west wall, the
 // side that looks along the pavement away from both, so using it means turning your back on him. Somewhere in your notebook,
-// among the shopping and the dentist, is the number to ring. It is a pay phone: lift the receiver, put a coin in (there is one
+// among the shopping and the dentist, is the number to ring, on a page of its own, scrawled large and fast in something red
+// that has run. It is a pay phone: lift the receiver, put a coin in (there is one
 // lying about in the booth) and dial on its own keys; it rings for seven seconds while he keeps coming, and then someone picks
 // up and a car comes for you. Every other number in the notebook belongs to someone ordinary and is not in service, and hanging
 // up gives the coin back, into the coin return.
@@ -47,7 +48,8 @@ Object.assign(ICONS, {
   const PHONE_DIR = 6;         // facing the phone is facing west
   const ROAD = -0.12;          // the road is a kerb's height below the pavement the booth stands on
   // ---------------- the notebook ----------------
-  // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice; {n} an ordinary number, {k} the one to ring
+  // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice, '%' scrawled across a page of its own in
+  // blood; {n} an ordinary number, {k} the one to ring
   const NAMES = ['Danny: {n}, after six', 'Mrs Pell upstairs: {n}', 'the garage: {n}', 'ask for Ray'];   // always in the notebook
   const NUMBERED = [   // pages with someone ordinary's number on them: at least one more of these is always in it
     ['#dentist', 'Dr Okafor, Tuesday the 14th', 'twenty to ten', 'if you can\'t make it ring {n}'],
@@ -63,11 +65,7 @@ Object.assign(ICONS, {
     ['#birthdays', 'Mum, 3rd March', 'Danny, the 19th', 'Ruth ?'],
   ];
   const COAT = ['saw the man in the coat again', 'same corner, same time', 'he doesn\'t look at the cars', 'he doesn\'t look at anything'];
-  const KEY = [
-    ['If it ever comes back:', '{k}.', '!Do not wait.'],
-    ['If you see him again,', 'ring {k}.', '!Don\'t wait for him to get close.'],
-    ['when he comes back', '{k}', '!straight away. Don\'t wait.'],
-  ];
+  const KEY = ['%{k}'];   // the number to ring, alone on its page, written large and fast in red
   // seven pages: the man in the coat, five ordinary ones and the one with the number, never first; every number distinct.
   // The five always include the names with their numbers and one more numbered page, so there are always a few
   // ordinary numbers to mistake for the one
@@ -79,13 +77,82 @@ Object.assign(ICONS, {
     const numbered = shuffle(NUMBERED.slice());
     const pages = shuffle([NAMES, numbered[0], COAT].concat(shuffle(numbered.slice(1).concat(PLAIN)).slice(0, 3)));
     const keyPage = 1 + Math.floor(rand() * pages.length);
-    pages.splice(keyPage, 0, KEY[Math.floor(rand() * KEY.length)]);
+    rand();   // one draw kept here, so every seed lays the night out as it always has
+    pages.splice(keyPage, 0, KEY);
     const filled = pages.map(lines => lines.map(l => l.replace('{k}', key).replace(/\{n\}/g, () => { const n = num(); others.push(n); return n; })));
     return { pages: filled, keyPage, numberText: key, number: key.replace('-', ''), others: others.map(n => n.replace('-', '')) };
   }
   const esc = t => String(t).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+  // the number to ring, as if written hastily in blood with a fingertip: each figure a stroke or two in a 50 x 80 box (y down),
+  // and where on it the blood runs down from
+  const FIGS = {
+    0: [['M28 5C9 3 2 40 6 62C10 84 41 80 45 48C49 18 38 1 21 9'], [26, 79]],
+    1: [['M11 19L28 4L25 79'], [25, 79]],
+    2: [['M5 20C9 1 43 -1 42 21C41 39 15 55 4 77L47 73'], [30, 75]],
+    3: [['M6 11C20 -1 45 4 38 22C33 33 23 36 17 37C39 35 49 52 41 66C33 81 10 80 3 69'], [22, 78]],
+    4: [['M31 3L4 53L47 50', 'M35 25L32 80'], [32, 80]],
+    5: [['M43 5L13 7L8 37C24 27 45 35 43 56C41 79 14 81 3 68'], [22, 79]],
+    6: [['M39 5C17 9 3 40 8 62C12 82 43 80 42 58C41 40 15 37 8 57'], [26, 79]],
+    7: [['M4 8L46 5L19 79'], [19, 79]],
+    8: [['M38 15C34 0 8 2 10 18C12 32 43 39 43 58C43 81 5 81 6 60C7 41 37 34 38 16'], [24, 80]],
+    9: [['M41 22C40 3 8 2 8 22C8 41 39 41 41 22L35 79'], [35, 79]],
+    '-': [['M5 42L35 38'], [20, 41]],
+  };
+  // the figures go across the page on a rising slant, each leaning and sized a little differently, in a stroke that is
+  // uneven (a dark rim where it dried, a second pass that skips, a wet sheen, ragged at the edges where the paper took it)
+  // with the blood soaking into the paper round it; a smear wiped under the lot, drips running straight down off the
+  // heaviest strokes, and a few spots flicked off the finger
+  function bloodHTML(text, rand) {
+    const r = (a, b) => a + (b - a) * rand(), f = v => v.toFixed(1);
+    const mul = (A, B) => [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3], A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]];
+    const T = (x, y) => [1, 0, 0, 1, x, y], Rot = a => [Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a), 0, 0];
+    const at = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+    const mx = m => 'matrix(' + m.map(v => v.toFixed(3)).join(' ') + ')';
+    const VW = 400, VH = 176, chars = text.split(''), adv = chars.map(ch => ch === '-' ? 33 : r(41, 46)), width = adv.reduce((a, b) => a + b, 0);
+    const G0 = [T(VW / 2, VH * 0.44), Rot(r(-8, -4) * DEG), T(-width / 2, -40)].reduce(mul);
+    const soak = [], rim = [], main = [], pass = [], sheen = [], drips = [], spots = [];
+    const drip = (x, y, len, w) => { const wob = r(-1.2, 1.2); drips.push('<path d="M' + f(x) + ' ' + f(y) + 'Q' + f(x + wob * 0.3) + ' ' + f(y + len * 0.5) + ' ' + f(x + wob) + ' ' + f(y + len) + '" stroke-width="' + f(w) + '"/><ellipse cx="' + f(x + wob) + '" cy="' + f(y + len + w * 0.35) + '" rx="' + f(w * 0.72) + '" ry="' + f(w * 0.95) + '"/>'); };
+    let x = 0;
+    chars.forEach((ch, i) => {
+      const [paths, low] = FIGS[ch] || FIGS['-'];
+      const m = [G0, T(x + 25, 40 + r(-4, 4)), Rot(r(-6, 5) * DEG), [1, 0, Math.tan(r(-17, -9) * DEG), 1, 0, 0], [r(0.9, 1.05), 0, 0, r(1.14, 1.28), 0, 0], T(-25, -40)].reduce(mul);
+      const w = r(6.2, 8.6), dash = () => [r(16, 40), r(3, 9), r(10, 30), r(2, 6)].map(f).join(' ');
+      for (const d of paths) {
+        const p0 = at(m, ...d.slice(1).split(/[ LC]/).slice(0, 2).map(Number));   // where the finger first pressed: a little pool
+        drips.push('<ellipse cx="' + f(p0[0]) + '" cy="' + f(p0[1]) + '" rx="' + f(w * r(0.6, 0.78)) + '" ry="' + f(w * r(0.55, 0.7)) + '" stroke="none"/>');
+        soak.push('<path d="' + d + '" transform="' + mx(m) + '" stroke-width="' + f(w + 6) + '"/>');
+        rim.push('<path d="' + d + '" transform="' + mx(m) + '" stroke-width="' + f(w + 1.8) + '"/>');
+        main.push('<path d="' + d + '" transform="' + mx(m) + '" stroke-width="' + f(w) + '"/>');
+        pass.push('<path d="' + d + '" transform="' + mx(mul(T(r(0.6, 1.6), r(0.2, 1.2)), m)) + '" stroke-width="' + f(w * 0.6) + '" stroke-dasharray="' + dash() + '"/>');
+        sheen.push('<path d="' + d + '" transform="' + mx(mul(T(-0.8, -1), m)) + '" stroke-width="' + f(w * 0.26) + '" stroke-dasharray="' + dash() + '"/>');
+      }
+      if (ch !== '-' && (i % 2 === 0 ? rand() < 0.7 : rand() < 0.35)) { const p = at(m, low[0] + r(-3, 3), low[1] - 3); drip(p[0], p[1], r(12, 42), r(2.2, 3.4)); }
+      if (rand() < 0.6) { const p = at(G0, x + r(-6, 50), r(-24, 112)); spots.push('<circle cx="' + f(p[0]) + '" cy="' + f(p[1]) + '" r="' + f(r(0.8, 2.6)) + '"/>'); }
+      x += adv[i];
+    });
+    // the smear: a finger wiped hard under it all, trailing off thinner, with a drip or two off it
+    const a = at(G0, r(-8, 6), r(98, 104)), c = at(G0, width * 0.5, r(104, 112)), e = at(G0, width + r(-6, 10), r(92, 100)), sm = 'M' + f(a[0]) + ' ' + f(a[1]) + 'Q' + f(c[0]) + ' ' + f(c[1]) + ' ' + f(e[0]) + ' ' + f(e[1]);
+    soak.push('<path d="' + sm + '" stroke-width="15"/>'); rim.push('<path d="' + sm + '" stroke-width="7.5" stroke-dasharray="' + f(width * 0.75) + ' 6 30 400"/>');
+    main.push('<path d="' + sm + '" stroke-width="5.6" stroke-dasharray="' + f(width * 0.7) + ' 5 24 7 14 400"/>');
+    for (let k = 0; k < 2; k++) { const t = r(0.15, 0.7), q = [(1 - t) * (1 - t) * a[0] + 2 * t * (1 - t) * c[0] + t * t * e[0], (1 - t) * (1 - t) * a[1] + 2 * t * (1 - t) * c[1] + t * t * e[1]]; drip(q[0], q[1], r(10, 30), r(2, 3)); }
+    const seed = Math.floor(rand() * 999);
+    return '<svg class="pb-blood" viewBox="0 0 ' + VW + ' ' + VH + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + esc(text) + '">' +
+      '<defs><filter id="pb-bleed" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="' + seed + '" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G" result="d"/><feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="1" seed="' + (seed + 1) + '" result="m"/><feDisplacementMap in="d" in2="m" scale="1.4" xChannelSelector="R" yChannelSelector="G"/></filter>' +
+      '<filter id="pb-soak" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.6"/></filter></defs>' +
+      '<g fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+      '<g filter="url(#pb-soak)" stroke="#8a2a1c" opacity=".2">' + soak.join('') + '</g>' +
+      '<g filter="url(#pb-bleed)">' +
+      '<g stroke="#4a0606" opacity=".75">' + rim.join('') + '</g>' +
+      '<g stroke="#850c0a">' + main.join('') + '</g>' +
+      '<g stroke="#9e1611" opacity=".85">' + pass.join('') + '</g>' +
+      '<g stroke="#850c0a" fill="#7a0a08">' + drips.join('') + '</g>' +
+      '<g stroke="#c8402e" opacity=".4">' + sheen.join('') + '</g>' +
+      '<g fill="#7a0a08" stroke="none">' + spots.join('') + '</g>' +
+      '</g></g></svg>';
+  }
   // a page as handwriting: each line a little off the level, a little off the margin, each word a little off the line
   function pageHTML(lines, rand) {
+    if (lines.length === 1 && lines[0][0] === '%') return bloodHTML(lines[0].slice(1), rand);
     return lines.map(l => {
       const cls = l[0] === '#' ? 'h' : l[0] === '~' ? 's' : l[0] === '!' ? 'e' : '', text = cls ? l.slice(1) : l;
       const words = text.split(/\s+/).map(w => '<span style="position:relative;top:' + ((rand() - 0.5) * 2.4).toFixed(1) + 'px;letter-spacing:' + ((rand() - 0.5) * 0.6).toFixed(2) + 'px">' + esc(w) + '</span>').join(' ');
@@ -107,6 +174,7 @@ Object.assign(ICONS, {
 .pb-l.h { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .pb-l.s { text-decoration: line-through; text-decoration-thickness: 2px; color: rgba(34,48,92,.7); }
 .pb-l.e { text-decoration: underline double; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.pb-blood { display: block; width: calc(100% + var(--mx) + 22px); height: calc(166px + var(--pt)); margin: calc(10px - var(--pt)) 0 0 calc(4px - var(--mx) - 12px); overflow: visible; }
 .pb-pno { position: absolute; right: 14px; bottom: 4px; font: italic 13px Georgia, 'Liberation Serif', serif; color: rgba(34,48,92,.5); }
 .pb-nav { position: absolute; z-index: 1; left: 12px; right: 12px; bottom: 7px; height: 28px; display: flex; align-items: center; justify-content: space-between; }
 .pb-nav span { font: 11px Georgia, 'Liberation Serif', serif; letter-spacing: .3em; color: rgba(234,223,196,.42); }
@@ -123,6 +191,7 @@ Object.assign(ICONS, {
   .pb-cover { padding: 15px 10px 34px; }
   .pb-sheet, .pb-page { min-height: 0; }
   .pb-page { padding-bottom: 8px; font-size: calc(13.5px * var(--text-scale)); }
+  .pb-blood { height: 122px; }
   .pb-nav { bottom: 4px; }
 }
 `;
