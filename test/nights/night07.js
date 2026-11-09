@@ -1,7 +1,8 @@
 // The Lighthouse, played twice. First the things that do not work before the blown fuse is out: a click on the lamp with
 // nothing in hand (the hand goes to it and the old bulb rattles in its socket); the fuse box opened (the hand pulls its door
 // open); the worn fuse lying about, and then the new one from the toolbox (tried in the open toolbox, it comes back), tried
-// at the clips with the blown fuse still in (each knocks against it and comes back to the hand). Then from the start: the
+// at the clips with the blown fuse still in (each knocks against it and comes back to the hand); and, without the new one,
+// the blown fuse taken out and pushed back with the worn one about you (it is the one tried, and drops out). Then from the start: the
 // spare bulb; open the fuse box and pull out
 // the blown fuse; push it back into the empty clips (it sits there a beat and drops out to the floor, where it is picked up
 // again); the bulb tried at the empty clips (back to the hand); the bulb into the lamp; the worn fuse into the clips (blown
@@ -40,12 +41,18 @@ const blownStillIn = [
   ...comesBack('oldfuse', 'the worn fuse at the clips with the blown one still in'),
   ['use', 'toolbox'], ['pickup', 'fuse'], ['use', 'toolbox'], ...comesBack('fuse', 'the toolbox open already'), ['face', 2], ['click', 'fusedoor'], ['expect', said('The blown fuse is still in it.') + ' && G.L.s.blownIn && !G.L.s.fuse', 'the new fuse with the blown one still in'],
   ...comesBack('fuse', 'the new fuse at the clips with the blown one still in'),
+  // without the new one: the blown fuse taken out and pushed back with the worn one about you is the one tried (not the worn one)
+  ['eval', 'G.removeFromInv(G.inv.find(i => i.id === "fuse"))'],
+  ['use', 'blownfuse'], ['face', 2], ['click', 'fusedoor'],
+  ['expect', said('That is the one that blew.') + ' && G.fumbling && G.fumbling.it.id === "blownfuse" && G.hasItem("oldfuse")', 'the blown fuse in hand is the one tried, though the worn one is about you too'],
+  ...dropsOut('blownfuse', 'the blown fuse pushed back in, the worn one about you'),
   ['eval', 'restartLevel()'], ['wait', 300],
 ];
 module.exports = {
   nightmare: blownStillIn.concat([
     ['pickup', 'bulb'],
-    ['use', 'fusebox'], ['expect', 'G.L.s.open && G.L.s.blownIn', 'fuse box open, the blown fuse still in it'],
+    ['use', 'fusebox'], ['expect', 'G.L.s.open && G.L.s.blownIn && (G.L.targets.find(t => t.id === "blownfuse").hidden || G.L.t >= G.L.s.openAt + 0.2)', 'fuse box open, the blown fuse still in it (to point at once the door has swung)'],
+    ['waitUntil', '!G.L.targets.find(t => t.id === "blownfuse").hidden', 2000],
     ['use', 'blownfuse'], ['expect', '!G.L.s.blownIn && G.inv.some(i => i.id === "blownfuse" && i.decoy) && G.inv[G.active].id === "blownfuse"', 'the blown fuse is out, in hand and worn'],
     ['click', 'fusedoor'], ['expect', said('That is the one that blew.'), 'the open door is the fuse box, and the fuse in hand is the one that blew'],
     ...dropsOut('blownfuse', 'the blown fuse pushed back in'),

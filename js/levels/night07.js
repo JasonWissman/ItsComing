@@ -190,16 +190,19 @@ LEVELS.push({
       hint() { return s.fuse ? 'A good fuse in it.' : !s.open ? 'The fuse box. Shut.' : s.blownIn ? 'Open. The fuse in it is blown. Take it out.' : 'Open. The fuse holder is empty.'; },
       onClick() {
         if (!s.open) {   // the hand takes the handle and pulls, and the door swings open on its hinges
-          s.open = true; s.openAt = L.t + 0.3; blown.hidden = false; door.hidden = false; G.say('Inside, the fuse is black and split. Blown.', 'The fuse inside is black and split.');
+          s.open = true; s.openAt = L.t + 0.3; G.say('Inside, the fuse is black and split. Blown.', 'The fuse inside is black and split.');   // (the fuse in it and the open door are there to point at once it has swung: L.update)
           s.opening = G.reach(box, { style: 'pull', at: [0.31, 0.5], onTouch() { s.openAt = Math.min(s.openAt, L.t); } });
           if (!s.opening) s.openAt = L.t;
           return true;
         }
+        if (L.t < s.openAt + 0.38) return true;   // still swinging open in the hand
+        if (G.fumbling && G.fumbling.target === box && G.fumbling.phase !== 'fall' && G.fumbling.phase !== 'bounce') return true;   // a fuse of yours at the clips already
         if (s.fuse) { G.say('A good fuse in it.', 'A new fuse in it.'); tryAt(box, CLIPS, { touch: fuseJig, fumble: { scale: 0.8 } }); return true; }
         if (s.blownIn) { G.say('Take the blown fuse out first.', 'The blown fuse is still in it.'); tryAt(box, CLIPS, { touch: fuseJig, fumble: { scale: 0.8, sfx: { hit: 'tink' } } }); return true; }
-        if (!G.inv.some(i => box.accepts.includes(i.id))) {
-          // only the blown fuse in hand is "the one that blew"; anything else, or nothing, finds the holder empty
-          const act = G.inv[G.active], old = !!act && act.id === 'blownfuse';
+        // only the blown fuse in hand is "the one that blew", and it is the one tried, though the worn one is about you too (the
+        // new one, if you have it, is put in for you); anything else, or nothing, finds the holder empty
+        const act = G.inv[G.active], old = !!act && act.id === 'blownfuse';
+        if ((old && !G.hasItem('fuse')) || !G.inv.some(i => box.accepts.includes(i.id))) {
           G.say(old ? 'That is the one that blew.' : 'The holder is empty. There is a new fuse in the toolbox.', old ? 'That is the one that blew.' : 'The fuse holder is empty.');
           if (old) { if (!G.fumble(act, box, intoClips) && !G.fumbling) AUDIO.sfx('nope'); } else tryAt(box, CLIPS, { fumble: { scale: 0.8 } });
           return true;
@@ -308,6 +311,7 @@ LEVELS.push({
       if (s.turning) s.lensSpin = (s.lensSpin || 0) + dt * TAU / 12 * s.beamSpeed;
       s.lensA = s.lensKick + (s.lensSpin || 0);
       if (s.open && !s.creaked && L.t >= s.openAt) { s.creaked = true; AUDIO.sfx('creak'); }   // the door swings as the hand pulls it
+      if (s.open && door.hidden && L.t >= s.openAt + 0.2) { door.hidden = false; blown.hidden = !s.blownIn; }   // and what is inside shows
       // and the hand on its handle goes round with it
       if (s.opening && G.hand.reach === s.opening && L.t >= s.openAt) s.opening.at = HANDS.pointOn(box, [-0.5 + 0.81 * Math.cos(smoothstep((L.t - s.openAt) / 0.38) * 1.96), 0.5], 0.02);
     };
