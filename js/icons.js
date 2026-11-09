@@ -157,10 +157,10 @@ const ICONS = {
     n = Math.max(1, n === undefined ? 3 : n);
     const m = ctx.getTransform(), asp = Math.hypot(m.a, m.b) / Math.max(1e-6, Math.hypot(m.c, m.d));
     const stuck = !!(opts && opts.stuck);
-    if (opts && opts.flip) ctx.scale(-1, 1);
     const shaft = P.col([204, 170, 118]), shaftD = P.col([140, 108, 70]), nockC = P.col([36, 28, 22]), fA = P.col([184, 44, 36]), fB = P.col([230, 220, 198]);
     const head = P.col([142, 144, 152]), headL = P.col([212, 214, 220]), twine = P.col([84, 66, 44]), twineL = P.col([146, 124, 88]), split = P.col([18, 12, 9]);
-    ctx.save(); ctx.scale(1 / asp, 1);   // from here x is in the same units as y
+    ctx.save(); if (opts && opts.flip) ctx.scale(-1, 1);   // flipped inside the save, so the caller's transform is left as it was
+    ctx.scale(1 / asp, 1);   // from here x is in the same units as y
     // the middle of the arrows, the way along them from nock to head, their length and how thick they are drawn
     let cx = 0, cy = 0.5, ax, ay, len, tk = 1;
     if (stuck) { ax = -0.78; ay = 0.63; len = Math.min(asp * 0.65, 0.95); cx = 0.78 * 0.44 * len; cy = 0.36; tk = 1.25 * 0.95 / len; }
