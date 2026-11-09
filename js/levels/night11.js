@@ -272,7 +272,8 @@ LEVELS.push({
     ];
     // how each is held (js/hands.js): a bottle in the fist low round its body (the oil shows above your fingers), its neck up
     // and a little over; the lit one the same, its flame over your knuckles (its icon is drawn smaller in its box, so it is
-    // held lower and drawn bigger); a rag bunched in the fist. The hands are lit a little more than the night's dark would have them, so the oil shows amber.
+    // held lower and drawn bigger); a rag bunched in the fist. The hands are lit a little more than the night's dark would
+    // have them, so the oil shows amber.
     const HELD = { bottle: { grip: 'fist', at: [0.02, 0.2], angle: 0.12, size: 0.27 }, lit: { grip: 'fist', at: [0.02, 0.17], angle: 0.12, size: 0.33 }, rag: { grip: 'fist', at: [0.02, 0.36], axis: 0.3, angle: -0.25, size: 0.2 } };
     const BOTTLE = { w: BW, h: BH, held: HELD.bottle, material: 'glass' };
     L.hands = { lit: 0.82 };
