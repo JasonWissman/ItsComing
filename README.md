@@ -91,10 +91,11 @@ some on the ground, so you have to turn and look down to find them.
 1. **The Field.** A tall thin walker crosses a moonlit field toward a farmhouse whose
    two doorways have no doors. Find the hammer, the nails and the loose planks, and board
    up both: board the one it is coming for and it runs round the house to the other. The
-   planks are wide old boards, and three of them close most of a doorway, leaving a slit at
-   eye level. Once the last one is up it charges that doorway, hits the boards, stoops to
-   look in at you through the slit with its fingers over the board, and pounds on them until
-   the night fades.
+   window beside the front doorway is glass you can see out of, over the field, and if it
+   runs round that side you see it go past. The planks are wide old boards, and three of
+   them close most of a doorway, leaving a slit at eye level. Once the last one is up it
+   charges that doorway, hits the boards, stoops to look in at you through the slit with its
+   fingers over the board, and pounds on them until the night fades.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
    fours, in bursts, in the headlights. Find the car keys (the green ones), put the stick in
    park and turn the key in the dash beside the dials until it catches; then pick a gear and
