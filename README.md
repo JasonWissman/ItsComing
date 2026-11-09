@@ -160,7 +160,8 @@ some on the ground, so you have to turn and look down to find them.
     rolling, a knee coming up, the head snapping over to one side, a rock from foot to
     foot), in step in all of them. One of the four mirrors is not like the others: in it the
     doll dances the other way round, the mirror image of the rest (the arm the others raise,
-    it raises on the other side, and its head goes over the other way). The mirrors are
+    it raises on the other side, and its head goes over the other way; which arm the others
+    raise changes from one load to the next, so only comparing tells). The mirrors are
     otherwise alike, and two are under dust sheets. The music box lies in one place and its
     crank in another. Any pedestal takes the box, and the crank fits its side on any of them,
     but its tune plays only before the odd mirror: there each turn plays a few notes of it,

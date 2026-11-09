@@ -45,9 +45,11 @@ LEVELS.push({
     // four mirrors, one in the middle of each wall, each a hole in a painted wall with a dark room behind the glass
     s.odd = Math.floor(L.rand() * 4);
     s.mirrors = [0, 90, 180, 270].map((deg, k) => ({ deg, live: true, odd: k === s.odd }));
-    // which way round the doll dances in mirror k (-1: the mirror image, in the odd one); s.shown[k] is what that glass
-    // last drew (when, its dance time, which way round, and the pose)
-    const sideOf = k => (s.mirrors[k].odd ? -1 : 1);
+    // which way round the doll dances in mirror k: s.lead in the three alike and the other way round in the odd one. Which
+    // arm leads is rolled with each load (below), so the odd mirror is told only by comparing it with the others, never by
+    // which arm one glass shows going up. s.shown[k] is what that glass last drew (when, its dance time, which way round,
+    // and the pose)
+    const sideOf = k => (s.mirrors[k].odd ? -1 : 1) * s.lead;
     s.shown = {};
     // every frame has the same crest, a gilt sun: the odd mirror shows itself only by what dances in it
     const crest = (ctx, P) => {
@@ -138,6 +140,7 @@ LEVELS.push({
     // that way it would be seen through the doorway, outside the hall
     const sideRoll = L.rand();
     s.side = s.mirrors[s.odd].deg === 180 || sideRoll < 0.5 ? -1 : 1; s.flip = s.side > 0;
+    s.lead = (sideRoll * 2) % 1 < 0.5 ? 1 : -1;   // the next bit of the same roll, so the layout and the doll's start are as they were
     // placedAt: the pedestal the box is on (-1: none); crankIn: its crank is in its side; turns: turns before the odd mirror;
     // sour: it has played wrong where it is, and its crank sticks; angryTill: the doll is angry until then
     Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99, sour: false, angryTill: -99 });

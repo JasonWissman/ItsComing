@@ -51,10 +51,11 @@ const danceHelpers = ['eval', `window._dance = (() => {
       }
       return l > n * 0.5 && even > n * 0.05;
     },
-    // what glass k drew last, this moment: the dance the right way round for it
+    // what glass k drew last, this moment: the dance the right way round for it (the three alike lead with the arm the load
+    // rolled, s.lead; the odd one the other way round)
     drew(k) {
       const d = s.shown[k];
-      return !!d && G.L.t - d.at < 0.25 && d.mir === (k === s.odd ? -1 : 1) && same(d.pose, CR.dancePose(d.t, d.mir));
+      return !!d && G.L.t - d.at < 0.25 && Math.abs(s.lead) === 1 && d.mir === (k === s.odd ? -1 : 1) * s.lead && same(d.pose, CR.dancePose(d.t, d.mir));
     },
   };
 })()`];
@@ -89,7 +90,7 @@ const right = k => [
   ['expect', 'G.L.creature.angry < 1', 'the right tune calms it'],
   ['click', ped(k)], ['expect', 'G.L.won && G.L.s.turns === 4', 'the fourth turn plays the tune'],
 ];
-const fetched = [['waitUntil', 'G.L.s.held && G.L.creature.lane.idx === 1 + G.L.s.odd', 8000], ['expect', 'G.L.s.held && !G.L.creature.angry && G.L.creature.dance === 0 && G.L.creature.danceMir === -1', 'it came out through the odd mirror and took the box, smiling, its dance over']];
+const fetched = [['waitUntil', 'G.L.s.held && G.L.creature.lane.idx === 1 + G.L.s.odd', 8000], ['expect', 'G.L.s.held && !G.L.creature.angry && G.L.creature.dance === 0 && G.L.creature.danceMir === -G.L.s.lead', 'it came out through the odd mirror and took the box, smiling, its dance over']];
 module.exports = {
   nightmare: sheets.concat(dance, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
 };
