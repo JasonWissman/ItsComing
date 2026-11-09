@@ -119,7 +119,8 @@ const HANDS = (() => {
     }
     if (H.thrust) { const th = H.thrust; if (th.wait !== undefined && th.wait < 0.5 && !(H.cur === th.item && H.up > 0.85)) th.wait += dt; else { th.wait = undefined; th.t += dt; if (th.t >= th.dur) { if (th.release) H.gone = th.item; H.thrust = null; } } }
     if (H.reach) updateReach(H.reach, dt);
-    if (G.state === 'play' || G.state === 'won') { for (const fx of falling.slice()) updateFumble(fx, dt); if (G.fumbling) updateFumble(G.fumbling, dt); }
+    for (const fx of falling.slice()) updateFumble(fx, dt);   // (caught, or won, what is in the air goes on falling)
+    if (G.fumbling) updateFumble(G.fumbling, dt);
   }
   // a thing just picked up comes from where it lay up into the hand
   // (from: the thing taken, when it joins a pile already in hand)
@@ -375,13 +376,14 @@ const HANDS = (() => {
     let x = lay.gx, y = lay.gy, s = lay.s, tilt = 0;
     y += (1 - smoothstep(up)) * below;
     y += smoothstep(H.low) * Math.min(below, (Math.max(0, -b.y0) * lay.s) * 0.6 + b.hu * 0.3);   // looking down: most of it below the edge
-    y += smoothstep(H.dodge) * clamp(Math.min((Math.max(0, -b.y0) * lay.s) * 0.3, Hv - b.hu * lay.s * 0.5 - lay.gy), 0, below);   // out of the way of a thing you could take behind it (the hand stays in view)
+    const dodge = smoothstep(H.dodge) * clamp(Math.min((Math.max(0, -b.y0) * lay.s) * 0.3, Hv - b.hu * lay.s * 0.5 - lay.gy), 0, below);
+    y += dodge;   // out of the way of a thing you could take behind it (the hand stays in view)
     if (!rm) {
       x += (H.sx * side) * Hv + Math.sin(G.t * 0.83) * Hv * 0.003;
       y += H.sy * Hv + Math.sin(G.t * 1.65) * Hv * 0.005;
       tilt = Math.sin(G.t * 1.1) * 0.012 + H.sx * 0.6;
     }
-    return { lay, g: { x, y, s, arm: lay.arm }, tilt };
+    return { lay, g: { x, y, s, arm: lay.arm }, tilt, dodge };
   }
   function screenOf(p) { const q = R.screenPos(p.x, p.y, p.z); return q ? { x: q.x, y: q.y, scale: q.scale } : null; }
   function draw(ctx, W, Hv) {
@@ -409,7 +411,7 @@ const HANDS = (() => {
       const o = { box: p.lay.box, tilt: p.tilt, swing: H.swing * spec.swing, alpha, curl, empty: out || alpha <= 0.01 || (!!H.fly && H.fly.it === it) };
       if (out) { o.pose = 'open'; o.curl = fx && fx.it === it && !fx.drop ? Math.min(o.curl, 0.55) : o.curl; }   // the hand it left, open (half open, waiting for it to come back)
       group(ctx, L, it, spec, { x, y, s, arm: p.g.arm }, lit, C, o);
-      box = { x0: x + p.lay.box.x0 * s, y0: y + p.lay.box.y0 * s, x1: x + p.lay.box.x1 * s, y1: y + p.lay.box.y1 * s };
+      box = { x0: x + p.lay.box.x0 * s, y0: y + p.lay.box.y0 * s, x1: x + p.lay.box.x1 * s, y1: y + p.lay.box.y1 * s, dodge: p.dodge };
     }
     // just picked up: it comes from where it lay up into the hand, growing to its size there, as the hand comes up to take
     // it (whatever was in the hand going down first)
@@ -428,7 +430,9 @@ const HANDS = (() => {
     // is it in front of the middle of something you could take, or a small thing you could use (a lock, a switch)? then
     // it is lowered out of the way a little
     H.box = box;
-    H.covering = !!box && H.low < 0.5 && R.hits.some(r => (r.kind === 'item' || (r.kind === 'target' && r.w < Hv * 0.3 && r.h < Hv * 0.3)) && hits(box, { x0: r.x + r.w * 0.35, y0: r.y - R.viewY + r.h * 0.35, x1: r.x + r.w * 0.65, y1: r.y - R.viewY + r.h * 0.65 }));
+    // (judged where it would be without that, or it would come back up as soon as it had gone down, and shake)
+    const rest = box && { x0: box.x0, y0: box.y0 - box.dodge, x1: box.x1, y1: box.y1 - box.dodge };
+    H.covering = !!box && H.low < 0.5 && R.hits.some(r => (r.kind === 'item' || (r.kind === 'target' && r.w < Hv * 0.3 && r.h < Hv * 0.3)) && hits(rest, { x0: r.x + r.w * 0.35, y0: r.y - R.viewY + r.h * 0.35, x1: r.x + r.w * 0.65, y1: r.y - R.viewY + r.h * 0.65 }));
   }
 
   // ---------------- a push toward what it was used on ----------------

@@ -185,7 +185,7 @@ function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;
 function showTitle() {
   if (G.L && G.L.onEnd) G.L.onEnd();
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
-  G.inv = [];
+  G.inv = []; HANDS.reset();   // nothing in hand or in the air behind the title
   G.L = buildLevel(0);
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed);

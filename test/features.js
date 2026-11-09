@@ -597,10 +597,37 @@ const hoverHit = lookFor;
     return { id: G.hand.cur && G.hand.cur.id, n: G.inv.length, box: b && [b.x0, b.y0, b.x1, b.y1].map(Math.round), right: !!b && b.x0 > R.W / 2 && b.x0 > inv.right - 4 };
   });
   check(hv.right, 'with the inventory full, what you hold stays in the bottom right (' + JSON.stringify(hv) + ')');
+  // in front of something you could take it dips out of the way, and stays dipped: it does not shake up and down (the
+  // boathouse, holding each thing in turn, looking each way)
+  await T.open(page, 'level=6&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    for (const c of G.L.creatures) c.hold = c.dist; G.mouse.x = -1; G.step(0.05, 2);
+    for (const it of G.L.items.filter(i => !i.taken).slice(0, 3)) { pickup(it); G.step(0.05, 12); }
+    let dipped = 0, worst = 0;
+    for (let k = 0; k < G.inv.length; k++) {
+      G.active = k; G.step(0.05, 12);
+      for (let d = 0; d < 8; d++) {
+        G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+        const seq = []; for (let i = 0; i < 60; i++) { G.step(0.05, 1); seq.push(G.hand.dodge); }
+        let flips = 0; for (let i = 2; i < seq.length; i++) { const a = Math.sign(seq[i] - seq[i - 1]), b = Math.sign(seq[i - 1] - seq[i - 2]); if (a && b && a !== b) flips++; }
+        if (Math.max(...seq) > 0.5) dipped++; worst = Math.max(worst, flips);
+      }
+    }
+    return { held: G.inv.map(i => i.id), dipped, worst };
+  });
+  check(hv.dipped > 0 && hv.worst <= 1, 'held in front of something you could take, it dips out of the way and stays there, without shaking (' + JSON.stringify(hv) + ')');
   // won, it is lowered out of the way of watching how it ends
   await n1();
   hv = await page.evaluate(take => { eval(take); G.step(0.05, 12); const up0 = G.hand.up; win(); G.step(0.05, 12); return { up0, up1: G.hand.up }; }, take('hammer'));
   check(hv.up0 === 1 && hv.up1 === 0, 'once the night is won the hand goes down out of view');
+  // left for the title with a thing in the air: nothing of it is left behind the title
+  await n1();
+  hv = await page.evaluate(take => {
+    eval(take); G.step(0.05, 12); useTarget(G.L.targets.find(t => t.id === 'frontdoor')); G.step(0.04, 12);
+    const was = G.fumbling && G.fumbling.phase; showTitle(); G.step(0.05, 4);
+    const o = { was, after: G.fumbling, cur: G.hand.cur, state: G.state }; MENU.clear(); return o;
+  }, take('planks'));
+  check(hv.was && !hv.after && !hv.cur && hv.state === 'title', 'quit to the title with a plank in the air: nothing is left in hand or in the air (' + JSON.stringify(hv) + ')');
   // on a phone, with the touch buttons in the bottom right (or on the left, the inventory there instead), it keeps clear of them
   for (const left of [false, true]) {
     const ctx2 = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
