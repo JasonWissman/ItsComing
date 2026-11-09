@@ -1,34 +1,54 @@
-// The Quarry: each gate is pulled shut, chained and padlocked, and the padlock needs its key. The player finds one chain,
-// the padlock and the rusted padlock first, shuts and chains the gate, tries the rusted padlock (it will never open), tries
-// the padlock without its key, then finds the key and locks it. At the back gate they shut it, find they have no chain left,
-// fetch the second one, chain it and lock it. On the way it checks a click while the gate swings shut (no chain used up)
-// and the padlock tried on a shut gate before its chain. The watcher is held still because the harness spends its unseen budget scanning.
+// The Quarry: each gate is pulled shut, chained and padlocked, and the padlock needs its key. Empty-handed, the player pulls
+// the back gate shut and pushes it: nothing holds it, so it swings out a little and falls back shut. Then they find one chain,
+// the padlock and the rusted padlock, pull the gate shut and throw the chain round it while it is still swinging: the gate
+// swings into the post and knocks the chain off to the ground, where it is picked up again. They chain the shut gate, try the
+// rusted padlock (it will not snap shut, and drops by the gate), try the padlock without its key (it will not open, and comes
+// back), then find the key and lock it. At the back gate the key pokes at the bars, the padlock has nothing to close on, and
+// the rotten rope slips off the bars to the ground (it is picked up again from there); they fetch the second chain, chain it
+// and lock it. The watcher is held still because the harness spends its unseen budget scanning.
 // With both gates shut it is put at its own gate and looked at: through the gate's thin bars it is seen whole, and the bars
 // are close enough to hold it, with a gap, not a bar, in the middle. Once both are locked, in the blinks of the ending it
 // comes to its gate and shakes it three times with its fists on the bars, and does not get in.
 const gate = id => "G.L.targets.find(t => t.id === '" + id + "')";
+const item = id => "G.L.items.find(i => i.id === '" + id + "')";
 const said = text => "G.lastToast.msg.includes('" + text + "')";
 const select = id => ['eval', "G.active = G.inv.findIndex(i => i.id === '" + id + "')"];
+const lies = id => '!G.fumbling && !' + item(id) + '.taken && ' + item(id) + '.y === G.L.floor.y';   // dropped, and lying on the ground
+const back = id => "!G.fumbling && G.hasItem('" + id + "') && G.hand.cur && G.hand.cur.id === '" + id + "'";   // back in the hand
 module.exports = {
   nightmare: [
     ['eval', 'G.L.creature.hold = G.L.creature.dist;'],
+    ['use', 'backgate'], ['expect', said('swings shut') + " && G.hand.reach && G.hand.reach.style === 'pull'", 'empty-handed, the open back gate is pulled shut'],
+    ['waitUntil', gate('backgate') + '.shut', 3000],
+    ['click', 'backgate'], ['expect', said('nothing holds it') + " && G.hand.reach && G.hand.reach.style === 'push'", 'pushed, the shut back gate with nothing to hold it'],
+    ['waitUntil', gate('backgate') + '.angle > 0.1', 2000],   // swings out a little
+    ['waitUntil', gate('backgate') + '.angle === 0 && ' + gate('backgate') + '.shut && ' + gate('backgate') + '.nudgeAt === undefined', 3000],   // and falls back shut
     ['pickup', 'chain'], ['pickup', 'padlock'], ['pickup', 'oldlock'],
     ['use', 'gate'], ['expect', said('swings shut'), 'clicking the open gate swings it shut'],
-    ['click', 'gate'], ['expect', said('still swinging') + " && G.hasItem('chain') && !" + gate('gate') + '.chained', 'a click while it swings says so and does not use up the chain'],
+    select('chain'), ['click', 'gate'],
+    ['expect', said('still swinging') + " && !G.hasItem('chain') && !" + gate('gate') + '.chained && G.fumbling && G.fumbling.it === ' + item('chain') + ' && G.fumbling.drop', 'the chain thrown round the gate while it swings: not used up, it leaves the hand'],
     ['waitUntil', gate('gate') + '.shut', 3000],
+    ['waitUntil', lies('chain'), 4000],   // knocked off as the gate swings into the post, it falls to the ground
+    ['pickup', 'chain'],                  // where it is seen and taken again
     ['use', 'gate'], ['expect', gate('gate') + ".chained && !G.hasItem('chain')", 'the chain goes on the shut gate and is used up'],
-    select('oldlock'), ['use', 'gate'], ['expect', '!' + gate('gate') + '.locked && ' + said('Rusted solid'), 'the rusted padlock will not do'],
-    select('padlock'), ['use', 'gate'], ['expect', '!' + gate('gate') + '.locked && ' + said('locked shut'), 'the padlock will not open without its key'],
+    select('oldlock'), ['use', 'gate'], ['expect', '!' + gate('gate') + '.locked && ' + said('Rusted solid') + " && !G.hasItem('oldlock')", 'the rusted padlock will not do: it leaves the hand'],
+    ['waitUntil', lies('oldlock'), 4000],   // it will not snap shut, and drops by the gate
+    select('padlock'), ['use', 'gate'], ['expect', '!' + gate('gate') + '.locked && ' + said('locked shut') + ' && G.fumbling && G.fumbling.preset === "bump" && !G.fumbling.drop', 'the padlock will not open without its key: it is tugged at on the chain'],
+    ['waitUntil', back('padlock') + " && G.inv.find(i => i.id === 'padlock').uses === 2", 3000],   // and comes back
     ['pickup', 'gatekey'], ['use', 'gate'], ['expect', gate('gate') + '.locked', 'gate locked'],
-    ['use', 'backgate'], ['waitUntil', gate('backgate') + '.shut', 3000],
     select('gatekey'), ['use', 'backgate'], ['expect', '!' + gate('backgate') + '.chained && ' + said('nothing holds it'), 'a shut gate with no chain to hand says so'],
-    select('padlock'), ['use', 'backgate'], ['expect', '!' + gate('backgate') + '.locked && ' + said('nothing to close on'), 'the padlock on a shut gate with no chain has nothing to close on'],
+    ['waitUntil', back('gatekey'), 3000],   // the key pokes at the bars and comes back
+    select('padlock'), ['use', 'backgate'], ['expect', '!' + gate('backgate') + '.locked && ' + said('nothing to close on') + ' && G.fumbling && G.fumbling.target === ' + gate('backgate'), 'the padlock on a shut gate with no chain has nothing to close on'],
+    ['waitUntil', back('padlock'), 3000],
+    ['pickup', 'rope'], ['use', 'backgate'], ['expect', '!' + gate('backgate') + ".chained && !G.hasItem('rope') && " + said('nothing holds it'), 'the rotten rope wound round the bars will not hold it'],
+    ['waitUntil', lies('rope'), 4000],   // it slips off and falls
+    ['pickup', 'rope'],
     ['pickup', 'chain2'], ['use', 'backgate'], ['expect', gate('backgate') + ".chained && !G.hasItem('chain2')", 'the second chain goes on the back gate'],
     ['eval', '(() => { const c = G.L.creature; window.__hold = c.hold; c.hold = c.lane.barrierDist; G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.pitch = G.cam.tPitch = 0; })()'], ['wait', 250],
     ['expect', 'G.L.creature.seen && G.L.creature.visFrac > 0.99 && ' + gate('gate') + '.shut && ' + gate('backgate') + '.shut', 'at its gate, through the shut gate, it is seen whole'],
     ['expect', 'G.L.s.bars.every((x, i, b) => i === 0 || x - b[i - 1] < 0.3) && !G.L.s.bars.some(x => Math.abs(x) < 0.08)', 'the bars are under 30 cm apart all the way across, with a gap in the middle'],
     ['eval', 'G.L.creature.hold = window.__hold;'],
-    ['use', 'backgate'], ['expect', gate('backgate') + ".locked && !G.hasItem('padlock')", 'back gate locked with the second padlock'],
+    select('padlock'), ['use', 'backgate'], ['expect', gate('backgate') + ".locked && !G.hasItem('padlock')", 'back gate locked with the second padlock'],
     ['eval', 'G.L.creature.hold = null;'],
     ['waitUntil', 'G.L.s.after && G.L.s.after.rattles === 3', 9000],
     ['expect', "G.state === 'won' && G.L.creature.dist <= G.L.creature.lane.barrierDist + 0.01", 'in the blinks it came to its gate and shook it three times, and did not get in'],
