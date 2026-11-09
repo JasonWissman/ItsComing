@@ -1,23 +1,14 @@
 'use strict';
 // ============================================================ 5. THE CLEARING ============================================================
-// A bow and a quiver of three arrows, somewhere on the porch. Hold the button to draw: a power bar beside the aim fills,
-// and a green band on it marks how far to draw to reach the thing from where it is right now (further out, more draw and
-// a narrower band; past the bow's range, no band at all). Let go in the band with the aim on it and the arrow goes in;
-// short of the band it drops into the snow short of it, past the band (or held at the top until the string slips) it
-// flies wild over it, in the band but off it, it misses. A tap looses nothing: the bow comes up, the string starts back,
-// and it is let down again. Two hits put it down (the first drops it for a moment); with all three arrows gone and it
-// still up, it stops watching and comes flat out. (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
+// A bow somewhere on the porch, and three arrows lying about it, each in a place of its own. Hold the button to draw: a
+// power bar beside the aim fills, and at the top it is full (it goes green, and the string comes tight with a click), and
+// it stays full for as long as you hold it. Let go full with the aim on it and the arrow goes in, however far off it is (the
+// further, the smaller it is to aim at); full but off it, it misses; let go before it is full and it drops into the snow
+// short of it. A tap looses nothing: the bow comes up, the string starts back, and it is let down again. Two hits put it
+// down (the first drops it for a moment); with all three arrows gone and it still up, it stops watching and comes flat
+// out. (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
 const CLEARING_BOW = (() => {
-  const RANGE = 50, FILL = 1.5, MIN = 0.18;
-  // the band for where it is now: [lo, hi] of the bar, or null out of range
-  function band(c) {
-    const d = Math.hypot(c.dist, c.lat || 0);
-    if (d > RANGE) return null;
-    const k = d / RANGE, mid = 0.27 + 0.6 * k, half = lerp(0.07, 0.045, k);
-    return [mid - half, mid + half];
-  }
-  // how far an arrow loosed at a given draw goes before it drops (the inverse of the band's middle)
-  const reach = p => (p - 0.27) / 0.6 * RANGE;
+  const FILL = 1.5, MIN = 0.18;
   // the world direction through a point on the screen (page coordinates), from the eye
   function rayAt(aim) {
     const x = (aim.x - R.W / 2) / R.f, y = -(aim.y - R.viewY - R.H / 2) / R.f;
@@ -44,14 +35,17 @@ const CLEARING_BOW = (() => {
     const am = aim ? { x: clamp(aim.x, W * 0.1, W * 0.9), y: clamp(aim.y - R.viewY, H * 0.28, H * 0.62) } : null;   // it follows the aim, but not up or down off the view
     const ax = am ? lerp(W / 2 + 0.3 * S, am.x, up) : W / 2 + 0.3 * S, ay = (am ? lerp(H / 2, am.y, up) : H / 2) + (1 - up) * 0.6 * S + (1 - show) * 0.7 * S;
     let tx = 0, ty = 0;
-    if (d && d.state === 'drawing' && d.power > 0.8 && !SAVE.data.settings.reducedMotion) {   // the arms shake as it nears full draw, and more at the top
-      const a = (d.power - 0.8) * 0.012 + (d.power >= 1 ? 0.004 : 0);
+    if (d && d.state === 'drawing' && d.power > 0.8 && !SAVE.data.settings.reducedMotion) {   // the arms tremble a little as it nears full draw (the bow, never the aim)
+      const a = (d.power - 0.8) * 0.01 + (d.power >= 1 ? 0.002 : 0);
       tx = Math.sin(G.t * 53) * a * S; ty = Math.cos(G.t * 41) * a * S;
     }
     ctx.save(); ctx.translate(ax + tx, ay + ty); ctx.rotate((1 - up) * 0.32); ctx.scale(S, S);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const rest = V([0, 0], DIR, -0.2);   // the shelf the arrow rests on
-    const tipOf = sgn => V(V(rest, W_, sgn * (0.6 - 0.035 * pull)), BACK, 0.05 * pull);
+    // the limbs bend most over the last of the draw (as a bow's weight builds): fully drawn, their tips are hauled hard back
+    // and in, and the string, taut, catches the light
+    const bend = pull + 1.5 * Math.pow(pull, 8), taut = clamp((pull - 0.97) / 0.03, 0, 1);
+    const tipOf = sgn => V(V(rest, W_, sgn * (0.6 - 0.04 * bend)), BACK, 0.055 * bend);
     const nock = V(rest, DIR, -(0.06 + pull * 0.86));
     // the bow arm, in from the left at the bottom to the hand on the grip: a dark wool sleeve, the light along its top
     const wrist = V(V(rest, W_, -0.05), [-1, 0.25], 0.03), elbow = V(rest, [-0.62, 0.62], 1);
@@ -82,7 +76,7 @@ const CLEARING_BOW = (() => {
     ctx.fillStyle = col(COL.glove, 1.15); ctx.beginPath(); ctx.ellipse(0.03, -0.018, 0.026, 0.012, -0.4, 0, TAU); ctx.fill();
     ctx.restore();
     // the string, from each tip back to the nock
-    seg(ctx, tipOf(1), nock, 0.0035, col(COL.string)); seg(ctx, tipOf(-1), nock, 0.0035, col(COL.string));
+    for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0035 + 0.001 * taut, col(COL.string, 1 + 0.25 * taut));
     // the arrow on the string: nocked while it is drawn or ready; just loosed, the string is bare, then the next is
     // brought up and nocked (if there is one)
     let arrowAt = null;
@@ -109,7 +103,7 @@ const CLEARING_BOW = (() => {
     }
     ctx.restore();
   }
-  return { RANGE, FILL, MIN, band, reach, rayAt, inHands };
+  return { FILL, MIN, rayAt, inHands };
 })();
 LEVELS.push({
   id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
@@ -119,7 +113,7 @@ LEVELS.push({
   lights: [{ x: 1.7, y: 1.7, z: -1.45, r: 6, i: 0.55, color: [255, 190, 110], flicker: 0.15 }],
   text: {
     intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming for the porch.',
-    hint: 'The bow is somewhere on the porch, and so are its three arrows. Hold to draw, and let go with the bar in the green and it in your sights. It takes two hits to put it down.',
+    hint: 'The bow is somewhere on the porch, and its three arrows are lying about, each in a different place. Hold to draw until the bar is full, and let go with it in your sights. It takes two hits to put it down.',
     objective: 'Get the bow and the arrows. Two hits.',
     death: { default: 'It did not even slow down on the steps.', wounded: 'It got back up faster than you could draw again.', spent: 'You had nothing left to draw.' },
     win: 'You sat on the porch with the bow across your knees until it got light, and nothing else came out of the trees. This time.',
@@ -133,8 +127,8 @@ LEVELS.push({
   creatures: [{ type: 'runner', startDist: 115, time: 50, unseenMult: 1.3 }],
   aftermath: { type: 'down', dur: 3.8 },
   uses: [{
-    tool: 'bow', ammo: 'arrows', range: CLEARING_BOW.RANGE, sfx: 'twang', shake: 0.1, emptyText: 'No arrows.', fireText: 'Draw.',
-    draw: { fill: CLEARING_BOW.FILL, min: CLEARING_BOW.MIN, band: c => CLEARING_BOW.band(c), loose: (outcome, c, aim, power, L) => L.s.loose(outcome, c, aim, power) },
+    tool: 'bow', ammo: 'arrows', range: Infinity, sfx: 'twang', shake: 0.1, emptyText: 'No arrows.', fireText: 'Draw.',
+    draw: { fill: CLEARING_BOW.FILL, min: CLEARING_BOW.MIN, loose: (outcome, c, aim, power, L) => L.s.loose(outcome, c, aim, power) },
     inHands: (ctx, W, H, d, L, aim) => CLEARING_BOW.inHands(ctx, W, H, d, L, aim),
   }],
   build(L) {
@@ -228,22 +222,49 @@ LEVELS.push({
       const sp = s.bowSpot, qy = sp.y + BOW_CARD.hang[1] * 0.97, k = -1.54 / sp.z, x = sp.x * k, y = L.eyeH + (qy - L.eyeH) * k;
       SC.box(L, x - 0.02, x + 0.02, y - 0.02, y + 0.02, -1.6, -1.54, [150, 146, 136]);
     }
-    // the arrows, in a quiver: standing against the wall, the crate or the rail, or lying on the boards or the woodpile
-    const QUIVER_CARD = { up: [0.3, 0.8], lie: [0.8, 0.24] };
-    const qRest = k => Lv => { Lv.s.quiverRest = k; };
-    const quiver = mkItem(L, 'arrows', 'Arrows', [
-      { deg: 90, dist: 1.5, y: 0.36, flat: true, setup: qRest('lie') },                      // lying on the porch floor, right
-      { x: -1.4, y: 0.36, z: 0.4, flat: true, setup: qRest('lie') },                        // lying on the porch floor, left
-      { x: 0.72, y: 0.36, z: -1.4, setup: qRest('up') },                                    // against the wall by the door
-      { x: -2.64, y: 0.85, z: -1.15, jitter: 0.04, key: 'crate', setup: qRest('up') },       // standing on the crate
-      { x: 2.45, y: 1.1, z: -1.24, jitter: 0.05, key: 'woodpile', flat: true, setup: qRest('lie') },   // lying on the woodpile
-      { x: -2.2, y: 0.36, z: 1.25, setup: qRest('up') },                                    // against the rail, far left
-    ], { uses: 3, tool: true });
-    const quiverCard = k => { quiver.w = QUIVER_CARD[k][0]; quiver.h = QUIVER_CARD[k][1]; };
-    quiverCard(s.quiverRest);
-    quiver.icon = (ctx, P) => ICONS.arrows(ctx, P, quiver.uses);   // as many as are left in it
+    // the arrows: three, each in a place of its own, never in a quiver. One is somewhere about eye height (driven into a
+    // log of the wall or a corner post where a shot went wide, along the top of the side rail, on the woodpile or the
+    // crate, across the bottom of the window frame), one is down on the boards or the steps (lying, or stood against the wall or a rail), and the third
+    // is anywhere well apart from both. Picked up, they go together in one slot, as many as you have ("Arrows ×2"); put
+    // down, they lie together, tied. Each is a card the shape of the way it lies (ICONS.arrows draws to the card).
+    const ARROW_CARD = { lie: [0.8, 0.14], up: [0.16, 0.8], stuck: [0.6, 0.4], bundle: [0.8, 0.24] };
+    let picked = null;
+    const at = (rest, o) => Object.assign({ rest, flat: rest === 'lie', jitter: 0, setup: (Lv, sp) => { picked = sp; } }, o);
+    const HIGH = [
+      at('stuck', { x: -1.75, y: 1.5, z: -1.53 }),                // in the wall left of the door, at eye height
+      at('stuck', { x: -2.55, y: 1.62, z: -1.53, flip: true }),   // in the wall over the crate
+      at('stuck', { x: -2.9, y: 1.42, z: 1.4 }),                  // in the corner post, front left
+      at('stuck', { x: 2.9, y: 1.42, z: 1.4, flip: true }),       // in the corner post, front right
+      at('lie', { x: -2.98, y: 1.31, z: 0.25, flip: true }),      // along the top of the side rail
+      at('lie', { x: 1.7, y: 1.31, z: -1.5 }),                    // across the bottom of the window frame
+      at('lie', { x: 2.5, y: 1.1, z: -1.24, key: 'woodpileA', flip: true }),   // on the woodpile
+      at('lie', { x: -2.64, y: 0.85, z: -1.12, key: 'crateA' }),  // on the crate
+    ];
+    const LOW = [
+      at('lie', { x: 1.45, y: 0.36, z: 0.05, jitter: 0.1 }),      // on the boards, right
+      at('lie', { x: -1.35, y: 0.36, z: 0.45, jitter: 0.1, flip: true }),   // on the boards, left
+      at('lie', { x: -0.55, y: 0.36, z: -1.2, jitter: 0.05 }),    // on the boards by the door
+      at('lie', { x: 0.35, y: 0.18, z: 1.9, flip: true }),        // on the step
+      at('lie', { x: 2.55, y: 0.36, z: 0.85, jitter: 0.1 }),      // on the boards toward the open side
+      at('up', { x: 0.72, y: 0.36, z: -1.45 }),                   // stood against the wall between the door and the window
+      at('up', { x: -2.25, y: 0.36, z: 1.38 }),                   // stood against the front rail, far left
+      at('up', { x: 2.88, y: 0.36, z: 1.36 }),                    // stood against the corner post, far right
+    ];
+    const arrowCard = (it, k, flip) => { it.rest = k; it.flip = !!flip; const c = ARROW_CARD[k === 'lie' && it.uses > 1 ? 'bundle' : k]; if (c) { it.w = c[0]; it.h = c[1]; } };   // held: in the hand, drawn to the slot
+    const local = it => rotY(it.x, it.z, -L.facing);
+    const arrows = [];
+    for (const spots of [HIGH, LOW, null]) {
+      // the third: anywhere at least 1.6 m from both of the others
+      const far = spots || HIGH.concat(LOW).filter(sp => arrows.every(o => { const q = local(o), p = spotLocal(sp); return Math.hypot(p[0] - q[0], p[1] - q[1]) >= 1.6; }));
+      const it = mkItem(L, 'arrows', 'Arrow', far.length ? far : HIGH.concat(LOW), { stack: true, tool: true });
+      Object.defineProperty(it, 'name', { get() { return this.uses > 1 ? 'Arrows' : 'Arrow'; }, configurable: true });   // "Arrows ×2" in the hand
+      it.icon = (ctx, P) => ICONS.arrows(ctx, P, it.uses, { stuck: it.rest === 'stuck', flip: it.flip });   // one, or the bundle it has become
+      arrowCard(it, picked.rest, picked.flip);
+      arrows.push(it);
+    }
     L.floor = { poly: [[-3.1, -1.5], [3.1, -1.5], [3.1, 1.5], [-3.1, 1.5]], y: 0.36 };
-    L.onDrop = it => { if (it.id === 'bow') bowCard('lie'); if (it.id === 'arrows') quiverCard('lie'); };   // put down, they lie on the boards
+    L.onPickup = it => { if (it.id === 'arrows') arrowCard(it, 'held'); };
+    L.onDrop = it => { if (it.id === 'bow') bowCard('lie'); if (it.id === 'arrows') arrowCard(it, 'lie'); };   // put down, they lie on the boards
 
     // ---- arrows in flight, and where they end up ----
     // Each flight goes from just in front of the eye, below it (where the bow is), to a point it asks for every frame
@@ -273,20 +294,18 @@ LEVELS.push({
         fly({ from, to: at, arc: 0.01 * dReal, dur: 0.05 + dReal / 80, done: () => hitIt(c) });
         return;
       }
-      if (outcome === 'short') {   // it drops into the snow short of it: the less drawn, the shorter
-        const r = clamp(CLEARING_BOW.reach(power), CLEAR, Math.max(CLEAR, dReal - 2.5));
+      if (outcome === 'short') {   // not drawn full: it drops into the snow short of it, the less drawn, the shorter
+        const r = clamp(lerp(CLEAR, 28, power), CLEAR, Math.max(CLEAR, dReal - 2.5));
         fly({ from, to: () => ground(r), arc: 0.05 * r + 0.3, dur: 0.15 + r / 45, stick: true });
-        if (dReal > CLEARING_BOW.RANGE) G.say('Too far for the bow. It fell short.', 'Too far. It fell short.');
-        else G.say('Not drawn far enough. It fell short.', 'It fell short.');
-      } else if (outcome === 'over') {   // over it and away, into the dark
+        G.say('Not drawn all the way. It fell short.', 'It fell short.');
+      } else if (ray[1] > 0.02) {   // full, but not at it, and aimed up off the snow: over everything and away, into the dark
         const r = dReal + 45;
         fly({ from, to: () => add3(ground(r), [0, 1, 0], 10), arc: 5, dur: 1.1, fade: true });
-        if (power >= 1) G.say('Held too long. The string slipped and it went wild.', 'The string slipped. It went wild.');
-        else G.say('Overdrawn. It went wild, over it.', 'Overdrawn. It went wild.');
-      } else {   // in the green, but not at it: along the aim, about as far as it is, into the snow
+        G.say('Drawn full, but not at it. It went over.', 'Missed.');
+      } else {   // full, but not at it: along the aim, about as far as it is, into the snow
         const r = Math.max(CLEAR, ray[1] < -0.005 ? Math.min(L.eyeH / -ray[1] * hl, dReal + 8) : dReal + 8);
         fly({ from, to: () => ground(r), arc: 0.02 * r + 0.2, dur: 0.1 + r / 70, stick: true });
-        G.say('Drawn right, but not at it. Missed.', 'Missed.');
+        G.say('Drawn full, but not at it. Missed.', 'Missed.');
       }
     };
     // with every arrow gone and it still up, it stops watching (the line comes once the last one has landed)
@@ -345,7 +364,7 @@ LEVELS.push({
     L.isWon = () => L.creature.dead;
     L.objectiveText = () => {
       const a = G.inv.find(i => i.id === 'arrows'), n = a ? a.uses : 0;
-      return L.creature.dead ? 'It is down.' : !G.hasItem('bow') ? 'Get the bow.' : !n ? (s.spent >= 3 ? 'No arrows left.' : 'Find the arrows.') : n + ' arrow' + (n > 1 ? 's' : '') + '. Hold to draw; let go in the green, on it.';
+      return L.creature.dead ? 'It is down.' : !G.hasItem('bow') ? 'Get the bow.' : !n ? (s.spent >= 3 ? 'No arrows left.' : 'Find the arrows.') : n + ' arrow' + (n > 1 ? 's' : '') + '. Hold until it is full; let go on it.';
     };
   }
 });

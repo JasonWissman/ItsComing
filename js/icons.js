@@ -147,30 +147,57 @@ const ICONS = {
     for (const s of [-0.08, 0, 0.08]) { const p = pt(s); P_line(ctx, p[0] - ny * th * 0.65, p[1] + nx * th * 0.65, p[0] + ny * th * 0.65, p[1] - nx * th * 0.65, th * 0.16, wrap); }
     ctx.restore();
   },
-  // a quiver of arrows (n of them, three unless said): a leather tube with its straps, the fletched ends standing out of its
-  // mouth. Measured in the card's height, as the bow is; on a long card (put down on the boards) it lies on its side
-  arrows(ctx, P, n) {
-    n = n === undefined ? 3 : n;
+  // arrows: one, or a bundle of n (three unless said) tied with twine round the middle. Each is a pale shaft with a steel
+  // broadhead, two vanes (red and cream) and a dark nock. Measured in the card's height, as the bow is, so an arrow is
+  // as thick on any card: on a long card it lies along it, on a tall one it stands on its nock with its head up, and in a
+  // square (a slot in the hand) it lies corner to corner. opts.stuck: driven into the wood, its head buried in a split
+  // (at the middle of the card, up top) and its shaft standing out of it, slanting down toward you. opts.flip: the other
+  // way round (its head to the left).
+  arrows(ctx, P, n, opts) {
+    n = Math.max(1, n === undefined ? 3 : n);
     const m = ctx.getTransform(), asp = Math.hypot(m.a, m.b) / Math.max(1e-6, Math.hypot(m.c, m.d));
-    const leather = P.col([112, 70, 40]), leatherD = P.col([66, 40, 24]), leatherL = P.col([156, 108, 66]), strap = P.col([46, 30, 20]);
-    const shaft = P.col([200, 168, 116]), nock = P.col([40, 30, 24]), fA = P.col([182, 46, 38]), fB = P.col([228, 218, 196]);
-    ctx.save(); ctx.scale(1 / asp, 1);
-    if (asp > 1.8) { const k = asp * 0.94; ctx.translate(-k / 2, 0.5); ctx.rotate(-Math.PI / 2); ctx.scale(k, k); }   // lying, its mouth to the right
-    else { ctx.translate(0, 0.02); ctx.rotate(asp < 0.55 ? -0.07 : -0.3); ctx.scale(0.95, 0.95); }
-    const body = [[-0.085, 0], [0.085, 0], [0.12, 0.6], [-0.12, 0.6]];
-    P_ell(ctx, 0, 0.6, 0.12, 0.035, leatherD);   // the dark inside of its mouth, behind the arrows
-    for (let i = 0; i < n; i++) {   // the arrows, fanned a little, each with its two vanes and a dark nock
-      const off = (i - (n - 1) / 2) * 0.055, a = (i - (n - 1) / 2) * 0.07, tx = off + Math.sin(a) * 0.42, ty = 0.5 + Math.cos(a) * 0.42;
-      P_line(ctx, off, 0.5, tx, ty, 0.022, shaft);
-      const ux = Math.sin(a), uy = Math.cos(a), f = (k, w, col, side) => P_poly(ctx, [[off + ux * k, 0.5 + uy * k], [off + ux * (k + 0.13), 0.5 + uy * (k + 0.13)], [off + ux * (k + 0.11) + side * uy * w, 0.5 + uy * (k + 0.11) - side * ux * w], [off + ux * (k + 0.02) + side * uy * w, 0.5 + uy * (k + 0.02) - side * ux * w]], col);
-      f(0.26, 0.05, fA, -1); f(0.26, 0.05, fB, 1);
-      P_line(ctx, tx - ux * 0.02, ty - uy * 0.02, tx, ty, 0.03, nock);
+    const stuck = !!(opts && opts.stuck);
+    if (opts && opts.flip) ctx.scale(-1, 1);
+    const shaft = P.col([204, 170, 118]), shaftD = P.col([140, 108, 70]), nockC = P.col([36, 28, 22]), fA = P.col([184, 44, 36]), fB = P.col([230, 220, 198]);
+    const head = P.col([142, 144, 152]), headL = P.col([212, 214, 220]), twine = P.col([84, 66, 44]), twineL = P.col([146, 124, 88]), split = P.col([18, 12, 9]);
+    ctx.save(); ctx.scale(1 / asp, 1);   // from here x is in the same units as y
+    // the middle of the arrows, the way along them from nock to head, their length and how thick they are drawn
+    let cx = 0, cy = 0.5, ax, ay, len, tk = 1;
+    if (stuck) { ax = -0.78; ay = 0.63; len = Math.min(asp * 0.65, 0.95); cx = 0.78 * 0.44 * len; cy = 0.36; tk = 1.25 * 0.95 / len; }
+    else if (asp > 1.8) { ax = 1; ay = 0; len = asp * 0.94; }
+    else if (asp < 0.55) { const a = 0.05; ax = Math.sin(a); ay = Math.cos(a); len = 0.94; }
+    else { ax = 0.72; ay = 0.69; len = 1.22; tk = 2.1; }
+    const nx = -ay, ny = ax, w = len * 0.022 * tk;   // across them, and the shaft's width
+    const pt = (o, k, d) => [o[0] + ax * k * len + nx * d, o[1] + ay * k * len + ny * d];
+    const one = (o, rot) => {   // o: where its nock is; rot: a slight turn from the bundle's line
+      ctx.save(); ctx.translate(o[0], o[1]); ctx.rotate(rot); ctx.translate(-o[0], -o[1]);
+      const vh = w * 2.3, hw = w * 1.9;
+      for (const [side, col] of [[1, fA], [-1, fB]]) P_poly(ctx, [pt(o, 0.035, 0), pt(o, 0.2, 0), pt(o, 0.17, side * vh), pt(o, 0.06, side * vh)], col);   // the vanes
+      const end = stuck ? 0.94 : 0.88;
+      P_line(ctx, ...pt(o, 0.02, 0), ...pt(o, end, 0), w, shaft);
+      P_line(ctx, ...pt(o, 0.22, -w * 0.3), ...pt(o, end, -w * 0.3), w * 0.35, shaftD);   // its shadowed underside
+      P_line(ctx, ...pt(o, -0.01, 0), ...pt(o, 0.035, 0), w * 1.5, nockC);   // the nock
+      if (!stuck) {   // the broadhead: a steel point, its light edge along the top
+        P_poly(ctx, [pt(o, 1, 0), pt(o, 0.87, hw), pt(o, 0.9, 0), pt(o, 0.87, -hw)], head);
+        P_line(ctx, ...pt(o, 0.99, w * 0.15), ...pt(o, 0.88, hw * 0.85), w * 0.4, headL);
+      }
+      ctx.restore();
+    };
+    const tail = [cx - ax * len / 2, cy - ay * len / 2], gap = w * 3.2;
+    if (stuck) {   // the split in the log it went into, a little dark round where it goes in
+      const e = pt(tail, 0.94, 0);
+      P_ell(ctx, e[0], e[1], w * 2.6, w * 1.1, split);
+      P_line(ctx, e[0] - w * 4, e[1] + w * 0.4, e[0] + w * 4, e[1] - w * 0.3, w * 0.5, split);
     }
-    P_poly(ctx, body, leather);
-    P_poly(ctx, [[0.04, 0], [0.085, 0], [0.12, 0.6], [0.07, 0.6]], leatherD);   // its shadowed side
-    P_line(ctx, -0.07, 0.04, -0.1, 0.56, 0.018, leatherL);                     // the light down the other
-    for (const y of [0.1, 0.5]) P_line(ctx, -0.09 - y * 0.06, y, 0.09 + y * 0.06, y, 0.035, strap);   // two bands round it
-    P_line(ctx, -0.12, 0.59, 0.12, 0.59, 0.03, leatherL);                    // the rolled lip of the mouth
+    for (let i = 0; i < n; i++) {   // the bundle, fanned a little from the twine, each a little along from the next
+      const k = i - (n - 1) / 2;
+      one(pt(tail, (i % 2 ? 0.02 : -0.01) + (n > 1 ? 0.01 : 0), k * gap), k * 0.02);
+    }
+    if (n > 1) {   // the twine round the middle of them
+      const half = ((n - 1) / 2) * gap + w * 1.2;
+      for (const d of [-0.035, 0, 0.035]) P_line(ctx, ...pt(tail, 0.52 + d, -half), ...pt(tail, 0.52 + d + 0.01, half), w * 0.7, twine);
+      P_line(ctx, ...pt(tail, 0.52, half * 0.2), ...pt(tail, 0.53, half * 0.9), w * 0.3, twineL);
+    }
     ctx.restore();
   },
   bottle(ctx, P) {

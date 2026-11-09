@@ -435,14 +435,13 @@ function fireUse(L, u, ammo) {
   AUDIO.sfx(u.sfx || 'shot'); G.flash(u.flash === undefined ? 0.5 : u.flash); G.shake(u.shake === undefined ? 0.7 : u.shake); L.s.recoil = 1;
 }
 // ---- a bow: hold to draw, let go to loose ----
-// A use with draw: { band(c, L), loose(outcome, c, aim, power, L), fill, min } is drawn by holding the button (or A, or the
-// touch Use button). The power bar fills over `fill` seconds; band(c) is the stretch of it, [lo, hi], that reaches the thing
-// from where it is now (null: out of range), asked again every frame. Let go in the band with the aim on the thing: 'hit';
-// below it: 'short'; above it, or held at the top until the string slips: 'over'; in it but off the thing: 'miss'. Each of
-// those spends one of the ammo and hands the outcome to loose(). Let go before `min` seconds and nothing is loosed: the bow
-// is let back down ('easing'), which is what a click shows. G.draw is the draw (state drawing, easing or loosed, then a
-// moment to nock the next); G.drawBtn which button holds it.
-const DRAW_FILL = 1.5, DRAW_MIN = 0.18, DRAW_STRAIN = 0.25;
+// A use with draw: { loose(outcome, c, aim, power, L), fill, min } is drawn by holding the button (or A, or the touch Use
+// button). The power bar fills over `fill` seconds to full, and it stays full for as long as it is held. All that matters is
+// whether it is full when you let go: full with the aim on the thing's body is 'hit', however far off it is; full but off
+// it, 'miss'; let go before full, 'short'. Each of those spends one of the ammo and hands the outcome to loose(). Let go
+// before `min` seconds and nothing is loosed: the bow is let back down ('easing'), which is what a click shows. G.draw is
+// the draw (state drawing, easing or loosed, then a moment to nock the next); G.drawBtn which button holds it.
+const DRAW_FILL = 1.5, DRAW_MIN = 0.18;
 function drawUse(L) { const u = L && activeUse(L); return u && u.draw ? u : null; }
 function drawPress(L, h, src) {
   const u = drawUse(L);
@@ -457,27 +456,25 @@ function drawLetGo(src, cancel) {
   G.drawBtn = null;
   const d = G.draw, u = drawUse(G.L);
   if (d && d.state === 'drawing') looseDraw(G.L, d, cancel || G.state !== 'play');
-  else if (!d && u && G.state === 'play') G.draw = { state: 'easing', t: 0, dur: 0.45, from: 0.05, power: 0, band: u.draw.band(nearestCreature(G.L), G.L), u, src };   // let go before a frame went by: it still starts to come up, and goes back down
+  else if (!d && u && G.state === 'play') G.draw = { state: 'easing', t: 0, dur: 0.45, from: 0.05, power: 0, u, src };   // let go before a frame went by: it still starts to come up, and goes back down
 }
 function updateDraw(L, dt) {
   let d = G.draw;
   if (d && d.state !== 'drawing') { d.t += dt; if (d.t >= d.dur) G.draw = d = null; }   // letting it back down, or nocking the next
   const u = drawUse(L);
   if (d && d.state === 'easing' && G.drawBtn && G.state === 'play') G.draw = d = null;   // pressed again while it was being let down (after a click): it draws again at once
-  if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, strain: 0, creak: 0, band: null, u, src: G.drawBtn };
-  if (d && d.state === 'easing') d.band = d.u.draw.band(nearestCreature(L), L);   // let down, the bar still shows the green for where it is now (a click shows there is a band to reach)
+  if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, full: false, creak: 0, u, src: G.drawBtn };
   if (!d || d.state !== 'drawing') return;
   if (G.state !== 'play' || !u) { looseDraw(L, d, true); return; }
   d.t += dt; d.power = Math.min(1, d.t / (u.draw.fill || DRAW_FILL));
-  d.band = u.draw.band(nearestCreature(L), L);
-  if (d.t - d.creak >= 0.3) { d.creak = d.t; AUDIO.sfx('bowCreak'); }
-  if (d.power >= 1 && (d.strain += dt) >= DRAW_STRAIN) { G.drawBtn = null; looseDraw(L, d); }   // held at the top, the string slips (the next takes a new press)
+  if (d.power >= 1 && !d.full) { d.full = true; d.creak = d.t; AUDIO.sfx('bowFull'); }   // it tops out: the string comes tight with a click, and it holds there as long as it is held
+  else if (d.t - d.creak >= (d.full ? 1.2 : 0.3)) { d.creak = d.t; AUDIO.sfx('bowCreak', 0, d.full); }   // a creak as it comes back; held full, one now and then
 }
 function looseDraw(L, d, cancel) {
   const u = d.u;
   if (cancel || d.t < (u.draw.min || DRAW_MIN)) { Object.assign(d, { state: 'easing', from: d.power, t: 0, dur: 0.45 }); return; }
-  const c = nearestCreature(L), aim = drawAim(d.src), b = d.band, p = d.power;
-  const outcome = p >= 1 || (b && p > b[1]) ? 'over' : !b || p < b[0] ? 'short' : overCreature(c, aim) ? 'hit' : 'miss';
+  const c = nearestCreature(L), aim = drawAim(d.src), p = d.power;
+  const outcome = p < 1 ? 'short' : overCreature(c, aim) ? 'hit' : 'miss';
   const ammo = G.inv.find(i => i.id === u.ammo);
   if (ammo) { ammo.uses--; if (ammo.uses <= 0) G.removeFromInv(ammo); }
   AUDIO.sfx(u.sfx || 'twang'); G.shake(u.shake === undefined ? 0.12 : u.shake);
@@ -952,9 +949,9 @@ function updateHUD() {
   }
 }
 
-// the bow's power bar, beside where it is aimed: the fill rises as it is drawn (pale below the band, green in it, red past
-// it), the green band is where letting go reaches the thing from where it is now, the notch is the least draw that looses
-// anything; out of range there is no band and it says so. It stays a moment after letting go, showing where it stopped.
+// the bow's power bar, beside where it is aimed: the fill rises pale as it is drawn, and at the top it is full: the fill
+// and the frame turn green, the mark at the top lights and says so, for as long as it is held. The notch is the least draw
+// that looses anything. It stays a moment after letting go, showing where it stopped.
 function updateDrawBar() {
   const d = G.draw, show = !!d && G.state === 'play';
   if (UI.drawbar.style.display !== (show ? 'block' : 'none')) UI.drawbar.style.display = show ? 'block' : 'none';
@@ -968,14 +965,11 @@ function updateDrawBar() {
   if (d.state === 'loosed' && d.barX !== undefined) bx = d.barX; else d.barX = bx;   // once loosed it stays where it was
   UI.drawbar.style.left = clamp(bx, 8, window.innerWidth - 90) + 'px';
   UI.drawbar.style.top = clamp(aim.y - BH / 2, 8, window.innerHeight - BH - 120) + 'px';
-  const b = d.band;
+  const full = p >= 1 && d.state !== 'easing';
   UI.drawfill.style.height = (p * 100).toFixed(1) + '%';
-  UI.drawfill.className = b && p > b[1] || p >= 1 ? 'over' : b && p >= b[0] ? 'in' : '';
-  UI.drawbar.classList.toggle('strain', d.state === 'drawing' && d.power >= 1);
-  UI.drawband.style.display = b ? 'block' : 'none';
-  if (b) { UI.drawband.style.bottom = (b[0] * 100).toFixed(1) + '%'; UI.drawband.style.height = ((b[1] - b[0]) * 100).toFixed(1) + '%'; }
+  UI.drawbar.classList.toggle('full', full);
   UI.drawmin.style.bottom = ((d.u.draw.min || DRAW_MIN) / (d.u.draw.fill || DRAW_FILL) * 100).toFixed(1) + '%';
-  const lab = b ? '' : 'too far';
+  const lab = full ? 'full' : '';
   if (UI.drawlabel.textContent !== lab) UI.drawlabel.textContent = lab;
 }
 
@@ -1074,7 +1068,7 @@ function init() {
   UI.canvas = $('game'); UI.hud = $('hud'); UI.compass = $('compass'); UI.objective = $('objective'); UI.pitch = $('pitch');
   UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute');
   UI.holdbar = $('holdbar'); UI.holdfill = $('holdfill');
-  UI.drawbar = $('drawbar'); UI.drawfill = $('drawfill'); UI.drawband = $('drawband'); UI.drawmin = $('drawmin'); UI.drawlabel = $('drawlabel');
+  UI.drawbar = $('drawbar'); UI.drawfill = $('drawfill'); UI.drawmin = $('drawmin'); UI.drawlabel = $('drawlabel');
   R.attach(UI.canvas); R.resize();
   window.addEventListener('resize', R.resize);
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp);
