@@ -15,7 +15,7 @@
 // presses the keys (G.reach, going from key to key, in turn when they are pressed faster than it can go), and what will
 // not work shows on the phone itself: a key pressed for nothing clicks and the display blinks at you, a coin put in on the
 // hook goes into the slot and drops through into the coin return, the empty return is felt with the fingers, the phone
-// book's cover lifts a crack and drops back.
+// book's cover lifts a crack and drops back. Open, the notebook is the panel and not in your hand as well (L.heldItem).
 Object.assign(ICONS, {
   // a small battered notebook, spiral at the top, held shut with an elastic band
   notebook(ctx, P) {
@@ -501,6 +501,8 @@ Object.assign(ICONS, {
         if (nbShow !== shown.nb) { dom.nbEl.style.display = nbShow ? '' : 'none'; shown.nb = nbShow; }
       };
       const setNotebook = open => { s.nbOpen = open; AUDIO.sfx(open ? 'pickup' : 'ui'); sync(); };
+      // open, the notebook is the panel: it is not in your hand shut as well
+      L.heldItem = it => (it === journal && shown.nb ? null : undefined);
       const turn = d => { const p = clamp(s.page + d, 0, pageHtml.length - 1); if (p === s.page) return; s.page = p; AUDIO.sfx('ui'); drawPage(true); };
       // a pay phone, in the order it wants: lift the receiver (a dial tone), put the coin in, dial. A coin put in with the
       // receiver on its hook drops straight through to the return; hanging up on a call that was never answered gives it back

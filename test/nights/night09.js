@@ -14,7 +14,7 @@
 // gets there; a key the phone will not take blinks its display at you; the lifted receiver is in your left hand until it
 // goes back on its hook; the coin given back drops into the cup with a clink; the hand feels in the empty coin return; a
 // coin put in on the hook goes from your fingers into the slot before it drops into the cup; keys typed faster than the
-// finger can go are pressed in turn.
+// finger can go are pressed in turn; the notebook open is not in your hand shut as well.
 const key = k => "document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '" + k + "', bubbles: true }))";
 const visible = sel => "(document.querySelector('" + sel + "') && document.querySelector('" + sel + "').style.display !== 'none')";
 // click the phone's keys for a string of digits where they are drawn, as a mouse would
@@ -40,6 +40,8 @@ module.exports = {
     ['expect', "!G.hand.reach && G.L.s.bookA < 0.005 && G.inv[G.active].id === 'journal'", 'it drops back shut, and the notebook is still in hand'],
     ['eval', "window.__dir = G.cam.dirIdx; document.querySelector('#inventory .slot').click()"],
     ['expect', visible('.pb-nb'), 'clicking the notebook in the inventory opens it'],
+    ['waitUntil', "G.hand.cur !== G.inv[0]", 2000],
+    ['expect', "G.hand.cur !== G.inv[0] && G.inv[G.active].id === 'journal'", 'open, it is the panel: it is not in your hand shut as well'],
     ['waitUntil', "(() => { const b = document.querySelector('.pb-page .pb-blood'); if (b) { const r = b.getBoundingClientRect(); window.__num = b.getAttribute('aria-label').replace('-', ''); window.__blood = { alone: !document.querySelector('.pb-page .pb-l') && document.querySelector('.pb-page').textContent.trim() === '', w: r.width, h: r.height, page: G.L.s.page }; return true; } " + key('ArrowRight') + "; return false; })()", 20000],
     ['expect', 'window.__num === G.L.s.number && __blood.page === G.L.s.keyPage && __blood.page > 0', 'the number scrawled in red is the one, and it is not on the first page'],
     ['expect', '__blood.alone && __blood.w > 300 && __blood.h > 150', 'it has the page to itself, written large across it'],
