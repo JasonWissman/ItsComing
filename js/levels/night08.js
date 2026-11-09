@@ -188,7 +188,7 @@ LEVELS.push({
       ctx.strokeStyle = ink; ctx.lineWidth = 0.018; ctx.beginPath(); ctx.ellipse(0.14, 0.15, 0.03, 0.045, 0, 0, TAU); ctx.stroke();
       // the lever: a pivot on the side of the box and a long arm with a red grip, up for on and down for off (shaken at its
       // stop when the hand tries to put it back up)
-      const je = L.t - s.jigAt, a = lerp(Math.PI - 0.32, 0.32, s.lever) + (je >= 0 && je < 0.8 ? 0.06 * Math.sin(je * 52) * (je < 0.45 ? 1 : Math.exp(-(je - 0.45) * 12)) : 0);
+      const je = L.t - s.jigAt, a = lerp(Math.PI - 0.32, 0.32, s.lever) + (je >= 0 && je < 0.8 ? (SAVE.data.settings.reducedMotion ? 0.025 : 0.06) * Math.sin(je * 52) * (je < 0.45 ? 1 : Math.exp(-(je - 0.45) * 12)) : 0);
       const px = 0.3, py = 0.5, ex = px + Math.sin(a) * 0.4, ey = py + Math.cos(a) * 0.4;
       P_rect(ctx, 0.2, 0.36, 0.14, 0.28, bodyD);
       P_line(ctx, px, py, ex, ey, 0.05, P.col([150, 150, 156]));

@@ -1,7 +1,8 @@
 // The Lighthouse, played twice. First the things that do not work before the blown fuse is out: a click on the lamp with
 // nothing in hand (the hand goes to it and the old bulb rattles in its socket); the fuse box opened (the hand pulls its door
-// open); the worn fuse lying about, and then the new one from the toolbox, tried at the clips with the blown fuse still in
-// (each knocks against it and comes back to the hand). Then from the start: the spare bulb; open the fuse box and pull out
+// open); the worn fuse lying about, and then the new one from the toolbox (tried in the open toolbox, it comes back), tried
+// at the clips with the blown fuse still in (each knocks against it and comes back to the hand). Then from the start: the
+// spare bulb; open the fuse box and pull out
 // the blown fuse; push it back into the empty clips (it sits there a beat and drops out to the floor, where it is picked up
 // again); the bulb tried at the empty clips (back to the hand); the bulb into the lamp; the worn fuse into the clips (blown
 // as well: it drops out to the floor too, and is picked up again); the new one from the toolbox; one turn of the crank before
@@ -37,7 +38,7 @@ const blownStillIn = [
   ['waitUntil', 'G.L.s.creaked && G.L.t - G.L.s.openAt > 0.4 && !G.hand.reach', 3000],
   ['pickup', 'oldfuse'], ['face', 2], ['click', 'fusedoor'], ['expect', said('The blown fuse is still in it.') + ' && G.L.s.blownIn', 'the worn fuse with the blown one still in'],
   ...comesBack('oldfuse', 'the worn fuse at the clips with the blown one still in'),
-  ['use', 'toolbox'], ['pickup', 'fuse'], ['face', 2], ['click', 'fusedoor'], ['expect', said('The blown fuse is still in it.') + ' && G.L.s.blownIn && !G.L.s.fuse', 'the new fuse with the blown one still in'],
+  ['use', 'toolbox'], ['pickup', 'fuse'], ['use', 'toolbox'], ...comesBack('fuse', 'the toolbox open already'), ['face', 2], ['click', 'fusedoor'], ['expect', said('The blown fuse is still in it.') + ' && G.L.s.blownIn && !G.L.s.fuse', 'the new fuse with the blown one still in'],
   ...comesBack('fuse', 'the new fuse at the clips with the blown one still in'),
   ['eval', 'restartLevel()'], ['wait', 300],
 ];

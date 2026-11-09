@@ -136,7 +136,7 @@ LEVELS.push({
     // in the hand: the bulb by its brass cap, a fuse between finger and thumb by one end, small, as they really are
     const fuseHeld = { grip: 'pinch', at: [-0.38, 0.47], angle: -0.36, size: 0.17, tip: [0.42, 0.48] };
     mkItem(L, 'bulb', 'Bulb', spots, { w: 0.2, h: 0.3, flat: false, held: { size: 0.15, angle: -0.2 } });
-    mkContainer(L, {
+    const toolbox = mkContainer(L, {
       id: 'toolbox', name: 'Toolbox', w: 0.56, h: 0.38, color: [172, 36, 30], spot: spots.slice(0, 4), sfx: 'clunk', liftY: 0.13,
       closedText: 'A toolbox.', emptyText: 'Rags and a tin of grease.',
       yields: [{ id: 'fuse', name: 'Fuse', opts: { w: 0.34, h: 0.34, flat: false, held: fuseHeld } }],
@@ -156,6 +156,8 @@ LEVELS.push({
       const shown = act ? G.fumble(act, t, Object.assign({ preset: 'return', at, onHit: touch }, o && o.fumble)) : G.reach(t, Object.assign({ style: 'touch', at: inReach(t, at), onTouch: touch }, o && o.reach));
       if (!shown && !G.fumbling) AUDIO.sfx('nope');
     };
+    // the toolbox open already: the hand goes into the rags (what you hold is tried there and comes back)
+    { const open0 = toolbox.onClick; toolbox.onClick = () => { const was = toolbox.open, r = open0(); if (was && r) tryAt(toolbox, [0, 0.42]); return r; }; }
     // the bulb in the middle of the lens, where a thing tried at the lamp goes and the hand touches it; touched, it rattles in
     // its socket (the old one's broken filament with it)
     const BULB = [0, 0.48], jiggle = () => { s.jig = L.t; };
@@ -314,7 +316,7 @@ LEVELS.push({
     // out to the left and inside is the fuse in its clips: blown (black, split), gone, or new
     // (the fuse in the clips shifts and settles when it is touched or knocked)
     const fuseAt = (ctx, P, icon) => {
-      const e = L.t - (s.fuseJig === undefined ? -9 : s.fuseJig), j = e < 0.7 ? Math.sin(e * 38) * Math.exp(-e * 6) : 0;
+      const e = L.t - (s.fuseJig === undefined ? -9 : s.fuseJig), j = e < 0.7 ? Math.sin(e * 38) * Math.exp(-e * 6) * (SAVE.data.settings.reducedMotion ? 0.4 : 1) : 0;   // (less with reduced motion)
       ctx.save(); ctx.translate(j * 0.03, 0.5 - 0.48 * 0.72 + Math.abs(j) * 0.01); ctx.rotate(j * 0.06); ctx.scale(0.62, 0.72); ICONS[icon](ctx, P); ctx.restore();
     };
     const drawFuseBox = (ctx, P) => {
@@ -375,7 +377,7 @@ LEVELS.push({
       P_line(ctx, -0.42, 0.37, 0.42, 0.37, 0.012, bronzeD); P_line(ctx, -0.42, 0.61, 0.42, 0.61, 0.012, bronzeD);
       // the bulb, kept round inside the tall box: its own box is as wide as it is high in metres. Touched, it rattles in its
       // socket; the new one is twisted down into it as it goes in
-      const je = L.t - (s.jig === undefined ? -9 : s.jig), jig = je < 0.8 ? Math.sin(je * 34) * Math.exp(-je * 5.5) * 0.16 : 0;
+      const je = L.t - (s.jig === undefined ? -9 : s.jig), jig = je < 0.8 ? Math.sin(je * 34) * Math.exp(-je * 5.5) * 0.16 * (SAVE.data.settings.reducedMotion ? 0.4 : 1) : 0;
       const se = s.bulb && s.bulbAt !== undefined ? clamp((L.t - s.bulbAt) / 0.5, 0, 1) : 1, seat = 1 - easeOut(se);
       ctx.save(); ctx.translate(0, 0.33 + seat * 0.05); ctx.scale(0.3 * LH / LW, 0.3);
       ctx.translate(0, 0.13); ctx.rotate(jig + seat * 0.5 * Math.sin(se * 18)); ctx.translate(0, -0.13);
