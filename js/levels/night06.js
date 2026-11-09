@@ -294,6 +294,8 @@ LEVELS.push({
     };
     function springOpen() { s.keyGoing = null; AUDIO.sfx('lock'); setTimeout(() => AUDIO.sfx('chain'), 200); }
     const keyThere = () => { const th = G.hand.thrust, g = s.keyGoing; return !(th && th.item === g.k && (th.wait !== undefined || th.t < th.dur * 0.45)) || L.t - g.t > 1.2; };
+    // clicked again while the hand is still there, it goes again (the reach only stays on for another go)
+    const again = (rc, key) => { if (rc && rc.more) s[key] = L.t; };
     // a thing it does not take, knocked against it: it comes back to the hand (the bar, end first, at the wheel)
     const knock = (item, onHit) => G.fumble(item, winch, { preset: 'return', at: AT.boss, tip: TIP[item.id], sfx: { hit: s.locked ? 'chain' : 'tink' }, onHit });
     const winch = mkTarget(L, {
@@ -310,10 +312,10 @@ LEVELS.push({
           const act = G.inv[G.active];
           if (s.locked) {
             G.say('The winch. A chain through the drum, and a padlock on it.', 'The winch is chained, and the chain is padlocked.');
-            if (act) knock(act, snapTaut); else G.reach(winch, { style: 'rattle', at: AT.lock, sfx: 'chain', onTouch: () => { s.rattleT = L.t; } });
+            if (act) knock(act, snapTaut); else again(G.reach(winch, { style: 'rattle', at: AT.lock, sfx: 'chain', onTouch: () => { s.rattleT = L.t; } }), 'rattleT');
           } else {
             G.say('The winch. Its handle is gone.', 'The winch has no handle.');
-            if (act) knock(act, () => { s.nudgeT = L.t; }); else G.reach(winch, { style: 'pull', at: AT.boss, sfx: 'clunk', onTouch: () => { s.nudgeT = L.t; } });
+            if (act) knock(act, () => { s.nudgeT = L.t; }); else again(G.reach(winch, { style: 'pull', at: AT.boss, sfx: 'clunk', onTouch: () => { s.nudgeT = L.t; } }), 'nudgeT');
           }
           return true;
         }
