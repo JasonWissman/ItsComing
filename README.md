@@ -109,8 +109,9 @@ some on the ground, so you have to turn and look down to find them.
    and walks back into the dark.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
    You must look away to shut both gates, chain each with its own chain, and padlock
-   them. One padlock is rusted solid. Every glance away costs you. The gates are open in
-   the middle, so you can watch it through a shut one. Lock the gate it is coming to and it
+   them. One padlock is rusted solid. Every glance away costs you. The gates are barred right
+   across with thin iron bars, too close for it to get through and far enough apart that you
+   can watch it through a shut one. Lock the gate it is coming to and it
    tries it, then runs round the outside of the yard to the other one, but only while
    nothing is looking: catch it going round and it stops dead, mid-stride. At the end it
    comes on only when you blink, up to the gate, and shakes it on its chain.
