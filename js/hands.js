@@ -23,6 +23,8 @@ const HANDS = (() => {
     [ICONS.hammer, { grip: 'fist', at: [0.1, 0.2], axis: 0.55, angle: -0.42 }],
     [ICONS.lantern, { grip: 'hang', at: [0, 0.97], axis: Math.PI / 2 }],
     [ICONS.keys, { grip: 'pinch', at: [0, 0.62], angle: -0.25, tip: [0.02, 0.07] }],
+    [ICONS.carkeys, { tip: [-0.02, 0.09] }],     // (held as any key is; the end of the blade, where these icons draw it)
+    [ICONS.housekeys, { tip: [0, 0.22] }],
     [ICONS.padlock, { grip: 'pinch', at: [-0.2, 0.62], angle: 0.15 }],
     [ICONS.bottle, { grip: 'fist', at: [0, 0.3] }],
     [ICONS.bulb, { grip: 'pinch', at: [0, 0.1], angle: -0.12, tip: [0, 0.05] }],
@@ -76,7 +78,9 @@ const HANDS = (() => {
   function wanted(L) {
     const fx = G.fumbling, th = H.thrust;
     if (fx && fx.phase === 'wait') return fx.from;                  // a thing to be tried comes into the hand first
+    if (fx && fx.drop && fx.it === fx.from && (fx.phase === 'out' || fx.phase === 'contact') && G.state === 'play') return fx.from;   // and the hand stays out, open, until it falls
     if (th && th.release && th.t < th.dur * 0.62 && G.state === 'play') return th.item;   // and a thing used up stays there until it is given up
+    if (H.reach && G.state === 'play') return null;                 // the hand put out empty (G.reach): what it held goes down meanwhile
     let it = (G.state === 'play' || (G.state === 'won' && L.keepHeld)) ? G.inv[G.active] || null : null;
     if (it) { const u = activeUse(L); if (u && u.inHands) it = null; }
     if (L.heldItem) { const r = L.heldItem(it); if (r !== undefined) it = r; }
@@ -178,13 +182,15 @@ const HANDS = (() => {
       if (box.x1 > W + b.hu * 0.4 || box.y1 > Hv + b.hu * 0.6 || box.y0 < Hv * 0.3) return false;
       return !rects.some(r => hits(box, r));
     };
-    // the bottom right corner first; then in from an obstacle there, then up over it; smaller each round
+    // the bottom right corner first, a little smaller if need be; then in from an obstacle there, then up over it,
+    // smaller each round. The right hand stays on the right half of the view (in from the inventory in the middle of the
+    // bottom edge would put it on the left)
     let best = null;
-    for (const s of [1, 0.9, 0.8, 0.7, 0.6, 0.5]) {
+    for (const [s, moved] of [[1, 0], [0.9, 0], [1, 1], [0.9, 1], [0.8, 1], [0.7, 1], [0.6, 1], [0.5, 1]]) {
       const gx0 = W - b.x1 * s - Hv * 0.04 + spec.x * Hv, gy0 = Hv - b.y1 * s - Hv * 0.015 + spec.y * Hv;
       const tries = [[gx0, gy0]];
-      for (const r of ko.obstacles.map(flip)) if (r.x1 > W * 0.6 && r.y1 > Hv * 0.6) { tries.push([r.x0 - b.x1 * s - 6, gy0]); tries.push([gx0, r.y0 - b.y1 * s - 6, true]); }   // in from what is in the corner, or up over it
-      for (const [gx, gy, over] of tries) if (fits(gx, gy, s)) { best = { gx, gy, s, over }; break; }
+      if (moved) for (const r of ko.obstacles.map(flip)) if (r.x1 > W * 0.6 && r.y1 > Hv * 0.6) { tries.push([r.x0 - b.x1 * s - 6, gy0]); tries.push([gx0, r.y0 - b.y1 * s - 6, true]); }   // in from what is in the corner, or up over it
+      for (const [gx, gy, over] of tries) if (gx >= W * 0.5 && fits(gx, gy, s)) { best = { gx, gy, s, over }; break; }
       if (best) break;
     }
     if (!best) best = { gx: W - b.x1 * 0.5 - Hv * 0.04, gy: Hv - b.y1 * 0.5 - Hv * 0.015, s: 0.5 };   // nowhere it fits whole: small, in the corner
@@ -355,12 +361,12 @@ const HANDS = (() => {
       g2 = [g.x + dx * ca - dy * sa, g.y + dx * sa + dy * ca];
       arm(ctx, C, g2[0] - side * u * 0.1, g2[1] + u * 0.5, side > 0 ? Math.PI / 2 + 0.12 : Math.PI / 2 - 0.12, u * 0.95);
     }
-    const at = [g.x, g.y];
+    const at = [g.x, g.y], pose2 = pose === 'open' ? 'open' : 'fist', curl2 = pose === 'open' ? o.curl : 1;   // the other hand lets go too
     rig('back', at, gripRot, side, u, pose, o.curl);
-    if (g2) rig('back', g2, gripRot, -side, u * 0.95, 'fist', 1);
+    if (g2) rig('back', g2, gripRot, -side, u * 0.95, pose2, curl2);
     if (it && !o.empty) { ctx.save(); ctx.translate(g.x, g.y); drawItem(ctx, it, spec, pw, ph, angle, lit, o.alpha === undefined ? 1 : o.alpha); ctx.restore(); }
     rig('front', at, gripRot, side, u, pose, o.curl);
-    if (g2) rig('front', g2, gripRot, -side, u * 0.95, 'fist', 1);
+    if (g2) rig('front', g2, gripRot, -side, u * 0.95, pose2, curl2);
   }
   // where the grip is this frame: laid out, raised or lowered, swaying, thrust or reaching
   function pose(L, it, spec, W, Hv, side, up) {
@@ -409,7 +415,7 @@ const HANDS = (() => {
     // it (whatever was in the hand going down first)
     if (H.fly) {
       const f = H.fly, fi = f.it, spec = heldSpec(fi), p = pose(L, fi, spec, W, Hv, 1, 1), b = p.lay.box, k = easeOut(f.t / f.dur), sc = lerp(f.px / Math.max(b.pw, b.ph), p.g.s, k);
-      ctx.save(); ctx.translate(lerp(f.x, p.g.x, k), lerp(f.y - R.viewY, p.g.y, k)); drawItem(ctx, fi, spec, b.pw * sc, b.ph * sc, (spec.angle + p.tilt) * k, lit, 1); ctx.restore();
+      ctx.save(); ctx.translate(lerp(f.x, p.g.x, k), lerp(f.y, p.g.y, k)); drawItem(ctx, fi, spec, b.pw * sc, b.ph * sc, (spec.angle + p.tilt) * k, lit, 1); ctx.restore();   // (both on the view, as the overlay is drawn)
     }
     // the empty hand reaching for something
     if (rch && !(it && H.up > 0.001)) drawReach(ctx, L, rch, W, Hv, C, lit);
@@ -419,9 +425,10 @@ const HANDS = (() => {
       group(ctx, L, o2, spec, p.g, lit, C, { side: -1, box: p.lay.box, tilt: p.tilt, swing: -H.swing * spec.swing });
     }
     ctx.restore();
-    // is it in front of the middle of something you could take? then it is lowered out of the way a little
+    // is it in front of the middle of something you could take, or a small thing you could use (a lock, a switch)? then
+    // it is lowered out of the way a little
     H.box = box;
-    H.covering = !!box && H.low < 0.5 && R.hits.some(r => r.kind === 'item' && hits(box, { x0: r.x + r.w * 0.35, y0: r.y - R.viewY + r.h * 0.35, x1: r.x + r.w * 0.65, y1: r.y - R.viewY + r.h * 0.65 }));
+    H.covering = !!box && H.low < 0.5 && R.hits.some(r => (r.kind === 'item' || (r.kind === 'target' && r.w < Hv * 0.3 && r.h < Hv * 0.3)) && hits(box, { x0: r.x + r.w * 0.35, y0: r.y - R.viewY + r.h * 0.35, x1: r.x + r.w * 0.65, y1: r.y - R.viewY + r.h * 0.65 }));
   }
 
   // ---------------- a push toward what it was used on ----------------
@@ -437,16 +444,31 @@ const HANDS = (() => {
   function eyeOff(L) { const e = L.eye; return !!(e && (e.x || e.y || e.z)); }
   function eyePos(L) { const e = L.eye || {}; return { x: e.x || 0, y: L.eyeH + (e.y || 0), z: e.z || 0 }; }
   // a point on a target: at = {x, y, z} (the world), or [u, v] across it (u -0.5..0.5 of its width, square to the line from
-  // you to it) and up it (v 0..1 of its height; along it, away from you, for a flat one); by default its middle. It is
+  // you to it) and up it (v 0..1 of its height; along it, away from you, for a flat one); by default its middle, or the
+  // nearest part of it to that in view when its middle is not (a doorway clicked at the edge of the view). It is
   // pulled toward you by standoff (0.05 m), so what goes there is in front of the face it touches.
   function pointOn(t, at, standoff) {
     const L = G.L, e = eyePos(L);
     if (at && at.x !== undefined) return { x: at.x, y: at.y, z: at.z };
-    const uv = Array.isArray(at) ? at : [0, t.flat ? 0.5 : 0.5];
     const yawT = Math.atan2(t.x - e.x, t.z - e.z), rx = Math.cos(yawT), rz = -Math.sin(yawT), fx = Math.sin(yawT), fz = Math.cos(yawT);
-    let x = t.x + rx * uv[0] * (t.w || 0), z = t.z + rz * uv[0] * (t.w || 0), y = t.y;
-    if (t.flat) { x += fx * (uv[1] - 0.5) * (t.h || 0); z += fz * (uv[1] - 0.5) * (t.h || 0); y += 0.04; }
-    else y += uv[1] * (t.h || 0);
+    const spot = (u, v) => {
+      const p = { x: t.x + rx * u * (t.w || 0), y: t.y, z: t.z + rz * u * (t.w || 0) };
+      if (t.flat) { p.x += fx * (v - 0.5) * (t.h || 0); p.z += fz * (v - 0.5) * (t.h || 0); p.y += 0.04; } else p.y += v * (t.h || 0);
+      return p;
+    };
+    let uv = Array.isArray(at) ? at : [0, 0.5];
+    if (!Array.isArray(at) && !(t.attach && eyeOff(L))) {   // by default its middle; if that is off the view (a doorway seen at the edge
+      const seen = (u, v) => {                               // of it) or behind what you hold, the part of it in view nearest its middle
+        const p = spot(u, v), q = R.screenPos(p.x, p.y, p.z), b = H.box;
+        return !!q && q.x > R.W * 0.06 && q.x < R.W * 0.94 && q.y > R.H * 0.06 && q.y < R.H * 0.94 && !(b && q.x > b.x0 && q.x < b.x1 && q.y > b.y0 && q.y < b.y1);
+      };
+      if (!seen(0, 0.5)) {
+        let best = null;
+        for (let u = -0.45; u < 0.46; u += 0.15) for (let v = 0.1; v < 0.95; v += 0.2) if (seen(u, v) && (!best || Math.hypot(u, v - 0.5) < best[2])) best = [u, v, Math.hypot(u, v - 0.5)];
+        if (best) uv = best;
+      }
+    }
+    const { x, y, z } = spot(uv[0], uv[1]);
     const so = standoff === undefined ? 0.05 : standoff, dx = e.x - x, dy = e.y - y, dz = e.z - z, dl = Math.hypot(dx, dy, dz) || 1;
     return { x: x + dx / dl * so, y: y + dy / dl * so, z: z + dz / dl * so };   // along the line of sight: it stays over the spot as you see it
   }
@@ -587,7 +609,8 @@ const HANDS = (() => {
   //   angle    how it is turned at the target (radians, clockwise on screen; 0 is as its icon is drawn); flat, restAngle:
   //            how it lies once it has landed
   //   pivot    'left' / 'right': the end a slipping thing hangs from as the other end drops
-  //   speed    a multiplier on its pace; hold: how long a slipping thing hangs (s)
+  //   speed    a multiplier on its pace; hold: how long a slipping thing hangs (s); scale: its size at the target, as a
+  //            share of its own (by default no bigger than the target: keys at a lock), growing back as it falls
   //   sfx      { hit, land }: the sounds as it touches the target and the floor (by default by what it is made of:
   //            item.material 'metal' | 'wood' | 'glass' | 'soft', or a guess from its name)
   //   onHit(fx), onLand(item, fx), onDone(fx): called as it touches the target, lands (an ordinary item again), and ends
@@ -612,7 +635,7 @@ const HANDS = (() => {
       if (G.fumbling.phase !== 'fall' && G.fumbling.phase !== 'bounce') return null;   // already falling goes on by itself
       falling.push(G.fumbling); G.fumbling = null;
     }
-    opts = Object.assign({}, typeof t.fumble === 'object' ? t.fumble : null, typeof opts === 'string' ? { preset: opts } : opts || {});
+    opts = Object.assign({}, typeof t.fumble === 'object' ? t.fumble : typeof t.fumble === 'string' ? { preset: t.fumble } : null, typeof opts === 'string' ? { preset: opts } : opts || {});
     let preset = PRESETS[opts.preset] ? opts.preset : 'return';
     let drop = opts.drop !== undefined ? !!opts.drop : PRESETS[preset].drop;
     const inInv = G.inv.includes(it), side = opts.side || (Math.random() < 0.5 ? -1 : 1);
@@ -632,8 +655,12 @@ const HANDS = (() => {
     }
     if (!drop && !inInv) return null;   // not in the hand and nowhere to land: nothing to show
     const mat = materialOf(item), sfx = Object.assign({ hit: MATERIAL[mat][0], land: MATERIAL[mat][1] }, opts.sfx || {});
+    // at the target it is drawn no bigger than the target itself (a set of keys at an ignition no bigger than the lock),
+    // and back to its own size by the time it lies on the floor
+    const big = Math.max(item.w || 0.4, item.h || 0.4), tBig = Math.max(t.w || 0, t.h || 0);
+    const size = opts.scale !== undefined ? opts.scale : tBig ? clamp(tBig / big, 0.4, 1) : 1;
     const fx = { it: item, from: it, target: t, preset, drop, at, land, opts, sfx, phase: 'wait', T: 0, pt: 0, handK: 0,
-      speed: opts.speed || 1, rot: 0, scale: 1, top: 1, pos: null, hitDone: 0, side, tip: opts.tip || heldSpec(it).tip || null, baseRot: opts.angle || 0 };
+      speed: opts.speed || 1, rot: 0, scale: 1, size, top: 1, pos: null, hitDone: 0, side, tip: opts.tip || heldSpec(it).tip || null, baseRot: opts.angle || 0 };
     G.fumbling = fx;
     return fx;
   }
@@ -671,6 +698,7 @@ const HANDS = (() => {
           fx.baseRot = wrapPi(Math.atan2(hp.y - fx.handTo.y, hp.x - fx.handTo.x) - Math.atan2(vy, vx));
           fx.rot0 = fx.baseRot + wrapPi(fx.rot0 - fx.baseRot);   // the short way round to it
         }
+        fx.pos = fx.start; fx.rot = fx.rot0; fx.scale = fx.scale0; fx.top = 1;   // drawn where the hand let go of it from this frame on
       }
       return;
     }
@@ -680,8 +708,8 @@ const HANDS = (() => {
       fx.handK = Math.sin(Math.PI * clamp(fx.pt / (OUT * 1.6), 0, 1)); fx.handTo = screenOf(fx.at) || fx.handTo;
       const target = contactPose(fx, 0, n, r);
       fx.pos = { x: lerp(fx.start.x, target.x, ek), y: lerp(fx.start.y, target.y, ek) + Math.sin(Math.PI * k) * 0.05, z: lerp(fx.start.z, target.z, ek) };
-      fx.rot = lerp(fx.rot0, target.rot, ek); fx.scale = lerp(fx.scale0, 1, ek); fx.top = 1 - ek;
-      if (k >= 1) { next('contact'); fx.scale = 1; }
+      fx.rot = lerp(fx.rot0, target.rot, ek); fx.scale = lerp(fx.scale0, fx.size, ek); fx.top = 1 - ek;
+      if (k >= 1) { next('contact'); fx.scale = fx.size; }
       return;
     }
     fx.handK = Math.max(0, fx.handK - dt * 4);
@@ -699,7 +727,7 @@ const HANDS = (() => {
       const BACK = 0.3, k = clamp(fx.pt / BACK, 0, 1), ek = smoothstep(k);
       const hw = handWorld(fx.from, Math.max(0.3, dAt * 0.75));
       fx.pos = { x: lerp(fx.rel.x, hw.p.x, ek), y: lerp(fx.rel.y, hw.p.y, ek) + Math.sin(Math.PI * k) * 0.04, z: lerp(fx.rel.z, hw.p.z, ek) };
-      fx.rot = lerp(fx.rel.rot, hw.ang, ek); fx.scale = lerp(1, hw.scale, ek); fx.top = ek;
+      fx.rot = lerp(fx.rel.rot, hw.ang, ek); fx.scale = lerp(fx.size, hw.scale, ek); fx.top = ek;
       if (k >= 1) finish(fx);
       return;
     }
@@ -716,7 +744,7 @@ const HANDS = (() => {
         const spin = fx.preset === 'clatter' ? fx.side * TAU : fx.side * 0.6;
         fx.rot = lerp(R0.rot, restRot(fx) + spin, easeIn(k) * 0.4 + k * 0.6);
       }
-      fx.top = 0;
+      fx.top = 0; fx.scale = lerp(fx.size, 1, k);   // its own size again by the time it lies on the floor
       if (k >= 1) { playAt(fx.sfx.land, P); next('bounce'); fx.hop = clamp(h * 0.1, 0.025, 0.1); }
       return;
     }
@@ -735,7 +763,7 @@ const HANDS = (() => {
   function contactPose(fx, tau, n, r) {
     const c = contactAt(fx, tau, n, r), tip = fx.tip;
     if (!tip || fx.preset === 'slip') return c;
-    const it = fx.it, w = it.w || 0.4, h = it.h || 0.4, vx = (0 - tip[0]) * w, vy = -(0.5 - tip[1]) * h, cs = Math.cos(c.rot), sn = Math.sin(c.rot);
+    const it = fx.it, w = (it.w || 0.4) * fx.size, h = (it.h || 0.4) * fx.size, vx = (0 - tip[0]) * w, vy = -(0.5 - tip[1]) * h, cs = Math.cos(c.rot), sn = Math.sin(c.rot);
     const sx = vx * cs - vy * sn, sy = vx * sn + vy * cs;   // from the point to the middle, on the view (y down), turned with it
     return Object.assign(c, { x: c.x + r.x * sx, y: c.y - sy, z: c.z + r.z * sx });
   }
@@ -752,7 +780,7 @@ const HANDS = (() => {
         return Object.assign(p, { dur: 0.5, hits: pokes.map(x => x + 0.065), v: { x: n.x * 0.35, y: 0.25, z: n.z * 0.35 } });
       }
       case 'slip': {   // put in place, hangs, then one end goes and it tips off
-        const settle = 0.14, hold = fx.opts.hold === undefined ? 0.5 : fx.opts.hold, tip = 0.34, w = fx.it.w || 0.4;
+        const settle = 0.14, hold = fx.opts.hold === undefined ? 0.35 : fx.opts.hold, tip = 0.34, w = (fx.it.w || 0.4) * fx.size;
         const piv = fx.opts.pivot === 'left' ? -1 : fx.opts.pivot === 'right' ? 1 : sd;   // the end it hangs from
         if (tau < settle + hold) {
           const s = clamp(tau / settle, 0, 1), wob = tau > settle ? Math.sin((tau - settle) * 26) * 0.012 * Math.exp(-(tau - settle) * 6) : 0;
@@ -822,7 +850,8 @@ const HANDS = (() => {
   // fingers on it), 'push' (pushes twice), 'knock' (two knocks with the knuckles), 'rattle' (takes hold and shakes it),
   // 'pull' (takes hold and pulls twice). opts: at (where on it), sfx (the sound of each touch; 'pat' by default, 'woodKnock'
   // for a knock), onTouch(target) at the first touch. The target's touchedAt is set to the night's clock then, for a night
-  // that moves its own parts. Clicking the same target again while the hand is there keeps it there for another go.
+  // that moves its own parts. Clicking the same target again while the hand is there keeps it there for another go. Called
+  // with something in hand, that goes down out of view while the empty hand does it, and comes back up after.
   const STYLE = { touch: { hold: 0.26, n: 1 }, push: { hold: 0.4, n: 2 }, knock: { hold: 0.42, n: 2 }, rattle: { hold: 0.45, n: 1 }, pull: { hold: 0.46, n: 2 } };
   function reach(t, opts) {
     const L = G.L; if (!t || !L) return null;

@@ -470,12 +470,13 @@ const hoverHit = lookFor;
   hv = await page.evaluate(take => {
     const it = eval(take); G.step(0.05, 12);
     const door = G.L.targets.find(t => t.id === 'frontdoor'); useTarget(door);
-    const fx = G.fumbling, o = { preset: fx && fx.preset, drop: fx && fx.drop, toast: G.lastToast.msg, phases: [], inInv: [] };
-    for (let i = 0; i < 80 && G.fumbling; i++) { G.step(0.025, 1); if (G.fumbling && o.phases[o.phases.length - 1] !== G.fumbling.phase) o.phases.push(G.fumbling.phase); o.inInv.push(G.inv.includes(it)); }
+    const fx = G.fumbling, o = { preset: fx && fx.preset, drop: fx && fx.drop, toast: G.lastToast.msg, phases: [], inInv: [], unseen: 0 };
+    for (let i = 0; i < 80 && G.fumbling; i++) { G.step(0.025, 1); if (G.fumbling && o.phases[o.phases.length - 1] !== G.fumbling.phase) o.phases.push(G.fumbling.phase); if (G.fumbling && G.fumbling.phase !== 'wait' && !G.fumbling.pos) o.unseen++; o.inInv.push(G.inv.includes(it)); }
     G.step(0.05, 6);
     return Object.assign(o, { back: G.inv.includes(it) && it.taken && G.hand.cur === it && G.hand.up === 1 && !G.hand.gone, always: o.inInv.every(Boolean) });
   }, take('hammer'));
   check(hv.preset === 'return' && hv.drop === false && hv.phases.join() === 'out,contact,home' && hv.back && hv.always && hv.toast === 'Not with what you have.', 'a wrong thing goes to the doorway, bumps it and comes back to the hand, and the line is still said (' + JSON.stringify(hv) + ')');
+  check(hv.unseen === 0, 'it is in the world from the first frame it leaves the hand: never a frame with it nowhere');
   // a thing missing what it needs (the planks without the hammer and nails): one plank goes up, will not stay, and falls to
   // the floor, where it can be seen and taken again; the rest of the pile stays in the hand
   await n1();
@@ -511,11 +512,38 @@ const hoverHit = lookFor;
   hv = await page.evaluate(takes => {
     eval(takes[0]); eval(takes[1]); const rot = eval(takes[2]); G.step(0.05, 12);
     const u0 = G.L.creature.u; useTarget(G.L.targets.find(t => t.id === 'frontdoor'));
-    const fx = G.fumbling, o = { preset: fx && fx.preset, drop: fx && fx.drop, held: G.hasItem('rotten'), cost: G.L.creature.u > u0, toast: G.lastToast.msg };
-    for (let i = 0; i < 120 && G.fumbling; i++) G.step(0.025, 1);
-    return Object.assign(o, { landed: !rot.taken && rot.y === G.L.floor.y });
+    const fx = G.fumbling, o = { preset: fx && fx.preset, drop: fx && fx.drop, held: G.hasItem('rotten'), cost: G.L.creature.u > u0, toast: G.lastToast.msg, handOut: true, after: null };
+    for (let i = 0; i < 120 && G.fumbling; i++) {
+      G.step(0.025, 1);
+      if (G.fumbling && (G.fumbling.phase === 'out' || G.fumbling.phase === 'contact') && G.hand.cur !== rot) o.handOut = false;   // the hand stays out, open, while it is at the doorway
+      if (G.fumbling && G.fumbling.phase === 'fall' && !o.after) o.after = 'fall';
+    }
+    G.step(0.05, 20);
+    return Object.assign(o, { landed: !rot.taken && rot.y === G.L.floor.y, next: G.hand.cur && G.hand.cur.id });
   }, [take('hammer'), take('nails'), take('rotten')]);
   check(hv.preset === 'bump' && hv.drop && !hv.held && hv.cost && /rotten/i.test(hv.toast) && hv.landed, 'a thing that looks right and is not: it is tried at the doorway, will not do, and drops to the floor; it still costs time (' + JSON.stringify(hv) + ')');
+  check(hv.handOut && hv.next === 'nails', 'the hand stays out, open, while it is at the doorway, and only once it has fallen does the next thing come up into it');
+  // the house keys at the ignition (the second night): tried at a small target close by, they are drawn no bigger than the lock,
+  // poke it with the blade, and drop into the car, where they lie to be taken again
+  await T.open(page, 'level=2&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.cam.dirIdx = 0; G.cam.yaw = G.cam.tYaw = 0; G.cam.pitch = G.cam.tPitch = 0; G.step(0.05, 2);
+    const keys = G.L.items.find(i => i.id === 'housekeys'); pickup(keys); G.step(0.05, 12);
+    const ign = G.L.targets.find(t => t.id === 'ignition'); useTarget(ign);
+    const fx = G.fumbling, o = { preset: fx && fx.preset, size: fx && +(fx.size * Math.max(keys.w, keys.h)).toFixed(3), lock: Math.max(ign.w, ign.h), tip: fx && fx.tip };
+    for (let i = 0; i < 120 && G.fumbling; i++) { G.step(0.025, 1); if (G.fumbling && G.fumbling.phase === 'contact' && o.drawn === undefined) o.drawn = +(G.fumbling.scale * Math.max(keys.w, keys.h)).toFixed(3); }
+    return Object.assign(o, { landed: !keys.taken && keys.y === G.L.floor.y && (q => pointInPoly(q[0], q[1], G.L.floor.poly))(rotY(keys.x, keys.z, -G.L.facing)) });
+  });
+  check(hv.preset === 'bump' && hv.drawn <= hv.lock + 1e-6 && !!hv.tip && hv.landed, 'the house keys at the ignition are drawn no bigger than the lock, led by the blade, and drop to the floor of the car (' + JSON.stringify(hv) + ')');
+  // a doorway at the edge of the view: the plank goes to the part of it in view, not off the side to its middle
+  await n1();
+  hv = await page.evaluate(take => {
+    eval(take); eval(take); G.cam.dirIdx = 3; G.cam.yaw = G.cam.tYaw = 3 * 45 * DEG; G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), mid = R.screenPos(door.x, door.y + door.h / 2, door.z); useTarget(door);
+    const at = G.fumbling && R.screenPos(G.fumbling.at.x, G.fumbling.at.y, G.fumbling.at.z), b = G.hand.box;
+    return { mid: mid && Math.round(mid.x), at: at && [Math.round(at.x), Math.round(at.y)], inView: !!at && at.x > 0 && at.x < R.W && at.y > 0 && at.y < R.H, clearOfHand: !!at && !(b && at.x > b.x0 && at.x < b.x1 && at.y > b.y0 && at.y < b.y1) };
+  }, take('planks'));
+  check(hv.mid > 1280 * 0.94 && hv.inView && hv.clearOfHand, 'a doorway seen at the edge of the view: the plank goes up on the part of it in view, clear of what you hold (' + JSON.stringify(hv) + ')');
   // the empty hand: nothing to use, it goes up to the target and touches it, and comes back down
   await n1();
   hv = await page.evaluate(() => {
@@ -525,6 +553,17 @@ const hoverHit = lookFor;
     return Object.assign(o, { done: !G.hand.reach });
   });
   check(hv.reach && !hv.fumble && hv.touched && hv.done && hv.toast === 'Not with what you have.', 'with nothing in hand, the hand goes up to the doorway, touches it and goes back down (' + JSON.stringify(hv) + ')');
+  // a night's own G.reach with something in hand: what it holds goes down, the empty hand does it, and it comes back up
+  await n1();
+  hv = await page.evaluate(take => {
+    const ham = eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); G.reach(door, 'rattle');
+    const o = { minUp: 1, touched: false };
+    for (let i = 0; i < 60 && G.hand.reach; i++) { G.step(0.025, 1); o.minUp = Math.min(o.minUp, G.hand.up); if (door.touchedAt !== undefined) o.touched = true; }
+    G.step(0.05, 12);
+    return Object.assign(o, { back: G.hand.cur === ham && G.hand.up === 1 });
+  }, take('hammer'));
+  check(hv.minUp === 0 && hv.touched && hv.back, 'G.reach with the hammer in hand: the hammer goes down, the empty hand rattles the doorway, and the hammer comes back up (' + JSON.stringify(hv) + ')');
   // a target's own choice: t.onWrong instead of the fumble, t.fumble = false for none, G.refuse('bump') from inside use()
   await n1();
   hv = await page.evaluate(take => {
@@ -549,6 +588,15 @@ const hoverHit = lookFor;
     return { still: b0 === b1, lag, sways: c0 !== c1, lag2 };
   }, take('hammer'));
   check(hv.still && hv.lag === 0 && hv.sways && hv.lag2 > 0.005, 'with reduced motion the hand holds still, with no lag as the view turns; without it, it breathes and lags (' + JSON.stringify(hv) + ')');
+  // six things in hand on the last night: the bar, held in both hands, stays in the bottom right, not over to the left of the
+  // inventory in the middle of the bottom edge
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.active = Math.max(0, G.inv.findIndex(i => i.id === 'beam')); G.step(0.05, 30);
+    const b = G.hand.box, inv = document.getElementById('inventory').getBoundingClientRect();
+    return { id: G.hand.cur && G.hand.cur.id, n: G.inv.length, box: b && [b.x0, b.y0, b.x1, b.y1].map(Math.round), right: !!b && b.x0 > R.W / 2 && b.x0 > inv.right - 4 };
+  });
+  check(hv.right, 'with the inventory full, what you hold stays in the bottom right (' + JSON.stringify(hv) + ')');
   // won, it is lowered out of the way of watching how it ends
   await n1();
   hv = await page.evaluate(take => { eval(take); G.step(0.05, 12); const up0 = G.hand.up; win(); G.step(0.05, 12); return { up0, up1: G.hand.up }; }, take('hammer'));

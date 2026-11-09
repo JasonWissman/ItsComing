@@ -354,15 +354,19 @@ LEVELS.push({
   preset: `'bump'` (pokes the spot, jiggles and drops: keys at a keyhole), `'slip'` (is put in place, hangs a beat, tips
   off one end and drops: a plank on a doorway without nails), `'bounce'` (hits and rebounds toward you, and drops),
   `'clatter'` (hits and is knocked aside, spinning, and drops) and `'return'` (bumps and comes back to the hand). A thing
-  that drops leaves the inventory at once (one of a pile, if it is a pile) and falls with a bounce to the floor in front
+  that drops leaves the inventory at once (one of a pile, if it is a pile; the hand stays out, open, until it falls, and
+  only then does the next thing come up into it) and falls with a bounce to the floor in front
   of the target, where it is an ordinary item again (`taken` false, on `L.floor`, `L.onDrop(item, fx)` called): inside the
   floor's outline, in sight from where you stand, clear of every other item and of any target lying on the floor, near
   enough to see looking down, and never behind you; with nowhere like that, it comes back to the hand instead.
   `G.landSpot(target, item, opts)` says where it would land. Options: `at` (`[u, v]` across and up the target, or a
-  world point), `standoff` (how far in front of it, along your line of sight), `angle` (its turn at the target), `tip`
+  world point; by default its middle, or the part of it in view nearest that when its middle is off the view or behind
+  what you hold), `standoff` (how far in front of it, along your line of sight), `angle` (its turn at the target), `tip`
   (the point it leads with: a key's blade goes to the spot, the rest of it trailing back toward your hand), `pivot`
   ('left' / 'right': the end a slipping thing hangs from), `hold` (how long it hangs), `drop` (true / false over the
-  preset's own), `land` (`{ x, y, z }`), `side` (-1 / 1), `floorY`, `flat` and `restAngle` (how it lies), `speed`,
+  preset's own), `land` (`{ x, y, z }`), `side` (-1 / 1), `floorY`, `flat` and `restAngle` (how it lies), `speed`, `scale`
+  (its size at the target, as a share of its own: by default no bigger than the target, so a set of keys at an ignition is
+  no bigger than the lock; it grows back as it falls),
   `sortDist`, `sfx: { hit, land }` (by default by what it is made of: `item.material` 'metal',
   'wood', 'glass' or 'soft', or a guess from its name: a light metal `tink`, a wooden `woodKnock`, a soft `pat`; it lands
   with a `clatter`, or a `flop`), and `onHit(fx)`, `onLand(item, fx)`, `onDone(fx)`. One leaves the hand at a time: another
@@ -372,7 +376,8 @@ LEVELS.push({
   `G.reach(target, opts)` is the empty hand: it comes up to the target (all the way to a thing within a step, out toward it
   further off), and `style` 'touch', 'push', 'knock', 'rattle' or 'pull' (with `at`, `sfx`, `onTouch(target)`; the
   target's `touchedAt` is set to the night's clock at the first touch); clicked again while it is there it stays for
-  another go.
+  another go. Called with something in hand (from a night's own `onClick`, say), what it holds goes down while the empty
+  hand does it and comes back up after.
 - **What useTarget does when nothing works**, before a night says otherwise: a wrong thing in hand (nothing in the
   inventory the target takes) is tried there and comes back (`'return'`); nothing in hand brings the empty hand up to it
   (`G.reach`); a thing whose target needs something you have not got (`requires`) is put in place and falls off
