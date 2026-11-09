@@ -13,7 +13,7 @@ const watchMoods = "window._moods = []; (function f() { const m = G.L.creature.m
 const letGo = [dropAll, ['expect', 'G.inv.length === 0', 'empty-handed'], ['expect', clear, 'what was put down lies clear of everything else on the floor'], ['expect', 'G.L.creature.rage < 0.9', 'nothing held: it is not enraged'], ['eval', 'G.L.creature.switched = true; G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; G.L.creature.u = 0.9;'], ['waitUntil', 'G.L.won || G.L.creature.dist < 3', 20000], ['expect', 'G.L.won || G.cam.tPitch < -0.1', 'facing it as it looms in, the view lifts to its face'], ['waitUntil', 'G.L.won', 20000], ['eval', watchMoods], ['expect', 'G.L.won && G.L.s.ending', 'it came and it was the ending']];
 const ending = [
   ['waitUntil', 'G.L.s.hugWrap > 0.95', 9000], ['expect', "G.state === 'won' && G.L.creature.hug.reach > 0.95 && G.L.creature.dist < 0.8 && G.L.s.meadow === 0", 'it stops close in front of you and holds you, its arms out to you and closed round you'],
-  ['waitUntil', 'G.L.s.meadow > 0.5', 20000],
+  ['waitUntil', 'G.L.s.meadow > 0.5', 30000],
   ['expect', 'JSON.stringify(window._moods) === "[0,1,2,3,4,5,6]"', 'while it held you its face went through rage, anguish, fear, sorrow and calm, and it was happy'],
   ['waitUntil', 'G.L.s.wait', 12000],
   ['expect', "G.L.s.meadow === 1 && G.L.creature.hug === null && Math.abs(G.L.creature.dist - 3.3) < 0.05 && G.L.pal.ground[1] > G.L.pal.ground[0] + 40 && G.L.pal.skyTop[2] > 200 && G.L.s.room === 0", 'it let you go: it stands in a green meadow under a blue sky, and no room yet'],

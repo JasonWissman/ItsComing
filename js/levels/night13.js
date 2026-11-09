@@ -27,14 +27,14 @@ const END = {
   settle: 1.0,                          // it stops, and its head comes level
   stoop: [0.2, 2.2],                    // it bends down to your face
   near: [0.9, 3.0],                     // and comes in close
-  reach: [0.8, 3.4],                    // its arms come slowly out to you
-  close: [3.0, 4.6],                    // and close round you
-  moods: 5.4, blend: 0.8, hold: 0.8,    // then its faces, each coming over `blend` and held `hold`: rage first, happy last
-  release: 15.0,                        // it lets you go, a moment after it is happy
-  light: [14.8, 20.8],                  // the light comes, and the meadow with it
-  walk: [16.0, 19.6],                   // it steps back and round to the north, where the foot of the bed will be
-  dance: [20.2, 24.7],                  // and dances a little to the tune
-  wait: 20.8, arm: 21.4, line: 23.2,    // from here the meadow waits for a press (taken from `arm`); a soft line comes in at `line`
+  reach: [0.8, 3.6],                    // its arms come slowly up out to you, the hands open
+  close: [3.8, 5.6],                    // and close round you
+  moods: 6.4, blend: 0.8, hold: 0.8,    // then its faces, each coming over `blend` and held `hold`: rage first, happy last
+  release: 16.0,                        // it lets you go, a moment after it is happy
+  light: [15.8, 21.8],                  // the light comes, and the meadow with it
+  walk: [17.0, 20.6],                   // it steps back and round to the north, where the foot of the bed will be
+  dance: [21.2, 25.7],                  // and dances a little to the tune
+  wait: 21.8, arm: 22.4, line: 24.2,    // from here the meadow waits for a press (taken from `arm`); a soft line comes in at `line`
   leave: 4.2,                           // after the press: the meadow and it fade, the bedroom comes up, and then the last screen
 };
 LEVELS.push({
@@ -186,7 +186,7 @@ LEVELS.push({
       c.yOff = -0.62 * span(t, END.stoop[0], END.stoop[1]) * (1 - span(t, END.release + 0.2, END.release + 1.8));
       s.hugWrap = wrap;
       c.calm = span(t, END.release, END.release + 1.6);
-      c.hug = reach > 0.001 || wrap > 0.001 ? { reach, wrap, eyeY: (L.eyeH - c.pos().y - c.yOff) / (1 - 0.2 * c.calm) } : null;
+      c.hug = reach > 0.001 || wrap > 0.001 ? { reach, wrap } : null;
       c.mood = moodAt(t);
       // a thing this close is drawn from its feet: looked up at too steeply, they would be behind the eye and it would vanish,
       // so the view never looks up further than keeps them in front (it bends down to you, so the view comes level anyway)
@@ -227,10 +227,11 @@ LEVELS.push({
       meadow.update();
     };
     // the meadow waits for as long as you like: a click, a key, a tap or A goes on (not in the first moment of it, so a press
-    // made while it was still coming does not throw it away). Once it waits it takes every press, so R no longer restarts.
+    // made while it was still coming does not throw it away). From the moment it reaches you the ending takes every press, so
+    // nothing (R included) can cut it short while it holds you, and nothing but going on is done in the meadow.
     L.onPress = () => {
-      if (!s.wait) return false;
-      if (!s.leaving && s.endT >= END.arm) { s.leaving = true; s.leaveT = 0; s.glitterAt = s.endT + 0.3; AUDIO.sfx('win'); }
+      if (!s.ending) return false;
+      if (s.wait && !s.leaving && s.endT >= END.arm) { s.leaving = true; s.leaveT = 0; s.glitterAt = s.endT + 0.3; AUDIO.sfx('win'); }
       return true;
     };
     L.aftermath = () => s.leaving && s.leaveT >= END.leave;
@@ -261,12 +262,13 @@ LEVELS.push({
       pools();
       meadow.draw();
       if (s.glitterAt < 0) return;
-      // the glitter: sparks spiralling up and out from where it stood, twinkling, gone in a few seconds
-      const c = c0(), p = c.pos(), k = s.endT - s.glitterAt;
+      // the glitter: sparks spiralling up and out from where it stood, twinkling, gone in a few seconds (with reduced motion
+      // they drift up and out without turning; with reduced flashing they glow steadily as they go)
+      const c = c0(), p = c.pos(), k = s.endT - s.glitterAt, S = SAVE.data.settings;
       if (k < 0 || k > 3.2) return;
       for (let i = 0; i < 46; i++) {
-        const a = i * 2.39996 + k * (0.8 + (i % 5) * 0.2), r = 0.12 + (i % 7) * 0.06 + k * (0.25 + (i % 3) * 0.12), y = 0.2 + (i % 11) * 0.19 + k * (0.35 + (i % 4) * 0.18);
-        const tw = 0.5 + 0.5 * Math.sin(k * 14 + i * 1.7), al = clamp(1.2 - k / 2.6, 0, 1) * (0.35 + 0.65 * tw), sz = 0.05 + (i % 3) * 0.025;
+        const a = i * 2.39996 + (S.reducedMotion ? 0 : k * (0.8 + (i % 5) * 0.2)), r = 0.12 + (i % 7) * 0.06 + k * (0.25 + (i % 3) * 0.12), y = 0.2 + (i % 11) * 0.19 + k * (0.35 + (i % 4) * 0.18);
+        const tw = S.reducedFlash ? 0.7 : 0.5 + 0.5 * Math.sin(k * 14 + i * 1.7), al = clamp(1.2 - k / 2.6, 0, 1) * (0.35 + 0.65 * tw), sz = 0.05 + (i % 3) * 0.025;
         const col = (i % 4) === 0 ? [255, 214, 120] : (i % 4) === 1 ? [255, 190, 220] : [255, 250, 236];
         R.add(SC.mkSprite(L, p.x + Math.sin(a) * r, y, p.z + Math.cos(a) * r, sz, sz, (ctx, P) => {
           ctx.globalAlpha *= al; ctx.scale(sz, sz); ctx.fillStyle = P.raw(col);
@@ -290,41 +292,7 @@ LEVELS.push({
       if (s.room > 0.01) out.push({ x: 2.2, y: 1.45, z: 1.6, r: 2.2, color: [255, 246, 220], a: 0.4 * s.room });
       return out.length ? out : null;
     };
-    // holding you: seen from your eyes its forearms come in at the sides of the view, close and soft edged, and go up round
-    // its edges, the long fingers curling in over the top round the back of your head. In the colour of its body as its light has it.
-    const embrace = (ctx, W, H) => {
-      const w = s.hugWrap || 0; if (w <= 0.01) return;
-      const k = smoothstep(w), squeeze = SAVE.data.settings.reducedMotion ? 0 : (Math.sin(G.t * 1.3) * 0.5 + 0.5) * 0.008 * k, L0 = moodLight(c0());
-      const lit = L0.i * 0.9, body = mixc([10, 6, 9], L0.color, Math.min(0.5, 0.42 * lit)).map(v => v * (1 + 0.9 * lit)), rim = mixc(body, L0.color, 0.45).map(v => Math.min(255, v * 1.6));
-      ctx.save();
-      for (const sd of [-1, 1]) {
-        const ex = sd < 0 ? 0 : W, X = u => ex - sd * (u - (1 - k) * W * 0.2 + squeeze * W);   // u: how far in from that edge
-        // the forearm: in past the edge low down, up the side, and over at the top corner; its hand there
-        const A = [X(-W * 0.06), H * 0.66], B = [X(W * 0.055), H * 0.45], C = [X(W * 0.075), H * 0.14], wA = W * 0.11, wC = W * 0.075;
-        const limb = (col, grow, dx) => {
-          const n = 14, left = [], right = [];
-          for (let i = 0; i <= n; i++) {
-            const u = i / n, x = (1 - u) * (1 - u) * A[0] + 2 * u * (1 - u) * B[0] + u * u * C[0], y = (1 - u) * (1 - u) * A[1] + 2 * u * (1 - u) * B[1] + u * u * C[1];
-            const tx = 2 * (1 - u) * (B[0] - A[0]) + 2 * u * (C[0] - B[0]), ty = 2 * (1 - u) * (B[1] - A[1]) + 2 * u * (C[1] - B[1]), tl = Math.hypot(tx, ty) || 1, hw = lerp(wA, wC, u) / 2 + grow;
-            left.push([x + dx - ty / tl * hw, y + tx / tl * hw]); right.push([x + dx + ty / tl * hw, y - tx / tl * hw]);
-          }
-          ctx.fillStyle = rgba(col); ctx.beginPath(); left.concat(right.reverse()).forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill();
-        };
-        ctx.globalAlpha = 0.3 * k; limb(body, W * 0.007, 0);   // a soft edge: it is too close to the eye to be sharp
-        ctx.globalAlpha = k;
-        limb(rim, W * 0.004, -sd * W * 0.005);   // the light catching its inner edge
-        limb(body, 0, sd * W * 0.001);
-        // the hand at the top corner and the fingers over the top of the view, toward the middle
-        ctx.fillStyle = rgba(body); ctx.beginPath(); ctx.ellipse(C[0] - sd * W * 0.01, C[1] - H * 0.02, W * 0.05, H * 0.07, -sd * 0.5, 0, TAU); ctx.fill();
-        for (let i = 0; i < 4; i++) {
-          const x0 = C[0] - sd * W * (0.01 + i * 0.012), y0 = C[1] - H * (0.06 - i * 0.025), len = W * (0.13 - Math.abs(i - 1.2) * 0.018) * (0.4 + 0.6 * k);
-          const tip = [x0 - sd * len, y0 - H * 0.05 + i * H * 0.03], mid = [x0 - sd * len * 0.55, y0 - H * 0.07 + i * H * 0.012];
-          for (const [col, wd] of [[rim, W * 0.019], [body, W * 0.014]]) { ctx.strokeStyle = rgba(col); ctx.lineWidth = wd; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mid[0], mid[1], tip[0], tip[1]); ctx.stroke(); }
-        }
-      }
-      ctx.restore();
-    };
-    L.overlay = (ctx, W, H) => { embrace(ctx, W, H); meadow.overlay(ctx, W, H); };
+    L.overlay = (ctx, W, H) => meadow.overlay(ctx, W, H);
     L.floor = { poly: [[-6, -6], [6, -6], [6, 6], [-6, 6]], y: 0 };
   }
 });
@@ -529,9 +497,15 @@ function buildMeadow(L, s, c0) {
         ctx.save(); ctx.font = Math.round(17 * ts) + 'px Georgia, "Times New Roman", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         if ('letterSpacing' in ctx) ctx.letterSpacing = '0.16em';
         const ly = H - 58 * ts, bg = ctx.createRadialGradient(W / 2, ly, 0, W / 2, ly, 260 * ts);
-        bg.addColorStop(0, 'rgba(24,44,16,' + (0.3 * la).toFixed(3) + ')'); bg.addColorStop(1, 'rgba(24,44,16,0)'); ctx.fillStyle = bg; ctx.save(); ctx.translate(W / 2, ly); ctx.scale(1, 0.16); ctx.translate(-W / 2, -ly); ctx.fillRect(W / 2 - 260 * ts, ly - 260 * ts, 520 * ts, 520 * ts); ctx.restore();
+        bg.addColorStop(0, 'rgba(24,44,16,' + (0.42 * la).toFixed(3) + ')'); bg.addColorStop(0.6, 'rgba(24,44,16,' + (0.2 * la).toFixed(3) + ')'); bg.addColorStop(1, 'rgba(24,44,16,0)'); ctx.fillStyle = bg; ctx.save(); ctx.translate(W / 2, ly + 10 * ts); ctx.scale(1, 0.2); ctx.translate(-W / 2, -ly); ctx.fillRect(W / 2 - 260 * ts, ly - 260 * ts, 520 * ts, 520 * ts); ctx.restore();
         ctx.shadowColor = 'rgba(20,40,12,' + (0.7 * la).toFixed(3) + ')'; ctx.shadowBlur = 8;
         ctx.fillStyle = 'rgba(255,252,240,' + (0.9 * la).toFixed(3) + ')'; ctx.fillText('Stay as long as you like.', W / 2, ly);
+        // and, a little later and smaller, how to go on (as the night's card says it)
+        const lb = la * smoothstep((s.endT - END.line - 3) / 2.5);
+        if (lb > 0.01) {
+          ctx.font = Math.round(11 * ts) + 'px Georgia, "Times New Roman", serif'; if ('letterSpacing' in ctx) ctx.letterSpacing = '0.22em';
+          ctx.fillStyle = 'rgba(255,252,240,' + (0.8 * lb).toFixed(3) + ')'; ctx.fillText('CLICK WHEN YOU ARE READY', W / 2, ly + 26 * ts);
+        }
         ctx.restore();
       }
     },

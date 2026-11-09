@@ -294,6 +294,94 @@ const hoverHit = lookFor;
     return { won: G.L.won && G.L.s.ending, up };
   });
   check(faced.won && faced.up < -0.15, 'empty-handed and looking up at it as it reaches you is the ending (' + JSON.stringify(faced) + ')');
+  // the ending, frame by frame: it holds you, its face goes through its moods to happy, the meadow comes and waits as long as
+  // you like; a press, and the meadow and it fade into the bedroom and the last screen
+  const caught = () => page.evaluate(() => {
+    for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
+    G.L.creature.switched = true;
+    G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+    G.L.creature.u = 0.9; for (let i = 0; i < 600 && !G.L.won; i++) G.step(0.05, 1);
+    return G.L.won && G.L.s.ending;
+  });
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  check(await caught(), 'it reached you, and it is the ending');
+  const hold = await page.evaluate(() => {
+    const c = G.L.creature, s = G.L.s, o = { flash: 0, white: 0 };
+    const until = t => { while (s.endT < t - 1e-6) { G.step(1 / 30, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white); } };
+    until(END.reach[0] + 0.5); const h0 = c.hug && { reach: c.hug.reach, wrap: c.hug.wrap };
+    until(END.reach[1]); o.reaching = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    until(END.close[1] + 0.3); o.holding = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    const cp = c.pos(), face = cp.y + c.yOff + CREATURES.demon.eyesY(c), fp = R.screenPos(cp.x, face, cp.z);
+    o.held = { reach: c.hug && c.hug.reach, wrap: c.hug && c.hug.wrap, dist: c.dist, h0, aim: Math.abs(wrapPi(c.yaw - G.cam.yaw)), faceY: fp && fp.y / R.H, faceX: fp && fp.x / R.W, mood: c.mood, overlay: s.hugWrap };
+    // its moods: each whole one held a while, the changes between them slow, all of it while it still holds you
+    const seen = []; let last = -1, prev = c.mood, down = false, release = null;
+    while (s.endT < END.light[1]) {
+      G.step(0.05, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white);
+      const m = c.mood; if (m < prev - 1e-9) down = true; prev = m;
+      if (Number.isInteger(m)) { if (seen.length && seen[seen.length - 1].m === m) seen[seen.length - 1].t1 = s.endT; else seen.push({ m, t0: s.endT, t1: s.endT, wrap: s.hugWrap, meadow: s.meadow }); }
+      if (m === 6 && release === null) release = { meadow: s.meadow, wrap: s.hugWrap };
+      if (seen.length && Number.isInteger(m)) last = m;
+    }
+    o.moods = seen.map(x => x.m); o.held2 = seen.filter(x => x.m >= 1 && x.m <= 5).every(x => x.t1 - x.t0 >= 0.6 && x.wrap > 0.99 && x.meadow === 0);
+    o.blends = seen.slice(1).map((x, i) => +(x.t0 - seen[i].t1).toFixed(2)); o.down = down; o.happyFirst = release; o.last = last;
+    return o;
+  });
+  check(hold.held.h0 && hold.held.h0.reach > 0 && hold.held.h0.reach < 0.5 && hold.held.h0.wrap === 0, 'it reaches out to you slowly (' + JSON.stringify(hold.held.h0) + ')');
+  check(hold.reaching && hold.reaching.every(([x, y], i) => (i ? x > 0.6 && x < 0.9 : x > 0.1 && x < 0.4) && y > 0.45 && y < 0.85), 'its hands come up into the view, one each side of it, reaching for you (' + JSON.stringify(hold.reaching) + ')');
+  check(hold.holding && hold.holding.every(([x, y], i) => (i ? x > 0.85 : x < 0.15) && y < 0.3), 'its arms come round the sides of the view, the hands in its top corners (' + JSON.stringify(hold.holding) + ')');
+  check(hold.held.reach > 0.99 && hold.held.wrap > 0.99 && hold.held.overlay > 0.99 && hold.held.dist < 0.75, 'it stops close in front of you and its arms close round you (' + JSON.stringify(hold.held) + ')');
+  check(hold.held.aim < 0.02 && hold.held.faceX > 0.4 && hold.held.faceX < 0.6 && hold.held.faceY > 0.1 && hold.held.faceY < 0.5, 'the view stays on its face (' + (hold.held.faceX || 0).toFixed(2) + ', ' + (hold.held.faceY || 0).toFixed(2) + ')');
+  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6]' && !hold.down && hold.held2, 'while it holds you its face goes through rage, anguish, fear, sorrow and calm, each held a while, and ends happy (' + JSON.stringify(hold.moods) + ')');
+  check(hold.blends.every(b => b >= 0.5), 'each change of face is slow (' + hold.blends.join(', ') + ' s)');
+  check(hold.happyFirst && hold.happyFirst.meadow === 0 && hold.happyFirst.wrap > 0.99, 'it is happy while it still holds you, before the light comes');
+  check(hold.flash < 0.01 && hold.white < 0.01, 'nothing in it flashes');
+  const meadow = await page.evaluate(() => {
+    const c = G.L.creature, s = G.L.s;
+    while (!s.wait) G.step(0.1, 1);
+    const at = { meadow: s.meadow, hug: c.hug, dist: c.dist, yaw: Math.abs(wrapPi(c.yaw - G.L.facing)), ground: G.L.pal.ground.map(Math.round), sky: G.L.pal.skyTop.map(Math.round), room: s.room, mood: c.mood, view: Math.abs(wrapPi(G.cam.yaw - c.yaw)), pitch: G.cam.pitch };
+    for (let i = 0; i < 600; i++) G.step(0.1, 1);   // a minute in the meadow
+    return Object.assign(at, { after: { state: G.state, leaving: s.leaving, meadow: s.meadow, fade: c.fade } });
+  });
+  check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 6 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
+  check(meadow.ground[1] > meadow.ground[0] + 40 && meadow.sky[2] > 200 && meadow.sky[2] > meadow.sky[0] + 80 && meadow.room === 0, 'green grass and a blue sky, and no room yet (' + JSON.stringify([meadow.ground, meadow.sky]) + ')');
+  check(meadow.after.state === 'won' && !meadow.after.leaving && meadow.after.meadow === 1 && meadow.after.fade === 1, 'left alone, the meadow simply stays');
+  await shot(page, 'meadow');
+  await page.mouse.click(640, 380);
+  const left = await page.evaluate(() => { const s = G.L.s, o = { leaving: s.leaving }; G.step(0.05, 40); o.mid = { room: s.room, lv: s.lv, fade: G.L.creature.fade, state: G.state }; for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1); return Object.assign(o, { state: G.state, room: s.room, eyeH: G.L.eyeH, kind: MENU.kind }); });
+  check(left.leaving && left.mid.state === 'won' && left.mid.room > 0.2 && left.mid.room < 1 && left.mid.fade < 1 && left.mid.lv > 0.3, 'a click: the meadow and it fade away as the bedroom comes (' + JSON.stringify(left.mid) + ')');
+  check(left.state === 'end' && left.room === 1 && Math.abs(left.eyeH - 1.15) < 0.01 && left.kind === 'ending', 'the bedroom in the morning, and the last screen');
+  check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') === 'day' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act="again"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true), 'the light theme, faced your demons, Play again, the campaign complete');
+  await shot(page, 'ending');
+  // a press while it still holds you does nothing; in the meadow a key (R too: it goes on, it does not start the night
+  // again), A on a pad, or the touch Use button goes on, just as a click does
+  for (const [how, press] of [['a key (R)', async () => page.keyboard.press('r')], ['A on a pad', async () => page.evaluate(() => {
+    window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad];
+    window._pad.buttons[0].pressed = true; pollGamepad(); window._pad.buttons[0].pressed = false; pollGamepad(); navigator.getGamepads = () => [];
+  })], ['the touch Use button', async () => page.evaluate(() => document.getElementById('tUse').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })))]]) {
+    await T.open(page, 'level=13&go&seed=2&nofr');
+    await caught();
+    const L0 = await page.evaluate(() => { while (G.L.s.endT < END.moods + 1) G.step(0.1, 1); return G.L.s.endT; });
+    await press();
+    const early = await page.evaluate(() => ({ leaving: G.L.s.leaving, state: G.state, ending: G.L.s.ending }));
+    await page.evaluate(() => { while (G.L.s.endT < END.arm + 0.5) G.step(0.1, 1); });
+    const L1 = await page.evaluate(() => (window._L = G.L, G.L.s.endT));
+    await press();
+    const later = await page.evaluate(() => ({ leaving: G.L.s.leaving, same: window._L === G.L, state: G.state }));
+    check(L0 > 5 && !early.leaving && early.state === 'won' && early.ending && L1 > 20 && later.leaving && later.same && later.state === 'won', how + ': nothing while it holds you; in the meadow it goes on (' + JSON.stringify([early, later]) + ')');
+  }
+  // with reduced motion it does not dance, tremble or sway, and the ending still comes to the last screen
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  await page.evaluate(() => MENU.applySetting('reducedMotion', true));
+  await caught();
+  const still = await page.evaluate(() => {
+    const c = G.L.creature, s = G.L.s; let dance = 0;
+    while (!s.wait || s.endT < END.dance[1] + 9) { G.step(0.1, 1); dance = Math.max(dance, c.dance); }
+    const o = { still: c.still, dance };
+    G.L.onPress(); for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1);
+    return Object.assign(o, { state: G.state });
+  });
+  check(still.still === true && still.dance === 0 && still.state === 'end', 'with reduced motion it stands still in the meadow, and the ending still ends (' + JSON.stringify(still) + ')');
+  await page.evaluate(() => MENU.applySetting('reducedMotion', false));
   // tapping the held thing again while looking down puts it down
   await T.open(page, 'level=13&go&seed=1&nofr');
   const held = await page.evaluate(() => G.inv.length);

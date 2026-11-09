@@ -86,44 +86,79 @@ function demonMoodFace(ctx, c, P, fy, F) {
     }
   }
 }
-// the arms coming out to you and closing round you (c.hug: reach 0..1, wrap 0..1, eyeY: the eye's height above its feet).
-// Each joint is placed in front of it (z: metres toward you) and drawn where it would fall on its own plane as seen from
-// the eye, so an arm coming toward you grows and swings out past the edges of the view; a part nearer than a hand's
-// breadth from the eye is not drawn. At reach 0 and wrap 0 it is the arm as draw() has it.
+// the arms coming out to you and closing round you (c.hug: reach 0..1, wrap 0..1). A thing this close is drawn as you see
+// it, in the view's own pixels: from its shoulders (where draw() has them) its arms come slowly up out of the bottom of the
+// view toward you, the hands open and growing as they come; then they go up round the sides of the view, the forearms
+// along its edges, the hands at its top corners and the long fingers curling in over the top, round the back of your head.
+// At reach 0 and wrap 0 it is the arm as draw() has it.
 function demonHugArms(ctx, c, P, body, S0, E0, H0, wid, fing) {
-  const h = c.hug, d = Math.max(0.6, c.dist), eY = h.eyeY, r = smoothstep(h.reach), w = smoothstep(h.wrap), zc = d - 0.12;
-  const proj = p => { const k = d / Math.max(0.12, d - p[2]); return [p[0] * k, eY + (p[1] - eY) * k, k]; };
-  const mix3 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
-  const squeeze = (c.still ? 0 : Math.sin(c.t * 1.3) * 0.5 + 0.5) * w * 0.04;
-  const seg = (A, B, wa, wb) => {
-    if (A[2] >= zc) return null;
-    if (B[2] > zc) { const k = (zc - A[2]) / (B[2] - A[2]); B = mix3(A, B, k); wb = lerp(wa, wb, k); }
-    const a = proj(A), b = proj(B), dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1e-6, nx = -dy / l, ny = dx / l, ha = wa * a[2] / 2, hb = wb * b[2] / 2;
-    ctx.beginPath(); ctx.moveTo(a[0] + nx * ha, a[1] + ny * ha); ctx.lineTo(b[0] + nx * hb, b[1] + ny * hb); ctx.lineTo(b[0] - nx * hb, b[1] - ny * hb); ctx.lineTo(a[0] - nx * ha, a[1] - ny * ha); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.arc(a[0], a[1], ha, 0, TAU); ctx.fill();
-    if (B[2] < zc) { ctx.beginPath(); ctx.arc(b[0], b[1], hb, 0, TAU); ctx.fill(); }
-    return b;
-  };
-  ctx.fillStyle = body;
-  for (const s of [-1, 1]) {
-    const i = s > 0 ? 1 : 0;
-    // reaching: up and out toward you, hands open; closed: the elbows beside you, the hands round behind you
-    const E1 = [s * 0.38, eY - 0.18, d * 0.22], H1 = [s * 0.2, eY - 0.06, d * 0.5];
-    const E2 = [s * (0.42 - squeeze), eY + 0.1, d * 0.72], H2 = [s * (0.12 - squeeze), eY + 0.05, d * 1.35];
-    const S = S0[i], E = mix3(mix3(E0[i], E1, r), E2, w), H = mix3(mix3(H0[i], H1, r), H2, w);
-    seg(S, E, wid, wid * 0.95);
-    const hb = seg(E, H, wid * 0.95, wid * 0.85);
-    if (!hb || H[2] >= zc) continue;
-    // the fingers: as draw() has them at rest, then open toward you, then curling in round you
-    const f0 = fing[i], dir = [H[0] - E[0], H[1] - E[1], H[2] - E[2]], dl = Math.hypot(dir[0], dir[1], dir[2]) || 1;
-    for (let k = 0; k < 4; k++) {
-      const len = (k === 0 || k === 3 ? 0.82 : 1) * lerp(f0.len, 0.15, r), sp = (k - 1.5) * 0.42;
-      const T3 = [H[0] + (dir[0] / dl) * len * 0.6 + s * len * 0.25 * (1 - w) - s * len * 0.5 * w, H[1] + (dir[1] / dl) * len * 0.6 + sp * len, H[2] + (dir[2] / dl) * len * 0.6 + len * 0.55];
-      const a = f0.angle + (k - 1.5) * f0.spread, rest = [H0[i][0] + Math.cos(a) * len, H0[i][1] + Math.sin(a) * len, 0];
-      const tip = mix3(mix3(rest, T3, r), T3, w);
-      seg(H, tip, 0.024, 0.016);
+  const h = c.hug, r = h.reach, w = h.wrap, g = Math.max(r, w);
+  const M = ctx.getTransform(), dpr = ctx.canvas.width / R.W, W = R.W, H = R.H, cx = W / 2;
+  const scr = p => { const q = M.transformPoint({ x: p[0], y: p[1] }); return [q.x / dpr, q.y / dpr - R.viewY]; };
+  const k = Math.hypot(M.a, M.b) / dpr;   // the view's pixels to one of its metres, across
+  const mix2 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+  const unit = v => { const l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
+  const turn = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)];
+  const squeeze = (c.still ? 0 : Math.sin(c.t * 1.3) * 0.5 + 0.5) * w * 0.008 * W;   // holding on, it draws you in a little now and then
+  // its own dark, as its light has it, and that light catching the inner edge of the arms
+  const base = mixc([4, 3, 6], [104, 90, 126], c.soft || 0), rim = P.col(mixc(base, [150, 130, 140], 0.6));
+  // a limb in the view: from a to b round the control point m, its width going from wa to wb, round at both ends
+  const limb = (a, m, b, wa, wb, col, dx) => {
+    const n = 12, L = [], Rt = [];
+    for (let i = 0; i <= n; i++) {
+      const u = i / n, x = (1 - u) * (1 - u) * a[0] + 2 * u * (1 - u) * m[0] + u * u * b[0] + (dx || 0), y = (1 - u) * (1 - u) * a[1] + 2 * u * (1 - u) * m[1] + u * u * b[1];
+      const tx = 2 * (1 - u) * (m[0] - a[0]) + 2 * u * (b[0] - m[0]), ty = 2 * (1 - u) * (m[1] - a[1]) + 2 * u * (b[1] - m[1]), tl = Math.hypot(tx, ty) || 1, hw = lerp(wa, wb, u) / 2;
+      L.push([x - ty / tl * hw, y + tx / tl * hw]); Rt.push([x + ty / tl * hw, y - tx / tl * hw]);
     }
+    ctx.fillStyle = col; ctx.beginPath(); L.concat(Rt.reverse()).forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(a[0] + (dx || 0), a[1], wa / 2, 0, TAU); ctx.moveTo(b[0] + (dx || 0) + wb / 2, b[1]); ctx.arc(b[0] + (dx || 0), b[1], wb / 2, 0, TAU); ctx.fill();
+  };
+  ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, R.viewY * dpr);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // first the light along the edges of both arms and hands, then the arms and hands over it, so no edge shows across a wrist
+  for (const pass of g > 0.01 ? [0, 1] : [1]) for (const s of [-1, 1]) {
+    const i = s > 0 ? 1 : 0, edge = s > 0 ? W : 0, X = u => edge - s * (u - (1 - w) * 0.05 * W + squeeze);   // u: how far in from that edge
+    // the shoulder where it is; the elbow below the bottom of the view and then out past its side; the wrist low beside its
+    // chest, reaching, and then high in the corner, holding
+    const S = scr(S0[i]);
+    const E = mix2(mix2(scr(E0[i]), [cx + s * 0.66 * H, 1.1 * H], r), [X(-0.08 * W), 0.72 * H], w);
+    const Wr = mix2(mix2(scr(H0[i]), [cx + s * 0.42 * H, 0.7 * H], r), [X(0.075 * W), 0.15 * H], w);
+    const Cm = mix2(mix2(E, Wr, 0.5), [X(0.058 * W), 0.45 * H], w);
+    if (pass) (h.wrists = h.wrists || [])[i] = [Wr[0] / W, Wr[1] / H];   // where its hands are in the view (for the tests)
+    // nearer, it is bigger: an arm's own width at rest, a forearm's breadth reaching, and wider still against your face
+    const wU = lerp(lerp(wid * k, 0.075 * H, r), 0.15 * H, w), wE = lerp(lerp(wid * k, 0.085 * H, r), 0.11 * W, w), wW = lerp(lerp(wid * k, 0.07 * H, r), 0.075 * W, w);
+    const a0 = ctx.globalAlpha;
+    if (pass === 0) {
+      if (w > 0.01) { ctx.globalAlpha = a0 * 0.3 * w; limb(E, Cm, Wr, wE + 0.014 * W, wW + 0.014 * W, body); }   // soft at the edge: too near the eye to be sharp
+      ctx.globalAlpha = a0 * g; limb(E, Cm, Wr, wE + 0.008 * H, wW + 0.008 * H, rim, -s * 0.004 * W * w);   // its light along the edge
+    } else { limb(S, mix2(S, E, 0.5), E, wid * k, wU, body); limb(E, Cm, Wr, wE, wW, body); }
+    // the hand: from the fingers hanging as draw() has them, to open with the palm toward you and the fingers spread up, to
+    // turned in over the top of the view with the fingers curled down round your head
+    const f0 = fing[i], rest = [Math.cos(f0.angle), -Math.sin(f0.angle)];
+    const dir = unit(mix2(unit(mix2(rest, unit([s * 0.42, -1]), r)), unit([-s, -0.3]), w)), out = turn(dir, s * Math.PI / 2);   // along the hand; across it, to the little finger
+    const pl = 0.07 * H * g * (1 + 0.2 * w), pw = 0.075 * H * g * (1 + 0.2 * w), top = [Wr[0] + dir[0] * pl, Wr[1] + dir[1] * pl];
+    const at = (p, u, v) => [p[0] + dir[0] * u + out[0] * v, p[1] + dir[1] * u + out[1] * v];
+    const fl = lerp(lerp(f0.len * k, 0.15 * H, r), 0.16 * H, w), fw = lerp(lerp(0.018 * k, 0.026 * H, r), 0.03 * H, w);
+    const sp = lerp(lerp(f0.spread, 0.2, r), 0.12, w), bend = lerp(0.12 * r, 0.85, w);   // how far the fingers fan, and curl
+    const parts = [];   // [from, to, width] for each bone of the fingers and the thumb
+    for (let j = 0; j < 4; j++) {   // the index finger nearest the thumb, the little finger outermost
+      const L = fl * [0.9, 1, 0.95, 0.74][j], o = mix2(Wr, at(top, 0, pw * lerp(-0.36, 0.38, j / 3)), g), d1 = turn(dir, s * (j - 1.2) * sp), d2 = turn(d1, -s * bend);
+      const m = [o[0] + d1[0] * L * 0.55, o[1] + d1[1] * L * 0.55];
+      parts.push([o, m, fw], [m, [m[0] + d2[0] * L * 0.45, m[1] + d2[1] * L * 0.45], fw * 0.78]);
+    }
+    if (g > 0.01) {   // the thumb, from low on the inside of the palm, out and up (tucked in as it holds you)
+      const o = at(Wr, pl * 0.25, -pw * 0.42), d1 = turn(dir, -s * lerp(0.95, 0.4, w)), d2 = turn(d1, s * 0.35), L = fl * 0.6 * g;
+      const m = [o[0] + d1[0] * L * 0.5, o[1] + d1[1] * L * 0.5];
+      parts.push([o, m, fw * 1.1], [m, [m[0] + d2[0] * L * 0.5, m[1] + d2[1] * L * 0.5], fw * 0.85]);
+    }
+    const palm = [at(Wr, 0, -pw * 0.32), at(Wr, 0, pw * 0.3), at(top, 0, pw * 0.5), at(top, pl * 0.08, 0), at(top, 0, -pw * 0.46)];
+    const col = pass ? body : rim, more = pass ? 0 : 0.008 * H;   // its light round the edge, then the hand
+    ctx.strokeStyle = col; ctx.fillStyle = col;
+    if (g > 0.01) { ctx.lineWidth = more * 2 + 1e-3; ctx.beginPath(); palm.forEach((p, n) => (n ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill(); if (more) ctx.stroke(); }
+    for (const [p, q, ww] of parts) { ctx.lineWidth = ww + more; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
+    ctx.globalAlpha = a0;
   }
+  ctx.restore();
 }
 // how high its eyes are, from its feet, as draw() puts them (legs, the bob of its step, torso, neck and face all grow with rage)
 function demonEyesY(c) {
