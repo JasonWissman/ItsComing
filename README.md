@@ -136,7 +136,8 @@ some on the ground, so you have to turn and look down to find them.
    the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
    and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
    box, pull the blown fuse and put in the new one from the toolbox, and turn the crank so
-   the beam goes round: every pass of the light knocks it sliding back down the wall.
+   the beam goes round: its first pass knocks it sliding back down the wall, and the next
+   knocks it off the tower, to fall all the way down into the sea.
 8. **The Diner.** A man-shaped thing in the lot is drawn to the light: while the
    lights are on it comes fast, too fast to shutter every window. Throw the power main
    on the back wall in the first ten seconds or so, find the crank, and crank all three
