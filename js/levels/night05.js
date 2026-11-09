@@ -124,7 +124,7 @@ LEVELS.push({
     { deg: 0, name: 'porch steps', barrierDist: 0, cue: 'crack', default: true },
     { deg: 90, name: 'porch side', barrierDist: 0, cue: 'crack' },
   ],
-  creatures: [{ type: 'runner', startDist: 115, time: 50, unseenMult: 1.3 }],
+  creatures: [{ type: 'runner', startDist: 115, time: 56, unseenMult: 1.3 }],   // three arrows to find now: a little more time (on Nightmare about 35 s in if watched, under 20 if not)
   aftermath: { type: 'down', dur: 3.8 },
   uses: [{
     tool: 'bow', ammo: 'arrows', range: Infinity, sfx: 'twang', shake: 0.1, emptyText: 'No arrows.', fireText: 'Draw.',
