@@ -149,7 +149,8 @@ some on the ground, so you have to turn and look down to find them.
 9. **The Phone Booth.** It is raining and a man in a long coat is walking toward the
    booth, up the main street or along the pavement from the east. The pay phone is on the
    west wall, so using it means looking away from him; facing it brings the view in close.
-   Find the number in your notebook and a coin (in the coin return, on the shelf or on the
+   Find the number in your notebook (it has a page to itself, scrawled large across it in red
+   that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
    floor by the phone), then do what the card beside the keys says: lift the receiver, put
    the coin in and dial on the phone's own keys. It rings for seven seconds before anyone
    answers, and he keeps coming the whole time. A wrong number is not in service, and
