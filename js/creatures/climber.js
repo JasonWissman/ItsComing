@@ -17,6 +17,9 @@
 // holds the way anything coming at you grows, and the holds stay put on the stone.
 // The beam knocks its hooks out of the stone and it slides, clawing, back down the wall (c.slip). Going round the tower to
 // another face (c.scuttle, +1 toward its right, -1 its left) it turns side on and runs across the stone.
+// At the very end the night knocks it off the tower: sliding for the last time its hands and feet scrabble at the stone
+// (c.scrabble, 0 to 1), then it peels away and falls (c.falling, 0 to 1: its limbs flail open at the air, and the night's
+// frame turns it over as it drops), and once it is in the sea there is nothing to draw (c.gone).
 
 // its rig, in metres: x across (its right +), a up the wall (+ toward its head), o out from the stone
 const CLIMB = {
@@ -89,6 +92,7 @@ CREATURES.climber = {
   // where the wall runs away to, which keeps it in the same place on the stone as you see it
   held(g, r) { return [g.x * r, CLIMB.vp + (g.a - CLIMB.vp) * r, 0]; },
   draw(ctx, c, P) {
+    if (c.gone) return;   // in the sea
     const lunge = c.lunge || 0, H = this.h;
     // the screen, in css pixels, from its box: the renderer's transform for the box, the box's foot and its scale there
     const m = ctx.getTransform(), fr = c.wallFrame && c.wallFrame(c);
@@ -102,8 +106,16 @@ CREATURES.climber = {
     let bx = [1, 0], bu = [0, -along], bn = [0, -0.9 * out];
     if (fr) {
       const S = (v, s) => R.screenPos(at[0] + v[0] * s, at[1] + v[1] * s, at[2] + v[2] * s), d2 = (a, b, s) => (a && b ? [(a.x - b.x) / (s * k), (a.y - b.y) / (s * k)] : null);
-      const X = d2(S(fr.across, 0.3), S(fr.across, -0.3), 0.6), N = d2(S(fr.out, 0.2), S(fr.out, -0.2), 0.4), U = d2(S(fr.up, 1), S(fr.up, -1), 2);
-      if (X && N && U) { const ul = Math.hypot(U[0], U[1]) || 1; bx = X; bn = [N[0] * out, N[1] * out]; bu = [U[0] / ul * along, U[1] / ul * along]; }
+      // a frame's axes on screen: on the stone its length is shown end on (`along`, whatever the wall's slope); off it, as it lies
+      const axes = (f, stone) => {
+        const X = d2(S(f.across, 0.3), S(f.across, -0.3), 0.6), N = d2(S(f.out, 0.2), S(f.out, -0.2), 0.4), U = d2(S(f.up, 1), S(f.up, -1), 2);
+        if (!(X && N && U)) return null;
+        const ul = stone ? along / (Math.hypot(U[0], U[1]) || 1) : 1;
+        return [X, [N[0] * out, N[1] * out], [U[0] * ul, U[1] * ul]];
+      };
+      // falling, the frame carries the stone's frame it let go in (fr.from), and how far it has come from that (fr.k)
+      const A = axes(fr.from || fr, true), B = fr.from ? axes(fr, false) : null, q = fr.k || 0;
+      if (A) [bx, bn, bu] = B ? A.map((v, i) => [lerp(v[0], B[i][0], q), lerp(v[1], B[i][1], q)]) : A;
     }
     // coming over the rail at you it rises off the stone and rights itself, face on, reaching for you
     if (lunge > 0) {
@@ -119,10 +131,10 @@ CREATURES.climber = {
     }
     ctx.setTransform(dpr * k, 0, 0, dpr * k, ox * dpr + tx, oy * dpr + ty);
     const pr = v => [(v[0] - CLIMB.mid[0]) * bx[0] + (v[1] - CLIMB.mid[1]) * bu[0] + (v[2] - CLIMB.mid[2]) * bn[0], (v[0] - CLIMB.mid[0]) * bx[1] + (v[1] - CLIMB.mid[1]) * bu[1] + (v[2] - CLIMB.mid[2]) * bn[1]];
-    this.body(ctx, c, P, pr, bx, bn);
+    this.body(ctx, c, P, pr, bx, bn, bu);
   },
   // the whole of it: pr takes a point of the rig to the screen (in metres at its distance, y down)
-  body(ctx, c, P, pr, bx, bn) {
+  body(ctx, c, P, pr, bx, bn, bu) {
     const t = c.t, near = clamp(1 - c.dist / 16, 0, 1), lunge = c.lunge || 0, slip = c.slip || 0, sc = c.scuttle || 0;
     const wh = c.struck || 0, K = v => P.col(wh ? mixc(v, [252, 248, 236], wh * 0.85) : v);   // caught in the beam, it goes white
     const grey = K([118, 118, 124]), greyD = K([66, 66, 72]), greyL = K([140, 140, 146]), face = K([206, 202, 194]), faceD = K([150, 144, 136]);
@@ -144,7 +156,7 @@ CREATURES.climber = {
     const hipJ = s => T([sway * -0.5 + s * CLIMB.hip[0], CLIMB.hip[1] + bh, CLIMB.hip[2]]), shJ = s => T([sway + s * CLIMB.shoulder[0], CLIMB.shoulder[1] + bs, CLIMB.shoulder[2] + hunch]);
     // a hand or foot: on the stone where it bit; or reaching, from where it let go to where it will hook in, lifted off the
     // stone on the way and spread open; or knocked off and clawing; or running
-    const limb = (key, s, isHand) => {
+    const limb0 = (key, s, isHand) => {
       const g = c.grip[key], r = c.dist / (g.d || c.dist), j = jit(s, isHand ? 29 : 23);
       if (sc) {   // running: a pair swings forward while the other pair pushes back, lifting off the stone as it comes through
         const w = (isHand ? 1 : -1) * s > 0 ? run : -run, lift = Math.max(0, (isHand ? 1 : -1) * s > 0 ? runB : -runB);
@@ -156,6 +168,22 @@ CREATURES.climber = {
       const q = smoothstep(reach), from = this.held(g, (g.liftD || c.dist) / (g.d || c.dist)), arc = Math.sin(q * Math.PI);
       const to = [s * (isHand ? CLIMB.hand[0] : CLIMB.foot[0]), isHand ? CLIMB.hand[1] : CLIMB.foot[1]];
       return { at: [lerp(from[0], to[0], q) + s * arc * (isHand ? 0.12 : 0.08), lerp(from[1], to[1], q) + arc * (isHand ? 0.24 : 0.1), arc * (isHand ? 0.3 : 0.16)], lift: arc };
+    };
+    // knocked loose for good, its hands and feet scrabble up and down the stone, in turn, catching at nothing; off the stone
+    // they flail, open, at the air: the hands thrown up past its head, the legs kicking
+    const scr = c.scrabble || 0, fl = c.falling || 0;
+    const limb = (key, s, isHand) => {
+      const m = limb0(key, s, isHand);
+      if (scr > 0) {
+        const w = Math.sin(t * (isHand ? 19 : 15) + s * 1.7 + (isHand ? 0 : 2));
+        m.at = [m.at[0] + s * w * 0.05 * scr, m.at[1] + w * (isHand ? 0.2 : 0.1) * scr, m.at[2] + Math.max(0, w) * 0.12 * scr]; m.lift = Math.max(m.lift, scr * (0.5 + 0.5 * w));
+      }
+      if (fl > 0) {
+        const ph = t * (isHand ? 8 : 6.5) + s * 2.1 + (isHand ? 0 : 1.3);
+        const f = isHand ? [s * (0.5 + 0.1 * Math.sin(ph * 1.3)), 0.5 + 0.2 * Math.sin(ph), 0.2 + 0.15 * Math.cos(ph * 0.9)] : [s * (0.42 + 0.1 * Math.sin(ph * 1.1)), -0.8 + 0.15 * Math.sin(ph), 0.1 + 0.1 * Math.cos(ph)];
+        m.at = m.at.map((v, i) => lerp(v, f[i], fl)); m.lift = lerp(m.lift, 1, fl);
+      }
+      return m;
     };
     const P2 = pr;
     // a hand or a foot, drawn in the rig so its long hooked fingers lie along the stone as the rest of it does: up the wall
@@ -204,7 +232,9 @@ CREATURES.climber = {
     // chin toward the stone. The body heaves under it and the face does not move off you
     const hc = T([sway * 0.4, CLIMB.head[1] + bs * 0.9, CLIMB.head[2] + hunch + 0.08 * (1 - smoothstep((c.dist - 2.5) / 6))]), h2 = P2(hc), n0 = P2(shC);
     for (const s of [-1, 1]) P_line(ctx, n0[0] + s * 0.06 * bx[0], n0[1] + s * 0.06 * bx[1], h2[0] + s * 0.05 * bx[0], h2[1] + s * 0.05 * bx[1], 0.1, grey);   // the neck, stretched
-    const jerk = headTiltJerk(t, 3.1, 0.12) * (1 - lunge), brow = lerp(outA, -Math.PI / 2, smoothstep(lunge * 2.5));
+    // (falling, the top of its head comes round from out of the stone to the end of it, the way its length now lies)
+    const bnl = Math.hypot(bn[0], bn[1]) || 1, fallA = fl ? Math.atan2(bn[1] / bnl * (1 - fl) + bu[1] * fl * 2, bn[0] / bnl * (1 - fl) + bu[0] * fl * 2) : outA;
+    const jerk = headTiltJerk(t, 3.1, 0.12) * (1 - lunge), brow = lerp(fallA, -Math.PI / 2, smoothstep(lunge * 2.5));
     ctx.save(); ctx.translate(h2[0], h2[1]); ctx.rotate(brow + Math.PI / 2 + jerk); ctx.scale(1 + 0.05 * surge * live, 1 + 0.05 * surge * live);
     P_ell(ctx, 0, -0.06, 0.235, 0.22, greyD);                     // the skull, tipped back behind the face
     P_ell(ctx, 0, 0.12, 0.13, 0.07, faceD);                       // under the jaw, lifted toward you

@@ -1,8 +1,12 @@
 // The Lighthouse: the spare bulb into the lamp; open the fuse box and pull out the blown fuse; try the worn fuse lying
 // about (it is blown as well), take the new one from the toolbox and put it in; then turn the crank until the light goes round.
 // On the way it checks that the open door is part of the fuse box, and that the empty holder says "the one that blew" only
-// when that is what you are holding.
-const crank = [['clickUntil', 'winder', 'G.L.s.turning', 250, 12]];
+// when that is what you are holding. Won, the beam knocks the thing off the tower: it lets go of the stone, clear of the
+// wall, and goes into the sea beyond the foot of the tower (14.7 m from its axis) before the night fades.
+const crank = [['clickUntil', 'winder', 'G.L.s.turning', 250, 12],
+  ['waitUntil', '!!G.L.s.fall', 9000],
+  ['waitUntil', 'G.L.creature.gone && !!G.L.s.splash && G.state === "won"', 6000],
+  ['expect', 'Math.hypot(G.L.s.splash.at[0] - G.L.pt(0, 0, -2.9)[0], G.L.s.splash.at[2] - G.L.pt(0, 0, -2.9)[2]) > 15.5', 'it went into the sea clear of the foot of the tower']];
 const said = line => 'G.lastToast.msg === ' + JSON.stringify(line);
 module.exports = {
   nightmare: [['pickup', 'bulb'],

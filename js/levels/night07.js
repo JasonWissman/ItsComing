@@ -26,7 +26,7 @@ LEVELS.push({
     hint: 'The bulb in the big lamp behind you has blown, and so has the fuse. Put the spare bulb in, change the fuse (there is a new one in the toolbox), then turn the crank until the light goes round.',
     objective: 'New bulb in the lamp. New fuse in the fuse box. Turn the crank.',
     death: { default: 'It came over the rail with its face already turned up to you.' },
-    win: 'The beam went round and round. Every time it came past, the thing slid a little further down the wet stone. By morning it was in the water, still looking up.',
+    win: 'The beam went round and round. The first time it came past, the thing slid down the wet stone; the second time, it let go and fell. In the morning it was still in the water, looking up.',
     fragment: 'There were scratches on the wardrobe door in the morning, high up, where nobody could reach.',
   },
   lanes: [
@@ -221,12 +221,29 @@ LEVELS.push({
     // and feet, lies on wall you can see from the rail. Its box (being seen, the light on it, the view that follows it) is
     // centred there, and the climber lays its body along the wall as the wall runs on screen.
     const FACE = [90, 80, 100], SINK = 0.4, SLOPE = 0.466, H2 = CREATURES.climber.h / 2;
-    const wallFrame = c => {
+    const stoneFrame = c => {
       const y = L.eyeH + c.dist * Math.sin(c.lane.elev), th = c.wallTh * DEG, r = rad(y), k = y < 0 ? SLOPE : 0, un = Math.hypot(1, k);
       const p = at(th, r, y - SINK * clamp((c.dist - 4) / 6, 0, 1)), cs = Math.cos(th), sn = Math.sin(th);
       const up = rotY(-cs * k / un, -sn * k / un, L.facing), out = rotY(cs / un, sn / un, L.facing), across = rotY(-sn, cs, L.facing);
       return { at: L.pt(p[0], p[1], p[2]), up: [up[0], 1 / un, up[1]], out: [out[0], k / un, out[1]], across: [across[0], 0, across[1]] };
     };
+    // knocked off the stone at the end (s.fall: where it let go, how fast it was going, its frame then), it is where the fall
+    // has taken it, and it turns over in the air: its top swings out from the wall first, peeling it off the stone, then it
+    // rolls slowly round the line you see it along, tipping to and fro, so it shows you more of its length and then less.
+    // The frame carries the stone's frame it let go in (from) and how far the picture has come from that (k): on the stone it
+    // is drawn end on, as you see it there, and it is drawn more and more as it really lies in the air as it peels off.
+    const WATER = -24.6, GRAV = 9.8, FALL = { tip: 1.5, peel: 0.5, rock: 0.35 };
+    const fallAt = f => [f.p[0] + f.v[0] * f.t, f.p[1] + f.v[1] * f.t - GRAV * f.t * f.t / 2, f.p[2] + f.v[2] * f.t];
+    const turn = (v, n, a) => {   // v turned by a about the unit axis n
+      const cs = Math.cos(a), sn = Math.sin(a), d = (v[0] * n[0] + v[1] * n[1] + v[2] * n[2]) * (1 - cs);
+      return [v[0] * cs + (n[1] * v[2] - n[2] * v[1]) * sn + n[0] * d, v[1] * cs + (n[2] * v[0] - n[0] * v[2]) * sn + n[1] * d, v[2] * cs + (n[0] * v[1] - n[1] * v[0]) * sn + n[2] * d];
+    };
+    const fallFrame = f => {
+      const q = smoothstep(f.t / FALL.peel), tip = (FALL.tip + FALL.rock * Math.sin(f.t * 3.1)) * q, roll = f.spin * f.t, ct = Math.cos(tip), st = Math.sin(tip);
+      const up = f.up.map((u, i) => u * ct + f.out[i] * st), out = f.out.map((o, i) => o * ct - f.up[i] * st);
+      return { at: fallAt(f), up: turn(up, f.view, roll), out: turn(out, f.view, roll), across: turn(f.across, f.view, roll), from: f, k: q };
+    };
+    const wallFrame = c => (s.fall ? fallFrame(s.fall) : stoneFrame(c));
     const wallAt = c => { const p = wallFrame(c).at; return { x: p[0], y: p[1] - H2, z: p[2] }; };
     // its bearing from the tower's axis (the beam's own reckoning), in the world
     const azOf = c => { const th = (c.wallTh === undefined ? FACE[c.lane.idx] : c.wallTh) * DEG, v = rotY(Math.cos(th), Math.sin(th), L.facing); return Math.atan2(v[0], v[1]); };
@@ -336,6 +353,22 @@ LEVELS.push({
           R.add({ kind: 'poly', pts: [lensW, [lensW[0] + Math.sin(A - sp) * reach, lensW[1] - drop, lensW[2] + Math.cos(A - sp) * reach], [lensW[0] + Math.sin(A + sp) * reach, lensW[1] - drop, lensW[2] + Math.cos(A + sp) * reach]], color: [255, 242, 205], alpha: al, noFog: true, noLight: true, dist: 0.3 });
         }
       }
+      // where it went in, far below: a burst of white on the dark water, spray thrown up and out and falling back, and a
+      // ring of foam spreading from it. All of it is drawn after the sea and the rocks and before the tower, so the foot of
+      // the tower hides whatever of it lies behind the stone.
+      if (s.splash) {
+        const k = s.splash.t, x = s.splash.at[0], z = s.splash.at[2], o = { dist: Math.hypot(x, z, WATER - L.eyeH), sortDist: 60, noLight: true };
+        const rim = (th, r) => { const w = r * (1 + 0.07 * Math.sin(th * 3 + 1.3) + 0.05 * Math.sin(th * 7 + 0.4) + 0.03 * Math.sin(th * 11)); return [x + Math.cos(th) * w, WATER + 0.04, z + Math.sin(th) * w]; };
+        const ring = 0.8 + 2 * easeOut(Math.min(1, k / 1.6)), ringA = 0.55 * (1 - smoothstep((k - 0.4) / 1.6)), burst = 0.4 + 1.1 * easeOut(Math.min(1, k / 0.35)), burstA = 0.9 * (1 - smoothstep(k / 1.1));
+        if (ringA > 0.01) for (let i = 0; i < 28; i++) { const a0 = i / 28 * TAU, a1 = (i + 1) / 28 * TAU; R.add(Object.assign({ kind: 'poly', pts: [rim(a0, ring - 0.45), rim(a1, ring - 0.45), rim(a1, ring), rim(a0, ring)], color: [196, 206, 212], alpha: ringA }, o)); }   // the foam, spreading
+        if (burstA > 0.01) { const pts = []; for (let i = 0; i < 20; i++) pts.push(rim(i / 20 * TAU, burst)); R.add(Object.assign({ kind: 'poly', pts, color: [238, 242, 244], alpha: burstA }, o)); }   // the white where it went in
+        for (let i = 0; i < 24; i++) {   // the spray: most of it thrown up and out, a few jets straight up, all of it falling back
+          const jet = i >= 18, th = i / 18 * TAU + Math.sin(i * 7.3) * 0.3, h = jet ? 0.3 : 1.6 + 1.2 * (0.5 + 0.5 * Math.sin(i * 3.7)), v = jet ? 9 + 2 * Math.sin(i * 2.9) : 5 + 4 * (0.5 + 0.5 * Math.sin(i * 5.1));
+          const pt = tt => { const q = Math.max(0, tt); return [x + Math.cos(th) * h * q, WATER + v * q - GRAV * q * q / 2, z + Math.sin(th) * h * q]; }, p1 = pt(k);
+          if (p1[1] < WATER) continue;
+          R.add(Object.assign({ kind: 'poly', pts: [pt(k - 0.07), p1], color: [228, 234, 238], alpha: 0.8, stroke: true, lw: jet ? 0.2 : 0.14 }, o));
+        }
+      }
       // the fuse box and the crank, showing their state
       R.add(SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, drawFuseBox, { sortDist: mounted(fb[0], fb[2]) }));
       R.add(SC.mkSprite(L, wd[0], wd[1], wd[2], WDS, WDS, drawCrank, { sortDist: mounted(wd[0], wd[2]) }));
@@ -350,12 +383,15 @@ LEVELS.push({
     // aftermath: the light goes round fast, a turn every three seconds, starting from the far side of the tower. If the
     // thing is a long way down it scrambles up the wall at you, to where you see it plainly, as the beam comes round onto
     // it; the light knocks its hands off the stone and it slides, clawing, down the wet wall until its hooks catch. It
-    // clings there, its face still turned up at you, and starts up again, and the next pass knocks it further down. Once
+    // clings there, its face still turned up at you, and starts up again. The next pass breaks its hold for good: it slides
+    // on, scrabbling at the stone and catching at nothing (slip), peels away from the wall and falls, turning over and over,
+    // all the way down into the sea at the foot of the tower, a burst of white where it goes in; then the night fades. Once
     // the light is going it comes no nearer than `closest` (if it was nearer than that, it holds where it is).
-    const AFTER = { near: 5.5, rush: 1.25, climb: 0.3, closest: 2.5, cling: 0.7, knock: [3, 4.5], end: 6.6 };
-    // the view follows it down over the rail, further down than you can look yourself, so the wall it is on fills the view
+    const AFTER = { near: 5.5, rush: 1.25, climb: 0.3, closest: 2.5, cling: 0.7, knock: 3, slip: 0.55, slipV: 4, push: 5.2, spin: 1.3, settle: 1.0 };
+    // the view follows it down over the rail, further down than you can look yourself, so the wall it is on fills the view,
+    // and on down as it falls; once it is in the water the view stays on the white where it went in
     L.watchPitch = 70 * DEG;
-    L.watchPoint = () => { const p = wallFrame(L.creature).at; return { x: p[0], y: p[1], z: p[2] }; };
+    L.watchPoint = () => { const p = s.splash ? s.splash.at : wallFrame(L.creature).at; return { x: p[0], y: p[1], z: p[2] }; };
     L.aftermath = (t, dt) => {
       const c = L.creature;
       if (!s.after) {
@@ -366,10 +402,16 @@ LEVELS.push({
         c.distFn = (cr, dt2) => {
           if (a.mode === 'rush') { const d = Math.max(AFTER.near, cr.dist - dt2 * rate); if (d <= AFTER.near) a.mode = 'climb'; return d; }
           if (a.mode === 'climb') return Math.max(Math.min(cr.dist, AFTER.closest), cr.dist - dt2 * AFTER.climb);
-          if (a.mode === 'slide') {   // faster and faster down the wet stone, until the hooks catch with a jolt
-            cr.slideV = Math.min(7, cr.slideV + dt2 * 16);
+          if (a.mode === 'slide' || a.mode === 'slip') {   // faster and faster down the wet stone, until the hooks catch with a jolt (the last time, they do not)
+            cr.slideV = Math.min(a.mode === 'slip' ? AFTER.slipV : 7, cr.slideV + dt2 * 16);
             const d = Math.min(cr.slideTo, cr.dist + cr.slideV * dt2);
             if (d >= cr.slideTo - 1e-4) { a.mode = 'cling'; a.cling = AFTER.cling; cr.slideTo = null; G.shake(0.1); }
+            return d;
+          }
+          if (s.fall) {   // in the air, and then in the water: as far off as it really is, with no hooks on stone as it goes
+            if (a.mode === 'fall') s.fall.t += dt2;
+            const p = fallAt(s.fall), d = Math.hypot(p[0], p[1] - L.eyeH, p[2]);
+            cr.gait -= Math.abs(d - cr.dist) * cr.CR.stepRate * Math.PI;
             return d;
           }
           return cr.dist;   // clinging
@@ -378,13 +420,31 @@ LEVELS.push({
       const a = s.after;
       c.climbRate = a.mode === 'rush' ? 9 : a.mode === 'climb' ? 2.6 : 0;   // the climbing cycle, fast as it rushes up
       if (a.mode === 'cling' && (a.cling -= dt) <= 0) a.mode = 'climb';
+      if (a.mode === 'slip') {
+        c.scrabble = Math.min(1, (c.scrabble || 0) + dt * 5);
+        if ((a.slip -= dt) <= 0) {   // it lets go: off the stone at the pace it was sliding, thrown out from the wall
+          const fr = stoneFrame(c), p = fr.at, n = Math.hypot(p[0], p[1] - L.eyeH, p[2]);
+          s.fall = { t: 0, p, v: fr.up.map((u, i) => fr.out[i] * AFTER.push - u * c.slideV), up: fr.up, out: fr.out, across: fr.across, view: [p[0] / n, (p[1] - L.eyeH) / n, p[2] / n], spin: AFTER.spin * (c.wallTh > 90 ? 1 : -1) };
+          a.mode = 'fall';
+        }
+      }
+      if (a.mode === 'fall') {
+        c.falling = Math.min(1, (c.falling || 0) + dt * 3);
+        const p = fallAt(s.fall);
+        if (p[1] <= WATER + 0.2) {   // into the sea at the foot of the tower: a burst of white, far below, and it is gone
+          s.splash = { t: 0, at: [p[0], WATER, p[2]] }; a.mode = 'down'; c.gone = true;
+          AUDIO.sfx('plunge', Math.sin(wrapPi(Math.atan2(p[0], p[2]) - G.cam.yaw)) * 0.85); G.shake(0.12);
+        }
+      }
+      if (s.splash) s.splash.t += dt;
       const on = onLane();
-      if (on && !s.crossing) {
-        a.mode = 'slide'; c.slideV = 0.6; c.slideTo = c.dist + AFTER.knock[Math.min(a.hits, 1)]; a.hits++; c.struck = 1;   // white in the beam
+      if (on && !s.crossing && a.hits < 2) {
+        const last = a.hits === 1;   // the second pass is the last it takes
+        a.mode = last ? 'slip' : 'slide'; c.slideV = 0.6; c.slideTo = last ? Infinity : c.dist + AFTER.knock; a.slip = AFTER.slip; a.hits++; c.struck = 1;   // white in the beam
         AUDIO.sfx('scrape', Math.sin(wrapPi(azOf(c) - G.cam.yaw)) * 0.85); G.shake(0.2);
       }
       s.crossing = on;
-      return t >= AFTER.end;
+      return !!s.splash && s.splash.t >= AFTER.settle;
     };
     // where a dropped thing lands: on the gallery floor inside the rail (no more than 3 m from the axis), clear of the lamp
     // room's wall and of the crate, at every facing
