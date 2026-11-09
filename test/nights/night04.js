@@ -32,7 +32,9 @@ module.exports = {
     ['eval', 'G.L.creature.hold = null;'],
     ['waitUntil', 'G.L.s.after && G.L.s.after.rattles === 3', 9000],
     ['expect', "G.state === 'won' && G.L.creature.dist <= G.L.creature.lane.barrierDist + 0.01", 'in the blinks it came to its gate and shook it three times, and did not get in'],
-    // seen from where you stand (the gate is at 2.6 m, it is further off), its fists are on bars and the hand it reaches with is in a gap
-    ['expect', '(() => { const c = G.L.creature, k = 2.6 / c.dist, on = x => G.L.s.bars.some(b => Math.abs(b - x * k) < 0.004); return on(c.grip) && on(-c.grip) && !G.L.s.bars.some(b => Math.abs(b - c.reach * k) < 0.08); })()', 'its fists are on the bars, and its reaching hand is through a gap'],
+    // once the gate has stopped jolting: as you see it now (the shut gate's bars and it, each as drawn, in its own measure
+    // as it is drawn), one fist is on a bar either side of it and the hand it reaches with is in a gap
+    ['wait', 1100],
+    ['expect', '(() => { const L = G.L, c = L.creature, g = L.targets.find(t => t.id === (c.lane.idx === 0 ? "gate" : "backgate")), p = c.pos(), o = R.screenPos(p.x, p.y + (c.yOff || 0), p.z); const bars = y => L.s.bars.map(b => { const w = L.pt(g.sign * b, y, 2.6 * g.sign), r = R.screenPos(w[0], w[1], w[2]); return (r.x - o.x) / o.scale; }); return c.grip[0] < 0 && c.grip[1] > 0 && c.grip.every(x => bars(1.41).some(b => Math.abs(b - x) < 0.004)) && !bars(1.08).some(b => Math.abs(b - c.reach) < 0.08); })()', 'as you see it, its fists are on the bars either side of it, and its reaching hand is through a gap'],
   ],
 };

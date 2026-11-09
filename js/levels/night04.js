@@ -301,12 +301,27 @@ LEVELS.push({
     const archY = u => TOP + RISE * (1 - Math.pow((u - LEN / 2) / (LEN / 2), 2));
     const barU = k => 0.025 + k * (LEN - 0.05) / NGAP;   // along the gate from its hinge: k 0 and NGAP are the stiles
     s.bars = Array.from({ length: NGAP + 1 }, (_, k) => barU(k) - LEN / 2);   // across a shut gate from its middle (the tests read it)
+    // At the end, holding the gate: where the bars it holds are as you see them this frame, so its fists are on them
+    // whichever way the view is tilted or turned, and go with them as the gate jolts in its hands. They are the bars GRIP
+    // out from the first either side of the gap in the middle, where they cross the height of its fists (c.grip, left and
+    // right), and the hand it reaches with goes to the middle of the gap beside the middle one (c.reach), each told to it
+    // in its own measure as it is drawn (the sprite is scaled from its feet)
+    const holdBars = (c, at) => {
+      const p = c.pos(), o = R.screenPos(p.x, p.y + (c.yOff || 0), p.z);
+      if (!o) return;
+      const across = (u, y) => { const q = at(u), w = L.pt(q[0], y, q[1]), r = R.screenPos(w[0], w[1], w[2]); return r ? (r.x - o.x) / o.scale : NaN; };
+      const m = Math.ceil(NGAP / 2), ga = across(barU(m + GRIP), 1.41), gb = across(barU(NGAP - m - GRIP), 1.41);
+      const ra = across((barU(m) + barU(m + 1)) / 2, 1.08), rb = across((barU(NGAP - m - 1) + barU(NGAP - m)) / 2, 1.08);
+      if ([ga, gb, ra, rb].some(isNaN)) return;
+      c.grip = [Math.min(ga, gb), Math.max(ga, gb)]; c.reach = Math.max(ra, rb);
+    };
     L.dynamic = () => {
       for (const g of [gate, gate2]) {
         const e = L.t - (g.rattleAt === undefined ? -9 : g.rattleAt), k = e >= 0 && e < 1 ? Math.exp(-e * 5) : 0;
         const jolt = Math.sin(e * 34) * k * 0.07, hop = Math.abs(Math.sin(e * 29)) * k * 0.045;   // in and out on its chain, and up off its hinges
         const a = g.angle + jolt, sg = g.sign, dx = sg * Math.cos(a), dz = sg * Math.sin(a), hx = -1.05 * sg, hz = 2.6 * sg;
         const at = u => [hx + dx * u, hz + dz * u];
+        if (L.won && s.after && g === gateOf(L.creature.lane)) holdBars(L.creature, at);
         const bar = (u, y0, y1, w) => { const p = at(u - w), q = at(u + w); R.add(SC.mkWallV(L, p[0], p[1], q[0], q[1], y0 + hop, y1 + hop, ironC)); };
         const rail = (u0, u1, y, w) => { const p = at(u0), q = at(u1); R.add(SC.mkWallV(L, p[0], p[1], q[0], q[1], y - w + hop, y + w + hop, ironC)); };
         bar(0.025, 0.04, archY(0.025), 0.025); bar(LEN - 0.025, 0.04, archY(LEN - 0.025), 0.025);   // the stiles
@@ -346,12 +361,7 @@ LEVELS.push({
       const off = Math.abs(wrapPi((s.run ? s.run.to.yaw : c.yaw) - G.cam.yaw)), turn = off > Math.PI / 2 ? 1.0 : off > Math.PI / 4 ? 0.4 : 0;
       const b = s.run ? s.run.to.barrierDist : (c.lane.barrierDist || 0), d0 = s.run ? s.run.d2 : c.dist, steps = [];
       if (s.run || d0 - b > 1.2) { if (d0 - b > 8) steps.push({ d: lerp(d0, b, 0.55) }); steps.push({ d: b + 0.9 }); }   // never a blink that puts it further off
-      for (const pose of [4, 5, 2]) steps.push({ d: b, pose, shake: true });
-      // at the gate its hands are on bars, GRIP bars out from the first either side of the gap in the middle, and a hand
-      // goes through the gap next to the middle one: told to it in its own measure where it stands (b), seen through the
-      // gate (z 2.6), so its fists are on the bars from where you stand
-      const m = Math.ceil(NGAP / 2), k = b / 2.6;
-      c.grip = (barU(m + GRIP) - LEN / 2) * k; c.reach = ((barU(m) + barU(m + 1)) / 2 - LEN / 2) * k;
+      for (const pose of [4, 5, 2]) steps.push({ d: b, pose, shake: true });   // its hands on the bars: holdBars, above
       const times = steps.map((st, i) => 1.1 + turn + i * 0.72);
       return { steps, times, next: 0, d: s.run ? c.dist : d0, end: times[times.length - 1] + 1.6, rattles: 0 };
     }

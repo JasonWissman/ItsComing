@@ -2,8 +2,8 @@
 // The watcher: a robed stone figure that only moves while nothing is looking at it. A night can send it running
 // (The Quarry's going round to the other gate): c.runPose on, side-on, facing c.runDir (1 right, -1 left), its stride
 // at c.runGait, which only moves while it does; caught by a look it is a statue caught mid-stride. At a gate it can
-// hold the bars (pose 4: both hands on bars either side of its face, c.grip out from its middle; 5: one there, the other
-// reaching through the gap at c.reach).
+// hold the bars (pose 4: both hands on bars either side of its face, at c.grip [left, right] from its middle; 5: the left
+// one there, the other reaching through the gap at c.reach).
 CREATURES.watcher = {
   name: 'the watcher', h: 2.15, w: 1.5, faceY: 1.8, stepRate: 0.8, catchDist: 1.6, sound: null, silentWhenSeen: true,
   death: { delay: 0.05, dur: 0.04, sting: 'stingStone' },
@@ -60,11 +60,12 @@ CREATURES.watcher = {
       ctx.restore();
     } else if (pose === 4 || pose === 5) {
       // holding two of the gate's bars, one either side of its face (pose 5: the right hand through a gap, at you). The
-      // night says where, in its own measure as it stands: c.grip how far out from its middle the bars it holds are, c.reach
-      // the middle of the gap it reaches through. Its fists are just where the bars cross them, so the bars, drawn over
-      // it, go between its knuckles and its fingertips
-      const gx = c.grip || 0.845, rx = c.reach || 0.2;
+      // night says where, in its own measure as it is drawn: c.grip where the bars it holds are, left and right of its
+      // middle, c.reach the middle of the gap it reaches through. Its fists are just where the bars cross them, so the
+      // bars, drawn over it, go between its knuckles and its fingertips
+      const grip = c.grip || [-0.845, 0.845], rx = c.reach || 0.2;
       for (const s of pose === 4 ? [-1, 1] : [-1]) {
+        const gx = s < 0 ? -grip[0] : grip[1];
         P_limb(ctx, [shoulder(s), [s * (0.3 + (gx - 0.3) * 0.58), 1.2], [s * (gx - 0.025), 1.4]], 0.1, stone);
         P_ell(ctx, s * gx, 1.41, 0.07, 0.085, stoneL);
         for (let k = 0; k < 4; k++) P_line(ctx, s * (gx + 0.05), 1.355 + k * 0.034, s * (gx - 0.05), 1.365 + k * 0.034, 0.026, stoneD);   // fingers round the bar
