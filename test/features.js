@@ -507,7 +507,28 @@ const hoverHit = lookFor;
     return { fumbles: made.length, uses: pile.uses, planks: G.L.items.filter(i => i.id === 'planks').length };
   }, take('planks'));
   check(hv.fumbles === 1 && hv.uses === 2, 'five fast clicks start one fumble, and only one plank leaves the pile (' + JSON.stringify(hv) + ')');
-  // a decoy: it goes there, will not do, and drops (the rotten plank at a doorway, with the hammer and nails in hand)
+  // a slipping thing turns about the end it hangs from: that end stays where it is while the other end drops
+  await n1();
+  hv = await page.evaluate(take => {
+    eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), o = {};
+    for (const pivot of ['left', 'right']) {
+      const fx = G.fumble(G.inv[G.active], door, { preset: 'slip', pivot, hold: 0.1, drop: false }), sg = pivot === 'left' ? -1 : 1, ends = [];
+      for (let i = 0; i < 120 && fx.phase !== 'home'; i++) {
+        G.step(0.01, 1);
+        if (fx.phase !== 'contact' || fx.pt < 0.25) continue;
+        const yaw = Math.atan2(fx.at.x, fx.at.z), hw = fx.it.w * fx.scale / 2, a = sg * hw * Math.cos(fx.rot), up = -sg * hw * Math.sin(fx.rot);   // (+ is clockwise on the view)
+        ends.push({ hang: [fx.pos.x + Math.cos(yaw) * a, fx.pos.y + up], mid: fx.pos.y });
+      }
+      const f = ends[0], l = ends[ends.length - 1];
+      o[pivot] = { hangMoved: +Math.hypot(l.hang[0] - f.hang[0], l.hang[1] - f.hang[1]).toFixed(3), midDrop: +(f.mid - l.mid).toFixed(3) };
+      for (let i = 0; i < 80 && G.fumbling; i++) G.step(0.025, 1);
+    }
+    return o;
+  }, take('planks'));
+  check(['left', 'right'].every(p => hv[p].hangMoved < 0.08 && hv[p].midDrop > 0.25), 'a slipping plank hangs from the end it is meant to: that end stays put as the rest swings down (' + JSON.stringify(hv) + ')');
+  // a decoy: it goes there, will not do, and drops (the rotten plank at a doorway, with the hammer and nails in hand: the night's
+  // own onDecoy puts it up across the doorway, and it tears away from the nail and falls)
   await n1();
   hv = await page.evaluate(takes => {
     eval(takes[0]); eval(takes[1]); const rot = eval(takes[2]); G.step(0.05, 12);
@@ -521,7 +542,7 @@ const hoverHit = lookFor;
     G.step(0.05, 20);
     return Object.assign(o, { landed: !rot.taken && rot.y === G.L.floor.y, next: G.hand.cur && G.hand.cur.id });
   }, [take('hammer'), take('nails'), take('rotten')]);
-  check(hv.preset === 'bump' && hv.drop && !hv.held && hv.cost && /rotten/i.test(hv.toast) && hv.landed, 'a thing that looks right and is not: it is tried at the doorway, will not do, and drops to the floor; it still costs time (' + JSON.stringify(hv) + ')');
+  check(hv.preset === 'slip' && hv.drop && !hv.held && hv.cost && /rotten/i.test(hv.toast) && hv.landed, 'a thing that looks right and is not: it is tried at the doorway, will not do, and drops to the floor; it still costs time (' + JSON.stringify(hv) + ')');
   check(hv.handOut && hv.next === 'nails', 'the hand stays out, open, while it is at the doorway, and only once it has fallen does the next thing come up into it');
   // the house keys at the ignition (the second night): tried at a small target close by, they are drawn no bigger than the lock,
   // poke it with the blade, and drop into the car, where they lie to be taken again

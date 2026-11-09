@@ -789,12 +789,12 @@ const HANDS = (() => {
         if (tau < settle + hold) {
           const s = clamp(tau / settle, 0, 1), wob = tau > settle ? Math.sin((tau - settle) * 26) * 0.012 * Math.exp(-(tau - settle) * 6) : 0;
           const sag = tau > settle + hold * 0.6 ? smoothstep((tau - settle - hold * 0.6) / (hold * 0.4)) * 0.025 : 0;
-          return Object.assign(P(o * (1 - s) + 0.01, 0, -sag, base + wob + sag * piv * 1.4), { dur: settle + hold + tip, hits: [settle * 0.8] });
+          return Object.assign(P(o * (1 - s) + 0.01, 0, -sag, base + wob - sag * piv * 1.4), { dur: settle + hold + tip, hits: [settle * 0.8] });   // (its free end sagging: clockwise is +)
         }
         const k = easeIn(clamp((tau - settle - hold) / tip, 0, 1)), ang = 0.035 + k * 1.05, px = piv * w * 0.45;
         // turning about the end it hangs from: the middle swings down round it, and the whole slides down a little
         const cx = px - Math.cos(ang) * px, cy = -Math.sin(ang) * Math.abs(px) - k * 0.06;
-        return Object.assign(P(o * 0.2 + 0.01 + k * 0.04, cx, cy, base + piv * ang), { dur: settle + hold + tip, hits: [settle * 0.8], v: { x: n.x * 0.2 - r.x * piv * 0.3, y: -0.4, z: n.z * 0.2 - r.z * piv * 0.3 } });
+        return Object.assign(P(o * 0.2 + 0.01 + k * 0.04, cx, cy, base - piv * ang), { dur: settle + hold + tip, hits: [settle * 0.8], v: { x: n.x * 0.2 - r.x * piv * 0.3, y: -0.4, z: n.z * 0.2 - r.z * piv * 0.3 } });
       }
       case 'bounce': {   // hits and rebounds toward you
         const k = easeOut(clamp(tau / 0.26, 0, 1));

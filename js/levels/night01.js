@@ -286,19 +286,120 @@ LEVELS.push({
       { x: 1.95, y: 0.78, z: 0.3 },                     // on the table, clear of the lamp
       { x: 1.75, y: 1.1, z: -2.31 },                    // on the windowsill
     ], { w: 0.17, h: 0.36 });
+    // ---- when it will not go ----
+    // What will not go up is put up all the same, and fails there (js/hands.js). A plank with nothing to fix it goes up
+    // where the next board goes (boardSpot: across the doorway at that board's height, stretched to lie across the frame as
+    // the boards do, and tilted as that board is nailed), hangs a moment and falls off to the floor in front of the
+    // doorway, to be picked up again. The rotten one goes up there too, and as it is pressed to the frame (the
+    // nail going in, if you have the hammer and the nails) its end tears away in a shower of soft rotten crumbs (s.crumbs),
+    // and it drops. Something else (the hammer, the nails, the bottle, with no plank to hand) is tried against the frame and
+    // comes back; with nothing in hand the hand goes to the frame, or knocks on the boards already up, and they shudder.
+    // A spot on the doorway is used only where it is in view and clear of what you hold: clicked at the edge of the view, it
+    // goes up on the part in view instead, at its own length.
+    const inView = (x, y, z) => {
+      const q = R.screenPos(x, y, z), b = G.hand.box;
+      return !!q && q.x > R.W * 0.06 && q.x < R.W * 0.94 && q.y > R.H * 0.06 && q.y < R.H * 0.94 && !(b && q.x > b.x0 && q.x < b.x1 && q.y > b.y0 && q.y < b.y1);
+    };
+    // the first place across the doorway (a share of its width) at height y that is in view, with both ends of a thing
+    // `half` metres either side of it on the view too if that can be had
+    const spotOn = (t, us, y, half) => {
+      const yaw = Math.atan2(t.x, t.z), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+      const onView = (x, z) => { const q = R.screenPos(x, y, z); return !!q && q.x > R.W * 0.02 && q.x < R.W * 0.98; };
+      const ok = (u, ends) => inView(t.x + rx * u * t.w, y, t.z + rz * u * t.w) && (!ends || [-1, 1].every(e => onView(t.x + rx * (u * t.w + e * half), t.z + rz * (u * t.w + e * half))));
+      let u = half ? us.find(u => ok(u, true)) : undefined;
+      if (u === undefined) u = us.find(u => ok(u, false));
+      return u === undefined ? null : [u, y / t.h];
+    };
+    const boardSpot = t => {
+      const b = BOARDS[Math.min(t.count, BOARDS.length - 1)], hw = t.w / 2 + 0.1;
+      const at = spotOn(t, [0, 0.12, -0.12, 0.25, -0.25, 0.38, -0.38], b.y, 0.55);
+      if (!at) return {};
+      return { at, scale: at[0] ? 1 : t.w / 1.1, angle: (t.lane === 0 ? 1 : -1) * Math.atan2(b.tl, hw) };   // (across the frame, a little short of the boards)
+    };
+    const frameSpot = t => spotOn(t, [0.44, 0.3, 0.15, 0, -0.15, -0.3, -0.44], 1.55);   // the post on your right, by the gap at eye level
+    const knockAt = t => spotOn(t, [0.1, 0, -0.1, 0.25, -0.25], BOARDS[0].y);   // the first board up
+    const onDoor = t => ({   // the doorway's own choices (useTarget, in game.js)
+      // the hammer, the nails or the bottle against the frame, and back: wood on wood, or the nails rattling in their box
+      onWrong(item) {
+        const hit = { hammer: 'woodKnock', nails: 'rattle' }[item.id], at = frameSpot(t);
+        if (!G.fumble(item, t, Object.assign({ preset: 'return' }, at ? { at } : null, hit ? { sfx: { hit } } : null)) && !G.fumbling) AUDIO.sfx('nope');
+      },
+      onEmpty() { feel(t); },
+      // a plank and nothing to fix it with: it goes up and falls off
+      onMissing(item) { if (!G.fumble(item, t, Object.assign({ preset: 'slip', hold: 0.2 }, boardSpot(t)))) { if (!G.fumbling) AUDIO.sfx('nope'); } },
+      // the rotten plank: it goes up, and tears away from the frame as it is fixed there
+      onDecoy(item) {
+        const nailed = G.hasItem('hammer') && G.hasItem('nails'), hold = nailed ? 0.38 : 0.22;   // (it tears as the third blow goes in)
+        const fx = G.fumble(item, t, Object.assign({ preset: 'slip', hold, sfx: { hit: nailed ? 'hammer' : 'woodKnock', land: 'flop' } }, boardSpot(t)));
+        if (fx) s.rot = { fx, tear: 0.14 + hold, n: 0, blows: nailed ? 0 : 3, nailed }; else if (!G.fumbling) AUDIO.sfx('nope');
+      },
+    });
+    // the empty hand at a doorway: on the boards already up it knocks, and they shudder on their nails; on a bare doorway it
+    // lays its fingers on the frame
+    const feel = t => {
+      const k = t.count && knockAt(t), f = !k && frameSpot(t);
+      G.reach(t, k ? { style: 'knock', at: k, onTouch: () => jolt(t, 0.14) } : f ? { style: 'touch', at: f } : 'touch');
+    };
+    // the shower of rotten wood from the end of the rotten plank as it tears away: bits of soft wood and a little dust,
+    // falling to the floor, where the bits lie a while and fade; nailed, the end of it stays on the nail a moment, and drops
+    s.crumbs = [];
+    const crumble = (fx, n, dust, chunk) => {
+      const e = { x: 0, z: 0 }, a = fx.at, yaw = Math.atan2(a.x - e.x, a.z - e.z), w = (fx.it.w || 1.1) * fx.size * 0.45 * fx.side;
+      const x = a.x + Math.cos(yaw) * w, z = a.z - Math.sin(yaw) * w, y = a.y - 0.03;
+      for (let i = 0; i < n; i++) {
+        const r = Math.random;
+        s.crumbs.push({ x: x + (r() - 0.5) * 0.08, y: y + (r() - 0.5) * 0.12, z: z + (r() - 0.5) * 0.04, vx: (r() - 0.5) * 0.5 - Math.sin(yaw) * r() * 0.3, vy: r() * 0.6, vz: (r() - 0.5) * 0.5 - Math.cos(yaw) * r() * 0.3,
+          r: 0.012 + r() * 0.022, col: [[110, 118, 92], [74, 80, 60], [140, 146, 118], [52, 50, 40]][i % 4], t: 0 });
+      }
+      for (let i = 0; dust && i < 4; i++) s.crumbs.push({ x: x + (Math.random() - 0.5) * 0.1, y: y - 0.05 + i * 0.04, z, vx: 0, vy: -0.3, vz: 0, r: 0.035 + i * 0.012, col: [96, 96, 82], t: 0, dust: true });
+      if (chunk) s.crumbs.push({ x: a.x + Math.cos(yaw) * w * 1.04, y: a.y - 0.19, z: a.z - Math.sin(yaw) * w * 1.04, vx: 0, vy: 0, vz: 0, t: 0, hang: 1.3, chunk: fx.side });
+    };
+    // the end left on the nail: a ragged stub of the rotten board, torn across, the nail through it
+    const stub = (ctx, P, side) => {
+      ctx.scale(-side, 1);   // the torn edge toward where the board was
+      P_poly(ctx, [[-0.05, 0.02], [0.03, 0.0], [0.05, 0.08], [0.02, 0.14], [0.055, 0.2], [0.015, 0.27], [0.045, 0.34], [0.03, 0.39], [-0.05, 0.38]], P.col([53, 137, 123]));
+      P_poly(ctx, [[-0.05, 0.02], [-0.02, 0.02], [-0.03, 0.2], [-0.02, 0.38], [-0.05, 0.38]], P.col([24, 78, 73]));
+      P_line(ctx, 0.0, 0.03, 0.03, 0.36, 0.008, P.col([0, 32, 39]));
+      P_ell(ctx, -0.012, 0.2, 0.013, 0.013, P.col([46, 44, 42]));
+    };
+    const crumbsOn = dt => {
+      const r = s.rot;
+      if (r) {   // the rotten plank at the doorway: each blow of the hammer knocks a few bits out round the nail, and as it
+        const fx = r.fx;   // tears away and drops more go, and the rest as it falls
+        if (fx.phase === 'contact' && r.blows < 3 && fx.pt >= 0.112 + r.blows * 0.22) { r.blows++; crumble(fx, 3, false); G.shake(0.05); }
+        if (fx.phase === 'contact' && fx.pt >= r.tear && r.n === 0) { r.n = 1; crumble(fx, 8, false, r.nailed); AUDIO.sfx('crack', panTo(Math.atan2(fx.at.x, fx.at.z))); }
+        if (fx.phase === 'fall' && r.n < 2) { r.n = 2; crumble(fx, 18, true); AUDIO.sfx('crack', panTo(Math.atan2(fx.at.x, fx.at.z))); }
+        if (fx.phase === 'done' || fx.phase === 'bounce') s.rot = null;
+      }
+      for (const c of s.crumbs) {
+        c.t += dt;
+        if (c.dust) { c.y += c.vy * dt; c.vy *= Math.exp(-dt * 3); continue; }
+        if (c.chunk && c.t < c.hang) { if (c.t + dt >= c.hang) AUDIO.sfx('crack', panTo(Math.atan2(c.x, c.z))); continue; }
+        if (c.y > 0.004) { c.vy -= 9.8 * dt; c.x += c.vx * dt; c.y = Math.max(0.004, c.y + c.vy * dt); c.z += c.vz * dt; c.vx *= Math.exp(-dt * 1.5); c.vz *= Math.exp(-dt * 1.5); }
+      }
+      s.crumbs = s.crumbs.filter(c => c.t < (c.dust ? 0.7 : c.chunk ? 5 : 3.5));
+    };
+    const crumbsDraw = () => {
+      for (const c of s.crumbs) {
+        if (c.chunk) { R.add({ kind: 'sprite', x: c.x, y: c.y, z: c.z, w: 0.12, h: 0.4, worn: true, alpha: c.t > 4 ? 5 - c.t : 1, noContact: true, layer: 1, draw: (ctx, P) => stub(ctx, P, c.chunk) }); continue; }
+        const a = c.dust ? 0.2 * (1 - c.t / 0.7) : c.t > 2.5 ? 1 - (c.t - 2.5) : 1, rr = c.dust ? c.r * (1 + c.t * 2) : c.r;
+        R.add({ kind: 'sprite', x: c.x, y: c.y - rr, z: c.z, w: rr * 2, h: rr * 2, alpha: a, noContact: true, layer: 1, draw: (ctx, P) => P_ell(ctx, 0, rr, rr, rr * (c.dust ? 0.8 : 0.7), P.col(c.col)) });
+      }
+    };
     // the doorways: three planks across each, nailed. Boarding the one it is coming for sends it running round the house.
     const mkDoor = (id, name, deg, dist, w, lane) => {
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0, w, h: 2.1, accepts: ['planks', 'rotten'], requires: ['hammer', 'nails'], needed: need, lane,
         hint() { return t.done ? 'Boarded up.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
-        onClick() { if (!t.done) return false; G.say('Boarded up.', 'It is boarded up.'); return true; },
+        onClick() { if (!t.done) return false; G.say('Boarded up.', 'It is boarded up.'); feel(t); return true; },   // a knock on the boards: they hold
         use() {
-          // once it is in this doorway it is too late to board it: the plank stays in the hand, and it comes on
+          // once it is in this doorway it is too late to board it: the plank is knocked out of your hands, and it comes on
           const c = L.creature;
-          if (c.reached && c.lane.idx === lane) { G.say('It is already in the doorway.', 'Too late for that one.'); return false; }
+          if (c.reached && c.lane.idx === lane) { G.say('It is already in the doorway.', 'Too late for that one.'); return G.refuse('clatter'); }
           t.count++; AUDIO.sfx('hammer'); G.shake(0.15); if (t.count >= need) { t.done = true; boarded(t); } return true;
         },
       });
+      Object.assign(t, onDoor(t));
       // what keeps the planks from going up is the state of things, not where the answer lies
       Object.defineProperty(t, 'missingText', { get: () => (G.hasItem('hammer') ? 'The hammer has nothing to drive.' : 'The planks will not stay up on their own.') });
       return t;
@@ -362,6 +463,7 @@ LEVELS.push({
       AUDIO.sfx('bang', panTo(c.lane.yaw)); AUDIO.sfx('thud'); G.shake(0.85);
     };
     L.update = dt => {
+      crumbsOn(dt);
       const c = L.creature, r = s.run;
       if (L.won && !s.closing && !r) {
         s.closing = true;
@@ -481,6 +583,7 @@ LEVELS.push({
     // of it. Once it is through the doorway it is drawn as usual, over everything behind it.
     L.dynamic = () => {
       boards(back, ...PLANE(back)); boards(front, ...PLANE(front));
+      crumbsDraw();
       const c = L.creature, cp = L.rend && L.rend.get(c);
       if (cp) { const p = c.pos(); cp.sortDist = c.dist > c.lane.apertures[0].z + 0.05 ? Math.max(Math.hypot(p.x, p.z), BEHIND_WALLS) : undefined; }
       if (s.hitAt !== undefined && c.peer > 0.6) {   // at the boards: its fingers over the one under the gap (grip; the night faces north, so x is the boards' own)
