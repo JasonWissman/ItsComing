@@ -209,7 +209,6 @@ LEVELS.push({
       L.props.push({ kind: 'poly', pts: Array.from({ length: 12 }, (_, i) => { const a = (i + 0.5) / 12 * TAU; return L.pt(1.99, y + Math.cos(a) * rad, z + Math.sin(a) * rad); }), color: scalec([132, 100, 66], sh) });
     }
     for (let r = 1; r < 4; r++) { const y = 0.445 + (r - 0.5) * 0.165; SC.wallV(L, 2.0, -0.99, 3.0, -0.99, y - 0.012, y + 0.012, scalec(wood, 0.5)); }   // the long sides, toward the yard
-    STORY.lamp(L, 2.82, 1.1, -1.42, { scale: 0.8 });
     // a crate: boards round the edge of each side you can see, and a brace across
     const crate = [70, 56, 44], slat = [98, 80, 60];
     SC.box(L, -2.98, -2.3, 0.35, 0.85, -1.4, -0.9, crate);

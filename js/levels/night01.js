@@ -194,7 +194,6 @@ LEVELS.push({
     for (const z of [0.0, 1.1]) { SC.box(L, -2.78, -2.74, 0.96, 1.22, z - 0.02, z + 0.02, [50, 39, 30]); SC.box(L, -2.78, -2.56, 1.15, 1.22, z - 0.02, z + 0.02, [50, 39, 30]); }   // its brackets
     for (const [x, z] of [[-2.17, -2.07], [-1.73, -2.07], [-2.17, -1.63], [-1.73, -1.63]]) SC.box(L, x - 0.025, x + 0.025, 0, 0.42, z - 0.025, z + 0.025, [56, 42, 32]);   // the chair's legs
     SC.box(L, -2.2, -1.7, 0.42, 0.48, -2.1, -1.6, [68, 52, 40]); SC.box(L, -2.2, -1.7, 0.48, 1.0, -2.1, -2.04, [68, 52, 40]);
-    STORY.lamp(L, 1.85, 0.78, -0.05);                          // the lamp on the table, unlit
     // ---- where things lie ----
     // Every item is a card that turns to face the eye, and a plank's is over a metre across: two planks a metre apart
     // lay across each other from one view or another, and the rotten plank could hide the end of a sound one, so the

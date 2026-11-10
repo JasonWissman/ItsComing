@@ -74,7 +74,6 @@ LEVELS.push({
     for (const z of [-1.45, -0.91]) SC.box(L, 2.06, 2.2, 0.98, 1.1, z, z + 0.06, stoneD, { sortDist: 2.5 });   // the two corbels it rests on
     SC.box(L, -2.15, -1.6, 0.42, 0.5, -1.2, 0.2, [62, 50, 40], { sortDist: 2.45 });   // bench on the west (the wall behind sorts at 2.84)
     for (const z of [-1.1, 0.0]) SC.box(L, -2.08, -1.67, 0, 0.42, z, z + 0.1, [46, 37, 30], { sortDist: 2.6 });   // and its two legs, set in from the ends
-    STORY.lamp(L, -1.9, 0.5, 0.1, { scale: 0.8 });
     // the lantern post by the doorway, its arm reaching in over the porch
     SC.box(L, 0.86, 0.96, 0, 2.0, 1.72, 1.82, post);
     SC.quad(L, [0.7, 1.72, 1.77], [0.96, 1.72, 1.77], [0.96, 1.78, 1.77], [0.7, 1.78, 1.77], post);

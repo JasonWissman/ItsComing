@@ -124,9 +124,9 @@ LEVELS.push({
     const LW = 1.1, LH = 1.5;                             // the lamp's lens, standing on its pedestal
     // the lens on its pedestal, inside the glass
     SC.box(L, AX - 0.45, AX + 0.45, 0, 0.9, AZ - 0.45, AZ + 0.45, [50, 50, 56]);
-    // the keeper's crate, against the lamp room in the corner by the fuse box's stanchion, and on it a bedside lamp, of all
-    // things: below the fuse box as you look at it, behind you to the right, clear of every spot an item may lie in
-    { const cp = at(75 * DEG, 2.17, 0); SC.box(L, cp[0] - 0.18, cp[0] + 0.18, 0, 0.4, cp[2] - 0.15, cp[2] + 0.15, [84, 64, 44], { tex: 'planks', texScale: 0.7 }); STORY.lamp(L, cp[0], 0.4, cp[2], { scale: 0.8 }); }
+    // the keeper's crate, against the lamp room in the corner by the fuse box's stanchion (it
+    // stands below the fuse box as you look at it, behind you to the right, clear of every spot an item may lie in
+    { const cp = at(75 * DEG, 2.17, 0); SC.box(L, cp[0] - 0.18, cp[0] + 0.18, 0, 0.4, cp[2] - 0.15, cp[2] + 0.15, [84, 64, 44], { tex: 'planks', texScale: 0.7 }); }
     // items: on the gallery floor where you can see them, none of them round behind a stanchion or under the crank
     const floorAt = (deg, r) => { const p = at(deg * DEG, r, 0); return { x: p[0], y: 0, z: p[2] }; };
     const spots = [floorAt(60, 2.7), floorAt(120, 2.7), floorAt(45, 2.9), floorAt(135, 2.9), floorAt(75, 3.0), floorAt(108, 3.0)];

@@ -246,7 +246,6 @@ LEVELS.push({
       }
     });
     SC.box(L, -2.6, -1.8, FL, FL + 0.6, -3.7, -3.1, [84, 68, 50]); SC.box(L, -1.7, -1.0, FL, FL + 0.45, -3.7, -3.2, [84, 68, 50]);
-    STORY.lamp(L, -2.2, FL + 0.6, -3.4, { lit: true, scale: 0.9 });
     SC.box(L, -4.2, -3.4, FL, FL + 0.9, -1.0, 0.6, [124, 106, 70]); SC.box(L, -4.2, -3.6, FL + 0.9, FL + 1.5, -0.8, 0.4, [110, 92, 62]);
     // items: two empty bottles, two rags, one box of matches (it lights both). No spot sits behind the drum, the crates or
     // the sacks as you see them from where you stand.

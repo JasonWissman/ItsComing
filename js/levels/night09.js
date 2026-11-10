@@ -303,7 +303,6 @@ Object.assign(ICONS, {
         winQ([c[0] - 0.65, c[1]], [c[0] + 0.65, c[1]], n, y0 - 0.1, y0 + 1.5, [222, 176, 108], sd, true);
         winQ([c[0] - 0.65, c[1]], [c[0] - 0.42, c[1]], [n[0] * 1.5, n[1] * 1.5], y0 - 0.1, y0 + 1.5, [92, 40, 34], sd - 0.01, true);   // the curtains, half drawn
         winQ([c[0] + 0.42, c[1]], [c[0] + 0.65, c[1]], [n[0] * 1.5, n[1] * 1.5], y0 - 0.1, y0 + 1.5, [92, 40, 34], sd - 0.01, true);
-        STORY.lamp(L, c[0] + 0.1, y0 + 0.02, c[1] - 0.06, { lit: true, scale: 1.8, opts: { sortDist: sd - 0.03, noLight: true } });
         return true;
       };
       row(6, 10.5, 175, 10.5); row(-6, 10.5, -175, 10.5, lampWin);              // across the cross street, both ways

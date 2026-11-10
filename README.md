@@ -259,7 +259,7 @@ some on the ground, so you have to turn and look down to find them.
 
 Creatures move faster when you are not looking at them, but otherwise they
 come at a steady pace, no faster at the end than at the start. A thread runs through the
-nights that the text never states: the same lamp is somewhere in every room, a
+nights that the text never states: a
 clock ticks for the first ten seconds of each night from the same direction, and
 surviving a night leaves a fragment, one odd sentence, collected on the Nights
 screen. Finishing the last night ends in that meadow; a click, key, tap or A there fades
@@ -461,7 +461,7 @@ click takes it again (hanging, as it tips, from the end it is meant to), a decoy
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
 unseen, early, without a jump in distance, and never on nights that opt out.
 `test/hittest.js` checks every item (each one, where several share an id) is visible and clickable from some direction across many layouts.
-`test/story.js` checks the lamp is in every room, the clock ticks, and no text before the bedroom uses
+`test/story.js` checks the bedside lamp is only in the bedroom, the clock ticks, and no text before the bedroom uses
 the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
 the game asks for exists in the synthesiser and that every lane cue, death sting, footstep and voice has a
 caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.

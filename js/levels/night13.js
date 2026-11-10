@@ -69,7 +69,6 @@ LEVELS.push({
     // so as the room comes its floor comes up evenly over the dark rather than under the nearer rings)
     const RINGS = 24, SIDES = 24, RW = 14.4 / RINGS;
     for (let r = 0; r < RINGS; r++) { const r0 = r * RW, r1 = r0 + RW, k = 1 - r / RINGS, col = [10 + 26 * k * k, 10 + 26 * k * k, 12 + 30 * k * k]; for (let i = 0; i < SIDES; i++) { const a0 = i / SIDES * TAU, a1 = (i + 1) / SIDES * TAU; SC.quad(L, [Math.sin(a0) * r0, 0, Math.cos(a0) * r0], [Math.sin(a1) * r0, 0, Math.cos(a1) * r0], [Math.sin(a1) * r1, 0, Math.cos(a1) * r1], [Math.sin(a0) * r1, 0, Math.cos(a0) * r1], col, { layer: 0, noLight: true, sortDist: 100 + r0 }); } }
-    STORY.lamp(L, Math.sin(22.5 * DEG) * 3.2, 0, Math.cos(22.5 * DEG) * 3.2, { lit: false, scale: 0.9 });   // between two ways in, so nothing walks through it
     const voidProps = L.props.slice(v0);
     // the room that was always here: built now, invisible until the meadow has gone
     const r0 = L.props.length;

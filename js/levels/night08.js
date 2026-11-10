@@ -84,7 +84,6 @@ LEVELS.push({
     for (const x of [-3, -1.5, 0, 1.5, 3]) { SC.box(L, x - 0.04, x + 0.04, 0, 0.72, 1.96, 2.04, chrome); SC.box(L, x - 0.2, x + 0.2, 0.72, 0.84, 1.8, 2.2, red); reorder(10, lo => 3.9 - lo); }
     SC.box(L, -0.9, -0.65, 1.0, 1.16, 0.95, 1.1, chrome); SC.box(L, 0.4, 0.5, 1.0, 1.2, 1.0, 1.1, [150, 30, 20]); SC.box(L, 0.6, 0.7, 1.0, 1.14, 1.0, 1.1, [190, 170, 60]);
     SC.box(L, -3.4, -2.8, 1.0, 1.3, 0.85, 1.35, [60, 60, 66]); SC.box(L, -3.35, -2.85, 1.3, 1.34, 0.85, 1.35, [40, 40, 44]);
-    STORY.lamp(L, -2.3, 1.0, 1.1, { scale: 0.8 });
     // a pie under a glass dome: the dome sits on its stand, it does not reach down through the counter
     SC.sprite(L, 2.3, 1.0, 1.1, 0.4, 0.34, (ctx, P) => {
       ctx.scale(0.4, 0.34);

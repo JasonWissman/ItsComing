@@ -123,7 +123,6 @@ LEVELS.push({
     // seat its other faces are never seen). Low and short enough that nothing lying in the footwells goes behind it
     SC.quad(L, [CX0, CY, CZ0], [CX1, CY, CZ0], [CX1, CY, CZ1], [CX0, CY, CZ1], [31, 29, 32]);
     SC.wallV(L, CX0, CZ0, CX0, CZ1, 0.35, CY, [19, 18, 20]);
-    STORY.lamp(L, 0.95, 0.95, 0.3, { scale: 0.7 });          // a bedside lamp on the passenger seat, of all things
     for (const p of L.props.slice(n0)) p.attach = true;
     // items and the ignition; everything lying in the car goes with it
     const keySpots = [

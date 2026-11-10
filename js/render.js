@@ -511,14 +511,22 @@ const R = (() => {
     };
   }
 
-  // a card's axes: across (the screen's horizontal, so the card is never skewed at the edge of the view) and up the card,
-  // which leans from lying flat (or standing) just far enough that the line of sight meets it at CARD_MIN or more
+  // a card's axes: across (square to the line from the eye to it, so it faces where you stand and stays put in the world
+  // as the view turns) and up the card, which leans from lying flat (or standing) just far enough that the line of sight
+  // meets it at CARD_MIN or more
   const CARD_MIN = 50 * DEG;
-  function cardAxes(x, y, z, flat) {
+  // (within FACE_MAX of where you are looking it faces the eye exactly and does not turn as the view turns; only out at the
+  // very edge of a wide view, where a thing fixed in the world would be smeared across it, is it held to FACE_MAX)
+  const FACE_MAX = 40 * DEG;
+  function towardEye(x, z) {
+    const r = Math.atan2(x - ox, z - oz), a = yaw + clamp(wrapPi(r - yaw), -FACE_MAX, FACE_MAX);
+    return [Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a)];
+  }
+  function cardAxes(x, y, z, flat, alongView) {
     const e = Math.atan2(eyeH + oy - y, Math.hypot(x - ox, z - oz));   // how far below the eye it sits, as an angle
     const phi = clamp(flat ? 0 : Math.PI / 2, CARD_MIN - e, Math.PI - CARD_MIN - e);
-    const c = Math.cos(phi);
-    return [cosY, -sinY, c * sinY, Math.sin(phi), c * cosY];
+    const c = Math.cos(phi), t = alongView ? [cosY, -sinY, sinY, cosY] : towardEye(x, z);
+    return [t[0], t[1], c * t[2], Math.sin(phi), c * t[3]];
   }
   function drawSprite(p) {
     if (p.alpha !== undefined && p.alpha <= 0.004) { if (p.onRect) p.onRect(null); return; }
@@ -530,10 +538,20 @@ const R = (() => {
     if (p.flat || p.card) {
       // a decal lying on the ground, its "up" pointing away from the viewer; or a card (an item), which stands on its
       // spot facing the eye and tips back toward it so it is never seen edge-on, however near or high it sits
-      let rx = cosY, rz = -sinY, fx = sinY, fz = cosY, fy = 0;
+      const t = towardEye(p.x, p.z);   // a decal's "up" runs away from where you stand, not along the view
+      let rx = t[0], rz = t[1], fx = t[2], fz = t[3], fy = 0;
       if (p.card) {
+        // behind you (only in front of the lens at all because the view is tipped down): not drawn
+        if (Math.abs(wrapPi(Math.atan2(p.x - ox, p.z - oz) - yaw)) > 100 * DEG) { if (p.onRect) p.onRect(null); return; }
         const c = cardAxes(p.x, p.y, p.z, p.flat);
         rx = c[0]; rz = c[1]; fx = c[2]; fy = c[3]; fz = c[4];
+        // close by and off to the side, a card square to the eye would run one end in at the camera: that one card is
+        // drawn square to the view instead (it is then at the very edge of the view, where nothing is looked at)
+        const e0 = toCam(p.x - rx * p.w / 2, p.y, p.z - rz * p.w / 2), e1 = toCam(p.x + rx * p.w / 2, p.y, p.z + rz * p.w / 2);
+        if (Math.min(e0[2], e1[2]) < base[2] * 0.85) {
+          const v = cardAxes(p.x, p.y, p.z, p.flat, true);
+          rx = v[0]; rz = v[1]; fx = v[2]; fy = v[3]; fz = v[4];
+        }
       }
       const cu = toCam(p.x + rx * p.w, p.y, p.z + rz * p.w);
       const cv = toCam(p.x + fx * p.h, p.y + fy * p.h, p.z + fz * p.h);
@@ -541,12 +559,10 @@ const R = (() => {
       const pu = proj(cu), pv = proj(cv);
       const ax = (pu[0] - b[0]) / p.w, ay = (pu[1] - b[1]) / p.w;   // screen delta per meter along u
       let bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
-      // a card keeps its apparent height but stands straight up on screen: at the edge of a downward view perspective
-      // would otherwise shear it into a slanted parallelogram
+      // a card is fixed in the world, facing where you stand, so it is drawn in plain perspective wherever it is in the view
       if (p.card) {
         // a card whose top would project below its base is behind or under the eye, against the near plane: not drawn
         if (by >= 0 || cv[2] < base[2] * 0.5) { if (p.onRect) p.onRect(null); return; }
-        by = -Math.hypot(bx, by); bx = 0;
       }
       // corners of the box centered at x (u from -w/2..w/2), v from 0..h
       const xs = [], ys = [];
