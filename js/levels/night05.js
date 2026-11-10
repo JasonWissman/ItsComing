@@ -6,7 +6,8 @@
 // further, the smaller it is to aim at); full but off it, it misses; let go before it is full and it drops into the snow
 // short of it. A tap looses nothing: the bow comes up, the string starts back, and it is let down again. Two hits put it
 // down (the first drops it for a moment); with all three arrows gone and it still up, it stops watching and comes flat
-// out. (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
+// out. Drawn on, it may break sideways to a new place (30% of draws, never twice within a few seconds), so the aim has to
+// come after it. (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
 const CLEARING_BOW = (() => {
   const FILL = 1.5, MIN = 0.18;
   // the world direction through a point on the screen (page coordinates), from the eye
@@ -21,17 +22,18 @@ const CLEARING_BOW = (() => {
   // aim and rests on the shelf a little below and right of it; the bow is canted, its top to the right, so its upper limb
   // leans away from where it is aimed and nothing of it crosses the aim. Drawing, the string and the arrow's nock come back
   // toward you (down and right, off the bottom of the view at full draw), the limbs bend and their tips come back and in.
-  // Not drawing, it is held low at the bottom right, just in view while you look ahead.
+  // Not drawing, it is held low at the bottom right, just in view while you look ahead. With the hands hidden
+  // (HANDS.showHands false) it floats there as every held thing does: no sleeve, no glove on the grip or the string.
   const COL = { wood: [80, 54, 34], woodL: [126, 90, 56], woodD: [38, 25, 16], grip: [46, 32, 24], wrap: [22, 16, 11], string: [206, 198, 178], stringL: [250, 244, 222],
     shaft: [180, 146, 100], head: [146, 148, 156], headL: [206, 208, 214], fA: [176, 44, 36], fB: [220, 210, 188], glove: [30, 27, 27], gloveL: [64, 58, 56], sleeve: [40, 35, 34], sleeveL: [62, 55, 52] };
   const DIR = [-0.36, -0.933], W_ = [0.38, -0.925], BACK = [0.925, 0.38], OUT = [-0.925, -0.38];   // the arrow's way, up the bow, toward you, away
   const V = (a, b, k) => [a[0] + b[0] * k, a[1] + b[1] * k];
   const bez = (a, c, b, t) => [(1 - t) * (1 - t) * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0], (1 - t) * (1 - t) * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]];
-  function seg(ctx, a, b, w, col) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+  function seg(ctx, a, b, w, col, alpha) { ctx.strokeStyle = col; ctx.lineWidth = w; if (alpha !== undefined) ctx.globalAlpha = alpha; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.globalAlpha = 1; }
   function inHands(ctx, W, H, d, L, aim) {
     const s = L.s, show = s.bowShow || 0, up = s.bowUp || 0, pull = s.pull || 0;
     if (show < 0.01) return;
-    const S = H, lit = s.bowLit || 1, col = (c, k) => rgba(scalec(c, lit * (k || 1)));
+    const S = H, lit = s.bowLit || 1, col = (c, k) => rgba(scalec(c, lit * (k || 1))), hands = HANDS.showHands;
     const am = aim ? { x: clamp(aim.x, W * 0.1, W * 0.9), y: clamp(aim.y - R.viewY, H * 0.28, H * 0.62) } : null;   // it follows the aim, but not up or down off the view
     const ax = am ? lerp(W / 2 + 0.3 * S, am.x, up) : W / 2 + 0.3 * S, ay = (am ? lerp(H / 2, am.y, up) : H / 2) + (1 - up) * 0.6 * S + (1 - show) * 0.7 * S;
     let tx = 0, ty = 0;
@@ -39,19 +41,31 @@ const CLEARING_BOW = (() => {
       const a = (d.power - 0.8) * 0.01 + (d.power >= 1 ? 0.002 : 0);
       tx = Math.sin(G.t * 53) * a * S; ty = Math.cos(G.t * 41) * a * S;
     }
-    ctx.save(); ctx.translate(ax + tx, ay + ty); ctx.rotate((1 - up) * 0.32); ctx.scale(S, S);
+    // no arrow to nock (the button pressed with none left), with no hand to feel for one: the bow comes up and tips toward
+    // you to show the bare shelf, the string is plucked twice where the nock would be, twitching and buzzing, and nothing
+    // sits on it; then it is let down
+    const gr = s.groping && !d && !hands ? s.groping : null;
+    let tilt = 0, twitch = 0;
+    if (gr) {
+      const t = gr.t, k = smoothstep(clamp((t - 0.06) / 0.2, 0, 1)) * (1 - smoothstep(clamp((t - 0.7) / 0.26, 0, 1)));
+      tilt = -0.2 * k;
+      for (const at of [0.37, 0.59]) if (t >= at) { const u = t - at; twitch += Math.exp(-u * 14) * (0.05 + 0.02 * Math.sin(u * 90)); }
+    }
+    ctx.save(); ctx.translate(ax + tx, ay + ty); ctx.rotate((1 - up) * 0.32 + tilt); ctx.scale(S, S);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const rest = V([0, 0], DIR, -0.2);   // the shelf the arrow rests on
     // the limbs bend most over the last of the draw (as a bow's weight builds): fully drawn, their tips are hauled hard back
     // and in, and the string, taut, catches the light
     const bend = pull + 1.5 * Math.pow(pull, 8), taut = clamp((pull - 0.97) / 0.03, 0, 1);
     const tipOf = sgn => V(V(rest, W_, sgn * (0.6 - 0.04 * bend)), BACK, 0.055 * bend);
-    const nock = V(rest, DIR, -(0.06 + pull * 0.86));
+    const nock = V(rest, DIR, -(0.06 + pull * 0.86 + twitch));
     // the bow arm, in from the left at the bottom to the hand on the grip: a dark wool sleeve, the light along its top
-    const wrist = V(V(rest, W_, -0.05), [-1, 0.25], 0.03), elbow = V(rest, [-0.62, 0.62], 1);
-    for (let i = 0; i < 6; i++) { const a = V(elbow, [wrist[0] - elbow[0], wrist[1] - elbow[1]], i / 6), b = V(elbow, [wrist[0] - elbow[0], wrist[1] - elbow[1]], (i + 1) / 6); seg(ctx, a, b, lerp(0.07, 0.042, i / 6), col(COL.sleeve)); }
-    seg(ctx, V(elbow, [0.3, -0.85], 0.024), V(wrist, [0.3, -0.85], 0.014), 0.01, col(COL.sleeveL));
-    seg(ctx, V(wrist, [wrist[0] - elbow[0], wrist[1] - elbow[1]], -0.12), V(wrist, [wrist[0] - elbow[0], wrist[1] - elbow[1]], -0.08), 0.05, col(COL.sleeveL, 0.8));   // the cuff
+    if (hands) {
+      const wrist = V(V(rest, W_, -0.05), [-1, 0.25], 0.03), elbow = V(rest, [-0.62, 0.62], 1);
+      for (let i = 0; i < 6; i++) { const a = V(elbow, [wrist[0] - elbow[0], wrist[1] - elbow[1]], i / 6), b = V(elbow, [wrist[0] - elbow[0], wrist[1] - elbow[1]], (i + 1) / 6); seg(ctx, a, b, lerp(0.07, 0.042, i / 6), col(COL.sleeve)); }
+      seg(ctx, V(elbow, [0.3, -0.85], 0.024), V(wrist, [0.3, -0.85], 0.014), 0.01, col(COL.sleeveL));
+      seg(ctx, V(wrist, [wrist[0] - elbow[0], wrist[1] - elbow[1]], -0.12), V(wrist, [wrist[0] - elbow[0], wrist[1] - elbow[1]], -0.08), 0.05, col(COL.sleeveL, 0.8));   // the cuff
+    }
     // the limbs, tapering to the tips, which flick outward; light along their backs
     for (const sgn of [-1, 1]) {
       const a = V(rest, W_, sgn * 0.08), b = tipOf(sgn), c = V(V(rest, W_, sgn * 0.34), OUT, 0.05 - 0.025 * pull);
@@ -70,13 +84,15 @@ const CLEARING_BOW = (() => {
     seg(ctx, V(V(rest, W_, -0.1), OUT, 0.01), V(V(rest, W_, 0.1), OUT, 0.01), 0.01, col(COL.woodL));
     seg(ctx, V(rest, W_, -0.075), V(rest, W_, -0.01), 0.044, col(COL.grip));
     // the bow hand round the grip: the glove, the knuckles, the thumb over the front of it
-    ctx.save(); ctx.translate(...V(V(rest, W_, -0.045), BACK, 0.012)); ctx.rotate(Math.atan2(W_[1], W_[0]));
-    ctx.fillStyle = col(COL.glove); ctx.beginPath(); ctx.ellipse(0, 0, 0.052, 0.034, 0, 0, TAU); ctx.fill();
-    for (let i = 0; i < 3; i++) { ctx.fillStyle = col(COL.gloveL); ctx.beginPath(); ctx.ellipse(-0.03 + i * 0.022, 0.024, 0.011, 0.007, 0, 0, TAU); ctx.fill(); }
-    ctx.fillStyle = col(COL.glove, 1.15); ctx.beginPath(); ctx.ellipse(0.03, -0.018, 0.026, 0.012, -0.4, 0, TAU); ctx.fill();
-    ctx.restore();
-    // the string, from each tip back to the nock
-    for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0035 + 0.001 * taut, col(COL.string, 1 + 0.25 * taut));
+    if (hands) {
+      ctx.save(); ctx.translate(...V(V(rest, W_, -0.045), BACK, 0.012)); ctx.rotate(Math.atan2(W_[1], W_[0]));
+      ctx.fillStyle = col(COL.glove); ctx.beginPath(); ctx.ellipse(0, 0, 0.052, 0.034, 0, 0, TAU); ctx.fill();
+      for (let i = 0; i < 3; i++) { ctx.fillStyle = col(COL.gloveL); ctx.beginPath(); ctx.ellipse(-0.03 + i * 0.022, 0.024, 0.011, 0.007, 0, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = col(COL.glove, 1.15); ctx.beginPath(); ctx.ellipse(0.03, -0.018, 0.026, 0.012, -0.4, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    // the string, from each tip back to the nock (plucked with nothing on it, it blurs a moment)
+    for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0035 + 0.001 * taut + 0.05 * twitch, col(COL.string, 1 + 0.25 * taut), twitch ? 0.6 : 1);
     // drawn full, and for as long as it is held there, the string shines: a bright glint along it the moment it tops out
     // (with the click), settling to a steady pale sheen, so the bow itself says it is full
     if (d && d.state === 'drawing' && d.full) {
@@ -98,11 +114,11 @@ const CLEARING_BOW = (() => {
       P_poly(ctx, [V(h0, DIR, 0.03), V(V(h0, DIR, -0.012), [-DIR[1], DIR[0]], 0.011), V(V(h0, DIR, -0.012), [DIR[1], -DIR[0]], 0.011)], col(COL.head));   // the broadhead
       seg(ctx, V(h0, DIR, 0.026), V(h0, DIR, -0.008), 0.003, col(COL.headL));
     }
-    // no arrow to nock (the button pressed with none left): the drawing hand comes up to the string, its fingers open, feels
-    // up along the shelf where an arrow should lie, twice, finds nothing there and drops away, and the bow is let down
-    const gr = s.groping;
-    if (gr && !d) {
-      const t = gr.t, k = smoothstep(clamp((t - 0.06) / 0.2, 0, 1)) * (1 - smoothstep(clamp((t - 0.7) / 0.26, 0, 1)));
+    // no arrow to nock (the button pressed with none left), with the hands shown: the drawing hand comes up to the string,
+    // its fingers open, feels up along the shelf where an arrow should lie, twice, finds nothing there and drops away, and
+    // the bow is let down
+    if (s.groping && !d && hands) {
+      const t = s.groping.t, k = smoothstep(clamp((t - 0.06) / 0.2, 0, 1)) * (1 - smoothstep(clamp((t - 0.7) / 0.26, 0, 1)));
       const feel = t > 0.26 && t < 0.7 ? Math.sin((t - 0.26) / 0.44 * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5 : 0;   // two strokes up the shelf and back
       const to = V(nock, DIR, 0.01 + feel * 0.13), from = V(nock, [0.62, 0.78], 0.8), h = [lerp(from[0], to[0], k), lerp(from[1], to[1], k)];
       seg(ctx, V(h, [0.95, 0.3], 0.02), V(h, [0.95, 0.3], 0.6), 0.075, col(COL.sleeve));
@@ -116,7 +132,7 @@ const CLEARING_BOW = (() => {
     }
     // the drawing hand at the nock while it is drawn, two fingers hooked on the string, its sleeve going off to the right
     // (at full draw the hand is back at your jaw, out of view); loosed, the hand has let go and dropped away
-    if (d && (d.state === 'drawing' || d.state === 'easing') && nock[1] < 0.9) {
+    if (hands && d && (d.state === 'drawing' || d.state === 'easing') && nock[1] < 0.9) {
       const h = V(nock, BACK, 0.022);
       seg(ctx, V(h, [0.95, 0.3], 0.02), V(h, [0.95, 0.3], 0.6), 0.075, col(COL.sleeve));
       ctx.save(); ctx.translate(h[0], h[1]); ctx.rotate(Math.atan2(BACK[1], BACK[0]));
@@ -297,7 +313,7 @@ LEVELS.push({
     L.floor = { poly: [[-3.1, -1.5], [3.1, -1.5], [3.1, 1.5], [-3.1, 1.5]], y: 0.36 };
     L.onPickup = it => { if (it.id === 'arrows') arrowCard(it, 'held'); };
     L.onDrop = it => { if (it.id === 'bow') bowCard('lie'); if (it.id === 'arrows') { dress(it); arrowCard(it, 'lie'); } };   // put down (or dropped), they lie on the boards
-    // in your hands it is cold, and the hands are gloved, as they are on the bow
+    // in your hands it is cold, and the hands are gloved, as they are on the bow (when hands are drawn at all)
     L.hands = { glove: true, sleeve: CLEARING_BOW.COL.sleeve };
 
     // ---- what will not go ----
@@ -362,12 +378,27 @@ LEVELS.push({
     };
     // with every arrow gone and it still up, it stops watching (the line comes once the last one has landed)
     const spentAll = c => s.spent >= 3 && !flights.length && !c.dead && !c.reckless;
+    // drawn on, it may break sideways to a new place (CREATURES.runner.dodge), side on and flat out, and the aim has to
+    // come after it. A draw is rolled for once, as it passes the least that looses anything (a click that only lifts the bow
+    // is not a draw), on the thing's own seeded stream; never within s.dodge.gap seconds of the last one, and only when it
+    // can (out in the open, up, not already running). s.dodge.rolls and .count are what the tests read.
+    s.dodge = { chance: 0.3, gap: 4, at: -Infinity, rolls: 0, count: 0 };
+    const reactToDraw = c => {
+      const d = G.draw, k = s.dodge;
+      if (!d || d.state !== 'drawing' || d.rolled || d.t < CLEARING_BOW.MIN || G.state !== 'play') return;
+      d.rolled = true;
+      if (L.t - k.at < k.gap || !CREATURES.runner.canDodge(c)) return;
+      k.rolls++;
+      if (c.rand() >= k.chance) return;
+      CREATURES.runner.dodge(c); k.at = L.t; k.count++;
+    };
     const toward = (v, t, k) => v + (t - v) * Math.min(1, k);
     const standOn = (x, z) => (Math.abs(x) <= 3.2 && Math.abs(z) <= 1.6 ? 0.35 : (Math.abs(x) <= 0.8 && z > 1.6 && z <= 2.2) || (x > 3.2 && x <= 3.8 && Math.abs(z) <= 0.6) ? 0.18 : 0);
     // it stands on what is under its feet: the ground its way runs along, then the step, then the deck. The renderer
     // and the gaze take the height from yOff; c.stand is kept for the lunge, which starts from there (see the runner)
     L.update = dt => {
       const c = L.creature, p = c.pos(), q = rotY(p.x, p.z, -L.facing); c.stand = standOn(q[0], q[1]); c.yOff = c.stand;
+      reactToDraw(c);
       for (let i = flights.length - 1; i >= 0; i--) {
         const f = flights[i]; f.t += dt;
         if (f.t < f.dur) continue;

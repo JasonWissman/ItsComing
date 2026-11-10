@@ -145,9 +145,12 @@ some on the ground, so you have to turn and look down to find them.
    is (the further, the smaller it is to aim at). Let go before full and the arrow drops into
    the snow short of it; full but off it, it misses. A click looses nothing: the bow comes up
    and is let down again. The first hit drops it for a moment and the second puts it down.
-   With all three arrows gone and it still up, it comes flat out. Pressed with no arrows, the bow
-   comes up and your gloved hand feels along the string and the shelf for one, finds none, and
-   lets it down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
+   Drawn on, it may react: about one draw in three (a click that only lifts the bow does not count), it
+   breaks sideways to a new place, running side on as it does in the tree line, and drops to watch
+   from there, so the aim has to come after it; it does not do it twice within a few seconds, nor once
+   it is close. With all three arrows gone and it still up, it comes flat out. The bow floats where
+   your hands would hold it. Pressed with no arrows, the bow comes up and tips to show the bare shelf,
+   the string is plucked twice where an arrow should sit and twitches on nothing, and it is let down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
    and drops head first to the boards at your feet, where you have to pick it up again.
 6. **The Boathouse.** Something swims in across the water, going under for a
    while and coming up closer. The winch is chained and padlocked: the key is in the
@@ -332,7 +335,8 @@ LEVELS.push({
   seconds to full (it turns green, and `bowFull` clicks), and stays full for as long as it is held. All that matters
   is whether it is full when you let go: full with the aim on the thing's body, at any distance, and
   `loose('hit', ...)` is called; full but off the thing is 'miss'; before full is 'short'. Each spends one of the ammo.
-  Let go before `min` seconds and nothing is loosed. `inHands` draws what you hold over the view. Items that share an
+  Let go before `min` seconds and nothing is loosed. `inHands` draws what you hold over the view (and asks
+  `HANDS.showHands`, the switch in `js/hands.js`, whether to draw any hands on it). Items that share an
   id and are made with `stack: true` (night 1's planks, night 5's arrows) go together in one slot as they are picked up.
 - **Items and targets** are placed in `build(L)`: `mkItem(L, id, name, spot | [spots], opts)`
   picks one of several spots per load (never the same spot twice, never within 0.8 m of another

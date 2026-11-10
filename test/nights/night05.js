@@ -7,8 +7,12 @@
 // Then the night again: a draw held full for a few seconds before letting go still goes in, and one from a pad puts it down.
 // Before any of that, what will not go: the first time, two arrows are picked up before the bow, and one is clicked at it
 // with no bow (it is raised to shoot, finds no bow, and drops head first to the boards at your feet, where it is picked up
-// again); the second time the bow comes first, and pressed with no arrows it comes up while the hand feels on the string
-// for one, finds none, and is let down.
+// again); the second time the bow comes first, and pressed with no arrows it comes up, tips to show the bare shelf, the
+// string is plucked on nothing, and it is let down.
+// Drawn on, it may break sideways (30% of draws, never twice within a few seconds): the draws here follow its body while
+// they are held, as a player keeps it in the sights, so a break mid-draw is followed. The rate itself, and that it really
+// runs to the side when it does, are checked with the game stepped by hand (dodge, below): many draws let back down at
+// once, nothing loosed.
 const arrows = "(G.inv.find(i => i.id === 'arrows') || { uses: 0 }).uses";
 const last = 'G.L.s.outcomes[G.L.s.outcomes.length - 1]';
 const hold = d => ['eval', 'const c = G.L.creature; c.switched = true; c.darts = 2; c.u = 1 - Math.pow(' + d + ' / c.D0, 1 / c.gamma); c.hold = ' + d + ';' +
@@ -27,13 +31,44 @@ const noBow = [apart, ['pickup', 'arrows'], slot(1), ['pickup', 'arrows'], slot(
   ['pickup', 'arrows'], ['pickup', 'arrows'], slot(3), ['expect', "G.L.items.filter(i => i.id === 'arrows').every(i => i.taken)", 'it is picked up again, with the last one'],
   ['pickup', 'bow']];
 const noArrows = [apart, ['pickup', 'bow'], hold(70), ['wait', 300],
-  ['draw', 'click'], ['expect', "G.lastToast.msg === 'No arrows.' && G.L.s.groping && !G.draw", 'the bow pressed with no arrows: it comes up, and the hand feels on the string for one'],
-  ['wait', 350], ['expect', 'G.L.s.bowUp > 0.6 && G.L.s.groping && G.L.s.groping.pats >= 1', 'the bow is up and the fingers are at the empty shelf'],
+  ['draw', 'click'], ['expect', "G.lastToast.msg === 'No arrows.' && G.L.s.groping && !G.draw", 'the bow pressed with no arrows: it comes up, and nothing is nocked'],
+  ['wait', 350], ['expect', 'G.L.s.bowUp > 0.6 && G.L.s.groping && G.L.s.groping.pats >= 1', 'the bow is up, tipped to show the bare shelf, the string plucked on nothing'],
   ['waitUntil', '!G.L.s.groping && G.L.s.bowUp < 0.3', 3000],
   ['pickup', 'arrows'], slot(1), ['pickup', 'arrows'], slot(2), ['pickup', 'arrows'], slot(3)];
+// many draws past the least that looses anything, each let straight back down (nothing loosed or spent), the cooldown
+// cleared between them, the game stepped by hand: about 30% of them make it break sideways, side on, at least 4 degrees
+// to a new place, its distance unchanged; then, with a break certain, a second draw within the cooldown does not, and one
+// after it does. window._dodge holds what was seen.
+const dodge = ['eval', `(() => {
+  const L = G.L, c = L.creature, k = L.s.dodge, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
+  const r = { n: 200, rolls: k.rolls, count: k.count, runs: 0, sideways: 0, moved: [], dist: 0 };
+  const drawOnce = () => { G.drawBtn = 'mouse'; step(15); const d = G.draw; drawLetGo('mouse', true); return d; };
+  const off = () => Math.tan(CREATURES.runner.ang(c)) * c.dist;   // where its run puts it, off its way
+  for (let i = 0; i < r.n; i++) {
+    k.at = -Infinity; step(30); let g = 0; while (c.mode === 'dart' && g++ < 200) step(1);
+    const was = k.count, a0 = c.dartAng, x0 = off(), d0 = c.dist;
+    drawOnce();
+    if (k.count === was) continue;
+    r.runs += c.mode === 'dart' && c.runDir === Math.sign(c.dartTo - a0) ? 1 : 0;
+    step(100);
+    const dx = off() - x0; r.moved.push(+dx.toFixed(2)); r.sideways += Math.abs(c.dartAng - a0) >= 0.069 && Math.abs(dx) > 1.5 ? 1 : 0;
+    r.dist = Math.max(r.dist, Math.abs(c.dist - d0));
+  }
+  r.rolls = k.rolls - r.rolls; r.count = k.count - r.count;
+  const ch = k.chance; k.chance = 1; k.at = -Infinity; step(200);
+  const c0 = k.count; drawOnce(); r.forced = k.count - c0; step(100);
+  drawOnce(); r.soon = k.count - c0 - r.forced; step(Math.ceil(k.gap * 60));
+  drawOnce(); r.later = k.count - c0 - r.forced - r.soon; step(100);
+  k.chance = ch; G.drawBtn = null; G.draw = null;
+  window._dodge = r;
+})()`];
 const kinds = [
   hold(25), ['wait', 300],
-  ['draw', 'click'], ['expect', "G.draw && G.draw.state === 'easing'", 'a click: the bow starts to come up and is let back down'],
+  dodge, ['expect', '(r => r.rolls === r.n && r.count >= 0.2 * r.n && r.count <= 0.4 * r.n)(window._dodge)', 'drawn on 200 times: about 30% of draws make it break away'],
+  ['expect', '(r => r.runs === r.count && r.sideways === r.count && r.dist < 0.01)(window._dodge)', 'each time it runs side on, the way it runs, to a new place at least 4 degrees and 1.5 m to the side, no nearer'],
+  ['expect', '(r => r.forced === 1 && r.soon === 0 && r.later === 1)(window._dodge)', 'drawn on again within a few seconds of breaking away, it does not; after that, it may again'],
+  ['eval', 'window._rolls = G.L.s.dodge.rolls;'],
+  ['draw', 'click'], ['expect', "G.draw && G.draw.state === 'easing' && G.L.s.dodge.rolls === window._rolls", 'a click: the bow starts to come up and is let back down (not a draw: nothing for it to react to)'],
   ['wait', 500], ['expect', arrows + ' === 3 && !G.L.s.outcomes.length', 'a click looses nothing and spends nothing'],
   ['draw', 'short'], ['expect', last + " === 'short' && " + arrows + ' === 2 && G.draw.from < 1', 'let go before full: it falls short, an arrow spent'],
   nock, ['draw', 'full', 'off'], ['expect', last + " === 'miss' && " + arrows + " === 1 && G.draw.from === 1 && UI.drawbar.classList.contains('full')", 'drawn full (the bar shows it) but off it: a miss, an arrow spent'],
