@@ -7,11 +7,19 @@
 // all round for each pedestal. Before any of that it watches the doll dance in every glass: drawn at one moment, the odd
 // mirror's doll is in the mirror image of the others' pose and the others are in the same pose; each glass draws the pose
 // it should; and held in a glass it dances on the spot.
+// It happens in your hands: a sheet is pulled down by the hand, an empty pedestal clicked with nothing in hand is touched on
+// its top, the crank tried on a pedestal with no box feels about its top
+// and comes back to your hand, the hand turns the crank, wrenches at it when it jams, and the box lifted off comes up off
+// the pedestal into your hand.
 const ped = k => 'pedestal' + k;
+// watch for something that may only be true for a moment (an animation under way), from now on, every frame; saw: it was
+const watch = (k, expr) => ['eval', "window._seen = window._seen || {}; window._seen['" + k + "'] = false; (() => { const f = () => { if (" + expr + ") window._seen['" + k + "'] = true; else if (G.state === 'play') requestAnimationFrame(f); }; f(); })()"];
+const saw = (k, msg) => [['waitUntil', "window._seen['" + k + "']", 3000], ['expect', "window._seen['" + k + "']", msg]];
 const look = k => ['face', 2 * k, false];
 const byOdd = f => [3, 2, 1, 0].reduce((otherwise, k) => [['branch', 'G.L.s.odd === ' + k, f(k), otherwise]], []);
 const hold = id => ['eval', "G.active = G.inv.findIndex(i => i.id === '" + id + "')"];
-const sheets = [0, 1, 2, 3].map(k => ['branch', "G.L.targets.some(t => t.id === 'sheet" + k + "' && !t.hidden)", [look(k), ['click', 'sheet' + k], ['expect', 'G.L.s.mirrors[' + k + '].live', 'the sheet over mirror ' + k + ' pulled down']]]);
+const sheets = [0, 1, 2, 3].map(k => ['branch', "G.L.targets.some(t => t.id === 'sheet" + k + "' && !t.hidden)", [look(k), watch('sheet' + k, "G.hand.reach && G.hand.reach.target.id === 'sheet" + k + "' && G.hand.reach.style === 'pull'"), ['click', 'sheet' + k], ['expect', 'G.L.s.mirrors[' + k + '].live', 'the sheet over mirror ' + k + ' pulled down'],
+  ...saw('sheet' + k, 'the hand goes out to it and pulls'), ['waitUntil', 'G.L.s.sheetFall.k === ' + k + ' && G.L.s.sheetFall.hissed', 2000], ['expect', 'G.L.s.sheetFall.hissed', 'and it slides off the glass']]]);
 // in the page: the mirror image of a dance pose, two poses alike, how lopsided a pose is, and what each glass draws
 const danceHelpers = ['eval', `window._dance = (() => {
   const CR = CREATURES.other, s = G.L.s;
@@ -67,7 +75,13 @@ const dance = [danceHelpers,
   ['eval', 'window._dz = { d: G.L.creature.dist, t: G.L.creature.danceT, p: JSON.stringify(G.L.s.shown[3].pose) }'], ['wait', 700],
   ['expect', 'window._dance.drew(3) && G.L.creature.dist === window._dz.d && G.L.creature.danceT > window._dz.t + 0.4 && JSON.stringify(G.L.s.shown[3].pose) !== window._dz.p', 'held in the glass it dances on the spot: its pose moves, it comes no nearer'],
 ]);
-const crankFirst = k => [hold('crank'), look(k), ['click', ped(k)], ['expect', "!G.L.s.crankIn && G.L.s.placedAt < 0 && G.inv.some(i => i.id === 'crank')", 'the crank first: nothing for it to turn']];
+const crankFirst = k => [hold('crank'), look(k),
+  watch('feel', "G.fumbling && G.fumbling.preset === 'bump' && !G.fumbling.drop && G.fumbling.target.id === '" + ped(k) + "' && G.fumbling.phase === 'contact'"),
+  ['click', ped(k)], ['expect', "!G.L.s.crankIn && G.L.s.placedAt < 0 && G.inv.some(i => i.id === 'crank')", 'the crank first: nothing for it to turn'],
+  ...saw('feel', 'its socket feels about the top of the bare pedestal'),
+  ['waitUntil', '!G.fumbling', 3000],
+  ['expect', "!G.fumbling && G.inv[G.active].id === 'crank' && !G.L.items.some(i => i.id === 'crank' && !i.taken)", 'and the crank comes back to your hand'],
+];
 const wrongPedestal = k => {
   const w = (k + 1) % 4;
   return [
@@ -75,22 +89,30 @@ const wrongPedestal = k => {
     ['expect', 'G.L.s.placedAt === ' + w + " && !G.inv.some(i => i.id === 'musicbox') && G.L.s.wrongAt < 0 && !G.L.creature.angry", 'a wrong pedestal takes the box too, and nothing happens yet'],
     ['click', ped(w)], ['expect', "G.L.s.crankIn && !G.inv.some(i => i.id === 'crank') && !G.L.s.sour", 'the crank fits it there too'],
     ['eval', 'window._d0 = G.L.creature.dist'],
+    watch('jam', "G.hand.reach && G.hand.reach.style === 'rattle' && G.hand.reach.target.id === '" + ped(w) + "'"),
     ['click', ped(w)],
     ['expect', 'G.L.s.sour && G.L.s.wrongAt > 0 && G.L.creature.angry === 1 && G.L.s.turns === 0', 'turning it before a wrong mirror plays wrong notes and the doll in the glass is angry'],
+    ...saw('jam', 'the crank jams, and the hand wrenches at it'),
     ['expect', '!G.L.won && (G.L.creature.dist < window._d0 - 0.05 || G.L.creature.dist <= G.L.creature.catchDist + 1.51)', 'and it hops closer'],
     ['eval', 'window._dt = G.L.creature.danceT'], ['wait', 450],
     ['expect', 'G.L.creature.danceT === window._dt && G.L.creature.dance === 0', 'angry, it has stopped dancing dead and eased out of it'],
+    watch('fly', "G.hand.fly && G.hand.fly.it.id === 'musicbox'"),
     ['click', ped(w)],
+    ...saw('fly', 'the box comes up off the pedestal into your hand'),
     ['expect', "G.L.s.placedAt < 0 && !G.L.s.crankIn && !G.L.s.sour && G.inv.some(i => i.id === 'musicbox' && i.withCrank) && !G.inv.some(i => i.id === 'crank')", 'a click on the box lifts it back off, its crank still in it'],
   ];
 };
 const right = k => [
   hold('musicbox'), look(k), ['click', ped(k)], ['expect', 'G.L.s.placedAt === ' + k + " && G.L.s.crankIn && !G.inv.some(i => i.id === 'musicbox')", 'the box, crank and all, on the odd mirror\'s pedestal'],
+  watch('turn', "G.hand.reach && G.hand.reach.style === 'pull' && G.hand.reach.target.id === '" + ped(k) + "'"),
   ['click', ped(k)], ['click', ped(k)], ['click', ped(k)], ['expect', '!G.L.won && G.L.s.turns === 3 && !G.L.s.sour', 'three turns, a few notes each'],
+  ...saw('turn', 'the hand is on the crank, turning it'),
   ['expect', 'G.L.creature.angry < 1', 'the right tune calms it'],
   ['click', ped(k)], ['expect', 'G.L.won && G.L.s.turns === 4', 'the fourth turn plays the tune'],
 ];
+// with nothing in hand a click on an empty pedestal brings the hand out to its top
+const emptyTouch = [look(0), ['click', ped(0)], ['expect', "!G.inv.length && G.L.s.placedAt < 0 && G.hand.reach && G.hand.reach.target.id === 'pedestal0' && Math.abs(G.hand.reach.at.y - 0.77) < 0.05", 'with nothing in hand, the hand goes out to the top of an empty pedestal'], ['waitUntil', '!G.hand.reach', 2000]];
 const fetched = [['waitUntil', 'G.L.s.held && G.L.creature.lane.idx === 1 + G.L.s.odd', 8000], ['expect', 'G.L.s.held && !G.L.creature.angry && G.L.creature.dance === 0 && G.L.creature.danceMir === -G.L.s.lead', 'it came out through the odd mirror and took the box, smiling, its dance over']];
 module.exports = {
-  nightmare: sheets.concat(dance, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
+  nightmare: sheets.concat(dance, emptyTouch, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
 };

@@ -9,6 +9,12 @@
 // the seven seconds of ringing while he keeps coming; then a car comes for you, pulls up and opens its door, and he turns
 // round. The keys, the receiver, the coin slot and the phone book are clicked where they are drawn, so their hit rects are
 // tested as well; the arrow keys turn pages, not the view, and the number keys dial, not choose what you hold.
+// What you do happens in your hands: the phone book's cover lifts a crack as the hand pulls at it and drops back; a key is
+// pressed by your fingertip (what you hold goes down meanwhile and comes back up after) and only goes down when the finger
+// gets there; a key the phone will not take blinks its display at you; the lifted receiver is in your left hand until it
+// goes back on its hook; the coin given back drops into the cup with a clink; the hand feels in the empty coin return; a
+// coin put in on the hook goes from your fingers into the slot before it drops into the cup; keys typed faster than the
+// finger can go are pressed in turn; the notebook open is not in your hand shut as well.
 const key = k => "document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '" + k + "', bubbles: true }))";
 const visible = sel => "(document.querySelector('" + sel + "') && document.querySelector('" + sel + "').style.display !== 'none')";
 // click the phone's keys for a string of digits where they are drawn, as a mouse would
@@ -17,16 +23,25 @@ const coin = "G.L.items.find(i => i.id === 'coin')";
 const inCup = '(!' + coin + '.taken && ' + coin + '.y > 1.2)';
 const pad = (b, on) => "window._pad.buttons[" + b + "].pressed = " + on;
 const tap = b => [['eval', pad(b, true)], ['wait', 90], ['eval', pad(b, false)], ['wait', 90]];
+// watch for something that may only be true for a moment (an animation under way), from now on, every frame; saw: it was
+const watch = (k, expr) => ['eval', "window._seen = window._seen || {}; window._seen['" + k + "'] = false; (() => { const f = () => { if (" + expr + ") window._seen['" + k + "'] = true; else if (G.state === 'play') requestAnimationFrame(f); }; f(); })()"];
+const saw = (k, msg) => [['waitUntil', "window._seen['" + k + "']", 3000], ['expect', "window._seen['" + k + "']", msg]];
 module.exports = {
   nightmare: [
     ['expect', "G.inv.length === 1 && G.inv[0].id === 'journal'", 'the notebook is in hand'],
     ['expect', 'G.L.s.others.length >= 4', 'there are always a few ordinary numbers in the notebook'],
     ['expect', 'G.L.lanes.every(l => l.deg !== 270)', 'nothing comes from the west, where the pay phone is'],
     ['face', 6, true],
+    watch('book', "G.hand.reach && G.hand.reach.target.id === 'book' && G.hand.reach.style === 'pull' && G.L.s.bookA > 0.08 && (!G.hand.cur || G.hand.up < 0.1)"),
     ['click', 'book'],
     ['expect', "/will not come apart/.test(G.lastToast.msg)", 'the phone book is no use: its pages are stuck'],
+    ...saw('book', 'the hand pulls at its cover (the notebook it held lowered meanwhile), and the cover lifts a crack'),
+    ['waitUntil', '!G.hand.reach && G.L.s.bookA < 0.005', 3000],
+    ['expect', "!G.hand.reach && G.L.s.bookA < 0.005 && G.inv[G.active].id === 'journal'", 'it drops back shut, and the notebook is still in hand'],
     ['eval', "window.__dir = G.cam.dirIdx; document.querySelector('#inventory .slot').click()"],
     ['expect', visible('.pb-nb'), 'clicking the notebook in the inventory opens it'],
+    ['waitUntil', "G.hand.cur !== G.inv[0]", 2000],
+    ['expect', "G.hand.cur !== G.inv[0] && G.inv[G.active].id === 'journal'", 'open, it is the panel: it is not in your hand shut as well'],
     ['waitUntil', "(() => { const b = document.querySelector('.pb-page .pb-blood'); if (b) { const r = b.getBoundingClientRect(); window.__num = b.getAttribute('aria-label').replace('-', ''); window.__blood = { alone: !document.querySelector('.pb-page .pb-l') && document.querySelector('.pb-page').textContent.trim() === '', w: r.width, h: r.height, page: G.L.s.page }; return true; } " + key('ArrowRight') + "; return false; })()", 20000],
     ['expect', 'window.__num === G.L.s.number && __blood.page === G.L.s.keyPage && __blood.page > 0', 'the number scrawled in red is the one, and it is not on the first page'],
     ['expect', '__blood.alone && __blood.w > 300 && __blood.h > 150', 'it has the page to itself, written large across it'],
@@ -40,27 +55,45 @@ module.exports = {
     ['face', 6, false],
     ['wait', 700],
     ['expect', 'G.cam.zoom > 1.25 && G.cam.pitch > 0.1', 'facing the phone brings the view in close to it'],
+    watch('finger', "G.hand.reach && G.hand.reach.target.id === 'key5' && G.L.s.keyHit['5'] !== undefined && (!G.hand.cur || G.hand.up < 0.1)"),
     ['click', 'key5'],
     ['expect', "/on its hook/.test(G.lastToast.msg) && G.L.s.dialed === ''", 'a key does nothing with the receiver on its hook'],
+    ...saw('finger', 'your fingertip goes to the key and the key goes down as it gets there, the coin you hold lowered meanwhile'),
+    ['waitUntil', "!G.hand.reach && G.hand.cur && G.hand.cur.id === 'coin' && G.hand.up > 0.9", 3000],
+    ['expect', "!G.L.s.lands.length && G.hand.cur && G.hand.cur.id === 'coin'", 'and the coin comes back up into your hand'],
     ['click', 'receiver'],
     ['expect', "G.L.s.hook === 'off' && G.L.s.line === 'tone'", 'the receiver is lifted: a dial tone'],
+    ['waitUntil', "G.hand.off.cur && G.hand.off.cur.id === 'handset' && G.hand.off.up > 0.9", 2000],
+    ['expect', "G.hand.off.cur && G.hand.off.cur.id === 'handset' && G.hand.cur && G.hand.cur.id === 'coin'", 'it is in your left hand, the coin still in your right'],
+    watch('blink', "G.L.s.blinkAt > 0 && G.L.t - G.L.s.blinkAt < 0.6"),
     ['click', 'key5'],
     ['expect', "/No credit/.test(G.lastToast.msg) && G.L.s.dialed === '' && G.L.s.keyT['5'] !== undefined", 'without a coin the key goes down and nothing is dialled'],
+    ...saw('blink', 'the display blinks its credit at you'),
     ['click', 'slot'],
     ['expect', "G.L.s.credit > 0 && !G.hasItem('coin')", 'the coin goes in the slot'],
+    ['click', 'return'],
+    ['expect', "/Empty/.test(G.lastToast.msg) && G.hand.reach && G.hand.reach.target.id === 'return'", 'the hand feels in the coin return: nothing there'],
+    ['waitUntil', '!G.hand.reach', 2000],
     ['waitUntil', "!document.getElementById('toast').classList.contains('show') || !/No credit/.test(document.getElementById('toast').textContent)", 1000],
     ['expect', clickKeys('G.L.s.others[0]'), 'the keys of an ordinary number are clicked on the phone'],
     ['expect', 'G.L.s.dialed === G.L.s.others[0]', 'the display has the number dialled'],
     ['waitUntil', "G.L.s.line === 'dead'", 3000],
     ['expect', "/not in service/.test(G.lastToast.msg) && !G.L.won", 'an ordinary number is not in service'],
+    watch('clink', 'G.L.s.coinClink && ' + inCup),
     ['click', 'receiver'],
     ['expect', "G.L.s.hook === 'on' && G.L.s.credit === 0", 'hung up on the hook'],
+    ['waitUntil', "!G.hand.off.cur && G.L.t - G.L.s.handsetT > 0.45", 2000],
+    ['expect', '!G.hand.off.cur && G.hand.off.up === 0', 'the receiver goes back on its hook from your left hand'],
+    ...saw('clink', 'the coin drops down into the cup with a clink'),
     ['waitUntil', inCup, 2000],
     ['pickup', 'coin'],
     ['expect', "G.hasItem('coin')", 'the coin came back into the coin return, and is taken out of it'],
+    watch('inslot', "G.fumbling && G.fumbling.it.id === 'coin' && G.fumbling.target.id === 'slot' && G.fumbling.phase === 'contact'"),
     ['click', 'slot'],
     ['expect', "/drops straight through/.test(G.lastToast.msg) && G.L.s.credit === 0", 'a coin put in with the receiver on its hook drops straight through'],
+    ...saw('inslot', 'the coin goes from your fingers into the slot'),
     ['waitUntil', inCup, 2000],
+    ['expect', inCup + " && !G.hasItem('coin') && G.L.s.credit === 0 && !G.fumbling", 'and comes out in the coin return'],
     ['pickup', 'coin'],
     ['click', 'receiver'],
     ['click', 'slot'],
@@ -77,8 +110,10 @@ module.exports = {
     ['eval', 'navigator.getGamepads = () => []'],
     ['face', 6, false],
     ['wait', 500],
-    ['eval', "for (const d of window.__num) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: d, bubbles: true })); window.__dialT = G.L.t; window.__dialMs = Date.now()"],
+    ['eval', "for (const d of window.__num) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: d, bubbles: true })); window.__dialT = G.L.t; window.__dialMs = Date.now(); window.__landAt = G.L.s.lands.map(l => l.at)"],
     ['expect', "G.L.s.dialed === window.__num && G.inv.every(i => i.id === 'journal')", 'the number keys dialled it'],
+    ['expect', 'window.__landAt.length === 7 && window.__landAt.every((t, i, a) => !i || t - a[i - 1] > 0.08)', 'typed faster than the finger can go, it presses the keys in turn, one after another'],
+    ['waitUntil', "!G.L.s.lands.length && G.L.s.lagN === 0", 3000],
     ['waitUntil', "G.L.s.line === 'ringing'", 3000],
     ['wait', 3000],
     ['expect', "G.L.s.line === 'ringing' && !G.L.won && G.state === 'play'", 'still ringing three seconds on, and he is still coming'],

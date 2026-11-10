@@ -11,6 +11,11 @@
 // The notebook is a panel at the bottom of the screen, made here and taken away in onEnd, so the street stays in view while you
 // read; the night goes on behind it. Facing the phone brings the view in close to it (L.viewZoom), so its keys are big enough
 // to click or tap; the number keys dial too, and a gamepad's d-pad moves a highlight over the phone (L.padDir, L.padUse).
+// It is done with your hands (js/hands.js): the lifted receiver is in your left hand (L.offHand), your right fingertip
+// presses the keys (G.reach, going from key to key, in turn when they are pressed faster than it can go), and what will
+// not work shows on the phone itself: a key pressed for nothing clicks and the display blinks at you, a coin put in on the
+// hook goes into the slot and drops through into the coin return, the empty return is felt with the fingers, the phone
+// book's cover lifts a crack and drops back. Open, the notebook is the panel and not in your hand as well (L.heldItem).
 Object.assign(ICONS, {
   // a small battered notebook, spiral at the top, held shut with an elastic band
   notebook(ctx, P) {
@@ -230,7 +235,7 @@ Object.assign(ICONS, {
       const pageHtml = nb.pages.map(p => pageHTML(p, inkRand));
       Object.assign(s, { pages: nb.pages, keyPage: nb.keyPage, number: nb.number, numberText: nb.numberText, others: nb.others,
         hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, page: 0,
-        credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null });
+        credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null, lands: [], lagN: 0, keyHit: {}, blinkAt: -9, handsetT: -9, coinDropT: -9, finger: null, fingerAt: 0, glides: [] });
 
       // ---------------- the street ----------------
       const roadC = [27, 28, 33], paveC = [54, 54, 58], kerbC = [88, 88, 92], paint = [150, 148, 138];
@@ -415,20 +420,34 @@ Object.assign(ICONS, {
       SC.box(L, XW + 0.02, XW + 0.24, 1.0, 1.03, -0.32, 0.32, [96, 100, 106]);
       const PB = { u0: -0.25, u1: -0.01, d0: 0.04, d1: 0.2, y0: 1.03, y1: 1.1 }, cv = 0.008, xN = XW + PB.d1, xF = XW + PB.d0;   // its near edge, and its spine
       const yellow = [200, 166, 54], yellowD = scalec(yellow, 0.72);
-      SC.quad(L, [xF, PB.y1, PB.u0], [xF, PB.y1, PB.u1], [xN, PB.y1, PB.u1], [xN, PB.y1, PB.u0], yellow);   // the cover
-      SC.wallV(L, xN, PB.u0, xN, PB.u1, PB.y1 - cv, PB.y1, yellowD);                                       // its edge
       SC.wallV(L, xN - 0.003, PB.u0 + 0.004, xN - 0.003, PB.u1 - 0.004, PB.y0 + cv, PB.y1 - cv, [216, 208, 184]);   // the pages
       for (const y of [1.052, 1.07]) SC.wallV(L, xN - 0.0025, PB.u0 + 0.004, xN - 0.0025, PB.u1 - 0.004, y, y + 0.0025, [170, 160, 136], { sortDist: -xN - 0.004 });
       SC.wallV(L, xN, PB.u0, xN, PB.u1, PB.y0, PB.y0 + cv, yellowD);                                       // the back cover's edge
-      // on the cover, toward the spine: the black band the title is printed in, and a line of small print under it
-      const onCover = (d0, d1, col) => SC.quad(L, [XW + d0, PB.y1 + 0.001, PB.u0 + 0.022], [XW + d0, PB.y1 + 0.001, PB.u1 - 0.022], [XW + d1, PB.y1 + 0.001, PB.u1 - 0.022], [XW + d1, PB.y1 + 0.001, PB.u0 + 0.022], col, { sortDist: -xN + 0.02 });
-      onCover(PB.d0 + 0.024, PB.d0 + 0.056, [34, 30, 26]); onCover(PB.d0 + 0.07, PB.d0 + 0.078, [120, 96, 34]);
+      // the front cover, hinged at the spine: built each frame (L.dynamic), as it lifts a crack when the hand pulls at it.
+      // Its top, its edge, and on it, toward the spine, the black band the title is printed in and a line of small print
+      // under it; lifted, the top of the pages shows under its edge, in shadow
+      const coverParts = th => {
+        const ca = Math.cos(th), sa = Math.sin(th), D = PB.d1 - PB.d0;
+        const on = (d, dy) => [xF + d * ca - dy * sa, PB.y1 + d * sa + dy * ca];   // d along the cover from the spine, dy up off it
+        const flat = (d0, d1, dy, u0, u1, col, opts) => { const a = on(d0, dy), b = on(d1, dy); return SC.mkQuad(L, [a[0], a[1], u0], [a[0], a[1], u1], [b[0], b[1], u1], [b[0], b[1], u0], col, opts); };
+        const out = [];
+        if (th > 0.004) {   // the gap under its edge, in shadow
+          const f0 = on(D, -cv);
+          out.push(SC.mkQuad(L, [xN - 0.003, PB.y1 - cv, PB.u0 + 0.004], [xN - 0.003, PB.y1 - cv, PB.u1 - 0.004], [f0[0], f0[1], PB.u1], [f0[0], f0[1], PB.u0], [40, 34, 26], { sortDist: -xN + 0.004 }));
+        }
+        out.push(flat(0, D, 0, PB.u0, PB.u1, yellow, { sortDist: -xN + 0.03 }));                                                                    // the cover
+        const e0 = on(D, -cv), e1 = on(D, 0);
+        out.push(SC.mkQuad(L, [e0[0], e0[1], PB.u0], [e0[0], e0[1], PB.u1], [e1[0], e1[1], PB.u1], [e1[0], e1[1], PB.u0], yellowD, { sortDist: -xN + 0.01 }));   // its edge
+        for (const [d0, d1, col] of [[0.024, 0.056, [34, 30, 26]], [0.07, 0.078, [120, 96, 34]]]) out.push(flat(d0, d1, 0.001, PB.u0 + 0.022, PB.u1 - 0.022, col, { sortDist: -xN + 0.02 }));
+        return out;
+      };
+      const cover0 = coverParts(0);
       // the chain, from the book's corner down to a ring at the back of the shelf
       SC.quad(L, [XW + 0.07, 1.07, PB.u0], [XW + 0.06, 1.046, -0.268], [XW + 0.045, 1.034, -0.284], [XW + 0.03, 1.04, -0.296], [140, 142, 148], { stroke: true, lw: 0.005 });
       SC.box(L, XW + 0.02, XW + 0.03, 1.03, 1.05, -0.304, -0.288, [120, 122, 128]);
 
       // ---------------- the notebook, the coin, the receiver, the keys, the coin slot and return, the phone book ----------------
-      const journal = mkItem(L, 'journal', 'Notebook', { x: XW + 0.14, y: 1.03, z: 0.2 }, { w: 0.18, h: 0.22, tool: true, icon: 'notebook' });
+      const journal = mkItem(L, 'journal', 'Notebook', { x: XW + 0.14, y: 1.03, z: 0.2 }, { w: 0.18, h: 0.22, tool: true, icon: 'notebook', held: { grip: 'pinch', at: [-0.22, 0.2], angle: -0.22, size: 0.2 } });   // (held by its corner, between finger and thumb)
       // the coin: left in the coin return by the last person to use the phone, on the shelf, or dropped on the floor of the
       // booth, in one of the corners by the phone (the far corners: the rest of the floor is under your feet, at the bottom
       // edge of the view looking down)
@@ -441,9 +460,10 @@ Object.assign(ICONS, {
       ], { w: 0.07, h: 0.07, icon: 'coin' });
       if (coin.y < 0.5) coin.w = coin.h = 0.09;   // on the floor, a little further off and lower in the view, drawn a little bigger
       const coinInCup = () => !coin.taken && Math.abs(coin.x - COIN_RET.x) < 0.01 && Math.abs(coin.y - COIN_RET.y) < 0.01;
-      const coinBack = () => {   // a call that never went through gives the coin back: it rattles down into the return
+      const coinBack = () => {   // a call that never went through gives the coin back: it rattles down into the return (L.update drops it in)
         const p = L.pt(COIN_RET.x, COIN_RET.y, COIN_RET.z);
         Object.assign(coin, { x: p[0], y: p[1], z: p[2], w: 0.07, h: 0.07, flat: false, taken: false, uses: 1 });
+        s.coinDropT = L.t; s.coinClink = false;
       };
       let dom = null;
       const shown = { nb: false };
@@ -481,30 +501,62 @@ Object.assign(ICONS, {
         if (nbShow !== shown.nb) { dom.nbEl.style.display = nbShow ? '' : 'none'; shown.nb = nbShow; }
       };
       const setNotebook = open => { s.nbOpen = open; AUDIO.sfx(open ? 'pickup' : 'ui'); sync(); };
+      // open, the notebook is the panel: it is not in your hand shut as well
+      L.heldItem = it => (it === journal && shown.nb ? null : undefined);
       const turn = d => { const p = clamp(s.page + d, 0, pageHtml.length - 1); if (p === s.page) return; s.page = p; AUDIO.sfx('ui'); drawPage(true); };
       // a pay phone, in the order it wants: lift the receiver (a dial tone), put the coin in, dial. A coin put in with the
       // receiver on its hook drops straight through to the return; hanging up on a call that was never answered gives it back
-      const lift = () => { s.hook = 'off'; s.line = 'tone'; s.dialed = ''; AUDIO.sfx('receiver'); G.say('You lift the receiver. A dial tone.', 'A dial tone.'); };
+      // lifted, the receiver comes off its hook into your left hand (L.offHand), and is put back from it; the right hand
+      // lifts it and puts it back (and pushes the hook down)
+      const lift = () => { s.hook = 'off'; s.line = 'tone'; s.dialed = ''; s.lagN = 0; s.handsetT = L.t; AUDIO.sfx('receiver'); G.say('You lift the receiver. A dial tone.', 'A dial tone.'); };
       const hangUp = () => {
         const ringing = s.line === 'ringing' || s.line === 'connecting';
-        s.hook = 'on'; s.line = 'idle'; s.dialed = ''; s.ringFrom = null; AUDIO.sfx('clunk');
+        s.hook = 'on'; s.line = 'idle'; s.dialed = ''; s.lagN = 0; s.ringFrom = null; s.handsetT = L.t; AUDIO.sfx('clunk');
+        for (const l of s.lands) { l.digit = false; l.sfx = 'keyClick'; }   // (keys still to be pressed, pressed on a dead phone)
         if (s.credit) { s.credit = 0; s.returnAt = L.t + 0.45; AUDIO.sfx('coinReturn'); }
         if (ringing) G.say('You hung up. The ringing stops.', 'The ringing stops.');
       };
+      // your fingertip on the keys: the hand comes up to the key (what you hold goes down meanwhile) and, dialling, goes on
+      // from key to key without going back down first; the key goes down, and clicks or beeps, when the finger gets there.
+      // Returns how long that is. (The reach is the empty hand's (G.reach), kept quiet: the key makes the sound.) Keys pressed
+      // faster than it can go are pressed in turn, each once the one before is down (s.glides: the keys it goes on to;
+      // s.fingerAt: when it is down on the last key it was sent to; s.finger: the reach that is the fingertip)
+      const GLIDE = 0.09;
+      const invSmooth = k => { let a = 0, b = 1; for (let i = 0; i < 14; i++) { const m = (a + b) / 2; if (smoothstep(m) < k) a = m; else b = m; } return (a + b) / 2; };
+      const glideTo = (rc, to, target) => {
+        const into = rc.T - rc.out;
+        if (into > rc.hold) rc.T = rc.out * invSmooth(1 - smoothstep((into - rc.hold) / rc.back));   // on its way back down: on its way out again from there
+        else if (into > 0) rc.T = rc.out;                                                               // at a key: a new press from here
+        rc.glide = { from: Object.assign({}, rc.at), to, t0: L.t }; rc.target = target; rc.hold = 0.3; rc.touched = 99;
+      };
+      const fingerTo = t => {
+        const at = HANDS.pointOn(t, undefined, 0.02), rc = G.hand.reach;
+        if (rc && rc === s.finger && rc.T < rc.out + rc.hold + rc.back) {
+          if (s.fingerAt > L.t) { s.glides.push({ to: at, t0: s.fingerAt, target: t }); s.fingerAt += GLIDE; return s.fingerAt - L.t; }   // not down on the last key yet
+          glideTo(rc, at, t); s.fingerAt = L.t + Math.max(GLIDE, rc.out - rc.T);
+          return s.fingerAt - L.t;
+        }
+        const r = G.reach(t, { style: 'touch' });
+        if (!r) return 0;
+        r.touched = 99; r.hold = 0.3; s.finger = r; s.glides = []; s.fingerAt = L.t + r.out;
+        return r.out;
+      };
       // one press of a key: it goes down whatever happens; it beeps only on a live line with credit, and only a line that is
-      // still being dialled takes the digit
+      // still being dialled takes the digit. What the phone shows of it waits for the finger (s.lagN: digits not yet there).
+      // Pressed with no coin in, the display blinks its credit at you; pressed on a dead line, NOT IN SERVICE
       const NO_CREDIT = ['It will not dial until a coin is in it.', 'Nothing. No credit.'];
       const press = ch => {
         if (G.state !== 'play') return;
         s.keyT[ch] = L.t;
         if (s.line === 'answered') return;
-        if (s.hook !== 'off') { AUDIO.sfx('keyClick'); G.say('The receiver is still on its hook.', 'The receiver is on its hook.'); return; }
-        if (!s.credit) { AUDIO.sfx('keyClick'); s.deadKeys++; G.say(NO_CREDIT[0], NO_CREDIT[1]); return; }
-        AUDIO.sfx('dial');
-        if (ch === '*' || ch === '#') return;
-        if (s.line === 'dead') { G.say('The line is dead. Hang up and try again.', 'The line is dead.'); return; }
-        if (s.line !== 'tone' && s.line !== 'dialing') return;
-        s.dialed += ch; s.line = 'dialing';
+        const k = keys.find(q => q.ch === ch), wait = k ? fingerTo(k.t) : 0;
+        const land = (sfx, digit, blink) => { s.lands.push({ at: L.t + wait, ch, sfx, digit, blink }); if (digit) s.lagN++; };
+        if (s.hook !== 'off') { land('keyClick'); G.say('The receiver is still on its hook.', 'The receiver is on its hook.'); return; }
+        if (!s.credit) { land('keyClick', false, true); s.deadKeys++; G.say(NO_CREDIT[0], NO_CREDIT[1]); return; }
+        if (ch === '*' || ch === '#') { land('dial'); return; }
+        if (s.line === 'dead') { land('dial', false, true); G.say('The line is dead. Hang up and try again.', 'The line is dead.'); return; }
+        if (s.line !== 'tone' && s.line !== 'dialing') { land('dial'); return; }
+        s.dialed += ch; s.line = 'dialing'; land('dial', true);
         if (s.dialed.length === 7) { s.line = s.dialed === s.number ? 'connecting' : 'checking'; s.doneAt = L.t; }
       };
       const receiver = mkTarget(L, {
@@ -517,7 +569,7 @@ Object.assign(ICONS, {
       // the keys: each a target of its own, a little bigger than the key, and drawn each frame so it can go down when pressed
       const keys = [], KEY_NAME = { '*': 'star', '#': 'hash' };
       const drawKey = (ctx, P, ch) => {
-        const dn = s.keyT[ch] !== undefined && L.t - s.keyT[ch] < 0.16;      // down for a moment after each press
+        const dn = s.keyHit[ch] !== undefined && L.t - s.keyHit[ch] < 0.16;  // down for a moment once the finger is on it
         P_rect(ctx, -0.0205, 0.0015, 0.041, 0.041, P.col([30, 32, 36]));     // the hole in the plate it stands in
         const y0 = dn ? 0.0035 : 0.0085;
         if (!dn) P_rect(ctx, -0.017, 0.0045, 0.034, 0.0045, P.col([112, 114, 120]));   // its lower side, while it stands proud
@@ -536,9 +588,21 @@ Object.assign(ICONS, {
       }
       const slot = mkTarget(L, {
         ...front((SLOT.u0 + SLOT.u1) / 2, SLOT.y0 - 0.004, SLOT.u1 - SLOT.u0 + 0.01, SLOT.y1 - SLOT.y0 + 0.008), id: 'slot', name: 'Coin slot', accepts: ['coin'],
-        onClick() { if (s.credit) { G.say('There is a coin in it already.', 'It has a coin in it.'); return true; } return false; },
+        onClick() { if (s.credit) { G.reach(this, 'touch'); G.say('There is a coin in it already.', 'It has a coin in it.'); return true; } return false; },   // (fingers on it: it is full)
+        // with the receiver on its hook the coin goes from your fingers to the slot and in, rattles down through the works and
+        // drops into the coin return below, where it lies to be taken out again (coinBack). (Lifted while it was on its way,
+        // it counts.)
         use() {
-          if (s.hook !== 'off') { s.returnAt = L.t + 0.5; AUDIO.sfx('coinReturn'); G.say('The coin drops straight through. Lift the receiver first.', 'It drops straight through.'); return true; }
+          if (s.hook !== 'off') {
+            G.say('The coin drops straight through. Lift the receiver first.', 'It drops straight through.');
+            const through = () => { s.returnAt = L.t + 0.5; AUDIO.sfx('coinReturn'); };
+            const fx = G.fumble(coin, this, { preset: 'return', drop: false, scale: 0.042 / coin.w, sfx: { hit: 'tink' }, onHit: () => {   // (a coin's size at the slot)
+              G.removeFromInv(coin);
+              if (s.hook === 'off') { s.credit = 10; AUDIO.sfx('coin'); } else through();
+            } });
+            if (!fx) { through(); return true; }   // (something else on its way from the hand: it is let go of at once)
+            return G.refuse(false);
+          }
           s.credit = 10; AUDIO.sfx('coin');
           if (G.toastT > 0 && NO_CREDIT.includes(G.lastToast.msg)) G.toastT = 0.001;   // there is credit now: the line that said there was none goes
           return true;
@@ -547,27 +611,58 @@ Object.assign(ICONS, {
       const ret = mkTarget(L, {
         ...front(0, RET.y0 - 0.004, RET.u1 - RET.u0 + 0.012, RET.y1 - RET.y0 + 0.008, 0.115), id: 'return', name: 'Coin return',
         onClick() {
-          if (coinInCup()) { coin.taken = true; G.inv.push(coin); G.active = G.inv.length - 1; G.hover = null; AUDIO.sfx('pickup'); return true; }   // (as picking it up)
-          AUDIO.sfx('nope'); G.say('There is nothing in the coin return.', 'Empty.'); return true;
+          if (coinInCup()) { HANDS.picked(coin); coin.taken = true; G.inv.push(coin); G.active = G.inv.length - 1; G.hover = null; AUDIO.sfx('pickup'); return true; }   // (as picking it up: out of the cup into your hand)
+          G.reach(this, { style: 'push', sfx: 'tink' }); G.say('There is nothing in the coin return.', 'Empty.'); return true;   // fingers in at the flap: nothing there
         },
       });
-      // what you click is the whole book as the eye sees it: up the plane of its front edge to where the back of its cover shows
+      // what you click is the whole book as the eye sees it: up the plane of its front edge to where the back of its cover shows.
+      // It will not open: the hand takes the cover by its front edge (about 0.4 up what you click: the edge the cover lifts
+      // at, away from its spine) and pulls, twice, and the swollen pages lift it a crack and let it drop back (touchedAt:
+      // when the hand first had it), the chain jerking on its ring
       const bookTop = L.eyeH + (PB.y1 - L.eyeH) * (-xN) / (-xF);
-      mkTarget(L, {
+      const book = mkTarget(L, {
         id: 'book', name: 'Phone book', x: xN, y: PB.y0 - 0.004, z: (PB.u0 + PB.u1) / 2, w: PB.u1 - PB.u0 + 0.016, h: bookTop - PB.y0 + 0.012,
-        onClick() { AUDIO.sfx('nope'); G.say('The phone book has been out in the damp too long. The pages will not come apart.', 'The pages are swollen with damp. They will not come apart.'); return true; },
+        onClick() {
+          G.reach(this, { style: 'pull', at: [0.3, 0.42], sfx: 'flop', onTouch: () => AUDIO.sfx('rattle') });
+          G.say('The phone book has been out in the damp too long. The pages will not come apart.', 'The pages are swollen with damp. They will not come apart.'); return true;
+        },
       });
       const sm = () => L.creatures[0];
       // the exchange: a wrong number is not in service; the right one connects, rings for seven seconds from the last digit, and is answered
       // facing the phone, the view tips down to the middle of its face; brought in closer than the whole face will fit (on a
       // small screen), to the display and the keys
       const phonePitch = () => Math.atan2(L.eyeH - (L.viewZoom() > 1.5 ? 1.56 : 1.515), FD);
-      L.update = () => {
+      L.update = dt => {
         if (G.state === 'play') {   // the close view of the phone holds its tilt while you face it, and lets it go when you turn away
           const cam = G.cam;
           if (closeUp()) { s.pitch = phonePitch(); if (cam.tPitch !== s.pitch) cam.tPitch = s.pitch; } else { s.padSel = null; if (s.pitch !== undefined && cam.tPitch === s.pitch) cam.tPitch = 0; }
         }
         if (s.returnAt && L.t >= s.returnAt) { s.returnAt = 0; coinBack(); }
+        // the coin comes down into the cup and settles there with a clink
+        if (s.coinDropT > 0 && !coin.taken) {
+          const k = (L.t - s.coinDropT) / 0.13;
+          coin.y = COIN_RET.y + (k < 1 ? 0.04 * (1 - k * k) : k < 1.6 ? 0.006 * Math.sin(Math.PI * (k - 1) / 0.6) : 0);
+          if (k >= 1 && !s.coinClink) { s.coinClink = true; AUDIO.sfx('tink'); }
+          if (k >= 1.6) s.coinDropT = -9;
+        }
+        // the finger gets to a key: down it goes, with its click or its beep, and the digit shows; a dead press blinks the display
+        for (const l of s.lands.slice()) {
+          if (L.t < l.at) continue;
+          s.lands.splice(s.lands.indexOf(l), 1);
+          s.keyHit[l.ch] = L.t; AUDIO.sfx(l.sfx);
+          if (l.digit && s.lagN > 0) s.lagN--;
+          if (l.blink) s.blinkAt = L.t;
+        }
+        // the finger going on from key to key, each once the one before is down (none if the hand is wanted elsewhere)
+        const rc = G.hand.reach;
+        if (s.glides.length && rc !== s.finger) s.glides = [];
+        while (s.glides.length && L.t >= s.glides[0].t0) { const q = s.glides.shift(); glideTo(rc, q.to, q.target); }
+        if (rc && rc.glide) { const k = smoothstep((L.t - rc.glide.t0) / GLIDE), a = rc.glide.from, b = rc.glide.to; rc.at = { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), z: lerp(a.z, b.z, k) }; if (k >= 1) rc.glide = null; }
+        // the phone book's cover lifts a crack each time the hand pulls at it (with each pull of G.reach's 'pull', two to a
+        // hold of 0.46 s), and drops back
+        const pulling = rc && rc.target === book && rc.T >= rc.out && rc.T < rc.out + rc.hold;
+        const want = pulling ? 0.15 * Math.max(0, Math.sin(Math.PI * (((rc.T - rc.out) / 0.23) % 1))) : 0;
+        s.bookA = (s.bookA || 0) + (want - (s.bookA || 0)) * Math.min(1, (want > (s.bookA || 0) ? 28 : 16) * dt);
         if (s.line === 'checking' && L.t - s.doneAt > 0.7) { s.line = 'dead'; AUDIO.sfx('noService'); G.say('The number you have dialled is not in service.', 'The number you have dialled is not in service.', 3.2); }
         if (s.line === 'connecting' && L.t - s.doneAt > 0.9) { s.line = 'ringing'; s.ringFrom = s.doneAt; s.nextRing = L.t + 3; AUDIO.sfx('ringback'); G.say('It is ringing.', 'It is ringing.'); }
         if (s.line === 'ringing' && L.t >= s.nextRing) { s.nextRing = L.t + 3; AUDIO.sfx('ringback'); }   // one ring every 3 s, only while it rings: hanging up stops it
@@ -665,18 +760,42 @@ Object.assign(ICONS, {
       };
       const cords = {
         on: cord([[0.1, 1.29, 0.08], [0.104, 1.2, 0.09], [0.13, 1.145, 0.1], [0.165, 1.2, 0.11], [RX - 0.002, 1.31, 0.12]], FD - 0.035),
-        off: cord([[0.1, 1.29, 0.08], [0.104, 1.13, 0.18], [0.11, 1.042, 0.245], [0.13, 0.9, 0.38], [0.15, 0.86, 0.5], [0.17, 1.0, 0.65], [0.18, 1.2, 0.75]], 0.3),
+        off: cord([[0.1, 1.29, 0.08], [0.1, 1.13, 0.18], [0.085, 1.042, 0.245], [0.02, 0.9, 0.38], [-0.1, 0.86, 0.5], [-0.22, 1.0, 0.64], [-0.3, 1.2, 0.74]], 0.3),   // (lifted: to your left hand)
       };
       // the handset, drawn as a billboard: the eye only ever sees it from where you stand
-      const handset = SC.mkSprite(L, XW + 0.13, 1.3, RX, 0.1, 0.44, (ctx, P) => {
-        ctx.scale(0.1, 0.44);
+      const handsetIcon = (ctx, P) => {   // in a unit box, as an icon is drawn
         const k = P.col([20, 20, 22]), kl = P.col([58, 58, 64]), kd = P.col([6, 6, 8]);
         P_ell(ctx, 0, 0.885, 0.46, 0.1, k); P_rect(ctx, -0.46, 0.8, 0.92, 0.085, k);       // the earpiece
         P_rect(ctx, -0.2, 0.17, 0.4, 0.66, k);                                              // the grip
         P_ell(ctx, 0, 0.11, 0.46, 0.1, k); P_rect(ctx, -0.46, 0.11, 0.92, 0.09, k);         // the mouthpiece
         P_line(ctx, -0.09, 0.26, -0.09, 0.74, 0.05, kl);                                    // the light along it
         for (const y of [0.86, 0.14]) for (const x of [-0.18, 0, 0.18]) P_ell(ctx, x, y, 0.05, 0.012, kd);
-      }, { sortDist: FD - 0.04 });
+      };
+      const handset = SC.mkSprite(L, XW + 0.13, 1.3, RX, 0.1, 0.44, (ctx, P) => { ctx.scale(0.1, 0.44); handsetIcon(ctx, P); }, { sortDist: FD - 0.04 });
+      // lifted, it is in your left hand, held up toward your ear, its cord running down out of the view to it; it goes off the
+      // hook down to the hand, and back up to the hook from it (HANDSET_T), the hand going down out of the way first
+      const HANDSET_T = 0.24;
+      const handsetItem = { id: 'handset', name: 'Receiver', w: 0.1, h: 0.44, icon: handsetIcon, held: { grip: 'fist', at: [0, 0.48], axis: 0, angle: 0.55, size: 0.32, y: -0.03 } };
+      L.offHand = () => (s.hook === 'off' && L.t - s.handsetT > HANDSET_T * 0.8 ? handsetItem : null);
+      // off its hook it goes down out of the bottom of the view, toward you (to the hand that then comes up with it), and back
+      // up from there: a point just under the view, below the hook, a little nearer than the hook
+      const hookAt = L.pt(XW + 0.13, 1.3, RX);
+      const underHook = () => {
+        const c = G.cam, f = R.f, q = R.screenPos(hookAt[0], hookAt[1] + 0.22, hookAt[2]), xc = ((q ? q.x : R.W * 0.7) - R.W / 2) / f, yc = -(R.H * 1.3 - R.H / 2) / f;
+        const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw), cp = Math.cos(c.pitch), sp = Math.sin(c.pitch), dy = yc * cp - sp, cz = yc * sp + cp, D = 0.5;
+        return { x: (xc * cy + cz * sy) * D, y: L.eyeH + dy * D - 0.22, z: (-xc * sy + cz * cy) * D };
+      };
+      // the handset between the hook and your hand: null when it is on one or the other; true while it is still in the hand
+      // going down (hung up, it goes back up to the hook once the hand is out of the way)
+      const HANG_WAIT = 0.13;
+      const handsetAway = () => {
+        const up = s.hook === 'on', k = (L.t - s.handsetT - (up ? HANG_WAIT : 0)) / HANDSET_T;
+        if (up && k < 0 && L.t >= s.handsetT) return true;
+        if (k >= 1 || k < 0) return null;
+        const e = up ? easeOut(k) : easeIn(k), hk = { x: hookAt[0], y: hookAt[1], z: hookAt[2] }, a = up ? underHook() : hk, b = up ? hk : underHook();
+        const p = { x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), z: lerp(a.z, b.z, e) }, tilt = (up ? 1 - e : e) * 0.35, sc = lerp(1, 0.8, up ? 1 - e : e);
+        return SC.mkSprite(L, 0, 0, 0, 0.1, 0.44, (ctx, P) => { ctx.translate(0, 0.22); ctx.rotate(-tilt); ctx.scale(sc, sc); ctx.translate(0, -0.22); ctx.scale(0.1, 0.44); handsetIcon(ctx, P); }, { x: p.x, y: p.y, z: p.z, sortDist: Math.max(0.2, Math.hypot(p.x, p.z) * 0.8) });
+      };
       // the empty cradle the handset hangs in, seen once it is lifted: a dark arm with a cup for each end, so what is left
       // to click (the hook) is a thing you can see, the shape of what was taken from it
       const cradle = SC.mkSprite(L, XW + 0.13, 1.3, RX, 0.1, 0.44, (ctx, P) => {
@@ -691,7 +810,8 @@ Object.assign(ICONS, {
       const lcdText = () => {
         if (s.hook !== 'off') return null;
         const top = s.line === 'dead' ? 'NOT IN SERVICE' : (s.line === 'checking' || s.line === 'connecting' || s.line === 'ringing') ? 'CALLING' : s.line === 'answered' ? 'CONNECTED' : 'CREDIT ' + (s.credit ? '10p' : '0p');
-        return [top, fmt(s.dialed)];
+        const b = L.t - s.blinkAt, off = b >= 0 && b < 1.25 && Math.floor(b / 0.16) % 2 === 0;   // a press it will not take: the top line blinks at you
+        return [off ? '' : top, fmt(s.dialed.slice(0, Math.max(0, s.dialed.length - s.lagN)))];
       };
       const lcd = SC.mkSprite(L, PX + 0.0015, LCD.y0, (LCD.u0 + LCD.u1) / 2, LCD.u1 - LCD.u0, LCD.y1 - LCD.y0, (ctx, P) => {
         const w = LCD.u1 - LCD.u0, h = LCD.y1 - LCD.y0, txt = lcdText();
@@ -710,13 +830,15 @@ Object.assign(ICONS, {
       } };
       L.dynamic = () => {
         sync();
-        const off = s.hook === 'off';
+        const away = handsetAway(), off = s.hook === 'off' || !!away;   // off its hook (or on its way back to it)
         const hy = off ? 1.695 : 1.645;   // the hook rises when the weight comes off it
         if (off) R.add(cradle);
         R.add(SC.mkQuad(L, [XW + 0.088, hy, 0.13], [XW + 0.088, hy, 0.16], [XW + 0.088, hy + 0.018, 0.16], [XW + 0.088, hy + 0.018, 0.13], [150, 154, 160], { sortDist: FD - 0.03 }));
         R.add(SC.mkQuad(L, [XW + 0.088, hy - 0.01, 0.16], [XW + 0.088, hy - 0.01, 0.168], [XW + 0.088, hy + 0.018, 0.168], [XW + 0.088, hy + 0.018, 0.16], [120, 124, 130], { sortDist: FD - 0.031 }));
         if (!off) R.add(handset);
+        if (away && away !== true) R.add(away);
         for (const c of off ? cords.off : cords.on) R.add(c);
+        for (const p of s.bookA > 0.002 ? coverParts(s.bookA) : cover0) R.add(p);   // the phone book's cover (lifted a crack, or shut)
         for (const k of keys) R.add(k.spr);
         R.add(lcd); R.add(lip);
         if (closeUp() && s.padSel) {
