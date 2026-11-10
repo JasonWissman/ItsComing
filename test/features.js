@@ -434,6 +434,222 @@ const hoverHit = lookFor;
   check(await page.evaluate(n => G.inv.length === n - 1, held), 'tapping the held thing again while looking down puts it down');
   await page.evaluate(() => localStorage.clear());
 
+  console.log('== what you hold, and a thing tried where it will not go ==');
+  // the hand: the active thing is drawn held at the bottom right, clear of the aim, the hover line and the inventory
+  const n1 = async () => { await T.open(page, 'level=1&go&seed=1&nofr'); await page.evaluate(() => { G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.cam.yaw = G.cam.tYaw = Math.PI; G.cam.dirIdx = 4; G.cam.pitch = G.cam.tPitch = 0; G.step(0.05, 2); }); };
+  const take = id => `(() => { const it = G.L.items.find(i => i.id === '${id}' && !i.taken); pickup(it); return it; })()`;
+  await n1();
+  let hv = await page.evaluate(take => {
+    const it = eval(take); G.step(0.05, 20);
+    const b = G.hand.box, inv = document.getElementById('inventory').getBoundingClientRect(), o = { cur: G.hand.cur && G.hand.cur.id, up: G.hand.up, box: b && [b.x0, b.y0, b.x1, b.y1].map(Math.round) };
+    o.clear = !!b && b.x0 > R.W / 2 + 0.1 * R.H && b.y0 > R.H * 0.3 && !(b.x0 < inv.right && b.x1 > inv.left && b.y1 > inv.top - R.viewY);
+    o.same = it === G.hand.cur;
+    return o;
+  }, take('hammer'));
+  check(hv.cur === 'hammer' && hv.same && hv.up === 1 && hv.clear, 'the thing picked up is held in the hand, at the bottom right, clear of the aim and the inventory (' + JSON.stringify(hv) + ')');
+  await page.screenshot({ path: path.join(__dirname, 'shots', 'held.png') });
+  // a new active thing: the old one goes down out of view, then the new one comes up
+  hv = await page.evaluate(take => {
+    eval(take); const seen = [];
+    for (let i = 0; i < 30; i++) { G.step(0.02, 1); seen.push([G.hand.cur && G.hand.cur.id, +G.hand.up.toFixed(2)]); }
+    const firstNails = seen.findIndex(s => s[0] === 'nails');
+    return { seen: seen.filter((s, i) => i % 3 === 0), hammerDown: firstNails > 0 && seen.slice(0, firstNails).every((s, i, a) => s[0] === 'hammer' && (i === 0 || s[1] <= a[i - 1][1])), downTo: firstNails > 0 ? seen[firstNails - 1][1] : 1, up: seen[seen.length - 1] };
+  }, take('nails'));
+  check(hv.hammerDown && hv.downTo <= 0.1 && hv.up[0] === 'nails' && hv.up[1] === 1, 'a new active thing: the hammer goes down out of view, then the nails come up (' + JSON.stringify(hv.seen) + ')');
+  // looking down it is lowered so it does not hide the floor; empty-handed the hand goes down out of view
+  hv = await page.evaluate(() => {
+    const y0 = G.hand.box.y0; G.cam.tPitch = PITCH_DOWN; G.step(0.05, 15); const y1 = G.hand.box ? G.hand.box.y0 : Infinity;
+    G.cam.tPitch = 0; G.step(0.05, 15);
+    while (G.inv.length) { G.cam.pitch = PITCH_DOWN; dropActive(); }
+    G.cam.pitch = 0; G.step(0.05, 15);
+    return { y0, y1, empty: G.hand.cur === null && G.hand.up === 0 && !G.hand.box };
+  });
+  check(hv.y1 > hv.y0 + 40 && hv.empty, 'looking down it is lowered (' + Math.round(hv.y0) + ' -> ' + Math.round(hv.y1) + '); with nothing in hand the hand is gone');
+  // a wrong thing: it goes to the target, bumps it and comes back to the hand; nothing is lost
+  await n1();
+  hv = await page.evaluate(take => {
+    const it = eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); useTarget(door);
+    const fx = G.fumbling, o = { preset: fx && fx.preset, drop: fx && fx.drop, toast: G.lastToast.msg, phases: [], inInv: [], unseen: 0 };
+    for (let i = 0; i < 80 && G.fumbling; i++) { G.step(0.025, 1); if (G.fumbling && o.phases[o.phases.length - 1] !== G.fumbling.phase) o.phases.push(G.fumbling.phase); if (G.fumbling && G.fumbling.phase !== 'wait' && !G.fumbling.pos) o.unseen++; o.inInv.push(G.inv.includes(it)); }
+    G.step(0.05, 6);
+    return Object.assign(o, { back: G.inv.includes(it) && it.taken && G.hand.cur === it && G.hand.up === 1 && !G.hand.gone, always: o.inInv.every(Boolean) });
+  }, take('hammer'));
+  check(hv.preset === 'return' && hv.drop === false && hv.phases.join() === 'out,contact,home' && hv.back && hv.always && hv.toast === 'Not with what you have.', 'a wrong thing goes to the doorway, bumps it and comes back to the hand, and the line is still said (' + JSON.stringify(hv) + ')');
+  check(hv.unseen === 0, 'it is in the world from the first frame it leaves the hand: never a frame with it nowhere');
+  // a thing missing what it needs (the planks without the hammer and nails): one plank goes up, will not stay, and falls to
+  // the floor, where it can be seen and taken again; the rest of the pile stays in the hand
+  await n1();
+  hv = await page.evaluate(take => {
+    const pile = eval(take); eval(take); eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); useTarget(door);
+    const fx = G.fumbling, one = fx && fx.it, o = { preset: fx && fx.preset, drop: fx && fx.drop, uses: pile.uses, split: !!one && one !== pile && G.L.items.includes(one) };
+    for (let i = 0; i < 120 && G.fumbling; i++) G.step(0.025, 1);
+    o.landed = !!one && !one.taken && one.y === G.L.floor.y && !G.fumbling; o.pile = G.inv.includes(pile) && pile.uses === 2;
+    // where it lies, looked at as a player would: facing its way and looking down, it is drawn and it is what a click there takes
+    const yaw = Math.atan2(one.x, one.z); G.cam.dirIdx = ((Math.round(yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.step(0.05, 6);
+    const h = [...R.hits].reverse().find(r => r.kind === 'item' && r.ref === one);
+    o.seen = !!h && h.w > 6 && h.h > 4;
+    if (h) { G.mouse.x = h.x + h.w / 2; G.mouse.y = h.y + h.h / 2; updateHover(); o.top = !!G.hover && G.hover.ref === one; o.at = { x: Math.round(G.mouse.x), y: Math.round(G.mouse.y) }; }
+    window.__one = one;
+    return o;
+  }, take('planks'));
+  check(hv.preset === 'slip' && hv.drop && hv.uses === 2 && hv.split && hv.pile, 'the planks with nothing to fix them: one plank goes up on the doorway, the rest stay in hand (' + JSON.stringify(hv) + ')');
+  check(hv.landed && hv.seen && hv.top, 'it falls to the floor, where it is in sight and a click takes it');
+  if (hv.at) { await page.mouse.click(hv.at.x, hv.at.y); await page.waitForTimeout(100); }
+  check(await page.evaluate(() => window.__one.taken && G.inv.find(i => i.id === 'planks').uses === 3), 'clicked, it is picked up again and back on the pile');
+  // fast clicks: one fumble, not one each
+  await n1();
+  hv = await page.evaluate(take => {
+    const pile = eval(take); eval(take); eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), made = [];
+    for (let i = 0; i < 5; i++) { useTarget(door); if (G.fumbling && !made.includes(G.fumbling)) made.push(G.fumbling); G.step(0.03, 1); }
+    return { fumbles: made.length, uses: pile.uses, planks: G.L.items.filter(i => i.id === 'planks').length };
+  }, take('planks'));
+  check(hv.fumbles === 1 && hv.uses === 2, 'five fast clicks start one fumble, and only one plank leaves the pile (' + JSON.stringify(hv) + ')');
+  // a decoy: it goes there, will not do, and drops (the rotten plank at a doorway, with the hammer and nails in hand)
+  await n1();
+  hv = await page.evaluate(takes => {
+    eval(takes[0]); eval(takes[1]); const rot = eval(takes[2]); G.step(0.05, 12);
+    const u0 = G.L.creature.u; useTarget(G.L.targets.find(t => t.id === 'frontdoor'));
+    const fx = G.fumbling, o = { preset: fx && fx.preset, drop: fx && fx.drop, held: G.hasItem('rotten'), cost: G.L.creature.u > u0, toast: G.lastToast.msg, handOut: true, after: null };
+    for (let i = 0; i < 120 && G.fumbling; i++) {
+      G.step(0.025, 1);
+      if (G.fumbling && (G.fumbling.phase === 'out' || G.fumbling.phase === 'contact') && G.hand.cur !== rot) o.handOut = false;   // the hand stays out, open, while it is at the doorway
+      if (G.fumbling && G.fumbling.phase === 'fall' && !o.after) o.after = 'fall';
+    }
+    G.step(0.05, 20);
+    return Object.assign(o, { landed: !rot.taken && rot.y === G.L.floor.y, next: G.hand.cur && G.hand.cur.id });
+  }, [take('hammer'), take('nails'), take('rotten')]);
+  check(hv.preset === 'bump' && hv.drop && !hv.held && hv.cost && /rotten/i.test(hv.toast) && hv.landed, 'a thing that looks right and is not: it is tried at the doorway, will not do, and drops to the floor; it still costs time (' + JSON.stringify(hv) + ')');
+  check(hv.handOut && hv.next === 'nails', 'the hand stays out, open, while it is at the doorway, and only once it has fallen does the next thing come up into it');
+  // the house keys at the ignition (the second night): tried at a small target close by, they are drawn no bigger than the lock,
+  // poke it with the blade, and drop into the car, where they lie to be taken again
+  await T.open(page, 'level=2&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.cam.dirIdx = 0; G.cam.yaw = G.cam.tYaw = 0; G.cam.pitch = G.cam.tPitch = 0; G.step(0.05, 2);
+    const keys = G.L.items.find(i => i.id === 'housekeys'); pickup(keys); G.step(0.05, 12);
+    const ign = G.L.targets.find(t => t.id === 'ignition'); useTarget(ign);
+    const fx = G.fumbling, o = { preset: fx && fx.preset, size: fx && +(fx.size * Math.max(keys.w, keys.h)).toFixed(3), lock: Math.max(ign.w, ign.h), tip: fx && fx.tip };
+    for (let i = 0; i < 120 && G.fumbling; i++) { G.step(0.025, 1); if (G.fumbling && G.fumbling.phase === 'contact' && o.drawn === undefined) o.drawn = +(G.fumbling.scale * Math.max(keys.w, keys.h)).toFixed(3); }
+    return Object.assign(o, { landed: !keys.taken && keys.y === G.L.floor.y && (q => pointInPoly(q[0], q[1], G.L.floor.poly))(rotY(keys.x, keys.z, -G.L.facing)) });
+  });
+  check(hv.preset === 'bump' && hv.drawn <= hv.lock + 1e-6 && !!hv.tip && hv.landed, 'the house keys at the ignition are drawn no bigger than the lock, led by the blade, and drop to the floor of the car (' + JSON.stringify(hv) + ')');
+  // a doorway at the edge of the view: the plank goes to the part of it in view, not off the side to its middle
+  await n1();
+  hv = await page.evaluate(take => {
+    eval(take); eval(take); G.cam.dirIdx = 3; G.cam.yaw = G.cam.tYaw = 3 * 45 * DEG; G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), mid = R.screenPos(door.x, door.y + door.h / 2, door.z); useTarget(door);
+    const at = G.fumbling && R.screenPos(G.fumbling.at.x, G.fumbling.at.y, G.fumbling.at.z), b = G.hand.box;
+    return { mid: mid && Math.round(mid.x), at: at && [Math.round(at.x), Math.round(at.y)], inView: !!at && at.x > 0 && at.x < R.W && at.y > 0 && at.y < R.H, clearOfHand: !!at && !(b && at.x > b.x0 && at.x < b.x1 && at.y > b.y0 && at.y < b.y1) };
+  }, take('planks'));
+  check(hv.mid > 1280 * 0.94 && hv.inView && hv.clearOfHand, 'a doorway seen at the edge of the view: the plank goes up on the part of it in view, clear of what you hold (' + JSON.stringify(hv) + ')');
+  // the empty hand: nothing to use, it goes up to the target and touches it, and comes back down
+  await n1();
+  hv = await page.evaluate(() => {
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); useTarget(door);
+    const r = G.hand.reach, o = { reach: !!r && r.target === door, fumble: !!G.fumbling, toast: G.lastToast.msg };
+    for (let i = 0; i < 50 && G.hand.reach; i++) { G.step(0.025, 1); if (door.touchedAt !== undefined) o.touched = true; }
+    return Object.assign(o, { done: !G.hand.reach });
+  });
+  check(hv.reach && !hv.fumble && hv.touched && hv.done && hv.toast === 'Not with what you have.', 'with nothing in hand, the hand goes up to the doorway, touches it and goes back down (' + JSON.stringify(hv) + ')');
+  // a night's own G.reach with something in hand: what it holds goes down, the empty hand does it, and it comes back up
+  await n1();
+  hv = await page.evaluate(take => {
+    const ham = eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); G.reach(door, 'rattle');
+    const o = { minUp: 1, touched: false };
+    for (let i = 0; i < 60 && G.hand.reach; i++) { G.step(0.025, 1); o.minUp = Math.min(o.minUp, G.hand.up); if (door.touchedAt !== undefined) o.touched = true; }
+    G.step(0.05, 12);
+    return Object.assign(o, { back: G.hand.cur === ham && G.hand.up === 1 });
+  }, take('hammer'));
+  check(hv.minUp === 0 && hv.touched && hv.back, 'G.reach with the hammer in hand: the hammer goes down, the empty hand rattles the doorway, and the hammer comes back up (' + JSON.stringify(hv) + ')');
+  // a target's own choice: t.onWrong instead of the fumble, t.fumble = false for none, G.refuse('bump') from inside use()
+  await n1();
+  hv = await page.evaluate(take => {
+    const ham = eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), o = {};
+    door.onWrong = it => { o.wrong = it.id; }; useTarget(door); o.noFumble = !G.fumbling;
+    door.onWrong = undefined; door.fumble = false; useTarget(door); o.off = !G.fumbling;
+    door.fumble = undefined; door.accepts = ['hammer']; door.requires = []; door.use = () => G.refuse('bump');
+    useTarget(door); o.refused = G.fumbling && G.fumbling.preset; o.dropped = !G.inv.includes(ham);
+    return o;
+  }, take('hammer'));
+  check(hv.wrong === 'hammer' && hv.noFumble && hv.off && hv.refused === 'bump' && hv.dropped, 'a target can take the case itself (onWrong), turn the fumble off, or refuse inside use() with a preset of its own (' + JSON.stringify(hv) + ')');
+  // reduced motion: no sway, no bob, no lag as the view turns
+  await n1();
+  hv = await page.evaluate(take => {
+    MENU.applySetting('reducedMotion', true); eval(take); G.step(0.05, 20);
+    const b0 = JSON.stringify(G.hand.box); G.step(0.05, 13); const b1 = JSON.stringify(G.hand.box);
+    onKeyDown({ key: 'ArrowRight', preventDefault() {} }); let lag = 0; for (let i = 0; i < 10; i++) { G.step(0.02, 1); lag = Math.max(lag, Math.abs(G.hand.sx), Math.abs(G.hand.sy)); }
+    MENU.applySetting('reducedMotion', false);
+    eval(take.replace('hammer', 'nails')); G.step(0.05, 20); const c0 = JSON.stringify(G.hand.box); G.step(0.05, 13); const c1 = JSON.stringify(G.hand.box);
+    onKeyDown({ key: 'ArrowRight', preventDefault() {} }); let lag2 = 0; for (let i = 0; i < 10; i++) { G.step(0.02, 1); lag2 = Math.max(lag2, Math.abs(G.hand.sx)); }
+    return { still: b0 === b1, lag, sways: c0 !== c1, lag2 };
+  }, take('hammer'));
+  check(hv.still && hv.lag === 0 && hv.sways && hv.lag2 > 0.005, 'with reduced motion the hand holds still, with no lag as the view turns; without it, it breathes and lags (' + JSON.stringify(hv) + ')');
+  // six things in hand on the last night: the bar, held in both hands, stays in the bottom right, not over to the left of the
+  // inventory in the middle of the bottom edge
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.active = Math.max(0, G.inv.findIndex(i => i.id === 'beam')); G.step(0.05, 30);
+    const b = G.hand.box, inv = document.getElementById('inventory').getBoundingClientRect();
+    return { id: G.hand.cur && G.hand.cur.id, n: G.inv.length, box: b && [b.x0, b.y0, b.x1, b.y1].map(Math.round), right: !!b && b.x0 > R.W / 2 && b.x0 > inv.right - 4 };
+  });
+  check(hv.right, 'with the inventory full, what you hold stays in the bottom right (' + JSON.stringify(hv) + ')');
+  // in front of something you could take it dips out of the way, and stays dipped: it does not shake up and down (the
+  // boathouse, holding each thing in turn, looking each way)
+  await T.open(page, 'level=6&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    for (const c of G.L.creatures) c.hold = c.dist; G.mouse.x = -1; G.step(0.05, 2);
+    for (const it of G.L.items.filter(i => !i.taken).slice(0, 3)) { pickup(it); G.step(0.05, 12); }
+    let dipped = 0, worst = 0;
+    for (let k = 0; k < G.inv.length; k++) {
+      G.active = k; G.step(0.05, 12);
+      for (let d = 0; d < 8; d++) {
+        G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+        const seq = []; for (let i = 0; i < 60; i++) { G.step(0.05, 1); seq.push(G.hand.dodge); }
+        let flips = 0; for (let i = 2; i < seq.length; i++) { const a = Math.sign(seq[i] - seq[i - 1]), b = Math.sign(seq[i - 1] - seq[i - 2]); if (a && b && a !== b) flips++; }
+        if (Math.max(...seq) > 0.5) dipped++; worst = Math.max(worst, flips);
+      }
+    }
+    return { held: G.inv.map(i => i.id), dipped, worst };
+  });
+  check(hv.dipped > 0 && hv.worst <= 1, 'held in front of something you could take, it dips out of the way and stays there, without shaking (' + JSON.stringify(hv) + ')');
+  // won, it is lowered out of the way of watching how it ends
+  await n1();
+  hv = await page.evaluate(take => { eval(take); G.step(0.05, 12); const up0 = G.hand.up; win(); G.step(0.05, 12); return { up0, up1: G.hand.up }; }, take('hammer'));
+  check(hv.up0 === 1 && hv.up1 === 0, 'once the night is won the hand goes down out of view');
+  // left for the title with a thing in the air: nothing of it is left behind the title
+  await n1();
+  hv = await page.evaluate(take => {
+    eval(take); G.step(0.05, 12); useTarget(G.L.targets.find(t => t.id === 'frontdoor')); G.step(0.04, 12);
+    const was = G.fumbling && G.fumbling.phase; showTitle(); G.step(0.05, 4);
+    const o = { was, after: G.fumbling, cur: G.hand.cur, state: G.state }; MENU.clear(); return o;
+  }, take('planks'));
+  check(hv.was && !hv.after && !hv.cur && hv.state === 'title', 'quit to the title with a plank in the air: nothing is left in hand or in the air (' + JSON.stringify(hv) + ')');
+  // on a phone, with the touch buttons in the bottom right (or on the left, the inventory there instead), it keeps clear of them
+  for (const left of [false, true]) {
+    const ctx2 = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
+    const ph = await ctx2.newPage();
+    await ph.goto(URL + '?level=1&go&seed=1&nofr'); await ph.waitForTimeout(300);
+    const r = await ph.evaluate(([take, left]) => {
+      MENU.applySetting('touchLeft', left);
+      G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.cam.yaw = G.cam.tYaw = Math.PI; G.cam.pitch = G.cam.tPitch = 0;
+      const out = [];
+      for (const id of ['hammer', 'planks', 'nails', 'bottle']) {
+        eval(take.replace('hammer', id)); G.step(0.05, 25);
+        const b = G.hand.box, rect = id => { const r = document.getElementById(id).getBoundingClientRect(); return { x0: r.left, y0: r.top - R.viewY, x1: r.right, y1: r.bottom - R.viewY }; };
+        const hit = (a, c) => a.x0 < c.x1 && a.x1 > c.x0 && a.y0 < c.y1 && a.y1 > c.y0;
+        out.push({ id, shown: !!b && G.hand.up === 1, clear: !!b && !hit(b, rect('touch')) && !hit(b, rect('inventory')) && !hit(b, { x0: R.W / 2 - 40, y0: R.H / 2 - 40, x1: R.W / 2 + 40, y1: R.H / 2 + 40 }) });
+      }
+      return out;
+    }, [take('hammer'), left]);
+    check(r.every(x => x.shown && x.clear), 'on a phone' + (left ? ', touch controls on the left' : '') + ', what you hold keeps clear of the touch buttons, the inventory and the aim (' + JSON.stringify(r) + ')');
+    await ph.screenshot({ path: path.join(__dirname, 'shots', 'held-phone' + (left ? '-left' : '') + '.png') });
+    await ctx2.close();
+  }
+
   if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }
   console.log(failures ? ('\n' + failures + ' FAILURES') : '\nALL CHECKS PASSED');
   await browser.close();

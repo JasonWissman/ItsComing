@@ -1,4 +1,5 @@
-// The Field: the hammer and the nails, a try of the rotten plank (it will not go up), the six loose planks (they stack
+// The Field: the hammer and the nails, a try of the rotten plank (it will not go up: it knocks at the doorway and drops to
+// the floor, where it lies), the six loose planks (they stack
 // in one slot), then the doorway it is coming for, three planks. It runs round the house to the other doorway, at about
 // the distance it was; turn round and board that one too, and it is held there. On even seeds it is let come to 15 m
 // first, and the second doorway goes up at once, while it is still going round: it comes round to that doorway anyway,
@@ -9,7 +10,9 @@ const target = id => "G.L.targets.find(t => t.id === '" + id + "')";
 const board = k => [['face', DIR[k]], ['click', DOOR[k]], ['wait', 150], ['click', DOOR[k]], ['wait', 150], ['click', DOOR[k]], ['wait', 150],
   ['expect', target(DOOR[k]) + '.done && ' + target(DOOR[k]) + '.count === 3', DOOR[k] + ' boarded up with three planks']];
 const tryRotten = k => [['face', DIR[k]], ['click', DOOR[k]], ['wait', 150],
-  ['expect', target(DOOR[k]) + ".count === 0 && G.hasItem('rotten') && /rotten/i.test(G.lastToast.msg)", 'the rotten plank will not go up on the ' + DOOR[k]]];
+  ['expect', target(DOOR[k]) + ".count === 0 && !G.hasItem('rotten') && /rotten/i.test(G.lastToast.msg)", 'the rotten plank will not go up on the ' + DOOR[k] + ': it leaves the hand'],
+  ['waitUntil', "!G.fumbling && !G.L.items.find(i => i.id === 'rotten').taken", 4000],
+  ['expect', "(it => it.y === G.L.floor.y && !G.hasItem('rotten'))(G.L.items.find(i => i.id === 'rotten'))", 'it dropped to the floor and lies there']];
 const planks = n => Array.from({ length: n }, () => ['pickup', 'planks']).concat([['expect', "G.inv.filter(i => i.id === 'planks').length === 1 && G.inv.find(i => i.id === 'planks').uses === " + n, n + ' planks in one pile']]);
 const running = k => ['expect', '!G.L.won && G.L.s.ran && G.L.s.ranFrom.lane === ' + k, 'not won yet: it is running round the house'];
 // after the last board: it charges the doorway it was coming for and is at its boards, and pounding on them, while the

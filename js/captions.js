@@ -12,6 +12,7 @@ const CAPTIONS = (() => {
     musicSour: 'a music box plays wrong notes',
     crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', cloth: 'cloth twisting', burst: 'glass breaks; fire roars up', bar: 'a bar drops into place',
     fit: 'something clicks into place', ratchet: 'a ratchet', switch: 'a switch', keys: 'keys', load: 'the gun loads', win: 'a chord', drop: 'something set down',
+    tink: 'metal taps on something', woodKnock: 'wood knocks against wood', clatter: 'something clatters to the floor', flop: 'something soft drops', pat: 'a hand on it', rattle: 'a rattle',
     sting: 'a scream', stingShriek: 'a shriek', stingHum: 'a rising hum', stingStone: 'stone grinding', stingHit: 'a blow', stingWet: 'a wet scream', stingScrape: 'hooks on stone', stingGlass: 'glass breaking',
   };
   const STEPS = { walker: 'slow footsteps', crawler: 'scuttling', smiler: 'light footsteps', runner: 'running', climber: 'hooks on stone', shoes: 'hard heels', shoesRun: 'hard heels, running', tall: 'a slow, heavy step' };

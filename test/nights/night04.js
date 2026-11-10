@@ -21,7 +21,7 @@ module.exports = {
     select('padlock'), ['use', 'gate'], ['expect', '!' + gate('gate') + '.locked && ' + said('locked shut'), 'the padlock will not open without its key'],
     ['pickup', 'gatekey'], ['use', 'gate'], ['expect', gate('gate') + '.locked', 'gate locked'],
     ['use', 'backgate'], ['waitUntil', gate('backgate') + '.shut', 3000],
-    ['use', 'backgate'], ['expect', '!' + gate('backgate') + '.chained && ' + said('nothing holds it'), 'a shut gate with no chain to hand says so'],
+    select('gatekey'), ['use', 'backgate'], ['expect', '!' + gate('backgate') + '.chained && ' + said('nothing holds it'), 'a shut gate with no chain to hand says so'],
     select('padlock'), ['use', 'backgate'], ['expect', '!' + gate('backgate') + '.locked && ' + said('nothing to close on'), 'the padlock on a shut gate with no chain has nothing to close on'],
     ['pickup', 'chain2'], ['use', 'backgate'], ['expect', gate('backgate') + ".chained && !G.hasItem('chain2')", 'the second chain goes on the back gate'],
     ['eval', '(() => { const c = G.L.creature; window.__hold = c.hold; c.hold = c.lane.barrierDist; G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.pitch = G.cam.tPitch = 0; })()'], ['wait', 250],

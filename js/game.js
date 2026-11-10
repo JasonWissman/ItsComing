@@ -149,6 +149,7 @@ function startLevel(i, withCard) {
   G.levelIndex = i;
   G.inv = []; G.active = 0; G.hover = null; G.invSig = ''; G.holding = null; G.throwing = null; G.error = null;
   G.draw = null; G.drawBtn = null;   // no bow half drawn from the last night
+  HANDS.reset();   // empty hands, nothing in the air
   G.L = buildLevel(i);
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed + i);
@@ -184,7 +185,7 @@ function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;
 function showTitle() {
   if (G.L && G.L.onEnd) G.L.onEnd();
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
-  G.inv = [];
+  G.inv = []; HANDS.reset();   // nothing in hand or in the air behind the title
   G.L = buildLevel(0);
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed);
@@ -302,8 +303,9 @@ function onClick(e) {
 function pickup(it) {
   // things that stack (single planks) join the pile already in hand instead of taking a new slot
   const pile = it.stack && G.inv.find(i => i.id === it.id && i !== it);
-  if (pile) { pile.uses += it.uses; it.taken = true; G.active = G.inv.indexOf(pile); G.invSig = ''; AUDIO.sfx('pickup'); if (G.L.onPickup) G.L.onPickup(it); G.hover = null; return; }
+  if (pile) { pile.uses += it.uses; it.taken = true; G.active = G.inv.indexOf(pile); G.invSig = ''; AUDIO.sfx('pickup'); HANDS.picked(pile, it); if (G.L.onPickup) G.L.onPickup(it); G.hover = null; return; }
   if (G.inv.length >= 6) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); return; }
+  HANDS.picked(it);   // from where it lay, up into the hand
   it.taken = true; G.inv.push(it); G.active = G.inv.length - 1;
   AUDIO.sfx('pickup');
   if (G.L.onPickup) G.L.onPickup(it);
@@ -325,7 +327,7 @@ function dropActive() {
   const local = (dd) => rotY(Math.sin(a) * dd, Math.cos(a) * dd, -L.facing);
   while (d > 0.45 && L.floor.poly && !pointInPoly(local(d)[0], local(d)[1], L.floor.poly)) d -= 0.1;
   if (d <= 0.45) { G.toast('No room to put it down here.'); AUDIO.sfx('nope'); return; }
-  G.removeFromInv(it);
+  G.removeFromInv(it); HANDS.dropped(it);
   it.x = Math.sin(a) * d; it.z = Math.cos(a) * d; it.y = L.floor.y; it.flat = true; it.taken = false;
   AUDIO.sfx('drop');
   if (L.onDrop) L.onDrop(it);
@@ -349,44 +351,91 @@ function combine(a, b) {
   G.toast(r.text || (it.name + '.'));
   return true;
 }
+// What a click that does not work shows (js/hands.js): a thing tried where it will not go leaves your hand, fails at the
+// target and comes back or drops to the floor (G.fumble); with nothing in hand the hand goes up to it (G.reach). The short
+// line is still said, for the captions, but the animation is the feedback. A target may choose for itself: t.onWrong(item),
+// t.onEmpty(), t.onMissing(item, missing), t.onDecoy(item) and t.onRefuse(item) replace the animation for that case;
+// t.fumble (a preset's name, or options, with optional per-case entries wrong, missing, decoy, refuse) shapes the fumble,
+// and false turns it off; t.reach (a style, or options; false: off) shapes the empty hand's reach. A night's own refusal
+// inside t.use(item) (returning false) is a 'return' fumble too; `return G.refuse('bump')` picks another.
+function fumbleOpts(t, kase, preset) {
+  const f = t.fumble, c = f && typeof f === 'object' ? f[kase] : undefined;
+  if (c === false) return false;
+  return Object.assign({ preset: typeof f === 'string' ? f : (f && f.preset) || preset }, typeof c === 'string' ? { preset: c } : c || null);
+}
+function heldByNight(item) { const u = activeUse(G.L); return !!(u && u.inHands && u.tool === item.id); }   // the bow: the night draws it
+function tryFumble(t, item, kase, preset, override) {
+  if (override) { override(); return true; }
+  const o = t.fumble === false ? false : fumbleOpts(t, kase, preset);
+  return !!(o && !heldByNight(item) && G.fumble(item, t, o));
+}
+function noUse(t, act) {
+  let shown;
+  if (act) shown = tryFumble(t, act, 'wrong', 'return', t.onWrong && (() => t.onWrong(act)));
+  else if (t.onEmpty) { t.onEmpty(); shown = true; }
+  else shown = t.reach !== false && !!G.reach(t);
+  if (!shown && !G.fumbling) AUDIO.sfx('nope');
+}
+G.refuse = opts => { G.refused = opts === undefined ? 'return' : opts; return false; };   // inside t.use: `return G.refuse('bump')`
 function useTarget(t) {
-  const L = G.L;
-  if (t.onClick && t.onClick()) return;
+  const L = G.L, wasOpen = t.open;
+  if (t.onClick && t.onClick()) { if (t.kind === 'container' && t.open && !wasOpen) { if (G.inv[G.active]) G.thrust(t); else G.reach(t, 'pull'); } return; }   // a box opened: the hand goes to it
   const act = G.inv[G.active];
   if (t.crank && !t.done && !(act && t.accepts.includes(act.id))) { crankTarget(t); return; }
-  if (t.done && !t.accepts.length) { G.toast(G.hints() && t.hint ? t.hint() : 'Done.'); return; }
+  if (t.done && !t.accepts.length) { G.toast(G.hints() && t.hint ? t.hint() : 'Done.'); noUse(t, act); return; }
   let item = G.inv[G.active];
   if (!item || !t.accepts.includes(item.id)) item = G.inv.find(i => t.accepts.includes(i.id) && !i.decoy) || G.inv.find(i => t.accepts.includes(i.id)); // the genuine thing before a decoy, unless the decoy was chosen
   if (!item) {
     if (t.accepts.length) G.say(t.hint ? t.hint() : 'You need something for this.', 'Not with what you have.');
     else if (t.hint) G.say(t.hint(), t.name);
-    AUDIO.sfx('nope'); return;
+    noUse(t, act); return;
   }
+  if (G.fumbling && G.fumbling.from === item && G.fumbling.target === t && G.fumbling.phase !== 'home') return;   // it is on its way there already
+  if (item !== act) { G.active = G.inv.indexOf(item); G.invSig = ''; }   // the right thing, picked out for you: it comes into your hand
   if (item.decoy) {
     const c = L.creature; c.u = Math.min(0.995, c.u + 0.03); c.hitched = true;
-    G.toast(item.decoyText || 'That is not it.'); AUDIO.sfx('nope'); // decoys only exist where hints are off, so their line is feedback, not a hint
+    G.toast(item.decoyText || 'That is not it.'); // decoys only exist where hints are off, so their line is feedback, not a hint
+    if (!tryFumble(t, item, 'decoy', 'bump', t.onDecoy && (() => t.onDecoy(item))) && !G.fumbling) AUDIO.sfx('nope');   // it goes there, will not do, and drops
     if (L.onDecoy) L.onDecoy(t, item);
     return;
   }
   const missing = (t.requires || []).filter(id => !G.hasItem(id));
   if (missing.length) {
     const m = L.items.find(i => i.id === missing[0]);
-    G.say('You need the ' + (m ? m.name.toLowerCase() : missing[0]) + ' for that.', t.missingText || 'Something is missing for this.'); AUDIO.sfx('nope'); return;
+    G.say('You need the ' + (m ? m.name.toLowerCase() : missing[0]) + ' for that.', t.missingText || 'Something is missing for this.');
+    if (!tryFumble(t, item, 'missing', 'slip', t.onMissing && (() => t.onMissing(item, missing))) && !G.fumbling) AUDIO.sfx('nope');   // it goes up, will not stay, and falls
+    return;
   }
   if (item.throwable && !t.noThrow) { throwItem(item, { x: t.x, y: t.y + t.h * 0.4, z: t.z }, () => applyUse(t, item)); return; }
   applyUse(t, item);
 }
 function applyUse(t, item) {
   const L = G.L;
+  G.refused = undefined;
+  const had = G.inv.includes(item);   // (a thrown thing has already left the hand)
   const ok = t.use(item);
-  if (!ok) { AUDIO.sfx('nope'); return; }
+  if (!ok) {
+    const how = G.refused; G.refused = undefined;
+    const started = (G.fumbling && G.fumbling.from === item && G.fumbling.T === 0) || (G.hand.reach && G.hand.reach.T === 0);   // the night's use() showed it itself
+    let shown = !!started;
+    if (!started && G.inv.includes(item)) {
+      if (how === undefined && t.onRefuse) { t.onRefuse(item); shown = true; }
+      else if (how === undefined) shown = tryFumble(t, item, 'refuse', 'return');
+      else if (how !== false && !heldByNight(item)) shown = !!G.fumble(item, t, typeof how === 'string' ? Object.assign(fumbleOpts(t, 'refuse', how) || {}, { preset: how }) : how);   // the night's own choice
+    }
+    if (!shown && !G.fumbling) AUDIO.sfx('nope');
+    return;
+  }
+  if (G.fumbling && G.fumbling.from === item && !G.fumbling.drop) HANDS.settle();   // used after all while it was on its way back: it is in hand
   if (!item.tool) { item.uses--; if (item.uses <= 0) G.removeFromInv(item); }
+  if (had) G.thrust(t, item, !G.inv.includes(item));   // a push toward it; used up, it is given up there
   if (t.count >= t.needed && t.needed > 1) t.done = true;
   if (!L.won && L.isWon && L.isWon()) win();
 }
 function crankTarget(t) {
   const L = G.L;
   t.count = (t.count || 0) + 1; t.lastCrank = L.t;
+  if (G.hand.cur && G.hand.up > 0.5) G.thrust(t); else G.reach(t, 'push');   // the hand on it, turn by turn
   AUDIO.sfx(t.crank.sfx || 'ratchet'); G.shake(0.06);
   if (t.crank.onTurn) t.crank.onTurn(t.count, t);
   if (t.count >= t.crank.n) { t.done = true; t.count = t.crank.n; if (t.crank.onComplete) t.crank.onComplete(t); if (!L.won && L.isWon && L.isWon()) win(); }
@@ -404,8 +453,9 @@ function updateTargets(L, dt) {
 // a thrown item flies from the hands to a point, then does its thing
 function throwItem(it, to, onArrive) {
   if (G.throwing) return;
-  G.removeFromInv(it);
-  const from = { x: Math.sin(G.cam.yaw) * 0.4, y: G.L.eyeH - 0.3, z: Math.cos(G.cam.yaw) * 0.4 };
+  const hw = G.hand.cur === it && G.hand.up > 0.5 ? HANDS.handWorld(it, Math.max(0.3, 0.6 * Math.hypot(to.x, to.z))).p : null;   // from where it is in your hand
+  G.removeFromInv(it); HANDS.threw(it);
+  const from = hw || { x: Math.sin(G.cam.yaw) * 0.4, y: G.L.eyeH - 0.3, z: Math.cos(G.cam.yaw) * 0.4 };
   G.throwing = { it, from, to, t: 0, dur: 0.55 + Math.hypot(to.x - from.x, to.z - from.z) * 0.03, onArrive };
   AUDIO.sfx('hiss');
 }
@@ -679,6 +729,7 @@ function update(dt) {
     L.t += dt;   // the morning after: the view wanders the room a little behind the last screen
     c.tYaw = c.yaw + wrapPi(L.facing + Math.sin(L.t * 0.12) * 0.35 - c.yaw); c.tPitch = Math.max(0, Math.sin(L.t * 0.09)) * 0.12;
   }
+  if (G.state !== 'paused') HANDS.update(dt);   // what you hold: raised, swapped, swaying, or lowered as the night ends; a fumble in the air
 }
 
 function updateCreature(L, c, dt, live) {
@@ -865,6 +916,7 @@ function render() {
     const x = lerp(th.from.x, th.to.x, k), y = lerp(th.from.y, th.to.y, k) + arc, z = lerp(th.from.z, th.to.z, k);
     R.add({ kind: 'sprite', x, y, z, w: th.it.w, h: th.it.h, draw: (ctx, P) => { ctx.scale(th.it.w, th.it.h); th.it.icon(ctx, P); } });
   }
+  HANDS.add();   // a thing tried at a target, in the air or at it
   if (L.dynamic) L.dynamic();
   if (L.clouds) for (const cl of L.clouds) { const yaw = cl.yaw0 + G.t * cl.drift; const r = 800 * Math.cos(Math.asin(cl.y / 800)); cl.x = Math.sin(yaw) * r; cl.z = Math.cos(yaw) * r; R.add(cl); }
   const canUse = G.state === 'play' && !!activeUse(L);
@@ -882,7 +934,7 @@ function render() {
   R.post({
     danger: G.danger, flash: G.flashAmt, fade: G.fade, white: G.white, dangerCap: S.reducedFlash ? 0.35 : 0.75, flashCap: S.reducedFlash ? 0.2 : 1,
     glows: L.glows ? L.glows() : null,
-    drawOverlay: (ctx, W, H) => { if (L.overlay) L.overlay(ctx, W, H); drawGunOverlay(ctx, W, H); },   // a night's own picture over the view (the covers over your eyes), under the vignette, grain and fades
+    drawOverlay: (ctx, W, H) => { HANDS.draw(ctx, W, H); if (L.overlay) L.overlay(ctx, W, H); drawGunOverlay(ctx, W, H); },   // what you hold, then a night's own picture over the view (the covers over your eyes), under the vignette, grain and fades
     grain: G.state === 'title' ? 0.05 : 0.07 + G.danger * 0.05 - (L.s.reveal || 0) * 0.04,
     vignette: 0.9 - (L.s.reveal || 0) * 0.65,   // the last night's morning is bright to the corners
   });
