@@ -171,7 +171,14 @@ some on the ground, so you have to turn and look down to find them.
    box, pull the blown fuse and put in the new one from the toolbox, and turn the crank so
    the beam goes round: its first pass knocks it sliding back down the wall, and the next
    knocks it off the tower, to fall all the way down into the sea. The lamp turns with the
-   crank, lit or dark. A fuse tried with the blown one still in knocks against it and comes
+   crank, lit or dark. There is another way: once the new fuse is out of the toolbox, the toolbox itself can be taken
+   up (heavy, held open in front of you), and with it in hand a click on the thing, looking over the rail at it, lets it
+   go over the rail on the line straight down to it. The tower flares out below the gallery, so it hits the stone and
+   comes down the wall, tumbling and banging, spilling a spanner and a screwdriver. If the thing is no more than about
+   8 m below the gallery floor (the hover says "Drop the toolbox on it."), the box comes down onto its back, and it
+   loses its hold, slides scrabbling and falls all the way into the sea as from the beam: a win, with a line of its own.
+   Further down (the hover says "Too far down.") the box, going faster and faster, kicks out off the stone, goes past
+   it out over the water and into the sea, and is gone. A fuse tried with the blown one still in knocks against it and comes
    back to your hand; a blown fuse pushed into the empty clips (the one you pulled, or the
    worn one lying about) sits there a beat with nothing coming on and drops out onto the
    floor.
@@ -308,7 +315,8 @@ LEVELS.push({
   lanes: [{ deg: 0, name: 'back door', barrierDist: 2.75, apertures: [{ z, x0, x1, y0, y1 }], blockers: [[d0, d1]] }],
   creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
   aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang' },   // held, stand, retreat, down, away, custom
-  uses: [{ tool, ammo, dudAmmo, range, onHit(c, hits, L), onMiss(L), draw: { loose(outcome, c, aim, power, L), fill, min }, inHands(ctx, W, H, draw, L, aim) }], // things you use on the creature itself
+  uses: [{ tool, ammo, dudAmmo, range, onHit(c, hits, L), onMiss(L), draw: { loose(outcome, c, aim, power, L), fill, min }, inHands(ctx, W, H, draw, L, aim),
+          onClick(c, L), hoverText(c, L), sights }], // things you use on the creature itself (onClick: the night does it all, as night 7's toolbox; sights: false, no crosshair)
   build(L) { ... }
 });
 ```

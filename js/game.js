@@ -469,6 +469,7 @@ function activeUse(L) { return (L.uses || []).find(u => G.hasItem(u.tool)) || nu
 function useOnCreature(L, c) {
   const u = activeUse(L);
   if (!u || c.dead) return false;
+  if (u.onClick) return u.onClick(c, L) !== false;   // a use that does its own thing (night 7's toolbox, dropped over the rail onto it)
   if (u.draw) return true;   // a bow is drawn by holding the button (drawPress), never by a click
   const ammo = u.ammo ? G.inv.find(i => i.id === u.ammo) : null;
   if (u.ammo && !ammo) { AUDIO.sfx('empty'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Click. Nothing in it.'); return true; }
@@ -636,14 +637,14 @@ function updateHover() {
   if (h) {
     if (h.kind === 'item') tip = h.ref.name + (h.ref.uses > 1 ? ' ×' + h.ref.uses : '');
     else if (h.kind === 'target') tip = (G.hints() && h.ref.hint) ? h.ref.hint() : (h.ref.hold && !h.ref.done ? h.ref.name + ' (hold)' : h.ref.name);
-    else if (h.kind === 'creature') { const u = activeUse(G.L); tip = u ? (h.ref.dist < u.range ? (u.fireText || 'Fire.') : 'Too far.') : ''; }
+    else if (h.kind === 'creature') { const u = activeUse(G.L); tip = u ? (u.hoverText ? u.hoverText(h.ref, G.L) : h.ref.dist < u.range ? (u.fireText || 'Fire.') : 'Too far.') : ''; }
   } else if (G.state === 'play' && G.cam.pitch > 0.5 && G.inv.length) tip = 'Put down the ' + G.inv[G.active].name.toLowerCase();
   UI.tooltip.textContent = tip;
   UI.tooltip.style.display = tip ? 'block' : 'none';
   const holdT = G.L && G.L.targets.find(t => t.hold && !t.done && t.progress > 0);
   UI.holdbar.style.display = holdT ? 'block' : 'none';
   if (holdT) UI.holdfill.style.width = (holdT.progress * 100).toFixed(1) + '%';
-  UI.canvas.style.cursor = h ? 'pointer' : (G.L && activeUse(G.L) && G.cam.pitch < 0.3 ? 'crosshair' : 'default');
+  UI.canvas.style.cursor = h ? 'pointer' : (G.L && activeUse(G.L) && activeUse(G.L).sights !== false && G.cam.pitch < 0.3 ? 'crosshair' : 'default');   // (sights: false, a thing with no aim to it)
 }
 
 // ---------------- update ----------------
@@ -948,7 +949,7 @@ function drawGunOverlay(ctx, W, H) {
   if (!u || G.state === 'dead' || G.state === 'dying') return;
   if (u.inHands) u.inHands(ctx, W, H, G.draw, L, G.draw ? (G.draw.state === 'loosed' ? G.draw.aim : drawAim(G.draw.src)) : null);   // what you hold up to use it (night 5's bow), under the crosshair; aimed where it is drawn
   const padDraw = G.draw && G.draw.src !== 'mouse' && G.draw.state === 'drawing';   // drawn from a pad or the touch button: the sights are where it is aimed
-  if (G.cam.pitch < 0.3 && G.state === 'play' && (G.mouse.x >= 0 || padDraw) && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
+  if (u.sights !== false && G.cam.pitch < 0.3 && G.state === 'play' && (G.mouse.x >= 0 || padDraw) && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
     ctx.strokeStyle = 'rgba(255,230,200,0.5)'; ctx.lineWidth = 1;
     const at = padDraw ? drawAim(G.draw.src) : G.mouse, mx = at.x, my = at.y - R.viewY;
     ctx.beginPath(); ctx.moveTo(mx - 12, my); ctx.lineTo(mx - 4, my); ctx.moveTo(mx + 4, my); ctx.lineTo(mx + 12, my); ctx.moveTo(mx, my - 12); ctx.lineTo(mx, my - 4); ctx.moveTo(mx, my + 4); ctx.lineTo(mx, my + 12); ctx.stroke();
