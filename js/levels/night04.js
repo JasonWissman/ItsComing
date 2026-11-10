@@ -78,6 +78,21 @@
       P_line(ctx, 0.3, 0.33, 0.42, 0.12, 0.065, rope);                                             // the loose end, frayed
       for (const [dx, dy] of [[0.06, -0.03], [0.02, -0.08], [0.07, 0.02]]) P_line(ctx, 0.42, 0.12, 0.42 + dx, 0.12 + dy, 0.016, fray);
     },
+    // the same rope in the hand: the coil taken up by one side, a hank of long loops hanging from the fist, bound round
+    // under it, with the frayed end hanging down beside them
+    hungrope(ctx, P) {
+      const rope = P.col([116, 106, 76]), mid = P.col([96, 88, 62]), dark = P.col([60, 58, 42]), rot = P.col([66, 74, 50]), fray = P.col([140, 128, 94]);
+      const loop = (w, bot, c) => {
+        ctx.strokeStyle = c; ctx.lineWidth = 0.075; ctx.beginPath();
+        ctx.moveTo(-0.05, 0.9); ctx.bezierCurveTo(-w, 0.72, -w * 0.85, bot, 0, bot); ctx.bezierCurveTo(w * 0.85, bot, w, 0.72, 0.05, 0.9); ctx.stroke();
+      };
+      loop(0.36, 0.12, rope); loop(0.24, 0.05, mid); loop(0.3, 0.2, rope);
+      for (let k = 0; k < 9; k++) { const a = 0.4 + k * 0.28, x = Math.sin(a) * -0.3 * (k < 5 ? 1 : -1), y = 0.62 - Math.abs(Math.cos(a)) * 0.45; P_line(ctx, x - 0.018, y - 0.022, x + 0.018, y + 0.022, 0.012, dark); }   // the lay of its strands
+      for (const [x, y] of [[-0.27, 0.42], [0.22, 0.3], [0.05, 0.1]]) P_ell(ctx, x, y, 0.06, 0.045, rot);   // rotten patches
+      P_line(ctx, 0.06, 0.82, 0.3, -0.02, 0.065, rope);                                           // the loose end, frayed
+      for (const [dx, dy] of [[0.05, -0.06], [0.0, -0.08], [0.08, -0.02]]) P_line(ctx, 0.3, -0.02, 0.3 + dx, -0.02 + dy, 0.016, fray);
+      P_rect(ctx, -0.11, 0.8, 0.22, 0.08, mid); P_line(ctx, -0.11, 0.84, 0.11, 0.84, 0.015, dark);   // a turn of it bound round the hank
+    },
   });
 }
 LEVELS.push({
@@ -157,23 +172,36 @@ LEVELS.push({
       const c = mkItem(L, id, 'Chain', chainSpots, { w: 0.6, h: 0.6, icon: 'coiledchain' });
       if (c.y > 0.2) Object.assign(c, { icon: ICONS.hungchain, w: 0.42, h: 0.8 });   // hung up: a long loop down from its peg
     }
-    // taken down off its peg or put down again, a chain is the same coil in the hand and on the ground as one found coiled
-    const coil = it => { if (CHAINS.includes(it.id)) Object.assign(it, { icon: ICONS.coiledchain, w: 0.6, h: 0.6 }); };
-    L.onPickup = coil; L.onDrop = coil;
+    // on the ground a chain lies in a coil (put down again, or dropped where it would not go, as one found coiled), and the
+    // rotten rope in its coil; in the hand each hangs from the fist (js/hands.js): the chain doubled over it, swinging, and
+    // the rope taken up in a hank
+    const HANG = {
+      chain: { icon: ICONS.hungchain, w: 0.42, h: 0.8, held: { grip: 'hang', at: [0, 0.97], axis: Math.PI / 2, size: 0.34 } },
+      rope: { icon: ICONS.hungrope, w: 0.3, h: 0.6, held: { grip: 'hang', at: [0, 0.86], axis: Math.PI / 2, size: 0.3 } },
+    };
+    const kindOf = it => (CHAINS.includes(it.id) ? 'chain' : it.id === 'rope' ? 'rope' : null);
+    L.onPickup = it => { const k = kindOf(it); if (k) Object.assign(it, HANG[k]); };
+    L.onDrop = it => {
+      const k = kindOf(it);
+      if (k === 'chain') Object.assign(it, { icon: ICONS.coiledchain, w: 0.6, h: 0.6 });
+      if (k === 'rope') Object.assign(it, { icon: ICONS.rottenrope, w: 0.4, h: 0.3 });
+    };
     // one padlock item for both gates, drawn as the pair it is until one of them is on a gate
     const lock = mkItem(L, 'padlock', 'Padlock', [
       { deg: 150, dist: 1.7, y: 0 },                    // south-south-east
       { x: 1.5, y: 0, z: 1.5 },                         // north-east
       { x: -1.7, y: 0, z: 1.2 },                        // north-west
       { x: -1.8, y: 0, z: -0.4 },                       // west
-    ], { w: 0.3, h: 0.3, flat: true, uses: 2, icon: (ctx, P) => (lock.uses > 1 ? ICONS.padlocks : ICONS.padlock)(ctx, P) });
+    ], { w: 0.3, h: 0.3, flat: true, uses: 2, held: { grip: 'pinch', at: [-0.2, 0.62], angle: 0.15, size: 0.2 },
+      icon: (ctx, P) => (lock.uses > 1 && !trying(lock) ? ICONS.padlocks : ICONS.padlock)(ctx, P) });   // (one of the pair is tried at a gate)
     mkItem(L, 'gatekey', 'Key', [
       { x: 0.05, y: 0.48, z: -1.7 },                    // on the table
       { x: -2.6, y: 0, z: 1.9 },                        // north-west corner
       { x: 2.5, y: 0, z: -1.3 },                        // south-east
       { x: -0.9, y: 0, z: 2.1 },                        // by the gate post
-    ], { w: 0.2, h: 0.2, flat: true, tool: true, icon: 'padkey' });
-    mkItem(L, 'oldlock', 'Padlock', [{ x: 0.9, y: 0, z: 1.6 }, { x: -2.4, y: 0, z: -1.6 }], { w: 0.24, h: 0.28, flat: true, icon: 'rustlock', decoy: true, decoyText: 'Rusted solid. Nothing will ever open it.' });
+    ], { w: 0.2, h: 0.2, flat: true, tool: true, icon: 'padkey', held: { grip: 'pinch', at: [-0.2, 0.36], angle: -0.9, size: 0.19, tip: [0.36, 0.72] } });   // by its bow, the bit leading
+    mkItem(L, 'oldlock', 'Padlock', [{ x: 0.9, y: 0, z: 1.6 }, { x: -2.4, y: 0, z: -1.6 }], { w: 0.24, h: 0.28, flat: true, icon: 'rustlock', decoy: true, decoyText: 'Rusted solid. Nothing will ever open it.',
+      held: { grip: 'pinch', at: [-0.17, 0.66], angle: 0.12, size: 0.19 } });
     mkItem(L, 'rope', 'Rotten rope', [
       { deg: 120, dist: 1.9, y: 0 },
       { x: 2.4, y: 0, z: 1.0 },                         // east, by the wall (clear of every key and chain spot)
@@ -181,38 +209,117 @@ LEVELS.push({
     ], { w: 0.4, h: 0.3, flat: true, icon: 'rottenrope' });
     // a gate is open, then pulled shut (it swings closed on its own weight), then chained through the bars, then padlocked
     const holding = ids => G.inv.some(i => ids.includes(i.id));
-    const nope = (specific, vague) => { G.say(specific, vague); AUDIO.sfx('nope'); return true; };
+    // what will not do is played out at the gate (tryAt, below "what will not do"); the line is still said, for the captions,
+    // and the error sound plays only when nothing was shown
+    const nope = (specific, vague, shown) => { G.say(specific, vague); if (!shown && !G.fumbling) AUDIO.sfx('nope'); return true; };
     const mkGate = (id, name, deg, sign) => {
       const the = 'The ' + name.toLowerCase();
       const t = mkTarget(L, {
         id, name, deg, dist: 2.6, y: 0, w: 2.3, h: 2.0, accepts: [], shut: false, chained: false, locked: false, closing: 0, angle: Math.PI / 2, sign,
         hint() { return t.locked ? 'Chained and locked.' : t.chained ? 'Chained. It needs the padlock.' : t.shut ? 'Shut. It needs a chain.' : t.closing > 0 ? 'Swinging shut.' : the + ' stands open.'; },
         onClick() {
-          if (t.locked) return nope('Chained and locked.', the + ' is chained and locked.');
-          if (t.closing > 0) return nope('Let it swing shut.', 'It is still swinging shut.');
-          if (!t.shut) { t.closing = 1; AUDIO.sfx('creak'); G.say('You pull ' + the.toLowerCase() + ' shut.', the + ' swings shut.'); return true; }
+          const act = G.inv[G.active];
+          // (again(): the last thing tried at this gate is still there, so a click that would only be refused again is taken quietly)
+          const again = () => !!G.fumbling && G.fumbling.target === t;
+          if (t.locked) return again() || nope('Chained and locked.', the + ' is chained and locked.', tryAt(t, act, 'locked'));
+          if (t.closing > 0) {
+            // a chain too late to throw round it as it swings goes on as it shuts (L.update), not onto a gate already shut and off again
+            if (act && CHAINS.includes(act.id) && !inTime(t, act)) { t.queued = act; return true; }
+            return again() || nope('Let it swing shut.', 'It is still swinging shut.', tryAt(t, act, 'swinging'));
+          }
+          if (!t.shut) { t.closing = 1; AUDIO.sfx('creak'); G.reach(t, { style: 'pull', at: W(-0.25 * sign, 1.0, 3.1 * sign) }); G.say('You pull ' + the.toLowerCase() + ' shut.', the + ' swings shut.'); return true; }
           if (!t.chained) {
             if (holding(CHAINS)) return false;
-            if (G.inv[G.active] && LOCKS.includes(G.inv[G.active].id)) return nope('Chain it first. There is nothing to lock yet.', 'The padlock has nothing to close on.');
-            return nope('It is shut, but it needs a chain to hold it.', the + ' is shut, but nothing holds it.');
+            if (act && LOCKS.includes(act.id)) return again() || nope('Chain it first. There is nothing to lock yet.', 'The padlock has nothing to close on.', tryAt(t, act, 'nochain'));
+            return again() || nope('It is shut, but it needs a chain to hold it.', the + ' is shut, but nothing holds it.', tryAt(t, act, 'shut'));
           }
           if (holding(LOCKS)) return false;
-          return nope('The chain is on. It needs the padlock.', 'The chain is through the bars, but nothing fastens it.');
+          return again() || nope('The chain is on. It needs the padlock.', 'The chain is through the bars, but nothing fastens it.', tryAt(t, act, 'chained'));
         },
         use(item) {
-          if (CHAINS.includes(item.id)) { t.chained = true; t.accepts = LOCKS.slice(); AUDIO.sfx('chain'); G.say('You wind the chain through the bars and round the post.', 'The chain goes through the bars.'); return true; }
-          if (item.id === 'padlock') {
-            if (!G.hasItem('gatekey')) { G.say('The padlock is shut. It wants its key.', 'The padlock is locked shut, and the shackle will not pull open.'); return false; }
+          if (CHAINS.includes(item.id)) { t.chained = true; t.nudgeAt = undefined; t.angle = 0; t.accepts = LOCKS.slice(); AUDIO.sfx('chain'); G.say('You wind the chain through the bars and round the post.', 'The chain goes through the bars.'); return true; }
+          if (item.id === 'padlock') {   // without its key: held to the chain's end, its shackle tugged at, and it will not open
+            if (!G.hasItem('gatekey')) {
+              if (G.fumbling && G.fumbling.target === t) return G.refuse(false);   // (the last thing tried here is still there: quietly)
+              G.say('The padlock is shut. It wants its key.', 'The padlock is locked shut, and the shackle will not pull open.'); return G.refuse({ preset: 'bump', drop: false, at: latch(t, LOCK_Y), scale: LOCK_K, sfx: { hit: 'tink' } }); }
             t.locked = true; t.done = true; t.accepts = []; AUDIO.sfx('lock'); G.say('The padlock snaps shut on the chain.', 'The padlock snaps shut.'); return true;
           }
           return false;
         },
+        // the rusted padlock: held to the chain's end, its seized shackle pressed down on the links again and again, and it
+        // will not snap shut; it slips out of the fingers and drops by the gate (the time a decoy costs is spent as well)
+        onDecoy(item) { if (!G.fumble(item, t, { preset: 'bump', at: latch(t, LOCK_Y), scale: 0.8, sfx: { hit: 'clunk', land: 'clatter' } })) AUDIO.sfx('nope'); },
       });
       return t;
     };
     const gate = mkGate('gate', 'Gate', 0, 1), gate2 = mkGate('backgate', 'Back gate', 180, -1);
     const gateOf = lane => lane.idx === 0 ? gate : gate2;
     L.sealed = lane => gateOf(lane).locked;
+
+    // ---- what will not do, played out at the gate (js/hands.js) ----
+    // A thing tried at a gate goes to its free end at the post, where the chain goes round and the lock hangs. A chain thrown
+    // round a gate still swinging shut hangs there until the gate swings into the post, and is knocked off it to the ground,
+    // to be picked up again. A padlock held to a gate with no chain on it has nothing to close on: its shackle knocks on the
+    // bare bars and it comes back; the padlock without its key is tugged at on the chain and will not open; the rusted one is
+    // pressed down on the chain again and again, will not snap shut, and drops (onDecoy, above). The rotten rope wound round
+    // the bars slips off and falls. The key pokes at the bars or the chain. With nothing in hand you push a shut gate that
+    // nothing holds, and it swings out a little and falls back shut with a clang; a chained or a locked one you take hold of
+    // and shake, and it jolts on its chain.
+    const W = (x, y, z) => { const p = L.pt(x, y, z); return { x: p[0], y: p[1], z: p[2] }; };
+    const endAt = (g, y, x) => W((x === undefined ? 1.0 : x) * g.sign, y, 2.26 * g.sign);   // the gate's free end, at its post, y up (x: in from it)
+    // there, or as near it as is not behind what you hold: on a phone the hand sits up over the touch buttons, where the low
+    // end of a gate can be, so it is tried higher up the chain, or further along the gate
+    const latch = (g, y, x) => {   // (lx, ly: the spot chosen, in from the hinge's side of the gate and up)
+      const b = G.hand.box, x0 = x === undefined ? 1.0 : x, at = (dy, dx) => Object.assign(endAt(g, y + dy, x0 - dx), { lx: x0 - dx, ly: y + dy });
+      if (!b) return at(0, 0);
+      const mx = (b.x1 - b.x0) * 0.25, my = (b.y1 - b.y0) * 0.25;
+      const clear = p => { const q = R.screenPos(p.x, p.y, p.z); return !!q && !(q.x > b.x0 - mx && q.x < b.x1 + mx && q.y > b.y0 - my && q.y < b.y1 + my); };
+      for (const dy of [0, 0.15, 0.3, 0.45, 0.6, 0.75]) for (const dx of [0, 0.2, 0.4]) { const p = at(dy, dx); if (clear(p)) return p; }
+      return at(0, 0);
+    };
+    // that spot on a gate still swinging shut: on its end as it swings (lx from the middle of the gateway; the gate is hung at
+    // -1.05 and swings outward), as far in front of it as endAt is in front of a shut one
+    const onSwing = (g, lx, ly) => { const u = lx + 1.05; return W(g.sign * (-1.05 + Math.cos(g.angle) * u), ly, g.sign * (2.26 + Math.sin(g.angle) * u)); };
+    const ON_BARS = 0.8;   // a chain is tried on the end of the gate itself, where it shows against the bars, not on the dark post
+    const LOCK_Y = 0.5, CHAIN_Y = 0.9, LOCK_K = 0.7;   // where the lock hangs and the chain goes round; a padlock's size there (as the one on a gate)
+    const NUDGE = { dur: 0.8, open: 0.3 };
+    const panOf = g => Math.sin(wrapPi(Math.atan2(g.x, g.z) - G.cam.yaw)) * 0.85;
+    function trying(it) { const f = G.fumbling; return !!f && f.from === it && f.phase !== 'wait' && f.phase !== 'done'; }
+    const shake = g => { g.rattleAt = L.t; AUDIO.sfx('gate', panOf(g)); };
+    // A chain thrown round a gate still swinging shut goes quicker than a thing tried (THROW). Does it get there before the gate
+    // meets the post? As js/hands.js takes it: up into the hand first if it is not up (what was in it going down first), out
+    // to the gate (0.24 s and more with distance), and put on it (0.11 s)
+    const THROW = 1.3;
+    const inTime = (g, it) => {
+      const H = G.hand, at = latch(g, CHAIN_Y, ON_BARS), up = H.cur === it ? Math.max(0, 0.92 - H.up) / 5.5 : (H.cur ? H.up / 7.15 : 0) + 0.92 / 5.5;
+      return g.closing > Math.min(0.45, up) + (clamp(0.24 + Math.hypot(at.x, at.y - L.eyeH, at.z) * 0.06, 0.28, 0.5) + 0.112) / THROW;
+    };
+    // what is tried, by what state the gate is in (G.fumble, or G.reach with nothing in hand); true when something was shown
+    function tryAt(g, act, state) {
+      let o;
+      if (!act) {
+        o = state === 'shut' ? { style: 'push', at: W(0.2 * g.sign, 1.0, 2.55 * g.sign), onTouch: () => { if (g.nudgeAt === undefined) { g.nudgeAt = L.t; AUDIO.sfx('creak', panOf(g)); } } }
+          : state === 'swinging' ? { style: 'touch', at: latch(g, 1.0) }
+          : { style: 'rattle', at: latch(g, CHAIN_Y), onTouch: () => shake(g) };
+        return !!G.reach(g, o);
+      }
+      const id = act.id;
+      if (state === 'swinging' && CHAINS.includes(id)) {   // hung on the swinging gate's end, going with it, until it swings into the post and knocks it off
+        const at = latch(g, CHAIN_Y, ON_BARS);
+        o = { preset: 'slip', speed: THROW, at: onSwing(g, at.lx, at.ly), hold: 0.7, pivot: 'left', sfx: { hit: 'chain', land: 'clatter' },
+          onHit: fx => { fx.opts.hold = Math.max(0.03, fx.pt + g.closing * THROW - 0.14); } };   // (it tips as the gate meets the post)
+        const fx = G.fumble(act, g, o);
+        if (fx) fx.onSwing = { g, lx: at.lx, ly: at.ly };
+        return !!fx;
+      } else if (id === 'rope' && state !== 'locked') {    // wound round the bars, the rotten rope will not hold and slips off
+        o = { preset: 'slip', at: latch(g, CHAIN_Y, ON_BARS), hold: 0.45, pivot: 'right', sfx: { hit: 'pat', land: 'flop' } };
+      } else if (LOCKS.includes(id)) {                     // a padlock: its shackle knocks on the bars, or on the lock already there
+        o = { preset: state === 'locked' ? 'return' : 'bump', drop: false, at: state === 'nochain' ? latch(g, 0.62, ON_BARS) : latch(g, LOCK_Y), scale: id === 'padlock' ? LOCK_K : 0.8, sfx: { hit: 'tink' } };
+      } else if (id === 'gatekey') {                       // the key pokes at the bars, the chain or the lock
+        o = { preset: 'bump', drop: false, at: state === 'shut' ? latch(g, 0.8, ON_BARS) : latch(g, LOCK_Y + 0.06), sfx: { hit: 'tink' } };
+      } else o = { preset: 'return', at: latch(g, CHAIN_Y, ON_BARS), onHit: () => { if (state !== 'swinging') g.rattleAt = L.t; } };   // a second chain, and the like, knocks on it
+      return !!G.fumble(act, g, o);
+    }
     L.update = dt => {
       runOn(dt);
       if (L.won && s.after) L.creature.hold = s.after.d;   // in the end it is where the blinks have put it
@@ -220,9 +327,19 @@ LEVELS.push({
         if (g.closing > 0) {
           g.closing -= dt;
           g.angle = (Math.PI / 2) * Math.pow(clamp(g.closing, 0, 1), 1.4);
-          if (g.closing <= 0) { g.closing = 0; g.angle = 0; g.shut = true; g.accepts = CHAINS.slice(); AUDIO.sfx('gate'); G.shake(0.2); }
+          if (g.closing <= 0) {
+            g.closing = 0; g.angle = 0; g.shut = true; g.accepts = CHAINS.slice(); AUDIO.sfx('gate'); G.shake(0.2);
+            const q = g.queued; g.queued = null;   // a chain clicked on it late in its swing goes on now, if it is still in hand
+            if (q && G.state === 'play' && G.inv[G.active] === q) useTarget(g);
+          }
+          const f = G.fumbling;   // a chain thrown round it as it swings goes with its end
+          if (f && f.onSwing && f.onSwing.g === g && (f.phase === 'out' || f.phase === 'contact')) Object.assign(f.at, onSwing(g, f.onSwing.lx, f.onSwing.ly));
         } else if (!g.shut && (g.chained || g.locked)) {   // set chained or locked from outside (a test): it is shut, and takes what comes next
           g.shut = true; g.angle = 0; g.accepts = g.locked ? [] : g.chained ? LOCKS.slice() : CHAINS.slice();
+        } else if (g.nudgeAt !== undefined) {   // pushed while nothing holds it: it swings out a little and falls back shut
+          const e = (L.t - g.nudgeAt) / NUDGE.dur;
+          if (g.chained || g.locked || e >= 1) { g.nudgeAt = undefined; g.angle = 0; if (e >= 1) { AUDIO.sfx('gate', panOf(g)); G.shake(0.12); } }
+          else g.angle = NUDGE.open * Math.sin(Math.PI * Math.pow(e, 0.7));
         }
       }
     };
