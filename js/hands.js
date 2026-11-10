@@ -908,7 +908,7 @@ const HANDS = (() => {
   }
 
   // the hand's state, for nights and tests
-  return { update, draw, add, reset, picked, dropped, threw, thrust, fumble, settle, reach, landSpot, heldSpec, handPoint, handWorld, pointOn, state: H, PRESETS, materialOf };
+  return { update, draw, add, reset, picked, dropped, threw, thrust, fumble, settle, reach, landSpot, heldSpec, handPoint, handWorld, pointOn, state: H, PRESETS, materialOf, showHands: SHOW_HANDS };   // showHands: whether hands are drawn at all (a night's own, the bow, asks too)
 })();
 // the calls a night makes (README, Anatomy of a night)
 Object.assign(G, {

@@ -7,26 +7,30 @@ CREATURES.runner = {
   voice: { kind: 'pant', every: [3, 6] },
   // It sprints at you, drops to all fours to watch, and sprints again. Out in the tree line, instead of sprinting in it may
   // break sideways to a new place (c.mode 'dart'), running side on, flat out, and drop to watch again from there; from
-  // wherever it is it then comes straight at you (c.dartAng, the angle off its way, closes as it nears). Hit once it goes
-  // down and gets back up faster (hurt); with all your arrows gone it stops watching altogether (c.reckless). Killed, it
-  // falls the way it was going (kill) and lies in the snow, with whatever arrows are in it (c.arrows).
+  // wherever it is it then comes straight at you (c.dartAng, the angle off its way, closes as it nears). A bow drawn on it
+  // may make it break sideways the same way, nearer in too (dodge; the night rolls for it). Hit once it goes down and gets
+  // back up faster (hurt); with all your arrows gone it stops watching altogether (c.reckless). Killed, it falls the way it
+  // was going (kill) and lies in the snow, with whatever arrows are in it (c.arrows).
   init(c) { c.mode = 'crouch'; c.modeT = -0.5; c.hits = 0; c.wounded = false; c.dead = false; c.hurtFlash = 0; c.dartAng = 0; c.darts = 0; c.weave = 1; c.arrows = []; },
   speedMult(c, dt, seen) {
     if (c.dead) { c.deadT = (c.deadT || 0) + dt; return 0; }
     c.modeT += dt;
     if (c.hurtFlash > 0) c.hurtFlash -= dt;
     c.weave = clamp(c.weave + dt * (c.mode === 'dart' ? -3 : 1.5), 0, 1);   // no weaving while it runs side on
-    if (c.wounded || c.reckless) {
-      if (c.mode === 'stumble') { if (c.modeT > 1.5) { c.mode = 'sprint'; c.modeT = 0; } return 0; }
-      if (c.mode !== 'sprint') { this.settle(c); c.mode = 'sprint'; c.modeT = 0; }
-      return c.reckless ? 1.8 : 1.6;
-    }
-    if (c.mode === 'dart') {
+    if (c.mode === 'dart') {   // (wounded, it may still break sideways from a bow drawn on it, and it runs on from there)
       c.runGait = (c.runGait || 0) + dt * 17;
       const n = Math.floor(c.runGait / Math.PI);
       if (n !== c.runStep) { c.runStep = n; AUDIO.footstep('runner', clamp(2.4 / (c.dist + 1.6), 0, 0.85) * 0.6, Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); }
-      if (c.modeT >= c.dartDur) { c.dartAng = c.dartTo; c.mode = 'crouch'; c.modeT = 0.35; }   // and drops to watch, a little less long
+      if (c.modeT >= c.dartDur) {   // and drops to watch, a little less long (wounded, or with nothing left to fear, it comes on)
+        c.dartAng = c.dartTo;
+        if (c.wounded || c.reckless) { c.mode = 'sprint'; c.modeT = 0; } else { c.mode = 'crouch'; c.modeT = 0.35; }
+      }
       return 0;
+    }
+    if (c.wounded || c.reckless) {
+      if (c.mode === 'stumble') { if (c.modeT > 1.5) { c.mode = 'sprint'; c.modeT = 0; } return 0; }
+      if (c.mode !== 'sprint') { c.mode = 'sprint'; c.modeT = 0; }
+      return c.reckless ? 1.8 : 1.6;
     }
     if (c.mode === 'sprint' && c.modeT > 2.3) { c.mode = 'crouch'; c.modeT = 0; }
     else if (c.mode === 'crouch' && c.modeT > 1.25 && !this.dart(c)) { c.mode = 'sprint'; c.modeT = 0; }
@@ -35,14 +39,28 @@ CREATURES.runner = {
   // break sideways along the tree line, at most twice and only while it is well out: a few metres to one side, never more
   // than MAX (7 degrees) off its way, which the porch leaves open on either side, at about 8 m/s
   dart(c) {
-    const MAX = 0.13;
     if (c.darts >= 2 || c.dist < 32 || c.rand() > 0.6) return false;
+    c.darts++;
+    this.breakAway(c);
+    return true;
+  },
+  breakAway(c) {
+    const MAX = 0.13;
     const from = c.dartAng, step = () => 0.07 + c.rand() * 0.06;
     let to = from + (c.rand() < 0.5 ? -1 : 1) * step();
     if (Math.abs(to) > MAX) to = from - Math.sign(to) * step();
     to = clamp(to, -MAX, MAX);
     Object.assign(c, { mode: 'dart', modeT: 0, dartFrom: from, dartTo: to, runDir: to > from ? 1 : -1, dartDur: clamp(Math.abs(to - from) * c.dist / 8, 0.6, 1.4) });
-    c.darts++;
+  },
+  // a bow drawn on it (night 5): it may break sideways to a new place, as it does in the tree line, at least 4 degrees from
+  // where it was (so the aim has to come after it), and drop to watch from there; wounded, it comes on from there. Not
+  // while it is down, already running side on, lunging, or with nothing left to fear, nor once it is near enough that a
+  // run to the side would barely move it in the view (DODGE_NEAR m). canDodge says whether it could now.
+  DODGE_NEAR: 10,
+  canDodge(c) { return !c.dead && !c.reckless && !c.lunge && !c.round && c.mode !== 'dart' && c.mode !== 'stumble' && c.dist >= this.DODGE_NEAR; },
+  dodge(c) {
+    if (!this.canDodge(c)) return false;
+    this.breakAway(c);
     return true;
   },
   ang(c) { return c.mode === 'dart' ? lerp(c.dartFrom, c.dartTo, smoothstep(c.modeT / c.dartDur)) : c.dartAng; },
@@ -201,8 +219,9 @@ CREATURES.runner = {
     P_ell(ctx, hx + 0.08, hy - 0.08, 0.04, 0.05 + Math.abs(Math.sin(g)) * 0.015, black);   // the jaw, hanging open
     ctx.restore();
   },
-  // falling, killed (always by a second arrow, so it is sprinting or still down from the first, never side on): its knees
-  // give, it sags onto them and topples sideways into the snow (then it is drawn lying)
+  // falling, killed (always by a second arrow, so it is sprinting, or still down from the first, or caught side on breaking
+  // away from a draw, when it goes down as from all fours): its knees give, it sags onto them and topples sideways into the
+  // snow (then it is drawn lying)
   drawFall(ctx, c, P, k) {
     if (c.deadFrom === 'crouch') {   // still down on all fours from the first: it sinks flat, its limbs going out from under it
       ctx.save(); ctx.scale(1 + 0.3 * smoothstep(k), 1 - 0.75 * easeIn(k));
