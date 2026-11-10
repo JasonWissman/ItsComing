@@ -582,6 +582,19 @@ LEVELS.push({
       }
     };
     const PLANE = t => (t === back ? [2.42, -1] : [-2.28, 1]);   // where a doorway's boards are, and the way into the house
+    // Coming in through a doorway, it ducks under the lintel (the walker's c.headroom: how high it may stand). The doorways
+    // are a head too low for it. Coming up to one it stoops so that the whole of it is seen under the lintel from where you
+    // stand (under the line from your eye past the lintel's edge, which comes down to the lintel itself at the frame), and
+    // a stride or so out it bends down well under it (CLEAR), head and shoulders down and thrust at you, knees bent, and
+    // goes through like that; with its back past the frame it straightens up under the ceiling. The win's charge, the
+    // boards and the run round the house are its own.
+    const LINTEL = doorH - 0.02, CEILING = 2.7, DEPTH = 0.32, ROOM = 0.04, CLEAR = 0.3;   // the lintel's edge (its frame), its own depth
+    const headroom = c => {
+      const ap = c.lane.apertures[0], zf = ap.z - 0.05, d = c.dist, e = d - ap.z;   // the frame stands a little in from the wall
+      if (e > 0) return Math.min(L.eyeH + (LINTEL - L.eyeH) * d / zf - ROOM, LINTEL - CLEAR + 0.6 * Math.max(0, e - 0.15));   // outside
+      if (e > -DEPTH) return LINTEL - CLEAR;                                                                                     // under it
+      return lerp(LINTEL - CLEAR, CEILING - ROOM, smoothstep((-e - DEPTH) / 0.8));                                                // inside, straightening
+    };
     // The thing is drawn in order by how far along its way it is. Off to one side of a doorway, running round the house
     // near it, that order put it in front of the walls between it and the eye, running across the boards of the back
     // wall. So while it is outside the house it goes by how far it really is, and never nearer than behind every wall
@@ -592,6 +605,7 @@ LEVELS.push({
       crumbsDraw();
       const c = L.creature, cp = L.rend && L.rend.get(c);
       if (cp) { const p = c.pos(); cp.sortDist = c.dist > c.lane.apertures[0].z + 0.05 ? Math.max(Math.hypot(p.x, p.z), BEHIND_WALLS) : undefined; }
+      c.headroom = L.won || c.charge || c.runPose ? undefined : headroom(c) - (c.yOff || 0) - c.pos().y;
       if (s.hitAt !== undefined && c.peer > 0.6) {   // at the boards: its fingers over the one under the gap (grip; the night faces north, so x is the boards' own)
         const t = doorOf(c.lane), [z, sign] = PLANE(t), { zz, yAt } = boardAt(t, 0, z, sign), zb = Math.abs(zz) - 0.012;
         for (const side of [-1, 1]) {
