@@ -5,6 +5,10 @@
 // it misses (each of those spends an arrow; the three are given back between runs, as there are only three). Then a run
 // where one hit, drawn full on it at 47 m, and two that fall short leave it nothing to stop it: it comes in and reaches you.
 // Then the night again: a draw held full for a few seconds before letting go still goes in, and one from a pad puts it down.
+// Before any of that, what will not go: the first time, two arrows are picked up before the bow, and one is clicked at it
+// with no bow (it is raised to shoot, finds no bow, and drops head first to the boards at your feet, where it is picked up
+// again); the second time the bow comes first, and pressed with no arrows it comes up while the hand feels on the string
+// for one, finds none, and is let down.
 const arrows = "(G.inv.find(i => i.id === 'arrows') || { uses: 0 }).uses";
 const last = 'G.L.s.outcomes[G.L.s.outcomes.length - 1]';
 const hold = d => ['eval', 'const c = G.L.creature; c.switched = true; c.darts = 2; c.u = 1 - Math.pow(' + d + ' / c.D0, 1 / c.gamma); c.hold = ' + d + ';' +
@@ -15,7 +19,18 @@ const nock = ['wait', 750];   // the next arrow is on the string
 const slot = n => ['expect', "G.inv.filter(i => i.id === 'arrows').length === 1 && " + arrows + ' === ' + n + " && G.inv.find(i => i.id === 'arrows').name === '" + (n > 1 ? 'Arrows' : 'Arrow') + "'" +
   (n > 1 ? " && [...document.querySelectorAll('#inventory .label')].some(l => l.textContent === 'Arrows ×" + n + "')" : ''), 'arrow ' + n + ' picked up: one slot, ' + (n > 1 ? '"Arrows ×' + n + '"' : '"Arrow"')];
 const apart = ['expect', "(() => { const a = G.L.items.filter(i => i.id === 'arrows').map(i => [i.x, i.z]); return a.length === 3 && a.every((p, i) => a.every((q, j) => i === j || Math.hypot(p[0] - q[0], p[1] - q[1]) >= 0.8)); })()", 'three arrows, each lying apart from the others'];
-const arm = [apart, ['pickup', 'bow'], ['pickup', 'arrows'], slot(1), ['pickup', 'arrows'], slot(2), ['pickup', 'arrows'], slot(3)];
+const dropped = "G.L.items.filter(i => i.id === 'arrows')[3]";   // the one let go of from the bundle, an arrow of its own
+const noBow = [apart, ['pickup', 'arrows'], slot(1), ['pickup', 'arrows'], slot(2), hold(70), ['wait', 300],
+  ['shoot'], ['expect', "G.lastToast.msg === 'No bow.' && " + arrows + " === 1 && G.fumbling && G.fumbling.drop && G.fumbling.preset === 'slip' && !G.L.s.outcomes.length", 'an arrow clicked at it with no bow: one leaves the bundle, nothing is loosed'],
+  ['waitUntil', '!G.fumbling && ' + dropped + ' && !' + dropped + '.taken', 4000],
+  ['expect', "(a => a.y === G.L.floor.y && a.flat && a.uses === 1 && a.name === 'Arrow' && Math.hypot(a.x, a.z) < 2)(" + dropped + ')', 'it dropped to the boards at your feet, one arrow'],
+  ['pickup', 'arrows'], ['pickup', 'arrows'], slot(3), ['expect', "G.L.items.filter(i => i.id === 'arrows').every(i => i.taken)", 'it is picked up again, with the last one'],
+  ['pickup', 'bow']];
+const noArrows = [apart, ['pickup', 'bow'], hold(70), ['wait', 300],
+  ['draw', 'click'], ['expect', "G.lastToast.msg === 'No arrows.' && G.L.s.groping && !G.draw", 'the bow pressed with no arrows: it comes up, and the hand feels on the string for one'],
+  ['wait', 350], ['expect', 'G.L.s.bowUp > 0.6 && G.L.s.groping && G.L.s.groping.pats >= 1', 'the bow is up and the fingers are at the empty shelf'],
+  ['waitUntil', '!G.L.s.groping && G.L.s.bowUp < 0.3', 3000],
+  ['pickup', 'arrows'], slot(1), ['pickup', 'arrows'], slot(2), ['pickup', 'arrows'], slot(3)];
 const kinds = [
   hold(25), ['wait', 300],
   ['draw', 'click'], ['expect', "G.draw && G.draw.state === 'easing'", 'a click: the bow starts to come up and is let back down'],
@@ -41,5 +56,5 @@ const kill = [
   ['wait', 1000], ['expect', 'G.L.creature.dead && G.L.creature.arrows.length === 2', 'the second hit puts it down, two arrows in it'],
 ];
 module.exports = {
-  nightmare: arm.concat(kinds, spentAll, arm, kill),
+  nightmare: noBow.concat(kinds, spentAll, noArrows, kill),
 };

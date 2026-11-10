@@ -145,14 +145,23 @@ some on the ground, so you have to turn and look down to find them.
    is (the further, the smaller it is to aim at). Let go before full and the arrow drops into
    the snow short of it; full but off it, it misses. A click looses nothing: the bow comes up
    and is let down again. The first hit drops it for a moment and the second puts it down.
-   With all three arrows gone and it still up, it comes flat out.
+   With all three arrows gone and it still up, it comes flat out. Pressed with no arrows, the bow
+   comes up and your gloved hand feels along the string and the shelf for one, finds none, and
+   lets it down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
+   and drops head first to the boards at your feet, where you have to pick it up again.
 6. **The Boathouse.** Something swims in across the water, going under for a
    while and coming up closer. The winch is chained and padlocked: the key is in the
    tackle box. Crank the water door down, and shut and bar the side door (the door or
    either iron bracket beside it will do). Shut one way first and, once it has been held
    there a moment, it goes under, swims round and comes across into the other side on.
    With both shut it throws itself at the door it came to, harder and faster, the boards
-   bowing in and the water coming in under them, until it lets go and goes under.
+   bowing in and the water coming in under them, until it lets go and goes under. Tried too
+   soon, the winch answers in iron: an empty hand rattles the padlock on its chain, the handle
+   put on the boss snaps the chain taut (the padlock jumps) and comes back to your hand, the
+   oar's end jams at the boss and it clatters to the deck, and with the padlock off but no
+   handle the wheel moves a hair under your hand and no further. The key goes into the padlock
+   before it springs open. The bar put up while the side door is still swinging shut is knocked
+   back into your hands by the leaf.
 7. **The Lighthouse.** The lamp is out and something is clinging to the outside of
    the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
    and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
