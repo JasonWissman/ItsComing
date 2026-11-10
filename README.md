@@ -93,7 +93,10 @@ some on the ground, so you have to turn and look down to find them.
    up both: board the one it is coming for and it runs round the house to the other. The
    window beside the front doorway is glass you can see out of, over the field, and if it
    runs round that side you see it go past. The planks are wide old boards, and three of
-   them close most of a doorway, leaving a slit at eye level. Once the last one is up it
+   them close most of a doorway, leaving a slit at eye level. A plank put up with no hammer and nails to fix it hangs
+   there a moment and falls off to the floor in front of the doorway, to be picked up again; the rotten one goes up and,
+   as the nail goes in, its end tears away in a shower of soft crumbs, a stub of it left on the nail, and it drops. A
+   click on a boarded doorway knocks on the boards, and they shudder on their nails. Once the last one is up it
    charges that doorway, hits the boards, stoops to look in at you through the slit with its
    fingers over the board, and pounds on them until the night fades.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
@@ -101,7 +104,10 @@ some on the ground, so you have to turn and look down to find them.
    park and turn the key in the dash beside the dials until it catches; then pick a gear and
    hit the gas. Reverse always gets away; drive does only if it is coming along a verge, and
    then, if it is near the road, it scuttles sideways out of your lights as you pass. The
-   whole road slides past as you go.
+   whole road slides past as you go. The house keys are tried at the keyhole, blade first, will not go in and drop to the
+   floor at your feet. Out of park the key will not turn: your hand takes it and it strains a few degrees and goes back.
+   Your hand turns the key and moves the stick, and your foot comes onto the gas: with the engine dead the pedal goes
+   limp to the floor under it.
 3. **The Graveyard.** The old warden walks between the graves and never stops
    smiling: a crypt keeper bent double over the hump on his back, his bald head jutting
    forward low, white wisps of hair, a long ragged coat and cape, a ring of keys at his
@@ -410,7 +416,7 @@ screens, death and retry, pause, mute, drops and the error overlay. `test/featur
 the one game (no picker, no hints), restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
 reduced motion, clear of the touch buttons on a phone), a wrong thing coming back, a plank falling to the floor where a
-click takes it again, a decoy dropping, the empty hand's reach, one fumble for many fast clicks, and a target's own choices. `test/lanes.js` runs `validateContent()` and checks every
+click takes it again (hanging, as it tips, from the end it is meant to), a decoy dropping, the empty hand's reach, one fumble for many fast clicks, and a target's own choices. `test/lanes.js` runs `validateContent()` and checks every
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
 unseen, early, without a jump in distance, and never on nights that opt out.
 `test/hittest.js` checks every item (each one, where several share an id) is visible and clickable from some direction across many layouts.

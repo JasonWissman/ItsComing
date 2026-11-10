@@ -1,5 +1,8 @@
-// The Road: it stalled in drive. The house keys (red caps) are refused by the ignition; the car keys (green head) go in,
-// but the key does nothing until the gearstick is in park. Turn the key until it catches, then the stick goes to reverse
+// The Road: it stalled in drive. With nothing in hand the ignition is felt for with the empty hand. The house keys (red
+// caps) are tried at the keyhole, will not go in, and drop to the floor at your feet, where looking down finds them and a
+// click takes them again; the car keys (green head) go in. The gas with the engine dead only goes down under your foot.
+// The key does nothing until the gearstick is in park: the hand takes it and it strains a few degrees and goes back; the
+// hand takes the stick's knob to move it. Turn the key until it catches, then the stick goes to reverse
 // (always away from it) or, with it on a verge, drive past it; the gas pedal takes the car off down the road, and the
 // whole world slides past until the night fades out. In park the gas only revs.
 //
@@ -26,11 +29,27 @@ const reverse = [['clickUntil', 'gear', "G.L.s.gear === 'R'", 200, 3], ['expect'
 const forward = [['clickUntil', 'gear', "G.L.s.gear === 'D'", 200, 3], ['expect', "G.L.s.gear === 'D' && G.L.creature.lane.idx !== 0", 'it is on a verge: into drive, to go past it']];
 module.exports = {
   nightmare: [...drove, lane,
-    ['pickup', 'housekeys'], ['use', 'ignition'], ['expect', '!G.L.s.keyIn', 'house keys refused'], ['pickup', 'keys'],
+    ['face', 0, false], ['click', 'ignition'],
+    ['expect', "G.hand.reach && G.hand.reach.target.id === 'ignition' && !G.fumbling && G.lastToast.msg === 'There is no key in the ignition.'", 'nothing in hand: the hand goes to the lock and finds no key in it'],
+    ['pickup', 'housekeys'], ['use', 'ignition'],
+    ['expect', "!G.L.s.keyIn && !G.hasItem('housekeys') && G.fumbling && G.fumbling.preset === 'bump' && !!G.fumbling.tip", 'house keys refused: tried at the keyhole blade first, and out of the hand'],
+    ['eval', 'window.__hk = G.fumbling.it'],
+    ['click', 'ignition'], ['expect', "!G.L.s.keyIn && G.lastToast.msg === 'House keys. Not these.' && G.fumbling && G.fumbling.it === window.__hk && !G.hand.reach", 'clicked again while they are at the lock: nothing more'],
+    ['waitUntil', '!G.fumbling && !window.__hk.taken', 4000],
+    ['expect', '(k => k.y === G.L.floor.y && k.z > 0.1 && k.z < 0.42 && Math.abs(k.x) < 0.35)(window.__hk)', 'they dropped to the floor at your feet'],
+    ['face', 0, true],
+    ['expect', "(() => { const it = window.__hk, h = [...R.hits].reverse().find(r => r.kind === 'item' && r.ref === it); if (!h || h.w < 6 || h.h < 4) return false; G.mouse.x = h.x + h.w / 2; G.mouse.y = h.y + h.h / 2; updateHover(); const ok = !!G.hover && G.hover.ref === it; G.mouse.x = -1; return ok; })()", 'looking down they lie in sight, and a click there takes them'],
+    ['pickup', 'keys'],
     // the ignition is in the dash beside the dials: in view looking straight ahead at the wheel, and the key goes in from there
     ['face', 0, false], ['expect', "(() => { const h = R.hits.find(h => h.kind === 'target' && h.ref.id === 'ignition'); return !!h && h.x >= 0 && h.y >= 0 && h.x + h.w <= R.W && h.y + h.h <= R.H; })()", 'looking straight ahead at the wheel, the ignition is in view'],
     ['use', 'ignition'], ['expect', 'G.L.s.keyIn && G.cam.dirIdx === 0 && G.cam.pitch < 0.1', 'key inserted, looking ahead'],
-    ['use', 'ignition'], ['expect', "G.L.s.cranks === 0 && G.L.s.gear === 'D'", 'in drive the key does nothing'], ['use', 'gear'], ['expect', "G.L.s.gear === 'P'", 'into park'],
+    ['use', 'gas'], ['expect', "!G.L.s.started && !G.L.s.gone && G.L.s.dead && G.state === 'play'", 'the gas with the engine dead: the pedal goes down under your foot, and nothing'],
+    ['face', 0, false], ['click', 'ignition'], ['expect', "G.L.s.cranks === 0 && G.L.s.gear === 'D' && G.hand.reach && G.hand.reach.style === 'rattle'", 'in drive the key does nothing: the hand takes it'],
+    ['waitUntil', 'G.L.s.keyAng > 8 * DEG', 1500], ['waitUntil', 'G.L.s.keyAng < 1 * DEG && !G.hand.reach', 2000],
+    ['expect', 'G.L.s.cranks === 0 && !G.L.s.started', 'it strained a few degrees and went back, and the engine never turned'],
+    // the stick at the edge of the view, looking down from the wheel: the hand still goes to the knob where it is drawn
+    ['face', 0, true], ['click', 'gear'],
+    ['expect', "G.L.s.gear === 'P' && G.hand.reach && G.hand.reach.target.id === 'gear' && G.hand.reach.style === 'pull' && (() => { const a = G.hand.reach.at, q = R.screenPos(a.x, a.y, a.z), h = R.hits.find(h => h.kind === 'target' && h.ref.id === 'gear'); return !!q && !!h && q.x > h.x && q.x < h.x + h.w && q.y > h.y && q.y < h.y + h.h * 0.4; })()", 'into park: the hand takes the knob, where it is drawn, and pulls it over'],
     ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6], ['expect', 'G.L.s.started', 'engine started'],
     ['use', 'gas'], ['expect', "!G.L.s.gone && G.L.s.gear === 'P' && G.state === 'play'", 'in park the gas only revs'],
     ['branch', 'G.runSeed % 3 === 2', forward, reverse],
