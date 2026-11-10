@@ -486,7 +486,8 @@ LEVELS.push({
     // (arm's length: where it is in the hand, at the depth at which it looks the size it does there, moved most of the way
     // in toward the line to the stack and a little further out, so it goes out from the hand and not off to one side)
     const armsLength = (t, item) => {
-      const hw = HANDS.handWorld(item, 10), d = Math.hypot(hw.p.x, hw.p.y - L.eyeH, hw.p.z) * 1.2, tx = t.x, ty = t.y + t.h * 0.45 - L.eyeH, tz = t.z, l = Math.hypot(tx, ty, tz) || 1;
+      // (toward the part of the stack in view: its middle, or the nearest part of it to that when the middle is off the view)
+      const hw = HANDS.handWorld(item, 10), d = Math.hypot(hw.p.x, hw.p.y - L.eyeH, hw.p.z) * 1.2, at = HANDS.pointOn(t), tx = at.x, ty = at.y - L.eyeH, tz = at.z, l = Math.hypot(tx, ty, tz) || 1;
       const k = 0.6;
       return { x: lerp(hw.p.x, tx / l * d, k), y: lerp(hw.p.y, L.eyeH + ty / l * d, k) + 0.06, z: lerp(hw.p.z, tz / l * d, k) };
     };
@@ -504,7 +505,7 @@ LEVELS.push({
     };
     const flick = (t, item) => {
       if (bits.some(b => b.kind === 'match')) return;   // (one at a time: clicked again while one is in the air, nothing more)
-      const hw = HANDS.handWorld(item, 1.2).p, dx = t.x - hw.x, dz = t.z - hw.z, l = Math.hypot(dx, dz) || 1;   // from your hand, at the stack
+      const hw = HANDS.handWorld(item, 1.2).p, at = HANDS.pointOn(t), dx = at.x - hw.x, dz = at.z - hw.z, l = Math.hypot(dx, dz) || 1;   // from your hand, at the stack (the part of it in view)
       bits.push({ kind: 'match', x: hw.x, y: hw.y + 0.06, z: hw.z, vx: dx / l * 3.2, vy: 1.6, vz: dz / l * 3.2, age: 0, spin: 0 });
       AUDIO.sfx('strike'); G.thrust(t, item);
     };
