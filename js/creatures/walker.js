@@ -10,9 +10,33 @@ CREATURES.walker = {
   // its hands on the board under the gap. c.handLift ([left, right], 0..1) raises a hand off the board to strike it, and
   // c.blow (1 at a blow, falling away) throws its head and shoulders in at the boards.
   lateral(c) { return c.runLat || 0; },
+  // c.headroom (metres above its feet as drawn, or undefined) is a height it must keep under: the lintel of a doorway it is
+  // coming in through (The Field's are a head too low for it). It ducks under it, as far as it must (duckFor): the
+  // head and shoulders bent down and forward at you, the hips dropped and the knees bent out, the elbows down and the
+  // hands up by its shoulders, reaching for you, and it straightens as the headroom comes back. c.duck is how far down it is (0..1).
+  // DUCK is the pose all the way down: the hips, the shoulders, the head brought down in front of them (and nearer, so
+  // bigger; it goes down ahead of the rest), the hands, and how far its back rounds up behind its head.
+  DUCK: { hip: 0.92, top: 1.58, head: -0.36, headK: 0.12, hand: -0.15, back: 0.12, rise: 3 },
+  // where it is at stoop dk, for the stoop and the peer (pk, bl) together: the shoulders, the hips, the head's own drop and
+  // scale, and how high its hands are; and peak, the highest of all of it (the top of its head or its back, or a fingertip)
+  stance(c, dk, pk, bl, bob, raise) {
+    const D = this.DUCK, lifts = c.handLift || [0, 0];
+    const hipY = lerp(lerp(1.22, 0.86, pk), D.hip, dk) + bob, top = lerp(lerp(2.0, 1.39, pk), D.top, dk) + bob - bl * 0.03;
+    const hk = Math.min(1, dk * 1.5), headDy = -0.1 * pk + D.head * hk, headK = 1 + 0.12 * pk + 0.08 * bl + D.headK * hk;
+    const handY = s => { const lift = smoothstep(lifts[s > 0 ? 1 : 0] || 0); return lerp(lerp(lerp(0.72, 1.95, raise), 1.53 + lift * 0.47, pk), top + D.hand, dk); };
+    const reach = 0.17 + raise * 0.05 + 0.012;   // the longest finger, and its width
+    return { hipY, top, headDy, headK, handY, peak: Math.max(top + headDy + 0.475 * headK, top + D.back * dk, handY(-1) + reach, handY(1) + reach) };
+  },
+  // the least stoop that keeps it under c.headroom (allowing for its breathing, which stretches it up to 1.4% taller)
+  duckFor(c, pk, bl, bob, raise) {
+    const room = c.headroom === undefined ? Infinity : c.headroom / 1.015;
+    if (this.stance(c, 0, pk, bl, bob, raise).peak <= room) return 0;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 14; i++) { const m = (lo + hi) / 2; if (this.stance(c, m, pk, bl, bob, raise).peak <= room) hi = m; else lo = m; }
+    return hi;
+  },
   draw(ctx, c, P) {
-    if (c.runPose) { this.drawRun(ctx, c, P); return; }
-    if (c.charge) { this.drawCharge(ctx, c, P); return; }
+    if (c.runPose || c.charge) { c.duck = 0; (c.runPose ? this.drawRun : this.drawCharge).call(this, ctx, c, P); return; }   // upright again after either
     const g = c.gait, t = c.t;
     const near = clamp(1 - c.dist / 22, 0, 1);
     const body = P.col([6, 6, 10]);
@@ -21,39 +45,46 @@ CREATURES.walker = {
     const bob = Math.abs(Math.sin(g)) * 0.05;
     const sway = Math.sin(g) * 0.035;
     const pk = smoothstep(c.peer || 0), bl = (c.blow || 0) * pk;   // stooping to look in: the hips drop, the knees splay, the body leans in at you
-    const hipY = lerp(1.22, 0.86, pk) + bob, top = lerp(2.0, 1.39, pk) + bob - bl * 0.03, sw = lerp(0.22, 0.26, pk);
+    const raise = smoothstep(Math.max(near, c.lunge || 0));   // the arms rise toward you when close
+    // ducking under a lintel: at once as far as it must, and straightening no faster than DUCK.rise (a night that lets it
+    // stand, as The Field does the moment it is won, does not jerk it upright)
+    const since = clamp(c.t - (c.duckAt === undefined ? c.t : c.duckAt), 0, 0.1);
+    const dk = c.duck = Math.max(this.duckFor(c, pk, bl, bob, raise), (c.duck || 0) - since * this.DUCK.rise);
+    c.duckAt = c.t;
+    const st = this.stance(c, dk, pk, bl, bob, raise), hipY = st.hipY, top = st.top, sw = lerp(0.22, 0.26, pk) + 0.04 * dk;
     // legs (front view: feet lift alternately)
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? Math.PI : 0);
       const lift = Math.max(0, Math.sin(ph)) * 0.24;
-      const hx = s * 0.08 + sway, kx = s * (0.12 + 0.12 * pk) + sway * 0.6, fx = s * 0.15 + sway * 0.3;
+      const hx = s * 0.08 + sway, kx = s * (0.12 + 0.12 * pk + 0.1 * dk) + sway * 0.6, fx = s * 0.15 + sway * 0.3;
       P_limb(ctx, [[hx, hipY], [kx, hipY * 0.5 + lift * 0.75], [fx, lift + 0.03]], 0.075, body);
       P_line(ctx, fx - 0.03, lift + 0.03, fx + s * 0.09, lift + 0.03, 0.07, body);
     }
-    // torso: far too narrow
+    // torso: far too narrow; bent at you under a lintel, its back rounds up behind its head between the shoulders
     P_poly(ctx, [[-0.15 + sway, hipY - 0.06], [0.15 + sway, hipY - 0.06], [sw + sway * 0.6, top], [-sw + sway * 0.6, top]], body);
+    if (dk > 0.02) P_ell(ctx, sway * 0.6, top - 0.02, sw + 0.02, this.DUCK.back * dk + 0.02, body);
     // arms: hang to the knees; rise toward you when close
-    const raise = smoothstep(Math.max(near, c.lunge || 0));
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? 0 : Math.PI);
       const swing = Math.sin(ph) * 0.05 * (1 - raise);
       const sx = s * (sw - 0.01) + sway * 0.6, sy = top - 0.05;
       // stooping, the elbows go out and the hands come down on the board under the gap, the fingers over its edge; a
-      // hand raised to strike goes up out of sight behind the board above
+      // hand raised to strike goes up out of sight behind the board above. Ducking, the elbows come down and out and the
+      // hands up by its shoulders, reaching for you.
       const lift = smoothstep((c.handLift && c.handLift[s > 0 ? 1 : 0]) || 0);
-      const ex = s * lerp(lerp(0.24, 0.52, raise), lerp(0.62, 0.58, lift), pk) + swing, ey = lerp(lerp(1.38, 1.55, raise), lerp(1.3, 1.66, lift), pk);
-      const hx = s * lerp(lerp(0.27, 0.4, raise), lerp(0.36, 0.42, lift), pk) + swing * 2, hy = lerp(lerp(0.72, 1.95, raise), 1.53 + lift * 0.47, pk);
+      const ex = s * lerp(lerp(lerp(0.24, 0.52, raise), lerp(0.62, 0.58, lift), pk), 0.5, dk) + swing, ey = lerp(lerp(lerp(1.38, 1.55, raise), lerp(1.3, 1.66, lift), pk), top - 0.42, dk);
+      const hx = s * lerp(lerp(lerp(0.27, 0.4, raise), lerp(0.36, 0.42, lift), pk), 0.36, dk) + swing * 2, hy = st.handY(s);
       P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
       const ang = lerp(lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), lerp(s > 0 ? -Math.PI * 0.56 : -Math.PI * 0.44, s > 0 ? Math.PI * 0.42 : Math.PI * 0.58, lift), pk);
       fingers(ctx, hx, hy, ang, lerp(lerp(0.16, 0.3, raise), lerp(0.1, 0.3, lift), pk), 0.17 + raise * 0.05, 0.018, body);
     }
-    // neck and head with a snapping tilt
-    const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0));
+    // neck and head with a snapping tilt (ducking, the head is thrust out at you, low between the shoulders)
+    const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0)) * (1 - 0.6 * dk);
     ctx.save();
     ctx.translate(sway * 0.6, top);
     ctx.rotate(tilt);
     P_line(ctx, 0, 0, 0, 0.12, 0.07, body);
-    if (pk) { const k = 1 + 0.12 * pk + 0.08 * bl; ctx.translate(0, -0.1 * pk); ctx.scale(k, k); }   // leaning in: the neck foreshortened, the head nearer
+    if (pk || dk) { ctx.translate(0, st.headDy); ctx.scale(st.headK, st.headK); }   // leaning in: the neck foreshortened, the head nearer
     P_ell(ctx, 0, 0.3, 0.115, 0.175, body);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
     if (faceA > 0) {
