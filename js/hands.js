@@ -46,8 +46,8 @@ const HANDS = (() => {
     if (!shapes) shapes = SHAPES().filter(s => typeof s[0] === 'function');
     const w = it.w || 0.4, h = it.h || 0.4, long = Math.max(w, h);
     let d;
-    if (long >= 0.85) d = w >= h ? { hands: 2, grip: 'fist', at: [0.3, 0.5], off: [-0.16, 0.5], axis: Math.PI / 2, angle: -0.3 }   // a long thing: two hands, carried low at your side
-      : { hands: 2, grip: 'fist', at: [0, 0.2], off: [0, 0.6], axis: 0, angle: -1.1 };
+    if (long >= 0.85) d = w >= h ? { grip: 'fist', at: [0.3, 0.5], axis: Math.PI / 2, angle: -0.3 }   // a long thing: in one fist, carried low at your side
+      : { grip: 'fist', at: [0, 0.2], axis: 0, angle: -1.1 };
     else if (/key/i.test(it.id)) d = { grip: 'pinch', at: [0, 0.7], angle: -0.2, tip: [0, 0.06] };   // a key: by its bow, led by its blade
     else if (/chain|rope/i.test(it.id)) d = { grip: 'hang', at: [0, 0.94], axis: Math.PI / 2 };   // a chain or a rope: hanging from the fist
     else if (long <= 0.24) d = { grip: 'pinch', at: [0, 0.12], angle: -0.18 };                 // small: between finger and thumb
@@ -56,7 +56,8 @@ const HANDS = (() => {
     else d = { grip: 'fist', at: [0, 0.3], angle: 0.08 };
     // the icon itself, or a night's own wrapping of it under the same name (the last night draws them all on its floor)
     const known = shapes.find(s => s[0] === it.icon) || (BY_ID.includes(it.id) && shapes.find(s => s[0] === ICONS[it.id]));
-    return Object.assign({ hands: 1, grip: 'fist', at: [0, 0.3], axis: 0, angle: 0, size: 0, scale: 1, x: 0, y: 0, swing: 1 }, d, known ? known[1] : null, it.held || null);
+    // one hand to a thing, always: a second thing goes in the other hand, on the other side of the view (L.offHand)
+    return Object.assign({ hands: 1, grip: 'fist', at: [0, 0.3], axis: 0, angle: 0, size: 0, scale: 1, x: 0, y: 0, swing: 1 }, d, known ? known[1] : null, it.held || null, { hands: 1, off: null });
   }
   // the size it is drawn at, in px of the view's height: modest, and a long thing less than its length would make it
   function sizeOf(spec, it, Hv) {
@@ -203,8 +204,8 @@ const HANDS = (() => {
   // ---------------- drawing ----------------
   // colours: lit as the night lights a thing at your chest (its lamps, the moon's ambient, a flash of lightning), a little
   // darker than what lies about (it is close, under you), and drawn a shade toward the night's own fog
-  const SKIN = [172, 132, 108], SKIN_D = [112, 80, 64], SKIN_L = [214, 176, 148], NAIL = [206, 172, 152], PALM = [196, 152, 128];
-  const SLEEVE = [44, 38, 37], SLEEVE_L = [68, 60, 57], SLEEVE_D = [24, 21, 21], GLOVE = [34, 30, 30], GLOVE_L = [70, 63, 60];
+  const SKIN = [172, 132, 108];
+  const SLEEVE = [44, 38, 37], SLEEVE_L = [68, 60, 57], SLEEVE_D = [24, 21, 21], GLOVE = [34, 30, 30];
   function lighting(L) {
     const e = L.eye || { x: 0, y: 0, z: 0 }, yaw = G.cam.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
     const px = (e.x || 0) + fx * 0.5 + rx * 0.25, py = L.eyeH + (e.y || 0) - 0.4, pz = (e.z || 0) + fz * 0.5 + rz * 0.25;
@@ -243,8 +244,8 @@ const HANDS = (() => {
     const o = L.hands || {}, glove = !!o.glove, sk = o.skin || (glove ? GLOVE : SKIN), sl = o.sleeve || SLEEVE;
     const c = (x, k) => rgba(lit(k ? scalec(x, k) : x));
     return {
-      skin: c(sk), skinM: c(scalec(sk, 0.9)), skinD: c(glove ? scalec(sk, 0.6) : SKIN_D), skinL: c(glove ? GLOVE_L : SKIN_L), nail: c(glove ? GLOVE_L : NAIL), palm: c(glove ? sk : PALM),
-      crease: c(glove ? scalec(sk, 0.45) : scalec(SKIN_D, 0.8)), sleeve: c(sl), sleeveL: c(o.sleeve ? scalec(sl, 1.45) : SLEEVE_L), sleeveD: c(o.sleeve ? scalec(sl, 0.6) : SLEEVE_D),
+      // one flat colour for the whole hand (or glove): no highlights, nails, creases or shading between the fingers
+      skin: c(sk), skinM: c(sk), skinD: c(sk), skinL: c(sk), nail: c(sk), palm: c(sk), crease: c(sk), sleeve: c(sl), sleeveL: c(o.sleeve ? scalec(sl, 1.45) : SLEEVE_L), sleeveD: c(o.sleeve ? scalec(sl, 0.6) : SLEEVE_D),
     };
   }
   // A right hand, in a frame whose origin is where it closes, the thing it closes round running up and down through it,

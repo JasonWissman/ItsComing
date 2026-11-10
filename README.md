@@ -385,13 +385,13 @@ LEVELS.push({
   (`G.thrust(target, item, release)`; a thing used up is let go of there), and the hand goes down out of view when you
   hold nothing or the night is won or lost. It keeps clear of the middle of the view, the hover line, the inventory and
   the touch buttons, measured from where they are on the page: on a phone it moves in from them, up over them or
-  shrinks. How a thing sits in the hand comes from its shape (long: carried in both hands at your side; small: between
+  shrinks. How a thing sits in the hand comes from its shape (long: carried in one fist at your side; small: between
   finger and thumb; tall: in a fist; wide and low: on the palm; a key by its bow; a chain hanging), and a few shared
   icons know better (the hammer by its handle, the lantern hanging by its bail). `item.held` overrides any of it:
-  `{ grip: 'fist' | 'pinch' | 'flat' | 'hang', hands: 1 | 2, at: [x, y] (where the hand closes on it, in its icon's units:
+  `{ grip: 'fist' | 'pinch' | 'flat' | 'hang', at: [x, y] (where the hand closes on it, in its icon's units:
   x -0.5..0.5 across, y 0..1 up), axis (the line the fingers close round, off the icon's upright, radians clockwise),
   angle (its tilt in the hand, clockwise), size (its longer side as a share of the view's height), scale, x, y (a nudge),
-  off: [x, y] (where the other hand takes a two-handed thing), swing (how freely a hanging thing swings), tip: [x, y]
+  swing (how freely a hanging thing swings), tip: [x, y]
   (the point it is pushed in with: a key's blade) }`; `G.heldSpec(item)` gives what is used. A night's own
   `uses[].inHands` (the bow) replaces it whenever that tool is held. `L.heldItem(item)` may return another item to draw,
   or null to show nothing (undefined keeps the default); `L.offHand()` returns an item to draw in the left hand, at the
