@@ -225,7 +225,10 @@ const HANDS = (() => {
     }
   }
   // the forearm in its sleeve, from the wrist off the edge of the view (dir: its way out, as an angle)
+  // SHOW_HANDS false: the held things float where the hand would hold them, with no hand or arm drawn
+  const SHOW_HANDS = false;
   function arm(ctx, C, wx, wy, dir, u) {
+    if (!SHOW_HANDS) return;
     const ex = wx + Math.cos(dir) * u * 16, ey = wy + Math.sin(dir) * u * 16;   // (long enough to leave the view from a hand reaching up to the top of it)
     ctx.lineCap = 'round';
     ctx.strokeStyle = C.sleeveD; ctx.lineWidth = u * 0.86; ctx.beginPath(); ctx.moveTo(wx + Math.cos(dir) * u * 0.3, wy + Math.sin(dir) * u * 0.3); ctx.lineTo(ex, ey); ctx.stroke();
@@ -254,6 +257,7 @@ const HANDS = (() => {
   // thumb, in front, and the side of the forefinger, behind), 'flat' (palm up, under it), 'open' (reaching: the back of the
   // hand, the fingers out straight up and to the left). part: 'back' (what is behind the thing), 'front' (what is in front).
   function hand(ctx, C, pose, part, u, curl) {
+    if (!SHOW_HANDS) return;
     const k = curl === undefined ? 1 : curl;   // 0: open, 1: closed (a fist opening to let go)
     if (pose === 'fist') {
       if (part === 'back') {
