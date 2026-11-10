@@ -37,11 +37,13 @@ const passedLine = sideWindow.concat(throwAt(0), [
   put(15.4), reared,
 ], throwAt(1), [
   ['expect', 'G.L.s.litAt[1].lane === 1 && G.L.s.litAt[1].path < G.L.s.litAt[1].bar', "the barn hay went up after it had passed that way's fire line"],
+  ['waitUntil', '!!G.L.s.rush', 2000],   // (decided in the frame after the win)
   ['expect', "G.L.won && G.L.s.rush.mode !== 'line'", 'both burning: you are safe'],
   ['wait', 1500], ['expect', 'window.__reared > 0.9', 'it rears back from the fire where it stands'],
 ], survived, again);
 const onChute = sideWindow.concat(throwAt(1), [put(8.5), reared], throwAt(0), [
   ['expect', 'G.L.s.litAt[0].lane === 0 && G.L.s.litAt[0].path < G.L.s.litAt[0].hay && G.L.creature.dist > 4.6', 'the yard hay went up behind it: it was past it, on the chute'],
+  ['waitUntil', '!!G.L.s.rush', 2000],
   ['expect', "G.L.won && G.L.s.rush.mode === 'smoke'", 'both burning: you are safe, though it was between the fire and you'],
   ['waitUntil', 'G.L.creature.sitting', 8000],
   ['expect', 'G.L.creature.sitting && G.L.s.rush.to > G.L.s.rush.p0 + 1 && window.__reared > 0.9', 'it reared back, backed away down the chute, away from you, and sat down in the smoke'],
