@@ -132,50 +132,84 @@ LEVELS.push({
     const spots = [floorAt(60, 2.7), floorAt(120, 2.7), floorAt(45, 2.9), floorAt(135, 2.9), floorAt(75, 3.0), floorAt(108, 3.0)];
     // the lamp's bulb has blown and so has the fuse: a spare bulb lies about, the new fuse is in the toolbox, and a
     // blown one that looks like it might do lies about as well
-    Object.assign(s, { open: false, blownIn: true, bulb: false, fuse: false, power: false, turning: false, beamA: 0, beamSpeed: 1, crossing: false });
-    mkItem(L, 'bulb', 'Bulb', spots, { w: 0.2, h: 0.3, flat: false });
-    mkContainer(L, {
+    Object.assign(s, { open: false, blownIn: true, bulb: false, fuse: false, power: false, turning: false, beamA: 0, beamSpeed: 1, crossing: false, lensA: 0 });
+    // in the hand: the bulb by its brass cap, a fuse between finger and thumb by one end, small, as they really are
+    const fuseHeld = { grip: 'pinch', at: [-0.38, 0.47], angle: -0.36, size: 0.17, tip: [0.42, 0.48] };
+    mkItem(L, 'bulb', 'Bulb', spots, { w: 0.2, h: 0.3, flat: false, held: { size: 0.15, angle: -0.2 } });
+    const toolbox = mkContainer(L, {
       id: 'toolbox', name: 'Toolbox', w: 0.56, h: 0.38, color: [172, 36, 30], spot: spots.slice(0, 4), sfx: 'clunk', liftY: 0.13,
       closedText: 'A toolbox.', emptyText: 'Rags and a tin of grease.',
-      yields: [{ id: 'fuse', name: 'Fuse', opts: { w: 0.34, h: 0.34, flat: false } }],
+      yields: [{ id: 'fuse', name: 'Fuse', opts: { w: 0.34, h: 0.34, flat: false, held: fuseHeld } }],
       onOpen() { G.say('A new fuse, in among the rags.', 'Rags, a tin of grease. A fuse.'); },
     });
-    mkItem(L, 'oldfuse', 'Fuse', spots, { w: 0.3, h: 0.3, flat: false, icon: 'fuse', decoy: true, decoyText: 'This one is blown as well.' });
+    mkItem(L, 'oldfuse', 'Fuse', spots, { w: 0.3, h: 0.3, flat: false, icon: 'fuse', decoy: true, decoyText: 'This one is blown as well.', held: fuseHeld });
     const lit = () => G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go round.');
     const powerUp = () => { if (!(s.bulb && s.fuse) || s.power) return false; s.power = true; lamp.done = true; setTimeout(() => AUDIO.sfx('lampOn'), 250); return true; };
+    // A click that does nothing, shown where it was tried: the thing in hand goes to the spot (at: [across, up] the target),
+    // knocks there and comes back to the hand; with nothing in hand the hand goes to it and touches it. o.touch is called as
+    // either gets there (the old bulb rattles in its socket; the blown fuse shifts in its clips). The lamp is some way off,
+    // through the lamp room's glass, but it is what the hand works here: the hand is put on it as you see it (the spot
+    // brought in along your line of sight to arm's length, where the hand goes all the way).
+    const inReach = (t, at) => { const p = HANDS.pointOn(t, at, 0.02), dy = p.y - L.eyeH, k = Math.min(1, 1.5 / Math.hypot(p.x, dy, p.z)); return { x: p.x * k, y: L.eyeH + dy * k, z: p.z * k }; };
+    const tryAt = (t, at, o) => {
+      const act = G.inv[G.active], touch = o && o.touch;
+      const shown = act ? G.fumble(act, t, Object.assign({ preset: 'return', at, onHit: touch }, o && o.fumble)) : G.reach(t, Object.assign({ style: 'touch', at: inReach(t, at), onTouch: touch }, o && o.reach));
+      if (!shown && !G.fumbling) AUDIO.sfx('nope');
+    };
+    // the toolbox open already: the hand goes into the rags (what you hold is tried there and comes back)
+    { const open0 = toolbox.onClick; toolbox.onClick = () => { const was = toolbox.open, r = open0(); if (was && r) tryAt(toolbox, [0, 0.42]); return r; }; }
+    // the bulb in the middle of the lens, where a thing tried at the lamp goes and the hand touches it; touched, it rattles in
+    // its socket (the old one's broken filament with it)
+    const BULB = [0, 0.48], jiggle = () => { s.jig = L.t; };
     // the lamp: the bulb goes in here
     const lamp = mkTarget(L, {
       id: 'lamp', name: 'Lamp', x: AX, y: 0.9, z: AZ, w: LW, h: LH, accepts: ['bulb'],
       hint() { return s.power ? 'Lit.' : s.bulb ? 'A new bulb in it, and no light: no power. The fuse box.' : 'The big lamp. Its bulb has blown.'; },
       onClick() {
-        if (s.power) { G.say('Lit.', 'Lit.'); return true; }
-        if (s.bulb) { G.say('The bulb is in, but there is no power. Try the fuse box.', 'The new bulb is in. Still dark.'); return true; }
-        if (!G.hasItem('bulb')) { G.say('The big lamp. Its bulb has blown.', 'The lamp is dark. Its bulb has blown.'); AUDIO.sfx('nope'); return true; }
+        if (s.power) { G.say('Lit.', 'Lit.'); tryAt(lamp, BULB); return true; }
+        if (s.bulb) { G.say('The bulb is in, but there is no power. Try the fuse box.', 'The new bulb is in. Still dark.'); tryAt(lamp, BULB, { touch: jiggle }); return true; }
+        if (!G.hasItem('bulb')) { G.say('The big lamp. Its bulb has blown.', 'The lamp is dark. Its bulb has blown.'); tryAt(lamp, BULB, { touch: jiggle, reach: { sfx: 'tink' } }); return true; }
         return false;
       },
       use(item) {
         if (item.id !== 'bulb' || s.bulb) return false;
-        s.bulb = true; lamp.accepts = []; AUDIO.sfx('fit');
+        s.bulb = true; s.bulbAt = L.t; lamp.accepts = []; AUDIO.sfx('fit');
         if (powerUp()) lit();
         else G.say('The bulb is in. Nothing: there is no power. Try the fuse box.', 'The bulb is in. Still dark.');
         return true;
       },
     });
     // the fuse box: open its door, pull out the blown fuse, put the new one in
+    // Where the fuse lies in its clips (the middle of the box). A blown fuse pushed into the empty clips (the one that came
+    // out, or the worn one lying about) is put in place there, sits a beat with nothing coming on, and drops out of the clips
+    // to the floor; anything else tried there, or a fuse while the blown one is still in, knocks at it and comes back.
+    const CLIPS = [0, 0.5], fuseJig = () => { s.fuseJig = L.t; };
+    const intoClips = { preset: 'slip', at: CLIPS, angle: 0, scale: 0.8, hold: 0.4, sfx: { hit: 'fit' } };
     const box = mkTarget(L, {
       id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1], z: fb[2], w: FBW, h: FBH, accepts: [],
       hint() { return s.fuse ? 'A good fuse in it.' : !s.open ? 'The fuse box. Shut.' : s.blownIn ? 'Open. The fuse in it is blown. Take it out.' : 'Open. The fuse holder is empty.'; },
       onClick() {
-        if (!s.open) { s.open = true; blown.hidden = false; door.hidden = false; AUDIO.sfx('creak'); G.say('Inside, the fuse is black and split. Blown.', 'The fuse inside is black and split.'); return true; }
-        if (s.fuse) { G.say('A good fuse in it.', 'A new fuse in it.'); return true; }
-        if (s.blownIn) { G.say('Take the blown fuse out first.', 'The blown fuse is still in it.'); AUDIO.sfx('nope'); return true; }
-        if (!G.inv.some(i => box.accepts.includes(i.id))) {
-          // only the blown fuse in hand is "the one that blew"; anything else, or nothing, finds the holder empty
-          const act = G.inv[G.active], old = !!act && act.id === 'blownfuse';
-          G.say(old ? 'That is the one that blew.' : 'The holder is empty. There is a new fuse in the toolbox.', old ? 'That is the one that blew.' : 'The fuse holder is empty.'); AUDIO.sfx('nope'); return true;
+        if (!s.open) {   // the hand takes the handle and pulls, and the door swings open on its hinges
+          s.open = true; s.openAt = L.t + 0.3; G.say('Inside, the fuse is black and split. Blown.', 'The fuse inside is black and split.');   // (the fuse in it and the open door are there to point at once it has swung: L.update)
+          s.opening = G.reach(box, { style: 'pull', at: [0.31, 0.5], onTouch() { s.openAt = Math.min(s.openAt, L.t); } });
+          if (!s.opening) s.openAt = L.t;
+          return true;
+        }
+        if (L.t < s.openAt + 0.38) return true;   // still swinging open in the hand
+        if (G.fumbling && G.fumbling.target === box && G.fumbling.phase !== 'fall' && G.fumbling.phase !== 'bounce') return true;   // a fuse of yours at the clips already
+        if (s.fuse) { G.say('A good fuse in it.', 'A new fuse in it.'); tryAt(box, CLIPS, { touch: fuseJig, fumble: { scale: 0.8 } }); return true; }
+        if (s.blownIn) { G.say('Take the blown fuse out first.', 'The blown fuse is still in it.'); tryAt(box, CLIPS, { touch: fuseJig, fumble: { scale: 0.8, sfx: { hit: 'tink' } } }); return true; }
+        // only the blown fuse in hand is "the one that blew", and it is the one tried, though the worn one is about you too (the
+        // new one, if you have it, is put in for you); anything else, or nothing, finds the holder empty
+        const act = G.inv[G.active], old = !!act && act.id === 'blownfuse';
+        if ((old && !G.hasItem('fuse')) || !G.inv.some(i => box.accepts.includes(i.id))) {
+          G.say(old ? 'That is the one that blew.' : 'The holder is empty. There is a new fuse in the toolbox.', old ? 'That is the one that blew.' : 'The fuse holder is empty.');
+          if (old) { if (!G.fumble(act, box, intoClips) && !G.fumbling) AUDIO.sfx('nope'); } else tryAt(box, CLIPS, { fumble: { scale: 0.8 } });
+          return true;
         }
         return false;
       },
+      onDecoy: it => G.fumble(it, box, intoClips),   // the worn one lying about: blown as well, and it drops out of the clips
       use(item) {
         if (item.id !== 'fuse') return false;
         s.fuse = true; box.accepts = []; box.done = true; AUDIO.sfx('fit');
@@ -190,7 +224,7 @@ LEVELS.push({
       const x = fb[0] + fb[2] / fd * off, z = fb[2] - fb[0] / fd * off;
       return mkTarget(L, {
         id: 'fusedoor', name: 'Fuse box', x: x * k, y: L.eyeH + (fb[1] - L.eyeH) * k, z: z * k, w: 0.36 * FBW * k, h: FBH * k, hidden: true,
-        hint: () => box.hint(), onClick: () => box.onClick(), use: item => box.use(item),
+        hint: () => box.hint(), onClick: () => box.onClick(), use: item => box.use(item), onDecoy: item => box.onDecoy(item),
       });
     })();
     Object.defineProperty(door, 'accepts', { get: () => box.accepts, set() {} });
@@ -202,8 +236,9 @@ LEVELS.push({
       onClick() {
         if (!s.blownIn) return true;
         s.blownIn = false; blown.hidden = true; blown.done = true; box.accepts = ['fuse', 'oldfuse'];
-        const it = newItem(L, 'blownfuse', 'Blown fuse', { w: 0.3, h: 0.3, decoy: true, decoyText: 'That is the one that blew.' });
-        G.inv.push(it); G.active = G.inv.length - 1; G.hover = null; AUDIO.sfx('pickup');
+        // it comes out of the clips up into your hand, as anything picked up does
+        const it = newItem(L, 'blownfuse', 'Blown fuse', { w: 0.3, h: 0.3, decoy: true, decoyText: 'That is the one that blew.', held: fuseHeld, x: blown.x, y: blown.y, z: blown.z });
+        HANDS.picked(it); G.inv.push(it); G.active = G.inv.length - 1; G.hover = null; AUDIO.sfx('pickup');
         G.say('It comes out in your hand, black and split. The holder is empty.', 'The blown fuse comes out. The holder is empty.');
         return true;
       },
@@ -271,16 +306,28 @@ LEVELS.push({
         if (Math.abs(s.scut.to - c.wallTh) < 1e-6) { c.wallTh = s.scut.to; c.scuttle = 0; s.scut = null; }
       }
       if (s.turning) s.beamA += dt * TAU / 12 * s.beamSpeed;
+      // the lamp goes round with the crank: a little at each turn of it, and all the time once it is going, lit or dark
+      s.lensKick = (s.lensKick || 0) + ((winder.count || 0) * 0.16 - (s.lensKick || 0)) * Math.min(1, dt * 9);
+      if (s.turning) s.lensSpin = (s.lensSpin || 0) + dt * TAU / 12 * s.beamSpeed;
+      s.lensA = s.lensKick + (s.lensSpin || 0);
+      if (s.open && !s.creaked && L.t >= s.openAt) { s.creaked = true; AUDIO.sfx('creak'); }   // the door swings as the hand pulls it
+      if (s.open && door.hidden && L.t >= s.openAt + 0.2) { door.hidden = false; blown.hidden = !s.blownIn; }   // and what is inside shows
+      // and the hand on its handle goes round with it
+      if (s.opening && G.hand.reach === s.opening && L.t >= s.openAt) s.opening.at = HANDS.pointOn(box, [-0.5 + 0.81 * Math.cos(smoothstep((L.t - s.openAt) / 0.38) * 1.96), 0.5], 0.02);
     };
     const lensW = L.pt(AX, 1.9, AZ);
     // the fuse box, as it stands: a grey cabinet with a yellow lightning-bolt label and a handle; open, its door swings
     // out to the left and inside is the fuse in its clips: blown (black, split), gone, or new
-    const fuseAt = (ctx, P, icon) => { ctx.save(); ctx.translate(0, 0.5 - 0.48 * 0.72); ctx.scale(0.62, 0.72); ICONS[icon](ctx, P); ctx.restore(); };
+    // (the fuse in the clips shifts and settles when it is touched or knocked)
+    const fuseAt = (ctx, P, icon) => {
+      const e = L.t - (s.fuseJig === undefined ? -9 : s.fuseJig), j = e < 0.7 ? Math.sin(e * 38) * Math.exp(-e * 6) * (SAVE.data.settings.reducedMotion ? 0.4 : 1) : 0;   // (less with reduced motion)
+      ctx.save(); ctx.translate(j * 0.03, 0.5 - 0.48 * 0.72 + Math.abs(j) * 0.01); ctx.rotate(j * 0.06); ctx.scale(0.62, 0.72); ICONS[icon](ctx, P); ctx.restore();
+    };
     const drawFuseBox = (ctx, P) => {
       ctx.scale(FBW, FBH);
       const rim = P.col([92, 96, 102]), metal = P.col([150, 154, 160]), dark = P.col([14, 14, 18]), ink = P.col([22, 20, 18]);
       P_rect(ctx, -0.5, 0, 1, 1, rim);
-      if (!s.open) {
+      const doorFace = () => {
         P_rect(ctx, -0.45, 0.04, 0.9, 0.92, metal);                                      // the door
         P_rect(ctx, -0.45, 0.04, 0.9, 0.025, rim); P_rect(ctx, 0.425, 0.04, 0.025, 0.92, rim);
         for (const v of [0.16, 0.76]) P_rect(ctx, -0.52, v, 0.07, 0.1, P.col([70, 72, 78]));   // hinges, on the left
@@ -289,10 +336,11 @@ LEVELS.push({
         P_poly(ctx, [[-0.25, 0.45], [0.13, 0.45], [-0.06, 0.82]], P.col([236, 196, 36]));
         P_poly(ctx, [[-0.02, 0.76], [-0.13, 0.6], [-0.05, 0.6], [-0.11, 0.48], [0.03, 0.65], [-0.05, 0.65]], ink);
         for (let k = 0; k < 3; k++) P_rect(ctx, -0.3, 0.12 + k * 0.06, 0.4, 0.025, P.col([96, 100, 106]));   // vents
-        return;
-      }
-      P_poly(ctx, [[-0.5, 0.0], [-0.86, 0.08], [-0.86, 0.92], [-0.5, 1.0]], P.col([108, 110, 116]));   // the door, swung open: its inside
-      P_line(ctx, -0.86, 0.08, -0.86, 0.92, 0.02, rim);
+      };
+      // the door swings open on its hinges, on the left, as the hand pulls it: its face narrowing toward the hinges, then its
+      // inside coming round to lie open beside the box
+      const k = s.open ? smoothstep((L.t - s.openAt) / 0.38) : 0, cs = Math.cos(k * 1.96);
+      if (k <= 0) { doorFace(); return; }
       P_rect(ctx, -0.45, 0.04, 0.9, 0.92, dark);                                         // the inside of the cabinet
       P_rect(ctx, -0.36, 0.2, 0.72, 0.6, P.col([196, 190, 176]));                         // the porcelain block
       P_line(ctx, -0.28, 0.5, -0.28, 0.96, 0.04, P.col([40, 36, 34])); P_line(ctx, 0.28, 0.5, 0.28, 0.04, 0.04, P.col([40, 36, 34]));   // the wires in and out
@@ -303,6 +351,10 @@ LEVELS.push({
       else if (s.blownIn) fuseAt(ctx, P, 'blownfuse');
       else for (const x of [-0.17, 0.17]) P_line(ctx, x, 0.5, x * 0.6, 0.5, 0.02, P.col([90, 90, 96]));   // empty: two stubs of burned wire left in the clips
       if (s.power) P_ell(ctx, 0.3, 0.88, 0.04, 0.03, P.raw([255, 210, 120]));
+      if (cs > 0) { ctx.save(); ctx.translate(-0.5, 0); ctx.scale(cs, 1); ctx.translate(0.5, 0); doorFace(); ctx.restore(); return; }   // still swinging: its face, end on
+      const xe = -0.5 + 0.95 * cs, ins = 0.08 * Math.min(1, -cs / 0.38);
+      P_poly(ctx, [[-0.5, 0.0], [xe, ins], [xe, 1 - ins], [-0.5, 1.0]], P.col([108, 110, 116]));   // the door, swung open: its inside
+      P_line(ctx, xe, ins, xe, 1 - ins, 0.02, rim);
     };
     // the lamp: a lighthouse lens on its pedestal, a barrel of glass rings in a bronze frame, and in the middle of it the bulb:
     // the old one, smoked and burned black; the new one, pale and dark; or a burning core with the whole lens alight
@@ -323,11 +375,20 @@ LEVELS.push({
       P_rect(ctx, -0.41, 0.37, 0.82, 0.24, on ? P.raw([255, 244, 214]) : P.col([74, 88, 96]));     // the drum round the bulb
       P_rect(ctx, -0.36, 0, 0.72, 0.07, bronze); P_rect(ctx, -0.36, 0.055, 0.72, 0.015, bronzeD);    // the frame: its foot,
       P_poly(ctx, [[-0.32, 0.89], [0.32, 0.89], [0.2, 0.97], [-0.2, 0.97]], bronze); P_rect(ctx, -0.05, 0.97, 0.1, 0.03, bronzeD);   // its cap,
-      for (const x of [-0.25, 0.25]) P_line(ctx, x, 0.075, x, 0.885, 0.018, bronzeD);              // and two ribs clear of the bulb
+      // and its ribs, four round the barrel: at rest the two on this side stand clear of the bulb either side of it; as the
+      // crank turns the lamp they go round with it, across in front of the bulb and away round the back (lit or dark)
+      const ribs = [0, 1, 2, 3].map(k => s.lensA + Math.PI / 4 + k * Math.PI / 2).filter(a => Math.cos(a) > 0.02).map(a => Math.sin(a) * 0.354);
       P_line(ctx, -0.42, 0.37, 0.42, 0.37, 0.012, bronzeD); P_line(ctx, -0.42, 0.61, 0.42, 0.61, 0.012, bronzeD);
-      // the bulb, kept round inside the tall box: its own box is as wide as it is high in metres
-      ctx.save(); ctx.translate(0, 0.33); ctx.scale(0.3 * LH / LW, 0.3);
+      // the bulb, kept round inside the tall box: its own box is as wide as it is high in metres. Touched, it rattles in its
+      // socket; the new one is twisted down into it as it goes in
+      const je = L.t - (s.jig === undefined ? -9 : s.jig), jig = je < 0.8 ? Math.sin(je * 34) * Math.exp(-je * 5.5) * 0.16 * (SAVE.data.settings.reducedMotion ? 0.4 : 1) : 0;
+      const se = s.bulb && s.bulbAt !== undefined ? clamp((L.t - s.bulbAt) / 0.5, 0, 1) : 1, seat = 1 - easeOut(se);
+      ctx.save(); ctx.translate(0, 0.33 + seat * 0.05); ctx.scale(0.3 * LH / LW, 0.3);
+      ctx.translate(0, 0.13); ctx.rotate(jig + seat * 0.5 * Math.sin(se * 18)); ctx.translate(0, -0.13);
       if (!s.bulb) oldBulb(ctx, P); else ICONS.bulb(ctx, P);
+      ctx.restore();
+      ctx.save(); ctx.beginPath(); barrel.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.clip();   // (kept inside the barrel)
+      for (const x of ribs) P_line(ctx, x, 0.075, x, 0.885, 0.018, bronzeD);
       ctx.restore();
       if (on) { const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.5); g.addColorStop(0, 'rgba(255,252,232,1)'); g.addColorStop(0.35, 'rgba(255,234,180,0.7)'); g.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); }
     };

@@ -25,6 +25,34 @@ const litRun = `(() => {
   }
   return { state: G.state, cause: G.deathCause, down: s.down.filter(Boolean).length, t: +L.t.toFixed(2) };
 })()`;
+// what does not work, shown where it was tried: lit, with no crank, the shutter of its window (the hand goes to the gearbox,
+// tries to turn it and it will not move); the main thrown (it is off at once, but the lever, the clunk and the lights wait for
+// the hand, which takes the grip and comes down with it); the main again (the hand tries the lever and it stays down); a
+// shutter that is down, with the crank (it goes to the gearbox's eye, knocks and comes back to the hand) and with nothing in
+// hand (the hand knocks on the glass)
+const onK = mk => ['branch', '__k === 0', mk(0), [['branch', '__k === 1', mk(1), mk(2)]]];
+const refusals = [
+  onTarget(k => [['use', 'shutter' + k]]),
+  ['expect', 'G.L.s.byHand && G.hand.reach && G.hand.reach.style === "rattle" && !G.L.targets.some(t => t.crank && t.count)', 'no crank: the hand goes to the gearbox and tries it, and the shutter does not come down'],
+  ['eval', 'window.__tc = G.L.t'], ['use', 'main'],
+  ['expect', '!G.L.s.power && !G.L.creature.drawn && G.hand.reach && G.hand.reach.target.id === "main" && G.hand.reach.style === "pull"', 'the main thrown: off at once, and the hand goes up to the lever'],
+  ['waitUntil', 'G.L.s.levered && G.L.s.lever === 0 && !G.hand.reach', 3000],
+  ['expect', 'G.L.s.offAt > __tc + 0.1 && G.L.pal.ambient < 0.5', 'the lever and the lights waited for the hand, and went with it'],
+  ['use', 'main'], ['expect', 'G.hand.reach && G.hand.reach.style === "rattle" && !G.L.s.power', 'thrown already: the hand tries the lever'],
+  ['waitUntil', 'G.L.s.jigAt > __tc && !G.hand.reach && G.L.s.lever === 0', 3000],
+  ['pickup', 'crank'],
+  ['eval', `(() => { const L = G.L, s = L.s, k = [0, 1, 2].find(i => i !== s.target), t = L.targets.find(t => t.id === 'shutter' + k);
+    t.count = s.turns - 1; s.lastTurn = -9; useTarget(t); window.__k = k; })()`],
+  ['expect', 'G.L.s.down[__k]', 'a shutter down'],
+  onK(k => [['use', 'shutter' + k]]),
+  ['expect', 'G.lastToast.msg === "That shutter is down." && G.fumbling && G.fumbling.preset === "return" && G.fumbling.it.id === "crank"', 'the crank at a shutter that is down: it goes to the gearbox'],
+  ['waitUntil', '!G.fumbling', 3000],
+  ['expect', 'G.inv[G.active] && G.inv[G.active].id === "crank"', 'and comes back to the hand'],
+  ['eval', 'dropActive()'], ['expect', '!G.hasItem("crank")', 'the crank put down'],
+  onK(k => [['use', 'shutter' + k]]),
+  ['expect', 'G.hand.reach && G.hand.reach.style === "knock" && !G.fumbling', 'nothing in hand at a shutter that is down: the hand knocks on the glass'],
+  ['eval', 'restartLevel()'], ['wait', 300],
+];
 const nightmare = [
   // lit: how fast it comes
   ['eval', 'window.__a = { d: G.L.creature.dist, t: G.L.t }'], ['wait', 600],
@@ -64,6 +92,7 @@ const nightmare = [
   ['expect', '__run >= 1 && __run <= 12', 'it ran up to the glass, a heel to a stride'],
   ['eval', 'AUDIO.footstep = __step; SAVE.recordWin = __save[0]; SAVE.unlock = __save[1]'],
   ['eval', 'restartLevel()'], ['wait', 300],
+].concat(refusals, [
   // at a player's pace: watch it come, try the shutter of its window by hand
   ['waitUntil', 'G.L.t >= 5', 8000],
   onTarget(k => [['use', 'shutter' + k]]),
@@ -90,5 +119,5 @@ const nightmare = [
   ['expect', '__bangs >= 4 && __shakes >= 4', 'loud blows, each one shaking the view'],
   ['expect', 'G.L.pal.ambient < 0.45', 'and nothing gets light while it does'],
   ['eval', 'AUDIO.sfx = __sfx; G.shake = __shake'],
-];
+]);
 module.exports = { nightmare };

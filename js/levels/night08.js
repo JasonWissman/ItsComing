@@ -164,7 +164,7 @@ LEVELS.push({
 
     // ---- the power main: a big lever switch on the back wall, on one side of the kitchen pass or the other (either way in
     // view from straight back, and square in the view a turn to that side) ----
-    Object.assign(s, { power: true, offAt: -9, lever: 1, amb: 1, down: [false, false, false], shown: [0, 0, 0], turnAt: [-9, -9, -9], lastTurn: -9, queued: null, slide: null, slides: 0, through: false, byHand: false, dent: [0, 0, 0], hit: null, blows: 0 });
+    Object.assign(s, { power: true, offAt: -9, lever: 1, amb: 1, down: [false, false, false], shown: [0, 0, 0], turnAt: [-9, -9, -9], lastTurn: -9, queued: null, slide: null, slides: 0, through: false, byHand: false, dent: [0, 0, 0], hit: null, blows: 0, jigAt: -9 });
     const mainX = [-1.75, 1.75][Math.floor(L.rand() * 2)], MW = 0.72, MH = 0.95, MY = 0.95;
     SC.wallV(L, mainX - 0.11, -2.485, mainX - 0.06, -2.485, 0, MY + 0.06, [48, 50, 54]);   // its conduit, down into the floor, clamped to the wall
     for (const y of [0.3, 0.7]) SC.wallV(L, mainX - 0.13, -2.483, mainX - 0.04, -2.483, y, y + 0.04, [70, 72, 76]);
@@ -186,26 +186,38 @@ LEVELS.push({
       // I and O beside the lever's two ends, as on any switch: on is up, off is down
       P_line(ctx, 0.14, 0.78, 0.14, 0.88, 0.022, ink);
       ctx.strokeStyle = ink; ctx.lineWidth = 0.018; ctx.beginPath(); ctx.ellipse(0.14, 0.15, 0.03, 0.045, 0, 0, TAU); ctx.stroke();
-      // the lever: a pivot on the side of the box and a long arm with a red grip, up for on and down for off
-      const a = lerp(Math.PI - 0.32, 0.32, s.lever), px = 0.3, py = 0.5, ex = px + Math.sin(a) * 0.4, ey = py + Math.cos(a) * 0.4;
+      // the lever: a pivot on the side of the box and a long arm with a red grip, up for on and down for off (shaken at its
+      // stop when the hand tries to put it back up)
+      const je = L.t - s.jigAt, a = lerp(Math.PI - 0.32, 0.32, s.lever) + (je >= 0 && je < 0.8 ? (SAVE.data.settings.reducedMotion ? 0.025 : 0.06) * Math.sin(je * 52) * (je < 0.45 ? 1 : Math.exp(-(je - 0.45) * 12)) : 0);
+      const px = 0.3, py = 0.5, ex = px + Math.sin(a) * 0.4, ey = py + Math.cos(a) * 0.4;
       P_rect(ctx, 0.2, 0.36, 0.14, 0.28, bodyD);
       P_line(ctx, px, py, ex, ey, 0.05, P.col([150, 150, 156]));
       P_line(ctx, px + (ex - px) * 0.62, py + (ey - py) * 0.62, ex, ey, 0.1, P.col([176, 34, 28]));
       P_ell(ctx, px, py, 0.05, 0.04, ink);
     });
-    mkTarget(L, {
+    // where the hand takes the lever: the middle of its red grip, with the lever up (1) or down (0)
+    const gripAt = lev => { const a = lerp(Math.PI - 0.32, 0.32, lev); return [0.3 + Math.sin(a) * 0.324, 0.5 + Math.cos(a) * 0.324]; };
+    // The main and the gearboxes are some way off, but they are what the hand works here: it is put on them as you see them
+    // (the spot brought in along your line of sight to arm's length, where the hand goes all the way)
+    const inReach = (t, at) => { const p = HANDS.pointOn(t, at, 0.02), dy = p.y - eye, k = Math.min(1, 1.5 / Math.hypot(p.x, dy, p.z)); return { x: p.x * k, y: eye + dy * k, z: p.z * k }; };
+    const main = mkTarget(L, {
       id: 'main', name: 'Main switch', x: mainX, y: MY, z: -2.42, w: MW, h: MH,
       onClick() {
-        if (!s.power) { G.say('The main is off, and it stays off.', 'The power is off.'); return true; }
-        s.power = false; s.offAt = L.t; s.clunked = false; AUDIO.sfx('lever'); G.shake(0.12);   // the clunk and the tubes follow from L.update
+        // off already: the hand takes the grip and tries it, and it will not come back up (it shakes at its stop)
+        if (!s.power) { G.say('The main is off, and it stays off.', 'The power is off.'); if (!G.reach(main, { style: 'rattle', at: inReach(main, gripAt(0)), onTouch() { s.jigAt = L.t; } })) AUDIO.sfx('nope'); return true; }
+        // the hand goes up to the lever, takes its grip and pulls it down; the lights go as it comes down. It is off from the
+        // click (it slows from then), but the lever, the lights and the clunk wait for the hand (L.update)
+        s.power = false; s.offAt = L.t + 0.26; s.clunked = false; s.levered = false;
+        s.pulling = G.reach(main, { style: 'pull', at: inReach(main, gripAt(1)), onTouch() { s.offAt = Math.min(s.offAt, L.t); } });
+        if (!s.pulling) s.offAt = L.t;
         if (AUDIO.on()) AUDIO.startAmbient(Object.assign({}, L.def.ambient, { drone: 0.12 }));   // the hum of the place stops with it
         if (s.through) G.say('Every light in the place goes out at once.', 'Every light in the place goes out.');
         else G.say('Every light in the place goes out at once. Out in the lot, it slows down.', 'Every light in the place goes out. Out in the lot, it slows down.');
         return true;
       },
     });
-    // the power goes with a stutter: two blinks, then nothing
-    const lightsOn = () => s.power || [0.07, 0.17].some(k => Math.abs(L.t - s.offAt - k) < 0.035);
+    // the power goes with a stutter as the lever comes down: two blinks, then nothing
+    const lightsOn = () => s.power || L.t < s.offAt || [0.07, 0.17].some(k => Math.abs(L.t - s.offAt - k) < 0.035);
 
     // ---- the shutter crank: one, lying somewhere behind the counter ----
     mkItem(L, 'crank', 'Shutter crank', [
@@ -214,7 +226,7 @@ LEVELS.push({
       { x: 2.7, y: 0.9, z: -2.15 },                     // on the back counter, beside the coffee machine
       { x: -0.5, y: 1.02, z: -2.36, jitter: 0 },        // on the ledge of the kitchen pass, at its front edge (no jitter: the ledge is 20 cm deep)
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
-    ], { w: 0.5, h: 0.5, flat: true, tool: true, icon: 'shutterCrank' });
+    ], { w: 0.5, h: 0.5, flat: true, tool: true, icon: 'shutterCrank', held: { grip: 'fist', at: [-0.22, 0.17], axis: 0, angle: -0.12, size: 0.36, tip: [0.36, 0.9] } });   // in the fist by its red grip, the rod standing up out of it; the hook leads it into an eye
 
     // ---- the shutters: each its own way in, each cranked down with the crank in hand ----
     // the aperture a slanted way sees through its pane: the pane projected from the eye onto a plane across the way where
@@ -230,14 +242,34 @@ LEVELS.push({
       return { ap, top, sortD: shutterSort(x0, x1), glassD: ZG / cs };
     });
     Object.assign(s, { turns: TURNS, turn: TURN, glassD: panes.map(q => q.glassD) });   // for the tests
+    // the eye in a window's gearbox, where the crank goes in (and the hand goes, with it or without it)
+    const gearAt = i => { const p = L.pt(GEAR[i], 1.0, ZG - 0.07); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; };
     const shutters = PANES.map(([x0, x1], i) => {
       const t = mkTarget(L, {
         id: 'shutter' + i, name: ['Left', 'Middle', 'Right'][i] + ' shutter', x: (x0 + x1) / 2, y: BOT, z: 4.95, w: x1 - x0, h: TOP - BOT,
-        crank: { n: TURNS, sfx: 'ratchet', onTurn() { s.turnAt[i] = L.t; }, onComplete() { shutterDown(i); } },
+        crank: { n: TURNS, sfx: 'ratchet', onTurn() {
+          s.turnAt[i] = L.t;
+          // the hand turns it at the gearbox, not at the middle of the window
+          const th = G.hand.thrust, rc = G.hand.reach;
+          if (th && th.t === 0) th.at = gearAt(i);
+          if (rc && rc.target === t && rc.T === 0) rc.at = inReach(t, gearAt(i));
+        }, onComplete() { shutterDown(i); } },
         onClick() {
           if (s.through) { s.queued = null; G.say('Too late. It is inside.', 'Too late. It is inside.'); AUDIO.sfx('nope'); return true; }
-          if (t.done) { G.say('That shutter is down.', 'That shutter is down.'); return true; }
-          if (!G.hasItem('crank')) { s.byHand = true; G.say('It will not come down by hand. It needs its crank.', 'The shutter is rolled up. It will not come down by hand.'); AUDIO.sfx('nope'); return true; }
+          if (t.done) {
+            G.say('That shutter is down.', 'That shutter is down.');
+            // the crank goes to the gearbox's eye, hook first, and will not turn: it knocks against the stop (the shutter is at the
+            // bottom of its rails) and comes back to the hand. With nothing in hand, the hand knocks on the glass in front of the steel.
+            const act = G.inv[G.active];
+            if (act) { if (!G.fumble(act, t, { preset: 'return', at: gearAt(i), sfx: { hit: 'clunk' } }) && !G.fumbling) AUDIO.sfx('nope'); }
+            else if (!G.reach(t, { style: 'knock', at: inReach(t, [0, 0.45]), sfx: 'glassTap' })) AUDIO.sfx('nope');
+            return true;
+          }
+          if (!G.hasItem('crank')) {   // the hand goes to the gearbox and tries to turn it with its fingers: it will not move
+            s.byHand = true; G.say('It will not come down by hand. It needs its crank.', 'The shutter is rolled up. It will not come down by hand.');
+            if (!G.reach(t, { style: 'rattle', at: inReach(t, gearAt(i)) })) AUDIO.sfx('nope');
+            return true;
+          }
           if (L.t - s.lastTurn < TURN) { s.queued = t; return true; }   // the ratchet is still going round: this turn comes next
           s.lastTurn = L.t; return false;                                 // one turn of the crank (useTarget turns it)
         },
@@ -330,8 +362,10 @@ LEVELS.push({
       if (s.target === undefined) s.target = c.lane.idx;
       // lit, it is at the glass LIT_T s after it sets off, however far out it started
       c.drawn = s.power; c.drawnMult = c.T * (1 - panes[c.lane.idx].glassD / c.D0) / LIT_T;
+      if (!s.power && !s.levered && L.t >= s.offAt) { s.levered = true; AUDIO.sfx('lever'); G.shake(0.12); }   // the lever goes over in the hand
       if (!s.power && !s.clunked && L.t - s.offAt >= 0.14) { s.clunked = true; AUDIO.sfx('clunk'); AUDIO.sfx('tubeDie'); }   // the main's clunk, and the tubes dying
-      s.lever = Math.max(s.power ? 1 : 0, s.lever - dt * 5);
+      s.lever = Math.max(s.power || L.t < s.offAt ? 1 : 0, s.lever - dt * 5);
+      if (s.pulling && G.hand.reach === s.pulling) s.pulling.at = inReach(main, gripAt(s.lever));   // the hand comes down with the grip
       s.amb += ((lightsOn() ? 1 : DARK_AMB) - s.amb) * Math.min(1, dt * (s.power ? 6 : 14)); L.pal.ambient = s.amb;
       // a turn clicked while the crank was still going round
       if (s.queued && L.t - s.lastTurn >= TURN && G.state === 'play') { const t = s.queued; s.queued = null; if (!t.done && G.hasItem('crank')) useTarget(t); }
