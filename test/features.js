@@ -149,7 +149,9 @@ const hoverHit = lookFor;
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
   console.log('== sealed ways ==');
-  // on Nightmare it goes round to the open way, starting outside that way's barrier
+  // on Nightmare it goes round to the open way, starting outside that way's barrier. The Quarry's statue runs round the
+  // yard to it, and only while nothing is looking at it: facing the open gate you see it come round and it stops dead,
+  // mid-stride; look down and it goes on round
   await page.goto(URL + '?level=4&go&seed=1&nofr'); await page.waitForTimeout(250);
   let sw = await page.evaluate(() => {
     const L = G.L, c = L.creature; c.switched = true;
@@ -157,11 +159,104 @@ const hoverHit = lookFor;
     G.cam.yaw = G.cam.tYaw = c.yaw + Math.PI; G.cam.dirIdx = ((Math.round(G.cam.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0; G.step(0.001);
     const g = L.targets.find(t => t.id === (L.lane.idx === 0 ? 'gate' : 'backgate')); g.chained = true; g.locked = true; g.done = true;
     const from = c.lane.idx; c.u = 1 - Math.pow((L.barrierDist + 0.05) / c.D0, 1 / c.gamma);
+    for (let k = 0; k < 200 && !(c.runPose && c.seen) && c.lane.idx === from && G.state === 'play'; k++) G.step(0.05);
+    const p0 = c.pos(), caught = !!c.runPose && c.seen && c.lane.idx === from;
+    G.step(0.05, 20);
+    const p1 = c.pos(), stood = caught && c.seen && Math.hypot(p1.x - p0.x, p1.z - p0.z) < 1e-6 && c.lane.idx === from;
+    G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.step(0.001);   // looking down, at the ground in front of the open gate
     for (let k = 0; k < 200 && c.lane.idx === from && G.state === 'play'; k++) G.step(0.05);
-    return { moved: c.lane.idx !== from, dist: c.dist, need: (c.lane.barrierDist || 0) + 3 - 0.05, held: c.hold !== null, state: G.state };
+    return { caught, stood, moved: c.lane.idx !== from, dist: c.dist, need: (c.lane.barrierDist || 0) + 3 - 0.05, held: c.hold !== null, state: G.state };
   });
+  check(sw.caught && sw.stood, 'seen coming round to the open gate, the statue stops dead, mid-stride, and stays');
   check(sw.moved && !sw.held && sw.state === 'play', 'a locked gate sends it round to the open one');
   check(sw.dist >= sw.need, 'going round starts it outside the other gate (' + sw.dist.toFixed(2) + ' m)');
+  // a creature that can run (drawRun: the smiler on night 3) goes round on its feet: it is seen sprinting sideways out of
+  // the salted way's view, comes in at the other way 3 m outside its barrier running across it, then turns and walks on
+  for (const seed of [1, 2]) {
+    await page.goto(URL + '?level=3&go&seed=' + seed + '&nofr'); await page.waitForTimeout(250);
+    const run = await page.evaluate(() => {
+      const L = G.L, c = L.creature; c.switched = true;
+      G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0; G.step(0.001);
+      const t = L.targets.find(t => t.id === (L.lane.idx === 0 ? 'threshold' : 'sidethreshold')); t.done = true; t.accepts = [];
+      const from = c.lane.idx; c.u = 1 - Math.pow((L.barrierDist + 0.05) / c.D0, 1 / c.gamma);
+      const o = { from, ran: false, seenRunning: false, hidden: false, arrived: null, ranIn: false, after: null, t0: L.t, outFrac: 0, outFrames: 0 };
+      L.onLaneSwitch = (cr, ln) => { o.arrived = { t: L.t - o.t0, dist: cr.dist, need: (ln.barrierDist || 0) + 3 - 0.05, held: cr.hold !== null, run: !!cr.runPose, lat: Math.abs(cr.lat) }; };
+      const face = yaw => { G.cam.yaw = G.cam.tYaw = yaw; G.cam.dirIdx = ((Math.round(yaw / (45 * DEG)) % 8) + 8) % 8; };
+      for (let k = 0; k < 160 && G.state === 'play' && !o.after; k++) {
+        if (c.round && c.round.t >= c.round.T1) face(c.round.to.yaw);   // once it is out of sight, turn to the other way, as a player would
+        G.step(1 / 30);
+        if (c.runPose) { o.ran = true; if (c.lane.idx === from) { if (c.seen && Math.abs(c.lat) > 0.3) o.seenRunning = true; if (!c.seen && c.visFrac === 0) o.hidden = true; } else if (c.seen) o.ranIn = true; }
+        if (o.arrived && !c.round) o.after = { lat: c.lat, run: !!c.runPose, hold: c.hold, distFn: !!c.distFn, dist: c.dist };
+        // going round, out of sight: all of it as it is drawn running (runW, stride and all) is behind the frame of the way
+        if (c.round && c.round.t >= c.round.T1 && c.round.t < c.round.T2) { o.outFrames++; o.outFrac = Math.max(o.outFrac, APPROACH.apertureFrac(c.lane, c.dist, c.lat, Math.max(c.CR.w, c.CR.runW || 0), c.CR.h, L.eyeH)); }
+      }
+      return Object.assign(o, { state: G.state, lane: c.lane.idx });
+    });
+    const a = run.arrived || {};
+    check(run.ran && run.seenRunning && run.hidden, 'night 3 (seed ' + seed + '): it runs sideways, seen, out of the salted way\'s view (seen ' + run.seenRunning + ', hidden ' + run.hidden + ')');
+    check(!!run.arrived && run.lane !== run.from && a.dist >= a.need && !a.held && a.run && a.lat > 1.8 && a.t < 2.6, 'night 3 (seed ' + seed + '): it comes round to the other way outside its barrier, running, off to one side (' + JSON.stringify(a) + ')');
+    check(run.ranIn && !!run.after && Math.abs(run.after.lat) < 1e-6 && !run.after.run && run.after.hold === null && !run.after.distFn && run.state === 'play', 'night 3 (seed ' + seed + '): it runs in across that way, then turns to it and walks on (' + JSON.stringify(run.after) + ')');
+    check(run.outFrames > 5 && run.outFrac === 0, 'night 3 (seed ' + seed + '): going round, no part of its run shows past the frame of the way it left (' + run.outFrames + ' frames, ' + run.outFrac.toFixed(3) + ' showing)');
+  }
+  // and the width it gives for its run (runW) holds all of the run as drawn, through a whole stride, both ways
+  const runSpan = await page.evaluate(() => {
+    const cv = document.createElement('canvas'); cv.width = 600; cv.height = 300; const ctx = cv.getContext('2d');
+    const P = { col: c => 'rgb(' + c.join(',') + ')', cola: (c, a) => 'rgba(' + c.join(',') + ',' + a + ')', raw: c => 'rgb(' + c.join(',') + ')', t: 0 };
+    const c = Object.assign({}, G.L.creature, { runPose: true, dist: 2.5, t: 1 });
+    let far = 0;
+    for (const dir of [1, -1]) for (let k = 0; k < 24; k++) {
+      c.runDir = dir; c.runGait = k / 24 * TAU;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 600, 300); ctx.setTransform(100, 0, 0, -100, 300, 250);
+      CREATURES.smiler.draw(ctx, c, P);
+      const d = ctx.getImageData(0, 0, 600, 300).data;
+      for (let i = 3; i < d.length; i += 4) if (d[i] > 20) far = Math.max(far, Math.abs(((i >> 2) % 600 - 300) / 100));
+    }
+    return { far, half: CREATURES.smiler.runW / 2 };
+  });
+  check(runSpan.far > 0.5 && runSpan.far <= runSpan.half, 'the smiler\'s run is drawn within its runW (' + runSpan.far.toFixed(2) + ' m from the middle, half of runW ' + runSpan.half + ')');
+  // night 3: a way is only finished with its salt and its lantern lit. With the way it comes by finished and the other one
+  // bare, it comes up to the salt, looks down at it, and goes round to the bare one (it used to be able to stand there for
+  // good); with the other one salted but its lantern dark it goes round to that one, and that line holds it only a while
+  // before it steps over. Either way it never stands anywhere for long while the night is not won.
+  const n3 = (seed, lane, other) => page.goto(URL + '?level=3&go&seed=' + seed + '&nofr').then(() => page.waitForTimeout(150)).then(() => page.evaluate(([lane, other]) => {
+    const L = G.L, c = L.creature; c.switched = true;
+    c.retarget(lane); L.laneIdx = lane; L.lane = c.lane; L.barrierDist = c.lane.barrierDist;
+    const thr = idx => L.targets.find(t => t.id === (idx === 0 ? 'threshold' : 'sidethreshold')), hk = idx => L.targets.find(t => t.id === (idx === 0 ? 'hook' : 'hookE'));
+    const salt = idx => { const t = thr(idx); t.done = true; t.count = 1; t.accepts = []; };
+    const lamp = idx => { const h = hk(idx); h.hung = 'lantern'; h.lit = true; h.done = true; h.accepts = []; };
+    salt(lane); lamp(lane); if (other === 'dark') salt(1 - lane);
+    c.u = 1 - Math.pow((L.barrierDist + 1) / c.D0, 1 / c.gamma);
+    const o = { held: [], bow: 0, round: null, stood: 0, still: 0, at: null };
+    for (let k = 0; k < 30 * 14 && G.state === 'play'; k++) {
+      G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0;
+      const p0 = c.pos(); G.step(1 / 30); const p1 = c.pos();
+      if (c.sealHold && !o.held.includes(c.lane.idx)) o.held.push(c.lane.idx);
+      if (c.sealHold && c.lane.idx === lane) o.bow = Math.max(o.bow, c.bow || 0);
+      if (c.round && !o.round) o.round = { to: c.round.to.idx, d: c.dist, t: L.t };
+      o.still = Math.hypot(p1.x - p0.x, p1.z - p0.z) < 1e-6 ? o.still + 1 / 30 : 0; o.stood = Math.max(o.stood, o.still);
+    }
+    return Object.assign(o, { state: G.state, lane: c.lane.idx, cause: G.deathCause, salted: L.sealed(L.lanes[lane]) });
+  }, [lane, other]));
+  for (const seed of [1, 2, 3]) for (const lane of [0, 1]) {
+    const r = await n3(seed, lane, 'bare');
+    check(r.held[0] === lane && r.bow > 0.95 && !!r.round && r.round.to === 1 - lane && r.round.d <= 2.61 && r.lane === 1 - lane && r.state === 'dying' && r.cause === 'open' && r.stood < 1,
+      'night 3 (seed ' + seed + ', way ' + lane + ' finished, the other bare): it stops at the salt, looks down at it, goes round to the bare way and comes in there (' + JSON.stringify(r) + ')');
+  }
+  for (const seed of [1, 2]) {
+    const r = await n3(seed, seed - 1, 'dark');
+    check(r.held.join() === [seed - 1, 2 - seed].join() && !!r.round && r.round.to === 2 - seed && r.state === 'dying' && r.cause === 'unlit' && r.stood > 5 && r.stood < 6.5,
+      'night 3 (seed ' + seed + ', one way finished, the other salted with its lantern dark): it goes round to the dark one, stands at its salt a while, then steps over (' + JSON.stringify(r) + ')');
+  }
+  // a lurch (the smiler hitches forward now and then) from just outside a salted way's line still stops at the line
+  await page.goto(URL + '?level=3&go&seed=1&nofr'); await page.waitForTimeout(150);
+  const lurch = await page.evaluate(() => {
+    const L = G.L, c = L.creature; c.switched = true;
+    const t = L.targets.find(t => t.id === (c.lane.idx === 0 ? 'threshold' : 'sidethreshold')); t.done = true; t.accepts = [];
+    c.u = 1 - Math.pow((L.barrierDist + 0.3) / c.D0, 1 / c.gamma); c.hitchT = 0; G.step(1 / 60);
+    const before = c.dist; c.hitchT = c.nextHitch; G.step(1 / 30);
+    return { before, hold: c.hold, dist: c.dist, barrier: L.barrierDist, state: G.state, lurched: c.hitchFlash > 0 };
+  });
+  check(lurch.lurched && lurch.before > lurch.barrier && lurch.state === 'play' && lurch.hold === lurch.barrier && lurch.dist === lurch.barrier,'night 3: a lurch across a salted line in one frame is held at the line, not past it (' + JSON.stringify(lurch) + ')');
 
   console.log('== the death camera ==');
   await page.goto(URL + '?level=7&go&seed=1&nofr'); await page.waitForTimeout(250);
@@ -221,12 +316,360 @@ const hoverHit = lookFor;
   await page.evaluate(() => { G.L.creature.u = 0.985; G.step(0.05, 400); });
   check(await page.evaluate(() => G.state === 'dead' && !!G.deathScreen && /holding/.test(G.deathScreen.text)), 'reaching you with something in your hands is a death, and the line says so');
   check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') !== 'day'), 'no morning for the one who held on');
+  // empty-handed is not enough: turned away from it, or looking at the floor, as it reaches you is a death too
+  for (const [how, cam] of [['turned away', 'G.cam.dirIdx = (dir + 2) % 8; G.cam.pitch = G.cam.tPitch = 0;'], ['looking at the floor', 'G.cam.dirIdx = dir; G.cam.pitch = G.cam.tPitch = PITCH_DOWN;']]) {
+    await T.open(page, 'level=13&go&seed=1&nofr');
+    await page.evaluate(cam => {
+      for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
+      G.L.creature.switched = true;   // it keeps to its way (it would change it once, unseen in the dark, far out)   // nothing held, without the drop's own rules
+      const dir = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; new Function('dir', cam)(dir); G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG;
+      G.L.creature.u = 0.985; G.step(0.05, 400);
+    }, cam);
+    check(await page.evaluate(() => G.inv.length === 0 && G.state === 'dead' && /looked away/.test(G.deathScreen.text) && !G.L.s.ending), 'empty-handed but ' + how + ' as it reaches you is a death, and the line says so');
+  }
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  const faced = await page.evaluate(() => {
+    for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
+      G.L.creature.switched = true;   // it keeps to its way (it would change it once, unseen in the dark, far out)
+    G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+    G.L.creature.u = 0.9; let up = 0;
+    for (let i = 0; i < 600 && !G.L.won; i++) { G.step(0.05, 1); up = Math.min(up, G.cam.pitch); }
+    return { won: G.L.won && G.L.s.ending, up };
+  });
+  check(faced.won && faced.up < -0.15, 'empty-handed and looking up at it as it reaches you is the ending (' + JSON.stringify(faced) + ')');
+  // the ending, frame by frame: it holds you, its face goes through its moods to happy, the meadow comes and waits as long as
+  // you like; a press, and the meadow and it fade into the bedroom and the last screen
+  const caught = () => page.evaluate(() => {
+    for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
+    G.L.creature.switched = true;
+    G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+    G.L.creature.u = 0.9; for (let i = 0; i < 600 && !G.L.won; i++) G.step(0.05, 1);
+    return G.L.won && G.L.s.ending;
+  });
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  check(await caught(), 'it reached you, and it is the ending');
+  const hold = await page.evaluate(() => {
+    const c = G.L.creature, s = G.L.s, o = { flash: 0, white: 0 };
+    const until = t => { while (s.endT < t - 1e-6) { G.step(1 / 30, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white); } };
+    until(END.reach[0] + 0.5); const h0 = c.hug && { reach: c.hug.reach, wrap: c.hug.wrap };
+    until(END.reach[1]); o.reaching = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    until(END.close[1] + 0.3); o.holding = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    const cp = c.pos(), face = cp.y + c.yOff + CREATURES.demon.eyesY(c), fp = R.screenPos(cp.x, face, cp.z);
+    o.held = { reach: c.hug && c.hug.reach, wrap: c.hug && c.hug.wrap, dist: c.dist, h0, aim: Math.abs(wrapPi(c.yaw - G.cam.yaw)), faceY: fp && fp.y / R.H, faceX: fp && fp.x / R.W, mood: c.mood, overlay: s.hugWrap };
+    // its moods: each whole one held a while, the changes between them slow, all of it while it still holds you
+    const seen = []; let last = -1, prev = c.mood, down = false, release = null;
+    while (s.endT < END.light[1]) {
+      G.step(0.05, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white);
+      const m = c.mood; if (m < prev - 1e-9) down = true; prev = m;
+      if (Number.isInteger(m)) { if (seen.length && seen[seen.length - 1].m === m) seen[seen.length - 1].t1 = s.endT; else seen.push({ m, t0: s.endT, t1: s.endT, wrap: s.hugWrap, meadow: s.meadow }); }
+      if (m === 6 && release === null) release = { meadow: s.meadow, wrap: s.hugWrap };
+      if (seen.length && Number.isInteger(m)) last = m;
+    }
+    o.moods = seen.map(x => x.m); o.held2 = seen.filter(x => x.m >= 1 && x.m <= 5).every(x => x.t1 - x.t0 >= 0.6 && x.wrap > 0.99 && x.meadow === 0);
+    o.blends = seen.slice(1).map((x, i) => +(x.t0 - seen[i].t1).toFixed(2)); o.down = down; o.happyFirst = release; o.last = last;
+    return o;
+  });
+  check(hold.held.h0 && hold.held.h0.reach > 0 && hold.held.h0.reach < 0.5 && hold.held.h0.wrap === 0, 'it reaches out to you slowly (' + JSON.stringify(hold.held.h0) + ')');
+  check(hold.reaching && hold.reaching.every(([x, y], i) => (i ? x > 0.6 && x < 0.9 : x > 0.1 && x < 0.4) && y > 0.45 && y < 0.85), 'its hands come up into the view, one each side of it, reaching for you (' + JSON.stringify(hold.reaching) + ')');
+  check(hold.holding && hold.holding.every(([x, y], i) => (i ? x > 0.85 : x < 0.15) && y < 0.3), 'its arms come round the sides of the view, the hands in its top corners (' + JSON.stringify(hold.holding) + ')');
+  check(hold.held.reach > 0.99 && hold.held.wrap > 0.99 && hold.held.overlay > 0.99 && hold.held.dist < 0.75, 'it stops close in front of you and its arms close round you (' + JSON.stringify(hold.held) + ')');
+  check(hold.held.aim < 0.02 && hold.held.faceX > 0.4 && hold.held.faceX < 0.6 && hold.held.faceY > 0.1 && hold.held.faceY < 0.5, 'the view stays on its face (' + (hold.held.faceX || 0).toFixed(2) + ', ' + (hold.held.faceY || 0).toFixed(2) + ')');
+  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6]' && !hold.down && hold.held2, 'while it holds you its face goes through rage, anguish, fear, sorrow and calm, each held a while, and ends happy (' + JSON.stringify(hold.moods) + ')');
+  check(hold.blends.every(b => b >= 0.5), 'each change of face is slow (' + hold.blends.join(', ') + ' s)');
+  check(hold.happyFirst && hold.happyFirst.meadow === 0 && hold.happyFirst.wrap > 0.99, 'it is happy while it still holds you, before the light comes');
+  check(hold.flash < 0.01 && hold.white < 0.01, 'nothing in it flashes');
+  const meadow = await page.evaluate(() => {
+    const c = G.L.creature, s = G.L.s;
+    while (!s.wait) G.step(0.1, 1);
+    const at = { meadow: s.meadow, hug: c.hug, dist: c.dist, yaw: Math.abs(wrapPi(c.yaw - G.L.facing)), ground: G.L.pal.ground.map(Math.round), sky: G.L.pal.skyTop.map(Math.round), room: s.room, mood: c.mood, view: Math.abs(wrapPi(G.cam.yaw - c.yaw)), pitch: G.cam.pitch };
+    for (let i = 0; i < 600; i++) G.step(0.1, 1);   // a minute in the meadow
+    return Object.assign(at, { after: { state: G.state, leaving: s.leaving, meadow: s.meadow, fade: c.fade } });
+  });
+  check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 6 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
+  check(meadow.ground[1] > meadow.ground[0] + 40 && meadow.sky[2] > 200 && meadow.sky[2] > meadow.sky[0] + 80 && meadow.room === 0, 'green grass and a blue sky, and no room yet (' + JSON.stringify([meadow.ground, meadow.sky]) + ')');
+  check(meadow.after.state === 'won' && !meadow.after.leaving && meadow.after.meadow === 1 && meadow.after.fade === 1, 'left alone, the meadow simply stays');
+  for (const k of ['Alt', 'Meta', 'Shift', 'Control+Shift+KeyS', 'F2']) await page.keyboard.press(k);
+  check(await page.evaluate(() => (G.step(0.1, 10), G.state === 'won' && !G.L.s.leaving && G.L.s.meadow === 1)), 'alt-tab, a screenshot\'s keys or a function key do not end the meadow');
+  await shot(page, 'meadow');
+  await page.mouse.click(640, 380);
+  const left = await page.evaluate(() => { const s = G.L.s, o = { leaving: s.leaving }; G.step(0.05, 40); o.mid = { room: s.room, lv: s.lv, fade: G.L.creature.fade, state: G.state }; for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1); return Object.assign(o, { state: G.state, room: s.room, eyeH: G.L.eyeH, kind: MENU.kind }); });
+  check(left.leaving && left.mid.state === 'won' && left.mid.room > 0.2 && left.mid.room < 1 && left.mid.fade < 1 && left.mid.lv > 0.3, 'a click: the meadow and it fade away as the bedroom comes (' + JSON.stringify(left.mid) + ')');
+  check(left.state === 'end' && left.room === 1 && Math.abs(left.eyeH - 1.15) < 0.01 && left.kind === 'ending', 'the bedroom in the morning, and the last screen');
+  check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') === 'day' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act="again"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true), 'the light theme, faced your demons, Play again, the campaign complete');
+  await shot(page, 'ending');
+  // a press while it still holds you does nothing; in the meadow a key (R too: it goes on, it does not start the night
+  // again), A on a pad, or the touch Use button goes on, just as a click does
+  for (const [how, press] of [['a key (R)', async () => page.keyboard.press('r')], ['A on a pad', async () => page.evaluate(() => {
+    window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad];
+    window._pad.buttons[0].pressed = true; pollGamepad(); window._pad.buttons[0].pressed = false; pollGamepad(); navigator.getGamepads = () => [];
+  })], ['the touch Use button', async () => page.evaluate(() => document.getElementById('tUse').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })))]]) {
+    await T.open(page, 'level=13&go&seed=2&nofr');
+    await caught();
+    const L0 = await page.evaluate(() => { while (G.L.s.endT < END.moods + 1) G.step(0.1, 1); return G.L.s.endT; });
+    await press();
+    const early = await page.evaluate(() => ({ leaving: G.L.s.leaving, state: G.state, ending: G.L.s.ending }));
+    await page.evaluate(() => { while (G.L.s.endT < END.arm + 0.5) G.step(0.1, 1); });
+    const L1 = await page.evaluate(() => (window._L = G.L, G.L.s.endT));
+    await press();
+    const later = await page.evaluate(() => ({ leaving: G.L.s.leaving, same: window._L === G.L, state: G.state }));
+    check(L0 > 5 && !early.leaving && early.state === 'won' && early.ending && L1 > 20 && later.leaving && later.same && later.state === 'won', how + ': nothing while it holds you; in the meadow it goes on (' + JSON.stringify([early, later]) + ')');
+  }
+  // with reduced motion it does not dance, tremble or sway, and the ending still comes to the last screen
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  await page.evaluate(() => MENU.applySetting('reducedMotion', true));
+  await caught();
+  const still = await page.evaluate(() => {
+    const c = G.L.creature, s = G.L.s; let dance = 0;
+    while (!s.wait || s.endT < END.dance[1] + 9) { G.step(0.1, 1); dance = Math.max(dance, c.dance); }
+    const o = { still: c.still, dance };
+    G.L.onPress(); for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1);
+    return Object.assign(o, { state: G.state });
+  });
+  check(still.still === true && still.dance === 0 && still.state === 'end', 'with reduced motion it stands still in the meadow, and the ending still ends (' + JSON.stringify(still) + ')');
+  await page.evaluate(() => MENU.applySetting('reducedMotion', false));
   // tapping the held thing again while looking down puts it down
   await T.open(page, 'level=13&go&seed=1&nofr');
   const held = await page.evaluate(() => G.inv.length);
   await page.evaluate(() => { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.step(0.05, 3); document.querySelector('#inventory .slot.active').click(); });
   check(await page.evaluate(n => G.inv.length === n - 1, held), 'tapping the held thing again while looking down puts it down');
   await page.evaluate(() => localStorage.clear());
+
+  console.log('== what you hold, and a thing tried where it will not go ==');
+  // the hand: the active thing is drawn held at the bottom right, clear of the aim, the hover line and the inventory
+  const n1 = async () => { await T.open(page, 'level=1&go&seed=1&nofr'); await page.evaluate(() => { G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.cam.yaw = G.cam.tYaw = Math.PI; G.cam.dirIdx = 4; G.cam.pitch = G.cam.tPitch = 0; G.step(0.05, 2); }); };
+  const take = id => `(() => { const it = G.L.items.find(i => i.id === '${id}' && !i.taken); pickup(it); return it; })()`;
+  await n1();
+  let hv = await page.evaluate(take => {
+    const it = eval(take); G.step(0.05, 20);
+    const b = G.hand.box, inv = document.getElementById('inventory').getBoundingClientRect(), o = { cur: G.hand.cur && G.hand.cur.id, up: G.hand.up, box: b && [b.x0, b.y0, b.x1, b.y1].map(Math.round) };
+    o.clear = !!b && b.x0 > R.W / 2 + 0.1 * R.H && b.y0 > R.H * 0.3 && !(b.x0 < inv.right && b.x1 > inv.left && b.y1 > inv.top - R.viewY);
+    o.same = it === G.hand.cur;
+    return o;
+  }, take('hammer'));
+  check(hv.cur === 'hammer' && hv.same && hv.up === 1 && hv.clear, 'the thing picked up is held in the hand, at the bottom right, clear of the aim and the inventory (' + JSON.stringify(hv) + ')');
+  await page.screenshot({ path: path.join(__dirname, 'shots', 'held.png') });
+  // a new active thing: the old one goes down out of view, then the new one comes up
+  hv = await page.evaluate(take => {
+    eval(take); const seen = [];
+    for (let i = 0; i < 30; i++) { G.step(0.02, 1); seen.push([G.hand.cur && G.hand.cur.id, +G.hand.up.toFixed(2)]); }
+    const firstNails = seen.findIndex(s => s[0] === 'nails');
+    return { seen: seen.filter((s, i) => i % 3 === 0), hammerDown: firstNails > 0 && seen.slice(0, firstNails).every((s, i, a) => s[0] === 'hammer' && (i === 0 || s[1] <= a[i - 1][1])), downTo: firstNails > 0 ? seen[firstNails - 1][1] : 1, up: seen[seen.length - 1] };
+  }, take('nails'));
+  check(hv.hammerDown && hv.downTo <= 0.1 && hv.up[0] === 'nails' && hv.up[1] === 1, 'a new active thing: the hammer goes down out of view, then the nails come up (' + JSON.stringify(hv.seen) + ')');
+  // looking down it is lowered so it does not hide the floor; empty-handed the hand goes down out of view
+  hv = await page.evaluate(() => {
+    const y0 = G.hand.box.y0; G.cam.tPitch = PITCH_DOWN; G.step(0.05, 15); const y1 = G.hand.box ? G.hand.box.y0 : Infinity;
+    G.cam.tPitch = 0; G.step(0.05, 15);
+    while (G.inv.length) { G.cam.pitch = PITCH_DOWN; dropActive(); }
+    G.cam.pitch = 0; G.step(0.05, 15);
+    return { y0, y1, empty: G.hand.cur === null && G.hand.up === 0 && !G.hand.box };
+  });
+  check(hv.y1 > hv.y0 + 40 && hv.empty, 'looking down it is lowered (' + Math.round(hv.y0) + ' -> ' + Math.round(hv.y1) + '); with nothing in hand the hand is gone');
+  // a wrong thing: it goes to the target, bumps it and comes back to the hand; nothing is lost
+  await n1();
+  hv = await page.evaluate(take => {
+    const it = eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); useTarget(door);
+    const fx = G.fumbling, o = { preset: fx && fx.preset, drop: fx && fx.drop, toast: G.lastToast.msg, phases: [], inInv: [], unseen: 0 };
+    for (let i = 0; i < 80 && G.fumbling; i++) { G.step(0.025, 1); if (G.fumbling && o.phases[o.phases.length - 1] !== G.fumbling.phase) o.phases.push(G.fumbling.phase); if (G.fumbling && G.fumbling.phase !== 'wait' && !G.fumbling.pos) o.unseen++; o.inInv.push(G.inv.includes(it)); }
+    G.step(0.05, 6);
+    return Object.assign(o, { back: G.inv.includes(it) && it.taken && G.hand.cur === it && G.hand.up === 1 && !G.hand.gone, always: o.inInv.every(Boolean) });
+  }, take('hammer'));
+  check(hv.preset === 'return' && hv.drop === false && hv.phases.join() === 'out,contact,home' && hv.back && hv.always && hv.toast === 'Not with what you have.', 'a wrong thing goes to the doorway, bumps it and comes back to the hand, and the line is still said (' + JSON.stringify(hv) + ')');
+  check(hv.unseen === 0, 'it is in the world from the first frame it leaves the hand: never a frame with it nowhere');
+  // a thing missing what it needs (the planks without the hammer and nails): one plank goes up, will not stay, and falls to
+  // the floor, where it can be seen and taken again; the rest of the pile stays in the hand
+  await n1();
+  hv = await page.evaluate(take => {
+    const pile = eval(take); eval(take); eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); useTarget(door);
+    const fx = G.fumbling, one = fx && fx.it, o = { preset: fx && fx.preset, drop: fx && fx.drop, uses: pile.uses, split: !!one && one !== pile && G.L.items.includes(one) };
+    for (let i = 0; i < 120 && G.fumbling; i++) G.step(0.025, 1);
+    o.landed = !!one && !one.taken && one.y === G.L.floor.y && !G.fumbling; o.pile = G.inv.includes(pile) && pile.uses === 2;
+    // where it lies, looked at as a player would: facing its way and looking down, it is drawn and it is what a click there takes
+    const yaw = Math.atan2(one.x, one.z); G.cam.dirIdx = ((Math.round(yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.step(0.05, 6);
+    const h = [...R.hits].reverse().find(r => r.kind === 'item' && r.ref === one);
+    o.seen = !!h && h.w > 6 && h.h > 4;
+    if (h) { G.mouse.x = h.x + h.w / 2; G.mouse.y = h.y + h.h / 2; updateHover(); o.top = !!G.hover && G.hover.ref === one; o.at = { x: Math.round(G.mouse.x), y: Math.round(G.mouse.y) }; }
+    window.__one = one;
+    return o;
+  }, take('planks'));
+  check(hv.preset === 'slip' && hv.drop && hv.uses === 2 && hv.split && hv.pile, 'the planks with nothing to fix them: one plank goes up on the doorway, the rest stay in hand (' + JSON.stringify(hv) + ')');
+  check(hv.landed && hv.seen && hv.top, 'it falls to the floor, where it is in sight and a click takes it');
+  if (hv.at) { await page.mouse.click(hv.at.x, hv.at.y); await page.waitForTimeout(100); }
+  check(await page.evaluate(() => window.__one.taken && G.inv.find(i => i.id === 'planks').uses === 3), 'clicked, it is picked up again and back on the pile');
+  // fast clicks: one fumble, not one each
+  await n1();
+  hv = await page.evaluate(take => {
+    const pile = eval(take); eval(take); eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), made = [];
+    for (let i = 0; i < 5; i++) { useTarget(door); if (G.fumbling && !made.includes(G.fumbling)) made.push(G.fumbling); G.step(0.03, 1); }
+    return { fumbles: made.length, uses: pile.uses, planks: G.L.items.filter(i => i.id === 'planks').length };
+  }, take('planks'));
+  check(hv.fumbles === 1 && hv.uses === 2, 'five fast clicks start one fumble, and only one plank leaves the pile (' + JSON.stringify(hv) + ')');
+  // a slipping thing turns about the end it hangs from: that end stays where it is while the other end drops
+  await n1();
+  hv = await page.evaluate(take => {
+    eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), o = {};
+    for (const pivot of ['left', 'right']) {
+      const fx = G.fumble(G.inv[G.active], door, { preset: 'slip', pivot, hold: 0.1, drop: false }), sg = pivot === 'left' ? -1 : 1, ends = [];
+      for (let i = 0; i < 120 && fx.phase !== 'home'; i++) {
+        G.step(0.01, 1);
+        if (fx.phase !== 'contact' || fx.pt < 0.25) continue;
+        const yaw = Math.atan2(fx.at.x, fx.at.z), hw = fx.it.w * fx.scale / 2, a = sg * hw * Math.cos(fx.rot), up = -sg * hw * Math.sin(fx.rot);   // (+ is clockwise on the view)
+        ends.push({ hang: [fx.pos.x + Math.cos(yaw) * a, fx.pos.y + up], mid: fx.pos.y });
+      }
+      const f = ends[0], l = ends[ends.length - 1];
+      o[pivot] = { hangMoved: +Math.hypot(l.hang[0] - f.hang[0], l.hang[1] - f.hang[1]).toFixed(3), midDrop: +(f.mid - l.mid).toFixed(3) };
+      for (let i = 0; i < 80 && G.fumbling; i++) G.step(0.025, 1);
+    }
+    return o;
+  }, take('planks'));
+  check(['left', 'right'].every(p => hv[p].hangMoved < 0.08 && hv[p].midDrop > 0.25), 'a slipping plank hangs from the end it is meant to: that end stays put as the rest swings down (' + JSON.stringify(hv) + ')');
+  // a decoy: it goes there, will not do, and drops (the rotten plank at a doorway, with the hammer and nails in hand: the night's
+  // own onDecoy puts it up across the doorway, and it tears away from the nail and falls)
+  await n1();
+  hv = await page.evaluate(takes => {
+    eval(takes[0]); eval(takes[1]); const rot = eval(takes[2]); G.step(0.05, 12);
+    const u0 = G.L.creature.u; useTarget(G.L.targets.find(t => t.id === 'frontdoor'));
+    const fx = G.fumbling, o = { preset: fx && fx.preset, drop: fx && fx.drop, held: G.hasItem('rotten'), cost: G.L.creature.u > u0, toast: G.lastToast.msg, handOut: true, after: null };
+    for (let i = 0; i < 120 && G.fumbling; i++) {
+      G.step(0.025, 1);
+      if (G.fumbling && (G.fumbling.phase === 'out' || G.fumbling.phase === 'contact') && G.hand.cur !== rot) o.handOut = false;   // the hand stays out, open, while it is at the doorway
+      if (G.fumbling && G.fumbling.phase === 'fall' && !o.after) o.after = 'fall';
+    }
+    G.step(0.05, 20);
+    return Object.assign(o, { landed: !rot.taken && rot.y === G.L.floor.y, next: G.hand.cur && G.hand.cur.id });
+  }, [take('hammer'), take('nails'), take('rotten')]);
+  check(hv.preset === 'slip' && hv.drop && !hv.held && hv.cost && /rotten/i.test(hv.toast) && hv.landed, 'a thing that looks right and is not: it is tried at the doorway, will not do, and drops to the floor; it still costs time (' + JSON.stringify(hv) + ')');
+  check(hv.handOut && hv.next === 'nails', 'the hand stays out, open, while it is at the doorway, and only once it has fallen does the next thing come up into it');
+  // the house keys at the ignition (the second night): tried at a small target close by, they are drawn no bigger than the lock,
+  // poke it with the blade, and drop into the car, where they lie to be taken again
+  await T.open(page, 'level=2&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.cam.dirIdx = 0; G.cam.yaw = G.cam.tYaw = 0; G.cam.pitch = G.cam.tPitch = 0; G.step(0.05, 2);
+    const keys = G.L.items.find(i => i.id === 'housekeys'); pickup(keys); G.step(0.05, 12);
+    const ign = G.L.targets.find(t => t.id === 'ignition'); useTarget(ign);
+    const fx = G.fumbling, o = { preset: fx && fx.preset, size: fx && +(fx.size * Math.max(keys.w, keys.h)).toFixed(3), lock: Math.max(ign.w, ign.h), tip: fx && fx.tip };
+    for (let i = 0; i < 120 && G.fumbling; i++) { G.step(0.025, 1); if (G.fumbling && G.fumbling.phase === 'contact' && o.drawn === undefined) o.drawn = +(G.fumbling.scale * Math.max(keys.w, keys.h)).toFixed(3); }
+    return Object.assign(o, { landed: !keys.taken && keys.y === G.L.floor.y && (q => pointInPoly(q[0], q[1], G.L.floor.poly))(rotY(keys.x, keys.z, -G.L.facing)) });
+  });
+  check(hv.preset === 'bump' && hv.drawn <= hv.lock + 1e-6 && !!hv.tip && hv.landed, 'the house keys at the ignition are drawn no bigger than the lock, led by the blade, and drop to the floor of the car (' + JSON.stringify(hv) + ')');
+  // a doorway at the edge of the view: the plank goes to the part of it in view, not off the side to its middle
+  await n1();
+  hv = await page.evaluate(take => {
+    eval(take); eval(take); G.cam.dirIdx = 3; G.cam.yaw = G.cam.tYaw = 3 * 45 * DEG; G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), mid = R.screenPos(door.x, door.y + door.h / 2, door.z); useTarget(door);
+    const at = G.fumbling && R.screenPos(G.fumbling.at.x, G.fumbling.at.y, G.fumbling.at.z), b = G.hand.box;
+    return { mid: mid && Math.round(mid.x), at: at && [Math.round(at.x), Math.round(at.y)], inView: !!at && at.x > 0 && at.x < R.W && at.y > 0 && at.y < R.H, clearOfHand: !!at && !(b && at.x > b.x0 && at.x < b.x1 && at.y > b.y0 && at.y < b.y1) };
+  }, take('planks'));
+  check(hv.mid > 1280 * 0.94 && hv.inView && hv.clearOfHand, 'a doorway seen at the edge of the view: the plank goes up on the part of it in view, clear of what you hold (' + JSON.stringify(hv) + ')');
+  // the empty hand: nothing to use, it goes up to the target and touches it, and comes back down
+  await n1();
+  hv = await page.evaluate(() => {
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); useTarget(door);
+    const r = G.hand.reach, o = { reach: !!r && r.target === door, fumble: !!G.fumbling, toast: G.lastToast.msg };
+    for (let i = 0; i < 50 && G.hand.reach; i++) { G.step(0.025, 1); if (door.touchedAt !== undefined) o.touched = true; }
+    return Object.assign(o, { done: !G.hand.reach });
+  });
+  check(hv.reach && !hv.fumble && hv.touched && hv.done && hv.toast === 'Not with what you have.', 'with nothing in hand, the hand goes up to the doorway, touches it and goes back down (' + JSON.stringify(hv) + ')');
+  // a night's own G.reach with something in hand: what it holds goes down, the empty hand does it, and it comes back up
+  await n1();
+  hv = await page.evaluate(take => {
+    const ham = eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'); G.reach(door, 'rattle');
+    const o = { minUp: 1, touched: false };
+    for (let i = 0; i < 60 && G.hand.reach; i++) { G.step(0.025, 1); o.minUp = Math.min(o.minUp, G.hand.up); if (door.touchedAt !== undefined) o.touched = true; }
+    G.step(0.05, 12);
+    return Object.assign(o, { back: G.hand.cur === ham && G.hand.up === 1 });
+  }, take('hammer'));
+  check(hv.minUp === 0 && hv.touched && hv.back, 'G.reach with the hammer in hand: the hammer goes down, the empty hand rattles the doorway, and the hammer comes back up (' + JSON.stringify(hv) + ')');
+  // a target's own choice: t.onWrong instead of the fumble, t.fumble = false for none, G.refuse('bump') from inside use()
+  await n1();
+  hv = await page.evaluate(take => {
+    const ham = eval(take); G.step(0.05, 12);
+    const door = G.L.targets.find(t => t.id === 'frontdoor'), o = {};
+    door.onWrong = it => { o.wrong = it.id; }; useTarget(door); o.noFumble = !G.fumbling;
+    door.onWrong = undefined; door.fumble = false; useTarget(door); o.off = !G.fumbling;
+    door.fumble = undefined; door.accepts = ['hammer']; door.requires = []; door.use = () => G.refuse('bump');
+    useTarget(door); o.refused = G.fumbling && G.fumbling.preset; o.dropped = !G.inv.includes(ham);
+    return o;
+  }, take('hammer'));
+  check(hv.wrong === 'hammer' && hv.noFumble && hv.off && hv.refused === 'bump' && hv.dropped, 'a target can take the case itself (onWrong), turn the fumble off, or refuse inside use() with a preset of its own (' + JSON.stringify(hv) + ')');
+  // reduced motion: no sway, no bob, no lag as the view turns
+  await n1();
+  hv = await page.evaluate(take => {
+    MENU.applySetting('reducedMotion', true); eval(take); G.step(0.05, 20);
+    const b0 = JSON.stringify(G.hand.box); G.step(0.05, 13); const b1 = JSON.stringify(G.hand.box);
+    onKeyDown({ key: 'ArrowRight', preventDefault() {} }); let lag = 0; for (let i = 0; i < 10; i++) { G.step(0.02, 1); lag = Math.max(lag, Math.abs(G.hand.sx), Math.abs(G.hand.sy)); }
+    MENU.applySetting('reducedMotion', false);
+    eval(take.replace('hammer', 'nails')); G.step(0.05, 20); const c0 = JSON.stringify(G.hand.box); G.step(0.05, 13); const c1 = JSON.stringify(G.hand.box);
+    onKeyDown({ key: 'ArrowRight', preventDefault() {} }); let lag2 = 0; for (let i = 0; i < 10; i++) { G.step(0.02, 1); lag2 = Math.max(lag2, Math.abs(G.hand.sx)); }
+    return { still: b0 === b1, lag, sways: c0 !== c1, lag2 };
+  }, take('hammer'));
+  check(hv.still && hv.lag === 0 && hv.sways && hv.lag2 > 0.005, 'with reduced motion the hand holds still, with no lag as the view turns; without it, it breathes and lags (' + JSON.stringify(hv) + ')');
+  // six things in hand on the last night: the bar, held in both hands, stays in the bottom right, not over to the left of the
+  // inventory in the middle of the bottom edge
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.active = Math.max(0, G.inv.findIndex(i => i.id === 'beam')); G.step(0.05, 30);
+    const b = G.hand.box, inv = document.getElementById('inventory').getBoundingClientRect();
+    return { id: G.hand.cur && G.hand.cur.id, n: G.inv.length, box: b && [b.x0, b.y0, b.x1, b.y1].map(Math.round), right: !!b && b.x0 > R.W / 2 && b.x0 > inv.right - 4 };
+  });
+  check(hv.right, 'with the inventory full, what you hold stays in the bottom right (' + JSON.stringify(hv) + ')');
+  // in front of something you could take it dips out of the way, and stays dipped: it does not shake up and down (the
+  // boathouse, holding each thing in turn, looking each way)
+  await T.open(page, 'level=6&go&seed=1&nofr');
+  hv = await page.evaluate(() => {
+    for (const c of G.L.creatures) c.hold = c.dist; G.mouse.x = -1; G.step(0.05, 2);
+    for (const it of G.L.items.filter(i => !i.taken).slice(0, 3)) { pickup(it); G.step(0.05, 12); }
+    let dipped = 0, worst = 0;
+    for (let k = 0; k < G.inv.length; k++) {
+      G.active = k; G.step(0.05, 12);
+      for (let d = 0; d < 8; d++) {
+        G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+        const seq = []; for (let i = 0; i < 60; i++) { G.step(0.05, 1); seq.push(G.hand.dodge); }
+        let flips = 0; for (let i = 2; i < seq.length; i++) { const a = Math.sign(seq[i] - seq[i - 1]), b = Math.sign(seq[i - 1] - seq[i - 2]); if (a && b && a !== b) flips++; }
+        if (Math.max(...seq) > 0.5) dipped++; worst = Math.max(worst, flips);
+      }
+    }
+    return { held: G.inv.map(i => i.id), dipped, worst };
+  });
+  check(hv.dipped > 0 && hv.worst <= 1, 'held in front of something you could take, it dips out of the way and stays there, without shaking (' + JSON.stringify(hv) + ')');
+  // won, it is lowered out of the way of watching how it ends
+  await n1();
+  hv = await page.evaluate(take => { eval(take); G.step(0.05, 12); const up0 = G.hand.up; win(); G.step(0.05, 12); return { up0, up1: G.hand.up }; }, take('hammer'));
+  check(hv.up0 === 1 && hv.up1 === 0, 'once the night is won the hand goes down out of view');
+  // left for the title with a thing in the air: nothing of it is left behind the title
+  await n1();
+  hv = await page.evaluate(take => {
+    eval(take); G.step(0.05, 12); useTarget(G.L.targets.find(t => t.id === 'frontdoor')); G.step(0.04, 12);
+    const was = G.fumbling && G.fumbling.phase; showTitle(); G.step(0.05, 4);
+    const o = { was, after: G.fumbling, cur: G.hand.cur, state: G.state }; MENU.clear(); return o;
+  }, take('planks'));
+  check(hv.was && !hv.after && !hv.cur && hv.state === 'title', 'quit to the title with a plank in the air: nothing is left in hand or in the air (' + JSON.stringify(hv) + ')');
+  // on a phone, with the touch buttons in the bottom right (or on the left, the inventory there instead), it keeps clear of them
+  for (const left of [false, true]) {
+    const ctx2 = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
+    const ph = await ctx2.newPage();
+    await ph.goto(URL + '?level=1&go&seed=1&nofr'); await ph.waitForTimeout(300);
+    const r = await ph.evaluate(([take, left]) => {
+      MENU.applySetting('touchLeft', left);
+      G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.cam.yaw = G.cam.tYaw = Math.PI; G.cam.pitch = G.cam.tPitch = 0;
+      const out = [];
+      for (const id of ['hammer', 'planks', 'nails', 'bottle']) {
+        eval(take.replace('hammer', id)); G.step(0.05, 25);
+        const b = G.hand.box, rect = id => { const r = document.getElementById(id).getBoundingClientRect(); return { x0: r.left, y0: r.top - R.viewY, x1: r.right, y1: r.bottom - R.viewY }; };
+        const hit = (a, c) => a.x0 < c.x1 && a.x1 > c.x0 && a.y0 < c.y1 && a.y1 > c.y0;
+        out.push({ id, shown: !!b && G.hand.up === 1, clear: !!b && !hit(b, rect('touch')) && !hit(b, rect('inventory')) && !hit(b, { x0: R.W / 2 - 40, y0: R.H / 2 - 40, x1: R.W / 2 + 40, y1: R.H / 2 + 40 }) });
+      }
+      return out;
+    }, [take('hammer'), left]);
+    check(r.every(x => x.shown && x.clear), 'on a phone' + (left ? ', touch controls on the left' : '') + ', what you hold keeps clear of the touch buttons, the inventory and the aim (' + JSON.stringify(r) + ')');
+    await ph.screenshot({ path: path.join(__dirname, 'shots', 'held-phone' + (left ? '-left' : '') + '.png') });
+    await ctx2.close();
+  }
 
   if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }
   console.log(failures ? ('\n' + failures + ' FAILURES') : '\nALL CHECKS PASSED');

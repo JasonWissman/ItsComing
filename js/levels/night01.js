@@ -10,7 +10,10 @@ Object.assign(ICONS, {
       [0.45, 0.36], [0.49, 0.26], [0.44, 0.17], [0.3, 0.15], [0.0, 0.18], [-0.3, 0.16], [-0.46, 0.19], [-0.5, 0.31], [-0.45, 0.43], [-0.5, 0.56], [-0.44, 0.68]];
     ctx.save(); ctx.rotate(-0.03);
     const m = ctx.getTransform();
-    if (Math.hypot(m.a, m.b) < 2 * Math.hypot(m.c, m.d)) { ctx.translate(0, 0.5); ctx.scale(1, 0.42); ctx.translate(0, -0.5); }   // in a slot in the hand: a board's proportions, as the sound planks
+    ctx.translate(0, 0.5);
+    if (Math.hypot(m.a, m.b) < 2 * Math.hypot(m.c, m.d)) ctx.scale(1, 0.42);   // in a slot in the hand: a board's proportions, as the sound planks
+    else ctx.scale(1, 1.14);   // in the world, as wide as a sound plank lying there
+    ctx.translate(0, -0.5);
     ctx.beginPath(); edge.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath();
     ctx.fillStyle = body; ctx.fill();
     ctx.clip();
@@ -31,26 +34,32 @@ Object.assign(ICONS, {
   },
   // A sound plank: one board in the warm brown of the boards that go up across a doorway, its upper edge catching the
   // light, a knot and a little grain, the sawn ends square. A pile of them (in the hand, or put down together) shows as
-  // up to three boards stacked, so a plank on the floor reads as one plank and the pile in the hand as a pile. In the
-  // world the drawing is stretched to the plank's own shape (1.1 m by 0.26); drawn into a square, as in a slot in the
-  // hand, each board keeps a board's proportions instead of filling the square like a block.
+  // up to three boards, so a plank on the floor reads as one plank and the pile in the hand as a pile. In the world the
+  // drawing is stretched to the plank's own shape (1.1 m by 0.36), one wide board of the kind nailed up across the
+  // doorways, and a pile put down is a heap of them, each lying a little across the one under it; drawn into a square,
+  // as in a slot in the hand, the boards are stacked apart and each keeps a board's proportions instead of filling the
+  // square like a block.
   fieldPlank(ctx, P, n) {
     const k = Math.max(1, Math.min(3, n || 1));
     const body = P.col([118, 90, 56]), lite = P.col([146, 114, 72]), dark = P.col([86, 64, 40]), grain = P.col([88, 66, 42]), knot = P.col([64, 46, 30]);
     const m = ctx.getTransform(), square = Math.hypot(m.a, m.b) < 2 * Math.hypot(m.c, m.d);
-    const bh = square ? 0.2 : k === 1 ? 0.58 : (0.84 - 0.08 * (k - 1)) / k, gap = 0.08, top = square ? (1 - k * bh - (k - 1) * gap) / 2 : k === 1 ? 0.21 : 0.08;
-    for (let i = 0; i < k; i++) {
-      const y0 = top + i * (bh + gap);
-      ctx.save(); ctx.translate(0, y0 + bh / 2); ctx.rotate(k === 1 ? -0.015 : (i - (k - 1) / 2) * 0.05); ctx.translate(0, -bh / 2);
+    const board = (y0, bh, rot, dx) => {
+      ctx.save(); ctx.translate(dx, y0 + bh / 2); ctx.rotate(rot); ctx.translate(0, -bh / 2);
       P_rect(ctx, -0.48, 0, 0.96, bh, body);
       P_rect(ctx, -0.48, bh * 0.84, 0.96, bh * 0.16, lite);
       P_rect(ctx, -0.48, 0, 0.96, bh * 0.12, dark);
       for (const x of [-0.48, 0.455]) P_rect(ctx, x, 0, 0.025, bh, dark);
-      P_line(ctx, -0.4, bh * 0.44, 0.12, bh * 0.41, bh * 0.05, grain);
-      P_line(ctx, -0.16, bh * 0.66, 0.38, bh * 0.68, bh * 0.05, grain);
-      P_ell(ctx, 0.24, bh * 0.42, 0.034, bh * 0.15, knot);
+      P_line(ctx, -0.4, bh * 0.44, 0.12, bh * 0.41, bh * 0.04, grain);
+      P_line(ctx, -0.16, bh * 0.66, 0.38, bh * 0.68, bh * 0.04, grain);
+      P_line(ctx, -0.3, bh * 0.26, 0.3, bh * 0.24, bh * 0.035, grain);
+      P_ell(ctx, 0.24, bh * 0.42, 0.05, bh * 0.1, knot);
       ctx.restore();
-    }
+    };
+    if (square) {
+      const bh = 0.26, gap = 0.05, top = (1 - k * bh - (k - 1) * gap) / 2;
+      for (let i = 0; i < k; i++) board(top + i * (bh + gap), bh, k === 1 ? -0.015 : (i - (k - 1) / 2) * 0.05, 0);
+    } else if (k === 1) board(0.09, 0.82, -0.015, 0);
+    else { const bh = 0.86 - 0.14 * (k - 1); for (let i = k - 1; i >= 0; i--) board(0.05 + i * 0.14, bh, (i - (k - 1) / 2) * 0.03, [0, 0.03, -0.025][i]); }   // the top of the heap last
   },
 });
 LEVELS.push({
@@ -107,34 +116,60 @@ LEVELS.push({
     // with the doorways in them run to the corners of the house and no further, and they do not take the fill light: a
     // piece of wall is lit as a whole by the light at its middle, which lit the piece over a doorway and not the long
     // pieces beside it, and a pale strip of wall stood over each doorway up to the ceiling.
-    // The boards nailed across a doorway go up at BOARD_Y: a gap left at eye level, so it can still be seen through
-    // them; the first goes up where it shows above the things in hand at the bottom of the view, and the lowest last.
-    const BOARD_Y = [1.0, 1.95, 0.42];
+    // The boards nailed across a doorway are wide old boards, about half a metre each, so the three of them close most of
+    // it: y is the middle of each, hh half its width, tl how far its left end sits above its middle (they are not nailed
+    // up quite level). A gap is left at eye level, so it can still be seen through them, and it is where its eyes come
+    // when it stoops to look in at you; a narrow one between the lower two, and a little more under the last. The first
+    // goes up where it shows above the things in hand at the bottom of the view, then the top one, and the lowest last.
+    const BOARDS = [{ y: 1.23, hh: 0.27, tl: 0.022 }, { y: 2.04, hh: 0.25, tl: -0.016 }, { y: 0.61, hh: 0.27, tl: 0.018 }];
+    const BOARD_Y = BOARDS.map(b => b.y);
     const BOARD = 0.27, doorH = 8 * BOARD, flatLit = { noLight: true }, doorWallOpts = Object.assign({}, tex, flatLit);
-    const doorWall = (z, hw, color, seam) => {
-      SC.wallV(L, -2.8, z, -hw, z, 0, 2.7, color, doorWallOpts); SC.wallV(L, hw, z, 2.8, z, 0, 2.7, color, doorWallOpts);
+    // the window beside the front doorway, a real hole in the wall on whole courses (so the boards round it line up with
+    // the boards beside it), its top level with the doorways'
+    const WIN = { x0: 1.3, x1: 2.4, y0: 4 * BOARD, y1: doorH, z: -2.4 };
+    const doorWall = (z, hw, color, seam, win) => {
+      SC.wallV(L, -2.8, z, -hw, z, 0, 2.7, color, doorWallOpts);
+      if (win) {   // the wall to the right of the doorway, round the window
+        SC.wallV(L, hw, z, win.x0, z, 0, 2.7, color, doorWallOpts); SC.wallV(L, win.x1, z, 2.8, z, 0, 2.7, color, doorWallOpts);
+        SC.wallV(L, win.x0, z, win.x1, z, 0, win.y0, color, doorWallOpts); SC.wallV(L, win.x0, z, win.x1, z, win.y1, 2.7, color, doorWallOpts);
+      } else SC.wallV(L, hw, z, 2.8, z, 0, 2.7, color, doorWallOpts);
       SC.wallV(L, -hw, z, hw, z, doorH, 2.7, color, doorWallOpts);
       // a dark line along every seam between courses (the boards themselves, with surface detail off), over the doorway too
       const zs = z - Math.sign(z) * 0.01;
       for (let i = 1; i < 10; i++) {
         const y = i * BOARD - 0.015, y1 = y + 0.03;
-        SC.wallV(L, -2.8, zs, -hw, zs, y, y1, seam, flatLit); SC.wallV(L, hw, zs, 2.8, zs, y, y1, seam, flatLit);
+        SC.wallV(L, -2.8, zs, -hw, zs, y, y1, seam, flatLit);
+        if (win && y > win.y0 && y < win.y1) { SC.wallV(L, hw, zs, win.x0, zs, y, y1, seam, flatLit); SC.wallV(L, win.x1, zs, 2.8, zs, y, y1, seam, flatLit); }   // not across the window
+        else SC.wallV(L, hw, zs, 2.8, zs, y, y1, seam, flatLit);
         if (y > doorH) SC.wallV(L, -hw, zs, hw, zs, y, y1, seam, flatLit);
       }
       return { z: Math.abs(z), x0: -hw, x1: hw, y0: 0, y1: doorH };   // the opening, as the lane sees it
     };
     L.addAperture(0, doorWall(2.6, 0.8, wood, [30, 24, 20]));
-    L.addAperture(1, doorWall(-2.4, 0.7, woodD, [26, 21, 17]));
+    L.addAperture(1, doorWall(-2.4, 0.7, woodD, [26, 21, 17], WIN));
     SC.wallV(L, -2.8, -2.4, -2.8, 2.6, 0, 2.7, woodD, tex);
     SC.wallV(L, 2.8, -2.4, 2.8, 2.6, 0, 2.7, woodD, tex);
     for (let i = 1; i < 10; i++) {
       const y = i * BOARD - 0.015, y1 = y + 0.03;
       SC.wallV(L, -2.79, -2.4, -2.79, 2.6, y, y1, [26, 21, 17]); SC.wallV(L, 2.79, -2.4, 2.79, 2.6, y, y1, [26, 21, 17]);
     }
-    // a window beside the front doorway with a little moonlight in it, and a sill under it
-    SC.wallV(L, 1.3, -2.39, 2.4, -2.39, 1.1, 2.0, [36, 42, 60]);
-    SC.wallV(L, 1.82, -2.38, 1.88, -2.38, 1.1, 2.0, woodD); SC.wallV(L, 1.3, -2.38, 2.4, -2.38, 1.52, 1.58, woodD);
-    SC.box(L, 1.24, 2.46, 1.04, 1.1, -2.39, -2.25, [70, 56, 42]);
+    // The window beside the front doorway: you see out of it, over the field to the south-east in the moonlight, and the
+    // thing too, if it runs past (see the run round the house). A little dark glass in it, with the moon's sheen across
+    // each pane, drawn after everything outside (the thing goes no nearer than BEHIND_WALLS, below) and before the
+    // window's own wood: a mullion down the middle and a transom a course below the head, a frame round it like the
+    // doorways', and the sill under it.
+    {
+      const { x0, x1, y0, y1, z } = WIN, xm = (x0 + x1) / 2, yt = y1 - BOARD, zi = z + 0.012, glassAt = Math.hypot(xm, z) + 0.25;
+      SC.wallV(L, x0, z, x1, z, y0, y1, [40, 50, 72], { alpha: 0.24, noLight: true, sortDist: glassAt });
+      for (const [a, b, c, d] of [[x0, xm, y0, yt], [xm, x1, y0, yt], [x0, xm, yt, y1], [xm, x1, yt, y1]]) {   // the sheen: a pale streak across each pane
+        const w = b - a, h = d - c, k = 0.24;
+        SC.quad(L, [a + w * 0.12, c + h * 0.1, z + 0.004], [a + w * (0.12 + k * 0.5), c + h * 0.1, z + 0.004], [a + w * (0.62 + k * 0.4), d - h * 0.08, z + 0.004], [a + w * 0.62, d - h * 0.08, z + 0.004], [170, 186, 220], { alpha: 0.045, noLight: true, sortDist: glassAt - 0.01 });
+      }
+      SC.wallV(L, xm - 0.026, zi, xm + 0.026, zi, y0, y1, woodD); SC.wallV(L, x0, zi, x1, zi, yt - 0.02, yt + 0.02, woodD);   // mullion, transom
+      const zf = z + 0.05;
+      SC.wallV(L, x0 - 0.07, zf, x0 + 0.015, zf, y0, y1 + 0.07, frame); SC.wallV(L, x1 - 0.015, zf, x1 + 0.07, zf, y0, y1 + 0.07, frame); SC.wallV(L, x0 - 0.07, zf, x1 + 0.07, zf, y1 - 0.015, y1 + 0.07, frame);
+      SC.box(L, x0 - 0.06, x1 + 0.06, 1.04, 1.1, z + 0.01, z + 0.15, [70, 56, 42]);
+    }
     // the empty door frames, the pale scars where hinges were, old nail holes in pairs down the other side where boards
     // have been nailed across before (the new ones cover them), and the steps outside
     for (const [z, w] of [[2.55, 0.8], [-2.35, 0.7]]) {
@@ -222,7 +257,7 @@ LEVELS.push({
       { x: -2.55, y: 1.28, z: -0.05, flat: false, jitter: 0 },   // on the shelf
     ], { w: 0.42, h: 0.42, flat: true, tool: true });
     lay('rotten', 'Plank', [{ x: 0.0, y: 0, z: -0.95 }, { x: 0.05, y: 0, z: 1.0 }],
-      { w: 1.1, h: 0.26, flat: true, icon: 'rottenPlank', decoy: true, decoyText: 'Rotten through. This one would never hold.' });
+      { w: 1.1, h: 0.36, flat: true, icon: 'rottenPlank', decoy: true, decoyText: 'Rotten through. This one would never hold.' });
     const plankSpots = [
       { x: -1.24, y: 0, z: -1.24 },                     // south-west corner
       { x: -1.5, y: 0, z: 1.6 },                        // north-west, by the back wall
@@ -237,7 +272,7 @@ LEVELS.push({
       { x: -2.15, y: 0, z: 2.05 },                      // the north-west corner
     ];
     for (let k = 0; k < 2 * need; k++) {
-      const it = lay('planks', 'Plank', plankSpots, { w: 1.1, h: 0.26, flat: true, stack: true });
+      const it = lay('planks', 'Plank', plankSpots, { w: 1.1, h: 0.36, flat: true, stack: true });
       it.icon = (ctx, P) => ICONS.fieldPlank(ctx, P, it.uses);   // one board, or the pile it has become
     }
     lay('nails', 'Nails', [
@@ -251,19 +286,126 @@ LEVELS.push({
       { x: 1.95, y: 0.78, z: 0.3 },                     // on the table, clear of the lamp
       { x: 1.75, y: 1.1, z: -2.31 },                    // on the windowsill
     ], { w: 0.17, h: 0.36 });
+    // ---- when it will not go ----
+    // What will not go up is put up all the same, and fails there (js/hands.js). A plank with nothing to fix it goes up
+    // where the next board goes (boardSpot: across the doorway at that board's height, stretched to lie across the frame as
+    // the boards do, and tilted as that board is nailed), hangs a moment and falls off to the floor in front of the
+    // doorway, to be picked up again. The rotten one goes up there too, and as it is pressed to the frame (the
+    // nail going in, if you have the hammer and the nails) its end tears away in a shower of soft rotten crumbs (s.crumbs),
+    // and it drops. Something else (the hammer, the nails, the bottle, with no plank to hand) is tried against the frame and
+    // comes back; with nothing in hand the hand goes to the frame, or knocks on the boards already up, and they shudder.
+    // A spot on the doorway is used only where it is in view and clear of what you hold: clicked at the edge of the view, it
+    // goes up on the part in view instead, at its own length.
+    const inView = (x, y, z) => {
+      const q = R.screenPos(x, y, z), b = G.hand.box;
+      return !!q && q.x > R.W * 0.06 && q.x < R.W * 0.94 && q.y > R.H * 0.06 && q.y < R.H * 0.94 && !(b && q.x > b.x0 && q.x < b.x1 && q.y > b.y0 && q.y < b.y1);
+    };
+    // the first place across the doorway (a share of its width) at height y that is in view, with both ends of a thing
+    // `half` metres either side of it on the view too if that can be had
+    const spotOn = (t, us, y, half) => {
+      const yaw = Math.atan2(t.x, t.z), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+      const onView = (x, z) => { const q = R.screenPos(x, y, z); return !!q && q.x > R.W * 0.02 && q.x < R.W * 0.98; };
+      const ok = (u, ends) => inView(t.x + rx * u * t.w, y, t.z + rz * u * t.w) && (!ends || [-1, 1].every(e => onView(t.x + rx * (u * t.w + e * half), t.z + rz * (u * t.w + e * half))));
+      let u = half ? us.find(u => ok(u, true)) : undefined;
+      if (u === undefined) u = us.find(u => ok(u, false));
+      return u === undefined ? null : [u, y / t.h];
+    };
+    const boardSpot = t => {
+      const b = BOARDS[Math.min(t.count, BOARDS.length - 1)], hw = t.w / 2 + 0.1;
+      const at = spotOn(t, [0, 0.12, -0.12, 0.25, -0.25, 0.38, -0.38], b.y, 0.55);
+      if (!at) return {};
+      return { at, scale: at[0] ? 1 : t.w / 1.1, angle: (t.lane === 0 ? 1 : -1) * Math.atan2(b.tl, hw) };   // (across the frame, a little short of the boards)
+    };
+    const frameSpot = t => spotOn(t, [0.44, 0.3, 0.15, 0, -0.15, -0.3, -0.44], 1.55);   // the post on your right, by the gap at eye level
+    const knockAt = t => spotOn(t, [0.1, 0, -0.1, 0.25, -0.25], BOARDS[0].y);   // the first board up
+    const onDoor = t => ({   // the doorway's own choices (useTarget, in game.js)
+      // the hammer, the nails or the bottle against the frame, and back: wood on wood, or the nails rattling in their box
+      onWrong(item) {
+        const hit = { hammer: 'woodKnock', nails: 'rattle' }[item.id], at = frameSpot(t);
+        if (!G.fumble(item, t, Object.assign({ preset: 'return' }, at ? { at } : null, hit ? { sfx: { hit } } : null)) && !G.fumbling) AUDIO.sfx('nope');
+      },
+      onEmpty() { feel(t); },
+      // a plank and nothing to fix it with: it goes up and falls off
+      onMissing(item) { if (!G.fumble(item, t, Object.assign({ preset: 'slip', hold: 0.2 }, boardSpot(t)))) { if (!G.fumbling) AUDIO.sfx('nope'); } },
+      // the rotten plank: it goes up, and tears away from the frame as it is fixed there
+      onDecoy(item) {
+        const nailed = G.hasItem('hammer') && G.hasItem('nails'), hold = nailed ? 0.38 : 0.22;   // (it tears as the third blow goes in)
+        const fx = G.fumble(item, t, Object.assign({ preset: 'slip', hold, sfx: { hit: nailed ? 'hammer' : 'woodKnock', land: 'flop' } }, boardSpot(t)));
+        if (fx) s.rot = { fx, tear: 0.14 + hold, n: 0, blows: nailed ? 0 : 3, nailed }; else if (!G.fumbling) AUDIO.sfx('nope');
+      },
+    });
+    // a plank gone up on this doorway that will not stay, until it falls: a click there meanwhile does nothing more (with it
+    // out of the hand, another click would say something else over its line, or nail a good plank up where it hangs)
+    const atDoor = t => { const fx = G.fumbling; return !!fx && fx.target === t && fx.drop && (fx.phase === 'wait' || fx.phase === 'out' || fx.phase === 'contact'); };
+    // the empty hand at a doorway: on the boards already up it knocks, and they shudder on their nails; on a bare doorway it
+    // lays its fingers on the frame
+    const feel = t => {
+      const k = t.count && knockAt(t), f = !k && frameSpot(t);
+      G.reach(t, k ? { style: 'knock', at: k, onTouch: () => jolt(t, 0.14) } : f ? { style: 'touch', at: f } : 'touch');
+    };
+    // the shower of rotten wood from the end of the rotten plank as it tears away: bits of soft wood and a little dust,
+    // falling to the floor, where the bits lie a while and fade; nailed, the end of it stays on the nail a moment, and drops
+    s.crumbs = [];
+    const crumble = (fx, n, dust, chunk) => {
+      const e = { x: 0, z: 0 }, a = fx.at, yaw = Math.atan2(a.x - e.x, a.z - e.z), w = (fx.it.w || 1.1) * fx.size * 0.45 * fx.side;
+      const x = a.x + Math.cos(yaw) * w, z = a.z - Math.sin(yaw) * w, y = a.y - 0.03;
+      for (let i = 0; i < n; i++) {
+        const r = Math.random;
+        s.crumbs.push({ x: x + (r() - 0.5) * 0.08, y: y + (r() - 0.5) * 0.12, z: z + (r() - 0.5) * 0.04, vx: (r() - 0.5) * 0.5 - Math.sin(yaw) * r() * 0.3, vy: r() * 0.6, vz: (r() - 0.5) * 0.5 - Math.cos(yaw) * r() * 0.3,
+          r: 0.012 + r() * 0.022, col: [[110, 118, 92], [74, 80, 60], [140, 146, 118], [52, 50, 40]][i % 4], t: 0 });
+      }
+      for (let i = 0; dust && i < 4; i++) s.crumbs.push({ x: x + (Math.random() - 0.5) * 0.1, y: y - 0.05 + i * 0.04, z, vx: 0, vy: -0.3, vz: 0, r: 0.035 + i * 0.012, col: [96, 96, 82], t: 0, dust: true });
+      if (chunk) s.crumbs.push({ x: a.x + Math.cos(yaw) * w * 1.04, y: a.y - 0.19, z: a.z - Math.sin(yaw) * w * 1.04, vx: 0, vy: 0, vz: 0, t: 0, hang: 1.3, chunk: fx.side });
+    };
+    // the end left on the nail: a ragged stub of the rotten board, torn across, the nail through it
+    const stub = (ctx, P, side) => {
+      ctx.scale(-side, 1);   // the torn edge toward where the board was
+      P_poly(ctx, [[-0.05, 0.02], [0.03, 0.0], [0.05, 0.08], [0.02, 0.14], [0.055, 0.2], [0.015, 0.27], [0.045, 0.34], [0.03, 0.39], [-0.05, 0.38]], P.col([53, 137, 123]));
+      P_poly(ctx, [[-0.05, 0.02], [-0.02, 0.02], [-0.03, 0.2], [-0.02, 0.38], [-0.05, 0.38]], P.col([24, 78, 73]));
+      P_line(ctx, 0.0, 0.03, 0.03, 0.36, 0.008, P.col([0, 32, 39]));
+      P_ell(ctx, -0.012, 0.2, 0.013, 0.013, P.col([46, 44, 42]));
+    };
+    const crumbsOn = dt => {
+      const r = s.rot;
+      if (r) {   // the rotten plank at the doorway: each blow of the hammer knocks a few bits out round the nail, and as it
+        const fx = r.fx;   // tears away and drops more go, and the rest as it falls
+        if (fx.phase === 'contact' && r.blows < 3 && fx.pt >= 0.112 + r.blows * 0.22) { r.blows++; crumble(fx, 3, false); G.shake(0.05); }
+        if (fx.phase === 'contact' && fx.pt >= r.tear && r.n === 0) { r.n = 1; crumble(fx, 8, false, r.nailed); AUDIO.sfx('crack', panTo(Math.atan2(fx.at.x, fx.at.z))); }
+        if (fx.phase === 'fall' && r.n < 2) { r.n = 2; crumble(fx, 18, true); AUDIO.sfx('crack', panTo(Math.atan2(fx.at.x, fx.at.z))); }
+        if (fx.phase === 'done' || fx.phase === 'bounce') s.rot = null;
+      }
+      for (const c of s.crumbs) {
+        c.t += dt;
+        if (c.dust) { c.y += c.vy * dt; c.vy *= Math.exp(-dt * 3); continue; }
+        if (c.chunk && c.t < c.hang) { if (c.t + dt >= c.hang) AUDIO.sfx('crack', panTo(Math.atan2(c.x, c.z))); continue; }
+        if (c.y > 0.004) { c.vy -= 9.8 * dt; c.x += c.vx * dt; c.y = Math.max(0.004, c.y + c.vy * dt); c.z += c.vz * dt; c.vx *= Math.exp(-dt * 1.5); c.vz *= Math.exp(-dt * 1.5); }
+      }
+      s.crumbs = s.crumbs.filter(c => c.t < (c.dust ? 0.7 : c.chunk ? 5 : 3.5));
+    };
+    const crumbsDraw = () => {
+      for (const c of s.crumbs) {
+        if (c.chunk) { R.add({ kind: 'sprite', x: c.x, y: c.y, z: c.z, w: 0.12, h: 0.4, worn: true, alpha: c.t > 4 ? 5 - c.t : 1, noContact: true, layer: 1, draw: (ctx, P) => stub(ctx, P, c.chunk) }); continue; }
+        const a = c.dust ? 0.2 * (1 - c.t / 0.7) : c.t > 2.5 ? 1 - (c.t - 2.5) : 1, rr = c.dust ? c.r * (1 + c.t * 2) : c.r;
+        R.add({ kind: 'sprite', x: c.x, y: c.y - rr, z: c.z, w: rr * 2, h: rr * 2, alpha: a, noContact: true, layer: 1, draw: (ctx, P) => P_ell(ctx, 0, rr, rr, rr * (c.dust ? 0.8 : 0.7), P.col(c.col)) });
+      }
+    };
     // the doorways: three planks across each, nailed. Boarding the one it is coming for sends it running round the house.
     const mkDoor = (id, name, deg, dist, w, lane) => {
       const t = mkTarget(L, {
         id, name, deg, dist, y: 0, w, h: 2.1, accepts: ['planks', 'rotten'], requires: ['hammer', 'nails'], needed: need, lane,
         hint() { return t.done ? 'Boarded up.' : 'The ' + name.toLowerCase() + '. ' + (need - t.count) + ' more plank' + (need - t.count > 1 ? 's' : '') + ' would do it.'; },
-        onClick() { if (!t.done) return false; G.say('Boarded up.', 'It is boarded up.'); return true; },
+        onClick() {
+          if (atDoor(t)) return true;   // a plank is up there failing already: that is the answer (and its line stays said)
+          if (!t.done) return false; G.say('Boarded up.', 'It is boarded up.'); feel(t); return true;   // a knock on the boards: they hold
+        },
         use() {
-          // once it is in this doorway it is too late to board it: the plank stays in the hand, and it comes on
+          // once it is in this doorway it is too late to board it: the plank is knocked out of your hands, and it comes on
           const c = L.creature;
-          if (c.reached && c.lane.idx === lane) { G.say('It is already in the doorway.', 'Too late for that one.'); return false; }
+          if (c.reached && c.lane.idx === lane) { G.say('It is already in the doorway.', 'Too late for that one.'); return G.refuse('clatter'); }
           t.count++; AUDIO.sfx('hammer'); G.shake(0.15); if (t.count >= need) { t.done = true; boarded(t); } return true;
         },
       });
+      Object.assign(t, onDoor(t));
       // what keeps the planks from going up is the state of things, not where the answer lies
       Object.defineProperty(t, 'missingText', { get: () => (G.hasItem('hammer') ? 'The hammer has nothing to drive.' : 'The planks will not stay up on their own.') });
       return t;
@@ -278,45 +420,93 @@ LEVELS.push({
     // sideways out of that doorway's view, goes round the outside of the house (running feet, a blow on the side wall as
     // it passes), and comes up to the other doorway (the creak of its step) from the same side, at about the distance it
     // was: never nearer than RUN.gap metres outside that doorway, so there is time to turn round, but not much.
-    const RUN = { stop: 0.35, out: 1.1, round: 1.0, in: 0.8, gap: 10 }, RUSH = 18;
+    // The walls hide it all the way round except where the window beside the front doorway genuinely shows it: going round
+    // it does not stop and run on the spot behind the wall but keeps on, flat out, the way it ran, so run out of the front
+    // doorway on the window's side it is seen through the window running past and on out of it; and coming round to the
+    // front doorway on that side it comes from beyond the window (inLat), running across it and behind the wall to the
+    // doorway, at the same pace (so it comes round that much sooner, RUN.lead, and is at the doorway when it would be).
+    const RUN = { stop: 0.35, out: 1.1, round: 1.0, in: 0.8, gap: 10 };
     const outLat = d => d * 0.42 + 2.5;   // far enough to the side to be wholly behind the wall at distance d
     const panTo = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
+    // whether any of it, running (as wide as its stride), shows through the window at `lat` on way `ln`, `d` metres out
+    const inWindow = (ln, d, lat) => {
+      const p = APPROACH.position(ln, d, lat, L.eyeH), hw = Math.max(L.creature.CR.w, L.creature.CR.runW || 0) / 2 + 0.15;
+      if (p.z >= WIN.z) return false;
+      const k = WIN.z / p.z;
+      return (p.x + hw) * k > WIN.x0 && (p.x - hw) * k < WIN.x1;
+    };
+    // how far to the side it comes round to way ln at distance d, on the side sgn: wholly behind the wall, and beyond the
+    // window if the window looks out on that side of it
+    const inLat = (ln, d, sgn) => {
+      let far = 0;
+      for (let lat = outLat(d); lat < outLat(d) + 2 * d + 4; lat += 0.25) if (inWindow(ln, d, sgn * lat)) far = lat;
+      return far ? far + 0.25 : outLat(d);
+    };
     const boarded = t => {
       const c = L.creature, other = t === back ? front : back;
       if (other.done || s.run || c.lane.idx !== t.lane) return;   // both up (the night is won), already going round, or not coming this way
       s.run = { t: 0, from: c.lane, to: L.lanes[other.lane], side: c.rand() < 0.5 ? 1 : -1, d: c.dist, d2: c.dist, u0: c.u, steps: 0, banged: false, arrived: false };
+      const r = s.run, d2 = Math.max(r.d, (r.to.barrierDist || 0) + RUN.gap);
+      r.lead = clamp(RUN.in * (inLat(r.to, d2, -r.side) / outLat(d2) - 1), 0, RUN.round * 0.7);   // coming round beyond the window, it comes round sooner
       s.ranFrom = { lane: c.lane.idx, dist: c.dist };
       s.ran = true;
       c.hold = c.dist;
     };
+    // ---- after the last board ----
+    // The moment the night is won (once it has come round, if it was going round) it stops dead, as it did at the first
+    // doorway, then charges the doorway it was coming for, flat out and straight at you (the walker's drawCharge): from
+    // anywhere in the field it is at the boards in CHARGE.most seconds or less, picking up speed over CHARGE.ramp. It hits
+    // them, and the aftermath (L.aftermath) has it stoop to look in at you through the gap, get its hands on the board
+    // under the gap and pound on them, a hand at a time, until the night fades. While it charges its stride is a
+    // runner's, long and loud (CHARGING: the walker, striding out), and its legs and arms go at the pace of its run round
+    // the house (CHARGE.pace, radians of stride a second, as runGait) however fast it is going: a stride fixed in metres
+    // had them pumping in slow motion on a short charge, from the ten metres or so it comes round to.
+    const CHARGE = { stop: 0.3, ramp: 0.35, most: 2.6, pace: 15 };
+    const CHARGING = Object.assign(Object.create(CREATURES.walker), { stepRate: 0.22, sound: 'runner' });
+    const hitBoards = c => {
+      s.hitAt = L.t; c.charge = 0; c.CR = CREATURES.walker; c.peer = 0.35; c.blow = 1;
+      jolt(doorOf(c.lane), 1.7);
+      AUDIO.sfx('bang', panTo(c.lane.yaw)); AUDIO.sfx('thud'); G.shake(0.85);
+    };
     L.update = dt => {
+      crumbsOn(dt);
       const c = L.creature, r = s.run;
-      // once the night is won (and it has come round, if it was going round), near enough to reach the boards in a couple
-      // of seconds it rushes them, so the aftermath's blows land on them; farther out it walks on at its own pace
       if (L.won && !s.closing && !r) {
         s.closing = true;
-        if (c.dist - L.barrierDist <= RUSH) c.distFn = (cr, dt2) => Math.max(Math.min(cr.dist, L.barrierDist), cr.dist - dt2 * 9);
+        const D = Math.max(0, c.dist - L.barrierDist), T = clamp(0.8 + D / 22, 0.6, CHARGE.most);
+        s.charge = { t: s.cutShort ? 0 : -CHARGE.stop, from: c.dist, V: D / (T - CHARGE.ramp / 2) };   // just round the corner, it is running already
+        CHARGING.stepRate = CHARGE.pace / (Math.PI * Math.max(s.charge.V, 2));   // the gait goes by the metres it moves
+        c.hold = c.dist;
+      }
+      const ch = s.charge;
+      if (ch && s.hitAt === undefined) {
+        ch.t += dt;
+        if (ch.t > 0) {
+          const run = ch.t < CHARGE.ramp ? 0.5 * ch.V * ch.t * ch.t / CHARGE.ramp : ch.V * (ch.t - CHARGE.ramp / 2);
+          c.hold = Math.max(L.barrierDist, ch.from - run); c.charge = 1; c.CR = CHARGING;
+          if (c.hold <= L.barrierDist) hitBoards(c);
+        }
       }
       if (!r) return;
-      const T1 = RUN.stop, T2 = T1 + RUN.out, T3 = T2 + RUN.round, T4 = T3 + RUN.in;
-      if (L.won && r.t < T3) { r.t = T3; s.cutShort = true; }   // won while it was still going round: it comes round the corner now, to the doorway it was running to
+      const T1 = RUN.stop, T2 = T1 + RUN.out, T3 = T2 + RUN.round - r.lead;
+      if (L.won && !r.arrived && r.t < T3) { r.t = T3; s.cutShort = true; }   // won while it was still going round: it comes round the corner now, to the doorway it was running to
       r.t += dt;
       if (r.t < T1) return;   // it stops dead in the field, as the last board goes up in front of it
-      if (r.t >= T4) { c.runPose = false; c.runLat = 0; c.hold = null; s.run = null; return; }   // and walks on, at its own pace, from where it came round
+      if (r.arrived && r.t >= r.inAt + r.inT) { c.runPose = false; c.runLat = 0; c.hold = null; s.run = null; return; }   // and walks on, at its own pace, from where it came round
       c.runPose = true; c.runDir = r.side;
       c.runGait = (c.runGait || 0) + dt * 15;
       let yaw;
       if (r.t < T2) {          // flat out to one side, across the doorway and out of it
         c.runLat = r.side * outLat(r.d) * Math.pow((r.t - T1) / RUN.out, 1.5);
         yaw = r.from.yaw + Math.atan2(c.runLat, r.d);
-      } else if (r.t < T3) {   // out of sight, going round the house
-        const a0 = Math.atan2(outLat(r.d), r.d), k = (r.t - T2) / RUN.round;
-        c.runLat = r.side * outLat(r.d);
+      } else if (!r.arrived && r.t < T3) {   // going round the house, out of sight but through the window: on the way it ran, still flat out
+        const a0 = Math.atan2(outLat(r.d), r.d), k = (r.t - T2) / (T3 - T2), e = (r.t - T2) / RUN.out;
+        c.runLat = r.side * outLat(r.d) * (1 + 1.5 * e + 0.6 * e * e);   // on at the pace it ran out at, and faster
         yaw = r.from.yaw + r.side * lerp(a0, Math.PI - a0, k);
         if (!r.banged && k > 0.4) { r.banged = true; AUDIO.sfx('thud', panTo(r.from.yaw + r.side * Math.PI / 2)); G.shake(0.12); }   // a blow on the side wall, not on the boards
       } else {                 // round the corner and in front of the other doorway, then it turns to it
         if (!r.arrived) {
-          r.arrived = true;
+          r.arrived = true; r.inAt = Math.min(r.t, T3);
           r.d2 = Math.max(r.d, (r.to.barrierDist || 0) + RUN.gap);
           c.retarget(r.to.idx); c.reached = false;
           // a rotten plank tried while it was going round (it held still, so its progress only moved by that) still costs
@@ -324,46 +514,114 @@ LEVELS.push({
           r.d2 = c.D0 * Math.pow(1 - c.u, c.gamma); c.hold = c.dist = r.d2;
           L.lane = r.to; L.laneIdx = r.to.idx; L.barrierDist = r.to.barrierDist || 0;
           AUDIO.sfx(r.to.cue || 'creak', panTo(r.to.yaw));
+          r.lat2 = inLat(r.to, r.d2, -r.side); r.inT = RUN.in * r.lat2 / outLat(r.d2);   // from beyond the window, at the same pace
         }
         // it comes in from the side it went round by, which is the other hand of this doorway
-        c.runLat = -r.side * outLat(r.d2) * (1 - easeOut((r.t - T3) / RUN.in));
+        c.runLat = -r.side * r.lat2 * (1 - easeOut((r.t - r.inAt) / r.inT));
         yaw = r.to.yaw + Math.atan2(c.runLat, r.d2);
       }
       // running feet, loud enough to hear across the field
       const n = Math.floor(c.runGait / Math.PI);
       if (n !== r.steps) { r.steps = n; AUDIO.footstep('runner', clamp(4 / (c.dist + 4), 0.12, 0.7), panTo(yaw)); }
     };
+    // Each board: its face, the upper edge catching the light and the lower in shadow, grain along it, a knot, and three
+    // nails at each end, driven into the frame. When it hits the boards (s.jolt, from the aftermath) each one jumps in
+    // toward you on its nails and rattles back, a little out of step with the others.
+    const BOARD_COL = [[116, 90, 56], [104, 80, 50], [112, 86, 53]];
+    const grainRng = mulberry32(5), GRAIN = BOARDS.map(() => Array.from({ length: 5 }, () => {
+      const v = (grainRng() * 2 - 1) * 0.8, x0 = (grainRng() * 2 - 1.4) * 1, len = 0.5 + grainRng() * 1.1;
+      return [v, x0, x0 + len];
+    }));
+    const jolt = (t, amp) => { s.jolt = { t, at: L.t, amp: amp * (SAVE.data.settings.reducedMotion ? 0.5 : 1) }; };
+    // where board k of doorway t is this frame: z its plane, sign the way into the house, yAt(x) the middle of it at x
+    const boardAt = (t, k, z, sign) => {
+      const b = BOARDS[k], j = s.jolt && s.jolt.t === t ? s.jolt : null, hw = t.w / 2 + 0.1;
+      let yc = b.y, tl = b.tl, zz = z;
+      if (j) {   // a damped shudder: in toward the eye, then back and forth on the nails
+        const age = L.t - j.at - k * 0.025, a = age > 0 ? j.amp * Math.exp(-age * 9) : 0, w = Math.cos(age * 44 + k * 1.7);
+        zz = z + sign * a * 0.05 * Math.max(0, w); yc += a * 0.022 * Math.sin(age * 37 + k * 2.3); tl += a * 0.028 * w * (k % 2 ? 1 : -1);
+      }
+      return { zz, yAt: x => yc - tl * x / hw };
+    };
     const boards = (t, z, sign) => {
+      const hw = t.w / 2 + 0.1;
       for (let k = 0; k < t.count; k++) {
-        const yc = BOARD_Y[k], tl = (k % 2 ? 1 : -1) * 0.05, hw = t.w / 2 + 0.1, hh = 0.1;
-        R.add(SC.mkQuad(L, [-hw, yc - hh + tl, z], [hw, yc - hh - tl, z], [hw, yc + hh - tl, z], [-hw, yc + hh + tl, z], k % 2 ? [104, 80, 50] : [116, 90, 56]));
-        R.add(SC.mkQuad(L, [-hw, yc - 0.02 + tl, z + sign * 0.005], [hw, yc - 0.02 - tl, z + sign * 0.005], [hw, yc - 0.01 - tl, z + sign * 0.005], [-hw, yc - 0.01 + tl, z + sign * 0.005], [84, 64, 40]));   // a line of grain
-        for (const x of [-hw + 0.1, hw - 0.1]) {   // two nails at each end
-          const ty = tl * (x < 0 ? 0.8 : -0.8);
-          for (const dy of [-0.045, 0.045]) R.add(SC.mkQuad(L, [x - 0.016, yc + dy + ty - 0.016, z + sign * 0.01], [x + 0.016, yc + dy + ty - 0.016, z + sign * 0.01], [x + 0.016, yc + dy + ty + 0.016, z + sign * 0.01], [x - 0.016, yc + dy + ty + 0.016, z + sign * 0.01], [30, 28, 26]));
+        const b = BOARDS[k], col = BOARD_COL[k], { zz, yAt } = boardAt(t, k, z, sign);
+        const strip = (v0, v1, color, x0, x1, lift) => {
+          const a = x0 === undefined ? -hw : x0, c = x1 === undefined ? hw : x1, zf = zz + sign * (lift || 0.004);
+          R.add(SC.mkQuad(L, [a, yAt(a) + v0, zf], [c, yAt(c) + v0, zf], [c, yAt(c) + v1, zf], [a, yAt(a) + v1, zf], color));
+        };
+        R.add(SC.mkQuad(L, [-hw, yAt(-hw) - b.hh, zz], [hw, yAt(hw) - b.hh, zz], [hw, yAt(hw) + b.hh, zz], [-hw, yAt(-hw) + b.hh, zz], col));
+        strip(b.hh - 0.028, b.hh, scalec(col, 1.2));                 // the upper edge, catching the light
+        strip(-b.hh, -b.hh + 0.034, scalec(col, 0.7));               // the lower edge, in its own shadow
+        for (const [v, x0, x1] of GRAIN[k]) strip(v * b.hh, v * b.hh + 0.009, scalec(col, 0.8), clamp(x0, -1, 1) * hw, clamp(x1, -1, 1) * hw);   // grain
+        for (const e of [-1, 1]) strip(-b.hh, b.hh, scalec(col, 0.78), e < 0 ? -hw : hw - 0.022, e < 0 ? -hw + 0.022 : hw, 0.003);   // the sawn ends, darker
+        if (k === 2) {   // the last has split along the grain from one end
+          const zf = zz + sign * 0.005, y0 = yAt(hw) + 0.085;   // between the nails at that end
+          R.add(SC.mkQuad(L, [hw * 0.15, yAt(hw * 0.15) + 0.11, zf], [hw, y0 - 0.008, zf], [hw, y0 + 0.016, zf], [hw * 0.15, yAt(hw * 0.15) + 0.112, zf], scalec(col, 0.35)));
+        }
+        const kx = [0.32, -0.42, 0.12][k], ky = yAt(kx) + [0.05, -0.07, 0.09][k];   // a knot
+        R.add(SC.mkQuad(L, [kx - 0.035, ky, zz + sign * 0.006], [kx, ky - 0.022, zz + sign * 0.006], [kx + 0.035, ky, zz + sign * 0.006], [kx, ky + 0.022, zz + sign * 0.006], scalec(col, 0.58)));
+        for (const x of [-hw + 0.1, hw - 0.1]) {   // three nails at each end
+          for (const dy of [-0.6, 0, 0.6]) {
+            const ny = yAt(x) + dy * b.hh, zn = zz + sign * 0.01;
+            R.add(SC.mkQuad(L, [x - 0.016, ny - 0.016, zn], [x + 0.016, ny - 0.016, zn], [x + 0.016, ny + 0.016, zn], [x - 0.016, ny + 0.016, zn], [30, 28, 26]));
+          }
         }
       }
     };
+    // Its fingers, hooked over the edge of the board under the gap while it has hold of it: they come over onto this side
+    // of the board, so they are drawn over it (the hand behind is the walker's own, in the gap). Long and black, the nails
+    // pale; the fingers lean in toward its face. side is +1 for the hand on the right of the view.
+    const grip = (ctx, P, side) => {
+      const body = P.col([6, 6, 10]), nail = P.col([92, 84, 88]);
+      for (let i = 0; i < 4; i++) {
+        const x = side * (i - 1.5) * 0.026, len = [0.07, 0.085, 0.078, 0.056][i], lean = -side * 0.01;
+        P_limb(ctx, [[x, 0.13], [x + lean * 0.4, 0.107], [x + lean, 0.1 - len]], 0.018, body);
+        P_ell(ctx, x + lean, 0.1 - len + 0.008, 0.006, 0.008, nail);
+      }
+    };
+    const PLANE = t => (t === back ? [2.42, -1] : [-2.28, 1]);   // where a doorway's boards are, and the way into the house
     // The thing is drawn in order by how far along its way it is. Off to one side of a doorway, running round the house
     // near it, that order put it in front of the walls between it and the eye, running across the boards of the back
     // wall. So while it is outside the house it goes by how far it really is, and never nearer than behind every wall
     // of the house (see STEPS_AT): the walls, the frames and the boards are all drawn over it, as they stand in front
     // of it. Once it is through the doorway it is drawn as usual, over everything behind it.
     L.dynamic = () => {
-      boards(back, 2.42, -1); boards(front, -2.28, 1);
+      boards(back, ...PLANE(back)); boards(front, ...PLANE(front));
+      crumbsDraw();
       const c = L.creature, cp = L.rend && L.rend.get(c);
       if (cp) { const p = c.pos(); cp.sortDist = c.dist > c.lane.apertures[0].z + 0.05 ? Math.max(Math.hypot(p.x, p.z), BEHIND_WALLS) : undefined; }
+      if (s.hitAt !== undefined && c.peer > 0.6) {   // at the boards: its fingers over the one under the gap (grip; the night faces north, so x is the boards' own)
+        const t = doorOf(c.lane), [z, sign] = PLANE(t), { zz, yAt } = boardAt(t, 0, z, sign), zb = Math.abs(zz) - 0.012;
+        for (const side of [-1, 1]) {
+          if (c.handLift && c.handLift[side > 0 ? 1 : 0] > 0.2) continue;   // that hand is up, to strike
+          const p = APPROACH.position(c.lane, zb, side * 0.36 * zb / c.dist, L.eyeH);   // where its hand is, seen at the board
+          R.add({ kind: 'sprite', x: p.x, y: yAt(p.x) + BOARDS[0].hh - 0.1, z: p.z, w: 0.16, h: 0.16, draw: (ctx, P) => grip(ctx, P, side), sortDist: zb - 0.15, noContact: true });
+        }
+      }
     };
-    // the aftermath: it comes to the boards (L.update closes it in) and tries them, blow after blow, until the night ends,
-    // stooping to look in at you through the gap left between them (its head is above the doorway when it stands)
-    L.aftermath = t => {
+    // The aftermath: it charges the boards (L.update), and from the moment it hits them it stoops to look in at you
+    // through the gap and pounds on them, a hand at a time, BLOW seconds apart: a hand lets go, rises out of sight behind
+    // the board above and comes down; each blow is loud, jolts the boards in at you and shakes the view, and every other
+    // one sets them rattling on their nails. The night fades a few blows in, and it is still at them as it goes.
+    const BLOW = 0.38, FIRST = 0.5;
+    const liftOf = f => (f < 0.3 ? 0 : f < 0.85 ? smoothstep((f - 0.3) / 0.55) : 1 - smoothstep((f - 0.85) / 0.15));
+    L.aftermath = (t, dt) => {
       const c = L.creature;
-      if (s.bangAt === undefined && !s.run && c.dist <= L.barrierDist + 0.05) s.bangAt = t;
-      if (s.bangAt === undefined) return t >= (c.distFn ? 6 : 4);   // still out in the field when the night ends
-      c.peer = clamp((t - s.bangAt) / 0.8, 0, 1);
-      const n = Math.floor((t - s.bangAt) / 0.75);
-      if (n >= (s.bangs || 0)) { s.bangs = n + 1; AUDIO.sfx('bang'); G.shake(0.5); }
-      return t - s.bangAt >= 3.4;
+      if (s.hitAt === undefined) return t >= 9;   // not at the boards yet (it always is, well before this)
+      const k = L.t - s.hitAt, phase = (k - FIRST) / BLOW;
+      c.peer = Math.min(1, c.peer + dt / 0.45);
+      c.blow = Math.max(0, c.blow - dt * 5);
+      c.handLift = [0, 1].map(h => { const q = (phase - h) / 2; return q < -1 ? 0 : liftOf(q - Math.floor(q)); });
+      const n = Math.floor(phase);
+      if (n >= 0 && n >= (s.bangs || 0)) {
+        s.bangs = n + 1; c.blow = 1;
+        jolt(doorOf(c.lane), 1);
+        AUDIO.sfx('bang', panTo(c.lane.yaw)); if (n % 2) AUDIO.sfx('boardRattle', panTo(c.lane.yaw));
+        G.shake(0.45);
+      }
+      return k >= 2.9;
     };
     // it is on you a fraction of a second after it reaches a doorway, so the death line says what happened rather than a toast
     L.onReach = c => { const t = doorOf(c.lane); if (t.count > 0 && !t.done) { t.count = 0; s.torn = true; AUDIO.sfx('smash'); G.shake(0.8); } };

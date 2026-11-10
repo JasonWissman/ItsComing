@@ -2,15 +2,20 @@
 // ---------- captions for sounds: one short line, with a side marker from the pan, throttled per sound ----------
 const CAPTIONS = (() => {
   const SFX = {
-    bang: 'something hits the boards', crack: 'a board cracks', receiver: 'the receiver lifts, a dial tone', dial: 'a button beeps', ringback: 'ringing on the line', noService: 'three rising tones', answer: 'someone picks up', phoneRing: 'a phone rings', rev: 'the engine roars', smash: 'the boards tear away', hammer: 'hammering', splash: 'a splash', dive: 'something goes under', wetThud: 'a wet blow',
+    bang: 'something hits the boards', crack: 'a board cracks', receiver: 'the receiver lifts, a dial tone', dial: 'a button beeps', ringback: 'ringing on the line', noService: 'three rising tones', answer: 'someone picks up', phoneRing: 'a phone rings', rev: 'the engine roars', smash: 'the boards tear away', hammer: 'hammering', splash: 'a splash', plunge: 'a splash, far below', dive: 'something goes under', wetThud: 'a wet blow', wetPound: 'something pounds on the door', slosh: 'water slapping',
+    keyClick: 'a key clicks', coin: 'a coin drops in', coinReturn: 'a coin rattles into the return', carCome: 'a car, coming fast', brake: 'tyres hiss on the wet road', horn: 'a car horn, twice', carDoor: 'a car door opens',   // the pay phone's keys and coin, the car that comes
+    boardRattle: 'the boards rattle on their nails',
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
-    clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click',
-    scrape: 'scratching', drawer: 'a drawer slides open', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', tick: 'a clock ticks', musicbox: 'a music box', birds: 'birdsong', start: 'the engine catches',
-    crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', bar: 'a bar drops into place',
+    shutterBang: 'fists pound on the shutter',
+    clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click', twang: 'a bowstring twangs', bowCreak: 'a bowstring creaks', bowFull: 'the bowstring comes tight', thunk: 'an arrow thunks home',
+    scrape: 'scratching', drawer: 'a drawer slides open', tug: 'the covers are yanked', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', tick: 'a clock ticks', musicbox: 'a music box', musicTurn: 'a few notes of a music box', birds: 'birdsong', start: 'the engine catches',
+    musicSour: 'a music box plays wrong notes',
+    crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', cloth: 'cloth twisting', burst: 'glass breaks; fire roars up', bar: 'a bar drops into place',
     fit: 'something clicks into place', ratchet: 'a ratchet', switch: 'a switch', keys: 'keys', load: 'the gun loads', win: 'a chord', drop: 'something set down',
+    tink: 'metal taps on something', woodKnock: 'wood knocks against wood', clatter: 'something clatters to the floor', flop: 'something soft drops', pat: 'a hand on it', rattle: 'a rattle',
     sting: 'a scream', stingShriek: 'a shriek', stingHum: 'a rising hum', stingStone: 'stone grinding', stingHit: 'a blow', stingWet: 'a wet scream', stingScrape: 'hooks on stone', stingGlass: 'glass breaking',
   };
-  const STEPS = { walker: 'slow footsteps', crawler: 'scuttling', smiler: 'light footsteps', runner: 'running', climber: 'hooks on stone', shoes: 'hard heels', tall: 'a slow, heavy step' };
+  const STEPS = { walker: 'slow footsteps', crawler: 'scuttling', smiler: 'light footsteps', runner: 'running', climber: 'hooks on stone', shoes: 'hard heels', shoesRun: 'hard heels, running', tall: 'a slow, heavy step' };
   const VOICES = { exhale: 'a long breath', hum: 'humming', clicks: 'clicking', pant: 'panting', slow: 'a very slow breath', gurgle: 'a gurgle' };
   const last = new Map();
   let el = null, hideAt = 0;

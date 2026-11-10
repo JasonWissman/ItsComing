@@ -1,20 +1,10 @@
 'use strict';
 // ---------- item icons. Each draws inside a unit box: x in [-0.5,0.5], y in [0,1], +y up ----------
-// a heart: the music box's keyhole plate, and the bow of its own key
+// a heart: the brass inlay on the front of the music box
 function heartShape(ctx, x, y, s, col, hole) {
   P_ell(ctx, x - s * 0.5, y + s * 0.25, s * 0.52, s * 0.5, col); P_ell(ctx, x + s * 0.5, y + s * 0.25, s * 0.52, s * 0.5, col);
   P_poly(ctx, [[x - s * 1.0, y + s * 0.15], [x + s * 1.0, y + s * 0.15], [x, y - s * 0.95]], col);
   if (hole) P_ell(ctx, x, y + s * 0.1, s * 0.25, s * 0.25, hole);
-}
-// a small key, pointing down, told apart from the others only by the shape of its bow
-function smallKey(ctx, P, bow, rgb) {
-  const m = P.col(rgb), d = P.col(scalec(rgb, 0.55));
-  P_line(ctx, 0, 0.62, 0, 0.12, 0.09, m);
-  P_rect(ctx, 0, 0.1, 0.16, 0.07, m); P_rect(ctx, 0, 0.22, 0.11, 0.06, m);
-  if (bow === 'heart') heartShape(ctx, 0, 0.76, 0.2, m, d);
-  else if (bow === 'square') { P_rect(ctx, -0.17, 0.62, 0.34, 0.3, m); P_rect(ctx, -0.08, 0.7, 0.16, 0.14, d); }
-  else if (bow === 'clover') { for (const [x, y] of [[-0.1, 0.76], [0.1, 0.76], [0, 0.92]]) P_ell(ctx, x, y, 0.1, 0.1, m); P_ell(ctx, 0, 0.8, 0.04, 0.04, d); }
-  else { P_ell(ctx, 0, 0.78, 0.18, 0.18, m); P_ell(ctx, 0, 0.78, 0.08, 0.08, d); }
 }
 const ICONS = {
   // a claw hammer: a wooden handle with a dark grip, a steel head with its striking face on one side and the split claw
@@ -127,37 +117,88 @@ const ICONS = {
     P_rect(ctx, -0.3, 0.08, 0.6, 0.07, brassD); P_rect(ctx, -0.3, 0.53, 0.6, 0.05, brassL); P_rect(ctx, 0.24, 0.15, 0.06, 0.38, brassD);
     P_ell(ctx, 0, 0.38, 0.055, 0.055, dark); P_poly(ctx, [[-0.028, 0.37], [0.028, 0.37], [0.045, 0.21], [-0.045, 0.21]], dark);
   },
-  // a double-barrelled shotgun, side on: the barrels with the light along them, the fore-end, the action with its trigger
-  // guard, and the stock ending in a dark butt plate
-  shotgun(ctx, P) {
-    const steel = P.col([76, 78, 86]), steelL = P.col([132, 134, 146]), steelD = P.col([38, 38, 44]);
-    const wood = P.col([122, 80, 46]), woodL = P.col([160, 114, 68]), woodD = P.col([74, 48, 28]);
-    ctx.save(); ctx.translate(0, 0.45); ctx.rotate(0.06);
-    P_rect(ctx, -0.5, 0.0, 0.66, 0.1, steel);
-    P_line(ctx, -0.49, 0.05, 0.15, 0.05, 0.01, steelD);
-    P_line(ctx, -0.49, 0.09, 0.15, 0.09, 0.014, steelL);
-    P_poly(ctx, [[-0.3, 0.0], [-0.04, 0.0], [-0.06, -0.07], [-0.28, -0.07]], wood);
-    P_line(ctx, -0.28, -0.012, -0.06, -0.012, 0.012, woodL);
-    ctx.strokeStyle = steelD; ctx.lineWidth = 0.02; ctx.beginPath(); ctx.ellipse(0.19, -0.075, 0.055, 0.045, 0, Math.PI, TAU); ctx.stroke();
-    P_line(ctx, 0.19, -0.06, 0.175, -0.1, 0.016, steelD);
-    P_rect(ctx, 0.12, -0.065, 0.13, 0.175, steelD);
-    P_poly(ctx, [[0.23, 0.1], [0.31, 0.075], [0.5, 0.025], [0.5, -0.17], [0.42, -0.17], [0.31, -0.075], [0.23, -0.055]], wood);
-    P_line(ctx, 0.3, 0.06, 0.47, 0.018, 0.016, woodL);
-    P_rect(ctx, 0.47, -0.17, 0.035, 0.195, woodD);
+  // a bow: a wooden stave whose tips flick outward, the grip wrapped in leather, and the string. It takes the shape of what
+  // it is drawn on, measured in the card's own height so it is never squashed: in a square slot it lies corner to corner; on
+  // a long card it lies along it, string up (or hangs by its string from a nail, opts.hang); on a tall one it stands, leaning
+  bow(ctx, P, opts) {
+    const m = ctx.getTransform(), asp = Math.hypot(m.a, m.b) / Math.max(1e-6, Math.hypot(m.c, m.d));
+    const wide = asp > 1.8, tall = asp < 0.55, hang = wide && !!(opts && opts.hang);
+    const wood = P.col([124, 82, 46]), woodL = P.col([178, 130, 80]), woodD = P.col([66, 42, 24]);
+    const grip = P.col([54, 38, 28]), wrap = P.col([30, 22, 16]), string = P.col([226, 218, 196]);
+    ctx.save(); ctx.scale(1 / asp, 1);   // from here x is in the same units as y
+    // the middle of the string, the way along the stave, the way the stave bows out from the string, how far, and how thick
+    let cx, cy, ax, ay, nx, ny, hl, bulge, flick, th, sw;
+    if (wide) { cx = 0; cy = hang ? 0.7 : 0.84; ax = 1; ay = 0; nx = 0; ny = -1; hl = asp * 0.47; bulge = hang ? 0.52 : 0.6; flick = 0.12; th = 0.12; sw = 0.022; }
+    else if (tall) { const a = 0.1; cx = 0.02; cy = 0.5; ax = Math.sin(a); ay = Math.cos(a); nx = -ay; ny = ax; hl = 0.47; bulge = 0.12; flick = 0.025; th = 0.034; sw = 0.0055; }
+    else { cx = 0.06; cy = 0.47; ax = 0.62; ay = 0.785; nx = -ay; ny = ax; hl = 0.56; bulge = 0.2; flick = 0.06; th = 0.075; sw = 0.022; }
+    const pt = s => { const b = bulge * (1 - s * s) + flick * Math.pow(Math.max(0, (Math.abs(s) - 0.78) / 0.22), 2); return [cx + ax * s * hl + nx * b, cy + ay * s * hl + ny * b]; };
+    // the string first, so the stave lies over its ends
+    const t0 = pt(-1), t1 = pt(1);
+    if (hang) { P_line(ctx, t0[0], t0[1], 0, 0.97, sw, string); P_line(ctx, 0, 0.97, t1[0], t1[1], sw, string); }
+    else P_line(ctx, t0[0], t0[1], t1[0], t1[1], sw, string);
+    for (let i = 0; i < 20; i++) {   // thick at the grip, thin at the tips, with the light along its back
+      const s0 = -1 + i / 10, s1 = s0 + 0.1, a = pt(s0), b = pt(s1), w = th * (1 - 0.5 * Math.abs(s0 + 0.05));
+      P_line(ctx, a[0], a[1], b[0], b[1], w, wood);
+      P_line(ctx, a[0] + nx * w * 0.28, a[1] + ny * w * 0.28, b[0] + nx * w * 0.28, b[1] + ny * w * 0.28, w * 0.3, woodL);
+    }
+    for (const s of [-1, 1]) { const p = pt(s * 0.98); P_ell(ctx, p[0], p[1], th * 0.45, th * 0.45, woodD); }   // the nocks, where the string is tied
+    const g0 = pt(-0.13), g1 = pt(0.13);
+    P_line(ctx, g0[0], g0[1], g1[0], g1[1], th * 1.45, grip);
+    for (const s of [-0.08, 0, 0.08]) { const p = pt(s); P_line(ctx, p[0] - ny * th * 0.65, p[1] + nx * th * 0.65, p[0] + ny * th * 0.65, p[1] - nx * th * 0.65, th * 0.16, wrap); }
     ctx.restore();
   },
-  // a box of shotgun shells, three standing up in it
-  shells(ctx, P) {
-    const card = P.col([124, 94, 60]), cardD = P.col([86, 62, 38]), label = P.col([194, 176, 134]);
-    const red = P.col([170, 34, 32]), redD = P.col([112, 22, 22]), brass = P.col([184, 152, 78]);
-    for (let i = 0; i < 3; i++) {
-      const x = -0.2 + i * 0.2;
-      P_rect(ctx, x - 0.065, 0.36, 0.13, 0.44, red); P_rect(ctx, x + 0.025, 0.36, 0.04, 0.44, redD);
-      P_line(ctx, x - 0.04, 0.775, x + 0.04, 0.775, 0.016, redD);
-      P_rect(ctx, x - 0.065, 0.42, 0.13, 0.1, brass);
+  // arrows: one, or a bundle of n (three unless said) tied with twine round the middle. Each is a pale shaft with a steel
+  // broadhead, two vanes (red and cream) and a dark nock. Measured in the card's height, as the bow is, so an arrow is
+  // as thick on any card: on a long card it lies along it, on a tall one it stands on its nock with its head up, and in a
+  // square (a slot in the hand) it lies corner to corner. opts.stuck: driven into the wood, its head buried in a split
+  // (at the middle of the card, up top) and its shaft standing out of it, slanting down toward you. opts.flip: the other
+  // way round (its head to the left).
+  arrows(ctx, P, n, opts) {
+    n = Math.max(1, n === undefined ? 3 : n);
+    const m = ctx.getTransform(), asp = Math.hypot(m.a, m.b) / Math.max(1e-6, Math.hypot(m.c, m.d));
+    const stuck = !!(opts && opts.stuck);
+    const shaft = P.col([204, 170, 118]), shaftD = P.col([140, 108, 70]), nockC = P.col([36, 28, 22]), fA = P.col([184, 44, 36]), fB = P.col([230, 220, 198]);
+    const head = P.col([142, 144, 152]), headL = P.col([212, 214, 220]), twine = P.col([84, 66, 44]), twineL = P.col([146, 124, 88]), split = P.col([18, 12, 9]);
+    ctx.save(); if (opts && opts.flip) ctx.scale(-1, 1);   // flipped inside the save, so the caller's transform is left as it was
+    ctx.scale(1 / asp, 1);   // from here x is in the same units as y
+    // the middle of the arrows, the way along them from nock to head, their length and how thick they are drawn
+    let cx = 0, cy = 0.5, ax, ay, len, tk = 1;
+    if (stuck) { ax = -0.78; ay = 0.63; len = Math.min(asp * 0.65, 0.95); cx = 0.78 * 0.44 * len; cy = 0.36; tk = 1.25 * 0.95 / len; }
+    else if (asp > 1.8) { ax = 1; ay = 0; len = asp * 0.94; }
+    else if (asp < 0.55) { const a = 0.05; ax = Math.sin(a); ay = Math.cos(a); len = 0.94; }
+    else { ax = 0.72; ay = 0.69; len = 1.22; tk = 2.1; }
+    const nx = -ay, ny = ax, w = len * 0.022 * tk;   // across them, and the shaft's width
+    const pt = (o, k, d) => [o[0] + ax * k * len + nx * d, o[1] + ay * k * len + ny * d];
+    const one = (o, rot) => {   // o: where its nock is; rot: a slight turn from the bundle's line
+      ctx.save(); ctx.translate(o[0], o[1]); ctx.rotate(rot); ctx.translate(-o[0], -o[1]);
+      const vh = w * 2.3, hw = w * 1.9;
+      for (const [side, col] of [[1, fA], [-1, fB]]) P_poly(ctx, [pt(o, 0.035, 0), pt(o, 0.2, 0), pt(o, 0.17, side * vh), pt(o, 0.06, side * vh)], col);   // the vanes
+      const end = stuck ? 0.94 : 0.88;
+      P_line(ctx, ...pt(o, 0.02, 0), ...pt(o, end, 0), w, shaft);
+      P_line(ctx, ...pt(o, 0.22, -w * 0.3), ...pt(o, end, -w * 0.3), w * 0.35, shaftD);   // its shadowed underside
+      P_line(ctx, ...pt(o, -0.01, 0), ...pt(o, 0.035, 0), w * 1.5, nockC);   // the nock
+      if (!stuck) {   // the broadhead: a steel point, its light edge along the top
+        P_poly(ctx, [pt(o, 1, 0), pt(o, 0.87, hw), pt(o, 0.9, 0), pt(o, 0.87, -hw)], head);
+        P_line(ctx, ...pt(o, 0.99, w * 0.15), ...pt(o, 0.88, hw * 0.85), w * 0.4, headL);
+      }
+      ctx.restore();
+    };
+    const tail = [cx - ax * len / 2, cy - ay * len / 2], gap = w * 3.2;
+    if (stuck) {   // the split in the log it went into, a little dark round where it goes in
+      const e = pt(tail, 0.94, 0);
+      P_ell(ctx, e[0], e[1], w * 2.6, w * 1.1, split);
+      P_line(ctx, e[0] - w * 4, e[1] + w * 0.4, e[0] + w * 4, e[1] - w * 0.3, w * 0.5, split);
     }
-    P_rect(ctx, -0.33, 0.05, 0.66, 0.42, card); P_rect(ctx, -0.33, 0.4, 0.66, 0.07, cardD);
-    P_rect(ctx, -0.2, 0.14, 0.4, 0.15, label); P_rect(ctx, -0.12, 0.19, 0.24, 0.05, red);
+    for (let i = 0; i < n; i++) {   // the bundle, fanned a little from the twine, each a little along from the next
+      const k = i - (n - 1) / 2;
+      one(pt(tail, (i % 2 ? 0.02 : -0.01) + (n > 1 ? 0.01 : 0), k * gap), k * 0.02);
+    }
+    if (n > 1) {   // the twine round the middle of them
+      const half = ((n - 1) / 2) * gap + w * 1.2;
+      for (const d of [-0.035, 0, 0.035]) P_line(ctx, ...pt(tail, 0.52 + d, -half), ...pt(tail, 0.52 + d + 0.01, half), w * 0.7, twine);
+      P_line(ctx, ...pt(tail, 0.52, half * 0.2), ...pt(tail, 0.53, half * 0.9), w * 0.3, twineL);
+    }
+    ctx.restore();
   },
   bottle(ctx, P) {
     const g = P.col([40, 70, 40]), hl = P.col([120, 160, 110]);
@@ -262,36 +303,84 @@ const ICONS = {
     P_line(ctx, 0.15, 0.4, 0.44, 0.86, 0.045, tin); P_ell(ctx, 0.44, 0.88, 0.025, 0.02, oil);
     P_line(ctx, -0.34, 0.5, -0.12, 0.5, 0.05, tinD); P_ell(ctx, -0.12, 0.3, 0.08, 0.05, tinD);
   },
-  // a music box: a small lacquered case with a crank and a dancer under the lid; a broken one gapes open
-  musicbox(ctx, P) {
-    const lac = P.col([90, 30, 40]), lacD = P.col([50, 16, 24]), brass = P.col([180, 150, 80]), pale = P.col([230, 220, 210]);
-    P_rect(ctx, -0.34, 0.08, 0.68, 0.38, lac); P_rect(ctx, -0.34, 0.42, 0.68, 0.05, lacD);
-    P_poly(ctx, [[-0.34, 0.47], [0.34, 0.47], [0.3, 0.72], [-0.3, 0.72]], lacD);
-    P_ell(ctx, 0, 0.78, 0.045, 0.08, pale); P_ell(ctx, 0, 0.9, 0.03, 0.03, pale);
-    P_line(ctx, 0.36, 0.25, 0.48, 0.25, 0.04, brass); P_line(ctx, 0.48, 0.25, 0.48, 0.36, 0.04, brass);
-    heartShape(ctx, 0, 0.25, 0.075, brass, P.col([30, 12, 16]));
+  // a music box, seen from the front and a little above: a walnut case on brass feet with a brass heart inlaid in its front,
+  // the lid standing open (red velvet and a little round mirror inside it), and in the open top the brass cylinder with
+  // its pins against the steel comb, and a tiny dancer, arms up, on a mirror disc. On its right side is the square socket
+  // its crank fits. Night 10 also draws it on its pedestal and in the doll's arms: o.crank (an angle) draws the crank
+  // fitted and turned that far round, and o.spin turns the dancer.
+  musicbox(ctx, P, o) {
+    o = o || {};
+    const wood = P.col([124, 74, 40]), woodD = P.col([84, 48, 26]), woodL = P.col([166, 112, 66]), grain = P.col([100, 58, 30]), edge = P.col([30, 16, 10]);
+    const brass = P.col([212, 174, 90]), brassD = P.col([118, 88, 36]), inside = P.col([40, 22, 18]), velvet = P.col([146, 32, 48]), velvetD = P.col([96, 20, 32]);
+    const glass = P.col([150, 172, 198]), glassL = P.col([222, 232, 246]), steel = P.col([198, 202, 212]), steelD = P.col([96, 100, 110]);
+    const pale = P.col([242, 232, 226]), pink = P.col([234, 160, 182]), pinkL = P.col([252, 210, 222]), bun = P.col([70, 44, 30]);
+    const X0 = -0.42, X1 = 0.2, Y0 = 0.07, Y1 = 0.37, DX = 0.15, DY = 0.15;   // the front face, and how far its depth goes up and right
+    // a dark edge round the whole thing, so it reads on the light tiles and the dark alike
+    P_poly(ctx, [[X0 - 0.025, Y0 - 0.045], [X1 + 0.02, Y0 - 0.045], [X1 + DX + 0.025, Y0 + DY - 0.03], [X1 + DX + 0.025, Y1 + DY + 0.01], [0.41, 0.93], [-0.26, 0.93], [X0 + DX - 0.025, Y1 + DY], [X0 - 0.025, Y1 + 0.01]], edge);
+    // the lid, open, its inside towards you: a wooden frame, red velvet, a little round mirror; its top edge catches the light
+    P_poly(ctx, [[X0 + DX, Y1 + DY], [X1 + DX, Y1 + DY], [0.385, 0.9], [-0.235, 0.9]], woodD);
+    P_poly(ctx, [[X0 + DX + 0.035, Y1 + DY + 0.02], [X1 + DX - 0.035, Y1 + DY + 0.02], [0.35, 0.865], [-0.2, 0.865]], velvet);
+    P_poly(ctx, [[-0.2, 0.865], [0.35, 0.865], [0.345, 0.84], [-0.195, 0.84]], velvetD);
+    P_poly(ctx, [[-0.235, 0.9], [0.385, 0.9], [0.39, 0.925], [-0.23, 0.925]], woodL);
+    P_ell(ctx, 0.065, 0.7, 0.1, 0.115, brassD); P_ell(ctx, 0.065, 0.7, 0.083, 0.098, glass);
+    P_poly(ctx, [[0.02, 0.73], [0.06, 0.78], [0.075, 0.765], [0.035, 0.715]], glassL);
+    // the right side, in shadow, and the rim of the open top
+    P_poly(ctx, [[X1, Y0], [X1 + DX, Y0 + DY], [X1 + DX, Y1 + DY], [X1, Y1]], woodD);
+    P_line(ctx, X1 + 0.02, Y0 + 0.09, X1 + DX - 0.02, Y0 + DY + 0.07, 0.008, grain);
+    P_poly(ctx, [[X0, Y1], [X1, Y1], [X1 + DX, Y1 + DY], [X0 + DX, Y1 + DY]], woodL);
+    P_poly(ctx, [[X0 + 0.04, Y1 + 0.014], [X1 - 0.014, Y1 + 0.014], [X1 + DX - 0.035, Y1 + DY - 0.018], [X0 + DX + 0.014, Y1 + DY - 0.018]], inside);
+    // the works, on the left: a brass cylinder studded with pins, and the steel comb whose teeth it plucks
+    const cy = 0.455;
+    P_rect(ctx, -0.33, cy - 0.028, 0.23, 0.056, brassD); P_rect(ctx, -0.33, cy - 0.02, 0.23, 0.032, brass);
+    P_ell(ctx, -0.33, cy, 0.012, 0.028, brassD); P_ell(ctx, -0.1, cy, 0.012, 0.028, brass);
+    for (let i = 0; i < 9; i++) P_ell(ctx, -0.315 + i * 0.025, cy + ((i * 5) % 3 - 1) * 0.011, 0.005, 0.005, pale);
+    P_poly(ctx, [[-0.36, 0.392], [-0.08, 0.392], [-0.08, 0.41], [-0.36, 0.41]], steelD);
+    for (let i = 0; i < 10; i++) { const x = -0.345 + i * 0.027; P_line(ctx, x, 0.405, x, cy - 0.024, 0.014, steel); }
+    // the dancer, on the right: on her toes on a mirror disc, a pink tutu, her arms up in a ring over her head
+    const dx = 0.115, sx = Math.cos(o.spin || 0);
+    P_ell(ctx, dx, 0.45, 0.075, 0.024, brassD); P_ell(ctx, dx, 0.452, 0.064, 0.018, glass);
+    ctx.save(); ctx.translate(dx, 0); ctx.scale(Math.sign(sx || 1) * Math.max(0.3, Math.abs(sx)), 1);
+    P_line(ctx, 0, 0.452, 0.004, 0.56, 0.016, pale);
+    P_line(ctx, 0.004, 0.56, 0.06, 0.585, 0.014, pale);
+    P_ell(ctx, 0, 0.565, 0.07, 0.02, pink); P_ell(ctx, 0, 0.572, 0.055, 0.011, pinkL);
+    P_poly(ctx, [[-0.013, 0.57], [0.013, 0.57], [0.008, 0.628], [-0.008, 0.628]], pink);
+    P_limb(ctx, [[-0.008, 0.622], [-0.03, 0.66], [-0.01, 0.705]], 0.011, pale); P_limb(ctx, [[0.008, 0.622], [0.03, 0.66], [0.01, 0.705]], 0.011, pale);
+    P_ell(ctx, 0, 0.648, 0.016, 0.019, pale); P_ell(ctx, 0, 0.66, 0.016, 0.009, bun); P_ell(ctx, 0, 0.673, 0.008, 0.007, bun);
+    ctx.restore();
+    // the front: walnut with a lighter moulding along the top, a plinth, a little grain, a brass heart, and brass ball feet
+    P_rect(ctx, X0, Y0, X1 - X0, Y1 - Y0, wood);
+    P_rect(ctx, X0, Y1 - 0.035, X1 - X0, 0.035, woodL); P_rect(ctx, X0 - 0.012, Y0, X1 - X0 + 0.024, 0.04, woodD);
+    for (const y of [0.15, 0.26]) P_line(ctx, X0 + 0.04, y, X1 - 0.05, y + 0.012, 0.007, grain);
+    heartShape(ctx, (X0 + X1) / 2, 0.215, 0.055, brass, brassD);
+    for (const x of [X0 + 0.03, X1 - 0.03]) P_ell(ctx, x, Y0 - 0.012, 0.028, 0.022, brass);
+    P_ell(ctx, X1 + DX - 0.025, Y0 + DY - 0.02, 0.022, 0.018, brassD);
+    // the side: a brass boss with the square socket in it, and the crank in it if it is fitted, its arm going round in the
+    // plane of the side (so it swings up and down and to and fro) and its ivory knob standing out from the end of the arm
+    const hx = X1 + DX / 2, hy = (Y0 + Y1) / 2 + DY / 2;
+    P_ell(ctx, hx, hy, 0.03, 0.036, brassD); P_ell(ctx, hx, hy, 0.022, 0.028, brass);
+    if (o.crank === undefined) { P_rect(ctx, hx - 0.01, hy - 0.01, 0.02, 0.02, edge); return; }
+    const a = o.crank, R = 0.13, ox = hx + 0.04, ex = ox + Math.cos(a) * R * 0.5, ey = hy + Math.cos(a) * R * 0.5 + Math.sin(a) * R;
+    P_line(ctx, hx, hy, ox, hy, 0.034, brassD); P_line(ctx, hx, hy, ox, hy, 0.022, brass);
+    P_line(ctx, ox, hy, ex, ey, 0.04, brassD); P_line(ctx, ox, hy, ex, ey, 0.026, brass);
+    P_line(ctx, ex, ey, ex + 0.05, ey, 0.028, brassD);
+    P_ell(ctx, ex + 0.075, ey, 0.04, 0.034, brassD); P_ell(ctx, ex + 0.075, ey, 0.032, 0.027, pale);
   },
-  // the Mirror Maze's keys: only the heart fits the box
-  boxkey(ctx, P) { smallKey(ctx, P, 'heart', [204, 170, 92]); },
-  keyRound(ctx, P) { smallKey(ctx, P, 'round', [176, 168, 146]); },
-  keySquare(ctx, P) { smallKey(ctx, P, 'square', [184, 156, 104]); },
-  keyClover(ctx, P) { smallKey(ctx, P, 'clover', [156, 134, 88]); },
-  keyIron(ctx, P) { smallKey(ctx, P, 'round', [96, 94, 98]); },
-  brokenbox(ctx, P) {
-    const lac = P.col([90, 30, 40]), lacD = P.col([50, 16, 24]), brass = P.col([180, 150, 80]), dark = P.col([20, 12, 14]);
-    P_rect(ctx, -0.34, 0.08, 0.68, 0.38, lac); P_rect(ctx, -0.3, 0.14, 0.6, 0.28, dark);
-    P_poly(ctx, [[-0.34, 0.46], [-0.1, 0.46], [-0.2, 0.9], [-0.44, 0.9]], lacD);
-    P_line(ctx, 0.36, 0.25, 0.48, 0.25, 0.04, brass);
-    P_line(ctx, -0.05, 0.2, 0.2, 0.34, 0.02, brass);
-    heartShape(ctx, 0.2, 0.2, 0.06, brass, dark);
-  },
-  spring(ctx, P) {
-    // a copper coil over a dark edge, so it reads on light and dark floors alike
-    const coil = () => { ctx.beginPath(); for (let i = 0; i < 40; i++) { const u = i / 39, a = u * TAU * 4; const x = Math.cos(a) * 0.2, y = 0.12 + u * 0.66 + Math.sin(a) * 0.06; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); };
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = P.col([30, 22, 18]); ctx.lineWidth = 0.11; coil();
-    ctx.strokeStyle = P.col([196, 118, 64]); ctx.lineWidth = 0.065; coil();
-    ctx.strokeStyle = P.cola([255, 214, 168], 0.6); ctx.lineWidth = 0.02; coil();
+  // its crank: a small brass handle bent in an L, a turned ivory knob standing up from one end of the arm and the square
+  // socket that fits the box's side in the other
+  boxcrank(ctx, P) {
+    const brass = P.col([214, 176, 92]), brassD = P.col([84, 60, 24]), brassL = P.col([250, 228, 166]), ivory = P.col([238, 228, 206]), ivoryD = P.col([132, 116, 92]), hole = P.col([24, 16, 10]);
+    ctx.save(); ctx.translate(0, 0.5); ctx.rotate(-0.18); ctx.translate(0, -0.5);
+    // a dark edge first, so it reads on the light tiles and the dark alike
+    P_line(ctx, -0.24, 0.3, 0.26, 0.3, 0.14, brassD); P_line(ctx, -0.24, 0.3, -0.24, 0.5, 0.09, brassD);
+    P_rect(ctx, 0.17, 0.17, 0.26, 0.26, brassD); P_ell(ctx, -0.24, 0.67, 0.11, 0.215, ivoryD);
+    // the arm, with the light along its top edge, and the socket's boss with its square hole
+    P_line(ctx, -0.24, 0.3, 0.24, 0.3, 0.09, brass); P_line(ctx, -0.2, 0.33, 0.2, 0.33, 0.02, brassL);
+    P_rect(ctx, 0.195, 0.195, 0.21, 0.21, brass); P_rect(ctx, 0.205, 0.37, 0.19, 0.02, brassL); P_rect(ctx, 0.26, 0.26, 0.08, 0.08, hole);
+    // the knob: a brass ferrule, then the turned ivory grip, with its shine
+    P_line(ctx, -0.24, 0.3, -0.24, 0.49, 0.05, brass); P_rect(ctx, -0.31, 0.455, 0.14, 0.045, brass);
+    P_ell(ctx, -0.24, 0.67, 0.085, 0.19, ivory); P_line(ctx, -0.27, 0.56, -0.27, 0.78, 0.022, P.cola([255, 255, 255], 0.7));
+    P_ell(ctx, -0.24, 0.865, 0.03, 0.018, brass);
+    ctx.restore();
   },
   // a wrench, a water pail and a feed sack: heavy things for the barn
   wrench(ctx, P) {

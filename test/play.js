@@ -9,6 +9,42 @@ const NIGHTS = process.env.NIGHTS ? process.env.NIGHTS.split(',').map(Number) : 
 const TIERS = (process.env.TIERS || 'nightmare').split(',');
 const SEEDS = (process.env.SEEDS || '1,2').split(',').map(Number);
 
+// a bow (night 5): press and hold, then let go. `when`: 'click' (let go at once), 'short' (just past the least draw, well
+// short of full), 'full' (as soon as the bar is full), or a number of ms (held that long, past full if it is long enough);
+// `where`: on the thing (its body, followed while drawing, as a player keeps it in the sights) or 'off' (well to one side
+// of it); `via`: 'mouse' (default), 'touch' (the Use button) or 'pad' (A), which both aim at the middle of the view
+async function drawBow(page, when, where, via) {
+  via = via || 'mouse';
+  const body = () => page.evaluate(() => { const b = creatureBox(G.L.creature); return b && { x: b.x + b.w / 2, y: b.y + b.h / 2 }; });
+  const aim = async () => { const r = await body(); if (!r) return null; return where === 'off' ? { x: r.x + (r.x > 640 ? -260 : 260), y: r.y } : r; };
+  const press = async down => {
+    if (via === 'mouse') { if (down) await page.mouse.down(); else await page.mouse.up(); return; }
+    if (via === 'touch') { await page.evaluate(dn => document.getElementById('tUse').dispatchEvent(new PointerEvent(dn ? 'pointerdown' : 'pointerup', { bubbles: true, cancelable: true })), down); return; }
+    await page.evaluate(dn => {
+      if (!window._pad) { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; }
+      window._pad.buttons[0].pressed = dn;
+    }, down);
+  };
+  if (via === 'mouse') { const p = await aim(); check(!!p, 'the thing is in view to draw on'); if (!p) return; await page.mouse.move(p.x, p.y); await page.waitForTimeout(60); }
+  await press(true);
+  if (when === 'click') await page.waitForTimeout(via === 'pad' ? 40 : 0);   // a pad is read once a frame
+  else {   // one look per round (the draw and where it is now), so letting go follows the bar closely
+    const t0 = Date.now(), limit = typeof when === 'number' ? when : 5000;
+    while (Date.now() - t0 < limit) {
+      const st = await page.evaluate(w => {
+        const d = G.draw, box = creatureBox(G.L.creature), at = box && { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+        if (!d || d.state !== 'drawing') return { done: false, at };
+        const m = (d.u.draw.min || 0.18) / (d.u.draw.fill || 1.5);
+        return { done: w === 'short' ? d.power > m + 0.03 : w === 'full' ? d.power >= 1 : false, at };
+      }, when);
+      if (st.done) break;
+      if (via === 'mouse' && st.at) await page.mouse.move(where === 'off' ? st.at.x + (st.at.x > 640 ? -260 : 260) : st.at.x, st.at.y);
+      await page.waitForTimeout(5);
+    }
+  }
+  await press(false);
+  await page.waitForTimeout(120);
+}
 async function runStep(page, step) {
   const [op, a, b, c, d] = step;
   switch (op) {
@@ -31,6 +67,7 @@ async function runStep(page, step) {
     case 'waitUntil': { const t0 = Date.now(); while (Date.now() - t0 < (b || 8000) && !(await page.evaluate(a))) await page.waitForTimeout(150); check(await page.evaluate(a), 'waited until ' + a); break; }
     case 'setU': await page.evaluate(u => { G.L.creature.u = u; }, a); break;
     case 'shoot': { const r = await findHit(page, 'creature'); check(!!r, 'the thing is a target'); if (r) await clickAt(page, r); break; }
+    case 'draw': await drawBow(page, a, b, c); break;
     case 'eval': await page.evaluate(a); break;
     case 'click': { const r = await findHit(page, 'target', a); check(!!r, a + ' is in view'); if (r) await clickAt(page, r); break; }
     case 'combine': { const ok = await page.evaluate(([x, y]) => { const i = G.inv.findIndex(k => k.id === x), j = G.inv.find(k => k.id === y); if (i < 0 || !j) return false; G.active = i; return combine(G.inv[i], j); }, [a, b]); check(ok, 'combined ' + a + ' + ' + b); break; }

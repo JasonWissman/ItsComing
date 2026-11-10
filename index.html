@@ -26,6 +26,15 @@
   #toast.show { opacity: 1; }
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
+  /* the bow's power bar, beside where it is aimed: it fills upward as you hold; at the top it is full, and goes green */
+  #drawbar { display: none; position: absolute; left: 0; top: 0; width: 10px; height: 150px; background: rgba(9,8,8,.62); border: 1px solid rgba(207,200,186,.34); box-shadow: 0 0 12px rgba(0,0,0,.6); }
+  #drawbar.full { border-color: #8fca6c; box-shadow: 0 0 12px rgba(0,0,0,.6), 0 0 10px rgba(143,202,108,.5); }
+  #drawfill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: #efe6d2; }
+  #drawbar.full #drawfill { background: #8fca6c; }
+  #drawtop { position: absolute; left: -5px; right: -5px; top: -1px; height: 3px; background: rgba(207,200,186,.4); }
+  #drawbar.full #drawtop { background: #d4f5b4; box-shadow: 0 0 8px #8fca6c; }
+  #drawmin { position: absolute; left: 0; right: 0; height: 1px; background: rgba(207,200,186,.45); }
+  #drawlabel { position: absolute; left: 16px; top: -6px; font-size: calc(10px * var(--text-scale)); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; color: #b6e494; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
   .linkbtn { font: inherit; background: none; border: none; color: #efe6d2; text-decoration: underline; cursor: pointer; padding: 0; letter-spacing: inherit; }
   .fragment { display: block; margin-top: 10px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.6); }
   #inventory { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
@@ -121,6 +130,7 @@
   <div id="tooltip"></div>
   <div id="toast"></div>
   <div id="holdbar"><div id="holdfill"></div></div>
+  <div id="drawbar"><div id="drawfill"></div><div id="drawtop"></div><div id="drawmin"></div><div id="drawlabel"></div></div>
   <div id="inventory"></div>
   <div id="debug"></div>
 </div>
@@ -177,5 +187,6 @@
 <script src="js/levels/night12.js"></script>
 <script src="js/levels/night13.js"></script>
 <script src="js/game.js"></script>
+<script src="js/hands.js"></script>
 </body>
 </html>

@@ -63,7 +63,7 @@ LEVELS.push({
     const s = L.s;
     const body = [44, 22, 24], bodyD = [24, 13, 15], dash = [26, 24, 26], dashD = [16, 15, 17], seat = [46, 40, 38], floor = [15, 14, 14];
     const GAUGES = [-0.16, 0.0, 0.16];                                     // the three dials behind the wheel
-    const IX = 0.18, IY = 0.79, IZ = 0.5;                                  // the centre of the ignition lock, on the dash right of the column
+    const IX = 0.33, IY = 0.905, IZ = 0.545;                               // the centre of the ignition lock, in the dash face right of the dials
     const GX = 0.36, GY = 0.56, GZ = 0.12, GW = 0.2, GH = 0.28;            // the gearstick's plate, standing on the console
     const CX0 = 0.27, CX1 = 0.45, CZ0 = -0.04, CZ1 = 0.36, CY = GY;       // the console between the seats
     const PX = 0.16, PY = 0.36, PZ = 0.47, PW = 0.11, PH = 0.22;           // the gas pedal, in your own footwell
@@ -133,8 +133,9 @@ LEVELS.push({
       { x: 0.4, y: 0.36, z: -0.5, jitter: 0.05 },       // behind the seats
       { x: 0.85, y: 0.95, z: 0.05, jitter: 0.04, key: 'seat' }, // on the passenger seat
     ];
-    mkItem(L, 'keys', 'Car keys', keySpots, { w: 0.2, h: 0.2, flat: true, icon: 'carkeys', attach: true });
-    mkItem(L, 'housekeys', 'Keys', keySpots, { w: 0.2, h: 0.2, flat: true, icon: 'housekeys', attach: true, decoy: true, decoyText: 'House keys. Not these.' });
+    // in the hand, a key is held up by its head between finger and thumb, the blade pointing up, ready for the lock
+    mkItem(L, 'keys', 'Car keys', keySpots, { w: 0.2, h: 0.2, flat: true, icon: 'carkeys', attach: true, held: { size: 0.16, at: [-0.12, 0.55], angle: 2.85 } });
+    mkItem(L, 'housekeys', 'Keys', keySpots, { w: 0.2, h: 0.2, flat: true, icon: 'housekeys', attach: true, decoy: true, decoyText: 'House keys. Not these.', held: { size: 0.16, at: [-0.1, 0.66], angle: 2.75 } });
     L.floorY = 0.36;
     // standing up on the dash or the seat, it is set on the near part of the surface, on it: an item is drawn in order of
     // its distance like the surface under it, so on the far part the surface behind it would be drawn over its foot
@@ -142,39 +143,112 @@ LEVELS.push({
       { x: 0.9, y: 0.36, z: -0.45, flat: false },       // rear floor
       { x: 0.95, y: 0.973, z: 0.68, flat: false },      // on the dash
       { x: 0.78, y: 0.95, z: 0.0, flat: false, key: 'seat' }, // on the passenger seat, in front of the seat back
-    ], { w: 0.09, h: 0.24, icon: 'bottle', attach: true });
+    ], { w: 0.09, h: 0.24, icon: 'bottle', attach: true, held: { size: 0.27 } });   // (held larger than its size would have it: the fist hid all but its neck)
     // it stalled in drive, and it will not start until the stick is in park. Once it runs, the stick goes to reverse or
     // drive and the gas takes you away; straight ahead is only a way out if the thing is not in the road
-    Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), gear: 'D', lastCrank: -10, gone: false, dir: 0, pressT: -10, keyAng: 0, ram: null, floored: false });
+    Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), gear: 'D', lastCrank: -10, gone: false, dir: 0, pressT: -10, keyAng: 0, ram: null, floored: false,
+      turnAt: -10, jigAt: -10, gearFrom: 'D', gearAt: -10, dead: false });
     const GEAR_NAME = { P: 'park', R: 'reverse', D: 'drive' };
+    // Your hand on the car (js/hands.js): it goes to the key to turn it, to the gearstick to move it, and to the lock with no
+    // key in it, and what it does there happens as it gets there (handTo: then() then, or at once if it is there already).
+    // The house keys are tried at the keyhole, blade first, will not go in and drop to the floor at your feet; anything
+    // else in hand is tried there and comes back. With the key in and the stick out of park the key will not turn: the
+    // hand takes it and it strains a few degrees and no more (s.jigAt). Each turn of the key is the hand on it while the
+    // starter turns. Your foot is on the gas (L.overlay): with the engine dead the pedal goes all the way to the floor under
+    // it, limp, with a dull clunk, and comes back up.
+    const KEYHOLE = [0, 0.62], KEYHEAD = [0, 0.8];   // on the ignition's box: the slot in the lock, and the key's head standing out of it
+    // where keys dropped from the ignition land: on the floor at your feet, in front of the seat and short of the pedal, where
+    // looking down finds them, clear of anything else lying there (the first of these that is; failing all, the first)
+    const FEET = [[-0.05, 0.26], [-0.18, 0.3], [0.07, 0.22], [-0.29, 0.26], [-0.13, 0.18], [-0.3, 0.4]];
+    const atFeet = it => {
+      const clear = ([x, z]) => L.items.every(o => o === it || o.taken || Math.hypot(o.x - x, o.z - z) > 0.24);
+      const [x, z] = FEET.find(clear) || FEET[0], p = L.pt(x, 0.36, z);
+      return { x: p[0], y: 0.36, z: p[2] };
+    };
+    // (what it does is done in any case a moment later, if the hand was called away before it got there)
+    const pending = [];
+    const handTo = (t, opts, then) => {
+      let done = !then;
+      const once = () => { if (!done) { done = true; then(); } };
+      if (then) pending.push({ fn: once, by: L.t + 0.4 });
+      const rc = G.reach(t, opts);
+      if (!rc) { once(); return null; }
+      if (then) {
+        if (rc.touched > 0) once();   // there already, for another go
+        else { const prev = rc.opts.onTouch; rc.opts.onTouch = tt => { if (prev) prev(tt); once(); }; }
+      }
+      return rc;
+    };
     const ign = mkTarget(L, {   // the box is the lock and the key in it, as they are drawn
-      id: 'ignition', name: 'Ignition', x: IX, y: IY - 0.08, z: IZ, w: 0.14, h: 0.16, accepts: ['keys', 'housekeys'], attach: true,
+      id: 'ignition', name: 'Ignition', x: IX, y: IY - 0.075, z: IZ, w: 0.11, h: 0.12, accepts: ['keys', 'housekeys'], attach: true,
+      fumble: { at: KEYHOLE, sfx: { land: 'keys' } },   // tried at the keyhole; keys that drop jingle on the floor
+      onDecoy(item) { if (!G.fumble(item, ign, { preset: 'bump', land: atFeet(item) }) && !G.fumbling) AUDIO.sfx('nope'); },
       hint() { return s.started ? 'Running.' : s.keyIn ? (s.gear !== 'P' ? 'Turn the key. It is still in ' + GEAR_NAME[s.gear] + ', though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
       use(item) { if (item.id !== 'keys') return false; s.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.say('The key is in. Turn it.', 'The key is in.'); return true; },
       onClick() {
+        // the house keys still at the keyhole, out of the hand: another click does nothing more until they drop (it would
+        // say there is no key over their line, or put the car key in under them)
+        const fx = G.fumbling;
+        if (fx && fx.target === ign && fx.drop && (fx.phase === 'wait' || fx.phase === 'out' || fx.phase === 'contact')) return true;
         if (!s.keyIn) {
           if (G.inv.some(i => ign.accepts.includes(i.id))) return false;   // the keys in hand go in (or are refused)
-          AUDIO.sfx('nope'); G.say('No key. They fell somewhere when it stalled.', 'There is no key in the ignition.'); return true;
+          G.say('No key. They fell somewhere when it stalled.', 'There is no key in the ignition.');
+          const act = G.inv[G.active];   // what is in hand is tried at the lock and comes back; empty, the fingers find the slot
+          if (!(act ? G.fumble(act, ign, 'return') : handTo(ign, { style: 'touch', at: KEYHOLE, sfx: 'tink' })) && !G.fumbling) AUDIO.sfx('nope');
+          return true;
         }
-        if (s.started) { G.say('It is running. Now the gearstick, and the gas.', 'The engine is running.'); return true; }
+        if (s.started) { G.say('It is running. Now the gearstick, and the gas.', 'The engine is running.'); handTo(ign, { style: 'touch', at: KEYHEAD, sfx: 'keys' }); return true; }
         if (s.cranking > 0 || s.ram) return true;
-        if (s.gear !== 'P') { AUDIO.sfx('nope'); G.say('Nothing, not even a click. It will only start in park.', 'Nothing. Not even a click. The gearstick is in ' + GEAR_NAME[s.gear] + '.'); return true; }
-        s.lastCrank = L.t; s.cranking = 1.15;
+        if (s.gear !== 'P') {   // the key will not turn: it strains a few degrees in the hand and goes back
+          G.say('Nothing, not even a click. It will only start in park.', 'Nothing. Not even a click. The gearstick is in ' + GEAR_NAME[s.gear] + '.');
+          handTo(ign, { style: 'rattle', at: KEYHEAD }, () => { s.jigAt = L.t; });
+          return true;
+        }
+        s.lastCrank = L.t; s.cranking = 1.45; s.turnAt = Infinity;   // (the starter turns once the hand has the key)
         s.cranks++;
-        if (s.cranks >= s.cranksNeeded) { s.started = true; AUDIO.sfx('start'); G.shake(0.3); G.say('It caught. Into reverse or drive, then the gas.', 'It caught. The engine is running.'); }
-        else { AUDIO.sfx('crank'); G.shake(0.12); G.toast(s.cranks === 1 ? 'It turns over. It does not catch.' : 'Come on. Come on.'); }
+        const caught = s.cranks >= s.cranksNeeded;
+        if (caught) { s.started = true; G.say('It caught. Into reverse or drive, then the gas.', 'It caught. The engine is running.'); }
+        else G.toast(s.cranks === 1 ? 'It turns over. It does not catch.' : 'Come on. Come on.');
+        const rc = handTo(ign, { style: 'rattle', at: KEYHEAD, sfx: 'keys' }, () => {
+          s.turnAt = L.t; s.cranking = Math.min(s.cranking, 1.15);
+          if (caught) { AUDIO.sfx('start'); G.shake(0.3); } else { AUDIO.sfx('crank'); G.shake(0.12); }
+        });
+        if (rc) rc.hold = Math.max(rc.hold, 1.1);   // it holds the key over while the starter turns
         return true;
       },
     });
     // the gearstick on the console by your right hip (back from the footwells, so it never hides what lies in them),
     // P R N D on its plate: each click moves it on, park, reverse, drive and round to park
-    mkTarget(L, {
+    const lxOf = g => -0.075 + 'PRND'.indexOf(g) * 0.05;   // where the stick stands over each letter on the plate
+    const gearK = () => smoothstep(clamp((L.t - s.gearAt) / 0.18, 0, 1));   // how far over it is to the gear it is going to
+    const shownGear = () => (gearK() >= 0.5 ? s.gear : s.gearFrom);
+    // the knob, in the world, with the stick over lx (as the plate draws it: the knob leans out over the letter, at 0.25 up),
+    // a little toward the eye, where the hand takes it. The plate is drawn square to the view, so the knob is where it is
+    // drawn on it: looking down at the console from ahead, straight up from the plate's foot in the world is well off it
+    // on the view. So it is the point on the line of sight to the knob as drawn, at the plate's depth.
+    const knobAt = lx => {
+      const yaw = Math.atan2(GX, GZ), u = lx * 0.6, x = GX + Math.cos(yaw) * u, z = GZ - Math.sin(yaw) * u, y = GY + 0.25;
+      const b = L.pt(GX, GY, GZ), tp = L.pt(GX, GY + GH, GZ), q = R.screenPos(b[0], b[1], b[2]), qt = R.screenPos(tp[0], tp[1], tp[2]);
+      if (q && qt) {
+        const sx = q.x + u * q.scale, sy = q.y - (q.y - qt.y) * 0.25 / GH, depth = q.depth - 0.02, c = G.cam, e = L.eye || {};
+        const xc = (sx - R.W / 2) / R.f, yc = -(sy - R.H / 2) / R.f, cp = Math.cos(c.pitch), sp = Math.sin(c.pitch), cy = Math.cos(c.yaw), sy2 = Math.sin(c.yaw);
+        const vy = yc * cp - sp, vz = yc * sp + cp;
+        return { x: (e.x || 0) + (xc * cy + vz * sy2) * depth, y: L.eyeH + (e.y || 0) + vy * depth, z: (e.z || 0) + (-xc * sy2 + vz * cy) * depth };
+      }
+      const dx = -x, dy = L.eyeH - y, dz = -z, dl = Math.hypot(dx, dy, dz), p = L.pt(x + dx / dl * 0.02, y + dy / dl * 0.02, z + dz / dl * 0.02);
+      return { x: p[0], y: p[1], z: p[2] };
+    };
+    const gear = mkTarget(L, {
       id: 'gear', name: 'Gearstick', x: GX, y: GY, z: GZ, w: GW, h: GH, attach: true,
       hint() { return 'In ' + GEAR_NAME[s.gear] + '.'; },
       onClick() {
         if (s.gone || s.ram) return true;
-        s.gear = { P: 'R', R: 'D', D: 'P' }[s.gear];
-        AUDIO.sfx('lever'); G.shake(0.06);
+        const from = shownGear();
+        s.gear = { P: 'R', R: 'D', D: 'P' }[s.gear]; s.gearFrom = from; s.gearAt = Infinity;
+        // the hand takes the knob and pulls it over to the next letter; the stick goes over as it does
+        const rc = handTo(gear, { style: 'pull', at: knobAt(lxOf(from)), sfx: 'pat' }, () => { s.gearAt = L.t; AUDIO.sfx('lever'); G.shake(0.06); });
+        if (rc && rc.hold > 0.24 && rc.T === 0) rc.hold = 0.26;   // one pull
+        s.gearHand = rc;
         const name = GEAR_NAME[s.gear][0].toUpperCase() + GEAR_NAME[s.gear].slice(1) + '.';
         G.say(name + (s.started ? (s.gear === 'P' ? '' : ' Now the gas.') : (s.gear === 'P' ? ' Now the key.' : ' It will not start in ' + GEAR_NAME[s.gear] + '.')), name);
         return true;
@@ -186,8 +260,8 @@ LEVELS.push({
       hint() { return s.started ? (s.gear === 'P' ? 'It is in park.' : 'Go.') : 'The engine is not running.'; },
       onClick() {
         if (s.gone || s.ram) return true;
-        s.pressT = L.t;
-        if (!s.started) { AUDIO.sfx('clunk'); G.say('Nothing. Start the engine first.', 'The pedal goes down. The engine is not running.'); return true; }
+        s.pressT = L.t; s.dead = !s.started;
+        if (!s.started) { AUDIO.sfx('clunk', -0.2); G.shake(0.05); G.say('Nothing. Start the engine first.', 'The pedal goes down. The engine is not running.'); return true; }   // to the floor, limp (pedalDown)
         AUDIO.sfx('rev');
         if (s.gear === 'P') { G.shake(0.12); G.say('It roars and goes nowhere. It is in park.', 'The engine roars. The car is still in park.'); return true; }
         const c = L.creature;
@@ -273,8 +347,13 @@ LEVELS.push({
         if (tire === 0) c.frozen = true;
       } else {
         if (drive.passedAt < 0 && carZ > drive.cz - 0.5) drive.passedAt = drive.t;
-        if (drive.passedAt < 0) toward(0.4 + drive.side * 4.6, drive.cz - 0.6 * dt, 9);   // out of the way of the car
-        else {   // after it, never as fast as the car
+        if (drive.passedAt < 0) {   // out of the way of the car: side-on, scuttling flat out across the verge while it goes
+          const bx = drive.cx;
+          toward(0.4 + drive.side * Math.max(4.6, drive.side * (bx - 0.4)), drive.cz - 0.6 * dt, 9);   // only ever outward: far up the verge it is off the road already
+          const moved = Math.abs(drive.cx - bx);
+          c.runPose = moved > 1e-3; c.runDir = drive.side; c.runGait = (c.runGait || 0) + moved * 5.5;
+        } else {   // after it, never as fast as the car
+          c.runPose = false;
           const tire = clamp(1 - (drive.t - drive.passedAt - 1.4) / 1.6, 0, 1);
           toward(0.4, carZ - 4, Math.min(burst * 1.2, drive.v * 0.8) * tire);
           if (tire === 0) c.frozen = true;
@@ -283,9 +362,14 @@ LEVELS.push({
       stepsOn(c, x0, z0);
     }
     L.update = dt => {
+      for (let i = pending.length - 1; i >= 0; i--) if (L.t >= pending[i].by) pending.splice(i, 1)[0].fn();
+      if (s.gearHand && s.gearHand === G.hand.reach) s.gearHand.at = knobAt(lerp(lxOf(s.gearFrom), lxOf(s.gear), gearK()));   // the hand goes over with the knob
       if (s.cranking > 0) s.cranking -= dt;
-      // the key turns to start while it cranks, and rests at on once the engine runs
-      const ka = !s.keyIn ? 0 : s.cranking > 0 ? 92 * DEG : s.started ? 58 * DEG : 0;
+      // the key turns to start while it cranks (once the hand has it), and rests at on once the engine runs; out of park it
+      // strains a few degrees in the hand and goes back
+      let ka = !s.keyIn || s.turnAt === Infinity ? 0 : s.cranking > 0 && L.t >= s.turnAt ? 92 * DEG : s.started ? 58 * DEG : 0;
+      const jt = L.t - s.jigAt;
+      if (s.keyIn && !s.started && jt >= 0 && jt < 0.45) ka = (12 + 3 * Math.sin(jt * 47)) * DEG * Math.min(1, jt / 0.06, (0.45 - jt) / 0.12);
       s.keyAng += (ka - s.keyAng) * Math.min(1, dt * 18);
       if (s.ram && G.state === 'play') ramOn(dt);
     };
@@ -299,21 +383,23 @@ LEVELS.push({
     };
 
     // the ignition: a chrome ring round a dark face, four marks for its positions (lock, accessory, on, start) and the
-    // keyhole. With the key in, its green head stands out of the lock and shows how far it is turned (s.keyAng); the
-    // ring and the little plain key hang below it. Drawn over the wheel and the column, which never come in front of it
+    // keyhole, set in the dash face beside the dials, so it is there in front of you as you look over the wheel at the
+    // road. With the key in, its green head stands out of the lock and shows how far it is turned (s.keyAng); the ring
+    // and the little plain key hang below it. Drawn over the dash face it is set in (and over the wheel, though from the
+    // seat the wheel never comes in front of it)
     const metal = [178, 174, 162], metalD = [112, 108, 100], green = [46, 160, 78];
-    const lock = SC.mkSprite(L, IX, IY - 0.15, IZ, 0.14, 0.22, (ctx, P) => {
-      ctx.translate(0, 0.15);
+    const lock = SC.mkSprite(L, IX, IY - 0.08, IZ, 0.12, 0.125, (ctx, P) => {
+      ctx.translate(0, 0.08); ctx.scale(0.82, 0.82);
       P_ell(ctx, 0, 0, 0.05, 0.05, P.col([38, 38, 44]));
       P_ell(ctx, 0, 0, 0.045, 0.045, P.col([150, 150, 156]));
       P_ell(ctx, 0, 0, 0.029, 0.029, P.col([26, 26, 30]));
       for (const a of [0, 30, 60, 90]) { ctx.save(); ctx.rotate(-a * DEG); P_rect(ctx, -0.003, 0.032, 0.006, 0.01, P.col([58, 58, 64])); ctx.restore(); }
       if (!s.keyIn) { P_rect(ctx, -0.0045, -0.017, 0.009, 0.034, P.col([4, 4, 5])); return; }
-      P_line(ctx, 0, 0, 0.003, -0.05, 0.003, P.col(metalD));
-      ctx.strokeStyle = P.col(metal); ctx.lineWidth = 0.004; ctx.beginPath(); ctx.arc(0.003, -0.069, 0.019, 0, TAU); ctx.stroke();
-      P_ell(ctx, 0.008, -0.094, 0.009, 0.009, P.col(metal)); P_ell(ctx, 0.008, -0.094, 0.0035, 0.0035, P.col([26, 26, 30]));
-      P_rect(ctx, 0.005, -0.136, 0.007, 0.036, P.col(metal));
-      for (let k = 0; k < 3; k++) P_rect(ctx, 0.011, -0.132 + k * 0.009, 0.005, 0.004, P.col(metal));
+      P_line(ctx, 0, 0, 0.003, -0.03, 0.003, P.col(metalD));   // short, so it all stays in view over the wheel
+      ctx.strokeStyle = P.col(metal); ctx.lineWidth = 0.004; ctx.beginPath(); ctx.arc(0.004, -0.044, 0.014, 0, TAU); ctx.stroke();
+      P_ell(ctx, 0.009, -0.062, 0.0075, 0.0075, P.col(metal)); P_ell(ctx, 0.009, -0.062, 0.003, 0.003, P.col([26, 26, 30]));
+      P_rect(ctx, 0.006, -0.09, 0.006, 0.024, P.col(metal));
+      for (let k = 0; k < 3; k++) P_rect(ctx, 0.011, -0.086 + k * 0.007, 0.005, 0.0035, P.col(metal));
       ctx.save(); ctx.rotate(-s.keyAng);
       P_rect(ctx, -0.019, -0.009, 0.038, 0.062, P.col(green));
       P_rect(ctx, -0.019, 0.045, 0.038, 0.008, P.col(mixc(green, [220, 255, 220], 0.35)));
@@ -367,11 +453,11 @@ LEVELS.push({
     L.dynamic = () => {
       rainOn();
       R.add(lock);
-      if (s.started) dials();
+      if (s.started && L.t >= s.turnAt) dials();   // (once the key has turned)
       R.add(SC.mkSprite(L, GX, GY, GZ, GW, GH, (ctx, P) => {
         // the plate, a pale bezel round a black face so it stands off the console, with its four letters, the one it is in
         // lit, and the stick leaning over to it from the slot above them
-        const k = 'PRND'.indexOf(s.gear), lx = -0.075 + k * 0.05;
+        const k = 'PRND'.indexOf(shownGear()), lx = lerp(lxOf(s.gearFrom), lxOf(s.gear), gearK());   // (going over as the hand pulls it)
         P_rect(ctx, -0.106, -0.004, 0.212, 0.09, P.col([66, 64, 68]));
         P_rect(ctx, -0.1, 0.002, 0.2, 0.078, P.col([14, 13, 15]));
         P_rect(ctx, -0.09, 0.064, 0.18, 0.008, P.col([2, 2, 3]));                    // the slot the stick runs in
@@ -387,7 +473,7 @@ LEVELS.push({
       }, { attach: true, sortDist: Math.hypot(GX, GZ) + 0.002 }));   // just before its own hover outline, which then shows round it
       // the gas pedal: a long rubber pad in a metal rim, ribbed across, hung on its arm from under the dash; it goes down
       // while you press it, and stays down once the car is away
-      const dn = clamp(1 - (L.t - s.pressT) / 0.35, 0, 1) * 0.025 + (s.gone || s.floored ? 0.025 : 0), y0 = 0.012 - dn * 0.5;
+      const dn = pedalDown() + (s.gone || s.floored ? 0.025 : 0), y0 = 0.012 - dn * 0.5;
       R.add(SC.mkSprite(L, PX, PY, PZ, PW, PH, (ctx, P) => {
         P_line(ctx, 0.004, y0 + 0.13, 0.026, PH - 0.004, 0.014, P.col([70, 70, 74]));          // the arm, up under the dash
         const rim = P.col([108, 106, 110]), pad = P.col([34, 33, 36]), rib = P.col([88, 86, 90]);
@@ -395,6 +481,46 @@ LEVELS.push({
         P_rect(ctx, -0.029, y0 + 0.004, 0.058, 0.142, pad); P_ell(ctx, 0, y0 + 0.004, 0.029, 0.009, pad); P_ell(ctx, 0, y0 + 0.146, 0.029, 0.009, pad);
         for (let i = 0; i < 6; i++) P_rect(ctx, -0.022, y0 + 0.018 + i * 0.023, 0.044, 0.008, rib);   // its ribs
       }, { attach: true, sortDist: Math.hypot(PX, PZ) + 0.002 }));
+    };
+    // ---- your foot on the gas ----
+    // How far down the pedal is: pressed it goes down under your foot and comes back up; with the engine dead it goes all
+    // the way to the floor, limp, stays there a moment and comes back slowly
+    function pedalDown() {
+      const t = L.t - s.pressT, deep = s.dead ? 0.05 : 0.025, back = s.dead ? 0.5 : 0.22;
+      if (t < 0 || t > 0.2 + back) return 0;
+      return t < 0.07 ? deep * smoothstep(t / 0.07) : t < 0.2 ? deep : deep * (1 - smoothstep((t - 0.2) / back));
+    }
+    // and your foot, drawn over the view as the hands are: it comes up from the bottom of the view onto the pedal, presses
+    // and goes back (it stays on it once the car is away). A dark trouser leg and a worn shoe, the toe on the lower half of
+    // the pad, so the top of the pad is seen going down under it
+    const LEG = [36, 36, 44], SHOE = [46, 37, 32];
+    L.overlay = (ctx, W, H) => {
+      const t = L.t - s.pressT, on = s.gone || s.floored, dur = 0.2 + (s.dead ? 0.5 : 0.22) + 0.12;
+      if (!on && (t < 0 || t > dur)) return;
+      if (L.eye && (L.eye.x || L.eye.z)) return;   // (the car is away: the view is on the road)
+      const dn = pedalDown() + (on ? 0.025 : 0), p = L.pt(PX, PY + 0.07 - dn * 0.5, PZ - 0.02), q = R.screenPos(p[0], p[1], p[2]);
+      if (!q || q.x < -W * 0.2 || q.x > W * 1.2 || q.y < -H * 0.2 || q.y > H * 1.2) return;
+      const k = q.scale, gone = on ? 0 : 1 - smoothstep(t / 0.07) + smoothstep((t - dur + 0.2) / 0.2);   // in from below, and back out
+      const tx = q.x, ty = q.y + gone * H * 0.5 + k * 0.01, ax = q.x + k * 0.02, ay = ty + k * 0.17;   // the toe, the ankle
+      const lit = c => rgba(scalec(c, 1 + (G.flashAmt || 0)));
+      ctx.save();
+      ctx.lineCap = 'round';
+      // the leg, from the bottom of the view to the ankle, wider as it comes nearer
+      const lw0 = k * 0.11, lw1 = Math.max(k * 0.2, W * 0.08), bx = ax + k * 0.08;
+      ctx.fillStyle = lit(LEG);
+      ctx.beginPath(); ctx.moveTo(ax - lw0 / 2, ay); ctx.lineTo(ax + lw0 / 2, ay); ctx.lineTo(bx + lw1 / 2, H + 4); ctx.lineTo(bx - lw1 / 2, H + 4); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = lit(scalec(LEG, 1.5)); ctx.lineWidth = k * 0.008;
+      ctx.beginPath(); ctx.moveTo(ax - lw0 * 0.32, ay + k * 0.02); ctx.lineTo(bx - lw1 * 0.36, H + 4); ctx.stroke();   // a crease down the front
+      // the shoe: from the heel by the ankle to the rounded toe on the pad, the instep catching what light there is
+      ctx.fillStyle = lit(SHOE);
+      ctx.beginPath(); ctx.ellipse((tx + ax) / 2, (ty + ay) / 2, k * 0.05, Math.hypot(ax - tx, ay - ty) / 2 + k * 0.04, Math.atan2(tx - ax, ay - ty), 0, TAU); ctx.fill();
+      ctx.fillStyle = lit(scalec(SHOE, 1.9));
+      ctx.beginPath(); ctx.ellipse(tx + k * 0.004, ty + k * 0.01, k * 0.032, k * 0.022, 0, Math.PI, TAU); ctx.fill();   // the toe cap
+      ctx.strokeStyle = lit([92, 86, 78]); ctx.lineWidth = k * 0.005;
+      for (let i = 0; i < 3; i++) { const yy = ty + k * (0.06 + i * 0.03), xx = tx + (ax - tx) * (0.35 + i * 0.18); ctx.beginPath(); ctx.moveTo(xx - k * 0.018, yy); ctx.lineTo(xx + k * 0.018, yy); ctx.stroke(); }   // laces
+      ctx.fillStyle = lit(scalec(LEG, 0.8));
+      ctx.beginPath(); ctx.ellipse(ax, ay, lw0 / 2, k * 0.025, 0, 0, TAU); ctx.fill();   // the trouser cuff over the heel
+      ctx.restore();
     };
     L.floor = { poly: [[-0.4, -0.9], [1.2, -0.9], [1.2, 0.7], [-0.4, 0.7]], y: 0.36 };
     L.onEnd = () => AUDIO.stopLoop();

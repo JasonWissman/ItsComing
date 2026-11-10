@@ -148,6 +148,8 @@ function startLevel(i, withCard) {
   AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear(); MENU.clear(); // nothing of the last screen or night carries over
   G.levelIndex = i;
   G.inv = []; G.active = 0; G.hover = null; G.invSig = ''; G.holding = null; G.throwing = null; G.error = null;
+  G.draw = null; G.drawBtn = null;   // no bow half drawn from the last night
+  HANDS.reset();   // empty hands, nothing in the air
   G.L = buildLevel(i);
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed + i);
@@ -183,7 +185,7 @@ function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;
 function showTitle() {
   if (G.L && G.L.onEnd) G.L.onEnd();
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
-  G.inv = [];
+  G.inv = []; HANDS.reset();   // nothing in hand or in the air behind the title
   G.L = buildLevel(0);
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed);
@@ -214,6 +216,7 @@ function onKeyDown(e) {
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
   if (e.repeat) return;
   if (k === 'm' || k === 'M') { toggleMute(); return; }
+  if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress(e)) return;   // a won night may be waiting on any press (the last night's meadow)
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
   if (G.state !== 'play' && MENU.onKey(e)) return;
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
@@ -260,6 +263,7 @@ function proceed() {
     case 'dead': startLevel(G.levelIndex, false); break;
     case 'survived': proceedFromSurvived(); break;
     case 'end': showTitle(); break;
+    case 'won': if (G.L && G.L.onPress) G.L.onPress(); break;   // a click, a tap, A or Start, to a night waiting on one
     case 'paused': resumeGame(); break;
     case 'error': restartLevel(); break;
     default: break;
@@ -268,15 +272,18 @@ function proceed() {
 
 function onMouseMove(e) { G.mouse.x = e.clientX; G.mouse.y = e.clientY; }
 function onMouseDown(e) {
+  G.drawSwallow = false;
   if (G.state !== 'play' || e.button !== 0) return;
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   updateHover();
   const h = G.hover;
   if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; e.preventDefault(); }
+  else if (drawPress(G.L, h, 'mouse')) e.preventDefault();   // a bow: held, the button draws it
 }
-function onMouseUp() { G.holding = null; }
+function onMouseUp() { G.holding = null; drawLetGo('mouse'); }
 function onClick(e) {
   if (e.target.closest && e.target.closest('#touch')) return;
+  if (G.drawSwallow) { G.drawSwallow = false; if (G.state === 'play') return; }   // the click that ends a draw is not another use
   if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) return; proceed(); return; } // the list screens are not click-anywhere; the title and the cards are
   ensureAudio();
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
@@ -296,8 +303,9 @@ function onClick(e) {
 function pickup(it) {
   // things that stack (single planks) join the pile already in hand instead of taking a new slot
   const pile = it.stack && G.inv.find(i => i.id === it.id && i !== it);
-  if (pile) { pile.uses += it.uses; it.taken = true; G.active = G.inv.indexOf(pile); G.invSig = ''; AUDIO.sfx('pickup'); if (G.L.onPickup) G.L.onPickup(it); G.hover = null; return; }
-  if (G.inv.length >= 6) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); return; }
+  if (pile) { pile.uses += it.uses; it.taken = true; G.active = G.inv.indexOf(pile); G.invSig = ''; AUDIO.sfx('pickup'); HANDS.picked(pile, it); if (G.L.onPickup) G.L.onPickup(it); G.hover = null; return; }
+  if (G.inv.length >= 6) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); G.thrust(it); return; }   // your full hand goes toward it, and back (js/hands.js)
+  HANDS.picked(it);   // from where it lay, up into the hand
   it.taken = true; G.inv.push(it); G.active = G.inv.length - 1;
   AUDIO.sfx('pickup');
   if (G.L.onPickup) G.L.onPickup(it);
@@ -319,7 +327,7 @@ function dropActive() {
   const local = (dd) => rotY(Math.sin(a) * dd, Math.cos(a) * dd, -L.facing);
   while (d > 0.45 && L.floor.poly && !pointInPoly(local(d)[0], local(d)[1], L.floor.poly)) d -= 0.1;
   if (d <= 0.45) { G.toast('No room to put it down here.'); AUDIO.sfx('nope'); return; }
-  G.removeFromInv(it);
+  G.removeFromInv(it); HANDS.dropped(it);
   it.x = Math.sin(a) * d; it.z = Math.cos(a) * d; it.y = L.floor.y; it.flat = true; it.taken = false;
   AUDIO.sfx('drop');
   if (L.onDrop) L.onDrop(it);
@@ -343,44 +351,91 @@ function combine(a, b) {
   G.toast(r.text || (it.name + '.'));
   return true;
 }
+// What a click that does not work shows (js/hands.js): a thing tried where it will not go leaves your hand, fails at the
+// target and comes back or drops to the floor (G.fumble); with nothing in hand the hand goes up to it (G.reach). The short
+// line is still said, for the captions, but the animation is the feedback. A target may choose for itself: t.onWrong(item),
+// t.onEmpty(), t.onMissing(item, missing), t.onDecoy(item) and t.onRefuse(item) replace the animation for that case;
+// t.fumble (a preset's name, or options, with optional per-case entries wrong, missing, decoy, refuse) shapes the fumble,
+// and false turns it off; t.reach (a style, or options; false: off) shapes the empty hand's reach. A night's own refusal
+// inside t.use(item) (returning false) is a 'return' fumble too; `return G.refuse('bump')` picks another.
+function fumbleOpts(t, kase, preset) {
+  const f = t.fumble, c = f && typeof f === 'object' ? f[kase] : undefined;
+  if (c === false) return false;
+  return Object.assign({ preset: typeof f === 'string' ? f : (f && f.preset) || preset }, typeof c === 'string' ? { preset: c } : c || null);
+}
+function heldByNight(item) { const u = activeUse(G.L); return !!(u && u.inHands && u.tool === item.id); }   // the bow: the night draws it
+function tryFumble(t, item, kase, preset, override) {
+  if (override) { override(); return true; }
+  const o = t.fumble === false ? false : fumbleOpts(t, kase, preset);
+  return !!(o && !heldByNight(item) && G.fumble(item, t, o));
+}
+function noUse(t, act) {
+  let shown;
+  if (act) shown = tryFumble(t, act, 'wrong', 'return', t.onWrong && (() => t.onWrong(act)));
+  else if (t.onEmpty) { t.onEmpty(); shown = true; }
+  else shown = t.reach !== false && !!G.reach(t);
+  if (!shown && !G.fumbling) AUDIO.sfx('nope');
+}
+G.refuse = opts => { G.refused = opts === undefined ? 'return' : opts; return false; };   // inside t.use: `return G.refuse('bump')`
 function useTarget(t) {
-  const L = G.L;
-  if (t.onClick && t.onClick()) return;
+  const L = G.L, wasOpen = t.open;
+  if (t.onClick && t.onClick()) { if (t.kind === 'container' && t.open && !wasOpen) { if (G.inv[G.active]) G.thrust(t); else G.reach(t, 'pull'); } return; }   // a box opened: the hand goes to it
   const act = G.inv[G.active];
   if (t.crank && !t.done && !(act && t.accepts.includes(act.id))) { crankTarget(t); return; }
-  if (t.done && !t.accepts.length) { G.toast(G.hints() && t.hint ? t.hint() : 'Done.'); return; }
+  if (t.done && !t.accepts.length) { G.toast(G.hints() && t.hint ? t.hint() : 'Done.'); noUse(t, act); return; }
   let item = G.inv[G.active];
   if (!item || !t.accepts.includes(item.id)) item = G.inv.find(i => t.accepts.includes(i.id) && !i.decoy) || G.inv.find(i => t.accepts.includes(i.id)); // the genuine thing before a decoy, unless the decoy was chosen
   if (!item) {
     if (t.accepts.length) G.say(t.hint ? t.hint() : 'You need something for this.', 'Not with what you have.');
     else if (t.hint) G.say(t.hint(), t.name);
-    AUDIO.sfx('nope'); return;
+    noUse(t, act); return;
   }
+  if (G.fumbling && G.fumbling.from === item && G.fumbling.target === t && G.fumbling.phase !== 'home') return;   // it is on its way there already
+  if (item !== act) { G.active = G.inv.indexOf(item); G.invSig = ''; }   // the right thing, picked out for you: it comes into your hand
   if (item.decoy) {
     const c = L.creature; c.u = Math.min(0.995, c.u + 0.03); c.hitched = true;
-    G.toast(item.decoyText || 'That is not it.'); AUDIO.sfx('nope'); // decoys only exist where hints are off, so their line is feedback, not a hint
+    G.toast(item.decoyText || 'That is not it.'); // decoys only exist where hints are off, so their line is feedback, not a hint
+    if (!tryFumble(t, item, 'decoy', 'bump', t.onDecoy && (() => t.onDecoy(item))) && !G.fumbling) AUDIO.sfx('nope');   // it goes there, will not do, and drops
     if (L.onDecoy) L.onDecoy(t, item);
     return;
   }
   const missing = (t.requires || []).filter(id => !G.hasItem(id));
   if (missing.length) {
     const m = L.items.find(i => i.id === missing[0]);
-    G.say('You need the ' + (m ? m.name.toLowerCase() : missing[0]) + ' for that.', t.missingText || 'Something is missing for this.'); AUDIO.sfx('nope'); return;
+    G.say('You need the ' + (m ? m.name.toLowerCase() : missing[0]) + ' for that.', t.missingText || 'Something is missing for this.');
+    if (!tryFumble(t, item, 'missing', 'slip', t.onMissing && (() => t.onMissing(item, missing))) && !G.fumbling) AUDIO.sfx('nope');   // it goes up, will not stay, and falls
+    return;
   }
   if (item.throwable && !t.noThrow) { throwItem(item, { x: t.x, y: t.y + t.h * 0.4, z: t.z }, () => applyUse(t, item)); return; }
   applyUse(t, item);
 }
 function applyUse(t, item) {
   const L = G.L;
+  G.refused = undefined;
+  const had = G.inv.includes(item);   // (a thrown thing has already left the hand)
   const ok = t.use(item);
-  if (!ok) { AUDIO.sfx('nope'); return; }
+  if (!ok) {
+    const how = G.refused; G.refused = undefined;
+    const started = (G.fumbling && G.fumbling.from === item && G.fumbling.T === 0) || (G.hand.reach && G.hand.reach.T === 0);   // the night's use() showed it itself
+    let shown = !!started;
+    if (!started && G.inv.includes(item)) {
+      if (how === undefined && t.onRefuse) { t.onRefuse(item); shown = true; }
+      else if (how === undefined) shown = tryFumble(t, item, 'refuse', 'return');
+      else if (how !== false && !heldByNight(item)) shown = !!G.fumble(item, t, typeof how === 'string' ? Object.assign(fumbleOpts(t, 'refuse', how) || {}, { preset: how }) : how);   // the night's own choice
+    }
+    if (!shown && !G.fumbling) AUDIO.sfx('nope');
+    return;
+  }
+  if (G.fumbling && G.fumbling.from === item && !G.fumbling.drop) HANDS.settle();   // used after all while it was on its way back: it is in hand
   if (!item.tool) { item.uses--; if (item.uses <= 0) G.removeFromInv(item); }
+  if (had) G.thrust(t, item, !G.inv.includes(item));   // a push toward it; used up, it is given up there
   if (t.count >= t.needed && t.needed > 1) t.done = true;
   if (!L.won && L.isWon && L.isWon()) win();
 }
 function crankTarget(t) {
   const L = G.L;
   t.count = (t.count || 0) + 1; t.lastCrank = L.t;
+  if (G.hand.cur && G.hand.up > 0.5) G.thrust(t); else G.reach(t, 'push');   // the hand on it, turn by turn
   AUDIO.sfx(t.crank.sfx || 'ratchet'); G.shake(0.06);
   if (t.crank.onTurn) t.crank.onTurn(t.count, t);
   if (t.count >= t.crank.n) { t.done = true; t.count = t.crank.n; if (t.crank.onComplete) t.crank.onComplete(t); if (!L.won && L.isWon && L.isWon()) win(); }
@@ -398,8 +453,9 @@ function updateTargets(L, dt) {
 // a thrown item flies from the hands to a point, then does its thing
 function throwItem(it, to, onArrive) {
   if (G.throwing) return;
-  G.removeFromInv(it);
-  const from = { x: Math.sin(G.cam.yaw) * 0.4, y: G.L.eyeH - 0.3, z: Math.cos(G.cam.yaw) * 0.4 };
+  const hw = G.hand.cur === it && G.hand.up > 0.5 ? HANDS.handWorld(it, Math.max(0.3, 0.6 * Math.hypot(to.x, to.z))).p : null;   // from where it is in your hand
+  G.removeFromInv(it); HANDS.threw(it);
+  const from = hw || { x: Math.sin(G.cam.yaw) * 0.4, y: G.L.eyeH - 0.3, z: Math.cos(G.cam.yaw) * 0.4 };
   G.throwing = { it, from, to, t: 0, dur: 0.55 + Math.hypot(to.x - from.x, to.z - from.z) * 0.03, onArrive };
   AUDIO.sfx('hiss');
 }
@@ -413,6 +469,7 @@ function activeUse(L) { return (L.uses || []).find(u => G.hasItem(u.tool)) || nu
 function useOnCreature(L, c) {
   const u = activeUse(L);
   if (!u || c.dead) return false;
+  if (u.draw) return true;   // a bow is drawn by holding the button (drawPress), never by a click
   const ammo = u.ammo ? G.inv.find(i => i.id === u.ammo) : null;
   if (u.ammo && !ammo) { AUDIO.sfx('empty'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Click. Nothing in it.'); return true; }
   if (c.dist > u.range) {
@@ -429,6 +486,73 @@ function fireUse(L, u, ammo) {
   if (ammo) { ammo.uses--; if (ammo.uses <= 0) G.removeFromInv(ammo); }
   AUDIO.sfx(u.sfx || 'shot'); G.flash(u.flash === undefined ? 0.5 : u.flash); G.shake(u.shake === undefined ? 0.7 : u.shake); L.s.recoil = 1;
 }
+// ---- a bow: hold to draw, let go to loose ----
+// A use with draw: { loose(outcome, c, aim, power, L), fill, min } is drawn by holding the button (or A, or the touch Use
+// button). The power bar fills over `fill` seconds to full, and it stays full for as long as it is held. All that matters is
+// whether it is full when you let go: full with the aim on the thing's body is 'hit', however far off it is; full but off
+// it, 'miss'; let go before full, 'short'. Each of those spends one of the ammo and hands the outcome to loose(). Let go
+// before `min` seconds and nothing is loosed: the bow is let back down ('easing'), which is what a click shows. G.draw is
+// the draw (state drawing, easing or loosed, then a moment to nock the next); G.drawBtn which button holds it.
+const DRAW_FILL = 1.5, DRAW_MIN = 0.18;
+function drawUse(L) { const u = L && activeUse(L); return u && u.draw ? u : null; }
+function drawPress(L, h, src) {
+  const u = drawUse(L);
+  if (!u || G.state !== 'play' || G.cam.pitch > 0.5 || (h && h.kind !== 'creature')) return false;   // looking down, or at something to take or use: not a draw
+  if (src === 'mouse') G.drawSwallow = true;
+  if (!G.hasItem(u.ammo)) { AUDIO.sfx('nope'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Nothing to loose.'); return true; }
+  G.drawBtn = src;
+  return true;
+}
+function drawLetGo(src, cancel) {
+  if (!G.drawBtn || (src && G.drawBtn !== src)) return;
+  G.drawBtn = null;
+  const d = G.draw, u = drawUse(G.L);
+  if (d && d.state === 'drawing') looseDraw(G.L, d, cancel || G.state !== 'play');
+  else if (!d && u && G.state === 'play') G.draw = { state: 'easing', t: 0, dur: 0.45, from: 0.05, power: 0, u, src };   // let go before a frame went by: it still starts to come up, and goes back down
+}
+function updateDraw(L, dt) {
+  let d = G.draw;
+  if (d && d.state !== 'drawing') { d.t += dt; if (d.t >= d.dur) G.draw = d = null; }   // letting it back down, or nocking the next
+  const u = drawUse(L);
+  if (d && d.state === 'easing' && G.drawBtn && G.state === 'play') G.draw = d = null;   // pressed again while it was being let down (after a click): it draws again at once
+  if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, full: false, creak: 0, u, src: G.drawBtn };
+  if (!d || d.state !== 'drawing') return;
+  if (G.state !== 'play' || !u) { looseDraw(L, d, true); return; }
+  d.t += dt; d.power = Math.min(1, d.t / (u.draw.fill || DRAW_FILL));
+  if (d.power >= 1 && !d.full) { d.full = true; d.creak = d.t; AUDIO.sfx('bowFull'); }   // it tops out: the string comes tight with a click, and it holds there as long as it is held
+  else if (d.t - d.creak >= (d.full ? 1.2 : 0.3)) { d.creak = d.t; AUDIO.sfx('bowCreak', 0, d.full); }   // a creak as it comes back; held full, one now and then
+}
+function looseDraw(L, d, cancel) {
+  const u = d.u;
+  if (cancel || d.t < (u.draw.min || DRAW_MIN)) { Object.assign(d, { state: 'easing', from: d.power, t: 0, dur: 0.45 }); return; }
+  const c = nearestCreature(L), aim = drawAim(d.src), p = d.power;
+  const outcome = p < 1 ? 'short' : overCreature(c, aim) ? 'hit' : 'miss';
+  const ammo = G.inv.find(i => i.id === u.ammo);
+  if (ammo) { ammo.uses--; if (ammo.uses <= 0) G.removeFromInv(ammo); }
+  AUDIO.sfx(u.sfx || 'twang'); G.shake(u.shake === undefined ? 0.12 : u.shake);
+  Object.assign(d, { state: 'loosed', outcome, from: p, t: 0, dur: 0.6, aim });
+  u.draw.loose(outcome, c, aim, p, L);
+}
+// where it is aimed (page coordinates): the pointer; from a pad or the touch Use button, the middle of the view, or the
+// thing itself if it is the nearest thing to the middle (where firing from a pad has always aimed)
+function drawAim(src) {
+  if (src === 'mouse') return { x: G.mouse.x, y: G.mouse.y };
+  const mid = { x: R.W / 2, y: R.viewY + R.H / 2 };
+  let best = null, bestD = Infinity;
+  for (const r of R.hits) { const dd = Math.hypot(r.x + r.w / 2 - mid.x, r.y + r.h / 2 - mid.y); if (dd < bestD) { best = r; bestD = dd; } }
+  if (best && best.kind === 'creature' && bestD < Math.min(R.W, R.H) * 0.45) { const b = creatureBox(best.ref); if (b) return { x: b.x + b.w / 2, y: b.y + b.h / 2 }; }
+  return mid;
+}
+// the screen rect (page coordinates) of the thing's body as it stands now: CR.body(c), [x0, x1, y0, y1] in its own metres
+// with its feet at 0, narrows its sprite box to what its pose fills (crouched, it is half its height)
+function creatureBox(c) {
+  const CR = c.CR, p = c.pos(), r = R.projectRect(p.x, p.y + (c.yOff || 0), p.z, CR.w, CR.h);
+  if (!r) return null;
+  const b = CR.body ? CR.body(c) : [-CR.w / 2, CR.w / 2, 0, CR.h];
+  const x0 = r.x + r.w * (0.5 + b[0] / CR.w), x1 = r.x + r.w * (0.5 + b[1] / CR.w), y0 = r.y + r.h * (1 - b[3] / CR.h), y1 = r.y + r.h * (1 - b[2] / CR.h);
+  return { x: x0, y: y0 + R.viewY, w: x1 - x0, h: y1 - y0 };
+}
+function overCreature(c, aim) { const b = c && !c.dead && creatureBox(c), m = 6; return !!b && aim.x >= b.x - m && aim.x <= b.x + b.w + m && aim.y >= b.y - m && aim.y <= b.y + b.h + m; }
 
 // ---- winning, dying ----
 const AFTERMATHS = {
@@ -460,7 +584,7 @@ function lookAtPoint(p) {
   const dx = p.x - e.x, dz = p.z - e.z, hd = Math.max(0.3, Math.hypot(dx, dz)), yawTo = Math.atan2(dx, dz);
   G.cam.tYaw = G.cam.yaw + wrapPi(yawTo - G.cam.yaw);
   G.cam.dirIdx = ((Math.round(yawTo / (45 * DEG)) % 8) + 8) % 8;
-  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH + (e.y || 0) - p.y, hd), 0, PITCH_DOWN);
+  G.cam.tPitch = clamp(Math.atan2(G.L.eyeH + (e.y || 0) - p.y, hd), -(G.L.watchUp || 0), G.L.watchPitch || PITCH_DOWN);   // a night may let the win camera look further down than you can (the tower), or up (the last night: up into its face)
 }
 function win() {
   const L = G.L; L.won = true; L.aftermathT = 0;
@@ -479,7 +603,7 @@ function die(c, cause) {
   G.shake(1.4);
   c.lunge = 0; c.frozen = true; c.lungeFrom = c.dist;
   G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = 0; G.cam.zoomHeld = false; // it rises to eye level, so the view comes up to meet it
-  G.deathTime = L.t; G.deathAt = G.t; // the night clock for the card, the global clock for the toast test (toasts are stamped with G.t)
+  G.deathTime = L.t; G.deathAt = G.t; // the night clock, and the global clock for the toast test (toasts are stamped with G.t)
   SAVE.recordTry(L.def.id, L.diff.id);
 }
 function deathLine(L) {
@@ -529,10 +653,13 @@ function update(dt) {
   const c = G.cam;
   // once the night is won the view turns slowly to follow the thing and closes in a little, so you see how it ends
   const watching = G.state === 'won' && G.L && G.L.creature;
-  if (watching) { const wp = L.watchPoint && L.watchPoint(); if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
+  const wp = watching && L.watchPoint && L.watchPoint();
+  if (watching) { if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
-  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? 1.35 : 1;
+  // a night may close in further once won (a long way off, it is small) or widen it to take in more, or bring the view in
+  // close in play (facing the pay phone)
+  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
@@ -559,6 +686,7 @@ function update(dt) {
     STORY.update(L, dt);
     updateTargets(L, dt);
     updateThrow(dt);
+    updateDraw(L, dt);
     Seq.update(dt);
     for (const cr of L.creatures) updateCreature(L, cr, dt, G.state === 'play');
     if (G.state === 'play') { heartbeat(dt); if (!L.won && L.isWon && L.isWon()) win(); }
@@ -591,8 +719,7 @@ function update(dt) {
     if (G.stateT > delay + dur + 0.25) { G.fade = 1; G.fadeTarget = 1; }
     if (G.stateT > delay + dur + 1.2) {
       setState('dead');
-      const secs = Math.max(1, Math.round(G.deathTime));
-      G.deathScreen = { text: 'It reached you after ' + secs + ' second' + (secs > 1 ? 's' : '') + '.<br>' + deathLine(L) };
+      G.deathScreen = { text: deathLine(L) };   // the night's own line (and the toast it cut off): no count of the seconds
       MENU.show('dead', G.deathScreen);
     }
   } else if (G.state === 'title') {
@@ -602,12 +729,14 @@ function update(dt) {
     L.t += dt;   // the morning after: the view wanders the room a little behind the last screen
     c.tYaw = c.yaw + wrapPi(L.facing + Math.sin(L.t * 0.12) * 0.35 - c.yaw); c.tPitch = Math.max(0, Math.sin(L.t * 0.09)) * 0.12;
   }
+  if (G.state !== 'paused') HANDS.update(dt);   // what you hold: raised, swapped, swaying, or lowered as the night ends; a fumble in the air
 }
 
 function updateCreature(L, c, dt, live) {
   const CR = c.CR;
   c.t += dt * c.timeScale;
   if (c.lane.follow === 'behind' && !c.frozen && !c.dead) c.yaw = G.cam.yaw + Math.PI;
+  if (c.round) goRound(L, c, dt);   // going round a sealed way on its feet (below): where it is this frame
   // seen or not is judged with the unzoomed view: peering at it with zoom never counts as looking away
   const seeCam = G.cam.zoom > 1.001 ? { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH, eye: L.eye } : null;
   c.visFrac = L.visFrac ? L.visFrac(c) : (CR.hidden && CR.hidden(c)) ? 0 : APPROACH.visFrac(L, c.lane, c, seeCam);
@@ -638,7 +767,7 @@ function updateCreature(L, c, dt, live) {
   const pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
   if (CR.sound && Math.floor(c.gait / Math.PI) !== Math.floor(prevGait / Math.PI)) AUDIO.footstep(CR.sound, clamp(2.4 / (d + 1.6), 0, 0.85) * 0.6, pan);
   if (CR.silentWhenSeen && !G.muted && c.idx === 0) AUDIO.setLoop((!seen && c.moving && !L.won) ? 'grind' : null, clamp(0.15 + 3 / (d + 2), 0, 0.6), pan);
-  c.lat = CR.lateral ? CR.lateral(c) : 0;
+  c.lat = CR.lateral ? CR.lateral(c) : (c.runLat || 0);
   const cp = c.pos(), li = LIGHT.list.length ? LIGHT.at(cp.x, cp.y + CR.h * 0.5, cp.z) : null;
   c.lit = Math.max(L.creatureLit ? L.creatureLit(c) : 0, li ? Math.min(1, li.lit) : 0);
   if (live) maybeSwitchLane(L, c);
@@ -646,12 +775,17 @@ function updateCreature(L, c, dt, live) {
   // a sealed way (L.sealed(lane)) holds it at the barrier, or where it already is if it got inside first, until the night is
   // won. On Nightmare, after a moment, it goes round to an open way if it has one (with that way's cue), starting outside that
   // way's barrier; below Nightmare, or on a night that opts out of changing ways (laneSwitch: false), it stands there.
+  // A creature that can run (its type has drawRun) goes round on its feet instead, after a shorter moment (goRound).
+  // A night may judge for itself which ways it goes round to (L.roundOpen(lane, c); by default a way that is not sealed):
+  // it is then asked again every frame while the thing is held, until it has somewhere to go.
   if (live && !L.won && barrier && L.sealed && !c.distFn && d <= barrier + 0.01) {
+    if (c.hold === null && L.sealed(c.lane) && prevDist > barrier && d < barrier) { d = barrier; c.u = clamp(1 - Math.pow(barrier / c.D0, 1 / c.gamma), 0, 1); }   // a lurch across the line in one frame still stops at it
     if (c.hold === null && L.sealed(c.lane)) { c.hold = Math.min(barrier, d); c.sealHold = true; c.sealHeldAt = L.t; c.dist = d = c.hold; }
-    else if (c.hold !== null && c.sealHeldAt !== undefined && L.t - c.sealHeldAt > 2.5) {
-      c.sealHeldAt = undefined;
-      const open = (c.fixedLane || !L.diff.laneSwitch || L.def.laneSwitch === false) ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && !L.sealed(l) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
-      if (open.length) {
+    else if (c.hold !== null && c.sealHeldAt !== undefined && L.t - c.sealHeldAt > (CR.drawRun ? ROUND.wait : 2.5)) {
+      const open = (c.fixedLane || !L.diff.laneSwitch || L.def.laneSwitch === false) ? [] : L.lanes.filter(l => l !== c.lane && !l.noSwitch && (L.roundOpen ? L.roundOpen(l, c) : !L.sealed(l)) && (!c.laneOptions || c.laneOptions.includes(l.idx)));
+      if (open.length || !L.roundOpen) c.sealHeldAt = undefined;
+      if (open.length && CR.drawRun) startRound(L, c, open[Math.floor(c.rand() * open.length)]);
+      else if (open.length) {
         const ln = open[Math.floor(c.rand() * open.length)];
         c.hold = null; c.sealHold = false; c.retarget(ln.idx); c.reached = false;
         const dn = Math.max(d, (ln.barrierDist || 0) + 3); c.u = clamp(1 - Math.pow(dn / c.D0, 1 / c.gamma), 0, 1); c.dist = d = c.D0 * Math.pow(1 - c.u, c.gamma); // going round takes it back out
@@ -670,6 +804,7 @@ function updateCreature(L, c, dt, live) {
 // unseen; the new lane's cue sound is the only warning. dist is a function of progress, so nothing jumps.
 function maybeSwitchLane(L, c) {
   if (!L.diff.laneSwitch || L.def.laneSwitch === false || L.lanes.length < 2 || c.switched || c.fixedLane || L.won || c.dead || c.hold !== null) return; // never while it is held somewhere
+  if (c.round) return;   // nor while it is going round on its feet
   if (c.switchAt === undefined) c.switchAt = 0.12 + c.rand() * 0.28;
   if (c.u < c.switchAt || c.seen) return;
   const options = L.lanes.filter(l => l !== c.lane && !l.noSwitch && (!c.laneOptions || c.laneOptions.includes(l.idx)));
@@ -680,6 +815,65 @@ function maybeSwitchLane(L, c) {
   if (c.idx === 0) { L.laneIdx = ln.idx; L.lane = ln; L.barrierDist = ln.barrierDist || 0; }
   if (ln.cue) AUDIO.sfx(ln.cue, Math.sin(wrapPi(ln.yaw - G.cam.yaw)) * 0.85);
   if (L.onLaneSwitch) L.onLaneSwitch(c, ln);
+}
+// ---- going round a sealed way on its feet ----
+// Only a creature whose type defines drawRun (drawn side on while c.runPose is set; c.runDir +1 runs to the right of the
+// view, c.runGait is its stride) does this; every other one jumps round as above. Modelled on the run round the house in
+// night 1: it stands at the sealed way a moment (ROUND.wait), then sprints sideways (c.runLat, metres to the right of its
+// lane) out of that way's view, is heard running while it is out of sight going round, and comes in at the other way from
+// the side it went round by, ROUND.gap metres outside that way's barrier (where it arrives, with the way's cue), running
+// sideways across it at that distance; then it turns to it and walks on. Won while it is going round, it comes round now.
+const ROUND = { wait: 0.8, out: [0.55, 0.85], round: 0.5, in: [0.65, 1.2], speedOut: 4.5, speedIn: 5.5, gap: 3 };
+// how far to the side it must be to be out of the way's view at distance d: wholly behind the frame of the nearest opening
+// in front of it (a doorway's jamb, a porch column), or, on an open side, well off to the side. Wholly means all of it as it
+// is drawn running (CR.runW, its stride from heel to toe, if that is wider than w): it runs on the spot there while it is
+// going round, and a trailing foot kicked out past the jamb every stride gave it away
+function roundLat(c, lane, d, side) {
+  const ap = lane.apertures.filter(a => a.z < d).sort((a, b) => a.z - b.z)[0];
+  if (!ap) return d * 0.42 + 2.5;
+  return Math.max(0, (side > 0 ? ap.x1 : -ap.x0) * d / ap.z) + Math.max(c.CR.w, c.CR.runW || 0) / 2 + 0.15;
+}
+function startRound(L, c, to) {
+  const from = c.lane, turn = wrapPi(to.yaw - from.yaw);
+  const side = Math.abs(turn) > Math.PI - 0.05 ? (c.rand() < 0.5 ? 1 : -1) : (Math.sign(turn) || 1);   // the short way round
+  const d = c.dist, d2 = Math.max(d, (to.barrierDist || 0) + ROUND.gap), lat0 = roundLat(c, from, d, side), lat1 = roundLat(c, to, d2, -side);
+  const T1 = clamp(lat0 / ROUND.speedOut, ROUND.out[0], ROUND.out[1]), T2 = T1 + ROUND.round, T3 = T2 + clamp(lat1 / ROUND.speedIn, ROUND.in[0], ROUND.in[1]);
+  c.round = { t: 0, from, to, side, d, d2, lat0, lat1, T1, T2, T3, steps: Math.floor((c.runGait || 0) / Math.PI), arrived: false, pin: null };
+  c.hold = d; c.sealHold = false;
+}
+function goRound(L, c, dt) {
+  const r = c.round;
+  if (L.won && r.t < r.T2) r.t = r.T2;   // won while it was going round: it comes round now, to the way it was making for
+  r.t += dt;
+  if (r.t >= r.T3 && r.arrived) {   // across the way: it turns to it and walks on, from where it is
+    c.runPose = false; c.runLat = 0; if (c.distFn === r.pin) c.distFn = null; c.round = null; return;
+  }
+  c.runPose = true; c.runDir = r.side;
+  c.runGait = (c.runGait || 0) + dt * 15;
+  let yaw, arriving = false;
+  if (r.t < r.T1) {          // flat out to one side, across the way it was held at and out of its view
+    c.runLat = r.side * r.lat0 * Math.pow(r.t / r.T1, 1.5); c.hold = r.d;
+    yaw = r.from.yaw + Math.atan2(c.runLat, r.d);
+  } else if (r.t < r.T2) {   // out of sight, going round: only its feet, moving across
+    c.runLat = r.side * r.lat0; c.hold = r.d;
+    const y0 = r.from.yaw + r.side * Math.atan2(r.lat0, r.d), y1 = r.to.yaw - r.side * Math.atan2(r.lat1, r.d2);
+    yaw = y0 + wrapPi(y1 - y0) * (r.t - r.T1) / (r.T2 - r.T1);
+  } else {                   // round, and across the other way, at the distance it came in at
+    if (!r.arrived) {
+      r.arrived = arriving = true;
+      c.hold = null; c.retarget(r.to.idx); c.reached = false;
+      c.u = clamp(1 - Math.pow(r.d2 / c.D0, 1 / c.gamma), 0, 1); c.dist = r.d2 = c.D0 * Math.pow(1 - c.u, c.gamma);
+      r.pin = () => r.d2; c.distFn = r.pin;   // it keeps that distance, without being held, until it has crossed
+      if (c.idx === 0) { L.laneIdx = r.to.idx; L.lane = r.to; L.barrierDist = r.to.barrierDist || 0; }
+    }
+    c.runLat = -r.side * r.lat1 * (1 - easeOut((r.t - r.T2) / (r.T3 - r.T2)));
+    yaw = r.to.yaw + Math.atan2(c.runLat, r.d2);
+  }
+  c.lat = c.CR.lateral ? c.CR.lateral(c) : c.runLat;   // already, so whether it is seen this frame is judged where it is
+  if (arriving && r.to.cue) AUDIO.sfx(r.to.cue, Math.sin(wrapPi(r.to.yaw - G.cam.yaw)) * 0.85);
+  if (arriving && L.onLaneSwitch) L.onLaneSwitch(c, r.to);
+  const n = Math.floor(c.runGait / Math.PI);   // running feet, panned to where it is
+  if (n !== r.steps) { r.steps = n; AUDIO.footstep('runner', clamp(4 / (c.dist + 4), 0.12, 0.7), Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85); }
 }
 function nearestCreature(L) { let best = null; for (const c of L.creatures) if (!c.dead && (!best || c.dist < best.dist)) best = c; return best || L.creature; }
 function heartbeat(dt) {
@@ -722,6 +916,7 @@ function render() {
     const x = lerp(th.from.x, th.to.x, k), y = lerp(th.from.y, th.to.y, k) + arc, z = lerp(th.from.z, th.to.z, k);
     R.add({ kind: 'sprite', x, y, z, w: th.it.w, h: th.it.h, draw: (ctx, P) => { ctx.scale(th.it.w, th.it.h); th.it.icon(ctx, P); } });
   }
+  HANDS.add();   // a thing tried at a target, in the air or at it
   if (L.dynamic) L.dynamic();
   if (L.clouds) for (const cl of L.clouds) { const yaw = cl.yaw0 + G.t * cl.drift; const r = 800 * Math.cos(Math.asin(cl.y / 800)); cl.x = Math.sin(yaw) * r; cl.z = Math.cos(yaw) * r; R.add(cl); }
   const canUse = G.state === 'play' && !!activeUse(L);
@@ -739,7 +934,7 @@ function render() {
   R.post({
     danger: G.danger, flash: G.flashAmt, fade: G.fade, white: G.white, dangerCap: S.reducedFlash ? 0.35 : 0.75, flashCap: S.reducedFlash ? 0.2 : 1,
     glows: L.glows ? L.glows() : null,
-    drawOverlay: (ctx, W, H) => drawGunOverlay(ctx, W, H),
+    drawOverlay: (ctx, W, H) => { HANDS.draw(ctx, W, H); if (L.overlay) L.overlay(ctx, W, H); drawGunOverlay(ctx, W, H); },   // what you hold, then a night's own picture over the view (the covers over your eyes), under the vignette, grain and fades
     grain: G.state === 'title' ? 0.05 : 0.07 + G.danger * 0.05 - (L.s.reveal || 0) * 0.04,
     vignette: 0.9 - (L.s.reveal || 0) * 0.65,   // the last night's morning is bright to the corners
   });
@@ -751,9 +946,11 @@ function drawGunOverlay(ctx, W, H) {
   const L = G.L;
   const u = activeUse(L);
   if (!u || G.state === 'dead' || G.state === 'dying') return;
-  if (G.cam.pitch < 0.3 && G.state === 'play' && G.mouse.x >= 0 && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
+  if (u.inHands) u.inHands(ctx, W, H, G.draw, L, G.draw ? (G.draw.state === 'loosed' ? G.draw.aim : drawAim(G.draw.src)) : null);   // what you hold up to use it (night 5's bow), under the crosshair; aimed where it is drawn
+  const padDraw = G.draw && G.draw.src !== 'mouse' && G.draw.state === 'drawing';   // drawn from a pad or the touch button: the sights are where it is aimed
+  if (G.cam.pitch < 0.3 && G.state === 'play' && (G.mouse.x >= 0 || padDraw) && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
     ctx.strokeStyle = 'rgba(255,230,200,0.5)'; ctx.lineWidth = 1;
-    const mx = G.mouse.x, my = G.mouse.y - R.viewY;
+    const at = padDraw ? drawAim(G.draw.src) : G.mouse, mx = at.x, my = at.y - R.viewY;
     ctx.beginPath(); ctx.moveTo(mx - 12, my); ctx.lineTo(mx - 4, my); ctx.moveTo(mx + 4, my); ctx.lineTo(mx + 12, my); ctx.moveTo(mx, my - 12); ctx.lineTo(mx, my - 4); ctx.moveTo(mx, my + 4); ctx.lineTo(mx, my + 12); ctx.stroke();
   }
 }
@@ -773,8 +970,9 @@ function updateHUD() {
     for (let i = 0; i < 8; i++) html += '<span class="' + (i === cur ? 'cur' : '') + (ticks.includes(i) ? ' thing' : '') + '">' + DIR_NAMES[i] + '</span>';
     UI.compass.innerHTML = html;
   }
-  UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : '▲ looking ahead';   // the win camera's small tilt is not looking down
+  UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : c.tPitch < -0.05 ? '▲ looking up' : '▲ looking ahead';   // the win camera's small tilt is not looking down
   UI.zoom.style.opacity = c.zoomHeld && G.state === 'play' && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
+  updateDrawBar();
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
   const isig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active;
@@ -807,6 +1005,30 @@ function updateHUD() {
   }
 }
 
+// the bow's power bar, beside where it is aimed: the fill rises pale as it is drawn, and at the top it is full: the fill
+// and the frame turn green, the mark at the top lights and says so, for as long as it is held. The notch is the least draw
+// that looses anything. It stays a moment after letting go, showing where it stopped.
+function updateDrawBar() {
+  const d = G.draw, show = !!d && G.state === 'play';
+  if (UI.drawbar.style.display !== (show ? 'block' : 'none')) UI.drawbar.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const p = d.state === 'drawing' ? d.power : d.state === 'easing' ? d.from * (1 - smoothstep(d.t / d.dur)) : d.from;
+  const aim = d.state === 'loosed' ? d.aim : drawAim(d.src), BH = 150;
+  // beside the aim, but never over the thing it is aimed at (close in, it is wide): then just to its right, or its left at the edge
+  const cr = nearestCreature(G.L), cb = cr && !cr.dead ? creatureBox(cr) : null;
+  let bx = aim.x + 34;
+  if (cb && aim.x > cb.x - 24 && aim.x < cb.x + cb.w + 24 && aim.y > cb.y - 24 && aim.y < cb.y + cb.h + 24) { bx = Math.max(bx, cb.x + cb.w + 16); if (bx > window.innerWidth - 90) bx = Math.min(aim.x - 44, cb.x - 26); }
+  if (d.state === 'loosed' && d.barX !== undefined) bx = d.barX; else d.barX = bx;   // once loosed it stays where it was
+  UI.drawbar.style.left = clamp(bx, 8, window.innerWidth - 90) + 'px';
+  UI.drawbar.style.top = clamp(aim.y - BH / 2, 8, window.innerHeight - BH - 120) + 'px';
+  const full = p >= 1 && d.state !== 'easing';
+  UI.drawfill.style.height = (p * 100).toFixed(1) + '%';
+  UI.drawbar.classList.toggle('full', full);
+  UI.drawmin.style.bottom = ((d.u.draw.min || DRAW_MIN) / (d.u.draw.fill || DRAW_FILL) * 100).toFixed(1) + '%';
+  const lab = full ? 'full' : '';
+  if (UI.drawlabel.textContent !== lab) UI.drawlabel.textContent = lab;
+}
+
 // ---------------- gamepad ----------------
 const PAD = { dir: 0, a: false, start: false, b: false, zoom: false };
 function pollGamepad() {
@@ -822,7 +1044,7 @@ function pollGamepad() {
   const zoom = (pad.buttons[7] && pad.buttons[7].pressed) || (pad.buttons[6] && pad.buttons[6].pressed) || (pad.buttons[5] && pad.buttons[5].pressed);
   const fake = key => ({ key, preventDefault() {}, shiftKey: false });
   if (dir !== PAD.dir && dir) {
-    if (G.state === 'play') onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir]));
+    if (G.state === 'play') { if (!(G.L.padDir && G.L.padDir(dir))) onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir])); }   // a night may take the d-pad first (the pay phone's keys)
     else {
       const f = document.activeElement;
       if (f && f.tagName === 'INPUT' && f.type === 'range' && dir <= 2) { if (dir === 1) f.stepDown(); else f.stepUp(); f.dispatchEvent(new Event('input')); } // left and right move a slider
@@ -830,8 +1052,9 @@ function pollGamepad() {
     }
   }
   PAD.dir = dir;
+  if (!a && PAD.a) drawLetGo('pad');   // A let go: a bow drawn by holding it is loosed
   if (a && !PAD.a) {
-    if (G.state === 'play') gamepadUse();
+    if (G.state === 'play') { if (!(G.L.padUse && G.L.padUse())) gamepadUse('pad'); }
     else { // A presses the focused button or ticks the focused box; only the click-anywhere screens go on with it
       const f = document.activeElement;
       if (f && (f.tagName === 'BUTTON' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();
@@ -846,10 +1069,11 @@ function pollGamepad() {
   if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play') G.cam.zoomHeld = PAD.zoom; }
 }
 // use whatever is nearest the middle of the view; with nothing there, put the held thing down when looking down
-function gamepadUse() {
+function gamepadUse(src) {
   ensureAudio();
   let best = null, bestD = Infinity;
   for (const r of R.hits) { const dx = r.x + r.w / 2 - R.W / 2, dy = r.y + r.h / 2 - R.viewY - R.H / 2, d = Math.hypot(dx, dy); if (d < bestD) { best = r; bestD = d; } }
+  if (!(best && bestD < Math.min(R.W, R.H) * 0.45 && best.kind !== 'creature') && drawPress(G.L, null, src || 'pad')) return;   // a bow: held, A (or Use) draws it
   if (best && bestD < Math.min(R.W, R.H) * 0.45) {
     G.mouse.x = best.x + best.w / 2; G.mouse.y = best.y + best.h / 2; updateHover();
     const h = G.hover;
@@ -873,7 +1097,7 @@ function bindTouch() {
   press('tUp', () => onKeyDown({ key: 'ArrowUp', preventDefault() {} }));
   press('tDown', () => onKeyDown({ key: 'ArrowDown', preventDefault() {} }));
   press('tZoom', () => { G.cam.zoomHeld = true; }, () => { G.cam.zoomHeld = false; });
-  press('tUse', () => gamepadUse());
+  press('tUse', () => gamepadUse('touch'), () => drawLetGo('touch'));
   press('tPause', () => pauseGame());
 }
 
@@ -900,12 +1124,13 @@ function init() {
   UI.canvas = $('game'); UI.hud = $('hud'); UI.compass = $('compass'); UI.objective = $('objective'); UI.pitch = $('pitch');
   UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute');
   UI.holdbar = $('holdbar'); UI.holdfill = $('holdfill');
+  UI.drawbar = $('drawbar'); UI.drawfill = $('drawfill'); UI.drawmin = $('drawmin'); UI.drawlabel = $('drawlabel');
   R.attach(UI.canvas); R.resize();
   window.addEventListener('resize', R.resize);
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp);
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);
-  window.addEventListener('blur', () => { G.cam.zoomHeld = false; G.holding = null; });
+  window.addEventListener('blur', () => { G.cam.zoomHeld = false; G.holding = null; drawLetGo(null, true); });   // a bow half drawn is let back down
   UI.canvas.addEventListener('mousedown', onMouseDown);
   UI.canvas.addEventListener('click', onClick);
   UI.overlay.addEventListener('click', onClick);

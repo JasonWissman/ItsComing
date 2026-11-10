@@ -40,8 +40,8 @@ LEVELS.push({
     intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
     hint: 'The old rules: a line of salt across the doorway and another across the side gate, and a lantern hung by each and lit. The bag holds just enough salt for the two lines.',
     objective: 'Salt both ways in. Light a lantern by each.',
-    death: { default: 'It was still smiling when it stepped over the threshold.', open: 'One way in had salt across it. It came in by the other.' },
-    win: 'It stood at the salt line until morning, smiling at you. It never once looked at the lanterns.',
+    death: { default: 'It was still smiling when it stepped over the threshold.', open: 'One way in had salt across it. It came in by the other.', unlit: 'It looked down at the salt for a long time. No light burned beside the line, and in the end it stepped over.' },
+    win: 'It came to the salt line and looked down at it for a long time. Then it turned round and walked back between the graves, still smiling. It never once looked at the lanterns.',
     fragment: 'There was a line of salt across the floor in the morning, and no one had been near the kitchen.',
   },
   // the porch opens to the path between the two columns; a side gate in the east wall opens on the graves
@@ -49,8 +49,9 @@ LEVELS.push({
     { deg: 0, name: 'path', barrierDist: 2.6, cue: 'gate', apertures: [{ z: 1.8, x0: -1.8, x1: 1.8, y0: 0, y1: 3.0 }, { z: 3.6, x0: -1.2, x1: 1.2, y0: 0, y1: 99 }], default: true },
     { deg: 90, name: 'side gate', barrierDist: 2.5, cue: 'creak', apertures: [{ z: 3.6, x0: -1.3, x1: 1.3, y0: 0, y1: 99 }] },
   ],
+  // a salt line stops it; it goes round to the other way on its feet while that one is weaker (L.roundOpen; game.js: the smiler can run)
   creatures: [{ type: 'smiler', startDist: 95, time: 88, unseenMult: 1.55 }],
-  aftermath: { type: 'stand', dur: 4.2 },
+  // the aftermath is the night's own (L.aftermath in build): it comes to the salt line, looks down at it, and walks away
   build(L) {
     const stone = [80, 76, 72], stoneD = [58, 54, 52], floor = [66, 62, 58], iron = [30, 30, 32], post = [42, 38, 34];
     const stex = { tex: 'stone', texScale: 1.6 };
@@ -119,21 +120,24 @@ LEVELS.push({
     }
     // items: one bag of salt with just enough for the two lines, a red bag of sugar that looks the part from a distance,
     // two lanterns and the matches (kept: one box lights both)
+    // in the hand (js/hands.js): a bag carried by its gathered neck, hanging from the fist, the sugar as the salt; the box of
+    // matches between finger and thumb, big enough to read; a lantern hanging by its bail
+    const bagHeld = { grip: 'fist', at: [0, 0.84], axis: Math.PI / 2, angle: 0.1, size: 0.25 };
     mkItem(L, 'salt', 'Bag of salt', [
       { deg: 225, dist: 1.6, y: 0 },                    // south-west
       { x: 1.25, y: 0, z: -1.2 },                       // south-east
       { x: -1.3, y: 0, z: -0.45 },                      // in front of the bench
       { x: -1.4, y: 0, z: 1.15 },                       // by the west column
       { x: -1.9, y: 0.5, z: -0.3, jitter: 0.05 },       // on the bench
-    ], { w: 0.34, h: 0.42, flat: true, uses: 2 });
+    ], { w: 0.34, h: 0.42, flat: true, uses: 2, held: bagHeld });
     mkItem(L, 'sugar', 'Bag of salt', [{ x: 0.9, y: 0, z: 0.9 }, { x: -0.5, y: 0, z: -1.3 }],
-      { w: 0.34, h: 0.42, flat: true, uses: 2, icon: 'sugarbag', decoy: true, decoyText: 'Sugar. It would hold nothing back.' });
+      { w: 0.34, h: 0.42, flat: true, uses: 2, icon: 'sugarbag', decoy: true, decoyText: 'Sugar. It would hold nothing back.', held: bagHeld });
     mkItem(L, 'matches', 'Matches', [
       { x: 2.05, y: 1.16, z: -1.15, flat: false },      // on the ledge
       { x: -1.9, y: 0.5, z: -1.0, flat: false, jitter: 0 }, // on the bench
       { x: 1.35, y: 0, z: -1.35, flat: true },          // on the floor, south-east
       { x: 1.5, y: 0, z: 1.0, flat: true },             // on the floor, by the east column
-    ], { w: 0.2, h: 0.2, tool: true });   // the size of the night 2 keys: at 0.16 the box was a red speck on the floor
+    ], { w: 0.2, h: 0.2, tool: true, held: { grip: 'pinch', at: [-0.3, 0.3], angle: -0.25, size: 0.15 } });   // the size of the night 2 keys: at 0.16 the box was a red speck on the floor
     const lanternSpots = [
       { x: -1.4, y: 0, z: 0.55 },                       // west, past the end of the bench
       { x: 0.55, y: 0, z: -1.4 },                       // beside the chapel door
@@ -144,7 +148,7 @@ LEVELS.push({
       { x: -0.6, y: 0, z: 1.0 },                        // on the porch, beside the path
     ];
     const lanterns = ['lantern', 'lantern2'];
-    for (const id of lanterns) mkItem(L, id, 'Lantern', lanternSpots, { w: 0.3, h: 0.44, icon: 'lantern' });
+    for (const id of lanterns) mkItem(L, id, 'Lantern', lanternSpots, { w: 0.3, h: 0.44, icon: 'lantern', held: { size: 0.3 } });
     // the two ways in: each takes one pour of salt, and a line once poured is done. Each is the pale slab across its way
     // (slab: x0, z0, x1, z1), built here, and the night gives it its own hit area, an invisible quad the size of the slab,
     // so the outline on hover is the slab seen from any side (a flat target's default box turns with the view and sat half
@@ -166,13 +170,17 @@ LEVELS.push({
       const t = mkTarget(L, {
         id, name, x: (x0 + x1) / 2, y: 0, z: (z0 + z1) / 2, w: x1 - x0, h: z1 - z0, flat: true, hidden: true, accepts: ['salt', 'sugar'],
         hint() { return t.done ? 'A line of salt across it. It will hold.' : 'Bare stone. A line of salt would go across it.'; },
+        // what will not do is tried there (below, "what will not do"): a bag over a line already poured is tipped and
+        // taken back; anything else is set on the stone and lifted again; the empty hand brushes the stone
         onClick() {
-          if (t.done) { G.say(t.hint(), 'A line of salt runs across it.'); return true; }
-          if (!G.inv.some(i => t.accepts.includes(i.id))) { G.say(t.hint(), 'Bare stone. Nothing across it.'); AUDIO.sfx('nope'); return true; }
+          if (t.done) { if (!again(t)) { G.say(t.hint(), 'A line of salt runs across it.'); refuseStone(t); } return true; }
+          if (!G.inv.some(i => t.accepts.includes(i.id))) { if (!again(t)) { G.say(t.hint(), 'Bare stone. Nothing across it.'); refuseStone(t); } return true; }
           return false;
         },
+        onDecoy(item) { pourSugar(t, item); },   // the sugar: poured across it, and the wind takes it off the stone
         use() { if (t.done) return false; t.count = 1; t.done = true; t.accepts = []; AUDIO.sfx('pour'); return true; },
       });
+      t.line = line; t.sd = sd;
       t.hitQuad = SC.mkQuad(L, [x0, 0.02, z0], [x1, 0.02, z0], [x1, 0.02, z1], [x0, 0.02, z1], [255, 240, 210], { layer: 0, sortDist: sd - 0.02, invisible: true, hit: { kind: 'target', ref: t } });
       t.lift = SC.mkQuad(L, [x0, 0.02, z0], [x1, 0.02, z0], [x1, 0.02, z1], [x0, 0.02, z1], [255, 240, 210], { layer: 0, sortDist: sd - 0.005, alpha: 0.1, noFog: true, noLight: true });   // the slab lifts a little under the cursor
       t.salt = saltLine(line[0], line[1], line[2], line[3], line[4], sd - 0.01, id.length * 7 + 3);
@@ -181,15 +189,23 @@ LEVELS.push({
     const thr = mkThreshold('threshold', 'Doorway', [-1.15, 1.58, 1.15, 1.94], [0, 1.77, 1, 0, 2.16]);
     const thrE = mkThreshold('sidethreshold', 'Side gate', [1.75, -0.7, 2.25, 0.7], [2.0, 0, 0, 1, 1.32]);
     const thrOf = lane => lane.idx === 0 ? thr : thrE;
-    L.sealed = lane => thrOf(lane).done;   // a salted way holds it; it goes round to the other if that one is bare
+    // A salt line stops it, and it looks down at the salt. A way is only finished with its lantern lit as well: it goes round
+    // to the other way whenever that one is weaker than this (bare, or a lantern alone, which it never looks at: 0; salt
+    // with its lantern dark: 1; salt and a lit lantern: 2), and is stopped for good only once both are finished (won).
+    // Where it has nowhere weaker to go, a line with no light by it holds it only a while (L.update): it steps over.
+    const strength = lane => !thrOf(lane).done ? 0 : hookOf(lane).lit ? 2 : 1;
+    L.sealed = lane => thrOf(lane).done && L.s.crossed !== lane.idx;
+    L.roundOpen = (lane, c) => strength(lane) < strength(c.lane);
     // a hook by each way in: hang a lantern on it, then light it. Its box runs from the bottom of a hung lantern up to the arm
     const mkHook = (id, x, z, seed) => {
       const h = mkTarget(L, {
         id, name: 'Lantern hook', x, y: 1.26, z, w: 0.36, h: 0.52, accepts: lanterns.slice(), hung: null, lit: false, seed,
         hint() { return h.lit ? 'The lantern is burning.' : h.hung ? 'The lantern hangs here, unlit. It needs a match.' : 'An empty hook. A lantern hangs here.'; },
+        // what will not do is tried there (below, "what will not do"): a match struck at an empty hook flares and is shaken
+        // out; anything else knocks against the hook or the lantern and sets it swinging, as the empty hand does
         onClick() {
-          if (h.lit) { G.say(h.hint(), 'The lantern is burning.'); return true; }
-          if (!G.inv.some(i => h.accepts.includes(i.id))) { G.say(h.hint(), h.hung ? 'The lantern hangs dark.' : 'An empty hook.'); AUDIO.sfx('nope'); return true; }
+          if (h.lit) { if (!again(h)) { G.say(h.hint(), 'The lantern is burning.'); refuseHook(h); } return true; }
+          if (!G.inv.some(i => h.accepts.includes(i.id))) { if (!again(h)) { G.say(h.hint(), h.hung ? 'The lantern hangs dark.' : 'An empty hook.'); refuseHook(h); } return true; }
           return false;
         },
         use(item) {
@@ -201,7 +217,7 @@ LEVELS.push({
       return h;
     };
     const hook = mkHook('hook', 0.78, 1.77, 3), hookE = mkHook('hookE', 1.92, 1.0, 7);
-    const hooks = [hook, hookE];
+    const hooks = [hook, hookE], hookOf = lane => lane.idx === 0 ? hook : hookE;
     L.isWon = () => thr.done && thrE.done && hook.lit && hookE.lit;
     L.objectiveText = () => {
       const s = t => t.done ? 'salted' : 'bare';
@@ -212,9 +228,11 @@ LEVELS.push({
     for (const h of hooks) {
       const [x, , z] = h.local, d = Math.hypot(x, z);
       // the hung lantern keeps its own colours (noLight): under its own light and the other's, frame and glass washed out to one orange
-      h.lanternSprite = SC.mkSprite(L, x, 1.3, z, 0.3, 0.44, (ctx, P) => { P.lit = h.lit; ctx.scale(0.3, 0.44); ICONS.hunglantern(ctx, P); }, { sortDist: d - 0.2, noLight: true });
+      // (each swings about where it hangs when something knocks it: swingOf, below)
+      h.lanternSprite = SC.mkSprite(L, x, 1.3, z, 0.3, 0.44, (ctx, P) => { P.lit = h.lit; swingAbout(ctx, swingOf(h), 0.405); ctx.scale(0.3, 0.44); ICONS.hunglantern(ctx, P); }, { sortDist: d - 0.2, noLight: true });
       h.hookSprite = SC.mkSprite(L, x, 1.55, z, 0.14, 0.19, (ctx, P) => {   // the bare hook: a ring round the arm, a shank and an open curl
         const c = P.col(hookCol);
+        swingAbout(ctx, swingOf(h) * 0.6, 0.172);
         ctx.strokeStyle = c; ctx.lineWidth = 0.011; ctx.beginPath(); ctx.arc(0, 0.172, 0.017, 0, TAU); ctx.stroke();
         P_limb(ctx, [[0, 0.155], [0, 0.05], [0.01, 0.012], [0.034, 0.0], [0.056, 0.014], [0.062, 0.05]], 0.021, c);
       }, { sortDist: d - 0.2 });
@@ -226,15 +244,241 @@ LEVELS.push({
         if (t.done) R.add(t.salt);
       }
       for (const h of hooks) R.add(h.hung ? h.lanternSprite : h.hookSprite);
+      drawSugar(); drawMatch();
+      // walking off at the end, it goes into the murk: more and more of the fog's colour over it, until it is gone in it
+      const c = L.creature, cp = L.rend && L.rend.get(c), a = L.s.end;
+      if (cp && a && a.phase === 'walk') { const p = c.pos(), f = R.fogAmt(Math.hypot(p.x, p.z)); cp.fogScale = Math.max(0.85, lerp(f * 0.85, 0.93, smoothstep((L.aftermathT - a.walkAt) / a.walkDur * 1.25 - 0.15)) / Math.max(0.01, f)); }
     };
     // a lit lantern warms the porch round it without washing the stone, or the thing at the salt line, out to orange
     L.glows = () => hooks.filter(h => h.lit).map(h => {
       const p = L.pt(h.local[0], 1.52, h.local[2]);
       return { x: p[0], y: p[1], z: p[2], r: 1.7 + Math.sin(L.t * 9 + h.seed) * 0.1 + Math.sin(L.t * 23 + h.seed) * 0.04, color: [255, 190, 110], a: 0.2 };
-    });
+    }).concat(matchFlame() ? [Object.assign({ r: 0.55 + Math.sin(L.t * 31) * 0.05, color: [255, 200, 120], a: 0.22 }, matchFlame())] : []);
     const lampP = hooks.map(h => L.pt(h.local[0], 1.5, h.local[2]));
-    L.dynamicLights = () => hooks.filter(h => h.lit).map(h => { const p = lampP[hooks.indexOf(h)]; return { x: p[0], y: p[1], z: p[2], r: 4.5, i: 0.34, color: [255, 180, 100], flicker: 0.7, seed: h.seed }; });
-    L.deathCause = () => (thr.done || thrE.done) ? 'open' : 'default';
+    L.dynamicLights = () => hooks.filter(h => h.lit).map(h => { const p = lampP[hooks.indexOf(h)]; return { x: p[0], y: p[1], z: p[2], r: 4.5, i: 0.34, color: [255, 180, 100], flicker: 0.7, seed: h.seed }; })
+      .concat(matchFlame() ? [Object.assign({ r: 2.4, i: 0.22, color: [255, 186, 104], flicker: 1, seed: 11 }, matchFlame())] : []);   // a match struck at an empty hook lights the wall round it a moment
+    L.deathCause = () => L.s.crossed !== undefined ? 'unlit' : (thr.done || thrE.done) ? 'open' : 'default';
+
+    // ---- what will not do, played out where you tried it (js/hands.js) ----
+    // The sugar is poured across the stone in a line from the tipped bag, lies there a moment, and then the wind takes it
+    // off the stone, end to end, in a drift of grains; the emptied bag is let fall by the slab, to be picked up again
+    // (and it costs the time a decoy does). The salt held over a line already poured is tipped over it and taken back with
+    // nothing poured. Anything else tried on the stone is set down on it and lifted again, and the empty hand brushes it. A
+    // match struck at a hook with no lantern on it flares there, lighting the wall a moment, finds nothing to light and is
+    // shaken out; anything else knocked against a hook, or the lantern on it, sets it swinging, as the empty hand does.
+    const W = (x, y, z) => { const p = L.pt(x, y, z); return { x: p[0], y: p[1], z: p[2] }; };
+    const toLocal = p => rotY(p.x, p.z, -L.facing);
+    const refuse = (t, how) => {   // the empty hand goes to it, or what is in it is tried there
+      const act = G.inv[G.active], o = how(act);
+      const shown = act ? G.fumble(act, t, o) : G.reach(t, o);
+      if (!shown && !G.fumbling) AUDIO.sfx('nope');
+    };
+    const bag = it => it.id === 'salt' || it.id === 'sugar';
+    // the last thing tried there is still there (the sugar still pouring, a match still burning): a click that would only be
+    // refused again is taken, and nothing more said, so its line stays up and the hand stays with it
+    const again = t => !!G.fumbling && G.fumbling.target === t;
+    // over the line across a way, nearest the part of the stone in view: s along the line (from its middle), and the place
+    // in the world `up` metres over it
+    const overLine = (t, up) => {
+      const [cx, cz, ux, uz, len] = t.line, q = toLocal(HANDS.pointOn(t, undefined, 0));
+      const sl = clamp((q[0] - cx) * ux + (q[1] - cz) * uz, -len * 0.3, len * 0.3);
+      return { s: sl, at: W(cx + ux * sl, up, cz + uz * sl) };
+    };
+    const POUR = 2.05;   // the bag tipped over, its neck down, as it is poured
+    const refuseStone = t => refuse(t, it => {
+      if (!it) return { style: 'touch' };
+      if (bag(it) && t.done) return { preset: 'return', at: overLine(t, 0.3).at, angle: POUR, sfx: { hit: 'pat' } };   // tipped over the line, and taken back
+      const p = HANDS.pointOn(t, undefined, 0);
+      return { preset: 'return', at: { x: p.x, y: p.y + (it.h || 0.4) * 0.5, z: p.z } };   // set on the stone, and lifted again
+    });
+    // the sugar: { t, s (where along the line it was poured), t0, seed }
+    const SUGAR = { pour: 0.8, lie: 0.6, blow: 1.7, N: 16, grains: 5, hold: 0.95 };
+    const sugars = L.s.sugars = [];   // (L.s: the tests read them)
+    const pourSugar = (t, item) => {
+      const o = overLine(t, 0.3);
+      const fx = G.fumble(item, t, { preset: 'slip', at: o.at, angle: POUR, hold: SUGAR.hold, pivot: 'left', sfx: { hit: 'pour', land: 'flop' },
+        onHit: () => { for (let i = sugars.length - 1; i >= 0; i--) if (sugars[i].t === t) sugars.splice(i, 1); sugars.push({ t, s: o.s, t0: L.t, seed: (L.t * 1000) | 0, fx: G.fumbling }); } });
+      if (!fx) AUDIO.sfx('nope');
+    };
+    const sugarC = [240, 236, 226];
+    const grainQuad = (x, y, z, r, color, alpha) => {   // a speck facing the eye
+      const e = G.cam.yaw, rx = Math.cos(e) * r, rz = -Math.sin(e) * r;
+      return { kind: 'poly', pts: [[x - rx, y - r, z - rz], [x + rx, y - r, z + rz], [x + rx, y + r, z + rz], [x - rx, y + r, z - rz]], color, alpha };
+    };
+    function drawSugar() {
+      for (let i = sugars.length - 1; i >= 0; i--) {
+        const sg = sugars[i], t = sg.t, [cx, cz, ux, uz, len] = t.line, u = L.t - sg.t0, rnd = mulberry32(sg.seed);
+        const fl = -uz * cx + ux * cz < 0 ? -1 : 1, nx = -uz * fl, nz = ux * fl;   // across the line, out of the porch
+        const wx = ux * -0.72 + nx * 0.7, wz = uz * -0.72 + nz * 0.7;   // the wind: along the line and out into the dark
+        const T0 = SUGAR.pour + SUGAR.lie, end = T0 + SUGAR.blow + 1.0;
+        if (u > end) { sugars.splice(i, 1); continue; }
+        const grow = smoothstep(clamp(u / SUGAR.pour, 0, 1)), half = len / 2, sd = t.sd - 0.012;
+        const a = Math.max(-half, sg.s - len * grow), b = Math.min(half, sg.s + len * grow);
+        // the stream from the bag's neck to the stone while it is poured
+        const fx = sg.fx;
+        if (fx && fx.phase === 'contact' && fx.pt < 0.14 + SUGAR.hold && fx.pos) {
+          const w = (fx.it.w || 0.34) * fx.scale, hh = (fx.it.h || 0.42) * fx.scale;
+          const mx = Math.sin(fx.rot) * hh * 0.42, my = Math.cos(fx.rot) * hh * 0.42;   // its neck, from its middle, as it is drawn turned
+          const e = G.cam.yaw, rx = Math.cos(e), rz = -Math.sin(e), top = [fx.pos.x + rx * mx, fx.pos.y + my, fx.pos.z + rz * mx];
+          const k = 0.008 + w * 0.01;
+          R.add({ kind: 'poly', pts: [[top[0] - rx * k, top[1], top[2] - rz * k], [top[0] + rx * k, top[1], top[2] + rz * k], [top[0] + rx * k * 0.6, 0.02, top[2] + rz * k * 0.6], [top[0] - rx * k * 0.6, 0.02, top[2] - rz * k * 0.6]], color: sugarC, alpha: 0.85 });
+        }
+        // the line: N pieces along it, each taken by the wind in turn, from the end it blows from; what is left of it is one
+        // band along the stone (its edges uneven as poured, thinning to nothing where the wind has taken it)
+        const top = [], bot = [], at = (s, n) => L.pt(cx + ux * s + nx * n, 0.021, cz + uz * s + nz * n);
+        for (let k = 0; k < SUGAR.N; k++) {
+          const s0 = -half + len * k / SUGAR.N, s1 = s0 + len / SUGAR.N, sm = (s0 + s1) / 2;
+          const order = 1 - (k + 0.5) / SUGAR.N;   // upwind first (the wind blows back along the line)
+          const lift = T0 + order * SUGAR.blow * 0.6 + rnd() * 0.25, gone = clamp((u - lift) / 0.35, 0, 1);
+          const wdt = 0.055 * (1 - gone) * (0.85 + rnd() * 0.3);
+          if (sm >= a && sm <= b) { top.push(at(clamp(sm, a, b), wdt)); bot.push(at(clamp(sm, a, b), -wdt * (0.9 + 0.2 * Math.sin(k * 2.3)))); }
+          // its grains, lifted off and carried away, rising and falling, thinning out
+          for (let g = 0; g < SUGAR.grains; g++) {
+            const d = rnd(), lat = (rnd() - 0.5) * 0.09, v = 1.1 + rnd() * 1.4, rise = 0.15 + rnd() * 0.5, ph = rnd() * TAU, size = 0.006 + rnd() * 0.008;
+            const e = u - lift - d * 0.3;
+            if (sm < a || sm > b || e <= 0 || e > 1.3) continue;
+            const dd = v * e * (0.6 + e * 0.5), y = 0.02 + rise * Math.sin(Math.min(Math.PI, e * 2.4)) * (1 - e * 0.25) + Math.sin(e * 9 + ph) * 0.02;
+            const lx = cx + ux * (sm + (d - 0.5) * len / SUGAR.N) + nx * lat + wx * dd + Math.sin(e * 7 + ph) * 0.04, lz = cz + uz * (sm + (d - 0.5) * len / SUGAR.N) + nz * lat + wz * dd;
+            const w = L.pt(lx, y, lz);
+            R.add(grainQuad(w[0], w[1], w[2], size, sugarC, clamp(1.3 - e, 0, 1) * 0.95));
+          }
+        }
+        if (b - a > 0.01 && top.length) {   // its two ends, tapered, where the pour has got to
+          const ends = [at(a, 0), at(b, 0)];
+          if (top.some((p, k) => Math.hypot(p[0] - bot[k][0], p[2] - bot[k][2]) > 0.008)) R.add({ kind: 'poly', pts: [ends[0]].concat(top, [ends[1]], bot.reverse()), color: sugarC, layer: 0, sortDist: sd });
+        }
+        if (!sg.blew && u >= T0) { sg.blew = true; AUDIO.sfx('hiss', Math.sin(wrapPi(Math.atan2(t.x, t.z) - G.cam.yaw)) * 0.85); }   // the wind takes it
+      }
+    }
+    // the hooks swing when knocked: { swingAt, swingAmp } on the hook, an easing pendulum
+    const swingOf = h => { const e = L.t - (h.swingAt === undefined ? -99 : h.swingAt); return e >= 0 && e < 6 ? h.swingAmp * Math.exp(-e * 0.9) * Math.sin(e * 5.8) : 0; };
+    const swingAbout = (ctx, a, y) => { if (a) { ctx.translate(0, y); ctx.rotate(a); ctx.translate(0, -y); } };
+    const knock = (h, amp) => { const cur = Math.abs(swingOf(h)); h.swingAt = L.t; h.swingAmp = Math.max(amp, cur) * (Math.random() < 0.5 ? -1 : 1); };
+    const MATCH = { hold: 0.9 };
+    L.s.match = null;   // a match struck at an empty hook: { fx, h, pos, outAt }
+    const refuseHook = h => refuse(h, it => {
+      const at = W(h.local[0], h.hung ? 1.5 : 1.6, h.local[2]);
+      if (!it) return { style: 'touch', at, onTouch: () => knock(h, h.hung ? 0.3 : 0.45) };
+      if (it.id === 'matches' && !h.hung) {   // struck there, it flares, finds nothing to light, and is shaken out
+        return { preset: 'slip', drop: false, hold: MATCH.hold, pivot: 'right', at: W(h.local[0], 1.5, h.local[2]), angle: -0.2, scale: 0.7, sfx: { hit: 'strike' },
+          onHit: fx => { L.s.match = { fx, h, pos: null, outAt: undefined, at: L.t }; } };
+      }
+      // beside the lantern, not through it; at a bare hook, hung on it by its top (a bag by its neck), under it
+      const d = Math.hypot(at.x, at.z) || 1, side = 0.13, k = 0.75;
+      const by = h.hung ? { x: at.x - at.z / d * side, y: at.y - 0.02, z: at.z + at.x / d * side } : W(h.local[0], 1.6 - (it.h || 0.4) * k * 0.45, h.local[2]);
+      return { preset: 'return', at: by, scale: h.hung ? undefined : k, onHit: () => knock(h, h.hung ? 0.22 : 0.4) };
+    });
+    // where the struck match burns, while it does: over the box, at its top
+    function matchFlame() {
+      const m = L.s.match; if (!m) return null;
+      const fx = m.fx, burning = fx.phase === 'contact' && fx.pt < 0.14 + MATCH.hold * 0.92;
+      if (!burning) return null;
+      const e = G.cam.yaw, rx = Math.cos(e), rz = -Math.sin(e), sc = fx.scale, w = 0.2 * sc;
+      return { x: fx.pos.x + rx * w * 0.2, y: fx.pos.y + 0.2 * sc * 0.55, z: fx.pos.z + rz * w * 0.2 };
+    }
+    function drawMatch() {
+      const m = L.s.match; if (!m) return;
+      const f = matchFlame();
+      if (f) { m.pos = f; m.outAt = undefined; }
+      else if (m.pos && m.outAt === undefined) m.outAt = L.t;
+      if (!m.pos) return;
+      const d = Math.hypot(m.pos.x, m.pos.z), sd = Math.max(0.02, d * 0.8 - 0.07);
+      if (f) {   // the flame, flickering, on a sliver of match
+        R.add({ kind: 'sprite', x: f.x, y: f.y - 0.01, z: f.z, w: 0.06, h: 0.11, noLight: true, sortDist: sd, draw: ctx => {
+          const fl = Math.sin(L.t * 31) * 0.006 + Math.sin(L.t * 17) * 0.004;
+          const g = ctx.createRadialGradient(0, 0.035, 0.002, 0, 0.035, 0.05);
+          g.addColorStop(0, 'rgba(255,236,170,0.9)'); g.addColorStop(1, 'rgba(255,170,70,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0.035, 0.05, 0, TAU); ctx.fill();
+          P_ell(ctx, 0, 0.03 + fl, 0.011, 0.025 + fl, 'rgba(255,214,120,0.95)');
+          P_ell(ctx, 0, 0.024, 0.006, 0.013, 'rgba(255,250,230,1)');
+        } });
+        return;
+      }
+      const e = L.t - m.outAt;   // shaken out: a thread of smoke, rising and thinning
+      if (e > 1.2) { L.s.match = null; return; }
+      R.add({ kind: 'sprite', x: m.pos.x, y: m.pos.y, z: m.pos.z, w: 0.1, h: 0.3, sortDist: sd, draw: (ctx, P) => {
+        for (let i = 0; i < 4; i++) {
+          const k = clamp(e * 1.3 - i * 0.12, 0, 1); if (k <= 0) continue;
+          P_ell(ctx, Math.sin(e * 3 + i) * 0.015, 0.02 + k * 0.22, 0.012 + k * 0.025, 0.012 + k * 0.02, P.cola([160, 156, 150], (1 - k) * 0.45));
+        }
+      } });
+    }
+
+    // ---- held at the salt ----
+    // Held at a salted way it looks down at the salt for a while, then up at you again. If the other way is weaker it runs
+    // round to it after a moment (game.js, ROUND, asking L.roundOpen), and does not look down while it runs. Where it has
+    // nowhere weaker to go and no lantern burns by this line, it stands there SALT.hold seconds, looks down at the salt once
+    // more, and steps over it.
+    const s = L.s;
+    const SALT = { hold: 6, look: 1.2 };
+    const bowTo = (c, want, rate, dt) => { c.bow = clamp((c.bow || 0) + clamp(want - (c.bow || 0), -rate * dt, rate * dt), 0, 1); };
+    L.update = dt => {
+      const c = L.creature;
+      if (L.won) return;   // the aftermath has it now
+      if (c.sealHold) { if (s.heldAt === undefined) s.heldAt = L.t; } else s.heldAt = undefined;
+      const held = s.heldAt !== undefined ? L.t - s.heldAt : -1, dark = held >= 0 && strength(c.lane) < 2;
+      if (dark && held >= SALT.hold && !c.round) {   // over the line: it walks on from where it stood
+        s.crossed = c.lane.idx; c.hold = null; c.sealHold = false; c.sealHeldAt = undefined; s.heldAt = undefined;
+        c.u = clamp(1 - Math.pow(c.dist / c.D0, 1 / c.gamma), 0, 1);
+      }
+      if (c.runPose) c.bow = 0;
+      else bowTo(c, held >= 0 && (held < 1.8 || (dark && held > SALT.hold - SALT.look)) ? 1 : 0, 3, dt);
+    };
+
+    // ---- how it ends ----
+    // Won, it comes for the salt line across the way it is on, right up to it, its toes at the salt (nearer than the way
+    // held it while the night was on): from out among the graves it runs, hurried, so the run takes no more than END.run
+    // seconds however far out it was, and stops dead; from the barrier it steps up. It looks down at the salt, looks up at you
+    // again, turns round and walks back the way it came, into the murk, and the night fades while it walks. If it was going
+    // round when you won, it comes round first (game.js hurries that).
+    const END = { run: 2.5, stop: 0.4, bow: 0.45, look: 1.3, rise: 0.3, turn: 0.75, walk: 2.8, walkSpeed: 2.2, runCadence: 17 };
+    const saltDist = lane => (lane.idx === 0 ? 1.77 : 2.0);   // how far out the line is poured across each way
+    L.aftermath = (t, dt) => {
+      const c = L.creature, a = s.end || (s.end = { phase: 'round' });
+      c.frozen = true;   // no more hitches
+      if (a.phase === 'round') {
+        if (c.round) return false;
+        a.phase = 'come'; a.at = Math.min(c.dist, saltDist(c.lane) + 0.25);   // where it stops: at the line, or where it already stood
+        const far = c.dist - a.at;
+        if (far > 0.01) {
+          const v = far / clamp(far / 8, 0.4, END.run), sr = c.CR.stepRate * Math.PI, at = a.at;
+          c.distFn = (cr, dt2) => { const nd = Math.max(at, cr.dist - v * dt2); if (v > 4) cr.gait += END.runCadence * dt2 - (cr.dist - nd) * sr; return nd; };   // running, quick short steps, not ten a second
+          c.rush = clamp((v - 2) / 4, 0, 1);
+        }
+      }
+      if (a.phase === 'come') {
+        if (c.distFn && c.dist > a.at + 0.001) return false;
+        const at = a.at;
+        c.distFn = () => at; c.rush = 0;
+        a.phase = 'stand'; a.t0 = t;
+      }
+      const u = t - a.t0, T1 = END.stop, T2 = T1 + END.bow, T3 = T2 + END.look, T4 = T3 + END.rise, T5 = T4 + END.turn;
+      if (a.phase === 'stand') {
+        bowTo(c, u >= T1 && u < T3 ? 1 : 0, 1 / (u < T3 ? END.bow : END.rise), dt);   // it looks down at the salt, then up at you
+        if (u >= T4) {
+          if (c.turnDir === undefined) c.turnDir = c.rand() < 0.5 ? 1 : -1;
+          c.turn = clamp((u - T4) / END.turn, 0, 1);
+        }
+        if (u >= T5) {   // and walks back the way it came, humming
+          a.phase = 'walk'; a.walkAt = t; a.walkDur = END.walk; c.turn = 1; c.away = true; c.bow = 0;
+          c.distFn = (cr, dt2) => cr.dist + dt2 * END.walkSpeed;
+          AUDIO.voice('hum', 0.35, Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85);
+        }
+        return false;
+      }
+      return t >= a.walkAt + END.walk;
+    };
+    // the win camera follows it, except while it stands at the line: then it widens and tilts to take in the whole of it,
+    // from the salt across the stone at the bottom of the view to the top of its head, clear of the compass
+    const HALF = 31 * DEG;   // half the view's height at no zoom (render.js VFOV)
+    L.watchPoint = () => {
+      const c = L.creature, a = s.end;
+      if (!a || a.phase !== 'stand') return null;
+      const p = c.pos(), d = Math.max(0.5, c.dist), top = Math.atan2(L.eyeH - c.CR.h - 0.05, d), salt = Math.atan2(L.eyeH, saltDist(c.lane) - 0.1);
+      const half = Math.min(HALF, (salt - top) / 2 / 0.78), zoom = clamp(Math.tan(HALF) / Math.tan(half), 1, 1.35);
+      const pitch = salt - Math.atan(Math.tan(HALF) / zoom) * 0.86;
+      return { x: p.x, y: L.eyeH - Math.tan(pitch) * d, z: p.z, zoom };
+    };
     L.floor = { poly: [[-2.1, -1.6], [2.1, -1.6], [2.1, 1.8], [-2.1, 1.8]], y: 0 };
   }
 });
