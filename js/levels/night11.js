@@ -503,6 +503,7 @@ LEVELS.push({
       }
     };
     const flick = (t, item) => {
+      if (bits.some(b => b.kind === 'match')) return;   // (one at a time: clicked again while one is in the air, nothing more)
       const hw = HANDS.handWorld(item, 1.2).p, dx = t.x - hw.x, dz = t.z - hw.z, l = Math.hypot(dx, dz) || 1;   // from your hand, at the stack
       bits.push({ kind: 'match', x: hw.x, y: hw.y + 0.06, z: hw.z, vx: dx / l * 3.2, vy: 1.6, vz: dz / l * 3.2, age: 0, spin: 0 });
       AUDIO.sfx('strike'); G.thrust(t, item);

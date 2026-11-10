@@ -304,7 +304,7 @@ function pickup(it) {
   // things that stack (single planks) join the pile already in hand instead of taking a new slot
   const pile = it.stack && G.inv.find(i => i.id === it.id && i !== it);
   if (pile) { pile.uses += it.uses; it.taken = true; G.active = G.inv.indexOf(pile); G.invSig = ''; AUDIO.sfx('pickup'); HANDS.picked(pile, it); if (G.L.onPickup) G.L.onPickup(it); G.hover = null; return; }
-  if (G.inv.length >= 6) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); return; }
+  if (G.inv.length >= 6) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); G.thrust(it); return; }   // your full hand goes toward it, and back (js/hands.js)
   HANDS.picked(it);   // from where it lay, up into the hand
   it.taken = true; G.inv.push(it); G.active = G.inv.length - 1;
   AUDIO.sfx('pickup');

@@ -114,7 +114,7 @@ LEVELS.push({
     };
     L.onDrop = (it, fx) => {
       if (fx) return;   // (landed by a fumble: it lies where it fell)
-      const others = L.items.filter(o => !o.taken && o !== it).map(o => card(o, o.x, o.z));
+      const others = L.items.filter(o => (!o.taken || falls.some(f => f.it === o)) && o !== it).map(o => card(o, o.x, o.z));   // (and where one still falling will lie)
       const a0 = Math.atan2(it.x, it.z), d0 = Math.hypot(it.x, it.z);
       let best = null;
       search: for (const da of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]) for (const dd of [0, -0.15, 0.15, -0.3, 0.3]) {

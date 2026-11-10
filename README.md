@@ -211,7 +211,8 @@ some on the ground, so you have to turn and look down to find them.
     the light through them going grey.
 13. **The Void.** Everything you ever held against it lies around you, and you
     start the night holding some of it, a thing in each hand. Holding anything enrages it.
-    Put it all down (each falls from your hand to the floor) and let it come, and face it
+    Put it all down (each falls from your hand to the floor; reach for another with your hands
+    full and the full hand only goes toward it) and let it come, and face it
     when it does: as it looms in the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too. Faced
     empty-handed, it stops close in front of you and slowly reaches its open hands out to you,
