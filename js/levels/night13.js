@@ -11,6 +11,14 @@ const VOID_TOOLS = [
 ];
 // each looks as it did on its own night, at about the size it was there (those nights define their own icons)
 const VOID_ICONS = { keys: 'carkeys', chain: 'coiledchain', journal: 'notebook' };
+// and is held as it was there (js/hands.js: what its own icon would be held as; the void draws them all through a wrapper of
+// its own), and a few as they are carried here: the arrows in a fist round their shafts, the coil of chain a little smaller,
+// the notebook by its edge
+const VOID_HELD = {
+  arrows: { grip: 'fist', at: [0.06, 0.5], axis: Math.PI / 2, angle: -0.55, size: 0.36 },
+  chain: { size: 0.28 },
+  journal: { grip: 'pinch', at: [0.36, 0.42], angle: 0.18 },
+};
 // lying on the void's black floor, a thing's darkest colours (a lantern's frame, a gun's barrels, a hammer's handle grip)
 // would be lost against it: there, and only there, they are lifted a little toward grey, as the Quarry draws its chain a
 // shade lighter on the dark gate. The inventory (whose P has no fogColor) draws them as they always are.
@@ -92,7 +100,8 @@ LEVELS.push({
     const nRing = order.length - hold;
     order.forEach(([id, name, w, h], k) => {
       const j = k < hold ? k : k - hold, a = j / (k < hold ? hold : nRing) * TAU + 0.2, r = ringR + (j % 2) * 0.5;
-      const it = mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(ICONS[VOID_ICONS[id] || id]), tool: id === 'bow' || id === 'matches' || id === 'hammer', uses: id === 'arrows' ? 3 : 1 });
+      const own = ICONS[VOID_ICONS[id] || id], held = Object.assign(G.heldSpec({ id, w, h, flat: true, icon: own }), VOID_HELD[id]);
+      const it = mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(own), held, tool: id === 'bow' || id === 'matches' || id === 'hammer', uses: id === 'arrows' ? 3 : 1 });
       if (k < hold) { it.taken = true; G.inv.push(it); }
     });
     // put down, a thing lands where you put it unless it would lie over something else, when it goes the least way to the
@@ -103,8 +112,9 @@ LEVELS.push({
       const across = (p.w + q.w) / 2 + 0.06 - Math.abs(wrapPi(p.a - q.a)) * (p.d + q.d) / 2, along = Math.min(p.d + p.h, q.d + q.h) - Math.max(p.d, q.d) + 0.06;
       return Math.max(0, across) * Math.max(0, along);
     };
-    L.onDrop = it => {
-      const others = L.items.filter(o => !o.taken && o !== it).map(o => card(o, o.x, o.z));
+    L.onDrop = (it, fx) => {
+      if (fx) return;   // (landed by a fumble: it lies where it fell)
+      const others = L.items.filter(o => (!o.taken || falls.some(f => f.it === o)) && o !== it).map(o => card(o, o.x, o.z));   // (and where one still falling will lie)
       const a0 = Math.atan2(it.x, it.z), d0 = Math.hypot(it.x, it.z);
       let best = null;
       search: for (const da of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]) for (const dd of [0, -0.15, 0.15, -0.3, 0.3]) {
@@ -116,6 +126,49 @@ LEVELS.push({
         if (score < 1e-6) break search;   // the nearest clear place to where it was put
       }
       if (best) { it.x = best.x; it.z = best.z; }
+      letGo(it);
+    };
+    // Putting a thing down is the point of the night, and it is seen: it leaves your hand (open, going down empty, js/hands.js)
+    // and falls to where it will lie, turning as it goes, lands with the sound of what it is, and lies there, to be taken again
+    // only once it is down. As many fall at once as you let go of.
+    const falls = [];
+    const letGo = it => {
+      const hw = G.hand.cur === it && !SAVE.data.settings.reducedMotion ? HANDS.handWorld(it, 10) : null;
+      if (!hw) return;   // (not in view in your hand: it is simply there)
+      it.taken = true;
+      falls.push({ it, t: 0, dur: 0.42, from: hw.p, to: { x: it.x, y: 0, z: it.z }, rot: hw.ang, spin: (it.x * 7 + it.z * 3) % 1 > 0.5 ? 1 : -1 });
+    };
+    const fallStep = dt => {
+      for (const f of falls.slice()) {
+        f.t += dt;
+        if (f.t < f.dur) continue;
+        falls.splice(falls.indexOf(f), 1); f.it.taken = false; G.hover = null;
+        AUDIO.sfx(HANDS.materialOf(f.it) === 'soft' ? 'flop' : 'clatter', Math.sin(wrapPi(Math.atan2(f.it.x, f.it.z) - G.cam.yaw)) * 0.85);
+      }
+    };
+    const fallDraw = () => {
+      for (const f of falls) {
+        const it = f.it, k = clamp(f.t / f.dur, 0, 1), e = easeIn(k);
+        const x = lerp(f.from.x, f.to.x, k), z = lerp(f.from.z, f.to.z, k), y = lerp(f.from.y, f.to.y + it.h * 0.3, e) + Math.sin(Math.PI * k) * 0.12;
+        const w = it.w, h = it.h * (1 - 0.55 * k * k), big = Math.max(w, h) * 1.2, rot = f.rot * (1 - k) + f.spin * 0.5 * k;
+        R.add({ kind: 'sprite', x, y: y - big / 2, z, w: big, h: big, noContact: true, draw: (ctx, P) => {
+          ctx.translate(0, big / 2);
+          const m = ctx.getTransform(), sx = Math.hypot(m.a, m.b), sy = Math.hypot(m.c, m.d);
+          if (sy > 1e-6) ctx.scale(1, sx / sy);   // (square to the view, as the hand draws it)
+          ctx.rotate(-rot); ctx.translate(0, -h / 2); ctx.scale(w, h);
+          it.icon(ctx, P);
+        } });
+      }
+    };
+    // with more than one thing held, the next one is in your other hand: both hands are full (a thing carried in both hands
+    // takes them both)
+    const twoHanded = it => G.heldSpec(it).hands === 2;
+    L.hands = { lit: 0.8 };   // (what you hold, seen against the dark: lit a little more than the void would have it)
+    L.offHand = () => {
+      const a = G.inv[G.active];
+      if (!a || twoHanded(a) || G.state !== 'play') return null;
+      for (let k = 1; k < G.inv.length; k++) { const o = G.inv[(G.active + k) % G.inv.length]; if (!twoHanded(o)) return o; }
+      return null;
     };
     G.active = 0;
     const c0 = () => L.creatures[0];
@@ -166,6 +219,7 @@ LEVELS.push({
     const meadow = buildMeadow(L, s, c0);
     L.update = dt => {
       const c = c0();
+      fallStep(dt);
       c.anger = G.inv.length;
       c.rage += ((c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0) - c.rage) * Math.min(1, dt * 4);   // anything held and it is plainly enraged
       // empty-handed and facing it, the view lifts to its face as it looms in over the last few metres: you look up at it.
@@ -262,6 +316,7 @@ LEVELS.push({
     };
     L.dynamic = () => {
       pools();
+      fallDraw();
       meadow.draw();
       if (s.glitterAt < 0) return;
       // the glitter: sparks spiralling up and out from where it stood, twinkling, gone in a few seconds (with reduced motion

@@ -230,15 +230,26 @@ some on the ground, so you have to turn and look down to find them.
     it cannot reach you, wherever it is, unless it is already up in the loft: out beyond a
     fire it rears back from the flames, paces them and sits down; caught between a fire and
     you, it rears back, backs away from you into the smoke and sits down there. The rags
-    are squares of old grey-blue cloth. Carry one bottle and one rag at a time.
+    are squares of old grey-blue cloth. Carry one bottle and one rag at a time. Only a lit
+    bottle is let go of: anything else tried at the hay is swung out toward it and held back
+    (oil slops out of an open bottle and spatters the boards), and a match flicked at it goes
+    out as it falls. A full bottle held to the drum's tap runs it over into a pool on the
+    boards; a lit one, or the matches, is snatched back before it gets there. The wrong things
+    put together stay as they were, the other one (or a struck match, flaring and going out)
+    up in your other hand a moment.
 12. **The Bedroom.** You are in bed. It is already in the doorway, or in the
-    closet, moving in extreme slow motion. Get the lamp on, pull the covers up. Then they
+    closet, moving in extreme slow motion. Get the lamp on, pull the covers up. Your hand
+    pulls the lamp's chain (nothing comes of it with no bulb in or the cord out, and it sticks),
+    opens the drawer, pushes the plug in and is on the covers' hem as you hold them; the wrong
+    bulb will not go into the socket and drops onto the bed, to be taken again. Then they
     come up over your eyes and the rest happens under them: its steps to the bed, the
     shadow of its hand on the lamp-lit cloth, three hard pulls that the covers hold, and
     the light through them going grey.
 13. **The Void.** Everything you ever held against it lies around you, and you
-    start the night holding some of it. Holding anything enrages it. Put it all down
-    and let it come, and face it when it does: as it looms in the view lifts to its face.
+    start the night holding some of it, a thing in each hand. Holding anything enrages it.
+    Put it all down (each falls from your hand to the floor; reach for another with your hands
+    full and the full hand only goes toward it) and let it come, and face it
+    when it does: as it looms in the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too. Faced
     empty-handed, it stops close in front of you and slowly reaches its open hands out to you,
     and its arms close round you, its hands over the top of the view. While it holds you its

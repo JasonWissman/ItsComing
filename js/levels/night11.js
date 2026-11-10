@@ -240,6 +240,10 @@ LEVELS.push({
       const pour = P.t - (s.pourT === undefined ? -9 : s.pourT);
       if (pour >= 0 && pour < 0.9) P_line(ctx, 0, 0.08, 0, -0.1, 0.022 * Math.sin(Math.PI * pour / 0.9), P.col([200, 132, 40]));   // running
       else P_ell(ctx, 0, 0.05, 0.016, 0.022, P.col([46, 34, 14]));   // a drip
+      if (s.spill) {   // oil run out onto the boards in front of it: a dark pool round its foot, with a dull shine on it
+        const k = s.spill;
+        P_ell(ctx, 0.04, -0.14, 0.3 + 0.3 * k, 0.05 + 0.04 * k, P.col([20, 15, 7])); P_ell(ctx, -0.16 - 0.12 * k, -0.15, 0.08 + 0.08 * k, 0.012 + 0.006 * k, P.col([140, 108, 54])); P_ell(ctx, 0.3 + 0.14 * k, -0.13, 0.05 + 0.05 * k, 0.009, P.col([112, 86, 42]));
+      }
     });
     SC.box(L, -2.6, -1.8, FL, FL + 0.6, -3.7, -3.1, [84, 68, 50]); SC.box(L, -1.7, -1.0, FL, FL + 0.45, -3.7, -3.2, [84, 68, 50]);
     STORY.lamp(L, -2.2, FL + 0.6, -3.4, { lit: true, scale: 0.9 });
@@ -266,11 +270,27 @@ LEVELS.push({
       { x: -3.8, y: FL + 0.02, z: 1.9, flat: true },    // on the boards in the corner
       { x: -1.6, y: FL + 0.02, z: 0.5, flat: true },    // on the boards
     ];
-    for (let k = 0; k < 2; k++) mkItem(L, 'bottle', 'Empty bottle', bottleSpots, { w: BW, h: BH, icon: 'barnBottle' });
-    for (let k = 0; k < 2; k++) mkItem(L, 'rag', 'Rag', ragSpots, { w: RW, h: RH, icon: 'barnRag' });
+    // how each is held (js/hands.js): a bottle in the fist low round its body (the oil shows above your fingers), its neck up
+    // and a little over; the lit one the same, its flame over your knuckles (its icon is drawn smaller in its box, so it is
+    // held lower and drawn bigger); a rag bunched in the fist. The hands are lit a little more than the night's dark would
+    // have them, so the oil shows amber.
+    const HELD = { bottle: { grip: 'fist', at: [0.02, 0.2], angle: 0.12, size: 0.27 }, lit: { grip: 'fist', at: [0.02, 0.17], angle: 0.12, size: 0.33 }, rag: { grip: 'fist', at: [0.02, 0.36], axis: 0.3, angle: -0.25, size: 0.2 } };
+    const BOTTLE = { w: BW, h: BH, held: HELD.bottle, material: 'glass' };
+    L.hands = { lit: 0.82 };
+    for (let k = 0; k < 2; k++) mkItem(L, 'bottle', 'Empty bottle', bottleSpots, Object.assign({ icon: 'barnBottle' }, BOTTLE));
+    for (let k = 0; k < 2; k++) mkItem(L, 'rag', 'Rag', ragSpots, { w: RW, h: RH, icon: 'barnRag', held: HELD.rag, material: 'soft' });
     mkItem(L, 'matches', 'Matches', matchSpots, { w: 0.16, h: 0.16, tool: true });
     Object.assign(s, { fire: [false, false], fireT: [0, 0], litAt: [null, null], burst: null, run: null });
     const c0 = () => L.creatures[0];
+    // At the drum, what will not go (js/hands.js): the tap's place on it; a thing that must not come near it (a lit bottle,
+    // the matches) goes toward it and is snatched back short of it; oil run out of the tap with nothing under it (or over a
+    // bottle that is full) lies in a pool round its foot.
+    const TAP = [0, 0.25];
+    const flinch = (t, item) => {   // (from the hand not half way to it, and back)
+      const hw = HANDS.handWorld(item, 10).p, k = 0.45;
+      return { preset: 'return', at: { x: lerp(hw.x, t.x, k), y: lerp(hw.y, t.y + t.h * 0.5, k), z: lerp(hw.z, t.z, k) }, speed: 1.7, sfx: { hit: '' } };
+    };
+    const spill = k => { s.pourT = G.t; s.spill = Math.min(1, (s.spill || 0) + k); AUDIO.sfx('pour'); };
     mkTarget(L, {
       id: 'drum', name: 'Oil drum', x: -2.6, y: FL - drumLift, z: -2.2, w: 0.86, h: 1.04 + drumLift,   // the drum sprite's own box
       accepts: ['bottle', 'bottle_oil', 'cocktail', 'cocktail_lit'], noThrow: true,   // a lit bottle is never thrown at it (and lost)
@@ -280,28 +300,65 @@ LEVELS.push({
         return false;
       },
       hint() { return 'Lamp oil. The tap turns.'; },
-      use(item) {   // one bottle at a time, filled where it is in your hands
-        if (item.id === 'cocktail_lit') { G.say('Not with that alight. The drum would go up.', 'Not with that alight.'); return false; }
-        if (item.id !== 'bottle') { G.say('That one is full already.', 'Full already.'); return false; }
-        const i = G.inv.indexOf(item), full = newItem(L, 'bottle_oil', 'Bottle of oil', { w: BW, h: BH, icon: 'barnBottleOil' });
-        if (i >= 0) { G.inv.splice(i, 1, full); G.active = i; } else { G.inv.push(full); G.active = G.inv.length - 1; }
+      use(item) {   // one bottle at a time, filled where it is in your hands (the same bottle, full now: it goes to the tap and back)
+        // a lit one goes toward the drum and is snatched back before it gets there
+        if (item.id === 'cocktail_lit') { G.say('Not with that alight. The drum would go up.', 'Not with that alight.'); return G.refuse(flinch(this, item)); }
+        // a full one goes under the tap, the tap is turned, and the oil runs over and down onto the boards
+        if (item.id !== 'bottle') { G.say('That one is full already.', 'Full already.'); return G.refuse({ preset: 'return', at: TAP, speed: 0.75, onHit: () => spill(0.3) }); }
+        Object.assign(item, { id: 'bottle_oil', name: 'Bottle of oil', icon: ICONS.barnBottleOil, uses: item.uses + 1 });   // (not used up: a use is taken off what is used)
+        if (!G.inv.includes(item)) G.inv.push(item);
+        G.active = G.inv.indexOf(item);
         s.pourT = G.t; AUDIO.sfx('pour'); G.say('Full to the shoulder.', 'Full.');
         return true;
       },
+      onWrong(item) {   // the rag dabs at the tap and comes back; the matches go toward the drum and are snatched back
+        G.fumble(item, this, item.id === 'matches' ? flinch(this, item) : { preset: 'return', at: TAP });
+      },
+      onEmpty() {   // with nothing to catch it in, the hand turns the tap: oil runs out onto the boards, and it is turned off
+        G.reach(this, { style: 'pull', at: TAP, onTouch: () => spill(0.25) });
+      },
     });
-    mkRecipe(L, { parts: ['bottle_oil', 'rag'], result: { id: 'cocktail', name: 'Bottle and rag', opts: { w: BW, h: BH, icon: 'barnCocktail' } }, sfx: 'cloth', text: 'The rag goes into its neck.' });
-    // the likely wrong ways round say what is wrong and leave both things in your hands as they were
-    const notYet = (a, b, name, icon, text) => mkRecipe(L, {
-      parts: [a, b], result: { id: a, name, opts: { w: a === 'rag' ? RW : BW, h: a === 'rag' ? RH : BH, icon } }, sfx: 'nope', text,
-      onCombine: (it, L2) => { const back = L2.items.find(i => i.id === b && i.taken && !G.inv.includes(i)); if (back) G.inv.push(back); G.active = G.inv.indexOf(it); },
+    mkRecipe(L, { parts: ['bottle_oil', 'rag'], result: { id: 'cocktail', name: 'Bottle and rag', opts: Object.assign({ icon: 'barnCocktail' }, BOTTLE) }, sfx: 'cloth', text: 'The rag goes into its neck.' });
+    // The likely wrong ways round say what is wrong and leave both things in your hands just as they were (the same things,
+    // in the same order, the same one in your hand), and show it: a match struck by it flares in your other hand and goes
+    // out, or the other thing comes up in that hand beside it, and goes down again. (What was in hand is noted every frame,
+    // in L.update: a recipe is told only what it made.)
+    const MATCH = { id: 'match', name: 'Match', w: 0.07, h: 0.24, held: { grip: 'pinch', at: [0, 0.16], angle: 0.35, size: 0.2 } };
+    MATCH.icon = (ctx, P) => {   // a match just struck: it flares, burns down a moment and goes out, a wisp of smoke going up
+      const age = s.together ? L.t - s.together.t : 9, flame = age < 0.1 ? age / 0.1 * 1.4 : age < 0.2 ? lerp(1.4, 1, (age - 0.1) / 0.1) : age < 0.75 ? 1 : Math.max(0, 1 - (age - 0.75) / 0.2);
+      P_line(ctx, 0, 0, 0, 0.6, 0.11, P.col([196, 168, 120])); P_ell(ctx, 0, 0.62, 0.17, 0.09, P.col(flame > 0 ? [60, 30, 24] : [36, 30, 28]));   // the stick, its head charring
+      if (flame > 0) {
+        const f = Math.sin(P.t * 23) * 0.04, k = flame;
+        ctx.fillStyle = P.raw([255, 150, 50]); ctx.beginPath(); ctx.moveTo(-0.2 * k, 0.6); ctx.quadraticCurveTo(-0.24 * k, 0.75 + 0.1 * k, f, 0.62 + 0.38 * k); ctx.quadraticCurveTo(0.24 * k, 0.75 + 0.1 * k, 0.2 * k, 0.6); ctx.fill();
+        ctx.fillStyle = P.raw([255, 236, 170]); ctx.beginPath(); ctx.moveTo(-0.09 * k, 0.61); ctx.quadraticCurveTo(-0.1 * k, 0.7, f * 0.5, 0.62 + 0.2 * k); ctx.quadraticCurveTo(0.1 * k, 0.7, 0.09 * k, 0.61); ctx.fill();
+      } else if (age < 1.5) {
+        const a = 1 - (age - 0.95) / 0.55; ctx.strokeStyle = P.cola([150, 146, 140], 0.5 * a); ctx.lineWidth = 0.06; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, 0.66); ctx.quadraticCurveTo(0.12, 0.76 + (age - 0.95) * 0.3, -0.04, 0.9 + (age - 0.95) * 0.4); ctx.stroke();
+      }
+    };
+    const notYet = (a, b, text) => mkRecipe(L, {
+      parts: [a, b], result: { id: a, name: a, opts: {} }, sfx: 'nope', text,
+      onCombine: (it, L2) => {
+        L2.items.splice(L2.items.indexOf(it), 1);
+        G.removeFromInv(it);
+        const was = s.invWas || [], parts = was.filter(i => !G.inv.includes(i) && (i.id === a || i.id === b));
+        if (parts.length === 2) { const rest = G.inv.slice(); G.inv.length = 0; for (const i of was) if (parts.includes(i) || rest.includes(i)) G.inv.push(i); for (const i of rest) if (!G.inv.includes(i)) G.inv.push(i); }
+        else for (const i of L2.items.filter(i => (i.id === a || i.id === b) && i.taken && !G.inv.includes(i)).slice(0, 2)) G.inv.push(i);   // (as before, if what was in hand was not noted)
+        const held = parts.includes(was[s.activeWas]) ? was[s.activeWas] : G.inv.find(i => i.id === a), other = G.inv.find(i => (i.id === a || i.id === b) && i !== held);
+        G.active = Math.max(0, G.inv.indexOf(held)); G.invSig = '';
+        const lit = a === 'matches' || b === 'matches';
+        s.together = { t: L.t, dur: lit ? 1.5 : 1.2, show: lit ? MATCH : other };
+        if (lit) AUDIO.sfx('strike');
+      },
     });
-    notYet('bottle', 'rag', 'Empty bottle', 'barnBottle', 'The bottle is empty.');
-    notYet('bottle', 'matches', 'Empty bottle', 'barnBottle', 'There is nothing to light.');
-    notYet('bottle_oil', 'matches', 'Bottle of oil', 'barnBottleOil', 'It will not catch like that.');
-    notYet('rag', 'matches', 'Rag', 'barnRag', 'Not on its own.');
+    notYet('bottle', 'rag', 'The bottle is empty.');
+    notYet('bottle', 'matches', 'There is nothing to light.');
+    notYet('bottle_oil', 'matches', 'It will not catch like that.');
+    notYet('rag', 'matches', 'Not on its own.');
+    L.offHand = () => (s.together && G.state === 'play' && L.t - s.together.t < s.together.dur ? s.together.show || null : null);
     // lighting it keeps the matches: they light the second one too
     mkRecipe(L, {
-      parts: ['cocktail', 'matches'], result: { id: 'cocktail_lit', name: 'Lit bottle', opts: { w: BW, h: BH, throwable: true } }, sfx: 'strike', text: 'The rag catches.',
+      parts: ['cocktail', 'matches'], result: { id: 'cocktail_lit', name: 'Lit bottle', opts: { w: BW, h: BH, throwable: true, held: HELD.lit, material: 'glass' } }, sfx: 'strike', text: 'The rag catches.',
       onCombine: (it, L2) => {
         it.icon = (ctx, P) => (G.throwing && G.throwing.it === it ? barnBottle(ctx, P, 'lit', G.throwing.t * 11) : ICONS.barnCocktailLit(ctx, P));   // it turns over in the air
         const m = L2.items.find(i => i.id === 'matches'); if (m) { m.taken = true; G.inv.push(m); }
@@ -420,19 +477,80 @@ LEVELS.push({
       if (!s.run && !L.won && c.lane.idx === k && !pastHay(c) && !s.fire[1 - k]) startRun(c);
       if (pastHay(c) && c.lane.idx === k) s.behind = true;
     };
+    // What will not go at the hay (js/hands.js). Only a lit bottle is let go of: anything else would only be lost down there,
+    // so the throw is held back. It is swung out at arm's length toward the stack, and where it would have been let go the
+    // hand keeps hold of it with a jerk, and it comes back. Oil in an open bottle slops out of its neck at the jerk, and
+    // spatters down onto the boards (or over the edge). The matches: one is struck and flicked out at the hay, and goes out
+    // as it falls, long before it gets there; the box stays in your hand.
+    const fxr = mulberry32((G.runSeed * 7 + 1111) >>> 0), bits = s.bits = [], stains = s.stains = [];
+    // (arm's length: where it is in the hand, at the depth at which it looks the size it does there, moved most of the way
+    // in toward the line to the stack and a little further out, so it goes out from the hand and not off to one side)
+    const armsLength = (t, item) => {
+      // (toward the part of the stack in view: its middle, or the nearest part of it to that when the middle is off the view)
+      const hw = HANDS.handWorld(item, 10), d = Math.hypot(hw.p.x, hw.p.y - L.eyeH, hw.p.z) * 1.2, at = HANDS.pointOn(t), tx = at.x, ty = at.y - L.eyeH, tz = at.z, l = Math.hypot(tx, ty, tz) || 1;
+      const k = 0.6;
+      return { x: lerp(hw.p.x, tx / l * d, k), y: lerp(hw.p.y, L.eyeH + ty / l * d, k) + 0.06, z: lerp(hw.p.z, tz / l * d, k) };
+    };
+    const heldBack = (t, item) => {
+      const fx = G.fumble(item, t, { preset: 'return', at: armsLength(t, item), speed: 1.15, sfx: { hit: '' }, onHit: f => { if (item.id === 'bottle_oil') slop(f, t); } });
+      if (fx) AUDIO.sfx('hiss', Math.sin(wrapPi(Math.atan2(t.x, t.z) - G.cam.yaw)) * 0.5);
+      return fx;
+    };
+    const slop = (f, t) => {
+      const l = Math.hypot(t.x, t.z) || 1, ux = t.x / l, uz = t.z / l;
+      for (let i = 0; i < 14; i++) {
+        const sp = 1.0 + fxr() * 1.6, side = (fxr() - 0.5) * 0.7;
+        bits.push({ kind: 'drop', x: f.pos.x, y: f.pos.y + 0.12, z: f.pos.z, vx: ux * sp - uz * side, vy: 0.2 + fxr() * 0.9, vz: uz * sp + ux * side, r: 0.006 + fxr() * 0.009, age: 0 });
+      }
+    };
+    const flick = (t, item) => {
+      if (bits.some(b => b.kind === 'match')) return;   // (one at a time: clicked again while one is in the air, nothing more)
+      const hw = HANDS.handWorld(item, 1.2).p, at = HANDS.pointOn(t), dx = at.x - hw.x, dz = at.z - hw.z, l = Math.hypot(dx, dz) || 1;   // from your hand, at the stack (the part of it in view)
+      bits.push({ kind: 'match', x: hw.x, y: hw.y + 0.06, z: hw.z, vx: dx / l * 3.2, vy: 1.6, vz: dz / l * 3.2, age: 0, spin: 0 });
+      AUDIO.sfx('strike'); G.thrust(t, item);
+    };
+    // the bits in the air: oil falling (a drop that lands on the loft's boards leaves a dark spot there), the match
+    const FLOORY = FL + 0.02, onLoft = (x, z) => { const q = rotY(x, z, -L.facing); return pointInPoly(q[0], q[1], [[-4.3, -3.8], [0.3, -3.8], [0.3, 3.8], [-4.3, 3.8]]); };
+    const flyBits = dt => {
+      for (const b of bits.slice()) {
+        const y0 = b.y;
+        b.age += dt; b.vy -= 9.8 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.spin = (b.spin || 0) + dt * 14;
+        if (y0 > FLOORY && b.y <= FLOORY && onLoft(b.x, b.z)) {
+          if (b.kind === 'drop') { stains.push({ x: b.x, z: b.z, r: b.r * (2.2 + fxr()), sx: 0.7 + fxr() * 0.6 }); if (stains.length > 24) stains.shift(); }
+          bits.splice(bits.indexOf(b), 1);
+        } else if (b.y < 0 || b.age > 2.5) bits.splice(bits.indexOf(b), 1);
+      }
+    };
+    const drawBits = () => {
+      for (const st of stains) {
+        const w = st.r * 2 * st.sx, h = st.r * 2;
+        R.add({ kind: 'sprite', flat: true, x: st.x, y: FLOORY + 0.002, z: st.z, w, h, sortDist: Math.hypot(st.x, st.z) + 0.5, draw: (ctx, P) => { ctx.scale(w, h); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.cola([30, 22, 10], 0.85)); P_ell(ctx, -0.12, 0.6, 0.18, 0.12, P.cola([96, 72, 36], 0.6)); } });
+      }
+      for (const b of bits) {
+        if (b.kind === 'drop') { const r = b.r; R.add({ kind: 'sprite', x: b.x, y: b.y, z: b.z, w: r * 2, h: r * 2.6, draw: (ctx, P) => { ctx.scale(r * 2, r * 2.6); P_ell(ctx, 0, 0.45, 0.5, 0.45, P.col([196, 124, 34])); P_ell(ctx, -0.15, 0.6, 0.18, 0.15, P.col([250, 200, 110])); } }); continue; }
+        // the match: a stick turning over, its flame dying as it goes, then a thread of smoke
+        const fl = clamp(1 - (b.age - 0.45) / 0.3, 0, 1), sp = b.spin, S = 0.14;
+        R.add({ kind: 'sprite', x: b.x, y: b.y - S / 2, z: b.z, w: S, h: S, noFog: fl > 0, noLight: fl > 0, draw: (ctx, P) => {
+          ctx.translate(0, S / 2); ctx.rotate(sp); ctx.scale(S, S);
+          P_line(ctx, 0, -0.25, 0, 0.2, 0.05, P.col([196, 168, 120])); P_ell(ctx, 0, 0.22, 0.07, 0.05, P.col([50, 28, 22]));
+          if (fl > 0) { ctx.rotate(-sp); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 0.4 * fl); g.addColorStop(0, 'rgba(255,240,180,0.95)'); g.addColorStop(0.4, 'rgba(255,160,60,0.7)'); g.addColorStop(1, 'rgba(255,120,40,0)'); ctx.fillStyle = g; ctx.fillRect(-0.4, -0.4, 0.8, 0.8); }
+        } });
+      }
+    };
     const mkHay = (k, id, name, x, z, w) => mkTarget(L, {
       id, name, x, y: 0, z, w, h: 2.4, accepts: ['cocktail_lit', 'cocktail', 'bottle_oil'],
       onClick() {
-        if (s.fire[k]) { G.say('It is already burning.', 'Burning.'); AUDIO.sfx('nope'); return true; }
+        if (s.fire[k]) { G.say('It is already burning.', 'Burning.'); if (!G.reach(this)) AUDIO.sfx('nope'); return true; }   // the hand goes out toward it, and no further
         const lit = G.inv.findIndex(i => i.id === 'cocktail_lit');   // a lit bottle before an unlit one
         if (lit >= 0 && !(G.inv[G.active] && G.inv[G.active].id === 'cocktail_lit')) G.active = lit;
         return false;
       },
       hint() { return s.fire[k] ? 'Burning.' : 'Dry hay. It would go up in a moment.'; },
       use(item) {
-        if (item.id !== 'cocktail_lit') { G.say(item.id === 'cocktail' ? 'The rag is not lit.' : 'Oil will not light the hay on its own. It wants a wick, and a flame.', 'It is not lit.'); return false; }
+        if (item.id !== 'cocktail_lit') { G.say(item.id === 'cocktail' ? 'The rag is not lit.' : 'Oil will not light the hay on its own. It wants a wick, and a flame.', 'It is not lit.'); heldBack(this, item); return false; }
         ignite(k, this); return true;
       },
+      onWrong(item) { if (item.id === 'matches') flick(this, item); else heldBack(this, item); },   // an empty bottle, a rag: held back too
     });
     const hayN = mkHay(0, 'hayN', 'The hay in the yard', 0, 12.8, 6.8), hayE = mkHay(1, 'hayE', 'The hay in the barn', 9.5, 0, 7.8);
     void hayN; void hayE;
@@ -440,8 +558,13 @@ LEVELS.push({
     L.isWon = () => s.fire[0] && s.fire[1] && !onYou(c0());
     L.objectiveText = () => { const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (s.fire[0] && s.fire[1] ? 'Both burning. ' : 'Hay alight: ' + (+s.fire[0] + +s.fire[1]) + ' of 2. ') + 'Carrying ' + load + '.'; };
     L.deathCause = () => (s.fire[0] && s.fire[1] ? 'late' : s.behind ? 'behind' : 'default');
-    // a lit bottle is not put down on these boards
-    L.onDrop = it => { if (it.id !== 'cocktail_lit') return; it.taken = true; G.inv.push(it); G.active = G.inv.length - 1; G.say('Not on these boards. The whole loft would go.', 'Not in here.'); };
+    // a lit bottle is not put down on these boards: it is lowered toward them, and snatched back up before it touches them
+    L.onDrop = it => {
+      if (it.id !== 'cocktail_lit') return;
+      it.taken = true; G.inv.push(it); G.active = G.inv.length - 1; G.hand.gone = null;   // (still in your hand: putting it down had let go of it)
+      G.fumble(it, { x: it.x, y: it.y, z: it.z, w: 0.3, h: 0.3, flat: true }, { preset: 'return', at: { x: it.x, y: it.y + 0.2, z: it.z }, speed: 0.9, sfx: { hit: '' } });
+      G.say('Not on these boards. The whole loft would go.', 'Not in here.');
+    };
     L.update = dt => {
       const c = c0();
       ready(c);
@@ -515,6 +638,7 @@ LEVELS.push({
     // more than three times that, which put it behind the far wall and deep in the fog. While it goes round out of sight
     // it is not drawn at all.
     L.dynamic = () => {
+      drawBits();
       const c = c0(), cp = L.rend && L.rend.get(c);
       if (cp) {
         const p = c.pos(), real = Math.max(0.3, Math.hypot(p.x, p.z)), laneD = Math.max(0.3, Math.hypot(c.dist, c.lat || 0));
@@ -568,7 +692,7 @@ LEVELS.push({
     };
     // soaked in firelight: the stacks darken to embers' colour once they are well alight
     const hayLit = () => { hayProps.forEach((props, k) => { const f = s.fire[k] ? smoothstep(clamp((L.t - s.fireT[k]) / 3, 0, 1)) : 0; for (const p of props) { if (!p.dry) p.dry = p.color; p.color = f > 0 ? mixc(p.dry, [52, 30, 18], 0.7 * f) : p.dry; } }); };
-    const upd = L.update; L.update = dt => { upd(dt); hayLit(); };
+    const upd = L.update; L.update = dt => { upd(dt); hayLit(); flyBits(dt); s.invWas = G.inv.slice(); s.activeWas = G.active; };
     L.dynamicLights = () => {
       const out = [];
       FIRES.forEach((F, k) => { if (!s.fire[k]) return; const f = smoothstep(clamp((L.t - s.fireT[k]) / 1.2, 0, 1)), p = L.pt(F.cx, 2.5, F.cz); out.push({ x: p[0], y: p[1], z: p[2], r: 14, i: 0.25 + 0.55 * f, color: [255, 140, 60], flicker: 0.6, seed: 4 + k * 2 }); });

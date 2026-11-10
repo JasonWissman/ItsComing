@@ -49,7 +49,7 @@ LEVELS.push({
       else if (within(p, 0.94, 1.46, -0.13, -0.105)) p.alpha = 0;
       else if (within(p, 0.94, 1.46, -0.13, 0.41) || [-0.72, 0.72].some(x => within(p, x - 0.05, x + 0.05, -0.95, -0.85) || within(p, x - 0.05, x + 0.05, 1.8, 1.9))) p.sortDist = BED;
     }
-    STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => s.lampOn });
+    STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => shown() });
     // its cord runs off the back of the nightstand (and, under the bed, to the wall on the other side)
     SC.quad(L, [1.25, 0.624, 0.11], [1.26, 0.624, 0.13], [1.46, 0.624, 0.03], [1.45, 0.624, 0.01], [30, 26, 24], { sortDist: 1.4 });
     // the wall socket, low on the wall behind the bed on the closet side: a pale plate with its two slots
@@ -59,40 +59,59 @@ LEVELS.push({
     // the drawer, in the side of the nightstand that faces the bed, holds the bulb (and, on Nightmare, one that will not fit).
     // It is built into the nightstand (a container's card would turn with the view and stand out from it at an angle):
     // opened, it slides out toward you, dark inside, and they stand in it
-    const bulbs = [{ id: 'bulb', name: 'Bulb', z: decoy ? 0.07 : 0.15, opts: { w: 0.14, h: 0.2, icon: 'bulb' } }]
-      .concat(decoy ? [{ id: 'bulb2', name: 'Bulb', z: 0.235, opts: { w: 0.14, h: 0.2, icon: 'bulbPin', decoy: true, decoyText: 'Wrong kind of bulb. It will not go in.' } }] : []);
+    // Both are held the same way, by the cap between finger and thumb, the glass up (js/hands.js)
+    const BULB_HELD = { grip: 'pinch', at: [0, 0.1], angle: -0.12, tip: [0, 0.05] };
+    const bulbs = [{ id: 'bulb', name: 'Bulb', z: decoy ? 0.07 : 0.15, opts: { w: 0.14, h: 0.2, icon: 'bulb', material: 'glass' } }]
+      .concat(decoy ? [{ id: 'bulb2', name: 'Bulb', z: 0.235, opts: { w: 0.14, h: 0.2, icon: 'bulbPin', decoy: true, decoyText: 'Wrong kind of bulb. It will not go in.', held: BULB_HELD, material: 'glass' } }] : []);
     const drawer = mkTarget(L, {
       id: 'drawer', name: 'Drawer', x: 0.93, y: 0.43, z: 0.15, w: 0.4, h: 0.18, open: false, yielded: [],
       hint() { return drawer.open ? 'Nothing else in it.' : 'The nightstand drawer.'; },
-      onClick() {
+      onClick() {   // your hand opens it (js/hands.js); clicked again, it goes into it
         if (!drawer.open) {
           drawer.open = drawer.done = true; AUDIO.sfx('drawer'); // its own sound: not the creak that warns of the doorway, nor a creature's scratching
           for (const b of bulbs) drawer.yielded.push(mkItem(L, b.id, b.name, { x: 0.875, y: 0.47, z: b.z, jitter: 0 }, b.opts));
+          G.reach(drawer, 'pull');
           return true;
         }
-        const left = drawer.yielded.some(i => !i.taken); G.say(left ? 'Take what is in it.' : 'Nothing else in it.', left ? 'Something is still in it.' : 'Nothing more.'); return true;
+        const left = drawer.yielded.some(i => !i.taken); G.say(left ? 'Take what is in it.' : 'Nothing else in it.', left ? 'Something is still in it.' : 'Nothing more.');
+        G.reach(drawer, { style: 'touch', at: [0, 0.8] });
+        return true;
       },
     });
     const knob = out => SC.mkSprite(L, 0.938 - out, 0.495, 0.15, 0.036, 0.036, (ctx, P) => { ctx.scale(0.036, 0.036); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([96, 92, 86])); P_ell(ctx, -0.1, 0.6, 0.3, 0.3, P.col([164, 158, 148])); }, { sortDist: 1.672 });
     const knobs = [knob(0), knob(0.09)];
+    // The lamp's switch is the pull chain under its shade, and your hand pulls it (js/hands.js): the chain jerks and the switch
+    // clicks as the hand gets there. With no bulb in, or the cord out, nothing comes of it; on Nightmare it sticks twice (the
+    // chain barely gives) before it goes. The light comes on as it is pulled. The wrong bulb is tried in the socket, will not
+    // go in, and drops onto the bed (soft), where it can be taken again.
+    const CHAIN = [0.2, 0.31];
+    const pull = (stiff, then) => {
+      const was = G.hand.reach, go = () => { s.tugAt = L.t; s.stiff = stiff; AUDIO.sfx('switch'); if (then) then(); };
+      const r = G.reach(lampT, { style: 'pull', at: CHAIN, onTouch: go });
+      if (!r || r === was) go();   // no hand to show, or it is there already, still on the chain: at once
+    };
     const lampT = mkTarget(L, {
       id: 'lamp', name: 'Lamp', x: 1.2, y: 0.62, z: 0.15, w: 0.4, h: 0.55, accepts: ['bulb'].concat(decoy ? ['bulb2'] : []),
+      fumble: { decoy: { preset: 'bump', at: [0, 0.5], sfx: { land: 'flop' } } },
       hint() { return !s.fitted ? 'The lamp. Dead. No bulb in it.' : !s.plugged ? 'A bulb in it now. Nothing happens; the cord is loose somewhere.' : s.lampOn ? 'On.' : 'Off. Switch it on.'; },
       use(item) { if (item.id !== 'bulb') return false; s.fitted = true; lampT.accepts = []; AUDIO.sfx('fit'); G.say('The bulb goes in. Now the switch.', 'In.'); return true; },
+      onEmpty() { pull(false); },   // no bulb in it yet, and nothing in hand: the chain is pulled, and nothing
       onClick() {
         if (!s.fitted) return false;
-        s.tugAt = L.t;
-        if (!s.plugged) { G.say('Nothing. The cord is loose somewhere. Look down beside the bed.', 'Nothing. It is not plugged in.'); AUDIO.sfx('switch'); return true; }
-        if (s.lampOn) { G.say('It is on. Leave it.', 'On.'); return true; }
-        if (sticks && ++s.clicks < 3) { AUDIO.sfx('switch'); G.say('The switch sticks.', 'Sticks.'); return true; }
-        s.clicks = 0; s.lampOn = true; s.wasLit = true; s.lampT = 12 + L.rand() * 6; AUDIO.sfx('switch'); AUDIO.sfx('lampOn'); G.say('Light. It slows.', 'Light.'); return true;
+        if (!s.plugged) { G.say('Nothing. The cord is loose somewhere. Look down beside the bed.', 'Nothing. It is not plugged in.'); pull(false); return true; }
+        if (s.lampOn) { G.say('It is on. Leave it.', 'On.'); G.reach(lampT, { style: 'touch', at: CHAIN }); return true; }
+        if (sticks && ++s.clicks < 3) { G.say('The switch sticks.', 'Sticks.'); pull(true); return true; }
+        s.clicks = 0; s.lampOn = true; s.wasLit = true; s.onAt = L.t + 0.3; s.lampT = 12 + L.rand() * 6; G.say('Light. It slows.', 'Light.');
+        pull(false, () => { s.onAt = L.t; AUDIO.sfx('lampOn'); });
+        return true;
       },
     });
+    const shown = () => s.lampOn && L.t >= (s.onAt || 0);   // the light, once the chain has been pulled
     // the lamp's own details, over it: the socket (and the bulb, once it is in) dark through the shade, bright when it is
     // on; the pull chain under the shade, which jerks when it is pulled
     const lampDetail = SC.mkSprite(L, 1.2, 0.62, 0.15, 0.34, 0.5, (ctx, P) => {
       ctx.scale(0.34, 0.5);
-      if (s.lampOn) {
+      if (shown()) {
         const g = ctx.createRadialGradient(0, 0.7, 0.01, 0, 0.7, 0.2); g.addColorStop(0, 'rgba(255,250,232,0.95)'); g.addColorStop(1, 'rgba(255,236,190,0)');
         ctx.fillStyle = g; ctx.fillRect(-0.3, 0.5, 0.6, 0.45);
       } else {
@@ -100,7 +119,7 @@ LEVELS.push({
         P_rect(ctx, -0.055, 0.5, 0.11, 0.1, sh);
         if (s.fitted) { P_ell(ctx, 0, 0.71, 0.13, 0.12, sh); P_rect(ctx, -0.065, 0.58, 0.13, 0.06, sh); }
       }
-      const tug = clamp(1 - (L.t - s.tugAt) / 0.35, 0, 1) * 0.06, chain = P.col([150, 140, 118]);
+      const tug = clamp(1 - (L.t - s.tugAt) / 0.35, 0, 1) * (s.stiff ? 0.018 : 0.06), chain = P.col([150, 140, 118]);
       P_line(ctx, 0.24, 0.5, 0.24, 0.35 - tug, 0.016, chain); P_ell(ctx, 0.24, 0.34 - tug, 0.03, 0.022, chain);
     }, { sortDist: Math.hypot(1.2, 0.15) - 0.002 });
     // on Nightmare the lamp's plug lies on the floor by the wall socket, on the closet side, pulled out
@@ -108,7 +127,7 @@ LEVELS.push({
     const socket = unplugged && mkTarget(L, {
       id: 'socket', name: 'Cord', x: -1.6, y: 0.02, z: -0.6, w: 0.42, h: 0.3, flat: true,
       hint() { return s.plugged ? 'Plugged in.' : 'The lamp cord, out of its socket.'; },
-      onClick() { if (s.plugged) return false; s.plugged = true; socket.hidden = true; AUDIO.sfx('clunk'); G.say('Plugged in.', 'Click.'); return true; },
+      onClick() { if (s.plugged) return false; s.plugged = true; socket.hidden = true; AUDIO.sfx('clunk'); G.say('Plugged in.', 'Click.'); G.reach(socket, 'push'); return true; },   // your hand pushes the plug in
     });
     const covers = mkTarget(L, {
       id: 'covers', name: 'Covers', x: 0, y: 0.6, z: 1.1, w: 1.4, h: 0.6, flat: true, hold: 3.0,
@@ -117,8 +136,18 @@ LEVELS.push({
     });
     L.isWon = () => s.lampOn && s.coversUp;
     L.objectiveText = () => (s.lampOn ? 'Lamp on. ' : !s.fitted ? 'Find a bulb (the drawer). Fit it. ' : !s.plugged ? 'Plug the cord in (down, beside the bed). ' : 'Switch the lamp on. ') + (s.coversUp ? 'Covers up.' : 'Pull the covers up (hold).');
+    // holding the covers, your hand is on them, pulling them up, its grip on the hem as it comes up; let go too soon and the
+    // hand goes, and the covers slip back
+    const hem = () => { const { zE, yE } = coversAt(); return { x: 0.3, y: yE + 0.02, z: zE }; };
+    const holdCovers = () => {
+      if (G.holding !== covers || covers.done || G.state !== 'play') return;
+      const r = G.hand.reach;
+      if (!r || r.target !== covers) G.reach(covers, { style: 'pull', at: hem(), sfx: 'cloth' });
+      else { r.at = hem(); if (r.T > r.out + r.hold - 0.1) G.reach(covers, 'pull'); }   // (each call while it is there keeps it there a beat more)
+    };
     L.update = dt => {
       const c = c0();
+      holdCovers();
       c.unseenMult = Math.min(c.unseenMult, 2.5); // this night already charges a lot for looking away; the tiers do not stack on top
       if (s.lampOn && !L.won) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out.', 'Dark.'); } }
       c.inLight = s.lampOn;
@@ -185,8 +214,8 @@ LEVELS.push({
       if (lz > zE && Math.abs(lx * zE / lz) < X) hide = Math.max(hide, L.eyeH - (L.eyeH - (up(lx * zE / lz, yE) + th(lx * zE / lz))) * lz / zE);
       c.hideBelow = hide;
     };
-    L.dynamicLights = () => { if (!s.lampOn) return []; const p = L.pt(1.2, 1.05, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }]; };
-    L.glows = () => { if (!s.lampOn) return null; const p = L.pt(1.2, 1.0, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }]; };
+    L.dynamicLights = () => { if (!shown()) return []; const p = L.pt(1.2, 1.05, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }]; };
+    L.glows = () => { if (!shown()) return null; const p = L.pt(1.2, 1.0, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }]; };
     // ---- the win: the covers come up over your eyes, and it plays out under them ----
     // You look up from the covers at it once more, then they come up over your head: the hem rises across the view (the
     // middle first, where your hands are) and you are under the fabric, in the dark, the lamp a faint warm glow through
