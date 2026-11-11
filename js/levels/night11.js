@@ -128,7 +128,7 @@ LEVELS.push({
   ambient: { wind: 0.8, drone: 0.7, droneFreq: 47, windFreq: 330 },
   lights: [{ x: -2.2, y: 4.1, z: -2.2, r: 5, i: 0.4, color: [255, 200, 130], flicker: 0.2 }, { x: 0, y: 1.5, z: 42, r: 10, i: 0.4, color: [255, 200, 120] }, { x: 23, y: 2.2, z: 0, r: 9, i: 0.3, color: [150, 160, 200] }],
   text: {
-    intro: 'The loft is full of last summer, dry as paper, and something bent double under a load is coming for it, across the yard or up through the barn.',
+    intro: 'Something chased you into the barn. You have no choice.',
     hint: 'Fill a bottle with oil at the drum, stuff a rag in its neck, light the rag with the matches and throw it into the hay it is coming past. It will run round to the other way in: do the same there. Only both fires hold it, and only before it is up in the loft. It comes faster the more you carry.',
     objective: 'Set both stacks of hay alight. Carry little.',
     death: { default: 'It did not put down what it was carrying. It put you with it.', behind: 'The hay went up behind it. It did not look back.', late: 'Both stacks were burning by then. It was already up in the loft with you.' },

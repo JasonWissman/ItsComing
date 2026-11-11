@@ -70,11 +70,11 @@ LEVELS.push({
   weather: { kind: 'mist', density: 0.7, wind: 0.3 },
   lights: [{ x: 0, y: 1.6, z: -0.2, r: 4.5, i: 0.35, color: [140, 160, 220] }],
   text: {
-    intro: 'The farmhouse has two doorways and no doors in them.<br>Something is walking toward the house. It has been walking for a while.',
+    intro: 'You find yourself in a shed. Something in the distance approaches.',
     hint: 'There are loose planks all over the house, a hammer and nails. Board up both doorways.',
     objective: 'Board up both doorways.',
-    death: { default: 'There were no boards across the way it came in.', reached: 'It tore the boards off and came in.', round: 'It ran around the house to the other doorway.' },
-    win: 'It hit the boards and put its eye to the gap, and beat on them until sunrise. They held.',
+    death: { default: 'It came through the open door.', reached: 'It tore the boards off and came in.', round: 'It came through the open door behind you.' },
+    win: 'The boards held.',
     fragment: 'In the morning a path had been worn into the grass all the way around the house, and you could not remember owning a hammer.',
   },
   // the back doorway looks north over the field; the front doorway looks south down the lane. A cue is the creak of the

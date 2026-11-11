@@ -37,11 +37,11 @@ LEVELS.push({
   ambient: { wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300, rain: 0.35 },
   weather: { kind: 'rain', density: 0.45, wind: 0.2, fogRoll: { period: 41, depth: 0.5 } },
   text: {
-    intro: 'It has been walking between the graves since dusk, and it has never stopped smiling.',
+    intro: 'Someone has been walking in the graveyard since dusk.',
     hint: 'The old rules: a line of salt across the doorway and another across the side gate, and a lantern hung by each and lit. The bag holds just enough salt for the two lines.',
     objective: 'Salt both ways in. Light a lantern by each.',
-    death: { default: 'It was still smiling when it stepped over the threshold.', open: 'One way was closed to it. It came in by the other.', unlit: 'It looked down at the salt for a long time. No light burned beside the line, and in the end it stepped over.' },
-    win: 'It came to the salt line and looked down at it for a long time. Then it turned around and walked back between the graves, still smiling. It never once looked at the lanterns.',
+    death: { default: 'It was still smiling when it stepped over the threshold.', open: 'It came through the open entrance.', unlit: 'The salt alone did not stop it. It loves the darkness.' },
+    win: 'It dared not cross.',
     fragment: 'There was a line of salt across the floor in the morning, and no one had been near the kitchen.',
   },
   // the porch opens to the path between the two columns; a side gate in the east wall opens on the graves

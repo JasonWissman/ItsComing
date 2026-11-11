@@ -25,9 +25,9 @@ LEVELS.push({
     { x: -10.5, y: 4.9, z: 26, r: 20, i: 0.75, color: [255, 70, 190], flicker: 0.12 },     // the sign out by the road: pink on the ground round it, and on it as it passes
   ],
   text: {
-    intro: 'The last customer left at ten. Since then something that is not a customer has stood at the far end of the lot, looking at the lit windows.<br>Now it is coming for the light, and every light in the place is on.',
-    death: { default: 'One window was still open. It found it.', through: 'It came through the glass before the shutter was down.', lit: 'The lights were still on. It came straight to them.' },
-    win: 'It beat on the shutter until long after its hands should have broken. Then it stood at the steel until it got light, and walked off across the lot like it had somewhere to be.',
+    intro: 'The last customer left an hour ago, but another seems drawn in by the light.',
+    death: { default: 'One shutter was still open.', through: 'It came through the glass before the shutter was down.', lit: 'It was drawn in by the light.' },
+    win: 'It beat on the shutter relentlessly, but they held.',
     fragment: 'There is a switch by your door that does not seem to do anything. You flip it every night anyway.',
   },
   // three windows across the front, left to right as you face them; it comes for one. It stands at the glass on a line

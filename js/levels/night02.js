@@ -44,11 +44,11 @@ LEVELS.push({
   // the headlights and the dash glow belong to the car: they go where it goes
   lights: [{ x: 0.4, y: 0.75, z: 1.6, r: 52, i: 1.25, color: [228, 218, 178], cone: { x: 0, y: -0.06, z: 1, deg: 24 }, attach: true }, { x: 0, y: 0.9, z: 0.55, r: 0.9, i: 0.1, color: [90, 200, 120], attach: true }],
   text: {
-    intro: 'The engine died on the county road, miles from anything. It stalled in drive.<br>Something is coming, low, at the edge of the headlights.',
+    intro: 'You\'re miles from anything.',
     hint: 'The keys fell somewhere when the car stalled.',
     objective: 'Start the car and get away.',
-    death: { default: 'It came through the windshield.', drove: 'You drove straight at it. It came up over the hood.' },
-    win: 'The engine caught. You did not look in the mirror.',
+    death: { default: 'It came through the windshield.', drove: 'You drove straight to the creature. It came through the windshield.' },
+    win: 'You drove away.',
     fragment: 'The car has not started on the first turn since. You have stopped mentioning it.',
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of

@@ -151,11 +151,11 @@ LEVELS.push({
   weather: { kind: 'snow', density: 1, wind: 0.5 },
   lights: [{ x: 1.7, y: 1.7, z: -1.45, r: 6, i: 0.55, color: [255, 190, 110], flicker: 0.15 }],
   text: {
-    intro: 'Something has been running the tree line all evening, watching the cabin.<br>Now it is coming for the porch.',
+    intro: 'You heard a rustling in the bushes.',
     hint: 'The bow is somewhere on the porch, and its three arrows are lying about, each in a different place. Hold to draw until the bar is full, and let go with it in your sights. It takes two hits to put it down.',
     objective: 'Get the bow and the arrows. Two hits.',
-    death: { default: 'It did not even slow down on the steps.', wounded: 'It got back up faster than you could draw again.', spent: 'You had nothing left to draw.' },
-    win: 'You sat on the porch with the bow across your knees until it got light, and nothing else came out of the trees.',
+    death: { default: 'It dragged you out into the woods.', wounded: 'It was injured, but it still reached you.', spent: 'You missed. It dragged you out to the woods.' },
+    win: 'It twitched, but eventually stopped moving.',
     fragment: 'The inside of your forearm was red in the morning, one long thin welt, as if something had snapped against it all night.',
   },
   // it comes at the steps, or round the open side of the porch

@@ -50,10 +50,10 @@ LEVELS.push({
   pal: Object.assign({}, VOID_PAL),
   ambient: { wind: 0.2, drone: 1.3, droneFreq: 34, windFreq: 160 },
   text: {
-    intro: 'Nothing. No door, no field, no line. Around you on the floor lies everything you ever held against it.<br>It is coming, from wherever it likes, and it knows what you are holding.',
+    intro: 'Where are you?',
     hint: 'Put them down. All of them.',
     objective: 'Put everything down.',
-    death: { default: 'You were still holding on.', away: 'You put it all down, and then you looked away.' },
+    death: { default: 'You were still holding on to something.', away: 'It craves your fear.' },
     win: '',
     fragment: '',
   },

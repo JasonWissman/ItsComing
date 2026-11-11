@@ -27,11 +27,11 @@ LEVELS.push({
   ambient: { wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 },
   weather: { kind: 'rain', density: 0.45, wind: 0.25, fogRoll: { period: 37, depth: 0.35, phase: 1 } },
   text: {
-    intro: 'The water door has been open all night, and the water has not been still.<br>Something is swimming in toward the boathouse. It goes under for a while, and when it comes up it is closer.',
+    intro: 'Something is in the water.',
     hint: 'Unlock the winch, put the handle on and crank the water door down; then shut the side door and bar it.',
     objective: 'Shut both ways in: crank the water door down, and shut and bar the side door.',
-    death: { default: 'It came up over the sill with its hand first.', reached: 'The door was not down. It came up under it.', side: 'The bar was not across. It came in with the door.' },
-    win: 'It threw itself at the slats until the tide turned, and they held. When you looked again the water was flat all the way out.',
+    death: { default: 'It splashed into the boathouse and pulled you under.', reached: 'It came through the main opening, and pulled you down.', side: 'It came in the side, and pulled you under.' },
+    win: 'It threw itself at the doors, but they held.',
     fragment: 'Your knees were wet until noon. Nothing else in the house was.',
   },
   // the thing swims: its feet are at the water line, a little below the deck

@@ -209,9 +209,9 @@ Object.assign(ICONS, {
     lights: [{ x: -0.12, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
     startInv: ['journal'],
     text: {
-      intro: 'It has rained since the last bus, and the phone booth on the corner is the only dry place on the street.<br>Someone in a long coat is walking toward it from a long way off, in step, swinging a lantern. You have seen him before. The last time, you wrote something down.',
-      death: { default: 'He came through the glass as if it were rain.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.', nocoin: 'You were still pressing the keys of a phone that would not dial when he came through the glass.' },
-      win: 'Someone picked up and said your name, once, quietly. Then headlights came through the rain and a car drew up at the curb, its back door swinging open. He had stopped in the street, in the lights, and he stood there while you got in. When you looked back he had turned around and was walking away the way he had come.',
+      intro: 'You missed the bus, and you don\'t remember who to call for help.',
+      death: { default: 'He came into the booth.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.', nocoin: 'The phone would not operate without a coin.' },
+      win: 'A mysterious car came for you, just in time.',
       fragment: 'The number is still in the notebook, in your own handwriting. You do not remember writing it down, and you have not crossed it out.',
     },
     // two streets, each seen whole through a pane of the booth: up the main street through the door, and along the pavement

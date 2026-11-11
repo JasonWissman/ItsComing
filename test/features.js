@@ -325,7 +325,7 @@ const hoverHit = lookFor;
       const dir = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; new Function('dir', cam)(dir); G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG;
       G.L.creature.u = 0.985; G.step(0.05, 400);
     }, cam);
-    check(await page.evaluate(() => G.inv.length === 0 && G.state === 'dead' && /looked away/.test(G.deathScreen.text) && !G.L.s.ending), 'empty-handed but ' + how + ' as it reaches you is a death, and the line says so');
+    check(await page.evaluate(() => G.inv.length === 0 && G.state === 'dead' && /craves your fear/.test(G.deathScreen.text) && !G.L.s.ending), 'empty-handed but ' + how + ' as it reaches you is a death, and the line says so');
   }
   await T.open(page, 'level=13&go&seed=1&nofr');
   const faced = await page.evaluate(() => {

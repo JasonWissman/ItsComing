@@ -17,11 +17,11 @@ LEVELS.push({
   ambient: { wind: 0.15, drone: 0.9, droneFreq: 38, windFreq: 200 },
   lights: [{ x: 3.4, y: 2.3, z: 1.6, r: 6, i: 0.28, color: [150, 170, 230], cone: { x: -1, y: -0.35, z: -0.2, deg: 36 } }],
   text: {
-    intro: 'You are in bed. You have been awake for a while. So has it.',
+    intro: 'You woke up suddenly.',
     hint: 'The lamp is dead; there is a bulb in the drawer. Light slows it. Then hold the covers until they are all the way up.',
     objective: 'Get the lamp on. Pull the covers up.',
-    death: { default: 'It leaned down over the bed and its face was the only thing in the room.' },
-    win: 'It came to the bed and pulled at the covers three times. They held. Then the light came grey through them, and it was gone.',
+    death: { default: 'It leaned in closer until its face was the only thing you could see.' },
+    win: 'It pulled at the covers, but you were stronger.',
     fragment: 'The covers were pulled loose at the foot of the bed in the morning, as if something had tried them.',
   },
   lanes: [

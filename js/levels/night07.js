@@ -47,11 +47,11 @@ LEVELS.push({
   ambient: { wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 },
   weather: { kind: 'rain', density: 1.0, wind: 0.8, lightning: [7, 15] },
   text: {
-    intro: 'The lamp went out an hour ago. Since then something has been climbing the outside of the tower.<br>You can hear it when you are not looking. Look over the rail.',
+    intro: 'The lighthouse has gone dark. You hear something, and look down over the rail.',
     hint: 'The bulb in the big lamp behind you has blown, and so has the fuse. Put the spare bulb in, change the fuse (there is a new one in the toolbox), then turn the crank until the light goes round.',
     objective: 'New bulb in the lamp. New fuse in the fuse box. Turn the crank.',
-    death: { default: 'It came over the rail with its face already turned up to you.' },
-    win: 'The beam went round and round. The first time it came past, the thing slid down the wet stone; the second time, it let go and fell. In the morning it was still in the water, looking up.',
+    death: { default: 'It came over the rail and grabbed you.' },
+    win: 'It fell, and you haven\'t seen it again.',
     fragment: 'There were scratches on the wardrobe door in the morning, high up, where nobody could reach.',
   },
   lanes: [

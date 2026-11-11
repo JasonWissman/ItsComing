@@ -36,7 +36,7 @@ const { check, st, face, findHit, clickAt, lookForAndClick } = T;
   await page.evaluate(() => { G.L.creature.u = 0.996; });
   await page.waitForTimeout(3400);
   s = await st(page); check(s.state === 'dead', 'caught -> dead overlay (state ' + s.state + ')');
-  check(await page.evaluate(() => document.querySelector('#overlay .intro').textContent.includes('boards')), 'death line comes from the night text');
+  check(await page.evaluate(() => document.querySelector('#overlay .intro').textContent.includes('open door')), 'death line comes from the night text');
   await page.mouse.click(640, 380); await page.waitForTimeout(400);
   s = await st(page); check(s.state === 'play' && s.level === 0 && s.dist > 100, 'retry restarts night 1 fresh');
 
