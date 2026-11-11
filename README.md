@@ -275,7 +275,7 @@ surviving a night leaves a fragment, one odd sentence, collected on the Nights
 screen. Finishing the last night ends in that meadow; a click, key, tap or A there fades
 the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme.
 
-Each night is a little different every time it loads: every item has several
+Each night is a little different every time it loads, and trying a night again never brings it the same way twice in a row: every item has several
 places it might be, the creature's starting distance and pace vary slightly,
 and the car takes a different number of tries to start. Some pause, some lurch, one only moves when unseen.
 Progress is saved in `localStorage`; the title screen offers to continue from

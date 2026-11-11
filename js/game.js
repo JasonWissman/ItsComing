@@ -14,7 +14,7 @@ const G = {
   inv: [], active: 0, hover: null, mouse: { x: -1, y: -1 }, holding: null, throwing: null,
   t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, white: 0, whiteTarget: 0, danger: 0,
   hb: { next: 0, last: -10 }, toastT: 0, lastToast: { msg: '', t: -10 }, invSig: '', debug: false, paused: false,
-  difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
+  difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, lastLane: {}, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
@@ -42,8 +42,13 @@ function pickLane(def, diff, L) {
   if (n === 1) return 0;
   const mode = def.laneMode || diff.lane;
   if (mode === 'default') { const d = L.lanes.findIndex(l => l.default); return d >= 0 ? d : 0; }
-  const pool = L.lanes.filter(l => !l.noSwitch).map(l => l.idx);   // a lure or go-round destination is never where it starts
-  return pool.length ? pool[Math.floor(laneRoll(L, mode, 0) * pool.length)] : 0;
+  let pool = L.lanes.filter(l => !l.noSwitch).map(l => l.idx);   // a lure or go-round destination is never where it starts
+  // trying the same night again, it comes another way than it did last time, so a retry is not a replay
+  const last = G.lastLane[def.id];
+  if (mode !== 'seeded' && pool.length > 1 && last !== undefined) pool = pool.filter(k => k !== last);
+  const k = pool.length ? pool[Math.floor(laneRoll(L, mode, 0) * pool.length)] : 0;
+  G.lastLane[def.id] = k;
+  return k;
 }
 function makeCreature(L, cd, k) {
   const CR = CREATURES[cd.type];
