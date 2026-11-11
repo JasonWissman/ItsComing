@@ -583,17 +583,15 @@ const R = (() => {
   // as the view turns) and up the card, which leans from lying flat (or standing) just far enough that the line of sight
   // meets it at CARD_MIN or more
   const CARD_MIN = 50 * DEG;
-  // (within FACE_MAX of where you are looking it faces the eye exactly and does not turn as the view turns; only out at the
-  // very edge of a wide view, where a thing fixed in the world would be smeared across it, is it held to FACE_MAX)
-  const FACE_MAX = 40 * DEG;
+  // (always square to the line from the eye, wherever it is in the view: it never turns as the view turns)
   function towardEye(x, z) {
-    const r = Math.atan2(x - ox, z - oz), a = yaw + clamp(wrapPi(r - yaw), -FACE_MAX, FACE_MAX);
+    const a = Math.atan2(x - ox, z - oz);
     return [Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a)];
   }
-  function cardAxes(x, y, z, flat, alongView) {
+  function cardAxes(x, y, z, flat) {
     const e = Math.atan2(eyeH + oy - y, Math.hypot(x - ox, z - oz));   // how far below the eye it sits, as an angle
     const phi = clamp(flat ? 0 : Math.PI / 2, CARD_MIN - e, Math.PI - CARD_MIN - e);
-    const c = Math.cos(phi), t = alongView ? [cosY, -sinY, sinY, cosY] : towardEye(x, z);
+    const c = Math.cos(phi), t = towardEye(x, z);
     return [t[0], t[1], c * t[2], Math.sin(phi), c * t[3]];
   }
   // glow: draw only its glow (drawGlows), with no hit area
@@ -613,21 +611,18 @@ const R = (() => {
       if (p.card) {
         // behind you (only in front of the lens at all because the view is tipped down): not drawn
         if (Math.abs(wrapPi(Math.atan2(p.x - ox, p.z - oz) - yaw)) > 100 * DEG) { if (onRect) onRect(null); return; }
+        // well off the side of the view, a thing fixed in the world would only be smeared back across it: not drawn
+        if (b[0] < -0.2 * W || b[0] > 1.2 * W) { if (onRect) onRect(null); return; }
         const c = cardAxes(p.x, p.y, p.z, p.flat);
         rx = c[0]; rz = c[1]; fx = c[2]; fy = c[3]; fz = c[4];
-        // close by and off to the side, a card square to the eye would run one end in at the camera: that one card is
-        // drawn square to the view instead (it is then at the very edge of the view, where nothing is looked at)
-        const e0 = toCam(p.x - rx * p.w / 2, p.y, p.z - rz * p.w / 2), e1 = toCam(p.x + rx * p.w / 2, p.y, p.z + rz * p.w / 2);
-        if (Math.min(e0[2], e1[2]) < base[2] * 0.85) {
-          const v = cardAxes(p.x, p.y, p.z, p.flat, true);
-          rx = v[0]; rz = v[1]; fx = v[2]; fy = v[3]; fz = v[4];
-        }
       }
-      const cu = toCam(p.x + rx * p.w, p.y, p.z + rz * p.w);
+      // across it is measured end to end (its two ends seen in perspective), so a card off to the side of a wide view is
+      // drawn the width it really spans there and not stretched toward the nearer end
+      const e0 = toCam(p.x - rx * p.w / 2, p.y, p.z - rz * p.w / 2), e1 = toCam(p.x + rx * p.w / 2, p.y, p.z + rz * p.w / 2);
       const cv = toCam(p.x + fx * p.h, p.y + fy * p.h, p.z + fz * p.h);
-      if (cu[2] < NEAR || cv[2] < NEAR) { if (onRect) onRect(null); return; }
-      const pu = proj(cu), pv = proj(cv);
-      const ax = (pu[0] - b[0]) / p.w, ay = (pu[1] - b[1]) / p.w;   // screen delta per meter along u
+      if (Math.min(e0[2], e1[2], cv[2]) < Math.max(NEAR, base[2] * 0.35)) { if (onRect) onRect(null); return; }
+      const p0 = proj(e0), p1 = proj(e1), pv = proj(cv);
+      const ax = (p1[0] - p0[0]) / p.w, ay = (p1[1] - p0[1]) / p.w;   // screen delta per meter along u
       let bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
       // a card is fixed in the world, facing where you stand, so it is drawn in plain perspective wherever it is in the view
       if (p.card) {
