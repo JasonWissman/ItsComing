@@ -934,7 +934,7 @@ function render() {
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);
   }
-  R.hover = G.hover ? G.hover.ref : L.highlight ? L.highlight() : null;   // (a night may light a thing chosen another way: the phone's keys from a gamepad)
+  R.hover = G.hover ? (G.hover.kind === 'item' ? G.hover.ref : null) : L.highlight ? L.highlight() : null;   // only what you can pick up glows: doors, gates and the like get the pointer alone   // (a night may light a thing chosen another way: the phone's keys from a gamepad)
   R.flush();
   const S = SAVE.data.settings;
   R.post({
