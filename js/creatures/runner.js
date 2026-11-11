@@ -85,6 +85,37 @@ CREATURES.runner = {
     const near = clamp((c.dist - 3) / 12, 0, 1);
     return Math.tan(this.ang(c)) * c.dist * near + Math.sin(c.t * 0.85) * 1.1 * clamp((c.dist - 4) / 10, 0, 1) * c.weave;
   },
+  // Hit, its body twitches: small sharp jerks, each a kick that comes in a frame or two and settles at once, at odd moments
+  // and on each part of it apart (0 its trunk, 1 and 2 its limbs on the left and right, 3 its head, 4 and 5 the arrows in
+  // it, which go with the trunk and shake on their own), the arrows going with the body they are in. twitch(c) is how
+  // hard, 0..1: a little while it is up and coming on wounded, more while it is down from the first hit, and lying dead
+  // hardest as it lands, fewer and weaker jerks after that, dying away over a few seconds. Reduced motion: a small part of
+  // it. jerks(c) is each part's, about -1..1 at the most.
+  twitch(c) {
+    let k = 0;
+    if (c.dead) { const e = (c.deadT || 0) - 0.85; k = e < 0 ? 0.8 : Math.exp(-e / 1.1); }
+    else if (c.wounded) k = c.mode === 'stumble' ? 0.8 : 0.35;
+    return k * (SAVE.data.settings.reducedMotion ? 0.15 : 1) * (1 - (c.lunge || 0));
+  },
+  jerks(c) {
+    const k = this.twitch(c), t = c.t, out = [0, 0, 0, 0, 0, 0];
+    if (k <= 0) return out;
+    const live = Math.min(1, k / 0.8);   // as it weakens there are fewer of them
+    for (let j = 0; j < 6; j++) {
+      const rate = 2.6 + (j % 3) * 0.55, o = j * 0.37, n = Math.floor(t * rate + o);
+      let v = 0;
+      for (let m = n - 2; m <= n; m++) {   // one chance of a kick in each slot of 1/rate seconds; the last few are still settling
+        const r = q => { const x = Math.sin(m * 12.9898 + j * 78.233 + q * 37.719) * 43758.5453; return x - Math.floor(x); };
+        if (r(0) > 0.3 + 0.5 * live) continue;
+        const e = t - (m + r(1) - o) / rate;
+        if (e > 0) v += (r(2) < 0.5 ? -1 : 1) * (0.55 + 0.45 * r(3)) * Math.exp(-e * 8) * (1 - Math.exp(-e * 70));
+      }
+      out[j] = v * 1.45 * k;   // (the kick tops out at about seven tenths)
+    }
+    return out;
+  },
+  // turned by a about (x, y)
+  about(ctx, x, y, a) { ctx.translate(x, y); ctx.rotate(a); ctx.translate(-x, -y); },
   draw(ctx, c, P) {
     const g = c.gait, t = c.t;
     const near = clamp(1 - c.dist / 20, 0, 1);
@@ -98,12 +129,20 @@ CREATURES.runner = {
       const k = clamp((c.deadT || 0) / 0.85, 0, 1);
       if (k < 1) { this.drawFall(ctx, c, P, k); return; }
       // lying face-up in the snow, the arrows standing up out of it, its head the way it fell
+      // (twitching: the trunk jerks up off the snow and back, the arm and the leg kick, the head knocks, the arrows go with it)
       if ((c.latHold || 0) >= 0) ctx.scale(-1, 1);
+      const J = this.jerks(c);
+      ctx.save(); ctx.translate(0, Math.abs(J[0]) * 0.06); this.about(ctx, 0, 0.12, J[0] * 0.07);
       P_ell(ctx, 0, 0.16, 0.95, 0.15, rags);
-      P_line(ctx, -0.6, 0.2, -0.9, 0.45, 0.07, rags); P_line(ctx, 0.7, 0.18, 0.95, 0.05, 0.07, rags);
-      P_ell(ctx, -0.95, 0.2, 0.16, 0.14, skin);
+      const ax = -0.6 + Math.cos(2.45 + J[1] * 0.6) * 0.39, ay = 0.2 + Math.sin(2.45 + J[1] * 0.6) * 0.39;   // the arm flung out above its head
+      P_line(ctx, -0.6, 0.2, ax, ay, 0.07, rags);
+      fingers(ctx, ax, ay, 2.45 + J[1] * 0.8, 0.3 + Math.abs(J[1]) * 0.25, 0.11, 0.018, skin);
+      const lx = 0.7 + Math.cos(-0.48 + J[2] * 0.6) * 0.28, ly = 0.18 + Math.sin(-0.48 + J[2] * 0.6) * 0.28;
+      P_line(ctx, 0.7, 0.18, lx, ly, 0.07, rags);
+      P_ell(ctx, -0.95 - Math.abs(J[3]) * 0.03, 0.2 + J[3] * 0.06, 0.16, 0.14, skin, J[3] * 0.2);
       P_ell(ctx, -0.5, 0.06, 0.55, 0.06, blood);
-      c.arrows.forEach((a, i) => this.arrow(ctx, P, -0.3 + i * 0.32, 0.24, i));
+      c.arrows.forEach((a, i) => this.arrow(ctx, P, -0.3 + i * 0.32, 0.24, i, J[4 + i % 2] * 0.3));
+      ctx.restore();
       return;
     }
     if (c.mode === 'dart' && !lunge) { this.drawRun(ctx, c, P); return; }
@@ -111,21 +150,25 @@ CREATURES.runner = {
     if (crouch && !lunge) {
       const stumble = c.mode === 'stumble';
       const lift = smoothstep(Math.min(1, Math.max(0, c.modeT) / 0.4));
+      const J = this.jerks(c);   // hit, it twitches: the knees and elbows kick out, the back and the arrows in it jerk, the head knocks
       // on all fours, head raised toward you
       for (const s of [-1, 1]) {
-        P_limb(ctx, [[s * 0.22, 0.62], [s * 0.6, 0.55], [s * 0.72, 0.02]], 0.08, rags);
-        P_limb(ctx, [[s * 0.25, 0.75], [s * 0.48, 0.4], [s * 0.42, 0.02]], 0.07, skin);
-        fingers(ctx, s * 0.42, 0.02, s > 0 ? 0.3 : Math.PI - 0.3, 0.35, 0.14, 0.02, skin);
+        const js = J[s > 0 ? 2 : 1];
+        P_limb(ctx, [[s * 0.22, 0.62], [s * (0.6 + js * 0.07), 0.55 + js * 0.05], [s * 0.72, 0.02]], 0.08, rags);
+        P_limb(ctx, [[s * 0.25, 0.75], [s * (0.48 - js * 0.08), 0.4 - js * 0.04], [s * 0.42, 0.02]], 0.07, skin);
+        fingers(ctx, s * 0.42, 0.02, (s > 0 ? 0.3 : Math.PI - 0.3) + s * js * 0.25, 0.35 + Math.abs(js) * 0.12, 0.14, 0.02, skin);
       }
+      ctx.save(); ctx.translate(0, Math.abs(J[0]) * 0.03); this.about(ctx, 0, 0.3, J[0] * 0.06);
       ctx.fillStyle = rags; ctx.beginPath(); ctx.moveTo(-0.34, 0.3); ctx.bezierCurveTo(-0.3, 1.0, 0.3, 1.0, 0.34, 0.3); ctx.closePath(); ctx.fill();
       if (stumble) P_ell(ctx, 0.1, 0.55, 0.14, 0.1, blood);
-      c.arrows.forEach((a, i) => this.arrow(ctx, P, i ? -0.19 : 0.2, 0.47 + i * 0.05, i));   // in its back either side of its raised head, which hid them
+      c.arrows.forEach((a, i) => this.arrow(ctx, P, i ? -0.19 : 0.2, 0.47 + i * 0.05, i, J[4 + i % 2] * 0.3));   // in its back either side of its raised head, which hid them
       const hy = 0.55 + lift * 0.22;
-      ctx.save(); ctx.translate(0, hy); ctx.rotate(Math.sin(t * 2.2) * 0.12);
+      ctx.save(); ctx.translate(0, hy); ctx.rotate(Math.sin(t * 2.2) * 0.12 + J[3] * 0.18);
       strands(ctx, 0, 0.1, 9, 0.36, black, 5, t);
       P_ell(ctx, 0, 0, 0.14, 0.17, skin);
       P_ell(ctx, -0.055, 0.03, 0.036, 0.04, black); P_ell(ctx, 0.055, 0.03, 0.036, 0.04, black);
       P_ell(ctx, 0, -0.1, 0.045, 0.06 + near * 0.03, black);
+      ctx.restore();
       ctx.restore();
       if (hurt) { ctx.globalAlpha = 0.5; P_ell(ctx, 0, 0.5, 0.9, 0.6, blood); ctx.globalAlpha = 1; }
       return;
@@ -134,6 +177,7 @@ CREATURES.runner = {
     const bob = Math.abs(Math.sin(g)) * 0.09 * (1 - lunge);
     const lean = 0.12 * (1 - lunge);
     const wounded = c.wounded ? 1 : 0;
+    const J = this.jerks(c);   // wounded, it twitches as it runs: its trunk, arms and head jerk, and the arrows in it
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? Math.PI : 0);
       const lift = Math.max(0, Math.sin(ph)) * 0.55 * (1 - lunge);
@@ -141,35 +185,38 @@ CREATURES.runner = {
       P_limb(ctx, [[hx, hy], [s * (0.2 + lift * 0.25), 0.55 + lift * 0.55], [s * (0.22 + lift * 0.1), lift * 0.65 + 0.03]], 0.085, rags);
       P_ell(ctx, s * (0.22 + lift * 0.1), lift * 0.65 + 0.03, 0.06, 0.04, skinD);
     }
-    // torso leaning at you
+    // torso leaning at you (and all above the hips with it, as it jerks)
+    ctx.save(); this.about(ctx, 0, 1.0 + bob, J[0] * 0.05);
     P_poly(ctx, [[-0.2, 0.95 + bob], [0.2, 0.95 + bob], [0.27 + lean, 1.6 + bob - wounded * 0.1], [-0.27 + lean, 1.6 + bob - wounded * 0.1]], rags);
     P_poly(ctx, [[-0.08, 1.0 + bob], [0.1, 1.05 + bob], [0.14, 1.5 + bob], [-0.05, 1.45 + bob]], ragsL);
     if (c.wounded) P_ell(ctx, 0.12, 1.25 + bob, 0.12, 0.14, blood);
-    c.arrows.forEach((a, i) => this.arrow(ctx, P, lean * 0.6 + 0.08 - i * 0.17, 1.27 + bob + i * 0.12, i));
+    c.arrows.forEach((a, i) => this.arrow(ctx, P, lean * 0.6 + 0.08 - i * 0.17, 1.27 + bob + i * 0.12, i, J[4 + i % 2] * 0.3));
     // arms: pumping wildly, elbows out; reaching when lunging
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? 0 : Math.PI);
       const sw = Math.sin(ph) * (1 - lunge);
       const sx = s * 0.25 + lean, sy = 1.55 + bob;
-      const ex = s * lerp(0.42, 0.5, lunge) + sw * 0.05, ey = lerp(1.2 + sw * 0.25, 1.45, lunge);
+      const js = J[s > 0 ? 2 : 1], ex = s * (lerp(0.42, 0.5, lunge) + js * 0.06) + sw * 0.05, ey = lerp(1.2 + sw * 0.25, 1.45, lunge) + js * 0.05;
       const hx = s * lerp(0.28, 0.3, lunge) + sw * 0.1, hy = lerp(1.35 + sw * 0.35, 1.35, lunge);
       P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.07, rags);
       P_ell(ctx, hx, hy, 0.045, 0.055, skin);
       fingers(ctx, hx, hy, lerp(-Math.PI / 2 + sw * 0.5, s > 0 ? Math.PI * 0.8 : Math.PI * 0.2, lunge), 0.3, 0.12 + lunge * 0.06, 0.018, skin);
     }
     // head: sockets and a slack jaw
-    ctx.save(); ctx.translate(lean * 0.8, 1.6 + bob); ctx.rotate(Math.sin(g * 0.5) * 0.08 * (1 - lunge));
+    ctx.save(); ctx.translate(lean * 0.8, 1.6 + bob); ctx.rotate(Math.sin(g * 0.5) * 0.08 * (1 - lunge) + J[3] * 0.15);
     P_line(ctx, 0, 0, 0, 0.08, 0.08, skin);
     strands(ctx, 0, 0.3, 9, 0.34, black, 5, t);
     P_ell(ctx, 0, 0.22, 0.13, 0.16, skin);
     P_ell(ctx, -0.052, 0.25, 0.036, 0.042, black); P_ell(ctx, 0.052, 0.25, 0.036, 0.042, black);
     P_ell(ctx, 0, 0.1, 0.045 + lunge * 0.01, 0.055 + near * 0.025 + lunge * 0.03, black);
     ctx.restore();
+    ctx.restore();
     if (hurt) { ctx.globalAlpha = 0.5; P_ell(ctx, 0, 1.1, 0.7, 0.9, blood); ctx.globalAlpha = 1; }
   },
   // an arrow in it, coming out toward you: a short stub of shaft, the two vanes and the nock (exaggerated a little, so it
-  // reads from the porch)
-  arrow(ctx, P, x, y, i) {
+  // reads from the porch); tilt turns it about where it goes in (shaken as the body it is in jerks)
+  arrow(ctx, P, x, y, i, tilt) {
+    if (tilt) { ctx.save(); this.about(ctx, x, y, tilt); this.arrow(ctx, P, x, y, i); ctx.restore(); return; }
     const s = i % 2 ? -1 : 1, ex = x + s * 0.09, ey = y + 0.2;
     P_line(ctx, x, y, ex, ey, 0.03, P.col([176, 142, 98]));
     P_poly(ctx, [[ex - s * 0.03, ey - 0.07], [ex + s * 0.05, ey - 0.02], [ex + s * 0.02, ey + 0.03]], P.col([178, 46, 38]));
@@ -207,7 +254,8 @@ CREATURES.runner = {
     // the torso, side on and bent far over, in its rags; a lighter tear down its back
     P_poly(ctx, [[hipX - 0.16, hipY - 0.06], [hipX + 0.12, hipY - 0.08], [sx + 0.14, sy - 0.02], [sx - 0.12, sy + 0.08]], rags);
     P_line(ctx, hipX - 0.08, hipY + 0.05, sx - 0.08, sy + 0.04, 0.05, ragsL);
-    (c.arrows || []).forEach((a, i) => this.arrow(ctx, P, lerp(hipX, sx, 0.55) - i * 0.12, lerp(hipY, sy, 0.55) + 0.05, i));
+    const J = this.jerks(c);   // wounded, the arrows in it shake as it twitches
+    (c.arrows || []).forEach((a, i) => this.arrow(ctx, P, lerp(hipX, sx, 0.55) - i * 0.12, lerp(hipY, sy, 0.55) + 0.05, i, J[4 + i % 2] * 0.3));
     limb(legs[0], false);
     // the neck and the head, thrust out ahead of the shoulders; the hair streams back behind it
     const nx = sx + Math.sin(lean + 0.45) * 0.14, ny = sy + Math.cos(lean + 0.45) * 0.14;

@@ -571,9 +571,9 @@ LEVELS.push({
     };
     // Its fingers, hooked over the edge of the board under the gap while it has hold of it: they come over onto this side
     // of the board, so they are drawn over it (the hand behind is the walker's own, in the gap). Long and black, the nails
-    // pale; the fingers lean in toward its face. side is +1 for the hand on the right of the view.
+    // blacker still; the fingers lean in toward its face. side is +1 for the hand on the right of the view.
     const grip = (ctx, P, side) => {
-      const body = P.col([6, 6, 10]), nail = P.col([92, 84, 88]);
+      const body = P.col([6, 6, 10]), nail = P.col([0, 0, 0]);
       for (let i = 0; i < 4; i++) {
         const x = side * (i - 1.5) * 0.026, len = [0.07, 0.085, 0.078, 0.056][i], lean = -side * 0.01;
         P_limb(ctx, [[x, 0.13], [x + lean * 0.4, 0.107], [x + lean, 0.1 - len]], 0.018, body);
