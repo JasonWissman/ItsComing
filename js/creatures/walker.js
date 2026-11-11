@@ -35,6 +35,16 @@ CREATURES.walker = {
     for (let i = 0; i < 14; i++) { const m = (lo + hi) / 2; if (this.stance(c, m, pk, bl, bob, raise).peak <= room) hi = m; else lo = m; }
     return hi;
   },
+  // its long fingers (as fingers() spreads them), the last of each one a black nail: blacker than the rest of it, which
+  // the light and the fog lift toward grey, so the hooked ends of them read as nails in every pose
+  claws(ctx, x, y, angle, spread, len, w, body, P) {
+    fingers(ctx, x, y, angle, spread, len, w, body);
+    const nail = P.col([0, 0, 0]);
+    for (let i = 0; i < 4; i++) {
+      const a = angle + (i - 1.5) * spread, l = len * ((i === 0 || i === 3) ? 0.82 : 1), ca = Math.cos(a), sa = Math.sin(a);
+      P_line(ctx, x + ca * l * 0.7, y + sa * l * 0.7, x + ca * l * 1.06, y + sa * l * 1.06, w * 1.05, nail);
+    }
+  },
   draw(ctx, c, P) {
     if (c.runPose || c.charge) { c.duck = 0; (c.runPose ? this.drawRun : this.drawCharge).call(this, ctx, c, P); return; }   // upright again after either
     const g = c.gait, t = c.t;
@@ -76,7 +86,7 @@ CREATURES.walker = {
       const hx = s * lerp(lerp(lerp(0.27, 0.4, raise), lerp(0.36, 0.42, lift), pk), 0.36, dk) + swing * 2, hy = st.handY(s);
       P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
       const ang = lerp(lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), lerp(s > 0 ? -Math.PI * 0.56 : -Math.PI * 0.44, s > 0 ? Math.PI * 0.42 : Math.PI * 0.58, lift), pk);
-      fingers(ctx, hx, hy, ang, lerp(lerp(0.16, 0.3, raise), lerp(0.1, 0.3, lift), pk), 0.17 + raise * 0.05, 0.018, body);
+      this.claws(ctx, hx, hy, ang, lerp(lerp(0.16, 0.3, raise), lerp(0.1, 0.3, lift), pk), 0.17 + raise * 0.05, 0.018, body, P);
     }
     // neck and head with a snapping tilt (ducking, the head is thrust out at you, low between the shoulders)
     const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0)) * (1 - 0.6 * dk);
@@ -138,7 +148,7 @@ CREATURES.walker = {
       const hx = s * lerp(0.27 - 0.13 * Math.max(0, fwd) + 0.03 * Math.max(0, -fwd), 0.42, reach), hy = lerp(ey - 0.52 * Math.cos(th + 1.6), top + 0.2, reach);
       P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
       const ang = lerp(Math.atan2(hy - ey, hx - ex) + s * 0.25, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, reach);
-      fingers(ctx, hx, hy, ang, lerp(0.14, 0.3, reach), lerp(0.08 + 0.09 * Math.abs(fwd), 0.22, reach), 0.018, body);   // pointing at you, the fingers are foreshortened too
+      this.claws(ctx, hx, hy, ang, lerp(0.14, 0.3, reach), lerp(0.08 + 0.09 * Math.abs(fwd), 0.22, reach), 0.018, body, P);   // pointing at you, the fingers are foreshortened too
     };
     for (const s of [-1, 1]) arm(s, false);
     P_poly(ctx, [[-0.14, hipY - 0.06], [0.14, hipY - 0.06], [0.22, top], [-0.22, top]], body);   // the torso, bent at you: shorter, and still far too narrow
@@ -177,7 +187,7 @@ CREATURES.walker = {
       const aa = -Math.sin(l.ph) * 1.0, ex = sx + Math.sin(aa) * upper, ey = sy - Math.cos(aa) * upper, fa = aa + 1.0;
       const hx = ex + Math.sin(fa) * fore, hy = ey - Math.cos(fa) * fore;
       P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
-      fingers(ctx, hx, hy, Math.atan2(hy - ey, hx - ex), 0.14, 0.17, 0.018, body);
+      this.claws(ctx, hx, hy, Math.atan2(hy - ey, hx - ex), 0.14, 0.17, 0.018, body, P);
     };
     limb(legs[1]);   // the far side first
     P_poly(ctx, [[hipX - 0.12, hipY - 0.05], [hipX + 0.1, hipY - 0.05], [sx + 0.13, sy], [sx - 0.15, sy - 0.02]], body);   // the torso, side on: still far too narrow

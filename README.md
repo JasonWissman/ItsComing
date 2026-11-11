@@ -145,6 +145,8 @@ some on the ground, so you have to turn and look down to find them.
    is (the further, the smaller it is to aim at). Let go before full and the arrow drops into
    the snow short of it; full but off it, it misses. A click looses nothing: the bow comes up
    and is let down again. The first hit drops it for a moment and the second puts it down.
+   Hit, its body twitches, small sharp jerks of its limbs and trunk, the arrows in it shaking with it; dead in the
+   snow, the jerks die away over a few seconds (with reduced motion, they are barely there).
    Drawn on, it may react: about one draw in three (a click that only lifts the bow does not count), it
    breaks sideways to a new place, running side on as it does in the tree line, and drops to watch
    from there, so the aim has to come after it; it does not do it twice within a few seconds, nor once
