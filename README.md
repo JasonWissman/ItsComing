@@ -289,24 +289,30 @@ some on the ground, so you have to turn and look down to find them.
     come up over your eyes and the rest happens under them, the cloth hanging in long folds:
     its steps to the bed, the shadow of its hand coming up from the foot of the bed onto the
     lamp-lit cloth, three hard pulls that the covers hold, and the light through them going grey.
-13. **The Void.** Everything you ever held against it lies around you, and you
-    start the night holding some of it, a thing in each hand. Holding anything enrages it.
-    Put it all down (each falls from your hand to the floor; reach for another with your hands
-    full and the full hand only goes toward it) and let it come, and face it
-    when it does: as it looms in the view lifts to its face.
+13. **The Void.** Your hands are empty, and everything you ever held against it lies
+    around you, within reach. It comes in a black hooded robe, nothing of its face to be
+    seen in the dark of the hood but two small pale eyes. Take up anything and it is
+    enraged: its eyes burn red, a snarling mouth opens under them, and it comes on in fits,
+    stopping dead, lurching, jerking aside, its head twitching. Holding anything when it
+    reaches you is a death. Put it all down again (each falls from your hand to the floor;
+    reach for another with your hands full and the full hand only goes toward it) and it
+    calms. Let it come, and face it when it does: as it looms in the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too. Faced
     empty-handed, it stops close in front of you and slowly reaches its open hands out to you,
     and its arms close round you, its hands over the top of the view. While it holds you its
-    face goes slowly through rage, anguish, fear, sorrow and calm until it is happy. Then it
-    lets you go and the dark opens into a green meadow in the sun (wild flowers, trees, clouds,
-    birdsong and a breeze), where it dances a little; the meadow stays as long as you like.
+    face comes up out of the dark of the hood and goes slowly through angry, neutral, angry,
+    confused, sad, neutral and content until it is happy. Then it lets you go and the dark
+    opens into a green meadow in the sun (wild flowers, trees, clouds, birdsong and a breeze),
+    where it dances a little. The view is yours again there: turn, look down and zoom as in
+    any night, for as long as you like.
 
 Creatures move faster when you are not looking at them, but otherwise they
 come at a steady pace, no faster at the end than at the start. A thread runs through the
 nights that the text never states: a
 clock ticks for the first ten seconds of each night from the same direction, and
 surviving a night leaves a fragment, one odd sentence, collected on the Nights
-screen. Finishing the last night ends in that meadow; a click, key, tap or A there fades
+screen. Finishing the last night ends in that meadow; a click, a key (other than those that
+turn, look and zoom), a tap of Use or A there fades
 the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme.
 
 Each night is a little different every time it loads, and trying a night again never brings it the same way twice in a row: every item has several
@@ -404,7 +410,9 @@ LEVELS.push({
   looks instead of at the thing; it may also return a `zoom`), `L.watchZoom()` (close the win camera in further),
   `L.watchPitch` (how far down the win camera may look), `L.watchUp` (how far up it may look: the last night, into its face),
   `L.onPress(e)` (a won night waiting on a click, key, tap or A; true when it took the press: the last night's meadow,
-  where a modifier, a chord or a function key, as for alt-tab or a screenshot, does not go on), `L.viewZoom()` (a zoom the view comes in to while playing:
+  where a modifier, a chord or a function key, as for alt-tab or a screenshot, does not go on), `L.lookFree()` (true while
+  a won night gives the view back: turning, looking and zooming by key, touch button or pad work as in play and are not
+  taken as the press; the last night's meadow), `L.viewZoom()` (a zoom the view comes in to while playing:
   the pay phone close up, or the notebook open on its shelf), `L.padDir(dir)` and `L.padUse()` (a night may take the gamepad's d-pad and A before the
   game does), `L.overlay(ctx, W, H)` (a night's own picture over the view: the covers over your eyes), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
   and lights flagged `attach: true` ride with it, everything else slides past; the night 2 car drives off this way),
