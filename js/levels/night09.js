@@ -950,7 +950,7 @@ Object.assign(ICONS, {
         if (!off) R.add(handset);
         if (away && away !== true) R.add(away);
         for (const c of off ? cords.off : cords.on) R.add(c);
-        R.add(nbSprite);
+        nbSprite.glowOf = notebook; R.add(nbSprite);
         for (const k of keys) R.add(k.spr);
         R.add(lcd); R.add(lip);
         // rain on the outside of the glass: thin runs, each sliding down at its own pace with a bead of water at its foot
