@@ -352,6 +352,12 @@ LEVELS.push({
   for anything you use things on; `mkContainer(L, { opens, yields, spot })` for drawers and boxes;
   `mkRecipe(L, { parts, result })` for combining two held items. Items can be `tool` (never
   consumed), `throwable`, or `decoy`.
+- **Hover glow**: a target is only a hit area; pointed at, it glows in the shape of the things it is drawn with, as an
+  item glows in its own. `glowWith(t, props)` names them (`SC.grab(L, fn)` returns the props `fn` builds); a per-frame
+  piece takes `glowOf: t`, or everything added between `R.glowAs(t)` and `R.glowAs(null)` belongs to `t`. A piece with
+  `hoverOnly` is drawn only while its target is pointed at (night 7's blown fuse, which the fuse box otherwise draws).
+  A container glows in its box by itself. `L.highlight()` can light a target chosen another way (night 9's keypad from
+  a gamepad). Nothing is ever outlined with a box.
 - **Difficulty**: there is one profile, `L.diff` (Nightmare). `L.tier(normal, nightmare)` and `L.nightmare` remain,
   always answering for Nightmare, so a second, easier profile could come back without touching the nights.
 - **Hooks** set inside `build`: `L.isWon()`, `L.barrierDist`, `L.floor = { poly, y }` (where

@@ -150,9 +150,9 @@ LEVELS.push({
     for (const id of lanterns) mkItem(L, id, 'Lantern', lanternSpots, { w: 0.3, h: 0.44, icon: 'lantern', held: { size: 0.3 } });
     // the two ways in: each takes one pour of salt, and a line once poured is done. Each is the pale slab across its way
     // (slab: x0, z0, x1, z1), built here, and the night gives it its own hit area, an invisible quad the size of the slab,
-    // so the outline on hover is the slab seen from any side (a flat target's default box turns with the view and sat half
-    // off the slab); hidden keeps that default box out. A poured line runs along the middle of the slab, the long way
-    // (line: its middle, its direction and its length).
+    // so what you point at is the slab seen from any side (a flat target's default box turns with the view and sat half
+    // off the slab); hidden keeps that default box out. Pointed at, the slab glows, and the salt on it. A poured line runs
+    // along the middle of the slab, the long way (line: its middle, its direction and its length).
     const corners = (x0, z0, x1, z1) => (Math.hypot(x0, z0) + Math.hypot(x1, z0) + Math.hypot(x1, z1) + Math.hypot(x0, z1)) / 4;   // a floor quad's sort distance
     const saltLine = (cx, cz, ux, uz, len, sd, seed) => {   // one flat band along (ux, uz), its edges a little uneven, as poured
       const r = mulberry32(seed), nx = -uz, nz = ux, N = 10, top = [], bot = [];
@@ -165,7 +165,7 @@ LEVELS.push({
     };
     const mkThreshold = (id, name, slab, line) => {
       const [x0, z0, x1, z1] = slab, sd = corners(x0, z0, x1, z1);
-      SC.floorQ(L, x0, z0, x1, z1, 0.015, [84, 80, 74]);
+      const slabArt = SC.grab(L, () => SC.floorQ(L, x0, z0, x1, z1, 0.015, [84, 80, 74]));
       const t = mkTarget(L, {
         id, name, x: (x0 + x1) / 2, y: 0, z: (z0 + z1) / 2, w: x1 - x0, h: z1 - z0, flat: true, hidden: true, accepts: ['salt', 'sugar'],
         hint() { return t.done ? 'A line of salt across it. It will hold.' : 'Bare stone. A line of salt would go across it.'; },
@@ -183,6 +183,7 @@ LEVELS.push({
       t.hitQuad = SC.mkQuad(L, [x0, 0.02, z0], [x1, 0.02, z0], [x1, 0.02, z1], [x0, 0.02, z1], [255, 240, 210], { layer: 0, sortDist: sd - 0.02, invisible: true, hit: { kind: 'target', ref: t } });
       t.lift = SC.mkQuad(L, [x0, 0.02, z0], [x1, 0.02, z0], [x1, 0.02, z1], [x0, 0.02, z1], [255, 240, 210], { layer: 0, sortDist: sd - 0.005, alpha: 0.1, noFog: true, noLight: true });   // the slab lifts a little under the cursor
       t.salt = saltLine(line[0], line[1], line[2], line[3], line[4], sd - 0.01, id.length * 7 + 3);
+      glowWith(t, slabArt.concat(t.salt));
       return t;
     };
     const thr = mkThreshold('threshold', 'Doorway', [-1.15, 1.58, 1.15, 1.94], [0, 1.77, 1, 0, 2.16]);
@@ -235,6 +236,7 @@ LEVELS.push({
         ctx.strokeStyle = c; ctx.lineWidth = 0.011; ctx.beginPath(); ctx.arc(0, 0.172, 0.017, 0, TAU); ctx.stroke();
         P_limb(ctx, [[0, 0.155], [0, 0.05], [0.01, 0.012], [0.034, 0.0], [0.056, 0.014], [0.062, 0.05]], 0.021, c);
       }, { sortDist: d - 0.2 });
+      glowWith(h, [h.lanternSprite, h.hookSprite]);
     }
     L.dynamic = () => {
       for (const t of [thr, thrE]) {

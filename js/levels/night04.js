@@ -438,6 +438,7 @@ LEVELS.push({
         const a = g.angle + jolt, sg = g.sign, dx = sg * Math.cos(a), dz = sg * Math.sin(a), hx = -1.05 * sg, hz = 2.6 * sg;
         const at = u => [hx + dx * u, hz + dz * u];
         if (L.won && s.after && g === gateOf(L.creature.lane)) holdBars(L.creature, at);
+        R.glowAs(g);   // all of it, the chain and the lock too: pointed at, the gate glows in its own bars
         const bar = (u, y0, y1, w) => { const p = at(u - w), q = at(u + w); R.add(SC.mkWallV(L, p[0], p[1], q[0], q[1], y0 + hop, y1 + hop, ironC)); };
         const rail = (u0, u1, y, w) => { const p = at(u0), q = at(u1); R.add(SC.mkWallV(L, p[0], p[1], q[0], q[1], y - w + hop, y + w + hop, ironC)); };
         bar(0.025, 0.04, archY(0.025), 0.025); bar(LEN - 0.025, 0.04, archY(LEN - 0.025), 0.025);   // the stiles
@@ -462,6 +463,7 @@ LEVELS.push({
         const lift = Math.abs(jolt) * 1.4 + hop * 1.5;
         if (g.chained) R.add(iconSprite(L, 'gatechain', 1.0 * sg, 0.5 + lift, 2.3 * sg, 0.5, 0.75));
         if (g.locked) R.add(iconSprite(L, 'padlock', 1.01 * sg, 0.36 + lift * 1.4, 2.28 * sg, 0.2, 0.24));
+        R.glowAs(null);
       }
     };
     // ---- how it ends ----

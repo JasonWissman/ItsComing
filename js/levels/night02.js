@@ -254,7 +254,7 @@ LEVELS.push({
       },
     });
     // the gas pedal, in your own footwell
-    mkTarget(L, {
+    const gas = mkTarget(L, {
       id: 'gas', name: 'Gas pedal', x: PX, y: PY, z: PZ, w: PW, h: PH, attach: true,
       hint() { return s.started ? (s.gear === 'P' ? 'It is in park.' : 'Go.') : 'The engine is not running.'; },
       onClick() {
@@ -406,6 +406,7 @@ LEVELS.push({
       P_ell(ctx, 0, 0.028, 0.006, 0.006, P.col(scalec(green, 0.5)));
       ctx.restore();
     }, { attach: true, sortDist: 0.45 });
+    glowWith(ign, [lock]);
     // the dials behind the wheel light up once the engine runs, their needles up off the stops: the speed, the revs (which
     // jump when you press the gas) and the fuel
     const gaugeDist = x => (Math.hypot(x - 0.035, 0.535) + Math.hypot(x + 0.035, 0.535)) / 2;   // as the dial under it is sorted
@@ -469,7 +470,7 @@ LEVELS.push({
         });
         P_line(ctx, lx, 0.068, lx * 0.6, 0.24, 0.022, P.col([46, 44, 48]));
         P_ell(ctx, lx * 0.6, 0.25, 0.034, 0.03, P.col([74, 70, 74])); P_ell(ctx, lx * 0.6 - 0.008, 0.258, 0.018, 0.012, P.col([104, 100, 106]));   // the knob, lit on top
-      }, { attach: true, sortDist: Math.hypot(GX, GZ) + 0.002 }));   // just before its own hover outline, which then shows round it
+      }, { attach: true, sortDist: Math.hypot(GX, GZ) + 0.002, glowOf: gear }));
       // the gas pedal: a long rubber pad in a metal rim, ribbed across, hung on its arm from under the dash; it goes down
       // while you press it, and stays down once the car is away
       const dn = pedalDown() + (s.gone || s.floored ? 0.025 : 0), y0 = 0.012 - dn * 0.5;
@@ -479,7 +480,7 @@ LEVELS.push({
         P_rect(ctx, -0.036, y0, 0.072, 0.15, rim); P_ell(ctx, 0, y0, 0.036, 0.012, rim); P_ell(ctx, 0, y0 + 0.15, 0.036, 0.012, rim);
         P_rect(ctx, -0.029, y0 + 0.004, 0.058, 0.142, pad); P_ell(ctx, 0, y0 + 0.004, 0.029, 0.009, pad); P_ell(ctx, 0, y0 + 0.146, 0.029, 0.009, pad);
         for (let i = 0; i < 6; i++) P_rect(ctx, -0.022, y0 + 0.018 + i * 0.023, 0.044, 0.008, rib);   // its ribs
-      }, { attach: true, sortDist: Math.hypot(PX, PZ) + 0.002 }));
+      }, { attach: true, sortDist: Math.hypot(PX, PZ) + 0.002, glowOf: gas }));
     };
     // ---- your foot on the gas ----
     // How far down the pedal is: pressed it goes down under your foot and comes back up; with the engine dead it goes all

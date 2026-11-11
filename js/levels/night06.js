@@ -113,7 +113,7 @@ LEVELS.push({
     // little into the room still came out further from the eye than the leaf's middle, and the leaf hid it), and draw the
     // cradle round the bar: the plate and the arms behind it, the strap in front
     const cradle = [96, 96, 104];
-    for (const zc of [-0.74, 0.74]) {
+    const brackets = SC.grab(L, () => { for (const zc of [-0.74, 0.74]) {
       const z0 = zc - 0.08, z1 = zc + 0.08, zn = Math.abs(z0) < Math.abs(z1) ? z0 : z1, zf = zn === z0 ? z1 : z0;   // the arm nearer the door, the far one
       SC.wallV(L, 2.37, z0, 2.37, z1, 0.9, 1.26, [50, 50, 56], { sortDist: 2.3 });
       SC.wallV(L, 2.366, zc - 0.014, 2.366, zc + 0.014, 1.212, 1.24, [120, 120, 126], { sortDist: 2.29 }); // a bolt head
@@ -121,7 +121,7 @@ LEVELS.push({
       SC.wallV(L, 2.2, zn, 2.37, zn, 0.9, 1.1, scalec(cradle, 0.8), { sortDist: 2.25 });
       SC.wallV(L, 2.2, z0, 2.2, z1, 0.9, 0.95, cradle, { sortDist: 2.1 });                                            // the strap across, and the arms' ends
       for (const z of [z0, z1]) SC.wallV(L, 2.2, z - Math.sign(z - zc) * 0.025, 2.2, z, 0.9, 1.1, cradle, { sortDist: 2.1 });
-    }
+    } });
     // items
     const decoy = !!L.diff.decoys;
     mkItem(L, 'handle', 'Winch handle', [
@@ -219,7 +219,7 @@ LEVELS.push({
     // unlocked, the chain hangs loose off the side, the padlock open on it and the key's float hanging from the padlock; with
     // the handle on, the crank turns the wheel round a step at every turn. What you click is the drawing: the same size and place
     const need = 7, WS = 0.62, WX = 1.95, WY = 0.9, WZ = 2.5;
-    SC.sprite(L, WX, WY, WZ, WS, WS, (ctx, P) => { ctx.scale(WS, WS); drawWinch(ctx, P); });
+    const winchArt = SC.sprite(L, WX, WY, WZ, WS, WS, (ctx, P) => { ctx.scale(WS, WS); drawWinch(ctx, P); });
     // Tried before it will go, the winch answers in its own iron. A turn forced against the chain (the handle put on the
     // padlocked winch, or the bar knocked against it) snaps the chain taut: the padlock jumps on it and the wheel rocks a
     // little and back. A hand on the padlock rattles it on its chain. A hand on the wheel with no handle moves it a hair
@@ -358,9 +358,11 @@ LEVELS.push({
         s.sealedE = true; sd.done = true; sd.accepts = []; AUDIO.sfx('bar'); G.say('The bar is across.', 'The bar is across the side door.'); return true;
       },
     });
+    glowWith(winch, [winchArt]);
     // the brackets are part of the door: clicking either does what clicking the door does (shuts it, or puts the bar
-    // across), and pointing at one lights the door as the target, the brackets with it. An invisible face over each cradle,
-    // a little proud of it, drawn after it so the outline it gets when lit shows over the iron
+    // across), and pointing at one lights the door as the target, the brackets with it: an invisible face over each
+    // cradle, a little proud of it (the leaf and the bar glow with them, L.dynamic)
+    glowWith(sd, brackets);
     const grips = [-0.74, 0.74].map(zc => SC.mkWallV(L, 2.2, zc - 0.12, 2.2, zc + 0.12, 0.86, 1.31, [0, 0, 0], { invisible: true, hit: { kind: 'target', ref: sd }, sortDist: 2.05 }));
     // both ways must be shut
     L.sealed = lane => (lane.idx === 0 ? s.sealedN : s.sealedE);
@@ -560,6 +562,7 @@ LEVELS.push({
       // the side door leaf, swung out over the water or shut in its frame, and the bar. Pounded, the leaf bows in at the
       // bottom where it hits and above the bar, the bar holding it at its middle, and the bar is driven in and jumps
       const hx = 2.4, hz = -0.55, a = s.doorA, ex = hx + Math.sin(a) * 1.1, ez = hz + Math.cos(a) * 1.1;
+      R.glowAs(sd);
       if (pounding === 1 && a === 0) {
         const bowE = leafZ.map(z => 0.1 * jolt(z) * Math.cos(Math.PI * z / 1.14)), xE = (i, y) => hx - bowE[i] * leafBow(y);
         const whole = [[hx, 0, hz], [ex, 0, ez], [ex, 2.08, ez], [hx, 2.08, hz]];
@@ -572,12 +575,13 @@ LEVELS.push({
           R.add(asWhole(SC.mkQuad(L, [xE(i, ym) - 0.003, yy, z0], [xE(i + 1, ym) - 0.003, yy, z1], [xE(i + 1, ym) - 0.003, yy + 0.05, z1], [xE(i, ym) - 0.003, yy + 0.05, z0], [44, 36, 28]), [[hx, yy, -0.53], [hx, yy, 0.53], [hx, yy + 0.05, 0.53], [hx, yy + 0.05, -0.53]]));
         }
         if (s.sealedE) for (const q of barAt(Math.min(0.04, 0.1 * jolt(0) * leafBow(1.08) * 1.6), 0.018 * rat * Math.abs(Math.sin(L.t * 41)))) R.add(q);
-        wash(1, u => Math.min(hx - 0.02 - 0.1 * jolt(u) * Math.cos(Math.PI * u / 1.14), 2.38 - Math.max(0, Math.abs(u) - 0.5) * 0.6));   // in front of the frame either side
+        R.glowAs(null); wash(1, u => Math.min(hx - 0.02 - 0.1 * jolt(u) * Math.cos(Math.PI * u / 1.14), 2.38 - Math.max(0, Math.abs(u) - 0.5) * 0.6));   // in front of the frame either side
       } else {
         R.add(SC.mkWallV(L, hx, hz, ex, ez, 0, 2.08, [64, 52, 40]));
         for (const yy of [0.5, 1.5]) R.add(SC.mkWallV(L, hx + Math.sin(a) * 0.02, hz + Math.cos(a) * 0.02, ex - Math.sin(a) * 0.02, ez - Math.cos(a) * 0.02, yy, yy + 0.05, [44, 36, 28]));
         if (s.sealedE) for (const q of bar) R.add(q);
       }
+      R.glowAs(null);
       for (const q of grips) R.add(q);
       // the water flying in, and where it lands
       for (const d of s.drops) {

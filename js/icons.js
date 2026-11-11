@@ -665,6 +665,8 @@ SC.detail = function (L, base, a, b, c, d) {
     } else push(0, 1, k0, k1, shade(jit()));
   }
 };
+// the props fn puts in the scene (to say which of them a target is drawn with: glowWith)
+SC.grab = function (L, fn) { const n = L.props.length; fn(); return L.props.slice(n); };
 SC.mkQuad = function (L, a, b, c, d, color, opts) {
   return Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {});
 };

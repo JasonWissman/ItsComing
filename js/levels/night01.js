@@ -172,8 +172,9 @@ LEVELS.push({
     }
     // the empty door frames, the pale scars where hinges were, old nail holes in pairs down the other side where boards
     // have been nailed across before (the new ones cover them), and the steps outside
+    const frames = [];   // (each doorway glows in its frame, and the boards across it, when you point at it)
     for (const [z, w] of [[2.55, 0.8], [-2.35, 0.7]]) {
-      SC.wallV(L, -w - 0.12, z, -w, z, 0, doorH + 0.1, frame); SC.wallV(L, w, z, w + 0.12, z, 0, doorH + 0.1, frame); SC.wallV(L, -w - 0.12, z, w + 0.12, z, doorH - 0.02, doorH + 0.1, frame);
+      frames.push(SC.grab(L, () => { SC.wallV(L, -w - 0.12, z, -w, z, 0, doorH + 0.1, frame); SC.wallV(L, w, z, w + 0.12, z, 0, doorH + 0.1, frame); SC.wallV(L, -w - 0.12, z, w + 0.12, z, doorH - 0.02, doorH + 0.1, frame); }));
       const zi = z - Math.sign(z) * 0.01;
       for (const y of [0.3, 1.0, 1.75]) SC.wallV(L, -w - 0.1, zi, -w - 0.02, zi, y, y + 0.14, [100, 86, 64], { sortDist: Math.hypot(w + 0.06, z) - 0.03 });
       for (const y of BOARD_Y) for (const dy of [-0.045, 0.045]) SC.wallV(L, w + 0.062, zi, w + 0.088, zi, y + dy - 0.013, y + dy + 0.013, [40, 32, 24], { sortDist: Math.hypot(w + 0.075, z) - 0.03 });
@@ -410,6 +411,7 @@ LEVELS.push({
       return t;
     };
     const back = mkDoor('door', 'Back door', 0, 2.45, 1.75, 0), front = mkDoor('frontdoor', 'Front door', 180, 2.3, 1.55, 1);
+    glowWith(back, frames[0]); glowWith(front, frames[1]);
     const doorOf = lane => (lane.idx === 0 ? back : front);
     L.objectiveText = () => (back.done && front.done ? 'Boarded up. Hold on.' : 'Board up both doorways (' + (back.count + front.count) + '/' + 2 * need + ')');
     L.isWon = () => back.done && front.done;
@@ -600,7 +602,7 @@ LEVELS.push({
     // of the house (see STEPS_AT): the walls, the frames and the boards are all drawn over it, as they stand in front
     // of it. Once it is through the doorway it is drawn as usual, over everything behind it.
     L.dynamic = () => {
-      boards(back, ...PLANE(back)); boards(front, ...PLANE(front));
+      R.glowAs(back); boards(back, ...PLANE(back)); R.glowAs(front); boards(front, ...PLANE(front)); R.glowAs(null);
       crumbsDraw();
       const c = L.creature, cp = L.rend && L.rend.get(c);
       if (cp) { const p = c.pos(); cp.sortDist = c.dist > c.lane.apertures[0].z + 0.05 ? Math.max(Math.hypot(p.x, p.z), BEHIND_WALLS) : undefined; }

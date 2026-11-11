@@ -138,14 +138,14 @@ LEVELS.push({
       if (i % 3 === 0 && [0, 45, -45].every(l => Math.abs(wrapPi(az - l * DEG)) > 22 * DEG)) SC.sprite(L, p[0], 0, p[2], 0.06, 1.01, (ctx, P) => { ctx.scale(0.06, 1.01); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
     }
     // two stanchions on the lamp room: the fuse box on one at chest height, the crank on the other at the waist. Each is
-    // fixed to the face of its stanchion that looks your way, and drawn after the stanchion and before its own outline,
-    // so neither the iron hides it nor it hides the outline when you point at it.
+    // fixed to the face of its stanchion that looks your way, and drawn after the stanchion, so the iron does not hide it
+    // (nor the glow round it when you point at it).
     const FB = 60 * DEG, WD = 120 * DEG;
     const post = th => { const p = at(th, 2.0, 0); SC.box(L, p[0] - 0.19, p[0] + 0.19, 0, 2.75, p[2] - 0.19, p[2] + 0.19, iron); return p; };
     const fbP = post(FB), wdP = post(WD);
     const FBW = 0.44, FBH = 0.52, fb = [fbP[0], 1.1, fbP[2] + 0.22];   // the fuse box: its foot at 1.1 m, on the face toward you
     const WDS = 0.5, wd = [wdP[0], 0.7, wdP[2] + 0.22];                // the crank: its foot at 0.7 m, so nothing on the floor is behind it
-    const mounted = (x, z) => Math.hypot(x, z) + 0.012;   // just behind its outline (at its own distance), well in front of the iron
+    const mounted = (x, z) => Math.hypot(x, z) + 0.012;   // just behind its own spot, well in front of the iron
     const LW = 1.1, LH = 1.5;                             // the lamp's lens, standing on its pedestal
     // the lens on its pedestal, inside the glass
     SC.box(L, AX - 0.45, AX + 0.45, 0, 0.9, AZ - 0.45, AZ + 0.45, [50, 50, 56]);
@@ -244,7 +244,7 @@ LEVELS.push({
       },
     });
     // its door, swung open to the left of it: part of the fuse box, so pointing at it or clicking it is the fuse box. Its hit
-    // box stands a touch nearer you along your line of sight (the same size on screen), so its outline draws over the door.
+    // box stands a touch nearer you along your line of sight (the same size on screen), and the fuse box glows with it.
     const door = (() => {
       const fd = Math.hypot(fb[0], fb[2]), off = -0.68 * FBW, k = 0.97;
       const x = fb[0] + fb[2] / fd * off, z = fb[2] - fb[0] / fd * off;
@@ -447,6 +447,7 @@ LEVELS.push({
       const e = L.t - (s.fuseJig === undefined ? -9 : s.fuseJig), j = e < 0.7 ? Math.sin(e * 38) * Math.exp(-e * 6) * (SAVE.data.settings.reducedMotion ? 0.4 : 1) : 0;   // (less with reduced motion)
       ctx.save(); ctx.translate(j * 0.03, 0.5 - 0.48 * 0.72 + Math.abs(j) * 0.01); ctx.rotate(j * 0.06); ctx.scale(0.62, 0.72); ICONS[icon](ctx, P); ctx.restore();
     };
+    const blownArt = SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, (ctx, P) => { ctx.scale(FBW, FBH); fuseAt(ctx, P, 'blownfuse'); }, { sortDist: mounted(fb[0], fb[2]) - 0.001, hoverOnly: true, glowOf: blown });
     const drawFuseBox = (ctx, P) => {
       ctx.scale(FBW, FBH);
       const rim = P.col([92, 96, 102]), metal = P.col([150, 154, 160]), dark = P.col([14, 14, 18]), ink = P.col([22, 20, 18]);
@@ -517,7 +518,7 @@ LEVELS.push({
       if (on) { const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.5); g.addColorStop(0, 'rgba(255,252,232,1)'); g.addColorStop(0.35, 'rgba(255,234,180,0.7)'); g.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); }
     };
     // the crank: a spoked wheel on a gearbox bolted to its stanchion, the wooden grip on its rim; all of it inside its own box,
-    // however it turns, so the outline you point at holds it
+    // however it turns, so what you point at holds it
     const drawCrank = (ctx, P) => {
       ctx.scale(WDS, WDS);
       const box = P.col([62, 64, 70]), boxD = P.col([36, 38, 42]), steel = P.col([132, 134, 142]), brass = P.col([168, 138, 72]), wood = P.col([128, 88, 50]), woodD = P.col([86, 58, 34]);
@@ -530,7 +531,7 @@ LEVELS.push({
       P_line(ctx, 0.31, 0, 0.44, 0, 0.11, wood); P_ell(ctx, 0.44, 0, 0.055, 0.055, woodD);           // the grip, out on the rim
     };
     L.dynamic = () => {
-      R.add(SC.mkSprite(L, AX, 0.9, AZ, LW, LH, drawLens));
+      R.add(SC.mkSprite(L, AX, 0.9, AZ, LW, LH, drawLens, { glowOf: lamp }));
       // the beam itself, a long faint wedge, drawn over everything
       if (s.power && s.turning) {
         const A = s.beamA, reach = 55, drop = 30;
@@ -570,8 +571,9 @@ LEVELS.push({
       }
       for (const q of s.spill || []) if (!q.gone) tumbling(q, bodyAt(q), q.w, q.h, q.icon);
       // the fuse box and the crank, showing their state
-      R.add(SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, drawFuseBox, { sortDist: mounted(fb[0], fb[2]) }));
-      R.add(SC.mkSprite(L, wd[0], wd[1], wd[2], WDS, WDS, drawCrank, { sortDist: mounted(wd[0], wd[2]) }));
+      R.add(SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, drawFuseBox, { sortDist: mounted(fb[0], fb[2]), glowOf: [box, door] }));
+      if (!blown.hidden) R.add(blownArt);   // (the blown fuse in its clips is drawn in the box; this is it over the box, only while it is pointed at, to glow)
+      R.add(SC.mkSprite(L, wd[0], wd[1], wd[2], WDS, WDS, drawCrank, { sortDist: mounted(wd[0], wd[2]), glowOf: winder }));
     };
     L.dynamicLights = () => {
       if (!s.power) return [];

@@ -217,11 +217,11 @@ LEVELS.push({
     SC.box(L, 7.9, 10.9, 0, 1.4, 1.3, 3.9, hay); SC.box(L, 8.4, 10.4, 1.4, 2.0, 1.7, 3.5, hayD);
     const hayProps = [L.props.slice(hayAt0, hayAt1), L.props.slice(hayAt1)];
     // loft clutter: the oil drum with its tap, crates with the lamp on one, sacks
-    // the oil drum: a sprite (a drum looks the same from every side) on the target's own spot, so the outline you see when you
-    // point at it is round the drum. Hoops, a lid with its bungs, and at the front the brass tap, a drip under its spout; as a
+    // the oil drum: a sprite (a drum looks the same from every side) on the target's own spot, so what you point at is the
+    // drum, and it glows. Hoops, a lid with its bungs, and at the front the brass tap, a drip under its spout; as a
     // bottle fills, a thin run of oil from the spout.
     const DR = 0.4, drumC = [50, 62, 55], drumLift = 0.12;
-    SC.sprite(L, -2.6, FL - drumLift, -2.2, 0.86, 1.04 + drumLift, (ctx, P) => {
+    const drumArt = SC.sprite(L, -2.6, FL - drumLift, -2.2, 0.86, 1.04 + drumLift, (ctx, P) => {
       ctx.translate(0, drumLift);
       const body = P.col(drumC), dark = P.col(scalec(drumC, 0.62)), lite = P.col(mixc(drumC, [190, 200, 190], 0.2)), rim = P.col(scalec(drumC, 0.8));
       const top = 0.92;
@@ -290,7 +290,7 @@ LEVELS.push({
       return { preset: 'return', at: { x: lerp(hw.x, t.x, k), y: lerp(hw.y, t.y + t.h * 0.5, k), z: lerp(hw.z, t.z, k) }, speed: 1.7, sfx: { hit: '' } };
     };
     const spill = k => { s.pourT = G.t; s.spill = Math.min(1, (s.spill || 0) + k); AUDIO.sfx('pour'); };
-    mkTarget(L, {
+    const drum = mkTarget(L, {
       id: 'drum', name: 'Oil drum', x: -2.6, y: FL - drumLift, z: -2.2, w: 0.86, h: 1.04 + drumLift,   // the drum sprite's own box
       accepts: ['bottle', 'bottle_oil', 'cocktail', 'cocktail_lit'], noThrow: true,   // a lit bottle is never thrown at it (and lost)
       onClick() {   // an empty bottle before a full one, whichever is in hand
@@ -552,7 +552,7 @@ LEVELS.push({
       onWrong(item) { if (item.id === 'matches') flick(this, item); else heldBack(this, item); },   // an empty bottle, a rag: held back too
     });
     const hayN = mkHay(0, 'hayN', 'The hay in the yard', 0, 12.8, 6.8), hayE = mkHay(1, 'hayE', 'The hay in the barn', 9.5, 0, 7.8);
-    void hayN; void hayE;
+    glowWith(drum, [drumArt]); glowWith(hayN, hayProps[0]); glowWith(hayE, hayProps[1]);
     // both burning holds it wherever it is, unless it is already up in the loft with you
     L.isWon = () => s.fire[0] && s.fire[1] && !onYou(c0());
     L.objectiveText = () => { const load = G.inv.reduce((a, i) => a + (i.weight || 1), 0); return (s.fire[0] && s.fire[1] ? 'Both burning. ' : 'Hay alight: ' + (+s.fire[0] + +s.fire[1]) + ' of 2. ') + 'Carrying ' + load + '.'; };

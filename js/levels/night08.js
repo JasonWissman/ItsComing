@@ -102,9 +102,10 @@ LEVELS.push({
     // little less. Its gearbox and drive rod are inside the glass, so they come after it.
     const shutterSort = (x0, x1) => Math.min(Math.hypot(x0, ZS), Math.hypot(x1, ZS), x0 < 0 && x1 > 0 ? ZS : Infinity) - 0.05;
     const GEAR = PANES.map(([x0]) => x0 + 0.15);   // each window's gearbox, just inside the left edge of its own glass
+    const shutterArt = [];
     const glass = PANES.map(([x0, x1], i) => {
       SC.wallV(L, x0, ZG, x1, ZG, BOT, TOP, [150, 170, 200], { alpha: 0.1 });
-      const pane = L.props[L.props.length - 1];
+      const pane = L.props[L.props.length - 1], n0 = L.props.length;
       SC.box(L, x0, x1, TOP - 0.05, TOP, 5.04, 5.16, [40, 40, 44]);                                       // the slot the shutter comes out of
       for (const gx of [x0, x1 - 0.05]) SC.box(L, gx, gx + 0.05, BOT, TOP, 5.06, 5.14, [62, 62, 66]);     // its guide rails
       // the gearbox, with the eye the crank goes into, and the rod from it up to the shutter's roll, so it is plain which
@@ -120,6 +121,7 @@ LEVELS.push({
         P_ell(ctx, 0, 0.55, 0.32, 0.21, P.col([20, 20, 22])); P_ell(ctx, 0, 0.55, 0.15, 0.1, P.col([176, 176, 182]));
         P_rect(ctx, -0.05, 0.52, 0.1, 0.06, P.col([20, 20, 22]));                                                         // the slot the hook catches in
       }, { sortDist: sd });
+      shutterArt[i] = L.props.slice(n0);   // the slot, the rails, the rod and the gearbox: pointed at, the window's shutter glows in them
       return pane;
     });
     // the OPEN sign hanging high in the middle window: lit while the power is on
@@ -167,7 +169,7 @@ LEVELS.push({
     const mainX = [-1.75, 1.75][Math.floor(L.rand() * 2)], MW = 0.72, MH = 0.95, MY = 0.95;
     SC.wallV(L, mainX - 0.11, -2.485, mainX - 0.06, -2.485, 0, MY + 0.06, [48, 50, 54]);   // its conduit, down into the floor, clamped to the wall
     for (const y of [0.3, 0.7]) SC.wallV(L, mainX - 0.13, -2.483, mainX - 0.04, -2.483, y, y + 0.04, [70, 72, 76]);
-    SC.sprite(L, mainX, MY, -2.44, MW, MH, (ctx, P) => {
+    const mainArt = SC.sprite(L, mainX, MY, -2.44, MW, MH, (ctx, P) => {
       ctx.scale(MW, MH);
       const body = P.col([92, 96, 100]), bodyD = P.col([58, 60, 64]), ink = P.col([24, 24, 26]), plate = P.col([214, 208, 196]);
       P_rect(ctx, -0.48, 0.03, 0.72, 0.92, bodyD); P_rect(ctx, -0.45, 0.06, 0.66, 0.86, body);                       // the box
@@ -215,6 +217,7 @@ LEVELS.push({
         return true;
       },
     });
+    glowWith(main, [mainArt]);
     // the power goes with a stutter as the lever comes down: two blinks, then nothing
     const lightsOn = () => s.power || L.t < s.offAt || [0.07, 0.17].some(k => Math.abs(L.t - s.offAt - k) < 0.035);
 
@@ -273,6 +276,7 @@ LEVELS.push({
           s.lastTurn = L.t; return false;                                 // one turn of the crank (useTarget turns it)
         },
       });
+      glowWith(t, shutterArt[i]);
       return t;
     });
     const cr = () => L.creature;   // made after build; s.target is the window it is making for, even while it goes there
@@ -467,6 +471,7 @@ LEVELS.push({
       for (const [cx, cz] of TUBES) R.add(SC.mkQuad(L, [cx - 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz + 0.07], [cx - 0.65, 2.96, cz + 0.07], on ? [240, 246, 230] : [60, 62, 58], on ? { noFog: true, noLight: true } : {}));
       // the shutters, outside the glass, coming down from the slot at the top: steel slats, a heavy bottom rail
       PANES.forEach(([x0, x1], i) => {
+        R.glowAs(shutters[i]);   // the curtain, and the crank turning in its gearbox, glow with the window's shutter
         // the crank in its gearbox, going once round with each turn, its grip swinging about the eye, then still a moment
         if (L.t - s.turnAt[i] < 0.9 && !L.won) {
           const rot = -clamp((L.t - s.turnAt[i]) / (TURN * 0.85), 0, 1) * TAU;
@@ -486,6 +491,7 @@ LEVELS.push({
         for (let y = TOP - 0.15; y > yb + 0.08; y -= 0.15) R.add(SC.mkQuad(L, [x0, y, z - 0.004], [x1, y, z - 0.004], [x1, y + 0.022, z - 0.004], [x0, y + 0.022, z - 0.004], SEAM, { sortDist: sd - 0.001 }));
         R.add(SC.mkQuad(L, [x0, yb, z - 0.008], [x1, yb, z - 0.008], [x1, yb + 0.08, z - 0.008], [x0, yb + 0.08, z - 0.008], RAIL, { sortDist: sd - 0.002 }));
       });
+      R.glowAs(null);
       if (s.through) for (const p of broken()) R.add(p);
     };
     // the pane it came through: jagged pieces left in the frame, edged bright, and glass on the floor inside. The pieces are in

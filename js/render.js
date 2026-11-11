@@ -18,7 +18,8 @@ const R = (() => {
   let statics = [];   // the level's static props, sorted once, culled by view angle per frame
   let hits = [];
   let detailOn = true; // surface detail on or off (Settings)
-  let hoverRef = null;
+  let hoverRef = null; // what the pointer is on (an item, a target, the thing): it, and every piece it is drawn with, glows
+  let glowAs = null;   // while set, every renderable added is a piece of this target's drawing (glowAs)
   let time = 0, frame = 0;
   let vignette = null, grains = [], grainIdx = 0;
   let skyCache = null, dangerCv = null, dangerCvSize = 0;
@@ -77,7 +78,7 @@ const R = (() => {
     if (pending) settleStatics(eyeH + ey);
     if (wasMoving && !moving) for (const p of statics) p.sd = p.sd0;   // back where it started: the prepared order holds again
     wasMoving = moving;
-    list.length = 0; hits.length = 0;
+    list.length = 0; hits.length = 0; glowAs = null;
     // shake: applied as a translation of the whole scene
     if (cam.shakeX || cam.shakeY) ctx.translate(cam.shakeX, cam.shakeY);
     drawSkyGround();
@@ -166,6 +167,7 @@ const R = (() => {
   // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   // attach? rides with the eye (see the top): its coordinates and dist are taken from where the eye started
+  // glowOf? the target (or targets) this is a piece of: it glows while that is hovered; hoverOnly? drawn only then
   function measure(p) {
     if (p.dist === undefined) {
       if (p.kind === 'poly') {
@@ -180,7 +182,7 @@ const R = (() => {
     if (p.layer === undefined) p.layer = 1;
     p.sd = p.sortDist === undefined ? p.dist : p.sortDist;
   }
-  function add(p) { measure(p); if (moving) fromEye(p); list.push(p); }
+  function add(p) { measure(p); if (moving) fromEye(p); if (glowAs) p.glowOf = glowAs; list.push(p); }
   // while the eye is away from where it started, fog and drawing order go by each renderable's own distance from it
   // (sortDist keeps its offset from dist); an attached one keeps the distance it was measured with. Surface detail
   // pieces are not kept with their quad here: a night that moves the eye builds its ground without them.
@@ -458,32 +460,50 @@ const R = (() => {
     after(p, touching(contacts, p));
   }
 
-  function drawPoly(p) {
-    if (p.detail && !detailOn) return; // surface detail (boards, stone) can be switched off in Settings
-    if (p.alpha !== undefined && p.alpha <= 0.004) return; // faded out entirely (the last night's room, before the light)
-    if (p.bf && culledFace(p, ox, eyeH + oy, oz)) return;   // a box's face that looks away from the eye
+  // the hover glow: what is hovered is drawn once more under itself, added to what is there and softly blurred, so a warm
+  // halo shows round its own shape (whatever is drawn after it, in front, covers the halo as it covers the thing). Its
+  // pieces are first drawn plain on a canvas of their own (glowCv), and that is blurred onto the view once: one blur
+  // however many pieces and strokes it is drawn with (a blur for each made a busy target, a winch or a gate, slow to draw)
+  const GLOW = 'rgba(255,236,190,0.9)', GLOW_PAD = 30, GLOW_K = 3;
+  let glowCv = null, glowCtx = null, glowBox = null, halfCv = null, halfCtx = null;
+  function glowGrow(x0, y0, x1, y1) {   // the part of the view the glow's pieces cover, in the view's own units
+    const g = glowBox; if (x0 < g[0]) g[0] = x0; if (y0 < g[1]) g[1] = y0; if (x1 > g[2]) g[2] = x1; if (y1 > g[3]) g[3] = y1;
+  }
+  // is p part of what is hovered: a thing's own drawing (an item), or one of the pieces a target is drawn with (p.glowOf:
+  // the target, or a list of them, when one piece belongs to more than one). A target's own hit area draws nothing.
+  function lit(p) {
+    const g = p.glowOf;
+    if (g && (g === hoverRef || (Array.isArray(g) && g.includes(hoverRef)))) return true;
+    return !!(p.hit && p.hit.ref === hoverRef && !p.noHover && !p.invisible);
+  }
+  // the outline of a poly on the view, added to the current path; null when it is not drawn this frame
+  function tracePoly(p) {
+    if (p.detail && !detailOn) return null; // surface detail (boards, stone) can be switched off in Settings
+    if (p.alpha !== undefined && p.alpha <= 0.004) return null; // faded out entirely (the last night's room, before the light)
+    if (p.bf && culledFace(p, ox, eyeH + oy, oz)) return null;   // a box's face that looks away from the eye
     let cs = new Array(p.pts.length);
     let anyIn = false;
     for (let i = 0; i < p.pts.length; i++) { const v = p.pts[i]; cs[i] = toCam(v[0], v[1], v[2]); if (cs[i][2] >= NEAR) anyIn = true; }
-    if (!anyIn) return;
+    if (!anyIn) return null;
     cs = clipNear(cs);
-    if (cs.length < 2) return;
+    if (cs.length < 2) return null;
     let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
-    ctx.beginPath();
     for (let i = 0; i < cs.length; i++) {
       const s = proj(cs[i]);
       if (s[0] < minx) minx = s[0]; if (s[0] > maxx) maxx = s[0];
       if (s[1] < miny) miny = s[1]; if (s[1] > maxy) maxy = s[1];
       i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]);
     }
-    if (maxx < -20 || minx > W + 20 || maxy < -20 || miny > H + 20) return;
-    if (p.hit) hits.push({ x: minx, y: miny + viewY, w: maxx - minx, h: maxy - miny, kind: p.hit.kind, ref: p.hit.ref });
-    if (p.invisible) {
-      if (hoverRef && p.hit && p.hit.ref === hoverRef) {
-        ctx.closePath(); ctx.strokeStyle = 'rgba(255,240,210,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
-      }
-      return;
-    }
+    if (maxx < -20 || minx > W + 20 || maxy < -20 || miny > H + 20) return null;
+    return { cs, minx, maxx, miny, maxy };
+  }
+  const strokeW = (p, cs) => Math.max(0.6, (p.lw || 0.02) * f / Math.max(NEAR, cs[0][2]));
+  function drawPoly(p) {
+    ctx.beginPath();
+    const r = tracePoly(p);
+    if (!r) return;
+    if (p.hit) hits.push({ x: r.minx, y: r.miny + viewY, w: r.maxx - r.minx, h: r.maxy - r.miny, kind: p.hit.kind, ref: p.hit.ref });
+    if (p.invisible) return;   // a hit area only: what it stands for is drawn by other pieces, and they glow
     const li = (LIGHT.list.length || LIGHT.global) && !p.noLight ? LIGHT.at(p.cx + ex - ox, p.cy + ey - oy, p.cz + ez - oz) : null;   // lit where it really is: an attached poly has come along with the eye
     const pc = detailOn && p.seam ? p.seam : p.color; // with detail on, a textured quad shows as the seams between its pieces
     const base0 = ambient !== 1 && !p.noLight ? scalec(pc, ambient) : pc;
@@ -491,13 +511,61 @@ const R = (() => {
     const col = p.noFog ? base : fogged(base, moving ? p.fd : p.dist);
     if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
     if (p.stroke) {
-      ctx.strokeStyle = rgba(col); ctx.lineWidth = Math.max(0.6, (p.lw || 0.02) * f / Math.max(NEAR, cs[0][2]));
+      ctx.strokeStyle = rgba(col); ctx.lineWidth = strokeW(p, r.cs);
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
     } else {
       ctx.closePath(); ctx.fillStyle = rgba(col); ctx.fill();
     }
     if (p.alpha !== undefined) ctx.globalAlpha = 1;
-    if (hoverRef && p.hit && p.hit.ref === hoverRef) { ctx.strokeStyle = 'rgba(255,240,210,0.35)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
+  // the glow under every piece of what is hovered, drawn where the first of them comes in the drawing order: the filled
+  // polys as one shape (one soft edge round the lot, none along the seams between them), then the lines and the sprites
+  function drawGlows(groups, cur) {
+    const main = ctx, cw = canvas.width, ch = canvas.height;
+    if (!glowCv || glowCv.width !== cw || glowCv.height !== ch) { glowCv = document.createElement('canvas'); glowCv.width = cw; glowCv.height = ch; glowCtx = glowCv.getContext('2d'); }
+    const g = glowCtx;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, cw, ch);   // (all of it: a sprite may draw outside its box)
+    const m = main.getTransform();
+    g.setTransform(m);
+    ctx = g; glowBox = [1e9, 1e9, -1e9, -1e9];
+    ctx.fillStyle = 'rgb(64,58,48)'; ctx.strokeStyle = 'rgb(64,58,48)'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    let any = false;
+    for (const src of groups) for (const q of src) if (q.kind === 'poly' && !q.stroke && !q.invisible && !(q.alpha < 1) && lit(q)) {   // (glass would show the glow through it)
+      if (moving) offsetFor(q.attach);
+      const r = tracePoly(q);
+      if (r) { ctx.closePath(); any = true; glowGrow(r.minx, r.miny, r.maxx, r.maxy); }
+    }
+    if (any) ctx.fill();
+    for (const src of groups) for (const q of src) {
+      if (q.invisible || !lit(q)) continue;
+      if (q.kind === 'poly' && !q.stroke) continue;
+      if (moving) offsetFor(q.attach);
+      if (q.kind === 'poly') { ctx.beginPath(); const r = tracePoly(q); if (r) { ctx.lineWidth = strokeW(q, r.cs); ctx.stroke(); glowGrow(r.minx, r.miny, r.maxx, r.maxy); } }
+      else drawSprite(q, true);
+    }
+    ctx = main;
+    if (moving) offsetFor(cur.attach);
+    // the part of the canvas it covers, in device pixels, with room for the blur
+    const b = glowBox;
+    if (b[0] > b[2]) return;
+    const x0 = Math.max(0, Math.floor(m.a * b[0] + m.e - GLOW_PAD)), y0 = Math.max(0, Math.floor(m.d * b[1] + m.f - GLOW_PAD));
+    const x1 = Math.min(cw, Math.ceil(m.a * b[2] + m.e + GLOW_PAD)), y1 = Math.min(ch, Math.ceil(m.d * b[3] + m.f + GLOW_PAD));
+    if (x1 <= x0 || y1 <= y0) return;
+    // blurred at a third of the size (a ninth of the work), then laid over the view at full size, added to what is there
+    const K = GLOW_K, w = x1 - x0, h = y1 - y0, hw = Math.ceil(w / K), hh = Math.ceil(h / K);
+    if (!halfCv || halfCv.width < hw || halfCv.height < hh) { halfCv = document.createElement('canvas'); halfCv.width = Math.max(hw, halfCv ? halfCv.width : 0); halfCv.height = Math.max(hh, halfCv ? halfCv.height : 0); halfCtx = halfCv.getContext('2d'); }
+    const hc = halfCtx;
+    hc.clearRect(0, 0, halfCv.width, halfCv.height);
+    hc.shadowColor = GLOW; hc.shadowBlur = 16 / K; hc.shadowOffsetX = 0; hc.shadowOffsetY = 0;
+    hc.drawImage(glowCv, x0, y0, w, h, 0, 0, w / K, h / K);
+    hc.drawImage(glowCv, x0, y0, w, h, 0, 0, w / K, h / K);   // twice: as strong close round it as a blur of each of its parts, added up, was
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 0.45; ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(halfCv, 0, 0, w / K, h / K, x0, y0, w, h);
+    ctx.restore();
   }
 
   function spriteP(p) {
@@ -528,10 +596,12 @@ const R = (() => {
     const c = Math.cos(phi), t = alongView ? [cosY, -sinY, sinY, cosY] : towardEye(x, z);
     return [t[0], t[1], c * t[2], Math.sin(phi), c * t[3]];
   }
-  function drawSprite(p) {
-    if (p.alpha !== undefined && p.alpha <= 0.004) { if (p.onRect) p.onRect(null); return; }
+  // glow: draw only its glow (drawGlows), with no hit area
+  function drawSprite(p, glow) {
+    const onRect = glow ? null : p.onRect;
+    if (p.alpha !== undefined && p.alpha <= 0.004) { if (onRect) onRect(null); return; }
     const base = toCam(p.x, p.y, p.z);
-    if (base[2] < NEAR) { if (p.onRect) p.onRect(null); return; }
+    if (base[2] < NEAR) { if (onRect) onRect(null); return; }
     const b = proj(base);
     const s = f / base[2];
     let rect;
@@ -542,7 +612,7 @@ const R = (() => {
       let rx = t[0], rz = t[1], fx = t[2], fz = t[3], fy = 0;
       if (p.card) {
         // behind you (only in front of the lens at all because the view is tipped down): not drawn
-        if (Math.abs(wrapPi(Math.atan2(p.x - ox, p.z - oz) - yaw)) > 100 * DEG) { if (p.onRect) p.onRect(null); return; }
+        if (Math.abs(wrapPi(Math.atan2(p.x - ox, p.z - oz) - yaw)) > 100 * DEG) { if (onRect) onRect(null); return; }
         const c = cardAxes(p.x, p.y, p.z, p.flat);
         rx = c[0]; rz = c[1]; fx = c[2]; fy = c[3]; fz = c[4];
         // close by and off to the side, a card square to the eye would run one end in at the camera: that one card is
@@ -555,51 +625,47 @@ const R = (() => {
       }
       const cu = toCam(p.x + rx * p.w, p.y, p.z + rz * p.w);
       const cv = toCam(p.x + fx * p.h, p.y + fy * p.h, p.z + fz * p.h);
-      if (cu[2] < NEAR || cv[2] < NEAR) { if (p.onRect) p.onRect(null); return; }
+      if (cu[2] < NEAR || cv[2] < NEAR) { if (onRect) onRect(null); return; }
       const pu = proj(cu), pv = proj(cv);
       const ax = (pu[0] - b[0]) / p.w, ay = (pu[1] - b[1]) / p.w;   // screen delta per meter along u
       let bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
       // a card is fixed in the world, facing where you stand, so it is drawn in plain perspective wherever it is in the view
       if (p.card) {
         // a card whose top would project below its base is behind or under the eye, against the near plane: not drawn
-        if (by >= 0 || cv[2] < base[2] * 0.5) { if (p.onRect) p.onRect(null); return; }
+        if (by >= 0 || cv[2] < base[2] * 0.5) { if (onRect) onRect(null); return; }
       }
       // corners of the box centered at x (u from -w/2..w/2), v from 0..h
       const xs = [], ys = [];
       for (const [u, v] of [[-p.w / 2, 0], [p.w / 2, 0], [p.w / 2, p.h], [-p.w / 2, p.h]]) { xs.push(b[0] + ax * u + bx * v); ys.push(b[1] + ay * u + by * v); }
       rect = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-      if (rect.x > W + 20 || rect.x + rect.w < -20 || rect.y > H + 20 || rect.y + rect.h < -20) { if (p.onRect) p.onRect(rect); return; }
-      const hov = hoverRef && p.hit && p.hit.ref === hoverRef && !p.noHover;
-      if (hov) { ctx.save(); ctx.transform(ax, ay, bx, by, b[0], b[1]); ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 16; ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'lighter'; p.draw(ctx, spriteP(p), s); ctx.restore(); }
+      if (rect.x > W + 20 || rect.x + rect.w < -20 || rect.y > H + 20 || rect.y + rect.h < -20) { if (onRect) onRect(rect); return; }
+      if (glow) { glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5); ctx.save(); if (p.alpha !== undefined) ctx.globalAlpha = p.alpha; ctx.transform(ax, ay, bx, by, b[0], b[1]); p.draw(ctx, spriteP(p), s); ctx.restore(); return; }
       ctx.save();
       ctx.transform(ax, ay, bx, by, b[0], b[1]);
       if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
       p.draw(ctx, spriteP(p), s);
       ctx.restore();
-      if (hov && p.hit.kind === 'target') { ctx.save(); ctx.transform(ax, ay, bx, by, b[0], b[1]); ctx.strokeStyle = 'rgba(255,236,190,0.55)'; ctx.lineWidth = 0.02; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 10; ctx.strokeRect(-p.w / 2, 0, p.w, p.h); ctx.restore(); }
     } else {
       const top = toCam(p.x, p.y + p.h, p.z);
       let hpx = p.h * s;
       if (top[2] >= NEAR) { const tp = proj(top); hpx = Math.max(0.5, b[1] - tp[1]); }
       const wpx = p.w * s;
       rect = { x: b[0] - wpx / 2, y: b[1] - hpx, w: wpx, h: hpx };
-      if (rect.x > W + 40 || rect.x + rect.w < -40 || rect.y > H + 40 || rect.y + rect.h < -40) { if (p.onRect) p.onRect(rect); return; }
-      if (hpx < 0.7 && wpx < 0.7) { if (p.onRect) p.onRect(rect); return; }
-      const hov = hoverRef && p.hit && p.hit.ref === hoverRef && !p.noHover;
-      if (hov && p.hit.kind === 'item') { ctx.save(); ctx.translate(b[0], b[1]); ctx.scale(s, -(hpx / p.h)); ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 16; ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'lighter'; p.draw(ctx, spriteP(p), s); ctx.restore(); }
+      if (rect.x > W + 40 || rect.x + rect.w < -40 || rect.y > H + 40 || rect.y + rect.h < -40) { if (onRect) onRect(rect); return; }
+      if (hpx < 0.7 && wpx < 0.7) { if (onRect) onRect(rect); return; }
+      if (glow) { glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5); ctx.save(); if (p.alpha !== undefined) ctx.globalAlpha = p.alpha; ctx.translate(b[0], b[1]); ctx.scale(s, -(hpx / p.h)); p.draw(ctx, spriteP(p), s); ctx.restore(); return; }
       ctx.save();
       ctx.translate(b[0], b[1]);
       ctx.scale(s, -(hpx / p.h));
       if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
       p.draw(ctx, spriteP(p), s);
       ctx.restore();
-      if (hov && p.hit.kind === 'target') { ctx.save(); ctx.strokeStyle = 'rgba(255,236,190,0.5)'; ctx.lineWidth = 1.5; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 12; ctx.strokeRect(rect.x + 2, rect.y + 2, rect.w - 4, rect.h - 4); ctx.restore(); }
     }
     if (p.hit) {
       const m = p.hitPad || 0;
       hits.push({ x: rect.x - m, y: rect.y - m + viewY, w: rect.w + 2 * m, h: rect.h + 2 * m, kind: p.hit.kind, ref: p.hit.ref });
     }
-    if (p.onRect) p.onRect(rect);
+    if (onRect) onRect(rect);
   }
 
   function flush() {
@@ -610,7 +676,7 @@ const R = (() => {
     // ones can be culled by angle (the culling extents are measured from where it started)
     let src = statics;
     if (moving) { moved.length = 0; for (const p of statics) { fromEye(p); moved.push(p); } moved.sort(order); src = moved; }
-    let i = 0, j = 0;
+    let i = 0, j = 0, glowed = !hoverRef;
     while (i < src.length || j < list.length) {
       let p;
       if (j >= list.length || (i < src.length && order(src[i], list[j]) <= 0)) {
@@ -618,6 +684,9 @@ const R = (() => {
         if (!p.noCull && (!moving || p.attach) && culled(p, k, sp, cp)) continue;
       } else p = list[j++];
       if (moving) offsetFor(p.attach);
+      const on = !!hoverRef && lit(p);
+      if (p.hoverOnly && !on) continue;   // a piece drawn only while what it belongs to is hovered (the fuse in its box)
+      if (on && !glowed) { glowed = true; drawGlows([src, list], p); }
       if (p.kind === 'poly') drawPoly(p); else drawSprite(p);
     }
     if (moving) offsetFor(false);
@@ -680,6 +749,8 @@ const R = (() => {
     get detail() { return detailOn; }, set detail(v) { detailOn = !!v; },
     get statics() { return statics; }, isCulledFace: culledFace,   // for scripts that check the drawing order: the prepared statics, and whether a box face is turned away
     set hover(v) { hoverRef = v; },
+    // the renderables added until glowAs(null) are pieces of t's drawing: they glow with it when it is hovered
+    glowAs(t) { glowAs = t || null; },
     get yaw() { return yaw; },
   };
 })();

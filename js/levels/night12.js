@@ -49,7 +49,7 @@ LEVELS.push({
       else if (within(p, 0.94, 1.46, -0.13, -0.105)) p.alpha = 0;
       else if (within(p, 0.94, 1.46, -0.13, 0.41) || [-0.72, 0.72].some(x => within(p, x - 0.05, x + 0.05, -0.95, -0.85) || within(p, x - 0.05, x + 0.05, 1.8, 1.9))) p.sortDist = BED;
     }
-    STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => shown() });
+    const lampArt = STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => shown() });
     // its cord runs off the back of the nightstand (and, under the bed, to the wall on the other side)
     SC.quad(L, [1.25, 0.624, 0.11], [1.26, 0.624, 0.13], [1.46, 0.624, 0.03], [1.45, 0.624, 0.01], [30, 26, 24], { sortDist: 1.4 });
     // the wall socket, low on the wall behind the bed on the closet side: a pale plate with its two slots
@@ -122,6 +122,7 @@ LEVELS.push({
       const tug = clamp(1 - (L.t - s.tugAt) / 0.35, 0, 1) * (s.stiff ? 0.018 : 0.06), chain = P.col([150, 140, 118]);
       P_line(ctx, 0.24, 0.5, 0.24, 0.35 - tug, 0.016, chain); P_ell(ctx, 0.24, 0.34 - tug, 0.03, 0.022, chain);
     }, { sortDist: Math.hypot(1.2, 0.15) - 0.002 });
+    glowWith(lampT, [lampArt, lampDetail]);
     // on Nightmare the lamp's plug lies on the floor by the wall socket, on the closet side, pulled out
     const PLUG = [-1.74, -0.7];
     const socket = unplugged && mkTarget(L, {
@@ -162,6 +163,7 @@ LEVELS.push({
     L.dynamic = () => {
       if (unplugged) {
         if (!s.plugged) {
+          R.glowAs(socket);   // the cord and the plug on the floor: pointed at, they glow
           flex([[-0.7, -0.38], [-1.0, -0.42], [-1.35, -0.54], [-1.72, -0.66]], 0.012);
           // the plug, on its side: a pale block, its two brass pins toward the socket
           const [px, pz] = PLUG, q = (a, b, c, d, col, sd) => R.add(SC.mkQuad(L, a, b, c, d, col, { sortDist: sd }));
@@ -169,6 +171,7 @@ LEVELS.push({
           q([px + 0.035, 0.012, pz + 0.045], [px + 0.035, 0.012, pz - 0.045], [px + 0.035, 0.045, pz - 0.045], [px + 0.035, 0.045, pz + 0.045], [112, 106, 98], 1.694);
           q([px - 0.035, 0.012, pz + 0.045], [px + 0.035, 0.012, pz + 0.045], [px + 0.035, 0.045, pz + 0.045], [px - 0.035, 0.045, pz + 0.045], [124, 118, 108], 1.694);
           for (const dx of [-0.016, 0.016]) q([px + dx - 0.006, 0.03, pz - 0.045], [px + dx + 0.006, 0.03, pz - 0.045], [px + dx + 0.006, 0.03, pz - 0.085], [px + dx - 0.006, 0.03, pz - 0.085], [176, 150, 84], 1.698);
+          R.glowAs(null);
         } else {
           // plugged in: the plug in the socket, the flex down the wall and away under the bed
           R.add(SC.mkWallV(L, -1.535, -1.088, -1.465, -1.088, 0.245, 0.325, [150, 144, 134], { sortDist: 1.858 }));
@@ -180,6 +183,7 @@ LEVELS.push({
       // drawn before the mattress, whose edge hides the bottom of it once it is out, as it would
       const dw = (x0, z0, x1, z1, y0, y1, col, sd) => R.add(SC.mkWallV(L, x0, z0, x1, z1, y0, y1, col, { sortDist: sd }));
       const fx = drawer.open ? 0.854 : 0.944;
+      R.glowAs(drawer);
       if (drawer.open) {
         dw(0.947, -0.03, 0.947, 0.33, 0.44, 0.595, [8, 7, 7], 1.69);
         dw(fx, -0.02, 0.947, -0.02, 0.452, 0.585, [40, 30, 24], 1.684); dw(fx, 0.32, 0.947, 0.32, 0.452, 0.585, [40, 30, 24], 1.684);
@@ -187,6 +191,7 @@ LEVELS.push({
       } else dw(0.947, -0.045, 0.947, 0.345, 0.428, 0.606, [12, 10, 8], 1.69);
       dw(fx, -0.03, fx, 0.33, 0.44, 0.595, [66, 50, 38], 1.68);
       R.add(knobs[drawer.open ? 1 : 0]);
+      R.glowAs(covers);
       // the covers: bunched at the foot they are as thick all the way across; drawn up, they rise over you and lie flat on the
       // mattress at the sides (so the drawer beside the bed stays in sight)
       const { p, zE, yE, roll } = coversAt(), zF = zE + 0.14, B = 0.585, XS = [-X, -0.6, -0.25, 0.25, 0.6, X];
@@ -205,6 +210,7 @@ LEVELS.push({
       strip(zF, x => up(x, yE) + th(x) * 0.75, zE, x => up(x, yE) + th(x), SHEET, COV - 0.002);                         // the sheet, turned down over its top
       const yB = lerp(B, yE - 0.03, p);   // its edge: the bunched blanket's own fold at the foot, the sheet's hem when it is up
       strip(zE, x => up(x, yE) + th(x), zE - 0.03, x => up(x, yB), mixc(scalec(BLANKET, 0.82), scalec(SHEET, 0.74), p), COV - 0.003);
+      R.glowAs(null);
       R.add(lampDetail);
       // what of the thing the bed hides from you: everything below the bed's top where your line of sight leaves the bed (or
       // below the covers' turned-down edge, if it is beyond that); below the covers themselves if it is over the bed
