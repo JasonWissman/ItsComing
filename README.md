@@ -206,7 +206,7 @@ some on the ground, so you have to turn and look down to find them.
    and drops back: its pages are swollen shut with damp. It rings for seven seconds before anyone
    answers, and he keeps coming the whole time. A wrong number is not in service, and
    hanging up drops the coin back into the coin return. When someone answers, a car comes
-   down his street and pulls up at the kerb for you.
+   down his street and pulls up at the curb for you.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass: facing a mirror holds it. In every glass it dances on the spot, a slow,
     jerky wind-up doll's dance (an arm going up and coming down in little ticks, a wrist

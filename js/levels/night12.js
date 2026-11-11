@@ -21,8 +21,8 @@ LEVELS.push({
     hint: 'The lamp is dead; there is a bulb in the drawer. Light slows it. Then hold the covers until they are all the way up.',
     objective: 'Get the lamp on. Pull the covers up.',
     death: { default: 'It leaned down over the bed and its face was the only thing in the room.' },
-    win: 'It stood at the foot of the bed until the room went grey, and never came a step closer.',
-    fragment: 'It stood there until the room went grey. You could hear the clock the whole time.',
+    win: 'It came to the bed and pulled at the covers three times. They held. Then the light came grey through them, and it was gone.',
+    fragment: 'The covers were pulled loose at the foot of the bed in the morning, as if something had tried them.',
   },
   lanes: [
     { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.0, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },

@@ -64,7 +64,7 @@ Object.assign(ICONS, {
   ];
   const PLAIN = [
     ['#shop', 'milk', '~bread', 'batteries, the square kind', 'bulbs, 60', '~stamps', 'something for the cough'],
-    ['#Ruth\'s old address', '22 Corder Lane, top flat', 'the bell doesn\'t work,', 'go round the back', '(she moved. write anyway)'],
+    ['#Ruth\'s old address', '22 Corder Lane, top flat', 'the bell doesn\'t work,', 'go around the back', '(she moved. write anyway)'],
     ['pay the gas', '~library books (3)', 'bins Thursday', '~ring Mum back', 'fix the hall light'],
     ['#soup', '2 onions, carrots', 'a stock cube', 'an hour, low', 'salt at the end'],
     ['#birthdays', 'Mum, 3rd March', 'Danny, the 19th', 'Ruth ?'],
@@ -211,7 +211,7 @@ Object.assign(ICONS, {
     text: {
       intro: 'It has rained since the last bus, and the phone booth on the corner is the only dry place on the street.<br>Someone in a long coat is walking toward it from a long way off, in step, swinging a lantern. You have seen him before. The last time, you wrote something down.',
       death: { default: 'He came through the glass as if it were rain.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.', nocoin: 'You were still pressing the keys of a phone that would not dial when he came through the glass.' },
-      win: 'Someone picked up and said your name, once, quietly, the way you call something home. Then there were headlights in the rain, and a car drew up at the kerb and its back door swung open. He had stopped in the street, in the lights, and he stood there while you got in. When you looked back he had turned round and was walking away the way he had come.',
+      win: 'Someone picked up and said your name, once, quietly. Then headlights came through the rain and a car drew up at the curb, its back door swinging open. He had stopped in the street, in the lights, and he stood there while you got in. When you looked back he had turned around and was walking away the way he had come.',
       fragment: 'The number is still in the notebook, in your own handwriting. You do not remember writing it down, and you have not crossed it out.',
     },
     // two streets, each seen whole through a pane of the booth: up the main street through the door, and along the pavement

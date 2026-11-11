@@ -155,7 +155,7 @@ LEVELS.push({
     hint: 'The bow is somewhere on the porch, and its three arrows are lying about, each in a different place. Hold to draw until the bar is full, and let go with it in your sights. It takes two hits to put it down.',
     objective: 'Get the bow and the arrows. Two hits.',
     death: { default: 'It did not even slow down on the steps.', wounded: 'It got back up faster than you could draw again.', spent: 'You had nothing left to draw.' },
-    win: 'You sat on the porch with the bow across your knees until it got light, and nothing else came out of the trees. This time.',
+    win: 'You sat on the porch with the bow across your knees until it got light, and nothing else came out of the trees.',
     fragment: 'The inside of your forearm was red in the morning, one long thin welt, as if something had snapped against it all night.',
   },
   // it comes at the steps, or round the open side of the porch

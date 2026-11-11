@@ -19,10 +19,10 @@ LEVELS.push({
   weather: { kind: 'ash', density: 1.0, wind: 0.3 },
   lights: [{ x: -40, y: 2, z: 5, r: 60, i: 0.5, color: [255, 120, 40], flicker: 0.4 }, { x: 2.6, y: 1.3, z: 2.6, r: 5, i: 0.4, color: [255, 200, 140], flicker: 0.15 }],
   text: {
-    intro: 'A hall of mirrors at the edge of the fair, after closing. Something is burning to the west and the ash is coming down through the roof.<br>There is someone behind you. There is always someone behind you. You can only see it in the glass, and it only comes while the glass in front of you does not show it. One of the mirrors is not like the others.',
+    intro: 'A hall of mirrors at the edge of the fair, after closing. Something is burning to the west and the ash is coming down through the roof.<br>There is someone behind you. You can only see it in the glass. One of the mirrors is not like the others.',
     hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is angry: click the box to take it back.',
     objective: 'Find the odd mirror. Put the music box on its pedestal, fit the crank, turn it.',
-    death: { default: 'You turned round.', wrong: 'It was not that mirror, and it was already behind you.' },
+    death: { default: 'You turned around.', wrong: 'It was not that mirror, and it was already behind you.' },
     win: 'It came out of the glass for the music box, smiling its painted smile, and took it back in with it. The tune went on somewhere behind the mirror for a long time, getting smaller.',
     fragment: 'You have been humming it for days. Nobody at work knows it.',
   },

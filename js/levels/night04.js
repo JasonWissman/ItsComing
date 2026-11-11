@@ -236,7 +236,7 @@ LEVELS.push({
           return again() || nope('The chain is on. It needs the padlock.', 'The chain is through the bars, but nothing fastens it.', tryAt(t, act, 'chained'));
         },
         use(item) {
-          if (CHAINS.includes(item.id)) { t.chained = true; t.nudgeAt = undefined; t.angle = 0; t.accepts = LOCKS.slice(); AUDIO.sfx('chain'); G.say('You wind the chain through the bars and round the post.', 'The chain goes through the bars.'); return true; }
+          if (CHAINS.includes(item.id)) { t.chained = true; t.nudgeAt = undefined; t.angle = 0; t.accepts = LOCKS.slice(); AUDIO.sfx('chain'); G.say('You wind the chain through the bars and around the post.', 'The chain goes through the bars.'); return true; }
           if (item.id === 'padlock') {   // without its key: held to the chain's end, its shackle tugged at, and it will not open
             if (!G.hasItem('gatekey')) {
               if (G.fumbling && G.fumbling.target === t) return G.refuse(false);   // (the last thing tried here is still there: quietly)

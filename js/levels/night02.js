@@ -48,7 +48,7 @@ LEVELS.push({
     hint: 'The keys fell somewhere when the car stalled.',
     objective: 'Start the car and get away.',
     death: { default: 'It came through the windshield.', drove: 'You drove straight at it. It came up over the hood.' },
-    win: 'It caught. You did not look in the mirror.',
+    win: 'The engine caught. You did not look in the mirror.',
     fragment: 'The car has not started on the first turn since. You have stopped mentioning it.',
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
