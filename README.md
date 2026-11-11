@@ -265,14 +265,20 @@ some on the ground, so you have to turn and look down to find them.
     put together stay as they were, the other one (or a struck match, flaring and going out)
     up in your other hand a moment.
 12. **The Bedroom.** You are in bed. It is already there, in the hall beyond the doorway
-    or in the closet, behind the wall at the side of the opening: at first only its head
-    leans out round the edge, its fingers curled round the frame (having its head in view
-    counts as watching it). Then it steps out into the room, in extreme slow motion. It
+    or in the closet (in front of the clothes on the rail), behind the wall at the side of
+    the opening: at first only its head leans out round the edge, its fingers curled round
+    the frame (having its head in view counts as watching it). The night's card shows it
+    just so, and it is still there when you begin. Then it steps out into the room, in
+    extreme slow motion, stooping under the top of the frame until it is through. It
     cannot stand the light: when the lamp comes on it throws an arm across its face and
-    sinks down out of sight, keeps low (only a dark shape along the floor, if it is out in
-    the open) to the bed, and comes up at the foot of it (or at its corner, out of the
-    closet) until only its eyes are over the edge; then its long hands come up over the
-    edge onto the covers. That is the moment: pull the covers up. The lamp must come
+    folds down onto its haunches out of sight, keeps low (only a dark shape along the
+    floor, if it is out in the open) to the bed, and comes up at the foot of it (or at its
+    corner, out of the closet) until only its eyes are over the edge, whole wherever you
+    look from, the bed hiding what it would. Then its long hands come up over the edge
+    onto the covers, and pull: one and then the other, each reaching on up the bed with its
+    fingers spread, closing on the cloth and dragging it back, the covers jerking, every
+    pull nearer to you. Pull the covers up before they reach you; if they do, it comes up the
+    bed after them. The lamp must come
     first: pulled up in the dark, the covers do not save you; it is at the bed all at once,
     takes hold of them, rips them down off you and is in your face. If the lamp burns
     out before the covers are up (it flickers first), it rises again from behind the bed
@@ -280,9 +286,9 @@ some on the ground, so you have to turn and look down to find them.
     pulls the lamp's chain (nothing comes of it with no bulb in or the cord out, and it sticks),
     opens the drawer, pushes the plug in and is on the covers' hem as you hold them; the wrong
     bulb will not go into the socket and drops onto the bed, to be taken again. Then they
-    come up over your eyes and the rest happens under them: its steps to the bed, the
-    shadow of its hand on the lamp-lit cloth, three hard pulls that the covers hold, and
-    the light through them going grey.
+    come up over your eyes and the rest happens under them, the cloth hanging in long folds:
+    its steps to the bed, the shadow of its hand coming up from the foot of the bed onto the
+    lamp-lit cloth, three hard pulls that the covers hold, and the light through them going grey.
 13. **The Void.** Everything you ever held against it lies around you, and you
     start the night holding some of it, a thing in each hand. Holding anything enrages it.
     Put it all down (each falls from your hand to the floor; reach for another with your hands
