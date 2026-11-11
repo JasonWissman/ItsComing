@@ -1,6 +1,9 @@
-// The Bedroom: bulb from the drawer into the lamp, the switch (on Nightmare the cord first, and three clicks),
-// then hold the covers up. The lamp is switched back on if it has gone out before the covers are up. Then the covers
-// come up over your eyes and it plays out under them: it comes to the bed and pulls at them three times, and they hold.
+// The Bedroom: bulb from the drawer into the lamp, the switch (on Nightmare the cord first, and three clicks), and
+// in the light it ducks down behind the bed until only its eyes are over the edge, then its hands come up onto the
+// covers; then hold the covers up. The covers come up over your eyes and it plays out under them: it comes to the bed and
+// pulls at them three times, and they hold.
+// Before that: at first it only peers round the edge of the opening (and having its head in view is seeing it), then
+// steps out; and the covers pulled up with the lamp off are a death of their own: it takes them and pulls them away.
 // First, the mattress's top is one piece drawn before the covers, so no part of it is drawn over them as they come up.
 const relight = ['waitUntil', "G.L.won ? true : (!G.L.s.lampOn && G.L.s.fitted && G.L.s.plugged ? (useTarget(G.L.targets.find(t => t.id === 'lamp')), false) : false)", 20000];
 const lamp = [['use', 'drawer'], ['pickup', 'bulb'], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on']];
@@ -24,9 +27,37 @@ const fumbles = [].concat(
     ['expect', "G.hand.reach && G.hand.reach.style === 'pull' && G.hand.reach.target === " + T('lamp'), 'no bulb in it, nothing in hand: your hand goes to the lamp\'s chain'],
     ['waitUntil', 'G.L.s.tugAt > 0', 2000], ['expect', 'G.L.s.tugAt > 0 && !G.L.s.lampOn', 'and pulls it, and nothing comes of it']],
   [['eval', 'restartLevel();'], ['wait', 250]]);
+// at first only its head round the edge of the opening, its body behind the wall, and that counts as seeing it; brought on
+// past the opening, it has stepped out into the room, its head over its shoulders and none of it hidden by the wall
+const peering = [
+  ['eval', 'restartLevel();'], ['wait', 250],
+  ['expect', "(c => G.L.s.mode === 'peer' && c.peer === 1 && !!c.showX && Math.abs(c.lat) > (c.showX[1] - c.showX[0]) / 2 + 0.2 && c.dist > 3.5 && c.hold === c.dist)(G.L.creature)", 'at first it only peers round the edge of the opening, its body behind the wall'],
+  ['expect', 'G.L.creature.seen && G.L.creature.visFrac > 0.5', 'and with its head in view it counts as seen'],
+  ['eval', 'G.L.s.peerTill = 0; G.L.creature.u = 1 - (G.L.creature.lane.idx ? 2.9 : 3.3) / G.L.creature.D0;'], ['wait', 300],
+  ['expect', "(c => G.L.s.mode === 'come' && c.peer === 0 && Math.abs(c.lat) < 0.05 && !c.showX && c.hold === null)(G.L.creature)", 'then it steps out of the opening into the room'],
+];
+// the covers pulled up with the lamp off: it is at the bed all at once, takes the covers and pulls them away, and it is in
+// your face (its own death, and its own line)
+const dark = [].concat(fresh, [
+  ['hold', 'covers', 9000],
+  ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 3000],
+  ['expect', "G.deathCause === 'dark' && !G.L.s.lampOn && !G.L.s.coversUp && G.L.s.yankK === 1 && G.L.creature.lungeFrom < 2.2", 'covers up in the dark: it came to the bed, pulled them down off you, and had you'],
+  ['waitUntil', "G.state === 'dead'", 4000],
+  ['expect', "G.deathScreen.text === G.L.text.death.dark && /not afraid of the dark/.test(G.deathScreen.text)", 'and the card says it took the covers: the dark does not stop it'],
+  ['eval', 'restartLevel();'], ['wait', 250],
+]);
+// the light: it flinches from it and goes down out of sight below the bed, comes up at the bed with only its eyes over
+// the edge, then its hands up over it onto the covers (watched every frame from before the lamp)
+const ducked = ['eval', "window.__duck = { flinch: 0, low: false }; (function w() { const c = G.L.creature; window.__duck.flinch = Math.max(window.__duck.flinch, c.flinch || 0); if (c.duck > 0.99 && (c.faceAway > 0.5 || c.eyeTo + 0.15 < c.hideBelow)) window.__duck.low = true; if (G.state === 'play') requestAnimationFrame(w); })();"];
+const duck = [
+  ['waitUntil', "G.L.s.mode === 'duck' && G.L.creature.reach > 0.99", 12000],
+  ['expect', "(c => c.duck === 1 && c.eyeTo > c.hideBelow + 0.03 && c.eyeTo < c.hideBelow + 0.12 && c.hold !== null && !G.L.won)(G.L.creature)", 'in the light it ducked down behind the bed: only its eyes over the edge, and its hands up onto the covers'],
+  ['expect', 'window.__duck.flinch > 0.9 && window.__duck.low', 'it flinched from the light and went down out of sight first'],
+  ['expect', "/hands are on the covers/.test(G.lastToast.msg)", 'and you are told its hands are on the covers'],
+];
 // holding the covers, your hand is on them (watched while the solution holds them)
 const coverHand = ['eval', "window.__coverHand = false; (function w() { if (G.holding && G.holding.id === 'covers' && G.hand.reach && G.hand.reach.target === G.holding) window.__coverHand = true; if (G.state === 'play') requestAnimationFrame(w); })();"];
 module.exports = {
   // Nightmare charges 3.5x speed for every second spent looking away, so the harness faces each thing directly instead of sweeping
-  nightmare: fumbles.concat([mattress, ['face', 5, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ['face', 4, false], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ...under]),
+  nightmare: fumbles.concat(peering, dark, [mattress, ['face', 5, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 4, false], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ...under]),
 };

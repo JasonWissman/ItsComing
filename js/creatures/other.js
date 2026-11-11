@@ -8,7 +8,9 @@
 // the box in its arms (at carryAt); and c.runPose runs it off side on in drawRun (c.runDir, c.runGait, c.runLat, as the
 // walker runs round the house). c.angry (0..1) is its temper when the box is cranked before the wrong mirror: the painted
 // brows come down hard, the lids drop over the glass eyes to a red glare, the face flushes, the lips draw back off its
-// little teeth, and it stands stiff with its fists out from its sides, its head down.
+// little teeth, and it stands stiff with its fists out from its sides, its head down. When it has you it is angry all
+// the way in (night 10 sets it as it catches you): the glare and the snarl stay as it lunges, the jaw dropping and the
+// fists opening to take hold.
 // In the glass it dances on the spot (dancePose): c.dance (0..1) is how far it is in its dance, c.danceT the dance's
 // clock (the night runs it, so every mirror shows the same moment), and c.danceMir -1 draws the mirror image of it.
 // c.tint (a light, as LIGHT.at gives) lights it by hand where the night has the renderer leave it unlit.
@@ -68,7 +70,7 @@ CREATURES.other = {
     if (c.tint) { const li = c.tint, Q = P; P = Object.assign({}, Q, { col: k => Q.col(LIGHT.apply(k, li)), cola: (k, a) => Q.cola(LIGHT.apply(k, li), a) }); }
     if (c.runPose) { this.drawRun(ctx, c, P); return; }
     const t = c.t, lunge = c.lunge || 0, back = !!c.back, rush = c.rush || 0, g = rush ? (c.runGait || 0) : (c.gait || 0);
-    const K = this.colours(P), fury = clamp(c.angry || 0, 0, 1) * (1 - rush), fist = c.carry ? 0 : fury;
+    const K = this.colours(P), fury = clamp(c.angry || 0, 0, 1) * (1 - rush), fist = c.carry ? 0 : fury * (1 - lunge);   // its fists open as it reaches for you
     // its dance, as far as it is in it (the night eases it out when it is angry or comes for the box; lunging, running or
     // reaching it has none), and the pose it is in: pose[s] for its arm and knee on that side of the view
     const w = clamp(c.dance || 0, 0, 1) * (1 - lunge) * (1 - rush) * (c.carry || c.arms ? 0 : 1);
@@ -146,7 +148,7 @@ CREATURES.other = {
       const eyeY = s => 0.135 - (s > 0 ? 0.006 : 0), er = 0.027 + lunge * 0.01;
       for (const s of [-1, 1]) {
         P_ell(ctx, s * 0.045, eyeY(s), er, er * 1.15, K.glass);
-        if (fury > 0.5) P_poly(ctx, [[s * 0.01, eyeY(s) + 0.034], [s * 0.084, eyeY(s) + 0.034], [s * 0.084, eyeY(s) + 0.016], [s * 0.01, eyeY(s) - 0.012]], K.porcelain);
+        if (fury > 0.5) { const lt = 0.034 + lunge * 0.014; P_poly(ctx, [[s * 0.01, eyeY(s) + lt], [s * 0.094, eyeY(s) + lt], [s * 0.094, eyeY(s) + 0.016], [s * 0.01, eyeY(s) - 0.012]], K.porcelain); }
       }
       if (fury > 0) P_ell(ctx, 0, 0.115, 0.1, 0.105, P.cola([214, 64, 64], 0.42 * fury));
       P_ell(ctx, 0, 0.225, 0.118, 0.055, K.hair);
@@ -166,15 +168,17 @@ CREATURES.other = {
       }
       P_ell(ctx, -0.07, 0.09, 0.022, 0.016, P.cola([224, 112, 124], 0.55)); P_ell(ctx, 0.07, 0.09, 0.022, 0.016, P.cola([224, 112, 124], 0.55));
       P_limb(ctx, [[-0.01, 0.2], [-0.03, 0.17], [-0.02, 0.155], [-0.05, 0.11]], 0.005, P.col([96, 80, 74]));   // a hairline crack
-      if (lunge > 0.25) P_ell(ctx, 0, 0.055, 0.02 + lunge * 0.035, 0.01 + lunge * 0.05, P.col([10, 4, 6]));
-      else if (fury > 0.5) {
-        // the painted lips drawn back off two rows of little teeth, the corners down: a snarl
+      if (fury > 0.5) {
+        // the painted lips drawn back off two rows of little teeth, the corners down: a snarl. Lunging at you it keeps it,
+        // the jaw dropping and the teeth parting as it comes
+        ctx.save(); ctx.translate(0, 0.052); ctx.scale(1 + lunge * 0.4, 1 + lunge * 0.8); ctx.translate(0, -0.052);
         P_poly(ctx, [[-0.066, 0.042], [-0.036, 0.08], [0.036, 0.08], [0.066, 0.042], [0.036, 0.026], [-0.036, 0.026]], K.lip);
         P_poly(ctx, [[-0.052, 0.045], [-0.03, 0.07], [0.03, 0.07], [0.052, 0.045], [0.03, 0.034], [-0.03, 0.034]], P.col([34, 8, 12]));
         P_rect(ctx, -0.034, 0.055, 0.068, 0.014, K.lace); P_rect(ctx, -0.028, 0.036, 0.056, 0.01, K.lace);
         for (let k = -2; k <= 2; k++) P_line(ctx, k * 0.0135, 0.055, k * 0.0135, 0.069, 0.003, K.porcelainD);
         for (let k = -2; k <= 1; k++) P_line(ctx, k * 0.013 + 0.0065, 0.036, k * 0.013 + 0.0065, 0.046, 0.003, K.porcelainD);
-      }
+        ctx.restore();
+      } else if (lunge > 0.25) P_ell(ctx, 0, 0.055, 0.02 + lunge * 0.035, 0.01 + lunge * 0.05, P.col([10, 4, 6]));
       else if (c.smile) {
         // the smile: painted on, and much too wide
         ctx.strokeStyle = K.lip; ctx.lineWidth = 0.011; ctx.lineCap = 'round';
