@@ -573,7 +573,8 @@ const R = (() => {
     const li = (LIGHT.list.length || LIGHT.global) && !p.noFog && !p.noLight ? LIGHT.at(p.x + ex - ox, p.y + (p.h || 0) * 0.5 + ey - oy, p.z + ez - oz) : null;
     return {
       fog: fa, fogColor, t: time, lit: li ? Math.min(1, li.lit) : 0,
-      col: c => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)); },
+      // (k: how much of the light it takes, 1 by default; a black thing that should stay black under a coloured light takes less)
+      col: (c, k) => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, k === undefined ? li : { lit: li.lit * k, color: li.color }) : c, fogColor, fa)); },
       cola: (c, a) => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa), a); },
       raw: c => rgba(c),
     };

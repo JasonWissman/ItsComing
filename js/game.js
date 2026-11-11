@@ -221,6 +221,7 @@ function onKeyDown(e) {
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
   if (e.repeat) return;
   if (k === 'm' || k === 'M') { toggleMute(); return; }
+  if (lookFree() && lookKey(k)) return;   // a won night that gives the view back takes turning and looking as looking, not as the press it waits on
   if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress(e)) return;   // a won night may be waiting on any press (the last night's meadow)
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
   if (G.state !== 'play' && MENU.onKey(e)) return;
@@ -231,15 +232,24 @@ function onKeyDown(e) {
     if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = true;
     return;
   }
+  if (lookKey(k)) return;
+  if (k >= '1' && k <= '6') { const n = k.charCodeAt(0) - 49; if (n < G.inv.length) { G.active = n; AUDIO.sfx('ui'); } }
+  else if (k === 'Tab') { e.preventDefault(); if (G.inv.length) { G.active = (G.active + 1) % G.inv.length; AUDIO.sfx('ui'); } }
+}
+// turning to the next of the 8 directions, looking ahead or down, and holding zoom: true if the key was one of those
+function lookKey(k) {
   const c = G.cam;
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') { c.dirIdx = (c.dirIdx + 7) % 8; c.tYaw = c.yaw + wrapPi(c.dirIdx * 45 * DEG - c.yaw); }
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') { c.dirIdx = (c.dirIdx + 1) % 8; c.tYaw = c.yaw + wrapPi(c.dirIdx * 45 * DEG - c.yaw); }
   else if (k === 'ArrowUp' || k === 'w' || k === 'W') c.tPitch = 0;
   else if (k === 'ArrowDown' || k === 's' || k === 'S') c.tPitch = PITCH_DOWN;
   else if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') c.zoomHeld = true;
-  else if (k >= '1' && k <= '6') { const n = k.charCodeAt(0) - 49; if (n < G.inv.length) { G.active = n; AUDIO.sfx('ui'); } }
-  else if (k === 'Tab') { e.preventDefault(); if (G.inv.length) { G.active = (G.active + 1) % G.inv.length; AUDIO.sfx('ui'); } }
+  else return false;
+  return true;
 }
+// a won night may give the view back while it waits (L.lookFree: the last night's meadow): you turn, look and zoom as in play,
+// by key, touch button or pad, and none of that is taken as the press it waits on
+function lookFree() { return G.state === 'won' && !!G.L && !!G.L.lookFree && G.L.lookFree(); }
 function onKeyUp(e) { const k = e.key; if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = false; }
 function ensureAudio() { if (!AUDIO.on()) AUDIO.init(); AUDIO.resume(); }
 function toggleMute() { setMuted(!G.muted); }
@@ -658,14 +668,14 @@ function update(dt) {
   const L = G.L; if (!L) return;
   const c = G.cam;
   // once the night is won the view turns slowly to follow the thing and closes in a little, so you see how it ends
-  const watching = G.state === 'won' && G.L && G.L.creature;
+  const free = lookFree(), watching = G.state === 'won' && G.L && G.L.creature && !free;
   const wp = watching && L.watchPoint && L.watchPoint();
   if (watching) { if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
   // a night may close in further once won (a long way off, it is small) or widen it to take in more, or bring the view in
   // close in play (facing the pay phone)
-  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
+  const tz = (c.zoomHeld && (G.state === 'play' || free)) ? 2.6 : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
@@ -977,7 +987,7 @@ function updateHUD() {
     UI.compass.innerHTML = html;
   }
   UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : c.tPitch < -0.05 ? '▲ looking up' : '▲ looking ahead';   // the win camera's small tilt is not looking down
-  UI.zoom.style.opacity = c.zoomHeld && G.state === 'play' && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
+  UI.zoom.style.opacity = c.zoomHeld && (G.state === 'play' || lookFree()) && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
   updateDrawBar();
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
@@ -1050,7 +1060,7 @@ function pollGamepad() {
   const zoom = (pad.buttons[7] && pad.buttons[7].pressed) || (pad.buttons[6] && pad.buttons[6].pressed) || (pad.buttons[5] && pad.buttons[5].pressed);
   const fake = key => ({ key, preventDefault() {}, shiftKey: false });
   if (dir !== PAD.dir && dir) {
-    if (G.state === 'play') { if (!(G.L.padDir && G.L.padDir(dir))) onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir])); }   // a night may take the d-pad first (the pay phone's keys)
+    if (G.state === 'play' || lookFree()) { if (!(G.state === 'play' && G.L.padDir && G.L.padDir(dir))) onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir])); }   // a night may take the d-pad first (the pay phone's keys)
     else {
       const f = document.activeElement;
       if (f && f.tagName === 'INPUT' && f.type === 'range' && dir <= 2) { if (dir === 1) f.stepDown(); else f.stepUp(); f.dispatchEvent(new Event('input')); } // left and right move a slider
@@ -1072,7 +1082,7 @@ function pollGamepad() {
   PAD.start = start;
   if (b && !PAD.b) { if (G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); } else if (G.state !== 'play') onKeyDown(fake('Escape')); } // B goes back, as Escape does
   PAD.b = b;
-  if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play') G.cam.zoomHeld = PAD.zoom; }
+  if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play' || lookFree()) G.cam.zoomHeld = PAD.zoom; }
 }
 // use whatever is nearest the middle of the view; with nothing there, put the held thing down when looking down
 function gamepadUse(src) {
@@ -1092,17 +1102,17 @@ function gamepadUse(src) {
 
 // ---------------- touch controls ----------------
 function bindTouch() {
-  const press = (id, down, up) => {
+  const press = (id, down, up, look) => {   // look: a button that turns, looks or zooms (it does that too where a won night gives the view back)
     const el = $(id); if (!el) return;
-    const d = e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); if (G.state !== 'play') { if (!LIST_SCREENS.includes(MENU.kind)) proceed(); return; } down(); };
+    const d = e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); if (G.state !== 'play' && !(look && lookFree())) { if (!LIST_SCREENS.includes(MENU.kind)) proceed(); return; } down(); };
     const u = e => { e.preventDefault(); if (up) up(); };
     el.addEventListener('pointerdown', d); el.addEventListener('pointerup', u); el.addEventListener('pointercancel', u); el.addEventListener('pointerleave', u);
   };
-  press('tLeft', () => onKeyDown({ key: 'ArrowLeft', preventDefault() {} }));
-  press('tRight', () => onKeyDown({ key: 'ArrowRight', preventDefault() {} }));
-  press('tUp', () => onKeyDown({ key: 'ArrowUp', preventDefault() {} }));
-  press('tDown', () => onKeyDown({ key: 'ArrowDown', preventDefault() {} }));
-  press('tZoom', () => { G.cam.zoomHeld = true; }, () => { G.cam.zoomHeld = false; });
+  press('tLeft', () => onKeyDown({ key: 'ArrowLeft', preventDefault() {} }), null, true);
+  press('tRight', () => onKeyDown({ key: 'ArrowRight', preventDefault() {} }), null, true);
+  press('tUp', () => onKeyDown({ key: 'ArrowUp', preventDefault() {} }), null, true);
+  press('tDown', () => onKeyDown({ key: 'ArrowDown', preventDefault() {} }), null, true);
+  press('tZoom', () => { G.cam.zoomHeld = true; }, () => { G.cam.zoomHeld = false; }, true);
   press('tUse', () => gamepadUse('touch'), () => drawLetGo('touch'));
   press('tPause', () => pauseGame());
 }

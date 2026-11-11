@@ -1,9 +1,11 @@
 'use strict';
 // ============================================================ 13. THE VOID ============================================================
-// Nothing at all: a faint floor that fades into black. Around you lies everything you ever held against it, and you
-// begin the night holding some of it. It comes from anywhere. Holding anything enrages it. Put it all down.
-// The ending plays out here, without a cut: caught empty-handed and facing it, it stops and holds you, its face goes
-// through all it was until it is happy, and the dark opens into a meadow in the sun; a press later it is the bedroom.
+// Nothing at all: a faint floor that fades into black. Around you lies everything you ever held against it, and your hands
+// are empty. It comes from anywhere, a tall thing in a black hood. Take up anything and it is enraged, and comes on in fits;
+// put it all down again and it calms. The ending plays out here, without a cut: caught empty-handed and facing it, it stops
+// and holds you, its face comes out of the dark of its hood and goes through angry, neutral, angry, confused, sad, neutral
+// and content until it is happy, and the dark opens into a meadow in the sun, where you may look about as long as you
+// like; a press and it is the bedroom.
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
   ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['handle', 'Winch handle', 0.45, 0.45],
@@ -37,12 +39,15 @@ const END = {
   near: [0.9, 3.0],                     // and comes in close
   reach: [0.8, 3.6],                    // its arms come slowly up out to you, the hands open
   close: [3.8, 5.6],                    // and close round you
-  moods: 6.4, blend: 0.8, hold: 0.8,    // then its faces, each coming over `blend` and held `hold`: rage first, happy last
-  release: 16.0,                        // it lets you go, a moment after it is happy
-  light: [15.8, 21.8],                  // the light comes, and the meadow with it
-  walk: [17.0, 20.6],                   // it steps back and round to the north, where the foot of the bed will be
-  dance: [21.2, 25.7],                  // and dances a little to the tune
-  wait: 21.8, arm: 22.4, line: 24.2,    // from here the meadow waits for a press (taken from `arm`); a soft line comes in at `line`
+  unveil: [5.0, 6.4],                   // its face comes up out of the dark of its hood, angry
+  moods: 6.4, hold: 1.0, blend: 0.9,    // then its faces in turn, each held `hold` and going into the next over `blend`, until
+                                        // it is happy (at moods + 7 * (hold + blend), 19.7)
+  release: 20.5,                        // it lets you go, a moment after it is happy
+  light: [20.3, 26.3],                  // the light comes, and the meadow with it
+  walk: [21.5, 25.1],                   // it steps back and round to the north, where the foot of the bed will be
+  dance: [25.7, 30.2],                  // and dances a little to the tune
+  wait: 26.3, arm: 26.9, line: 28.7,    // from here the meadow is yours to look about in, and waits for a press (taken from
+                                        // `arm`); a soft line comes in at `line`
   leave: 4.2,                           // after the press: the meadow and it fade, the bedroom comes up, and then the last screen
 };
 LEVELS.push({
@@ -51,8 +56,8 @@ LEVELS.push({
   ambient: { wind: 0.2, drone: 1.3, droneFreq: 34, windFreq: 160 },
   text: {
     intro: 'Where are you?',
-    hint: 'Put them down. All of them.',
-    objective: 'Put everything down.',
+    hint: 'You do not need them now.',
+    objective: 'Hold nothing.',
     death: { default: 'You were still holding on to something.', away: 'It craves your fear.' },
     win: '',
     fragment: '',
@@ -91,17 +96,20 @@ LEVELS.push({
     // the dresser showed through their near sides and then vanished all at once as the light finished: a face turned away
     // from the eye stays out of it all along, as it will be once the room is there
     const turned = p => !!p.solid && R.isCulledFace(p.solid, 0, L.eyeH, 0);
-    // the ring of everything, and what you start the night holding: what is left on the floor lies evenly all the way round you
-    const hold = L.tier(3, 6), ringR = L.tier(2.0, 1.7);
+    // the ring of everything: it all lies on the floor, all the way round you and within reach, each given room round the
+    // ring for its width (so the bar and the bow do not lie over their neighbours), every other one a little further out;
+    // you hold none of it
+    const ringR = L.tier(2.0, 1.7);
     const rng = mulberry32((G.runSeed * 31 + 13) >>> 0);
     const tools = VOID_TOOLS;
     const order = tools.slice().sort(() => rng() - 0.5);
-    const nRing = order.length - hold;
+    const room = order.map(t => t[2] + 0.3), all = room.reduce((x, y) => x + y, 0);
+    let along = 0;
     order.forEach(([id, name, w, h], k) => {
-      const j = k < hold ? k : k - hold, a = j / (k < hold ? hold : nRing) * TAU + 0.2, r = ringR + (j % 2) * 0.5;
+      const a = (along + room[k] / 2) / all * TAU + 0.2, r = ringR + (k % 2) * 0.5;
+      along += room[k];
       const own = ICONS[VOID_ICONS[id] || id], held = Object.assign(G.heldSpec({ id, w, h, flat: true, icon: own }), VOID_HELD[id]);
-      const it = mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(own), held, tool: id === 'bow' || id === 'matches' || id === 'hammer', uses: id === 'arrows' ? 3 : 1 });
-      if (k < hold) { it.taken = true; G.inv.push(it); }
+      mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(own), held, tool: id === 'bow' || id === 'matches' || id === 'hammer', uses: id === 'arrows' ? 3 : 1 });
     });
     // put down, a thing lands where you put it unless it would lie over something else, when it goes the least way to the
     // side, nearer or further that clears it. Everything lies as a card facing you, so two overlap where their widths
@@ -116,7 +124,9 @@ LEVELS.push({
       const others = L.items.filter(o => (!o.taken || falls.some(f => f.it === o)) && o !== it).map(o => card(o, o.x, o.z));   // (and where one still falling will lie)
       const a0 = Math.atan2(it.x, it.z), d0 = Math.hypot(it.x, it.z);
       let best = null;
-      search: for (const da of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]) for (const dd of [0, -0.15, 0.15, -0.3, 0.3]) {
+      // (as far round as it takes: with all sixteen things down the ring is crowded)
+      search: for (let n = 0; n <= 50; n++) for (const dd of [0, -0.15, 0.15, -0.3, 0.3]) {
+        const da = n % 2 ? (n + 1) / 2 : -n / 2;
         const a = a0 + da * 7 * DEG, d = clamp(d0 + dd, 1.15, 1.6), x = Math.sin(a) * d, z = Math.cos(a) * d;
         const q = rotY(x, z, -L.facing);
         if (L.floor.poly && !pointInPoly(q[0], q[1], L.floor.poly)) continue;
@@ -172,7 +182,7 @@ LEVELS.push({
     G.active = 0;
     const c0 = () => L.creatures[0];
     L.isWon = () => false;
-    L.objectiveText = () => G.inv.length ? 'Put everything down (' + G.inv.length + ' still held).' : 'Empty-handed. Let it come.';
+    L.objectiveText = () => G.inv.length ? 'Put it down (' + G.inv.length + ' held).' : 'Empty-handed. Let it come.';
     // being caught empty-handed, and looking at it, is the ending, not a death: it stops close in front of you and holds you.
     // Turned away from it, or looking at the floor, as it reaches you is a death even with nothing in your hands.
     const facingIt = c => Math.abs(wrapPi(c.yaw - G.cam.yaw)) < 30 * DEG && G.cam.pitch < PITCH_DOWN * 0.5;
@@ -182,9 +192,9 @@ LEVELS.push({
       if (G.inv.length > 0 || !facingIt(c)) return false;
       s.ending = true; s.endT = 0; c.frozen = true; c.hold = null;
       c.lane = Object.assign({}, c.lane, { follow: 'free', apertures: [], blockers: [] });   // placed by yaw and distance from here on
-      // its head comes level from the tilt it had (as draw() has it, empty-handed)
-      const a = clamp(c.rage || 0, 0, 1) * (1 - (c.calm || 0));
-      c.tilt0 = headTiltJerk(c.t, 2.7 - a * 1.5, 0.3 + a * 0.3); c.settle = 0; c.mood = 0;
+      // its head comes level from the tilt it had (as draw() has it, empty-handed); its first face is already there, in the
+      // dark of the hood, not yet seen
+      c.tilt0 = CREATURES.demon.tilt(c); c.settle = 0; c.mood = 0; c.unveil = 0;
       // it comes in a little closer as it takes hold of you; later it steps back and round to the north (the foot of the bed)
       const yaw0 = c.yaw, d0 = c.dist, yaw1 = L.facing;
       c.distFn = cr => {
@@ -194,18 +204,21 @@ LEVELS.push({
       };
       AUDIO.sfx('stingHum'); win(); return true;
     };
-    // which face it is making: none of them before END.moods, then each in turn, ending happy
+    // which face it is making: the first (angry) until END.moods and held a while after, then each in turn, ending happy
+    const LAST = CREATURES.demon.moods - 1;
     const moodAt = t => {
       if (t < END.moods) return 0;
-      const per = END.blend + END.hold, u = t - END.moods, j = Math.floor(u / per);
-      return Math.min(CREATURES.demon.moods - 1, j + clamp((u - j * per) / END.blend, 0, 1));
+      const per = END.hold + END.blend, u = t - END.moods, j = Math.floor(u / per);
+      return Math.min(LAST, j + clamp((u - j * per - END.hold) / END.blend, 0, 1));
     };
-    // the light on it while it holds you follows its face: its own dull red, red hot in its rage, cold in fear and sorrow, warm
-    // when it is calm and happy (as the light coming will be)
-    const MOOD_LIGHT = [[[200, 60, 60], 0.25, 0.5], [[255, 46, 30], 0.6, 0.7], [[214, 76, 92], 0.4, 0.4], [[130, 150, 230], 0.42, 0.5], [[120, 140, 210], 0.36, 0.2], [[255, 206, 166], 0.45, 0.1], [[255, 226, 176], 0.6, 0.05]];
+    // the light on it while it holds you follows its face: its own dull red while the face is still in the dark of the hood,
+    // red hot when it is angry, grey when it is neither, cold when it is lost and sad, warm when it is content and happy (as
+    // the light coming will be). One for each face, in the order of DEMON_MOODS
+    const DULL = [[200, 60, 60], 0.25, 0.5];
+    const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2], [[226, 200, 188], 0.38, 0.1], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
     const moodLight = c => {
-      const m = c.mood || 0, i = Math.min(Math.floor(m), MOOD_LIGHT.length - 2), k = smoothstep(m - i), A = MOOD_LIGHT[i], B = MOOD_LIGHT[i + 1];
-      return { color: mixc(A[0], B[0], k), i: lerp(A[1], B[1], k), flicker: lerp(A[2], B[2], k) };
+      const m = c.mood || 0, i = Math.min(Math.floor(m), MOOD_LIGHT.length - 2), k = smoothstep(m - i), A = MOOD_LIGHT[i], B = MOOD_LIGHT[i + 1], u = c.unveil === undefined ? 1 : c.unveil;
+      return { color: mixc(DULL[0], mixc(A[0], B[0], k), u), i: lerp(DULL[1], lerp(A[1], B[1], k), u), flicker: lerp(DULL[2], lerp(A[2], B[2], k), u) };
     };
     // where the room's furniture will stand (x0, x1, z0, z1, as buildBedroom puts them): the bed, the nightstand, the chair, the
     // dresser; a thing lying there, or against or beyond a wall, is in the way of the room
@@ -240,14 +253,14 @@ LEVELS.push({
       s.hugWrap = wrap;
       c.calm = span(t, END.release, END.release + 1.6);
       c.hug = reach > 0.001 || wrap > 0.001 ? { reach, wrap } : null;
-      c.mood = moodAt(t);
+      c.mood = moodAt(t); c.unveil = span(t, END.unveil[0], END.unveil[1]);
       // a thing this close is drawn from its feet: looked up at too steeply, they would be behind the eye and it would vanish,
       // so the view never looks up further than keeps them in front (it bends down to you, so the view comes level anyway)
       const up = Math.atan(0.7 * c.dist / Math.max(0.5, L.eyeH - c.pos().y - c.yOff));
       if (G.cam.pitch < -up) G.cam.pitch = -up;
       if (t >= END.close[1] && !s.held) { s.held = true; AUDIO.voice('exhale', 0.5, 0); }   // it has hold of you
-      if (t >= END.moods + 3 * (END.blend + END.hold) && !s.sob) { s.sob = true; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
-      if (t >= END.moods + 5 * (END.blend + END.hold) && !s.hum) { s.hum = true; AUDIO.voice('hum', 0.5, 0); }   // happy
+      if (c.mood >= 3.5 && !s.sob) { s.sob = true; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
+      if (c.mood >= LAST && !s.hum) { s.hum = true; AUDIO.voice('hum', 0.5, 0); }   // happy
       // the light comes: the void opens into the meadow in the sun; later, after a press, the meadow goes and the room is there
       const mv = s.meadow = span(t, END.light[0], END.light[1]);
       if (s.leaving) s.leaveT += dt;
@@ -279,10 +292,13 @@ LEVELS.push({
       c.fade = s.leaving ? clamp(1 - (lt - 0.3) / 2.0, 0, 1) : 1;
       meadow.update();
     };
-    // the meadow waits for as long as you like: a click, a key, a tap or A goes on (not in the first moment of it, so a press
-    // made while it was still coming does not throw it away). From the moment it reaches you the ending takes every press, so
-    // nothing (R included) can cut it short while it holds you, and nothing but going on is done in the meadow. A key that only
-    // goes somewhere else (alt-tab, a screenshot's chord, a function key) is not a press: the meadow stays.
+    // the meadow waits for as long as you like, and while it waits the view is yours again: you turn, look down and zoom as in
+    // any night (js/game.js takes those keys, buttons and the d-pad first, so they are never the press). A click, any other
+    // key, a tap of Use or A goes on (not in the first moment of it, so a press made while it was still coming does not throw
+    // it away). From the moment it reaches you the ending takes every other press, so nothing (R included) can cut it short
+    // while it holds you, and nothing but going on is done in the meadow. A key that only goes somewhere else (alt-tab, a
+    // screenshot's chord, a function key) is not a press: the meadow stays. After the press the view is taken back, to it.
+    L.lookFree = () => s.wait && !s.leaving;
     const aside = e => !!e && (e.ctrlKey || e.metaKey || e.altKey || /^(Shift|Control|Alt|AltGraph|Meta|OS|CapsLock|NumLock|ScrollLock|Fn|FnLock|ContextMenu|PrintScreen|Unidentified|F\d{1,2})$/.test(e.key || ''));
     L.onPress = e => {
       if (!s.ending) return false;

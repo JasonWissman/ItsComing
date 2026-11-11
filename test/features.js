@@ -312,16 +312,49 @@ const hoverHit = lookFor;
   await page.evaluate(() => localStorage.clear());
 
   console.log('== the last night, holding on ==');
+  // you begin it with nothing in your hands, and everything lies around you, to be taken up
   await T.open(page, 'level=13&go&seed=1&nofr');
-  await page.evaluate(() => { G.L.creature.u = 0.985; G.step(0.05, 400); });
+  let v13 = await page.evaluate(() => ({ inv: G.inv.length, items: G.L.items.length, down: G.L.items.filter(i => !i.taken).length, rage: G.L.creature.rage, obj: G.L.objectiveText(), card: G.L.text.intro + ' ' + G.L.text.hint }));
+  check(v13.inv === 0 && v13.items === 16 && v13.down === 16 && v13.rage === 0 && /Empty-handed/.test(v13.obj) && !/put (them|it|everything) down/i.test(v13.card), 'the last night begins empty-handed, everything you ever held lying around you, and nothing says you hold anything (' + JSON.stringify(v13) + ')');
+  // the thing in the hood: calm, two pale points in the dark of it; holding anything, red eyes and a snarling mouth there, and
+  // it comes on in fits (stopping dead, lurching, jerking aside, its head twitching); put down, calm again. What the view
+  // shows round its face, close in: pale and no red, or red
+  const look = () => page.evaluate(() => {
+    const c = G.L.creature, u = G.L.update;
+    G.L.update = dt => { u(dt); G.cam.pitch = G.cam.tPitch = -0.36; };   // (up at its face, held or not)
+    G.cam.zoomHeld = true; G.mouse.x = -1; G.step(0.05, 24); G.cam.zoomHeld = false; G.L.update = u;
+    const cp = c.pos(), fp = R.screenPos(cp.x, cp.y + c.yOff + CREATURES.demon.eyesY(c) - 0.06, cp.z), ctx = R.ctx || document.getElementById('game').getContext('2d');
+    const dpr = ctx.canvas.width / R.W, x0 = Math.round((fp.x - 90) * dpr), y0 = Math.round((fp.y - 90 + R.viewY) * dpr), n = Math.round(180 * dpr), px = ctx.getImageData(x0, y0, n, n).data;
+    let red = 0, pale = 0, dark = 0;
+    for (let i = 0; i < px.length; i += 4) { const r = px[i], g = px[i + 1], b = px[i + 2]; if (r > 170 && g < 110 && b < 90) red++; else if (r > 150 && g > 150 && b > 140) pale++; if (r + g + b < 90) dark++; }
+    return { red, pale, dark: +(dark / (px.length / 4)).toFixed(2) };
+  });
+  const jerks = () => page.evaluate(() => {
+    const c = G.L.creature, t0 = c.t, pace = [], side = [], tilt = []; let jumps = 0;
+    for (let i = 0; i < 120; i++) { c.t = t0 + i * 0.05; pace.push(CREATURES.demon.speedMult(c, 0.05, true) / (1 + 0.45 * c.anger)); side.push(CREATURES.demon.lateral(Object.assign({}, c, { dist: 10 }))); tilt.push(CREATURES.demon.tilt(c)); if (i && Math.abs(tilt[i] - tilt[i - 1]) > 0.08) jumps++; }
+    c.t = t0;
+    return { pace: [Math.min(...pace), Math.max(...pace)].map(v => +v.toFixed(2)), side: +(Math.max(...side) - Math.min(...side)).toFixed(2), jumps };
+  });
+  await page.evaluate(() => { const c = G.L.creature; c.switched = true; G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; c.u = 1 - Math.pow(3 / c.D0, 1 / c.gamma); G.step(0.05, 2); c.hold = c.dist; });
+  const calmLook = await look(), calmFits = await jerks();
+  check(calmLook.pale > 6 && calmLook.red === 0 && calmLook.dark > 0.5, 'empty-handed it is a dark hooded thing, nothing of its face to be seen but two pale eyes (' + JSON.stringify(calmLook) + ')');
+  check(calmFits.pace[0] === 1 && calmFits.pace[1] === 1 && calmFits.side === 0 && calmFits.jumps <= 4, 'and it only walks, its head now and then to one side (' + JSON.stringify(calmFits) + ')');
+  await page.evaluate(() => { pickup(G.L.items.find(i => i.id === 'hammer')); G.step(0.05, 20); });
+  const rageLook = await look(), rageFits = await jerks();
+  check(rageLook.red > 30 && rageLook.pale > 6, 'holding anything, its eyes burn red and a snarling mouth shows in the dark of its hood (' + JSON.stringify(rageLook) + ')');
+  check(rageFits.pace[0] < 0.5 && rageFits.pace[1] > 1.6 && rageFits.side > 0.15 && rageFits.jumps >= 8, 'and it comes on in fits: stopping dead, lurching, jerking aside, its head twitching (' + JSON.stringify(rageFits) + ')');
+  await page.evaluate(() => { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; dropActive(); G.step(0.05, 40); });
+  const againLook = await look(), againFits = await jerks();
+  check(againLook.red === 0 && againLook.pale > 6 && againFits.side === 0 && againFits.pace[1] === 1, 'put down, it calms: two pale eyes again, and it walks (' + JSON.stringify([againLook, againFits]) + ')');
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  await page.evaluate(() => { pickup(G.L.items[0]); G.L.creature.u = 0.985; G.step(0.05, 400); });
   check(await page.evaluate(() => G.state === 'dead' && !!G.deathScreen && /holding/.test(G.deathScreen.text)), 'reaching you with something in your hands is a death, and the line says so');
   check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') !== 'day'), 'no morning for the one who held on');
   // empty-handed is not enough: turned away from it, or looking at the floor, as it reaches you is a death too
   for (const [how, cam] of [['turned away', 'G.cam.dirIdx = (dir + 2) % 8; G.cam.pitch = G.cam.tPitch = 0;'], ['looking at the floor', 'G.cam.dirIdx = dir; G.cam.pitch = G.cam.tPitch = PITCH_DOWN;']]) {
     await T.open(page, 'level=13&go&seed=1&nofr');
     await page.evaluate(cam => {
-      for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
-      G.L.creature.switched = true;   // it keeps to its way (it would change it once, unseen in the dark, far out)   // nothing held, without the drop's own rules
+      G.L.creature.switched = true;   // it keeps to its way (it would change it once, unseen in the dark, far out)
       const dir = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; new Function('dir', cam)(dir); G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG;
       G.L.creature.u = 0.985; G.step(0.05, 400);
     }, cam);
@@ -329,8 +362,7 @@ const hoverHit = lookFor;
   }
   await T.open(page, 'level=13&go&seed=1&nofr');
   const faced = await page.evaluate(() => {
-    for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
-      G.L.creature.switched = true;   // it keeps to its way (it would change it once, unseen in the dark, far out)
+    G.L.creature.switched = true;   // it keeps to its way (it would change it once, unseen in the dark, far out)
     G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
     G.L.creature.u = 0.9; let up = 0;
     for (let i = 0; i < 600 && !G.L.won; i++) { G.step(0.05, 1); up = Math.min(up, G.cam.pitch); }
@@ -340,7 +372,6 @@ const hoverHit = lookFor;
   // the ending, frame by frame: it holds you, its face goes through its moods to happy, the meadow comes and waits as long as
   // you like; a press, and the meadow and it fade into the bedroom and the last screen
   const caught = () => page.evaluate(() => {
-    for (const it of G.inv.slice()) { G.inv.splice(G.inv.indexOf(it), 1); it.taken = false; it.x = 0; it.z = 0.6; it.y = 0; }
     G.L.creature.switched = true;
     G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
     G.L.creature.u = 0.9; for (let i = 0; i < 600 && !G.L.won; i++) G.step(0.05, 1);
@@ -353,7 +384,9 @@ const hoverHit = lookFor;
     const until = t => { while (s.endT < t - 1e-6) { G.step(1 / 30, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white); } };
     until(END.reach[0] + 0.5); const h0 = c.hug && { reach: c.hug.reach, wrap: c.hug.wrap };
     until(END.reach[1]); o.reaching = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    until(END.unveil[0] - 0.05); o.veiled = { unveil: c.unveil, mood: c.mood, wrap: +c.hug.wrap.toFixed(2) };   // its face still in the dark of the hood
     until(END.close[1] + 0.3); o.holding = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    until(END.moods + 0.3); o.unveiled = { unveil: c.unveil, mood: c.mood };   // and come out of it, angry
     const cp = c.pos(), face = cp.y + c.yOff + CREATURES.demon.eyesY(c), fp = R.screenPos(cp.x, face, cp.z);
     o.held = { reach: c.hug && c.hug.reach, wrap: c.hug && c.hug.wrap, dist: c.dist, h0, aim: Math.abs(wrapPi(c.yaw - G.cam.yaw)), faceY: fp && fp.y / R.H, faceX: fp && fp.x / R.W, mood: c.mood, overlay: s.hugWrap };
     // its moods: each whole one held a while, the changes between them slow, all of it while it still holds you
@@ -362,10 +395,10 @@ const hoverHit = lookFor;
       G.step(0.05, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white);
       const m = c.mood; if (m < prev - 1e-9) down = true; prev = m;
       if (Number.isInteger(m)) { if (seen.length && seen[seen.length - 1].m === m) seen[seen.length - 1].t1 = s.endT; else seen.push({ m, t0: s.endT, t1: s.endT, wrap: s.hugWrap, meadow: s.meadow }); }
-      if (m === 6 && release === null) release = { meadow: s.meadow, wrap: s.hugWrap };
+      if (m === 7 && release === null) release = { meadow: s.meadow, wrap: s.hugWrap };
       if (seen.length && Number.isInteger(m)) last = m;
     }
-    o.moods = seen.map(x => x.m); o.held2 = seen.filter(x => x.m >= 1 && x.m <= 5).every(x => x.t1 - x.t0 >= 0.6 && x.wrap > 0.99 && x.meadow === 0);
+    o.moods = seen.map(x => x.m); o.held2 = seen.filter(x => x.m >= 1 && x.m <= 6).every(x => x.t1 - x.t0 >= 0.8 && x.wrap > 0.99 && x.meadow === 0);
     o.blends = seen.slice(1).map((x, i) => +(x.t0 - seen[i].t1).toFixed(2)); o.down = down; o.happyFirst = release; o.last = last;
     return o;
   });
@@ -374,8 +407,10 @@ const hoverHit = lookFor;
   check(hold.holding && hold.holding.every(([x, y], i) => (i ? x > 0.85 : x < 0.15) && y < 0.3), 'its arms come round the sides of the view, the hands in its top corners (' + JSON.stringify(hold.holding) + ')');
   check(hold.held.reach > 0.99 && hold.held.wrap > 0.99 && hold.held.overlay > 0.99 && hold.held.dist < 0.75, 'it stops close in front of you and its arms close round you (' + JSON.stringify(hold.held) + ')');
   check(hold.held.aim < 0.02 && hold.held.faceX > 0.4 && hold.held.faceX < 0.6 && hold.held.faceY > 0.1 && hold.held.faceY < 0.5, 'the view stays on its face (' + (hold.held.faceX || 0).toFixed(2) + ', ' + (hold.held.faceY || 0).toFixed(2) + ')');
-  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6]' && !hold.down && hold.held2, 'while it holds you its face goes through rage, anguish, fear, sorrow and calm, each held a while, and ends happy (' + JSON.stringify(hold.moods) + ')');
-  check(hold.blends.every(b => b >= 0.5), 'each change of face is slow (' + hold.blends.join(', ') + ' s)');
+  check(hold.veiled.unveil === 0 && hold.veiled.mood === 0 && hold.veiled.wrap > 0.3 && hold.unveiled.unveil === 1 && hold.unveiled.mood === 0, 'as its arms close round you its face is still in the dark of its hood; then it comes out of it, angry (' + JSON.stringify([hold.veiled, hold.unveiled]) + ')');
+  const moodNames = await page.evaluate(() => CREATURES.demon.moodNames.join(', '));
+  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6,7]' && moodNames === 'angry, neutral, angry, confused, sad, neutral, content, happy' && !hold.down && hold.held2, 'while it holds you its face goes through ' + moodNames + ', in that order, each held a while (' + JSON.stringify(hold.moods) + ')');
+  check(hold.blends.every(b => b >= 0.7), 'each change of face is slow (' + hold.blends.join(', ') + ' s)');
   check(hold.happyFirst && hold.happyFirst.meadow === 0 && hold.happyFirst.wrap > 0.99, 'it is happy while it still holds you, before the light comes');
   check(hold.flash < 0.01 && hold.white < 0.01, 'nothing in it flashes');
   const meadow = await page.evaluate(() => {
@@ -385,15 +420,47 @@ const hoverHit = lookFor;
     for (let i = 0; i < 600; i++) G.step(0.1, 1);   // a minute in the meadow
     return Object.assign(at, { after: { state: G.state, leaving: s.leaving, meadow: s.meadow, fade: c.fade } });
   });
-  check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 6 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
+  check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 7 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
   check(meadow.ground[1] > meadow.ground[0] + 40 && meadow.sky[2] > 200 && meadow.sky[2] > meadow.sky[0] + 80 && meadow.room === 0, 'green grass and a blue sky, and no room yet (' + JSON.stringify([meadow.ground, meadow.sky]) + ')');
   check(meadow.after.state === 'won' && !meadow.after.leaving && meadow.after.meadow === 1 && meadow.after.fade === 1, 'left alone, the meadow simply stays');
   for (const k of ['Alt', 'Meta', 'Shift', 'Control+Shift+KeyS', 'F2']) await page.keyboard.press(k);
   check(await page.evaluate(() => (G.step(0.1, 10), G.state === 'won' && !G.L.s.leaving && G.L.s.meadow === 1)), 'alt-tab, a screenshot\'s keys or a function key do not end the meadow');
   await shot(page, 'meadow');
+  // in the meadow the view is yours, as in any night: the keys, the touch buttons and the pad turn it through the 8
+  // directions, look down and up, and zoom while held, and none of that is the press that goes on
+  const cam = () => page.evaluate(() => { G.step(0.05, 24); return { yaw: G.cam.yaw / DEG, dir: G.cam.dirIdx, pitch: G.cam.pitch, zoom: G.cam.zoom, leaving: G.L.s.leaving, state: G.state }; });
+  const PITCH = await page.evaluate(() => PITCH_DOWN), deg = Math.PI / 180;
+  const turned = (a, b, by) => { const d = (b.yaw - a.yaw - by) * deg; return Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) < 2 * deg && !b.leaving && b.state === 'won'; };
+  const looks = [];
+  let c0 = await cam();
+  for (const [k, by] of [['ArrowLeft', -45], ['ArrowLeft', -45], ['ArrowRight', 45], ['a', -45], ['d', 45], ['d', 45]]) { await page.keyboard.press(k); const c1 = await cam(); looks.push(k + ':' + turned(c0, c1, by)); c0 = c1; }
+  for (const [k, p] of [['ArrowDown', PITCH], ['ArrowUp', 0], ['s', PITCH], ['w', 0]]) { await page.keyboard.press(k); const c1 = await cam(); looks.push(k + ':' + (Math.abs(c1.pitch - p) < 0.03 && !c1.leaving)); }
+  for (const k of ['z', 'Shift', ' ']) { await page.keyboard.down(k); const c1 = await cam(); await page.keyboard.up(k); const c2 = await cam(); looks.push(k + ':' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving)); }
+  const touch = (id, type) => page.evaluate(([id, type]) => document.getElementById(id).dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true })), [id, type]);
+  for (const [id, by] of [['tLeft', -45], ['tRight', 45]]) { await touch(id, 'pointerdown'); await touch(id, 'pointerup'); const c1 = await cam(); looks.push(id + ':' + turned(c0, c1, by)); c0 = c1; }
+  await touch('tDown', 'pointerdown'); await touch('tDown', 'pointerup'); let c1 = await cam(); looks.push('tDown:' + (Math.abs(c1.pitch - PITCH) < 0.03 && !c1.leaving));
+  await touch('tUp', 'pointerdown'); await touch('tUp', 'pointerup'); c1 = await cam(); looks.push('tUp:' + (Math.abs(c1.pitch) < 0.03 && !c1.leaving));
+  await touch('tZoom', 'pointerdown'); c1 = await cam(); await touch('tZoom', 'pointerup'); let c2 = await cam(); looks.push('tZoom:' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving));
+  const pad = (b, on) => page.evaluate(([b, on]) => {
+    if (!window._pad) window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) };
+    navigator.getGamepads = () => [window._pad]; window._pad.buttons[b].pressed = on; pollGamepad(); navigator.getGamepads = () => [];
+  }, [b, on]);
+  c0 = await cam();
+  await pad(14, true); await pad(14, false); c1 = await cam(); looks.push('pad left:' + turned(c0, c1, -45));
+  await pad(13, true); await pad(13, false); c1 = await cam(); looks.push('pad down:' + (Math.abs(c1.pitch - PITCH) < 0.03 && !c1.leaving));
+  await pad(12, true); await pad(12, false); c1 = await cam(); looks.push('pad up:' + (Math.abs(c1.pitch) < 0.03 && !c1.leaving));
+  await pad(7, true); c1 = await cam(); await pad(7, false); c2 = await cam(); looks.push('pad zoom:' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving));
+  await page.evaluate(() => { delete window._pad; });
+  check(looks.every(s => s.endsWith(':true')), 'in the meadow you turn, look down and up and zoom as in any night, by key, touch and pad, and the meadow still waits (' + looks.join(', ') + ')');
+  // turned away and looking at the grass, a click still goes on, and the view is brought back to it as it goes
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowDown');
+  c1 = await cam();
+  const away = await page.evaluate(() => Math.abs(wrapPi(G.cam.yaw - G.L.creature.yaw)));
+  check(away > 1.2 && c1.pitch > 0.7 && !c1.leaving, 'turned away from it and looking at the grass (' + away.toFixed(2) + ')');
   await page.mouse.click(640, 380);
-  const left = await page.evaluate(() => { const s = G.L.s, o = { leaving: s.leaving }; G.step(0.05, 40); o.mid = { room: s.room, lv: s.lv, fade: G.L.creature.fade, state: G.state }; for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1); return Object.assign(o, { state: G.state, room: s.room, eyeH: G.L.eyeH, kind: MENU.kind }); });
+  const left = await page.evaluate(() => { const s = G.L.s, o = { leaving: s.leaving }; G.step(0.05, 40); o.mid = { room: s.room, lv: s.lv, fade: G.L.creature.fade, state: G.state, view: +Math.abs(wrapPi(G.cam.yaw - G.L.creature.yaw)).toFixed(2), pitch: +G.cam.pitch.toFixed(2) }; for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1); return Object.assign(o, { state: G.state, room: s.room, eyeH: G.L.eyeH, kind: MENU.kind }); });
   check(left.leaving && left.mid.state === 'won' && left.mid.room > 0.2 && left.mid.room < 1 && left.mid.fade < 1 && left.mid.lv > 0.3, 'a click: the meadow and it fade away as the bedroom comes (' + JSON.stringify(left.mid) + ')');
+  check(left.mid.view < 0.2 && Math.abs(left.mid.pitch) < 0.15, 'and the view comes back round to it, level, as the room comes');
   check(left.state === 'end' && left.room === 1 && Math.abs(left.eyeH - 1.15) < 0.01 && left.kind === 'ending', 'the bedroom in the morning, and the last screen');
   check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') === 'day' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act="again"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true), 'the light theme, faced your demons, Play again, the campaign complete');
   await shot(page, 'ending');
@@ -429,7 +496,7 @@ const hoverHit = lookFor;
   await page.evaluate(() => MENU.applySetting('reducedMotion', false));
   // tapping the held thing again while looking down puts it down
   await T.open(page, 'level=13&go&seed=1&nofr');
-  const held = await page.evaluate(() => G.inv.length);
+  const held = await page.evaluate(() => { G.L.items.slice(0, 3).forEach(i => pickup(i)); G.step(0.05, 10); return G.inv.length; });
   await page.evaluate(() => { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.step(0.05, 3); document.querySelector('#inventory .slot.active').click(); });
   check(await page.evaluate(n => G.inv.length === n - 1, held), 'tapping the held thing again while looking down puts it down');
   await page.evaluate(() => localStorage.clear());
@@ -613,7 +680,9 @@ const hoverHit = lookFor;
   // inventory in the middle of the bottom edge
   await T.open(page, 'level=13&go&seed=1&nofr');
   hv = await page.evaluate(() => {
-    G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.active = Math.max(0, G.inv.findIndex(i => i.id === 'beam')); G.step(0.05, 30);
+    G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1;
+    pickup(G.L.items.find(i => i.id === 'beam')); G.L.items.filter(i => !i.taken).slice(0, 5).forEach(i => pickup(i));   // (taken up: you begin it with nothing)
+    G.active = Math.max(0, G.inv.findIndex(i => i.id === 'beam')); G.step(0.05, 30);
     const b = G.hand.box, inv = document.getElementById('inventory').getBoundingClientRect();
     return { id: G.hand.cur && G.hand.cur.id, n: G.inv.length, box: b && [b.x0, b.y0, b.x1, b.y1].map(Math.round), right: !!b && b.x0 > R.W / 2 && b.x0 > inv.right - 4 };
   });
