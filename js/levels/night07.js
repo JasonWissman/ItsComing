@@ -42,7 +42,7 @@ Object.assign(ICONS, {
 });
 
 LEVELS.push({
-  id: 'lighthouse', title: 'The Lighthouse', facing: 315, eyeH: 1.65,
+  id: 'lighthouse', title: 'The Lighthouse', facing: 315, eyeH: 1.65, lookDown: 56,
   pal: { skyTop: [10, 12, 22], fog: [50, 56, 70], ground: [44, 50, 62], fogDist: 70 },
   ambient: { wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 },
   weather: { kind: 'rain', density: 1.0, wind: 0.8, lightning: [7, 15] },
