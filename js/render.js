@@ -595,16 +595,85 @@ const R = (() => {
     const c = Math.cos(phi), t = towardEye(x, z);
     return [t[0], t[1], c * t[2], Math.sin(phi), c * t[3]];
   }
+  // A card or decal seen at a slant close by (its near and far parts at very different depths) cannot be drawn on one
+  // flat (affine) map: what is nearer the eye comes out too small and what is further off runs on across the view, and
+  // with the view turned so that it lies off to one side at your feet it was smeared right across it. It is cut into
+  // small triangles instead, each drawn on the flat map that takes its own three corners exactly where the perspective
+  // puts them and clipped to its own outline, so neighbouring pieces meet edge to edge; and the whole is cut off just in
+  // front of the eye. It is then drawn where it really is however near it lies, and stays put as the view turns.
+  const ONE_MAP = 0.1;     // depth that may change across a card drawn on one map, as a share of its nearest depth
+  const SPLIT = 0.08;      // and across one of its pieces
+  const CUT_Z = 0.08;      // nothing nearer the eye than this is drawn
+  const MAX_CELLS = 40;
+  const SPLIT_PAD = 0.2;   // how far the pieces run on past the card's edges (as a share of its size), for what its drawing puts there
+  function clipUV(poly, z0, zu, zv) {   // the part of a polygon in the card's (u, v) where the depth is CUT_Z or more
+    const out = [], n = poly.length, z = q => z0 + q[0] * zu + q[1] * zv;
+    for (let i = 0; i < n; i++) {
+      const a = poly[i], c = poly[(i + 1) % n], za = z(a), zc = z(c), ain = za >= CUT_Z, cin = zc >= CUT_Z;
+      if (ain) out.push(a);
+      if (ain !== cin) { const t = (CUT_Z - za) / (zc - za); out.push([a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t]); }
+    }
+    return out;
+  }
+  // base: the card's spot in the eye's frame; cu, cv: the eye-frame change per meter across it and up it. Returns its
+  // pieces ({ clip: screen outline, m: [a, b, c, d, e, f], the map from the card's meters to the screen }) and the rect it
+  // covers (kept to the view), or null when none of it is in front of the eye
+  function splitCard(p, base, cu, cv, zmin) {
+    const hw = p.w / 2, h = p.h, z0 = base[2], zu = cu[2], zv = cv[2];
+    const scr = (u, v) => { const z = z0 + u * zu + v * zv; return [W / 2 + f * (base[0] + u * cu[0] + v * cv[0]) / z, H / 2 - f * (base[1] + u * cu[1] + v * cv[1]) / z]; };
+    const whole = clipUV([[-hw, 0], [hw, 0], [hw, h], [-hw, h]], z0, zu, zv);
+    if (whole.length < 3) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const q of whole) { const s = scr(q[0], q[1]); x0 = Math.min(x0, s[0]); y0 = Math.min(y0, s[1]); x1 = Math.max(x1, s[0]); y1 = Math.max(y1, s[1]); }
+    const mu = SPLIT_PAD * p.w, mv = SPLIT_PAD * h, U0 = -hw - mu, V0 = -mv, UW = p.w + 2 * mu, VH = h + 2 * mv;
+    const zr = Math.max(zmin - Math.abs(zu) * mu - Math.abs(zv) * mv, CUT_Z);
+    let nu = clamp(Math.ceil(Math.abs(zu) * UW / (SPLIT * zr)), 1, 16), nv = clamp(Math.ceil(Math.abs(zv) * VH / (SPLIT * zr)), 1, 16);
+    while (nu * nv > MAX_CELLS) { if (nu >= nv) nu--; else nv--; }
+    const cells = [];
+    for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
+      const ua = U0 + UW * i / nu, ub = U0 + UW * (i + 1) / nu, va = V0 + VH * j / nv, vb = V0 + VH * (j + 1) / nv;
+      const poly = clipUV([[ua, va], [ub, va], [ub, vb], [ua, vb]], z0, zu, zv);
+      for (let k = 1; k + 1 < poly.length; k++) {
+        const A = poly[0], B = poly[k], C = poly[k + 1];
+        const sa = scr(A[0], A[1]), sb = scr(B[0], B[1]), sc = scr(C[0], C[1]);
+        // the flat map taking A, B, C (in meters across and up the card) to where they are seen
+        const du1 = B[0] - A[0], dv1 = B[1] - A[1], du2 = C[0] - A[0], dv2 = C[1] - A[1], det = du1 * dv2 - du2 * dv1;
+        if (Math.abs(det) < 1e-9) continue;
+        const ex1 = sb[0] - sa[0], ey1 = sb[1] - sa[1], ex2 = sc[0] - sa[0], ey2 = sc[1] - sa[1];
+        const a = (ex1 * dv2 - ex2 * dv1) / det, b = (ey1 * dv2 - ey2 * dv1) / det;
+        const c = (ex2 * du1 - ex1 * du2) / det, d = (ey2 * du1 - ey1 * du2) / det;
+        // its outline, pushed out a little all round so that neighbouring pieces meet without a seam
+        const mx = (sa[0] + sb[0] + sc[0]) / 3, my = (sa[1] + sb[1] + sc[1]) / 3, clip = [sa, sb, sc];
+        for (const s of clip) { const dx = s[0] - mx, dy = s[1] - my, l = Math.hypot(dx, dy) || 1; s[0] += dx / l * 0.6; s[1] += dy / l * 0.6; }
+        cells.push({ clip, m: [a, b, c, d, sa[0] - a * A[0] - c * A[1], sa[1] - b * A[0] - d * A[1]] });
+      }
+    }
+    x0 = Math.max(x0, -20); y0 = Math.max(y0, -20); x1 = Math.min(x1, W + 20); y1 = Math.min(y1, H + 20);
+    return { cells, rect: { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) } };
+  }
+  function paintCells(p, cells, s) {
+    const P = spriteP(p);
+    for (const cell of cells) {
+      const q = cell.clip, m = cell.m;
+      if (Math.max(q[0][0], q[1][0], q[2][0]) < -2 || Math.min(q[0][0], q[1][0], q[2][0]) > W + 2 || Math.max(q[0][1], q[1][1], q[2][1]) < -2 || Math.min(q[0][1], q[1][1], q[2][1]) > H + 2) continue;   // off the view
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(q[0][0], q[0][1]); ctx.lineTo(q[1][0], q[1][1]); ctx.lineTo(q[2][0], q[2][1]); ctx.closePath();
+      ctx.clip();
+      ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+      if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
+      p.draw(ctx, P, s);
+      ctx.restore();
+    }
+  }
   // glow: draw only its glow (drawGlows), with no hit area
   function drawSprite(p, glow) {
     const onRect = glow ? null : p.onRect;
     if (p.alpha !== undefined && p.alpha <= 0.004) { if (onRect) onRect(null); return; }
     const base = toCam(p.x, p.y, p.z);
-    if (base[2] < NEAR) { if (onRect) onRect(null); return; }
-    const b = proj(base);
-    const s = f / base[2];
+    const lying = p.flat || p.card;
+    if (base[2] < (lying ? -Math.max(p.w, p.h) : NEAR)) { if (onRect) onRect(null); return; }   // (a card may begin behind the lens and run on in front of it)
     let rect;
-    if (p.flat || p.card) {
+    if (lying) {
       // a decal lying on the ground, its "up" pointing away from the viewer; or a card (an item), which stands on its
       // spot facing the eye and tips back toward it so it is never seen edge-on, however near or high it sits
       const t = towardEye(p.x, p.z);   // a decal's "up" runs away from where you stand, not along the view
@@ -612,36 +681,50 @@ const R = (() => {
       if (p.card) {
         // behind you (only in front of the lens at all because the view is tipped down): not drawn
         if (Math.abs(wrapPi(Math.atan2(p.x - ox, p.z - oz) - yaw)) > 100 * DEG) { if (onRect) onRect(null); return; }
-        // well off the side of the view, a thing fixed in the world would only be smeared back across it: not drawn
-        if (b[0] < -0.2 * W || b[0] > 1.2 * W) { if (onRect) onRect(null); return; }
         const c = cardAxes(p.x, p.y, p.z, p.flat);
         rx = c[0]; rz = c[1]; fx = c[2]; fy = c[3]; fz = c[4];
       }
-      // across it is measured end to end (its two ends seen in perspective), so a card off to the side of a wide view is
-      // drawn the width it really spans there and not stretched toward the nearer end
-      const e0 = toCam(p.x - rx * p.w / 2, p.y, p.z - rz * p.w / 2), e1 = toCam(p.x + rx * p.w / 2, p.y, p.z + rz * p.w / 2);
-      const cv = toCam(p.x + fx * p.h, p.y + fy * p.h, p.z + fz * p.h);
-      if (Math.min(e0[2], e1[2], cv[2]) < Math.max(NEAR, base[2] * 0.35)) { if (onRect) onRect(null); return; }
-      const p0 = proj(e0), p1 = proj(e1), pv = proj(cv);
-      const ax = (p1[0] - p0[0]) / p.w, ay = (p1[1] - p0[1]) / p.w;   // screen delta per meter along u
-      let bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
-      // a card is fixed in the world, facing where you stand, so it is drawn in plain perspective wherever it is in the view
-      if (p.card) {
-        // a card whose top would project below its base is behind or under the eye, against the near plane: not drawn
-        if (by >= 0 || cv[2] < base[2] * 0.5) { if (onRect) onRect(null); return; }
+      // it is fixed in the world, facing where you stand, and drawn in plain perspective wherever it is in the view: the
+      // eye-frame change per meter across it (cu) and up it (cv), and its depth at its four corners
+      const cu = toCam(p.x + rx, p.y, p.z + rz), cv = toCam(p.x + fx, p.y + fy, p.z + fz);
+      for (let k = 0; k < 3; k++) { cu[k] -= base[k]; cv[k] -= base[k]; }
+      const du = Math.abs(cu[2]) * p.w / 2, dv = cv[2] * p.h;
+      const zmin = base[2] - du + Math.min(0, dv), zmax = base[2] + du + Math.max(0, dv);
+      const s = f / Math.max(base[2], CUT_Z);
+      if (zmin >= NEAR && zmax - zmin <= ONE_MAP * zmin) {
+        // seen nearly square on: one map does it, its width measured end to end
+        const b = proj(base);
+        const p0 = proj([base[0] - cu[0] * p.w / 2, base[1] - cu[1] * p.w / 2, base[2] - cu[2] * p.w / 2]);
+        const p1 = proj([base[0] + cu[0] * p.w / 2, base[1] + cu[1] * p.w / 2, base[2] + cu[2] * p.w / 2]);
+        const pv = proj([base[0] + cv[0] * p.h, base[1] + cv[1] * p.h, base[2] + cv[2] * p.h]);
+        const ax = (p1[0] - p0[0]) / p.w, ay = (p1[1] - p0[1]) / p.w;   // screen delta per meter along u
+        const bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
+        // a card whose top would project below its base is behind or under the eye: not drawn
+        if (p.card && by >= 0) { if (onRect) onRect(null); return; }
+        // corners of the box centered at x (u from -w/2..w/2), v from 0..h
+        const xs = [], ys = [];
+        for (const [u, v] of [[-p.w / 2, 0], [p.w / 2, 0], [p.w / 2, p.h], [-p.w / 2, p.h]]) { xs.push(b[0] + ax * u + bx * v); ys.push(b[1] + ay * u + by * v); }
+        rect = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+        if (rect.x > W + 20 || rect.x + rect.w < -20 || rect.y > H + 20 || rect.y + rect.h < -20) { if (onRect) onRect(rect); return; }
+        if (glow) glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5);
+        ctx.save();
+        ctx.transform(ax, ay, bx, by, b[0], b[1]);
+        if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
+        p.draw(ctx, spriteP(p), s);
+        ctx.restore();
+      } else {
+        // seen at a slant close by: cut into cells, in true perspective
+        const sc = splitCard(p, base, cu, cv, zmin);
+        if (!sc) { if (onRect) onRect(null); return; }
+        rect = sc.rect;
+        if (rect.w <= 0 || rect.h <= 0) { if (onRect) onRect(rect); return; }
+        if (glow) glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5);
+        paintCells(p, sc.cells, s);
       }
-      // corners of the box centered at x (u from -w/2..w/2), v from 0..h
-      const xs = [], ys = [];
-      for (const [u, v] of [[-p.w / 2, 0], [p.w / 2, 0], [p.w / 2, p.h], [-p.w / 2, p.h]]) { xs.push(b[0] + ax * u + bx * v); ys.push(b[1] + ay * u + by * v); }
-      rect = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-      if (rect.x > W + 20 || rect.x + rect.w < -20 || rect.y > H + 20 || rect.y + rect.h < -20) { if (onRect) onRect(rect); return; }
-      if (glow) { glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5); ctx.save(); if (p.alpha !== undefined) ctx.globalAlpha = p.alpha; ctx.transform(ax, ay, bx, by, b[0], b[1]); p.draw(ctx, spriteP(p), s); ctx.restore(); return; }
-      ctx.save();
-      ctx.transform(ax, ay, bx, by, b[0], b[1]);
-      if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
-      p.draw(ctx, spriteP(p), s);
-      ctx.restore();
+      if (glow) return;
     } else {
+      const b = proj(base);
+      const s = f / base[2];
       const top = toCam(p.x, p.y + p.h, p.z);
       let hpx = p.h * s;
       if (top[2] >= NEAR) { const tp = proj(top); hpx = Math.max(0.5, b[1] - tp[1]); }

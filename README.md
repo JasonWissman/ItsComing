@@ -351,7 +351,8 @@ test/                   headless Playwright suite (see Testing)
 
 A night is an object pushed onto `LEVELS` from `js/levels/nightNN.js`. It is defined in a local
 frame where the default lane points along +z; `facing` rotates the whole night so the compass
-shows a different world direction.
+shows a different world direction. `lookDown` (degrees, 45 by default) is how far down `↓` looks on that night: the
+Lighthouse looks further, down over the rail at the wall it climbs (`PITCH_DOWN` is the one in play).
 
 ```js
 LEVELS.push({

@@ -1,7 +1,9 @@
 'use strict';
 // ---------- game state, input, interaction, HUD and the main loop ----------
 const LIST_SCREENS = ['nights', 'settings', 'fragments']; // menu screens with their own buttons: not click-anywhere
-const PITCH_DOWN = 45 * DEG; // looking down: enough to see the floor around you without a lurch of the view
+// looking down: enough to see the floor around you without a lurch of the view. A night may look further down (its def's
+// lookDown, in degrees: over the lighthouse rail); this is the one in play, set as each night starts
+let PITCH_DOWN = 45 * DEG;
 const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // difficulty is a table of knobs read by buildLevel and by each night's build(L) through L.tier() and L.nightmare
 const DIFFICULTIES = [   // one game: the table stays so a night's knobs (L.tier, L.nightmare, hints) keep one place to read from
@@ -80,7 +82,7 @@ function buildLevelDef(def, i) {
   G.attempt++;
   const rand = mulberry32((G.runSeed * 7919 + i * 131 + G.attempt * 17) >>> 0);
   const L = {
-    def, index: i, night: i + 1, t: 0, facing: def.facing * DEG, eyeH: def.eyeH || 1.65, pal: Object.assign({ id: def.id }, def.pal), diff,
+    def, index: i, night: i + 1, t: 0, facing: def.facing * DEG, eyeH: def.eyeH || 1.65, lookDown: (def.lookDown || 45) * DEG, pal: Object.assign({ id: def.id }, def.pal), diff,
     props: [], items: [], targets: [], creatures: [], recipes: [], s: {}, won: false, aftermathT: 0, after: null,
     rand, usedSpots: new Set(), placed: [],
     floor: { poly: def.floor ? def.floor.poly : null, y: def.floor && def.floor.y !== undefined ? def.floor.y : (def.floorY || 0) },
@@ -156,6 +158,7 @@ function startLevel(i, withCard) {
   G.draw = null; G.drawBtn = null;   // no bow half drawn from the last night
   HANDS.reset();   // empty hands, nothing in the air
   G.L = buildLevel(i);
+  PITCH_DOWN = G.L.lookDown;
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed + i);
   const c = G.cam;
@@ -192,6 +195,7 @@ function showTitle() {
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
   G.inv = []; HANDS.reset();   // nothing in hand or in the air behind the title
   G.L = buildLevel(0);
+  PITCH_DOWN = G.L.lookDown;
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed);
   const c = G.cam; c.tYaw = c.yaw = 0; c.tPitch = c.pitch = 0; c.zoom = 1;

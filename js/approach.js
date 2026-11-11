@@ -64,7 +64,7 @@ const APPROACH = (() => {
     if (af <= 0) return 0;
     const p = position(lane, c.dist, c.lat, L.eyeH);
     let hx = 0; const vs = [];
-    for (const pitch of [0, PITCH_DOWN]) {
+    for (const pitch of [0, L.lookDown || PITCH_DOWN]) {
       const cam = { yaw: lane.yaw, pitch, zoom: 1, W: vp.W, H: vp.H, eyeH: L.eyeH };
       const r = R.projectRect(p.x, p.y + (c.yOff || 0), p.z, CR.w, CR.h, cam);
       if (!r) continue;

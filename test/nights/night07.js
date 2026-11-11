@@ -93,7 +93,7 @@ module.exports = {
     ['use', 'blownfuse'], ['expect', '!G.L.s.blownIn && G.inv.some(i => i.id === "blownfuse" && i.decoy) && G.inv[G.active].id === "blownfuse"', 'the blown fuse is out, in hand and worn'],
     ['click', 'fusedoor'], ['expect', said('That is the one that blew.'), 'the open door is the fuse box, and the fuse in hand is the one that blew'],
     ...dropsOut('blownfuse', 'the blown fuse pushed back in'),
-    hold('bulb'), ['click', 'fusebox'], ['expect', said('The fuse holder is empty.'), 'with the bulb in hand the holder is only empty'],
+    hold('bulb'), ['use', 'fusebox'], ['expect', said('The fuse holder is empty.'), 'with the bulb in hand the holder is only empty'],
     ...comesBack('bulb', 'the bulb at the empty clips'),
     ['use', 'lamp'], ['expect', 'G.L.s.bulb && !G.L.s.power', 'bulb in, but no power yet'],
     ['pickup', 'oldfuse'], ['eval', 'window.__u = G.L.creature.u'], ['use', 'fusebox'], ['expect', said('This one is blown as well.') + ' && G.L.creature.u > __u', 'the fuse lying about is no good, and costs a little time'],
