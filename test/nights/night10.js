@@ -113,6 +113,15 @@ const right = k => [
 // with nothing in hand a click on an empty pedestal brings the hand out to its top
 const emptyTouch = [look(0), ['click', ped(0)], ['expect', "!G.inv.length && G.L.s.placedAt < 0 && G.hand.reach && G.hand.reach.target.id === 'pedestal0' && Math.abs(G.hand.reach.at.y - 0.77) < 0.05", 'with nothing in hand, the hand goes out to the top of an empty pedestal'], ['waitUntil', '!G.hand.reach', 2000]];
 const fetched = [['waitUntil', 'G.L.s.held && G.L.creature.lane.idx === 1 + G.L.s.odd', 8000], ['expect', 'G.L.s.held && !G.L.creature.angry && G.L.creature.dance === 0 && G.L.creature.danceMir === -G.L.s.lead', 'it came out through the odd mirror and took the box, smiling, its dance over']];
+// First it is let reach you: when it comes out of the glass at you it is angry (the brows down, the red glare, its teeth
+// bared) every frame of its lunge, all the way in to your face. Then the same night again from the start.
+const caught = [
+  ['eval', "window.__att0 = G.attempt; window.__angry = { n: 0, calm: 0, k: 0 }; (function w() { const c = G.L.creature; if (G.state === 'dying') { if (c.angry === 1 && !c.rush && !c.smile) window.__angry.n++; else window.__angry.calm++; window.__angry.k = Math.max(window.__angry.k, c.lunge || 0); } if (G.state === 'play' || G.state === 'dying') requestAnimationFrame(w); })(); G.L.creature.hold = 1.0;"],
+  ['waitUntil', "G.state === 'dead'", 6000],
+  ['expect', "G.state === 'dead' && G.deathCause === 'default' && window.__angry.n > 10 && !window.__angry.calm && window.__angry.k === 1", 'it reached you, and its face was angry all through the lunge'],
+  ['eval', 'G.attempt = __att0 - 1; restartLevel()'], ['wait', 300],
+  ['expect', "G.state === 'play' && !G.L.creature.angry && G.L.s.placedAt < 0", 'the same night again, from the start, the doll calm'],
+];
 module.exports = {
-  nightmare: sheets.concat(dance, emptyTouch, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
+  nightmare: caught.concat(sheets,dance, emptyTouch, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
 };

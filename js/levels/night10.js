@@ -250,6 +250,9 @@ LEVELS.push({
     };
     L.isWon = () => s.turns >= TURNS;
     L.deathCause = () => (L.t - s.wrongAt < 8 ? 'wrong' : null);
+    // when it has you it is angry, whatever it was before: the brows down, the red glare, its teeth bared, all the way in to
+    // your face (the night's update does not run while you die, so it is set here, once, and stays)
+    L.onCatch = c => { c.angry = 1; c.dance = 0; c.smile = false; return false; };
     L.objectiveText = () => L.won ? 'It is coming for the box.'
       : s.placedAt < 0 ? 'The odd mirror is the ' + DIRS[s.odd] + ' one. Put the music box on its pedestal.'
         : s.placedAt !== s.odd ? 'That is the ' + DIRS[s.placedAt] + ' mirror. Take the box back and put it before the ' + DIRS[s.odd] + ' one.'

@@ -230,6 +230,8 @@ some on the ground, so you have to turn and look down to find them.
     wrenches at it, and the box taken back comes up off the pedestal into your hand. The crank tried on a pedestal with no
     box on it feels about the bare top for something to fit and comes back to your hand; with nothing in hand, the hand
     goes out to the empty top. A dust sheet is pulled down by hand and slides off the glass into a heap.
+    If it reaches you, it comes at you angry, whatever it was before: brows down, the red glare and its teeth bared all
+    the way in to your face, its jaw dropping and its fists opening as it lunges.
 11. **The Barn.** Something bent double under a bundle is coming for the hayloft,
     across the yard to the loft door or in at the far end of the barn and up the ladder,
     and it goes faster the more you carry. A stack of hay stands in each way in, and both
