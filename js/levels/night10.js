@@ -105,13 +105,14 @@ LEVELS.push({
     // A pedestal is a plinth, a column and a cap with a gilt edge, like the frames. It stands square on the line of sight,
     // so only the faces turned to the eye are built (the sides and backs never show, and drawn they would poke through the cap)
     const PED = 2.2;
+    const pedArt = [];   // the pieces of each pedestal: pointed at, it glows in them
     const peds = s.mirrors.map(m => {
-      SC.withYaw(L, m.deg, () => {
+      pedArt.push(SC.grab(L, () => SC.withYaw(L, m.deg, () => {
         const top = (w, z0, z1, y, col) => SC.quad(L, [-w, y, z0], [w, y, z0], [w, y, z1], [-w, y, z1], col);
         top(0.25, 1.95, 2.45, 0.09, [86, 64, 46]); SC.wallV(L, -0.25, 1.95, 0.25, 1.95, 0, 0.09, [62, 45, 33]);
         SC.wallV(L, -0.16, 2.04, 0.16, 2.04, 0.09, 0.64, [84, 60, 42]);
         top(0.27, 1.93, 2.47, 0.75, [104, 78, 54]); SC.wallV(L, -0.27, 1.93, 0.27, 1.93, 0.64, 0.72, [80, 58, 40]); SC.wallV(L, -0.27, 1.93, 0.27, 1.93, 0.72, 0.75, gilt);
-      });
+      })));
       return { x: +(Math.sin(m.deg * DEG) * PED).toFixed(2), z: +(Math.cos(m.deg * DEG) * PED).toFixed(2) };
     });
     // the lamp's table on four legs, each drawn before the parts of the top that hide its upper end (the near leg before
@@ -233,6 +234,7 @@ LEVELS.push({
           return true;
         },
       });
+      glowWith(t, pedArt[k]);
       pedTargets.push(t);
     });
     // seen means: a live mirror is square in front of you. Once it comes out for the box it is seen the usual way.
@@ -370,6 +372,8 @@ LEVELS.push({
         list.push(poly([[xa + 0.02, 2.5, Z - 0.004], [xb + w / 2 + 0.07, 0.15, Z - 0.004], [xb + w / 2, 0.15, Z - 0.004]], lite, 3.475));
       }
       sheetAt[k] = list;
+      const sheet = L.targets.find(t => t.id === 'sheet' + k);
+      if (sheet) glowWith(sheet, list);
       heapAt[k] = SC.mkSprite(L, 0, 0, 3.22, 1.3, 0.3, (ctx, P) => {
         ctx.scale(1.3, 0.3);
         P_poly(ctx, [[-0.5, 0], [-0.47, 0.32], [-0.32, 0.56], [-0.14, 0.5], [0.02, 0.82], [0.2, 0.64], [0.36, 0.72], [0.48, 0.36], [0.5, 0]], P.col([150, 142, 126]));
@@ -422,7 +426,7 @@ LEVELS.push({
       if (s.placedAt >= 0 && !s.held) {
         const j = L.t - s.wrongAt, jolt = j >= 0 && j < 0.5 ? 1 - j / 0.5 : 0, hop = 0.035 * Math.abs(Math.sin(j * 19)) * jolt * jolt, rock = 0.09 * Math.sin(j * 27) * jolt;
         const b = liftedBox(s.lift || 0), q = onLine(b.d, b.lat, b.y + hop, s.placedAt);
-        R.add(SC.mkSprite(L, 0, 0, 0, b.w, b.w, (ctx, P) => { ctx.scale(b.w, b.w); if (rock) { ctx.translate(0, 0.05); ctx.rotate(rock); ctx.translate(0, -0.05); } drawBox(ctx, P); }, { x: q[0], y: q[1], z: q[2], sortDist: 2.15 }));
+        R.add(SC.mkSprite(L, 0, 0, 0, b.w, b.w, (ctx, P) => { ctx.scale(b.w, b.w); if (rock) { ctx.translate(0, 0.05); ctx.rotate(rock); ctx.translate(0, -0.05); } drawBox(ctx, P); }, { x: q[0], y: q[1], z: q[2], sortDist: 2.15, glowOf: pedTargets[s.placedAt] }));   // (clicked, it is the pedestal it is on)
       }
     };
     L.floor = { poly: [[-3.3, -3.3], [3.3, -3.3], [3.3, 3.3], [-3.3, 3.3]], y: 0 };

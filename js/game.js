@@ -913,7 +913,7 @@ function render() {
   }
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
-    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: true }; rend.set(t, p); }   // only its hit area: what glows when it is hovered is what it is drawn with (glowWith)
     p.x = t.x; p.y = t.y; p.z = t.z; p.w = t.w; p.h = t.h;   // a target can move or change size (an opened box's lid stands up)
     R.add(p);
   }
@@ -934,7 +934,7 @@ function render() {
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);
   }
-  R.hover = G.hover ? G.hover.ref : null;
+  R.hover = G.hover ? G.hover.ref : L.highlight ? L.highlight() : null;   // (a night may light a thing chosen another way: the phone's keys from a gamepad)
   R.flush();
   const S = SAVE.data.settings;
   R.post({

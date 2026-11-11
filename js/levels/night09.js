@@ -440,12 +440,16 @@ Object.assign(ICONS, {
       SC.box(L, XW + 0.02, PX, 1.29, 1.765, -0.13, 0.13, [128, 132, 140]);                        // the housing
       SC.box(L, XW + 0.02, PX + 0.01, 1.755, 1.785, -0.135, 0.135, [96, 100, 108]);               // its cap
       faceQ(LCD.u0 - 0.009, LCD.u1 + 0.009, LCD.y0 - 0.009, LCD.y1 + 0.009, 0.1005, [62, 64, 70], face);   // the display's bezel (the display is drawn each frame)
-      faceQ(SLOT.u0, SLOT.u1, SLOT.y0, SLOT.y1, 0.1005, [176, 180, 188], face);                    // the coin slot's chrome plate,
-      faceQ(SLOT.u0 + 0.004, SLOT.u1 - 0.004, SLOT.y0 + 0.004, SLOT.y1 - 0.004, 0.101, [138, 142, 150], detail);
-      faceQ(0.0735, 0.0835, 1.666, 1.714, 0.1015, [6, 6, 8], { sortDist: FD - 0.02 });            // and the slot in it
+      const slotArt = SC.grab(L, () => {
+        faceQ(SLOT.u0, SLOT.u1, SLOT.y0, SLOT.y1, 0.1005, [176, 180, 188], face);                    // the coin slot's chrome plate,
+        faceQ(SLOT.u0 + 0.004, SLOT.u1 - 0.004, SLOT.y0 + 0.004, SLOT.y1 - 0.004, 0.101, [138, 142, 150], detail);
+        faceQ(0.0735, 0.0835, 1.666, 1.714, 0.1015, [6, 6, 8], { sortDist: FD - 0.02 });            // and the slot in it
+      });
       faceQ(-0.075, 0.075, 1.41, 1.63, 0.1005, [92, 96, 102], face);                             // the keypad's plate
-      faceQ(RET.u0, RET.u1, RET.y0, RET.y1, 0.1005, [160, 164, 172], face);                       // the coin return: a chrome surround
-      faceQ(RET.u0 + 0.008, RET.u1 - 0.008, RET.y0 + 0.008, RET.y1 - 0.006, 0.101, [12, 12, 14], detail);   // and its dark mouth
+      const retArt = SC.grab(L, () => {
+        faceQ(RET.u0, RET.u1, RET.y0, RET.y1, 0.1005, [160, 164, 172], face);                       // the coin return: a chrome surround
+        faceQ(RET.u0 + 0.008, RET.u1 - 0.008, RET.y0 + 0.008, RET.y1 - 0.006, 0.101, [12, 12, 14], detail);   // and its dark mouth
+      });
       // the instruction card, on the plate to the left of the housing: a printed heading, and the three steps in the order
       // the phone wants them (as on any pay phone), big enough to read in the close view
       faceQ(-0.232, -0.142, 1.43, 1.67, 0.021, [214, 208, 190]);
@@ -543,8 +547,8 @@ Object.assign(ICONS, {
         id: 'receiver', name: 'Receiver', x: XW + 0.135, y: 1.3, z: RX, w: 0.11, h: 0.44,
         onClick() { if (s.line === 'answered') return true; if (s.hook === 'on') lift(); else hangUp(); return true; },
       });
-      // a target stands a little in front of the face, so it is drawn (and outlined when hovered) after what is on the face,
-      // and is placed and sized so that on screen it covers just what it stands for there
+      // a target stands a little in front of the face, and is placed and sized so that on screen it covers just what it
+      // stands for there (what glows when it is pointed at is what it stands for: glowWith)
       const front = (u, y0, w, h, d) => { const k = (-XW - (d || 0.125)) / (-XW - 0.104); return { x: XW + (d || 0.125), z: u * k, y: L.eyeH + (y0 - L.eyeH) * k, w: w * k, h: h * k }; };
       // the keys: each a target of its own, a little bigger than the key, and drawn each frame so it can go down when pressed
       const keys = [], KEY_NAME = { '*': 'star', '#': 'hash' };
@@ -564,7 +568,7 @@ Object.assign(ICONS, {
       for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
         const ch = KEYS[r][c], u = (c - 1) * KEY_DU, yc = KEY_Y0 - r * KEY_DY;
         const t = mkTarget(L, Object.assign(front(u, yc - 0.023, 0.042, 0.046), { id: 'key' + (KEY_NAME[ch] || ch), name: '', onClick() { press(ch); return true; } }));   // (no name: what it is is printed on it)
-        keys.push({ ch, u, y: yc, w: 0.042, h: 0.046, t, spr: SC.mkSprite(L, XW + 0.104, yc - 0.022, u, 0.044, 0.044, (ctx, P) => drawKey(ctx, P, ch), { sortDist: FD - 0.016 }) });
+        keys.push({ ch, u, y: yc, w: 0.042, h: 0.046, t, spr: SC.mkSprite(L, XW + 0.104, yc - 0.022, u, 0.044, 0.044, (ctx, P) => drawKey(ctx, P, ch), { sortDist: FD - 0.016, glowOf: t }) });
       }
       const slot = mkTarget(L, {
         ...front((SLOT.u0 + SLOT.u1) / 2, SLOT.y0 - 0.004, SLOT.u1 - SLOT.u0 + 0.01, SLOT.y1 - SLOT.y0 + 0.008), id: 'slot', name: 'Coin slot', accepts: ['coin'],
@@ -933,29 +937,22 @@ Object.assign(ICONS, {
       }, { sortDist: FD - 0.016, noLight: true });
       // the front lip of the coin return, drawn over a coin lying in it
       const lip = SC.mkWallV(L, XW + 0.104, RET.u0 + 0.008, XW + 0.104, RET.u1 - 0.008, RET.y0 + 0.006, RET.y0 + 0.017, [150, 154, 162], { sortDist: FD - 0.035 });
-      // the gamepad's highlight, round whatever it is on
-      const hl = { kind: 'sprite', x: 0, y: 0, z: 0, w: 0.05, h: 0.05, noFog: true, noLight: true, sortDist: FD - 0.05, dist: FD, draw: (ctx) => {
-        ctx.save(); ctx.strokeStyle = 'rgba(255,236,190,0.95)'; ctx.lineWidth = 0.0035; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 12;
-        ctx.strokeRect(-hl.w / 2, 0, hl.w, hl.h); ctx.restore();
-      } };
+      glowWith(slot, slotArt); glowWith(ret, retArt.concat(lip)); glowWith(receiver, [handset, cradle]);
+      // the gamepad's highlight: what it is on glows, as it does under the pointer
+      L.highlight = () => (closeUp() && s.padSel ? s.padSel.t : null);
       L.dynamic = () => {
         sync();
         const away = handsetAway(), off = s.hook === 'off' || !!away;   // off its hook (or on its way back to it)
         const hy = off ? 1.695 : 1.645;   // the hook rises when the weight comes off it
         if (off) R.add(cradle);
-        R.add(SC.mkQuad(L, [XW + 0.088, hy, 0.13], [XW + 0.088, hy, 0.16], [XW + 0.088, hy + 0.018, 0.16], [XW + 0.088, hy + 0.018, 0.13], [150, 154, 160], { sortDist: FD - 0.03 }));
-        R.add(SC.mkQuad(L, [XW + 0.088, hy - 0.01, 0.16], [XW + 0.088, hy - 0.01, 0.168], [XW + 0.088, hy + 0.018, 0.168], [XW + 0.088, hy + 0.018, 0.16], [120, 124, 130], { sortDist: FD - 0.031 }));
+        R.add(SC.mkQuad(L, [XW + 0.088, hy, 0.13], [XW + 0.088, hy, 0.16], [XW + 0.088, hy + 0.018, 0.16], [XW + 0.088, hy + 0.018, 0.13], [150, 154, 160], { sortDist: FD - 0.03, glowOf: receiver }));   // the hook
+        R.add(SC.mkQuad(L, [XW + 0.088, hy - 0.01, 0.16], [XW + 0.088, hy - 0.01, 0.168], [XW + 0.088, hy + 0.018, 0.168], [XW + 0.088, hy + 0.018, 0.16], [120, 124, 130], { sortDist: FD - 0.031, glowOf: receiver }));
         if (!off) R.add(handset);
         if (away && away !== true) R.add(away);
         for (const c of off ? cords.off : cords.on) R.add(c);
         R.add(nbSprite);
         for (const k of keys) R.add(k.spr);
         R.add(lcd); R.add(lip);
-        if (closeUp() && s.padSel) {
-          const c = s.padSel, f = front(c.u, c.y - c.h / 2 - 0.003, c.w + 0.01, c.h + 0.006, 0.13), p = L.pt(f.x, f.y, f.z);
-          Object.assign(hl, { x: p[0], y: p[1], z: p[2], w: f.w, h: f.h });
-          R.add(hl);
-        }
         // rain on the outside of the glass: thin runs, each sliding down at its own pace with a bead of water at its foot
         for (const d of drops) {
           const x = d.x0 + (d.x1 - d.x0) * d.u + d.nx * 0.012, z = d.z0 + (d.z1 - d.z0) * d.u + d.nz * 0.012;

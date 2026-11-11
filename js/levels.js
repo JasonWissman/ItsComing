@@ -39,6 +39,13 @@ function mkTarget(L, o) {
   L.targets.push(t);
   return t;
 }
+// the pieces a target is drawn with (props, or renderables it adds each frame): pointed at, the target glows in their shape,
+// as an item does in its own (js/render.js). A piece may belong to more than one target. Surface detail is left out: it
+// lies on its quad, inside its shape.
+function glowWith(t, props) {
+  for (const p of props) if (p && !p.detail) p.glowOf = !p.glowOf || p.glowOf === t ? t : [].concat(p.glowOf, t);
+  return props;
+}
 // a container: a drawer, box or cabinet that yields items when opened (optionally with a key item)
 function mkContainer(L, o) {
   const spot = Array.isArray(o.spot) ? pickSpot(L, o.spot) : o.spot;
@@ -112,6 +119,7 @@ function mkContainer(L, o) {
     }
   }, { flat: !!o.flat, card: true });   // a card, as items are: it faces you and never goes edge-on
   L.props.push(box);
+  glowWith(t, [box]);
   return t;
 }
 // two held items become one: select one, click the other in the inventory
