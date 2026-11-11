@@ -331,6 +331,10 @@ const AUDIO = (() => {
       case 'keyClick': noise(0.015, { type: 'bandpass', freq: 1800, q: 3, vol: 0.2 }); tone(300, 0.02, { vol: 0.06, type: 'square', endFreq: 200 }); break;   // a pay phone key with no line behind it
       case 'coin': tone(2600, 0.05, { vol: 0.12, type: 'triangle', endFreq: 2300 }); for (let i = 0; i < 4; i++) noise(0.025, { type: 'bandpass', freq: 3000 + Math.random() * 1500, q: 5, vol: 0.12, delay: 0.06 + i * 0.05 + Math.random() * 0.02 }); tone(180, 0.06, { vol: 0.16, type: 'square', endFreq: 120, delay: 0.3 }); tone(1046, 0.14, { vol: 0.05, type: 'sine', delay: 0.42 }); break;
       case 'coinReturn': for (let i = 0; i < 7; i++) noise(0.02, { type: 'bandpass', freq: 2600 + Math.random() * 1800, q: 5, vol: 0.12, delay: i * 0.045 + Math.random() * 0.015 }); tone(2900, 0.08, { vol: 0.1, type: 'triangle', endFreq: 2500, delay: 0.4 }); tone(3300, 0.06, { vol: 0.06, type: 'triangle', delay: 0.47 }); break;
+      case 'lampBreak':   // a street lamp broken: a pop, glass coming down, the fizz of the sparks and a buzz as it dies
+        noise(0.05, { freq: 900, vol: 0.5, pan }); tone(90, 0.12, { vol: 0.35, endFreq: 50, pan });
+        for (let i = 0; i < 8; i++) tone(2400 + Math.random() * 3200, 0.12 + Math.random() * 0.25, { vol: 0.07, type: 'triangle', delay: 0.04 + i * 0.05 + Math.random() * 0.03, pan });
+        noise(0.45, { type: 'highpass', freq: 5000, vol: 0.12, delay: 0.03, pan }); tone(100, 0.4, { vol: 0.05, type: 'sawtooth', endFreq: 60, delay: 0.02, pan }); break;
       // the car that comes for you at the phone booth
       case 'carCome': tone(48, 3.4, { vol: 0.22, type: 'sawtooth', endFreq: 74, attack: 2.4, pan }); noise(3.0, { type: 'bandpass', freq: 1500, q: 0.6, vol: 0.2, attack: 2.6, pan }); noise(3.2, { freq: 240, vol: 0.25, attack: 2.4, pan }); break;
       case 'brake': noise(1.1, { type: 'bandpass', freq: 2600, q: 1.2, vol: 0.3, attack: 0.05, pan }); tone(70, 1.0, { vol: 0.18, type: 'sawtooth', endFreq: 40, pan }); break;

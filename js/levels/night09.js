@@ -1,24 +1,28 @@
 'use strict';
 // ============================================================ 9. THE PHONE BOOTH ============================================================
-// A phone booth on a corner, at night, in the rain, with glass all round. A man in a long coat is walking toward it from a long
-// way off, up the main street or along the pavement from the east, with no light of his own. The pay phone is on the west
-// wall, the side that looks along the pavement away from both, so using it means turning your back on him. On the shelf
-// under the phone lies your notebook, and somewhere in it, among the shopping and the dentist, is the number to ring, on a
-// page of its own, scrawled large and fast in something red that has run. It is a pay phone: lift the receiver, put a coin
-// in (there is one lying about in the booth) and dial on its own keys; it rings for seven seconds while he keeps coming,
-// and then someone picks up and a car comes for you. Every other number in the notebook belongs to someone ordinary and is
-// not in service, and hanging up gives the coin back, into the coin return.
-// The notebook is read where it lies, in the world: clicked, its cover flips back over the spiral and stands against the
-// wall and the view comes down close over it (L.viewZoom), so the handwriting is big enough to read on any screen; each
-// click after that lifts the page by its corner and turns it back over the spiral, and a click on the last page shuts it.
-// Its pages are drawn once into canvases and laid on it, strip by strip, in perspective. Facing the phone brings the view
-// in close to it too, so its keys are big enough to click or tap; the number keys dial too, and a gamepad's d-pad moves a
-// highlight over the phone (L.padDir, L.padUse).
+// A phone booth on a corner, at night, in the rain, with glass all round. A man in a long coat is coming toward it from a long
+// way off, up the main street or along the far pavement of the cross street from the east, with no light of his own. The
+// street lamps stand along his way, on the sides of both streets nearer the booth's corner, and he goes from one to the
+// next: he stands behind a lamp a few seconds, lit by it, then reaches up, far too far, and breaks it (a pop, glass,
+// sparks, and it is out for good), and in the dark he rushes on to the next one nearer the booth, waits, breaks that, and so
+// on until the last; then he comes across to the glass. The pay phone hangs across the corner of the booth between the two
+// streets, so while you use it both streets are at the edges of the view and you see him coming out of the corner of your
+// eye. On the corner shelf under the phone lies your notebook, and somewhere in it, among the shopping and the dentist, is
+// the number to ring, on a page of its own, scrawled large and fast in something red that has run. It is a pay phone: lift
+// the receiver, put a coin in (there is one lying about in the booth) and dial on its own keys; it rings for seven seconds
+// while he keeps coming, and then someone picks up and a car comes for you. Every other number in the notebook belongs to
+// someone ordinary and is not in service, and hanging up gives the coin back, into the coin return.
+// The notebook is read where it lies, in the world, with nothing done to the view: clicked, its cover flips back over the
+// spiral and stands against the plate behind it; each click after that lifts the page by its corner and turns it back over
+// the spiral, and a click on the last page shuts it. You look down at it as at anything else, and zoom in (Shift, Z or Space)
+// to read it. Its pages are drawn once into canvases and laid on it, strip by strip, in perspective. The phone is looked at
+// as anything else too, a little smaller than life, its keys clicked where they are drawn (or with the zoom held); the
+// number keys dial while you face it, and a gamepad's d-pad moves a highlight over the phone (L.padDir, L.padUse).
 // It is done with your hands (js/hands.js): the lifted receiver is in your left hand (L.offHand), your right fingertip
 // presses the keys (G.reach, going from key to key, in turn when they are pressed faster than it can go) and turns the
 // notebook's pages, and what will not work shows on the phone itself: a key pressed for nothing clicks and the display
 // blinks at you, a coin put in on the hook goes into the slot and drops through into the coin return, the empty return is
-// felt with the fingers. Reading, what you hold is lowered out of the way (L.heldItem).
+// felt with the fingers.
 Object.assign(ICONS, {
   // a small battered notebook, spiral at the top, held shut with an elastic band (as it is carried in the void, night 13)
   notebook(ctx, P) {
@@ -50,15 +54,23 @@ Object.assign(ICONS, {
   },
 });
 (() => {
-  const XW = -0.8;             // the west wall, where the pay phone is, is this far from the eye
-  const B = 0.55;              // and the glass on the other three sides (the door to the north, east, and the back) this far
-  const PX = XW + 0.1;         // the front of the phone's housing
-  const PHONE_DIR = 6;         // facing the phone is facing west
+  const XW = -0.7;             // the west wall is this far from the eye
+  const B = 0.7;               // and the glass on the other three sides (the door to the north, east, and the back) this far
+  const PHONE_DIR = 1;         // facing the phone is facing north-east, into the corner between the two streets
   const ROAD = -0.12;          // the road is a kerb's height below the pavement the booth stands on
-  // the notebook, lying on the shelf under the phone: a reporter's pad, its spiral along the end toward the wall (d along the
-  // shelf out from the wall, u across it to your right, as on the phone), a sheet len long and u0..u1 wide, th thick, and
-  // RINGS turns of wire through it
-  const NB = { u0: -0.09, u1: 0.05, d: 0.045, len: 0.185, y: 1.03, th: 0.007 }, RINGS = 9;
+  // The pay phone hangs on a plate set across the north-east corner, square to the line from the eye into the corner, its
+  // ends against the two panes. A point on it is given by u across the plate (to your right as you face it), y up, and d
+  // out from the plate toward you (at3). The phone itself is a size smaller than life: its parts are given at full size,
+  // and come in to PK of that about the middle of its keys (ph), which is PY1 high
+  const SQ = Math.SQRT1_2, PW = 0.2, WD = B / SQ - PW - 0.004;      // the plate's half width; how far it is from the eye
+  const at3 = (u, y, d) => [SQ * (WD - d + u), y, SQ * (WD - d - u)];
+  const PK = 0.8, PY = 1.52, PY1 = 1.6;
+  const ph = (u, y, d) => at3(u * PK, PY1 + (y - PY) * PK, d * PK);
+  const FD = WD - 0.1 * PK;    // how far the face of the phone's housing is from the eye
+  // the notebook, lying on the corner shelf under the phone: a reporter's pad, its spiral along the end toward the plate (d
+  // along the shelf out from the plate, u across it to your right), a sheet len long and u0..u1 wide, th thick, and RINGS
+  // turns of wire through it. SH: how far the shelf comes out from the plate
+  const NB = { u0: -0.085, u1: 0.055, d: 0.045, len: 0.185, y: 1.03, th: 0.007 }, RINGS = 9, SH = 0.25;
   // ---------------- the notebook ----------------
   // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice, '%' scrawled across a page of its own in
   // blood; {n} an ordinary number, {k} the one to ring
@@ -246,23 +258,24 @@ Object.assign(ICONS, {
     pal: { skyTop: [12, 11, 16], fog: [50, 45, 47], ground: [22, 22, 26], fogDist: 82 },
     ambient: { wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 },
     weather: { kind: 'rain', density: 0.9, wind: 0.25 },
-    lights: [{ x: -0.12, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
+    lights: [{ x: 0, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
     text: {
       intro: 'You missed the bus, and you don\'t remember who to call for help.',
       death: { default: 'He came into the booth.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.', nocoin: 'The phone would not operate without a coin.' },
       win: 'A mysterious car came for you, just in time.',
       fragment: 'The number is still in the notebook, in your own handwriting. You do not remember writing it down, and you have not crossed it out.',
     },
-    // two streets, each seen whole through a pane of the booth: up the main street through the door, and along the pavement
-    // to the east through the east pane. The pay phone is on the west wall, so nothing comes that way, and the back of the
-    // booth looks at a shuttered shop
+    // two streets, each seen whole through a pane of the booth: up the main street through the door, and along the cross
+    // street to the east through the east pane (each pane as far as the pay phone's plate across the corner between them).
+    // Nothing comes from the west, and the back of the booth looks at a shuttered shop
     lanes: [
-      { deg: 0, name: 'up the street', y: ROAD, apertures: [{ z: B, x0: -0.46, x1: 0.3, y0: 1.06, y1: 2.04 }] },
-      { deg: 90, name: 'along to the east', apertures: [{ z: B, x0: -0.46, x1: 0.46, y0: 1.06, y1: 2.04 }] },
+      { deg: 0, name: 'up the street', y: ROAD, apertures: [{ z: B, x0: -0.5, x1: 0.38, y0: 1.06, y1: 2.04 }] },
+      { deg: 90, name: 'along to the east', apertures: [{ z: B, x0: -0.38, x1: 0.62, y0: 1.06, y1: 2.04 }] },
     ],
     laneSwitch: false,   // he keeps to the street he started down: the race is with the phone, not with finding him
-    // he reaches the glass in about 37 to 46 s. A careful player finds the number by page four on average and the coin in a
-    // few seconds, has dialled by about 21 s and is answered by 28; with the number on the last page and his quickest walk
+    // he reaches the glass in about 37 to 46 s (time: the whole of his way, lamps and all, is fitted to it). A careful player
+    // finds the number by page four on average and the coin in a few seconds, has dialled by about 21 s and is answered by
+    // 28, while he is still at his last lamp or just leaving it; with the number on the last page and his quickest way in
     // there are several seconds to spare, but hardly any after a wrong number as well, which costs about eight (the coin has
     // to be taken out of the return and put back in)
     creatures: [{ type: 'signalman', startDist: 55, time: 72 }],
@@ -281,8 +294,9 @@ Object.assign(ICONS, {
       blood.onload = () => { const g = tex.pages[nb.keyPage].getContext('2d'); g.clearRect(0, 0, TW, TH); g.drawImage(keyBare, 0, 0); bloodOn(g, keyText, blood); s.bloodDrawn = true; };
       blood.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(bloodSVG(keyText, inkRand));
       Object.assign(s, { pages: nb.pages, keyPage: nb.keyPage, number: nb.number, numberText: nb.numberText, others: nb.others,
-        hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, page: 0, reading: false, nbWant: 0, nbAnims: [], nbHand: null, nbRect: null, bloodDrawn: false,
-        credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null, lands: [], lagN: 0, keyHit: {}, blinkAt: -9, handsetT: -9, coinDropT: -9, finger: null, fingerAt: 0, glides: [] });
+        hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, page: 0, nbWant: 0, nbAnims: [], nbHand: null, nbRect: null, bloodDrawn: false,
+        credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null, lands: [], lagN: 0, keyHit: {}, blinkAt: -9, handsetT: -9, coinDropT: -9, finger: null, fingerAt: 0, glides: [],
+        man: null, lampsOut: 0, sparks: [] });
 
       // ---------------- the street ----------------
       const roadC = [27, 28, 33], paveC = [54, 54, 58], kerbC = [88, 88, 92], paint = [150, 148, 138];
@@ -380,32 +394,84 @@ Object.assign(ICONS, {
       car(-3.25, -1.45, 33.5, 37.9, [40, 46, 58]);
 
       // ---------------- street lamps: posts at the kerb, arms over the road, sodium light ----------------
-      const LAMPS = [[-4.0, 15, 1, 0], [4.0, 31, -1, 0], [-4.0, 47, 1, 0], [4.0, 63, -1, 0], [-4.0, 82, 1, 0], [4.0, 104, -1, 0],
-        [13, 0.8, 0, 1], [28, 8.2, 0, -1], [44, 0.8, 0, 1], [62, 8.2, 0, -1], [84, 0.8, 0, 1],
-        [-13, 0.8, 0, 1], [-28, 8.2, 0, -1], [-44, 0.8, 0, 1], [-62, 8.2, 0, -1], [-84, 0.8, 0, 1]];
-      const postC = [30, 32, 34], lampLights = [], lampGlows = [];
-      for (const [x, z, ax, az] of LAMPS) {
+      // Along the main street they stand on its east side, and along the cross street to the east on its far side: the sides
+      // nearer the booth's corner, where the pay phone is, so that from the phone a man at one is at the edge of the view.
+      // He breaks them one by one (breakLamp): a lamp's level (lampLevel) is 1 while it burns, flares and stutters as it
+      // goes, and is nought for good once it is out; its light, its glow, its lens and its streak on the road all follow it
+      const LAMPS = [];
+      for (const z of [12, 26, 40, 54, 68, 86, 108]) LAMPS.push([4.0, z, -1, 0, 0]);          // [x, z, arm x, arm z, street]
+      for (const x of [16, 30, 44, 58, 72, 92]) LAMPS.push([x, 8.2, 0, -1, 1]);
+      for (const [x, z, ax, az] of [[-13, 0.8, 0, 1], [-28, 8.2, 0, -1], [-44, 0.8, 0, 1], [-62, 8.2, 0, -1], [-84, 0.8, 0, 1]]) LAMPS.push([x, z, ax, az, -1]);
+      const postC = [30, 32, 34], lamps = [];
+      const lampLevel = lp => {
+        if (lp.outAt === undefined) return 1;
+        const k = L.t - lp.outAt;
+        if (k < 0.07) return 1.8;                                                             // the pop: a white flare
+        if (k > 0.5) return 0;
+        return (Math.sin(k * 97) > 0.1 ? 0.75 : 0.06) * (1 - k / 0.5);                         // then it stutters, and goes
+      };
+      for (const [x, z, ax, az, street] of LAMPS) {
         const d = Math.hypot(x, z), px = -z / d * 0.07, pz = x / d * 0.07;      // a post faces the eye: it is only ever seen from here
         SC.wallV(L, x - px, z - pz, x + px, z + pz, 0, 5.0, postC);
         const hx = x + ax * 1.1, hz = z + az * 1.1;
         SC.quad(L, [x, 4.92, z], [hx, 4.92, hz], [hx, 5.02, hz], [x, 5.02, z], postC);
         SC.box(L, hx - 0.22, hx + 0.22, 4.86, 4.98, hz - 0.22, hz + 0.22, [40, 40, 42]);
-        SC.sprite(L, hx, 4.78, hz, 0.36, 0.1, (ctx, P) => { ctx.scale(0.36, 0.1); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.raw([255, 196, 120])); }, { noFog: true, noLight: true });
-        const lp = L.pt(hx, 4.8, hz);
-        lampLights.push({ x: hx, y: 4.8, z: hz, r: 12, i: 0.6, color: [255, 172, 96] });
-        lampGlows.push({ x: lp[0], y: lp[1], z: lp[2], r: 1.7, color: [255, 170, 90], a: 0.22 });
+        const lp = { x, z, hx, hz, street, outAt: undefined, refl: [] };
+        // the lens: lit, a bar of orange; out, dark broken glass with a jagged rim of what is left
+        SC.sprite(L, hx, 4.78, hz, 0.36, 0.1, (ctx, P) => {
+          ctx.scale(0.36, 0.1);
+          const k = lampLevel(lp);
+          if (k > 0.03) { P_ell(ctx, 0, 0.5, 0.5, 0.5, P.raw(mixc([90, 60, 40], k > 1 ? [255, 250, 236] : [255, 196, 120], Math.min(1, k)))); return; }
+          P_ell(ctx, 0, 0.5, 0.5, 0.5, P.raw([26, 24, 24]));
+          P_poly(ctx, [[-0.5, 0.5], [-0.32, 0.12], [-0.2, 0.44], [-0.05, 0.05], [0.1, 0.38], [0.26, 0.1], [0.5, 0.5]], P.raw([58, 56, 58]));
+        }, { noFog: true, noLight: true });
+        const hp = L.pt(hx, 4.8, hz);
+        lp.light = worldLight(L, { x: hx, y: 4.8, z: hz, r: 12, i: 0.6, color: [255, 172, 96] });
+        lp.glow = { x: hp[0], y: hp[1], z: hp[2], r: 1.7, color: [255, 170, 90], a: 0.22 };
         // its reflection in the wet road: a streak from under the lamp toward the eye, fading as it comes, on the road only
         const fd = Math.hypot(hx, hz), qx = -hz / fd, qz = hx / fd, tEnd = Math.max(0.34, 1.15 / Math.abs(hz)), N = 5;
-        for (let k = 0; k < N; k++) {
-          const ta = lerp(0.97, tEnd, k / N), tb = lerp(0.97, tEnd, (k + 1) / N), wa = lerp(0.2, 0.06, k / N), wb = lerp(0.2, 0.06, (k + 1) / N);
-          SC.quad(L, [hx * ta + qx * wa, ROAD + 0.006, hz * ta + qz * wa], [hx * ta - qx * wa, ROAD + 0.006, hz * ta - qz * wa], [hx * tb - qx * wb, ROAD + 0.006, hz * tb - qz * wb], [hx * tb + qx * wb, ROAD + 0.006, hz * tb + qz * wb], [255, 176, 104], { layer: 0, alpha: 0.12 * (1 - k / N), noLight: true, sortDist: 0.4 });
-        }
+        lp.refl = SC.grab(L, () => {
+          for (let k = 0; k < N; k++) {
+            const ta = lerp(0.97, tEnd, k / N), tb = lerp(0.97, tEnd, (k + 1) / N), wa = lerp(0.2, 0.06, k / N), wb = lerp(0.2, 0.06, (k + 1) / N);
+            SC.quad(L, [hx * ta + qx * wa, ROAD + 0.006, hz * ta + qz * wa], [hx * ta - qx * wa, ROAD + 0.006, hz * ta - qz * wa], [hx * tb - qx * wb, ROAD + 0.006, hz * tb - qz * wb], [hx * tb + qx * wb, ROAD + 0.006, hz * tb + qz * wb], [255, 176, 104], { layer: 0, alpha: 0.12 * (1 - k / N), noLight: true, sortDist: 0.4 });
+          }
+        });
+        for (const q of lp.refl) q.alpha0 = q.alpha;
+        lamps.push(lp);
       }
-      L.lights = lampLights.map(l => worldLight(L, l));
+      L.lights = lamps.map(lp => lp.light);
+      // a lamp he breaks: it pops in a white flare, glass and sparks come down out of it, and it stutters and goes out for good
+      const fxr = mulberry32(7717);   // (the sparks' own random stream: the night's is left as it was)
+      const breakLamp = lp => {
+        if (lp.outAt !== undefined) return;
+        lp.outAt = L.t; s.lampsOut++;
+        const pan = Math.sin(wrapPi(Math.atan2(lp.hx, lp.hz) - G.cam.yaw)) * 0.85;
+        AUDIO.sfx('lampBreak', pan);
+        for (let k = 0; k < 26; k++) {
+          const glass = k < 9, a = fxr() * TAU, v = glass ? 0.4 + fxr() * 0.8 : 0.8 + fxr() * 2.2;
+          s.sparks.push({ x: lp.hx, y: 4.76, z: lp.hz, vx: Math.cos(a) * v, vy: glass ? -0.2 - fxr() * 0.5 : fxr() * 1.6 - 0.3, vz: Math.sin(a) * v, t0: L.t, life: glass ? 1.2 : 0.35 + fxr() * 0.8, glass });
+        }
+      };
+      // every frame: each lamp's light, glow and streak as its level is now; the sparks and glass falling
+      const lampsNow = dt => {
+        for (const lp of lamps) {
+          if (lp.outAt === undefined || lp.done) continue;
+          const k = lampLevel(lp);
+          lp.light.i = 0.6 * k; lp.glow.a = 0.22 * Math.min(1, k) + (k > 1 ? 0.5 : 0); lp.glow.r = k > 1 ? 3.2 : 1.7;
+          for (const q of lp.refl) q.alpha = q.alpha0 * Math.min(1, k);
+          if (L.t - lp.outAt > 0.6) lp.done = true;
+        }
+        for (const p of s.sparks) { p.vy -= 9.8 * dt * (p.glass ? 1 : 0.6); p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; if (p.y < ROAD + 0.02) { p.y = ROAD + 0.02; p.vy = 0; p.vx *= 0.5; p.vz *= 0.5; } }
+        s.sparks = s.sparks.filter(p => L.t - p.t0 < p.life);
+      };
+      const sparkParts = () => s.sparks.map(p => {
+        const age = (L.t - p.t0) / p.life, a = L.pt(p.x, p.y, p.z), b = L.pt(p.x - p.vx * 0.035, p.y - p.vy * 0.035, p.z - p.vz * 0.035);
+        return { kind: 'poly', pts: [a, b], stroke: true, lw: p.glass ? 0.03 : 0.022, color: p.glass ? [200, 214, 226] : mixc([255, 250, 210], [255, 120, 40], age), alpha: p.glass ? 0.7 * (1 - age) : 1 - age * 0.7, noFog: true, noLight: true };
+      });
 
       // ---------------- the booth ----------------
-      // a metre and a third across and a little over a metre deep: the pay phone is on the west wall at arm's length, and
-      // the door (the north pane), the east pane and the back look out on the street, the pavement and the shuttered shop
+      // a metre and a half across, a little less deep: the door (the north pane), the east pane and the back look out on the
+      // main street, the cross street and the shuttered shop, and the pay phone hangs across the corner between the first two
       const metal = [70, 74, 80], metalD = [52, 55, 61], glass = [150, 172, 198], band = [44, 46, 52];
       SC.floorQ(L, XW, -B, B, B, 0.03, [62, 64, 70], { tex: 'tin', texScale: 0.35 });
       for (const [x, z] of [[XW, -B], [B, -B], [XW, B], [B, B]]) SC.box(L, x - 0.035, x + 0.035, 0, 2.36, z - 0.035, z + 0.035, metal);
@@ -419,26 +485,42 @@ Object.assign(ICONS, {
       };
       side(XW, B, B, B); side(B, B, B, -B); side(B, -B, XW, -B); side(XW, -B, XW, B);
       SC.quad(L, [XW, 2.36, -B], [B, 2.36, -B], [B, 2.36, B], [XW, 2.36, B], [36, 38, 44]);
-      SC.quad(L, [-0.17, 2.35, -0.3], [-0.07, 2.35, -0.3], [-0.07, 2.35, 0.3], [-0.17, 2.35, 0.3], [236, 242, 255], { noFog: true, noLight: true });
-      // the door's pull (the door is the north pane): a dull bar on two stand-offs from the glass, so it reads as part of the
-      // door and not as something lying loose to be picked up
-      SC.box(L, 0.355, 0.375, 0.94, 1.32, B - 0.07, B - 0.05, [92, 96, 104]);
-      for (const y of [0.97, 1.27]) SC.box(L, 0.358, 0.372, y, y + 0.022, B - 0.05, B - 0.004, [76, 80, 88]);
+      SC.quad(L, [-0.05, 2.35, -0.3], [0.05, 2.35, -0.3], [0.05, 2.35, 0.3], [-0.05, 2.35, 0.3], [236, 242, 255], { noFog: true, noLight: true });
+      // the door's pull (the door is the north pane), at its west end: a dull bar on two stand-offs from the glass, so it
+      // reads as part of the door and not as something lying loose to be picked up
+      SC.box(L, -0.585, -0.565, 0.94, 1.32, B - 0.07, B - 0.05, [92, 96, 104]);
+      for (const y of [0.97, 1.27]) SC.box(L, -0.582, -0.568, y, y + 0.022, B - 0.05, B - 0.004, [76, 80, 88]);
 
-      // ---------------- the pay phone, on the west wall ----------------
-      // Everything on it is placed by where it lies on the wall: u across it (to your right as you face it, which is north),
-      // y up, and d out from the wall toward you. A plate on the wall; the housing, with the display and the coin slot along
-      // its top, the keys under them and the coin return at the bottom; the receiver hanging on its right; the instruction
-      // card on the plate to its left; the shelf under it all, where the notebook lies.
-      const FD = -PX;                                                       // how far the face of the housing is from the eye
+      // ---------------- the pay phone, across the corner ----------------
+      // Everything on it is placed by where it lies on the plate (ph, at3): u across it (to your right as you face it), y up,
+      // and d out from it toward you. The plate; the housing, with the display and the coin slot along its top, the keys
+      // under them and the coin return at the bottom; the receiver hanging on its right; the instruction card on the plate to
+      // its left; the corner shelf under it all, where the notebook lies.
       const face = { sortDist: FD - 0.01 }, detail = { sortDist: FD - 0.015 };
-      const faceQ = (u0, u1, y0, y1, d, col, opts) => SC.wallV(L, XW + d, u0, XW + d, u1, y0, y1, col, opts);
+      const q4 = (map, pts, col, opts) => { const w = pts.map(p => map(p[0], p[1], p[2])); SC.quad(L, w[0], w[1], w[2], w[3], col, opts); };
+      const faceQ = (u0, u1, y0, y1, d, col, opts) => q4(ph, [[u0, y0, d], [u1, y0, d], [u1, y1, d], [u0, y1, d]], col, opts);
+      // a box standing out from the plate (u0..u1, y0..y1, d0..d1 in the frame map gives), with only the faces that look
+      // at the eye (nothing ever sees it from anywhere else), shaded as SC.box shades
+      const obox = (map, u0, u1, y0, y1, d0, d1, col, opts) => {
+        const eye = [0, L.eyeH, 0], ctr = map((u0 + u1) / 2, (y0 + y1) / 2, (d0 + d1) / 2);
+        for (const [f, k] of [[[[u0, y0, d1], [u1, y0, d1], [u1, y1, d1], [u0, y1, d1]], 1], [[[u0, y1, d0], [u1, y1, d0], [u1, y1, d1], [u0, y1, d1]], 1.08],
+          [[[u0, y0, d0], [u1, y0, d0], [u1, y0, d1], [u0, y0, d1]], 0.6], [[[u0, y0, d0], [u0, y0, d1], [u0, y1, d1], [u0, y1, d0]], 0.72], [[[u1, y0, d0], [u1, y0, d1], [u1, y1, d1], [u1, y1, d0]], 0.72]]) {
+          const w = f.map(p => map(p[0], p[1], p[2])), fc = [0, 1, 2].map(j => (w[0][j] + w[2][j]) / 2);
+          const e1 = [0, 1, 2].map(j => w[1][j] - w[0][j]), e2 = [0, 1, 2].map(j => w[3][j] - w[0][j]);
+          let n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+          if (n[0] * (fc[0] - ctr[0]) + n[1] * (fc[1] - ctr[1]) + n[2] * (fc[2] - ctr[2]) < 0) n = n.map(v => -v);
+          if (n[0] * (eye[0] - fc[0]) + n[1] * (eye[1] - fc[1]) + n[2] * (eye[2] - fc[2]) <= 1e-7) continue;
+          SC.quad(L, w[0], w[1], w[2], w[3], scalec(col, k), opts);
+        }
+      };
+      // a sprite on the phone, at its size there (drawn at full size, as it was made, and brought in to PK)
+      const phSprite = (u, y, d, w, h, draw, opts) => { const p = ph(u, y, d); return SC.mkSprite(L, p[0], p[1], p[2], w * PK, h * PK, (ctx, P) => { ctx.scale(PK, PK); draw(ctx, P); }, opts); };
       const LCD = { u0: -0.108, u1: 0.035, y0: 1.655, y1: 1.725 }, SLOT = { u0: 0.052, u1: 0.105, y0: 1.655, y1: 1.725 };
       const RET = { u0: -0.05, u1: 0.05, y0: 1.3, y1: 1.375 }, RX = 0.19;   // the coin return; where the receiver hangs
       const KEYS = ['123', '456', '789', '*0#'], KEY_Y0 = 1.598, KEY_DY = 0.052, KEY_DU = 0.045;
-      SC.box(L, XW + 0.005, XW + 0.02, 0.98, 2.02, -0.25, 0.26, [58, 62, 68]);                    // the plate
-      SC.box(L, XW + 0.02, PX, 1.29, 1.765, -0.13, 0.13, [128, 132, 140]);                        // the housing
-      SC.box(L, XW + 0.02, PX + 0.01, 1.755, 1.785, -0.135, 0.135, [96, 100, 108]);               // its cap
+      obox(at3, -PW, PW, 0.98, 1.95, 0, 0.016, [58, 62, 68], { sortDist: WD + 0.03 });                 // the plate, across the corner
+      obox(ph, -0.13, 0.13, 1.29, 1.765, 0.02, 0.1, [128, 132, 140], { sortDist: FD + 0.005 });        // the housing
+      obox(ph, -0.135, 0.135, 1.755, 1.785, 0.02, 0.11, [96, 100, 108], { sortDist: FD - 0.004 });     // its cap
       faceQ(LCD.u0 - 0.009, LCD.u1 + 0.009, LCD.y0 - 0.009, LCD.y1 + 0.009, 0.1005, [62, 64, 70], face);   // the display's bezel (the display is drawn each frame)
       const slotArt = SC.grab(L, () => {
         faceQ(SLOT.u0, SLOT.u1, SLOT.y0, SLOT.y1, 0.1005, [176, 180, 188], face);                    // the coin slot's chrome plate,
@@ -451,10 +533,10 @@ Object.assign(ICONS, {
         faceQ(RET.u0 + 0.008, RET.u1 - 0.008, RET.y0 + 0.008, RET.y1 - 0.006, 0.101, [12, 12, 14], detail);   // and its dark mouth
       });
       // the instruction card, on the plate to the left of the housing: a printed heading, and the three steps in the order
-      // the phone wants them (as on any pay phone), big enough to read in the close view
-      faceQ(-0.232, -0.142, 1.43, 1.67, 0.021, [214, 208, 190]);
-      SC.wallV(L, XW + 0.0215, -0.226, XW + 0.0215, -0.148, 1.625, 1.655, [150, 40, 36], { sortDist: 0.79 });
-      SC.sprite(L, XW + 0.022, 1.43, -0.187, 0.09, 0.24, (ctx, P) => {
+      // the phone wants them (as on any pay phone)
+      faceQ(-0.232, -0.142, 1.43, 1.67, 0.021, [214, 208, 190], { sortDist: WD + 0.02 });
+      faceQ(-0.226, -0.148, 1.625, 1.655, 0.0215, [150, 40, 36], { sortDist: WD + 0.015 });
+      L.props.push(phSprite(-0.187, 1.43, 0.022, 0.09, 0.24, (ctx, P) => {
         const print = (t, x, y, px, col, weight) => { ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = (weight || 'bold') + ' ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col; ctx.fillText(t, 0, 0); ctx.restore(); };
         ctx.save(); ctx.translate(0, 0.2); ctx.scale(0.001, -0.001); ctx.font = 'bold 13px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = P.col([236, 226, 210]); ctx.fillText('TO CALL', 0, 0); ctx.restore();
         const ink = P.col([36, 42, 70]), red = P.col([150, 40, 36]);
@@ -463,26 +545,29 @@ Object.assign(ICONS, {
           print(n, -0.041, y - 0.021, 30, red);
           print(a, -0.019, y, 13, ink); print(b, -0.019, y - 0.017, 9.5, ink, 'normal');
         });
-      }, { sortDist: 0.785 });
-      // the shelf under it, where the notebook lies
-      SC.box(L, XW + 0.02, XW + 0.24, 1.0, 1.03, -0.32, 0.32, [96, 100, 106]);
+      }, { sortDist: WD + 0.01 }));
+      // the shelf under it, where the notebook lies: a board across the corner from pane to pane, at the height of the rail
+      // along the glass, narrow against the plate and widening as it comes out toward you
+      q4(at3, [[-PW, 1.03, 0], [PW, 1.03, 0], [PW + SH, 1.03, SH], [-PW - SH, 1.03, SH]], [96, 100, 106], { sortDist: WD + 0.01 });
+      q4(at3, [[-PW - SH, 1.0, SH], [PW + SH, 1.0, SH], [PW + SH, 1.03, SH], [-PW - SH, 1.03, SH]], [74, 78, 84], { sortDist: WD + 0.005 });
 
       // ---------------- the coin, the receiver, the keys, the coin slot and return, the notebook ----------------
       // the coin: left in the coin return by the last person to use the phone, on the shelf, or dropped on the floor of the
-      // booth, in one of the corners by the phone (the far corners: the rest of the floor is under your feet, at the bottom
-      // edge of the view looking down)
-      const COIN_RET = { x: XW + 0.122, y: RET.y0 + 0.006, z: 0 };
+      // booth, by one of the panes near the phone (clear of the shelf, which would hide it looking down)
+      const cr0 = ph(0, RET.y0 + 0.006, 0.122), COIN_RET = { x: cr0[0], y: cr0[1], z: cr0[2] }, COIN_W = 0.06;
+      const shelfC = at3(0.17, 1.03, 0.13);
       const coin = mkItem(L, 'coin', 'Coin', [
         Object.assign({ key: 'return', jitter: 0 }, COIN_RET),
-        { key: 'shelf', x: XW + 0.13, y: 1.03, z: 0.17, flat: true, jitter: 0.02 },
-        { key: 'floorSW', x: -0.66, y: 0.03, z: -0.42, flat: true, jitter: 0.03 },
-        { key: 'floorNW', x: -0.66, y: 0.03, z: 0.42, flat: true, jitter: 0.03 },
-      ], { w: 0.07, h: 0.07, icon: 'coin' });
+        { key: 'shelf', x: shelfC[0], y: 1.03, z: shelfC[2], flat: true, jitter: 0.015 },
+        { key: 'floorE', x: 0.52, y: 0.03, z: 0.08, flat: true, jitter: 0.03 },
+        { key: 'floorN', x: 0.08, y: 0.03, z: 0.52, flat: true, jitter: 0.03 },
+      ], { w: COIN_W, h: COIN_W, icon: 'coin' });
       if (coin.y < 0.5) coin.w = coin.h = 0.09;   // on the floor, a little further off and lower in the view, drawn a little bigger
+      else if (coin.y < 1.2) coin.w = coin.h = 0.07;
       const coinInCup = () => !coin.taken && Math.abs(coin.x - COIN_RET.x) < 0.01 && Math.abs(coin.y - COIN_RET.y) < 0.01;
       const coinBack = () => {   // a call that never went through gives the coin back: it rattles down into the return (L.update drops it in)
         const p = L.pt(COIN_RET.x, COIN_RET.y, COIN_RET.z);
-        Object.assign(coin, { x: p[0], y: p[1], z: p[2], w: 0.07, h: 0.07, flat: false, taken: false, uses: 1 });
+        Object.assign(coin, { x: p[0], y: p[1], z: p[2], w: COIN_W, h: COIN_W, flat: false, taken: false, uses: 1 });
         s.coinDropT = L.t; s.coinClink = false;
       };
       const fmt = d => d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d;
@@ -544,12 +629,15 @@ Object.assign(ICONS, {
         if (s.dialed.length === 7) { s.line = s.dialed === s.number ? 'connecting' : 'checking'; s.doneAt = L.t; }
       };
       const receiver = mkTarget(L, {
-        id: 'receiver', name: 'Receiver', x: XW + 0.135, y: 1.3, z: RX, w: 0.11, h: 0.44,
+        id: 'receiver', name: 'Receiver', ...(([x, y, z]) => ({ x, y, z }))(ph(RX, 1.3, 0.135)), w: 0.11 * PK, h: 0.44 * PK,
         onClick() { if (s.line === 'answered') return true; if (s.hook === 'on') lift(); else hangUp(); return true; },
       });
       // a target stands a little in front of the face, and is placed and sized so that on screen it covers just what it
       // stands for there (what glows when it is pointed at is what it stands for: glowWith)
-      const front = (u, y0, w, h, d) => { const k = (-XW - (d || 0.125)) / (-XW - 0.104); return { x: XW + (d || 0.125), z: u * k, y: L.eyeH + (y0 - L.eyeH) * k, w: w * k, h: h * k }; };
+      const front = (u, y0, w, h, d) => {
+        const k = (WD - (d || 0.125) * PK) / (WD - 0.104 * PK), p = ph(u, y0, 0.104);   // (the face's point, brought toward the eye)
+        return { x: p[0] * k, y: L.eyeH + (p[1] - L.eyeH) * k, z: p[2] * k, w: w * PK * k, h: h * PK * k };
+      };
       // the keys: each a target of its own, a little bigger than the key, and drawn each frame so it can go down when pressed
       const keys = [], KEY_NAME = { '*': 'star', '#': 'hash' };
       const drawKey = (ctx, P, ch) => {
@@ -568,7 +656,7 @@ Object.assign(ICONS, {
       for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
         const ch = KEYS[r][c], u = (c - 1) * KEY_DU, yc = KEY_Y0 - r * KEY_DY;
         const t = mkTarget(L, Object.assign(front(u, yc - 0.023, 0.042, 0.046), { id: 'key' + (KEY_NAME[ch] || ch), name: '', onClick() { press(ch); return true; } }));   // (no name: what it is is printed on it)
-        keys.push({ ch, u, y: yc, w: 0.042, h: 0.046, t, spr: SC.mkSprite(L, XW + 0.104, yc - 0.022, u, 0.044, 0.044, (ctx, P) => drawKey(ctx, P, ch), { sortDist: FD - 0.016, glowOf: t }) });
+        keys.push({ ch, u, y: yc, w: 0.042, h: 0.046, t, spr: phSprite(u, yc - 0.022, 0.104, 0.044, 0.044, (ctx, P) => drawKey(ctx, P, ch), { sortDist: FD - 0.016, glowOf: t }) });
       }
       const slot = mkTarget(L, {
         ...front((SLOT.u0 + SLOT.u1) / 2, SLOT.y0 - 0.004, SLOT.u1 - SLOT.u0 + 0.01, SLOT.y1 - SLOT.y0 + 0.008), id: 'slot', name: 'Coin slot', accepts: ['coin'],
@@ -580,7 +668,7 @@ Object.assign(ICONS, {
           if (s.hook !== 'off') {
             G.say('The coin drops straight through. Lift the receiver first.', 'It drops straight through.');
             const through = () => { s.returnAt = L.t + 0.5; AUDIO.sfx('coinReturn'); };
-            const fx = G.fumble(coin, this, { preset: 'return', drop: false, scale: 0.042 / coin.w, sfx: { hit: 'tink' }, onHit: () => {   // (a coin's size at the slot)
+            const fx = G.fumble(coin, this, { preset: 'return', drop: false, scale: 0.042 * PK / coin.w, sfx: { hit: 'tink' }, onHit: () => {   // (a coin's size at the slot)
               G.removeFromInv(coin);
               if (s.hook === 'off') { s.credit = 10; AUDIO.sfx('coin'); } else through();
             } });
@@ -600,33 +688,25 @@ Object.assign(ICONS, {
         },
       });
       // ---------------- the notebook, read where it lies ----------------
-      // It lies shut on the shelf, its spiral toward the wall. Clicked, the hand goes to its near corner, and the cover (then,
+      // It lies shut on the shelf, its spiral toward the plate. Clicked, the hand goes to its near corner, and the cover (then,
       // click by click, each page) is lifted by that corner and turned back over the spiral, its free end going first and the
-      // sheet curling, to stand against the wall in front of those turned before it; a click on the last page brings the lot
+      // sheet curling, to stand against the plate in front of those turned before it; a click on the last page brings the lot
       // back down over it, shut. Clicks made while the hand is on its way, or while a page is still going over, are kept and
-      // done in turn (s.nbWant). Open, and looked down at, the view comes down close over the page lying open (s.reading,
-      // L.viewZoom); turning away or looking up lets the view go, the notebook staying open where it lies, and a click on it
-      // then only brings the view back down to it. While you read, what you hold is lowered out of the way (L.heldItem).
-      const REST = 97 * DEG, restOf = k => REST - k * 1.3 * DEG;   // standing against the wall: k 0 the cover, i + 1 page i
+      // done in turn (s.nbWant). Nothing is done to the view: it is looked down at as anything is, and read with the zoom.
+      const REST = 97 * DEG, restOf = k => REST - k * 1.3 * DEG;   // standing against the plate: k 0 the cover, i + 1 page i
       const NB_T = { cover: 0.55, page: 0.5, block: 0.62 };
-      const AX = NB.d, AY = NB.y + NB.th, NB_N = 10, nbX = XW + NB.d + NB.len;   // the spiral; the near edge
-      const elev = d => Math.atan2(L.eyeH - AY, -(XW + d));                       // how far down from the eye a line across it is
-      const NB_PITCH = (elev(NB.d) + elev(NB.d + NB.len)) / 2;
-      // close enough that the page lying open is half the height of the view (and at least 290 px, up to three quarters of it)
-      const nbZoom = () => { const a = elev(NB.d + NB.len) - elev(NB.d), px = 2 * Math.tan(a / 2) * (R.H / 2) / Math.tan(31 * DEG); return clamp(Math.max(0.5 * R.H, Math.min(0.74 * R.H, 290)) / px, 2, 6.5); };
+      const AX = NB.d, AY = NB.y + NB.th, NB_N = 10, dN = NB.d + NB.len, uC = (NB.u0 + NB.u1) / 2;   // the spiral; the near edge
       // what you click is the whole of it as the eye sees it: up the plane of its near edge to where its far end is seen
-      const nbTop = L.eyeH + (AY - L.eyeH) * nbX / (XW + NB.d);
+      const nbTop = L.eyeH + (AY - L.eyeH) * (WD - dN) / (WD - NB.d), nbT = at3(uC, NB.y - 0.004, dN + 0.004);
       const notebook = mkTarget(L, {
-        id: 'notebook', name: 'Notebook', x: nbX + 0.004, y: NB.y - 0.004, z: (NB.u0 + NB.u1) / 2, w: NB.u1 - NB.u0 + 0.016, h: nbTop - NB.y + 0.012,
+        id: 'notebook', name: 'Notebook', x: nbT[0], y: nbT[1], z: nbT[2], w: NB.u1 - NB.u0 + 0.016, h: nbTop - NB.y + 0.012,
         onClick() {
-          if (s.nbOpen && !s.reading && !s.nbWant && !s.nbAnims.length) { s.reading = true; return true; }   // open already: back down close over it
-          s.reading = true; s.nbWant++;
-          const at = L.pt(nbX - 0.014, AY + 0.003, NB.u1 - 0.022);   // its near corner, on your right
+          s.nbWant++;
+          const at = at3(NB.u1 - 0.022, AY + 0.003, dN - 0.014);   // its near corner, on your right
           s.nbHand = G.reach(this, { style: 'touch', at: { x: at[0], y: at[1], z: at[2] } });
           return true;
         },
       });
-      L.heldItem = () => (s.reading && G.state === 'play' ? null : undefined);
       const nbKind = a => (typeof a.item === 'number' ? 'page' : a.item);
       // the next thing done to it, once the hand is there: open it, turn the page or, on the last, shut it
       const nbNext = () => {
@@ -649,12 +729,9 @@ Object.assign(ICONS, {
         for (const a of s.nbAnims.slice()) {
           if (L.t - a.t0 < NB_T[nbKind(a)]) continue;
           s.nbAnims.splice(s.nbAnims.indexOf(a), 1);
-          if (a.item === 'block') { s.nbOpen = false; s.page = 0; if (s.reading && G.cam.tPitch === NB_PITCH) G.cam.tPitch = PITCH_DOWN; s.reading = false; }
+          if (a.item === 'block') { s.nbOpen = false; s.page = 0; }
         }
-        if (s.reading && G.state === 'play') {   // looking down at it, the view comes down close over it; turned away or up, it lets it go
-          if (G.cam.dirIdx !== PHONE_DIR || G.cam.tPitch < PITCH_DOWN * 0.5) s.reading = false; else G.cam.tPitch = NB_PITCH;
-        }
-        notebook.name = s.reading ? '' : 'Notebook';   // (reading it, nothing is written over the page)
+        notebook.name = s.nbOpen ? '' : 'Notebook';   // (open, nothing is written over the page)
       };
       // ---- drawing it, in the view's own pixels: each sheet in strips across it, each strip in its own perspective ----
       // A sheet hangs from the spiral, at an angle up from lying flat toward you of A at its middle, its free end ahead of
@@ -667,7 +744,7 @@ Object.assign(ICONS, {
         for (let i = 0; i < NB_N; i++) { const a = clamp(A + B * ((i + 0.5) / NB_N - 0.5), 0, max); d += Math.cos(a) * NB.len / NB_N; y += Math.sin(a) * NB.len / NB_N; pts.push([d, y]); }
         return pts;
       };
-      const scr = (u, d, y) => { const w = L.pt(XW + d, y, u); return R.screenPos(w[0], w[1], w[2]); };
+      const scr = (u, d, y) => { const w = at3(u, y, d); return R.screenPos(w[0], w[1], w[2]); };
       const path = (ctx, q, grow) => {
         const cx = (q[0].x + q[1].x + q[2].x + q[3].x) / 4, cy = (q[0].y + q[1].y + q[2].y + q[3].y) / 4;
         ctx.beginPath();
@@ -756,8 +833,8 @@ Object.assign(ICONS, {
         }
       };
       // drawn as one thing, after the shelf it lies on and before what is nearer (the cord of the lifted receiver)
-      const nbAt = L.pt(XW + AX + NB.len / 2, NB.y, (NB.u0 + NB.u1) / 2);
-      const nbSprite = { kind: 'sprite', x: nbAt[0], y: nbAt[1], z: nbAt[2], w: NB.u1 - NB.u0, h: 0.2, sortDist: -nbX - 0.01, draw: (ctx, P, sc) => {
+      const nbAt = at3(uC, NB.y, AX + NB.len / 2);
+      const nbSprite = { kind: 'sprite', x: nbAt[0], y: nbAt[1], z: nbAt[2], w: NB.u1 - NB.u0, h: 0.2, sortDist: WD - dN - 0.01, draw: (ctx, P, sc) => {
         const m = ctx.getTransform(), b = R.screenPos(nbSprite.x, nbSprite.y, nbSprite.z);   // its own transform, back to the view's pixels
         if (!b) return;
         const dpr = m.a / sc;
@@ -765,15 +842,96 @@ Object.assign(ICONS, {
         drawNotebook(ctx, P);
       } };
       const sm = () => L.creatures[0];
-      // the exchange: a wrong number is not in service; the right one connects, rings for seven seconds from the last digit, and is answered
-      // facing the phone, the view tips down to the middle of its face; brought in closer than the whole face will fit (on a
-      // small screen), to the display and the keys
-      const phonePitch = () => Math.atan2(L.eyeH - (L.viewZoom() > 1.5 ? 1.56 : 1.515), FD);
-      L.update = dt => {
-        if (G.state === 'play') {   // the close view of the phone holds its tilt while you face it, and lets it go when you turn away
-          const cam = G.cam;
-          if (closeUp()) { s.pitch = phonePitch(); if (cam.tPitch !== s.pitch) cam.tPitch = s.pitch; } else { s.padSel = null; if (s.pitch !== undefined && cam.tPitch === s.pitch) cam.tPitch = 0; }
+      // ---------------- the man: from lamp to lamp ----------------
+      // His way in is laid out once (planMan), from the street he comes down and its lamps, and fitted to the time he has
+      // (c.T, in which he used to walk all of it at a steady pace, so the race with the phone is as it was): he starts behind
+      // the furthest lamp in reach, and at each lamp stands a few seconds lit by it, reaches up (UP), takes hold (GRIP), breaks
+      // it, lets his arm come back down (DOWN) and stands a beat in the dark (BEAT); then he rushes on to the next one nearer,
+      // far too fast. After the last he comes across to the glass at a walk. Behind a lamp is just past its post as the eye
+      // sees it, so the post stands in front of him. Where he is: a distance down his lane (his distFn) and a step to one
+      // side of it (c.side, the signalman's lateral), with his feet on the road or up on the pavement (c.yOff)
+      const UP = 0.9, GRIP = 0.25, DOWN = 0.55, BEAT = 0.45, RUSH_V = 6.5, WALK_V = 1.4;
+      const gap = (a, b) => Math.hypot(a.d - b.d, a.lat - b.lat);
+      const groundAt = (x, z) => ((z > 1 && z < 8) || (z >= 8 && Math.abs(x) < 3.5)) ? ROAD : 0;
+      const planMan = c => {
+        const ln = c.lane, rx = Math.cos(ln.yaw), rz = -Math.sin(ln.yaw), street = ln.deg === 0 ? 0 : 1;
+        const toLane = (x, z) => ({ d: x * ln.dirX + z * ln.dirZ, lat: x * rx + z * rz });
+        const stops = lamps.filter(lp => lp.street === street).map(lp => {
+          const k = 1 + 0.6 / Math.hypot(lp.x, lp.z);
+          return Object.assign({ lamp: lp }, toLane(lp.x * k, lp.z * k));
+        }).filter(st => st.d <= c.D0 + 12).sort((a, b) => b.d - a.d);
+        if (!stops.length) stops.push({ lamp: null, d: c.D0, lat: 0 });
+        // after the last lamp: up the main street, straight across it to the door; along the cross street, over the road to
+        // the booth's own pavement, and along it to the east pane
+        const fin = street === 0 ? [{ d: 1.5, lat: 0.3 }] : [{ d: 7.5, lat: -0.45 }, { d: 1.5, lat: -0.2 }];
+        const n = stops.length, rushT = [], walk = [stops[n - 1]].concat(fin);
+        for (let i = 0; i + 1 < n; i++) rushT.push(Math.max(1.3, gap(stops[i], stops[i + 1]) / RUSH_V));
+        let walkLen = 0;
+        for (let i = 0; i + 1 < walk.length; i++) walkLen += gap(walk[i], walk[i + 1]);
+        const rushSum = rushT.reduce((a, b) => a + b, 0), act = UP + GRIP + DOWN + BEAT;
+        const wait = clamp((c.T - rushSum - walkLen / WALK_V) / n - act, 1.6, 6.5);
+        const walkT = clamp(c.T - rushSum - n * (wait + act), walkLen / 3, walkLen / 0.8);
+        const segs = [];
+        let t = 0;
+        stops.forEach((st, i) => {
+          segs.push({ kind: 'stop', t0: t, t1: t + wait + act, st, wait }); t += wait + act;
+          if (i + 1 < n) { segs.push({ kind: 'rush', t0: t, t1: t + rushT[i], a: st, b: stops[i + 1] }); t += rushT[i]; }
+        });
+        segs.push({ kind: 'walk', t0: t, t1: t + walkT, pts: walk, len: walkLen });
+        return { t0: L.t, segs, stops, wait, arrive: t + walkT, d: stops[0].d, lat: stops[0].lat, seg: null };
+      };
+      // where on him the lamp he stands at is, in his own frame (across and up from his feet, in metres where he stands), for
+      // his hand to go to
+      const reachFor = (c, st) => {
+        const lp = st.lamp; if (!lp) return null;
+        const P = APPROACH.position(c.lane, st.d, st.lat, L.eyeH), D = Math.hypot(P.x, P.z), fx = P.x / D, fz = P.z / D;
+        const k = D / (lp.hx * fx + lp.hz * fz);
+        return { x: (lp.hx * fz - lp.hz * fx) * k, y: L.eyeH + (4.8 - L.eyeH) * k - groundAt(P.x, P.z) };
+      };
+      // where he is now on his way, and what he is doing there
+      const manNow = c => {
+        const m = s.man, e = L.t - m.t0, seg = m.segs.find(g => e < g.t1) || m.segs[m.segs.length - 1];
+        if (seg !== m.seg) { m.seg = seg; if (seg.kind === 'stop') { c.reachTo = reachFor(c, seg.st); c.reachSide = c.reachTo && c.reachTo.x < 0 ? -1 : 1; } }
+        let reach = 0, rush = 0, dark = true, grip = 0;
+        if (seg.kind === 'stop') {
+          const lp = seg.st.lamp, up = e - seg.t0 - seg.wait;
+          m.d = seg.st.d; m.lat = seg.st.lat;
+          if (lp && c.reachTo) {
+            if (up >= UP + GRIP && lp.outAt === undefined) breakLamp(lp);
+            reach = up < 0 ? 0 : up < UP ? smoothstep(up / UP) : up < UP + GRIP ? 1 : 1 - smoothstep((up - UP - GRIP) / DOWN);
+            grip = up >= UP * 0.8 && up < UP + GRIP + 0.15 ? 1 : 0;
+          }
+          dark = !!lp && lp.outAt !== undefined && L.t - lp.outAt > 0.3;
+        } else if (seg.kind === 'rush') {
+          const k = clamp((e - seg.t0) / (seg.t1 - seg.t0), 0, 1), q = smoothstep(k);
+          m.d = lerp(seg.a.d, seg.b.d, q); m.lat = lerp(seg.a.lat, seg.b.lat, q); rush = Math.sin(Math.PI * k);
+        } else {
+          let left = clamp((e - seg.t0) / (seg.t1 - seg.t0), 0, 1) * seg.len, i = 0;
+          while (i + 2 < seg.pts.length && left > gap(seg.pts[i], seg.pts[i + 1])) { left -= gap(seg.pts[i], seg.pts[i + 1]); i++; }
+          const a = seg.pts[i], b = seg.pts[i + 1], q = clamp(left / (gap(a, b) || 1), 0, 1);
+          m.d = lerp(a.d, b.d, q); m.lat = lerp(a.lat, b.lat, q);
         }
+        Object.assign(c, { reach, rush, dark, grip, side: m.lat });
+      };
+      // laid out the first time he is wanted (drawn on the night's card, or its first frame), and stood at his first lamp
+      const manReady = () => {
+        const c = sm();
+        if (!c || s.man) return c;
+        s.man = planMan(c); c.distFn = () => s.man.d; c.dist = s.man.d; c.side = c.lat = s.man.lat;
+        const p = c.pos(); c.yOff = groundAt(p.x, p.z) - c.lane.y;
+        manNow(c);
+        return c;
+      };
+      L.update = dt => {
+        if (G.state === 'play' && !closeUp()) s.padSel = null;
+        const c = manReady();
+        if (c && !c.dead) {
+          if (G.state === 'play' && !L.won) manNow(c);
+          else { c.reach = Math.max(0, (c.reach || 0) - dt * 2); c.rush = 0; c.grip = 0; }
+          const p = c.pos();
+          c.yOff += (groundAt(p.x, p.z) - c.lane.y - c.yOff) * Math.min(1, dt * 14);   // up the kerb and down it in a stride
+        }
+        lampsNow(dt);
         if (s.returnAt && L.t >= s.returnAt) { s.returnAt = 0; coinBack(); }
         // the coin comes down into the cup and settles there with a clink
         if (s.coinDropT > 0 && !coin.taken) {
@@ -806,12 +964,10 @@ Object.assign(ICONS, {
       L.isWon = () => s.line === 'answered';
       L.deathCause = () => (s.line === 'ringing' || s.line === 'connecting') ? 'ringing' : s.line === 'dead' ? 'dead' : (s.hook === 'off' && !s.credit && s.deadKeys) ? 'nocoin' : null;
 
-      // ---------------- facing the phone: the view comes in close, and the keys take the number keys and the d-pad ----------------
+      // ---------------- facing the phone: the keys take the number keys and the d-pad ----------------
+      // (nothing is done to the view: the phone is looked at as anything is, and its keys clicked where they are, or with the
+      // zoom held)
       const closeUp = () => G.L === L && G.state === 'play' && G.cam.dirIdx === PHONE_DIR && G.cam.tPitch < PITCH_DOWN * 0.5;
-      // close enough that the keys are a comfortable size to click or tap (about 46 px apart), and at least close enough that
-      // the face of the phone fills the view between the line along the top of the screen and what you hold along the
-      // bottom: 1.3 at 1280x760, about 2.2 on a phone held sideways
-      L.viewZoom = () => (closeUp() ? clamp(46 / (KEY_DU / FD * (R.H / 2) / Math.tan(31 * DEG)), 1.3, 2.6) : s.reading && G.state === 'play' ? nbZoom() : 0);   // (the renderer's view is 62 degrees high; the notebook, read, brings it down close over it too)
       // a gamepad: the d-pad moves a highlight over the receiver, the coin slot, the keys and the coin return, as they lie on
       // the phone; past the last thing that way it turns (or looks down) as it always does. A presses what is highlighted.
       const controls = keys.concat([{ t: receiver, u: RX, y: 1.52, w: 0.11, h: 0.44 }, { t: slot, u: (SLOT.u0 + SLOT.u1) / 2, y: (SLOT.y0 + SLOT.y1) / 2, w: 0.063, h: 0.078 }, { t: ret, u: 0, y: (RET.y0 + RET.y1) / 2, w: 0.112, h: 0.073 }]);
@@ -834,7 +990,7 @@ Object.assign(ICONS, {
         ensureAudio();
         if (!s.padSel) {   // nothing highlighted yet: what is nearest the middle of the view, as the Use button does
           let bd = Infinity;
-          for (const c of controls) { const p = R.screenPos(XW + 0.11, c.y, c.u); const d = p ? Math.hypot(p.x - R.W / 2, p.y - R.H / 2) : Infinity; if (d < bd) { bd = d; s.padSel = c; } }
+          for (const c of controls) { const w = ph(c.u, c.y, 0.11), p = R.screenPos(w[0], w[1], w[2]); const d = p ? Math.hypot(p.x - R.W / 2, p.y - R.H / 2) : Infinity; if (d < bd) { bd = d; s.padSel = c; } }
         }
         if (s.padSel) useTarget(s.padSel.t);
         return true;
@@ -860,15 +1016,15 @@ Object.assign(ICONS, {
       // lengths so that each is as thick as it is near
       const cord = (ctrl, sd) => {
         const out = [];
-        ctrl = ctrl.map(([u, y, d]) => [XW + d, y, u]);
+        ctrl = ctrl.map(([u, y, d]) => [d, y, u]);   // (worked along in d, y, u, and put on the phone at the end)
         for (let i = 0; i < ctrl.length - 1; i++) {
           const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)], seg = [];
           const n = Math.max(6, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]) / 0.009));   // a twist every centimetre or so
           for (let k = 0; k <= n; k++) { const t = k / n, t2 = t * t, t3 = t2 * t; seg.push([0, 1, 2].map(j => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3))); }
           const twist = seg.map((p, k) => { const q = seg[Math.min(n, k + 1)], r = seg[Math.max(0, k - 1)], dz = q[2] - r[2], dy = q[1] - r[1], l = Math.hypot(dz, dy) || 1, w = (k & 1 ? 1 : -1) * 0.0028; return [p[0], p[1] - dz / l * w, p[2] + dy / l * w]; });
-          const w = pts => pts.map(p => L.pt(p[0], p[1], p[2]));
-          out.push({ kind: 'poly', pts: w(seg), color: [54, 56, 62], stroke: true, lw: 0.0075, sortDist: sd - i * 0.0001 });
-          out.push({ kind: 'poly', pts: w(twist), color: [124, 126, 132], stroke: true, lw: 0.0016, sortDist: sd - i * 0.0001 - 0.00005 });
+          const w = pts => pts.map(p => ph(p[2], p[1], p[0]));
+          out.push({ kind: 'poly', pts: w(seg), color: [54, 56, 62], stroke: true, lw: 0.0075 * PK, sortDist: sd - i * 0.0001 });
+          out.push({ kind: 'poly', pts: w(twist), color: [124, 126, 132], stroke: true, lw: 0.0016 * PK, sortDist: sd - i * 0.0001 - 0.00005 });
         }
         return out;
       };
@@ -885,7 +1041,7 @@ Object.assign(ICONS, {
         P_line(ctx, -0.09, 0.26, -0.09, 0.74, 0.05, kl);                                    // the light along it
         for (const y of [0.86, 0.14]) for (const x of [-0.18, 0, 0.18]) P_ell(ctx, x, y, 0.05, 0.012, kd);
       };
-      const handset = SC.mkSprite(L, XW + 0.13, 1.3, RX, 0.1, 0.44, (ctx, P) => { ctx.scale(0.1, 0.44); handsetIcon(ctx, P); }, { sortDist: FD - 0.04 });
+      const handset = phSprite(RX, 1.3, 0.13, 0.1, 0.44, (ctx, P) => { ctx.scale(0.1, 0.44); handsetIcon(ctx, P); }, { sortDist: FD - 0.04 });
       // lifted, it is in your left hand, held up toward your ear, its cord running down out of the view to it; it goes off the
       // hook down to the hand, and back up to the hook from it (HANDSET_T), the hand going down out of the way first
       const HANDSET_T = 0.24;
@@ -893,9 +1049,9 @@ Object.assign(ICONS, {
       L.offHand = () => (s.hook === 'off' && L.t - s.handsetT > HANDSET_T * 0.8 ? handsetItem : null);
       // off its hook it goes down out of the bottom of the view, toward you (to the hand that then comes up with it), and back
       // up from there: a point just under the view, below the hook, a little nearer than the hook
-      const hookAt = L.pt(XW + 0.13, 1.3, RX);
+      const hookAt = ph(RX, 1.3, 0.13);
       const underHook = () => {
-        const c = G.cam, f = R.f, q = R.screenPos(hookAt[0], hookAt[1] + 0.22, hookAt[2]), xc = ((q ? q.x : R.W * 0.7) - R.W / 2) / f, yc = -(R.H * 1.3 - R.H / 2) / f;
+        const c = G.cam, f = R.f, q = R.screenPos(hookAt[0], hookAt[1] + 0.22 * PK, hookAt[2]), xc = ((q ? q.x : R.W * 0.7) - R.W / 2) / f, yc = -(R.H * 1.3 - R.H / 2) / f;
         const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw), cp = Math.cos(c.pitch), sp = Math.sin(c.pitch), dy = yc * cp - sp, cz = yc * sp + cp, D = 0.5;
         return { x: (xc * cy + cz * sy) * D, y: L.eyeH + dy * D - 0.22, z: (-xc * sy + cz * cy) * D };
       };
@@ -908,11 +1064,11 @@ Object.assign(ICONS, {
         if (k >= 1 || k < 0) return null;
         const e = up ? easeOut(k) : easeIn(k), hk = { x: hookAt[0], y: hookAt[1], z: hookAt[2] }, a = up ? underHook() : hk, b = up ? hk : underHook();
         const p = { x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), z: lerp(a.z, b.z, e) }, tilt = (up ? 1 - e : e) * 0.35, sc = lerp(1, 0.8, up ? 1 - e : e);
-        return SC.mkSprite(L, 0, 0, 0, 0.1, 0.44, (ctx, P) => { ctx.translate(0, 0.22); ctx.rotate(-tilt); ctx.scale(sc, sc); ctx.translate(0, -0.22); ctx.scale(0.1, 0.44); handsetIcon(ctx, P); }, { x: p.x, y: p.y, z: p.z, sortDist: Math.max(0.2, Math.hypot(p.x, p.z) * 0.8) });
+        return SC.mkSprite(L, 0, 0, 0, 0.1 * PK, 0.44 * PK, (ctx, P) => { ctx.scale(PK, PK); ctx.translate(0, 0.22); ctx.rotate(-tilt); ctx.scale(sc, sc); ctx.translate(0, -0.22); ctx.scale(0.1, 0.44); handsetIcon(ctx, P); }, { x: p.x, y: p.y, z: p.z, sortDist: Math.max(0.2, Math.hypot(p.x, p.z) * 0.8) });
       };
       // the empty cradle the handset hangs in, seen once it is lifted: a dark arm with a cup for each end, so what is left
       // to click (the hook) is a thing you can see, the shape of what was taken from it
-      const cradle = SC.mkSprite(L, XW + 0.13, 1.3, RX, 0.1, 0.44, (ctx, P) => {
+      const cradle = phSprite(RX, 1.3, 0.13, 0.1, 0.44, (ctx, P) => {
         ctx.scale(0.1, 0.44);
         const arm = P.col([22, 23, 27]), cup = P.col([34, 35, 40]), hole = P.col([6, 6, 8]), bolt = P.col([96, 98, 104]);
         P_rect(ctx, -0.16, 0.15, 0.32, 0.7, arm);
@@ -927,7 +1083,7 @@ Object.assign(ICONS, {
         const b = L.t - s.blinkAt, off = b >= 0 && b < 1.25 && Math.floor(b / 0.16) % 2 === 0;   // a press it will not take: the top line blinks at you
         return [off ? '' : top, fmt(s.dialed.slice(0, Math.max(0, s.dialed.length - s.lagN)))];
       };
-      const lcd = SC.mkSprite(L, PX + 0.0015, LCD.y0, (LCD.u0 + LCD.u1) / 2, LCD.u1 - LCD.u0, LCD.y1 - LCD.y0, (ctx, P) => {
+      const lcd = phSprite((LCD.u0 + LCD.u1) / 2, LCD.y0, 0.1015, LCD.u1 - LCD.u0, LCD.y1 - LCD.y0, (ctx, P) => {
         const w = LCD.u1 - LCD.u0, h = LCD.y1 - LCD.y0, txt = lcdText();
         P_rect(ctx, -w / 2, 0, w, h, txt ? P.raw([140, 180, 124]) : P.col([38, 48, 40]));
         if (!txt) return;
@@ -936,17 +1092,18 @@ Object.assign(ICONS, {
         ctx.save(); ctx.translate(-w / 2 + 0.006, 0.01); ctx.scale(0.00125, -0.00125); ctx.font = 'bold 20px "Courier New", "Liberation Mono", monospace'; ctx.fillText(txt[1], 0, 0); ctx.restore();
       }, { sortDist: FD - 0.016, noLight: true });
       // the front lip of the coin return, drawn over a coin lying in it
-      const lip = SC.mkWallV(L, XW + 0.104, RET.u0 + 0.008, XW + 0.104, RET.u1 - 0.008, RET.y0 + 0.006, RET.y0 + 0.017, [150, 154, 162], { sortDist: FD - 0.035 });
+      const lip = SC.mkQuad(L, ph(RET.u0 + 0.008, RET.y0 + 0.006, 0.104), ph(RET.u1 - 0.008, RET.y0 + 0.006, 0.104), ph(RET.u1 - 0.008, RET.y0 + 0.017, 0.104), ph(RET.u0 + 0.008, RET.y0 + 0.017, 0.104), [150, 154, 162], { sortDist: FD - 0.035 });
       glowWith(slot, slotArt); glowWith(ret, retArt.concat(lip)); glowWith(receiver, [handset, cradle]);
       // the gamepad's highlight: what it is on glows, as it does under the pointer
       L.highlight = () => (closeUp() && s.padSel ? s.padSel.t : null);
       L.dynamic = () => {
-        sync();
+        sync(); manReady();
+        for (const p of sparkParts()) R.add(p);
         const away = handsetAway(), off = s.hook === 'off' || !!away;   // off its hook (or on its way back to it)
         const hy = off ? 1.695 : 1.645;   // the hook rises when the weight comes off it
         if (off) R.add(cradle);
-        R.add(SC.mkQuad(L, [XW + 0.088, hy, 0.13], [XW + 0.088, hy, 0.16], [XW + 0.088, hy + 0.018, 0.16], [XW + 0.088, hy + 0.018, 0.13], [150, 154, 160], { sortDist: FD - 0.03, glowOf: receiver }));   // the hook
-        R.add(SC.mkQuad(L, [XW + 0.088, hy - 0.01, 0.16], [XW + 0.088, hy - 0.01, 0.168], [XW + 0.088, hy + 0.018, 0.168], [XW + 0.088, hy + 0.018, 0.16], [120, 124, 130], { sortDist: FD - 0.031, glowOf: receiver }));
+        R.add(SC.mkQuad(L, ph(0.13, hy, 0.088), ph(0.16, hy, 0.088), ph(0.16, hy + 0.018, 0.088), ph(0.13, hy + 0.018, 0.088), [150, 154, 160], { sortDist: FD - 0.03, glowOf: receiver }));   // the hook
+        R.add(SC.mkQuad(L, ph(0.16, hy - 0.01, 0.088), ph(0.168, hy - 0.01, 0.088), ph(0.168, hy + 0.018, 0.088), ph(0.16, hy + 0.018, 0.088), [120, 124, 130], { sortDist: FD - 0.031, glowOf: receiver }));
         if (!off) R.add(handset);
         if (away && away !== true) R.add(away);
         for (const c of off ? cords.off : cords.on) R.add(c);
@@ -1142,7 +1299,7 @@ Object.assign(ICONS, {
             e.hurryEnd = t + Math.min(2.6, (D - STOP_D) / v); e.dFin = Math.max(STOP_D, D - v * (e.hurryEnd - t));
             c.hold = null; c.distFn = (cr, dt2) => Math.max(e.dFin, cr.dist - dt2 * v);
           } else { e.hurryEnd = t; e.dFin = D; c.hold = D; }
-          const him = APPROACH.position(c.lane, e.dFin, 0, L.eyeH);
+          const him = APPROACH.position(c.lane, e.dFin, c.lat, L.eyeH);
           // it draws up at the kerb east of the booth: just past the corner, coming round from the main street; short of the
           // booth, coming along the cross street (and short of him, so its door does not open into him)
           e.path = carPath(laneN, laneN ? 6.4 : Math.min(4.0, him.x - 2.6));
@@ -1197,14 +1354,15 @@ Object.assign(ICONS, {
         const ty = (g.y - L.eyeH) / gd, top = (cp.y + (c.yOff || 0) + c.CR.h - L.eyeH) / cd, bot = (cp.y + (c.yOff || 0) - L.eyeH) / cd;
         return ty < top + g.r / gd && ty > bot - g.r / gd;
       };
-      // and so is one along the pavement to the west that the eye sees through the pay phone's plate on that wall
+      // and so is one the eye sees through the pay phone's plate across the corner
       const behindPhone = g => {
-        if (g.x >= XW) return false;
-        const k = XW / g.x, u = g.z * k, y = L.eyeH + (g.y - L.eyeH) * k;
-        return u > -0.25 && u < 0.26 && y > 0.98 && y < 2.02;
+        const a = SQ * (g.x + g.z);                                    // how far it is along the line into the corner
+        if (a <= WD) return false;
+        const k = WD / a, u = SQ * (g.x - g.z) * k, y = L.eyeH + (g.y - L.eyeH) * k;
+        return u > -PW && u < PW && y > 0.98 && y < 1.95;
       };
       L.glows = () => {
-        const out = lampGlows.filter(g => !behindHim(g) && !behindPhone(g));
+        const out = lamps.filter(lp => lp.glow.a > 0.004).map(lp => lp.glow).filter(g => !behindHim(g) && !behindPhone(g));
         const k = carLamps();
         if (k) {
           const fade = clamp((L.aftermathT - CAR.T0) / 0.6, 0, 1);
@@ -1213,7 +1371,9 @@ Object.assign(ICONS, {
         }
         return out;
       };
-      L.floor = { poly: [[XW + 0.08, -B + 0.07], [B - 0.07, -B + 0.07], [B - 0.07, B - 0.07], [XW + 0.08, B - 0.07]], y: 0.03 };
+      // (not under the corner shelf, where a thing dropped would be hidden looking down)
+      const shelfFoot = (WD - SH) / SQ - (B - 0.07);
+      L.floor = { poly: [[XW + 0.08, -B + 0.07], [B - 0.07, -B + 0.07], [B - 0.07, shelfFoot], [shelfFoot, B - 0.07], [XW + 0.08, B - 0.07]], y: 0.03 };
     },
   });
 })();

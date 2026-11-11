@@ -49,10 +49,11 @@ looks, A uses, B puts the held thing down, a trigger zooms, Start pauses. In
 menus the d-pad moves between buttons and settings, left and right move a
 slider, A presses or ticks, and B goes back as Escape does.
 
-On the Phone Booth, facing the pay phone brings the view in close to it: click or tap its keys, or type the number
-with the number keys. With a gamepad the d-pad moves a highlight over the phone (receiver, coin slot, keys, coin
-return; past the last one in a direction it turns as usual) and A presses what is highlighted. The notebook on the
-shelf under the phone is read where it lies: click it (or press Use, or A) to open it, and again to turn each page.
+On the Phone Booth, the pay phone and the notebook are looked at as anything else is, with nothing done to the view: hold
+the zoom to see them closer. Click or tap the phone's keys where they are drawn (with the zoom held or not), or, facing
+it, type the number with the number keys. With a gamepad the d-pad moves a highlight over the phone (receiver, coin slot,
+keys, coin return; past the last one in a direction it turns as usual) and A presses what is highlighted. The notebook on
+the shelf under the phone is read where it lies: click it (or press Use, or A) to open it, and again to turn each page.
 
 Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
 dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
@@ -194,16 +195,21 @@ some on the ground, so you have to turn and look down to find them.
    open, along the glass if it is already there, across the lot if not. If it reaches an
    open window it comes through the glass. With the last shutter down it runs up to it
    and beats on it, hard and fast, until the night fades.
-9. **The Phone Booth.** It is raining and a man in a long coat is walking toward the
-   booth, up the main street or along the pavement from the east. He carries no light: he is a dark shape
-   against the wet haze, seen as he passes under the street lamps, until his eyes open close by. The pay phone is on
-   the west wall, so using it means looking away from him; facing it brings the view in close.
-   Your notebook lies shut on the shelf under the phone. Click it and its cover goes back over the spiral, and the view
-   comes down close over the page lying open; click again and the page is lifted by its corner and turned over, and a
-   click on the last page shuts it. Turning away lets the view go, and the notebook stays open where it lies. Find the
-   number in it (it has a page to itself, scrawled large across it in red
+9. **The Phone Booth.** It is raining and a man in a long coat is coming toward the
+   booth, up the main street or along the far pavement of the cross street from the east. He carries no light. The street
+   lamps stand along his way, and he goes from one to the next: he stands behind a lamp, its post in front of him, for a
+   few seconds, lit by it; then he reaches up, his bare arm unfolding out of its sleeve far too far, and breaks it (a pop
+   and a white flare, glass and sparks coming down), and it stutters and is out for good. In the dark he is a shape, his
+   eyes catching what light there is, and he rushes on to the next lamp nearer the booth, waits, breaks that, and so on to
+   the last; then he walks across to the glass. His whole way in takes as long as his steady walk used to, so the race is
+   the same. The pay phone, a size smaller than life, hangs across the corner of the booth between the two streets, angled
+   into the booth, so while you use it both streets are at the edges of the view and you see him coming out of the corner
+   of your eye. Your notebook lies shut on the corner shelf under the phone. Click it and its cover goes back over the
+   spiral; click again and the page is lifted by its corner and turned over, and a click on the last page shuts it. Nothing
+   is done to the view: you look down at it and hold the zoom to read it, and it stays open where it lies when you turn
+   away. Find the number in it (it has a page to itself, scrawled large across it in red
    that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
-   floor by the phone), then do what the card beside the keys says: lift the receiver, put
+   floor by the panes near the phone), then do what the card beside the keys says: lift the receiver, put
    the coin in and dial on the phone's own keys. Lifted, the receiver is in your left hand, its cord running down out of
    the view, and your right hand presses each key with a fingertip, going from key to key as you dial (what it held goes
    down meanwhile; keys pressed faster than it can go are pressed in turn); a key goes down when the finger gets there, and
@@ -388,8 +394,8 @@ LEVELS.push({
   looks instead of at the thing; it may also return a `zoom`), `L.watchZoom()` (close the win camera in further),
   `L.watchPitch` (how far down the win camera may look), `L.watchUp` (how far up it may look: the last night, into its face),
   `L.onPress(e)` (a won night waiting on a click, key, tap or A; true when it took the press: the last night's meadow,
-  where a modifier, a chord or a function key, as for alt-tab or a screenshot, does not go on), `L.viewZoom()` (a zoom the view comes in to while playing:
-  the pay phone close up, or the notebook open on its shelf), `L.padDir(dir)` and `L.padUse()` (a night may take the gamepad's d-pad and A before the
+  where a modifier, a chord or a function key, as for alt-tab or a screenshot, does not go on), `L.viewZoom()` (a zoom the view comes in to while playing;
+  no night uses it now), `L.padDir(dir)` and `L.padUse()` (a night may take the gamepad's d-pad and A before the
   game does), `L.overlay(ctx, W, H)` (a night's own picture over the view: the covers over your eyes), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
   and lights flagged `attach: true` ride with it, everything else slides past; the night 2 car drives off this way),
   `L.onDecoy(t, item)`, `L.onLaneSwitch(c, lane)`, and `L.sealed(lane)`: a creature reaching a
