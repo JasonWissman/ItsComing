@@ -167,7 +167,9 @@ CREATURES.other = {
         }
       }
       P_ell(ctx, -0.07, 0.09, 0.022, 0.016, P.cola([224, 112, 124], 0.55)); P_ell(ctx, 0.07, 0.09, 0.022, 0.016, P.cola([224, 112, 124], 0.55));
-      P_limb(ctx, [[-0.01, 0.2], [-0.03, 0.17], [-0.02, 0.155], [-0.05, 0.11]], 0.005, P.col([96, 80, 74]));   // a hairline crack
+      // a hairline crack down the temple onto the cheek, outside the eye on the left of the view: clear of the eye, its lid and
+      // its glare at their widest (lunging, angry) and of the snarl, in every look it has
+      P_limb(ctx, [[-0.108, 0.152], [-0.098, 0.124], [-0.104, 0.104], [-0.088, 0.084], [-0.092, 0.068]], 0.005, P.col([96, 80, 74]));
       if (fury > 0.5) {
         // the painted lips drawn back off two rows of little teeth, the corners down: a snarl. Lunging at you it keeps it,
         // the jaw dropping and the teeth parting as it comes
