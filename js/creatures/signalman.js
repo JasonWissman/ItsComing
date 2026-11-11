@@ -10,11 +10,16 @@
 // coming up out of the collar, and you see up under the peak. Coming at you, the jaw drops open far too wide.
 // He keeps the same pace whether you watch him or not. While c.held is set he stands still; once c.away is set (the
 // night has let you go) he has turned round, and you see his back as he walks off.
+// The night moves him (night 9: from street lamp to street lamp) and tells him what he is doing: c.side, how far to the
+// side of his way he is; c.reach (0..1), one arm unfolding up out of its sleeve, far too long, to c.reachTo (across and up
+// from his feet, in metres; c.reachSide the arm), the hand closing on what it reaches (c.grip); c.rush (0..1), running,
+// stooped, the arms flung about and the coat flying; c.dark, out of the light, where his eyes catch what light there is.
 CREATURES.signalman = {
   name: 'the signalman', h: 2.3, w: 1.2, faceY: 2.28, stepRate: 0.6, catchDist: 1.6, sound: 'walker', ignoresGaze: true,
   death: { delay: 0.3, dur: 0.5, sting: 'stingGlass' },
   voice: { kind: 'hum', every: [7, 13] },
-  init(c) { c.held = false; c.away = false; c.lookT = -9; c.unseenFor = 9; c.wasSeen = false; },
+  init(c) { c.held = false; c.away = false; c.lookT = -9; c.unseenFor = 9; c.wasSeen = false; c.side = 0; c.reach = 0; c.rush = 0; c.grip = 0; c.dark = false; },
+  lateral(c) { return c.side || 0; },
   speedMult(c, dt, seen) {
     // the head: looked at after a while unwatched, it is still turned aside, and a moment later it snaps round to you
     if (seen && !c.wasSeen && c.unseenFor > 0.8) c.lookT = c.t;
@@ -27,8 +32,8 @@ CREATURES.signalman = {
     const coat = P.col([22, 20, 24]), coatL = P.col([44, 40, 46]), skin = P.col([200, 196, 184]), black = P.col([6, 4, 6]), brass = P.col([170, 140, 70]), hair = P.col([30, 26, 24]);
     const hand = P.col([140, 134, 126]), shade = P.col([118, 110, 104]), wet = P.cola([176, 184, 200], 0.16), drop = P.cola([200, 210, 226], 0.55);
     const hole = rgba(mixc([2, 0, 1], P.fogColor || [0, 0, 0], P.fog || 0));
-    const held = c.held && !lunge, mv = c.moving ? 1 : 0;
-    const bob = mv * Math.abs(Math.sin(g)) * 0.04;
+    const held = c.held && !lunge, mv = c.moving ? 1 : 0, ru = back || lunge ? 0 : (c.rush || 0);
+    const bob = mv * Math.abs(Math.sin(g)) * (0.04 + 0.05 * ru) - ru * 0.12;   // (running, stooped: lower)
     const tw = this.twitch(t, 2.1, 5), tw2 = this.twitch(t + 0.9, 2.6, 11);
     // seen from behind everything is mirrored, so his two arms do not trade their ways of hanging as he turns
     if (back) { ctx.save(); ctx.scale(-1, 1); }
@@ -40,7 +45,7 @@ CREATURES.signalman = {
     }
     // the coat: the shoulders narrow and falling away, one lower than the other, the hem wide, ragged and swinging a beat
     // behind the stride
-    const hs = mv * Math.sin(g - 1.1) * 0.05, sy = 1.9 + bob;
+    const hs = mv * Math.sin(g - 1.1) * (0.05 + 0.12 * ru), sy = 1.9 + bob;
     const hem = [[0.42 + hs, 0.53], [0.3 + hs, 0.44], [0.17 + hs, 0.5], [0.05 + hs, 0.43], [-0.08 + hs, 0.5], [-0.22 + hs, 0.42], [-0.4 + hs, 0.52]];
     P_poly(ctx, hem.concat([[-0.25, sy + 0.01], [-0.12, sy + 0.08], [0.12, sy + 0.07], [0.24, sy - 0.03]]), coat);
     if (!back) {
@@ -71,13 +76,27 @@ CREATURES.signalman = {
       const down = side < 0 ? -Math.PI / 2 - 0.08 : -Math.PI / 2 + 0.08, upAt = side < 0 ? 0.75 : Math.PI - 0.75;   // (hanging; reaching up and out)
       this.hand(ctx, hand, ha[0], ha[1], lerp(down, upAt, k), lerp(0.07 + Math.abs(twk) * 0.3, 0.2, k), lerp(0.2, 0.22, k), lerp(0.2, 0.45, k) * (side < 0 ? 1 : -1));
     };
-    arm(-1, [-0.24, sy - 0.03], mv * Math.sin(g + Math.PI) * 0.06, 0.62, rk, tw);
-    arm(1, [0.22, sy - 0.05], c.moving ? Math.sin(g) * 0.06 : Math.sin(t * 1.2) * 0.02, 0.7, rk2, tw2);
+    // the arm reaching up to a lamp: out of the sleeve a bare arm unfolds, thin and far too long, the elbow out to the side
+    // as it comes up and the fingers spread, closing on what it reaches
+    const reachArm = (side, sh) => {
+      const e = smoothstep(c.reach), T = c.reachTo, hang = [side * 0.31, 0.62 + bob], ha = [lerp(hang[0], T.x, e), lerp(hang[1], T.y, e)];
+      const dx = ha[0] - sh[0], dy = ha[1] - sh[1], len = Math.hypot(dx, dy) || 1, nx = -dy / len * side, ny = dx / len * side;
+      const out = (0.3 * (1 - e) + 0.05) * Math.min(1, len / 1.4) * -1;
+      const el = [sh[0] + dx * 0.32 + nx * out, sh[1] + dy * 0.32 + ny * out], cuff = [lerp(sh[0], el[0], 0.75), lerp(sh[1], el[1], 0.75)];
+      P_limb(ctx, [sh, cuff], 0.085, coat);
+      P_limb(ctx, [cuff, el, ha], 0.026, hand); P_ell(ctx, el[0], el[1], 0.02, 0.02, shade);   // the bony elbow
+      const ang = Math.atan2(ha[1] - el[1], ha[0] - el[0]);
+      this.hand(ctx, hand, ha[0], ha[1], ang, lerp(0.32, 0.12, c.grip || 0), 0.26, lerp(0.15, 1.1, c.grip || 0) * -side);
+    };
+    const reaching = c.reach > 0.001 && c.reachTo && !back && !lunge ? (c.reachSide || 1) : 0;
+    const fl = 0.06 + 0.22 * ru;   // how far the arms swing: flung about, running
+    if (reaching === -1) reachArm(-1, [-0.24, sy - 0.03]); else arm(-1, [-0.24, sy - 0.03], mv * Math.sin(g + Math.PI) * fl, 0.62 + ru * 0.2, rk, tw);
+    if (reaching === 1) reachArm(1, [0.22, sy - 0.05]); else arm(1, [0.22, sy - 0.05], c.moving ? Math.sin(g) * fl : Math.sin(t * 1.2) * 0.02, 0.7 + ru * 0.2, rk2, tw2);
     // the head. Looked at, it is turned aside, and snaps round to you a moment later; now and then it jerks over. Close,
     // the neck comes up out of the collar and lifts the face out of the peak's shadow
     const since = t - (c.lookT === undefined ? -9 : c.lookT);
     const turn = back || lunge ? 0 : since < 0.5 ? 1 - smoothstep((since - 0.38) / 0.07) : 0;
-    const tilt = (headTiltJerk(t, 3.4, 0.07) + tw * 0.25) * (1 - lunge) + turn * 0.12 - lunge * 0.12;
+    const tilt = (headTiltJerk(t, 3.4, 0.07) + tw * 0.25) * (1 - lunge) + turn * 0.12 - lunge * 0.12 + ru * 0.22 * Math.sin(g * 0.5) + (reaching ? -reaching * 0.1 * smoothstep(c.reach) : 0);
     const neck = (back ? 0 : 0.12 * close);
     ctx.save(); ctx.translate(0, sy + 0.02);
     if (!back) {
@@ -103,7 +122,7 @@ CREATURES.signalman = {
   // lifts off the sockets; coming at you, the jaw drops open far too wide and the eyes flare
   face(ctx, P, c, K, turn, close, lunge) {
     const gape = smoothstep(lunge * 1.4), fx = turn * 0.05;
-    const open = clamp((12 - c.dist) / 4 + lunge, 0, 1);
+    const open = Math.max(clamp((12 - c.dist) / 4 + lunge, 0, 1), c.dark && !c.away ? 0.6 : 0);   // (in the dark they catch the light)
     const jaw = 0.04 * close + gape * 0.2;
     P_ell(ctx, fx * 0.5, 0.17 - jaw * 0.5, 0.085, 0.13 + jaw * 0.5, K.skin);   // the long jaw
     P_ell(ctx, fx * 0.4, 0.25, 0.1, 0.14, K.skin);
@@ -137,7 +156,8 @@ CREATURES.signalman = {
     }
     // the eyes: shut, nothing; open, two points of light in the dark, the far one lost as the head is turned
     if (open > 0.02) {
-      const pr = clamp(0.0018 * c.dist, 0.0045, 0.018);
+      const m = ctx.getTransform(), px = 1 / (Math.hypot(m.a, m.b) || 1);   // a device pixel, here
+      const pr = Math.max(clamp(0.0018 * c.dist, 0.0045, 0.018), c.dark ? 1.1 * px : 0);
       const lit = P.raw([228, 236, 196]), halo = rgba([228, 236, 196], (c.dist > 3 ? 0.28 : 0.12) * open);
       for (const s of [-1, 1]) {
         const a = s > 0 ? 1 : 1 - turn;
