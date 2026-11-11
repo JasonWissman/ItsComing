@@ -185,12 +185,21 @@ some on the ground, so you have to turn and look down to find them.
    back to your hand; a blown fuse pushed into the empty clips (the one you pulled, or the
    worn one lying about) sits there a beat with nothing coming on and drops out onto the
    floor.
-8. **The Diner.** A man-shaped thing in the lot is drawn to the light: while the
+8. **The Diner.** Something the size of a child is out in the lot: a pale, rumpled
+   button-up onesie with dark-striped sleeves, little dark shoes, small bare hands hanging at
+   its sides, and from the neck up all black, long straggly black hair hanging over a black
+   face with two huge round red-rimmed staring eyes and a grin of big white teeth from one
+   side of it to the other. It stands bolt upright and dead still, nothing swinging; it comes
+   on in small stiff steps, and now and then its feet stop and it slides on anyway, while its
+   head lays itself slowly over to one side and slowly over to the other. At the glass its
+   hands come up flat on it either side of its face; when it runs it skips, its arms hanging
+   dead straight, its head turned to you; coming at you, the grin comes apart, the jaw
+   dropping far further than a jaw goes. It is drawn to the light: while the
    lights are on it comes fast, too fast to shutter every window. Throw the power main
    on the back wall in the first ten seconds or so (your hand takes the lever and pulls it
    down, and the lights go with it), find the crank (without it, your hand tries a
    window's gearbox and it will not move), and crank all three
-   shutters down; each time its window shuts it turns side on and runs to one still
+   shutters down; each time its window shuts it turns side on and skips to one still
    open, along the glass if it is already there, across the lot if not. If it reaches an
    open window it comes through the glass. With the last shutter down it runs up to it
    and beats on it, hard and fast, until the night fades.
