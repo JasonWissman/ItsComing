@@ -1,23 +1,26 @@
 'use strict';
 // ============================================================ 9. THE PHONE BOOTH ============================================================
 // A phone booth on a corner, at night, in the rain, with glass all round. A man in a long coat is walking toward it from a long
-// way off, up the main street or along the pavement from the east, swinging a lantern. The pay phone is on the west wall, the
-// side that looks along the pavement away from both, so using it means turning your back on him. Somewhere in your notebook,
-// among the shopping and the dentist, is the number to ring, on a page of its own, scrawled large and fast in something red
-// that has run. It is a pay phone: lift the receiver, put a coin in (there is one
-// lying about in the booth) and dial on its own keys; it rings for seven seconds while he keeps coming, and then someone picks
-// up and a car comes for you. Every other number in the notebook belongs to someone ordinary and is not in service, and hanging
-// up gives the coin back, into the coin return.
-// The notebook is a panel at the bottom of the screen, made here and taken away in onEnd, so the street stays in view while you
-// read; the night goes on behind it. Facing the phone brings the view in close to it (L.viewZoom), so its keys are big enough
-// to click or tap; the number keys dial too, and a gamepad's d-pad moves a highlight over the phone (L.padDir, L.padUse).
+// way off, up the main street or along the pavement from the east, with no light of his own. The pay phone is on the west
+// wall, the side that looks along the pavement away from both, so using it means turning your back on him. On the shelf
+// under the phone lies your notebook, and somewhere in it, among the shopping and the dentist, is the number to ring, on a
+// page of its own, scrawled large and fast in something red that has run. It is a pay phone: lift the receiver, put a coin
+// in (there is one lying about in the booth) and dial on its own keys; it rings for seven seconds while he keeps coming,
+// and then someone picks up and a car comes for you. Every other number in the notebook belongs to someone ordinary and is
+// not in service, and hanging up gives the coin back, into the coin return.
+// The notebook is read where it lies, in the world: clicked, its cover flips back over the spiral and stands against the
+// wall and the view comes down close over it (L.viewZoom), so the handwriting is big enough to read on any screen; each
+// click after that lifts the page by its corner and turns it back over the spiral, and a click on the last page shuts it.
+// Its pages are drawn once into canvases and laid on it, strip by strip, in perspective. Facing the phone brings the view
+// in close to it too, so its keys are big enough to click or tap; the number keys dial too, and a gamepad's d-pad moves a
+// highlight over the phone (L.padDir, L.padUse).
 // It is done with your hands (js/hands.js): the lifted receiver is in your left hand (L.offHand), your right fingertip
-// presses the keys (G.reach, going from key to key, in turn when they are pressed faster than it can go), and what will
-// not work shows on the phone itself: a key pressed for nothing clicks and the display blinks at you, a coin put in on the
-// hook goes into the slot and drops through into the coin return, the empty return is felt with the fingers, the phone
-// book's cover lifts a crack and drops back. Open, the notebook is the panel and not in your hand as well (L.heldItem).
+// presses the keys (G.reach, going from key to key, in turn when they are pressed faster than it can go) and turns the
+// notebook's pages, and what will not work shows on the phone itself: a key pressed for nothing clicks and the display
+// blinks at you, a coin put in on the hook goes into the slot and drops through into the coin return, the empty return is
+// felt with the fingers. Reading, what you hold is lowered out of the way (L.heldItem).
 Object.assign(ICONS, {
-  // a small battered notebook, spiral at the top, held shut with an elastic band
+  // a small battered notebook, spiral at the top, held shut with an elastic band (as it is carried in the void, night 13)
   notebook(ctx, P) {
     const cover = P.col([96, 44, 36]), coverD = P.col([62, 28, 24]), paper = P.col([226, 216, 190]), ring = P.col([168, 168, 174]), band = P.col([26, 22, 20]), label = P.col([206, 194, 160]);
     ctx.save(); ctx.translate(0, 0.5); ctx.rotate(-0.1); ctx.translate(0, -0.5);
@@ -52,6 +55,10 @@ Object.assign(ICONS, {
   const PX = XW + 0.1;         // the front of the phone's housing
   const PHONE_DIR = 6;         // facing the phone is facing west
   const ROAD = -0.12;          // the road is a kerb's height below the pavement the booth stands on
+  // the notebook, lying on the shelf under the phone: a reporter's pad, its spiral along the end toward the wall (d along the
+  // shelf out from the wall, u across it to your right, as on the phone), a sheet len long and u0..u1 wide, th thick, and
+  // RINGS turns of wire through it
+  const NB = { u0: -0.09, u1: 0.05, d: 0.045, len: 0.185, y: 1.03, th: 0.007 }, RINGS = 9;
   // ---------------- the notebook ----------------
   // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice, '%' scrawled across a page of its own in
   // blood; {n} an ordinary number, {k} the one to ring
@@ -87,7 +94,6 @@ Object.assign(ICONS, {
     const filled = pages.map(lines => lines.map(l => l.replace('{k}', key).replace(/\{n\}/g, () => { const n = num(); others.push(n); return n; })));
     return { pages: filled, keyPage, numberText: key, number: key.replace('-', ''), others: others.map(n => n.replace('-', '')) };
   }
-  const esc = t => String(t).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
   // the number to ring, as if written hastily in blood with a fingertip: each figure a stroke or two in a 50 x 80 box (y down),
   // and where on it the blood runs down from
   const FIGS = {
@@ -107,7 +113,7 @@ Object.assign(ICONS, {
   // uneven (a dark rim where it dried, a second pass that skips, a wet sheen, ragged at the edges where the paper took it)
   // with the blood soaking into the paper round it; a smear wiped under the lot, drips running straight down off the
   // heaviest strokes, and a few spots flicked off the finger
-  function bloodHTML(text, rand) {
+  function bloodSVG(text, rand) {
     const r = (a, b) => a + (b - a) * rand(), f = v => v.toFixed(1);
     const mul = (A, B) => [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3], A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]];
     const T = (x, y) => [1, 0, 0, 1, x, y], Rot = a => [Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a), 0, 0];
@@ -141,7 +147,7 @@ Object.assign(ICONS, {
     main.push('<path d="' + sm + '" stroke-width="5.6" stroke-dasharray="' + f(width * 0.7) + ' 5 24 7 14 400"/>');
     for (let k = 0; k < 2; k++) { const t = r(0.15, 0.7), q = [(1 - t) * (1 - t) * a[0] + 2 * t * (1 - t) * c[0] + t * t * e[0], (1 - t) * (1 - t) * a[1] + 2 * t * (1 - t) * c[1] + t * t * e[1]]; drip(q[0], q[1], r(10, 30), r(2, 3)); }
     const seed = Math.floor(rand() * 999);
-    return '<svg class="pb-blood" viewBox="0 0 ' + VW + ' ' + VH + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + esc(text) + '">' +
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + VW * 2 + '" height="' + (VH + 60) * 2 + '" viewBox="0 -12 ' + VW + ' ' + (VH + 60) + '">' +
       '<defs><filter id="pb-bleed" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="' + seed + '" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G" result="d"/><feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="1" seed="' + (seed + 1) + '" result="m"/><feDisplacementMap in="d" in2="m" scale="1.4" xChannelSelector="R" yChannelSelector="G"/></filter>' +
       '<filter id="pb-soak" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.6"/></filter></defs>' +
       '<g fill="none" stroke-linecap="round" stroke-linejoin="round">' +
@@ -155,51 +161,85 @@ Object.assign(ICONS, {
       '<g fill="#7a0a08" stroke="none">' + spots.join('') + '</g>' +
       '</g></g></svg>';
   }
-  // a page as handwriting: each line a little off the level, a little off the margin, each word a little off the line
-  function pageHTML(lines, rand) {
-    if (lines.length === 1 && lines[0][0] === '%') return bloodHTML(lines[0].slice(1), rand);
-    return lines.map(l => {
-      const cls = l[0] === '#' ? 'h' : l[0] === '~' ? 's' : l[0] === '!' ? 'e' : '', text = cls ? l.slice(1) : l;
-      const words = text.split(/\s+/).map(w => '<span style="position:relative;top:' + ((rand() - 0.5) * 2.4).toFixed(1) + 'px;letter-spacing:' + ((rand() - 0.5) * 0.6).toFixed(2) + 'px">' + esc(w) + '</span>').join(' ');
-      return '<div class="pb-l ' + cls + '" style="transform:translateX(' + (rand() * 7).toFixed(1) + 'px) rotate(' + ((rand() - 0.5) * 1.6).toFixed(2) + 'deg)">' + words + '</div>';
-    }).join('');
+  // ---------------- the notebook's pages, drawn once into canvases (TW x TH, laid on its sheets in the world) ----------------
+  // Each page: the holes for the spiral along its top under the perforation, a red margin, blue rules, and the handwriting
+  // in blue-black ink on the rules, each line a little off the level and off the margin and each word a little off the line;
+  // a heading is underlined ('!' twice), what is done is crossed out, and a line too long for the page runs on to the next
+  // rule. The page with the number has nothing on it but the number, scrawled across it in blood (bloodSVG, drawn in once it
+  // has loaded as an image; until then the same figures in a plain red hand). Then the backs of the pages, and the cover
+  const TW = 560, TH = 740, RULE0 = 112, RULE = 66, MARGIN = 72;
+  const HAND = "italic 33px 'Segoe Print', 'Bradley Hand', Noteworthy, 'Chalkboard SE', 'Comic Sans MS', 'Liberation Serif', Georgia, serif";
+  const canvasOf = draw => { const c = document.createElement('canvas'); c.width = TW; c.height = TH; draw(c.getContext('2d')); return c; };
+  const holes = (g, col) => { g.fillStyle = col; for (let k = 0; k < RINGS; k++) { g.beginPath(); g.arc((k + 0.5) / RINGS * TW, 21, 7, 0, TAU); g.fill(); } };
+  const shadeEdges = (g, a) => {
+    const v = g.createRadialGradient(TW / 2, TH / 2, TH * 0.3, TW / 2, TH / 2, TH * 0.78);
+    v.addColorStop(0, 'rgba(120,92,46,0)'); v.addColorStop(1, 'rgba(120,92,46,' + a + ')'); g.fillStyle = v; g.fillRect(0, 0, TW, TH);
+  };
+  function paper(g, back, rand) {
+    g.fillStyle = back ? '#d8ceb2' : '#e3d9be'; g.fillRect(0, 0, TW, TH);
+    if (!back && rand() < 0.3) {   // a ring where a cup stood on it
+      const x = TW * (0.55 + rand() * 0.3), y = TH * (0.55 + rand() * 0.3), r = 58 + rand() * 14;
+      g.strokeStyle = 'rgba(140,100,40,.16)'; g.lineWidth = 7; g.beginPath(); g.arc(x, y, r, 0, TAU); g.stroke();
+      g.fillStyle = 'rgba(140,100,40,.06)'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    }
+    g.fillStyle = 'rgba(78,98,140,.33)'; for (let y = RULE0; y < TH - 20; y += RULE) g.fillRect(0, y, TW, 2);
+    if (!back) { g.fillStyle = 'rgba(178,72,72,.45)'; g.fillRect(MARGIN, 42, 2, TH - 42); }
+    g.fillStyle = 'rgba(110,86,50,.3)'; for (let x = 4; x < TW; x += 9) g.fillRect(x, 40, 4, 1.5);   // the perforation
+    holes(g, '#2a1d16');
+    shadeEdges(g, back ? 0.34 : 0.26);
+  }
+  function writePage(g, lines, n, rand) {
+    g.font = HAND; g.textBaseline = 'alphabetic'; g.textAlign = 'left'; g.lineCap = 'round';
+    let row = 0;
+    for (const l of lines) {
+      const kind = l[0] === '#' ? 'h' : l[0] === '~' ? 's' : l[0] === '!' ? 'e' : '', text = kind ? l.slice(1) : l;
+      const x0 = MARGIN + 14 + rand() * 9, runs = [];
+      let cur = [];
+      for (const w of text.split(/\s+/)) {
+        if (cur.length && g.measureText(cur.concat(w).join(' ')).width > TW - x0 - 16 - (runs.length ? 22 : 0)) { runs.push(cur); cur = [w]; } else cur.push(w);
+      }
+      runs.push(cur);
+      runs.forEach((ws, j) => {
+        g.save(); g.translate(x0 + (j ? 22 : 0), RULE0 + row * RULE - 9); g.rotate((rand() - 0.5) * 1.6 * DEG);
+        g.fillStyle = kind === 's' ? 'rgba(34,48,92,.72)' : '#22305c';
+        let x = 0;
+        for (const w of ws) { g.fillText(w, x + (rand() - 0.5) * 1.5, (rand() - 0.5) * 5); x += g.measureText(w + ' ').width; }
+        const wid = x - g.measureText(' ').width;
+        g.strokeStyle = 'rgba(34,48,92,.8)';
+        if (kind === 'h' || kind === 'e') { g.lineWidth = 2; g.beginPath(); g.moveTo(-2, 7); g.lineTo(wid + 3, 6 + rand() * 2); if (kind === 'e') { g.moveTo(-1, 12); g.lineTo(wid + 2, 11 + rand() * 2); } g.stroke(); }
+        if (kind === 's') { g.lineWidth = 3.5; g.beginPath(); g.moveTo(-4, -10 + rand() * 2); g.lineTo(wid + 4, -11 + rand() * 2); g.stroke(); }
+        g.restore(); row++;
+      });
+    }
+    g.font = "italic 24px Georgia, 'Liberation Serif', serif"; g.fillStyle = 'rgba(34,48,92,.5)'; g.textAlign = 'right';
+    g.fillText(String(n), TW - 22, TH - 16);
+  }
+  // the figures in blood, from bloodSVG once the image of them has loaded; and before that, plain
+  function bloodOn(g, text, img) {
+    if (img) { const w = TW + 20, h = w * 236 / 400; g.drawImage(img, -10, TH * 0.43 - h / 2, w, h); return; }
+    g.save(); g.translate(TW / 2, TH * 0.45); g.rotate(-6 * DEG); g.font = "italic bold 96px 'Segoe Print', 'Bradley Hand', 'Liberation Serif', Georgia, serif";
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#850c0a'; g.fillText(text, 0, 0, TW - 40); g.restore();
+  }
+  // the cover: board covered in worn red-brown cloth, with its label and a worn corner, as it is drawn as a thing you hold
+  // (ICONS.notebook); and inside it, bare grey board
+  function coverOut(g) {
+    const v = g.createRadialGradient(TW * 0.3, TH * 0.2, 20, TW * 0.4, TH * 0.4, TH * 0.85);
+    v.addColorStop(0, '#6a3a2c'); v.addColorStop(1, '#3e2119'); g.fillStyle = v; g.fillRect(0, 0, TW, TH);
+    g.strokeStyle = 'rgba(20,10,8,.55)'; g.lineWidth = 14; g.strokeRect(7, 7, TW - 14, TH - 14);
+    g.fillStyle = 'rgba(255,225,200,.07)'; g.beginPath(); g.arc(TW * 0.86, TH * 0.9, 46, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(0,0,0,.18)'; for (let k = 0; k < 7; k++) g.fillRect(40 + k * 61, 180 + (k % 3) * 140, 2, 60 + (k % 2) * 40);   // scuffs
+    g.fillStyle = '#cfc2a0'; g.fillRect(118, 360, 250, 92); g.strokeStyle = 'rgba(60,40,30,.35)'; g.lineWidth = 3; g.strokeRect(118, 360, 250, 92);
+    g.fillStyle = 'rgba(60,70,110,.85)'; g.fillRect(140, 408, 180, 5);
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, TW, 40);
+    holes(g, '#140b08');
+  }
+  function coverIn(g) {
+    g.fillStyle = '#8f8574'; g.fillRect(0, 0, TW, TH);
+    g.fillStyle = 'rgba(60,50,40,.08)'; for (let k = 0; k < 90; k++) g.fillRect((k * 197) % TW, (k * 331) % TH, 26, 2);   // the grain of the board
+    holes(g, '#20160f');
+    shadeEdges(g, 0.4);
   }
   const LETTERS = { 2: 'ABC', 3: 'DEF', 4: 'GHI', 5: 'JKL', 6: 'MNO', 7: 'PQRS', 8: 'TUV', 9: 'WXYZ', 0: 'OPER' };
-  const CSS = `
-.pb-nb { --lh: 26px; --pt: 26px; --mx: 40px; position: fixed; left: 22px; bottom: 22px; width: 380px; max-width: max(260px, calc(50vw - 215px)); transform: rotate(-1.3deg); transform-origin: 30% 100%; filter: drop-shadow(0 10px 16px rgba(0,0,0,.75)); -webkit-user-select: none; user-select: none; cursor: default; }
-.pb-cover { position: relative; padding: 18px 12px 42px; border-radius: 7px 9px 12px 10px; background: radial-gradient(ellipse at 30% 18%, #5c3a2d, #3a231b 72%); box-shadow: inset 0 0 0 2px #22140e, inset 0 0 24px rgba(0,0,0,.6); }
-.pb-cover::after { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(circle at 90% 88%, rgba(255,230,200,.09) 0 14px, transparent 15px), radial-gradient(ellipse at 4% 55%, rgba(0,0,0,.3) 0 22px, transparent 23px), linear-gradient(100deg, transparent 60%, rgba(255,240,220,.05) 61% 63%, transparent 64%); }
-.pb-rings { position: absolute; left: 24px; right: 24px; top: 7px; height: 17px; z-index: 2; background: repeating-linear-gradient(90deg, transparent 0 8px, #6f7178 8px 10px, #d0d2d6 10px 11px, #55575d 11px 13px, transparent 13px 22px); }
-.pb-sheet { position: relative; z-index: 1; min-height: 212px; border-radius: 2px 2px 3px 4px; background-color: #e3d9be; box-shadow: 0 2px 0 #cdc2a5, 0 4px 0 #d9cfb3, 0 6px 0 #c2b694, inset 0 0 34px rgba(120,92,46,.3);
-  background-image: radial-gradient(circle at 80% 74%, rgba(140,100,40,.15) 0 24px, rgba(140,100,40,.09) 25px 29px, transparent 30px), linear-gradient(90deg, transparent 0 var(--mx), rgba(178,72,72,.45) var(--mx) calc(var(--mx) + 1px), transparent calc(var(--mx) + 1px)), repeating-linear-gradient(180deg, transparent 0 calc(var(--lh) - 1px), rgba(78,98,140,.33) calc(var(--lh) - 1px) var(--lh));
-  background-position: 0 0, 0 0, 0 calc(var(--pt) - 2px); }
-.pb-sheet::before { content: ''; position: absolute; top: 5px; left: 24px; right: 24px; height: 7px; background: radial-gradient(circle at 10.5px 3.5px, #2a1d16 0 2.6px, transparent 3.2px) 0 0 / 22px 7px repeat-x; }
-.pb-page { position: relative; padding: var(--pt) 18px 10px calc(var(--mx) + 12px); min-height: 176px; font-family: 'Segoe Print', 'Bradley Hand', Noteworthy, 'Chalkboard SE', 'Comic Sans MS', 'Liberation Serif', Georgia, serif; font-style: italic; font-size: calc(16px * var(--text-scale)); line-height: var(--lh); color: #22305c; }
-.pb-l { transform-origin: 0 70%; text-decoration-color: rgba(34,48,92,.8); }
-.pb-l.h { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
-.pb-l.s { text-decoration: line-through; text-decoration-thickness: 2px; color: rgba(34,48,92,.7); }
-.pb-l.e { text-decoration: underline double; text-decoration-thickness: 1px; text-underline-offset: 4px; }
-.pb-blood { display: block; width: calc(100% + var(--mx) + 22px); height: calc(166px + var(--pt)); margin: calc(10px - var(--pt)) 0 0 calc(4px - var(--mx) - 12px); overflow: visible; }
-.pb-pno { position: absolute; right: 14px; bottom: 4px; font: italic 13px Georgia, 'Liberation Serif', serif; color: rgba(34,48,92,.5); }
-.pb-nav { position: absolute; z-index: 1; left: 12px; right: 12px; bottom: 7px; height: 28px; display: flex; align-items: center; justify-content: space-between; }
-.pb-nav span { font: 11px Georgia, 'Liberation Serif', serif; letter-spacing: .3em; color: rgba(234,223,196,.42); }
-.pb-nb button { background: rgba(0,0,0,.28); border: 1px solid rgba(234,223,196,.28); color: #eadfc4; font: 20px Georgia, 'Liberation Serif', serif; width: 46px; height: 28px; border-radius: 4px; cursor: pointer; line-height: 1; padding: 0; }
-.pb-nb button:hover:not(:disabled) { border-color: rgba(234,223,196,.75); background: rgba(0,0,0,.45); }
-.pb-nb button:disabled { opacity: .28; cursor: default; }
-.pb-nb .pb-close { position: absolute; top: -11px; right: -11px; width: 28px; height: 28px; border-radius: 50%; font-size: 17px; z-index: 3; background: #2a1d16; }
-.pb-flip { animation: pbflip .17s ease-out; }
-@keyframes pbflip { from { transform: translateY(-10px); opacity: .15; } to { transform: none; opacity: 1; } }
-@media (pointer: coarse) { .pb-nb { bottom: 150px; } }
-@media (max-width: 700px) { .pb-nb { left: 8px; width: calc(58vw - 16px); max-width: none; } }
-@media (pointer: coarse) and (max-height: 520px) {
-  .pb-nb { --lh: 21px; --pt: 15px; --mx: 30px; bottom: 128px; left: 10px; width: 300px; max-width: calc(100vw - 190px); }
-  .pb-cover { padding: 15px 10px 34px; }
-  .pb-sheet, .pb-page { min-height: 0; }
-  .pb-page { padding-bottom: 8px; font-size: calc(13.5px * var(--text-scale)); }
-  .pb-blood { height: 122px; }
-  .pb-nav { bottom: 4px; }
-}
-`;
 
   LEVELS.push({
     id: 'booth', title: 'The Phone Booth', facing: 0, eyeH: 1.65,
@@ -207,7 +247,6 @@ Object.assign(ICONS, {
     ambient: { wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 },
     weather: { kind: 'rain', density: 0.9, wind: 0.25 },
     lights: [{ x: -0.12, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
-    startInv: ['journal'],
     text: {
       intro: 'You missed the bus, and you don\'t remember who to call for help.',
       death: { default: 'He came into the booth.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.', nocoin: 'The phone would not operate without a coin.' },
@@ -232,9 +271,17 @@ Object.assign(ICONS, {
       const s = L.s;
       const nb = writeNotebook(L.rand);
       const inkRand = mulberry32((L.rand() * 4294967295) >>> 0);
-      const pageHtml = nb.pages.map(p => pageHTML(p, inkRand));
+      // the notebook's pages as they are drawn on it (the one with the number drawn again once its blood has loaded), the backs
+      // of the pages, and the cover out and in
+      const tex = { back: canvasOf(g => paper(g, true, inkRand)), out: canvasOf(coverOut), in: canvasOf(coverIn) };
+      tex.pages = nb.pages.map((lines, i) => canvasOf(g => { paper(g, false, inkRand); writePage(g, i === nb.keyPage ? [] : lines, i + 1, inkRand); }));
+      const keyBare = canvasOf(g => g.drawImage(tex.pages[nb.keyPage], 0, 0)), keyText = nb.pages[nb.keyPage][0].slice(1);
+      bloodOn(tex.pages[nb.keyPage].getContext('2d'), keyText, null);
+      const blood = document.createElement('img');
+      blood.onload = () => { const g = tex.pages[nb.keyPage].getContext('2d'); g.clearRect(0, 0, TW, TH); g.drawImage(keyBare, 0, 0); bloodOn(g, keyText, blood); s.bloodDrawn = true; };
+      blood.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(bloodSVG(keyText, inkRand));
       Object.assign(s, { pages: nb.pages, keyPage: nb.keyPage, number: nb.number, numberText: nb.numberText, others: nb.others,
-        hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, page: 0,
+        hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, page: 0, reading: false, nbWant: 0, nbAnims: [], nbHand: null, nbRect: null, bloodDrawn: false,
         credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null, lands: [], lagN: 0, keyHit: {}, blinkAt: -9, handsetT: -9, coinDropT: -9, finger: null, fingerAt: 0, glides: [] });
 
       // ---------------- the street ----------------
@@ -382,7 +429,7 @@ Object.assign(ICONS, {
       // Everything on it is placed by where it lies on the wall: u across it (to your right as you face it, which is north),
       // y up, and d out from the wall toward you. A plate on the wall; the housing, with the display and the coin slot along
       // its top, the keys under them and the coin return at the bottom; the receiver hanging on its right; the instruction
-      // card on the plate to its left; the shelf under it all, with the phone book chained to it.
+      // card on the plate to its left; the shelf under it all, where the notebook lies.
       const FD = -PX;                                                       // how far the face of the housing is from the eye
       const face = { sortDist: FD - 0.01 }, detail = { sortDist: FD - 0.015 };
       const faceQ = (u0, u1, y0, y1, d, col, opts) => SC.wallV(L, XW + d, u0, XW + d, u1, y0, y1, col, opts);
@@ -413,40 +460,10 @@ Object.assign(ICONS, {
           print(a, -0.019, y, 13, ink); print(b, -0.019, y - 0.017, 9.5, ink, 'normal');
         });
       }, { sortDist: 0.785 });
-      // the shelf under it, and the phone book chained to it: a fat directory lying with its spine to the wall, so what faces
-      // you is the block of pages between its yellow covers. Only the faces the eye can see are built (the eye is almost in
-      // line with its near side, which would only ever show as a sliver drawn over the cover)
+      // the shelf under it, where the notebook lies
       SC.box(L, XW + 0.02, XW + 0.24, 1.0, 1.03, -0.32, 0.32, [96, 100, 106]);
-      const PB = { u0: -0.25, u1: -0.01, d0: 0.04, d1: 0.2, y0: 1.03, y1: 1.1 }, cv = 0.008, xN = XW + PB.d1, xF = XW + PB.d0;   // its near edge, and its spine
-      const yellow = [200, 166, 54], yellowD = scalec(yellow, 0.72);
-      SC.wallV(L, xN - 0.003, PB.u0 + 0.004, xN - 0.003, PB.u1 - 0.004, PB.y0 + cv, PB.y1 - cv, [216, 208, 184]);   // the pages
-      for (const y of [1.052, 1.07]) SC.wallV(L, xN - 0.0025, PB.u0 + 0.004, xN - 0.0025, PB.u1 - 0.004, y, y + 0.0025, [170, 160, 136], { sortDist: -xN - 0.004 });
-      SC.wallV(L, xN, PB.u0, xN, PB.u1, PB.y0, PB.y0 + cv, yellowD);                                       // the back cover's edge
-      // the front cover, hinged at the spine: built each frame (L.dynamic), as it lifts a crack when the hand pulls at it.
-      // Its top, its edge, and on it, toward the spine, the black band the title is printed in and a line of small print
-      // under it; lifted, the top of the pages shows under its edge, in shadow
-      const coverParts = th => {
-        const ca = Math.cos(th), sa = Math.sin(th), D = PB.d1 - PB.d0;
-        const on = (d, dy) => [xF + d * ca - dy * sa, PB.y1 + d * sa + dy * ca];   // d along the cover from the spine, dy up off it
-        const flat = (d0, d1, dy, u0, u1, col, opts) => { const a = on(d0, dy), b = on(d1, dy); return SC.mkQuad(L, [a[0], a[1], u0], [a[0], a[1], u1], [b[0], b[1], u1], [b[0], b[1], u0], col, opts); };
-        const out = [];
-        if (th > 0.004) {   // the gap under its edge, in shadow
-          const f0 = on(D, -cv);
-          out.push(SC.mkQuad(L, [xN - 0.003, PB.y1 - cv, PB.u0 + 0.004], [xN - 0.003, PB.y1 - cv, PB.u1 - 0.004], [f0[0], f0[1], PB.u1], [f0[0], f0[1], PB.u0], [40, 34, 26], { sortDist: -xN + 0.004 }));
-        }
-        out.push(flat(0, D, 0, PB.u0, PB.u1, yellow, { sortDist: -xN + 0.03 }));                                                                    // the cover
-        const e0 = on(D, -cv), e1 = on(D, 0);
-        out.push(SC.mkQuad(L, [e0[0], e0[1], PB.u0], [e0[0], e0[1], PB.u1], [e1[0], e1[1], PB.u1], [e1[0], e1[1], PB.u0], yellowD, { sortDist: -xN + 0.01 }));   // its edge
-        for (const [d0, d1, col] of [[0.024, 0.056, [34, 30, 26]], [0.07, 0.078, [120, 96, 34]]]) out.push(flat(d0, d1, 0.001, PB.u0 + 0.022, PB.u1 - 0.022, col, { sortDist: -xN + 0.02 }));
-        return out;
-      };
-      const cover0 = coverParts(0);
-      // the chain, from the book's corner down to a ring at the back of the shelf
-      SC.quad(L, [XW + 0.07, 1.07, PB.u0], [XW + 0.06, 1.046, -0.268], [XW + 0.045, 1.034, -0.284], [XW + 0.03, 1.04, -0.296], [140, 142, 148], { stroke: true, lw: 0.005 });
-      SC.box(L, XW + 0.02, XW + 0.03, 1.03, 1.05, -0.304, -0.288, [120, 122, 128]);
 
-      // ---------------- the notebook, the coin, the receiver, the keys, the coin slot and return, the phone book ----------------
-      const journal = mkItem(L, 'journal', 'Notebook', { x: XW + 0.14, y: 1.03, z: 0.2 }, { w: 0.18, h: 0.22, tool: true, icon: 'notebook', held: { grip: 'pinch', at: [-0.22, 0.2], angle: -0.22, size: 0.2 } });   // (held by its corner, between finger and thumb)
+      // ---------------- the coin, the receiver, the keys, the coin slot and return, the notebook ----------------
       // the coin: left in the coin return by the last person to use the phone, on the shelf, or dropped on the floor of the
       // booth, in one of the corners by the phone (the far corners: the rest of the floor is under your feet, at the bottom
       // edge of the view looking down)
@@ -464,45 +481,9 @@ Object.assign(ICONS, {
         Object.assign(coin, { x: p[0], y: p[1], z: p[2], w: 0.07, h: 0.07, flat: false, taken: false, uses: 1 });
         s.coinDropT = L.t; s.coinClink = false;
       };
-      let dom = null;
-      const shown = { nb: false };
       const fmt = d => d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d;
-      const drawPage = flip => {
-        if (!dom) return;
-        dom.page.innerHTML = pageHtml[s.page]; dom.pno.textContent = String(s.page + 1);
-        dom.prev.disabled = s.page === 0; dom.next.disabled = s.page === pageHtml.length - 1;
-        if (flip) { dom.sheet.classList.remove('pb-flip'); void dom.sheet.offsetWidth; dom.sheet.classList.add('pb-flip'); }
-      };
-      // the panel is made the first time it is wanted, under the HUD (the toast, the tooltip and what you hold are always
-      // drawn over it) and so under the game's own overlay (a menu always covers it)
-      const ensureDom = () => {
-        if (dom) return;
-        const style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
-        const nbEl = document.createElement('div'); nbEl.className = 'pb-nb'; nbEl.style.display = 'none'; nbEl.setAttribute('aria-label', 'Notebook');
-        nbEl.innerHTML = '<div class="pb-cover"><div class="pb-rings"></div><button type="button" class="pb-close" aria-label="Close the notebook">×</button><div class="pb-sheet"><div class="pb-page"></div><div class="pb-pno"></div></div><div class="pb-nav"><button type="button" class="pb-prev" aria-label="Previous page">‹</button><span>← →</span><button type="button" class="pb-next" aria-label="Next page">›</button></div></div>';
-        const before = document.getElementById('hud') || document.getElementById('overlay');
-        if (before) document.body.insertBefore(nbEl, before); else document.body.appendChild(nbEl);
-        nbEl.addEventListener('mousedown', e => e.preventDefault());               // no focus, no text selection
-        nbEl.addEventListener('mousemove', e => { e.stopPropagation(); G.mouse.x = -1; G.mouse.y = -1; });   // nothing behind the panel is hovered
-        nbEl.addEventListener('click', e => e.stopPropagation());
-        dom = { style, nbEl, page: nbEl.querySelector('.pb-page'), pno: nbEl.querySelector('.pb-pno'), sheet: nbEl.querySelector('.pb-sheet'), prev: nbEl.querySelector('.pb-prev'), next: nbEl.querySelector('.pb-next') };
-        dom.prev.addEventListener('click', () => turn(-1)); dom.next.addEventListener('click', () => turn(1));
-        nbEl.querySelector('.pb-close').addEventListener('click', () => setNotebook(false));
-        drawPage(false);
-      };
-      // show the notebook while it is wanted, and only while the night is being played: a pause, a death or the win puts it away
-      const sync = () => {
-        if (!G.inv.includes(journal)) s.nbOpen = false;          // put down, it cannot be read
-        receiver.name = s.hook === 'off' ? 'Hook' : 'Receiver';   // with the receiver in your hand, what is left to click is the hook
-        const nbShow = G.L === L && G.state === 'play' && s.nbOpen;
-        if (nbShow && !dom) ensureDom();
-        if (!dom) return;
-        if (nbShow !== shown.nb) { dom.nbEl.style.display = nbShow ? '' : 'none'; shown.nb = nbShow; }
-      };
-      const setNotebook = open => { s.nbOpen = open; AUDIO.sfx(open ? 'pickup' : 'ui'); sync(); };
-      // open, the notebook is the panel: it is not in your hand shut as well
-      L.heldItem = it => (it === journal && shown.nb ? null : undefined);
-      const turn = d => { const p = clamp(s.page + d, 0, pageHtml.length - 1); if (p === s.page) return; s.page = p; AUDIO.sfx('ui'); drawPage(true); };
+      // with the receiver in your hand, what is left to click is the hook
+      const sync = () => { receiver.name = s.hook === 'off' ? 'Hook' : 'Receiver'; };
       // a pay phone, in the order it wants: lift the receiver (a dial tone), put the coin in, dial. A coin put in with the
       // receiver on its hook drops straight through to the return; hanging up on a call that was never answered gives it back
       // lifted, the receiver comes off its hook into your left hand (L.offHand), and is put back from it; the right hand
@@ -614,18 +595,171 @@ Object.assign(ICONS, {
           G.reach(this, { style: 'push', sfx: 'tink' }); G.say('There is nothing in the coin return.', 'Empty.'); return true;   // fingers in at the flap: nothing there
         },
       });
-      // what you click is the whole book as the eye sees it: up the plane of its front edge to where the back of its cover shows.
-      // It will not open: the hand takes the cover by its front edge (about 0.4 up what you click: the edge the cover lifts
-      // at, away from its spine) and pulls, twice, and the swollen pages lift it a crack and let it drop back (touchedAt:
-      // when the hand first had it), the chain jerking on its ring
-      const bookTop = L.eyeH + (PB.y1 - L.eyeH) * (-xN) / (-xF);
-      const book = mkTarget(L, {
-        id: 'book', name: 'Phone book', x: xN, y: PB.y0 - 0.004, z: (PB.u0 + PB.u1) / 2, w: PB.u1 - PB.u0 + 0.016, h: bookTop - PB.y0 + 0.012,
+      // ---------------- the notebook, read where it lies ----------------
+      // It lies shut on the shelf, its spiral toward the wall. Clicked, the hand goes to its near corner, and the cover (then,
+      // click by click, each page) is lifted by that corner and turned back over the spiral, its free end going first and the
+      // sheet curling, to stand against the wall in front of those turned before it; a click on the last page brings the lot
+      // back down over it, shut. Clicks made while the hand is on its way, or while a page is still going over, are kept and
+      // done in turn (s.nbWant). Open, and looked down at, the view comes down close over the page lying open (s.reading,
+      // L.viewZoom); turning away or looking up lets the view go, the notebook staying open where it lies, and a click on it
+      // then only brings the view back down to it. While you read, what you hold is lowered out of the way (L.heldItem).
+      const REST = 97 * DEG, restOf = k => REST - k * 1.3 * DEG;   // standing against the wall: k 0 the cover, i + 1 page i
+      const NB_T = { cover: 0.55, page: 0.5, block: 0.62 };
+      const AX = NB.d, AY = NB.y + NB.th, NB_N = 10, nbX = XW + NB.d + NB.len;   // the spiral; the near edge
+      const elev = d => Math.atan2(L.eyeH - AY, -(XW + d));                       // how far down from the eye a line across it is
+      const NB_PITCH = (elev(NB.d) + elev(NB.d + NB.len)) / 2;
+      // close enough that the page lying open is half the height of the view (and at least 290 px, up to three quarters of it)
+      const nbZoom = () => { const a = elev(NB.d + NB.len) - elev(NB.d), px = 2 * Math.tan(a / 2) * (R.H / 2) / Math.tan(31 * DEG); return clamp(Math.max(0.5 * R.H, Math.min(0.74 * R.H, 290)) / px, 2, 6.5); };
+      // what you click is the whole of it as the eye sees it: up the plane of its near edge to where its far end is seen
+      const nbTop = L.eyeH + (AY - L.eyeH) * nbX / (XW + NB.d);
+      const notebook = mkTarget(L, {
+        id: 'notebook', name: 'Notebook', x: nbX + 0.004, y: NB.y - 0.004, z: (NB.u0 + NB.u1) / 2, w: NB.u1 - NB.u0 + 0.016, h: nbTop - NB.y + 0.012,
         onClick() {
-          G.reach(this, { style: 'pull', at: [0.3, 0.42], sfx: 'flop', onTouch: () => AUDIO.sfx('rattle') });
-          G.say('The phone book has been out in the damp too long. The pages will not come apart.', 'The pages are swollen with damp. They will not come apart.'); return true;
+          if (s.nbOpen && !s.reading && !s.nbWant && !s.nbAnims.length) { s.reading = true; return true; }   // open already: back down close over it
+          s.reading = true; s.nbWant++;
+          const at = L.pt(nbX - 0.014, AY + 0.003, NB.u1 - 0.022);   // its near corner, on your right
+          s.nbHand = G.reach(this, { style: 'touch', at: { x: at[0], y: at[1], z: at[2] } });
+          return true;
         },
       });
+      L.heldItem = () => (s.reading && G.state === 'play' ? null : undefined);
+      const nbKind = a => (typeof a.item === 'number' ? 'page' : a.item);
+      // the next thing done to it, once the hand is there: open it, turn the page or, on the last, shut it
+      const nbNext = () => {
+        const rc = G.hand.reach, run = s.nbAnims;
+        if (s.nbWant <= 0 || (rc && rc === s.nbHand && rc.touched === 0) || run.some(a => a.item === 'block')) return;
+        if (!s.nbOpen) {
+          if (run.length) return;
+          s.nbOpen = true; s.page = 0; run.push({ item: 'cover', t0: L.t });
+        } else if (s.page < s.pages.length - 1) {
+          if (run.some(a => (L.t - a.t0) / NB_T[nbKind(a)] < 0.35)) return;   // one still going over: this one follows it
+          run.push({ item: s.page, t0: L.t }); s.page++;
+        } else {
+          if (run.length) return;
+          run.push({ item: 'block', t0: L.t }); s.nbWant = 0; AUDIO.sfx('page'); AUDIO.sfx('flop'); return;
+        }
+        s.nbWant--; AUDIO.sfx('page');
+      };
+      const nbUpdate = () => {
+        nbNext();
+        for (const a of s.nbAnims.slice()) {
+          if (L.t - a.t0 < NB_T[nbKind(a)]) continue;
+          s.nbAnims.splice(s.nbAnims.indexOf(a), 1);
+          if (a.item === 'block') { s.nbOpen = false; s.page = 0; if (s.reading && G.cam.tPitch === NB_PITCH) G.cam.tPitch = PITCH_DOWN; s.reading = false; }
+        }
+        if (s.reading && G.state === 'play') {   // looking down at it, the view comes down close over it; turned away or up, it lets it go
+          if (G.cam.dirIdx !== PHONE_DIR || G.cam.tPitch < PITCH_DOWN * 0.5) s.reading = false; else G.cam.tPitch = NB_PITCH;
+        }
+        notebook.name = s.reading ? '' : 'Notebook';   // (reading it, nothing is written over the page)
+      };
+      // ---- drawing it, in the view's own pixels: each sheet in strips across it, each strip in its own perspective ----
+      // A sheet hangs from the spiral, at an angle up from lying flat toward you of A at its middle, its free end ahead of
+      // that by B (curling, as it is lifted by that end), never past max. A strip seen from above shows the sheet's face; from
+      // below, its back. The page is laid on it strip by strip, each strip of the page's canvas set square on its strip of the
+      // sheet; then the light on that strip as on the shelf, a little less as it stands up out of it
+      const sheet = (A, B, max) => {
+        const pts = [[AX, AY]];
+        let d = AX, y = AY;
+        for (let i = 0; i < NB_N; i++) { const a = clamp(A + B * ((i + 0.5) / NB_N - 0.5), 0, max); d += Math.cos(a) * NB.len / NB_N; y += Math.sin(a) * NB.len / NB_N; pts.push([d, y]); }
+        return pts;
+      };
+      const scr = (u, d, y) => { const w = L.pt(XW + d, y, u); return R.screenPos(w[0], w[1], w[2]); };
+      const path = (ctx, q, grow) => {
+        const cx = (q[0].x + q[1].x + q[2].x + q[3].x) / 4, cy = (q[0].y + q[1].y + q[2].y + q[3].y) / 4;
+        ctx.beginPath();
+        q.forEach((v, i) => { const l = Math.hypot(v.x - cx, v.y - cy) || 1, x = v.x + (v.x - cx) / l * (grow || 0), y = v.y + (v.y - cy) / l * (grow || 0); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+        ctx.closePath();
+      };
+      const FACE = { back: { tex: tex.back, base: '#d8ceb2' }, out: { tex: tex.out, base: '#4a281e' }, in: { tex: tex.in, base: '#8f8574' } };
+      const pageFace = i => ({ tex: tex.pages[i], base: '#e3d9be' });
+      const drawSheet = (ctx, P, pts, front, back, plain) => {
+        const Lp = pts.map(p => scr(NB.u0, p[0], p[1])), Rp = pts.map(p => scr(NB.u1, p[0], p[1]));
+        if (Lp.some(q => !q) || Rp.some(q => !q)) return null;
+        // the light on a strip: as on the shelf lying flat, a little less as it stands up out of it, less still on its back;
+        // a sheet lying flat (or standing, unbent) has it all over at once, so no seam shows between its strips
+        const shadeOf = (i, up) => P.col(scalec([255, 255, 255], (up ? 1 : 0.88) - 0.22 * Math.sin(clamp(Math.atan2(pts[i + 1][1] - pts[i][1], pts[i + 1][0] - pts[i][0]), 0, Math.PI / 2))));
+        const isUp = i => (Rp[i].x - Lp[i].x) * (Lp[i + 1].y - Lp[i].y) - (Rp[i].y - Lp[i].y) * (Lp[i + 1].x - Lp[i].x) > 0;
+        const flat = pts.every((p, i) => !i || Math.abs(Math.atan2(p[1] - pts[i - 1][1], p[0] - pts[i - 1][0]) - Math.atan2(pts[1][1] - pts[0][1], pts[1][0] - pts[0][0])) < 1e-6);
+        for (let i = 0; i < NB_N; i++) { path(ctx, [Lp[i], Rp[i], Rp[i + 1], Lp[i + 1]], 0.6); ctx.fillStyle = (isUp(i) ? front : back).base; ctx.fill(); }   // (under the page, so no gap shows between strips)
+        for (let i = 0; i < NB_N; i++) {
+          const a = Lp[i], b = Rp[i], c = Lp[i + 1], d = Rp[i + 1], q = [a, b, d, c];
+          const up = isUp(i), face = up ? front : back;
+          ctx.save();
+          if (!plain) {
+            path(ctx, q, 0.6); ctx.clip();
+            const y0 = i / NB_N * TH, h = TH / NB_N, ym = y0 + h / 2;
+            const ux = (b.x - a.x + d.x - c.x) / 2 / TW, uy = (b.y - a.y + d.y - c.y) / 2 / TW, vx = (c.x - a.x + d.x - b.x) / 2 / h, vy = (c.y - a.y + d.y - b.y) / 2 / h;
+            const cx = (a.x + b.x + c.x + d.x) / 4, cy = (a.y + b.y + c.y + d.y) / 4;
+            ctx.transform(ux, uy, vx, vy, cx - ux * TW / 2 - vx * ym, cy - uy * TW / 2 - vy * ym);
+            ctx.drawImage(face.tex, 0, y0, TW, h, 0, y0, TW, h);
+          }
+          ctx.restore();
+          if (!flat) { ctx.save(); path(ctx, q); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = shadeOf(i, up); ctx.fill(); ctx.restore(); }
+        }
+        if (flat) {
+          ctx.save(); ctx.beginPath(); Lp.concat(Rp.slice().reverse()).forEach((v, i) => (i ? ctx.lineTo(v.x, v.y) : ctx.moveTo(v.x, v.y))); ctx.closePath();
+          ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = shadeOf(0, isUp(0)); ctx.fill(); ctx.restore();
+        }
+        return { Lp, Rp };
+      };
+      const drawNotebook = (ctx, P) => {
+        const at = (u, d, y) => scr(u, d, y), E = AX + NB.len;
+        // its shadow on the shelf; its near edge, the edges of the pages over the back board (and the cover's, shut)
+        for (const [g, a] of [[0.006, 0.1], [0.003, 0.14], [0.001, 0.18]]) {
+          const sh = [at(NB.u0 - g * 0.6, AX - g, NB.y + 0.0005), at(NB.u1 + g * 1.2, AX - g, NB.y + 0.0005), at(NB.u1 + g * 1.2, E + g, NB.y + 0.0005), at(NB.u0 - g * 0.6, E + g, NB.y + 0.0005)];
+          if (sh.some(q => !q)) return;
+          path(ctx, sh); ctx.fillStyle = 'rgba(0,0,0,' + a + ')'; ctx.fill();
+        }
+        const edge = (y0, y1, col) => { const q = [at(NB.u0, E, y0), at(NB.u1, E, y0), at(NB.u1, E, y1), at(NB.u0, E, y1)]; if (q.every(v => v)) { path(ctx, q); ctx.fillStyle = P.col(col); ctx.fill(); } };
+        edge(NB.y, AY, [200, 190, 164]);
+        for (let k = 1; k < 4; k++) edge(NB.y + NB.th * k / 4.4, NB.y + NB.th * k / 4.4 + 0.0004, [150, 140, 116]);
+        edge(NB.y, NB.y + 0.0016, [62, 30, 24]);
+        const block = s.nbAnims.find(a => a.item === 'block'), moving = new Set(s.nbAnims.map(a => a.item));
+        if (!s.nbOpen) edge(AY - 0.0014, AY, [74, 36, 28]);
+        // what lies open on top: the cover, shut, or the page you are on
+        const top = drawSheet(ctx, P, sheet(0, 0, 0), s.nbOpen ? pageFace(s.page) : FACE.out, FACE.back);
+        if (top) {
+          const xs = top.Lp.concat(top.Rp).map(q => q.x), ys = top.Lp.concat(top.Rp).map(q => q.y);
+          s.nbRect = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+        }
+        // those turned over, standing against the wall, the last turned nearest
+        if (s.nbOpen && !block) {
+          const up = moving.has('cover') ? [] : ['cover'];
+          for (let i = 0; i < s.page; i++) if (!moving.has(i)) up.push(i);
+          up.forEach((it, j) => {
+            const k = it === 'cover' ? 0 : it + 1, last = j === up.length - 1;
+            const r = drawSheet(ctx, P, sheet(restOf(k), 0, restOf(k)), it === 'cover' ? FACE.out : pageFace(it), it === 'cover' ? FACE.in : FACE.back, !last);
+            if (r && !last) { ctx.strokeStyle = P.col([120, 110, 90]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(r.Lp[NB_N].x, r.Lp[NB_N].y); ctx.lineTo(r.Rp[NB_N].x, r.Rp[NB_N].y); ctx.stroke(); }
+          });
+        }
+        // what is going over now
+        for (const a of s.nbAnims) {
+          const k = clamp((L.t - a.t0) / NB_T[nbKind(a)], 0, 1), e = smoothstep(k), bend = Math.sin(Math.PI * k);
+          if (a.item === 'block') drawSheet(ctx, P, sheet(restOf(s.page) * (1 - e), -0.5 * bend, REST), FACE.out, FACE.back);
+          else if (a.item === 'cover') drawSheet(ctx, P, sheet(REST * e, 0.9 * bend, REST), FACE.out, FACE.in);
+          else drawSheet(ctx, P, sheet(restOf(a.item + 1) * e, 0.9 * bend, restOf(a.item + 1)), pageFace(a.item), FACE.back);
+        }
+        // the spiral: a turn of wire through each hole, each a little on from the last
+        const lw = q => Math.max(0.8, 0.0014 * q.scale);
+        for (let r = 0; r < RINGS; r++) {
+          const u = NB.u0 + (r + 0.5) / RINGS * (NB.u1 - NB.u0), pts = [];
+          for (let i = 0; i <= 18; i++) { const a = i / 18 * TAU, q = at(u + (i / 18 - 0.5) * 0.005, AX + 0.0005 + Math.cos(a) * 0.0058, AY + 0.0008 + Math.sin(a) * 0.0058); if (!q) break; pts.push(q); }
+          if (pts.length < 19) continue;
+          for (const [col, w] of [[[58, 58, 64], 1.7], [[184, 184, 192], 1]]) {
+            ctx.strokeStyle = P.col(col); ctx.lineWidth = lw(pts[0]) * w; ctx.lineCap = 'round'; ctx.beginPath();
+            pts.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+          }
+        }
+      };
+      // drawn as one thing, after the shelf it lies on and before what is nearer (the cord of the lifted receiver)
+      const nbAt = L.pt(XW + AX + NB.len / 2, NB.y, (NB.u0 + NB.u1) / 2);
+      const nbSprite = { kind: 'sprite', x: nbAt[0], y: nbAt[1], z: nbAt[2], w: NB.u1 - NB.u0, h: 0.2, sortDist: -nbX - 0.01, draw: (ctx, P, sc) => {
+        const m = ctx.getTransform(), b = R.screenPos(nbSprite.x, nbSprite.y, nbSprite.z);   // its own transform, back to the view's pixels
+        if (!b) return;
+        const dpr = m.a / sc;
+        ctx.setTransform(dpr, 0, 0, dpr, m.e - b.x * dpr, m.f - b.y * dpr);
+        drawNotebook(ctx, P);
+      } };
       const sm = () => L.creatures[0];
       // the exchange: a wrong number is not in service; the right one connects, rings for seven seconds from the last digit, and is answered
       // facing the phone, the view tips down to the middle of its face; brought in closer than the whole face will fit (on a
@@ -657,21 +791,15 @@ Object.assign(ICONS, {
         if (s.glides.length && rc !== s.finger) s.glides = [];
         while (s.glides.length && L.t >= s.glides[0].t0) { const q = s.glides.shift(); glideTo(rc, q.to, q.target); }
         if (rc && rc.glide) { const k = smoothstep((L.t - rc.glide.t0) / GLIDE), a = rc.glide.from, b = rc.glide.to; rc.at = { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), z: lerp(a.z, b.z, k) }; if (k >= 1) rc.glide = null; }
-        // the phone book's cover lifts a crack each time the hand pulls at it (with each pull of G.reach's 'pull', two to a
-        // hold of 0.46 s), and drops back
-        const pulling = rc && rc.target === book && rc.T >= rc.out && rc.T < rc.out + rc.hold;
-        const want = pulling ? 0.15 * Math.max(0, Math.sin(Math.PI * (((rc.T - rc.out) / 0.23) % 1))) : 0;
-        s.bookA = (s.bookA || 0) + (want - (s.bookA || 0)) * Math.min(1, (want > (s.bookA || 0) ? 28 : 16) * dt);
+        nbUpdate();
         if (s.line === 'checking' && L.t - s.doneAt > 0.7) { s.line = 'dead'; AUDIO.sfx('noService'); G.say('The number you have dialled is not in service.', 'The number you have dialled is not in service.', 3.2); }
         if (s.line === 'connecting' && L.t - s.doneAt > 0.9) { s.line = 'ringing'; s.ringFrom = s.doneAt; s.nextRing = L.t + 3; AUDIO.sfx('ringback'); G.say('It is ringing.', 'It is ringing.'); }
         if (s.line === 'ringing' && L.t >= s.nextRing) { s.nextRing = L.t + 3; AUDIO.sfx('ringback'); }   // one ring every 3 s, only while it rings: hanging up stops it
         if (s.line === 'ringing' && L.t - s.ringFrom >= 7) {
           s.line = 'answered'; s.answeredAt = L.t; AUDIO.sfx('answer'); G.say('Someone picks up.', 'Someone picks up.', 3.5);
-          s.nbOpen = false; sync();
         }
       };
       L.isWon = () => s.line === 'answered';
-      L.onCatch = () => { s.nbOpen = false; sync(); return false; };
       L.deathCause = () => (s.line === 'ringing' || s.line === 'connecting') ? 'ringing' : s.line === 'dead' ? 'dead' : (s.hook === 'off' && !s.credit && s.deadKeys) ? 'nocoin' : null;
 
       // ---------------- facing the phone: the view comes in close, and the keys take the number keys and the d-pad ----------------
@@ -679,7 +807,7 @@ Object.assign(ICONS, {
       // close enough that the keys are a comfortable size to click or tap (about 46 px apart), and at least close enough that
       // the face of the phone fills the view between the line along the top of the screen and what you hold along the
       // bottom: 1.3 at 1280x760, about 2.2 on a phone held sideways
-      L.viewZoom = () => (closeUp() ? clamp(46 / (KEY_DU / FD * (R.H / 2) / Math.tan(31 * DEG)), 1.3, 2.6) : 0);   // (the renderer's view is 62 degrees high)
+      L.viewZoom = () => (closeUp() ? clamp(46 / (KEY_DU / FD * (R.H / 2) / Math.tan(31 * DEG)), 1.3, 2.6) : s.reading && G.state === 'play' ? nbZoom() : 0);   // (the renderer's view is 62 degrees high; the notebook, read, brings it down close over it too)
       // a gamepad: the d-pad moves a highlight over the receiver, the coin slot, the keys and the coin return, as they lie on
       // the phone; past the last thing that way it turns (or looks down) as it always does. A presses what is highlighted.
       const controls = keys.concat([{ t: receiver, u: RX, y: 1.52, w: 0.11, h: 0.44 }, { t: slot, u: (SLOT.u0 + SLOT.u1) / 2, y: (SLOT.y0 + SLOT.y1) / 2, w: 0.063, h: 0.078 }, { t: ret, u: 0, y: (RET.y0 + RET.y1) / 2, w: 0.112, h: 0.073 }]);
@@ -708,31 +836,14 @@ Object.assign(ICONS, {
         return true;
       };
 
-      // ---------------- input: the notebook from the inventory, and the number keys while you face the phone ----------------
-      const invEl = document.getElementById('inventory');
-      const onInv = e => {
-        if (G.L !== L || G.state !== 'play') return;
-        const slotEl = e.target && e.target.closest ? e.target.closest('.slot') : null; if (!slotEl) return;
-        const idx = Array.prototype.indexOf.call(invEl.children, slotEl);
-        if (G.inv[idx] !== journal) return;
-        e.stopPropagation();                                     // clicking the notebook opens it (or shuts it); it is never put down this way
-        G.active = idx; G.invSig = '';
-        setNotebook(!s.nbOpen);
-      };
+      // ---------------- input: the number keys while you face the phone ----------------
       const onKey = e => {
         if (G.L !== L || G.state !== 'play') return;
         const k = e.key;
-        if (closeUp() && k && k.length === 1 && '0123456789*#'.includes(k)) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) press(k); return; }   // facing the phone the number keys press its keys instead of choosing what you hold
-        if (shown.nb && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) turn(k === 'ArrowLeft' ? -1 : 1); }   // A and D still turn
+        if (closeUp() && k && k.length === 1 && '0123456789*#'.includes(k)) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) press(k); }   // facing the phone the number keys press its keys instead of choosing what you hold
       };
-      if (invEl) invEl.addEventListener('click', onInv, true);
       window.addEventListener('keydown', onKey, true);
-      L.onEnd = () => {
-        window.removeEventListener('keydown', onKey, true);
-        if (invEl) invEl.removeEventListener('click', onInv, true);
-        if (dom) { dom.nbEl.remove(); dom.style.remove(); dom = null; }
-        shown.nb = false;
-      };
+      L.onEnd = () => window.removeEventListener('keydown', onKey, true);
 
       // ---------------- every frame: the receiver, its cord, the keys, the display, rain running down the glass ----------------
       const drops = [];
@@ -837,7 +948,7 @@ Object.assign(ICONS, {
         if (!off) R.add(handset);
         if (away && away !== true) R.add(away);
         for (const c of off ? cords.off : cords.on) R.add(c);
-        for (const p of s.bookA > 0.002 ? coverParts(s.bookA) : cover0) R.add(p);   // the phone book's cover (lifted a crack, or shut)
+        R.add(nbSprite);
         for (const k of keys) R.add(k.spr);
         R.add(lcd); R.add(lip);
         if (closeUp() && s.padSel) {
@@ -1068,11 +1179,10 @@ Object.assign(ICONS, {
         once('turn', e.turnAt, () => { c.hold = null; c.away = true; c.frozen = true; c.distFn = (cr, dt2) => cr.dist + dt2 * 1.3; });
         return t >= e.done;
       };
-      // his lantern: a warm light that walks with him, and its glow; the car's headlamps, and the light inside it
-      const lanternAt = () => { const c = sm(), p = c.pos(), sd = c.away ? -0.46 : 0.46; return { x: p.x + Math.cos(c.yaw) * sd, y: p.y + 0.75, z: p.z - Math.sin(c.yaw) * sd }; };
+      // the car's headlamps, and the light inside it (he brings no light of his own: he is seen by the street lamps', and the
+      // booth's)
       L.dynamicLights = () => {
-        const p = lanternAt(), out = [{ x: p.x, y: p.y, z: p.z, r: 4.5, i: 0.6, color: [255, 190, 110], flicker: 0.3, seed: 5, cone: { x: 0, y: -1, z: 0, cos: Math.cos(75 * DEG) } }];
-        const k = carLamps();
+        const out = [], k = carLamps();
         if (k) {
           const n = Math.hypot(k.P.fx, 0.06, k.P.fz);
           out.push({ x: k.front[0], y: k.front[1], z: k.front[2], r: 24, i: 0.6, color: [235, 228, 200], cone: { x: k.P.fx / n, y: -0.06 / n, z: k.P.fz / n, cos: Math.cos(22 * DEG) } });
@@ -1097,7 +1207,7 @@ Object.assign(ICONS, {
         return u > -0.25 && u < 0.26 && y > 0.98 && y < 2.02;
       };
       L.glows = () => {
-        const p = lanternAt(), out = lampGlows.filter(g => !behindHim(g) && !behindPhone(g)).concat([{ x: p.x, y: p.y, z: p.z, r: 1.5, color: [255, 190, 110], a: 0.42 }]);
+        const out = lampGlows.filter(g => !behindHim(g) && !behindPhone(g));
         const k = carLamps();
         if (k) {
           const fade = clamp((L.aftermathT - CAR.T0) / 0.6, 0, 1);

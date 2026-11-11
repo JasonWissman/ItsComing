@@ -1,10 +1,11 @@
 'use strict';
-// The signalman: too tall, in a long coat and a peaked cap, walking in step down the middle of the street with a lantern in
-// one hand. The coat hangs wrong on him: the shoulders narrow and sloping, one dragged down by the lantern, the hem wide
-// and ragged and swinging a beat behind his stride, the rain running down it and dripping off the hem and the peak. The
-// other arm is far too long, the hand hanging below the hem, the long fingers loose and now and then twitching. Under the
-// peak there is no face at all, only dark, and below it a long pale jaw and a grin, lit from underneath by the lantern;
-// his eyes are shut until he is close, and then two points of light open in the dark under the peak. While nobody looks
+// The signalman: too tall, in a long coat and a peaked cap, walking in step down the middle of the street in the dark, with
+// no light of his own: he is seen as he passes under the street lamps, and as a shape against the wet haze between them.
+// The coat hangs wrong on him: the shoulders narrow and sloping, the hem wide and ragged and swinging a beat behind his
+// stride, the rain running down it and dripping off the hem and the peak. His arms are far too long, the hands hanging
+// below the hem, the long fingers loose and now and then twitching. Under the peak there is no face at all, only dark, and
+// below it a long pale jaw and a grin; his eyes are shut until he is close, and then two points of light open in the dark
+// under the peak. While nobody looks
 // at him his head is turned aside; a moment after you look, it snaps round to you. Near the glass he straightens, his neck
 // coming up out of the collar, and you see up under the peak. Coming at you, the jaw drops open far too wide.
 // He keeps the same pace whether you watch him or not. While c.held is set he stands still; once c.away is set (the
@@ -28,8 +29,8 @@ CREATURES.signalman = {
     const hole = rgba(mixc([2, 0, 1], P.fogColor || [0, 0, 0], P.fog || 0));
     const held = c.held && !lunge, mv = c.moving ? 1 : 0;
     const bob = mv * Math.abs(Math.sin(g)) * 0.04;
-    const tw = this.twitch(t, 2.1, 5);
-    // seen from behind everything is mirrored: the lantern is in the same hand, which is now on the other side
+    const tw = this.twitch(t, 2.1, 5), tw2 = this.twitch(t + 0.9, 2.6, 11);
+    // seen from behind everything is mirrored, so his two arms do not trade their ways of hanging as he turns
     if (back) { ctx.save(); ctx.scale(-1, 1); }
     // legs: long, even strides, thin as sticks under the coat
     for (const s of [-1, 1]) {
@@ -37,11 +38,11 @@ CREATURES.signalman = {
       P_limb(ctx, [[s * 0.09, 1.05 + bob], [s * 0.12 + Math.sin(ph) * 0.12, 0.55 + lift * 0.6], [s * 0.14 + Math.sin(ph) * 0.2, lift + 0.03]], 0.085, coat);
       P_ell(ctx, s * 0.14 + Math.sin(ph) * 0.2, lift + 0.03, 0.1, 0.035, black);
     }
-    // the coat: the shoulders narrow and falling away, the right one dragged down by the lantern, the hem wide, ragged and
-    // swinging a beat behind the stride
+    // the coat: the shoulders narrow and falling away, one lower than the other, the hem wide, ragged and swinging a beat
+    // behind the stride
     const hs = mv * Math.sin(g - 1.1) * 0.05, sy = 1.9 + bob;
     const hem = [[0.42 + hs, 0.53], [0.3 + hs, 0.44], [0.17 + hs, 0.5], [0.05 + hs, 0.43], [-0.08 + hs, 0.5], [-0.22 + hs, 0.42], [-0.4 + hs, 0.52]];
-    P_poly(ctx, hem.concat([[-0.25, sy + 0.01], [-0.12, sy + 0.08], [0.12, sy + 0.06], [0.23, sy - 0.07]]), coat);
+    P_poly(ctx, hem.concat([[-0.25, sy + 0.01], [-0.12, sy + 0.08], [0.12, sy + 0.07], [0.24, sy - 0.03]]), coat);
     if (!back) {
       P_poly(ctx, [[-0.025 + hs * 0.6, 0.5], [0.025 + hs * 0.6, 0.5], [0.03, sy], [-0.03, sy]], coatL);
       for (let k = 0; k < 4; k++) P_ell(ctx, 0.07 + hs * (0.4 - k * 0.1), 0.85 + k * 0.26 + bob, 0.018, 0.018, brass);
@@ -59,19 +60,19 @@ CREATURES.signalman = {
       const f = (t * 1.6 + i * 0.29) % 1;   // off the hem
       P_ell(ctx, hem[i * 2][0], hem[i * 2][1] - f * 0.5, 0.006, 0.018, P.cola([200, 210, 226], 0.5 * (1 - f)));
     }
-    // the free arm, far too long: the hand hanging below the hem, the fingers loose and twitching; coming at you it comes up
-    // at your face, the fingers spread
-    const rk = smoothstep(lunge * 1.5), sw0 = mv * Math.sin(g + Math.PI) * 0.06;
-    const lsh = [-0.24, sy - 0.03], lel = [lerp(-0.33 + sw0 * 0.5, -0.46, rk), lerp(1.3 + bob, 1.6, rk)], lha = [lerp(-0.31 + sw0, -0.3, rk), lerp(0.62 + bob, 2.15, rk)];
-    const cuff = [lerp(lel[0], lha[0], 0.86), lerp(lel[1], lha[1], 0.86)];
-    P_limb(ctx, [lsh, lel, cuff], 0.085, coat);
-    P_line(ctx, cuff[0], cuff[1], lha[0], lha[1], 0.035, hand);
-    this.hand(ctx, hand, lha[0], lha[1], lerp(-Math.PI / 2 - 0.08, 0.75, rk), lerp(0.07 + Math.abs(tw) * 0.3, 0.2, rk), lerp(0.2, 0.22, rk), lerp(0.2, 0.45, rk));
-    // the lantern arm: swinging, the hand round the bail
-    const sw = c.moving ? Math.sin(g) * 0.08 : Math.sin(t * 1.2) * 0.03;
-    P_limb(ctx, [[0.22, sy - 0.08], [0.38 + sw, 1.4 + bob], [0.44 + sw * 1.5, 1.05 + bob]], 0.085, coat);
-    P_ell(ctx, 0.44 + sw * 1.5, 1.01 + bob, 0.044, 0.062, hand);
-    ctx.save(); ctx.translate(0.46 + sw * 1.8, 0.6 + bob + sw * 0.1); ctx.rotate(-sw * 0.8); ctx.scale(0.24, 0.34); ICONS.lantern(ctx, Object.assign({}, P, { lit: true })); ctx.restore();
+    // the arms, far too long: the hands hanging below the hem, the fingers loose and twitching, the right one a little
+    // shorter and swinging against the stride; coming at you they come up at your face, the fingers spread
+    const rk = smoothstep(lunge * 1.5), rk2 = smoothstep(lunge * 1.5 - 0.15);
+    const arm = (side, sh, sw, drop, k, twk) => {
+      const el = [lerp(side * 0.33 + sw * 0.5, side * 0.46, k), lerp(1.3 + bob, 1.6, k)], ha = [lerp(side * 0.31 + sw, side * 0.3, k), lerp(drop + bob, 2.15, k)];
+      const cuff = [lerp(el[0], ha[0], 0.86), lerp(el[1], ha[1], 0.86)];
+      P_limb(ctx, [sh, el, cuff], 0.085, coat);
+      P_line(ctx, cuff[0], cuff[1], ha[0], ha[1], 0.035, hand);
+      const down = side < 0 ? -Math.PI / 2 - 0.08 : -Math.PI / 2 + 0.08, upAt = side < 0 ? 0.75 : Math.PI - 0.75;   // (hanging; reaching up and out)
+      this.hand(ctx, hand, ha[0], ha[1], lerp(down, upAt, k), lerp(0.07 + Math.abs(twk) * 0.3, 0.2, k), lerp(0.2, 0.22, k), lerp(0.2, 0.45, k) * (side < 0 ? 1 : -1));
+    };
+    arm(-1, [-0.24, sy - 0.03], mv * Math.sin(g + Math.PI) * 0.06, 0.62, rk, tw);
+    arm(1, [0.22, sy - 0.05], c.moving ? Math.sin(g) * 0.06 : Math.sin(t * 1.2) * 0.02, 0.7, rk2, tw2);
     // the head. Looked at, it is turned aside, and snaps round to you a moment later; now and then it jerks over. Close,
     // the neck comes up out of the collar and lifts the face out of the peak's shadow
     const since = t - (c.lookT === undefined ? -9 : c.lookT);
