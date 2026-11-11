@@ -1,7 +1,11 @@
 'use strict';
 // ============================================================ 12. THE BEDROOM ============================================================
-// Your own room. You are in bed, sitting up. It is already in the doorway, or in the closet among the clothes,
-// and it moves in extreme slow motion. Everything you can use is within arm's reach. Light slows it; the covers stop it.
+// Your own room. You are in bed, sitting up. It is already there, in the hall beyond the doorway or in the closet among
+// the clothes, behind the wall at the side of the opening, and only its head leans out round the edge at first; then it
+// steps out into the room, in extreme slow motion. Everything you can use is within arm's reach. It cannot stand the
+// light: when the lamp comes on it shrinks from it, down out of sight below the bed, and comes up again at the foot of it
+// (or at its side, out of the closet) with only its eyes over the edge, and then its hands, on the covers: pull them up
+// now. The covers stop it, but only with the lamp on: pulled up in the dark, it takes them and pulls them away.
 // The wrong bulb: the same glass on a bayonet cap, two pins and no thread, so it will not screw into this lamp
 Object.assign(ICONS, {
   bulbPin(ctx, P) {
@@ -18,15 +22,16 @@ LEVELS.push({
   lights: [{ x: 3.4, y: 2.3, z: 1.6, r: 6, i: 0.28, color: [150, 170, 230], cone: { x: -1, y: -0.35, z: -0.2, deg: 36 } }],
   text: {
     intro: 'You woke up suddenly.',
-    hint: 'The lamp is dead; there is a bulb in the drawer. Light slows it. Then hold the covers until they are all the way up.',
-    objective: 'Get the lamp on. Pull the covers up.',
-    death: { default: 'It leaned in closer until its face was the only thing you could see.' },
+    hint: 'The lamp is dead; there is a bulb in the drawer. It cannot stand the light, and the covers only hold with the lamp on. Light first; then hold the covers until they are all the way up.',
+    objective: 'Get the lamp on. Then pull the covers up.',
+    death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is not afraid of the dark.' },
     win: 'It pulled at the covers, but you were stronger.',
     fragment: 'The covers were pulled loose at the foot of the bed in the morning, as if something had tried them.',
   },
   lanes: [
-    { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.0, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
-    { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 3.6, maxStart: 3.85, cue: 'hangers', apertures: [{ z: 3.2, x0: -0.9, x1: 0.9, y0: 0, y1: 2.2 }] },
+    // it starts where it peers round the edge from (WAYS below): the start is held to that, whatever the spread of the night
+    { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.9, maxStart: 4.1, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
+    { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 4.2, maxStart: 3.55, cue: 'hangers', apertures: [{ z: 3.2, x0: -0.9, x1: 0.9, y0: 0, y1: 2.2 }] },
   ],
   creatures: [{ type: 'tall', startDist: 4.0, time: 70, unseenMult: 2.5 }],
   aftermath: { type: 'custom' },
@@ -34,7 +39,7 @@ LEVELS.push({
     const s = L.s;
     const parts = STORY.buildBedroom(L, false);
     const decoy = !!L.diff.decoys, unplugged = L.nightmare, sticks = L.nightmare;
-    Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, grey: 0, tick: 0, tugAt: -9 });
+    Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, grey: 0, tick: 0, tugAt: -9, mode: null, latBias: 0 });
     // Drawing order in this room (it is built in local coordinates, and this night faces north, so they are world ones).
     // The mattress is one long quad whose middle is further off than the nightstand beside it and the bed's own legs, so
     // it was drawn first and they over it: the nightstand stood on the covers and the legs showed through. Whatever is
@@ -100,8 +105,10 @@ LEVELS.push({
         if (!s.fitted) return false;
         if (!s.plugged) { G.say('Nothing. The cord is loose somewhere. Look down beside the bed.', 'Nothing. It is not plugged in.'); pull(false); return true; }
         if (s.lampOn) { G.say('It is on. Leave it.', 'On.'); G.reach(lampT, { style: 'touch', at: CHAIN }); return true; }
-        if (sticks && ++s.clicks < 3) { G.say('The switch sticks.', 'Sticks.'); pull(true); return true; }
-        s.clicks = 0; s.lampOn = true; s.wasLit = true; s.onAt = L.t + 0.3; s.lampT = 12 + L.rand() * 6; G.say('Light. It slows.', 'Light.');
+        if (sticks && !s.wasLit && ++s.clicks < 3) { G.say('The switch sticks.', 'Sticks.'); pull(true); return true; }   // the first time (once it has gone, it comes back on at a pull)
+        // it burns long enough for it to go down and come up at the bed and for the covers after that, with time over;
+        // it flickers for its last two seconds
+        s.clicks = 0; s.lampOn = true; s.wasLit = true; s.onAt = L.t + 0.3; s.lampT = 22 + L.rand() * 6; G.say('Light. It shrinks from it.', 'Light.');
         pull(false, () => { s.onAt = L.t; AUDIO.sfx('lampOn'); });
         return true;
       },
@@ -132,10 +139,14 @@ LEVELS.push({
     const covers = mkTarget(L, {
       id: 'covers', name: 'Covers', x: 0, y: 0.6, z: 1.1, w: 1.4, h: 0.6, flat: true, hold: 3.0,
       hint() { return s.coversUp ? 'Up over you.' : 'The covers. Hold on to them until they are all the way up; they slip back if you let go too soon.'; },
-      use(item) { if (item !== null) return false; s.coversUp = true; AUDIO.sfx('hiss'); G.say(s.lampOn ? 'The covers are up.' : !s.fitted ? 'The covers are up. Now the lamp: there is a bulb in the drawer.' : s.wasLit ? 'The covers are up, but the lamp has gone out. Switch it back on.' : 'The covers are up. Now switch the lamp on.', s.lampOn ? 'Up.' : 'Up. It is dark.'); return true; },
+      use(item) {
+        if (item !== null) return false;
+        if (!s.lampOn) { yank(); return true; }   // up in the dark: it is not afraid of the dark
+        s.coversUp = true; AUDIO.sfx('hiss'); G.say('The covers are up.', 'Up.'); return true;
+      },
     });
     L.isWon = () => s.lampOn && s.coversUp;
-    L.objectiveText = () => (s.lampOn ? 'Lamp on. ' : !s.fitted ? 'Find a bulb (the drawer). Fit it. ' : !s.plugged ? 'Plug the cord in (down, beside the bed). ' : 'Switch the lamp on. ') + (s.coversUp ? 'Covers up.' : 'Pull the covers up (hold).');
+    L.objectiveText = () => (s.lampOn ? 'Lamp on. ' : !s.fitted ? 'Find a bulb (the drawer). Fit it. ' : !s.plugged ? 'Plug the cord in (down, beside the bed). ' : 'Switch the lamp on. ') + (s.coversUp ? 'Covers up.' : s.lampOn ? 'Pull the covers up (hold).' : 'Then the covers, not before.');
     // holding the covers, your hand is on them, pulling them up, its grip on the hem as it comes up; let go too soon and the
     // hand goes, and the covers slip back
     const hem = () => { const { zE, yE } = coversAt(); return { x: 0.3, y: yE + 0.02, z: zE }; };
@@ -145,12 +156,106 @@ LEVELS.push({
       if (!r || r.target !== covers) G.reach(covers, { style: 'pull', at: hem(), sfx: 'cloth' });
       else { r.at = hem(); if (r.T > r.out + r.hold - 0.1) G.reach(covers, 'pull'); }   // (each call while it is there keeps it there a beat more)
     };
+    // ---- what it does ----
+    // Each way in: where the opening is (apZ, its half-width edge, along and across the way), where it peers round the
+    // edge from (peerD), and its place at the bed, down out of the light (spot: along the way and across it): at the foot
+    // of the bed from the doorway, at the corner of its foot from the closet; and where its hands take hold of the covers
+    // there (x, z in the room).
+    const WAYS = [
+      { apZ: 3.6, edge: 0.5, peerD: 4.1, spot: { d: 2.08, lat: 0 }, hands: [[-0.3, 1.86], [0.3, 1.86]] },
+      { apZ: 3.2, edge: 0.9, peerD: 3.55, spot: { d: 1.07, lat: 1.5 }, hands: [[-0.64, 1.24], [-0.64, 1.72]] },
+    ];
+    const side = L.rand() < 0.5 ? -1 : 1, BEHIND = 0.3;   // which side of the opening it stands, and how far behind the edge
+    const way = c => WAYS[c.lane.idx] || WAYS[0], edgeAt = (w, d) => w.edge * d / w.apZ;
+    const hold = (c, d) => { c.hold = d; s.held = true; }, letGo = c => { if (s.held) { c.hold = null; s.held = false; } };
+    const panOf = c => clamp(Math.sin(wrapPi(Math.atan2(c.pos().x, c.pos().z) - G.cam.yaw)), -0.85, 0.85);
+    // coming: behind the wall at the side of the opening with only its head round the edge; stepping out into the opening
+    // as it comes on, the head coming in over its shoulders; then on into the room
+    const place = c => {
+      const w = way(c), o = clamp((w.peerD - c.dist) / (w.peerD - w.apZ + 0.05), 0, 1);
+      c.peerSide = -side; c.peer = 1 - smoothstep(o / 0.6);
+      c.runLat = side * (edgeAt(w, c.dist) + BEHIND) * (1 - smoothstep(o)) + s.latBias;
+    };
+    // The light comes on: it flinches from it, an arm across its face, and sinks down out of sight; down there it goes to
+    // its place at the bed (out of sight all the way), comes up until its eyes are over the edge, and holds there, peering
+    // at you; then its hands come up over the edge onto the covers (and you are told). Times in seconds from the light.
+    const startDuck = c => {
+      s.mode = 'duck';
+      s.duck = { t0: L.t, d: c.dist, lat: c.lat, peer: c.peer || 0, duck0: c.duck || 0, eye0: c.duck ? c.eyeTo : null, cued: !!(s.duck && s.duck.cued) };
+      const sp = way(c).spot; s.duck.creep = clamp(Math.hypot(c.dist - sp.d, c.lat - sp.lat) * 1.1, 0.4, 2.2);
+      c.flinchSide = c.lat > 0.05 ? -1 : 1;   // the arm toward the middle of the room
+      hold(c, c.dist);
+      AUDIO.voice('slow', 0.5, panOf(c));
+    };
+    const DUCK = { flinch: 0.5, down: 1.5, up: 1.2, look: 1.1, reach: 1.1 };
+    const ducking = c => {
+      const D = s.duck, t = L.t - D.t0, sp = way(c).spot, hide = c.hideBelow === undefined ? 0.6 : c.hideBelow;
+      const T2 = DUCK.down, T3 = T2 + D.creep, T4 = T3 + DUCK.up, T5 = T4 + DUCK.look;
+      c.flinch = smoothstep(t / 0.2) * (1 - smoothstep((t - DUCK.flinch) / 0.5));
+      c.duck = lerp(D.duck0, 1, smoothstep((t - DUCK.flinch + 0.1) / (T2 - DUCK.flinch + 0.1)));
+      // going to the bed it keeps low, its face down: out in the open, only a dark shape low along the floor
+      const m = smoothstep((t - T2 + 0.2) / D.creep), low = Math.max(hide - 0.4, 0.2);
+      c.faceAway = smoothstep((t - T2 + 0.5) / 0.3) * (1 - smoothstep((t - T3) / 0.3));
+      if (!s.came) hold(c, lerp(D.d, sp.d, m));   // (under the covers, at the end, the night walks it to the bed itself)
+      c.runLat = lerp(D.lat, sp.lat, m); c.peer = D.peer * (1 - smoothstep(t / T2));
+      c.eyeTo = t < T3 ? (D.eye0 === null ? low : lerp(D.eye0, low, smoothstep(t / T2))) : lerp(low, hide + 0.07, smoothstep((t - T3) / DUCK.up));
+      c.reach = smoothstep((t - T5) / DUCK.reach); c.gripY = hide - 0.03;   // (its arms up to the edge; the hands over it are drawn on the covers)
+      if (t >= T5 && !D.cued) { D.cued = true; AUDIO.sfx('cloth', panOf(c)); if (!L.won) G.say('Its hands come up over the end of the bed, onto the covers. Pull them up.', 'Its hands are on the covers.'); }
+    };
+    // The light goes out with it down there: it rises, slowly, from behind the bed, and comes on again from where it is
+    const RISE = 3.2;
+    const rising = (c, dt) => {
+      const t = L.t - s.riseAt;
+      c.flinch = 0; c.faceAway = 0; c.reach = Math.max(0, c.reach - dt * 1.5); c.duck = s.rise0 * (1 - smoothstep(t / RISE));
+      if (t >= RISE) {
+        s.mode = 'come'; c.duck = 0; c.reach = 0; letGo(c);
+        c.u = clamp(1 - c.dist / c.D0, 0, 1); s.latBias = 0;
+        const lat0 = c.runLat; place(c); s.latBias = lat0 - c.runLat; c.runLat = lat0;   // from where it is across the room
+      }
+    };
+    // The covers pulled up in the dark: a moment of nothing, then it is at the bed (all at once, after all that slowness),
+    // its hands on the covers, and it rips them down off you and is in your face
+    const yank = () => {
+      const c = c0(), sp = way(c).spot, to = c.dist < sp.d ? { d: c.dist, lat: c.lat } : sp;
+      s.mode = 'yank'; s.yank = { t0: L.t, d: c.dist, lat: c.lat, to, duck0: c.duck || 0, peer0: c.peer || 0 }; s.yankK = 0;
+      G.holding = null; hold(c, c.dist);
+    };
+    const yanking = c => {
+      const Y = s.yank, t = L.t - Y.t0, hide = c.hideBelow === undefined ? 0.6 : c.hideBelow;
+      const m = easeIn(clamp((t - 0.3) / 0.3, 0, 1));
+      hold(c, lerp(Y.d, Y.to.d, m)); c.runLat = lerp(Y.lat, Y.to.lat, m);
+      c.duck = Y.duck0 * (1 - m); c.peer = Y.peer0 * (1 - m); c.flinch = 0;
+      c.reach = smoothstep((t - 0.45) / 0.15); c.gripY = hide - 0.03; c.faceAway = 0;
+      s.yankK = smoothstep((t - 0.62) / 0.2);
+      if (t >= 0.62 && !Y.tugged) { Y.tugged = true; AUDIO.sfx('tug', panOf(c)); G.shake(0.9); }
+      if (t >= 0.86 && G.state === 'play') { c.deathSpec = { delay: 0.05, dur: 0.4, sting: 'sting' }; die(c, 'dark'); }   // quick: its face fills the view
+    };
+    const behave = (c, dt) => {
+      if (s.mode === 'yank') { yanking(c); return; }
+      if (!s.mode) { s.mode = 'peer'; s.peerTill = L.t + 4 + L.rand() * 2; if (c.hold === null) hold(c, c.dist); }   // it only peers, at first
+      const lit = shown() || L.won;
+      if (lit && s.mode !== 'duck') startDuck(c);
+      else if (!lit && s.mode === 'duck') { s.mode = 'rise'; s.riseAt = L.t; s.rise0 = c.duck || 0; }
+      if (s.mode === 'peer' && L.t >= s.peerTill) { s.mode = 'come'; letGo(c); }
+      if (s.mode === 'peer' || s.mode === 'come') { s.latBias *= Math.exp(-dt * 0.5); place(c); }
+      else if (s.mode === 'duck') ducking(c);
+      else if (s.mode === 'rise') rising(c, dt);
+    };
+    // peering, only its head shows round the edge: having that in view is seeing it
+    L.visFrac = c => {
+      if (s.mode === 'yank' || c.dist <= way(c).apZ || (c.peer || 0) < 0.5) return APPROACH.visFrac(L, c.lane, c, null);
+      const q = APPROACH.position(c.lane, c.dist, c.lat + (c.peerSide || 1) * c.peer * 0.44 * 0.77, L.eyeH), r = R.projectRect(q.x, 1.6, q.z, 0.3, 0.45, null);
+      if (!r) return 0;
+      const ox = Math.max(0, Math.min(r.x + r.w, R.W) - Math.max(r.x, 0)), oy = Math.max(0, Math.min(r.y + r.h, R.H) - Math.max(r.y, 0));
+      return ox * oy / Math.max(1e-6, r.w * r.h);
+    };
     L.update = dt => {
       const c = c0();
       holdCovers();
       c.unseenMult = Math.min(c.unseenMult, 2.5); // this night already charges a lot for looking away; the tiers do not stack on top
-      if (s.lampOn && !L.won) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out.', 'Dark.'); } }
+      if (s.lampOn && !L.won) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out. It is coming up again.', 'Dark.'); } }
       c.inLight = s.lampOn;
+      behave(c, dt);
       if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', Math.sin(wrapPi(-Math.PI / 4 - G.cam.yaw)) * 0.7, true); } } // the clock is on the dresser to the north-west, whichever way you face
     };
     // a cord on the floor: a pale cloth flex, so it shows on the dark boards; it goes under the bed, behind the mattress
@@ -158,7 +263,8 @@ LEVELS.push({
     const flex = (pts, y) => { for (let i = 0; i + 1 < pts.length; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1], l = Math.hypot(bx - ax, bz - az), nx = -(bz - az) / l * 0.009, nz = (bx - ax) / l * 0.009; R.add(SC.mkQuad(L, [ax - nx, y, az - nz], [bx - nx, y, bz - nz], [bx + nx, y, bz + nz], [ax + nx, y, az + nz], CORD, { sortDist: BED })); } };
     // the covers: kicked down to the foot of the bed, and drawn up over you as you pull, the sheet turned down along the top
     const COV = 1.62, X = 0.77, BLANKET = [80, 84, 108], SHEET = [132, 128, 134], CREASE = [70, 74, 97];
-    const coversAt = () => { const p = s.coversUp ? 1 : (covers.progress || 0); return { p, zE: lerp(1.22, 0.1, p), yE: lerp(0.64, 0.84, p), roll: lerp(0.06, 0.025, p) }; };
+    // (pulled up in the dark, they are ripped back down off you to the foot of the bed)
+    const coversAt = () => { const p = s.yank ? 1 - (s.yankK || 0) : s.coversUp ? 1 : (covers.progress || 0); return { p, zE: lerp(1.22, 0.1, p), yE: lerp(0.64, 0.84, p), roll: lerp(0.06, 0.025, p) }; };
     L.dynamic = () => {
       if (unplugged) {
         if (!s.plugged) {
@@ -213,6 +319,42 @@ LEVELS.push({
       let hide = tb >= 1 ? Math.max(0.6, lz >= zF ? H(lx, lz) : lz >= zE ? up(lx, yE) + th(lx) : 0.6) : L.eyeH - (L.eyeH - 0.6) / tb;
       if (lz > zE && Math.abs(lx * zE / lz) < X) hide = Math.max(hide, L.eyeH - (L.eyeH - (up(lx * zE / lz, yE) + th(lx * zE / lz))) * lz / zE);
       c.hideBelow = hide;
+      // and the wall either side of the opening, while it is still behind it
+      const w = way(c), e = edgeAt(w, c.dist);
+      c.showX = c.dist > w.apZ + 0.01 ? [-e - c.lat, e - c.lat] : null;
+      // peering, its fingers are round the edge of the frame by its face (drawn over the frame, which the thing is behind):
+      // at the height of its hand, seen through the opening's plane
+      if ((c.peer || 0) > 0.3 && c.dist > w.apZ) {
+        const hy = L.eyeH + (1.7 - L.eyeH) * w.apZ / c.dist, q = APPROACH.position(c.lane, w.apZ - 0.03, side * (w.edge + 0.02), L.eyeH), k = smoothstep((c.peer - 0.3) / 0.4);
+        R.add(SC.mkSprite(L, q.x, hy - 0.07, q.z, 0.12, 0.14, (ctx, P) => drawFrameFingers(ctx, P, side, k), { sortDist: w.apZ - 0.08 }));
+      }
+      // its hands up over the edge of the bed, on the covers (over them): the backs of the long hands, the fingers down
+      // on the cloth, gripping; they come up over the edge as it reaches, and let go as it lunges
+      const r = (c.reach || 0) * (1 - (c.lunge || 0));
+      if (r > 0.01) w.hands.forEach(([x, z], i) => {
+        const y = z >= zF ? H(x, z) : B + 0.004, sx = w === WAYS[0] ? (x < 0 ? -1 : 1) : (i ? 1 : -1);
+        R.add(SC.mkSprite(L, x, y - 0.09 - (1 - r) * 0.14, z, 0.24, 0.24, (ctx, P) => { ctx.scale(1.3, 1.3); drawGrip(ctx, P, sx, r, L.t + i * 0.7); }, { sortDist: COV - 0.1 }));
+      });
+    };
+    const HAND = [10, 9, 12];
+    const drawFrameFingers = (ctx, P, sd, k) => {   // four long fingers curled round the edge, pointing back toward where it stands
+      const col = P.cola(HAND, k);
+      for (let i = 0; i < 4; i++) {
+        const y = 0.035 + i * 0.026, l = (i === 0 || i === 3 ? 0.045 : 0.058) * k;
+        P_limb(ctx, [[-sd * 0.03, y + 0.004], [sd * 0.005, y + 0.006], [sd * (0.005 + l), y - 0.006]], 0.013, col);
+      }
+    };
+    const drawGrip = (ctx, P, sd, r, t) => {   // one hand on the covers, in metres from the cloth under it (0.07 up)
+      const col = P.cola(HAND, Math.min(1, r * 1.4)), flex = Math.max(0, Math.sin(t * 1.3)) * 0.012;   // now and then it tightens its grip
+      P_line(ctx, sd * 0.006, 0.15, 0, 0.11, 0.05, col);                          // the wrist, up over the edge
+      P_ell(ctx, 0, 0.1, 0.05, 0.032, col);                                        // the back of the hand
+      for (let i = 0; i < 4; i++) {
+        const x0 = (i - 1.5) * 0.022, l = i === 0 || i === 3 ? 0.07 : 0.088, xm = x0 * 1.25, x1 = x0 * 1.4 + sd * 0.004;
+        P_limb(ctx, [[x0, 0.09], [xm, 0.09 - l * 0.55], [x1 - Math.sign(x0 || 1) * flex, 0.09 - l + flex]], 0.012, col);
+      }
+      P_limb(ctx, [[-sd * 0.045, 0.1], [-sd * 0.06, 0.07], [-sd * 0.05, 0.045]], 0.013, col);   // the thumb
+      // the cloth drawn up into its fingers
+      for (const dx of [-0.05, 0, 0.05]) P_line(ctx, dx * 1.2, 0.0, dx * 0.6, 0.035, 0.004, P.cola([60, 60, 80], 0.5 * r));
     };
     L.dynamicLights = () => { if (!shown()) return []; const p = L.pt(1.2, 1.05, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }]; };
     L.glows = () => { if (!shown()) return null; const p = L.pt(1.2, 1.0, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }]; };
@@ -227,7 +369,10 @@ LEVELS.push({
     L.aftermath = (t, dt) => {
       const c = c0();
       if (!s.after) {   // look up from the covers at it
-        s.after = true; G.cam.tPitch = 0; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8;
+        // at it where it really is (its eyes over the edge of the bed, if it is down there)
+        s.after = true; const p = c.pos(), yaw = Math.atan2(p.x, p.z), hd = Math.max(0.3, Math.hypot(p.x, p.z));
+        G.cam.tYaw = G.cam.yaw + wrapPi(yaw - G.cam.yaw); G.cam.dirIdx = ((Math.round(yaw / (45 * DEG)) % 8) + 8) % 8;
+        G.cam.tPitch = clamp(Math.atan2(L.eyeH - (c.duck ? c.eyeTo : 1.6), hd), 0, PITCH_DOWN);
         L.text.win = c.lane.idx === 1 ? 'You pulled the covers over your head. It came out of the closet to the side of the bed and pulled at them, and they held. It stood there until the light through them went grey.'
           : 'You pulled the covers over your head. It came to the foot of the bed and pulled at them, and they held. It stood there until the light through them went grey.';
       }

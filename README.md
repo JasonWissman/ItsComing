@@ -249,8 +249,19 @@ some on the ground, so you have to turn and look down to find them.
     boards; a lit one, or the matches, is snatched back before it gets there. The wrong things
     put together stay as they were, the other one (or a struck match, flaring and going out)
     up in your other hand a moment.
-12. **The Bedroom.** You are in bed. It is already in the doorway, or in the
-    closet, moving in extreme slow motion. Get the lamp on, pull the covers up. Your hand
+12. **The Bedroom.** You are in bed. It is already there, in the hall beyond the doorway
+    or in the closet, behind the wall at the side of the opening: at first only its head
+    leans out round the edge, its fingers curled round the frame (having its head in view
+    counts as watching it). Then it steps out into the room, in extreme slow motion. It
+    cannot stand the light: when the lamp comes on it throws an arm across its face and
+    sinks down out of sight, keeps low (only a dark shape along the floor, if it is out in
+    the open) to the bed, and comes up at the foot of it (or at its corner, out of the
+    closet) until only its eyes are over the edge; then its long hands come up over the
+    edge onto the covers. That is the moment: pull the covers up. The lamp must come
+    first: pulled up in the dark, the covers do not save you; it is at the bed all at once,
+    takes hold of them, rips them down off you and is in your face. If the lamp burns
+    out before the covers are up (it flickers first), it rises again from behind the bed
+    and comes on; one pull of the chain brings the light back, and it goes down again. Your hand
     pulls the lamp's chain (nothing comes of it with no bulb in or the cord out, and it sticks),
     opens the drawer, pushes the plug in and is on the covers' hem as you hold them; the wrong
     bulb will not go into the socket and drops onto the bed, to be taken again. Then they
@@ -359,7 +370,8 @@ LEVELS.push({
 - **Hooks** set inside `build`: `L.isWon()`, `L.barrierDist`, `L.floor = { poly, y }` (where
   dropped items may land), `L.dynamic()` (per-frame props via `SC.mkQuad` and friends),
   `L.update(dt)`, `L.onReach(c)`, `L.onCatch(c)`, `L.onPickup(it)`, `L.onDrop(it)`, `L.glows()`,
-  `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`, `L.deathCause(c)` (a key into `text.death`),
+  `L.creatureLit(c)`, `L.objectiveText()`, `L.onEnd()`, `L.deathCause(c)` (a key into `text.death`; a night that
+  calls `die(c, cause)` itself may first set `c.deathSpec = { delay, dur, sting }` to give that death its own timing and sting),
   `L.aftermath(t, dt)` (a custom aftermath; return true when it is over), `L.watchPoint()` (where the win camera
   looks instead of at the thing; it may also return a `zoom`), `L.watchZoom()` (close the win camera in further),
   `L.watchPitch` (how far down the win camera may look), `L.watchUp` (how far up it may look: the last night, into its face),

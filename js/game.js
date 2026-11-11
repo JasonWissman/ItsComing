@@ -599,7 +599,7 @@ function die(c, cause) {
   const L = G.L; c = c || L.creature;
   setState('dying');
   G.deathCause = cause || 'default'; G.deathCreature = c;
-  const spec = c.CR.death || {};
+  const spec = c.deathSpec || c.CR.death || {};   // a night may give this death its own timing and sting (c.deathSpec)
   AUDIO.sfx(spec.sting || 'sting'); AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear();
   G.shake(1.4);
   c.lunge = 0; c.frozen = true; c.lungeFrom = c.dist;
@@ -709,7 +709,7 @@ function update(dt) {
     }
   } else if (G.state === 'dying') {
     G.stateT += dt;
-    const cr = G.deathCreature, CR = cr.CR, spec = CR.death || {};
+    const cr = G.deathCreature, CR = cr.CR, spec = cr.deathSpec || CR.death || {};
     const delay = spec.delay === undefined ? 0.22 : spec.delay, dur = spec.dur === undefined ? 0.5 : spec.dur;
     const k = clamp((G.stateT - delay) / dur, 0, 1);
     cr.lunge = k; cr.lat = lerp(cr.lat, 0, 0.3); cr.t += dt * cr.timeScale;
