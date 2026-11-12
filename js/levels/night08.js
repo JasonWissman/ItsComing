@@ -3,7 +3,8 @@
 // It is drawn to the light. While the diner is lit it crosses the lot far faster than three shutters can be cranked, and
 // it does not matter whether you watch it; with the power main thrown it walks, slowly. Three windows across the front, a
 // roll-down shutter on each and one crank: shut the window it is coming for and it runs to one that is still open (along
-// the glass if it is already there, across the lot if not). With all three down it beats on the last one it came to.
+// the glass if it is already there, across the lot if not). A shutter it reaches only part way down, it takes by the
+// bottom edge and shoves back up into its housing, and comes through. With all three down it beats on the last one it came to.
 Object.assign(ICONS, {
   // the shutter crank: a long bright steel rod with a hook at the top, a crank bend and a red rubber grip, edged dark so it
   // reads on a pale tile and on a dark one, with the lights out. Drawn bold: it lies on the floor or a counter some way off.
@@ -267,6 +268,11 @@ LEVELS.push({
             else if (!G.reach(t, { style: 'knock', at: inReach(t, [0, 0.45]), sfx: 'glassTap' })) AUDIO.sfx('nope');
             return true;
           }
+          if (s.shove && s.shove.i === i) {   // it has hold of the bottom of it: the crank will not turn against it
+            s.queued = null; G.say('It has hold of the bottom of the shutter. The crank will not turn.', 'It has hold of the shutter.');
+            if (!G.reach(t, { style: 'rattle', at: inReach(t, gearAt(i)) })) AUDIO.sfx('nope');
+            return true;
+          }
           if (!G.hasItem('crank')) {   // the hand goes to the gearbox and tries to turn it with its fingers: it will not move
             s.byHand = true; G.say('It will not come down by hand. It needs its crank.', 'The shutter is rolled up. It will not come down by hand.');
             if (!G.reach(t, { style: 'rattle', at: inReach(t, gearAt(i)) })) AUDIO.sfx('nope');
@@ -316,18 +322,20 @@ LEVELS.push({
       s.slide = { to: k, from: s.target, atGlass, dir }; s.target = k; s.slides++;
       L.lane = ln; L.laneIdx = k; L.barrierDist = ln.barrierDist;
       c.hold = null; c.reached = false; c.dist = place(p0.x, p0.z); c.lat = 0;
-      // the turn side on starts from wherever it already is: from the front, or running already (the other way, it spins
-      // round through edge on; the same way, it does not slow down to start again but picks up from the speed it has)
-      const was = c.runPose ? c.runTurn : 0, back = c.runPose && was >= 0.5 && c.runDir !== dir;
-      const x0 = c.runPose && !back && was >= 0.5 ? RUN.ramp * clamp(c.runAmt, 0, 1) : 0, e00 = runAt(x0);
-      if (!c.runPose) Object.assign(c, { runPose: true, runAmt: 0, runGait: 0, runStep: 0 });
-      let T = (back ? 1 - was : was) * piv, e0 = 0, out = -1, px = p0.x, pz = p0.z;
+      // the turn side on starts from wherever it already is: from the front, part way round, or running already. It turns
+      // at a steady rate, so a turn already part made takes less time; running the other way it turns back round through
+      // face on to the new way. Running the same way, it does not slow down to start again but picks up from the speed it
+      // has. (th is how far round it is: -1 side on to the left, 0 face on, +1 side on to the right.)
+      const th0 = c.runPose ? (c.runDir || 1) * c.runTurn : 0, spin = Math.abs(dir - th0) * piv;
+      const x0 = c.runPose && th0 * dir >= 0.5 ? RUN.ramp * clamp(c.runAmt, 0, 1) : 0, e00 = runAt(x0);
+      if (!c.runPose) Object.assign(c, { runPose: true, runTurn: 0, runDir: dir, runAmt: 0, runGait: 0, runStep: 0 });
+      let T = 0, e0 = 0, out = -1, outTurn = 1, px = p0.x, pz = p0.z;
       c.distFn = (cc, dt) => {
         const m = cc.frozen || cc.dead ? 0 : cc.CR.speedMult(cc, dt, cc.seen);
         cc.u = clamp(cc.u + dt * m / cc.T, 0, 1);
         const r = Math.max(cc.D0 * (1 - cc.u), keep);
         T += dt;
-        e0 = Math.max(e0, (runAt(x0 + (1 - x0) * clamp((T - piv) / run, 0, 1)) - e00) / (1 - e00));
+        e0 = Math.max(e0, (runAt(x0 + (1 - x0) * clamp((T - spin) / run, 0, 1)) - e00) / (1 - e00));
         if (!atGlass) e0 = Math.max(e0, clamp((r0 - r) / (r0 - keep), 0, 1));   // out in the lot it is on k's way by the time it reaches the glass: the run never holds it back
         const yaw = yaw0 + turn * e0;
         const d = atGlass ? place(lerp(p0.x, Math.sin(ln.yaw) * r, e0), lerp(p0.z, Math.cos(ln.yaw) * r, e0)) : place(Math.sin(yaw) * r, Math.cos(yaw) * r);
@@ -335,12 +343,12 @@ LEVELS.push({
         const x = Math.sin(cc.yaw) * d, z = Math.cos(cc.yaw) * d;
         stride(cc, Math.abs(x * (z - pz) - z * (x - px)) / Math.max(d, 0.1), dt); px = x; pz = z;
         cc.gait -= Math.abs(cc.dist - d) * cc.CR.stepRate * Math.PI;   // its walking steps wait for its walk
-        if (out < 0 && e0 >= 1) out = T;
+        if (out < 0 && e0 >= 1) { out = T; outTurn = cc.runTurn; }
         if (out < 0) {   // turning side on, then running
-          const h = Math.min(1, T / piv);
-          if (back && h < 0.5) { cc.runDir = -dir; cc.runTurn = 1 - h; } else { cc.runDir = dir; cc.runTurn = back ? Math.max(h, 0.5) : h; }
-        } else cc.runTurn = 1 - Math.min(1, (T - out) / piv);   // there: turning back to the glass
-        if (out >= 0 && T - out >= piv) { cc.distFn = null; cc.retarget(k); cc.u = clamp(1 - d / cc.D0, 0, 1); s.slide = null; endRun(cc); }
+          const th = spin > 0 ? th0 + (dir - th0) * Math.min(1, T / spin) : dir;
+          cc.runDir = th > 0 ? 1 : th < 0 ? -1 : dir; cc.runTurn = Math.abs(th);
+        } else cc.runTurn = Math.max(0, outTurn - (T - out) / piv);   // there: turning back to the glass, from as far round as it is
+        if (out >= 0 && T - out >= piv * outTurn) { cc.distFn = null; cc.retarget(k); cc.u = clamp(1 - d / cc.D0, 0, 1); s.slide = null; endRun(cc); }
         return d;
       };
       if (atGlass) AUDIO.sfx('glassTap', panTo(ln.yaw));   // near enough to touch the glass as it goes
@@ -356,6 +364,65 @@ LEVELS.push({
       const best = Math.min(...open.map(gap)), near = open.filter(k => gap(k) < best + 0.01);
       if (slideTo(near[Math.floor(cr().rand() * near.length)])) G.say('The shutter is down. It runs along the glass to a window that is still open.', 'The shutter is down. It runs along the glass to another window.');
       else G.say('The shutter is down. Out in the lot, it runs for a window that is still open.', 'The shutter is down. Out in the lot, it runs for another window.');
+    };
+    // ---- a shutter part way down: it shoves it back up ----
+    // It comes up to the steel of a window whose shutter is still being cranked (not down: a shutter that is down holds it)
+    // and stops just outside it. Its hands come up to the bottom edge of the shutter, wherever that is (the arms as long
+    // as they need to be) and take hold of it, the fingers curling up round the bottom rail; it tugs at it, twice, the
+    // curtain jerking in its rails; then it shoves it up, violently, faster and faster, and the shutter slams up into its
+    // housing with a crash that shakes the place, and bounces. Every turn of the crank on it is lost. Then it throws
+    // itself at the glass and comes through (the death, as at any open window). While it has hold, the crank will not turn.
+    const SHOVE = { grab: 0.32, heave: 0.66, fly: 0.13, after: 0.3, lunge: 2.6 };
+    const shoveD = i => panes[i].glassD * (ZS + 0.1) / ZG;   // where it stands to do it: just outside the steel, on its way
+    // the bottom edge of window i's shutter (a height on the wall) as it shows from your eye, at the creature's distance d
+    const edgeAt = (i, yb, d) => eye + (yb - eye) * d / (panes[i].glassD * ZS / ZG);
+    const bottom = sh => TOP - (TOP - BOT) * sh;
+    // how high its hands go above its feet: a child's reach, its arms up over its head (higher, it jumps for the edge and
+    // hangs from it), and, shoving, a little further than an arm goes
+    const REACH = 1.5, FLING = 1.75;
+    const startShove = (c, i) => {
+      const d = shoveD(i);
+      s.shove = { i, t: 0, sh0: s.shown[i], d, grabbed: false, slamAt: -1, gone: false };
+      s.queued = null; s.shoves = (s.shoves || 0) + 1;
+      c.hold = d; c.dist = d; c.u = clamp(1 - d / c.D0, 0, 1);
+      c.shove = { k: 0, h: Math.min(REACH, edgeAt(i, bottom(s.shown[i]), d)), up: 0 };
+    };
+    const shoveStep = (c, dt) => {
+      const S = s.shove, i = S.i, a = (S.t += dt), pan = panTo(c.yaw);
+      let sh = S.sh0;
+      if (a < SHOVE.grab) c.shove.k = smoothstep(a / SHOVE.grab);
+      else {
+        c.shove.k = 1;
+        if (!S.grabbed) { S.grabbed = true; AUDIO.sfx('shutterGrab', pan); G.shake(0.12); }
+        if (a < SHOVE.heave) {   // two hard tugs, the curtain jerking up in its rails and dropping back, rattling
+          const e = a - SHOVE.grab, tug = u => Math.exp(-(((e - u) / 0.035) ** 2));
+          sh -= Math.min(0.04, S.sh0 * 0.5) * (tug(0.06) + tug(0.2)) + 0.004 * Math.sin(e * 95) * Math.exp(-e * 6);
+          if (!S.tug2 && e >= 0.2) { S.tug2 = true; AUDIO.sfx('shutterGrab', pan); G.shake(0.1); }
+        } else if (S.slamAt < 0) {   // the shove: up, faster and faster, into the housing
+          const e = clamp((a - SHOVE.heave) / SHOVE.fly, 0, 1);
+          sh = S.sh0 * (1 - e * e); c.shove.up = e;
+          if (e >= 1) {
+            S.slamAt = a; shutters[i].count = 0; s.turnAt[i] = -9;   // every turn of the crank on it, lost
+            AUDIO.sfx('shutterSlam', pan); G.shake(0.6);
+            G.say('It shoves the shutter up. It slams into its housing.', 'It shoves the shutter back up.');
+          }
+        }
+        if (S.slamAt >= 0) {   // up, and bouncing a little out of the slot and back
+          const b = a - S.slamAt;
+          sh = 0.04 * Math.exp(-b * 7) * Math.abs(Math.cos(b * 17)); c.shove.up = 1;
+          if (b >= SHOVE.after && !S.gone) {   // and it throws itself at the glass
+            S.gone = true; c.hold = null; c.u = clamp(1 - c.dist / c.D0, 0, 1);
+            c.distFn = (cc, dt2) => { const d = cc.dist - dt2 * SHOVE.lunge; cc.u = clamp(1 - d / cc.D0, 0, 1); return d; };
+          }
+        }
+      }
+      // an edge out of its reach: it jumps for it and hangs there by its hands until the shove, then drops as it shoves.
+      // Its hands stay on the edge as far as they can go; shoved past that, the steel flies on up without them.
+      const edge = edgeAt(i, bottom(Math.max(sh, 0)), S.d), lift = Math.max(0, edgeAt(i, bottom(S.sh0), S.d) - REACH);
+      c.yOff = lift * c.shove.k * (1 - c.shove.up) * (1 - c.shove.up);
+      S.edge = edge; if (!S.gone) c.shove.h = Math.min(edge - c.yOff, FLING);
+      s.shown[i] = Math.max(0, sh);
+      panes[i].ap.y1 = panes[i].top(bottom(s.shown[i]));
     };
     L.isWon = () => s.down.every(Boolean) && !s.through;
     L.deathCause = () => (s.power ? 'lit' : s.through ? 'through' : null);
@@ -378,13 +445,19 @@ LEVELS.push({
         s.shown[i] += (want - s.shown[i]) * Math.min(1, dt * 9);
         panes[i].ap.y1 = panes[i].top(TOP - (TOP - BOT) * s.shown[i]);
       });
+      // a shutter part way down at the window it has come to: it takes hold of it and shoves it up
+      if (!s.shove && !s.slide && !s.through && !L.won && !c.dead && G.state === 'play') {
+        const i = c.lane.idx;
+        if (!s.down[i] && (shutters[i].count || 0) > 0 && c.dist <= shoveD(i)) startShove(c, i);
+      }
+      if (s.shove && !s.through) shoveStep(c, dt);
       // at an open window it does not stop: it comes through the glass, and it has you. The pane it came through is gone,
       // broken (L.dynamic), and the crank is no use now; it does not walk the room between the stools and over the counter,
       // it comes straight from the glass at your face.
       if (!s.slide && !s.through && !L.won && !c.dead && c.dist < panes[c.lane.idx].glassD) {
         s.through = true; s.throughWin = c.lane.idx; s.queued = null; glass[c.lane.idx].alpha = 0;
         AUDIO.sfx('glassGive', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.4);
-        c.hold = null; c.catchDist = Infinity;
+        c.hold = null; c.catchDist = Infinity; c.distFn = null; c.shove = null; c.yOff = 0;
       }
     };
     // won: wherever it is, it comes straight up to the last shutter (its heels, running, on the other side; from far out it
@@ -466,6 +539,50 @@ LEVELS.push({
       if (h) shade(hx, hy + jy, 1.15 * pin(hx, hy) + 0.2, 1.0, ring * pin(hx, hy));
       shade(mx, my + jy, 1.7, 1.4, dent * 1.2);
     };
+    // the shove, as it shows from inside: its fingers curled up over the front of the bottom rail, two hands' worth either
+    // side of its face; the rail's blur as the curtain flies up; dust shaken down out of the housing when it slams
+    const handX = () => {   // where its two hands show across the shutter's plane (its fingertips are 0.12 m either side of it)
+      const p = cr().pos(), l = rotY(p.x, p.z, -L.facing), n = Math.hypot(l[0], l[1]) || 1;
+      return [-1, 1].map(sg => { const hx = l[0] + l[1] / n * sg * 0.12, hz = l[1] - l[0] / n * sg * 0.12; return hx * ZS / hz; });
+    };
+    const fingers = (ctx, P) => {
+      const skin = P.col([176, 170, 162]), edge = P.col([70, 62, 58]), nail = P.col([206, 198, 188]);
+      for (let f = 0; f < 4; f++) {
+        const x = (f - 1.5) * 0.017, top = 0.05 + (f === 1 || f === 2 ? 0.008 : 0);
+        P_line(ctx, x, 0.004, x * 1.06, top, 0.019, edge);
+        P_line(ctx, x, 0.004, x * 1.06, top, 0.013, skin);
+        P_ell(ctx, x * 1.06, top - 0.002, 0.004, 0.005, nail);
+        P_line(ctx, x - 0.005, top - 0.022, x + 0.005, top - 0.022, 0.0025, edge);   // the knuckle
+      }
+    };
+    const shoveArt = (i, x0, x1) => {
+      const S = s.shove, c = cr(), sd = panes[i].sortD, yb = bottom(s.shown[i]);
+      // the fingers, while the hands are on the edge (not once the steel has flown on out of their reach)
+      if (c.shove && c.shove.k > 0.85 && Math.abs(c.shove.h + c.yOff - edgeAt(i, yb, S.d)) < 0.03) {
+        for (const x of handX()) R.add(SC.mkSprite(L, clamp(x, x0 + 0.05, x1 - 0.05), yb - 0.022, ZS - 0.014, 0.1, 0.08, fingers, { sortDist: sd - 0.004 }));
+      }
+      const a = S.t;
+      if (S.slamAt < 0 && a > SHOVE.heave) {   // the rail, a blur behind it as it goes up
+        const e = clamp((a - SHOVE.heave) / SHOVE.fly, 0, 1);
+        [[0.12, 0.4], [0.25, 0.22], [0.4, 0.1]].forEach(([de, al]) => {
+          const y = bottom(S.sh0 * (1 - Math.max(0, e - de) ** 2));
+          if (y > yb + 0.02) R.add(SC.mkQuad(L, [x0, y, ZS - 0.009], [x1, y, ZS - 0.009], [x1, y + 0.08, ZS - 0.009], [x0, y + 0.08, ZS - 0.009], RAIL, { alpha: al, sortDist: sd - 0.003 }));
+        });
+      }
+      if (S.slamAt >= 0 && a - S.slamAt < 1.1) {   // dust and grit shaken out of the housing, a puff of it and specks falling
+        const b = a - S.slamAt, k = 1 - b / 1.1, rng = mulberry32(31 + i);
+        R.add(SC.mkSprite(L, (x0 + x1) / 2, TOP - 0.3 - b * 0.3, ZS - 0.03, (x1 - x0) * (0.9 + b * 0.6), 0.35 + b * 0.5, (ctx, P) => {
+          const g = ctx.createRadialGradient(0, 0.25, 0, 0, 0.25, 0.6);
+          g.addColorStop(0, P.cola([150, 144, 132], 0.32 * k)); g.addColorStop(1, P.cola([150, 144, 132], 0));
+          ctx.scale((x1 - x0) * (0.9 + b * 0.6), 0.35 + b * 0.5); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1);
+        }, { sortDist: sd - 0.006 }));
+        for (let q = 0; q < 18; q++) {
+          const x = lerp(x0 + 0.08, x1 - 0.08, rng()), v = 0.3 + rng() * 0.9, r = 0.008 + rng() * 0.012, y = TOP - 0.05 - v * b - 4.5 * b * b;
+          if (y < BOT) continue;
+          R.add(SC.mkQuad(L, [x - r, y - r, ZS - 0.025], [x + r, y - r, ZS - 0.025], [x + r, y + r, ZS - 0.025], [x - r, y + r, ZS - 0.025], [160, 152, 138], { alpha: 0.85 * k, sortDist: sd - 0.005 }));
+        }
+      }
+    };
     L.dynamic = () => {
       const on = lightsOn();
       for (const [cx, cz] of TUBES) R.add(SC.mkQuad(L, [cx - 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz + 0.07], [cx - 0.65, 2.96, cz + 0.07], on ? [240, 246, 230] : [60, 62, 58], on ? { noFog: true, noLight: true } : {}));
@@ -483,6 +600,7 @@ LEVELS.push({
             P_ell(ctx, ex, ey, 0.1, 0.1, edge); P_ell(ctx, ex, ey, 0.075, 0.075, P.col([186, 46, 36]));   // the grip, end on
           }, { sortDist: panes[i].sortD - 0.12 }));
         }
+        if (s.shove && s.shove.i === i && !s.through) shoveArt(i, x0, x1);
         const cov = (TOP - BOT) * s.shown[i];
         if (cov < 0.01) return;
         const yb = TOP - cov, sd = panes[i].sortD, z = ZS;

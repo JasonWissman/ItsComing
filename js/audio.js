@@ -303,6 +303,12 @@ const AUDIO = (() => {
       // dull slap of the fist, the curtain's low steel ring (inharmonic partials from 92 to 323 Hz, soft-edged), and its
       // slats knocking low in the rails, with no high rattle
       case 'shutterBang': noise(0.42, { freq: 170, vol: 0.9, attack: 0.002, pan }); noise(0.08, { type: 'bandpass', freq: 300, q: 1.1, vol: 0.4, pan }); tone(30, 0.62, { vol: 0.85, endFreq: 18, pan }); tone(60, 0.45, { vol: 0.55, type: 'triangle', endFreq: 36, pan }); for (const f of [92, 143, 216, 323]) tone(f, 0.75, { vol: 0.085, type: 'triangle', endFreq: f * 0.95, pan }); tone(143, 0.5, { vol: 0.035, type: 'square', endFreq: 136, pan }); for (let i = 0; i < 4; i++) noise(0.045, { type: 'bandpass', freq: 480 + i * 150, q: 3, vol: 0.14, delay: 0.06 + i * 0.05, pan }); break;
+      // small hands taking hold of a roller shutter's bottom rail and tugging at it: the curtain jerking in its rails, a
+      // short steel rattle of the slats and a dull knock
+      case 'shutterGrab': noise(0.07, { freq: 260, vol: 0.5, attack: 0.002, pan }); tone(70, 0.18, { vol: 0.35, endFreq: 48, pan }); for (let i = 0; i < 6; i++) noise(0.03, { type: 'bandpass', freq: 900 + i * 210, q: 4, vol: 0.16, delay: 0.02 + i * 0.035, pan }); break;
+      // a roller shutter shoved up hard, slamming into its housing: a huge metal crash,
+      // the roll and the housing ringing, and the slats rattling on as it bounces
+      case 'shutterSlam': noise(0.5, { freq: 380, vol: 1.0, attack: 0.002, pan }); noise(0.18, { type: 'bandpass', freq: 2400, q: 0.8, vol: 0.45, pan }); tone(38, 0.8, { vol: 0.9, endFreq: 22, pan }); for (const f of [173, 241, 389, 562, 811]) tone(f, 1.1, { vol: 0.07, type: 'triangle', endFreq: f * 0.97, pan }); for (let i = 0; i < 9; i++) noise(0.035, { type: 'bandpass', freq: 700 + (i % 3) * 400, q: 3, vol: 0.22 * (1 - i / 10), delay: 0.08 + i * 0.06 + i * i * 0.004, pan }); break;
       case 'musicbox': [[880, 0], [1175, 0.25], [1319, 0.5], [1175, 0.75], [988, 1.0], [880, 1.3], [1319, 1.7], [1568, 1.95], [1319, 2.3], [1175, 2.55]].forEach(([f, d]) => tone(f, 0.55, { vol: 0.06, type: 'triangle', delay: d, pan })); break;
       case 'musicTurn': { // one turn of a music box's crank: a click, and the comb plucks the next few notes of that tune (from its start after a pause)
         const t0 = now(); if (!(t0 - (sfx.turnAt || -99) < 10)) sfx.turnN = 0; sfx.turnAt = t0;

@@ -6,7 +6,7 @@ const CAPTIONS = (() => {
     keyClick: 'a key clicks', coin: 'a coin drops in', coinReturn: 'a coin rattles into the return', carCome: 'a car, coming fast', brake: 'tyres hiss on the wet road', horn: 'a car horn, twice', carDoor: 'a car door opens', lampBreak: 'a street lamp pops, and glass falls',   // the pay phone's keys and coin, the car that comes, the lamps he breaks
     boardRattle: 'the boards rattle on their nails',
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
-    shutterBang: 'fists pound on the shutter',
+    shutterBang: 'fists pound on the shutter', shutterGrab: 'the shutter rattles in its rails', shutterSlam: 'a shutter slams up into its housing',
     clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click', twang: 'a bowstring twangs', bowCreak: 'a bowstring creaks', bowFull: 'the bowstring comes tight', thunk: 'an arrow thunks home',
     scrape: 'scratching', drawer: 'a drawer slides open', tug: 'the covers are yanked', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', tick: 'a clock ticks', musicbox: 'a music box', musicTurn: 'a few notes of a music box', birds: 'birdsong', start: 'the engine catches',
     musicSour: 'a music box plays wrong notes',
