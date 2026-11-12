@@ -6,8 +6,9 @@
 // further, the smaller it is to aim at); full but off it, it misses; let go before it is full and it drops into the snow
 // short of it. A tap looses nothing: the bow comes up, the string starts back, and it is let down again. Two hits put it
 // down (the first drops it for a moment); with all three arrows gone and it still up, it stops watching and comes flat
-// out. Drawn on, it may break sideways to a new place (30% of draws, never twice within a few seconds), so the aim has to
-// come after it. (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
+// out. It comes fast, and out in the open it keeps breaking sideways to a new place by itself (CREATURES.runner.dart);
+// drawn on, it may also break sideways (30% of draws, never twice within a few seconds), so the aim has to come after it.
+// (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
 const CLEARING_BOW = (() => {
   const FILL = 1.5, MIN = 0.18;
   // the world direction through a point on the screen (page coordinates), from the eye
@@ -163,7 +164,7 @@ LEVELS.push({
     { deg: 0, name: 'porch steps', barrierDist: 0, cue: 'crack', default: true },
     { deg: 90, name: 'porch side', barrierDist: 0, cue: 'crack' },
   ],
-  creatures: [{ type: 'runner', startDist: 115, time: 62, unseenMult: 1.3 }],   // three arrows to find now: more time (on Nightmare about 37 s in if watched, about 20 if not)
+  creatures: [{ type: 'runner', startDist: 115, time: 62, unseenMult: 1.3 }],   // three arrows to find: on Nightmare about 32 s in if watched, about 18 if not (its pace is the runner's own)
   aftermath: { type: 'down', dur: 3.8 },
   // The bow pressed with no arrows: the hand feels on the string for one (emptyText is what the game says when the draw finds
   // no ammo; it starts that too). The arrows on their own, clicked at it: a use for the arrows whose 'ammo' is the bow, so a
