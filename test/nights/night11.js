@@ -1,104 +1,58 @@
-// The Barn: a bottle and a rag, fill the bottle at the oil drum, stuff the rag in, light it with the matches and throw it
-// into the hay it is coming past; it runs round to the other way in, so the second bottle goes into the other stack.
-// The matches are picked up once and kept. The harness carries little: one bottle and one rag at a time.
-// First the rule that both burning hold it wherever it is, unless it is already up in the loft, on its way in from the side
-// window (the loft door, across the yard), with lit bottles put straight into your hands and thrown at a stack:
-//  - the barn hay first (not its way: on it comes), then the yard hay with it already in the loft doorway: too late, and
-//    the line says so;
-//  - the yard hay while it is still out in the yard: it runs round to the barn floor; the barn hay goes up after it has
-//    passed that way's fire line, in among the hay (once a death: the bug): you survive, and it rears back out of the fire;
-//  - the barn hay first, then the yard hay once it is past the yard hay and on the chute, the fire at its back: you
-//    survive, and it backs away down the chute into the smoke and sits there.
-// Then the night itself, made and thrown by hand.
-const bottle = [['pickup', 'bottle'], ['pickup', 'rag'], ['use', 'drum'], ['expect', "G.inv.some(i => i.id === 'bottle_oil')", 'bottle filled at the drum'],
-  ['combine', 'bottle_oil', 'rag'], ['combine', 'cocktail', 'matches'], ['expect', "G.inv.some(i => i.id === 'cocktail_lit') && G.inv.some(i => i.id === 'matches')", 'bottle lit, matches kept']];
-const into = (k, id) => [['use', id], ['waitUntil', 'G.L.s.fire[' + k + ']', 4000], ['expect', 'G.L.s.fire[' + k + ']', id + ' burning']];
-const sideWindow = [['eval', 'for (let k = 0; k < 40 && G.L.creature.lane.idx !== 0; k++) restartLevel();'], ['wait', 300],
-  ['expect', 'G.L.creature.lane.idx === 0 && G.state === "play"', 'it is coming from the side window: across the yard for the loft door']];
-const hay = k => "G.L.targets.find(t => t.id === '" + (k === 0 ? 'hayN' : 'hayE') + "')";
-const litBottle = "(() => { const it = newItem(G.L, 'cocktail_lit', 'Lit bottle', { w: 0.2, h: 0.36, throwable: true, icon: 'barnCocktailLit' }); G.inv.push(it); G.active = G.inv.length - 1; return it; })()";
-const throwAt = k => [['eval', litBottle + '; useTarget(' + hay(k) + ');'], ['waitUntil', 'G.L.s.fire[' + k + ']', 3000]];   // as a click on the stack does
-const put = p => ['eval', 'G.L.creature.u = 1 - ' + p + ' / G.L.creature.S0;'];   // this many path metres from you on its way
-const survived = [['waitUntil', "G.state === 'survived'", 15000], ['expect', "G.state === 'survived'", 'it never reached you: the night is survived']];
-const again = [['eval', 'restartLevel()'], ['wait', 300]];
-// how far it reared back, watched every frame from now until the night is over
-const reared = ['eval', 'window.__reared = 0; (function w() { window.__reared = Math.max(window.__reared, G.L.creature.recoil || 0); if (G.state === "won" || G.state === "play") requestAnimationFrame(w); })();'];
-const late = sideWindow.concat(throwAt(1), [
-  ['expect', '!G.L.s.run && G.L.creature.lane.idx === 0 && !G.L.won', 'the barn hay first: it is not coming that way, so on it comes'],
-  ['eval', put(3.6)[1] + ' G.L.creature.dist = 3.6; ' + litBottle + '; applyUse(' + hay(0) + ', G.inv[G.active]);'],
-  ['expect', 'G.L.s.fire[0] && G.L.s.fire[1] && !G.L.won', 'both burning with it already in the loft doorway: nothing holds it now'],
-  ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 8000],
-  ['expect', "G.deathCause === 'late' && /already up in the loft/.test(G.L.text.death.late)", 'it reaches you, and the line says it was already in the loft'],
-], again);
-const passedLine = sideWindow.concat(throwAt(0), [
-  ['expect', '!!G.L.s.run && !G.L.won', 'the yard hay while it is out in the yard: it runs round'],
-  ['waitUntil', '!G.L.s.run && G.L.creature.lane.idx === 1', 6000],
-  ['expect', '!G.L.s.run && G.L.creature.lane.idx === 1', 'it has come round to the barn floor'],
-  put(15.4), reared,
-], throwAt(1), [
-  ['expect', 'G.L.s.litAt[1].lane === 1 && G.L.s.litAt[1].path < G.L.s.litAt[1].bar', "the barn hay went up after it had passed that way's fire line"],
-  ['waitUntil', '!!G.L.s.rush', 2000],   // (decided in the frame after the win)
-  ['expect', "G.L.won && G.L.s.rush.mode !== 'line'", 'both burning: you are safe'],
-  ['wait', 1500], ['expect', 'window.__reared > 0.9', 'it rears back from the fire where it stands'],
-], survived, again);
-const onChute = sideWindow.concat(throwAt(1), [put(8.5), reared], throwAt(0), [
-  ['expect', 'G.L.s.litAt[0].lane === 0 && G.L.s.litAt[0].path < G.L.s.litAt[0].hay && G.L.creature.dist > 4.6', 'the yard hay went up behind it: it was past it, on the chute'],
-  ['waitUntil', '!!G.L.s.rush', 2000],
-  ['expect', "G.L.won && G.L.s.rush.mode === 'smoke'", 'both burning: you are safe, though it was between the fire and you'],
-  ['waitUntil', 'G.L.creature.sitting', 8000],
-  ['expect', 'G.L.creature.sitting && G.L.s.rush.to > G.L.s.rush.p0 + 1 && window.__reared > 0.9', 'it reared back, backed away down the chute, away from you, and sat down in the smoke'],
-], survived, again);
-// What will not go, shown in the world (js/hands.js), with it held where it is, each from a fresh start:
-//  - an unlit bottle of oil at the hay is swung out toward it at arm's length and held back (only a lit one is let go of:
-//    anything else would be lost down there), oil slopping out of its neck; an empty bottle the same; the matches: one is
-//    struck and flicked out at the hay, and goes out as it falls, the box kept;
-//  - at the drum a full bottle goes to the tap and comes back, the oil running over onto the boards; a lit one goes toward
-//    it and is snatched back short of it; with nothing in hand the tap is turned and the oil runs out onto the boards;
-//  - the wrong ways round in the hands leave both just as they were, the other thing (or a struck match) up in the other hand
-//    a moment; a lit bottle put down is lowered toward the boards and kept.
-const fresh = [['eval', 'restartLevel(); G.L.creature.hold = G.L.creature.dist;'], ['wait', 250]];
-const T = id => "G.L.targets.find(t => t.id === '" + id + "')";
-const take = (id, as) => "(() => { const it = G.L.items.find(i => i.id === '" + id + "' && !i.taken); it.taken = true; G.inv.push(it); G.active = G.inv.length - 1;" + (as ? ' Object.assign(it, ' + as + ');' : '') + ' return it; })()';
-const OIL = "{ id: 'bottle_oil', name: 'Bottle of oil', icon: ICONS.barnBottleOil }";
-const aim = id => 'G.cam.yaw = G.cam.tYaw = Math.atan2(' + T(id) + '.x, ' + T(id) + '.z); G.cam.pitch = G.cam.tPitch = 0;';
-const inHand = id => "!G.fumbling && G.inv[G.active] && G.inv[G.active].id === '" + id + "' && G.hand.cur === G.inv[G.active] && G.hand.up > 0.9 && !G.hand.gone";
-const near = (id, d) => 'Math.hypot(G.fumbling.at.x, G.fumbling.at.y - G.L.eyeH, G.fumbling.at.z) < ' + d;
-const drops = ['eval', "window.__drops = 0; (function w() { window.__drops = Math.max(window.__drops, G.L.s.bits.filter(b => b.kind === 'drop').length); if (G.state === 'play') requestAnimationFrame(w); })();"];
-const fumbles = [].concat(
-  fresh, [drops, ['eval', take('bottle', OIL) + '; ' + aim('hayE') + ' useTarget(' + T('hayE') + ');'],
-    ['expect', "G.fumbling && G.fumbling.preset === 'return' && !G.fumbling.drop && " + near('hayE', 2.2) + " && G.lastToast.msg === 'It is not lit.'", "an unlit bottle of oil at the hay is swung out at arm's length toward it"],
-    ['waitUntil', inHand('bottle_oil'), 3000], ['expect', inHand('bottle_oil') + ' && window.__drops > 5 && !G.L.s.fire[1]', 'and held back: it is in your hand again, oil slopped out of its neck, and the hay is not alight']],
-  fresh, [['eval', take('bottle') + '; ' + aim('hayN') + ' useTarget(' + T('hayN') + ');'],
-    ['expect', "G.fumbling && G.fumbling.preset === 'return' && " + near('hayN', 2.2), 'an empty bottle at the hay: swung out toward it too'], ['waitUntil', inHand('bottle'), 3000], ['expect', inHand('bottle'), 'and kept']],
-  fresh, [['eval', take('matches') + '; ' + aim('hayN') + ' useTarget(' + T('hayN') + '); useTarget(' + T('hayN') + ');'],
-    ['expect', "!G.fumbling && G.L.s.bits.filter(b => b.kind === 'match').length === 1 && G.inv.some(i => i.id === 'matches')", 'the matches at the hay: one is struck and flicked out at it (one, however fast the clicks), the box kept'],
-    ['waitUntil', "!G.L.s.bits.length", 3000], ['expect', '!G.L.s.fire[0] && !G.L.s.bits.length', 'it went out as it fell, and the hay is not alight']],
-  fresh, [['eval', take('bottle', OIL) + '; ' + aim('drum') + ' useTarget(' + T('drum') + ');'],
-    ['expect', "G.fumbling && Math.hypot(G.fumbling.at.x - " + T('drum') + ".x, G.fumbling.at.z - " + T('drum') + ".z) < 0.6 && G.lastToast.msg === 'Full already.'", 'a full bottle at the drum goes to the tap'],
-    ['waitUntil', inHand('bottle_oil'), 3000], ['expect', inHand('bottle_oil') + ' && G.L.s.spill > 0', 'and comes back, the oil run over onto the boards']],
-  fresh, [['eval', "const it = newItem(G.L, 'cocktail_lit', 'Lit bottle', { w: 0.2, h: 0.36, throwable: true, icon: 'barnCocktailLit' }); G.inv.push(it); G.active = 0; " + aim('drum') + ' useTarget(' + T('drum') + ');'],
-    ['expect', 'G.fumbling && Math.hypot(G.fumbling.at.x - ' + T('drum') + '.x, G.fumbling.at.z - ' + T('drum') + '.z) > 0.9', 'a lit bottle at the drum goes toward it, and stops well short of it'],
-    ['waitUntil', inHand('cocktail_lit'), 3000], ['expect', inHand('cocktail_lit'), 'and is snatched back']],
-  fresh, [['eval', aim('drum') + ' useTarget(' + T('drum') + ');'], ['expect', "G.hand.reach && G.hand.reach.style === 'pull'", 'nothing in hand: the hand goes to the tap'],
-    ['waitUntil', '!G.hand.reach', 3000], ['expect', 'G.L.s.spill > 0 && !G.inv.length', 'and the oil runs out onto the boards']],
-  fresh, [['eval', take('bottle') + '; ' + take('rag') + '; ' + take('matches') + '; G.active = 0; window.__n = G.L.items.length; window.__inv = G.inv.slice();'], ['wait', 150],
-    ['eval', "document.querySelectorAll('#inventory .slot')[1].click();"],
-    ['expect', "G.lastToast.msg === 'The bottle is empty.' && G.inv.length === 3 && G.inv.every((i, k) => i === window.__inv[k]) && G.active === 0 && G.L.items.length === window.__n", 'the empty bottle and the rag: both still in your hands, just as they were'],
-    ['waitUntil', "G.hand.off.cur && G.hand.off.cur.id === 'rag' && G.hand.off.up > 0.9", 1500], ['expect', "G.hand.off.cur.id === 'rag' && G.hand.cur.id === 'bottle'", 'the rag comes up in your other hand beside the bottle'],
-    ['waitUntil', '!G.hand.off.cur', 3000], ['expect', '!G.hand.off.cur', 'and goes down again'],
-    ['eval', 'G.active = 0;'], ['wait', 150], ['eval', "document.querySelectorAll('#inventory .slot')[2].click();"],
-    ['expect', "G.lastToast.msg === 'There is nothing to light.' && G.inv.every((i, k) => i === window.__inv[k])", 'the empty bottle and the matches: as they were'],
-    ['waitUntil', "G.hand.off.cur && G.hand.off.cur.id === 'match'", 1500], ['expect', "G.hand.off.cur.id === 'match'", 'a match is struck in your other hand']],
-  fresh, [['eval', "const it = newItem(G.L, 'cocktail_lit', 'Lit bottle', { w: 0.2, h: 0.36, throwable: true, icon: 'barnCocktailLit' }); G.inv.push(it); G.active = 0; G.cam.dirIdx = 6; G.cam.yaw = G.cam.tYaw = -Math.PI / 2;"], ['wait', 300],
-    ['eval', 'G.cam.pitch = G.cam.tPitch = PITCH_DOWN; dropActive();'],
-    ['expect', "G.fumbling && G.fumbling.at.y < " + 'G.L.floor.y + 0.4' + " && G.inv.some(i => i.id === 'cocktail_lit') && G.lastToast.msg === 'Not in here.'", 'a lit bottle put down: it is lowered toward the boards'],
-    ['waitUntil', inHand('cocktail_lit'), 3000], ['expect', inHand('cocktail_lit') + " && G.L.items.every(i => i.id !== 'cocktail_lit' || i.taken)", 'and kept: it is back in your hand, not on the floor']],
-  [['eval', 'restartLevel();'], ['wait', 250]]);   // (and on from a fresh start, with nothing held back)
+// The Farm: the electrical box's switches light the farm's places (HOUSE is sw0, then the ring of places clockwise from
+// the tractor shed, sw1..sw7). The thing hides in the dark at one place (G.L.s.k, 0..6); its neighbours are G.L.nb(k).
+// Checks first, each from a fresh start, with clicks on the switches as a click does them (useTarget):
+//  - lighting its place makes it flinch and run, side on, to a neighbouring place that is dark;
+//  - four switches on at once blow the fuse: every light goes dark and every switch drops to off; the box is dead a few
+//    seconds, then comes back with everything off;
+//  - with the porch light on, lighting both its neighbours and then its place is a fourth switch: the fuse blows, it is
+//    not caught;
+//  - flipping switches at random gets you killed (several random runs, played out with G.step);
+// then the night itself: the house switched off, both its neighbours lit, then its own place, and it comes apart.
+const sw = i => "G.L.targets.find(t => t.id === 'sw" + i + "')";
+const click = i => 'useTarget(' + sw(i) + ');';
+const fresh = [['eval', 'restartLevel();'], ['wait', 300]];
+const flush = fresh.concat([
+  ['eval', "window.__k0 = G.L.s.k; window.__nb = G.L.nb(G.L.s.k); window.__r0 = G.L.s.r; useTarget(G.L.targets.find(t => t.id === 'sw' + (G.L.s.k + 1)));"],
+  ['waitUntil', '!!G.L.s.flinch || !!G.L.s.run', 1500],   // (the next frame)
+  ['expect', '!!G.L.s.flinch || !!G.L.s.run', 'its place lit: it flinches from the light'],
+  ['waitUntil', '!!G.L.s.run', 2000],
+  ['expect', 'G.L.creature.runPose && G.L.s.run.from === window.__k0 && window.__nb.includes(G.L.s.run.to)', 'and runs, side on, toward a neighbouring place'],
+  ['waitUntil', '!G.L.s.run && !G.L.s.flinch', 6000],
+  ['expect', 'window.__nb.includes(G.L.s.k) && !G.L.s.on[G.L.s.k + 1] && G.L.creature.shade > 0.5 && Math.abs(G.L.s.r - window.__r0) < 2', 'it is at that neighbour now, in the dark, no further from you than it was'],
+]);
+const fuse = fresh.concat([
+  ['eval', 'const k = G.L.s.k, far = [0, 1, 2, 3, 4, 5, 6].filter(q => q !== k && !G.L.nb(k).includes(q)).slice(0, 3); window.__far = far; ' + "far.forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
+  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o) && G.L.s.blows === 1', 'a fourth switch on: the fuse blows, and every switch drops to off'],
+  ['wait', 400],
+  ['expect', 'G.L.dynamicLights().length === 0 && G.L.pal.ambient < 0.4', 'every light on the farm is out, the porch light too'],
+  ['eval', click(2)],
+  ['expect', '!G.L.s.power && !G.L.s.on[2]', 'the dead box: a switch pushed up drops straight back'],
+  ['waitUntil', 'G.L.s.power', 7000],
+  ['expect', 'G.L.s.power && G.L.s.on.every(o => !o) && G.state === "play"', 'the breaker comes back in, with everything off'],
+]);
+const houseOn = fresh.concat([
+  ['eval', "const k = G.L.s.k; G.L.nb(k).forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1)))); useTarget(G.L.targets.find(t => t.id === 'sw' + (k + 1)));"],
+  ['expect', '!G.L.s.power && G.L.s.blows === 1 && !G.L.s.trapped', 'with the porch light on, the trap is a fourth switch: the fuse blows and it is not caught'],
+  ['wait', 300], ['expect', '!G.L.won', 'not won'],
+]);
+// switches flipped at random every half second or so, played out with G.step until it ends: it gets you
+const random = seed => fresh.concat([
+  ['eval', '(() => { let a = ' + seed + '; const rnd = () => { a = (a * 1103515245 + 12345) % 2147483648; return a / 2147483648; }; let next = 0.5; ' +
+    'for (let i = 0; i < 2400 && G.state === "play"; i++) { G.step(0.05); if (G.L.t >= next) { next = G.L.t + 0.3 + rnd() * 0.6; const id = "sw" + Math.floor(rnd() * 8); useTarget(G.L.targets.find(t => t.id === id)); } } ' +
+    'window.__rand = (window.__rand || 0) + (G.state === "dying" || G.state === "dead" ? 1 : 0); })()'],
+]);
+const randoms = [].concat(...[11, 22, 33, 44, 55].map(random), [['expect', 'window.__rand >= 5', 'flipping switches at random: it got you every time (' + 5 + ' runs)']]);
+// the night: the porch light off first, then the places either side of where it is, then its own
+const trap = k => { const n = [(k + 6) % 7, (k + 1) % 7]; return [['use', 'sw' + (n[0] + 1)], ['use', 'sw' + (n[1] + 1)], ['expect', 'G.L.s.k === ' + k + ' && !G.L.won', 'both neighbours lit; it stays where it is, in the dark'], ['use', 'sw' + (k + 1)]]; };
+const solve = [
+  ['use', 'sw0'],
+  ['expect', '!G.L.s.on[0]', 'the porch light is off'],
+  ['branch', 'G.L.s.k === 0', trap(0)], ['branch', 'G.L.s.k === 1', trap(1)], ['branch', 'G.L.s.k === 2', trap(2)], ['branch', 'G.L.s.k === 3', trap(3)],
+  ['branch', 'G.L.s.k === 4', trap(4)], ['branch', 'G.L.s.k === 5', trap(5)], ['branch', 'G.L.s.k === 6', trap(6)],
+  ['expect', 'G.L.s.trapped && G.L.won && G.L.s.power', 'its place lit with both neighbours lit: nowhere dark to go'],
+  ['waitUntil', 'G.L.creature.fallT > 2.5', 6000],
+  ['expect', 'G.L.creature.fallT > 2.5 && G.state === "won"', 'it shrieks and comes apart in the light, before the fade'],
+];
 module.exports = {
-  nightmare: fumbles.concat(late, passedLine, onChute, [['pickup', 'matches']], bottle, [
-    ['branch', 'G.L.creature.lane.idx === 0', into(0, 'hayN'), into(1, 'hayE')],
-    ['expect', '!!G.L.s.run && !G.L.won', 'the fire in its way sends it round, and one fire does not hold it'],
-  ], bottle, [
-    ['branch', 'G.L.s.fire[0]', into(1, 'hayE'), into(0, 'hayN')],
-  ]),
+  nightmare: [].concat(flush, fuse, houseOn, randoms, fresh, solve),
 };
