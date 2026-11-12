@@ -1,19 +1,22 @@
 'use strict';
 // ============================================================ 9. THE PHONE BOOTH ============================================================
-// A phone booth on a corner, at night, in the rain, with glass all round. A man in a long coat is coming toward it from a long
-// way off, up the main street or along the far pavement of the cross street from the east, with no light of his own. The
-// street lamps stand along his way, on the sides of both streets nearer the booth's corner, and he goes from one to the
-// next: he stands behind a lamp a few seconds, lit by it, then reaches up, far too far, and breaks it (a pop, glass,
-// sparks, and it is out for good), and in the dark he rushes on to the next one nearer the booth, waits, breaks that, and so
-// on until the last; then he comes across to the glass. The pay phone hangs across the corner of the booth between the two
-// streets, so while you use it both streets are at the edges of the view and you see him coming out of the corner of your
-// eye. On the corner shelf under the phone lies your notebook, and somewhere in it, among the shopping and the dentist, is
+// A phone booth on a corner, at night, in the rain, with glass all round. Something is coming toward it from a long way
+// off, up the main street or along the far pavement of the cross street from the east: a shade, far too tall and far too
+// thin, all one dark (js/creatures/signalman.js), with no light of its own and nothing of it to be seen most of the time
+// but the two pale points of its eyes. The street lamps stand along its way, on the sides of both streets nearer the
+// booth's corner, and it goes from one to the next, every one of them, starting at the very last, the furthest down its
+// street: it stands behind a lamp, peering round the post, a few seconds, lit by it (and in that light its face shows),
+// then reaches up, its arm unspooling far too far, and breaks it (a pop, glass, sparks, and it is out for good), and in the
+// dark it skitters on, low and fast, to the next one nearer the booth, waits, breaks that, and so on until the last; then it
+// comes across to the glass. The pay phone is a slim unit on a narrow backboard across the corner of the booth between the
+// two streets, the glass clear either side of it, so while you use it both streets are at the edges of the view and you
+// see it coming out of the corner of your eye. On the corner shelf under the phone lies your notebook, and somewhere in it, among the shopping and the dentist, is
 // the number to ring, on a page of its own, scrawled large and fast in something red that has run. It is a pay phone: lift
 // the receiver, put a coin in (there is one lying about in the booth) and dial on its own keys; it rings for seven seconds
-// while he keeps coming, and then someone picks up and a car comes for you. Every other number in the notebook belongs to
+// while it keeps coming, and then someone picks up and a car comes for you. Every other number in the notebook belongs to
 // someone ordinary and is not in service, and hanging up gives the coin back, into the coin return.
 // The notebook is read where it lies, in the world, with nothing done to the view: clicked, its cover flips back over the
-// spiral and stands against the plate behind it; each click after that lifts the page by its corner and turns it back over
+// spiral and stands against the backboard behind it; each click after that lifts the page by its corner and turns it back over
 // the spiral, and a click on the last page shuts it. You look down at it as at anything else, and zoom in (Shift, Z or Space)
 // to read it. Its pages are drawn once into canvases and laid on it, strip by strip, in perspective. The phone is looked at
 // as anything else too, a little smaller than life, its keys clicked where they are drawn (or with the zoom held); the
@@ -58,19 +61,21 @@ Object.assign(ICONS, {
   const B = 0.7;               // and the glass on the other three sides (the door to the north, east, and the back) this far
   const PHONE_DIR = 1;         // facing the phone is facing north-east, into the corner between the two streets
   const ROAD = -0.12;          // the road is a kerb's height below the pavement the booth stands on
-  // The pay phone hangs on a plate set across the north-east corner, square to the line from the eye into the corner, its
-  // ends against the two panes. A point on it is given by u across the plate (to your right as you face it), y up, and d
-  // out from the plate toward you (at3). The phone itself is a size smaller than life: its parts are given at full size,
-  // and come in to PK of that about the middle of its keys (ph), which is PY1 high
-  const SQ = Math.SQRT1_2, PW = 0.2, WD = B / SQ - PW - 0.004;      // the plate's half width; how far it is from the eye
+  // The pay phone is a slim unit on a narrow backboard standing off the north-east corner post (on short arms, hidden
+  // behind it), square to the line from the eye into the corner, so that the glass either side of it is clear: both streets
+  // are seen past it. A point on it is given by u across the board (to your right as you face it), y up, and d out from it
+  // toward you (at3). The phone itself is a size smaller than life: its parts are given at full size, and come in to PK of
+  // that about the middle of its keys (ph), which is PY1 high. PW: how far either way the glass is from the middle of the
+  // board, along its line; BW: the board's own half width
+  const SQ = Math.SQRT1_2, PW = 0.2, WD = B / SQ - PW - 0.004, BW = 0.078;   // how far the board is from the eye
   const at3 = (u, y, d) => [SQ * (WD - d + u), y, SQ * (WD - d - u)];
   const PK = 0.8, PY = 1.52, PY1 = 1.6;
   const ph = (u, y, d) => at3(u * PK, PY1 + (y - PY) * PK, d * PK);
   const FD = WD - 0.1 * PK;    // how far the face of the phone's housing is from the eye
-  // the notebook, lying on the corner shelf under the phone: a reporter's pad, its spiral along the end toward the plate (d
-  // along the shelf out from the plate, u across it to your right), a sheet len long and u0..u1 wide, th thick, and RINGS
-  // turns of wire through it. SH: how far the shelf comes out from the plate
-  const NB = { u0: -0.085, u1: 0.055, d: 0.045, len: 0.185, y: 1.03, th: 0.007 }, RINGS = 9, SH = 0.25;
+  // the notebook, lying on the little shelf under the phone: a reporter's pad, its spiral along the end toward the board (d
+  // along the shelf out from the board, u across it to your right), a sheet len long and u0..u1 wide, th thick, and RINGS
+  // turns of wire through it. SH: how far the shelf comes out from the board; SB, SF: its half width at the back and front
+  const NB = { u0: -0.085, u1: 0.055, d: 0.045, len: 0.185, y: 1.03, th: 0.007 }, RINGS = 9, SH = 0.25, SB = 0.11, SF = 0.15;
   // ---------------- the notebook ----------------
   // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice, '%' scrawled across a page of its own in
   // blood; {n} an ordinary number, {k} the one to ring
@@ -88,9 +93,9 @@ Object.assign(ICONS, {
     ['#soup', '2 onions, carrots', 'a stock cube', 'an hour, low', 'salt at the end'],
     ['#birthdays', 'Mum, 3rd March', 'Danny, the 19th', 'Ruth ?'],
   ];
-  const COAT = ['saw the man in the coat again', 'same corner, same time', 'he doesn\'t look at the cars', 'he doesn\'t look at anything'];
+  const COAT = ['saw it again, by the lamps', 'same corner, same time', 'only the eyes, until the light', 'then the face. it was smiling', 'it doesn\'t look at the cars'];
   const KEY = ['%{k}'];   // the number to ring, alone on its page, written large and fast in red
-  // seven pages: the man in the coat, five ordinary ones and the one with the number, never first; every number distinct.
+  // seven pages: the thing by the lamps, five ordinary ones and the one with the number, never first; every number distinct.
   // The five always include the names with their numbers and one more numbered page, so there are always a few
   // ordinary numbers to mistake for the one
   function writeNotebook(rand) {
@@ -261,25 +266,26 @@ Object.assign(ICONS, {
     lights: [{ x: 0, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
     text: {
       intro: 'You missed the bus, and you don\'t remember who to call for help.',
-      death: { default: 'He came into the booth.', ringing: 'It was still ringing when he came through the glass.', dead: 'You were still listening to a dead line when he came through the glass.', nocoin: 'The phone would not operate without a coin.' },
+      death: { default: 'It came into the booth.', ringing: 'It was still ringing when it came through the glass.', dead: 'You were still listening to a dead line when it came through the glass.', nocoin: 'The phone would not operate without a coin.' },
       win: 'A mysterious car came for you, just in time.',
       fragment: 'The number is still in the notebook, in your own handwriting. You do not remember writing it down, and you have not crossed it out.',
     },
     // two streets, each seen whole through a pane of the booth: up the main street through the door, and along the cross
-    // street to the east through the east pane (each pane as far as the pay phone's plate across the corner between them).
-    // Nothing comes from the west, and the back of the booth looks at a shuttered shop
+    // street to the east through the east pane (each pane as far as the pay phone in the corner between them). It starts at
+    // the last lamp down its street (startDist: about how far that is; the night sets it exactly once it has laid out the
+    // way in). Nothing comes from the west, and the back of the booth looks at a shuttered shop
     lanes: [
-      { deg: 0, name: 'up the street', y: ROAD, apertures: [{ z: B, x0: -0.5, x1: 0.38, y0: 1.06, y1: 2.04 }] },
-      { deg: 90, name: 'along to the east', apertures: [{ z: B, x0: -0.38, x1: 0.62, y0: 1.06, y1: 2.04 }] },
+      { deg: 0, name: 'up the street', y: ROAD, startDist: 108.6, maxStart: 108.6, apertures: [{ z: B, x0: -0.5, x1: 0.38, y0: 1.06, y1: 2.04 }] },
+      { deg: 90, name: 'along to the east', startDist: 93, maxStart: 93, apertures: [{ z: B, x0: -0.38, x1: 0.62, y0: 1.06, y1: 2.04 }] },
     ],
-    laneSwitch: false,   // he keeps to the street he started down: the race is with the phone, not with finding him
-    // he reaches the glass in about 37 to 46 s (time: the whole of his way, lamps and all, is fitted to it). A careful player
-    // finds the number by page four on average and the coin in a few seconds, has dialled by about 21 s and is answered by
-    // 28, while he is still at his last lamp or just leaving it; with the number on the last page and his quickest way in
-    // there are several seconds to spare, but hardly any after a wrong number as well, which costs about eight (the coin has
-    // to be taken out of the return and put back in)
-    creatures: [{ type: 'signalman', startDist: 55, time: 72 }],
-    aftermath: { type: 'custom' },   // L.aftermath: the car that comes for you, and what he does
+    laneSwitch: false,   // it keeps to the street it started down: the race is with the phone, not with finding it
+    // it reaches the glass in about 39 to 48 s (time: the whole of its way, every lamp on its street and all, is fitted to
+    // it). A careful player finds the number by page four on average and the coin in a few seconds, has dialled by about
+    // 21 s and is answered by 28, while it is at one of its last lamps; with the number on the last page and its quickest
+    // way in there are several seconds to spare, but hardly any after a wrong number as well, which costs about eight (the
+    // coin has to be taken out of the return and put back in)
+    creatures: [{ type: 'signalman', startDist: 100, time: 72 }],
+    aftermath: { type: 'custom' },   // L.aftermath: the car that comes for you, and what it does
     build(L) {
       const s = L.s;
       const nb = writeNotebook(L.rand);
@@ -376,7 +382,7 @@ Object.assign(ICONS, {
       SC.wallV(L, -3.2, -2.47, 3.2, -2.47, 0.02, 2.7, [92, 94, 98], { tex: 'tin', texScale: 0.5, sortDist: 3.0 });
       SC.wallV(L, -3.6, -2.47, 3.6, -2.47, 2.85, 3.45, [52, 34, 34], { sortDist: 3.0 });
       for (const x of [-2.6, -0.6, 1.4]) SC.wallV(L, x, -2.47, x + 1.2, -2.47, 4.0, 5.5, [16, 18, 23], { sortDist: 3.0 });
-      // parked cars, one in each long street, well clear of the way he walks
+      // parked cars, one in each long street, well clear of the way it comes
       const car = (x0, x1, z0, z1, col) => {
         const lx = x1 - x0 > z1 - z0, y = ROAD, dk = scalec(col, 0.7), glass = [20, 24, 30], tyre = [12, 12, 14];
         SC.box(L, x0, x1, y + 0.3, y + 0.86, z0, z1, col);
@@ -396,7 +402,7 @@ Object.assign(ICONS, {
       // ---------------- street lamps: posts at the kerb, arms over the road, sodium light ----------------
       // Along the main street they stand on its east side, and along the cross street to the east on its far side: the sides
       // nearer the booth's corner, where the pay phone is, so that from the phone a man at one is at the edge of the view.
-      // He breaks them one by one (breakLamp): a lamp's level (lampLevel) is 1 while it burns, flares and stutters as it
+      // It breaks them one by one (breakLamp): a lamp's level (lampLevel) is 1 while it burns, flares and stutters as it
       // goes, and is nought for good once it is out; its light, its glow, its lens and its streak on the road all follow it
       const LAMPS = [];
       for (const z of [12, 26, 40, 54, 68, 86, 108]) LAMPS.push([4.0, z, -1, 0, 0]);          // [x, z, arm x, arm z, street]
@@ -440,7 +446,7 @@ Object.assign(ICONS, {
         lamps.push(lp);
       }
       L.lights = lamps.map(lp => lp.light);
-      // a lamp he breaks: it pops in a white flare, glass and sparks come down out of it, and it stutters and goes out for good
+      // a lamp it breaks: it pops in a white flare, glass and sparks come down out of it, and it stutters and goes out for good
       const fxr = mulberry32(7717);   // (the sparks' own random stream: the night's is left as it was)
       const breakLamp = lp => {
         if (lp.outAt !== undefined) return;
@@ -492,14 +498,15 @@ Object.assign(ICONS, {
       for (const y of [0.97, 1.27]) SC.box(L, -0.582, -0.568, y, y + 0.022, B - 0.05, B - 0.004, [76, 80, 88]);
 
       // ---------------- the pay phone, across the corner ----------------
-      // Everything on it is placed by where it lies on the plate (ph, at3): u across it (to your right as you face it), y up,
-      // and d out from it toward you. The plate; the housing, with the display and the coin slot along its top, the keys
-      // under them and the coin return at the bottom; the receiver hanging on its right; the instruction card on the plate to
-      // its left; the corner shelf under it all, where the notebook lies.
+      // Everything on it is placed by where it lies on the board (ph, at3): u across it (to your right as you face it), y up,
+      // and d out from it toward you. The backboard, no wider than the phone, from the shelf up; the housing, slim, with the
+      // display and the coin slot along its top, the keys under them, the instruction card under the keys and the coin
+      // return at the bottom; the receiver hanging on its right; the little shelf under it all, where the notebook lies.
+      // Past its edges the glass is clear, so whatever comes up either street is still in the view while you dial.
       const face = { sortDist: FD - 0.01 }, detail = { sortDist: FD - 0.015 };
       const q4 = (map, pts, col, opts) => { const w = pts.map(p => map(p[0], p[1], p[2])); SC.quad(L, w[0], w[1], w[2], w[3], col, opts); };
       const faceQ = (u0, u1, y0, y1, d, col, opts) => q4(ph, [[u0, y0, d], [u1, y0, d], [u1, y1, d], [u0, y1, d]], col, opts);
-      // a box standing out from the plate (u0..u1, y0..y1, d0..d1 in the frame map gives), with only the faces that look
+      // a box standing out from the board (u0..u1, y0..y1, d0..d1 in the frame map gives), with only the faces that look
       // at the eye (nothing ever sees it from anywhere else), shaded as SC.box shades
       const obox = (map, u0, u1, y0, y1, d0, d1, col, opts) => {
         const eye = [0, L.eyeH, 0], ctr = map((u0 + u1) / 2, (y0 + y1) / 2, (d0 + d1) / 2);
@@ -515,47 +522,50 @@ Object.assign(ICONS, {
       };
       // a sprite on the phone, at its size there (drawn at full size, as it was made, and brought in to PK)
       const phSprite = (u, y, d, w, h, draw, opts) => { const p = ph(u, y, d); return SC.mkSprite(L, p[0], p[1], p[2], w * PK, h * PK, (ctx, P) => { ctx.scale(PK, PK); draw(ctx, P); }, opts); };
-      const LCD = { u0: -0.108, u1: 0.035, y0: 1.655, y1: 1.725 }, SLOT = { u0: 0.052, u1: 0.105, y0: 1.655, y1: 1.725 };
-      const RET = { u0: -0.05, u1: 0.05, y0: 1.3, y1: 1.375 }, RX = 0.19;   // the coin return; where the receiver hangs
+      const HW = 0.082, HY0 = 1.2;   // the housing's half width, and its foot
+      const LCD = { u0: -0.07, u1: 0.026, y0: 1.66, y1: 1.725 }, SLOT = { u0: 0.038, u1: 0.072, y0: 1.66, y1: 1.725 };
+      const RET = { u0: -0.045, u1: 0.045, y0: 1.212, y1: 1.284 }, RX = 0.138;   // the coin return; where the receiver hangs
+      const CARD = { u0: -0.072, u1: 0.072, y0: 1.298, y1: 1.398 };
       const KEYS = ['123', '456', '789', '*0#'], KEY_Y0 = 1.598, KEY_DY = 0.052, KEY_DU = 0.045;
-      obox(at3, -PW, PW, 0.98, 1.95, 0, 0.016, [58, 62, 68], { sortDist: WD + 0.03 });                 // the plate, across the corner
-      obox(ph, -0.13, 0.13, 1.29, 1.765, 0.02, 0.1, [128, 132, 140], { sortDist: FD + 0.005 });        // the housing
-      obox(ph, -0.135, 0.135, 1.755, 1.785, 0.02, 0.11, [96, 100, 108], { sortDist: FD - 0.004 });     // its cap
-      faceQ(LCD.u0 - 0.009, LCD.u1 + 0.009, LCD.y0 - 0.009, LCD.y1 + 0.009, 0.1005, [62, 64, 70], face);   // the display's bezel (the display is drawn each frame)
+      obox(at3, -BW, BW, NB.y - 0.03, ph(0, 1.8, 0)[1], 0, 0.016, [58, 62, 68], { sortDist: WD + 0.03 });   // the backboard
+      obox(ph, -HW, HW, HY0, 1.765, 0.02, 0.1, [128, 132, 140], { sortDist: FD + 0.005 });        // the housing
+      obox(ph, -HW - 0.005, HW + 0.005, 1.755, 1.785, 0.02, 0.11, [96, 100, 108], { sortDist: FD - 0.004 });   // its cap
+      faceQ(LCD.u0 - 0.007, LCD.u1 + 0.007, LCD.y0 - 0.008, LCD.y1 + 0.008, 0.1005, [62, 64, 70], face);   // the display's bezel (the display is drawn each frame)
       const slotArt = SC.grab(L, () => {
         faceQ(SLOT.u0, SLOT.u1, SLOT.y0, SLOT.y1, 0.1005, [176, 180, 188], face);                    // the coin slot's chrome plate,
         faceQ(SLOT.u0 + 0.004, SLOT.u1 - 0.004, SLOT.y0 + 0.004, SLOT.y1 - 0.004, 0.101, [138, 142, 150], detail);
-        faceQ(0.0735, 0.0835, 1.666, 1.714, 0.1015, [6, 6, 8], { sortDist: FD - 0.02 });            // and the slot in it
+        faceQ(0.05, 0.06, 1.669, 1.716, 0.1015, [6, 6, 8], { sortDist: FD - 0.02 });                // and the slot in it
       });
-      faceQ(-0.075, 0.075, 1.41, 1.63, 0.1005, [92, 96, 102], face);                             // the keypad's plate
+      faceQ(-0.072, 0.072, 1.41, 1.632, 0.1005, [92, 96, 102], face);                            // the keypad's plate
       const retArt = SC.grab(L, () => {
         faceQ(RET.u0, RET.u1, RET.y0, RET.y1, 0.1005, [160, 164, 172], face);                       // the coin return: a chrome surround
         faceQ(RET.u0 + 0.008, RET.u1 - 0.008, RET.y0 + 0.008, RET.y1 - 0.006, 0.101, [12, 12, 14], detail);   // and its dark mouth
       });
-      // the instruction card, on the plate to the left of the housing: a printed heading, and the three steps in the order
+      // the instruction card, on the housing under the keys: a printed heading, and the three steps side by side in the order
       // the phone wants them (as on any pay phone)
-      faceQ(-0.232, -0.142, 1.43, 1.67, 0.021, [214, 208, 190], { sortDist: WD + 0.02 });
-      faceQ(-0.226, -0.148, 1.625, 1.655, 0.0215, [150, 40, 36], { sortDist: WD + 0.015 });
-      L.props.push(phSprite(-0.187, 1.43, 0.022, 0.09, 0.24, (ctx, P) => {
-        const print = (t, x, y, px, col, weight) => { ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = (weight || 'bold') + ' ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col; ctx.fillText(t, 0, 0); ctx.restore(); };
-        ctx.save(); ctx.translate(0, 0.2); ctx.scale(0.001, -0.001); ctx.font = 'bold 13px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = P.col([236, 226, 210]); ctx.fillText('TO CALL', 0, 0); ctx.restore();
+      faceQ(CARD.u0, CARD.u1, CARD.y0, CARD.y1, 0.1005, [214, 208, 190], face);
+      faceQ(CARD.u0, CARD.u1, CARD.y1 - 0.021, CARD.y1, 0.1007, [150, 40, 36], detail);
+      L.props.push(phSprite(0, CARD.y0, 0.101, CARD.u1 - CARD.u0, CARD.y1 - CARD.y0, (ctx, P) => {
+        const print = (t, x, y, px, col, weight) => { ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = (weight || 'bold') + ' ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col; ctx.fillText(t, 0, 0); ctx.restore(); };
+        print('TO CALL', 0, 0.083, 11, P.col([236, 226, 210]));
         const ink = P.col([36, 42, 70]), red = P.col([150, 40, 36]);
         [['1', 'LIFT', 'the receiver'], ['2', 'INSERT', 'a coin'], ['3', 'DIAL', 'the number']].forEach(([n, a, b], i) => {
-          const y = 0.158 - i * 0.064;
-          print(n, -0.041, y - 0.021, 30, red);
-          print(a, -0.019, y, 13, ink); print(b, -0.019, y - 0.017, 9.5, ink, 'normal');
+          const x = (i - 1) * 0.047;
+          print(n, x, 0.047, 22, red);
+          print(a, x, 0.029, 10, ink); print(b, x, 0.016, 7, ink, 'normal');
         });
-      }, { sortDist: WD + 0.01 }));
-      // the shelf under it, where the notebook lies: a board across the corner from pane to pane, at the height of the rail
-      // along the glass, narrow against the plate and widening as it comes out toward you
-      q4(at3, [[-PW, 1.03, 0], [PW, 1.03, 0], [PW + SH, 1.03, SH], [-PW - SH, 1.03, SH]], [96, 100, 106], { sortDist: WD + 0.01 });
-      q4(at3, [[-PW - SH, 1.0, SH], [PW + SH, 1.0, SH], [PW + SH, 1.03, SH], [-PW - SH, 1.03, SH]], [74, 78, 84], { sortDist: WD + 0.005 });
+      }, { sortDist: FD - 0.016 }));
+      // the shelf under it, where the notebook lies: a small board out from the foot of the backboard, at the height of the
+      // rail along the glass, a little wider at the front, held up on a bracket under it
+      q4(at3, [[-SB, 1.03, 0], [SB, 1.03, 0], [SF, 1.03, SH], [-SF, 1.03, SH]], [96, 100, 106], { sortDist: WD + 0.01 });
+      q4(at3, [[-SF, 1.0, SH], [SF, 1.0, SH], [SF, 1.03, SH], [-SF, 1.03, SH]], [74, 78, 84], { sortDist: WD + 0.005 });
+      q4(at3, [[-0.006, 0.86, 0.004], [0.006, 0.86, 0.004], [0.006, 1.0, SH * 0.8], [-0.006, 1.0, SH * 0.8]], [50, 53, 58], { sortDist: WD + 0.02 });   // the bracket
 
       // ---------------- the coin, the receiver, the keys, the coin slot and return, the notebook ----------------
       // the coin: left in the coin return by the last person to use the phone, on the shelf, or dropped on the floor of the
       // booth, by one of the panes near the phone (clear of the shelf, which would hide it looking down)
       const cr0 = ph(0, RET.y0 + 0.006, 0.122), COIN_RET = { x: cr0[0], y: cr0[1], z: cr0[2] }, COIN_W = 0.06;
-      const shelfC = at3(0.17, 1.03, 0.13);
+      const shelfC = at3(0.1, 1.03, 0.16);   // (beside the notebook, on the shelf)
       const coin = mkItem(L, 'coin', 'Coin', [
         Object.assign({ key: 'return', jitter: 0 }, COIN_RET),
         { key: 'shelf', x: shelfC[0], y: 1.03, z: shelfC[2], flat: true, jitter: 0.015 },
@@ -688,12 +698,12 @@ Object.assign(ICONS, {
         },
       });
       // ---------------- the notebook, read where it lies ----------------
-      // It lies shut on the shelf, its spiral toward the plate. Clicked, the hand goes to its near corner, and the cover (then,
+      // It lies shut on the shelf, its spiral toward the backboard. Clicked, the hand goes to its near corner, and the cover (then,
       // click by click, each page) is lifted by that corner and turned back over the spiral, its free end going first and the
-      // sheet curling, to stand against the plate in front of those turned before it; a click on the last page brings the lot
+      // sheet curling, to stand against the backboard in front of those turned before it; a click on the last page brings the lot
       // back down over it, shut. Clicks made while the hand is on its way, or while a page is still going over, are kept and
       // done in turn (s.nbWant). Nothing is done to the view: it is looked down at as anything is, and read with the zoom.
-      const REST = 97 * DEG, restOf = k => REST - k * 1.3 * DEG;   // standing against the plate: k 0 the cover, i + 1 page i
+      const REST = 97 * DEG, restOf = k => REST - k * 1.3 * DEG;   // standing against the backboard: k 0 the cover, i + 1 page i
       const NB_T = { cover: 0.55, page: 0.5, block: 0.62 };
       const AX = NB.d, AY = NB.y + NB.th, NB_N = 10, dN = NB.d + NB.len, uC = (NB.u0 + NB.u1) / 2;   // the spiral; the near edge
       // what you click is the whole of it as the eye sees it: up the plane of its near edge to where its far end is seen
@@ -842,34 +852,39 @@ Object.assign(ICONS, {
         drawNotebook(ctx, P);
       } };
       const sm = () => L.creatures[0];
-      // ---------------- the man: from lamp to lamp ----------------
-      // His way in is laid out once (planMan), from the street he comes down and its lamps, and fitted to the time he has
-      // (c.T, in which he used to walk all of it at a steady pace, so the race with the phone is as it was): he starts behind
-      // the furthest lamp in reach, and at each lamp stands a few seconds lit by it, reaches up (UP), takes hold (GRIP), breaks
-      // it, lets his arm come back down (DOWN) and stands a beat in the dark (BEAT); then he rushes on to the next one nearer,
-      // far too fast. After the last he comes across to the glass at a walk. Behind a lamp is just past its post as the eye
-      // sees it, so the post stands in front of him. Where he is: a distance down his lane (his distFn) and a step to one
-      // side of it (c.side, the signalman's lateral), with his feet on the road or up on the pavement (c.yOff)
-      const UP = 0.9, GRIP = 0.25, DOWN = 0.55, BEAT = 0.45, RUSH_V = 6.5, WALK_V = 1.4;
+      // ---------------- the shadow: from lamp to lamp ----------------
+      // Its way in is laid out once (planMan), from the street it comes down and every lamp along it, and fitted to the time
+      // it has (c.T, in which the thing used to walk the whole way at a steady pace, so the race with the phone is as it
+      // was): it starts behind the very last lamp, the furthest down its street, and at each lamp stands a few seconds lit by
+      // it, utterly still, then reaches up (UP), takes hold (GRIP), breaks it, lets its arm come back down (DOWN) and stands a
+      // beat in the dark (BEAT); then it skitters on, low and far too fast, to the next one nearer. With every lamp on the
+      // street to get through it is quick about all of it. After the last it comes across to the glass at a walk. Behind a
+      // lamp is just past its post as the eye sees it, and a little to one side (PEER), peering round it. Where it is: a
+      // distance down its lane (its distFn) and a step to one side of it (c.side, the creature's lateral), with its feet on
+      // the road or up on the pavement (c.yOff)
+      const UP = 0.6, GRIP = 0.2, DOWN = 0.4, BEAT = 0.3, RUSH_V = 11, WALK_V = 2.0, PEER = 0.2;
       const gap = (a, b) => Math.hypot(a.d - b.d, a.lat - b.lat);
       const groundAt = (x, z) => ((z > 1 && z < 8) || (z >= 8 && Math.abs(x) < 3.5)) ? ROAD : 0;
       const planMan = c => {
         const ln = c.lane, rx = Math.cos(ln.yaw), rz = -Math.sin(ln.yaw), street = ln.deg === 0 ? 0 : 1;
         const toLane = (x, z) => ({ d: x * ln.dirX + z * ln.dirZ, lat: x * rx + z * rz });
+        // (behind the post, and a little to the street side of it as the eye sees it: peering round it, the post across one
+        // arm and its face clear of it)
         const stops = lamps.filter(lp => lp.street === street).map(lp => {
-          const k = 1 + 0.6 / Math.hypot(lp.x, lp.z);
-          return Object.assign({ lamp: lp }, toLane(lp.x * k, lp.z * k));
-        }).filter(st => st.d <= c.D0 + 12).sort((a, b) => b.d - a.d);
+          const D = Math.hypot(lp.x, lp.z), k = 1 + 0.6 / D, px = -lp.z / D * PEER, pz = lp.x / D * PEER;
+          const a = toLane(lp.x * k + px, lp.z * k + pz), b = toLane(lp.x * k - px, lp.z * k - pz);
+          return Object.assign({ lamp: lp }, Math.abs(a.lat) < Math.abs(b.lat) ? a : b);
+        }).sort((a, b) => b.d - a.d);
         if (!stops.length) stops.push({ lamp: null, d: c.D0, lat: 0 });
         // after the last lamp: up the main street, straight across it to the door; along the cross street, over the road to
         // the booth's own pavement, and along it to the east pane
         const fin = street === 0 ? [{ d: 1.5, lat: 0.3 }] : [{ d: 7.5, lat: -0.45 }, { d: 1.5, lat: -0.2 }];
         const n = stops.length, rushT = [], walk = [stops[n - 1]].concat(fin);
-        for (let i = 0; i + 1 < n; i++) rushT.push(Math.max(1.3, gap(stops[i], stops[i + 1]) / RUSH_V));
+        for (let i = 0; i + 1 < n; i++) rushT.push(Math.max(1.0, gap(stops[i], stops[i + 1]) / RUSH_V));
         let walkLen = 0;
         for (let i = 0; i + 1 < walk.length; i++) walkLen += gap(walk[i], walk[i + 1]);
         const rushSum = rushT.reduce((a, b) => a + b, 0), act = UP + GRIP + DOWN + BEAT;
-        const wait = clamp((c.T - rushSum - walkLen / WALK_V) / n - act, 1.6, 6.5);
+        const wait = clamp((c.T - rushSum - walkLen / WALK_V) / n - act, 1.2, 5);
         const walkT = clamp(c.T - rushSum - n * (wait + act), walkLen / 3, walkLen / 0.8);
         const segs = [];
         let t = 0;
@@ -880,19 +895,19 @@ Object.assign(ICONS, {
         segs.push({ kind: 'walk', t0: t, t1: t + walkT, pts: walk, len: walkLen });
         return { t0: L.t, segs, stops, wait, arrive: t + walkT, d: stops[0].d, lat: stops[0].lat, seg: null };
       };
-      // where on him the lamp he stands at is, in his own frame (across and up from his feet, in metres where he stands), for
-      // his hand to go to
+      // where on it the lamp it stands at is, in its own frame (across and up from its feet, in metres where it stands), for
+      // its hand to go to
       const reachFor = (c, st) => {
         const lp = st.lamp; if (!lp) return null;
         const P = APPROACH.position(c.lane, st.d, st.lat, L.eyeH), D = Math.hypot(P.x, P.z), fx = P.x / D, fz = P.z / D;
         const k = D / (lp.hx * fx + lp.hz * fz);
         return { x: (lp.hx * fz - lp.hz * fx) * k, y: L.eyeH + (4.8 - L.eyeH) * k - groundAt(P.x, P.z) };
       };
-      // where he is now on his way, and what he is doing there
+      // where it is now on its way, and what it is doing there (c.lampLit: how lit it is by the lamp it stands behind)
       const manNow = c => {
         const m = s.man, e = L.t - m.t0, seg = m.segs.find(g => e < g.t1) || m.segs[m.segs.length - 1];
         if (seg !== m.seg) { m.seg = seg; if (seg.kind === 'stop') { c.reachTo = reachFor(c, seg.st); c.reachSide = c.reachTo && c.reachTo.x < 0 ? -1 : 1; } }
-        let reach = 0, rush = 0, dark = true, grip = 0;
+        let reach = 0, rush = 0, dark = true, grip = 0, lampLit = 0, wob = 0;
         if (seg.kind === 'stop') {
           const lp = seg.st.lamp, up = e - seg.t0 - seg.wait;
           m.d = seg.st.d; m.lat = seg.st.lat;
@@ -902,8 +917,12 @@ Object.assign(ICONS, {
             grip = up >= UP * 0.8 && up < UP + GRIP + 0.15 ? 1 : 0;
           }
           dark = !!lp && lp.outAt !== undefined && L.t - lp.outAt > 0.3;
+          lampLit = lp ? Math.min(1.4, lampLevel(lp)) : 0;   // (the lamp it stands behind: its face shows in that light, and in the flare)
         } else if (seg.kind === 'rush') {
-          const k = clamp((e - seg.t0) / (seg.t1 - seg.t0), 0, 1), q = smoothstep(k);
+          // skittering: in bursts, all but stopping between them, and twitching from side to side
+          const k = clamp((e - seg.t0) / (seg.t1 - seg.t0), 0, 1), sk = smoothstep(k), nb = Math.max(2, Math.round(gap(seg.a, seg.b) / 4));
+          const q = sk - 0.85 * Math.sin(TAU * nb * sk) / (TAU * nb);
+          wob = Math.sin(k * nb * 9.7) * Math.sin(Math.PI * k) * 0.22;
           m.d = lerp(seg.a.d, seg.b.d, q); m.lat = lerp(seg.a.lat, seg.b.lat, q); rush = Math.sin(Math.PI * k);
         } else {
           let left = clamp((e - seg.t0) / (seg.t1 - seg.t0), 0, 1) * seg.len, i = 0;
@@ -911,13 +930,13 @@ Object.assign(ICONS, {
           const a = seg.pts[i], b = seg.pts[i + 1], q = clamp(left / (gap(a, b) || 1), 0, 1);
           m.d = lerp(a.d, b.d, q); m.lat = lerp(a.lat, b.lat, q);
         }
-        Object.assign(c, { reach, rush, dark, grip, side: m.lat });
+        Object.assign(c, { reach, rush, dark, grip, lampLit, side: m.lat + wob });
       };
-      // laid out the first time he is wanted (drawn on the night's card, or its first frame), and stood at his first lamp
+      // laid out the first time it is wanted (drawn on the night's card, or its first frame), and stood at its first lamp
       const manReady = () => {
         const c = sm();
         if (!c || s.man) return c;
-        s.man = planMan(c); c.distFn = () => s.man.d; c.dist = s.man.d; c.side = c.lat = s.man.lat;
+        s.man = planMan(c); c.distFn = () => s.man.d; c.dist = c.D0 = s.man.d; c.side = c.lat = s.man.lat;   // (from the last lamp: as far as it comes)
         const p = c.pos(); c.yOff = groundAt(p.x, p.z) - c.lane.y;
         manNow(c);
         return c;
@@ -927,7 +946,7 @@ Object.assign(ICONS, {
         const c = manReady();
         if (c && !c.dead) {
           if (G.state === 'play' && !L.won) manNow(c);
-          else { c.reach = Math.max(0, (c.reach || 0) - dt * 2); c.rush = 0; c.grip = 0; }
+          else { c.reach = Math.max(0, (c.reach || 0) - dt * 2); c.rush = 0; c.grip = 0; c.lampLit = Math.max(0, (c.lampLit || 0) - dt * 3); c.side = s.man.lat; }
           const p = c.pos();
           c.yOff += (groundAt(p.x, p.z) - c.lane.y - c.yOff) * Math.min(1, dt * 14);   // up the kerb and down it in a stride
         }
@@ -1029,8 +1048,8 @@ Object.assign(ICONS, {
         return out;
       };
       const cords = {
-        on: cord([[0.1, 1.29, 0.08], [0.104, 1.2, 0.09], [0.13, 1.145, 0.1], [0.165, 1.2, 0.11], [RX - 0.002, 1.31, 0.12]], FD - 0.035),
-        off: cord([[0.1, 1.29, 0.08], [0.1, 1.13, 0.18], [0.085, 1.042, 0.245], [0.02, 0.9, 0.38], [-0.1, 0.86, 0.5], [-0.22, 1.0, 0.64], [-0.3, 1.2, 0.74]], 0.3),   // (lifted: to your left hand)
+        on: cord([[0.06, HY0, 0.08], [0.064, 1.12, 0.09], [0.088, 1.075, 0.1], [0.118, 1.13, 0.11], [RX - 0.002, 1.31, 0.12]], FD - 0.035),
+        off: cord([[0.06, HY0, 0.08], [0.06, 1.06, 0.18], [0.045, 0.99, 0.245], [-0.01, 0.88, 0.38], [-0.1, 0.86, 0.5], [-0.22, 1.0, 0.64], [-0.3, 1.2, 0.74]], 0.3),   // (lifted: to your left hand)
       };
       // the handset, drawn as a billboard: the eye only ever sees it from where you stand
       const handsetIcon = (ctx, P) => {   // in a unit box, as an icon is drawn
@@ -1102,8 +1121,8 @@ Object.assign(ICONS, {
         const away = handsetAway(), off = s.hook === 'off' || !!away;   // off its hook (or on its way back to it)
         const hy = off ? 1.695 : 1.645;   // the hook rises when the weight comes off it
         if (off) R.add(cradle);
-        R.add(SC.mkQuad(L, ph(0.13, hy, 0.088), ph(0.16, hy, 0.088), ph(0.16, hy + 0.018, 0.088), ph(0.13, hy + 0.018, 0.088), [150, 154, 160], { sortDist: FD - 0.03, glowOf: receiver }));   // the hook
-        R.add(SC.mkQuad(L, ph(0.16, hy - 0.01, 0.088), ph(0.168, hy - 0.01, 0.088), ph(0.168, hy + 0.018, 0.088), ph(0.16, hy + 0.018, 0.088), [120, 124, 130], { sortDist: FD - 0.031, glowOf: receiver }));
+        R.add(SC.mkQuad(L, ph(HW, hy, 0.088), ph(HW + 0.03, hy, 0.088), ph(HW + 0.03, hy + 0.018, 0.088), ph(HW, hy + 0.018, 0.088), [150, 154, 160], { sortDist: FD - 0.03, glowOf: receiver }));   // the hook
+        R.add(SC.mkQuad(L, ph(HW + 0.03, hy - 0.01, 0.088), ph(HW + 0.038, hy - 0.01, 0.088), ph(HW + 0.038, hy + 0.018, 0.088), ph(HW + 0.03, hy + 0.018, 0.088), [120, 124, 130], { sortDist: FD - 0.031, glowOf: receiver }));
         if (!off) R.add(handset);
         if (away && away !== true) R.add(away);
         for (const c of off ? cords.off : cords.on) R.add(c);
@@ -1122,13 +1141,13 @@ Object.assign(ICONS, {
       };
 
       // ---------------- the car that comes for you ----------------
-      // Once someone has picked up, a car comes fast down his street, passing him, and pulls up hard at the kerb by the booth
+      // Once someone has picked up, a car comes fast down its street, passing it, and pulls up hard at the kerb by the booth
       // with its back door to you: down the main street in its left-hand lane, left round the corner and across to the kerb
       // a few steps east of the booth (so the door that opens is its right-hand one), or along the cross street from the east.
       // Either way it stands where it is seen whole through the east pane, door and all, and not right outside the glass
       // (where the eye would only look down on its roof) or along the pavement to the west (behind the pay phone). It sounds
-      // its horn and the back door swings open on a lit inside, with someone at the wheel. If he is standing in its way it
-      // stops short of him, its lights on him. It is built each frame from boxes in its own frame: a along it (forward), b
+      // its horn and the back door swings open on a lit inside, with someone at the wheel. If the shade is standing in its way it
+      // stops short of it, its lights on it. It is built each frame from boxes in its own frame: a along it (forward), b
       // across it (to its left, or for the car that came round the corner, mirrored, to its right: toward the kerb either
       // way), y up from the road.
       const CAR = { col: [150, 140, 112], V: 20, BRAKE: 20, T0: 0.3, FROM: 50 };
@@ -1154,7 +1173,7 @@ Object.assign(ICONS, {
       };
       // a point in the car's frame, in the night's (b mirrored for the car that pulls up with its right side to the kerb)
       const carPt = (P, a, b, y) => { if (P.m) b = -b; return [P.x + a * P.fx - b * P.fz, ROAD + y, P.z + a * P.fz + b * P.fx]; };
-      // where along its path it has to stop: the end, or short of him if its front would come within reach of him
+      // where along its path it has to stop: the end, or short of the shade (him) if its front would come within reach of it
       const stopShort = (path, him) => {
         for (let sv = 0; sv <= path.len; sv += 0.2) {
           const P = poseAt(path, sv), l = carPt(P, 2.25, 0.9, 0), r = carPt(P, 2.25, -0.9, 0);
@@ -1278,7 +1297,7 @@ Object.assign(ICONS, {
         const front = W(2.2, 0, 0.6), facing = (0 - front[0]) * P.fx + (0 - front[2]) * P.fz > 0;   // is its front toward you?
         return { P, heads: [W(2.25, -0.69, 0.58), W(2.25, 0.69, 0.58)], front, facing, inside: e.doorT !== undefined ? W(-0.5, 0.2, 1.15) : null };
       };
-      // the watch after the call: on him, then round to take in the car at the kerb as well
+      // the watch after the call: on the shade, then round to take in the car at the kerb as well
       L.watchPoint = () => {
         const e = s.end; if (!e) return null;
         const c = sm(), cp = c.pos(), hy = Math.atan2(cp.x, cp.z), hd = Math.hypot(cp.x, cp.z);
@@ -1287,8 +1306,8 @@ Object.assign(ICONS, {
         const yaw = hy + wrapPi(e.doorYaw - hy) * w, pitch = lerp(hp, e.doorPitch, w * 0.6);
         return { x: Math.sin(yaw) * 6, y: L.eyeH - 6 * Math.tan(pitch), z: Math.cos(yaw) * 6 };
       };
-      // the aftermath: he comes on (quickly, if he is still far off) and stops dead in the street; the car comes, passes him,
-      // pulls up, sounds its horn and opens its door; he turns round and walks back the way he came
+      // the aftermath: it comes on (quickly, if it is still far off) and stops dead in the street; the car comes, passes it,
+      // pulls up, sounds its horn and opens its door; it turns round and walks back the way it came
       const STOP_D = 12;
       L.aftermath = t => {
         const c = sm();
@@ -1301,25 +1320,25 @@ Object.assign(ICONS, {
           } else { e.hurryEnd = t; e.dFin = D; c.hold = D; }
           const him = APPROACH.position(c.lane, e.dFin, c.lat, L.eyeH);
           // it draws up at the kerb east of the booth: just past the corner, coming round from the main street; short of the
-          // booth, coming along the cross street (and short of him, so its door does not open into him)
+          // booth, coming along the cross street (and short of the shade, so its door does not open into it)
           e.path = carPath(laneN, laneN ? 6.4 : Math.min(4.0, him.x - 2.6));
           e.S = stopShort(e.path, him);
           e.B = Math.min(CAR.BRAKE, e.S); e.tc = (e.S - e.B) / CAR.V; e.Tb = 2 * e.B / CAR.V;
           e.tStop = CAR.T0 + e.tc + e.Tb;
           const fin = poseAt(e.path, e.S), door = carPt(fin, -0.6, 0.9, 0.75);
           e.doorYaw = Math.atan2(door[0], door[2]); e.doorPitch = Math.atan2(L.eyeH - door[1], Math.hypot(door[0], door[2]));
-          // the view takes in both the car's open door and him if they are near enough together; if not it goes to the door
-          // as it opens, and back to him as he turns away
+          // the view takes in both the car's open door and the shade if they are near enough together; if not it goes to the
+          // door as it opens, and back to the shade as it turns away
           const sep = Math.abs(wrapPi(e.doorYaw - Math.atan2(him.x, him.z)));
           e.w1 = sep < 50 * DEG ? 0.5 : 0.95; e.w2 = sep < 50 * DEG ? 0.5 : 0.15;
-          // he turns round once the view is back on him (it is there all along when it holds both), and the night ends a
-          // couple of seconds into his walk away
+          // it turns round once the view is back on it (it is there all along when the view holds both), and the night ends
+          // a couple of seconds into its walk away
           e.turnAt = e.tStop + (sep < 50 * DEG ? 1.4 : 2.6); e.done = e.turnAt + 2.2;
         }
         const e = s.end;
         const once = (k, at, fn) => { if (!e[k] && t >= at) { e[k] = true; fn(); } };
         const pan = p => Math.sin(wrapPi(Math.atan2(p.x, p.z) - G.cam.yaw)) * 0.85;
-        if (c.distFn && !c.away && t >= e.hurryEnd) { c.distFn = null; c.hold = c.dist; }   // he stops dead where he is
+        if (c.distFn && !c.away && t >= e.hurryEnd) { c.distFn = null; c.hold = c.dist; }   // it stops dead where it is
         const tau = t - CAR.T0;
         if (tau >= 0) {
           const sv = tau < e.tc ? CAR.V * tau : e.S - e.B * Math.pow(Math.max(0, 1 - (tau - e.tc) / e.Tb), 2);
@@ -1333,7 +1352,7 @@ Object.assign(ICONS, {
         once('turn', e.turnAt, () => { c.hold = null; c.away = true; c.frozen = true; c.distFn = (cr, dt2) => cr.dist + dt2 * 1.3; });
         return t >= e.done;
       };
-      // the car's headlamps, and the light inside it (he brings no light of his own: he is seen by the street lamps', and the
+      // the car's headlamps, and the light inside it (the shade brings no light of its own: it is seen by the street lamps', and the
       // booth's)
       L.dynamicLights = () => {
         const out = [], k = carLamps();
@@ -1344,7 +1363,7 @@ Object.assign(ICONS, {
         }
         return out;
       };
-      // a street lamp's halo is drawn over everything, so one behind him (inside his outline as seen from the booth) is left out
+      // a street lamp's halo is drawn over everything, so one behind the shade (inside its outline as seen from the booth) is left out
       const behindHim = g => {
         const c = L.creatures[0]; if (!c || c.dead) return false;
         const cp = c.pos(), cd = Math.hypot(cp.x, cp.z), gd = Math.hypot(g.x, g.z);
@@ -1354,12 +1373,13 @@ Object.assign(ICONS, {
         const ty = (g.y - L.eyeH) / gd, top = (cp.y + (c.yOff || 0) + c.CR.h - L.eyeH) / cd, bot = (cp.y + (c.yOff || 0) - L.eyeH) / cd;
         return ty < top + g.r / gd && ty > bot - g.r / gd;
       };
-      // and so is one the eye sees through the pay phone's plate across the corner
+      // and so is one the eye sees through the pay phone (its backboard, or the receiver hanging beside it)
+      const recU = (RX + 0.06) * PK, recY = ph(0, 1.3, 0)[1];
       const behindPhone = g => {
         const a = SQ * (g.x + g.z);                                    // how far it is along the line into the corner
         if (a <= WD) return false;
         const k = WD / a, u = SQ * (g.x - g.z) * k, y = L.eyeH + (g.y - L.eyeH) * k;
-        return u > -PW && u < PW && y > 0.98 && y < 1.95;
+        return u > -BW && u < (y > recY ? Math.max(BW, recU) : BW) && y > NB.y - 0.03 && y < ph(0, 1.8, 0)[1];
       };
       L.glows = () => {
         const out = lamps.filter(lp => lp.glow.a > 0.004).map(lp => lp.glow).filter(g => !behindHim(g) && !behindPhone(g));

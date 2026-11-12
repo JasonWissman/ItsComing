@@ -211,30 +211,36 @@ some on the ground, so you have to turn and look down to find them.
    crank on it is lost, and it comes through the glass. A shutter all the way down holds
    it. With the last shutter down it runs up to it
    and beats on it, hard and fast, until the night fades.
-9. **The Phone Booth.** It is raining and a man in a long coat is coming toward the
-   booth, up the main street or along the far pavement of the cross street from the east. He carries no light. The street
-   lamps stand along his way, and he goes from one to the next: he stands behind a lamp, its post in front of him, for a
-   few seconds, lit by it; then he reaches up, his bare arm unfolding out of its sleeve far too far, and breaks it (a pop
-   and a white flare, glass and sparks coming down), and it stutters and is out for good. In the dark he is a shape, his
-   eyes catching what light there is, and he rushes on to the next lamp nearer the booth, waits, breaks that, and so on to
-   the last; then he walks across to the glass. His whole way in takes as long as his steady walk used to, so the race is
-   the same. The pay phone, a size smaller than life, hangs across the corner of the booth between the two streets, angled
-   into the booth, so while you use it both streets are at the edges of the view and you see him coming out of the corner
-   of your eye. Your notebook lies shut on the corner shelf under the phone. Click it and its cover goes back over the
+9. **The Phone Booth.** It is raining and something is coming toward the booth, up the main street or along the far
+   pavement of the cross street from the east: a shade, far too tall and far too thin, all one dark, its body and its long
+   arms and legs one shadow with no clothes and no edges to it, so that most of the time all you see of it is two small
+   pale points, its eyes. It carries no light. The street lamps stand along its way, and it starts at the very last of
+   them, the furthest down its street, and goes from one to the next, every one: it stands behind a lamp, peering round
+   the post, utterly still for a few seconds, and in that light you can see its face (long and gaunt, the cheeks sunk,
+   the eyes too big and wet, a mouth of small teeth from one cheekbone to the other); then its arm unspools up out of it,
+   the same shadow, impossibly long, to the lamp's head and breaks it (a pop and a white flare, glass and sparks coming
+   down), and it stutters and is out for good, and the face with it. In the dark it skitters on, low and fast on all four
+   of its long limbs like a spider, to the next lamp nearer the booth, waits, breaks that, and so on to the last; then it
+   walks across to the glass. With every lamp to get through it is quick about all of it, and its whole way in takes as
+   long as its steady walk used to, so the race is the same. Coming at you, its face comes out of the dark into yours and
+   the mouth opens far too wide. The pay phone, a slim unit a size smaller than life on a backboard no wider than itself,
+   stands across the corner of the booth between the two streets, the glass clear either side of it, so while you use it
+   both streets are at the edges of the view and you see it coming out of the corner of your eye. Your notebook lies shut
+   on the little shelf under the phone. Click it and its cover goes back over the
    spiral; click again and the page is lifted by its corner and turned over, and a click on the last page shuts it. Nothing
    is done to the view: you look down at it and hold the zoom to read it, and it stays open where it lies when you turn
    away. Find the number in it (it has a page to itself, scrawled large across it in red
    that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
-   floor by the panes near the phone), then do what the card beside the keys says: lift the receiver, put
+   floor by the panes near the phone), then do what the card under the keys says: lift the receiver, put
    the coin in and dial on the phone's own keys. Lifted, the receiver is in your left hand, its cord running down out of
    the view, and your right hand presses each key with a fingertip, going from key to key as you dial (what it held goes
    down meanwhile; keys pressed faster than it can go are pressed in turn); a key goes down when the finger gets there, and
    one the phone will not take only clicks, the display blinking its credit at you (or NOT IN SERVICE). A coin put in with
    the receiver on its hook goes from your fingers into the slot, rattles down through the works and drops into the coin
    return, to be taken out again. It rings for seven seconds before anyone
-   answers, and he keeps coming the whole time. A wrong number is not in service, and
+   answers, and it keeps coming the whole time. A wrong number is not in service, and
    hanging up drops the coin back into the coin return. When someone answers, a car comes
-   down his street and pulls up at the curb for you.
+   down its street and pulls up at the curb for you.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass: facing a mirror holds it. In every glass it dances on the spot, a slow,
     jerky wind-up doll's dance (an arm going up and coming down in little ticks, a wrist
