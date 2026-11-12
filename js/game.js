@@ -927,7 +927,7 @@ function render() {
   }
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
-    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: true }; rend.set(t, p); }   // only its hit area: what glows when it is hovered is what it is drawn with (glowWith)
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: true, hitOnly: true }; rend.set(t, p); }   // only its hit area: what glows when it is hovered is what it is drawn with (glowWith)
     p.x = t.x; p.y = t.y; p.z = t.z; p.w = t.w; p.h = t.h;   // a target can move or change size (an opened box's lid stands up)
     R.add(p);
   }

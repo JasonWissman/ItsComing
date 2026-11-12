@@ -165,6 +165,7 @@ const R = (() => {
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
   // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
+  // hitOnly? a hit area that draws nothing (a target's: what it is drawn with is its own props)
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   // attach? rides with the eye (see the top): its coordinates and dist are taken from where the eye started
   // glowOf? the target (or targets) this is a piece of: it glows while that is hovered; hoverOnly? drawn only then
@@ -595,17 +596,20 @@ const R = (() => {
     const c = Math.cos(phi), t = towardEye(x, z);
     return [t[0], t[1], c * t[2], Math.sin(phi), c * t[3]];
   }
-  // A card or decal seen at a slant close by (its near and far parts at very different depths) cannot be drawn on one
-  // flat (affine) map: what is nearer the eye comes out too small and what is further off runs on across the view, and
-  // with the view turned so that it lies off to one side at your feet it was smeared right across it. It is cut into
-  // small triangles instead, each drawn on the flat map that takes its own three corners exactly where the perspective
-  // puts them and clipped to its own outline, so neighbouring pieces meet edge to edge; and the whole is cut off just in
-  // front of the eye. It is then drawn where it really is however near it lies, and stays put as the view turns.
-  const ONE_MAP = 0.1;     // depth that may change across a card drawn on one map, as a share of its nearest depth
-  const SPLIT = 0.08;      // and across one of its pieces
-  const CUT_Z = 0.08;      // nothing nearer the eye than this is drawn
-  const MAX_CELLS = 40;
-  const SPLIT_PAD = 0.2;   // how far the pieces run on past the card's edges (as a share of its size), for what its drawing puts there
+  // A card (an item, a box) or a decal lying on the ground is a flat thing fixed in the world, drawn in true perspective.
+  // Seen nearly square on, one flat (affine) map puts every part of it within a pixel of where perspective puts it, and
+  // it is drawn on that map, as any sprite is. Seen at a slant close by, no one flat map will do (what is nearer the eye
+  // comes out too small and what is further off runs on across the view: at your feet off to one side it was smeared right
+  // across it). Then it is drawn through PERSP, which stands in for the canvas: every point of every path it draws is put
+  // exactly where perspective puts it (curves are followed closely enough that no one can tell), so its shapes come out
+  // as one whole, as they would on one map, only true; what is too near the eye is cut off just in front of it. A line's
+  // width, a gradient, a pattern, text and a picture, which have no points to put, are drawn on the flat map that is
+  // true where they are. It goes from one map to PERSP where the one map is less than a pixel off, so nothing jumps.
+  // (Before, such a card was cut into triangles, each drawing it all again on its own map, and the triangles were cut
+  // afresh at every turn of the view: a box close by came out in wobbling triangles with a seam round each.)
+  const ONE_MAP_ERR = 0.75;   // how far (device pixels) one flat map may put any part of a card from where it is seen
+  const CUT_Z = 0.08;         // nothing nearer the eye than this is drawn
+  const CARD_PAD = 0.2;       // how far its drawing may run on past the card's edges (as a share of its size): the handle on a box
   function clipUV(poly, z0, zu, zv) {   // the part of a polygon in the card's (u, v) where the depth is CUT_Z or more
     const out = [], n = poly.length, z = q => z0 + q[0] * zu + q[1] * zv;
     for (let i = 0; i < n; i++) {
@@ -615,56 +619,215 @@ const R = (() => {
     }
     return out;
   }
-  // base: the card's spot in the eye's frame; cu, cv: the eye-frame change per meter across it and up it. Returns its
-  // pieces ({ clip: screen outline, m: [a, b, c, d, e, f], the map from the card's meters to the screen }) and the rect it
-  // covers (kept to the view), or null when none of it is in front of the eye
-  function splitCard(p, base, cu, cv, zmin) {
-    const hw = p.w / 2, h = p.h, z0 = base[2], zu = cu[2], zv = cv[2];
-    const scr = (u, v) => { const z = z0 + u * zu + v * zv; return [W / 2 + f * (base[0] + u * cu[0] + v * cv[0]) / z, H / 2 - f * (base[1] + u * cu[1] + v * cv[1]) / z]; };
-    const whole = clipUV([[-hw, 0], [hw, 0], [hw, h], [-hw, h]], z0, zu, zv);
-    if (whole.length < 3) return null;
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (const q of whole) { const s = scr(q[0], q[1]); x0 = Math.min(x0, s[0]); y0 = Math.min(y0, s[1]); x1 = Math.max(x1, s[0]); y1 = Math.max(y1, s[1]); }
-    const mu = SPLIT_PAD * p.w, mv = SPLIT_PAD * h, U0 = -hw - mu, V0 = -mv, UW = p.w + 2 * mu, VH = h + 2 * mv;
-    const zr = Math.max(zmin - Math.abs(zu) * mu - Math.abs(zv) * mv, CUT_Z);
-    let nu = clamp(Math.ceil(Math.abs(zu) * UW / (SPLIT * zr)), 1, 16), nv = clamp(Math.ceil(Math.abs(zv) * VH / (SPLIT * zr)), 1, 16);
-    while (nu * nv > MAX_CELLS) { if (nu >= nv) nu--; else nv--; }
-    const cells = [];
-    for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
-      const ua = U0 + UW * i / nu, ub = U0 + UW * (i + 1) / nu, va = V0 + VH * j / nv, vb = V0 + VH * (j + 1) / nv;
-      const poly = clipUV([[ua, va], [ub, va], [ub, vb], [ua, vb]], z0, zu, zv);
-      for (let k = 1; k + 1 < poly.length; k++) {
-        const A = poly[0], B = poly[k], C = poly[k + 1];
-        const sa = scr(A[0], A[1]), sb = scr(B[0], B[1]), sc = scr(C[0], C[1]);
-        // the flat map taking A, B, C (in meters across and up the card) to where they are seen
-        const du1 = B[0] - A[0], dv1 = B[1] - A[1], du2 = C[0] - A[0], dv2 = C[1] - A[1], det = du1 * dv2 - du2 * dv1;
-        if (Math.abs(det) < 1e-9) continue;
-        const ex1 = sb[0] - sa[0], ey1 = sb[1] - sa[1], ex2 = sc[0] - sa[0], ey2 = sc[1] - sa[1];
-        const a = (ex1 * dv2 - ex2 * dv1) / det, b = (ey1 * dv2 - ey2 * dv1) / det;
-        const c = (ex2 * du1 - ex1 * du2) / det, d = (ey2 * du1 - ey1 * du2) / det;
-        // its outline, pushed out a little all round so that neighbouring pieces meet without a seam
-        const mx = (sa[0] + sb[0] + sc[0]) / 3, my = (sa[1] + sb[1] + sc[1]) / 3, clip = [sa, sb, sc];
-        for (const s of clip) { const dx = s[0] - mx, dy = s[1] - my, l = Math.hypot(dx, dy) || 1; s[0] += dx / l * 0.6; s[1] += dy / l * 0.6; }
-        cells.push({ clip, m: [a, b, c, d, sa[0] - a * A[0] - c * A[1], sa[1] - b * A[0] - d * A[1]] });
+  // one flat map for the whole card, fitted to nine points on it (its corners, the middles of its edges and its middle):
+  // [a, b, c, d, e, f] from meters across and up it to the view; and how far off it is (device pixels) at the worst of the
+  // nine points of the room round it that its drawing may use
+  function fitMap(scr, hw, h) {
+    const pts = [];
+    let mx = 0, my = 0;
+    for (const u of [-hw, 0, hw]) for (const v of [0, h / 2, h]) { const q = scr(u, v); pts.push([u, v - h / 2, q[0], q[1]]); mx += q[0] / 9; my += q[1] / 9; }
+    let a = 0, b = 0, c = 0, d = 0;
+    for (const [u, v, x, y] of pts) { a += u * x; b += u * y; c += v * x; d += v * y; }
+    const su = 6 * hw * hw, sv = 6 * (h / 2) * (h / 2);
+    a /= su; b /= su; c /= sv; d /= sv;
+    const m = [a, b, c, d, mx - c * h / 2, my - d * h / 2], pu = hw * (1 + 2 * CARD_PAD), pv = h * CARD_PAD;
+    let err = 0;
+    for (const u of [-pu, 0, pu]) for (const v of [-pv, h / 2, h + pv]) { const q = scr(u, v); err = Math.max(err, Math.hypot(m[0] * u + m[2] * v + m[4] - q[0], m[1] * u + m[3] * v + m[5] - q[1])); }
+    return { m, err: err * DPR };
+  }
+  // PERSP: a stand-in for the canvas that a card draws itself on, in its own units, as it would on any canvas. It keeps
+  // the card's transform (M, its units to meters across and up the card) itself and hands everything on to the real
+  // canvas, which stays on the view's own pixels (T0): the points of a path go through M and then through the perspective
+  // (G), each where it is seen; what has no points (a line's width and dashes, a gradient, a pattern, text, a picture)
+  // goes on the real canvas under the flat map that is true at it (local). A drawing that sets the transform outright
+  // (one that draws in the view's pixels) is handed on as it is until it restores.
+  const PERSP = (() => {
+    let real = null, T0 = null, G = null, Jg = null, zOf = null, cut = false;
+    let M = [1, 0, 0, 1, 0, 0], lw = 1, raw = false, fillS = '#000', strokeS = '#000', dash = [], stack = [];
+    let subs = [], cur = null, cu = 0, cv = 0, cn = 0;   // the path not yet on the real canvas, in meters on the card, and the middle of all of it
+    const TAU2 = Math.PI * 2;
+    const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3], a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
+    const onCard = (x, y) => [M[0] * x + M[2] * y + M[4], M[1] * x + M[3] * y + M[5]];
+    // the flat map from the drawing's units to the view's pixels that is true at (x, y) in them
+    function local(x, y) {
+      const p = onCard(x, y), z = zOf[0] + p[0] * zOf[1] + p[1] * zOf[2];
+      if (z < 2 * CUT_Z) {   // (behind the eye, or all but: taken where it is just in front, along the way the depth grows)
+        const g2 = zOf[1] * zOf[1] + zOf[2] * zOf[2] || 1e-12, k = (2 * CUT_Z - z) / g2;
+        p[0] += zOf[1] * k; p[1] += zOf[2] * k;
       }
+      const s = G(p[0], p[1]), j = Jg(p[0], p[1]);
+      const a = j[0] * M[0] + j[2] * M[1], b = j[1] * M[0] + j[3] * M[1], c = j[0] * M[2] + j[2] * M[3], d = j[1] * M[2] + j[3] * M[3];
+      return [a, b, c, d, s[0] - a * x - c * y, s[1] - b * x - d * y];
     }
-    x0 = Math.max(x0, -20); y0 = Math.max(y0, -20); x1 = Math.min(x1, W + 20); y1 = Math.min(y1, H + 20);
-    return { cells, rect: { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) } };
-  }
-  function paintCells(p, cells, s) {
-    const P = spriteP(p);
-    for (const cell of cells) {
-      const q = cell.clip, m = cell.m;
-      if (Math.max(q[0][0], q[1][0], q[2][0]) < -2 || Math.min(q[0][0], q[1][0], q[2][0]) > W + 2 || Math.max(q[0][1], q[1][1], q[2][1]) < -2 || Math.min(q[0][1], q[1][1], q[2][1]) > H + 2) continue;   // off the view
-      ctx.save();
-      ctx.beginPath(); ctx.moveTo(q[0][0], q[0][1]); ctx.lineTo(q[1][0], q[1][1]); ctx.lineTo(q[2][0], q[2][1]); ctx.closePath();
-      ctx.clip();
-      ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-      if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
-      p.draw(ctx, P, s);
-      ctx.restore();
+    const under = m => { real.setTransform(T0); real.transform(m[0], m[1], m[2], m[3], m[4], m[5]); };
+    const add = p => { cur.pts.push(p); cu += p[0]; cv += p[1]; cn++; };
+    function moveTo(x, y) { cur = { pts: [], closed: false }; subs.push(cur); add(onCard(x, y)); }
+    function lineTo(x, y) { if (!cur) moveTo(x, y); else add(onCard(x, y)); }
+    // the path so far onto the real canvas
+    function emit(pts, closed, cont) {
+      for (let i = 0; i < pts.length; i++) { const s = G(pts[i][0], pts[i][1]); if (i === 0 && !cont) real.moveTo(s[0], s[1]); else real.lineTo(s[0], s[1]); }
+      if (closed) real.closePath();
     }
-  }
+    function flush() {
+      for (const sb of subs) {
+        if (sb.pts.length < (sb.cont ? 2 : 1)) continue;
+        if (!cut) { emit(sb.pts, sb.closed, sb.cont); continue; }
+        // cut off in front of the eye: a closed shape as a shape, an open line piece by piece
+        if (sb.closed) { const q = clipUV(sb.pts, zOf[0], zOf[1], zOf[2]); if (q.length >= 2) emit(q, true, false); continue; }
+        let run = [];
+        const z = q => zOf[0] + q[0] * zOf[1] + q[1] * zOf[2];
+        for (let i = 0; i < sb.pts.length; i++) {
+          const a = sb.pts[i];
+          if (i > 0) {
+            const b = sb.pts[i - 1], za = z(a), zb = z(b);
+            if ((za >= CUT_Z) !== (zb >= CUT_Z)) { const t = (CUT_Z - zb) / (za - zb); run.push([b[0] + (a[0] - b[0]) * t, b[1] + (a[1] - b[1]) * t]); if (za < CUT_Z) { emit(run, false, false); run = []; } }
+          }
+          if (z(a) >= CUT_Z) run.push(a);
+        }
+        if (run.length) emit(run, false, false);
+      }
+      // what comes next carries on from where the path got to, as on a canvas
+      const last = cur && !cur.closed && cur.pts.length ? cur.pts[cur.pts.length - 1] : null;
+      subs = []; cur = null;
+      if (last) { cur = { pts: [last], closed: false, cont: !cut }; subs.push(cur); }
+    }
+    // a gradient or a pattern made on PERSP: made on the real canvas in the drawing's units, when it is used, under the
+    // map that is true at it
+    function Paint(kind, args) { this.kind = kind; this.args = args; this.stops = []; }
+    Paint.prototype.addColorStop = function (o, c) { this.stops.push([o, c]); };
+    Paint.prototype.make = function () {
+      if (this.kind === 'pattern') return this.args;
+      const g = this.kind === 'radial' ? real.createRadialGradient(...this.args) : real.createLinearGradient(...this.args);
+      for (const [o, c] of this.stops) g.addColorStop(o, c);
+      return g;
+    };
+    Paint.prototype.at = function () { const a = this.args; return this.kind === 'radial' ? [a[3], a[4]] : this.kind === 'linear' ? [(a[0] + a[2]) / 2, (a[1] + a[3]) / 2] : [0, 0]; };
+    // the middle of the path, in the drawing's units now
+    function middle() {
+      if (!cn) return [0, 0];
+      const u = cu / cn - M[4], v = cv / cn - M[5], det = M[0] * M[3] - M[1] * M[2] || 1e-12;
+      return [(M[3] * u - M[2] * v) / det, (M[0] * v - M[1] * u) / det];
+    }
+    function paint(style, at, fn, stroke) {
+      real.save();
+      under(local(at[0], at[1]));
+      if (style instanceof Paint) real[stroke ? 'strokeStyle' : 'fillStyle'] = style.make();
+      if (stroke) { real.lineWidth = lw; real.setLineDash(dash); }
+      fn();
+      real.restore();
+    }
+    function rectPath(x, y, w, h) {
+      const keep = [subs, cur, cu, cv, cn];
+      subs = []; cur = null;
+      moveTo(x, y); lineTo(x + w, y); lineTo(x + w, y + h); lineTo(x, y + h); cur.closed = true;
+      const p2 = new Path2D(), r = real;
+      real = p2; flush(); real = r;
+      [subs, cur, cu, cv, cn] = keep;
+      return p2;
+    }
+    const pc = {
+      begin(ctx, g, jg, z, needCut) {
+        real = ctx; T0 = ctx.getTransform(); G = g; Jg = jg; zOf = z; cut = needCut;
+        M = [1, 0, 0, 1, 0, 0]; lw = ctx.lineWidth; raw = false; fillS = ctx.fillStyle; strokeS = ctx.strokeStyle; dash = []; stack.length = 0;
+        subs = []; cur = null; cu = cv = cn = 0;
+        return pc;
+      },
+      get canvas() { return real.canvas; },
+      save() { stack.push([M, lw, raw, fillS, strokeS, dash]); real.save(); },
+      restore() { real.restore(); if (stack.length) [M, lw, raw, fillS, strokeS, dash] = stack.pop(); },
+      translate(x, y) { if (raw) real.translate(x, y); else M = mul(M, [1, 0, 0, 1, x, y]); },
+      scale(x, y) { if (raw) real.scale(x, y); else M = mul(M, [x, 0, 0, y, 0, 0]); },
+      rotate(a) { if (raw) real.rotate(a); else { const c = Math.cos(a), s = Math.sin(a); M = mul(M, [c, s, -s, c, 0, 0]); } },
+      transform(a, b, c, d, e, f2) { if (raw) real.transform(a, b, c, d, e, f2); else M = mul(M, [a, b, c, d, e, f2]); },
+      setTransform(...a) { if (!raw) flush(); raw = true; real.setTransform(...a); },
+      resetTransform() { if (!raw) flush(); raw = true; real.resetTransform(); },
+      getTransform() { if (raw) return real.getTransform(); const m = local(0, 0); return T0.multiply(new DOMMatrix(m)); },
+      beginPath() { real.beginPath(); subs = []; cur = null; cu = cv = cn = 0; },
+      moveTo(x, y) { if (raw) real.moveTo(x, y); else moveTo(x, y); },
+      lineTo(x, y) { if (raw) real.lineTo(x, y); else lineTo(x, y); },
+      closePath() {
+        if (raw) { real.closePath(); return; }
+        if (!cur) return;
+        cur.closed = true;
+        const p = cur.pts[0]; cur = { pts: [p], closed: false }; subs.push(cur);   // (a new piece begins where that one did)
+      },
+      rect(x, y, w, h) { if (raw) { real.rect(x, y, w, h); return; } moveTo(x, y); lineTo(x + w, y); lineTo(x + w, y + h); lineTo(x, y + h); pc.closePath(); },
+      arc(x, y, r, a0, a1, ccw) { if (raw) real.arc(x, y, r, a0, a1, ccw); else pc.ellipse(x, y, r, r, 0, a0, a1, ccw); },
+      ellipse(x, y, rx, ry, rot, a0, a1, ccw) {
+        if (raw) { real.ellipse(x, y, rx, ry, rot, a0, a1, ccw); return; }
+        let sweep = a1 - a0;
+        if (!ccw) sweep = sweep >= TAU2 ? TAU2 : ((sweep % TAU2) + TAU2) % TAU2;
+        else sweep = -sweep >= TAU2 ? -TAU2 : -((((a0 - a1) % TAU2) + TAU2) % TAU2);
+        // enough pieces that none strays a quarter of a pixel from the curve
+        const m = local(x, y), k = Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) * Math.max(Math.abs(rx), Math.abs(ry)) * DPR;
+        const n = clamp(Math.ceil(Math.abs(sweep) * Math.sqrt(k / 2)), 2, 128), cr = Math.cos(rot), sr = Math.sin(rot);
+        for (let i = 0; i <= n; i++) {
+          const t = a0 + sweep * i / n, ex2 = rx * Math.cos(t), ey2 = ry * Math.sin(t), px = x + ex2 * cr - ey2 * sr, py = y + ex2 * sr + ey2 * cr;
+          if (i === 0) lineTo(px, py); else add(onCard(px, py));
+        }
+      },
+      quadraticCurveTo(x1, y1, x, y) { if (raw) real.quadraticCurveTo(x1, y1, x, y); else pc.bezierCurveTo(null, null, x1, y1, x, y); },
+      bezierCurveTo(x1, y1, x2, y2, x, y) {
+        if (raw) { real.bezierCurveTo(x1, y1, x2, y2, x, y); return; }
+        if (!cur) moveTo(x1 === null ? x2 : x1, x1 === null ? y2 : y1);
+        // on the card, where a curve stays a curve of the same kind, then a piece at a time
+        const p0 = cur.pts[cur.pts.length - 1], p3 = onCard(x, y);
+        let p1, p2;
+        if (x1 === null) { const q = onCard(x2, y2); p1 = [p0[0] + (q[0] - p0[0]) * 2 / 3, p0[1] + (q[1] - p0[1]) * 2 / 3]; p2 = [p3[0] + (q[0] - p3[0]) * 2 / 3, p3[1] + (q[1] - p3[1]) * 2 / 3]; }
+        else { p1 = onCard(x1, y1); p2 = onCard(x2, y2); }
+        const s0 = G(p0[0], p0[1]), s1 = G(p1[0], p1[1]), s2 = G(p2[0], p2[1]), s3 = G(p3[0], p3[1]);
+        const len = DPR * (Math.hypot(s1[0] - s0[0], s1[1] - s0[1]) + Math.hypot(s2[0] - s1[0], s2[1] - s1[1]) + Math.hypot(s3[0] - s2[0], s3[1] - s2[1]));
+        const n = clamp(Math.ceil(Math.sqrt(len) * 1.5), 2, 64);
+        for (let i = 1; i <= n; i++) {
+          const t = i / n, s = 1 - t, a = s * s * s, b = 3 * s * s * t, c = 3 * s * t * t, d = t * t * t;
+          add([a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]]);
+        }
+      },
+      fill(...a) {
+        if (raw) { real.fill(...a); return; }
+        if (a[0] instanceof Path2D) { paint(fillS, [0, 0], () => real.fill(...a)); return; }
+        flush();
+        if (fillS instanceof Paint) paint(fillS, fillS.at(), () => real.fill(...a)); else real.fill(...a);
+      },
+      stroke(...a) {
+        if (raw) { real.stroke(...a); return; }
+        if (!(a[0] instanceof Path2D)) flush();
+        paint(strokeS, strokeS instanceof Paint ? strokeS.at() : middle(), () => real.stroke(...a), true);
+      },
+      clip(...a) { if (raw || a[0] instanceof Path2D) { real.clip(...a); return; } flush(); real.clip(...a); },
+      fillRect(x, y, w, h) {
+        if (raw) { real.fillRect(x, y, w, h); return; }
+        const p2 = rectPath(x, y, w, h);
+        if (fillS instanceof Paint) paint(fillS, fillS.at(), () => real.fill(p2)); else real.fill(p2);
+      },
+      strokeRect(x, y, w, h) { if (raw) { real.strokeRect(x, y, w, h); return; } const p2 = rectPath(x, y, w, h); paint(strokeS, [x + w / 2, y + h / 2], () => real.stroke(p2), true); },
+      clearRect(x, y, w, h) { if (raw) real.clearRect(x, y, w, h); else { real.save(); under(local(x + w / 2, y + h / 2)); real.clearRect(x, y, w, h); real.restore(); } },
+      fillText(t, x, y, mw) { if (raw) real.fillText(t, x, y, mw); else paint(fillS, [x, y], () => (mw === undefined ? real.fillText(t, x, y) : real.fillText(t, x, y, mw))); },
+      strokeText(t, x, y, mw) { if (raw) real.strokeText(t, x, y, mw); else paint(strokeS, [x, y], () => (mw === undefined ? real.strokeText(t, x, y) : real.strokeText(t, x, y, mw)), true); },
+      measureText(t) { return real.measureText(t); },
+      drawImage(img, ...a) {
+        if (raw) { real.drawImage(img, ...a); return; }
+        const d = a.length >= 8 ? a.slice(4) : a, w = d.length >= 4 ? d[2] : (img.width || 0), h = d.length >= 4 ? d[3] : (img.height || 0);
+        paint(null, [d[0] + w / 2, d[1] + h / 2], () => real.drawImage(img, ...a));
+      },
+      createLinearGradient(...a) { return new Paint('linear', a); },
+      createRadialGradient(...a) { return new Paint('radial', a); },
+      createPattern(...a) { return new Paint('pattern', real.createPattern(...a)); },
+      setLineDash(d) { if (raw) real.setLineDash(d); else dash = d.slice(); },
+      getLineDash() { return raw ? real.getLineDash() : dash.slice(); },
+      get fillStyle() { return raw ? real.fillStyle : fillS; },
+      set fillStyle(v) { if (raw) { real.fillStyle = v instanceof Paint ? v.make() : v; return; } fillS = v; if (!(v instanceof Paint)) real.fillStyle = v; },
+      get strokeStyle() { return raw ? real.strokeStyle : strokeS; },
+      set strokeStyle(v) { if (raw) { real.strokeStyle = v instanceof Paint ? v.make() : v; return; } strokeS = v; if (!(v instanceof Paint)) real.strokeStyle = v; },
+      get lineWidth() { return raw ? real.lineWidth : lw; },
+      set lineWidth(v) { if (raw) real.lineWidth = v; else if (v > 0 && isFinite(v)) lw = v; },
+    };
+    // the rest are the real canvas's own
+    for (const k of ['globalAlpha', 'globalCompositeOperation', 'lineCap', 'lineJoin', 'miterLimit', 'lineDashOffset', 'font', 'textAlign', 'textBaseline', 'direction', 'letterSpacing', 'shadowColor', 'shadowBlur', 'shadowOffsetX', 'shadowOffsetY', 'imageSmoothingEnabled', 'imageSmoothingQuality', 'filter']) {
+      Object.defineProperty(pc, k, { get() { return real[k]; }, set(v) { real[k] = v; } });
+    }
+    return pc;
+  })();
   // glow: draw only its glow (drawGlows), with no hit area
   function drawSprite(p, glow) {
     const onRect = glow ? null : p.onRect;
@@ -685,41 +848,49 @@ const R = (() => {
         rx = c[0]; rz = c[1]; fx = c[2]; fy = c[3]; fz = c[4];
       }
       // it is fixed in the world, facing where you stand, and drawn in plain perspective wherever it is in the view: the
-      // eye-frame change per meter across it (cu) and up it (cv), and its depth at its four corners
+      // eye-frame change per meter across it (cu) and up it (cv), and where a point (u, v) on it is seen
       const cu = toCam(p.x + rx, p.y, p.z + rz), cv = toCam(p.x + fx, p.y + fy, p.z + fz);
       for (let k = 0; k < 3; k++) { cu[k] -= base[k]; cv[k] -= base[k]; }
-      const du = Math.abs(cu[2]) * p.w / 2, dv = cv[2] * p.h;
-      const zmin = base[2] - du + Math.min(0, dv), zmax = base[2] + du + Math.max(0, dv);
-      const s = f / Math.max(base[2], CUT_Z);
-      if (zmin >= NEAR && zmax - zmin <= ONE_MAP * zmin) {
-        // seen nearly square on: one map does it, its width measured end to end
-        const b = proj(base);
-        const p0 = proj([base[0] - cu[0] * p.w / 2, base[1] - cu[1] * p.w / 2, base[2] - cu[2] * p.w / 2]);
-        const p1 = proj([base[0] + cu[0] * p.w / 2, base[1] + cu[1] * p.w / 2, base[2] + cu[2] * p.w / 2]);
-        const pv = proj([base[0] + cv[0] * p.h, base[1] + cv[1] * p.h, base[2] + cv[2] * p.h]);
-        const ax = (p1[0] - p0[0]) / p.w, ay = (p1[1] - p0[1]) / p.w;   // screen delta per meter along u
-        const bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
-        // a card whose top would project below its base is behind or under the eye: not drawn
-        if (p.card && by >= 0) { if (onRect) onRect(null); return; }
-        // corners of the box centered at x (u from -w/2..w/2), v from 0..h
-        const xs = [], ys = [];
-        for (const [u, v] of [[-p.w / 2, 0], [p.w / 2, 0], [p.w / 2, p.h], [-p.w / 2, p.h]]) { xs.push(b[0] + ax * u + bx * v); ys.push(b[1] + ay * u + by * v); }
-        rect = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-        if (rect.x > W + 20 || rect.x + rect.w < -20 || rect.y > H + 20 || rect.y + rect.h < -20) { if (onRect) onRect(rect); return; }
+      const hw = p.w / 2, h = p.h, z0 = base[2], zu = cu[2], zv = cv[2];
+      const scr = (u, v) => { const z = z0 + u * zu + v * zv; return [W / 2 + f * (base[0] + u * cu[0] + v * cv[0]) / z, H / 2 - f * (base[1] + u * cu[1] + v * cv[1]) / z]; };
+      const s = f / Math.max(z0, CUT_Z);
+      // the part of it in front of the eye, and the rect that covers on the view (what is clicked)
+      const card = clipUV([[-hw, 0], [hw, 0], [hw, h], [-hw, h]], z0, zu, zv);
+      if (card.length < 3) { if (onRect) onRect(null); return; }
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const q of card) { const c = scr(q[0], q[1]); x0 = Math.min(x0, c[0]); y0 = Math.min(y0, c[1]); x1 = Math.max(x1, c[0]); y1 = Math.max(y1, c[1]); }
+      rect = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      if (x0 > W + 20 || x1 < -20 || y0 > H + 20 || y1 < -20) { if (onRect) onRect(rect); return; }
+      const one = z0 - Math.abs(zu) * hw + Math.min(0, zv * h) >= NEAR ? fitMap(scr, hw, h) : null;
+      if (one && one.err <= ONE_MAP_ERR) {
+        // seen nearly square on: drawn straight onto the view on one flat map. A card whose top would come out below its
+        // base is behind or under the eye: not drawn
+        const m = one.m;
+        if (p.card && m[3] >= 0) { if (onRect) onRect(null); return; }
         if (glow) glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5);
         ctx.save();
-        ctx.transform(ax, ay, bx, by, b[0], b[1]);
+        ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
         if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
         p.draw(ctx, spriteP(p), s);
         ctx.restore();
       } else {
-        // seen at a slant close by: cut into cells, in true perspective
-        const sc = splitCard(p, base, cu, cv, zmin);
-        if (!sc) { if (onRect) onRect(null); return; }
-        rect = sc.rect;
-        if (rect.w <= 0 || rect.h <= 0) { if (onRect) onRect(rect); return; }
+        // seen at a slant close by: through PERSP, in true perspective (its rect kept to the view)
+        x0 = Math.max(x0, -20); y0 = Math.max(y0, -20); x1 = Math.min(x1, W + 20); y1 = Math.min(y1, H + 20);
+        rect = { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
         if (glow) glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5);
-        paintCells(p, sc.cells, s);
+        if (!p.hitOnly) {
+          // how the view moves per meter across and up it, at (u, v) on it; and whether any of it (with the room its
+          // drawing may use) comes near enough the eye to be cut
+          const jac = (u, v) => {
+            const z = z0 + u * zu + v * zv, X = base[0] + u * cu[0] + v * cv[0], Y = base[1] + u * cu[1] + v * cv[1], k = f / (z * z);
+            return [k * (cu[0] * z - X * zu), -k * (cu[1] * z - Y * zu), k * (cv[0] * z - X * zv), -k * (cv[1] * z - Y * zv)];
+          };
+          const pu = p.w * (0.5 + CARD_PAD), near = z0 - Math.abs(zu) * pu + Math.min(-zv * h * CARD_PAD, zv * h * (1 + CARD_PAD));
+          ctx.save();
+          if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
+          p.draw(PERSP.begin(ctx, scr, jac, [z0, zu, zv], near < 2 * CUT_Z), spriteP(p), s);
+          ctx.restore();
+        }
       }
       if (glow) return;
     } else {
