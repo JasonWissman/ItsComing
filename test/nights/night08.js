@@ -2,7 +2,10 @@
 // the crank to bring three shutters down. The solution plays it three times. First, lit from the start, with the crank in
 // hand at once and a turn the moment the crank is free: it is through the glass before the third shutter is down, and it
 // has you at once. Then a look at the run: its window shut as it reaches the glass, it runs along the glass to one still
-// open, side on, its heels ringing, and turns back to the glass. Last, at a player's pace: it
+// open, side on, its heels ringing, and turns back to the glass, keeping its width as it turns (it is drawn at every step
+// of the turn and measured). Then a shutter only part way down when it gets there: it takes hold of the bottom edge,
+// shoves it up into its housing (the crank's turns lost, a crash, the view shaking) and comes through the glass. Last, at a
+// player's pace: it
 // watches for a few seconds, tries the shutter by hand (it will not come down), turns round and throws the power main
 // about nine seconds in, takes a few seconds to find the crank in the dark, faces the windows and cranks at a click every
 // quarter of a second, the one it is coming for first, then wherever it goes (it runs across the lot for it); the third
@@ -53,6 +56,24 @@ const refusals = [
   ['expect', 'G.hand.reach && G.hand.reach.style === "knock" && !G.fumbling', 'nothing in hand at a shutter that is down: the hand knocks on the glass'],
   ['eval', 'restartLevel()'], ['wait', 300],
 ];
+// how wide it is drawn across its body (belly to chest, under its hair), turned a given way round (0 face on, 1 side on):
+// drawn on a canvas of its own, plain, and the opaque pixels measured. A turn that squeezes it edge on, as a flat card turns, comes to almost
+// nothing half way round; a solid figure keeps most of its width all the way round.
+const turnWidths = `(() => {
+  const c = G.L.creature, CR = c.CR, cv = document.createElement('canvas'); cv.width = 300; cv.height = 300;
+  const x = cv.getContext('2d'), P = { fog: 0, fogColor: [0, 0, 0], t: 0, lit: 0, col: k => rgba(k), cola: (k, a) => rgba(k, a), raw: k => rgba(k) };
+  const keep = ['runPose', 'runTurn', 'runDir', 'runAmt', 'runGait', 'dist', 't'].map(k => [k, c[k]]);
+  const width = turn => {
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, 300, 300); x.setTransform(200, 0, 0, -200, 150, 290);
+    Object.assign(c, { runPose: turn > 0, runTurn: turn, runDir: 1, runAmt: 0.6, runGait: 1, dist: 9, t: 2.5 }); CR.draw(x, c, P);   // its head upright
+    const d = x.getImageData(0, 0, 300, 300).data; let lo = 300, hi = -1;
+    for (let r = 140; r < 190; r++) for (let q = 0; q < 300; q++) if (d[(r * 300 + q) * 4 + 3] > 128) { lo = Math.min(lo, q); hi = Math.max(hi, q); }
+    return hi - lo;
+  };
+  const ws = []; for (let k = 0; k <= 20; k++) ws.push(width(k / 20));
+  keep.forEach(([k, v]) => { c[k] = v; });
+  return ws;
+})()`;
 const nightmare = [
   // lit: how fast it comes
   ['eval', 'window.__a = { d: G.L.creature.dist, t: G.L.t }'], ['wait', 600],
@@ -78,6 +99,27 @@ const nightmare = [
   ['eval', 'AUDIO.footstep = __step'],
   ['expect', 'Math.abs(wrapPi(G.L.creature.yaw - __y)) > 25 * DEG && G.L.creature.dist > G.L.creature.lane.barrierDist && !G.L.s.through && G.L.creature.lane.idx === G.L.s.target', 'it ran sideways along the glass to the window it is making for, and is still outside it'],
   ['expect', '__run >= 2 && !G.L.creature.runPose', 'its heels rang as it ran, and it has turned back to face the glass'],
+  ['eval', 'window.__w = ' + turnWidths],
+  ['expect', '__w[0] > 40 && __w[20] > 30 && Math.min(...__w) >= 0.9 * Math.min(__w[0], __w[20])', 'it turns as a solid thing turns: never squeezed thin on the way round, no narrower than it is side on'],
+  ['eval', 'restartLevel()'], ['wait', 300],
+  // a shutter part way down (four turns of ten) at its window as it comes up: it takes hold of the bottom edge of it (the
+  // crank will not turn against it), shoves it up into its housing with a crash that shakes the view, every turn lost, and
+  // comes through the glass
+  ['eval', `(() => { const L = G.L, s = L.s, c = L.creature, it = L.items.find(i => i.id === 'crank');
+    useTarget(L.targets.find(t => t.id === 'main')); it.taken = true; G.inv.push(it);
+    const k = s.target, ln = L.lanes[k]; L.targets.find(t => t.id === 'shutter' + k).count = 4;
+    c.u = 1 - (ln.barrierDist + 0.8) / c.D0; window.__k = k;
+    window.__slam = 0; window.__sfx = AUDIO.sfx; AUDIO.sfx = (n, p, q) => { if (n === 'shutterSlam') __slam++; return __sfx(n, p, q); };
+    window.__shakes = 0; window.__shake = G.shake; G.shake = a => { if (a >= 0.5) __shakes++; __shake(a); }; })()`],
+  ['waitUntil', 'G.L.s.shove && G.L.creature.shove && G.L.creature.shove.k === 1', 5000],
+  ['expect', '(() => { const s = G.L.s, c = G.L.creature; return !s.down[__k] && s.shown[__k] > 0.25 && !s.through && c.dist > s.glassD[__k] && Math.abs(c.shove.h + c.yOff - s.shove.edge) < 0.02; })()', 'at the shutter, part way down: its hands on the bottom edge of it, outside the glass'],
+  ['eval', 'window.__n = G.L.targets.find(t => t.id === "shutter" + __k).count; G.L.s.lastTurn = -9; useTarget(G.L.targets.find(t => t.id === "shutter" + __k))'],
+  ['expect', 'G.L.targets.find(t => t.id === "shutter" + __k).count === __n && /hold/.test(G.lastToast.msg)', 'the crank will not turn against it'],
+  ['waitUntil', '__slam > 0', 3000],
+  ['expect', '(() => { const s = G.L.s; return G.L.targets.find(t => t.id === "shutter" + __k).count === 0 && s.shown[__k] < 0.05 && !s.down[__k] && !s.through && __shakes >= 1; })()', 'it shoved the shutter up: it slammed into its housing, the view shook, and every turn of the crank on it is lost'],
+  ['waitUntil', 'G.state === "dying"', 3000],
+  ['expect', 'G.L.s.through && G.L.s.throughWin === __k && G.deathCause === "through"', 'then it broke the glass and came in'],
+  ['eval', 'AUDIO.sfx = __sfx; G.shake = __shake'],
   ['eval', 'restartLevel()'], ['wait', 300],
   // its own window shut last: it never ran tonight, and shut out it comes up to the glass at a run, a heel to a stride (not
   // a clatter at every frame), and beats on it. The save is left alone: the win that counts comes at a player's pace.

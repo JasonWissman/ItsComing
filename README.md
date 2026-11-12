@@ -201,9 +201,15 @@ some on the ground, so you have to turn and look down to find them.
    on the back wall in the first ten seconds or so (your hand takes the lever and pulls it
    down, and the lights go with it), find the crank (without it, your hand tries a
    window's gearbox and it will not move), and crank all three
-   shutters down; each time its window shuts it turns side on and skips to one still
+   shutters down; each time its window shuts it turns side on (stiffly, on the spot, as a
+   solid figure turns, never squeezing thin) and skips to one still
    open, along the glass if it is already there, across the lot if not. If it reaches an
-   open window it comes through the glass. With the last shutter down it runs up to it
+   open window it comes through the glass. If it reaches one whose shutter is only part
+   way down, it takes the bottom edge in both hands (jumping for it and hanging there if
+   it is out of reach; the crank will not turn against it), tugs, and shoves it up: the
+   steel slams into its housing with a crash that shakes the place, every turn of the
+   crank on it is lost, and it comes through the glass. A shutter all the way down holds
+   it. With the last shutter down it runs up to it
    and beats on it, hard and fast, until the night fades.
 9. **The Phone Booth.** It is raining and a man in a long coat is coming toward the
    booth, up the main street or along the far pavement of the cross street from the east. He carries no light. The street

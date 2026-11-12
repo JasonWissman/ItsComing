@@ -15,10 +15,12 @@
 // fast; in the dark it walks at an ordinary pace. The night sets c.drawn (whether its light is on) and c.drawnMult (how
 // much faster the light makes it) every frame.
 // A night can send it sideways, running (The Diner, from a shut window to one still open): c.runPose on, c.runTurn 0..1
-// as it turns side on and back (it pivots on the spot, stiffly, like a figure on a turntable), c.runDir +1 running to
+// as it turns side on and back (it pivots on the spot, stiffly, a solid figure keeping its width as it goes round), c.runDir +1 running to
 // the right of the view and -1 to the left, c.runGait its stride and c.runAmt 0..1 how hard it is running. It runs as a
 // child does when it is happy: it skips, step and hop, step and hop, the knee coming up high, its hair flying out behind;
 // but its body stays bolt upright, its arms hang dead straight at its sides, and its head stays turned to you, grinning.
+// A night can also put its hands on the bottom edge of a shutter (The Diner): c.shove { k 0..1 its hands coming up to it,
+// h the edge's height in its own metres from its feet, up 0..1 shoving it up }; its body lifts with c.yOff if it hangs.
 CREATURES.customer = {
   name: 'the customer', h: 1.3, w: 0.7, faceY: 1.08, stepRate: 1.6, catchDist: 1.5, sound: 'shoes', ignoresGaze: true,
   death: { delay: 0.35, dur: 0.55, sting: 'stingGlass' },
@@ -53,12 +55,27 @@ CREATURES.customer = {
     };
   },
   draw(ctx, c, P) {
-    // turning to run, or back: squeezed edge on at the half-way point, the front before it and the side after
+    // its breath (every standing thing is drawn breathing) is held while it has hold of a shutter: its hands stay on the edge
+    if (c.shove && !c.dead && !c.lunge) ctx.scale(1, 1 / (1 + 0.014 * Math.sin(c.t * 1.6)));
+    // turning to run, or back: it turns as a solid thing turns, at its full width all the way round (drawTurn), the front
+    // before it and the side after
     const turn = c.runPose ? (c.runTurn === undefined ? 1 : c.runTurn) : 0;
-    if (turn <= 0) { this.drawFront(ctx, c, P); return; }
-    ctx.save(); ctx.scale(Math.max(0.08, Math.abs(Math.cos(turn * Math.PI))), 1);
-    if (turn >= 0.5) this.drawRun(ctx, c, P); else this.drawFront(ctx, c, P);
-    ctx.restore();
+    if (turn <= 0) this.drawFront(ctx, c, P);
+    else if (turn >= 1) this.drawRun(ctx, c, P);
+    else this.drawTurn(ctx, c, P, turn * Math.PI / 2);
+  },
+  // the hop of its skip at stride g (0..1): every step comes down, and the same foot springs it up again
+  hop(g) { const w = ((g / Math.PI) % 1 + 1) % 1; return w > 0.15 ? Math.sin(Math.PI * (w - 0.15) / 0.85) : 0; },
+  // a running leg by its foot's place in the round (g + o; k how hard it runs), from the hip at (0, hipY): on the ground and
+  // sweeping back under it for the first half, then the knee up high in front and down again. x is forward of the hip.
+  runLeg(g, o, k, hipY) {
+    const L1 = 0.235, L2 = 0.235, u = (((g + o) / TAU) % 1 + 1) % 1;
+    let th, ph;
+    if (u < 0.5) { const v = u / 0.5; th = lerp(0.35, -0.5, v); ph = 0.08 + 0.3 * Math.sin(Math.PI * v); }
+    else { const v = (u - 0.5) / 0.5; th = v < 0.55 ? lerp(-0.5, 1.15, smoothstep(v / 0.55)) : lerp(1.15, 0.35, smoothstep((v - 0.55) / 0.45)); ph = 0.08 + 1.55 * Math.sin(Math.PI * v); }
+    th *= k; ph *= k;
+    const kx = Math.sin(th) * L1, ky = hipY - Math.cos(th) * L1, sa = th - ph;
+    return { kx, ky, fx: kx + Math.sin(sa) * L2, fy: ky - Math.cos(sa) * L2, sa };
   },
   // a sleeve from the shoulder through the elbow to the wrist: pale, banded dark round and round, a dark cuff at the end
   sleeve(ctx, K, pts, w, dark) {
@@ -175,13 +192,16 @@ CREATURES.customer = {
   },
   drawFront(ctx, c, P) {
     const t = c.t, near = clamp(1 - c.dist / 8, 0, 1), lunge = c.lunge || 0, K = this.pal(P);
-    const back = !!c.away && !lunge, gape = smoothstep(lunge * 1.5);
+    // at a shutter part way down (c.shove, set by the night): k how far its hands have come up to the bottom edge of it, h
+    // how high that is (in its own metres, from its feet: the edge as seen from your eye), up 0..1 the shove
+    const sv = c.shove && !lunge ? c.shove : null, grip = sv ? sv.k : 0, heave = sv ? sv.up : 0;
+    const back = !!c.away && !lunge, gape = Math.max(smoothstep(lunge * 1.5), 0.3 * heave);
     // the walk: small stiff steps on straight legs, a foot barely lifting; now and then the feet stop and it slides on
     const st = c.moving ? 1 - this.glide(t) : 0, g = c.gait;
     const press = lunge ? 0 : smoothstep((7.6 - c.dist) / 1.4);   // at the glass, the hands up and flat on it
     const reach = smoothstep(lunge * 1.6);
     // the head: laid slowly over and back, further at the glass; it comes upright and at you as it lunges
-    const tilt = this.tilt(t, lerp(0.26, 0.5, press)) * (1 - reach * 0.7);
+    const tilt = this.tilt(t, lerp(0.26, 0.5, press)) * (1 - reach * 0.7) * (1 - heave * 0.6);
     const hk = 1.12 + lunge * 0.3, nk = [0, 0.86];
     const headFrame = () => { ctx.translate(nk[0], nk[1]); ctx.rotate(tilt * 0.35); ctx.translate(0, 0.11); ctx.rotate(tilt * 0.65); ctx.translate(0, 0.12); ctx.scale(hk, hk); };
     // its long hair, behind it all
@@ -208,17 +228,23 @@ CREATURES.customer = {
       for (const s of [-1, 1]) P_poly(ctx, [[s * 0.058, top + 0.014], [s * 0.004, top - 0.1], [s * 0.085, top - 0.04]], K.suitS);   // the collar
     } else P_line(ctx, 0, top - 0.02, 0, 0.44, 0.006, K.fold);
     // the arms: hanging dead still at its sides, never swinging; at the glass they come up, the elbows out, and the palms
-    // press flat either side of its face; coming at you they reach for your face
+    // press flat either side of its face; coming at you they reach for your face. At a shutter not yet down they go to the
+    // bottom edge of it, wherever it is (the arms stretching as far as they must), and the fingers curl up round it.
     for (const s of [-1, 1]) {
       const sh = [s * 0.152, top - 0.04];
       const hang = { e: [s * 0.18, 0.64], h: [s * 0.182, 0.45] };
       const up = { e: [s * 0.3, 0.8], h: [s * 0.225, 1.05] };
       const at = { e: [s * 0.26, 0.98], h: [s * 0.19, 1.15] };
       const r = Math.max(press, reach), U = reach > press ? at : up;
-      const e = [lerp(hang.e[0], U.e[0], r), lerp(hang.e[1], U.e[1], r)], h = [lerp(hang.h[0], U.h[0], r), lerp(hang.h[1], U.h[1], r)];
+      let e = [lerp(hang.e[0], U.e[0], r), lerp(hang.e[1], U.e[1], r)], h = [lerp(hang.h[0], U.h[0], r), lerp(hang.h[1], U.h[1], r)];
+      let ang = lerp(Math.atan2(h[1] - e[1], h[0] - e[0]), Math.PI / 2 + s * (0.1 + reach * 0.25), r), open = Math.max(press, reach), size = 1 + reach * 0.5;
+      if (grip > 0) {   // the wrist under the edge, the hand pointing straight up to it, the elbow out
+        const wy = sv.h - 0.095, G = { e: [s * lerp(0.27, 0.22, heave), (sh[1] + wy) / 2], h: [s * 0.12, wy] };
+        e = [lerp(e[0], G.e[0], grip), lerp(e[1], G.e[1], grip)]; h = [lerp(h[0], G.h[0], grip), lerp(h[1], G.h[1], grip)];
+        ang = lerp(ang, Math.PI / 2, grip); open = lerp(open, 0.15, grip); size = lerp(size, 1.4, grip);
+      }
       this.sleeve(ctx, K, [sh, e, h], 0.062, false);
-      const ang = lerp(Math.atan2(h[1] - e[1], h[0] - e[0]), Math.PI / 2 + s * (0.1 + reach * 0.25), r);
-      this.hand(ctx, K, h[0], h[1], ang, Math.max(press, reach), -s, 1 + reach * 0.5);
+      this.hand(ctx, K, h[0], h[1], ang, open, -s, size);
     }
     // the neck, thin and black, and the head on it
     ctx.save(); ctx.translate(nk[0], nk[1]); ctx.rotate(tilt * 0.35); P_line(ctx, 0, 0, 0, 0.12, 0.045, K.black); ctx.restore();
@@ -234,6 +260,77 @@ CREATURES.customer = {
       ctx.restore();
     }
   },
+  // turning, a angle (0 face on, PI/2 side on, facing +x, mirrored by c.runDir): it turns as a solid thing turns, on the
+  // spot, its body keeping its width (the front of it going round to the side, the far leg and arm going round behind it),
+  // its legs going over into its stride and its hair out behind as it comes side on. Its head stays turned to you, as it
+  // does running. At either end it is the front (drawFront, as it stands there) and the side (drawRun).
+  drawTurn(ctx, c, P, a) {
+    const K = this.pal(P), near = clamp(1 - c.dist / 8, 0, 1), ca = Math.cos(a), sn = Math.sin(a), q = a / (Math.PI / 2);
+    const dir = c.runDir || 1, g = c.runGait || 0, amt = c.runAmt === undefined ? 1 : c.runAmt, k = amt * q;
+    const X = (x, z) => x * ca + z * sn;   // where a point of it shows across the view: x across its body, z forward from it
+    const hop = this.hop(g), by = 0.08 * k * hop, hipY = 0.5 + by, top = 0.86 + by;
+    const pressF = smoothstep((7.6 - c.dist) / 1.4), r = pressF * (1 - q);   // the hands up toward the glass as it comes face on
+    const tilt = this.tilt(c.t, lerp(lerp(0.26, 0.5, pressF), 0.3, q)), hk = lerp(1.12, 1, q);
+    ctx.save(); ctx.scale(dir, 1);
+    // the head's frame, the mirror undone in it: the neck where it is on the body, laid over less the more it is side on
+    const neck = () => { ctx.translate(0.01 * q, top); ctx.scale(dir, 1); ctx.rotate(tilt * 0.35 * (1 - q)); };
+    const headFrame = () => { neck(); ctx.translate(0, 0.11); ctx.rotate(tilt * (0.65 + 0.35 * q)); ctx.translate(0, 0.12); ctx.scale(hk, hk); };
+    // the long hair, behind it all, going out behind as it comes side on (in the mirrored frame, so behind is -x)
+    ctx.save(); ctx.translate(0.01 * q, top); ctx.rotate(dir * tilt * 0.35 * (1 - q)); ctx.translate(0, 0.11); ctx.rotate(dir * tilt * 0.65 * (1 - q)); ctx.translate(0, 0.12); ctx.scale(hk, hk);
+    this.drawHair(ctx, K, (0.3 + 0.7 * amt) * q, (0.5 - hop) * 0.06 * k); ctx.restore();
+    // a leg: from its hip (s -1 the near side, +1 the far side going round behind), into the stride as it comes side on
+    const drawLeg = s => {
+      const l = this.runLeg(g, s > 0 ? Math.PI : 0, k, hipY), hx = s * 0.075;
+      const kx = X(hx * 1.04, l.kx), fx = X(hx * 1.07, l.fx), sa = l.sa * q;
+      P_limb(ctx, [[X(hx, 0), hipY], [kx, l.ky], [fx, l.fy]], lerp(0.125, 0.115, q), K.suit);
+      if (s > 0 && q > 0.05) { ctx.save(); ctx.globalAlpha = q; P_limb(ctx, [[X(hx, 0), hipY], [kx, l.ky], [fx, l.fy]], 0.115, K.suitD); ctx.restore(); }
+      P_ell(ctx, fx + Math.cos(l.sa) * 0.035 * sn + s * 0.01 * ca, l.fy + Math.sin(l.sa) * 0.035 * q - 0.005, lerp(0.058, 0.068, sn), lerp(0.034, 0.032, q), K.shoe, sa + s * 0.12 * (1 - q));
+      P_ell(ctx, fx - Math.sin(l.sa) * 0.03 * sn, l.fy + lerp(0.08, Math.cos(l.sa) * 0.03, q), lerp(0.074, 0.06, q), 0.03, K.suitS, sa);   // bunched at the ankle
+    };
+    // an arm: hanging straight from the shoulder, or up toward the glass as it comes face on (r)
+    const drawArm = s => {
+      const P3 = (hx, hy, hz, ux, uy, uz) => [X(lerp(hx, ux, r) * s, lerp(hz, uz, r)), lerp(hy, uy, r) + by];
+      const sh = [X(s * 0.152, -0.015), top - 0.04], e = P3(0.18, 0.64, -0.005, 0.3, 0.8, 0.08), h = P3(0.182, 0.45, 0, 0.225, 1.05, 0.1);
+      this.sleeve(ctx, K, [sh, e, h], lerp(0.062, 0.06, q), s > 0 && q > 0.5);
+      this.hand(ctx, K, h[0], h[1], lerp(Math.atan2(h[1] - e[1], h[0] - e[0]), Math.PI / 2 + s * 0.1, r), r, -s, 1);
+    };
+    const farFirst = a > 0.35;
+    if (farFirst) drawArm(1);
+    drawLeg(1);
+    // the body: its width as it turns (wider face on than side on, never less), face on in shape until half way, then side on
+    const A = 0.172, B = 0.1225, W = Math.hypot(A * ca, B * sn);
+    const front = [[-0.05, top + 0.012], [-0.15, top - 0.01], [-0.172, top - 0.08], [-0.166, 0.62 + by], [-0.155, 0.46 + by], [-0.05, 0.41 + by], [0, 0.43 + by], [0.05, 0.41 + by], [0.155, 0.46 + by], [0.166, 0.62 + by], [0.172, top - 0.08], [0.15, top - 0.01], [0.05, top + 0.012]];
+    const side = [[-0.08, top], [0.06, top], [0.1, top - 0.12], [0.125, top - 0.28], [0.1, hipY - 0.05], [0.0, hipY - 0.1], [-0.11, hipY - 0.05], [-0.12, top - 0.3], [-0.1, top - 0.12]];
+    P_poly(ctx, q < 0.5 ? front.map(([x, y]) => [x * W / A, y]) : side.map(([x, y]) => [x * W / B, y]), K.suit);
+    drawLeg(-1);
+    // its front going round toward the way it turns: the placket and its buttons, the pocket, the open collar onto the neck
+    if (a < 1.25) {
+      const zf = 0.11, fade = clamp((1.25 - a) / 0.3, 0, 1), F = x => X(x, zf * Math.sqrt(Math.max(0, 1 - (x / 0.172) ** 2)));   // on the round of its front
+      ctx.save(); ctx.globalAlpha = fade;
+      P_line(ctx, X(0, zf), top - 0.1, X(0, zf), 0.44 + by, 0.006, K.fold);
+      for (const y of [0.71, 0.63, 0.55, 0.47]) P_ell(ctx, F(0.012 * dir), y + by, 0.007 * Math.max(ca, 0.4), 0.007, K.suitS);
+      ctx.globalAlpha = fade * clamp((0.9 - a) / 0.3, 0, 1);   // the pocket, going round out of sight first
+      P_limb(ctx, [[F(0.05 * dir), 0.66 + by], [F(0.115 * dir), 0.66 + by], [F(0.115 * dir), 0.73 + by], [F(0.05 * dir), 0.73 + by], [F(0.05 * dir), 0.66 + by]], 0.005, K.fold);
+      ctx.globalAlpha = fade;
+      const zn = 0.06;
+      P_poly(ctx, [[X(-0.052, zn), top + 0.015], [X(0.052, zn), top + 0.015], [X(0, zf), top - 0.1]], K.black);
+      for (const s of [-1, 1]) P_poly(ctx, [[X(s * 0.058, zn), top + 0.014], [X(s * 0.004, zf), top - 0.1], [X(s * 0.085, zn * 0.6), top - 0.04]], K.suitS);
+      ctx.restore();
+    }
+    drawArm(-1);
+    if (!farFirst) drawArm(1);
+    // the neck and the head, turned to you
+    ctx.save(); neck(); P_line(ctx, 0, 0, 0, 0.12, 0.045, K.black); ctx.restore();
+    ctx.save(); headFrame(); this.drawHead(ctx, c, P, K, near, 0, false);
+    if (q < 0.5) {   // the hair in front of its shoulders, while they are still turned to you
+      for (const s of [-1, 1]) {
+        P_poly(ctx, [[s * 0.112, 0.0], [s * 0.134, 0.0], [s * 0.15, -0.18], [s * 0.145, -0.36], [s * 0.136, -0.27], [s * 0.128, -0.4], [s * 0.118, -0.22]], K.hair);
+        P_limb(ctx, [[s * 0.11, -0.04], [s * 0.106, -0.2], [s * 0.112, -0.31]], 0.006, K.hair);
+      }
+    }
+    ctx.restore();
+    ctx.restore();
+  },
   // running, seen from the side: it skips, as a child skips, step and hop on one foot and step and hop on the other, the
   // free knee coming up high in front and the body bouncing up off the ground with every hop; but the body is bolt upright
   // and dead still on its legs, and the arms hang straight down at its sides and do not swing at all. The hair flies out
@@ -242,20 +339,8 @@ CREATURES.customer = {
   drawRun(ctx, c, P) {
     const g = c.runGait || 0, k = c.runAmt === undefined ? 1 : c.runAmt, near = clamp(1 - c.dist / 8, 0, 1), K = this.pal(P);
     ctx.save(); ctx.scale(c.runDir || 1, 1);
-    // the hop: every step comes down, and the same foot springs it up again
-    const w = ((g / Math.PI) % 1 + 1) % 1, hop = w > 0.15 ? Math.sin(Math.PI * (w - 0.15) / 0.85) : 0;
-    const by = 0.08 * k * hop, hipY = 0.5 + by, top = 0.86 + by, L1 = 0.235, L2 = 0.235;
-    // a leg by its foot's place in the round (u 0..1): on the ground and sweeping back under it for the first half, then
-    // the knee up high in front and down again
-    const leg = o => {
-      const u = (((g + o) / TAU) % 1 + 1) % 1;
-      let th, ph;
-      if (u < 0.5) { const v = u / 0.5; th = lerp(0.35, -0.5, v); ph = 0.08 + 0.3 * Math.sin(Math.PI * v); }
-      else { const v = (u - 0.5) / 0.5; th = v < 0.55 ? lerp(-0.5, 1.15, smoothstep(v / 0.55)) : lerp(1.15, 0.35, smoothstep((v - 0.55) / 0.45)); ph = 0.08 + 1.55 * Math.sin(Math.PI * v); }
-      th *= k; ph *= k;
-      const kx = Math.sin(th) * L1, ky = hipY - Math.cos(th) * L1, sa = th - ph;
-      return { kx, ky, fx: kx + Math.sin(sa) * L2, fy: ky - Math.cos(sa) * L2, sa };
-    };
+    const hop = this.hop(g), by = 0.08 * k * hop, hipY = 0.5 + by, top = 0.86 + by;
+    const leg = o => this.runLeg(g, o, k, hipY);
     const legs = [leg(0), leg(Math.PI)];
     const drawLeg = (l, col) => {
       P_limb(ctx, [[0, hipY], [l.kx, l.ky], [l.fx, l.fy]], 0.115, col);
