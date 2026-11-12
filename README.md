@@ -238,23 +238,21 @@ some on the ground, so you have to turn and look down to find them.
     goes out to the empty top. A dust sheet is pulled down by hand and slides off the glass into a heap.
     If it reaches you, it comes at you angry, whatever it was before: brows down, the red glare and its teeth bared all
     the way in to your face, its jaw dropping and its fists opening as it lunges.
-11. **The Barn.** Something bent double under a bundle is coming for the hayloft,
-    across the yard to the loft door or in at the far end of the barn and up the ladder,
-    and it goes faster the more you carry. A stack of hay stands in each way in, and both
-    must burn. Fill a bottle at the oil drum, stuff a rag in its neck, light the rag with
-    the matches (they light the second one too) and throw it into the hay. Fire in the
-    stack it is coming to, or walking in between, sends it running round, side on, to the
-    other way; fire in a stack it has already walked past does not turn it. Once both burn
-    it cannot reach you, wherever it is, unless it is already up in the loft: out beyond a
-    fire it rears back from the flames, paces them and sits down; caught between a fire and
-    you, it rears back, backs away from you into the smoke and sits down there. The rags
-    are squares of old grey-blue cloth. Carry one bottle and one rag at a time. Only a lit
-    bottle is let go of: anything else tried at the hay is swung out toward it and held back
-    (oil slops out of an open bottle and spatters the boards), and a match flicked at it goes
-    out as it falls. A full bottle held to the drum's tap runs it over into a pool on the
-    boards; a lit one, or the matches, is snatched back before it gets there. The wrong things
-    put together stay as they were, the other one (or a struck match, flaring and going out)
-    up in your other hand a moment.
+11. **The Farm.** You stand in the yard by the farm's electrical box, the house at your back with its porch light on.
+    Round you in a ring, at the compass points, are the farm's places, each with a floodlight of its own and all of them
+    dark: the tractor shed (SW), the shed (W), the stables (NW), the barn (N), the silo (NE), the coop (E) and the
+    driveway (SE); each has a neighbour either side, and the driveway and the tractor shed meet behind the house. The box
+    is on its post in front of you (look down): its door hangs open on two rows of big toggle switches, each with a red
+    pilot lamp and a strip of tape with the place written on it in marker (HOUSE, then the places in order round from
+    the tractor shed); a click flips one, up is on. Something bent under a bundle stands in the dark at the foot of one
+    place, all but black, two pale points of eyes. It cannot stand the light: light its place and it throws an arm over
+    its face and runs, side on, to a neighbouring place that is dark, at the same distance from you. Light both its
+    neighbours and then its own place and it has nowhere dark to go: it shrieks, its knees go, and it comes apart in
+    the light, sacking and straw. The box takes three lights at once: a fourth blows the fuse with a bang and sparks,
+    every light on the farm goes out (the porch light too), every switch drops to off, and the box is dead for five
+    seconds while it comes for you through the dark; then the breaker clicks back in with everything off. While the
+    porch light is on it creeps in no nearer than the edge of that light and waits there; with it off, it comes all the
+    way. So the porch light has to go off before the trap, and then there is not long.
 12. **The Bedroom.** You are in bed. It is already there, in the hall beyond the doorway
     or in the closet, behind the wall at the side of the opening: at first only its head
     leans out round the edge, its fingers curled round the frame (having its head in view
