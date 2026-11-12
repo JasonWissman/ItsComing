@@ -15,7 +15,7 @@
 // once, nothing loosed.
 const arrows = "(G.inv.find(i => i.id === 'arrows') || { uses: 0 }).uses";
 const last = 'G.L.s.outcomes[G.L.s.outcomes.length - 1]';
-const hold = d => ['eval', 'const c = G.L.creature; c.switched = true; c.darts = 2; c.u = 1 - Math.pow(' + d + ' / c.D0, 1 / c.gamma); c.hold = ' + d + ';' +
+const hold = d => ['eval', 'const c = G.L.creature; c.switched = true; c.darts = Infinity; c.u = 1 - Math.pow(' + d + ' / c.D0, 1 / c.gamma); c.hold = ' + d + ';' +
   ' G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;'];
 const refill = ['eval', "G.inv.find(i => i.id === 'arrows').uses = 3; G.L.s.spent = 0; G.invSig = '';"];
 const nock = ['wait', 750];   // the next arrow is on the string

@@ -134,9 +134,9 @@ some on the ground, so you have to turn and look down to find them.
    tries it, then runs round the outside of the yard to the other one, but only while
    nothing is looking: catch it going round and it stops dead, mid-stride. At the end it
    comes on only when you blink, up to the gate, and shakes it on its chain.
-5. **The Clearing.** Something that sprints, drops to all fours to watch, and
-   sprints again; out in the tree line it sometimes breaks sideways to a new place,
-   running side on. The bow is on the porch, and its three arrows lie about, each in a
+5. **The Clearing.** Something that sprints at you, fast, drops to all fours to watch, and
+   sprints again; out in the open it keeps breaking sideways to a new place, running side on
+   and closing as it goes, so it is seldom where you last saw it. The bow is on the porch, and its three arrows lie about, each in a
    place of its own (driven into the wall or a post, along a rail, on the woodpile, the
    crate or the boards, stood against the wall); picked up, they go together in one slot,
    "Arrows ×2". Hold the button (or the touch Use button, or A) to draw. A power bar fills
