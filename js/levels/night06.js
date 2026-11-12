@@ -78,7 +78,7 @@ LEVELS.push({
     L.addAperture(0, apN); L.addAperture(1, apE);
     SC.quad(L, [-2.5, 3.0, -2.5], [2.5, 3.0, -2.5], [2.5, 3.0, 2.7], [-2.5, 3.0, 2.7], [26, 21, 17]);
     for (const z of [-1.8, -0.6, 0.6, 1.8]) SC.box(L, -2.4, 2.4, 2.84, 3.0, z - 0.06, z + 0.06, [44, 36, 28]);
-    // furniture: an upturned rowboat, a workbench, a shelf, the winch, rope and nets
+    // furniture: an upturned rowboat, a workbench, a shelf, the winch, a life ring on the wall
     // the rowboat lies upturned along the west wall, its bow toward the water: plank sides narrowing to a stem, its flat
     // bottom uppermost (things can lie on it), and the keel along the middle
     const hullC = [72, 62, 50], hx0 = -2.3, hx1 = -1.4, hmx = -1.85, hz0 = -1.9, hz1 = 0.9, stem = 1.5, HH = 0.45, strakes = { tex: 'planks', texScale: 0.6 };
@@ -104,9 +104,15 @@ LEVELS.push({
     SC.box(L, 1.8, 2.1, 2.42, 2.58, 2.5, 2.62, iron);
     SC.quad(L, [1.94, 1.5, 2.5], [1.96, 1.5, 2.5], [1.96, 2.42, 2.5], [1.94, 2.42, 2.5], [28, 28, 30]);
     SC.quad(L, [0, 2.44, 2.61], [1.95, 2.44, 2.61], [1.95, 2.47, 2.61], [0, 2.47, 2.61], [28, 28, 30]);
-    SC.sprite(L, -1.6, 1.4, -2.36, 0.5, 0.5, (ctx, P) => { ctx.scale(0.5, 0.5); ICONS.rope(ctx, P); });
-    SC.sprite(L, -2.36, 1.85, -1.5, 0.7, 0.7, (ctx, P) => { ctx.scale(0.7, 0.7); ctx.lineWidth = 0.16; ctx.strokeStyle = P.col([200, 196, 186]); ctx.beginPath(); ctx.arc(0, 0.5, 0.36, 0, TAU); ctx.stroke(); ctx.strokeStyle = P.col([150, 50, 40]); for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(0, 0.5, 0.36, k * Math.PI / 2 + 0.2, k * Math.PI / 2 + 0.6); ctx.stroke(); } });
-    SC.sprite(L, 1.2, 1.3, -2.36, 1.6, 1.6, (ctx, P) => { ctx.scale(1.6, 1.6); ctx.strokeStyle = P.col([60, 58, 50]); ctx.lineWidth = 0.006; ctx.beginPath(); for (let k = 0; k <= 8; k++) { ctx.moveTo(-0.5 + k / 8, 1); ctx.lineTo(-0.4 + k / 8 * 0.8, 0); ctx.moveTo(-0.5, 1 - k / 8); ctx.lineTo(0.5, 1 - k / 8 * 0.9); } ctx.stroke(); }, { sortDist: 3.3 }); // the net hangs on the wall: drawn with it, behind what stands on the bench
+    // a life ring hung flat on the west wall, between two battens, on a peg through the top of its hole: white, with four red
+    // bands, in pieces of the ring laid on the boards
+    { const rx = -2.37, ry = 2.12, rz = -1.5, r0 = 0.165, r1 = 0.26, N = 24;
+      for (let k = 0; k < N; k++) {
+        const a0 = k / N * TAU, a1 = (k + 1.15) / N * TAU, m = ((k + 0.5) / N * 4) % 1, P = (a, r) => [rx, ry + Math.sin(a) * r, rz + Math.cos(a) * r];
+        SC.quad(L, P(a0, r0), P(a1, r0), P(a1, r1), P(a0, r1), m > 0.2 && m < 0.55 ? [150, 50, 40] : [200, 196, 186]);
+      }
+      SC.box(L, rx - 0.03, rx + 0.04, ry + r0 - 0.035, ry + r0 - 0.005, rz - 0.015, rz + 0.015, [40, 32, 26]);   // the peg, the ring's top resting on it
+    }
     // the iron brackets either side of the side door that take its bar: each a cradle open at the top, bolted to the wall, two
     // arms out from the wall plate and a strap across their ends, so that from the room it shows as a U the bar drops into.
     // They and the bar carry sort distances that draw them over the door leaf and frame (sorted by their own middles, a bar a
