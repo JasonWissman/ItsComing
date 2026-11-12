@@ -1,6 +1,6 @@
 // The Phone Booth: nothing in hand; the notebook lies shut on the corner shelf under the phone (the only thing on it: no
-// phone book, no panel over the view). The pay phone hangs across the north-east corner, between the two streets, a size
-// smaller than life. Nothing is done to the view, ever: looking down at the notebook, clicking it, reading it and facing the
+// phone book, no panel over the view). The pay phone, a slim unit a size smaller than life on a backboard no wider than
+// itself, stands across the north-east corner, between the two streets. Nothing is done to the view, ever: looking down at the notebook, clicking it, reading it and facing the
 // phone leave the view as it is, and the zoom (Shift, Z, Space, the touch button or a trigger) is the player's own. Look
 // down at the notebook and click it: the cover goes back over the spiral; click (or the Use button, or A on a gamepad) to
 // turn each page over, until the one with the number scrawled large across it in red, alone on its page; with the zoom held
@@ -12,7 +12,7 @@
 // its hook and it drops straight through, back into the return; take it again, lift the receiver, put it in. A key clicked
 // with the zoom held is pressed as ever. A gamepad's d-pad moves a highlight over the phone's keys (and turns away past the
 // last of them) and A presses the one highlighted. Dial the number with the number keys, and wait out the seven seconds of
-// ringing while he keeps coming; then a car comes for you, pulls up and opens its door, and he turns round. The notebook,
+// ringing while it keeps coming; then a car comes for you, pulls up and opens its door, and it turns round. The notebook,
 // the keys, the receiver and the coin slot are clicked where they are drawn, so their hit rects are tested as well; the
 // number keys dial, not choose what you hold.
 // What you do happens in your hands: a key is pressed by your fingertip (what you hold goes down meanwhile and comes back
@@ -20,10 +20,11 @@
 // lifted receiver is in your left hand until it goes back on its hook; the coin given back drops into the cup with a
 // clink; the hand feels in the empty coin return; a coin put in on the hook goes from your fingers into the slot before it
 // drops into the cup; keys typed faster than the finger can go are pressed in turn.
-// He has no lantern: no light walks with him, and no glow is drawn on him. He goes from street lamp to street lamp along
-// his own street: he starts behind one, lit by it, reaches up and breaks it (its light, glow and streak on the road go out
-// for good), rushes on in the dark to the next one nearer, and so on; his whole way in takes the time his steady walk used
-// to, so the race with the phone is as it was. From the phone he is in the view, at its edge, and not behind the phone.
+// The shade brings no light: none walks with it, and no glow is drawn on it. It goes from street lamp to street lamp along
+// its own street, every one of them: it starts behind the last, the furthest down the street, lit by it (its face showing in
+// that light), reaches up and breaks it (its light, glow and streak on the road go out for good), skitters on in the dark,
+// its face gone, to the next one nearer, and so on; its whole way in takes the time its steady walk used to, so the race
+// with the phone is as it was. From the phone it is in the view, at its edge, and not behind the phone.
 const visible = sel => "(document.querySelector('" + sel + "') && document.querySelector('" + sel + "').style.display !== 'none')";
 // click the phone's keys for a string of digits where they are drawn, as a mouse would
 const clickKeys = digits => "(() => { for (const d of " + digits + ") { const h = [...R.hits].reverse().find(h => h.kind === 'target' && h.ref.id === 'key' + d); if (!h) return false; UI.canvas.dispatchEvent(new MouseEvent('click', { clientX: h.x + h.w / 2, clientY: h.y + h.h / 2, bubbles: true })); } return true; })()";
@@ -47,7 +48,7 @@ const redShare = "(() => { const r = G.L.s.nbRect, k = R.ctx.canvas.width / wind
 const inView = "(() => { const r = G.L.s.nbRect; return r.x >= 0 && r.y >= 0 && r.x + r.w <= R.W && r.y + r.h <= R.H; })()";
 // the view as it always is: no zoom, and the pitch the arrow keys put it at
 const plain = pitch => '(G.cam.zoom < 1.05 && Math.abs(G.cam.pitch - ' + pitch + ') < 0.02)';
-// facing the phone, he is in the view (at its edge: the corner of your eye), and not hidden behind the phone's plate
+// facing the phone, it is in the view (at its edge: the corner of your eye), and not hidden behind the phone
 const periphery = "(() => { const p = G.L.creature.pos(), a = Math.abs(Math.atan2(p.x, p.z) / DEG - 45); return a < 44 && a > 16; })()";
 const lamp0 = 'G.L.s.man.stops[0].lamp';
 module.exports = {
@@ -56,16 +57,17 @@ module.exports = {
     ['expect', "!G.L.items.some(i => i.id === 'journal') && !G.L.targets.some(t => t.id === 'book') && G.L.targets.some(t => t.id === 'notebook') && !document.querySelector('.pb-nb')", 'only the notebook is on the shelf: no phone book, and no panel over the view'],
     ['expect', 'G.L.s.others.length >= 4', 'there are always a few ordinary numbers in the notebook'],
     ['expect', 'G.L.lanes.every(l => l.deg !== 270)', 'nothing comes from the west'],
-    ['expect', '!(G.L.dynamicLights() || []).length && !G.L.glows().some(g => g.color[0] === 255 && g.color[1] === 190)', 'he brings no light with him: no lantern, no glow'],
-    // his way in: from lamp to lamp along his own street, fitted to the time he has
-    ['expect', 'G.L.s.man && G.L.s.man.stops.length >= 3 && G.L.s.man.stops.every(st => st.lamp && st.lamp.street === (G.L.creature.lane.deg === 0 ? 0 : 1))', 'his way in goes by the lamps along his own street'],
-    ['expect', "G.L.s.man.seg.kind === 'stop' && Math.abs(G.L.creature.dist - G.L.s.man.stops[0].d) < 0.01 && " + lamp0 + '.light.i > 0.5 && G.L.creature.lit > 0.1', 'he starts behind a lamp, lit by it'],
-    ['expect', 'Math.abs(G.L.s.man.arrive - G.L.creature.T) < 0.5 && G.L.s.man.wait >= 1.6 && G.L.s.man.wait <= 6.5', 'he gets to the glass when his steady walk would have, and waits a few seconds at each lamp'],
+    ['expect', '!(G.L.dynamicLights() || []).length && !G.L.glows().some(g => g.color[0] === 255 && g.color[1] === 190)', 'it brings no light with it: no lantern, no glow'],
+    // its way in: from lamp to lamp along its own street, every one of them from the last, fitted to the time it has
+    ['expect', 'G.L.s.man && G.L.s.man.stops.length >= 6 && G.L.s.man.stops.every(st => st.lamp && st.lamp.street === (G.L.creature.lane.deg === 0 ? 0 : 1))', 'its way in goes by every lamp along its own street'],
+    ['expect', 'G.L.s.man.stops[0].d > 90 && G.L.s.man.stops.every((st, i, a) => !i || st.d < a[i - 1].d) && Math.abs(G.L.creature.D0 - G.L.s.man.stops[0].d) < 0.01', 'it starts at the very last lamp down its street, and comes in lamp by lamp'],
+    ['expect', "G.L.s.man.seg.kind === 'stop' && Math.abs(G.L.creature.dist - G.L.s.man.stops[0].d) < 0.01 && " + lamp0 + '.light.i > 0.5 && G.L.creature.lit > 0.1 && G.L.creature.lampLit > 0.9', 'it starts behind that lamp, lit by it (its face showing)'],
+    ['expect', 'Math.abs(G.L.s.man.arrive - G.L.creature.T) < 0.5 && G.L.s.man.wait >= 1.2 && G.L.s.man.wait <= 5', 'it gets to the glass when its steady walk would have, quick about each lamp'],
     ['face', 1, false],
-    ['expect', plain(0) + ' && ' + periphery, 'facing the phone the view is as it always is, and he is at its edge, not behind the phone'],
+    ['expect', plain(0) + ' && ' + periphery, 'facing the phone the view is as it always is, and it is at its edge, not behind the phone'],
     watch('reach', 'G.L.creature.reach > 0.9 && G.L.creature.reachTo && G.L.creature.reachTo.y > 3.5 && ' + lamp0 + '.outAt === undefined'),
     watch('break', lamp0 + '.outAt !== undefined && G.L.s.lampsOut === 1 && G.L.s.sparks.length > 10'),
-    watch('rush', 'G.L.creature.rush > 0.6 && G.L.creature.dark && G.L.creature.moving'),
+    watch('rush', 'G.L.creature.rush > 0.6 && G.L.creature.dark && G.L.creature.moving && G.L.creature.lampLit === 0'),
     watch('next', "G.L.s.man.seg.kind === 'stop' && G.L.s.man.seg.st === G.L.s.man.stops[1] && " + periphery),
     ['face', 1, true],
     ['expect', '!G.L.s.nbOpen && ' + plain('PITCH_DOWN'), 'looking down at it, it lies shut and the view is as it always is'],
@@ -88,12 +90,12 @@ module.exports = {
     padOn, ...tap(0), padOff,
     ['waitUntil', settled, 3000],
     ['expect', 'G.L.s.page === 3', 'and so does A'],
-    // he has been at his first lamp all this while: he reached up to it and broke it, and ran on in the dark to the next
-    ...saw('reach', 'he reached up to his lamp, his arm far too long', 8000),
+    // it has been at its first lamp all this while: it reached up to it and broke it, and skittered on in the dark to the next
+    ...saw('reach', 'it reached up to its lamp, its arm far too long', 8000),
     ...saw('break', 'and broke it: it popped, and glass and sparks came down'),
     ['wait', 700],
     ['expect', lamp0 + '.light.i === 0 && !G.L.glows().includes(' + lamp0 + '.glow) && ' + lamp0 + '.refl.every(q => q.alpha === 0)', 'it is out for good: no light, no glow, no streak on the road'],
-    ...saw('rush', 'he rushed on in the dark'),
+    ...saw('rush', 'it skittered on in the dark, its face gone'),
     // on to the page with the number (round again past the last page, which shuts it, if it was passed)
     clickNbUntil('G.L.s.nbOpen && G.L.s.page === G.L.s.keyPage'),
     ['waitUntil', 'G.L.s.bloodDrawn', 3000],
@@ -106,7 +108,7 @@ module.exports = {
     ['expect', 'window.__num === G.L.s.number && G.L.s.keyPage > 0', 'the number scrawled in red is the one, and it is not on the first page'],
     ['expect', "G.L.s.pages[G.L.s.keyPage].length === 1 && G.L.s.pages[G.L.s.keyPage][0][0] === '%' && window.__red > 0.04", 'it has the page to itself, written large across it in red'],
     ['expect', "G.L.s.pages.filter(p => p.some(l => l[0] === '%')).length === 1 && G.L.s.pages.every((p, i) => i === G.L.s.keyPage || !p.join(' ').includes(G.L.s.numberText))", 'no other page is scrawled in red, and the number is written nowhere else'],
-    ...saw('next', 'he came to the next lamp, at the edge of the view from the phone', 8000),
+    ...saw('next', 'it came to the next lamp, at the edge of the view from the phone', 8000),
     // turned away, it is still open where it lies
     ['face', 4, false],
     ['wait', 300],
@@ -197,10 +199,10 @@ module.exports = {
     ['waitUntil', "!G.L.s.lands.length && G.L.s.lagN === 0", 3000],
     ['waitUntil', "G.L.s.line === 'ringing'", 3000],
     ['wait', 3000],
-    ['expect', "G.L.s.line === 'ringing' && !G.L.won && G.state === 'play'", 'still ringing three seconds on, and he is still coming'],
+    ['expect', "G.L.s.line === 'ringing' && !G.L.won && G.state === 'play'", 'still ringing three seconds on, and it is still coming'],
     ['waitUntil', 'G.L.won', 8000],
     ['expect', 'G.L.s.answeredAt - window.__dialT >= 7 && Date.now() - window.__dialMs >= 6900', 'it rang for seven seconds after the last digit before anyone picked up'],
-    ['expect', 'G.L.s.lampsOut >= 2', 'by then he had broken more than one lamp'],
+    ['expect', 'G.L.s.lampsOut >= 2', 'by then it had broken more than one lamp'],
     ['waitUntil', 'G.L.s.end && G.L.s.end.pose && G.L.s.end.doorT !== undefined', 8000],
     ['expect', "G.L.s.end.doorT >= G.L.s.end.tStop && G.state === 'won'", 'a car comes, pulls up and opens its door before the fade'],
     ['waitUntil', 'G.L.aftermathT > G.L.s.end.doorT + 0.6', 3000],
