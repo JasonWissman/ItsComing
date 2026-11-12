@@ -125,9 +125,10 @@ some on the ground, so you have to turn and look down to find them.
    last lantern is lit he comes right up to the salt, looks down at it, then turns round
    and walks back into the dark.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
-   You must look away to shut both gates, chain each with its own chain, and padlock
-   them. One padlock is rusted solid: pressed down on the chain it will not snap shut, and
-   drops. A chain thrown round a gate still swinging shut rides on its end and is knocked off to
+   You must look away to shut both gates, chain each with its own chain, and lock each
+   with its own padlock. The two good padlocks lie apart, each in a place of its own, and are
+   found and picked up one at a time; one key opens both. A third padlock is rusted solid:
+   pressed down on the chain it will not snap shut, and drops. A chain thrown round a gate still swinging shut rides on its end and is knocked off to
    the ground as the gate meets its post (clicked as it is about to shut, it goes on as it shuts), and a shut gate with nothing to hold it, pushed, swings out a little
    and falls back shut. Every glance away costs you. The gates are barred right
    across with thin iron bars, too close for it to get through and far enough apart that you

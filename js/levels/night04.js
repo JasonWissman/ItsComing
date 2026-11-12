@@ -52,11 +52,7 @@
       for (const [x, y, r] of [[-0.12, 0.38, 0.022], [0.16, 0.48, 0.018], [0.25, 0.35, 0.02], [-0.06, 0.26, 0.02], [0.1, 0.42, 0.014], [-0.24, 0.5, 0.015], [0.04, 0.53, 0.016]]) P_ell(ctx, x, y, r, r * 0.8, pit); // pits
       P_ell(ctx, 0, 0.42, 0.055, 0.055, pit); P_rect(ctx, -0.018, 0.3, 0.036, 0.12, pit); P_ell(ctx, 0.01, 0.42, 0.03, 0.026, rustD); // the keyhole, choked with rust
     },
-    // two padlocks, side by side: the one item while both are there
-    padlocks(ctx, P) {
-      for (const [x, y] of [[-0.19, 0.24], [0.19, 0.02]]) { ctx.save(); ctx.translate(x, y); ctx.scale(0.74, 0.74); ICONS.padlock(ctx, P); ctx.restore(); }
-    },
-    // the padlocks' key: one stout key in the same brass as the locks, lying across its card (a round bow with a hole, a
+    // the padlocks' key (the one key opens both): a stout key in the same brass as the locks, lying across its card (a round bow with a hole, a
     // long shank, a two-toothed bit), a bright edge down it so it catches the eye on the dark ground
     padkey(ctx, P) {
       const brass = P.col([170, 144, 66]), dark = P.col([92, 76, 34]), lit = P.col([226, 206, 140]), hole = P.col([26, 22, 16]);
@@ -102,7 +98,7 @@ LEVELS.push({
   weather: { kind: 'mist', density: 1.2, wind: 0.5, fogRoll: { period: 33, depth: 0.4, phase: 2 } },
   text: {
     intro: 'It is standing at the far end of the quarry with its hands over its face. It doesn\'t like to be seen.',
-    hint: 'You will have to look away to shut the gates and find the chains and the lock. Be quick about it.',
+    hint: 'You will have to look away to shut the gates and find the chains and the locks. Be quick about it.',
     objective: 'Shut, chain and padlock both gates.',
     death: { default: 'You looked away, and it only needed a moment.' },
     win: 'Every time you blinked it came nearer, but when it arrived, it could not break through.',
@@ -113,8 +109,9 @@ LEVELS.push({
     { deg: 0, name: 'gate', barrierDist: 2.95, cue: 'scrape', apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }], default: true },
     { deg: 180, name: 'back gate', barrierDist: 2.95, cue: 'clunk', apertures: [{ z: 2.6, x0: -1.05, x1: 1.05, y0: 0, y1: 99 }] },
   ],
-  // every gate is three steps now (pull it shut, chain it, padlock it) and there are two chains to find: a little more time
-  creatures: [{ type: 'watcher', startDist: 50, time: 36, seenMult: 0, unseenMult: 1 }],
+  // every gate is three steps now (pull it shut, chain it, padlock it) and there are two chains and two padlocks to find,
+  // each lying on its own: a little more time
+  creatures: [{ type: 'watcher', startDist: 50, time: 39, seenMult: 0, unseenMult: 1 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;
@@ -166,7 +163,7 @@ LEVELS.push({
       { x: 1.9, y: 0, z: -0.5, flat: true },                             // coiled on the ground
       { x: -0.9, y: 0, z: -1.0, flat: true },                            // coiled on the ground, by the table
     ];
-    const CHAINS = ['chain', 'chain2'], LOCKS = ['padlock', 'oldlock'];
+    const CHAINS = ['chain', 'chain2'], PADLOCKS = ['padlock', 'padlock2'], LOCKS = PADLOCKS.concat('oldlock');
     for (const id of CHAINS) {
       const c = mkItem(L, id, 'Chain', chainSpots, { w: 0.6, h: 0.6, icon: 'coiledchain' });
       if (c.y > 0.2) Object.assign(c, { icon: ICONS.hungchain, w: 0.42, h: 0.8 });   // hung up: a long loop down from its peg
@@ -185,14 +182,21 @@ LEVELS.push({
       if (k === 'chain') Object.assign(it, { icon: ICONS.coiledchain, w: 0.6, h: 0.6 });
       if (k === 'rope') Object.assign(it, { icon: ICONS.rottenrope, w: 0.4, h: 0.3 });
     };
-    // one padlock item for both gates, drawn as the pair it is until one of them is on a gate
-    const lock = mkItem(L, 'padlock', 'Padlock', [
-      { deg: 150, dist: 1.7, y: 0 },                    // south-south-east
-      { x: 1.5, y: 0, z: 1.5 },                         // north-east
-      { x: -1.7, y: 0, z: 1.2 },                        // north-west
-      { x: -1.8, y: 0, z: -0.4 },                       // west
-    ], { w: 0.3, h: 0.3, flat: true, uses: 2, held: { grip: 'pinch', at: [-0.2, 0.62], angle: 0.15, size: 0.2 },
-      icon: (ctx, P) => (lock.uses > 1 && !trying(lock) ? ICONS.padlocks : ICONS.padlock)(ctx, P) });   // (one of the pair is tried at a gate)
+    // two padlocks, one for each gate, each lying on its own (never both in one place): one somewhere in the front half of
+    // the yard, by the gate, the other in the back half, by the back gate. Either locks either gate, and each locks one
+    const lockSpots = [
+      [
+        { x: 1.5, y: 0, z: 1.5 },                       // north-east
+        { x: -1.7, y: 0, z: 1.2 },                      // north-west
+        { x: 0.2, y: 0, z: 1.0 },                       // just in front, toward the gate
+      ],
+      [
+        { deg: 150, dist: 1.7, y: 0 },                  // south-south-east
+        { x: -2.0, y: 0, z: -0.9 },                     // west-south-west
+        { x: -1.5, y: 0, z: -1.9 },                     // south-west, off the end of the table
+      ],
+    ];
+    PADLOCKS.forEach((id, k) => mkItem(L, id, 'Padlock', lockSpots[k], { w: 0.24, h: 0.28, flat: true, icon: 'padlock', held: { grip: 'pinch', at: [-0.2, 0.62], angle: 0.15, size: 0.2 } }));
     mkItem(L, 'gatekey', 'Key', [
       { x: 0.05, y: 0.48, z: -1.7 },                    // on the table
       { x: -2.6, y: 0, z: 1.9 },                        // north-west corner
@@ -237,7 +241,7 @@ LEVELS.push({
         },
         use(item) {
           if (CHAINS.includes(item.id)) { t.chained = true; t.nudgeAt = undefined; t.angle = 0; t.accepts = LOCKS.slice(); AUDIO.sfx('chain'); G.say('You wind the chain through the bars and around the post.', 'The chain goes through the bars.'); return true; }
-          if (item.id === 'padlock') {   // without its key: held to the chain's end, its shackle tugged at, and it will not open
+          if (PADLOCKS.includes(item.id)) {   // without its key: held to the chain's end, its shackle tugged at, and it will not open
             if (!G.hasItem('gatekey')) {
               if (G.fumbling && G.fumbling.target === t) return G.refuse(false);   // (the last thing tried here is still there: quietly)
               G.say('The padlock is shut. It wants its key.', 'The padlock is locked shut, and the shackle will not pull open.'); return G.refuse({ preset: 'bump', drop: false, at: latch(t, LOCK_Y), scale: LOCK_K, sfx: { hit: 'tink' } }); }
@@ -283,7 +287,6 @@ LEVELS.push({
     const LOCK_Y = 0.5, CHAIN_Y = 0.9, LOCK_K = 0.7;   // where the lock hangs and the chain goes round; a padlock's size there (as the one on a gate)
     const NUDGE = { dur: 0.8, open: 0.3 };
     const panOf = g => Math.sin(wrapPi(Math.atan2(g.x, g.z) - G.cam.yaw)) * 0.85;
-    function trying(it) { const f = G.fumbling; return !!f && f.from === it && f.phase !== 'wait' && f.phase !== 'done'; }
     const shake = g => { g.rattleAt = L.t; AUDIO.sfx('gate', panOf(g)); };
     // A chain thrown round a gate still swinging shut goes quicker than a thing tried (THROW). Does it get there before the gate
     // meets the post? As js/hands.js takes it: up into the hand first if it is not up (what was in it going down first), out
@@ -313,7 +316,7 @@ LEVELS.push({
       } else if (id === 'rope' && state !== 'locked') {    // wound round the bars, the rotten rope will not hold and slips off
         o = { preset: 'slip', at: latch(g, CHAIN_Y, ON_BARS), hold: 0.45, pivot: 'right', sfx: { hit: 'pat', land: 'flop' } };
       } else if (LOCKS.includes(id)) {                     // a padlock: its shackle knocks on the bars, or on the lock already there
-        o = { preset: state === 'locked' ? 'return' : 'bump', drop: false, at: state === 'nochain' ? latch(g, 0.62, ON_BARS) : latch(g, LOCK_Y), scale: id === 'padlock' ? LOCK_K : 0.8, sfx: { hit: 'tink' } };
+        o = { preset: state === 'locked' ? 'return' : 'bump', drop: false, at: state === 'nochain' ? latch(g, 0.62, ON_BARS) : latch(g, LOCK_Y), scale: PADLOCKS.includes(id) ? LOCK_K : 0.8, sfx: { hit: 'tink' } };
       } else if (id === 'gatekey') {                       // the key pokes at the bars, the chain or the lock
         o = { preset: 'bump', drop: false, at: state === 'shut' ? latch(g, 0.8, ON_BARS) : latch(g, LOCK_Y + 0.06), sfx: { hit: 'tink' } };
       } else o = { preset: 'return', at: latch(g, CHAIN_Y, ON_BARS), onHit: () => { if (state !== 'swinging') g.rattleAt = L.t; } };   // a second chain, and the like, knocks on it
