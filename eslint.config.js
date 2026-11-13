@@ -17,7 +17,7 @@ module.exports = [
   },
   {
     files: ['lab/**/*.js'],
-    languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: Object.assign({}, globals, { LAB: 'readonly', innerHeight: 'readonly', Proxy: 'readonly' }) },
+    languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: Object.assign({}, globals, { LAB: 'readonly', innerHeight: 'readonly', innerWidth: 'readonly', addEventListener: 'readonly', history: 'readonly', Proxy: 'readonly' }) },
     rules: { 'no-undef': 'error', 'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }], 'no-redeclare': 'off', 'no-empty': ['error', { allowEmptyCatch: true }] },
   },
   {
