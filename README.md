@@ -321,7 +321,7 @@ some on the ground, so you have to turn and look down to find them.
     face comes up out of the dark of the hood and goes slowly through angry, neutral, angry,
     confused, sad, neutral and content until it is happy. Then it lets you go and the dark
     opens into a green meadow in the sun (wild flowers, trees, clouds, birdsong and a breeze).
-    As a music box starts it pushes its hood back (two little round horns), lets the robe
+    As a music box starts it pushes its hood back, lets the robe
     drop, the long sleeves and black gloves sliding off its arms, and hops clear of the heap
     of black cloth: underneath it wears a yellow shirt striped sky blue, red shorts, white
     socks and blue sneakers, and it dances a little beside the robe on the grass. The view is yours again there: turn, look down and zoom as in

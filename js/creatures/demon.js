@@ -14,30 +14,30 @@
 // and 7 the last, and between two whole numbers it is part way from one to the next. Each is a set of numbers, so any two
 // blend smoothly. Measured from fy (see draw): the eyes sit at fy + 0.03, brows bi (inner end) and bo (outer end) above
 // them, bq one brow raised and the other lowered by that much; er, eh the eye's half width and height, open how far it is
-// open, lid its slant (outer corner down), lidLine an upper lid drawn over it, sock a dark socket, glow red light in it, pup
-// a pupil (0: blank), gaze where the pupil looks, arc closed happy eyes; the mouth: corners my below fy and mc higher than
-// that, its upper lip's middle mu above the corners and its lower lip's md, mr how round it is, mk how far it is twisted
+// open, lid its slant (outer corner down), lidLine an upper lid drawn over it, sock a dark socket, glow red light in it, arc
+// closed happy eyes (no face has pupils: the eyes are blank); the mouth: corners my below fy and mc higher than that, its
+// upper lip's middle mu above the corners and its lower lip's md, mr how round it is, mk how far it is twisted
 // (one corner up, the other down), teeth, joy (a red mouth with a tongue), tears, blush; jaw a longer face, fw a wider one,
 // tilt of the head and trem a tremble.
-const DEMON_ANGRY = { skin: [156, 42, 36], fw: 0.004, jaw: 0.6, brow: 1, bi: 0.006, bo: 0.044, bw: 0.017, bq: 0, er: 0.026, eh: 0.011, open: 1, lid: -0.26, lidLine: 0, sock: 1, glow: 1, pup: 0, gaze: 0, arc: 0, my: -0.098, mw: 0.056, mc: -0.008, mu: 0.03, md: -0.052, mr: 0.75, mk: 0, teeth: 1, joy: 0, tears: 0, blush: 0, tilt: 0.04, trem: 0.8 };
-const DEMON_NEUTRAL = { skin: [150, 142, 148], fw: 0, jaw: 0, brow: 0.85, bi: 0.036, bo: 0.036, bw: 0.011, bq: 0, er: 0.017, eh: 0.011, open: 0.85, lid: 0, lidLine: 0.7, sock: 0.12, glow: 0, pup: 0.0062, gaze: 0, arc: 0, my: -0.078, mw: 0.034, mc: 0, mu: 0.003, md: -0.003, mr: 0.15, mk: 0, teeth: 0, joy: 0, tears: 0, blush: 0, tilt: 0, trem: 0 };
+const DEMON_ANGRY = { skin: [156, 42, 36], fw: 0.004, jaw: 0.6, brow: 1, bi: 0.006, bo: 0.044, bw: 0.017, bq: 0, er: 0.026, eh: 0.011, open: 1, lid: -0.26, lidLine: 0, sock: 1, glow: 1, arc: 0, my: -0.098, mw: 0.056, mc: -0.008, mu: 0.03, md: -0.052, mr: 0.75, mk: 0, teeth: 1, joy: 0, tears: 0, blush: 0, tilt: 0.04, trem: 0.8 };
+const DEMON_NEUTRAL = { skin: [150, 142, 148], fw: 0, jaw: 0, brow: 0.85, bi: 0.036, bo: 0.036, bw: 0.011, bq: 0, er: 0.017, eh: 0.011, open: 0.85, lid: 0, lidLine: 0.7, sock: 0.12, glow: 0, arc: 0, my: -0.078, mw: 0.034, mc: 0, mu: 0.003, md: -0.003, mr: 0.15, mk: 0, teeth: 0, joy: 0, tears: 0, blush: 0, tilt: 0, trem: 0 };
 const DEMON_MOODS = [
   // angry: red, the eyes burning slits in dark sockets under brows driven down, a snarl full of teeth, shaking
   DEMON_ANGRY,
-  // neutral: grey, the brows level, the eyes open with dark pupils, the mouth a flat closed line
+  // neutral: grey, the brows level, the eyes open and blank, the mouth a flat closed line
   DEMON_NEUTRAL,
   // angry again
   Object.assign({}, DEMON_ANGRY, { tilt: -0.03 }),
   // confused: one brow up and the other down, the eyes wide, the head on one side, a small mouth twisted to one side
-  { skin: [164, 154, 164], fw: 0, jaw: 0.1, brow: 1, bi: 0.044, bo: 0.05, bw: 0.012, bq: 0.024, er: 0.018, eh: 0.015, open: 1, lid: 0, lidLine: 0.6, sock: 0.1, glow: 0, pup: 0.0058, gaze: 0.003, arc: 0, my: -0.082, mw: 0.024, mc: 0, mu: 0.007, md: -0.009, mr: 0.55, mk: 0.32, teeth: 0, joy: 0, tears: 0, blush: 0, tilt: -0.2, trem: 0 },
-  // sad: the brows up in the middle, heavy lids, eyes cast down, tears running, the mouth turned down and trembling
-  { skin: [168, 162, 182], fw: 0.004, jaw: 0, brow: 1, bi: 0.052, bo: 0.016, bw: 0.012, bq: 0, er: 0.018, eh: 0.012, open: 0.5, lid: 0.3, lidLine: 1, sock: 0.2, glow: 0, pup: 0.0062, gaze: -0.0045, arc: 0, my: -0.086, mw: 0.032, mc: -0.018, mu: 0.005, md: -0.008, mr: 0.3, mk: 0, teeth: 0, joy: 0, tears: 1, blush: 0.15, tilt: 0.15, trem: 0.35 },
+  { skin: [164, 154, 164], fw: 0, jaw: 0.1, brow: 1, bi: 0.044, bo: 0.05, bw: 0.012, bq: 0.024, er: 0.018, eh: 0.015, open: 1, lid: 0, lidLine: 0.6, sock: 0.1, glow: 0, arc: 0, my: -0.082, mw: 0.024, mc: 0, mu: 0.007, md: -0.009, mr: 0.55, mk: 0.32, teeth: 0, joy: 0, tears: 0, blush: 0, tilt: -0.2, trem: 0 },
+  // sad: the brows up in the middle, heavy lids, tears running, the mouth turned down and trembling
+  { skin: [168, 162, 182], fw: 0.004, jaw: 0, brow: 1, bi: 0.052, bo: 0.016, bw: 0.012, bq: 0, er: 0.018, eh: 0.012, open: 0.5, lid: 0.3, lidLine: 1, sock: 0.2, glow: 0, arc: 0, my: -0.086, mw: 0.032, mc: -0.018, mu: 0.005, md: -0.008, mr: 0.3, mk: 0, teeth: 0, joy: 0, tears: 1, blush: 0.15, tilt: 0.15, trem: 0.35 },
   // neutral again, a little warmer, the tears gone
   Object.assign({}, DEMON_NEUTRAL, { skin: [190, 176, 172] }),
   // content: warmer, the brows soft, the eyes half closed, the corners of the mouth turned up in a small closed smile
-  { skin: [224, 202, 186], fw: 0.012, jaw: 0, brow: 0.6, bi: 0.038, bo: 0.032, bw: 0.01, bq: 0, er: 0.018, eh: 0.012, open: 0.45, lid: 0.1, lidLine: 1, sock: 0, glow: 0, pup: 0.0066, gaze: -0.001, arc: 0, my: -0.07, mw: 0.04, mc: 0.012, mu: -0.006, md: -0.013, mr: 0.3, mk: 0, teeth: 0, joy: 0.1, tears: 0, blush: 0.4, tilt: 0.05, trem: 0 },
+  { skin: [224, 202, 186], fw: 0.012, jaw: 0, brow: 0.6, bi: 0.038, bo: 0.032, bw: 0.01, bq: 0, er: 0.018, eh: 0.012, open: 0.45, lid: 0.1, lidLine: 1, sock: 0, glow: 0, arc: 0, my: -0.07, mw: 0.04, mc: 0.012, mu: -0.006, md: -0.013, mr: 0.3, mk: 0, teeth: 0, joy: 0.1, tears: 0, blush: 0.4, tilt: 0.05, trem: 0 },
   // happy: eyes closed in two arches, round pink cheeks, a wide open smile
-  { skin: [240, 214, 186], fw: 0.02, jaw: 0, brow: 0, bi: 0.04, bo: 0.036, bw: 0.01, bq: 0, er: 0.016, eh: 0.012, open: 0, lid: 0, lidLine: 0, sock: 0, glow: 0, pup: 0, gaze: 0, arc: 1, my: -0.045, mw: 0.05, mc: 0, mu: 0, md: -0.04, mr: 1, mk: 0, teeth: 0, joy: 1, tears: 0, blush: 1, tilt: 0, trem: 0 },
+  { skin: [240, 214, 186], fw: 0.02, jaw: 0, brow: 0, bi: 0.04, bo: 0.036, bw: 0.01, bq: 0, er: 0.016, eh: 0.012, open: 0, lid: 0, lidLine: 0, sock: 0, glow: 0, arc: 1, my: -0.045, mw: 0.05, mc: 0, mu: 0, md: -0.04, mr: 1, mk: 0, teeth: 0, joy: 1, tears: 0, blush: 1, tilt: 0, trem: 0 },
 ];
 const DEMON_MOOD_NAMES = ['angry', 'neutral', 'angry', 'confused', 'sad', 'neutral', 'content', 'happy'];
 function demonMood(m) {
@@ -47,7 +47,7 @@ function demonMood(m) {
 }
 // the face for c.mood, drawn in the head's frame (fy as draw() has it)
 function demonMoodFace(ctx, c, P, fy, F) {
-  const t = c.t, black = P.col([0, 0, 0]), move = c.still ? 0 : 1;
+  const t = c.t, move = c.still ? 0 : 1;
   const fh = 0.13 + 0.045 * F.jaw, fc = fy - 0.03 * F.jaw, ey = fy + 0.03;
   P_ell(ctx, 0, fc, 0.085 + F.fw, fh, P.col(F.skin));
   // the mouth first, so the eyes are never under it: corners, the middle of each lip, and how round its ends are
@@ -78,11 +78,6 @@ function demonMoodFace(ctx, c, P, fy, F) {
       ctx.save(); ctx.globalAlpha *= open;
       P_ell(ctx, ex, ey, F.er, ry, P.col([236, 232, 220]), rot);
       if (F.glow > 0.02) P_ell(ctx, ex, ey, F.er, ry, rgba(er, F.glow), rot);
-      if (F.pup > 0.0005) {
-        ctx.save(); ctx.beginPath(); ctx.ellipse(ex, ey, F.er, ry, rot, 0, TAU); ctx.clip();
-        P_ell(ctx, ex, ey + F.gaze, F.pup, F.pup, black); P_ell(ctx, ex + 0.003, ey + F.gaze + 0.003, F.pup * 0.35, F.pup * 0.35, P.col([255, 255, 255]));
-        ctx.restore();
-      }
       if (F.lidLine > 0.02) { ctx.strokeStyle = P.cola([20, 12, 16], F.lidLine); ctx.lineWidth = 0.007; ctx.lineCap = 'round'; ctx.beginPath(); ctx.ellipse(ex, ey, F.er * 1.08, ry + 0.002, rot, 0.12 * Math.PI, 0.88 * Math.PI); ctx.stroke(); }
       ctx.restore();
     }
@@ -193,12 +188,12 @@ function demonFit(c) {
 }
 // ---------- out of the robe ----------
 // In the meadow, as the music box starts (c.disrobe 0..1, set by the night), it takes the robe off: its hands go up to the
-// hood and push it back, off its head (two little round horns, and its happy face, all of it); it takes the robe at the
+// hood and push it back, off its head (its happy face, all of it); it takes the robe at the
 // shoulders and lets it go, and the robe drops to the ground, the long sleeves and the black gloves sliding off its arms
 // with it; it hops out of the heap of black cloth and dances beside it. Under it: a yellow shirt striped sky blue, red
 // shorts with a white stripe down each side, white socks, blue sneakers. Its arms and legs are long and thin, the colour of
 // its face.
-const DEMON_KIT = { shirt: [255, 204, 70], stripe: [84, 172, 236], shorts: [236, 84, 96], side: [255, 255, 255], sock: [250, 249, 244], cuff: [236, 84, 96], shoe: [64, 110, 222], sole: [250, 249, 244], horn: [238, 128, 122] };
+const DEMON_KIT = { shirt: [255, 204, 70], stripe: [84, 172, 236], shorts: [236, 84, 96], side: [255, 255, 255], sock: [250, 249, 244], cuff: [236, 84, 96], shoe: [64, 110, 222], sole: [250, 249, 244] };
 const dspan = (x, a, b) => clamp((x - a) / (b - a), 0, 1);
 // how far each part of it has got: the hood pushed back, the sleeves sliding off, the robe falling, and slumping into a
 // heap, the hop out of it
@@ -324,16 +319,10 @@ function demonOffArm2(ctx, c, P, K, skin, S, E, Hn, fa, slide) {
     P_ell(ctx, end[0], end[1], sw * 0.62, sw * 0.5, K.fold, Math.atan2(end[1] - prev[1], end[0] - prev[0]));
   }
 }
-// its head as the hood goes back (hood 0..1): the horns and the hood behind it, in the head's frame (drawn before the robe
-// and its arms); and drop, the robe falling, takes the hood down with it (dy, how far its top has fallen)
+// its head as the hood goes back (hood 0..1): the hood behind it, in the head's frame (drawn before the robe and its arms);
+// and drop, the robe falling, takes the hood down with it (dy, how far its top has fallen)
 function demonHoodBack(ctx, c, P, K, a, hood, drop, dy) {
   const hc = 0.3 + a * 0.1, hr = 0.168 + a * 0.02, hh = 0.235 + a * 0.05, fy = 0.285 + a * 0.1;
-  // two little round horns (behind the hood until it goes back)
-  for (const s of [-1, 1]) {
-    ctx.fillStyle = P.col(DEMON_KIT.horn); ctx.beginPath();
-    ctx.moveTo(s * 0.028, fy + 0.1); ctx.quadraticCurveTo(s * 0.05, fy + 0.165, s * 0.082, fy + 0.19); ctx.quadraticCurveTo(s * 0.095, fy + 0.13, s * 0.078, fy + 0.085); ctx.closePath(); ctx.fill();
-    P_ell(ctx, s * 0.083, fy + 0.185, 0.013, 0.013, P.col(DEMON_KIT.horn));
-  }
   const sy = (1 - 0.5 * hood) * (1 - dspan(drop, 0, 0.35));
   if (sy < 0.01) return;
   ctx.save(); ctx.translate(0, -0.16 * hood - dy); ctx.scale(1 + 0.12 * hood, sy);
@@ -381,6 +370,23 @@ function demonTilt(c) {
   const a = demonRage(c), still = SAVE.data.settings.reducedMotion;
   return headTiltJerk(c.t, 2.7 - a * 1.5, 0.16 + a * 0.3) + (a > 0.001 && !still ? demonFit(c).head * a : 0);
 }
+// Enraged, once the death lunge has brought its face up into yours, its head will not keep still: it snaps from one angle
+// to another and holds there a moment, jumps a little up or aside, and every so often shudders, fast and hard. Two runs of
+// snaps at different beats, so they never fall into a rhythm, and the shudders in bursts between them. All of it from c.t,
+// so it is the same every time; k is how much (0: none). Returns the head's added tilt and its jump [x, y]
+function demonSeize(c, k) {
+  if (k < 0.001) return { tilt: 0, x: 0, y: 0 };
+  const h = n => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); }, t = c.t;
+  // a value that holds and then snaps to the next in a hundredth of a second or two, every P seconds (o: which run)
+  const snaps = (P, o) => { const j = Math.floor(t / P), u = smoothstep(clamp((t - j * P) / 0.016, 0, 1)), v = n => h(n * 1.37 + o) - 0.5; return [lerp(v(j - 1), v(j), u), lerp(h(j * 0.7 + o + 0.3) - 0.5, h((j + 1) * 0.7 + o + 0.3) - 0.5, u)]; };
+  const A = snaps(0.093, 0.11), B = snaps(0.157, 0.53);
+  const burst = h(Math.floor(t / 0.26) + 0.81) < 0.45 ? 1 : 0, shud = burst * Math.sin(t * 97) * Math.sin(t * 61 + 1);
+  return {
+    tilt: k * (A[0] * 0.7 + B[0] * 0.38 + shud * 0.09),
+    x: k * (B[1] * 0.07 + shud * 0.014),
+    y: k * (Math.max(0, A[1]) * 0.07 - Math.max(0, -B[1]) * 0.03),
+  };
+}
 CREATURES.demon = {
   name: 'the demon', h: 2.6, w: 1.6, faceY: 2.35, stepRate: 0.55, catchDist: 1.2, sound: 'walker',
   // the lunge brings faceY to eye level; enraged, it is taller and its face sits higher than that, so the pose lifts it the
@@ -390,7 +396,7 @@ CREATURES.demon = {
     pose(c, k) { c.yOff -= (demonEyesY(c) - CREATURES.demon.faceY) * smoothstep(k); },
   },
   voice: { kind: 'exhale', every: [4, 8] },
-  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES,   // for the ending and the tests
+  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES,   // for the ending and the tests
   init(c) { c.anger = 0; c.rage = 0; c.calm = 0; c.soft = 0; c.dance = 0; c.disrobe = 0; c.fade = 1; },
   // enraged, it comes in fits: stopping dead, stepping, lurching
   speedMult(c, dt, seen) { const a = demonRage(c); return (1 + 0.45 * (c.anger || 0)) * (a > 0.001 ? lerp(1, demonFit(c).pace, a) : 1); },
@@ -424,8 +430,8 @@ CREATURES.demon = {
     // the robe, from the shoulders to the ground, flaring; its hem swings with each step and the folds with it
     const step = Math.sin(g) * (0.05 + a * 0.04), hemW = 0.36 + a * 0.1, sh = sway * 0.6;
     if (O) {
-      // out of the robe, or on the way out of it: the heap (once it is clear of it), its legs, shorts and shirt, the horns
-      // and the hood going back, the robe falling, its arms, and its face
+      // out of the robe, or on the way out of it: the heap (once it is clear of it), its legs, shorts and shirt, the hood
+      // going back, the robe falling, its arms, and its face
       const F = demonMood(c.mood !== undefined && c.mood !== null ? c.mood : DEMON_MOODS.length - 1), skin = P.col(F.skin);
       const K = { robe, fold, rim, black, mix: k => P.col(mixc(robeC, F.skin, k), lerp(take, 1, k)) };
       const fall = top - lerp(top, 0.24, O.drop * O.drop);   // how far the top of the robe has fallen
@@ -495,9 +501,11 @@ CREATURES.demon = {
     // the head, in its hood. Making a face for the ending (c.mood), its head comes level from where it was and leans as the
     // face does
     const F = c.mood !== undefined && c.mood !== null ? demonMood(c.mood) : null;
+    // (enraged, once the lunge has come up into your face, it seizes: demonSeize)
+    const sz = demonSeize(c, F || still || c.still ? 0 : a * smoothstep(dspan(lunge, 0.55, 0.9)));
     const tilt = F ? lerp(c.tilt0 || 0, F.tilt + (c.still ? 0 : F.trem * Math.sin(t * 31) * 0.018), c.settle === undefined ? 1 : c.settle) + dance * Math.sin(t * 2.6) * 0.18
-      : demonTilt(c) * (1 - lunge) * (1 - calm) + dance * Math.sin(t * 2.6) * 0.18;
-    ctx.save(); ctx.translate(sh, top); ctx.rotate(tilt);
+      : demonTilt(c) * (1 - lunge) * (1 - calm) + dance * Math.sin(t * 2.6) * 0.18 + sz.tilt;
+    ctx.save(); ctx.translate(sh + sz.x, top + sz.y); ctx.rotate(tilt);
     const hc = 0.3 + a * 0.1, hr = 0.168 + a * 0.02, hh = 0.235 + a * 0.05;
     ctx.fillStyle = robe; ctx.beginPath();
     ctx.moveTo(-0.25, -0.05);

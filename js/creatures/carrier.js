@@ -19,9 +19,11 @@ CREATURES.carrier = {
     if (k < 0.01) return P;
     return Object.assign({}, P, { col: col => P.col(mixc(col, [8, 9, 12], k)), cola: (col, a) => P.cola(mixc(col, [8, 9, 12], k), a) });
   },
-  // its eyes in the dark: two pale points, never less than a pixel or so across however far off it is, blinking now and then
+  // its eyes in the dark: two pale points, never less than a pixel or so across however far off it is, blinking now and then.
+  // Only where it is dark enough that they are all there is of its eyes: with a little of it showing (in your face, say) its
+  // eyes are blank black, with no pale point in them
   eyes(ctx, c, pts) {
-    const k = clamp(((c.shade || 0) - 0.35) / 0.5, 0, 1), ph = (c.t + c.idx * 1.7) % 4.3;
+    const k = clamp(((c.shade || 0) - 0.6) / 0.3, 0, 1), ph = (c.t + c.idx * 1.7) % 4.3;
     if (k <= 0 || ph < 0.16) return;
     const pxm = (typeof R !== 'undefined' && R.f ? R.f : 600) / Math.max(0.6, c.dist), r = Math.max(0.018, 1.05 / pxm);
     for (const [x, y] of pts) {

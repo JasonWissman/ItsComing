@@ -13,7 +13,7 @@
 //   c.peerSide (+1: the right of the view), its fingers curled round the frame;
 // c.flinch (0..1): an arm thrown up across its face, its head turned from the light;
 // c.duck (0..1): it is down on its haunches, folded up like a spider, its knees up beside its shoulders, low enough to put
-//   its eyes at c.eyeTo (world height above its feet), peering up, its pupils turned up; lower still it is on all fours;
+//   its eyes at c.eyeTo (world height above its feet), peering up, its eyes wide; lower still it is on all fours;
 // c.reach (0..1): its arms up to the edge of the bed, its hands at c.gripY (world height; the night draws the hands on the
 //   covers over the edge); c.faceAway (over 0.5): its face turned down, only the dark of its head showing.
 // Light slows it (c.inLight), in case it is ever in the light and not already down out of it.
@@ -104,9 +104,8 @@ CREATURES.tall = {
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
     if ((c.faceAway || 0) > 0.5) { ctx.restore(); ctx.restore(); return; }   // its face down: the dark of its head
     P_ell(ctx, 0, 0.32, 0.095, 0.15, skin);
-    const ew = 0.02 + duck * 0.005, up = duck * 0.007;   // peering up, the eyes wide and the pupils turned up
+    const ew = 0.02 + duck * 0.005;   // blank, no pupils; peering up, the eyes wide
     P_ell(ctx, -0.04, 0.36, ew, 0.016 + duck * 0.003, eye); P_ell(ctx, 0.04, 0.36, ew, 0.016 + duck * 0.003, eye);
-    P_ell(ctx, -0.04, 0.36 + up, 0.007, 0.007, black); P_ell(ctx, 0.04, 0.36 + up, 0.007, 0.007, black);
     const mouth = 0.015 + near * 0.04 + lunge * 0.05;
     P_ell(ctx, 0, 0.23, 0.03 + near * 0.015, mouth, black);
     ctx.restore();
