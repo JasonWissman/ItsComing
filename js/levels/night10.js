@@ -8,8 +8,8 @@
 // and a few turns of the crank before the odd mirror play its tune: the doll stops dancing, turns round once on the spot
 // like the dancer on the box, and comes out through that glass for the box, quickly, lifts it off the pedestal, and takes
 // it back in with it and away. Before any other mirror the first turn plays wrong notes and the crank sticks: in the glass
-// the doll stops dancing, its face turns angry and it hops at you (three quick steps). A click on the box then lifts it
-// back off, crank and all, to put before another mirror. Your hand is on the crank as it turns, wrenches at it when it jams
+// the doll stops dancing, its face crumples into red-eyed weeping and it hops at you (three quick steps). A click on the
+// box then lifts it back off, crank and all, to put before another mirror. Your hand is on the crank as it turns, wrenches at it when it jams
 // (the box jumps), and takes the box back up off the pedestal; the crank tried on a bare pedestal feels about its top and
 // comes back to your hand (G.refuse); a dust sheet is pulled down by hand and slides off the glass.
 LEVELS.push({
@@ -20,7 +20,7 @@ LEVELS.push({
   lights: [{ x: -40, y: 2, z: 5, r: 60, i: 0.5, color: [255, 120, 40], flicker: 0.4 }, { x: 2.6, y: 1.3, z: 2.6, r: 5, i: 0.4, color: [255, 200, 140], flicker: 0.15 }],
   text: {
     intro: 'You see a strange doll in the mirrors. They all look the same... mostly.',
-    hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is angry: click the box to take it back.',
+    hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is upset with you: click the box to take it back.',
     objective: 'Find the odd mirror. Put the music box on its pedestal, fit the crank, turn it.',
     death: { default: 'The strange doll leapt out from its mirror and grabbed you.', wrong: 'You played for an illusion. The creature surprised you from behind.' },
     win: 'It only wanted its music box.',
@@ -161,8 +161,9 @@ LEVELS.push({
     // lifted off a pedestal with its crank in, the box keeps it: you carry it so, and it goes down on the next one so
     const boxWithCrank = (ctx, P) => ICONS.musicbox(ctx, P, { crank: 0 });
     // the first turn before a wrong mirror: the comb drags out wrong notes and the crank sticks; in the glass its painted face
-    // turns angry, and behind you something takes three quick steps (it hops in to two thirds of how far off it was, never
-    // right up to you). The crank stays stuck, so a box turned before the wrong mirror costs one hop, not one a click
+    // crumples, weeping red, and behind you something takes three quick steps (it hops in to two thirds of how far off
+    // it was, never right up to you). The crank stays stuck, so a box turned before the wrong mirror costs one hop, not
+    // one a click
     // where the crank is on the box on pedestal k (its knob, out from the box's side), in the world: the hand goes there to
     // turn it. Box and crank are drawn as the music box's icon, BOXW across, its crank's knob about 0.38 of that out to the
     // side it is on, at about 0.3 of it up
@@ -252,7 +253,7 @@ LEVELS.push({
     };
     L.isWon = () => s.turns >= TURNS;
     L.deathCause = () => (L.t - s.wrongAt < 8 ? 'wrong' : null);
-    // when it has you it is angry, whatever it was before: the brows down, the red glare, its teeth bared, all the way in to
+    // when it has you it is angry (weeping), whatever it was before: the red eyes, the tears, the open sob, all the way in to
     // your face (the night's update does not run while you die, so it is set here, once, and stays)
     L.onCatch = c => { c.angry = 1; c.dance = 0; c.smile = false; return false; };
     L.objectiveText = () => L.won ? 'It is coming for the box.'
@@ -350,7 +351,7 @@ LEVELS.push({
       else if (s.sour || L.t < s.angryTill) c.angry = 1;
       else if (c.angry) c.angry = Math.max(0, c.angry - dt / 0.8);
       // its dance in the glass: one clock for every mirror, so they all show the same moment of it. The clock runs while it
-      // is calm and stops dead when the box plays wrong (it eases out of the dance into its angry stance, and back into it
+      // is calm and stops dead when the box plays wrong (it eases out of the dance into its weeping stance, and back into it
       // once its temper has gone) or when the tune fetches it (it lets its arms down, quickly, to turn round)
       const calm = !L.won && !s.sour && L.t >= s.angryTill;
       if (calm) c.danceT += dt;

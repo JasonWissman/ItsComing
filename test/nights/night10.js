@@ -1,6 +1,7 @@
 // The Mirror Maze: pull the dust sheets, pick up the music box and its crank (they lie in different places), try the crank
 // first (nothing for it to turn), then put the box on a wrong pedestal (any pedestal takes it, with no penalty), fit the
-// crank there and turn it: the notes come out wrong, the crank sticks, the doll in the glass turns angry and hops at you.
+// crank there and turn it: the notes come out wrong, the crank sticks, the doll in the glass turns angry (it weeps) and
+// hops at you.
 // A click on the box lifts it back off with its crank still in it; on the odd mirror's pedestal it goes down crank and all,
 // and turning it until the tune plays brings the doll out through that glass to take the box. Like a player, it faces a
 // mirror square on (which holds the thing while that glass is live) and clicks what is in front of it, rather than looking
@@ -113,8 +114,8 @@ const right = k => [
 // with nothing in hand a click on an empty pedestal brings the hand out to its top
 const emptyTouch = [look(0), ['click', ped(0)], ['expect', "!G.inv.length && G.L.s.placedAt < 0 && G.hand.reach && G.hand.reach.target.id === 'pedestal0' && Math.abs(G.hand.reach.at.y - 0.77) < 0.05", 'with nothing in hand, the hand goes out to the top of an empty pedestal'], ['waitUntil', '!G.hand.reach', 2000]];
 const fetched = [['waitUntil', 'G.L.s.held && G.L.creature.lane.idx === 1 + G.L.s.odd', 8000], ['expect', 'G.L.s.held && !G.L.creature.angry && G.L.creature.dance === 0 && G.L.creature.danceMir === -G.L.s.lead', 'it came out through the odd mirror and took the box, smiling, its dance over']];
-// First it is let reach you: when it comes out of the glass at you it is angry (the brows down, the red glare, its teeth
-// bared) every frame of its lunge, all the way in to your face. Then the same night again from the start.
+// First it is let reach you: when it comes out of the glass at you it is angry (weeping: the red eyes, the tears, the open
+// sob) every frame of its lunge, all the way in to your face. Then the same night again from the start.
 const caught = [
   ['eval', "window.__att0 = G.attempt; window.__angry = { n: 0, calm: 0, k: 0 }; (function w() { const c = G.L.creature; if (G.state === 'dying') { if (c.angry === 1 && !c.rush && !c.smile) window.__angry.n++; else window.__angry.calm++; window.__angry.k = Math.max(window.__angry.k, c.lunge || 0); } if (G.state === 'play' || G.state === 'dying') requestAnimationFrame(w); })(); G.L.creature.hold = 1.0;"],
   ['waitUntil', "G.state === 'dead'", 6000],
