@@ -49,21 +49,28 @@ CREATURES.walker = {
   // frame of the head (y = 0 where the neck leaves the shoulders, the crown at 0.47, as stance() allows for), from the
   // front. Two holes roughly cut for eyes, black right through, nothing in them; the mouth a crooked slit cut across and
   // stitched over, which tears open (tear 0..1) when it gets you; a stitched seam up the middle of the face and over the
-  // crown and another round the side; the cloth drawn in at the neck by a cord and hanging loose below it in folds onto
-  // the shoulders, a ragged hem and a loose thread or two. Far off the sack and its holes are all there is; detail
-  // (0..1) brings up the seams, the frayed edges and the weave as it nears.
-  SACK: [[-0.07, 0.13], [-0.15, 0.17, -0.148, 0.33, -0.122, 0.4], [-0.085, 0.476, 0.0, 0.47], [0.09, 0.472, 0.126, 0.392], [0.152, 0.32, 0.15, 0.17, 0.07, 0.13]],
-  // the hem of the loose cloth, left to right (it sags lowest where a fold comes down to it), and the folds, from the cord
-  HEM: [[-0.195, -0.02], [-0.165, -0.07], [-0.125, -0.055], [-0.08, -0.105], [-0.035, -0.07], [0.015, -0.118], [0.07, -0.078], [0.115, -0.1], [0.165, -0.058], [0.192, -0.025]],
-  FOLDS: [[-0.05, -0.165, -0.07], [-0.025, -0.08, -0.105], [0.005, 0.015, -0.118], [0.035, 0.115, -0.1]],
+  // crown and another round the side. It is one piece of cloth: its sides come straight down past the jaw, hardly in at
+  // the neck, and it slumps loose onto the shoulders like a hood, in long folds, its hem torn ragged, shorter at the
+  // front and hanging longer at the sides, a loose thread or two off it. Far off the sack and its holes are all there
+  // is; detail (0..1) brings up the seams, the frayed edges and the weave as it nears.
+  // HEM: the ragged hem, right to left; FOLDS: the long folds the cloth hangs in, from under the jaw down to the hem
+  HEM: [[0.205, -0.1], [0.185, -0.085], [0.168, -0.116], [0.145, -0.07], [0.115, -0.062], [0.09, -0.026], [0.06, -0.018], [0.03, 0.008], [0.0, 0.0], [-0.025, 0.015], [-0.055, -0.005], [-0.085, -0.02], [-0.11, -0.056], [-0.14, -0.062], [-0.16, -0.1], [-0.18, -0.086], [-0.2, -0.112]],
+  FOLDS: [[[-0.092, 0.19], [-0.1, 0.12], [-0.112, 0.05], [-0.135, -0.05]], [[-0.042, 0.15], [-0.048, 0.1], [-0.041, 0.05], [-0.05, 0.0]],
+    [[0.05, 0.15], [0.057, 0.1], [0.05, 0.05], [0.064, -0.01]], [[0.1, 0.2], [0.108, 0.12], [0.12, 0.05], [0.152, -0.056]]],
   // the eye holes, cut by hand: [x, y, rx, ry, turn]; RAG, how far each point round a cut edge strays
   HOLES: [[-0.05, 0.315, 0.034, 0.025, 0.16], [0.049, 0.321, 0.031, 0.028, -0.22]],
   RAG: [0.06, 0.12, 0.03, -0.06, -0.11, -0.03, 0.07, 0.13, 0.0, -0.07, -0.12, -0.01, 0.09, 0.02],
   sackPath(ctx) {
-    const [m, a, b, d, e] = this.SACK;
-    ctx.beginPath(); ctx.moveTo(m[0], m[1]); ctx.bezierCurveTo(...a); ctx.quadraticCurveTo(...b); ctx.quadraticCurveTo(...d); ctx.bezierCurveTo(...e); ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(-0.215, -0.09);
+    ctx.bezierCurveTo(-0.19, 0.02, -0.122, 0.05, -0.122, 0.15);   // up off the shoulder, and only a little in at the neck
+    ctx.bezierCurveTo(-0.128, 0.2, -0.148, 0.3, -0.122, 0.4);
+    ctx.quadraticCurveTo(-0.085, 0.476, 0, 0.47); ctx.quadraticCurveTo(0.09, 0.472, 0.126, 0.392);
+    ctx.bezierCurveTo(0.152, 0.3, 0.134, 0.2, 0.128, 0.15);
+    ctx.bezierCurveTo(0.125, 0.05, 0.195, 0.02, 0.222, -0.08);
+    for (const [x, y] of this.HEM) ctx.lineTo(x, y);
+    ctx.closePath();
   },
-  sackCols(P) { return { bag: P.col([158, 148, 126]), bagM: P.col([138, 128, 108]), bagS: P.col([112, 102, 86]), bagD: P.col([78, 68, 56]), thread: P.col([56, 48, 40]), hole: P.col([0, 0, 0]) }; },
+  sackCols(P) { return { bag: P.col([158, 148, 126]), bagS: P.col([112, 102, 86]), bagD: P.col([78, 68, 56]), thread: P.col([56, 48, 40]), hole: P.col([0, 0, 0]) }; },
   // a hole cut in the cloth, its edge ragged and darkened; frayed, threads stick out over the black from the cut edge
   hole(ctx, K, x, y, rx, ry, rot, k, detail) {
     const R = this.RAG, n = R.length, cr = Math.cos(rot), sr = Math.sin(rot);
@@ -95,41 +102,26 @@ CREATURES.walker = {
   },
   sack(ctx, c, P, detail, tear) {
     const K = this.sackCols(P), t = c.t;
-    // the loose cloth below the cord, hanging onto the shoulders in folds, a thread or two off the hem
-    const H = this.HEM;
-    ctx.beginPath(); ctx.moveTo(-0.07, 0.125); ctx.quadraticCurveTo(-0.15, 0.06, H[0][0], H[0][1]);
-    for (let i = 1; i < H.length - 1; i++) ctx.quadraticCurveTo(H[i][0], H[i][1], (H[i][0] + H[i + 1][0]) / 2, (H[i][1] + H[i + 1][1]) / 2);
-    ctx.lineTo(H[H.length - 1][0], H[H.length - 1][1]); ctx.quadraticCurveTo(0.15, 0.06, 0.07, 0.125); ctx.closePath();
-    ctx.fillStyle = K.bagM; ctx.fill();
-    for (const [x0, x1, y1] of this.FOLDS) P_limb(ctx, [[x0, 0.11], [(x0 * 2 + x1) / 3, 0.03], [x1 * 0.97, y1 + 0.03]], 0.011, K.bagS);
-    if (detail > 0) {
-      ctx.save(); ctx.globalAlpha *= detail;
-      for (const [x, y, l, ph] of [[-0.125, -0.055, 0.07, 0], [0.115, -0.1, 0.06, 2], [0.04, -0.09, 0.035, 4]]) { const sw = Math.sin(t * 1.7 + ph) * 0.008; P_limb(ctx, [[x, y], [x + sw * 0.5, y - l * 0.5], [x + sw, y - l]], 0.0035, K.bagS); }
-      ctx.restore();
-    }
-    // the sack over the head, a little shaded down its right, the coarse weave of it showing near
+    // the sack, a little shaded down its right, the coarse weave of it showing near, and the long folds it hangs in
     this.sackPath(ctx); ctx.fillStyle = K.bag; ctx.fill();
     ctx.save(); this.sackPath(ctx); ctx.clip();
-    P_ell(ctx, 0.15, 0.27, 0.06, 0.22, K.bagS);
+    P_ell(ctx, 0.155, 0.2, 0.065, 0.32, K.bagS);
+    for (const f of this.FOLDS) P_limb(ctx, f, 0.009, K.bagS);
     if (detail > 0) {
       ctx.globalAlpha *= detail * 0.7; ctx.strokeStyle = K.bagS; ctx.lineWidth = 0.004; ctx.beginPath();
-      for (let i = 0; i < 9; i++) { const x = -0.11 + i * 0.027, y = 0.17 + ((i * 7) % 5) * 0.06; ctx.moveTo(x, y); ctx.lineTo(x + 0.035, y + 0.018); ctx.moveTo(x + 0.01, y + 0.03); ctx.lineTo(x + 0.04, y + 0.044); }
+      for (let i = 0; i < 11; i++) { const x = -0.13 + i * 0.026, y = 0.03 + ((i * 7) % 6) * 0.065; ctx.moveTo(x, y); ctx.lineTo(x + 0.035, y + 0.018); ctx.moveTo(x + 0.01, y + 0.03); ctx.lineTo(x + 0.04, y + 0.044); }
       for (let i = 0; i < 6; i++) { const x = -0.1 + i * 0.04, y = 0.42 - ((i * 3) % 4) * 0.075; ctx.moveTo(x, y); ctx.lineTo(x + 0.028, y - 0.012); }
       ctx.stroke();
     }
     ctx.restore();
-    // drawn in at the neck: the cloth bunched over the cord, creased into it
-    P_ell(ctx, 0, 0.125, 0.082, 0.026, K.bag);
-    P_line(ctx, -0.078, 0.118, 0.078, 0.112, 0.011, K.thread);
-    if (detail > 0) {
+    if (detail > 0) {   // a thread or two hanging off the hem
       ctx.save(); ctx.globalAlpha *= detail;
-      for (const x of [-0.055, -0.025, 0.01, 0.045]) { P_line(ctx, x, 0.13, x + 0.006, 0.152, 0.005, K.bagS); P_line(ctx, x + 0.012, 0.108, x + 0.008, 0.09, 0.005, K.bagD); }
-      P_limb(ctx, [[0.07, 0.112], [0.085, 0.08], [0.079, 0.05]], 0.005, K.thread);   // the end of the cord
+      for (const [x, y, l, ph] of [[-0.16, -0.1, 0.07, 0], [0.168, -0.116, 0.06, 2], [-0.085, -0.02, 0.04, 4]]) { const sw = Math.sin(t * 1.7 + ph) * 0.008; P_limb(ctx, [[x, y], [x + sw * 0.5, y - l * 0.5], [x + sw, y - l]], 0.0035, K.bagS); }
       ctx.restore();
     }
     // the seams: up the middle of the face and over the crown, and round its left side
-    this.seam(ctx, K, [[0.001, 0.15], [0.004, 0.18], [-0.003, 0.24], [0.003, 0.28], [-0.002, 0.35], [0.004, 0.41], [0.0, 0.47]], detail);
-    this.seam(ctx, K, [[-0.092, 0.452], [-0.122, 0.39], [-0.137, 0.31], [-0.128, 0.22], [-0.098, 0.15]], detail);
+    this.seam(ctx, K, [[0.0, 0.004], [0.004, 0.06], [-0.002, 0.12], [0.004, 0.18], [-0.003, 0.24], [0.003, 0.28], [-0.002, 0.35], [0.004, 0.41], [0.0, 0.47]], detail);
+    this.seam(ctx, K, [[-0.092, 0.452], [-0.122, 0.39], [-0.137, 0.31], [-0.128, 0.22], [-0.118, 0.14], [-0.135, 0.06], [-0.172, -0.03]], detail);
     this.HOLES.forEach(([x, y, rx, ry, rot], i) => this.hole(ctx, K, x, y, rx, ry, rot, i * 5, detail));
     // the mouth: a crooked slit, stitched across; tearing, the stitches give and it gapes, ragged, threads across the dark
     const M = [[-0.046, 0.203], [-0.024, 0.197], [-0.004, 0.2], [0.018, 0.194], [0.043, 0.19]];
@@ -161,13 +153,11 @@ CREATURES.walker = {
     }
   },
   // the sack side on, facing +x, about the middle of the head: the one eye hole toward where it goes, the slit at the
-  // front, the seam over the crown and down the side, drawn in by the cord under the back of it
+  // front, the seam over the crown and down the side (the cloth below it, over the neck and the shoulders, is drawRun's)
   sackSide(ctx, c, P, detail) {
     const K = this.sackCols(P);
     ctx.beginPath(); ctx.moveTo(-0.07, -0.15); ctx.bezierCurveTo(-0.15, -0.08, -0.15, 0.12, -0.08, 0.16); ctx.quadraticCurveTo(0.02, 0.19, 0.09, 0.13);
     ctx.bezierCurveTo(0.15, 0.07, 0.14, -0.08, 0.1, -0.13); ctx.quadraticCurveTo(0.02, -0.17, -0.07, -0.15); ctx.closePath(); ctx.fillStyle = K.bag; ctx.fill();
-    P_ell(ctx, -0.05, -0.15, 0.07, 0.025, K.bag, 0.3);
-    P_line(ctx, -0.11, -0.16, 0.0, -0.145, 0.011, K.thread);   // the cord
     this.seam(ctx, K, [[0.11, 0.1], [0.06, 0.155], [-0.01, 0.17], [-0.06, 0.13], [-0.08, 0.05], [-0.075, -0.04], [-0.06, -0.12]], detail);
     this.hole(ctx, K, 0.074, 0.03, 0.022, 0.028, 0.1, 2, detail);
     P_limb(ctx, [[0.122, -0.058], [0.104, -0.06], [0.086, -0.066]], 0.008, K.hole);
@@ -301,9 +291,10 @@ CREATURES.walker = {
     const nx = sx + Math.sin(lean + 0.5) * 0.16, ny = sy + Math.cos(lean + 0.5) * 0.16;
     P_line(ctx, sx, sy, nx, ny, 0.07, body);
     const hx = nx + Math.sin(lean + 0.3) * 0.17, hy = ny + Math.cos(lean + 0.3) * 0.17;
-    // the loose cloth of the sack below the cord, blown back over the shoulders
+    // the sack, down over the neck and slumped onto the shoulders, blown back off them, a long fold in it
     const fl = Math.sin(g * 2) * 0.02, K = this.sackCols(P);
-    P_poly(ctx, [[nx + 0.02, ny + 0.02], [nx - 0.04, ny + 0.05], [sx - 0.1, sy - 0.01 + fl], [sx - 0.17, sy - 0.07 + fl], [sx - 0.12, sy - 0.06 + fl], [sx - 0.08, sy - 0.1 + fl * 0.5], [sx - 0.02, sy - 0.08], [sx + 0.03, sy - 0.12 + fl * 0.3], [sx + 0.07, sy - 0.05], [nx + 0.06, ny - 0.04]], K.bagM);
+    P_poly(ctx, [[hx + 0.06, hy - 0.1], [hx - 0.1, hy - 0.05], [sx - 0.1, sy - 0.01 + fl], [sx - 0.17, sy - 0.07 + fl], [sx - 0.12, sy - 0.06 + fl], [sx - 0.08, sy - 0.1 + fl * 0.5], [sx - 0.02, sy - 0.08], [sx + 0.03, sy - 0.12 + fl * 0.3], [sx + 0.08, sy - 0.06], [sx + 0.1, sy], [hx + 0.08, hy - 0.06]], K.bag);
+    P_limb(ctx, [[hx - 0.03, hy - 0.1], [sx - 0.03, sy + 0.02], [sx - 0.1, sy - 0.04 + fl]], 0.009, K.bagS);
     ctx.save(); ctx.translate(hx, hy); ctx.rotate(-lean * 0.6);
     this.sackSide(ctx, c, P, clamp((26 - c.dist) / 22, 0, 1));
     ctx.restore();
