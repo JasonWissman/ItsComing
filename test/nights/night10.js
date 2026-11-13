@@ -6,8 +6,9 @@
 // and turning it until the tune plays brings the doll out through that glass to take the box. Like a player, it faces a
 // mirror square on (which holds the thing while that glass is live) and clicks what is in front of it, rather than looking
 // all round for each pedestal. Before any of that it watches the doll dance in every glass: drawn at one moment, the odd
-// mirror's doll is in the mirror image of the others' pose and the others are in the same pose; each glass draws the pose
-// it should; and held in a glass it dances on the spot.
+// mirror's doll is in the mirror image of the others' pose and the others are in the same pose; each move snaps in and
+// holds still, and none is its own mirror image; each glass draws the pose it should; and held in a glass it dances on the
+// spot.
 // It happens in your hands: a sheet is pulled down by the hand, an empty pedestal clicked with nothing in hand is touched on
 // its top, the crank tried on a pedestal with no box feels about its top
 // and comes back to your hand, the hand turns the crank, wrenches at it when it jams, and the box lifted off comes up off
@@ -24,8 +25,8 @@ const sheets = [0, 1, 2, 3].map(k => ['branch', "G.L.targets.some(t => t.id === 
 // in the page: the mirror image of a dance pose, two poses alike, how lopsided a pose is, and what each glass draws
 const danceHelpers = ['eval', `window._dance = (() => {
   const CR = CREATURES.other, s = G.L.s;
-  const mir = p => ({ aL: p.aR, bL: p.bR, rL: p.rR, kL: p.kR, aR: p.aL, bR: p.bL, rR: p.rL, kR: p.kL, tilt: -p.tilt, sway: -p.sway });
-  const same = (a, b) => !!a && !!b && Object.keys(a).length === 10 && Object.keys(a).every(k => typeof a[k] === 'number' && Math.abs(a[k] - b[k]) < 1e-9);
+  const mir = p => ({ aL: p.aR, bL: p.bR, rL: p.rR, kL: p.kR, xL: p.xR, aR: p.aL, bR: p.bL, rR: p.rL, kR: p.kL, xR: p.xL, tilt: -p.tilt, sway: -p.sway });
+  const same = (a, b) => !!a && !!b && Object.keys(a).length === 12 && Object.keys(a).every(k => typeof a[k] === 'number' && Math.abs(a[k] - b[k]) < 1e-9);
   // each hand, out from its shoulder; lopsided: one hand well away from where the other is, mirrored, or the head well over
   const hand = (a, b) => [0.13 * Math.sin(a) + 0.163 * Math.sin(a + b), -0.13 * Math.cos(a) - 0.163 * Math.cos(a + b)];
   const apart = p => { const l = hand(p.aL, p.bL), r = hand(p.aR, p.bR); return Math.hypot(l[0] - r[0], l[1] - r[1]); };
@@ -60,6 +61,12 @@ const danceHelpers = ['eval', `window._dance = (() => {
       }
       return l > n * 0.5 && even > n * 0.05;
     },
+    // each move snapped into within a fifth of a second and then held dead still until the next; and no move is its own
+    // mirror image (where the arms and head stand even, the legs do not)
+    held() {
+      const B = CR.danceBeat;
+      return CR.danceKeys.every((K, n) => { const p = CR.dancePose(n * B + 0.2, 1); return same(p, CR.dancePose((n + 1) * B - 0.01, 1)) && !same(p, mir(p)); });
+    },
     // what glass k drew last, this moment: the dance the right way round for it (the three alike lead with the arm the load
     // rolled, s.lead; the odd one the other way round)
     drew(k) {
@@ -71,10 +78,12 @@ const danceHelpers = ['eval', `window._dance = (() => {
 const dance = [danceHelpers,
   ['expect', 'window._dance.inStep()', "drawn at one moment: the odd mirror's doll is in the mirror image of the others' pose, and the other three are in the same pose"],
   ['waitUntil', 'window._dance.inStep(true)', 4000],
-  ['expect', 'window._dance.always()', 'mirrored at every moment of the dance, which is lopsided enough to tell and now and then stands even'],
+  ['expect', 'window._dance.always()', 'mirrored at every moment of the dance, which is lopsided enough to tell and now and then stands with its arms and head even'],
+  ['expect', 'window._dance.held()', 'each move is snapped into at once and held dead still until the next, and none is its own mirror image'],
 ].concat(...[0, 1, 2, 3].map(k => [look(k), ['wait', 80], ['expect', 'window._dance.drew(' + k + ')', 'mirror ' + k + ' draws the dance ' + "the right way round (the odd one's mirrored)"]]), [
-  ['eval', 'window._dz = { d: G.L.creature.dist, t: G.L.creature.danceT, p: JSON.stringify(G.L.s.shown[3].pose) }'], ['wait', 700],
-  ['expect', 'window._dance.drew(3) && G.L.creature.dist === window._dz.d && G.L.creature.danceT > window._dz.t + 0.4 && JSON.stringify(G.L.s.shown[3].pose) !== window._dz.p', 'held in the glass it dances on the spot: its pose moves, it comes no nearer'],
+  // (it holds each move a long beat: wait out more than one, so it has snapped into another)
+  ['eval', 'window._dz = { d: G.L.creature.dist, t: G.L.creature.danceT, p: JSON.stringify(G.L.s.shown[3].pose) }'], ['wait', 2300],
+  ['expect', 'window._dance.drew(3) && G.L.creature.dist === window._dz.d && G.L.creature.danceT > window._dz.t + CREATURES.other.danceBeat && JSON.stringify(G.L.s.shown[3].pose) !== window._dz.p', 'held in the glass it dances on the spot: its pose moves, it comes no nearer'],
 ]);
 const crankFirst = k => [hold('crank'), look(k),
   watch('feel', "G.fumbling && G.fumbling.preset === 'bump' && !G.fumbling.drop && G.fumbling.target.id === '" + ped(k) + "' && G.fumbling.phase === 'contact'"),

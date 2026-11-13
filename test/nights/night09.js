@@ -61,7 +61,7 @@ module.exports = {
     // its way in: from lamp to lamp along its own street, every one of them from the last, fitted to the time it has
     ['expect', 'G.L.s.man && G.L.s.man.stops.length >= 6 && G.L.s.man.stops.every(st => st.lamp && st.lamp.street === (G.L.creature.lane.deg === 0 ? 0 : 1))', 'its way in goes by every lamp along its own street'],
     ['expect', 'G.L.s.man.stops[0].d > 90 && G.L.s.man.stops.every((st, i, a) => !i || st.d < a[i - 1].d) && Math.abs(G.L.creature.D0 - G.L.s.man.stops[0].d) < 0.01', 'it starts at the very last lamp down its street, and comes in lamp by lamp'],
-    ['expect', "G.L.s.man.seg.kind === 'stop' && Math.abs(G.L.creature.dist - G.L.s.man.stops[0].d) < 0.01 && " + lamp0 + '.light.i > 0.5 && G.L.creature.lit > 0.1 && G.L.creature.lampLit > 0.9', 'it starts behind that lamp, lit by it (its face showing)'],
+    ['expect', "G.L.s.man.seg.kind === 'stop' && Math.abs(G.L.creature.dist - G.L.s.man.stops[0].d) < 0.01 && " + lamp0 + '.light.i > 0.5 && G.L.creature.lit > 0.1 && G.L.creature.lampLit > 0.9', 'it starts behind that lamp, lit by it (only its eyes showing)'],
     ['expect', 'Math.abs(G.L.s.man.arrive - G.L.creature.T) < 0.5 && G.L.s.man.wait >= 1.2 && G.L.s.man.wait <= 5', 'it gets to the glass when its steady walk would have, quick about each lamp'],
     ['face', 1, false],
     ['expect', plain(0) + ' && ' + periphery, 'facing the phone the view is as it always is, and it is at its edge, not behind the phone'],

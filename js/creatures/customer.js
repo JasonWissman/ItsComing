@@ -2,8 +2,8 @@
 // The customer: the size of a child, and made like one: short, with a head too big for it. It is in a pale button-up
 // onesie, rumpled and grubby, the sleeves striped dark and pale round and round to the cuffs, and little dark shoes. Its
 // small bare hands hang at its sides. From the neck up it is black: a black neck, and a black face with long straggly black
-// hair hanging down over it and over its shoulders. In the black are two huge round staring eyes, white, red-rimmed, each
-// with a thin red ring round a pinprick pupil, and under them a grin from one side of the face to the other, two rows of
+// hair hanging down over it and over its shoulders. In the black are two huge round staring eyes, white and blank, red-rimmed,
+// and under them a grin from one side of the face to the other, two rows of
 // big square white teeth clenched together.
 // It does not move the way anything else does. It stands bolt upright and dead still: nothing bobs, nothing sways, the
 // arms never swing. It comes on in small stiff steps, its legs straight, its feet barely leaving the ground; and every so
@@ -49,9 +49,8 @@ CREATURES.customer = {
       stripe: P.col([26, 24, 28]), cuff: P.col([18, 16, 20]),
       skin: P.col([176, 170, 162]), skinD: P.col([126, 120, 114]),
       black: unlit([3, 2, 4]), hair: unlit([13, 12, 15]), hairL: P.cola([40, 38, 46], 0.8), shoe: P.col([20, 18, 20]), lace: P.col([66, 62, 60]),
-      white: P.col([244, 240, 230]), rim: P.col([150, 18, 22]), rimA: P.cola([130, 8, 12], 0.55), ring: P.col([176, 30, 34]), pupil: P.col([10, 4, 4]),
+      white: P.col([244, 240, 230]), rim: P.col([150, 18, 22]), rimA: P.cola([130, 8, 12], 0.55),
       teeth: P.col([240, 234, 216]), teethD: P.col([96, 88, 76]), gum: P.col([110, 16, 20]), throat: unlit([30, 3, 5]),
-      glint: P.raw([255, 252, 244]),
     };
   },
   draw(ctx, c, P) {
@@ -105,14 +104,11 @@ CREATURES.customer = {
     ctx.stroke();
     P_line(ctx, px - sa * 0.006 * z, py + ca * 0.006 * z, px + ca * 0.012 * z, py + sa * 0.012 * z, 0.006 * z, K.skinD);   // the crease of the palm
   },
-  // one huge round eye at (x, y), r across: a red smudge round it, the red rim, the white, a thin red ring round a pinprick
-  eye(ctx, K, x, y, r, pr) {
+  // one huge round eye at (x, y), r across: a red smudge round it, the red rim, and the white, blank, with nothing in it
+  eye(ctx, K, x, y, r) {
     P_ell(ctx, x, y, r * 1.42, r * 1.38, K.rimA);
     P_ell(ctx, x, y, r * 1.14, r * 1.14, K.rim);
     P_ell(ctx, x, y, r, r, K.white);
-    ctx.strokeStyle = K.ring; ctx.lineWidth = r * 0.08; ctx.beginPath(); ctx.arc(x, y, r * 0.48, 0, TAU); ctx.stroke();
-    P_ell(ctx, x, y, pr, pr, K.pupil);
-    P_ell(ctx, x - r * 0.38, y + r * 0.36, r * 0.11, r * 0.11, K.glint);
   },
   // the grin: corners at (+-mw, cy), the top edge dU below them in the middle and the bottom dL, each a curve up into the
   // corners; a row of big square teeth hanging from the top and one standing on the bottom, th deep, meeting in the middle
@@ -158,9 +154,9 @@ CREATURES.customer = {
     // the face and the jaw under it, black; the jaw dropping away as it comes at you
     P_ell(ctx, 0, 0, 0.115, 0.135, K.black);
     P_ell(ctx, 0, -0.045 - gape * 0.1, 0.1 + gape * 0.012, 0.1 + gape * 0.11, K.black);
-    // the eyes, wider the nearer it is and wider still coming at you, the pupils shrinking to points
-    const er = 0.033 + near * 0.003 + gape * 0.012, pr = lerp(0.0075, 0.0045, Math.max(near, gape)), ey = 0.026 + gape * 0.012;
-    for (const s of [-1, 1]) this.eye(ctx, K, s * (0.047 + gape * 0.006), ey, er, pr);
+    // the eyes, wider the nearer it is and wider still coming at you
+    const er = 0.033 + near * 0.003 + gape * 0.012, ey = 0.026 + gape * 0.012;
+    for (const s of [-1, 1]) this.eye(ctx, K, s * (0.047 + gape * 0.006), ey, er);
     // the grin, clenched; coming at you it comes apart, the corners pulled further up, the bottom row going down and down
     const mw = 0.088 + gape * 0.02, cy = -0.034 + gape * 0.012;
     this.grin(ctx, K, mw, cy, -0.024 - gape * 0.006, -0.088 - near * 0.004 - gape * 0.2, 0.034 + gape * 0.008, gape);

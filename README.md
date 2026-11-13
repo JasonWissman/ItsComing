@@ -217,14 +217,14 @@ some on the ground, so you have to turn and look down to find them.
    arms and legs one shadow with no clothes and no edges to it, so that most of the time all you see of it is two small
    pale points, its eyes. It carries no light. The street lamps stand along its way, and it starts at the very last of
    them, the furthest down its street, and goes from one to the next, every one: it stands behind a lamp, peering round
-   the post, utterly still for a few seconds, and in that light you can see its face (long and gaunt, the cheeks sunk,
-   the eyes too big and wet, a mouth of small teeth from one cheekbone to the other); then its arm unspools up out of it,
+   the post, utterly still for a few seconds, and even in that light there is no face to it, only the two pale points of
+   its eyes and a faint rim of light along its shoulder; then its arm unspools up out of it,
    the same shadow, impossibly long, to the lamp's head and breaks it (a pop and a white flare, glass and sparks coming
-   down), and it stutters and is out for good, and the face with it. In the dark it skitters on, low and fast on all four
+   down), and it stutters and is out for good. In the dark it skitters on, low and fast on all four
    of its long limbs like a spider, to the next lamp nearer the booth, waits, breaks that, and so on to the last; then it
    walks across to the glass. With every lamp to get through it is quick about all of it, and its whole way in takes as
-   long as its steady walk used to, so the race is the same. Coming at you, its face comes out of the dark into yours and
-   the mouth opens far too wide. The pay phone, a slim unit a size smaller than life on a backboard no wider than itself,
+   long as its steady walk used to, so the race is the same. Only coming at you does a face come out of the dark into
+   yours: two pale, blank eyes and a mouth of small teeth from one cheekbone to the other, opening far too wide. The pay phone, a slim unit a size smaller than life on a backboard no wider than itself,
    stands across the corner of the booth between the two streets, the glass clear either side of it, so while you use it
    both streets are at the edges of the view and you see it coming out of the corner of your eye. Your notebook lies shut
    on the little shelf under the phone. Click it and its cover goes back over the
@@ -243,12 +243,16 @@ some on the ground, so you have to turn and look down to find them.
    hanging up drops the coin back into the coin return. When someone answers, a car comes
    down its street and pulls up at the curb for you.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
-    it in the glass: facing a mirror holds it. In every glass it dances on the spot, a slow,
-    jerky wind-up doll's dance (an arm going up and coming down in little ticks, a wrist
-    rolling, a knee coming up, the head snapping over to one side, a rock from foot to
-    foot), in step in all of them. One of the four mirrors is not like the others: in it the
+    it in the glass: facing a mirror holds it. In every glass it dances on the spot, a
+    wind-up doll's dance, every move snapped into all at once and then held dead still a long
+    beat before the next (an arm going up and coming down, a wrist flopping over, a knee
+    coming up, a leg kicked out to the side, the head snapping over to one side, a lean from
+    one foot onto the other), in step in all of them. Every move is lopsided, even its
+    waiting stance (one foot set out to the side) and the move with both forearms jerked up
+    together (one leg kicked out). One of the four mirrors is not like the others: in it the
     doll dances the other way round, the mirror image of the rest (the arm the others raise,
-    it raises on the other side, and its head goes over the other way; which arm the others
+    it raises on the other side, the leg they kick out it kicks out on the other side, and
+    its head goes over the other way; which arm the others
     raise changes from one load to the next, so only comparing tells). The mirrors are
     otherwise alike, and two are under dust sheets. The music box lies in one place and its
     crank in another. Any pedestal takes the box, and the crank fits its side on any of them,

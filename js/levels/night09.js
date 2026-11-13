@@ -5,7 +5,7 @@
 // thin, all one dark (js/creatures/signalman.js), with no light of its own and nothing of it to be seen most of the time
 // but the two pale points of its eyes. The street lamps stand along its way, on the sides of both streets nearer the
 // booth's corner, and it goes from one to the next, every one of them, starting at the very last, the furthest down its
-// street: it stands behind a lamp, peering round the post, a few seconds, lit by it (and in that light its face shows),
+// street: it stands behind a lamp, peering round the post, a few seconds, lit by it (though in that light there is still no face, only the two points of its eyes),
 // then reaches up, its arm unspooling far too far, and breaks it (a pop, glass, sparks, and it is out for good), and in the
 // dark it skitters on, low and fast, to the next one nearer the booth, waits, breaks that, and so on until the last; then it
 // comes across to the glass. The pay phone is a slim unit on a narrow backboard across the corner of the booth between the
@@ -93,7 +93,7 @@ Object.assign(ICONS, {
     ['#soup', '2 onions, carrots', 'a stock cube', 'an hour, low', 'salt at the end'],
     ['#birthdays', 'Mum, 3rd March', 'Danny, the 19th', 'Ruth ?'],
   ];
-  const COAT = ['saw it again, by the lamps', 'same corner, same time', 'only the eyes, until the light', 'then the face. it was smiling', 'it doesn\'t look at the cars'];
+  const COAT = ['saw it again, by the lamps', 'same corner, same time', 'only the eyes, even under the lamps', 'then the teeth. it was smiling', 'it doesn\'t look at the cars'];
   const KEY = ['%{k}'];   // the number to ring, alone on its page, written large and fast in red
   // seven pages: the thing by the lamps, five ordinary ones and the one with the number, never first; every number distinct.
   // The five always include the names with their numbers and one more numbered page, so there are always a few
@@ -917,7 +917,7 @@ Object.assign(ICONS, {
             grip = up >= UP * 0.8 && up < UP + GRIP + 0.15 ? 1 : 0;
           }
           dark = !!lp && lp.outAt !== undefined && L.t - lp.outAt > 0.3;
-          lampLit = lp ? Math.min(1.4, lampLevel(lp)) : 0;   // (the lamp it stands behind: its face shows in that light, and in the flare)
+          lampLit = lp ? Math.min(1.4, lampLevel(lp)) : 0;   // (the lamp it stands behind: a rim of it along its shoulder, never its face)
         } else if (seg.kind === 'rush') {
           // skittering: in bursts, all but stopping between them, and twitching from side to side
           const k = clamp((e - seg.t0) / (seg.t1 - seg.t0), 0, 1), sk = smoothstep(k), nb = Math.max(2, Math.round(gap(seg.a, seg.b) / 4));

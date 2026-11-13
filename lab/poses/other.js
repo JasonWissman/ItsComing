@@ -51,9 +51,9 @@
     night: 10, stage: 'The Mirror Maze', dist: GLASS, fit: { h: 1.45, w: 1.0 },
     setup(c) { c.danceT = 0; },
     anims: [
-      { name: 'Dancing in the glass', note: 'What every mirror shows while you hold it: a wind-up doll\'s dance, stiff ticks with stops between, eight beats round.', dur: CR.danceBeat * CR.danceKeys.length,
+      { name: 'Dancing in the glass', note: 'What every mirror shows while you hold it: a wind-up doll\'s dance, eight moves round, each snapped into at once and then held dead still a long beat before the next. Every move is lopsided (waiting, one foot set out to the side; both forearms jerked up together, one leg kicked out), so its mirror image never looks the same.', dur: CR.danceBeat * CR.danceKeys.length, still: true,
         tick(c, k, dt) { c.danceT += dt; } },
-      { name: 'Dancing the other way round', note: 'The odd mirror: the same dance at the same moment, left and right swapped. The one to put the music box before.', dur: CR.danceBeat * CR.danceKeys.length,
+      { name: 'Dancing the other way round', note: 'The odd mirror: the same dance at the same moment, left and right swapped (the raised arm, the lifted knee, the leg kicked out and the head all on the other side). The one to put the music box before.', dur: CR.danceBeat * CR.danceKeys.length, still: true,
         set(c) { c.danceMir = -1; }, tick(c, k, dt) { c.danceT += dt; } },
       { name: 'Rocking up behind you', note: 'In the glass while the mirror you face does not show it: still dancing, it rocks from foot to foot as it comes up behind you.', dur: 4.2, walk: PACE,
         tick(c, k, dt) { c.danceT += dt; } },
