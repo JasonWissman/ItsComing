@@ -519,6 +519,19 @@ LEVELS.push({
   a gearstick, a gate) shows nothing of this by itself: the night calls `G.fumble`, `G.reach` or `G.thrust` there.
 - Every night has a solution in `test/nights/nightNN.js` so the suite can play it.
 
+## Labs
+
+Two pages under `lab/` for working on the game's look, opened the same way as the game (from disk or the static host):
+
+- `lab/creatures.html`, the creature lab: every night's creature, drawn by its own code from `js/creatures`, in a card
+  that steps through its animations on a click. Each animation is driven the way its night drives it (the poses are in
+  `lab/poses/<type>.js`, one per creature, registered with `LAB.creature`; `lab/lab.js` is the harness and documents
+  the format). Tune opens one large, with time, distance, light and fog, and a notes box; Copy notes gathers the notes
+  to paste back.
+- `lab/titles.html`, the title lab: five title screens behind the game's own title menu, each closer every time you
+  look away onto the menu and back. A corner panel picks the concept, the title typeface and the menu layout, and
+  keeps notes.
+
 ## Testing
 
 ```
