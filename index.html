@@ -44,10 +44,19 @@
   .slot .label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; font-size: calc(10px * var(--text-scale)); letter-spacing: .08em; white-space: nowrap; color: rgba(207,200,186,.78); text-shadow: 0 1px 2px #000, 0 0 6px #000; }
   .slot.active .label { color: #efe6d2; }
   #debug { display: none; position: absolute; bottom: 6px; left: 8px; font: 11px monospace; color: #7c7; }
+  @font-face { font-family: 'IM Fell English'; src: url(fonts/IMFellEnglish-Regular.woff2) format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+  #titleScene { position: fixed; inset: 0; width: 100%; height: 100%; display: none; }
+  body.titlescene #titleScene { display: block; }
+  body.titlescene #overlay:not(.dlg) { background: transparent; }
+  #overlay.titlelow { justify-content: flex-end; padding-bottom: max(9vh, 24px); }
+  #overlay.titlelow > .mrow { max-width: 1100px; }
+  #overlay.dlg { background: rgba(0,0,0,.3); }
+  #overlay.dlg > .panel { box-sizing: border-box; width: min(760px, 100%); max-width: 760px; min-height: min(62vh, 100%); max-height: calc(100vh - 48px); overflow: auto; display: flex; flex-direction: column; justify-content: center; padding: 28px 32px; background: rgba(7,7,9,.97); border: 1px solid rgba(207,200,186,.18); box-shadow: 0 24px 90px #000; }
+  #overlay .controls.howto { margin: 6px auto 4px; }
   #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .5s; padding: 24px; box-sizing: border-box; }
   #overlay.show { opacity: 1; pointer-events: auto; cursor: pointer; }
   #overlay > * { max-width: 720px; }
-  #overlay h1 { font-weight: normal; font-size: 40px; letter-spacing: .08em; margin: 8px 0 18px; color: #efe6d2; text-shadow: 0 0 30px rgba(0,0,0,.9); }
+  #overlay h1 { font-family: 'IM Fell English', Georgia, 'Times New Roman', serif; font-weight: normal; font-size: 40px; letter-spacing: .08em; margin: 8px 0 18px; color: #efe6d2; text-shadow: 0 0 30px rgba(0,0,0,.9); }
   #overlay h1.big { font-size: 64px; letter-spacing: .22em; }
   #overlay h1.red { color: #b3161e; }
   #overlay .kicker { font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: rgba(207,200,186,.5); }
@@ -88,7 +97,8 @@
   .nrow .nbtn { min-width: 260px; text-align: left; text-transform: none; letter-spacing: .04em; }
   .nrow .times { display: flex; gap: 10px; font-size: calc(12px * var(--text-scale)); color: rgba(207,200,186,.6); min-width: 240px; text-align: left; }
   .nrow .bt small { display: block; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: rgba(207,200,186,.4); }
-  .nrow.locked .nlock { display: inline-block; min-width: 260px; text-align: left; padding: 10px 22px; color: rgba(207,200,186,.3); border: 1px solid rgba(207,200,186,.1); }
+  .nrow.locked .nlock { box-sizing: border-box; display: inline-block; min-width: 260px; text-align: left; padding: 10px 22px; color: rgba(207,200,186,.3); border: 1px solid rgba(207,200,186,.1); }
+  @media (max-width: 640px) { .nrow .times { min-width: 0; } .nrow .nbtn, .nrow.locked .nlock { min-width: 200px; } }
   .settings { display: flex; flex-direction: column; gap: 10px; margin: 10px auto; text-align: left; width: max-content; max-width: 100%; }
   .opt { display: flex; align-items: center; gap: 12px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.85); cursor: pointer; }
   .opt span { min-width: 90px; }
@@ -122,6 +132,7 @@
 </head>
 <body>
 <canvas id="game"></canvas>
+<canvas id="titleScene" aria-hidden="true"></canvas>
 <div id="hud">
   <div id="compass"></div>
   <div id="pitch"></div>
@@ -171,6 +182,7 @@
 <script src="js/creatures/tall.js"></script>
 <script src="js/creatures/demon.js"></script>
 <script src="js/icons.js"></script>
+<script src="js/title.js"></script>
 <script src="js/story.js"></script>
 <script src="js/levels.js"></script>
 <script src="js/levels/night01.js"></script>

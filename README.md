@@ -338,6 +338,13 @@ and the car takes a different number of tries to start. Some pause, some lurch, 
 Progress is saved in `localStorage`; the title screen offers to continue from
 the furthest night reached.
 
+The title screen is pitch black, with two pale points of eyes a long way off. The title and its buttons sit below them,
+with no intro text or list of controls on it: those are in How to play. How to play, Nights and Settings open as
+dialogs over the middle of the view, over what is out there, and it comes on only behind them: each time one closes
+it is a step nearer and more of it shows, until it is close enough to touch, where it stays. It never moves while the
+title is in front of you. After the last night the title keeps its morning room instead, and nothing is coming. Every
+heading in the menus is set in IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`).
+
 ## Project layout
 
 ```
@@ -351,6 +358,7 @@ js/save.js              versioned saved progress and settings
 js/creatures.js         drawing helpers and the CREATURES registry
 js/creatures/<name>.js  one creature each: procedural drawing plus movement behavior
 js/icons.js             item icons and scenery builders (walls, boxes, trees, fences, openings, road, moon, stars)
+js/title.js             the title screen's scene: the eyes in the dark, nearer each time a dialog over it closes
 js/levels.js            item, target, container and recipe helpers and the LEVELS list
 js/levels/nightNN.js    one night each
 js/game.js              game state, input, interaction, HUD, main loop

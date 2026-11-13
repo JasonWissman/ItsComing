@@ -1,6 +1,6 @@
 'use strict';
 // ---------- game state, input, interaction, HUD and the main loop ----------
-const LIST_SCREENS = ['nights', 'settings', 'fragments']; // menu screens with their own buttons: not click-anywhere
+const LIST_SCREENS = ['nights', 'settings', 'fragments', 'howto']; // menu screens with their own buttons: not click-anywhere
 // looking down: enough to see the floor around you without a lurch of the view. A night may look further down (its def's
 // lookDown, in degrees: over the lighthouse rail); this is the one in play, set as each night starts
 let PITCH_DOWN = 45 * DEG;
@@ -187,7 +187,7 @@ function beginPlay() {
 function setState(s) { G.state = s; G.stateT = 0; }
 
 // ---------------- overlays ----------------
-function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350; } // a double-click cannot skip a card
+function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.remove('dlg', 'titlelow'); UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350; } // a double-click cannot skip a card
 function hideOverlay() { UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
@@ -201,6 +201,7 @@ function showTitle() {
   const c = G.cam; c.tYaw = c.yaw = 0; c.tPitch = c.pitch = 0; c.zoom = 1;
   G.fade = 0.35; G.fadeTarget = 0.35; G.white = 0; G.whiteTarget = 0;
   STORY.theme(SAVE.data.settings.theme === 'day');
+  TITLE.enter();   // eyes in the dark, a long way off (not after the last night: then it is morning)
   setState('title');
   MENU.show('title'); G.overlayArmed = 0; // nothing on the title can be skipped by accident, so it takes a click or Enter at once
 }
@@ -913,6 +914,7 @@ function heartbeat(dt) {
 // ---------------- render ----------------
 function render() {
   const L = G.L; if (!L) return;
+  if (TITLE.active()) { TITLE.draw(G.t, UI.overlay.classList.contains('dlg')); updateHUD(); return; }   // the title's own scene, over the game's (left undrawn)
   const c = G.cam;
   const wob = SAVE.data.settings.reducedMotion ? 0 : (c.zoom - 1) * 0.0018;
   const view = { yaw: c.yaw + Math.sin(G.t * 1.7) * wob + Math.sin(G.t * 2.9) * wob * 0.5, pitch: c.pitch + Math.cos(G.t * 1.3) * wob, zoom: c.zoom, shakeX: c.shakeX, shakeY: c.shakeY };

@@ -103,6 +103,25 @@ const hoverHit = lookFor;
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
   check(await page.evaluate(() => JSON.parse(localStorage.getItem('itscoming.v2')).unlocked.nightmare >= 0 && !!document.querySelector('#overlay button[data-act="nights"]')), 'title has a Nights button');
+  await page.goto(URL); await page.waitForTimeout(300);
+  // the title: eyes in the dark, the name in IM Fell English, no intro or controls on it; How to play, Nights and
+  // Settings open as dialogs over it, and it comes one step nearer each time one closes, never while you watch
+  let tv = await page.evaluate(() => ({ st: G.state, ov: document.getElementById('overlay').className, gt: +G.t.toFixed(2), on: TITLE.on, step: TITLE.step, scene: document.body.classList.contains('titlescene'), intro: !!document.querySelector('#overlay .intro'), ctrls: !!document.querySelector('#overlay .controls'), font: getComputedStyle(document.querySelector('#overlay h1')).fontFamily }));
+  check(tv.on && tv.scene && tv.step === 0 && !tv.intro && !tv.ctrls && /IM Fell English/.test(tv.font), 'the title is the eyes in the dark, in IM Fell English, with no intro or controls (' + JSON.stringify(tv) + ')');
+  await page.waitForTimeout(1500);
+  check(await page.evaluate(() => TITLE.step === 0), 'it does not come nearer while the title is watched');
+  await page.click('#overlay button[data-act="howto"]'); await page.waitForTimeout(150);
+  tv = await page.evaluate(() => ({ dlg: document.getElementById('overlay').classList.contains('dlg'), panel: !!document.querySelector('#overlay .panel .controls'), step: TITLE.step, state: G.state }));
+  check(tv.dlg && tv.panel && tv.step === 0 && tv.state === 'title', 'How to play opens in a dialog with the controls in it, and the night does not start (' + JSON.stringify(tv) + ')');
+  await page.click('#overlay .panel', { position: { x: 12, y: 12 } }); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'howto'), 'a click in the dialog is not a click to begin');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+  check(await page.evaluate(() => MENU.kind === 'title' && TITLE.step === 1), 'closing it, it is a step nearer');
+  for (const act of ['nights', 'settings']) { await page.click('#overlay button[data-act="' + act + '"]'); await page.waitForTimeout(120); await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(120); }
+  check(await page.evaluate(() => TITLE.step === 3 && G.state === 'title'), 'Nights and Settings each bring it a step nearer too');
+  await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(300);
+  check(await page.evaluate(() => G.state !== 'title' && !document.body.classList.contains('titlescene')), 'Begin leaves the title, and its scene goes with it');
+  await page.goto(URL); await page.waitForTimeout(300);
 
   console.log('== mute ==');
   await page.evaluate(() => ensureAudio());

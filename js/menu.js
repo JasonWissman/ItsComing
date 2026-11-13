@@ -10,12 +10,15 @@ const MENU = (() => {
     switch (kind) {
       case 'title': {
         const unlocked = G.unlocked;
+        // the title itself: the name and the way in, and nothing else over what is out there (how to play is a dialog)
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
-          '<p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>' +
-          '<div class="controls"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>look down, click the floor</b> put down what you hold</div><div><b>with one held thing chosen, click another</b> use them together</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
-          '<div class="mrow">' + btn('begin', 'Begin') + (unlocked > 0 && unlocked < LEVELS.length ? btn('continue', 'Continue &middot; night ' + (unlocked + 1)) : '') + btn('nights', 'Nights') + btn('settings', 'Settings', 'title') + '</div>' +
+          '<div class="mrow">' + btn('begin', 'Begin') + (unlocked > 0 && unlocked < LEVELS.length ? btn('continue', 'Continue &middot; night ' + (unlocked + 1)) : '') + btn('nights', 'Nights') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
           '<p class="fine">Headphones recommended. Sound is synthesized in your browser.</p>';
       }
+      case 'howto':
+        return '<h1>How to play</h1><p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>' +
+          '<div class="controls howto"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>look down, click the floor</b> put down what you hold</div><div><b>with one held thing chosen, click another</b> use them together</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
+          '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
       case 'pause':
         return '<h1>Paused</h1><p class="intro">It is not.</p><div class="mcol">' + btn('resume', 'Resume') + btn('restart', 'Start the night over') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('title', 'Back to the title') + '</div><p class="fine">Esc resumes</p>';
       case 'dead':
@@ -32,7 +35,7 @@ const MENU = (() => {
           if (i <= unlocked) {
             const e = b0(def.id), times = e && e.wins ? '<span class="bt"><small>best</small>' + fmtTime(e.time) + '</span>' : '';
             rows += '<div class="nrow">' + btn('night', (i + 1) + '. ' + def.title, i, 'nbtn') + '<span class="times">' + times + '</span></div>';
-          } else rows += '<div class="nrow locked"><span class="nlock">' + (i + 1) + '. &hellip;</span></div>';
+          } else rows += '<div class="nrow locked"><span class="nlock">' + (i + 1) + '. &hellip;</span><span class="times"></span></div>';   // (an empty times column, so it lines up with the open rows)
         }
         const complete = SAVE.data.complete && SAVE.data.complete[diff.id] ? '<p class="fine">Every night survived.</p>' : '';
         return '<h1>Nights</h1><div class="nights">' + rows + '</div>' + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('fragments', 'Fragments', d.from || 'title') + '</div>';
@@ -59,10 +62,16 @@ const MENU = (() => {
       default: return '';
     }
   }
+  // over the title, its sub-screens open as dialogs: a panel over the middle of the view, over what is coming (TITLE),
+  // which comes on behind it while it is open
+  const DIALOGS = ['nights', 'settings', 'howto', 'fragments'];
   function show(kind, data) {
     current = { kind, data: data || {} };
-    showOverlay(html(kind, current.data));
     const ov = UI.overlay;
+    const dlg = DIALOGS.includes(kind) && (current.data.from || 'title') === 'title' && G.state === 'title';
+    showOverlay(dlg ? '<div class="panel" role="dialog" aria-modal="true">' + html(kind, current.data) + '</div>' : html(kind, current.data));
+    ov.classList.toggle('dlg', dlg);
+    ov.classList.toggle('titlelow', kind === 'title' && TITLE.on);
     ov.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); act(b.dataset.act, b.dataset.arg); }));
     ov.querySelectorAll('[data-set]').forEach(inp => {
       const stop = e => e.stopPropagation();
@@ -94,6 +103,7 @@ const MENU = (() => {
       case 'continue': startLevel(G.unlocked, true); break;
       case 'nights': show('nights', { from: current && (current.kind === 'fragments' ? current.data.from : current.kind === 'pause' ? 'pause' : current.kind === 'dead' ? 'dead' : current.kind === 'survived' ? 'survived' : 'title') }); break;
       case 'settings': show('settings', { from: arg || 'title' }); break;
+      case 'howto': show('howto', { from: 'title' }); break;
       case 'fragments': show('fragments', { from: arg || 'title' }); break;
       case 'resume': resumeGame(); break;
       case 'restart': restartLevel(); break;
@@ -104,7 +114,8 @@ const MENU = (() => {
       case 'reset': if (current.data.confirmReset) { SAVE.reset(); setMuted(false); applyAll(); showTitle(); } else show('settings', Object.assign({}, current.data, { confirmReset: true })); break;
       case 'back': {
         const from = arg || 'title';
-        if (from === 'title') showTitle();
+        if (from === 'title' && G.state === 'title') { show('title'); TITLE.advance(); }   // closing a dialog over the title: it came on while it was open
+        else if (from === 'title') showTitle();
         else if (from === 'pause') show('pause');
         else if (from === 'dead') show('dead', G.deathScreen);
         else if (from === 'survived') show('survived', G.survivedScreen);
@@ -126,7 +137,7 @@ const MENU = (() => {
     if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'd' || k === 'Tab' && !e.shiftKey) { e.preventDefault(); btns[(idx + 1 + btns.length) % btns.length].focus(); return true; }
     if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'a' || k === 'Tab' && e.shiftKey) { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); return true; }
     if (k === 'Escape' && current.kind === 'fragments') { act('nights'); return true; }
-    if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings')) { act('back', current.data.from); return true; }
+    if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings' || current.kind === 'howto')) { act('back', current.data.from); return true; }
     if (k === 'Enter' && idx >= 0) return true;   // the focused button handles it
     return false;
   }
