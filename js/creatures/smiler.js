@@ -16,7 +16,7 @@
 //    goes too;
 //  - walking off (c.away, or c.turn at 1): from behind, the hump, the back of the bald head low beside it, the staff;
 //  - reaching for you (c.lunge 0..1, his death lunge): he lets the staff fall and both hands come at you, the long fingers
-//    hooked, to either side of his face; the head jerks one way and the other, the grin stretches and gapes, the pupils shrink.
+//    hooked, to either side of his face; the head jerks one way and the other, the grin stretches and gapes, the eyes stare wider.
 CREATURES.smiler = {
   name: 'the smiler', h: 1.75, w: 1.0, faceY: 1.32, stepRate: 1.3, catchDist: 1.4, sound: 'smiler',
   runW: 1.7,   // how wide the side-on run is drawn, the trailing heel to the leading toe and the staff's hook
@@ -36,7 +36,7 @@ CREATURES.smiler = {
     return {
       coat: P.col([30, 27, 24]), coatL: P.col([58, 52, 45]), coatF: P.col([15, 14, 13]), coatD: P.col([9, 8, 8]), cape: P.col([38, 34, 30]),
       skin: P.col([210, 202, 182]), skinS: P.col([172, 162, 143]), skinD: P.col([104, 92, 80]), shade: P.col([160, 150, 134]),
-      hair: P.col([228, 226, 218]), hairA: P.cola([228, 226, 218], 0.72), sock: P.cola([92, 80, 68], 0.9), sock0: P.cola([150, 140, 124], 0), hollow: P.cola([150, 138, 120], 0.85), hollow0: P.cola([170, 160, 142], 0), white: P.col([244, 238, 220]), black: P.col([4, 4, 6]),
+      hair: P.col([228, 226, 218]), hairA: P.cola([228, 226, 218], 0.72), sock: P.cola([92, 80, 68], 0.9), sock0: P.cola([150, 140, 124], 0), hollow: P.cola([150, 138, 120], 0.85), hollow0: P.cola([170, 160, 142], 0), white: P.col([244, 238, 220]),
       wood: P.col([80, 62, 44]), woodD: P.col([44, 34, 25]), iron: P.col([110, 104, 92]), rope: P.col([88, 76, 56]),
       leg: P.col([24, 22, 20]), boot: P.col([12, 10, 9]),
     };
@@ -204,14 +204,13 @@ CREATURES.smiler = {
       P_limb(ctx, [[-0.08, 0.29], [-0.02, 0.32], [0.07, 0.3]], 0.005, K.hair); P_limb(ctx, [[-0.07, 0.31], [0.01, 0.33], [0.08, 0.31]], 0.005, K.hair);
       ctx.restore();
     }
-    // the eyes, deep in their sockets under a heavy brow: wide, whites showing, looking up at you from under it
+    // the eyes, deep in their sockets under a heavy brow: wide and blank, all white, staring at you from under it
     const er = 0.022 + near * 0.012 + lunge * 0.01, ey = 0.2 - fy;
     for (const s of [-1, 1]) {
       const sg = ctx.createRadialGradient(s * 0.044, ey + er * 0.35, er * 0.6, s * 0.044, ey + er * 0.2, er * 2);   // the socket, sunk in, darkest under the brow
       sg.addColorStop(0, K.sock); sg.addColorStop(1, K.sock0); ctx.fillStyle = sg;
       ctx.beginPath(); ctx.ellipse(s * 0.044, ey + er * 0.2, er * 2, er * 1.8, 0, 0, TAU); ctx.fill();
       P_ell(ctx, s * 0.044, ey, er, er * 1.05, K.white);
-      P_ell(ctx, s * 0.044, ey + 0.004 - bow * er * 0.65, 0.0075 * (1 - 0.45 * lunge), 0.0085 * (1 - 0.45 * lunge), K.black);   // (reaching, the pupils shrink to pinpricks)
       if (bow > 0.01) {   // the lids come down over the top of the eyes
         ctx.save(); ctx.beginPath(); ctx.ellipse(s * 0.044, ey, er * 1.02, er * 1.08, 0, 0, TAU); ctx.clip();
         P_ell(ctx, s * 0.044, ey + er * 1.05 * (2 - bow * 0.95), er * 1.25, er * 1.05, K.skinS);
@@ -267,7 +266,7 @@ CREATURES.smiler = {
     P_poly(ctx, [[0.07, 0.27], [0.122, 0.245], [0.118, 0.222], [0.078, 0.228]], K.skin);   // the brow
     const er = 0.022 + near * 0.012;
     P_ell(ctx, 0.078, 0.205, 0.03, 0.028, K.skinD);
-    P_ell(ctx, 0.088, 0.205, er * 0.72, er * 1.05, K.white); P_ell(ctx, 0.101, 0.207, 0.008, 0.009, K.black);
+    P_ell(ctx, 0.088, 0.205, er * 0.72, er * 1.05, K.white);
     P_poly(ctx, [[0.108, 0.212], [0.15, 0.155], [0.162, 0.125], [0.15, 0.108], [0.128, 0.118], [0.108, 0.13]], K.skin);   // the nose
     P_ell(ctx, 0.132, 0.122, 0.008, 0.005, K.skinD);
     P_ell(ctx, -0.035, 0.18, 0.027, 0.048, K.skinS); P_ell(ctx, -0.032, 0.18, 0.012, 0.03, K.skinD);   // the ear

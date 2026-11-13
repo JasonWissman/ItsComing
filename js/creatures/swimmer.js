@@ -24,7 +24,7 @@ CREATURES.swimmer = {
     if (c.runPose && !c.lunge) { this.drawSwim(ctx, c, P); return; }
     const t = c.t, near = clamp(1 - c.dist / 10, 0, 1), lunge = c.lunge || 0;
     const skin = P.col([146, 156, 148]), skinD = P.col([98, 110, 102]), socket = P.col([36, 40, 38]), moss = P.col([52, 76, 40]), mossL = P.col([78, 102, 56]);
-    const weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]), iris = P.col([128, 132, 122]), mouth = P.col([10, 8, 8]);
+    const weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]), mouth = P.col([10, 8, 8]);
     const wet = P.cola([230, 240, 235], 0.3), ring = [150, 165, 175];
     const fresh = clamp(1 - (G.L.t - c.surfaced) / 1.2, 0, 1);
     // it rises a little as it closes, and all the way out when it lunges; the water line is y = 0 until the lunge lifts the
@@ -39,9 +39,9 @@ CREATURES.swimmer = {
     P_ell(ctx, 0.06, 0.05, 0.1, 0.22, skinD);
     for (const [x, y, rx, ry, c2] of [[0, 0.33, 0.12, 0.05, moss], [-0.09, 0.28, 0.07, 0.05, mossL], [0.08, 0.3, 0.07, 0.04, moss], [0.13, 0.19, 0.035, 0.06, mossL], [-0.14, 0.14, 0.03, 0.07, moss], [0.02, 0.25, 0.04, 0.025, mossL]]) P_ell(ctx, x, y, rx, ry, c2);
     P_ell(ctx, -0.07, 0.27, 0.04, 0.015, wet, -0.4);
-    // sunken sockets just above the water, and in them small milky eyes that do not blink
+    // sunken sockets just above the water, and in them small blank milky eyes that do not blink
     const eyeY = 0.045 + lunge * 0.02, open = 0.016 + near * 0.008 + lunge * 0.014;
-    for (const s2 of [-1, 1]) { P_ell(ctx, s2 * 0.068, eyeY + 0.004, 0.05, 0.034, socket); P_ell(ctx, s2 * 0.068, eyeY, 0.03, open, eye); P_ell(ctx, s2 * 0.064, eyeY, 0.011, Math.min(open, 0.011), iris); }
+    for (const s2 of [-1, 1]) { P_ell(ctx, s2 * 0.068, eyeY + 0.004, 0.05, 0.034, socket); P_ell(ctx, s2 * 0.068, eyeY, 0.03, open, eye); }
     P_line(ctx, 0, eyeY - 0.012, 0.006, eyeY - 0.075, 0.026, skinD);
     if (lunge > 0) P_ell(ctx, 0, -0.14, 0.05 + lunge * 0.05, 0.03 + lunge * 0.11, mouth);
     // weed hangs straight down from the crown like wet hair, parted over the eyes
@@ -61,7 +61,7 @@ CREATURES.swimmer = {
   drawSwim(ctx, c, P) {
     const g = c.runGait || 0, t = c.t;
     const skin = P.col([146, 156, 148]), skinD = P.col([98, 110, 102]), near = P.col([122, 134, 124]), far = P.col([80, 92, 84]), socket = P.col([36, 40, 38]);
-    const moss = P.col([52, 76, 40]), mossL = P.col([78, 102, 56]), weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]), iris = P.col([128, 132, 122]);
+    const moss = P.col([52, 76, 40]), mossL = P.col([78, 102, 56]), weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]);
     const ring = [150, 165, 175], foam = [214, 224, 228];
     ctx.save(); ctx.scale(c.runDir || 1, 1);
     // the wake behind it, and the wave its head pushes ahead
@@ -94,7 +94,7 @@ CREATURES.swimmer = {
     P_ell(ctx, 0, 0.02, 0.24, 0.15, skin); P_ell(ctx, -0.06, 0, 0.18, 0.12, skinD);
     for (const [x, y, rx, ry, c2] of [[-0.08, 0.13, 0.12, 0.04, moss], [-0.17, 0.09, 0.06, 0.04, mossL], [0, 0.15, 0.06, 0.025, mossL]]) P_ell(ctx, x, y, rx, ry, c2);
     P_ell(ctx, -0.04, 0.15, 0.05, 0.012, P.cola([230, 240, 235], 0.3), -0.2);
-    for (const [x, k] of [[0.09, 1], [0.17, 0.75]]) { P_ell(ctx, x, 0.065, 0.045 * k, 0.03 * k, socket); P_ell(ctx, x, 0.062, 0.027 * k, 0.018 * k, eye); P_ell(ctx, x + 0.004, 0.062, 0.01 * k, 0.01 * k, iris); }
+    for (const [x, k] of [[0.09, 1], [0.17, 0.75]]) { P_ell(ctx, x, 0.065, 0.045 * k, 0.03 * k, socket); P_ell(ctx, x, 0.062, 0.027 * k, 0.018 * k, eye); }
     ctx.restore();
     arm(g, -0.08, near, 0.04);   // the near arm, over the head
     ctx.restore();
