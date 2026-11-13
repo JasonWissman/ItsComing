@@ -99,7 +99,7 @@ const LAB = (() => {
     let ppm = o.scale === 'true' ? (H * 0.8) / o.trueH : Math.min((H * 0.8) / (fit.h - fit.y0), (W * 0.86) / fit.w);
     let feetY = H * 0.9 + fit.y0 * ppm;
     // a lunge (anim.zoom) grows as it closes, as it does in the game, about its face (which stays where it was)
-    if (a.zoom && c && c.lungeFrom) { const z = Math.min(a.zoom === true ? 4 : a.zoom, c.lungeFrom / Math.max(0.3, c.dist)), fy = c.CR.faceY; feetY = feetY - fy * ppm + fy * ppm * z; ppm *= z; }
+    if (a.zoom && c && c.lungeFrom) { const z = Math.min(a.zoom === true ? 4 : a.zoom, c.lungeFrom / Math.max(0.3, c.dist)), fy = c.CR.faceY; feetY = feetY - fy * ppm + fy * ppm * z; ppm *= z; feetY += Math.max(0, H * 0.42 - (feetY - fy * ppm)); }   // and never so high its head leaves the card
     R.W = W; R.H = H; R.f = ppm * d; R.eyeH = G.L.eyeH; R.horizon = feetY - R.f * R.eyeH / d; R.viewY = 0;
     // background: sky, the ground from the feet down, a faint line where they stand
     const sky = ctx.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, bg.sky[0]); sky.addColorStop(1, bg.sky[1]);
