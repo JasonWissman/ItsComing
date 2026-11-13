@@ -16,6 +16,11 @@ module.exports = [
     rules: { 'no-undef': 'error', 'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }], 'no-redeclare': 'off', 'no-empty': ['error', { allowEmptyCatch: true }] },
   },
   {
+    files: ['lab/**/*.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: Object.assign({}, globals, { LAB: 'readonly', innerHeight: 'readonly', Proxy: 'readonly' }) },
+    rules: { 'no-undef': 'error', 'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }], 'no-redeclare': 'off', 'no-empty': ['error', { allowEmptyCatch: true }] },
+  },
+  {
     files: ['test/**/*.js', 'eslint.config.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { require: 'readonly', module: 'writable', process: 'readonly', __dirname: 'readonly', console: 'readonly', setTimeout: 'readonly', Date: 'readonly', JSON: 'readonly', Math: 'readonly', Set: 'readonly', Map: 'readonly', Promise: 'readonly' } },
     rules: { 'no-undef': 'off', 'no-unused-vars': 'off', 'no-empty': ['error', { allowEmptyCatch: true }] },
