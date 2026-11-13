@@ -2,8 +2,9 @@
 // ============================================================ 10. THE MIRROR MAZE ============================================================
 // The look-away night turned inside out: it is always behind you and you only ever see it in the glass.
 // It moves while the mirror you are facing does not show it. A mirror in the middle of every wall and a pedestal
-// before each, all alike. In every glass it dances on the spot, a stiff, jerky wind-up doll's dance, in step in all of
-// them; one mirror is not like the others: in it the dance is the mirror image of the rest (left and right swapped).
+// before each, all alike. In every glass it dances on the spot, a stiff wind-up doll's dance (each move snapped
+// into at once and held dead still a long beat), in step in all of them; one mirror is not like the others: in it the
+// dance is the mirror image of the rest (left and right swapped).
 // The music box lies in one place and its crank in another. The box goes on any pedestal and the crank on the box's side,
 // and a few turns of the crank before the odd mirror play its tune: the doll stops dancing, turns round once on the spot
 // like the dancer on the box, and comes out through that glass for the box, quickly, lifts it off the pedestal, and takes

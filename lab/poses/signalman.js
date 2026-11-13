@@ -53,7 +53,7 @@
   LAB.creature('signalman', {
     night: 9, stage: 'The Phone Booth', dist: 30.6, lit: 0, fit: { h: 2.85, w: 1.2 },
     anims: [
-      { name: 'Standing behind a lamp', note: 'At each street lamp it stands utterly still behind the post, peering round it, and the lamp finds its long gaunt face and the slit of a mouth.',
+      { name: 'Standing behind a lamp', note: 'At each street lamp it stands utterly still behind the post, peering round it. The lamp finds no face: only the two small pale points of its eyes, and a faint rim along its shoulder.',
         dist: 30.6, dur: 4, lit: 0.45, fit: NEAR, set: atLamp, tick(c, k, dt, T) { c.labT = T; }, front: lamp },
       { name: 'Its head snaps round to you', note: 'Looked at after a while unwatched: its head is turned aside, and a moment later it snaps round to you.',
         dist: 30.6, dur: 1.6, lit: 0.45, fit: NEAR, modes: true, seen: true, set: atLamp, tick(c, k, dt, T) { c.labT = T; }, front: lamp },
@@ -81,7 +81,7 @@
           if (q0 >= 1) { c.lampLit = 1; c.reachTo = { x: LAMP.reach.x, y: LAMP.reach.y }; }   // at the next lamp, lit by it
         },
         draw(ctx, c, P) { ctx.translate(c.labSide || 0, 0); CR.draw(ctx, c, P); } },
-      { name: 'Walking across to the booth', note: 'After the last lamp: it comes across the street to the glass at a walk, upright, and its eyes grow big and wet as it nears.',
+      { name: 'Walking across to the booth', note: 'After the last lamp: it comes across the street to the glass at a walk, upright, nothing of its face but the two small pale points of its eyes, however near it comes.',
         dist: 10, walk: WALK_V, dur: (10 - CR.catchDist) / WALK_V, tick(c, k, dt) { c.dist = Math.max(CR.catchDist, c.dist - dt * WALK_V); } },
       { name: 'Turning away and walking off', note: 'The car has come for you: it stops dead in the street, then turns round, showing only its eyeless back, and walks back the way it came.',
         dist: 12, dur: 0.8 + 2.2,
@@ -89,7 +89,7 @@
           if (T < 0.8) { c.moving = false; return; }
           c.away = true; c.frozen = true; c.moving = true; c.dist += dt * 1.3; c.gait += dt * 1.3 * CR.stepRate * Math.PI;
         } },
-      LAB.lunge({ note: 'It catches you: the face comes out of the dark into yours and the mouth opens, far too wide, the long hands up either side of your face.', dist: CR.catchDist }),
+      LAB.lunge({ note: 'It catches you: the only face it ever shows comes out of the dark into yours, two pale blank eyes and the mouth opening far too wide, the long hands up either side of your face.', dist: CR.catchDist }),
     ],
   });
 })();

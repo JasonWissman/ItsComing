@@ -23,43 +23,45 @@ CREATURES.other = {
   init(c) { c.back = false; c.dance = 1; c.danceT = 0; c.danceMir = 1; },
   speedMult(c, dt, seen) { return seen ? 0 : 1; },
   lateral(c) { return c.runLat || 0; },
-  // The dance: a wind-up doll's, slow and stiff, every move made in little clockwork ticks with a stop between (the ticks of
-  // its arms, its rock from foot to foot and its wrist fall between one another, so it is never still for more than a
-  // moment). Its lead arm (the one on the left of the view) goes out with the forearm hanging off the elbow, up high,
-  // flops over at the wrist and rolls it, and comes down bent like a broken toy's; the knee on the other side comes up,
-  // twice; the head snaps over, mostly away from the lead arm; and all the while it rocks from foot to foot. Each key is
-  // one beat's pose: aL/aR each upper arm's angle out from hanging (radians), bL/bR each forearm's bend out from its upper
-  // arm, kL/kR each knee's lift (0..1), tilt the head's (+: toward the left of the view) and sway the body's lean (+: to
-  // the left).
-  danceBeat: 1.05,
+  // The dance: a wind-up doll's, stiff and sudden. Each move is a snap: it clicks into its pose all at once (a tiny jolt
+  // past it and back), and then holds there dead still, not a twitch, a long while, until the next move snaps it into the
+  // next. Its lead arm (the one on the left of the view) goes out with the forearm hanging off the elbow, up high, flops
+  // over at the wrist, and comes down bent like a broken toy's; the knee on the other side comes up, twice; the head snaps
+  // over, mostly away from the lead arm; it leans from one foot onto the other; and every move is lopsided, so the mirror
+  // image of one is never the same picture: even waiting it stands with one foot set out to the side, and where both
+  // forearms jerk up together one leg kicks out sideways and it leans off it. Each key is one move's pose: aL/aR each upper
+  // arm's angle out from hanging (radians), bL/bR each forearm's bend out from its upper arm, rL/rR each wrist's roll,
+  // kL/kR each knee's lift (0..1), xL/xR each leg's swing out to its side from the hip (0..1), tilt the head's (+: toward
+  // the left of the view) and sway the body's lean (+: to the left).
+  danceBeat: 1.8,                       // seconds from one move to the next: the snap, then the hold
+  danceSnap: { t: 0.06, over: 0.07, settle: 0.1 },   // the snap: into the pose in t, past it by over, back in settle
   danceKeys: [
-    { aL: 0.39, bL: -0.21, aR: 0.39, bR: -0.21, kL: 0, kR: 0, tilt: 0.1, sway: 0 },          // standing, waiting
-    { aL: 1.45, bL: -1.25, aR: 0.45, bR: -0.2, kL: 0, kR: 0, tilt: -0.3, sway: 0.03 },       // the lead arm out, its forearm dangling
-    { aL: 2.5, bL: 0.3, aR: 0.5, bR: -0.25, kL: 0, kR: 0.95, tilt: -0.38, sway: 0.06 },      // up high, and the other knee up
-    { aL: 2.6, bL: -0.95, aR: 0.4, bR: -0.2, kL: 0, kR: 0.1, tilt: 0.26, sway: 0.03 },       // the hand flops over; the head snaps to it
-    { aL: 1.6, bL: 1.25, aR: 1.1, bR: -0.95, kL: 0, kR: 0, tilt: -0.32, sway: -0.04 },       // bent up square; the other arm half out, hanging
-    { aL: 0.7, bL: -0.3, aR: 1.0, bR: -1.05, kL: 0, kR: 0.85, tilt: -0.36, sway: 0.05 },     // the knee again
-    { aL: 0.42, bL: -0.2, aR: 0.55, bR: -0.4, kL: 0, kR: 0, tilt: 0.3, sway: -0.03 },        // arms down, the head over the other way
-    { aL: 0.6, bL: 1.5, aR: 0.6, bR: 1.5, kL: 0.3, kR: 0, tilt: 0.05, sway: -0.02 },          // both forearms jerk up, even, and drop again
+    { aL: 0.39, bL: -0.21, aR: 0.39, bR: -0.21, xL: 0.7, sway: -0.05, tilt: 0.1 },                  // waiting, one foot set out to the side
+    { aL: 1.45, bL: -1.25, aR: 0.45, bR: -0.2, kR: 0.2, tilt: -0.3, sway: 0.06 },                  // the lead arm out, its forearm dangling
+    { aL: 2.5, bL: 0.3, rL: 1.0, aR: 0.5, bR: -0.25, kR: 0.95, tilt: -0.38, sway: 0.06 },          // up high, and the other knee up
+    { aL: 2.6, bL: -0.95, rL: -1.2, aR: 0.4, bR: -0.2, kL: 0.2, tilt: 0.26, sway: -0.01 },         // the hand flops over; the head snaps to it
+    { aL: 1.6, bL: 1.25, rL: 0.5, aR: 1.1, bR: -0.95, rR: -0.3, kR: 0.2, tilt: -0.32, sway: -0.07 }, // bent up square; the other arm half out, hanging
+    { aL: 0.7, bL: -0.3, aR: 1.0, bR: -1.05, kR: 0.85, tilt: -0.36, sway: 0.08 },                 // the knee again
+    { aL: 0.42, bL: -0.2, aR: 0.55, bR: -0.4, xR: 0.7, tilt: 0.3, sway: 0.05 },                    // arms down, the head over the other way, a foot out
+    { aL: 0.6, bL: 1.5, aR: 0.6, bR: 1.5, xL: 1.0, kL: 0.15, tilt: -0.24, sway: -0.08 },          // both forearms jerk up together, one leg kicked out
   ],
-  // from 0 to 1 in n clockwork ticks over the first `over` of a beat: each a quick snap and a stop
-  tick(f, n, over) { const x = clamp(f / over, 0, 1) * n, i = Math.min(n - 1, Math.floor(x)); return (i + smoothstep(clamp((x - i) / 0.45, 0, 1))) / n; },
-  // its pose at dance time t; mir -1 is exactly the same pose with left and right swapped (rL/rR: each wrist's roll)
+  danceParts: ['aL', 'bL', 'rL', 'kL', 'xL', 'aR', 'bR', 'rR', 'kR', 'xR', 'tilt', 'sway'],
+  // how far into the next pose it is, s seconds after the move began: snapped there almost at once, a jolt past it and
+  // back, then dead still
+  snap(s) {
+    const S = this.danceSnap;
+    if (s < S.t) { const x = s / S.t; return (1 + S.over) * (1 - (1 - x) * (1 - x) * (1 - x)); }
+    return 1 + S.over * (1 - smoothstep(clamp((s - S.t) / S.settle, 0, 1)));
+  },
+  // its pose at dance time t; mir -1 is exactly the same pose with left and right swapped
   dancePose(t, mir) {
-    const K = this.danceKeys, N = K.length, b = t / this.danceBeat, n = Math.floor(b), f = b - n;
-    const A = K[((n % N) + N) % N], B = K[(((n + 1) % N) + N) % N], e = this.tick(f, 3, 0.66), h = smoothstep(clamp((f - 0.22) / 0.1, 0, 1));
+    const K = this.danceKeys, N = K.length, b = t / this.danceBeat, n = Math.floor(b), e = this.snap((b - n) * this.danceBeat);
+    const A = K[(((n - 1) % N) + N) % N], B = K[((n % N) + N) % N];
     const p = {};
-    for (const k of ['aL', 'bL', 'aR', 'bR', 'kL', 'kR', 'sway']) p[k] = lerp(A[k], B[k], e);
-    p.tilt = lerp(A.tilt, B.tilt, h);   // the head does not tick round: it snaps
-    // from foot to foot every beat, in three ticks over the whole of it, the foot it comes off lifting a little
-    const tock = Math.cos(Math.PI * (n + this.tick(f, 3, 1)));
-    p.sway += tock * 0.035; p.kR = Math.min(1, p.kR + Math.max(0, tock) * 0.2); p.kL = Math.min(1, p.kL + Math.max(0, -tock) * 0.2);
-    // a raised hand rolls at the wrist, over and back, in four ticks over the beat
-    const roll = Math.cos(Math.PI * (n + this.tick(f, 4, 1)));
-    p.rL = roll * 1.3 * clamp((p.aL - 0.8) / 1.2, 0, 1); p.rR = -roll * 0.6 * clamp((p.aR - 0.8) / 1.2, 0, 1);
+    for (const k of this.danceParts) p[k] = lerp(A[k] || 0, B[k] || 0, e);
     return mir < 0 ? this.mirrorPose(p) : p;
   },
-  mirrorPose(p) { return { aL: p.aR, bL: p.bR, rL: p.rR, kL: p.kR, aR: p.aL, bR: p.bL, rR: p.rL, kR: p.kL, tilt: -p.tilt, sway: -p.sway }; },
+  mirrorPose(p) { return { aL: p.aR, bL: p.bR, rL: p.rR, kL: p.kR, xL: p.xR, aR: p.aL, bR: p.bL, rR: p.rL, kR: p.kL, xR: p.xL, tilt: -p.tilt, sway: -p.sway }; },
   colours(P) {
     return {
       porcelain: P.col([234, 224, 210]), porcelainD: P.col([198, 186, 172]), hair: P.col([40, 27, 22]), hairL: P.col([68, 46, 34]),
@@ -75,11 +77,11 @@ CREATURES.other = {
     // weeping, it sobs: a hitch every so often, sharp and then easing off (its shoulders heave, its head shudders)
     const sob = fury * Math.exp(-((t * 1.15) % 1) * 6) * (1 - lunge);
     // its dance, as far as it is in it (the night eases it out when it is angry or comes for the box; lunging, running or
-    // reaching it has none), and the pose it is in: pose[s] for its arm and knee on that side of the view
+    // reaching it has none), and the pose it is in: pose[s] for its arm and leg on that side of the view
     const w = clamp(c.dance || 0, 0, 1) * (1 - lunge) * (1 - rush) * (c.carry || c.arms ? 0 : 1);
     const dp = w > 0 ? this.dancePose(c.danceT || 0, c.danceMir || 1) : null;
     c.pose = dp;
-    const pose = dp && { [-1]: { a: dp.aL, b: dp.bL, r: dp.rL, k: dp.kL }, 1: { a: dp.aR, b: dp.bR, r: dp.rR, k: dp.kR } };
+    const pose = dp && { [-1]: { a: dp.aL, b: dp.bL, r: dp.rL, k: dp.kL, x: dp.xL }, 1: { a: dp.aR, b: dp.bR, r: dp.rR, k: dp.kR, x: dp.xR } };
     // far back in the glass its arms are kept two pixels across and its legs one and a half, so the dance still reads
     const m0 = ctx.getTransform(), pxM = 1 / Math.max(1e-6, Math.hypot(m0.a, m0.b)), armW = Math.max(0.045, pxM * 2);
     // a doll does not walk: it rocks from foot to foot, stiffly. Running at you it rocks harder and kicks its feet up
@@ -88,10 +90,13 @@ CREATURES.other = {
     ctx.save(); ctx.rotate(rock + (dp ? dp.sway * w : 0));
     for (const s of [-1, 1]) {
       const lift = stepping ? Math.max(0, Math.sin(g + (s > 0 ? Math.PI : 0))) * (0.04 + 0.08 * rush) : 0;
-      // a knee coming up: the foot rises off the floor and the knee turns out under the hem, stiffly, as a doll's would
-      const kn = pose ? pose[s].k * w : 0, fy = 0.06 + lift + 0.2 * kn;
-      P_limb(ctx, [[s * 0.07, 0.44], [s * (0.072 + 0.075 * kn), 0.25 + 0.17 * kn], [s * (0.075 + 0.02 * kn), fy]], Math.max(0.07, pxM * 1.5), K.stocking);
-      P_ell(ctx, s * (0.085 + 0.02 * kn), fy - 0.025, 0.06, 0.035, K.shoe);
+      // a knee coming up: the foot rises off the floor and the knee turns out under the hem, stiffly, as a doll's would;
+      // a leg out to the side: the whole of it swung out from the hip, stiff, the foot off the floor
+      const kn = pose ? pose[s].k * w : 0, fy = 0.06 + lift + 0.2 * kn, th = s * (pose ? pose[s].x * w : 0) * 0.6;
+      const ca = Math.cos(th), sa = Math.sin(th), out = ([x, y]) => [s * 0.07 + (x - s * 0.07) * ca - (y - 0.44) * sa, 0.44 + (y - 0.44) * ca + (x - s * 0.07) * sa];
+      P_limb(ctx, [[s * 0.07, 0.44], [s * (0.072 + 0.075 * kn), 0.25 + 0.17 * kn], [s * (0.075 + 0.02 * kn), fy]].map(out), Math.max(0.07, pxM * 1.5), K.stocking);
+      const foot = out([s * (0.085 + 0.02 * kn), fy - 0.025]);
+      P_ell(ctx, foot[0], foot[1], 0.06, 0.035, K.shoe, th);
     }
     // the dress: a bell of faded pink over petticoats, a scalloped lace hem, a sash tied at the back
     P_poly(ctx, [[-0.13, 0.8], [0.13, 0.8], [0.3, 0.43], [-0.3, 0.43]], K.dress);
@@ -148,19 +153,19 @@ CREATURES.other = {
     } else {
       for (const s of [-1, 1]) for (let k = 0; k < 4; k++) P_ell(ctx, s * (0.125 + (k & 1) * 0.015), 0.13 - k * 0.058, 0.034, 0.038, (k & 1) ? K.hairL : K.hair);
       P_ell(ctx, 0, 0.13, 0.115, 0.135, K.porcelain);
-      // glass eyes, too big and too dark, with painted lashes; the right one sits a little lower than the left.
+      // glass eyes, too big and too dark and blank, nothing in them, with painted lashes; the right one sits a little lower than the left.
       // Weeping (grief), the glass has gone red, the rims under them raw, and the lids droop over them at the outer corners,
       // lifting a little as it comes at you
       const eyeY = s => 0.135 - (s > 0 ? 0.006 : 0), er = 0.027 + lunge * 0.01, grief = fury > 0.5;
-      // far back in the glass the red is what reads: its points are kept a pixel or two across, and the fog does not dull them
+      // far back in the glass the red is what reads: the red glass is kept a pixel or two across, and the fog does not dull them
       const m = ctx.getTransform(), px = 1 / Math.max(1e-6, Math.hypot(m.a, m.b));
       for (const s of [-1, 1]) {
         const ey = eyeY(s);
         if (grief) P_ell(ctx, s * 0.045, ey - 0.003, er * 1.34, er * 1.45, P.cola([198, 46, 58], 0.6 * fury));   // the rims, raw from crying
-        P_ell(ctx, s * 0.045, ey, er, er * 1.15, K.glass);
+        // the glass: dark, or gone red all over (a blank red, nothing in it), never less than a pixel or two across
+        if (grief) P_ell(ctx, s * 0.045, ey, Math.max(er, px * 1.1), Math.max(er * 1.15, px), P.raw([214, 34, 30]));
+        else P_ell(ctx, s * 0.045, ey, er, er * 1.15, K.glass);
         if (grief) {
-          P_ell(ctx, s * 0.045, ey - 0.004, er * 0.7, er * 0.76, P.col([132, 10, 18]));
-          P_ell(ctx, s * 0.045, ey - 0.005, Math.max(er * 0.4, px * 1.1), Math.max(er * 0.42, px), P.raw([255, 58, 40]));
           const lo = lunge * 0.006, li = [s * 0.012, ey + 0.022 + lo], lu = [s * 0.096, ey - 0.014 + lo];   // the lid's edge, inner and outer
           P_poly(ctx, [[s * 0.008, ey + 0.05], [s * 0.1, ey + 0.05], [s * 0.1, lu[1]], lu, li, [s * 0.008, li[1]]], K.porcelain);
           P_line(ctx, li[0], li[1], lu[0], lu[1], 0.006, K.glass);
@@ -180,7 +185,6 @@ CREATURES.other = {
           const u = (t * 0.45 + (s > 0 ? 0.5 : 0)) % 1;
           P_ell(ctx, tx(u), ty(u), 0.0055, 0.007, P.cola([150, 14, 28], 0.95 * Math.sin(Math.PI * u)));
         } else {
-          P_ell(ctx, s * 0.045 + 0.009, ey + 0.01, 0.007, 0.007, P.cola([255, 255, 255], 0.75));
           for (let k = -1; k <= 1; k++) P_line(ctx, s * 0.045 + k * 0.012, ey + 0.034, s * 0.045 + k * 0.018, ey + 0.048, 0.004, K.glass);
         }
       }
@@ -246,7 +250,7 @@ CREATURES.other = {
     for (let k = 0; k < 4; k++) P_ell(ctx, -0.11 - k * 0.025 - Math.abs(fly) * 2, 0.14 - k * 0.05 + (k & 1 ? fly : -fly), 0.036, 0.04, (k & 1) ? K.hairL : K.hair);
     P_ell(ctx, 0.035, 0.125, 0.09, 0.122, K.porcelain);
     P_ell(ctx, 0.0, 0.22, 0.1, 0.055, K.hair);
-    P_ell(ctx, 0.07, 0.135, 0.022, 0.03, K.glass); P_ell(ctx, 0.078, 0.146, 0.006, 0.006, P.cola([255, 255, 255], 0.75));
+    P_ell(ctx, 0.07, 0.135, 0.022, 0.03, K.glass);
     for (let k = 0; k < 3; k++) P_line(ctx, 0.06 + k * 0.012, 0.165, 0.066 + k * 0.018, 0.18, 0.004, K.glass);
     P_ell(ctx, 0.11, 0.115, 0.012, 0.01, K.porcelainD);
     P_ell(ctx, 0.05, 0.085, 0.024, 0.016, P.cola([224, 112, 124], 0.55));
