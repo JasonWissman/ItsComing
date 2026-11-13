@@ -6,11 +6,12 @@
 // it: c.rush (0..1) runs it at you, rocking hard on its stiff legs (c.runGait its stride); c.smile paints the smile on;
 // c.arms[-1 | 1] = { k: 0..1, to: [x, y] } puts that arm out to a point (its own left of the view is -1); c.carry draws
 // the box in its arms (at carryAt); and c.runPose runs it off side on in drawRun (c.runDir, c.runGait, c.runLat, as the
-// walker runs round the house). c.angry (0..1) is its temper when the box is cranked before the wrong mirror: the painted
-// brows come down hard, the lids drop over the glass eyes to a red glare, the face flushes, the lips draw back off its
-// little teeth, and it stands stiff with its fists out from its sides, its head down. When it has you it is angry all
-// the way in (night 10 sets it as it catches you): the glare and the snarl stay as it lunges, the jaw dropping and the
-// fists opening to take hold.
+// walker runs round the house). c.angry (0..1) is its temper when the box is cranked before the wrong mirror, and it
+// is grief, not rage: the painted brows go up in the middle, the lids droop at their outer corners over glass eyes gone
+// red, the rims raw, dark red tears run down its cheeks, and its painted mouth is pulled down into an open, trembling
+// sob over its little teeth; it stands with its arms hanging and its head bowed over to one side, its shoulders heaving
+// with each sob. When it has you it is in that state all the way in (night 10 sets it as it catches you): the red eyes
+// and the tears stay as it lunges, the sob opening into a wail and its hands coming up to take hold.
 // In the glass it dances on the spot (dancePose): c.dance (0..1) is how far it is in its dance, c.danceT the dance's
 // clock (the night runs it, so every mirror shows the same moment), and c.danceMir -1 draws the mirror image of it.
 // c.tint (a light, as LIGHT.at gives) lights it by hand where the night has the renderer leave it unlit.
@@ -70,7 +71,9 @@ CREATURES.other = {
     if (c.tint) { const li = c.tint, Q = P; P = Object.assign({}, Q, { col: k => Q.col(LIGHT.apply(k, li)), cola: (k, a) => Q.cola(LIGHT.apply(k, li), a) }); }
     if (c.runPose) { this.drawRun(ctx, c, P); return; }
     const t = c.t, lunge = c.lunge || 0, back = !!c.back, rush = c.rush || 0, g = rush ? (c.runGait || 0) : (c.gait || 0);
-    const K = this.colours(P), fury = clamp(c.angry || 0, 0, 1) * (1 - rush), fist = c.carry ? 0 : fury * (1 - lunge);   // its fists open as it reaches for you
+    const K = this.colours(P), fury = clamp(c.angry || 0, 0, 1) * (1 - rush), limp = c.carry ? 0 : fury * (1 - lunge);   // its arms come up off its sides as it reaches for you
+    // weeping, it sobs: a hitch every so often, sharp and then easing off (its shoulders heave, its head shudders)
+    const sob = fury * Math.exp(-((t * 1.15) % 1) * 6) * (1 - lunge);
     // its dance, as far as it is in it (the night eases it out when it is angry or comes for the box; lunging, running or
     // reaching it has none), and the pose it is in: pose[s] for its arm and knee on that side of the view
     const w = clamp(c.dance || 0, 0, 1) * (1 - lunge) * (1 - rush) * (c.carry || c.arms ? 0 : 1);
@@ -99,11 +102,12 @@ CREATURES.other = {
     else { P_ell(ctx, -0.045, 0.975, 0.05, 0.03, K.lace); P_ell(ctx, 0.045, 0.975, 0.05, 0.03, K.lace); }
     // arms: jointed and stiff, a little out from the sides, swinging as it runs; reaching, one goes out to what it wants
     for (const s of [-1, 1]) {
-      P_ell(ctx, s * 0.13, 0.94 + fury * 0.025 * (1 - w), 0.05, 0.045, K.dress);   // angry, its shoulders come up (as the dance goes out of it)
+      P_ell(ctx, s * 0.13, 0.94 + (fury * 0.018 + sob * 0.022) * (1 - w), 0.05, 0.045, K.dress);   // weeping, its shoulders hunch and heave (as the dance goes out of it)
       if (c.carry) continue;
       const swing = rush ? Math.sin(g + (s > 0 ? 0 : Math.PI)) * 0.09 * rush : 0;
-      let ex = s * (0.19 + lunge * 0.05 + fist * 0.05), ey = 0.8 + lunge * 0.12 + swing * 0.4, hx = s * (0.22 + lunge * 0.14 + fist * 0.11), hy = 0.64 + lunge * 0.36 + swing - fist * 0.03;
-      let hand = [hx, hy - 0.01, 0.028 + fist * 0.006, 0.034 - fist * 0.004, 0], thumb = 0;   // balled into a fist when it is angry
+      let ex = s * (0.19 + lunge * 0.05 - limp * 0.025), ey = 0.8 + lunge * 0.12 + swing * 0.4 + sob * 0.015, hx = s * (0.22 + lunge * 0.14 - limp * 0.05), hy = 0.64 + lunge * 0.36 + swing - limp * 0.03 + sob * 0.018;
+      const limpHand = () => [hx, hy - 0.01 - limp * 0.006, 0.028 - limp * 0.004, 0.034 + limp * 0.006, 0];   // hanging limp when it weeps
+      let hand = limpHand(), thumb = 0;
       if (pose) {
         // dancing: the upper arm out at its angle from the shoulder, the forearm bent off it, stiff as a jointed doll's;
         // the hand hangs off the end along the forearm, and rolls: narrowing as it turns edge on, its thumb coming round
@@ -118,7 +122,7 @@ CREATURES.other = {
       if (arm && arm.k > 0) {
         const k = smoothstep(arm.k), [tx, ty] = arm.to;
         ex = lerp(ex, (s * 0.14 + tx) / 2, k); ey = lerp(ey, (0.92 + ty) / 2 + 0.03, k); hx = lerp(hx, tx, k); hy = lerp(hy, ty, k);
-        hand = [hx, hy - 0.01, 0.028 + fist * 0.006, 0.034 - fist * 0.004, 0];
+        hand = limpHand();
       }
       P_limb(ctx, [[s * 0.14, 0.92], [ex, ey], [hx, hy]], armW, K.porcelainD);
       P_ell(ctx, hand[0], hand[1], hand[2], hand[3], K.porcelain, hand[4]);
@@ -132,8 +136,9 @@ CREATURES.other = {
       for (const s of [-1, 1]) P_ell(ctx, s * 0.165, A.y + A.w * 0.27, 0.028, 0.034, K.porcelain);
     }
     // the head: too big for the body, tilted, snapping now and then to the other side; dancing, it goes where the dance puts it
-    const tilt = lerp(headTiltJerk(t, 2.7, 0.16) * (1 - lunge) * (1 - rush * 0.7) * (1 - fury), dp ? dp.tilt : 0, w);   // angry, it holds its head still, and down
-    ctx.save(); ctx.translate(0, 1.0 - fury * 0.02 * (1 - w)); ctx.rotate(tilt);
+    // weeping, its head hangs over to one side, bowed, and shudders with each sob
+    const tilt = lerp(headTiltJerk(t, 2.7, 0.16) * (1 - lunge) * (1 - rush * 0.7) * (1 - fury) + fury * (0.17 * (1 - lunge * 0.6) + sob * 0.04 * Math.sin(t * 37)), dp ? dp.tilt : 0, w);
+    ctx.save(); ctx.translate(0, 1.0 - (fury * 0.03 - sob * 0.012) * (1 - w)); ctx.rotate(tilt);
     P_rect(ctx, -0.025, -0.02, 0.05, 0.05, K.porcelainD);
     if (back) {
       // from behind: a mass of ringlets and the bow, no face at all
@@ -144,23 +149,36 @@ CREATURES.other = {
       for (const s of [-1, 1]) for (let k = 0; k < 4; k++) P_ell(ctx, s * (0.125 + (k & 1) * 0.015), 0.13 - k * 0.058, 0.034, 0.038, (k & 1) ? K.hairL : K.hair);
       P_ell(ctx, 0, 0.13, 0.115, 0.135, K.porcelain);
       // glass eyes, too big and too dark, with painted lashes; the right one sits a little lower than the left.
-      // Angry, the lids come down over them on a slant, low at the nose, the face flushes, and under the lids the glint is red
-      const eyeY = s => 0.135 - (s > 0 ? 0.006 : 0), er = 0.027 + lunge * 0.01;
-      for (const s of [-1, 1]) {
-        P_ell(ctx, s * 0.045, eyeY(s), er, er * 1.15, K.glass);
-        if (fury > 0.5) { const lt = 0.034 + lunge * 0.014; P_poly(ctx, [[s * 0.01, eyeY(s) + lt], [s * 0.094, eyeY(s) + lt], [s * 0.094, eyeY(s) + 0.016], [s * 0.01, eyeY(s) - 0.012]], K.porcelain); }
-      }
-      if (fury > 0) P_ell(ctx, 0, 0.115, 0.1, 0.105, P.cola([214, 64, 64], 0.42 * fury));
-      P_ell(ctx, 0, 0.225, 0.118, 0.055, K.hair);
-      // far back in the glass the glare is what reads: its red points are kept a pixel or two across, and the fog does not
-      // dull them
+      // Weeping (grief), the glass has gone red, the rims under them raw, and the lids droop over them at the outer corners,
+      // lifting a little as it comes at you
+      const eyeY = s => 0.135 - (s > 0 ? 0.006 : 0), er = 0.027 + lunge * 0.01, grief = fury > 0.5;
+      // far back in the glass the red is what reads: its points are kept a pixel or two across, and the fog does not dull them
       const m = ctx.getTransform(), px = 1 / Math.max(1e-6, Math.hypot(m.a, m.b));
       for (const s of [-1, 1]) {
         const ey = eyeY(s);
-        if (fury > 0.5) {
-          P_ell(ctx, s * 0.045, ey - 0.01, 0.04, 0.028, P.cola([255, 40, 24], 0.45 * fury));
-          P_ell(ctx, s * 0.043, ey - 0.011, Math.max(0.014, px * 1.1), Math.max(0.012, px), P.raw([255, 70, 44]));
-          P_line(ctx, s * 0.094, ey + 0.05, s * 0.01, ey + 0.004, 0.02, K.hair);   // the painted brow, pulled down hard
+        if (grief) P_ell(ctx, s * 0.045, ey - 0.003, er * 1.34, er * 1.45, P.cola([198, 46, 58], 0.6 * fury));   // the rims, raw from crying
+        P_ell(ctx, s * 0.045, ey, er, er * 1.15, K.glass);
+        if (grief) {
+          P_ell(ctx, s * 0.045, ey - 0.004, er * 0.7, er * 0.76, P.col([132, 10, 18]));
+          P_ell(ctx, s * 0.045, ey - 0.005, Math.max(er * 0.4, px * 1.1), Math.max(er * 0.42, px), P.raw([255, 58, 40]));
+          const lo = lunge * 0.006, li = [s * 0.012, ey + 0.022 + lo], lu = [s * 0.096, ey - 0.014 + lo];   // the lid's edge, inner and outer
+          P_poly(ctx, [[s * 0.008, ey + 0.05], [s * 0.1, ey + 0.05], [s * 0.1, lu[1]], lu, li, [s * 0.008, li[1]]], K.porcelain);
+          P_line(ctx, li[0], li[1], lu[0], lu[1], 0.006, K.glass);
+          P_ell(ctx, s * 0.045, ey - er * 1.02, er * 0.72, 0.0045, P.cola([255, 214, 214], 0.55));   // brimming along the lower lid
+        }
+      }
+      P_ell(ctx, 0, 0.225, 0.118, 0.055, K.hair);
+      for (const s of [-1, 1]) {
+        const ey = eyeY(s);
+        if (grief) {
+          P_ell(ctx, s * 0.045, ey - 0.006, 0.036, 0.026, P.cola([255, 40, 24], 0.3 * fury));   // the red, glowing through the wet
+          P_limb(ctx, [[s * 0.014, ey + 0.041], [s * 0.045, ey + 0.033], [s * 0.094, ey + 0.006]], 0.0075, K.glass);   // the painted brow, up in the middle
+          // the tears, dark red, from the outer corner down the cheek, a drop running down each now and then
+          const tx = u => s * (0.066 + 0.008 * u + 0.003 * Math.sin(u * 7 + s)), ty = u => ey - er * 1.0 - u * (0.075 + lunge * 0.04);
+          P_limb(ctx, [0, 0.35, 0.7, 1].map(u => [tx(u), ty(u)]), 0.0065, P.cola([116, 8, 20], 0.85));
+          P_ell(ctx, tx(1), ty(1) - 0.002, 0.0062, 0.0085, P.cola([116, 8, 20], 0.9));
+          const u = (t * 0.45 + (s > 0 ? 0.5 : 0)) % 1;
+          P_ell(ctx, tx(u), ty(u), 0.0055, 0.007, P.cola([150, 14, 28], 0.95 * Math.sin(Math.PI * u)));
         } else {
           P_ell(ctx, s * 0.045 + 0.009, ey + 0.01, 0.007, 0.007, P.cola([255, 255, 255], 0.75));
           for (let k = -1; k <= 1; k++) P_line(ctx, s * 0.045 + k * 0.012, ey + 0.034, s * 0.045 + k * 0.018, ey + 0.048, 0.004, K.glass);
@@ -170,15 +188,17 @@ CREATURES.other = {
       // a hairline crack down the temple onto the cheek, outside the eye on the left of the view: clear of the eye, its lid and
       // its glare at their widest (lunging, angry) and of the snarl, in every look it has
       P_limb(ctx, [[-0.108, 0.152], [-0.098, 0.124], [-0.104, 0.104], [-0.088, 0.084], [-0.092, 0.068]], 0.005, P.col([96, 80, 74]));
-      if (fury > 0.5) {
-        // the painted lips drawn back off two rows of little teeth, the corners down: a snarl. Lunging at you it keeps it,
-        // the jaw dropping and the teeth parting as it comes
-        ctx.save(); ctx.translate(0, 0.052); ctx.scale(1 + lunge * 0.4, 1 + lunge * 0.8); ctx.translate(0, -0.052);
-        P_poly(ctx, [[-0.066, 0.042], [-0.036, 0.08], [0.036, 0.08], [0.066, 0.042], [0.036, 0.026], [-0.036, 0.026]], K.lip);
-        P_poly(ctx, [[-0.052, 0.045], [-0.03, 0.07], [0.03, 0.07], [0.052, 0.045], [0.03, 0.034], [-0.03, 0.034]], P.col([34, 8, 12]));
-        P_rect(ctx, -0.034, 0.055, 0.068, 0.014, K.lace); P_rect(ctx, -0.028, 0.036, 0.056, 0.01, K.lace);
-        for (let k = -2; k <= 2; k++) P_line(ctx, k * 0.0135, 0.055, k * 0.0135, 0.069, 0.003, K.porcelainD);
-        for (let k = -2; k <= 1; k++) P_line(ctx, k * 0.013 + 0.0065, 0.036, k * 0.013 + 0.0065, 0.046, 0.003, K.porcelainD);
+      if (grief) {
+        // the painted mouth pulled down at the corners into an open sob, an arch over a row of little teeth, the lower lip
+        // trembling. Lunging at you it opens into a wail, the jaw dropping as it comes
+        ctx.save(); ctx.translate(Math.sin(t * 29) * 0.0015 * (1 - lunge), 0.052); ctx.scale(1 + lunge * 0.4, 1 + lunge * 0.8); ctx.translate(0, -0.052);
+        const mw = 0.052, cy = 0.028, top = 0.1, bot = 0.04 - lunge * 0.05 + Math.sin(t * 43) * 0.004 * (1 - lunge);
+        const arch = (w, y, a, b) => { ctx.beginPath(); ctx.moveTo(-w, y); ctx.quadraticCurveTo(0, a, w, y); ctx.quadraticCurveTo(0, b, -w, y); ctx.closePath(); };
+        ctx.fillStyle = K.lip; arch(mw + 0.012, cy - 0.006, top + 0.016, bot - 0.014); ctx.fill();
+        ctx.fillStyle = P.col([34, 8, 12]); arch(mw, cy, top, bot); ctx.fill();
+        ctx.save(); arch(mw, cy, top, bot); ctx.clip();
+        for (let k = -2; k <= 2; k++) { const x = k * 0.0145, u = (x / mw + 1) / 2, y = cy + 2 * u * (1 - u) * (top - cy); P_rect(ctx, x - 0.0055, y - 0.012, 0.011, 0.012, K.lace); }
+        ctx.restore();
         ctx.restore();
       } else if (lunge > 0.25) P_ell(ctx, 0, 0.055, 0.02 + lunge * 0.035, 0.01 + lunge * 0.05, P.col([10, 4, 6]));
       else if (c.smile) {

@@ -98,7 +98,8 @@ CREATURES.signalman = {
     else P_ell(ctx, 0, 0, W(0.075), W(0.13), ink);
     ctx.restore();
     // where a lamp it stands behind lights it: a thin warm rim along the top of the head, the shoulders and the arm toward it
-    if (!back && c.lampLit > 0.02) {
+    // (not coming at you: then the face is bare)
+    if (!back && !lunge && c.lampLit > 0.02) {
       const sd = c.reachTo && c.reachTo.x < 0 ? -1 : 1, rim = P.cola([255, 176, 104], Math.min(1, c.lampLit) * 0.3);
       ctx.strokeStyle = rim; ctx.lineWidth = W(0.005); ctx.lineCap = 'round'; ctx.beginPath();
       ctx.ellipse(headC[0], headC[1], 0.075, 0.13, tilt, Math.PI * (sd > 0 ? 0.12 : 0.5), Math.PI * (sd > 0 ? 0.5 : 0.88)); ctx.stroke();
@@ -110,9 +111,12 @@ CREATURES.signalman = {
   // the face, in the head's own frame (its middle at nought). In the dark, nothing but the two pale points of the eyes. Lit
   // (reveal), a long gaunt face comes out of the dark: the cheeks sunk, a brow over deep sockets, slits for a nose, the eyes
   // big and wet, and a mouth from one cheekbone to the other, a thin slit of small teeth. Coming at you the mouth opens,
-  // the jaw dropping far too far
+  // the jaw dropping far too far. Coming at you (lunge) the face is plain: the hollows, the nose, the wet and the light all
+  // go out of it at once (bare: 0 to 1 over the first of the lunge), leaving a dim, even pallor with nothing on it but two
+  // pale eyes with no pupils in them and the mouth
   face(ctx, c, P, ink, turn, reveal, lunge, px) {
     const fx = turn * 0.045, rv = clamp(reveal, 0, 1), flare = clamp(reveal - 1, 0, 0.4), gape = smoothstep(lunge * 1.3);
+    const bare = smoothstep(clamp(lunge * 5, 0, 1)), keep = 1 - bare;
     // the head: long and narrow, the jaw dropping out of it as the mouth opens
     P_ell(ctx, 0, 0, Math.max(0.075, 0.9 * px), Math.max(0.13, 0.9 * px), ink);
     if (gape > 0.01) P_ell(ctx, fx * 0.5, -0.1 - gape * 0.07, 0.06, 0.05 + gape * 0.08, ink);
@@ -120,11 +124,14 @@ CREATURES.signalman = {
       const a = Math.min(1, rv * 0.9 + flare), fy = -0.005 - gape * 0.04;
       // the skin, faint, as the light finds it from above: palest on the brow and the cheekbones, lost into the dark at the
       // edges and below, so that the face seems to come up out of the shadow rather than sit on it
-      const sk = ctx.createRadialGradient(fx * 0.6, 0.035, 0.01, fx * 0.4, fy, 0.13 + gape * 0.04);
-      sk.addColorStop(0, P.cola([156, 150, 128], a * 0.85)); sk.addColorStop(0.55, P.cola([118, 112, 96], a * 0.55)); sk.addColorStop(1, P.cola([40, 38, 34], 0));
+      // edges and below, so that the face seems to come up out of the shadow rather than sit on it. Bare, the light is even
+      // over it: one dim pallor, lost only at its edges
+      const sk = ctx.createRadialGradient(lerp(fx * 0.6, fx * 0.5, bare), lerp(0.035, fy, bare), 0.01, fx * 0.4, fy, 0.13 + gape * 0.04);
+      sk.addColorStop(0, P.cola(mixc([156, 150, 128], [104, 100, 88], bare), a * lerp(0.85, 0.8, bare))); sk.addColorStop(0.55, P.cola(mixc([118, 112, 96], [94, 90, 78], bare), a * lerp(0.55, 0.62, bare))); sk.addColorStop(1, P.cola([40, 38, 34], 0));
       ctx.fillStyle = sk; ctx.beginPath(); ctx.ellipse(fx * 0.5, fy, 0.07, 0.124 + gape * 0.06, 0, 0, TAU); ctx.fill();
       // hollows: the cheeks sunk in under the cheekbones, the temples; the sockets deep under the brow
       const hol = (x, y, rx, ry, k, rot) => {
+        if ((k *= keep) < 0.01) return;
         const gr = ctx.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry));
         gr.addColorStop(0, P.cola([4, 3, 5], a * k)); gr.addColorStop(1, P.cola([4, 3, 5], 0));
         ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, TAU); ctx.fill();
@@ -134,7 +141,7 @@ CREATURES.signalman = {
         hol(fx + s * 0.062, 0.07, 0.016, 0.034, 0.7);
         hol(fx * 1.3 + s * 0.031, 0.026, 0.028, 0.024, 1);
       }
-      for (const s of [-1, 1]) P_ell(ctx, fx * 1.5 + s * 0.006, -0.028, 0.003, 0.009, P.cola([4, 2, 4], a * 0.9), s * 0.4);   // slits for a nose
+      if (keep > 0.01) for (const s of [-1, 1]) P_ell(ctx, fx * 1.5 + s * 0.006, -0.028, 0.003, 0.009, P.cola([4, 2, 4], a * 0.9 * keep), s * 0.4);   // slits for a nose
       // the mouth: right across the face and past it, the corners drawn up toward the eyes; the lips pulled back off small
       // close teeth, which opens into a black hole full of them, the jaw dropping far too far
       const mw = 0.078, my = -0.072 - gape * 0.05, lo = my - 0.032 - gape * 0.17, cy = my + 0.05;
@@ -151,11 +158,11 @@ CREATURES.signalman = {
       }
       ctx.fill();
       ctx.restore();
-      ctx.strokeStyle = P.cola([150, 140, 116], a * 0.35); ctx.lineWidth = 0.0025; ctx.beginPath(); ctx.moveTo(fx - mw, cy); ctx.quadraticCurveTo(fx, my - 0.01, fx + mw, cy); ctx.stroke();   // the light on the upper lip
+      if (keep > 0.01) { ctx.strokeStyle = P.cola([150, 140, 116], a * 0.35 * keep); ctx.lineWidth = 0.0025; ctx.beginPath(); ctx.moveTo(fx - mw, cy); ctx.quadraticCurveTo(fx, my - 0.01, fx + mw, cy); ctx.stroke(); }   // the light on the upper lip
     }
     // the eyes: two small pale points in the dark, always (never less than a pixel); lit, or close, they are big and wet,
     // yellowed, sunk in their sockets, a pinprick of black fixed on you and a bead of light on each, the rims raw; the far
-    // one lost as the head turns
+    // one lost as the head turns. Bare (coming at you), they are blank: pale all over, no pupil, no wet, no rims
     const close = Math.max(clamp((4 - c.dist) / 2.5, 0, 1), smoothstep(lunge * 1.4));
     const big = Math.max(rv, close);
     for (const s of [-1, 1]) {
@@ -165,13 +172,17 @@ CREATURES.signalman = {
       ctx.save(); ctx.globalAlpha *= vis;
       if (big > 0.05 && px < 0.012) {
         const k = s > 0 ? 1.12 : 1, rx = lerp(0.005, 0.0145 + gape * 0.004, big) * k, ry = lerp(0.005, 0.0105 + gape * 0.005, big) * k;
-        P_ell(ctx, x, y, rx, ry, P.raw(mixc([226, 230, 202], [198, 190, 150], big)));
-        const lid = ctx.createLinearGradient(0, y + ry, 0, y - ry);   // wet, and shaded under the brow
-        lid.addColorStop(0, rgba([40, 30, 24], 0.55 * big)); lid.addColorStop(0.5, rgba([40, 30, 24], 0)); lid.addColorStop(1, rgba([90, 30, 26], 0.35 * big));
-        ctx.fillStyle = lid; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill();
-        P_ell(ctx, x - s * rx * 0.08, y, rx * 0.26, rx * 0.26, P.raw([12, 8, 8]));                    // the pinprick, on you
-        P_ell(ctx, x - rx * 0.4, y + ry * 0.38, rx * 0.16, ry * 0.14, P.raw([255, 255, 248]));        // wet: a bead of light
-        ctx.strokeStyle = rgba([130, 36, 30], 0.7 * big); ctx.lineWidth = 0.002; ctx.beginPath(); ctx.ellipse(x, y, rx * 1.04, ry * 1.08, 0, 0, TAU); ctx.stroke();   // the rims, raw
+        P_ell(ctx, x, y, rx, ry, P.raw(mixc(mixc([226, 230, 202], [198, 190, 150], big), [222, 224, 206], bare)));
+        if (keep > 0.01) {
+          const lid = ctx.createLinearGradient(0, y + ry, 0, y - ry), kb = big * keep;   // wet, and shaded under the brow
+          lid.addColorStop(0, rgba([40, 30, 24], 0.55 * kb)); lid.addColorStop(0.5, rgba([40, 30, 24], 0)); lid.addColorStop(1, rgba([90, 30, 26], 0.35 * kb));
+          ctx.fillStyle = lid; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill();
+          ctx.save(); ctx.globalAlpha *= keep;
+          P_ell(ctx, x - s * rx * 0.08, y, rx * 0.26, rx * 0.26, P.raw([12, 8, 8]));                    // the pinprick, on you
+          P_ell(ctx, x - rx * 0.4, y + ry * 0.38, rx * 0.16, ry * 0.14, P.raw([255, 255, 248]));        // wet: a bead of light
+          ctx.restore();
+          ctx.strokeStyle = rgba([130, 36, 30], 0.7 * kb); ctx.lineWidth = 0.002; ctx.beginPath(); ctx.ellipse(x, y, rx * 1.04, ry * 1.08, 0, 0, TAU); ctx.stroke();   // the rims, raw
+        }
       } else {
         const pr = Math.max(clamp(0.0006 * c.dist, 0.003, 0.008), 1.25 * px);
         P_ell(ctx, x, y, pr * 2.2, pr * 2.2, rgba([226, 232, 200], c.dist > 3 ? 0.2 : 0.1));

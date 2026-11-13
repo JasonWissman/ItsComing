@@ -255,17 +255,18 @@ some on the ground, so you have to turn and look down to find them.
     and on the last the doll stops dancing, turns round once on the spot like the dancer on
     the box, and comes running out through the glass for the box, smiling, lifts it off the
     pedestal and takes it back in with it. Before any other mirror the first turn plays wrong
-    notes and the crank sticks; in the glass the doll stops dancing dead, its face turns
-    angry (brows down, a red glare, its teeth bared, its fists out) and behind you it takes
-    three quick steps; it dances again once its temper has gone. The next click on the box
+    notes and the crank sticks; in the glass the doll stops dancing dead, upset with you: its
+    face crumples into weeping (the painted brows up in the middle, the glass eyes gone red,
+    red tears down its cheeks, its mouth pulled down into an open, trembling sob), its head
+    bowed over to one side and its shoulders heaving, and behind you it takes three quick steps; it dances again once its temper has gone. The next click on the box
     lifts it back off, its crank still in it, to put before another mirror. Before the crank
     is in, a click on the box takes it back too, unless you are holding the crank (then the
     click fits it). It is your hand on the crank, turn by turn; when it jams the box jumps on the pedestal and the hand
     wrenches at it, and the box taken back comes up off the pedestal into your hand. The crank tried on a pedestal with no
     box on it feels about the bare top for something to fit and comes back to your hand; with nothing in hand, the hand
     goes out to the empty top. A dust sheet is pulled down by hand and slides off the glass into a heap.
-    If it reaches you, it comes at you angry, whatever it was before: brows down, the red glare and its teeth bared all
-    the way in to your face, its jaw dropping and its fists opening as it lunges.
+    If it reaches you, it comes at you weeping, whatever it was before: the red eyes and the red tears all the way in to
+    your face, the sob opening into a wail and its hands coming up as it lunges.
 11. **The Farm.** You stand in the yard by the farm's electrical box, the house at your back with its porch light on.
     Round you in a ring, at the compass points, are the farm's places, each with a floodlight of its own and all of them
     dark: the tractor shed (SW), the shed (W), the stables (NW), the barn (N), the silo (NE), the coop (E) and the

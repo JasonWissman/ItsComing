@@ -57,7 +57,7 @@
         set(c) { c.danceMir = -1; }, tick(c, k, dt) { c.danceT += dt; } },
       { name: 'Rocking up behind you', note: 'In the glass while the mirror you face does not show it: still dancing, it rocks from foot to foot as it comes up behind you.', dur: 4.2, walk: PACE,
         tick(c, k, dt) { c.danceT += dt; } },
-      { name: 'The wrong mirror: angry, and its hop', note: 'The box cranked before the wrong mirror (at 1 s): its dance stops, its face turns angry and it hops in to two thirds of the way. Taken back at 3 s, its temper goes at 6 s and it dances again.',
+      { name: 'The wrong mirror: upset, and its hop', note: 'The box cranked before the wrong mirror (at 1 s): its dance stops, its face crumples into weeping (red eyes, red tears, an open sob) and it hops in to two thirds of the way. Taken back at 3 s, its temper goes at 6 s and it dances again.',
         dur: 9, zoom: true, fit: { h: 1.5, y0: -0.4, w: 1.0 },
         set(c) { c.lungeFrom = c.dist; c.s = { sour: false, angryTill: -1 }; },
         tick(c, k, dt, T) {
@@ -66,7 +66,7 @@
           if (T >= 3) s.sour = false;
           temper(c, dt, T, s); settle(c, dt, moved);
         } },
-      { name: 'Angry, rocking up behind you', note: 'While the box sits stuck before the wrong mirror: no dance, its fists out and its head down, rocking stiffly up behind you.', dur: 4.2, walk: PACE,
+      { name: 'Upset, rocking up behind you', note: 'While the box sits stuck before the wrong mirror: no dance, weeping, its arms hanging, its head bowed over to one side and its shoulders heaving, rocking stiffly up behind you.', dur: 4.2, walk: PACE,
         set(c) { c.angry = 1; c.dance = 0; } },
       { name: 'Turning round for the box', note: 'The tune plays before the odd mirror: its dance stops dead, and it turns round once on the spot (side, back, other side), and faces you, smiling.', dur: 2.2, still: true,
         set(c) { c.danceT = 2.2; },
@@ -108,7 +108,7 @@
           c.dist = IN; c.yOff = 0; c.runPose = true; c.runDir = SIDE;
           if (T < F.back + F.run) c.runGait = (c.runGait || 0) + dt * 16;
         } },
-      LAB.lunge({ note: 'It has you, from behind: angry all the way in, the red glare and the snarl, its jaw dropping and its fists opening to take hold.', dist: CR.catchDist,
+      LAB.lunge({ note: 'It has you, from behind: weeping all the way in, the red eyes and the red tears, the sob opening into a wail and its hands coming up to take hold.', dist: CR.catchDist,
         set(c) { c.angry = 1; c.dance = 0; c.smile = false; base.set(c); } }),
     ],
   });
