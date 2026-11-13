@@ -241,8 +241,7 @@ CREATURES.climber = {
     P_ell(ctx, 0, 0, 0.2, 0.21, face);
     for (const s of [-1, 1]) {
       P_ell(ctx, s * 0.077, -0.07, 0.064, 0.058, faceD);          // sunken sockets
-      P_ell(ctx, s * 0.077, -0.07, 0.045, 0.04, eye);
-      P_ell(ctx, s * 0.077, -0.091, 0.017, 0.017, black);         // the eyes rolled up to you, the whites under them
+      P_ell(ctx, s * 0.077, -0.07, 0.045, 0.04, eye);             // the eyes, blank whites staring up at you
       P_ell(ctx, s * 0.022, 0.025, 0.013, 0.009, greyD);          // nostrils, seen from under the nose
     }
     const mo = 0.026 + near * 0.035 + lunge * 0.06 + c.look * 0.02;   // the mouth hangs open, wider the nearer it is: the jaw drops
