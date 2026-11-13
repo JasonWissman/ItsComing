@@ -83,7 +83,7 @@
           } else { c.turn = 1; c.away = true; c.bow = 0; c.dist += dt * END.walkSpeed; }
           step(c, prev, dt);
         } },
-      LAB.lunge({ dist: 1.4, dur: 2.4, zoom: 2.2, note: 'He reaches you: the staff falls away and both bony hands come up at you, grinning.' }),
+      LAB.lunge({ dist: 1.4, dur: 2.4, zoom: 2.2, note: 'He reaches you: the staff falls away, and both bony hands come at you, fingers hooked, as his head jerks over and the grin gapes.' }),
     ],
   });
 })();

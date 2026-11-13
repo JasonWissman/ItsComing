@@ -25,7 +25,7 @@
     night: 5, stage: 'The Clearing', dist: 16,
     setup(c) { c.D0 = NIGHT.D0; c.T = NIGHT.T; c.u = 1 - c.dist / c.D0; },
     anims: [
-      { name: 'Sprinting at you', note: 'Flat out across the snow at you: arms pumping, the head bobbing, the jaw hanging open.', dist: 26, dur: 4,
+      { name: 'Sprinting at you', note: 'Flat out across the snow at you: low and bent hard over, heavy uneven strides, arms pumping and clawing, the head thrust out and jerking, the jaw hanging open.', dist: 26, dur: 4,
         set(c) { c.CR.sprint(c); c.sprintFor = 99; }, tick(c, k, dt) { drive(c, dt); } },
       { name: 'Sprint, drop, watch', note: 'Its pattern out in the open: a sprint of a second or two, then down on all fours, head raised, watching you, then up and on again.', dist: 40, dur: 7,
         set(c) { c.darts = Infinity; }, tick(c, k, dt) { drive(c, dt); } },

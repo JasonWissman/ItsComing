@@ -85,6 +85,7 @@ CREATURES.runner = {
   body(c) {
     if (c.mode === 'dart' && !c.lunge) return [-0.85, 0.85, 0, 1.85];
     if ((c.mode === 'crouch' || c.mode === 'stumble') && !c.lunge) return [-0.75, 0.75, 0, 1.0];
+    if (!c.lunge) return [-0.6, 0.6, 0, 1.55];   // sprinting, low and wide
     return [-0.55, 0.55, 0, 2.0];
   },
   lateral(c) {
@@ -108,18 +109,21 @@ CREATURES.runner = {
     const k = this.twitch(c), t = c.t, out = [0, 0, 0, 0, 0, 0];
     if (k <= 0) return out;
     const live = Math.min(1, k / 0.8);   // as it weakens there are fewer of them
-    for (let j = 0; j < 6; j++) {
-      const rate = 2.6 + (j % 3) * 0.55, o = j * 0.37, n = Math.floor(t * rate + o);
-      let v = 0;
-      for (let m = n - 2; m <= n; m++) {   // one chance of a kick in each slot of 1/rate seconds; the last few are still settling
-        const r = q => { const x = Math.sin(m * 12.9898 + j * 78.233 + q * 37.719) * 43758.5453; return x - Math.floor(x); };
-        if (r(0) > 0.3 + 0.5 * live) continue;
-        const e = t - (m + r(1) - o) / rate;
-        if (e > 0) v += (r(2) < 0.5 ? -1 : 1) * (0.55 + 0.45 * r(3)) * Math.exp(-e * 8) * (1 - Math.exp(-e * 70));
-      }
-      out[j] = v * 1.45 * k;   // (the kick tops out at about seven tenths)
-    }
+    for (let j = 0; j < 6; j++) out[j] = this.kicks(t, j, live) * 1.45 * k;   // (the kick tops out at about seven tenths)
     return out;
+  },
+  // sharp kicks at odd moments, each coming in a frame or two and settling at once, about -0.7..0.7 at the most: one chance
+  // of a kick in each slot of 1/rate seconds (more of them the higher live, 0..1), j picking which run of them
+  kicks(t, j, live) {
+    const rate = 2.6 + (j % 3) * 0.55, o = j * 0.37, n = Math.floor(t * rate + o);
+    let v = 0;
+    for (let m = n - 2; m <= n; m++) {   // the last few are still settling
+      const r = q => { const x = Math.sin(m * 12.9898 + j * 78.233 + q * 37.719) * 43758.5453; return x - Math.floor(x); };
+      if (r(0) > 0.3 + 0.5 * live) continue;
+      const e = t - (m + r(1) - o) / rate;
+      if (e > 0) v += (r(2) < 0.5 ? -1 : 1) * (0.55 + 0.45 * r(3)) * Math.exp(-e * 8) * (1 - Math.exp(-e * 70));
+    }
+    return v;
   },
   // turned by a about (x, y)
   about(ctx, x, y, a) { ctx.translate(x, y); ctx.rotate(a); ctx.translate(-x, -y); },
@@ -180,45 +184,88 @@ CREATURES.runner = {
       if (hurt) { ctx.globalAlpha = 0.5; P_ell(ctx, 0, 0.5, 0.9, 0.6, blood); ctx.globalAlpha = 1; }
       return;
     }
-    // sprinting (or lunging)
-    const bob = Math.abs(Math.sin(g)) * 0.09 * (1 - lunge);
-    const lean = 0.12 * (1 - lunge);
+    // sprinting straight at you (or lunging, up out of it): low and wide, bent hard forward, so from the front the trunk
+    // is short and the head comes low out ahead of the hunched shoulders, the jaw hanging open. Each stride is heavy: the
+    // foot slams down wide and the body drops onto the bent knee, then drives up off it, its weight thrown over the foot
+    // that is down, while the other knee drives up at you. The arms pump hard against the legs, a hand clawing up at you
+    // with the fingers hooked while the other goes back with the elbow up, the right one reaching further than the left.
+    // The strides are uneven (one quicker than the other) and the head jerks at odd moments. Lunging, it comes upright.
+    const run = 1 - lunge;
+    const ga = g + 0.28 * Math.sin(g) + 0.12 * Math.sin(2 * g + 1);   // the uneven stride
+    const down = Math.sin(ga) >= 0 ? 1 : -1;   // which foot is down (+1: the right of the view)
+    const q = ((ga % Math.PI) + Math.PI) % Math.PI / Math.PI;   // through this stride, from the foot coming down
+    const land = Math.sin(Math.PI * clamp(q / 0.4, 0, 1)), push = Math.sin(Math.PI * clamp((q - 0.4) / 0.6, 0, 1));
+    const bob = (-0.07 * land + 0.04 * push) * run;
+    const tic = this.kicks(t * 1.4, 7, 0.55) * run, tic2 = this.kicks(t * 1.1, 9, 0.4) * run;   // the jerks of its head and shoulders
     const wounded = c.wounded ? 1 : 0;
     const J = this.jerks(c);   // wounded, it twitches as it runs: its trunk, arms and head jerk, and the arrows in it
+    const hipX = down * 0.045 * land * run, hipY = lerp(0.76, 1.0, lunge) + bob;
+    const shY = lerp(1.26, 1.58, lunge) + bob * 0.8 - wounded * 0.05 * run;
+    const roll = down * 0.08 * land * run + tic2 * 0.06;   // the shoulders dip over the foot that is down
     for (const s of [-1, 1]) {
-      const ph = g + (s > 0 ? Math.PI : 0);
-      const lift = Math.max(0, Math.sin(ph)) * 0.55 * (1 - lunge);
-      const hx = s * 0.1, hy = 1.0 + bob;
-      P_limb(ctx, [[hx, hy], [s * (0.2 + lift * 0.25), 0.55 + lift * 0.55], [s * (0.22 + lift * 0.1), lift * 0.65 + 0.03]], 0.085, rags);
-      P_ell(ctx, s * (0.22 + lift * 0.1), lift * 0.65 + 0.03, 0.06, 0.04, skinD);
+      const sw = Math.sin(ga + (s > 0 ? Math.PI : 0)), hip = [hipX + s * 0.13, hipY];   // sw > 0: swinging through; < 0: down
+      if (sw <= 0) {   // down: planted wide, the knee bowed out and bent under the weight, the bare foot slammed flat
+        const k = -sw * run, bend = (down === s ? land : 0) * run, knee = [s * lerp(0.25 + 0.08 * k + 0.05 * bend, 0.24, lunge), lerp(0.4 - 0.06 * bend, 0.55, lunge)], foot = [s * lerp(0.3, 0.22, lunge), 0.03];
+        P_limb(ctx, [hip, knee, foot], 0.09, rags);
+        P_ell(ctx, foot[0], foot[1], 0.08, 0.035, skinD);
+      } else {   // the knee driving up at you, the shin and the foot hanging under and behind it
+        const lift = sw * (s > 0 ? 1 : 0.8) * run, knee = [s * lerp(0.26 - 0.03 * lift, 0.24, lunge), lerp(0.4 + 0.24 * lift, 0.55, lunge)], foot = [s * lerp(0.27, 0.22, lunge), 0.03 + 0.3 * lift];
+        P_line(ctx, knee[0], knee[1], foot[0], foot[1], 0.08, rags);
+        P_ell(ctx, foot[0], foot[1], 0.06, 0.03, skinD);
+        P_line(ctx, hip[0], hip[1], knee[0], knee[1], 0.1, rags);
+        P_ell(ctx, knee[0], knee[1], 0.06 * (1 + 0.3 * lift), 0.055 * (1 + 0.3 * lift), ragsL);   // the knee, nearest
+      }
     }
-    // torso leaning at you (and all above the hips with it, as it jerks)
-    ctx.save(); this.about(ctx, 0, 1.0 + bob, J[0] * 0.05);
-    P_poly(ctx, [[-0.2, 0.95 + bob], [0.2, 0.95 + bob], [0.27 + lean, 1.6 + bob - wounded * 0.1], [-0.27 + lean, 1.6 + bob - wounded * 0.1]], rags);
-    P_poly(ctx, [[-0.08, 1.0 + bob], [0.1, 1.05 + bob], [0.14, 1.5 + bob], [-0.05, 1.45 + bob]], ragsL);
-    if (c.wounded) P_ell(ctx, 0.12, 1.25 + bob, 0.12, 0.14, blood);
-    c.arrows.forEach((a, i) => this.arrow(ctx, P, lean * 0.6 + 0.08 - i * 0.17, 1.27 + bob + i * 0.12, i, J[4 + i % 2] * 0.3));
-    // arms: pumping wildly, elbows out; reaching when lunging
+    // the arms: one clawing forward and up at you, the other driven back, elbow high (the right one reaching further)
+    const arms = [];
     for (const s of [-1, 1]) {
-      const ph = g + (s > 0 ? 0 : Math.PI);
-      const sw = Math.sin(ph) * (1 - lunge);
-      const sx = s * 0.25 + lean, sy = 1.55 + bob;
-      const js = J[s > 0 ? 2 : 1], ex = s * (lerp(0.42, 0.5, lunge) + js * 0.06) + sw * 0.05, ey = lerp(1.2 + sw * 0.25, 1.45, lunge) + js * 0.05;
-      const hx = s * lerp(0.28, 0.3, lunge) + sw * 0.1, hy = lerp(1.35 + sw * 0.35, 1.35, lunge);
-      P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.07, rags);
-      P_ell(ctx, hx, hy, 0.045, 0.055, skin);
-      fingers(ctx, hx, hy, lerp(-Math.PI / 2 + sw * 0.5, s > 0 ? Math.PI * 0.8 : Math.PI * 0.2, lunge), 0.3, 0.12 + lunge * 0.06, 0.018, skin);
+      const raw = Math.sin(ga + (s > 0 ? 0.35 : Math.PI)), snap = Math.sign(raw) * Math.pow(Math.abs(raw), 0.55);
+      const sw = s > 0 ? 0.2 + 0.8 * snap : 0.85 * snap;
+      const fwd = Math.max(0, sw) * run, back = Math.max(0, -sw) * run;
+      const js = J[s > 0 ? 2 : 1];
+      const N = [s * 0.47, shY - 0.24, s * 0.43, shY - 0.5], F = [s * 0.54, shY - 0.1, s * 0.3, shY - 0.2], B = [s * 0.52, shY + 0.03, s * 0.47, shY - 0.36];
+      const U = [s * 0.5, 1.45, s * 0.3, 1.35];   // lunging: up at your face
+      const at = i => lerp(N[i] + fwd * (F[i] - N[i]) + back * (B[i] - N[i]), U[i], lunge);
+      const A = lerp(-Math.PI / 2 - 0.55 * fwd - back * 0.3, Math.PI * 0.8, lunge);   // where the fingers point (on the right; mirrored on the left)
+      arms.push({ s, behind: back > 0.05, sx: s * 0.3, sy: shY - 0.03, ex: at(0) + s * js * 0.06, ey: at(1) + js * 0.05, hx: at(2), hy: at(3),
+        ang: s > 0 ? A : Math.PI - A, sc: 1 + 0.6 * fwd - 0.15 * back, curl: lerp(0.3 + 0.5 * fwd, 0.3, lunge) });
     }
-    // head: sockets and a slack jaw
-    ctx.save(); ctx.translate(lean * 0.8, 1.6 + bob); ctx.rotate(Math.sin(g * 0.5) * 0.08 * (1 - lunge) + J[3] * 0.15);
-    P_line(ctx, 0, 0, 0, 0.08, 0.08, skin);
-    strands(ctx, 0, 0.3, 9, 0.34, black, 5, t);
+    const arm = a => {
+      const col = a.behind ? skinD : skin;
+      P_line(ctx, a.sx, a.sy, a.ex, a.ey, 0.085, rags);
+      P_line(ctx, a.ex, a.ey, a.hx, a.hy, 0.05 * a.sc, col);
+      P_ell(ctx, a.hx, a.hy, 0.045 * a.sc, 0.055 * a.sc, col);
+      this.claw(ctx, a.hx, a.hy, a.ang, 0.32 + 0.08 * (a.sc - 1), (0.12 + lunge * 0.06) * a.sc * (1 + 0.2 * (a.sc - 1)), 0.02 * a.sc, a.curl, col);
+    };
+    // the trunk, short and wide, the shoulders hunched up behind the head (and all above the hips with it, as it jerks)
+    ctx.save(); this.about(ctx, hipX, hipY, roll + J[0] * 0.05);
+    arms.filter(a => a.behind).forEach(arm);
+    const hunch = 0.16 * run;
+    P_poly(ctx, [[hipX - 0.2, hipY - 0.06], [hipX + 0.2, hipY - 0.06], [0.33, shY - 0.05], [0.2, shY + hunch], [-0.2, shY + hunch], [-0.33, shY - 0.05]], rags);
+    P_poly(ctx, [[hipX - 0.08, hipY], [hipX + 0.1, hipY + 0.04], [0.13, shY - 0.1], [-0.05, shY - 0.14]], ragsL);
+    if (c.wounded) P_ell(ctx, 0.12, lerp(hipY, shY, 0.45), 0.12, 0.14, blood);
+    c.arrows.forEach((a, i) => this.arrow(ctx, P, 0.08 - i * 0.17, lerp(hipY, shY, 0.4) + i * 0.1, i, J[4 + i % 2] * 0.3));
+    // the head, thrust out low ahead of the shoulders, jerking; the black sockets and the slack jaw hanging open
+    const hs = lerp(1.12, 1, lunge);
+    ctx.save(); ctx.translate(tic * 0.03, lerp(1.02, 1.6, lunge) + bob * 0.4); ctx.rotate(-roll * 0.7 + tic * 0.18 + Math.sin(g * 0.5) * 0.08 * lunge + J[3] * 0.15); ctx.scale(hs, hs);
+    if (lunge) P_line(ctx, 0, 0, 0, 0.08, 0.08 * lunge, skin);   // (sprinting, the head is out ahead of the neck)
+    strands(ctx, 0, 0.3, 9, 0.34 + 0.06 * run, black, 5, t);
     P_ell(ctx, 0, 0.22, 0.13, 0.16, skin);
     P_ell(ctx, -0.052, 0.25, 0.036, 0.042, black); P_ell(ctx, 0.052, 0.25, 0.036, 0.042, black);
-    P_ell(ctx, 0, 0.1, 0.045 + lunge * 0.01, 0.055 + near * 0.025 + lunge * 0.03, black);
+    P_ell(ctx, 0, 0.1, 0.045 + lunge * 0.01, 0.055 + near * 0.025 + lunge * 0.03 + 0.02 * land * run, black);
     ctx.restore();
+    arms.filter(a => !a.behind).forEach(arm);
     ctx.restore();
-    if (hurt) { ctx.globalAlpha = 0.5; P_ell(ctx, 0, 1.1, 0.7, 0.9, blood); ctx.globalAlpha = 1; }
+    if (hurt) { ctx.globalAlpha = 0.5; P_ell(ctx, 0, 1.0, 0.7, 0.85, blood); ctx.globalAlpha = 1; }
+  },
+  // long pale fingers from (x, y) fanned about ang, each bent at the middle joint by curl toward the middle of the hand,
+  // so they hook like claws
+  claw(ctx, x, y, ang, spread, len, w, curl, col) {
+    for (let i = 0; i < 4; i++) {
+      const a = ang + (i - 1.5) * spread, l = len * (i === 0 || i === 3 ? 0.82 : 1), b = a + (ang - a) * curl;
+      const mx = x + Math.cos(a) * l * 0.6, my = y + Math.sin(a) * l * 0.6;
+      P_limb(ctx, [[x, y], [mx, my], [mx + Math.cos(b) * l * 0.45, my + Math.sin(b) * l * 0.45]], w, col);
+    }
   },
   // an arrow in it, coming out toward you: a short stub of shaft, the two vanes and the nock (exaggerated a little, so it
   // reads from the porch); tilt turns it about where it goes in (shaken as the body it is in jerks)
@@ -287,7 +334,7 @@ CREATURES.runner = {
     const rags = P.col([26, 22, 22]), ragsL = P.col([48, 40, 38]), skin = P.col([196, 184, 172]), black = P.col([6, 4, 6]), blood = P.col([120, 10, 12]);
     const kb = smoothstep(k / 0.4), side = (c.latHold || 0) >= 0 ? 1 : -1, tip = smoothstep((k - 0.4) / 0.6) * 1.4;   // it goes over away from its way
     const crouched = c.deadFrom === 'crouch';
-    const hip = lerp(crouched ? 0.62 : 1.0, 0.5, kb), sh = hip + lerp(0.62, 0.48, kb);
+    const hip = lerp(crouched ? 0.62 : 0.78, 0.5, kb), sh = hip + lerp(0.5, 0.48, kb);   // from low in its sprint
     ctx.save(); ctx.translate(side * 0.25, 0); ctx.rotate(-side * tip); ctx.translate(-side * 0.25, 0);
     for (const s of [-1, 1]) {   // the knees go down into the snow
       P_limb(ctx, [[s * 0.1, hip], [s * 0.24, lerp(0.5, 0.07, kb)], [s * 0.3, 0.03]], 0.085, rags);
