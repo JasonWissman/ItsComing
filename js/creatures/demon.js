@@ -6,7 +6,7 @@
 // comes on in fits (demonFit): it lurches, stops dead, staggers aside, its head twitching. Empty-handed it is only tall,
 // and it walks.
 // For the ending the night also sets c.calm (it settles: no rage left in its body, a little smaller), c.soft (the dark
-// lightens), c.dance and c.fade; c.mood, the face it makes while it holds you (see DEMON_MOODS), and c.unveil, how far that
+// lightens), c.disrobe (in the meadow it takes the robe off: see demonOff), c.dance and c.fade; c.mood, the face it makes while it holds you (see DEMON_MOODS), and c.unveil, how far that
 // face has come up out of the dark of the hood (0: still only the two eyes); c.hug, its arms coming out to you and closing
 // round you; c.tilt0 and c.settle (its head comes level from where it was), and c.still (reduced motion: no trembling, no
 // tear running).
@@ -191,6 +191,181 @@ function demonFit(c) {
     head: lerp(headOf(j - 1), headOf(j), smoothstep(clamp((t - j * H) / 0.035, 0, 1))),
   };
 }
+// ---------- out of the robe ----------
+// In the meadow, as the music box starts (c.disrobe 0..1, set by the night), it takes the robe off: its hands go up to the
+// hood and push it back, off its head (two little round horns, and its happy face, all of it); it takes the robe at the
+// shoulders and lets it go, and the robe drops to the ground, the long sleeves and the black gloves sliding off its arms
+// with it; it hops out of the heap of black cloth and dances beside it. Under it: a yellow shirt striped sky blue, red
+// shorts with a white stripe down each side, white socks, blue sneakers. Its arms and legs are long and thin, the colour of
+// its face.
+const DEMON_KIT = { shirt: [255, 204, 70], stripe: [84, 172, 236], shorts: [236, 84, 96], side: [255, 255, 255], sock: [250, 249, 244], cuff: [236, 84, 96], shoe: [64, 110, 222], sole: [250, 249, 244], horn: [238, 128, 122] };
+const dspan = (x, a, b) => clamp((x - a) / (b - a), 0, 1);
+// how far each part of it has got: the hood pushed back, the sleeves sliding off, the robe falling, and slumping into a
+// heap, the hop out of it
+function demonOff(off) {
+  return { hood: smoothstep(dspan(off, 0.16, 0.38)), slide: dspan(off, 0.5, 0.68), drop: dspan(off, 0.48, 0.68), slump: smoothstep(dspan(off, 0.62, 0.8)), hop: dspan(off, 0.72, 0.92) };
+}
+// where its elbows and hands are (|x| out from the middle, y from the shoulders) as it takes the robe off: up to the hood,
+// pushing it back, down to the shoulders, out (and the robe drops), down at its sides as the sleeves slide off, out wide
+// as it hops clear, and down again. The first is the arm as it was (rest)
+const DEMON_OFF_ARMS = [[0, null], [0.12, [0.36, 0.02, 0.16, 0.3]], [0.22, [0.36, 0.06, 0.17, 0.36]], [0.36, [0.38, 0.12, 0.2, 0.44]], [0.46, [0.38, -0.2, 0.2, -0.02]],
+  [0.52, [0.42, -0.18, 0.36, -0.1]], [0.66, [0.3, -0.42, 0.36, -0.78]], [0.76, [0.3, -0.45, 0.34, -0.84]], [0.84, [0.44, -0.08, 0.6, 0.14]], [1, [0.3, -0.44, 0.33, -0.82]]];
+function demonOffArm(off, rest) {
+  const K = DEMON_OFF_ARMS;
+  let i = 0; while (i < K.length - 2 && off >= K[i + 1][0]) i++;
+  const u = smoothstep(dspan(off, K[i][0], K[i + 1][0])), a = K[i][1] || rest, b = K[i + 1][1];
+  return a.map((v, j) => lerp(v, b[j], u));
+}
+// a point part way along the polyline pts (u 0..1 by length)
+function demonAlong(pts, u) {
+  const L = []; let tot = 0;
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); L.push(d); tot += d; }
+  let r = clamp(u, 0, 1) * tot;
+  for (let i = 0; i < L.length; i++) { if (r <= L[i] || i === L.length - 1) { const k = L[i] ? clamp(r / L[i], 0, 1) : 0; return [lerp(pts[i][0], pts[i + 1][0], k), lerp(pts[i][1], pts[i + 1][1], k)]; } r -= L[i]; }
+  return pts[pts.length - 1].slice();
+}
+// the part of the polyline pts from u0 to u1
+function demonPart(pts, u0, u1) {
+  const out = [demonAlong(pts, u0)], L = [0];
+  for (let i = 1; i < pts.length; i++) L.push(L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const tot = L[L.length - 1] || 1;
+  for (let i = 1; i < pts.length - 1; i++) if (L[i] / tot > u0 && L[i] / tot < u1) out.push(pts[i]);
+  out.push(demonAlong(pts, u1));
+  return out;
+}
+// the robe falling (drop 0..1: from on its shoulders to a heap on the ground) and slumping (slump: a heap, a little to its
+// right of where it stood, a sleeve lying out and the hood in a fold at the back). In the frame of its feet
+function demonRobeDown(ctx, P, K, top, legL, hemW0, g, drop, slump, cover) {
+  const f = drop * drop, yT = lerp(top, 0.3, f) - 0.04 * slump, cx = -0.2 * slump;
+  const tw = lerp(0.24, 0.3, drop), hw = lerp(hemW0, 0.4, drop) - 0.04 * slump, step = Math.sin(g) * 0.05 * (1 - drop), bump = Math.max(drop, slump);
+  if (slump > 0.01) {   // the hood, in a fold at the back of the heap, its point up, and a sleeve lying out on the grass
+    ctx.save(); ctx.translate(cx + tw * 0.35, yT - 0.03); ctx.scale(1, slump);
+    ctx.fillStyle = K.robe; ctx.beginPath(); ctx.moveTo(-0.15, 0); ctx.quadraticCurveTo(-0.12, 0.1, -0.02, 0.12); ctx.quadraticCurveTo(0.05, 0.16, 0.1, 0.2); ctx.quadraticCurveTo(0.1, 0.1, 0.15, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = K.rim; ctx.lineWidth = 0.014; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-0.12, 0.06); ctx.quadraticCurveTo(-0.08, 0.12, 0.02, 0.13); ctx.stroke();
+    ctx.restore();
+    const sx = cx - tw * 0.7, ex = sx - 0.24 * slump;
+    P_line(ctx, sx, 0.1, ex, 0.045, 0.085, K.robe);
+    P_ell(ctx, ex - 0.01, 0.045, 0.02, 0.04 * slump, K.fold, -0.2);
+  }
+  ctx.fillStyle = K.robe; ctx.beginPath();
+  ctx.moveTo(cx - tw, yT);
+  ctx.quadraticCurveTo(cx - lerp(0.27, hw * 1.05, drop), lerp(legL * 0.55, yT * 0.4, drop), cx - hw + step, 0.03);
+  for (let i = 1; i <= 8; i++) { const u = i / 8; ctx.lineTo(cx + lerp(-hw, hw, u) + step * (1 - Math.abs(u - 0.5)), 0.012 + 0.022 * Math.abs(Math.sin(i * 1.9 + g)) - 0.04 * cover); }   // (low enough, while its feet are behind it, to hide them)
+  ctx.quadraticCurveTo(cx + lerp(0.27, hw * 1.05, drop), lerp(legL * 0.55, yT * 0.4, drop), cx + tw, yT);
+  // the top: straight across under the shoulders, and then the lumpy top of a heap of cloth
+  ctx.bezierCurveTo(cx + tw * 0.6, yT + 0.07 * bump, cx + tw * 0.2, yT - 0.02 * bump, cx, yT + 0.03 * bump);
+  ctx.bezierCurveTo(cx - tw * 0.3, yT + 0.08 * bump, cx - tw * 0.7, yT - 0.01 * bump, cx - tw, yT);
+  ctx.closePath(); ctx.fill();
+  ctx.lineCap = 'round';
+  for (const [x0, x1, w] of [[-0.1, -0.2, 0.026], [0.02, 0.05, 0.03], [0.12, 0.24, 0.022]]) {
+    ctx.strokeStyle = K.fold; ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(cx + x0 * lerp(0.6, 1.3, drop), yT - lerp(0.18, 0.05, drop)); ctx.quadraticCurveTo(cx + x0 * lerp(1, 1.6, drop), lerp(legL * 0.6, yT * 0.5, drop), cx + x1 * lerp(1, 1.5, drop) + step * 0.8, 0.06); ctx.stroke();
+  }
+  if (drop < 1) P_ell(ctx, cx, yT - 0.03, 0.26, 0.085 * (1 - drop), K.robe);   // its shoulders, as they were, going with it
+  if (bump > 0.05) {   // its light along the top of the heap
+    ctx.globalAlpha *= bump; ctx.strokeStyle = K.rim; ctx.lineWidth = 0.016;
+    ctx.beginPath(); ctx.moveTo(cx + tw * 0.9, yT + 0.01); ctx.bezierCurveTo(cx + tw * 0.6, yT + 0.07 * bump, cx + tw * 0.2, yT - 0.02 * bump, cx, yT + 0.03 * bump); ctx.stroke();
+  }
+}
+// its legs (in socks and sneakers), its shorts and its striped shirt, in the frame of its body (feet at 0, shoulders at
+// top). up: how far each leg lifts (a kick in the dance, both tucked in the hop)
+function demonKit(ctx, c, P, skin, top, sh, up) {
+  const kit = k => P.col(DEMON_KIT[k]);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const s of [-1, 1]) {
+    const u = up[s > 0 ? 1 : 0], hip = [s * 0.095, top - 0.86], ank = [s * (0.11 + 0.06 * u), 0.11 + 0.36 * u], knee = [s * (0.13 + 0.17 * u), lerp(hip[1], ank[1], 0.5) + 0.14 * u];
+    P_limb(ctx, [hip, knee, ank], 0.082, skin);
+    const d = [knee[0] - ank[0], knee[1] - ank[1]], dl = Math.hypot(d[0], d[1]) || 1, at = k => [ank[0] + d[0] / dl * k, ank[1] + d[1] / dl * k];
+    const band = (u0, u1, col) => { const p0 = at(u0), p1 = at(u1); ctx.strokeStyle = col; ctx.lineWidth = 0.09; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke(); };
+    band(0, 0.16, kit('sock')); band(0.11, 0.145, kit('cuff'));   // a white sock, a red stripe round its top
+    const rot = s * (0.1 + 0.5 * u);
+    P_ell(ctx, ank[0] + s * 0.045, ank[1] - 0.06, 0.1, 0.05, kit('sole'), rot);
+    P_ell(ctx, ank[0] + s * 0.04, ank[1] - 0.045, 0.092, 0.05, kit('shoe'), rot);
+    P_ell(ctx, ank[0] + s * 0.085, ank[1] - 0.05, 0.03, 0.025, kit('sole'), rot);   // a white toe cap
+  }
+  // the shorts: a waistband under the shirt, and a leg each side
+  const w = top - 0.62, b = top - 0.98;
+  P_poly(ctx, [[-0.19, w], [0.19, w], [0.215, b], [0.02, b], [0, b + 0.1], [-0.02, b], [-0.215, b]], kit('shorts'));
+  for (const s of [-1, 1]) P_line(ctx, s * 0.192, top - 0.7, s * 0.207, b + 0.02, 0.022, kit('side'));
+  // the neck, then the shirt over it, striped
+  P_line(ctx, sh, top + 0.14, sh, top, 0.075, skin);
+  const shirt = () => {
+    ctx.beginPath(); ctx.moveTo(-0.205, top - 0.01); ctx.quadraticCurveTo(-0.15, top + 0.04, sh - 0.06, top + 0.055); ctx.quadraticCurveTo(sh, top - 0.01, sh + 0.06, top + 0.055); ctx.quadraticCurveTo(0.15, top + 0.04, 0.205, top - 0.01);
+    ctx.quadraticCurveTo(0.22, top - 0.3, 0.2, top - 0.7); ctx.lineTo(-0.2, top - 0.7); ctx.quadraticCurveTo(-0.22, top - 0.3, -0.205, top - 0.01); ctx.closePath();
+  };
+  for (const s of [-1, 1]) P_ell(ctx, s * 0.175 + sh * 0.5, top - 0.03, 0.06, 0.05, kit('shirt'));
+  shirt(); ctx.fillStyle = kit('shirt'); ctx.fill();
+  ctx.save(); shirt(); ctx.clip();
+  ctx.fillStyle = kit('stripe');
+  for (let y = top - 0.66; y < top; y += 0.11) ctx.fillRect(-0.3, y, 0.6, 0.05);
+  ctx.restore();
+}
+// an arm out of the robe (or still in it): the skin, the shirt's short sleeve, the robe's long sleeve as far down the arm as
+// it has slid (slide 0: where it always was), the black glove going with it, and a hand: a round palm and four short
+// fingers. S, E, Hn: shoulder, elbow, hand; fa the way the fingers point
+function demonOffArm2(ctx, c, P, K, skin, S, E, Hn, fa, slide) {
+  const cuffU = 0.72, arm = [S, E, Hn], len = Math.hypot(E[0] - S[0], E[1] - S[1]) + Math.hypot(Hn[0] - E[0], Hn[1] - E[1]);
+  const cuffAt = (Math.hypot(E[0] - S[0], E[1] - S[1]) + cuffU * Math.hypot(Hn[0] - E[0], Hn[1] - E[1])) / (len || 1);   // the cuff, by length
+  const gk = dspan(slide, 0.45, 0.8);   // the glove off
+  P_limb(ctx, demonPart(arm, 0, cuffAt), 0.066, skin);
+  P_limb(ctx, demonPart(arm, cuffAt - 0.02, 1), lerp(0.04, 0.064, gk), K.mix(gk));   // (the forearm, gloved and then bare)
+  const d = [E[0] - S[0], E[1] - S[1]], dl = Math.hypot(d[0], d[1]) || 1, sl = k => [S[0] + d[0] / dl * k, S[1] + d[1] / dl * k];
+  P_line(ctx, S[0], S[1], ...sl(0.13), 0.096, P.col(DEMON_KIT.shirt));
+  const b0 = sl(0.1), b1 = sl(0.135);   // a stripe round the end of the sleeve
+  ctx.strokeStyle = P.col(DEMON_KIT.stripe); ctx.lineWidth = 0.098; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(b1[0], b1[1]); ctx.stroke();
+  const hand = K.mix(gk), hl = lerp(0.18, 0.065, gk), hw = lerp(0.018, 0.024, gk);
+  if (gk > 0.02) P_ell(ctx, Hn[0], Hn[1], 0.04 * gk, 0.04 * gk, hand);
+  fingers(ctx, Hn[0], Hn[1], fa, lerp(0.16, 0.36, gk), hl, hw, hand);
+  // the long sleeve, sliding down the arm and off the hand
+  const u0 = slide, u1 = Math.min(1, cuffAt + slide * 1.2), sw = 0.1 * (1 - dspan(u0, 0.75, 1));
+  if (sw > 0.004 && u1 > u0 + 0.01) {
+    const seg = demonPart(arm, u0, u1), end = seg[seg.length - 1], prev = seg[seg.length - 2];
+    P_limb(ctx, seg, sw, K.robe);
+    P_ell(ctx, end[0], end[1], sw * 0.62, sw * 0.5, K.fold, Math.atan2(end[1] - prev[1], end[0] - prev[0]));
+  }
+}
+// its head as the hood goes back (hood 0..1): the horns and the hood behind it, in the head's frame (drawn before the robe
+// and its arms); and drop, the robe falling, takes the hood down with it (dy, how far its top has fallen)
+function demonHoodBack(ctx, c, P, K, a, hood, drop, dy) {
+  const hc = 0.3 + a * 0.1, hr = 0.168 + a * 0.02, hh = 0.235 + a * 0.05, fy = 0.285 + a * 0.1;
+  // two little round horns (behind the hood until it goes back)
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = P.col(DEMON_KIT.horn); ctx.beginPath();
+    ctx.moveTo(s * 0.028, fy + 0.1); ctx.quadraticCurveTo(s * 0.05, fy + 0.165, s * 0.082, fy + 0.19); ctx.quadraticCurveTo(s * 0.095, fy + 0.13, s * 0.078, fy + 0.085); ctx.closePath(); ctx.fill();
+    P_ell(ctx, s * 0.083, fy + 0.185, 0.013, 0.013, P.col(DEMON_KIT.horn));
+  }
+  const sy = (1 - 0.5 * hood) * (1 - dspan(drop, 0, 0.35));
+  if (sy < 0.01) return;
+  ctx.save(); ctx.translate(0, -0.16 * hood - dy); ctx.scale(1 + 0.12 * hood, sy);
+  ctx.fillStyle = K.robe; ctx.beginPath();
+  ctx.moveTo(-0.25, -0.05);
+  ctx.quadraticCurveTo(-hr * 1.2, hc - 0.08, -hr, hc + 0.02);
+  ctx.bezierCurveTo(-hr, hc + hh * 0.85, -0.05, hc + hh * 1.05, 0.012, hc + hh + 0.04);
+  ctx.bezierCurveTo(0.05, hc + hh * 1.0, hr, hc + hh * 0.85, hr, hc + 0.02);
+  ctx.quadraticCurveTo(hr * 1.2, hc - 0.08, 0.25, -0.05);
+  ctx.closePath(); ctx.fill();
+  const inside = 1 - smoothstep(clamp(hood * 2.2, 0, 1));   // the dark in it, gone as it turns away
+  if (inside > 0.01) {
+    const oy = fy - 0.015 - a * 0.015, orx = 0.098 + a * 0.012, ory = 0.152 + a * 0.04;
+    ctx.globalAlpha *= inside;
+    P_ell(ctx, 0, oy, orx + 0.014, ory + 0.014, K.rim);
+    P_ell(ctx, 0, oy, orx, ory, K.black);
+  }
+  ctx.restore();
+}
+// fading (c.fade), it is drawn whole on a layer of its own and the layer fades, so it goes as one thing: no overlap of its
+// limbs, clothes or the folds of the robe on the grass showing through as it goes
+const demonLayer = { cv: null, busy: false };
+function demonFaded(ctx, c, P) {
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  if (!demonLayer.cv) demonLayer.cv = document.createElement('canvas');
+  const L = demonLayer.cv; if (L.width !== W || L.height !== H) { L.width = W; L.height = H; }
+  const lc = L.getContext('2d');
+  lc.setTransform(1, 0, 0, 1, 0, 0); lc.clearRect(0, 0, W, H); lc.globalAlpha = 1; lc.setTransform(ctx.getTransform());
+  demonLayer.busy = true;
+  try { CREATURES.demon.draw(lc, c, P); } finally { demonLayer.busy = false; }
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha *= Math.max(0, c.fade); ctx.drawImage(L, 0, 0); ctx.restore();
+}
 // how enraged it is, as it looks (rage, less any calm)
 const demonRage = c => clamp(c.rage || 0, 0, 1) * (1 - (c.calm || 0));
 // how high its eyes are, from its feet, as draw() puts them (the robe, the bob of its step, the hood all grow with rage; a
@@ -216,32 +391,78 @@ CREATURES.demon = {
   },
   voice: { kind: 'exhale', every: [4, 8] },
   eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES,   // for the ending and the tests
-  init(c) { c.anger = 0; c.rage = 0; c.calm = 0; c.soft = 0; c.dance = 0; c.fade = 1; },
+  init(c) { c.anger = 0; c.rage = 0; c.calm = 0; c.soft = 0; c.dance = 0; c.disrobe = 0; c.fade = 1; },
   // enraged, it comes in fits: stopping dead, stepping, lurching
   speedMult(c, dt, seen) { const a = demonRage(c); return (1 + 0.45 * (c.anger || 0)) * (a > 0.001 ? lerp(1, demonFit(c).pace, a) : 1); },
   // and jerks aside (less as it comes up to you)
   lateral(c) { const a = demonRage(c); return a > 0.001 && !c.frozen ? demonFit(c).side * a * clamp((c.dist - 1.5) / 2.5, 0, 1) : 0; },
   draw(ctx, c, P) {
+    if (c.fade < 1 && !demonLayer.busy && typeof document !== 'undefined') { if (c.fade > 0) demonFaded(ctx, c, P); return; }
     const g = c.gait, t = c.t, near = clamp(1 - c.dist / 14, 0, 1), lunge = c.lunge || 0;
     const calm = c.calm || 0, soft = c.soft || 0, dance = c.dance || 0;
     const a = demonRage(c), still = SAVE.data.settings.reducedMotion;
     const fit = a > 0.001 ? demonFit(c) : null;
     ctx.save();
-    if (c.fade < 1) ctx.globalAlpha *= Math.max(0, c.fade);
+    if (c.fade < 1 && !demonLayer.busy) ctx.globalAlpha *= Math.max(0, c.fade);   // (with no page to draw a layer on)
     // enraged it shakes, pitches over as it lurches and dips; happy it shrinks to fit a bedroom; dancing it hops and swings
     const hop = dance * Math.abs(Math.sin(t * 5.2)) * 0.14, swing = dance * Math.sin(t * 5.2) * 0.1, shake = a * Math.sin(t * 47) * 0.014;
     const lean = fit && !still ? fit.lean * a : 0, dip = fit ? fit.dip * a : 0;
-    ctx.translate(shake, hop - dip); ctx.rotate(swing + lean); ctx.scale(1 - 0.2 * calm, 1 - 0.2 * calm);
+    // out of the robe (c.disrobe), it hops clear of the heap of it: the heap stays where it fell (Mo, its feet's frame)
+    const off = clamp(c.disrobe || 0, 0, 1), O = off > 0 ? demonOff(off) : null, ks = 1 - 0.2 * calm;
+    let Mo = null;
+    if (O) { ctx.save(); ctx.scale(ks, ks); Mo = ctx.getTransform(); ctx.restore(); }
+    const stepX = O ? 0.3 * smoothstep(O.hop) * ks : 0, stepUp = O ? Math.sin(Math.PI * O.hop) * 0.3 * ks : 0;
+    ctx.translate(shake + stepX, hop - dip + stepUp); ctx.rotate(swing + lean); ctx.scale(ks, ks);
     // all of it black: the robe, a shade lighter at the edge of the hood where it catches what light there is, and blacker in
     // its folds; the dark in the hood blackest of all. As the light comes, it lightens with the dark
     // (taking only a little of the light it stands in, so its own red light does not make it red)
-    const take = lerp(0.3, 1, soft);
-    const robe = P.col(mixc([12, 10, 15], [34, 31, 40], soft), take), fold = P.col(mixc([3, 2, 5], [14, 12, 18], soft), take), rim = P.col(mixc([26, 23, 32], [62, 58, 72], soft), take * 1.6);
+    const take = lerp(0.3, 1, soft), robeC = mixc([12, 10, 15], [34, 31, 40], soft);
+    const robe = P.col(robeC, take), fold = P.col(mixc([3, 2, 5], [14, 12, 18], soft), take), rim = P.col(mixc([26, 23, 32], [62, 58, 72], soft), take * 1.6);
     const black = P.col([0, 0, 0], 0.1);
     const bob = Math.abs(Math.sin(g)) * (0.04 + a * 0.06), sway = Math.sin(g) * (0.03 + a * 0.05);
     const legL = 1.3 + a * 0.35, armL = 0.9 + a * 0.6, top = legL + 0.85 + bob;
     // the robe, from the shoulders to the ground, flaring; its hem swings with each step and the folds with it
     const step = Math.sin(g) * (0.05 + a * 0.04), hemW = 0.36 + a * 0.1, sh = sway * 0.6;
+    if (O) {
+      // out of the robe, or on the way out of it: the heap (once it is clear of it), its legs, shorts and shirt, the horns
+      // and the hood going back, the robe falling, its arms, and its face
+      const F = demonMood(c.mood !== undefined && c.mood !== null ? c.mood : DEMON_MOODS.length - 1), skin = P.col(F.skin);
+      const K = { robe, fold, rim, black, mix: k => P.col(mixc(robeC, F.skin, k), lerp(take, 1, k)) };
+      const fall = top - lerp(top, 0.24, O.drop * O.drop);   // how far the top of the robe has fallen
+      const robeDown = () => { ctx.save(); ctx.setTransform(Mo); demonRobeDown(ctx, P, K, top, legL, hemW, g, O.drop, O.slump, O.hop < 0.5 ? dspan(off, 0, 0.04) : 0); ctx.restore(); };
+      if (O.hop >= 0.5) robeDown();   // (behind it, once its feet are up over the heap)
+      const kick = dance * Math.sin(t * 5.2), tuck = Math.sin(Math.PI * O.hop) * 0.55;   // one leg and then the other kicks up; both tuck in the hop
+      demonKit(ctx, c, P, skin, top, sh, [Math.max(0, -kick) + tuck, Math.max(0, kick) + tuck]);
+      const tilt = lerp(c.tilt0 || 0, F.tilt + (c.still ? 0 : F.trem * Math.sin(t * 31) * 0.018), c.settle === undefined ? 1 : c.settle) + dance * Math.sin(t * 2.6) * 0.18;
+      const head = fn => { ctx.save(); ctx.translate(sh, top); ctx.rotate(tilt); fn(); ctx.restore(); };
+      head(() => demonHoodBack(ctx, c, P, K, a, O.hood, O.drop, fall));
+      if (O.hop < 0.5) robeDown();
+      const raise = smoothstep(near * (0.5 + a * 0.5));
+      for (const s of [-1, 1]) {
+        const rest = [lerp(0.28, 0.55 + a * 0.3, raise), lerp(-0.5, -0.3, raise), lerp(0.3, 0.42 + a * 0.35, raise), lerp(-armL, 0.05, raise)];
+        const q = demonOffArm(off, rest);
+        let ex = s * q[0], ey = top + q[1], hx = s * q[2], hy = top + q[3];
+        if (dance) { const wave = Math.sin(t * 5.2 + s) * 0.12; ex = lerp(ex, s * 0.42, dance); ey = lerp(ey, top + 0.2 + wave, dance); hx = lerp(hx, s * (0.36 + wave), dance); hy = lerp(hy, top + 0.62, dance); }   // hands up, waving
+        const fa0 = lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), fa = lerp(fa0, Math.atan2(hy - ey, hx - ex), dspan(off, 0, 0.1));
+        demonOffArm2(ctx, c, P, K, skin, [s * 0.22 + sh, top - 0.05], [ex, ey], [hx, hy], fa, O.slide);
+      }
+      // its face: as it was in the hood, and then all of it as the hood goes back, the hood's shadow going from its brow
+      head(() => {
+        const fy = 0.285 + a * 0.1, oy = fy - 0.015 - a * 0.015, orx = lerp(0.098 + a * 0.012, 0.3, O.hood), ory = lerp(0.152 + a * 0.04, 0.4, O.hood);
+        ctx.save(); ctx.beginPath(); ctx.ellipse(0, oy, orx, ory, 0, 0, TAU); ctx.clip();
+        demonMoodFace(ctx, c, P, fy, F);
+        if (O.hood < 0.99) {
+          ctx.globalAlpha *= 1 - O.hood;
+          const shade = ctx.createLinearGradient(0, oy + ory, 0, fy + 0.02);
+          shade.addColorStop(0, P.cola([0, 0, 0], 0.85)); shade.addColorStop(0.45, P.cola([0, 0, 0], 0.3)); shade.addColorStop(1, P.cola([0, 0, 0], 0));
+          ctx.beginPath(); ctx.ellipse(0, fy - 0.03 * F.jaw, 0.085 + F.fw, 0.13 + 0.045 * F.jaw, 0, 0, TAU); ctx.clip();
+          ctx.fillStyle = shade; ctx.fillRect(-orx, fy + 0.02, orx * 2, ory * 2);
+        }
+        ctx.restore();
+      });
+      ctx.restore();
+      return;
+    }
     ctx.fillStyle = robe; ctx.beginPath();
     ctx.moveTo(-0.24 + sh, top);
     ctx.quadraticCurveTo(-0.27 + sway * 0.4, legL * 0.55, -hemW + step, 0.03);

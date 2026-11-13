@@ -5,7 +5,7 @@
   const PACE = 40 / 75;   // night 13's startDist / time: metres a second at speedMult 1 (seenMult 1)
   const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1));
   // night 13's END, in seconds from when it reaches you
-  const END = { settle: 1.0, stoop: [0.2, 2.2], near: [0.9, 3.0], reach: [0.8, 3.6], close: [3.8, 5.6], unveil: [5.0, 6.4], moods: 6.4, hold: 1.0, blend: 0.9, release: 20.5, light: [20.3, 26.3], walk: [21.5, 25.1], dance: [25.7, 30.2] };
+  const END = { settle: 1.0, stoop: [0.2, 2.2], near: [0.9, 3.0], reach: [0.8, 3.6], close: [3.8, 5.6], unveil: [5.0, 6.4], moods: 6.4, hold: 1.0, blend: 0.9, release: 20.5, light: [20.3, 26.3], walk: [21.5, 25.1], disrobe: [25.7, 28.3], dance: [27.9, 32.4] };
   const D0 = CR.catchDist;   // where it is when it reaches you
   const LAST = CR.moods - 1;
   const moodAt = t => { if (t < END.moods) return 0; const per = END.hold + END.blend, u = t - END.moods, j = Math.floor(u / per); return Math.min(LAST, j + clamp((u - j * per - END.hold) / END.blend, 0, 1)); };
@@ -71,6 +71,7 @@
     const kw = span(t, END.walk[0], END.walk[1]);
     c.dist = lerp(lerp(D0, 0.68, span(t, END.near[0], END.near[1])), 3.3, kw);
     c.meadow = span(t, END.light[0], END.light[1]); c.soft = c.meadow;
+    c.disrobe = clamp((t - END.disrobe[0]) / (END.disrobe[1] - END.disrobe[0]), 0, 1);
     let dance = t > END.dance[0] && t < END.dance[1] ? Math.min(1, (t - END.dance[0]) * 2, (END.dance[1] - t) * 2) : 0;
     const u = (t - END.dance[1] - 7) % 12;
     if (t > END.dance[1] + 7 && u < 2.6 && !c.leaving) dance = 0.5 * Math.min(1, u * 2, (2.6 - u) * 2);
@@ -105,8 +106,9 @@
       endPart(END.moods - 0.2, { name: 'Its faces, one after another', note: 'Holding you, its face goes through angry, neutral, angry, confused, sad, neutral, content and happy, its light changing with each.', dur: 13.8, fit: FACE }),
       endPart(END.moods + 7.5, { name: 'Its faces, reduced motion', note: 'The same faces with reduced motion on (c.still): no trembling, the tears not running, the hold not squeezing. From the sad face on.', dur: 6.5, fit: FACE, reduced: true }),
       endPart(19.4, { name: 'Letting go as the light comes', note: 'A moment after it is happy it lets you go and straightens up, settled and smaller; the light comes and it steps back to 3.3 m.', dur: 6.6, fit: { h: 2.8, w: 1.3 } }),
-      endPart(END.dance[0] - 0.2, { name: 'Dancing in the meadow', note: 'In the meadow, in the sun, it dances a little to the music box: hops, hands up and waving, its head rocking.', dur: 4.9, fit: { h: 2.8, w: 1.3 } }),
-      { name: 'Fading away', note: 'After your press in the meadow: it fades out over two seconds as the bedroom comes up.', dur: 3, still: true, fit: { h: 2.8, w: 1.3 }, draw: drawAt(),
+      endPart(END.disrobe[0] - 0.3, { name: 'Taking off its robe', note: 'In the meadow, as the music box starts: its hands go up and push the hood back (little round horns), take the robe at the shoulders and let it drop, the sleeves and black gloves sliding off with it; it hops clear of the heap.', dur: 3.4, fit: { h: 2.8, w: 1.6 } }),
+      endPart(END.dance[0] - 0.2, { name: 'Dancing in the meadow', note: 'Out of the robe, in a yellow striped shirt, red shorts, white socks and blue sneakers, it dances a little to the music box beside the heap of it: hops, kicks, hands up and waving, its head rocking.', dur: 4.9, fit: { h: 2.8, w: 1.6 } }),
+      { name: 'Fading away', note: 'After your press in the meadow: it fades out over two seconds as the bedroom comes up, the robe on the grass with it.', dur: 3, still: true, fit: { h: 2.8, w: 1.6 }, draw: drawAt(),
         set(c) { c.tilt0 = 0; ending(c, 34, 0); c.leaving = true; }, tick(c, k, dt, T) { ending(c, 34 + T, dt); c.leave = span(T, 0, 3.0); c.fade = clamp(1 - (T - 0.3) / 2.0, 0, 1); } },
       LAB.lunge({ note: 'Still holding something as it reaches you: enraged, it comes up into your face, lifted so its eyes end level with yours.', fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
         set(c) { c.anger = 1; c.rage = rageFor(1); base.set(c); },

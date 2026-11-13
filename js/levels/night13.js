@@ -45,7 +45,8 @@ const END = {
   release: 20.5,                        // it lets you go, a moment after it is happy
   light: [20.3, 26.3],                  // the light comes, and the meadow with it
   walk: [21.5, 25.1],                   // it steps back and round to the north, where the foot of the bed will be
-  dance: [25.7, 30.2],                  // and dances a little to the tune
+  disrobe: [25.7, 28.3],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
+  dance: [27.9, 32.4],                  // and dances a little to the tune in its shirt and shorts
   wait: 26.3, arm: 26.9, line: 28.7,    // from here the meadow is yours to look about in, and waits for a press (taken from
                                         // `arm`); a soft line comes in at `line`
   leave: 4.2,                           // after the press: the meadow and it fade, the bedroom comes up, and then the last screen
@@ -280,13 +281,16 @@ LEVELS.push({
       if (mv > 0.08 && left.length && mv > s.gone) { (left.find(inTheWay) || left[0]).taken = true; s.gone = mv + 0.5 / tools.length; }
       if (mv > 0.05 && !s.dawn) { s.dawn = true; AUDIO.stopAmbient(); if (AUDIO.on()) AUDIO.startAmbient({ wind: 0.32, drone: 0, windFreq: 760 }); WEATHER.set({ kind: 'motes', density: 1.0, wind: 0.15 }, 7); }   // a breeze, and pollen in the sun
       if (mv > 0.3) { s.birdT = (s.birdT === undefined ? 0.5 : s.birdT) - dt; if (s.birdT <= 0) { s.birdT = 1.5 + Math.random() * 2.8; AUDIO.sfx('birds', Math.random() * 1.6 - 0.8, true); } }
-      // in the meadow it dances a little to the tune; then, while the meadow waits, now and then a little more
+      // in the meadow, as the tune starts, it takes off its robe and leaves it on the grass; it dances a little to the tune;
+      // then, while the meadow waits, now and then a little more
+      c.disrobe = clamp((t - END.disrobe[0]) / (END.disrobe[1] - END.disrobe[0]), 0, 1);
       let dance = t > END.dance[0] && t < END.dance[1] ? Math.min(1, (t - END.dance[0]) * 2, (END.dance[1] - t) * 2) : 0;
       const u = (t - END.dance[1] - 7) % 12;
       if (t > END.dance[1] + 7 && u < 2.6 && !s.leaving) dance = 0.5 * Math.min(1, u * 2, (2.6 - u) * 2);
       c.dance = still ? 0 : dance;
-      if (t > END.dance[0] && !s.tune) { s.tune = true; AUDIO.sfx('musicbox', 0); }
-      if (t > END.dance[0] + 3.2 && !s.tune2) { s.tune2 = true; AUDIO.sfx('musicbox', 0); }
+      if (t > END.disrobe[0] && !s.tune) { s.tune = true; AUDIO.sfx('musicbox', 0); }
+      if (t > END.disrobe[0] + 3.2 && !s.tune2) { s.tune2 = true; AUDIO.sfx('musicbox', 0); }
+      if (t > END.disrobe[0] + 6.4 && !s.tune3) { s.tune3 = true; AUDIO.sfx('musicbox', 0); }
       if (t >= END.wait) s.wait = true;
       // after the press it fades from the meadow, glittering as it goes
       c.fade = s.leaving ? clamp(1 - (lt - 0.3) / 2.0, 0, 1) : 1;
