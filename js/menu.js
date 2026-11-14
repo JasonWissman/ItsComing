@@ -15,10 +15,25 @@ const MENU = (() => {
           '<div class="mrow">' + btn('begin', 'Begin') + (unlocked > 0 && unlocked < LEVELS.length ? btn('continue', 'Continue &middot; night ' + (unlocked + 1)) : '') + btn('nights', 'Nights') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
           '<p class="fine">Headphones recommended. Sound is synthesized in your browser.</p>';
       }
-      case 'howto':
+      case 'howto': {
+        // the controls as keys you press: a keycap for each key, a mouse with its left button lit for a click
+        const k = t => '<kbd class="key' + (t.length > 2 ? ' wide' : '') + '">' + t + '</kbd>';
+        const click = '<kbd class="key mouse" aria-label="click"><svg viewBox="0 0 24 34" aria-hidden="true"><rect x="2" y="2" width="20" height="30" rx="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v12M2.6 14h18.8" stroke="currentColor" stroke-width="2"/><path d="M12 3.2V13H3.4V12a8.6 8.6 0 0 1 8.6-8.8z" fill="#b3161e"/></svg></kbd>';
+        const plus = '<span class="kplus">+</span>', then = '<span class="kplus">then</span>';
+        const row = (keys, what) => '<div class="krow"><div class="kkeys">' + keys + '</div><div class="kwhat">' + what + '</div></div>';
         return '<h1>How to play</h1><p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>' +
-          '<div class="controls howto"><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>look down, click the floor</b> put down what you hold</div><div><b>with one held thing chosen, click another</b> use them together</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>' +
+          '<div class="controls howto keys">' +
+          row(k('←') + k('→'), 'turn (8 directions)') +
+          row(k('↑') + k('↓'), 'look ahead / look down') +
+          row(k('Shift'), 'hold to zoom in') +
+          row(click, 'pick up, place, use') +
+          row(k('↓') + plus + click, 'click the floor to put down what you hold') +
+          row(click + then + click, 'choose a held thing, then click another to use them together') +
+          row(k('R'), 'restart the night') +
+          row(k('Esc') + '<span class="kgap"></span>' + k('M'), 'pause &nbsp;&middot;&nbsp; mute') +
+          '</div>' +
           '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
+      }
       case 'pause':
         return '<h1>Paused</h1><p class="intro">It is not.</p><div class="mcol">' + btn('resume', 'Resume') + btn('restart', 'Start the night over') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('title', 'Back to the title') + '</div><p class="fine">Esc resumes</p>';
       case 'dead':
