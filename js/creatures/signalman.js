@@ -108,20 +108,16 @@ CREATURES.signalman = {
   },
   // the face, in the head's own frame (its middle at nought). Wherever it is, lit by a lamp or not, near or far, there is
   // nothing of it but the two small pale points of the eyes: the light never finds a face. Only coming at you (reveal, over
-  // the first of the lunge) does one come out of the dark: a dim, even pallor with nothing on it but two pale eyes, blank,
-  // and a mouth from one cheekbone to the other, a slit of small teeth that opens into a black hole full of them, the jaw
-  // dropping far too far
+  // the first of the lunge) does more of it show, and only two things on the black: two pale eyes, blank, and a mouth
+  // from one cheekbone to the other, a slit of small teeth that opens into a black hole full of them, the jaw dropping
+  // far too far
   face(ctx, c, P, ink, turn, reveal, lunge, px) {
     const fx = turn * 0.045, rv = clamp(reveal, 0, 1), gape = smoothstep(lunge * 1.3);
     // the head: long and narrow, the jaw dropping out of it as the mouth opens
     P_ell(ctx, 0, 0, Math.max(0.075, 0.9 * px), Math.max(0.13, 0.9 * px), ink);
     if (gape > 0.01) P_ell(ctx, fx * 0.5, -0.1 - gape * 0.07, 0.06, 0.05 + gape * 0.08, ink);
     if (rv > 0.02 && px < 0.03) {
-      const a = Math.min(1, rv * 0.9), fy = -0.005 - gape * 0.04;
-      // the pallor: one dim, even light over it, lost only at its edges
-      const sk = ctx.createRadialGradient(fx * 0.5, fy, 0.01, fx * 0.4, fy, 0.13 + gape * 0.04);
-      sk.addColorStop(0, P.cola([104, 100, 88], a * 0.8)); sk.addColorStop(0.55, P.cola([94, 90, 78], a * 0.62)); sk.addColorStop(1, P.cola([40, 38, 34], 0));
-      ctx.fillStyle = sk; ctx.beginPath(); ctx.ellipse(fx * 0.5, fy, 0.07, 0.124 + gape * 0.06, 0, 0, TAU); ctx.fill();
+      const a = Math.min(1, rv * 0.9);   // no light on the face at all: only the eyes and the teeth show
       // the mouth: right across the face and past it, the corners drawn up toward the eyes; the lips pulled back off small
       // close teeth, which opens into a black hole full of them, the jaw dropping far too far
       const mw = 0.078, my = -0.072 - gape * 0.05, lo = my - 0.032 - gape * 0.17, cy = my + 0.05;
