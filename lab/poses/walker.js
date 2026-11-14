@@ -10,7 +10,7 @@
     night: 1, stage: 'The Road', dist: 12,
     anims: [
       { name: 'Walking at you', note: 'Its walk down the road, far off: the snapping head tilt, the arms hanging to its knees.', dist: 20, walk: 1.0, dur: 6 },
-      { name: 'Closing in', note: 'From 24 m to 2 m: the arms rise toward you, and the seams, the frayed eye holes and the stitched slit of a mouth on its sack come up as it nears.', walk: 1.0, dur: 7,
+      { name: 'Closing in', note: 'From 24 m to 2 m: the arms rise toward you and the face and mouth come up as it nears.', walk: 1.0, dur: 7,
         tick(c, k) { c.dist = lerp(24, 2, k); } },
       { name: 'Ducking under the lintel', note: 'Coming in through a doorway a head too low for it: it bends down under the lintel, then straightens inside.', dist: 4, walk: 0.9, dur: 6, fit: { h: 2.8 },
         back: doorway,
@@ -38,7 +38,7 @@
         set(c) { c.runPose = true; c.runDir = 1; c.moving = true; }, tick(c, k, dt) { c.runGait = (c.runGait || 0) + dt * 15; } },
       { name: 'Charging the boards', note: 'Once the night is won: straight at you, flat out, the arms coming up for the boards in the last few metres.', dur: 2.6,
         set(c) { c.charge = 1; c.moving = true; }, tick(c, k, dt) { c.gait += dt * 15; c.dist = lerp(14, 1.5, k); } },
-      LAB.lunge({ note: 'It reaches you: the head and the hands come at you, the slit in the sack tearing open.' }),
+      LAB.lunge({ note: 'It reaches you: the head and the hands come at you.' }),
     ],
   });
 })();

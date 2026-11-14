@@ -90,9 +90,8 @@ Each level is one thing coming at you and a small set of steps to survive it.
 Items are scattered around you in different directions, some at eye level and
 some on the ground, so you have to turn and look down to find them.
 
-1. **The Field.** A tall thin black walker, a pale burlap sack over its head (two ragged holes cut for eyes, black
-   right through, and a stitched slit of a mouth that tears open when it gets you), crosses a moonlit field toward a
-   farmhouse whose two doorways have no doors. Find the hammer, the nails and the loose planks, and board
+1. **The Field.** A tall thin walker crosses a moonlit field toward a farmhouse whose
+   two doorways have no doors. Find the hammer, the nails and the loose planks, and board
    up both: board the one it is coming for and it runs round the house to the other. The
    window beside the front doorway is glass you can see out of, over the field, and if it
    runs round that side you see it go past. The planks are wide old boards, and three of
