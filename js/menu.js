@@ -19,16 +19,15 @@ const MENU = (() => {
         // the controls as keys you press: a keycap for each key, a mouse with its left button lit for a click
         const k = t => '<kbd class="key' + (t.length > 2 ? ' wide' : '') + '">' + t + '</kbd>';
         const click = '<kbd class="key mouse" aria-label="click"><svg viewBox="0 0 24 34" aria-hidden="true"><rect x="2" y="2" width="20" height="30" rx="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v12M2.6 14h18.8" stroke="currentColor" stroke-width="2"/><path d="M12 3.2V13H3.4V12a8.6 8.6 0 0 1 8.6-8.8z" fill="#b3161e"/></svg></kbd>';
-        const plus = '<span class="kplus">+</span>', then = '<span class="kplus">then</span>';
-        const row = (keys, what) => '<div class="krow"><div class="kkeys">' + keys + '</div><div class="kwhat">' + what + '</div></div>';
+        const or = '<span class="kplus">or</span>';
+        const pad = (u, l, dn, r) => '<span class="kpad">' + k(u) + '<span class="kpadrow">' + k(l) + k(dn) + k(r) + '</span></span>';   // four keys as they sit on the keyboard
+        const row = (keys, what, wide) => '<div class="krow' + (wide ? ' kwide' : '') + '"><div class="kkeys">' + keys + '</div><div class="kwhat">' + what + '</div></div>';
         return '<h1>How to play</h1><p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>' +
           '<div class="controls howto keys">' +
-          row(k('←') + k('→'), 'turn (8 directions)') +
-          row(k('↑') + k('↓'), 'look ahead / look down') +
-          row(k('Shift'), 'hold to zoom in') +
-          row(click, 'pick up, place, use') +
-          row(k('↓') + plus + click, 'click the floor to put down what you hold') +
-          row(click + then + click, 'choose a held thing, then click another to use them together') +
+          row(pad('↑', '←', '↓', '→') + or + pad('W', 'A', 'S', 'D'), 'look around', true) +
+          row(k('Shift') + or + k('Space'), 'hold to zoom in', true) +
+          row(click, 'interact') +
+          row(k('Tab'), 'switch what you hold') +
           row(k('R'), 'restart the night') +
           row(k('Esc') + '<span class="kgap"></span>' + k('M'), 'pause &nbsp;&middot;&nbsp; mute') +
           '</div>' +

@@ -63,7 +63,12 @@
   kbd.key.mouse svg { width: 19px; height: 28px; color: #3a332c; }
   .kplus { font-size: calc(12px * var(--text-scale)); letter-spacing: .08em; text-transform: uppercase; color: rgba(207,200,186,.55); }
   .kgap { width: 4px; }
-  @media (max-width: 640px) { #overlay .controls.keys { grid-template-columns: 1fr; gap: 10px; } kbd.key { min-width: 38px; height: 38px; } .kkeys { width: 140px; } }
+  .krow.kwide { grid-column: 1 / -1; justify-content: center; }
+  .krow.kwide .kkeys { width: auto; gap: 12px; }
+  .kpad { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
+  .kpadrow { display: inline-flex; gap: 4px; }
+  .kpad kbd.key { min-width: 38px; height: 38px; font-size: calc(16px * var(--text-scale)); }
+  @media (max-width: 640px) { #overlay .controls.keys { grid-template-columns: 1fr; gap: 10px; } kbd.key { min-width: 38px; height: 38px; } .kkeys { width: 140px; } .kpad kbd.key { min-width: 32px; height: 32px; font-size: 14px; } .krow.kwide { flex-direction: column; gap: 8px; } }
   :root[data-theme="day"] .kwhat, :root[data-theme="day"] .kplus { color: #3a332c; }
   #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .5s; padding: 24px; box-sizing: border-box; }
   #overlay.show { opacity: 1; pointer-events: auto; cursor: pointer; }
