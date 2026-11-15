@@ -77,6 +77,7 @@ CREATURES.tall = {
     // arms: down to the knees, rising very slowly as it comes; down there, its hands flat on the floor in front of it
     const raise = smoothstep(Math.max(near * 0.8, lunge)) * (1 - duck);
     const grip = (c.gripY === undefined ? 0.7 : c.gripY) / K;   // the edge of the bed, where its hands take hold
+    let late = null;
     for (const s of [-1, 1]) {
       const sx = s * (sw - 0.01) + sway * 0.6, sy = tp - 0.08 + hunch;
       let ex = s * lerp(0.28, 0.62, raise), ey = lerp(1.6, 1.9, raise) - lean * 0.1 - st * 0.25;
@@ -90,9 +91,13 @@ CREATURES.tall = {
       if (flinch > 0 && s === (c.flinchSide || 1)) mix(flinch, s * 0.46, tp + 0.05, -s * 0.06, hy + 0.36, s > 0 ? Math.PI * 0.95 : Math.PI * 0.05, 0.22, 0.26);
       // up over the edge of the bed: the hands on it, wide apart, the fingers hooked over onto the covers
       if (reach > 0) mix(reach, s * 0.66, grip - 0.42, s * 0.4, grip, -Math.PI / 2 + s * 0.2, 0.13, 0.17);
-      P_limb(ctx, [[sx, sy], [ex, ey], [px, py]], 0.065, body);
-      fingers(ctx, px, py, ang, spread, len, 0.02, body);
-      if (reach > 0.3) P_ell(ctx, px, py + 0.01, 0.06, 0.045, body);   // the back of the hand, knuckles up
+      const arm = () => {
+        P_limb(ctx, [[sx, sy], [ex, ey], [px, py]], 0.065, body);
+        fingers(ctx, px, py, ang, spread, len, 0.02, body);
+        if (reach > 0.3) P_ell(ctx, px, py + 0.01, 0.06, 0.045, body);   // the back of the hand, knuckles up
+      };
+      // the arm thrown up across its face from the light goes in front of the head: drawn after it
+      if (flinch > 0.02 && s === (c.flinchSide || 1)) late = arm; else arm();
     }
     // the head, bent under the frame, the face lit by the moon and turned to you; leaning out round an edge it tips over
     // that way; flinching it turns from the light; down there it holds still, peering up
@@ -102,7 +107,7 @@ CREATURES.tall = {
     ctx.save(); ctx.translate(hx, hy); ctx.rotate(tilt); ctx.scale(hs, hs);
     P_line(ctx, 0, 0, 0, 0.14, 0.08, body);
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
-    if ((c.faceAway || 0) > 0.5) { ctx.restore(); ctx.restore(); return; }   // its face down: the dark of its head
+    if ((c.faceAway || 0) > 0.5) { ctx.restore(); if (late) late(); ctx.restore(); return; }   // its face down: the dark of its head
     P_ell(ctx, 0, 0.32, 0.095, 0.15, skin);
     const ew = 0.018 + duck * 0.004;   // blank, no pupils, perfectly round; peering up, the eyes wide
     P_ell(ctx, -0.04, 0.36, ew, ew, eye); P_ell(ctx, 0.04, 0.36, ew, ew, eye);
@@ -117,6 +122,7 @@ CREATURES.tall = {
     ctx.bezierCurveTo(mw * 0.55, cy + mh * 0.32, -mw * 0.55, cy + mh * 0.32, -mw, cy);
     ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
+    if (late) late();
     ctx.restore();
   }
 };
