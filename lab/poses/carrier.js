@@ -4,7 +4,7 @@
   const CR = CREATURES.carrier;
   // night 11's paces: creeping in (CREEP, metres a second; unseen it goes unseenMult 1.3 times as fast), the run round to the
   // next place (RUN), and how long a flinch lasts before it runs
-  const CREEP = { lit: 0.2, dark: 0.62, blackout: 2.4, back: 2.6 };
+  const CREEP = { lit: 0.2, dark: 0.62, back: 2.6 };
   const RUN = { speed: 6.5, min: 0.8, max: 3.4, flinch: 0.32 };
   const RUN_T = clamp(2 * Math.PI * 18 / 8 / RUN.speed, RUN.min, RUN.max);   // to a neighbouring place, an eighth of the way round at about 18 m
   const FALL = CR.FALL, FALL_END = FALL.shriek + FALL.sink + FALL.apart + 1.8;
@@ -24,8 +24,8 @@
     anims: [
       { name: 'Waiting in the dark', note: 'At the foot of its place in the shadow, all but black: two pale points of eyes, blinking now and then.', dur: 4.4 },
       { name: 'Creeping in, in the dark', note: 'With the porch light off it creeps in from its place toward you, still in shadow.', dur: 5, walk: CREEP.dark },
-      { name: 'Coming for you in the blackout', note: 'The fuse blown, every light out: it comes for you fast, from 14 m to you, the mouth opening as it nears.', dist: 14, dur: 5.4,
-        tick(c, k, dt) { const d = Math.max(1.5, c.dist - CREEP.blackout * dt); step(c, dt, c.dist - d); c.dist = d; } },
+      { name: 'Coming for you, the lights all out', note: 'The main tripped (or the porch light off): it creeps in at its own pace from 5 m to you, straining at the stitches of its sewn mouth as it nears.', dist: 5, dur: 6,
+        tick(c, k, dt) { const d = Math.max(1.5, c.dist - CREEP.dark * dt); step(c, dt, c.dist - d); c.dist = d; } },
       { name: 'Lit up: it flinches and runs', note: 'Its place\'s floodlight comes on at 0.6 s: it shows in the light, rears back with an arm over its face, then runs side on to a dark neighbour and sinks back into shadow.',
         dur: 0.6 + RUN.flinch + RUN_T + 0.4, lit: 0.55, fit: { w: 1.6 },
         tick(c, k, dt, T) {
@@ -45,7 +45,7 @@
       { name: 'Coming apart in the light', note: 'The win, caught in the light with nowhere dark to go: it shrieks, its knees go, it comes apart into sacking and straw, and the dust goes up.',
         dur: FALL_END, lit: 0.55, fit: { w: 2.4 },
         set(c) { c.fallT = 0; c.fallSide = 1; c.shade = 0; }, tick(c, k, dt, T) { c.fallT = T; } },
-      LAB.lunge({ note: 'It reaches you in the dark: a little of it shows in your face, the arms opening off the bundle.', dist: CR.catchDist,
+      LAB.lunge({ note: 'It reaches you in the dark: in your face it is lit up so you see it, the arms opening off the bundle, the stitches of its mouth pulling wide and two of them snapping, its teeth showing through.', dist: CR.catchDist,
         set(c) { c.shade = 0.45; c.runPose = false; base.set(c); } }),
     ],
   });

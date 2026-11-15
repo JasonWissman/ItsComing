@@ -164,7 +164,10 @@ const R = (() => {
 
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
-  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
+  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, face?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
+  // face? a panel fixed flat on an upright face (a wall, a door, the front of a box): the world yaw its front looks
+  // toward. It is drawn in true perspective where it is, as the face it is on is, and never turns toward you; seen from
+  // behind it is not drawn. Its hit area is the shape it covers on the view (hit.poly), not only the rect round it.
   // hitOnly? a hit area that draws nothing (a target's: what it is drawn with is its own props)
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   // attach? rides with the eye (see the top): its coordinates and dist are taken from where the eye started
@@ -833,15 +836,20 @@ const R = (() => {
     const onRect = glow ? null : p.onRect;
     if (p.alpha !== undefined && p.alpha <= 0.004) { if (onRect) onRect(null); return; }
     const base = toCam(p.x, p.y, p.z);
-    const lying = p.flat || p.card;
+    const fixed = p.face !== undefined, lying = p.flat || p.card || fixed;
     if (base[2] < (lying ? -Math.max(p.w, p.h) : NEAR)) { if (onRect) onRect(null); return; }   // (a card may begin behind the lens and run on in front of it)
-    let rect;
+    let rect, poly = null;
     if (lying) {
       // a decal lying on the ground, its "up" pointing away from the viewer; or a card (an item), which stands on its
-      // spot facing the eye and tips back toward it so it is never seen edge-on, however near or high it sits
+      // spot facing the eye and tips back toward it so it is never seen edge-on, however near or high it sits; or a
+      // panel fixed on an upright face, across it and straight up it, whatever the view
       const t = towardEye(p.x, p.z);   // a decal's "up" runs away from where you stand, not along the view
       let rx = t[0], rz = t[1], fx = t[2], fz = t[3], fy = 0;
-      if (p.card) {
+      if (fixed) {
+        const nx = Math.sin(p.face), nz = Math.cos(p.face);
+        if ((ox - p.x) * nx + (oz - p.z) * nz <= 0) { if (onRect) onRect(null); return; }   // the eye is behind the face it is on
+        rx = -nz; rz = nx; fx = 0; fy = 1; fz = 0;   // across it, left to right as you look at its front, and up it
+      } else if (p.card) {
         // behind you (only in front of the lens at all because the view is tipped down): not drawn
         if (Math.abs(wrapPi(Math.atan2(p.x - ox, p.z - oz) - yaw)) > 100 * DEG) { if (onRect) onRect(null); return; }
         const c = cardAxes(p.x, p.y, p.z, p.flat);
@@ -860,6 +868,7 @@ const R = (() => {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
       for (const q of card) { const c = scr(q[0], q[1]); x0 = Math.min(x0, c[0]); y0 = Math.min(y0, c[1]); x1 = Math.max(x1, c[0]); y1 = Math.max(y1, c[1]); }
       rect = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      if (fixed && p.hit) poly = card.map(q => { const c = scr(q[0], q[1]); return [c[0], c[1] + viewY]; });
       if (x0 > W + 20 || x1 < -20 || y0 > H + 20 || y1 < -20) { if (onRect) onRect(rect); return; }
       const one = z0 - Math.abs(zu) * hw + Math.min(0, zv * h) >= NEAR ? fitMap(scr, hw, h) : null;
       if (one && one.err <= ONE_MAP_ERR) {
@@ -913,7 +922,7 @@ const R = (() => {
     }
     if (p.hit) {
       const m = p.hitPad || 0;
-      hits.push({ x: rect.x - m, y: rect.y - m + viewY, w: rect.w + 2 * m, h: rect.h + 2 * m, kind: p.hit.kind, ref: p.hit.ref });
+      hits.push({ x: rect.x - m, y: rect.y - m + viewY, w: rect.w + 2 * m, h: rect.h + 2 * m, kind: p.hit.kind, ref: p.hit.ref, poly });
     }
     if (onRect) onRect(rect);
   }

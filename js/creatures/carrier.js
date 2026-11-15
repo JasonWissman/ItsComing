@@ -6,6 +6,9 @@
 // back from the light with an arm across its face. c.shade (0..1) is how deep in shadow it stands: its colours sink toward
 // black, and its eyes catch what little light there is (two pale points). c.fallT (seconds) is its end, caught in the
 // light with nowhere dark to go: it shrieks, its knees go, and it comes apart on the ground, sacking and straw.
+// Its mouth is sewn shut, like a scarecrow's: a patch of burlap stitched over it with thick twine, straw poking out round
+// the patch. It strains at the stitches as it nears you, and in your face (c.lunge) they pull wide and two of them snap,
+// the dark and its teeth showing through. In that last moment it is lit up, however dark it is, so you see it.
 CREATURES.carrier = {
   name: 'the carrier', h: 1.7, w: 1.6, faceY: 1.35, stepRate: 0.9, catchDist: 1.5, sound: 'walker',
   death: { delay: 0.2, dur: 0.4, sting: 'sting' },
@@ -13,11 +16,69 @@ CREATURES.carrier = {
   init(c) { c.shade = 0; },
   speedMult(c, dt, seen) { return c.fallT !== undefined ? 0 : 0.55; },
   lateral(c) { return c.runLat || 0; },
-  // its colours as the dark has them: pulled toward black by c.shade (fog and light still come after, as P has them)
+  // its colours as the dark has them: pulled toward black by c.shade (fog and light still come after, as P has them).
+  // In its lunge it is lit up (glare): its own colours, whatever the dark and the light round it would make of them
+  glare(c) { return c.lunge > 0 && c.fallT === undefined ? smoothstep(clamp(c.lunge * 2.5, 0, 1)) : 0; },
   shaded(c, P) {
-    const k = clamp(c.shade || 0, 0, 1);
-    if (k < 0.01) return P;
-    return Object.assign({}, P, { col: col => P.col(mixc(col, [8, 9, 12], k)), cola: (col, a) => P.cola(mixc(col, [8, 9, 12], k), a) });
+    const gl = this.glare(c), k = clamp(c.shade || 0, 0, 1) * (1 - gl);
+    if (k < 0.01 && gl < 0.01) return P;
+    const dark = col => mixc(col, [8, 9, 12], k);
+    if (gl < 0.01) return Object.assign({}, P, { col: col => P.col(dark(col)), cola: (col, a) => P.cola(dark(col), a) });
+    const rgb = str => str.slice(str.indexOf('(') + 1, -1).split(',').map(Number);
+    const lit = col => mixc(rgb(P.col(dark(col))), mixc(col, [255, 238, 214], 0.06), gl);
+    return Object.assign({}, P, { col: col => rgba(lit(col)), cola: (col, a) => rgba(lit(col), a) });
+  },
+  // its mouth, sewn shut: a patch of burlap over it (w across, at x, y), the slit across the patch stitched shut with n
+  // thick crude cross-stitches of twine, and straw poking out from under the edges of the patch. gap (metres) is how far
+  // the slit is pulled open against the stitches, the dark and its teeth, top and bottom, showing between them; torn,
+  // how many of the stitches have snapped (from the middle out), their ends hanging from the holes.
+  sewnMouth(ctx, P, x, y, w, gap, torn, n, t) {
+    const h = w * 0.44, sw = w * 0.36;
+    const burlap = P.col([136, 110, 72]), burlapD = P.col([92, 72, 46]), twine = P.col([30, 22, 14]), twineL = P.col([84, 66, 42]);
+    const straw = P.col([190, 164, 92]), strawD = P.col([136, 114, 60]), black = P.col([8, 6, 6]), teeth = P.col([220, 210, 190]);
+    // the straw, coming out from under the edges of the patch: tufts at its corners and along its lower edge
+    const TUFTS = [[-1, 0.15, Math.PI + 0.2], [-0.9, -0.55, Math.PI + 0.75], [1, 0.1, -0.15], [0.9, -0.6, -0.8], [-0.4, -0.95, -Math.PI / 2 - 0.35], [0.12, -1, -Math.PI / 2 + 0.1], [0.5, -0.9, -Math.PI / 2 + 0.45]];
+    TUFTS.forEach(([u, v, a], j) => {
+      for (let k = 0; k < 3; k++) {
+        const aa = a + (k - 1) * 0.3 + Math.sin(t * 1.7 + j * 2.1 + k) * 0.05, l = w * (0.12 + 0.05 * ((j + k * 2) % 3));
+        const px = x + u * w * 0.48, py = y + v * h * 0.48;
+        P_line(ctx, px, py, px + Math.cos(aa) * l, py + Math.sin(aa) * l, w * 0.028, (j + k) % 2 ? straw : strawD);
+      }
+    });
+    // the patch: a rough-cut square of sacking, its edge sewn down with a running stitch, the weave showing
+    const pts = [];
+    for (let i = 0; i < 14; i++) { const a = i / 14 * TAU, r = 1 + 0.07 * Math.sin(i * 2.7) + 0.05 * Math.sin(i * 5.3); pts.push([x + Math.cos(a) * w / 2 * r * (Math.abs(Math.cos(a)) > 0.6 ? 1.04 : 1), y + Math.sin(a) * h / 2 * r]); }
+    P_poly(ctx, pts, burlap);
+    for (const v of [-0.55, -0.15, 0.45]) { const hw = Math.sqrt(1 - v * v) * w * 0.44; P_line(ctx, x - hw, y + v * h / 2, x + hw, y + v * h / 2 + w * 0.01, w * 0.012, burlapD); }
+    for (const u of [-0.6, -0.2, 0.25, 0.65]) { const hh = Math.sqrt(1 - u * u) * h * 0.44; P_line(ctx, x + u * w / 2, y - hh, x + u * w / 2 + w * 0.008, y + hh, w * 0.01, burlapD); }
+    for (let i = 0; i < 14; i += 2) { const a = pts[i], b = pts[(i + 1) % 14]; P_line(ctx, lerp(a[0], b[0], 0.15), lerp(a[1], b[1], 0.15), lerp(a[0], b[0], 0.75), lerp(a[1], b[1], 0.75), w * 0.022, twineL); }
+    // the slit: shut, a dark seam; pulled open, the dark behind it and its teeth
+    if (gap > w * 0.012) {
+      P_ell(ctx, x, y, sw, gap / 2 + w * 0.01, black);
+      if (gap > w * 0.06) {
+        const tw = w * 0.045, th = Math.min(gap * 0.4, w * 0.1);
+        for (let i = -3; i <= 3; i++) {
+          const tx = x + i * sw * 0.26, edge = Math.sqrt(Math.max(0, 1 - (i * 0.26) ** 2)) * (gap / 2 + w * 0.01);
+          P_rect(ctx, tx - tw / 2, y + edge - th, tw, th, teeth);                       // the top row, hanging down
+          P_rect(ctx, tx - tw / 2, y - edge, tw, th * 0.85, teeth);                       // the bottom row, coming up
+        }
+      }
+    } else P_line(ctx, x - sw, y, x + sw, y, w * 0.035, black);
+    // the stitches: crude crosses of thick twine over the slit, pulled long as it opens; the torn ones hang from the holes
+    const order = [2, 1, 3, 0, 4, 5, 6].filter(i => i < n), d = w * 0.055 + gap * 0.2, s2 = w * 0.085;
+    for (let i = 0; i < n; i++) {
+      const sx = x + (n > 1 ? lerp(-sw * 0.82, sw * 0.82, i / (n - 1)) : 0), top = y + gap / 2 + s2, bot = y - gap / 2 - s2;
+      for (const q of [[sx - d, top], [sx + d, top], [sx - d, bot], [sx + d, bot]]) P_ell(ctx, q[0], q[1], w * 0.022, w * 0.018, burlapD);   // the holes, puckered
+      if (order.indexOf(i) < torn) {   // snapped: an end hanging from each hole, curling
+        for (const [hx, hy, l] of [[sx - d, top, 0.55], [sx + d, top, 0.4], [sx - d, bot, 0.3], [sx + d, bot, 0.45]]) {
+          const sway = Math.sin(t * 3 + i + hx * 40) * w * 0.02;
+          P_limb(ctx, [[hx, hy], [hx + w * 0.02 + sway, hy - s2 * l], [hx + w * 0.035 + sway * 1.5, hy - s2 * l * 1.6]], w * 0.028, twine);
+        }
+        continue;
+      }
+      P_line(ctx, sx - d, top, sx + d, bot, w * 0.04, twine); P_line(ctx, sx + d, top, sx - d, bot, w * 0.04, twine);
+      P_line(ctx, sx - d * 0.6, top - s2 * 0.12, sx + d * 0.2, top - s2 * 0.5, w * 0.012, twineL);   // a glint of the twine
+    }
   },
   // its eyes in the dark: two pale points, never less than a pixel or so across however far off it is, blinking now and then.
   // Only where it is dark enough that they are all there is of its eyes: with a little of it showing (in your face, say) its
@@ -36,7 +97,7 @@ CREATURES.carrier = {
     const P = this.shaded(c, P0);
     if (c.runPose) { this.drawRun(ctx, c, P); return; }
     const g = c.gait, t = c.t, near = clamp(1 - c.dist / 12, 0, 1), lunge = c.lunge || 0;
-    const sack = P.col([96, 80, 60]), sackD = P.col([62, 50, 36]), skin = P.col([160, 140, 122]), black = P.col([8, 6, 6]), teeth = P.col([220, 210, 190]);
+    const sack = P.col([96, 80, 60]), sackD = P.col([62, 50, 36]), skin = P.col([160, 140, 122]), black = P.col([8, 6, 6]);
     // rearing back from the light: it straightens, its head goes back and aside, one arm comes up across its face and its
     // mouth opens; the other arm never lets go of what it carries
     const rec = smoothstep(clamp(c.recoil || 0, 0, 1));
@@ -63,20 +124,17 @@ CREATURES.carrier = {
       P_limb(ctx, [[s * 0.38, 1.15], [s * (0.1 + open * 0.55), 0.95 + open * 0.3], [-s * (0.25 - open * 0.7), 1.05 + open * 0.4]], 0.11, sack);
       if (open > 0.2) fingers(ctx, -s * (0.25 - open * 0.7), 1.05 + open * 0.4, -s * 0.4 + Math.PI / 2, 0.4, 0.14, 0.025, skin);
     }
-    // the head: low, pushed forward, hair like straw, a mouth full of small teeth
+    // the head: low, pushed forward, hair like straw, its mouth sewn shut
     ctx.save(); ctx.translate(-rec * 0.08, 1.2 - hunch * 0.2 + rec * 0.05); ctx.rotate(headTiltJerk(t, 3.3, 0.14) * (1 - lunge) * (1 - rec) - rec * 0.38);
     strands(ctx, 0, 0.42, 12, 0.3, P.col([120, 100, 60]), 9, t);
     P_ell(ctx, 0, 0.22, 0.2, 0.22, skin);
     const lk = smoothstep(lunge * 2), eh = lerp(0.025 * (1 - rec * 0.7), 0.035, lk);   // screwed shut against the glare; at you, wide and perfectly round
     P_ell(ctx, -0.08, 0.27, 0.035, eh, black); P_ell(ctx, 0.08, 0.27, 0.035, eh, black);
     if (rec < 0.3) this.eyes(ctx, c, [[-0.08, 0.27], [0.08, 0.27]]);
-    const mw = 0.08 + near * 0.05 + lunge * 0.08 + rec * 0.04, mh = 0.02 + near * 0.04 + lunge * 0.09 + rec * 0.07;
-    P_ell(ctx, 0, 0.1, mw, mh, black);
-    if (near > 0.15 || lunge > 0 || rec > 0.3) for (let i = -3; i <= 3; i++) P_rect(ctx, i * mw * 0.27 - 0.008, 0.1 + mh * 0.5 - 0.03, 0.016, 0.03, teeth);
-    if (lunge > 0) for (let i = -3; i <= 3; i++) {   // and in your face, a lower row coming up from the jaw, following the curve of it
-      const x = i * mw * 0.27, yb = 0.1 - mh * Math.sqrt(Math.max(0, 1 - (x / mw) * (x / mw))) + 0.004;
-      P_rect(ctx, x - 0.008, yb, 0.016, 0.03 * lk, teeth);
-    }
+    // straining at its stitches as it nears you, and as it rears back from the light; in your face they pull wide, two of
+    // them snap, and its teeth show through, top and bottom
+    const strain = near * (0.006 + 0.004 * Math.sin(t * 7.3)) + rec * 0.03 + lunge * 0.075;
+    this.sewnMouth(ctx, P, 0, 0.1 - lunge * 0.012, 0.25 + lunge * 0.02, strain, (lunge > 0.35 ? 1 : 0) + (lunge > 0.7 ? 1 : 0), 5, t);
     ctx.restore();
     ctx.restore();
   },
@@ -86,7 +144,7 @@ CREATURES.carrier = {
   drawRun(ctx, c, P) {
     const g = c.runGait || 0, t = c.t, pace = c.runPace === undefined ? 1 : c.runPace;
     const sack = P.col([96, 80, 60]), sackD = P.col([62, 50, 36]), sackL = P.col([126, 108, 82]), skin = P.col([160, 140, 122]), skinD = P.col([118, 100, 86]);
-    const black = P.col([8, 6, 6]), teeth = P.col([220, 210, 190]), hair = P.col([120, 100, 60]), bundle = P.col([134, 114, 82]), bundleD = P.col([98, 82, 58]), twine = P.col([48, 36, 24]);
+    const black = P.col([8, 6, 6]), hair = P.col([120, 100, 60]), bundle = P.col([134, 114, 82]), bundleD = P.col([98, 82, 58]), twine = P.col([48, 36, 24]);
     const lean = 0.32 + 0.33 * pace, thigh = 0.36, shin = 0.37, rot = Math.PI / 2 - lean;   // lean from upright; rot, the spine's angle
     const sp = [Math.sin(lean), Math.cos(lean)], fw = [Math.cos(lean), -Math.sin(lean)];       // up its spine; out of its front (forward and down)
     ctx.save(); ctx.scale(c.runDir || 1, 1);
@@ -127,9 +185,9 @@ CREATURES.carrier = {
     P_ell(ctx, hdx - 0.07, hdy + 0.01, 0.09, 0.14, skinD, -0.25);                                         // the side of the skull, shadowed
     P_ell(ctx, hdx + 0.07, hdy + 0.06, 0.032, 0.024, black);                                               // the eye
     this.eyes(ctx, c, [[hdx + 0.07, hdy + 0.06]]);
-    const mo = 0.035 + 0.03 * pace;
-    P_ell(ctx, hdx + 0.11, hdy - 0.08, 0.065, mo, black, -0.25);                                           // the mouth, open as it runs
-    for (let i = 0; i < 3; i++) P_rect(ctx, hdx + 0.07 + i * 0.03, hdy - 0.08 + mo * 0.5 - 0.028, 0.014, 0.028, teeth);
+    ctx.save(); ctx.translate(hdx + 0.1, hdy - 0.075); ctx.rotate(-0.25); ctx.scale(0.7, 1);              // the mouth, sewn shut, seen from the side
+    this.sewnMouth(ctx, P, 0, 0, 0.15, 0.004 + 0.01 * pace, 0, 3, t);
+    ctx.restore();
     leg(legs[0], sack, skin);   // the near leg, in front of the body
     ctx.restore();
   },
@@ -142,7 +200,7 @@ CREATURES.carrier = {
   drawFall(ctx, c, P) {
     const F = this.FALL, t = c.fallT, t1 = F.shriek, t2 = t1 + F.sink;
     const sack = P.col([96, 80, 60]), sackD = P.col([62, 50, 36]), sackL = P.col([128, 110, 84]), inner = P.col([34, 26, 18]), skin = P.col([160, 140, 122]), skinD = P.col([118, 100, 86]);
-    const black = P.col([8, 6, 6]), teeth = P.col([220, 210, 190]), straw = P.col([176, 150, 84]), strawD = P.col([128, 106, 56]), bundle = P.col([134, 114, 82]), twine = P.col([48, 36, 24]);
+    const black = P.col([8, 6, 6]), straw = P.col([176, 150, 84]), strawD = P.col([128, 106, 56]), bundle = P.col([134, 114, 82]), twine = P.col([48, 36, 24]);
     const side = c.fallSide || 1;
     const rm = typeof SAVE !== 'undefined' && SAVE.data && SAVE.data.settings.reducedMotion ? 0.3 : 1;
     // the straw that spills out of it as it comes apart: each strand thrown out from the split and coming to rest on the
@@ -179,9 +237,8 @@ CREATURES.carrier = {
       strands(ctx, 0, 0.42, 12, 0.3, P.col([120, 100, 60]), 9, c.t);
       P_ell(ctx, 0, 0.22, 0.2, 0.22, skin);
       P_ell(ctx, -0.08, 0.29, 0.04, 0.012, black); P_ell(ctx, 0.08, 0.29, 0.04, 0.012, black);
-      const mh = 0.13 * (1 - sink * 0.5), mw = 0.1;
-      P_ell(ctx, 0, 0.1, mw, mh, black);
-      for (let i = -3; i <= 3; i++) { P_rect(ctx, i * mw * 0.27 - 0.008, 0.1 + mh - 0.035, 0.016, 0.03, teeth); P_rect(ctx, i * mw * 0.27 - 0.008, 0.1 - mh + 0.005, 0.016, 0.03, teeth); }
+      // the stitches tearing as it screams: three of them go, and the slit gapes, then sags
+      this.sewnMouth(ctx, P, 0, 0.09, 0.26, (0.1 + Math.sin(t * 41) * 0.006 * shake) * (1 - sink * 0.45), t < 0.25 ? 2 : 3, 5, c.t);
       ctx.restore();
       ctx.restore();
       return;
@@ -223,7 +280,7 @@ CREATURES.carrier = {
     strands(ctx, 0, 0.2, 10, 0.24, P.col([120, 100, 60]), 9, c.t);
     P_ell(ctx, 0, 0, 0.19, 0.2, skin); P_ell(ctx, -0.06, 0.0, 0.1, 0.15, skinD);
     P_ell(ctx, -0.07, 0.05, 0.035, 0.01, black); P_ell(ctx, 0.07, 0.05, 0.035, 0.01, black);
-    P_ell(ctx, 0, -0.1, 0.08, 0.06, black);   // its mouth, left open
+    this.sewnMouth(ctx, P, 0, -0.09, 0.22, 0.035, 3, 5, 0);   // its mouth, torn half open
     ctx.restore();
     // dust going up off the heap in the light
     if (t > t2 + 0.3) {

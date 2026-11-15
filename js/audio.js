@@ -249,8 +249,9 @@ const AUDIO = (() => {
       case 'pour': noise(0.9, { type: 'bandpass', freq: 5200, q: 1.2, vol: 0.22, attack: 0.1 }); break;
       case 'strike': noise(0.12, { type: 'highpass', freq: 2500, vol: 0.35 }); noise(0.5, { freq: 900, vol: 0.12, delay: 0.1, attack: 0.08 }); break;
       case 'cloth': noise(0.35, { type: 'bandpass', freq: 1400, q: 0.9, vol: 0.14, attack: 0.04 }); noise(0.2, { type: 'bandpass', freq: 900, q: 1.2, vol: 0.1, delay: 0.22, attack: 0.03 }); break;
-      // a fuse blowing in its box: a sharp crack, a fizz of sparks, and the hum of everything on it dying away
-      case 'fuseBlow': noise(0.08, { type: 'highpass', freq: 1800, vol: 0.9, attack: 0.001, pan }); tone(70, 0.3, { vol: 0.6, endFreq: 34, pan }); for (let i = 0; i < 9; i++) noise(0.025, { type: 'highpass', freq: 3200 + Math.random() * 2400, vol: 0.22 * (1 - i * 0.08), delay: 0.05 + i * (0.04 + Math.random() * 0.05), pan }); tone(120, 0.7, { vol: 0.12, type: 'sawtooth', endFreq: 40, delay: 0.04, pan }); break;
+      // a breaker tripping: a bang as the main snaps over, the clack of the lever hitting OFF, a spit of sparks, and the
+      // hum of everything on it dying away
+      case 'breakerTrip': noise(0.07, { type: 'highpass', freq: 1500, vol: 0.9, attack: 0.001, pan }); tone(70, 0.22, { vol: 0.6, endFreq: 38, pan }); noise(0.03, { type: 'highpass', freq: 900, vol: 0.55, delay: 0.05, pan }); tone(160, 0.05, { vol: 0.3, type: 'square', endFreq: 90, delay: 0.05, pan }); for (let i = 0; i < 6; i++) noise(0.022, { type: 'highpass', freq: 3200 + Math.random() * 2400, vol: 0.18 * (1 - i * 0.1), delay: 0.08 + i * (0.04 + Math.random() * 0.05), pan }); tone(120, 0.7, { vol: 0.12, type: 'sawtooth', endFreq: 40, delay: 0.04, pan }); break;
       case 'candle': tone(880, 0.4, { vol: 0.05, type: 'sine', endFreq: 1200 }); break;
       case 'chain': for (let i = 0; i < 7; i++) { tone(1800 + Math.random() * 1200, 0.04, { vol: 0.08, type: 'square', delay: i * 0.07 }); noise(0.03, { type: 'highpass', freq: 4000, vol: 0.08, delay: i * 0.07 }); } break;
       case 'lock': tone(500, 0.05, { vol: 0.2, type: 'square', endFreq: 300 }); tone(220, 0.1, { vol: 0.25, type: 'square', endFreq: 200, delay: 0.09 }); break;

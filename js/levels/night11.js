@@ -9,9 +9,9 @@
 // the light. Light the place it is at and it throws an arm over its face and runs, side on, to a neighbouring place that
 // is dark. Light the places either side of it first, and then its own, and it has nowhere dark to go: it shrieks, its
 // knees go, and it comes apart in the light.
-// The box takes three lights at once. Throw a fourth and the fuse blows: a bang and sparks, every light on the farm goes
-// out, the switches all drop back to off, and for a few seconds the box is dead while it comes for you in the dark. Then
-// the breaker clicks back in with everything off.
+// The box takes three lights at once. Throw a fourth and the main breaker at the top of the box trips: a bang, the main
+// snaps over to OFF, every switch drops to off with it and every light on the farm goes out. Nothing comes on again until
+// the main is pushed back over to ON, and it does not stop coming for you while you find it in the dark.
 // The porch light is one of the three. While it is on, the yard round you is lit and the thing will come no nearer than
 // the edge of that light; while it is off, nothing stands between you and it, and it comes. So to trap it, the house has
 // to go dark first.
@@ -27,14 +27,19 @@ const FARM_RING = [   // round you clockwise from behind on your left; front: ho
 const FARM_HIDE = 2.2;   // it stands this far out from the foot of its place, in the shadow there
 LEVELS.push({
   id: 'barn', title: 'The Farm', facing: 0, eyeH: 1.65,
+  startFacing: 0,   // you start facing the barn, wherever it is: finding it is up to you
+  lookDown: 34,     // looking down, the box (taller than your waist) sits in the middle of the view
   laneSwitch: false,   // it changes places only by running from the light (build)
   pal: { skyTop: [5, 7, 17], fog: [24, 28, 40], ground: [20, 24, 18], fogDist: 125 },
   ambient: { wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 },
   text: {
     intro: 'The lights are out across the farm. Something is out there in the dark.',
-    death: { default: 'It came for you in the dark.', fuse: 'The fuse blew. In the dark, it came for you.' },
+    hint: 'It cannot stand the light. Light its place and it runs to a dark place next to it; light the places either side of it first, then its own, and it has nowhere to go. The box takes three lights at once, the porch light too: a fourth trips the main, and nothing comes on until you push the main back on.',
+    objective: 'Find it. Light the places either side of it, then its own. No more than three lights at once.',
+    where: 'It is out there in the dark, at one of the places. Find it.',
+    death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.' },
     win: 'It came apart in the light. In the morning there was only sacking and straw in the yard.',
-    fragment: 'There is straw in the fuse box every morning, and you have never kept straw.',
+    fragment: 'There is straw in the breaker box every morning, and you have never kept straw.',
   },
   // one way in from each place: it stands at the foot of one, and comes in toward you from there (build)
   lanes: FARM_RING.map(p => ({ deg: p.deg, name: p.name, startDist: p.front - FARM_HIDE })),
@@ -51,29 +56,8 @@ LEVELS.push({
     // ---------------- the sky and the ground ----------------
     SC.stars(L, 1111, 230, 0.9);
     SC.moon(L, 28, 27, 6, [214, 220, 232]);
-    // the ground: rings round you cut into sectors (finer near you). Gravel round you in the yard, a worn track out to
-    // each place, grass beyond. It takes no light of its own: the porch light's pool is laid on it tile by tile (GROUND,
-    // coloured in L.update from how much of that light reaches each), and each place's light is a pool of its own laid
-    // over it (pools, below)
-    const GROUND = [];
-    {
-      const RR = [0, 1.6, 3.2, 5, 7, 9.5, 12.5, 16, 20, 25, 31, 38, 47, 60, 80, 115], rng = mulberry32(1107);
-      for (let j = 0; j + 1 < RR.length; j++) {
-        const STEP = RR[j] < 12 ? 7.5 : 15;
-        for (let i = 0; i < 360 / STEP; i++) {
-          const a0 = (i * STEP - STEP / 2) * DEG, a1 = a0 + STEP * DEG, am = (a0 + a1) / 2, r0 = RR[j], r1 = RR[j + 1], rm = (r0 + r1) / 2;
-          const v = (rng() - 0.5) * 4;
-          let col = [36 + v, 44 + v, 28 + v * 0.6];                                                               // grass
-          if (rm < 8.5) col = [58 + v, 54 + v, 46 + v];                                                           // the yard's gravel
-          else for (const p of RING) if (Math.abs(wrapPi(am - p.yaw)) < 0.07 && rm < p.front + 1) col = [54 + v, 46 + v, 36 + v];   // the track out to it
-          if (Math.abs(wrapPi(am - Math.PI)) < 0.07 && rm < 8.5) col = [64 + v, 60 + v, 52 + v];                  // the path to the porch
-          const pt = (a, r) => [Math.sin(a) * r, 0, Math.cos(a) * r];
-          const g = poly(r0 > 0 ? [pt(a0, r0), pt(a0, r1), pt(a1, r1), pt(a1, r0)] : [pt(a0, r1), pt(a1, r1), [0, 0, 0]], col, { layer: 0, noLight: true });
-          g.base = col; g.samples = [[am, rm], [lerp(a0, a1, 0.2), lerp(r0, r1, 0.2)], [lerp(a0, a1, 0.8), lerp(r0, r1, 0.2)], [lerp(a0, a1, 0.2), lerp(r0, r1, 0.8)], [lerp(a0, a1, 0.8), lerp(r0, r1, 0.8)]].map(([a, r]) => W(Math.sin(a) * r, 0, Math.cos(a) * r));
-          GROUND.push(g);
-        }
-      }
-    }
+    // the ground: the grass of the yard, one smooth stretch of it out to the trees (the night's ground colour); the porch
+    // light's pool is laid on it further down (POOL), and each place's light is a pool of its own (pools, below)
     // trees far off all round, and a line of fence posts here and there between the places
     {
       const rng = mulberry32(1108);
@@ -290,17 +274,33 @@ LEVELS.push({
       return Math.min(p.hide, e);
     });
 
-    // the porch light's pool on the ground round you: how much of it reaches each tile of the ground (L.update colours them)
-    for (const g of GROUND) g.hk = g.samples.reduce((a, q) => a + lightAt(houseLights, q.x, 0, q.z), 0) / g.samples.length;
-    const PORCH_COL = houseLights[0].color;
-    const groundLight = () => {
-      const amb = L.pal.ambient, on = houseLit();
-      for (const g of GROUND) {
-        const b = g.base, k = on ? Math.min(1.8, g.hk) : 0;
-        if (k < 0.004) { g.color = [b[0] * amb, b[1] * amb, b[2] * amb]; continue; }
-        const m = Math.min(0.55, 0.45 * k), br = 1 + 0.9 * k;
-        g.color = [0, 1, 2].map(q => Math.min(255, (b[q] * amb + (PORCH_COL[q] - b[q] * amb) * m) * br));
+    // the porch light's pool on the grass round you: a smooth fall of warm light, brightest under the porch and fading out
+    // across the yard. It is laid on as the contours of how much of the light reaches the ground, from the faintest out at
+    // its edge to the brightest by the porch, each a thin wash of warm light over the last, so it fades with no edge
+    // anywhere; L.update fades the lot in and out with the light
+    const POOL = [];
+    {
+      let best = { k: -1, x: 0, z: 0 };
+      for (let x = -6; x <= 6; x += 0.25) for (let z = -9; z <= 3; z += 0.25) { const k = lightAt(houseLights, x, 0, z); if (k > best.k) best = { k, x, z }; }
+      const NC = 40, NR = 96, K0 = 0.012, cover = k => 0.6 * (1 - Math.exp(-1.7 * k)), POOL_COL = [222, 178, 116];
+      let was = 0;
+      for (let j = 0; j < NC; j++) {
+        const k = K0 * Math.pow(best.k * 0.97 / K0, j / (NC - 1)), c = cover(k), a = (c - was) / (1 - was);
+        was = c;
+        const pts = [];
+        for (let i = 0; i < NR; i++) {   // out along each ray from the brightest spot to where the light falls below k
+          const a2 = i / NR * TAU, dx = Math.sin(a2), dz = Math.cos(a2);
+          let r = 0, prev = best.k;
+          for (let q = 0.1; q < 30; q += 0.1) { const v = lightAt(houseLights, best.x + dx * q, 0, best.z + dz * q); if (v < k) { r = q - 0.1 * (k - v) / Math.max(1e-6, prev - v); break; } prev = v; r = q; }
+          pts.push([best.x + dx * r, 0.004, best.z + dz * r]);
+        }
+        const p = { kind: 'poly', pts, color: POOL_COL, alpha: a, a, layer: 0, sortDist: -0.1 - j * 0.01, noLight: true, noFog: true, noCull: true };
+        L.props.push(p); POOL.push(p);
       }
+    }
+    const poolLight = dt => {
+      s.pool += ((houseLit() ? 1 : 0) - s.pool) * Math.min(1, dt * 14);
+      for (const p of POOL) p.alpha = p.a * s.pool;
     };
     // each place's light on its yard: a pool of warm light on the ground from the foot of the place out toward you
     RING.forEach(p => inFrame(p.deg, () => {
@@ -315,11 +315,14 @@ LEVELS.push({
     }));
 
     // ---------------- the electrical box ----------------
-    // On its post in front of you, at your waist: a grey steel box with a rain hood, its door swung right back on its
-    // hinges to the left. Inside, the main fuse in its holder at the top, and two rows of four big toggle switches, each
-    // with a red pilot lamp and a strip of tape under it with the place written on it in marker. Up is on. A little lamp
-    // in the top of the box lights its inside while there is power (the panel is lit by it alone).
-    const BZ = 1.0, BY = 0.5, BW = 0.5, BH = 0.6, PY = BY + 0.02, PW = 0.46, PH = 0.56;
+    // On its post in front of you, its top at your chest: a grey steel box with a rain hood, its door swung right back on
+    // its hinges to the left. Inside, at the top, the main breaker: a big lever lying across, over to the right for ON and
+    // to the left for OFF, a red tag over it marked MAIN and a green lamp beside it that is lit while it is on. Under it,
+    // two rows of four big toggle switches, each with a red pilot lamp and a strip of tape under it with the place written
+    // on it in marker. Up is on. A little lamp in the top of the box lights its inside while the main is on (the panel is
+    // lit by it alone). The panel and every part of it are fixed flat on the front of the box (face: they never turn
+    // toward you), so what you click is where it is drawn whichever way you look.
+    const BZ = 1.0, BY = 0.5, BW = 0.5, BH = 0.82, PY = BY + 0.02, PW = 0.46, PH = 0.78, FRONT = Math.PI;
     const steel = [66, 74, 70];
     SC.box(L, -0.04, 0.04, 0, BY, BZ + 0.06, BZ + 0.14, [50, 52, 50]);                    // the post
     SC.box(L, 0.12, 0.16, 0, BY, BZ + 0.04, BZ + 0.08, [40, 42, 42]);                     // the conduit down into the ground
@@ -330,31 +333,46 @@ LEVELS.push({
       poly([[-BW / 2, BY, BZ], [ex, BY, ez], [ex, BY + BH, ez], [-BW / 2, BY + BH, BZ]], scalec(steel, 0.9), { sortDist: BZ + 0.05 });
     }
     const LABELS = ['HOUSE'].concat(RING.map(p => p.label));
-    const COLS = [-0.165, -0.055, 0.055, 0.165], ROWS = [0.33, 0.15];
+    const COLS = [-0.165, -0.055, 0.055, 0.165], ROWS = [0.43, 0.22], MY = 0.62;   // (MY: the main's lever, across the top)
     const swAt = i => [COLS[i % 4], ROWS[Math.floor(i / 4)]];
     const HANDF = "bold 42px 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', 'Chalkboard SE', 'Liberation Sans', Arial, sans-serif";
-    // how far up a switch's lever stands (1 up, on; 0 down, off): flipped over quickly, all dropping at once when the fuse
-    // goes, and a click on a dead box pushing it up only for it to fall straight back
+    const PLATEF = "bold 40px 'Liberation Sans', Arial, sans-serif";
+    // how far up a switch's lever stands (1 up, on; 0 down, off): flipped over quickly, all dropping at once when the main
+    // trips, and a click with the main off pushing it up only for it to fall straight back
     const lever = i => {
       const ft = L.t - s.flipAt[i], want = s.on[i] ? 1 : 0;
       if (L.t - s.deadAt[i] < 0.35) { const u = (L.t - s.deadAt[i]) / 0.35; return Math.sin(Math.PI * u) * 0.8; }
       if (L.t - s.dropAt < 0.12 && s.wasOn[i]) return 1 - (L.t - s.dropAt) / 0.12;
       return ft < 0.08 ? lerp(1 - want, want, ft / 0.08) : want;
     };
-    // the box's own little lamp: on with the power, flickering up as the breaker comes back in
-    const boxLamp = () => { if (!s.power) return 0.16; const k = L.t - s.backAt; return k < 0.3 ? (Math.sin(k * 90) > 0 ? 0.85 : 0.3) : 0.85; };
+    // how far over the main's lever is (1 over to ON, 0 to OFF): it snaps over when it trips and is pushed back over when
+    // you put it on; pushed while it is on, it gives a little and settles back
+    const mainLever = () => {
+      const want = s.power ? 1 : 0, ft = L.t - s.mainAt, jt = L.t - s.mainJig;
+      if (jt < 0.3) return 1 - Math.sin(Math.PI * jt / 0.3) * 0.12;
+      return ft < 0.1 ? lerp(1 - want, want, ft / 0.1) : want;
+    };
+    // the box's own little lamp: on with the main, flickering up as it goes back on
+    const boxLamp = () => { if (!s.power) return 0.22; const k = L.t - s.backAt; return k < 0.3 ? (Math.sin(k * 90) > 0 ? 0.85 : 0.3) : 0.85; };
     SC.sprite(L, 0, PY, BZ - 0.005, PW, PH, (ctx, P) => {
       const b = boxLamp(), C = c => P.col(scalec(c, b));
-      const plate = C([150, 154, 146]), dark = C([30, 32, 32]), chrome = C([220, 224, 226]), tape = C([226, 212, 168]), ink = C([22, 20, 32]);
+      const plate = C([150, 154, 146]), dark = C([30, 32, 32]), chrome = C([220, 224, 226]), tape = C([226, 212, 168]), ink = C([22, 20, 32]), paint = C([200, 200, 196]);
       P_rect(ctx, -PW / 2, 0, PW, PH, C(scalec(steel, 0.7)));
-      P_rect(ctx, -0.205, 0.02, 0.41, 0.52, plate);
+      P_rect(ctx, -0.205, 0.02, 0.41, PH - 0.04, plate);
       const g = ctx.createLinearGradient(0, PH, 0, 0); g.addColorStop(0, 'rgba(255,250,230,' + (0.12 * b).toFixed(3) + ')'); g.addColorStop(1, 'rgba(0,0,0,' + (0.25).toFixed(3) + ')');
-      ctx.fillStyle = g; ctx.fillRect(-0.205, 0.02, 0.41, 0.52);   // the lamp at the top: brighter up there, falling off down the panel
-      // the main fuse: a ceramic holder, the cartridge in its clips; once it has blown, soot all round it
-      P_rect(ctx, -0.1, 0.44, 0.2, 0.08, C([216, 210, 196]));
-      if (s.blows) P_ell(ctx, 0, 0.48, 0.13 + 0.01 * Math.min(3, s.blows), 0.05, P.cola([20, 18, 16], 0.75));
-      P_rect(ctx, -0.065, 0.465, 0.13, 0.03, s.blows ? C([46, 36, 26]) : C([176, 136, 76]));
-      for (const x of [-0.07, 0.055]) P_rect(ctx, x, 0.46, 0.015, 0.04, C([196, 166, 92]));
+      ctx.fillStyle = g; ctx.fillRect(-0.205, 0.02, 0.41, PH - 0.04);   // the lamp at the top: brighter up there, falling off down the panel
+      const text = (t, x, y, k, font, col, max) => { ctx.save(); ctx.translate(x, y); ctx.scale(k, -k); ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = col; ctx.fillText(t, 0, 2, max); ctx.restore(); };
+      // the main: its red tag, a black plate with OFF and ON at either end, the lever across it, and its green lamp
+      P_rect(ctx, -0.06, MY + 0.05, 0.12, 0.036, C([150, 30, 26]));
+      text('MAIN', 0, MY + 0.068, 0.00056, PLATEF, C([236, 230, 220]), 180);
+      P_rect(ctx, -0.13, MY - 0.036, 0.26, 0.072, dark);
+      P_rect(ctx, -0.075, MY - 0.009, 0.15, 0.018, C([10, 10, 10]));                                  // the slot the lever runs in
+      text('OFF', -0.104, MY, 0.0003, PLATEF, paint, 120); text('ON', 0.106, MY, 0.0003, PLATEF, paint, 120);
+      const mx = lerp(-0.055, 0.055, mainLever());
+      P_rect(ctx, mx - 0.022, MY - 0.031, 0.044, 0.062, C([54, 56, 58])); P_rect(ctx, mx - 0.017, MY - 0.026, 0.034, 0.052, chrome);
+      for (const dx of [-0.008, 0, 0.008]) P_line(ctx, mx + dx, MY - 0.018, mx + dx, MY + 0.018, 0.003, C([120, 122, 126]));   // the grip ridges on the lever
+      P_ell(ctx, 0.168, MY, 0.011, 0.011, s.power ? P.raw([90, 255, 120]) : C([24, 60, 30]));          // the main's lamp
+      if (s.power) P_ell(ctx, 0.168, MY, 0.022, 0.022, 'rgba(90,255,120,0.22)');
       for (let i = 0; i < 8; i++) {
         const [cx, ry] = swAt(i), up = lever(i), on = s.power && s.on[i];
         P_rect(ctx, -0.026 + cx, ry - 0.04, 0.052, 0.08, dark);                                  // its plate
@@ -368,55 +386,68 @@ LEVELS.push({
         ctx.font = HANDF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = ink; ctx.fillText(LABELS[i], 0, 2, 190);
         ctx.restore();
       }
-    }, { sortDist: BZ - 0.02, noLight: true });
-    // the switches: each a target on the panel, over its lever and its tape
+    }, { sortDist: BZ - 0.02, noLight: true, face: FRONT });
+    // the main and the switches: each a target on the panel, flat on it as the panel is
+    mkTarget(L, {
+      id: 'main', name: 'Main', x: 0, y: PY + MY - 0.045, z: BZ - 0.012, w: 0.28, h: 0.135, face: FRONT,
+      hint() { return s.power ? 'The main. On.' : 'The main. Off: push it back on.'; },
+      onClick() { main(); return true; },
+    });
     LABELS.forEach((lab, i) => {
       const [cx, ry] = swAt(i);
       mkTarget(L, {
-        id: 'sw' + i, name: lab.charAt(0) + lab.slice(1).toLowerCase(), x: cx, y: PY + ry - 0.075, z: BZ - 0.012, w: 0.1, h: 0.13,
+        id: 'sw' + i, name: lab.charAt(0) + lab.slice(1).toLowerCase(), x: cx, y: PY + ry - 0.075, z: BZ - 0.012, w: 0.1, h: 0.13, face: FRONT,
         onClick() { flip(i); return true; },
       });
     });
 
     // ---------------- the state of things ----------------
-    const BLACKOUT = 5;   // how long the box is dead once the fuse has gone
-    Object.assign(s, { on: [true, false, false, false, false, false, false, false], wasOn: [], power: true, blows: 0, blownAt: -99, dropAt: -99,
-      flipAt: Array(8).fill(-9), litAt: Array(8).fill(-9), backAt: -9, deadAt: Array(8).fill(-9), sparks: [], smoke: [], k: null, r: null, run: null, flinch: null, back: null, flushes: 0, trapped: false, ring: N, edge: EDGE, hideAt: RING.map(p => p.hide) });
+    Object.assign(s, { on: [true, false, false, false, false, false, false, false], wasOn: [], power: true, trips: 0, tripAt: -99, dropAt: -99, mainAt: -9, mainJig: -9, pool: 1,
+      flipAt: Array(8).fill(-9), litAt: Array(8).fill(-9), backAt: -99, deadAt: Array(8).fill(-9), sparks: [], smoke: [], k: null, r: null, run: null, flinch: null, back: null, flushes: 0, trapped: false, ring: N, edge: EDGE, hideAt: RING.map(p => p.hide) });
     const lit = k => s.power && s.on[k + 1];
     const houseLit = () => s.power && s.on[0];
     const countOn = () => s.on.filter(Boolean).length;
     const nb = k => [(k + N - 1) % N, (k + 1) % N];
     L.nb = nb;   // (for the tests)
     const fxr = mulberry32((G.runSeed * 31 + 1111) >>> 0);
-    const BOXP = W(0, PY + 0.48, BZ - 0.02);   // the main fuse
-    const blow = () => {
-      s.wasOn = s.on.slice(); s.on.fill(false); s.power = false; s.blows++; s.blownAt = s.dropAt = L.t;
-      AUDIO.sfx('fuseBlow'); G.shake(0.55); G.flash(0.3);
-      for (let i = 0; i < 34; i++) { const a = fxr() * TAU, v = 0.8 + fxr() * 2.2; s.sparks.push({ x: BOXP.x, y: BOXP.y, z: BOXP.z - 0.02, vx: Math.cos(a) * v * 0.7, vy: 0.6 + fxr() * 2.4, vz: -Math.abs(Math.sin(a)) * v * 0.6, age: 0, life: 0.5 + fxr() * 0.7 }); }
-      for (let i = 0; i < 7; i++) s.smoke.push({ x: BOXP.x + (fxr() - 0.5) * 0.1, y: BOXP.y + 0.05, z: BOXP.z - 0.05, age: -i * 0.12, r: 0.06 + fxr() * 0.05 });
-      G.say('The fuse blows. Every light on the farm goes out.', 'The fuse blows.');
+    const BOXP = W(0.06, PY + MY, BZ - 0.02);   // the main, where it trips
+    // a fourth light: the main trips. A bang and a spit of sparks off it, it snaps over to OFF, every switch drops to off
+    // with it, and every light on the farm goes out
+    const trip = () => {
+      s.wasOn = s.on.slice(); s.on.fill(false); s.power = false; s.trips++; s.tripAt = s.dropAt = s.mainAt = L.t;
+      AUDIO.sfx('breakerTrip'); G.shake(0.55); G.flash(0.3);
+      for (let i = 0; i < 22; i++) { const a = fxr() * TAU, v = 0.8 + fxr() * 2.0; s.sparks.push({ x: BOXP.x, y: BOXP.y, z: BOXP.z - 0.02, vx: Math.cos(a) * v * 0.7, vy: 0.6 + fxr() * 2.2, vz: -Math.abs(Math.sin(a)) * v * 0.6, age: 0, life: 0.4 + fxr() * 0.6 }); }
+      for (let i = 0; i < 4; i++) s.smoke.push({ x: BOXP.x + (fxr() - 0.5) * 0.1, y: BOXP.y + 0.05, z: BOXP.z - 0.05, age: -i * 0.12, r: 0.05 + fxr() * 0.04 });
+      G.say('The main trips. Every switch drops, and every light on the farm goes out.', 'The main trips.');
+    };
+    // the main: pushed back over to ON, with everything else off; pushed while it is on, it is on already
+    const main = () => {
+      if (L.won || G.state !== 'play') return;
+      if (s.power) { s.mainJig = L.t; AUDIO.sfx('switch'); G.say('The main is on.', 'The main is on.'); return; }
+      s.power = true; s.mainAt = s.backAt = L.t;
+      AUDIO.sfx('lever'); AUDIO.sfx('clunk');
+      G.say('The main goes back on. Everything else is off.', 'The main is on.');
     };
     const flip = i => {
       if (L.won || G.state !== 'play') return;
-      if (!s.power) {   // the box is dead: the lever goes up, nothing comes on, and it drops back
-        s.deadAt[i] = L.t; AUDIO.sfx('switch');
-        if (fxr() < 0.5) s.sparks.push({ x: BOXP.x + swAt(i)[0], y: PY + swAt(i)[1], z: BZ - 0.03, vx: (fxr() - 0.5) * 0.6, vy: 0.4, vz: -0.3, age: 0, life: 0.25 });
-        G.say('Nothing comes on.', 'Nothing.');
+      if (!s.power) {   // the main is off: the lever goes up, nothing comes on, and it drops back
+        s.deadAt[i] = L.t; AUDIO.sfx('clunk');
+        G.say('Nothing comes on. The main is off.', 'The main is off.');
         return;
       }
       s.on[i] = !s.on[i]; s.flipAt[i] = L.t;
       AUDIO.sfx('switch'); AUDIO.sfx('clunk');
-      if (s.on[i] && countOn() >= 4) { blow(); return; }
+      if (s.on[i] && countOn() >= 4) { trip(); return; }
       if (s.on[i]) { s.litAt[i] = L.t; AUDIO.sfx('tubeOn'); }
     };
-    L.flip = flip;   // (for the tests)
+    L.flip = flip; L.main = main;   // (for the tests)
 
     // ---------------- the thing ----------------
     // It is always on a way of its own that turns to where it is (so it can run round you between the places); its
     // distance is s.r. At its place, in the dark: still at first, then creeping in toward you, no nearer than the edge of
     // the porch light while that is on, and all the way while it is not. Its place lit: it flinches and runs to a dark
     // neighbour, or, with both of them lit, it is caught.
-    const CREEP = { wait: 5, lit: 0.2, dark: 0.62, blackout: 2.4, back: 2.6 };
+    const CREEP = { wait: 5, lit: 0.2, dark: 0.62, back: 2.6 };   // (with the main tripped it is dark, and it comes at its own pace)
     const RUN = { speed: 6.5, min: 0.8, max: 3.4, flinch: 0.32, behind: 17 };
     let way = null;
     const place = (c, yaw, r) => { way.yaw = yaw; way.dirX = Math.sin(yaw); way.dirZ = Math.cos(yaw); c.yaw = yaw; s.r = r; };
@@ -467,7 +498,6 @@ LEVELS.push({
       }
       if (lit(s.k)) { flushed(c); return; }
       // in the dark: creeping in, or backing off out of the porch light
-      const blackout = !s.power, seen = c.seen && !blackout;
       const edge = EDGE[s.k], target = houseLit() ? edge : 0;
       if (s.back) {   // the porch light came on with it inside it: it rears back and backs off to its edge
         s.back.t += dt; c.recoil = s.back.t < 0.5 ? Math.min(1, s.back.t / 0.12) : Math.max(0, 1 - (s.back.t - 0.5) / 0.2);
@@ -476,7 +506,7 @@ LEVELS.push({
         return;
       }
       if (houseLit() && s.r < edge - 0.05) { s.back = { t: 0 }; AUDIO.sfx('hiss', panTo(c.yaw)); return; }
-      const v = blackout ? CREEP.blackout : (houseLit() ? (L.t < CREEP.wait ? 0 : CREEP.lit) : CREEP.dark) * (seen ? 1 : c.unseenMult);
+      const v = (houseLit() ? (L.t < CREEP.wait ? 0 : CREEP.lit) : CREEP.dark) * (c.seen ? 1 : c.unseenMult);
       if (s.r > target) s.r = Math.max(target, s.r - v * dt);
     };
     // its colours: in the dark it is all but black, its eyes two pale points; in its own place's light, itself
@@ -488,21 +518,19 @@ LEVELS.push({
     };
     L.update = dt => {
       const c = L.creature;
-      if (s.k === null) {   // the start: at the foot of its place; and you, facing the box
+      if (s.k === null) {   // the start: at the foot of its place (and you, facing the barn and the box: startFacing)
         s.k = c.lane.idx; c.D0 = RING[s.k].hide;
         way = Object.assign({}, L.lanes[s.k], { apertures: [], blockers: [], name: 'round the yard' });
         c.lane = way; place(c, RING[s.k].yaw, RING[s.k].hide); c.dist = s.r;
         c.distFn = () => s.r; c.shade = 1;
-        Object.assign(G.cam, { dirIdx: 0, yaw: 0, tYaw: 0, pitch: 0, tPitch: 0 });
       }
-      if (!s.power && L.t - s.blownAt >= BLACKOUT) { s.power = true; s.backAt = L.t; AUDIO.sfx('clunk'); AUDIO.sfx('lever'); G.say('The breaker clicks back in. Everything is off.', 'The power is back.'); }
       if (!L.won && G.state === 'play') step(c, dt);
       c.u = clamp(1 - s.r / c.D0, 0, 1);
       c.shade += (shadeOf(c) - c.shade) * Math.min(1, dt * 7);
-      // the ambient dark: a little darker still with the fuse gone
+      // the ambient dark: a little darker still with the main off
       const amb = s.power ? 0.42 : 0.32;
       L.pal.ambient += (amb - L.pal.ambient) * Math.min(1, dt * 6);
-      groundLight();
+      poolLight(dt);
       // the sparks and the smoke from the box
       for (const p of s.sparks) { p.age += dt; p.vy -= 9.8 * dt; p.x += p.vx * dt; p.y = Math.max(0.01, p.y + p.vy * dt); p.z += p.vz * dt; }
       s.sparks = s.sparks.filter(p => p.age < p.life);
@@ -510,7 +538,7 @@ LEVELS.push({
       s.smoke = s.smoke.filter(p => p.age < 2.6);
     };
     L.isWon = () => s.trapped;
-    L.deathCause = () => (L.t - s.blownAt < BLACKOUT + 8 ? 'fuse' : 'default');
+    L.deathCause = () => (!s.power || L.t - s.backAt < 8 ? 'trip' : 'default');
     L.onCatch = c => { c.shade = 0.45; c.runPose = false; return false; };   // (in your face, a little of it shows)
     // caught: it shrieks, its knees go, and it comes apart in the light (carrier.drawFall); the view closes in on it
     const FALL = CREATURES.carrier.FALL, FALL_END = FALL.shriek + FALL.sink + FALL.apart + 1.8;
@@ -531,7 +559,7 @@ LEVELS.push({
       lights.length = 0;
       if (houseLit()) lights.push(houseLights[0], houseLights[1]);
       for (let k = 0; k < N; k++) if (lit(k)) lights.push(lightsOf[k][0], lightsOf[k][1]);
-      if (L.t - s.blownAt < 0.25) lights.push(Object.assign(W(0, PY + 0.5, BZ - 0.2), { r: 6, i: 1.6 * (1 - (L.t - s.blownAt) / 0.25), color: [210, 220, 255] }));
+      if (L.t - s.tripAt < 0.25) lights.push(Object.assign(W(0.06, PY + MY, BZ - 0.2), { r: 6, i: 1.6 * (1 - (L.t - s.tripAt) / 0.25), color: [210, 220, 255] }));   // the flash as the main trips
       return lights;
     };
     const glows = [];
@@ -539,7 +567,7 @@ LEVELS.push({
       glows.length = 0;
       if (houseLit()) { glows.push(Object.assign({}, HOUSE.lamp, { r: 0.9, color: [255, 210, 150], a: 0.55 }), Object.assign({}, HOUSE.lamp, { r: 3.2, color: [255, 190, 120], a: 0.12 })); }
       for (let k = 0; k < N; k++) if (lit(k)) { const l = PLACE[k].lamp; glows.push({ x: l.x, y: l.y, z: l.z, r: 1.3, color: [255, 236, 200], a: 0.6 }, { x: l.x, y: l.y, z: l.z, r: 5, color: [255, 214, 150], a: 0.14 }); }
-      if (L.t - s.blownAt < 0.4) glows.push({ x: BOXP.x, y: BOXP.y, z: BOXP.z, r: 0.5, color: [220, 230, 255], a: 0.9 * (1 - (L.t - s.blownAt) / 0.4) });
+      if (L.t - s.tripAt < 0.4) glows.push({ x: BOXP.x, y: BOXP.y, z: BOXP.z, r: 0.5, color: [220, 230, 255], a: 0.9 * (1 - (L.t - s.tripAt) / 0.4) });
       return glows;
     };
     // what moves: the sparks off the box and its smoke

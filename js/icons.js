@@ -426,9 +426,10 @@ const SC = {
     SC.quad(L, [x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0], side2, face([U[0] * sx, 0, U[1] * sx]));
     SC.quad(L, [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1], top, y1 >= y0 ? face([0, 1, 0]) : opts);
   },
+  // opts.face: a panel fixed flat on an upright face, its front looking toward that yaw (radians, in the level's frame;
+  // Math.PI looks back at you from in front): drawn where it is, in perspective, and never turned toward you (js/render.js)
   sprite(L, x, y, z, w, h, draw, opts) {
-    const p = L.pt(x, y, z);
-    const s = Object.assign({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w, h, draw }, opts || {});
+    const s = SC.mkSprite(L, x, y, z, w, h, draw, opts);
     L.props.push(s); return s;
   },
   // trees: 'bare' (winter deciduous), 'fir', 'round'
@@ -661,5 +662,7 @@ SC.mkQuad = function (L, a, b, c, d, color, opts) {
 SC.mkWallV = function (L, x0, z0, x1, z1, y0, y1, color, opts) { return SC.mkQuad(L, [x0, y0, z0], [x1, y0, z1], [x1, y1, z1], [x0, y1, z0], color, opts); };
 SC.mkSprite = function (L, x, y, z, w, h, draw, opts) {
   const p = L.pt(x, y, z);
-  return Object.assign({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w, h, draw }, opts || {});
+  const s = Object.assign({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w, h, draw }, opts || {});
+  if (s.face !== undefined) s.face += L.facing;   // (from the level's frame to the world's, as its place is)
+  return s;
 };

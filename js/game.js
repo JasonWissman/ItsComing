@@ -162,7 +162,9 @@ function startLevel(i, withCard) {
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed + i);
   const c = G.cam;
-  c.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8;
+  // the view starts toward where it is coming from, or where the night says (night 11: the barn, and finding it is yours)
+  const yaw0 = G.L.def.startFacing !== undefined ? G.L.facing + G.L.def.startFacing * DEG : G.L.creature.yaw;
+  c.dirIdx = ((Math.round(yaw0 / (45 * DEG)) % 8) + 8) % 8;
   c.tYaw = c.yaw = c.dirIdx * 45 * DEG; c.tPitch = c.pitch = 0; c.zoom = 1; c.zoomHeld = false;
   G.hb.next = 0; G.hb.last = -10; G.danger = 0; G.shakeAmt = 0; G.flashAmt = 0;
   G.fade = 1; G.fadeTarget = 0;
@@ -170,7 +172,7 @@ function startLevel(i, withCard) {
     setState('card');
     const d = G.diff(), T = G.L.text;
     const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
+    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
   } else {
     setState('play');
     hideOverlay();
@@ -635,6 +637,14 @@ function deathLine(L) {
 }
 
 // ---------------- hover ----------------
+function inPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const a = pts[i], b = pts[j];
+    if ((a[1] > y) !== (b[1] > y) && x < a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1])) inside = !inside;
+  }
+  return inside;
+}
 function updateHover() {
   const hits = R.hits, mx = G.mouse.x, my = G.mouse.y;
   let h = null;
@@ -644,6 +654,7 @@ function updateHover() {
     for (let i = hits.length - 1; i >= 0; i--) {
       const r = hits[i];
       if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) continue;
+      if (r.poly && !inPoly(mx, my, r.poly)) continue;   // a panel fixed on a face: only the shape it covers (js/render.js)
       // smaller wins; among things of a size, the one whose middle is nearest the cursor
       const dd = Math.hypot(mx - (r.x + r.w / 2), my - (r.y + r.h / 2)) / Math.max(1, Math.hypot(r.w, r.h));
       const area = r.w * r.h * (1 + dd);
@@ -929,7 +940,7 @@ function render() {
   }
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
-    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: true, hitOnly: true }; rend.set(t, p); }   // only its hit area: what glows when it is hovered is what it is drawn with (glowWith)
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', face: t.face, attach: !!t.attach, noHover: true, hitOnly: true }; rend.set(t, p); }   // only its hit area: what glows when it is hovered is what it is drawn with (glowWith)
     p.x = t.x; p.y = t.y; p.z = t.z; p.w = t.w; p.h = t.h;   // a target can move or change size (an opened box's lid stands up)
     R.add(p);
   }

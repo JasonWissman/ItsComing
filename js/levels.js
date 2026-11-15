@@ -36,6 +36,7 @@ function mkTarget(L, o) {
   const local = o.x !== undefined ? [o.x, o.y, o.z] : [Math.sin(o.deg * DEG) * o.dist, o.y, Math.cos(o.deg * DEG) * o.dist];
   const p = L.pt(local[0], local[1], local[2]);
   const t = Object.assign({ w: 1, h: 1, flat: false, accepts: [], requires: [], needed: 1, count: 0, done: false }, o, { x: p[0], y: p[1], z: p[2], local });
+  if (o.face !== undefined) t.face = o.face + L.facing;   // fixed flat on an upright face, as SC.sprite's opts.face (its hit area is the shape it covers)
   L.targets.push(t);
   return t;
 }

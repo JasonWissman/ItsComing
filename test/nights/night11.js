@@ -2,10 +2,12 @@
 // the tractor shed, sw1..sw7). The thing hides in the dark at one place (G.L.s.k, 0..6); its neighbours are G.L.nb(k).
 // Checks first, each from a fresh start, with clicks on the switches as a click does them (useTarget):
 //  - lighting its place makes it flinch and run, side on, to a neighbouring place that is dark;
-//  - four switches on at once blow the fuse: every light goes dark and every switch drops to off; the box is dead a few
-//    seconds, then comes back with everything off;
-//  - with the porch light on, lighting both its neighbours and then its place is a fourth switch: the fuse blows, it is
+//  - four switches on at once trip the main: it goes over to off, every light goes dark and every switch drops to off;
+//    no switch comes on while the main is off (a click is refused); the main pushed back on, with everything else still
+//    off, and then the switches work again;
+//  - with the porch light on, lighting both its neighbours and then its place is a fourth switch: the main trips, it is
 //    not caught;
+//  - with the main off it comes at its own pace, no faster;
 //  - flipping switches at random gets you killed (several random runs, played out with G.step);
 // then the night itself: the house switched off, both its neighbours lit, then its own place, and it comes apart.
 const sw = i => "G.L.targets.find(t => t.id === 'sw" + i + "')";
@@ -20,33 +22,46 @@ const flush = fresh.concat([
   ['waitUntil', '!G.L.s.run && !G.L.s.flinch', 6000],
   ['expect', 'window.__nb.includes(G.L.s.k) && !G.L.s.on[G.L.s.k + 1] && G.L.creature.shade > 0.5 && Math.abs(G.L.s.r - window.__r0) < 2', 'it is at that neighbour now, in the dark, no further from you than it was'],
 ]);
-const fuse = fresh.concat([
+const main = "G.L.targets.find(t => t.id === 'main')";
+const trip = fresh.concat([
+  ['expect', 'G.L.s.power && ' + main + ' && ' + main + '.face !== undefined && G.L.targets.filter(t => /^sw/.test(t.id)).every(t => t.face === ' + main + '.face)', 'the main breaker and the switches, fixed flat on the front of the box'],
   ['eval', 'const k = G.L.s.k, far = [0, 1, 2, 3, 4, 5, 6].filter(q => q !== k && !G.L.nb(k).includes(q)).slice(0, 3); window.__far = far; ' + "far.forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
-  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o) && G.L.s.blows === 1', 'a fourth switch on: the fuse blows, and every switch drops to off'],
+  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o) && G.L.s.trips === 1', 'a fourth switch on: the main trips, and every switch drops to off'],
   ['wait', 400],
   ['expect', 'G.L.dynamicLights().length === 0 && G.L.pal.ambient < 0.4', 'every light on the farm is out, the porch light too'],
-  ['eval', click(2)],
-  ['expect', '!G.L.s.power && !G.L.s.on[2]', 'the dead box: a switch pushed up drops straight back'],
-  ['waitUntil', 'G.L.s.power', 7000],
-  ['expect', 'G.L.s.power && G.L.s.on.every(o => !o) && G.state === "play"', 'the breaker comes back in, with everything off'],
+  ['eval', 'window.__r1 = G.L.s.r; window.__t1 = G.L.t;'],
+  ['eval', click(2) + click(0)],
+  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o) && G.lastToast.msg.includes("main is off")', 'with the main off a switch pushed up drops straight back, and you are told why'],
+  ['wait', 1500],
+  ['expect', '!G.L.s.power && G.state === "play" && (window.__r1 - G.L.s.r) / (G.L.t - window.__t1) < 0.62 * 1.15 + 0.05', 'with the main off it stays off, and it comes at its own pace, no faster'],
+  ['use', 'main'],
+  ['expect', 'G.L.s.power && G.L.s.on.every(o => !o) && G.L.dynamicLights().length === 0', 'the main pushed back on: on, with everything else still off'],
+  ['eval', click(0)],
+  ['expect', 'G.L.s.power && G.L.s.on[0] && G.L.dynamicLights().length > 0', 'and now a switch works again (the porch light back on)'],
+  ['use', 'main'],
+  ['expect', 'G.L.s.power && G.L.s.on[0] && G.L.s.trips === 1', 'the main pushed while it is on: it stays on, and nothing changes'],
 ]);
 const houseOn = fresh.concat([
   ['eval', "const k = G.L.s.k; G.L.nb(k).forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1)))); useTarget(G.L.targets.find(t => t.id === 'sw' + (k + 1)));"],
-  ['expect', '!G.L.s.power && G.L.s.blows === 1 && !G.L.s.trapped', 'with the porch light on, the trap is a fourth switch: the fuse blows and it is not caught'],
+  ['expect', '!G.L.s.power && G.L.s.trips === 1 && !G.L.s.trapped', 'with the porch light on, the trap is a fourth switch: the main trips and it is not caught'],
   ['wait', 300], ['expect', '!G.L.won', 'not won'],
 ]);
-// switches flipped at random every half second or so, played out with G.step until it ends: it gets you
+// switches (and the main) flipped at random every half second or so, played out with G.step until it ends: it gets you
 const random = seed => fresh.concat([
   ['eval', '(() => { let a = ' + seed + '; const rnd = () => { a = (a * 1103515245 + 12345) % 2147483648; return a / 2147483648; }; let next = 0.5; ' +
-    'for (let i = 0; i < 2400 && G.state === "play"; i++) { G.step(0.05); if (G.L.t >= next) { next = G.L.t + 0.3 + rnd() * 0.6; const id = "sw" + Math.floor(rnd() * 8); useTarget(G.L.targets.find(t => t.id === id)); } } ' +
+    'for (let i = 0; i < 2400 && G.state === "play"; i++) { G.step(0.05); if (G.L.t >= next) { next = G.L.t + 0.3 + rnd() * 0.6; const q = Math.floor(rnd() * 9), id = q < 8 ? "sw" + q : "main"; useTarget(G.L.targets.find(t => t.id === id)); } } ' +
     'window.__rand = (window.__rand || 0) + (G.state === "dying" || G.state === "dead" ? 1 : 0); })()'],
 ]);
 const randoms = [].concat(...[11, 22, 33, 44, 55].map(random), [['expect', 'window.__rand >= 5', 'flipping switches at random: it got you every time (' + 5 + ' runs)']]);
-// the night: the porch light off first, then the places either side of where it is, then its own
+// the night: the main tripped first (the box overloaded) and pushed back on, then the places either side of where it
+// is, then its own (the porch light off, as the trip left it)
 const trap = k => { const n = [(k + 6) % 7, (k + 1) % 7]; return [['use', 'sw' + (n[0] + 1)], ['use', 'sw' + (n[1] + 1)], ['expect', 'G.L.s.k === ' + k + ' && !G.L.won', 'both neighbours lit; it stays where it is, in the dark'], ['use', 'sw' + (k + 1)]]; };
 const solve = [
-  ['use', 'sw0'],
-  ['expect', '!G.L.s.on[0]', 'the porch light is off'],
+  ['eval', 'const k = G.L.s.k, far = [0, 1, 2, 3, 4, 5, 6].filter(q => q !== k && !G.L.nb(k).includes(q)).slice(0, 3); ' + "far.forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
+  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o)', 'the box overloaded: the main trips, every light out'],
+  ['use', 'sw' + 1], ['expect', '!G.L.s.power && !G.L.s.on[1]', 'a switch refused while the main is off'],
+  ['use', 'main'],
+  ['expect', 'G.L.s.power && !G.L.s.on[0]', 'the main back on; the porch light is off'],
   ['branch', 'G.L.s.k === 0', trap(0)], ['branch', 'G.L.s.k === 1', trap(1)], ['branch', 'G.L.s.k === 2', trap(2)], ['branch', 'G.L.s.k === 3', trap(3)],
   ['branch', 'G.L.s.k === 4', trap(4)], ['branch', 'G.L.s.k === 5', trap(5)], ['branch', 'G.L.s.k === 6', trap(6)],
   ['expect', 'G.L.s.trapped && G.L.won && G.L.s.power', 'its place lit with both neighbours lit: nowhere dark to go'],
@@ -54,5 +69,5 @@ const solve = [
   ['expect', 'G.L.creature.fallT > 2.5 && G.state === "won"', 'it shrieks and comes apart in the light, before the fade'],
 ];
 module.exports = {
-  nightmare: [].concat(flush, fuse, houseOn, randoms, fresh, solve),
+  nightmare: [].concat(flush, trip, houseOn, randoms, fresh, solve),
 };
