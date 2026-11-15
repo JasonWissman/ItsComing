@@ -121,14 +121,16 @@ CREATURES.signalman = {
   },
   maw(ctx, c, P, ink, k) {
     const t = c.t, cx = 0, cy = -0.01, N = 5, w = TAU / N * 0.5 * 0.94;
-    const rb = lerp(0.03, 0.075, k), rt = lerp(0.12, 0.3, k);
+    // it breathes: everything pulses in toward the middle and out again, the petals each a little out of step
+    const pulse = ph => (SAVE.data.settings.reducedMotion ? 0 : Math.sin(t * 7.5 + ph) * 0.5 + Math.sin(t * 12.1 + ph * 1.7) * 0.25) * k;
+    const rb = lerp(0.03, 0.075, k) * (1 + 0.1 * pulse(0)), rt0 = lerp(0.12, 0.3, k);
     const flesh = P.col([58, 14, 18]), fleshD = P.col([30, 6, 9]), tooth = P.cola([200, 190, 156], 0.97);
     const at = (r, a) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
     const toothAt = (x, y, dx, dy, l, wd) => {   // a fang from (x,y) pointing (dx,dy)
       ctx.moveTo(x - dy * wd, y + dx * wd); ctx.lineTo(x + dy * wd, y - dx * wd); ctx.lineTo(x + dx * l, y + dy * l);
     };
     for (let i = 0; i < N; i++) {
-      const th = -Math.PI / 2 + i * TAU / N + Math.sin(t * 9 + i * 1.7) * 0.04 * k;   // (they writhe)
+      const th = -Math.PI / 2 + i * TAU / N, rt = rt0 * (1 + 0.09 * pulse(i * 0.9));   // (each reaching out and drawing in)
       const b1 = at(rb, th - w), b2 = at(rb, th + w), tip = at(rt, th), c1 = at(rt * 0.72, th - w * 0.85), c2 = at(rt * 0.72, th + w * 0.85);
       const petal = sc => {
         const m = at(rb, th), S = q => [m[0] + (q[0] - m[0]) * sc, m[1] + (q[1] - m[1]) * sc];
@@ -144,7 +146,7 @@ CREATURES.signalman = {
         for (let j = 1; j <= 6; j++) {
           const u = j / 7, x = (1 - u) * (1 - u) * b[0] + 2 * u * (1 - u) * cc[0] + u * u * tip[0], y = (1 - u) * (1 - u) * b[1] + 2 * u * (1 - u) * cc[1] + u * u * tip[1];
           const ix = -Math.sin(th) * -sgn, iy = Math.cos(th) * -sgn;   // across the petal, toward its middle
-          toothAt(x, y, ix, iy, (0.016 * (1 - u * 0.6) + 0.004) * k, 0.0035 + 0.002 * (1 - u));
+          toothAt(x, y, ix, iy, (0.027 * (1 - u * 0.55) + 0.006) * k, 0.0055 + 0.003 * (1 - u));
         }
       }
       ctx.fill();
@@ -152,8 +154,9 @@ CREATURES.signalman = {
     // the maw itself: a ring of teeth round its rim pointing in, another inside that, and the black of the throat
     P_ell(ctx, cx, cy, rb * 1.08, rb * 1.08, fleshD);
     ctx.fillStyle = tooth; ctx.beginPath();
-    for (const [r, n, l] of [[rb * 1.0, 16, 0.02], [rb * 0.62, 12, 0.014]]) {
-      for (let j = 0; j < n; j++) { const a = j / n * TAU + r * 30, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; toothAt(x, y, -Math.cos(a), -Math.sin(a), l * k * (0.75 + 0.25 * Math.abs(Math.sin(j * 2.3))), 0.004); }
+    for (const [r0, n, l, ph, a0] of [[rb * 1.0, 14, 0.034, 0.4, 0], [rb * 0.6, 10, 0.024, 2.2, 0.3]]) {
+      const r = r0 * (1 + 0.14 * pulse(ph)), ll = l * (1 + 0.25 * pulse(ph + 1.1));   // (the rings close in and open out, the teeth with them)
+      for (let j = 0; j < n; j++) { const a = j / n * TAU + a0, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; toothAt(x, y, -Math.cos(a), -Math.sin(a), ll * k * (0.75 + 0.25 * Math.abs(Math.sin(j * 2.3))), 0.007); }
     }
     ctx.fill();
     P_ell(ctx, cx, cy, rb * 0.36, rb * 0.36, P.col([4, 2, 3]));
