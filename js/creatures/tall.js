@@ -18,9 +18,9 @@
 //   its eyes at c.eyeTo (world height above its feet), peering up, its eyes wide; lower still it is on all fours;
 // c.reach (0..1): its arms up to the edge of the bed, its hands at c.gripY (world height; the night draws the hands on the
 //   covers over the edge); c.faceAway (over 0.5): its face turned down, only the dark of its head showing.
-// Its lunge (death.pose): its hands shoot out at you and take hold; then, all at once, its face is right in front of yours,
-// twitching; then its whole head swells out over everything until the black of it is all there is. While its hands are
-// coming at you, c.armsApart (set by the night) leaves its arms out of its own drawing, and c.part === 'arms' draws only
+// Its lunge (death.pose): its hands shoot out at you and take hold; then its face comes at you, fast, until it is right
+// in front of yours, twitching; then its whole head swells out over everything until the black of it is all there is.
+// While its hands are coming at you, c.armsApart (set by the night) leaves its arms out of its own drawing, and c.part === 'arms' draws only
 // them: the night draws them in front of the bed, which is in front of the rest of it.
 // Light slows it (c.inLight), in case it is ever in the light and not already down out of it.
 CREATURES.tall = {
@@ -30,9 +30,9 @@ CREATURES.tall = {
   STOOP: { top: 0.3, sink: 0.24, hip: 0.14 },   // all the way stooped: how far its shoulders come down, its head on down past them, its hips
   BODY: [8, 7, 10],
   DARK: 0.05,   // how much of the light it takes: it stays all but black in the lamp's light
-  // The lunge, in seconds: its hands are at you by grab; at cut its face is right in front of yours (near metres off), and
-  // its head twitches until twitch; then it swells until dur
-  LUNGE: { grab: 0.2, cut: 0.32, twitch: 0.62, dur: 1.4, near: 0.17 },
+  // The lunge, in seconds: its hands are at you by grab; then its face comes at you, fast but smooth, until at cut it is
+  // right in front of yours (near metres off), and its head twitches until twitch; then it swells until dur
+  LUNGE: { grab: 0.2, cut: 0.42, twitch: 0.72, dur: 1.4, near: 0.17 },
   death: {
     delay: 0.35, dur: 1.4, sting: 'stingHum',
     pose(c, k) { CREATURES.tall.lungePose(c, k); },
@@ -46,13 +46,16 @@ CREATURES.tall = {
     }
     const o = c.lunge0;
     c.grabK = clamp(s / U.grab, 0, 1);
-    if (s < U.cut) { c.dist = o.d; c.lat = o.lat; c.yOff = 0; c.close = 0; }
+    if (s < U.grab) { c.dist = o.d; c.lat = o.lat; c.yOff = 0; c.close = 0; c.closeK = 0; }
     else {
-      // all at once it is right in front of you, on the line from your eye to where it was, its eyes level with yours
-      const r = Math.max(0.3, Math.hypot(o.d, o.lat)), q = U.near / r;
-      c.dist = o.d * q; c.lat = o.lat * q; c.yOff = eyeH - this.faceY - (c.pos ? c.pos().y : 0);
-      if (!c.close && cam) { cam.yaw = cam.tYaw; cam.pitch = cam.tPitch = 0; }
-      c.close = 1;
+      // then its face comes in at you along the line from your eye to where it was, quickly, its eyes coming level with
+      // yours, until it is right in front of you (evenly in how big it looks: its nearness goes from 1/r to 1/near)
+      const r = Math.max(0.3, Math.hypot(o.d, o.lat)), e = smoothstep((s - U.grab) / (U.cut - U.grab)), q = 1 / lerp(1, r / U.near, e);
+      c.dist = o.d * q; c.lat = o.lat * q; c.yOff = e * (eyeH - this.faceY - (c.pos ? c.pos().y : 0)); c.closeK = e;
+      if (e > 0.5) {   // past the foot of the bed: in front of everything, its arms gone past the edges of the view
+        if (!c.close && cam) { cam.yaw = cam.tYaw; cam.pitch = cam.tPitch = 0; }
+        c.close = 1;
+      } else c.close = 0;
     }
     c.twitchT = s - U.cut;
     c.gulp = smoothstep((s - U.twitch) / (U.dur - U.twitch));
@@ -207,7 +210,7 @@ CREATURES.tall = {
     if ((c.faceAway || 0) > 0.5 && lunge <= 0) { ctx.restore(); if (late) late(); ctx.restore(); return; }   // its face down: the dark of its head
     // its face is nothing but two round pale eyes in the dark of its head, a soft glow round each, the same in any light
     // (peering up, they widen; right in front of you they are wide)
-    const er = 0.017 * (1 + duck * 0.2 + (c.close ? 0.3 : grabK * 0.15));
+    const er = 0.017 * (1 + duck * 0.2 + lerp(grabK * 0.15, 0.3, c.closeK === undefined ? (c.close ? 1 : 0) : c.closeK));
     for (const s of [-1, 1]) {
       const x = s * 0.046, y = 0.37, gr = er * 3.2, gl = ctx.createRadialGradient(x, y, 0, x, y, gr);
       gl.addColorStop(0, rgba([235, 228, 210], 0.3)); gl.addColorStop(1, rgba([235, 228, 210], 0));

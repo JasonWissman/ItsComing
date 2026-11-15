@@ -36,8 +36,8 @@ const DEMON_MOODS = [
   Object.assign({}, DEMON_NEUTRAL, { skin: [190, 176, 172] }),
   // content: warmer, the brows soft, the eyes half closed, the corners of the mouth turned up in a small closed smile
   { skin: [224, 202, 186], fw: 0.012, jaw: 0, brow: 0.6, bi: 0.038, bo: 0.032, bw: 0.01, bq: 0, er: 0.018, eh: 0.012, open: 0.45, lid: 0.1, lidLine: 1, sock: 0, glow: 0, arc: 0, my: -0.07, mw: 0.04, mc: 0.012, mu: -0.006, md: -0.013, mr: 0.3, mk: 0, teeth: 0, joy: 0.1, tears: 0, blush: 0.4, tilt: 0.05, trem: 0 },
-  // happy: eyes closed in two arches, round pink cheeks, a wide open smile
-  { skin: [240, 214, 186], fw: 0.02, jaw: 0, brow: 0, bi: 0.04, bo: 0.036, bw: 0.01, bq: 0, er: 0.016, eh: 0.012, open: 0, lid: 0, lidLine: 0, sock: 0, glow: 0, arc: 1, my: -0.045, mw: 0.05, mc: 0, mu: 0, md: -0.04, mr: 1, mk: 0, teeth: 0, joy: 1, tears: 0, blush: 1, tilt: 0, trem: 0 },
+  // happy: eyes closed in two arches under faint, soft brows, round pink cheeks, a wide open smile
+  { skin: [240, 214, 186], fw: 0.02, jaw: 0, brow: 0.32, bi: 0.04, bo: 0.036, bw: 0.01, bq: 0, er: 0.016, eh: 0.012, open: 0, lid: 0, lidLine: 0, sock: 0, glow: 0, arc: 1, my: -0.045, mw: 0.05, mc: 0, mu: 0, md: -0.04, mr: 1, mk: 0, teeth: 0, joy: 1, tears: 0, blush: 1, tilt: 0, trem: 0 },
 ];
 const DEMON_MOOD_NAMES = ['angry', 'neutral', 'angry', 'confused', 'sad', 'neutral', 'content', 'happy'];
 // Between confused and sad it does not blend: it glitches, flicking through these faces one after another, each held a
@@ -64,6 +64,20 @@ function demonBlend(A, B, k) {
   const F = {};
   for (const key in A) F[key] = Array.isArray(A[key]) ? mixc(A[key], B[key], k) : lerp(A[key], B[key], k);
   return F;
+}
+// How long it holds each face and how long it takes to go into the next (seconds), in the order of DEMON_MOODS: the first
+// slow; into the second angry and out of it to confused quick, so the slow ones run into the glitch; sad held longest.
+// Altogether the same 13.3 s as seven even steps of 1.0 + 0.9
+const DEMON_MOOD_TIME = [[1.0, 0.9], [1.0, 0.25], [1.0, 0.25], [1.0, 0.9], [2.3, 0.9], [1.0, 0.9], [1.0, 0.9]];
+// which face it is making u seconds into its faces (0: the first, angry; a part-way number while it goes into the next)
+function demonMoodAt(u) {
+  let t0 = 0;
+  for (let j = 0; j < DEMON_MOOD_TIME.length; j++) {
+    const [h, b] = DEMON_MOOD_TIME[j];
+    if (u < t0 + h + b) return j + clamp((u - t0 - h) / b, 0, 1);
+    t0 += h + b;
+  }
+  return DEMON_MOOD_TIME.length;
 }
 // the face for mood m; still (reduced motion): no glitching, confused blends straight into sad
 function demonMood(m, still) {
@@ -433,7 +447,7 @@ CREATURES.demon = {
     return { delay: 0.06, dur: clamp(0.25 + d0 * 0.014, 0.3, 0.8), sting: D.sting, pose(c, k) { D.pose(c, k); c.yOff += Math.sin(Math.PI * k) * up; } };
   },
   voice: { kind: 'exhale', every: [4, 8] },
-  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES,   // for the ending and the tests
+  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt,   // for the ending and the tests
   // what of its box is it, to aim at (js/game.js creatureBox: the bow on night 13): the robe and the hood, up to just above
   // its eyes, wider enraged
   body(c) { const a = demonRage(c); return [-0.42 - a * 0.08, 0.42 + a * 0.08, 0, demonEyesY(c) + 0.3]; },

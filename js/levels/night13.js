@@ -42,8 +42,8 @@ const END = {
   reach: [0.8, 3.6],                    // its arms come slowly up out to you, the hands open
   close: [3.8, 5.6],                    // and close round you
   unveil: [5.0, 6.4],                   // its face comes up out of the dark of its hood, angry
-  moods: 6.4, hold: 1.0, blend: 0.9,    // then its faces in turn, each held `hold` and going into the next over `blend`, until
-                                        // it is happy (at moods + 7 * (hold + blend), 19.7)
+  moods: 6.4,                           // then its faces in turn, each held and going into the next (CREATURES.demon.moodAt),
+                                        // until it is happy (13.3 s on, at 19.7)
   release: 20.5,                        // it lets you go, a moment after it is happy
   light: [20.3, 26.3],                  // the light comes, and the meadow with it
   walk: [21.5, 25.1],                   // it steps back and round to the north, where the foot of the bed will be
@@ -282,11 +282,7 @@ LEVELS.push({
     };
     // which face it is making: the first (angry) until END.moods and held a while after, then each in turn, ending happy
     const LAST = CREATURES.demon.moods - 1;
-    const moodAt = t => {
-      if (t < END.moods) return 0;
-      const per = END.hold + END.blend, u = t - END.moods, j = Math.floor(u / per);
-      return Math.min(LAST, j + clamp((u - j * per - END.hold) / END.blend, 0, 1));
-    };
+    const moodAt = t => (t < END.moods ? 0 : Math.min(LAST, CREATURES.demon.moodAt(t - END.moods)));   // (each held and blended as demon.js has it)
     // the light on it while it holds you follows its face: its own dull red while the face is still in the dark of the hood,
     // red hot when it is angry, grey when it is neither, cold when it is lost and sad, warm when it is content and happy (as
     // the light coming will be). One for each face, in the order of DEMON_MOODS

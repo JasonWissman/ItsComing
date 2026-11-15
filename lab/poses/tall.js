@@ -186,6 +186,7 @@
     const let_ = smoothstep((t - COVER.LET) / 0.2);
     return { in: smoothstep((t - COVER.IN[i]) / 0.3) * (1 - smoothstep((t - COVER.LET - 0.2) / 0.7)), grip: grip * (1 - let_), up: up + let_ * 0.3, pull };
   }
+  let shCv = null;
   function underCovers(ctx, c, P, T) {
     const cv = ctx.canvas, W = cv.clientWidth, H = cv.clientHeight, dpr = cv.width / Math.max(1, W);
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -195,17 +196,22 @@
     g.addColorStop(0, rgba([232, 162, 92], 0.6)); g.addColorStop(0.35, rgba([186, 114, 64], 0.32)); g.addColorStop(1, rgba([60, 40, 40], 0));
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     ctx.translate(0, jerk); ctx.globalCompositeOperation = 'multiply';
+    if (!shCv) shCv = document.createElement('canvas');
+    if (shCv.width !== cv.width || shCv.height !== cv.height) { shCv.width = cv.width; shCv.height = cv.height; }
+    const sg = shCv.getContext('2d');
     [0, 1].forEach(i => {
-      const h = coverHand(i, T), sd = i ? 1 : -1;
+      const h = coverHand(i, T), sd = i ? 1 : -1, px = -sd;   // (the thumbs in toward each other)
       if (h.in <= 0.002) return;
-      ctx.save(); ctx.translate(W / 2 + sd * W * 0.2, H * (0.56 - h.up * 0.09) + (1 - h.in) * H * 0.6); ctx.rotate(sd * 0.22); ctx.scale(H * 0.3 * sd, -H * 0.3);
-      const spread = 0.5 - h.grip * 0.22, curl = h.grip * 0.24, parts = [[0, -3.2, 0, -0.3, 0.27], [0, -0.28, 0, 0.04, 0.38]];
+      ctx.save(); ctx.translate(W / 2 + px * W * 0.27, H * (0.56 - h.up * 0.09) + (1 - h.in) * H * 0.6); ctx.rotate(px * 0.22); ctx.scale(H * 0.3 * sd, -H * 0.3);
+      const spread = 0.5 - h.grip * 0.22, curl = h.grip * 0.24, parts = [[0, -3.2, 0, -0.1, 0.24], [0, -0.06, 0, 0.06, 0.3]];
       [0.6, 0.76, 0.72, 0.56].forEach((l, f) => { const a2 = (f - 1.5) * spread / 1.5; parts.push([Math.sin(a2) * 0.15, 0.1, Math.sin(a2) * (0.15 + l * 0.9), 0.1 + Math.cos(a2) * l * (1 - curl), 0.07]); });
       parts.push([0.17, -0.14, 0.44 - h.grip * 0.12, 0.12, 0.075]);
-      ctx.lineCap = 'round';
-      for (const [wd, a2] of [[0.26, 0.16], [0.14, 0.24], [0.05, 0.34], [0, 0.6]]) {
-        ctx.strokeStyle = 'rgba(14,8,10,' + (a2 * h.in) + ')';
-        for (const [x0, y0, x1, y1, w0] of parts) { ctx.lineWidth = w0 + wd; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+      const M = ctx.getTransform();
+      for (const [wd, a2] of [[0.26, 0.16], [0.14, 0.24], [0.05, 0.34], [0, 0.6]]) {   // (each layer drawn whole, then laid over: no darker overlaps)
+        sg.setTransform(1, 0, 0, 1, 0, 0); sg.clearRect(0, 0, shCv.width, shCv.height); sg.setTransform(M);
+        sg.strokeStyle = 'rgb(14,8,10)'; sg.lineCap = 'round';
+        for (const [x0, y0, x1, y1, w0] of parts) { sg.lineWidth = w0 + wd; sg.beginPath(); sg.moveTo(x0, y0); sg.lineTo(x1, y1); sg.stroke(); }
+        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a2 * h.in; ctx.drawImage(shCv, 0, 0); ctx.restore();
       }
       ctx.restore();
     });
@@ -250,7 +256,7 @@
           if (!c.lungeFrom) { c.lungeFrom = c.dist; c.frozen = true; }
           const sp = CR.death, q = clamp((T - 0.86 - 0.05) / sp.dur, 0, 1); c.lunge = q; CR.lungePose(c, q); c.yOff = 0;   // (the lab's view closes in on its face where it is: it need not come down to your eye)
         } },
-      lunge({ note: 'It reaches you in the dark: its hands shoot out over the bed and take hold of you; then all at once its face is right in front of yours, its head twitching; then its head swells out until the black of it is all there is.', dist: 1.9, front: bedArms,
+      lunge({ note: 'It reaches you in the dark: its hands shoot out over the bed and take hold of you; then its face comes at you, fast, until it is right in front of yours, its head twitching; then its head swells out until the black of it is all there is.', dist: 1.9, front: bedArms,
         set(c) { c.frozen = true; c.lungeFrom = c.dist; hideBehindBed(c); armsApart(c); } }),
       { name: 'Under the covers: it pulls, and goes', note: 'The win: the covers up over your head, the lamp a glow through them. The shadows of its two hands come up onto the cloth and take hold as they did on the bed, reaching up it, closing and pulling, one, the other, then both; then they let go and sink away.',
         dur: 5.4, still: true, draw(ctx, c, P) { underCovers(ctx, c, P, c.t / c.timeScale); } },

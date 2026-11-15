@@ -5,10 +5,10 @@
   const PACE = 40 / 75;   // night 13's startDist / time: metres a second at speedMult 1 (seenMult 1)
   const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1));
   // night 13's END, in seconds from when it reaches you
-  const END = { settle: 1.0, stoop: [0.2, 2.2], near: [0.9, 3.0], reach: [0.8, 3.6], close: [3.8, 5.6], unveil: [5.0, 6.4], moods: 6.4, hold: 1.0, blend: 0.9, release: 20.5, light: [20.3, 26.3], walk: [21.5, 25.1], disrobe: [25.7, 28.3], dance: [27.9, 32.4] };
+  const END = { settle: 1.0, stoop: [0.2, 2.2], near: [0.9, 3.0], reach: [0.8, 3.6], close: [3.8, 5.6], unveil: [5.0, 6.4], moods: 6.4, release: 20.5, light: [20.3, 26.3], walk: [21.5, 25.1], disrobe: [25.7, 28.3], dance: [27.9, 32.4] };
   const D0 = CR.catchDist;   // where it is when it reaches you
   const LAST = CR.moods - 1;
-  const moodAt = t => { if (t < END.moods) return 0; const per = END.hold + END.blend, u = t - END.moods, j = Math.floor(u / per); return Math.min(LAST, j + clamp((u - j * per - END.hold) / END.blend, 0, 1)); };
+  const moodAt = t => (t < END.moods ? 0 : Math.min(LAST, CR.moodAt(t - END.moods)));
   const rageFor = anger => (anger > 0 ? Math.min(1, 0.6 + 0.4 * anger / 6) : 0);
   // the light it carries (night 13's dynamicLights): its own dull red, more as it rages; while it holds you, the light of
   // its face (moodLight); in the meadow the sun on it. As LIGHT.at has it at its middle, with the flicker LIGHT.update gives

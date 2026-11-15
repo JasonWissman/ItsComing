@@ -569,7 +569,7 @@ const hoverHit = lookFor;
   check(hold.veiled.unveil === 0 && hold.veiled.mood === 0 && hold.veiled.wrap > 0.3 && hold.unveiled.unveil === 1 && hold.unveiled.mood === 0, 'as its arms close round you its face is still in the dark of its hood; then it comes out of it, angry (' + JSON.stringify([hold.veiled, hold.unveiled]) + ')');
   const moodNames = await page.evaluate(() => CREATURES.demon.moodNames.join(', '));
   check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6,7]' && moodNames === 'angry, neutral, angry, confused, sad, neutral, content, happy' && !hold.down && hold.held2, 'while it holds you its face goes through ' + moodNames + ', in that order, each held a while (' + JSON.stringify(hold.moods) + ')');
-  check(hold.blends.every(b => b >= 0.7), 'each change of face is slow (' + hold.blends.join(', ') + ' s)');
+  check(hold.blends.every((b, i) => (i === 1 || i === 2 ? b > 0.1 && b < 0.45 : b >= 0.7)), 'each change of face is slow, but for the quick ones into its second angry face and out of it (' + hold.blends.join(', ') + ' s)');
   check(hold.happyFirst && hold.happyFirst.meadow === 0 && hold.happyFirst.wrap > 0.99, 'it is happy while it still holds you, before the light comes');
   check(hold.flash < 0.01 && hold.white < 0.01, 'nothing in it flashes');
   const meadow = await page.evaluate(() => {

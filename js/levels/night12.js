@@ -544,16 +544,27 @@ LEVELS.push({
     // the shadow of one of its hands on the glow through the cloth, soft at the edge: the long arm in from below, the
     // palm, the four long fingers spread or closed on the cloth, the thumb (mirrored for the other hand); and the cloth
     // drawn in toward its grip in soft creases, deeper as it pulls
+    let shadowCv = null;
+    const shadowCanvas = ctx => {   // a canvas the size of the view's, to draw one layer of a hand's shadow on
+      if (!shadowCv) shadowCv = document.createElement('canvas');
+      if (shadowCv.width !== ctx.canvas.width || shadowCv.height !== ctx.canvas.height) { shadowCv.width = ctx.canvas.width; shadowCv.height = ctx.canvas.height; }
+      return shadowCv;
+    };
     const shadowHand = (ctx, x, y, ang, S, sd, h) => {
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(S * sd, -S);   // (upside down: the arm below, the fingers up)
       const spread = 0.5 - h.grip * 0.22, curl = h.grip * 0.24;
-      const parts = [[0, -3.2, 0, -0.3, 0.27], [0, -0.28, 0, 0.04, 0.38]];   // the arm in from the edge, the palm
+      const parts = [[0, -3.2, 0, -0.1, 0.24], [0, -0.06, 0, 0.06, 0.3]];   // the arm in from the edge, the palm
       [0.6, 0.76, 0.72, 0.56].forEach((l, f) => { const a2 = (f - 1.5) * spread / 1.5; parts.push([Math.sin(a2) * 0.15, 0.1, Math.sin(a2) * (0.15 + l * 0.9), 0.1 + Math.cos(a2) * l * (1 - curl), 0.07]); });
       parts.push([0.17, -0.14, 0.44 - h.grip * 0.12, 0.12, 0.075]);   // the thumb
+      // each soft layer of the shadow drawn whole, solid, off to the side, and laid over the view at its strength, so the
+      // arm, the palm and the fingers are one shadow (strokes laid one over another would darken where they overlap)
+      const sh = shadowCanvas(ctx), sg = sh.getContext('2d'), M = ctx.getTransform();
       ctx.globalCompositeOperation = 'multiply';
       for (const [wd, a2] of [[0.26, 0.16], [0.14, 0.24], [0.05, 0.34], [0, 0.6]]) {
-        ctx.strokeStyle = 'rgba(14,8,10,' + (a2 * h.in) + ')';
-        for (const [x0, y0, x1, y1, w0] of parts) { ctx.lineWidth = w0 + wd; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+        sg.setTransform(1, 0, 0, 1, 0, 0); sg.clearRect(0, 0, sh.width, sh.height); sg.setTransform(M);
+        sg.strokeStyle = 'rgb(14,8,10)'; sg.lineCap = 'round';
+        for (const [x0, y0, x1, y1, w0] of parts) { sg.lineWidth = w0 + wd; sg.beginPath(); sg.moveTo(x0, y0); sg.lineTo(x1, y1); sg.stroke(); }
+        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a2 * h.in; ctx.drawImage(sh, 0, 0); ctx.restore();
       }
       const pull = h.grip * (0.5 + 0.5 * h.pull);
       if (pull > 0.01) for (const a2 of [0.6, 1.5, 2.4, 3.3, 4.1]) {
@@ -602,9 +613,9 @@ LEVELS.push({
       const hc = lerp(W / 2, gx, 0.3) + ax * W * 0.12, tilt = -clamp(ax, -1, 1) * 0.5;
       (s.coverHands || []).forEach((h, i) => {
         if (h.in <= 0.002) return;
-        const sd = i ? 1 : -1;
-        const x = hc + sd * W * 0.15 + sd * h.up * W * 0.01, y = H * (0.56 - h.up * 0.09) + (1 - h.in) * H * 0.6;
-        shadowHand(ctx, x, y, tilt + sd * 0.22, H * 0.3, sd, h);
+        const sd = i ? 1 : -1, px = -sd;   // (each on the far side from its thumb: the thumbs in toward each other)
+        const x = hc + px * W * 0.22 + px * h.up * W * 0.01, y = H * (0.56 - h.up * 0.09) + (1 - h.in) * H * 0.6;
+        shadowHand(ctx, x, y, tilt + px * 0.22, H * 0.3, sd, h);
       });
       // the weave over all of it, close enough to see the threads where the light comes through
       ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = weaveOf(ctx); ctx.fillRect(-60, -60, W + 120, H + 120); ctx.globalCompositeOperation = 'source-over';
