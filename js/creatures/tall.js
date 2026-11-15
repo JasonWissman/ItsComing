@@ -106,8 +106,14 @@ CREATURES.tall = {
     P_ell(ctx, 0, 0.32, 0.095, 0.15, skin);
     const ew = 0.018 + duck * 0.004;   // blank, no pupils, perfectly round; peering up, the eyes wide
     P_ell(ctx, -0.04, 0.36, ew, ew, eye); P_ell(ctx, 0.04, 0.36, ew, ew, eye);
-    const mouth = 0.015 + near * 0.04 + lunge * 0.05;
-    P_ell(ctx, 0, 0.23, 0.03 + near * 0.015, mouth, black);
+    // the mouth: open, and turned down at both corners, an arch of despair: the upper lip curved high over it, the corners
+    // dragged down past the lower lip, which sags a little toward them
+    const mh = 0.015 + near * 0.032 + lunge * 0.03, mw = 0.032 + near * 0.022 + lunge * 0.026, my = 0.235;
+    ctx.fillStyle = black; ctx.beginPath();
+    ctx.moveTo(-mw, my - mh * 0.75);
+    ctx.bezierCurveTo(-mw * 0.7, my + mh * 1.05, mw * 0.7, my + mh * 1.05, mw, my - mh * 0.75);
+    ctx.bezierCurveTo(mw * 0.55, my - mh * 0.55, -mw * 0.55, my - mh * 0.55, -mw, my - mh * 0.75);
+    ctx.closePath(); ctx.fill();
     ctx.restore();
     ctx.restore();
   }
