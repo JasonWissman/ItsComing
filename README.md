@@ -188,9 +188,9 @@ some on the ground, so you have to turn and look down to find them.
    worn one lying about) sits there a beat with nothing coming on and drops out onto the
    floor.
 8. **The Diner.** Something the size of a child is out in the lot, dressed up for dinner: a
-   little black suit trimmed in red, a white shirt and a red tie, little black shoes, small bare hands hanging at
-   its sides, and from the neck up all black, long straggly black hair hanging over a black
-   face with two huge round red-rimmed staring eyes and a grin of big white teeth from one
+   plain little black suit, its lapels edged in red, a white shirt and a red tie, little black shoes, small bare grey hands
+   hanging at its sides, and long straggly black hair hanging over a face as grey as its hands,
+   with two huge round red-rimmed staring eyes and a grin of big white teeth from one
    side of it to the other, which, whenever it is on the move, snaps open and shut, hungry. It stands bolt upright and dead still, nothing swinging; it comes
    on in small stiff steps, and now and then its feet stop and it slides on anyway, while its
    head lays itself slowly over to one side and slowly over to the other. At the glass its

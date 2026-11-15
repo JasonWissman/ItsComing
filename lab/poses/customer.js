@@ -105,7 +105,7 @@
   LAB.creature('customer', {
     night: 8, stage: 'The Diner', dist: 14,
     anims: [
-      { name: 'Walking in, in the dark', note: 'With the power off, in its little black suit trimmed in red and its red tie: small stiff steps, bolt upright, only the head moving, laid over slowly one way and the other, the jaw snapping open and shut, hungry, in greedy fits and starts; now and then the feet stop and it slides on.',
+      { name: 'Walking in, in the dark', note: 'With the power off, in its plain little black suit and red tie, its face as grey as its hands: small stiff steps, bolt upright, only the head moving, laid over slowly one way and the other, the jaw snapping open and shut, hungry, in greedy fits and starts; now and then the feet stop and it slides on.',
         dist: 20, dur: 8.6, tick: walk(DARK) },
       { name: 'Coming fast while the diner is lit', note: 'With the lights on it is drawn in: the same stiff walk, far faster, crossing the lot in seconds whether you watch it or not, its teeth snapping as it comes.',
         dist: 30, dur: 4.3, tick: walk(LIT) },
