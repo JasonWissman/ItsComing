@@ -28,7 +28,7 @@ LEVELS.push({
     hint: 'The lamp is dead; there is a bulb in the drawer. It cannot stand the light, and the covers only hold with the lamp on. Light first; then hold the covers until they are all the way up, before its hands reach you.',
     objective: 'Get the lamp on. Then pull the covers up.',
     death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is not afraid of the dark.', grabbed: 'Its hands pulled their way up the bed to you, and then it came up after them.' },
-    win: 'It pulled at the covers, but you were stronger.',
+    win: 'You pulled the covers over your head. It pulled at them, but you were stronger, and it seemed to go away.',
   },
   lanes: [
     // it starts where it peers round the edge from (WAYS below): the start is held to that, whatever the spread of the night
@@ -41,7 +41,7 @@ LEVELS.push({
     const s = L.s;
     const parts = STORY.buildBedroom(L, false);
     const decoy = !!L.diff.decoys, unplugged = L.nightmare, sticks = L.nightmare;
-    Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, grey: 0, tick: 0, tugAt: -9, mode: null, latBias: 0 });
+    Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, tick: 0, tugAt: -9, mode: null, latBias: 0 });
     // Drawing order in this room (it is built in local coordinates, and this night faces north, so they are world ones).
     // The mattress is one long quad whose middle is further off than the nightstand beside it and the bed's own legs, so
     // it was drawn first and they over it: the nightstand stood on the covers and the legs showed through. Whatever is
@@ -167,7 +167,7 @@ LEVELS.push({
     // reach you (to), and the edge of the bed their arms come over (over: 'z' at the foot, 'x' at the side, and where).
     const WAYS = [
       { apZ: 3.6, edge: 0.5, top: 2.1, peerD: 4.1, spot: { d: 2.08, lat: 0 }, hands: [[-0.3, 1.86], [0.3, 1.86]], to: [[-0.2, 0.45], [0.2, 0.45]], over: ['z', 1.93] },
-      { apZ: 3.2, edge: 0.9, top: 2.2, peerD: 3.4, spot: { d: 1.07, lat: 1.5 }, hands: [[-0.64, 1.24], [-0.64, 1.72]], to: [[-0.38, 0.32], [-0.22, 0.72]], over: ['x', -0.79] },
+      { apZ: 3.2, edge: 0.9, top: 2.2, peerD: 3.4, spot: { d: 1.04, lat: 1.35 }, hands: [[-0.64, 1.24], [-0.64, 1.72]], to: [[-0.38, 0.32], [-0.22, 0.72]], over: ['x', -0.79] },
     ];
     const side = L.rand() < 0.5 ? -1 : 1, BEHIND = 0.3;   // which side of the opening it stands, and how far behind the edge
     const way = c => WAYS[c.lane.idx] || WAYS[0], edgeAt = (w, d) => w.edge * d / w.apZ;
@@ -175,11 +175,25 @@ LEVELS.push({
     const panOf = c => clamp(Math.sin(wrapPi(Math.atan2(c.pos().x, c.pos().z) - G.cam.yaw)), -0.85, 0.85);
     // coming: behind the wall at the side of the opening with only its head round the edge; stepping out into the opening
     // as it comes on, the head coming in over its shoulders; then on into the room
+    const outOf = (c, d) => { const w = way(c); return clamp((w.peerD - d) / (w.peerD - w.apZ + 0.05), 0, 1); };
+    const latAt = (c, d) => side * (edgeAt(way(c), d) + BEHIND) * (1 - smoothstep(outOf(c, d))) + s.latBias;
     const place = c => {
-      const w = way(c), o = clamp((w.peerD - c.dist) / (w.peerD - w.apZ + 0.05), 0, 1);
-      c.peerSide = -side; c.peer = 1 - smoothstep(o / 0.6);
-      c.runLat = side * (edgeAt(w, c.dist) + BEHIND) * (1 - smoothstep(o)) + s.latBias;
+      c.peerSide = -side; c.peer = 1 - smoothstep(outOf(c, c.dist) / 0.6);
+      if (s.mode !== 'come') c.runLat = latAt(c, c.dist);
     };
+    // Coming, it walks (the tall one's pace): where the night's clock would have it (c.u, as for every night) is where it
+    // is going, along the way and across it, and it gets there a step at a time, its feet on the floor. Its steps are its
+    // gait, so its footsteps fall as each foot comes down (the game adds what it moved to its gait: that is taken off)
+    const walkOn = (c, dt) => {
+      let m = c.CR.speedMult(c, dt, c.seen) * (c.seen ? c.seenMult : c.unseenMult);
+      if (c.frozen || c.dead) m = 0;
+      c.u = clamp(c.u + dt * m / c.T, 0, 1);
+      const toD = c.D0 * Math.pow(1 - c.u, c.gamma), w = c.CR.pace(c, dt, toD, latAt(c, toD));
+      c.runLat = w.lat; c.gait = w.n * Math.PI - Math.abs(c.dist - w.d) * c.CR.stepRate * Math.PI;
+      return w.d;
+    };
+    const come = c => { s.mode = 'come'; letGo(c); c.distFn = walkOn; c.walk = null; };
+    const stopWalking = c => { if (c.distFn === walkOn) c.distFn = null; c.walk = null; c.feet = null; };
     // at first it only peers: put there at once, before the night begins, so the night's card shows it where it starts
     const ready = c => {
       if (s.mode) return;
@@ -203,11 +217,12 @@ LEVELS.push({
       s.mode = 'duck'; s.grab = null;
       s.duck = { t0: L.t, d: c.dist, lat: c.lat, peer: c.peer || 0, duck0: c.duck || 0, eye0: c.duck ? c.eyeTo : null, cued: !!(s.duck && s.duck.cued) };
       const sp = way(c).spot; s.duck.creep = clamp(Math.hypot(c.dist - sp.d, c.lat - sp.lat) * 1.1, 0.4, 2.2);
+      stopWalking(c);
       c.flinchSide = c.lat > 0.05 ? -1 : 1;   // the arm toward the middle of the room
       hold(c, c.dist);
       AUDIO.voice('slow', 0.5, panOf(c));
     };
-    const DUCK = { flinch: 0.5, down: 1.5, up: 1.2, look: 1.1, reach: 1.1 };
+    const DUCK = { flinch: 0.5, down: 1.5, up: 1.2, look: 1.1, reach: 0.22 };   // (its hands come up onto the covers in a snatch)
     const ducking = c => {
       const D = s.duck, t = L.t - D.t0, sp = way(c).spot, hide = c.hideBelow === undefined ? 0.6 : c.hideBelow;
       const T2 = DUCK.down, T3 = T2 + D.creep, T4 = T3 + DUCK.up, T5 = T4 + DUCK.look;
@@ -251,19 +266,20 @@ LEVELS.push({
       s.jerk = u > CLOSE && u < DRAG ? Math.sin(Math.PI * (u - CLOSE) / (DRAG - CLOSE)) : 0;
       if (n !== G2.n && u >= CLOSE) { G2.n = n; AUDIO.sfx('cloth', panOf(c)); G.shake(0.12); }
       if (gt >= GRAB.pulls * GRAB.every && G.state === 'play') {   // they are at you: it comes up the bed after them
-        G.holding = null; c.deathSpec = { delay: 0.05, dur: 0.5, sting: 'sting' }; die(c, 'grabbed');
+        G.holding = null; c.deathSpec = Object.assign({}, c.CR.death, { delay: 0.05, sting: 'sting' }); die(c, 'grabbed');
       }
     };
     // The light goes out with it down there: it rises, slowly, from behind the bed, and comes on again from where it is
     const RISE = 3.2;
     const rising = (c, dt) => {
       const t = L.t - s.riseAt;
-      c.flinch = 0; c.faceAway = 0; c.reach = Math.max(0, c.reach - dt * 1.5); c.duck = s.rise0 * (1 - smoothstep(t / RISE));
+      c.flinch = 0; c.faceAway = 0; c.reach = Math.max(0, c.reach - dt * 4); c.duck = s.rise0 * (1 - smoothstep(t / RISE));   // (its hands let go at once)
       s.grab = null; s.jerk = 0;
       if (t >= RISE) {
-        s.mode = 'come'; c.duck = 0; c.reach = 0; letGo(c);
+        c.duck = 0; c.reach = 0;
         c.u = clamp(1 - c.dist / c.D0, 0, 1); s.latBias = 0;
-        const lat0 = c.runLat; place(c); s.latBias = lat0 - c.runLat; c.runLat = lat0;   // from where it is across the room
+        s.latBias = c.runLat - latAt(c, c.dist);   // from where it is across the room
+        come(c);
       }
     };
     // The covers pulled up in the dark: a moment of nothing, then it is at the bed (all at once, after all that slowness),
@@ -271,7 +287,7 @@ LEVELS.push({
     const yank = () => {
       const c = c0(), sp = way(c).spot, to = c.dist < sp.d ? { d: c.dist, lat: c.lat } : sp;
       s.mode = 'yank'; s.yank = { t0: L.t, d: c.dist, lat: c.lat, to, duck0: c.duck || 0, peer0: c.peer || 0 }; s.yankK = 0;
-      G.holding = null; hold(c, c.dist);
+      G.holding = null; stopWalking(c); hold(c, c.dist);
     };
     const yanking = c => {
       const Y = s.yank, t = L.t - Y.t0, hide = c.hideBelow === undefined ? 0.6 : c.hideBelow;
@@ -281,7 +297,7 @@ LEVELS.push({
       c.reach = smoothstep((t - 0.45) / 0.15); c.gripY = hide - 0.03; c.faceAway = 0;
       s.yankK = smoothstep((t - 0.62) / 0.2);
       if (t >= 0.62 && !Y.tugged) { Y.tugged = true; AUDIO.sfx('tug', panOf(c)); G.shake(0.9); }
-      if (t >= 0.86 && G.state === 'play') { c.deathSpec = { delay: 0.05, dur: 0.4, sting: 'sting' }; die(c, 'dark'); }   // quick: its face fills the view
+      if (t >= 0.86 && G.state === 'play') { c.deathSpec = Object.assign({}, c.CR.death, { delay: 0.05, sting: 'sting' }); die(c, 'dark'); }   // at once: its hands at you, its face
     };
     const behave = (c, dt) => {
       if (s.mode === 'yank') { yanking(c); return; }
@@ -289,7 +305,7 @@ LEVELS.push({
       const lit = shown() || L.won;
       if (lit && s.mode !== 'duck') startDuck(c);
       else if (!lit && s.mode === 'duck') { s.mode = 'rise'; s.riseAt = L.t; s.rise0 = c.duck || 0; }
-      if (s.mode === 'peer' && L.t >= s.peerTill) { s.mode = 'come'; letGo(c); }
+      if (s.mode === 'peer' && L.t >= s.peerTill) come(c);
       if (s.mode === 'peer' || s.mode === 'come') { s.latBias *= Math.exp(-dt * 0.5); place(c); }
       else if (s.mode === 'duck') ducking(c);
       else if (s.mode === 'rise') rising(c, dt);
@@ -355,8 +371,7 @@ LEVELS.push({
       // the covers: bunched at the foot they are as thick all the way across; drawn up, they rise over you and lie flat on the
       // mattress at the sides (so the drawer beside the bed stays in sight)
       const { p, zE, yE, roll } = coversAt(), zF = zE + 0.14, B = 0.585, XS = [-X, -0.6, -0.25, 0.25, 0.6, X];
-      const tint = col => (s.grey ? mixc(col, [124, 124, 130], s.grey * 0.5) : col);
-      const q = (a, b, c, d, col, sd) => R.add(SC.mkQuad(L, a, b, c, d, tint(col), { sortDist: sd }));
+      const q = (a, b, c, d, col, sd) => R.add(SC.mkQuad(L, a, b, c, d, col, { sortDist: sd }));
       const tent = x => lerp(1, 1 - clamp((Math.abs(x) - 0.25) / 0.35, 0, 1), p), up = (x, y) => B + (y - B) * tent(x), th = x => roll * tent(x);
       const strip = (z0, f0, z1, f1, col, sd) => { for (let i = 0; i + 1 < XS.length; i++) { const a = XS[i], b = XS[i + 1]; q([a, f0(a), z0], [b, f0(b), z0], [b, f1(b), z1], [a, f1(a), z1], col, sd); } };
       const yAt = z => B + (yE - B) * clamp((1.9 - z) / (1.9 - zF), 0, 1), H = (x, z) => up(x, yAt(z)) + 0.004;
@@ -372,89 +387,84 @@ LEVELS.push({
       strip(zE, x => up(x, yE) + th(x), zE - 0.03, x => up(x, yB), mixc(scalec(BLANKET, 0.82), scalec(SHEET, 0.74), p), COV - 0.003);
       R.glowAs(null);
       R.add(lampDetail);
-      // what of the thing the bed hides from you: everything below the bed's top where your line of sight leaves the bed (or
-      // below the covers' turned-down edge, if it is beyond that); below the covers themselves if it is over the bed. (How
-      // far down it goes to be out of sight; what is drawn of it is cut by the bed itself, below.)
+      // How low it must be to be out of sight behind the bed, where it is: the height of your line of sight there over the
+      // bed's top where it leaves the bed (or over the covers' turned-down edge, if it is beyond that). That is only where
+      // it goes down to: what is drawn of it is hidden by the bed itself, drawn over it (below).
       const c = c0(), cp = c.pos(), lp = rotY(cp.x, cp.z, -L.facing), lx = lp[0], lz = lp[1];
       const tb = Math.min(1, lx > 0 ? 0.75 / lx : lx < 0 ? -0.75 / lx : Infinity, lz > 0 ? 1.9 / lz : lz < 0 ? -1.0 / lz : Infinity);
       let hide = tb >= 1 ? Math.max(0.6, lz >= zF ? H(lx, lz) : lz >= zE ? up(lx, yE) + th(lx) : 0.6) : L.eyeH - (L.eyeH - 0.6) / tb;
       if (lz > zE && Math.abs(lx * zE / lz) < X) hide = Math.max(hide, L.eyeH - (L.eyeH - (up(lx * zE / lz, yE) + th(lx * zE / lz))) * lz / zE);
       c.hideBelow = hide;
-      // The bed between you and it, seen from wherever you face: across it (the way the view is across), the height below
-      // which each line from your eye to it runs into the bed (the mattress, and the covers on it) on its way there. The
-      // bed is under you, so a line that comes down into it does so before it leaves it: a point is hidden if the line is
-      // below the top of the bed anywhere along it while it is over the bed.
       const topAt = (x, z) => (Math.abs(x) > X || z < -1.0 || z > 1.92 ? -9 : z >= zF ? H(x, z) : z >= zE - 0.03 ? up(x, yE) + th(x) : B);
-      const behindBed = (qx, qy, qz) => {
-        if (qy >= 0.8) return false;
-        let te = 1;
-        if (qx > X) te = Math.min(te, X / qx); else if (qx < -X) te = Math.min(te, -X / qx);
-        if (qz > 1.92) te = Math.min(te, 1.92 / qz); else if (qz < -1.0) te = Math.min(te, -1.0 / qz);
-        for (let i = 12; i >= 1; i--) { const k = te * Math.sqrt(i / 12), y = L.eyeH + (qy - L.eyeH) * k; if (y < topAt(qx * k, qz * k)) return true; }
-        return false;
-      };
-      if (c.dist < 3.2 || c.duck > 0 || G.state === 'dying') {
-        const base = cp.y + (c.yOff || 0), rx = Math.cos(G.cam.yaw), rz = -Math.sin(G.cam.yaw), pts = [];
-        let any = false;
-        for (let bx = -1.0; bx <= 1.0001; bx += 0.025) {
-          const qx = cp.x + bx * rx, qz = cp.z + bx * rz;
-          if (!behindBed(qx, base, qz)) { pts.push([bx, -1]); continue; }
-          let lo = 0, hi = 0.8 - base;
-          for (let k = 0; k < 10; k++) { const m = (lo + hi) / 2; if (behindBed(qx, base + m, qz)) lo = m; else hi = m; }
-          pts.push([bx, lo]); any = true;
-        }
-        c.hideTop = any ? pts : null;
-      } else c.hideTop = null;
-      // and the wall either side of the opening, and over it, while it is still behind it; and coming through, it stoops
+      // the wall either side of the opening, and over it, while it is still behind it; and coming through, it stoops
       // under the top of it
       const w = way(c), e = edgeAt(w, c.dist), behind = c.dist > w.apZ + 0.01;
       c.showX = behind ? [-e - c.lat, e - c.lat] : null;
       c.showTop = behind ? L.eyeH + (w.top - L.eyeH) * c.dist / w.apZ - cp.y - (c.yOff || 0) : undefined;
       c.headroom = s.mode === 'duck' || s.mode === 'yank' || L.won || G.state === 'dying' ? undefined : headroom(c) - cp.y - (c.yOff || 0);
-      // in the closet it stands in front of the clothes and the hangers (between them and the opening), so it is drawn over
-      // them, however far to the side of them it stands
-      const cr = L.rend && L.rend.get(c);
-      if (cr) cr.sortDist = c.lane.idx === 1 && c.dist > w.apZ - 0.2 ? Math.min(Math.hypot(c.dist, c.lat), w.peerD + 0.05) : undefined;
+      // Where it is drawn in the order of things. In the closet it stands in front of the clothes and the hangers (between
+      // them and the opening), so it is drawn over them, however far to the side of them it stands. Anywhere else, the bed
+      // is between you and it (it is never on the bed, only over it at the last), so it is drawn before every part of the
+      // bed (the foot's far corners are 2.04 m off), and the bed and the covers hide whatever of it they are in front of. Right
+      // in front of you at the last, it is the nearest thing there is.
+      const cr = L.rend && L.rend.get(c), off = Math.hypot(c.dist, c.lat || 0);
+      if (cr) cr.sortDist = c.close ? undefined : c.lane.idx === 1 && c.dist > w.apZ - 0.2 ? Math.min(off, w.peerD + 0.05) : Math.max(off, BEYOND);
       // (down on its haunches it is drawn from the floor to not much over its head, so that looking down at it, it is
       // where it is, its eyes just over the edge of the bed, and not stretched up from its feet as a standing figure would be)
-      if (cr) cr.h = lerp(c.CR.h, 1.0, (c.duck || 0) * (1 - (c.lunge || 0)));
+      if (cr) cr.h = c.lunge ? c.CR.h : lerp(c.CR.h, 1.0, c.duck || 0);
+      // its hands coming at you in its lunge: its arms on their own, over the bed (the rest of it behind the bed)
+      c.armsApart = !!cr && G.state === 'dying' && !c.close;
+      if (c.armsApart) R.add({ kind: 'sprite', x: cp.x, y: cp.y + (c.yOff || 0), z: cp.z, w: cr.w, h: cr.h, fogScale: 0.85, sortDist: 0.2, draw: (ctx, P) => { c.part = 'arms'; c.CR.draw(ctx, c, P); c.part = null; } });
       // peering, its fingers are round the edge of the frame by its face (drawn over the frame, which the thing is behind):
-      // at the height of its hand, seen through the opening's plane
-      if ((c.peer || 0) > 0.3 && c.dist > w.apZ) {
-        const hy = L.eyeH + (1.7 - L.eyeH) * w.apZ / c.dist, q = APPROACH.position(c.lane, w.apZ - 0.03, side * (w.edge + 0.02), L.eyeH), k = smoothstep((c.peer - 0.3) / 0.4);
+      // at the height of its hand, seen through the opening's plane. As it steps out they slide back off the edge
+      if ((c.peer || 0) > 0.05 && c.dist > w.apZ) {
+        const hy = L.eyeH + (1.7 - L.eyeH) * w.apZ / c.dist, q = APPROACH.position(c.lane, w.apZ - 0.03, side * (w.edge + 0.02), L.eyeH), k = smoothstep((c.peer - 0.1) / 0.6);
         R.add(SC.mkSprite(L, q.x, hy - 0.07, q.z, 0.12, 0.14, (ctx, P) => drawFrameFingers(ctx, P, side, k), { sortDist: w.apZ - 0.08 }));
       }
       // its hands up over the edge of the bed, on the covers (over them): the backs of the long hands, the fingers down
-      // on the cloth; they come up over the edge as it reaches, and let go as it lunges. Pulling, each comes on up the bed
-      // (s.grab), its long arm over the cloth behind it back to the edge of the bed
-      const r = (c.reach || 0) * (1 - (c.lunge || 0));
+      // on the cloth. Reaching, each comes up from behind the edge (drawn behind the bed, which hides what is below its
+      // edge) and in one snatch over it onto the cloth, and closes on it; letting go, back the same way. Pulling, each
+      // comes on up the bed (s.grab), its long arm over the cloth behind it back to the edge of the bed. As it lunges,
+      // they are gone: its hands are at you
+      const r = c.lunge ? 0 : (c.reach || 0);
       if (r > 0.01) w.hands.forEach(([x0, z0], i) => {
         const h = s.grab ? s.grab.hands[i] : { k: 0, drag: 0, open: 0, lift: 0, bunch: 0.3 }, [x1, z1] = w.to[i];
-        const dl = Math.hypot(x0 - x1, z0 - z1), x = lerp(x0, x1, h.k) + (x0 - x1) / dl * GRAB.drag * h.drag, z = lerp(z0, z1, h.k) + (z0 - z1) / dl * GRAB.drag * h.drag;
-        const y = Math.max(B, topAt(x, z)) + 0.004, sx = w === WAYS[0] ? (x0 < 0 ? -1 : 1) : (i ? 1 : -1);
-        const [ex, ez] = w.over[0] === 'z' ? [x0 * 1.1, w.over[1]] : [w.over[1], z0], far = Math.hypot(x - ex, z - ez);
-        const cloth = tint(z >= zE - 0.03 ? BLANKET : MATTRESS_TOP);
-        if (far > 0.08 && (c.lunge || 0) < 0.1) {   // the arm, from the edge of the bed to the wrist, lying over the cloth (raised as the hand reaches)
-          const ux = (x - ex) / far, uz = (z - ez) / far, nx = -uz * 0.032, nz = ux * 0.032, wx = x - ux * 0.07, wz = z - uz * 0.07;
+        const dl = Math.hypot(x0 - x1, z0 - z1), gx = lerp(x0, x1, h.k) + (x0 - x1) / dl * GRAB.drag * h.drag, gz = lerp(z0, z1, h.k) + (z0 - z1) / dl * GRAB.drag * h.drag;
+        const sx = w === WAYS[0] ? (x0 < 0 ? -1 : 1) : (i ? 1 : -1);
+        const [ex, ez] = w.over[0] === 'z' ? [x0 * 1.1, w.over[1]] : [w.over[1], z0];
+        const [ox, oz] = w.over[0] === 'z' ? [ex, ez + 0.06] : [ex - 0.06, ez], edgeY = Math.max(B, topAt(ex - (ox - ex) * 0.6, ez - (oz - ez) * 0.6));
+        // up from behind the edge (r to 0.45), then over it and down onto the cloth
+        const upK = smoothstep(r / 0.45), onK = smoothstep((r - 0.45) / 0.55);
+        const x = lerp(ox, gx, onK), z = lerp(oz, gz, onK);
+        const y = lerp(edgeY - 0.24 + upK * 0.3, Math.max(B, topAt(gx, gz)) + 0.004, onK) + Math.sin(Math.PI * onK) * 0.05;
+        const hh = onK < 1 ? { k: h.k, drag: h.drag, lift: Math.max(h.lift, 1 - onK), open: Math.max(h.open, smoothstep((1 - onK) / 0.4)), bunch: h.bunch * onK } : h;
+        const cloth = gz >= zE - 0.03 ? BLANKET : MATTRESS_TOP;
+        const far = Math.hypot(gx - ex, gz - ez);
+        if (onK >= 1 && far > 0.08) {   // the arm, from the edge of the bed to the wrist, lying over the cloth (raised as the hand reaches)
+          const ux = (gx - ex) / far, uz = (gz - ez) / far, nx = -uz * 0.032, nz = ux * 0.032, wx = gx - ux * 0.07, wz = gz - uz * 0.07;
           const ey = Math.max(B, topAt(ex - ux * 0.02, ez - uz * 0.02)) + 0.02, wy = y + 0.03 + h.lift * 0.05;
-          R.add(SC.mkQuad(L, [ex - nx * 1.2, ey, ez - nz * 1.2], [ex + nx * 1.2, ey, ez + nz * 1.2], [wx + nx, wy, wz + nz], [wx - nx, wy, wz - nz], HAND, { sortDist: COV - 0.09 }));
+          R.add(SC.mkQuad(L, [ex - nx * 1.2, ey, ez - nz * 1.2], [ex + nx * 1.2, ey, ez + nz * 1.2], [wx + nx, wy, wz + nz], [wx - nx, wy, wz - nz], HAND, { sortDist: COV - 0.09, noLight: true }));
         }
-        R.add(SC.mkSprite(L, x, y - 0.09 - (1 - r) * 0.14 + h.lift * 0.05, z, 0.24, 0.24, (ctx, P) => { ctx.scale(1.3, 1.3); drawGrip(ctx, P, sx, r, h, cloth); }, { sortDist: COV - 0.1 }));
+        R.add(SC.mkSprite(L, x, y - 0.09 + hh.lift * 0.05, z, 0.24, 0.24, (ctx, P) => { ctx.scale(1.3, 1.3); drawGrip(ctx, P, sx, hh, cloth); }, { sortDist: onK > 0.02 ? COV - 0.1 : BEYOND - 0.03 }));   // (coming up: after it, and before the bed)
       });
     };
-    const HAND = [10, 9, 12];
-    const drawFrameFingers = (ctx, P, sd, k) => {   // four long fingers curled round the edge, pointing back toward where it stands
-      const col = P.cola(HAND, k);
+    const HAND = [10, 9, 12], BEYOND = 2.12;
+    // four long fingers curled round the edge of the frame, pointing back toward where it stands; k: 1 round it, sliding
+    // back off it (toward the opening) as k goes, round the edge and out of sight
+    const drawFrameFingers = (ctx, P, sd, k) => {
+      const col = P.col(HAND, 0.05), off = -sd * (1 - k) * 0.09;
+      ctx.save(); ctx.beginPath(); ctx.rect(sd > 0 ? -0.02 : -1, -1, 1.02, 2); ctx.clip();   // (only on the face of the frame)
       for (let i = 0; i < 4; i++) {
-        const y = 0.035 + i * 0.026, l = (i === 0 || i === 3 ? 0.045 : 0.058) * k;
-        P_limb(ctx, [[-sd * 0.03, y + 0.004], [sd * 0.005, y + 0.006], [sd * (0.005 + l), y - 0.006]], 0.013, col);
+        const y = 0.035 + i * 0.026, l = i === 0 || i === 3 ? 0.045 : 0.058;
+        P_limb(ctx, [[-sd * 0.03 + off, y + 0.004], [sd * 0.005 + off, y + 0.006], [sd * (0.005 + l) + off, y - 0.006]], 0.013, col);
       }
+      ctx.restore();
     };
     // one hand on the covers, in metres from the cloth under it (0.07 up), the fingers toward you: h.open spreads them (as
     // it reaches) or closes them into a fist on the cloth, h.lift raises it off the cloth, h.bunch is the cloth gathered up
-    // in its grip, creased in toward its fist
-    const drawGrip = (ctx, P, sd, r, h, cloth) => {
-      const col = P.cola(HAND, Math.min(1, r * 1.4)), open = h.open, bunch = h.bunch * (1 - h.lift), hy = 0.1 + h.lift * 0.05;
+    // in its grip, creased in toward its fist. It is as dark as the rest of it, in any light
+    const drawGrip = (ctx, P, sd, h, cloth) => {
+      const col = P.col(HAND, 0.05), open = h.open, bunch = h.bunch * (1 - h.lift), hy = 0.1 + h.lift * 0.05;
       if (bunch > 0.02) {   // the cloth drawn tight in toward its fist, in soft creases, and heaped up under its knuckles
         const crease = P.cola(scalec(cloth, 0.6), 0.45 * bunch), ridge = P.cola(scalec(cloth, 1.12), 0.9 * bunch), fold = P.cola(scalec(cloth, 0.7), 0.7 * bunch);
         for (const dx of [-0.1, -0.045, 0.01, 0.06, 0.11]) P_line(ctx, dx * 1.15, 0.07 - 0.055 * bunch, dx * 0.35, 0.068, 0.012, crease);
@@ -478,10 +488,26 @@ LEVELS.push({
     // You look up from the covers at it once more, then they come up over your head: the hem rises across the view (the
     // middle first, where your hands are) and you are under the fabric, in the dark, the lamp a faint warm glow through
     // the weave on its side of you, the folds moving a little as you breathe. Under there: its slow steps come to the bed,
-    // the shadow of its hand comes over the glow and spreads on the covers, and it pulls at them, hard, again and again
-    // (the fabric jerks toward it, the bed shakes), and they hold. It lets go, the shadow goes, the light through the
-    // covers goes grey, the clock ticks on. Then the fade.
-    const U = { rise: 1.3, under: 2.1, reach: 3.0, grip: 3.8, tugs: 3, every: 0.62, lets: 6.1, dawn: 5.9, end: 9.4 };
+    // and the shadows of its two hands come up over the glow, from its side, and take hold of the covers as they did on the
+    // bed: each reaches on up the cloth with its fingers spread, closes on it and pulls (the fabric jerks toward it, the
+    // bed shakes); one, the other, then both together. They hold. Its hands open, let go and sink back out of sight, and its
+    // steps go away. The clock ticks on. Then the fade.
+    // When each hand comes up (IN), its pulls (each the moment it drags the cloth), and when they let go (LET)
+    const U = { rise: 1.3, under: 2.1, IN: [3.0, 3.8], PULLS: [[3.5, 5.3], [4.3, 5.3]], LET: 6.3, away: 7.2, end: 8.8 };
+    const TUGS = [...new Set(U.PULLS.flat())].sort((a, b) => a - b);
+    // one hand at t: how far up into view (in), its fingers closed on the cloth (grip: 0 spread, 1 a fist), how far it has
+    // reached on up the cloth (up), and how hard it is pulling now (pull)
+    const coverHand = (i, t) => {
+      let grip = 0, up = 0, pull = 0;
+      U.PULLS[i].forEach((P, n) => {
+        if (t < P - 0.45) return;
+        const reach = smoothstep((t - P + 0.45) / 0.3), close = smoothstep((t - P + 0.15) / 0.15), drag = smoothstep((t - P) / 0.3);
+        grip = n ? Math.max(close, 1 - smoothstep((t - P + 0.45) / 0.12)) : close;   // (each reach after the first opens the fist)
+        up = reach * (1 - drag); pull = t >= P ? 1 - smoothstep((t - P) / 0.45) : 0;
+      });
+      const let_ = smoothstep((t - U.LET) / 0.2);
+      return { in: smoothstep((t - U.IN[i]) / 0.3) * (1 - smoothstep((t - U.LET - 0.2) / 0.7)), grip: grip * (1 - let_), up: up + let_ * 0.3, pull };
+    };
     L.aftermath = (t, dt) => {
       const c = c0();
       if (!s.after) {   // look up from the covers at it
@@ -489,19 +515,15 @@ LEVELS.push({
         s.after = true; const p = c.pos(), yaw = Math.atan2(p.x, p.z), hd = Math.max(0.3, Math.hypot(p.x, p.z));
         G.cam.tYaw = G.cam.yaw + wrapPi(yaw - G.cam.yaw); G.cam.dirIdx = ((Math.round(yaw / (45 * DEG)) % 8) + 8) % 8;
         G.cam.tPitch = clamp(Math.atan2(L.eyeH - (c.duck ? c.eyeTo : 1.6), hd), 0, PITCH_DOWN);
-        L.text.win = c.lane.idx === 1 ? 'You pulled the covers over your head. It came out of the closet to the side of the bed and pulled at them, and they held. It stood there until the light through them went grey.'
-          : 'You pulled the covers over your head. It came to the foot of the bed and pulled at them, and they held. It stood there until the light through them went grey.';
       }
       s.over = smoothstep((t - U.rise) / (U.under - U.rise));
       if (t >= U.rise && !s.rustled) { s.rustled = true; AUDIO.sfx('hiss'); }
-      // under the covers it comes to the bed, a few slow, heavy steps, however far off it was
+      // under the covers it comes to the bed, a few slow, heavy steps, however far off it was; at the last it goes away
       if (t >= U.under && !s.came) { s.came = true; const b = c.lane.barrierDist || 1.6; c.hold = null; c.distFn = (cr, dt2) => Math.max(b, cr.dist - dt2 * 1.6); }
-      s.shadow = smoothstep((t - U.reach) / 0.8) * (1 - smoothstep((t - U.lets) / 1.2));
-      s.grip = smoothstep((t - U.grip + 0.3) / 0.4) * (1 - smoothstep((t - U.lets) / 0.8));
-      const n = Math.floor((t - U.grip) / U.every) + 1;   // the pulls, one after another
-      if (t >= U.grip && n > (s.tugs || 0) && n <= U.tugs) { s.tugs = n; s.tugAt = t; AUDIO.sfx('tug', clamp(Math.sin(wrapPi(c.yaw - G.cam.yaw)), -0.85, 0.85)); G.shake(0.55); }
-      s.grey = clamp((t - U.dawn) / 3.2, 0, 1);
-      L.pal.ambient = 1 + s.grey * 0.9; L.pal.fog = mixc([26, 24, 30], [150, 152, 158], s.grey); L.pal.skyTop = mixc([8, 8, 16], [120, 128, 150], s.grey);
+      if (t >= U.away && !s.gone) { s.gone = true; c.hold = null; c.distFn = (cr, dt2) => cr.dist + dt2 * 0.7; }
+      s.coverHands = [0, 1].map(i => coverHand(i, t));
+      const n = TUGS.filter(P => t >= P).length;   // the pulls, one after another
+      if (n > (s.tugs || 0)) { s.tugs = n; s.tugAt = t; AUDIO.sfx('tug', clamp(Math.sin(wrapPi(c.yaw - G.cam.yaw)), -0.85, 0.85)); G.shake(0.55); }
       return t >= U.end;
     };
     // what you see of all that: the covers over your eyes, drawn over the view (under the vignette, grain and fade)
@@ -519,6 +541,27 @@ LEVELS.push({
     // your chin (x0, y0 at the top, through cx, cy, to x1, y1 at the bottom, and how wide)
     const FOLDS = [[0.07, -0.1, 0.11, 0.5, 0.19, 1.12, 0.17], [0.27, -0.1, 0.29, 0.52, 0.36, 1.12, 0.2], [0.47, -0.1, 0.45, 0.55, 0.48, 1.12, 0.14], [0.66, -0.1, 0.65, 0.5, 0.6, 1.12, 0.21], [0.88, -0.1, 0.85, 0.48, 0.79, 1.12, 0.18]];
     const soft = (ctx, draw, wd, rgb, a) => { for (const [k, f] of [[2.0, 0.16], [1.65, 0.18], [1.3, 0.22], [0.95, 0.28], [0.6, 0.36]]) { ctx.lineWidth = wd * k; ctx.strokeStyle = rgba(rgb, a * f); draw(); } };   // a stroke with a soft edge
+    // the shadow of one of its hands on the glow through the cloth, soft at the edge: the long arm in from below, the
+    // palm, the four long fingers spread or closed on the cloth, the thumb (mirrored for the other hand); and the cloth
+    // drawn in toward its grip in soft creases, deeper as it pulls
+    const shadowHand = (ctx, x, y, ang, S, sd, h) => {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(S * sd, -S);   // (upside down: the arm below, the fingers up)
+      const spread = 0.5 - h.grip * 0.22, curl = h.grip * 0.24;
+      const parts = [[0, -3.2, 0, -0.3, 0.27], [0, -0.28, 0, 0.04, 0.38]];   // the arm in from the edge, the palm
+      [0.6, 0.76, 0.72, 0.56].forEach((l, f) => { const a2 = (f - 1.5) * spread / 1.5; parts.push([Math.sin(a2) * 0.15, 0.1, Math.sin(a2) * (0.15 + l * 0.9), 0.1 + Math.cos(a2) * l * (1 - curl), 0.07]); });
+      parts.push([0.17, -0.14, 0.44 - h.grip * 0.12, 0.12, 0.075]);   // the thumb
+      ctx.globalCompositeOperation = 'multiply';
+      for (const [wd, a2] of [[0.26, 0.16], [0.14, 0.24], [0.05, 0.34], [0, 0.6]]) {
+        ctx.strokeStyle = 'rgba(14,8,10,' + (a2 * h.in) + ')';
+        for (const [x0, y0, x1, y1, w0] of parts) { ctx.lineWidth = w0 + wd; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+      }
+      const pull = h.grip * (0.5 + 0.5 * h.pull);
+      if (pull > 0.01) for (const a2 of [0.6, 1.5, 2.4, 3.3, 4.1]) {
+        const r1 = 1.45, r0 = 0.7;
+        soft(ctx, () => { ctx.beginPath(); ctx.moveTo(Math.sin(a2) * r1, 0.3 + Math.cos(a2) * r1); ctx.lineTo(Math.sin(a2) * r0, 0.3 + Math.cos(a2) * r0); ctx.stroke(); }, 0.2, [96, 80, 82], 0.7 * pull * h.in);
+      }
+      ctx.restore();
+    };
     L.overlay = (ctx, W, H) => {
       const k = s.over || 0;
       if (k <= 0) return;
@@ -530,17 +573,16 @@ LEVELS.push({
       ctx.beginPath(); ctx.moveTo(-10, H + 10);
       for (let x = -10; x <= W + 10; x += 20) ctx.lineTo(x, hemY(x));
       ctx.lineTo(W + 10, H + 10); ctx.closePath(); ctx.clip();
-      // the jerk of a pull, toward it (down the view, toward the foot of the bed, the way its arm comes in), easing back
+      // the jerk of a pull, toward it (down the view, toward the foot of the bed, the way its arms come in), easing back
       const rel = wrapPi(c.yaw - G.cam.yaw), ax = Math.sin(rel), ay = Math.cos(rel) * 0.8 + 0.2, al = Math.hypot(ax, ay) || 1;
       const u = s.tugAt === undefined ? 1 : clamp((t - s.tugAt) / 0.42, 0, 1), jerk = (1 - u) * (1 - u) * (rm ? 12 : 38);
       const jx = ax / al * jerk, jy = ay / al * jerk, br = rm ? 0 : Math.sin(t * 1.5) * 6;   // and your breath under there
-      // the dark under the covers, lighter as the day comes
-      const grey = s.grey || 0;
-      ctx.fillStyle = rgba(mixc([15, 12, 18], [52, 54, 62], grey)); ctx.fillRect(0, 0, W, H);
-      // the lamp, a warm glow through the cloth on its side of you (weaker and lower if it is behind you); the morning a cold one
+      // the dark under the covers
+      ctx.fillStyle = rgba([15, 12, 18]); ctx.fillRect(0, 0, W, H);
+      // the lamp, a warm glow through the cloth on its side of you (weaker and lower if it is behind you)
       const lr = wrapPi(Math.atan2(1.2, 0.15) - G.cam.yaw), front = 0.5 + 0.5 * Math.max(0, Math.cos(lr)), side = Math.sin(lr);
       const gx = W / 2 + side * W * 0.42 + jx * 0.5, gy = H * (0.52 + 0.14 * Math.max(0, -Math.cos(lr))) + jy * 0.5;
-      const glow = (s.lampOn ? 1 : 0.3) * front * (1 - grey * 0.5);
+      const glow = (s.lampOn ? 1 : 0.3) * front;
       const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, Math.max(W, H) * 0.72);
       g.addColorStop(0, rgba([232, 162, 92], 0.66 * glow)); g.addColorStop(0.3, rgba([186, 114, 64], 0.38 * glow)); g.addColorStop(0.7, rgba([104, 66, 48], 0.13 * glow)); g.addColorStop(1, rgba([60, 40, 40], 0));
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -555,41 +597,24 @@ LEVELS.push({
         ctx.globalCompositeOperation = 'overlay'; soft(ctx, path(sx * wd * H * 0.45), wd * H * 0.3, [236, 218, 200], 0.45);
       }
       ctx.globalCompositeOperation = 'source-over';
-      // its hand on the covers: the shadow of a long hand and its fingers on the glow, soft at the edge, gripping. It comes
-      // up from below, from the foot of the bed (from its side of it), its arm in from the bottom edge of the view
-      const sh = s.shadow || 0, grip = s.grip || 0;
-      if (sh > 0.002) {
-        const S = H * 0.34, hx = lerp(W / 2, gx, 0.45) + ax * W * 0.12, hy = H * 0.5, ang = -clamp(ax, -1, 1) * 0.55 + (gx > W / 2 ? 0.2 : -0.2) * Math.max(0, Math.cos(rel));
-        ctx.save(); ctx.translate(hx, hy + (1 - sh) * H * 0.3); ctx.rotate(ang); ctx.scale(S, -S);   // (upside down: the arm below, the fingers up)
-        const spread = 0.46 - grip * 0.18, curl = grip * 0.22;
-        const parts = [[0, -3.2, 0, -0.3, 0.27], [0, -0.28, 0, 0.04, 0.38]];   // the arm in from the edge, the palm
-        [0.6, 0.76, 0.72, 0.56].forEach((l, f) => { const a2 = (f - 1.5) * spread / 1.5; parts.push([Math.sin(a2) * 0.15, 0.1, Math.sin(a2) * (0.15 + l * 0.9), 0.1 + Math.cos(a2) * l * (1 - curl), 0.07]); });
-        parts.push([0.17, -0.14, 0.44 - grip * 0.12, 0.12, 0.075]);   // the thumb
-        ctx.globalCompositeOperation = 'multiply';
-        for (const [wd, a2] of [[0.26, 0.16], [0.14, 0.24], [0.05, 0.34], [0, 0.6]]) {
-          ctx.strokeStyle = 'rgba(14,8,10,' + (a2 * sh) + ')';
-          for (const [x0, y0, x1, y1, w0] of parts) { ctx.lineWidth = w0 + wd; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
-        }
-        // the cloth drawn in toward its grip: soft creases running in to where its fingers close, deeper on a pull
-        const pull = grip * (0.55 + 0.45 * (1 - u));
-        for (const a2 of [0.6, 1.5, 2.4, 3.3, 4.1]) {
-          const r1 = 1.45, r0 = 0.7;
-          soft(ctx, () => { ctx.beginPath(); ctx.moveTo(Math.sin(a2) * r1, 0.3 + Math.cos(a2) * r1); ctx.lineTo(Math.sin(a2) * r0, 0.3 + Math.cos(a2) * r0); ctx.stroke(); }, 0.2, [96, 80, 82], 0.7 * pull * sh);
-        }
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.restore();
-      }
-      if (grey > 0) { ctx.fillStyle = rgba([150, 156, 170], 0.3 * grey); ctx.fillRect(-60, -60, W + 120, H + 120); }   // the day, through all of it
+      // its two hands on the covers, either side of the middle, in from the foot of the bed (from its side of it); each
+      // reaching on up the cloth as it takes a new hold
+      const hc = lerp(W / 2, gx, 0.3) + ax * W * 0.12, tilt = -clamp(ax, -1, 1) * 0.5;
+      (s.coverHands || []).forEach((h, i) => {
+        if (h.in <= 0.002) return;
+        const sd = i ? 1 : -1;
+        const x = hc + sd * W * 0.15 + sd * h.up * W * 0.01, y = H * (0.56 - h.up * 0.09) + (1 - h.in) * H * 0.6;
+        shadowHand(ctx, x, y, tilt + sd * 0.22, H * 0.3, sd, h);
+      });
       // the weave over all of it, close enough to see the threads where the light comes through
       ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = weaveOf(ctx); ctx.fillRect(-60, -60, W + 120, H + 120); ctx.globalCompositeOperation = 'source-over';
       ctx.restore();
       ctx.restore();
       // the hem itself as it goes up past your eyes: the sheet turned down over the blanket's edge, out of focus this close
       if (edge > -H * 0.3) {
-        const sheet = mixc([86, 82, 90], [150, 150, 156], grey);
         ctx.save(); ctx.lineCap = 'round';
         for (const [off, wd, a] of [[16, 46, 0.35], [12, 26, 0.6], [9, 12, 0.8]]) {
-          ctx.strokeStyle = rgba(sheet, a); ctx.lineWidth = wd; ctx.beginPath();
+          ctx.strokeStyle = rgba([86, 82, 90], a); ctx.lineWidth = wd; ctx.beginPath();
           for (let x = -10; x <= W + 10; x += 20) { const y = hemY(x) + off; x === -10 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
           ctx.stroke();
         }

@@ -308,26 +308,35 @@ some on the ground, so you have to turn and look down to find them.
     the opening: at first only its head leans out round the edge, its fingers curled round
     the frame (having its head in view counts as watching it). The night's card shows it
     just so, and it is still there when you begin. Then it steps out into the room, in
-    extreme slow motion, stooping under the top of the frame until it is through. It
+    extreme slow motion, a step at a time: a foot comes up, hangs, swings over and comes
+    down with a jerk, its weight going over onto it, and then the other (sideways out of
+    hiding, the foot on that side first); its fingers slide back off the frame as it goes,
+    and it stoops under the top of the frame until it is through. It is all but black, even
+    in the lamp's light; only its two pale eyes show. It
     cannot stand the light: when the lamp comes on it throws an arm across its face and
     folds down onto its haunches out of sight, keeps low (only a dark shape along the
     floor, if it is out in the open) to the bed, and comes up at the foot of it (or at its
-    corner, out of the closet) until only its eyes are over the edge, whole wherever you
-    look from, the bed hiding what it would. Then its long hands come up over the edge
-    onto the covers, and pull: one and then the other, each reaching on up the bed with its
+    side, out of the closet) until only its eyes are over the edge. It is always drawn
+    whole, and drawn before the bed, so the bed hides whatever of it is behind the bed.
+    Then its long hands snatch up over the edge onto the covers, and pull: one and then
+    the other, each reaching on up the bed with its
     fingers spread, closing on the cloth and dragging it back, the covers jerking, every
     pull nearer to you. Pull the covers up before they reach you; if they do, it comes up the
     bed after them. The lamp must come
     first: pulled up in the dark, the covers do not save you; it is at the bed all at once,
     takes hold of them, rips them down off you and is in your face. If the lamp burns
-    out before the covers are up (it flickers first), it rises again from behind the bed
-    and comes on; one pull of the chain brings the light back, and it goes down again. Your hand
+    out before the covers are up (it flickers first), its hands let go and it rises again
+    from behind the bed and comes on; one pull of the chain brings the light back, and it
+    goes down again. When it has you, its hands shoot out over the bed and take hold of you;
+    then all at once its face is right in front of yours, its head twitching, and its head
+    swells out over everything until the black of it is all there is. Your hand
     pulls the lamp's chain (nothing comes of it with no bulb in or the cord out, and it sticks),
     opens the drawer, pushes the plug in and is on the covers' hem as you hold them; the wrong
     bulb will not go into the socket and drops onto the bed, to be taken again. Then they
     come up over your eyes and the rest happens under them, the cloth hanging in long folds:
-    its steps to the bed, the shadow of its hand coming up from the foot of the bed onto the
-    lamp-lit cloth, three hard pulls that the covers hold, and the light through them going grey.
+    its steps to the bed, the shadows of its two hands coming up onto the lamp-lit cloth and
+    taking hold as they did on the bed, three hard pulls (one hand, the other, then both)
+    that the covers hold; then its hands let go and sink away, and its steps go away.
 13. **The Void.** Your hands are empty, and everything you ever held against it lies
     around you, within reach. It comes in a black hooded robe, nothing of its face to be
     seen in the dark of the hood but two small pale eyes. Take up anything and it is
