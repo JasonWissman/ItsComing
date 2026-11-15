@@ -35,7 +35,7 @@ CREATURES.tall = {
   draw(ctx, c, P) {
     const g = c.gait, t = c.t, near = clamp(1 - c.dist / 3.2, 0, 1), lunge = c.lunge || 0, free = 1 - lunge, K = this.SCALE, S = this.STOOP;
     const peer = (c.peer || 0) * free, ps = c.peerSide || 1, flinch = (c.flinch || 0) * free, duck = (c.duck || 0) * free, reach = (c.reach || 0) * free;
-    const body = P.col([8, 7, 10]), skin = P.col([120, 108, 110]), eye = P.col([232, 228, 214]), black = P.col([2, 2, 3]);
+    const body = P.col([8, 7, 10]), skin = P.col([120, 108, 110]), eye = P.col([6, 5, 7]), black = P.col([2, 2, 3]);   // (its eyes: black, round and blank)
     // it bows over the foot of the bed as it comes: seen from in front, its shoulders hunch up and its head comes forward
     // and down between them (it straightens as it lunges, when the night brings its face to yours)
     const lean = smoothstep((2.5 - c.dist) / 0.7) * (1 - smoothstep(lunge)) * (1 - peer) * (1 - duck);
@@ -109,18 +109,24 @@ CREATURES.tall = {
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
     if ((c.faceAway || 0) > 0.5) { ctx.restore(); if (late) late(); ctx.restore(); return; }   // its face down: the dark of its head
     P_ell(ctx, 0, 0.32, 0.095, 0.15, skin);
-    const ew = 0.018 + duck * 0.004;   // blank, no pupils, perfectly round; peering up, the eyes wide
+    const ew = 0.018 + duck * 0.004;   // black, blank, perfectly round; peering up, the eyes wide
     P_ell(ctx, -0.04, 0.36, ew, ew, eye); P_ell(ctx, 0.04, 0.36, ew, ew, eye);
     // the mouth: wide open, an arch of despair turned down at both corners: the upper lip curved high over it, the lower
     // lip only a little above the dragged-down corners, so it gapes; filled, then stroked round the same edge with round
     // joins, which softens the corners
     const mh = 0.026 + near * 0.05 + lunge * 0.045, mw = 0.034 + near * 0.024 + lunge * 0.026, my = 0.24;
     const cy = my - mh * 0.6, soft = Math.min(mh * 0.45, 0.006 + near * 0.008 + lunge * 0.008);
+    // and at the last of its lunge it swallows you: the mouth keeps on coming, opening out over everything until the
+    // black of it is all there is
+    const gulp = smoothstep((lunge - 0.5) / 0.5);
+    ctx.save();
+    if (gulp > 0) { const mc = cy + mh * 0.5; ctx.translate(0, mc); ctx.scale(1 + gulp * gulp * 90, 1 + gulp * gulp * 90); ctx.translate(0, -mc); }
     ctx.fillStyle = black; ctx.strokeStyle = black; ctx.lineWidth = soft * 2; ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.moveTo(-mw, cy);
     ctx.bezierCurveTo(-mw * 0.75, my + mh * 1.15, mw * 0.75, my + mh * 1.15, mw, cy);
     ctx.bezierCurveTo(mw * 0.55, cy - mh * 0.12, -mw * 0.55, cy - mh * 0.12, -mw, cy);
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
     ctx.restore();
     if (late) late();
     ctx.restore();
