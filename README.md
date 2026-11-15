@@ -476,7 +476,8 @@ LEVELS.push({
   front). It is drawn flat on that face in true perspective, as the face itself is, never turning toward you and not
   drawn from behind; a target given the same `face` has a hit area of exactly the shape it covers on the view, so what
   you click stays on what is drawn however you turn or look down (night 11's breaker box, night 2's gearstick, pedal
-  and ignition, night 9's pay phone). A plain billboard on a wall or a console turns with the view as you look round,
+  and ignition, night 9's pay phone, night 6's winch, night 7's fuse box and crank, night 8's main switch and
+  shutters). A plain billboard on a wall or a console turns with the view as you look round,
   so anything fixed to a surface takes `face` (or is built of polys, as night 10's fallen dust sheet is). `face` is not
   turned by `SC.withYaw`: inside one, give the world yaw (the frame's own yaw plus `Math.PI` for a front looking back
   at you).

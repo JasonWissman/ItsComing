@@ -222,9 +222,11 @@ LEVELS.push({
     // the wall, a drum with the cable wound on it going up to the pulley, and under it the wheel that turns it, with the square
     // boss in its middle that the handle fits. Locked, a chain runs round the drum and down through the wheel to a padlock;
     // unlocked, the chain hangs loose off the side, the padlock open on it and the key's float hanging from the padlock; with
-    // the handle on, the crank turns the wheel round a step at every turn. What you click is the drawing: the same size and place
-    const need = 7, WS = 0.62, WX = 1.95, WY = 0.9, WZ = 2.5;
-    const winchArt = SC.sprite(L, WX, WY, WZ, WS, WS, (ctx, P) => { ctx.scale(WS, WS); drawWinch(ctx, P); });
+    // the handle on, the crank turns the wheel round a step at every turn. What you click is the drawing: the same size and place.
+    // It is fixed flat on the wall (face: its front looks back into the boathouse), so it never turns with the view, and
+    // what you click is the shape it covers.
+    const need = 7, WS = 0.62, WX = 1.95, WY = 0.9, WZ = 2.5, WFACE = Math.PI;
+    const winchArt = SC.sprite(L, WX, WY, WZ, WS, WS, (ctx, P) => { ctx.scale(WS, WS); drawWinch(ctx, P); }, { face: WFACE });
     // Tried before it will go, the winch answers in its own iron. A turn forced against the chain (the handle put on the
     // padlocked winch, or the bar knocked against it) snaps the chain taut: the padlock jumps on it and the wheel rocks a
     // little and back. A hand on the padlock rattles it on its chain. A hand on the wheel with no handle moves it a hair
@@ -304,7 +306,7 @@ LEVELS.push({
     // a thing it does not take, knocked against it: it comes back to the hand (the bar, end first, at the wheel)
     const knock = (item, onHit) => G.fumble(item, winch, { preset: 'return', at: AT.boss, tip: TIP[item.id], sfx: { hit: s.locked ? 'chain' : 'tink' }, onHit });
     const winch = mkTarget(L, {
-      id: 'winch', name: 'Winch', x: WX, y: WY, z: WZ, w: WS, h: WS, accepts: ['handle', 'winchkey'].concat(decoy ? ['oar'] : []),
+      id: 'winch', name: 'Winch', x: WX, y: WY, z: WZ, w: WS, h: WS, face: WFACE, accepts: ['handle', 'winchkey'].concat(decoy ? ['oar'] : []),
       hint() { return winch.done ? 'The door is down.' : s.locked ? 'The winch. A chain through the drum, and a padlock on it.' : !s.handleIn ? 'The winch. Its handle is gone.' : 'Crank it. ' + Math.max(0, need - Math.floor(winch.count || 0)) + ' more.'; },
       // the oar, its grip end jammed at the boss: it will not go in, slips and clatters to the deck
       fumble: { decoy: { preset: 'bump', at: AT.boss, tip: TIP.oar } },
