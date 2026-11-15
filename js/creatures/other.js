@@ -166,7 +166,10 @@ CREATURES.other = {
         if (grief) P_ell(ctx, s * 0.045, ey, Math.max(er, px * 1.1), Math.max(er * 1.15, px), P.raw([214, 34, 30]));
         else P_ell(ctx, s * 0.045, ey, er, er * 1.15, K.glass);
         if (grief) {
-          const lo = lunge * 0.006, li = [s * 0.012, ey + 0.022 + lo], lu = [s * 0.096, ey - 0.014 + lo];   // the lid's edge, inner and outer
+          // (lunging, the grief turns to rage as it comes: the lid's slant tips over from drooping at the outer corner to
+          // driven down at the inner one, with the brows)
+          const rg = smoothstep((lunge - 0.15) / 0.6), lo = lunge * 0.006;
+          const li = [s * 0.012, lerp(ey + 0.022 + lo, ey + 0.004, rg)], lu = [s * 0.096, lerp(ey - 0.014 + lo, ey + 0.022, rg)];   // the lid's edge, inner and outer
           P_poly(ctx, [[s * 0.008, ey + 0.05], [s * 0.1, ey + 0.05], [s * 0.1, lu[1]], lu, li, [s * 0.008, li[1]]], K.porcelain);
           P_line(ctx, li[0], li[1], lu[0], lu[1], 0.006, K.glass);
           P_ell(ctx, s * 0.045, ey - er * 1.02, er * 0.72, 0.0045, P.cola([255, 214, 214], 0.55));   // brimming along the lower lid
@@ -177,7 +180,9 @@ CREATURES.other = {
         const ey = eyeY(s);
         if (grief) {
           P_ell(ctx, s * 0.045, ey - 0.006, 0.036, 0.026, P.cola([255, 40, 24], 0.3 * fury));   // the red, glowing through the wet
-          P_limb(ctx, [[s * 0.014, ey + 0.041], [s * 0.045, ey + 0.033], [s * 0.094, ey + 0.006]], 0.0075, K.glass);   // the painted brow, up in the middle
+          // the painted brow, up in the middle in grief; lunging, it swings over into a hard angry slant, down at the middle
+          const rg = smoothstep((lunge - 0.15) / 0.6);
+          P_limb(ctx, [[s * 0.014, lerp(ey + 0.041, ey + 0.016, rg)], [s * 0.045, lerp(ey + 0.033, ey + 0.034, rg)], [s * 0.094, lerp(ey + 0.006, ey + 0.054, rg)]], lerp(0.0075, 0.011, rg), K.glass);
           // the tears, dark red, from the outer corner down the cheek, a drop running down each now and then
           const tx = u => s * (0.066 + 0.008 * u + 0.003 * Math.sin(u * 7 + s)), ty = u => ey - er * 1.0 - u * (0.075 + lunge * 0.04);
           P_limb(ctx, [0, 0.35, 0.7, 1].map(u => [tx(u), ty(u)]), 0.0065, P.cola([116, 8, 20], 0.85));

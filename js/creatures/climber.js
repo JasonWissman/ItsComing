@@ -239,9 +239,15 @@ CREATURES.climber = {
     P_ell(ctx, 0, -0.06, 0.235, 0.22, greyD);                     // the skull, tipped back behind the face
     P_ell(ctx, 0, 0.12, 0.13, 0.07, faceD);                       // under the jaw, lifted toward you
     P_ell(ctx, 0, 0, 0.2, 0.21, face);
+    // the eyes, blank whites staring up at you in sunken sockets: perfectly round as you see them, however the wall
+    // foreshortens the face they are in (drawn in the canvas's own space, at the size the face's scale gives them)
+    const roundAt = (x, y, r, col) => {
+      const M = ctx.getTransform(), q = M.transformPoint({ x, y }), k = Math.sqrt(Math.abs(M.a * M.d - M.b * M.c));
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(q.x, q.y, r * k, 0, TAU); ctx.fill(); ctx.restore();
+    };
     for (const s of [-1, 1]) {
-      P_ell(ctx, s * 0.077, -0.07, 0.064, 0.058, faceD);          // sunken sockets
-      P_ell(ctx, s * 0.077, -0.07, 0.045, 0.04, eye);             // the eyes, blank whites staring up at you
+      roundAt(s * 0.077, -0.07, 0.061, faceD);                     // sunken sockets
+      roundAt(s * 0.077, -0.07, 0.043, eye);                       // the eyes
       P_ell(ctx, s * 0.022, 0.025, 0.013, 0.009, greyD);          // nostrils, seen from under the nose
     }
     const mo = 0.026 + near * 0.035 + lunge * 0.06 + c.look * 0.02;   // the mouth hangs open, wider the nearer it is: the jaw drops

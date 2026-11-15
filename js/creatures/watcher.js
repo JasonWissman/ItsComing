@@ -4,6 +4,12 @@
 // at c.runGait, which only moves while it does; caught by a look it is a statue caught mid-stride. At a gate it can
 // hold the bars (pose 4: both hands on bars either side of its face, at c.grip [left, right] from its middle; 5: the left
 // one there, the other reaching through the gap at c.reach).
+// an eye: a round pale point with a faint glow round it of its own (it shows in the dark of the hood, as the carrier's do)
+function watcherEye(ctx, x, y, r, pale) {
+  P_ell(ctx, x, y, r * 2.6, r * 2.6, 'rgba(214,226,204,0.13)');
+  P_ell(ctx, x, y, r * 1.6, r * 1.6, 'rgba(226,236,214,0.18)');
+  P_ell(ctx, x, y, r, r, pale);
+}
 CREATURES.watcher = {
   name: 'the watcher', h: 2.15, w: 1.5, faceY: 1.8, stepRate: 0.8, catchDist: 1.6, sound: null, silentWhenSeen: true,
   death: { delay: 0.05, dur: 0.04, sting: 'stingStone' },
@@ -45,7 +51,7 @@ CREATURES.watcher = {
         P_ell(ctx, s * 0.36, 1.05, 0.07, 0.06, stoneL);
         fingers(ctx, s * 0.36, 1.05, -Math.PI / 2 + s * 0.3, 0.35, 0.16, 0.03, stoneL);
       }
-      P_ell(ctx, -0.055, 1.83, 0.017, 0.017, pale); P_ell(ctx, 0.055, 1.83, 0.017, 0.017, pale);
+      watcherEye(ctx, -0.055, 1.83, 0.017, pale); watcherEye(ctx, 0.055, 1.83, 0.017, pale);
     } else if (pose === 2) {
       // screaming, head cocked
       for (const s of [-1, 1]) {
@@ -54,7 +60,7 @@ CREATURES.watcher = {
       }
       ctx.save(); ctx.translate(0, 1.5); ctx.rotate(0.35);
       P_poly(ctx, [[-0.2, 0], [0.2, 0], [0.15, 0.5], [0, 0.56], [-0.15, 0.5]], hole);
-      P_ell(ctx, -0.055, 0.33, 0.019, 0.019, pale); P_ell(ctx, 0.055, 0.33, 0.019, 0.019, pale);
+      watcherEye(ctx, -0.055, 0.33, 0.019, pale); watcherEye(ctx, 0.055, 0.33, 0.019, pale);
       P_ell(ctx, 0, 0.15, 0.06, 0.09 + (c.lunge || 0) * 0.05, stoneD);
       P_ell(ctx, 0, 0.15, 0.045, 0.075 + (c.lunge || 0) * 0.05, hole);
       ctx.restore();
@@ -75,14 +81,14 @@ CREATURES.watcher = {
         P_ell(ctx, rx, 1.08, 0.08, 0.075, stoneL);
         fingers(ctx, rx, 1.08, -Math.PI / 2 - 0.5, 0.42, 0.17, 0.032, stoneL);
       }
-      P_ell(ctx, -0.055, 1.82, 0.018, 0.018, pale); P_ell(ctx, 0.055, 1.82, 0.018, 0.018, pale);
+      watcherEye(ctx, -0.055, 1.82, 0.018, pale); watcherEye(ctx, 0.055, 1.82, 0.018, pale);
     } else {
       // pointing at you
       P_limb(ctx, [shoulder(-1), [-0.45, 1.15], [-0.36, 0.85]], 0.1, stone);
       P_limb(ctx, [shoulder(1), [0.5, 1.35], [0.28, 1.3]], 0.1, stone);
       P_ell(ctx, 0.28, 1.3, 0.07, 0.06, stoneL);
       P_line(ctx, 0.28, 1.3, 0.2, 1.27, 0.035, stoneL);
-      P_ell(ctx, -0.055, 1.83, 0.017, 0.017, pale); P_ell(ctx, 0.055, 1.83, 0.017, 0.017, pale);
+      watcherEye(ctx, -0.055, 1.83, 0.017, pale); watcherEye(ctx, 0.055, 1.83, 0.017, pale);
     }
     // cracks
     ctx.strokeStyle = stoneD; ctx.lineWidth = 0.012; ctx.beginPath();
@@ -115,7 +121,7 @@ CREATURES.watcher = {
     // the hood, pushed forward, its opening toward where it runs, one eye in the dark of it
     P_poly(ctx, [[-0.22, 0.5], [0.2, 0.52], [0.34, 0.86], [0.2, 1.12], [-0.06, 1.12], [-0.24, 0.84]], stone);
     P_poly(ctx, [[0.12, 0.6], [0.3, 0.7], [0.32, 0.9], [0.2, 1.04], [0.1, 0.92]], hole);
-    P_ell(ctx, 0.25, 0.86, 0.018, 0.018, pale);
+    watcherEye(ctx, 0.25, 0.86, 0.018, pale);
     // the near arm, forward, the hand clawing at the air ahead of it
     const hx = 0.5 + sw * 0.1, hy = 0.42 + sw * 0.06;
     P_limb(ctx, [[0.02, 0.48], [0.3, 0.3 + sw * 0.04], [hx, hy]], 0.1, stone);
