@@ -115,21 +115,21 @@ CREATURES.signalman = {
     const fx = turn * 0.045, rv = clamp(reveal, 0, 1), gape = smoothstep(lunge * 1.3);
     // the head: long and narrow, the jaw dropping out of it as the mouth opens
     P_ell(ctx, 0, 0, Math.max(0.075, 0.9 * px), Math.max(0.13, 0.9 * px), ink);
-    if (gape > 0.01) P_ell(ctx, fx * 0.5, -0.1 - gape * 0.07, 0.06, 0.05 + gape * 0.08, ink);
+    if (gape > 0.01) P_ell(ctx, fx * 0.5, -0.1 - gape * 0.12, 0.058, 0.05 + gape * 0.14, ink);   // the jaw, dropping far too far
     if (rv > 0.02 && px < 0.03) {
       const a = Math.min(1, rv * 0.9);   // no light on the face at all: only the eyes and the teeth show
       // the mouth: right across the face and past it, the corners drawn up toward the eyes; the lips pulled back off small
       // close teeth, which opens into a black hole full of them, the jaw dropping far too far
-      const mw = 0.078, my = -0.072 - gape * 0.05, lo = my - 0.032 - gape * 0.17, cy = my + 0.05;
+      const mw = 0.072, my = -0.072 - gape * 0.05, lo = my - 0.04 - gape * 0.28, cy = my + 0.05;
       const lip = (q, ctl) => { const u = (q + 1) / 2; return cy - 2 * u * (1 - u) * (cy - ctl); };   // (on the upper lip, or the lower)
       const shape = () => { ctx.beginPath(); ctx.moveTo(fx - mw, cy); ctx.quadraticCurveTo(fx, my - 0.01, fx + mw, cy); ctx.quadraticCurveTo(fx, lo - 0.012, fx - mw, cy); ctx.closePath(); };
       ctx.fillStyle = P.cola([3, 1, 2], a); shape(); ctx.fill();
       ctx.save(); shape(); ctx.clip();
       ctx.fillStyle = P.cola([186, 176, 140], a * 0.95); ctx.beginPath();
       for (let i = -11; i <= 11; i++) {
-        const q = i / 11.5, x = fx + q * mw, top = lip(q, my - 0.01) + 0.003, lt = (0.008 + 0.005 * Math.abs(Math.sin(i * 2.7))) * (1 + gape * 2.2);
+        const q = i / 11.5, x = fx + q * mw, top = lip(q, my - 0.01) + 0.003, lt = (0.008 + 0.005 * Math.abs(Math.sin(i * 2.7))) * (1 + gape * 3.4);
         ctx.moveTo(x - 0.0032, top + 0.004); ctx.lineTo(x + 0.0032, top + 0.004); ctx.lineTo(x + 0.0005, top - lt);
-        const bot = lip(q, lo - 0.012) - 0.003, lb = (0.006 + 0.004 * Math.abs(Math.cos(i * 1.9))) * (1 + gape * 2);
+        const bot = lip(q, lo - 0.012) - 0.003, lb = (0.006 + 0.004 * Math.abs(Math.cos(i * 1.9))) * (1 + gape * 3.2);
         if (i % 3 || gape < 0.1) { ctx.moveTo(x - 0.003, bot - 0.004); ctx.lineTo(x + 0.003, bot - 0.004); ctx.lineTo(x - 0.0005, bot + lb); }
       }
       ctx.fill();
@@ -144,7 +144,7 @@ CREATURES.signalman = {
       const x = fx * 1.6 + s * 0.031, y = 0.028 + (s > 0 ? 0.002 : 0);
       ctx.save(); ctx.globalAlpha *= vis;
       if (big > 0.05 && px < 0.012) {
-        const k = s > 0 ? 1.12 : 1, rx = lerp(0.005, 0.0145 + gape * 0.004, big) * k, ry = lerp(0.005, 0.0105 + gape * 0.005, big) * k;
+        const k = s > 0 ? 1.12 : 1, rx = lerp(0.005, 0.0125 + gape * 0.002, big) * k, ry = lerp(0.005, 0.02 + gape * 0.014, big) * k;   // stretched tall
         P_ell(ctx, x, y, rx, ry, P.raw([222, 224, 206]));
       } else {
         const pr = Math.max(clamp(0.0006 * c.dist, 0.003, 0.008), 1.25 * px);

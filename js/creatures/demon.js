@@ -516,7 +516,8 @@ CREATURES.demon = {
     ctx.quadraticCurveTo(hr * 1.2, hc - 0.08, 0.25, -0.05);
     ctx.closePath(); ctx.fill();
     // the opening of the hood, and the dark in it
-    const fy = 0.285 + a * 0.1, oy = fy - 0.015 - a * 0.015, orx = 0.098 + a * 0.012, ory = 0.152 + a * 0.04;
+    const lk = a * smoothstep(dspan(lunge, 0.25, 0.85));   // enraged and in your face: the opening stretches down with the jaw
+    const fy = 0.285 + a * 0.1, oy = fy - 0.015 - a * 0.015 - lk * 0.04, orx = 0.098 + a * 0.012 + lk * 0.006, ory = 0.152 + a * 0.04 + lk * 0.055;
     P_ell(ctx, 0, oy, orx + 0.014, ory + 0.014, rim);
     P_ell(ctx, 0, oy, orx, ory, black);
     // the face it makes for the ending comes up out of the dark of the hood (c.unveil), and the hood's shadow lies over its brow
@@ -533,22 +534,54 @@ CREATURES.demon = {
     if (show < 0.996) {
       ctx.save(); ctx.globalAlpha *= 1 - show;
       const er = mixc([228, 224, 214], [255, 44 + (1 - a) * 40, 24], smoothstep(clamp(a * 1.6, 0, 1)));
-      // enraged: a mouth in the dark, wide and turned down in a snarl, lit from inside a dull red, teeth along its edges
+      // enraged: a mouth in the dark, wide and turned down in a snarl, lit from inside a dull red, teeth along its edges.
+      // In the lunge (lk) it comes apart: red cracks split the dark of its face out from the eyes and the mouth, and the jaw
+      // unhinges, dropping open into a black throat ringed with more teeth, long uneven fangs top and bottom
       if (a > 0.02) {
         ctx.save(); ctx.globalAlpha *= smoothstep(clamp(a * 1.4, 0, 1));
+        ctx.save(); ctx.beginPath(); ctx.ellipse(0, oy, orx, ory, 0, 0, TAU); ctx.clip();
+        if (lk > 0.02) {   // the cracks, glowing, jagged, the same every time (not flickering)
+          const cr = rgba([255, 46, 22], 0.75 * lk), hz = rgba([255, 46, 22], 0.18 * lk);
+          const crack = (x0, y0, ang, len, seed) => {
+            let x = x0, y = y0; const pts = [[x, y]];
+            for (let i = 1; i <= 5; i++) { const aa = ang + Math.sin(seed * 7.1 + i * 2.3) * 0.55; x += Math.cos(aa) * len / 5; y += Math.sin(aa) * len / 5; pts.push([x, y]); }
+            P_limb(ctx, pts, 0.012 * lk, hz); P_limb(ctx, pts, 0.0045 * lk, cr);
+          };
+          for (const s of [-1, 1]) {
+            crack(s * 0.036, fy + 0.055, Math.PI / 2 + s * 0.5, 0.12 * lk, 1 + s);          // up from each eye, across the brow
+            crack(s * 0.05, fy + 0.03, Math.PI / 2 - s * 1.35, 0.1 * lk, 3 + s);            // out from each eye
+            crack(s * 0.06, fy - 0.12, -Math.PI / 2 - s * 0.45, 0.12 * lk, 5 + s);          // down from each corner of the mouth
+          }
+        }
         // (its corners pulled down below the arch of its upper lip; the lower lip a little below the corners, more as it lunges)
-        const mw = 0.05 + a * 0.012 + lunge * 0.006, cy = fy - 0.112 - a * 0.012, top = cy + 0.036 + a * 0.006, bot = cy - 0.012 - a * 0.008 - lunge * 0.03;
+        const mw = 0.05 + a * 0.012 + lunge * 0.006 + lk * 0.022, cy = fy - 0.112 - a * 0.012, top = cy + 0.036 + a * 0.006 + lk * 0.03;
+        const bot = Math.max(oy - ory + 0.025, cy - 0.012 - a * 0.008 - lunge * 0.03 - lk * 0.2);
         const mouth = () => { ctx.beginPath(); ctx.moveTo(-mw, cy); ctx.quadraticCurveTo(0, 2 * top - cy, mw, cy); ctx.quadraticCurveTo(0, 2 * bot - cy, -mw, cy); ctx.closePath(); };
         mouth(); ctx.fillStyle = rgba([150, 18, 12], 0.95); ctx.fill();
         ctx.save(); mouth(); ctx.clip();
-        P_ell(ctx, 0, (top + bot) / 2 - 0.004, mw * 0.6, (top - bot) * 0.32, rgba([40, 0, 0], 0.9));   // its throat
-        const tooth = P.col([214, 204, 190]), edge = (y, x) => cy + (y - cy) * (1 - (x / mw) * (x / mw));
-        for (let i = -3; i <= 3; i++) {
-          const x = i * mw * 0.27, up = edge(top, x), dn = edge(bot, x), long = (top - bot) * (Math.abs(i) === 2 ? 0.55 : 0.36);   // (a fang each side)
-          ctx.fillStyle = tooth; ctx.beginPath(); ctx.moveTo(x - 0.007, up + 0.01); ctx.lineTo(x + 0.007, up + 0.01); ctx.lineTo(x, up - long); ctx.closePath(); ctx.fill();
-          ctx.beginPath(); ctx.moveTo(x - 0.006, dn - 0.01); ctx.lineTo(x + 0.006, dn - 0.01); ctx.lineTo(x, dn + (top - bot) * 0.3); ctx.closePath(); ctx.fill();
+        const th = (top + bot) / 2 - 0.004;
+        P_ell(ctx, 0, th, mw * (0.6 + lk * 0.15), (top - bot) * (0.32 + lk * 0.12), rgba([40, 0, 0], 0.9));   // its throat
+        if (lk > 0.3) {   // down in the black of the throat, another ring of teeth
+          const q = smoothstep((lk - 0.3) / 0.5), rx = mw * 0.62, ry = (top - bot) * 0.4, tooth2 = P.cola([200, 180, 160], 0.85 * q);
+          P_ell(ctx, 0, th, rx * 0.8, ry * 0.75, rgba([0, 0, 0], 0.95));
+          ctx.fillStyle = tooth2; ctx.beginPath();
+          for (let i = 0; i < 14; i++) {
+            const an = i / 14 * TAU, x = Math.cos(an) * rx * 0.86, y = th + Math.sin(an) * ry * 0.86, l = 0.018 * q * (0.7 + 0.3 * Math.abs(Math.sin(i * 3.1)));
+            const ix = -Math.cos(an), iy = -Math.sin(an), w = 0.005;
+            ctx.moveTo(x - iy * w, y + ix * w); ctx.lineTo(x + iy * w, y - ix * w); ctx.lineTo(x + ix * l, y + iy * l);
+          }
+          ctx.fill();
         }
-        ctx.restore(); ctx.restore();
+        const tooth = P.col([214, 204, 190]), edge = (y, x) => cy + (y - cy) * (1 - (x / mw) * (x / mw));
+        const n = lk > 0.4 ? 5 : 3;
+        for (let i = -n; i <= n; i++) {
+          const x = i * mw * (0.81 / n), up = edge(top, x), dn = edge(bot, x), j = 0.6 + 0.4 * Math.abs(Math.sin(i * 2.7 + 1));
+          const fang = Math.abs(i) === (n === 3 ? 2 : 3), shut = (top - bot) * (fang ? 0.55 : 0.36) * j;
+          const long = lerp(shut, Math.min(shut, (fang ? 0.075 : 0.04) * j), lk), lo = lerp((top - bot) * 0.3, (fang ? 0.06 : 0.032) * j, lk);
+          ctx.fillStyle = tooth; ctx.beginPath(); ctx.moveTo(x - 0.007, up + 0.01); ctx.lineTo(x + 0.007, up + 0.01); ctx.lineTo(x + (i % 2 ? 0.003 : -0.002) * lk, up - long); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(x - 0.006, dn - 0.01); ctx.lineTo(x + 0.006, dn - 0.01); ctx.lineTo(x - (i % 2 ? 0.003 : -0.002) * lk, dn + lo); ctx.closePath(); ctx.fill();
+        }
+        ctx.restore(); ctx.restore(); ctx.restore();
       }
       // the eyes: two small pale points, or, enraged, two tall red slits, burning. Far off in the dark
       // they are all there is of it: two points that stay a pixel or two across, in a faint haze
@@ -556,8 +589,8 @@ CREATURES.demon = {
       if (far > 0) P_ell(ctx, 0, fy + 0.03, c.dist * 0.009, c.dist * 0.006, rgba(er, (0.06 + 0.1 * a) * far));
       for (const s of [-1, 1]) {
         const ex = s * 0.036, ey = fy + 0.03;
-        if (a > 0.02) P_ell(ctx, ex, ey, 0.018, 0.036 + a * 0.01, rgba(er, 0.28 * a), s * 0.15 * a);
-        const rx = lerp(0.011, 0.0075, a), ry = lerp(0.011, 0.024, a);   // enraged, tall burning slits
+        if (a > 0.02) P_ell(ctx, ex, ey, 0.018 + lk * 0.008, 0.036 + a * 0.01 + lk * 0.02, rgba(er, (0.28 + 0.2 * lk) * a), s * 0.15 * a);
+        const rx = lerp(0.011, 0.0075, a) + lk * 0.002, ry = lerp(0.011, 0.024, a) + lk * 0.012;   // enraged, tall burning slits, taller still in your face
         // (their own light: they show through the dark, the pale ones a little dimmed by it far off)
         P_ell(ctx, ex, ey, Math.max(rx, c.dist * 0.0013 * far), Math.max(ry, c.dist * 0.0011 * far), rgba(mixc(er, P.fogColor || [0, 0, 0], (1 - a) * 0.45 * (P.fog || 0))), s * 0.15 * a);
       }

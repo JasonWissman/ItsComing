@@ -67,11 +67,16 @@ CREATURES.carrier = {
     ctx.save(); ctx.translate(-rec * 0.08, 1.2 - hunch * 0.2 + rec * 0.05); ctx.rotate(headTiltJerk(t, 3.3, 0.14) * (1 - lunge) * (1 - rec) - rec * 0.38);
     strands(ctx, 0, 0.42, 12, 0.3, P.col([120, 100, 60]), 9, t);
     P_ell(ctx, 0, 0.22, 0.2, 0.22, skin);
-    P_ell(ctx, -0.08, 0.27, 0.035, 0.025 * (1 - rec * 0.7), black); P_ell(ctx, 0.08, 0.27, 0.035, 0.025 * (1 - rec * 0.7), black);   // screwed shut against the glare
+    const lk = smoothstep(lunge * 2), eh = lerp(0.025 * (1 - rec * 0.7), 0.035, lk);   // screwed shut against the glare; at you, wide and perfectly round
+    P_ell(ctx, -0.08, 0.27, 0.035, eh, black); P_ell(ctx, 0.08, 0.27, 0.035, eh, black);
     if (rec < 0.3) this.eyes(ctx, c, [[-0.08, 0.27], [0.08, 0.27]]);
     const mw = 0.08 + near * 0.05 + lunge * 0.08 + rec * 0.04, mh = 0.02 + near * 0.04 + lunge * 0.09 + rec * 0.07;
     P_ell(ctx, 0, 0.1, mw, mh, black);
     if (near > 0.15 || lunge > 0 || rec > 0.3) for (let i = -3; i <= 3; i++) P_rect(ctx, i * mw * 0.27 - 0.008, 0.1 + mh * 0.5 - 0.03, 0.016, 0.03, teeth);
+    if (lunge > 0) for (let i = -3; i <= 3; i++) {   // and in your face, a lower row coming up from the jaw, following the curve of it
+      const x = i * mw * 0.27, yb = 0.1 - mh * Math.sqrt(Math.max(0, 1 - (x / mw) * (x / mw))) + 0.004;
+      P_rect(ctx, x - 0.008, yb, 0.016, 0.03 * lk, teeth);
+    }
     ctx.restore();
     ctx.restore();
   },

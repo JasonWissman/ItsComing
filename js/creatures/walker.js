@@ -100,10 +100,8 @@ CREATURES.walker = {
     if (faceA > 0) {
       ctx.globalAlpha = faceA;
       P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
-      P_ell(ctx, -0.036, 0.315, 0.014, 0.014, eye);
+      P_ell(ctx, -0.036, 0.315, 0.014, 0.014, eye);   // blank and round: no pupils
       P_ell(ctx, 0.036, 0.315, 0.014, 0.014, eye);
-      P_ell(ctx, -0.036, 0.315, 0.006, 0.006, body);
-      P_ell(ctx, 0.036, 0.315, 0.006, 0.006, body);
       const mouth = 0.012 + near * 0.03 + (c.lunge || 0) * 0.045;
       P_ell(ctx, 0, 0.205, 0.028 + near * 0.012, mouth, body);
       ctx.globalAlpha = 1;
