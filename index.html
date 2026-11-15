@@ -53,22 +53,26 @@
   #overlay.dlg { background: rgba(0,0,0,.3); }
   #overlay.dlg > .panel { box-sizing: border-box; width: min(760px, 100%); max-width: 760px; min-height: min(62vh, 100%); max-height: calc(100vh - 48px); overflow: auto; display: flex; flex-direction: column; justify-content: center; padding: 28px 32px; background: rgba(7,7,9,.97); border: 1px solid rgba(207,200,186,.18); box-shadow: 0 24px 90px #000; }
   #overlay .controls.howto { margin: 6px auto 4px; }
-  #overlay .controls.keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 26px; width: 100%; max-width: 640px; margin: 10px auto 6px; }
-  .krow { display: flex; align-items: center; gap: 14px; min-width: 0; }
-  .kkeys { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; width: 152px; }
-  .kwhat { font-size: calc(14px * var(--text-scale)); line-height: 1.35; color: rgba(207,200,186,.8); min-width: 0; }
-  kbd.key { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 44px; height: 44px; padding: 0 8px; border-radius: 7px; font: 600 calc(19px * var(--text-scale))/1 system-ui, -apple-system, 'Segoe UI', sans-serif; color: #241f1a; background: linear-gradient(#f1ead9, #d9d0bc); border: 1px solid #8b8170; box-shadow: 0 4px 0 #6e6555, 0 5px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.7); margin-bottom: 4px; text-shadow: none; }
-  kbd.key.wide { font-size: calc(14px * var(--text-scale)); letter-spacing: .04em; padding: 0 12px; }
-  kbd.key.mouse { padding: 0 9px; }
-  kbd.key.mouse svg { width: 19px; height: 28px; color: #3a332c; }
-  .kplus { font-size: calc(12px * var(--text-scale)); letter-spacing: .08em; text-transform: uppercase; color: rgba(207,200,186,.55); }
-  .kgap { width: 4px; }
-  .krow.kwide { grid-column: 1 / -1; justify-content: center; }
-  .krow.kwide .kkeys { width: auto; gap: 12px; }
-  .kpad { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; }
-  .kpadrow { display: inline-flex; gap: 4px; }
-  .kpad kbd.key { min-width: 38px; height: 38px; font-size: calc(16px * var(--text-scale)); }
-  @media (max-width: 640px) { #overlay .controls.keys { grid-template-columns: 1fr; gap: 10px; } kbd.key { min-width: 38px; height: 38px; } .kkeys { width: 140px; } .kpad kbd.key { min-width: 32px; height: 32px; font-size: 14px; } .krow.kwide { flex-direction: column; gap: 8px; } }
+  /* How to play: one neat list, the keys right-aligned in one column and what they do in the other, a hairline between rows */
+  #overlay .controls.keys { display: grid; grid-template-columns: auto auto; justify-content: center; column-gap: 0; row-gap: 0; width: auto; max-width: 100%; margin: 16px auto 10px; font-size: inherit; }
+  .krow { display: contents; }
+  .kkeys, .kwhat { display: flex; align-items: center; min-height: 54px; border-top: 1px solid rgba(207,200,186,.12); }
+  .krow:first-child .kkeys, .krow:first-child .kwhat { border-top: 0; }
+  .kkeys { justify-content: flex-end; gap: 5px; }
+  .kwhat { padding-left: 26px; font-size: calc(16px * var(--text-scale)); color: #e3dccb; letter-spacing: .02em; text-align: left; }
+  kbd.key { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 36px; height: 36px; padding: 0 7px; border-radius: 6px; font: 600 calc(16px * var(--text-scale))/1 system-ui, -apple-system, 'Segoe UI', sans-serif; color: #241f1a; background: linear-gradient(#f1ead9, #d9d0bc); border: 1px solid #8b8170; box-shadow: 0 3px 0 #6e6555, 0 4px 8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.7); margin-bottom: 3px; text-shadow: none; }
+  kbd.key.wide { font-size: calc(13px * var(--text-scale)); letter-spacing: .04em; padding: 0 11px; }
+  kbd.key.mouse { padding: 0 8px; }
+  kbd.key.mouse svg { width: 16px; height: 24px; color: #3a332c; }
+  .kplus { font-size: calc(11px * var(--text-scale)); letter-spacing: .12em; text-transform: uppercase; color: rgba(207,200,186,.5); padding: 0 5px; }
+  @media (max-width: 640px) {
+    #overlay .controls.keys { grid-template-columns: 1fr; width: 100%; }
+    .kkeys { justify-content: center; min-height: 0; padding-top: 9px; gap: 4px; }
+    .kwhat { justify-content: center; min-height: 0; border-top: 0; padding: 3px 0 8px; font-size: 15px; }
+    kbd.key { min-width: 28px; height: 28px; font-size: 13px; padding: 0 5px; }
+    kbd.key.wide { font-size: 12px; padding: 0 8px; }
+    kbd.key.mouse svg { width: 13px; height: 20px; }
+  }
   :root[data-theme="day"] .kwhat, :root[data-theme="day"] .kplus { color: #3a332c; }
   #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .5s; padding: 24px; box-sizing: border-box; }
   #overlay.show { opacity: 1; pointer-events: auto; cursor: pointer; }

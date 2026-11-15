@@ -19,10 +19,10 @@
 // upper lip's middle mu above the corners and its lower lip's md, mr how round it is, mk how far it is twisted
 // (one corner up, the other down), teeth, joy (a red mouth with a tongue), tears, blush; jaw a longer face, fw a wider one,
 // tilt of the head and trem a tremble.
-const DEMON_ANGRY = { skin: [156, 42, 36], fw: 0.004, jaw: 0.6, brow: 1, bi: 0.006, bo: 0.044, bw: 0.017, bq: 0, er: 0.026, eh: 0.011, open: 1, lid: -0.26, lidLine: 0, sock: 1, glow: 1, arc: 0, my: -0.098, mw: 0.056, mc: -0.008, mu: 0.03, md: -0.052, mr: 0.75, mk: 0, teeth: 1, joy: 0, tears: 0, blush: 0, tilt: 0.04, trem: 0.8 };
+const DEMON_ANGRY = { skin: [156, 42, 36], fw: 0.004, jaw: 0.6, brow: 1, bi: 0.006, bo: 0.044, bw: 0.017, bq: 0, er: 0.011, eh: 0.026, open: 1, lid: -0.15, lidLine: 0, sock: 1, glow: 1, arc: 0, my: -0.098, mw: 0.056, mc: -0.008, mu: 0.03, md: -0.052, mr: 0.75, mk: 0, teeth: 1, joy: 0, tears: 0, blush: 0, tilt: 0.04, trem: 0.8 };
 const DEMON_NEUTRAL = { skin: [150, 142, 148], fw: 0, jaw: 0, brow: 0.85, bi: 0.036, bo: 0.036, bw: 0.011, bq: 0, er: 0.017, eh: 0.011, open: 0.85, lid: 0, lidLine: 0.7, sock: 0.12, glow: 0, arc: 0, my: -0.078, mw: 0.034, mc: 0, mu: 0.003, md: -0.003, mr: 0.15, mk: 0, teeth: 0, joy: 0, tears: 0, blush: 0, tilt: 0, trem: 0 };
 const DEMON_MOODS = [
-  // angry: red, the eyes burning slits in dark sockets under brows driven down, a snarl full of teeth, shaking
+  // angry: red, the eyes tall burning slits in dark sockets under brows driven down, a snarl full of teeth, shaking
   DEMON_ANGRY,
   // neutral: grey, the brows level, the eyes open and blank, the mouth a flat closed line
   DEMON_NEUTRAL,
@@ -72,8 +72,9 @@ function demonMoodFace(ctx, c, P, fy, F) {
   const er = [255, 50, 30], open = 1 - F.arc;
   for (const s of [-1, 1]) {
     const ex = s * 0.036, rot = -s * F.lid, ry = Math.max(0.0015, F.eh * F.open);
-    if (F.sock > 0.02) P_ell(ctx, ex, ey, 0.032, 0.02 + 0.004 * F.lid, P.cola([0, 0, 0], F.sock), rot);
-    if (F.glow > 0.02) P_ell(ctx, ex, ey, 0.046, 0.022, rgba(er, 0.25 * F.glow), rot);
+    // (enraged, the eyes are tall slits: the socket and the glow round them stand up with them)
+    if (F.sock > 0.02) P_ell(ctx, ex, ey, lerp(0.032, 0.022, F.glow), lerp(0.02 + 0.004 * F.lid, 0.038, F.glow), P.cola([0, 0, 0], F.sock), rot);
+    if (F.glow > 0.02) P_ell(ctx, ex, ey, 0.026, 0.048, rgba(er, 0.25 * F.glow), rot);
     if (open > 0.02) {
       ctx.save(); ctx.globalAlpha *= open;
       P_ell(ctx, ex, ey, F.er, ry, P.col([236, 232, 220]), rot);
@@ -549,16 +550,16 @@ CREATURES.demon = {
         }
         ctx.restore(); ctx.restore();
       }
-      // the eyes: two small pale points, or, enraged, two red slits slanting down to the middle, burning. Far off in the dark
+      // the eyes: two small pale points, or, enraged, two tall red slits, burning. Far off in the dark
       // they are all there is of it: two points that stay a pixel or two across, in a faint haze
       const far = clamp((c.dist - 5) / 12, 0, 1);
       if (far > 0) P_ell(ctx, 0, fy + 0.03, c.dist * 0.009, c.dist * 0.006, rgba(er, (0.06 + 0.1 * a) * far));
       for (const s of [-1, 1]) {
         const ex = s * 0.036, ey = fy + 0.03;
-        if (a > 0.02) P_ell(ctx, ex, ey, 0.036 + a * 0.01, 0.018, rgba(er, 0.28 * a), s * 0.3 * a);
-        const rx = lerp(0.011, 0.024, a), ry = lerp(0.011, 0.008, a);
+        if (a > 0.02) P_ell(ctx, ex, ey, 0.018, 0.036 + a * 0.01, rgba(er, 0.28 * a), s * 0.15 * a);
+        const rx = lerp(0.011, 0.0075, a), ry = lerp(0.011, 0.024, a);   // enraged, tall burning slits
         // (their own light: they show through the dark, the pale ones a little dimmed by it far off)
-        P_ell(ctx, ex, ey, Math.max(rx, c.dist * 0.0013 * far), Math.max(ry, c.dist * 0.0011 * far), rgba(mixc(er, P.fogColor || [0, 0, 0], (1 - a) * 0.45 * (P.fog || 0))), s * 0.3 * a);
+        P_ell(ctx, ex, ey, Math.max(rx, c.dist * 0.0013 * far), Math.max(ry, c.dist * 0.0011 * far), rgba(mixc(er, P.fogColor || [0, 0, 0], (1 - a) * 0.45 * (P.fog || 0))), s * 0.15 * a);
       }
       ctx.restore();
     }

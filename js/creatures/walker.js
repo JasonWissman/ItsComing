@@ -100,8 +100,8 @@ CREATURES.walker = {
     if (faceA > 0) {
       ctx.globalAlpha = faceA;
       P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
-      P_ell(ctx, -0.036, 0.315, 0.016, 0.012, eye);
-      P_ell(ctx, 0.036, 0.315, 0.016, 0.012, eye);
+      P_ell(ctx, -0.036, 0.315, 0.014, 0.014, eye);
+      P_ell(ctx, 0.036, 0.315, 0.014, 0.014, eye);
       P_ell(ctx, -0.036, 0.315, 0.006, 0.006, body);
       P_ell(ctx, 0.036, 0.315, 0.006, 0.006, body);
       const mouth = 0.012 + near * 0.03 + (c.lunge || 0) * 0.045;
@@ -161,7 +161,7 @@ CREATURES.walker = {
     if (faceA > 0) {
       ctx.globalAlpha = faceA;
       P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
-      for (const x of [-0.036, 0.036]) P_ell(ctx, x, 0.318, 0.017, 0.014, eye);   // blank eyes: no pupils
+      for (const x of [-0.036, 0.036]) P_ell(ctx, x, 0.318, 0.0155, 0.0155, eye);   // blank eyes, round: no pupils
       P_ell(ctx, 0, 0.205, 0.034, 0.042 + 0.012 * reach, body);
       ctx.globalAlpha = 1;
     }
@@ -198,7 +198,7 @@ CREATURES.walker = {
     const hx = nx + Math.sin(lean + 0.3) * 0.17, hy = ny + Math.cos(lean + 0.3) * 0.17;
     P_ell(ctx, hx, hy, 0.12, 0.16, body, -lean * 0.6);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
-    if (faceA > 0) { ctx.globalAlpha = faceA; P_ell(ctx, hx + 0.07, hy + 0.03, 0.018, 0.013, eye); ctx.globalAlpha = 1; }
+    if (faceA > 0) { ctx.globalAlpha = faceA; P_ell(ctx, hx + 0.07, hy + 0.03, 0.015, 0.015, eye); ctx.globalAlpha = 1; }
     ctx.restore();
   },
 };

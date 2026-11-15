@@ -104,8 +104,8 @@ CREATURES.tall = {
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
     if ((c.faceAway || 0) > 0.5) { ctx.restore(); ctx.restore(); return; }   // its face down: the dark of its head
     P_ell(ctx, 0, 0.32, 0.095, 0.15, skin);
-    const ew = 0.02 + duck * 0.005;   // blank, no pupils; peering up, the eyes wide
-    P_ell(ctx, -0.04, 0.36, ew, 0.016 + duck * 0.003, eye); P_ell(ctx, 0.04, 0.36, ew, 0.016 + duck * 0.003, eye);
+    const ew = 0.018 + duck * 0.004;   // blank, no pupils, perfectly round; peering up, the eyes wide
+    P_ell(ctx, -0.04, 0.36, ew, ew, eye); P_ell(ctx, 0.04, 0.36, ew, ew, eye);
     const mouth = 0.015 + near * 0.04 + lunge * 0.05;
     P_ell(ctx, 0, 0.23, 0.03 + near * 0.015, mouth, black);
     ctx.restore();
