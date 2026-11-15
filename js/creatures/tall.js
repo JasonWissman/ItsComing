@@ -114,12 +114,12 @@ CREATURES.tall = {
     // the mouth: wide open, an arch of despair turned down at both corners: the upper lip curved high over it, the lower
     // lip only a little above the dragged-down corners, so it gapes; filled, then stroked round the same edge with round
     // joins, which softens the corners
-    const mh = 0.017 + near * 0.034 + lunge * 0.032, mw = 0.03 + near * 0.02 + lunge * 0.024, my = 0.235;
+    const mh = 0.026 + near * 0.05 + lunge * 0.045, mw = 0.034 + near * 0.024 + lunge * 0.026, my = 0.24;
     const cy = my - mh * 0.6, soft = Math.min(mh * 0.45, 0.006 + near * 0.008 + lunge * 0.008);
     ctx.fillStyle = black; ctx.strokeStyle = black; ctx.lineWidth = soft * 2; ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.moveTo(-mw, cy);
     ctx.bezierCurveTo(-mw * 0.75, my + mh * 1.15, mw * 0.75, my + mh * 1.15, mw, cy);
-    ctx.bezierCurveTo(mw * 0.55, cy + mh * 0.32, -mw * 0.55, cy + mh * 0.32, -mw, cy);
+    ctx.bezierCurveTo(mw * 0.55, cy - mh * 0.12, -mw * 0.55, cy - mh * 0.12, -mw, cy);
     ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
     if (late) late();
