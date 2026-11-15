@@ -32,7 +32,6 @@ LEVELS.push({
     objective: 'Shut both ways in: crank the water door down, and shut and bar the side door.',
     death: { default: 'It splashed into the boathouse and pulled you under.', reached: 'It came through the main opening, and pulled you down.', side: 'It came in the side, and pulled you under.' },
     win: 'It threw itself at the doors, but they held.',
-    fragment: 'Your knees were wet until noon. Nothing else in the house was.',
   },
   // the thing swims: its feet are at the water line, a little below the deck
   lanes: [

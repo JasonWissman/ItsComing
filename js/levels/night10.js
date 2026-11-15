@@ -20,12 +20,11 @@ LEVELS.push({
   weather: { kind: 'ash', density: 1.0, wind: 0.3 },
   lights: [{ x: -40, y: 2, z: 5, r: 60, i: 0.5, color: [255, 120, 40], flicker: 0.4 }, { x: 2.6, y: 1.3, z: 2.6, r: 5, i: 0.4, color: [255, 200, 140], flicker: 0.15 }],
   text: {
-    intro: 'You see a strange doll in the mirrors. They all look the same... mostly.',
+    intro: 'You see a strange doll in the mirrors.\nThey all look the same... mostly.',
     hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is upset with you: click the box to take it back.',
     objective: 'Find the odd mirror. Put the music box on its pedestal, fit the crank, turn it.',
     death: { default: 'The strange doll leapt out from its mirror and grabbed you.', wrong: 'You played for an illusion. The creature surprised you from behind.' },
     win: 'It only wanted its music box.',
-    fragment: 'You have been humming it for days. Nobody at work knows it.',
   },
   lanes: [
     { follow: 'behind', name: 'behind you', barrierDist: 0, default: true },

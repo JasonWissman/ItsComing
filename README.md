@@ -39,7 +39,9 @@ Headphones are recommended. Sound starts after your first click.
 | `M` | mute |
 
 `WASD` also works for turning and looking. Clicking the floor while looking
-down puts the active item back down.
+down puts the active item back down. How to play shows the four that matter most as cards (Look around, Zoom in,
+Interact, Pause). The pause menu has Resume, Restart, Nights, Settings, Mute (Unmute while muted) and Quit, its
+buttons all one width; `R`, `M` and `Esc` work there as anywhere.
 
 Touch controls appear on phones and tablets: turn, look, hold to zoom, Use
 (whatever is nearest the middle of the view, or put the held thing down when
@@ -60,7 +62,7 @@ dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
 line at a time, with a marker for which side a sound came from), a text size
 slider, a switch to put the touch controls on the left, and one for surface detail (boards, logs and stone
 built into walls and floors; off is faster on slow machines). The two reduction settings default on when your
-system asks for reduced motion.
+system asks for reduced motion. Erase progress asks first, in a small dialog of its own (Cancel, Erase).
 
 ## One game
 
@@ -349,9 +351,8 @@ some on the ground, so you have to turn and look down to find them.
 Creatures move faster when you are not looking at them, but otherwise they
 come at a steady pace, no faster at the end than at the start. A thread runs through the
 nights that the text never states: a
-clock ticks for the first ten seconds of each night from the same direction, and
-surviving a night leaves a fragment, one odd sentence, collected on the Nights
-screen. Finishing the last night ends in that meadow; a click, a key (other than those that
+clock ticks for the first ten seconds of each night from the same direction. Surviving a night
+offers Next night, and, quieter and further down, Quit to the title. Finishing the last night ends in that meadow; a click, a key (other than those that
 turn, look and zoom), a tap of Use or A there fades
 the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme.
 
@@ -359,13 +360,23 @@ Each night is a little different every time it loads, and trying a night again n
 places it might be, the creature's starting distance and pace vary slightly,
 and the car takes a different number of tries to start. Some pause, some lurch, one only moves when unseen.
 Progress is saved in `localStorage`; the title screen offers to continue from
-the furthest night reached.
+the furthest night reached, and, once there is more than the first night open, a Nights button. The Nights screen
+has a card for every night (its best time inside it), in two columns, and under them the best full run.
+
+A full run is night 1 to the end of night 13 in one go, timed. It begins when night 1 is begun from a menu (Begin,
+Play again, night 1 on the Nights list, or Enter on the title). Its clock runs only while you play: every attempt
+counts, retries after a death and restarts included, but not the cards, the death and win screens, the pause menu,
+the title, or the watching after a night is won. It carries on through Next night, and through quitting to the title
+as long as the next night you start is the one the run is on (Continue, or that night on the Nights list); starting
+any other night breaks it, and so does reloading the page. It finishes the moment the last night is won, and the best
+is kept in the save.
 
 The title screen is pitch black, with two pale points of eyes a long way off. The title and its buttons sit below them,
 with no intro text or list of controls on it: those are in How to play. How to play, Nights and Settings open as
 dialogs over the middle of the view, over what is out there, and it comes on only behind them: each time one closes
-it is a step nearer and more of it shows, until it is close enough to touch, where it stays. It never moves while the
-title is in front of you. After the last night the title keeps its morning room instead, and nothing is coming. Every
+it is a step nearer and more of it shows, until it is close enough to touch, where it stays. A click on the dark of
+the title does not begin the night: the view blinks shut for a moment and it takes its step in there. It never moves
+while you can see it. After the last night the title keeps its morning room instead, and nothing is coming. Every
 heading in the menus is set in IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`).
 
 ## Project layout
@@ -403,7 +414,7 @@ starts facing the barn, and finding it is up to you). `text.where` replaces the 
 LEVELS.push({
   id: 'field', title: 'The Field', facing: 0, eyeH: 1.65,
   pal: { skyTop, fog, ground, fogDist }, ambient: { wind, drone, droneFreq, windFreq },
-  text: { intro, hint, objective, death: { default, reached }, win, fragment },
+  text: { intro, hint, objective, death: { default, reached }, win },   // '\n' in a text breaks the line there
   lanes: [{ deg: 0, name: 'back door', barrierDist: 2.75, apertures: [{ z, x0, x1, y0, y1 }], blockers: [[d0, d1]] }],
   creatures: [{ type: 'walker', startDist: 130, time: 80, gamma: 0.72, unseenMult: 1.35 }],
   aftermath: { type: 'held', dur: 3.8, every: 0.75, sfx: 'bang' },   // held, stand, retreat, down, away, custom
@@ -587,7 +598,8 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 `test/play.js` runs each night's declared solution per tier and seed (a night's steps can `draw` a bow: let go at
 once, short of full, as soon as it is full, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
-the one game (no picker, no hints), restart, mute, menus, captions, the gamepad and touch pad, sealed ways, the death
+the one game (no picker, no hints), restart, mute, menus (the pause menu, How to play's cards, the Nights screen,
+erasing progress, the win screen between nights, the title's click), the full run's clock, captions, the gamepad and touch pad, sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
 reduced motion, clear of the touch buttons on a phone), a wrong thing coming back, a plank falling to the floor where a
 click takes it again (hanging, as it tips, from the end it is meant to), a decoy dropping, the empty hand's reach, one fumble for many fast clicks, and a target's own choices. `test/lanes.js` runs `validateContent()` and checks every

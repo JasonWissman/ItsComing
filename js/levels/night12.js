@@ -29,7 +29,6 @@ LEVELS.push({
     objective: 'Get the lamp on. Then pull the covers up.',
     death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is not afraid of the dark.', grabbed: 'Its hands pulled their way up the bed to you, and then it came up after them.' },
     win: 'It pulled at the covers, but you were stronger.',
-    fragment: 'The covers were pulled loose at the foot of the bed in the morning, as if something had tried them.',
   },
   lanes: [
     // it starts where it peers round the edge from (WAYS below): the start is held to that, whatever the spread of the night

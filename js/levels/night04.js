@@ -97,12 +97,11 @@ LEVELS.push({
   ambient: { wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 },
   weather: { kind: 'mist', density: 1.2, wind: 0.5, fogRoll: { period: 33, depth: 0.4, phase: 2 } },
   text: {
-    intro: 'It is standing at the far end of the quarry with its hands over its face. It doesn\'t like to be seen.',
+    intro: 'It is standing at the far end of the quarry with its hands over its face.\nIt doesn\'t like to be seen.',
     hint: 'You will have to look away to shut the gates and find the chains and the locks. Be quick about it.',
     objective: 'Shut, chain and padlock both gates.',
     death: { default: 'You looked away, and it only needed a moment.' },
     win: 'Every time you blinked it came nearer, but when it arrived, it could not break through.',
-    fragment: 'You kept your eyes open so long they hurt in the morning. Something in the corner of the room had not moved. You are almost sure.',
   },
   // the gap between the gate posts, no lintel; a second gap in the wall behind you
   lanes: [

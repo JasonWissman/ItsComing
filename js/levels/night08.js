@@ -26,10 +26,9 @@ LEVELS.push({
     { x: -10.5, y: 4.9, z: 26, r: 20, i: 0.75, color: [255, 70, 190], flicker: 0.12 },     // the sign out by the road: pink on the ground round it, and on it as it passes
   ],
   text: {
-    intro: 'The last customer left an hour ago, but another seems drawn in by the light.',
+    intro: 'The last customer left an hour ago…\nbut another seems drawn in by the light.',
     death: { default: 'One shutter was still open.', through: 'It came through the glass before the shutter was down.', lit: 'It was drawn in by the light.' },
     win: 'It beat on the shutter relentlessly, but they held.',
-    fragment: 'There is a switch by your door that does not seem to do anything. You flip it every night anyway.',
   },
   // three windows across the front, left to right as you face them; it comes for one. It stands at the glass on a line
   // 5.45 m out, past the shutters, which is further along the slanted lanes either side.

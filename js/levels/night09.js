@@ -265,10 +265,9 @@ Object.assign(ICONS, {
     weather: { kind: 'rain', density: 0.9, wind: 0.25 },
     lights: [{ x: 0, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
     text: {
-      intro: 'You missed the bus, and you don\'t remember who to call for help.',
+      intro: 'You missed the bus,\nand you don\'t remember who to call for help.',
       death: { default: 'It came into the booth.', ringing: 'It was still ringing when it came through the glass.', dead: 'You were still listening to a dead line when it came through the glass.', nocoin: 'The phone would not operate without a coin.' },
       win: 'A mysterious car came for you, just in time.',
-      fragment: 'The number is still in the notebook, in your own handwriting. You do not remember writing it down, and you have not crossed it out.',
     },
     // two streets, each seen whole through a pane of the booth: up the main street through the door, and along the cross
     // street to the east through the east pane (each pane as far as the pay phone in the corner between them). It starts at

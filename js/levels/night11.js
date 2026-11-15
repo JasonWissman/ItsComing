@@ -33,13 +33,12 @@ LEVELS.push({
   pal: { skyTop: [5, 7, 17], fog: [24, 28, 40], ground: [20, 24, 18], fogDist: 125 },
   ambient: { wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 },
   text: {
-    intro: 'The lights are out across the farm. Something is out there in the dark.',
+    intro: 'The lights are out across the farm.\nSomething is out there in the dark.',
     hint: 'It cannot stand the light. Light its place and it runs to a dark place next to it; light the places either side of it first, then its own, and it has nowhere to go. The box takes three lights at once, the porch light too: a fourth trips the main, and nothing comes on until you push the main back on.',
     objective: 'Find it. Light the places either side of it, then its own. No more than three lights at once.',
     where: 'It is out there in the dark, at one of the places. Find it.',
     death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.' },
     win: 'It came apart in the light. In the morning there was only sacking and straw in the yard.',
-    fragment: 'There is straw in the breaker box every morning, and you have never kept straw.',
   },
   // one way in from each place: it stands at the foot of one, and comes in toward you from there (build)
   lanes: FARM_RING.map(p => ({ deg: p.deg, name: p.name, startDist: p.front - FARM_HIDE })),

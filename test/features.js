@@ -82,13 +82,24 @@ const hoverHit = lookFor;
   console.log('== menus ==');
   await T.open(page, 'level=2&go');
   await page.keyboard.press('Escape'); await page.waitForTimeout(150);
-  check(await page.evaluate(() => G.state === 'paused' && MENU.kind === 'pause' && document.querySelectorAll('#overlay button[data-act]').length === 5 && document.activeElement && document.activeElement.dataset.act === 'resume'), 'pause menu with five focusable buttons, Resume focused');
+  check(await page.evaluate(() => G.state === 'paused' && MENU.kind === 'pause' && document.querySelectorAll('#overlay button[data-act]').length === 6 && document.activeElement && document.activeElement.dataset.act === 'resume'), 'pause menu with six focusable buttons, Resume focused');
+  // the pause menu: no line under the heading, short labels, one narrow column of buttons all of a width, and Mute in it
+  v = await page.evaluate(() => {
+    const bs = [...document.querySelectorAll('#overlay button[data-act]')];
+    return { labels: bs.map(b => b.textContent).join(','), widths: [...new Set(bs.map(b => Math.round(b.getBoundingClientRect().width)))], intro: !!document.querySelector('#overlay .intro'), text: document.getElementById('overlay').textContent };
+  });
+  check(v.labels === 'Resume,Restart,Nights,Settings,Mute,Quit' && v.widths.length === 1 && v.widths[0] <= 260 && !v.intro && !/It is not/.test(v.text), 'pause: Resume, Restart, Nights, Settings, Mute, Quit, all one narrow width, nothing under the heading (' + JSON.stringify(v) + ')');
+  await page.click('#overlay button[data-act="mute"]'); await page.waitForTimeout(80);
+  check(await page.evaluate(() => G.muted && G.state === 'paused' && document.querySelector('#overlay button[data-act="mute"]').textContent === 'Unmute'), 'Mute in the pause menu mutes, stays paused, and its label turns to Unmute');
+  await page.keyboard.press('m'); await page.waitForTimeout(80);
+  check(await page.evaluate(() => !G.muted && document.querySelector('#overlay button[data-act="mute"]').textContent === 'Mute'), 'M while paused unmutes, and the button follows');
+  await page.evaluate(() => document.querySelector('#overlay button[data-act="resume"]').focus());
   check(await page.evaluate(() => typeof AUDIO.suspend === 'function' && typeof AUDIO.setVolume === 'function'), 'audio exposes suspend and volume buses');
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.waitForTimeout(50);
   check(await page.evaluate(() => document.activeElement.dataset.act === 'nights'), 'arrow keys move between buttons');
   await page.keyboard.press('Enter'); await page.waitForTimeout(200);
-  check(await page.evaluate(() => MENU.kind === 'nights' && document.querySelectorAll('.nrow').length === LEVELS.length), 'Enter opens the Nights screen listing every night');
-  const unlockedRows = await page.evaluate(() => document.querySelectorAll('.nrow .nbtn').length);
+  check(await page.evaluate(() => MENU.kind === 'nights' && document.querySelectorAll('.ncard').length === LEVELS.length), 'Enter opens the Nights screen listing every night');
+  const unlockedRows = await page.evaluate(() => document.querySelectorAll('button.ncard').length);
   check(unlockedRows === await page.evaluate(() => G.unlocked + 1), 'only unlocked nights are playable (' + unlockedRows + ')');
   await page.keyboard.press('Escape'); await page.waitForTimeout(150);
   check(await page.evaluate(() => MENU.kind === 'pause' && G.state === 'paused'), 'Esc from Nights returns to the pause menu');
@@ -102,7 +113,11 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title'), 'Back to title from pause');
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
-  check(await page.evaluate(() => JSON.parse(localStorage.getItem('itscoming.v2')).unlocked.nightmare >= 0 && !!document.querySelector('#overlay button[data-act="nights"]')), 'title has a Nights button');
+  check(await page.evaluate(() => G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'with only the first night open, the title has no Nights button: there is nothing to pick');
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.unlocked.nightmare = 3; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
+  await page.reload(); await page.waitForTimeout(300);
+  check(await page.evaluate(() => !!document.querySelector('#overlay button[data-act="nights"]')), 'with more nights open, the title has a Nights button');
+  check(await page.evaluate(() => /^Headphones recommended for spatial audio$/.test(document.querySelector('#overlay .fine').textContent)), 'the line under the title says to use headphones, for the spatial audio');
   await page.goto(URL); await page.waitForTimeout(300);
   // the title: eyes in the dark, the name in IM Fell English, no intro or controls on it; How to play, Nights and
   // Settings open as dialogs over it, and it comes one step nearer each time one closes, never while you watch
@@ -111,16 +126,109 @@ const hoverHit = lookFor;
   await page.waitForTimeout(1500);
   check(await page.evaluate(() => TITLE.step === 0), 'it does not come nearer while the title is watched');
   await page.click('#overlay button[data-act="howto"]'); await page.waitForTimeout(150);
-  tv = await page.evaluate(() => ({ dlg: document.getElementById('overlay').classList.contains('dlg'), panel: !!document.querySelector('#overlay .panel .controls'), step: TITLE.step, state: G.state }));
+  tv = await page.evaluate(() => ({ dlg: document.getElementById('overlay').classList.contains('dlg'), panel: !!document.querySelector('#overlay .panel .howcards'), step: TITLE.step, state: G.state,
+    cards: [...document.querySelectorAll('#overlay .hcard .hwhat')].map(e => e.textContent).join(','), keys: [...document.querySelectorAll('#overlay .hcard')].map(c => c.querySelectorAll('kbd').length).join(','),
+    borders: [...document.querySelectorAll('#overlay .hcard, #overlay .hkeys, #overlay .hwhat')].some(e => { const c = getComputedStyle(e); return parseFloat(c.borderTopWidth) || parseFloat(c.borderBottomWidth); }),
+    cols: getComputedStyle(document.querySelector('#overlay .howcards')).gridTemplateColumns.split(' ').length }));
   check(tv.dlg && tv.panel && tv.step === 0 && tv.state === 'title', 'How to play opens in a dialog with the controls in it, and the night does not start (' + JSON.stringify(tv) + ')');
+  check(tv.cards === 'Look around,Zoom in,Interact,Pause' && tv.keys === '8,2,1,1' && !tv.borders && tv.cols === 2, 'How to play is four cards, two by two, with no borders: Look around, Zoom in, Interact, Pause, each drawn as its keys (' + JSON.stringify(tv) + ')');
   await page.click('#overlay .panel', { position: { x: 12, y: 12 } }); await page.waitForTimeout(150);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'howto'), 'a click in the dialog is not a click to begin');
   await page.keyboard.press('Escape'); await page.waitForTimeout(150);
   check(await page.evaluate(() => MENU.kind === 'title' && TITLE.step === 1), 'closing it, it is a step nearer');
   for (const act of ['nights', 'settings']) { await page.click('#overlay button[data-act="' + act + '"]'); await page.waitForTimeout(120); await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(120); }
   check(await page.evaluate(() => TITLE.step === 3 && G.state === 'title'), 'Nights and Settings each bring it a step nearer too');
+  // a click on the dark of the title does not begin: the view blinks shut and it takes its step in there
+  await page.waitForTimeout(400);
+  await page.mouse.click(640, 120); await page.waitForTimeout(210);
+  tv = await page.evaluate(() => ({ st: G.state, step: TITLE.step, dark: (() => { const c = document.getElementById('titleScene'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let m = 0; for (let i = 0; i < d.length; i += 4 * 97) m = Math.max(m, d[i] + d[i + 1] + d[i + 2]); return m; })() }));
+  check(tv.st === 'title' && tv.step === 4 && tv.dark < 12, 'a click on the title\'s dark does not begin the night; it brings it a step nearer, while the view is blinked shut (' + JSON.stringify(tv) + ')');
+  await page.waitForTimeout(700);
+  check(await page.evaluate(() => G.state === 'title' && TITLE.step === TITLE.STEPS), 'and the view opens again on it, nearer');
   await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(300);
   check(await page.evaluate(() => G.state !== 'title' && !document.body.classList.contains('titlescene')), 'Begin leaves the title, and its scene goes with it');
+  await page.goto(URL); await page.waitForTimeout(300);
+
+  console.log('== erasing progress asks first ==');
+  await page.click('#overlay button[data-act="settings"]'); await page.waitForTimeout(120);
+  await page.click('#overlay button[data-act="reset"]'); await page.waitForTimeout(120);
+  tv = await page.evaluate(() => ({ kind: MENU.kind, box: !!document.querySelector('#overlay .confirm .cpanel'), h: (document.querySelector('#overlay .confirm h2') || {}).textContent, focus: document.activeElement && document.activeElement.dataset.act, u: G.unlocked, under: !!document.querySelector('#overlay .panel .settings') }));
+  check(tv.kind === 'settings' && tv.box && tv.h === 'Erase all progress?' && tv.focus === 'keep' && tv.u === 3 && tv.under, 'Erase opens a small dialog of its own over Settings, Cancel focused, nothing erased yet (' + JSON.stringify(tv) + ')');
+  await page.keyboard.press('Tab'); await page.keyboard.press('Tab'); await page.waitForTimeout(50);
+  check(await page.evaluate(() => document.activeElement && document.activeElement.dataset.act === 'keep'), 'the keys stay inside the little dialog');
+  await page.click('#overlay .confirm button[data-act="keep"]'); await page.waitForTimeout(120);
+  check(await page.evaluate(() => MENU.kind === 'settings' && !document.querySelector('#overlay .confirm') && G.unlocked === 3), 'Cancel closes it and erases nothing');
+  await page.click('#overlay button[data-act="reset"]'); await page.waitForTimeout(120);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(120);
+  check(await page.evaluate(() => MENU.kind === 'settings' && !document.querySelector('#overlay .confirm') && G.unlocked === 3), 'Esc closes it, back to Settings, erasing nothing');
+  await page.click('#overlay button[data-act="reset"]'); await page.waitForTimeout(120);
+  await page.click('#overlay .confirm button[data-act="erase"]'); await page.waitForTimeout(200);
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'Erase erases, and the title is back with nothing to pick');
+
+  console.log('== the Nights screen ==');
+  await page.evaluate(() => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 9 }, complete: {}, bestRun: { nightmare: 1234.5 }, best: { field: { nightmare: { time: 41.2, wins: 3, tries: 5 } } }, settings: {} })));
+  await page.goto(URL); await page.waitForTimeout(300);
+  await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+  tv = await page.evaluate(() => {
+    const p = document.querySelector('#overlay .panel'), cards = [...document.querySelectorAll('#overlay .ncard')], r = c => c.getBoundingClientRect();
+    return { fits: p.scrollHeight <= p.clientHeight + 1, open: document.querySelectorAll('#overlay button.ncard').length, cols: new Set(cards.map(c => Math.round(r(c).left))).size, eighth: Math.round(r(cards[7]).top) === Math.round(r(cards[0]).top),
+      best: (cards[0].querySelector('.nbest') || {}).textContent, run: document.querySelector('#overlay .runcard .rtime').textContent, label: document.querySelector('#overlay .runcard .rlabel').textContent,
+      frag: !!document.querySelector('#overlay button[data-act="fragments"]'), bottom: Math.round(r(p).bottom) <= innerHeight };
+  });
+  check(tv.fits && tv.bottom && tv.open === 10 && tv.cols === 2 && tv.eighth, 'the nights in two columns, down the first and then the second, all in view without scrolling (' + JSON.stringify(tv) + ')');
+  check(tv.best === 'best41 s' && tv.label === 'Best full run' && tv.run === '20:35' && !tv.frag, 'each night\'s best inside its card, the best full run in a card of its own, and no Fragments (' + JSON.stringify(tv) + ')');
+  await page.evaluate(() => { SAVE.data.bestRun = {}; MENU.act('back', 'title'); MENU.act('nights'); });
+  check(await page.evaluate(() => document.querySelector('#overlay .runcard .rtime').textContent === '—' && /in one go/.test(document.querySelector('#overlay .runcard .rhint').textContent)), 'no full run yet: a dash, and a line on what one is');
+  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(150);
+  check(await page.evaluate(() => new Set([...document.querySelectorAll('#overlay .ncard')].map(c => Math.round(c.getBoundingClientRect().left))).size === 1), 'on a phone, one column');
+  await page.setViewportSize({ width: 1280, height: 760 });
+
+  console.log('== the full run ==');
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(URL + '?nofr&seed=1'); await page.waitForTimeout(300);
+  const playFor = (sec) => page.evaluate(sec => { G.overlayArmed = 0; if (G.state === 'card') proceed(); for (let k = 0; k < sec * 20; k++) G.step(0.05); }, sec);
+  await page.evaluate(() => MENU.act('begin'));
+  check(await page.evaluate(() => G.state === 'card' && G.run && G.run.t === 0 && G.run.night === 0), 'Begin begins a run');
+  await page.evaluate(() => { for (let k = 0; k < 40; k++) G.step(0.05); });
+  check(await page.evaluate(() => G.run.t === 0), 'the card is not on the clock');
+  await playFor(2);
+  check(await page.evaluate(() => Math.abs(G.run.t - 2) < 0.06), 'playing is (' + await page.evaluate(() => G.run.t.toFixed(2)) + ')');
+  await page.evaluate(() => { pauseGame(); for (let k = 0; k < 40; k++) G.step(0.05); resumeGame(); restartLevel(); });
+  check(await page.evaluate(() => Math.abs(G.run.t - 2) < 0.06 && G.run.night === 0 && G.state === 'play'), 'paused is not on the clock, and a restart keeps the run');
+  await playFor(1);
+  await page.evaluate(() => { win(); for (let k = 0; k < 60; k++) G.step(0.05); });
+  check(await page.evaluate(() => Math.abs(G.run.t - 3) < 0.06 && G.run.night === 1), 'a night won: the run goes on to the next, and the watching after is not on the clock');
+  await page.evaluate(() => proceedFromSurvived());
+  check(await page.evaluate(() => G.levelIndex === 1 && G.run && G.run.night === 1), 'Next night keeps the run');
+  await page.evaluate(() => { SAVE.unlock('nightmare', 1); showTitle(); });
+  check(await page.evaluate(() => !!G.run), 'quitting to the title keeps it, for now');
+  await page.evaluate(() => MENU.act('continue'));
+  check(await page.evaluate(() => G.levelIndex === 1 && G.run && G.run.night === 1), 'Continue on the night it is on keeps it');
+  await page.evaluate(() => { showTitle(); MENU.act('nights'); MENU.act('night', '1'); });
+  check(await page.evaluate(() => G.levelIndex === 1 && !!G.run), 'so does that night picked from the Nights list');
+  await page.evaluate(() => { showTitle(); SAVE.unlock('nightmare', 5); MENU.act('continue'); });
+  check(await page.evaluate(() => G.levelIndex === 5 && G.run === null), 'any other night breaks it (Continue to a night further on)');
+  await page.evaluate(() => { showTitle(); MENU.act('nights'); MENU.act('night', '0'); });
+  check(await page.evaluate(() => G.levelIndex === 0 && G.run && G.run.t === 0), 'night 1 from the Nights list begins a new one');
+  await page.evaluate(() => { startLevel(3, true); });
+  check(await page.evaluate(() => G.run === null), 'skipping to another night breaks it');
+  // the last night won with a run on it: counted, and kept if it is the best
+  const last = await page.evaluate(() => { G.run = { t: 900, night: LEVELS.length - 1 }; startLevel(LEVELS.length - 1, false); for (let k = 0; k < 20; k++) G.step(0.05); win(); return { best: SAVE.data.bestRun.nightmare, run: G.run, saved: JSON.parse(localStorage.getItem('itscoming.v2')).bestRun.nightmare }; });
+  check(last.best > 900 && last.best < 902 && last.saved === last.best && last.run === null, 'winning the last night on a run records the full run, in the save (' + JSON.stringify(last) + ')');
+  await page.evaluate(() => { G.run = { t: 1500, night: LEVELS.length - 1 }; startLevel(LEVELS.length - 1, false); win(); });
+  check(await page.evaluate(b => SAVE.data.bestRun.nightmare === b, last.best), 'a slower run does not replace the best');
+
+  console.log('== the win screen between nights ==');
+  await page.goto(URL + '?level=1&go&nofr&seed=1'); await page.waitForTimeout(300);
+  tv = await page.evaluate(() => {
+    win(); for (let k = 0; k < 600 && G.state !== 'survived'; k++) G.step(0.05);
+    const next = document.querySelector('#overlay button[data-act="next"]'), quit = document.querySelector('#overlay button[data-act="title"]');
+    return { st: G.state, next: next && next.textContent, quit: quit && quit.textContent, plain: quit && quit.classList.contains('tbtn') && !quit.classList.contains('mbtn'), below: quit && next && quit.getBoundingClientRect().top - next.getBoundingClientRect().bottom,
+      grey: quit && getComputedStyle(quit).color !== getComputedStyle(next).color, nights: !!document.querySelector('#overlay button[data-act="nights"]'), frag: !!document.querySelector('#overlay .fragment, #overlay em') };
+  });
+  check(tv.st === 'survived' && tv.next === 'Next night' && tv.quit === 'Quit' && tv.plain && tv.below > 30 && tv.grey && !tv.nights && !tv.frag, 'You survived: Next night, and under it a plain, quieter Quit; no Nights, no fragment (' + JSON.stringify(tv) + ')');
+  await page.click('#overlay button[data-act="title"]'); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'title'), 'Quit goes to the title');
   await page.goto(URL); await page.waitForTimeout(300);
 
   console.log('== mute ==');
@@ -318,8 +426,8 @@ const hoverHit = lookFor;
       best: { field: { easy: { time: 40, wins: 1, tries: 2 }, normal: { time: 31.5, wins: 2, tries: 3 }, hard: { time: 50, wins: 1, tries: 4 } } }, settings: { difficulty: 3, muted: true } }));
   });
   await page.goto(T.INDEX); await page.waitForTimeout(300);
-  v = await page.evaluate(() => ({ d: G.difficulty, u: SAVE.data.unlocked, c: SAVE.data.complete, b: SAVE.data.best.field, m: SAVE.data.settings.muted, f: SAVE.data.fragments, s: SAVE.data.settings }));
-  check(v.d === 0 && v.u.nightmare === 5 && Object.keys(v.u).length === 1 && v.c.nightmare === true && v.m && v.f[0] === 'field' && v.s.difficulty === undefined, 'a four-difficulty save: the furthest night reached on any of them, and the campaign complete (' + JSON.stringify(v.u) + ')');
+  v = await page.evaluate(() => ({ d: G.difficulty, u: SAVE.data.unlocked, c: SAVE.data.complete, b: SAVE.data.best.field, m: SAVE.data.settings.muted, f: 'fragments' in SAVE.data, r: SAVE.data.bestRun, s: SAVE.data.settings }));
+  check(v.d === 0 && v.u.nightmare === 5 && Object.keys(v.u).length === 1 && v.c.nightmare === true && v.m && !v.f && v.r && !Object.keys(v.r).length && v.s.difficulty === undefined, 'a four-difficulty save: the furthest night reached on any of them, and the campaign complete (' + JSON.stringify(v.u) + ')');
   check(v.b.nightmare.time === 31.5 && v.b.nightmare.wins === 4 && v.b.nightmare.tries === 9 && Object.keys(v.b).length === 1, 'best time kept, wins and tries added up');
   await page.evaluate(() => {
     localStorage.clear();

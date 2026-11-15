@@ -42,7 +42,6 @@ LEVELS.push({
     objective: 'Salt both ways in. Light a lantern by each.',
     death: { default: 'It was still smiling when it stepped over the threshold.', open: 'It came through the open entrance.', unlit: 'The salt alone did not stop it. It loves the darkness.' },
     win: 'It dared not cross.',
-    fragment: 'There was a line of salt across the floor in the morning, and no one had been near the kitchen.',
   },
   // the porch opens to the path between the two columns; a side gate in the east wall opens on the graves
   lanes: [

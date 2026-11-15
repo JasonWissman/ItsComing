@@ -1,20 +1,28 @@
 'use strict';
 // ---------- the title screen: eyes in the dark ----------
-// Pitch black, and a long way off two pale points of eyes. It does not move while the title is in front of you; it
+// Pitch black, and a way off two pale points of eyes. It does not move while the title is in front of you; it
 // comes on only behind a dialog (Nights, How to play, Settings: each covers it), so each time you close one it is
-// nearer, and more of what the eyes belong to shows. STEPS of them and it is close enough to touch; it stays there.
+// nearer, and more of what the eyes belong to shows. A click on the dark itself is a blink: the view goes black for a
+// moment and it takes its step in there, unseen. STEPS of them and it is close enough to touch; it stays there.
 // Drawn on its own canvas (#titleScene) over the game's, which the title then leaves undrawn. The title after the last
 // night (the morning theme) keeps the room behind it instead, and nothing is coming.
 const TITLE = (() => {
-  const D = [70, 38, 22, 13, 7.5, 4.2, 2.4];   // how far off it is, metres, after each dialog closed
-  let cv = null, ctx = null, W = 0, H = 0, dpr = 1, step = 0, on = false, shown = false;
+  const D = [22, 13, 7.5, 4.2, 2.4];   // how far off it is, metres, after each dialog closed (or blink)
+  const BLINK = [0.12, 0.18, 0.42];   // the blink, seconds: shutting, shut (where it steps), opening again
+  let cv = null, ctx = null, W = 0, H = 0, dpr = 1, step = 0, drawn = 0, blinkAt = null, on = false, shown = false;
   let grainTile = null;
   function canvas() {
     if (!cv) { cv = document.getElementById('titleScene'); if (cv) ctx = cv.getContext('2d'); }
     return cv;
   }
-  function enter() { step = 0; on = SAVE.data.settings.theme !== 'day'; }
-  function advance() { if (on) step = Math.min(D.length - 1, step + 1); }
+  function enter() { step = drawn = 0; blinkAt = null; on = SAVE.data.settings.theme !== 'day'; }
+  // a step nearer. With veil, the view blinks shut first and it is drawn at its new place only once that is black;
+  // without (a dialog has just been over it), it is there at once
+  function advance(veil) {
+    if (!on) return;
+    step = Math.min(D.length - 1, step + 1);
+    if (veil) { if (blinkAt === null) blinkAt = -1; } else drawn = step;   // (-1: the blink starts on the next frame drawn)
+  }
   // is the scene up (the title is showing, and it is not the morning)? sets the page's class to match
   function active() {
     const a = on && G.state === 'title' && !!canvas();
@@ -45,7 +53,18 @@ const TITLE = (() => {
     const g = ctx; g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
     // the eyes sit high in the view, clear of the title and its buttons below
-    const y0 = H * 0.36, f = Math.min(H * 1.25, W * 1.6), d = D[step];
+    // the blink: how shut the view is (0 open, 1 black); while it is shut, it is drawn where it has stepped to
+    let shut = 0;
+    if (blinkAt !== null) {
+      if (blinkAt < 0) blinkAt = t;
+      const k = t - blinkAt;
+      if (k < BLINK[0]) shut = k / BLINK[0];
+      else if (k < BLINK[0] + BLINK[1]) { shut = 1; drawn = step; }
+      else if (k < BLINK[0] + BLINK[1] + BLINK[2]) shut = 1 - (k - BLINK[0] - BLINK[1]) / BLINK[2];
+      else blinkAt = drawn !== step ? t : null;   // clicked again while it opened: another blink, so that step is not seen either
+    }
+    if (hidden) drawn = step;
+    const y0 = H * 0.36, f = Math.min(H * 1.25, W * 1.6), d = D[drawn];
     const fl = g.createLinearGradient(0, y0 - H * 0.06, 0, y0 + H * 0.3); fl.addColorStop(0, 'rgba(18,17,21,0)'); fl.addColorStop(0.2, 'rgba(18,17,21,1)'); fl.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = fl; g.fillRect(0, y0 - H * 0.06, W, H * 0.36);   // the faintest ground, lightest far off, no edge to it
     const ppm = f / d, feet = y0 + f * 1.62 / d, sx = W / 2 + Math.sin(t * 0.21) * 0.04 * ppm;
@@ -71,6 +90,7 @@ const TITLE = (() => {
     const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.15, W / 2, H / 2, Math.hypot(W, H) * 0.62);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.85)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
     if (!still) grain(0.07);
+    if (shut > 0) { g.fillStyle = 'rgba(0,0,0,' + smoothstep(shut).toFixed(3) + ')'; g.fillRect(0, 0, W, H); }
   }
   return { enter, advance, active, draw, get step() { return step; }, get on() { return on; }, STEPS: D.length - 1 };
 })();

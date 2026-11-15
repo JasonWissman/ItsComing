@@ -61,7 +61,6 @@ LEVELS.push({
     objective: 'Hold nothing.',
     death: { default: 'You were still holding on to something.', away: 'It craves your fear.' },
     win: '',
-    fragment: '',
   },
   lanes: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].map((name, k) => ({ deg: k * 45, name, barrierDist: 0, default: k === 0 })),
   creatures: [{ type: 'demon', startDist: 40, time: 75, unseenMult: 1.3 }],

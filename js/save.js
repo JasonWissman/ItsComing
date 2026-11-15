@@ -11,8 +11,8 @@ const SAVE = (() => {
       v: 4,
       unlocked: { nightmare: 0 },                                // highest night index reached
       best: {},                                                  // best[levelId][diff] = { time, wins, tries }
-      fragments: [],                                             // ids of fragments seen
       complete: {},                                              // complete[diff] = true once night 13 is won
+      bestRun: {},                                               // bestRun[diff] = seconds, the fastest full run (game.js: the run)
       settings: { muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', touchLeft: false, textures: true },
     };
   }
@@ -39,7 +39,8 @@ const SAVE = (() => {
           // defaults first, then what was stored: a key added later still gets its default for an older save
           const f = fresh();
           const unlocked = Object.assign(f.unlocked, d.unlocked || {}), settings = Object.assign(f.settings, d.settings || {});
-          data = Object.assign(f, d, { unlocked, settings, best: d.best || {}, fragments: d.fragments || [], complete: d.complete || {} });
+          data = Object.assign(f, d, { unlocked, settings, best: d.best || {}, complete: d.complete || {}, bestRun: d.bestRun || {} });
+          delete data.fragments;   // an older save's list of fragments seen: there are none any more
           return data;
         }
       }
@@ -66,9 +67,9 @@ const SAVE = (() => {
   function entry(levelId, diff) { const b = data.best[levelId] = data.best[levelId] || {}; return b[diff] = b[diff] || { time: null, wins: 0, tries: 0 }; }
   function recordTry(levelId, diff) { entry(levelId, diff).tries++; persist(); }
   function recordWin(levelId, diff, time) { const e = entry(levelId, diff); e.wins++; if (e.time === null || time < e.time) e.time = Math.round(time * 10) / 10; persist(); }
-  function seeFragment(id) { if (!data.fragments.includes(id)) { data.fragments.push(id); persist(); } }
+  function recordRun(diff, time) { const b = data.bestRun[diff]; if (b === undefined || b === null || time < b) { data.bestRun[diff] = Math.round(time * 10) / 10; persist(); } }
   function setSetting(k, v) { data.settings[k] = v; persist(); }
   function markComplete(diff) { data.complete[diff] = true; persist(); }
   function reset() { data = fresh(); persist(); }
-  return { load, persist, unlock, recordTry, recordWin, seeFragment, setSetting, markComplete, reset, get data() { return data; } };
+  return { load, persist, unlock, recordTry, recordWin, recordRun, setSetting, markComplete, reset, get data() { return data; } };
 })();

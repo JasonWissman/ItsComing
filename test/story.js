@@ -11,7 +11,7 @@ const { check } = T;
   for (let i = 0; i < n; i++) {
     const info = await page.evaluate(i => {
       const def = LEVELS[i], T = def.text || {};
-      const words = [T.intro, T.hint, T.objective, T.win, T.fragment].concat(Object.values(T.death || {})).join(' | ');
+      const words = [T.intro, T.hint, T.objective, T.win].concat(Object.values(T.death || {})).join(' | ');
       G.inv = []; G.difficulty = 0;
       const L = buildLevel(i);
       // the lamp is a sprite drawn by STORY.lamp: it is tagged by its draw function's source

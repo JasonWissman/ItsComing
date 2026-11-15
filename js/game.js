@@ -1,6 +1,6 @@
 'use strict';
 // ---------- game state, input, interaction, HUD and the main loop ----------
-const LIST_SCREENS = ['nights', 'settings', 'fragments', 'howto']; // menu screens with their own buttons: not click-anywhere
+const LIST_SCREENS = ['nights', 'settings', 'howto']; // menu screens with their own buttons: not click-anywhere
 // looking down: enough to see the floor around you without a lurch of the view. A night may look further down (its def's
 // lookDown, in degrees: over the lighthouse rail); this is the one in play, set as each night starts
 let PITCH_DOWN = 45 * DEG;
@@ -17,6 +17,7 @@ const G = {
   t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, white: 0, whiteTarget: 0, danger: 0,
   hb: { next: 0, last: -10 }, toastT: 0, lastToast: { msg: '', t: -10 }, invSig: '', debug: false, paused: false,
   difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, lastLane: {}, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
+  run: null,   // the full run under way, if one is: { t, night } (see the run, below)
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
@@ -92,7 +93,7 @@ function buildLevelDef(def, i) {
   L.tier = (normal, nightmare) => (L.nightmare && nightmare !== undefined ? nightmare : normal);
   L.pt = (x, y, z) => { const r = rotY(x, z, L.facing); return [r[0], y, r[1]]; };
   L.at = (deg, dist, y) => L.pt(Math.sin(deg * DEG) * dist, y, Math.cos(deg * DEG) * dist);
-  L.text = Object.assign({ intro: def.intro || '', hint: def.hint || '', objective: def.objective || '', death: {}, win: '', fragment: '' }, def.text || {});
+  L.text = Object.assign({ intro: def.intro || '', hint: def.hint || '', objective: def.objective || '', death: {}, win: '' }, def.text || {});
   if (typeof L.text.death === 'string') L.text.death = { default: L.text.death };
   const laneDefs = def.lanes && def.lanes.length ? def.lanes : [{ deg: 0 }];
   L.lanes = laneDefs.map((ld, k) => APPROACH.makeLane(L, ld, k));
@@ -148,7 +149,27 @@ function validateContent() {
   return problems;
 }
 
+// ---------------- the run ----------------
+// A full run is night 1 to the end of the last night in one go, timed; the best is kept in the save (SAVE.recordRun) and
+// shown on the Nights screen. It begins when night 1 is begun from a menu (Begin, Play again, night 1 on the Nights list,
+// Enter on the title), never by ?level=. Its clock is the time spent playing (G.state 'play', and the moment of being
+// caught): every attempt at a night counts, retries after a death and restarts too, but not the cards, the death and
+// survived screens, the pause menu, the title, the watching once a night is won, or a hidden tab (nothing runs then).
+// It goes on through Next night, and through quitting to the title so long as the night it next starts is the one the
+// run is on (Continue, or that night on the Nights list). Starting any other night breaks it (a night skipped to,
+// or one gone back to), and so does a reload: the run in progress lives only here, not in the save. It is finished,
+// and counted, the moment the last night is won.
+function beginRun() { G.run = { t: 0, night: 0 }; }
+function runTick(dt) { if (G.run && (G.state === 'play' || G.state === 'dying')) G.run.t += dt; }
+function runWon(L) {
+  const r = G.run;
+  if (!r || r.night !== L.index) { G.run = null; return; }
+  if (L.index === LEVELS.length - 1) { SAVE.recordRun(L.diff.id, r.t); G.run = null; }
+  else r.night = L.index + 1;
+}
+
 function startLevel(i, withCard) {
+  if (G.run && G.run.night !== i) G.run = null;   // any night but the one the run is on breaks it
   if (G.L && G.L.onEnd) G.L.onEnd();
   STORY.theme(false); if (i === 0) SAVE.setSetting('theme', '');
   G.white = 0; G.whiteTarget = 0;
@@ -265,6 +286,7 @@ function setMuted(m) {
   AUDIO.setMuted(G.muted);
   UI.mute.textContent = G.muted ? 'muted (M)' : 'sound on (M)';
   UI.mute.classList.toggle('off', G.muted);
+  const pb = UI.overlay.querySelector('button[data-act="mute"]'); if (pb) pb.textContent = G.muted ? 'Unmute' : 'Mute';   // the pause menu's
   SAVE.setSetting('muted', G.muted);
 }
 function restartLevel() {
@@ -280,7 +302,7 @@ function proceed() {
   if (performance.now() < G.overlayArmed) return; // the arm is on the wall clock, so it is 350 ms whatever the frame rate
   ensureAudio();
   switch (G.state) {
-    case 'title': startLevel(0, true); break;
+    case 'title': beginRun(); startLevel(0, true); break;
     case 'card': hideOverlay(); setState('play'); beginPlay(); break;
     case 'dead': startLevel(G.levelIndex, false); break;
     case 'survived': proceedFromSurvived(); break;
@@ -306,7 +328,10 @@ function onMouseUp() { G.holding = null; drawLetGo('mouse'); }
 function onClick(e) {
   if (e.target.closest && e.target.closest('#touch')) return;
   if (G.drawSwallow) { G.drawSwallow = false; if (G.state === 'play') return; }   // the click that ends a draw is not another use
-  if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) return; proceed(); return; } // the list screens are not click-anywhere; the title and the cards are
+  // the list screens are not click-anywhere, nor is the title: a click on the dark there only brings it a step nearer,
+  // in the blink it takes (TITLE.advance); the cards are click-anywhere
+  if (G.state === 'title') { if (MENU.kind === 'title' && !(e.target.closest && e.target.closest('button'))) TITLE.advance(true); return; }
+  if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) return; proceed(); return; }
   ensureAudio();
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   updateHover();
@@ -615,6 +640,7 @@ function win() {
   setState('won');
   SAVE.unlock(L.diff.id, L.index + 1);
   SAVE.recordWin(L.def.id, L.diff.id, L.t);
+  runWon(L);
   startAftermath(L);
 }
 function die(c, cause) {
@@ -681,6 +707,7 @@ function updateHover() {
 // ---------------- update ----------------
 function update(dt) {
   G.t += dt;
+  runTick(dt);
   const L = G.L; if (!L) return;
   const c = G.cam;
   // once the night is won the view turns slowly to follow the thing and closes in a little, so you see how it ends
@@ -732,8 +759,7 @@ function update(dt) {
         if (G.fadeTarget < 1) { G.fadeTarget = 1; AUDIO.sfx('win'); AUDIO.stopAmbient(); }
         if (G.fade > 0.97) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
-          if (L.text.fragment) SAVE.seeFragment(L.def.id);
-          G.survivedScreen = { title: L.def.title, text: L.text.win + (L.text.fragment ? '<br><em class="fragment">' + L.text.fragment + '</em>' : '') };
+          G.survivedScreen = { title: L.def.title, text: L.text.win };
           MENU.show('survived', G.survivedScreen);
         }
       }

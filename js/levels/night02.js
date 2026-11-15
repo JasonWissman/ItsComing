@@ -49,7 +49,6 @@ LEVELS.push({
     objective: 'Start the car and get away.',
     death: { default: 'It came through the windshield.', drove: 'You drove straight to the creature. It came through the windshield.' },
     win: 'You drove away.',
-    fragment: 'The car has not started on the first turn since. You have stopped mentioning it.',
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
   // the road or along either verge, just off the beam

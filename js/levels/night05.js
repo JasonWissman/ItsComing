@@ -157,7 +157,6 @@ LEVELS.push({
     objective: 'Get the bow and the arrows. Two hits.',
     death: { default: 'It dragged you out into the woods.', wounded: 'It was injured, but it still reached you.', spent: 'You missed. It dragged you out to the woods.' },
     win: 'It twitched, but eventually stopped moving.',
-    fragment: 'The inside of your forearm was red in the morning, one long thin welt, as if something had snapped against it all night.',
   },
   // it comes at the steps, or round the open side of the porch
   lanes: [
