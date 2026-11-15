@@ -113,17 +113,27 @@ CREATURES.tall = {
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
     if ((c.faceAway || 0) > 0.5) { ctx.restore(); if (late) late(); ctx.restore(); return; }   // its face down: the dark of its head
     P_ell(ctx, 0, 0.32, 0.095, 0.15, skin);
-    const ew = 0.018 + duck * 0.004;   // black, blank, perfectly round; peering up, the eyes wide
-    P_ell(ctx, -0.04, 0.36, ew, ew, eye); P_ell(ctx, 0.04, 0.36, ew, ew, eye);
-    // the mouth: wide open, an arch of despair turned down at both corners: the upper lip curved high over it, the lower
-    // lip only a little above the dragged-down corners, so it gapes; filled, then stroked round the same edge with round
-    // joins, which softens the corners
-    const mh = 0.026 + near * 0.05 + lunge * 0.045, mw = 0.034 + near * 0.024 + lunge * 0.026, my = 0.24;
-    const cy = my - mh * 0.6, soft = Math.min(mh * 0.45, 0.006 + near * 0.008 + lunge * 0.008);
+    // its face is a tragedy mask's: the eyes wide almond holes, black, their inner corners lifted and the outer ones sagging,
+    // the lower lid all but straight under an arched upper one; the mouth a wide open hole, its top lip near straight,
+    // its corners dragged down and rounded, the lower lip pushing up a little in the middle. Peering up, the eyes widen
+    const ex = 0.033 + duck * 0.004, eh = 0.019 + duck * 0.004;
+    ctx.fillStyle = eye;
+    for (const s of [-1, 1]) {
+      const cx = s * 0.042, cy0 = 0.36, ix = cx - s * ex, ox = cx + s * ex, iy = cy0 + 0.006, oy = cy0 - 0.007;   // inner and outer corners
+      ctx.beginPath(); ctx.moveTo(ix, iy);
+      ctx.bezierCurveTo(cx - s * ex * 0.4, cy0 + eh * 1.9, cx + s * ex * 0.5, cy0 + eh * 1.6, ox, oy);   // the upper lid, arched
+      ctx.bezierCurveTo(cx + s * ex * 0.4, cy0 - eh * 0.9, cx - s * ex * 0.5, cy0 - eh * 0.7, ix, iy);   // the lower, nearly flat
+      ctx.closePath(); ctx.fill();
+    }
+    const mh = 0.024 + near * 0.022 + lunge * 0.02, mw = 0.038 + near * 0.012 + lunge * 0.01, mt = 0.255, mb = mt - mh;
+    const soft = Math.min(mh * 0.3, 0.006 + near * 0.006 + lunge * 0.006);
     ctx.fillStyle = black; ctx.strokeStyle = black; ctx.lineWidth = soft * 2; ctx.lineJoin = 'round';
-    ctx.beginPath(); ctx.moveTo(-mw, cy);
-    ctx.bezierCurveTo(-mw * 0.75, my + mh * 1.15, mw * 0.75, my + mh * 1.15, mw, cy);
-    ctx.bezierCurveTo(mw * 0.55, cy - mh * 0.12, -mw * 0.55, cy - mh * 0.12, -mw, cy);
+    ctx.beginPath();
+    ctx.moveTo(-mw, mt - mh * 0.28);                                              // the left corner of the mt lip, dragged down
+    ctx.bezierCurveTo(-mw * 0.55, mt + mh * 0.06, mw * 0.55, mt + mh * 0.06, mw, mt - mh * 0.28);   // the mt lip, near straight
+    ctx.bezierCurveTo(mw * 1.04, mt - mh * 0.7, mw * 0.98, mb - mh * 0.05, mw * 0.78, mb);           // the right side, down and round
+    ctx.bezierCurveTo(mw * 0.35, mb - mh * 0.08, -mw * 0.35, mb - mh * 0.08, -mw * 0.78, mb);       // the lower lip, sagging a little
+    ctx.bezierCurveTo(-mw * 0.98, mb - mh * 0.05, -mw * 1.04, mt - mh * 0.7, -mw, mt - mh * 0.28);  // the left side
     ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
     if (late) late();
