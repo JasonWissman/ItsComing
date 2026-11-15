@@ -229,7 +229,7 @@ some on the ground, so you have to turn and look down to find them.
    of its long limbs like a spider, to the next lamp nearer the booth, waits, breaks that, and so on to the last; then it
    walks across to the glass. With every lamp to get through it is quick about all of it, and its whole way in takes as
    long as its steady walk used to, so the race is the same. Only coming at you does a face come out of the dark into
-   yours: two pale, blank eyes and a mouth of small teeth from one cheekbone to the other, opening far too wide. The pay phone, a slim unit a size smaller than life on a backboard no wider than itself,
+   yours: its whole head splits open into five petals lined with teeth, and out of the throat in the middle ring after ring of teeth keeps coming up and out toward you. The pay phone, a slim unit a size smaller than life on a backboard no wider than itself,
    stands across the corner of the booth between the two streets, the glass clear either side of it, so while you use it
    both streets are at the edges of the view and you see it coming out of the corner of your eye. Your notebook lies shut
    on the little shelf under the phone. Click it and its cover goes back over the

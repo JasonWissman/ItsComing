@@ -17,13 +17,6 @@
 // c.reach (0..1): its arms up to the edge of the bed, its hands at c.gripY (world height; the night draws the hands on the
 //   covers over the edge); c.faceAway (over 0.5): its face turned down, only the dark of its head showing.
 // Light slows it (c.inLight), in case it is ever in the light and not already down out of it.
-// its face and mouth, as drawn by hand (lab/tall_face.svg, in its head's units: metres, y up): M, C (cubic) and Z
-const TALL_FACE = [['M', -0.0025, 0.18], ['C', 0.08, 0.18, 0.11, 0.24708, 0.11, 0.34925], ['C', 0.11, 0.45142, 0.07475, 0.48659, 0.01775, 0.45075], ['C', -0.057, 0.40375, -0.1105, 0.46067, -0.1105, 0.3585], ['C', -0.1105, 0.25633, -0.0775, 0.17575, -0.0025, 0.18], ['Z']];
-const TALL_MOUTH = [['M', -0.05055, 0.27825], ['C', 0.00474, 0.28386, 0.03617, 0.31101, 0.0525, 0.27458], ['C', 0.05364, 0.25167, 0.0453, 0.21705, 0.03561, 0.22012], ['C', 0.01521, 0.23476, -0.01874, 0.23123, -0.04076, 0.22284], ['C', -0.05064, 0.22047, -0.05332, 0.25547, -0.05055, 0.27825], ['Z']];
-function tallPath(ctx, segs) {
-  ctx.beginPath();
-  for (const g of segs) { if (g[0] === 'M') ctx.moveTo(g[1], g[2]); else if (g[0] === 'C') ctx.bezierCurveTo(g[1], g[2], g[3], g[4], g[5], g[6]); else ctx.closePath(); }
-}
 CREATURES.tall = {
   name: 'the tall one', h: 2.3, w: 1.1, faceY: 2.0, stepRate: 1.3, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
   death: { delay: 0.6, dur: 1.4, sting: 'stingHum' },
@@ -42,7 +35,7 @@ CREATURES.tall = {
   draw(ctx, c, P) {
     const g = c.gait, t = c.t, near = clamp(1 - c.dist / 3.2, 0, 1), lunge = c.lunge || 0, free = 1 - lunge, K = this.SCALE, S = this.STOOP;
     const peer = (c.peer || 0) * free, ps = c.peerSide || 1, flinch = (c.flinch || 0) * free, duck = (c.duck || 0) * free, reach = (c.reach || 0) * free;
-    const body = P.col([8, 7, 10]), skin = P.col([120, 108, 110]), eye = P.col([6, 5, 7]), black = P.col([2, 2, 3]);   // (its eyes: black, round and blank)
+    const body = P.col([8, 7, 10]);
     // it bows over the foot of the bed as it comes: seen from in front, its shoulders hunch up and its head comes forward
     // and down between them (it straightens as it lunges, when the night brings its face to yours)
     const lean = smoothstep((2.5 - c.dist) / 0.7) * (1 - smoothstep(lunge)) * (1 - peer) * (1 - duck);
@@ -112,25 +105,22 @@ CREATURES.tall = {
     const tilt = headTiltJerk(t, 2.7, 0.3) * still + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35;
     if (peer > 0) P_line(ctx, sway * 0.6, tp - 0.04, hx, hy + 0.06, 0.09, body);   // the neck, stretched out round the edge
     ctx.save(); ctx.translate(hx, hy); ctx.rotate(tilt); ctx.scale(hs, hs);
-    // and at the last of its lunge it swallows you: its whole head keeps on coming, swelling out over everything about
-    // the middle of its open mouth, until the black of the mouth is all there is
+    // and at the last of its lunge it swallows you: its whole head keeps on coming, swelling out over everything from
+    // just under its eyes, until the black of it is all there is
     const gulp = smoothstep((lunge - 0.5) / 0.5);
-    if (gulp > 0) { const mc = 0.25, g = 1 + gulp * gulp * 90; ctx.translate(0, mc); ctx.scale(g, g); ctx.translate(0, -mc); }
+    if (gulp > 0) { const mc = 0.3, g = 1 + gulp * gulp * 90; ctx.translate(0, mc); ctx.scale(g, g); ctx.translate(0, -mc); }
     P_line(ctx, 0, 0, 0, 0.14, 0.08, body);
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
     if ((c.faceAway || 0) > 0.5) { ctx.restore(); if (late) late(); ctx.restore(); return; }   // its face down: the dark of its head
-    ctx.fillStyle = skin; tallPath(ctx, TALL_FACE); ctx.fill();   // its face: lopsided, the brow sunk on the left of the view
-    // its eyes, black: two holes, not a pair, the one on the right of the view the taller and set higher, tipped
-    // (peering up, they widen)
-    const eg = 1 + duck * 0.2;
-    P_ell(ctx, -0.04525, 0.35275, 0.02775 * eg, 0.02925 * eg, eye);
-    P_ell(ctx, 0.04125, 0.3865, 0.02775 * eg, 0.0355 * eg, eye, 0.1628);
-    // its mouth: a crooked open hole, its lip rising toward the right and the right side hanging lower than the left,
-    // the corners rounded off by a round-joined edge. Far off it is a little smaller; it opens out as it lunges
-    const mk = lerp(0.7, 1, near) * (1 + 0.25 * lunge), mcy = 0.25;
-    ctx.save(); ctx.translate(0, mcy); ctx.scale(mk, mk); ctx.translate(0, -mcy);
-    ctx.fillStyle = black; ctx.strokeStyle = black; ctx.lineWidth = 0.024; ctx.lineJoin = 'round';
-    tallPath(ctx, TALL_MOUTH); ctx.fill(); ctx.stroke();
+    // its face is nothing but two round pale eyes in the dark of its head, as on the title, a soft glow round each
+    // (peering up, they widen; in the lunge they open out a little before the head swallows them)
+    const er = 0.017 * (1 + duck * 0.2 + lunge * 0.25), eyeC = P.col([235, 228, 210]);
+    for (const s of [-1, 1]) {
+      const x = s * 0.046, y = 0.37, gr = er * 3.2, gl = ctx.createRadialGradient(x, y, 0, x, y, gr);
+      gl.addColorStop(0, P.cola([235, 228, 210], 0.3)); gl.addColorStop(1, P.cola([235, 228, 210], 0));
+      ctx.fillStyle = gl; ctx.fillRect(x - gr, y - gr, gr * 2, gr * 2);
+      P_ell(ctx, x, y, er, er, eyeC);
+    }
     ctx.restore();
     ctx.restore();
     if (late) late();

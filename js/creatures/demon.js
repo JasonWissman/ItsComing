@@ -601,12 +601,15 @@ CREATURES.demon = {
         // they are all there is of it: two points that stay a pixel or two across, in a faint haze
         const far = clamp((c.dist - 5) / 12, 0, 1);
         if (far > 0) P_ell(ctx, 0, fy + 0.03, c.dist * 0.009, c.dist * 0.006, rgba(er, (0.06 + 0.1 * a) * far));
+        // (far off they are kept their pixel or two across, so they are set as far apart as they are big, or they would run
+        // together into one smudge)
+        const rFar = c.dist * 0.0013 * far, sep = Math.max(0.036, rFar * 3.2);
         for (const s of [-1, 1]) {
-          const ex = s * (0.036 + lk * 0.03), ey = fy + 0.03 + lk * 0.012;   // in your face, the eyes pull apart
+          const ex = s * (sep + lk * 0.03), ey = fy + 0.03 + lk * 0.012;   // in your face, the eyes pull apart
           if (a > 0.02) P_ell(ctx, ex, ey, 0.018 + lk * 0.008, 0.036 + a * 0.01 + lk * 0.02, rgba(er, (0.28 + 0.2 * lk) * a), s * 0.15 * a);
           const rx = lerp(0.011, 0.0075, a) + lk * 0.002, ry = lerp(0.011, 0.024, a) + lk * 0.012;   // enraged, tall burning slits, taller still in your face
           // (their own light: they show through the dark, the pale ones a little dimmed by it far off)
-          P_ell(ctx, ex, ey, Math.max(rx, c.dist * 0.0013 * far), Math.max(ry, c.dist * 0.0011 * far), rgba(mixc(er, P.fogColor || [0, 0, 0], (1 - a) * 0.45 * (P.fog || 0))), s * 0.15 * a);
+          P_ell(ctx, ex, ey, Math.max(rx, rFar), Math.max(ry, c.dist * 0.0011 * far), rgba(mixc(er, P.fogColor || [0, 0, 0], (1 - a) * 0.45 * (P.fog || 0))), s * 0.15 * a);
         }
         ctx.restore();
       }

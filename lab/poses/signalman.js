@@ -89,7 +89,7 @@
           if (T < 0.8) { c.moving = false; return; }
           c.away = true; c.frozen = true; c.moving = true; c.dist += dt * 1.3; c.gait += dt * 1.3 * CR.stepRate * Math.PI;
         } },
-      LAB.lunge({ note: 'It catches you: the only face it ever shows comes out of the dark into yours, two pale blank eyes and the mouth opening far too wide, the long hands up either side of your face.', dist: CR.catchDist }),
+      LAB.lunge({ note: 'It catches you: its head splits open into five petals lined with teeth, rings of teeth coming up out of its throat and moving out, only ever outward, the long hands up either side of your face.', dist: CR.catchDist }),
     ],
   });
 })();

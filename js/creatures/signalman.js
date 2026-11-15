@@ -121,10 +121,10 @@ CREATURES.signalman = {
   },
   maw(ctx, c, P, ink, k) {
     const t = c.t, cx = 0, cy = -0.01, N = 5, w = TAU / N * 0.5 * 0.94;
-    // it breathes: everything pulses in toward the middle and out again, the petals each a little out of step
-    const pulse = ph => (SAVE.data.settings.reducedMotion ? 0 : Math.sin(t * 7.5 + ph) * 0.5 + Math.sin(t * 12.1 + ph * 1.7) * 0.25) * k;
-    // (the petals only open out, larger and wider as it comes, steady; the maw's rings are what move)
-    const rbP = lerp(0.03, 0.075, k), rb = rbP * (1 + 0.1 * pulse(0)), rt = lerp(0.12, 0.34, k), wide = lerp(0.85, 1.15, k);
+    // the petals only open out, larger and wider as it comes, steady; inside them its teeth keep coming up out of its
+    // throat and moving out to the rim, ring after ring, only ever outward
+    const still = SAVE.data.settings.reducedMotion;
+    const rbP = lerp(0.03, 0.075, k), rb = rbP, rt = lerp(0.12, 0.34, k), wide = lerp(0.85, 1.15, k);
     const flesh = P.col([58, 14, 18]), fleshD = P.col([30, 6, 9]), tooth = P.cola([200, 190, 156], 0.97);
     const at = (r, a) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
     const toothAt = (x, y, dx, dy, l, wd) => {   // a fang from (x,y) pointing (dx,dy)
@@ -152,15 +152,21 @@ CREATURES.signalman = {
       }
       ctx.fill();
     }
-    // the maw itself: a ring of teeth round its rim pointing in, another inside that, and the black of the throat
+    // the maw itself: the raw rim, the black of the throat, and the rings of teeth coming up out of the throat and moving out
+    // to the rim, growing as they go and sinking into the rim there (reduced motion: two rings, still)
     P_ell(ctx, cx, cy, rb * 1.08, rb * 1.08, fleshD);
-    ctx.fillStyle = tooth; ctx.beginPath();
-    for (const [r0, n, l, ph, a0] of [[rb * 1.0, 14, 0.034, 0.4, 0], [rb * 0.6, 10, 0.024, 2.2, 0.3]]) {
-      const r = r0 * (1 + 0.14 * pulse(ph)), ll = l * (1 + 0.25 * pulse(ph + 1.1));   // (the rings close in and open out, the teeth with them)
-      for (let j = 0; j < n; j++) { const a = j / n * TAU + a0, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; toothAt(x, y, -Math.cos(a), -Math.sin(a), ll * k * (0.75 + 0.25 * Math.abs(Math.sin(j * 2.3))), 0.007); }
+    P_ell(ctx, cx, cy, rb * 0.42, rb * 0.42, P.col([4, 2, 3]));
+    const RINGS = 4, flow = still ? 0 : t * 0.9, a1 = ctx.globalAlpha;
+    for (let i = 0; i < RINGS; i++) {
+      const u = still ? [0.8, 0.45][i] : (i / RINGS + flow) % 1;   // 0: at the throat, 1: at the rim
+      if (u === undefined) continue;
+      const r = rb * lerp(0.2, 1.0, u), n = Math.round(lerp(8, 14, u)), l = lerp(0.012, 0.034, u), a0 = i * 0.9;
+      ctx.globalAlpha = a1 * smoothstep(u / 0.2) * (1 - smoothstep((u - 0.85) / 0.15));   // out of the dark, and down into the rim
+      ctx.fillStyle = tooth; ctx.beginPath();
+      for (let j = 0; j < n; j++) { const a = j / n * TAU + a0, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; toothAt(x, y, -Math.cos(a), -Math.sin(a), l * k * (0.75 + 0.25 * Math.abs(Math.sin(j * 2.3 + i))), lerp(0.004, 0.007, u)); }
+      ctx.fill();
     }
-    ctx.fill();
-    P_ell(ctx, cx, cy, rb * 0.36, rb * 0.36, P.col([4, 2, 3]));
+    ctx.globalAlpha = a1;
   },
   faceShut(ctx, c, P, ink, turn, reveal, lunge, px) {
     const fx = turn * 0.045, rv = clamp(reveal, 0, 1), gape = smoothstep(lunge * 1.3);
