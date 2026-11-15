@@ -128,7 +128,6 @@ CREATURES.walker = {
       P_ell(ctx, s * 0.084, 0.33, 0.02, 0.045, hol);                  // the temple, sunk in
       P_ell(ctx, s * 0.058, 0.218, 0.024, 0.05, hol, s * 0.22);       // the cheek, sunk in under the cheekbone
       P_ell(ctx, s * 0.036, ey, er * 1.9, er * 1.9, hol);             // the socket
-      P_line(ctx, s * 0.046, 0.258, s * 0.084, 0.28, 0.01, lite);      // the cheekbone, up to the temple
       P_line(ctx, s * 0.08, 0.2, s * 0.03, 0.163, 0.007, lite);        // the jaw
     }
     ctx.restore();
@@ -314,13 +313,12 @@ CREATURES.walker = {
     const hx = nx + Math.sin(lean + 0.3) * 0.17, hy = ny + Math.cos(lean + 0.3) * 0.17;
     P_ell(ctx, hx, hy, 0.12, 0.16, body, -lean * 0.6);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
-    if (faceA > 0) {   // side on: the eye in its socket, the cheekbone under it and the line of the jaw
+    if (faceA > 0) {   // side on: the eye in its socket and the line of the jaw
       const hol = P.col(this.GREY.hollow);
       ctx.globalAlpha = faceA;
       P_ell(ctx, hx + 0.07, hy + 0.03, 0.027, 0.027, hol);
       P_ell(ctx, hx + 0.07, hy + 0.03, 0.015, 0.015, eye);
       ctx.globalAlpha = faceA * ba;
-      P_line(ctx, hx + 0.03, hy - 0.025, hx + 0.1, hy - 0.012, 0.009, ridge);
       P_line(ctx, hx - 0.02, hy - 0.05, hx + 0.08, hy - 0.11, 0.008, ridge);
       ctx.globalAlpha = 1;
     }
