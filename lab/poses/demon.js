@@ -113,6 +113,9 @@
       LAB.lunge({ note: 'Still holding something as it reaches you: enraged, it comes up into your face, lifted so its eyes end level with yours.', fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
         set(c) { c.anger = 1; c.rage = rageFor(1); base.set(c); },
         tick(c, k, dt, T) { base.tick(c, k, dt, T); c.lat = lerp(c.lat, 0, 0.3); c.yOff = -(CR.eyesY(c) - CR.faceY) * smoothstep(c.lunge); } }),
+      LAB.lunge({ name: 'Shot: it leaps at you', note: 'An arrow in it (the bow, which still draws and looses here): enraged, it leaps at you at once from 12 m, up in an arc and into your face (CR.leap).', dist: 12, dur: 1.4, fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
+        set(c) { c.anger = 2; c.rage = 1; c.deathSpec = CR.leap(c.dist); base.set(c); },
+        tick(c, k, dt, T) { base.tick(c, k, dt, T); c.yOff = 0; c.deathSpec.pose(c, c.lunge); } }),
     ],
   });
 })();

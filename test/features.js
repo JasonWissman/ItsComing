@@ -369,6 +369,38 @@ const hoverHit = lookFor;
   await page.evaluate(() => { pickup(G.L.items[0]); G.L.creature.u = 0.985; G.step(0.05, 400); });
   check(await page.evaluate(() => G.state === 'dead' && !!G.deathScreen && /holding/.test(G.deathScreen.text)), 'reaching you with something in your hands is a death, and the line says so');
   check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') !== 'day'), 'no morning for the one who held on');
+  // the bow: night 5's, drawn and loosed here as it was there (with the mouse: pressed, held until full, let go). A miss is
+  // only an arrow gone; a hit, and it leaps at you at once: a death, never the ending, whatever you do then
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  const loose13 = async off => {
+    const p = await page.evaluate(off => { G.step(1 / 30, 1); const b = creatureBox(G.L.creature); return { x: b.x + b.w / 2 + off, y: b.y + b.h * 0.3 }; }, off);
+    await page.mouse.move(p.x, p.y); await page.evaluate(() => G.step(1 / 30, 1));
+    await page.mouse.down();
+    await page.evaluate(() => { for (let i = 0; i < 90 && !(G.draw && G.draw.full); i++) G.step(1 / 30, 1); G.step(1 / 30, 3); });
+    await page.mouse.up();
+  };
+  const bow13 = await page.evaluate(() => {
+    const c = G.L.creature; c.switched = true;
+    for (const id of ['arrows', 'bow']) pickup(G.L.items.find(i => i.id === id));
+    G.active = G.inv.findIndex(i => i.id === 'bow'); c.hold = 14;
+    G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.pitch = G.cam.tPitch = 0;
+    G.step(1 / 30, 30);
+    const u = activeUse(G.L);
+    return { use: u && u.tool, draw: !!(u && u.draw), hand: !!G.hand.cur, off: !!G.hand.off.cur, show: +G.L.s.bowShow.toFixed(2) };
+  });
+  check(bow13.use === 'bow' && bow13.draw && !bow13.hand && !bow13.off && bow13.show > 0.9, 'the bow in hand on the last night, it comes up in both hands to be drawn as on night 5 (' + JSON.stringify(bow13) + ')');
+  await loose13(300);
+  const miss13 = await page.evaluate(() => { G.step(1 / 30, 45); const c = G.L.creature; return { out: G.L.s.outcomes.join(), state: G.state, left: G.inv.find(i => i.id === 'arrows').uses, rage: +c.rage.toFixed(2), dist: c.dist, lunge: c.lunge }; });
+  check(miss13.out === 'miss' && miss13.state === 'play' && miss13.left === 2 && miss13.rage > 0.6 && miss13.dist === 14 && !miss13.lunge, 'drawn full and loosed wide of it, the arrow is gone and nothing else comes of it (' + JSON.stringify(miss13) + ')');
+  await loose13(0);
+  const hit13 = await page.evaluate(() => {
+    const c = G.L.creature, s = G.L.s, o = { out: s.outcomes.join(), shot: s.shot, near: c.dist, steps: 0 };
+    const inv = G.inv.slice(); G.inv.length = 0; o.caught = G.L.onCatch(c); G.inv.push(...inv);   // (empty-handed and facing it now changes nothing)
+    for (let i = 0; i < 150 && G.state !== 'dead'; i++) { G.step(1 / 30, 1); if (G.state === 'play') o.steps++; else o.near = Math.min(o.near, c.dist); }
+    return Object.assign(o, { state: G.state, ending: s.ending, won: G.L.won, text: G.deathScreen && G.deathScreen.text });
+  });
+  check(hit13.out === 'miss,hit' && hit13.shot && hit13.caught === false && hit13.steps <= 12 && hit13.near < 0.6 && hit13.state === 'dead' && !hit13.ending && !hit13.won && /cannot fight/.test(hit13.text),
+    'drawn full and loosed into it, it leaps at you as the arrow goes in: a death, not the ending, and the line says so (' + JSON.stringify(hit13) + ')');
   // empty-handed is not enough: turned away from it, or looking at the floor, as it reaches you is a death too
   for (const [how, cam] of [['turned away', 'G.cam.dirIdx = (dir + 2) % 8; G.cam.pitch = G.cam.tPitch = 0;'], ['looking at the floor', 'G.cam.dirIdx = dir; G.cam.pitch = G.cam.tPitch = PITCH_DOWN;']]) {
     await T.open(page, 'level=13&go&seed=1&nofr');
