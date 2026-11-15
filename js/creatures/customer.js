@@ -1,10 +1,14 @@
 'use strict';
-// The customer: the size of a child, and made like one: short, with a head too big for it. It is in a pale button-up
-// onesie, rumpled and grubby, the sleeves striped dark and pale round and round to the cuffs, and little dark shoes. Its
-// small bare hands hang at its sides. From the neck up it is black: a black neck, and a black face with long straggly black
-// hair hanging down over it and over its shoulders. In the black are two huge round staring eyes, white and blank, red-rimmed,
-// and under them a grin from one side of the face to the other, two rows of
-// big square white teeth clenched together.
+// The customer: the size of a child, and made like one: short, with a head too big for it. It is dressed up like a little
+// man for dinner: a black suit, jacket and trousers, trimmed in red (red edging the lapels, the front and the hem of the
+// jacket, a red line for each pocket, a red band round each cuff and red piping down the outer seam of each trouser leg), a
+// white shirt with its collar points showing at the neck and a little of its cuffs at the wrists, a red tie, and little
+// black shoes. Its small bare hands hang at its sides. From the neck up it is black: a black neck, and a black face with long
+// straggly black hair hanging down over it and over its shoulders. In the black are two huge round staring eyes, white and
+// blank, red-rimmed, and under them a grin from one side of the face to the other, two rows of big square white teeth
+// clenched together. Whenever it is on the move the grin will not stay shut: the jaw drops and snaps the teeth together
+// again, and again, in hungry, greedy fits and starts, as if it can already taste what it is coming for; standing still, it
+// settles back into the grin.
 // It does not move the way anything else does. It stands bolt upright and dead still: nothing bobs, nothing sways, the
 // arms never swing. It comes on in small stiff steps, its legs straight, its feet barely leaving the ground; and every so
 // often the feet stop altogether and it keeps coming anyway, sliding over the ground standing quite still. Only its head
@@ -45,10 +49,12 @@ CREATURES.customer = {
     // the face and the hair take no light at all: black in the diner's light as in the dark (only the fog lies over them)
     const unlit = c => rgba(mixc(c, P.fogColor || [0, 0, 0], P.fog || 0));
     return {
-      suit: P.col([166, 162, 152]), suitS: P.col([124, 120, 112]), suitD: P.col([104, 100, 94]), fold: P.cola([56, 52, 50], 0.65),
-      stripe: P.col([26, 24, 28]), cuff: P.col([18, 16, 20]),
+      // the black suit (its folds a dull sheen on the black), the red of its trim and its tie, the white shirt
+      suit: P.col([30, 28, 34]), suitS: P.col([20, 19, 23]), suitD: P.col([13, 12, 15]), fold: P.cola([92, 90, 106], 0.45), lapel: P.col([40, 38, 46]),
+      trim: P.col([184, 24, 32]), trimD: P.col([112, 14, 20]), tie: P.col([196, 26, 34]), tieD: P.col([122, 12, 18]),
+      shirt: P.col([228, 224, 214]), shirtD: P.col([164, 160, 152]),
       skin: P.col([176, 170, 162]), skinD: P.col([126, 120, 114]),
-      black: unlit([3, 2, 4]), hair: unlit([13, 12, 15]), hairL: P.cola([40, 38, 46], 0.8), shoe: P.col([20, 18, 20]), lace: P.col([66, 62, 60]),
+      black: unlit([3, 2, 4]), hair: unlit([13, 12, 15]), hairL: P.cola([40, 38, 46], 0.8), shoe: P.col([12, 11, 13]), lace: P.col([74, 72, 82]),
       white: P.col([244, 240, 230]), rim: P.col([150, 18, 22]), rimA: P.cola([130, 8, 12], 0.55),
       teeth: P.col([240, 234, 216]), teethD: P.col([96, 88, 76]), gum: P.col([110, 16, 20]), throat: unlit([30, 3, 5]),
     };
@@ -76,16 +82,72 @@ CREATURES.customer = {
     const kx = Math.sin(th) * L1, ky = hipY - Math.cos(th) * L1, sa = th - ph;
     return { kx, ky, fx: kx + Math.sin(sa) * L2, fy: ky - Math.cos(sa) * L2, sa };
   },
-  // a sleeve from the shoulder through the elbow to the wrist: pale, banded dark round and round, a dark cuff at the end
+  // a sleeve from the shoulder through the elbow to the wrist: black, a red band round the cuff and the white of the shirt's
+  // cuff showing past it at the wrist (dark: the far arm, in its own shadow)
   sleeve(ctx, K, pts, w, dark) {
-    P_limb(ctx, pts, w, dark ? K.suitS : K.suit);
-    ctx.save();
-    ctx.strokeStyle = dark ? K.cuff : K.stripe; ctx.lineWidth = w * 1.02; ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
-    ctx.setLineDash([0.026, 0.024]); ctx.lineDashOffset = -0.05;
-    ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.stroke();
-    ctx.restore();
+    P_limb(ctx, pts, w, dark ? K.suitD : K.suit);
     const a = pts[pts.length - 2], b = pts[pts.length - 1], n = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, ux = (b[0] - a[0]) / n, uy = (b[1] - a[1]) / n;
-    P_line(ctx, b[0] - ux * 0.02, b[1] - uy * 0.02, b[0], b[1], w * 1.12, K.cuff);
+    P_line(ctx, b[0] - ux * 0.036, b[1] - uy * 0.036, b[0] - ux * 0.014, b[1] - uy * 0.014, w * 1.1, dark ? K.trimD : K.trim);
+    P_line(ctx, b[0] - ux * 0.014, b[1] - uy * 0.014, b[0] + ux * 0.004, b[1] + uy * 0.004, w * 0.86, dark ? K.shirtD : K.shirt);
+  },
+  // the jacket's front, face on, in the body's frame (its top at top, by the hop): F(x) is where a point x across its front
+  // shows (x itself face on; round the curve of its chest as it turns) and m the side its breast pocket is on. The shirt in
+  // the V of the lapels, the collar points, the red tie, the lapels edged in red down to the one button, the fronts parting
+  // below it onto the trousers, the hem, the pockets, a dull sheen on the folds of the black
+  suitFront(ctx, K, F, top, by, m) {
+    const Y = y => y + by, pt = (x, y) => [F(x), Y(y)];
+    P_poly(ctx, [pt(0, 0.6), pt(0.046, 0.43), pt(-0.046, 0.43)], K.suitD);   // the fronts parting onto the trousers
+    P_line(ctx, F(0), Y(0.58), F(0), Y(0.44), 0.005, K.fold);
+    P_poly(ctx, [[F(-0.052), top + 0.012], [F(0.052), top + 0.012], pt(0, 0.6)], K.shirt);   // the shirt
+    P_poly(ctx, [[F(-0.009), top - 0.02], [F(0.009), top - 0.02], pt(0.024, 0.655), pt(0, 0.632), pt(-0.024, 0.655)], K.tie);   // the tie
+    P_line(ctx, F(0.002), top - 0.03, F(0.004), Y(0.645), 0.004, K.tieD);
+    for (const s of [-1, 1]) P_poly(ctx, [[F(s * 0.006), top - 0.004], [F(s * 0.05), top + 0.016], [F(s * 0.036), top - 0.042]], K.shirt);   // its collar points
+    P_poly(ctx, [[F(-0.018), top + 0.008], [F(0.018), top + 0.008], [F(0.011), top - 0.022], [F(-0.011), top - 0.022]], K.tie);   // the knot
+    for (const s of [-1, 1]) {   // the lapels, edged in red; the jacket's front below the button, and its hem, edged in red
+      const lap = [[F(s * 0.05), top + 0.014], pt(s * 0.004, 0.6), pt(s * 0.068, 0.74), pt(s * 0.1, 0.805), pt(s * 0.074, 0.82), [F(s * 0.08), top + 0.004]];
+      P_poly(ctx, lap, K.lapel);
+      P_limb(ctx, lap.slice(0, 5), 0.008, K.trim);
+      P_limb(ctx, [pt(s * 0.004, 0.6), pt(s * 0.03, 0.5), pt(s * 0.046, 0.428), pt(s * 0.1, 0.44), pt(s * 0.156, 0.46)], 0.008, K.trim);
+      P_line(ctx, F(s * 0.085), Y(0.52), F(s * 0.14), Y(0.53), 0.007, K.trim);   // a pocket each side
+    }
+    P_ell(ctx, F(0.006), Y(0.592), 0.011, 0.011, K.trim);   // the button
+    P_line(ctx, F(m * 0.088), Y(0.725), F(m * 0.135), Y(0.73), 0.007, K.trim);   // the breast pocket
+    P_poly(ctx, [[F(m * 0.096), Y(0.727)], [F(m * 0.104), Y(0.752)], [F(m * 0.114), Y(0.736)], [F(m * 0.124), Y(0.75)], [F(m * 0.128), Y(0.728)]], K.tie);   // a red handkerchief in it
+    for (const f of [[[-0.14, 0.64], [-0.1, 0.6], [-0.07, 0.62]], [[0.09, 0.56], [0.13, 0.52]], [[-0.12, 0.54], [-0.07, 0.5]]]) P_limb(ctx, f.map(([x, y]) => pt(x, y)), 0.005, K.fold);
+  },
+  // the suit seen side on, facing +x, in the body's frame (sx its width as it turns, 1 side on): the white of the shirt and
+  // the red tie down the front of its chest, the lapel's red edge down to the button and the jacket's front and hem edged
+  // in red, a pocket
+  suitSide(ctx, K, top, hipY, sx) {
+    const pt = (x, y) => [x * sx, y];
+    P_poly(ctx, [pt(0.02, top + 0.012), pt(0.064, top + 0.002), pt(0.1, top - 0.11), pt(0.084, top - 0.11), pt(0.05, top - 0.03)], K.shirt);
+    P_limb(ctx, [pt(0.064, top - 0.006), pt(0.098, top - 0.1), pt(0.118, top - 0.215)], 0.022, K.tie);
+    P_limb(ctx, [pt(0.0, top + 0.004), pt(0.058, top - 0.11), pt(0.112, top - 0.24), pt(0.122, top - 0.28), pt(0.1, hipY - 0.05), pt(0.0, hipY - 0.1), pt(-0.11, hipY - 0.05)], 0.008, K.trim);
+    P_line(ctx, -0.04 * sx, top - 0.3, 0.04 * sx, top - 0.29, 0.007, K.trim);
+    P_limb(ctx, [pt(-0.06, top - 0.2), pt(-0.02, top - 0.24), pt(0.03, top - 0.22)], 0.005, K.fold);
+  },
+  // the mouth's hunger, 0 the grin shut to 1 its jaw dropped as far as a bite takes it, at time t: it comes in fits, a beat
+  // of about 0.42 s holding now nothing, now one greedy bite (dropping open and snapping shut, at a depth and a pace of its
+  // own), now two quick snaps one on the other
+  bite(t) {
+    const B = 0.42, k = Math.floor(t / B), f = t - k * B, h = i => Math.abs(Math.sin((k * 7.13 + i * 3.71 + 1) * 127.1) * 43758.5) % 1;
+    const snap = u => (u <= 0 || u >= 1 ? 0 : u < 0.62 ? Math.sin(Math.PI / 2 * u / 0.62) : 1 - ((u - 0.62) / 0.38) ** 2);   // open, and shut hard
+    if (h(0) < 0.18) return 0;
+    if (h(1) > 0.62) {
+      const d1 = 0.15 + 0.03 * h(2), s2 = d1 + 0.02 + 0.06 * h(3), d2 = Math.min(0.14, B - s2);
+      return Math.max(snap(f / d1) * (0.6 + 0.4 * h(4)), snap((f - s2) / d2) * (0.45 + 0.4 * h(5)));
+    }
+    const d = 0.2 + 0.16 * h(2), s0 = (B - d) * h(3);
+    return snap((f - s0) / d) * (0.55 + 0.45 * h(4));
+  },
+  // how far its jaw is dropped by its hunger now (on: whether it is on the move): the bites come on as it moves and die away
+  // as it stops (eased over its own time, c.t, from one drawing to the next; drawn first, or after a long while, it is
+  // as it is now); with reduced motion only a small working of the jaw
+  chomp(c, on) {
+    const dt = c.mouthT === undefined || c.t < c.mouthT ? 1 : Math.min(1, c.t - c.mouthT);
+    c.mouthT = c.t; c.mouthK = (c.mouthK || 0) + ((on ? 1 : 0) - (c.mouthK || 0)) * Math.min(1, dt * (on ? 6 : 4));
+    const rm = typeof SAVE !== 'undefined' && SAVE.data && SAVE.data.settings.reducedMotion ? 0.25 : 1;
+    return 0.5 * rm * c.mouthK * this.bite(c.t);
   },
   // a small hand at (x, y) off the wrist, pointing along ang: open 0 hanging loose, the fingers curled in; 1 spread flat
   hand(ctx, K, x, y, ang, open, s, size) {
@@ -144,22 +206,24 @@ CREATURES.customer = {
     ctx.restore();
   },
   // the head, face on, in its own frame: its middle at (0, 0), 0.115 across and 0.135 up. near 0..1 how near it is, gape
-  // 0..1 the grin coming apart, back from behind (only hair)
-  drawHead(ctx, c, P, K, near, gape, back) {
+  // 0..1 the grin coming apart, back from behind (only hair), chomp (0..0.5) the jaw dropped by its hunger as it moves
+  drawHead(ctx, c, P, K, near, gape, back, chomp) {
     if (back) {
       P_ell(ctx, 0, 0, 0.12, 0.14, K.hair);
       for (const x of [-0.07, -0.025, 0.02, 0.065]) P_limb(ctx, [[x * 0.6, 0.12], [x, 0.02], [x * 1.1, -0.12]], 0.004, K.hairL);
       return;
     }
-    // the face and the jaw under it, black; the jaw dropping away as it comes at you
+    // the face and the jaw under it, black; the jaw dropping away as it comes at you, and working as it comes on, hungry
+    const jaw = Math.max(gape, chomp || 0);
     P_ell(ctx, 0, 0, 0.115, 0.135, K.black);
-    P_ell(ctx, 0, -0.045 - gape * 0.1, 0.1 + gape * 0.012, 0.1 + gape * 0.11, K.black);
+    P_ell(ctx, 0, -0.045 - jaw * 0.1, 0.1 + jaw * 0.012, 0.1 + jaw * 0.11, K.black);
     // the eyes, wider the nearer it is and wider still coming at you
     const er = 0.033 + near * 0.003 + gape * 0.012, ey = 0.026 + gape * 0.012;
     for (const s of [-1, 1]) this.eye(ctx, K, s * (0.047 + gape * 0.006), ey, er);
-    // the grin, clenched; coming at you it comes apart, the corners pulled further up, the bottom row going down and down
+    // the grin, clenched; coming at you it comes apart, the corners pulled further up, the bottom row going down and down.
+    // Hungry, the bottom row drops away from the top and snaps back up to it
     const mw = 0.088 + gape * 0.02, cy = -0.034 + gape * 0.012;
-    this.grin(ctx, K, mw, cy, -0.024 - gape * 0.006, -0.088 - near * 0.004 - gape * 0.2, 0.034 + gape * 0.008, gape);
+    this.grin(ctx, K, mw, cy, -0.024 - gape * 0.006, -0.088 - near * 0.004 - jaw * 0.2, 0.034 + gape * 0.008, Math.max(gape, jaw * 0.6));
     // the fringe over its forehead, ragged, and the hair hanging down either side of the face over its cheeks
     ctx.fillStyle = K.hair; ctx.beginPath();
     ctx.moveTo(-0.128, -0.02); ctx.quadraticCurveTo(-0.14, 0.15, 0, 0.152); ctx.quadraticCurveTo(0.14, 0.15, 0.128, -0.02);
@@ -202,27 +266,23 @@ CREATURES.customer = {
     const headFrame = () => { ctx.translate(nk[0], nk[1]); ctx.rotate(tilt * 0.35); ctx.translate(0, 0.11); ctx.rotate(tilt * 0.65); ctx.translate(0, 0.12); ctx.scale(hk, hk); };
     // its long hair, behind it all
     ctx.save(); headFrame(); this.drawHair(ctx, K, 0, 0); ctx.restore();
-    // the legs: the onesie's, baggy, bunched at the ankles over the shoes; one foot coming up a little at a time
+    // the legs: the suit's trousers, a little too long, broken at the ankles over the shoes, red piping down the outer
+    // seams; one foot coming up a little at a time
     for (const s of [-1, 1]) {
       const l = Math.max(0, Math.sin(g + (s > 0 ? Math.PI : 0))) * 0.03 * st;
       P_limb(ctx, [[s * 0.075, 0.5], [s * 0.078, 0.28], [s * 0.08, 0.09 + l]], 0.125, K.suit);
-      P_line(ctx, s * 0.11, 0.46, s * 0.118, 0.12 + l, 0.03, K.suitS);   // the shade down its outer side
-      P_ell(ctx, s * 0.083, 0.11 + l, 0.074, 0.03, K.suitS);           // bunched at the ankle
+      P_line(ctx, s * 0.128, 0.47, s * 0.13, 0.12 + l, 0.008, K.trim);   // the piping down its outer seam
+      P_ell(ctx, s * 0.083, 0.11 + l, 0.074, 0.03, K.suitS);           // broken at the ankle
       P_ell(ctx, s * 0.09, 0.035 + l, 0.058, 0.034, K.shoe, s * 0.12);
       P_line(ctx, s * 0.07, 0.05 + l, s * 0.1, 0.06 + l, 0.006, K.lace);
-      for (const [a, b, d] of [[0.3, 0.26, 0.03], [0.2, 0.17, -0.02], [0.4, 0.37, 0.01]]) P_line(ctx, s * (0.05 + d), a + l * 0.5, s * (0.1 + d), b + l * 0.5, 0.005, K.fold);
+      for (const [a, b, d] of [[0.3, 0.26, 0.03], [0.2, 0.17, -0.02]]) P_line(ctx, s * (0.04 + d), a + l * 0.5, s * (0.09 + d), b + l * 0.5, 0.005, K.fold);
     }
-    // the body: a rumpled onesie, a placket of buttons down the front, a pocket, open at the collar onto the black neck
+    // the body: the jacket, buttoned, on the shirt and the tie, open at the collar onto the black neck (from behind, only
+    // its seam and its hem)
     const top = 0.86;
     P_poly(ctx, [[-0.05, top + 0.012], [-0.15, top - 0.01], [-0.172, top - 0.08], [-0.166, 0.62], [-0.155, 0.46], [-0.05, 0.41], [0, 0.43], [0.05, 0.41], [0.155, 0.46], [0.166, 0.62], [0.172, top - 0.08], [0.15, top - 0.01], [0.05, top + 0.012]], K.suit);
-    if (!back) {
-      P_line(ctx, 0, top - 0.1, 0, 0.44, 0.006, K.fold);
-      for (const y of [0.71, 0.63, 0.55, 0.47]) P_ell(ctx, 0.012, y, 0.007, 0.007, K.suitS);
-      ctx.strokeStyle = K.fold; ctx.lineWidth = 0.005; ctx.strokeRect(0.05, 0.66, 0.065, 0.07);
-      for (const f of [[[-0.13, 0.62], [-0.09, 0.58], [-0.06, 0.6]], [[0.09, 0.53], [0.13, 0.49]], [[-0.1, 0.5], [-0.05, 0.47]], [[0.04, 0.6], [0.08, 0.62]]]) P_limb(ctx, f, 0.005, K.fold);
-      P_poly(ctx, [[-0.052, top + 0.015], [0.052, top + 0.015], [0, top - 0.1]], K.black);   // the neck, open down to the chest
-      for (const s of [-1, 1]) P_poly(ctx, [[s * 0.058, top + 0.014], [s * 0.004, top - 0.1], [s * 0.085, top - 0.04]], K.suitS);   // the collar
-    } else P_line(ctx, 0, top - 0.02, 0, 0.44, 0.006, K.fold);
+    if (!back) this.suitFront(ctx, K, x => x, top, 0, 1);
+    else { P_line(ctx, 0, top - 0.02, 0, 0.44, 0.006, K.fold); P_limb(ctx, [[-0.155, 0.46], [-0.05, 0.42], [0.05, 0.42], [0.155, 0.46]], 0.008, K.trim); }
     // the arms: hanging dead still at its sides, never swinging; at the glass they come up, the elbows out, and the palms
     // press flat either side of its face; coming at you they reach for your face. At a shutter not yet down they go to the
     // bottom edge of it, wherever it is (the arms stretching as far as they must), and the fingers curl up round it.
@@ -244,7 +304,9 @@ CREATURES.customer = {
     }
     // the neck, thin and black, and the head on it
     ctx.save(); ctx.translate(nk[0], nk[1]); ctx.rotate(tilt * 0.35); P_line(ctx, 0, 0, 0, 0.12, 0.045, K.black); ctx.restore();
-    ctx.save(); headFrame(); this.drawHead(ctx, c, P, K, near, gape, back); ctx.restore();
+    // hungry: its jaw working as it comes on (not while it has hold of a shutter); coming at you, the bite gapes wide
+    const chomp = this.chomp(c, !!c.moving && !sv && !back);
+    ctx.save(); headFrame(); this.drawHead(ctx, c, P, K, near, gape, back, chomp); ctx.restore();
     // the hair that hangs in front of its shoulders, down onto its chest
     if (!back) {
       ctx.save(); headFrame();
@@ -280,8 +342,13 @@ CREATURES.customer = {
       const kx = X(hx * 1.04, l.kx), fx = X(hx * 1.07, l.fx), sa = l.sa * q;
       P_limb(ctx, [[X(hx, 0), hipY], [kx, l.ky], [fx, l.fy]], lerp(0.125, 0.115, q), K.suit);
       if (s > 0 && q > 0.05) { ctx.save(); ctx.globalAlpha = q; P_limb(ctx, [[X(hx, 0), hipY], [kx, l.ky], [fx, l.fy]], 0.115, K.suitD); ctx.restore(); }
+      // the piping down its outer seam, going round to the middle of the near leg side on, and out of sight on the far one
+      const ps = X(s * 0.128, 0), pk = X(s * 0.13, l.kx), pf = X(s * 0.132, l.fx);
+      ctx.save(); if (s > 0) ctx.globalAlpha = 1 - q;
+      P_limb(ctx, [[lerp(ps, pk, 0.35), lerp(hipY, l.ky, 0.35)], [pk, l.ky], [lerp(pf, pk, 0.38), lerp(l.fy, l.ky, 0.38)]], 0.008, K.trim);
+      ctx.restore();
       P_ell(ctx, fx + Math.cos(l.sa) * 0.035 * sn + s * 0.01 * ca, l.fy + Math.sin(l.sa) * 0.035 * q - 0.005, lerp(0.058, 0.068, sn), lerp(0.034, 0.032, q), K.shoe, sa + s * 0.12 * (1 - q));
-      P_ell(ctx, fx - Math.sin(l.sa) * 0.03 * sn, l.fy + lerp(0.08, Math.cos(l.sa) * 0.03, q), lerp(0.074, 0.06, q), 0.03, K.suitS, sa);   // bunched at the ankle
+      P_ell(ctx, fx - Math.sin(l.sa) * 0.03 * sn, l.fy + lerp(0.08, Math.cos(l.sa) * 0.03, q), lerp(0.074, 0.06, q), 0.03, K.suitS, sa);   // broken at the ankle
     };
     // an arm: hanging straight from the shoulder, or up toward the glass as it comes face on (r)
     const drawArm = s => {
@@ -299,25 +366,20 @@ CREATURES.customer = {
     const side = [[-0.08, top], [0.06, top], [0.1, top - 0.12], [0.125, top - 0.28], [0.1, hipY - 0.05], [0.0, hipY - 0.1], [-0.11, hipY - 0.05], [-0.12, top - 0.3], [-0.1, top - 0.12]];
     P_poly(ctx, q < 0.5 ? front.map(([x, y]) => [x * W / A, y]) : side.map(([x, y]) => [x * W / B, y]), K.suit);
     drawLeg(-1);
-    // its front going round toward the way it turns: the placket and its buttons, the pocket, the open collar onto the neck
+    // its front going round toward the way it turns (the shirt, the tie, the lapels and their red, the button, the pockets:
+    // the breast pocket on the same side of it as face on, whichever way it turns), and then the suit as it shows side on
     if (a < 1.25) {
-      const zf = 0.11, fade = clamp((1.25 - a) / 0.3, 0, 1), F = x => X(x, zf * Math.sqrt(Math.max(0, 1 - (x / 0.172) ** 2)));   // on the round of its front
-      ctx.save(); ctx.globalAlpha = fade;
-      P_line(ctx, X(0, zf), top - 0.1, X(0, zf), 0.44 + by, 0.006, K.fold);
-      for (const y of [0.71, 0.63, 0.55, 0.47]) P_ell(ctx, F(0.012 * dir), y + by, 0.007 * Math.max(ca, 0.4), 0.007, K.suitS);
-      ctx.globalAlpha = fade * clamp((0.9 - a) / 0.3, 0, 1);   // the pocket, going round out of sight first
-      P_limb(ctx, [[F(0.05 * dir), 0.66 + by], [F(0.115 * dir), 0.66 + by], [F(0.115 * dir), 0.73 + by], [F(0.05 * dir), 0.73 + by], [F(0.05 * dir), 0.66 + by]], 0.005, K.fold);
-      ctx.globalAlpha = fade;
-      const zn = 0.06;
-      P_poly(ctx, [[X(-0.052, zn), top + 0.015], [X(0.052, zn), top + 0.015], [X(0, zf), top - 0.1]], K.black);
-      for (const s of [-1, 1]) P_poly(ctx, [[X(s * 0.058, zn), top + 0.014], [X(s * 0.004, zf), top - 0.1], [X(s * 0.085, zn * 0.6), top - 0.04]], K.suitS);
+      const zf = 0.11, F = x => X(x, zf * Math.sqrt(Math.max(0, 1 - (x / 0.172) ** 2)));   // on the round of its front
+      ctx.save(); ctx.globalAlpha = clamp((1.25 - a) / 0.3, 0, 1);
+      this.suitFront(ctx, K, F, top, by, dir);
       ctx.restore();
     }
+    if (q >= 0.5 && a > 0.95) { ctx.save(); ctx.globalAlpha = clamp((a - 0.95) / 0.3, 0, 1); this.suitSide(ctx, K, top, hipY, W / B); ctx.restore(); }
     drawArm(-1);
     if (!farFirst) drawArm(1);
     // the neck and the head, turned to you
     ctx.save(); neck(); P_line(ctx, 0, 0, 0, 0.12, 0.045, K.black); ctx.restore();
-    ctx.save(); headFrame(); this.drawHead(ctx, c, P, K, near, 0, false);
+    ctx.save(); headFrame(); this.drawHead(ctx, c, P, K, near, 0, false, this.chomp(c, true));
     if (q < 0.5) {   // the hair in front of its shoulders, while they are still turned to you
       for (const s of [-1, 1]) {
         P_poly(ctx, [[s * 0.112, 0.0], [s * 0.134, 0.0], [s * 0.15, -0.18], [s * 0.145, -0.36], [s * 0.136, -0.27], [s * 0.128, -0.4], [s * 0.118, -0.22]], K.hair);
@@ -338,10 +400,11 @@ CREATURES.customer = {
     const hop = this.hop(g), by = 0.08 * k * hop, hipY = 0.5 + by, top = 0.86 + by;
     const leg = o => this.runLeg(g, o, k, hipY);
     const legs = [leg(0), leg(Math.PI)];
-    const drawLeg = (l, col) => {
+    const drawLeg = (l, col, near) => {
       P_limb(ctx, [[0, hipY], [l.kx, l.ky], [l.fx, l.fy]], 0.115, col);
+      if (near) P_limb(ctx, [[lerp(0, l.kx, 0.35), lerp(hipY, l.ky, 0.35)], [l.kx, l.ky], [lerp(l.fx, l.kx, 0.38), lerp(l.fy, l.ky, 0.38)]], 0.008, K.trim);   // the piping down its seam
       P_ell(ctx, l.fx + Math.cos(l.sa) * 0.035, l.fy + Math.sin(l.sa) * 0.035 - 0.005, 0.068, 0.032, K.shoe, l.sa);
-      P_ell(ctx, l.fx - Math.sin(l.sa) * 0.03, l.fy + Math.cos(l.sa) * 0.03, 0.06, 0.03, K.suitS, l.sa);   // bunched at the ankle
+      P_ell(ctx, l.fx - Math.sin(l.sa) * 0.03, l.fy + Math.cos(l.sa) * 0.03, 0.06, 0.03, K.suitS, l.sa);   // broken at the ankle
     };
     // an arm: straight down from the shoulder, stiff, not swinging
     const drawArm = (dx, dark) => {
@@ -353,11 +416,10 @@ CREATURES.customer = {
     const hy = top + 0.11 + 0.12, lag = (0.5 - hop) * 0.06 * k;
     ctx.save(); ctx.translate(0.01, hy); this.drawHair(ctx, K, 0.3 + 0.7 * k, lag); ctx.restore();
     drawArm(-0.03, true); drawLeg(legs[1], K.suitD);   // the far side first
-    // the onesie, side on: round in the belly, the seat of it behind, the placket down the front
+    // the jacket, side on: round in the belly, the skirt of it over the seat behind, the shirt and the tie down the front
     P_poly(ctx, [[-0.08, top], [0.06, top], [0.1, top - 0.12], [0.125, top - 0.28], [0.1, hipY - 0.05], [0.0, hipY - 0.1], [-0.11, hipY - 0.05], [-0.12, top - 0.3], [-0.1, top - 0.12]], K.suit);
-    P_line(ctx, 0.106, top - 0.12, 0.118, hipY - 0.02, 0.005, K.fold);
-    P_limb(ctx, [[-0.06, top - 0.2], [-0.02, top - 0.24], [0.03, top - 0.22]], 0.005, K.fold);
-    drawLeg(legs[0], K.suit);
+    drawLeg(legs[0], K.suit, true);
+    this.suitSide(ctx, K, top, hipY, 1);
     drawArm(0.0, false);
     // the neck, and the head on it turned to you and laid over; the face is undone by the mirror so it is the same face
     // whichever way it runs
@@ -365,7 +427,7 @@ CREATURES.customer = {
     ctx.translate(0.01, top);
     P_line(ctx, 0, 0, 0, 0.12, 0.045, K.black);
     ctx.translate(0, 0.11); ctx.scale(c.runDir || 1, 1); ctx.rotate(tilt); ctx.translate(0, 0.12);
-    this.drawHead(ctx, c, P, K, near, 0, false);
+    this.drawHead(ctx, c, P, K, near, 0, false, this.chomp(c, true));
     ctx.restore();
   },
 };
