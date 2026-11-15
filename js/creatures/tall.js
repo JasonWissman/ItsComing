@@ -105,6 +105,10 @@ CREATURES.tall = {
     const tilt = headTiltJerk(t, 2.7, 0.3) * still + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35;
     if (peer > 0) P_line(ctx, sway * 0.6, tp - 0.04, hx, hy + 0.06, 0.09, body);   // the neck, stretched out round the edge
     ctx.save(); ctx.translate(hx, hy); ctx.rotate(tilt); ctx.scale(hs, hs);
+    // and at the last of its lunge it swallows you: its whole head keeps on coming, swelling out over everything about
+    // the middle of its open mouth, until the black of the mouth is all there is
+    const gulp = smoothstep((lunge - 0.5) / 0.5);
+    if (gulp > 0) { const mc = 0.228, g = 1 + gulp * gulp * 90; ctx.translate(0, mc); ctx.scale(g, g); ctx.translate(0, -mc); }
     P_line(ctx, 0, 0, 0, 0.14, 0.08, body);
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
     if ((c.faceAway || 0) > 0.5) { ctx.restore(); if (late) late(); ctx.restore(); return; }   // its face down: the dark of its head
@@ -116,17 +120,11 @@ CREATURES.tall = {
     // joins, which softens the corners
     const mh = 0.026 + near * 0.05 + lunge * 0.045, mw = 0.034 + near * 0.024 + lunge * 0.026, my = 0.24;
     const cy = my - mh * 0.6, soft = Math.min(mh * 0.45, 0.006 + near * 0.008 + lunge * 0.008);
-    // and at the last of its lunge it swallows you: the mouth keeps on coming, opening out over everything until the
-    // black of it is all there is
-    const gulp = smoothstep((lunge - 0.5) / 0.5);
-    ctx.save();
-    if (gulp > 0) { const mc = cy + mh * 0.5; ctx.translate(0, mc); ctx.scale(1 + gulp * gulp * 90, 1 + gulp * gulp * 90); ctx.translate(0, -mc); }
     ctx.fillStyle = black; ctx.strokeStyle = black; ctx.lineWidth = soft * 2; ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.moveTo(-mw, cy);
     ctx.bezierCurveTo(-mw * 0.75, my + mh * 1.15, mw * 0.75, my + mh * 1.15, mw, cy);
     ctx.bezierCurveTo(mw * 0.55, cy - mh * 0.12, -mw * 0.55, cy - mh * 0.12, -mw, cy);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.restore();
     ctx.restore();
     if (late) late();
     ctx.restore();
