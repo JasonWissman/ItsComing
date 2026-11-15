@@ -106,14 +106,16 @@ CREATURES.tall = {
     P_ell(ctx, 0, 0.32, 0.095, 0.15, skin);
     const ew = 0.018 + duck * 0.004;   // blank, no pupils, perfectly round; peering up, the eyes wide
     P_ell(ctx, -0.04, 0.36, ew, ew, eye); P_ell(ctx, 0.04, 0.36, ew, ew, eye);
-    // the mouth: open, and turned down at both corners, an arch of despair: the upper lip curved high over it, the corners
-    // dragged down past the lower lip, which sags a little toward them
-    const mh = 0.015 + near * 0.032 + lunge * 0.03, mw = 0.032 + near * 0.022 + lunge * 0.026, my = 0.235;
-    ctx.fillStyle = black; ctx.beginPath();
-    ctx.moveTo(-mw, my - mh * 0.75);
-    ctx.bezierCurveTo(-mw * 0.7, my + mh * 1.05, mw * 0.7, my + mh * 1.05, mw, my - mh * 0.75);
-    ctx.bezierCurveTo(mw * 0.55, my - mh * 0.55, -mw * 0.55, my - mh * 0.55, -mw, my - mh * 0.75);
-    ctx.closePath(); ctx.fill();
+    // the mouth: wide open, an arch of despair turned down at both corners: the upper lip curved high over it, the lower
+    // lip only a little above the dragged-down corners, so it gapes; filled, then stroked round the same edge with round
+    // joins, which softens the corners
+    const mh = 0.017 + near * 0.034 + lunge * 0.032, mw = 0.03 + near * 0.02 + lunge * 0.024, my = 0.235;
+    const cy = my - mh * 0.6, soft = Math.min(mh * 0.45, 0.006 + near * 0.008 + lunge * 0.008);
+    ctx.fillStyle = black; ctx.strokeStyle = black; ctx.lineWidth = soft * 2; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(-mw, cy);
+    ctx.bezierCurveTo(-mw * 0.75, my + mh * 1.15, mw * 0.75, my + mh * 1.15, mw, cy);
+    ctx.bezierCurveTo(mw * 0.55, cy + mh * 0.32, -mw * 0.55, cy + mh * 0.32, -mw, cy);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
     ctx.restore();
   }
