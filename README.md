@@ -91,7 +91,11 @@ Items are scattered around you in different directions, some at eye level and
 some on the ground, so you have to turn and look down to find them.
 
 1. **The Field.** A tall thin walker crosses a moonlit field toward a farmhouse whose
-   two doorways have no doors. Find the hammer, the nails and the loose planks, and board
+   two doorways have no doors. It is dressed like a scarecrow left out too many years: a black thing in a farmhand's
+   cast-offs, an old work coat faded to the colour of dirt with sewn patches and a hem torn ragged, a twist of rope for a
+   belt, old trousers tied off with twine above the ankles and the sleeves tied at the wrists, straw sticking out at the
+   cuffs, the ankles, the collar and through a rip in the coat, and long fingers of dead twig, sharp and black at the
+   ends. Its dark oval head, pale face, round blank eyes and opening mouth are as they were. Find the hammer, the nails and the loose planks, and board
    up both: board the one it is coming for and it runs round the house to the other. The
    window beside the front doorway is glass you can see out of, over the field, and if it
    runs round that side you see it go past. The planks are wide old boards, and three of
