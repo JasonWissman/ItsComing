@@ -40,10 +40,40 @@ const DEMON_MOODS = [
   { skin: [240, 214, 186], fw: 0.02, jaw: 0, brow: 0, bi: 0.04, bo: 0.036, bw: 0.01, bq: 0, er: 0.016, eh: 0.012, open: 0, lid: 0, lidLine: 0, sock: 0, glow: 0, arc: 1, my: -0.045, mw: 0.05, mc: 0, mu: 0, md: -0.04, mr: 1, mk: 0, teeth: 0, joy: 1, tears: 0, blush: 1, tilt: 0, trem: 0 },
 ];
 const DEMON_MOOD_NAMES = ['angry', 'neutral', 'angry', 'confused', 'sad', 'neutral', 'content', 'happy'];
-function demonMood(m) {
-  const i = clamp(Math.floor(m), 0, DEMON_MOODS.length - 2), k = smoothstep(clamp(m - i, 0, 1)), A = DEMON_MOODS[i], B = DEMON_MOODS[i + 1], F = {};
+// Between confused and sad it does not blend: it glitches, flicking through these faces one after another, each held a
+// moment and snapped to the next, as if trying each on to understand what is happening, before it lands on sad. Each is
+// the neutral face with these changes
+const DEMON_GLITCH = [
+  // pain: the brows knotted up in the middle, the eyes screwed shut, a wide grimace full of teeth, shaking
+  { skin: [178, 120, 116], bi: 0.05, bo: 0.008, bw: 0.015, open: 0.12, lid: 0.25, lidLine: 1, sock: 0.6, my: -0.085, mw: 0.052, mc: -0.01, mu: 0.012, md: -0.02, mr: 0.15, teeth: 1, tilt: 0.12, trem: 1, jaw: 0.2 },
+  // envy: sallow and green, one brow cocked, the eyes narrowed sidelong, the mouth pulled tight to one side
+  { skin: [128, 156, 112], bq: 0.02, bi: 0.016, bo: 0.034, open: 0.35, lid: -0.12, lidLine: 1, sock: 0.4, mw: 0.026, mu: 0.002, md: -0.004, mr: 0.1, mk: -0.35, tilt: 0.16 },
+  // sorrow: blue, the brows up in the middle, the eyes wet and heavy, the mouth sagging
+  { skin: [134, 146, 192], bi: 0.06, bo: 0.01, open: 0.55, lid: 0.35, lidLine: 1, sock: 0.3, mw: 0.03, mc: -0.026, mu: 0.004, md: -0.01, mr: 0.3, tears: 1, tilt: -0.1, trem: 0.4 },
+  // grimace: the brows down hard, the lips peeled back flat off clenched teeth
+  { skin: [182, 160, 140], bi: 0.012, bo: 0.03, bw: 0.016, open: 0.45, lid: -0.05, lidLine: 1, sock: 0.5, mw: 0.064, mc: 0.004, mu: 0.013, md: -0.013, mr: 0.05, teeth: 1, tilt: -0.06, trem: 0.7, fw: 0.008 },
+  // terror: bloodless, the brows shot up, the eyes huge, the mouth hanging open in a long scream
+  { skin: [214, 214, 222], bi: 0.066, bo: 0.056, er: 0.022, eh: 0.025, open: 1, lidLine: 0, sock: 0.25, my: -0.09, mw: 0.028, mu: 0.016, md: -0.062, mr: 1, jaw: 0.7, tilt: 0.08, trem: 1 },
+  // empty: grey and slack, no brows, the eyes two blank holes, a mouth that is barely there
+  { skin: [112, 112, 118], brow: 0, er: 0.017, eh: 0.017, open: 0, lidLine: 0, sock: 1, mw: 0.012, mu: 0.001, md: -0.001, mr: 0.1, tilt: 0 },
+  // shock: the brows high, the eyes wide, the mouth a round O, the jaw dropped
+  { skin: [204, 192, 198], bi: 0.06, bo: 0.06, er: 0.021, eh: 0.022, open: 1, lidLine: 0, sock: 0.1, my: -0.088, mw: 0.022, mu: 0.024, md: -0.034, mr: 1, jaw: 0.45, tilt: -0.14, trem: 0.5 },
+].map(d => Object.assign({}, DEMON_NEUTRAL, d));
+const DEMON_GLITCH_FROM = 3;   // DEMON_MOODS[3] (confused) to [4] (sad) is where it glitches
+function demonBlend(A, B, k) {
+  const F = {};
   for (const key in A) F[key] = Array.isArray(A[key]) ? mixc(A[key], B[key], k) : lerp(A[key], B[key], k);
   return F;
+}
+// the face for mood m; still (reduced motion): no glitching, confused blends straight into sad
+function demonMood(m, still) {
+  const i = clamp(Math.floor(m), 0, DEMON_MOODS.length - 2), u = clamp(m - i, 0, 1);
+  if (i === DEMON_GLITCH_FROM && !still && u > 0 && u < 1) {
+    // even steps through confused, the glitch faces, and sad: each held, then snapped to the next in the last fifth
+    const seq = [DEMON_MOODS[i], ...DEMON_GLITCH, DEMON_MOODS[i + 1]], n = seq.length - 1, q = u * n, j = Math.min(n - 1, Math.floor(q));
+    return demonBlend(seq[j], seq[j + 1], smoothstep((q - j - 0.8) / 0.2));
+  }
+  return demonBlend(DEMON_MOODS[i], DEMON_MOODS[i + 1], smoothstep(u));
 }
 // the face for c.mood, drawn in the head's frame (fy as draw() has it)
 function demonMoodFace(ctx, c, P, fy, F) {
@@ -442,7 +472,7 @@ CREATURES.demon = {
     if (O) {
       // out of the robe, or on the way out of it: the heap (once it is clear of it), its legs, shorts and shirt, the hood
       // going back, the robe falling, its arms, and its face
-      const F = demonMood(c.mood !== undefined && c.mood !== null ? c.mood : DEMON_MOODS.length - 1), skin = P.col(F.skin);
+      const F = demonMood(c.mood !== undefined && c.mood !== null ? c.mood : DEMON_MOODS.length - 1, c.still), skin = P.col(F.skin);
       const K = { robe, fold, rim, black, mix: k => P.col(mixc(robeC, F.skin, k), lerp(take, 1, k)) };
       const fall = top - lerp(top, 0.24, O.drop * O.drop);   // how far the top of the robe has fallen
       const robeDown = () => { ctx.save(); ctx.setTransform(Mo); demonRobeDown(ctx, P, K, top, legL, hemW, g, O.drop, O.slump, O.hop < 0.5 ? dspan(off, 0, 0.04) : 0); ctx.restore(); };
@@ -510,7 +540,7 @@ CREATURES.demon = {
     }
     // the head, in its hood. Making a face for the ending (c.mood), its head comes level from where it was and leans as the
     // face does
-    const F = c.mood !== undefined && c.mood !== null ? demonMood(c.mood) : null;
+    const F = c.mood !== undefined && c.mood !== null ? demonMood(c.mood, c.still) : null;
     // (enraged, once the lunge has come up into your face, it seizes: demonSeize)
     const sz = demonSeize(c, F || still || c.still ? 0 : a * smoothstep(dspan(lunge, 0.55, 0.9)));
     const tilt = F ? lerp(c.tilt0 || 0, F.tilt + (c.still ? 0 : F.trem * Math.sin(t * 31) * 0.018), c.settle === undefined ? 1 : c.settle) + dance * Math.sin(t * 2.6) * 0.18

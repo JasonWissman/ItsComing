@@ -354,7 +354,8 @@ some on the ground, so you have to turn and look down to find them.
     empty-handed, it stops close in front of you and slowly reaches its open hands out to you,
     and its arms close round you, its hands over the top of the view. While it holds you its
     face comes up out of the dark of the hood and goes slowly through angry, neutral, angry,
-    confused, sad, neutral and content until it is happy. Then it lets you go and the dark
+    confused (then, glitching, a flicker of faces under a second: pain, envy, sorrow, grimace,
+    terror, empty, shock), sad, neutral and content until it is happy. Then it lets you go and the dark
     opens into a green meadow in the sun (wild flowers, trees, clouds, birdsong and a breeze).
     As a music box starts it pushes its hood back, lets the robe
     drop, the long sleeves and black gloves sliding off its arms, and hops clear of the heap
