@@ -83,7 +83,7 @@ const dark = [].concat(fresh, [
 const ducked = ['eval', "window.__duck = { flinch: 0, low: false }; (function w() { const c = G.L.creature; window.__duck.flinch = Math.max(window.__duck.flinch, c.flinch || 0); if (c.duck > 0.99 && (c.faceAway > 0.5 || c.eyeTo + 0.15 < c.hideBelow)) window.__duck.low = true; if (G.state === 'play') requestAnimationFrame(w); })();"];
 const duck = [
   ['waitUntil', "G.L.s.mode === 'duck' && G.L.creature.reach > 0.99", 12000],
-  ['expect', "(c => c.hideTop && c.hideTop.some(p => p[1] > 0.3) && c.CR.h > 2 && G.L.rend.get(c).h < 1.1)(G.L.creature)", 'down there it is drawn whole and cut only by the bed (what of it the bed hides from where you sit)'],
+  ['expect', "(c => !c.hideTop && !c.showX && c.CR.h > 2 && G.L.rend.get(c).h < 1.1 && G.L.rend.get(c).sd > Math.max(...R.statics.filter(p => p.kind === 'poly' && p.pts.every(v => Math.abs(v[0]) <= 0.81 && v[2] >= -1.06 && v[2] <= 1.95 && v[1] <= 0.75)).map(p => p.sd)))(G.L.creature)", 'down there it is drawn whole, before every part of the bed, so the bed hides what of it is behind the bed from where you sit'],
   ['expect', "(c => c.duck === 1 && c.eyeTo > c.hideBelow + 0.03 && c.eyeTo < c.hideBelow + 0.12 && c.hold !== null && !G.L.won)(G.L.creature)", 'in the light it ducked down behind the bed: only its eyes over the edge, and its hands up onto the covers'],
   ['expect', 'window.__duck.flinch > 0.9 && window.__duck.low', 'it flinched from the light and went down out of sight first'],
   ['expect', "/hands are on the covers/.test(G.lastToast.msg)", 'and you are told its hands are on the covers'],
