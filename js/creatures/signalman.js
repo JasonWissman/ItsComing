@@ -111,7 +111,54 @@ CREATURES.signalman = {
   // the first of the lunge) does more of it show, and only two things on the black: two pale eyes, blank, and a mouth
   // from one cheekbone to the other, a slit of small teeth that opens into a black hole full of them, the jaw dropping
   // far too far
+  // the face, in the lunge: the head splits open into five petals, peeled back from a round maw, every one of them lined
+  // with teeth along its edges and the maw ringed with more of them, row inside row, down into the black: no eyes, no
+  // face, only the mouth. k is how far open (the shut face below fades as it opens)
   face(ctx, c, P, ink, turn, reveal, lunge, px) {
+    const k = px < 0.03 ? smoothstep(clamp((lunge - 0.06) / 0.5, 0, 1)) : 0;
+    if (k < 0.999) { ctx.save(); ctx.globalAlpha *= 1 - smoothstep(k / 0.4); this.faceShut(ctx, c, P, ink, turn, reveal, lunge, px); ctx.restore(); }
+    if (k > 0.001) this.maw(ctx, c, P, ink, k);
+  },
+  maw(ctx, c, P, ink, k) {
+    const t = c.t, cx = 0, cy = -0.01, N = 5, w = TAU / N * 0.5 * 0.94;
+    const rb = lerp(0.03, 0.075, k), rt = lerp(0.12, 0.3, k);
+    const flesh = P.col([58, 14, 18]), fleshD = P.col([30, 6, 9]), tooth = P.cola([200, 190, 156], 0.97);
+    const at = (r, a) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+    const toothAt = (x, y, dx, dy, l, wd) => {   // a fang from (x,y) pointing (dx,dy)
+      ctx.moveTo(x - dy * wd, y + dx * wd); ctx.lineTo(x + dy * wd, y - dx * wd); ctx.lineTo(x + dx * l, y + dy * l);
+    };
+    for (let i = 0; i < N; i++) {
+      const th = -Math.PI / 2 + i * TAU / N + Math.sin(t * 9 + i * 1.7) * 0.04 * k;   // (they writhe)
+      const b1 = at(rb, th - w), b2 = at(rb, th + w), tip = at(rt, th), c1 = at(rt * 0.72, th - w * 0.85), c2 = at(rt * 0.72, th + w * 0.85);
+      const petal = sc => {
+        const m = at(rb, th), S = q => [m[0] + (q[0] - m[0]) * sc, m[1] + (q[1] - m[1]) * sc];
+        const B1 = S(b1), B2 = S(b2), T = S(tip), C1 = S(c1), C2 = S(c2);
+        ctx.beginPath(); ctx.moveTo(B1[0], B1[1]); ctx.quadraticCurveTo(C1[0], C1[1], T[0], T[1]); ctx.quadraticCurveTo(C2[0], C2[1], B2[0], B2[1]); ctx.closePath();
+      };
+      ctx.fillStyle = ink; petal(1); ctx.fill();                  // the back of the petal, black as the rest of it
+      ctx.fillStyle = flesh; petal(0.84); ctx.fill();             // and its inside, raw
+      ctx.fillStyle = fleshD; petal(0.5); ctx.fill();
+      ctx.fillStyle = tooth; ctx.beginPath();                     // its edges lined with teeth, pointing in
+      for (const [cc, sgn] of [[c1, -1], [c2, 1]]) {
+        const b = sgn < 0 ? b1 : b2;
+        for (let j = 1; j <= 6; j++) {
+          const u = j / 7, x = (1 - u) * (1 - u) * b[0] + 2 * u * (1 - u) * cc[0] + u * u * tip[0], y = (1 - u) * (1 - u) * b[1] + 2 * u * (1 - u) * cc[1] + u * u * tip[1];
+          const ix = -Math.sin(th) * -sgn, iy = Math.cos(th) * -sgn;   // across the petal, toward its middle
+          toothAt(x, y, ix, iy, (0.016 * (1 - u * 0.6) + 0.004) * k, 0.0035 + 0.002 * (1 - u));
+        }
+      }
+      ctx.fill();
+    }
+    // the maw itself: a ring of teeth round its rim pointing in, another inside that, and the black of the throat
+    P_ell(ctx, cx, cy, rb * 1.08, rb * 1.08, fleshD);
+    ctx.fillStyle = tooth; ctx.beginPath();
+    for (const [r, n, l] of [[rb * 1.0, 16, 0.02], [rb * 0.62, 12, 0.014]]) {
+      for (let j = 0; j < n; j++) { const a = j / n * TAU + r * 30, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; toothAt(x, y, -Math.cos(a), -Math.sin(a), l * k * (0.75 + 0.25 * Math.abs(Math.sin(j * 2.3))), 0.004); }
+    }
+    ctx.fill();
+    P_ell(ctx, cx, cy, rb * 0.36, rb * 0.36, P.col([4, 2, 3]));
+  },
+  faceShut(ctx, c, P, ink, turn, reveal, lunge, px) {
     const fx = turn * 0.045, rv = clamp(reveal, 0, 1), gape = smoothstep(lunge * 1.3);
     // the head: long and narrow, the jaw dropping out of it as the mouth opens
     P_ell(ctx, 0, 0, Math.max(0.075, 0.9 * px), Math.max(0.13, 0.9 * px), ink);
