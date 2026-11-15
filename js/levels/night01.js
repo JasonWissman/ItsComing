@@ -122,7 +122,6 @@ LEVELS.push({
     // when it stoops to look in at you; a narrow one between the lower two, and a little more under the last. The first
     // goes up where it shows above the things in hand at the bottom of the view, then the top one, and the lowest last.
     const BOARDS = [{ y: 1.23, hh: 0.27, tl: 0.022 }, { y: 2.04, hh: 0.25, tl: -0.016 }, { y: 0.61, hh: 0.27, tl: 0.018 }];
-    const BOARD_Y = BOARDS.map(b => b.y);
     const BOARD = 0.27, doorH = 8 * BOARD, flatLit = { noLight: true }, doorWallOpts = Object.assign({}, tex, flatLit);
     // the window beside the front doorway, a real hole in the wall on whole courses (so the boards round it line up with
     // the boards beside it), its top level with the doorways'
@@ -170,14 +169,13 @@ LEVELS.push({
       SC.wallV(L, x0 - 0.07, zf, x0 + 0.015, zf, y0, y1 + 0.07, frame); SC.wallV(L, x1 - 0.015, zf, x1 + 0.07, zf, y0, y1 + 0.07, frame); SC.wallV(L, x0 - 0.07, zf, x1 + 0.07, zf, y1 - 0.015, y1 + 0.07, frame);
       SC.box(L, x0 - 0.06, x1 + 0.06, 1.04, 1.1, z + 0.01, z + 0.15, [70, 56, 42]);
     }
-    // the empty door frames, the pale scars where hinges were, old nail holes in pairs down the other side where boards
-    // have been nailed across before (the new ones cover them), and the steps outside
+    // the empty door frames, the pale scars where hinges were (nothing on them shows where the boards go), and the steps
+    // outside
     const frames = [];   // (each doorway glows in its frame, and the boards across it, when you point at it)
     for (const [z, w] of [[2.55, 0.8], [-2.35, 0.7]]) {
       frames.push(SC.grab(L, () => { SC.wallV(L, -w - 0.12, z, -w, z, 0, doorH + 0.1, frame); SC.wallV(L, w, z, w + 0.12, z, 0, doorH + 0.1, frame); SC.wallV(L, -w - 0.12, z, w + 0.12, z, doorH - 0.02, doorH + 0.1, frame); }));
       const zi = z - Math.sign(z) * 0.01;
       for (const y of [0.3, 1.0, 1.75]) SC.wallV(L, -w - 0.1, zi, -w - 0.02, zi, y, y + 0.14, [100, 86, 64], { sortDist: Math.hypot(w + 0.06, z) - 0.03 });
-      for (const y of BOARD_Y) for (const dy of [-0.045, 0.045]) SC.wallV(L, w + 0.062, zi, w + 0.088, zi, y + dy - 0.013, y + dy + 0.013, [40, 32, 24], { sortDist: Math.hypot(w + 0.075, z) - 0.03 });
     }
     // Drawing order outside the doorways. A thing is drawn in order of its distance from the eye, a face by the middle
     // of its corners. The steps are wider than their doorways, and by their own distance they came out nearer than the
