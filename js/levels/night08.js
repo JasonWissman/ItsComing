@@ -69,7 +69,10 @@ LEVELS.push({
     SC.box(L, 1.2, 3.8, 1.9, 1.95, -2.5, -2.3, [90, 74, 56]);
     for (let x = 1.4; x < 3.7; x += 0.3) SC.box(L, x, x + 0.16, 1.95, 2.1, -2.48, -2.34, [230, 226, 214]);
     SC.box(L, 2.4, 3.8, 0, 0.9, -2.45, -1.85, [150, 138, 118]); SC.box(L, 3.0, 3.6, 0.9, 1.5, -2.4, -2.0, chrome); SC.box(L, 3.05, 3.55, 0.9, 1.0, -2.0, -1.9, [60, 40, 30]);
-    SC.sprite(L, -2.4, 2.1, -2.45, 0.42, 0.42, (ctx, P) => { ctx.scale(0.42, 0.42); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([40, 40, 44])); P_ell(ctx, 0, 0.5, 0.44, 0.44, P.col([230, 226, 216])); P_line(ctx, 0, 0.5, 0, 0.82, 0.03, P.col([30, 30, 30])); P_line(ctx, 0, 0.5, 0.22, 0.38, 0.03, P.col([30, 30, 30])); });
+    // (what is fixed on a wall is drawn flat on it, its front looking into the room: the clock, the main, the gearboxes, the
+    // signs; it never turns with the view)
+    const BACK = 0, FRONT = Math.PI;   // the back wall's face, and the front's (looking back in at you)
+    SC.sprite(L, -2.4, 2.1, -2.45, 0.42, 0.42, (ctx, P) => { ctx.scale(0.42, 0.42); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([40, 40, 44])); P_ell(ctx, 0, 0.5, 0.44, 0.44, P.col([230, 226, 216])); P_line(ctx, 0, 0.5, 0, 0.82, 0.03, P.col([30, 30, 30])); P_line(ctx, 0, 0.5, 0.22, 0.38, 0.03, P.col([30, 30, 30])); }, { face: BACK });   // the clock
     // ---- the counter you stand behind, the stools, the booths ----
     // The counter runs the width of the room, so the middle of all of it says little about what is in front of it: its top
     // is drawn after the whole of the red body under it (or the body's top shows through it), and the stools on the far
@@ -120,7 +123,7 @@ LEVELS.push({
         for (const y of [0.12, 0.88]) for (const x of [-0.3, 0.3]) P_ell(ctx, x, y, 0.05, 0.03, P.col([50, 50, 54]));   // its bolts
         P_ell(ctx, 0, 0.55, 0.32, 0.21, P.col([20, 20, 22])); P_ell(ctx, 0, 0.55, 0.15, 0.1, P.col([176, 176, 182]));
         P_rect(ctx, -0.05, 0.52, 0.1, 0.06, P.col([20, 20, 22]));                                                         // the slot the hook catches in
-      }, { sortDist: sd });
+      }, { sortDist: sd, face: FRONT });
       shutterArt[i] = L.props.slice(n0);   // the slot, the rails, the rod and the gearbox: pointed at, the window's shutter glows in them
       return pane;
     });
@@ -132,7 +135,7 @@ LEVELS.push({
       ctx.beginPath(); ctx.ellipse(-0.36, 0.5, 0.1, 0.32, 0, 0, TAU); ctx.moveTo(-0.16, 0.18); ctx.lineTo(-0.16, 0.82); ctx.lineTo(-0.02, 0.82); ctx.lineTo(-0.02, 0.5); ctx.lineTo(-0.16, 0.5);
       ctx.moveTo(0.22, 0.18); ctx.lineTo(0.08, 0.18); ctx.lineTo(0.08, 0.82); ctx.lineTo(0.22, 0.82); ctx.moveTo(0.08, 0.5); ctx.lineTo(0.2, 0.5);
       ctx.moveTo(0.3, 0.18); ctx.lineTo(0.3, 0.82); ctx.lineTo(0.46, 0.18); ctx.lineTo(0.46, 0.82); ctx.stroke();
-    }, { noFog: true, noLight: true, sortDist: 4.85 });
+    }, { noFog: true, noLight: true, sortDist: 4.85, face: FRONT });   // (hung flat in the window, facing in)
     // ---- outside: the lot, its lamp, the sign by the road, a parked car, the road, the dark beyond ----
     SC.floorQ(L, -30, 5.1, 30, 6.4, 0.0, [72, 70, 68]);
     SC.floorQ(L, -40, 6.4, 40, 30, -0.02, [30, 29, 31]);
@@ -148,18 +151,18 @@ LEVELS.push({
     SC.box(L, -10.6, -10.4, 0, 4.2, 25.9, 26.1, dark, { noLight: true });   // its post, a dark line under the board (lit, it glowed like a tube)
     SC.sprite(L, -10.5, 4.2, 26, 2.8, 1.5, (ctx, P) => {   // EAT, in pink neon on a dark board
       ctx.scale(2.8, 1.5); P_rect(ctx, -0.5, 0, 1, 1, P.col([26, 22, 30]));
-      ctx.strokeStyle = P.raw([255, 90, 210]); ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeRect(-0.45, 0.1, 0.9, 0.8);
+      ctx.strokeStyle = P.raw([255, 90, 210]); ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.rect(-0.45, 0.1, 0.9, 0.8); ctx.stroke();   // (a path: strokeRect is lost in true perspective)
       ctx.strokeStyle = P.raw([255, 130, 225]); ctx.lineWidth = 0.06; ctx.beginPath();
       ctx.moveTo(-0.16, 0.25); ctx.lineTo(-0.3, 0.25); ctx.lineTo(-0.3, 0.75); ctx.lineTo(-0.16, 0.75); ctx.moveTo(-0.3, 0.5); ctx.lineTo(-0.19, 0.5);
       ctx.moveTo(-0.08, 0.25); ctx.lineTo(0.01, 0.75); ctx.lineTo(0.1, 0.25); ctx.moveTo(-0.045, 0.45); ctx.lineTo(0.065, 0.45);
       ctx.moveTo(0.17, 0.75); ctx.lineTo(0.31, 0.75); ctx.moveTo(0.24, 0.75); ctx.lineTo(0.24, 0.25); ctx.stroke();
-    }, { noFog: true, noLight: true });
+    }, { noFog: true, noLight: true, face: FRONT });   // (the board stands square to the diner, facing it)
     SC.box(L, 7.6, 9.4, 0.25, 0.85, 7.2, 11.0, [38, 36, 46]); SC.box(L, 7.8, 9.2, 0.85, 1.35, 8.2, 10.0, [28, 28, 36]);
     for (const [x, z] of [[7.6, 8], [9.4, 8], [7.6, 10.2], [9.4, 10.2]]) SC.box(L, x - 0.12, x + 0.12, 0, 0.5, z - 0.3, z + 0.3, [14, 14, 16]);
     SC.box(L, -10.4, -8.8, 0, 1.3, 6.4, 7.4, [40, 60, 44]);
     // the far facades leave gaps where the ways cross them, so it is in view from its first step
     SC.wallV(L, -40, 50, -30.5, 50, 0, 7, [22, 20, 24]); SC.wallV(L, -27, 50, -10, 50, 0, 7, [22, 20, 24]); SC.wallV(L, -6, 50, -1.5, 50, 0, 5, [20, 18, 22]); SC.wallV(L, 1.5, 50, 20, 50, 0, 5, [20, 18, 22]); SC.wallV(L, 24, 50, 27, 50, 0, 9, [24, 22, 26]); SC.wallV(L, 30.5, 50, 50, 50, 0, 9, [24, 22, 26]);
-    for (const [x, y, z] of [[-33, 4, 49.9], [-22, 2.5, 49.9], [10, 3, 49.9], [36, 6, 49.9]]) SC.sprite(L, x, y, z, 0.8, 1.1, (ctx, P) => { ctx.scale(0.8, 1.1); P_rect(ctx, -0.5, 0, 1, 1, P.raw([200, 170, 110])); }, { noFog: true, noLight: true });
+    for (const [x, y, z] of [[-33, 4, 49.9], [-22, 2.5, 49.9], [10, 3, 49.9], [36, 6, 49.9]]) SC.sprite(L, x, y, z, 0.8, 1.1, (ctx, P) => { ctx.scale(0.8, 1.1); P_rect(ctx, -0.5, 0, 1, 1, P.raw([200, 170, 110])); }, { noFog: true, noLight: true, face: FRONT });   // lit windows in the facades
     const rng = mulberry32(88), tan30 = Math.tan(30 * DEG);
     for (let i = 0; i < 14; i++) { const side = rng() < 0.5 ? -1 : 1, x = side * (14 + rng() * 26), z = 38 + rng() * 10; if ([-tan30, 0, tan30].some(t => Math.abs(x - t * z) < 2.5)) continue; SC.tree(L, x, z, 6 + rng() * 6, 'bare', (rng() * 1e6) | 0); }
 
@@ -195,14 +198,19 @@ LEVELS.push({
       P_line(ctx, px, py, ex, ey, 0.05, P.col([150, 150, 156]));
       P_line(ctx, px + (ex - px) * 0.62, py + (ey - py) * 0.62, ex, ey, 0.1, P.col([176, 34, 28]));
       P_ell(ctx, px, py, 0.05, 0.04, ink);
-    });
+    }, { face: BACK });
     // where the hand takes the lever: the middle of its red grip, with the lever up (1) or down (0)
     const gripAt = lev => { const a = lerp(Math.PI - 0.32, 0.32, lev); return [0.3 + Math.sin(a) * 0.324, 0.5 + Math.cos(a) * 0.324]; };
     // The main and the gearboxes are some way off, but they are what the hand works here: it is put on them as you see them
     // (the spot brought in along your line of sight to arm's length, where the hand goes all the way)
-    const inReach = (t, at) => { const p = HANDS.pointOn(t, at, 0.02), dy = p.y - eye, k = Math.min(1, 1.5 / Math.hypot(p.x, dy, p.z)); return { x: p.x * k, y: eye + dy * k, z: p.z * k }; };
+    // (a spot [across, up] on one fixed flat on a wall is on the wall, across it, not square to the line from you to it)
+    const onFace = (t, u, v) => ({ x: t.x - Math.cos(t.face) * u * t.w, y: t.y + v * t.h, z: t.z + Math.sin(t.face) * u * t.w });
+    const inReach = (t, at) => {
+      const p = HANDS.pointOn(t, Array.isArray(at) && t.face !== undefined ? onFace(t, at[0], at[1]) : at, 0.02), dy = p.y - eye, k = Math.min(1, 1.5 / Math.hypot(p.x, dy, p.z));
+      return { x: p.x * k, y: eye + dy * k, z: p.z * k };
+    };
     const main = mkTarget(L, {
-      id: 'main', name: 'Main switch', x: mainX, y: MY, z: -2.42, w: MW, h: MH,
+      id: 'main', name: 'Main switch', x: mainX, y: MY, z: -2.42, w: MW, h: MH, face: BACK,
       onClick() {
         // off already: the hand takes the grip and tries it, and it will not come back up (it shakes at its stop)
         if (!s.power) { G.say('The main is off, and it stays off.', 'The power is off.'); if (!G.reach(main, { style: 'rattle', at: inReach(main, gripAt(0)), onTouch() { s.jigAt = L.t; } })) AUDIO.sfx('nope'); return true; }
@@ -248,7 +256,7 @@ LEVELS.push({
     const gearAt = i => { const p = L.pt(GEAR[i], 1.0, ZG - 0.07); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; };
     const shutters = PANES.map(([x0, x1], i) => {
       const t = mkTarget(L, {
-        id: 'shutter' + i, name: ['Left', 'Middle', 'Right'][i] + ' shutter', x: (x0 + x1) / 2, y: BOT, z: 4.95, w: x1 - x0, h: TOP - BOT,
+        id: 'shutter' + i, name: ['Left', 'Middle', 'Right'][i] + ' shutter', x: (x0 + x1) / 2, y: BOT, z: 4.95, w: x1 - x0, h: TOP - BOT, face: FRONT,
         crank: { n: TURNS, sfx: 'ratchet', onTurn() {
           s.turnAt[i] = L.t;
           // the hand turns it at the gearbox, not at the middle of the window
@@ -533,7 +541,7 @@ LEVELS.push({
             g.addColorStop(0, P.cola(lo, a * 0.45)); g.addColorStop(0.5, P.cola(lo, 0)); g.addColorStop(0.62, P.cola(hi, 0)); g.addColorStop(1, P.cola(hi, a * 0.45));
             ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0.5, r, r, 0, 0, TAU); ctx.fill();
           }
-        }, { sortDist: sd - 0.0015 }));
+        }, { sortDist: sd - 0.0015, face: FRONT }));
       };
       if (h) shade(hx, hy + jy, 1.15 * pin(hx, hy) + 0.2, 1.0, ring * pin(hx, hy));
       shade(mx, my + jy, 1.7, 1.4, dent * 1.2);
@@ -558,7 +566,7 @@ LEVELS.push({
       const S = s.shove, c = cr(), sd = panes[i].sortD, yb = bottom(s.shown[i]);
       // the fingers, while the hands are on the edge (not once the steel has flown on out of their reach)
       if (c.shove && c.shove.k > 0.85 && Math.abs(c.shove.h + c.yOff - edgeAt(i, yb, S.d)) < 0.03) {
-        for (const x of handX()) R.add(SC.mkSprite(L, clamp(x, x0 + 0.05, x1 - 0.05), yb - 0.022, ZS - 0.014, 0.1, 0.08, fingers, { sortDist: sd - 0.004 }));
+        for (const x of handX()) R.add(SC.mkSprite(L, clamp(x, x0 + 0.05, x1 - 0.05), yb - 0.022, ZS - 0.014, 0.1, 0.08, fingers, { sortDist: sd - 0.004, face: FRONT }));
       }
       const a = S.t;
       if (S.slamAt < 0 && a > SHOVE.heave) {   // the rail, a blur behind it as it goes up
@@ -574,7 +582,7 @@ LEVELS.push({
           const g = ctx.createRadialGradient(0, 0.25, 0, 0, 0.25, 0.6);
           g.addColorStop(0, P.cola([150, 144, 132], 0.32 * k)); g.addColorStop(1, P.cola([150, 144, 132], 0));
           ctx.scale((x1 - x0) * (0.9 + b * 0.6), 0.35 + b * 0.5); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1);
-        }, { sortDist: sd - 0.006 }));
+        }, { sortDist: sd - 0.006, face: FRONT }));
         for (let q = 0; q < 18; q++) {
           const x = lerp(x0 + 0.08, x1 - 0.08, rng()), v = 0.3 + rng() * 0.9, r = 0.008 + rng() * 0.012, y = TOP - 0.05 - v * b - 4.5 * b * b;
           if (y < BOT) continue;
@@ -597,7 +605,7 @@ LEVELS.push({
             P_line(ctx, 0, 0, ex, ey, 0.13, edge); P_line(ctx, 0, 0, ex, ey, 0.075, P.col([200, 202, 208]));
             P_ell(ctx, 0, 0, 0.09, 0.09, edge); P_ell(ctx, 0, 0, 0.055, 0.055, P.col([200, 202, 208]));
             P_ell(ctx, ex, ey, 0.1, 0.1, edge); P_ell(ctx, ex, ey, 0.075, 0.075, P.col([186, 46, 36]));   // the grip, end on
-          }, { sortDist: panes[i].sortD - 0.12 }));
+          }, { sortDist: panes[i].sortD - 0.12, face: FRONT }));
         }
         if (s.shove && s.shove.i === i && !s.through) shoveArt(i, x0, x1);
         const cov = (TOP - BOT) * s.shown[i];
