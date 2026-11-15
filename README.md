@@ -91,11 +91,13 @@ Items are scattered around you in different directions, some at eye level and
 some on the ground, so you have to turn and look down to find them.
 
 1. **The Field.** A tall thin walker crosses a moonlit field toward a farmhouse whose
-   two doorways have no doors. It is dressed like a scarecrow left out too many years: a black thing in a farmhand's
-   cast-offs, an old work coat faded to the colour of dirt with sewn patches and a hem torn ragged, a twist of rope for a
-   belt, old trousers tied off with twine above the ankles and the sleeves tied at the wrists, straw sticking out at the
-   cuffs, the ankles, the collar and through a rip in the coat, and long fingers of dead twig, sharp and black at the
-   ends. Its dark oval head, pale face, round blank eyes and opening mouth are as they were. Find the hammer, the nails and the loose planks, and board
+   two doorways have no doors. It is black all over and starved, its skin pulled tight over its bones: thin arms and legs
+   knobbed at the knees and the elbows, the wrists and ankles thinner still, points of bone for shoulders, a narrow torso
+   sunk in under a ribcage that flares over a hollow belly, a neck of tendons, and long bony fingers knotted at the
+   knuckles, with black nails. From far off it is only a tall black figure; as it nears, the bone shows through in faint
+   greys (the collarbones, the breastbone, the ribs, the hip bones, the kneecaps), and its pale grey face comes up out of
+   the dark oval of its head, gaunt, the cheeks and temples sunk in under the cheekbones, the round blank eyes deep in
+   their sockets, and the mouth opening. Find the hammer, the nails and the loose planks, and board
    up both: board the one it is coming for and it runs round the house to the other. The
    window beside the front doorway is glass you can see out of, over the field, and if it
    runs round that side you see it go past. The planks are wide old boards, and three of

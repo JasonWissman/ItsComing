@@ -572,9 +572,9 @@ LEVELS.push({
       }
     };
     // Its fingers, hooked over the edge of the board under the gap while it has hold of it: they come over onto this side
-    // of the board, so they are drawn over it (the hand behind is the walker's own, in the gap). Long dead twigs, knotted at
-    // the knuckle where they bend over the edge, sharp and black at the ends; they lean in toward its face. side is +1 for
-    // the hand on the right of the view (the walker's grip).
+    // of the board, so they are drawn over it (the hand behind is the walker's own, in the gap). Long and bony, knotted at the
+    // knuckle where they bend over the edge, the nails black; they lean in toward its face. side is +1 for the hand on the
+    // right of the view (the walker's grip).
     const grip = (ctx, P, side) => CREATURES.walker.grip(ctx, P, side, 0, 0);
     const PLANE = t => (t === back ? [2.42, -1] : [-2.28, 1]);   // where a doorway's boards are, and the way into the house
     // Coming in through a doorway, it ducks under the lintel (the walker's c.headroom: how high it may stand). The doorways

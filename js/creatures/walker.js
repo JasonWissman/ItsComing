@@ -35,114 +35,132 @@ CREATURES.walker = {
     for (let i = 0; i < 14; i++) { const m = (lo + hi) / 2; if (this.stance(c, m, pk, bl, bob, raise).peak <= room) hi = m; else lo = m; }
     return hi;
   },
-  // A scarecrow left out too many years: the black thing is dressed in a farmhand's cast-offs, an old work coat faded to
-  // the colour of dirt, sewn patches on it, its hem torn ragged, a twist of rope for a belt; old trousers tied off above
-  // the ankle with twine, and the sleeves tied at the wrist; straw sticking out at the cuffs, the ankles, the collar and
-  // through a rip in the coat; its long fingers dead twigs, sharp at the ends. Everything stays inside the black shape it
-  // always had (the coat and the clothes are drawn in from its edges, which are left black), so its outline, its
-  // proportions and its poses are the walker's own; only the straw sticks out a little, and never above its head.
-  // KIT is the colours, before the night's light and fog: muted, dirty and dark, so at night it is still a dark figure.
-  KIT: { coat: [37, 34, 27], seam: [18, 17, 14], trousers: [27, 28, 31], patch: [[55, 42, 33], [34, 39, 42], [47, 45, 33]],
-    stitch: [96, 86, 64], rope: [78, 66, 46], ropeD: [46, 38, 26], straw: [118, 101, 62], strawD: [82, 70, 43], bark: [42, 34, 25] },
-  kit(P) { const K = this.KIT, o = {}; for (const k in K) o[k] = k === 'patch' ? K.patch.map(c => P.col(c)) : P.col(K[k]); o.black = P.col([0, 0, 0]); return o; },
-  // a tuft of straw at (x, y), n stiff strands fanning out around angle a, stirring a little
-  straw(ctx, k, x, y, a, n, len, spread, t, seed) {
-    for (let i = 0; i < n; i++) {
-      const h = Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453, r = h - Math.floor(h);
-      const b = a + (i - (n - 1) / 2) * spread + (r - 0.5) * spread * 0.8 + Math.sin(t * 1.7 + seed + i) * 0.04, l = len * (0.55 + 0.45 * r);
-      P_line(ctx, x, y, x + Math.cos(b) * l, y + Math.sin(b) * l, 0.009, i % 2 ? k.strawD : k.straw);
-    }
+  // Starved: a black figure with its skin pulled tight over the bones. Its outline is the walker's own (the same height,
+  // reach, shoulders and hips, and every pose), but the limbs are thin, narrowing to the joints and swelling at the knobs of
+  // the knees and the elbows, the wrists and the ankles thinner still; the shoulders are points of bone, the torso narrow
+  // and sunk in under a ribcage that flares out over a hollow belly, the neck a stalk of tendons, the fingers long bones
+  // knotted at the knuckles. Close to, the bone under the skin catches the light: subtle greys on the black (GREY), the
+  // collarbones, the breastbone, each rib and the arch of the ribcage over the belly, the hip bones, the kneecaps and the
+  // points of the elbows, the shins, the knuckles. Far off none of that shows (boneA), and it is a black figure.
+  GREY: { ridge: [27, 26, 31], hollow: [54, 49, 53], lite: [118, 111, 115] },
+  // how much of the bone shows at d metres: none far off, all of it from 6 m
+  boneA(d) { return clamp((18 - d) / 12, 0, 1); },
+  // widths of its limbs (metres): the root (hip or shoulder), above the joint, the joint's knob (a radius), below the
+  // joint, the wrist or ankle, and its own small knob (a radius)
+  LEG: [0.066, 0.046, 0.034, 0.05, 0.028, 0.019],
+  ARM: [0.05, 0.034, 0.027, 0.036, 0.021, 0.015],
+  // a tapered stroke from p (w0 wide) to q (w1 wide), rounded at both ends
+  seg(ctx, p, q, w0, w1, color) {
+    const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1e-6, nx = -dy / L, ny = dx / L;
+    P_poly(ctx, [[p[0] + nx * w0 / 2, p[1] + ny * w0 / 2], [q[0] + nx * w1 / 2, q[1] + ny * w1 / 2], [q[0] - nx * w1 / 2, q[1] - ny * w1 / 2], [p[0] - nx * w0 / 2, p[1] - ny * w0 / 2]], color);
+    P_ell(ctx, p[0], p[1], w0 / 2, w0 / 2, color); P_ell(ctx, q[0], q[1], w1 / 2, w1 / 2, color);
   },
-  // twine wound round a limb at (x, y), across the line of it (angle a)
-  tie(ctx, k, x, y, a, half) {
-    const cx = Math.cos(a + Math.PI / 2) * half, cy = Math.sin(a + Math.PI / 2) * half;
-    P_line(ctx, x - cx, y - cy, x + cx, y + cy, 0.022, k.ropeD);
-    P_line(ctx, x - cx * 0.8, y - cy * 0.8, x + cx * 0.8, y + cy * 0.8, 0.012, k.rope);
+  // with alpha a (times whatever it is drawn at) for the bone that shows through
+  faint(ctx, a, fn) { if (a <= 0) return; const a0 = ctx.globalAlpha; ctx.globalAlpha = a0 * a; fn(); ctx.globalAlpha = a0; },
+  // a starved limb from its root (a hip or a shoulder) to a joint (the knee or the elbow) to its end (the ankle or the
+  // wrist), W its widths (LEG or ARM, times k): the bone narrowing to a knob of a joint and on to a thin wrist or ankle,
+  // the joint's cap and the bone of the shin or the forearm catching the light close to
+  limb(ctx, a, j, e, W, body, ridge, ba, k) {
+    const s = k || 1;
+    this.seg(ctx, a, j, W[0] * s, W[1] * s, body);
+    this.seg(ctx, j, e, W[3] * s, W[4] * s, body);
+    const ang = Math.atan2(e[1] - a[1], e[0] - a[0]) + Math.PI / 2;   // the knob of the joint, longer than it is wide
+    P_ell(ctx, j[0], j[1], W[2] * s * 0.86, W[2] * s, body, ang);
+    P_ell(ctx, e[0], e[1], W[5] * s, W[5] * s, body);
+    this.faint(ctx, ba, () => {
+      P_ell(ctx, j[0], j[1] + W[2] * s * 0.25, W[2] * s * 0.42, W[2] * s * 0.32, ridge);   // the kneecap, the point of the elbow
+      this.faint(ctx, 0.7, () => P_line(ctx, lerp(j[0], e[0], 0.25), lerp(j[1], e[1], 0.25), lerp(j[0], e[0], 0.8), lerp(j[1], e[1], 0.8), 0.006, ridge));   // the shin, the forearm
+    });
   },
-  // a sleeve over an arm (shoulder, elbow, hand), tied at the wrist, the straw coming out of the cuff
-  sleeve(ctx, k, s, e, h, t, seed) {
-    const cu = [lerp(e[0], h[0], 0.74), lerp(e[1], h[1], 0.74)], a = Math.atan2(h[1] - e[1], h[0] - e[0]);
-    P_limb(ctx, [s, e, cu], 0.034, k.coat);
-    this.straw(ctx, k, cu[0], cu[1], a, 5, Math.hypot(h[0] - cu[0], h[1] - cu[1]) * 0.95, 0.32, t, seed);
-    this.tie(ctx, k, cu[0], cu[1], a, 0.032);
+  // a point of bone at a shoulder
+  shoulder(ctx, x, y, body, ridge, ba) {
+    P_ell(ctx, x, y, 0.032, 0.028, body);
+    this.faint(ctx, ba, () => P_ell(ctx, x, y + 0.01, 0.012, 0.009, ridge));
   },
-  // a trouser leg over a leg (hip, knee, foot), tied off above the ankle, the straw coming out under it; w the leg's width
-  trouser(ctx, k, hp, kn, ft, w, t, seed) {
-    const hem = [lerp(kn[0], ft[0], 0.78), lerp(kn[1], ft[1], 0.78)], a = Math.atan2(ft[1] - kn[1], ft[0] - kn[0]);
-    P_limb(ctx, [hp, kn, hem], w - 0.026, k.trousers);
-    this.straw(ctx, k, hem[0], hem[1], a, 6, Math.hypot(ft[0] - hem[0], ft[1] - hem[1]) * 0.8, 0.34, t, seed);
-    this.tie(ctx, k, hem[0], hem[1], a, w * 0.5);
-  },
-  // the coat over the torso, the quad bl, br, tr, tl (bottom left and right, top right and left): inside its black edge, its
-  // hem torn ragged below it, patched, a rope belt, a rip with straw coming through it, and straw at the collar.
-  // front: seen from the front (the coat's opening and its buttons); hump: the rounded back behind its head ([x, y, rx, ry]).
-  coat(ctx, k, bl, br, tr, tl, t, front, hump) {
+  // the torso over the quad bl, br, tr, tl (bottom left and right, top right and left), drawn in its own black: narrow,
+  // the ribcage flaring out over a belly sunk in under it, the hips jutting below that; and close to, the bone under the
+  // skin. front: seen from the front (collarbones, breastbone, ribs either side, the arch of the ribcage, the hip bones);
+  // otherwise side on, facing the br/tr side (the ribs curving round and down to the front, the knobs of its spine
+  // along its back, the belly sunk in under the ribs)
+  chest(ctx, body, ridge, ba, bl, br, tr, tl, front) {
     const at = (u, v) => { const q = (u + 1) / 2; return [lerp(lerp(bl[0], br[0], q), lerp(tl[0], tr[0], q), v), lerp(lerp(bl[1], br[1], q), lerp(tl[1], tr[1], q), v)]; };
-    const len = Math.hypot(tl[0] - bl[0], tl[1] - bl[1]), dn = [(bl[0] - tl[0]) / len, (bl[1] - tl[1]) / len];   // down the coat
-    const DROP = [0.02, 0.07, 0.03, 0.09, 0.04, 0.06, 0.015, 0.08, 0.03];   // the rags of its hem
-    const hem = DROP.map((d, i) => { const p = at(1 - i / 4, 0); return [p[0] + dn[0] * d, p[1] + dn[1] * d]; });
-    const shape = [tl, tr, ...hem];
-    if (hump) P_ell(ctx, hump[0], hump[1], hump[2], hump[3], k.coat);
-    P_poly(ctx, shape, k.coat);
-    ctx.save();   // its black edge, inside the coat
-    ctx.beginPath(); shape.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.clip();
-    P_limb(ctx, [...shape, shape[0]], 0.03, k.seam);
-    // the patches, sewn on with big stitches
-    const PATCH = [[-0.78, -0.18, 0.5, 0.73, 0], [0.18, 0.72, 0.2, 0.36, 1], [-0.62, -0.1, 0.06, 0.16, 2]];
-    for (const [u0, u1, v0, v1, ci] of PATCH) {
-      const q = [at(u0, v0 + 0.02), at(u1, v0), at(u1 - 0.04, v1), at(u0, v1 - 0.015)];
-      P_poly(ctx, q, k.patch[ci]);
-      for (let e = 0; e < 4; e++) {
-        const p0 = q[e], p1 = q[(e + 1) % 4], L = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]), m = Math.max(2, Math.round(L / 0.035));
-        const nx = -(p1[1] - p0[1]) / L * 0.012, ny = (p1[0] - p0[0]) / L * 0.012;
-        for (let j = 0; j < m; j++) { const f = (j + 0.5) / m, x = lerp(p0[0], p1[0], f), y = lerp(p0[1], p1[1], f); P_line(ctx, x - nx, y - ny, x + nx, y + ny, 0.006, k.stitch); }
-      }
+    const line = (pts, w) => P_limb(ctx, pts.map(p => at(p[0], p[1])), w, ridge);
+    if (front) {
+      P_poly(ctx, [[-0.66, 0], [0.66, 0], [0.9, 0.1], [0.64, 0.27], [0.8, 0.4], [1, 0.54], [1, 1], [-1, 1], [-1, 0.54], [-0.8, 0.4], [-0.64, 0.27], [-0.9, 0.1]].map(p => at(p[0], p[1])), body);
+      this.faint(ctx, ba, () => {
+        for (const s of [-1, 1]) {
+          line([[s * 0.08, 0.93], [s * 0.45, 0.905], [s * 0.86, 0.955]], 0.012);   // the collarbone
+          for (let i = 0; i < 4; i++) {   // the ribs either side, longer and dropping further down the cage
+            const v = 0.8 - i * 0.075, r = 0.72 + i * 0.06;
+            line([[s * 0.3, v], [s * r * 0.75, v - 0.025], [s * r, v - 0.075 - i * 0.012]], 0.009);
+          }
+          line([[s * 0.08, 0.6], [s * 0.45, 0.535], [s * 0.82, 0.44]], 0.01);   // the arch of the ribcage, over the hollow belly
+          line([[s * 0.66, 0.16], [s * 0.86, 0.09]], 0.012);  // the hip bone
+          this.faint(ctx, 0.6, () => line([[s * 0.72, 0.42], [s * 0.54, 0.3], [s * 0.6, 0.18]], 0.008));   // the belly, sunk in under the ribs
+        }
+        line([[0, 0.88], [0, 0.64]], 0.01);   // the breastbone
+      });
+    } else {
+      P_poly(ctx, [[-1, 0], [0.9, 0], [0.62, 0.16], [0.5, 0.3], [0.78, 0.46], [1, 0.62], [1, 1], [-1, 1]].map(p => at(p[0], p[1])), body);
+      for (let i = 0; i < 6; i++) { const p = at(-1, 0.3 + i * 0.12); P_ell(ctx, p[0], p[1], 0.022, 0.022, body); }   // the knobs of its spine
+      this.faint(ctx, ba, () => {
+        for (let i = 0; i < 4; i++) { const v = 0.86 - i * 0.08; line([[-0.6, v], [0, v - 0.03], [0.66, v - 0.1 - i * 0.02]], 0.009); }
+        line([[0.95, 0.58], [0.6, 0.47], [0.4, 0.4]], 0.012);   // the bottom of the ribcage
+        line([[-0.2, 0.14], [0.3, 0.12], [0.62, 0.05]], 0.013);  // the hip bone
+        line([[0.4, 0.97], [0.95, 0.95]], 0.014);   // the collarbone
+      });
     }
-    if (front) {   // the coat's opening, and what is left of its buttons
-      const o0 = at(0.06, 1), o1 = at(-0.04, 0.02);
-      P_line(ctx, o0[0], o0[1], o1[0], o1[1], 0.012, k.seam);
-      for (const [v, r] of [[0.66, 0.013], [0.44, 0.011]]) { const b = at(0.1, v); P_ell(ctx, b[0], b[1], r, r, k.ropeD); }
+  },
+  // its neck, from (0, y0) up to (0, y1): a thin stalk, its tendons standing out
+  neck(ctx, y0, y1, body, ridge, ba) {
+    P_line(ctx, 0, y0, 0, y1, 0.056, body);
+    this.faint(ctx, ba, () => { for (const s of [-1, 1]) P_line(ctx, s * 0.021, y1 + 0.01, s * 0.007, y0, 0.007, ridge); });
+  },
+  // its face, the pale grey of it on its black head, gaunt: the temples and the cheeks sunk in under the cheekbones,
+  // the jaw showing, the eyes in sunken sockets; the eyes round and blank, pale, no pupils (eye height ey, radius er);
+  // the mouth (mrx by mry) opening as it nears
+  face(ctx, P, skin, eye, body, ey, er, mrx, mry) {
+    const G = this.GREY, hol = P.col(G.hollow), lite = P.col(G.lite);
+    P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(0, 0.285, 0.085, 0.13, 0, 0, TAU); ctx.clip();
+    for (const s of [-1, 1]) {
+      P_ell(ctx, s * 0.084, 0.33, 0.02, 0.045, hol);                  // the temple, sunk in
+      P_ell(ctx, s * 0.058, 0.218, 0.024, 0.05, hol, s * 0.22);       // the cheek, sunk in under the cheekbone
+      P_ell(ctx, s * 0.036, ey, er * 1.9, er * 1.9, hol);             // the socket
+      P_line(ctx, s * 0.046, 0.258, s * 0.084, 0.28, 0.01, lite);      // the cheekbone, up to the temple
+      P_line(ctx, s * 0.08, 0.2, s * 0.03, 0.163, 0.007, lite);        // the jaw
     }
-    // a rip, the straw through it
-    const rp = at(0.42, 0.6), rq = at(0.62, 0.48);
-    P_poly(ctx, [rp, [lerp(rp[0], rq[0], 0.5) + 0.012, lerp(rp[1], rq[1], 0.5) + 0.01], rq, [lerp(rp[0], rq[0], 0.5) - 0.01, lerp(rp[1], rq[1], 0.5) - 0.012]], k.black);
     ctx.restore();
-    this.straw(ctx, k, lerp(rp[0], rq[0], 0.5), lerp(rp[1], rq[1], 0.5), Math.atan2(-dn[1], -dn[0]) - 0.9, 4, 0.06, 0.35, t, 3);
-    // the rope belt, knotted, its ends hanging
-    const b0 = at(-1, 0.17), b1 = at(1, 0.17), kn = at(0.32, 0.17);
-    P_line(ctx, b0[0], b0[1], b1[0], b1[1], 0.032, k.ropeD);
-    P_line(ctx, b0[0], b0[1], b1[0], b1[1], 0.016, k.rope);
-    for (const [dx, l] of [[-0.012, 0.13], [0.014, 0.1]]) P_line(ctx, kn[0] + dx, kn[1], kn[0] + dx * 2.5 + dn[0] * l, kn[1] + dn[1] * l, 0.014, k.rope);
-    P_ell(ctx, kn[0], kn[1], 0.022, 0.02, k.rope);
-    // straw at the collar, either side of its neck
-    for (const u of [-0.45, 0.45]) { const c = at(u, 1); this.straw(ctx, k, c[0], c[1], Math.atan2(-dn[1], -dn[0]) + u * 1.1, 5, 0.075, 0.28, t, 7 + u * 4); }
+    for (const s of [-1, 1]) P_ell(ctx, s * 0.036, ey, er, er, eye);   // blank and round: no pupils
+    P_ell(ctx, 0, 0.205, mrx, mry, body);
   },
-  // the twine tying its head on, round the neck (in the head's own frame, the neck going up from (0, 0))
-  neckTie(ctx, k) { P_line(ctx, -0.04, 0.06, 0.04, 0.075, 0.024, k.ropeD); P_line(ctx, -0.034, 0.061, 0.034, 0.074, 0.012, k.rope); },
-  // a twig finger from (x, y), angle a, length l: kinked at a knot, a spur off it, the end of it black and sharp
-  twig(ctx, k, x, y, a, l, w, i) {
-    const bend = (i % 2 ? 1 : -1) * 0.2, ca = Math.cos(a), sa = Math.sin(a);
-    const kx = x + ca * l * 0.5, ky = y + sa * l * 0.5, b = a + bend, tx = kx + Math.cos(b) * l * 0.56, ty = ky + Math.sin(b) * l * 0.56;
-    P_limb(ctx, [[x, y], [kx, ky], [tx, ty]], w, k.bark);
-    P_ell(ctx, kx, ky, w * 0.7, w * 0.7, k.bark);
-    if (i === 1 || i === 2) { const s = a - bend * 3; P_line(ctx, kx, ky, kx + Math.cos(s) * l * 0.22, ky + Math.sin(s) * l * 0.22, w * 0.5, k.bark); }
-    P_line(ctx, lerp(kx, tx, 0.5), lerp(ky, ty, 0.5), tx + Math.cos(b) * l * 0.04, ty + Math.sin(b) * l * 0.04, w * 0.7, k.black);
-  },
-  // its long fingers (spread as fingers() spreads them): dead twigs, sharp and black at the ends, so the hooked ends of
-  // them read as nails in every pose
-  claws(ctx, x, y, angle, spread, len, w, body, P) {
-    const k = this.kit(P);
-    for (let i = 0; i < 4; i++) this.twig(ctx, k, x, y, angle + (i - 1.5) * spread, len * ((i === 0 || i === 3) ? 0.82 : 1), w, i);
-  },
-  // its fingers hooked over the top of a board (the board's top edge at oy + 0.1), drawn over it: twigs, bent over the
-  // edge, leaning in toward its face (side is +1 for the hand on the right of the view), the hand at ox
-  grip(ctx, P, side, ox, oy) {
-    const k = this.kit(P);
+  // its long fingers (as fingers() spreads them), bones knotted at the knuckles, the last of each one a black nail:
+  // blacker than the rest of it, which the light and the fog lift toward grey, so the hooked ends of them read as nails
+  // in every pose
+  claws(ctx, x, y, angle, spread, len, w, body, P, ba) {
+    const nail = P.col([0, 0, 0]), ridge = P.col(this.GREY.ridge);
     for (let i = 0; i < 4; i++) {
-      const x = ox + side * (i - 1.5) * 0.026, len = [0.07, 0.085, 0.078, 0.056][i], lean = -side * 0.01, y0 = oy + 0.13, y1 = oy + 0.107;
-      P_limb(ctx, [[x, y0], [x + lean * 0.4, y1], [x + lean + (i % 2 ? 0.006 : -0.006), oy + 0.1 - len * 0.55], [x + lean, oy + 0.1 - len]], 0.018, k.bark);
-      P_ell(ctx, x + lean * 0.4, y1, 0.012, 0.012, k.bark);   // the knuckle, knotted, over the edge
-      P_line(ctx, x + lean, oy + 0.1 - len * 0.7, x + lean, oy + 0.1 - len - 0.006, 0.012, k.black);
+      const a = angle + (i - 1.5) * spread, l = len * ((i === 0 || i === 3) ? 0.82 : 1), ca = Math.cos(a), sa = Math.sin(a);
+      P_line(ctx, x, y, x + ca * l, y + sa * l, w * 0.8, body);
+      for (const [f, r] of [[0.3, 0.72], [0.56, 0.6]]) P_ell(ctx, x + ca * l * f, y + sa * l * f, w * r, w * r, body);   // the knuckles
+      P_line(ctx, x + ca * l * 0.7, y + sa * l * 0.7, x + ca * l * 1.06, y + sa * l * 1.06, w * 1.05, nail);
+      this.faint(ctx, ba, () => { for (const f of [0.3, 0.56]) P_ell(ctx, x + ca * l * f, y + sa * l * f, w * 0.3, w * 0.3, ridge); });
+    }
+  },
+  // its fingers hooked over the top of a board (the board's top edge at oy + 0.1), drawn over it: long bones knotted at
+  // the knuckle where they bend over the edge and again halfway down, the nails black, leaning in toward its face (side
+  // is +1 for the hand on the right of the view), the hand at ox
+  grip(ctx, P, side, ox, oy) {
+    const body = P.col([6, 6, 10]), nail = P.col([0, 0, 0]), ridge = P.col(this.GREY.ridge);
+    for (let i = 0; i < 4; i++) {
+      const x = ox + side * (i - 1.5) * 0.026, len = [0.07, 0.085, 0.078, 0.056][i], lean = -side * 0.01;
+      const kn = [x + lean * 0.4, oy + 0.107], mid = [x + lean * 0.75, oy + 0.1 - len * 0.5], tip = [x + lean, oy + 0.1 - len];
+      P_limb(ctx, [[x, oy + 0.13], kn, mid, tip], 0.014, body);
+      P_ell(ctx, kn[0], kn[1], 0.0125, 0.012, body);   // the knuckle, over the edge
+      P_ell(ctx, mid[0], mid[1], 0.0095, 0.0095, body);
+      P_ell(ctx, kn[0], kn[1] + 0.002, 0.0045, 0.004, ridge); P_ell(ctx, mid[0], mid[1], 0.0035, 0.0035, ridge);
+      P_ell(ctx, tip[0], tip[1] + 0.008, 0.006, 0.008, nail);
     }
   },
   draw(ctx, c, P) {
@@ -152,6 +170,7 @@ CREATURES.walker = {
     const body = P.col([6, 6, 10]);
     const skin = P.col([92, 84, 88]);
     const eye = P.col([225, 218, 205]);
+    const ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
     const bob = Math.abs(Math.sin(g)) * 0.05;
     const sway = Math.sin(g) * 0.035;
     const pk = smoothstep(c.peer || 0), bl = (c.blow || 0) * pk;   // stooping to look in: the hips drop, the knees splay, the body leans in at you
@@ -162,22 +181,17 @@ CREATURES.walker = {
     const dk = c.duck = Math.max(this.duckFor(c, pk, bl, bob, raise), (c.duck || 0) - since * this.DUCK.rise);
     c.duckAt = c.t;
     const st = this.stance(c, dk, pk, bl, bob, raise), hipY = st.hipY, top = st.top, sw = lerp(0.22, 0.26, pk) + 0.04 * dk;
-    const k = this.kit(P);
     // legs (front view: feet lift alternately)
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? Math.PI : 0);
       const lift = Math.max(0, Math.sin(ph)) * 0.24;
       const hx = s * 0.08 + sway, kx = s * (0.12 + 0.12 * pk + 0.1 * dk) + sway * 0.6, fx = s * 0.15 + sway * 0.3;
-      const leg = [[hx, hipY], [kx, hipY * 0.5 + lift * 0.75], [fx, lift + 0.03]];
-      P_limb(ctx, leg, 0.075, body);
-      P_line(ctx, fx - 0.03, lift + 0.03, fx + s * 0.09, lift + 0.03, 0.07, body);
-      this.trouser(ctx, k, ...leg, 0.075, t, s + 2);
+      this.limb(ctx, [hx, hipY], [kx, hipY * 0.5 + lift * 0.75], [fx, lift + 0.03], this.LEG, body, ridge, ba);
+      P_line(ctx, fx - 0.03, lift + 0.03, fx + s * 0.09, lift + 0.03, 0.045, body);   // the foot, bone and tendon
     }
-    // torso: far too narrow, in its old coat; bent at you under a lintel, its back rounds up behind its head between the shoulders
-    const torso = [[-0.15 + sway, hipY - 0.06], [0.15 + sway, hipY - 0.06], [sw + sway * 0.6, top], [-sw + sway * 0.6, top]];
-    P_poly(ctx, torso, body);
+    // torso: far too narrow, sunk in under the ribs; bent at you under a lintel, its back rounds up behind its head between the shoulders
     if (dk > 0.02) P_ell(ctx, sway * 0.6, top - 0.02, sw + 0.02, this.DUCK.back * dk + 0.02, body);
-    this.coat(ctx, k, ...torso, t, true, dk > 0.02 ? [sway * 0.6, top - 0.02, sw - 0.01, this.DUCK.back * dk - 0.01] : null);
+    this.chest(ctx, body, ridge, ba, [-0.15 + sway, hipY - 0.06], [0.15 + sway, hipY - 0.06], [sw + sway * 0.6, top], [-sw + sway * 0.6, top], true);
     // arms: hang to the knees; rise toward you when close
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? 0 : Math.PI);
@@ -189,28 +203,23 @@ CREATURES.walker = {
       const lift = smoothstep((c.handLift && c.handLift[s > 0 ? 1 : 0]) || 0);
       const ex = s * lerp(lerp(lerp(0.24, 0.52, raise), lerp(0.62, 0.58, lift), pk), 0.5, dk) + swing, ey = lerp(lerp(lerp(1.38, 1.55, raise), lerp(1.3, 1.66, lift), pk), top - 0.42, dk);
       const hx = s * lerp(lerp(lerp(0.27, 0.4, raise), lerp(0.36, 0.42, lift), pk), 0.36, dk) + swing * 2, hy = st.handY(s);
-      P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
-      this.sleeve(ctx, k, [sx, sy], [ex, ey], [hx, hy], t, s + 5);
+      this.limb(ctx, [sx, sy], [ex, ey], [hx, hy], this.ARM, body, ridge, ba);
+      this.shoulder(ctx, sx, sy, body, ridge, ba);
       const ang = lerp(lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), lerp(s > 0 ? -Math.PI * 0.56 : -Math.PI * 0.44, s > 0 ? Math.PI * 0.42 : Math.PI * 0.58, lift), pk);
-      this.claws(ctx, hx, hy, ang, lerp(lerp(0.16, 0.3, raise), lerp(0.1, 0.3, lift), pk), 0.17 + raise * 0.05, 0.018, body, P);
+      this.claws(ctx, hx, hy, ang, lerp(lerp(0.16, 0.3, raise), lerp(0.1, 0.3, lift), pk), 0.17 + raise * 0.05, 0.018, body, P, ba);
     }
     // neck and head with a snapping tilt (ducking, the head is thrust out at you, low between the shoulders)
     const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0)) * (1 - 0.6 * dk);
     ctx.save();
     ctx.translate(sway * 0.6, top);
     ctx.rotate(tilt);
-    P_line(ctx, 0, 0, 0, 0.12, 0.07, body);
-    this.neckTie(ctx, k);
+    this.neck(ctx, 0, 0.12, body, ridge, ba);
     if (pk || dk) { ctx.translate(0, st.headDy); ctx.scale(st.headK, st.headK); }   // leaning in: the neck foreshortened, the head nearer
     P_ell(ctx, 0, 0.3, 0.115, 0.175, body);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
     if (faceA > 0) {
       ctx.globalAlpha = faceA;
-      P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
-      P_ell(ctx, -0.036, 0.315, 0.014, 0.014, eye);   // blank and round: no pupils
-      P_ell(ctx, 0.036, 0.315, 0.014, 0.014, eye);
-      const mouth = 0.012 + near * 0.03 + (c.lunge || 0) * 0.045;
-      P_ell(ctx, 0, 0.205, 0.028 + near * 0.012, mouth, body);
+      this.face(ctx, P, skin, eye, body, 0.315, 0.014, 0.028 + near * 0.012, 0.012 + near * 0.03 + (c.lunge || 0) * 0.045);
       ctx.globalAlpha = 1;
     }
     ctx.restore();
@@ -220,7 +229,8 @@ CREATURES.walker = {
   // pumping, a hand coming up past its chin each stride. In the last few metres the arms come up and out for the boards.
   // Its legs go by c.gait, which the night strides out to the speed it is going.
   drawCharge(ctx, c, P) {
-    const g = c.gait, body = P.col([6, 6, 10]), skin = P.col([92, 84, 88]), eye = P.col([225, 218, 205]), k = this.kit(P), t = c.t;
+    const g = c.gait, body = P.col([6, 6, 10]), skin = P.col([92, 84, 88]), eye = P.col([225, 218, 205]);
+    const ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
     const reach = smoothstep((6.5 - c.dist) / 3.5);
     const bob = Math.abs(Math.sin(g)) * 0.08;   // in the air between footfalls
     const roll = Math.sin(g) * 0.05 * (1 - reach);   // the shoulders roll with the stride
@@ -239,9 +249,8 @@ CREATURES.walker = {
         kr = lerp(a[1], b[1], k); fy = lerp(a[2], b[2], k);
       }
       const lift = (kr - 0.5) / 0.36, hx = s * 0.08, kx = s * (0.12 + 0.05 * lift), ky = hipY * kr, fx = s * (0.13 - 0.04 * lift);
-      P_limb(ctx, [[hx, hipY], [kx, ky], [fx, fy]], 0.075 + 0.025 * lift, body);
-      if (fy < 0.2) P_line(ctx, fx - 0.045, fy, fx + 0.045, fy, 0.065, body);   // the foot, toes at you
-      this.trouser(ctx, k, [hx, hipY], [kx, ky], [fx, fy], 0.075 + 0.025 * lift, t, s + 2);
+      this.limb(ctx, [hx, hipY], [kx, ky], [fx, fy], this.LEG, body, ridge, ba, 1 + lift / 3);
+      if (fy < 0.2) P_line(ctx, fx - 0.04, fy, fx + 0.04, fy, 0.045, body);   // the foot, toes at you
     }
     // the arms swing against the legs, bent hard at the elbow: fwd 1 is the upper arm swung forward at you and the hand up
     // by its chin, 0 hanging with the forearm pointing at you (so the hand is by the elbow), -1 swung back, the elbow up
@@ -252,26 +261,22 @@ CREATURES.walker = {
       const th = fwd * 1.1, sx = s * 0.21, sy = top - 0.04;
       const ex = s * lerp(0.3 - 0.05 * Math.abs(fwd), 0.5, reach), ey = lerp(sy - 0.56 * Math.cos(th), top - 0.15, reach);
       const hx = s * lerp(0.27 - 0.13 * Math.max(0, fwd) + 0.03 * Math.max(0, -fwd), 0.42, reach), hy = lerp(ey - 0.52 * Math.cos(th + 1.6), top + 0.2, reach);
-      P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
-      this.sleeve(ctx, k, [sx, sy], [ex, ey], [hx, hy], t, s + 5);
+      this.limb(ctx, [sx, sy], [ex, ey], [hx, hy], this.ARM, body, ridge, ba);
+      this.shoulder(ctx, sx, sy, body, ridge, ba);
       const ang = lerp(Math.atan2(hy - ey, hx - ex) + s * 0.25, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, reach);
-      this.claws(ctx, hx, hy, ang, lerp(0.14, 0.3, reach), lerp(0.08 + 0.09 * Math.abs(fwd), 0.22, reach), 0.018, body, P);   // pointing at you, the fingers are foreshortened too
+      this.claws(ctx, hx, hy, ang, lerp(0.14, 0.3, reach), lerp(0.08 + 0.09 * Math.abs(fwd), 0.22, reach), 0.018, body, P, ba);   // pointing at you, the fingers are foreshortened too
     };
     for (const s of [-1, 1]) arm(s, false);
-    const torso = [[-0.14, hipY - 0.06], [0.14, hipY - 0.06], [0.22, top], [-0.22, top]];   // the torso, bent at you: shorter, and still far too narrow
-    P_poly(ctx, torso, body); this.coat(ctx, k, ...torso, t, true);
+    this.chest(ctx, body, ridge, ba, [-0.14, hipY - 0.06], [0.14, hipY - 0.06], [0.22, top], [-0.22, top], true);   // the torso, bent at you: shorter, and still far too narrow
     for (const s of [-1, 1]) arm(s, true);
     // the head, low and thrust out ahead of the shoulders, nearer and so a little bigger; the mouth open
     ctx.translate(0, top - 0.24); ctx.scale(1.15, 1.15);
-    P_line(ctx, 0, 0.08, 0, 0.2, 0.07, body);
-    ctx.save(); ctx.translate(0, 0.08); this.neckTie(ctx, k); ctx.restore();
+    this.neck(ctx, 0.08, 0.2, body, ridge, ba);
     P_ell(ctx, 0, 0.3, 0.115, 0.175, body);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
     if (faceA > 0) {
       ctx.globalAlpha = faceA;
-      P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
-      for (const x of [-0.036, 0.036]) P_ell(ctx, x, 0.318, 0.0155, 0.0155, eye);   // blank eyes, round: no pupils
-      P_ell(ctx, 0, 0.205, 0.034, 0.042 + 0.012 * reach, body);
+      this.face(ctx, P, skin, eye, body, 0.318, 0.0155, 0.034, 0.042 + 0.012 * reach);
       ctx.globalAlpha = 1;
     }
     ctx.restore();
@@ -279,7 +284,7 @@ CREATURES.walker = {
   // flat out, seen from the side: leaning far forward, the long legs reaching and kicking up behind, the arms pumping,
   // the head pushed out ahead. c.runDir is +1 running to the right of the view, -1 to the left; c.runGait its stride.
   drawRun(ctx, c, P) {
-    const g = c.runGait || 0, body = P.col([6, 6, 10]), eye = P.col([225, 218, 205]), k = this.kit(P), t = c.t;
+    const g = c.runGait || 0, body = P.col([6, 6, 10]), eye = P.col([225, 218, 205]), ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
     const lean = 0.42, thigh = 0.62, shin = 0.64, upper = 0.56, fore = 0.52;
     ctx.save(); ctx.scale(c.runDir || 1, 1);
     const legs = [0, Math.PI].map(o => {
@@ -289,30 +294,36 @@ CREATURES.walker = {
     });
     const hipY = 0.03 - Math.min(legs[0].fy, legs[1].fy), hipX = 0;   // whichever foot is lowest is on the ground
     const sx = hipX + Math.sin(lean) * 0.82, sy = hipY + Math.cos(lean) * 0.82;
-    const limb = (l, n) => {
-      const leg = [[hipX, hipY], [hipX + l.kx, hipY + l.ky], [hipX + l.fx, hipY + l.fy]];
-      P_limb(ctx, leg, 0.075, body);
-      P_line(ctx, hipX + l.fx - 0.02, hipY + l.fy, hipX + l.fx + 0.11, hipY + l.fy - 0.01, 0.065, body);   // the foot, toes forward
-      this.trouser(ctx, k, ...leg, 0.075, t, n + 2);
+    const limb = l => {
+      this.limb(ctx, [hipX, hipY], [hipX + l.kx, hipY + l.ky], [hipX + l.fx, hipY + l.fy], this.LEG, body, ridge, ba);
+      P_line(ctx, hipX + l.fx - 0.02, hipY + l.fy, hipX + l.fx + 0.11, hipY + l.fy - 0.01, 0.045, body);   // the foot, toes forward
       // the arm on the other side swings against this leg
       const aa = -Math.sin(l.ph) * 1.0, ex = sx + Math.sin(aa) * upper, ey = sy - Math.cos(aa) * upper, fa = aa + 1.0;
       const hx = ex + Math.sin(fa) * fore, hy = ey - Math.cos(fa) * fore;
-      P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
-      this.sleeve(ctx, k, [sx, sy], [ex, ey], [hx, hy], t, n + 5);
-      this.claws(ctx, hx, hy, Math.atan2(hy - ey, hx - ex), 0.14, 0.17, 0.018, body, P);
+      this.limb(ctx, [sx, sy], [ex, ey], [hx, hy], this.ARM, body, ridge, ba);
+      this.shoulder(ctx, sx, sy, body, ridge, ba);
+      this.claws(ctx, hx, hy, Math.atan2(hy - ey, hx - ex), 0.14, 0.17, 0.018, body, P, ba);
     };
-    limb(legs[1], 1);   // the far side first
-    const torso = [[hipX - 0.12, hipY - 0.05], [hipX + 0.1, hipY - 0.05], [sx + 0.13, sy], [sx - 0.15, sy - 0.02]];   // the torso, side on: still far too narrow
-    P_poly(ctx, torso, body); this.coat(ctx, k, ...torso, t, false);
-    limb(legs[0], -1);
+    limb(legs[1]);   // the far side first
+    this.chest(ctx, body, ridge, ba, [hipX - 0.12, hipY - 0.05], [hipX + 0.1, hipY - 0.05], [sx + 0.13, sy], [sx - 0.15, sy - 0.02], false);   // the torso, side on: still far too narrow
+    limb(legs[0]);
     // the neck and the head, thrust forward of the shoulders
     const nx = sx + Math.sin(lean + 0.5) * 0.16, ny = sy + Math.cos(lean + 0.5) * 0.16;
-    P_line(ctx, sx, sy, nx, ny, 0.07, body);
-    this.tie(ctx, k, lerp(sx, nx, 0.55), lerp(sy, ny, 0.55), Math.atan2(ny - sy, nx - sx), 0.04);   // the twine tying its head on
+    P_line(ctx, sx, sy, nx, ny, 0.056, body);
+    this.faint(ctx, ba, () => P_line(ctx, lerp(sx, nx, 0.1) + 0.012, lerp(sy, ny, 0.1), lerp(sx, nx, 0.9) + 0.006, lerp(sy, ny, 0.9), 0.007, ridge));   // a tendon
     const hx = nx + Math.sin(lean + 0.3) * 0.17, hy = ny + Math.cos(lean + 0.3) * 0.17;
     P_ell(ctx, hx, hy, 0.12, 0.16, body, -lean * 0.6);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
-    if (faceA > 0) { ctx.globalAlpha = faceA; P_ell(ctx, hx + 0.07, hy + 0.03, 0.015, 0.015, eye); ctx.globalAlpha = 1; }
+    if (faceA > 0) {   // side on: the eye in its socket, the cheekbone under it and the line of the jaw
+      const hol = P.col(this.GREY.hollow);
+      ctx.globalAlpha = faceA;
+      P_ell(ctx, hx + 0.07, hy + 0.03, 0.027, 0.027, hol);
+      P_ell(ctx, hx + 0.07, hy + 0.03, 0.015, 0.015, eye);
+      ctx.globalAlpha = faceA * ba;
+      P_line(ctx, hx + 0.03, hy - 0.025, hx + 0.1, hy - 0.012, 0.009, ridge);
+      P_line(ctx, hx - 0.02, hy - 0.05, hx + 0.08, hy - 0.11, 0.008, ridge);
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
   },
 };

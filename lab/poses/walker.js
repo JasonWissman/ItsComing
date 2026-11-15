@@ -1,8 +1,9 @@
 'use strict';
-// Night 1, The Road: the walker (js/creatures/walker.js; its moves are set by js/levels/night01.js). Styled as a creepy
-// scarecrow (CREATURES.walker.KIT and coat, sleeve, trouser, straw, twig): a faded, patched work coat over the black, its
-// hem ragged, a rope belt, twine at the wrists, the ankles and the neck, straw at the cuffs, the ankles, the collar and
-// through a rip, and twig fingers. Its proportions, its poses and its head and face are unchanged: no sack, no hat.
+// Night 1, The Road: the walker (js/creatures/walker.js; its moves are set by js/levels/night01.js). All black, starved,
+// its skin pulled tight over its bones (CREATURES.walker.limb, chest, neck, face, claws): thin limbs knobbed at the knees
+// and elbows, thinner wrists and ankles, a narrow torso sunk in under its ribs, a neck of tendons, bony fingers knotted at
+// the knuckles with black nails. The bone shows in faint greys only close to (boneA); far off it is a black figure. Its
+// proportions, poses and dark oval head with the pale grey face are its own: no sack, no hat.
 (() => {
   const BOARDS = [[0.34, 0.88], [0.96, 1.5], [1.79, 2.29]];   // night 1's boards across the doorway (bottom, top), metres
   const LINTEL = 2.16;                                        // the doorways are a head too low for it
@@ -12,13 +13,13 @@
   LAB.creature('walker', {
     night: 1, stage: 'The Road', dist: 12,
     anims: [
-      { name: 'Walking at you', note: 'Its walk down the road, far off: the snapping head tilt, the arms hanging to its knees; a scarecrow in a patched coat, roped at the waist, straw at its cuffs, collar and ankles.', dist: 20, walk: 1.0, dur: 6 },
-      { name: 'Closing in', note: 'From 24 m to 2 m: the arms rise toward you and the face and mouth come up as it nears.', walk: 1.0, dur: 7,
+      { name: 'Walking at you', note: 'Its walk down the road, far off: the snapping head tilt, the arms hanging to its knees; far off, only a tall thin black figure.', dist: 20, walk: 1.0, dur: 6 },
+      { name: 'Closing in', note: 'From 24 m to 2 m: the arms rise toward you, and the gaunt face, the opening mouth and the bones under its skin come up as it nears.', walk: 1.0, dur: 7,
         tick(c, k) { c.dist = lerp(24, 2, k); } },
       { name: 'Ducking under the lintel', note: 'Coming in through a doorway a head too low for it: it bends down under the lintel, then straightens inside.', dist: 4, walk: 0.9, dur: 6, fit: { h: 2.8 },
         back: doorway,
         tick(c, k) { c.headroom = k < 0.3 ? lerp(2.7, LINTEL - 0.3, smoothstep(k / 0.3)) : k < 0.65 ? LINTEL - 0.3 : lerp(LINTEL - 0.3, 2.66, smoothstep((k - 0.65) / 0.3)); } },
-      { name: 'Peering through the boards', note: 'The win: it stoops to look in through the gap between the boards and pounds on them, a hand at a time, its twig fingers hooked over the board.', dist: 3, dur: 4.6, fit: { h: 2.6, w: 1.6 },
+      { name: 'Peering through the boards', note: 'The win: it stoops to look in through the gap between the boards and pounds on them, a hand at a time, its bony fingers hooked over the board.', dist: 3, dur: 4.6, fit: { h: 2.6, w: 1.6 },
         set(c) { c.peer = 0.35; c.blow = 1; },
         tick(c, k, dt, T) {
           c.peer = Math.min(1, c.peer + dt / 0.45); c.blow = Math.max(0, (c.blow || 0) - dt * 5);
@@ -28,7 +29,7 @@
         },
         front(ctx, c, P) {
           for (const [y0, y1] of BOARDS) { P_rect(ctx, -0.7, y0, 1.4, y1 - y0, wood(P)); P_rect(ctx, -0.7, y0, 1.4, 0.025, woodD(P)); }
-          for (const side of [-1, 1]) {   // its twig fingers over the board under the gap, unless that hand is up
+          for (const side of [-1, 1]) {   // its bony fingers over the board under the gap, unless that hand is up
             if (c.handLift && c.handLift[side > 0 ? 1 : 0] > 0.2) continue;
             CREATURES.walker.grip(ctx, P, side, side * 0.36, 1.4);
           }
