@@ -18,9 +18,9 @@ CREATURES.crawler = {
     const scut = c.mode === 'scuttle' && !c.frozen;
     const near = clamp(1 - c.dist / 18, 0, 1);
     const lit = c.lit || 0;
-    const skinC = mixc([150, 142, 130], [232, 224, 210], lit);
-    const skin = P.col(skinC), skinD = P.col(scalec(skinC, 0.62));
-    const dark = P.col([40, 30, 34]);
+    const skinC = mixc([62, 57, 53], [96, 90, 84], lit);
+    const skin = P.col(skinC), skinD = P.col(scalec(skinC, 0.52));
+    const dark = P.col([26, 19, 22]);
     const mouthC = P.col([12, 6, 8]);
     const j = k => (scut ? Math.sin(t * 57 + k * 7.3) * 0.035 + Math.sin(t * 91 + k * 3.1) * 0.02 : 0);
     const lift = c.mode === 'pause' ? smoothstep(Math.min(1, c.modeT / 0.5)) * 0.14 : 0;
@@ -56,7 +56,7 @@ CREATURES.crawler = {
   // right; c.runDir -1 mirrors it
   drawRun(ctx, c, P) {
     const g = c.runGait || 0, t = c.t, lit = c.lit || 0;
-    const skinC = mixc([150, 142, 130], [232, 224, 210], lit), skin = P.col(skinC), skinD = P.col(scalec(skinC, 0.62)), dark = P.col([40, 30, 34]), mouthC = P.col([12, 6, 8]);
+    const skinC = mixc([62, 57, 53], [96, 90, 84], lit), skin = P.col(skinC), skinD = P.col(scalec(skinC, 0.52)), dark = P.col([26, 19, 22]), mouthC = P.col([12, 6, 8]);
     ctx.save(); ctx.scale(c.runDir || 1, 1);
     const bob = Math.abs(Math.sin(g * 2)) * 0.04;
     // a leg from the hip: the knee folded up over the back, the hand or foot reaching out along the ground and pulled back
