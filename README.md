@@ -475,7 +475,11 @@ LEVELS.push({
   door) takes `face` instead: the yaw its front looks toward, in the night's frame (`Math.PI` looks back at you from in
   front). It is drawn flat on that face in true perspective, as the face itself is, never turning toward you and not
   drawn from behind; a target given the same `face` has a hit area of exactly the shape it covers on the view, so what
-  you click stays on what is drawn however you turn or look down (night 11's breaker box).
+  you click stays on what is drawn however you turn or look down (night 11's breaker box, night 2's gearstick, pedal
+  and ignition, night 9's pay phone). A plain billboard on a wall or a console turns with the view as you look round,
+  so anything fixed to a surface takes `face` (or is built of polys, as night 10's fallen dust sheet is). `face` is not
+  turned by `SC.withYaw`: inside one, give the world yaw (the frame's own yaw plus `Math.PI` for a front looking back
+  at you).
 - **Hover glow**: only things you can pick up (items) glow when pointed at; a target (a door, a gate, a switch) gets the
   pointer cursor alone. The glow plumbing below still exists for a night that lights a target its own way (`L.highlight()`,
   the phone's keys under a gamepad): a target glows in the shape of the things it is drawn with, as an item glows in its own. `glowWith(t, props)` names them (`SC.grab(L, fn)` returns the props `fn` builds); a per-frame

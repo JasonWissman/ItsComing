@@ -65,7 +65,9 @@ LEVELS.push({
       if (south) SC.doorway(L, { deg: 180, z: 3.5, x: 2.3, w: 1.2, h: 2.3, wallH: 3.2, left: 1.7, right: 3.5, color: board });
       SC.withYaw(L, m.deg, () => {
         for (const [x0, x1, y0, y1] of [[-0.92, -0.8, 0.13, 2.57], [0.8, 0.92, 0.13, 2.57], [-0.92, 0.92, 0.13, 0.25], [-0.92, 0.92, 2.45, 2.57]]) SC.wallV(L, x0, 3.47, x1, 3.47, y0, y1, gilt);
-        SC.sprite(L, 0, 2.55, 3.46, 0.3, 0.3, (ctx, P) => { ctx.scale(0.3, 0.3); crest(ctx, P); });
+        // (the crest and the bulbs are fixed flat on the wall, looking back into the room: they never turn with the view)
+        const onWall = { face: m.deg * DEG + Math.PI };
+        SC.sprite(L, 0, 2.55, 3.46, 0.3, 0.3, (ctx, P) => { ctx.scale(0.3, 0.3); crest(ctx, P); }, onWall);
         SC.quad(L, [-0.86, 0.2, 3.62], [0.86, 0.2, 3.62], [0.86, 2.5, 3.62], [-0.86, 2.5, 3.62], [20, 16, 22], { dist: 60, sortDist: 7.2 });   // drawn over anything behind the wall, under the reflection
         SC.quad(L, [-0.86, 0.2, 3.61], [0.86, 0.2, 3.61], [0.86, 0.62, 3.61], [-0.86, 0.62, 3.61], [44, 38, 36], { dist: 59.5, sortDist: 7.15 });
         SC.quad(L, [-0.8, 0.25, 3.48], [0.8, 0.25, 3.48], [0.8, 2.45, 3.48], [-0.8, 2.45, 3.48], [120, 140, 170], { alpha: 0.2, noLight: true });
@@ -81,7 +83,7 @@ LEVELS.push({
           else { seam(0.92, 1.7, 0.8, 1.7); if (y > 2.3) seam(1.7, 2.9, 1.7, 2.9); seam(2.9, 3.5, 2.9, 3.5); }
         }
         // a row of fairground bulbs, unlit after closing: a dim glass bulb on a brass socket
-        for (let x = -3.1; x < 3.5; x += 0.6) if (Math.abs(x) > 1.1) SC.sprite(L, x, 2.85, 3.46, 0.1, 0.12, (ctx, P) => { ctx.scale(0.1, 0.12); P_rect(ctx, -0.26, 0, 0.52, 0.3, P.col([96, 76, 40])); P_ell(ctx, 0, 0.6, 0.4, 0.38, P.col([106, 92, 74])); P_ell(ctx, -0.13, 0.7, 0.1, 0.1, P.col([150, 138, 116])); });
+        for (let x = -3.1; x < 3.5; x += 0.6) if (Math.abs(x) > 1.1) SC.sprite(L, x, 2.85, 3.46, 0.1, 0.12, (ctx, P) => { ctx.scale(0.1, 0.12); P_rect(ctx, -0.26, 0, 0.52, 0.3, P.col([96, 76, 40])); P_ell(ctx, 0, 0.6, 0.4, 0.38, P.col([106, 92, 74])); P_ell(ctx, -0.13, 0.7, 0.1, 0.1, P.col([150, 138, 116])); }, onWall);
       });
     });
     // the way out onto the dark fair, through the south wall to the right of its mirror: curtains pulled aside, and the
@@ -375,11 +377,18 @@ LEVELS.push({
       sheetAt[k] = list;
       const sheet = L.targets.find(t => t.id === 'sheet' + k);
       if (sheet) glowWith(sheet, list);
-      heapAt[k] = SC.mkSprite(L, 0, 0, 3.22, 1.3, 0.3, (ctx, P) => {
-        ctx.scale(1.3, 0.3);
-        P_poly(ctx, [[-0.5, 0], [-0.47, 0.32], [-0.32, 0.56], [-0.14, 0.5], [0.02, 0.82], [0.2, 0.64], [0.36, 0.72], [0.48, 0.36], [0.5, 0]], P.col([150, 142, 126]));
-        for (const [x0, y0, x1, y1] of [[-0.32, 0.08, -0.16, 0.46], [0.06, 0.06, 0.16, 0.6], [0.3, 0.1, 0.38, 0.56]]) P_line(ctx, x0, y0, x1, y1, 0.035, P.col([112, 104, 92]));
-      });
+      // the heap is built where it lies, on the floor at the foot of the glass, so it stays put however you turn: a corner
+      // of the sheet spread flat on the tiles toward you, and the crumpled mound, a front slope up from a ragged foot to an
+      // uneven ridge (its back, against the glass, never shows from the middle of the room), in folds of light and shade
+      const heapCol = [150, 142, 126], heapFold = [118, 110, 96];
+      const RX = [-0.65, -0.61, -0.42, -0.18, 0.03, 0.26, 0.47, 0.62, 0.65], RY = [0, 0.1, 0.17, 0.15, 0.25, 0.19, 0.22, 0.11, 0];
+      const FZ = [3.16, 3.1, 3.06, 3.09, 3.04, 3.08, 3.05, 3.11, 3.17], RZ = [3.36, 3.33, 3.31, 3.32, 3.29, 3.31, 3.3, 3.33, 3.37];
+      const heap = [poly([[-0.55, 0.006, 3.12], [-0.2, 0.006, 2.9], [0.24, 0.006, 2.96], [0.4, 0.006, 3.1], [-0.3, 0.006, 3.14]], heapCol)];
+      for (let i = 0; i < RX.length - 1; i++) {
+        const c = i % 2 ? heapFold : heapCol;
+        heap.push(poly([[RX[i], 0.004, FZ[i]], [RX[i + 1], 0.004, FZ[i + 1]], [RX[i + 1], RY[i + 1], RZ[i + 1]], [RX[i], RY[i], RZ[i]]], c));
+      }
+      heapAt[k] = heap;
     }));
     // a ring of light spreading on the glass where the thing goes through it
     const ripple = (q, a) => SC.mkSprite(L, 0, 0, 0, 1, 1, (ctx, P) => {
@@ -418,7 +427,7 @@ LEVELS.push({
         const sf = s.sheetFall && s.sheetFall.k === k ? clamp((L.t - s.sheetFall.t0) / 0.25, 0, 1) : 1;
         if (!m.live) for (const q of sheetAt[k]) R.add(q);
         else if (sf < 1) { const e = easeIn(sf); for (const q of sheetAt[k]) R.add(Object.assign({}, q, { pts: q.pts.map(w => [w[0], 0.05 + (w[1] - 0.05) * (1 - e), w[2]]) })); }   // it slides off the glass
-        else if (L.targets.some(t => t.id === 'sheet' + k)) R.add(heapAt[k]);
+        else if (L.targets.some(t => t.id === 'sheet' + k)) for (const q of heapAt[k]) R.add(q);
       });
       if (s.ripples) for (const rp of s.ripples) { const a = (L.t - rp.t0) / 0.9; if (a < 1) R.add(ripple(onLine(3.47, rp.lat, 0.35), a)); }
       // the music box on its pedestal (whichever it is on), or on its way off it into the doll's arms: over the pedestal's

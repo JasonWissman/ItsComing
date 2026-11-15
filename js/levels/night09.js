@@ -519,8 +519,11 @@ Object.assign(ICONS, {
           SC.quad(L, w[0], w[1], w[2], w[3], scalec(col, k), opts);
         }
       };
-      // a sprite on the phone, at its size there (drawn at full size, as it was made, and brought in to PK)
-      const phSprite = (u, y, d, w, h, draw, opts) => { const p = ph(u, y, d); return SC.mkSprite(L, p[0], p[1], p[2], w * PK, h * PK, (ctx, P) => { ctx.scale(PK, PK); draw(ctx, P); }, opts); };
+      // a sprite on the phone, at its size there (drawn at full size, as it was made, and brought in to PK), fixed flat on
+      // the face of the phone (PH_FACE: it looks back along the line into the corner, at you), so it stays on the housing,
+      // in its perspective, whichever way you look
+      const PH_FACE = -0.75 * Math.PI;
+      const phSprite = (u, y, d, w, h, draw, opts) => { const p = ph(u, y, d); return SC.mkSprite(L, p[0], p[1], p[2], w * PK, h * PK, (ctx, P) => { ctx.scale(PK, PK); draw(ctx, P); }, Object.assign({ face: PH_FACE }, opts)); };
       const HW = 0.082, HY0 = 1.2;   // the housing's half width, and its foot
       const LCD = { u0: -0.07, u1: 0.026, y0: 1.66, y1: 1.725 }, SLOT = { u0: 0.038, u1: 0.072, y0: 1.66, y1: 1.725 };
       const RET = { u0: -0.045, u1: 0.045, y0: 1.212, y1: 1.284 }, RX = 0.138;   // the coin return; where the receiver hangs
@@ -638,14 +641,14 @@ Object.assign(ICONS, {
         if (s.dialed.length === 7) { s.line = s.dialed === s.number ? 'connecting' : 'checking'; s.doneAt = L.t; }
       };
       const receiver = mkTarget(L, {
-        id: 'receiver', name: 'Receiver', ...(([x, y, z]) => ({ x, y, z }))(ph(RX, 1.3, 0.135)), w: 0.11 * PK, h: 0.44 * PK,
+        id: 'receiver', name: 'Receiver', ...(([x, y, z]) => ({ x, y, z }))(ph(RX, 1.3, 0.135)), w: 0.11 * PK, h: 0.44 * PK, face: PH_FACE,
         onClick() { if (s.line === 'answered') return true; if (s.hook === 'on') lift(); else hangUp(); return true; },
       });
       // a target stands a little in front of the face, and is placed and sized so that on screen it covers just what it
       // stands for there (what glows when it is pointed at is what it stands for: glowWith)
       const front = (u, y0, w, h, d) => {
         const k = (WD - (d || 0.125) * PK) / (WD - 0.104 * PK), p = ph(u, y0, 0.104);   // (the face's point, brought toward the eye)
-        return { x: p[0] * k, y: L.eyeH + (p[1] - L.eyeH) * k, z: p[2] * k, w: w * PK * k, h: h * PK * k };
+        return { x: p[0] * k, y: L.eyeH + (p[1] - L.eyeH) * k, z: p[2] * k, w: w * PK * k, h: h * PK * k, face: PH_FACE };   // (parallel to the face: on screen just where it is)
       };
       // the keys: each a target of its own, a little bigger than the key, and drawn each frame so it can go down when pressed
       const keys = [], KEY_NAME = { '*': 'star', '#': 'hash' };
@@ -1106,8 +1109,18 @@ Object.assign(ICONS, {
         P_rect(ctx, -w / 2, 0, w, h, txt ? P.raw([140, 180, 124]) : P.col([38, 48, 40]));
         if (!txt) return;
         ctx.fillStyle = P.raw([20, 34, 22]); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-        ctx.save(); ctx.translate(-w / 2 + 0.006, h - 0.016); ctx.scale(0.0006, -0.0006); ctx.font = 'bold 20px Arial, Helvetica, sans-serif'; ctx.fillText(txt[0], 0, 0); ctx.restore();
-        ctx.save(); ctx.translate(-w / 2 + 0.006, 0.01); ctx.scale(0.00125, -0.00125); ctx.font = 'bold 20px "Courier New", "Liberation Mono", monospace'; ctx.fillText(txt[1], 0, 0); ctx.restore();
+        // each line at its own size, or smaller if that is what it takes to stay inside the screen (a whole number dialled
+        // comes down a little), never past its right edge
+        const PAD = 0.006, room = w - 2 * PAD;
+        const line = (text, y, font, k) => {
+          if (!text) return;
+          ctx.font = font;
+          const tw = ctx.measureText(text).width;
+          if (tw * k > room) k = room / tw;
+          ctx.save(); ctx.translate(-w / 2 + PAD, y); ctx.scale(k, -k); ctx.fillText(text, 0, 0); ctx.restore();
+        };
+        line(txt[0], h - 0.016, 'bold 20px Arial, Helvetica, sans-serif', 0.0006);
+        line(txt[1], 0.01, 'bold 20px "Courier New", "Liberation Mono", monospace', 0.00125);
       }, { sortDist: FD - 0.016, noLight: true });
       // the front lip of the coin return, drawn over a coin lying in it
       const lip = SC.mkQuad(L, ph(RET.u0 + 0.008, RET.y0 + 0.006, 0.104), ph(RET.u1 - 0.008, RET.y0 + 0.006, 0.104), ph(RET.u1 - 0.008, RET.y0 + 0.017, 0.104), ph(RET.u0 + 0.008, RET.y0 + 0.017, 0.104), [150, 154, 162], { sortDist: FD - 0.035 });

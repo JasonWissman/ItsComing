@@ -49,7 +49,7 @@ module.exports = {
     ['expect', 'G.L.s.cranks === 0 && !G.L.s.started', 'it strained a few degrees and went back, and the engine never turned'],
     // the stick at the edge of the view, looking down from the wheel: the hand still goes to the knob where it is drawn
     ['face', 0, true], ['click', 'gear'],
-    ['expect', "G.L.s.gear === 'P' && G.hand.reach && G.hand.reach.target.id === 'gear' && G.hand.reach.style === 'pull' && (() => { const a = G.hand.reach.at, q = R.screenPos(a.x, a.y, a.z), h = R.hits.find(h => h.kind === 'target' && h.ref.id === 'gear'); return !!q && !!h && q.x > h.x && q.x < h.x + h.w && q.y > h.y && q.y < h.y + h.h * 0.4; })()", 'into park: the hand takes the knob, where it is drawn, and pulls it over'],
+    ['expect', "G.L.s.gear === 'P' && G.hand.reach && G.hand.reach.target.id === 'gear' && G.hand.reach.style === 'pull' && (() => { const a = G.hand.reach.at, q = R.screenPos(a.x, a.y, a.z), h = R.hits.find(h => h.kind === 'target' && h.ref.id === 'gear'); if (!q || !h || !h.poly || h.poly.length !== 4) return false; const y = q.y + R.viewY, [b0, b1, t1, t0] = h.poly, d = (p, r) => Math.hypot(q.x - (p[0] + r[0]) / 2, y - (p[1] + r[1]) / 2); return inPoly(q.x, y, h.poly) && d(t0, t1) < d(b0, b1); })()", 'into park: the hand takes the knob, where it is drawn (on the plate fixed to the console, up near its top), and pulls it over'],
     ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6], ['expect', 'G.L.s.started', 'engine started'],
     ['use', 'gas'], ['expect', "!G.L.s.gone && G.L.s.gear === 'P' && G.state === 'play'", 'in park the gas only revs'],
     ['branch', 'G.runSeed % 3 === 2', forward, reverse],

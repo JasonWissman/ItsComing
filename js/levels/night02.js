@@ -64,6 +64,7 @@ LEVELS.push({
     const GAUGES = [-0.16, 0.0, 0.16];                                     // the three dials behind the wheel
     const IX = 0.33, IY = 0.905, IZ = 0.545;                               // the centre of the ignition lock, in the dash face right of the dials
     const GX = 0.36, GY = 0.56, GZ = 0.12, GW = 0.2, GH = 0.28;            // the gearstick's plate, standing on the console
+    const GFACE = -Math.PI / 2;                                            // which way its front looks: across the car, toward your seat
     const CX0 = 0.27, CX1 = 0.45, CZ0 = -0.04, CZ1 = 0.36, CY = GY;       // the console between the seats
     const PX = 0.16, PY = 0.36, PZ = 0.47, PW = 0.11, PH = 0.22;           // the gas pedal, in your own footwell
     const onVerge = (x, z) => z > 0 && Math.abs(Math.abs(Math.atan2(x, z)) - 11 * DEG) < 2 * DEG;   // nothing stands on the verge lanes
@@ -178,7 +179,7 @@ LEVELS.push({
       return rc;
     };
     const ign = mkTarget(L, {   // the box is the lock and the key in it, as they are drawn
-      id: 'ignition', name: 'Ignition', x: IX, y: IY - 0.075, z: IZ, w: 0.11, h: 0.12, accepts: ['keys', 'housekeys'], attach: true,
+      id: 'ignition', name: 'Ignition', x: IX, y: IY - 0.075, z: IZ, w: 0.11, h: 0.12, accepts: ['keys', 'housekeys'], attach: true, face: Math.PI,
       fumble: { at: KEYHOLE, sfx: { land: 'keys' } },   // tried at the keyhole; keys that drop jingle on the floor
       onDecoy(item) { if (!G.fumble(item, ign, { preset: 'bump', land: atFeet(item) }) && !G.fumbling) AUDIO.sfx('nope'); },
       hint() { return s.started ? 'Running.' : s.keyIn ? (s.gear !== 'P' ? 'Turn the key. It is still in ' + GEAR_NAME[s.gear] + ', though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
@@ -221,23 +222,16 @@ LEVELS.push({
     const gearK = () => smoothstep(clamp((L.t - s.gearAt) / 0.18, 0, 1));   // how far over it is to the gear it is going to
     const shownGear = () => (gearK() >= 0.5 ? s.gear : s.gearFrom);
     // the knob, in the world, with the stick over lx (as the plate draws it: the knob leans out over the letter, at 0.25 up),
-    // a little toward the eye, where the hand takes it. The plate is drawn square to the view, so the knob is where it is
-    // drawn on it: looking down at the console from ahead, straight up from the plate's foot in the world is well off it
-    // on the view. So it is the point on the line of sight to the knob as drawn, at the plate's depth.
+    // a little toward the eye, where the hand takes it. The plate stands on the console fixed to the car like the console
+    // itself (GFACE: its front looks toward your seat, across the car), so the knob is a fixed point on it; with the car
+    // away it is where the car is now
     const knobAt = lx => {
-      const yaw = Math.atan2(GX, GZ), u = lx * 0.6, x = GX + Math.cos(yaw) * u, z = GZ - Math.sin(yaw) * u, y = GY + 0.25;
-      const b = L.pt(GX, GY, GZ), tp = L.pt(GX, GY + GH, GZ), q = R.screenPos(b[0], b[1], b[2]), qt = R.screenPos(tp[0], tp[1], tp[2]);
-      if (q && qt) {
-        const sx = q.x + u * q.scale, sy = q.y - (q.y - qt.y) * 0.25 / GH, depth = q.depth - 0.02, c = G.cam, e = L.eye || {};
-        const xc = (sx - R.W / 2) / R.f, yc = -(sy - R.H / 2) / R.f, cp = Math.cos(c.pitch), sp = Math.sin(c.pitch), cy = Math.cos(c.yaw), sy2 = Math.sin(c.yaw);
-        const vy = yc * cp - sp, vz = yc * sp + cp;
-        return { x: (e.x || 0) + (xc * cy + vz * sy2) * depth, y: L.eyeH + (e.y || 0) + vy * depth, z: (e.z || 0) + (-xc * sy2 + vz * cy) * depth };
-      }
+      const u = lx * 0.6, x = GX - Math.cos(GFACE) * u, z = GZ + Math.sin(GFACE) * u, y = GY + 0.25, e = L.eye || {};
       const dx = -x, dy = L.eyeH - y, dz = -z, dl = Math.hypot(dx, dy, dz), p = L.pt(x + dx / dl * 0.02, y + dy / dl * 0.02, z + dz / dl * 0.02);
-      return { x: p[0], y: p[1], z: p[2] };
+      return { x: p[0] + (e.x || 0), y: p[1] + (e.y || 0), z: p[2] + (e.z || 0) };
     };
     const gear = mkTarget(L, {
-      id: 'gear', name: 'Gearstick', x: GX, y: GY, z: GZ, w: GW, h: GH, attach: true,
+      id: 'gear', name: 'Gearstick', x: GX, y: GY, z: GZ, w: GW, h: GH, attach: true, face: GFACE,
       hint() { return 'In ' + GEAR_NAME[s.gear] + '.'; },
       onClick() {
         if (s.gone || s.ram) return true;
@@ -254,7 +248,7 @@ LEVELS.push({
     });
     // the gas pedal, in your own footwell
     const gas = mkTarget(L, {
-      id: 'gas', name: 'Gas pedal', x: PX, y: PY, z: PZ, w: PW, h: PH, attach: true,
+      id: 'gas', name: 'Gas pedal', x: PX, y: PY, z: PZ, w: PW, h: PH, attach: true, face: Math.PI,
       hint() { return s.started ? (s.gear === 'P' ? 'It is in park.' : 'Go.') : 'The engine is not running.'; },
       onClick() {
         if (s.gone || s.ram) return true;
@@ -404,7 +398,7 @@ LEVELS.push({
       P_rect(ctx, -0.019, -0.009, 0.038, 0.007, P.col(scalec(green, 0.6)));
       P_ell(ctx, 0, 0.028, 0.006, 0.006, P.col(scalec(green, 0.5)));
       ctx.restore();
-    }, { attach: true, sortDist: 0.45 });
+    }, { attach: true, sortDist: 0.45, face: Math.PI });   // (set in the dash face, it looks back at you and never turns)
     glowWith(ign, [lock]);
     // the dials behind the wheel light up once the engine runs, their needles up off the stops: the speed, the revs (which
     // jump when you press the gas) and the fuel
@@ -469,7 +463,7 @@ LEVELS.push({
         });
         P_line(ctx, lx, 0.068, lx * 0.6, 0.24, 0.022, P.col([46, 44, 48]));
         P_ell(ctx, lx * 0.6, 0.25, 0.034, 0.03, P.col([74, 70, 74])); P_ell(ctx, lx * 0.6 - 0.008, 0.258, 0.018, 0.012, P.col([104, 100, 106]));   // the knob, lit on top
-      }, { attach: true, sortDist: Math.hypot(GX, GZ) + 0.002, glowOf: gear }));
+      }, { attach: true, sortDist: Math.hypot(GX, GZ) + 0.002, glowOf: gear, face: GFACE }));
       // the gas pedal: a long rubber pad in a metal rim, ribbed across, hung on its arm from under the dash; it goes down
       // while you press it, and stays down once the car is away
       const dn = pedalDown() + (s.gone || s.floored ? 0.025 : 0), y0 = 0.012 - dn * 0.5;
@@ -479,7 +473,7 @@ LEVELS.push({
         P_rect(ctx, -0.036, y0, 0.072, 0.15, rim); P_ell(ctx, 0, y0, 0.036, 0.012, rim); P_ell(ctx, 0, y0 + 0.15, 0.036, 0.012, rim);
         P_rect(ctx, -0.029, y0 + 0.004, 0.058, 0.142, pad); P_ell(ctx, 0, y0 + 0.004, 0.029, 0.009, pad); P_ell(ctx, 0, y0 + 0.146, 0.029, 0.009, pad);
         for (let i = 0; i < 6; i++) P_rect(ctx, -0.022, y0 + 0.018 + i * 0.023, 0.044, 0.008, rib);   // its ribs
-      }, { attach: true, sortDist: Math.hypot(PX, PZ) + 0.002, glowOf: gas }));
+      }, { attach: true, sortDist: Math.hypot(PX, PZ) + 0.002, glowOf: gas, face: Math.PI }));   // (its face looks back at you, fixed to the car)
     };
     // ---- your foot on the gas ----
     // How far down the pedal is: pressed it goes down under your foot and comes back up; with the engine dead it goes all

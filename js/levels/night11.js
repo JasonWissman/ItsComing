@@ -38,7 +38,7 @@ LEVELS.push({
     objective: 'Find it. Light the places either side of it, then its own. No more than three lights at once.',
     where: 'It is out there in the dark, at one of the places. Find it.',
     death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.' },
-    win: 'It came apart in the light. In the morning there was only sacking and straw in the yard.',
+    win: 'It collapsed in the light, right in front of you.',
   },
   // one way in from each place: it stands at the foot of one, and comes in toward you from there (build)
   lanes: FARM_RING.map(p => ({ deg: p.deg, name: p.name, startDist: p.front - FARM_HIDE })),
@@ -98,7 +98,7 @@ LEVELS.push({
         P_rect(ctx, -0.5, 0.82, 1, 0.1, frame); P_rect(ctx, -0.42, 0.12, 0.84, 0.72, on ? P.raw([255, 214, 150]) : P.col([46, 46, 50]));
         if (on) P_ell(ctx, 0, 0.45, 0.22, 0.24, P.raw([255, 246, 220]));
         P_rect(ctx, -0.5, 0.05, 1, 0.08, frame); P_rect(ctx, -0.04, 0.12, 0.08, 0.72, frame);
-      }, { sortDist: 7.4 });
+      }, { sortDist: 7.4, face: 0 });   // (fixed on the house wall by the door, looking out over the yard: it never turns with the view)
       HOUSE.lamp = W(0.95, 2.04, 6.85);
       HOUSE.door = W(0, 2.3, 6.2);
       HOUSE.aim = W(-0.95, -2.0, -6.85);   // (a direction: out over the yard toward you, and down)
@@ -132,7 +132,7 @@ LEVELS.push({
         P_line(ctx, -0.6, 1.5, -0.6, 2.1, 0.08, P.col([40, 40, 40]));                                  // the exhaust
         P_ell(ctx, 0.95, 0.72, 0.72, 0.72, tyre); P_ell(ctx, 0.95, 0.72, 0.36, 0.36, hub);             // the big back wheel
         P_ell(ctx, -1.15, 0.42, 0.42, 0.42, tyre); P_ell(ctx, -1.15, 0.42, 0.2, 0.2, hub);             // the small front one
-      });
+      }, { face: 45 * DEG });   // (standing side on in the barn, square to the line out to it: it never turns with the view)
       lampArt(0, 0, 3.55, F - 0.2, 0.5, 0.36);
       PLACE[0] = { lamp: W(0, 3.6, F - 0.3), fill: W(0, 2.6, F - 2.2) };
     });
@@ -211,7 +211,7 @@ LEVELS.push({
         ctx.scale(3.3, 1.8); ctx.strokeStyle = P.cola([150, 150, 150], 0.55); ctx.lineWidth = 0.004;
         ctx.beginPath(); for (let i = 0; i <= 22; i++) { const x = -0.5 + i / 22; ctx.moveTo(x, 0); ctx.lineTo(x + 0.06, 1); ctx.moveTo(x, 0); ctx.lineTo(x - 0.06, 1); } ctx.stroke();
         P_rect(ctx, -0.5, 0.97, 1, 0.03, P.col([70, 60, 48]));
-      });
+      }, { face: -90 * DEG });   // (the run's front, fixed where it stands, looking back at you)
       lampArt(5, 0, 2.62, F - 0.32, 0.34, 0.24);
       PLACE[5] = { lamp: W(0, 2.65, F - 0.4), fill: W(0, 2.0, F - 2.0) };
     });
