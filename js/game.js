@@ -817,6 +817,7 @@ function updateCreature(L, c, dt, live) {
   c.gait += moved * CR.stepRate * Math.PI;
   c.moving = moved > 0.024 * dt; // a rate, not a per-frame distance, so the slowest walkers step at any refresh rate
   if (!c.moving && !c.dead) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
+  c.idleK = (c.idleK === undefined ? 1 : c.idleK) + ((c.moving ? 0 : 1) - (c.idleK === undefined ? 1 : c.idleK)) * Math.min(1, dt * 2.5);   // its idle lean eases in and out (a creature that steps and stops would otherwise jerk each time)
   if (CR.voice && !c.dead && live) { // muted or not: the captions still need these
     if (c.voiceT === undefined) c.voiceT = CR.voice.every[0] + c.rand() * (CR.voice.every[1] - CR.voice.every[0]);
     c.voiceT -= dt * (1 + clamp(1 - d / 40, 0, 1));
@@ -982,7 +983,7 @@ function render() {
   for (const cr of L.creatures) {
     const CR = cr.CR, pos = cr.pos();
     let p = rend.get(cr);
-    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); if (!cr.moving) ctx.rotate(0.008 * Math.sin(cr.t * 0.7)); } CR.draw(ctx, cr, P); } }; rend.set(cr, p); }
+    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); ctx.rotate(0.008 * Math.sin(cr.t * 0.7) * (cr.idleK === undefined ? (cr.moving ? 0 : 1) : cr.idleK)); } CR.draw(ctx, cr, P); } }; rend.set(cr, p); }
     p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = Math.hypot(cr.dist, cr.lat || 0); p.layer = 1; p.noContact = true;   // its sideways offset counts: it sorts by how far it really is
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);

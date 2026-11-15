@@ -67,8 +67,8 @@ CREATURES.tall = {
     return clamp((peak - c.headroom) / ((S.top + S.sink) * k), 0, 1);
   },
   // Its steps. Called each frame with where it is going (toD along its way, toLat across it), instead of moving it there:
-  // it gets there a step at a time, in its slow motion. A foot comes up, slowly, hangs, then swings over and comes down
-  // with a jerk, and its weight goes over onto it; a moment, and then the other. Sideways, the foot on that side goes
+  // it gets there a step at a time, in its slow motion. A foot comes up, slowly, hangs there still, then swings over and comes
+  // down with a jerk, and its weight goes over onto it; a moment, and then the other. Sideways, the foot on that side goes
   // first and the other closes up to it. If where it is going runs on ahead it steps longer and quicker to keep up, and is
   // simply put there (its feet together) if that is far off (first, or put somewhere else). Returns c.walk, with where it
   // is now (d, lat) and its steps so far (n); sets c.feet.
@@ -93,8 +93,8 @@ CREATURES.tall = {
       const st = w.step, f = w.feet[st.i];
       st.u = Math.min(1, st.u + dt * (1 + lag * 2) / S.dur);
       const u = st.u;
-      // up (and a hitch as it hangs there), over, and down; its weight over onto it as it comes down
-      const up = smoothstep(u / 0.32) * (1 - smoothstep((u - 0.62) / 0.16)) + (u > 0.3 && u < 0.6 ? Math.sin((u - 0.3) * 60) * 0.03 : 0);
+      // up, held still as it hangs there, over, and down; its weight over onto it as it comes down
+      const up = smoothstep(u / 0.32) * (1 - smoothstep((u - 0.62) / 0.16));
       const over = smoothstep((u - 0.36) / 0.3), weight = smoothstep((u - 0.5) / 0.28);
       f.d = lerp(st.f0.d, st.f1.d, over); f.lat = lerp(st.f0.lat, st.f1.lat, over); f.lift = Math.max(0, up) * S.lift;
       w.d = lerp(st.b0.d, st.b1.d, weight); w.lat = lerp(st.b0.lat, st.b1.lat, weight);

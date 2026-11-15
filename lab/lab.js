@@ -77,6 +77,7 @@ const LAB = (() => {
       if (a.walk) c.gait += a.walk * d * CR.stepRate * Math.PI;
       if (a.modes) CR.speedMult(c, d, a.seen === undefined ? true : a.seen);
       if (a.tick) a.tick(c, clamp(T / dur, 0, 1), d, T);
+      c.idleK = (c.idleK === undefined ? 1 : c.idleK) + ((c.moving ? 0 : 1) - (c.idleK === undefined ? 1 : c.idleK)) * Math.min(1, d * 2.5);   // (as the game eases its idle lean)
     } catch (e) { this.err = e; console.error(e); }
   };
   // jump to a time in the loop by replaying it from the start (so modes and ramps are where they would be)
@@ -125,7 +126,7 @@ const LAB = (() => {
       if (a.back) { ctx.save(); a.back(ctx, c, P); ctx.restore(); }
       ctx.save();
       // the game's own idle sway: a slow breath, and a slight lean when standing still
-      if (!a.still && !c.dead && !c.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(c.t * 1.6)); if (!c.moving) ctx.rotate(0.008 * Math.sin(c.t * 0.7)); }
+      if (!a.still && !c.dead && !c.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(c.t * 1.6)); ctx.rotate(0.008 * Math.sin(c.t * 0.7) * (c.idleK === undefined ? (c.moving ? 0 : 1) : c.idleK)); }
       if (a.draw) a.draw(ctx, c, P, c.CR); else c.CR.draw(ctx, c, P);
       ctx.restore();
       if (a.front) { ctx.save(); a.front(ctx, c, P); ctx.restore(); }
