@@ -17,6 +17,13 @@
 // c.reach (0..1): its arms up to the edge of the bed, its hands at c.gripY (world height; the night draws the hands on the
 //   covers over the edge); c.faceAway (over 0.5): its face turned down, only the dark of its head showing.
 // Light slows it (c.inLight), in case it is ever in the light and not already down out of it.
+// its face and mouth, as drawn by hand (lab/tall_face.svg, in its head's units: metres, y up): M, C (cubic) and Z
+const TALL_FACE = [['M', -0.0025, 0.18], ['C', 0.08, 0.18, 0.11, 0.24708, 0.11, 0.34925], ['C', 0.11, 0.45142, 0.07475, 0.48659, 0.01775, 0.45075], ['C', -0.057, 0.40375, -0.1105, 0.46067, -0.1105, 0.3585], ['C', -0.1105, 0.25633, -0.0775, 0.17575, -0.0025, 0.18], ['Z']];
+const TALL_MOUTH = [['M', -0.05055, 0.27825], ['C', 0.00474, 0.28386, 0.03617, 0.31101, 0.0525, 0.27458], ['C', 0.05364, 0.25167, 0.0453, 0.21705, 0.03561, 0.22012], ['C', 0.01521, 0.23476, -0.01874, 0.23123, -0.04076, 0.22284], ['C', -0.05064, 0.22047, -0.05332, 0.25547, -0.05055, 0.27825], ['Z']];
+function tallPath(ctx, segs) {
+  ctx.beginPath();
+  for (const g of segs) { if (g[0] === 'M') ctx.moveTo(g[1], g[2]); else if (g[0] === 'C') ctx.bezierCurveTo(g[1], g[2], g[3], g[4], g[5], g[6]); else ctx.closePath(); }
+}
 CREATURES.tall = {
   name: 'the tall one', h: 2.3, w: 1.1, faceY: 2.0, stepRate: 1.3, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
   death: { delay: 0.6, dur: 1.4, sting: 'stingHum' },
@@ -108,33 +115,23 @@ CREATURES.tall = {
     // and at the last of its lunge it swallows you: its whole head keeps on coming, swelling out over everything about
     // the middle of its open mouth, until the black of the mouth is all there is
     const gulp = smoothstep((lunge - 0.5) / 0.5);
-    if (gulp > 0) { const mc = 0.228, g = 1 + gulp * gulp * 90; ctx.translate(0, mc); ctx.scale(g, g); ctx.translate(0, -mc); }
+    if (gulp > 0) { const mc = 0.25, g = 1 + gulp * gulp * 90; ctx.translate(0, mc); ctx.scale(g, g); ctx.translate(0, -mc); }
     P_line(ctx, 0, 0, 0, 0.14, 0.08, body);
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
     if ((c.faceAway || 0) > 0.5) { ctx.restore(); if (late) late(); ctx.restore(); return; }   // its face down: the dark of its head
-    P_ell(ctx, 0, 0.32, 0.095, 0.15, skin);
-    // its face is a tragedy mask's: the eyes wide almond holes, black, their inner corners lifted and the outer ones sagging,
-    // the lower lid all but straight under an arched upper one; the mouth a wide open hole, its top lip near straight,
-    // its corners dragged down and rounded, the lower lip pushing up a little in the middle. Peering up, the eyes widen
-    const ex = 0.033 + duck * 0.004, eh = 0.019 + duck * 0.004;
-    ctx.fillStyle = eye;
-    for (const s of [-1, 1]) {
-      const cx = s * 0.042, cy0 = 0.36, ix = cx - s * ex, ox = cx + s * ex, iy = cy0 + 0.006, oy = cy0 - 0.007;   // inner and outer corners
-      ctx.beginPath(); ctx.moveTo(ix, iy);
-      ctx.bezierCurveTo(cx - s * ex * 0.4, cy0 + eh * 1.9, cx + s * ex * 0.5, cy0 + eh * 1.6, ox, oy);   // the upper lid, arched
-      ctx.bezierCurveTo(cx + s * ex * 0.4, cy0 - eh * 0.9, cx - s * ex * 0.5, cy0 - eh * 0.7, ix, iy);   // the lower, nearly flat
-      ctx.closePath(); ctx.fill();
-    }
-    const mh = 0.024 + near * 0.022 + lunge * 0.02, mw = 0.038 + near * 0.012 + lunge * 0.01, mt = 0.255, mb = mt - mh;
-    const soft = Math.min(mh * 0.3, 0.006 + near * 0.006 + lunge * 0.006);
-    ctx.fillStyle = black; ctx.strokeStyle = black; ctx.lineWidth = soft * 2; ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-mw, mt - mh * 0.28);                                              // the left corner of the mt lip, dragged down
-    ctx.bezierCurveTo(-mw * 0.55, mt + mh * 0.06, mw * 0.55, mt + mh * 0.06, mw, mt - mh * 0.28);   // the mt lip, near straight
-    ctx.bezierCurveTo(mw * 1.04, mt - mh * 0.7, mw * 0.98, mb - mh * 0.05, mw * 0.78, mb);           // the right side, down and round
-    ctx.bezierCurveTo(mw * 0.35, mb - mh * 0.08, -mw * 0.35, mb - mh * 0.08, -mw * 0.78, mb);       // the lower lip, sagging a little
-    ctx.bezierCurveTo(-mw * 0.98, mb - mh * 0.05, -mw * 1.04, mt - mh * 0.7, -mw, mt - mh * 0.28);  // the left side
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = skin; tallPath(ctx, TALL_FACE); ctx.fill();   // its face: lopsided, the brow sunk on the left of the view
+    // its eyes, black: two holes, not a pair, the one on the right of the view the taller and set higher, tipped
+    // (peering up, they widen)
+    const eg = 1 + duck * 0.2;
+    P_ell(ctx, -0.04525, 0.35275, 0.02775 * eg, 0.02925 * eg, eye);
+    P_ell(ctx, 0.04125, 0.3865, 0.02775 * eg, 0.0355 * eg, eye, 0.1628);
+    // its mouth: a crooked open hole, its lip rising toward the right and the right side hanging lower than the left,
+    // the corners rounded off by a round-joined edge. Far off it is a little smaller; it opens out as it lunges
+    const mk = lerp(0.7, 1, near) * (1 + 0.25 * lunge), mcy = 0.25;
+    ctx.save(); ctx.translate(0, mcy); ctx.scale(mk, mk); ctx.translate(0, -mcy);
+    ctx.fillStyle = black; ctx.strokeStyle = black; ctx.lineWidth = 0.024; ctx.lineJoin = 'round';
+    tallPath(ctx, TALL_MOUTH); ctx.fill(); ctx.stroke();
+    ctx.restore();
     ctx.restore();
     if (late) late();
     ctx.restore();

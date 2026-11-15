@@ -1,13 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-160 -570 320 470" width="640" height="940">
-  <!-- The tall one's face (night 12), close up, exactly as the game draws it now.
-       Units: 1 = 1 mm of the creature's head; y runs down. Edit the shapes of #eye-left, #eye-right and #mouth
-       (and the face too, if you like), keep the ids, and paste the SVG back: they will be turned back into the
-       game's drawing code. The mouth's outline is drawn with a round-joined stroke (stroke-width 24) to soften
-       its corners; keep or change that too. -->
-  <rect x="-160" y="-570" width="320" height="470" fill="#14161c"/>
-  <ellipse id="head" cx="0" cy="-340" rx="130" ry="200" fill="#08070a"/>
-  <ellipse id="face" cx="0" cy="-320" rx="95" ry="150" fill="#786c6e"/>
-  <path id="eye-left" d="M -9.0,-366.0 C -28.8,-396.1 -58.5,-390.4 -75.0,-353.0 C -55.2,-342.9 -25.5,-346.7 -9.0,-366.0 Z" fill="#060507"/>
-  <path id="eye-right" d="M 9.0,-366.0 C 28.8,-396.1 58.5,-390.4 75.0,-353.0 C 55.2,-342.9 25.5,-346.7 9.0,-366.0 Z" fill="#060507"/>
-  <path id="mouth" d="M -50.0,-242.12 C -27.5,-257.76 27.5,-257.76 50.0,-242.12 C 52.0,-222.8 49.0,-206.7 39.0,-209.0 C 17.5,-205.32 -17.5,-205.32 -39.0,-209.0 C -49.0,-206.7 -52.0,-222.8 -50.0,-242.12 Z" fill="#020203" stroke="#020203" stroke-width="24" stroke-linejoin="round"/>
+<svg width="640" height="940" viewBox="0 0 640 940" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- The tall one's face (night 12), as drawn into js/creatures/tall.js (TALL_FACE, TALL_MOUTH and the two eyes).
+     2 px here = 1 mm of its head; the game reads x = (u/2 - 160)/1000, y = (570 - v/2)/1000 metres, y up. -->
+<ellipse cx="320" cy="460" rx="260" ry="400" fill="#0B0B0D"/>
+<path d="M315 780C480 780 540 645.847 540 441.502C540 237.157 469.5 166.821 355.5 238.5C206 332.5 99 218.657 99 423.002C99 627.347 165 788.5 315 780Z" fill="#786C6E"/>
+<path d="M218.905 583.494C329.481 572.276 392.333 517.98 424.997 590.831C427.286 636.669 410.607 705.895 391.22 699.757C350.412 670.476 282.521 677.533 238.487 694.32C218.712 699.063 213.362 629.053 218.905 583.494Z" fill="#020203" stroke="#020203" stroke-width="48" stroke-linejoin="round"/>
+<ellipse cx="229.5" cy="434.5" rx="55.5" ry="58.5" fill="#060507"/>
+<ellipse cx="402.5" cy="367" rx="55.5" ry="71" transform="rotate(-9.32669 402.5 367)" fill="#060507"/>
 </svg>
