@@ -396,8 +396,17 @@ CREATURES.demon = {
     delay: 0.25, dur: 0.5, sting: 'sting',
     pose(c, k) { c.yOff -= (demonEyesY(c) - CREATURES.demon.faceY) * smoothstep(k); },
   },
+  // shot (night 13's bow), it leaps at you at once from where it is (d0 metres off), up in an arc and into your face:
+  // a death of its own (c.deathSpec), quicker the nearer it was
+  leap(d0) {
+    const D = CREATURES.demon.death, up = Math.min(1.4, d0 * 0.05);
+    return { delay: 0.06, dur: clamp(0.25 + d0 * 0.014, 0.3, 0.8), sting: D.sting, pose(c, k) { D.pose(c, k); c.yOff += Math.sin(Math.PI * k) * up; } };
+  },
   voice: { kind: 'exhale', every: [4, 8] },
   eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES,   // for the ending and the tests
+  // what of its box is it, to aim at (js/game.js creatureBox: the bow on night 13): the robe and the hood, up to just above
+  // its eyes, wider enraged
+  body(c) { const a = demonRage(c); return [-0.42 - a * 0.08, 0.42 + a * 0.08, 0, demonEyesY(c) + 0.3]; },
   init(c) { c.anger = 0; c.rage = 0; c.calm = 0; c.soft = 0; c.dance = 0; c.disrobe = 0; c.fade = 1; },
   // enraged, it comes in fits: stopping dead, stepping, lurching
   speedMult(c, dt, seen) { const a = demonRage(c); return (1 + 0.45 * (c.anger || 0)) * (a > 0.001 ? lerp(1, demonFit(c).pace, a) : 1); },
@@ -598,18 +607,22 @@ CREATURES.demon = {
           ctx.restore(); ctx.restore(); ctx.restore();
         }
         // the eyes: two small pale points, or, enraged, two tall red slits, burning. Far off in the dark
-        // they are all there is of it: two points that stay a pixel or two across, in a faint haze
+        // they are all there is of it: two points in a faint haze, set as far apart on its head as they always are
         const far = clamp((c.dist - 5) / 12, 0, 1);
         if (far > 0) P_ell(ctx, 0, fy + 0.03, c.dist * 0.009, c.dist * 0.006, rgba(er, (0.06 + 0.1 * a) * far));
-        // (far off they are kept their pixel or two across, so they are set as far apart as they are big, or they would run
-        // together into one smudge)
-        const rFar = c.dist * 0.0013 * far, sep = Math.max(0.036, rFar * 3.2);
+        // (an eye too small to fill a pixel of the canvas would be smeared over the pixels round it, too faint to see, and
+        // made any bigger the two would run together into one smudge: so far off each is one whole pixel, where its middle
+        // falls, at its full light; they are where they always are on its head, a little more than a pixel apart at the
+        // most it is ever off)
+        const M = ctx.getTransform(), ppm = Math.hypot(M.a, M.b) || 1;
         for (const s of [-1, 1]) {
-          const ex = s * (sep + lk * 0.03), ey = fy + 0.03 + lk * 0.012;   // in your face, the eyes pull apart
+          const ex = s * (0.036 + lk * 0.03), ey = fy + 0.03 + lk * 0.012;   // in your face, the eyes pull apart
           if (a > 0.02) P_ell(ctx, ex, ey, 0.018 + lk * 0.008, 0.036 + a * 0.01 + lk * 0.02, rgba(er, (0.28 + 0.2 * lk) * a), s * 0.15 * a);
           const rx = lerp(0.011, 0.0075, a) + lk * 0.002, ry = lerp(0.011, 0.024, a) + lk * 0.012;   // enraged, tall burning slits, taller still in your face
           // (their own light: they show through the dark, the pale ones a little dimmed by it far off)
-          P_ell(ctx, ex, ey, Math.max(rx, rFar), Math.max(ry, c.dist * 0.0011 * far), rgba(mixc(er, P.fogColor || [0, 0, 0], (1 - a) * 0.45 * (P.fog || 0))), s * 0.15 * a);
+          const col = rgba(mixc(er, P.fogColor || [0, 0, 0], (1 - a) * 0.45 * (P.fog || 0)));
+          if (Math.max(rx, ry) * ppm < 0.5) { const q = M.transformPoint({ x: ex, y: ey }); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = col; ctx.fillRect(Math.floor(q.x), Math.floor(q.y), 1, 1); ctx.restore(); }
+          else P_ell(ctx, ex, ey, rx, ry, col, s * 0.15 * a);
         }
         ctx.restore();
       }

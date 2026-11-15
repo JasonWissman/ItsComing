@@ -333,7 +333,12 @@ some on the ground, so you have to turn and look down to find them.
     seen in the dark of the hood but two small pale eyes. Take up anything and it is
     enraged: its eyes burn red, a snarling mouth opens under them, and it comes on in fits,
     stopping dead, lurching, jerking aside, its head twitching. Holding anything when it
-    reaches you is a death. Put it all down again (each falls from your hand to the floor;
+    reaches you is a death. The bow still works as it did in the Clearing: with the bow (or
+    the arrows) in your hand it comes up, hold to draw and let go full with it in your sights.
+    A miss is only an arrow gone, standing in the floor or lost in the dark; a hit, and it
+    leaps straight at you and that is the end of you. Far off its eyes are two points a
+    pixel or so across, set as far apart on its head as they always are.
+    Put it all down again (each falls from your hand to the floor;
     reach for another with your hands full and the full hand only goes toward it) and it
     calms. Let it come, and face it when it does: as it looms in the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too. Faced

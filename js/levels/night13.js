@@ -1,11 +1,13 @@
 'use strict';
+/* global CLEARING_BOW */   // (night 5's bow, js/levels/night05.js: drawn and loosed here as it was there)
 // ============================================================ 13. THE VOID ============================================================
 // Nothing at all: a faint floor that fades into black. Around you lies everything you ever held against it, and your hands
 // are empty. It comes from anywhere, a tall thing in a black hood. Take up anything and it is enraged, and comes on in fits;
 // put it all down again and it calms. The ending plays out here, without a cut: caught empty-handed and facing it, it stops
 // and holds you, its face comes out of the dark of its hood and goes through angry, neutral, angry, confused, sad, neutral
 // and content until it is happy, and the dark opens into a meadow in the sun, where you may look about as long as you
-// like; a press and it is the bedroom.
+// like; a press and it is the bedroom. The bow still draws and looses as it did on night 5: a miss is only an arrow gone
+// into the dark, but a hit, and it leaps at you at once.
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
   ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['handle', 'Winch handle', 0.45, 0.45],
@@ -59,7 +61,7 @@ LEVELS.push({
     intro: 'Where are you?',
     hint: 'You do not need them now.',
     objective: 'Hold nothing.',
-    death: { default: 'You were still holding on to something.', away: 'It craves your fear.' },
+    death: { default: 'You were still holding on to something.', away: 'It craves your fear.', shot: 'You cannot fight this one.' },
     win: '',
   },
   lanes: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].map((name, k) => ({ deg: k * 45, name, barrierDist: 0, default: k === 0 })),
@@ -175,21 +177,95 @@ LEVELS.push({
     L.hands = { lit: 0.8 };   // (what you hold, seen against the dark: lit a little more than the void would have it)
     L.offHand = () => {
       const a = G.inv[G.active];
-      if (!a || twoHanded(a) || G.state !== 'play') return null;
+      if (!a || twoHanded(a) || G.state !== 'play' || bowUp()) return null;   // (the bow up, both hands are on it)
       for (let k = 1; k < G.inv.length; k++) { const o = G.inv[(G.active + k) % G.inv.length]; if (!twoHanded(o)) return o; }
       return null;
     };
     G.active = 0;
     const c0 = () => L.creatures[0];
+    // ---- the bow ----
+    // With the bow (or the arrows) in your hand and the bow held, looking ahead, it is night 5's bow: it comes up in both
+    // hands, hold to draw and let go full with it in your sights. A miss is only an arrow gone: short, it stands in the floor;
+    // wide, it goes on into the dark. A hit, and as the arrow goes in it leaps at you, and that is the end of you (L.uses is
+    // only the bow while it is up, so nothing else here is ever fired)
+    const BOW = {
+      tool: 'bow', ammo: 'arrows', range: Infinity, sfx: 'twang', shake: 0.1, fireText: 'Draw.', emptyText: () => { CLEARING_BOW.grope(L); return 'No arrows.'; },
+      draw: { fill: CLEARING_BOW.FILL, min: CLEARING_BOW.MIN, loose: (outcome, c, aim, power) => loose(outcome, c, aim, power) },
+      inHands: (ctx, W, H, d, Lv, aim) => CLEARING_BOW.inHands(ctx, W, H, d, Lv, aim),
+    };
+    // (looking down at the floor it is only a thing in your hand, to be put down like any other, and seen to go)
+    const bowUp = () => { const a = G.inv[G.active]; return !!a && (a.id === 'bow' || a.id === 'arrows') && G.hasItem('bow') && G.cam.tPitch < 0.3 && !s.ending; };
+    Object.defineProperty(L, 'uses', { get: () => (bowUp() ? [BOW] : []), set() {}, configurable: true });
+    L.bowCol = { glove: [172, 132, 108], gloveL: [204, 166, 140], sleeve: [44, 38, 37], sleeveL: [68, 60, 57] };   // (bare hands, as they are here)
+    s.outcomes = []; s.shot = false;   // every arrow loosed, in order (the tests read it); and whether one went into it
+    const flights = [], stuck = [];
+    const add3 = (a, b, k) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+    const pathAt = (f, k) => { const to = f.to(); return [lerp(f.from[0], to[0], k), lerp(f.from[1], to[1], k) + f.arc * 4 * k * (1 - k), lerp(f.from[2], to[2], k)]; };
+    const fly = f => { f.t = 0; flights.push(f); };
+    const loose = (outcome, c, aim, power) => {
+      const ray = CLEARING_BOW.rayAt(aim), from = add3(add3([0, L.eyeH, 0], ray, 0.9), [0, -1, 0], 0.14);
+      const dReal = Math.hypot(c.dist, c.lat || 0), hl = Math.hypot(ray[0], ray[2]) || 1, hd = [ray[0] / hl, 0, ray[2] / hl];
+      const ground = r => add3([0, 0.02, 0], hd, r), FLOOR = 11;   // (past where the floor is lost in the dark, nothing shows)
+      s.outcomes.push(outcome);
+      if (outcome === 'hit') {
+        s.shot = true;
+        const at = () => { const p = c.pos(); return [p.x, p.y + (c.yOff || 0) + CREATURES.demon.eyesY(c) * 0.6, p.z]; };
+        fly({ from, to: at, arc: 0.01 * dReal, dur: 0.05 + dReal / 80, done: () => leap(c) });
+        return;
+      }
+      if (outcome === 'short') {   // not drawn full: it drops to the floor short of it
+        const r = clamp(lerp(2.4, FLOOR, power), 2.4, Math.max(2.4, dReal - 1.5));
+        fly({ from, to: () => ground(r), arc: 0.05 * r + 0.3, dur: 0.15 + r / 45, stick: true });
+        G.say('Not drawn all the way. It fell short.', 'It fell short.');
+        return;
+      }
+      const r = ray[1] < -0.02 ? L.eyeH / -ray[1] * hl : Infinity;   // full, but not at it: down into the floor, or on into the dark
+      if (r < FLOOR) fly({ from, to: () => ground(Math.max(2.4, r)), arc: 0.02 * r + 0.2, dur: 0.1 + r / 70, stick: true });
+      else { const D = dReal + 30, y = Math.max(0.3, L.eyeH * 0.8 + ray[1] * D / hl); fly({ from, to: () => add3([0, y, 0], hd, D), arc: 1, dur: 0.9, fade: true }); }
+      G.say('Drawn full, but not at it. Missed.', 'Missed.');
+    };
+    // hit, it leaps: from wherever it is, straight at you and up into your face (CREATURES.demon.leap)
+    const leap = c => {
+      if (G.state !== 'play' || s.ending) return;
+      AUDIO.sfx('thunk', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.08);
+      c.rage = 1; c.deathSpec = CREATURES.demon.leap(Math.hypot(c.dist, c.lat || 0));
+      die(c, 'shot');
+    };
+    const bowStep = dt => {
+      CLEARING_BOW.hold(L, dt, G.state === 'play' && bowUp());
+      s.bowLit = 0.8;
+      for (let i = flights.length - 1; i >= 0; i--) {
+        const f = flights[i]; f.t += dt;
+        if (f.t < f.dur) continue;
+        flights.splice(i, 1);
+        if (f.stick) {   // it stands in the floor where it came down, its tail up and back toward you
+          const a = pathAt(f, 1), b = pathAt(f, 0.96), l = Math.hypot(a[0] - b[0], a[2] - b[2]) || 1, hx = (a[0] - b[0]) / l, hz = (a[2] - b[2]) / l;
+          stuck.push({ head: [a[0] + hx * 0.03, 0, a[2] + hz * 0.03], tail: [a[0] - hx * 0.4, 0.48, a[2] - hz * 0.4] });
+          AUDIO.sfx('thunk', Math.sin(wrapPi(Math.atan2(a[0], a[2]) - G.cam.yaw)) * 0.85);
+        }
+        if (f.done) f.done();
+      }
+    };
+    const bowDraw = () => {
+      for (const f of flights) {
+        const k = f.t / f.dur, h = pathAt(f, Math.min(1, k)), b = pathAt(f, Math.max(0, k - 0.02)), u = [h[0] - b[0], h[1] - b[1], h[2] - b[2]], l = Math.hypot(u[0], u[1], u[2]) || 1;
+        const fade = f.fade ? clamp((1 - k) / 0.4, 0, 1) : 1;
+        const pts = []; for (let i = 0; i <= 4; i++) pts.push(pathAt(f, Math.max(0, Math.min(1, k) - 0.16 * i / 4)));   // a faint streak behind it shows its way
+        R.add({ kind: 'poly', pts, stroke: true, color: [214, 208, 196], lw: 0.012, alpha: 0.3 * fade, noContact: true, noFog: true });
+        CLEARING_BOW.arrow(add3(h, u, -0.75 / l), h, f.fade ? fade : undefined);
+      }
+      const k = 1 - span(s.meadow, 0, 0.55);   // (those standing in the floor go with the dark)
+      if (k > 0.01) for (const a of stuck) CLEARING_BOW.arrow(a.tail, a.head, k, 1.8);
+    };
     L.isWon = () => false;
     L.objectiveText = () => G.inv.length ? 'Put it down (' + G.inv.length + ' held).' : 'Empty-handed. Let it come.';
     // being caught empty-handed, and looking at it, is the ending, not a death: it stops close in front of you and holds you.
     // Turned away from it, or looking at the floor, as it reaches you is a death even with nothing in your hands.
     const facingIt = c => Math.abs(wrapPi(c.yaw - G.cam.yaw)) < 30 * DEG && G.cam.pitch < PITCH_DOWN * 0.5;
-    L.deathCause = () => G.inv.length ? 'default' : 'away';
+    L.deathCause = () => s.shot ? 'shot' : G.inv.length ? 'default' : 'away';
     const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1));
     L.onCatch = c => {
-      if (G.inv.length > 0 || !facingIt(c)) return false;
+      if (s.shot || G.inv.length > 0 || !facingIt(c)) return false;   // (shot, it is coming for you whatever you do now)
       s.ending = true; s.endT = 0; c.frozen = true; c.hold = null;
       c.lane = Object.assign({}, c.lane, { follow: 'free', apertures: [], blockers: [] });   // placed by yaw and distance from here on
       // its head comes level from the tilt it had (as draw() has it, empty-handed); its first face is already there, in the
@@ -231,7 +307,7 @@ LEVELS.push({
     const meadow = buildMeadow(L, s, c0);
     L.update = dt => {
       const c = c0();
-      fallStep(dt);
+      fallStep(dt); bowStep(dt);
       c.anger = G.inv.length;
       c.rage += ((c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0) - c.rage) * Math.min(1, dt * 4);   // anything held and it is plainly enraged
       // empty-handed and facing it, the view lifts to its face as it looms in over the last few metres: you look up at it.
@@ -334,7 +410,7 @@ LEVELS.push({
     };
     L.dynamic = () => {
       pools();
-      fallDraw();
+      fallDraw(); bowDraw();
       meadow.draw();
       if (s.glitterAt < 0) return;
       // the glitter: sparks spiralling up and out from where it stood, twinkling, gone in a few seconds (with reduced motion

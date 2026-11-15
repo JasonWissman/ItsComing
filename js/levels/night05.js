@@ -33,6 +33,7 @@ const CLEARING_BOW = (() => {
   function seg(ctx, a, b, w, col, alpha) { ctx.strokeStyle = col; ctx.lineWidth = w; if (alpha !== undefined) ctx.globalAlpha = alpha; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.globalAlpha = 1; }
   function inHands(ctx, W, H, d, L, aim) {
     const s = L.s, show = s.bowShow || 0, up = s.bowUp || 0, pull = s.pull || 0;
+    const C = L.bowCol ? Object.assign({}, COL, L.bowCol) : COL;   // (a night may dress the hands on it: L.bowCol, bare hands and its own sleeve)
     if (show < 0.01) return;
     const S = H, lit = s.bowLit || 1, col = (c, k) => rgba(scalec(c, lit * (k || 1))), hands = HANDS.showHands;
     const am = aim ? { x: clamp(aim.x, W * 0.1, W * 0.9), y: clamp(aim.y - R.viewY, H * 0.28, H * 0.62) } : null;   // it follows the aim, but not up or down off the view
@@ -63,9 +64,9 @@ const CLEARING_BOW = (() => {
     // the bow arm, in from the left at the bottom to the hand on the grip: a dark wool sleeve, the light along its top
     if (hands) {
       const wrist = V(V(rest, W_, -0.05), [-1, 0.25], 0.03), elbow = V(rest, [-0.62, 0.62], 1);
-      for (let i = 0; i < 6; i++) { const a = V(elbow, [wrist[0] - elbow[0], wrist[1] - elbow[1]], i / 6), b = V(elbow, [wrist[0] - elbow[0], wrist[1] - elbow[1]], (i + 1) / 6); seg(ctx, a, b, lerp(0.07, 0.042, i / 6), col(COL.sleeve)); }
-      seg(ctx, V(elbow, [0.3, -0.85], 0.024), V(wrist, [0.3, -0.85], 0.014), 0.01, col(COL.sleeveL));
-      seg(ctx, V(wrist, [wrist[0] - elbow[0], wrist[1] - elbow[1]], -0.12), V(wrist, [wrist[0] - elbow[0], wrist[1] - elbow[1]], -0.08), 0.05, col(COL.sleeveL, 0.8));   // the cuff
+      for (let i = 0; i < 6; i++) { const a = V(elbow, [wrist[0] - elbow[0], wrist[1] - elbow[1]], i / 6), b = V(elbow, [wrist[0] - elbow[0], wrist[1] - elbow[1]], (i + 1) / 6); seg(ctx, a, b, lerp(0.07, 0.042, i / 6), col(C.sleeve)); }
+      seg(ctx, V(elbow, [0.3, -0.85], 0.024), V(wrist, [0.3, -0.85], 0.014), 0.01, col(C.sleeveL));
+      seg(ctx, V(wrist, [wrist[0] - elbow[0], wrist[1] - elbow[1]], -0.12), V(wrist, [wrist[0] - elbow[0], wrist[1] - elbow[1]], -0.08), 0.05, col(C.sleeveL, 0.8));   // the cuff
     }
     // the limbs, tapering to the tips, which flick outward; light along their backs
     for (const sgn of [-1, 1]) {
@@ -73,33 +74,33 @@ const CLEARING_BOW = (() => {
       let prev = a;
       for (let i = 1; i <= 12; i++) {
         const p = bez(a, c, b, i / 12), w = lerp(0.03, 0.012, i / 12);
-        seg(ctx, prev, p, w, col(COL.wood));
-        seg(ctx, V(prev, OUT, w * 0.3), V(p, OUT, w * 0.3), w * 0.3, col(COL.woodL));
+        seg(ctx, prev, p, w, col(C.wood));
+        seg(ctx, V(prev, OUT, w * 0.3), V(p, OUT, w * 0.3), w * 0.3, col(C.woodL));
         prev = p;
       }
-      seg(ctx, b, V(V(b, OUT, 0.024), W_, sgn * 0.02), 0.011, col(COL.wood));
-      seg(ctx, V(b, W_, -sgn * 0.01), V(b, W_, sgn * 0.004), 0.016, col(COL.woodD));   // the nock the string is tied at
+      seg(ctx, b, V(V(b, OUT, 0.024), W_, sgn * 0.02), 0.011, col(C.wood));
+      seg(ctx, V(b, W_, -sgn * 0.01), V(b, W_, sgn * 0.004), 0.016, col(C.woodD));   // the nock the string is tied at
     }
     // the riser, the leather grip below the shelf and its wraps
-    seg(ctx, V(rest, W_, -0.11), V(rest, W_, 0.11), 0.036, col(COL.wood));
-    seg(ctx, V(V(rest, W_, -0.1), OUT, 0.01), V(V(rest, W_, 0.1), OUT, 0.01), 0.01, col(COL.woodL));
-    seg(ctx, V(rest, W_, -0.075), V(rest, W_, -0.01), 0.044, col(COL.grip));
+    seg(ctx, V(rest, W_, -0.11), V(rest, W_, 0.11), 0.036, col(C.wood));
+    seg(ctx, V(V(rest, W_, -0.1), OUT, 0.01), V(V(rest, W_, 0.1), OUT, 0.01), 0.01, col(C.woodL));
+    seg(ctx, V(rest, W_, -0.075), V(rest, W_, -0.01), 0.044, col(C.grip));
     // the bow hand round the grip: the glove, the knuckles, the thumb over the front of it
     if (hands) {
       ctx.save(); ctx.translate(...V(V(rest, W_, -0.045), BACK, 0.012)); ctx.rotate(Math.atan2(W_[1], W_[0]));
-      ctx.fillStyle = col(COL.glove); ctx.beginPath(); ctx.ellipse(0, 0, 0.052, 0.034, 0, 0, TAU); ctx.fill();
-      for (let i = 0; i < 3; i++) { ctx.fillStyle = col(COL.gloveL); ctx.beginPath(); ctx.ellipse(-0.03 + i * 0.022, 0.024, 0.011, 0.007, 0, 0, TAU); ctx.fill(); }
-      ctx.fillStyle = col(COL.glove, 1.15); ctx.beginPath(); ctx.ellipse(0.03, -0.018, 0.026, 0.012, -0.4, 0, TAU); ctx.fill();
+      ctx.fillStyle = col(C.glove); ctx.beginPath(); ctx.ellipse(0, 0, 0.052, 0.034, 0, 0, TAU); ctx.fill();
+      for (let i = 0; i < 3; i++) { ctx.fillStyle = col(C.gloveL); ctx.beginPath(); ctx.ellipse(-0.03 + i * 0.022, 0.024, 0.011, 0.007, 0, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = col(C.glove, 1.15); ctx.beginPath(); ctx.ellipse(0.03, -0.018, 0.026, 0.012, -0.4, 0, TAU); ctx.fill();
       ctx.restore();
     }
     // the string, from each tip back to the nock (plucked with nothing on it, it blurs a moment)
-    for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0035 + 0.001 * taut + 0.05 * twitch, col(COL.string, 1 + 0.25 * taut), twitch ? 0.6 : 1);
+    for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0035 + 0.001 * taut + 0.05 * twitch, col(C.string, 1 + 0.25 * taut), twitch ? 0.6 : 1);
     // drawn full, and for as long as it is held there, the string shines: a bright glint along it the moment it tops out
     // (with the click), settling to a steady pale sheen, so the bow itself says it is full
     if (d && d.state === 'drawing' && d.full) {
       const since = d.t - (d.u.draw.fill || FILL), glint = Math.exp(-since * 5);
-      for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.008 + 0.006 * glint, rgba(COL.stringL, 0.16 + 0.3 * glint));
-      for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0045, rgba(COL.stringL));
+      for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.008 + 0.006 * glint, rgba(C.stringL, 0.16 + 0.3 * glint));
+      for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0045, rgba(C.stringL));
     }
     // the arrow on the string: nocked while it is drawn or ready; just loosed, the string is bare, then the next is
     // brought up and nocked (if there is one)
@@ -108,12 +109,12 @@ const CLEARING_BOW = (() => {
     else if (d || G.hasItem('arrows')) arrowAt = 0;
     if (arrowAt !== null) {
       const off = V([0, 0], DIR, -0.35 * arrowAt), t0 = V(nock, off, 1), h0 = V(V(rest, DIR, 0.075 - 0.045 * pull), off, 1);
-      for (let i = 0; i < 6; i++) { const a = V(t0, [h0[0] - t0[0], h0[1] - t0[1]], i / 6), b = V(t0, [h0[0] - t0[0], h0[1] - t0[1]], (i + 1) / 6); seg(ctx, a, b, lerp(0.014, 0.007, i / 6), col(COL.shaft)); }
+      for (let i = 0; i < 6; i++) { const a = V(t0, [h0[0] - t0[0], h0[1] - t0[1]], i / 6), b = V(t0, [h0[0] - t0[0], h0[1] - t0[1]], (i + 1) / 6); seg(ctx, a, b, lerp(0.014, 0.007, i / 6), col(C.shaft)); }
       const len = Math.hypot(h0[0] - t0[0], h0[1] - t0[1]), along = k => V(t0, DIR, k * len);
       const vane = (side, c2) => { const p0 = along(0.03), p1 = along(Math.min(0.5, 0.17 / Math.max(len, 0.01))); P_poly(ctx, [p0, p1, V(p1, [-DIR[1] * side, DIR[0] * side], 0.012), V(p0, [-DIR[1] * side, DIR[0] * side], 0.028)], col(c2)); };
-      vane(1, COL.fA); vane(-1, COL.fB);
-      P_poly(ctx, [V(h0, DIR, 0.03), V(V(h0, DIR, -0.012), [-DIR[1], DIR[0]], 0.011), V(V(h0, DIR, -0.012), [DIR[1], -DIR[0]], 0.011)], col(COL.head));   // the broadhead
-      seg(ctx, V(h0, DIR, 0.026), V(h0, DIR, -0.008), 0.003, col(COL.headL));
+      vane(1, C.fA); vane(-1, C.fB);
+      P_poly(ctx, [V(h0, DIR, 0.03), V(V(h0, DIR, -0.012), [-DIR[1], DIR[0]], 0.011), V(V(h0, DIR, -0.012), [DIR[1], -DIR[0]], 0.011)], col(C.head));   // the broadhead
+      seg(ctx, V(h0, DIR, 0.026), V(h0, DIR, -0.008), 0.003, col(C.headL));
     }
     // no arrow to nock (the button pressed with none left), with the hands shown: the drawing hand comes up to the string,
     // its fingers open, feels up along the shelf where an arrow should lie, twice, finds nothing there and drops away, and
@@ -122,28 +123,54 @@ const CLEARING_BOW = (() => {
       const t = s.groping.t, k = smoothstep(clamp((t - 0.06) / 0.2, 0, 1)) * (1 - smoothstep(clamp((t - 0.7) / 0.26, 0, 1)));
       const feel = t > 0.26 && t < 0.7 ? Math.sin((t - 0.26) / 0.44 * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5 : 0;   // two strokes up the shelf and back
       const to = V(nock, DIR, 0.01 + feel * 0.13), from = V(nock, [0.62, 0.78], 0.8), h = [lerp(from[0], to[0], k), lerp(from[1], to[1], k)];
-      seg(ctx, V(h, [0.95, 0.3], 0.02), V(h, [0.95, 0.3], 0.6), 0.075, col(COL.sleeve));
+      seg(ctx, V(h, [0.95, 0.3], 0.02), V(h, [0.95, 0.3], 0.6), 0.075, col(C.sleeve));
       ctx.save(); ctx.translate(h[0], h[1]); ctx.rotate(Math.atan2(DIR[1], DIR[0]));   // x up the shelf, toward where the arrow's head would be
-      ctx.fillStyle = col(COL.glove); ctx.beginPath(); ctx.ellipse(-0.014, 0.004, 0.038, 0.031, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = col(C.glove); ctx.beginPath(); ctx.ellipse(-0.014, 0.004, 0.038, 0.031, 0, 0, TAU); ctx.fill();
       const spread = 0.002 + 0.004 * Math.sin(t * 17);   // the two fingers working, finding nothing between them
-      for (const [y, len] of [[-0.009 - spread, 0.05], [0.01 + spread, 0.046]]) { seg(ctx, [0.008, y], [len, y * 1.15], 0.019, col(COL.glove)); seg(ctx, [0.014, y - 0.004], [len - 0.004, y * 1.15 - 0.004], 0.005, col(COL.gloveL, 0.9)); }
-      seg(ctx, [-0.006, -0.026], [0.026, -0.036], 0.016, col(COL.glove, 1.15));   // the thumb
-      for (const y of [-0.012, 0.0, 0.012]) { ctx.fillStyle = col(COL.gloveL); ctx.beginPath(); ctx.ellipse(-0.004, y, 0.008, 0.006, 0, 0, TAU); ctx.fill(); }   // the knuckles
+      for (const [y, len] of [[-0.009 - spread, 0.05], [0.01 + spread, 0.046]]) { seg(ctx, [0.008, y], [len, y * 1.15], 0.019, col(C.glove)); seg(ctx, [0.014, y - 0.004], [len - 0.004, y * 1.15 - 0.004], 0.005, col(C.gloveL, 0.9)); }
+      seg(ctx, [-0.006, -0.026], [0.026, -0.036], 0.016, col(C.glove, 1.15));   // the thumb
+      for (const y of [-0.012, 0.0, 0.012]) { ctx.fillStyle = col(C.gloveL); ctx.beginPath(); ctx.ellipse(-0.004, y, 0.008, 0.006, 0, 0, TAU); ctx.fill(); }   // the knuckles
       ctx.restore();
     }
     // the drawing hand at the nock while it is drawn, two fingers hooked on the string, its sleeve going off to the right
     // (at full draw the hand is back at your jaw, out of view); loosed, the hand has let go and dropped away
     if (hands && d && (d.state === 'drawing' || d.state === 'easing') && nock[1] < 0.9) {
       const h = V(nock, BACK, 0.022);
-      seg(ctx, V(h, [0.95, 0.3], 0.02), V(h, [0.95, 0.3], 0.6), 0.075, col(COL.sleeve));
+      seg(ctx, V(h, [0.95, 0.3], 0.02), V(h, [0.95, 0.3], 0.6), 0.075, col(C.sleeve));
       ctx.save(); ctx.translate(h[0], h[1]); ctx.rotate(Math.atan2(BACK[1], BACK[0]));
-      ctx.fillStyle = col(COL.glove); ctx.beginPath(); ctx.ellipse(0.005, 0, 0.034, 0.026, 0, 0, TAU); ctx.fill();
-      for (const k of [-1, 1]) { ctx.fillStyle = col(COL.gloveL); ctx.beginPath(); ctx.ellipse(-0.022, k * 0.01, 0.012, 0.007, 0, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = col(C.glove); ctx.beginPath(); ctx.ellipse(0.005, 0, 0.034, 0.026, 0, 0, TAU); ctx.fill();
+      for (const k of [-1, 1]) { ctx.fillStyle = col(C.gloveL); ctx.beginPath(); ctx.ellipse(-0.022, k * 0.01, 0.012, 0.007, 0, 0, TAU); ctx.fill(); }
       ctx.restore();
     }
     ctx.restore();
   }
-  return { FILL, MIN, COL, rayAt, inHands };
+  // ---- the bow in your hands, frame by frame (what inHands draws from: L.s.bowShow, bowUp, pull, groping) ----
+  // held low while you look ahead (ahead: false lowers it out of view), up while it is drawn (or the button is still held
+  // for the next); let back down, it comes up a moment and goes down again; loosed, it comes down out of the arrow's way
+  const toward = (v, t, k) => v + (t - v) * Math.min(1, k);
+  function hold(L, dt, ahead) {
+    const s = L.s, d = G.draw;
+    s.bowShow = toward(s.bowShow || 0, ahead ? 1 : 0, dt * 7);
+    const gr = s.groping;
+    if (gr) { gr.t += dt; while (gr.pats < 2 && gr.t >= [0.37, 0.59][gr.pats]) { gr.pats++; AUDIO.sfx('pat', 0.2); } if (gr.t > 1.05 || d || G.state !== 'play') s.groping = null; }   // the fingertips at the empty shelf
+    const raised = (!!d && G.state === 'play' && (d.state === 'drawing' || !!G.drawBtn || (d.state === 'easing' && d.t < 0.15))) || (!!s.groping && s.groping.t < 0.78);
+    s.bowUp = toward(s.bowUp || 0, raised ? 1 : 0, dt * (raised ? 10 : d ? 8 : 5));
+    const pt = !d ? 0 : d.state === 'drawing' ? Math.pow(d.power, 0.75) : d.state === 'easing' ? Math.pow(d.from, 0.75) * (1 - smoothstep(d.t / d.dur)) : 0;
+    s.pull = d && d.state === 'loosed' ? 0 : toward(s.pull || 0, pt, dt * 20);
+  }
+  // the bow pressed with no arrows on you: the hand feels on the string and along the shelf for one (inHands draws it)
+  function grope(L) { const s = L.s; if (!s.groping || s.groping.t > 0.6) s.groping = { t: 0, pats: 0 }; }
+  // an arrow out in the world, from its nock end to its head (w: drawn thicker, so one standing far off still reads)
+  function arrow(tail, head, alpha, w) {
+    const u = [head[0] - tail[0], head[1] - tail[1], head[2] - tail[2]], l = Math.hypot(u[0], u[1], u[2]) || 1, k = w || 1;
+    const at = j => [tail[0] + u[0] * j / l, tail[1] + u[1] * j / l, tail[2] + u[2] * j / l];
+    const o = { kind: 'poly', stroke: true, noContact: true, alpha };
+    R.add(Object.assign({ pts: [tail, head], color: [176, 142, 98], lw: 0.018 * k }, o));
+    R.add(Object.assign({ pts: [tail, at(0.14)], color: [176, 46, 38], lw: 0.04 * k }, o));          // the fletching, red
+    R.add(Object.assign({ pts: [tail, at(0.04)], color: [222, 212, 190], lw: 0.04 * k }, o));        // and pale at the nock end
+    if (l > 0.3) R.add(Object.assign({ pts: [at(l - 0.06), head], color: [150, 152, 160], lw: 0.03 * k }, o));   // the head
+  }
+  return { FILL, MIN, COL, rayAt, inHands, hold, grope, arrow };
 })();
 LEVELS.push({
   id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
@@ -319,7 +346,7 @@ LEVELS.push({
     // The bow pressed with no arrows on you: it comes up, the drawing hand feels on the string and along the shelf for an
     // arrow, twice, and finds none (CLEARING_BOW.inHands draws it); the bow is let down again.
     s.groping = null;
-    s.grope = () => { if (!s.groping || s.groping.t > 0.6) s.groping = { t: 0, pats: 0 }; };
+    s.grope = () => CLEARING_BOW.grope(L);
     // An arrow with no bow, clicked at it: it is raised to shoot, out in front of you where the bow's shelf would be, finds
     // nothing to sit on and nothing to nock to, tips head first out of the fingers and drops to the boards at your feet,
     // where you have to pick it up again (one from the bundle; the rest stay in hand).
@@ -391,7 +418,6 @@ LEVELS.push({
       if (c.rand() >= k.chance) return;
       CREATURES.runner.dodge(c); k.at = L.t; k.count++;
     };
-    const toward = (v, t, k) => v + (t - v) * Math.min(1, k);
     const standOn = (x, z) => (Math.abs(x) <= 3.2 && Math.abs(z) <= 1.6 ? 0.35 : (Math.abs(x) <= 0.8 && z > 1.6 && z <= 2.2) || (x > 3.2 && x <= 3.8 && Math.abs(z) <= 0.6) ? 0.18 : 0);
     // it stands on what is under its feet: the ground its way runs along, then the step, then the deck. The renderer
     // and the gaze take the height from yOff; c.stand is kept for the lunge, which starts from there (see the runner)
@@ -410,27 +436,11 @@ LEVELS.push({
       }
       if (spentAll(c) && G.state === 'play' && L.t - s.lastLand > 1.2) { c.reckless = true; G.toast('That was the last arrow.'); }
       // the bow in your hands: held low while you look ahead, up while it is drawn; the string snaps forward the moment it is loosed
-      const d = G.draw, ahead = G.cam.tPitch < 0.3 && G.state === 'play' && G.hasItem('bow');   // won, it is lowered out of the way of watching it
-      s.bowShow = toward(s.bowShow || 0, ahead ? 1 : 0, dt * 7);
-      // up while it is drawn (or the button is still held for the next); let back down, it comes up a moment and goes down again;
-      // loosed, it comes down out of the arrow's way
-      const gr = s.groping;
-      if (gr) { gr.t += dt; while (gr.pats < 2 && gr.t >= [0.37, 0.59][gr.pats]) { gr.pats++; AUDIO.sfx('pat', 0.2); } if (gr.t > 1.05 || d || G.state !== 'play') s.groping = null; }   // the fingertips at the empty shelf
-      const raised = (!!d && G.state === 'play' && (d.state === 'drawing' || !!G.drawBtn || (d.state === 'easing' && d.t < 0.15))) || (!!s.groping && s.groping.t < 0.78);
-      s.bowUp = toward(s.bowUp || 0, raised ? 1 : 0, dt * (raised ? 10 : d ? 8 : 5));
-      const pt = !d ? 0 : d.state === 'drawing' ? Math.pow(d.power, 0.75) : d.state === 'easing' ? Math.pow(d.from, 0.75) * (1 - smoothstep(d.t / d.dur)) : 0;
-      s.pull = d && d.state === 'loosed' ? 0 : toward(s.pull || 0, pt, dt * 20);
+      CLEARING_BOW.hold(L, dt, G.cam.tPitch < 0.3 && G.state === 'play' && G.hasItem('bow'));   // won, it is lowered out of the way of watching it
       s.bowLit = 0.85 + 0.15 * Math.max(0, Math.cos(wrapPi(G.cam.yaw - L.facing - Math.PI)));   // facing the lit wall, the bow is lit a little more
     };
     L.dynamic = () => {
-      const arrow = (tail, head, alpha, w) => {   // w: thicker for one standing in the snow out there, so it reads from the porch
-        const u = [head[0] - tail[0], head[1] - tail[1], head[2] - tail[2]], l = Math.hypot(u[0], u[1], u[2]) || 1, at = k => add3(tail, u, k / l), k = w || 1;
-        const o = { kind: 'poly', stroke: true, noContact: true, alpha };
-        R.add(Object.assign({ pts: [tail, head], color: [176, 142, 98], lw: 0.018 * k }, o));
-        R.add(Object.assign({ pts: [tail, at(0.14)], color: [176, 46, 38], lw: 0.04 * k }, o));          // the fletching, red
-        R.add(Object.assign({ pts: [tail, at(0.04)], color: [222, 212, 190], lw: 0.04 * k }, o));        // and pale at the nock end
-        if (l > 0.3) R.add(Object.assign({ pts: [at(l - 0.06), head], color: [150, 152, 160], lw: 0.03 * k }, o));   // the head
-      };
+      const arrow = CLEARING_BOW.arrow;
       for (const f of flights) {
         const k = f.t / f.dur, h = pathAt(f, Math.min(1, k)), b = pathAt(f, Math.max(0, k - 0.02)), u = [h[0] - b[0], h[1] - b[1], h[2] - b[2]], l = Math.hypot(u[0], u[1], u[2]) || 1;
         const fade = f.fade ? clamp((1 - k) / 0.4, 0, 1) : 1;
