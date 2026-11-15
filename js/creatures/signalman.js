@@ -123,17 +123,18 @@ CREATURES.signalman = {
     const t = c.t, cx = 0, cy = -0.01, N = 5, w = TAU / N * 0.5 * 0.94;
     // it breathes: everything pulses in toward the middle and out again, the petals each a little out of step
     const pulse = ph => (SAVE.data.settings.reducedMotion ? 0 : Math.sin(t * 7.5 + ph) * 0.5 + Math.sin(t * 12.1 + ph * 1.7) * 0.25) * k;
-    const rb = lerp(0.03, 0.075, k) * (1 + 0.1 * pulse(0)), rt0 = lerp(0.12, 0.3, k);
+    // (the petals only open out, larger and wider as it comes, steady; the maw's rings are what move)
+    const rbP = lerp(0.03, 0.075, k), rb = rbP * (1 + 0.1 * pulse(0)), rt = lerp(0.12, 0.34, k), wide = lerp(0.85, 1.15, k);
     const flesh = P.col([58, 14, 18]), fleshD = P.col([30, 6, 9]), tooth = P.cola([200, 190, 156], 0.97);
     const at = (r, a) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
     const toothAt = (x, y, dx, dy, l, wd) => {   // a fang from (x,y) pointing (dx,dy)
       ctx.moveTo(x - dy * wd, y + dx * wd); ctx.lineTo(x + dy * wd, y - dx * wd); ctx.lineTo(x + dx * l, y + dy * l);
     };
     for (let i = 0; i < N; i++) {
-      const th = -Math.PI / 2 + i * TAU / N, rt = rt0 * (1 + 0.09 * pulse(i * 0.9));   // (each reaching out and drawing in)
-      const b1 = at(rb, th - w), b2 = at(rb, th + w), tip = at(rt, th), c1 = at(rt * 0.72, th - w * 0.85), c2 = at(rt * 0.72, th + w * 0.85);
+      const th = -Math.PI / 2 + i * TAU / N;
+      const b1 = at(rbP, th - w), b2 = at(rbP, th + w), tip = at(rt, th), c1 = at(rt * 0.72, th - w * 0.85 * wide), c2 = at(rt * 0.72, th + w * 0.85 * wide);
       const petal = sc => {
-        const m = at(rb, th), S = q => [m[0] + (q[0] - m[0]) * sc, m[1] + (q[1] - m[1]) * sc];
+        const m = at(rbP, th), S = q => [m[0] + (q[0] - m[0]) * sc, m[1] + (q[1] - m[1]) * sc];
         const B1 = S(b1), B2 = S(b2), T = S(tip), C1 = S(c1), C2 = S(c2);
         ctx.beginPath(); ctx.moveTo(B1[0], B1[1]); ctx.quadraticCurveTo(C1[0], C1[1], T[0], T[1]); ctx.quadraticCurveTo(C2[0], C2[1], B2[0], B2[1]); ctx.closePath();
       };
