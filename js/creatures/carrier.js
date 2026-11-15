@@ -6,9 +6,9 @@
 // back from the light with an arm across its face. c.shade (0..1) is how deep in shadow it stands: its colours sink toward
 // black, and its eyes catch what little light there is (two pale points). c.fallT (seconds) is its end, caught in the
 // light with nowhere dark to go: it shrieks, its knees go, and it comes apart on the ground, sacking and straw.
-// Its mouth is sewn shut, like a scarecrow's: a patch of burlap stitched over it with thick twine, straw poking out round
-// the patch. It strains at the stitches as it nears you, and in your face (c.lunge) they pull wide and two of them snap,
-// the dark and its teeth showing through. In that last moment it is lit up, however dark it is, so you see it.
+// Its mouth is sewn shut, like a scarecrow's: a patch of burlap stitched over it with thick crosses of twine. It strains
+// at the stitches as it nears you, and in your face (c.lunge) the slit is pulled open tall and two of them snap, the dark
+// and its teeth showing through. In that last moment it is lit up, however dark it is, so you see it.
 CREATURES.carrier = {
   name: 'the carrier', h: 1.7, w: 1.6, faceY: 1.35, stepRate: 0.9, catchDist: 1.5, sound: 'walker',
   death: { delay: 0.2, dur: 0.4, sting: 'sting' },
@@ -29,34 +29,22 @@ CREATURES.carrier = {
     return Object.assign({}, P, { col: col => rgba(lit(col)), cola: (col, a) => rgba(lit(col), a) });
   },
   // its mouth, sewn shut: a patch of burlap over it (w across, at x, y), the slit across the patch stitched shut with n
-  // thick crude cross-stitches of twine, and straw poking out from under the edges of the patch. gap (metres) is how far
+  // thick crude cross-stitches of twine. gap (metres) is how far
   // the slit is pulled open against the stitches, the dark and its teeth, top and bottom, showing between them; torn,
-  // how many of the stitches have snapped (from the middle out), their ends hanging from the holes.
+  // how many of the stitches have snapped (from the middle out).
   sewnMouth(ctx, P, x, y, w, gap, torn, n, t) {
-    const h = w * 0.44, sw = w * 0.36;
-    const burlap = P.col([136, 110, 72]), burlapD = P.col([92, 72, 46]), twine = P.col([30, 22, 14]), twineL = P.col([84, 66, 42]);
-    const straw = P.col([190, 164, 92]), strawD = P.col([136, 114, 60]), black = P.col([8, 6, 6]), teeth = P.col([220, 210, 190]);
-    // the straw, coming out from under the edges of the patch: tufts at its corners and along its lower edge
-    const TUFTS = [[-1, 0.15, Math.PI + 0.2], [-0.9, -0.55, Math.PI + 0.75], [1, 0.1, -0.15], [0.9, -0.6, -0.8], [-0.4, -0.95, -Math.PI / 2 - 0.35], [0.12, -1, -Math.PI / 2 + 0.1], [0.5, -0.9, -Math.PI / 2 + 0.45]];
-    TUFTS.forEach(([u, v, a], j) => {
-      for (let k = 0; k < 3; k++) {
-        const aa = a + (k - 1) * 0.3 + Math.sin(t * 1.7 + j * 2.1 + k) * 0.05, l = w * (0.12 + 0.05 * ((j + k * 2) % 3));
-        const px = x + u * w * 0.48, py = y + v * h * 0.48;
-        P_line(ctx, px, py, px + Math.cos(aa) * l, py + Math.sin(aa) * l, w * 0.028, (j + k) % 2 ? straw : strawD);
-      }
-    });
-    // the patch: a rough-cut square of sacking, its edge sewn down with a running stitch, the weave showing
+    const h = w * 0.44 + gap * 1.15, sw = w * 0.36;   // (the patch stretching taller as the slit is pulled open)
+    const burlap = P.col([136, 110, 72]), twine = P.col([30, 22, 14]);
+    const black = P.col([8, 6, 6]), teeth = P.col([220, 210, 190]);
+    // the patch: a rough-cut square of sacking
     const pts = [];
     for (let i = 0; i < 14; i++) { const a = i / 14 * TAU, r = 1 + 0.07 * Math.sin(i * 2.7) + 0.05 * Math.sin(i * 5.3); pts.push([x + Math.cos(a) * w / 2 * r * (Math.abs(Math.cos(a)) > 0.6 ? 1.04 : 1), y + Math.sin(a) * h / 2 * r]); }
     P_poly(ctx, pts, burlap);
-    for (const v of [-0.55, -0.15, 0.45]) { const hw = Math.sqrt(1 - v * v) * w * 0.44; P_line(ctx, x - hw, y + v * h / 2, x + hw, y + v * h / 2 + w * 0.01, w * 0.012, burlapD); }
-    for (const u of [-0.6, -0.2, 0.25, 0.65]) { const hh = Math.sqrt(1 - u * u) * h * 0.44; P_line(ctx, x + u * w / 2, y - hh, x + u * w / 2 + w * 0.008, y + hh, w * 0.01, burlapD); }
-    for (let i = 0; i < 14; i += 2) { const a = pts[i], b = pts[(i + 1) % 14]; P_line(ctx, lerp(a[0], b[0], 0.15), lerp(a[1], b[1], 0.15), lerp(a[0], b[0], 0.75), lerp(a[1], b[1], 0.75), w * 0.022, twineL); }
     // the slit: shut, a dark seam; pulled open, the dark behind it and its teeth
     if (gap > w * 0.012) {
       P_ell(ctx, x, y, sw, gap / 2 + w * 0.01, black);
       if (gap > w * 0.06) {
-        const tw = w * 0.045, th = Math.min(gap * 0.4, w * 0.1);
+        const tw = w * 0.045, th = Math.min(gap * 0.38, w * 0.16);
         for (let i = -3; i <= 3; i++) {
           const tx = x + i * sw * 0.26, edge = Math.sqrt(Math.max(0, 1 - (i * 0.26) ** 2)) * (gap / 2 + w * 0.01);
           P_rect(ctx, tx - tw / 2, y + edge - th, tw, th, teeth);                       // the top row, hanging down
@@ -64,20 +52,12 @@ CREATURES.carrier = {
         }
       }
     } else P_line(ctx, x - sw, y, x + sw, y, w * 0.035, black);
-    // the stitches: crude crosses of thick twine over the slit, pulled long as it opens; the torn ones hang from the holes
+    // the stitches: crude crosses of thick twine over the slit, pulled long as it opens; the torn ones are gone
     const order = [2, 1, 3, 0, 4, 5, 6].filter(i => i < n), d = w * 0.055 + gap * 0.2, s2 = w * 0.085;
     for (let i = 0; i < n; i++) {
       const sx = x + (n > 1 ? lerp(-sw * 0.82, sw * 0.82, i / (n - 1)) : 0), top = y + gap / 2 + s2, bot = y - gap / 2 - s2;
-      for (const q of [[sx - d, top], [sx + d, top], [sx - d, bot], [sx + d, bot]]) P_ell(ctx, q[0], q[1], w * 0.022, w * 0.018, burlapD);   // the holes, puckered
-      if (order.indexOf(i) < torn) {   // snapped: an end hanging from each hole, curling
-        for (const [hx, hy, l] of [[sx - d, top, 0.55], [sx + d, top, 0.4], [sx - d, bot, 0.3], [sx + d, bot, 0.45]]) {
-          const sway = Math.sin(t * 3 + i + hx * 40) * w * 0.02;
-          P_limb(ctx, [[hx, hy], [hx + w * 0.02 + sway, hy - s2 * l], [hx + w * 0.035 + sway * 1.5, hy - s2 * l * 1.6]], w * 0.028, twine);
-        }
-        continue;
-      }
+      if (order.indexOf(i) < torn) continue;   // snapped
       P_line(ctx, sx - d, top, sx + d, bot, w * 0.04, twine); P_line(ctx, sx + d, top, sx - d, bot, w * 0.04, twine);
-      P_line(ctx, sx - d * 0.6, top - s2 * 0.12, sx + d * 0.2, top - s2 * 0.5, w * 0.012, twineL);   // a glint of the twine
     }
   },
   // its eyes in the dark: two pale points, never less than a pixel or so across however far off it is, blinking now and then.
@@ -133,7 +113,7 @@ CREATURES.carrier = {
     if (rec < 0.3) this.eyes(ctx, c, [[-0.08, 0.27], [0.08, 0.27]]);
     // straining at its stitches as it nears you, and as it rears back from the light; in your face they pull wide, two of
     // them snap, and its teeth show through, top and bottom
-    const strain = near * (0.006 + 0.004 * Math.sin(t * 7.3)) + rec * 0.03 + lunge * 0.075;
+    const strain = near * (0.006 + 0.004 * Math.sin(t * 7.3)) + rec * 0.03 + smoothstep(lunge) * 0.17;   // in your face, pulled open tall
     this.sewnMouth(ctx, P, 0, 0.1 - lunge * 0.012, 0.25 + lunge * 0.02, strain, (lunge > 0.35 ? 1 : 0) + (lunge > 0.7 ? 1 : 0), 5, t);
     ctx.restore();
     ctx.restore();

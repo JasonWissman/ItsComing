@@ -290,7 +290,7 @@ some on the ground, so you have to turn and look down to find them.
     written on it in marker (HOUSE, then the places in order round from the tractor shed); a click flips one, up is on.
     The panel and its parts are fixed flat on the front of the box, so they stay where they are drawn however you look.
     Something bent under a bundle stands in the dark at the foot of one place, all but black, two pale points of eyes;
-    its mouth is sewn shut with thick twine over a patch of burlap, straw poking out round it. It cannot stand the light:
+    its mouth is sewn shut with thick crosses of twine over a patch of burlap. It cannot stand the light:
     light its place and it throws an arm over its face and runs, side on, to a neighbouring place that is dark, at the
     same distance from you. Light both its neighbours and then its own place and it has nowhere dark to go: it shrieks,
     the stitches of its mouth tearing, its knees go, and it comes apart in the light, sacking and straw. The box takes
