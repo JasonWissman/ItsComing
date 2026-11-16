@@ -12,7 +12,8 @@
 // its hook and it drops straight through, back into the return; take it again, lift the receiver, put it in. A key clicked
 // with the zoom held is pressed as ever. A gamepad's d-pad moves a highlight over the phone's keys (and turns away past the
 // last of them) and A presses the one highlighted. Dial the number with the number keys, and wait out the seven seconds of
-// ringing while it keeps coming; then a car comes for you, pulls up and opens its door, and it turns round. The notebook,
+// ringing while it keeps coming; then a car comes for you, pulls up and opens its door, and it has got off the road behind a
+// lamp post and walks off. The notebook,
 // the keys, the receiver and the coin slot are clicked where they are drawn, so their hit rects are tested as well; the
 // number keys dial, not choose what you hold.
 // What you do happens in your hands: a key is pressed by your fingertip (what you hold goes down meanwhile and comes back
@@ -51,6 +52,46 @@ const plain = pitch => '(G.cam.zoom < 1.05 && Math.abs(G.cam.pitch - ' + pitch +
 // facing the phone, it is in the view (at its edge: the corner of your eye), and not hidden behind the phone
 const periphery = "(() => { const p = G.L.creature.pos(), a = Math.abs(Math.atan2(p.x, p.z) / DEG - 45); return a < 44 && a > 16; })()";
 const lamp0 = 'G.L.s.man.stops[0].lamp';
+// the car coming for you, and the shade out of its way: from a place on its way in (frac of the way, on street k), the
+// call answered there and the aftermath stepped by hand to its end. Every frame the shade is measured against the car (its
+// body, bumpers and all, and its back door when open, with room to spare): it must never be inside it. It must get behind
+// a lamp post on its own street, stand there still a second, and then turn its back and walk off along the pavement.
+const flee = (k, frac) => `(() => {
+  const L = G.L, s = L.s, c = L.creature, save = [SAVE.recordWin, SAVE.unlock]; SAVE.recordWin = SAVE.unlock = () => {};
+  c.lane = L.lanes[${k}]; L.lane = c.lane; L.laneIdx = ${k}; s.man = null; update(0.001);
+  s.man.t0 = L.t - ${frac} * s.man.arrive; update(0.01);
+  const startD = c.dist; win();
+  const R0 = 0.35, out = { minSep: 99, hidAt: -1, still: 0, awayAt: -1, lampD: 99, onRoad: false, carSeen: false, endPose: null, startD: +startD.toFixed(1) };
+  let last = null;
+  for (let i = 0; i < 2500 && G.state === 'won' && !(s.end && L.aftermathT > s.end.done); i++) {
+    update(0.01);
+    const p = c.pos(), e = s.end, f = s.flee;
+    if (e && e.pose) {
+      out.carSeen = true;
+      const P = e.pose, dx = p.x - P.x, dz = p.z - P.z, a = dx * P.fx + dz * P.fz, b = Math.abs(-dx * P.fz + dz * P.fx);
+      const bw = e.doorT !== undefined ? 1.9 : 0.905;   // (its back door, open, standing out from its side)
+      const sep = Math.hypot(Math.max(0, Math.abs(a) - 2.27), Math.max(0, b - bw)) - R0;
+      out.minSep = Math.min(out.minSep, sep);
+    }
+    if (f && L.t - f.t0 >= f.rushT && !c.away) {
+      if (out.hidAt < 0) { out.hidAt = +(L.t - f.t0).toFixed(2); out.lampD = Math.min(...s.man.stops.map(st => Math.hypot(p.x - st.lamp.x, p.z - st.lamp.z))); }
+      if (last && Math.hypot(p.x - last.x, p.z - last.z) < 1e-6 && !c.rush) out.still += 0.01;
+    }
+    if (c.away && out.awayAt < 0) out.awayAt = +(L.t - f.t0).toFixed(2);
+    if (out.hidAt >= 0 && (p.z > 1 && p.z < 8 || p.z >= 8 && Math.abs(p.x) < 3.5)) out.onRoad = true;
+    last = p;
+  }
+  out.walked = +(c.dist - s.flee.to.d).toFixed(2); out.minSep = +out.minSep.toFixed(2); out.lampD = +out.lampD.toFixed(2); out.still = +out.still.toFixed(2);
+  SAVE.recordWin = save[0]; SAVE.unlock = save[1];
+  return out;
+})()`;
+// (played after the night is won, each on the night started over; the last is left to play out to the survived card)
+const fleeCases = [0, 1].flatMap(k => [0, 0.25, 0.5, 0.7, 0.85, 0.93, 0.97, 0.995].flatMap(frac => [
+  ['eval', 'restartLevel()'], ['wait', 300],
+  ['eval', 'window.__fl = ' + flee(k, frac)],
+  ['expect', '__fl.carSeen && __fl.minSep > 0.3', 'street ' + k + ', ' + frac + ' of the way in: the car came and it was never in the car'],
+  ['expect', '__fl.hidAt >= 0 && __fl.hidAt < 2.2 && __fl.lampD < 1.2 && __fl.still >= 0.9 && __fl.awayAt >= __fl.hidAt + 0.95 && __fl.walked > 2 && !__fl.onRoad', 'street ' + k + ', ' + frac + ': it scurried behind a lamp post, stood a second, and walked off along the pavement'],
+]));
 module.exports = {
   nightmare: [
     ['expect', 'G.inv.length === 0', 'nothing in hand: the notebook is lying on the shelf'],
@@ -208,5 +249,6 @@ module.exports = {
     ['waitUntil', 'G.L.aftermathT > G.L.s.end.doorT + 0.6', 3000],
     ['expect', 'Math.abs(wrapPi(G.L.s.end.doorYaw - G.cam.yaw)) < 35 * DEG && Math.abs(wrapPi(G.L.s.end.doorYaw - 45 * DEG)) > 16 * DEG', 'the open door is in view, and not behind the pay phone'],
     ['waitUntil', 'G.L.creature.away', 4000],
+    ...fleeCases,
   ],
 };

@@ -5,7 +5,7 @@
   const DARK = 42 / 175;                  // night 8's creature: startDist 42 m, time 175 s: its walk with the power off
   const GLASS = 5.02, LIT_T = 17;         // the middle window's glass; lit, it is at the glass LIT_T s after it sets off
   const LIT = (42 - GLASS) / LIT_T;       // (c.drawnMult: its pace while the diner is lit)
-  // walking in at a pace: its small stiff steps (c.gait, as the game drives it from the ground covered)
+  // walking in at a pace: its stiff steps (c.gait, as the game drives it from the ground covered)
   const walk = v => (c, k, dt) => { c.moving = true; c.dist -= v * dt; c.gait += v * dt * CR.stepRate * Math.PI; };
   // the window between you and it: a sheen of reflections on the glass
   const glass = (ctx, c, P) => {
@@ -39,7 +39,7 @@
   const G_LEN = 2.9, G_RUN = clamp(G_LEN / 3.8, 0.5, 1.3), L_LEN = 20 * 30 * DEG, L_RUN = clamp(L_LEN / 5.5, 1.2, 5);
 
   // ---- the shove (night08 startShove, shoveStep): at a shutter part way down it takes the bottom edge and shoves it up ----
-  const SHOVE = { grab: 0.32, heave: 0.66, fly: 0.13, after: 0.3, lunge: 2.6 }, REACH = 1.5, FLING = 1.75, TOP = 2.6, BOT = 0.1, ZS = 5.1;
+  const SHOVE = { grab: 0.32, heave: 0.66, fly: 0.13, after: 0.3, lunge: 2.6 }, REACH = 2.15, FLING = 2.4, TOP = 2.6, BOT = 0.1, ZS = 5.1;
   const D_SHOVE = GLASS * (ZS + 0.1) / GLASS;   // just outside the steel (middle window)
   const bottom = sh => TOP - (TOP - BOT) * sh;
   const edgeAt = (yb, d) => G.L.eyeH + (yb - G.L.eyeH) * d / ZS;   // the shutter's bottom edge as it shows at its distance d
@@ -98,31 +98,31 @@
       const y = edgeAt(bottom(c.labShove0 * (1 - Math.max(0, S.e - de) ** 2)), d);
       if (y > yb + 0.02) P_rect(ctx, x0, y, w, 0.08 * sc, P.cola([50, 48, 46], al));
     });
-    if (c.shove && c.shove.k > 0.85 && Math.abs(c.shove.h + c.yOff - yb) < 0.03) for (const x of [-0.12, 0.12]) { ctx.save(); ctx.translate(x, yb - 0.022); fingers(ctx, P); ctx.restore(); }
+    if (c.shove && c.shove.k > 0.85 && Math.abs(c.shove.h + c.yOff - yb) < 0.03) for (const x of [-0.17, 0.17]) { ctx.save(); ctx.translate(x, yb - 0.022); fingers(ctx, P); ctx.restore(); }
     glass(ctx, c, P);
   };
 
   LAB.creature('customer', {
     night: 8, stage: 'The Diner', dist: 14,
     anims: [
-      { name: 'Walking in, in the dark', note: 'With the power off, in its plain little black suit and red tie, its face as grey as its hands: small stiff steps, bolt upright, only the head moving, laid over slowly one way and the other, the jaw snapping open and shut, hungry, in greedy fits and starts; now and then the feet stop and it slides on.',
+      { name: 'Walking in, in the dark', note: 'With the power off: a tall figure in a long belted trenchcoat, the collar up and a hat pulled low, no face under the brim but the mouth, a thin grin of small teeth, chewing: stiff steps, bolt upright, only the head moving, laid over slowly one way and the other; now and then the feet stop and it slides on.',
         dist: 20, dur: 8.6, tick: walk(DARK) },
-      { name: 'Coming fast while the diner is lit', note: 'With the lights on it is drawn in: the same stiff walk, far faster, crossing the lot in seconds whether you watch it or not, its teeth snapping as it comes.',
+      { name: 'Coming fast while the diner is lit', note: 'With the lights on it is drawn in: the same stiff walk, far faster, crossing the lot in seconds whether you watch it or not, its jaw working as it comes.',
         dist: 30, dur: 4.3, tick: walk(LIT) },
-      { name: 'Hands up to the glass', note: 'Coming up to an open window in the dark: its hands come up and press flat on the glass either side of its face, and the head lays itself further over.',
+      { name: 'Hands up to the glass', note: 'Coming up to an open window in the dark: its hands come up and press flat on the glass either side of its face, peering in under the brim, and the head lays itself further over.',
         dist: 7.8, dur: 9, tick: walk(DARK), front: glass },
       { name: 'Running along the glass', note: 'Its window shut in its face, it pivots side on like a solid figure on a turntable, skips along the glass to the next window still open, and turns back to it.',
-        dist: 5.3, dur: 0.6 + RUN.pivot * 2 + G_RUN + 0.6, fit: { h: 1.45, w: 3.4 }, draw: shifted, front: glass,
+        dist: 5.3, dur: 0.6 + RUN.pivot * 2 + G_RUN + 0.6, fit: { h: 2.05, w: 3.4 }, draw: shifted, front: glass,
         set(c) { c.labX = G_LEN / 2; }, tick: runner(G_LEN, G_RUN, -1, 0.6, true) },
-      { name: 'Running across the lot', note: 'Shut out while still out in the lot, it turns side on and skips across to an open window: knees high, body bolt upright, arms dead straight, head turned to you.',
-        dist: 20, dur: 0.4 + RUN.pivot * 2 + L_RUN + 0.6, fit: { h: 1.45, w: 1.1 }, tick: runner(L_LEN, L_RUN, 1, 0.4, false) },
-      { name: 'Shoving a shutter back up', note: 'At a shutter only half down: its hands come up to the bottom edge, take hold, tug twice, and shove it up into its housing; then it throws itself at the glass.',
-        dist: D_SHOVE + 0.12, dur: LEAD + SHOVE.heave + SHOVE.fly + SHOVE.after + 0.5, fit: { h: 1.9, w: 1.3 }, front: shutter,
-        set(c) { c.labShove0 = 0.5; }, tick: shover(0.5) },
-      { name: 'Jumping for a shutter', note: 'At a shutter barely started down, the edge above its reach: it jumps, hangs from the edge by its hands, and drops as it shoves it up.',
-        dist: D_SHOVE + 0.12, dur: LEAD + SHOVE.heave + SHOVE.fly + SHOVE.after + 0.5, fit: { h: 2.1, w: 1.3 }, front: shutter,
-        set(c) { c.labShove0 = 0.2; }, tick: shover(0.2) },
-      LAB.lunge({ note: 'Through the glass: it comes straight from the window at your face, the grin coming apart, the jaw dropping, the hands reaching.', dist: GLASS }),
+      { name: 'Running across the lot', note: 'Shut out while still out in the lot, it turns side on and skips across to an open window: knees high, the skirt of its coat flying out behind, body bolt upright, arms dead straight, head turned to you.',
+        dist: 20, dur: 0.4 + RUN.pivot * 2 + L_RUN + 0.6, fit: { h: 2.1, w: 1.5 }, tick: runner(L_LEN, L_RUN, 1, 0.4, false) },
+      { name: 'Shoving a shutter back up', note: 'At a shutter part way down (four turns of ten), the steel over its head: its hands come up to the bottom edge, take hold, tug twice, and shove it up into its housing; then it throws itself at the glass.',
+        dist: D_SHOVE + 0.12, dur: LEAD + SHOVE.heave + SHOVE.fly + SHOVE.after + 0.5, fit: { h: 2.5, w: 1.5 }, front: shutter,
+        set(c) { c.labShove0 = 0.4; }, tick: shover(0.4) },
+      { name: 'Jumping for a shutter', note: 'At a shutter barely started down (a turn of ten), the edge above even its reach: it jumps, hangs from the edge by its hands, and drops as it shoves it up.',
+        dist: D_SHOVE + 0.12, dur: LEAD + SHOVE.heave + SHOVE.fly + SHOVE.after + 0.5, fit: { h: 2.75, w: 1.5 }, front: shutter,
+        set(c) { c.labShove0 = 0.1; }, tick: shover(0.1) },
+      LAB.lunge({ note: 'Through the glass: it comes straight from the window at your face, the shadow under the brim filling the view, the mouth coming apart, the jaw dropping, the hands reaching.', dist: GLASS }),
     ],
   });
 })();
