@@ -18,7 +18,7 @@ const G = {
   hb: { next: 0, last: -10 }, toastT: 0, lastToast: { msg: '', t: -10 }, invSig: '', debug: false, paused: false,
   difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, lastLane: {}, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
   run: null,   // the full run under way, if one is: { t, night, nights } (see the run, below)
-  lastRun: null,   // the full run just finished, for the results after the ending: { t, best, nights }
+  lastRun: null,   // the full run just finished, for the results after the ending: { t, nights }
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
@@ -158,15 +158,14 @@ function validateContent() {
 
 // ---------------- the run ----------------
 // A full run is night 1 to the end of the last night in one go, timed; the best is kept in the save (SAVE.recordRun) and
-// shown on the Nights screen. It begins when night 1 is begun from a menu (Begin, Play again, night 1 on the Nights list,
-// Enter on the title), never by ?level=. Its clock is the time spent playing (G.state 'play', and the moment of being
-// caught): every attempt at a night counts, retries after a death and restarts too, but not the cards, the death and
-// survived screens, the pause menu, the title, the watching once a night is won, or a hidden tab (nothing runs then).
-// It goes on through Next night, and through quitting to the title so long as the night it next starts is the one the
-// run is on (Continue, or that night on the Nights list). Starting any other night breaks it (a night skipped to,
-// or one gone back to), and so does a reload: the run in progress lives only here, not in the save. It is finished,
-// and counted, the moment the last night is won. As it goes it keeps each night's time (the attempt that won it, as the
-// Nights screen counts a best) and whether that beat the best before; finished, it is kept as G.lastRun for the results.
+// shown on the Nights screen. Every game is one: Begin (or Enter on the title) begins it at night 1, and there is no
+// other way into a night but going on from the one before (?level= and the other test switches start none). Its clock is
+// the time spent playing (G.state 'play', and the moment of being caught): every attempt at a night counts, retries
+// after a death and restarts too, but not the cards, the death and survived screens, the pause menu, the watching once a
+// night is won, or a hidden tab (nothing runs then). It goes on through Next night; quitting to the title ends it, and
+// so does a reload (the run in progress lives only here, not in the save). It is finished, and counted, the moment the
+// last night is won. As it goes it keeps each night's time (the attempt that won it); finished, it is kept as G.lastRun
+// for the results after the ending, which show only this run.
 function beginRun() { G.run = { t: 0, night: 0, nights: [] }; }
 // ---------- a new game: before the first night, a black screen and two lines, one after the other ----------
 // The lines come up slowly in the middle of the dark, one at a time (the first gone before the second comes), and fade;
@@ -205,22 +204,20 @@ function newGame() {
   at(still ? 4800 : 10200, finish);
 }
 function runTick(dt) { if (G.run && (G.state === 'play' || G.state === 'dying')) G.run.t += dt; }
-// prev: the night's best time before this win (null if it had none)
-function runWon(L, prev) {
+function runWon(L) {
   const r = G.run, last = L.index === LEVELS.length - 1;
   if (last) G.lastRun = null;
   if (!r || r.night !== L.index) { G.run = null; return; }
   const t = Math.round(L.t * 10) / 10;
-  (r.nights = r.nights || [])[L.index] = { t, best: prev === null || prev === undefined || t < prev };
+  (r.nights = r.nights || [])[L.index] = { t };
   if (last) {
-    const b = SAVE.data.bestRun[L.diff.id];
-    G.lastRun = { t: r.t, best: b === undefined || b === null || r.t < b, nights: r.nights };
+    G.lastRun = { t: r.t, nights: r.nights };
     SAVE.recordRun(L.diff.id, r.t); G.run = null;
   } else r.night = L.index + 1;
 }
 
 function startLevel(i, withCard) {
-  if (G.run && G.run.night !== i) G.run = null;   // any night but the one the run is on breaks it
+  if (G.run && G.run.night !== i) G.run = null;   // any night but the one the run is on (a test's ?level=, startLevel) is no run
   if (G.L && G.L.onEnd) G.L.onEnd();
   STORY.theme(false); if (i === 0) SAVE.setSetting('theme', '');
   G.white = 0; G.whiteTarget = 0;
@@ -265,6 +262,7 @@ function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.r
 function hideOverlay() { if (touchUI()) G.mouse.x = G.mouse.y = -1; UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
+  G.run = null;   // quitting ends the run: the next game begins again at night 1
   if (G.L && G.L.onEnd) G.L.onEnd();
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
   G.inv = []; HANDS.reset();   // nothing in hand or in the air behind the title
@@ -308,7 +306,6 @@ function onKeyDown(e) {
   if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
   if (G.state !== 'play') {
     if (k === 'Enter' && !LIST_SCREENS.includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
-    if ((k === 'c' || k === 'C') && G.state === 'title' && G.unlocked > 0 && G.unlocked < LEVELS.length) { ensureAudio(); startLevel(G.unlocked, true); }
     if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = true;
     return;
   }
@@ -699,9 +696,8 @@ function win() {
   for (const c of L.creatures) if (c.sealHold) { c.hold = null; c.sealHold = false; } // the aftermath decides where it stands now
   setState('won');
   SAVE.unlock(L.diff.id, L.index + 1);
-  const was = (SAVE.data.best[L.def.id] || {})[L.diff.id];
   SAVE.recordWin(L.def.id, L.diff.id, L.t);
-  runWon(L, was ? was.time : null);
+  runWon(L);
   startAftermath(L);
 }
 function die(c, cause) {
@@ -822,8 +818,7 @@ function update(dt) {
         if (G.fadeTarget < 1) { G.fadeTarget = 1; AUDIO.sfx('win'); AUDIO.stopAmbient(); }
         if (G.fade > 0.97) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
-          G.survivedScreen = { title: L.def.title, text: L.text.win };
-          MENU.show('survived', G.survivedScreen);
+          MENU.show('survived', { title: L.def.title, text: L.text.win });
         }
       }
     }

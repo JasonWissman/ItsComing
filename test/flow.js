@@ -37,6 +37,7 @@ const { check, st, face, findHit, clickAt, lookForAndClick } = T;
   await page.waitForTimeout(3400);
   s = await st(page); check(s.state === 'dead', 'caught -> dead overlay (state ' + s.state + ')');
   check(await page.evaluate(() => document.querySelector('#overlay .intro').textContent.includes('open door')), 'death line comes from the night text');
+  check(await page.evaluate(() => [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.textContent).join() === 'Try again,Quit'), 'the death screen offers Try again and Quit, nothing else (no Nights)');
   await page.mouse.click(640, 380); await page.waitForTimeout(400);
   s = await st(page); check(s.state === 'play' && s.level === 0 && s.dist > 100, 'retry restarts night 1 fresh');
 

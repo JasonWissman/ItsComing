@@ -14,11 +14,11 @@ const MENU = (() => {
     const S = SAVE.data.settings;
     switch (kind) {
       case 'title': {
-        const unlocked = G.unlocked;
         // the title itself: the name and the way in, and nothing else over what is out there (how to play is a dialog).
-        // Nights only once there is more than the first to pick
+        // There is one way in, Begin: every game is all the nights in a row from the first. Nights (how they have gone,
+        // to look at, not to pick from) only once one has been survived
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
-          '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (unlocked > 0 && unlocked < LEVELS.length ? btn('continue', 'Continue &middot; night ' + (unlocked + 1)) : '') + (unlocked > 0 ? btn('nights', 'Nights') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
+          '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (G.unlocked > 0 ? btn('nights', 'Nights') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
           '<p class="fine">Headphones recommended for spatial audio</p>';
       }
       case 'howto': {
@@ -63,27 +63,22 @@ const MENU = (() => {
       }
       case 'pause':
         // one narrow column of buttons all of a width; R, M and Esc do the same from the keyboard
-        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('restart', 'Restart') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('mute', G.muted ? 'Unmute' : 'Mute') + btn('title', 'Quit') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
+        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('restart', 'Restart') + btn('settings', 'Settings', 'pause') + btn('mute', G.muted ? 'Unmute' : 'Mute') + btn('title', 'Quit') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
       case 'dead':
-        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + btn('nights', 'Nights') + btn('title', 'Quit') + '</div>';
+        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + btn('title', 'Quit') + '</div>';
       case 'ending':   // the last screen of the last night, over the morning room
-        return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('done', 'I did it', undefined, 'primary') + '</div>';
+        return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('done', 'The End', undefined, 'primary') + '</div>';
       case 'results': {
         // after the ending: the nights as on the Nights screen, each card's time coming in one after another (reveal), then
-        // the full run, then the way out. This run's own times where it was a full run (game.js: G.lastRun), and with
-        // each a word on whether it beat the best before it; otherwise the bests kept
-        const diff = G.diff(), R0 = G.lastRun, b0 = id => ((SAVE.data.best[id] || {})[diff.id]) || null;
+        // the full run, then the way out. Only this run's own times (game.js: G.lastRun), no bests: how it went this time.
+        // (No run, only when the last night was reached by ?level=: then dashes)
+        const R0 = G.lastRun;
         let cards = '';
         for (let i = 0; i < LEVELS.length; i++) {
-          const def = LEVELS[i], mine = R0 && R0.nights[i], e = b0(def.id);
-          const tag = mine ? (mine.best ? '<small class="rnew">new best</small>' : (e && e.time !== null ? '<small>best ' + fmtTime(e.time) + '</small>' : '')) : '<small>best</small>';
-          const time = mine ? mine.t : e && e.wins ? e.time : null;
-          cards += '<div class="ncard rcard' + col(i) + '"><span class="nname">' + (i + 1) + '. ' + def.title + '</span><span class="nbest">' + (time !== null ? tag + fmtTime(time) : '&mdash;') + '</span></div>';
+          const mine = R0 && R0.nights[i];
+          cards += '<div class="ncard rcard' + col(i) + '"><span class="nname">' + (i + 1) + '. ' + LEVELS[i].title + '</span><span class="nbest">' + (mine ? fmtTime(mine.t) : '&mdash;') + '</span></div>';
         }
-        const best = SAVE.data.bestRun[diff.id], has = best !== undefined && best !== null;
-        const run = R0
-          ? '<div class="rlabel">This run</div><div class="rtime">' + fmtRun(R0.t) + '</div><div class="rhint' + (R0.best ? ' rnew' : '') + '">' + (R0.best ? 'A new best full run' : 'Best full run ' + fmtRun(best)) + '</div>'
-          : '<div class="rlabel">Best full run</div><div class="rtime' + (has ? '' : ' none') + '">' + (has ? fmtRun(best) : '&mdash;') + '</div><div class="rhint">' + (has ? 'This time was not a full run' : 'For a full run, survive all ' + LEVELS.length + ' nights in one go, starting from night 1') + '</div>';
+        const run = '<div class="rlabel">This run</div><div class="rtime' + (R0 ? '' : ' none') + '">' + (R0 ? fmtRun(R0.t) : '&mdash;') + '</div>';
         return '<div class="results"><div class="kicker">Morning</div><h1>Every night survived</h1><div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>' +
           '<div class="runcard rrun">' + run + '</div><div class="mrow rlast">' + btn('finish', 'Finish game', undefined, 'primary') + '</div></div>';
       }
@@ -92,21 +87,22 @@ const MENU = (() => {
         return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'Next night') + '</div>' +
           '<button type="button" class="tbtn" data-act="title">Quit</button>';
       case 'nights': {
-        // a card for each night with its best time inside it, in two columns (one on a phone); a night not reached yet is
-        // a blank card. Under them, the best full run: night 1 to the end of the last night in one go (game.js: the run)
+        // how the nights have gone, to look at: a card for each night with its best time inside it, in two columns (one
+        // on a phone); a night not reached yet is a blank card. Not buttons: no night is picked from here (every game is
+        // all of them from the first). Under them, the best full run: night 1 to the end of the last night (game.js: the run)
         const diff = G.diff(), unlocked = G.unlocked, b0 = id => ((SAVE.data.best[id] || {})[diff.id]) || null;
         let cards = '';
         for (let i = 0; i < LEVELS.length; i++) {
           const def = LEVELS[i];
           if (i <= unlocked) {
             const e = b0(def.id), best = e && e.wins ? '<span class="nbest"><small>best</small>' + fmtTime(e.time) + '</span>' : '';
-            cards += '<button type="button" class="mbtn ncard' + col(i) + '" data-act="night" data-arg="' + i + '"><span class="nname">' + (i + 1) + '. ' + def.title + '</span>' + best + '</button>';
+            cards += '<div class="ncard shown' + col(i) + '"><span class="nname">' + (i + 1) + '. ' + def.title + '</span>' + best + '</div>';
           } else cards += '<div class="ncard locked' + col(i) + '">' + (i + 1) + '. &hellip;</div>';
         }
         const run = SAVE.data.bestRun[diff.id];
         const runCard = '<div class="runcard"><div class="rlabel">Best full run</div>' + (run !== undefined && run !== null
           ? '<div class="rtime">' + fmtRun(run) + '</div>'
-          : '<div class="rtime none">&mdash;</div><div class="rhint">Survive all ' + LEVELS.length + ' nights in one go, starting from night 1. Retries are allowed; the clock keeps running.</div>') + '</div>';
+          : '<div class="rtime none">&mdash;</div><div class="rhint">Survive all ' + LEVELS.length + ' nights in one go. Retries are allowed; the clock keeps running.</div>') + '</div>';
         const complete = SAVE.data.complete && SAVE.data.complete[diff.id] ? '<p class="fine">Every night survived.</p>' : '';
         return '<h1>Nights</h1><div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>' + runCard + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
       }
@@ -185,17 +181,15 @@ const MENU = (() => {
   function act(a, arg) {
     switch (a) {
       case 'begin': newGame(); break;
-      case 'done': show('results'); break;   // the ending's "I did it": how the nights went
+      case 'done': show('results'); break;   // the ending's "The End": how the nights went this time
       case 'finish': G.lastRun = null; if (G.seed === null) G.runSeed = Date.now() % 1000000; showTitle(); break;   // home; the next run new layouts, unless the seed is fixed
-      case 'continue': startLevel(G.unlocked, true); break;
-      case 'nights': show('nights', { from: current && (current.kind === 'pause' ? 'pause' : current.kind === 'dead' ? 'dead' : current.kind === 'survived' ? 'survived' : 'title') }); break;
+      case 'nights': show('nights', { from: 'title' }); break;   // only from the title (and its Back goes there)
       case 'settings': show('settings', { from: arg || 'title' }); break;
       case 'howto': show('howto', { from: 'title' }); break;
       case 'resume': resumeGame(); break;
       case 'restart': restartLevel(); break;
       case 'retry': startLevel(G.levelIndex, false); break;
       case 'next': proceedFromSurvived(); break;
-      case 'night': { const i = parseInt(arg, 10); if (i === 0) beginRun(); startLevel(i, true); break; }   // night 1 from the list begins a run; any other night breaks one, unless it is the one the run is on
       case 'title': showTitle(); break;
       case 'reset': show('settings', Object.assign({}, current.data, { confirmReset: true })); break;
       case 'keep': show('settings', Object.assign({}, current.data, { confirmReset: false })); break;
@@ -206,8 +200,6 @@ const MENU = (() => {
         if (from === 'title' && G.state === 'title') { show('title'); TITLE.advance(); }   // closing a dialog over the title: it came on while it was open
         else if (from === 'title') showTitle();
         else if (from === 'pause') show('pause');
-        else if (from === 'dead') show('dead', G.deathScreen);
-        else if (from === 'survived') show('survived', G.survivedScreen);
         else showTitle();
         break;
       }
