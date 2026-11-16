@@ -47,9 +47,15 @@ module.exports = {
     ['face', 0, false], ['click', 'ignition'], ['expect', "G.L.s.cranks === 0 && G.L.s.gear === 'D' && G.hand.reach && G.hand.reach.style === 'rattle'", 'in drive the key does nothing: the hand takes it'],
     ['waitUntil', 'G.L.s.keyAng > 8 * DEG', 1500], ['waitUntil', 'G.L.s.keyAng < 1 * DEG && !G.hand.reach', 2000],
     ['expect', 'G.L.s.cranks === 0 && !G.L.s.started', 'it strained a few degrees and went back, and the engine never turned'],
-    // the stick at the edge of the view, looking down from the wheel: the hand still goes to the knob where it is drawn
+    // the plate at the edge of the view, looking down from the wheel: a click on it moves the stick, the hand going to the
+    // knob. Then, looking down at the console, the knob is where the hand went: at the top of the stick as it is drawn
+    // (the stick's own hit area, rising out of the plate lying flat on the console), and the plate lies flat under it
     ['face', 0, true], ['click', 'gear'],
-    ['expect', "G.L.s.gear === 'P' && G.hand.reach && G.hand.reach.target.id === 'gear' && G.hand.reach.style === 'pull' && (() => { const a = G.hand.reach.at, q = R.screenPos(a.x, a.y, a.z), h = R.hits.find(h => h.kind === 'target' && h.ref.id === 'gear'); if (!q || !h || !h.poly || h.poly.length !== 4) return false; const y = q.y + R.viewY, [b0, b1, t1, t0] = h.poly, d = (p, r) => Math.hypot(q.x - (p[0] + r[0]) / 2, y - (p[1] + r[1]) / 2); return inPoly(q.x, y, h.poly) && d(t0, t1) < d(b0, b1); })()", 'into park: the hand takes the knob, where it is drawn (on the plate fixed to the console, up near its top), and pulls it over'],
+    ['expect', "G.L.s.gear === 'P' && G.hand.reach && G.hand.reach.target.id === 'gear' && G.hand.reach.style === 'pull'", 'into park from the plate at the edge of the view: the hand takes the knob and pulls it over'],
+    ['expect', "(async () => { const a = G.hand.reach && G.hand.reach.at; if (!a) return false; G.cam.dirIdx = 1; G.cam.yaw = G.cam.tYaw = 45 * DEG; G.cam.pitch = G.cam.tPitch = PITCH_DOWN; await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); " +
+      "const q = R.screenPos(a.x, a.y, a.z), hs = R.hits.filter(h => h.kind === 'target' && h.ref.id === 'gear' && h.poly && h.poly.length === 4); if (!q || hs.length !== 2) return false; " +
+      "const top = h => Math.min(...h.poly.map(p => p[1])), bot = h => Math.max(...h.poly.map(p => p[1])), [stick, plate] = hs.slice().sort((x, y) => top(x) - top(y)), y = q.y + R.viewY; " +
+      "return inPoly(q.x, y, stick.poly) && y < top(stick) + (bot(stick) - top(stick)) * 0.4 && !inPoly(q.x, y, plate.poly) && bot(plate) > bot(stick); })()", 'the hand is on the knob, up at the top of the stick where it is drawn, over the plate lying flat on the console'],
     ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6], ['expect', 'G.L.s.started', 'engine started'],
     ['use', 'gas'], ['expect', "!G.L.s.gone && G.L.s.gear === 'P' && G.state === 'play'", 'in park the gas only revs'],
     ['branch', 'G.runSeed % 3 === 2', forward, reverse],

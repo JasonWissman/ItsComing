@@ -117,7 +117,9 @@ some on the ground, so you have to turn and look down to find them.
    whole road slides past as you go. The house keys are tried at the keyhole, blade first, will not go in and drop to the
    floor at your feet. Out of park the key will not turn: your hand takes it and it strains a few degrees and goes back.
    Your hand turns the key and moves the stick, and your foot comes onto the gas: with the engine dead the pedal goes
-   limp to the floor under it.
+   limp to the floor under it. The stick stands up out of a plate lying flat on the console by your right hip, P R N D
+   along it from the front, the letters reading the right way up as you look down at them from your seat; a click on the
+   plate or on the stick moves it on a gear.
 3. **The Graveyard.** The old warden walks between the graves and never stops
    smiling: a crypt keeper bent double over the hump on his back, his bald head jutting
    forward low, white wisps of hair, a long ragged coat and cape, a ring of keys at his
@@ -480,7 +482,9 @@ LEVELS.push({
   you click stays on what is drawn however you turn or look down (night 11's breaker box, night 2's gearstick, pedal
   and ignition, night 9's pay phone, night 6's winch, night 7's fuse box and crank, night 8's main switch and
   shutters). A plain billboard on a wall or a console turns with the view as you look round,
-  so anything fixed to a surface takes `face` (or is built of polys, as night 10's fallen dust sheet is). `face` is not
+  so anything fixed to a surface takes `face` (or is built of polys, as night 10's fallen dust sheet is). With `flat`
+  as well, a sprite or target given `face` lies on a level surface instead (night 2's gear plate on top of the console):
+  `face` is then the yaw the top of its drawing points along the floor, and it is seen only from above. `face` is not
   turned by `SC.withYaw`: inside one, give the world yaw (the frame's own yaw plus `Math.PI` for a front looking back
   at you).
 - **Hover glow**: only things you can pick up (items) glow when pointed at; a target (a door, a gate, a switch) gets the

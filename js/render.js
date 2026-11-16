@@ -168,6 +168,8 @@ const R = (() => {
   // face? a panel fixed flat on an upright face (a wall, a door, the front of a box): the world yaw its front looks
   // toward. It is drawn in true perspective where it is, as the face it is on is, and never turns toward you; seen from
   // behind it is not drawn. Its hit area is the shape it covers on the view (hit.poly), not only the rect round it.
+  // With flat as well, it lies on a level surface instead (a plate on top of a console): face is then the yaw the top of
+  // its drawing points along the floor, and it is seen only from above.
   // hitOnly? a hit area that draws nothing (a target's: what it is drawn with is its own props)
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   // attach? rides with the eye (see the top): its coordinates and dist are taken from where the eye started
@@ -845,7 +847,12 @@ const R = (() => {
       // panel fixed on an upright face, across it and straight up it, whatever the view
       const t = towardEye(p.x, p.z);   // a decal's "up" runs away from where you stand, not along the view
       let rx = t[0], rz = t[1], fx = t[2], fz = t[3], fy = 0;
-      if (fixed) {
+      if (fixed && p.flat) {
+        // a panel lying on a level surface (the top of a console): what is drawn up it runs along the floor toward the
+        // yaw p.face, its across to the right of that; seen only from above
+        if (eyeH + oy <= p.y) { if (onRect) onRect(null); return; }
+        rx = Math.cos(p.face); rz = -Math.sin(p.face); fx = Math.sin(p.face); fy = 0; fz = Math.cos(p.face);
+      } else if (fixed) {
         const nx = Math.sin(p.face), nz = Math.cos(p.face);
         if ((ox - p.x) * nx + (oz - p.z) * nz <= 0) { if (onRect) onRect(null); return; }   // the eye is behind the face it is on
         rx = -nz; rz = nx; fx = 0; fy = 1; fz = 0;   // across it, left to right as you look at its front, and up it

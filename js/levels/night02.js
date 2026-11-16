@@ -63,9 +63,12 @@ LEVELS.push({
     const body = [44, 22, 24], bodyD = [24, 13, 15], dash = [26, 24, 26], dashD = [16, 15, 17], seat = [46, 40, 38], floor = [15, 14, 14];
     const GAUGES = [-0.16, 0.0, 0.16];                                     // the three dials behind the wheel
     const IX = 0.33, IY = 0.905, IZ = 0.545;                               // the centre of the ignition lock, in the dash face right of the dials
-    const GX = 0.36, GY = 0.56, GZ = 0.12, GW = 0.2, GH = 0.28;            // the gearstick's plate, standing on the console
-    const GFACE = -Math.PI / 2;                                            // which way its front looks: across the car, toward your seat
-    const CX0 = 0.27, CX1 = 0.45, CZ0 = -0.04, CZ1 = 0.36, CY = GY;       // the console between the seats
+    const CX0 = 0.27, CX1 = 0.45, CZ0 = -0.04, CZ1 = 0.36, CY = 0.56;     // the console between the seats
+    // the gearstick's plate, lying flat on top of the console: its near edge (toward your seat) at GX, its middle at GZ,
+    // GW long (front to back) and GH across, raised GT off the console. The letters on it read from your seat looking
+    // down (the tops of them toward the passenger side, GTOP), P at the front; the slot runs along its far side (GS in
+    // from the near edge) and the stick stands up out of it, leaning a little toward you, its knob GK up
+    const GX = 0.3, GZ = 0.14, GW = 0.24, GH = 0.13, GT = 0.014, GY = CY + GT, GTOP = Math.PI / 2, GS = 0.094, GK = 0.2, GLEAN = 0.035;
     const PX = 0.16, PY = 0.36, PZ = 0.47, PW = 0.11, PH = 0.22;           // the gas pedal, in your own footwell
     const onVerge = (x, z) => z > 0 && Math.abs(Math.abs(Math.atan2(x, z)) - 11 * DEG) < 2 * DEG;   // nothing stands on the verge lanes
     // the stars are as good as infinitely far: they stay put in the sky when the car moves
@@ -217,21 +220,21 @@ LEVELS.push({
       },
     });
     // the gearstick on the console by your right hip (back from the footwells, so it never hides what lies in them),
-    // P R N D on its plate: each click moves it on, park, reverse, drive and round to park
-    const lxOf = g => -0.075 + 'PRND'.indexOf(g) * 0.05;   // where the stick stands over each letter on the plate
+    // P R N D along its plate, front to back: each click moves it on, park, reverse, drive and round to park
+    const lxOf = g => -0.075 + 'PRND'.indexOf(g) * 0.05;   // where the stick stands along the plate, by each letter (back from its middle)
     const gearK = () => smoothstep(clamp((L.t - s.gearAt) / 0.18, 0, 1));   // how far over it is to the gear it is going to
     const shownGear = () => (gearK() >= 0.5 ? s.gear : s.gearFrom);
-    // the knob, in the world, with the stick over lx (as the plate draws it: the knob leans out over the letter, at 0.25 up),
-    // a little toward the eye, where the hand takes it. The plate stands on the console fixed to the car like the console
-    // itself (GFACE: its front looks toward your seat, across the car), so the knob is a fixed point on it; with the car
-    // away it is where the car is now
+    // the stick in the car's frame, standing over lx: its foot in the slot and its knob, up and leaning a little toward you
+    const stickFoot = lx => [GX + GS, GY, GZ - lx], knobOf = lx => [GX + GS - GLEAN, GY + GK, GZ - lx];
+    // the knob, in the world, a little toward the eye, where the hand takes it. The plate is fixed to the car like the
+    // console itself, so the knob is a fixed point on it; with the car away it is where the car is now
     const knobAt = lx => {
-      const u = lx * 0.6, x = GX - Math.cos(GFACE) * u, z = GZ + Math.sin(GFACE) * u, y = GY + 0.25, e = L.eye || {};
+      const [x, y, z] = knobOf(lx), e = L.eye || {};
       const dx = -x, dy = L.eyeH - y, dz = -z, dl = Math.hypot(dx, dy, dz), p = L.pt(x + dx / dl * 0.02, y + dy / dl * 0.02, z + dz / dl * 0.02);
       return { x: p[0] + (e.x || 0), y: p[1] + (e.y || 0), z: p[2] + (e.z || 0) };
     };
     const gear = mkTarget(L, {
-      id: 'gear', name: 'Gearstick', x: GX, y: GY, z: GZ, w: GW, h: GH, attach: true, face: GFACE,
+      id: 'gear', name: 'Gearstick', x: GX, y: GY, z: GZ, w: GW, h: GH, attach: true, flat: true, face: GTOP,   // (the plate; the stick and its knob are clicked too: L.dynamic)
       hint() { return 'In ' + GEAR_NAME[s.gear] + '.'; },
       onClick() {
         if (s.gone || s.ram) return true;
@@ -447,23 +450,32 @@ LEVELS.push({
       rainOn();
       R.add(lock);
       if (s.started && L.t >= s.turnAt) dials();   // (once the key has turned)
+      // the gearstick: its plate lying flat on the console, a pale bezel round a black face with the four letters along
+      // it, the one it is in lit, and the slot along its far side; the plate's edges toward you; the stick standing up out
+      // of the slot over the letter, and its knob. The plate is clicked where it lies (the target's own hit area), the
+      // stick and the knob where they stand (stickHit)
+      const k = 'PRND'.indexOf(shownGear()), lx = lerp(lxOf(s.gearFrom), lxOf(s.gear), gearK());   // (going over as the hand pulls it)
+      const sd = Math.hypot(GX + GH / 2, GZ), bez = [50, 48, 52], u0 = GZ + GW / 2, u1 = GZ - GW / 2;
+      R.add(SC.mkQuad(L, [GX, CY, u0], [GX, CY, u1], [GX, GY, u1], [GX, GY, u0], bez, { attach: true, sortDist: sd + 0.001, glowOf: gear }));
+      R.add(SC.mkQuad(L, [GX, CY, u1], [GX + GH, CY, u1], [GX + GH, GY, u1], [GX, GY, u1], scalec(bez, 0.8), { attach: true, sortDist: sd + 0.001, glowOf: gear }));
       R.add(SC.mkSprite(L, GX, GY, GZ, GW, GH, (ctx, P) => {
-        // the plate, a pale bezel round a black face so it stands off the console, with its four letters, the one it is in
-        // lit, and the stick leaning over to it from the slot above them
-        const k = 'PRND'.indexOf(shownGear()), lx = lerp(lxOf(s.gearFrom), lxOf(s.gear), gearK());   // (going over as the hand pulls it)
-        P_rect(ctx, -0.106, -0.004, 0.212, 0.09, P.col([66, 64, 68]));
-        P_rect(ctx, -0.1, 0.002, 0.2, 0.078, P.col([14, 13, 15]));
-        P_rect(ctx, -0.09, 0.064, 0.18, 0.008, P.col([2, 2, 3]));                    // the slot the stick runs in
-        P_rect(ctx, lx - 0.022, 0.012, 0.044, 0.046, P.raw([120, 70, 26]));           // the lit window behind the letter
+        P_rect(ctx, -GW / 2, 0, GW, GH, P.col([66, 64, 68]));
+        P_rect(ctx, -GW / 2 + 0.008, 0.008, GW - 0.016, GH - 0.016, P.col([14, 13, 15]));
+        P_rect(ctx, -0.096, GS - 0.006, 0.192, 0.012, P.col([2, 2, 3]));            // the slot the stick runs in
+        P_rect(ctx, lx - 0.022, 0.02, 0.044, 0.046, P.raw([120, 70, 26]));          // the lit window behind the letter
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 72px sans-serif';
         'PRND'.split('').forEach((ch, i) => {
-          ctx.save(); ctx.translate(-0.075 + i * 0.05, 0.034); ctx.scale(0.00052, -0.00052);
+          ctx.save(); ctx.translate(-0.075 + i * 0.05, 0.043); ctx.scale(0.00052, -0.00052);
           ctx.fillStyle = i === k ? P.raw([255, 214, 140]) : P.col([92, 90, 92]); ctx.fillText(ch, 0, 0);
           ctx.restore();
         });
-        P_line(ctx, lx, 0.068, lx * 0.6, 0.24, 0.022, P.col([46, 44, 48]));
-        P_ell(ctx, lx * 0.6, 0.25, 0.034, 0.03, P.col([74, 70, 74])); P_ell(ctx, lx * 0.6 - 0.008, 0.258, 0.018, 0.012, P.col([104, 100, 106]));   // the knob, lit on top
-      }, { attach: true, sortDist: Math.hypot(GX, GZ) + 0.002, glowOf: gear, face: GFACE }));
+      }, { attach: true, sortDist: sd, glowOf: gear, flat: true, face: GTOP }));
+      const foot = stickFoot(lx), knob = knobOf(lx), stick = (a, b, color, lw, d) => R.add({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2])], color, stroke: true, lw, attach: true, sortDist: sd - d, glowOf: gear });
+      stick(foot, knob, [46, 44, 48], 0.018, 0.003);
+      stick(knob, [knob[0], knob[1] + 0.001, knob[2]], [74, 70, 74], 0.042, 0.004);                                   // the knob
+      stick([knob[0] - 0.006, knob[1] + 0.009, knob[2] + 0.004], [knob[0] - 0.006, knob[1] + 0.01, knob[2] + 0.004], [104, 100, 106], 0.02, 0.005);   // lit on top
+      // stickHit: an upright panel across the car through the stick, square to your seat, as tall as the stick and its knob
+      R.add(SC.mkSprite(L, GX + GS - GLEAN / 2, GY, GZ - lx, 0.08, GK + 0.03, () => {}, { attach: true, sortDist: sd - 0.006, hit: { kind: 'target', ref: gear }, noHover: true, hitOnly: true, face: -Math.PI / 2 }));
       // the gas pedal: a long rubber pad in a metal rim, ribbed across, hung on its arm from under the dash; it goes down
       // while you press it, and stays down once the car is away
       const dn = pedalDown() + (s.gone || s.floored ? 0.025 : 0), y0 = 0.012 - dn * 0.5;
