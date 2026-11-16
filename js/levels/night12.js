@@ -31,7 +31,9 @@ LEVELS.push({
     win: 'You pulled the covers over your head. It pulled at them, but you were stronger.',
   },
   lanes: [
-    // it starts where it peers round the edge from (WAYS below): the start is held to that, whatever the spread of the night
+    // it starts where it peers round the edge from (WAYS below): the start is held to that, whatever the spread of the night.
+    // (Their cues are never played: it changes its way itself, gliding round the bed with a whoosh (crossing, below). The
+    // closet's clinking hangers keep the story's hangers on the wind out of this night.)
     { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.9, maxStart: 4.1, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
     { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 4.2, maxStart: 3.4, cue: 'hangers', apertures: [{ z: 3.2, x0: -0.9, x1: 0.9, y0: 0, y1: 2.2 }] },
   ],
@@ -177,28 +179,81 @@ LEVELS.push({
     // as it comes on, the head coming in over its shoulders; then on into the room
     const outOf = (c, d) => { const w = way(c); return clamp((w.peerD - d) / (w.peerD - w.apZ + 0.05), 0, 1); };
     const latAt = (c, d) => side * (edgeAt(way(c), d) + BEHIND) * (1 - smoothstep(outOf(c, d))) + s.latBias;
-    const place = c => {
-      c.peerSide = -side; c.peer = 1 - smoothstep(outOf(c, c.dist) / 0.6);
+    const place = (c, d = c.dist) => {   // (d: where it is this frame, once it has moved)
+      c.peerSide = -side; c.peer = 1 - smoothstep(outOf(c, d) / 0.6);
       if (s.mode !== 'come') c.runLat = latAt(c, c.dist);
     };
-    // Coming, it walks (the tall one's pace): where the night's clock would have it (c.u, as for every night) is where it
-    // is going, along the way and across it, and it gets there a step at a time, its feet on the floor. Its steps are its
-    // gait, so its footsteps fall as each foot comes down (the game adds what it moved to its gait: that is taken off)
+    // Coming, it glides (the tall one's along and pace): where the night's clock would have it (c.u, as for every night) is
+    // how far along its way it is going, and it keeps to that way (round the edge of the opening, out into the room), slowly
+    // and evenly, never faster than its own slow pace however far ahead the clock runs, and with nothing sudden in it: out
+    // from behind the wall, through the opening, on to the bed. Its feet step under it, and its footsteps fall as each comes
+    // down (its steps are its gait; the game adds what it moved to its gait: that is taken off)
+    const stepsOf = (c, w) => { if (s.mode === 'come') place(c, w.d); c.runLat = w.lat; c.gait = w.n * Math.PI - Math.abs(c.dist - w.d) * c.CR.stepRate * Math.PI; return w.d; };
     const walkOn = (c, dt) => {
       let m = c.CR.speedMult(c, dt, c.seen) * (c.seen ? c.seenMult : c.unseenMult);
       if (c.frozen || c.dead) m = 0;
       c.u = clamp(c.u + dt * m / c.T, 0, 1);
-      const toD = c.D0 * Math.pow(1 - c.u, c.gamma), w = c.CR.pace(c, dt, toD, latAt(c, toD));
-      c.runLat = w.lat; c.gait = w.n * Math.PI - Math.abs(c.dist - w.d) * c.CR.stepRate * Math.PI;
-      return w.d;
+      return stepsOf(c, c.CR.along(c, dt, c.D0 * Math.pow(1 - c.u, c.gamma), d => latAt(c, d)));
     };
-    const come = c => { s.mode = 'come'; letGo(c); c.distFn = walkOn; c.walk = null; };
-    const stopWalking = c => { if (c.distFn === walkOn) c.distFn = null; c.walk = null; c.feet = null; };
-    // at first it only peers: put there at once, before the night begins, so the night's card shows it where it starts
+    // its walking, kept where it is now (its feet as they were under it, even if it has been somewhere else since)
+    const shiftWalk = c => {
+      const w = c.walk, dd = w ? c.dist - w.d : 0, dl = w ? (c.runLat || 0) - w.lat : 0;
+      if (!w || Math.abs(dd) + Math.abs(dl) < 1e-9) return;
+      w.d += dd; w.lat += dl; w.vd = w.vl = 0;
+      for (const q of w.feet.concat(w.step ? [w.step.f0, w.step.f1] : [])) { q.d += dd; q.lat += dl; }
+    };
+    const come = c => { s.mode = 'come'; letGo(c); c.distFn = walkOn; c.along = null; c.glideFeet = false; shiftWalk(c); };
+    const stopWalking = c => { if (c.distFn) c.distFn = null; c.along = null; c.glideFeet = false; };   // (its feet stay as they are)
+    // at first it only peers: put there at once, before the night begins, so the night's card shows it where it starts,
+    // standing on its own feet
     const ready = c => {
       if (s.mode) return;
       s.mode = 'peer'; s.peerTill = L.t + 4 + L.rand() * 2; if (c.hold === null) hold(c, c.dist);
       place(c); c.lat = c.runLat;
+      c.walk = null; c.CR.pace(c, 0, c.dist, c.runLat);
+      c.switched = true; s.switchAt = 0.12 + L.rand() * 0.28;   // (it changes its way itself: crossing, below)
+    };
+    // On Nightmare it may change its way once, early, while you are not looking (as the game would have it, but on its feet):
+    // out in the room, it glides round the foot of the bed, in between it and the dresser, to the other way in, with a sweep of air
+    // (the whoosh: its own sound, the only warning), and comes on from there. Its feet drift with it; the night's clock
+    // waits while it goes. Half way round it is counted along the other way.
+    const CROSS = { v: 0.4, acc: 0.2, clear: 2.3, wide: 2.75 };   // (round, it keeps between the bed and the dresser)
+    const toFrame = (ln, x, z) => [x * ln.dirX + z * ln.dirZ, x * Math.cos(ln.yaw) - z * Math.sin(ln.yaw)];
+    const reframe = (c, to) => {   // the same place, and its walk, said along the other way
+      const from = c.lane, conv = (d, lat) => { const p = APPROACH.position(from, d, lat, L.eyeH); return toFrame(to, p.x, p.z); };
+      const w = c.walk;
+      if (w) {
+        const [d, lat] = conv(w.d, w.lat), dd = d - w.d, dl = lat - w.lat;
+        [w.vd, w.vl] = toFrame(to, from.dirX * w.vd + Math.cos(from.yaw) * w.vl, from.dirZ * w.vd - Math.sin(from.yaw) * w.vl);
+        for (const q of w.feet.concat(w.step ? [w.step.f0, w.step.f1] : [])) { q.d += dd; q.lat += dl; }
+        w.d = d; w.lat = lat;
+      }
+      [c.dist, c.runLat] = conv(c.dist, c.runLat || 0); c.lat = c.runLat;
+      c.retarget(to.idx); c.reached = false;
+      if (c.idx === 0) { L.laneIdx = to.idx; L.lane = to; L.barrierDist = to.barrierDist || 0; }
+    };
+    const maySwitch = c => {
+      if (s.switched || !L.diff.laneSwitch || L.def.laneSwitch === false || L.won || c.dead || s.mode !== 'come' || c.hold !== null) return;
+      if (c.u < s.switchAt || c.seen || c.dist > way(c).apZ - 0.1) return;
+      s.switched = true;
+      const to = L.lanes.find(l => l !== c.lane), p = c.pos(), r0 = Math.hypot(p.x, p.z), b0 = Math.atan2(p.x, p.z);
+      const r1 = clamp(r0, CROSS.clear, WAYS[to.idx].apZ - 0.3), rA = clamp(Math.min(r0, r1), CROSS.clear, CROSS.wide), db = wrapPi(to.yaw - b0);
+      s.mode = 'cross'; s.cross = { to, b0, db, r0, r1, rA, k: 0, v: 0, len: Math.abs(db) * rA + Math.abs(r0 - rA) + Math.abs(r1 - rA) };
+      c.distFn = crossing; c.along = null; c.glideFeet = true;
+      AUDIO.sfx('whoosh', panOf(c));
+    };
+    const crossing = (c, dt) => {
+      const X = s.cross, want = Math.min(CROSS.v, Math.sqrt(2 * CROSS.acc * Math.max(0, 1 - X.k) * X.len));
+      X.v += clamp(want - X.v, -CROSS.acc * dt, CROSS.acc * dt);
+      X.k = Math.min(1, X.k + Math.max(0.02, X.v) / X.len * dt);
+      if (c.lane !== X.to && X.k >= 0.5) reframe(c, X.to);
+      const b = X.b0 + X.db * X.k, r = X.k < 0.5 ? lerp(X.r0, X.rA, smoothstep(X.k / 0.25)) : lerp(X.rA, X.r1, smoothstep((X.k - 0.75) / 0.25));
+      const [d, lat] = toFrame(c.lane, r * Math.sin(b), r * Math.cos(b)), w = c.CR.pace(c, dt, d, lat);
+      if (X.k >= 1 && Math.hypot(w.d - d, w.lat - lat) < 0.02) {   // round: it comes on from here
+        s.latBias = 0; s.latBias = w.lat - latAt(c, w.d);
+        come(c);
+      }
+      return stepsOf(c, w);
     };
     // Coming through the opening it stoops under the top of it (the tall one's c.headroom): behind it, under the line from
     // your eye past the top of the frame, so nothing of it shows over that; a stride out, well under it, and through it so;
@@ -216,17 +271,17 @@ LEVELS.push({
     const startDuck = c => {
       s.mode = 'duck'; s.grab = null;
       s.duck = { t0: L.t, d: c.dist, lat: c.lat, peer: c.peer || 0, duck0: c.duck || 0, eye0: c.duck ? c.eyeTo : null, cued: !!(s.duck && s.duck.cued) };
-      const sp = way(c).spot; s.duck.creep = clamp(Math.hypot(c.dist - sp.d, c.lat - sp.lat) * 1.1, 0.4, 2.2);
+      const sp = way(c).spot; s.duck.creep = clamp(Math.hypot(c.dist - sp.d, c.lat - sp.lat) * 2, 0.8, 5);   // (low along the floor, not in a rush)
       stopWalking(c);
       c.flinchSide = c.lat > 0.05 ? -1 : 1;   // the arm toward the middle of the room
       hold(c, c.dist);
       AUDIO.voice('slow', 0.5, panOf(c));
     };
-    const DUCK = { flinch: 0.5, down: 1.5, up: 1.2, look: 1.1, reach: 0.22 };   // (its hands come up onto the covers in a snatch)
+    const DUCK = { flinch: 1.1, down: 2.7, up: 1.2, look: 1.1, reach: 0.22 };   // (its hands come up onto the covers in a snatch)
     const ducking = c => {
       const D = s.duck, t = L.t - D.t0, sp = way(c).spot, hide = c.hideBelow === undefined ? 0.6 : c.hideBelow;
       const T2 = DUCK.down, T3 = T2 + D.creep, T4 = T3 + DUCK.up, T5 = T4 + DUCK.look;
-      c.flinch = smoothstep(t / 0.2) * (1 - smoothstep((t - DUCK.flinch) / 0.5));
+      c.flinch = smoothstep(t / 1.0) * (1 - smoothstep((t - DUCK.flinch) / 0.7));
       c.duck = lerp(D.duck0, 1, smoothstep((t - DUCK.flinch + 0.1) / (T2 - DUCK.flinch + 0.1)));
       // going to the bed it keeps low, its face down: out in the open, only a dark shape low along the floor
       const m = smoothstep((t - T2 + 0.2) / D.creep), low = Math.max(hide - 0.4, 0.26);
@@ -306,6 +361,7 @@ LEVELS.push({
       if (lit && s.mode !== 'duck') startDuck(c);
       else if (!lit && s.mode === 'duck') { s.mode = 'rise'; s.riseAt = L.t; s.rise0 = c.duck || 0; }
       if (s.mode === 'peer' && L.t >= s.peerTill) come(c);
+      if (s.mode === 'come') maySwitch(c);
       if (s.mode === 'peer' || s.mode === 'come') { s.latBias *= Math.exp(-dt * 0.5); place(c); }
       else if (s.mode === 'duck') ducking(c);
       else if (s.mode === 'rise') rising(c, dt);
@@ -401,7 +457,7 @@ LEVELS.push({
       const w = way(c), e = edgeAt(w, c.dist), behind = c.dist > w.apZ + 0.01;
       c.showX = behind ? [-e - c.lat, e - c.lat] : null;
       c.showTop = behind ? L.eyeH + (w.top - L.eyeH) * c.dist / w.apZ - cp.y - (c.yOff || 0) : undefined;
-      c.headroom = s.mode === 'duck' || s.mode === 'yank' || L.won || G.state === 'dying' ? undefined : headroom(c) - cp.y - (c.yOff || 0);
+      c.headroom = L.won || G.state === 'dying' ? undefined : headroom(c) - cp.y - (c.yOff || 0);   // (going down, it is still under it: no pop up)
       // Where it is drawn in the order of things. In the closet it stands in front of the clothes and the hangers (between
       // them and the opening), so it is drawn over them, however far to the side of them it stands. Anywhere else, the bed
       // is between you and it (it is never on the bed, only over it at the last), so it is drawn before every part of the
