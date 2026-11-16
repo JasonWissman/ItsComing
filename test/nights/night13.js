@@ -3,8 +3,9 @@
 // snarling mouth in the dark, coming on in fits); it takes up four more, and reaching for a seventh the full hand takes
 // nothing. Then it puts each thing down while looking down, and the thing calms; it turns to face it and waits for it to
 // arrive. The ending (not a death) follows without a cut: it holds you, its face comes out of the dark of its hood and goes
-// through angry, neutral, angry, confused, sad, neutral and content until it is happy, and the dark opens into a meadow in
-// the sun. There the view is yours: a turn, a look down and a zoom are only that, and a click goes on: the meadow and it
+// through angry, neutral, angry, confused and sad; crying, it lets you go and sinks down onto the ground, and waits there
+// until you go to it (the key that looks up); it looks up, stops crying, holds out its hand and stands holding yours,
+// content and then happy, and the dark opens into a meadow in the sun. There the view is yours: a turn, a look down and a zoom are only that, and a click goes on: the meadow and it
 // fade into the bedroom in the morning, and the last screen says you have faced your demons.
 // (two at a time, so one is put down while another is still falling: it lies clear of where that one will lie)
 const dropAll = ['waitUntil', "G.inv.length === 0 ? true : (G.cam.pitch = G.cam.tPitch = PITCH_DOWN, G.active = 0, dropActive(), G.inv.length && (G.active = 0, dropActive()), false)", 8000];
@@ -64,8 +65,16 @@ const lookAbout = [
 const ending = [
   ['waitUntil', 'G.L.s.hugWrap > 0.95', 9000], ['expect', "G.state === 'won' && G.L.creature.hug.reach > 0.95 && G.L.creature.dist < 0.8 && G.L.s.meadow === 0", 'it stops close in front of you and holds you, its arms out to you and closed round you'],
   noHands('your hands are empty and out of the view while it holds you'),
+  ['waitUntil', 'G.L.s.sitting', 30000],
+  ['expect', 'JSON.stringify(window._moods) === "[0,1,2,3,4]" && G.L.creature.hug === null && G.L.creature.kneel === 1 && G.L.creature.sob === 1 && Math.abs(G.L.creature.dist - 2.4) < 0.01', 'angry, neutral, angry, confused, and sad: crying, it lets you go, steps back and sinks down onto the ground'],
+  ['wait', 2500], ['expect', "G.state === 'won' && G.L.s.sitting && G.L.s.endT === END.sit && !G.L.s.went", 'and it stays there, crying, for as long as you wait'],
+  key('r', true), key('ArrowLeft', true), ['expect', 'G.L.s.sitting && !G.L.s.went', 'R or a turn does nothing there'],
+  key('ArrowUp', true), ['expect', 'G.L.s.went', 'the key that looks up goes to it'],
+  ['waitUntil', 'G.L.creature.hand && G.L.creature.hand.join > 0.99', 15000],
+  ['expect', 'G.L.creature.mood === 5 && G.L.creature.kneel === 1 && !!G.L.eye && Math.hypot(G.L.eye.x, G.L.eye.z) > 1.2', 'you go to it: it looks up, stops crying, and holds out its hand, and yours is in it'],
+  ['waitUntil', 'G.L.creature.kneel === 0', 8000], ['expect', 'G.L.creature.hand && G.L.creature.hand.join > 0.99', 'it stands, holding your hand'],
   ['waitUntil', 'G.L.s.meadow > 0.5', 36000],
-  ['expect', 'JSON.stringify(window._moods) === "[0,1,2,3,4,5,6,7]" && CREATURES.demon.moodNames.join() === "angry,neutral,angry,confused,sad,neutral,content,happy"', 'while it held you its face went through angry, neutral, angry, confused, sad, neutral and content, and it was happy'],
+  ['expect', 'JSON.stringify(window._moods) === "[0,1,2,3,4,5,6,7]" && CREATURES.demon.moodNames.join() === "angry,neutral,angry,confused,sad,neutral,content,happy"', 'its face went through angry, neutral, angry, confused and sad while it held you, and neutral and content holding your hand, and it was happy'],
   ['waitUntil', 'G.L.s.wait', 12000],
   ['expect', "G.L.s.meadow === 1 && G.L.creature.hug === null && Math.abs(G.L.creature.dist - 3.3) < 0.05 && G.L.pal.ground[1] > G.L.pal.ground[0] + 40 && G.L.pal.skyTop[2] > 200 && G.L.s.room === 0", 'it let you go: it stands in a green meadow under a blue sky, and no room yet'],
   ...lookAbout,

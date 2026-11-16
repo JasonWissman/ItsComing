@@ -477,38 +477,68 @@ const hoverHit = lookFor;
   await page.evaluate(() => { pickup(G.L.items[0]); G.L.creature.u = 0.985; G.step(0.05, 400); });
   check(await page.evaluate(() => G.state === 'dead' && !!G.deathScreen && /holding/.test(G.deathScreen.text)), 'reaching you with something in your hands is a death, and the line says so');
   check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') !== 'day'), 'no morning for the one who held on');
-  // the bow: night 5's, drawn and loosed here as it was there (with the mouse: pressed, held until full, let go). A miss is
-  // only an arrow gone; a hit, and it leaps at you at once: a death, never the ending, whatever you do then
-  await T.open(page, 'level=13&go&seed=1&nofr');
-  const loose13 = async off => {
-    const p = await page.evaluate(off => { G.step(1 / 30, 1); const b = creatureBox(G.L.creature); return { x: b.x + b.w / 2 + off, y: b.y + b.h * 0.3 }; }, off);
-    await page.mouse.move(p.x, p.y); await page.evaluate(() => G.step(1 / 30, 1));
-    await page.mouse.down();
-    await page.evaluate(() => { for (let i = 0; i < 90 && !(G.draw && G.draw.full); i++) G.step(1 / 30, 1); G.step(1 / 30, 3); });
-    await page.mouse.up();
-  };
-  const bow13 = await page.evaluate(() => {
+  // the bow: night 5's, and it comes up and draws as it did there (with the mouse: pressed and held), but it is never
+  // loosed here. Held drawing at it, it comes for you faster and faster and is on you before the bow is full: a death,
+  // never the ending, and the line says so. Let go early, the bow only comes down (no arrow gone) and it comes on at its own
+  // pace again; put the bow and the arrows down then, and the ending is still yours
+  const bowUp13 = () => page.evaluate(() => {
     const c = G.L.creature; c.switched = true;
     for (const id of ['arrows', 'bow']) pickup(G.L.items.find(i => i.id === id));
-    G.active = G.inv.findIndex(i => i.id === 'bow'); c.hold = 14;
+    G.active = G.inv.findIndex(i => i.id === 'bow');
     G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.pitch = G.cam.tPitch = 0;
     G.step(1 / 30, 30);
     const u = activeUse(G.L);
     return { use: u && u.tool, draw: !!(u && u.draw), hand: !!G.hand.cur, off: !!G.hand.off.cur, show: +G.L.s.bowShow.toFixed(2) };
   });
+  const press13 = async () => {
+    const p = await page.evaluate(() => { G.step(1 / 30, 1); const b = creatureBox(G.L.creature); return { x: b.x + b.w / 2, y: b.y + b.h * 0.3 }; });
+    await page.mouse.move(p.x, p.y); await page.evaluate(() => G.step(1 / 30, 1));
+    await page.mouse.down();
+  };
+  // its pace over a stretch of its own walking (metres a second), from where it is
+  const pace13 = secs => page.evaluate(secs => { const c = G.L.creature, d0 = c.dist; G.step(1 / 30, Math.round(secs * 30)); return (d0 - c.dist) / secs; }, secs);
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  await page.evaluate(() => { G.L.creature.hold = 14; });
+  const bow13 = await bowUp13();
   check(bow13.use === 'bow' && bow13.draw && !bow13.hand && !bow13.off && bow13.show > 0.9, 'the bow in hand on the last night, it comes up in both hands to be drawn as on night 5 (' + JSON.stringify(bow13) + ')');
-  await loose13(300);
-  const miss13 = await page.evaluate(() => { G.step(1 / 30, 45); const c = G.L.creature; return { out: G.L.s.outcomes.join(), state: G.state, left: G.inv.find(i => i.id === 'arrows').uses, rage: +c.rage.toFixed(2), dist: c.dist, lunge: c.lunge }; });
-  check(miss13.out === 'miss' && miss13.state === 'play' && miss13.left === 2 && miss13.rage > 0.6 && miss13.dist === 14 && !miss13.lunge, 'drawn full and loosed wide of it, the arrow is gone and nothing else comes of it (' + JSON.stringify(miss13) + ')');
-  await loose13(0);
-  const hit13 = await page.evaluate(() => {
-    const c = G.L.creature, s = G.L.s, o = { out: s.outcomes.join(), shot: s.shot, near: c.dist, steps: 0 };
-    const inv = G.inv.slice(); G.inv.length = 0; o.caught = G.L.onCatch(c); G.inv.push(...inv);   // (empty-handed and facing it now changes nothing)
-    for (let i = 0; i < 150 && G.state !== 'dead'; i++) { G.step(1 / 30, 1); if (G.state === 'play') o.steps++; else o.near = Math.min(o.near, c.dist); }
-    return Object.assign(o, { state: G.state, ending: s.ending, won: G.L.won, text: G.deathScreen && G.deathScreen.text });
+  await press13();
+  const rush13 = await page.evaluate(() => {
+    const c = G.L.creature, s = G.L.s, o = { from: c.dist, d: [], power: 0, rage: 0, caught: null };
+    for (let i = 0; i < 120 && G.state === 'play'; i++) {
+      G.step(1 / 30, 1);
+      if (G.draw && G.draw.state === 'drawing') o.power = Math.max(o.power, G.draw.power);
+      o.rage = Math.max(o.rage, c.rage);
+      if (i % 6 === 0) o.d.push(+c.dist.toFixed(2));
+      if (G.state !== 'play' && o.caught === null) o.caught = { power: +o.power.toFixed(2), t: +((i + 1) / 30).toFixed(2) };
+    }
+    for (let i = 0; i < 100 && G.state !== 'dead'; i++) G.step(1 / 30, 1);
+    return Object.assign(o, { state: G.state, ending: s.ending, won: G.L.won, fought: s.fought, arrows: G.inv.find(i => i.id === 'arrows').uses, text: G.deathScreen && G.deathScreen.text });
   });
-  check(hit13.out === 'miss,hit' && hit13.shot && hit13.caught === false && hit13.steps <= 12 && hit13.near < 0.6 && hit13.state === 'dead' && !hit13.ending && !hit13.won && /cannot fight/.test(hit13.text),
-    'drawn full and loosed into it, it leaps at you as the arrow goes in: a death, not the ending, and the line says so (' + JSON.stringify(hit13) + ')');
+  await page.mouse.up();
+  const steps13 = rush13.d.slice(1).map((d, i) => rush13.d[i] - d);
+  check(rush13.caught && rush13.caught.power < 1 && rush13.state === 'dead' && !rush13.ending && !rush13.won && rush13.fought && rush13.arrows === 3 && /Fighting only made it stronger/.test(rush13.text),
+    'held drawing at it, it is on you before the bow is full and nothing is loosed: a death, not the ending, and the line says so (' + JSON.stringify([rush13.caught, rush13.state, rush13.arrows, rush13.text]) + ')');
+  check(rush13.from > 12 && steps13.length > 3 && steps13[steps13.length - 1] > steps13[0] * 3 && rush13.rage > 0.97, 'it comes slowly at first and then faster and faster as the string comes back, ever more enraged (' + rush13.d.join(', ') + ')');
+  // let go early: the bow comes down with nothing loosed, and it comes on at its own pace; put it all down, and it is the ending
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  await bowUp13();
+  const before13 = await pace13(2);
+  await press13();
+  const early13 = await page.evaluate(() => { const c = G.L.creature, d0 = c.dist; G.step(1 / 30, 15); return { power: +G.draw.power.toFixed(2), rush: +G.L.s.rush.toFixed(2), closed: +(d0 - c.dist).toFixed(2) }; });
+  await page.mouse.up();
+  const after13 = await page.evaluate(() => { G.step(1 / 30, 20); return { draw: G.draw && G.draw.state, rush: G.L.s.rush, arrows: G.inv.find(i => i.id === 'arrows').uses, state: G.state }; });
+  const pace2 = await pace13(2);
+  check(early13.power > 0.2 && early13.power < 0.5 && early13.rush > 0 && after13.rush === 0 && !after13.draw && after13.arrows === 3 && after13.state === 'play' && pace2 > 0 && pace2 < before13 * 1.6 + 0.1,
+    'let go early, the bow only comes back down (no arrow gone) and it comes on at its own pace again (' + JSON.stringify([early13, after13, +before13.toFixed(2), +pace2.toFixed(2)]) + ')');
+  const after13b = await page.evaluate(() => {
+    const c = G.L.creature;
+    while (G.inv.length) { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.active = 0; dropActive(); }
+    G.step(1 / 30, 30);
+    G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+    c.u = Math.max(c.u, 0.9); for (let i = 0; i < 900 && !G.L.won && G.state === 'play'; i++) G.step(0.05, 1);
+    return { won: G.L.won, ending: G.L.s.ending, state: G.state };
+  });
+  check(after13b.won && after13b.ending && after13b.state === 'won', 'and with the bow and the arrows put down, it comes and it is the ending (' + JSON.stringify(after13b) + ')');
   // empty-handed is not enough: turned away from it, or looking at the floor, as it reaches you is a death too
   for (const [how, cam] of [['turned away', 'G.cam.dirIdx = (dir + 2) % 8; G.cam.pitch = G.cam.tPitch = 0;'], ['looking at the floor', 'G.cam.dirIdx = dir; G.cam.pitch = G.cam.tPitch = PITCH_DOWN;']]) {
     await T.open(page, 'level=13&go&seed=1&nofr');
@@ -538,27 +568,62 @@ const hoverHit = lookFor;
   });
   await T.open(page, 'level=13&go&seed=1&nofr');
   check(await caught(), 'it reached you, and it is the ending');
+  // its head in the view, as it is drawn: the renderer draws it as one card, its height spread evenly between where its feet
+  // and its top are seen; the top of its hood is that far over its eyes (0 is the top of the view)
+  await page.evaluate(() => {
+    window._hoodTop = () => {
+      const c = G.L.creature, p = c.pos(), y0 = p.y + c.yOff, b = R.screenPos(p.x, y0, p.z), tp = R.screenPos(p.x, y0 + c.CR.h, p.z);
+      return b && tp ? +((b.y + (tp.y - b.y) * (CREATURES.demon.eyesY(c) + 0.28) / c.CR.h) / R.H).toFixed(3) : null;
+    };
+  });
   const hold = await page.evaluate(() => {
-    const c = G.L.creature, s = G.L.s, o = { flash: 0, white: 0 };
-    const until = t => { while (s.endT < t - 1e-6) { G.step(1 / 30, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white); } };
+    const c = G.L.creature, s = G.L.s, o = { flash: 0, white: 0, tops: [] };
+    const step = () => { G.step(1 / 30, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white); };
+    const until = t => { while (s.endT < t - 1e-6 && !s.sitting) step(); };
+    o.tops.push(['catch', window._hoodTop()]);
     until(END.reach[0] + 0.5); const h0 = c.hug && { reach: c.hug.reach, wrap: c.hug.wrap };
+    o.tops.push(['bending', window._hoodTop()]);
     until(END.reach[1]); o.reaching = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
     until(END.unveil[0] - 0.05); o.veiled = { unveil: c.unveil, mood: c.mood, wrap: +c.hug.wrap.toFixed(2) };   // its face still in the dark of the hood
     until(END.close[1] + 0.3); o.holding = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
     until(END.moods + 0.3); o.unveiled = { unveil: c.unveil, mood: c.mood };   // and come out of it, angry
     const cp = c.pos(), face = cp.y + c.yOff + CREATURES.demon.eyesY(c), fp = R.screenPos(cp.x, face, cp.z);
     o.held = { reach: c.hug && c.hug.reach, wrap: c.hug && c.hug.wrap, dist: c.dist, h0, aim: Math.abs(wrapPi(c.yaw - G.cam.yaw)), faceY: fp && fp.y / R.H, faceX: fp && fp.x / R.W, mood: c.mood, overlay: s.hugWrap };
-    // its moods: each whole one held a while, the changes between them slow, all of it while it still holds you
-    const seen = []; let last = -1, prev = c.mood, down = false, release = null;
-    while (s.endT < END.light[1]) {
-      G.step(0.05, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white);
+    // its moods: each whole one held a while, the changes between them slow; the second angry face leaning in; all of it
+    // while it holds you, until it is sad and crying: then it lets you go, steps back and sinks down, and waits
+    const seen = []; let prev = c.mood, down = false;
+    o.lean = { angry2: 9, other: 0 };
+    const watch = () => {
       const m = c.mood; if (m < prev - 1e-9) down = true; prev = m;
-      if (Number.isInteger(m)) { if (seen.length && seen[seen.length - 1].m === m) seen[seen.length - 1].t1 = s.endT; else seen.push({ m, t0: s.endT, t1: s.endT, wrap: s.hugWrap, meadow: s.meadow }); }
-      if (m === 7 && release === null) release = { meadow: s.meadow, wrap: s.hugWrap };
-      if (seen.length && Number.isInteger(m)) last = m;
+      if (Number.isInteger(m)) {
+        if (seen.length && seen[seen.length - 1].m === m) seen[seen.length - 1].t1 = s.endT;
+        else { seen.push({ m, t0: s.endT, t1: s.endT, wrap: s.hugWrap, join: c.hand ? c.hand.join : 0, meadow: s.meadow, kneel: c.kneel }); o.tops.push([CREATURES.demon.moodNames[m] + m, window._hoodTop()]); }
+        if (m === 2) o.lean.angry2 = Math.min(o.lean.angry2, c.dist); else if (m <= 4 && c.hug && c.hug.wrap > 0.99) o.lean.other = Math.max(o.lean.other, c.dist);
+      }
+    };
+    while (!s.sitting && s.endT < 60) { step(); watch(); }
+    o.sat = { endT: s.endT, hug: c.hug, kneel: c.kneel, bow: +c.bow.toFixed(2), sob: c.sob, mood: c.mood, dist: +c.dist.toFixed(2), yOff: c.yOff };
+    // it waits: its time does not run on, and only after a few seconds a small line says what to do
+    const line = []; for (let i = 0; i < 240; i++) { step(); if (i % 30 === 29) line.push(+(s.sitLineA || 0).toFixed(2)); }
+    o.waited = { endT: s.endT, sitting: s.sitting, sitT: +s.sitT.toFixed(1), kneel: c.kneel, line };
+    G.L.onPress({ key: 'r' }); G.L.onPress({ key: 'ArrowLeft' }); G.L.onPress({ key: 'Escape' }); step();
+    o.others = { sitting: s.sitting, went: s.went, state: G.state };
+    G.L.onPress({ key: 'ArrowUp' }); step();
+    o.went = { went: s.went, sitting: s.sitting };
+    // you go to it: the view goes in to it; it looks up, stops crying, holds out its hand, and yours takes it; it stands,
+    // holding it; content and happy, it lets go
+    let eye = 0, rose = null, joined = null;
+    while (s.endT < END.light[1]) {
+      step(); watch();
+      if (G.L.eye) eye = Math.max(eye, Math.hypot(G.L.eye.x, G.L.eye.z));
+      const h = c.hand;
+      if (h && h.join > 0.99 && !joined) joined = { kneel: c.kneel, its: h.its && h.its.map(v => +v.toFixed(2)), yours: h.yours && h.yours.map(v => +v.toFixed(2)), mood: c.mood, sob: c.sob, top: window._hoodTop() };
+      if (s.endT >= END.rise[1] && !rose) rose = { kneel: c.kneel, join: h && h.join, top: window._hoodTop(), its: h && h.its && h.its.map(v => +v.toFixed(2)), yours: h && h.yours && h.yours.map(v => +v.toFixed(2)) };
     }
-    o.moods = seen.map(x => x.m); o.held2 = seen.filter(x => x.m >= 1 && x.m <= 6).every(x => x.t1 - x.t0 >= 0.8 && x.wrap > 0.99 && x.meadow === 0);
-    o.blends = seen.slice(1).map((x, i) => +(x.t0 - seen[i].t1).toFixed(2)); o.down = down; o.happyFirst = release; o.last = last;
+    o.sit = END.sit; o.eye = +eye.toFixed(2); o.joined = joined; o.rose = rose; o.eyeBack = G.L.eye;
+    o.moods = seen.map(x => x.m); o.seen = seen.map(x => [x.m, +x.t0.toFixed(2), +x.t1.toFixed(2), +x.wrap.toFixed(2), +x.join.toFixed(2)]);
+    o.held2 = seen.filter(x => x.m >= 1 && x.m <= 4).every(x => x.t1 - x.t0 >= 0.8 && x.wrap > 0.99 && x.meadow === 0) && seen.filter(x => x.m >= 5).every(x => x.t1 - x.t0 >= 0.8 && x.meadow === 0) && seen.filter(x => x.m >= 6).every(x => x.join > 0.99 && x.kneel === 0);
+    o.blends = seen.slice(1).map((x, i) => +(x.t0 - seen[i].t1).toFixed(2)); o.down = down;
     return o;
   });
   check(hold.held.h0 && hold.held.h0.reach > 0 && hold.held.h0.reach < 0.5 && hold.held.h0.wrap === 0, 'it reaches out to you slowly (' + JSON.stringify(hold.held.h0) + ')');
@@ -567,18 +632,43 @@ const hoverHit = lookFor;
   check(hold.held.reach > 0.99 && hold.held.wrap > 0.99 && hold.held.overlay > 0.99 && hold.held.dist < 0.75, 'it stops close in front of you and its arms close round you (' + JSON.stringify(hold.held) + ')');
   check(hold.held.aim < 0.02 && hold.held.faceX > 0.4 && hold.held.faceX < 0.6 && hold.held.faceY > 0.1 && hold.held.faceY < 0.5, 'the view stays on its face (' + (hold.held.faceX || 0).toFixed(2) + ', ' + (hold.held.faceY || 0).toFixed(2) + ')');
   check(hold.veiled.unveil === 0 && hold.veiled.mood === 0 && hold.veiled.wrap > 0.3 && hold.unveiled.unveil === 1 && hold.unveiled.mood === 0, 'as its arms close round you its face is still in the dark of its hood; then it comes out of it, angry (' + JSON.stringify([hold.veiled, hold.unveiled]) + ')');
+  check(hold.tops.length >= 9 && hold.tops.every(([w, y]) => y !== null && (y > 0.01 || w === 'angry2')), 'close in, it bends down to you so its head stays in the view: as it reaches you, holds you, and through every face (but as it leans right in, angry, its face filling the view: ' + hold.tops.map(([w, y]) => w + ':' + y).join(', ') + ')');
+  check(hold.lean.angry2 < 0.55 && Math.abs(hold.lean.other - 0.68) < 0.02, 'angry again, it leans in close at you, and back again for confused (' + JSON.stringify(hold.lean) + ')');
+  check(hold.sat.hug === null && hold.sat.kneel === 1 && hold.sat.bow > 0.95 && hold.sat.sob === 1 && hold.sat.mood === 4 && Math.abs(hold.sat.dist - 2.4) < 0.01 && hold.sat.yOff === 0 && hold.sat.endT === hold.sit,
+    'crying, it lets you go, steps back and sinks down onto the ground, its head bowed, still crying (' + JSON.stringify(hold.sat) + ')');
+  check(hold.waited.sitting && hold.waited.endT === hold.sit && hold.waited.kneel === 1 && hold.waited.sitT >= 8, 'and there it stays, crying, as long as you wait (' + JSON.stringify(hold.waited) + ')');
+  check(hold.waited.line.slice(0, 3).every(v => v === 0) && hold.waited.line[hold.waited.line.length - 1] > 0.9, 'only after a few seconds of waiting a small line says what to do (' + hold.waited.line.join(', ') + ')');
+  check(hold.others.sitting && !hold.others.went && hold.others.state === 'won' && hold.went.went && !hold.went.sitting, 'R, a turn or Escape do nothing there (nothing cuts it short); the key that looks up goes to it (' + JSON.stringify([hold.others, hold.went]) + ')');
+  check(hold.eye > 1.2 && hold.eyeBack === null, 'the view goes in to it, and back to where you stood as it goes off into the meadow (' + hold.eye + ')');
+  check(hold.joined && hold.joined.kneel === 1 && hold.joined.mood === 5 && hold.joined.sob === 0 && Math.hypot(hold.joined.its[0] - hold.joined.yours[0], hold.joined.its[1] - hold.joined.yours[1]) < 0.12 && hold.joined.its[1] > 0.4 && hold.joined.its[1] < 0.95 && hold.joined.top > 0.01,
+    'it looks up, stops crying, holds out its hand, and your hand comes up into the view and lies in it (' + JSON.stringify(hold.joined) + ')');
+  check(hold.rose && hold.rose.kneel === 0 && hold.rose.join > 0.99 && hold.rose.its[1] < 0.98 && hold.rose.top > 0.01, 'it stands, still holding your hand, the hands and its head in the view (' + JSON.stringify(hold.rose) + ')');
   const moodNames = await page.evaluate(() => CREATURES.demon.moodNames.join(', '));
-  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6,7]' && moodNames === 'angry, neutral, angry, confused, sad, neutral, content, happy' && !hold.down && hold.held2, 'while it holds you its face goes through ' + moodNames + ', in that order, each held a while (' + JSON.stringify(hold.moods) + ')');
+  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6,7]' && moodNames === 'angry, neutral, angry, confused, sad, neutral, content, happy' && !hold.down && hold.held2, 'its face goes through ' + moodNames + ', in that order, each held a while: to sad while it holds you, content and happy holding your hand (' + JSON.stringify(hold.seen) + ')');
   check(hold.blends.every((b, i) => (i === 1 || i === 2 ? b > 0.1 && b < 0.45 : b >= 0.7)), 'each change of face is slow, but for the quick ones into its second angry face and out of it (' + hold.blends.join(', ') + ' s)');
-  check(hold.happyFirst && hold.happyFirst.meadow === 0 && hold.happyFirst.wrap > 0.99, 'it is happy while it still holds you, before the light comes');
   check(hold.flash < 0.01 && hold.white < 0.01, 'nothing in it flashes');
   const meadow = await page.evaluate(() => {
     const c = G.L.creature, s = G.L.s;
     while (!s.wait) G.step(0.1, 1);
     const at = { meadow: s.meadow, hug: c.hug, dist: c.dist, yaw: Math.abs(wrapPi(c.yaw - G.L.facing)), ground: G.L.pal.ground.map(Math.round), sky: G.L.pal.skyTop.map(Math.round), room: s.room, mood: c.mood, view: Math.abs(wrapPi(G.cam.yaw - c.yaw)), pitch: G.cam.pitch };
-    for (let i = 0; i < 600; i++) G.step(0.1, 1);   // a minute in the meadow
-    return Object.assign(at, { after: { state: G.state, leaving: s.leaving, meadow: s.meadow, fade: c.fade } });
+    // a minute in the meadow, what is written over it noted as it goes (a turn of the view a little way in, then nothing)
+    const said = [], fill = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (t, ...a) { said.push([String(t), +s.idle.toFixed(1), +this.globalAlpha.toFixed(2), this.fillStyle]); return fill.call(this, t, ...a); };
+    let quiet = 0, lineAt = null, turned = null;
+    try {
+      for (let i = 0; i < 600; i++) {
+        if (i === 40) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })); turned = s.idle; }
+        if (i === 52) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); }
+        said.length = 0; G.step(0.1, 1);
+        const line = said.find(x => /CLICK WHEN YOU ARE READY/.test(x[0]));
+        if (line && !/,0\.0+\)$|,0\)$/.test(line[3]) && lineAt === null) lineAt = { idle: line[1], i };
+        if (i < 100 && line && !/,0\.0+\)$|,0\)$/.test(line[3]) && s.idle < 4.9) quiet++;
+        if (said.some(x => /Stay as long/i.test(x[0]))) quiet += 1000;
+      }
+    } finally { CanvasRenderingContext2D.prototype.fillText = fill; }
+    return Object.assign(at, { after: { state: G.state, leaving: s.leaving, meadow: s.meadow, fade: c.fade }, quiet, lineAt, turned });
   });
+  check(meadow.quiet === 0 && meadow.turned > 3 && meadow.lineAt && meadow.lineAt.idle >= 5 && meadow.lineAt.i > 52 + 50, 'in the meadow no line says to stay; CLICK WHEN YOU ARE READY comes only after five seconds with nothing done, and a look about starts the count again (' + JSON.stringify([meadow.quiet, meadow.turned, meadow.lineAt]) + ')');
   check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 7 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
   check(meadow.ground[1] > meadow.ground[0] + 40 && meadow.sky[2] > 200 && meadow.sky[2] > meadow.sky[0] + 80 && meadow.room === 0, 'green grass and a blue sky, and no room yet (' + JSON.stringify([meadow.ground, meadow.sky]) + ')');
   check(meadow.after.state === 'won' && !meadow.after.leaving && meadow.after.meadow === 1 && meadow.after.fade === 1, 'left alone, the meadow simply stays');
@@ -631,10 +721,10 @@ const hoverHit = lookFor;
   })], ['the touch Use button', async () => page.evaluate(() => document.getElementById('tUse').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })))]]) {
     await T.open(page, 'level=13&go&seed=2&nofr');
     await caught();
-    const L0 = await page.evaluate(() => { while (G.L.s.endT < END.moods + 1) G.step(0.1, 1); return G.L.s.endT; });
+    const L0 = await page.evaluate(() => { while (G.L.s.endT < END.moods + 1) G.step(0.1, 1); return G.L.s.endT; });   // (holding you)
     await press();
     const early = await page.evaluate(() => ({ leaving: G.L.s.leaving, state: G.state, ending: G.L.s.ending }));
-    await page.evaluate(() => { while (G.L.s.endT < END.arm + 0.5) G.step(0.1, 1); });
+    await page.evaluate(() => { while (!G.L.s.sitting) G.step(0.1, 1); G.L.onPress(); while (G.L.s.endT < END.arm + 0.5) G.step(0.1, 1); });   // (going to it as it sits crying)
     const L1 = await page.evaluate(() => (window._L = G.L, G.L.s.endT));
     await press();
     const later = await page.evaluate(() => ({ leaving: G.L.s.leaving, same: window._L === G.L, state: G.state }));
@@ -645,13 +735,17 @@ const hoverHit = lookFor;
   await page.evaluate(() => MENU.applySetting('reducedMotion', true));
   await caught();
   const still = await page.evaluate(() => {
-    const c = G.L.creature, s = G.L.s; let dance = 0;
+    const c = G.L.creature, s = G.L.s; let dance = 0, heave = 0;
+    while (!s.sitting) G.step(0.1, 1);   // sitting crying: no heaving
+    for (let i = 0; i < 40; i++) { G.step(0.1, 1); heave = Math.max(heave, CREATURES.demon.heave(c)); }
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));   // (the zoom key goes to it)
+    const went = s.went;
     while (!s.wait || s.endT < END.dance[1] + 9) { G.step(0.1, 1); dance = Math.max(dance, c.dance); }
-    const o = { still: c.still, dance };
+    const o = { still: c.still, dance, heave, went };
     G.L.onPress(); for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1);
     return Object.assign(o, { state: G.state });
   });
-  check(still.still === true && still.dance === 0 && still.state === 'end', 'with reduced motion it stands still in the meadow, and the ending still ends (' + JSON.stringify(still) + ')');
+  check(still.still === true && still.dance === 0 && still.heave === 0 && still.went && still.state === 'end', 'with reduced motion its shoulders do not heave as it cries, the zoom key goes to it, it stands still in the meadow, and the ending still ends (' + JSON.stringify(still) + ')');
   await page.evaluate(() => MENU.applySetting('reducedMotion', false));
   // tapping the held thing again while looking down puts it down
   await T.open(page, 'level=13&go&seed=1&nofr');
