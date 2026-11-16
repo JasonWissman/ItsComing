@@ -65,7 +65,7 @@ const toolboxDrop = [
   ['expect', 'G.L.s.box.hits >= 1 && !G.L.s.turning && G.L.text.win.includes("toolbox")', 'it came down the stone onto it: the night is won, with a line of its own'],
   ['waitUntil', '!!G.L.s.fall', 4000],
   ...crank.slice(2),
-  ['waitUntil', 'G.state === "survived" && G.survivedScreen.text.includes("toolbox")', 12000],
+  ['waitUntil', 'G.state === "survived" && UI.overlay.textContent.includes("toolbox")', 12000],
   ['eval', 'restartLevel()'], ['wait', 300],
 ];
 const blownStillIn = [
