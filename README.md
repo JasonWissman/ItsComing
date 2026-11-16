@@ -347,26 +347,37 @@ some on the ground, so you have to turn and look down to find them.
     seen in the dark of the hood but two small pale eyes. Take up anything and it is
     enraged: its eyes burn red, a snarling mouth opens under them, and it comes on in fits,
     stopping dead, lurching, jerking aside, its head twitching. Holding anything when it
-    reaches you is a death. The bow still works as it did in the Clearing: with the bow (or
-    the arrows) in your hand it comes up, hold to draw and let go full with it in your sights.
-    A miss is only an arrow gone, standing in the floor or lost in the dark; a hit, and it
-    leaps straight at you and that is the end of you. Far off its eyes are two points a
-    pixel or so across, set as far apart on its head as they always are.
+    reaches you is a death. The bow still comes up as it did in the Clearing (with the bow or
+    the arrows in your hand), and holding draws it, but here it is never loosed: drawn at, it
+    comes for you, slowly and then faster and faster as the string comes back, more and more
+    enraged, and it is on you before the bow is full ("Fighting only made it stronger."; never
+    the ending). Let go early and the bow only comes back down, no arrow gone, and it comes on
+    at its own pace again. Far off its eyes are two points a pixel or so across, set as far
+    apart on its head as they always are, with no haze round them.
     Put it all down again (each falls from your hand to the floor;
     reach for another with your hands full and the full hand only goes toward it) and it
-    calms. Let it come, and face it when it does: as it looms in the view lifts to its face.
+    calms. Let it come, and face it when it does: empty-handed, it bends down to you over the
+    last few metres (its head stays in the view) and the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too. Faced
-    empty-handed, it stops close in front of you and slowly reaches its open hands out to you,
-    and its arms close round you, its hands over the top of the view. While it holds you its
-    face comes up out of the dark of the hood and goes slowly through angry, neutral, angry,
-    confused (then, glitching, a flicker of faces under a second: pain, envy, sorrow, grimace,
-    terror, empty, shock), sad, neutral and content until it is happy. Then it lets you go and the dark
+    empty-handed, it stops close in front of you, bent down to your face, and slowly reaches
+    its open hands out to you, and its arms close round you, its hands over the top of the
+    view. While it holds you its face comes up out of the dark of the hood and goes slowly
+    through angry, neutral, angry (leaning in close at you, then drawing back), confused (then,
+    glitching, a flicker of faces under a second: pain, envy, sorrow, grimace, terror, empty,
+    shock) and sad. Crying, it lets you go, steps back and sinks down onto the ground, its head
+    bowed, its shoulders heaving, and it stays there crying for as long as you wait (after a few
+    seconds a small line says CLICK TO GO TO IT). A click, a tap, A, or the key that looks up
+    or zooms (Up, W, Shift, Space, Z) goes to it: the view goes in to it, a step at a time, and
+    down to it; it looks up at you and slowly stops crying, holds out its hand, open, palm up,
+    and your hand comes up into the view and lies in it, its long fingers closing over yours;
+    it stands up holding your hand, is content, and then happy, and lets go. Then the dark
     opens into a green meadow in the sun (wild flowers, trees, clouds, birdsong and a breeze).
     As a music box starts it pushes its hood back, lets the robe
     drop, the long sleeves and black gloves sliding off its arms, and hops clear of the heap
     of black cloth: underneath it wears a yellow shirt striped sky blue, red shorts, white
     socks and blue sneakers, and it dances a little beside the robe on the grass. The view is yours again there: turn, look down and zoom as in
-    any night, for as long as you like.
+    any night, for as long as you like; only if you do nothing at all for five seconds does a
+    small line say CLICK WHEN YOU ARE READY.
 
 Creatures move faster when you are not looking at them, but otherwise they
 come at a steady pace, no faster at the end than at the start. A thread runs through the

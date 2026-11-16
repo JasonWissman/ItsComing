@@ -8,8 +8,10 @@
 // For the ending the night also sets c.calm (it settles: no rage left in its body, a little smaller), c.soft (the dark
 // lightens), c.disrobe (in the meadow it takes the robe off: see demonOff), c.dance and c.fade; c.mood, the face it makes while it holds you (see DEMON_MOODS), and c.unveil, how far that
 // face has come up out of the dark of the hood (0: still only the two eyes); c.hug, its arms coming out to you and closing
-// round you; c.tilt0 and c.settle (its head comes level from where it was), and c.still (reduced motion: no trembling, no
-// tear running).
+// round you; c.kneel (sunk down onto the ground), c.bow (its head bowed; less than none, looking up at you), c.sob (crying:
+// its shoulders heave); c.hand, its hand held out to you and yours in it (c.view puts where they meet in the view: see
+// demonClasp); c.tilt0 and c.settle (its head comes level from where it was), and c.still (reduced motion: no trembling,
+// no heaving, no tear running). All of the ending's come from demonEnding.
 // The faces it goes through, in order: angry, neutral, angry, confused, sad, neutral, content, happy. c.mood 0 is the first
 // and 7 the last, and between two whole numbers it is part way from one to the next. Each is a set of numbers, so any two
 // blend smoothly. Measured from fy (see draw): the eyes sit at fy + 0.03, brows bi (inner end) and bo (outer end) above
@@ -65,11 +67,13 @@ function demonBlend(A, B, k) {
   for (const key in A) F[key] = Array.isArray(A[key]) ? mixc(A[key], B[key], k) : lerp(A[key], B[key], k);
   return F;
 }
-// How long it holds each face and how long it takes to go into the next (seconds), in the order of DEMON_MOODS: the first
-// slow; into the second angry and out of it to confused quick, so the slow ones run into the glitch; sad held longest.
-// Altogether the same 13.3 s as seven even steps of 1.0 + 0.9
-const DEMON_MOOD_TIME = [[1.0, 0.9], [1.0, 0.25], [1.0, 0.25], [1.0, 0.9], [2.3, 0.9], [1.0, 0.9], [1.0, 0.9]];
-// which face it is making u seconds into its faces (0: the first, angry; a part-way number while it goes into the next)
+// How long it holds each face and how long it takes to go into the next (seconds), in the order of DEMON_MOODS, while it
+// holds you, as far as sad: the first slow; into the second angry quick (and it is held longer, as it leans in at you), and
+// out of it to confused quick, so the slow ones run into the glitch. From sad on the night times them (demonEnding): it
+// lets you go, sits down crying and waits for you
+const DEMON_MOOD_TIME = [[1.0, 0.9], [1.0, 0.25], [1.6, 0.4], [1.0, 0.9]];
+// which face it is making u seconds into its faces (0: the first, angry; a part-way number while it goes into the next;
+// 4, sad, once it is there)
 function demonMoodAt(u) {
   let t0 = 0;
   for (let j = 0; j < DEMON_MOOD_TIME.length; j++) {
@@ -78,6 +82,42 @@ function demonMoodAt(u) {
     t0 += h + b;
   }
   return DEMON_MOOD_TIME.length;
+}
+// The ending, as night 13 plays it and the lab shows it: how it is t seconds after it reached you. E is the night's
+// timeline (END in js/levels/night13.js; the lab keeps a copy), d0 how far off it was then and y0 how far it was already
+// bent down to you. Its body (settle, hug, unveil, yOff, kneel, bow, sob, calm, mood, disrobe), how far off it is (dist,
+// from where you stood), its hand held out to you and yours in it (hand: reach, take, join, and at: where the two meet, in
+// the view's own frame: x to the right, y up from the floor, z ahead of the eye), and how far you have come to it (eyeFwd,
+// eyeDown). The night stops t at E.sit until you go to it; nothing here depends on how long that was.
+function demonEnding(E, t, d0, y0) {
+  const sp = (a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1)), lin = (a, b) => clamp((t - a) / (b - a), 0, 1), rel = E.release;
+  // holding you; then, crying, it lets you go: the arms come away from round you, then down
+  const reach = sp(E.reach[0], E.reach[1]) * (1 - sp(E.letGo[0] + 0.5, E.letGo[1])), wrap = sp(E.close[0], E.close[1]) * (1 - sp(E.letGo[0], E.letGo[0] + 1.1));
+  const lean = sp(E.lean[0], E.lean[1]) * (1 - sp(E.lean[2], E.lean[3]));   // the second angry face: in at you, and back
+  const back = sp(E.back[0], E.back[1]), rise = sp(E.rise[0], E.rise[1]), walk = sp(E.walk[0], E.walk[1]);
+  const stand = sp(E.rise[0] + 0.6, E.rise[1]) * (1 - sp(rel + 0.2, rel + 1.8));   // stood up, bent to you, holding your hand
+  const offer = sp(E.offer[0], E.offer[1]) * (1 - sp(rel + 0.3, rel + 1.7));
+  return {
+    settle: sp(0, E.settle),
+    hug: reach > 0.001 || wrap > 0.001 ? { reach, wrap } : null,
+    unveil: sp(E.unveil[0], E.unveil[1]),
+    // bent down to your face while it holds you (further as it leans in), straight as it steps back, bent to you again
+    // once it stands holding your hand, and straight once it lets go
+    yOff: lerp(y0 || 0, -0.72, sp(E.stoop[0], E.stoop[1])) * (1 - back) - 0.07 * lean - 0.55 * stand,
+    dist: lerp(lerp(lerp(d0, 0.68, sp(E.near[0], E.near[1])) - 0.2 * lean, E.sitDist, back), 3.3, walk),
+    kneel: sp(E.slump[0], E.slump[1]) * (1 - rise),
+    bow: lerp(sp(E.slump[0] - 0.4, E.slump[1] - 0.2), -0.3, sp(E.look[0], E.look[1])) * (1 - rise),
+    sob: sp(E.sad - 0.3, E.sad + 0.9) * (1 - sp(E.calm[0], E.calm[1])),
+    calm: sp(rel, rel + 1.6),
+    mood: t < E.moods ? 0 : t < E.calm[0] ? Math.min(4, demonMoodAt(t - E.moods)) : 4 + lin(E.calm[0], E.calm[1]) + lin(E.content[0], E.content[1]) + lin(E.happy[0], E.happy[1]),
+    hand: offer > 0.001 ? {
+      reach: offer, take: sp(E.take[0], E.take[1] - 0.5) * (1 - sp(rel + 0.2, rel + 1.4)), join: sp(E.take[1] - 0.8, E.take[1]) * (1 - sp(rel, rel + 0.5)),
+      at: [-0.07, lerp(1.17, 1.5, rise), 0.62],
+    } : null,
+    eyeFwd: E.goDist * sp(E.go[0], E.go[1]) * (1 - walk),
+    eyeDown: 0.23 * sp(E.go[0] + 1.2, E.go[1] + 0.4) * (1 - sp(E.rise[0] + 0.2, E.rise[1])),
+    disrobe: clamp((t - E.disrobe[0]) / (E.disrobe[1] - E.disrobe[0]), 0, 1),
+  };
 }
 // the face for mood m; still (reduced motion): no glitching, confused blends straight into sad
 function demonMood(m, still) {
@@ -210,6 +250,83 @@ function demonHugArms(ctx, c, P, body, S0, E0, H0, wid, fing) {
     if (g > 0.01) { ctx.lineWidth = more * 2 + 1e-3; ctx.beginPath(); palm.forEach((p, n) => (n ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill(); if (more) ctx.stroke(); }
     for (const [p, q, ww] of parts) { ctx.lineWidth = ww + more; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
     ctx.globalAlpha = a0;
+  }
+  ctx.restore();
+}
+// Its hand held out to you, and yours in it (c.hand: reach, take, join, at; see demonEnding). Drawn as the hug's arms are,
+// in the view's own pixels: from its right shoulder (on your left, where draw() has it) its arm comes out to where the
+// two hands meet (at, placed in the view by c.view, which the night gives it, or R.screenPos), the hand open and palm up,
+// the long fingers toward you. Your own right hand comes up from the bottom of the view, in its sleeve, and lies in its
+// palm; its fingers close over the back of yours. The hands stay where they meet, whatever its body does.
+const DEMON_YOU = { skin: [172, 132, 108], skinL: [204, 166, 140], sleeve: [44, 38, 37], sleeveL: [68, 60, 57] };   // (bare hands, as the bow has them on this night)
+function demonClasp(ctx, c, P, body, S0, E0, H0, wid) {
+  const h = c.hand, r = h.reach, tk = h.take, jn = h.join;
+  const M = ctx.getTransform(), dpr = ctx.canvas.width / R.W, W = R.W, H = R.H;
+  const scr = p => { const q = M.transformPoint({ x: p[0], y: p[1] }); return [q.x / dpr, q.y / dpr - R.viewY]; };
+  const view = p => { const q = c.view ? c.view(p[0], p[1], p[2]) : R.screenPos(p[0], p[1], p[2]); return q && [q.x, q.y]; };
+  const J = view(h.at), J1 = view([h.at[0] + 0.1, h.at[1], h.at[2]]);
+  if (!J || !J1) return;
+  const k = Math.hypot(M.a, M.b) / dpr, u = Math.hypot(J1[0] - J[0], J1[1] - J[1]) / 0.1;   // its pixels to a metre; and where the hands meet
+  const mix2 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
+  const unit = v => { const l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
+  const turn = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)];
+  const at = (p, d, e, x, y) => [p[0] + d[0] * x + e[0] * y, p[1] + d[1] * x + e[1] * y];
+  const seg = (a, b, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); };
+  const curve = (a, m, b, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.quadraticCurveTo(m[0], m[1], b[0], b[1]); ctx.stroke(); };
+  const base = mixc([4, 3, 6], [104, 90, 126], c.soft || 0), rim = P.col(mixc(base, [150, 130, 140], 0.6));
+  const sway = c.still ? 0 : Math.sin(c.t * 1.1) * 0.004 * H * (1 - jn);   // held out, it trembles a little until you take it
+  ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, R.viewY * dpr);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // its arm: the shoulder where it is, the elbow out to its side and low, the hand where the two meet (part way, from where
+  // it hung, as it comes)
+  const S = scr(S0), Hd = mix2(scr(H0), [J[0] + sway, J[1] + sway * 0.5], r);
+  const E = mix2(scr(E0), [lerp(S[0], Hd[0], 0.5) - 0.06 * W, lerp(S[1], Hd[1], 0.55) + 0.03 * H], r);
+  const wS = wid * k, wW = lerp(wid * k, 0.05 * u, r);
+  for (const [col, more] of [[rim, 0.0035 * H * r], [body, 0]]) {
+    seg(S, E, lerp(wS, wW * 1.15, 0.5) + more, col); seg(E, Hd, wW + more, col);
+  }
+  // its hand, palm up: along the forearm (d) the palm and the long fingers out toward you; across it (e) to the thumb
+  const d = unit([Hd[0] - E[0], Hd[1] - E[1]]), e = turn(d, Math.PI / 2), pl = 0.045 * u * r, pw = 0.05 * u * r;
+  const palm = () => { ctx.beginPath(); ctx.ellipse(...at(Hd, d, e, pl * 0.7, 0), pl, pw, Math.atan2(d[1], d[0]), 0, TAU); };
+  const fingers = [];
+  for (let j = 0; j < 4; j++) {
+    const o = at(Hd, d, e, pl * 1.45, pw * lerp(-0.62, 0.62, j / 3)), dir = turn(d, lerp(-0.32, 0.32, j / 3) * (1 - 0.6 * jn)), L = 0.075 * u * r * [0.9, 1, 0.95, 0.75][j];
+    fingers.push([o, dir, L]);
+  }
+  const thumbO = at(Hd, d, e, pl * 0.5, pw * 0.9), thumbD = turn(d, 0.95);
+  for (const [col, more] of [[rim, 0.005 * H], [body, 0]]) {
+    ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = more * 2 + 1e-3; palm(); ctx.fill(); if (more) ctx.stroke();
+    for (const [o, dir, L] of fingers) seg(o, [o[0] + dir[0] * L * (1 - 0.7 * jn), o[1] + dir[1] * L * (1 - 0.7 * jn)], 0.018 * u * r + more, col);
+    seg(thumbO, [thumbO[0] + thumbD[0] * 0.045 * u * r * (1 - 0.5 * jn), thumbO[1] + thumbD[1] * 0.045 * u * r * (1 - 0.5 * jn)], 0.02 * u * r + more, col);
+  }
+  h.its =[Hd[0] / W, Hd[1] / H];   // (for the tests: where its hand is in the view, and yours)
+  // your hand: up from below the view, in your sleeve, to lie in its palm
+  if (tk > 0.004) {
+    const B = [0.86 * W, 1.32 * H], to = at(Hd, d, e, pl * 1.1, 0), dir0 = unit([to[0] - B[0], to[1] - B[1]]);
+    const Wr = mix2(B, [to[0] - dir0[0] * 0.07 * u, to[1] - dir0[1] * 0.07 * u], tk), a = unit([to[0] - Wr[0], to[1] - Wr[1]]), b = turn(a, -Math.PI / 2);
+    const sk = P.col(DEMON_YOU.skin), skL = P.col(DEMON_YOU.skinL), sl = P.col(DEMON_YOU.sleeve), slL = P.col(DEMON_YOU.sleeveL);
+    const back = [Wr[0] - a[0] * H, Wr[1] - a[1] * H];
+    seg(back, at(Wr, a, b, -0.03 * u, 0), 0.105 * u + 2, slL); seg(back, at(Wr, a, b, -0.03 * u, 0), 0.095 * u, sl);   // the sleeve, off the bottom of the view
+    const c0 = at(Wr, a, b, 0.05 * u, 0);
+    ctx.fillStyle = sk; ctx.beginPath(); ctx.ellipse(c0[0], c0[1], 0.058 * u, 0.047 * u, Math.atan2(a[1], a[0]), 0, TAU); ctx.fill();   // the back of the hand
+    seg(at(Wr, a, b, 0.0, 0), at(Wr, a, b, 0.03 * u, 0), 0.07 * u, sk);   // the wrist
+    for (let j = 0; j < 4; j++) {   // the fingers, out over its palm, curling a little into it as they are held
+      const o = at(Wr, a, b, 0.095 * u, lerp(-0.03, 0.03, j / 3) * u), L = 0.06 * u * [0.85, 1, 0.95, 0.8][j] * (1 - 0.25 * jn), tip = at(o, a, b, L, lerp(-0.004, 0.004, j / 3) * u);
+      seg(o, tip, 0.019 * u, sk); seg(at(o, a, b, 0.004 * u, -0.004 * u), at(tip, a, b, -0.006 * u, -0.004 * u), 0.005 * u, skL);
+    }
+    seg(at(Wr, a, b, 0.035 * u, -0.042 * u), at(Wr, a, b, 0.085 * u, -0.06 * u), 0.021 * u, sk);   // the thumb, along the side
+    h.yours = [Wr[0] / W, Wr[1] / H];
+    // its fingers closing over the back of your hand, and its thumb across it
+    if (jn > 0.01) {
+      ctx.globalAlpha *= jn;
+      for (const [col, more] of [[rim, 0.004 * H], [body, 0]]) {
+        for (let j = 0; j < 4; j++) {   // round from the one side, across the back of it
+          const x = lerp(0.07, -0.015, j / 3) * u, o = at(c0, a, b, x, 0.056 * u), m = at(c0, a, b, x + 0.012 * u, 0.012 * u), tip = at(c0, a, b, x + 0.006 * u, -lerp(0.022, 0.008, j / 3) * u);
+          curve(o, m, tip, 0.017 * u + more, col);
+        }
+        curve(at(c0, a, b, -0.03 * u, -0.058 * u), at(c0, a, b, 0.0, -0.02 * u), at(c0, a, b, 0.03 * u, -0.005 * u), 0.02 * u + more, col);   // its thumb, over from the other
+      }
+    }
   }
   ctx.restore();
 }
@@ -403,11 +520,17 @@ function demonFaded(ctx, c, P) {
 // how enraged it is, as it looks (rage, less any calm)
 const demonRage = c => clamp(c.rage || 0, 0, 1) * (1 - (c.calm || 0));
 // how high its eyes are, from its feet, as draw() puts them (the robe, the bob of its step, the hood all grow with rage; a
-// lurch dips it)
+// lurch dips it; sunk down on the ground it is lower, and its head bowed lower still)
+const DEMON_KNEEL = 1.05;   // how far its shoulders come down, sunk down on the ground
 function demonEyesY(c) {
-  const calm = c.calm || 0, a = demonRage(c), dip = a > 0.001 ? demonFit(c).dip * a : 0;
-  const top = 1.3 + a * 0.35 + 0.85 + Math.abs(Math.sin(c.gait)) * (0.04 + a * 0.06) - dip;
-  return (top + 0.285 + a * 0.1 + 0.03) * (1 - 0.2 * calm);
+  const calm = c.calm || 0, a = demonRage(c), dip = a > 0.001 ? demonFit(c).dip * a : 0, bow = c.bow || 0;
+  const top = 1.3 + a * 0.35 + 0.85 + Math.abs(Math.sin(c.gait)) * (0.04 + a * 0.06) - dip - DEMON_KNEEL * clamp(c.kneel || 0, 0, 1);
+  return (top - 0.07 * Math.max(0, bow) + 0.285 + a * 0.1 + 0.03 - 0.03 * bow) * (1 - 0.2 * calm);
+}
+// crying (c.sob), its shoulders heave: in fits, a few quick catches and then a breath (none with reduced motion)
+function demonHeave(c) {
+  const s = c.still ? 0 : c.sob || 0;
+  return s > 0.001 ? s * 0.022 * Math.max(0, Math.sin(c.t * 7.3)) * smoothstep(clamp(Math.sin(c.t * 1.05 + 0.6) * 1.6, 0, 1)) : 0;
 }
 // how its head is tilted when it is making no face for the ending: now and then it cocks its head to the other side, more
 // often and further enraged, and enraged it twitches
@@ -440,15 +563,9 @@ CREATURES.demon = {
     delay: 0.25, dur: 0.5, sting: 'sting',
     pose(c, k) { c.yOff -= (demonEyesY(c) - CREATURES.demon.faceY) * smoothstep(k); },
   },
-  // shot (night 13's bow), it leaps at you at once from where it is (d0 metres off), up in an arc and into your face:
-  // a death of its own (c.deathSpec), quicker the nearer it was
-  leap(d0) {
-    const D = CREATURES.demon.death, up = Math.min(1.4, d0 * 0.05);
-    return { delay: 0.06, dur: clamp(0.25 + d0 * 0.014, 0.3, 0.8), sting: D.sting, pose(c, k) { D.pose(c, k); c.yOff += Math.sin(Math.PI * k) * up; } };
-  },
   voice: { kind: 'exhale', every: [4, 8] },
-  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt,   // for the ending and the tests
-  // what of its box is it, to aim at (js/game.js creatureBox: the bow on night 13): the robe and the hood, up to just above
+  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, ending: demonEnding, heave: demonHeave,   // for the ending and the tests
+  // what of its box is it, to aim at (js/game.js creatureBox: the bow's draw bar on night 13): the robe and the hood, up to just above
   // its eyes, wider enraged
   body(c) { const a = demonRage(c); return [-0.42 - a * 0.08, 0.42 + a * 0.08, 0, demonEyesY(c) + 0.3]; },
   init(c) { c.anger = 0; c.rage = 0; c.calm = 0; c.soft = 0; c.dance = 0; c.disrobe = 0; c.fade = 1; },
@@ -480,9 +597,14 @@ CREATURES.demon = {
     const robe = P.col(robeC, take), fold = P.col(mixc([3, 2, 5], [14, 12, 18], soft), take), rim = P.col(mixc([26, 23, 32], [62, 58, 72], soft), take * 1.6);
     const black = P.col([0, 0, 0], 0.1);
     const bob = Math.abs(Math.sin(g)) * (0.04 + a * 0.06), sway = Math.sin(g) * (0.03 + a * 0.05);
-    const legL = 1.3 + a * 0.35, armL = 0.9 + a * 0.6, top = legL + 0.85 + bob;
-    // the robe, from the shoulders to the ground, flaring; its hem swings with each step and the folds with it
-    const step = Math.sin(g) * (0.05 + a * 0.04), hemW = 0.36 + a * 0.1, sh = sway * 0.6;
+    // sunk down on the ground (c.kneel), crying (c.sob: its shoulders heave, in fits), its head bowed (c.bow; looking up
+    // at you, less than none)
+    const kneel = clamp(c.kneel || 0, 0, 1), bow = c.bow || 0, heave = demonHeave(c);
+    const legL = 1.3 + a * 0.35, armL = 0.9 + a * 0.6, top = legL + 0.85 + bob - DEMON_KNEEL * kneel + heave;
+    // the robe, from the shoulders to the ground, flaring (kneeling, spread round it on the ground); its hem swings with each
+    // step and the folds with it
+    const step = Math.sin(g) * (0.05 + a * 0.04), hemW = 0.36 + a * 0.1 + 0.2 * kneel, sh = sway * 0.6;
+    const sideX = 0.27 + 0.25 * kneel, sideY = lerp(legL * 0.55, top * 0.32, kneel);
     if (O) {
       // out of the robe, or on the way out of it: the heap (once it is clear of it), its legs, shorts and shirt, the hood
       // going back, the robe falling, its arms, and its face
@@ -525,13 +647,19 @@ CREATURES.demon = {
     }
     ctx.fillStyle = robe; ctx.beginPath();
     ctx.moveTo(-0.24 + sh, top);
-    ctx.quadraticCurveTo(-0.27 + sway * 0.4, legL * 0.55, -hemW + step, 0.03);
+    ctx.quadraticCurveTo(-sideX + sway * 0.4, sideY, -hemW + step, 0.03);
     for (let i = 1; i <= 8; i++) { const u = i / 8; ctx.lineTo(lerp(-hemW, hemW, u) + step * (1 - Math.abs(u - 0.5)), 0.012 + 0.022 * Math.abs(Math.sin(i * 1.9 + g))); }
-    ctx.quadraticCurveTo(0.27 + sway * 0.4, legL * 0.55, 0.24 + sh, top);
+    ctx.quadraticCurveTo(sideX + sway * 0.4, sideY, 0.24 + sh, top);
     ctx.closePath(); ctx.fill();
     for (const [x0, x1, w] of [[-0.1, -0.2, 0.026], [0.02, 0.05, 0.03], [0.12, 0.24, 0.022]]) {
       ctx.strokeStyle = fold; ctx.lineWidth = w; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(x0 * 0.6 + sh, top - 0.18); ctx.quadraticCurveTo(x0 + sway * 0.4, legL * 0.6, x1 + step * 0.8, 0.06); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x0 * 0.6 + sh, top - 0.18); ctx.quadraticCurveTo(x0 + sway * 0.4, lerp(legL * 0.6, top * 0.4, kneel), x1 * (1 + 0.8 * kneel) + step * 0.8, 0.06); ctx.stroke();
+    }
+    if (kneel > 0.02) {   // its knees under the robe, and the robe drawn tight over them
+      ctx.save(); ctx.globalAlpha *= kneel; ctx.strokeStyle = fold; ctx.lineWidth = 0.03;
+      ctx.beginPath(); ctx.moveTo(-0.44, 0.2); ctx.quadraticCurveTo(-0.2, 0.36, 0, 0.3); ctx.quadraticCurveTo(0.2, 0.36, 0.44, 0.2); ctx.stroke();
+      ctx.strokeStyle = rim; ctx.lineWidth = 0.012; ctx.beginPath(); ctx.moveTo(-0.38, 0.3); ctx.quadraticCurveTo(-0.2, 0.4, -0.04, 0.35); ctx.moveTo(0.04, 0.35); ctx.quadraticCurveTo(0.2, 0.4, 0.38, 0.3); ctx.stroke();
+      ctx.restore();
     }
     // its shoulders under the fall of the hood
     P_ell(ctx, sh, top - 0.03, 0.26, 0.085, robe);
@@ -539,13 +667,17 @@ CREATURES.demon = {
     const raise = smoothstep(Math.max(near * (0.5 + a * 0.5), lunge));
     const sleeve = 0.1 - a * 0.012;
     const hug = c.hug ? { S: [], E: [], H: [], f: [] } : null;   // holding you: the arms are drawn last, over the head (see demonHugArms)
+    const clasp = c.hand && !hug ? {} : null;   // its hand held out to you: that arm too (demonClasp)
     for (const s of [-1, 1]) {
       const sx = s * 0.22 + sh, sy = top - 0.05;
       let ex = s * lerp(0.28, 0.55 + a * 0.3, raise), ey = lerp(top - 0.5, top - 0.3, raise);
       let hx = s * lerp(0.3, 0.42 + a * 0.35, raise), hy = lerp(top - armL, top + 0.05, raise);
       if (dance) { const wave = Math.sin(t * 5.2 + s) * 0.12; ex = lerp(ex, s * 0.42, dance); ey = lerp(ey, top + 0.2 + wave, dance); hx = lerp(hx, s * (0.36 + wave), dance); hy = lerp(hy, top + 0.62, dance); } // hands up, waving
-      const fa = dance ? Math.PI / 2 : lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), fs = lerp(0.16, 0.34 + a * 0.1, raise), fl = 0.18 + a * 0.16;
+      let fa = dance ? Math.PI / 2 : lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise);
+      if (kneel > 0) { ex = lerp(ex, s * 0.36, kneel); ey = lerp(ey, top - 0.4, kneel); hx = lerp(hx, s * 0.13, kneel); hy = lerp(hy, top - 0.68, kneel); fa = lerp(fa, s > 0 ? 0.4 - Math.PI : -0.4, kneel); }   // its hands in its lap
+      const fs = lerp(0.16, 0.34 + a * 0.1, raise), fl = 0.18 + a * 0.16;
       if (hug) { const i = s > 0 ? 1 : 0; hug.S[i] = [sx, sy, 0]; hug.E[i] = [ex, ey, 0]; hug.H[i] = [hx, hy, 0]; hug.f[i] = { angle: fa, spread: fs, len: fl }; continue; }
+      if (clasp && s < 0) { Object.assign(clasp, { S: [sx, sy], E: [ex, ey], H: [hx, hy] }); continue; }
       const cuff = [lerp(ex, hx, 0.72), lerp(ey, hy, 0.72)];
       P_line(ctx, cuff[0], cuff[1], hx, hy, 0.04, robe);   // the wrist, out of the sleeve
       fingers(ctx, hx, hy, fa, fs, fl, 0.018, robe);
@@ -559,7 +691,7 @@ CREATURES.demon = {
     const sz = demonSeize(c, F || still || c.still ? 0 : a * smoothstep(dspan(lunge, 0.55, 0.9)));
     const tilt = F ? lerp(c.tilt0 || 0, F.tilt + (c.still ? 0 : F.trem * Math.sin(t * 31) * 0.018), c.settle === undefined ? 1 : c.settle) + dance * Math.sin(t * 2.6) * 0.18
       : demonTilt(c) * (1 - lunge) * (1 - calm) + dance * Math.sin(t * 2.6) * 0.18 + sz.tilt;
-    ctx.save(); ctx.translate(sh + sz.x, top + sz.y); ctx.rotate(tilt);
+    ctx.save(); ctx.translate(sh + sz.x, top + sz.y - 0.07 * Math.max(0, bow)); ctx.rotate(tilt + heave * 0.6 * Math.sin(t * 9.1));
     const hc = 0.3 + a * 0.1, hr = 0.168 + a * 0.02, hh = 0.235 + a * 0.05;
     // enraged, in your face, the hood falls: it slides down off the head onto the shoulders and is gone into the dark
     const drop = F ? 0 : a * smoothstep(dspan(lunge, 0.45, 0.8));
@@ -585,10 +717,15 @@ CREATURES.demon = {
       if (F && show > 0.004) {
         ctx.save(); ctx.beginPath(); ctx.ellipse(0, oy, orx, ory, 0, 0, TAU); ctx.clip();
         ctx.globalAlpha *= show;
+        // (bowed, the face goes down in the hood and is seen from above, foreshortened, the hood's shadow further over it;
+        // looking up, it comes up into the light)
+        const bw = Math.max(0, bow), fyB = fy - 0.03 * bow;
+        ctx.save(); ctx.translate(0, fyB); ctx.scale(1, 1 - 0.12 * bw + 0.04 * Math.max(0, -bow)); ctx.translate(0, -fy);
         demonMoodFace(ctx, c, P, fy, F);
-        const shade = ctx.createLinearGradient(0, oy + ory, 0, fy + 0.02);
-        shade.addColorStop(0, P.cola([0, 0, 0], 0.85)); shade.addColorStop(0.45, P.cola([0, 0, 0], 0.3)); shade.addColorStop(1, P.cola([0, 0, 0], 0));
-        ctx.fillStyle = shade; ctx.fillRect(-orx, fy + 0.02, orx * 2, ory * 2);
+        ctx.restore();
+        const sy0 = fyB + 0.02 - 0.03 * bw, shade = ctx.createLinearGradient(0, oy + ory, 0, sy0);
+        shade.addColorStop(0, P.cola([0, 0, 0], 0.85)); shade.addColorStop(0.45, P.cola([0, 0, 0], 0.3 + 0.25 * bw)); shade.addColorStop(1, P.cola([0, 0, 0], 0));
+        ctx.fillStyle = shade; ctx.fillRect(-orx, sy0, orx * 2, ory * 2);
         ctx.restore();
       }
       if (show < 0.996) {
@@ -651,9 +788,7 @@ CREATURES.demon = {
           ctx.restore(); ctx.restore(); ctx.restore();
         }
         // the eyes: two small pale points, or, enraged, two tall red slits, burning. Far off in the dark
-        // they are all there is of it: two points in a faint haze, set as far apart on its head as they always are
-        const far = clamp((c.dist - 5) / 12, 0, 1);
-        if (far > 0) P_ell(ctx, 0, fy + 0.03, c.dist * 0.009, c.dist * 0.006, rgba(er, (0.06 + 0.1 * a) * far));
+        // they are all there is of it: two points, set as far apart on its head as they always are (no haze round them)
         // (an eye too small to fill a pixel of the canvas would be smeared over the pixels round it, too faint to see, and
         // made any bigger the two would run together into one smudge: so far off each is one whole pixel, where its middle
         // falls, at its full light; they are where they always are on its head, a little more than a pixel apart at the
@@ -697,6 +832,7 @@ CREATURES.demon = {
     } else drawFace();
     ctx.restore();
     if (hug) demonHugArms(ctx, c, P, robe, hug.S, hug.E, hug.H, sleeve, hug.f);
+    if (clasp) demonClasp(ctx, c, P, robe, clasp.S, clasp.E, clasp.H, sleeve);
     ctx.restore();
   }
 };

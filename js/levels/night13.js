@@ -1,13 +1,15 @@
 'use strict';
-/* global CLEARING_BOW */   // (night 5's bow, js/levels/night05.js: drawn and loosed here as it was there)
+/* global CLEARING_BOW, PAD */   // (night 5's bow, js/levels/night05.js: drawn here as it was there; js/game.js's gamepad state)
 // ============================================================ 13. THE VOID ============================================================
 // Nothing at all: a faint floor that fades into black. Around you lies everything you ever held against it, and your hands
 // are empty. It comes from anywhere, a tall thing in a black hood. Take up anything and it is enraged, and comes on in fits;
 // put it all down again and it calms. The ending plays out here, without a cut: caught empty-handed and facing it, it stops
-// and holds you, its face comes out of the dark of its hood and goes through angry, neutral, angry, confused, sad, neutral
-// and content until it is happy, and the dark opens into a meadow in the sun, where you may look about as long as you
-// like; a press and it is the bedroom. The bow still draws and looses as it did on night 5: a miss is only an arrow gone
-// into the dark, but a hit, and it leaps at you at once.
+// and holds you, its face comes out of the dark of its hood and goes through angry, neutral, angry (leaning in at you),
+// confused and sad; crying, it lets you go, steps back and sinks down onto the ground, and it stays there crying until you
+// go to it. Then it looks up at you, stops crying, holds out its hand, and stands up holding yours; it is content, and
+// happy, and the dark opens into a meadow in the sun, where you may look about as long as you like; a press and it is the
+// bedroom. The bow still comes up and draws as it did on night 5, but it is never loosed: drawn at, it comes for you, faster
+// and faster, and is on you before the bow is full.
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
   ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['handle', 'Winch handle', 0.45, 0.45],
@@ -42,15 +44,29 @@ const END = {
   reach: [0.8, 3.6],                    // its arms come slowly up out to you, the hands open
   close: [3.8, 5.6],                    // and close round you
   unveil: [5.0, 6.4],                   // its face comes up out of the dark of its hood, angry
-  moods: 6.4,                           // then its faces in turn, each held and going into the next (CREATURES.demon.moodAt),
-                                        // until it is happy (13.3 s on, at 19.7)
-  release: 20.5,                        // it lets you go, a moment after it is happy
-  light: [20.3, 26.3],                  // the light comes, and the meadow with it
-  walk: [21.5, 25.1],                   // it steps back and round to the north, where the foot of the bed will be
-  disrobe: [25.7, 28.3],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
-  dance: [27.9, 32.4],                  // and dances a little to the tune in its shirt and shorts
-  wait: 26.3, arm: 26.9, line: 28.7,    // from here the meadow is yours to look about in, and waits for a press (taken from
-                                        // `arm`); a soft line comes in at `line`
+  moods: 6.4,                           // then its faces in turn, each held and going into the next (CREATURES.demon.moodAt):
+  lean: [9.2, 9.8, 10.8, 11.6],         // angry again, it leans in at you, close, and draws back as it is confused;
+  sad: 13.55,                           // through the glitch to sad, crying
+  letGo: [14.8, 16.4],                  // crying, it lets you go, its arms coming away from round you
+  back: [15.4, 17.8], sitDist: 2.4,     // straightens and steps back from you
+  slump: [17.4, 19.8],                  // and sinks down onto the ground, its head bowed, still crying
+  sit: 19.8,                            // and there it stays, crying, for as long as it takes: the time of the ending stops here
+                                        // until you go to it (a click, a tap, A, or the key that looks up or zooms)
+  go: [19.8, 23.0], goDist: 1.3,        // you go to it: the view goes in to it, and down to it
+  look: [20.6, 22.8],                   // it looks up at you
+  calm: [21.2, 24.4],                   // and slowly stops crying (sad to neutral)
+  offer: [22.8, 24.8],                  // it holds out its hand to you, open, palm up
+  take: [24.4, 26.2],                   // your hand comes to it and lies in it, and its fingers close round yours
+  rise: [26.6, 29.8],                   // it stands, holding your hand
+  content: [30.0, 31.0], happy: [32.0, 33.0],   // content, and happy
+  release: 34.0,                        // a moment after it is happy it lets go of your hand
+  light: [33.8, 39.8],                  // the light comes, and the meadow with it
+  walk: [35.0, 38.6],                   // it steps back and round to the north, where the foot of the bed will be (and you to where you stood)
+  disrobe: [39.2, 41.8],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
+  dance: [41.4, 45.9],                  // and dances a little to the tune in its shirt and shorts
+  sitLine: 4,                           // (if you wait that long, a small line says how to go to it)
+  wait: 39.8, arm: 40.4, idle: 5,       // from here the meadow is yours to look about in, and waits for a press (taken from
+                                        // `arm`); if you do nothing for `idle` seconds a small line says how to go on
   leave: 4.2,                           // after the press: the meadow and it fade, the bedroom comes up, and then the last screen
 };
 LEVELS.push({
@@ -61,7 +77,7 @@ LEVELS.push({
     intro: 'Where are you?',
     hint: 'You do not need them now.',
     objective: 'Hold nothing.',
-    death: { default: 'You were still holding on to something.', away: 'It craves your fear.', shot: 'You cannot fight this one.' },
+    death: { default: 'You were still holding on to something.', away: 'It craves your fear.', fought: 'Fighting only made it stronger.' },
     win: '',
   },
   lanes: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].map((name, k) => ({ deg: k * 45, name, barrierDist: 0, default: k === 0 })),
@@ -69,7 +85,7 @@ LEVELS.push({
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;
-    Object.assign(s, { ending: false, endT: 0, reveal: 0, meadow: 0, room: 0, lv: 0, gone: 0, glitterAt: -1, wait: false, leaving: false, leaveT: 0 });
+    Object.assign(s, { ending: false, endT: 0, reveal: 0, meadow: 0, room: 0, lv: 0, gone: 0, glitterAt: -1, wait: false, leaving: false, leaveT: 0, sitting: false, went: false, sitT: 0, idle: 0 });
     // a floor that is only a floor near you (and the lamp, off, a little way out): the void's own props, which fade as the light comes
     const v0 = L.props.length;
     // (in narrow rings of many sides, so it darkens smoothly instead of in visible steps; drawn before the room's floors,
@@ -185,104 +201,68 @@ LEVELS.push({
     const c0 = () => L.creatures[0];
     // ---- the bow ----
     // With the bow (or the arrows) in your hand and the bow held, looking ahead, it is night 5's bow: it comes up in both
-    // hands, hold to draw and let go full with it in your sights. A miss is only an arrow gone: short, it stands in the floor;
-    // wide, it goes on into the dark. A hit, and as the arrow goes in it leaps at you, and that is the end of you (L.uses is
-    // only the bow while it is up, so nothing else here is ever fired)
+    // hands, and holding draws it. But it is never loosed here: drawn at it, it comes for you, slowly at first and then
+    // faster and faster as the string comes back, more and more enraged, and it is on you before the bow could be full (and
+    // that is the end of you, never the ending). Let the string go early and the bow only comes back down, no arrow gone, and
+    // it comes on at its own pace again, where it has got to: you may still put it all down. (L.uses is only the bow while
+    // it is up, so nothing else here is ever drawn)
+    const RUSH_AT = 0.8;   // how far drawn when it reaches you (full is 1)
     const BOW = {
       tool: 'bow', ammo: 'arrows', range: Infinity, sfx: 'twang', shake: 0.1, fireText: 'Draw.', emptyText: () => { CLEARING_BOW.grope(L); return 'No arrows.'; },
-      draw: { fill: CLEARING_BOW.FILL, min: CLEARING_BOW.MIN, loose: (outcome, c, aim, power) => loose(outcome, c, aim, power) },
+      // (let go before it is full, as you always are, the bow is let down: nothing is loosed)
+      draw: { fill: CLEARING_BOW.FILL, min: CLEARING_BOW.FILL, loose: () => {} },
       inHands: (ctx, W, H, d, Lv, aim) => CLEARING_BOW.inHands(ctx, W, H, d, Lv, aim),
     };
     // (looking down at the floor it is only a thing in your hand, to be put down like any other, and seen to go)
     const bowUp = () => { const a = G.inv[G.active]; return !!a && (a.id === 'bow' || a.id === 'arrows') && G.hasItem('bow') && G.cam.tPitch < 0.3 && !s.ending; };
     Object.defineProperty(L, 'uses', { get: () => (bowUp() ? [BOW] : []), set() {}, configurable: true });
     L.bowCol = { glove: [172, 132, 108], gloveL: [204, 166, 140], sleeve: [44, 38, 37], sleeveL: [68, 60, 57] };   // (bare hands, as they are here)
-    s.outcomes = []; s.shot = false;   // every arrow loosed, in order (the tests read it); and whether one went into it
-    const flights = [], stuck = [];
-    const add3 = (a, b, k) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
-    const pathAt = (f, k) => { const to = f.to(); return [lerp(f.from[0], to[0], k), lerp(f.from[1], to[1], k) + f.arc * 4 * k * (1 - k), lerp(f.from[2], to[2], k)]; };
-    const fly = f => { f.t = 0; flights.push(f); };
-    const loose = (outcome, c, aim, power) => {
-      const ray = CLEARING_BOW.rayAt(aim), from = add3(add3([0, L.eyeH, 0], ray, 0.9), [0, -1, 0], 0.14);
-      const dReal = Math.hypot(c.dist, c.lat || 0), hl = Math.hypot(ray[0], ray[2]) || 1, hd = [ray[0] / hl, 0, ray[2] / hl];
-      const ground = r => add3([0, 0.02, 0], hd, r), FLOOR = 11;   // (past where the floor is lost in the dark, nothing shows)
-      s.outcomes.push(outcome);
-      if (outcome === 'hit') {
-        s.shot = true;
-        const at = () => { const p = c.pos(); return [p.x, p.y + (c.yOff || 0) + CREATURES.demon.eyesY(c) * 0.6, p.z]; };
-        fly({ from, to: at, arc: 0.01 * dReal, dur: 0.05 + dReal / 80, done: () => leap(c) });
-        return;
-      }
-      if (outcome === 'short') {   // not drawn full: it drops to the floor short of it
-        const r = clamp(lerp(2.4, FLOOR, power), 2.4, Math.max(2.4, dReal - 1.5));
-        fly({ from, to: () => ground(r), arc: 0.05 * r + 0.3, dur: 0.15 + r / 45, stick: true });
-        G.say('Not drawn all the way. It fell short.', 'It fell short.');
-        return;
-      }
-      const r = ray[1] < -0.02 ? L.eyeH / -ray[1] * hl : Infinity;   // full, but not at it: down into the floor, or on into the dark
-      if (r < FLOOR) fly({ from, to: () => ground(Math.max(2.4, r)), arc: 0.02 * r + 0.2, dur: 0.1 + r / 70, stick: true });
-      else { const D = dReal + 30, y = Math.max(0.3, L.eyeH * 0.8 + ray[1] * D / hl); fly({ from, to: () => add3([0, y, 0], hd, D), arc: 1, dur: 0.9, fade: true }); }
-      G.say('Drawn full, but not at it. Missed.', 'Missed.');
-    };
-    // hit, it leaps: from wherever it is, straight at you and up into your face (CREATURES.demon.leap)
-    const leap = c => {
-      if (G.state !== 'play' || s.ending) return;
-      AUDIO.sfx('thunk', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.08);
-      c.rage = 1; c.deathSpec = CREATURES.demon.leap(Math.hypot(c.dist, c.lat || 0));
-      die(c, 'shot');
+    s.rush = 0; s.fought = false;   // how far drawn at it, while it is (0 if not); and whether it reached you so
+    // drawing at it: from where it was when the draw began, it is brought in along its own way (its progress, c.u), on a
+    // curve that starts slow and steepens, to reach you as the draw comes to RUSH_AT; it only ever comes faster than it would
+    const rushStep = c => {
+      const d = G.draw, drawing = !s.ending && G.state === 'play' && !!d && d.state === 'drawing' && d.u === BOW;
+      if (!drawing) { s.rush = 0; s.rushFrom = null; return; }
+      const uAt = dd => clamp(1 - Math.pow(dd / c.D0, 1 / c.gamma), 0, 1);
+      if (c.hold !== null) { c.u = uAt(c.hold); c.hold = null; }   // (from where it stands, if anything held it)
+      if (s.rushFrom === null || s.rushFrom === undefined) s.rushFrom = c.u;
+      const k = s.rush = clamp(d.power / RUSH_AT, 0, 1), uc = uAt(c.catchDist * 0.9);
+      c.u = Math.max(c.u, lerp(s.rushFrom, uc, k * k * (0.4 + 0.6 * k)));
     };
     const bowStep = dt => {
       CLEARING_BOW.hold(L, dt, G.state === 'play' && bowUp());
       s.bowLit = 0.8;
-      for (let i = flights.length - 1; i >= 0; i--) {
-        const f = flights[i]; f.t += dt;
-        if (f.t < f.dur) continue;
-        flights.splice(i, 1);
-        if (f.stick) {   // it stands in the floor where it came down, its tail up and back toward you
-          const a = pathAt(f, 1), b = pathAt(f, 0.96), l = Math.hypot(a[0] - b[0], a[2] - b[2]) || 1, hx = (a[0] - b[0]) / l, hz = (a[2] - b[2]) / l;
-          stuck.push({ head: [a[0] + hx * 0.03, 0, a[2] + hz * 0.03], tail: [a[0] - hx * 0.4, 0.48, a[2] - hz * 0.4] });
-          AUDIO.sfx('thunk', Math.sin(wrapPi(Math.atan2(a[0], a[2]) - G.cam.yaw)) * 0.85);
-        }
-        if (f.done) f.done();
-      }
-    };
-    const bowDraw = () => {
-      for (const f of flights) {
-        const k = f.t / f.dur, h = pathAt(f, Math.min(1, k)), b = pathAt(f, Math.max(0, k - 0.02)), u = [h[0] - b[0], h[1] - b[1], h[2] - b[2]], l = Math.hypot(u[0], u[1], u[2]) || 1;
-        const fade = f.fade ? clamp((1 - k) / 0.4, 0, 1) : 1;
-        const pts = []; for (let i = 0; i <= 4; i++) pts.push(pathAt(f, Math.max(0, Math.min(1, k) - 0.16 * i / 4)));   // a faint streak behind it shows its way
-        R.add({ kind: 'poly', pts, stroke: true, color: [214, 208, 196], lw: 0.012, alpha: 0.3 * fade, noContact: true, noFog: true });
-        CLEARING_BOW.arrow(add3(h, u, -0.75 / l), h, f.fade ? fade : undefined);
-      }
-      const k = 1 - span(s.meadow, 0, 0.55);   // (those standing in the floor go with the dark)
-      if (k > 0.01) for (const a of stuck) CLEARING_BOW.arrow(a.tail, a.head, k, 1.8);
     };
     L.isWon = () => false;
     L.objectiveText = () => G.inv.length ? 'Put it down (' + G.inv.length + ' held).' : 'Empty-handed. Let it come.';
     // being caught empty-handed, and looking at it, is the ending, not a death: it stops close in front of you and holds you.
     // Turned away from it, or looking at the floor, as it reaches you is a death even with nothing in your hands.
     const facingIt = c => Math.abs(wrapPi(c.yaw - G.cam.yaw)) < 30 * DEG && G.cam.pitch < PITCH_DOWN * 0.5;
-    L.deathCause = () => s.shot ? 'shot' : G.inv.length ? 'default' : 'away';
+    L.deathCause = () => s.fought ? 'fought' : G.inv.length ? 'default' : 'away';
     const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1));
     L.onCatch = c => {
-      if (s.shot || G.inv.length > 0 || !facingIt(c)) return false;   // (shot, it is coming for you whatever you do now)
+      if (s.rush > 0) s.fought = true;   // (drawn at, it came for you: a death, whatever else)
+      if (s.fought || G.inv.length > 0 || !facingIt(c)) return false;
       s.ending = true; s.endT = 0; c.frozen = true; c.hold = null;
       c.lane = Object.assign({}, c.lane, { follow: 'free', apertures: [], blockers: [] });   // placed by yaw and distance from here on
       // its head comes level from the tilt it had (as draw() has it, empty-handed); its first face is already there, in the
       // dark of the hood, not yet seen
       c.tilt0 = CREATURES.demon.tilt(c); c.settle = 0; c.mood = 0; c.unveil = 0;
-      // it comes in a little closer as it takes hold of you; later it steps back and round to the north (the foot of the bed)
-      const yaw0 = c.yaw, d0 = c.dist, yaw1 = L.facing;
+      // it comes in a little closer as it takes hold of you (from as far as it was, bent down as far as it was); later it
+      // steps back from you, and later still back and round to the north (the foot of the bed): CREATURES.demon.ending
+      const yaw0 = c.yaw, yaw1 = L.facing;
+      s.d0 = c.dist; s.y0 = c.yOff || 0; s.fx = Math.sin(yaw0); s.fz = Math.cos(yaw0);   // (and the way you go to it)
+      s.pose = CREATURES.demon.ending(END, 0, s.d0, s.y0);
       c.distFn = cr => {
-        const t = s.endT, kw = span(t, END.walk[0], END.walk[1]);
-        cr.yaw = yaw0 + wrapPi(yaw1 - yaw0) * kw;
-        return lerp(lerp(d0, 0.68, span(t, END.near[0], END.near[1])), 3.3, kw);
+        cr.yaw = yaw0 + wrapPi(yaw1 - yaw0) * span(s.endT, END.walk[0], END.walk[1]);
+        return s.pose.dist;
       };
+      // a point in the view's own frame (x right, y up from the floor, z ahead of the eye, toward it) where it is on the
+      // screen: where its hand and yours meet
+      c.view = (x, y, z) => { const p = c.pos(), e = L.eye || { x: 0, z: 0 }, dx = p.x - e.x, dz = p.z - e.z, l = Math.hypot(dx, dz) || 1, fx = dx / l, fz = dz / l; return R.screenPos(e.x + fx * z + fz * x, y, e.z + fz * z - fx * x); };
       AUDIO.sfx('stingHum'); win(); return true;
     };
-    // which face it is making: the first (angry) until END.moods and held a while after, then each in turn, ending happy
     const LAST = CREATURES.demon.moods - 1;
-    const moodAt = t => (t < END.moods ? 0 : Math.min(LAST, CREATURES.demon.moodAt(t - END.moods)));   // (each held and blended as demon.js has it)
     // the light on it while it holds you follows its face: its own dull red while the face is still in the dark of the hood,
     // red hot when it is angry, grey when it is neither, cold when it is lost and sad, warm when it is content and happy (as
     // the light coming will be). One for each face, in the order of DEMON_MOODS
@@ -305,40 +285,56 @@ LEVELS.push({
       const c = c0();
       fallStep(dt); bowStep(dt);
       c.anger = G.inv.length;
-      c.rage += ((c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0) - c.rage) * Math.min(1, dt * 4);   // anything held and it is plainly enraged
-      // empty-handed and facing it, the view lifts to its face as it looms in over the last few metres: you look up at it.
-      // Looking down (a target below the horizon), or turning away, takes the view back as it was.
+      rushStep(c);
+      const rage = c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0;   // anything held and it is plainly enraged; drawn at, more and more
+      c.rage += (lerp(rage, 1, s.rush) - c.rage) * Math.min(1, dt * (4 + 8 * s.rush));
+      // empty-handed (and so calm), it bends down to you as it comes the last few metres, so its head is not lost over the top
+      // of the view; and facing it, the view lifts to its face as it looms in: you look up at it. Looking down (a target
+      // below the horizon), or turning away, takes the view back as it was.
       if (!s.ending && G.state === 'play') {
-        const near = smoothstep(clamp((6 - c.dist) / 4.5, 0, 1));
-        if (near > 0 && !G.inv.length && G.cam.tPitch <= 0 && facingIt(c)) G.cam.tPitch = -Math.atan2(c.CR.faceY - L.eyeH, Math.max(c.dist, 0.6)) * 0.8 * near;
+        c.yOff = -0.42 * smoothstep(clamp((3.6 - c.dist) / 2.4, 0, 1)) * (1 - clamp(c.rage, 0, 1));
+        const near = smoothstep(clamp((6 - c.dist) / 4.5, 0, 1)), face = c.CR.eyesY(c) + c.yOff;
+        if (near > 0 && !G.inv.length && G.cam.tPitch <= 0 && facingIt(c)) G.cam.tPitch = -Math.atan2(face - L.eyeH, Math.max(c.dist, 0.6)) * 0.8 * near;
         else if (G.cam.tPitch < 0) G.cam.tPitch = 0;
       }
       if (!s.ending) return;
-      s.endT += dt; const t = s.endT, still = !!SAVE.data.settings.reducedMotion;
+      const still = !!SAVE.data.settings.reducedMotion;
+      // the time of the ending runs on, but for while it sits crying on the ground, waiting for you to go to it: there it
+      // stops (s.sitting) until you do (s.went), for as long as that takes
+      s.endT = s.went ? s.endT + dt : Math.min(END.sit, s.endT + dt);
+      s.sitting = !s.went && s.endT >= END.sit;
+      if (s.sitting) { s.sitT += dt; padGo(); }
+      const t = s.endT;
       c.still = still;
-      // it holds you: its arms come out to you and close round you, it stoops to you, and its face goes through everything it
-      // was; a moment after it is happy it lets go and straightens up, settled
-      c.settle = span(t, 0, END.settle);
-      const letGo = span(t, END.release, END.release + 1.4), drop = span(t, END.release + 0.6, END.release + 2.0);
-      const reach = span(t, END.reach[0], END.reach[1]) * (1 - drop), wrap = span(t, END.close[0], END.close[1]) * (1 - letGo);
-      c.yOff = -0.62 * span(t, END.stoop[0], END.stoop[1]) * (1 - span(t, END.release + 0.2, END.release + 1.8));
-      s.hugWrap = wrap;
-      c.calm = span(t, END.release, END.release + 1.6);
-      c.hug = reach > 0.001 || wrap > 0.001 ? { reach, wrap } : null;
-      c.mood = moodAt(t); c.unveil = span(t, END.unveil[0], END.unveil[1]);
+      // it holds you: its arms come out to you and close round you, it stoops to you, and its face goes through what it was
+      // until it is sad; crying, it lets you go, steps back and sinks down onto the ground. You go to it: it looks up, stops
+      // crying, holds out its hand and stands up holding yours; content, happy, it lets go and straightens up, settled
+      const o = s.pose = CREATURES.demon.ending(END, t, s.d0, s.y0);
+      for (const k of ['settle', 'hug', 'unveil', 'yOff', 'kneel', 'bow', 'sob', 'calm', 'mood', 'hand', 'disrobe']) c[k] = o[k];
+      s.hugWrap = o.hug ? o.hug.wrap : 0;
+      // you go to it: the view goes in to it, a step at a time, and down to it; and back to where you stood as it goes off
+      // into the meadow
+      L.eye = o.eyeFwd > 1e-4 ? { x: s.fx * o.eyeFwd, y: 0, z: s.fz * o.eyeFwd } : null;
+      const steps = still ? 0 : 0.016 * Math.abs(Math.sin(Math.PI * 3 * clamp((t - END.go[0]) / (END.go[1] - END.go[0]), 0, 1)));
+      const near = Math.max(0.3, c.dist - o.eyeFwd);   // (how far it is from where you are now)
       // a thing this close is drawn from its feet: looked up at too steeply, they would be behind the eye and it would vanish,
       // so the view never looks up further than keeps them in front (it bends down to you, so the view comes level anyway)
-      const up = Math.atan(0.7 * c.dist / Math.max(0.5, L.eyeH - c.pos().y - c.yOff));
+      const up = Math.atan(0.7 * near / Math.max(0.5, L.eyeH - c.pos().y - c.yOff));
       if (G.cam.pitch < -up) G.cam.pitch = -up;
       if (t >= END.close[1] && !s.held) { s.held = true; AUDIO.voice('exhale', 0.5, 0); }   // it has hold of you
       if (c.mood >= 3.5 && !s.sob) { s.sob = true; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
+      if (t >= END.slump[0] && !s.sank) { s.sank = true; AUDIO.sfx('cloth', 0); }   // it sinks down
+      if (s.sitting) { s.sobT = (s.sobT === undefined ? 1.5 : s.sobT) - dt; if (s.sobT <= 0) { s.sobT = 5 + Math.random() * 2.5; AUDIO.voice('slow', 0.38, 0); } }   // crying, on and on
+      if (t >= END.calm[1] - 0.6 && !s.breath) { s.breath = true; AUDIO.voice('exhale', 0.4, 0); }   // and stops, with a long breath
+      if (t >= END.take[1] - 0.6 && !s.touch) { s.touch = true; AUDIO.sfx('pat', 0); }   // your hand in its hand
+      if (t >= END.rise[0] && !s.stood) { s.stood = true; AUDIO.sfx('cloth', 0); }   // it gets up
       if (c.mood >= LAST && !s.hum) { s.hum = true; AUDIO.voice('hum', 0.5, 0); }   // happy
       // the light comes: the void opens into the meadow in the sun; later, after a press, the meadow goes and the room is there
       const mv = s.meadow = span(t, END.light[0], END.light[1]);
       if (s.leaving) s.leaveT += dt;
       const lt = s.leaveT, lv = s.lv = s.leaving ? span(lt, 0, 3.0) : 0, room = s.room = s.leaving ? span(lt, 0.5, 3.4) : 0, rvBeyond = smoothstep(clamp((room - 0.75) / 0.25, 0, 1));
       s.reveal = mv;
-      L.eyeH = lerp(1.65, 1.15, room);   // in the bed, sitting up
+      L.eyeH = lerp(1.65 - o.eyeDown - steps, 1.15, room);   // (down to it; and at the last in the bed, sitting up)
       const dark = 1 - span(mv, 0, 0.55);
       for (const p of voidProps) p.alpha = p.alpha0 * dark;
       for (const p of roomProps) p.alpha = turned(p) ? 0 : p.alpha0 * (p.beyond ? rvBeyond : room);
@@ -352,9 +348,8 @@ LEVELS.push({
       if (mv > 0.08 && left.length && mv > s.gone) { (left.find(inTheWay) || left[0]).taken = true; s.gone = mv + 0.5 / tools.length; }
       if (mv > 0.05 && !s.dawn) { s.dawn = true; AUDIO.stopAmbient(); if (AUDIO.on()) AUDIO.startAmbient({ tune: 'ambient:13dawn', wind: 0.32, drone: 0, windFreq: 760 }); WEATHER.set({ kind: 'motes', density: 1.0, wind: 0.15 }, 7); }   // a breeze, and pollen in the sun
       if (mv > 0.3) { s.birdT = (s.birdT === undefined ? 0.5 : s.birdT) - dt; if (s.birdT <= 0) { s.birdT = 1.5 + Math.random() * 2.8; AUDIO.sfx('birds', Math.random() * 1.6 - 0.8, true); } }
-      // in the meadow, as the tune starts, it takes off its robe and leaves it on the grass; it dances a little to the tune;
-      // then, while the meadow waits, now and then a little more
-      c.disrobe = clamp((t - END.disrobe[0]) / (END.disrobe[1] - END.disrobe[0]), 0, 1);
+      // in the meadow, as the tune starts, it takes off its robe and leaves it on the grass (c.disrobe); it dances a little to
+      // the tune; then, while the meadow waits, now and then a little more
       let dance = t > END.dance[0] && t < END.dance[1] ? Math.min(1, (t - END.dance[0]) * 2, (END.dance[1] - t) * 2) : 0;
       const u = (t - END.dance[1] - 7) % 12;
       if (t > END.dance[1] + 7 && u < 2.6 && !s.leaving) dance = 0.5 * Math.min(1, u * 2, (2.6 - u) * 2);
@@ -363,9 +358,24 @@ LEVELS.push({
       if (t > END.disrobe[0] + 3.2 && !s.tune2) { s.tune2 = true; AUDIO.sfx('musicbox', 0); }
       if (t > END.disrobe[0] + 6.4 && !s.tune3) { s.tune3 = true; AUDIO.sfx('musicbox', 0); }
       if (t >= END.wait) s.wait = true;
+      if (s.wait && !s.leaving) idleStep(dt);
       // after the press it fades from the meadow, glittering as it goes
       c.fade = s.leaving ? clamp(1 - (lt - 0.3) / 2.0, 0, 1) : 1;
       meadow.update();
+    };
+    // Sitting crying on the ground, it waits for you to go to it: a click, a tap (any touch button), A or Start on a pad, or
+    // the key that looks up or zooms (as you would lift your eyes to it), or Enter, and you go. Nothing else does anything
+    // there (a press is still taken by the ending, so nothing cuts it short), and if you wait a few seconds a small line
+    // says what to do. It waits as long as it takes: its time does not run on while it waits, and the game's own pause of
+    // a hidden tab only waits longer.
+    const goKey = e => !e || !e.key || (!e.ctrlKey && !e.metaKey && !e.altKey && /^(ArrowUp|w|W|Shift|z|Z| |Enter)$/.test(e.key));
+    const go = () => { if (!s.sitting || s.went) return; s.went = true; s.sitting = false; };
+    // (a pad's d-pad up or its zoom trigger, which js/game.js keeps to itself unless the view is yours: read as it reads them)
+    const padGo = () => {
+      if (typeof PAD === 'undefined') return;
+      const up = PAD.dir === 3, zoom = !!PAD.zoom;
+      if ((up && !s.padUp) || (zoom && !s.padZoom)) go();
+      s.padUp = up; s.padZoom = zoom;
     };
     // the meadow waits for as long as you like, and while it waits the view is yours again: you turn, look down and zoom as in
     // any night (js/game.js takes those keys, buttons and the d-pad first, so they are never the press). A click, any other
@@ -373,19 +383,40 @@ LEVELS.push({
     // it away). From the moment it reaches you the ending takes every other press, so nothing (R included) can cut it short
     // while it holds you, and nothing but going on is done in the meadow. A key that only goes somewhere else (alt-tab, a
     // screenshot's chord, a function key) is not a press: the meadow stays. After the press the view is taken back, to it.
+    // If you do nothing at all for a few seconds (no key, click, look about or pointer moving), a small line says how to go on.
     L.lookFree = () => s.wait && !s.leaving;
     const aside = e => !!e && (e.ctrlKey || e.metaKey || e.altKey || /^(Shift|Control|Alt|AltGraph|Meta|OS|CapsLock|NumLock|ScrollLock|Fn|FnLock|ContextMenu|PrintScreen|Unidentified|F\d{1,2})$/.test(e.key || ''));
     L.onPress = e => {
       if (!s.ending) return false;
+      if (s.sitting && goKey(e)) go();
+      if (s.wait) s.idle = 0;
       if (!aside(e) && s.wait && !s.leaving && s.endT >= END.arm) { s.leaving = true; s.leaveT = 0; s.glitterAt = s.endT + 0.3; AUDIO.sfx('win'); }
       return true;
     };
+    const idleStep = dt => {
+      const k = [G.cam.tYaw, G.cam.tPitch, G.cam.zoomHeld, G.mouse.x, G.mouse.y, typeof PAD === 'undefined' ? 0 : PAD.dir + ',' + PAD.zoom + ',' + PAD.a].join();
+      s.idle = k === s.idleKey ? s.idle + dt : 0; s.idleKey = k;
+    };
     L.aftermath = () => s.leaving && s.leaveT >= END.leave;
-    // the view: up into its face while it holds you, then level, on it, in the meadow, and so on the room
+    // the view: on its face while it holds you (the hood in the view as well), down to it as it sits crying, and down
+    // between its face and the two hands as it holds yours; then level, on it, in the meadow, and so on the room
     L.watchUp = 0.75;
+    // where a height on it (from its feet) is drawn, as a height in the world: the renderer draws it as one upright card,
+    // its height spread evenly between where its feet and the top of it are seen, so looked down at close to, its face is
+    // drawn higher than it would really be; the view looks at where it is drawn
+    const drawnAt = (c, hh) => {
+      const p = c.pos(), y0 = p.y + c.yOff, b = R.screenPos(p.x, y0, p.z), tp = R.screenPos(p.x, y0 + c.CR.h, p.z), at = R.screenPos(p.x, y0 + hh, p.z);
+      if (!b || !tp || !at || !(at.scale > 0)) return y0 + hh;
+      return y0 + hh + (at.y - lerp(b.y, tp.y, hh / c.CR.h)) / at.scale;
+    };
     L.watchPoint = () => {
-      const c = c0(), p = c.pos(), k = span(s.endT, END.release + 0.4, END.release + 3.6);
-      return { x: p.x, y: lerp(p.y + c.yOff + CREATURES.demon.eyesY(c) - 0.17, L.eyeH + 0.05, k), z: p.z };
+      const c = c0(), p = c.pos(), k = span(s.endT, END.release + 0.4, END.release + 3.6), h = c.hand;
+      let x = p.x, y = drawnAt(c, CREATURES.demon.eyesY(c) - 0.02), z = p.z;   // (just under its eyes: the top of its hood in the view too)
+      if (h) {   // (where the hands meet, as c.view puts it)
+        const e = L.eye || { x: 0, z: 0 }, w = 0.5 * h.reach, jx = e.x + s.fx * h.at[2] + s.fz * h.at[0], jz = e.z + s.fz * h.at[2] - s.fx * h.at[0];
+        x = lerp(x, jx, w); y = lerp(y, h.at[1], w); z = lerp(z, jz, w);
+      }
+      return { x, y: lerp(y, L.eyeH + 0.05, k), z };
     };
     // each thing on the void's floor lies in a faint cold pool of its own, so its dark iron and black frames show against the
     // dark (and it reads as put down, not lost); the pools go with the void
@@ -406,7 +437,7 @@ LEVELS.push({
     };
     L.dynamic = () => {
       pools();
-      fallDraw(); bowDraw();
+      fallDraw();
       meadow.draw();
       if (s.glitterAt < 0) return;
       // the glitter: sparks spiralling up and out from where it stood, twinkling, gone in a few seconds (with reduced motion
@@ -637,24 +668,26 @@ function buildMeadow(L, s, c0) {
           ctx.restore();
         }
       }
-      // a soft line while it waits: nothing to do here but be here
-      const la = s.wait ? smoothstep((s.endT - END.line) / 2.5) * (1 - (s.leaving ? smoothstep(s.leaveT / 0.6) : 0)) : 0;
-      if (la > 0.01) {
-        const ts = SAVE.data.settings.textSize || 1;
-        ctx.save(); ctx.font = Math.round(17 * ts) + 'px Georgia, "Times New Roman", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        if ('letterSpacing' in ctx) ctx.letterSpacing = '0.16em';
-        const ly = H - 58 * ts, bg = ctx.createRadialGradient(W / 2, ly, 0, W / 2, ly, 260 * ts);
-        bg.addColorStop(0, 'rgba(24,44,16,' + (0.42 * la).toFixed(3) + ')'); bg.addColorStop(0.6, 'rgba(24,44,16,' + (0.2 * la).toFixed(3) + ')'); bg.addColorStop(1, 'rgba(24,44,16,0)'); ctx.fillStyle = bg; ctx.save(); ctx.translate(W / 2, ly + 10 * ts); ctx.scale(1, 0.2); ctx.translate(-W / 2, -ly); ctx.fillRect(W / 2 - 260 * ts, ly - 260 * ts, 520 * ts, 520 * ts); ctx.restore();
-        ctx.shadowColor = 'rgba(20,40,12,' + (0.7 * la).toFixed(3) + ')'; ctx.shadowBlur = 8;
-        ctx.fillStyle = 'rgba(255,252,240,' + (0.9 * la).toFixed(3) + ')'; ctx.fillText('Stay as long as you like.', W / 2, ly);
-        // and, a little later and smaller, how to go on (as the night's card says it)
-        const lb = la * smoothstep((s.endT - END.line - 3) / 2.5);
-        if (lb > 0.01) {
-          ctx.font = Math.round(11 * ts) + 'px Georgia, "Times New Roman", serif'; if ('letterSpacing' in ctx) ctx.letterSpacing = '0.22em';
-          ctx.fillStyle = 'rgba(255,252,240,' + (0.8 * lb).toFixed(3) + ')'; ctx.fillText('CLICK WHEN YOU ARE READY', W / 2, ly + 26 * ts);
-        }
+      // a small line, only if you wait: sitting crying, how to go to it (after a few seconds); in the meadow, how to go on
+      // (after a few seconds with nothing done at all)
+      const ts = SAVE.data.settings.textSize || 1;
+      const sit = s.sitting ? smoothstep((s.sitT - END.sitLine) / 2) : 0;
+      if (sit > 0.01 || s.sitLineA > 0.01) s.sitLineA = sit > (s.sitLineA || 0) ? sit : Math.max(sit, (s.sitLineA || 0) - 1 / 30 / 0.5);   // (going, it fades out quickly)
+      const idle = s.wait && !s.leaving && s.endT >= END.arm ? smoothstep((s.idle - END.idle) / 1.5) : 0;
+      s.idleLineA = idle > (s.idleLineA || 0) ? idle : Math.max(idle, (s.idleLineA || 0) - 1 / 30 / 0.4);
+      const line = (text, a, dark) => {
+        if (a <= 0.01) return;
+        ctx.save(); ctx.font = Math.round(12 * ts) + "px 'IM Fell English', Georgia, serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '0.22em';
+        const ly = H - 58 * ts, bg = ctx.createRadialGradient(W / 2, ly, 0, W / 2, ly, 200 * ts);
+        bg.addColorStop(0, rgba(dark, 0.42 * a)); bg.addColorStop(0.6, rgba(dark, 0.2 * a)); bg.addColorStop(1, rgba(dark, 0));
+        ctx.fillStyle = bg; ctx.save(); ctx.translate(W / 2, ly); ctx.scale(1, 0.18); ctx.translate(-W / 2, -ly); ctx.fillRect(W / 2 - 200 * ts, ly - 200 * ts, 400 * ts, 400 * ts); ctx.restore();
+        ctx.shadowColor = rgba(dark, 0.7 * a); ctx.shadowBlur = 8;
+        ctx.fillStyle = 'rgba(255,252,240,' + (0.8 * a).toFixed(3) + ')'; ctx.fillText(text, W / 2, ly);
         ctx.restore();
-      }
+      };
+      line('CLICK TO GO TO IT', s.sitLineA || 0, [8, 8, 12]);
+      line('CLICK WHEN YOU ARE READY', s.idleLineA, [24, 44, 16]);
     },
   };
 }
