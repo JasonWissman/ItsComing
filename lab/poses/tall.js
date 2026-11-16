@@ -11,15 +11,16 @@
   const CLOSET = { apZ: 3.2, edge: 0.9, top: 2.2, peerD: 3.4, spot: { d: 1.04, lat: 1.35 } };
   const PACE = DOOR.peerD / 70;   // its start (held to the doorway's maxStart, 4.1 m) over time 70: its pace while you watch it
   const CLEAR = 0.1, DEPTH = 0.12, CEILING = 2.5;
-  const DUCK = { flinch: 0.5, down: 1.5, up: 1.2, look: 1.1, reach: 0.22 };
+  const DUCK = { flinch: 1.1, down: 2.7, up: 1.2, look: 1.1, reach: 0.22 };
   const GRAB = { start: 0.6, every: 1.0, pulls: 10, drag: 0.07 }, REACH = 0.4, CLOSE = 0.55, DRAG = 0.85, RISE = 3.2;
   const BED_TOP = 0.6, BED_FOOT = 1.9, BED_X = 0.77, HAND = [10, 9, 12], BLANKET = [80, 84, 108];
   // how it stands at the opening (night 12's place): peering round the edge far back, stepping out into it as it comes on
   const outOf = (w, d) => clamp((w.peerD - d) / (w.peerD - w.apZ + 0.05), 0, 1);
   const latAt = (w, d) => SIDE * (w.edge * d / w.apZ + BEHIND) * (1 - smoothstep(outOf(w, d)));
   function place(c, w) { c.peerSide = -SIDE; c.peer = 1 - smoothstep(outOf(w, c.dist) / 0.6); c.lat = latAt(w, c.dist); }
-  // walking, as night 12 has it: toward where its clock has it, a step at a time (the tall one's pace), its feet on the floor
-  function walk(c, dt, toD, toLat) { const k = CR.pace(c, dt, toD, toLat); c.dist = k.d; c.lat = k.lat; c.moving = !!k.step; }
+  // walking, as night 12 has it: toward where its clock has it, gliding along its way (the tall one's along), its feet
+  // stepping under it
+  function walk(c, dt, toD, latOf) { const k = CR.along(c, dt, toD, latOf); c.dist = k.d; c.lat = k.lat; c.moving = true; }
   // what the wall hides of it while it is behind the opening, and the lintel it stoops under (night 12's dynamic)
   function headroom(c, w) {
     const e = c.dist - w.apZ;
@@ -142,7 +143,7 @@
   // the light comes on (night 12's ducking), t seconds after it, from where it stood (D)
   function ducking(c, t, D, open) {
     const T2 = DUCK.down, T3 = T2 + D.creep, T4 = T3 + DUCK.up, T5 = T4 + DUCK.look, hide = open ? 0.6 : c.hideBelow;
-    c.flinch = smoothstep(t / 0.2) * (1 - smoothstep((t - DUCK.flinch) / 0.5));
+    c.flinch = smoothstep(t / 1.0) * (1 - smoothstep((t - DUCK.flinch) / 0.7));
     c.duck = smoothstep((t - DUCK.flinch + 0.1) / (T2 - DUCK.flinch + 0.1));
     const m = smoothstep((t - T2 + 0.2) / D.creep), low = Math.max(hide - 0.4, 0.26);
     c.faceAway = smoothstep((t - T2 + 0.5) / 0.3) * (1 - smoothstep((t - T3) / 0.3));
@@ -226,23 +227,23 @@
       { name: 'Peering out of the closet', note: 'The other way in: in the closet in front of the hanging clothes, behind the wall at the side, its head round the edge.',
         dist: CLOSET.peerD, dur: 6, fit: { h: 2.5, w: 2.6 }, draw: at(), back: behindOpening(CLOSET, clothes), front: frontOfOpening(CLOSET),
         set(c) { place(c, CLOSET); frame(c, CLOSET); } },
-      { name: 'Stepping out under the lintel', note: 'In extreme slow motion, at the pace it keeps while you watch: it steps out from behind the wall into the doorway, a slow step at a time, each foot lifted, hanging, and set down with a jerk; its fingers slide back off the frame; it stoops under the top of the frame until it is through.',
+      { name: 'Stepping out under the lintel', note: 'In extreme slow motion, at the pace it keeps while you watch: it steps out from behind the wall into the doorway, gliding, slow and even, its feet stepping softly under it, nothing sudden; its fingers slide back off the frame; it stoops under the top of the frame until it is through.',
         dur: (DOOR.peerD - 0.05 - 3.25) / PACE, fit: { h: 2.5, w: 2.8 }, draw: at(), back: behindOpening(DOOR), front: frontOfOpening(DOOR),
         set(c) { place(c, DOOR); frame(c, DOOR); },
         tick(c, k, dt) {
-          const toD = lerp(DOOR.peerD - 0.05, 3.25, k); walk(c, dt, toD, latAt(DOOR, toD));
+          walk(c, dt, lerp(DOOR.peerD - 0.05, 3.25, k), d => latAt(DOOR, d));
           c.peerSide = -SIDE; c.peer = 1 - smoothstep(outOf(DOOR, c.dist) / 0.6); frame(c, DOOR);
         } },
-      { name: 'Bowing over the end of the bed', note: 'Into the room toward the foot of the bed, a step at a time: as it nears, its shoulders hunch up, its head comes down between them and its arms rise toward you. The bed is drawn over it.',
+      { name: 'Bowing over the end of the bed', note: 'Into the room toward the foot of the bed, gliding: as it nears, its shoulders hunch up, its head comes down between them and its arms rise toward you. The bed is drawn over it.',
         dist: 2.6, dur: 0.65 / PACE, front: bed,
-        tick(c, k, dt) { walk(c, dt, lerp(2.6, 1.95, k), 0); c.peer = 0; frame(c, DOOR); hideBehindBed(c); } },
+        tick(c, k, dt) { walk(c, dt, lerp(2.6, 1.95, k), () => 0); c.peer = 0; frame(c, DOOR); hideBehindBed(c); } },
       { name: 'The lamp comes on', note: 'At the foot of the bed as the lamp comes on: an arm across its face, it sinks down out of sight, comes up with only its eyes over the edge, and its hands snatch up over the edge onto the covers and pull. All but black in the light; only its eyes show.',
-        dist: 1.95, dur: 7.4, lit: 0.26, front: bed,
-        set(c) { c.inLight = true; c.flinchSide = 1; c.D = { d: 1.95, spot: DOOR.spot, creep: clamp(Math.abs(1.95 - DOOR.spot.d) * 1.1, 0.4, 2.2) }; hideBehindBed(c); },
+        dist: 1.95, dur: 9, lit: 0.26, front: bed,
+        set(c) { c.inLight = true; c.flinchSide = 1; c.D = { d: 1.95, spot: DOOR.spot, creep: clamp(Math.abs(1.95 - DOOR.spot.d) * 2, 0.8, 5) }; hideBehindBed(c); },
         tick(c, k, dt, T) { const t = T - 0.3, prev = c.dist; c.headroom = undefined; hideBehindBed(c); if (t >= 0) ducking(c, t, c.D); else frame(c, DOOR); step(c, dt, c.dist - prev); } },
       { name: 'Down and along the floor, face down', note: 'Out of the closet when the lamp comes on: it folds down like a spider and goes along the floor to the side of the bed, its face turned down, only the dark of its head showing.',
-        dist: 2.9, dur: 4.6, lit: 0.26,
-        set(c) { c.inLight = true; c.flinchSide = 1; c.D = { d: 2.9, spot: CLOSET.spot, creep: clamp(Math.hypot(2.9 - CLOSET.spot.d, 0.3 - CLOSET.spot.lat) * 1.1, 0.4, 2.2) }; },
+        dist: 2.9, dur: 8.6, lit: 0.26,
+        set(c) { c.inLight = true; c.flinchSide = 1; c.D = { d: 2.9, spot: CLOSET.spot, creep: clamp(Math.hypot(2.9 - CLOSET.spot.d, 0.3 - CLOSET.spot.lat) * 2, 0.8, 5) }; },
         tick(c, k, dt, T) { const t = T - 0.3, prev = c.dist; if (t >= 0) ducking(c, Math.min(t, DUCK.down + c.D.creep + 0.4), c.D, true); step(c, dt, c.dist - prev); } },
       { name: 'Rising again in the dark', note: 'The lamp goes out while it is down there: its hands let go at once, and it rises slowly from behind the bed to its full height.',
         dist: DOOR.spot.d, dur: RISE + 1, front: bed,

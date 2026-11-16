@@ -1,6 +1,6 @@
 'use strict';
 // The tall one: the walker's shape, a head taller than anyone, stooping under the door frame or standing in front of the
-// hanging clothes, moving in extreme slow motion. Its own clock runs at timeScale so every jerk is slowed. It is all but
+// hanging clothes, moving in extreme slow motion. Its own clock runs at timeScale, and nothing it does is sudden (until it lunges): it glides. It is all but
 // black, even in the lamp's light; only its eyes show, two round pale lights.
 // Close to the bed it bows over it, so its face stays in sight. It is always drawn whole: what is between you and it (the
 // bed, the furniture) is drawn over it. Only the wall either side of the opening it is behind is its own business:
@@ -8,8 +8,9 @@
 //   opening hides it.
 // c.headroom (metres above its feet, or undefined): the height it must keep under, the lintel of the opening it is coming
 //   through: it stoops as far as it must (stoopFor), its shoulders and head bent down and forward, its knees giving.
-// c.feet (pace, below): where its feet are while it walks, so that it steps and does not glide: each { x: across from where
-//   it is, dz: toward you, lift: off the floor }, in metres. Without them its legs follow c.gait.
+// c.feet (pace, below): where its feet are while it walks, so that its feet step under it as it glides: each { x: across
+//   from where it is, dz: toward you, lift: off the floor }, in metres. Without them its legs follow c.gait (and down on its
+//   haunches they fold from the one into the other).
 // The night drives the rest of what it does (js/levels/night12.js):
 // c.peer (0..1): it stands behind the wall at the side of the opening and only its head leans out round the edge, toward
 //   c.peerSide (+1: the right of the view), its fingers curled round the frame;
@@ -17,7 +18,7 @@
 // c.duck (0..1): it is down on its haunches, folded up like a spider, its knees up beside its shoulders, low enough to put
 //   its eyes at c.eyeTo (world height above its feet), peering up, its eyes wide; lower still it is on all fours;
 // c.reach (0..1): its arms up to the edge of the bed, its hands at c.gripY (world height; the night draws the hands on the
-//   covers over the edge); c.faceAway (over 0.5): its face turned down, only the dark of its head showing.
+//   covers over the edge); c.faceAway (0..1): its face turning down, its eyes going, until only the dark of its head shows.
 // Its lunge (death.pose): its hands shoot out at you and take hold; then its face comes at you, fast, until it is right
 // in front of yours, twitching; then its whole head swells out over everything until the black of it is all there is.
 // While its hands are coming at you, c.armsApart (set by the night) leaves its arms out of its own drawing, and c.part === 'arms' draws only
@@ -69,45 +70,75 @@ CREATURES.tall = {
     const S = this.STOOP, k = this.SCALE * 1.015, peak = (top0 - sink0 + 0.54 * scale) * k;
     return clamp((peak - c.headroom) / ((S.top + S.sink) * k), 0, 1);
   },
-  // Its steps. Called each frame with where it is going (toD along its way, toLat across it), instead of moving it there:
-  // it gets there a step at a time, in its slow motion. A foot comes up, slowly, hangs there still, then swings over and comes
-  // down with a jerk, and its weight goes over onto it; a moment, and then the other. Sideways, the foot on that side goes
-  // first and the other closes up to it. If where it is going runs on ahead it steps longer and quicker to keep up, and is
-  // simply put there (its feet together) if that is far off (first, or put somewhere else). Returns c.walk, with where it
-  // is now (d, lat) and its steps so far (n); sets c.feet.
-  STEP: { len: 0.3, dur: 1.5, rest: 0.3, lift: 0.14, half: 0.14 },
+  // where its hips would be over its feet (metres across): between them, and over the one it stands on as the other lifts
+  swayOver(ft) { const liftAny = Math.max(ft[0].lift, ft[1].lift); return (ft[0].lift > ft[1].lift ? ft[1].x : ft[0].x) * 0.35 * smoothstep(liftAny / 0.05) + (ft[0].x + ft[1].x) * 0.5; },
+  // How it moves: it glides. Called each frame with where it is going (toD along its way, toLat across it), instead of moving
+  // it there: its body drifts after that point, slowly and evenly, never faster than GLIDE.v and never starting or stopping
+  // all at once (a damped spring, its speed and its pull both capped), so wherever the point goes, it does not jump. Its
+  // feet keep up underneath it: one at a time, a foot comes up, slowly, drifts over to where it will be under it, a little
+  // ahead the way it is going, and settles; then the other. With c.glideFeet its feet do not step but drift along with it.
+  // Returns c.walk, with where it is now (d, lat) and its steps so far (n); sets c.feet.
+  STEP: { half: 0.14, lift: 0.12, dur: 1.6, min: 0.9, rest: 0.25, reach: 0.1, lead: 0.8 },
+  GLIDE: { v: 0.45, acc: 0.6, w: 2.6, path: 0.24, pathAcc: 0.2, gain: 1.2 },
   pace(c, dt, toD, toLat) {
-    const S = this.STEP;
+    const S = this.STEP, V = this.GLIDE;
     let w = c.walk;
-    if (!w || Math.hypot(toD - w.d, toLat - w.lat) > 1.2) {
-      w = c.walk = { d: toD, lat: toLat, feet: [-1, 1].map(s => ({ d: toD, lat: toLat + s * S.half, lift: 0 })), step: null, wait: 0, n: 0, last: -1 };
+    if (!w) {   // where it already is (feet together under it)
+      const d0 = c.dist, l0 = c.runLat !== undefined ? c.runLat : (c.lat || 0);
+      w = c.walk = { d: d0, lat: l0, vd: 0, vl: 0, feet: [-1, 1].map(s => ({ d: d0, lat: l0 + s * S.half, lift: 0 })), step: null, wait: 0, n: 0, last: -1 };
     }
-    const ed = toD - w.d, el = toLat - w.lat, e = Math.hypot(ed, el), lag = Math.max(0, e - S.len) / S.len;
+    const d0 = w.d, l0 = w.lat;
+    let ad = V.w * V.w * (toD - w.d) - 2 * V.w * w.vd, al = V.w * V.w * (toLat - w.lat) - 2 * V.w * w.vl;
+    const a = Math.hypot(ad, al); if (a > V.acc) { ad *= V.acc / a; al *= V.acc / a; }
+    w.vd += ad * dt; w.vl += al * dt;
+    const v = Math.hypot(w.vd, w.vl); if (v > V.v) { w.vd *= V.v / v; w.vl *= V.v / v; }
+    w.d += w.vd * dt; w.lat += w.vl * dt;
+    const sp = Math.min(V.v, Math.hypot(w.vd, w.vl));
+    // where each foot would be: beside it, a little ahead of it the way it is going
+    const spot = i => ({ d: w.d + w.vd * S.lead, lat: w.lat + w.vl * S.lead + (i ? 1 : -1) * S.half });
+    if (c.glideFeet) for (const f of w.feet) { f.d += w.d - d0; f.lat += w.lat - l0; }
+    if (w.step && c.glideFeet) { const st = w.step; for (const q of [st.f0, st.f1]) { q.d += w.d - d0; q.lat += w.lat - l0; } }
     if (!w.step) {
       w.wait -= dt;
-      if (e > 0.04 && w.wait <= 0) {
-        const len = S.len * (1 + Math.min(lag, 2) * 0.5), k = Math.min(1, len / e), bd = w.d + ed * k, bl = w.lat + el * k;
-        const lead = Math.abs(el) > 0.03 ? (el > 0 ? 1 : 0) : 0, i = w.last < 0 ? lead : 1 - w.last;
-        const f = w.feet[i];
-        w.step = { i, u: 0, f0: { d: f.d, lat: f.lat }, f1: { d: bd, lat: bl + (i ? 1 : -1) * S.half }, b0: { d: w.d, lat: w.lat }, b1: { d: bd, lat: bl } };
+      if (w.wait <= 0 && !c.glideFeet) {
+        const err = w.feet.map((f, i) => { const q = spot(i); return Math.hypot(f.d - q.d, f.lat - q.lat); });
+        const i = err[0] > err[1] + 0.03 ? 0 : err[1] > err[0] + 0.03 ? 1 : (w.last < 0 ? 0 : 1 - w.last);
+        if (err[i] > S.reach) { const f = w.feet[i]; w.step = { i, u: 0, f0: { d: f.d, lat: f.lat }, f1: spot(i), held: false }; }
       }
     }
     if (w.step) {
       const st = w.step, f = w.feet[st.i];
-      st.u = Math.min(1, st.u + dt * (1 + lag * 2) / S.dur);
+      // the quicker it goes, the quicker its steps, so that none is longer than a stride
+      st.u = Math.min(1, st.u + dt / clamp(0.3 / Math.max(sp, 0.01) - S.rest, S.min, S.dur));
       const u = st.u;
-      // up, held still as it hangs there, over, and down; its weight over onto it as it comes down
-      const up = smoothstep(u / 0.32) * (1 - smoothstep((u - 0.62) / 0.16));
-      const over = smoothstep((u - 0.36) / 0.3), weight = smoothstep((u - 0.5) / 0.28);
-      f.d = lerp(st.f0.d, st.f1.d, over); f.lat = lerp(st.f0.lat, st.f1.lat, over); f.lift = Math.max(0, up) * S.lift;
-      w.d = lerp(st.b0.d, st.b1.d, weight); w.lat = lerp(st.b0.lat, st.b1.lat, weight);
-      if (u >= 1) { f.lift = 0; w.step = null; w.last = st.i; w.n++; w.wait = S.rest / (1 + lag * 2); }
+      if (!st.held && !c.glideFeet) { st.f1 = spot(st.i); if (u > 0.6) st.held = true; }   // (where it will come down: settled before it does)
+      const over = smoothstep((u - 0.08) / 0.84);
+      f.d = lerp(st.f0.d, st.f1.d, over); f.lat = lerp(st.f0.lat, st.f1.lat, over);
+      f.lift = S.lift * smoothstep(u / 0.4) * (1 - smoothstep((u - 0.5) / 0.4));
+      if (u >= 1) { f.lift = 0; w.step = null; w.last = st.i; w.n++; w.wait = S.rest; }
     }
     c.feet = w.feet.map(f => ({ x: f.lat - w.lat, dz: w.d - f.d, lift: f.lift }));
+    // its hips go over its feet, slowly (they follow where they would be, a beat behind)
+    const sw = this.swayOver(c.feet);
+    w.sway = w.sway === undefined ? sw : w.sway + (sw - w.sway) * (1 - Math.exp(-dt / 0.4));
+    c.feetSway = w.sway;
     return w;
   },
+  // Along a way (latOf(d): where it is across it at each distance d), toward toD on it: it keeps to that line, at no more than
+  // GLIDE.path metres a second along it, however far the line swings across (round the edge of an opening, it goes the
+  // more slowly nearer you), easing into it and out of it; its body glides after that (pace). c.along: how far along it is.
+  along(c, dt, toD, latOf) {
+    const V = this.GLIDE;
+    let g = c.along;
+    if (!g) g = c.along = { d: c.dist, v: 0 };
+    const J = Math.hypot(1, (latOf(g.d - 0.01) - latOf(g.d + 0.01)) / 0.02);   // metres of the line per metre nearer
+    const want = clamp((g.d - toD) * V.gain * J, 0, V.path);
+    g.v += clamp(want - g.v, -V.pathAcc * dt, V.pathAcc * dt);
+    g.d -= Math.max(0, g.v) / J * dt;
+    return this.pace(c, dt, g.d, latOf(g.d));
+  },
   draw(ctx, c, P) {
-    const g = c.gait, t = c.t, near = clamp(1 - c.dist / 3.2, 0, 1), lunge = c.lunge || 0, K = this.SCALE, S = this.STOOP, U = this.LUNGE;
+    const g = c.gait, t = c.t, near = clamp(1 - Math.hypot(c.dist, c.lat || 0) / 3.2, 0, 1), lunge = c.lunge || 0, K = this.SCALE, S = this.STOOP, U = this.LUNGE;
     // in its lunge it lets go of whatever it was doing at once, and stands up straight
     const free = 1 - clamp(lunge * U.dur / 0.15, 0, 1), grabK = lunge > 0 ? (c.grabK || 0) : 0;
     const peer = (c.peer || 0) * free, ps = c.peerSide || 1, flinch = (c.flinch || 0) * free, duck = (c.duck || 0) * free, reach = (c.reach || 0) * free;
@@ -116,11 +147,11 @@ CREATURES.tall = {
     const R0 = Math.max(0.2, Math.hypot(c.dist, c.lat || 0)), eyeH = (typeof G !== 'undefined' && G.L && G.L.eyeH) || 1.15, E = eyeH - (c.yOff || 0);
     // it bows over the foot of the bed as it comes: seen from in front, its shoulders hunch up and its head comes forward
     // and down between them (it straightens as it lunges)
-    const lean = smoothstep((2.5 - c.dist) / 0.7) * free * (1 - peer) * (1 - duck);
+    const lean = smoothstep((2.5 - R0) / 0.7) * free * (1 - peer) * (1 - duck);
     // walking on its own feet (c.feet), it rises a little over the foot it stands on and its hips go over it
     const ft = c.feet, liftAny = ft ? Math.max(ft[0].lift, ft[1].lift) : 0;
     const bob = ft ? liftAny * 0.12 : Math.abs(Math.sin(g)) * 0.03;
-    const sway = ft ? clamp(((ft[0].lift > ft[1].lift ? ft[1].x : ft[0].x) * (liftAny > 0.01 ? 0.35 : 0) + (ft[0].x + ft[1].x) * 0.5) / K, -0.12, 0.12) : Math.sin(g) * 0.03;
+    const sway = ft ? clamp((c.feetSway !== undefined ? c.feetSway : this.swayOver(ft)) / K, -0.12, 0.12) : Math.sin(g) * 0.03;
     const hs = 1 + lean * 0.08;
     // under a lintel it stoops
     const top0 = 2.4 + bob - (0.18 + lean * 0.2), sink0 = lean * 0.36 + peer * 0.06;
@@ -143,20 +174,30 @@ CREATURES.tall = {
     const tp = lerp(top, topC, duck), hip = lerp(hipS, hipC, duck), hunch = lean * 0.08 + st * 0.05 + duck * 0.06, sw = 0.26 + lean * 0.04 + duck * 0.04;
     const hx = sway * 0.6 + peer * ps * 0.44, hy = lerp(top - sink, hyC, duck);
     c.headTop = (hy + 0.54 * hs) * K;   // (the top of its head, as drawn: metres above its feet)
+    // where its parts were drawn this frame (drawn units, about its feet), for the checks that it never jumps
+    const drawn = part === 'arms' ? null : (c.drawn = { at: c.t / (c.timeScale || 1), lat: c.lat || 0, dist: c.dist, head: [hx, hy], neck: [sway * 0.6, tp + hunch], hip: [sway, hip], feet: [], hands: [], tilt: 0 });
     if (part !== 'arms') {
       // legs: hip, knee, foot (down there the knees are up and out beside its shoulders). On its own feet, each foot is
       // where it is on the floor (nearer you, lower in the view), lifted as it steps
+      // (on its own feet as it goes down on its haunches, its legs fold from the one into the other)
       for (const s of [-1, 1]) {
-        const f = ft && duck < 0.01 ? ft[s > 0 ? 1 : 0] : null;
-        const ph = g + (s > 0 ? Math.PI : 0), lift = f ? f.lift / K : Math.max(0, Math.sin(ph)) * 0.22 * (1 - duck * 0.6);
-        const fx = f ? f.x / K : lerp(s * 0.18 + sway * 0.3, s * 0.32, duck), fy = lift + 0.03 - (f ? E * f.dz / Math.max(0.2, R0 - f.dz) / K : 0);
-        const hpx = lerp(s * 0.1 + sway, s * 0.12, duck), kx = f ? lerp(hpx, fx, 0.5) + s * (0.04 + st * 0.08) + lift * s * 0.3 : lerp(s * (0.14 + st * 0.08) + sway * 0.6, s * 0.44, duck);
-        const ky = f ? lerp(lerp(0.75, 0.68, st), (hip + fy) * 0.5, 0.25) + lift * 0.75 : lerp(lerp(0.75, 0.68, st) + lift * 0.7, kneeC + lift * 0.3, duck);
+        const f = ft ? ft[s > 0 ? 1 : 0] : null, fb = f ? 1 - duck : 0;
+        const hpx = lerp(s * 0.1 + sway, s * 0.12, duck);
+        const ph = g + (s > 0 ? Math.PI : 0), gl = Math.max(0, Math.sin(ph)) * 0.22 * (1 - duck * 0.6);
+        let fx = lerp(s * 0.18 + sway * 0.3, s * 0.32, duck), fy = gl + 0.03, toe = 0;
+        let kx = lerp(s * (0.14 + st * 0.08) + sway * 0.6, s * 0.44, duck), ky = lerp(lerp(0.75, 0.68, st) + gl * 0.7, kneeC + gl * 0.3, duck);
+        if (f) {
+          const fl = f.lift / K, ffx = f.x / K, ffy = fl + 0.03 - E * f.dz / Math.max(0.2, R0 - f.dz) / K;
+          const fkx = lerp(hpx, ffx, 0.5) + s * (0.04 + st * 0.08) + fl * s * 0.3, fky = lerp(lerp(0.75, 0.68, st), (hip + ffy) * 0.5, 0.25) + fl * 0.75;
+          fx = lerp(fx, ffx, fb); fy = lerp(fy, ffy, fb); kx = lerp(kx, fkx, fb); ky = lerp(ky, fky, fb); toe = fl * 0.3 * fb;
+        }
         P_limb(ctx, [[hpx, hip + 0.05], [kx, ky], [fx, fy]], 0.085, body);
-        P_line(ctx, fx - 0.03 * s, fy, fx + s * 0.11, fy - (f ? lift * 0.3 : 0), 0.08, body);
+        if (drawn) drawn.feet.push([fx, fy], [kx, ky]);
+        P_line(ctx, fx - 0.03 * s, fy, fx + s * 0.11, fy - toe, 0.08, body);
       }
       P_poly(ctx, [[-0.17 + sway, hip], [0.17 + sway, hip], [sw + sway * 0.6, tp + hunch], [sway * 0.6, tp], [-sw + sway * 0.6, tp + hunch]], body);
-      if (st > 0.02 || duck > 0.02) P_ell(ctx, sway * 0.6, tp + hunch * 0.5, sw, 0.03 + 0.1 * Math.max(st, duck), body);   // its back rounded up behind its head
+      const rb = Math.max(st, duck), rk = smoothstep(rb / 0.2);
+      if (rk > 0) P_ell(ctx, sway * 0.6, tp + hunch * 0.5, sw * rk, 0.03 * rk + 0.1 * rb, body);   // its back rounded up behind its head
     }
     // arms: down to the knees, rising very slowly as it comes; down there, its hands flat on the floor in front of it
     const raise = smoothstep(near * 0.8) * (1 - duck);
@@ -171,8 +212,9 @@ CREATURES.tall = {
       let ang = lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), spread = lerp(0.16, 0.32, raise), len = 0.24 + raise * 0.06;
       const mix = (k, e2, f2, p2, q2, a2, sp2, l2) => { ex = lerp(ex, e2, k); ey = lerp(ey, f2, k); px = lerp(px, p2, k); py = lerp(py, q2, k); ang = lerp(ang, a2, k); spread = lerp(spread, sp2, k); len = lerp(len, l2, k); };
       if (duck > 0) mix(duck, s * 0.52, Math.max(0.3, topC * 0.75), s * 0.36, 0.05, -Math.PI / 2 + s * 0.5, 0.2, 0.2);
-      // peering: the hand on the opening's side is up on the frame beside its face, its fingers curled round the edge
-      if (peer > 0 && s === ps) mix(peer, s * 0.36, hy - 0.3, s * 0.5, hy - 0.06, s > 0 ? -0.15 : Math.PI + 0.15, 0.2, 0.2);
+      // peering: the arm on the opening's side is up behind the wall, its hand on the frame (only its fingers, round the
+      // edge, show: the night draws them); nothing of the arm is out in the opening
+      if (peer > 0 && s === ps) mix(peer, s * 0.29, hy - 0.42, s * 0.27, hy - 0.1, Math.PI / 2, 0.16, 0.18);
       // the light: the arm on that side up across its face, the back of the hand to it
       if (flinch > 0 && s === (c.flinchSide || 1)) mix(flinch, s * 0.46, tp + 0.05, -s * 0.06, hy + 0.36, s > 0 ? Math.PI * 0.95 : Math.PI * 0.05, 0.22, 0.26);
       // up over the edge of the bed: the hands on it, wide apart, the fingers hooked over onto the covers
@@ -180,6 +222,7 @@ CREATURES.tall = {
       const arm = () => {
         if (grabK > 0) { this.grabArm(ctx, s, sx, sy, px, py, grabK, R0, E, body); return; }
         P_limb(ctx, [[sx, sy], [ex, ey], [px, py]], 0.065, body);
+        if (drawn) drawn.hands.push([px, py], [ex, ey]);
         fingers(ctx, px, py, ang, spread, len, 0.02, body);
         if (reach > 0.3) P_ell(ctx, px, py + 0.01, 0.06, 0.045, body);   // the back of the hand, knuckles up
       };
@@ -191,7 +234,8 @@ CREATURES.tall = {
     // the head, bent under the frame and turned to you; leaning out round an edge it tips over that way; flinching it turns
     // from the light; down there it holds still, peering up
     const still = free * (1 - peer) * (1 - duck);
-    let tilt = headTiltJerk(t, 2.7, 0.3) * still * (1 - grabK) + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) * free - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35;
+    let tilt = -0.3 * Math.cos(Math.PI * t / 2.7) * still * (1 - grabK) + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) * free - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35;
+    if (drawn) drawn.tilt = tilt;
     if (peer > 0) P_line(ctx, sway * 0.6, tp - 0.04, hx, hy + 0.06, 0.09, body);   // the neck, stretched out round the edge
     ctx.save(); ctx.translate(hx, hy);
     // right in front of you its head twitches, for a moment, hard and fast
@@ -207,7 +251,10 @@ CREATURES.tall = {
     if (gulp > 0) { const mc = 0.3, gg = 1 + gulp * gulp * 90; ctx.translate(0, mc); ctx.scale(gg, gg); ctx.translate(0, -mc); }
     P_line(ctx, 0, 0, 0, 0.14, 0.08, body);
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
-    if ((c.faceAway || 0) > 0.5 && lunge <= 0) { ctx.restore(); if (late) late(); ctx.restore(); return; }   // its face down: the dark of its head
+    // its face turned down, only the dark of its head: its eyes go as it turns
+    const look = lunge > 0 ? 1 : 1 - smoothstep(((c.faceAway || 0) - 0.3) / 0.4);
+    if (look <= 0) { ctx.restore(); if (late) late(); ctx.restore(); return; }
+    ctx.globalAlpha *= look;
     // its face is nothing but two round pale eyes in the dark of its head, a soft glow round each, the same in any light
     // (peering up, they widen; right in front of you they are wide)
     const er = 0.017 * (1 + duck * 0.2 + lerp(grabK * 0.15, 0.3, c.closeK === undefined ? (c.close ? 1 : 0) : c.closeK));

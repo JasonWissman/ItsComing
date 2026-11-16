@@ -102,7 +102,8 @@ const SOUNDS = [
   { kind: 'sfx', name: 'flicker', n: [12], d: 'A bulb flickering out with a buzz. The lamp goes dark.', src: 'night12' },
   { kind: 'sfx', name: 'tick', n: R12, d: 'A clock tick (one a second). For the first ten seconds of every night, from the north-west; on night 12 again once won.', src: 'story.js · night12' },
   { kind: 'sfx', name: 'knock', n: R12, d: 'Two knocks on a pipe, once, when it is halfway to you. A story thread.', src: 'story.js' },
-  { kind: 'sfx', name: 'hangers', n: R12, d: 'Coat hangers clinking now and then on the wind; on night 12 the closet’s lane cue.', src: 'story.js · night12 lane cue' },
+  { kind: 'sfx', name: 'hangers', n: R12, d: 'Coat hangers clinking now and then on the wind; not on night 12, where the closet is a way in.', src: 'story.js' },
+  { kind: 'sfx', name: 'whoosh', n: [12], d: 'A sweep of air, low to high and back down. On Nightmare it glides round the bed to the other way in.', src: 'night12' },
   // ---- night 13: the void and the ending ----
   { kind: 'sfx', name: 'birds', n: [13], d: 'A little birdsong. Dawn in the meadow at the end.', src: 'night13 ending' },
   { kind: 'sfx', name: 'win', n: 'all', d: 'A soft rising chord. A night survived (the fade at the end of the aftermath); the ending’s last moment.', src: 'game.js · night13' },

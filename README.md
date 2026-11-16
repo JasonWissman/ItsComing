@@ -317,14 +317,17 @@ some on the ground, so you have to turn and look down to find them.
 12. **The Bedroom.** You are in bed. It is already there, in the hall beyond the doorway
     or in the closet (in front of the clothes on the rail), behind the wall at the side of
     the opening: at first only its head leans out round the edge, its fingers curled round
-    the frame (having its head in view counts as watching it). The night's card shows it
-    just so, and it is still there when you begin. Then it steps out into the room, in
-    extreme slow motion, a step at a time: a foot comes up, hangs, swings over and comes
-    down with a jerk, its weight going over onto it, and then the other (sideways out of
-    hiding, the foot on that side first); its fingers slide back off the frame as it goes,
-    and it stoops under the top of the frame until it is through. It is all but black, even
+    the frame (its arm stays behind the wall; having its head in view counts as watching
+    it). The night's card shows it just so, and it is still there when you begin. Then it
+    glides out into the room, in extreme slow motion: round the edge of the opening and on
+    toward the bed along the same way, slow and even however far ahead its clock runs, with
+    nothing sudden in it, its feet stepping softly under it; its fingers slide back off the
+    frame as it goes, and it stoops under the top of the frame until it is through. On
+    Nightmare, once, early and unseen, it changes its way: it glides round the foot of the
+    bed to the other way in, with a whoosh. (`test/nights/night12.js` watches every frame
+    from your eye: nothing of it, body, head, hands or feet, jumps.) It is all but black, even
     in the lamp's light; only its two pale eyes show. It
-    cannot stand the light: when the lamp comes on it throws an arm across its face and
+    cannot stand the light: when the lamp comes on it lifts an arm across its face and
     folds down onto its haunches out of sight, keeps low (only a dark shape along the
     floor, if it is out in the open) to the bed, and comes up at the foot of it (or at its
     side, out of the closet) until only its eyes are over the edge. It is always drawn
