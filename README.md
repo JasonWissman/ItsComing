@@ -376,8 +376,9 @@ some on the ground, so you have to turn and look down to find them.
 13. **The Void.** Your hands are empty, and everything you ever held against it lies
     around you, within reach. It comes in a black hooded robe, nothing of its face to be
     seen in the dark of the hood but two small pale eyes. Take up anything and it is
-    enraged: its eyes burn red, a snarling mouth opens under them, and it comes on in fits,
-    stopping dead, lurching, jerking aside, its head twitching. Holding anything when it
+    enraged: its eyes burn red, a snarling mouth opens under them, it screeches (again and
+    again, more often and wilder the more you hold; quiet again once you hold nothing), and it
+    comes on in fits, stopping dead, lurching, jerking aside, its head twitching. Holding anything when it
     reaches you is a death. The bow still comes up as it did in the Clearing (with the bow or
     the arrows in your hand), and holding draws it, but here it is never loosed: drawn at, it
     comes for you, slowly and then faster and faster as the string comes back, more and more
@@ -389,20 +390,26 @@ some on the ground, so you have to turn and look down to find them.
     reach for another with your hands full and the full hand only goes toward it) and it
     calms. Let it come, and face it when it does: empty-handed, it bends down to you over the
     last few metres (its head stays in the view) and the view lifts to its face.
-    Turned away from it, or looking at the floor, when it reaches you is a death too. Faced
-    empty-handed, it stops close in front of you, bent down to your face, and slowly reaches
-    its open hands out to you, and its arms close round you, its hands over the top of the
-    view. While it holds you its face comes up out of the dark of the hood and goes slowly
-    through angry, neutral, angry (leaning in close at you, then drawing back), confused (then,
-    glitching, a flicker of faces under a second: pain, envy, sorrow, grimace, terror, empty,
-    shock) and sad. Crying, it lets you go, steps back and sinks down onto the ground, its head
-    bowed, its shoulders heaving, and it stays there crying for as long as you wait (after a few
-    seconds a small line says CLICK TO GO TO IT). A click, a tap, A, or the key that looks up
-    or zooms (Up, W, Shift, Space, Z) goes to it: the view goes in to it, a step at a time, and
-    down to it; it looks up at you and slowly stops crying, holds out its hand, open, palm up,
-    and your hand comes up into the view and lies in it, its long fingers closing over yours;
-    it stands up holding your hand, is content, and then happy, and lets go. Then the dark
-    opens into a green meadow in the sun (wild flowers, trees, clouds, birdsong and a breeze).
+    Turned away from it, or looking at the floor, when it reaches you is a death too; doing
+    nothing at all, facing it as the night starts, is always the ending (on Nightmare it may
+    change its way once, unseen, far out, but never once it is within 12 m). Faced
+    empty-handed, it stops close in front of you, bent down to your face, and lifts its arms,
+    the hands open high either side of its head; its face comes up out of the dark of the hood,
+    angry, and quick, it reaches out and takes hold of you, as the tall thing in the bedroom
+    did: its arms come at you out of the bottom of the view, its hands at the lower corners.
+    Holding you, its face goes slowly through angry, neutral, angry (leaning in close at you,
+    then drawing back), confused (then, glitching, a flicker of faces under a second: pain,
+    envy, sorrow, grimace, terror, empty, shock) and sad; it cries a while, its shoulders
+    heaving, still holding you, and stops, its grey neutral face again. Then the dark round
+    you both starts to turn, and every night you passed through goes by behind it, each as you
+    stood in it at its start (its scene, what lay about, and the thing that came for you there),
+    built again and drawn once while it held its first faces: round windows coming up out of
+    the middle, swinging out round it, growing and turning past you, faster and faster, until
+    the last is a pale light that fills the view. It is content, and happy, and the meadow (wild
+    flowers, trees, clouds, birdsong and a breeze) comes out of the pale void, turning round you
+    and settling into place in the sun; then it lets you go and steps back. With reduced motion
+    nothing turns: each night is there behind it in turn, giving way to the next, and the
+    meadow simply comes; with reduced flashing the nights and the light are dimmer.
     As a music box starts it pushes its hood back, lets the robe
     drop, the long sleeves and black gloves sliding off its arms, and hops clear of the heap
     of black cloth: underneath it wears a yellow shirt striped sky blue, red shorts, white

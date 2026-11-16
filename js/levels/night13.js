@@ -2,14 +2,15 @@
 /* global CLEARING_BOW, PAD */   // (night 5's bow, js/levels/night05.js: drawn here as it was there; js/game.js's gamepad state)
 // ============================================================ 13. THE VOID ============================================================
 // Nothing at all: a faint floor that fades into black. Around you lies everything you ever held against it, and your hands
-// are empty. It comes from anywhere, a tall thing in a black hood. Take up anything and it is enraged, and comes on in fits;
-// put it all down again and it calms. The ending plays out here, without a cut: caught empty-handed and facing it, it stops
-// and holds you, its face comes out of the dark of its hood and goes through angry, neutral, angry (leaning in at you),
-// confused and sad; crying, it lets you go, steps back and sinks down onto the ground, and it stays there crying until you
-// go to it. Then it looks up at you, stops crying, holds out its hand, and stands up holding yours; it is content, and
-// happy, and the dark opens into a meadow in the sun, where you may look about as long as you like; a press and it is the
-// bedroom. The bow still comes up and draws as it did on night 5, but it is never loosed: drawn at, it comes for you, faster
-// and faster, and is on you before the bow is full.
+// are empty. It comes from anywhere, a tall thing in a black hood. Take up anything and it is enraged: it screeches, and
+// comes on in fits; put it all down again and it calms, and is quiet. The ending plays out here, without a cut: caught
+// empty-handed and facing it, it stops and lifts its arms, its face comes out of the dark of its hood, angry, and it takes
+// hold of you; its face goes through angry, neutral, angry (leaning in at you), confused and sad, and it cries, holding you,
+// and comes back to its grey neutral face. Then the dark round you both starts to turn: every night you passed through
+// goes by behind it, faster and faster, until it opens into a pale light; it is content, and happy, and the meadow comes
+// out of the light, turning and settling into place in the sun. It lets you go and steps back, and there you may look about
+// as long as you like; a press and it is the bedroom. The bow still comes up and draws as it did on night 5, but it is
+// never loosed: drawn at, it comes for you, faster and faster, and is on you before the bow is full.
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
   ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['handle', 'Winch handle', 0.45, 0.45],
@@ -30,41 +31,33 @@ const VOID_HELD = {
 // shade lighter on the dark gate. The inventory (whose P has no fogColor) draws them as they always are.
 const voidLift = c => { const k = clamp((84 - (c[0] + c[1] + c[2]) / 3) / 84, 0, 1) * 0.45; return k > 0 ? mixc(c, [150, 150, 160], k) : c; };
 const onVoidFloor = icon => icon && ((ctx, P) => icon(ctx, P.fogColor ? Object.assign({}, P, { col: c => P.col(voidLift(c)), cola: (c, a) => P.cola(voidLift(c), a) }) : P));   // a missing icon stays missing, for validateContent to report
-// the void; the light coming, half way (a warm haze close round you); the meadow, clear to the hills; and the same place as
-// the void in the morning (night 12's room with the sun in it)
+// the void; the pale void the light comes as (round you, close); the meadow, clear to the hills; and the same place as the
+// void in the morning (night 12's room with the sun in it)
 const VOID_PAL = { skyTop: [0, 0, 0], fog: [0, 0, 0], ground: [10, 10, 12], fogDist: 14 };
-const DAWN_PAL = { skyTop: [62, 58, 104], fog: [246, 208, 170], ground: [92, 98, 64], fogDist: 24 };
+const PALE_PAL = { skyTop: [214, 206, 228], fog: [240, 232, 230], ground: [206, 198, 204], fogDist: 9 };
 const MEADOW_PAL = { skyTop: [74, 138, 222], fog: [212, 230, 242], ground: [98, 158, 64], fogDist: 170 };
 const MORNING_PAL = { skyTop: [150, 190, 240], fog: [236, 236, 238], ground: [200, 190, 170], fogDist: 60 };
+const VOID_PALE = 0.12;   // how far the light has come (s.meadow) when it is all pale round you
 // the ending, in seconds from when it reaches you
 const END = {
   settle: 1.0,                          // it stops, and its head comes level
   stoop: [0.2, 2.2],                    // it bends down to your face
   near: [0.9, 3.0],                     // and comes in close
-  reach: [0.8, 3.6],                    // its arms come slowly up out to you, the hands open
-  close: [3.8, 5.6],                    // and close round you
-  unveil: [5.0, 6.4],                   // its face comes up out of the dark of its hood, angry
-  moods: 6.4,                           // then its faces in turn, each held and going into the next (CREATURES.demon.moodAt):
-  lean: [9.2, 9.8, 10.8, 11.6],         // angry again, it leans in at you, close, and draws back as it is confused;
-  sad: 13.55,                           // through the glitch to sad, crying
-  letGo: [14.8, 16.4],                  // crying, it lets you go, its arms coming away from round you
-  back: [15.4, 17.8], sitDist: 2.4,     // straightens and steps back from you
-  slump: [17.4, 19.8],                  // and sinks down onto the ground, its head bowed, still crying
-  sit: 19.8,                            // and there it stays, crying, for as long as it takes: the time of the ending stops here
-                                        // until you go to it (a click, a tap, A, or the key that looks up or zooms)
-  go: [19.8, 23.0], goDist: 1.3,        // you go to it: the view goes in to it, and down to it
-  look: [20.6, 22.8],                   // it looks up at you
-  calm: [21.2, 24.4],                   // and slowly stops crying (sad to neutral)
-  offer: [22.8, 24.8],                  // it holds out its hand to you, open, palm up
-  take: [24.4, 26.2],                   // your hand comes to it and lies in it, and its fingers close round yours
-  rise: [26.6, 29.8],                   // it stands, holding your hand
-  content: [30.0, 31.0], happy: [32.0, 33.0],   // content, and happy
-  release: 34.0,                        // a moment after it is happy it lets go of your hand
-  light: [33.8, 39.8],                  // the light comes, and the meadow with it
-  walk: [35.0, 38.6],                   // it steps back and round to the north, where the foot of the bed will be (and you to where you stood)
+  lift: [0.8, 2.8],                     // its arms come up, the hands open, high either side of its head
+  unveil: [2.2, 3.2],                   // its face comes up out of the dark of its hood, angry
+  grab: [3.6, 3.95],                    // and it reaches out and takes hold of you, quick: its hands at the lower corners
+  moods: 4.4,                           // then its faces in turn, each held and going into the next (CREATURES.demon.moodAt):
+  lean: [7.2, 7.8, 8.8, 9.6],           // angry again, it leans in at you, close, and draws back as it is confused;
+  sad: 11.55,                           // through the glitch to sad, crying
+  neutral: [15.2, 16.6],                // it cries a while, holding you, and stops: its grey neutral face again
+  swirl: [17.0, 28.6],                  // the dark round you both turns, and every night you passed through goes by behind
+                                        // it, faster and faster (VOID_RECAP), until it opens into a pale light
+  light: [27.0, 34.0],                  // the pale void, and the meadow coming out of it, turning and settling into place
+  content: [29.0, 30.0], happy: [31.0, 32.0],   // content, and happy
+  release: 34.0,                        // and, the meadow settled, it lets you go
+  walk: [35.0, 38.6],                   // it steps back and round to the north, where the foot of the bed will be
   disrobe: [39.2, 41.8],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
   dance: [41.4, 45.9],                  // and dances a little to the tune in its shirt and shorts
-  sitLine: 4,                           // (if you wait that long, a small line says how to go to it)
   wait: 39.8, arm: 40.4, idle: 5,       // from here the meadow is yours to look about in, and waits for a press (taken from
                                         // `arm`); if you do nothing for `idle` seconds a small line says how to go on
   leave: 4.2,                           // after the press: the meadow and it fade, the bedroom comes up, and then the last screen
@@ -85,7 +78,7 @@ LEVELS.push({
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;
-    Object.assign(s, { ending: false, endT: 0, reveal: 0, meadow: 0, room: 0, lv: 0, gone: 0, glitterAt: -1, wait: false, leaving: false, leaveT: 0, sitting: false, went: false, sitT: 0, idle: 0 });
+    Object.assign(s, { ending: false, endT: 0, reveal: 0, meadow: 0, room: 0, lv: 0, gone: 0, glitterAt: -1, wait: false, leaving: false, leaveT: 0, idle: 0, swirl: 0, spin: 0 });
     // a floor that is only a floor near you (and the lamp, off, a little way out): the void's own props, which fade as the light comes
     const v0 = L.props.length;
     // (in narrow rings of many sides, so it darkens smoothly instead of in visible steps; drawn before the room's floors,
@@ -251,23 +244,21 @@ LEVELS.push({
       // it comes in a little closer as it takes hold of you (from as far as it was, bent down as far as it was); later it
       // steps back from you, and later still back and round to the north (the foot of the bed): CREATURES.demon.ending
       const yaw0 = c.yaw, yaw1 = L.facing;
-      s.d0 = c.dist; s.y0 = c.yOff || 0; s.fx = Math.sin(yaw0); s.fz = Math.cos(yaw0);   // (and the way you go to it)
+      s.d0 = c.dist; s.y0 = c.yOff || 0;
       s.pose = CREATURES.demon.ending(END, 0, s.d0, s.y0);
       c.distFn = cr => {
         cr.yaw = yaw0 + wrapPi(yaw1 - yaw0) * span(s.endT, END.walk[0], END.walk[1]);
         return s.pose.dist;
       };
-      // a point in the view's own frame (x right, y up from the floor, z ahead of the eye, toward it) where it is on the
-      // screen: where its hand and yours meet
-      c.view = (x, y, z) => { const p = c.pos(), e = L.eye || { x: 0, z: 0 }, dx = p.x - e.x, dz = p.z - e.z, l = Math.hypot(dx, dz) || 1, fx = dx / l, fz = dz / l; return R.screenPos(e.x + fx * z + fz * x, y, e.z + fz * z - fx * x); };
+      VOID_RECAP.begin();   // (the nights gone by, drawn ready while it holds you)
       AUDIO.sfx('stingHum'); win(); return true;
     };
     const LAST = CREATURES.demon.moods - 1;
     // the light on it while it holds you follows its face: its own dull red while the face is still in the dark of the hood,
     // red hot when it is angry, grey when it is neither, cold when it is lost and sad, warm when it is content and happy (as
-    // the light coming will be). One for each face, in the order of DEMON_MOODS
+    // the light coming is). One for each face, in the order of DEMON_MOODS
     const DULL = [[200, 60, 60], 0.25, 0.5];
-    const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2], [[226, 200, 188], 0.38, 0.1], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
+    const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2], [[200, 176, 184], 0.34, 0.15], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
     const moodLight = c => {
       const m = c.mood || 0, i = Math.min(Math.floor(m), MOOD_LIGHT.length - 2), k = smoothstep(m - i), A = MOOD_LIGHT[i], B = MOOD_LIGHT[i + 1], u = c.unveil === undefined ? 1 : c.unveil;
       return { color: mixc(DULL[0], mixc(A[0], B[0], k), u), i: lerp(DULL[1], lerp(A[1], B[1], k), u), flicker: lerp(DULL[2], lerp(A[2], B[2], k), u) };
@@ -281,13 +272,21 @@ LEVELS.push({
     };
     const sun = (() => { const d = [-1, -0.45, -0.15], n = Math.hypot(d[0], d[1], d[2]); return { x: 3.4, y: 2.4, z: 1.6, r: 12, i: 0.55, color: [255, 244, 210], cone: { x: d[0] / n, y: d[1] / n, z: d[2] / n, cos: Math.cos(40 * DEG) } }; })();
     const meadow = buildMeadow(L, s, c0);
+    // On Nightmare it may change its way once (js/game.js maybeSwitchLane), unseen, early on: far out in the dark. But that
+    // judges it unseen by how much of it is in the view, and as it looms in over the last metre or so it fills the view and
+    // more: it counted as unseen right there in front of you, changed its way at the last moment and came at you from the
+    // side or behind, and, standing still facing it, you died for looking away. So once it is within SWITCH_NEAR of you it
+    // keeps to its way.
+    const SWITCH_NEAR = 12;
     L.update = dt => {
       const c = c0();
       fallStep(dt); bowStep(dt);
       c.anger = G.inv.length;
       rushStep(c);
+      if (c.dist < SWITCH_NEAR) c.switched = true;
       const rage = c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0;   // anything held and it is plainly enraged; drawn at, more and more
       c.rage += (lerp(rage, 1, s.rush) - c.rage) * Math.min(1, dt * (4 + 8 * s.rush));
+      screech(c, dt);
       // empty-handed (and so calm), it bends down to you as it comes the last few metres, so its head is not lost over the top
       // of the view; and facing it, the view lifts to its face as it looms in: you look up at it. Looking down (a target
       // below the horizon), or turning away, takes the view back as it was.
@@ -299,52 +298,50 @@ LEVELS.push({
       }
       if (!s.ending) return;
       const still = !!SAVE.data.settings.reducedMotion;
-      // the time of the ending runs on, but for while it sits crying on the ground, waiting for you to go to it: there it
-      // stops (s.sitting) until you do (s.went), for as long as that takes
-      s.endT = s.went ? s.endT + dt : Math.min(END.sit, s.endT + dt);
-      s.sitting = !s.went && s.endT >= END.sit;
-      if (s.sitting) { s.sitT += dt; padGo(); }
+      s.endT += dt;
       const t = s.endT;
       c.still = still;
-      // it holds you: its arms come out to you and close round you, it stoops to you, and its face goes through what it was
-      // until it is sad; crying, it lets you go, steps back and sinks down onto the ground. You go to it: it looks up, stops
-      // crying, holds out its hand and stands up holding yours; content, happy, it lets go and straightens up, settled
+      // it lifts its arms, its face comes out of the dark, angry, and it takes hold of you; its face goes through what it was
+      // until it is sad, and it cries, holding you, and stops; content, happy, it lets you go and straightens up, settled
       const o = s.pose = CREATURES.demon.ending(END, t, s.d0, s.y0);
-      for (const k of ['settle', 'hug', 'unveil', 'yOff', 'kneel', 'bow', 'sob', 'calm', 'mood', 'hand', 'disrobe']) c[k] = o[k];
-      s.hugWrap = o.hug ? o.hug.wrap : 0;
-      // you go to it: the view goes in to it, a step at a time, and down to it; and back to where you stood as it goes off
-      // into the meadow
-      L.eye = o.eyeFwd > 1e-4 ? { x: s.fx * o.eyeFwd, y: 0, z: s.fz * o.eyeFwd } : null;
-      const steps = still ? 0 : 0.016 * Math.abs(Math.sin(Math.PI * 3 * clamp((t - END.go[0]) / (END.go[1] - END.go[0]), 0, 1)));
-      const near = Math.max(0.3, c.dist - o.eyeFwd);   // (how far it is from where you are now)
+      for (const k of ['settle', 'hug', 'unveil', 'yOff', 'sob', 'calm', 'mood', 'disrobe']) c[k] = o[k];
+      s.grab = o.hug ? o.hug.grab : 0;
+      VOID_RECAP.step(t);   // (the next of the nights gone by, drawn ready, while it is still holding you)
       // a thing this close is drawn from its feet: looked up at too steeply, they would be behind the eye and it would vanish,
       // so the view never looks up further than keeps them in front (it bends down to you, so the view comes level anyway)
-      const up = Math.atan(0.7 * near / Math.max(0.5, L.eyeH - c.pos().y - c.yOff));
+      const up = Math.atan(0.7 * c.dist / Math.max(0.5, L.eyeH - c.pos().y - c.yOff));
       if (G.cam.pitch < -up) G.cam.pitch = -up;
-      if (t >= END.close[1] && !s.held) { s.held = true; AUDIO.voice('exhale', 0.5, 0); }   // it has hold of you
-      if (c.mood >= 3.5 && !s.sob) { s.sob = true; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
-      if (t >= END.slump[0] && !s.sank) { s.sank = true; AUDIO.sfx('cloth', 0); }   // it sinks down
-      if (s.sitting) { s.sobT = (s.sobT === undefined ? 1.5 : s.sobT) - dt; if (s.sobT <= 0) { s.sobT = 5 + Math.random() * 2.5; AUDIO.voice('slow', 0.38, 0); } }   // crying, on and on
-      if (t >= END.calm[1] - 0.6 && !s.breath) { s.breath = true; AUDIO.voice('exhale', 0.4, 0); }   // and stops, with a long breath
-      if (t >= END.take[1] - 0.6 && !s.touch) { s.touch = true; AUDIO.sfx('pat', 0); }   // your hand in its hand
-      if (t >= END.rise[0] && !s.stood) { s.stood = true; AUDIO.sfx('cloth', 0); }   // it gets up
+      if (t >= END.grab[0] && !s.grabbed) { s.grabbed = true; AUDIO.sfx('screech', 0); if (!still) G.shake(0.05); }   // it takes hold of you
+      if (t >= END.grab[1] + 0.6 && !s.held) { s.held = true; AUDIO.voice('exhale', 0.5, 0); }
+      if (c.mood >= 3.5 && !s.sob) { s.sob = true; s.sobT = 3.4; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
+      if (s.sob && c.sob > 0.5) { s.sobT -= dt; if (s.sobT <= 0) { s.sobT = 3.6; AUDIO.voice('slow', 0.38, 0); } }   // crying, holding you
+      if (t >= END.neutral[1] - 0.6 && !s.breath) { s.breath = true; AUDIO.voice('exhale', 0.4, 0); }   // and it stops, with a long breath
+      if (t >= END.swirl[0] && !s.warp) { s.warp = true; AUDIO.sfx('warp', 0); }   // and the dark starts to turn
       if (c.mood >= LAST && !s.hum) { s.hum = true; AUDIO.voice('hum', 0.5, 0); }   // happy
-      // the light comes: the void opens into the meadow in the sun; later, after a press, the meadow goes and the room is there
+      if (t >= END.release && !s.let) { s.let = true; AUDIO.sfx('cloth', 0); }   // it lets you go
+      // the dark turns, and the nights go by behind it (VOID_RECAP: s.swirl, how far, and s.backdrop, how much of the view
+      // it is); then the light: the pale void, and out of it the meadow in the sun, turning round you (s.spin) and settling
+      // into place; later, after a press, the meadow goes and the room is there
+      s.swirl = clamp((t - END.swirl[0]) / (END.swirl[1] - END.swirl[0]), 0, 1);
+      s.backdrop = t < END.swirl[0] ? 0 : Math.min(smoothstep(clamp((t - END.swirl[0]) / 1.2, 0, 1)), 1 - span(t, END.swirl[1], END.swirl[1] + 1.4));
       const mv = s.meadow = span(t, END.light[0], END.light[1]);
+      s.spin = still ? 0 : 1.25 * Math.PI * Math.pow(1 - clamp((t - END.swirl[1]) / (END.release - END.swirl[1]), 0, 1), 3);
       if (s.leaving) s.leaveT += dt;
       const lt = s.leaveT, lv = s.lv = s.leaving ? span(lt, 0, 3.0) : 0, room = s.room = s.leaving ? span(lt, 0.5, 3.4) : 0, rvBeyond = smoothstep(clamp((room - 0.75) / 0.25, 0, 1));
       s.reveal = mv;
-      L.eyeH = lerp(1.65 - o.eyeDown - steps, 1.15, room);   // (down to it; and at the last in the bed, sitting up)
-      const dark = 1 - span(mv, 0, 0.55);
+      L.eyeH = lerp(1.65, 1.15, room);   // (at the last in the bed, sitting up)
+      const dark = 1 - span(mv, 0, VOID_PALE);
       for (const p of voidProps) p.alpha = p.alpha0 * dark;
       for (const p of roomProps) p.alpha = turned(p) ? 0 : p.alpha0 * (p.beyond ? rvBeyond : room);
-      const pal = k => mv < 0.4 ? mixc(VOID_PAL[k], DAWN_PAL[k], mv / 0.4) : mixc(DAWN_PAL[k], MEADOW_PAL[k], (mv - 0.4) / 0.6);
+      const pale = (mv - VOID_PALE) / (1 - VOID_PALE);
+      const pal = k => mv < VOID_PALE ? mixc(VOID_PAL[k], PALE_PAL[k], mv / VOID_PALE) : mixc(PALE_PAL[k], MEADOW_PAL[k], smoothstep(pale));
       for (const k of ['skyTop', 'fog', 'ground']) L.pal[k] = mixc(pal(k), MORNING_PAL[k], lv);
-      L.pal.fogDist = lerp(mv < 0.4 ? lerp(VOID_PAL.fogDist, DAWN_PAL.fogDist, mv / 0.4) : lerp(DAWN_PAL.fogDist, MEADOW_PAL.fogDist, (mv - 0.4) / 0.6), MORNING_PAL.fogDist, lv);
+      L.pal.fogDist = lerp(mv < VOID_PALE ? lerp(VOID_PAL.fogDist, PALE_PAL.fogDist, mv / VOID_PALE) : lerp(PALE_PAL.fogDist, MEADOW_PAL.fogDist, pale * pale), MORNING_PAL.fogDist, lv);
       c.soft = mv;
-      // everything on the floor goes with the dark, one thing at a time: first what lies where the bed, the nightstand, the
-      // chair or a wall will be
+      // everything on the floor goes as the nights come behind it; and if anything is still there as the light comes, one
+      // thing at a time: first what lies where the bed, the nightstand, the chair or a wall will be
       const left = L.items.filter(i => !i.taken);
+      if (s.backdrop > 0.98) for (const i of left) i.taken = true;
       if (mv > 0.08 && left.length && mv > s.gone) { (left.find(inTheWay) || left[0]).taken = true; s.gone = mv + 0.5 / tools.length; }
       if (mv > 0.05 && !s.dawn) { s.dawn = true; AUDIO.stopAmbient(); if (AUDIO.on()) AUDIO.startAmbient({ tune: 'ambient:13dawn', wind: 0.32, drone: 0, windFreq: 760 }); WEATHER.set({ kind: 'motes', density: 1.0, wind: 0.15 }, 7); }   // a breeze, and pollen in the sun
       if (mv > 0.3) { s.birdT = (s.birdT === undefined ? 0.5 : s.birdT) - dt; if (s.birdT <= 0) { s.birdT = 1.5 + Math.random() * 2.8; AUDIO.sfx('birds', Math.random() * 1.6 - 0.8, true); } }
@@ -363,19 +360,17 @@ LEVELS.push({
       c.fade = s.leaving ? clamp(1 - (lt - 0.3) / 2.0, 0, 1) : 1;
       meadow.update();
     };
-    // Sitting crying on the ground, it waits for you to go to it: a click, a tap, the zoom button, A or Start on a pad, or
-    // the key that looks up or zooms (as you would lift your eyes to it), or Enter, and you go. Nothing else does anything
-    // there (a press is still taken by the ending, so nothing cuts it short), and if you wait a few seconds a small line
-    // says what to do. It waits as long as it takes: its time does not run on while it waits, and the game's own pause of
-    // a hidden tab only waits longer.
-    const goKey = e => !e || !e.key || (!e.ctrlKey && !e.metaKey && !e.altKey && /^(ArrowUp|w|W|Shift|z|Z| |Enter)$/.test(e.key));
-    const go = () => { if (!s.sitting || s.went) return; s.went = true; s.sitting = false; };
-    // (a pad's d-pad up or its zoom trigger, which js/game.js keeps to itself unless the view is yours: read as it reads them)
-    const padGo = () => {
-      if (typeof PAD === 'undefined') return;
-      const up = PAD.dir === 3, zoom = !!PAD.zoom;
-      if ((up && !s.padUp) || (zoom && !s.padZoom)) go();
-      s.padUp = up; s.padZoom = zoom;
+    // Enraged, it screeches: a scraping shriek, again and again while anything is in your hands, the more often the angrier
+    // it is (and a wilder one when it is beside itself: most of it held, or the bow drawn at it), from where it is. Calm,
+    // it is quiet: the next time it is enraged, the first comes at once.
+    const screech = (c, dt) => {
+      const a = G.state === 'play' && !s.ending ? clamp(c.rage, 0, 1) : 0;
+      if (a < 0.35) { s.screechT = 0.1; return; }
+      s.screechT -= dt;
+      if (s.screechT > 0) return;
+      s.screechT = lerp(3.0, 0.7, (a - 0.35) / 0.65) * (0.85 + 0.3 * Math.random());
+      s.screeches = (s.screeches || 0) + 1;
+      AUDIO.sfx(a > 0.9 ? 'screechRage' : 'screech', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85);
     };
     // the meadow waits for as long as you like, and while it waits the view is yours again: you turn, look down and zoom as in
     // any night (js/game.js takes those keys, buttons and the d-pad first, so they are never the press). A click, any other
@@ -388,7 +383,6 @@ LEVELS.push({
     const aside = e => !!e && (e.ctrlKey || e.metaKey || e.altKey || /^(Shift|Control|Alt|AltGraph|Meta|OS|CapsLock|NumLock|ScrollLock|Fn|FnLock|ContextMenu|PrintScreen|Unidentified|F\d{1,2})$/.test(e.key || ''));
     L.onPress = e => {
       if (!s.ending) return false;
-      if (s.sitting && goKey(e)) go();
       if (s.wait) s.idle = 0;
       if (!aside(e) && s.wait && !s.leaving && s.endT >= END.arm) { s.leaving = true; s.leaveT = 0; s.glitterAt = s.endT + 0.3; AUDIO.sfx('win'); }
       return true;
@@ -398,8 +392,8 @@ LEVELS.push({
       s.idle = k === s.idleKey ? s.idle + dt : 0; s.idleKey = k;
     };
     L.aftermath = () => s.leaving && s.leaveT >= END.leave;
-    // the view: on its face while it holds you (the hood in the view as well), down to it as it sits crying, and down
-    // between its face and the two hands as it holds yours; then level, on it, in the meadow, and so on the room
+    // the view: on its face while it holds you (the top of its hood in the view as well); then level, on it, in the meadow,
+    // and so on the room
     L.watchUp = 0.75;
     // where a height on it (from its feet) is drawn, as a height in the world: the renderer draws it as one upright card,
     // its height spread evenly between where its feet and the top of it are seen, so looked down at close to, its face is
@@ -410,13 +404,9 @@ LEVELS.push({
       return y0 + hh + (at.y - lerp(b.y, tp.y, hh / c.CR.h)) / at.scale;
     };
     L.watchPoint = () => {
-      const c = c0(), p = c.pos(), k = span(s.endT, END.release + 0.4, END.release + 3.6), h = c.hand;
-      let x = p.x, y = drawnAt(c, CREATURES.demon.eyesY(c) - 0.02), z = p.z;   // (just under its eyes: the top of its hood in the view too)
-      if (h) {   // (where the hands meet, as c.view puts it)
-        const e = L.eye || { x: 0, z: 0 }, w = 0.5 * h.reach, jx = e.x + s.fx * h.at[2] + s.fz * h.at[0], jz = e.z + s.fz * h.at[2] - s.fx * h.at[0];
-        x = lerp(x, jx, w); y = lerp(y, h.at[1], w); z = lerp(z, jz, w);
-      }
-      return { x, y: lerp(y, L.eyeH + 0.05, k), z };
+      const c = c0(), p = c.pos(), k = span(s.endT, END.release + 0.4, END.release + 3.6);
+      const y = drawnAt(c, CREATURES.demon.eyesY(c) - 0.02);   // (just under its eyes: the top of its hood in the view too)
+      return { x: p.x, y: lerp(y, L.eyeH + 0.05, k), z: p.z };
     };
     // each thing on the void's floor lies in a faint cold pool of its own, so its dark iron and black frames show against the
     // dark (and it reads as put down, not lost); the pools go with the void
@@ -439,6 +429,7 @@ LEVELS.push({
       pools();
       fallDraw();
       meadow.draw();
+      VOID_RECAP.add(s);   // (the nights gone by, behind it)
       if (s.glitterAt < 0) return;
       // the glitter: sparks spiralling up and out from where it stood, twinkling, gone in a few seconds (with reduced motion
       // they drift up and out without turning; with reduced flashing they glow steadily as they go)
@@ -461,6 +452,7 @@ LEVELS.push({
         out.push({ x: p.x, y: 1.4, z: p.z, r: 3, i: (ml.i + more) * (1 - s.reveal) * c.fade, color: ml.color, flicker: ml.flicker, seed: 13 });
       }
       else if (c.fade > 0.05) out.push({ x: p.x, y: 1.4, z: p.z, r: 3 + a * 4, i: (0.25 + a * 0.5) * (1 - s.reveal) * c.fade, color: [200, 60, 60], flicker: 0.5, seed: 13 });
+      if (s.backdrop > 0.01) out.push({ x: p.x, y: 2.4, z: p.z, r: 2.6, i: 0.2 * s.backdrop * (1 - s.reveal), color: [196, 186, 236], flicker: 0.3, seed: 31 });   // the nights going by, catching its edges
       if (m > 0.01) out.push({ x: p.x * 0.6 - 2, y: 4.5, z: p.z * 0.6 - 1, r: 10, i: 0.32 * m, color: [255, 238, 200] });   // the sun on it
       if (s.room > 0.01) out.push(Object.assign({}, sun, { i: sun.i * s.room }));
       return out;
@@ -480,9 +472,12 @@ LEVELS.push({
 // into the haze, a big tree to the left and others further off, wild flowers in drifts, soft clouds, the sun up to the left
 // with its light coming down across the view. It faces north, where the thing stands at the end (the foot of the bed will
 // be there). The same meadow every time. Everything is added per frame within the view, so it costs nothing in the dark.
+// It comes out of the pale light turning round you (s.spin, how far it has still to turn, in radians), slower and slower,
+// until it is in its place.
 function buildMeadow(L, s, c0) {
   const rng = mulberry32(1313), rnd = (a, b) => a + (b - a) * rng(), fwd = L.facing;
-  const at = (b, r, y) => ({ x: Math.sin(fwd + b) * r, y, z: Math.cos(fwd + b) * r });
+  let rot = 0;   // (how far it is turned this frame: s.spin)
+  const at = (b, r, y) => ({ x: Math.sin(fwd + rot + b) * r, y, z: Math.cos(fwd + rot + b) * r });
   // the ground: flat round you, rising gently away (more to one side than the other) to a rim of low hills
   const hill = b => 2.6 + 1.5 * Math.sin(b * 2 + 0.6) + 0.8 * Math.sin(b * 5 + 2.1);
   const groundY = (b, r) => { const k = smoothstep((r - 9) / 55); return k * (hill(b) + 0.25 * Math.sin(r * 0.23 + b * 3)); };
@@ -600,8 +595,10 @@ function buildMeadow(L, s, c0) {
     for (const sd of [-1, 1]) { P_ell(ctx, sd * 0.24 * flap, 0.62, 0.24 * flap, 0.3, rgba(col)); P_ell(ctx, sd * 0.18 * flap, 0.3, 0.17 * flap, 0.2, rgba(scalec(col, 0.92))); }
     P_line(ctx, 0, 0.2, 0, 0.8, 0.06, 'rgb(60,50,40)');
   } }));
+  for (const p of sprites) { p.x0 = p.x; p.z0 = p.z; }   // (where each is with the meadow in its place)
   // the sun: up to the left, a little above the view
-  const SUN = at(-0.62, 100, 1.65 + Math.tan(28 * DEG) * 100);
+  const sunAt = () => at(-0.62, 100, 1.65 + Math.tan(28 * DEG) * 100);
+  let SUN = sunAt();
   // the ground as polygons across the view: the bands of the slope, and the hills beyond, each a single shape
   const W = 1.12, STEP = 0.07;
   const polys = [];
@@ -628,15 +625,18 @@ function buildMeadow(L, s, c0) {
     update() { still = !!SAVE.data.settings.reducedMotion; },
     draw() {
       const m = meadowIn(); if (m <= 0.004) return;
-      const view = wrapPi(R.yaw - fwd), ga = smoothstep((s.meadow - 0.12) / 0.5) * (1 - s.lv);
+      if (rot !== (s.spin || 0)) { rot = s.spin || 0; SUN = sunAt(); }
+      const view = wrapPi(R.yaw - fwd - rot), ga = smoothstep((s.meadow - 0.12) / 0.5) * (1 - s.lv);
       for (const p of groundPolys(view, ga)) R.add(p);
       const ca = smoothstep((s.meadow - 0.35) / 0.5) * (1 - s.lv);
-      for (const p of clouds) { const b = p.b0 + (still ? 0 : G.t * p.drift * 0.1), r = p.D * Math.cos(p.el); p.x = Math.sin(fwd + b) * r; p.z = Math.cos(fwd + b) * r; p.alpha = ca; if (Math.abs(wrapPi(b - view)) < 1.3) R.add(p); }
+      for (const p of clouds) { const b = p.b0 + (still ? 0 : G.t * p.drift * 0.1), r = p.D * Math.cos(p.el); p.x = Math.sin(fwd + rot + b) * r; p.z = Math.cos(fwd + rot + b) * r; p.alpha = ca; if (Math.abs(wrapPi(b - view)) < 1.3) R.add(p); }
       for (const p of sprites) {
         if (Math.abs(wrapPi(p.b - view)) > (p.r < 4 ? 1.25 : 0.9)) continue;
         const k = smoothstep((s.meadow - p.bloom) / 0.28);   // each comes up in its turn, growing as it comes
         p.alpha = k * (1 - s.lv); p.grow = 0.55 + 0.45 * k;
-        if (p.alpha > 0.004) R.add(p);
+        if (p.alpha <= 0.004) continue;
+        if (rot) { const q = rotY(p.x0, p.z0, rot); p.x = q[0]; p.z = q[1]; } else { p.x = p.x0; p.z = p.z0; }
+        R.add(p);
       }
       // the butterflies keep near it, at about its waist, flitting
       const c = c0(), cp = c.pos(), fa = smoothstep((s.meadow - 0.8) / 0.2) * (1 - s.lv) * Math.max(0, c.fade);
@@ -668,11 +668,8 @@ function buildMeadow(L, s, c0) {
           ctx.restore();
         }
       }
-      // a small line, only if you wait: sitting crying, how to go to it (after a few seconds); in the meadow, how to go on
-      // (after a few seconds with nothing done at all)
+      // a small line, only if you wait: in the meadow, how to go on (after a few seconds with nothing done at all)
       const ts = SAVE.data.settings.textSize || 1;
-      const sit = s.sitting ? smoothstep((s.sitT - END.sitLine) / 2) : 0;
-      if (sit > 0.01 || s.sitLineA > 0.01) s.sitLineA = sit > (s.sitLineA || 0) ? sit : Math.max(sit, (s.sitLineA || 0) - 1 / 30 / 0.5);   // (going, it fades out quickly)
       const idle = s.wait && !s.leaving && s.endT >= END.arm ? smoothstep((s.idle - END.idle) / 1.5) : 0;
       s.idleLineA = idle > (s.idleLineA || 0) ? idle : Math.max(idle, (s.idleLineA || 0) - 1 / 30 / 0.4);
       const line = (text, a, dark) => {
@@ -686,9 +683,133 @@ function buildMeadow(L, s, c0) {
         ctx.fillStyle = 'rgba(255,252,240,' + (0.8 * a).toFixed(3) + ')'; ctx.fillText(text, W / 2, ly);
         ctx.restore();
       };
-      const word = touchUI() ? 'TAP' : 'CLICK';   // (on a phone, a tap, a swipe up or the zoom button go to it)
-      line(word + ' TO GO TO IT', s.sitLineA || 0, [8, 8, 12]);
+      const word = touchUI() ? 'TAP' : 'CLICK';
       line(word + ' WHEN YOU ARE READY', s.idleLineA, [24, 44, 16]);
     },
   };
 }
+
+// ---------- the nights gone by ----------
+// While it holds you, the dark round you both turns, and every night you passed through goes by behind it, each as you
+// stood in it at its start: its ground and its sky, what lay about, its lights, and the thing that came for you there a
+// little way off on its way in. Each is built again as the game builds it and drawn once, from where you stood facing the
+// way you faced, onto a canvas of its own at half the view's resolution (js/render.js R.aside sets the game's own canvas
+// and scene aside for it), one every little while as it holds its first faces, long before they are wanted. Then (s.swirl
+// 0..1 over END.swirl) each comes up out of the middle of the turning dark behind its head, a round window on that night,
+// and grows and turns and goes past you, the next already coming up behind it, faster and faster, and the last of them is
+// a pale light that fills the view (the pale void: PALE_PAL). It is drawn behind it and in front of everything else
+// (s.backdrop: how much of the view it is). With reduced motion nothing turns or comes at you: each night is there behind
+// it in turn, and gives way to the next. With reduced flashing they are dimmer, and so is the light at the last.
+const VOID_RECAP = (() => {
+  const count = () => LEVELS.length - 1;   // every night before this one
+  const BASE = [7, 5, 13], STREAK = [[150, 120, 210], [110, 150, 220], [210, 130, 160]];
+  const AT = 4.6, EVERY = 0.9;   // (one every EVERY seconds from AT: after it has taken hold of you, while it holds its faces)
+  let shots = [], key = '';
+  // ready to draw them (again, if the view has changed size since they were drawn)
+  function begin() {
+    const k = R.W + 'x' + R.H + '@' + R.ctx.canvas.width;
+    if (k !== key) { key = k; shots = []; }
+  }
+  // the next of them, when it is time, while there are any left to draw
+  function step(t) {
+    if (shots.length >= count() || t < AT + shots.length * EVERY) return;
+    shots.push(shoot(shots.length));
+  }
+  // night i as it was at its start, drawn whole onto a canvas half the view's size (null if it could not be)
+  function shoot(i) {
+    const dpr = R.ctx.canvas.width / R.W, out = document.createElement('canvas');
+    out.width = Math.max(1, Math.round(R.W * dpr * 0.5)); out.height = Math.max(1, Math.round(R.H * dpr * 0.5));
+    const cam = G.cam, keep = { L: G.L, attempt: G.attempt, inv: G.inv, active: G.active, hover: G.hover, state: G.state, lanes: Object.assign({}, G.lastLane), lights: LIGHT.list, cam: { yaw: cam.yaw, tYaw: cam.tYaw, pitch: cam.pitch, tPitch: cam.tPitch, dirIdx: cam.dirIdx, zoom: cam.zoom } };
+    let L = null, back = null, ok = false;
+    const safe = fn => { try { return fn(); } catch (e) { return null; } };
+    try {
+      G.inv = [];
+      L = buildLevel(i);
+      const c = L.creature, CR = c.CR, yaw0 = L.def.startFacing !== undefined ? L.facing + L.def.startFacing * DEG : c.yaw;
+      const view = { yaw: Math.round(yaw0 / (45 * DEG)) * 45 * DEG, pitch: 0, zoom: 1, shakeX: 0, shakeY: 0 };
+      // (as it is drawn in play: a night's drawing may look at the night being played, the state and the view)
+      G.L = L; G.state = 'play'; cam.yaw = cam.tYaw = view.yaw; cam.pitch = cam.tPitch = 0; cam.zoom = 1; cam.dirIdx = ((Math.round(view.yaw / (45 * DEG)) % 8) + 8) % 8;
+      // it, a good way in from where it started, so it is there to be seen
+      c.u = 0.6; c.dist = c.D0 * Math.pow(1 - c.u, c.gamma); c.t = 2.5; c.gait = 0.6;
+      LIGHT.set(L.lights.concat((L.dynamicLights && safe(() => L.dynamicLights())) || []));
+      back = R.aside(out, L.props, 0.5);
+      R.hover = null;
+      R.begin(view, L, G.t);
+      for (const it of L.items) if (!it.taken) R.add({ kind: 'sprite', x: it.x, y: it.y, z: it.z, w: it.w, h: it.h, flat: it.flat, card: true, attach: !!it.attach, dist: Math.hypot(it.x, it.z), layer: 1, draw: (ctx, P) => { ctx.scale(it.w, it.h); safe(() => it.icon(ctx, P)); } });
+      if (L.dynamic) safe(() => L.dynamic());
+      const pos = c.pos();
+      R.add({ kind: 'sprite', x: pos.x, y: pos.y + (c.yOff || 0), z: pos.z, w: CR.w, h: CR.h, fogScale: 0.85, dist: Math.hypot(c.dist, c.lat || 0), layer: 1, noContact: true, draw: (ctx, P) => { ctx.save(); safe(() => CR.draw(ctx, c, P)); ctx.restore(); } });
+      R.flush();
+      ok = true;
+    } catch (e) { ok = false; } finally {
+      if (back) back();
+      G.L = keep.L; G.attempt = keep.attempt; G.inv = keep.inv; G.active = keep.active; G.hover = keep.hover; G.state = keep.state; Object.assign(cam, keep.cam);
+      for (const k of Object.keys(G.lastLane)) if (!(k in keep.lanes)) delete G.lastLane[k];
+      Object.assign(G.lastLane, keep.lanes);
+      LIGHT.set(keep.lights);
+      if (L && L.onEnd) safe(() => L.onEnd());
+    }
+    return ok ? out : null;
+  }
+  // how far through them it is (0: the first still far off, deep in the turning dark; count(): the light, at you)
+  const depth = u => { const k = clamp((u - 0.04) / 0.84, 0, 1); return -2.2 + (count() + 2.2) * (0.55 * k + 0.45 * k * k); };
+  // behind it: a renderable as far off as anything, drawn just before it (sortDist a little over its own distance, under the things on the floor), covering the
+  // whole view in its own pixels
+  function add(s) {
+    if (!(s.backdrop > 0.004)) return;
+    const y = R.yaw, d = 400;
+    R.add({ kind: 'sprite', x: Math.sin(y) * d, y: -d, z: Math.cos(y) * d, w: 4 * d, h: 4 * d, layer: 1, dist: d, sortDist: 1.2, noContact: true, noLight: true, noFog: true, draw: ctx => draw(ctx, s) });
+  }
+  function draw(ctx, s) {
+    const W = R.W, H = R.H, dpr = ctx.canvas.width / W, S = SAVE.data.settings, still = !!S.reducedMotion, dim = S.reducedFlash ? 0.7 : 1;
+    const N = count(), p = depth(s.swirl), t = Math.max(0, s.endT - END.swirl[0]), cx = W / 2, cy = H * 0.42, rr = Math.hypot(W, H) / 2 * 1.04;
+    const light = mixc(BASE, PALE_PAL.fog, dim);
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, R.viewY * dpr);
+    ctx.globalAlpha = s.backdrop;
+    ctx.fillStyle = rgba(BASE); ctx.fillRect(0, 0, W, H);
+    // a night (or, past the last of them, the light) filling a round window of radius r, turned by rot
+    const scene = (j, r, rot, a, ox, oy) => {
+      if (a <= 0.004) return;
+      ctx.save(); ctx.globalAlpha = s.backdrop * a;
+      ctx.translate(cx + (ox || 0), cy + (oy || 0)); ctx.rotate(rot);
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.clip();
+      const img = j < N ? shots[j] : null;
+      if (img) { const h = 2 * r, w = h * W / H; ctx.drawImage(img, -w / 2, -h / 2, w, h); if (dim < 1) { ctx.fillStyle = rgba(BASE, 1 - dim); ctx.fillRect(-r, -r, 2 * r, 2 * r); } }
+      else if (j >= N) { const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, rgba(mixc(light, [255, 255, 255], 0.35 * dim))); g.addColorStop(1, rgba(light)); ctx.fillStyle = g; ctx.fillRect(-r, -r, 2 * r, 2 * r); }
+      else { ctx.fillStyle = rgba([30, 26, 40]); ctx.fillRect(-r, -r, 2 * r, 2 * r); }
+      // its edge going soft into the dark round it
+      const e = ctx.createRadialGradient(0, 0, r * 0.78, 0, 0, r);
+      e.addColorStop(0, rgba(BASE, 0)); e.addColorStop(1, rgba(BASE, j >= N ? 0.25 : 0.85));
+      ctx.fillStyle = e; ctx.fillRect(-r, -r, 2 * r, 2 * r);
+      ctx.restore();
+    };
+    if (still) {
+      // each in turn, there behind it, and giving way to the next
+      const q = clamp(p, -1, N), j = Math.floor(q), k = smoothstep(q - j), R0 = Math.hypot(W, H);
+      if (j < 0) scene(0, R0, 0, k);
+      else { scene(j, R0, 0, 1); if (j < N) scene(j + 1, R0, 0, k); }
+    } else {
+      // the dark turning: pale streaks wound round the middle, faster as it goes
+      const spin = t * (0.5 + 0.9 * s.swirl);
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 14; i++) {
+        const col = STREAK[i % 3], a0 = spin + i / 14 * TAU;
+        ctx.strokeStyle = rgba(col, (0.06 + 0.06 * (i % 2)) * dim); ctx.lineWidth = 2 + 10 * (i % 4) / 3;
+        ctx.beginPath();
+        for (let n = 0; n <= 20; n++) { const u = n / 20, r = rr * (0.04 + 0.96 * u * u), a = a0 + u * 2.6; if (n) ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); else ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+        ctx.stroke();
+      }
+      // the nights, the furthest first: each comes up out of the middle and swings out round it on the turning dark,
+      // growing and turning, and goes past you beside it (the light at the last comes straight on, and fills the view)
+      for (let j = Math.min(N, Math.floor(p + 3.2)); j >= 0; j--) {
+        const z = j - p;
+        if (z > 3.2 || z < -0.75) continue;
+        const a = smoothstep((3.2 - z) / 1.0) * (z < 0 && j < N ? smoothstep((z + 0.75) / 0.75) : 1);
+        const sc = Math.pow(2.4, -z), out = j < N ? rr * 0.3 * sc * smoothstep(clamp(1.6 - z * 0.4, 0, 1)) : 0, ang = spin * 0.5 + j * 2.1 + z * 0.9;
+        scene(j, rr * (j < N ? 0.7 : 1) * sc, spin * 0.35 + z * 0.8, a, Math.cos(ang) * out, Math.sin(ang) * out * 0.8);
+      }
+    }
+    ctx.restore();
+  }
+  return { begin, step, add, shoot, get shots() { return shots; }, depth };
+})();

@@ -105,6 +105,9 @@ const SOUNDS = [
   { kind: 'sfx', name: 'hangers', n: R12, d: 'Coat hangers clinking now and then on the wind; not on night 12, where the closet is a way in.', src: 'story.js' },
   { kind: 'sfx', name: 'whoosh', n: [12], d: 'A sweep of air, low to high and back down. On Nightmare it glides round the bed to the other way in.', src: 'night12' },
   // ---- night 13: the void and the ending ----
+  { kind: 'sfx', name: 'screech', n: [13], d: 'A scraping shriek, rising and breaking, gritty; a little different each time. The demon enraged: again and again while you hold anything, more often the angrier it is (every 3 s down to under 1 s); once as it takes hold of you at the end.', src: 'night13 screech · ending grab' },
+  { kind: 'sfx', name: 'screechRage', n: [13], d: 'A longer, wilder screech: two shrieks at odds and a growl under them. The demon beside itself (five or more held, or the bow drawn at it), every second or so.', src: 'night13 screech' },
+  { kind: 'sfx', name: 'warp', n: [13], d: 'A rushing that swells and climbs for ten seconds over a rising low note. The dark turning at the end, every night going by behind it.', src: 'night13 ending' },
   { kind: 'sfx', name: 'birds', n: [13], d: 'A little birdsong. Dawn in the meadow at the end.', src: 'night13 ending' },
   { kind: 'sfx', name: 'win', n: 'all', d: 'A soft rising chord. A night survived (the fade at the end of the aftermath); the ending’s last moment.', src: 'game.js · night13' },
   // ---- defined but never played ----

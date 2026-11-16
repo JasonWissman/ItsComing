@@ -1008,8 +1008,17 @@ const R = (() => {
     if (fx.white > 0.001) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, fx.white) + ')'; ctx.fillRect(0, 0, W, H); }
   }
 
+  // a whole other scene drawn somewhere else between two frames (the last night draws the nights before it, to show them
+  // again), at k times the view's resolution (cv is k times the game canvas's size): the canvas, the resolution and the
+  // statics drawn with are set aside for it, and the function returned puts them back
+  function aside(cv, props, k) {
+    const was = { canvas, ctx, statics, pending, contacts, wasMoving, DPR, viewY };
+    attach(cv); prepare(props); contacts = new Map(); DPR *= k || 1; viewY = 0;
+    return () => { canvas = was.canvas; ctx = was.ctx; statics = was.statics; pending = was.pending; contacts = was.contacts; wasMoving = was.wasMoving; DPR = was.DPR; viewY = was.viewY; moved.length = 0; };
+  }
+
   return {
-    attach, resize, begin, add, prepare, flush, post, screenPos, projectRect, fogAmt,
+    attach, resize, begin, add, prepare, flush, post, screenPos, projectRect, fogAmt, aside,
     get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageH() { return pageH; },
     get hits() { return hits; },
     get detail() { return detailOn; }, set detail(v) { detailOn = !!v; },
