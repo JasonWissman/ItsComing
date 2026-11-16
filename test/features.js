@@ -144,7 +144,13 @@ const hoverHit = lookFor;
   tv = await page.evaluate(() => ({ st: G.state, step: TITLE.step, dark: (() => { const c = document.getElementById('titleScene'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let m = 0; for (let i = 0; i < d.length; i += 4 * 97) m = Math.max(m, d[i] + d[i + 1] + d[i + 2]); return m; })() }));
   check(tv.st === 'title' && tv.step === 4 && tv.dark < 12, 'a click on the title\'s dark does not begin the night; it brings it a step nearer, while the view is blinked shut (' + JSON.stringify(tv) + ')');
   await page.waitForTimeout(700);
-  check(await page.evaluate(() => G.state === 'title' && TITLE.step === TITLE.STEPS), 'and the view opens again on it, nearer');
+  check(await page.evaluate(() => G.state === 'title' && TITLE.step === 4), 'and the view opens again on it, nearer');
+  // two steps more and it is bent down over you, its head low and nearer than the rest of it; then no nearer
+  tv = await page.evaluate(() => { const o = []; for (let i = 0; i < 4; i++) { MENU.act('howto'); MENU.act('back', 'title'); o.push(TITLE.step); } return { steps: o, n: TITLE.STEPS, near: TITLE.near }; });
+  check(tv.n === 6 && tv.steps.join() === '5,6,6,6' && tv.near === 1, 'two more steps, to the closest, and it stays there (' + JSON.stringify(tv) + ')');
+  check(await page.evaluate(() => /^IM Fell English/.test(getComputedStyle(document.body).fontFamily.replace(/["']/g, '')) && /IM Fell English/.test(getComputedStyle(document.querySelector('#overlay .mbtn')).fontFamily)), 'the body and the buttons are in IM Fell English too');
+  tv = await page.evaluate(() => { const b = document.querySelector('#overlay button[data-act="begin"]'), o = document.querySelector('#overlay button[data-act="howto"]'), c = e => getComputedStyle(e); return { prim: b.classList.contains('primary'), bg: c(b).backgroundColor, fg: c(b).color, other: c(o).backgroundColor }; });
+  check(tv.prim && tv.bg === 'rgb(239, 230, 210)' && /^rgb\((\d|1\d),/.test(tv.fg) && tv.other !== tv.bg, 'Begin is drawn inverted, light with dark letters, unlike the rest (' + JSON.stringify(tv) + ')');
   await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(300);
   check(await page.evaluate(() => G.state !== 'title' && !document.body.classList.contains('titlescene')), 'Begin leaves the title, and its scene goes with it');
   await page.goto(URL); await page.waitForTimeout(300);
@@ -171,11 +177,11 @@ const hoverHit = lookFor;
   await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
   tv = await page.evaluate(() => {
     const p = document.querySelector('#overlay .panel'), cards = [...document.querySelectorAll('#overlay .ncard')], r = c => c.getBoundingClientRect();
-    return { fits: p.scrollHeight <= p.clientHeight + 1, open: document.querySelectorAll('#overlay button.ncard').length, cols: new Set(cards.map(c => Math.round(r(c).left))).size, eighth: Math.round(r(cards[7]).top) === Math.round(r(cards[0]).top),
+    return { fits: p.scrollHeight <= p.clientHeight + 1, open: document.querySelectorAll('#overlay button.ncard').length, cols: new Set(cards.map(c => Math.round(r(c).left))).size, seventh: Math.round(r(cards[6]).top) === Math.round(r(cards[0]).top) && Math.round(r(cards[5]).left) === Math.round(r(cards[0]).left) && Math.round(r(cards[6]).left) > Math.round(r(cards[0]).left),
       best: (cards[0].querySelector('.nbest') || {}).textContent, run: document.querySelector('#overlay .runcard .rtime').textContent, label: document.querySelector('#overlay .runcard .rlabel').textContent,
       frag: !!document.querySelector('#overlay button[data-act="fragments"]'), bottom: Math.round(r(p).bottom) <= innerHeight };
   });
-  check(tv.fits && tv.bottom && tv.open === 10 && tv.cols === 2 && tv.eighth, 'the nights in two columns, down the first and then the second, all in view without scrolling (' + JSON.stringify(tv) + ')');
+  check(tv.fits && tv.bottom && tv.open === 10 && tv.cols === 2 && tv.seventh, 'the nights in two columns, 1 to 6 down the first and 7 to 13 down the second, all in view without scrolling (' + JSON.stringify(tv) + ')');
   check(tv.best === 'best41 s' && tv.label === 'Best full run' && tv.run === '20:35' && !tv.frag, 'each night\'s best inside its card, the best full run in a card of its own, and no Fragments (' + JSON.stringify(tv) + ')');
   await page.evaluate(() => { SAVE.data.bestRun = {}; MENU.act('back', 'title'); MENU.act('nights'); });
   check(await page.evaluate(() => document.querySelector('#overlay .runcard .rtime').textContent === '—' && /in one go/.test(document.querySelector('#overlay .runcard .rhint').textContent)), 'no full run yet: a dash, and a line on what one is');
@@ -198,6 +204,7 @@ const hoverHit = lookFor;
   await playFor(1);
   await page.evaluate(() => { win(); for (let k = 0; k < 60; k++) G.step(0.05); });
   check(await page.evaluate(() => Math.abs(G.run.t - 3) < 0.06 && G.run.night === 1), 'a night won: the run goes on to the next, and the watching after is not on the clock');
+  check(await page.evaluate(() => G.run.nights.length === 1 && Math.abs(G.run.nights[0].t - 1) < 0.06 && G.run.nights[0].best === true), 'and it keeps the time of the attempt that won it, a first best (' + await page.evaluate(() => JSON.stringify(G.run.nights)) + ')');
   await page.evaluate(() => proceedFromSurvived());
   check(await page.evaluate(() => G.levelIndex === 1 && G.run && G.run.night === 1), 'Next night keeps the run');
   await page.evaluate(() => { SAVE.unlock('nightmare', 1); showTitle(); });
@@ -215,8 +222,11 @@ const hoverHit = lookFor;
   // the last night won with a run on it: counted, and kept if it is the best
   const last = await page.evaluate(() => { G.run = { t: 900, night: LEVELS.length - 1 }; startLevel(LEVELS.length - 1, false); for (let k = 0; k < 20; k++) G.step(0.05); win(); return { best: SAVE.data.bestRun.nightmare, run: G.run, saved: JSON.parse(localStorage.getItem('itscoming.v2')).bestRun.nightmare }; });
   check(last.best > 900 && last.best < 902 && last.saved === last.best && last.run === null, 'winning the last night on a run records the full run, in the save (' + JSON.stringify(last) + ')');
+  check(await page.evaluate(b => G.lastRun && Math.abs(G.lastRun.t - b) < 0.06 && G.lastRun.best === true && !!G.lastRun.nights[LEVELS.length - 1], last.best), 'and keeps it for the results after the ending, a new best');
   await page.evaluate(() => { G.run = { t: 1500, night: LEVELS.length - 1 }; startLevel(LEVELS.length - 1, false); win(); });
-  check(await page.evaluate(b => SAVE.data.bestRun.nightmare === b, last.best), 'a slower run does not replace the best');
+  check(await page.evaluate(b => SAVE.data.bestRun.nightmare === b && G.lastRun.best === false, last.best), 'a slower run does not replace the best, and is not one');
+  await page.evaluate(() => { startLevel(LEVELS.length - 1, false); win(); });
+  check(await page.evaluate(() => G.lastRun === null), 'the last night won with no run on it leaves no run for the results');
 
   console.log('== the win screen between nights ==');
   await page.goto(URL + '?level=1&go&nofr&seed=1'); await page.waitForTimeout(300);
@@ -621,8 +631,30 @@ const hoverHit = lookFor;
   check(left.leaving && left.mid.state === 'won' && left.mid.room > 0.2 && left.mid.room < 1 && left.mid.fade < 1 && left.mid.lv > 0.3, 'a click: the meadow and it fade away as the bedroom comes (' + JSON.stringify(left.mid) + ')');
   check(left.mid.view < 0.2 && Math.abs(left.mid.pitch) < 0.15, 'and the view comes back round to it, level, as the room comes');
   check(left.state === 'end' && left.room === 1 && Math.abs(left.eyeH - 1.15) < 0.01 && left.kind === 'ending', 'the bedroom in the morning, and the last screen');
-  check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') === 'day' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act="again"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true), 'the light theme, faced your demons, Play again, the campaign complete');
+  check(await page.evaluate(() => document.documentElement.getAttribute('data-theme') === 'day' && /faced your demons/i.test(UI.overlay.textContent) && document.querySelector('#overlay button[data-act="done"]').textContent === 'I did it' && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true), 'the light theme, faced your demons, I did it, the campaign complete');
   await shot(page, 'ending');
+  // I did it: the nights as on the Nights screen, their times coming in one by one, then the full run, then Finish game
+  await page.mouse.click(640, 120); await page.waitForTimeout(100);
+  check(await page.evaluate(() => G.state === 'end' && MENU.kind === 'ending'), 'a click off the button does not leave the last screen');
+  await page.click('#overlay button[data-act="done"]'); await page.waitForTimeout(1200);
+  tv = await page.evaluate(() => ({ kind: MENU.kind, cards: document.querySelectorAll('#overlay .results .rcard').length, in: document.querySelectorAll('#overlay .rcard.in').length, run: document.querySelector('#overlay .rrun').classList.contains('in'), fin: document.querySelector('#overlay .rlast').classList.contains('in') }));
+  check(tv.kind === 'results' && tv.cards === 13 && tv.in > 0 && tv.in < 13 && !tv.run && !tv.fin, 'I did it: the results, the cards filling in one after another (' + JSON.stringify(tv) + ')');
+  await page.waitForTimeout(4600);
+  tv = await page.evaluate(() => ({ in: document.querySelectorAll('#overlay .rcard.in').length, run: document.querySelector('#overlay .rrun').classList.contains('in'), label: document.querySelector('#overlay .rrun .rlabel').textContent, fin: document.querySelector('#overlay .rlast').classList.contains('in'), focus: document.activeElement && document.activeElement.dataset.act, left: [...document.querySelectorAll('#overlay .rcard')].filter(c => Math.round(c.getBoundingClientRect().left) === Math.round(document.querySelector('#overlay .rcard').getBoundingClientRect().left)).length }));
+  check(tv.in === 13 && tv.run && tv.label === 'Best full run' && tv.fin && tv.focus === 'finish' && tv.left === 6, 'then the full run (not a full run here: the best), then Finish game, focused; six nights down the left (' + JSON.stringify(tv) + ')');
+  await page.click('#overlay button[data-act="finish"]'); await page.waitForTimeout(200);
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && !TITLE.on), 'Finish game: home to the title, in the morning');
+  // a full run to the end: this run's times, and a new best; reduced motion shows it all at once
+  tv = await page.evaluate(() => {
+    MENU.applySetting('reducedMotion', true);
+    G.lastRun = { t: 1500.4, best: true, nights: LEVELS.map((l, i) => ({ t: 30 + i, best: i % 2 === 0 })) };
+    setState('end'); MENU.show('results');
+    const cards = [...document.querySelectorAll('#overlay .rcard')];
+    const o = { in: cards.filter(c => c.classList.contains('in')).length, fin: document.querySelector('#overlay .rlast').classList.contains('in'), first: cards[0].querySelector('.nbest').textContent, second: cards[1].querySelector('.nbest').textContent, label: document.querySelector('#overlay .rrun .rlabel').textContent, time: document.querySelector('#overlay .rrun .rtime').textContent, hint: document.querySelector('#overlay .rrun .rhint').textContent };
+    MENU.applySetting('reducedMotion', false); G.lastRun = null;
+    return o;
+  });
+  check(tv.in === 13 && tv.fin && tv.first === 'new best30 s' && /^(best .*)?31 s$/.test(tv.second) && tv.label === 'This run' && tv.time === '25:00' && tv.hint === 'A new best full run', 'after a full run: its own times, which were new bests, and its time, a new best; with reduced motion all at once (' + JSON.stringify(tv) + ')');
   // a press while it still holds you does nothing; in the meadow a key (R too: it goes on, it does not start the night
   // again), A on a pad, or the touch Use button goes on, just as a click does
   for (const [how, press] of [['a key (R)', async () => page.keyboard.press('r')], ['A on a pad', async () => page.evaluate(() => {
