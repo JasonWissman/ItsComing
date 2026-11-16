@@ -76,7 +76,7 @@ const ending = [
   ['waitUntil', "G.state === 'end'", 12000],
   ['expect', "document.documentElement.getAttribute('data-theme') === 'day'", 'the light theme is on'],
   ['expect', 'G.L.s.room === 1 && G.L.s.lv === 1 && G.L.creature.fade === 0 && Math.abs(G.L.eyeH - 1.15) < 0.01', 'the meadow and it are gone and it is the bedroom, in the morning'],
-  ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"again\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true", 'the last screen, Play again, campaign marked complete'],
+  ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"done\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true", 'the last screen, I did it, campaign marked complete'],
 ];
 module.exports = {
   nightmare: [].concat(start, tempted, full, oneDown, letGo, ending),
