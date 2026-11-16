@@ -263,7 +263,8 @@ some on the ground, so you have to turn and look down to find them.
     its head goes over the other way; which arm the others
     raise changes from one load to the next, so only comparing tells). The mirrors are
     otherwise alike, and two are under dust sheets. The music box lies in one place and its
-    crank in another. Any pedestal takes the box, and the crank fits its side on any of them,
+    crank in another. Any pedestal takes the box, sitting square on its top with its front to
+    you and its lid open, and the crank fits its front on any of them,
     but its tune plays only before the odd mirror: there each turn plays a few notes of it,
     and on the last the doll stops dancing, turns round once on the spot like the dancer on
     the box, and comes running out through the glass for the box, smiling, lifts it off the

@@ -5,8 +5,8 @@
 // before each, all alike. In every glass it dances on the spot, a stiff wind-up doll's dance (each move snapped
 // into at once and held dead still a long beat), in step in all of them; one mirror is not like the others: in it the
 // dance is the mirror image of the rest (left and right swapped).
-// The music box lies in one place and its crank in another. The box goes on any pedestal and the crank on the box's side,
-// and a few turns of the crank before the odd mirror play its tune: the doll stops dancing, turns round once on the spot
+// The music box lies in one place and its crank in another. The box goes on any pedestal and the crank in its front, and a
+// few turns of the crank before the odd mirror play its tune: the doll stops dancing, turns round once on the spot
 // like the dancer on the box, and comes out through that glass for the box, quickly, lifts it off the pedestal, and takes
 // it back in with it and away. Before any other mirror the first turn plays wrong notes and the crank sticks: in the glass
 // the doll stops dancing, its face crumples into red-eyed weeping and it hops at you (three quick steps). A click on the
@@ -148,13 +148,13 @@ LEVELS.push({
         } });
       }
     }
-    // which side of the pedestal it will stand to take the box, and run off to behind the glass; the box's crank is on the
-    // side away from it (s.flip). Behind the south mirror it always goes left: the way out is on its right, and running off
-    // that way it would be seen through the doorway, outside the hall
+    // which side of the pedestal it will stand to take the box, and run off to behind the glass; the box's crank is in the
+    // half of its front away from it (s.flip). Behind the south mirror it always goes left: the way out is on its right, and
+    // running off that way it would be seen through the doorway, outside the hall
     const sideRoll = L.rand();
     s.side = s.mirrors[s.odd].deg === 180 || sideRoll < 0.5 ? -1 : 1; s.flip = s.side > 0;
     s.lead = (sideRoll * 2) % 1 < 0.5 ? 1 : -1;   // the next bit of the same roll, so the layout and the doll's start are as they were
-    // placedAt: the pedestal the box is on (-1: none); crankIn: its crank is in its side; turns: turns before the odd mirror;
+    // placedAt: the pedestal the box is on (-1: none); crankIn: its crank is in its front; turns: turns before the odd mirror;
     // sour: it has played wrong where it is, and its crank sticks; angryTill: the doll is angry until then
     Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99, sour: false, angryTill: -99 });
     const panTo = (x, z) => Math.sin(wrapPi(Math.atan2(x, z) + L.facing - G.cam.yaw)) * 0.7;
@@ -166,10 +166,9 @@ LEVELS.push({
     // crumples, weeping red, and behind you something takes three quick steps (it hops in to two thirds of how far off
     // it was, never right up to you). The crank stays stuck, so a box turned before the wrong mirror costs one hop, not
     // one a click
-    // where the crank is on the box on pedestal k (its knob, out from the box's side), in the world: the hand goes there to
-    // turn it. Box and crank are drawn as the music box's icon, BOXW across, its crank's knob about 0.38 of that out to the
-    // side it is on, at about 0.3 of it up
-    const crankAt = k => { const q = onLine(PED - 0.04, (s.flip ? -1 : 1) * 0.38 * BOXW, BOXY + 0.3 * BOXW, k); return { x: q[0], y: q[1], z: q[2] }; };
+    // where the crank is on the box on pedestal k (in the middle of its turn, out from the front of the box), in the world:
+    // the hand goes there to turn it
+    const crankAt = k => { const q = onLine(PED - MB.d / 2 - 0.03, (s.flip ? -1 : 1) * MB.cx, BOXY + MB.foot + MB.h / 2, k); return { x: q[0], y: q[1], z: q[2] }; };
     // a turn of the crank is the hand's own (the box makes the sound): G.reach, kept quiet
     const turnHand = (t, k, style) => { const r = G.reach(t, { style, at: crankAt(k) }); if (r && style === 'pull') r.touched = 99; };
     const wrongTurn = p => {
@@ -199,7 +198,7 @@ LEVELS.push({
         id: 'pedestal' + k, name: 'Pedestal', x: p.x, y: 0, z: p.z, w: 0.6, h: 1.2, accepts: ['musicbox', 'crank'],
         reach: { style: 'touch', at: [0, 0.64] },   // with nothing in hand the hand goes out to the top of it (its cap, 0.75 m up)
         hint() {
-          if (s.placedAt === k) return s.sour ? 'The music box. Its crank sticks here: take it back.' : !s.crankIn ? (G.hasItem('crank') ? 'The music box. Its crank fits its side.' : 'The music box. Take it back.') : 'Turn the crank. ' + (TURNS - s.turns) + ' more.';
+          if (s.placedAt === k) return s.sour ? 'The music box. Its crank sticks here: take it back.' : !s.crankIn ? (G.hasItem('crank') ? 'The music box. Its crank fits its front.' : 'The music box. Take it back.') : 'Turn the crank. ' + (TURNS - s.turns) + ' more.';
           return s.placedAt >= 0 ? 'An empty pedestal.' : k === s.odd ? 'The pedestal before the odd mirror.' : 'A pedestal before the ' + DIRS[k] + ' mirror.';
         },
         use(item) {
@@ -208,7 +207,7 @@ LEVELS.push({
             // any pedestal takes it, and it sits the same on every one
             s.placedAt = k; s.crankIn = !!box.withCrank; s.sour = false; this.name = 'Music box';   // hovering the box on it, it is the box you are turning
             AUDIO.sfx('drop');
-            G.say(s.crankIn ? 'The box sits on the pedestal, its crank in its side. Turn it.' : 'The box sits on the pedestal. Now its crank.', 'There.'); refresh(); return true;
+            G.say(s.crankIn ? 'The box sits on the pedestal, its crank in its front. Turn it.' : 'The box sits on the pedestal. Now its crank.', 'There.'); refresh(); return true;
           }
           if (item.id === 'crank') {
             // nothing on this pedestal for it to fit: its socket feels about the bare top of the pedestal for something to
@@ -218,7 +217,7 @@ LEVELS.push({
               const q = onLine(PED - 0.08, 0.04, 0.78, k);
               return G.refuse({ preset: 'bump', drop: false, at: { x: q[0], y: q[1], z: q[2] }, tip: [0.3, 0.3], sfx: { hit: 'tink' } });
             }
-            s.crankIn = true; AUDIO.sfx('fit'); G.say('The crank fits the side of the box. Turn it.', 'It fits.'); refresh(); return true;
+            s.crankIn = true; AUDIO.sfx('fit'); G.say('The crank fits the front of the box. Turn it.', 'It fits.'); refresh(); return true;
           }
           return false;
         },
@@ -272,7 +271,102 @@ LEVELS.push({
     // behind the glass, out of the frame. The mirror is empty, the pedestal bare, and the tune plays on.
     const F = { settle: 0.22, turn: 0.95, reach: 0.35, lift: 0.8, back: 1.1, run: 1.3, after: 1.0 };
     const AT = 2.3, LAT = 0.58, IN = 4.4, RUNLAT = 2.4, BOXW = 0.4, BOXY = 0.75, CA = CR.carryAt;
-    const drawBox = (ctx, P) => { if (s.flip) ctx.scale(-1, 1); ICONS.musicbox(ctx, P, { crank: s.crankIn ? s.crankA : undefined, spin: s.spin }); };
+    // The music box set down is built where it stands, square on the pedestal and in true perspective as the pedestal is:
+    // a walnut case (its front toward you, its top seen from above) on brass feet, its lid standing open at the back with
+    // the red velvet and the little round mirror inside it toward you, the works and the dancer in its open top, and the
+    // crank in the front, right of the brass heart (left, if the doll takes it from the right: s.flip), going round in the
+    // plane of the front. MB: its size at BOXW (in metres; at another size it is that much bigger or smaller): w across,
+    // h high on feet foot high, d deep, a lid lid high, and the crank's boss cx across from the middle of the front.
+    const MB = { w: 0.32, h: 0.12, d: 0.18, foot: 0.012, lid: 0.15, cx: 0.07, crankR: 0.034 };
+    const MBC = {
+      wood: [124, 74, 40], woodD: [84, 48, 26], woodL: [166, 112, 66], grain: [100, 58, 30], inside: [40, 22, 18], brass: [212, 174, 90], brassD: [118, 88, 36],
+      velvet: [146, 32, 48], velvetD: [96, 20, 32], glass: [150, 172, 198], glassL: [222, 232, 246], steel: [198, 202, 212], steelD: [96, 100, 110], pale: [242, 232, 226],
+    };
+    // the front of the case, its feet and its crank, in metres on the front (x across, y up from the foot of the feet)
+    const boxFront = (ctx, P, o) => {
+      const w = MB.w, h = MB.h, f = MB.foot, c = k => P.col(MBC[k]), fl = o.flip ? -1 : 1;
+      for (const x of [-w / 2 + 0.018, w / 2 - 0.018]) P_ell(ctx, x, f * 0.75, 0.012, 0.009, c('brass'));
+      P_rect(ctx, -w / 2, f, w, h, c('wood'));
+      P_rect(ctx, -w / 2, f + h - 0.012, w, 0.012, c('woodL')); P_rect(ctx, -w / 2 - 0.004, f, w + 0.008, 0.014, c('woodD'));
+      for (const y of [0.045, 0.085]) P_line(ctx, -w / 2 + 0.014, f + y, w / 2 - 0.016, f + y + 0.004, 0.0025, c('grain'));
+      heartShape(ctx, -fl * 0.06, f + h * 0.48, 0.02, c('brass'), c('brassD'));
+      const hx = fl * MB.cx, hy = f + h / 2;
+      P_ell(ctx, hx, hy, 0.012, 0.012, c('brassD')); P_ell(ctx, hx, hy, 0.009, 0.009, c('brass'));
+      if (o.crank === undefined) { P_rect(ctx, hx - 0.004, hy - 0.004, 0.008, 0.008, P.col([30, 16, 10])); return; }
+      const R = MB.crankR, ex = hx + Math.cos(o.crank) * R, ey = hy + Math.sin(o.crank) * R;
+      P_line(ctx, hx, hy, ex, ey, 0.013, c('brassD')); P_line(ctx, hx, hy, ex, ey, 0.008, c('brass'));
+      P_ell(ctx, hx, hy, 0.0055, 0.0055, c('brassD'));
+      P_ell(ctx, ex + 0.003, ey - 0.003, 0.011, 0.011, c('brassD')); P_ell(ctx, ex, ey, 0.009, 0.009, c('pale'));
+      P_ell(ctx, ex - 0.003, ey + 0.003, 0.003, 0.003, P.cola([255, 255, 255], 0.7));
+    };
+    // the inside of the lid, standing open (x across, y up from its hinge)
+    const boxLid = (ctx, P) => {
+      const w = MB.w, h = MB.lid, c = k => P.col(MBC[k]);
+      P_rect(ctx, -w / 2, 0, w, h, c('woodD'));
+      P_rect(ctx, -w / 2 + 0.012, 0.006, w - 0.024, h - 0.018, c('velvet'));
+      P_rect(ctx, -w / 2 + 0.012, h - 0.02, w - 0.024, 0.008, c('velvetD'));
+      P_rect(ctx, -w / 2, h - 0.006, w, 0.006, c('woodL'));
+      P_ell(ctx, 0, h * 0.55, 0.036, 0.04, c('brassD')); P_ell(ctx, 0, h * 0.55, 0.03, 0.034, c('glass'));
+      P_poly(ctx, [[-0.016, h * 0.58], [-0.002, h * 0.66], [0.004, h * 0.64], [-0.01, h * 0.56]], c('glassL'));
+    };
+    // the dancer on her mirror disc, on her toes, a pink tutu, her arms up in a ring (y up from her toes, 0.09 high);
+    // spin turns her (seen narrower edge on, and from behind past a quarter turn)
+    const dancer = (ctx, P, spin) => {
+      const pale = P.col([242, 232, 226]), pink = P.col([234, 160, 182]), pinkL = P.col([252, 210, 222]), bun = P.col([70, 44, 30]);
+      const sx = Math.cos(spin || 0);
+      ctx.save(); ctx.scale(0.36 * Math.sign(sx || 1) * Math.max(0.3, Math.abs(sx)), 0.36); ctx.translate(0, -0.452);
+      P_line(ctx, 0, 0.452, 0.004, 0.56, 0.016, pale);
+      P_line(ctx, 0.004, 0.56, 0.06, 0.585, 0.014, pale);
+      P_ell(ctx, 0, 0.565, 0.07, 0.02, pink); P_ell(ctx, 0, 0.572, 0.055, 0.011, pinkL);
+      P_poly(ctx, [[-0.013, 0.57], [0.013, 0.57], [0.008, 0.628], [-0.008, 0.628]], pink);
+      P_limb(ctx, [[-0.008, 0.622], [-0.03, 0.66], [-0.01, 0.705]], 0.011, pale); P_limb(ctx, [[0.008, 0.622], [0.03, 0.66], [0.01, 0.705]], 0.011, pale);
+      P_ell(ctx, 0, 0.648, 0.016, 0.019, pale); P_ell(ctx, 0, 0.66, 0.016, 0.009, bun); P_ell(ctx, 0, 0.673, 0.008, 0.007, bun);
+      ctx.restore();
+    };
+    // the box as one picture, as the eye sees it held at about that height in front of it (front, top, lid): what the
+    // doll carries, drawn in its arms in a box BOXW across (x -0.5..0.5, y up from 0)
+    const drawBox = (ctx, P) => {
+      const k = 1 / BOXW, fl = s.flip ? -1 : 1, w = MB.w * k, top = (MB.foot + MB.h) * k, dTop = 0.19, wBack = w * 0.94, c = q => P.col(MBC[q]);
+      ctx.save(); ctx.translate(0, top + dTop); ctx.scale(k * 0.94, k * 0.9); boxLid(ctx, P); ctx.restore();
+      P_poly(ctx, [[-w / 2, top], [w / 2, top], [wBack / 2, top + dTop], [-wBack / 2, top + dTop]], c('woodL'));
+      P_poly(ctx, [[-w / 2 + 0.035, top + 0.012], [w / 2 - 0.035, top + 0.012], [wBack / 2 - 0.03, top + dTop - 0.02], [-wBack / 2 + 0.03, top + dTop - 0.02]], c('inside'));
+      const wy = top + 0.07, cx0 = fl > 0 ? -0.3 : 0.06;
+      P_rect(ctx, cx0, wy - 0.012, 0.24, 0.04, c('brassD')); P_rect(ctx, cx0, wy, 0.24, 0.018, c('brass'));
+      for (let i = 0; i < 9; i++) P_line(ctx, -fl * (0.29 - i * 0.026), top + 0.03, -fl * (0.29 - i * 0.026), wy - 0.012, 0.012, c('steel'));
+      P_ell(ctx, fl * 0.175, top + 0.09, 0.07, 0.022, c('brassD')); P_ell(ctx, fl * 0.175, top + 0.092, 0.058, 0.016, c('glass'));
+      ctx.save(); ctx.translate(fl * 0.175, top + 0.09); ctx.scale(k, k); dancer(ctx, P, s.spin); ctx.restore();
+      ctx.save(); ctx.scale(k, k); boxFront(ctx, P, { flip: s.flip, crank: s.crankIn ? s.crankA : undefined }); ctx.restore();
+    };
+    // the box built on pedestal k (or on its way off it), as liftedBox places it (b), its base y0 high, tipped over by rock
+    // in the plane of its front (about the middle of its base). glow: the target it is a piece of
+    const boxParts = (k, b, y0, rock, glow) => {
+      const sc = b.w / BOXW, fl = s.flip ? -1 : 1, cr = Math.cos(rock), sr = Math.sin(rock);
+      const yaw = s.mirrors[k].deg * DEG + Math.PI, out = [];
+      const at = (u, y, v) => { const uu = u * sc, yy = y * sc; return onLine(b.d + v * sc, b.lat + uu * cr - yy * sr, y0 + uu * sr + yy * cr, k); };
+      const quad = (pts, col, sd) => out.push({ kind: 'poly', pts: pts.map(p => at(p[0], p[1], p[2])), color: col, sortDist: sd, glowOf: glow });
+      // a part on an upright face of it (in true perspective, as the face is), its foot at (u, y, v); tipped with the rest
+      const onFace = (u, y, v, w, h, draw, sd) => {
+        const p = at(u, y, v);
+        out.push(SC.mkSprite(L, 0, 0, 0, w * sc, h * sc, (ctx, P) => { ctx.scale(sc, sc); if (rock) ctx.rotate(rock); draw(ctx, P); }, { x: p[0], y: p[1], z: p[2], face: yaw, sortDist: sd, glowOf: glow }));
+      };
+      const W = MB.w / 2, D = MB.d / 2, T = MB.foot + MB.h, I = 0.012;
+      // the lid, then the top and the open inside of it, the works and the dancer, a side if it is in view, the front
+      onFace(0, T, D, MB.w, MB.lid, boxLid, 2.17);
+      quad([[-W, T, -D], [W, T, -D], [W, T, D], [-W, T, D]], MBC.woodL, 2.16);
+      quad([[-W + I, T, -D + I], [W - I, T, -D + I], [W - I, T, D - I], [-W + I, T, D - I]], MBC.inside, 2.159);
+      const cu0 = -fl * 0.13, cu1 = -fl * 0.02, cy = T - 0.008;   // the brass cylinder, across the left of the inside, and the steel comb before it
+      quad([[cu0, cy - 0.02, -0.005], [cu1, cy - 0.02, -0.005], [cu1, cy, -0.005], [cu0, cy, -0.005]], MBC.brassD, 2.1585);
+      quad([[cu0, cy, -0.005], [cu1, cy, -0.005], [cu1, cy, 0.025], [cu0, cy, 0.025]], MBC.brass, 2.1584);
+      quad([[cu0, cy - 0.004, -0.04], [cu1, cy - 0.004, -0.04], [cu1, cy - 0.004, -0.03], [cu0, cy - 0.004, -0.03]], MBC.steelD, 2.1583);
+      for (let i = 0; i < 9; i++) { const u = cu0 + (cu1 - cu0) * (i + 0.5) / 9; out.push({ kind: 'poly', pts: [at(u, cy - 0.003, -0.032), at(u, cy - 0.003, -0.007)], color: MBC.steel, stroke: true, lw: 0.0035 * sc, sortDist: 2.1582, glowOf: glow }); }
+      const du = fl * 0.075, dv = 0.01, disc = (r, y, col, sd) => quad(Array.from({ length: 12 }, (_, i) => [du + Math.cos(i / 12 * TAU) * r, y, dv + Math.sin(i / 12 * TAU) * r]), col, sd);
+      disc(0.028, cy, MBC.brassD, 2.1581); disc(0.022, cy + 0.0005, MBC.glass, 2.158);
+      { const p = at(du, cy, dv); out.push(SC.mkSprite(L, 0, 0, 0, 0.06 * sc, 0.1 * sc, (ctx, P) => { ctx.scale(sc, sc); dancer(ctx, P, s.spin); }, { x: p[0], y: p[1], z: p[2], sortDist: 2.1575, glowOf: glow })); }
+      const side = b.lat > W * sc ? -1 : b.lat < -W * sc ? 1 : 0;   // (from the middle of the room a side shows only once it is lifted off to one side)
+      if (side) quad([[side * W, MB.foot, -D], [side * W, MB.foot, D], [side * W, T, D], [side * W, T, -D]], MBC.woodD, 2.155);
+      onFace(0, 0, -D, MB.w + 0.02, T + 0.012, (ctx, P) => boxFront(ctx, P, { flip: s.flip, crank: s.crankIn ? s.crankA : undefined }), 2.15);
+      return out;
+    };
     // where the box is while it is lifted (lift 0..1): off the pedestal, up over its cap, and down into the doll's arms in
     // front of it; as lane distance, lateral offset, height of its base and size
     const liftedBox = l => {
@@ -317,7 +411,7 @@ LEVELS.push({
         const reach = clamp((t - T2) / F.reach, 0, 1), l = clamp((t - T3) / F.lift, 0, 1);
         s.lift = l;
         const b = liftedBox(l), near = -s.side, hold = smoothstep((l - 0.35) / 0.65);
-        const grip = onBox(b, s.side * 0.44, 0.22, { dist: AT, lat });
+        const grip = onBox(b, s.side * (MB.w / BOXW / 2 + 0.04), 0.22, { dist: AT, lat });
         c.arms = { [near]: { k: reach, to: [lerp(grip[0], carryHand(near)[0], hold), lerp(grip[1], carryHand(near)[1], hold)] }, [-near]: { k: hold, to: carryHand(-near) } };
         if (l >= 1) { s.held = true; c.carry = drawBox; c.arms = null; }
       } else if (t < T5) {                // it backs into the glass with it, smiling
@@ -435,8 +529,8 @@ LEVELS.push({
       // When its crank jams (before the wrong mirror) the box jumps on the pedestal and rocks back down
       if (s.placedAt >= 0 && !s.held) {
         const j = L.t - s.wrongAt, jolt = j >= 0 && j < 0.5 ? 1 - j / 0.5 : 0, hop = 0.035 * Math.abs(Math.sin(j * 19)) * jolt * jolt, rock = 0.09 * Math.sin(j * 27) * jolt;
-        const b = liftedBox(s.lift || 0), q = onLine(b.d, b.lat, b.y + hop, s.placedAt);
-        R.add(SC.mkSprite(L, 0, 0, 0, b.w, b.w, (ctx, P) => { ctx.scale(b.w, b.w); if (rock) { ctx.translate(0, 0.05); ctx.rotate(rock); ctx.translate(0, -0.05); } drawBox(ctx, P); }, { x: q[0], y: q[1], z: q[2], sortDist: 2.15, glowOf: pedTargets[s.placedAt] }));   // (clicked, it is the pedestal it is on)
+        const b = liftedBox(s.lift || 0);
+        for (const q of boxParts(s.placedAt, b, b.y + hop, rock, pedTargets[s.placedAt])) R.add(q);   // (clicked, it is the pedestal it is on)
       }
     };
     L.floor = { poly: [[-3.3, -3.3], [3.3, -3.3], [3.3, 3.3], [-3.3, 3.3]], y: 0 };
