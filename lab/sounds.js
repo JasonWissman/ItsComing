@@ -13,6 +13,7 @@ const R12 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const SOUNDS = [
   // ---- hands, items, the generic interactions (every night) ----
   { kind: 'sfx', name: 'ui', n: 'all', d: 'A tiny soft click. Switching the item in hand (keys 1–6, Tab, tapping the strip); on night 9 also choosing a key on the pay phone.', src: 'game.js inventory · night09 keypad' },
+  { kind: 'sfx', name: 'tap', n: 'all', d: 'A soft, short tap, quieter than ui and with no caption. Any button or control in the menus pressed: the title, its dialogs, pause, the death and win screens, settings, the Nights cards, the end; each card filling in on the results after the ending.', src: 'menu.js (every button and setting) · game.js mute' },
   { kind: 'sfx', name: 'pickup', n: 'all', d: 'A short rising pluck with a brush of air. You take something into your hands.', src: 'game.js pickup · night07, 09, 10' },
   { kind: 'sfx', name: 'drop', n: 'all', d: 'A soft thump. You put the thing in hand down.', src: 'game.js drop · night10' },
   { kind: 'sfx', name: 'nope', n: 'all', d: 'A low buzzy blip. That will not work: wrong item, hands full, nothing to do there.', src: 'game.js · most nights' },
@@ -157,6 +158,8 @@ const SOUNDS = [
   { kind: 'ambient', name: 'night 12', n: [12], p: { tune: 'ambient:12', wind: 0.15, drone: 0.9, droneFreq: 38, windFreq: 200 }, d: 'A near-silent room, a very low drone.', src: 'night12 ambient' },
   { kind: 'ambient', name: 'night 13', n: [13], p: { tune: 'ambient:13', wind: 0.2, drone: 1.3, droneFreq: 34, windFreq: 160 }, d: 'The deepest, loudest drone; almost no wind.', src: 'night13 ambient' },
   { kind: 'ambient', name: 'night 13 · dawn', n: [13], p: { tune: 'ambient:13dawn', wind: 0.32, drone: 0, windFreq: 760 }, d: 'A light breeze and no drone: the meadow at dawn, at the very end.', src: 'night13 ending' },
+  { kind: 'ambient', name: 'title · far', n: 'all', p: { tune: 'ambient:title', near: 0 }, d: 'The title, once a click or key has let sound start: no wind, a faint deep drone of two low notes beating slowly, a breath of rumble under them. It is a long way off.', src: 'game.js titleSound · audio.js titleDrone' },
+  { kind: 'ambient', name: 'title · close', n: 'all', p: { tune: 'ambient:title', near: 1 }, d: 'The same drone with it bent over you (the last step): louder, the filter open, a rough fifth and octave thickening it. Each step between moves it part way, over a second or so.', src: 'game.js titleSound · audio.js titleDrone' },
 ];
 const KINDS = { sfx: 'effect', sting: 'death sting', voice: 'voice', footstep: 'footsteps', loop: 'loop', heartbeat: 'heartbeat', ambient: 'ambient bed' };
 const PLURAL = { sfx: 'effects', sting: 'death stings', voice: 'voices', footstep: 'footstep kinds', loop: 'loops', heartbeat: 'heartbeat', ambient: 'ambient beds' };
@@ -165,7 +168,7 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
 (() => {
   const ids = s => s.kind + ':' + s.name;
   const $ = id => document.getElementById(id);
-  const paramText = p => ['wind ' + (p.wind === undefined ? 1 : p.wind), p.rain ? 'rain ' + p.rain : null, 'drone ' + (p.drone === undefined ? 1 : p.drone) + (p.drone === 0 ? '' : ' @ ' + (p.droneFreq || 52) + ' Hz'), 'wind filter ' + (p.windFreq || 380) + ' Hz'].filter(Boolean).join(' · ');
+  const paramText = p => p.near !== undefined ? 'title drone · nearness ' + p.near + ' (0 far off, 1 at you)' : ['wind ' + (p.wind === undefined ? 1 : p.wind), p.rain ? 'rain ' + p.rain : null, 'drone ' + (p.drone === undefined ? 1 : p.drone) + (p.drone === 0 ? '' : ' @ ' + (p.droneFreq || 52) + ' Hz'), 'wind filter ' + (p.windFreq || 380) + ' Hz'].filter(Boolean).join(' · ');
   const covers = (s, night) => s.n === 'all' || (Array.isArray(s.n) && s.n.includes(night));
   // nights as text: 'all nights', 'unused', or runs ('1–12', '2, 6')
   function runs(n) {   // three or more nights in a row as one [from, to]; the rest one by one

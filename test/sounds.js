@@ -41,6 +41,14 @@ for (const [name, file] of used.cue) check(SFX.has(name), "lane cue '" + name + 
 for (const [name, file] of used.sting) check(SFX.has(name), "death sting '" + name + "' (" + file + ') has no caption');
 for (const [name, file] of used.step) check(STEPS.has(name), "footstep '" + name + "' (" + file + ') has no caption');
 for (const [name, file] of used.voice) check(VOICES.has(name), "voice '" + name + "' (" + file + ') has no caption');
+// the menus' tap (and the item switch, ui) is only the click of what you pressed: no caption for it
+check(synth.sfx.has('tap') && used.sfx.has('tap') && !SFX.has('tap') && !SFX.has('ui'), "the menus' tap is an effect the game plays, and neither it nor ui has a caption");
+// the Sounds Audit lab (lab/sounds.js) is an index written by hand: every effect the synth has needs its row there, and
+// the title's drone (an ambient bed with near: in its params) its rows too
+const lab = fs.readFileSync(path.join(root, 'lab/sounds.js'), 'utf8');
+const labRows = names(lab, /\{ kind: '(?:sfx|sting)', name: '([A-Za-z]+)'/g);
+for (const name of synth.sfx) check(labRows.has(name), "effect '" + name + "' has no row in the Sounds Audit (lab/sounds.js)");
+check(/kind: 'ambient', name: 'title[^\n]*near: 0/.test(lab) && /kind: 'ambient', name: 'title[^\n]*near: 1/.test(lab) && audio.includes('function titleDrone('), "the title's drone is in js/audio.js, and in the Sounds Audit far and close");
 console.log('  ' + Object.entries(used).map(([k, v]) => v.size + ' ' + k).join(', ') + ' names checked');
 console.log(failures ? ('\n' + failures + ' FAILURES in sounds') : ('\nALL CHECKS PASSED in sounds (' + checks + ' checks)'));
 process.exit(failures ? 1 : 0);

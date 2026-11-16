@@ -369,7 +369,12 @@ nights that the text never states: a
 clock ticks for the first ten seconds of each night from the same direction. Surviving a night
 offers Next night, and, quieter and further down, Quit to the title. Finishing the last night ends in that meadow; a click, a key (other than those that
 turn, look and zoom), a tap of Use or A there fades
-the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme.
+the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme. The last
+screen there says "You have faced your demons." over one button, I did it, which brings up how the nights went: the
+thirteen cards of the Nights screen, each taking its time one after another (the time of the attempt that won it on
+this run, and whether that was a new best; the bests kept, when the game was not finished on a full run), then the
+full run's time and whether it is a new best, then Finish game, home to the title. A click or a key hurries it to the
+end, and with reduced motion it is all there at once.
 
 Each night is a little different every time it loads, and trying a night again never brings it the same way twice in a row: every item has several
 places it might be, the creature's starting distance and pace vary slightly,
@@ -379,7 +384,7 @@ the furthest night reached, and, once there is more than the first night open, a
 has a card for every night (its best time inside it), in two columns, and under them the best full run.
 
 A full run is night 1 to the end of night 13 in one go, timed. It begins when night 1 is begun from a menu (Begin,
-Play again, night 1 on the Nights list, or Enter on the title). Its clock runs only while you play: every attempt
+night 1 on the Nights list, or Enter on the title). Its clock runs only while you play: every attempt
 counts, retries after a death and restarts included, but not the cards, the death and win screens, the pause menu,
 the title, or the watching after a night is won. It carries on through Next night, and through quitting to the title
 as long as the next night you start is the one the run is on (Continue, or that night on the Nights list); starting
@@ -389,10 +394,15 @@ is kept in the save.
 The title screen is pitch black, with two pale points of eyes a long way off. The title and its buttons sit below them,
 with no intro text or list of controls on it: those are in How to play. How to play, Nights and Settings open as
 dialogs over the middle of the view, over what is out there, and it comes on only behind them: each time one closes
-it is a step nearer and more of it shows, until it is close enough to touch, where it stays. A click on the dark of
+it is a step nearer and more of it shows, until it is close enough to touch, bent down to you with its head sunk
+between its shoulders, where it stays. A click on the dark of
 the title does not begin the night: the view blinks shut for a moment and it takes its step in there. It never moves
-while you can see it. After the last night the title keeps its morning room instead, and nothing is coming. Every
-heading in the menus is set in IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`).
+while you can see it. Once there has been a click or a key (a browser starts no sound before one), a faint deep drone
+sits under the title, a little louder and thicker each step it takes; it fades as a night begins. After the last night
+the title keeps its morning room instead, nothing is coming, and it is quiet. Begin is the one button drawn inverted,
+light with dark letters. Every button and control in the menus answers with a soft tap. All the game's text is set in
+IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`), except the keycaps drawn in How to play,
+which are a plain sans, and the lettering on things in the nights themselves (a gear plate, a breaker box's tape).
 
 ## Project layout
 

@@ -1,6 +1,6 @@
 'use strict';
 // ---------- game state, input, interaction, HUD and the main loop ----------
-const LIST_SCREENS = ['nights', 'settings', 'howto']; // menu screens with their own buttons: not click-anywhere
+const LIST_SCREENS = ['nights', 'settings', 'howto', 'ending', 'results']; // menu screens with their own buttons: not click-anywhere
 // looking down: enough to see the floor around you without a lurch of the view. A night may look further down (its def's
 // lookDown, in degrees: over the lighthouse rail); this is the one in play, set as each night starts
 let PITCH_DOWN = 45 * DEG;
@@ -17,7 +17,8 @@ const G = {
   t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, white: 0, whiteTarget: 0, danger: 0,
   hb: { next: 0, last: -10 }, toastT: 0, lastToast: { msg: '', t: -10 }, invSig: '', debug: false, paused: false,
   difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, lastLane: {}, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
-  run: null,   // the full run under way, if one is: { t, night } (see the run, below)
+  run: null,   // the full run under way, if one is: { t, night, nights } (see the run, below)
+  lastRun: null,   // the full run just finished, for the results after the ending: { t, best, nights }
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
@@ -158,14 +159,22 @@ function validateContent() {
 // It goes on through Next night, and through quitting to the title so long as the night it next starts is the one the
 // run is on (Continue, or that night on the Nights list). Starting any other night breaks it (a night skipped to,
 // or one gone back to), and so does a reload: the run in progress lives only here, not in the save. It is finished,
-// and counted, the moment the last night is won.
-function beginRun() { G.run = { t: 0, night: 0 }; }
+// and counted, the moment the last night is won. As it goes it keeps each night's time (the attempt that won it, as the
+// Nights screen counts a best) and whether that beat the best before; finished, it is kept as G.lastRun for the results.
+function beginRun() { G.run = { t: 0, night: 0, nights: [] }; }
 function runTick(dt) { if (G.run && (G.state === 'play' || G.state === 'dying')) G.run.t += dt; }
-function runWon(L) {
-  const r = G.run;
+// prev: the night's best time before this win (null if it had none)
+function runWon(L, prev) {
+  const r = G.run, last = L.index === LEVELS.length - 1;
+  if (last) G.lastRun = null;
   if (!r || r.night !== L.index) { G.run = null; return; }
-  if (L.index === LEVELS.length - 1) { SAVE.recordRun(L.diff.id, r.t); G.run = null; }
-  else r.night = L.index + 1;
+  const t = Math.round(L.t * 10) / 10;
+  (r.nights = r.nights || [])[L.index] = { t, best: prev === null || prev === undefined || t < prev };
+  if (last) {
+    const b = SAVE.data.bestRun[L.diff.id];
+    G.lastRun = { t: r.t, best: b === undefined || b === null || r.t < b, nights: r.nights };
+    SAVE.recordRun(L.diff.id, r.t); G.run = null;
+  } else r.night = L.index + 1;
 }
 
 function startLevel(i, withCard) {
@@ -248,6 +257,7 @@ function onKeyDown(e) {
   const k = e.key;
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
   if (e.repeat) return;
+  if (G.state === 'title') ensureAudio();   // a key on the title is the first gesture its drone waits on (titleSound)
   if (k === 'm' || k === 'M') { toggleMute(); return; }
   if (lookFree() && lookKey(k)) return;   // a won night that gives the view back takes turning and looking as looking, not as the press it waits on
   if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress(e)) return;   // a won night may be waiting on any press (the last night's meadow)
@@ -280,6 +290,10 @@ function lookKey(k) {
 function lookFree() { return G.state === 'won' && !!G.L && !!G.L.lookFree && G.L.lookFree(); }
 function onKeyUp(e) { const k = e.key; if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = false; }
 function ensureAudio() { if (!AUDIO.on()) AUDIO.init(); AUDIO.resume(); }
+// the title's drone: a faint deep drone under it, a little louder and nearer each step the thing takes (TITLE.near). It
+// starts with the sound itself, so only once there has been a click or a key (a browser starts no sound before one), and
+// it goes with the title: anything that starts a night stops the ambient bed it is. The morning title has none.
+function titleSound() { if (AUDIO.on() && TITLE.on) AUDIO.titleDrone(TITLE.near); }
 function toggleMute() { setMuted(!G.muted); }
 function setMuted(m) {
   G.muted = !!m;
@@ -330,8 +344,8 @@ function onClick(e) {
   if (G.drawSwallow) { G.drawSwallow = false; if (G.state === 'play') return; }   // the click that ends a draw is not another use
   // the list screens are not click-anywhere, nor is the title: a click on the dark there only brings it a step nearer,
   // in the blink it takes (TITLE.advance); the cards are click-anywhere
-  if (G.state === 'title') { if (MENU.kind === 'title' && !(e.target.closest && e.target.closest('button'))) TITLE.advance(true); return; }
-  if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) return; proceed(); return; }
+  if (G.state === 'title') { ensureAudio(); if (MENU.kind === 'title' && !(e.target.closest && e.target.closest('button'))) TITLE.advance(true); return; }
+  if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) { MENU.hurry(); return; } proceed(); return; }   // (the results after the ending: a click hurries them)
   ensureAudio();
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   updateHover();
@@ -639,8 +653,9 @@ function win() {
   for (const c of L.creatures) if (c.sealHold) { c.hold = null; c.sealHold = false; } // the aftermath decides where it stands now
   setState('won');
   SAVE.unlock(L.diff.id, L.index + 1);
+  const was = (SAVE.data.best[L.def.id] || {})[L.diff.id];
   SAVE.recordWin(L.def.id, L.diff.id, L.t);
-  runWon(L);
+  runWon(L, was ? was.time : null);
   startAftermath(L);
 }
 function die(c, cause) {
@@ -952,7 +967,7 @@ function heartbeat(dt) {
 // ---------------- render ----------------
 function render() {
   const L = G.L; if (!L) return;
-  if (TITLE.active()) { TITLE.draw(G.t, UI.overlay.classList.contains('dlg')); updateHUD(); return; }   // the title's own scene, over the game's (left undrawn)
+  if (TITLE.active()) { TITLE.draw(G.t, UI.overlay.classList.contains('dlg')); titleSound(); updateHUD(); return; }   // the title's own scene, over the game's (left undrawn)
   const c = G.cam;
   const wob = SAVE.data.settings.reducedMotion ? 0 : (c.zoom - 1) * 0.0018;
   const view = { yaw: c.yaw + Math.sin(G.t * 1.7) * wob + Math.sin(G.t * 2.9) * wob * 0.5, pitch: c.pitch + Math.cos(G.t * 1.3) * wob, zoom: c.zoom, shakeX: c.shakeX, shakeY: c.shakeY };
@@ -1194,7 +1209,7 @@ function init() {
   UI.canvas.addEventListener('mousedown', onMouseDown);
   UI.canvas.addEventListener('click', onClick);
   UI.overlay.addEventListener('click', onClick);
-  UI.mute.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); toggleMute(); });
+  UI.mute.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); AUDIO.sfx('tap'); toggleMute(); });
   bindTouch();
   SAVE.load();
   G.difficulty = 0;

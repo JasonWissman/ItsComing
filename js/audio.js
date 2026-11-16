@@ -86,12 +86,13 @@ const AUDIO = (() => {
 
   // ---- ambient bed ----
   function startAmbient(p) {
-    if (typeof CAPTIONS !== 'undefined') CAPTIONS.ambient(p);
+    if (typeof CAPTIONS !== 'undefined' && !(p && p.near !== undefined)) CAPTIONS.ambient(p);   // (the title's drone has none: it is the title's, not a sound in the night)
     if (!ac) return;
     stopAmbient();
     p = p || {};
     const g = ac.createGain(); g.gain.value = 0.0001; g.connect(bus.ambient);
     const nodes = [];
+    if (p.near !== undefined) { titleBed(g, nodes, p); return; }
     // wind: brown-ish noise through a slowly wandering low-pass
     const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
     const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.windFreq || 380; lp.Q.value = 0.7;
@@ -123,6 +124,45 @@ const AUDIO = (() => {
     nodes.forEach(n => n.start());
     g.gain.exponentialRampToValueAtTime(1, now() + 2.5);
     amb = { g, nodes };
+  }
+  // the title's bed (p.near, 0..1: how near the thing on the title is): no wind, only a faint deep drone, two low notes
+  // beating slowly against each other with a breath of rumble under them. As it nears it comes up, and the filter over it
+  // opens and a rougher fifth and octave come in above, so it is nearer and thicker as well as louder (titleDrone(k) moves it)
+  function titleBed(g, nodes, p) {
+    const base = p.droneFreq || 41;
+    const level = ac.createGain(); level.gain.value = 0.0001; level.connect(g);   // (how loud for how near, under the fade in)
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.9; lp.frequency.value = 170; lp.connect(level);
+    const low = ac.createGain(); low.gain.value = 1; low.connect(lp);
+    for (const [m, type, v] of [[1, 'triangle', 1], [1.0045, 'triangle', 0.8], [0.5, 'sine', 0.7]]) {
+      const o = ac.createOscillator(); o.type = type; o.frequency.value = base * m;
+      const og = ac.createGain(); og.gain.value = v; o.connect(og); og.connect(low); nodes.push(o);
+    }
+    const thick = ac.createGain(); thick.gain.value = 0.0001; thick.connect(lp);   // the fifth and octave that come in as it nears
+    for (const [m, v] of [[1.498, 0.5], [2.003, 0.35], [2.997, 0.12]]) {
+      const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = base * m;
+      const og = ac.createGain(); og.gain.value = v; o.connect(og); og.connect(thick); nodes.push(o);
+    }
+    const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;   // the rumble, breathing slowly
+    const nl = ac.createBiquadFilter(); nl.type = 'lowpass'; nl.frequency.value = 110; nl.Q.value = 0.5;
+    const ng = ac.createGain(); ng.gain.value = 0.5;
+    const br = ac.createOscillator(); br.frequency.value = 0.09; const brg = ac.createGain(); brg.gain.value = 0.35; br.connect(brg); brg.connect(ng.gain);
+    src.connect(nl); nl.connect(ng); ng.connect(lp); nodes.push(src, br);
+    nodes.forEach(n => n.start());
+    g.gain.exponentialRampToValueAtTime(1, now() + 3);
+    const set = (k, tc) => {
+      k = clamp(k, 0, 1);
+      level.gain.setTargetAtTime(0.017 + 0.026 * k, now(), tc);
+      lp.frequency.setTargetAtTime(170 + 330 * k, now(), tc);
+      thick.gain.setTargetAtTime(Math.max(0.0001, 0.45 * k * k), now(), tc);
+    };
+    set(p.near, 0.05);
+    amb = { g, nodes, title: true, k: p.near, set };
+  }
+  // the title's drone at nearness k: started if it is not playing, else moved there over a second or two
+  function titleDrone(k) {
+    if (!ac) return;
+    if (!amb || !amb.title) startAmbient({ tune: 'ambient:title', near: k });   // (tuned as 'ambient:title', by AUDIO.titleDrone below)
+    else if (Math.abs(amb.k - k) > 1e-3) { amb.k = k; amb.set(k, 1.2); }
   }
   function stopAmbient() {
     if (!amb) return;
@@ -215,6 +255,7 @@ const AUDIO = (() => {
     if (!ac) return;
     switch (name) {
       case 'ui': tone(660, 0.05, { vol: 0.08, type: 'triangle' }); break;
+      case 'tap': noise(0.016, { type: 'bandpass', freq: 1700, q: 1.6, vol: 0.06 }); tone(210, 0.03, { vol: 0.045, endFreq: 150 }); break;   // a menu button: a soft, short tap
       case 'pickup': tone(420, 0.06, { vol: 0.12, type: 'triangle', endFreq: 520 }); noise(0.05, { type: 'highpass', freq: 3000, vol: 0.06 }); break;
       case 'drop': noise(0.08, { freq: 500, vol: 0.2 }); tone(120, 0.07, { vol: 0.15, endFreq: 70 }); break;
       case 'nope': tone(160, 0.12, { vol: 0.1, type: 'square', endFreq: 110 }); break;
@@ -359,6 +400,7 @@ const AUDIO = (() => {
   return {
     init, on, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
     startAmbient: p => tuned(p && p.tune, () => startAmbient(p)),
+    titleDrone: k => (amb && amb.title ? titleDrone(k) : tuned('ambient:title', () => titleDrone(k))),
     setLoop: (kind, vol, pan) => tuned(kind ? 'loop:' + kind : null, () => setLoop(kind, vol, pan)),
     heartbeat: (vol, fast) => tuned('heartbeat', () => heartbeat(vol, fast)),
     footstep: (kind, vol, pan) => tuned('footstep:' + kind, () => footstep(kind, vol, pan)),
