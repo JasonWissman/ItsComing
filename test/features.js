@@ -1217,6 +1217,105 @@ const hoverHit = lookFor;
     check(await m.pg.evaluate(() => G.L.s.hook === 'off'), 'night 9: a tap on the receiver lifts it');
     await m.ctx.close();
 
+    // the things held float over the view on a phone: no strip under them, the view the whole height of the screen; a tap
+    // on a slot switches to it and is not a tap on the scene, and a swipe that starts on a slot does not turn the view
+    m = await mobile(devices['iPhone 13 landscape'], '?level=5&go&seed=1');
+    await m.pg.evaluate(() => { G.L.creature.hold = G.L.creature.dist; for (const it of G.L.items.filter(i => !i.taken).slice(0, 4)) { it.taken = true; G.inv.push(it); } G.active = 0; G.invSig = ''; });
+    await m.pg.waitForTimeout(300);
+    r = await m.pg.evaluate(() => {
+      const cv = UI.canvas.getBoundingClientRect(), inv = UI.inv.getBoundingClientRect(), zb = UI.zoomBtn.getBoundingClientRect();
+      const slots = [...UI.inv.querySelectorAll('.slot')], st = getComputedStyle(slots[0]);
+      const hit = (a, c) => a.left < c.right && a.right > c.left && a.top < c.bottom && a.bottom > c.top;
+      const s0 = slots[0].getBoundingClientRect(), hb = G.hand.box;
+      return {
+        n: slots.length, full: cv.top === 0 && cv.height === innerHeight && cv.width === innerWidth && R.H === innerHeight && R.viewY === 0,
+        floats: inv.width < innerWidth * 0.6 && getComputedStyle(UI.inv).backgroundColor === 'rgba(0, 0, 0, 0)' && /radial-gradient/.test(st.backgroundImage) && st.boxShadow !== 'none',
+        low: innerHeight - inv.bottom < 30, clearZoom: !hit(inv, zb), onTop: document.elementFromPoint(s0.left + s0.width / 2, s0.top + s0.height / 2).closest('.slot') === slots[0],
+        hand: !hb || !(hb.x0 < inv.right && hb.x1 > inv.left && hb.y0 < inv.bottom && hb.y1 > inv.top),
+      };
+    });
+    check(r.n >= 3 && r.full && r.floats && r.low && r.clearZoom && r.onTop && r.hand, 'on a phone the held things float over the view: the view runs the whole height, no strip under the slots (each its own see-through backing), clear of the zoom button and the hand (' + JSON.stringify(r) + ')');
+    await m.pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-slots.png') });
+    // the view fills the page edge to edge whatever the browser's bars do: the toolbar sliding in (a shorter page), and a
+    // resize whose innerWidth/innerHeight have not caught up with the page yet (Safari): the canvas is measured from the
+    // page it covers, so there are no black bars and the menu, zoom and slots all sit on the view
+    const edge = () => m.pg.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => {
+      const cv = UI.canvas.getBoundingClientRect(), hud = UI.hud.getBoundingClientRect(), vv = window.visualViewport;
+      const inside = el => { const b = el.getBoundingClientRect(); return b.width > 0 && b.left >= cv.left && b.right <= cv.right && b.top >= cv.top && b.bottom <= cv.bottom; };
+      res({ cv: [cv.left, cv.top, cv.width, cv.height], hud: [hud.width, hud.height], vv: vv ? [vv.width, vv.height] : null, R: [R.W, R.H, R.viewY], px: [UI.canvas.width, UI.canvas.height],
+        ok: cv.left === 0 && cv.top === 0 && cv.width === hud.width && cv.height === hud.height && (!vv || (Math.abs(cv.width - vv.width) < 1 && Math.abs(cv.height - vv.height) < 1)) && R.W === Math.round(cv.width) && R.H === Math.round(cv.height) && R.viewY === 0,
+        on: inside(UI.menuBtn) && inside(UI.zoomBtn) && inside(UI.inv) });
+    }))));
+    const vp0 = m.pg.viewportSize();
+    const e0 = await edge();
+    await m.pg.setViewportSize({ width: vp0.width, height: vp0.height - 40 }); await m.pg.waitForTimeout(200);
+    const e1 = await edge();
+    await m.pg.evaluate(() => { Object.defineProperty(window, 'innerHeight', { get: () => 200, configurable: true }); Object.defineProperty(window, 'innerWidth', { get: () => 300, configurable: true }); });
+    await m.pg.setViewportSize(vp0); await m.pg.waitForTimeout(200);
+    const e2 = await edge();
+    await m.pg.evaluate(() => { delete window.innerHeight; delete window.innerWidth; });
+    check(e0.ok && e0.on && e1.ok && e1.on && e2.ok && e2.on && e2.R[1] === vp0.height, 'iPhone landscape: the view fills the whole page edge to edge, no black bars, as the toolbar slides in and on a resize whose window size is stale, with the menu, zoom and slots on it (' + JSON.stringify([e0, e1, e2]) + ')');
+    const slotAt = i => m.pg.evaluate(i => { const q = UI.inv.querySelectorAll('.slot')[i].getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }, i);
+    const before = await m.pg.evaluate(() => ({ d: G.cam.dirIdx, n: G.inv.length, down: G.cam.tPitch > 0.5 }));
+    let sp2 = await slotAt(2);
+    await m.touch('touchStart', sp2.x, sp2.y); await m.touch('touchEnd'); await m.pg.waitForTimeout(250);
+    r = await m.pg.evaluate(() => ({ a: G.active, d: G.cam.dirIdx, n: G.inv.length, state: G.state, out: G.L.s.outcomes.length }));
+    check(r.a === 2 && r.d === before.d && r.n === before.n && r.state === 'play' && r.out === 0, 'a tap on a slot switches to it, and is not a tap on the scene behind it (' + JSON.stringify(r) + ')');
+    sp2 = await slotAt(1);
+    await m.swipe(sp2.x, sp2.y, sp2.x - 160, sp2.y - 120);
+    await m.swipe(sp2.x, sp2.y, sp2.x + 160, sp2.y);
+    r = await m.pg.evaluate(() => ({ d: G.cam.dirIdx, down: G.cam.tPitch > 0.5, n: G.inv.length }));
+    check(r.d === before.d && r.down === before.down && r.n === before.n, 'a swipe that starts on a slot does not turn the view or look down (' + JSON.stringify(r) + ')');
+    await m.ctx.close();
+    // full screen: a button top right, on the title and in a night; it goes in (the whole page, then the screen held on its
+    // side), shows the way out, and comes out; never a tap on the scene, a swipe or a step of the title (the browser's own
+    // full screen is stubbed: a headless one has none to give)
+    const fsStub = enabled => {
+      window.__fs = null; window.__fsCalls = []; window.__lock = [];
+      Object.defineProperty(document, 'fullscreenElement', { get: () => window.__fs, configurable: true });
+      Object.defineProperty(document, 'fullscreenEnabled', { get: () => enabled, configurable: true });
+      Object.defineProperty(document, 'webkitFullscreenEnabled', { get: () => enabled, configurable: true });   // (Chromium has both)
+      Element.prototype.requestFullscreen = function () { window.__fsCalls.push(this === document.documentElement ? 'page' : 'other'); window.__fs = this; document.dispatchEvent(new Event('fullscreenchange')); return Promise.resolve(); };
+      document.exitFullscreen = function () { window.__fsCalls.push('exit'); window.__fs = null; document.dispatchEvent(new Event('fullscreenchange')); return Promise.resolve(); };
+      if (screen.orientation) screen.orientation.lock = o => { window.__lock.push(o); return Promise.reject(new Error('not here')); };
+    };
+    for (const [dn, q] of [['Pixel 7 landscape', ''], ['iPhone 13 landscape', '?level=1&go&seed=1']]) {
+      const ctx = await browser.newContext(devices[dn]);
+      await ctx.addInitScript(fsStub, true);
+      const pg2 = await ctx.newPage();
+      pg2.on('pageerror', e => errors.push('PAGEERROR (fullscreen) ' + e.message));
+      await pg2.goto(URL + q); await pg2.waitForTimeout(500);
+      if (q) await pg2.evaluate(() => { G.L.creature.hold = G.L.creature.dist; });
+      const box = () => pg2.evaluate(() => {
+        const e = UI.fsBtn, b = e.getBoundingClientRect(), c = UI.compass.getBoundingClientRect(), at = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+        return { d: getComputedStyle(e).display, r: Math.round(innerWidth - b.right), t: Math.round(b.top), clear: !(b.left < c.right && b.right > c.left && b.top < c.bottom && b.bottom > c.top), on: e.classList.contains('on'), label: e.getAttribute('aria-label'), top: !!at && e.contains(at) };
+      });
+      const s0 = await pg2.evaluate(() => ({ state: G.state, menu: MENU.kind, d: G.cam.dirIdx, inv: G.inv.length }));
+      const b0 = await box();
+      check(b0.d === 'flex' && b0.r < 40 && b0.t < 30 && b0.clear && b0.top && !b0.on, dn + (q ? ', in a night' : ', on the title') + ': the full screen button top right, clear of the compass (' + JSON.stringify(b0) + ')');
+      await pg2.tap('#fsBtn'); await pg2.waitForTimeout(250);
+      const b1 = await box(), r1 = await pg2.evaluate(() => ({ calls: window.__fsCalls.slice(), lock: window.__lock.slice(), state: G.state, menu: MENU.kind, d: G.cam.dirIdx, inv: G.inv.length, h: UI.canvas.getBoundingClientRect().height === innerHeight }));
+      await pg2.screenshot({ path: path.join(__dirname, 'shots', 'phone-fullscreen-' + (q ? 'night' : 'title') + '.png') });
+      check(r1.calls.join() === 'page' && r1.lock.join() === 'landscape' && b1.on && b1.d === 'flex' && /leave/.test(b1.label) && r1.h, dn + ': a tap goes full screen (the whole page), asks for the screen held on its side (a refusal ignored), and the button stays to come out (' + JSON.stringify([r1, b1]) + ')');
+      check(r1.state === s0.state && r1.menu === s0.menu && r1.d === s0.d && r1.inv === s0.inv, dn + ': the tap is the button\'s alone: nothing behind it moves on, turns or is picked up (' + JSON.stringify([s0, r1]) + ')');
+      await pg2.tap('#fsBtn'); await pg2.waitForTimeout(250);
+      const b2 = await box(), r2 = await pg2.evaluate(() => ({ calls: window.__fsCalls.slice(), state: G.state }));
+      check(r2.calls.join() === 'page,exit' && !b2.on && b2.d === 'flex' && r2.state === s0.state, dn + ': tapped again, it comes out of full screen (' + JSON.stringify([r2, b2]) + ')');
+      await ctx.close();
+    }
+    // where the page cannot go full screen (Safari on an iPhone), there is no button; nor on a desktop, whose slots are as they were
+    {
+      const ctx = await browser.newContext(devices['iPhone 13 landscape']);
+      await ctx.addInitScript(fsStub, false);
+      const pg2 = await ctx.newPage(); await pg2.goto(URL); await pg2.waitForTimeout(400);
+      const d1 = await pg2.evaluate(() => getComputedStyle(UI.fsBtn).display);
+      await ctx.close();
+      const dp = await browser.newPage(); await dp.goto(URL + '?level=5&go&seed=1'); await dp.waitForTimeout(400);
+      const d2 = await dp.evaluate(() => { for (const it of G.L.items.slice(0, 2)) { it.taken = true; G.inv.push(it); } G.invSig = ''; return new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => { const sl = UI.inv.querySelector('.slot'); res({ fs: getComputedStyle(UI.fsBtn).display, bg: getComputedStyle(sl).backgroundImage, w: sl.getBoundingClientRect().width }); }))); });
+      await dp.close();
+      check(d1 === 'none' && d2.fs === 'none' && /linear-gradient/.test(d2.bg) && d2.w === 66, 'no full screen button where the page cannot have it (an iPhone) nor on a desktop, whose slots are as they were (' + JSON.stringify([d1, d2]) + ')');
+    }
+
     // an older save that had the touch buttons on the left: the setting is gone, and the rest kept
     const sp = await browser.newPage();
     await sp.goto(URL); await sp.waitForTimeout(200);

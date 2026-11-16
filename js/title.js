@@ -76,7 +76,7 @@ const TITLE = (() => {
   function draw(t, hidden) {
     if (!canvas()) return;
     dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = window.innerWidth, h = window.innerHeight;
+    const w = Math.round(cv.clientWidth) || window.innerWidth, h = Math.round(cv.clientHeight) || window.innerHeight;   // (as the page shows it: fixed, the whole of it)
     if (w !== W || h !== H || cv.width !== Math.round(w * dpr)) { W = w; H = h; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     const g = ctx; g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);

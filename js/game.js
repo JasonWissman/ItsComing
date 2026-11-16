@@ -1212,7 +1212,8 @@ function gamepadUse(src) {
 // held on a thing that is held (the covers) or with a bow, the finger holds it; once a hold has gone on a moment, moving
 // the finger aims (the bow's sights follow it) instead of swiping. Only the first finger on the view counts. The touch on
 // the view is the whole of it (preventDefault): the browser makes no mouse events or click of its own, and does not scroll
-// or zoom the page. Two buttons stand in for the keys: zoom, held (#zoomBtn), and the menu (#menuBtn: the pause menu).
+// or zoom the page. Two buttons stand in for the keys: zoom, held (#zoomBtn), and the menu (#menuBtn: the pause menu);
+// a third, top right, puts the page full screen (#fsBtn).
 const TOUCH = { id: null, x0: 0, y0: 0, t0: 0, swiped: false, ax: -1, ay: -1, lift: 0 };
 const SWIPE_HOLD = 250;   // ms: a press held this long on a hold or a draw before the finger moves aims instead of swiping
 function swipeMin() { return Math.max(22, Math.min(window.innerWidth, window.innerHeight) * 0.06); }
@@ -1292,6 +1293,45 @@ function bindTouch() {
   z.addEventListener('contextmenu', e => e.preventDefault());
   UI.menuBtn.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); AUDIO.sfx('tap'); if (G.state === 'play') pauseGame(); });
   if (PORTRAIT && PORTRAIT.addEventListener) PORTRAIT.addEventListener('change', () => { if (PORTRAIT.matches && G.state === 'play') pauseGame(); });
+  // full screen (#fsBtn, top right on a touch screen): a tap goes in, and out again. Its own click only: never a tap on the
+  // view or a swipe (it is not the view), nor a click on the card or the title behind it
+  const f = UI.fsBtn;
+  f.addEventListener('pointerdown', e => e.stopPropagation());
+  f.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); ensureAudio(); AUDIO.sfx('tap'); toggleFullscreen(); f.blur(); });
+  f.addEventListener('contextmenu', e => e.preventDefault());
+  for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, fullscreenSync);
+  fullscreenSync();
+}
+// ---------------- full screen ----------------
+// The Fullscreen API on the whole page (webkit-prefixed where only that is there). Where the browser cannot put the page
+// full screen (Safari on an iPhone has it only for video), body.fsok is off and the button is not shown. Going in also
+// asks for the screen held on its side (refused on most browsers outside full screen, and by some in it: ignored).
+function fullscreenEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function fullscreenAble() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
+function quietly(p) { if (p && typeof p.then === 'function') p.then(null, () => {}); return p; }
+function toggleFullscreen() {
+  try {
+    if (fullscreenEl()) { const exit = document.exitFullscreen || document.webkitExitFullscreen; if (exit) quietly(exit.call(document)); return; }
+    const de = document.documentElement, req = de.requestFullscreen || de.webkitRequestFullscreen;
+    if (!req) return;
+    const lock = () => { try { const o = window.screen.orientation; if (o && o.lock) quietly(o.lock('landscape')); } catch (e) { void e; } };
+    const p = req.call(de, { navigationUI: 'hide' });
+    if (p && typeof p.then === 'function') p.then(lock, () => {}); else lock();
+  } catch (e) { void e; }
+}
+function fullscreenSync() {
+  const on = !!fullscreenEl();
+  document.body.classList.toggle('fsok', fullscreenAble());
+  UI.fsBtn.classList.toggle('on', on);
+  UI.fsBtn.setAttribute('aria-label', on ? 'leave full screen' : 'full screen');
+  fitView();
+}
+// the view is always the whole page (the canvas is fixed over all of it, as the HUD is): its drawing sized again whenever
+// the page is not the size it was drawn for (a turn of the phone, full screen, Safari's bars sliding in or away), checked
+// every frame as well, since a phone's resize can come before its new size has settled
+function fitView() {
+  const [w, h] = R.pageSize();
+  if (w !== R.pageW || h !== R.pageH) R.resize();
 }
 
 // ---------------- boot ----------------
@@ -1299,6 +1339,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - G._last) / 1000); G._last = now;
   G.fps = lerp(G.fps, 1 / Math.max(dt, 1e-3), 0.05);
   if (G.state === 'error') { try { pollGamepad(); } catch (e2) { void e2; } } // a pad can still restart
+  fitView();
   if (!document.hidden && G.state !== 'error') {
     try { const t0 = G.benching ? performance.now() : 0; pollGamepad(); update(dt); render(); CAPTIONS.update(); if (G.benching) G.benching.push(performance.now() - t0); }
     catch (e) {
@@ -1315,11 +1356,13 @@ function frame(now) {
 G.step = function (dt, n) { for (let i = 0; i < (n || 1); i++) { update(dt); render(); } };
 function init() {
   UI.canvas = $('game'); UI.hud = $('hud'); UI.compass = $('compass'); UI.objective = $('objective'); UI.pitch = $('pitch');
-  UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute'); UI.zoomBtn = $('zoomBtn'); UI.menuBtn = $('menuBtn');
+  UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute'); UI.zoomBtn = $('zoomBtn'); UI.menuBtn = $('menuBtn'); UI.fsBtn = $('fsBtn');
   UI.holdbar = $('holdbar'); UI.holdfill = $('holdfill');
   UI.drawbar = $('drawbar'); UI.drawfill = $('drawfill'); UI.drawmin = $('drawmin'); UI.drawlabel = $('drawlabel');
   R.attach(UI.canvas); R.resize();
   window.addEventListener('resize', R.resize);
+  window.addEventListener('orientationchange', () => setTimeout(fitView, 250));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitView);
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp);
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);

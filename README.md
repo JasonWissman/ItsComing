@@ -51,7 +51,11 @@ to interact exactly where you tap, as a click there; press and hold where a thin
 while the finger stays down, its sights following the finger, and looses when it lifts). A swipe is never a tap. A
 round zoom button in the bottom right corner zooms while held (a separate thumb, so you can zoom and tap or swipe at
 once), and a menu button top left, where the sound line is on a desktop, opens the pause menu (Mute is in it). The
-item slots switch by tap, and tapping the held item again while looking down puts it down. The page itself does not
+view fills the whole screen, and the things held float over its bottom edge, each slot on a faint backing of its own
+(no strip under them); a tap on a slot switches to it (never a tap on the scene behind), and tapping the held item
+again while looking down puts it down. Where the browser can put the page full screen (not Safari on an iPhone), a
+small button in the top right corner, on the title and in a night, goes full screen (and asks for the screen held
+sideways); the same button comes out again. The page itself does not
 scroll or zoom. A gamepad works too: d-pad or left stick turns and
 looks, A uses, B puts the held thing down, a trigger zooms, Start pauses. In
 menus the d-pad moves between buttons and settings, left and right move a
