@@ -582,6 +582,35 @@ const hoverHit = lookFor;
     return { won: G.L.won && G.L.s.ending, up };
   });
   check(faced.won && faced.up < -0.15, 'empty-handed and looking up at it as it reaches you is the ending (' + JSON.stringify(faced) + ')');
+  // doing nothing at all, from the start of a fresh night (no key, no click, the view as it starts, on it): it comes, and
+  // it is the ending, every time. (On Nightmare it may change its way once, unseen, far out; as it loomed in over the last
+  // metre it filled the view and more, counted as unseen there, and changed its way at the last moment: it came at you from
+  // the side or behind, and that was a death for looking away)
+  const idle13 = [];
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    await T.open(page, 'level=13&go&nofr&seed=' + seed);
+    idle13.push(await page.evaluate(() => {
+      const c = G.L.creature, lane = c.lane.name, faced = Math.abs(wrapPi(c.yaw - G.cam.yaw)) < 1e-6;
+      for (let i = 0; i < 4000 && G.state === 'play'; i++) G.step(1 / 30, 1);
+      return { state: G.state, ending: G.L.s.ending, faced, same: c.lane.name === lane };
+    }));
+  }
+  check(idle13.every(r => r.faced && r.state === 'won' && r.ending && r.same), 'doing nothing at all, facing it as the night starts, it comes straight on and it is the ending, every time (' + JSON.stringify(idle13.map(r => r.state + (r.same ? '' : ' (changed its way)'))) + ')');
+  // enraged, it screeches, again and again, the more often the more you hold; put down, it is quiet
+  await T.open(page, 'level=13&go&seed=1&nofr');
+  const scr = await page.evaluate(() => {
+    const s = G.L.s, n = () => s.screeches || 0, heard = [];
+    const sfx = AUDIO.sfx; AUDIO.sfx = (name, ...a) => { heard.push(name); return sfx(name, ...a); };
+    try {
+      G.step(1 / 30, 60); const calm = n();
+      pickup(G.L.items[0]); G.step(1 / 30, 300); const one = n() - calm;
+      G.L.items.filter(i => !i.taken).slice(0, 5).forEach(i => pickup(i)); const k0 = n(); G.step(1 / 30, 300); const six = n() - k0;
+      while (G.inv.length) { G.cam.pitch = G.cam.tPitch = PITCH_DOWN; G.active = 0; dropActive(); }
+      G.step(1 / 30, 60); const k1 = n(); G.step(1 / 30, 300); const after = n() - k1;
+      return { calm, one, six, after, kinds: [...new Set(heard.filter(h => /screech/.test(h)))].sort().join() };
+    } finally { AUDIO.sfx = sfx; }
+  });
+  check(scr.calm === 0 && scr.one >= 3 && scr.six > scr.one && scr.after === 0 && scr.kinds === 'screech,screechRage', 'holding anything it screeches, again and again, more often (and wilder) the more you hold; put it all down and it is quiet (' + JSON.stringify(scr) + ')');
   // the ending, frame by frame: it holds you, its face goes through its moods to happy, the meadow comes and waits as long as
   // you like; a press, and the meadow and it fade into the bedroom and the last screen
   const caught = () => page.evaluate(() => {
@@ -603,72 +632,69 @@ const hoverHit = lookFor;
   const hold = await page.evaluate(() => {
     const c = G.L.creature, s = G.L.s, o = { flash: 0, white: 0, tops: [] };
     const step = () => { G.step(1 / 30, 1); o.flash = Math.max(o.flash, G.flashAmt); o.white = Math.max(o.white, G.white); };
-    const until = t => { while (s.endT < t - 1e-6 && !s.sitting) step(); };
+    const until = t => { while (s.endT < t - 1e-6) step(); };
     o.tops.push(['catch', window._hoodTop()]);
-    until(END.reach[0] + 0.5); const h0 = c.hug && { reach: c.hug.reach, wrap: c.hug.wrap };
+    until(END.lift[0] + 0.5); const h0 = c.hug && { lift: c.hug.lift, grab: c.hug.grab };
     o.tops.push(['bending', window._hoodTop()]);
-    until(END.reach[1]); o.reaching = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
-    until(END.unveil[0] - 0.05); o.veiled = { unveil: c.unveil, mood: c.mood, wrap: +c.hug.wrap.toFixed(2) };   // its face still in the dark of the hood
-    until(END.close[1] + 0.3); o.holding = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
-    until(END.moods + 0.3); o.unveiled = { unveil: c.unveil, mood: c.mood };   // and come out of it, angry
+    until(END.unveil[0] - 0.05); o.veiled = { unveil: c.unveil, mood: c.mood, grab: c.hug.grab };   // its face still in the dark of the hood
+    until(END.lift[1]); o.lifted = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    until(END.grab[0] - 0.05); o.angry = { unveil: c.unveil, mood: c.mood, grab: c.hug.grab };      // out of it, angry, and not yet holding you
+    until(END.grab[1] + 0.3); o.holding = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    o.grabTook = +(END.grab[1] - END.grab[0]).toFixed(2);
+    until(END.moods + 0.3);
     const cp = c.pos(), face = cp.y + c.yOff + CREATURES.demon.eyesY(c), fp = R.screenPos(cp.x, face, cp.z);
-    o.held = { reach: c.hug && c.hug.reach, wrap: c.hug && c.hug.wrap, dist: c.dist, h0, aim: Math.abs(wrapPi(c.yaw - G.cam.yaw)), faceY: fp && fp.y / R.H, faceX: fp && fp.x / R.W, mood: c.mood, overlay: s.hugWrap };
-    // its moods: each whole one held a while, the changes between them slow; the second angry face leaning in; all of it
-    // while it holds you, until it is sad and crying: then it lets you go, steps back and sinks down, and waits
-    const seen = []; let prev = c.mood, down = false;
+    o.held = { lift: c.hug && c.hug.lift, grab: c.hug && c.hug.grab, dist: c.dist, h0, aim: Math.abs(wrapPi(c.yaw - G.cam.yaw)), faceY: fp && fp.y / R.H, faceX: fp && fp.x / R.W, mood: c.mood, overlay: s.grab };
+    // its moods: each whole one held a while, the changes between them slow; the second angry face leaning in; to sad and
+    // crying, and back to neutral, all of it holding you; then the nights go by behind it, and the light, content and happy
+    const seen = []; let prev = c.mood, down = false, back = 0;
     o.lean = { angry2: 9, other: 0 };
     const watch = () => {
       const m = c.mood; if (m < prev - 1e-9) down = true; prev = m;
       if (Number.isInteger(m)) {
         if (seen.length && seen[seen.length - 1].m === m) seen[seen.length - 1].t1 = s.endT;
-        else { seen.push({ m, t0: s.endT, t1: s.endT, wrap: s.hugWrap, join: c.hand ? c.hand.join : 0, meadow: s.meadow, kneel: c.kneel }); o.tops.push([CREATURES.demon.moodNames[m] + m, window._hoodTop()]); }
-        if (m === 2) o.lean.angry2 = Math.min(o.lean.angry2, c.dist); else if (m <= 4 && c.hug && c.hug.wrap > 0.99) o.lean.other = Math.max(o.lean.other, c.dist);
+        else { seen.push({ m, t0: s.endT, t1: s.endT, grab: s.grab, meadow: s.meadow }); o.tops.push([CREATURES.demon.moodNames[m] + m, window._hoodTop()]); }
+        if (m === 2) o.lean.angry2 = Math.min(o.lean.angry2, c.dist); else if (m <= 4 && c.hug && c.hug.grab > 0.99) o.lean.other = Math.max(o.lean.other, c.dist);
       }
+      back = Math.max(back, s.backdrop || 0);
     };
-    while (!s.sitting && s.endT < 60) { step(); watch(); }
-    o.sat = { endT: s.endT, hug: c.hug, kneel: c.kneel, bow: +c.bow.toFixed(2), sob: c.sob, mood: c.mood, dist: +c.dist.toFixed(2), yOff: c.yOff };
-    // it waits: its time does not run on, and only after a few seconds a small line says what to do
-    const line = []; for (let i = 0; i < 240; i++) { step(); if (i % 30 === 29) line.push(+(s.sitLineA || 0).toFixed(2)); }
-    o.waited = { endT: s.endT, sitting: s.sitting, sitT: +s.sitT.toFixed(1), kneel: c.kneel, line };
-    G.L.onPress({ key: 'r' }); G.L.onPress({ key: 'ArrowLeft' }); G.L.onPress({ key: 'Escape' }); step();
-    o.others = { sitting: s.sitting, went: s.went, state: G.state };
-    G.L.onPress({ key: 'ArrowUp' }); step();
-    o.went = { went: s.went, sitting: s.sitting };
-    // you go to it: the view goes in to it; it looks up, stops crying, holds out its hand, and yours takes it; it stands,
-    // holding it; content and happy, it lets go
-    let eye = 0, rose = null, joined = null;
-    while (s.endT < END.light[1]) {
-      step(); watch();
-      if (G.L.eye) eye = Math.max(eye, Math.hypot(G.L.eye.x, G.L.eye.z));
-      const h = c.hand;
-      if (h && h.join > 0.99 && !joined) joined = { kneel: c.kneel, its: h.its && h.its.map(v => +v.toFixed(2)), yours: h.yours && h.yours.map(v => +v.toFixed(2)), mood: c.mood, sob: c.sob, top: window._hoodTop() };
-      if (s.endT >= END.rise[1] && !rose) rose = { kneel: c.kneel, join: h && h.join, top: window._hoodTop(), its: h && h.its && h.its.map(v => +v.toFixed(2)), yours: h && h.yours && h.yours.map(v => +v.toFixed(2)) };
-    }
-    o.sit = END.sit; o.eye = +eye.toFixed(2); o.joined = joined; o.rose = rose; o.eyeBack = G.L.eye;
-    o.moods = seen.map(x => x.m); o.seen = seen.map(x => [x.m, +x.t0.toFixed(2), +x.t1.toFixed(2), +x.wrap.toFixed(2), +x.join.toFixed(2)]);
-    o.held2 = seen.filter(x => x.m >= 1 && x.m <= 4).every(x => x.t1 - x.t0 >= 0.8 && x.wrap > 0.99 && x.meadow === 0) && seen.filter(x => x.m >= 5).every(x => x.t1 - x.t0 >= 0.8 && x.meadow === 0) && seen.filter(x => x.m >= 6).every(x => x.join > 0.99 && x.kneel === 0);
+    while (s.endT < END.sad + 1) { step(); watch(); }
+    while (s.endT < END.neutral[0] - 0.1) { step(); watch(); }
+    o.crying = { sob: c.sob, mood: c.mood, grab: c.hug && c.hug.grab, dist: +c.dist.toFixed(2), backdrop: s.backdrop, kneel: c.kneel };
+    while (s.endT < END.swirl[0]) { step(); watch(); }
+    o.neutral = { mood: c.mood, sob: c.sob, grab: c.hug && c.hug.grab };
+    // the nights going by: by now all drawn, and each in turn the nearest
+    const shots = VOID_RECAP.shots, near = [];
+    while (s.endT < END.swirl[1]) { step(); watch(); const p = VOID_RECAP.depth(s.swirl), j = Math.round(p); if (j >= 0 && j <= shots.length && near[near.length - 1] !== j) near.push(j); }
+    o.swirl = { shots: shots.length, drawn: shots.filter(Boolean).length, near, back, grab: c.hug && c.hug.grab, meadow: +s.meadow.toFixed(2), pale: G.L.pal.fog.map(Math.round) };
+    let spun = 0, settled = null;
+    while (s.endT < END.light[1]) { step(); watch(); spun = Math.max(spun, s.spin); }
+    settled = { spin: s.spin, meadow: s.meadow, grab: c.hug && c.hug.grab, backdrop: s.backdrop, mood: c.mood };
+    o.spun = +spun.toFixed(2); o.settled = settled;
+    until(END.release + 1.5); o.let = { hug: c.hug, calm: c.calm };
+    o.moods = seen.map(x => x.m); o.seen = seen.map(x => [x.m, +x.t0.toFixed(2), +x.t1.toFixed(2), +x.grab.toFixed(2)]);
+    o.held2 = seen.filter(x => x.m >= 1 && x.m <= 7).every(x => x.t1 - x.t0 >= 0.8 && x.grab > 0.99) && seen.filter(x => x.m <= 5).every(x => x.meadow === 0);
     o.blends = seen.slice(1).map((x, i) => +(x.t0 - seen[i].t1).toFixed(2)); o.down = down;
     return o;
   });
-  check(hold.held.h0 && hold.held.h0.reach > 0 && hold.held.h0.reach < 0.5 && hold.held.h0.wrap === 0, 'it reaches out to you slowly (' + JSON.stringify(hold.held.h0) + ')');
-  check(hold.reaching && hold.reaching.every(([x, y], i) => (i ? x > 0.6 && x < 0.9 : x > 0.1 && x < 0.4) && y > 0.45 && y < 0.85), 'its hands come up into the view, one each side of it, reaching for you (' + JSON.stringify(hold.reaching) + ')');
-  check(hold.holding && hold.holding.every(([x, y], i) => (i ? x > 0.85 : x < 0.15) && y < 0.3), 'its arms come round the sides of the view, the hands in its top corners (' + JSON.stringify(hold.holding) + ')');
-  check(hold.held.reach > 0.99 && hold.held.wrap > 0.99 && hold.held.overlay > 0.99 && hold.held.dist < 0.75, 'it stops close in front of you and its arms close round you (' + JSON.stringify(hold.held) + ')');
+  check(hold.held.h0 && hold.held.h0.lift > 0 && hold.held.h0.lift < 0.5 && hold.held.h0.grab === 0, 'it lifts its arms slowly (' + JSON.stringify(hold.held.h0) + ')');
+  check(hold.lifted && hold.lifted.every(([x, y], i) => (i ? x > 0.6 && x < 0.95 : x > 0.05 && x < 0.4) && y > 0.2 && y < 0.5), 'its hands come up high in the view, one each side of its head (' + JSON.stringify(hold.lifted) + ')');
+  check(hold.veiled.unveil === 0 && hold.veiled.mood === 0 && hold.veiled.grab === 0 && hold.angry.unveil === 1 && hold.angry.mood === 0 && hold.angry.grab === 0, 'its arms lifted, its face comes up out of the dark of its hood, angry, before it takes hold of you (' + JSON.stringify([hold.veiled, hold.angry]) + ')');
+  check(hold.grabTook < 0.5 && hold.holding && hold.holding.every(([x, y], i) => (i ? x > 0.8 : x < 0.2) && y > 0.75), 'then, quick, it reaches out and takes hold of you: its hands at the lower corners of the view, as the tall thing in the bedroom grabbed (' + JSON.stringify(hold.holding) + ')');
+  check(hold.held.lift > 0.99 && hold.held.grab > 0.99 && hold.held.overlay > 0.99 && hold.held.dist < 0.75, 'it holds you, close in front of you (' + JSON.stringify(hold.held) + ')');
   check(hold.held.aim < 0.02 && hold.held.faceX > 0.4 && hold.held.faceX < 0.6 && hold.held.faceY > 0.1 && hold.held.faceY < 0.5, 'the view stays on its face (' + (hold.held.faceX || 0).toFixed(2) + ', ' + (hold.held.faceY || 0).toFixed(2) + ')');
-  check(hold.veiled.unveil === 0 && hold.veiled.mood === 0 && hold.veiled.wrap > 0.3 && hold.unveiled.unveil === 1 && hold.unveiled.mood === 0, 'as its arms close round you its face is still in the dark of its hood; then it comes out of it, angry (' + JSON.stringify([hold.veiled, hold.unveiled]) + ')');
   check(hold.tops.length >= 9 && hold.tops.every(([w, y]) => y !== null && (y > 0.01 || w === 'angry2')), 'close in, it bends down to you so its head stays in the view: as it reaches you, holds you, and through every face (but as it leans right in, angry, its face filling the view: ' + hold.tops.map(([w, y]) => w + ':' + y).join(', ') + ')');
   check(hold.lean.angry2 < 0.55 && Math.abs(hold.lean.other - 0.68) < 0.02, 'angry again, it leans in close at you, and back again for confused (' + JSON.stringify(hold.lean) + ')');
-  check(hold.sat.hug === null && hold.sat.kneel === 1 && hold.sat.bow > 0.95 && hold.sat.sob === 1 && hold.sat.mood === 4 && Math.abs(hold.sat.dist - 2.4) < 0.01 && hold.sat.yOff === 0 && hold.sat.endT === hold.sit,
-    'crying, it lets you go, steps back and sinks down onto the ground, its head bowed, still crying (' + JSON.stringify(hold.sat) + ')');
-  check(hold.waited.sitting && hold.waited.endT === hold.sit && hold.waited.kneel === 1 && hold.waited.sitT >= 8, 'and there it stays, crying, as long as you wait (' + JSON.stringify(hold.waited) + ')');
-  check(hold.waited.line.slice(0, 3).every(v => v === 0) && hold.waited.line[hold.waited.line.length - 1] > 0.9, 'only after a few seconds of waiting a small line says what to do (' + hold.waited.line.join(', ') + ')');
-  check(hold.others.sitting && !hold.others.went && hold.others.state === 'won' && hold.went.went && !hold.went.sitting, 'R, a turn or Escape do nothing there (nothing cuts it short); the key that looks up goes to it (' + JSON.stringify([hold.others, hold.went]) + ')');
-  check(hold.eye > 1.2 && hold.eyeBack === null, 'the view goes in to it, and back to where you stood as it goes off into the meadow (' + hold.eye + ')');
-  check(hold.joined && hold.joined.kneel === 1 && hold.joined.mood === 5 && hold.joined.sob === 0 && Math.hypot(hold.joined.its[0] - hold.joined.yours[0], hold.joined.its[1] - hold.joined.yours[1]) < 0.12 && hold.joined.its[1] > 0.4 && hold.joined.its[1] < 0.95 && hold.joined.top > 0.01,
-    'it looks up, stops crying, holds out its hand, and your hand comes up into the view and lies in it (' + JSON.stringify(hold.joined) + ')');
-  check(hold.rose && hold.rose.kneel === 0 && hold.rose.join > 0.99 && hold.rose.its[1] < 0.98 && hold.rose.top > 0.01, 'it stands, still holding your hand, the hands and its head in the view (' + JSON.stringify(hold.rose) + ')');
+  check(hold.crying.sob === 1 && hold.crying.mood === 4 && hold.crying.grab === 1 && hold.crying.dist === 0.68 && hold.crying.backdrop === 0 && hold.crying.kneel === undefined, 'sad, it cries a while in place, still holding you: it does not let go or sink down (' + JSON.stringify(hold.crying) + ')');
+  check(hold.neutral.mood === 5 && hold.neutral.sob === 0 && hold.neutral.grab === 1, 'then it stops crying, and its face is the grey neutral face again (' + JSON.stringify(hold.neutral) + ')');
+  const greyAgain = await page.evaluate(() => JSON.stringify(DEMON_MOODS[5]) === JSON.stringify(DEMON_MOODS[1]));
+  check(greyAgain, 'the same grey neutral face it made the first time');
+  check(hold.swirl.shots === 12 && hold.swirl.drawn === 12 && hold.swirl.back === 1 && hold.swirl.grab === 1 && JSON.stringify(hold.swirl.near) === '[0,1,2,3,4,5,6,7,8,9,10,11,12]',
+    'holding you, the dark turns behind it and every night before goes by, drawn as it was, one after another, and then the light (' + JSON.stringify(hold.swirl) + ')');
+  check(hold.swirl.pale.every(v => v > 200), 'the dark lightens into a pale void (' + hold.swirl.pale + ')');
+  check(hold.spun > 1 && hold.settled.spin === 0 && hold.settled.meadow === 1 && hold.settled.grab === 1 && hold.settled.backdrop === 0 && hold.settled.mood === 7, 'the meadow comes out of the light turning round you both and settles into place, and it is happy, still holding you (' + JSON.stringify([hold.spun, hold.settled]) + ')');
+  check(hold.let.hug === null && hold.let.calm > 0.5, 'then it lets you go (' + JSON.stringify(hold.let) + ')');
   const moodNames = await page.evaluate(() => CREATURES.demon.moodNames.join(', '));
-  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6,7]' && moodNames === 'angry, neutral, angry, confused, sad, neutral, content, happy' && !hold.down && hold.held2, 'its face goes through ' + moodNames + ', in that order, each held a while: to sad while it holds you, content and happy holding your hand (' + JSON.stringify(hold.seen) + ')');
+  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6,7]' && moodNames === 'angry, neutral, angry, confused, sad, neutral, content, happy' && !hold.down && hold.held2, 'its face goes through ' + moodNames + ', in that order, each held a while, all of it holding you (' + JSON.stringify(hold.seen) + ')');
   check(hold.blends.every((b, i) => (i === 1 || i === 2 ? b > 0.1 && b < 0.45 : b >= 0.7)), 'each change of face is slow, but for the quick ones into its second angry face and out of it (' + hold.blends.join(', ') + ' s)');
   check(hold.flash < 0.01 && hold.white < 0.01, 'nothing in it flashes');
   const meadow = await page.evaluate(() => {
@@ -772,28 +798,26 @@ const hoverHit = lookFor;
     const L0 = await page.evaluate(() => { while (G.L.s.endT < END.moods + 1) G.step(0.1, 1); return G.L.s.endT; });   // (holding you)
     await press();
     const early = await page.evaluate(() => ({ leaving: G.L.s.leaving, state: G.state, ending: G.L.s.ending }));
-    await page.evaluate(() => { while (!G.L.s.sitting) G.step(0.1, 1); G.L.onPress(); while (G.L.s.endT < END.arm + 0.5) G.step(0.1, 1); });   // (going to it as it sits crying)
+    await page.evaluate(() => { while (G.L.s.endT < END.arm + 0.5) G.step(0.1, 1); });   // (on, to the meadow)
     const L1 = await page.evaluate(() => (window._L = G.L, G.L.s.endT));
     await press();
     const later = await page.evaluate(() => ({ leaving: G.L.s.leaving, same: window._L === G.L, state: G.state }));
     check(L0 > 5 && !early.leaving && early.state === 'won' && early.ending && L1 > 20 && later.leaving && later.same && later.state === 'won', how + ': nothing while it holds you; in the meadow it goes on (' + JSON.stringify([early, later]) + ')');
   }
-  // with reduced motion it does not dance, tremble or sway, and the ending still comes to the last screen
+  // with reduced motion it does not dance, tremble or heave; nothing turns behind it (each night is there in turn and gives
+  // way to the next) and the meadow does not turn into place; and the ending still comes to the last screen
   await T.open(page, 'level=13&go&seed=1&nofr');
   await page.evaluate(() => MENU.applySetting('reducedMotion', true));
   await caught();
   const still = await page.evaluate(() => {
-    const c = G.L.creature, s = G.L.s; let dance = 0, heave = 0;
-    while (!s.sitting) G.step(0.1, 1);   // sitting crying: no heaving
-    for (let i = 0; i < 40; i++) { G.step(0.1, 1); heave = Math.max(heave, CREATURES.demon.heave(c)); }
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));   // (the zoom key goes to it)
-    const went = s.went;
-    while (!s.wait || s.endT < END.dance[1] + 9) { G.step(0.1, 1); dance = Math.max(dance, c.dance); }
-    const o = { still: c.still, dance, heave, went };
+    const c = G.L.creature, s = G.L.s; let dance = 0, heave = 0, spin = 0, back = 0;
+    while (s.endT < END.neutral[0]) { G.step(0.1, 1); heave = Math.max(heave, CREATURES.demon.heave(c)); }   // crying: no heaving
+    while (!s.wait || s.endT < END.dance[1] + 9) { G.step(0.1, 1); dance = Math.max(dance, c.dance); spin = Math.max(spin, s.spin); back = Math.max(back, s.backdrop); }
+    const o = { still: c.still, dance, heave, spin, back, shots: VOID_RECAP.shots.filter(Boolean).length };
     G.L.onPress(); for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1);
     return Object.assign(o, { state: G.state });
   });
-  check(still.still === true && still.dance === 0 && still.heave === 0 && still.went && still.state === 'end', 'with reduced motion its shoulders do not heave as it cries, the zoom key goes to it, it stands still in the meadow, and the ending still ends (' + JSON.stringify(still) + ')');
+  check(still.still === true && still.dance === 0 && still.heave === 0 && still.spin === 0 && still.back === 1 && still.shots === 12 && still.state === 'end', 'with reduced motion its shoulders do not heave as it cries, the nights still go by behind it but nothing turns, the meadow does not spin, it stands still in the meadow, and the ending still ends (' + JSON.stringify(still) + ')');
   await page.evaluate(() => MENU.applySetting('reducedMotion', false));
   // tapping the held thing again while looking down puts it down
   await T.open(page, 'level=13&go&seed=1&nofr');

@@ -365,6 +365,29 @@ const AUDIO = (() => {
       case 'hangers': for (let i = 0; i < 6; i++) tone(2200 + Math.random() * 1400, 0.05, { vol: 0.045, type: 'triangle', delay: i * 0.06 + Math.random() * 0.03, pan }); break;
       case 'switch': tone(900, 0.02, { vol: 0.14, type: 'square', endFreq: 500 }); noise(0.02, { freq: 2500, vol: 0.2, delay: 0.02 }); break;
       case 'flicker': for (let i = 0; i < 4; i++) noise(0.02, { type: 'highpass', freq: 3000, vol: 0.15, delay: i * 0.09 + Math.random() * 0.04 }); tone(120, 0.5, { vol: 0.06, type: 'sawtooth', endFreq: 40, delay: 0.3 }); break;
+      // the demon enraged (night 13): a scraping shriek, rising and breaking, with a rasp of grit through it; never quite the
+      // same twice. screechRage, beside itself: longer, two voices at odds and a growl under them
+      case 'screech': {
+        const f = 1300 + Math.random() * 500;
+        tone(f, 0.42, { vol: 0.07, type: 'sawtooth', endFreq: f * 1.7, attack: 0.04, pan }); tone(f * 1.03, 0.4, { vol: 0.045, type: 'square', endFreq: f * 1.55, attack: 0.05, pan });
+        tone(f * 1.7, 0.45, { vol: 0.06, type: 'sawtooth', endFreq: f * 0.8, delay: 0.4, pan });
+        noise(0.75, { type: 'bandpass', freq: 3200 + Math.random() * 600, q: 3, vol: 0.2, attack: 0.06, pan });
+        for (let i = 0; i < 9; i++) noise(0.04, { type: 'bandpass', freq: 2400 + Math.random() * 1800, q: 7, vol: 0.14, delay: 0.03 + i * 0.075, pan });
+        break;
+      }
+      case 'screechRage': {
+        const f = 1600 + Math.random() * 500;
+        for (const [d, m] of [[0, 1], [0.08, 1.13]]) { tone(f * m, 0.55, { vol: 0.07, type: 'sawtooth', endFreq: f * m * 1.8, attack: 0.03, delay: d, pan }); tone(f * m * 1.8, 0.6, { vol: 0.055, type: 'sawtooth', endFreq: f * m * 0.7, delay: d + 0.52, pan }); }
+        tone(72, 1.1, { vol: 0.18, type: 'sawtooth', endFreq: 52, attack: 0.05, pan });
+        noise(1.1, { type: 'bandpass', freq: 3600 + Math.random() * 800, q: 2.5, vol: 0.26, attack: 0.04, pan });
+        for (let i = 0; i < 14; i++) noise(0.04, { type: 'bandpass', freq: 2200 + Math.random() * 2400, q: 7, vol: 0.16, delay: 0.02 + i * 0.07, pan });
+        break;
+      }
+      // the dark turning at the end of night 13: a rushing that swells and climbs for ten seconds, a low note rising under it
+      case 'warp':
+        for (let i = 0; i < 10; i++) noise(1.8, { type: 'bandpass', freq: 260 * Math.pow(1.27, i), q: 1.1, vol: 0.05 + 0.012 * i, attack: 0.7, delay: i * 1.0 });
+        tone(46, 10.5, { vol: 0.14, type: 'triangle', endFreq: 120, attack: 3 });
+        break;
       case 'birds': { const f0 = 2200 + Math.random() * 1200; for (let i = 0; i < 4 + Math.floor(Math.random() * 4); i++) tone(f0 + Math.random() * 600, 0.07, { vol: 0.05, type: 'sine', endFreq: f0 + 300 + Math.random() * 500, delay: i * 0.11, pan }); break; }
       case 'stingWet': noise(0.5, { freq: 1600, vol: 1.0, attack: 0.002 }); noise(1.4, { type: 'bandpass', freq: 500, q: 1, vol: 0.7, delay: 0.1, attack: 0.05 }); tone(42, 1.4, { vol: 0.7, endFreq: 26 }); tone(700, 0.9, { vol: 0.3, type: 'sawtooth', endFreq: 200, delay: 0.15 }); break;
       case 'stingScrape': noise(1.1, { type: 'bandpass', freq: 2400, q: 3, vol: 0.9, attack: 0.002 }); tone(1400, 0.8, { vol: 0.35, type: 'sawtooth', endFreq: 3000 }); tone(45, 1.3, { vol: 0.7, endFreq: 28, delay: 0.1 }); break;
