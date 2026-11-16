@@ -259,7 +259,10 @@ some on the ground, so you have to turn and look down to find them.
    hanging up drops the coin back into the coin return. When someone answers, a car comes
    down its street and pulls up at the curb for you.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
-    it in the glass: facing a mirror holds it. In every glass it dances on the spot, a
+    it in the glass. The night has a clock: it comes on all night, steadily while the mirror you face does not show it,
+    and more slowly held in the glass, where it comes a step nearer in the snap of each move of its dance and is dead still
+    between them, so its reflections creep in from far back in every mirror (about three minutes for a player who spends
+    half the night facing a mirror; five never looking away, a little over two never facing one). In every glass it dances on the spot, a
     wind-up doll's dance, every move snapped into all at once and then held dead still a long
     beat before the next (an arm going up and coming down, a wrist flopping over, a knee
     coming up, a leg kicked out to the side, the head snapping over to one side, a lean from
@@ -280,7 +283,8 @@ some on the ground, so you have to turn and look down to find them.
     notes and the crank sticks; in the glass the doll stops dancing dead, upset with you: its
     face crumples into weeping (the painted brows up in the middle, the glass eyes gone red,
     red tears down its cheeks, its mouth pulled down into an open, trembling sob), its head
-    bowed over to one side and its shoulders heaving, and behind you it takes three quick steps; it dances again once its temper has gone. The next click on the box
+    bowed over to one side and its shoulders heaving, and behind you it takes three quick steps, three tenths of its whole
+    way in at once (never right up to you), so a couple of wrong tries can lose the night; it dances again once its temper has gone. The next click on the box
     lifts it back off, its crank still in it, to put before another mirror. Before the crank
     is in, a click on the box takes it back too, unless you are holding the crank (then the
     click fits it). It is your hand on the crank, turn by turn; when it jams the box jumps on the pedestal and the hand
@@ -288,7 +292,9 @@ some on the ground, so you have to turn and look down to find them.
     box on it feels about the bare top for something to fit and comes back to your hand; with nothing in hand, the hand
     goes out to the empty top. A dust sheet is pulled down by hand and slides off the glass into a heap.
     If it reaches you, it comes at you weeping, whatever it was before: the red eyes and the red tears all the way in to
-    your face, the sob opening into a wail and its hands coming up as it lunges.
+    your face, the sob opening into a wail and its hands coming up as it lunges. After a wrong mirror the card reads "You
+    played for an illusion. The creature surprised you from behind."; caught without the box ever having played, "It
+    just wants to hear its song."
 11. **The Farm.** You stand in the yard by the farm's electrical box, the house at your back with its porch light on,
     facing the barn: the night always starts that way, wherever the thing is, and finding it is part of it (the card
     does not say where it is coming from). Round you in a ring, at the compass points, are the farm's places, each with
@@ -296,9 +302,10 @@ some on the ground, so you have to turn and look down to find them.
     silo (NE), the coop (E) and the driveway (SE); each has a neighbour either side, and the driveway and the tractor shed
     meet behind the house. The yard is grass all round, and the porch light lays a smooth pool of warm light on it. The
     box is on its post at your left hand, its top at your chest: turn left from the barn to face the stables and it is
-    right there, a little left of the way out to them (clear of it), its front square to you, its main breaker at the
-    foot of the view as you look ahead (look down for the rest: this night looks down a little less than the others, to
-    keep the whole box in view). It stands open, with no door, on the MAIN breaker across the top, a big lever over to
+    right there in the middle of the view, under the stables (too low to hide them), its front square to you, its main
+    breaker at the foot of the view as you look ahead (look down for the rest: this night looks down less than the
+    others, to keep the whole box in view, a little below the middle). Zoom held on it closes in only as far as keeps
+    the whole box and every label on it in view; looking anywhere else it zooms as usual. It stands open, with no door, on the MAIN breaker across the top, a big lever over to
     ON with a green lamp beside it, and under it two rows of big toggle switches, each with a red pilot lamp and a strip of tape with the place
     written on it in marker (HOUSE, then the places in order round from the tractor shed); a click flips one, up is on.
     The panel and its parts are fixed flat on the front of the box, so they stay where they are drawn however you look.

@@ -11,7 +11,10 @@
   };
   // night 10's numbers: where it is behind you (B), and so how far back its reflection is in the glass (7 m more); its fetch
   // (F, AT, LAT, IN, the box BOXW across on the pedestal PED off at BOXY up); the side of the odd mirror it comes out to
-  const B = 10, GLASS = 7 + B, PACE = 30 / 50;   // startDist / time, at unseenMult 1.0: it moves only while unseen
+  // its pace: startDist / (time x Nightmare's 0.6) a second, at the night's seenMult 0.6 held in a glass (all of it in the
+  // snaps of its dance) and at unseenMult 1.0 x Nightmare's 1.4 unseen; a wrong mirror hops it in by WRONG of its whole way
+  const D0 = 30, CLOCK = 300 * 0.6, PACE = D0 / CLOCK * 1.4, SEEN = 0.6, WRONG = 0.3;
+  const B = 10, GLASS = 7 + B;
   const F = { settle: 0.22, turn: 0.95, reach: 0.35, lift: 0.8, back: 1.1, run: 1.3, after: 1.0 };
   const AT = 2.3, LAT = 0.58, IN = 4.4, BOXW = 0.4, BOXY = 0.75, PED = 2.2, CA = CR.carryAt, SIDE = 1, AP = clamp(0.9 + (GLASS - AT) * 0.045, 1.3, 2.4);
   // the light of the room (the lamp on its table and the fire far off to the west), as LIGHT.at gives it by a pedestal; behind
@@ -53,16 +56,18 @@
     anims: [
       { name: 'Dancing in the glass', note: 'What every mirror shows while you hold it: a wind-up doll\'s dance, eight moves round, each snapped into at once and then held dead still a long beat before the next. Every move is lopsided (waiting, one foot set out to the side; both forearms jerked up together, one leg kicked out), so its mirror image never looks the same.', dur: CR.danceBeat * CR.danceKeys.length, still: true,
         tick(c, k, dt) { c.danceT += dt; } },
+      { name: 'Creeping in, held in the glass', note: 'Held in a glass it is never quite still: it comes a step nearer in the snap of each move of its dance (its seen pace all goes into the snaps, with a rock from one foot to the other), and holds dead still between them. Over the night the reflections creep in from far back in every mirror.', dur: CR.danceBeat * CR.danceKeys.length, still: true,
+        tick(c, k, dt) { c.danceT += dt; const d0 = c.dist; c.dist = Math.max(CR.catchDist + 7, c.dist - D0 / CLOCK * SEEN * CR.speedMult(c, dt, true) * dt); settle(c, dt, d0 - c.dist); } },
       { name: 'Dancing the other way round', note: 'The odd mirror: the same dance at the same moment, left and right swapped (the raised arm, the lifted knee, the leg kicked out and the head all on the other side). The one to put the music box before.', dur: CR.danceBeat * CR.danceKeys.length, still: true,
         set(c) { c.danceMir = -1; }, tick(c, k, dt) { c.danceT += dt; } },
       { name: 'Rocking up behind you', note: 'In the glass while the mirror you face does not show it: still dancing, it rocks from foot to foot as it comes up behind you.', dur: 4.2, walk: PACE,
         tick(c, k, dt) { c.danceT += dt; } },
-      { name: 'The wrong mirror: upset, and its hop', note: 'The box cranked before the wrong mirror (at 1 s): its dance stops, its face crumples into weeping (red eyes, red tears, an open sob) and it hops in to two thirds of the way. Taken back at 3 s, its temper goes at 6 s and it dances again.',
+      { name: 'The wrong mirror: upset, and its hop', note: 'The box cranked before the wrong mirror (at 1 s): its dance stops, its face crumples into weeping (red eyes, red tears, an open sob) and it hops in by three tenths of its whole way (here, from 10 m, as near as it ever hops: 2.8 m off). Taken back at 3 s, its temper goes at 6 s and it dances again.',
         dur: 9, zoom: true, fit: { h: 1.5, y0: -0.4, w: 1.0 },
         set(c) { c.lungeFrom = c.dist; c.s = { sour: false, angryTill: -1 }; },
         tick(c, k, dt, T) {
           const s = c.s; let moved = 0;
-          if (T >= 1 && !s.hopped) { s.hopped = true; s.sour = true; s.angryTill = T + 5; c.angry = 1; const d = 7 + Math.max(CR.catchDist + 1.5, B * 0.65); moved = c.dist - d; c.dist = d; }
+          if (T >= 1 && !s.hopped) { s.hopped = true; s.sour = true; s.angryTill = T + 5; c.angry = 1; const d = 7 + Math.max(CR.catchDist + 1.5, B - WRONG * D0); moved = c.dist - d; c.dist = d; }
           if (T >= 3) s.sour = false;
           temper(c, dt, T, s); settle(c, dt, moved);
         } },

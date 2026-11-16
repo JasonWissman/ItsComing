@@ -1,7 +1,8 @@
 'use strict';
 // ============================================================ 10. THE MIRROR MAZE ============================================================
 // The look-away night turned inside out: it is always behind you and you only ever see it in the glass.
-// It moves while the mirror you are facing does not show it. A mirror in the middle of every wall and a pedestal
+// It comes on while the mirror you are facing does not show it, and even held in the glass it is not still: with every
+// move of its dance it is a little nearer (a real clock: the reflections creep in all night, and looking away hurries it). A mirror in the middle of every wall and a pedestal
 // before each, all alike. In every glass it dances on the spot, a stiff wind-up doll's dance (each move snapped
 // into at once and held dead still a long beat), in step in all of them; one mirror is not like the others: in it the
 // dance is the mirror image of the rest (left and right swapped).
@@ -10,7 +11,8 @@
 // like the dancer on the box, and comes out through that glass for the box, quickly, lifts it off the pedestal, and takes
 // it back in with it and away. Before any other mirror the first turn plays wrong notes and the crank sticks: in the glass
 // the doll stops dancing, its face crumples into red-eyed weeping and it hops at you (three quick steps). A click on the
-// box then lifts it back off, crank and all, to put before another mirror. Your hand is on the crank as it turns, wrenches at it when it jams
+// box then lifts it back off, crank and all, to put before another mirror. Each of those hops takes a good share of the
+// night's clock (WRONG), so a couple of wrong tries can lose it. Your hand is on the crank as it turns, wrenches at it when it jams
 // (the box jumps), and takes the box back up off the pedestal; the crank tried on a bare pedestal feels about its top and
 // comes back to your hand (G.refuse); a dust sheet is pulled down by hand and slides off the glass.
 LEVELS.push({
@@ -23,7 +25,8 @@ LEVELS.push({
     intro: 'You see a strange doll in the mirrors.\nThey all look the same... mostly.',
     hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is upset with you: click the box to take it back.',
     objective: 'Find the odd mirror. Put the music box on its pedestal, fit the crank, turn it.',
-    death: { default: 'The strange doll leapt out from its mirror and grabbed you.', wrong: 'You played for an illusion. The creature surprised you from behind.' },
+    // wrong: it had you after the box played wrong before any mirror; unplayed: the box never played at all
+    death: { default: 'The strange doll leapt out from its mirror and grabbed you.', wrong: 'You played for an illusion. The creature surprised you from behind.', unplayed: 'It just wants to hear its song.' },
     win: 'It only wanted its music box.',
   },
   lanes: [
@@ -35,12 +38,15 @@ LEVELS.push({
     { deg: 180, name: 'the south mirror', barrierDist: 0, noSwitch: true },
     { deg: 270, name: 'the west mirror', barrierDist: 0, noSwitch: true },
   ],
-  creatures: [{ type: 'other', startDist: 30, time: 50, seenMult: 0, unseenMult: 1.0 }],
+  // the clock: held in a glass it creeps in at seenMult (a step with each move of its dance), unseen at unseenMult (x1.4 on
+  // Nightmare); time 300 is about three minutes for a player who spends half the night facing a mirror (five, never looking
+  // away; a little over two, never facing one)
+  creatures: [{ type: 'other', startDist: 30, time: 300, seenMult: 0.6, unseenMult: 1.0 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s, CR = CREATURES.other, c0 = () => L.creatures[0];
     const board = [78, 40, 48], boardD = [54, 28, 34], gilt = [150, 120, 60], tileA = [118, 108, 98], tileB = [40, 36, 36];
-    const DIRS = ['north', 'east', 'south', 'west'], TURNS = 4;
+    const DIRS = ['north', 'east', 'south', 'west'], TURNS = 4, WRONG = 0.3;   // WRONG: the share of the night's clock a wrong mirror costs
     SC.stars(L, 101, 20, 0.2);
     for (let x = -3.5; x < 3.5; x += 0.7) for (let z = -3.5; z < 3.5; z += 0.7) SC.floorQ(L, x, z, x + 0.7, z + 0.7, 0.004, ((Math.round(x / 0.7) + Math.round(z / 0.7)) & 1) ? tileA : tileB);
     SC.quad(L, [-3.6, 3.2, -3.6], [3.6, 3.2, -3.6], [3.6, 3.2, 3.6], [-3.6, 3.2, 3.6], [40, 30, 30]);
@@ -156,26 +162,26 @@ LEVELS.push({
     s.lead = (sideRoll * 2) % 1 < 0.5 ? 1 : -1;   // the next bit of the same roll, so the layout and the doll's start are as they were
     // placedAt: the pedestal the box is on (-1: none); crankIn: its crank is in its front; turns: turns before the odd mirror;
     // sour: it has played wrong where it is, and its crank sticks; angryTill: the doll is angry until then
-    Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99, sour: false, angryTill: -99 });
+    Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99, wrongs: 0, sour: false, angryTill: -99 });
     const panTo = (x, z) => Math.sin(wrapPi(Math.atan2(x, z) + L.facing - G.cam.yaw)) * 0.7;
     const pedTargets = [];
     const refresh = () => pedTargets.forEach(t => { t.accepts = s.placedAt < 0 ? ['musicbox', 'crank'] : s.crankIn ? [] : ['crank']; });
     // lifted off a pedestal with its crank in, the box keeps it: you carry it so, and it goes down on the next one so
     const boxWithCrank = (ctx, P) => ICONS.musicbox(ctx, P, { crank: 0 });
     // the first turn before a wrong mirror: the comb drags out wrong notes and the crank sticks; in the glass its painted face
-    // crumples, weeping red, and behind you something takes three quick steps (it hops in to two thirds of how far off
-    // it was, never right up to you). The crank stays stuck, so a box turned before the wrong mirror costs one hop, not
-    // one a click
+    // crumples, weeping red, and behind you something takes three quick steps: it hops in by WRONG of the whole night's
+    // clock, never right up to you (it stops catchDist + 1.5 off, a few seconds from you), so a couple of wrong tries can
+    // lose the night. The crank stays stuck, so a box turned before the wrong mirror costs one hop, not one a click
     // where the crank is on the box on pedestal k (in the middle of its turn, out from the front of the box), in the world:
     // the hand goes there to turn it
     const crankAt = k => { const q = onLine(PED - MB.d / 2 - 0.03, (s.flip ? -1 : 1) * MB.cx, BOXY + MB.foot + MB.h / 2, k); return { x: q[0], y: q[1], z: q[2] }; };
     // a turn of the crank is the hand's own (the box makes the sound): G.reach, kept quiet
     const turnHand = (t, k, style) => { const r = G.reach(t, { style, at: crankAt(k) }); if (r && style === 'pull') r.touched = 99; };
     const wrongTurn = p => {
-      const c = c0(); s.wrongAt = L.t; s.sour = true; s.angryTill = L.t + 5; c.angry = 1;
+      const c = c0(); s.wrongAt = L.t; s.wrongs++; s.sour = true; s.angryTill = L.t + 5; c.angry = 1;
       s.crankTo -= TAU * 0.6; G.shake(0.04);
       AUDIO.sfx('musicSour', panTo(p.x, p.z));
-      const d = Math.max(c.catchDist + 1.5, c.dist * 0.65); c.u = clamp(1 - Math.pow(d / c.D0, 1 / c.gamma), c.u, 0.995); c.hitched = true;
+      const uMax = 1 - Math.pow((c.catchDist + 1.5) / c.D0, 1 / c.gamma); c.u = clamp(c.u + WRONG, c.u, Math.max(c.u, uMax)); c.hitched = true;
       G.shake(0.25);
       for (let i = 0; i < 3; i++) setTimeout(() => { if (G.state === 'play') AUDIO.footstep('smiler', 0.45, 0); }, 120 + i * 150);
       G.say('Not the odd mirror: the notes come out wrong and the crank sticks, and in the glass its face has changed. Behind you something takes three quick steps.', 'The notes come out wrong. Behind you something takes three quick steps.');
@@ -253,7 +259,8 @@ LEVELS.push({
       return best;
     };
     L.isWon = () => s.turns >= TURNS;
-    L.deathCause = () => (L.t - s.wrongAt < 8 ? 'wrong' : null);
+    // caught after the box played wrong (the illusions cost it the clock), or without the box ever having played
+    L.deathCause = () => (s.wrongs ? 'wrong' : s.turns ? null : 'unplayed');
     // when it has you it is angry (weeping), whatever it was before: the red eyes, the tears, the open sob, all the way in to
     // your face (the night's update does not run while you die, so it is set here, once, and stays)
     L.onCatch = c => { c.angry = 1; c.dance = 0; c.smile = false; return false; };

@@ -25,12 +25,20 @@ const flush = fresh.concat([
 const main = "G.L.targets.find(t => t.id === 'main')";
 const trip = fresh.concat([
   ['expect', 'G.L.s.power && ' + main + ' && ' + main + '.face !== undefined && G.L.targets.filter(t => /^sw/.test(t.id)).every(t => t.face === ' + main + '.face)', 'the main breaker and the switches, fixed flat on the front of the box'],
-  // the box is at your left, short of the way out to the stables and clear of it, its front to you: turned to face the
-  // stables and looking down, the main and every switch are in view
+  // the box is at your left, short of the stables and square in the middle of the view as you face them, its front to
+  // you: turned to face the stables and looking down, the main and every switch are in view; zoom held on it closes in
+  // only as far as keeps the whole box in view (clear of the compass at the top)
   ['face', 7, true],
   ['expect', '(() => { const m = ' + main + ', a = Math.atan2(m.x, m.z) / DEG, d = Math.hypot(m.x, m.z), front = -(Math.sin(m.face) * m.x + Math.cos(m.face) * m.z); ' +
     "const hs = R.hits.filter(h => h.kind === 'target' && (h.ref.id === 'main' || /^sw/.test(h.ref.id)) && h.poly); " +
-    'return a < -50 && a > -80 && d < 1.3 && front > 0.9 * d && hs.length === 9 && hs.every(h => h.x >= 0 && h.x + h.w <= R.W && h.y >= R.viewY && h.y + h.h <= R.viewY + R.H); })()', 'the box at your left, toward the stables and clear of their way in, its front to you; facing the stables and looking down, the main and every switch are in view'],
+    'return Math.abs(a + 45) < 2 && d < 1.3 && front > 0.9 * d && hs.length === 9 && hs.every(h => h.x >= 0 && h.x + h.w <= R.W && h.y >= R.viewY && h.y + h.h <= R.viewY + R.H); })()', 'the box at your left, square before you as you face the stables, its front to you; facing the stables and looking down, the main and every switch are in view'],
+  ['eval', 'G.cam.zoomHeld = true'], ['wait', 1200],
+  ['expect', '(() => { const z = G.L.boxZoom(); const hs = R.hits.filter(h => h.kind === "target" && (h.ref.id === "main" || /^sw/.test(h.ref.id))); ' +
+    'return z > 1.3 && z < 2.6 && Math.abs(G.cam.zoom - z) < 0.03 && hs.length === 9 && hs.every(h => h.x >= 0 && h.x + h.w <= R.W && h.y >= R.viewY + 80 && h.y + h.h <= R.viewY + R.H); })()', 'zoomed on the box, it closes in only as far as keeps all of it in view'],
+  ['face', 7, false],
+  ['wait', 1200],
+  ['expect', 'G.L.boxZoom() === null && G.cam.zoom > 2.5', 'looking ahead at the stables over it, the zoom is the usual one'],
+  ['eval', 'G.cam.zoomHeld = false'], ['wait', 600],
   ['face', 0, false],   // (back to the barn and looking ahead, as the night starts, for what follows)
   ['eval', 'const k = G.L.s.k, far = [0, 1, 2, 3, 4, 5, 6].filter(q => q !== k && !G.L.nb(k).includes(q)).slice(0, 3); window.__far = far; ' + "far.forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
   ['expect', '!G.L.s.power && G.L.s.on.every(o => !o) && G.L.s.trips === 1', 'a fourth switch on: the main trips, and every switch drops to off'],
