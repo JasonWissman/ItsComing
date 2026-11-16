@@ -167,6 +167,17 @@
   :root[data-theme="day"] .ncard.shown { background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.3); color: #2e2823; }
   :root[data-theme="day"] .ncard.locked { color: rgba(58,51,44,.3); border-color: rgba(58,51,44,.15); }
   :root[data-theme="day"] .runcard .rtime { color: #2e2823; }
+  /* the dialogs over the morning title (Nights, How to play, Settings): a pale sheet of paper, dark ink, like the title */
+  :root[data-theme="day"] #overlay.dlg > .panel { background: rgba(247,244,238,.97); border-color: rgba(58,51,44,.2); box-shadow: 0 24px 80px rgba(46,40,35,.28); }
+  :root[data-theme="day"] .ncard .nbest { color: rgba(46,40,35,.82); }
+  :root[data-theme="day"] .ncard .nbest small { color: rgba(58,51,44,.55); }
+  :root[data-theme="day"] .runcard .rtime.none { color: rgba(58,51,44,.45); }
+  :root[data-theme="day"] #overlay .hint { color: #3a332c; }
+  :root[data-theme="day"] .opt input[type=range], :root[data-theme="day"] .opt input[type=checkbox] { accent-color: #2e2823; }
+  :root[data-theme="day"] #overlay .confirm { background: rgba(233,228,218,.6); }
+  :root[data-theme="day"] .confirm p { color: #3a332c; }
+  :root[data-theme="day"] #overlay, :root[data-theme="day"] #overlay * { scrollbar-color: rgba(58,51,44,.3) transparent; }
+  :root[data-theme="day"] #overlay ::-webkit-scrollbar-thumb { background: rgba(58,51,44,.3); }
   :root[data-theme="day"] .confirm .cpanel { background: rgba(244,240,232,.98); border-color: rgba(58,51,44,.25); box-shadow: 0 24px 90px rgba(0,0,0,.3); }
   :root[data-theme="day"] .confirm h2, :root[data-theme="day"] .confirm p { color: #2e2823; }
   :root[data-theme="day"] #mute { color: rgba(58,51,44,.5); }

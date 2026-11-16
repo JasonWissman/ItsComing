@@ -99,7 +99,9 @@ const R = (() => {
     for (let y = -4; y < H + 4; y += step) {
       const ang = Math.atan2(H / 2 - (y + step / 2), f) - pitch; // >0 above horizon
       let col;
-      if (ang > 0) {
+      // a row centred exactly on the horizon (ang 0: looking level at some heights of the view) is the fog colour, which
+      // both sides meet there; taken as ground its distance came out -Infinity and the row was painted black
+      if (ang >= 0) {
         const k = clamp(ang / (Math.PI / 2.6), 0, 1);
         col = mixc(fog, skyTop, Math.pow(k, 0.6));
         if (LIGHT.global > 0.01) col = mixc(col, [225, 228, 245], Math.min(0.85, LIGHT.global * 0.9));
