@@ -40,7 +40,7 @@ Headphones are recommended. Sound starts after your first click.
 
 `WASD` also works for turning and looking. Clicking the floor while looking
 down puts the active item back down. How to play shows the four that matter most as cards (Look around, Zoom in,
-Interact, Pause). The pause menu has Resume, Restart, Nights, Settings, Mute (Unmute while muted) and Quit, its
+Interact, Pause). The pause menu has Resume, Restart, Settings, Mute (Unmute while muted) and Quit, its
 buttons all one width; `R`, `M` and `Esc` work there as anywhere.
 
 On phones and tablets (a touch screen as the main pointer) the game is played on its side: held upright, a screen asks
@@ -392,26 +392,25 @@ clock ticks for the first ten seconds of each night from the same direction. Sur
 offers Next night, and, quieter and further down, Quit to the title. Finishing the last night ends in that meadow; a click, a key (other than those that
 turn, look and zoom), a tap of Use or A there fades
 the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme. The last
-screen there says "You have faced your demons." over one button, I did it, which brings up how the nights went: the
-thirteen cards of the Nights screen, each taking its time one after another (the time of the attempt that won it on
-this run, and whether that was a new best; the bests kept, when the game was not finished on a full run), then the
-full run's time and whether it is a new best, then Finish game, home to the title. A click or a key hurries it to the
+screen there says "You have faced your demons." over one button, The End, which brings up how the nights went this
+time: the thirteen cards of the Nights screen, each taking this run's time one after another (the time of the attempt
+that won it; no best times here, only this run), then this run's whole time, then Finish game, home to the title. A click or a key hurries it to the
 end, and with reduced motion it is all there at once.
 
 Each night is a little different every time it loads, and trying a night again never brings it the same way twice in a row: every item has several
 places it might be, the creature's starting distance and pace vary slightly,
 and the car takes a different number of tries to start. Some pause, some lurch, one only moves when unseen.
-Progress is saved in `localStorage`; the title screen offers to continue from
-the furthest night reached, and, once there is more than the first night open, a Nights button. The Nights screen
-has a card for every night (its best time inside it), in two columns, and under them the best full run.
+There is no picking a night and no continuing: it is a short game, and every game is all thirteen nights in a row,
+from the prologue and night 1 (Begin, or Enter on the title). The death screen offers Try again (the same night) and
+Quit. Progress and best times are saved in `localStorage`; once a night has been survived the title has a Nights
+button, which shows how they have gone and nothing more: a card for every night (its best time inside it; a night not
+reached yet is blank), in two columns, and under them the best full run. The cards are not buttons.
 
-A full run is night 1 to the end of night 13 in one go, timed. It begins when night 1 is begun from a menu (Begin,
-night 1 on the Nights list, or Enter on the title). Its clock runs only while you play: every attempt
-counts, retries after a death and restarts included, but not the cards, the death and win screens, the pause menu,
-the title, or the watching after a night is won. It carries on through Next night, and through quitting to the title
-as long as the next night you start is the one the run is on (Continue, or that night on the Nights list); starting
-any other night breaks it, and so does reloading the page. It finishes the moment the last night is won, and the best
-is kept in the save.
+A full run is night 1 to the end of night 13 in one go, timed: every game is one. Its clock runs only while you play:
+every attempt counts, retries after a death and restarts included, but not the cards, the death and win screens, the
+pause menu, or the watching after a night is won. It carries on through Next night; quitting to the title ends it,
+and so does reloading the page. It finishes the moment the last night is won, and the best is kept in the save. (The
+test switches such as `?level=N` still start a night directly, for debugging, but never on a run.)
 
 The title screen is pitch black, with two pale points of eyes a long way off. The title and its buttons sit below them,
 with no intro text or list of controls on it: those are in How to play. How to play, Nights and Settings open as
