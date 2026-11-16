@@ -25,16 +25,22 @@ const R = (() => {
   let skyCache = null, dangerCv = null, dangerCvSize = 0;
 
   function attach(cv) { canvas = cv; ctx = cv.getContext('2d'); }
+  // the page as the canvas covers it (index.html: fixed, the whole viewport, as the HUD over it is): measured, not taken
+  // from innerWidth/innerHeight, which a phone's browser can report for a moment as a size its bars have since changed,
+  // leaving the view a smaller box with black round it and the HUD off its edges
+  function pageSize() {
+    const r = canvas ? canvas.getBoundingClientRect() : null;
+    return [Math.max(1, Math.round((r && r.width) || window.innerWidth)), Math.max(1, Math.round((r && r.height) || window.innerHeight))];
+  }
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 1.5);
-    pageW = Math.max(1, window.innerWidth); pageH = Math.max(1, window.innerHeight);
+    const vp = pageSize(); pageW = vp[0]; pageH = vp[1];
     // portrait screens get a letterboxed 3:2 view so a 45° turn still overlaps the last view
     W = pageW; H = pageH; viewY = 0;
     if (pageW / pageH < 1.25) { H = Math.round(pageW / 1.5); viewY = Math.round((pageH - H) / 2); }
     document.documentElement.style.setProperty('--view-top', viewY + 'px');
     document.documentElement.style.setProperty('--view-bottom', (pageH - viewY - H) + 'px');
     canvas.width = Math.round(pageW * DPR); canvas.height = Math.round(pageH * DPR);
-    canvas.style.width = pageW + 'px'; canvas.style.height = pageH + 'px';
     buildVignette();
     if (!grains.length) buildGrain();
   }
@@ -1019,7 +1025,7 @@ const R = (() => {
 
   return {
     attach, resize, begin, add, prepare, flush, post, screenPos, projectRect, fogAmt, aside,
-    get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageH() { return pageH; },
+    get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageW() { return pageW; }, get pageH() { return pageH; }, pageSize,
     get hits() { return hits; },
     get detail() { return detailOn; }, set detail(v) { detailOn = !!v; },
     get statics() { return statics; }, isCulledFace: culledFace,   // for scripts that check the drawing order: the prepared statics, and whether a box face is turned away

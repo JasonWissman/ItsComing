@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>It's Coming</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23000%27/%3E%3Cellipse cx=%2716%27 cy=%2712%27 rx=%275%27 ry=%277%27 fill=%27%23d8d0c0%27/%3E%3Ccircle cx=%2714%27 cy=%2711%27 r=%271%27/%3E%3Ccircle cx=%2718%27 cy=%2711%27 r=%271%27/%3E%3Cellipse cx=%2716%27 cy=%2715.5%27 rx=%271.4%27 ry=%272%27/%3E%3Cpath d=%27M11 30 L13 19 L19 19 L21 30 Z%27 fill=%27%23111%27/%3E%3C/svg%3E">
 <meta name="description" content="A first-person browser horror game. Something is coming straight at you. Look away to survive; look back and it is closer.">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: #cfc8ba; font-family: 'IM Fell English', Georgia, serif; -webkit-user-select: none; user-select: none; }
-  #game { position: fixed; inset: 0; display: block; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
   #hud { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
   #hud.dim { opacity: 0 !important; }
   #compass { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 18px; font-size: 13px; letter-spacing: .18em; color: rgba(207,200,186,.35); }
@@ -244,9 +244,10 @@
   :root[data-theme="day"] #overlay .kicker { color: rgba(58,51,44,.75); }
   /* a phone or a tablet (a coarse pointer): swipe on the view to look, tap to use (js/game.js: touch). Two small buttons
      instead of the keys: zoom (held) in the bottom right corner, and the menu, top left where the sound line is on a
-     desktop (the pause menu has Mute in it). Both only while a night is being played */
-  #zoomBtn, #menuBtn { display: none; position: fixed; z-index: 6; box-sizing: border-box; align-items: center; justify-content: center; padding: 0; color: rgba(239,230,210,.8); background: rgba(0,0,0,.42); border: 1px solid rgba(207,200,186,.28); touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; cursor: pointer; }
-  #zoomBtn { right: max(16px, env(safe-area-inset-right)); bottom: 18px; width: 62px; height: 62px; border-radius: 50%; flex-direction: column; gap: 1px; font: inherit; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
+     desktop (the pause menu has Mute in it). Both only while a night is being played. A third, full screen, top right
+     from the title on (#fsBtn, below) */
+  #zoomBtn, #menuBtn, #fsBtn { display: none; position: fixed; z-index: 6; box-sizing: border-box; align-items: center; justify-content: center; padding: 0; color: rgba(239,230,210,.8); background: rgba(0,0,0,.42); border: 1px solid rgba(207,200,186,.28); touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; cursor: pointer; }
+  #zoomBtn { right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 62px; height: 62px; border-radius: 50%; flex-direction: column; gap: 1px; font: inherit; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
   #zoomBtn svg { width: 24px; height: 24px; }
   #zoomBtn span { margin-right: -.18em; }
   #zoomBtn.on { color: #0b0a0a; background: rgba(239,230,210,.86); border-color: #efe6d2; box-shadow: 0 0 14px rgba(239,230,210,.3); }
@@ -256,7 +257,14 @@
   #menuBtn span::before, #menuBtn span::after { content: ''; position: absolute; left: 0; }
   #menuBtn span::before { top: -6px; } #menuBtn span::after { top: 6px; }
   #menuBtn:active { color: #efe6d2; border-color: rgba(239,230,210,.8); }
-  :root[data-theme="day"] #zoomBtn, :root[data-theme="day"] #menuBtn { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
+  /* full screen (the Fullscreen API, where the browser has it for the page: body.fsok): top right, clear of the compass in
+     the middle and of the notch; the same button leaves it again, its corners turned in (.on) */
+  #fsBtn { z-index: 7; top: max(12px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); width: 40px; height: 36px; border-radius: 6px; }
+  #fsBtn svg { width: 20px; height: 20px; }
+  #fsBtn .fsout, #fsBtn.on .fsin { display: none; }
+  #fsBtn.on .fsout { display: block; }
+  #fsBtn:active { color: #efe6d2; border-color: rgba(239,230,210,.8); }
+  :root[data-theme="day"] #zoomBtn, :root[data-theme="day"] #menuBtn, :root[data-theme="day"] #fsBtn { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
   /* held in portrait: a screen over everything asking for it turned sideways, and the night paused behind it */
   #rotate { display: none; position: fixed; inset: 0; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; box-sizing: border-box; text-align: center; background: radial-gradient(ellipse at 50% 42%, #14110f, #000 70%); color: #efe6d2; touch-action: none; }
   #rotate svg { width: 120px; height: 120px; margin-bottom: 14px; color: #efe6d2; }
@@ -271,8 +279,18 @@
     #mute { display: none; }
     body.tplay #menuBtn, body.tzoom #zoomBtn { display: flex; }
     body.menu #menuBtn, body.menu #zoomBtn { display: none; }
+    body.fsok #fsBtn { display: flex; }
+    #menuBtn { top: max(12px, env(safe-area-inset-top)); }
+    #objective { right: calc(max(14px, env(safe-area-inset-right)) + 52px); }
+    #overlay { padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left)); }
+    /* the things held float over the view, each on a faint backing of its own, no strip under them: the view runs
+       to the bottom of the screen (and under the home bar: viewport-fit=cover), the slots above that bar */
+    #inventory { gap: 8px; bottom: calc(env(safe-area-inset-bottom) + 18px); touch-action: none; }
     .slot, .slot canvas { width: 50px; height: 50px; }
-    #inventory { gap: 8px; }
+    .slot { border-radius: 7px; border-color: rgba(207,200,186,.2); background: radial-gradient(closest-side, rgba(8,7,7,.38), rgba(8,7,7,.2)); box-shadow: 0 2px 10px rgba(0,0,0,.35); -webkit-tap-highlight-color: transparent; }
+    .slot.active { border-color: rgba(239,230,210,.75); background: radial-gradient(closest-side, rgba(8,7,7,.48), rgba(8,7,7,.3)); box-shadow: 0 2px 10px rgba(0,0,0,.35), 0 0 10px rgba(239,230,210,.16); }
+    :root[data-theme="day"] .slot { background: radial-gradient(closest-side, rgba(255,255,255,.42), rgba(255,255,255,.24)); box-shadow: 0 2px 10px rgba(58,51,44,.18); }
+    :root[data-theme="day"] .slot.active { background: radial-gradient(closest-side, rgba(255,255,255,.55), rgba(255,255,255,.34)); }
     #compass { top: 18px; } #pitch { top: 40px; } #zoom { top: 58px; } #toast { top: calc(var(--view-top, 0px) + 80px); } #objective { top: 14px; }
   }
   @media (pointer: coarse) and (orientation: portrait) { #rotate { display: flex; } }
@@ -299,6 +317,7 @@
 <div id="overlay"></div>
 <div id="mute">sound on (M)</div>
 <button type="button" id="menuBtn" aria-label="menu"><span></span></button>
+<button type="button" id="fsBtn" aria-label="full screen"><svg class="fsin" viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 7.5v-5h5M12.5 2.5h5v5M17.5 12.5v5h-5M7.5 17.5h-5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="fsout" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 2.5v5h-5M17.5 7.5h-5v-5M12.5 17.5v-5h5M2.5 12.5h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <div id="rotate" role="alert" aria-live="assertive">
   <svg viewBox="0 0 120 120" aria-hidden="true"><g class="rphone"><rect x="40" y="18" width="40" height="72" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M54 25h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="60" cy="81" r="3" fill="currentColor"/></g><path class="rarrow" d="M93 70a36 36 0 0 1-26 33" fill="none" stroke="#b3161e" stroke-width="3" stroke-linecap="round"/><path class="rarrow" d="M64 96l3 7.5-7.5 3" fill="none" stroke="#b3161e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
   <h2>Turn your device sideways</h2>
