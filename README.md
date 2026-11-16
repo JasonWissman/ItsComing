@@ -240,8 +240,9 @@ some on the ground, so you have to turn and look down to find them.
    away. Find the number in it (it has a page to itself, scrawled large across it in red
    that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
    floor by the panes near the phone), then do what the card under the keys says: lift the receiver, put
-   the coin in and dial on the phone's own keys. Lifted, the receiver is in your left hand, its cord running down out of
-   the view, and your right hand presses each key with a fingertip, going from key to key as you dial (what it held goes
+   the coin in and dial on the phone's own keys. Lifted, the receiver is in your left hand, its armoured cord running from
+   the bottom of the phone down in a loop and up into the bottom of the receiver (wherever you look, it meets it), and
+   your right hand presses each key with a fingertip, going from key to key as you dial (what it held goes
    down meanwhile; keys pressed faster than it can go are pressed in turn); a key goes down when the finger gets there, and
    one the phone will not take only clicks, the display blinking its credit at you (or NOT IN SERVICE). A coin put in with
    the receiver on its hook goes from your fingers into the slot, rattles down through the works and drops into the coin
@@ -262,7 +263,8 @@ some on the ground, so you have to turn and look down to find them.
     its head goes over the other way; which arm the others
     raise changes from one load to the next, so only comparing tells). The mirrors are
     otherwise alike, and two are under dust sheets. The music box lies in one place and its
-    crank in another. Any pedestal takes the box, and the crank fits its side on any of them,
+    crank in another. Any pedestal takes the box, sitting square on its top with its front to
+    you and its lid open, and the crank fits its front on any of them,
     but its tune plays only before the odd mirror: there each turn plays a few notes of it,
     and on the last the doll stops dancing, turns round once on the spot like the dancer on
     the box, and comes running out through the glass for the box, smiling, lifts it off the

@@ -305,9 +305,9 @@ const ICONS = {
   },
   // a music box, seen from the front and a little above: a walnut case on brass feet with a brass heart inlaid in its front,
   // the lid standing open (red velvet and a little round mirror inside it), and in the open top the brass cylinder with
-  // its pins against the steel comb, and a tiny dancer, arms up, on a mirror disc. On its right side is the square socket
-  // its crank fits. Night 10 also draws it on its pedestal and in the doll's arms: o.crank (an angle) draws the crank
-  // fitted and turned that far round, and o.spin turns the dancer.
+  // its pins against the steel comb, and a tiny dancer, arms up, on a mirror disc. On the right of its front is the square
+  // socket its crank fits. Night 10 also draws it in the doll's arms: o.crank (an angle) draws the crank fitted and turned
+  // that far round, and o.spin turns the dancer.
   musicbox(ctx, P, o) {
     o = o || {};
     const wood = P.col([124, 74, 40]), woodD = P.col([84, 48, 26]), woodL = P.col([166, 112, 66]), grain = P.col([100, 58, 30]), edge = P.col([30, 16, 10]);
@@ -351,19 +351,19 @@ const ICONS = {
     P_rect(ctx, X0, Y0, X1 - X0, Y1 - Y0, wood);
     P_rect(ctx, X0, Y1 - 0.035, X1 - X0, 0.035, woodL); P_rect(ctx, X0 - 0.012, Y0, X1 - X0 + 0.024, 0.04, woodD);
     for (const y of [0.15, 0.26]) P_line(ctx, X0 + 0.04, y, X1 - 0.05, y + 0.012, 0.007, grain);
-    heartShape(ctx, (X0 + X1) / 2, 0.215, 0.055, brass, brassD);
+    heartShape(ctx, -0.22, 0.215, 0.055, brass, brassD);
     for (const x of [X0 + 0.03, X1 - 0.03]) P_ell(ctx, x, Y0 - 0.012, 0.028, 0.022, brass);
     P_ell(ctx, X1 + DX - 0.025, Y0 + DY - 0.02, 0.022, 0.018, brassD);
-    // the side: a brass boss with the square socket in it, and the crank in it if it is fitted, its arm going round in the
-    // plane of the side (so it swings up and down and to and fro) and its ivory knob standing out from the end of the arm
-    const hx = X1 + DX / 2, hy = (Y0 + Y1) / 2 + DY / 2;
-    P_ell(ctx, hx, hy, 0.03, 0.036, brassD); P_ell(ctx, hx, hy, 0.022, 0.028, brass);
-    if (o.crank === undefined) { P_rect(ctx, hx - 0.01, hy - 0.01, 0.02, 0.02, edge); return; }
-    const a = o.crank, R = 0.13, ox = hx + 0.04, ex = ox + Math.cos(a) * R * 0.5, ey = hy + Math.cos(a) * R * 0.5 + Math.sin(a) * R;
-    P_line(ctx, hx, hy, ox, hy, 0.034, brassD); P_line(ctx, hx, hy, ox, hy, 0.022, brass);
-    P_line(ctx, ox, hy, ex, ey, 0.04, brassD); P_line(ctx, ox, hy, ex, ey, 0.026, brass);
-    P_line(ctx, ex, ey, ex + 0.05, ey, 0.028, brassD);
-    P_ell(ctx, ex + 0.075, ey, 0.04, 0.034, brassD); P_ell(ctx, ex + 0.075, ey, 0.032, 0.027, pale);
+    // on the front, right of the heart: a brass boss with the square socket in it, and the crank in it if it is fitted,
+    // its arm going round in the plane of the front and its ivory knob standing out toward you from the end of the arm
+    const hx = 0.065, hy = (Y0 + Y1) / 2;
+    P_ell(ctx, hx, hy, 0.034, 0.034, brassD); P_ell(ctx, hx, hy, 0.026, 0.026, brass);
+    if (o.crank === undefined) { P_rect(ctx, hx - 0.011, hy - 0.011, 0.022, 0.022, edge); return; }
+    const a = o.crank, R = 0.085, ex = hx + Math.cos(a) * R, ey = hy + Math.sin(a) * R;
+    P_line(ctx, hx, hy, ex, ey, 0.04, brassD); P_line(ctx, hx, hy, ex, ey, 0.024, brass);
+    P_ell(ctx, hx, hy, 0.016, 0.016, brassD);
+    P_ell(ctx, ex + 0.008, ey - 0.008, 0.034, 0.034, brassD); P_ell(ctx, ex, ey, 0.028, 0.028, pale);
+    P_ell(ctx, ex - 0.008, ey + 0.009, 0.009, 0.009, P.cola([255, 255, 255], 0.7));
   },
   // its crank: a small brass handle bent in an L, a turned ivory knob standing up from one end of the arm and the square
   // socket that fits the box's side in the other
