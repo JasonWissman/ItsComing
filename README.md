@@ -287,10 +287,11 @@ some on the ground, so you have to turn and look down to find them.
     a floodlight of its own and all of them dark: the tractor shed (SW), the shed (W), the stables (NW), the barn (N), the
     silo (NE), the coop (E) and the driveway (SE); each has a neighbour either side, and the driveway and the tractor shed
     meet behind the house. The yard is grass all round, and the porch light lays a smooth pool of warm light on it. The
-    box is on its post in front of you, its top at your chest, so its main breaker shows at the foot of the view as you
-    look ahead (look down for the rest: this night looks down a little less than the others, to keep the whole box in the
-    middle of the view). Its door hangs open on the MAIN breaker across the top, a big lever over to ON with a green lamp
-    beside it, and under it two rows of big toggle switches, each with a red pilot lamp and a strip of tape with the place
+    box is on its post at your left hand, its top at your chest: turn left from the barn to face the stables and it is
+    right there, a little left of the way out to them (clear of it), its front square to you, its main breaker at the
+    foot of the view as you look ahead (look down for the rest: this night looks down a little less than the others, to
+    keep the whole box in view). It stands open, with no door, on the MAIN breaker across the top, a big lever over to
+    ON with a green lamp beside it, and under it two rows of big toggle switches, each with a red pilot lamp and a strip of tape with the place
     written on it in marker (HOUSE, then the places in order round from the tractor shed); a click flips one, up is on.
     The panel and its parts are fixed flat on the front of the box, so they stay where they are drawn however you look.
     Something bent under a bundle stands in the dark at the foot of one place, all but black, two pale points of eyes;
@@ -425,7 +426,7 @@ A night is an object pushed onto `LEVELS` from `js/levels/nightNN.js`. It is def
 frame where the default lane points along +z; `facing` rotates the whole night so the compass
 shows a different world direction. `lookDown` (degrees, 45 by default) is how far down `↓` looks on that night: the
 Lighthouse looks further, down over the rail at the wall it climbs, and the Farm less far, to keep its tall breaker box
-in the middle of the view (`PITCH_DOWN` is the one in play). `startFacing` (degrees, in the night's frame) is where the
+all in view (`PITCH_DOWN` is the one in play). `startFacing` (degrees, in the night's frame) is where the
 view starts, before the card and after it; without it the view starts toward where the thing is coming from (the Farm
 starts facing the barn, and finding it is up to you). `text.where` replaces the card's "It is coming from..." line.
 

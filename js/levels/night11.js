@@ -1,10 +1,10 @@
 'use strict';
 // ============================================================ 11. THE FARM ============================================================
-// Night on the farm. You stand in the yard by the electrical box on its post, the house at your back with its porch light
-// on. All round you, at the eight points of the compass but the one behind you, are the farm's places, each with a
-// floodlight of its own, all of them dark: the tractor shed (SW), the shed (W), the stables (NW), the barn (N), the silo
-// (NE), the coop (E) and the driveway (SE). They go round you in a ring, so each has a neighbour on either side; the
-// driveway's and the tractor shed's meet behind the house.
+// Night on the farm. You stand in the yard, the electrical box on its post at your left hand (toward the stables), the
+// house at your back with its porch light on. All round you, at the eight points of the compass but the one behind you,
+// are the farm's places, each with a floodlight of its own, all of them dark: the tractor shed (SW), the shed (W), the
+// stables (NW), the barn (N), the silo (NE), the coop (E) and the driveway (SE). They go round you in a ring, so each
+// has a neighbour on either side; the driveway's and the tractor shed's meet behind the house.
 // The thing is out there in the dark at one of them, in the shadow at its foot, two pale points of eyes. It cannot stand
 // the light. Light the place it is at and it throws an arm over its face and runs, side on, to a neighbouring place that
 // is dark. Light the places either side of it first, and then its own, and it has nowhere dark to go: it shrieks, its
@@ -28,7 +28,7 @@ const FARM_HIDE = 2.2;   // it stands this far out from the foot of its place, i
 LEVELS.push({
   id: 'barn', title: 'The Farm', facing: 0, eyeH: 1.65,
   startFacing: 0,   // you start facing the barn, wherever it is: finding it is up to you
-  lookDown: 34,     // looking down, the box (taller than your waist) sits in the middle of the view
+  lookDown: 34,     // looking down toward the stables, the box at your left (taller than your waist) is all in view
   laneSwitch: false,   // it changes places only by running from the light (build)
   pal: { skyTop: [5, 7, 17], fog: [24, 28, 40], ground: [20, 24, 18], fogDist: 125 },
   ambient: { tune: 'ambient:11', wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 },
@@ -314,23 +314,27 @@ LEVELS.push({
     }));
 
     // ---------------- the electrical box ----------------
-    // On its post in front of you, its top at your chest: a grey steel box with a rain hood, its door swung right back on
-    // its hinges to the left. Inside, at the top, the main breaker: a big lever lying across, over to the right for ON and
+    // On its post at your left hand, its top at your chest: turn left from the barn to face the stables and it is right
+    // there in front of you, a little to the left of the way out to them (clear of their way in), its front square to you
+    // as you look that way. A grey steel box with a rain hood, standing open, no door on it. Inside, at the top, the main breaker: a big lever lying across, over to the right for ON and
     // to the left for OFF, a red tag over it marked MAIN and a green lamp beside it that is lit while it is on. Under it,
     // two rows of four big toggle switches, each with a red pilot lamp and a strip of tape under it with the place written
     // on it in marker. Up is on. A little lamp in the top of the box lights its inside while the main is on (the panel is
     // lit by it alone). The panel and every part of it are fixed flat on the front of the box (face: they never turn
     // toward you), so what you click is where it is drawn whichever way you look.
-    const BZ = 1.0, BY = 0.5, BW = 0.5, BH = 0.82, PY = BY + 0.02, PW = 0.46, PH = 0.78, FRONT = Math.PI;
+    // It is built in the frame looking out at the stables (BOX_DEG), BX to the left of the way out and BZ out along it;
+    // FRONT, the way its front looks, is back along that way at you (in the night's frame: face is not turned by the frame)
+    const BOX_DEG = 315, BX = -0.32, BZ = 0.98, FRONT = (BOX_DEG + 180) * DEG;
+    const BY = 0.5, BW = 0.5, BH = 0.82, PY = BY + 0.02, PW = 0.46, PH = 0.78;
+    const BN = Math.hypot(BX + BW / 2, BZ);   // how far the nearest edge of its front is: the panel is drawn after every part of that face
     const steel = [66, 74, 70];
-    SC.box(L, -0.04, 0.04, 0, BY, BZ + 0.06, BZ + 0.14, [50, 52, 50]);                    // the post
-    SC.box(L, 0.12, 0.16, 0, BY, BZ + 0.04, BZ + 0.08, [40, 42, 42]);                     // the conduit down into the ground
-    SC.box(L, -BW / 2, BW / 2, BY, BY + BH, BZ, BZ + 0.2, steel);
-    poly([[-BW / 2 - 0.02, BY + BH + 0.005, BZ - 0.03], [BW / 2 + 0.02, BY + BH + 0.005, BZ - 0.03], [BW / 2 + 0.02, BY + BH + 0.05, BZ + 0.21], [-BW / 2 - 0.02, BY + BH + 0.05, BZ + 0.21]], scalec(steel, 0.85));   // the rain hood
-    {   // the door, swung right back on its hinges at the left, its inside toward you
-      const a = 162 * DEG, ex = -BW / 2 + BW * Math.cos(a), ez = BZ - BW * Math.sin(a);
-      poly([[-BW / 2, BY, BZ], [ex, BY, ez], [ex, BY + BH, ez], [-BW / 2, BY + BH, BZ]], scalec(steel, 0.9), { sortDist: BZ + 0.05 });
-    }
+    const inBox = fn => inFrame(BOX_DEG, fn);
+    inBox(() => {
+      SC.box(L, BX - 0.04, BX + 0.04, 0, BY, BZ + 0.06, BZ + 0.14, [50, 52, 50]);            // the post
+      SC.box(L, BX + 0.12, BX + 0.16, 0, BY, BZ + 0.04, BZ + 0.08, [40, 42, 42]);             // the conduit down into the ground
+      SC.box(L, BX - BW / 2, BX + BW / 2, BY, BY + BH, BZ, BZ + 0.2, steel);
+      poly([[BX - BW / 2 - 0.02, BY + BH + 0.005, BZ - 0.03], [BX + BW / 2 + 0.02, BY + BH + 0.005, BZ - 0.03], [BX + BW / 2 + 0.02, BY + BH + 0.05, BZ + 0.21], [BX - BW / 2 - 0.02, BY + BH + 0.05, BZ + 0.21]], scalec(steel, 0.85));   // the rain hood
+    });
     const LABELS = ['HOUSE'].concat(RING.map(p => p.label));
     const COLS = [-0.165, -0.055, 0.055, 0.165], ROWS = [0.43, 0.22], MY = 0.62;   // (MY: the main's lever, across the top)
     const swAt = i => [COLS[i % 4], ROWS[Math.floor(i / 4)]];
@@ -353,7 +357,7 @@ LEVELS.push({
     };
     // the box's own little lamp: on with the main, flickering up as it goes back on
     const boxLamp = () => { if (!s.power) return 0.22; const k = L.t - s.backAt; return k < 0.3 ? (Math.sin(k * 90) > 0 ? 0.85 : 0.3) : 0.85; };
-    SC.sprite(L, 0, PY, BZ - 0.005, PW, PH, (ctx, P) => {
+    inBox(() => SC.sprite(L, BX, PY, BZ - 0.005, PW, PH, (ctx, P) => {
       const b = boxLamp(), C = c => P.col(scalec(c, b));
       const plate = C([150, 154, 146]), dark = C([30, 32, 32]), chrome = C([220, 224, 226]), tape = C([226, 212, 168]), ink = C([22, 20, 32]), paint = C([200, 200, 196]);
       P_rect(ctx, -PW / 2, 0, PW, PH, C(scalec(steel, 0.7)));
@@ -385,19 +389,19 @@ LEVELS.push({
         ctx.font = HANDF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = ink; ctx.fillText(LABELS[i], 0, 2, 190);
         ctx.restore();
       }
-    }, { sortDist: BZ - 0.02, noLight: true, face: FRONT });
+    }, { sortDist: BN - 0.02, noLight: true, face: FRONT }));
     // the main and the switches: each a target on the panel, flat on it as the panel is
-    mkTarget(L, {
-      id: 'main', name: 'Main', x: 0, y: PY + MY - 0.045, z: BZ - 0.012, w: 0.28, h: 0.135, face: FRONT,
+    inBox(() => mkTarget(L, {
+      id: 'main', name: 'Main', x: BX, y: PY + MY - 0.045, z: BZ - 0.012, w: 0.28, h: 0.135, face: FRONT,
       hint() { return s.power ? 'The main. On.' : 'The main. Off: push it back on.'; },
       onClick() { main(); return true; },
-    });
+    }));
     LABELS.forEach((lab, i) => {
       const [cx, ry] = swAt(i);
-      mkTarget(L, {
-        id: 'sw' + i, name: lab.charAt(0) + lab.slice(1).toLowerCase(), x: cx, y: PY + ry - 0.075, z: BZ - 0.012, w: 0.1, h: 0.13, face: FRONT,
+      inBox(() => mkTarget(L, {
+        id: 'sw' + i, name: lab.charAt(0) + lab.slice(1).toLowerCase(), x: BX + cx, y: PY + ry - 0.075, z: BZ - 0.012, w: 0.1, h: 0.13, face: FRONT,
         onClick() { flip(i); return true; },
-      });
+      }));
     });
 
     // ---------------- the state of things ----------------
@@ -409,14 +413,17 @@ LEVELS.push({
     const nb = k => [(k + N - 1) % N, (k + 1) % N];
     L.nb = nb;   // (for the tests)
     const fxr = mulberry32((G.runSeed * 31 + 1111) >>> 0);
-    const BOXP = W(0.06, PY + MY, BZ - 0.02);   // the main, where it trips
+    const BOXP = inBox(() => W(BX + 0.06, PY + MY, BZ - 0.02));   // the main, where it trips
+    const FLASH = inBox(() => W(BX + 0.06, PY + MY, BZ - 0.2));   // the flash as it trips, a little out in front of it
+    const outOfBox = (x, z) => inBox(() => W(x, 0, z));         // a way across the box's front (x) and out of it toward you (-z), in the world
     // a fourth light: the main trips. A bang and a spit of sparks off it, it snaps over to OFF, every switch drops to off
     // with it, and every light on the farm goes out
     const trip = () => {
       s.wasOn = s.on.slice(); s.on.fill(false); s.power = false; s.trips++; s.tripAt = s.dropAt = s.mainAt = L.t;
       AUDIO.sfx('breakerTrip'); G.shake(0.55); G.flash(0.3);
-      for (let i = 0; i < 22; i++) { const a = fxr() * TAU, v = 0.8 + fxr() * 2.0; s.sparks.push({ x: BOXP.x, y: BOXP.y, z: BOXP.z - 0.02, vx: Math.cos(a) * v * 0.7, vy: 0.6 + fxr() * 2.2, vz: -Math.abs(Math.sin(a)) * v * 0.6, age: 0, life: 0.4 + fxr() * 0.6 }); }
-      for (let i = 0; i < 4; i++) s.smoke.push({ x: BOXP.x + (fxr() - 0.5) * 0.1, y: BOXP.y + 0.05, z: BOXP.z - 0.05, age: -i * 0.12, r: 0.05 + fxr() * 0.04 });
+      const fwd = outOfBox(0, -1);
+      for (let i = 0; i < 22; i++) { const a = fxr() * TAU, v = 0.8 + fxr() * 2.0, d = outOfBox(Math.cos(a) * v * 0.7, -Math.abs(Math.sin(a)) * v * 0.6); s.sparks.push({ x: BOXP.x + fwd.x * 0.02, y: BOXP.y, z: BOXP.z + fwd.z * 0.02, vx: d.x, vy: 0.6 + fxr() * 2.2, vz: d.z, age: 0, life: 0.4 + fxr() * 0.6 }); }
+      for (let i = 0; i < 4; i++) { const q = outOfBox((fxr() - 0.5) * 0.1, -0.05); s.smoke.push({ x: BOXP.x + q.x, y: BOXP.y + 0.05, z: BOXP.z + q.z, age: -i * 0.12, r: 0.05 + fxr() * 0.04 }); }
       G.say('The main trips. Every switch drops, and every light on the farm goes out.', 'The main trips.');
     };
     // the main: pushed back over to ON, with everything else off; pushed while it is on, it is on already
@@ -517,7 +524,7 @@ LEVELS.push({
     };
     L.update = dt => {
       const c = L.creature;
-      if (s.k === null) {   // the start: at the foot of its place (and you, facing the barn and the box: startFacing)
+      if (s.k === null) {   // the start: at the foot of its place (and you, facing the barn, the box at your left: startFacing)
         s.k = c.lane.idx; c.D0 = RING[s.k].hide;
         way = Object.assign({}, L.lanes[s.k], { apertures: [], blockers: [], name: 'round the yard' });
         c.lane = way; place(c, RING[s.k].yaw, RING[s.k].hide); c.dist = s.r;
@@ -558,7 +565,7 @@ LEVELS.push({
       lights.length = 0;
       if (houseLit()) lights.push(houseLights[0], houseLights[1]);
       for (let k = 0; k < N; k++) if (lit(k)) lights.push(lightsOf[k][0], lightsOf[k][1]);
-      if (L.t - s.tripAt < 0.25) lights.push(Object.assign(W(0.06, PY + MY, BZ - 0.2), { r: 6, i: 1.6 * (1 - (L.t - s.tripAt) / 0.25), color: [210, 220, 255] }));   // the flash as the main trips
+      if (L.t - s.tripAt < 0.25) lights.push(Object.assign({}, FLASH, { r: 6, i: 1.6 * (1 - (L.t - s.tripAt) / 0.25), color: [210, 220, 255] }));   // the flash as the main trips
       return lights;
     };
     const glows = [];
