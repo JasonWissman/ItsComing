@@ -32,6 +32,7 @@ CREATURES.swimmer = {
     const rise = (0.02 + near * 0.08 + Math.sin(t * 1.1) * 0.015) * (1 - lunge);   // the death lift is the game's: the face ends at eye height
     const wl = -(c.yOff || 0), calm = 1 - lunge;
     for (let i = 0; i < 3; i++) { const k = (fresh + i * 0.33 + t * 0.12) % 1; P_ell(ctx, 0, wl, 0.26 + k * 0.55, 0.04 + k * 0.05, P.cola(ring, 0.32 * (1 - k) * calm)); }
+    if (lunge > 0) this.burst(ctx, P, wl, lunge, t);   // the water it bursts up out of, thrown up behind it
     ctx.save(); ctx.beginPath(); ctx.rect(-1, wl, 2, 3 - wl); ctx.clip(); // nothing below the water line is drawn: the water shows there
     ctx.translate(0, rise);
     // the head: a long drowned skull, grey and wet, moss grown over the crown in patches
@@ -54,6 +55,37 @@ CREATURES.swimmer = {
     // drips off the chin and the weed, and the ring where the water meets it
     for (let i = 0; i < 3; i++) { const k = (t * 0.9 + i * 0.37) % 1, y = rise + 0.05 - k * 0.12; if (y > wl) P_ell(ctx, -0.1 + i * 0.1, y, 0.008, 0.014, P.cola([200, 214, 210], 0.6 * (1 - k))); }
     if (calm > 0.01) P_ell(ctx, 0, wl, 0.24, 0.025, P.cola(ring, 0.5 * calm));
+  },
+  // Lunging, it comes up out of the water so hard that the water comes up with it: behind it, a pale column from the water
+  // line (wl) up past its head, opening at the top into a crown of spray that is flung out and falls, and drops all round
+  // it. k is the lunge, 0..1; all of it is drawn before the head, so it is behind it.
+  burst(ctx, P, wl, k, t) {
+    const h = (i, q) => { const x = Math.sin(i * 12.9898 + q * 78.233) * 43758.5453; return x - Math.floor(x); };
+    const g = easeOut(clamp(k * 1.6, 0, 1)), top = lerp(wl + 0.3, 0.6, g), wide = 0.22 + 0.3 * g, fall = k * k;
+    const sheet = P.cola([168, 192, 206], 0.22), core = P.cola([210, 226, 234], 0.2), white = P.cola([222, 234, 240], 0.5), drop = P.cola([214, 228, 234], 0.7);
+    // the column: ragged at the edges, narrow where it leaves the water and widening as it rises, its top torn into lobes
+    const pts = [], N = 9;
+    for (let i = 0; i <= N; i++) { const v = i / N, y = lerp(wl, top, v), w = lerp(0.15, wide, Math.pow(v, 1.6)) * (0.88 + 0.24 * h(i, 1)); pts.push([-w, y]); }
+    for (let i = 0; i <= 10; i++) { const u = i / 10, x = lerp(-wide, wide, u); pts.push([x, top + (0.04 + 0.16 * h(i, 2)) * g * Math.sin(Math.PI * u) + 0.03 * Math.sin(t * 7 + i)]); }
+    for (let i = N; i >= 0; i--) { const v = i / N, y = lerp(wl, top, v), w = lerp(0.15, wide, Math.pow(v, 1.6)) * (0.88 + 0.24 * h(i, 3)); pts.push([w, y]); }
+    P_poly(ctx, pts, sheet);
+    P_poly(ctx, pts.map(([x, y]) => [x * 0.5, y - 0.02]), core);
+    for (let i = 0; i < 6; i++) { const x = (h(i, 4) - 0.5) * 0.24; P_line(ctx, x, wl, x * (1 + 1.5 * g), lerp(wl, top, 0.6 + 0.35 * h(i, 5)), 0.01, P.cola([226, 236, 240], 0.28)); }
+    // the crown: tongues of water flung up and out over its head, bending over and breaking into drops as they fall
+    for (let i = 0; i < 11; i++) {
+      const u = (i + 0.5 * h(i, 6)) / 11 - 0.5, a = u * 2.4, len = (0.18 + 0.32 * h(i, 7)) * g;
+      const x0 = Math.sin(a) * wide * 0.8, y0 = top - 0.05, mx = x0 + Math.sin(a) * len * 0.7, my = y0 + Math.cos(a) * len;
+      const x1 = x0 + Math.sin(a) * len * (1.1 + 0.4 * fall), y1 = my - (0.1 + 0.3 * Math.abs(u)) * fall - 0.05 * Math.abs(u);
+      ctx.strokeStyle = white; ctx.lineWidth = 0.03 * (1 - 0.5 * h(i, 8)); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, x1, y1); ctx.stroke();
+      for (let j = 0; j < 3; j++) P_ell(ctx, x1 + Math.sin(a) * 0.04 * (j + 1), y1 - (0.03 + 0.05 * j) * (0.5 + fall), 0.012 + 0.006 * h(i, j), 0.018 + 0.01 * h(j, i), drop);
+    }
+    // drops thrown out all round it, rising with it and starting to fall back
+    for (let i = 0; i < 30; i++) {
+      const a = h(i, 9) * Math.PI - Math.PI / 2, sp = 0.4 + h(i, 10) * 0.9, q = g * sp;
+      const x = Math.sin(a) * (0.18 + q * 0.7), y = lerp(wl, top, h(i, 11)) + Math.cos(a) * q * 0.45 - fall * 0.3 * h(i, 12);
+      P_ell(ctx, x, y, 0.008 + 0.012 * h(i, 13), 0.014 + 0.02 * h(i, 14), drop);
+    }
   },
   // flat out across the water, seen from the side: low in it, the head pushed ahead with its chin in the water and turned
   // to look at you, the long grey arms coming over one after the other and clawing in ahead, the weed streaming back off

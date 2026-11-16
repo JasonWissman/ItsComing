@@ -314,6 +314,23 @@ const AUDIO = (() => {
       case 'chain': for (let i = 0; i < 7; i++) { tone(1800 + Math.random() * 1200, 0.04, { vol: 0.08, type: 'square', delay: i * 0.07 }); noise(0.03, { type: 'highpass', freq: 4000, vol: 0.08, delay: i * 0.07 }); } break;
       case 'lock': tone(500, 0.05, { vol: 0.2, type: 'square', endFreq: 300 }); tone(220, 0.1, { vol: 0.25, type: 'square', endFreq: 200, delay: 0.09 }); break;
       case 'creak': tone(320, 0.7, { vol: 0.12, type: 'sawtooth', endFreq: 180, pan }); tone(325, 0.7, { vol: 0.06, type: 'sawtooth', endFreq: 260, delay: 0.05, pan }); break;
+      case 'hinge': {   // a long iron hinge squealing as a heavy gate swings: a reedy note that catches and slips, rising, then sinking as it slows
+        const t0 = now(), dur = 1.15;
+        const osc = ac.createOscillator(); osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(470, t0); osc.frequency.linearRampToValueAtTime(720, t0 + 0.35);
+        osc.frequency.linearRampToValueAtTime(640, t0 + 0.7); osc.frequency.linearRampToValueAtTime(390, t0 + dur);
+        const wob = ac.createOscillator(); wob.frequency.setValueAtTime(11, t0); wob.frequency.linearRampToValueAtTime(6, t0 + dur);   // the stick and slip
+        const wg = ac.createGain(); wg.gain.value = 38; wob.connect(wg); wg.connect(osc.frequency);
+        const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 2.2;
+        const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t0);
+        for (const [t, v] of [[0.06, 0.11], [0.2, 0.05], [0.28, 0.13], [0.5, 0.09], [0.58, 0.12], [0.85, 0.07], [dur - 0.1, 0.05]]) g.gain.linearRampToValueAtTime(v, t0 + t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(bp); bp.connect(g); chain(g, pan);
+        osc.start(t0); wob.start(t0); osc.stop(t0 + dur + 0.05); wob.stop(t0 + dur + 0.05);
+        tone(1350, 0.18, { vol: 0.025, type: 'square', endFreq: 1600, delay: 0.27, pan }); tone(1250, 0.22, { vol: 0.02, type: 'square', endFreq: 1080, delay: 0.62, pan });
+        noise(dur, { type: 'bandpass', freq: 650, q: 3, vol: 0.08, attack: 0.15, pan });   // the iron grinding under it
+        break;
+      }
       case 'gate': noise(0.2, { freq: 400, vol: 0.5, pan }); tone(140, 0.4, { vol: 0.3, type: 'square', endFreq: 90, pan }); break;
       case 'shot': noise(0.5, { freq: 1500, vol: 1.0, attack: 0.002 }); tone(70, 0.5, { vol: 0.7, endFreq: 30 }); noise(1.2, { freq: 300, vol: 0.3, delay: 0.05, attack: 0.02 }); break;
       case 'empty': tone(900, 0.03, { vol: 0.15, type: 'square' }); tone(600, 0.04, { vol: 0.12, type: 'square', delay: 0.06 }); break;

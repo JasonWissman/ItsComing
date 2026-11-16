@@ -1,15 +1,29 @@
 // The Boathouse: both ways must be shut. The winch is chained and padlocked, and the key is in the tackle box; the handle
 // will not go on while the padlock is there. Unlock it, fit the handle and crank the water door down, then shut the side
-// door and bar it. The player first tries the winch with nothing in hand (the hand rattles the padlock on its chain), then
-// the handle (it goes on the boss, the chain snaps taut, the padlock jumps, and it comes back to the hand), then the oar (a
-// decoy: it does not fit; its end jams at the boss and it drops to the deck, where it lies to be picked up again), before
+// door and bar it with both oars (one alone is not enough: it breaks through, and the night says so). The player first
+// tries the winch with nothing in hand (the hand rattles the padlock on its chain), then the handle (it goes on the boss,
+// the chain snaps taut, the padlock jumps, and it comes back to the hand), then an oar (it does not fit; its end jams at
+// the boss and it drops to the deck, where it lies to be picked up again), before
 // opening the tackle box. The open box, clicked again, is gone through by hand. The key goes into the padlock and stays
 // there once it is open. While the harness stands and watches one of those play out (the hand at the padlock, the handle
-// coming back, the oar falling and being picked up again, the box gone through, the key going in), the thing is held where
+// coming back, the oar falling and being picked up again, the box gone through, the key going in, an oar knocked back by
+// the side door's leaf), the thing is held where
 // it is, so the race against it is the one the solution always ran: the tries cost no more than they did as a line of text.
 const oar = "G.L.items.find(i => i.id === 'oar')";
 const pause = ['eval', '(c => { window.__held6 = c.hold; if (c.hold === null) c.hold = c.dist; })(G.L.creature)'];
 const resume = ['eval', '(c => { if (window.__held6 === null) c.hold = null; })(G.L.creature)'];
+// one oar across the shut side door does not hold it: it throws itself at the door, the oar snaps, the door bursts open
+// and it comes in; the death screen says why. (Set up directly, then the night starts again.)
+const oneOar = [
+  ['eval', `(() => { const s = G.L.s, c = G.L.creature, ln = G.L.lanes[1];
+    Object.assign(s, { doorOpen: false, doorClosing: 0, doorClosed: true, doorA: 0, oars: 1 });
+    c.retarget(1); c.switched = true; G.L.laneIdx = 1; G.L.lane = ln; G.L.barrierDist = ln.barrierDist;
+    c.u = 1 - Math.pow(4 / c.D0, 1 / c.gamma); c.hold = null; c.mode = 'up'; c.modeT = 0; c.upFor = 99; })()`],
+  ['waitUntil', '!!G.L.s.snap', 6000], ['expect', 'G.L.s.oars === 0 && G.L.s.doorOpen && !G.L.s.sealedE', 'with one oar across, it breaks the oar and the door bursts open'],
+  ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 8000],
+  ['expect', "G.deathCause === 'oneoar' && deathLine(G.L).includes(\"One oar wasn't strong enough.\")", 'and the death screen says one oar was not strong enough'],
+  ['eval', 'restartLevel();'], ['wait', 1500], ['expect', "G.state === 'play' && !G.L.s.snap && G.L.s.oars === 0", 'the night starts again'],
+];
 const winch = [
   pause, ['use', 'winch'], ['expect', 'G.L.s.locked && G.hand.reach && G.hand.reach.target.id === "winch" && G.hand.reach.style === "rattle"', 'with nothing in hand the hand goes to the padlock and rattles it'],
   ['waitUntil', 'G.L.s.rattleT > 0 && !G.hand.reach', 3000], resume,
@@ -31,7 +45,7 @@ const winch = [
   pause, ['waitUntil', '!G.L.s.keyGoing', 3000], resume,
   ['use', 'winch'], ['expect', 'G.L.s.handleIn', 'handle fitted'], ['clickUntil', 'winch', 'G.L.s.sealedN', 250, 12]];
 // The side door's parts on screen, facing east: its own (the largest), and the brackets either side of it that take the
-// bar, the north one to the left and the south one to the right. part(which) points the mouse at one, as a player would,
+// oars, the north one to the left and the south one to the right. part(which) points the mouse at one, as a player would,
 // and part(which, true) clicks it there.
 const parts = 'R.hits.filter(h => h.kind === "target" && h.ref.id === "sidedoor")';
 const part = (which, click) => ['eval', `(() => {
@@ -43,20 +57,23 @@ const part = (which, click) => ['eval', `(() => {
 })()`];
 const showsDoor = 'G.hover && G.hover.ref.id === "sidedoor" && UI.tooltip.textContent === "Side door"';
 // The brackets are part of the door: pointing at either shows the side door, and clicking either does what clicking the
-// door does. The door is shut by its leaf (the hand reaches out and pulls it to), and the bar put up while it is still
-// swinging shut is knocked back into your hands by the leaf; once it is shut, the bar goes across from a bracket: the
-// north one on odd seeds, the south one on even.
-const door = [['pickup', 'beam'], ['face', 2], ['expect', parts + '.length === 3', 'facing the side door, the door and both its brackets can be pointed at'],
+// door does. The door is shut by its leaf (the hand reaches out and pulls it to), and an oar put up while it is still
+// swinging shut is knocked back into your hands by the leaf; once it is shut, an oar goes across from a bracket (the
+// north one on odd seeds, the south one on even), which is not yet enough, and the other on top of it from the other one.
+const door = [['pickup', 'oar2'], ['face', 2], ['expect', parts + '.length === 3', 'facing the side door, the door and both its brackets can be pointed at'],
   part('north'), ['wait', 150], ['expect', showsDoor, 'pointing at the north bracket shows the side door'],
   part('south'), ['wait', 150], ['expect', showsDoor, 'pointing at the south bracket shows the side door'],
   part('door', true), ['expect', '!G.L.s.doorOpen && G.hand.reach && G.hand.reach.style === "pull"', 'clicking the door shuts it: the hand pulls it to'],
-  part('door', true), ['expect', '!G.L.s.doorClosed && !G.L.s.sealedE && G.fumbling && G.fumbling.target.id === "sidedoor" && !G.fumbling.drop', 'the bar put up while it swings shut is not across'],
-  part('door', true), ['expect', '(fx => fx && fx.target.id === "sidedoor" && (fx.hitDone > 0 || G.L.s.leafSlow))(G.fumbling)', 'clicked again while the bar is on its way: no second one, and the leaf is still slowed for it'],
+  pause, part('door', true), ['expect', '!G.L.s.doorClosed && !G.L.s.sealedE && G.fumbling && G.fumbling.target.id === "sidedoor" && !G.fumbling.drop', 'the oar put up while it swings shut is not across'],
+  part('door', true), ['expect', '(fx => fx && fx.target.id === "sidedoor" && (fx.hitDone > 0 || G.L.s.leafSlow))(G.fumbling)', 'clicked again while the oar is on its way: no second one, and the leaf is still slowed for it'],
   ['waitUntil', '!G.fumbling && G.L.s.doorClosed', 4000],
-  ['expect', 'G.inv[G.active].id === "beam" && !G.L.s.sealedE', 'the leaf knocked it back into your hands, and the door is shut'],
+  ['expect', 'G.inv[G.active].id === "oar2" && !G.L.s.sealedE', 'the leaf knocked it back into your hands, and the door is shut'], resume,
   ['branch', 'G.runSeed % 2 === 1',
-    [part('north', true), ['expect', 'G.L.s.sealedE && !G.hasItem("beam")', 'clicking the north bracket puts the bar across']],
-    [part('south', true), ['expect', 'G.L.s.sealedE && !G.hasItem("beam")', 'clicking the south bracket puts the bar across']]]];
+    [part('north', true), ['expect', 'G.L.s.oars === 1 && !G.L.s.sealedE && !G.hasItem("oar2")', 'clicking the north bracket puts one oar across, and that is not yet enough'],
+      ['wait', 300], part('south', true)],
+    [part('south', true), ['expect', 'G.L.s.oars === 1 && !G.L.s.sealedE && !G.hasItem("oar2")', 'clicking the south bracket puts one oar across, and that is not yet enough'],
+      ['wait', 300], part('north', true)]],
+  ['expect', 'G.L.s.oars === 2 && G.L.s.sealedE && !G.hasItem("oar")', 'the other oar goes across on top of it from the other bracket: barred']];
 module.exports = {
-  nightmare: winch.concat(door),
+  nightmare: oneOar.concat(winch, door),
 };

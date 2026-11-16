@@ -29,7 +29,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'smash', n: [1], d: 'A loud splintering crash. It tears half-nailed boards away.', src: 'night01 onReach' },
   { kind: 'sfx', name: 'bang', n: [1, 6, 7], d: 'A heavy boom. Something hits the boards (1), the side door bangs open (6), the dropped toolbox hits the wall (7).', src: 'night01, 06, 07 · game.js “held” aftermath (unused)' },
   { kind: 'sfx', name: 'boardRattle', n: [1], d: 'Boards rattling on their nails after a blow. It pounds on the boards at the end.', src: 'night01 aftermath' },
-  { kind: 'sfx', name: 'crack', n: [1, 5], d: 'A sharp dry crack. A board splits (1); on night 5 the porch boards crack: its lane cue, the warning of which side it is coming from.', src: 'night01 boards · night05 lane cue' },
+  { kind: 'sfx', name: 'crack', n: [1, 5, 6], d: 'A sharp dry crack. A board splits (1); on night 5 the porch boards crack: its lane cue, the warning of which side it is coming from; the one oar across the side door snaps (6).', src: 'night01 boards · night05 lane cue · night06' },
   { kind: 'sfx', name: 'thud', n: [1, 4, 6, 11], d: 'A deep dull thud. A blow on the wall (1), it hits the gate (4), a door swinging shut (6), the carrier falling (11).', src: 'night01, 04, 06, 11' },
   // ---- night 2: the road ----
   { kind: 'sfx', name: 'keys', n: [2, 6], d: 'A small jingle of keys. Key into the ignition (2), the tackle box key (6).', src: 'night02, night06' },
@@ -46,6 +46,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'gate', n: [3, 4], d: 'Iron on iron, a heavy clang. The graveyard path’s lane cue (3); the quarry gates shut and shaken (4).', src: 'night03 lane cue · night04' },
   { kind: 'sfx', name: 'creak', n: [1, 3, 4, 6, 7, 12], d: 'A long creak of hinges. The doorways’ lane cue (1, 3 side gate, 12 doorway): where it is coming from; also gates and doors swinging.', src: 'lane cues (night01, 03, 12) · night04, 06, 07' },
   // ---- night 4: the quarry ----
+  { kind: 'sfx', name: 'hinge', n: [4], d: 'A drawn-out squeal of an iron hinge, catching and slipping. A quarry gate pulled shut, swinging until it clangs into its post.', src: 'night04 gate' },
   { kind: 'sfx', name: 'lock', n: [4, 6], d: 'A padlock snapping shut (4), or springing open (6).', src: 'night04, night06' },
   { kind: 'sfx', name: 'scrape', n: [4, 7], d: 'A grating scratch. The quarry gate’s lane cue (4); the climber’s claws on the lighthouse stone, its lane cue (7).', src: 'night04, 07 lane cues · night07' },
   // ---- night 5: the clearing; the bow ----
@@ -57,8 +58,8 @@ const SOUNDS = [
   { kind: 'sfx', name: 'splash', n: [6], d: 'A splash. The swimmer surfaces; also both ways’ lane cue: which door it is coming to.', src: 'night06 lane cue · swimmer.js · night06' },
   { kind: 'sfx', name: 'dive', n: [6], d: 'A low gulp of water. It goes under.', src: 'swimmer.js · night06' },
   { kind: 'sfx', name: 'slosh', n: [6], d: 'Water slapping. Its strokes as it swims in; water slopping under the door.', src: 'night06' },
-  { kind: 'sfx', name: 'wetPound', n: [6], d: 'A deep wet boom with the bar rattling. It throws itself against the barred water door.', src: 'night06 aftermath' },
-  { kind: 'sfx', name: 'bar', n: [6], d: 'A heavy bar dropping into place. A door is sealed.', src: 'night06' },
+  { kind: 'sfx', name: 'wetPound', n: [6], d: 'A deep wet boom with the oars rattling. It throws itself against a barred door; against the side door with one oar across it, just before the oar snaps.', src: 'night06 aftermath, onReach' },
+  { kind: 'sfx', name: 'bar', n: [6], d: 'A heavy thing dropping into place. The water door comes down; an oar drops into the side door’s brackets.', src: 'night06' },
   { kind: 'sfx', name: 'ratchet', n: [6, 7, 8], d: 'One click of a ratchet. Each turn of a crank or winch.', src: 'game.js crank · night06, 07, 08' },
   { kind: 'sfx', name: 'fit', n: [6, 7, 10, 12], d: 'A neat click. A part goes into place: winch handle (6), bulb or fuse (7), crank (10), bulb (12).', src: 'night06, 07, 10, 12' },
   // ---- night 7: the lighthouse ----

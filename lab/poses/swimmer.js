@@ -66,7 +66,7 @@
           c.runPose = false; c.runLat = 0; c.dist -= dt * PACE * 0.55;
         },
         draw(ctx, c, P) { ctx.translate(c.runLat || 0, 0); draw(ctx, c, P); } },
-      LAB.lunge({ name: 'Rising out at you', note: 'It catches you: it rises out of the water to your face, the weed hanging off its jaw, the mouth opening under the eyes.', dist: CR.catchDist,
+      LAB.lunge({ name: 'Rising out at you', note: 'It catches you: it bursts up out of the water to your face, the water thrown up in a great splash behind it, the weed hanging off its jaw, the mouth opening under the eyes.', dist: CR.catchDist,
         tick(c, k, dt, T) {
           base.tick(c, k, dt, T);
           c.yOff = lerp(0, G.L.eyeH - CR.faceY, smoothstep(c.lunge));   // the game lifts it to eye level as it comes (game.js, 'dying')
