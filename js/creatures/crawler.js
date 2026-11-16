@@ -1,6 +1,6 @@
 'use strict';
 // The crawler: pale, on all fours, in bursts. A night can send it scuttling sideways (The Road's shying out of the
-// lights): c.runPose on, side-on, facing c.runDir (1 right, -1 left), its legs at c.runGait.
+// lights, and its runs round the car): c.runPose on, side-on, facing c.runDir (1 right, -1 left), its legs at c.runGait.
 CREATURES.crawler = {
   name: 'the crawler', h: 1.1, w: 2.0, faceY: 0.3, stepRate: 2.4, catchDist: 1.3, sound: 'crawler',
   death: { delay: 0.08, dur: 0.28, sting: 'stingShriek' },

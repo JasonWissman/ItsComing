@@ -1,7 +1,7 @@
 'use strict';
 // Night 2, The Car: the crawler (js/creatures/crawler.js; its moves are set by js/levels/night02.js)
 (() => {
-  const NIGHT = { D0: 85, T: 52 };   // night 2's creatures entry: startDist 85, time 52 (a steady pace, gamma 1)
+  const NIGHT = { D0: 85, T: 90 };   // night 2's creatures entry: startDist 85, time 90 (a steady pace, gamma 1)
   const RAM_GAP = 2.6;               // driving at it: where the car stops dead, from it
   // the game's walk in (game.js updateCreature): u at m/T a second, the distance from u, the legs from how far it moved
   const drive = (c, dt, m) => {
@@ -39,6 +39,11 @@
       { name: 'Shying out of the lights', note: 'Driving away past it on the verge: side on, it scuttles flat out across the verge out of the headlights.', dist: 8, dur: 2, lit: 0.2, fit: { w: 2.2 },
         set(c) { c.runPose = true; c.runDir = 1; },
         tick(c, k, dt) { c.CR.speedMult(c, dt, true); c.runGait = (c.runGait || 0) + 9 * dt * 5.5; } },   // across at 9 m/s, its legs at 5.5 a metre
+      { name: 'Running round the car', note: 'Partway in it breaks off and runs flat out round the car through the dark, side-on, to the side of the car or the road behind it.', dist: 30, dur: 3, lit: 0.15, fit: { w: 2.2 },
+        set(c) { c.runPose = true; c.runDir = -1; },
+        tick(c, k, dt) { c.CR.speedMult(c, dt, true); c.runGait = (c.runGait || 0) + 20 * dt * 5.5; } },   // round at 20 m/s, its legs at 5.5 a metre
+      { name: 'Rearing at the glass', note: 'Close beside the car or behind it, it rears up at the window so it shows over the sill.', dist: 2.4, dur: 3, lit: 0.3,
+        tick(c, k) { c.yOff = 0.42 * smoothstep(Math.min(1, k * 2)); } },
       { name: 'Left behind in the road', note: 'Backing away with the lights full on it: it scuttles after the car in bursts, tires within a few seconds and crouches in the road watching you go.', dist: 12, dur: 4.4, lit: 0.5,
         set(c) { c.car = { t: 0, v: 0, s: 0, cz: c.dist, gap: Math.min(c.dist, Math.max(3, c.dist * 0.75)) }; },
         tick(c, k, dt) {   // night02 driveOn, in reverse: the car's way is -z, the thing on the road ahead of it
