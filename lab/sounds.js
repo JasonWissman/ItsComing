@@ -183,6 +183,19 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
   let notes = {};
   try { notes = JSON.parse(localStorage.getItem('soundsAuditNotes') || '{}') || {}; } catch (e) { notes = {}; }
   const saveNotes = () => { try { localStorage.setItem('soundsAuditNotes', JSON.stringify(notes)); } catch (e) {} };
+  // ---- adjustments (lab/soundtweak.js), kept in this browser too ----
+  let tweaks = {};
+  try { tweaks = JSON.parse(localStorage.getItem('soundsAuditTweaks') || '{}') || {}; } catch (e) { tweaks = {}; }
+  const saveTweaks = () => { try { localStorage.setItem('soundsAuditTweaks', JSON.stringify(tweaks)); } catch (e) {} };
+  const tw = s => Object.assign({}, TWEAK.DEF, tweaks[ids(s)]);
+  // the four, as their sliders run: pitch in semitones, speed as a power of two (shown as x), tone in octaves, volume in dB
+  const ADJ = [
+    { k: 'pitch', l: 'P', title: 'Pitch, semitones', min: -12, max: 12, step: 0.5, to: v => v, from: v => v, show: v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' st' },
+    { k: 'speed', l: 'S', title: 'Speed (2x: twice as fast, half as long)', min: -1, max: 1, step: 0.05, to: v => +Math.pow(2, v).toFixed(3), from: v => Math.log2(v), show: v => '×' + v.toFixed(2) },
+    { k: 'tone', l: 'T', title: 'Tone: filters brighter (+) or duller (−), octaves', min: -2, max: 2, step: 0.1, to: v => v, from: v => v, show: v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + ' oct' },
+    { k: 'vol', l: 'V', title: 'Volume, dB', min: -18, max: 12, step: 1, to: v => v, from: v => v, show: v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' dB' },
+  ];
+  const tweakText = t => ADJ.filter(a => t[a.k] !== TWEAK.DEF[a.k]).map(a => a.k + ' ' + a.show(t[a.k])).join(', ');
 
   // ---- audio: started on the first click (a browser will not start sound before one) ----
   const start = () => { AUDIO.init(); AUDIO.resume(); };
@@ -204,20 +217,26 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
   const timers = [];
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
   const STEP_GAP = { walker: 620, crawler: 170, smiler: 300, runner: 260, climber: 480, tall: 1100, shoes: 380, shoesRun: 230 };
-  function play(s) {
+  function play(s, restart) {
     start();
+    const t = tw(s), T = fn => () => TWEAK.run(t, fn), gap = ms => ms / t.speed;
+    if (restart) {   // (a held sound, nudged while it plays: start it again as it now is)
+      if (s.kind === 'loop' && on.loop === s) { AUDIO.stopLoop(); TWEAK.run(t, () => AUDIO.setLoop(s.name, 0.45, 0)); }
+      if (s.kind === 'ambient' && on.ambient === s) { AUDIO.stopAmbient(); TWEAK.run(t, () => AUDIO.startAmbient(s.p)); }
+      return;
+    }
     if (s.kind === 'sfx' || s.kind === 'sting') {
-      AUDIO.sfx(s.name, 0);
+      TWEAK.run(t, () => AUDIO.sfx(s.name, 0));
       if (s.name === 'start') setOn('loop', SOUNDS.find(x => x.kind === 'loop' && x.name === 'engine'));   // it starts the engine loop
-    } else if (s.kind === 'voice') AUDIO.voice(s.name, 0.6, 0);
-    else if (s.kind === 'footstep') { const g = STEP_GAP[s.name] || 400; for (let i = 0; i < 5; i++) later(i * g, () => AUDIO.footstep(s.name, 0.35 + i * 0.07, i % 2 ? 0.15 : -0.15)); }
+    } else if (s.kind === 'voice') TWEAK.run(t, () => AUDIO.voice(s.name, 0.6, 0));
+    else if (s.kind === 'footstep') { const g = gap(STEP_GAP[s.name] || 400); for (let i = 0; i < 5; i++) later(i * g, T(() => AUDIO.footstep(s.name, 0.35 + i * 0.07, i % 2 ? 0.15 : -0.15))); }
     else if (s.kind === 'heartbeat') {   // the ramp as it closes in: from far (slow, faint) to at you (fast, loud)
-      let t = 0;
-      for (let i = 0; i <= 10; i++) { const prox = 0.1 + i * 0.09; later(t * 1000, () => AUDIO.heartbeat(0.04 + prox * 0.5, prox > 0.7)); t += lerp(1.35, 0.32, Math.pow(prox, 1.5)); }
+      let u = 0;
+      for (let i = 0; i <= 10; i++) { const prox = 0.1 + i * 0.09; later(gap(u * 1000), T(() => AUDIO.heartbeat(0.04 + prox * 0.5, prox > 0.7))); u += lerp(1.35, 0.32, Math.pow(prox, 1.5)); }
     } else if (s.kind === 'loop') {
-      if (on.loop === s) { AUDIO.stopLoop(); setOn('loop', null); } else { AUDIO.setLoop(s.name, 0.45, 0); setOn('loop', s); }
+      if (on.loop === s) { AUDIO.stopLoop(); setOn('loop', null); } else { if (on.loop) AUDIO.stopLoop(); TWEAK.run(t, () => AUDIO.setLoop(s.name, 0.45, 0)); setOn('loop', s); }
     } else if (s.kind === 'ambient') {
-      if (on.ambient === s) { AUDIO.stopAmbient(); setOn('ambient', null); } else { AUDIO.startAmbient(s.p); setOn('ambient', s); }
+      if (on.ambient === s) { AUDIO.stopAmbient(); setOn('ambient', null); } else { TWEAK.run(t, () => AUDIO.startAmbient(s.p)); setOn('ambient', s); }
     }
     const tr = rows.get(ids(s)); if (tr) { tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash'); }
   }
@@ -245,8 +264,23 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
       '<td class="c-name"><code>' + esc(s.name) + '</code><span class="kind">' + esc(KINDS[s.kind]) + (toggles ? ' · toggles' : '') + '</span></td>' +
       '<td class="c-desc"><span class="d">' + esc(s.d) + '</span>' + (s.p ? '<span class="params">' + esc(paramText(s.p)) + '</span>' : '') + '<span class="src">' + esc(s.src) + '</span></td>' +
       '<td class="c-nights"><div class="chips">' + nightChips(s) + '</div></td>' +
+      '<td class="c-adj"><div class="adj">' + ADJ.map(a => '<span class="al" title="' + a.title + '">' + a.l + '</span><input type="range" data-k="' + a.k + '" min="' + a.min + '" max="' + a.max + '" step="' + a.step + '" aria-label="' + esc(a.title + ', ' + s.name) + '"><output></output>').join('') + '<button type="button" class="reset" title="Back to as the game has it">reset</button></div></td>' +
       '<td class="c-note"><textarea rows="1" aria-label="Comment on ' + esc(label(s)) + '" placeholder="Comment…"></textarea></td>';
     tr.querySelector('.play').onclick = () => play(s);
+    const sliders = [...tr.querySelectorAll('.adj input')], outs = [...tr.querySelectorAll('.adj output')];
+    const showAdj = () => {
+      const t = tw(s);
+      ADJ.forEach((a, i) => { sliders[i].value = a.from(t[a.k]); outs[i].textContent = a.show(t[a.k]); outs[i].classList.toggle('on', t[a.k] !== TWEAK.DEF[a.k]); });
+      tr.classList.toggle('tweaked', !TWEAK.isDefault(t));
+    };
+    const setAdj = (k, v) => { const t = tw(s); t[k] = v; if (TWEAK.isDefault(t)) delete tweaks[id]; else tweaks[id] = t; saveTweaks(); showAdj(); count(); };
+    sliders.forEach((el, i) => {
+      el.addEventListener('input', () => { setAdj(ADJ[i].k, ADJ[i].to(+el.value)); play(s, true); });   // (a held sound follows at once)
+      el.addEventListener('change', () => { if (!toggles) play(s); });                                     // (a one-off plays on release)
+      el.addEventListener('dblclick', () => { setAdj(ADJ[i].k, TWEAK.DEF[ADJ[i].k]); play(s, true); });
+    });
+    tr.querySelector('.reset').onclick = () => { delete tweaks[id]; saveTweaks(); showAdj(); count(); play(s, true); };
+    showAdj();
     const ta = tr.querySelector('textarea');
     ta.value = notes[id] || '';
     const fit = () => { ta.style.height = 'auto'; ta.style.height = Math.max(32, ta.scrollHeight + 2) + 'px'; };
@@ -279,7 +313,7 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
       const nt = notes[ids(s)] || '';
       const ok = (!filt.kind || s.kind === filt.kind) &&
         (!filt.night || (filt.night === 'unused' ? s.n === 'unused' : covers(s, +filt.night))) &&
-        (!filt.noted || nt.trim()) &&
+        (!filt.noted || nt.trim() || tweaks[ids(s)]) &&
         (!filt.q || filt.q.split(/\s+/).every(w => s.hay.includes(w) || nt.toLowerCase().includes(w)));
       s.tr.hidden = !ok; if (ok) shown++;
     }
@@ -288,9 +322,9 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
   }
   function count(shown) {
     if (shown === undefined) shown = sorted.filter(s => !s.tr.hidden).length;
-    const noted = Object.keys(notes).filter(k => (notes[k] || '').trim()).length;
+    const noted = Object.keys(notes).filter(k => (notes[k] || '').trim()).length, changed = Object.keys(tweaks).length;
     const n = filt.night && filt.night !== 'unused' ? ' · night ' + filt.night + ', ' + NIGHTS[+filt.night - 1] : '';
-    $('count').textContent = shown + ' of ' + SOUNDS.length + ' shown' + n + ' · ' + noted + ' commented';
+    $('count').textContent = shown + ' of ' + SOUNDS.length + ' shown' + n + ' · ' + noted + ' commented · ' + changed + ' adjusted';
   }
   apply();
 
@@ -299,17 +333,20 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
   const byKind = () => ORDER.map(k => SOUNDS.filter(s => s.kind === k).length + ' ' + PLURAL[k]).join(', ');
   const line = s => {
     const nt = (notes[ids(s)] || '').trim().replace(/\s*\n+\s*/g, ' / ');
-    return '- ' + s.name + ' [' + KINDS[s.kind] + '] | ' + nightsText(s) + ' | ' + s.d + (s.p ? ' (' + paramText(s.p) + ')' : '') + (nt ? '\n    COMMENT: ' + nt : '');
+    const ad = tweaks[ids(s)] ? tweakText(tw(s)) : '';
+    return '- ' + s.name + ' [' + KINDS[s.kind] + '] | ' + nightsText(s) + ' | ' + s.d + (s.p ? ' (' + paramText(s.p) + ')' : '') + (ad ? '\n    ADJUST: ' + ad : '') + (nt ? '\n    COMMENT: ' + nt : '');
   };
   function exportText(onlyNoted) {
-    const list = sorted.filter(s => !onlyNoted || (notes[ids(s)] || '').trim());
-    const noted = sorted.filter(s => (notes[ids(s)] || '').trim()).length;
-    const head = 'Sounds audit: ' + SOUNDS.length + ' sounds (' + byKind() + '); ' + noted + ' with comments.' + (onlyNoted ? ' Only the commented ones follow.' : '') +
+    const marked = s => (notes[ids(s)] || '').trim() || tweaks[ids(s)];
+    const list = sorted.filter(s => !onlyNoted || marked(s));
+    const noted = sorted.filter(s => (notes[ids(s)] || '').trim()).length, changed = sorted.filter(s => tweaks[ids(s)]).length;
+    const head = 'Sounds audit: ' + SOUNDS.length + ' sounds (' + byKind() + '); ' + noted + ' with comments, ' + changed + ' adjusted.' + (onlyNoted ? ' Only those follow.' : '') +
+      '\nADJUST is how the sound was nudged in the lab (pitch in semitones: oscillators, noise and filters together; speed: x faster, all its timings; tone: its filters alone, octaves; volume in dB).' +
       '\nEach line: name [kind] | nights | what it sounds like and means. Played by js/audio.js (sfx / sting by AUDIO.sfx(name), voice, footstep, loop, heartbeat, ambient bed = AUDIO.startAmbient(params)).';
     return head + '\n\n' + list.map(line).join('\n');
   }
   function copy(onlyNoted) {
-    if (onlyNoted && !Object.keys(notes).some(k => (notes[k] || '').trim())) { toast('No comments yet. Write one in a row’s comment box.'); return; }
+    if (onlyNoted && !Object.keys(notes).some(k => (notes[k] || '').trim()) && !Object.keys(tweaks).length) { toast('No comments or changes yet.'); return; }
     const text = exportText(onlyNoted), out = $('copyOut');
     const fallback = () => { out.value = text; out.classList.add('show'); out.style.height = Math.min(420, 60 + text.split('\n').length * 18) + 'px'; out.scrollIntoView({ block: 'nearest' }); out.focus(); out.select(); toast('Select all and copy the text below'); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => { out.value = text; toast((onlyNoted ? 'Comments' : 'The whole table') + ' copied. Paste it into the chat.'); }, fallback);

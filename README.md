@@ -605,9 +605,11 @@ static host):
   keeps notes.
 - `lab/sounds.html`, the sounds audit: one row for every sound the game makes (each effect and death sting, voice,
   footstep kind, loop, the heartbeat and each night's ambient bed with its parameters), played through `js/audio.js`
-  itself, with what it is, which nights use it (or that nothing does) and a comment box. The index is written by hand in
-  `lab/sounds.js` from the call sites, so a new sound wants a row there. Copy all (or Copy comments) puts the table
-  and the comments on the clipboard to paste back.
+  itself, with what it is, which nights use it (or that nothing does), four small sliders to nudge it (pitch, speed, tone,
+  volume: `lab/soundtweak.js` bends the Web Audio calls `js/audio.js` makes, so the game's code is untouched) and a
+  comment box. The index is written by hand in
+  `lab/sounds.js` from the call sites, so a new sound wants a row there. Copy all (or Copy comments) puts the table,
+  the adjustments and the comments on the clipboard to paste back.
 
 ## Testing
 

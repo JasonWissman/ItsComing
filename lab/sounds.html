@@ -48,7 +48,7 @@ output { font: 11px var(--mono); color: var(--muted); min-width: 3.2em; font-var
 
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 thead th { font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); background: var(--bg); }
-col.c-play { width: 44px; } col.c-name { width: 158px; } col.c-nights { width: 148px; } col.c-note { width: 27%; }
+col.c-play { width: 44px; } col.c-name { width: 158px; } col.c-nights { width: 148px; } col.c-note { width: 22%; } col.c-adj { width: 178px; }
 tbody tr { border-bottom: 1px solid var(--line); }
 tbody tr:hover { background: rgba(255, 255, 255, 0.018); }
 tbody tr.live { background: var(--accent-soft); }
@@ -88,6 +88,17 @@ tr.noted textarea { border-color: rgba(201, 163, 91, 0.45); }
 .toast { position: fixed; left: 50%; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--accent); color: var(--accent-ink); padding: 9px 14px; border-radius: 6px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 20; max-width: calc(100vw - 32px); }
 .toast.show { opacity: 1; }
 
+/* the little adjusters: four hairline sliders, a label and a readout each; a changed one lights up */
+.c-adj { padding-top: 7px; }
+.adj { display: grid; grid-template-columns: 12px minmax(0, 1fr) 46px; gap: 1px 5px; align-items: center; }
+.adj .al { font: 500 9.5px/1 var(--mono); color: var(--muted); text-transform: uppercase; }
+.adj output { font: 10px/1 var(--mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.adj output.on { color: var(--accent); }
+.adj input[type=range] { width: 100%; height: 14px; margin: 0; accent-color: var(--accent); }
+.adj .reset { grid-column: 1 / -1; justify-self: end; font: 10px/1 var(--mono); padding: 3px 6px; margin-top: 2px; display: none; }
+tr.tweaked .adj .reset { display: block; }
+tr.tweaked td.c-play { box-shadow: inset 3px 0 0 var(--k-loop); }
+.thhint { text-transform: none; letter-spacing: 0; opacity: 0.7; }
 @media (max-width: 760px) {
   header.bar { position: static; }
   input[type=search] { width: 100%; }
@@ -95,7 +106,7 @@ tr.noted textarea { border-color: rgba(201, 163, 91, 0.45); }
   #count { margin-left: 0; flex: 1 1 100%; }
   table, tbody { display: block; }
   thead, colgroup { display: none; }
-  tbody tr { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "play name nights" "play desc desc" "play note note"; gap: 2px 8px; padding: 8px 0; }
+  tbody tr { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "play name nights" "play desc desc" "play adj adj" "play note note"; gap: 2px 8px; padding: 8px 0; }
   td { padding: 0; }
   td.c-play { grid-area: play; }
   td.c-name { grid-area: name; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
@@ -104,13 +115,15 @@ tr.noted textarea { border-color: rgba(201, 163, 91, 0.45); }
   td.c-nights { grid-area: nights; padding-top: 5px; }
   .chips { justify-content: flex-end; }
   td.c-note { grid-area: note; padding-top: 5px; }
+  td.c-adj { grid-area: adj; padding-top: 6px; }
+  .adj { grid-template-columns: 12px minmax(0, 1fr) 46px 12px minmax(0, 1fr) 46px; }
 }
 @media (prefers-reduced-motion: reduce) { .toast, #caption { transition: none; } tbody tr.flash { animation: none; } }
 </style>
 </head>
 <body>
 <header class="bar">
-  <h1>Sounds Audit<small>Every sound in the game, played by its own synthesiser (js/audio.js). ▶ plays it (loops and ambient beds toggle); write what should change in its comment box, then Copy to paste it back.</small></h1>
+  <h1>Sounds Audit<small>Every sound in the game, played by its own synthesiser (js/audio.js). ▶ plays it (loops and ambient beds toggle); nudge it with the P (pitch), S (speed), T (tone) and V (volume) sliders, double-click one to reset it; write what should change in its comment box, then Copy to paste it back.</small></h1>
   <div class="controls">
     <label class="lbl" for="vol">Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.8"><output id="volOut">80%</output></label>
     <button id="mute" aria-pressed="false">Mute</button>
@@ -123,12 +136,12 @@ tr.noted textarea { border-color: rgba(201, 163, 91, 0.45); }
   <label class="lbl" for="q">Find <input type="search" id="q" placeholder="name, sound, night, comment…" autocomplete="off"></label>
   <label class="lbl" for="kind">Kind <select id="kind"><option value="">All kinds</option></select></label>
   <span class="lbl">Night <span class="strip" id="nightStrip" role="group" aria-label="Night"></span></span>
-  <label class="chk"><input type="checkbox" id="noted"> With comments</label>
+  <label class="chk"><input type="checkbox" id="noted"> With comments or changes</label>
   <span id="count" role="status"></span>
 </div>
 <table>
-  <colgroup><col class="c-play"><col class="c-name"><col class="c-desc"><col class="c-nights"><col class="c-note"></colgroup>
-  <thead><tr><th scope="col" aria-label="Play"></th><th scope="col">Sound</th><th scope="col">What it is · where from</th><th scope="col">Nights</th><th scope="col">Comment</th></tr></thead>
+  <colgroup><col class="c-play"><col class="c-name"><col class="c-desc"><col class="c-nights"><col class="c-adj"><col class="c-note"></colgroup>
+  <thead><tr><th scope="col" aria-label="Play"></th><th scope="col">Sound</th><th scope="col">What it is · where from</th><th scope="col">Nights</th><th scope="col">Adjust <span class="thhint">(release to hear)</span></th><th scope="col">Comment</th></tr></thead>
   <tbody id="rows"></tbody>
 </table>
 <p id="empty" hidden>No sound matches.</p>
@@ -140,6 +153,7 @@ tr.noted textarea { border-color: rgba(201, 163, 91, 0.45); }
 <script src="../js/util.js"></script>
 <script src="../js/captions.js"></script>
 <script src="../js/audio.js"></script>
+<script src="soundtweak.js"></script>
 <script src="sounds.js"></script>
 </body>
 </html>
