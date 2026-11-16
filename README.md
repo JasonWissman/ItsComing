@@ -116,12 +116,19 @@ some on the ground, so you have to turn and look down to find them.
    charges that doorway, hits the boards, stoops to look in at you through the slit with its
    fingers over the board, and pounds on them until the night fades.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
-   fours, in bursts, in the headlights. Find the car keys (the green ones), put the stick in
-   park and turn the key in the dash beside the dials until it catches; then pick a gear and
-   hit the gas. Reverse always gets away; drive does only if it is coming along a verge, and
-   then, if it is near the road, it scuttles sideways out of your lights as you pass. The
+   fours, in bursts, in the headlights, shifting across from the road to a verge and back as it comes. Most nights,
+   partway in, it breaks off and runs flat out round the car through the dark (heard going, a click as it goes and as it
+   gets there) to one side of the car or into the road behind, lit red by the tail lights, and shifts about there; some
+   nights it goes round again. Find the car keys (the green ones), put the stick in park and turn the key in the dash
+   beside the dials until it catches; then look round for it, pick a gear and hit the gas. Drive with it in the road
+   ahead, or reverse with it in the road behind, and the car runs into it; anywhere else either way gets away (past it on
+   a verge, it scuttles sideways out of your lights). Once the engine runs it stops going round, and once the stick is in
+   a gear it moves only while you watch it, so it never steps into your way behind your back. Caught, it comes through
+   the window it reached, and the glass breaks in your face: cracks run out from where it hits, then the pane bursts in a
+   flash and the shards fly at you (they drop away with reduced motion; the flash is dimmer with reduced flashing). The
    whole road slides past as you go. The house keys are tried at the keyhole, blade first, will not go in and drop to the
-   floor at your feet. Out of park the key will not turn: your hand takes it and it strains a few degrees and goes back.
+   floor at your feet; a wrong key costs only the moment it takes to try it, never any of its way in.
+   Out of park the key will not turn: your hand takes it and it strains a few degrees and goes back.
    Your hand turns the key and moves the stick, and your foot comes onto the gas: with the engine dead the pedal goes
    limp to the floor under it. The stick stands up out of a plate lying flat on the console by your right hip, P R N D
    along it from the front, the letters reading the right way up as you look down at them from your seat; a click on the
