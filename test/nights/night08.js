@@ -56,7 +56,7 @@ const refusals = [
   ['expect', 'G.hand.reach && G.hand.reach.style === "knock" && !G.fumbling', 'nothing in hand at a shutter that is down: the hand knocks on the glass'],
   ['eval', 'restartLevel()'], ['wait', 300],
 ];
-// how wide it is drawn across its body (belly to chest, under its hair), turned a given way round (0 face on, 1 side on):
+// how wide it is drawn across its body (the belt to the chest, 0.95 to 1.3 m up, under its collar and hat), turned a given way round (0 face on, 1 side on):
 // drawn on a canvas of its own, plain, and the opaque pixels measured. A turn that squeezes it edge on, as a flat card turns, comes to almost
 // nothing half way round; a solid figure keeps most of its width all the way round.
 const turnWidths = `(() => {
@@ -67,7 +67,7 @@ const turnWidths = `(() => {
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, 300, 300); x.setTransform(200, 0, 0, -200, 150, 290);
     Object.assign(c, { runPose: turn > 0, runTurn: turn, runDir: 1, runAmt: 0.6, runGait: 1, dist: 9, t: 2.5 }); CR.draw(x, c, P);   // its head upright
     const d = x.getImageData(0, 0, 300, 300).data; let lo = 300, hi = -1;
-    for (let r = 140; r < 190; r++) for (let q = 0; q < 300; q++) if (d[(r * 300 + q) * 4 + 3] > 128) { lo = Math.min(lo, q); hi = Math.max(hi, q); }
+    for (let r = 30; r < 100; r++) for (let q = 0; q < 300; q++) if (d[(r * 300 + q) * 4 + 3] > 128) { lo = Math.min(lo, q); hi = Math.max(hi, q); }
     return hi - lo;
   };
   const ws = []; for (let k = 0; k <= 20; k++) ws.push(width(k / 20));
@@ -111,7 +111,7 @@ const nightmare = [
     c.u = 1 - (ln.barrierDist + 0.8) / c.D0; window.__k = k;
     window.__slam = 0; window.__sfx = AUDIO.sfx; AUDIO.sfx = (n, p, q) => { if (n === 'shutterSlam') __slam++; return __sfx(n, p, q); };
     window.__shakes = 0; window.__shake = G.shake; G.shake = a => { if (a >= 0.5) __shakes++; __shake(a); }; })()`],
-  ['waitUntil', 'G.L.s.shove && G.L.creature.shove && G.L.creature.shove.k === 1', 5000],
+  ['waitUntil', 'G.L.s.shove && G.L.creature.shove && G.L.creature.shove.k === 1', 8000],
   ['expect', '(() => { const s = G.L.s, c = G.L.creature; return !s.down[__k] && s.shown[__k] > 0.25 && !s.through && c.dist > s.glassD[__k] && Math.abs(c.shove.h + c.yOff - s.shove.edge) < 0.02; })()', 'at the shutter, part way down: its hands on the bottom edge of it, outside the glass'],
   ['eval', 'window.__n = G.L.targets.find(t => t.id === "shutter" + __k).count; G.L.s.lastTurn = -9; useTarget(G.L.targets.find(t => t.id === "shutter" + __k))'],
   ['expect', 'G.L.targets.find(t => t.id === "shutter" + __k).count === __n && /hold/.test(G.lastToast.msg)', 'the crank will not turn against it'],

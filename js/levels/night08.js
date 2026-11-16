@@ -384,9 +384,9 @@ LEVELS.push({
     // the bottom edge of window i's shutter (a height on the wall) as it shows from your eye, at the creature's distance d
     const edgeAt = (i, yb, d) => eye + (yb - eye) * d / (panes[i].glassD * ZS / ZG);
     const bottom = sh => TOP - (TOP - BOT) * sh;
-    // how high its hands go above its feet: a child's reach, its arms up over its head (higher, it jumps for the edge and
+    // how high its hands go above its feet: a tall man's reach, its arms up over its hat (higher, it jumps for the edge and
     // hangs from it), and, shoving, a little further than an arm goes
-    const REACH = 1.5, FLING = 1.75;
+    const REACH = 2.15, FLING = 2.4;
     const startShove = (c, i) => {
       const d = shoveD(i);
       s.shove = { i, t: 0, sh0: s.shown[i], d, grabbed: false, slamAt: -1, gone: false };
@@ -477,7 +477,7 @@ LEVELS.push({
       const i = s.target, hard = s.blows % 4 === 0 ? 1 : 0.65 + 0.3 * c.rand();
       s.blows++;
       AUDIO.sfx('shutterBang', panTo(c.yaw)); G.shake(0.25 + 0.3 * hard);
-      s.hit = { i, at: L.t, k: hard, x: lerp(0.28, 0.72, c.rand()), y: lerp(1.0, 1.8, c.rand()) };   // where it lands: across the shutter (0..1), and how high
+      s.hit = { i, at: L.t, k: hard, x: lerp(0.28, 0.72, c.rand()), y: lerp(1.2, 2.1, c.rand()) };   // where it lands: across the shutter (0..1), and how high
       s.dent[i] = Math.min(0.6, s.dent[i] + 0.07 * hard);   // and every one leaves the steel a little further in
     };
     L.aftermath = t => {
@@ -548,9 +548,9 @@ LEVELS.push({
     };
     // the shove, as it shows from inside: its fingers curled up over the front of the bottom rail, two hands' worth either
     // side of its face; the rail's blur as the curtain flies up; dust shaken down out of the housing when it slams
-    const handX = () => {   // where its two hands show across the shutter's plane (its fingertips are 0.12 m either side of it)
+    const handX = () => {   // where its two hands show across the shutter's plane (its fingertips are 0.17 m either side of it)
       const p = cr().pos(), l = rotY(p.x, p.z, -L.facing), n = Math.hypot(l[0], l[1]) || 1;
-      return [-1, 1].map(sg => { const hx = l[0] + l[1] / n * sg * 0.12, hz = l[1] - l[0] / n * sg * 0.12; return hx * ZS / hz; });
+      return [-1, 1].map(sg => { const hx = l[0] + l[1] / n * sg * 0.17, hz = l[1] - l[0] / n * sg * 0.17; return hx * ZS / hz; });
     };
     const fingers = (ctx, P) => {
       const skin = P.col([176, 170, 162]), edge = P.col([70, 62, 58]), nail = P.col([206, 198, 188]);

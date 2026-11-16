@@ -10,7 +10,8 @@
 // look, it snaps round to you. Only coming at you does a face come out of the dark into yours: two pale eyes, blank, and a
 // lipless slit of small teeth from one cheekbone to the other that opens far too wide.
 // While c.held is set it stands still; once c.away is set (the night has let you go) it has turned round, and you see only
-// its back, eyeless, as it walks off.
+// its back, eyeless, as it walks off. A night that sets c.lookT (to c.t) has its head snap round to you, as when you look at it
+// (night 9: from behind a lamp post, looking back once at the booth before it goes).
 // The night moves it (night 9: from street lamp to street lamp) and tells it what it is doing: c.side, how far to the side
 // of its way it is; c.reach (0..1), one arm unspooling up to c.reachTo (across and up from its feet, in metres; c.reachSide
 // the arm), the hand closing on what it reaches (c.grip); c.rush (0..1), skittering, low; c.lampLit (0..1, more in the

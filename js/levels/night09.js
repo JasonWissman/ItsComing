@@ -527,7 +527,7 @@ Object.assign(ICONS, {
       const HW = 0.082, HY0 = 1.2;   // the housing's half width, and its foot
       const LCD = { u0: -0.07, u1: 0.026, y0: 1.66, y1: 1.725 }, SLOT = { u0: 0.038, u1: 0.072, y0: 1.66, y1: 1.725 };
       const RET = { u0: -0.045, u1: 0.045, y0: 1.212, y1: 1.284 }, RX = 0.138;   // the coin return; where the receiver hangs
-      const CARD = { u0: -0.072, u1: 0.072, y0: 1.298, y1: 1.398 };
+      const CARD = { u0: -0.078, u1: 0.078, y0: 1.296, y1: 1.4 };
       const KEYS = ['123', '456', '789', '*0#'], KEY_Y0 = 1.598, KEY_DY = 0.052, KEY_DU = 0.045;
       obox(at3, -BW, BW, NB.y - 0.03, ph(0, 1.8, 0)[1], 0, 0.016, [58, 62, 68], { sortDist: WD + 0.03 });   // the backboard
       obox(ph, -HW, HW, HY0, 1.765, 0.02, 0.1, [128, 132, 140], { sortDist: FD + 0.005 });        // the housing
@@ -547,14 +547,21 @@ Object.assign(ICONS, {
       // the phone wants them (as on any pay phone)
       faceQ(CARD.u0, CARD.u1, CARD.y0, CARD.y1, 0.1005, [214, 208, 190], face);
       faceQ(CARD.u0, CARD.u1, CARD.y1 - 0.021, CARD.y1, 0.1007, [150, 40, 36], detail);
+      // Each step is two big bold words, one over the other, as large as the card's column takes (squeezed a little where a
+      // word is wide), so they read from where you stand
       L.props.push(phSprite(0, CARD.y0, 0.101, CARD.u1 - CARD.u0, CARD.y1 - CARD.y0, (ctx, P) => {
-        const print = (t, x, y, px, col, weight) => { ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = (weight || 'bold') + ' ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col; ctx.fillText(t, 0, 0); ctx.restore(); };
+        // (px: its size in mm; fit: the widest it may be, in mm, squeezed across to fit)
+        const print = (t, x, y, px, col, fit) => {
+          ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = 'bold ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col;
+          const w = ctx.measureText(t).width; if (fit && w > fit) ctx.scale(fit / w, 1);
+          ctx.fillText(t, 0, 0); ctx.restore();
+        };
         print('TO CALL', 0, 0.083, 11, P.col([236, 226, 210]));
-        const ink = P.col([36, 42, 70]), red = P.col([150, 40, 36]);
-        [['1', 'LIFT', 'the receiver'], ['2', 'INSERT', 'a coin'], ['3', 'DIAL', 'the number']].forEach(([n, a, b], i) => {
-          const x = (i - 1) * 0.047;
-          print(n, x, 0.047, 22, red);
-          print(a, x, 0.029, 10, ink); print(b, x, 0.016, 7, ink, 'normal');
+        const ink = P.col([30, 34, 58]), red = P.col([150, 40, 36]), col = (CARD.u1 - CARD.u0) / 3;
+        [['1', 'LIFT', 'PHONE'], ['2', 'INSERT', 'COIN'], ['3', 'DIAL', 'NUMBER']].forEach(([n, a, b], i) => {
+          const x = (i - 1) * col, fit = col * 1000 - 3;
+          print(n, x, 0.064, 13, red);
+          print(a, x, 0.0435, 15, ink, fit); print(b, x, 0.0215, 15, ink, fit);
         });
       }, { sortDist: FD - 0.016 }));
       // the shelf under it, where the notebook lies: a small board out from the foot of the backboard, at the height of the
@@ -934,6 +941,35 @@ Object.assign(ICONS, {
         }
         Object.assign(c, { reach, rush, dark, grip, lampLit, side: m.lat + wob });
       };
+      // the car coming: the moment it starts down the street it scurries (skittering, low, as between lamps) to the nearest
+      // lamp post on its own street, wherever it is on its way, and gets behind it; there it stops and stands a second,
+      // dead still, looking back at you, then turns its back and walks off down the pavement the way it came. Every lamp
+      // stands on a pavement, clear of the road the car comes along, and its way off keeps to that pavement, so it is never
+      // where the car is. s.flee: { t0, from, to (the place behind the post), rushT, leaveAt }
+      const FLEE = { pause: 1.0, walk: 1.4, min: 0.35 };
+      const startFlee = c => {
+        const m = s.man, from = { d: m.d, lat: m.lat };
+        const to = m.stops.reduce((b, st) => (gap(st, from) < gap(b, from) ? st : b), m.stops[0]);
+        const rushT = gap(to, from) < 0.05 ? 0 : Math.max(FLEE.min, gap(to, from) / RUSH_V);
+        s.flee = { t0: L.t, from, to, rushT, leaveAt: rushT + FLEE.pause };
+        c.hold = null; c.distFn = () => s.man.d;
+      };
+      const fleeNow = c => {
+        const f = s.flee, m = s.man, e = L.t - f.t0;
+        c.wob = 0;
+        if (e < f.rushT) {   // skittering for it, in bursts, twitching from side to side
+          const k = clamp(e / f.rushT, 0, 1), sk = smoothstep(k), nb = Math.max(1, Math.round(gap(f.from, f.to) / 4));
+          const q = sk - 0.85 * Math.sin(TAU * nb * sk) / (TAU * nb);
+          c.wob = Math.sin(k * nb * 9.7) * Math.sin(Math.PI * k) * 0.12;
+          m.d = lerp(f.from.d, f.to.d, q); m.lat = lerp(f.from.lat, f.to.lat, q); c.rush = Math.sin(Math.PI * k);
+        } else if (e < f.leaveAt) {   // behind the post: still, and its head round to you
+          m.d = f.to.d; m.lat = f.to.lat;
+          if (!f.looked) { f.looked = true; c.lookT = c.t; }
+        } else {   // and off down the pavement, its back to you
+          if (!c.away) { c.away = true; c.frozen = true; }
+          m.d = f.to.d + (e - f.leaveAt) * FLEE.walk; m.lat = f.to.lat;
+        }
+      };
       // laid out the first time it is wanted (drawn on the night's card, or its first frame), and stood at its first lamp
       const manReady = () => {
         const c = sm();
@@ -948,7 +984,7 @@ Object.assign(ICONS, {
         const c = manReady();
         if (c && !c.dead) {
           if (G.state === 'play' && !L.won) manNow(c);
-          else { c.reach = Math.max(0, (c.reach || 0) - dt * 2); c.rush = 0; c.grip = 0; c.lampLit = Math.max(0, (c.lampLit || 0) - dt * 3); c.side = s.man.lat; }
+          else { c.reach = Math.max(0, (c.reach || 0) - dt * 2); c.rush = 0; c.grip = 0; c.lampLit = Math.max(0, (c.lampLit || 0) - dt * 3); if (s.flee) fleeNow(c); c.side = s.man.lat + (c.wob || 0); }
           const p = c.pos();
           c.yOff += (groundAt(p.x, p.z) - c.lane.y - c.yOff) * Math.min(1, dt * 14);   // up the kerb and down it in a stride
         }
@@ -1219,6 +1255,77 @@ Object.assign(ICONS, {
           R.add({ kind: 'poly', pts: [at(-0.0008, d.len), at(0.0008, d.len), at(0.0009, 0.006), at(0.0026, 0.0032), at(0, 0), at(-0.0026, 0.0032), at(-0.0009, 0.006)].map(p => L.pt(p[0], p[1], p[2])), color: [196, 208, 228], alpha: 0.3, noFog: true, noLight: true });
         }
         if (s.end && s.end.pose) for (const p of carParts()) R.add(p);
+        for (const p of shatterParts()) R.add(p);
+      };
+      // ---------------- the glass it comes through ----------------
+      // The moment it has you (the glass sting), the pane between you and it goes: cracks run out from where it hits, across
+      // the pane to its frame, in a few hundredths of a second; then, as it comes at you (a little before its lunge), the
+      // middle bursts in, a flash, and the pieces come flying in at you, turning over and catching the light, and drop, while it comes through the hole. What is left in the
+      // frame is a jagged rim round the hole and the cracks to the edges. With reduced motion fewer pieces, and they only
+      // fall; the flash is the game's (held down with reduced flash).
+      const GLASS_Y = [1.04, 2.06], CRACK = 0.08;
+      const shatterParts = () => {
+        const dying = G.state === 'dying' && G.deathCreature === sm(), c = sm();
+        if (!dying && !(s.shat && G.state === 'dead')) return [];
+        if (!s.shat) {
+          // the pane it hits: the first the line from your eye to its face crosses (the door's, or the east pane)
+          const p = c.pos(), fy = p.y + (c.yOff || 0) + c.CR.faceY, tn = p.z > 0.01 ? B / p.z : Infinity, te = p.x > 0.01 ? B / p.x : Infinity, t = Math.min(tn, te);
+          const north = tn <= te, lo = north ? XW + 0.035 : -B + 0.035, hi = B - 0.035;
+          const hu = clamp((north ? p.x : p.z) * t, lo + 0.12, hi - 0.12), hy = clamp(L.eyeH + (fy - L.eyeH) * t, GLASS_Y[0] + 0.18, GLASS_Y[1] - 0.16);
+          const P3 = (u, y, n) => (north ? [u, y, B - (n || 0.004)] : [B - (n || 0.004), y, u]);   // (n: in from the glass)
+          const rnd = mulberry32(4091 + Math.round(hu * 977)), reduced = SAVE.data.settings.reducedMotion;
+          // the cracks: rays from the hit to the frame, each kinked a little, and two rings crossing them
+          const rays = [];
+          for (let i = 0; i < 11; i++) {
+            const a = (i + rnd() * 0.7) / 11 * TAU, ca = Math.cos(a), sa = Math.sin(a);
+            const lim = Math.min(ca > 0 ? (hi - hu) / ca : ca < 0 ? (lo - hu) / ca : 9, sa > 0 ? (GLASS_Y[1] - hy) / sa : sa < 0 ? (GLASS_Y[0] - hy) / sa : 9);
+            const pts = [];
+            for (let k = 0; k <= 5; k++) { const r = lim * k / 5, j = k && k < 5 ? (rnd() - 0.5) * 0.05 : 0; pts.push([hu + ca * r - sa * j, hy + sa * r + ca * j]); }
+            rays.push({ a, lim, pts });
+          }
+          const shards = [];
+          for (let i = 0; i < (reduced ? 8 : 26); i++) {
+            const r = 0.02 + rnd() * 0.2, a = rnd() * TAU, sz = 0.014 + rnd() * 0.032;
+            const tri = [0, 1, 2].map(k => { const b = (k + rnd() * 0.5) / 3 * TAU; return [Math.cos(b) * sz * (0.6 + rnd() * 0.6), Math.sin(b) * sz * (0.6 + rnd() * 0.8)]; });
+            shards.push({ u: clamp(hu + Math.cos(a) * r, lo, hi), y: clamp(hy + Math.sin(a) * r, GLASS_Y[0], GLASS_Y[1]), tri,
+              vin: reduced ? 0.1 + rnd() * 0.15 : 0.35 + rnd() * 1.1, vu: (reduced ? 0.1 : 0.8) * Math.cos(a) * rnd(), vy: reduced ? 0 : -0.2 + rnd() * 0.9,
+              spin: reduced ? 0 : (rnd() - 0.5) * 16, flip: reduced ? 0 : 3 + rnd() * 8, delay: rnd() * 0.08 });
+          }
+          const rim = [];
+          for (let k = 0; k < 16; k++) { const a = k / 16 * TAU, r = (k % 2 ? 0.08 : 0.15) + rnd() * 0.05; rim.push([clamp(hu + Math.cos(a) * r, lo, hi), clamp(hy + Math.sin(a) * r, GLASS_Y[0], GLASS_Y[1])]); }
+          s.shat = { P3, rays, shards, rim, north, hu, hy, e: 0 };
+        }
+        const S = s.shat, P3 = S.P3, out = [], W = q => L.pt(q[0], q[1], q[2]);
+        if (dying) S.e = G.stateT;
+        const BURST = c.CR.death.delay * 0.8, e = S.e, grow = smoothstep(Math.min(1, e / CRACK)), burst = e >= BURST;
+        if (burst && !S.flashed) { S.flashed = true; G.flash(SAVE.data.settings.reducedFlash ? 0.12 : 0.45); }
+        const near = Math.hypot(...P3(S.hu, S.hy)) - 0.02, fx = { noFog: true, noLight: true };
+        // the cracks, running out to the frame
+        for (const r of S.rays) {
+          const n = r.pts.length - 1, upto = grow * n, pts = [];
+          for (let k = 0; k <= Math.ceil(upto); k++) { const q = Math.min(1, upto - k + 1), a = r.pts[Math.max(0, k - 1)], b = r.pts[k]; pts.push(k ? [lerp(a[0], b[0], q), lerp(a[1], b[1], q)] : b); }
+          if (pts.length > 1) out.push(Object.assign({ kind: 'poly', pts: pts.map(q => W(P3(q[0], q[1]))), stroke: true, lw: 0.0028, color: [236, 242, 250], alpha: 0.75, sortDist: near }, fx));
+        }
+        for (const rr of [0.09, 0.2]) {   // the rings, from ray to ray where both reach
+          const ring = S.rays.filter(r => r.lim > rr && grow * r.lim > rr).map(r => [S.hu + Math.cos(r.a) * rr, S.hy + Math.sin(r.a) * rr]);
+          if (ring.length > 2) out.push(Object.assign({ kind: 'poly', pts: ring.concat([ring[0]]).map(q => W(P3(q[0], q[1]))), stroke: true, lw: 0.0022, color: [226, 234, 244], alpha: 0.55, sortDist: near }, fx));
+        }
+        if (!burst) return out;
+        // the hole: its jagged rim, and the glass round it gone white with crazing
+        out.push(Object.assign({ kind: 'poly', pts: S.rim.concat([S.rim[0]]).map(q => W(P3(q[0], q[1]))), stroke: true, lw: 0.0035, color: [244, 248, 255], alpha: 0.8, sortDist: near - 0.001 }, fx));
+        // the pieces, flying in at you and dropping, turning over as they go
+        const te = e - BURST;
+        for (const sh of S.shards) {
+          const t = Math.max(0, te - sh.delay), a = sh.spin * t, f = Math.cos(sh.flip * t), g = Math.sin(sh.flip * t);
+          const cu = sh.u + sh.vu * t, cy = sh.y + sh.vy * t - 4.9 * t * t, cn = 0.004 + sh.vin * t;
+          if (cy < 0.05) continue;
+          const pts = sh.tri.map(([x, y]) => { const rx = (x * Math.cos(a) - y * Math.sin(a)), ry = x * Math.sin(a) + y * Math.cos(a); return W(P3(cu + rx * f, cy + ry, cn + rx * g)); });
+          const d = Math.hypot(...P3(cu, cy, cn)), fade = clamp(1.6 - t, 0, 1);
+          if (cn > 0.62) continue;   // (past your eye)
+          out.push(Object.assign({ kind: 'poly', pts, color: [196, 212, 232], alpha: 0.35 * fade, sortDist: d }, fx));
+          out.push(Object.assign({ kind: 'poly', pts: pts.concat([pts[0]]), stroke: true, lw: 0.0022, color: [240, 246, 255], alpha: 0.9 * fade * (0.5 + 0.5 * Math.abs(f)), sortDist: d - 0.001 }, fx));
+        }
+        return out;
       };
 
       // ---------------- the car that comes for you ----------------
@@ -1227,8 +1334,8 @@ Object.assign(ICONS, {
       // a few steps east of the booth (so the door that opens is its right-hand one), or along the cross street from the east.
       // Either way it stands where it is seen whole through the east pane, door and all, and not right outside the glass
       // (where the eye would only look down on its roof) or along the pavement to the west (behind the pay phone). It sounds
-      // its horn and the back door swings open on a lit inside, with someone at the wheel. If the shade is standing in its way it
-      // stops short of it, its lights on it. It is built each frame from boxes in its own frame: a along it (forward), b
+      // its horn and the back door swings open on a lit inside, with someone at the wheel. The shade is off the road by then,
+      // behind a lamp post (startFlee); were it ever in the car's way the car would stop short of it. It is built each frame from boxes in its own frame: a along it (forward), b
       // across it (to its left, or for the car that came round the corner, mirrored, to its right: toward the kerb either
       // way), y up from the road.
       const CAR = { col: [150, 140, 112], V: 20, BRAKE: 20, T0: 0.3, FROM: 50 };
@@ -1387,19 +1494,14 @@ Object.assign(ICONS, {
         const yaw = hy + wrapPi(e.doorYaw - hy) * w, pitch = lerp(hp, e.doorPitch, w * 0.6);
         return { x: Math.sin(yaw) * 6, y: L.eyeH - 6 * Math.tan(pitch), z: Math.cos(yaw) * 6 };
       };
-      // the aftermath: it comes on (quickly, if it is still far off) and stops dead in the street; the car comes, passes it,
-      // pulls up, sounds its horn and opens its door; it turns round and walks back the way it came
-      const STOP_D = 12;
+      // the aftermath: the car comes, and it scurries off the street behind a lamp post (startFlee); the car passes, pulls
+      // up, sounds its horn and opens its door; it looks back a moment and walks off the way it came
       L.aftermath = t => {
         const c = sm();
         if (!s.end) {
-          const D = c.dist, laneN = c.lane.deg === 0, e = s.end = {};
-          if (D > STOP_D) {
-            const v = clamp((D - STOP_D) / 2.2, 2, 5);
-            e.hurryEnd = t + Math.min(2.6, (D - STOP_D) / v); e.dFin = Math.max(STOP_D, D - v * (e.hurryEnd - t));
-            c.hold = null; c.distFn = (cr, dt2) => Math.max(e.dFin, cr.dist - dt2 * v);
-          } else { e.hurryEnd = t; e.dFin = D; c.hold = D; }
-          const him = APPROACH.position(c.lane, e.dFin, c.lat, L.eyeH);
+          const laneN = c.lane.deg === 0, e = s.end = {};
+          startFlee(c);
+          const him = APPROACH.position(c.lane, s.flee.to.d, s.flee.to.lat, L.eyeH);
           // it draws up at the kerb east of the booth: just past the corner, coming round from the main street; short of the
           // booth, coming along the cross street (and short of the shade, so its door does not open into it)
           e.path = carPath(laneN, laneN ? 6.4 : Math.min(4.0, him.x - 2.6));
@@ -1412,14 +1514,13 @@ Object.assign(ICONS, {
           // door as it opens, and back to the shade as it turns away
           const sep = Math.abs(wrapPi(e.doorYaw - Math.atan2(him.x, him.z)));
           e.w1 = sep < 50 * DEG ? 0.5 : 0.95; e.w2 = sep < 50 * DEG ? 0.5 : 0.15;
-          // it turns round once the view is back on it (it is there all along when the view holds both), and the night ends
-          // a couple of seconds into its walk away
-          e.turnAt = e.tStop + (sep < 50 * DEG ? 1.4 : 2.6); e.done = e.turnAt + 2.2;
+          // the night ends a few seconds after the door opens, the view back on it walking away (it is there all along when the
+          // view holds both)
+          e.done = e.tStop + (sep < 50 * DEG ? 1.4 : 2.6) + 2.2;
         }
         const e = s.end;
         const once = (k, at, fn) => { if (!e[k] && t >= at) { e[k] = true; fn(); } };
         const pan = p => Math.sin(wrapPi(Math.atan2(p.x, p.z) - G.cam.yaw)) * 0.85;
-        if (c.distFn && !c.away && t >= e.hurryEnd) { c.distFn = null; c.hold = c.dist; }   // it stops dead where it is
         const tau = t - CAR.T0;
         if (tau >= 0) {
           const sv = tau < e.tc ? CAR.V * tau : e.S - e.B * Math.pow(Math.max(0, 1 - (tau - e.tc) / e.Tb), 2);
@@ -1430,7 +1531,6 @@ Object.assign(ICONS, {
         once('idle', e.tStop, () => AUDIO.setLoop('engine', 0.1, pan(e.pose)));
         once('horn', e.tStop + 0.2, () => AUDIO.sfx('horn', pan(e.pose)));
         once('door', e.tStop + 0.6, () => { AUDIO.sfx('carDoor', pan(e.pose)); e.doorT = t; });
-        once('turn', e.turnAt, () => { c.hold = null; c.away = true; c.frozen = true; c.distFn = (cr, dt2) => cr.dist + dt2 * 1.3; });
         return t >= e.done;
       };
       // the car's headlamps, and the light inside it (the shade brings no light of its own: it is seen by the street lamps', and the

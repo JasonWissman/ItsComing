@@ -210,15 +210,17 @@ some on the ground, so you have to turn and look down to find them.
    back to your hand; a blown fuse pushed into the empty clips (the one you pulled, or the
    worn one lying about) sits there a beat with nothing coming on and drops out onto the
    floor.
-8. **The Diner.** Something the size of a child is out in the lot, dressed up for dinner: a
-   plain little black suit, its lapels edged in red, a white shirt and a red tie, little black shoes, small bare grey hands
-   hanging at its sides, and long straggly black hair hanging over a face as grey as its hands,
-   with two huge round red-rimmed staring eyes and a grin of big white teeth from one
-   side of it to the other, which, whenever it is on the move, snaps open and shut, hungry. It stands bolt upright and dead still, nothing swinging; it comes
-   on in small stiff steps, and now and then its feet stop and it slides on anyway, while its
-   head lays itself slowly over to one side and slowly over to the other. At the glass its
-   hands come up flat on it either side of its face; when it runs it skips, its arms hanging
-   dead straight, its head turned to you; coming at you, the grin comes apart, the jaw
+8. **The Diner.** Something tall is out in the lot, taller than a man should be: a long
+   belted trenchcoat in a dull dark drab, its collar turned up, grey hands hanging at its sides,
+   and a hat with its brim pulled low. Under the brim there is no face, only shadow, black
+   whatever light is on it: all that shows is the bottom of a grey face and a thin grin of
+   small white teeth, chewing, slowly and a little, and quicker whenever it is on the move.
+   It stands bolt upright and dead still, nothing swinging; it comes
+   on in stiff steps, and now and then its feet stop and it slides on anyway, while its
+   head lays itself slowly over to one side and slowly over to the other, hat and all. At the glass its
+   hands come up flat on it either side of its face, peering in under the brim; when it runs it skips,
+   the skirt of its coat flying out behind, its arms hanging
+   dead straight, its head turned to you; coming at you, the mouth comes apart, the jaw
    dropping far further than a jaw goes. It is drawn to the light: while the
    lights are on it comes fast, too fast to shutter every window. Throw the power main
    on the back wall in the first ten seconds or so (your hand takes the lever and pulls it
@@ -229,7 +231,7 @@ some on the ground, so you have to turn and look down to find them.
    open, along the glass if it is already there, across the lot if not. If it reaches an
    open window it comes through the glass. If it reaches one whose shutter is only part
    way down, it takes the bottom edge in both hands (jumping for it and hanging there if
-   it is out of reach; the crank will not turn against it), tugs, and shoves it up: the
+   even its long arms cannot reach it, with the shutter barely started down; the crank will not turn against it), tugs, and shoves it up: the
    steel slams into its housing with a crash that shakes the place, every turn of the
    crank on it is lost, and it comes through the glass. A shutter all the way down holds
    it. With the last shutter down it runs up to it
@@ -254,7 +256,8 @@ some on the ground, so you have to turn and look down to find them.
    is done to the view: you look down at it and hold the zoom to read it, and it stays open where it lies when you turn
    away. Find the number in it (it has a page to itself, scrawled large across it in red
    that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
-   floor by the panes near the phone), then do what the card under the keys says: lift the receiver, put
+   floor by the panes near the phone), then do what the card under the keys says, in big bold words you can read from
+   where you stand (LIFT PHONE, INSERT COIN, DIAL NUMBER): lift the receiver, put
    the coin in and dial on the phone's own keys. Lifted, the receiver is in your left hand, its armoured cord running from
    the bottom of the phone down in a loop and up into the bottom of the receiver (wherever you look, it meets it), and
    your right hand presses each key with a fingertip, going from key to key as you dial (what it held goes
@@ -264,7 +267,12 @@ some on the ground, so you have to turn and look down to find them.
    return, to be taken out again. It rings for seven seconds before anyone
    answers, and it keeps coming the whole time. A wrong number is not in service, and
    hanging up drops the coin back into the coin return. When someone answers, a car comes
-   down its street and pulls up at the curb for you.
+   down its street and pulls up at the curb for you; the moment it starts coming, the shade scurries off
+   the road, low and fast, behind the nearest lamp post on its street, stands there a second looking back
+   at you, and walks off down the pavement the way it came, never in the car's way. If it gets to you
+   first, the pane between you goes as it hits: cracks run out across it to the frame, then as it
+   comes through the middle bursts in with a flash and the pieces fly in at you, turning, and
+   drop (fewer, and only falling, with reduced motion; the flash held down with reduced flash).
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass. The night has a clock: it comes on all night, steadily while the mirror you face does not show it,
     and more slowly held in the glass, where it comes a step nearer in the snap of each move of its dance and is dead still
