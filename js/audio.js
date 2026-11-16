@@ -125,9 +125,11 @@ const AUDIO = (() => {
     g.gain.exponentialRampToValueAtTime(1, now() + 2.5);
     amb = { g, nodes };
   }
-  // the title's bed (p.near, 0..1: how near the thing on the title is): no wind, only a faint deep drone, two low notes
-  // beating slowly against each other with a breath of rumble under them. As it nears it comes up, and the filter over it
-  // opens and a rougher fifth and octave come in above, so it is nearer and thicker as well as louder (titleDrone(k) moves it)
+  // the title's bed (p.near, 0..1: how near the thing on the title is): no wind, only a deep drone, two low notes beating
+  // slowly against each other with a breath of rumble under them, and over them a low hum in the throat (a buzzing note two
+  // octaves up, beating against itself, a sour note a tritone over it and a breathing band of noise) so a laptop's small
+  // speakers carry it too. As it nears it comes up, the filters over it open and a rougher fifth and octave come in above,
+  // so it is nearer and thicker as well as louder (titleDrone(k) moves it)
   function titleBed(g, nodes, p) {
     const base = p.droneFreq || 41;
     const level = ac.createGain(); level.gain.value = 0.0001; level.connect(g);   // (how loud for how near, under the fade in)
@@ -147,12 +149,27 @@ const AUDIO = (() => {
     const ng = ac.createGain(); ng.gain.value = 0.5;
     const br = ac.createOscillator(); br.frequency.value = 0.09; const brg = ac.createGain(); brg.gain.value = 0.35; br.connect(brg); brg.connect(ng.gain);
     src.connect(nl); nl.connect(ng); ng.connect(lp); nodes.push(src, br);
+    // the hum in the throat, past the low filter: what small speakers can make of it
+    const mlp = ac.createBiquadFilter(); mlp.type = 'lowpass'; mlp.Q.value = 1.4; mlp.frequency.value = 380; mlp.connect(level);
+    const mid = ac.createGain(); mid.gain.value = 0.85; mid.connect(mlp);
+    for (const [m, type, v] of [[4, 'sawtooth', 0.5], [4.028, 'sawtooth', 0.45], [5.657, 'triangle', 0.22]]) {
+      const o = ac.createOscillator(); o.type = type; o.frequency.value = base * m;
+      const og = ac.createGain(); og.gain.value = v; o.connect(og); og.connect(mid); nodes.push(o);
+    }
+    const swell = ac.createOscillator(); swell.frequency.value = 0.061; const swg = ac.createGain(); swg.gain.value = 0.3; swell.connect(swg); swg.connect(mid.gain);
+    const hs = ac.createBufferSource(); hs.buffer = noiseBuf; hs.loop = true;   // a breath of noise in the same band
+    const hb = ac.createBiquadFilter(); hb.type = 'bandpass'; hb.frequency.value = 260; hb.Q.value = 1.6;
+    const hg = ac.createGain(); hg.gain.value = 1.2;
+    const hl = ac.createOscillator(); hl.frequency.value = 0.13; const hlg = ac.createGain(); hlg.gain.value = 0.6; hl.connect(hlg); hlg.connect(hg.gain);
+    hs.connect(hb); hb.connect(hg); hg.connect(mlp); nodes.push(swell, hs, hl);
     nodes.forEach(n => n.start());
     g.gain.exponentialRampToValueAtTime(1, now() + 3);
     const set = (k, tc) => {
       k = clamp(k, 0, 1);
-      level.gain.setTargetAtTime(0.017 + 0.026 * k, now(), tc);
+      level.gain.setTargetAtTime(0.04 + 0.05 * k, now(), tc);
       lp.frequency.setTargetAtTime(170 + 330 * k, now(), tc);
+      mlp.frequency.setTargetAtTime(380 + 520 * k, now(), tc);
+      mid.gain.setTargetAtTime(0.85 + 0.45 * k, now(), tc);
       thick.gain.setTargetAtTime(Math.max(0.0001, 0.45 * k * k), now(), tc);
     };
     set(p.near, 0.05);

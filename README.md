@@ -631,7 +631,7 @@ LEVELS.push({
 
 ## Labs
 
-Three pages under `lab/` for working on the game's look and sound, opened the same way as the game (from disk or the
+Four pages under `lab/` for working on the game's look and sound, opened the same way as the game (from disk or the
 static host):
 
 - `lab/creatures.html`, the creature lab: every night's creature, drawn by its own code from `js/creatures`, in a card
@@ -649,6 +649,12 @@ static host):
   keep them) and a comment box. Complete: its first round of adjustments is in `TUNES`. The index is written by hand in
   `lab/sounds.js` from the call sites, so a new sound wants a row there. Copy all (or Copy comments) puts the table,
   the adjustments and the comments on the clipboard to paste back.
+- `lab/journal.html`, the notebook lab: night 9's notebook from the phone booth, written and drawn by
+  `js/levels/night09.js` itself (the lab runs the night's build with a bare `L` and keeps the canvases it draws the
+  pages into). How it is put together (which pages are always in it, how the rest are drawn, where the number goes,
+  the hand), the notebook a run seed and attempt give, page by page, and a card for every page it can hold with how
+  often it turns up, its text and a comment box. Copy notes puts every page's id, title, text and comment on the
+  clipboard to paste back.
 
 ## Testing
 
