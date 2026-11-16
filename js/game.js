@@ -938,7 +938,7 @@ function maybeSwitchLane(L, c) {
 // view, c.runGait is its stride) does this; every other one jumps round as above. Modelled on the run round the house in
 // night 1: it stands at the sealed way a moment (ROUND.wait), then sprints sideways (c.runLat, metres to the right of its
 // lane) out of that way's view, is heard running while it is out of sight going round, and comes in at the other way from
-// the side it went round by, ROUND.gap metres outside that way's barrier (where it arrives, with the way's cue), running
+// the side it went round by, ROUND.gap metres outside that way's barrier (where it arrives, quietly), running
 // sideways across it at that distance; then it turns to it and walks on. Won while it is going round, it comes round now.
 const ROUND = { wait: 0.8, out: [0.55, 0.85], round: 0.5, in: [0.65, 1.2], speedOut: 4.5, speedIn: 5.5, gap: 3 };
 // how far to the side it must be to be out of the way's view at distance d: wholly behind the frame of the nearest opening
@@ -987,7 +987,7 @@ function goRound(L, c, dt) {
     yaw = r.to.yaw + Math.atan2(c.runLat, r.d2);
   }
   c.lat = c.CR.lateral ? c.CR.lateral(c) : c.runLat;   // already, so whether it is seen this frame is judged where it is
-  if (arriving && r.to.cue) AUDIO.sfx(r.to.cue, Math.sin(wrapPi(r.to.yaw - G.cam.yaw)) * 0.85);
+  // (no cue as it arrives: it went quiet round the outside, and a sound the moment it gets there only puzzled)
   if (arriving && L.onLaneSwitch) L.onLaneSwitch(c, r.to);
   const n = Math.floor(c.runGait / Math.PI);   // running feet, panned to where it is
   if (n !== r.steps) { r.steps = n; AUDIO.footstep('runner', clamp(4 / (c.dist + 4), 0.12, 0.7), Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85); }
