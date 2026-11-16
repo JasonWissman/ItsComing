@@ -6,7 +6,8 @@
 // the boss and it drops to the deck, where it lies to be picked up again), before
 // opening the tackle box. The open box, clicked again, is gone through by hand. The key goes into the padlock and stays
 // there once it is open. While the harness stands and watches one of those play out (the hand at the padlock, the handle
-// coming back, the oar falling and being picked up again, the box gone through, the key going in), the thing is held where
+// coming back, the oar falling and being picked up again, the box gone through, the key going in, an oar knocked back by
+// the side door's leaf), the thing is held where
 // it is, so the race against it is the one the solution always ran: the tries cost no more than they did as a line of text.
 const oar = "G.L.items.find(i => i.id === 'oar')";
 const pause = ['eval', '(c => { window.__held6 = c.hold; if (c.hold === null) c.hold = c.dist; })(G.L.creature)'];
@@ -63,10 +64,10 @@ const door = [['pickup', 'oar2'], ['face', 2], ['expect', parts + '.length === 3
   part('north'), ['wait', 150], ['expect', showsDoor, 'pointing at the north bracket shows the side door'],
   part('south'), ['wait', 150], ['expect', showsDoor, 'pointing at the south bracket shows the side door'],
   part('door', true), ['expect', '!G.L.s.doorOpen && G.hand.reach && G.hand.reach.style === "pull"', 'clicking the door shuts it: the hand pulls it to'],
-  part('door', true), ['expect', '!G.L.s.doorClosed && !G.L.s.sealedE && G.fumbling && G.fumbling.target.id === "sidedoor" && !G.fumbling.drop', 'the oar put up while it swings shut is not across'],
+  pause, part('door', true), ['expect', '!G.L.s.doorClosed && !G.L.s.sealedE && G.fumbling && G.fumbling.target.id === "sidedoor" && !G.fumbling.drop', 'the oar put up while it swings shut is not across'],
   part('door', true), ['expect', '(fx => fx && fx.target.id === "sidedoor" && (fx.hitDone > 0 || G.L.s.leafSlow))(G.fumbling)', 'clicked again while the oar is on its way: no second one, and the leaf is still slowed for it'],
   ['waitUntil', '!G.fumbling && G.L.s.doorClosed', 4000],
-  ['expect', 'G.inv[G.active].id === "oar2" && !G.L.s.sealedE', 'the leaf knocked it back into your hands, and the door is shut'],
+  ['expect', 'G.inv[G.active].id === "oar2" && !G.L.s.sealedE', 'the leaf knocked it back into your hands, and the door is shut'], resume,
   ['branch', 'G.runSeed % 2 === 1',
     [part('north', true), ['expect', 'G.L.s.oars === 1 && !G.L.s.sealedE && !G.hasItem("oar2")', 'clicking the north bracket puts one oar across, and that is not yet enough'],
       ['wait', 300], part('south', true)],
