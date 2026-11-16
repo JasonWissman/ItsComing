@@ -229,7 +229,7 @@ LEVELS.push({
             if (act && CHAINS.includes(act.id) && !inTime(t, act)) { t.queued = act; return true; }
             return again() || nope('Let it swing shut.', 'It is still swinging shut.', tryAt(t, act, 'swinging'));
           }
-          if (!t.shut) { t.closing = 1; AUDIO.sfx('creak'); G.reach(t, { style: 'pull', at: W(-0.25 * sign, 1.0, 3.1 * sign) }); G.say('You pull ' + the.toLowerCase() + ' shut.', the + ' swings shut.'); return true; }
+          if (!t.shut) { t.closing = 1; AUDIO.sfx('hinge', panOf(t)); G.reach(t, { style: 'pull', at: W(-0.25 * sign, 1.0, 3.1 * sign) }); G.say('You pull ' + the.toLowerCase() + ' shut.', the + ' swings shut.'); return true; }
           if (!t.chained) {
             if (holding(CHAINS)) return false;
             if (act && LOCKS.includes(act.id)) return again() || nope('Chain it first. There is nothing to lock yet.', 'The padlock has nothing to close on.', tryAt(t, act, 'nochain'));

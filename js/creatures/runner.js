@@ -17,6 +17,7 @@ CREATURES.runner = {
     if (c.dead) { c.deadT = (c.deadT || 0) + dt; return 0; }
     c.modeT += dt;
     if (c.hurtFlash > 0) c.hurtFlash -= dt;
+    this.creep(c, dt);
     c.weave = clamp(c.weave + dt * (c.mode === 'dart' ? -3 : 1.5), 0, 1);   // no weaving while it runs side on
     if (c.mode === 'dart') {   // (wounded, it may still break sideways from a bow drawn on it, and it runs on from there)
       c.runGait = (c.runGait || 0) + dt * 17;
@@ -38,6 +39,18 @@ CREATURES.runner = {
     if (c.mode === 'sprint' && c.modeT > c.sprintFor) { if (!this.dart(c, this.DART_SPRINT)) { c.mode = 'crouch'; c.modeT = 0; } }
     else if (c.mode === 'crouch' && c.modeT > this.CROUCH && !this.dart(c, this.DART_CROUCH)) this.sprint(c);
     return c.mode === 'sprint' ? this.RUN : 0;
+  },
+  // Down on all fours it still drifts from side to side (lateral: its weave, and where a run to the side left it), so it
+  // creeps there on its hands and feet rather than gliding: c.crawlPh goes on with how far it has moved to the side (about
+  // a stride a metre), c.crawlK (0..1) is how much it is creeping, eased in and out, and c.crawlDir the way it goes
+  creep(c, dt) {
+    const at = this.lateral(c), was = c.crawlLat === undefined ? at : c.crawlLat, d = at - was;
+    c.crawlLat = at;
+    const down = (c.mode === 'crouch' || c.mode === 'stumble') && !c.lunge;
+    const v = dt > 0 ? Math.abs(d) / dt : 0;
+    c.crawlK = lerp(c.crawlK || 0, down ? clamp(v / 0.35, 0, 1) : 0, Math.min(1, dt * 6));
+    if (Math.abs(d) > 1e-5) c.crawlDir = Math.sign(d);
+    c.crawlPh = (c.crawlPh || 0) + Math.abs(d) * 5.5;
   },
   RUN: 2.1, SPRINT: [1.4, 2.2], CROUCH: 0.8, DART_SPRINT: 0.4, DART_CROUCH: 0.6, DART_NEAR: 16,
   sprint(c) { c.mode = 'sprint'; c.modeT = 0; c.sprintFor = lerp(this.SPRINT[0], this.SPRINT[1], c.rand()); },
@@ -162,14 +175,20 @@ CREATURES.runner = {
       const stumble = c.mode === 'stumble';
       const lift = smoothstep(Math.min(1, Math.max(0, c.modeT) / 0.4));
       const J = this.jerks(c);   // hit, it twitches: the knees and elbows kick out, the back and the arrows in it jerk, the head knocks
+      // creeping to the side (c.crawlK): a hand and the foot on the other side lift and reach the way it goes together, then
+      // the other pair, the body swaying over them a little (see creep)
+      const ck = c.crawlK || 0, ph = c.crawlPh || 0, dir = c.crawlDir || 1;
+      const up = p => Math.max(0, Math.sin(p)) * 0.07 * ck, reach = p => -Math.cos(p) * 0.065 * ck * dir;
+      const sway = Math.sin(2 * ph) * 0.012 * ck, rock = Math.sin(ph) * 0.035 * ck;
       // on all fours, head raised toward you
       for (const s of [-1, 1]) {
-        const js = J[s > 0 ? 2 : 1];
-        P_limb(ctx, [[s * 0.22, 0.62], [s * (0.6 + js * 0.07), 0.55 + js * 0.05], [s * 0.72, 0.02]], 0.08, rags);
-        P_limb(ctx, [[s * 0.25, 0.75], [s * (0.48 - js * 0.08), 0.4 - js * 0.04], [s * 0.42, 0.02]], 0.07, skin);
-        fingers(ctx, s * 0.42, 0.02, (s > 0 ? 0.3 : Math.PI - 0.3) + s * js * 0.25, 0.35 + Math.abs(js) * 0.12, 0.14, 0.02, skin);
+        const js = J[s > 0 ? 2 : 1], pl = ph + (s > 0 ? 0 : Math.PI), pa = pl + Math.PI;   // (the leg on one side goes with the arm on the other)
+        const lx = reach(pl), ly = up(pl), ax = reach(pa), ay = up(pa);
+        P_limb(ctx, [[s * 0.22 + sway, 0.62], [s * (0.6 + js * 0.07) + lx * 0.6, 0.55 + js * 0.05 + ly * 0.8], [s * 0.72 + lx, 0.02 + ly]], 0.08, rags);
+        P_limb(ctx, [[s * 0.25 + sway, 0.75], [s * (0.48 - js * 0.08) + ax * 0.6, 0.4 - js * 0.04 + ay * 1.2], [s * 0.42 + ax, 0.02 + ay]], 0.07, skin);
+        fingers(ctx, s * 0.42 + ax, 0.02 + ay, (s > 0 ? 0.3 : Math.PI - 0.3) + s * js * 0.25 - s * ay * 2.5, 0.35 + Math.abs(js) * 0.12, 0.14, 0.02, skin);
       }
-      ctx.save(); ctx.translate(0, Math.abs(J[0]) * 0.03); this.about(ctx, 0, 0.3, J[0] * 0.06);
+      ctx.save(); ctx.translate(sway, Math.abs(J[0]) * 0.03 - Math.abs(Math.sin(ph)) * 0.012 * ck); this.about(ctx, 0, 0.3, J[0] * 0.06 + rock);
       ctx.fillStyle = rags; ctx.beginPath(); ctx.moveTo(-0.34, 0.3); ctx.bezierCurveTo(-0.3, 1.0, 0.3, 1.0, 0.34, 0.3); ctx.closePath(); ctx.fill();
       if (stumble) P_ell(ctx, 0.1, 0.55, 0.14, 0.1, blood);
       c.arrows.forEach((a, i) => this.arrow(ctx, P, i ? -0.19 : 0.2, 0.47 + i * 0.05, i, J[4 + i % 2] * 0.3));   // in its back either side of its raised head, which hid them
@@ -250,6 +269,7 @@ CREATURES.runner = {
     ctx.save(); ctx.translate(tic * 0.03, lerp(1.02, 1.6, lunge) + bob * 0.4); ctx.rotate(-roll * 0.7 + tic * 0.18 + Math.sin(g * 0.5) * 0.08 * lunge + J[3] * 0.15); ctx.scale(hs, hs);
     if (lunge) P_line(ctx, 0, 0, 0, 0.08, 0.08 * lunge, skin);   // (sprinting, the head is out ahead of the neck)
     strands(ctx, 0, 0.3, 9, 0.34 + 0.06 * run, black, 5, t);
+    if (lunge > 0) this.mane(ctx, black, t, lunge);   // up in your face its hair shows: a black mass over the crown, hanging round the face
     P_ell(ctx, 0, 0.22, 0.13, 0.16, skin);
     P_ell(ctx, -0.052, 0.25, 0.036, 0.042, black); P_ell(ctx, 0.052, 0.25, 0.036, 0.042, black);
     P_ell(ctx, 0, 0.1, 0.045 + lunge * 0.01, 0.055 + near * 0.025 + lunge * 0.03 + 0.02 * land * run, black);
@@ -257,6 +277,23 @@ CREATURES.runner = {
     arms.filter(a => !a.behind).forEach(arm);
     ctx.restore();
     if (hurt) { ctx.globalAlpha = 0.5; P_ell(ctx, 0, 1.0, 0.7, 0.85, blood); ctx.globalAlpha = 1; }
+  },
+  // its hair, seen close (the lunge, k 0..1 as it comes in): a black cap over the crown of the head (whose face, drawn over
+  // it, is at 0, 0.22) and long lank locks from round the crown hanging down either side of the face to below the jaw,
+  // flung out a little by the lunge and stirring; drawn behind the face, so only the crown and the sides show
+  mane(ctx, col, t, k) {
+    ctx.save(); ctx.globalAlpha *= clamp(k * 4, 0, 1);
+    P_ell(ctx, 0, 0.29, 0.165, 0.125, col);
+    for (let i = 0; i < 14; i++) {
+      const u = i / 13, a = lerp(0.25, Math.PI - 0.25, u), side = Math.cos(a) >= 0 ? 1 : -1;   // round the crown, side to side
+      const x0 = Math.cos(a) * 0.15, y0 = 0.25 + Math.sin(a) * 0.13;
+      const len = 0.34 + 0.12 * (0.5 + 0.5 * Math.sin(i * 2.7 + 1)) + 0.08 * (1 - Math.sin(a));
+      const fl = (0.05 + 0.07 * k) * side * (0.4 + Math.abs(Math.cos(a))), st = Math.sin(t * 2.1 + i * 1.3) * 0.02;
+      const x2 = x0 + fl * 1.6 + st, y2 = y0 - len;
+      ctx.strokeStyle = col; ctx.lineWidth = 0.022 - 0.008 * Math.abs(u - 0.5); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(x0 + side * 0.05 + st, y0 - len * 0.45, x2, y2); ctx.stroke();
+    }
+    ctx.restore();
   },
   // long pale fingers from (x, y) fanned about ang, each bent at the middle joint by curl toward the middle of the hand,
   // so they hook like claws

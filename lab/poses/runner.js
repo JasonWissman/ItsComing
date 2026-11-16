@@ -27,7 +27,7 @@
     anims: [
       { name: 'Sprinting at you', note: 'Flat out across the snow at you: low and bent hard over, heavy uneven strides, arms pumping and clawing, the head thrust out and jerking, the jaw hanging open.', dist: 26, dur: 4,
         set(c) { c.CR.sprint(c); c.sprintFor = 99; }, tick(c, k, dt) { drive(c, dt); } },
-      { name: 'Sprint, drop, watch', note: 'Its pattern out in the open: a sprint of a second or two, then down on all fours, head raised, watching you, then up and on again.', dist: 40, dur: 7,
+      { name: 'Sprint, drop, watch', note: 'Its pattern out in the open: a sprint of a second or two, then down on all fours, head raised, watching you as it creeps from side to side on its hands and feet, then up and on again.', dist: 40, dur: 7,
         set(c) { c.darts = Infinity; }, tick(c, k, dt) { drive(c, dt); } },
       { name: 'Breaking sideways', note: 'Out past 16 m, and when you draw the bow on it: side on, flat out along the tree line to a new place, then down to watch from there.', dist: 30, dur: 2.6, fit: { w: 2.0 },
         set(c) { c.CR.sprint(c); c.CR.breakAway(c); c.darts = Infinity; }, tick(c, k, dt) { drive(c, dt); } },
@@ -40,7 +40,7 @@
       { name: 'Second arrow while it is down', note: 'Hit again before it is back up from the first: it sinks flat where it crouched, then lies in the snow twitching.', dist: 16, dur: 5.5, fit: { w: 2.3 },
         set(c) { wounded(c); c.CR.hurt(c); },
         tick(c, k, dt, T) { if (T >= 0.7 && c.hits < 2) hit(c); drive(c, dt); } },
-      LAB.lunge({ dist: 1.4, dur: 1.2, note: 'It reaches the porch: up out of its sprint, its long hands reaching for your face.',
+      LAB.lunge({ dist: 1.4, dur: 1.2, note: 'It reaches the porch: up out of its sprint, its long hands reaching for your face, its black hair hanging round it.',
         set(c) { c.CR.sprint(c); c.frozen = true; c.lungeFrom = c.dist; } }),   // it catches you running, not crouched
     ],
   });

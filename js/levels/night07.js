@@ -138,15 +138,24 @@ LEVELS.push({
     }
     // two stanchions on the lamp room: the fuse box on one at chest height, the crank on the other at the waist. Each is
     // fixed to the face of its stanchion that looks your way, and drawn after the stanchion, so the iron does not hide it
-    // (nor the glow round it when you point at it). Each is drawn flat on that face (MFACE: its front looks out across the
-    // gallery toward you), so it never turns with the view, and what you click is the shape it covers.
+    // (nor the glow round it when you point at it). The crank is drawn flat on that face (MFACE: its front looks out across
+    // the gallery); the fuse box is bolted to it on an iron wedge that turns it most of the way round toward you (FFACE),
+    // so its front is not seen so far side on. Each never turns with the view, and what you click is the shape it covers.
     const FB = 60 * DEG, WD = 120 * DEG;
     const post = th => { const p = at(th, 2.0, 0); SC.box(L, p[0] - 0.19, p[0] + 0.19, 0, 2.75, p[2] - 0.19, p[2] + 0.19, iron); return p; };
     const fbP = post(FB), wdP = post(WD);
-    const FBW = 0.44, FBH = 0.52, fb = [fbP[0], 1.1, fbP[2] + 0.22];   // the fuse box: its foot at 1.1 m, on the face toward you
+    const FFACE = -38 * DEG, FBW = 0.44, FBH = 0.52;
+    // the fuse box: its foot at 1.1 m, turned on its wedge so its edge nearer the lamp room's middle is just off the
+    // stanchion's face and the other stands out from it
+    const fb = [fbP[0] - 0.05, 1.1, fbP[2] + 0.2 + Math.sin(-FFACE) * FBW / 2];
     const WDS = 0.5, wd = [wdP[0], 0.7, wdP[2] + 0.22];                // the crank: its foot at 0.7 m, so nothing on the floor is behind it
     const mounted = (x, z) => Math.hypot(x, z) + 0.012;   // just behind its own spot, well in front of the iron
     const MFACE = 0;
+    // the wedge: an iron block between the stanchion's face and the back of the box, its top, bottom and outer side
+    { const ex = Math.cos(FFACE) * FBW / 2, ez = Math.sin(-FFACE) * FBW / 2, zf = fbP[2] + 0.19, wedge = [52, 52, 58];
+      const near = [fb[0] - ex, fb[2] - ez], far = [fb[0] + ex, fb[2] + ez], back = [fb[0] + ex, zf];
+      for (const y of [fb[1] + 0.03, fb[1] + FBH - 0.03]) SC.quad(L, [near[0], y, near[1]], [far[0], y, far[1]], [back[0], y, back[1]], [near[0], y, zf], scalec(wedge, y > 1.4 ? 1.2 : 0.8));
+      SC.quad(L, [far[0], fb[1] + 0.03, far[1]], [back[0], fb[1] + 0.03, back[1]], [back[0], fb[1] + FBH - 0.03, back[1]], [far[0], fb[1] + FBH - 0.03, far[1]], scalec(wedge, 0.7)); }
     // a point on a target fixed on that face, u across it (-0.5..0.5 of its width, left to right as you look at it) and v up
     // it (0..1 of its height), brought toward the eye by standoff: where the hand goes on it
     const onFace = (t, u, v, standoff) => {
@@ -163,8 +172,7 @@ LEVELS.push({
     // items: on the gallery floor where you can see them, none of them round behind a stanchion or under the crank
     const floorAt = (deg, r) => { const p = at(deg * DEG, r, 0); return { x: p[0], y: 0, z: p[2] }; };
     const spots = [floorAt(60, 2.7), floorAt(120, 2.7), floorAt(45, 2.9), floorAt(135, 2.9), floorAt(75, 3.0), floorAt(108, 3.0)];
-    // the lamp's bulb has blown and so has the fuse: a spare bulb lies about, the new fuse is in the toolbox, and a
-    // blown one that looks like it might do lies about as well
+    // the lamp's bulb has blown and so has the fuse: a spare bulb lies about, and the new fuse is in the toolbox
     Object.assign(s, { open: false, blownIn: true, bulb: false, fuse: false, power: false, turning: false, beamA: 0, beamSpeed: 1, crossing: false, lensA: 0 });
     // in the hand: the bulb by its brass cap, a fuse between finger and thumb by one end, small, as they really are
     const fuseHeld = { grip: 'pinch', at: [-0.38, 0.47], angle: -0.36, size: 0.17, tip: [0.42, 0.48] };
@@ -176,7 +184,6 @@ LEVELS.push({
       onOpen() { G.say('A new fuse, in among the rags.', 'Rags, a spanner. A fuse.'); },
     });
     const boxSprite = L.props[L.props.length - 1];   // (the drawing of it mkContainer made: the last thing it put in the scene)
-    mkItem(L, 'oldfuse', 'Fuse', spots, { w: 0.3, h: 0.3, flat: false, icon: 'fuse', decoy: true, decoyText: 'This one is blown as well.', held: fuseHeld });
     const lit = () => G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go round.');
     const powerUp = () => { if (!(s.bulb && s.fuse) || s.power) return false; s.power = true; lamp.done = true; setTimeout(() => AUDIO.sfx('lampOn'), 250); return true; };
     // A click that does nothing, shown where it was tried: the thing in hand goes to the spot (at: [across, up] the target),
@@ -214,13 +221,12 @@ LEVELS.push({
       },
     });
     // the fuse box: open its door, pull out the blown fuse, put the new one in
-    // Where the fuse lies in its clips (the middle of the box). A blown fuse pushed into the empty clips (the one that came
-    // out, or the worn one lying about) is put in place there, sits a beat with nothing coming on, and drops out of the clips
-    // to the floor; anything else tried there, or a fuse while the blown one is still in, knocks at it and comes back.
+    // Where the fuse lies in its clips (the middle of the box). The blown fuse pushed back into the empty clips (the one that
+    // came out) is put in place there, sits a beat with nothing coming on, and drops out of the clips to the floor; anything else tried there, or a fuse while the blown one is still in, knocks at it and comes back.
     const CLIPS = [0, 0.5], fuseJig = () => { s.fuseJig = L.t; };
     const intoClips = { preset: 'slip', at: CLIPS, angle: 0, scale: 0.8, hold: 0.4, sfx: { hit: 'fit' } };
     const box = mkTarget(L, {
-      id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1], z: fb[2], w: FBW, h: FBH, face: MFACE, accepts: [],
+      id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1], z: fb[2], w: FBW, h: FBH, face: FFACE, accepts: [],
       hint() { return s.fuse ? 'A good fuse in it.' : !s.open ? 'The fuse box. Shut.' : s.blownIn ? 'Open. The fuse in it is blown. Take it out.' : 'Open. The fuse holder is empty.'; },
       onClick() {
         if (!s.open) {   // the hand takes the handle and pulls, and the door swings open on its hinges
@@ -233,8 +239,8 @@ LEVELS.push({
         if (G.fumbling && G.fumbling.target === box && G.fumbling.phase !== 'fall' && G.fumbling.phase !== 'bounce') return true;   // a fuse of yours at the clips already
         if (s.fuse) { G.say('A good fuse in it.', 'A new fuse in it.'); tryAt(box, CLIPS, { touch: fuseJig, fumble: { scale: 0.8 } }); return true; }
         if (s.blownIn) { G.say('Take the blown fuse out first.', 'The blown fuse is still in it.'); tryAt(box, CLIPS, { touch: fuseJig, fumble: { scale: 0.8, sfx: { hit: 'tink' } } }); return true; }
-        // only the blown fuse in hand is "the one that blew", and it is the one tried, though the worn one is about you too (the
-        // new one, if you have it, is put in for you); anything else, or nothing, finds the holder empty
+        // the blown fuse in hand is "the one that blew", and it is the one tried (the new one, if you have it, is put in for
+        // you); anything else, or nothing, finds the holder empty
         const act = G.inv[G.active], old = !!act && act.id === 'blownfuse';
         if ((old && !G.hasItem('fuse')) || !G.inv.some(i => box.accepts.includes(i.id))) {
           G.say(old ? 'That is the one that blew.' : 'The holder is empty. There is a new fuse in the toolbox.', old ? 'That is the one that blew.' : 'The fuse holder is empty.');
@@ -243,7 +249,6 @@ LEVELS.push({
         }
         return false;
       },
-      onDecoy: it => G.fumble(it, box, intoClips),   // the worn one lying about: blown as well, and it drops out of the clips
       use(item) {
         if (item.id !== 'fuse') return false;
         s.fuse = true; box.accepts = []; box.done = true; AUDIO.sfx('fit');
@@ -254,21 +259,21 @@ LEVELS.push({
     // its door, swung open to the left of it: part of the fuse box, so pointing at it or clicking it is the fuse box. Its hit
     // area is the door's, on the same face beside the box, and the fuse box glows with it.
     const door = (() => {
-      const off = -0.68 * FBW, x = fb[0] - Math.cos(MFACE) * off, z = fb[2] + Math.sin(MFACE) * off;
+      const off = -0.68 * FBW, x = fb[0] - Math.cos(FFACE) * off, z = fb[2] + Math.sin(FFACE) * off;
       return mkTarget(L, {
-        id: 'fusedoor', name: 'Fuse box', x, y: fb[1], z, w: 0.36 * FBW, h: FBH, face: MFACE, hidden: true,
-        hint: () => box.hint(), onClick: () => box.onClick(), use: item => box.use(item), onDecoy: item => box.onDecoy(item),
+        id: 'fusedoor', name: 'Fuse box', x, y: fb[1], z, w: 0.36 * FBW, h: FBH, face: FFACE, hidden: true,
+        hint: () => box.hint(), onClick: () => box.onClick(), use: item => box.use(item),
       });
     })();
     Object.defineProperty(door, 'accepts', { get: () => box.accepts, set() {} });
     Object.defineProperty(door, 'done', { get: () => box.done, set() {} });
     // the blown fuse in its clips: only there once the door is open; it comes out into your hand, and looks it
     const blown = mkTarget(L, {
-      id: 'blownfuse', name: 'Blown fuse', x: fb[0], y: fb[1] + FBH * 0.39, z: fb[2], w: 0.26, h: FBH * 0.22, face: MFACE, hidden: true,
+      id: 'blownfuse', name: 'Blown fuse', x: fb[0], y: fb[1] + FBH * 0.39, z: fb[2], w: 0.26, h: FBH * 0.22, face: FFACE, hidden: true,
       hint() { return 'Blown. Take it out.'; },
       onClick() {
         if (!s.blownIn) return true;
-        s.blownIn = false; blown.hidden = true; blown.done = true; box.accepts = ['fuse', 'oldfuse'];
+        s.blownIn = false; blown.hidden = true; blown.done = true; box.accepts = ['fuse'];
         // it comes out of the clips up into your hand, as anything picked up does
         const it = newItem(L, 'blownfuse', 'Blown fuse', { w: 0.3, h: 0.3, decoy: true, decoyText: 'That is the one that blew.', held: fuseHeld, x: blown.x, y: blown.y, z: blown.z });
         HANDS.picked(it); G.inv.push(it); G.active = G.inv.length - 1; G.hover = null; AUDIO.sfx('pickup');
@@ -454,7 +459,7 @@ LEVELS.push({
       const e = L.t - (s.fuseJig === undefined ? -9 : s.fuseJig), j = e < 0.7 ? Math.sin(e * 38) * Math.exp(-e * 6) * (SAVE.data.settings.reducedMotion ? 0.4 : 1) : 0;   // (less with reduced motion)
       ctx.save(); ctx.translate(j * 0.03, 0.5 - 0.48 * 0.72 + Math.abs(j) * 0.01); ctx.rotate(j * 0.06); ctx.scale(0.62, 0.72); ICONS[icon](ctx, P); ctx.restore();
     };
-    const blownArt = SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, (ctx, P) => { ctx.scale(FBW, FBH); fuseAt(ctx, P, 'blownfuse'); }, { sortDist: mounted(fb[0], fb[2]) - 0.001, hoverOnly: true, glowOf: blown, face: MFACE });
+    const blownArt = SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, (ctx, P) => { ctx.scale(FBW, FBH); fuseAt(ctx, P, 'blownfuse'); }, { sortDist: mounted(fb[0], fb[2]) - 0.001, hoverOnly: true, glowOf: blown, face: FFACE });
     const drawFuseBox = (ctx, P) => {
       ctx.scale(FBW, FBH);
       const rim = P.col([92, 96, 102]), metal = P.col([150, 154, 160]), dark = P.col([14, 14, 18]), ink = P.col([22, 20, 18]);
@@ -578,7 +583,7 @@ LEVELS.push({
       }
       for (const q of s.spill || []) if (!q.gone) tumbling(q, bodyAt(q), q.w, q.h, q.icon);
       // the fuse box and the crank, showing their state
-      R.add(SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, drawFuseBox, { sortDist: mounted(fb[0], fb[2]), glowOf: [box, door], face: MFACE }));
+      R.add(SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, drawFuseBox, { sortDist: mounted(fb[0], fb[2]), glowOf: [box, door], face: FFACE }));
       if (!blown.hidden) R.add(blownArt);   // (the blown fuse in its clips is drawn in the box; this is it over the box, only while it is pointed at, to glow)
       R.add(SC.mkSprite(L, wd[0], wd[1], wd[2], WDS, WDS, drawCrank, { sortDist: mounted(wd[0], wd[2]), glowOf: winder, face: MFACE }));
     };

@@ -142,7 +142,7 @@ some on the ground, so you have to turn and look down to find them.
    and walks back into the dark.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
    You must look away to shut both gates, chain each with its own chain, and lock each
-   with its own padlock. The two good padlocks lie apart, each in a place of its own, and are
+   with its own padlock. A gate pulled shut swings to on a long, squealing iron hinge before it clangs into its post. The two good padlocks lie apart, each in a place of its own, and are
    found and picked up one at a time; one key opens both. A third padlock is rusted solid:
    pressed down on the chain it will not snap shut, and drops. A chain thrown round a gate still swinging shut rides on its end and is knocked off to
    the ground as the gate meets its post (clicked as it is about to shut, it goes on as it shuts), and a shut gate with nothing to hold it, pushed, swings out a little
@@ -153,7 +153,7 @@ some on the ground, so you have to turn and look down to find them.
    nothing is looking: catch it going round and it stops dead, mid-stride. At the end it
    comes on only when you blink, up to the gate, and shakes it on its chain.
 5. **The Clearing.** Something that sprints at you, fast, drops to all fours to watch, and
-   sprints again; out in the open it keeps breaking sideways to a new place, running side on
+   sprints again (down on all fours it creeps from side to side on its hands and feet, never gliding); out in the open it keeps breaking sideways to a new place, running side on
    and closing as it goes, so it is seldom where you last saw it. The bow is on the porch, and its three arrows lie about, each in a
    place of its own (driven into the wall or a post, along a rail, on the woodpile, the
    crate or the boards, stood against the wall); picked up, they go together in one slot,
@@ -172,11 +172,15 @@ some on the ground, so you have to turn and look down to find them.
    it is close. With all three arrows gone and it still up, it comes flat out. The bow floats where
    your hands would hold it. Pressed with no arrows, the bow comes up and tips to show the bare shelf,
    the string is plucked twice where an arrow should sit and twitches on nothing, and it is let down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
-   and drops head first to the boards at your feet, where you have to pick it up again.
+   and drops head first to the boards at your feet, where you have to pick it up again. When it reaches you it comes
+   up out of its sprint into your face, its black hair hanging round it.
 6. **The Boathouse.** Something swims in across the water, going under for a
    while and coming up closer. The winch is chained and padlocked: the key is in the
-   tackle box. Crank the water door down, and shut and bar the side door (the door or
-   either iron bracket beside it will do). Shut one way first and, once it has been held
+   tackle box. Crank the water door down, and shut the side door and bar it with both oars
+   of the upturned rowboat, which lie about the boathouse each in a place of its own: one
+   across the iron brackets, then the other on top of it (the door or either bracket will do).
+   One oar alone is not enough: it throws itself at the door, the oar snaps, the door bursts
+   open and it has you ("One oar wasn't strong enough."). Shut one way first and, once it has been held
    there a moment, it goes under, swims round and comes across into the other side on.
    With both shut it throws itself at the door it came to, harder and faster, the boards
    bowing in and the water coming in under them, until it lets go and goes under. Tried too
@@ -184,12 +188,14 @@ some on the ground, so you have to turn and look down to find them.
    put on the boss snaps the chain taut (the padlock jumps) and comes back to your hand, the
    oar's end jams at the boss and it clatters to the deck, and with the padlock off but no
    handle the wheel moves a hair under your hand and no further. The key goes into the padlock
-   before it springs open. The bar put up while the side door is still swinging shut is knocked
-   back into your hands by the leaf.
+   before it springs open. An oar put up while the side door is still swinging shut is knocked
+   back into your hands by the leaf. When it gets you it bursts up out of the water at your
+   face, the water thrown up in a great splash behind it.
 7. **The Lighthouse.** The lamp is out and something is clinging to the outside of
    the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
    and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
-   box, pull the blown fuse and put in the new one from the toolbox, and turn the crank so
+   box (bolted to its stanchion on an iron wedge, turned toward you), pull the blown fuse and put in the new one from
+   the toolbox (the only good fuse there is), and turn the crank so
    the beam goes round: its first pass knocks it sliding back down the wall, and the next
    knocks it off the tower, to fall all the way down into the sea. The lamp turns with the
    crank, lit or dark. There is another way: once the new fuse is out of the toolbox, the toolbox itself can be taken
@@ -200,9 +206,8 @@ some on the ground, so you have to turn and look down to find them.
    loses its hold, slides scrabbling and falls all the way into the sea as from the beam: a win, with a line of its own.
    Further down (the hover says "Too far down.") the box, going faster and faster, kicks out off the stone, goes past
    it out over the water and into the sea, and is gone. A fuse tried with the blown one still in knocks against it and comes
-   back to your hand; a blown fuse pushed into the empty clips (the one you pulled, or the
-   worn one lying about) sits there a beat with nothing coming on and drops out onto the
-   floor.
+   back to your hand; the blown fuse you pulled, pushed back into the empty clips, sits there a beat with nothing
+   coming on and drops out onto the floor.
 8. **The Diner.** Something the size of a child is out in the lot, dressed up for dinner: a
    plain little black suit, its lapels edged in red, a white shirt and a red tie, little black shoes, small bare grey hands
    hanging at its sides, and long straggly black hair hanging over a face as grey as its hands,

@@ -257,11 +257,15 @@ const ICONS = {
     ctx.strokeStyle = d; ctx.lineWidth = 0.025;
     for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(0.18 + i * 0.07, 0.78 - i * 0.12, 0.045, 0.03, 0.6, 0, TAU); ctx.stroke(); }
   },
+  // an oar: the worn grip at the bottom, the long round loom, and the flat blade flaring out at the top, a ridge up its middle
   oar(ctx, P) {
-    const w = P.col([120, 96, 62]), d = P.col([80, 60, 36]);
+    const w = P.col([120, 96, 62]), d = P.col([80, 60, 36]), l = P.col([150, 122, 82]);
     ctx.save(); ctx.rotate(0.5);
-    P_line(ctx, 0, 0.05, 0, 0.7, 0.06, w);
-    ctx.fillStyle = d; ctx.beginPath(); ctx.ellipse(0, 0.82, 0.1, 0.18, 0, 0, TAU); ctx.fill();
+    P_line(ctx, 0, 0.05, 0, 0.66, 0.06, w);
+    P_line(ctx, -0.012, 0.12, -0.012, 0.6, 0.015, l);
+    P_line(ctx, 0, 0.03, 0, 0.15, 0.07, d);
+    ctx.fillStyle = w; ctx.beginPath(); ctx.moveTo(-0.03, 0.62); ctx.lineTo(-0.1, 0.76); ctx.quadraticCurveTo(-0.11, 0.98, 0, 1.0); ctx.quadraticCurveTo(0.11, 0.98, 0.1, 0.76); ctx.lineTo(0.03, 0.62); ctx.closePath(); ctx.fill();
+    P_line(ctx, 0, 0.66, 0, 0.94, 0.018, d);
     ctx.restore();
   },
   // fuses: a good one, a blown one (dark glass), and a coil of wire
