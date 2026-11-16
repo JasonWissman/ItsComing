@@ -136,10 +136,11 @@ const HANDS = (() => {
 
   // ---------------- where it is drawn ----------------
   // The hand and what it holds keep to the bottom right, clear of the middle of the view (the aim), the hover line, the
-  // inventory and the touch buttons: it moves in, up or shrinks to fit, measured from where those really are on the page.
+  // inventory and the zoom button on a phone: it moves in, up or shrinks to fit, measured from where those really are on the page.
   let keep = null, keepAt = -10, keepSig = '';
   function keepOuts(W, Hv) {
-    const sig = G.invSig + '|' + W + 'x' + Hv + '|' + R.viewY + '|' + (document.documentElement.hasAttribute('data-touch-left') ? 'L' : 'R');
+    const zb = document.getElementById('zoomBtn'), touchOn = !!zb && window.getComputedStyle(zb).display !== 'none';
+    const sig = G.invSig + '|' + W + 'x' + Hv + '|' + R.viewY + '|' + (touchOn ? 'T' : '');
     if (keep && sig === keepSig && G.t - keepAt < 1) return keep;
     keepSig = sig; keepAt = G.t;
     const vy = R.viewY, rects = [], rect = (el, pad, below) => {
@@ -148,10 +149,9 @@ const HANDS = (() => {
       rects.push({ x0: r.left - pad, y0: r.top - vy - pad, x1: r.right + pad, y1: r.bottom - vy + pad + (below || 0) });
     };
     rect(document.getElementById('inventory'), 10, 20);
-    const touch = document.getElementById('touch'), touchOn = touch && window.getComputedStyle(touch).display !== 'none';
-    if (touchOn) rect(touch, 10);
+    if (touchOn) rect(zb, 10);   // the zoom button, in the bottom right corner on a phone
     const obstacles = rects.slice();   // what may sit in the corner it would be in
-    const tipB = touchOn ? 150 : 118, pageH = R.pageH;
+    const tipB = 118, pageH = R.pageH;
     rects.push({ x0: W / 2 - 190, y0: pageH - tipB - 40 - vy, x1: W / 2 + 190, y1: pageH - tipB + 6 - vy });   // the hover line
     const m = Math.min(W, Hv) * 0.2;
     rects.push({ x0: W / 2 - m, y0: Hv / 2 - m, x1: W / 2 + m, y1: Hv / 2 + m });                       // the aim
@@ -196,7 +196,7 @@ const HANDS = (() => {
       if (best) break;
     }
     if (!best) best = { gx: W - b.x1 * 0.5 - Hv * 0.04, gy: Hv - b.y1 * 0.5 - Hv * 0.015, s: 0.5 };   // nowhere it fits whole: small, in the corner
-    const lay = { gx: mirror ? W - best.gx : best.gx, gy: best.gy, s: best.s, box: b, touch: ko.touchOn, arm: best.over ? 0.3 : ko.touchOn ? 1.25 : 0.85 };   // up over the touch buttons, the arm goes off the side, not down behind them
+    const lay = { gx: mirror ? W - best.gx : best.gx, gy: best.gy, s: best.s, box: b, touch: ko.touchOn, arm: best.over ? 0.3 : ko.touchOn ? 1.25 : 0.85 };   // up over the zoom button, the arm goes off the side, not down behind them
     H.layCache.map.set(key, lay);
     return lay;
   }

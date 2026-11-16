@@ -269,7 +269,7 @@ LEVELS.push({
     // and shake, and it jolts on its chain.
     const W = (x, y, z) => { const p = L.pt(x, y, z); return { x: p[0], y: p[1], z: p[2] }; };
     const endAt = (g, y, x) => W((x === undefined ? 1.0 : x) * g.sign, y, 2.26 * g.sign);   // the gate's free end, at its post, y up (x: in from it)
-    // there, or as near it as is not behind what you hold: on a phone the hand sits up over the touch buttons, where the low
+    // there, or as near it as is not behind what you hold: on a phone the hand sits up over the zoom button, where the low
     // end of a gate can be, so it is tried higher up the chain, or further along the gate
     const latch = (g, y, x) => {   // (lx, ly: the spot chosen, in from the hinge's side of the gate and up)
       const b = G.hand.box, x0 = x === undefined ? 1.0 : x, at = (dy, dx) => Object.assign(endAt(g, y + dy, x0 - dx), { lx: x0 - dx, ly: y + dy });

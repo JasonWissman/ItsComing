@@ -13,7 +13,7 @@ const SAVE = (() => {
       best: {},                                                  // best[levelId][diff] = { time, wins, tries }
       complete: {},                                              // complete[diff] = true once night 13 is won
       bestRun: {},                                               // bestRun[diff] = seconds, the fastest full run (game.js: the run)
-      settings: { muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', touchLeft: false, textures: true },
+      settings: { muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', swipeReverse: false, textures: true },
     };
   }
   let data = fresh();
@@ -41,6 +41,7 @@ const SAVE = (() => {
           const unlocked = Object.assign(f.unlocked, d.unlocked || {}), settings = Object.assign(f.settings, d.settings || {});
           data = Object.assign(f, d, { unlocked, settings, best: d.best || {}, complete: d.complete || {}, bestRun: d.bestRun || {} });
           delete data.fragments;   // an older save's list of fragments seen: there are none any more
+          delete data.settings.touchLeft;   // the touch buttons' side: there are no touch buttons to move any more (swipes)
           return data;
         }
       }

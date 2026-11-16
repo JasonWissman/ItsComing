@@ -363,7 +363,7 @@ LEVELS.push({
       c.fade = s.leaving ? clamp(1 - (lt - 0.3) / 2.0, 0, 1) : 1;
       meadow.update();
     };
-    // Sitting crying on the ground, it waits for you to go to it: a click, a tap (any touch button), A or Start on a pad, or
+    // Sitting crying on the ground, it waits for you to go to it: a click, a tap, the zoom button, A or Start on a pad, or
     // the key that looks up or zooms (as you would lift your eyes to it), or Enter, and you go. Nothing else does anything
     // there (a press is still taken by the ending, so nothing cuts it short), and if you wait a few seconds a small line
     // says what to do. It waits as long as it takes: its time does not run on while it waits, and the game's own pause of
@@ -686,8 +686,9 @@ function buildMeadow(L, s, c0) {
         ctx.fillStyle = 'rgba(255,252,240,' + (0.8 * a).toFixed(3) + ')'; ctx.fillText(text, W / 2, ly);
         ctx.restore();
       };
-      line('CLICK TO GO TO IT', s.sitLineA || 0, [8, 8, 12]);
-      line('CLICK WHEN YOU ARE READY', s.idleLineA, [24, 44, 16]);
+      const word = touchUI() ? 'TAP' : 'CLICK';   // (on a phone, a tap, a swipe up or the zoom button go to it)
+      line(word + ' TO GO TO IT', s.sitLineA || 0, [8, 8, 12]);
+      line(word + ' WHEN YOU ARE READY', s.idleLineA, [24, 44, 16]);
     },
   };
 }

@@ -78,7 +78,7 @@ const kinds = [
 const spentAll = [
   refill, hold(47), nock, ['draw', 'full'], ['expect', last + " === 'hit' && G.L.creature.dist > 45", 'drawn full and let go on it at 47 m: it flies at it'],
   ['wait', 1500], ['expect', 'G.L.creature.wounded && G.L.creature.hits === 1', 'the first hit wounds it, from 47 m'],
-  ['draw', 'short', null, 'pad'], nock, ['draw', 'short', null, 'touch'], ['expect', arrows + " === 0 && G.L.s.outcomes.slice(-2).join() === 'short,short'", 'all three arrows gone, one in it (A and the touch Use button draw too)'],
+  ['draw', 'short', null, 'pad'], nock, ['draw', 'short', null, 'touch'], ['expect', arrows + " === 0 && G.L.s.outcomes.slice(-2).join() === 'short,short'", 'all three arrows gone, one in it (A and a finger held on it draw too)'],
   ['eval', 'G.L.creature.hold = null;'], ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 15000],
   ['expect', "G.L.creature.reckless && G.deathCause === 'spent'", 'with every arrow gone and only one in it, it came in and reached you'],
   ['eval', 'restartLevel();'], ['wait', 300],

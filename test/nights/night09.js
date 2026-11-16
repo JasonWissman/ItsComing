@@ -1,8 +1,8 @@
 // The Phone Booth: nothing in hand; the notebook lies shut on the corner shelf under the phone (the only thing on it: no
 // phone book, no panel over the view). The pay phone, a slim unit a size smaller than life on a backboard no wider than
 // itself, stands across the north-east corner, between the two streets. Nothing is done to the view, ever: looking down at the notebook, clicking it, reading it and facing the
-// phone leave the view as it is, and the zoom (Shift, Z, Space, the touch button or a trigger) is the player's own. Look
-// down at the notebook and click it: the cover goes back over the spiral; click (or the Use button, or A on a gamepad) to
+// phone leave the view as it is, and the zoom (Shift, Z, Space, the zoom button on a phone or a trigger) is the player's own. Look
+// down at the notebook and click it: the cover goes back over the spiral; click (or tap it, or A on a gamepad) to
 // turn each page over, until the one with the number scrawled large across it in red, alone on its page; with the zoom held
 // it is read off (at 1280x760 the page then fills a good part of the view). Turning away, the notebook stays open where it
 // lies. Find the coin (in the coin return, on the shelf under the phone or on the floor by the panes near it) and pick it
@@ -78,15 +78,15 @@ module.exports = {
     ['wait', 300],
     ['expect', 'G.L.s.nbOpen && G.L.s.page === 0 && ' + plain('PITCH_DOWN') + ' && ' + inView, 'it lies open on the shelf, all of it in view, and nothing is done to the view'],
     ['expect', '!' + visible('.pb-nb'), 'there is no panel: it is read where it lies'],
-    // its pages turn with a click, or with the Use button, or with A on a gamepad (whatever is nearest the middle of the view)
+    // its pages turn with a click, or a tap on it, or with A on a gamepad (whatever is nearest the middle of the view)
     watch('flip', "G.L.s.nbAnims.some(a => typeof a.item === 'number')"),
     ['click', 'notebook'],
     ...saw('flip', 'clicked again, the page is lifted by its corner and goes over the spiral'),
     ['waitUntil', settled, 3000],
     ['expect', 'G.L.s.page === 1 && ' + plain('PITCH_DOWN'), 'and the next page lies open, the view still as it was'],
-    ['eval', "for (const t of ['pointerdown', 'pointerup']) document.getElementById('tUse').dispatchEvent(new PointerEvent(t, { bubbles: true, cancelable: true }))"],
+    ['eval', "(() => { const h = [...R.hits].reverse().find(h => h.kind === 'target' && h.ref.id === 'notebook'), x = h.x + h.w / 2, y = h.y + h.h / 2; for (const type of ['touchstart', 'touchend']) { const t = new Touch({ identifier: 5, target: UI.canvas, clientX: x, clientY: y }); UI.canvas.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchstart' ? [t] : [], changedTouches: [t] })); } })()"],
     ['waitUntil', settled, 3000],
-    ['expect', 'G.L.s.page === 2', 'the Use button turns the page too'],
+    ['expect', 'G.L.s.page === 2', 'a tap on it (a finger) turns the page too'],
     padOn, ...tap(0), padOff,
     ['waitUntil', settled, 3000],
     ['expect', 'G.L.s.page === 3', 'and so does A'],

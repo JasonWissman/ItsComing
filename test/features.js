@@ -275,7 +275,7 @@ const hoverHit = lookFor;
   const cap = await page.evaluate(() => { ensureAudio(); MENU.applySetting('captions', true); AUDIO.sfx('bang', 0.9); const c = document.getElementById('caption'); return c.classList.contains('show') ? c.textContent : ''; });
   check(/boards/.test(cap) && /\u25B6/.test(cap), 'a captioned sound shows its line with a side marker (' + cap + ')');
   await page.evaluate(() => { MENU.applySetting('captions', false); document.getElementById('caption').classList.remove('caption'); });
-  check(await page.evaluate(() => !!document.getElementById('tUse') && !!document.getElementById('tPause')), 'the touch pad has Use and Pause buttons');
+  check(await page.evaluate(() => !document.getElementById('touch') && !!UI.zoomBtn && !!UI.menuBtn), 'no touch pad: a zoom button and a menu button for touch (swipes and taps do the rest)');
   // a fake gamepad: the d-pad turns, A uses whatever is nearest the middle of the view, Start pauses
   await page.evaluate(() => {
     window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) };
@@ -709,11 +709,13 @@ const hoverHit = lookFor;
   for (const [k, by] of [['ArrowLeft', -45], ['ArrowLeft', -45], ['ArrowRight', 45], ['a', -45], ['d', 45], ['d', 45]]) { await page.keyboard.press(k); const c1 = await cam(); looks.push(k + ':' + turned(c0, c1, by)); c0 = c1; }
   for (const [k, p] of [['ArrowDown', PITCH], ['ArrowUp', 0], ['s', PITCH], ['w', 0]]) { await page.keyboard.press(k); const c1 = await cam(); looks.push(k + ':' + (Math.abs(c1.pitch - p) < 0.03 && !c1.leaving)); }
   for (const k of ['z', 'Shift', ' ']) { await page.keyboard.down(k); const c1 = await cam(); await page.keyboard.up(k); const c2 = await cam(); looks.push(k + ':' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving)); }
-  const touch = (id, type) => page.evaluate(([id, type]) => document.getElementById(id).dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true })), [id, type]);
-  for (const [id, by] of [['tLeft', -45], ['tRight', 45]]) { await touch(id, 'pointerdown'); await touch(id, 'pointerup'); const c1 = await cam(); looks.push(id + ':' + turned(c0, c1, by)); c0 = c1; }
-  await touch('tDown', 'pointerdown'); await touch('tDown', 'pointerup'); let c1 = await cam(); looks.push('tDown:' + (Math.abs(c1.pitch - PITCH) < 0.03 && !c1.leaving));
-  await touch('tUp', 'pointerdown'); await touch('tUp', 'pointerup'); c1 = await cam(); looks.push('tUp:' + (Math.abs(c1.pitch) < 0.03 && !c1.leaving));
-  await touch('tZoom', 'pointerdown'); c1 = await cam(); await touch('tZoom', 'pointerup'); let c2 = await cam(); looks.push('tZoom:' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving));
+  // a finger: swipes on the view (dragging the scene: the finger right turns left, the finger up looks down), the zoom button
+  const swipeBy = (dx, dy) => page.evaluate(([dx, dy]) => { const ft = (type, x, y) => { const t = new Touch({ identifier: 3, target: UI.canvas, clientX: x, clientY: y }); UI.canvas.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] })); }; ft('touchstart', 640, 380); ft('touchmove', 640 + dx / 2, 380 + dy / 2); ft('touchmove', 640 + dx, 380 + dy); ft('touchend', 640 + dx, 380 + dy); }, [dx, dy]);
+  const zoomBtn = type => page.evaluate(type => UI.zoomBtn.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerType: 'touch' })), type);
+  for (const [name, dx, by] of [['swipe right', 160, -45], ['swipe left', -160, 45]]) { await swipeBy(dx, 0); const c1 = await cam(); looks.push(name + ':' + turned(c0, c1, by)); c0 = c1; }
+  await swipeBy(0, -120); let c1 = await cam(); looks.push('swipe up:' + (Math.abs(c1.pitch - PITCH) < 0.03 && !c1.leaving));
+  await swipeBy(0, 120); c1 = await cam(); looks.push('swipe down:' + (Math.abs(c1.pitch) < 0.03 && !c1.leaving));
+  await zoomBtn('pointerdown'); c1 = await cam(); await zoomBtn('pointerup'); let c2 = await cam(); looks.push('zoom button:' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving));
   const pad = (b, on) => page.evaluate(([b, on]) => {
     if (!window._pad) window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) };
     navigator.getGamepads = () => [window._pad]; window._pad.buttons[b].pressed = on; pollGamepad(); navigator.getGamepads = () => [];
@@ -724,7 +726,7 @@ const hoverHit = lookFor;
   await pad(12, true); await pad(12, false); c1 = await cam(); looks.push('pad up:' + (Math.abs(c1.pitch) < 0.03 && !c1.leaving));
   await pad(7, true); c1 = await cam(); await pad(7, false); c2 = await cam(); looks.push('pad zoom:' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving));
   await page.evaluate(() => { delete window._pad; });
-  check(looks.every(s => s.endsWith(':true')), 'in the meadow you turn, look down and up and zoom as in any night, by key, touch and pad, and the meadow still waits (' + looks.join(', ') + ')');
+  check(looks.every(s => s.endsWith(':true')), 'in the meadow you turn, look down and up and zoom as in any night, by key, swipe, the zoom button and pad, and the meadow still waits (' + looks.join(', ') + ')');
   // turned away and looking at the grass, a click still goes on, and the view is brought back to it as it goes
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowDown');
   c1 = await cam();
@@ -760,11 +762,11 @@ const hoverHit = lookFor;
   });
   check(tv.in === 13 && tv.fin && tv.first === 'new best30 s' && /^(best .*)?31 s$/.test(tv.second) && tv.label === 'This run' && tv.time === '25:00' && tv.hint === 'A new best full run', 'after a full run: its own times, which were new bests, and its time, a new best; with reduced motion all at once (' + JSON.stringify(tv) + ')');
   // a press while it still holds you does nothing; in the meadow a key (R too: it goes on, it does not start the night
-  // again), A on a pad, or the touch Use button goes on, just as a click does
+  // again), A on a pad, or a tap goes on, just as a click does
   for (const [how, press] of [['a key (R)', async () => page.keyboard.press('r')], ['A on a pad', async () => page.evaluate(() => {
     window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad];
     window._pad.buttons[0].pressed = true; pollGamepad(); window._pad.buttons[0].pressed = false; pollGamepad(); navigator.getGamepads = () => [];
-  })], ['the touch Use button', async () => page.evaluate(() => document.getElementById('tUse').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })))]]) {
+  })], ['a tap', async () => page.evaluate(() => { const ft = (type, x, y) => { const t = new Touch({ identifier: 3, target: UI.canvas, clientX: x, clientY: y }); UI.canvas.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] })); }; ft('touchstart', 640, 380); ft('touchend', 640, 380); })]]) {
     await T.open(page, 'level=13&go&seed=2&nofr');
     await caught();
     const L0 = await page.evaluate(() => { while (G.L.s.endT < END.moods + 1) G.step(0.1, 1); return G.L.s.endT; });   // (holding you)
@@ -1017,26 +1019,185 @@ const hoverHit = lookFor;
     const o = { was, after: G.fumbling, cur: G.hand.cur, state: G.state }; MENU.clear(); return o;
   }, take('planks'));
   check(hv.was && !hv.after && !hv.cur && hv.state === 'title', 'quit to the title with a plank in the air: nothing is left in hand or in the air (' + JSON.stringify(hv) + ')');
-  // on a phone, with the touch buttons in the bottom right (or on the left, the inventory there instead), it keeps clear of them
-  for (const left of [false, true]) {
+  // on a phone, with the zoom button in the bottom right, it keeps clear of it and of the inventory
+  for (const left of [false]) {
     const ctx2 = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
     const ph = await ctx2.newPage();
     await ph.goto(URL + '?level=1&go&seed=1&nofr'); await ph.waitForTimeout(300);
     const r = await ph.evaluate(([take, left]) => {
-      MENU.applySetting('touchLeft', left);
       G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1; G.cam.yaw = G.cam.tYaw = Math.PI; G.cam.pitch = G.cam.tPitch = 0;
       const out = [];
       for (const id of ['hammer', 'planks', 'nails', 'bottle']) {
         eval(take.replace('hammer', id)); G.step(0.05, 25);
         const b = G.hand.box, rect = id => { const r = document.getElementById(id).getBoundingClientRect(); return { x0: r.left, y0: r.top - R.viewY, x1: r.right, y1: r.bottom - R.viewY }; };
         const hit = (a, c) => a.x0 < c.x1 && a.x1 > c.x0 && a.y0 < c.y1 && a.y1 > c.y0;
-        out.push({ id, shown: !!b && G.hand.up === 1, clear: !!b && !hit(b, rect('touch')) && !hit(b, rect('inventory')) && !hit(b, { x0: R.W / 2 - 40, y0: R.H / 2 - 40, x1: R.W / 2 + 40, y1: R.H / 2 + 40 }) });
+        out.push({ id, shown: !!b && G.hand.up === 1, clear: !!b && !hit(b, rect('zoomBtn')) && !hit(b, rect('inventory')) && !hit(b, { x0: R.W / 2 - 40, y0: R.H / 2 - 40, x1: R.W / 2 + 40, y1: R.H / 2 + 40 }) });
       }
       return out;
     }, [take('hammer'), left]);
-    check(r.every(x => x.shown && x.clear), 'on a phone' + (left ? ', touch controls on the left' : '') + ', what you hold keeps clear of the touch buttons, the inventory and the aim (' + JSON.stringify(r) + ')');
+    check(r.every(x => x.shown && x.clear), 'on a phone, what you hold keeps clear of the zoom button, the inventory and the aim (' + JSON.stringify(r) + ')');
     await ph.screenshot({ path: path.join(__dirname, 'shots', 'held-phone' + (left ? '-left' : '') + '.png') });
     await ctx2.close();
+  }
+
+  // ---------------- a phone: turn it sideways, swipe to look, tap to use, a zoom button, the menu button ----------------
+  {
+    const { devices } = require('playwright');
+    const mobile = async (dev, q) => {
+      const ctx = await browser.newContext(dev);
+      const pg = await ctx.newPage();
+      pg.on('pageerror', e => errors.push('PAGEERROR (phone) ' + e.message));
+      await pg.goto(URL + (q || '')); await pg.waitForTimeout(400);
+      const cdp = await ctx.newCDPSession(pg);
+      // a finger as the phone sends it: down, moved in a few steps, up (Input.dispatchTouchEvent: real touch events)
+      const touch = async (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+      const swipe = async (x0, y0, x1, y1) => {
+        await touch('touchStart', x0, y0);
+        for (let i = 1; i <= 6; i++) { await touch('touchMove', x0 + (x1 - x0) * i / 6, y0 + (y1 - y0) * i / 6); await pg.waitForTimeout(16); }
+        await touch('touchEnd'); await pg.waitForTimeout(250);
+      };
+      const hold = async (x, y, ms, along) => { await touch('touchStart', x, y); const t0 = Date.now(); while (Date.now() - t0 < ms) { const p = along ? await along() : null; await touch('touchMove', p ? p.x : x, p ? p.y : y); await pg.waitForTimeout(40); } await touch('touchEnd'); await pg.waitForTimeout(150); };
+      return { ctx, pg, touch, swipe, hold };
+    };
+    // held upright: the turn-it-sideways screen over everything, and a night under way pauses behind it
+    let m = await mobile(devices['iPhone 13'], '?level=1&go&seed=1');
+    await m.pg.waitForTimeout(300);
+    let r = await m.pg.evaluate(() => ({ rot: getComputedStyle(document.getElementById('rotate')).display, top: document.elementFromPoint(innerWidth / 2, innerHeight / 2).closest('#rotate') !== null, state: G.state, menu: MENU.kind }));
+    check(r.rot === 'flex' && r.top && r.state === 'paused' && r.menu === 'pause', 'a phone held upright: the turn-it-sideways screen covers everything and the night is paused behind it (' + JSON.stringify(r) + ')');
+    await m.ctx.close();
+    // a narrow desktop window never gets it
+    const dpg = await browser.newPage({ viewport: { width: 420, height: 900 } });
+    await dpg.goto(URL + '?level=1&go&seed=1'); await dpg.waitForTimeout(400);
+    r = await dpg.evaluate(() => ({ rot: getComputedStyle(document.getElementById('rotate')).display, state: G.state, mute: getComputedStyle(UI.mute).display, menuBtn: getComputedStyle(UI.menuBtn).display, zoomBtn: getComputedStyle(UI.zoomBtn).display }));
+    check(r.rot === 'none' && r.state === 'play' && r.mute !== 'none' && r.menuBtn === 'none' && r.zoomBtn === 'none', 'a tall, narrow desktop window: no turn-it-sideways screen, the night plays, the sound line and no touch buttons (' + JSON.stringify(r) + ')');
+    await dpg.close();
+
+    // on its side: no old button pad; the menu button where the sound line was; zoom in the corner
+    m = await mobile(devices['iPhone 13 landscape'], '?level=1&go&seed=1');
+    const { pg } = m;
+    await pg.evaluate(() => { G.L.creature.hold = G.L.creature.dist; });
+    await pg.waitForTimeout(200);
+    r = await pg.evaluate(() => {
+      const b = id => { const e = document.getElementById(id); if (!e) return null; const q = e.getBoundingClientRect(); return { d: getComputedStyle(e).display, x: Math.round(q.left), y: Math.round(q.top), r: Math.round(innerWidth - q.right), b: Math.round(innerHeight - q.bottom) }; };
+      return { pad: !!document.getElementById('touch'), rot: getComputedStyle(document.getElementById('rotate')).display, mute: b('mute').d, menu: b('menuBtn'), zoom: b('zoomBtn'), state: G.state, touchUI: touchUI() };
+    });
+    check(!r.pad && r.rot === 'none' && r.touchUI && r.state === 'play', 'a phone on its side: the night plays, no turn-it-sideways screen and no old button pad (' + JSON.stringify(r) + ')');
+    check(r.mute === 'none' && r.menu.d === 'flex' && r.menu.x < 40 && r.menu.y < 30 && r.zoom.d === 'flex' && r.zoom.r < 40 && r.zoom.b < 40, 'the menu button top left in place of the sound line, and the zoom button in the bottom right corner');
+    await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-night.png') });
+    // swipes: one step each, the scene dragged (finger left turns right, finger up looks down); not a tap
+    const W = await pg.evaluate(() => [innerWidth, innerHeight]), cx = W[0] / 2, cy = W[1] / 2;
+    const cam = () => pg.evaluate(() => ({ d: G.cam.dirIdx, down: G.cam.tPitch > 0.5, inv: G.inv.length, tip: G.hover }));
+    const d0 = (await cam()).d;
+    await m.swipe(cx + 120, cy, cx - 120, cy);
+    let c = await cam(); check(c.d === (d0 + 1) % 8 && !c.down, 'a swipe to the left drags the scene: the view turns one step right (' + d0 + ' to ' + c.d + ')');
+    await m.swipe(cx - 120, cy, cx + 120, cy); await m.swipe(cx - 120, cy, cx + 120, cy);
+    c = await cam(); check(c.d === (d0 + 7) % 8, 'two swipes to the right: two steps left (' + c.d + ')');
+    await m.swipe(cx, cy + 100, cx, cy - 100);
+    c = await cam(); check(c.down, 'a swipe up drags the floor into view: looking down');
+    await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-down.png') });
+    await m.swipe(cx, cy - 100, cx, cy + 100);
+    c = await cam(); check(!c.down && c.inv === 0 && (await pg.evaluate(() => G.state)) === 'play', 'a swipe down looks ahead again; no swipe was taken as a tap (nothing put down or used)');
+    await pg.evaluate(() => MENU.applySetting('swipeReverse', true));
+    const d1 = (await cam()).d; await m.swipe(cx + 120, cy, cx - 120, cy);
+    c = await cam(); check(c.d === (d1 + 7) % 8, 'with swipes reversed, a swipe left turns left');
+    await pg.evaluate(() => MENU.applySetting('swipeReverse', false));
+    // a tap takes what it is on, there, as a click
+    const it = await lookFor(pg, 'item', 'hammer');
+    if (it) { await pg.touchscreen.tap(it.x, it.y); await pg.waitForTimeout(250); }
+    check(await pg.evaluate(() => G.hasItem('hammer')), 'a tap on the hammer picks it up');
+    await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-picked.png') });
+    // a tap on nothing does nothing; the slots still switch by tap
+    // zoom: held, the button zooms; let go, it does not
+    const zb = await pg.evaluate(() => { const q = UI.zoomBtn.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; });
+    await m.touch('touchStart', zb.x, zb.y); await pg.waitForTimeout(500);
+    const zin = await pg.evaluate(() => ({ held: G.cam.zoomHeld, zoom: G.cam.zoom, on: UI.zoomBtn.classList.contains('on') }));
+    await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-zoom.png') });
+    await m.touch('touchEnd'); await pg.waitForTimeout(400);
+    const zout = await pg.evaluate(() => ({ held: G.cam.zoomHeld, zoom: G.cam.zoom }));
+    check(zin.held && zin.on && zin.zoom > 2 && !zout.held && zout.zoom < 1.5, 'the zoom button: held, the view zooms in; let go, it comes back (' + JSON.stringify([zin, zout]) + ')');
+    // a swipe while zoom is held with the other thumb still turns (the second finger is its own)
+    // the menu button: the pause menu, with everything in it
+    await pg.tap('#menuBtn'); await pg.waitForTimeout(500);
+    r = await pg.evaluate(() => ({ state: G.state, acts: [...UI.overlay.querySelectorAll('button[data-act]')].map(b => b.dataset.act), menuBtn: getComputedStyle(UI.menuBtn).display, zoomBtn: getComputedStyle(UI.zoomBtn).display }));
+    check(r.state === 'paused' && ['resume', 'restart', 'nights', 'settings', 'mute', 'title'].every(a => r.acts.includes(a)) && r.menuBtn === 'none' && r.zoomBtn === 'none', 'the menu button pauses: Resume, Restart, Nights, Settings, Mute, Quit (the buttons themselves hidden over it) (' + JSON.stringify(r) + ')');
+    await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-pause.png') });
+    await pg.tap('button[data-act="mute"]'); await pg.waitForTimeout(150);
+    check(await pg.evaluate(() => G.muted), 'Mute in the pause menu mutes (there is no sound line on a phone)');
+    await pg.tap('button[data-act="mute"]'); await pg.tap('button[data-act="settings"]'); await pg.waitForTimeout(300);
+    r = await pg.evaluate(() => ({ rev: !!UI.overlay.querySelector('[data-set="swipeReverse"]'), left: !!UI.overlay.querySelector('[data-set="touchLeft"]') }));
+    check(r.rev && !r.left, 'settings on a phone: reverse swipes (and no touch-buttons side any more)');
+    await pg.tap('button[data-act="back"]'); await pg.waitForTimeout(200);
+    await pg.tap('button[data-act="resume"]'); await pg.waitForTimeout(300);
+    check(await pg.evaluate(() => G.state === 'play'), 'Resume, by tap, goes back to the night');
+    // a won night that waits on a press (the last night's meadow): a swipe up, the zoom button or a tap is the press
+    await pg.evaluate(() => { window.__got = []; G.L.onPress = e => { window.__got.push(e ? e.key : 'tap'); return true; }; G.L.after = { custom: true }; G.L.aftermath = () => false; setState('won'); });
+    await pg.waitForTimeout(150);
+    await m.swipe(cx, cy - 100, cx, cy + 100);   // (the finger down: looking up, as the up key)
+    await m.touch('touchStart', zb.x, zb.y); await m.touch('touchEnd'); await pg.waitForTimeout(100);
+    await pg.touchscreen.tap(cx, cy); await pg.waitForTimeout(150);
+    r = await pg.evaluate(() => window.__got);
+    check(r.join() === 'ArrowUp,tap,tap', 'a won night waiting on a press (the last night\'s meadow): a swipe down is the up key, and the zoom button and a tap are presses (' + r.join() + ')');
+    await m.ctx.close();
+
+    // How to play and the night's card on a phone: the touch cards, "tap"
+    m = await mobile(devices['Pixel 7 landscape']);
+    await m.pg.tap('button[data-act="howto"]'); await m.pg.waitForTimeout(500);
+    r = await m.pg.evaluate(() => ({ cards: [...document.querySelectorAll('.hcard .hwhat')].map(e => e.textContent), gest: document.querySelectorAll('.hcard kbd.gest').length, zoom: !!document.querySelector('.hcard .kzoom'), menu: !!document.querySelector('.hcard .kmenu'), keys: [...document.querySelectorAll('.hcard kbd.key:not(.gest)')].length, fits: (p => p.scrollHeight <= p.clientHeight + 1)(document.querySelector('#overlay .panel')) }));
+    check(r.cards.join() === 'Look around,Zoom in,Interact,Pause' && r.gest === 3 && r.zoom && r.menu && r.keys === 0 && r.fits, 'How to play on a phone: swipe, the zoom button (hold), tap and the menu button, no keys, all of it in view (' + JSON.stringify(r) + ')');
+    await m.pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-howto.png') });
+    await m.pg.tap('button[data-act="back"]'); await m.pg.waitForTimeout(300);
+    await m.pg.tap('button[data-act="begin"]'); await m.pg.waitForTimeout(500);
+    r = await m.pg.evaluate(() => ({ state: G.state, prompt: (UI.overlay.querySelector('.prompt') || {}).textContent }));
+    check(r.state === 'card' && /^Tap when you are ready/.test(r.prompt || ''), 'the night\'s card on a phone says tap (' + JSON.stringify(r) + ')');
+    await m.pg.touchscreen.tap(200, 200); await m.pg.waitForTimeout(400);
+    check(await m.pg.evaluate(() => G.state === 'play'), 'a tap on the card begins the night');
+    await m.ctx.close();
+
+    // night 5's bow on a phone: press and hold on it, let go when the bar is full: it flies at it; a quick tap looses nothing
+    m = await mobile(devices['iPhone 13 landscape'], '?level=5&go&seed=1');
+    r = await m.pg.evaluate(() => {
+      for (const id of ['bow', 'arrows']) { const it = G.L.items.find(i => i.id === id); it.taken = true; G.inv.push(it); }
+      G.inv.find(i => i.id === 'arrows').uses = 3; G.invSig = '';
+      const c = G.L.creature; c.switched = true; c.darts = Infinity; c.u = 1 - Math.pow(30 / c.D0, 1 / c.gamma); c.hold = 30;
+      G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;
+      return true;
+    });
+    await m.pg.waitForTimeout(800);
+    const body = () => m.pg.evaluate(() => { const b = creatureBox(G.L.creature); return b && { x: b.x + b.w / 2, y: b.y + b.h / 2 }; });
+    let b0 = await body();
+    if (b0) { await m.pg.touchscreen.tap(b0.x, b0.y); await m.pg.waitForTimeout(400); }
+    r = await m.pg.evaluate(() => ({ out: G.L.s.outcomes.length, arrows: G.inv.find(i => i.id === 'arrows').uses }));
+    check(!!b0 && r.out === 0 && r.arrows === 3, 'a quick tap on it with the bow looses nothing (' + JSON.stringify(r) + ')');
+    await m.pg.waitForTimeout(500);
+    b0 = await body();
+    let shotDone = false;
+    if (b0) await m.hold(b0.x, b0.y, 2100, async () => { const p = await body(); if (!shotDone) { const full = await m.pg.evaluate(() => G.draw && G.draw.power >= 1); if (full) { shotDone = true; await m.pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-bow.png') }); } } return p; });
+    r = await m.pg.evaluate(() => ({ out: G.L.s.outcomes.slice(), arrows: G.inv.find(i => i.id === 'arrows').uses }));
+    check(r.out[r.out.length - 1] === 'hit' && r.arrows === 2, 'pressed and held on it until the bar is full, then let go: it flies at it (' + JSON.stringify(r) + ')');
+    await m.ctx.close();
+
+    // night 12's covers: held by the finger until they are up
+    m = await mobile(devices['iPhone 13 landscape'], '?level=12&go&seed=1');
+    await m.pg.evaluate(() => { const s = G.L.s; s.lampOn = true; s.fitted = true; s.plugged = true; s.onAt = 0; G.L.creatures.forEach(c => { c.hold = c.dist; }); });
+    const cv = await lookFor(m.pg, 'target', 'covers');
+    if (cv) await m.hold(cv.x, cv.y, 3600);
+    check(await m.pg.evaluate(() => G.L.targets.find(t => t.id === 'covers').done === true), 'night 12: the covers held by a finger (three seconds) until the hold is done');
+    await m.ctx.close();
+
+    // night 9: the pay phone's receiver and keys are tapped where they are
+    m = await mobile(devices['iPhone 13 landscape'], '?level=9&go&seed=1');
+    await m.pg.evaluate(() => { G.L.creatures.forEach(c => { c.hold = c.dist; }); });
+    const rx = await lookFor(m.pg, 'target', 'receiver');
+    if (rx) { await m.pg.touchscreen.tap(rx.x, rx.y); await m.pg.waitForTimeout(400); }
+    check(await m.pg.evaluate(() => G.L.s.hook === 'off'), 'night 9: a tap on the receiver lifts it');
+    await m.ctx.close();
+
+    // an older save that had the touch buttons on the left: the setting is gone, and the rest kept
+    const sp = await browser.newPage();
+    await sp.goto(URL); await sp.waitForTimeout(200);
+    r = await sp.evaluate(() => { const d = JSON.parse(JSON.stringify(SAVE.data)); d.settings.touchLeft = true; d.settings.captions = true; localStorage.setItem('itscoming.v2', JSON.stringify(d)); SAVE.load(); return { left: 'touchLeft' in SAVE.data.settings, rev: SAVE.data.settings.swipeReverse, cap: SAVE.data.settings.captions }; });
+    check(!r.left && r.rev === false && r.cap === true, 'an older save with the touch buttons on the left loads without that setting, the rest kept (' + JSON.stringify(r) + ')');
+    await sp.evaluate(() => { localStorage.clear(); }); await sp.close();
   }
 
   if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }

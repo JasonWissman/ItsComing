@@ -29,6 +29,29 @@ const MENU = (() => {
         const click = '<kbd class="key mouse" aria-label="click"><svg viewBox="0 0 24 34" aria-hidden="true"><rect x="2" y="2" width="20" height="30" rx="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v12M2.6 14h18.8" stroke="currentColor" stroke-width="2"/><path d="M12 3.2V13H3.4V12a8.6 8.6 0 0 1 8.6-8.8z" fill="#b3161e"/></svg></kbd>';
         const or = '<span class="kplus">or</span>';
         const card = (keys, what) => '<div class="hcard"><div class="hkeys">' + keys + '</div><div class="hwhat">' + what + '</div></div>';
+        if (touchUI()) {
+          // on a phone or a tablet: the same four, drawn as the gestures and the two buttons. A fingertip with the way it
+          // goes (swipe: across to turn, up and down to look), the round zoom button as it is in the corner, a fingertip
+          // with the ring of a tap, and the menu button
+          const tip = '<circle cx="17" cy="17" r="5.5" fill="#b3161e"/>';
+          const arr = d => '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
+          const g = (svg, label) => '<kbd class="key gest" aria-label="' + label + '"><svg viewBox="0 0 34 34" aria-hidden="true">' + svg + '</svg></kbd>';
+          const swipeX = g(tip + arr('M3 17h7M3 17l3.5-3.5M3 17l3.5 3.5M31 17h-7M31 17l-3.5-3.5M31 17l-3.5 3.5'), 'swipe left or right');
+          const swipeY = g(tip + arr('M17 3v7M17 3l-3.5 3.5M17 3l3.5 3.5M17 31v-7M17 31l-3.5-3.5M17 31l3.5-3.5'), 'swipe up or down');
+          const tapG = g(tip + '<circle cx="17" cy="17" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".55"/><circle cx="17" cy="17" r="15" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".3"/>', 'tap');
+          const zoomG = '<span class="kzoom" aria-label="the zoom button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6 20.5 20.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>zoom</span></span>';
+          const menuG = '<span class="kmenu" aria-label="the menu button"><span></span></span>';
+          const say = t => '<span class="kplus">' + t + '</span>';
+          return '<h1>How to play</h1>' +
+            '<div class="howcards">' +
+            card(swipeX + swipeY + say('swipe'), 'Look around') +
+            card(zoomG + say('hold'), 'Zoom in') +
+            card(tapG + say('tap'), 'Interact') +
+            card(menuG + say('top left'), 'Pause') +
+            '</div>' +
+            '<p class="fine">Hold where a thing must be held (pulling the covers up, drawing a bow): let go to loose.</p>' +
+            '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
+        }
         return '<h1>How to play</h1>' +
           '<div class="howcards">' +
           card(cluster('↑', '←', '↓', '→') + or + cluster('W', 'A', 'S', 'D'), 'Look around') +
@@ -40,7 +63,7 @@ const MENU = (() => {
       }
       case 'pause':
         // one narrow column of buttons all of a width; R, M and Esc do the same from the keyboard
-        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('restart', 'Restart') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('mute', G.muted ? 'Unmute' : 'Mute') + btn('title', 'Quit') + '</div><p class="fine">Esc resumes</p>';
+        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('restart', 'Restart') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('mute', G.muted ? 'Unmute' : 'Mute') + btn('title', 'Quit') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
       case 'dead':
         return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + '<p class="fine">seed ' + G.runSeed + '</p>';
       case 'ending':   // the last screen of the last night, over the morning room
@@ -92,7 +115,7 @@ const MENU = (() => {
         const rng = (k, label) => '<label class="opt"><span>' + label + '</span><input type="range" min="0" max="1" step="0.05" data-set="' + k + '" value="' + S[k] + '"></label>';
         return '<h1>Settings</h1><div class="settings">' +
           rng('master', 'Volume') + rng('effects', 'Effects') + rng('ambient', 'Ambience') + chk('muted', 'Mute') +
-          chk('reducedFlash', 'Reduce flashing (softer red pulse, dimmer flashes)') + chk('reducedMotion', 'Reduce motion (no jitter or sway)') + chk('captions', 'Captions for sounds') + chk('touchLeft', 'Touch controls on the left') + chk('textures', 'Surface detail: boards and stone (off is faster)') +
+          chk('reducedFlash', 'Reduce flashing (softer red pulse, dimmer flashes)') + chk('reducedMotion', 'Reduce motion (no jitter or sway)') + chk('captions', 'Captions for sounds') + (touchUI() ? chk('swipeReverse', 'Reverse swipes (swipe left to turn left)') : '') + chk('textures', 'Surface detail: boards and stone (off is faster)') +
           '<label class="opt"><span>Text size</span><input type="range" min="0.85" max="1.4" step="0.05" data-set="textSize" value="' + S.textSize + '"></label>' +
           '</div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('reset', 'Erase progress', undefined, 'danger') + '</div>';
       }
@@ -151,14 +174,12 @@ const MENU = (() => {
     if (k === 'muted') setMuted(v);
     else if (k === 'master' || k === 'effects' || k === 'ambient') AUDIO.setVolume(k, v);
     else if (k === 'textSize') document.documentElement.style.setProperty('--text-scale', v);
-    else if (k === 'touchLeft') document.documentElement.toggleAttribute('data-touch-left', !!v);
     else if (k === 'textures') R.detail = !!v;
   }
   function applyAll() {
     const S = SAVE.data.settings;
     AUDIO.setVolume('master', S.master); AUDIO.setVolume('effects', S.effects); AUDIO.setVolume('ambient', S.ambient);
     document.documentElement.style.setProperty('--text-scale', S.textSize);
-    document.documentElement.toggleAttribute('data-touch-left', !!S.touchLeft);
     R.detail = S.textures !== false;
   }
   function act(a, arg) {

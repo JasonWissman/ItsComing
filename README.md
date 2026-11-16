@@ -43,10 +43,16 @@ down puts the active item back down. How to play shows the four that matter most
 Interact, Pause). The pause menu has Resume, Restart, Nights, Settings, Mute (Unmute while muted) and Quit, its
 buttons all one width; `R`, `M` and `Esc` work there as anywhere.
 
-Touch controls appear on phones and tablets: turn, look, hold to zoom, Use
-(whatever is nearest the middle of the view, or put the held thing down when
-looking down; hold Use to draw a bow, as holding A does on a gamepad) and Pause; tapping the held item again while looking down also puts it
-down. A gamepad works too: d-pad or left stick turns and
+On phones and tablets (a touch screen as the main pointer) the game is played on its side: held upright, a screen asks
+for the device to be turned sideways, and a night under way pauses behind it. The view is the controls. Swipe across it
+to turn one step (45 degrees) and up or down it to look down or back ahead; a swipe drags the scene, as a photo is
+dragged (the finger going left turns you right, the finger going up looks down), and Settings can reverse swipes. Tap
+to interact exactly where you tap, as a click there; press and hold where a thing must be held (the covers; a bow draws
+while the finger stays down, its sights following the finger, and looses when it lifts). A swipe is never a tap. A
+round zoom button in the bottom right corner zooms while held (a separate thumb, so you can zoom and tap or swipe at
+once), and a menu button top left, where the sound line is on a desktop, opens the pause menu (Mute is in it). The
+item slots switch by tap, and tapping the held item again while looking down puts it down. The page itself does not
+scroll or zoom. A gamepad works too: d-pad or left stick turns and
 looks, A uses, B puts the held thing down, a trigger zooms, Start pauses. In
 menus the d-pad moves between buttons and settings, left and right move a
 slider, A presses or ticks, and B goes back as Escape does.
@@ -55,12 +61,12 @@ On the Phone Booth, the pay phone and the notebook are looked at as anything els
 the zoom to see them closer. Click or tap the phone's keys where they are drawn (with the zoom held or not), or, facing
 it, type the number with the number keys. With a gamepad the d-pad moves a highlight over the phone (receiver, coin slot,
 keys, coin return; past the last one in a direction it turns as usual) and A presses what is highlighted. The notebook on
-the shelf under the phone is read where it lies: click it (or press Use, or A) to open it, and again to turn each page.
+the shelf under the phone is read where it lies: click or tap it (or press A) to open it, and again to turn each page.
 
 Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
 dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
 line at a time, with a marker for which side a sound came from), a text size
-slider, a switch to put the touch controls on the left, and one for surface detail (boards, logs and stone
+slider, on a touch screen a switch to reverse swipes, and one for surface detail (boards, logs and stone
 built into walls and floors; off is faster on slow machines). The two reduction settings default on when your
 system asks for reduced motion. Erase progress asks first, in a small dialog of its own (Cancel, Erase).
 
@@ -151,7 +157,7 @@ some on the ground, so you have to turn and look down to find them.
    and closing as it goes, so it is seldom where you last saw it. The bow is on the porch, and its three arrows lie about, each in a
    place of its own (driven into the wall or a post, along a rail, on the woodpile, the
    crate or the boards, stood against the wall); picked up, they go together in one slot,
-   "Arrows ×2". Hold the button (or the touch Use button, or A) to draw. A power bar fills
+   "Arrows ×2". Hold the button (or a finger on the view, or A) to draw. A power bar fills
    beside your aim, and when it tops out it is full: it turns green and says so, the string
    comes tight with a click and shines, the bow bent hard back, and it stays full for as long as
    you hold it. Let go full with it in your sights and the arrow goes in, however far off it
@@ -533,7 +539,7 @@ LEVELS.push({
   `L.watchPitch` (how far down the win camera may look), `L.watchUp` (how far up it may look: the last night, into its face),
   `L.onPress(e)` (a won night waiting on a click, key, tap or A; true when it took the press: the last night's meadow,
   where a modifier, a chord or a function key, as for alt-tab or a screenshot, does not go on), `L.lookFree()` (true while
-  a won night gives the view back: turning, looking and zooming by key, touch button or pad work as in play and are not
+  a won night gives the view back: turning, looking and zooming by key, swipe and the zoom button, or pad work as in play and are not
   taken as the press; the last night's meadow), `L.viewZoom()` (a zoom the view comes in to while playing;
   no night uses it now), `L.padDir(dir)` and `L.padUse()` (a night may take the gamepad's d-pad and A before the
   game does), `L.overlay(ctx, W, H)` (a night's own picture over the view: the covers over your eyes), `L.visFrac(c)`, `L.eye = { x, y, z }` (move the eye: renderables, targets, items
@@ -568,7 +574,7 @@ LEVELS.push({
   one comes up), a thing picked up comes from where it lay up into the hand, a use pushes the hand toward the target
   (`G.thrust(target, item, release)`; a thing used up is let go of there), and the hand goes down out of view when you
   hold nothing or the night is won or lost. It keeps clear of the middle of the view, the hover line, the inventory and
-  the touch buttons, measured from where they are on the page: on a phone it moves in from them, up over them or
+  the zoom button on a phone, measured from where they are on the page: it moves in from them, up over them or
   shrinks. How a thing sits in the hand comes from its shape (long: carried in one fist at your side; small: between
   finger and thumb; tall: in a fist; wide and low: on the palm; a key by its bow; a chain hanging), and a few shared
   icons know better (the hammer by its handle, the lantern hanging by its bail). `item.held` overrides any of it:
@@ -660,9 +666,9 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 once, short of full, as soon as it is full, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
 the one game (no picker, no hints), restart, mute, menus (the pause menu, How to play's cards, the Nights screen,
-erasing progress, the win screen between nights, the title's click), the full run's clock, captions, the gamepad and touch pad, sealed ways, the death
+erasing progress, the win screen between nights, the title's click), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
-reduced motion, clear of the touch buttons on a phone), a wrong thing coming back, a plank falling to the floor where a
+reduced motion, clear of the zoom button on a phone), a wrong thing coming back, a plank falling to the floor where a
 click takes it again (hanging, as it tips, from the end it is meant to), a decoy dropping, the empty hand's reach, one fumble for many fast clicks, and a target's own choices. `test/lanes.js` runs `validateContent()` and checks every
 lane gets picked on Nightmare. `test/switch.js` checks the Nightmare lane switch happens only while
 unseen, early, without a jump in distance, and never on nights that opt out.

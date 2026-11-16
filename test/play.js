@@ -12,14 +12,23 @@ const SEEDS = (process.env.SEEDS || '1,2').split(',').map(Number);
 // a bow (night 5): press and hold, then let go. `when`: 'click' (let go at once), 'short' (just past the least draw, well
 // short of full), 'full' (as soon as the bar is full), or a number of ms (held that long, past full if it is long enough);
 // `where`: on the thing (its body, followed while drawing, as a player keeps it in the sights) or 'off' (well to one side
-// of it); `via`: 'mouse' (default), 'touch' (the Use button) or 'pad' (A), which both aim at the middle of the view
+// of it); `via`: 'mouse' (default), 'touch' (a finger held on the view where the mouse would be: touch events on it, as
+// a phone sends them) or 'pad' (A, which aims at the middle of the view)
 async function drawBow(page, when, where, via) {
   via = via || 'mouse';
   const body = () => page.evaluate(() => { const b = creatureBox(G.L.creature); return b && { x: b.x + b.w / 2, y: b.y + b.h / 2 }; });
   const aim = async () => { const r = await body(); if (!r) return null; return where === 'off' ? { x: r.x + (r.x > 640 ? -260 : 260), y: r.y } : r; };
   const press = async down => {
     if (via === 'mouse') { if (down) await page.mouse.down(); else await page.mouse.up(); return; }
-    if (via === 'touch') { await page.evaluate(dn => document.getElementById('tUse').dispatchEvent(new PointerEvent(dn ? 'pointerdown' : 'pointerup', { bubbles: true, cancelable: true })), down); return; }
+    if (via === 'touch') {
+      const p = down ? await aim() : null;
+      await page.evaluate(([dn, p]) => {
+        const at = dn ? p : window._finger, t = new Touch({ identifier: 7, target: UI.canvas, clientX: at.x, clientY: at.y });
+        window._finger = at;
+        UI.canvas.dispatchEvent(new TouchEvent(dn ? 'touchstart' : 'touchend', { bubbles: true, cancelable: true, touches: dn ? [t] : [], changedTouches: [t] }));
+      }, [down, p]);
+      return;
+    }
     await page.evaluate(dn => {
       if (!window._pad) { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; }
       window._pad.buttons[0].pressed = dn;

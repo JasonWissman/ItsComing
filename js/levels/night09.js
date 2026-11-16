@@ -1009,7 +1009,7 @@ Object.assign(ICONS, {
       L.padUse = () => {
         if (!closeUp()) return false;
         ensureAudio();
-        if (!s.padSel) {   // nothing highlighted yet: what is nearest the middle of the view, as the Use button does
+        if (!s.padSel) {   // nothing highlighted yet: what is nearest the middle of the view, as A always does
           let bd = Infinity;
           for (const c of controls) { const w = ph(c.u, c.y, 0.11), p = R.screenPos(w[0], w[1], w[2]); const d = p ? Math.hypot(p.x - R.W / 2, p.y - R.H / 2) : Infinity; if (d < bd) { bd = d; s.padSel = c; } }
         }

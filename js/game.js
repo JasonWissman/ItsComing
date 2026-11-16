@@ -33,6 +33,12 @@ const G = {
 
 const UI = {};
 function $(id) { return document.getElementById(id); }
+// a phone or a tablet: its main pointer is a finger (the layout's own test, index.html: pointer: coarse). The controls are
+// swipes and taps there, the hints say tap, and held upright it asks to be turned sideways (PORTRAIT: the night pauses)
+const COARSE = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+const PORTRAIT = window.matchMedia ? window.matchMedia('(pointer: coarse) and (orientation: portrait)') : null;
+function touchUI() { return !!(COARSE && COARSE.matches); }
+function portraitHeld() { return !!(PORTRAIT && PORTRAIT.matches); }
 
 // ---------------- level construction ----------------
 // 'seeded' keeps the same way for the whole run, retry after retry; 'random' (Nightmare) rolls again every attempt.
@@ -238,7 +244,7 @@ function startLevel(i, withCard) {
     setState('card');
     const d = G.diff(), T = G.L.text;
     const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
+    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">' + (touchUI() ? 'Tap when you are ready' : 'Click or press Enter when you are ready') + '</p>');
   } else {
     setState('play');
     hideOverlay();
@@ -256,7 +262,7 @@ function setState(s) { G.state = s; G.stateT = 0; }
 
 // ---------------- overlays ----------------
 function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.remove('dlg', 'titlelow'); UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350; } // a double-click cannot skip a card
-function hideOverlay() { UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+function hideOverlay() { if (touchUI()) G.mouse.x = G.mouse.y = -1; UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
   if (G.L && G.L.onEnd) G.L.onEnd();
@@ -322,7 +328,7 @@ function lookKey(k) {
   return true;
 }
 // a won night may give the view back while it waits (L.lookFree: the last night's meadow): you turn, look and zoom as in play,
-// by key, touch button or pad, and none of that is taken as the press it waits on
+// by key, swipe and the zoom button, or pad, and none of that is taken as the press it waits on
 function lookFree() { return G.state === 'won' && !!G.L && !!G.L.lookFree && G.L.lookFree(); }
 function onKeyUp(e) { const k = e.key; if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = false; }
 function ensureAudio() { if (!AUDIO.on()) AUDIO.init(); AUDIO.resume(); }
@@ -364,19 +370,21 @@ function proceed() {
   }
 }
 
-function onMouseMove(e) { G.mouse.x = e.clientX; G.mouse.y = e.clientY; }
-function onMouseDown(e) {
+function onMouseMove(e) { if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return; G.mouse.x = e.clientX; G.mouse.y = e.clientY; }   // (the mouse a browser makes up after a tap on a menu is not a pointer over the view)
+function onMouseDown(e) { if (e.button !== 0) { G.drawSwallow = false; return; } if (pressAt(e.clientX, e.clientY, 'mouse')) e.preventDefault(); }
+// the button (or a finger) goes down at x, y: on a thing that is held (the covers) it takes hold; with a bow, it draws.
+// src: 'mouse' or 'finger' (a touch on the view: see touch, below), both aimed where they are
+function pressAt(x, y, src) {
   G.drawSwallow = false;
-  if (G.state !== 'play' || e.button !== 0) return;
-  G.mouse.x = e.clientX; G.mouse.y = e.clientY;
+  if (G.state !== 'play') return false;
+  G.mouse.x = x; G.mouse.y = y;
   updateHover();
   const h = G.hover;
-  if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; e.preventDefault(); }
-  else if (drawPress(G.L, h, 'mouse')) e.preventDefault();   // a bow: held, the button draws it
+  if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; return true; }
+  return drawPress(G.L, h, src);   // a bow: held, the button draws it
 }
 function onMouseUp() { G.holding = null; drawLetGo('mouse'); }
 function onClick(e) {
-  if (e.target.closest && e.target.closest('#touch')) return;
   if (G.drawSwallow) { G.drawSwallow = false; if (G.state === 'play') return; }   // the click that ends a draw is not another use
   // the list screens are not click-anywhere, nor is the title: a click on the dark there only brings it a step nearer,
   // in the blink it takes (TITLE.advance); the cards are click-anywhere
@@ -585,8 +593,8 @@ function fireUse(L, u, ammo) {
   AUDIO.sfx(u.sfx || 'shot'); G.flash(u.flash === undefined ? 0.5 : u.flash); G.shake(u.shake === undefined ? 0.7 : u.shake); L.s.recoil = 1;
 }
 // ---- a bow: hold to draw, let go to loose ----
-// A use with draw: { loose(outcome, c, aim, power, L), fill, min } is drawn by holding the button (or A, or the touch Use
-// button). The power bar fills over `fill` seconds to full, and it stays full for as long as it is held. All that matters is
+// A use with draw: { loose(outcome, c, aim, power, L), fill, min } is drawn by holding the button (or A, or a finger held on
+// the view). The power bar fills over `fill` seconds to full, and it stays full for as long as it is held. All that matters is
 // whether it is full when you let go: full with the aim on the thing's body is 'hit', however far off it is; full but off
 // it, 'miss'; let go before full, 'short'. Each of those spends one of the ammo and hands the outcome to loose(). Let go
 // before `min` seconds and nothing is loosed: the bow is let back down ('easing'), which is what a click shows. G.draw is
@@ -596,7 +604,7 @@ function drawUse(L) { const u = L && activeUse(L); return u && u.draw ? u : null
 function drawPress(L, h, src) {
   const u = drawUse(L);
   if (!u || G.state !== 'play' || G.cam.pitch > 0.5 || (h && h.kind !== 'creature')) return false;   // looking down, or at something to take or use: not a draw
-  if (src === 'mouse') G.drawSwallow = true;
+  if (aimedSrc(src)) G.drawSwallow = true;
   if (!G.hasItem(u.ammo)) { AUDIO.sfx('nope'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Nothing to loose.'); return true; }
   G.drawBtn = src;
   return true;
@@ -631,10 +639,12 @@ function looseDraw(L, d, cancel) {
   Object.assign(d, { state: 'loosed', outcome, from: p, t: 0, dur: 0.6, aim });
   u.draw.loose(outcome, c, aim, p, L);
 }
-// where it is aimed (page coordinates): the pointer; from a pad or the touch Use button, the middle of the view, or the
+// where it is aimed (page coordinates): the pointer or the finger; from a pad, the middle of the view, or the
 // thing itself if it is the nearest thing to the middle (where firing from a pad has always aimed)
+function aimedSrc(src) { return src === 'mouse' || src === 'finger'; }   // drawn at the pointer or the finger, not from a button
 function drawAim(src) {
   if (src === 'mouse') return { x: G.mouse.x, y: G.mouse.y };
+  if (src === 'finger') return G.mouse.x >= 0 ? { x: G.mouse.x, y: G.mouse.y } : { x: TOUCH.ax, y: TOUCH.ay };   // (where it last was, once it is lifted)
   const mid = { x: R.W / 2, y: R.viewY + R.H / 2 };
   let best = null, bestD = Infinity;
   for (const r of R.hits) { const dd = Math.hypot(r.x + r.w / 2 - mid.x, r.y + r.h / 2 - mid.y); if (dd < bestD) { best = r; bestD = dd; } }
@@ -723,6 +733,7 @@ function inPoly(x, y, pts) {
   return inside;
 }
 function updateHover() {
+  if (TOUCH.lift && performance.now() > TOUCH.lift) { TOUCH.lift = 0; G.mouse.x = G.mouse.y = -1; }   // a finger lifted a moment ago: nothing under it now
   const hits = R.hits, mx = G.mouse.x, my = G.mouse.y;
   let h = null;
   if (G.state === 'play' && mx >= 0) {
@@ -758,6 +769,7 @@ function updateHover() {
 // ---------------- update ----------------
 function update(dt) {
   G.t += dt;
+  if (G.state === 'play' && portraitHeld()) pauseGame();   // turned upright: the night waits, paused, behind the turn-it-sideways screen
   runTick(dt);
   const L = G.L; if (!L) return;
   const c = G.cam;
@@ -1058,7 +1070,7 @@ function drawGunOverlay(ctx, W, H) {
   const u = activeUse(L);
   if (!u || G.state === 'dead' || G.state === 'dying') return;
   if (u.inHands) u.inHands(ctx, W, H, G.draw, L, G.draw ? (G.draw.state === 'loosed' ? G.draw.aim : drawAim(G.draw.src)) : null);   // what you hold up to use it (night 5's bow), under the crosshair; aimed where it is drawn
-  const padDraw = G.draw && G.draw.src !== 'mouse' && G.draw.state === 'drawing';   // drawn from a pad or the touch button: the sights are where it is aimed
+  const padDraw = G.draw && !aimedSrc(G.draw.src) && G.draw.state === 'drawing';   // drawn from a pad: the sights are where it is aimed
   if (u.sights !== false && G.cam.pitch < 0.3 && G.state === 'play' && (G.mouse.x >= 0 || padDraw) && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
     ctx.strokeStyle = 'rgba(255,230,200,0.5)'; ctx.lineWidth = 1;
     const at = padDraw ? drawAim(G.draw.src) : G.mouse, mx = at.x, my = at.y - R.viewY;
@@ -1069,6 +1081,7 @@ function drawGunOverlay(ctx, W, H) {
 // ---------------- HUD ----------------
 function updateHUD() {
   const L = G.L, c = G.cam;
+  touchChrome(L);
   const playing = G.state === 'play' || (G.state === 'won' && !L.def.ending);   // the ending plays without the compass
   UI.hud.style.opacity = playing ? 1 : 0;
   if (!playing) return;
@@ -1195,21 +1208,95 @@ function gamepadUse(src) {
   if (G.cam.pitch > 0.5 && G.inv.length) dropActive();
 }
 
-// ---------------- touch controls ----------------
+// ---------------- touch ----------------
+// On a phone or a tablet the view is the controls. Swipe across it to turn a step (one 45 degree step a swipe, as an arrow
+// key) and up or down it to look down or back ahead. A swipe drags the scene, as a photo is dragged: the finger going left
+// pulls in what is on the right (you turn right), the finger going up pulls up what is below (you look down); the setting
+// swipeReverse turns both round. Lifted without having swiped, it is a click there: whatever it is on is taken, used or
+// put down, as the mouse does, with the hover, the hold and the bow as the mouse has them (pressAt, onClick). Pressed and
+// held on a thing that is held (the covers) or with a bow, the finger holds it; once a hold has gone on a moment, moving
+// the finger aims (the bow's sights follow it) instead of swiping. Only the first finger on the view counts. The touch on
+// the view is the whole of it (preventDefault): the browser makes no mouse events or click of its own, and does not scroll
+// or zoom the page. Two buttons stand in for the keys: zoom, held (#zoomBtn), and the menu (#menuBtn: the pause menu).
+const TOUCH = { id: null, x0: 0, y0: 0, t0: 0, swiped: false, ax: -1, ay: -1, lift: 0 };
+const SWIPE_HOLD = 250;   // ms: a press held this long on a hold or a draw before the finger moves aims instead of swiping
+function swipeMin() { return Math.max(22, Math.min(window.innerWidth, window.innerHeight) * 0.06); }
+function ownTouch(e) { for (const t of e.changedTouches) if (t.identifier === TOUCH.id) return t; return null; }
+function onTouchStart(e) {
+  if (e.cancelable) e.preventDefault();
+  if (TOUCH.id !== null) return;   // a second finger: only the first counts
+  const t = e.changedTouches[0];
+  Object.assign(TOUCH, { id: t.identifier, x0: t.clientX, y0: t.clientY, t0: performance.now(), swiped: false, ax: t.clientX, ay: t.clientY, lift: 0 });
+  pressAt(t.clientX, t.clientY, 'finger');
+}
+function onTouchMove(e) {
+  const t = ownTouch(e); if (!t) return;
+  if (e.cancelable) e.preventDefault();
+  if (TOUCH.swiped) return;
+  G.mouse.x = TOUCH.ax = t.clientX; G.mouse.y = TOUCH.ay = t.clientY;   // (a hold follows the finger, and the bow's aim)
+  const dx = t.clientX - TOUCH.x0, dy = t.clientY - TOUCH.y0;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < swipeMin()) return;
+  if ((G.holding || G.drawBtn === 'finger') && performance.now() - TOUCH.t0 > SWIPE_HOLD) return;   // holding on: it aims
+  TOUCH.swiped = true;
+  G.holding = null; drawLetGo('finger', true); G.drawSwallow = false;   // a swipe is not a press: whatever it took hold of, let go
+  G.mouse.x = G.mouse.y = -1;
+  swipe(dx, dy);
+}
+function onTouchEnd(e) {
+  const t = ownTouch(e); if (!t) return;
+  if (e.cancelable) e.preventDefault();
+  TOUCH.id = null;
+  if (TOUCH.swiped) return;
+  G.mouse.x = TOUCH.ax = t.clientX; G.mouse.y = TOUCH.ay = t.clientY;
+  onMouseUp(); drawLetGo('finger');   // as the button coming up, then the click
+  onClick({ clientX: t.clientX, clientY: t.clientY, target: UI.canvas, button: 0 });
+  TOUCH.lift = performance.now() + 1200;   // what it was on keeps its name up a moment, then there is nothing under a finger
+}
+function onTouchCancel(e) {
+  if (!ownTouch(e)) return;
+  TOUCH.id = null; G.holding = null; drawLetGo('finger', true); G.drawSwallow = false; G.mouse.x = G.mouse.y = -1;
+}
+// a swipe by dx, dy (pixels): the arrow key it stands for
+function swipeKey(dx, dy) {
+  const rev = !!SAVE.data.settings.swipeReverse;
+  if (Math.abs(dx) >= Math.abs(dy)) return (dx < 0) !== rev ? 'ArrowRight' : 'ArrowLeft';
+  return (dy < 0) !== rev ? 'ArrowDown' : 'ArrowUp';
+}
+// taken as the key is: in play, or where a won night gives the view back or waits on a press (the last night's meadow,
+// sitting crying: looking up goes to it, as the up key does)
+function swipe(dx, dy) {
+  if (!(G.state === 'play' || (G.state === 'won' && (lookFree() || (G.L && G.L.onPress))))) return;
+  onKeyDown({ key: swipeKey(dx, dy), preventDefault() {}, target: UI.canvas });
+}
+// the two buttons, shown (index.html, on a coarse pointer) only as a night is played: the menu while it is, zoom too where
+// a won night gives the view back or waits on a press (the last night's meadow: zoom goes to it, as the key does)
+let chromeSig = '';
+function touchChrome(L) {
+  const menu = G.state === 'play', zoom = menu || (G.state === 'won' && !!L && (lookFree() || !!L.onPress));
+  const sig = (menu ? 'm' : '') + (zoom ? 'z' : '');
+  if (sig === chromeSig) return;
+  chromeSig = sig;
+  document.body.classList.toggle('tplay', menu); document.body.classList.toggle('tzoom', zoom);
+  if (!zoom && UI.zoomBtn.classList.contains('on')) { UI.zoomBtn.classList.remove('on'); G.cam.zoomHeld = false; }
+}
 function bindTouch() {
-  const press = (id, down, up, look) => {   // look: a button that turns, looks or zooms (it does that too where a won night gives the view back)
-    const el = $(id); if (!el) return;
-    const d = e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); if (G.state !== 'play' && !(look && lookFree())) { if (!LIST_SCREENS.includes(MENU.kind)) proceed(); return; } down(); };
-    const u = e => { e.preventDefault(); if (up) up(); };
-    el.addEventListener('pointerdown', d); el.addEventListener('pointerup', u); el.addEventListener('pointercancel', u); el.addEventListener('pointerleave', u);
-  };
-  press('tLeft', () => onKeyDown({ key: 'ArrowLeft', preventDefault() {} }), null, true);
-  press('tRight', () => onKeyDown({ key: 'ArrowRight', preventDefault() {} }), null, true);
-  press('tUp', () => onKeyDown({ key: 'ArrowUp', preventDefault() {} }), null, true);
-  press('tDown', () => onKeyDown({ key: 'ArrowDown', preventDefault() {} }), null, true);
-  press('tZoom', () => { G.cam.zoomHeld = true; }, () => { G.cam.zoomHeld = false; }, true);
-  press('tUse', () => gamepadUse('touch'), () => drawLetGo('touch'));
-  press('tPause', () => pauseGame());
+  const c = UI.canvas, o = { passive: false };
+  c.addEventListener('touchstart', onTouchStart, o); c.addEventListener('touchmove', onTouchMove, o);
+  c.addEventListener('touchend', onTouchEnd, o); c.addEventListener('touchcancel', onTouchCancel, o);
+  document.addEventListener('gesturestart', e => e.preventDefault());   // (Safari's pinch: the page does not zoom)
+  const z = UI.zoomBtn;
+  z.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation(); ensureAudio();
+    try { z.setPointerCapture(e.pointerId); } catch (err) { void err; }   // held even if the thumb slides off it
+    if (G.state === 'play' || lookFree()) { G.cam.zoomHeld = true; z.classList.add('on'); }
+    else if (G.state === 'won') proceed();   // a won night waiting on a press: zoom is one (sitting crying: zoom goes to it)
+  });
+  const up = () => { if (z.classList.contains('on')) { G.cam.zoomHeld = false; z.classList.remove('on'); } };
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) z.addEventListener(ev, up);
+  z.addEventListener('click', e => e.stopPropagation());
+  z.addEventListener('contextmenu', e => e.preventDefault());
+  UI.menuBtn.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); AUDIO.sfx('tap'); if (G.state === 'play') pauseGame(); });
+  if (PORTRAIT && PORTRAIT.addEventListener) PORTRAIT.addEventListener('change', () => { if (PORTRAIT.matches && G.state === 'play') pauseGame(); });
 }
 
 // ---------------- boot ----------------
@@ -1233,7 +1320,7 @@ function frame(now) {
 G.step = function (dt, n) { for (let i = 0; i < (n || 1); i++) { update(dt); render(); } };
 function init() {
   UI.canvas = $('game'); UI.hud = $('hud'); UI.compass = $('compass'); UI.objective = $('objective'); UI.pitch = $('pitch');
-  UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute');
+  UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute'); UI.zoomBtn = $('zoomBtn'); UI.menuBtn = $('menuBtn');
   UI.holdbar = $('holdbar'); UI.holdfill = $('holdfill');
   UI.drawbar = $('drawbar'); UI.drawfill = $('drawfill'); UI.drawmin = $('drawmin'); UI.drawlabel = $('drawlabel');
   R.attach(UI.canvas); R.resize();

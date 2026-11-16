@@ -86,6 +86,35 @@
     kbd.key.mouse svg { width: 20px; height: 30px; }
     .kplus { font-size: 10px; padding: 0 1px; }
   }
+  /* How to play on a phone: the gestures on keycaps (a fingertip, the way it goes), and the two buttons as they look */
+  kbd.key.gest { width: 62px; height: 62px; padding: 0; border-radius: 14px; }
+  kbd.key.gest svg { width: 40px; height: 40px; color: #3a332c; }
+  .kzoom, .kmenu { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; color: rgba(239,230,210,.85); background: rgba(0,0,0,.42); border: 1px solid rgba(207,200,186,.4); }
+  .kzoom { width: 62px; height: 62px; border-radius: 50%; gap: 1px; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
+  .kzoom svg { width: 24px; height: 24px; }
+  .kmenu { width: 46px; height: 40px; border-radius: 6px; }
+  .kmenu span, .kmenu span::before, .kmenu span::after { display: block; width: 20px; height: 2px; background: currentColor; border-radius: 1px; }
+  .kmenu span { position: relative; } .kmenu span::before, .kmenu span::after { content: ''; position: absolute; left: 0; } .kmenu span::before { top: -6px; } .kmenu span::after { top: 6px; }
+  /* a phone on its side is short: the four cards in two rows of two, each its picture beside its words, so it all fits */
+  @media (max-height: 520px) {
+    #overlay.dlg { padding: 10px; } #overlay.dlg > .panel { max-height: calc(100vh - 20px); min-height: 0; padding: 14px 22px; }
+    #overlay.dlg > .panel h1 { margin: 0 0 6px; font-size: 26px; }
+    #overlay .howcards { gap: 8px; margin: 6px auto 2px; }
+    .hcard { flex-direction: row; justify-content: space-between; gap: 10px; padding: 8px 16px; }
+    .hkeys { min-height: 0; gap: 6px; }
+    .hwhat { font-size: calc(18px * var(--text-scale)); text-align: right; }
+    kbd.key.gest, .kzoom { width: 48px; height: 48px; } kbd.key.gest svg { width: 32px; height: 32px; } .kzoom svg { width: 20px; height: 20px; } .kzoom { font-size: 8px; }
+    #overlay.dlg .fine { margin-top: 8px; }
+    #overlay.dlg .mrow { margin-top: 8px; }
+    /* and every screen: scrolled from its top when it does not fit (centred, the top would be cut off); the pause menu's
+       six buttons in two columns of three */
+    #overlay:not(.titlelow) { justify-content: flex-start; overflow-y: auto; padding-top: 14px; padding-bottom: 14px; }
+    #overlay:not(.titlelow) > :first-child { margin-top: auto; } #overlay:not(.titlelow) > :last-child { margin-bottom: auto; }
+    body #overlay h1 { margin: 2px 0 10px; }
+    #overlay .mcol.even { display: grid; grid-template-columns: 1fr 1fr; width: min(460px, 100%); gap: 8px 10px; margin-top: 8px; margin-left: auto; margin-right: auto; }
+    #overlay .mbtn { padding: 8px 18px; }
+  }
+  :root[data-theme="day"] .kzoom, :root[data-theme="day"] .kmenu { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
   :root[data-theme="day"] .hwhat, :root[data-theme="day"] .kplus { color: #3a332c; }
   :root[data-theme="day"] .hcard, :root[data-theme="day"] .runcard { background: rgba(58,51,44,.06); }
   /* the prologue before a new game: black, two lines fading up one after the other in the middle, then all of it out */
@@ -207,9 +236,6 @@
   #overlay .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; font-size: calc(14px * var(--text-scale)); color: rgba(207,200,186,.7); margin: 8px auto 0; text-align: left; width: max-content; max-width: 100%; }
   #overlay .controls b { color: #efe6d2; font-weight: normal; }
   @keyframes breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
-  #touch { display: none; position: fixed; right: 14px; bottom: 14px; grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(2, 52px); gap: 6px; z-index: 5; }
-  #touch #tUse { grid-column: 4; grid-row: 1; font-size: 11px; letter-spacing: .1em; }
-  #touch #tPause { grid-column: 4; grid-row: 2; font-size: 14px; }
   #caption { position: fixed; z-index: 6; pointer-events: none; bottom: 190px; left: 50%; transform: translateX(-50%); font-size: calc(14px * var(--text-scale)); font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
   #caption.show { opacity: 1; }
   :root[data-theme="day"] #caption { color: #2e2823; text-shadow: 0 1px 2px #fff; }
@@ -217,11 +243,40 @@
   :root[data-theme="day"] #overlay .prompt, :root[data-theme="day"] #overlay .prompt .alt { color: rgba(58,51,44,.7); }
   :root[data-theme="day"] .mbtn.danger { color: #8f1a20; border-color: rgba(143,26,32,.5); }
   :root[data-theme="day"] #overlay .kicker { color: rgba(58,51,44,.75); }
-  :root[data-touch-left] #touch { left: 14px; right: auto; }
-  body.menu #touch { display: none; }
-  #touch button { background: rgba(0,0,0,.5); border: 1px solid rgba(207,200,186,.3); color: #efe6d2; font-size: 18px; border-radius: 6px; touch-action: none; -webkit-tap-highlight-color: transparent; }
-  #touch #tZoom { grid-column: 3; grid-row: 1 / span 2; font-size: 11px; letter-spacing: .1em; }
-  @media (pointer: coarse) { #touch { display: grid; } #inventory { left: 18px; width: min(172px, calc(100vw - 266px)); transform: none; flex-wrap: wrap-reverse; column-gap: 6px; row-gap: 18px; } :root[data-touch-left] #inventory { left: auto; right: 18px; } .slot, .slot canvas { width: 50px; height: 50px; } #tooltip { bottom: 150px; } #caption { bottom: 200px; } }
+  /* a phone or a tablet (a coarse pointer): swipe on the view to look, tap to use (js/game.js: touch). Two small buttons
+     instead of the keys: zoom (held) in the bottom right corner, and the menu, top left where the sound line is on a
+     desktop (the pause menu has Mute in it). Both only while a night is being played */
+  #zoomBtn, #menuBtn { display: none; position: fixed; z-index: 6; box-sizing: border-box; align-items: center; justify-content: center; padding: 0; color: rgba(239,230,210,.8); background: rgba(0,0,0,.42); border: 1px solid rgba(207,200,186,.28); touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; cursor: pointer; }
+  #zoomBtn { right: max(16px, env(safe-area-inset-right)); bottom: 18px; width: 62px; height: 62px; border-radius: 50%; flex-direction: column; gap: 1px; font: inherit; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
+  #zoomBtn svg { width: 24px; height: 24px; }
+  #zoomBtn span { margin-right: -.18em; }
+  #zoomBtn.on { color: #0b0a0a; background: rgba(239,230,210,.86); border-color: #efe6d2; box-shadow: 0 0 14px rgba(239,230,210,.3); }
+  #menuBtn { top: 12px; left: max(14px, env(safe-area-inset-left)); width: 40px; height: 36px; border-radius: 6px; }
+  #menuBtn span, #menuBtn span::before, #menuBtn span::after { display: block; width: 18px; height: 2px; background: currentColor; border-radius: 1px; }
+  #menuBtn span { position: relative; }
+  #menuBtn span::before, #menuBtn span::after { content: ''; position: absolute; left: 0; }
+  #menuBtn span::before { top: -6px; } #menuBtn span::after { top: 6px; }
+  #menuBtn:active { color: #efe6d2; border-color: rgba(239,230,210,.8); }
+  :root[data-theme="day"] #zoomBtn, :root[data-theme="day"] #menuBtn { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
+  /* held in portrait: a screen over everything asking for it turned sideways, and the night paused behind it */
+  #rotate { display: none; position: fixed; inset: 0; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; box-sizing: border-box; text-align: center; background: radial-gradient(ellipse at 50% 42%, #14110f, #000 70%); color: #efe6d2; touch-action: none; }
+  #rotate svg { width: 120px; height: 120px; margin-bottom: 14px; color: #efe6d2; }
+  #rotate .rphone { transform-origin: 60px 54px; animation: rturn 2.8s ease-in-out infinite; }
+  #rotate h2 { margin: 0; font-weight: normal; font-size: 26px; letter-spacing: .06em; }
+  #rotate p { margin: 6px 0 0; max-width: 18em; font-size: 15px; line-height: 1.5; font-style: italic; color: rgba(207,200,186,.6); }
+  @keyframes rturn { 0%, 20% { transform: none; } 50%, 80% { transform: rotate(-90deg); } 100% { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #rotate .rphone { animation: none; transform: rotate(-90deg); } }
+  @media (pointer: coarse) {
+    html, body { touch-action: manipulation; -webkit-touch-callout: none; }
+    #game, #hud { touch-action: none; }
+    #mute { display: none; }
+    body.tplay #menuBtn, body.tzoom #zoomBtn { display: flex; }
+    body.menu #menuBtn, body.menu #zoomBtn { display: none; }
+    .slot, .slot canvas { width: 50px; height: 50px; }
+    #inventory { gap: 8px; }
+    #compass { top: 18px; } #pitch { top: 40px; } #zoom { top: 58px; } #toast { top: calc(var(--view-top, 0px) + 80px); } #objective { top: 14px; }
+  }
+  @media (pointer: coarse) and (orientation: portrait) { #rotate { display: flex; } }
   @media (max-width: 700px) { #compass { top: 44px; } #pitch { top: 74px; } #zoom { top: 94px; } #toast { top: calc(var(--view-top, 0px) + 116px); } #objective { top: 44px; } #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: calc(15px * var(--text-scale)); } #objective { max-width: 48vw; font-size: calc(12px * var(--text-scale)); } #compass { gap: 10px; font-size: 11px; } }
 </style>
 </head>
@@ -241,17 +296,15 @@
   <div id="debug"></div>
 </div>
 <div id="caption" aria-live="polite"></div>
-<div id="touch">
-  <button id="tLeft" aria-label="turn left">◀</button>
-  <button id="tUp" aria-label="look ahead">▲</button>
-  <button id="tZoom" aria-label="zoom">ZOOM</button>
-  <button id="tUse" aria-label="use">USE</button>
-  <button id="tPause" aria-label="pause">II</button>
-  <button id="tDown" aria-label="look down">▼</button>
-  <button id="tRight" aria-label="turn right">▶</button>
-</div>
+<button type="button" id="zoomBtn" aria-label="zoom in (hold)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6 20.5 20.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>zoom</span></button>
 <div id="overlay"></div>
 <div id="mute">sound on (M)</div>
+<button type="button" id="menuBtn" aria-label="menu"><span></span></button>
+<div id="rotate" role="alert" aria-live="assertive">
+  <svg viewBox="0 0 120 120" aria-hidden="true"><g class="rphone"><rect x="40" y="18" width="40" height="72" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M54 25h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="60" cy="81" r="3" fill="currentColor"/></g><path class="rarrow" d="M93 70a36 36 0 0 1-26 33" fill="none" stroke="#b3161e" stroke-width="3" stroke-linecap="round"/><path class="rarrow" d="M64 96l3 7.5-7.5 3" fill="none" stroke="#b3161e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <h2>Turn your device sideways</h2>
+  <p>It is played in landscape. The night waits until you do.</p>
+</div>
 <script src="js/util.js"></script>
 <script src="js/soundtune.js"></script>
 <script src="js/audio.js"></script>
