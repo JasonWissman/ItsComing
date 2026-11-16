@@ -163,7 +163,8 @@ function validateContent() {
 // Nights screen counts a best) and whether that beat the best before; finished, it is kept as G.lastRun for the results.
 function beginRun() { G.run = { t: 0, night: 0, nights: [] }; }
 // ---------- a new game: before the first night, a black screen and two lines, one after the other ----------
-// The lines come up slowly in the middle of the dark, hold, and everything fades out; then night 1's card. A click or a
+// The lines come up slowly in the middle of the dark, one at a time (the first gone before the second comes), and fade;
+// then night 1's card. A click or a
 // key (after the first moment) skips it. Over everything, so nothing on the title behind it can be pressed.
 const PROLOGUE = ['You haven\u2019t had a good night\u2019s sleep in ages.', 'Each night something visits you in your dreams\u2026'];
 let prologueOn = false;
@@ -191,9 +192,11 @@ function newGame() {
   document.addEventListener('keydown', key, true);
   el.addEventListener('click', e => { e.stopPropagation(); skip(); });
   requestAnimationFrame(() => el.classList.add('on'));
+  // one line at a time: the first fades up, holds and fades away; then the second, dimmer, like falling asleep
   at(still ? 300 : 900, () => lines[0].classList.add('on'));
-  at(still ? 1800 : 3600, () => lines[1].classList.add('on'));
-  at(still ? 5200 : 8400, finish);
+  at(still ? 2000 : 4300, () => { lines[0].classList.remove('on'); lines[0].classList.add('gone'); });
+  at(still ? 2700 : 6300, () => lines[1].classList.add('on'));
+  at(still ? 4800 : 10200, finish);
 }
 function runTick(dt) { if (G.run && (G.state === 'play' || G.state === 'dying')) G.run.t += dt; }
 // prev: the night's best time before this win (null if it had none)

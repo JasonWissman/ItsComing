@@ -416,7 +416,7 @@ the title does not begin the night: the view blinks shut for a moment and it tak
 while you can see it. Once there has been a click or a key (a browser starts no sound before one), a faint deep drone
 sits under the title, a little louder and thicker each step it takes; it fades as a night begins. After the last night
 the title keeps its morning room instead, nothing is coming, and it is quiet. Begin (or Enter) opens a new game with a
-prologue: black, and two lines fading up one after the other ("You haven't had a good night's sleep in ages." /
+prologue: black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /
 "Each night something visits you in your dreams..."), then all of it fades into night 1's card; a click or a key skips
 it (`newGame` in js/game.js). Begin is the one button drawn inverted,
 light with dark letters. Every button and control in the menus answers with a soft tap. All the game's text is set in
