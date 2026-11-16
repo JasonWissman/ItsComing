@@ -410,7 +410,7 @@ LEVELS.push({
       });
       Object.assign(t, onDoor(t));
       // what keeps the planks from going up is the state of things, not where the answer lies
-      Object.defineProperty(t, 'missingText', { get: () => (G.hasItem('hammer') ? 'The hammer has nothing to drive.' : 'The planks will not stay up on their own.') });
+      Object.defineProperty(t, 'missingText', { get: () => (G.hasItem('hammer') ? 'It won\'t stay up.' : 'The planks will not stay up on their own.') });
       return t;
     };
     const back = mkDoor('door', 'Back door', 0, 2.45, 1.75, 0), front = mkDoor('frontdoor', 'Front door', 180, 2.3, 1.55, 1);

@@ -65,7 +65,7 @@ const MENU = (() => {
         // one narrow column of buttons all of a width; R, M and Esc do the same from the keyboard
         return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('restart', 'Restart') + btn('nights', 'Nights') + btn('settings', 'Settings', 'pause') + btn('mute', G.muted ? 'Unmute' : 'Mute') + btn('title', 'Quit') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
       case 'dead':
-        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try that night again') + btn('nights', 'Nights') + btn('title', 'Back to the title') + '</div>' + '<p class="fine">seed ' + G.runSeed + '</p>';
+        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + btn('nights', 'Nights') + btn('title', 'Quit') + '</div>';
       case 'ending':   // the last screen of the last night, over the morning room
         return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('done', 'I did it', undefined, 'primary') + '</div>';
       case 'results': {

@@ -310,7 +310,7 @@ LEVELS.push({
       c.CR = Object.assign({}, c.CR, { sound: null });
       L.visFrac = cr => { const p = cr.pos(), r = R.projectRect(p.x, p.y, p.z, cr.CR.w, cr.CR.h, null); if (!r) return 0; const w = Math.min(r.x + r.w, R.W) - Math.max(r.x, 0), h = Math.min(r.y + r.h, R.H) - Math.max(r.y, 0); return w > 0 && h > 0 ? w * h / Math.max(1e-6, r.w * r.h) : 0; };
       AUDIO.setLoop('engine', 0.6);
-      L.text.win = s.dir < 0 ? 'It caught. You backed away down the road with the lights full on it, and it stood in the road and watched you go.' : 'It caught. You drove past it where it crouched at the side of the road, and you did not look in the mirror.';
+      L.text.win = s.dir < 0 ? 'You backed away down the road with the lights full on it, and it stood in the road and watched you go.' : 'You drove past it where it crouched at the side of the road, and you did not look in the mirror.';
     }
     function stepsOn(c, x0, z0) {   // its own footsteps while the car gets away, as loud as it is near the car now
       drive.odo += Math.hypot(drive.cx - x0, drive.cz - z0);
