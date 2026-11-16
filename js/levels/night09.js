@@ -1032,9 +1032,9 @@ Object.assign(ICONS, {
       for (const [x0, z0, x1, z1, nx, nz] of [[XW, B, B, B, 0, 1], [B, B, B, -B, 1, 0], [B, -B, XW, -B, 0, -1], [XW, -B, XW, B, -1, 0]])
         for (let k = 0; k < 11; k++) drops.push({ x0, z0, x1, z1, nx, nz, u: 0.06 + drng() * 0.88, v: 0.04 + drng() * drng() * 0.4, ph: drng() * 10, len: 0.015 + drng() * 0.04 });
       // the cord: steel-armoured, out of the bottom of the housing. On the hook it hangs in a loop to the bottom of the
-      // handset; lifted, it runs over the front of the shelf and away toward you, out of the bottom of the view. It is a
-      // smooth curve through a few points (u, y, d, as on the phone) with a twist drawn along it for the armour, in short
-      // lengths so that each is as thick as it is near
+      // handset; lifted, it runs down over the front of the shelf in a loop and up into the bottom of the receiver in your
+      // hand (liftedCord). It is a smooth curve through a few points (u, y, d, as on the phone) with a twist drawn along it
+      // for the armour, in short lengths so that each is as thick as it is near
       const cord = (ctrl, sd) => {
         const out = [];
         ctrl = ctrl.map(([u, y, d]) => [d, y, u]);   // (worked along in d, y, u, and put on the phone at the end)
@@ -1049,9 +1049,78 @@ Object.assign(ICONS, {
         }
         return out;
       };
-      const cords = {
-        on: cord([[0.06, HY0, 0.08], [0.064, 1.12, 0.09], [0.088, 1.075, 0.1], [0.118, 1.13, 0.11], [RX - 0.002, 1.31, 0.12]], FD - 0.035),
-        off: cord([[0.06, HY0, 0.08], [0.06, 1.06, 0.18], [0.045, 0.99, 0.245], [-0.01, 0.88, 0.38], [-0.1, 0.86, 0.5], [-0.22, 1.0, 0.64], [-0.3, 1.2, 0.74]], 0.3),   // (lifted: to your left hand)
+      const cordOn = cord([[0.06, HY0, 0.08], [0.064, 1.12, 0.09], [0.088, 1.075, 0.1], [0.118, 1.13, 0.11], [RX - 0.002, 1.31, 0.12]], FD - 0.035);
+      // Lifted, the receiver is drawn in your left hand over the view (HANDS), not in the world, so the cord is made each
+      // frame to end where it is drawn: the bottom of the receiver as it was last put on the view is taken back into the
+      // world (at the distance at which the receiver, drawn that size, would be that size), and the cord runs from the
+      // housing down in a loop below the shelf and up to that point, coming into the receiver along it. Whatever the view,
+      // it meets the receiver; what of it is behind the eye is left out. (The same for the receiver going back up to its
+      // hook, to the bottom of it as it goes.)
+      const heldIcon = (ctx, P) => { handsetIcon(ctx, P); if (ctx.getTransform) s.heldXf = ctx.getTransform(); };
+      L.overlay = ctx => {   // just after the hands: where the receiver was drawn, on the view
+        if (!s.heldXf) return;
+        const m = ctx.getTransform().invertSelf().multiply(s.heldXf);
+        s.held = { m: [m.a, m.b, m.c, m.d, m.e, m.f], t: L.t }; s.heldXf = null;
+      };
+      const unproject = (sx, sy, D) => {   // the point at depth D (along the view) under (sx, sy) on the view
+        const c = G.cam, xc = (sx - R.W / 2) / R.f, yc = -(sy - R.H / 2) / R.f;
+        const cy = Math.cos(R.yaw), sy2 = Math.sin(R.yaw), cp = Math.cos(c.pitch), sp = Math.sin(c.pitch), dy = yc * cp - sp, cz = yc * sp + cp;
+        return [(xc * cy + cz * sy2) * D, L.eyeH + dy * D, (-xc * sy2 + cz * cy) * D];
+      };
+      const CORD_W = 0.0075 * PK, TWIST_W = 0.0016 * PK, HS_LEN = 0.44 * PK;
+      const liftedCord = (end, away) => {
+        // where it ends, and which way it comes into the receiver: in the hand, from how the receiver was drawn; going back
+        // up to the hook, the bottom of the handset there; else just under the view below the hook
+        let H, H2, wK = 1;
+        if (away) {
+          H = [away.x, away.y + 0.004, away.z]; H2 = [away.x, away.y - 0.06, away.z];
+        } else if (end) {
+          const [a, b, c, d, e, f] = end.m, at = (u, v) => [a * u + c * v + e, b * u + d * v + f];
+          const px = Math.hypot(c, d) || 1, Dv = R.f * HS_LEN / px, Dh = clamp(Dv / (G.cam.zoom || 1), 0.45, 1.1);   // (at the size it is drawn; the zoom makes the world bigger, not your hand)
+          const p = at(0, 0.035), q = at(0, -0.12);
+          H = unproject(p[0], p[1], Dh); H2 = unproject(q[0], q[1], Dh); wK = Dh / Dv;
+        } else {
+          const u = underHook(); H = [u.x, u.y + 0.2, u.z]; H2 = [u.x, u.y, u.z];
+        }
+        const X0 = ph(0.06, HY0, 0.08), X1 = ph(0.06, 1.06, 0.18);
+        const B = [H2[0] + (H2[0] - H[0]) * 0.5, H2[1] - 0.16, H2[2] + (H2[2] - H[2]) * 0.5];
+        const M = [(X1[0] + B[0]) / 2, Math.min(X1[1], B[1]) - 0.14, (X1[2] + B[2]) / 2];
+        const ctrl = [X0, X1, M, B, H2, H], wks = [1, 1, 1, lerp(1, wK, 0.5), wK, wK];
+        // the curve, a point every centimetre or so, with how thick it is drawn at each
+        const pts = [], wk = [];
+        for (let i = 0; i < ctrl.length - 1; i++) {
+          const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)];
+          const n = Math.max(4, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]) / (0.009 * PK)));
+          for (let k = i ? 1 : 0; k <= n; k++) {
+            const t = k / n, t2 = t * t, t3 = t2 * t;
+            pts.push([0, 1, 2].map(j => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3)));
+            wk.push(lerp(wks[i], wks[i + 1], t));
+          }
+        }
+        // the twist, across it as the eye sees it; and the runs of it in front of the eye, in short lengths
+        const ey = L.eyeH, out = [];
+        const tw = pts.map((p, k) => {
+          const q = pts[Math.min(pts.length - 1, k + 1)], r = pts[Math.max(0, k - 1)], t = [q[0] - r[0], q[1] - r[1], q[2] - r[2]], v = [p[0], p[1] - ey, p[2]];
+          const x = [t[1] * v[2] - t[2] * v[1], t[2] * v[0] - t[0] * v[2], t[0] * v[1] - t[1] * v[0]], l = Math.hypot(x[0], x[1], x[2]) || 1, w = (k & 1 ? 1 : -1) * 0.0028 * PK;
+          return [p[0] + x[0] / l * w, p[1] + x[1] / l * w, p[2] + x[2] / l * w];
+        });
+        const seen = pts.map(p => { const q = R.screenPos(p[0], p[1], p[2]); return !!q && q.depth > 0.08; });
+        let run = [];
+        const flush = () => {
+          if (run.length >= 2) {
+            const i = run[0], j = run[run.length - 1], k = (wk[i] + wk[j]) / 2, sd = 0.3 - out.length * 0.00005;
+            out.push({ kind: 'poly', pts: run.map(m => pts[m]), color: [54, 56, 62], stroke: true, lw: CORD_W * k, sortDist: sd });
+            out.push({ kind: 'poly', pts: run.map(m => tw[m]), color: [124, 126, 132], stroke: true, lw: TWIST_W * k, sortDist: sd - 0.00002 });
+          }
+          run = run.length && run.length >= 8 ? [run[run.length - 1]] : [];
+        };
+        for (let m = 0; m < pts.length; m++) {
+          if (!seen[m]) { flush(); run = []; continue; }
+          run.push(m);
+          if (run.length >= 8) flush();
+        }
+        flush();
+        return out;
       };
       // the handset, drawn as a billboard: the eye only ever sees it from where you stand
       const handsetIcon = (ctx, P) => {   // in a unit box, as an icon is drawn
@@ -1066,7 +1135,7 @@ Object.assign(ICONS, {
       // lifted, it is in your left hand, held up toward your ear, its cord running down out of the view to it; it goes off the
       // hook down to the hand, and back up to the hook from it (HANDSET_T), the hand going down out of the way first
       const HANDSET_T = 0.24;
-      const handsetItem = { id: 'handset', name: 'Receiver', w: 0.1, h: 0.44, icon: handsetIcon, held: { grip: 'fist', at: [0, 0.48], axis: 0, angle: 0.55, size: 0.32, y: -0.03 } };
+      const handsetItem = { id: 'handset', name: 'Receiver', w: 0.1, h: 0.44, icon: heldIcon, held: { grip: 'fist', at: [0, 0.48], axis: 0, angle: 0.55, size: 0.32, y: -0.03 } };
       L.offHand = () => (s.hook === 'off' && L.t - s.handsetT > HANDSET_T * 0.8 ? handsetItem : null);
       // off its hook it goes down out of the bottom of the view, toward you (to the hand that then comes up with it), and back
       // up from there: a point just under the view, below the hook, a little nearer than the hook
@@ -1137,7 +1206,7 @@ Object.assign(ICONS, {
         R.add(SC.mkQuad(L, ph(HW + 0.03, hy - 0.01, 0.088), ph(HW + 0.038, hy - 0.01, 0.088), ph(HW + 0.038, hy + 0.018, 0.088), ph(HW + 0.03, hy + 0.018, 0.088), [120, 124, 130], { sortDist: FD - 0.031, glowOf: receiver }));
         if (!off) R.add(handset);
         if (away && away !== true) R.add(away);
-        for (const c of off ? cords.off : cords.on) R.add(c);
+        for (const c of !off ? cordOn : liftedCord(s.held && L.t - s.held.t < 0.2 ? s.held : null, away && away !== true ? away : null)) R.add(c);
         nbSprite.glowOf = notebook; R.add(nbSprite);
         for (const k of keys) R.add(k.spr);
         R.add(lcd); R.add(lip);
