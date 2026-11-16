@@ -142,21 +142,21 @@ const SOUNDS = [
   { kind: 'loop', name: 'engine', n: [2, 9], d: 'A low engine idle. The car running (2); the car waiting in the street (9).', src: 'night02 · night09 aftermath' },
   { kind: 'heartbeat', name: 'heartbeat', n: 'all', d: 'Your heartbeat: silent until it is halfway to you, then louder and quicker as it closes (this plays the whole ramp).', src: 'game.js heartbeat' },
   // ---- ambient beds: wind (noise through a wandering low-pass), optional rain (bright hiss), a quiet drone ----
-  { kind: 'ambient', name: 'night 1', n: [1], p: { wind: 1, drone: 0.8, droneFreq: 50, windFreq: 380 }, d: 'Open wind over the field, a low hum under it.', src: 'night01 ambient' },
-  { kind: 'ambient', name: 'night 2', n: [2], p: { wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220, rain: 0.8 }, d: 'Rain on the car, muffled wind, a deep drone.', src: 'night02 ambient' },
-  { kind: 'ambient', name: 'night 3', n: [3], p: { wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300, rain: 0.35 }, d: 'Light rain and wind among the stones.', src: 'night03 ambient' },
-  { kind: 'ambient', name: 'night 4', n: [4], p: { wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 }, d: 'Brighter gusting wind in the pit, a thin drone.', src: 'night04 ambient' },
-  { kind: 'ambient', name: 'night 5', n: [5], p: { wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 }, d: 'A strong cold wind (it is snowing).', src: 'night05 ambient' },
-  { kind: 'ambient', name: 'night 6', n: [6], p: { wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 }, d: 'Rain on the water, a low wind.', src: 'night06 ambient' },
-  { kind: 'ambient', name: 'night 7', n: [7], p: { wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 }, d: 'A storm: the loudest wind and heavy rain (thunder comes on top).', src: 'night07 ambient' },
-  { kind: 'ambient', name: 'night 8', n: [8], p: { wind: 0.25, drone: 1.0, droneFreq: 60, windFreq: 300 }, d: 'Mostly the hum of the place (a strong 60 Hz drone), little wind.', src: 'night08 ambient' },
-  { kind: 'ambient', name: 'night 8 · power off', n: [8], p: { wind: 0.25, drone: 0.12, droneFreq: 60, windFreq: 300 }, d: 'The same, with the hum gone: the main is switched off.', src: 'night08 main off' },
-  { kind: 'ambient', name: 'night 9', n: [9], p: { wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 }, d: 'Steady rain on the street.', src: 'night09 ambient' },
-  { kind: 'ambient', name: 'night 10', n: [10], p: { wind: 0.5, drone: 0.9, droneFreq: 55, windFreq: 340 }, d: 'Still air indoors, a hanging drone.', src: 'night10 ambient' },
-  { kind: 'ambient', name: 'night 11', n: [11], p: { wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 }, d: 'Wind over the farm, a low drone.', src: 'night11 ambient' },
-  { kind: 'ambient', name: 'night 12', n: [12], p: { wind: 0.15, drone: 0.9, droneFreq: 38, windFreq: 200 }, d: 'A near-silent room, a very low drone.', src: 'night12 ambient' },
-  { kind: 'ambient', name: 'night 13', n: [13], p: { wind: 0.2, drone: 1.3, droneFreq: 34, windFreq: 160 }, d: 'The deepest, loudest drone; almost no wind.', src: 'night13 ambient' },
-  { kind: 'ambient', name: 'night 13 · dawn', n: [13], p: { wind: 0.32, drone: 0, windFreq: 760 }, d: 'A light breeze and no drone: the meadow at dawn, at the very end.', src: 'night13 ending' },
+  { kind: 'ambient', name: 'night 1', n: [1], p: { tune: 'ambient:1', wind: 1, drone: 0.8, droneFreq: 50, windFreq: 380 }, d: 'Open wind over the field, a low hum under it.', src: 'night01 ambient' },
+  { kind: 'ambient', name: 'night 2', n: [2], p: { tune: 'ambient:2', wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220, rain: 0.8 }, d: 'Rain on the car, muffled wind, a deep drone.', src: 'night02 ambient' },
+  { kind: 'ambient', name: 'night 3', n: [3], p: { tune: 'ambient:3', wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300, rain: 0.35 }, d: 'Light rain and wind among the stones.', src: 'night03 ambient' },
+  { kind: 'ambient', name: 'night 4', n: [4], p: { tune: 'ambient:4', wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 }, d: 'Brighter gusting wind in the pit, a thin drone.', src: 'night04 ambient' },
+  { kind: 'ambient', name: 'night 5', n: [5], p: { tune: 'ambient:5', wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 }, d: 'A strong cold wind (it is snowing).', src: 'night05 ambient' },
+  { kind: 'ambient', name: 'night 6', n: [6], p: { tune: 'ambient:6', wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 }, d: 'Rain on the water, a low wind.', src: 'night06 ambient' },
+  { kind: 'ambient', name: 'night 7', n: [7], p: { tune: 'ambient:7', wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 }, d: 'A storm: the loudest wind and heavy rain (thunder comes on top).', src: 'night07 ambient' },
+  { kind: 'ambient', name: 'night 8', n: [8], p: { tune: 'ambient:8', wind: 0.25, drone: 1.0, droneFreq: 60, windFreq: 300 }, d: 'Mostly the hum of the place (a strong 60 Hz drone), little wind.', src: 'night08 ambient' },
+  { kind: 'ambient', name: 'night 8 · power off', n: [8], p: { tune: 'ambient:8off', wind: 0.25, drone: 0.12, droneFreq: 60, windFreq: 300 }, d: 'The same, with the hum gone: the main is switched off.', src: 'night08 main off' },
+  { kind: 'ambient', name: 'night 9', n: [9], p: { tune: 'ambient:9', wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 }, d: 'Steady rain on the street.', src: 'night09 ambient' },
+  { kind: 'ambient', name: 'night 10', n: [10], p: { tune: 'ambient:10', wind: 0.5, drone: 0.9, droneFreq: 55, windFreq: 340 }, d: 'Still air indoors, a hanging drone.', src: 'night10 ambient' },
+  { kind: 'ambient', name: 'night 11', n: [11], p: { tune: 'ambient:11', wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 }, d: 'Wind over the farm, a low drone.', src: 'night11 ambient' },
+  { kind: 'ambient', name: 'night 12', n: [12], p: { tune: 'ambient:12', wind: 0.15, drone: 0.9, droneFreq: 38, windFreq: 200 }, d: 'A near-silent room, a very low drone.', src: 'night12 ambient' },
+  { kind: 'ambient', name: 'night 13', n: [13], p: { tune: 'ambient:13', wind: 0.2, drone: 1.3, droneFreq: 34, windFreq: 160 }, d: 'The deepest, loudest drone; almost no wind.', src: 'night13 ambient' },
+  { kind: 'ambient', name: 'night 13 · dawn', n: [13], p: { tune: 'ambient:13dawn', wind: 0.32, drone: 0, windFreq: 760 }, d: 'A light breeze and no drone: the meadow at dawn, at the very end.', src: 'night13 ending' },
 ];
 const KINDS = { sfx: 'effect', sting: 'death sting', voice: 'voice', footstep: 'footsteps', loop: 'loop', heartbeat: 'heartbeat', ambient: 'ambient bed' };
 const PLURAL = { sfx: 'effects', sting: 'death stings', voice: 'voices', footstep: 'footstep kinds', loop: 'loops', heartbeat: 'heartbeat', ambient: 'ambient beds' };
@@ -185,9 +185,9 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
   const saveNotes = () => { try { localStorage.setItem('soundsAuditNotes', JSON.stringify(notes)); } catch (e) {} };
   // ---- adjustments (lab/soundtweak.js), kept in this browser too ----
   let tweaks = {};
-  try { tweaks = JSON.parse(localStorage.getItem('soundsAuditTweaks') || '{}') || {}; } catch (e) { tweaks = {}; }
-  const saveTweaks = () => { try { localStorage.setItem('soundsAuditTweaks', JSON.stringify(tweaks)); } catch (e) {} };
-  const tw = s => Object.assign({}, TWEAK.DEF, tweaks[ids(s)]);
+  try { tweaks = JSON.parse(localStorage.getItem('soundsAuditTweaks2') || '{}') || {}; } catch (e) { tweaks = {}; }
+  const saveTweaks = () => { try { localStorage.setItem('soundsAuditTweaks2', JSON.stringify(tweaks)); } catch (e) {} };
+  const tw = s => Object.assign({}, TUNE.DEF, tweaks[ids(s)]);
   // the four, as their sliders run: pitch in semitones, speed as a power of two (shown as x), tone in octaves, volume in dB
   const ADJ = [
     { k: 'pitch', l: 'P', title: 'Pitch, semitones', min: -12, max: 12, step: 0.5, to: v => v, from: v => v, show: v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' st' },
@@ -195,7 +195,7 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
     { k: 'tone', l: 'T', title: 'Tone: filters brighter (+) or duller (−), octaves', min: -2, max: 2, step: 0.1, to: v => v, from: v => v, show: v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + ' oct' },
     { k: 'vol', l: 'V', title: 'Volume, dB', min: -18, max: 12, step: 1, to: v => v, from: v => v, show: v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' dB' },
   ];
-  const tweakText = t => ADJ.filter(a => t[a.k] !== TWEAK.DEF[a.k]).map(a => a.k + ' ' + a.show(t[a.k])).join(', ');
+  const tweakText = t => ADJ.filter(a => t[a.k] !== TUNE.DEF[a.k]).map(a => a.k + ' ' + a.show(t[a.k])).join(', ');
 
   // ---- audio: started on the first click (a browser will not start sound before one) ----
   const start = () => { AUDIO.init(); AUDIO.resume(); };
@@ -219,24 +219,24 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
   const STEP_GAP = { walker: 620, crawler: 170, smiler: 300, runner: 260, climber: 480, tall: 1100, shoes: 380, shoesRun: 230 };
   function play(s, restart) {
     start();
-    const t = tw(s), T = fn => () => TWEAK.run(t, fn), gap = ms => ms / t.speed;
+    const t = tw(s), T = fn => () => TUNE.run(t, fn), gap = ms => ms / t.speed;
     if (restart) {   // (a held sound, nudged while it plays: start it again as it now is)
-      if (s.kind === 'loop' && on.loop === s) { AUDIO.stopLoop(); TWEAK.run(t, () => AUDIO.setLoop(s.name, 0.45, 0)); }
-      if (s.kind === 'ambient' && on.ambient === s) { AUDIO.stopAmbient(); TWEAK.run(t, () => AUDIO.startAmbient(s.p)); }
+      if (s.kind === 'loop' && on.loop === s) { AUDIO.stopLoop(); TUNE.run(t, () => AUDIO.setLoop(s.name, 0.45, 0)); }
+      if (s.kind === 'ambient' && on.ambient === s) { AUDIO.stopAmbient(); TUNE.run(t, () => AUDIO.startAmbient(s.p)); }
       return;
     }
     if (s.kind === 'sfx' || s.kind === 'sting') {
-      TWEAK.run(t, () => AUDIO.sfx(s.name, 0));
+      TUNE.run(t, () => AUDIO.sfx(s.name, 0));
       if (s.name === 'start') setOn('loop', SOUNDS.find(x => x.kind === 'loop' && x.name === 'engine'));   // it starts the engine loop
-    } else if (s.kind === 'voice') TWEAK.run(t, () => AUDIO.voice(s.name, 0.6, 0));
+    } else if (s.kind === 'voice') TUNE.run(t, () => AUDIO.voice(s.name, 0.6, 0));
     else if (s.kind === 'footstep') { const g = gap(STEP_GAP[s.name] || 400); for (let i = 0; i < 5; i++) later(i * g, T(() => AUDIO.footstep(s.name, 0.35 + i * 0.07, i % 2 ? 0.15 : -0.15))); }
     else if (s.kind === 'heartbeat') {   // the ramp as it closes in: from far (slow, faint) to at you (fast, loud)
       let u = 0;
       for (let i = 0; i <= 10; i++) { const prox = 0.1 + i * 0.09; later(gap(u * 1000), T(() => AUDIO.heartbeat(0.04 + prox * 0.5, prox > 0.7))); u += lerp(1.35, 0.32, Math.pow(prox, 1.5)); }
     } else if (s.kind === 'loop') {
-      if (on.loop === s) { AUDIO.stopLoop(); setOn('loop', null); } else { if (on.loop) AUDIO.stopLoop(); TWEAK.run(t, () => AUDIO.setLoop(s.name, 0.45, 0)); setOn('loop', s); }
+      if (on.loop === s) { AUDIO.stopLoop(); setOn('loop', null); } else { if (on.loop) AUDIO.stopLoop(); TUNE.run(t, () => AUDIO.setLoop(s.name, 0.45, 0)); setOn('loop', s); }
     } else if (s.kind === 'ambient') {
-      if (on.ambient === s) { AUDIO.stopAmbient(); setOn('ambient', null); } else { TWEAK.run(t, () => AUDIO.startAmbient(s.p)); setOn('ambient', s); }
+      if (on.ambient === s) { AUDIO.stopAmbient(); setOn('ambient', null); } else { TUNE.run(t, () => AUDIO.startAmbient(s.p)); setOn('ambient', s); }
     }
     const tr = rows.get(ids(s)); if (tr) { tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash'); }
   }
@@ -270,14 +270,14 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
     const sliders = [...tr.querySelectorAll('.adj input')], outs = [...tr.querySelectorAll('.adj output')];
     const showAdj = () => {
       const t = tw(s);
-      ADJ.forEach((a, i) => { sliders[i].value = a.from(t[a.k]); outs[i].textContent = a.show(t[a.k]); outs[i].classList.toggle('on', t[a.k] !== TWEAK.DEF[a.k]); });
-      tr.classList.toggle('tweaked', !TWEAK.isDefault(t));
+      ADJ.forEach((a, i) => { sliders[i].value = a.from(t[a.k]); outs[i].textContent = a.show(t[a.k]); outs[i].classList.toggle('on', t[a.k] !== TUNE.DEF[a.k]); });
+      tr.classList.toggle('tweaked', !TUNE.isDefault(t));
     };
-    const setAdj = (k, v) => { const t = tw(s); t[k] = v; if (TWEAK.isDefault(t)) delete tweaks[id]; else tweaks[id] = t; saveTweaks(); showAdj(); count(); };
+    const setAdj = (k, v) => { const t = tw(s); t[k] = v; if (TUNE.isDefault(t)) delete tweaks[id]; else tweaks[id] = t; saveTweaks(); showAdj(); count(); };
     sliders.forEach((el, i) => {
       el.addEventListener('input', () => { setAdj(ADJ[i].k, ADJ[i].to(+el.value)); play(s, true); });   // (a held sound follows at once)
       el.addEventListener('change', () => { if (!toggles) play(s); });                                     // (a one-off plays on release)
-      el.addEventListener('dblclick', () => { setAdj(ADJ[i].k, TWEAK.DEF[ADJ[i].k]); play(s, true); });
+      el.addEventListener('dblclick', () => { setAdj(ADJ[i].k, TUNE.DEF[ADJ[i].k]); play(s, true); });
     });
     tr.querySelector('.reset').onclick = () => { delete tweaks[id]; saveTweaks(); showAdj(); count(); play(s, true); };
     showAdj();

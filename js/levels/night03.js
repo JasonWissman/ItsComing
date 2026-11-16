@@ -34,7 +34,7 @@ Object.assign(ICONS, {
 LEVELS.push({
   id: 'graveyard', title: 'The Graveyard', facing: 45, eyeH: 1.65,
   pal: { skyTop: [22, 14, 32], fog: [74, 60, 72], ground: [42, 46, 36], fogDist: 64 },
-  ambient: { wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300, rain: 0.35 },
+  ambient: { tune: 'ambient:3', wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300, rain: 0.35 },
   weather: { kind: 'rain', density: 0.45, wind: 0.2, fogRoll: { period: 41, depth: 0.5 } },
   text: {
     intro: 'Someone has been walking in the graveyard since dusk.',

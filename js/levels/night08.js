@@ -20,7 +20,7 @@ Object.assign(ICONS, {
 LEVELS.push({
   id: 'diner', title: 'The Diner', facing: 180, eyeH: 1.65, laneSwitch: false,   // its only change of way is its run to a window still open
   pal: { skyTop: [5, 5, 10], fog: [20, 17, 24], ground: [18, 16, 20], fogDist: 90 },
-  ambient: { wind: 0.25, drone: 1.0, droneFreq: 60, windFreq: 300 },
+  ambient: { tune: 'ambient:8', wind: 0.25, drone: 1.0, droneFreq: 60, windFreq: 300 },
   lights: [
     { x: 3.1, y: 5.4, z: 11.6, r: 18, i: 0.9, color: [255, 172, 70] },                    // the lamp over the lot
     { x: -10.5, y: 4.9, z: 26, r: 20, i: 0.75, color: [255, 70, 190], flicker: 0.12 },     // the sign out by the road: pink on the ground round it, and on it as it passes
@@ -219,7 +219,7 @@ LEVELS.push({
         s.power = false; s.offAt = L.t + 0.26; s.clunked = false; s.levered = false;
         s.pulling = G.reach(main, { style: 'pull', at: inReach(main, gripAt(1)), onTouch() { s.offAt = Math.min(s.offAt, L.t); } });
         if (!s.pulling) s.offAt = L.t;
-        if (AUDIO.on()) AUDIO.startAmbient(Object.assign({}, L.def.ambient, { drone: 0.12 }));   // the hum of the place stops with it
+        if (AUDIO.on()) AUDIO.startAmbient(Object.assign({}, L.def.ambient, { drone: 0.12, tune: 'ambient:8off' }));   // the hum of the place stops with it
         if (s.through) G.say('Every light in the place goes out at once.', 'Every light in the place goes out.');
         else G.say('Every light in the place goes out at once. Out in the lot, it slows down.', 'Every light in the place goes out. Out in the lot, it slows down.');
         return true;

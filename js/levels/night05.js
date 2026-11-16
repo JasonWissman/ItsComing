@@ -175,7 +175,7 @@ const CLEARING_BOW = (() => {
 LEVELS.push({
   id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
   pal: { skyTop: [6, 8, 16], fog: [54, 60, 74], ground: [126, 132, 148], fogDist: 120 },
-  ambient: { wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 },
+  ambient: { tune: 'ambient:5', wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 },
   weather: { kind: 'snow', density: 1, wind: 0.5 },
   lights: [{ x: 1.7, y: 1.7, z: -1.45, r: 6, i: 0.55, color: [255, 190, 110], flicker: 0.15 }],
   text: {

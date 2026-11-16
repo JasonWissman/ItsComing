@@ -39,7 +39,7 @@
 LEVELS.push({
   id: 'road', title: 'The Road', facing: 0, eyeH: 1.15, laneSwitch: false,
   pal: { skyTop: [3, 3, 7], fog: [15, 15, 20], ground: [20, 19, 16], fogDist: 70 },
-  ambient: { wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220, rain: 0.8 },
+  ambient: { tune: 'ambient:2', wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220, rain: 0.8 },
   // no shared weather: the rain is drawn in the world (rainOn, below), so it falls outside the car and not across it
   // the headlights and the dash glow belong to the car: they go where it goes
   lights: [{ x: 0.4, y: 0.75, z: 1.6, r: 52, i: 1.25, color: [228, 218, 178], cone: { x: 0, y: -0.06, z: 1, deg: 24 }, attach: true }, { x: 0, y: 0.9, z: 0.55, r: 0.9, i: 0.1, color: [90, 200, 120], attach: true }],

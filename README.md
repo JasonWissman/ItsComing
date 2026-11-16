@@ -400,6 +400,8 @@ heading in the menus is set in IM Fell English (`fonts/`, under the SIL Open Fon
 index.html              page shell, HUD and styles
 js/util.js              math, color and drawing helpers
 js/audio.js             Web Audio synthesis: wind, drones, heartbeat, footsteps, effects
+js/soundtune.js         how each sound is tuned (TUNES: pitch, speed, tone, volume per sound, set by ear in the
+                        Sounds Audit), laid over js/audio.js by bending the Web Audio calls it makes
 js/render.js            tiny painter's-algorithm 3D renderer on Canvas 2D (sky, ground, props, billboards, fog, post effects)
 js/approach.js          approach lanes: apertures, blockers, how much of the thing you can see, lane validation
 js/seq.js               beat sequencer for aftermaths, deaths and set pieces
@@ -605,9 +607,9 @@ static host):
   keeps notes.
 - `lab/sounds.html`, the sounds audit: one row for every sound the game makes (each effect and death sting, voice,
   footstep kind, loop, the heartbeat and each night's ambient bed with its parameters), played through `js/audio.js`
-  itself, with what it is, which nights use it (or that nothing does), four small sliders to nudge it (pitch, speed, tone,
-  volume: `lab/soundtweak.js` bends the Web Audio calls `js/audio.js` makes, so the game's code is untouched) and a
-  comment box. The index is written by hand in
+  itself and tuned as the game has it (`js/soundtune.js`), with what it is, which nights use it (or that nothing does),
+  four small sliders to nudge it further (pitch, speed, tone, volume, on top of its tune: copy them into `TUNES` to
+  keep them) and a comment box. Complete: its first round of adjustments is in `TUNES`. The index is written by hand in
   `lab/sounds.js` from the call sites, so a new sound wants a row there. Copy all (or Copy comments) puts the table,
   the adjustments and the comments on the clipboard to paste back.
 

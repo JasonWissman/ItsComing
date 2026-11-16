@@ -24,7 +24,7 @@ Object.assign(ICONS, {
 LEVELS.push({
   id: 'boathouse', title: 'The Boathouse', facing: 0, eyeH: 1.65,
   pal: { skyTop: [8, 10, 18], fog: [40, 48, 58], ground: [24, 32, 40], fogDist: 60 },
-  ambient: { wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 },
+  ambient: { tune: 'ambient:6', wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 },
   weather: { kind: 'rain', density: 0.45, wind: 0.25, fogRoll: { period: 37, depth: 0.35, phase: 1 } },
   text: {
     intro: 'Something is in the water.',

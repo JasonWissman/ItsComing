@@ -16,7 +16,7 @@
 LEVELS.push({
   id: 'mirrors', title: 'The Mirror Maze', facing: 0, eyeH: 1.65, laneMode: 'default', laneSwitch: false,
   pal: { skyTop: [14, 8, 8], fog: [58, 40, 36], ground: [30, 26, 26], fogDist: 40 },
-  ambient: { wind: 0.5, drone: 0.9, droneFreq: 55, windFreq: 340 },
+  ambient: { tune: 'ambient:10', wind: 0.5, drone: 0.9, droneFreq: 55, windFreq: 340 },
   weather: { kind: 'ash', density: 1.0, wind: 0.3 },
   lights: [{ x: -40, y: 2, z: 5, r: 60, i: 0.5, color: [255, 120, 40], flicker: 0.4 }, { x: 2.6, y: 1.3, z: 2.6, r: 5, i: 0.4, color: [255, 200, 140], flicker: 0.15 }],
   text: {

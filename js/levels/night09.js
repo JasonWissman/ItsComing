@@ -261,7 +261,7 @@ Object.assign(ICONS, {
   LEVELS.push({
     id: 'booth', title: 'The Phone Booth', facing: 0, eyeH: 1.65,
     pal: { skyTop: [12, 11, 16], fog: [50, 45, 47], ground: [22, 22, 26], fogDist: 82 },
-    ambient: { wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 },
+    ambient: { tune: 'ambient:9', wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 },
     weather: { kind: 'rain', density: 0.9, wind: 0.25 },
     lights: [{ x: 0, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
     text: {

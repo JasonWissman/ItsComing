@@ -56,7 +56,7 @@ const END = {
 LEVELS.push({
   id: 'void', title: 'The Void', facing: 0, eyeH: 1.65, laneMode: 'random', ending: true,
   pal: Object.assign({}, VOID_PAL),
-  ambient: { wind: 0.2, drone: 1.3, droneFreq: 34, windFreq: 160 },
+  ambient: { tune: 'ambient:13', wind: 0.2, drone: 1.3, droneFreq: 34, windFreq: 160 },
   text: {
     intro: 'Where are you?',
     hint: 'You do not need them now.',
@@ -350,7 +350,7 @@ LEVELS.push({
       // chair or a wall will be
       const left = L.items.filter(i => !i.taken);
       if (mv > 0.08 && left.length && mv > s.gone) { (left.find(inTheWay) || left[0]).taken = true; s.gone = mv + 0.5 / tools.length; }
-      if (mv > 0.05 && !s.dawn) { s.dawn = true; AUDIO.stopAmbient(); if (AUDIO.on()) AUDIO.startAmbient({ wind: 0.32, drone: 0, windFreq: 760 }); WEATHER.set({ kind: 'motes', density: 1.0, wind: 0.15 }, 7); }   // a breeze, and pollen in the sun
+      if (mv > 0.05 && !s.dawn) { s.dawn = true; AUDIO.stopAmbient(); if (AUDIO.on()) AUDIO.startAmbient({ tune: 'ambient:13dawn', wind: 0.32, drone: 0, windFreq: 760 }); WEATHER.set({ kind: 'motes', density: 1.0, wind: 0.15 }, 7); }   // a breeze, and pollen in the sun
       if (mv > 0.3) { s.birdT = (s.birdT === undefined ? 0.5 : s.birdT) - dt; if (s.birdT <= 0) { s.birdT = 1.5 + Math.random() * 2.8; AUDIO.sfx('birds', Math.random() * 1.6 - 0.8, true); } }
       // in the meadow, as the tune starts, it takes off its robe and leaves it on the grass; it dances a little to the tune;
       // then, while the meadow waits, now and then a little more

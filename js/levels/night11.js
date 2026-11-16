@@ -31,7 +31,7 @@ LEVELS.push({
   lookDown: 34,     // looking down, the box (taller than your waist) sits in the middle of the view
   laneSwitch: false,   // it changes places only by running from the light (build)
   pal: { skyTop: [5, 7, 17], fog: [24, 28, 40], ground: [20, 24, 18], fogDist: 125 },
-  ambient: { wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 },
+  ambient: { tune: 'ambient:11', wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 },
   text: {
     intro: 'The lights are out across the farm.\nSomething is out there in the dark.',
     hint: 'It cannot stand the light. Light its place and it runs to a dark place next to it; light the places either side of it first, then its own, and it has nowhere to go. The box takes three lights at once, the porch light too: a fourth trips the main, and nothing comes on until you push the main back on.',

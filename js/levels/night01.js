@@ -66,7 +66,7 @@ LEVELS.push({
   id: 'field', title: 'The Field', facing: 0, eyeH: 1.65,
   laneSwitch: false,   // it changes doorways only by running round the house when the one it is coming for is boarded (build)
   pal: { skyTop: [6, 8, 18], fog: [46, 52, 68], ground: [36, 46, 32], fogDist: 105 },
-  ambient: { wind: 1, drone: 0.8, droneFreq: 50, windFreq: 380 },
+  ambient: { tune: 'ambient:1', wind: 1, drone: 0.8, droneFreq: 50, windFreq: 380 },
   weather: { kind: 'mist', density: 0.7, wind: 0.3 },
   lights: [{ x: 0, y: 1.6, z: -0.2, r: 4.5, i: 0.35, color: [140, 160, 220] }],
   text: {

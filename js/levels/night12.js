@@ -21,7 +21,7 @@ Object.assign(ICONS, {
 LEVELS.push({
   id: 'bedroom', title: 'The Bedroom', facing: 0, eyeH: 1.15, laneMode: 'random',
   pal: { skyTop: [8, 8, 16], fog: [26, 24, 30], ground: [22, 18, 16], fogDist: 30 },
-  ambient: { wind: 0.15, drone: 0.9, droneFreq: 38, windFreq: 200 },
+  ambient: { tune: 'ambient:12', wind: 0.15, drone: 0.9, droneFreq: 38, windFreq: 200 },
   lights: [{ x: 3.4, y: 2.3, z: 1.6, r: 6, i: 0.28, color: [150, 170, 230], cone: { x: -1, y: -0.35, z: -0.2, deg: 36 } }],
   text: {
     intro: 'You woke up suddenly.',

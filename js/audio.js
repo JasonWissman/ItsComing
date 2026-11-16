@@ -354,5 +354,16 @@ const AUDIO = (() => {
     }
   }
 
-  return { init, on, resume, suspend, setMuted, setVolume, startAmbient, stopAmbient, setLoop, stopLoop, heartbeat, footstep, voice, sfx, get muted() { return muted; } };
+  // each played as it is tuned (js/soundtune.js: TUNES, by the sound's key; an ambient bed's key is its params' tune)
+  const tuned = (key, fn) => (typeof TUNE !== 'undefined' ? TUNE.run(key, fn) : fn());
+  return {
+    init, on, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
+    startAmbient: p => tuned(p && p.tune, () => startAmbient(p)),
+    setLoop: (kind, vol, pan) => tuned(kind ? 'loop:' + kind : null, () => setLoop(kind, vol, pan)),
+    heartbeat: (vol, fast) => tuned('heartbeat', () => heartbeat(vol, fast)),
+    footstep: (kind, vol, pan) => tuned('footstep:' + kind, () => footstep(kind, vol, pan)),
+    voice: (kind, vol, pan) => tuned('voice:' + kind, () => voice(kind, vol, pan)),
+    sfx: (name, pan, soft) => tuned(name, () => sfx(name, pan, soft)),
+    get muted() { return muted; },
+  };
 })();
