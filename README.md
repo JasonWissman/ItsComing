@@ -592,7 +592,8 @@ LEVELS.push({
 
 ## Labs
 
-Two pages under `lab/` for working on the game's look, opened the same way as the game (from disk or the static host):
+Three pages under `lab/` for working on the game's look and sound, opened the same way as the game (from disk or the
+static host):
 
 - `lab/creatures.html`, the creature lab: every night's creature, drawn by its own code from `js/creatures`, in a card
   that steps through its animations on a click. Each animation is driven the way its night drives it (the poses are in
@@ -602,6 +603,11 @@ Two pages under `lab/` for working on the game's look, opened the same way as th
 - `lab/titles.html`, the title lab: five title screens behind the game's own title menu, each closer every time you
   look away onto the menu and back. A corner panel picks the concept, the title typeface and the menu layout, and
   keeps notes.
+- `lab/sounds.html`, the sounds audit: one row for every sound the game makes (each effect and death sting, voice,
+  footstep kind, loop, the heartbeat and each night's ambient bed with its parameters), played through `js/audio.js`
+  itself, with what it is, which nights use it (or that nothing does) and a comment box. The index is written by hand in
+  `lab/sounds.js` from the call sites, so a new sound wants a row there. Copy all (or Copy comments) puts the table
+  and the comments on the clipboard to paste back.
 
 ## Testing
 

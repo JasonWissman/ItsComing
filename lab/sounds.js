@@ -1,0 +1,324 @@
+'use strict';
+// ---------- Sounds Audit: every sound the game makes, played by its own code (js/audio.js), with a comment box each ----------
+// The index below is written by hand from the call sites (AUDIO.sfx / voice / footstep / setLoop / heartbeat / startAmbient
+// across js/, lane cues, creature sound/voice/death.sting, the hands' fumble and reach sounds). Each row:
+//   { kind: 'sfx'|'sting'|'voice'|'footstep'|'loop'|'heartbeat'|'ambient', name, n (nights: 'all', 'unused' or [1..13]),
+//     d (what it sounds like, what it means), src (where it is played from), p (an ambient's parameters) }
+
+// stand-ins for the game's globals the audio and caption code reach for: captions on, so the page can show them
+const SAVE = { data: { settings: { captions: true } } };
+
+const NIGHTS = ['The Field', 'The Road', 'The Graveyard', 'The Quarry', 'The Clearing', 'The Boathouse', 'The Lighthouse', 'The Diner', 'The Phone Booth', 'The Mirror Maze', 'The Farm', 'The Bedroom', 'The Void'];
+const R12 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const SOUNDS = [
+  // ---- hands, items, the generic interactions (every night) ----
+  { kind: 'sfx', name: 'ui', n: 'all', d: 'A tiny soft click. Switching the item in hand (keys 1–6, Tab, tapping the strip); on night 9 also choosing a key on the pay phone.', src: 'game.js inventory · night09 keypad' },
+  { kind: 'sfx', name: 'pickup', n: 'all', d: 'A short rising pluck with a brush of air. You take something into your hands.', src: 'game.js pickup · night07, 09, 10' },
+  { kind: 'sfx', name: 'drop', n: 'all', d: 'A soft thump. You put the thing in hand down.', src: 'game.js drop · night10' },
+  { kind: 'sfx', name: 'nope', n: 'all', d: 'A low buzzy blip. That will not work: wrong item, hands full, nothing to do there.', src: 'game.js · most nights' },
+  { kind: 'sfx', name: 'tink', n: 'all', d: 'A light metal tick. A metal or glass thing tried somewhere it will not go (a fumble), or a fingertip on metal.', src: 'hands.js fumble (metal/glass) · nights 2, 4, 6, 7, 9, 10' },
+  { kind: 'sfx', name: 'woodKnock', n: 'all', d: 'A hollow wooden clunk. A wooden thing bumps where it will not go, or a knuckle on wood.', src: 'hands.js fumble (wood), reach knock · nights 1, 6, 7' },
+  { kind: 'sfx', name: 'clatter', n: 'all', d: 'A hard thing clattering down on the floor, bouncing a few times. A fumbled item falls.', src: 'hands.js fumble land · nights 4, 7 (toolbox), 13' },
+  { kind: 'sfx', name: 'flop', n: 'all', d: 'A soft thing dropping (a bag, cloth, paper). A soft fumble lands; a body slumps.', src: 'hands.js fumble land · nights 1, 3, 4, 9, 10, 11, 12, 13' },
+  { kind: 'sfx', name: 'pat', n: 'all', d: 'A hand laid flat on something. The empty hand reaches and touches; groping an empty shelf (night 5).', src: 'hands.js reach default · nights 2, 3, 4, 5' },
+  { kind: 'sfx', name: 'rattle', n: [6, 8], d: 'A short rattle of loose metal parts. The hand shaking something that will not give.', src: 'hands.js reach rattle · night06 tackle box, night08 shutters' },
+  { kind: 'sfx', name: 'hiss', n: [3, 10, 11, 12], d: 'A breathy hiss. Sugar blown off the line (3), a sheet sliding off a mirror (10), the carrier flinching from light (11), covers pulled up (12).', src: 'night03, 10, 11, 12 · game.js throw (no throwable items)' },
+  // ---- night 1: the field ----
+  { kind: 'sfx', name: 'hammer', n: [1], d: 'Three hard knocks. Nailing a board over a doorway.', src: 'night01 boards; fumble hit' },
+  { kind: 'sfx', name: 'smash', n: [1], d: 'A loud splintering crash. It tears half-nailed boards away.', src: 'night01 onReach' },
+  { kind: 'sfx', name: 'bang', n: [1, 6, 7], d: 'A heavy boom. Something hits the boards (1), the side door bangs open (6), the dropped toolbox hits the wall (7).', src: 'night01, 06, 07 · game.js “held” aftermath (unused)' },
+  { kind: 'sfx', name: 'boardRattle', n: [1], d: 'Boards rattling on their nails after a blow. It pounds on the boards at the end.', src: 'night01 aftermath' },
+  { kind: 'sfx', name: 'crack', n: [1, 5], d: 'A sharp dry crack. A board splits (1); on night 5 the porch boards crack: its lane cue, the warning of which side it is coming from.', src: 'night01 boards · night05 lane cue' },
+  { kind: 'sfx', name: 'thud', n: [1, 4, 6, 11], d: 'A deep dull thud. A blow on the wall (1), it hits the gate (4), a door swinging shut (6), the carrier falling (11).', src: 'night01, 04, 06, 11' },
+  // ---- night 2: the road ----
+  { kind: 'sfx', name: 'keys', n: [2, 6], d: 'A small jingle of keys. Key into the ignition (2), the tackle box key (6).', src: 'night02, night06' },
+  { kind: 'sfx', name: 'crank', n: [2], d: 'The starter motor chugging for a second without catching. The engine will not start yet.', src: 'night02 ignition' },
+  { kind: 'sfx', name: 'start', n: [2], d: 'The engine catches and roars up, then idles (it also starts the engine loop).', src: 'night02 ignition' },
+  { kind: 'sfx', name: 'rev', n: [2], d: 'The engine revving hard as the car pulls away, and again changing up a gear.', src: 'night02 pedal' },
+  { kind: 'sfx', name: 'lever', n: [2, 7, 8, 11], d: 'A heavy lever thrown over with a clack. Gearstick (2), the lamp starts turning (7), the main switched off (8) or on (11).', src: 'night02, 07, 08, 11' },
+  { kind: 'sfx', name: 'clunk', n: [2, 4, 6, 7, 8, 9, 11, 12], d: 'A heavy click. Pedal to the floor (2), back gate cue (4), boxes opening (6, 7), shutter down (8), receiver hung up (9), breakers (11), plug in (12).', src: 'many nights · night04 lane cue' },
+  // ---- night 3: the graveyard ----
+  { kind: 'sfx', name: 'pour', n: [3], d: 'A fine hiss of grains pouring. A salt (or sugar) line laid across a way in.', src: 'night03' },
+  { kind: 'sfx', name: 'strike', n: [3], d: 'A match struck and flaring.', src: 'night03 lanterns' },
+  { kind: 'sfx', name: 'candle', n: [3], d: 'A faint rising tone. A lantern’s flame catches.', src: 'night03 lanterns' },
+  { kind: 'sfx', name: 'chain', n: [3, 4, 6], d: 'A run of small metal links. Lantern hung on its hook (3), chain round the gate (4), the winch chain springs loose (6).', src: 'night03, 04, 06' },
+  { kind: 'sfx', name: 'gate', n: [3, 4], d: 'Iron on iron, a heavy clang. The graveyard path’s lane cue (3); the quarry gates shut and shaken (4).', src: 'night03 lane cue · night04' },
+  { kind: 'sfx', name: 'creak', n: [1, 3, 4, 6, 7, 12], d: 'A long creak of hinges. The doorways’ lane cue (1, 3 side gate, 12 doorway): where it is coming from; also gates and doors swinging.', src: 'lane cues (night01, 03, 12) · night04, 06, 07' },
+  // ---- night 4: the quarry ----
+  { kind: 'sfx', name: 'lock', n: [4, 6], d: 'A padlock snapping shut (4), or springing open (6).', src: 'night04, night06' },
+  { kind: 'sfx', name: 'scrape', n: [4, 7], d: 'A grating scratch. The quarry gate’s lane cue (4); the climber’s claws on the lighthouse stone, its lane cue (7).', src: 'night04, 07 lane cues · night07' },
+  // ---- night 5: the clearing; the bow ----
+  { kind: 'sfx', name: 'bowCreak', n: [5, 13], d: 'A small wooden creak, repeated while the bow is drawn.', src: 'game.js draw' },
+  { kind: 'sfx', name: 'bowFull', n: [5, 13], d: 'A hard click as the string comes tight: the bow is fully drawn.', src: 'game.js draw' },
+  { kind: 'sfx', name: 'twang', n: [5, 13], d: 'A low bowstring twang. An arrow is loosed.', src: 'game.js loose · night05, 13 uses' },
+  { kind: 'sfx', name: 'thunk', n: [5, 13], d: 'A heavy wet thunk. An arrow hits the creature.', src: 'night05, night13' },
+  // ---- night 6: the boathouse ----
+  { kind: 'sfx', name: 'splash', n: [6], d: 'A splash. The swimmer surfaces; also both ways’ lane cue: which door it is coming to.', src: 'night06 lane cue · swimmer.js · night06' },
+  { kind: 'sfx', name: 'dive', n: [6], d: 'A low gulp of water. It goes under.', src: 'swimmer.js · night06' },
+  { kind: 'sfx', name: 'slosh', n: [6], d: 'Water slapping. Its strokes as it swims in; water slopping under the door.', src: 'night06' },
+  { kind: 'sfx', name: 'wetPound', n: [6], d: 'A deep wet boom with the bar rattling. It throws itself against the barred water door.', src: 'night06 aftermath' },
+  { kind: 'sfx', name: 'bar', n: [6], d: 'A heavy bar dropping into place. A door is sealed.', src: 'night06' },
+  { kind: 'sfx', name: 'ratchet', n: [6, 7, 8], d: 'One click of a ratchet. Each turn of a crank or winch.', src: 'game.js crank · night06, 07, 08' },
+  { kind: 'sfx', name: 'fit', n: [6, 7, 10, 12], d: 'A neat click. A part goes into place: winch handle (6), bulb or fuse (7), crank (10), bulb (12).', src: 'night06, 07, 10, 12' },
+  // ---- night 7: the lighthouse ----
+  { kind: 'sfx', name: 'lampOn', n: [7, 12], d: 'A deep hum rising as a lamp comes on.', src: 'night07, night12' },
+  { kind: 'sfx', name: 'thunder', n: [7], d: 'A long low rumble a few seconds after each lightning flash.', src: 'weather.js (lightning only on night 7)' },
+  { kind: 'sfx', name: 'plunge', n: [7], d: 'A deep thump and spray, far below. Something falls into the sea.', src: 'night07' },
+  // ---- night 8: the diner ----
+  { kind: 'sfx', name: 'glassTap', n: [8], d: 'Three light taps on glass. It touches the windows as it passes; your knuckle on the glass.', src: 'night08' },
+  { kind: 'sfx', name: 'glassGive', n: [8], d: 'Glass groaning and starting to crack. A window is giving way.', src: 'night08' },
+  { kind: 'sfx', name: 'tubeDie', n: [8], d: 'Fluorescent tubes crackling out. The power goes.', src: 'night08 main off' },
+  { kind: 'sfx', name: 'shutterGrab', n: [8], d: 'Small hands tugging a roller shutter: a jerk and a steel rattle.', src: 'night08' },
+  { kind: 'sfx', name: 'shutterSlam', n: [8], d: 'A huge metal crash. A shutter shoved up into its housing.', src: 'night08' },
+  { kind: 'sfx', name: 'shutterBang', n: [8], d: 'Deep booming fists on a steel shutter.', src: 'night08 aftermath' },
+  // ---- night 9: the phone booth ----
+  { kind: 'sfx', name: 'receiver', n: [9], d: 'The receiver lifted, then a dial tone.', src: 'night09' },
+  { kind: 'sfx', name: 'dial', n: [9], d: 'A touch-tone beep (a random key pair). A number key pressed.', src: 'night09 keypad' },
+  { kind: 'sfx', name: 'keyClick', n: [9], d: 'A dead key click: no line, no credit.', src: 'night09 keypad' },
+  { kind: 'sfx', name: 'coin', n: [9], d: 'A coin rattling down into the phone, then a soft chime: credit.', src: 'night09' },
+  { kind: 'sfx', name: 'coinReturn', n: [9], d: 'A coin rattling into the return cup.', src: 'night09' },
+  { kind: 'sfx', name: 'noService', n: [9], d: 'Three rising tones: the number is not in service.', src: 'night09' },
+  { kind: 'sfx', name: 'ringback', n: [9], d: 'One long ring on the line (every 3 s while it rings).', src: 'night09' },
+  { kind: 'sfx', name: 'answer', n: [9], d: 'A click and a murmur of a voice: someone picks up.', src: 'night09' },
+  { kind: 'sfx', name: 'lampBreak', n: [9], d: 'A street lamp popping, glass tinkling down, a dying buzz. It breaks the lamps as it comes.', src: 'night09' },
+  { kind: 'sfx', name: 'carCome', n: [9], d: 'A car engine swelling as it comes fast up the street.', src: 'night09 aftermath' },
+  { kind: 'sfx', name: 'brake', n: [9], d: 'Tyres hissing on a wet road as it brakes.', src: 'night09 aftermath' },
+  { kind: 'sfx', name: 'horn', n: [9], d: 'A car horn, twice.', src: 'night09 aftermath' },
+  { kind: 'sfx', name: 'carDoor', n: [9], d: 'A car door opening.', src: 'night09 aftermath' },
+  { kind: 'sfx', name: 'page', n: [9], d: 'A page turned over. Leafing the notebook.', src: 'night09' },
+  // ---- night 10: the mirror maze ----
+  { kind: 'sfx', name: 'musicbox', n: [10, 13], d: 'A short music-box tune. The box’s song (10); the ending (13).', src: 'night10, night13' },
+  { kind: 'sfx', name: 'musicTurn', n: [10], d: 'One crank turn: a click and the next few notes of the tune.', src: 'night10' },
+  { kind: 'sfx', name: 'musicSour', n: [10], d: 'The notes dragged flat and out of tune, the crank sticks. Wrong mirror: it comes closer.', src: 'night10' },
+  // ---- night 11: the farm ----
+  { kind: 'sfx', name: 'breakerTrip', n: [11], d: 'A bang, the clack of a breaker, sparks, a hum dying. The power trips.', src: 'night11' },
+  { kind: 'sfx', name: 'switch', n: [11, 12], d: 'A small switch click. Breakers (11), the lamp’s pull switch (12).', src: 'night11, night12' },
+  { kind: 'sfx', name: 'tubeOn', n: [11], d: 'A tube light humming on.', src: 'night11' },
+  // ---- night 12: the bedroom, and the story sounds of every night ----
+  { kind: 'sfx', name: 'drawer', n: [12], d: 'A drawer sliding open.', src: 'night12' },
+  { kind: 'sfx', name: 'cloth', n: [12], d: 'Cloth twisting. Its hands on the covers; pulling them up.', src: 'night12' },
+  { kind: 'sfx', name: 'tug', n: [12], d: 'The covers yanked hard, the bed creaking.', src: 'night12' },
+  { kind: 'sfx', name: 'flicker', n: [12], d: 'A bulb flickering out with a buzz. The lamp goes dark.', src: 'night12' },
+  { kind: 'sfx', name: 'tick', n: R12, d: 'A clock tick (one a second). For the first ten seconds of every night, from the north-west; on night 12 again once won.', src: 'story.js · night12' },
+  { kind: 'sfx', name: 'knock', n: R12, d: 'Two knocks on a pipe, once, when it is halfway to you. A story thread.', src: 'story.js' },
+  { kind: 'sfx', name: 'hangers', n: R12, d: 'Coat hangers clinking now and then on the wind; on night 12 the closet’s lane cue.', src: 'story.js · night12 lane cue' },
+  // ---- night 13: the void and the ending ----
+  { kind: 'sfx', name: 'birds', n: [13], d: 'A little birdsong. Dawn in the meadow at the end.', src: 'night13 ending' },
+  { kind: 'sfx', name: 'win', n: 'all', d: 'A soft rising chord. A night survived (the fade at the end of the aftermath); the ending’s last moment.', src: 'game.js · night13' },
+  // ---- defined but never played ----
+  { kind: 'sfx', name: 'shot', n: 'unused', d: 'A gunshot with a long tail. Only the default for a click-to-fire weapon; no night has one.', src: 'game.js fireUse default' },
+  { kind: 'sfx', name: 'empty', n: 'unused', d: 'Click-click of an empty gun. Only for a click-to-fire weapon with no ammo; no night has one.', src: 'game.js useOnCreature' },
+  { kind: 'sfx', name: 'load', n: 'unused', d: 'A gun being loaded. Default for combining two items; no night has a recipe.', src: 'game.js combine default' },
+  { kind: 'sfx', name: 'bell', n: 'unused', d: 'A small bright bell, twice. Never called.', src: '—' },
+  { kind: 'sfx', name: 'phoneRing', n: 'unused', d: 'An old phone’s trilling ring. Never called.', src: '—' },
+  { kind: 'sfx', name: 'wetThud', n: 'unused', d: 'A wet heavy blow. Never called.', src: '—' },
+  // ---- death stings (and the other uses of the same sounds) ----
+  { kind: 'sting', name: 'sting', n: [1, 11, 12, 13], d: 'A scream: white noise, a falling saw tone, glitter. Death by the walker (1, the default), the carrier (11), grabbed or in the dark (12), the demon (13).', src: 'game.js die default · carrier, demon, night12' },
+  { kind: 'sting', name: 'stingShriek', n: [2, 11], d: 'A rising shriek. Death by the crawler (2); the carrier’s shriek as it falls (11).', src: 'crawler.js · night11' },
+  { kind: 'sting', name: 'stingHum', n: [3, 10, 12, 13], d: 'A soft chord, then a thump. Death by the smiler (3), the other (10), the tall one (12); on 13 it catches you empty-handed and the ending begins.', src: 'smiler, other, tall · night13' },
+  { kind: 'sting', name: 'stingStone', n: [4], d: 'Stone grinding and a crash. Death by the watcher.', src: 'watcher.js' },
+  { kind: 'sting', name: 'stingHit', n: [5], d: 'A heavy blow. Death by the runner.', src: 'runner.js' },
+  { kind: 'sting', name: 'stingWet', n: [6], d: 'A wet scream. Death by the swimmer.', src: 'swimmer.js' },
+  { kind: 'sting', name: 'stingScrape', n: [7], d: 'Hooks screeching on stone. Death by the climber.', src: 'climber.js' },
+  { kind: 'sting', name: 'stingGlass', n: [8, 9], d: 'Glass shattering. Death by the customer (8) or the signalman (9).', src: 'customer.js, signalman.js' },
+  // ---- creature voices ----
+  { kind: 'voice', name: 'exhale', n: [1, 7, 13], d: 'A long low breath. The walker (1), the climber (7), the demon (13; also when it has hold of you at the end).', src: 'walker, climber, demon · night13' },
+  { kind: 'voice', name: 'clicks', n: [2], d: 'A run of dry clicks. The crawler.', src: 'crawler.js' },
+  { kind: 'voice', name: 'hum', n: [3, 9, 10, 13], d: 'A soft hummed note. The smiler (3, and as it walks away), the signalman (9), the other (10); the demon happy at the end (13).', src: 'smiler, signalman, other · night03, 13' },
+  { kind: 'voice', name: 'pant', n: [5], d: 'Two quick pants. The runner.', src: 'runner.js' },
+  { kind: 'voice', name: 'gurgle', n: [6], d: 'A wet gurgle. The swimmer.', src: 'swimmer.js' },
+  { kind: 'voice', name: 'slow', n: [11, 12, 13], d: 'A very slow, deep breath. The carrier (11), the tall one (12); the demon’s sorrow at the end (13).', src: 'carrier, tall · night12, 13' },
+  // ---- footsteps ----
+  { kind: 'footstep', name: 'walker', n: [1, 9, 11, 13], d: 'Slow heavy footsteps. The walker (1), the signalman (9), the carrier (11), the demon (13).', src: 'creature sound: walker, signalman, carrier, demon' },
+  { kind: 'footstep', name: 'crawler', n: [2], d: 'Quick scuttling. The crawler.', src: 'crawler.js · night02' },
+  { kind: 'footstep', name: 'smiler', n: [3, 10], d: 'Light quick steps. The smiler (3); the other running between mirrors, and three quick steps behind you (10).', src: 'smiler.js · night10' },
+  { kind: 'footstep', name: 'runner', n: [1, 3, 5, 11], d: 'Fast running steps. The runner (5); the walker running round the house and charging (1); the smiler going round on Nightmare (3); the carrier running (11).', src: 'runner.js · night01, 11 · game.js going round' },
+  { kind: 'footstep', name: 'climber', n: [7], d: 'Hooks biting into stone. The climber.', src: 'climber.js' },
+  { kind: 'footstep', name: 'shoes', n: [8], d: 'Small hard heels clicking. The customer walking.', src: 'customer.js' },
+  { kind: 'footstep', name: 'shoesRun', n: [8], d: 'Hard heels running. The customer running to another window.', src: 'night08' },
+  { kind: 'footstep', name: 'tall', n: [12], d: 'One slow, very heavy step. The tall one.', src: 'tall.js' },
+  // ---- loops ----
+  { kind: 'loop', name: 'grind', n: [4], d: 'Stone grinding, on and on. The watcher moving while you are not looking at it; silent when watched.', src: 'game.js (silentWhenSeen)' },
+  { kind: 'loop', name: 'engine', n: [2, 9], d: 'A low engine idle. The car running (2); the car waiting in the street (9).', src: 'night02 · night09 aftermath' },
+  { kind: 'heartbeat', name: 'heartbeat', n: 'all', d: 'Your heartbeat: silent until it is halfway to you, then louder and quicker as it closes (this plays the whole ramp).', src: 'game.js heartbeat' },
+  // ---- ambient beds: wind (noise through a wandering low-pass), optional rain (bright hiss), a quiet drone ----
+  { kind: 'ambient', name: 'night 1', n: [1], p: { wind: 1, drone: 0.8, droneFreq: 50, windFreq: 380 }, d: 'Open wind over the field, a low hum under it.', src: 'night01 ambient' },
+  { kind: 'ambient', name: 'night 2', n: [2], p: { wind: 0.45, drone: 1, droneFreq: 41, windFreq: 220, rain: 0.8 }, d: 'Rain on the car, muffled wind, a deep drone.', src: 'night02 ambient' },
+  { kind: 'ambient', name: 'night 3', n: [3], p: { wind: 0.7, drone: 0.7, droneFreq: 58, windFreq: 300, rain: 0.35 }, d: 'Light rain and wind among the stones.', src: 'night03 ambient' },
+  { kind: 'ambient', name: 'night 4', n: [4], p: { wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 }, d: 'Brighter gusting wind in the pit, a thin drone.', src: 'night04 ambient' },
+  { kind: 'ambient', name: 'night 5', n: [5], p: { wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 }, d: 'A strong cold wind (it is snowing).', src: 'night05 ambient' },
+  { kind: 'ambient', name: 'night 6', n: [6], p: { wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 }, d: 'Rain on the water, a low wind.', src: 'night06 ambient' },
+  { kind: 'ambient', name: 'night 7', n: [7], p: { wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 }, d: 'A storm: the loudest wind and heavy rain (thunder comes on top).', src: 'night07 ambient' },
+  { kind: 'ambient', name: 'night 8', n: [8], p: { wind: 0.25, drone: 1.0, droneFreq: 60, windFreq: 300 }, d: 'Mostly the hum of the place (a strong 60 Hz drone), little wind.', src: 'night08 ambient' },
+  { kind: 'ambient', name: 'night 8 · power off', n: [8], p: { wind: 0.25, drone: 0.12, droneFreq: 60, windFreq: 300 }, d: 'The same, with the hum gone: the main is switched off.', src: 'night08 main off' },
+  { kind: 'ambient', name: 'night 9', n: [9], p: { wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 }, d: 'Steady rain on the street.', src: 'night09 ambient' },
+  { kind: 'ambient', name: 'night 10', n: [10], p: { wind: 0.5, drone: 0.9, droneFreq: 55, windFreq: 340 }, d: 'Still air indoors, a hanging drone.', src: 'night10 ambient' },
+  { kind: 'ambient', name: 'night 11', n: [11], p: { wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 }, d: 'Wind over the farm, a low drone.', src: 'night11 ambient' },
+  { kind: 'ambient', name: 'night 12', n: [12], p: { wind: 0.15, drone: 0.9, droneFreq: 38, windFreq: 200 }, d: 'A near-silent room, a very low drone.', src: 'night12 ambient' },
+  { kind: 'ambient', name: 'night 13', n: [13], p: { wind: 0.2, drone: 1.3, droneFreq: 34, windFreq: 160 }, d: 'The deepest, loudest drone; almost no wind.', src: 'night13 ambient' },
+  { kind: 'ambient', name: 'night 13 · dawn', n: [13], p: { wind: 0.32, drone: 0, windFreq: 760 }, d: 'A light breeze and no drone: the meadow at dawn, at the very end.', src: 'night13 ending' },
+];
+const KINDS = { sfx: 'effect', sting: 'death sting', voice: 'voice', footstep: 'footsteps', loop: 'loop', heartbeat: 'heartbeat', ambient: 'ambient bed' };
+const PLURAL = { sfx: 'effects', sting: 'death stings', voice: 'voices', footstep: 'footstep kinds', loop: 'loops', heartbeat: 'heartbeat', ambient: 'ambient beds' };
+const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambient'];
+
+(() => {
+  const ids = s => s.kind + ':' + s.name;
+  const $ = id => document.getElementById(id);
+  const paramText = p => ['wind ' + (p.wind === undefined ? 1 : p.wind), p.rain ? 'rain ' + p.rain : null, 'drone ' + (p.drone === undefined ? 1 : p.drone) + (p.drone === 0 ? '' : ' @ ' + (p.droneFreq || 52) + ' Hz'), 'wind filter ' + (p.windFreq || 380) + ' Hz'].filter(Boolean).join(' · ');
+  const covers = (s, night) => s.n === 'all' || (Array.isArray(s.n) && s.n.includes(night));
+  // nights as text: 'all nights', 'unused', or runs ('1–12', '2, 6')
+  function runs(n) {   // three or more nights in a row as one [from, to]; the rest one by one
+    const out = [];
+    for (let i = 0; i < n.length;) {
+      let j = i; while (j + 1 < n.length && n[j + 1] === n[j] + 1) j++;
+      if (j - i >= 2) out.push([n[i], n[j]]); else for (let k = i; k <= j; k++) out.push([n[k]]);
+      i = j + 1;
+    }
+    return out;
+  }
+  const nightsText = s => s.n === 'all' ? 'all nights' : s.n === 'unused' ? 'unused' : runs(s.n).map(r => r.length > 1 ? r[0] + '–' + r[1] : String(r[0])).join(', ');
+
+  // ---- comments, kept in this browser ----
+  let notes = {};
+  try { notes = JSON.parse(localStorage.getItem('soundsAuditNotes') || '{}') || {}; } catch (e) { notes = {}; }
+  const saveNotes = () => { try { localStorage.setItem('soundsAuditNotes', JSON.stringify(notes)); } catch (e) {} };
+
+  // ---- audio: started on the first click (a browser will not start sound before one) ----
+  const start = () => { AUDIO.init(); AUDIO.resume(); };
+  document.addEventListener('pointerdown', start, { once: true });
+  let vol = 0.8, muted = false;
+  try { const v = JSON.parse(localStorage.getItem('soundsAuditVol') || 'null'); if (v) { vol = clamp(+v.vol, 0, 1); muted = !!v.muted; } } catch (e) {}
+  const applyVol = () => {
+    AUDIO.setVolume('master', vol); AUDIO.setMuted(muted);
+    $('vol').value = vol; $('volOut').textContent = Math.round(vol * 100) + '%';
+    $('mute').setAttribute('aria-pressed', String(muted)); $('mute').textContent = muted ? 'Unmute' : 'Mute';
+    try { localStorage.setItem('soundsAuditVol', JSON.stringify({ vol, muted })); } catch (e) {}
+  };
+  $('vol').addEventListener('input', ev => { vol = +ev.target.value; applyVol(); });
+  $('mute').onclick = () => { muted = !muted; applyVol(); };
+  applyVol();
+
+  // what is held on: one ambient bed and one loop at a time, as in the game
+  const on = { ambient: null, loop: null };
+  const timers = [];
+  const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+  const STEP_GAP = { walker: 620, crawler: 170, smiler: 300, runner: 260, climber: 480, tall: 1100, shoes: 380, shoesRun: 230 };
+  function play(s) {
+    start();
+    if (s.kind === 'sfx' || s.kind === 'sting') {
+      AUDIO.sfx(s.name, 0);
+      if (s.name === 'start') setOn('loop', SOUNDS.find(x => x.kind === 'loop' && x.name === 'engine'));   // it starts the engine loop
+    } else if (s.kind === 'voice') AUDIO.voice(s.name, 0.6, 0);
+    else if (s.kind === 'footstep') { const g = STEP_GAP[s.name] || 400; for (let i = 0; i < 5; i++) later(i * g, () => AUDIO.footstep(s.name, 0.35 + i * 0.07, i % 2 ? 0.15 : -0.15)); }
+    else if (s.kind === 'heartbeat') {   // the ramp as it closes in: from far (slow, faint) to at you (fast, loud)
+      let t = 0;
+      for (let i = 0; i <= 10; i++) { const prox = 0.1 + i * 0.09; later(t * 1000, () => AUDIO.heartbeat(0.04 + prox * 0.5, prox > 0.7)); t += lerp(1.35, 0.32, Math.pow(prox, 1.5)); }
+    } else if (s.kind === 'loop') {
+      if (on.loop === s) { AUDIO.stopLoop(); setOn('loop', null); } else { AUDIO.setLoop(s.name, 0.45, 0); setOn('loop', s); }
+    } else if (s.kind === 'ambient') {
+      if (on.ambient === s) { AUDIO.stopAmbient(); setOn('ambient', null); } else { AUDIO.startAmbient(s.p); setOn('ambient', s); }
+    }
+    const tr = rows.get(ids(s)); if (tr) { tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash'); }
+  }
+  function setOn(which, s) {
+    const was = on[which]; on[which] = s;
+    for (const x of [was, s]) { if (!x) continue; const tr = rows.get(ids(x)); if (!tr) continue; const b = tr.querySelector('.play'), live = on[which] === x; tr.classList.toggle('live', live); b.textContent = live ? '■' : '▶'; b.setAttribute('aria-label', (live ? 'Stop ' : 'Play ') + label(x)); }
+  }
+  $('stop').onclick = () => { timers.splice(0).forEach(clearTimeout); AUDIO.stopLoop(); AUDIO.stopAmbient(); setOn('loop', null); setOn('ambient', null); };
+  const label = s => (s.kind === 'ambient' ? 'ambient bed, ' + s.name : s.name + ' (' + KINDS[s.kind] + ')');
+
+  // ---- the table ----
+  const body = $('rows'), rows = new Map();
+  const nightChips = s => {
+    if (s.n === 'all') return '<span class="chip all" title="Every night: generic code">all nights</span>';
+    if (s.n === 'unused') return '<span class="chip unused" title="Defined in js/audio.js, never played">unused</span>';
+    return runs(s.n).map(r => r.length > 1 ? '<span class="chip wide" title="Nights ' + r[0] + ' to ' + r[1] + '">' + r[0] + '–' + r[1] + '</span>' : '<span class="chip" title="' + r[0] + ' · ' + NIGHTS[r[0] - 1] + '">' + r[0] + '</span>').join('');
+  };
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const sorted = SOUNDS.slice().sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
+  for (const s of sorted) {
+    const tr = document.createElement('tr'), id = ids(s), toggles = s.kind === 'loop' || s.kind === 'ambient';
+    tr.className = 'k-' + s.kind + (s.n === 'unused' ? ' is-unused' : '');
+    tr.innerHTML =
+      '<td class="c-play"><button class="play' + (toggles ? ' toggle' : '') + '" aria-label="Play ' + esc(label(s)) + '">▶</button></td>' +
+      '<td class="c-name"><code>' + esc(s.name) + '</code><span class="kind">' + esc(KINDS[s.kind]) + (toggles ? ' · toggles' : '') + '</span></td>' +
+      '<td class="c-desc"><span class="d">' + esc(s.d) + '</span>' + (s.p ? '<span class="params">' + esc(paramText(s.p)) + '</span>' : '') + '<span class="src">' + esc(s.src) + '</span></td>' +
+      '<td class="c-nights"><div class="chips">' + nightChips(s) + '</div></td>' +
+      '<td class="c-note"><textarea rows="1" aria-label="Comment on ' + esc(label(s)) + '" placeholder="Comment…"></textarea></td>';
+    tr.querySelector('.play').onclick = () => play(s);
+    const ta = tr.querySelector('textarea');
+    ta.value = notes[id] || '';
+    const fit = () => { ta.style.height = 'auto'; ta.style.height = Math.max(32, ta.scrollHeight + 2) + 'px'; };
+    ta.addEventListener('input', () => { if (ta.value.trim()) notes[id] = ta.value; else delete notes[id]; saveNotes(); tr.classList.toggle('noted', !!ta.value.trim()); fit(); count(); });
+    tr.classList.toggle('noted', !!ta.value.trim());
+    body.appendChild(tr); rows.set(id, tr);
+    s.tr = tr; s.fit = fit;
+    s.hay = (s.name + ' ' + KINDS[s.kind] + ' ' + s.d + ' ' + s.src + ' ' + nightsText(s) + (s.p ? ' ' + paramText(s.p) : '')).toLowerCase();
+  }
+  requestAnimationFrame(() => sorted.forEach(s => s.fit()));
+
+  // ---- filters ----
+  const strip = $('nightStrip');
+  const nightBtns = [['', 'All'], ...NIGHTS.map((t, i) => [String(i + 1), String(i + 1), t]), ['unused', 'Unused', 'Defined but never played']];
+  for (const [v, txt, title] of nightBtns) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.n = v; b.textContent = txt; b.setAttribute('aria-pressed', String(v === ''));
+    b.title = title ? (/^\d/.test(txt) ? 'Night ' + txt + ': ' + title : title) : 'Every night';
+    b.onclick = () => { filt.night = v; for (const x of strip.children) x.setAttribute('aria-pressed', String(x === b)); apply(); };
+    strip.appendChild(b);
+  }
+  const kindSel = $('kind');
+  for (const k of ORDER) { const o = document.createElement('option'); o.value = k; o.textContent = PLURAL[k] + ' (' + SOUNDS.filter(s => s.kind === k).length + ')'; kindSel.appendChild(o); }
+  const filt = { q: '', kind: '', night: '', noted: false };
+  $('q').addEventListener('input', ev => { filt.q = ev.target.value.trim().toLowerCase(); apply(); });
+  kindSel.addEventListener('change', () => { filt.kind = kindSel.value; apply(); });
+  $('noted').addEventListener('change', ev => { filt.noted = ev.target.checked; apply(); });
+  function apply() {
+    let shown = 0;
+    for (const s of sorted) {
+      const nt = notes[ids(s)] || '';
+      const ok = (!filt.kind || s.kind === filt.kind) &&
+        (!filt.night || (filt.night === 'unused' ? s.n === 'unused' : covers(s, +filt.night))) &&
+        (!filt.noted || nt.trim()) &&
+        (!filt.q || filt.q.split(/\s+/).every(w => s.hay.includes(w) || nt.toLowerCase().includes(w)));
+      s.tr.hidden = !ok; if (ok) shown++;
+    }
+    $('empty').hidden = shown > 0;
+    count(shown);
+  }
+  function count(shown) {
+    if (shown === undefined) shown = sorted.filter(s => !s.tr.hidden).length;
+    const noted = Object.keys(notes).filter(k => (notes[k] || '').trim()).length;
+    const n = filt.night && filt.night !== 'unused' ? ' · night ' + filt.night + ', ' + NIGHTS[+filt.night - 1] : '';
+    $('count').textContent = shown + ' of ' + SOUNDS.length + ' shown' + n + ' · ' + noted + ' commented';
+  }
+  apply();
+
+  // ---- export ----
+  const toast = msg => { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2000); };
+  const byKind = () => ORDER.map(k => SOUNDS.filter(s => s.kind === k).length + ' ' + PLURAL[k]).join(', ');
+  const line = s => {
+    const nt = (notes[ids(s)] || '').trim().replace(/\s*\n+\s*/g, ' / ');
+    return '- ' + s.name + ' [' + KINDS[s.kind] + '] | ' + nightsText(s) + ' | ' + s.d + (s.p ? ' (' + paramText(s.p) + ')' : '') + (nt ? '\n    COMMENT: ' + nt : '');
+  };
+  function exportText(onlyNoted) {
+    const list = sorted.filter(s => !onlyNoted || (notes[ids(s)] || '').trim());
+    const noted = sorted.filter(s => (notes[ids(s)] || '').trim()).length;
+    const head = 'Sounds audit: ' + SOUNDS.length + ' sounds (' + byKind() + '); ' + noted + ' with comments.' + (onlyNoted ? ' Only the commented ones follow.' : '') +
+      '\nEach line: name [kind] | nights | what it sounds like and means. Played by js/audio.js (sfx / sting by AUDIO.sfx(name), voice, footstep, loop, heartbeat, ambient bed = AUDIO.startAmbient(params)).';
+    return head + '\n\n' + list.map(line).join('\n');
+  }
+  function copy(onlyNoted) {
+    if (onlyNoted && !Object.keys(notes).some(k => (notes[k] || '').trim())) { toast('No comments yet. Write one in a row’s comment box.'); return; }
+    const text = exportText(onlyNoted), out = $('copyOut');
+    const fallback = () => { out.value = text; out.classList.add('show'); out.style.height = Math.min(420, 60 + text.split('\n').length * 18) + 'px'; out.scrollIntoView({ block: 'nearest' }); out.focus(); out.select(); toast('Select all and copy the text below'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => { out.value = text; toast((onlyNoted ? 'Comments' : 'The whole table') + ' copied. Paste it into the chat.'); }, fallback);
+    else fallback();
+  }
+  $('copyAll').onclick = () => copy(false);
+  $('copyNoted').onclick = () => copy(true);
+
+  // captions: the game's own caption line, shown as each sound plays
+  setInterval(() => CAPTIONS.update(), 200);
+  window.SOUNDS_AUDIT = { SOUNDS, play, exportText };   // (for the lab's own checks)
+})();
