@@ -1,6 +1,7 @@
 'use strict';
-// The other: a porcelain doll the size of a small girl, always behind you, only ever seen in a mirror. It moves only
-// while no mirror you are facing shows it. c.back draws it from behind: the night sets it for the glass behind it while
+// The other: a porcelain doll the size of a small girl, always behind you, only ever seen in a mirror. It comes on
+// steadily while no mirror you are facing shows it; held in a glass it creeps in too (at the night's seenMult), but only
+// in the snap of each move of its dance, so between moves it is still dead still (speedMult). c.back draws it from behind: the night sets it for the glass behind it while
 // it lunges, and as it turns round on the spot before it comes out for the box.
 // When the music box plays on the odd mirror's pedestal it comes out through that glass for the box, and the night drives
 // it: c.rush (0..1) runs it at you, rocking hard on its stiff legs (c.runGait its stride); c.smile paints the smile on;
@@ -21,7 +22,16 @@ CREATURES.other = {
   voice: { kind: 'hum', every: [6, 11] },
   carryAt: { y: 0.55, w: 0.34 },   // where c.carry's box sits in its arms: base height and size, in metres
   init(c) { c.back = false; c.dance = 1; c.danceT = 0; c.danceMir = 1; },
-  speedMult(c, dt, seen) { return seen ? 0 : 1; },
+  // unseen it comes on steadily. Seen, its pace (on average the same) all goes into the snaps of its dance: it closes in
+  // only in the first creepWin seconds of each beat (of its dance clock, c.danceT, over the last frame), so the glass
+  // shows it a step nearer with every move and dead still between. Not dancing (upset), it creeps on steadily
+  creepWin: 0.15,
+  speedMult(c, dt, seen) {
+    if (!seen || (c.dance || 0) < 1 || dt <= 0) return 1;
+    const B = this.danceBeat, W = this.creepWin, inWin = x => Math.floor(x / B) * W + Math.min(((x % B) + B) % B, W);
+    const t = c.danceT || 0;
+    return (inWin(t) - inWin(t - dt)) * (B / W) / dt;
+  },
   lateral(c) { return c.runLat || 0; },
   // The dance: a wind-up doll's, stiff and sudden. Each move is a snap: it clicks into its pose all at once (a tiny jolt
   // past it and back), and then holds there dead still, not a twitch, a long while, until the next move snaps it into the

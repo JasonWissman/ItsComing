@@ -5,10 +5,10 @@
 // A click on the box lifts it back off with its crank still in it; on the odd mirror's pedestal it goes down crank and all,
 // and turning it until the tune plays brings the doll out through that glass to take the box. Like a player, it faces a
 // mirror square on (which holds the thing while that glass is live) and clicks what is in front of it, rather than looking
-// all round for each pedestal. Before any of that it watches the doll dance in every glass: drawn at one moment, the odd
+// all round for each pedestal. A wrong mirror costs three tenths of the night's clock. Before any of that it watches the doll dance in every glass: drawn at one moment, the odd
 // mirror's doll is in the mirror image of the others' pose and the others are in the same pose; each move snaps in and
 // holds still, and none is its own mirror image; each glass draws the pose it should; and held in a glass it dances on the
-// spot.
+// spot, coming a little nearer only in the snap of each move (the night's clock), and faster looking away.
 // It happens in your hands: a sheet is pulled down by the hand, an empty pedestal clicked with nothing in hand is touched on
 // its top, the crank tried on a pedestal with no box feels about its top
 // and comes back to your hand, the hand turns the crank, wrenches at it when it jams, and the box lifted off comes up off
@@ -82,8 +82,15 @@ const dance = [danceHelpers,
   ['expect', 'window._dance.held()', 'each move is snapped into at once and held dead still until the next, and none is its own mirror image'],
 ].concat(...[0, 1, 2, 3].map(k => [look(k), ['wait', 80], ['expect', 'window._dance.drew(' + k + ')', 'mirror ' + k + ' draws the dance ' + "the right way round (the odd one's mirrored)"]]), [
   // (it holds each move a long beat: wait out more than one, so it has snapped into another)
-  ['eval', 'window._dz = { d: G.L.creature.dist, t: G.L.creature.danceT, p: JSON.stringify(G.L.s.shown[3].pose) }'], ['wait', 2300],
-  ['expect', 'window._dance.drew(3) && G.L.creature.dist === window._dz.d && G.L.creature.danceT > window._dz.t + CREATURES.other.danceBeat && JSON.stringify(G.L.s.shown[3].pose) !== window._dz.p', 'held in the glass it dances on the spot: its pose moves, it comes no nearer'],
+  // (and it creeps in, only as each move snaps in: it is never seen to move between the snaps)
+  ['eval', `window._dz = { d: G.L.creature.dist, t: G.L.creature.danceT, p: JSON.stringify(G.L.s.shown[3].pose), off: 0 };
+    (function w() { const c = G.L.creature, B = CREATURES.other.danceBeat, ph = ((c.danceT % B) + B) % B; if (c.seen && c.moving && c.dance === 1 && ph > CREATURES.other.creepWin + 0.05) window._dz.off++; if (G.state === 'play' && performance.now() < window._dz.end) requestAnimationFrame(w); })(window._dz.end = performance.now() + 2300)`], ['wait', 2300],
+  ['expect', 'window._dance.drew(3) && G.L.creature.danceT > window._dz.t + CREATURES.other.danceBeat && JSON.stringify(G.L.s.shown[3].pose) !== window._dz.p', 'held in the glass it dances on the spot: its pose moves'],
+  ['expect', 'G.L.creature.dist < window._dz.d - 0.05 && G.L.creature.dist > window._dz.d - 1 && !window._dz.off', 'and it creeps in, a step with each snap of its dance and still between them'],
+  // looking away (down at the floor) it comes on faster than held in the glass
+  ['eval', 'G.cam.pitch = G.cam.tPitch = G.L.lookDown'], ['wait', 100], ['eval', 'window._dz2 = { d: G.L.creature.dist, t: G.L.t }'], ['wait', 1500],
+  ['expect', '!G.L.creature.seen && (window._dz2.d - G.L.creature.dist) / (G.L.t - window._dz2.t) > (window._dz.d - window._dz2.d) / 2.3', 'looking away, it comes on faster'],
+  ['eval', 'G.cam.pitch = G.cam.tPitch = 0'], ['wait', 300],
 ]);
 const crankFirst = k => [hold('crank'), look(k),
   watch('feel', "G.fumbling && G.fumbling.preset === 'bump' && !G.fumbling.drop && G.fumbling.target.id === '" + ped(k) + "' && G.fumbling.phase === 'contact'"),
@@ -103,7 +110,8 @@ const wrongPedestal = k => {
     ['click', ped(w)],
     ['expect', 'G.L.s.sour && G.L.s.wrongAt > 0 && G.L.creature.angry === 1 && G.L.s.turns === 0', 'turning it before a wrong mirror plays wrong notes and the doll in the glass is angry'],
     ...saw('jam', 'the crank jams, and the hand wrenches at it'),
-    ['expect', '!G.L.won && (G.L.creature.dist < window._d0 - 0.05 || G.L.creature.dist <= G.L.creature.catchDist + 1.51)', 'and it hops closer'],
+    ['expect', '!G.L.won && (G.L.creature.dist < window._d0 - 0.29 * G.L.creature.D0 || G.L.creature.dist <= G.L.creature.catchDist + 1.51)', 'and it hops closer, three tenths of its whole way (never right up to you)'],
+    ['expect', "G.L.deathCause() === 'wrong' && G.L.text.death.wrong === 'You played for an illusion. The creature surprised you from behind.'", 'caught now, it is the illusion that did it'],
     ['eval', 'window._dt = G.L.creature.danceT'], ['wait', 450],
     ['expect', 'G.L.creature.danceT === window._dt && G.L.creature.dance === 0', 'angry, it has stopped dancing dead and eased out of it'],
     watch('fly', "G.hand.fly && G.hand.fly.it.id === 'musicbox'"),
@@ -128,7 +136,8 @@ const fetched = [['waitUntil', 'G.L.s.held && G.L.creature.lane.idx === 1 + G.L.
 const caught = [
   ['eval', "window.__att0 = G.attempt; window.__angry = { n: 0, calm: 0, k: 0 }; (function w() { const c = G.L.creature; if (G.state === 'dying') { if (c.angry === 1 && !c.rush && !c.smile) window.__angry.n++; else window.__angry.calm++; window.__angry.k = Math.max(window.__angry.k, c.lunge || 0); } if (G.state === 'play' || G.state === 'dying') requestAnimationFrame(w); })(); G.L.creature.hold = 1.0;"],
   ['waitUntil', "G.state === 'dead'", 6000],
-  ['expect', "G.state === 'dead' && G.deathCause === 'default' && window.__angry.n > 10 && !window.__angry.calm && window.__angry.k === 1", 'it reached you, and its face was angry all through the lunge'],
+  ['expect', "G.state === 'dead' && G.deathCause === 'unplayed' && window.__angry.n > 10 && !window.__angry.calm && window.__angry.k === 1", 'it reached you, and its face was angry all through the lunge'],
+  ['expect', "G.deathScreen.text === 'It just wants to hear its song.'", 'caught before the box ever played: it just wants to hear its song'],
   ['eval', 'G.attempt = __att0 - 1; restartLevel()'], ['wait', 300],
   ['expect', "G.state === 'play' && !G.L.creature.angry && G.L.s.placedAt < 0", 'the same night again, from the start, the doll calm'],
 ];

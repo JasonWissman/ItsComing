@@ -28,7 +28,7 @@ const FARM_HIDE = 2.2;   // it stands this far out from the foot of its place, i
 LEVELS.push({
   id: 'barn', title: 'The Farm', facing: 0, eyeH: 1.65,
   startFacing: 0,   // you start facing the barn, wherever it is: finding it is up to you
-  lookDown: 34,     // looking down toward the stables, the box at your left (taller than your waist) is all in view
+  lookDown: 30,     // looking down toward the stables, the box before you (taller than your waist) is all in view, a little below the middle (zoomed, as near as all of it fits: build)
   laneSwitch: false,   // it changes places only by running from the light (build)
   pal: { skyTop: [5, 7, 17], fog: [24, 28, 40], ground: [20, 24, 18], fogDist: 125 },
   ambient: { tune: 'ambient:11', wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 },
@@ -315,16 +315,17 @@ LEVELS.push({
 
     // ---------------- the electrical box ----------------
     // On its post at your left hand, its top at your chest: turn left from the barn to face the stables and it is right
-    // there in front of you, a little to the left of the way out to them (clear of their way in), its front square to you
+    // there in front of you, in the middle of the view below them (too low to hide them or their way in), its front square to you
     // as you look that way. A grey steel box with a rain hood, standing open, no door on it. Inside, at the top, the main breaker: a big lever lying across, over to the right for ON and
     // to the left for OFF, a red tag over it marked MAIN and a green lamp beside it that is lit while it is on. Under it,
     // two rows of four big toggle switches, each with a red pilot lamp and a strip of tape under it with the place written
     // on it in marker. Up is on. A little lamp in the top of the box lights its inside while the main is on (the panel is
     // lit by it alone). The panel and every part of it are fixed flat on the front of the box (face: they never turn
     // toward you), so what you click is where it is drawn whichever way you look.
-    // It is built in the frame looking out at the stables (BOX_DEG), BX to the left of the way out and BZ out along it;
+    // It is built in the frame looking out at the stables (BOX_DEG), BX across the way out (0: square in the middle of the
+    // view as you face the stables; it stands too low to hide them or their way in) and BZ out along it;
     // FRONT, the way its front looks, is back along that way at you (in the night's frame: face is not turned by the frame)
-    const BOX_DEG = 315, BX = -0.32, BZ = 0.98, FRONT = (BOX_DEG + 180) * DEG;
+    const BOX_DEG = 315, BX = 0, BZ = 0.98, FRONT = (BOX_DEG + 180) * DEG;
     const BY = 0.5, BW = 0.5, BH = 0.82, PY = BY + 0.02, PW = 0.46, PH = 0.78;
     const BN = Math.hypot(BX + BW / 2, BZ);   // how far the nearest edge of its front is: the panel is drawn after every part of that face
     const steel = [66, 74, 70];
@@ -524,6 +525,7 @@ LEVELS.push({
     };
     L.update = dt => {
       const c = L.creature;
+      zoomOnBox(dt);
       if (s.k === null) {   // the start: at the foot of its place (and you, facing the barn, the box at your left: startFacing)
         s.k = c.lane.idx; c.D0 = RING[s.k].hide;
         way = Object.assign({}, L.lanes[s.k], { apertures: [], blockers: [], name: 'round the yard' });
@@ -556,6 +558,27 @@ LEVELS.push({
       if (!s.thud && t > T2) { s.thud = true; AUDIO.sfx('thud', panTo(c.yaw)); G.shake(0.2); }
       if (!s.flop && t > T2 + 0.5) { s.flop = true; AUDIO.sfx('flop', panTo(c.yaw)); }
       return t >= FALL_END;
+    };
+    // zoom held on the box: as close as keeps all of it in view (its hood, its panel and every strip of tape on it, clear
+    // of the compass and its line at the top of the view), not the usual 2.6, which at arm's length shows only part of the
+    // panel. Only while the whole of it is in the view unzoomed (you are looking at it); otherwise the usual zoom. The game
+    // eases the zoom toward 2.6 before the night's update: this caps it (s.zoomCap, eased, so turning onto the box zoomed
+    // in it draws back out smoothly), and the view is drawn after
+    const BOXC = inBox(() => [BX - BW / 2 - 0.02, BX + BW / 2 + 0.02].flatMap(x => [BY, BY + BH + 0.05].flatMap(y => [BZ - 0.03, BZ + 0.21].map(z => W(x, y, z)))));
+    const boxZoom = () => {
+      const cam = { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH, eye: L.eye }, pts = BOXC.map(p => R.projectRect(p.x, p.y, p.z, 0, 0, cam));
+      if (!R.W || pts.some(p => !p)) return null;
+      const cx = R.W / 2, cy = R.H / 2, m = R.H * 0.015, top = Math.max(84, R.H * 0.11);
+      const x0 = Math.min(...pts.map(p => p.x)), x1 = Math.max(...pts.map(p => p.x)), y0 = Math.min(...pts.map(p => p.y)), y1 = Math.max(...pts.map(p => p.y)) + 0.5;
+      if (x0 < 0 || x1 > R.W || y0 < 0 || y1 > R.H) return null;
+      const fit = (room, out) => (out > 0 ? room / out : Infinity);
+      return clamp(Math.min(fit(cx - m, cx - x0), fit(R.W - m - cx, x1 - cx), fit(cy - top, cy - y0), fit(R.H - m - cy, y1 - cy)), 1, 2.6);
+    };
+    L.boxZoom = boxZoom;   // (for the tests)
+    const zoomOnBox = dt => {
+      const want = (G.cam.zoomHeld && boxZoom()) || 2.6;
+      s.zoomCap = s.zoomCap === undefined ? want : s.zoomCap + (want - s.zoomCap) * (1 - Math.exp(-dt * 10));
+      if (G.cam.zoom > s.zoomCap) G.cam.zoom = Math.max(1, s.zoomCap);
     };
     L.watchPoint = () => { const c = L.creature, p = c.pos(); return { x: p.x, y: 0.7, z: p.z, zoom: clamp(s.r / 5.5, 1.35, 4) }; };
 
