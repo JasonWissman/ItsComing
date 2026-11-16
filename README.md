@@ -415,7 +415,10 @@ between its shoulders, where it stays. A click on the dark of
 the title does not begin the night: the view blinks shut for a moment and it takes its step in there. It never moves
 while you can see it. Once there has been a click or a key (a browser starts no sound before one), a faint deep drone
 sits under the title, a little louder and thicker each step it takes; it fades as a night begins. After the last night
-the title keeps its morning room instead, nothing is coming, and it is quiet. Begin is the one button drawn inverted,
+the title keeps its morning room instead, nothing is coming, and it is quiet. Begin (or Enter) opens a new game with a
+prologue: black, and two lines fading up one after the other ("You haven't had a good night's sleep in ages." /
+"Each night something visits you in your dreams..."), then all of it fades into night 1's card; a click or a key skips
+it (`newGame` in js/game.js). Begin is the one button drawn inverted,
 light with dark letters. Every button and control in the menus answers with a soft tap. All the game's text is set in
 IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`), except the keycaps drawn in How to play,
 which are a plain sans, and the lettering on things in the nights themselves (a gear plate, a breaker box's tape).

@@ -88,6 +88,13 @@
   }
   :root[data-theme="day"] .hwhat, :root[data-theme="day"] .kplus { color: #3a332c; }
   :root[data-theme="day"] .hcard, :root[data-theme="day"] .runcard { background: rgba(58,51,44,.06); }
+  /* the prologue before a new game: black, two lines fading up one after the other in the middle, then all of it out */
+  #prologue { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1em; padding: 24px; box-sizing: border-box; text-align: center; opacity: 0; transition: opacity .6s; cursor: default; }
+  #prologue.on { opacity: 1; }
+  #prologue.out { opacity: 0; transition: opacity 1.2s; }
+  #prologue p { margin: 0; max-width: 34em; font: 400 clamp(19px, 2.6vw, 28px)/1.5 'IM Fell English', Georgia, serif; color: #e8dfcb; letter-spacing: .01em; opacity: 0; transform: translateY(4px); transition: opacity 2.4s ease, transform 2.4s ease; }
+  #prologue p.on { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { #prologue p { transform: none; transition: opacity 1s; } }
   #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .5s; padding: 24px; box-sizing: border-box; }
   #overlay.show { opacity: 1; pointer-events: auto; cursor: pointer; }
   #overlay > * { max-width: 720px; }

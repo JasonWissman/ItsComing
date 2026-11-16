@@ -163,7 +163,7 @@ const MENU = (() => {
   }
   function act(a, arg) {
     switch (a) {
-      case 'begin': beginRun(); startLevel(0, true); break;
+      case 'begin': newGame(); break;
       case 'done': show('results'); break;   // the ending's "I did it": how the nights went
       case 'finish': G.lastRun = null; if (G.seed === null) G.runSeed = Date.now() % 1000000; showTitle(); break;   // home; the next run new layouts, unless the seed is fixed
       case 'continue': startLevel(G.unlocked, true); break;

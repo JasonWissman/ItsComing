@@ -162,6 +162,39 @@ function validateContent() {
 // and counted, the moment the last night is won. As it goes it keeps each night's time (the attempt that won it, as the
 // Nights screen counts a best) and whether that beat the best before; finished, it is kept as G.lastRun for the results.
 function beginRun() { G.run = { t: 0, night: 0, nights: [] }; }
+// ---------- a new game: before the first night, a black screen and two lines, one after the other ----------
+// The lines come up slowly in the middle of the dark, hold, and everything fades out; then night 1's card. A click or a
+// key (after the first moment) skips it. Over everything, so nothing on the title behind it can be pressed.
+const PROLOGUE = ['You haven\u2019t had a good night\u2019s sleep in ages.', 'Each night something visits you in your dreams\u2026'];
+let prologueOn = false;
+function newGame() {
+  beginRun();
+  if (prologueOn) return;
+  // (a browser driven by the tests goes straight to night 1, unless a test asks for it: window.PROLOGUE_TEST)
+  if (navigator.webdriver && !window.PROLOGUE_TEST) { startLevel(0, true); return; }
+  AUDIO.stopAmbient();   // the title's drone goes with it
+  const still = SAVE.data.settings.reducedMotion;
+  const el = document.createElement('div'); el.id = 'prologue';
+  el.innerHTML = PROLOGUE.map(t => '<p>' + t + '</p>').join('');
+  document.body.appendChild(el);
+  prologueOn = true;
+  const lines = el.querySelectorAll('p'), timers = [], at = (ms, fn) => timers.push(setTimeout(fn, ms));
+  const t0 = performance.now();
+  let done = false;
+  const finish = () => {
+    if (done) return; done = true; timers.forEach(clearTimeout);
+    el.classList.add('out');
+    setTimeout(() => { el.remove(); prologueOn = false; document.removeEventListener('keydown', key, true); startLevel(0, true); }, still ? 300 : 1300);
+  };
+  const skip = () => { if (performance.now() - t0 > 600) finish(); };
+  const key = e => { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) skip(); };
+  document.addEventListener('keydown', key, true);
+  el.addEventListener('click', e => { e.stopPropagation(); skip(); });
+  requestAnimationFrame(() => el.classList.add('on'));
+  at(still ? 300 : 900, () => lines[0].classList.add('on'));
+  at(still ? 1800 : 3600, () => lines[1].classList.add('on'));
+  at(still ? 5200 : 8400, finish);
+}
 function runTick(dt) { if (G.run && (G.state === 'play' || G.state === 'dying')) G.run.t += dt; }
 // prev: the night's best time before this win (null if it had none)
 function runWon(L, prev) {
@@ -316,7 +349,7 @@ function proceed() {
   if (performance.now() < G.overlayArmed) return; // the arm is on the wall clock, so it is 350 ms whatever the frame rate
   ensureAudio();
   switch (G.state) {
-    case 'title': beginRun(); startLevel(0, true); break;
+    case 'title': newGame(); break;
     case 'card': hideOverlay(); setState('play'); beginPlay(); break;
     case 'dead': startLevel(G.levelIndex, false); break;
     case 'survived': proceedFromSurvived(); break;
