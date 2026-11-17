@@ -112,7 +112,8 @@ some on the ground, so you have to turn and look down to find them.
    greys (the collarbones, the breastbone, the ribs, the hip bones, the kneecaps), and its pale grey face comes up out of
    the dark oval of its head, gaunt, the cheeks and temples sunk in under the cheekbones, the round blank eyes deep in
    their sockets, and the mouth opening. Find the hammer, the nails and the loose planks, and board
-   up both: board the one it is coming for and it runs round the house to the other. The
+   up both: board the one it is coming for and it runs round the house to the other (its footsteps from that doorway
+   are heard once it has come round in front of it and walks again, not while it is still running). The
    window beside the front doorway is glass you can see out of, over the field, and if it
    runs round that side you see it go past. The planks are wide old boards, and three of
    them close most of a doorway, leaving a slit at eye level. A plank put up with no hammer and nails to fix it hangs
@@ -134,11 +135,12 @@ some on the ground, so you have to turn and look down to find them.
    flash and the shards fly at you (they drop away with reduced motion; the flash is dimmer with reduced flashing). The
    whole road slides past as you go. The house keys are tried at the keyhole, blade first, will not go in and drop to the
    floor at your feet; a wrong key costs only the moment it takes to try it, never any of its way in.
-   Out of park the key will not turn: your hand takes it and it strains a few degrees and goes back.
+   In reverse or drive the key will not turn (it starts in park or neutral): your hand takes it and it strains a few
+   degrees and goes back. In park or neutral the gas only makes the engine roar; the car stays where it is.
    Your hand turns the key and moves the stick, and your foot comes onto the gas: with the engine dead the pedal goes
    limp to the floor under it. The stick stands up out of a plate lying flat on the console by your right hip, P R N D
    along it from the front, the letters reading the right way up as you look down at them from your seat; a click on the
-   plate or on the stick moves it on a gear.
+   plate or on the stick moves it on a gear, park, reverse, neutral, drive and round to park.
 3. **The Graveyard.** The old warden walks between the graves and never stops
    smiling: a crypt keeper bent double over the hump on his back, his bald head jutting
    forward low, white wisps of hair, a long ragged coat and cape, a ring of keys at his
@@ -191,7 +193,8 @@ some on the ground, so you have to turn and look down to find them.
    while and coming up closer. It rains outside, never under the roof: the rain shows only out through the water door
    (above the slats let down) and the side door while it stands open (not through its leaf). The winch is chained and padlocked: the key is in the
    tackle box. Crank the water door down, and shut the side door and bar it with both oars
-   of the upturned rowboat, which lie about the boathouse each in a place of its own: one
+   of the upturned rowboat, which lie about the boathouse each in a place of its own (lying on the deck or leaning
+   on the wall, each as long as it is across the door): one
    across the iron brackets, then the other on top of it (the door or either bracket will do).
    One oar alone is not enough: it throws itself at the door, the oar snaps, the door bursts
    open and it has you ("One oar wasn't strong enough."). Shut one way first and, once it has been held
@@ -280,8 +283,10 @@ some on the ground, so you have to turn and look down to find them.
    answers, and it keeps coming the whole time. A wrong number is not in service, and
    hanging up drops the coin back into the coin return. When someone answers, a car comes
    down its street and pulls up at the curb for you; the moment it starts coming, the shade scurries off
-   the road, low and fast, behind the nearest lamp post on its street, stands there a second looking back
-   at you, and walks off down the pavement the way it came, never in the car's way. If it gets to you
+   the road, low and fast, behind the nearest lamp post on its street, and stands there still, looking back
+   at you, until the car has pulled up and its door swings open; only then does it turn its back and walk off down the
+   pavement the way it came, never in the car's way. The rain falls outside the booth only: it is seen out through the
+   glass and never inside it, nor over the pay phone across the corner. If it gets to you
    first, the pane between you goes as it hits: cracks run out across it to the frame, then as it
    comes through the middle bursts in with a flash and the pieces fly in at you, turning, and
    drop (fewer, and only falling, with reduced motion; the flash held down with reduced flash).

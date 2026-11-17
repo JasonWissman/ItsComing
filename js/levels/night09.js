@@ -948,16 +948,17 @@ Object.assign(ICONS, {
         Object.assign(c, { reach, rush, dark, grip, lampLit, side: m.lat + wob });
       };
       // the car coming: the moment it starts down the street it scurries (skittering, low, as between lamps) to the nearest
-      // lamp post on its own street, wherever it is on its way, and gets behind it; there it stops and stands a second,
-      // dead still, looking back at you, then turns its back and walks off down the pavement the way it came. Every lamp
-      // stands on a pavement, clear of the road the car comes along, and its way off keeps to that pavement, so it is never
-      // where the car is. s.flee: { t0, from, to (the place behind the post), rushT, leaveAt }
+      // lamp post on its own street, wherever it is on its way, and gets behind it; there it stops, dead still, looking back
+      // at you, and waits (a second at the least) until the car has pulled up and its door swings open: only then does it
+      // turn its back and walk off down the pavement the way it came. Every lamp stands on a pavement, clear of the road the
+      // car comes along, and its way off keeps to that pavement, so it is never where the car is. s.flee: { t0, from, to
+      // (the place behind the post), rushT, leaveAt (set once it goes: the door open and its second stood) }
       const FLEE = { pause: 1.0, walk: 1.4, min: 0.35 };
       const startFlee = c => {
         const m = s.man, from = { d: m.d, lat: m.lat };
         const to = m.stops.reduce((b, st) => (gap(st, from) < gap(b, from) ? st : b), m.stops[0]);
         const rushT = gap(to, from) < 0.05 ? 0 : Math.max(FLEE.min, gap(to, from) / RUSH_V);
-        s.flee = { t0: L.t, from, to, rushT, leaveAt: rushT + FLEE.pause };
+        s.flee = { t0: L.t, from, to, rushT, leaveAt: undefined };
         c.hold = null; c.distFn = () => s.man.d;
       };
       const fleeNow = c => {
@@ -968,9 +969,10 @@ Object.assign(ICONS, {
           const q = sk - 0.85 * Math.sin(TAU * nb * sk) / (TAU * nb);
           c.wob = Math.sin(k * nb * 9.7) * Math.sin(Math.PI * k) * 0.12;
           m.d = lerp(f.from.d, f.to.d, q); m.lat = lerp(f.from.lat, f.to.lat, q); c.rush = Math.sin(Math.PI * k);
-        } else if (e < f.leaveAt) {   // behind the post: still, and its head round to you
+        } else if (f.leaveAt === undefined || e < f.leaveAt) {   // behind the post: still, and its head round to you, till the door opens
           m.d = f.to.d; m.lat = f.to.lat;
           if (!f.looked) { f.looked = true; c.lookT = c.t; }
+          if (f.leaveAt === undefined && e >= f.rushT + FLEE.pause && s.end && s.end.doorT !== undefined) f.leaveAt = e;
         } else {   // and off down the pavement, its back to you
           if (!c.away) { c.away = true; c.frozen = true; }
           m.d = f.to.d + (e - f.leaveAt) * FLEE.walk; m.lat = f.to.lat;
@@ -1501,7 +1503,7 @@ Object.assign(ICONS, {
         return { x: Math.sin(yaw) * 6, y: L.eyeH - 6 * Math.tan(pitch), z: Math.cos(yaw) * 6 };
       };
       // the aftermath: the car comes, and it scurries off the street behind a lamp post (startFlee); the car passes, pulls
-      // up, sounds its horn and opens its door; it looks back a moment and walks off the way it came
+      // up, sounds its horn and opens its door; it stands looking back at you till the door opens, then walks off the way it came
       L.aftermath = t => {
         const c = sm();
         if (!s.end) {
@@ -1568,6 +1570,36 @@ Object.assign(ICONS, {
         const k = WD / a, u = SQ * (g.x - g.z) * k, y = L.eyeH + (g.y - L.eyeH) * k;
         return u > -BW && u < (y > recY ? Math.max(BW, recU) : BW) && y > NB.y - 0.03 && y < ph(0, 1.8, 0)[1];
       };
+      // the rain: under the booth's roof it does not rain. It is seen only out through the glass (each pane between its
+      // posts, over the kick plate and under the band at the top, the rail across the middle left out), never inside, and
+      // never over the pay phone across the corner: its backboard, the housing, the receiver on its hook (or the empty
+      // cradle) and the cord under it, the shelf and its bracket, the notebook while its pages stand up off the shelf, and
+      // the door's pull, each as a box whose faces are cut out of the glass
+      const W3 = q => L.pt(q[0], q[1], q[2]);
+      const panes = [];
+      for (const [x0, z0, x1, z1] of [[XW, B, B, B], [B, B, B, -B], [B, -B, XW, -B], [XW, -B, XW, B]]) {
+        const ux = Math.sign(x1 - x0) * 0.035, uz = Math.sign(z1 - z0) * 0.035, a = [x0 + ux, z0 + uz], b = [x1 - ux, z1 - uz];
+        for (const [y0, y1] of [[0.26, 0.98], [1.04, 2.06]]) panes.push([[a[0], y0, a[1]], [b[0], y0, b[1]], [b[0], y1, b[1]], [a[0], y1, a[1]]].map(W3));
+      }
+      const boxFaces = (map, u0, u1, y0, y1, d0, d1) => {
+        const v = [[u0, y0, d0], [u1, y0, d0], [u1, y1, d0], [u0, y1, d0], [u0, y0, d1], [u1, y0, d1], [u1, y1, d1], [u0, y1, d1]].map(p => W3(map(p[0], p[1], p[2])));
+        return [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [3, 2, 6, 7], [0, 3, 7, 4], [1, 2, 6, 5]].map(f => f.map(i => v[i]));
+      };
+      const flat = (x, y, z) => [x, y, z];
+      const phoneCovers = [].concat(
+        boxFaces(at3, -BW, BW, NB.y - 0.03, ph(0, 1.8, 0)[1], 0, 0.016),                   // the backboard
+        boxFaces(ph, -HW - 0.005, HW + 0.005, HY0, 1.785, 0.02, 0.11),                      // the housing and its cap
+        boxFaces(ph, HW, RX + 0.055, 1.29, 1.75, 0.08, 0.14),                               // the hook, and the receiver on it (or its cradle)
+        boxFaces(ph, 0.05, 0.15, 1.06, 1.32, 0.07, 0.13),                                   // the cord hanging under it
+        boxFaces(at3, -SF, SF, 1.0, 1.035, 0, SH),                                          // the shelf
+        boxFaces(at3, -0.008, 0.008, 0.86, 1.0, 0, SH * 0.8),                               // its bracket
+        boxFaces(flat, -0.587, -0.563, 0.93, 1.33, B - 0.072, B - 0.004));                  // the door's pull
+      const pagesUp = boxFaces(at3, NB.u0 - 0.004, NB.u1 + 0.004, NB.y, AY + NB.len + 0.01, 0, AX + NB.len + 0.01);
+      L.weatherShelter = () => ({
+        openings: panes,
+        covers: s.nbOpen || s.nbAnims.length ? phoneCovers.concat(pagesUp) : phoneCovers,
+        hides: (x, y, z) => y < 2.4 && x > XW - 0.04 && x < B + 0.04 && z > -B - 0.04 && z < B + 0.04,   // indoors
+      });
       L.glows = () => {
         const out = lamps.filter(lp => lp.glow.a > 0.004).map(lp => lp.glow).filter(g => !behindHim(g) && !behindPhone(g));
         const k = carLamps();

@@ -3,8 +3,10 @@
 // spec: { kind: 'rain'|'snow'|'ash'|'mist'|'motes', density, wind, lightning: [minGap, maxGap] }
 // A night that puts you under a roof (the boathouse) gives L.weatherShelter(): { openings: [[[x, y, z], ...], ...], the
 // world polygons the outside is seen through (a doorway as it stands open), and hides(x, y, z): true for a particle in
-// the sheltered space, or kept from view by something out there (a door leaf swung open) }. Then the weather is drawn only
-// through the openings, and none of it falls indoors: under a roof it does not rain
+// the sheltered space, or kept from view by something out there (a door leaf swung open), and covers?: more world polygons,
+// of what stands indoors between the eye and the openings (the pay phone across the corner of a glass booth) }. Then the
+// weather is drawn only through the openings, never over what covers them, and none of it falls indoors: under a roof it
+// does not rain
 const WEATHER = (() => {
   let parts = [], kind = null, wind = 0, spec = null, rng = null;
   let nextBolt = 0, thunderAt = 0;
@@ -64,6 +66,13 @@ const WEATHER = (() => {
       ctx.save(); ctx.beginPath();
       for (const q of polys) { ctx.moveTo(q[0][0], q[0][1]); for (let i = 1; i < q.length; i++) ctx.lineTo(q[i][0], q[i][1]); ctx.closePath(); }
       ctx.clip();
+      // each cover cut out of that: the whole view less the cover, kept (even-odd) and clipped to in turn
+      for (const q of sh.covers ? sh.covers.map(R.screenPoly) : []) {
+        if (!q) continue;
+        ctx.beginPath(); ctx.rect(-1e4, -1e4, 2e4 + R.W, 2e4 + R.H);
+        ctx.moveTo(q[0][0], q[0][1]); for (let i = 1; i < q.length; i++) ctx.lineTo(q[i][0], q[i][1]); ctx.closePath();
+        ctx.clip('evenodd');
+      }
       const e = G.L.eye || {}, ex = e.x || 0, ez = e.z || 0;   // (the particles live round the eye)
       drawParts(ctx, (x, y, z) => sh.hides(x + ex, y, z + ez));
       ctx.restore();

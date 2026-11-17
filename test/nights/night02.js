@@ -4,7 +4,8 @@
 // with the engine dead only goes down under your foot. The key does nothing until the gearstick is in park: the hand takes
 // it and it strains a few degrees and goes back; the hand takes the stick's knob to move it. Turn the key until it
 // catches, then the stick goes to reverse or drive, whichever way it is not in the road; the gas pedal takes the car off
-// down the road, and the whole world slides past until the night fades out. In park the gas only revs.
+// down the road, and the whole world slides past until the night fades out. In park, or in neutral (the stick goes round
+// park, reverse, neutral, drive), the gas only revs.
 //
 // First, with it put in the road 12 m off and the car already running in drive, the gas: the car leaps at it, it comes down
 // the road at the car and up over the hood, and the card says only that (not the last thing the gearstick said). Then the
@@ -77,6 +78,9 @@ module.exports = {
       "return inPoly(q.x, y, stick.poly) && y < top(stick) + (bot(stick) - top(stick)) * 0.4 && !inPoly(q.x, y, plate.poly) && bot(plate) > bot(stick); })()", 'the hand is on the knob, up at the top of the stick where it is drawn, over the plate lying flat on the console'],
     ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6], ['expect', 'G.L.s.started', 'engine started'],
     ['use', 'gas'], ['expect', "!G.L.s.gone && G.L.s.gear === 'P' && G.state === 'play'", 'in park the gas only revs'],
+    // the stick goes round P R N D: neutral is a place of its own on the plate, and in it the engine runs and the car stays put
+    ['clickUntil', 'gear', "G.L.s.gear === 'N'", 200, 3],
+    ['use', 'gas'], ['expect', "!G.L.s.gone && G.L.s.started && G.L.s.gear === 'N' && G.state === 'play' && !G.L.eye", 'into neutral (by way of reverse): the gas only revs, the car does not move'],
     place, ['branch', 'G.runSeed % 4 === 1 || G.runSeed % 4 === 2', forward, reverse],
     ['use', 'gas'], ['expect', 'G.L.won', 'the gas, in gear: away at once'],
     ['eval', 'window.__gap = () => { const p = G.L.creature.pos(), e = G.L.eye || { x: 0, z: 0 }; return Math.hypot(p.x - e.x, p.z - e.z); }; window.__d0 = window.__gap()'],

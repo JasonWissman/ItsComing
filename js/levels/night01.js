@@ -422,8 +422,10 @@ LEVELS.push({
     // ---- the run round the house ----
     // The moment the doorway it is coming for is boarded (and the other is not), it stops dead, breaks into a sprint
     // sideways out of that doorway's view, goes round the outside of the house (running feet, a blow on the side wall as
-    // it passes), and comes up to the other doorway (the creak of its step) from the same side, at about the distance it
-    // was: never nearer than RUN.gap metres outside that doorway, so there is time to turn round, but not much.
+    // it passes), and comes up to the other doorway from the same side, at about the distance it was: never nearer than
+    // RUN.gap metres outside that doorway, so there is time to turn round, but not much. That doorway's cue (its own
+    // footsteps from there) is heard once it has come in front of it and walks again, not while it is still running in
+    // from the side: its first steps toward you, and its own stride follows on after them.
     // The walls hide it all the way round except where the window beside the front doorway genuinely shows it: going round
     // it does not stop and run on the spot behind the wall but keeps on, flat out, the way it ran, so run out of the front
     // doorway on the window's side it is seen through the window running past and on out of it; and coming round to the
@@ -496,7 +498,11 @@ LEVELS.push({
       if (L.won && !r.arrived && r.t < T3) { r.t = T3; s.cutShort = true; }   // won while it was still going round: it comes round the corner now, to the doorway it was running to
       r.t += dt;
       if (r.t < T1) return;   // it stops dead in the field, as the last board goes up in front of it
-      if (r.arrived && r.t >= r.inAt + r.inT) { c.runPose = false; c.runLat = 0; c.hold = null; s.run = null; return; }   // and walks on, at its own pace, from where it came round
+      if (r.arrived && r.t >= r.inAt + r.inT) {   // and walks on, at its own pace, from where it came round: its steps, from that way
+        c.runPose = false; c.runLat = 0; c.hold = null; s.run = null;
+        if (!s.cutShort) { AUDIO.sfx(r.to.cue || 'creak', panTo(r.to.yaw)); c.gait = Math.round(c.gait / Math.PI) * Math.PI + 0.05; }   // (its own next step a stride on, after the cue's)
+        return;
+      }
       c.runPose = true; c.runDir = r.side;
       c.runGait = (c.runGait || 0) + dt * 15;
       let yaw;
@@ -517,7 +523,6 @@ LEVELS.push({
           c.u = clamp(1 - Math.pow(r.d2 / c.D0, 1 / c.gamma) + (c.u - r.u0), 0, 0.995);
           r.d2 = c.D0 * Math.pow(1 - c.u, c.gamma); c.hold = c.dist = r.d2;
           L.lane = r.to; L.laneIdx = r.to.idx; L.barrierDist = r.to.barrierDist || 0;
-          AUDIO.sfx(r.to.cue || 'creak', panTo(r.to.yaw));
           r.lat2 = inLat(r.to, r.d2, -r.side); r.inT = RUN.in * r.lat2 / outLat(r.d2);   // from beyond the window, at the same pace
         }
         // it comes in from the side it went round by, which is the other hand of this doorway
