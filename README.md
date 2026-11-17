@@ -412,8 +412,8 @@ some on the ground, so you have to turn and look down to find them.
     heaving, still holding you, and stops, its grey neutral face again. Then the dark round
     you both starts to turn, and every night you passed through goes by behind it, each as you
     stood in it at its start (its scene, what lay about, and the thing that came for you there),
-    built again and drawn once while it held its first faces: round windows coming up out of
-    the middle, swinging out round it, growing and turning past you, faster and faster, until
+    built again and drawn once while it held its first faces: side by side, the whole height of
+    the view, scrolling past behind it from the right as the view turns, faster and faster, until
     the last is a pale light that fills the view. It is content, and happy, and the meadow (wild
     flowers, trees, clouds, birdsong and a breeze) comes out of the pale void, turning round you
     and settling into place in the sun; then it lets you go and steps back. With reduced motion

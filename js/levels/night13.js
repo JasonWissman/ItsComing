@@ -695,14 +695,14 @@ function buildMeadow(L, s, c0) {
 // little way off on its way in. Each is built again as the game builds it and drawn once, from where you stood facing the
 // way you faced, onto a canvas of its own at half the view's resolution (js/render.js R.aside sets the game's own canvas
 // and scene aside for it), one every little while as it holds its first faces, long before they are wanted. Then (s.swirl
-// 0..1 over END.swirl) each comes up out of the middle of the turning dark behind its head, a round window on that night,
-// and grows and turns and goes past you, the next already coming up behind it, faster and faster, and the last of them is
-// a pale light that fills the view (the pale void: PALE_PAL). It is drawn behind it and in front of everything else
-// (s.backdrop: how much of the view it is). With reduced motion nothing turns or comes at you: each night is there behind
+// 0..1 over END.swirl) they go by behind its head side by side, each the whole height of the view, scrolling past from the
+// right as the view turns, faster and faster, and the last of them is a pale light that fills the view (the pale void:
+// PALE_PAL). It is drawn behind it and in front of everything else
+// (s.backdrop: how much of the view it is). With reduced motion nothing moves: each night is there behind
 // it in turn, and gives way to the next. With reduced flashing they are dimmer, and so is the light at the last.
 const VOID_RECAP = (() => {
   const count = () => LEVELS.length - 1;   // every night before this one
-  const BASE = [7, 5, 13], STREAK = [[150, 120, 210], [110, 150, 220], [210, 130, 160]];
+  const BASE = [7, 5, 13];
   const AT = 4.6, EVERY = 0.9;   // (one every EVERY seconds from AT: after it has taken hold of you, while it holds its faces)
   let shots = [], key = '';
   // ready to draw them (again, if the view has changed size since they were drawn)
@@ -752,7 +752,7 @@ const VOID_RECAP = (() => {
     return ok ? out : null;
   }
   // how far through them it is (0: the first still far off, deep in the turning dark; count(): the light, at you)
-  const depth = u => { const k = clamp((u - 0.04) / 0.84, 0, 1); return -2.2 + (count() + 2.2) * (0.55 * k + 0.45 * k * k); };
+  const depth = u => { const k = clamp((u - 0.04) / 0.84, 0, 1); return -1 + (count() + 1) * (0.55 * k + 0.45 * k * k); };
   // behind it: a renderable as far off as anything, drawn just before it (sortDist a little over its own distance, under the things on the floor), covering the
   // whole view in its own pixels
   function add(s) {
@@ -762,7 +762,7 @@ const VOID_RECAP = (() => {
   }
   function draw(ctx, s) {
     const W = R.W, H = R.H, dpr = ctx.canvas.width / W, S = SAVE.data.settings, still = !!S.reducedMotion, dim = S.reducedFlash ? 0.7 : 1;
-    const N = count(), p = depth(s.swirl), t = Math.max(0, s.endT - END.swirl[0]), cx = W / 2, cy = H * 0.42, rr = Math.hypot(W, H) / 2 * 1.04;
+    const N = count(), p = depth(s.swirl), cx = W / 2, cy = H * 0.42;
     const light = mixc(BASE, PALE_PAL.fog, dim);
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, R.viewY * dpr);
     ctx.globalAlpha = s.backdrop;
@@ -789,24 +789,24 @@ const VOID_RECAP = (() => {
       if (j < 0) scene(0, R0, 0, k);
       else { scene(j, R0, 0, 1); if (j < N) scene(j + 1, R0, 0, k); }
     } else {
-      // the dark turning: pale streaks wound round the middle, faster as it goes
-      const spin = t * (0.5 + 0.9 * s.swirl);
-      ctx.lineCap = 'round';
-      for (let i = 0; i < 14; i++) {
-        const col = STREAK[i % 3], a0 = spin + i / 14 * TAU;
-        ctx.strokeStyle = rgba(col, (0.06 + 0.06 * (i % 2)) * dim); ctx.lineWidth = 2 + 10 * (i % 4) / 3;
-        ctx.beginPath();
-        for (let n = 0; n <= 20; n++) { const u = n / 20, r = rr * (0.04 + 0.96 * u * u), a = a0 + u * 2.6; if (n) ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); else ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
-        ctx.stroke();
-      }
-      // the nights, the furthest first: each comes up out of the middle and swings out round it on the turning dark,
-      // growing and turning, and goes past you beside it (the light at the last comes straight on, and fills the view)
-      for (let j = Math.min(N, Math.floor(p + 3.2)); j >= 0; j--) {
-        const z = j - p;
-        if (z > 3.2 || z < -0.75) continue;
-        const a = smoothstep((3.2 - z) / 1.0) * (z < 0 && j < N ? smoothstep((z + 0.75) / 0.75) : 1);
-        const sc = Math.pow(2.4, -z), out = j < N ? rr * 0.3 * sc * smoothstep(clamp(1.6 - z * 0.4, 0, 1)) : 0, ang = spin * 0.5 + j * 2.1 + z * 0.9;
-        scene(j, rr * (j < N ? 0.7 : 1) * sc, spin * 0.35 + z * 0.8, a, Math.cos(ang) * out, Math.sin(ang) * out * 0.8);
+      // they go by behind it side by side, the whole height of the view, scrolling past from the right as the view turns
+      // (as the meadow turns in after them), faster and faster: night j is square behind it when p is j; a soft dark seam
+      // between one and the next; past the last of them the light, which comes on and fills the view
+      const SEAM = Math.max(18, W * 0.05);
+      for (let j = Math.max(0, Math.floor(p) - 1); j <= Math.min(N, Math.ceil(p) + 1); j++) {
+        const x = (j - p) * W, w = j < N ? W : W * 3;
+        if (x > W || x + w < 0) continue;
+        ctx.save(); ctx.beginPath(); ctx.rect(x, 0, w, H); ctx.clip();
+        const img = j < N ? shots[j] : null;
+        if (img) { ctx.drawImage(img, x, 0, W, H); if (dim < 1) { ctx.fillStyle = rgba(BASE, 1 - dim); ctx.fillRect(x, 0, W, H); } }
+        else if (j >= N) { const g = ctx.createLinearGradient(x, 0, x + W, 0); g.addColorStop(0, rgba(light)); g.addColorStop(1, rgba(mixc(light, [255, 255, 255], 0.35 * dim))); ctx.fillStyle = g; ctx.fillRect(x, 0, w, H); }
+        else { ctx.fillStyle = rgba([30, 26, 40]); ctx.fillRect(x, 0, w, H); }
+        for (const [x0, x1] of [[x, x + SEAM], [x + W, x + W - SEAM]]) {   // its edges going soft into the dark between
+          if (j >= N && x0 > x + 1) continue;
+          const e = ctx.createLinearGradient(x0, 0, x1, 0); e.addColorStop(0, rgba(BASE, 0.9)); e.addColorStop(1, rgba(BASE, 0));
+          ctx.fillStyle = e; ctx.fillRect(Math.min(x0, x1), 0, SEAM, H);
+        }
+        ctx.restore();
       }
     }
     ctx.restore();
