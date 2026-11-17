@@ -146,8 +146,9 @@
     c.flinch = smoothstep(t / 1.0) * (1 - smoothstep((t - DUCK.flinch) / 0.7));
     c.duck = smoothstep((t - DUCK.flinch + 0.1) / (T2 - DUCK.flinch + 0.1));
     const m = smoothstep((t - T2 + 0.2) / D.creep), low = Math.max(hide - 0.4, 0.26);
-    c.faceAway = smoothstep((t - T2 + 0.5) / 0.3) * (1 - smoothstep((t - T3) / 0.3));
-    c.dist = lerp(D.d, D.spot.d, m);
+    c.faceAway = 0;   // its eyes on you all the way, as it crawls
+    const was = c.dist; c.dist = lerp(D.d, D.spot.d, m);
+    c.crawl = (c.crawl || 0) + Math.abs(c.dist - was) * CR.CRAWL;   // its hands and feet go as far as it goes
     const gk = c.grab ? c.grab.k : 0;
     c.eyeTo = t < T3 ? low : lerp(low, hide + 0.07 + gk * 0.1, smoothstep((t - T3) / DUCK.up));
     c.reach = smoothstep((t - T5) / DUCK.reach); c.gripY = hide - 0.03;
@@ -241,7 +242,7 @@
         dist: 1.95, dur: 9, lit: 0.26, front: bed,
         set(c) { c.inLight = true; c.flinchSide = 1; c.D = { d: 1.95, spot: DOOR.spot, creep: clamp(Math.abs(1.95 - DOOR.spot.d) * 2, 0.8, 5) }; hideBehindBed(c); },
         tick(c, k, dt, T) { const t = T - 0.3, prev = c.dist; c.headroom = undefined; hideBehindBed(c); if (t >= 0) ducking(c, t, c.D); else frame(c, DOOR); step(c, dt, c.dist - prev); } },
-      { name: 'Down and along the floor, face down', note: 'Out of the closet when the lamp comes on: it folds down like a spider and goes along the floor to the side of the bed, its face turned down, only the dark of its head showing.',
+      { name: 'Down and crawling along the floor', note: 'Out of the closet when the lamp comes on: it folds down like a spider and crawls along the floor to the side of the bed on its hands and feet, each foot with the hand on the other side, its two pale eyes on you all the way.',
         dist: 2.9, dur: 8.6, lit: 0.26,
         set(c) { c.inLight = true; c.flinchSide = 1; c.D = { d: 2.9, spot: CLOSET.spot, creep: clamp(Math.hypot(2.9 - CLOSET.spot.d, 0.3 - CLOSET.spot.lat) * 2, 0.8, 5) }; },
         tick(c, k, dt, T) { const t = T - 0.3, prev = c.dist; if (t >= 0) ducking(c, Math.min(t, DUCK.down + c.D.creep + 0.4), c.D, true); step(c, dt, c.dist - prev); } },

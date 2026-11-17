@@ -548,22 +548,28 @@ Object.assign(ICONS, {
       faceQ(CARD.u0, CARD.u1, CARD.y0, CARD.y1, 0.1005, [214, 208, 190], face);
       faceQ(CARD.u0, CARD.u1, CARD.y1 - 0.021, CARD.y1, 0.1007, [150, 40, 36], detail);
       // Each step is two big bold words, one over the other, as large as the card's column takes (squeezed a little where a
-      // word is wide), so they read from where you stand
-      L.props.push(phSprite(0, CARD.y0, 0.101, CARD.u1 - CARD.u0, CARD.y1 - CARD.y0, (ctx, P) => {
+      // word is wide), so they read from where you stand. Everything is kept inside the card with a margin all round (the
+      // three columns across the card less its margins, each word narrower than its column), and the heading sits in the
+      // middle of the red band, so none of it runs off the card however near or far, or however it is turned. (L.cardArt:
+      // the card's size and drawing, for the tests)
+      const CW = CARD.u1 - CARD.u0, CH = CARD.y1 - CARD.y0, CM = 0.006, BAND = 0.021;
+      const cardDraw = (ctx, P) => {
         // (px: its size in mm; fit: the widest it may be, in mm, squeezed across to fit)
         const print = (t, x, y, px, col, fit) => {
           ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = 'bold ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col;
           const w = ctx.measureText(t).width; if (fit && w > fit) ctx.scale(fit / w, 1);
           ctx.fillText(t, 0, 0); ctx.restore();
         };
-        print('TO CALL', 0, 0.083, 11, P.col([236, 226, 210]));
-        const ink = P.col([30, 34, 58]), red = P.col([150, 40, 36]), col = (CARD.u1 - CARD.u0) / 3;
+        print('TO CALL', 0, CH - BAND / 2 - 0.004, 11, P.col([236, 226, 210]), (CW - 2 * CM) * 1000);   // (caps about 8mm high, in the middle of the band)
+        const ink = P.col([30, 34, 58]), red = P.col([150, 40, 36]), col = (CW - 2 * CM) / 3;
         [['1', 'LIFT', 'PHONE'], ['2', 'INSERT', 'COIN'], ['3', 'DIAL', 'NUMBER']].forEach(([n, a, b], i) => {
-          const x = (i - 1) * col, fit = col * 1000 - 3;
+          const x = (i - 1) * col, fit = col * 1000 - 4;
           print(n, x, 0.064, 13, red);
-          print(a, x, 0.0435, 15, ink, fit); print(b, x, 0.0215, 15, ink, fit);
+          print(a, x, 0.0435, 14, ink, fit); print(b, x, 0.0215, 14, ink, fit);
         });
-      }, { sortDist: FD - 0.016 }));
+      };
+      L.cardArt = { w: CW, h: CH, margin: CM, draw: cardDraw };
+      L.props.push(phSprite(0, CARD.y0, 0.101, CW, CH, cardDraw, { sortDist: FD - 0.016 }));
       // the shelf under it, where the notebook lies: a small board out from the foot of the backboard, at the height of the
       // rail along the glass, a little wider at the front, held up on a bracket under it
       q4(at3, [[-SB, 1.03, 0], [SB, 1.03, 0], [SF, 1.03, SH], [-SF, 1.03, SH]], [96, 100, 106], { sortDist: WD + 0.01 });

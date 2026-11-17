@@ -257,7 +257,7 @@
   :root[data-theme="day"] .mbtn.danger { color: #8f1a20; border-color: rgba(143,26,32,.5); }
   :root[data-theme="day"] #overlay .kicker { color: rgba(58,51,44,.75); }
   /* a phone or a tablet (a coarse pointer): swipe on the view to look, tap to use (js/game.js: touch). Two small buttons
-     instead of the keys: zoom (held) in the bottom right corner, and the menu, top left where the sound line is on a
+     instead of the keys: zoom (a tap: on, lit, its plus a minus; a tap again: off) in the bottom right corner, and the menu, top left where the sound line is on a
      desktop (the pause menu has Mute in it). Both only while a night is being played. A third, full screen, top right
      from the title on (#fsBtn, below) */
   #zoomBtn, #menuBtn, #fsBtn { display: none; position: fixed; z-index: 6; box-sizing: border-box; align-items: center; justify-content: center; padding: 0; color: rgba(239,230,210,.8); background: rgba(0,0,0,.42); border: 1px solid rgba(207,200,186,.28); touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; cursor: pointer; }
@@ -265,6 +265,7 @@
   #zoomBtn svg { width: 24px; height: 24px; }
   #zoomBtn span { margin-right: -.18em; }
   #zoomBtn.on { color: #0b0a0a; background: rgba(239,230,210,.86); border-color: #efe6d2; box-shadow: 0 0 14px rgba(239,230,210,.3); }
+  #zoomBtn.on .zplus { display: none; }   /* on: the plus turns to a minus (a tap zooms back out) */
   #menuBtn { top: 12px; left: max(14px, env(safe-area-inset-left)); width: 40px; height: 36px; border-radius: 6px; }
   #menuBtn span, #menuBtn span::before, #menuBtn span::after { display: block; width: 18px; height: 2px; background: currentColor; border-radius: 1px; }
   #menuBtn span { position: relative; }
@@ -279,6 +280,7 @@
   #fsBtn.on .fsout { display: block; }
   #fsBtn:active { color: #efe6d2; border-color: rgba(239,230,210,.8); }
   :root[data-theme="day"] #zoomBtn, :root[data-theme="day"] #menuBtn, :root[data-theme="day"] #fsBtn { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
+  :root[data-theme="day"] #zoomBtn.on { color: #f4efe6; background: rgba(46,40,35,.86); border-color: #2e2823; }
   /* held in portrait: a screen over everything asking for it turned sideways, and the night paused behind it */
   #rotate { display: none; position: fixed; inset: 0; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; box-sizing: border-box; text-align: center; background: radial-gradient(ellipse at 50% 42%, #14110f, #000 70%); color: #efe6d2; touch-action: none; }
   #rotate svg { width: 120px; height: 120px; margin-bottom: 14px; color: #efe6d2; }
@@ -327,7 +329,7 @@
   <div id="debug"></div>
 </div>
 <div id="caption" aria-live="polite"></div>
-<button type="button" id="zoomBtn" aria-label="zoom in (hold)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6 20.5 20.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>zoom</span></button>
+<button type="button" id="zoomBtn" aria-label="zoom (tap: on, tap again: off)" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6 20.5 20.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M7 10h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path class="zplus" d="M10 7v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>zoom</span></button>
 <div id="overlay"></div>
 <div id="mute">sound on (M)</div>
 <button type="button" id="menuBtn" aria-label="menu"><span></span></button>

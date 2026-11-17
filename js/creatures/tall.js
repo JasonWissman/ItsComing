@@ -16,7 +16,9 @@
 //   c.peerSide (+1: the right of the view), its fingers curled round the frame;
 // c.flinch (0..1): an arm thrown up across its face, its head turned from the light;
 // c.duck (0..1): it is down on its haunches, folded up like a spider, its knees up beside its shoulders, low enough to put
-//   its eyes at c.eyeTo (world height above its feet), peering up, its eyes wide; lower still it is on all fours;
+//   its eyes at c.eyeTo (world height above its feet), peering up, its eyes wide; lower still it is on all fours. Down
+//   there it crawls: c.crawl (radians, CRAWL of them a metre: the night adds as far as it has gone) moves its legs and arms,
+//   each foot and the hand on the other side together, lifted and brought on, then the others; its eyes stay on you;
 // c.reach (0..1): its arms up to the edge of the bed, its hands at c.gripY (world height; the night draws the hands on the
 //   covers over the edge); c.faceAway (0..1): its face turning down, its eyes going, until only the dark of its head shows.
 // Its lunge (death.pose): its hands shoot out at you and take hold; then its face comes at you, fast, until it is right
@@ -28,6 +30,7 @@ CREATURES.tall = {
   name: 'the tall one', h: 2.3, w: 1.1, faceY: 2.0, stepRate: 1.3, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
   voice: { kind: 'slow', every: [6, 12] },
   SCALE: 0.77,   // drawn at three metres, stood at two and a bit
+  CRAWL: 2 * Math.PI / 0.45,   // down on all fours: its crawl's phase, a metre (a stride, both sides, about 0.45 m)
   STOOP: { top: 0.3, sink: 0.24, hip: 0.14 },   // all the way stooped: how far its shoulders come down, its head on down past them, its hips
   BODY: [8, 7, 10],
   DARK: 0.05,   // how much of the light it takes: it stays all but black in the lamp's light
@@ -150,6 +153,8 @@ CREATURES.tall = {
     const lean = smoothstep((2.5 - R0) / 0.7) * free * (1 - peer) * (1 - duck);
     // walking on its own feet (c.feet), it rises a little over the foot it stands on and its hips go over it
     const ft = c.feet, liftAny = ft ? Math.max(ft[0].lift, ft[1].lift) : 0;
+    // down on all fours, crawling (c.crawl): how far into it (as far as it is down, and not reaching up the bed)
+    const crawlK = smoothstep((duck - 0.6) / 0.4) * (1 - reach), crawlPh = c.crawl || 0;
     const bob = ft ? liftAny * 0.12 : Math.abs(Math.sin(g)) * 0.03;
     const sway = ft ? clamp((c.feetSway !== undefined ? c.feetSway : this.swayOver(ft)) / K, -0.12, 0.12) : Math.sin(g) * 0.03;
     const hs = 1 + lean * 0.08;
@@ -186,6 +191,8 @@ CREATURES.tall = {
         const ph = g + (s > 0 ? Math.PI : 0), gl = Math.max(0, Math.sin(ph)) * 0.22 * (1 - duck * 0.6);
         let fx = lerp(s * 0.18 + sway * 0.3, s * 0.32, duck), fy = gl + 0.03, toe = 0;
         let kx = lerp(s * (0.14 + st * 0.08) + sway * 0.6, s * 0.44, duck), ky = lerp(lerp(0.75, 0.68, st) + gl * 0.7, kneeC + gl * 0.3, duck);
+        // crawling: the foot comes up and on, its knee lifting higher beside its shoulder, and back down (smooth in the phase)
+        if (crawlK > 0) { const cl = Math.max(0, Math.sin(crawlPh + (s > 0 ? Math.PI : 0))), sl = Math.cos(crawlPh + (s > 0 ? Math.PI : 0)); fy += cl * 0.12 * crawlK; fx += s * sl * 0.05 * crawlK; ky += cl * 0.16 * crawlK; kx += s * cl * 0.05 * crawlK; }
         if (f) {
           const fl = f.lift / K, ffx = f.x / K, ffy = fl + 0.03 - E * f.dz / Math.max(0.2, R0 - f.dz) / K;
           const fkx = lerp(hpx, ffx, 0.5) + s * (0.04 + st * 0.08) + fl * s * 0.3, fky = lerp(lerp(0.75, 0.68, st), (hip + ffy) * 0.5, 0.25) + fl * 0.75;
@@ -212,6 +219,8 @@ CREATURES.tall = {
       let ang = lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), spread = lerp(0.16, 0.32, raise), len = 0.24 + raise * 0.06;
       const mix = (k, e2, f2, p2, q2, a2, sp2, l2) => { ex = lerp(ex, e2, k); ey = lerp(ey, f2, k); px = lerp(px, p2, k); py = lerp(py, q2, k); ang = lerp(ang, a2, k); spread = lerp(spread, sp2, k); len = lerp(len, l2, k); };
       if (duck > 0) mix(duck, s * 0.52, Math.max(0.3, topC * 0.75), s * 0.36, 0.05, -Math.PI / 2 + s * 0.5, 0.2, 0.2);
+      // crawling: the hand on this side goes with the foot on the other, lifted, brought on and put down flat again
+      if (crawlK > 0) { const cl = Math.max(0, Math.sin(crawlPh + (s > 0 ? 0 : Math.PI))), sl = Math.cos(crawlPh + (s > 0 ? 0 : Math.PI)); py += cl * 0.1 * crawlK; px += s * sl * 0.05 * crawlK; ey += cl * 0.12 * crawlK; ex += s * cl * 0.04 * crawlK; }
       // peering: the arm on the opening's side is up behind the wall, its hand on the frame (only its fingers, round the
       // edge, show: the night draws them); nothing of the arm is out in the opening
       if (peer > 0 && s === ps) mix(peer, s * 0.29, hy - 0.42, s * 0.27, hy - 0.1, Math.PI / 2, 0.16, 0.18);

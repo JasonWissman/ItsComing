@@ -74,6 +74,16 @@ const door = [['pickup', 'oar2'], ['face', 2], ['expect', parts + '.length === 3
     [part('south', true), ['expect', 'G.L.s.oars === 1 && !G.L.s.sealedE && !G.hasItem("oar2")', 'clicking the south bracket puts one oar across, and that is not yet enough'],
       ['wait', 300], part('north', true)]],
   ['expect', 'G.L.s.oars === 2 && G.L.s.sealedE && !G.hasItem("oar")', 'the other oar goes across on top of it from the other bracket: barred']];
+// the rain falls outside only: seen through the water door and the open side door, never indoors, nor through the side
+// door's leaf swung out over the water; with both ways shut there is none in view at all
+const sh = 'G.L.weatherShelter()';
+const hides = (x, y, z) => '(p => ' + sh + '.hides(p[0], p[1], p[2]))(G.L.pt(' + x + ', ' + y + ', ' + z + '))';
+const rain = [
+  ['expect', "WEATHER.kind === 'rain' && " + sh + '.openings.length === 2', 'the rain is seen through the two openings, the water door and the side door'],
+  ['expect', [hides(0, 1.5, 0), hides(-2, 0.5, -2), hides(1.5, 2.8, 2.4), '!' + hides(0, 1.5, 6), '!' + hides(4.5, 1.5, 0), '!' + hides(-4, 1, 5)].join(' && '), 'none of it falls indoors; out over the water it does'],
+  ['expect', hides(5, 1, -0.7) + ' && !' + hides(5, 1, 0.5), 'out past the side door, the rain behind its open leaf is hidden by it, the rain beside it is not'],
+];
+const shutIn = [['wait', 300], ['expect', 'G.L.s.sealedN && G.L.s.sealedE && ' + sh + '.openings.length === 0', 'with both ways shut, no rain is in view']];
 module.exports = {
-  nightmare: oneOar.concat(winch, door),
+  nightmare: rain.concat(oneOar, winch, door, shutIn),
 };

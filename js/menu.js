@@ -45,7 +45,7 @@ const MENU = (() => {
           return '<h1>How to play</h1>' +
             '<div class="howcards">' +
             card(swipeX + swipeY + say('swipe'), 'Look around') +
-            card(zoomG + say('hold'), 'Zoom in') +
+            card(zoomG + say('tap'), 'Zoom in') +
             card(tapG + say('tap'), 'Interact') +
             card(menuG + say('top left'), 'Pause') +
             '</div>' +

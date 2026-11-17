@@ -525,7 +525,6 @@ LEVELS.push({
     };
     L.update = dt => {
       const c = L.creature;
-      zoomOnBox(dt);
       if (s.k === null) {   // the start: at the foot of its place (and you, facing the barn, the box at your left: startFacing)
         s.k = c.lane.idx; c.D0 = RING[s.k].hide;
         way = Object.assign({}, L.lanes[s.k], { apertures: [], blockers: [], name: 'round the yard' });
@@ -562,24 +561,28 @@ LEVELS.push({
     // zoom held on the box: as close as keeps all of it in view (its hood, its panel and every strip of tape on it, clear
     // of the compass and its line at the top of the view), not the usual 2.6, which at arm's length shows only part of the
     // panel. Only while the whole of it is in the view unzoomed (you are looking at it); otherwise the usual zoom. The game
-    // eases the zoom toward 2.6 before the night's update: this caps it (s.zoomCap, eased, so turning onto the box zoomed
-    // in it draws back out smoothly), and the view is drawn after
+    // asks for it (L.heldZoom) and eases toward it as toward any zoom: it is judged from the unzoomed view, so it does not
+    // move as the zoom does, and the view closes in once, smoothly, and stays
     const BOXC = inBox(() => [BX - BW / 2 - 0.02, BX + BW / 2 + 0.02].flatMap(x => [BY, BY + BH + 0.05].flatMap(y => [BZ - 0.03, BZ + 0.21].map(z => W(x, y, z)))));
+    let lineAt = { W: 0, H: 0, y: 0 };
+    const lineBottom = () => {   // the compass's line (looking down), in the view: measured once per size of the view
+      if (lineAt.W !== R.W || lineAt.H !== R.H) {
+        const el = document.getElementById('pitch'), r = el && el.getBoundingClientRect();
+        lineAt = { W: R.W, H: R.H, y: r && r.height ? r.bottom - (R.viewY || 0) : 60 };
+      }
+      return lineAt.y;
+    };
     const boxZoom = () => {
       const cam = { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH, eye: L.eye }, pts = BOXC.map(p => R.projectRect(p.x, p.y, p.z, 0, 0, cam));
       if (!R.W || pts.some(p => !p)) return null;
-      const cx = R.W / 2, cy = R.H / 2, m = R.H * 0.015, top = Math.max(84, R.H * 0.11);
+      const cx = R.W / 2, cy = R.H / 2, m = R.H * 0.015, top = Math.max(R.H * 0.06, lineBottom() + 6);
       const x0 = Math.min(...pts.map(p => p.x)), x1 = Math.max(...pts.map(p => p.x)), y0 = Math.min(...pts.map(p => p.y)), y1 = Math.max(...pts.map(p => p.y)) + 0.5;
       if (x0 < 0 || x1 > R.W || y0 < 0 || y1 > R.H) return null;
       const fit = (room, out) => (out > 0 ? room / out : Infinity);
       return clamp(Math.min(fit(cx - m, cx - x0), fit(R.W - m - cx, x1 - cx), fit(cy - top, cy - y0), fit(R.H - m - cy, y1 - cy)), 1, 2.6);
     };
     L.boxZoom = boxZoom;   // (for the tests)
-    const zoomOnBox = dt => {
-      const want = (G.cam.zoomHeld && boxZoom()) || 2.6;
-      s.zoomCap = s.zoomCap === undefined ? want : s.zoomCap + (want - s.zoomCap) * (1 - Math.exp(-dt * 10));
-      if (G.cam.zoom > s.zoomCap) G.cam.zoom = Math.max(1, s.zoomCap);
-    };
+    L.heldZoom = boxZoom;
     L.watchPoint = () => { const c = L.creature, p = c.pos(); return { x: p.x, y: 0.7, z: p.z, zoom: clamp(s.r / 5.5, 1.35, 4) }; };
 
     // ---------------- light ----------------

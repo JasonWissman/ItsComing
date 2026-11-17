@@ -108,14 +108,17 @@ const dark = [].concat(fresh, [
   ['expect', "G.deathScreen.text === G.L.text.death.dark && /not afraid of the dark/.test(G.deathScreen.text)", 'and the card says it took the covers: the dark does not stop it'],
   ['eval', 'restartLevel();'], ['wait', 250],
 ]);
-// the light: it flinches from it and goes down out of sight below the bed, comes up at the bed with only its eyes over
+// the light: it flinches from it and goes down (out of sight below the bed, or low along the floor out in the open), comes up at the bed with only its eyes over
 // the edge, then its hands up over it onto the covers (watched every frame from before the lamp)
-const ducked = ['eval', "window.__duck = { flinch: 0, low: false }; (function w() { const c = G.L.creature; window.__duck.flinch = Math.max(window.__duck.flinch, c.flinch || 0); if (c.duck > 0.99 && (c.faceAway > 0.5 || c.eyeTo + 0.15 < c.hideBelow)) window.__duck.low = true; if (G.state === 'play') requestAnimationFrame(w); })();"];
+// down there, going along the floor to the bed, it crawls (its hands and feet going as far as it goes: D.crawl, against
+// D.moved, the metres it went) and its eyes stay on you: its face never turns away
+const ducked = ['eval', "window.__duck = { flinch: 0, low: false, face: 0, crawl: 0, moved: 0, at: null }; (function w() { const c = G.L.creature, D = window.__duck; D.flinch = Math.max(D.flinch, c.flinch || 0); if (c.duck > 0.99 && (c.eyeTo + 0.15 < c.hideBelow || c.eyeTo < 0.3)) D.low = true; if (G.L.s.mode === 'duck') { D.face = Math.max(D.face, c.faceAway || 0); const p = c.pos(); if (D.at) { D.moved += Math.hypot(p.x - D.at.x, p.z - D.at.z); D.crawl += Math.abs((c.crawl || 0) - D.at.k); } D.at = { x: p.x, z: p.z, k: c.crawl || 0 }; } if (G.state === 'play') requestAnimationFrame(w); })();"];
 const duck = [
   ['waitUntil', "G.L.s.mode === 'duck' && G.L.creature.reach > 0.99", 20000],
   ['expect', "(c => !c.hideTop && !c.showX && c.CR.h > 2 && G.L.rend.get(c).h < 1.1 && G.L.rend.get(c).sd > Math.max(...R.statics.filter(p => p.kind === 'poly' && p.pts.every(v => Math.abs(v[0]) <= 0.81 && v[2] >= -1.06 && v[2] <= 1.95 && v[1] <= 0.75)).map(p => p.sd)))(G.L.creature)", 'down there it is drawn whole, before every part of the bed, so the bed hides what of it is behind the bed from where you sit'],
   ['expect', "(c => c.duck === 1 && c.eyeTo > c.hideBelow + 0.03 && c.eyeTo < c.hideBelow + 0.12 && c.hold !== null && !G.L.won)(G.L.creature)", 'in the light it ducked down behind the bed: only its eyes over the edge, and its hands up onto the covers'],
-  ['expect', 'window.__duck.flinch > 0.9 && window.__duck.low', 'it flinched from the light and went down out of sight first'],
+  ['expect', 'window.__duck.flinch > 0.9 && window.__duck.low', 'it flinched from the light and went down first: out of sight behind the bed, or low along the floor out in the open'],
+  ['expect', '(D => D.face === 0 && D.crawl >= D.moved * CREATURES.tall.CRAWL * 0.8)(window.__duck)', 'low along the floor its eyes stayed on you, and it crawled there, its hands and feet going as far as it went'],
   ['expect', "/hands are on the covers/.test(G.lastToast.msg)", 'and you are told its hands are on the covers'],
 ];
 // holding the covers, your hand is on them (watched while the solution holds them)
