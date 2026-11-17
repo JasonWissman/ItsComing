@@ -23,6 +23,22 @@ const { check } = T;
       const names = L.lanes.map(l => l.name); if (L.onEnd) L.onEnd();
       return { expected: [...expected], names };
     }, lvl - 1);
+    // a lane's cue is always the thing's own footsteps from that way, whatever the night named (game.js laneCues): played,
+    // it is footsteps (captioned as them), not the effect it was named (the clock ticking on under it aside)
+    const cue = await page.evaluate(i => new Promise(res => {
+      G.difficulty = 0; G.inv = []; const L = buildLevel(i), kind = L.creature.CR.sound || 'walker';
+      const ln = L.lanes.find(l => l.cue);
+      const o = { kind, cues: L.lanes.filter(l => l.cue).map(l => l.cue), named: L.lanes.filter(l => l.cue).map(l => l.cueWas), steps: [], fx: [] };
+      if (L.onEnd) L.onEnd();
+      if (!ln) { res(o); return; }
+      const cf = CAPTIONS.footstep, cs = CAPTIONS.sfx;
+      CAPTIONS.footstep = (k, pan) => { o.steps.push(k + '@' + (pan || 0).toFixed(2)); return cf(k, pan); };
+      CAPTIONS.sfx = (n, pan, soft) => { o.fx.push(n); return cs(n, pan, soft); };
+      if (!AUDIO.on()) AUDIO.init();
+      AUDIO.sfx(ln.cue, 0.6);
+      setTimeout(() => { CAPTIONS.footstep = cf; CAPTIONS.sfx = cs; res(o); }, 900);
+    }), lvl - 1);
+    if (cue.cues.length) check(cue.cues.every(c => c === 'footstep:' + cue.kind) && cue.steps.length === 3 && cue.steps.every(s => s === cue.kind + '@0.60') && !cue.fx.some(n => cue.named.includes(n)), 'night ' + lvl + ': its lane cues (named ' + [...new Set(cue.named)].join(', ') + ') are its footsteps, three of them from that way (' + JSON.stringify(cue) + ')');
     if (info.expected.length < 2) continue;
     const seen = new Set();
     for (let seed = 1; seed <= 30 && seen.size < info.expected.length; seed++) {

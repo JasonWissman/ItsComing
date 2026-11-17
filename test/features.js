@@ -44,7 +44,9 @@ const hoverHit = lookFor;
   console.log('== a new game opens with the prologue ==');
   await page.goto(URL); await page.waitForTimeout(300);
   await page.evaluate(() => { window.PROLOGUE_TEST = true; });
+  check(await page.evaluate(() => AUDIO.running() && !!AUDIO.bed && AUDIO.bed.title && AUDIO.bed.k === 0), 'on load, with nothing pressed, the sound is going and the title\'s drone is fading in (where the browser lets it: here it does)');
   await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(2600);
+  check(await page.evaluate(() => !AUDIO.bed && PROLOGUE_FADE >= 4), 'Begin: the prologue is silent, the title\'s drone let go to fade slowly away under it');
   const pro1 = await page.evaluate(() => { const el = document.getElementById('prologue'); return el && { lines: [...el.querySelectorAll('p')].map(p => p.textContent), on: [...el.querySelectorAll('p')].map(p => p.classList.contains('on')), st: G.state }; });
   await page.waitForTimeout(5000);
   const pro2 = await page.evaluate(() => [...document.querySelectorAll('#prologue p')].map(p => p.classList.contains('on')));
@@ -121,10 +123,10 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title'), 'Back to title from pause');
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'with no night survived yet, the title has no Nights button: there is nothing to show');
+  check(await page.evaluate(() => G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'with no night survived yet, the title has no Scores button: there is nothing to show');
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.unlocked.nightmare = 3; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
-  check(await page.evaluate(() => !!document.querySelector('#overlay button[data-act="nights"]') && [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() === 'begin,nights,howto,settings'), 'with a night survived, the title has a Nights button; Begin is the only way in (no Continue)');
+  check(await page.evaluate(() => !!document.querySelector('#overlay button[data-act="nights"]') && [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() === 'begin,nights,howto,settings' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores'), 'with a night survived, the title has a Scores button; Begin is the only way in (no Continue)');
   check(await page.evaluate(() => { const f = document.querySelector('#overlay .fine'), a = f && f.querySelector('a'); return /^created by jason wissman$/.test(f.textContent) && a && a.textContent === 'jason wissman' && a.href === 'https://jasonwissman.com/'; }), 'the line under the title credits jason wissman, linked to jasonwissman.com');
   await page.goto(URL); await page.waitForTimeout(300);
   await page.keyboard.press('c'); await page.waitForTimeout(400);
@@ -776,7 +778,11 @@ const hoverHit = lookFor;
   tv = await page.evaluate(() => ({ in: document.querySelectorAll('#overlay .rcard.in').length, run: document.querySelector('#overlay .rrun').classList.contains('in'), label: document.querySelector('#overlay .rrun .rlabel').textContent, fin: document.querySelector('#overlay .rlast').classList.contains('in'), focus: document.activeElement && document.activeElement.dataset.act, left: [...document.querySelectorAll('#overlay .rcard')].filter(c => Math.round(c.getBoundingClientRect().left) === Math.round(document.querySelector('#overlay .rcard').getBoundingClientRect().left)).length }));
   check(tv.in === 13 && tv.run && tv.label === 'This run' && tv.fin && tv.focus === 'finish' && tv.left === 6, 'then this run (not a full run here: a dash), then Finish game, focused; six nights down the left (' + JSON.stringify(tv) + ')');
   await page.click('#overlay button[data-act="finish"]'); await page.waitForTimeout(200);
-  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && !TITLE.on), 'Finish game: home to the title, in the morning');
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores'), 'Finish game: home to the usual dark title, with it out there, and Scores on it (the morning is not kept)');
+  await page.reload(); await page.waitForTimeout(300);
+  check(await page.evaluate(() => TITLE.on && !document.documentElement.getAttribute('data-theme')), 'and so it is after a reload');
+  await page.evaluate(() => { SAVE.setSetting('theme', 'day'); showTitle(); });
+  check(await page.evaluate(() => TITLE.on && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme === ''), 'a save from when the morning stayed on the title gets the dark title, and the morning dropped from it');
   // a full run to the end: this run's times and nothing else (no bests); reduced motion shows it all at once
   tv = await page.evaluate(() => {
     MENU.applySetting('reducedMotion', true);
@@ -1313,7 +1319,29 @@ const hoverHit = lookFor;
       const dp = await browser.newPage(); await dp.goto(URL + '?level=5&go&seed=1'); await dp.waitForTimeout(400);
       const d2 = await dp.evaluate(() => { for (const it of G.L.items.slice(0, 2)) { it.taken = true; G.inv.push(it); } G.invSig = ''; return new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => { const sl = UI.inv.querySelector('.slot'); res({ fs: getComputedStyle(UI.fsBtn).display, bg: getComputedStyle(sl).backgroundImage, w: sl.getBoundingClientRect().width }); }))); });
       await dp.close();
-      check(d1 === 'none' && d2.fs === 'none' && /linear-gradient/.test(d2.bg) && d2.w === 66, 'no full screen button where the page cannot have it (an iPhone) nor on a desktop, whose slots are as they were (' + JSON.stringify([d1, d2]) + ')');
+      check(d1 === 'none' && d2.fs === 'flex' && /linear-gradient/.test(d2.bg) && d2.w === 66, 'no full screen button where the page cannot have it (an iPhone); on a desktop there is one, and its slots are as they were (' + JSON.stringify([d1, d2]) + ')');
+    }
+    // on a desktop: the button top right on the title and in a night, clear of the compass and the objective; a click is
+    // the button's alone (no step of the title, nothing in the night); F goes in and out too
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1280, height: 760 } });
+      await ctx.addInitScript(fsStub, true);
+      const dp = await ctx.newPage();
+      for (const q of ['', '?level=1&go&seed=1']) {
+        await dp.goto(URL + q); await dp.waitForTimeout(400);
+        if (q) await dp.evaluate(() => { G.L.creature.hold = G.L.creature.dist; G.L.text.objective = 'a long objective to see it keeps clear of the button'; UI.objective.textContent = G.L.text.objective; });
+        const g = await dp.evaluate(() => { const b = UI.fsBtn.getBoundingClientRect(), c = UI.compass.getBoundingClientRect(), o = UI.objective.getBoundingClientRect(), hit = (a, z) => a.left < z.right && a.right > z.left && a.top < z.bottom && a.bottom > z.top; return { d: getComputedStyle(UI.fsBtn).display, r: Math.round(innerWidth - b.right), t: Math.round(b.top), compass: hit(b, c), obj: o.width > 0 && hit(b, o), objRight: Math.round(innerWidth - o.right) }; });
+        const s0 = await dp.evaluate(() => ({ st: G.state, step: TITLE.step, inv: G.inv.length, d: G.cam.dirIdx }));
+        await dp.click('#fsBtn'); await dp.waitForTimeout(250);
+        const s1 = await dp.evaluate(() => ({ st: G.state, step: TITLE.step, inv: G.inv.length, d: G.cam.dirIdx, on: UI.fsBtn.classList.contains('on'), calls: window.__fsCalls.join() }));
+        await dp.keyboard.press('f'); await dp.waitForTimeout(150);
+        const s2 = await dp.evaluate(() => ({ on: UI.fsBtn.classList.contains('on'), calls: window.__fsCalls.join() }));
+        await dp.keyboard.press('F'); await dp.waitForTimeout(150);
+        const s3 = await dp.evaluate(() => ({ on: UI.fsBtn.classList.contains('on'), calls: window.__fsCalls.join(), st: G.state }));
+        check(g.d === 'flex' && g.r < 30 && g.t < 24 && !g.compass && !g.obj && s1.on && s1.calls === 'page' && s1.st === s0.st && s1.step === s0.step && s1.inv === s0.inv && s1.d === s0.d && !s2.on && s2.calls === 'page,exit' && s3.on && s3.st === s0.st,
+          'a desktop, ' + (q ? 'in a night' : 'on the title') + ': the full screen button top right, clear of the compass and objective; a click goes in and is nothing else, F comes out and goes in again (' + JSON.stringify([g, s0, s1, s2, s3]) + ')');
+      }
+      await ctx.close();
     }
 
     // an older save that had the touch buttons on the left: the setting is gone, and the rest kept

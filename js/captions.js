@@ -35,5 +35,5 @@ const CAPTIONS = (() => {
     el.classList.add('show'); hideAt = now + 2200;
   }
   function update() { if (el && hideAt && performance.now() > hideAt) { el.classList.remove('show'); hideAt = 0; } }
-  return { sfx: (name, pan, soft) => show(SFX[name], pan || 0, undefined, !!soft), footstep: (kind, pan) => show(STEPS[kind], pan || 0, 4000), voice: (kind, pan) => show(VOICES[kind], pan || 0, 3000), ambient: p => show(p && p.rain ? 'rain and wind' : 'wind', 0, 60000), update, show };
+  return { sfx: (name, pan, soft) => show(SFX[name], pan || 0, undefined, !!soft), footstep: (kind, pan) => show(STEPS[kind], pan || 0, 4000), voice: (kind, pan) => show(VOICES[kind], pan || 0, 3000), ambient: p => show(p && p.rain ? 'rain and wind' : p && p.wind === 0 ? 'a low hum' : 'wind', 0, 60000), update, show };
 })();

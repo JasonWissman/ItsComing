@@ -114,12 +114,22 @@ function buildLevelDef(def, i) {
   cds.forEach((cd, k) => L.creatures.push(makeCreature(L, cd, k)));
   L.creature = L.creatures[0];
   L.lane = L.creature.lane; L.laneIdx = L.lane.idx;   // the level's lane is the first creature's
+  laneCues(L);
   if (L.barrierDist === undefined) L.barrierDist = L.lane.barrierDist || 0;
   L.uses = def.uses || L.uses || [];
   if (def.startInv) for (const id of def.startInv) { const it = L.items.find(x => x.id === id); if (it) { it.taken = true; G.inv.push(it); } }
   // lights are declared in the local frame; cones carry a direction
   L.lights = (L.lights || []).concat((def.lights || []).map(l => worldLight(L, l)));
   return L;
+}
+// A lane's cue (the warning, wherever it is played: a change of way here, or a night's own going round) is always the
+// thing's own footsteps from that way, never any other sound: each lane that has a cue gets 'footstep:kind' (AUDIO.sfx
+// plays a few of its steps for that, panned that way), the first creature's footstep kind, or a walker's for a thing that
+// makes none. What the night gave it is kept as cueWas (story.js: the closet's hangers are not heard as a sound in the
+// room where they were its cue)
+function laneCues(L) {
+  const kind = (L.creature && L.creature.CR.sound) || 'walker';
+  for (const ln of L.lanes) if (ln.cue) { ln.cueWas = ln.cueWas || ln.cue; ln.cue = 'footstep:' + kind; }
 }
 // a level may move its eye (L.eye, a world offset from where it stands; the night 2 car drives off): lights flagged
 // attach ride with it, so they are handed to LIGHT where the eye is now. Nothing changes while there is no offset.
@@ -158,7 +168,7 @@ function validateContent() {
 
 // ---------------- the run ----------------
 // A full run is night 1 to the end of the last night in one go, timed; the best is kept in the save (SAVE.recordRun) and
-// shown on the Nights screen. Every game is one: Begin (or Enter on the title) begins it at night 1, and there is no
+// shown on the Scores screen. Every game is one: Begin (or Enter on the title) begins it at night 1, and there is no
 // other way into a night but going on from the one before (?level= and the other test switches start none). Its clock is
 // the time spent playing (G.state 'play', and the moment of being caught): every attempt at a night counts, retries
 // after a death and restarts too, but not the cards, the death and survived screens, the pause menu, the watching once a
@@ -173,12 +183,13 @@ function beginRun() { G.run = { t: 0, night: 0, nights: [] }; }
 // key (after the first moment) skips it. Over everything, so nothing on the title behind it can be pressed.
 const PROLOGUE = ['You haven\u2019t had a good night\u2019s sleep in ages.', 'Each night something visits you in your dreams\u2026'];
 let prologueOn = false;
+const PROLOGUE_FADE = 6;   // seconds the title's drone takes to fade out under it; night 1's bed fades in when night 1 begins
 function newGame() {
   beginRun();
   if (prologueOn) return;
   // (a browser driven by the tests goes straight to night 1, unless a test asks for it: window.PROLOGUE_TEST)
   if (navigator.webdriver && !window.PROLOGUE_TEST) { startLevel(0, true); return; }
-  AUDIO.stopAmbient();   // the title's drone goes with it
+  AUDIO.stopAmbient(PROLOGUE_FADE);   // the title's drone fades slowly away under the lines (the prologue itself is silent)
   const still = SAVE.data.settings.reducedMotion;
   const el = document.createElement('div'); el.id = 'prologue';
   el.innerHTML = PROLOGUE.map(t => '<p>' + t + '</p>').join('');
@@ -279,16 +290,19 @@ function showTitle() {
   WEATHER.set(G.L.def.weather, G.runSeed);
   const c = G.cam; c.tYaw = c.yaw = 0; c.tPitch = c.pitch = 0; c.zoom = 1;
   G.fade = 0.35; G.fadeTarget = 0.35; G.white = 0; G.whiteTarget = 0;
-  STORY.theme(SAVE.data.settings.theme === 'day');
-  TITLE.enter();   // eyes in the dark, a long way off (not after the last night: then it is morning)
+  // the title is always the dark one, with it out there: the morning is only the last screens after the last night (and
+  // a save from when the morning stayed on the title is put back)
+  STORY.theme(false); if (SAVE.data.settings.theme === 'day') SAVE.setSetting('theme', '');
+  TITLE.enter();   // eyes in the dark, a long way off
   setState('title');
   MENU.show('title'); G.overlayArmed = 0; // nothing on the title can be skipped by accident, so it takes a click or Enter at once
 }
 // the end of the last night: it has glittered away and the room is the bedroom, in the morning; the campaign is marked
-// complete for this difficulty, the light theme stays on the title until a new run, and the last screen offers one
+// complete for this difficulty. The light theme is on for the last screen and the results after it, and goes with them:
+// Finish game is home to the usual dark title (with Scores on it now)
 function finishEnding() {
   const L = G.L;
-  SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id); SAVE.setSetting('theme', 'day');
+  SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id);
   AUDIO.stopLoop(); Seq.clear();
   STORY.theme(true);
   setState('end');
@@ -306,6 +320,7 @@ function onKeyDown(e) {
   if (e.repeat) return;
   if (G.state === 'title') ensureAudio();   // a key on the title is the first gesture its drone waits on (titleSound)
   if (k === 'm' || k === 'M') { toggleMute(); return; }
+  if ((k === 'f' || k === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && fullscreenAble()) { toggleFullscreen(); return; }   // full screen, in and out (as #fsBtn)
   if (lookFree() && lookKey(k)) return;   // a won night that gives the view back takes turning and looking as looking, not as the press it waits on
   if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress(e)) return;   // a won night may be waiting on any press (the last night's meadow)
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
@@ -336,10 +351,23 @@ function lookKey(k) {
 function lookFree() { return G.state === 'won' && !!G.L && !!G.L.lookFree && G.L.lookFree(); }
 function onKeyUp(e) { const k = e.key; if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = false; }
 function ensureAudio() { if (!AUDIO.on()) AUDIO.init(); AUDIO.resume(); }
-// the title's drone: a faint deep drone under it, a little louder and nearer each step the thing takes (TITLE.near). It
-// starts with the sound itself, so only once there has been a click or a key (a browser starts no sound before one), and
-// it goes with the title: anything that starts a night stops the ambient bed it is. The morning title has none.
-function titleSound() { if (AUDIO.on() && TITLE.on) AUDIO.titleDrone(TITLE.near); }
+// on load: the sound made (and asked to start) before anything is pressed, so the title's drone can fade in at once. A
+// browser that will not start sound before a gesture leaves it suspended; then the first gesture of any kind starts it
+// (a press, a key, a touch; a wheel or a move of the mouse too, where the browser counts it), and the drone's fade in
+// plays from there. The listeners go once it is running
+function audioOnLoad() {
+  ensureAudio();
+  const evs = ['pointerdown', 'mousedown', 'keydown', 'touchstart', 'touchend', 'click', 'wheel', 'mousemove'];
+  const kick = () => { if (G.state !== 'paused' && !document.hidden) ensureAudio(); setTimeout(check, 0); };
+  const check = () => { if (AUDIO.running()) evs.forEach(ev => window.removeEventListener(ev, kick, true)); };
+  evs.forEach(ev => window.addEventListener(ev, kick, { capture: true, passive: true }));
+  check();
+}
+// the title's drone: a faint deep drone under it, a little louder and nearer each step the thing takes (TITLE.near). The
+// sound is made as the page loads (audioOnLoad), so the drone is set going, fading in, at once; where the browser holds
+// sound back until the page has been touched (most do, on a first visit), it is held at the start of its fade and plays
+// it out from the first gesture. It goes with the title: anything that starts a night stops the ambient bed it is.
+function titleSound() { if (AUDIO.on() && TITLE.on && !prologueOn) AUDIO.titleDrone(TITLE.near); }   // (not under the prologue: it is fading away)
 function toggleMute() { setMuted(!G.muted); }
 function setMuted(m) {
   G.muted = !!m;
@@ -1392,6 +1420,7 @@ function init() {
   G.seed = isNaN(sd) ? null : sd;
   G.runSeed = G.seed !== null ? G.seed : (Date.now() % 1000000);
   showTitle();
+  audioOnLoad();
   if (q.has('bench')) startBench(parseInt(q.get('bench'), 10) || 1);
   if (q.has('level')) { const n = parseInt(q.get('level'), 10); if (!isNaN(n)) startLevel(clamp(n - 1, 0, LEVELS.length - 1), !q.has('go')); }
   if (G.debug) { const probs = validateContent(); if (probs.length) console.warn('content problems:\n' + probs.join('\n')); else console.log('content ok'); }

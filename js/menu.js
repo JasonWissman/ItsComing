@@ -4,7 +4,7 @@ const MENU = (() => {
   let current = null;
   const fmtTime = t => t === null || t === undefined ? '—' : (Math.round(t) + ' s');
   // a whole run is long: minutes and seconds
-  // the Nights cards (and the results' after the ending) in two columns: the first half (1 to 6) down the left, the rest
+  // the Scores cards (and the results' after the ending) in two columns: the first half (1 to 6) down the left, the rest
   // (7 to 13) down the right; one column on a phone
   const col = i => (i < Math.floor(LEVELS.length / 2) ? ' c1' : ' c2');
   const fmtRun = t => { const s = Math.round(t); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
@@ -15,10 +15,10 @@ const MENU = (() => {
     switch (kind) {
       case 'title': {
         // the title itself: the name and the way in, and nothing else over what is out there (how to play is a dialog).
-        // There is one way in, Begin: every game is all the nights in a row from the first. Nights (how they have gone,
+        // There is one way in, Begin: every game is all the nights in a row from the first. Scores (how the nights have gone,
         // to look at, not to pick from) only once one has been survived
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
-          '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (G.unlocked > 0 ? btn('nights', 'Nights') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
+          '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (G.unlocked > 0 ? btn('nights', 'Scores') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
           '<p class="fine credit">created by <a href="https://jasonwissman.com" target="_blank" rel="noopener">jason wissman</a></p>';
       }
       case 'howto': {
@@ -69,7 +69,7 @@ const MENU = (() => {
       case 'ending':   // the last screen of the last night, over the morning room
         return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('done', 'The End', undefined, 'primary') + '</div>';
       case 'results': {
-        // after the ending: the nights as on the Nights screen, each card's time coming in one after another (reveal), then
+        // after the ending: the nights as on the Scores screen, each card's time coming in one after another (reveal), then
         // the full run, then the way out. Only this run's own times (game.js: G.lastRun), no bests: how it went this time.
         // (No run, only when the last night was reached by ?level=: then dashes)
         const R0 = G.lastRun;
@@ -86,7 +86,7 @@ const MENU = (() => {
         // on to the next night, or, quietly and further down, out to the title
         return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'Next night') + '</div>' +
           '<button type="button" class="tbtn" data-act="title">Quit</button>';
-      case 'nights': {
+      case 'nights': {   // (the Scores dialog)
         // how the nights have gone, to look at: a card for each night with its best time inside it, in two columns (one
         // on a phone); a night not reached yet is a blank card. Not buttons: no night is picked from here (every game is
         // all of them from the first). Under them, the best full run: night 1 to the end of the last night (game.js: the run)
@@ -104,7 +104,7 @@ const MENU = (() => {
           ? '<div class="rtime">' + fmtRun(run) + '</div>'
           : '<div class="rtime none">&mdash;</div><div class="rhint">Survive all ' + LEVELS.length + ' nights in one go. Retries are allowed; the clock keeps running.</div>') + '</div>';
         const complete = SAVE.data.complete && SAVE.data.complete[diff.id] ? '<p class="fine">Every night survived.</p>' : '';
-        return '<h1>Nights</h1><div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>' + runCard + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
+        return '<h1>Scores</h1><div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>' + runCard + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
       }
       case 'settings': {
         const chk = (k, label) => '<label class="opt"><input type="checkbox" data-set="' + k + '"' + (S[k] ? ' checked' : '') + '> ' + label + '</label>';

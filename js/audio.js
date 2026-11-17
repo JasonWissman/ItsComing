@@ -27,6 +27,7 @@ const AUDIO = (() => {
     return true;
   }
   const on = () => !!ac;
+  const running = () => !!ac && ac.state === 'running';
   function resume() { if (ac && ac.state !== 'running') ac.resume().catch(() => {}); }
   function setMuted(m) {
     muted = !!m;
@@ -40,6 +41,15 @@ const AUDIO = (() => {
   }
   function suspend() { if (ac && ac.state === 'running') ac.suspend().catch(() => {}); }
   const now = () => ac.currentTime;
+  // a gain moved smoothly to v from wherever it is now, whatever was scheduled on it before (a fade in still under way is
+  // cut where it has got to, not jumped past): an exponential approach, tc seconds a step
+  function glide(param, v, tc) {
+    const t = now(), cur = param.value;
+    param.cancelScheduledValues(t); param.setValueAtTime(Math.max(0.0001, cur), t); param.setTargetAtTime(v, t, tc);
+  }
+  // a fade in from silence over sec seconds, anchored at now (so a context that is still waiting for its first gesture,
+  // its clock stopped at 0, plays the whole fade once it starts)
+  function fadeIn(param, sec) { const t = now(); param.cancelScheduledValues(t); param.setValueAtTime(0.0001, t); param.exponentialRampToValueAtTime(1, t + sec); }
 
   function panNode(pan) {
     if (!pan || !ac.createStereoPanner) return null;
@@ -122,7 +132,7 @@ const AUDIO = (() => {
     }
     dg.connect(g);
     nodes.forEach(n => n.start());
-    g.gain.exponentialRampToValueAtTime(1, now() + 2.5);
+    fadeIn(g.gain, 3);
     amb = { g, nodes };
   }
   // the title's bed (p.near, 0..1: how near the thing on the title is): no wind, only a deep drone, two low notes beating
@@ -163,10 +173,13 @@ const AUDIO = (() => {
     const hl = ac.createOscillator(); hl.frequency.value = 0.13; const hlg = ac.createGain(); hlg.gain.value = 0.6; hl.connect(hlg); hlg.connect(hg.gain);
     hs.connect(hb); hb.connect(hg); hg.connect(mlp); nodes.push(swell, hs, hl);
     nodes.forEach(n => n.start());
-    g.gain.exponentialRampToValueAtTime(1, now() + 3);
+    fadeIn(g.gain, 4);
+    // far off it is 2 dB up on how loud the line from far to near would have it, easing back to that line as it nears
+    // (the near end as it was): FAR_DB at nearness 0, 0 dB at 1
+    const FAR_DB = 2;
     const set = (k, tc) => {
       k = clamp(k, 0, 1);
-      level.gain.setTargetAtTime(0.04 + 0.05 * k, now(), tc);
+      level.gain.setTargetAtTime((0.04 + 0.05 * k) * Math.pow(10, FAR_DB * (1 - smoothstep(k)) / 20), now(), tc);
       lp.frequency.setTargetAtTime(170 + 330 * k, now(), tc);
       mlp.frequency.setTargetAtTime(380 + 520 * k, now(), tc);
       mid.gain.setTargetAtTime(0.85 + 0.45 * k, now(), tc);
@@ -181,11 +194,14 @@ const AUDIO = (() => {
     if (!amb || !amb.title) startAmbient({ tune: 'ambient:title', near: k });   // (tuned as 'ambient:title', by AUDIO.titleDrone below)
     else if (Math.abs(amb.k - k) > 1e-3) { amb.k = k; amb.set(k, 1.2); }
   }
-  function stopAmbient() {
+  // the bed faded out and let go: over about 1.6 s, or over sec seconds (the title's drone as the prologue comes up)
+  function stopAmbient(sec) {
     if (!amb) return;
     const a = amb; amb = null;
-    a.g.gain.setTargetAtTime(0.0001, now(), 0.4);
-    setTimeout(() => { a.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { a.g.disconnect(); } catch (e) {} }, 1600);
+    const len = sec > 0 ? sec : 1.6;
+    if (ac.state === 'running') glide(a.g.gain, 0.0001, len / 4);
+    else a.g.gain.value = 0.0001;   // (a context not started yet has no time to fade it in)
+    setTimeout(() => { a.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { a.g.disconnect(); } catch (e) {} }, len * 1000 + 200);
   }
 
   // ---- a looping texture that can be switched on/off (stone grind, engine idle) ----
@@ -314,21 +330,16 @@ const AUDIO = (() => {
       case 'chain': for (let i = 0; i < 7; i++) { tone(1800 + Math.random() * 1200, 0.04, { vol: 0.08, type: 'square', delay: i * 0.07 }); noise(0.03, { type: 'highpass', freq: 4000, vol: 0.08, delay: i * 0.07 }); } break;
       case 'lock': tone(500, 0.05, { vol: 0.2, type: 'square', endFreq: 300 }); tone(220, 0.1, { vol: 0.25, type: 'square', endFreq: 200, delay: 0.09 }); break;
       case 'creak': tone(320, 0.7, { vol: 0.12, type: 'sawtooth', endFreq: 180, pan }); tone(325, 0.7, { vol: 0.06, type: 'sawtooth', endFreq: 260, delay: 0.05, pan }); break;
-      case 'hinge': {   // a long iron hinge squealing as a heavy gate swings: a reedy note that catches and slips, rising, then sinking as it slows
+      case 'hinge': {   // a long iron hinge as a heavy gate swings: one reedy note, rising a little, steady, and gone as it stops
         const t0 = now(), dur = 1.15;
         const osc = ac.createOscillator(); osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(470, t0); osc.frequency.linearRampToValueAtTime(720, t0 + 0.35);
-        osc.frequency.linearRampToValueAtTime(640, t0 + 0.7); osc.frequency.linearRampToValueAtTime(390, t0 + dur);
-        const wob = ac.createOscillator(); wob.frequency.setValueAtTime(11, t0); wob.frequency.linearRampToValueAtTime(6, t0 + dur);   // the stick and slip
-        const wg = ac.createGain(); wg.gain.value = 38; wob.connect(wg); wg.connect(osc.frequency);
+        osc.frequency.setValueAtTime(470, t0); osc.frequency.linearRampToValueAtTime(545, t0 + dur);   // (about 2.5 semitones up)
         const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 2.2;
         const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t0);
-        for (const [t, v] of [[0.06, 0.11], [0.2, 0.05], [0.28, 0.13], [0.5, 0.09], [0.58, 0.12], [0.85, 0.07], [dur - 0.1, 0.05]]) g.gain.linearRampToValueAtTime(v, t0 + t);
+        g.gain.linearRampToValueAtTime(0.1, t0 + 0.14); g.gain.linearRampToValueAtTime(0.1, t0 + dur - 0.3);
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
         osc.connect(bp); bp.connect(g); chain(g, pan);
-        osc.start(t0); wob.start(t0); osc.stop(t0 + dur + 0.05); wob.stop(t0 + dur + 0.05);
-        tone(1350, 0.18, { vol: 0.025, type: 'square', endFreq: 1600, delay: 0.27, pan }); tone(1250, 0.22, { vol: 0.02, type: 'square', endFreq: 1080, delay: 0.62, pan });
-        noise(dur, { type: 'bandpass', freq: 650, q: 3, vol: 0.08, attack: 0.15, pan });   // the iron grinding under it
+        osc.start(t0); osc.stop(t0 + dur + 0.05);
         break;
       }
       case 'gate': noise(0.2, { freq: 400, vol: 0.5, pan }); tone(140, 0.4, { vol: 0.3, type: 'square', endFreq: 90, pan }); break;
@@ -463,17 +474,26 @@ const AUDIO = (() => {
     }
   }
 
+  // a lane's cue: three of its footsteps, a stride apart, from that way (soft: quieter). Played as footsteps are, tuned
+  // as 'footstep:kind'
+  function cueSteps(kind, pan, soft) {
+    const v = soft ? 0.3 : 0.5;
+    const step = k => typeof TUNE !== 'undefined' ? TUNE.run('footstep:' + kind, () => footstep(kind, v * k, pan)) : footstep(kind, v * k, pan);
+    step(1); setTimeout(() => step(0.85), 330); setTimeout(() => step(1), 660);
+  }
   // each played as it is tuned (js/soundtune.js: TUNES, by the sound's key; an ambient bed's key is its params' tune)
   const tuned = (key, fn) => (typeof TUNE !== 'undefined' ? TUNE.run(key, fn) : fn());
   return {
-    init, on, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
+    init, on, running, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
     startAmbient: p => tuned(p && p.tune, () => startAmbient(p)),
     titleDrone: k => (amb && amb.title ? titleDrone(k) : tuned('ambient:title', () => titleDrone(k))),
     setLoop: (kind, vol, pan) => tuned(kind ? 'loop:' + kind : null, () => setLoop(kind, vol, pan)),
     heartbeat: (vol, fast) => tuned('heartbeat', () => heartbeat(vol, fast)),
     footstep: (kind, vol, pan) => tuned('footstep:' + kind, () => footstep(kind, vol, pan)),
     voice: (kind, vol, pan) => tuned('voice:' + kind, () => voice(kind, vol, pan)),
-    sfx: (name, pan, soft) => tuned(name, () => sfx(name, pan, soft)),
+    // 'footstep:kind' (a lane's cue: game.js laneCues): a few of that thing's footsteps, that way
+    sfx: (name, pan, soft) => (typeof name === 'string' && name.startsWith('footstep:') ? cueSteps(name.slice(9), pan, soft) : tuned(name, () => sfx(name, pan, soft))),
     get muted() { return muted; },
+    get bed() { return amb ? { title: !!amb.title, k: amb.k } : null; },   // the ambient bed playing (the tests' look at it)
   };
 })();

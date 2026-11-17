@@ -167,7 +167,7 @@
   :root[data-theme="day"] .ncard.shown { background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.3); color: #2e2823; }
   :root[data-theme="day"] .ncard.locked { color: rgba(58,51,44,.3); border-color: rgba(58,51,44,.15); }
   :root[data-theme="day"] .runcard .rtime { color: #2e2823; }
-  /* the dialogs over the morning title (Nights, How to play, Settings): a pale sheet of paper, dark ink, like the title */
+  /* the dialogs in the morning theme (Scores, How to play, Settings; the title is never in it now, only the last screens): a pale sheet of paper, dark ink */
   :root[data-theme="day"] #overlay.dlg > .panel { background: rgba(247,244,238,.97); border-color: rgba(58,51,44,.2); box-shadow: 0 24px 80px rgba(46,40,35,.28); }
   :root[data-theme="day"] .ncard .nbest { color: rgba(46,40,35,.82); }
   :root[data-theme="day"] .ncard .nbest small { color: rgba(58,51,44,.55); }
@@ -278,6 +278,15 @@
   #fsBtn .fsout, #fsBtn.on .fsin { display: none; }
   #fsBtn.on .fsout { display: block; }
   #fsBtn:active { color: #efe6d2; border-color: rgba(239,230,210,.8); }
+  /* on a desktop as well (F does the same), on the title and in play: smaller and fainter, brighter under the mouse; the
+     objective at the top right keeps clear of it */
+  body.fsok #fsBtn { display: flex; }
+  body.fsok #objective { right: 66px; }
+  @media (pointer: fine) {
+    #fsBtn { top: 14px; right: 16px; width: 34px; height: 30px; color: rgba(207,200,186,.5); background: rgba(0,0,0,.25); border-color: rgba(207,200,186,.18); }
+    #fsBtn svg { width: 16px; height: 16px; }
+    #fsBtn:hover, #fsBtn:focus-visible { color: #efe6d2; border-color: rgba(239,230,210,.55); }
+  }
   :root[data-theme="day"] #zoomBtn, :root[data-theme="day"] #menuBtn, :root[data-theme="day"] #fsBtn { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
   /* held in portrait: a screen over everything asking for it turned sideways, and the night paused behind it */
   #rotate { display: none; position: fixed; inset: 0; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; box-sizing: border-box; text-align: center; background: radial-gradient(ellipse at 50% 42%, #14110f, #000 70%); color: #efe6d2; touch-action: none; }
@@ -293,9 +302,8 @@
     #mute { display: none; }
     body.tplay #menuBtn, body.tzoom #zoomBtn { display: flex; }
     body.menu #menuBtn, body.menu #zoomBtn { display: none; }
-    body.fsok #fsBtn { display: flex; }
     #menuBtn { top: max(12px, env(safe-area-inset-top)); }
-    #objective { right: calc(max(14px, env(safe-area-inset-right)) + 52px); }
+    body.fsok #objective { right: calc(max(14px, env(safe-area-inset-right)) + 52px); }
     #overlay { padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left)); }
     /* the things held float over the view, each on a faint backing of its own, no strip under them: the view runs
        to the bottom of the screen (and under the home bar: viewport-fit=cover), the slots above that bar */

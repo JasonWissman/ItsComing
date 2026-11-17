@@ -55,7 +55,8 @@ view fills the whole screen, and the things held float over its bottom edge, eac
 (no strip under them); a tap on a slot switches to it (never a tap on the scene behind), and tapping the held item
 again while looking down puts it down. Where the browser can put the page full screen (not Safari on an iPhone), a
 small button in the top right corner, on the title and in a night, goes full screen (and asks for the screen held
-sideways); the same button comes out again. The page itself does not
+sideways); the same button comes out again. On a desktop it is there too, smaller and fainter (brighter under the
+mouse), and F does the same; a click on it is never a click in the scene, and the objective keeps clear of it. The page itself does not
 scroll or zoom. A gamepad works too: d-pad or left stick turns and
 looks, A uses, B puts the held thing down, a trigger zooms, Start pauses. In
 menus the d-pad moves between buttons and settings, left and right move a
@@ -432,10 +433,12 @@ nights that the text never states: a
 clock ticks for the first ten seconds of each night from the same direction. Surviving a night
 offers Next night, and, quieter and further down, Quit to the title. Finishing the last night ends in that meadow; a click, a key (other than those that
 turn, look and zoom), a tap of Use or A there fades
-the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme. The last
+the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme for its last
+screens. The last
 screen there says "You have faced your demons." over one button, The End, which brings up how the nights went this
-time: the thirteen cards of the Nights screen, each taking this run's time one after another (the time of the attempt
-that won it; no best times here, only this run), then this run's whole time, then Finish game, home to the title. A click or a key hurries it to the
+time: the thirteen cards of the Scores screen, each taking this run's time one after another (the time of the attempt
+that won it; no best times here, only this run), then this run's whole time, then Finish game, home to the title: the usual dark one, with it out there again (the
+light theme goes with the last screens and is never kept for the title). A click or a key hurries it to the
 end, and with reduced motion it is all there at once.
 
 Each night is a little different every time it loads, and trying a night again never brings it the same way twice in a row: every item has several
@@ -443,7 +446,7 @@ places it might be, the creature's starting distance and pace vary slightly,
 and the car takes a different number of tries to start. Some pause, some lurch, one only moves when unseen.
 There is no picking a night and no continuing: it is a short game, and every game is all thirteen nights in a row,
 from the prologue and night 1 (Begin, or Enter on the title). The death screen offers Try again (the same night) and
-Quit. Progress and best times are saved in `localStorage`; once a night has been survived the title has a Nights
+Quit. Progress and best times are saved in `localStorage`; once a night has been survived the title has a Scores
 button, which shows how they have gone and nothing more: a card for every night (its best time inside it; a night not
 reached yet is blank), in two columns, and under them the best full run. The cards are not buttons.
 
@@ -454,15 +457,17 @@ and so does reloading the page. It finishes the moment the last night is won, an
 test switches such as `?level=N` still start a night directly, for debugging, but never on a run.)
 
 The title screen is pitch black, with two pale points of eyes a long way off. The title and its buttons sit below them,
-with no intro text or list of controls on it: those are in How to play. How to play, Nights and Settings open as
+with no intro text or list of controls on it: those are in How to play. How to play, Scores and Settings open as
 dialogs over the middle of the view, over what is out there, and it comes on only behind them: each time one closes
 it is a step nearer and more of it shows, until it is close enough to touch, bent down to you with its head sunk
 between its shoulders, where it stays. A click on the dark of
 the title does not begin the night: the view blinks shut for a moment and it takes its step in there. It never moves
-while you can see it. Once there has been a click or a key (a browser starts no sound before one), a faint deep drone
-sits under the title, a little louder and thicker each step it takes; it fades as a night begins. After the last night
-the title keeps its morning room instead, nothing is coming, and it is quiet. Begin (or Enter) opens a new game with a
-prologue: black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /
+while you can see it. A faint deep drone sits under the title, a little louder and thicker each step it takes (and 2 dB
+up on that far off, easing to nothing as it nears). The sound is made as the page loads and the drone set fading in at
+once; where the browser will not start sound before the page is touched (most do not, on a first visit: Chrome may
+once the site has been played on before, Firefox and Safari not by default), it waits at the start of its fade and
+plays it out from the first gesture of any kind (a press, a key, a touch, a wheel). Begin (or Enter) opens a new game with a
+prologue (silent: the title's drone fades slowly away under it, and night 1's bed fades in as night 1 begins): black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /
 "Each night something visits you in your dreams..."), then all of it fades into night 1's card; a click or a key skips
 it (`newGame` in js/game.js). Begin is the one button drawn inverted,
 light with dark letters. Every button and control in the menus answers with a soft tap. All the game's text is set in
@@ -588,7 +593,8 @@ LEVELS.push({
   sealed way is held at the barrier (or where it is, if it got inside first; a lurch across the line in
   one frame still stops at it) until the night is won.
   On Nightmare it goes round after 2.5 s to a way that is still open, starting 3 m outside that way's
-  barrier and announced by its `cue`; below Nightmare it never changes its way. `L.roundOpen(lane, c)`
+  barrier and announced by its `cue` (whatever sound a night names there, a cue is always played as the thing's own
+  footsteps from that way: `laneCues` in game.js; a thing with none of its own uses a walker's); below Nightmare it never changes its way. `L.roundOpen(lane, c)`
   lets a night judge for itself which ways it goes round to (night 3: one weaker than the way it is held
   at); the night is then asked every frame while the thing is held, until it has somewhere to go. A creature whose type defines
   `drawRun` goes round on its feet instead (`goRound` in game.js, modelled on night 1's run round the house): it
@@ -703,7 +709,7 @@ npm ci                 # Playwright and ESLint at the versions in package-lock.j
 npx playwright install chromium   # the browser (or set PW_CHROMIUM to a Chromium binary)
 npm test               # sounds, nights, flow, features, lanes, lane switches, story, clickability sweep
 npm run test:play      # NIGHTS=1,3 SEEDS=1,2 narrow it
-npm run test:sounds    # no browser: every sound exists, every cue has a caption
+npm run test:sounds    # no browser: every sound exists and has its caption; lane cues are footsteps
 npm run test:bench     # frame time per night at 1920x1080 (BUDGET=8 ms p95 by default)
 npm run test:spots     # screenshot every item spot into montages under test/shots
 ```
@@ -711,7 +717,7 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 `test/play.js` runs each night's declared solution per tier and seed (a night's steps can `draw` a bow: let go at
 once, short of full, as soon as it is full, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
-the one game (no picker, no hints), restart, mute, menus (the pause menu, How to play's cards, the Nights screen,
+the one game (no picker, no hints), restart, mute, menus (the pause menu, How to play's cards, the Scores screen,
 erasing progress, the win screen between nights, the title's click), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
 reduced motion, clear of the zoom button on a phone), a wrong thing coming back, a plank falling to the floor where a
@@ -721,8 +727,8 @@ unseen, early, without a jump in distance, and never on nights that opt out.
 `test/hittest.js` checks every item (each one, where several share an id) is visible and clickable from some direction across many layouts.
 `test/story.js` checks the bedside lamp is only in the bedroom, the clock ticks, and no text before the bedroom uses
 the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
-the game asks for exists in the synthesiser and that every lane cue, death sting, footstep and voice has a
-caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
+the game asks for exists in the synthesiser, that every lane cue is played as footsteps, and that every death
+sting, footstep and voice has a caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
 
 ## Debugging
 

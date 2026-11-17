@@ -1,11 +1,11 @@
 'use strict';
 // ---------- the title screen: eyes in the dark ----------
 // Pitch black, and a way off two pale points of eyes. It does not move while the title is in front of you; it
-// comes on only behind a dialog (Nights, How to play, Settings: each covers it), so each time you close one it is
+// comes on only behind a dialog (Scores, How to play, Settings: each covers it), so each time you close one it is
 // nearer, and more of what the eyes belong to shows. (At its nearest, a click on the dark makes it twitch instead.) A click on the dark itself is a blink: the view goes black for a
 // moment and it takes its step in there, unseen. STEPS of them and it is close enough to touch, bent down to look at
-// you; it stays there. Drawn on its own canvas (#titleScene) over the game's, which the title then leaves undrawn. The
-// title after the last night (the morning theme) keeps the room behind it instead, and nothing is coming.
+// you; it stays there. Drawn on its own canvas (#titleScene) over the game's, which the title then leaves undrawn. It is
+// the same after the last night (the morning is only the screens straight after it): there is a Scores button then.
 const TITLE = (() => {
   const D = [22, 13, 7.5, 4.2, 2.4, 1.55, 1.05];   // how far off it is, metres, after each dialog closed (or blink)
   // the last two: so close it has to bend down to you. LEAN is how far it has (its head dropped and come on ahead of it,
@@ -21,7 +21,7 @@ const TITLE = (() => {
     if (!cv) { cv = document.getElementById('titleScene'); if (cv) ctx = cv.getContext('2d'); }
     return cv;
   }
-  function enter() { step = drawn = 0; blinkAt = null; twitchAt = null; on = SAVE.data.settings.theme !== 'day'; }
+  function enter() { step = drawn = 0; blinkAt = null; twitchAt = null; on = true; }
   // a step nearer. With veil, the view blinks shut first and it is drawn at its new place only once that is black;
   // without (a dialog has just been over it), it is there at once
   // Once it is as near as it comes, a click on the dark does not blink: it twitches where it is instead, its head
@@ -32,7 +32,7 @@ const TITLE = (() => {
     step = Math.min(D.length - 1, step + 1);
     if (veil) { if (blinkAt === null) blinkAt = -1; } else drawn = step;   // (-1: the blink starts on the next frame drawn)
   }
-  // is the scene up (the title is showing, and it is not the morning)? sets the page's class to match
+  // is the scene up (the title is showing)? sets the page's class to match
   function active() {
     const a = on && G.state === 'title' && !!canvas();
     if (a !== shown) { shown = a; document.body.classList.toggle('titlescene', a); }

@@ -14,9 +14,11 @@
 // 'footstep:kind', 'loop:kind', 'heartbeat', and an ambient bed by the key in its params (ambient.tune, e.g. 'ambient:1').
 // The values were set by ear in the Sounds Audit.
 const TUNES = {
-  'ambient:title': { pitch: -11.25, tone: -0.4, vol: 1 },
+  'ambient:title': { pitch: -23.25, tone: -0.4, vol: 1 },   // (2 dB louder still far off: titleBed's own far gain)
   'footstep:shoesRun': { pitch: -12 },
   'hinge': { pitch: -11.5, speed: 1.27, tone: 2 },
+  'screech': { pitch: 12, speed: 0.63, tone: -1 },
+  'screechRage': { pitch: 12, speed: 0.63, tone: -1 },
   'ui': { pitch: -12 },
   'pickup': { pitch: -4.5 },
   'nope': { pitch: -11.5 },
@@ -110,18 +112,21 @@ const TUNES = {
   'footstep:tall': { vol: 17 },
   'loop:grind': { pitch: -12, tone: -0.4, speed: 0.87 },
   'heartbeat': { pitch: -0.5, vol: 1 },
-  'ambient:1': { pitch: -5 },
-  'ambient:2': { pitch: -9 },
-  'ambient:5': { pitch: -7 },
-  'ambient:6': { pitch: -12 },
-  'ambient:7': { pitch: -7.5 },
-  'ambient:8': { pitch: 1 },
-  'ambient:8off': { pitch: -1.5 },
-  'ambient:9': { pitch: -10.5 },
-  'ambient:10': { pitch: 2.5 },
-  'ambient:12': { pitch: -6.5, vol: 8 },
-  'ambient:13': { pitch: -4.5, tone: -1.3, vol: 8 },
-  'ambient:13dawn': { pitch: 12, vol: -1 },
+  'ambient:1': { pitch: -5, vol: -2 },
+  'ambient:2': { pitch: -9, vol: -2 },
+  'ambient:3': { vol: -2 },
+  'ambient:4': { vol: -2 },
+  'ambient:5': { pitch: -7, vol: -2 },
+  'ambient:6': { pitch: -12, vol: -2 },
+  'ambient:7': { pitch: -7.5, vol: -2 },
+  'ambient:8': { pitch: 1, vol: -2 },
+  'ambient:8off': { pitch: -1.5, vol: -2 },
+  'ambient:9': { pitch: -10.5, vol: -2 },
+  'ambient:10': { pitch: 2.5, vol: -2 },
+  'ambient:11': { vol: -2 },
+  'ambient:12': { pitch: -6.5, vol: 6 },
+  'ambient:13': { pitch: -4.5, tone: -1.3, vol: 6 },
+  'ambient:13dawn': { pitch: 12, vol: -3 },
 };
 const TUNE = (() => {
   const DEF = { pitch: 0, speed: 1, tone: 0, vol: 0 };

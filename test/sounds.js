@@ -1,6 +1,6 @@
 'use strict';
 // Every sound the game asks for exists in the synthesiser (js/audio.js), and every sound that carries information
-// (a lane's cue, which on Nightmare is the only warning of a switch; a death sting; a footstep; a voice) has a caption
+// (a lane's cue, which on Nightmare is the only warning of a switch, now always footsteps; a death sting; a footstep; a voice) has a caption
 // in js/captions.js. A mistyped name would otherwise fail silently: no sound, no caption, no error.
 // Static: it reads the sources and needs no browser.
 const fs = require('fs'), path = require('path');
@@ -37,7 +37,17 @@ for (const f of files) {
 }
 check(synth.sfx.size > 40 && synth.step.size >= 5 && synth.voice.size >= 5 && synth.loop.size >= 2 && SFX.size > 40, 'the synth and caption tables were found (' + synth.sfx.size + ' effects, ' + synth.step.size + ' footsteps, ' + synth.voice.size + ' voices, ' + synth.loop.size + ' loops, ' + SFX.size + ' captions)');
 for (const [kind, list] of Object.entries(used)) for (const [name, file] of list) check(synth[kind].has(name), kind + " '" + name + "' (" + file + ') is not a ' + kind + ' in js/audio.js');
-for (const [name, file] of used.cue) check(SFX.has(name), "lane cue '" + name + "' (" + file + ') has no caption; on Nightmare it is the only warning');
+// a lane's cue is never the sound the night names for it: game.js laneCues makes every one the thing's own footsteps
+// ('footstep:kind', which AUDIO.sfx plays as a few of its steps that way), and a footstep is captioned
+check(/function laneCues\(L\)[\s\S]*?ln\.cue = 'footstep:' \+ kind/.test(src['js/game.js']) && /laneCues\(L\);/.test(src['js/game.js']), 'every lane cue is made the thing\'s footsteps, in one place (game.js laneCues, called as a night is built)');
+check(/name\.startsWith\('footstep:'\) \? cueSteps\(/.test(audio) && /function cueSteps\(kind, pan, soft\)[\s\S]*?footstep\(kind,/.test(audio), "AUDIO.sfx plays a 'footstep:kind' cue as that thing's footsteps");
+for (const f of files.filter(f => f.startsWith('js/levels/'))) {
+  const m = src[f].match(/creatures: \[\{ type: '([a-z]+)'/), cr = m && src['js/creatures/' + m[1] + '.js'], snd = cr && (cr.match(/\bsound: '([A-Za-z]+)'/) || [])[1];
+  if (/\bcue: '/.test(src[f]) && m) check(STEPS.has(snd || 'walker'), f + ": its lane cues are the " + m[1] + "'s footsteps ('" + (snd || 'walker') + "'), and they have a caption");
+}
+// the hinge: one steady, gently rising note, no wobble (no oscillator under 20 Hz on its pitch) and nothing else over it
+{ const a = audio.indexOf("case 'hinge':"), h = audio.slice(a, audio.indexOf('break;', a));
+  check(a > 0 && (h.match(/createOscillator/g) || []).length === 1 && !/tone\(|noise\(/.test(h) && /setValueAtTime\(470[\s\S]*linearRampToValueAtTime\(545/.test(h), 'the hinge is one oscillator rising 470 to 545 Hz, no wobble, nothing else'); }
 for (const [name, file] of used.sting) check(SFX.has(name), "death sting '" + name + "' (" + file + ') has no caption');
 for (const [name, file] of used.step) check(STEPS.has(name), "footstep '" + name + "' (" + file + ') has no caption');
 for (const [name, file] of used.voice) check(VOICES.has(name), "voice '" + name + "' (" + file + ') has no caption');
