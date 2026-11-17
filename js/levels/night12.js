@@ -283,11 +283,17 @@ LEVELS.push({
       const T2 = DUCK.down, T3 = T2 + D.creep, T4 = T3 + DUCK.up, T5 = T4 + DUCK.look;
       c.flinch = smoothstep(t / 1.0) * (1 - smoothstep((t - DUCK.flinch) / 0.7));
       c.duck = lerp(D.duck0, 1, smoothstep((t - DUCK.flinch + 0.1) / (T2 - DUCK.flinch + 0.1)));
-      // going to the bed it keeps low, its face down: out in the open, only a dark shape low along the floor
+      // going to the bed it keeps low, crawling along the floor on its hands and feet, its eyes on you all the way: out in
+      // the open, a dark shape low along the floor with two pale eyes in it. Its limbs go as far as it goes (c.crawl: the
+      // tall one's crawl, a stride a little under half a metre), so they stop when it stops and nothing of it jumps
       const m = smoothstep((t - T2 + 0.2) / D.creep), low = Math.max(hide - 0.4, 0.26);
-      c.faceAway = smoothstep((t - T2 + 0.5) / 0.3) * (1 - smoothstep((t - T3) / 0.3));
+      c.faceAway = 0;
       if (!s.came) hold(c, lerp(D.d, sp.d, m));   // (under the covers, at the end, the night walks it to the bed itself)
       c.runLat = lerp(D.lat, sp.lat, m); c.peer = D.peer * (1 - smoothstep(t / T2));
+      { const nd = c.hold !== null ? c.hold : c.dist, was = D.at || { d: nd, lat: c.runLat, t: L.t }, mv = Math.hypot(nd - was.d, c.runLat - was.lat), dt = Math.max(0, L.t - was.t);
+        c.crawl = (c.crawl || 0) + mv * c.CR.CRAWL;
+        if (mv < 0.02 * dt) { const rest = Math.round(c.crawl / Math.PI) * Math.PI; c.crawl += (rest - c.crawl) * Math.min(1, dt * 3); }   // still: it settles, all fours down
+        D.at = { d: nd, lat: c.runLat, t: L.t }; }
       const gk = s.grab ? s.grab.k : 0;   // as its hands come up the bed it draws itself up after them
       c.eyeTo = t < T3 ? (D.eye0 === null ? low : lerp(D.eye0, low, smoothstep(t / T2))) : lerp(low, hide + 0.07 + gk * 0.1, smoothstep((t - T3) / DUCK.up));
       c.reach = smoothstep((t - T5) / DUCK.reach); c.gripY = hide - 0.03;   // (its arms up to the edge; the hands over it are drawn on the covers)

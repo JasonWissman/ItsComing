@@ -49,8 +49,9 @@ to turn one step (45 degrees) and up or down it to look down or back ahead; a sw
 dragged (the finger going left turns you right, the finger going up looks down), and Settings can reverse swipes. Tap
 to interact exactly where you tap, as a click there; press and hold where a thing must be held (the covers; a bow draws
 while the finger stays down, its sights following the finger, and looses when it lifts). A swipe is never a tap. A
-round zoom button in the bottom right corner zooms while held (a separate thumb, so you can zoom and tap or swipe at
-once), and a menu button top left, where the sound line is on a desktop, opens the pause menu (Mute is in it). The
+round zoom button in the bottom right corner is a toggle: a tap zooms in and the view stays zoomed (the button lit, its
+plus turned to a minus) while you swipe and tap on the view as ever; a tap on it again zooms back out (the keys and a
+pad's trigger still zoom while held). A menu button top left, where the sound line is on a desktop, opens the pause menu (Mute is in it). The
 view fills the whole screen, and the things held float over its bottom edge, each slot on a faint backing of its own
 (no strip under them); a tap on a slot switches to it (never a tap on the scene behind), and tapping the held item
 again while looking down puts it down. Where the browser can put the page full screen (not Safari on an iPhone), a
@@ -187,7 +188,8 @@ some on the ground, so you have to turn and look down to find them.
    and drops head first to the boards at your feet, where you have to pick it up again. When it reaches you it comes
    up out of its sprint into your face, its black hair hanging round it.
 6. **The Boathouse.** Something swims in across the water, going under for a
-   while and coming up closer. The winch is chained and padlocked: the key is in the
+   while and coming up closer. It rains outside, never under the roof: the rain shows only out through the water door
+   (above the slats let down) and the side door while it stands open (not through its leaf). The winch is chained and padlocked: the key is in the
    tackle box. Crank the water door down, and shut the side door and bar it with both oars
    of the upturned rowboat, which lie about the boathouse each in a place of its own: one
    across the iron brackets, then the other on top of it (the door or either bracket will do).
@@ -329,8 +331,9 @@ some on the ground, so you have to turn and look down to find them.
     box is on its post at your left hand, its top at your chest: turn left from the barn to face the stables and it is
     right there in the middle of the view, under the stables (too low to hide them), its front square to you, its main
     breaker at the foot of the view as you look ahead (look down for the rest: this night looks down less than the
-    others, to keep the whole box in view, a little below the middle). Zoom held on it closes in only as far as keeps
-    the whole box and every label on it in view; looking anywhere else it zooms as usual. It stands open, with no door, on the MAIN breaker across the top, a big lever over to
+    others, to keep the whole box in view, a little below the middle). Zoom on it (held, or the zoom button on) closes in only as far as keeps
+    the whole box and every label on it in view, clear of the compass (the night's own zoom level, `L.heldZoom`, which the
+    game eases to as to any zoom: smooth, no bounce); looking anywhere else it zooms as usual. It stands open, with no door, on the MAIN breaker across the top, a big lever over to
     ON with a green lamp beside it, and under it two rows of big toggle switches, each with a red pilot lamp and a strip of tape with the place
     written on it in marker (HOUSE, then the places in order round from the tractor shed); a click flips one, up is on.
     The panel and its parts are fixed flat on the front of the box, so they stay where they are drawn however you look.
@@ -360,8 +363,8 @@ some on the ground, so you have to turn and look down to find them.
     from your eye: nothing of it, body, head, hands or feet, jumps.) It is all but black, even
     in the lamp's light; only its two pale eyes show. It
     cannot stand the light: when the lamp comes on it lifts an arm across its face and
-    folds down onto its haunches out of sight, keeps low (only a dark shape along the
-    floor, if it is out in the open) to the bed, and comes up at the foot of it (or at its
+    folds down onto its haunches out of sight, keeps low (out in the open, a dark shape
+    crawling along the floor on its hands and feet, its two pale eyes on you all the way) to the bed, and comes up at the foot of it (or at its
     side, out of the closet) until only its eyes are over the edge. It is always drawn
     whole, and drawn before the bed, so the bed hides whatever of it is behind the bed.
     Then its long hands snatch up over the edge onto the covers, and pull: one and then

@@ -170,6 +170,15 @@ const R = (() => {
     return out;
   }
 
+  // a world polygon (its corners [x, y, z], where the world is, wherever the eye has gone) on the view: the part in front of
+  // the eye, as screen points, or null when none of it is (the weather clipped to the openings of a shelter: weather.js)
+  function screenPoly(pts) {
+    const sx = ox, sy = oy, sz = oz; ox = ex; oy = ey; oz = ez;
+    const c = clipNear(pts.map(p => toCam(p[0], p[1], p[2])));
+    ox = sx; oy = sy; oz = sz;
+    return c.length >= 3 ? c.map(proj) : null;
+  }
+
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
   // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, face?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
@@ -1026,7 +1035,7 @@ const R = (() => {
   }
 
   return {
-    attach, resize, begin, add, prepare, flush, post, screenPos, projectRect, fogAmt, aside,
+    attach, resize, begin, add, prepare, flush, post, screenPos, screenPoly, projectRect, fogAmt, aside,
     get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageW() { return pageW; }, get pageH() { return pageH; }, pageSize,
     get hits() { return hits; },
     get detail() { return detailOn; }, set detail(v) { detailOn = !!v; },

@@ -659,6 +659,29 @@ LEVELS.push({
       const cp = L.rend && L.rend.get(c);
       if (cp) cp.sortDist = c.lane.idx === 0 && covered > 0.05 && c.dist > 2.62 && !c.lunge ? Math.max(Math.hypot(c.dist, c.lat || 0), 3.05) : undefined;
     };
+    // the rain: under the roof it does not rain. It is seen only out through the water door, above the slats that are down,
+    // and through the side door while it stands open (and not through its leaf, swung out over the water). Local
+    // coordinates: the house is -2.4..2.4 across, -2.4..2.6 from back to front, its roof at 3
+    const toLocal = (x, z) => rotY(x, z, -(L.facing || 0));
+    L.weatherShelter = () => {
+      const openings = [], covered = 2.4 * clamp((winch.count || 0) / need, 0, 1), P = q => L.pt(q[0], q[1], q[2]);
+      if (covered < 2.39) openings.push([[-1.5, 0, 2.6], [1.5, 0, 2.6], [1.5, 2.4 - covered, 2.6], [-1.5, 2.4 - covered, 2.6]].map(P));
+      const a = s.doorA, hx = 2.4, hz = -0.55, lx = hx + Math.sin(a) * 1.1, lz = hz + Math.cos(a) * 1.1;
+      if (a > 0.01) openings.push([[2.4, 0, -0.55], [2.4, 0, 0.55], [2.4, 2.1, 0.55], [2.4, 2.1, -0.55]].map(P));
+      const hides = (x, y, z) => {
+        const [px, pz] = toLocal(x, z);
+        if (y < 3.05 && px > -2.45 && px < 2.45 && pz > -2.45 && pz < 2.65) return true;   // indoors
+        if (a <= 0.01) return false;
+        // behind the open leaf, from the eye (at the middle of the floor): where the line to it crosses the leaf
+        const dx = px, dz = pz, sx = lx - hx, sz = lz - hz, den = dx * sz - dz * sx;
+        if (Math.abs(den) < 1e-6) return false;
+        const t = (hx * sz - hz * sx) / den, u = (hx * dz - hz * dx) / den;
+        if (t <= 0 || t >= 1 || u < 0 || u > 1) return false;
+        const yAt = L.eyeH + (y - L.eyeH) * t;
+        return yAt > 0 && yAt < 2.08;
+      };
+      return { openings, hides };
+    };
     L.dynamicLights = () => { const p = L.pt(lampX(), 2.05, 0.3); return [{ x: p[0], y: p[1], z: p[2], r: 5.5, i: 0.42, color: [255, 210, 160], flicker: 0.3, seed: 2 }]; };
     L.glows = () => { const p = L.pt(lampX(), 2.15, 0.3); return [{ x: p[0], y: p[1], z: p[2], r: 1.6 + Math.sin(L.t * 11) * 0.08, color: [255, 190, 110], a: 0.2 }]; };
     L.floor = { poly: [[-2.3, -2.3], [2.3, -2.3], [2.3, 2.5], [-2.3, 2.5]], y: 0 };

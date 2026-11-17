@@ -744,7 +744,7 @@ const hoverHit = lookFor;
   for (const [name, dx, by] of [['swipe right', 160, -45], ['swipe left', -160, 45]]) { await swipeBy(dx, 0); const c1 = await cam(); looks.push(name + ':' + turned(c0, c1, by)); c0 = c1; }
   await swipeBy(0, -120); let c1 = await cam(); looks.push('swipe up:' + (Math.abs(c1.pitch - PITCH) < 0.03 && !c1.leaving));
   await swipeBy(0, 120); c1 = await cam(); looks.push('swipe down:' + (Math.abs(c1.pitch) < 0.03 && !c1.leaving));
-  await zoomBtn('pointerdown'); c1 = await cam(); await zoomBtn('pointerup'); let c2 = await cam(); looks.push('zoom button:' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving));
+  await zoomBtn('pointerdown'); await zoomBtn('pointerup'); c1 = await cam(); await zoomBtn('pointerdown'); await zoomBtn('pointerup'); let c2 = await cam(); looks.push('zoom button:' + (c1.zoom > 2.2 && c2.zoom < 1.2 && !c2.leaving));   // (a tap on, a tap off)
   const pad = (b, on) => page.evaluate(([b, on]) => {
     if (!window._pad) window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) };
     navigator.getGamepads = () => [window._pad]; window._pad.buttons[b].pressed = on; pollGamepad(); navigator.getGamepads = () => [];
@@ -1138,15 +1138,23 @@ const hoverHit = lookFor;
     check(await pg.evaluate(() => G.hasItem('hammer')), 'a tap on the hammer picks it up');
     await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-picked.png') });
     // a tap on nothing does nothing; the slots still switch by tap
-    // zoom: held, the button zooms; let go, it does not
+    // zoom: a tap on the button zooms in, and it stays in (the button lit, its plus a minus) with the finger off it; a swipe
+    // on the view still turns, zoomed, and a tap on the view still takes; a tap on the button again zooms back out
     const zb = await pg.evaluate(() => { const q = UI.zoomBtn.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; });
-    await m.touch('touchStart', zb.x, zb.y); await pg.waitForTimeout(500);
-    const zin = await pg.evaluate(() => ({ held: G.cam.zoomHeld, zoom: G.cam.zoom, on: UI.zoomBtn.classList.contains('on') }));
+    const zstate = () => pg.evaluate(() => ({ held: G.cam.zoomHeld, zoom: +G.cam.zoom.toFixed(2), on: UI.zoomBtn.classList.contains('on'), pressed: UI.zoomBtn.getAttribute('aria-pressed'), plus: getComputedStyle(UI.zoomBtn.querySelector('.zplus')).display !== 'none', d: G.cam.dirIdx }));
+    const z0 = await zstate();
+    await pg.touchscreen.tap(zb.x, zb.y); await pg.waitForTimeout(700);
+    const zin = await zstate();
     await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-zoom.png') });
-    await m.touch('touchEnd'); await pg.waitForTimeout(400);
-    const zout = await pg.evaluate(() => ({ held: G.cam.zoomHeld, zoom: G.cam.zoom }));
-    check(zin.held && zin.on && zin.zoom > 2 && !zout.held && zout.zoom < 1.5, 'the zoom button: held, the view zooms in; let go, it comes back (' + JSON.stringify([zin, zout]) + ')');
-    // a swipe while zoom is held with the other thumb still turns (the second finger is its own)
+    await m.swipe(cx + 120, cy, cx - 120, cy); await pg.waitForTimeout(300);
+    const zsw = await zstate();
+    await pg.touchscreen.tap(cx, cy); await pg.waitForTimeout(300);
+    const ztap = await zstate();
+    await pg.touchscreen.tap(zb.x, zb.y); await pg.waitForTimeout(700);
+    const zout = await zstate();
+    check(!z0.on && z0.plus && z0.pressed === 'false' && zin.held && zin.on && zin.pressed === 'true' && !zin.plus && zin.zoom > 2.4, 'the zoom button: a tap zooms in and it stays in, the button lit, its plus a minus (' + JSON.stringify([z0, zin]) + ')');
+    check(zsw.held && zsw.on && zsw.zoom > 2.4 && zsw.d === (zin.d + 1) % 8 && ztap.held && ztap.on, 'zoomed in, a swipe on the view still turns and a tap on the view leaves the zoom on (' + JSON.stringify([zsw, ztap]) + ')');
+    check(!zout.held && !zout.on && zout.plus && zout.pressed === 'false' && zout.zoom < 1.2, 'a tap on the button again zooms back out, the button dark, its plus back (' + JSON.stringify(zout) + ')');
     // the menu button: the pause menu, with everything in it
     await pg.tap('#menuBtn'); await pg.waitForTimeout(500);
     r = await pg.evaluate(() => ({ state: G.state, acts: [...UI.overlay.querySelectorAll('button[data-act]')].map(b => b.dataset.act), menuBtn: getComputedStyle(UI.menuBtn).display, zoomBtn: getComputedStyle(UI.zoomBtn).display }));
@@ -1173,8 +1181,8 @@ const hoverHit = lookFor;
     // How to play and the night's card on a phone: the touch cards, "tap"
     m = await mobile(devices['Pixel 7 landscape']);
     await m.pg.tap('button[data-act="howto"]'); await m.pg.waitForTimeout(500);
-    r = await m.pg.evaluate(() => ({ cards: [...document.querySelectorAll('.hcard .hwhat')].map(e => e.textContent), gest: document.querySelectorAll('.hcard kbd.gest').length, zoom: !!document.querySelector('.hcard .kzoom'), menu: !!document.querySelector('.hcard .kmenu'), keys: [...document.querySelectorAll('.hcard kbd.key:not(.gest)')].length, fits: (p => p.scrollHeight <= p.clientHeight + 1)(document.querySelector('#overlay .panel')) }));
-    check(r.cards.join() === 'Look around,Zoom in,Interact,Pause' && r.gest === 3 && r.zoom && r.menu && r.keys === 0 && r.fits, 'How to play on a phone: swipe, the zoom button (hold), tap and the menu button, no keys, all of it in view (' + JSON.stringify(r) + ')');
+    r = await m.pg.evaluate(() => ({ cards: [...document.querySelectorAll('.hcard .hwhat')].map(e => e.textContent), gest: document.querySelectorAll('.hcard kbd.gest').length, zoom: !!document.querySelector('.hcard .kzoom'), zsay: (k => k && k.closest('.hcard').querySelector('.kplus').textContent)(document.querySelector('.hcard .kzoom')), menu: !!document.querySelector('.hcard .kmenu'), keys: [...document.querySelectorAll('.hcard kbd.key:not(.gest)')].length, fits: (p => p.scrollHeight <= p.clientHeight + 1)(document.querySelector('#overlay .panel')) }));
+    check(r.cards.join() === 'Look around,Zoom in,Interact,Pause' && r.gest === 3 && r.zoom && r.zsay === 'tap' && r.menu && r.keys === 0 && r.fits, 'How to play on a phone: swipe, the zoom button (tap), tap and the menu button, no keys, all of it in view (' + JSON.stringify(r) + ')');
     await m.pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-howto.png') });
     await m.pg.tap('button[data-act="back"]'); await m.pg.waitForTimeout(300);
     await m.pg.tap('button[data-act="begin"]'); await m.pg.waitForTimeout(500);
@@ -1213,6 +1221,25 @@ const hoverHit = lookFor;
     const cv = await lookFor(m.pg, 'target', 'covers');
     if (cv) await m.hold(cv.x, cv.y, 3600);
     check(await m.pg.evaluate(() => G.L.targets.find(t => t.id === 'covers').done === true), 'night 12: the covers held by a finger (three seconds) until the hold is done');
+    await m.ctx.close();
+
+    // night 11: the zoom button on the fuse box, facing the stables and looking down: a tap zooms in, smoothly (every frame
+    // nearer, never past where it settles: no bounce), as near as keeps the whole box in view, and it stays in; a tap and
+    // it comes back out
+    m = await mobile(devices['iPhone 13 landscape'], '?level=11&go&seed=1');
+    await m.pg.evaluate(() => { G.L.creatures.forEach(c => { c.hold = c.dist; }); });
+    await T.face(m.pg, 7, true); await m.pg.waitForTimeout(300);
+    const zb11 = await m.pg.evaluate(() => { const q = UI.zoomBtn.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; });
+    await m.pg.touchscreen.tap(zb11.x, zb11.y);
+    r = await m.pg.evaluate(() => new Promise(res => { const zs = []; const f = () => { zs.push(G.cam.zoom); if (zs.length < 70) requestAnimationFrame(f); else res({ zs, box: G.L.boxZoom(), held: G.cam.zoomHeld, hs: R.hits.filter(h => h.kind === 'target' && (h.ref.id === 'main' || /^sw/.test(h.ref.id))).map(h => [h.x, h.y, h.x + h.w, h.y + h.h]), W: R.W, H: R.H }); }; requestAnimationFrame(f); }));
+    {
+      const zs = r.zs, last = zs[zs.length - 1], mono = zs.every((z, i) => !i || z >= zs[i - 1] - 1e-6), over = Math.max(...zs) <= r.box + 0.005;
+      check(r.held && r.box > 1.2 && Math.abs(last - r.box) < 0.03 && mono && over && r.hs.length === 9 && r.hs.every(h => h[0] >= 0 && h[2] <= r.W && h[1] >= 0 && h[3] <= r.H),
+        'night 11 on a phone: the zoom button on the fuse box zooms in smoothly, no bounce, as near as keeps all of it in view (' + JSON.stringify({ box: r.box, last, mono, over, n: r.hs.length }) + ')');
+    }
+    await m.pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-n11-zoom.png') });
+    await m.pg.touchscreen.tap(zb11.x, zb11.y); await m.pg.waitForTimeout(700);
+    check(await m.pg.evaluate(() => !G.cam.zoomHeld && G.cam.zoom < 1.05), 'and a tap on it again zooms back out');
     await m.ctx.close();
 
     // night 9: the pay phone's receiver and keys are tapped where they are

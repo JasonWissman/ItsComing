@@ -812,7 +812,8 @@ function update(dt) {
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
   // a night may close in further once won (a long way off, it is small) or widen it to take in more, or bring the view in
   // close in play (facing the pay phone)
-  const tz = (c.zoomHeld && (G.state === 'play' || free)) ? 2.6 : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
+  // (zoom held: 2.6, or as a night has it where it frames something itself, L.heldZoom: the farm's box, whole in view)
+  const tz = (c.zoomHeld && (G.state === 'play' || free)) ? ((G.state === 'play' && L.heldZoom && L.heldZoom()) || 2.6) : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
@@ -1247,7 +1248,8 @@ function gamepadUse(src) {
 // held on a thing that is held (the covers) or with a bow, the finger holds it; once a hold has gone on a moment, moving
 // the finger aims (the bow's sights follow it) instead of swiping. Only the first finger on the view counts. The touch on
 // the view is the whole of it (preventDefault): the browser makes no mouse events or click of its own, and does not scroll
-// or zoom the page. Two buttons stand in for the keys: zoom, held (#zoomBtn), and the menu (#menuBtn: the pause menu);
+// or zoom the page. Two buttons stand in for the keys: zoom (#zoomBtn: a tap zooms in and it stays in, lit, the fingers
+// free to swipe and tap on the view; a tap again zooms back out), and the menu (#menuBtn: the pause menu);
 // a third, top right, puts the page full screen (#fsBtn).
 const TOUCH = { id: null, x0: 0, y0: 0, t0: 0, swiped: false, ax: -1, ay: -1, lift: 0 };
 const SWIPE_HOLD = 250;   // ms: a press held this long on a hold or a draw before the finger moves aims instead of swiping
@@ -1305,10 +1307,14 @@ let chromeSig = '';
 function touchChrome(L) {
   const menu = G.state === 'play', zoom = menu || (G.state === 'won' && !!L && (lookFree() || !!L.onPress));
   const sig = (menu ? 'm' : '') + (zoom ? 'z' : '');
-  if (sig === chromeSig) return;
-  chromeSig = sig;
-  document.body.classList.toggle('tplay', menu); document.body.classList.toggle('tzoom', zoom);
-  if (!zoom && UI.zoomBtn.classList.contains('on')) { UI.zoomBtn.classList.remove('on'); G.cam.zoomHeld = false; }
+  if (sig !== chromeSig) {
+    chromeSig = sig;
+    document.body.classList.toggle('tplay', menu); document.body.classList.toggle('tzoom', zoom);
+    if (!zoom && UI.zoomBtn.classList.contains('on')) G.cam.zoomHeld = false;
+  }
+  // the zoom button lit while the zoom is on (it is let go of however it goes: a new night, the window left, a key let up)
+  const on = zoom && G.cam.zoomHeld;
+  if (UI.zoomBtn.classList.contains('on') !== on) { UI.zoomBtn.classList.toggle('on', on); UI.zoomBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
 }
 function bindTouch() {
   const c = UI.canvas, o = { passive: false };
@@ -1318,12 +1324,10 @@ function bindTouch() {
   const z = UI.zoomBtn;
   z.addEventListener('pointerdown', e => {
     e.preventDefault(); e.stopPropagation(); ensureAudio();
-    try { z.setPointerCapture(e.pointerId); } catch (err) { void err; }   // held even if the thumb slides off it
-    if (G.state === 'play' || lookFree()) { G.cam.zoomHeld = true; z.classList.add('on'); }
-    else if (G.state === 'won') proceed();   // a won night waiting on a press: zoom is one (sitting crying: zoom goes to it)
+    if (G.state === 'play' || lookFree()) {   // a toggle: on, and it stays on until tapped again
+      G.cam.zoomHeld = !G.cam.zoomHeld; z.classList.toggle('on', G.cam.zoomHeld); z.setAttribute('aria-pressed', G.cam.zoomHeld ? 'true' : 'false');
+    } else if (G.state === 'won') proceed();   // a won night waiting on a press: zoom is one (sitting crying: zoom goes to it)
   });
-  const up = () => { if (z.classList.contains('on')) { G.cam.zoomHeld = false; z.classList.remove('on'); } };
-  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) z.addEventListener(ev, up);
   z.addEventListener('click', e => e.stopPropagation());
   z.addEventListener('contextmenu', e => e.preventDefault());
   UI.menuBtn.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); AUDIO.sfx('tap'); if (G.state === 'play') pauseGame(); });

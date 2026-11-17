@@ -92,8 +92,27 @@ const fleeCases = [0, 1].flatMap(k => [0, 0.25, 0.5, 0.7, 0.85, 0.93, 0.97, 0.99
   ['expect', '__fl.carSeen && __fl.minSep > 0.3', 'street ' + k + ', ' + frac + ' of the way in: the car came and it was never in the car'],
   ['expect', '__fl.hidAt >= 0 && __fl.hidAt < 2.2 && __fl.lampD < 1.2 && __fl.still >= 0.9 && __fl.awayAt >= __fl.hidAt + 0.95 && __fl.walked > 2 && !__fl.onRoad', 'street ' + k + ', ' + frac + ': it scurried behind a lamp post, stood a second, and walked off along the pavement'],
 ]));
+// the instruction card's printing, drawn large on a canvas of its own (1 px a tenth of a mm): every letter of it inside the
+// card, clear of its edges by most of the margin, and the heading inside the red band. Returns where the ink reaches (mm in
+// from each edge)
+const cardInk = `(() => {
+  const A = G.L.cardArt, k = 10000, Wc = Math.round(A.w * k), Hc = Math.round(A.h * k), pad = 200;
+  const cv = document.createElement('canvas'); cv.width = Wc + 2 * pad; cv.height = Hc + 2 * pad; const g = cv.getContext('2d');
+  g.translate(pad + Wc / 2, pad + Hc); g.scale(k, -k);   // (the card's own units: metres, its foot in the middle, y up)
+  A.draw(g, { col: c => 'rgb(' + c.join(',') + ')' });
+  const d = g.getImageData(0, 0, cv.width, cv.height).data;
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, h0 = 1e9, h1 = -1e9;
+  for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
+    const i = (y * cv.width + x) * 4; if (d[i + 3] <= 40) continue;
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    if (d[i] > 200 && d[i + 1] > 190) { h0 = Math.min(h0, y); h1 = Math.max(h1, y); }   // the heading: printed pale (on the red band)
+  }
+  const mm = v => +(v / 10).toFixed(1);
+  return { left: mm(x0 - pad), right: mm(pad + Wc - x1), top: mm(y0 - pad), bottom: mm(pad + Hc - y1), headTop: mm(h0 - pad), headLow: mm(h1 - pad) };
+})()`;
 module.exports = {
   nightmare: [
+    ['expect', '(r => r.left >= 4 && r.right >= 4 && r.top >= 2 && r.bottom >= 2 && r.headTop >= 2 && r.headLow <= 21 - 2)(' + cardInk + ')', 'the instruction card: all its printing inside the card, clear of its edges, the heading inside the red band'],
     ['expect', 'G.inv.length === 0', 'nothing in hand: the notebook is lying on the shelf'],
     ['expect', "!G.L.items.some(i => i.id === 'journal') && !G.L.targets.some(t => t.id === 'book') && G.L.targets.some(t => t.id === 'notebook') && !document.querySelector('.pb-nb')", 'only the notebook is on the shelf: no phone book, and no panel over the view'],
     ['expect', 'G.L.s.others.length >= 4', 'there are always a few ordinary numbers in the notebook'],
