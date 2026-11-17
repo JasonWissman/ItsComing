@@ -55,13 +55,14 @@ const lamp0 = 'G.L.s.man.stops[0].lamp';
 // the car coming for you, and the shade out of its way: from a place on its way in (frac of the way, on street k), the
 // call answered there and the aftermath stepped by hand to its end. Every frame the shade is measured against the car (its
 // body, bumpers and all, and its back door when open, with room to spare): it must never be inside it. It must get behind
-// a lamp post on its own street, stand there still a second, and then turn its back and walk off along the pavement.
+// a lamp post on its own street, stand there still (a second at the least) until the car's door opens, and only then turn
+// its back and walk off along the pavement.
 const flee = (k, frac) => `(() => {
   const L = G.L, s = L.s, c = L.creature, save = [SAVE.recordWin, SAVE.unlock]; SAVE.recordWin = SAVE.unlock = () => {};
   c.lane = L.lanes[${k}]; L.lane = c.lane; L.laneIdx = ${k}; s.man = null; update(0.001);
   s.man.t0 = L.t - ${frac} * s.man.arrive; update(0.01);
   const startD = c.dist; win();
-  const R0 = 0.35, out = { minSep: 99, hidAt: -1, still: 0, awayAt: -1, lampD: 99, onRoad: false, carSeen: false, endPose: null, startD: +startD.toFixed(1) };
+  const R0 = 0.35, out = { minSep: 99, hidAt: -1, still: 0, awayAt: -1, doorAt: -1, lampD: 99, onRoad: false, carSeen: false, endPose: null, startD: +startD.toFixed(1) };
   let last = null;
   for (let i = 0; i < 2500 && G.state === 'won' && !(s.end && L.aftermathT > s.end.done); i++) {
     update(0.01);
@@ -77,6 +78,7 @@ const flee = (k, frac) => `(() => {
       if (out.hidAt < 0) { out.hidAt = +(L.t - f.t0).toFixed(2); out.lampD = Math.min(...s.man.stops.map(st => Math.hypot(p.x - st.lamp.x, p.z - st.lamp.z))); }
       if (last && Math.hypot(p.x - last.x, p.z - last.z) < 1e-6 && !c.rush) out.still += 0.01;
     }
+    if (e && e.doorT !== undefined && out.doorAt < 0) out.doorAt = +(L.t - f.t0).toFixed(2);
     if (c.away && out.awayAt < 0) out.awayAt = +(L.t - f.t0).toFixed(2);
     if (out.hidAt >= 0 && (p.z > 1 && p.z < 8 || p.z >= 8 && Math.abs(p.x) < 3.5)) out.onRoad = true;
     last = p;
@@ -90,7 +92,7 @@ const fleeCases = [0, 1].flatMap(k => [0, 0.25, 0.5, 0.7, 0.85, 0.93, 0.97, 0.99
   ['eval', 'restartLevel()'], ['wait', 300],
   ['eval', 'window.__fl = ' + flee(k, frac)],
   ['expect', '__fl.carSeen && __fl.minSep > 0.3', 'street ' + k + ', ' + frac + ' of the way in: the car came and it was never in the car'],
-  ['expect', '__fl.hidAt >= 0 && __fl.hidAt < 2.2 && __fl.lampD < 1.2 && __fl.still >= 0.9 && __fl.awayAt >= __fl.hidAt + 0.95 && __fl.walked > 2 && !__fl.onRoad', 'street ' + k + ', ' + frac + ': it scurried behind a lamp post, stood a second, and walked off along the pavement'],
+  ['expect', '__fl.hidAt >= 0 && __fl.hidAt < 2.2 && __fl.lampD < 1.2 && __fl.still >= 0.9 && __fl.awayAt >= __fl.hidAt + 0.95 && __fl.doorAt >= 0 && __fl.awayAt >= __fl.doorAt && __fl.walked > 2 && !__fl.onRoad', 'street ' + k + ', ' + frac + ': it scurried behind a lamp post, stood there facing you till the car door opened, and walked off along the pavement'],
 ]));
 // the instruction card's printing, drawn large on a canvas of its own (1 px a tenth of a mm): every letter of it inside the
 // card, clear of its edges by most of the margin, and the heading inside the red band. Returns where the ink reaches (mm in
@@ -117,6 +119,11 @@ module.exports = {
     ['expect', "!G.L.items.some(i => i.id === 'journal') && !G.L.targets.some(t => t.id === 'book') && G.L.targets.some(t => t.id === 'notebook') && !document.querySelector('.pb-nb')", 'only the notebook is on the shelf: no phone book, and no panel over the view'],
     ['expect', 'G.L.s.others.length >= 4', 'there are always a few ordinary numbers in the notebook'],
     ['expect', 'G.L.lanes.every(l => l.deg !== 270)', 'nothing comes from the west'],
+    // the rain: seen only out through the glass (two panes a side, the rail between), never inside the booth, and never
+    // over the pay phone: facing it, the middle of its keys is inside what covers the glass, and no pane is left uncut there
+    ['expect', "(sh => WEATHER.kind === 'rain' && sh.openings.length === 8 && sh.hides(0.3, 1.5, 0.3) && sh.hides(-0.5, 0.2, -0.5) && !sh.hides(0.3, 1.5, 3) && !sh.hides(4, 1, 0.2))(G.L.weatherShelter())", 'the rain is seen through the eight panes of glass, and none of it falls inside the booth'],
+    ['face', 1, false],
+    ['expect', "(() => { const sh = G.L.weatherShelter(), q = R.screenPos(0.38, 1.6, 0.38); if (!q) return false; const inP = (x, y, p) => { let c = false; for (let i = 0, j = p.length - 1; i < p.length; j = i++) { const a = p[i], b = p[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }; return sh.covers.map(R.screenPoly).some(p => p && inP(q.x, q.y, p)); })()", 'facing the phone, its keys are covered: no rain is drawn over the phone'],
     ['expect', '!(G.L.dynamicLights() || []).length && !G.L.glows().some(g => g.color[0] === 255 && g.color[1] === 190)', 'it brings no light with it: no lantern, no glow'],
     // its way in: from lamp to lamp along its own street, every one of them from the last, fitted to the time it has
     ['expect', 'G.L.s.man && G.L.s.man.stops.length >= 6 && G.L.s.man.stops.every(st => st.lamp && st.lamp.street === (G.L.creature.lane.deg === 0 ? 0 : 1))', 'its way in goes by every lamp along its own street'],

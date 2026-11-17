@@ -153,15 +153,17 @@ LEVELS.push({
       { x: 0.95, y: 0.973, z: 0.68, flat: false },      // on the dash
       { x: 0.8, y: 0.66, z: 0.0, flat: false, key: 'seat' }, // on the passenger seat, in front of the seat back
     ], { w: 0.09, h: 0.24, icon: 'bottle', attach: true, held: { size: 0.27 } });   // (held larger than its size would have it: the fist hid all but its neck)
-    // it stalled in drive, and it will not start until the stick is in park. Once it runs, the stick goes to reverse or
-    // drive and the gas takes you away; straight ahead is only a way out if the thing is not in the road
+    // it stalled in drive, and it will not start until the stick is in park (or neutral). Once it runs, the stick goes to
+    // reverse or drive and the gas takes you away; in park or neutral the engine only roars. Straight ahead is only a way
+    // out if the thing is not in the road
     Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), gear: 'D', lastCrank: -10, gone: false, dir: 0, pressT: -10, keyAng: 0, ram: null, floored: false,
       turnAt: -10, jigAt: -10, gearFrom: 'D', gearAt: -10, dead: false });
-    const GEAR_NAME = { P: 'park', R: 'reverse', D: 'drive' };
+    const GEAR_NAME = { P: 'park', R: 'reverse', N: 'neutral', D: 'drive' };
+    const inGearNow = () => s.gear === 'R' || s.gear === 'D';   // (park and neutral: the engine turns and the car stays put)
     // Your hand on the car (js/hands.js): it goes to the key to turn it, to the gearstick to move it, and to the lock with no
     // key in it, and what it does there happens as it gets there (handTo: then() then, or at once if it is there already).
     // The house keys are tried at the keyhole, blade first, will not go in and drop to the floor at your feet; anything
-    // else in hand is tried there and comes back. With the key in and the stick out of park the key will not turn: the
+    // else in hand is tried there and comes back. With the key in and the stick in reverse or drive the key will not turn: the
     // hand takes it and it strains a few degrees and no more (s.jigAt). Each turn of the key is the hand on it while the
     // starter turns. Your foot is on the gas (L.overlay): with the engine dead the pedal goes all the way to the floor under
     // it, limp, with a dull clunk, and comes back up.
@@ -192,7 +194,7 @@ LEVELS.push({
       id: 'ignition', name: 'Ignition', x: IX, y: IY - 0.075, z: IZ, w: 0.11, h: 0.12, accepts: ['keys', 'housekeys'], attach: true, face: Math.PI,
       fumble: { at: KEYHOLE, sfx: { land: 'keys' } },   // tried at the keyhole; keys that drop jingle on the floor
       onDecoy(item) { if (!G.fumble(item, ign, { preset: 'bump', land: atFeet(item) }) && !G.fumbling) AUDIO.sfx('nope'); },
-      hint() { return s.started ? 'Running.' : s.keyIn ? (s.gear !== 'P' ? 'Turn the key. It is still in ' + GEAR_NAME[s.gear] + ', though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
+      hint() { return s.started ? 'Running.' : s.keyIn ? (inGearNow() ? 'Turn the key. It is still in ' + GEAR_NAME[s.gear] + ', though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
       use(item) { if (item.id !== 'keys') return false; s.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.say('The key is in. Turn it.', 'The key is in.'); return true; },
       onClick() {
         // the house keys still at the keyhole, out of the hand: another click does nothing more until they drop (it would
@@ -219,8 +221,8 @@ LEVELS.push({
         }
         if (s.started) { G.say('It is running. Now the gearstick, and the gas.', 'The engine is running.'); handTo(ign, { style: 'touch', at: KEYHEAD, sfx: 'keys' }); return true; }
         if (s.cranking > 0 || s.ram) return true;
-        if (s.gear !== 'P') {   // the key will not turn: it strains a few degrees in the hand and goes back
-          G.say('Nothing, not even a click. It will only start in park.', 'Nothing. Not even a click. The gearstick is in ' + GEAR_NAME[s.gear] + '.');
+        if (inGearNow()) {   // the key will not turn: it strains a few degrees in the hand and goes back
+          G.say('Nothing, not even a click. It will only start in park or neutral.', 'Nothing. Not even a click. The gearstick is in ' + GEAR_NAME[s.gear] + '.');
           handTo(ign, { style: 'rattle', at: KEYHEAD }, () => { s.jigAt = L.t; });
           return true;
         }
@@ -238,7 +240,7 @@ LEVELS.push({
       },
     });
     // the gearstick on the console by your right hip (back from the footwells, so it never hides what lies in them),
-    // P R N D along its plate, front to back: each click moves it on, park, reverse, drive and round to park
+    // P R N D along its plate, front to back: each click moves it on, park, reverse, neutral, drive and round to park
     const lxOf = g => -0.075 + 'PRND'.indexOf(g) * 0.05;   // where the stick stands along the plate, by each letter (back from its middle)
     const gearK = () => smoothstep(clamp((L.t - s.gearAt) / 0.18, 0, 1));   // how far over it is to the gear it is going to
     const shownGear = () => (gearK() >= 0.5 ? s.gear : s.gearFrom);
@@ -257,26 +259,26 @@ LEVELS.push({
       onClick() {
         if (s.gone || s.ram) return true;
         const from = shownGear();
-        s.gear = { P: 'R', R: 'D', D: 'P' }[s.gear]; s.gearFrom = from; s.gearAt = Infinity;
+        s.gear = { P: 'R', R: 'N', N: 'D', D: 'P' }[s.gear]; s.gearFrom = from; s.gearAt = Infinity;
         // the hand takes the knob and pulls it over to the next letter; the stick goes over as it does
         const rc = handTo(gear, { style: 'pull', at: knobAt(lxOf(from)), sfx: 'pat' }, () => { s.gearAt = L.t; AUDIO.sfx('lever'); G.shake(0.06); });
         if (rc && rc.hold > 0.24 && rc.T === 0) rc.hold = 0.26;   // one pull
         s.gearHand = rc;
         const name = GEAR_NAME[s.gear][0].toUpperCase() + GEAR_NAME[s.gear].slice(1) + '.';
-        G.say(name + (s.started ? (s.gear === 'P' ? '' : ' Now the gas.') : (s.gear === 'P' ? ' Now the key.' : ' It will not start in ' + GEAR_NAME[s.gear] + '.')), name);
+        G.say(name + (s.started ? (inGearNow() ? ' Now the gas.' : '') : (inGearNow() ? ' It will not start in ' + GEAR_NAME[s.gear] + '.' : ' Now the key.')), name);
         return true;
       },
     });
     // the gas pedal, in your own footwell
     const gas = mkTarget(L, {
       id: 'gas', name: 'Gas pedal', x: PX, y: PY, z: PZ, w: PW, h: PH, attach: true, face: Math.PI,
-      hint() { return s.started ? (s.gear === 'P' ? 'It is in park.' : 'Go.') : 'The engine is not running.'; },
+      hint() { return s.started ? (inGearNow() ? 'Go.' : 'It is in ' + GEAR_NAME[s.gear] + '.') : 'The engine is not running.'; },
       onClick() {
         if (s.gone || s.ram) return true;
         s.pressT = L.t; s.dead = !s.started;
         if (!s.started) { AUDIO.sfx('clunk', -0.2); G.shake(0.05); G.say('Nothing. Start the engine first.', 'The pedal goes down. The engine is not running.'); return true; }   // to the floor, limp (pedalDown)
         AUDIO.sfx('rev');
-        if (s.gear === 'P') { G.shake(0.12); G.say('It roars and goes nowhere. It is in park.', 'The engine roars. The car is still in park.'); return true; }
+        if (!inGearNow()) { G.shake(0.12); G.say('It roars and goes nowhere. It is in ' + GEAR_NAME[s.gear] + '.', 'The engine roars. The car is still in ' + GEAR_NAME[s.gear] + '.'); return true; }
         const c = L.creature, dir = s.gear === 'R' ? -1 : 1;
         if (inPath(bear(), dir) && !c.dead) { ram(c, dir); return true; }   // straight at it, ahead in drive or behind in reverse
         s.gone = true; s.dir = dir; G.shake(0.35);
@@ -311,7 +313,7 @@ LEVELS.push({
       if (k >= 1) { c.hold = c.dist = RAM_GAP; hit(c); }   // the car stops dead there (s.ram stays, so the speedometer does too)
     }
     L.isWon = () => s.gone;
-    L.objectiveText = () => s.started ? (s.gear === 'P' ? 'Into reverse or drive. Then the gas.' : 'The gas.') : (s.gear !== 'P' ? 'Put it in park. ' : '') + (s.keyIn ? 'Turn the key until it starts.' : 'Find the keys. Start the car.');
+    L.objectiveText = () => s.started ? (inGearNow() ? 'The gas.' : 'Into reverse or drive. Then the gas.') : (inGearNow() ? 'Put it in park. ' : '') + (s.keyIn ? 'Turn the key until it starts.' : 'Find the keys. Start the car.');
 
     // ---- where it is: it goes round the car ----
     // Its way in is the game's (its distance from how far it has come, faster unseen), but where round the car it is, is
@@ -358,7 +360,7 @@ LEVELS.push({
       if (s.gone || s.ram || L.won || c.dead || G.state !== 'play') return;
       c.yaw = L.facing + b;
       if (!roam.rem) {
-        const inGear = s.started && s.gear !== 'P';
+        const inGear = s.started && inGearNow();
         if (!s.started && c.u >= roam.circleU) { roam.circleU = 2; goTo(REGION[roam.circleTo][0], 'round'); }
         else if (!s.started && c.u >= roam.againU && c.dist > 14) {
           roam.againU = 2;

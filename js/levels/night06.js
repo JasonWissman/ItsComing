@@ -136,14 +136,27 @@ LEVELS.push({
       { x: -1.9, y: 0, z: 2.2 },                        // in the corner by the water door
     ], { w: 0.45, h: 0.45, flat: true });
     // the two oars of the upturned rowboat, which bar the side door between them: each laid across its brackets, one on the
-    // other (one alone is not enough to hold it). Each lies in a place of its own: one on the deck by the boat or leaning in
-    // the corner by the winch, the other along the back wall, on the deck near the side door, or leaning on the boat's
-    // stern. Held in both hands along the loom, the lower hand near the grip end and the other further up toward the blade
-    // (the icon draws it slanting, so the hands go where its shaft is)
+    // other (one alone is not enough to hold it). Each lies in a place of its own: one on the deck by the boat's bow, on
+    // the deck toward the water door, or leaning in the corner by the winch; the other on the deck toward the back wall,
+    // on the deck under the side door's bracket, or leaning on the boat's stern. An oar is as long wherever it is as it is
+    // across the door (OAR_H: its card, the icon drawn on it about 2.1 m from grip to blade; across the brackets it is a
+    // little longer, its ends past them). Lying, it lies from near your feet straight out along the deck (a card on the
+    // floor runs away from where you stand), clear of the walls, the boat and the bench; leaning, it stands near upright.
+    // Held in both hands along the loom, the lower hand near the grip end and the other further up toward the blade (the
+    // icon draws it slanting, so the hands go where its shaft is)
+    const OAR_W = 0.5, OAR_H = 2.4;
+    const onDeck = (deg, r) => ({ x: Math.sin(deg * DEG) * r, y: 0, z: Math.cos(deg * DEG) * r, jitter: 0.04 });
     const oarHeld = { hands: 2, grip: 'fist', at: [-0.08, 0.15], off: [-0.25, 0.47], axis: -0.22, angle: -0.5 };
-    mkItem(L, 'oar', 'Oar', [{ x: -1.0, y: 0, z: -0.6 }, { x: -0.4, y: 0, z: 1.4 }, { x: 2.3, y: 0, z: 1.7, flat: false }], { w: 0.5, h: 1.2, flat: true, icon: 'oar', held: oarHeld });
-    mkItem(L, 'oar2', 'Oar', [{ x: -0.6, y: 0, z: -2.05 }, { x: 1.6, y: 0, z: 1.0 }, { x: -1.3, y: 0, z: -2.3, flat: false }], { w: 0.5, h: 1.2, flat: true, icon: 'oar', held: oarHeld });
+    mkItem(L, 'oar', 'Oar', [onDeck(-30, 0.4), onDeck(20, 0.35), { x: 2.3, y: 0, z: 1.7, flat: false }], { w: OAR_W, h: OAR_H, flat: true, icon: 'oar', held: oarHeld });
+    mkItem(L, 'oar2', 'Oar', [onDeck(185, 0.3), onDeck(105, 0.3), { x: -1.3, y: 0, z: -2.3, flat: false }], { w: OAR_W, h: OAR_H, flat: true, icon: 'oar', held: oarHeld });
     const OARS = ['oar', 'oar2'];
+    // where an oar knocked off the winch comes down: on the deck from near your feet out toward the winch (an oar that
+    // long lies nowhere nearer it), or a little to the left of that if the other oar already lies there
+    const oarLand = it => {
+      const other = L.items.find(o => OARS.includes(o.id) && o !== it && !o.taken), at = deg => { const q = onDeck(deg, 0.3), p = L.pt(q.x, 0, q.z); return { x: p[0], y: 0, z: p[2] }; };
+      const a = at(25);
+      return other && other.flat && Math.hypot(other.x - a.x, other.z - a.z) < 0.6 ? at(-12) : a;
+    };
     // the winch is chained and padlocked, and the key is in the tackle box
     Object.assign(s, { handleIn: false, locked: true, sealedN: false, sealedE: false, oars: 0, doorOpen: true, doorClosing: 0, doorClosed: false, doorA: 72 * DEG, crankA: 0 });
     // a green tackle box: shut, a solid box with its lid down; open, the lid thrown back and the trays folded out either side,
@@ -311,7 +324,7 @@ LEVELS.push({
         if (!s.handleIn && held && OARS.includes(held.id)) {
           if (G.fumbling && G.fumbling.from === held) return true;   // (on its way there already)
           G.toast('It does not fit the winch.');
-          if (!G.fumble(held, winch, { preset: 'bump', at: AT.boss, tip: TIP.oar, sfx: { hit: 'woodKnock', land: 'clatter' } })) AUDIO.sfx('nope');
+          if (!G.fumble(held, winch, { preset: 'bump', at: AT.boss, tip: TIP.oar, land: oarLand(held), sfx: { hit: 'woodKnock', land: 'clatter' } })) AUDIO.sfx('nope');
           return true;
         }
         // with nothing it takes, say what is wrong with it, and show it: locked, the hand rattles the padlock on its chain

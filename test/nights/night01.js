@@ -49,11 +49,15 @@ const resolves = k => [
   ['waitUntil', '(G.L.s.bangs || 0) >= 2 && G.L.creature.peer >= 1', 3000],
   ['expect', 'G.fadeTarget < 1 && ' + DOOR.map(id => target(id) + '.done && ' + target(id) + '.count === 3').join(' && '), 'it stooped to the gap and pounded on them, and every board held, before the fade'],
 ];
-const both = k => board(k).concat([
+// the other doorway's cue (its footsteps from there) is heard once it has come round in front of that doorway and walks
+// again, never while it is still going round or running in from the side
+const cueHook = ['eval', "window.__cueAt = []; (s0 => { AUDIO.sfx = (n, p, so) => { if (/^footstep:/.test(n)) __cueAt.push(G.L.s.run ? (G.L.s.run.arrived ? 'in' : 'round') : G.L.creature.runPose ? 'run' : 'walk'); return s0(n, p, so); }; })(AUDIO.sfx)"];
+const cueHeard = ['expect', "!__cueAt.some(w => w !== 'walk') && (G.L.s.cutShort || __cueAt.length >= 1)", 'its footsteps from the other doorway came once it was walking there, not while it ran round'];
+const both = k => [cueHook].concat(board(k), [
   running(k), ...knock(k),
   ['waitUntil', 'G.L.creature.lane.idx === ' + (1 - k), 4000],
   ['expect', 'G.state === "play" && Math.abs(G.L.creature.dist - Math.max(G.L.s.ranFrom.dist, G.L.lane.barrierDist + 10)) < 4', 'it came round to the other doorway at about the same distance'],
-], board(1 - k), [['expect', 'G.L.won', 'both doorways boarded: it is held']], resolves(1 - k));
+], board(1 - k), [['expect', 'G.L.won', 'both doorways boarded: it is held'], cueHeard], resolves(1 - k));
 const quick = k => [['eval', 'G.L.creature.u = 1 - 15 / G.L.creature.D0']].concat(board(k), [running(k)], board(1 - k), [
   ['expect', 'G.L.won && G.L.s.cutShort', 'both doorways boarded while it was still going round: won'],
   ['waitUntil', '!G.L.s.run && !G.L.creature.runPose && G.L.creature.lane.idx === ' + (1 - k) + ' && Math.abs(G.L.creature.dist - G.L.lanes[' + (1 - k) + '].barrierDist) < 0.05', 5000],
