@@ -19,7 +19,7 @@ const MENU = (() => {
         // to look at, not to pick from) only once one has been survived
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
           '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (G.unlocked > 0 ? btn('nights', 'Nights') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
-          '<p class="fine">Headphones recommended for spatial audio</p>';
+          '<p class="fine credit">created by <a href="https://jasonwissman.com" target="_blank" rel="noopener">jason wissman</a></p>';
       }
       case 'howto': {
         // the controls as four cards, each the keys you press drawn large over what they do: a keycap for each key, the

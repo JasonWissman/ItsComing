@@ -189,8 +189,15 @@ function newGame() {
   let done = false;
   const finish = () => {
     if (done) return; done = true; timers.forEach(clearTimeout);
-    el.classList.add('out');
-    setTimeout(() => { el.remove(); prologueOn = false; document.removeEventListener('keydown', key, true); startLevel(0, true); }, still ? 300 : 1300);
+    // the lines go, the black stays; night 1's card is put up under it, and only then does the black lift off it (so the
+    // title is never seen again in between)
+    lines.forEach(l => { l.classList.remove('on'); l.classList.add('gone'); });
+    setTimeout(() => {
+      document.removeEventListener('keydown', key, true);
+      startLevel(0, true);
+      el.classList.add('out');
+      setTimeout(() => { el.remove(); prologueOn = false; }, still ? 300 : 1300);
+    }, still ? 200 : 900);
   };
   const skip = () => { if (performance.now() - t0 > 600) finish(); };
   const key = e => { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) skip(); };
@@ -385,7 +392,7 @@ function onClick(e) {
   if (G.drawSwallow) { G.drawSwallow = false; if (G.state === 'play') return; }   // the click that ends a draw is not another use
   // the list screens are not click-anywhere, nor is the title: a click on the dark there only brings it a step nearer,
   // in the blink it takes (TITLE.advance); the cards are click-anywhere
-  if (G.state === 'title') { ensureAudio(); if (MENU.kind === 'title' && !(e.target.closest && e.target.closest('button'))) TITLE.advance(true); return; }
+  if (G.state === 'title') { ensureAudio(); if (MENU.kind === 'title' && !(e.target.closest && e.target.closest('button, a'))) TITLE.advance(true); return; }
   if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) { MENU.hurry(); return; } proceed(); return; }   // (the results after the ending: a click hurries them)
   ensureAudio();
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;

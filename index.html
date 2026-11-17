@@ -243,6 +243,9 @@
   #overlay .prompt { margin-top: 28px; font-size: calc(13px * var(--text-scale)); letter-spacing: .2em; text-transform: uppercase; color: rgba(207,200,186,.55); animation: breathe 3s ease-in-out infinite; }
   #overlay .prompt .alt { display: inline-block; margin-top: 10px; text-transform: none; letter-spacing: .06em; font-size: 13px; color: rgba(207,200,186,.7); }
   #overlay .fine { font-size: calc(11px * var(--text-scale)); color: rgba(207,200,186,.35); margin-top: 28px; letter-spacing: .06em; }
+  #overlay .credit a { color: inherit; text-decoration: none; border-bottom: 1px solid currentColor; }
+  #overlay .credit a:hover, #overlay .credit a:focus-visible { color: #efe6d2; }
+  :root[data-theme="day"] #overlay .credit a:hover { color: #1a1612; }
   #overlay .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; font-size: calc(14px * var(--text-scale)); color: rgba(207,200,186,.7); margin: 8px auto 0; text-align: left; width: max-content; max-width: 100%; }
   #overlay .controls b { color: #efe6d2; font-weight: normal; }
   @keyframes breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
