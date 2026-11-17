@@ -663,12 +663,25 @@ const hoverHit = lookFor;
     while (s.endT < END.sad + 1) { step(); watch(); }
     while (s.endT < END.neutral[0] - 0.1) { step(); watch(); }
     o.crying = { sob: c.sob, mood: c.mood, grab: c.hug && c.hug.grab, dist: +c.dist.toFixed(2), backdrop: s.backdrop, kneel: c.kneel };
-    while (s.endT < END.swirl[0]) { step(); watch(); }
-    o.neutral = { mood: c.mood, sob: c.sob, grab: c.hug && c.hug.grab };
-    // the nights going by: by now all drawn, and each in turn the nearest
-    const shots = VOID_RECAP.shots, near = [];
-    while (s.endT < END.swirl[1]) { step(); watch(); const p = VOID_RECAP.depth(s.swirl), j = Math.round(p); if (j >= 0 && j <= shots.length && near[near.length - 1] !== j) near.push(j); }
-    o.swirl = { shots: shots.length, drawn: shots.filter(Boolean).length, near, back, grab: c.hug && c.hug.grab, meadow: +s.meadow.toFixed(2), pale: G.L.pal.fog.map(Math.round) };
+    while (s.endT < END.forms[0] - 0.1) { step(); watch(); }
+    o.neutral = { mood: c.mood, sob: c.sob, grab: c.hug && c.hug.grab, guise: c.guise, backdrop: s.backdrop };
+    // the faces it wears: by now every night and every face drawn; each face in turn, all of it there for a while, with its
+    // own night behind it (s.form), its head jumping to a new tilt with each; then its own face again, in the dark
+    const shots = VOID_RECAP.shots, faces = VOID_RECAP.faces, worn = [], held = [], tilts = new Set();
+    let sync = true, back2 = 1, own = null;
+    while (s.endT < END.forms[1] + 0.4) {
+      step(); watch(); const g = c.guise;
+      if (g) {
+        const top = g.faces.find(f => f[1] > 0.99), j = top ? faces.indexOf(top[0]) : -1;
+        tilts.add(g.tilt.toFixed(3));
+        if (j >= 0) { if (worn[worn.length - 1] !== j) { worn.push(j); held.push([s.endT, s.endT]); } else held[held.length - 1][1] = s.endT; if (j !== Math.floor(s.form)) sync = false; }
+        back2 = Math.min(back2, s.backdrop);
+      } else if (s.endT > END.forms[0]) own = own || { mood: c.mood, backdrop: s.backdrop, grab: c.hug && c.hug.grab, meadow: s.meadow };
+    }
+    const glitch = DEMON_MOOD_TIME[DEMON_GLITCH_FROM][1] / (DEMON_GLITCH.length + 1), step1 = (END.forms[1] - END.forms[0]) / faces.length;   // (its own glitch: how long it holds each face there)
+    o.forms = { shots: shots.length, drawn: shots.filter(Boolean).length, faces: faces.filter(Boolean).length, worn, sync, back: back2, own, tilts: tilts.size, step: +step1.toFixed(3), glitch: +glitch.toFixed(3),
+      held: held.map(([a, b]) => +(b - a + 1 / 30).toFixed(2)), grab: c.hug && c.hug.grab };
+    until(END.light[0] + 1.6); o.pale = G.L.pal.fog.map(Math.round);
     let spun = 0, settled = null;
     while (s.endT < END.light[1]) { step(); watch(); spun = Math.max(spun, s.spin); }
     settled = { spin: s.spin, meadow: s.meadow, grab: c.hug && c.hug.grab, backdrop: s.backdrop, mood: c.mood };
@@ -688,12 +701,16 @@ const hoverHit = lookFor;
   check(hold.tops.length >= 9 && hold.tops.every(([w, y]) => y !== null && (y > 0.01 || w === 'angry2')), 'close in, it bends down to you so its head stays in the view: as it reaches you, holds you, and through every face (but as it leans right in, angry, its face filling the view: ' + hold.tops.map(([w, y]) => w + ':' + y).join(', ') + ')');
   check(hold.lean.angry2 < 0.55 && Math.abs(hold.lean.other - 0.68) < 0.02, 'angry again, it leans in close at you, and back again for confused (' + JSON.stringify(hold.lean) + ')');
   check(hold.crying.sob === 1 && hold.crying.mood === 4 && hold.crying.grab === 1 && hold.crying.dist === 0.68 && hold.crying.backdrop === 0 && hold.crying.kneel === undefined, 'sad, it cries a while in place, still holding you: it does not let go or sink down (' + JSON.stringify(hold.crying) + ')');
-  check(hold.neutral.mood === 5 && hold.neutral.sob === 0 && hold.neutral.grab === 1, 'then it stops crying, and its face is the grey neutral face again (' + JSON.stringify(hold.neutral) + ')');
+  check(hold.neutral.mood === 5 && hold.neutral.sob === 0 && hold.neutral.grab === 1 && hold.neutral.guise === null && hold.neutral.backdrop === 0, 'then it stops crying, and its face is the grey neutral face again (' + JSON.stringify(hold.neutral) + ')');
   const greyAgain = await page.evaluate(() => JSON.stringify(DEMON_MOODS[5]) === JSON.stringify(DEMON_MOODS[1]));
   check(greyAgain, 'the same grey neutral face it made the first time');
-  check(hold.swirl.shots === 12 && hold.swirl.drawn === 12 && hold.swirl.back === 1 && hold.swirl.grab === 1 && JSON.stringify(hold.swirl.near) === '[0,1,2,3,4,5,6,7,8,9,10,11,12]',
-    'holding you, the dark turns behind it and every night before goes by, drawn as it was, one after another, and then the light (' + JSON.stringify(hold.swirl) + ')');
-  check(hold.swirl.pale.every(v => v > 200), 'the dark lightens into a pale void (' + hold.swirl.pale + ')');
+  const F = hold.forms;
+  check(F.shots === 12 && F.drawn === 12 && F.faces === 12 && JSON.stringify(F.worn) === '[0,1,2,3,4,5,6,7,8,9,10,11]' && F.sync && F.back === 1 && F.grab === 1,
+    'holding you, it wears the face of each thing that came before, in the order they came, with the night it came in behind it (' + JSON.stringify([F.worn, F.sync, F.back]) + ')');
+  check(F.step > F.glitch * 1.8 && F.step < F.glitch * 2.6 && F.held.every(h => h > F.step * 0.6 && h < F.step * 1.1) && F.tilts >= 12,
+    'each held about twice as long as a face of its own glitch, snapped to the next, its head jumping with each (' + JSON.stringify([F.step, F.glitch, F.held, F.tilts]) + ')');
+  check(!!F.own && F.own.mood === 5 && F.own.backdrop === 0 && F.own.grab === 1 && F.own.meadow === 0, 'then its own grey face again, in the dark, still holding you (' + JSON.stringify(F.own) + ')');
+  check(hold.pale.every(v => v > 200), 'the dark lightens into a pale void (' + hold.pale + ')');
   check(hold.spun > 1 && hold.settled.spin === 0 && hold.settled.meadow === 1 && hold.settled.grab === 1 && hold.settled.backdrop === 0 && hold.settled.mood === 7, 'the meadow comes out of the light turning round you both and settles into place, and it is happy, still holding you (' + JSON.stringify([hold.spun, hold.settled]) + ')');
   check(hold.let.hug === null && hold.let.calm > 0.5, 'then it lets you go (' + JSON.stringify(hold.let) + ')');
   const moodNames = await page.evaluate(() => CREATURES.demon.moodNames.join(', '));
@@ -819,12 +836,14 @@ const hoverHit = lookFor;
   const still = await page.evaluate(() => {
     const c = G.L.creature, s = G.L.s; let dance = 0, heave = 0, spin = 0, back = 0;
     while (s.endT < END.neutral[0]) { G.step(0.1, 1); heave = Math.max(heave, CREATURES.demon.heave(c)); }   // crying: no heaving
+    let jump = 0, worn = 0;
+    while (s.endT < END.forms[1] + 0.5) { G.step(1 / 30, 1); back = Math.max(back, s.backdrop); if (c.guise) { jump = Math.max(jump, Math.abs(c.guise.tilt) + Math.abs(c.guise.x) + Math.abs(c.guise.y)); worn = Math.max(worn, c.guise.faces.filter(f => f[0]).length); } }
     while (!s.wait || s.endT < END.dance[1] + 9) { G.step(0.1, 1); dance = Math.max(dance, c.dance); spin = Math.max(spin, s.spin); back = Math.max(back, s.backdrop); }
-    const o = { still: c.still, dance, heave, spin, back, shots: VOID_RECAP.shots.filter(Boolean).length };
+    const o = { still: c.still, dance, heave, spin, back, jump, worn, shots: VOID_RECAP.shots.filter(Boolean).length, faces: VOID_RECAP.faces.filter(Boolean).length };
     G.L.onPress(); for (let i = 0; i < 100 && G.state !== 'end'; i++) G.step(0.05, 1);
     return Object.assign(o, { state: G.state });
   });
-  check(still.still === true && still.dance === 0 && still.heave === 0 && still.spin === 0 && still.back === 1 && still.shots === 12 && still.state === 'end', 'with reduced motion its shoulders do not heave as it cries, the nights still go by behind it but nothing turns, the meadow does not spin, it stands still in the meadow, and the ending still ends (' + JSON.stringify(still) + ')');
+  check(still.still === true && still.dance === 0 && still.heave === 0 && still.spin === 0 && still.back === 1 && still.shots === 12 && still.faces === 12 && still.jump === 0 && still.worn === 2 && still.state === 'end', 'with reduced motion its shoulders do not heave as it cries, it still wears the faces of the others (each coming slowly over the last) with their nights behind it but its head does not jump, the meadow does not spin, it stands still in the meadow, and the ending still ends (' + JSON.stringify(still) + ')');
   await page.evaluate(() => MENU.applySetting('reducedMotion', false));
   // tapping the held thing again while looking down puts it down
   await T.open(page, 'level=13&go&seed=1&nofr');

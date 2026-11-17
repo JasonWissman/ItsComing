@@ -166,6 +166,49 @@ function demonMoodFace(ctx, c, P, fy, F) {
     }
   }
 }
+// The faces of the others, worn one after another (night 13, while it holds you): q is where it is in them, 0 as the first
+// of n is all there and n as its own face is back, each held a whole step. Each comes in over the last `cut` of the step
+// before it (a fifth: a snap, as its own faces snap in its glitch, demonMood; with reduced motion half of it, slowly over
+// the one before), and is gone once the next is all there. guiseVis: how much of the jth is there (j = n: its own face, back)
+const demonGuiseCut = still => (still ? 0.5 : 0.2);
+function demonGuiseVis(q, j, n, still) {
+  const f = demonGuiseCut(still), inn = i => smoothstep(clamp((q - i) / f + 1, 0, 1));
+  return j >= n ? inn(j) : inn(j) * (1 - inn(j + 1));
+}
+// its head, as each is put on, jumps: turned (radians) and moved across and up (metres) to where that one has it
+const DEMON_GUISE_JUMPS = [[0.14, 0.03, 0.01], [-0.12, -0.035, -0.01], [0.08, 0.02, 0.02], [-0.16, -0.015, 0], [0.11, 0.04, -0.015], [-0.07, -0.03, 0.015],
+  [0.16, 0.015, 0.005], [-0.1, -0.04, -0.005], [0.06, 0.035, 0.02], [-0.14, 0.01, -0.015], [0.12, -0.02, 0.01], [-0.06, 0.03, -0.01]];
+// c.guise at q, the faces (pictures, one for each, in order: see demonGuise) being worn: each in turn over its own, its
+// head jumping with each (not with reduced motion: each comes slowly over the one before, and its head keeps still);
+// null before the first and once its own face is back
+function demonGuiseAt(q, imgs, still) {
+  const n = imgs.length, f = demonGuiseCut(still);
+  if (!(q > -f) || q >= n) return null;
+  const out = { faces: [], tilt: 0, x: 0, y: 0, open: 0 };
+  for (let j = Math.max(0, Math.floor(q)); j <= Math.min(n - 1, Math.floor(q + f)); j++) { const a = demonGuiseVis(q, j, n, still); if (a > 0.004) out.faces.push([imgs[j], a]); }
+  out.open = smoothstep(clamp(q / f + 1, 0, 1)) * (1 - demonGuiseVis(q, n, n, still));
+  if (!still) {
+    const j = clamp(Math.floor(q + f), 0, n), k = smoothstep(clamp((q - j) / f + 1, 0, 1)), H = i => (i >= 0 && i < n ? DEMON_GUISE_JUMPS[i % DEMON_GUISE_JUMPS.length] : [0, 0, 0]);
+    [out.tilt, out.x, out.y] = H(j - 1).map((v, i) => lerp(v, H(j)[i], k));
+  }
+  return out;
+}
+// The faces of the others, over its own: c.guise, set by night 13 while it holds you, is { faces: [[img, a], ...], tilt,
+// x, y, open }: each img a square picture of a face (top down, as a canvas has it), drawn a of the way over what is under it,
+// in turn, filling the opening of its hood (its own face blacked out under them, as much as the most of them is there);
+// its head turned by tilt and moved by x, y (metres) from where it would be, and the opening of the hood open of the way
+// wider. Drawn in the head's frame, clipped to the opening (oy, its middle; ory, its half height)
+function demonGuise(ctx, gu, oy, ory) {
+  let most = 0;
+  for (const f of gu.faces) if (f[0]) most = Math.max(most, f[1]);   // (one that could not be drawn: its own face shows)
+  if (most < 0.004) return;
+  const a0 = ctx.globalAlpha, s = 2 * ory;
+  ctx.globalAlpha = a0 * most; ctx.fillStyle = '#000'; ctx.fillRect(-s, oy - s, 2 * s, 2 * s);
+  ctx.save(); ctx.translate(0, oy); ctx.scale(1, -1);
+  for (const [img, a] of gu.faces) if (img && a > 0.004) { ctx.globalAlpha = a0 * a; ctx.drawImage(img, -s / 2, -s / 2, s, s); }
+  ctx.restore();
+  ctx.globalAlpha = a0;
+}
 // its arms lifted and then taking hold of you (c.hug: lift 0..1, grab 0..1). A thing this close is drawn as you see it, in
 // the view's own pixels: from its shoulders (where draw() has them) its arms come up, the hands open and the long fingers
 // spread, high either side of its head; then it reaches out and takes hold of you, quick, as the tall thing in the bedroom
@@ -480,7 +523,7 @@ CREATURES.demon = {
     pose(c, k) { c.yOff -= (demonEyesY(c) - CREATURES.demon.faceY) * smoothstep(k); },
   },
   voice: { kind: 'exhale', every: [4, 8] },
-  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, ending: demonEnding, heave: demonHeave,   // for the ending and the tests
+  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, ending: demonEnding, heave: demonHeave, guiseAt: demonGuiseAt, guiseVis: demonGuiseVis, guiseCut: demonGuiseCut,   // for the ending and the tests
   // what of its box is it, to aim at (js/game.js creatureBox: the bow's draw bar on night 13): the robe and the hood, up to just above
   // its eyes, wider enraged
   body(c) { const a = demonRage(c); return [-0.42 - a * 0.08, 0.42 + a * 0.08, 0, demonEyesY(c) + 0.3]; },
@@ -596,7 +639,9 @@ CREATURES.demon = {
     const sz = demonSeize(c, F || still || c.still ? 0 : a * smoothstep(dspan(lunge, 0.55, 0.9)));
     const tilt = F ? lerp(c.tilt0 || 0, F.tilt + (c.still ? 0 : F.trem * Math.sin(t * 31) * 0.018), c.settle === undefined ? 1 : c.settle) + dance * Math.sin(t * 2.6) * 0.18
       : demonTilt(c) * (1 - lunge) * (1 - calm) + dance * Math.sin(t * 2.6) * 0.18 + sz.tilt;
-    ctx.save(); ctx.translate(sh + sz.x, top + sz.y); ctx.rotate(tilt + heave * 0.6 * Math.sin(t * 9.1));
+    // (wearing the faces of the others, its head jumps to where each puts it: demonGuise)
+    const gu = F && c.guise ? c.guise : null;
+    ctx.save(); ctx.translate(sh + sz.x + (gu ? gu.x : 0), top + sz.y + (gu ? gu.y : 0)); ctx.rotate(tilt + (gu ? gu.tilt : 0) + heave * 0.6 * Math.sin(t * 9.1));
     const hc = 0.3 + a * 0.1, hr = 0.168 + a * 0.02, hh = 0.235 + a * 0.05;
     // enraged, in your face, the hood falls: it slides down off the head onto the shoulders and is gone into the dark
     const drop = F ? 0 : a * smoothstep(dspan(lunge, 0.45, 0.8));
@@ -611,7 +656,8 @@ CREATURES.demon = {
     // the opening of the hood, and the dark in it
     const lk = a * smoothstep(dspan(lunge, 0.25, 0.85));   // enraged and in your face: the opening stretches down with the jaw
     const lk3 = F ? 0 : a * smoothstep(dspan(lunge, 0.62, 0.95));   // and at the last: it shatters
-    const fy = 0.285 + a * 0.1, oy = fy - 0.015 - a * 0.015 - lk * 0.05, orx = 0.098 + a * 0.012 + lk * 0.03, ory = 0.152 + a * 0.04 + lk * 0.075;
+    const go = gu ? gu.open : 0;   // (and the opening of its hood wider, to take them)
+    const fy = 0.285 + a * 0.1, oy = fy - 0.015 - a * 0.015 - lk * 0.05 - 0.006 * go, orx = 0.098 + a * 0.012 + lk * 0.03 + 0.03 * go, ory = 0.152 + a * 0.04 + lk * 0.075 + 0.02 * go;
     // the face, all of it, as one piece: drawn once, or (shattering, in the lunge) once into each shard
     const drawFace = () => {
       if (drop < 0.99) { ctx.save(); ctx.globalAlpha *= 1 - drop; P_ell(ctx, 0, oy, orx + 0.014, ory + 0.014, rim); ctx.restore(); }
@@ -622,6 +668,7 @@ CREATURES.demon = {
         ctx.save(); ctx.beginPath(); ctx.ellipse(0, oy, orx, ory, 0, 0, TAU); ctx.clip();
         ctx.globalAlpha *= show;
         demonMoodFace(ctx, c, P, fy, F);
+        if (gu) demonGuise(ctx, gu, oy, ory);
         const sy0 = fy + 0.02, shade = ctx.createLinearGradient(0, oy + ory, 0, sy0);
         shade.addColorStop(0, P.cola([0, 0, 0], 0.85)); shade.addColorStop(0.45, P.cola([0, 0, 0], 0.3)); shade.addColorStop(1, P.cola([0, 0, 0], 0));
         ctx.fillStyle = shade; ctx.fillRect(-orx, sy0, orx * 2, ory * 2);

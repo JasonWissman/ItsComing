@@ -413,16 +413,20 @@ some on the ground, so you have to turn and look down to find them.
     Holding you, its face goes slowly through angry, neutral, angry (leaning in close at you,
     then drawing back), confused (then, glitching, a flicker of faces under a second: pain,
     envy, sorrow, grimace, terror, empty, shock) and sad; it cries a while, its shoulders
-    heaving, still holding you, and stops, its grey neutral face again. Then the dark round
-    you both starts to turn, and every night you passed through goes by behind it, each as you
-    stood in it at its start (its scene, what lay about, and the thing that came for you there),
-    built again and drawn once while it held its first faces: side by side, the whole height of
-    the view, scrolling past behind it from the right as the view turns, faster and faster, until
-    the last is a pale light that fills the view. It is content, and happy, and the meadow (wild
-    flowers, trees, clouds, birdsong and a breeze) comes out of the pale void, turning round you
-    and settling into place in the sun; then it lets you go and steps back. With reduced motion
-    nothing turns: each night is there behind it in turn, giving way to the next, and the
-    meadow simply comes; with reduced flashing the nights and the light are dimmer.
+    heaving, still holding you, and stops, its grey neutral face again. Then, still holding
+    you, it wears the face of each thing that came for you before, in the order they came, each
+    as it was coming up into your face in its death lunge, there in the opening of its hood:
+    each held a quarter of a second and snapped to the next, its head jumping to a new angle and
+    place with each, as in its own glitch but at half the speed; and behind it, for as long as it
+    wears that one's face, the night it came in, faint and still over the dark, cut to with a
+    flicker (each night built again as you stood in it at its start, and each face drawn alone
+    in its own lunge, once, while it held its first faces). It was this one all along. Its own
+    grey face again, in the dark; the dark opens into a pale light, it is content, and happy,
+    and the meadow (wild flowers, trees, clouds, birdsong and a breeze) comes out of the pale
+    void, turning round you and settling into place in the sun; then it lets you go and steps
+    back. With reduced motion each face comes slowly over the one before (its night with it)
+    and its head keeps still, and the meadow simply comes; with reduced flashing the nights are
+    fainter and come with no flicker.
     As a music box starts it pushes its hood back, lets the robe
     drop, the long sleeves and black gloves sliding off its arms, and hops clear of the heap
     of black cloth: underneath it wears a yellow shirt striped sky blue, red shorts, white

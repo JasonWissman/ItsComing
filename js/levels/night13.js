@@ -6,10 +6,11 @@
 // comes on in fits; put it all down again and it calms, and is quiet. The ending plays out here, without a cut: caught
 // empty-handed and facing it, it stops and lifts its arms, its face comes out of the dark of its hood, angry, and it takes
 // hold of you; its face goes through angry, neutral, angry (leaning in at you), confused and sad, and it cries, holding you,
-// and comes back to its grey neutral face. Then the dark round you both starts to turn: every night you passed through
-// goes by behind it, faster and faster, until it opens into a pale light; it is content, and happy, and the meadow comes
-// out of the light, turning and settling into place in the sun. It lets you go and steps back, and there you may look about
-// as long as you like; a press and it is the bedroom. The bow still comes up and draws as it did on night 5, but it is
+// and comes back to its grey neutral face. Then, still holding you, it wears the faces of all the others, one after
+// another, each as it was when it came up into your face, and behind it each one's night shows faint and still: it was
+// this one all along. Its own face again, in the dark, and the dark opens into a pale light; it is content, and happy,
+// and the meadow comes out of the light, turning and settling into place in the sun. It lets you go and steps back, and
+// there you may look about as long as you like; a press and it is the bedroom. The bow still comes up and draws as it did on night 5, but it is
 // never loosed: drawn at, it comes for you, faster and faster, and is on you before the bow is full.
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
@@ -50,15 +51,16 @@ const END = {
   lean: [7.2, 7.8, 8.8, 9.6],           // angry again, it leans in at you, close, and draws back as it is confused;
   sad: 11.55,                           // through the glitch to sad, crying
   neutral: [15.2, 16.6],                // it cries a while, holding you, and stops: its grey neutral face again
-  swirl: [17.0, 28.6],                  // the dark round you both turns, and every night you passed through goes by behind
-                                        // it, faster and faster (VOID_RECAP), until it opens into a pale light
-  light: [27.0, 34.0],                  // the pale void, and the meadow coming out of it, turning and settling into place
-  content: [29.0, 30.0], happy: [31.0, 32.0],   // content, and happy
-  release: 34.0,                        // and, the meadow settled, it lets you go
-  walk: [35.0, 38.6],                   // it steps back and round to the north, where the foot of the bed will be
-  disrobe: [39.2, 41.8],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
-  dance: [41.4, 45.9],                  // and dances a little to the tune in its shirt and shorts
-  wait: 39.8, arm: 40.4, idle: 5,       // from here the meadow is yours to look about in, and waits for a press (taken from
+  forms: [17.0, 20.0],                  // and, still holding you, it wears the face of each thing that came for you before, one
+                                        // after another, its head jumping with each, while behind it the night that thing came
+                                        // in shows faint and still (VOID_RECAP); then its own face again, in the dark
+  light: [20.6, 27.6],                  // the pale void, and the meadow coming out of it, turning and settling into place
+  content: [22.6, 23.6], happy: [24.6, 25.6],   // content, and happy
+  release: 27.6,                        // and, the meadow settled, it lets you go
+  walk: [28.6, 32.2],                   // it steps back and round to the north, where the foot of the bed will be
+  disrobe: [32.8, 35.4],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
+  dance: [35.0, 39.5],                  // and dances a little to the tune in its shirt and shorts
+  wait: 33.4, arm: 34.0, idle: 5,       // from here the meadow is yours to look about in, and waits for a press (taken from
                                         // `arm`); if you do nothing for `idle` seconds a small line says how to go on
   leave: 4.2,                           // after the press: the meadow and it fade, the bedroom comes up, and then the last screen
 };
@@ -78,7 +80,7 @@ LEVELS.push({
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;
-    Object.assign(s, { ending: false, endT: 0, reveal: 0, meadow: 0, room: 0, lv: 0, gone: 0, glitterAt: -1, wait: false, leaving: false, leaveT: 0, idle: 0, swirl: 0, spin: 0 });
+    Object.assign(s, { ending: false, endT: 0, reveal: 0, meadow: 0, room: 0, lv: 0, gone: 0, glitterAt: -1, wait: false, leaving: false, leaveT: 0, idle: 0, form: -1, backdrop: 0, spin: 0 });
     // a floor that is only a floor near you (and the lamp, off, a little way out): the void's own props, which fade as the light comes
     const v0 = L.props.length;
     // (in narrow rings of many sides, so it darkens smoothly instead of in visible steps; drawn before the room's floors,
@@ -316,16 +318,18 @@ LEVELS.push({
       if (c.mood >= 3.5 && !s.sob) { s.sob = true; s.sobT = 3.4; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
       if (s.sob && c.sob > 0.5) { s.sobT -= dt; if (s.sobT <= 0) { s.sobT = 3.6; AUDIO.voice('slow', 0.38, 0); } }   // crying, holding you
       if (t >= END.neutral[1] - 0.6 && !s.breath) { s.breath = true; AUDIO.voice('exhale', 0.4, 0); }   // and it stops, with a long breath
-      if (t >= END.swirl[0] && !s.warp) { s.warp = true; AUDIO.sfx('warp', 0); }   // and the dark starts to turn
+      if (t >= END.forms[0] - 0.05 && !s.warp) { s.warp = true; AUDIO.sfx('warp', 0); }   // and it starts to change
       if (c.mood >= LAST && !s.hum) { s.hum = true; AUDIO.voice('hum', 0.5, 0); }   // happy
       if (t >= END.release && !s.let) { s.let = true; AUDIO.sfx('cloth', 0); }   // it lets you go
-      // the dark turns, and the nights go by behind it (VOID_RECAP: s.swirl, how far, and s.backdrop, how much of the view
-      // it is); then the light: the pale void, and out of it the meadow in the sun, turning round you (s.spin) and settling
-      // into place; later, after a press, the meadow goes and the room is there
-      s.swirl = clamp((t - END.swirl[0]) / (END.swirl[1] - END.swirl[0]), 0, 1);
-      s.backdrop = t < END.swirl[0] ? 0 : Math.min(smoothstep(clamp((t - END.swirl[0]) / 1.2, 0, 1)), 1 - span(t, END.swirl[1], END.swirl[1] + 1.4));
+      // it wears the faces of the others, each in turn, and the night each came in is behind it, faint (VOID_RECAP: s.form,
+      // where it is in them, a step each, and s.backdrop, whether they are there at all); then its own face again, and the
+      // light: the pale void, and out of it the meadow in the sun, turning round you (s.spin) and settling into place;
+      // later, after a press, the meadow goes and the room is there
+      s.form = (t - END.forms[0]) / (END.forms[1] - END.forms[0]) * VOID_RECAP.count();
+      c.guise = VOID_RECAP.guise(s.form, still);
+      s.backdrop = c.guise ? 1 : 0;
       const mv = s.meadow = span(t, END.light[0], END.light[1]);
-      s.spin = still ? 0 : 1.25 * Math.PI * Math.pow(1 - clamp((t - END.swirl[1]) / (END.release - END.swirl[1]), 0, 1), 3);
+      s.spin = still ? 0 : 1.25 * Math.PI * Math.pow(1 - clamp((t - END.light[0]) / (END.release - END.light[0]), 0, 1), 3);
       if (s.leaving) s.leaveT += dt;
       const lt = s.leaveT, lv = s.lv = s.leaving ? span(lt, 0, 3.0) : 0, room = s.room = s.leaving ? span(lt, 0.5, 3.4) : 0, rvBeyond = smoothstep(clamp((room - 0.75) / 0.25, 0, 1));
       s.reveal = mv;
@@ -338,8 +342,8 @@ LEVELS.push({
       for (const k of ['skyTop', 'fog', 'ground']) L.pal[k] = mixc(pal(k), MORNING_PAL[k], lv);
       L.pal.fogDist = lerp(mv < VOID_PALE ? lerp(VOID_PAL.fogDist, PALE_PAL.fogDist, mv / VOID_PALE) : lerp(PALE_PAL.fogDist, MEADOW_PAL.fogDist, pale * pale), MORNING_PAL.fogDist, lv);
       c.soft = mv;
-      // everything on the floor goes as the nights come behind it; and if anything is still there as the light comes, one
-      // thing at a time: first what lies where the bed, the nightstand, the chair or a wall will be
+      // everything on the floor goes as it puts on the first of the faces; and if anything is still there as the light
+      // comes, one thing at a time: first what lies where the bed, the nightstand, the chair or a wall will be
       const left = L.items.filter(i => !i.taken);
       if (s.backdrop > 0.98) for (const i of left) i.taken = true;
       if (mv > 0.08 && left.length && mv > s.gone) { (left.find(inTheWay) || left[0]).taken = true; s.gone = mv + 0.5 / tools.length; }
@@ -452,7 +456,7 @@ LEVELS.push({
         out.push({ x: p.x, y: 1.4, z: p.z, r: 3, i: (ml.i + more) * (1 - s.reveal) * c.fade, color: ml.color, flicker: ml.flicker, seed: 13 });
       }
       else if (c.fade > 0.05) out.push({ x: p.x, y: 1.4, z: p.z, r: 3 + a * 4, i: (0.25 + a * 0.5) * (1 - s.reveal) * c.fade, color: [200, 60, 60], flicker: 0.5, seed: 13 });
-      if (s.backdrop > 0.01) out.push({ x: p.x, y: 2.4, z: p.z, r: 2.6, i: 0.2 * s.backdrop * (1 - s.reveal), color: [196, 186, 236], flicker: 0.3, seed: 31 });   // the nights going by, catching its edges
+      if (s.backdrop > 0.01) out.push({ x: p.x, y: 2.4, z: p.z, r: 2.6, i: 0.2 * s.backdrop * (1 - s.reveal), color: [196, 186, 236], flicker: 0.3, seed: 31 });   // the nights behind it, catching its edges
       if (m > 0.01) out.push({ x: p.x * 0.6 - 2, y: 4.5, z: p.z * 0.6 - 1, r: 10, i: 0.32 * m, color: [255, 238, 200] });   // the sun on it
       if (s.room > 0.01) out.push(Object.assign({}, sun, { i: sun.i * s.room }));
       return out;
@@ -689,26 +693,36 @@ function buildMeadow(L, s, c0) {
   };
 }
 
-// ---------- the nights gone by ----------
-// While it holds you, the dark round you both turns, and every night you passed through goes by behind it, each as you
+// ---------- the nights gone by, and the faces it wore ----------
+// While it holds you, it wears the face of each thing that came for you before, in the order they came, and behind it the
+// night that one came in shows, faint and still. Each night is built again as the game builds it and drawn once, as you
 // stood in it at its start: its ground and its sky, what lay about, its lights, and the thing that came for you there a
-// little way off on its way in. Each is built again as the game builds it and drawn once, from where you stood facing the
-// way you faced, onto a canvas of its own at half the view's resolution (js/render.js R.aside sets the game's own canvas
-// and scene aside for it), one every little while as it holds its first faces, long before they are wanted. Then (s.swirl
-// 0..1 over END.swirl) they go by behind its head side by side, each the whole height of the view, scrolling past from the
-// right as the view turns, faster and faster, and the last of them is a pale light that fills the view (the pale void:
-// PALE_PAL). It is drawn behind it and in front of everything else
-// (s.backdrop: how much of the view it is). With reduced motion nothing moves: each night is there behind
-// it in turn, and gives way to the next. With reduced flashing they are dimmer, and so is the light at the last.
+// little way off on its way in, from where you stood facing the way you faced, onto a canvas of its own at half the view's
+// resolution (js/render.js R.aside sets the game's own canvas and scene aside for it); and then that thing's face as you
+// last saw it there, come up into your face in its death lunge, alone, onto a small square canvas (faceShot). One night
+// every little while as it holds its first faces, long before they are wanted. Then (s.form, END.forms) each face in turn
+// is over its own in the opening of its hood (CREATURES.demon's c.guise: guise), held a step and snapped to the next, its
+// head jumping to a new angle and place with each, as its own faces snap in its glitch but each held twice as long; and
+// behind it, for as long as it wears that one's face, the night it came in, faint over the dark, still, the whole of the
+// view, cut to with a flicker (drawn behind it and in front of everything else, while s.backdrop). With reduced motion
+// each face comes slowly over the one before (and each night with it), and its head keeps still; with reduced flashing the
+// nights are fainter and come with no flicker.
 const VOID_RECAP = (() => {
   const count = () => LEVELS.length - 1;   // every night before this one
-  const BASE = [7, 5, 13];
   const AT = 4.6, EVERY = 0.9;   // (one every EVERY seconds from AT: after it has taken hold of you, while it holds its faces)
-  let shots = [], key = '';
+  let shots = [], faces = [], key = '';
+  // each one's face, as faceShot frames it: how far into its lunge (k), and the square round its face (s, its side, as much
+  // of the view's height; x, y, where its middle is, right and up from the middle of the view, the same)
+  const FACES = {
+    walker: { s: 0.42, y: 0.14 }, crawler: { s: 0.9, y: 0.3 }, smiler: { s: 0.6, x: -0.15, y: 0.03 }, watcher: { s: 0.74, x: -0.12, y: -0.06 },
+    runner: { s: 0.62 }, swimmer: { s: 0.7, x: -0.07 }, climber: { s: 1.6, y: 0.1 }, customer: { s: 0.74, y: 0.1 },
+    signalman: { s: 0.9, y: 0.05 }, other: { s: 0.56, y: -0.02 }, carrier: { s: 0.8 }, tall: { k: 0.45, s: 1.2, x: 0.1, y: -0.08 },
+  };
+  const FACE_PX = 400;   // (the most pixels across a face is drawn with)
   // ready to draw them (again, if the view has changed size since they were drawn)
   function begin() {
     const k = R.W + 'x' + R.H + '@' + R.ctx.canvas.width;
-    if (k !== key) { key = k; shots = []; }
+    if (k !== key) { key = k; shots = []; faces = []; }
   }
   // the next of them, when it is time, while there are any left to draw
   function step(t) {
@@ -741,6 +755,8 @@ const VOID_RECAP = (() => {
       R.add({ kind: 'sprite', x: pos.x, y: pos.y + (c.yOff || 0), z: pos.z, w: CR.w, h: CR.h, fogScale: 0.85, dist: Math.hypot(c.dist, c.lat || 0), layer: 1, noContact: true, draw: (ctx, P) => { ctx.save(); safe(() => CR.draw(ctx, c, P)); ctx.restore(); } });
       R.flush();
       ok = true;
+      back(); back = null;
+      faces[i] = safe(() => faceShot(L, c, dpr));
     } catch (e) { ok = false; } finally {
       if (back) back();
       G.L = keep.L; G.attempt = keep.attempt; G.inv = keep.inv; G.active = keep.active; G.hover = keep.hover; G.state = keep.state; Object.assign(cam, keep.cam);
@@ -751,65 +767,56 @@ const VOID_RECAP = (() => {
     }
     return ok ? out : null;
   }
-  // how far through them it is (0: the first still far off, deep in the turning dark; count(): the light, at you)
-  const depth = u => { const k = clamp((u - 0.04) / 0.84, 0, 1); return -1 + (count() + 1) * (0.55 * k + 0.45 * k * k); };
-  // behind it: a renderable as far off as anything, drawn just before it (sortDist a little over its own distance, under the things on the floor), covering the
-  // whole view in its own pixels
+  // its face as you last saw it there: its death lunge, come up into your face, as game.js plays it (to lunge k of 1), from
+  // your eye, drawn alone (nothing of the night round it) onto a square canvas of its own, the part of the view round its
+  // face (s: the square's side, as much of the view's height; x, y: how far off the middle of the view its face is)
+  function faceShot(L, c, dpr) {
+    const CR = c.CR, spec = c.deathSpec || CR.death || {}, F = Object.assign({ k: 1, s: 0.62, x: 0, y: 0 }, FACES[c.type]);
+    c.lunge = 0; c.frozen = true; c.lat = 0; c.lungeFrom = c.dist;
+    for (const k of [0, F.k]) {   // (from the start of it, for a pose that keeps where it began)
+      c.lunge = k; c.dist = lerp(c.lungeFrom, 0.55, easeIn(k));
+      c.yOff = lerp(0, L.eyeH - CR.faceY - c.pos().y, smoothstep(k));
+      if (spec.pose) spec.pose(c, k);
+    }
+    const p = c.pos(), S = F.s * R.H, out = document.createElement('canvas'), px = Math.min(1, FACE_PX / (S * dpr));
+    out.width = out.height = Math.max(1, Math.round(S * dpr * px));
+    const view = { yaw: Math.atan2(p.x, p.z), pitch: 0, zoom: 1, shakeX: -(R.W / 2 + F.x * R.H - S / 2), shakeY: -(R.H / 2 - F.y * R.H - S / 2) };
+    G.cam.yaw = G.cam.tYaw = view.yaw; G.cam.pitch = G.cam.tPitch = 0;
+    const back = R.aside(out, [], px);
+    try {
+      R.hover = null;
+      R.begin(view, L, G.t);
+      const x = R.ctx; x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, out.width, out.height); x.restore();   // (no sky, no ground)
+      R.add({ kind: 'sprite', x: p.x, y: p.y + (c.yOff || 0), z: p.z, w: CR.w, h: CR.h, fogScale: 0.85, dist: Math.hypot(c.dist, c.lat || 0), layer: 1, noContact: true, draw: (ctx, P) => { ctx.save(); CR.draw(ctx, c, P); ctx.restore(); } });
+      R.flush();
+    } finally { back(); }
+    return out;
+  }
+  // what it wears at q (s.form), and how much of the jth night is there (CREATURES.demon.guiseAt and guiseVis)
+  const guise = (q, still) => CREATURES.demon.guiseAt(q, Array.from({ length: count() }, (_, j) => faces[j] || null), still);
+  const vis = (q, j, still) => CREATURES.demon.guiseVis(q, j, count(), still);
+  // behind it: a renderable as far off as anything, drawn just before it (sortDist a little over its own distance, under
+  // the things on the floor), covering the whole view in its own pixels
   function add(s) {
     if (!(s.backdrop > 0.004)) return;
     const y = R.yaw, d = 400;
     R.add({ kind: 'sprite', x: Math.sin(y) * d, y: -d, z: Math.cos(y) * d, w: 4 * d, h: 4 * d, layer: 1, dist: d, sortDist: 1.2, noContact: true, noLight: true, noFog: true, draw: ctx => draw(ctx, s) });
   }
+  // each night faint over the dark, still, the whole of the view, for as long as its face is the face it wears; cut to
+  // from the one before with a flicker (with reduced flashing fainter yet, and with no flicker)
+  const FAINT = 0.34;
   function draw(ctx, s) {
-    const W = R.W, H = R.H, dpr = ctx.canvas.width / W, S = SAVE.data.settings, still = !!S.reducedMotion, dim = S.reducedFlash ? 0.7 : 1;
-    const N = count(), p = depth(s.swirl), cx = W / 2, cy = H * 0.42;
-    const light = mixc(BASE, PALE_PAL.fog, dim);
+    const W = R.W, H = R.H, dpr = ctx.canvas.width / W, S = SAVE.data.settings, still = !!S.reducedMotion, calm = !!S.reducedFlash;
+    const q = s.form, N = count();
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, R.viewY * dpr);
-    ctx.globalAlpha = s.backdrop;
-    ctx.fillStyle = rgba(BASE); ctx.fillRect(0, 0, W, H);
-    // a night (or, past the last of them, the light) filling a round window of radius r, turned by rot
-    const scene = (j, r, rot, a, ox, oy) => {
-      if (a <= 0.004) return;
-      ctx.save(); ctx.globalAlpha = s.backdrop * a;
-      ctx.translate(cx + (ox || 0), cy + (oy || 0)); ctx.rotate(rot);
-      ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.clip();
-      const img = j < N ? shots[j] : null;
-      if (img) { const h = 2 * r, w = h * W / H; ctx.drawImage(img, -w / 2, -h / 2, w, h); if (dim < 1) { ctx.fillStyle = rgba(BASE, 1 - dim); ctx.fillRect(-r, -r, 2 * r, 2 * r); } }
-      else if (j >= N) { const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, rgba(mixc(light, [255, 255, 255], 0.35 * dim))); g.addColorStop(1, rgba(light)); ctx.fillStyle = g; ctx.fillRect(-r, -r, 2 * r, 2 * r); }
-      else { ctx.fillStyle = rgba([30, 26, 40]); ctx.fillRect(-r, -r, 2 * r, 2 * r); }
-      // its edge going soft into the dark round it
-      const e = ctx.createRadialGradient(0, 0, r * 0.78, 0, 0, r);
-      e.addColorStop(0, rgba(BASE, 0)); e.addColorStop(1, rgba(BASE, j >= N ? 0.25 : 0.85));
-      ctx.fillStyle = e; ctx.fillRect(-r, -r, 2 * r, 2 * r);
-      ctx.restore();
-    };
-    if (still) {
-      // each in turn, there behind it, and giving way to the next
-      const q = clamp(p, -1, N), j = Math.floor(q), k = smoothstep(q - j), R0 = Math.hypot(W, H);
-      if (j < 0) scene(0, R0, 0, k);
-      else { scene(j, R0, 0, 1); if (j < N) scene(j + 1, R0, 0, k); }
-    } else {
-      // they go by behind it side by side, the whole height of the view, scrolling past from the right as the view turns
-      // (as the meadow turns in after them), faster and faster: night j is square behind it when p is j; a soft dark seam
-      // between one and the next; past the last of them the light, which comes on and fills the view
-      const SEAM = Math.max(18, W * 0.05);
-      for (let j = Math.max(0, Math.floor(p) - 1); j <= Math.min(N, Math.ceil(p) + 1); j++) {
-        const x = (j - p) * W, w = j < N ? W : W * 3;
-        if (x > W || x + w < 0) continue;
-        ctx.save(); ctx.beginPath(); ctx.rect(x, 0, w, H); ctx.clip();
-        const img = j < N ? shots[j] : null;
-        if (img) { ctx.drawImage(img, x, 0, W, H); if (dim < 1) { ctx.fillStyle = rgba(BASE, 1 - dim); ctx.fillRect(x, 0, W, H); } }
-        else if (j >= N) { const g = ctx.createLinearGradient(x, 0, x + W, 0); g.addColorStop(0, rgba(light)); g.addColorStop(1, rgba(mixc(light, [255, 255, 255], 0.35 * dim))); ctx.fillStyle = g; ctx.fillRect(x, 0, w, H); }
-        else { ctx.fillStyle = rgba([30, 26, 40]); ctx.fillRect(x, 0, w, H); }
-        for (const [x0, x1] of [[x, x + SEAM], [x + W, x + W - SEAM]]) {   // its edges going soft into the dark between
-          if (j >= N && x0 > x + 1) continue;
-          const e = ctx.createLinearGradient(x0, 0, x1, 0); e.addColorStop(0, rgba(BASE, 0.9)); e.addColorStop(1, rgba(BASE, 0));
-          ctx.fillStyle = e; ctx.fillRect(Math.min(x0, x1), 0, SEAM, H);
-        }
-        ctx.restore();
-      }
+    for (let j = Math.max(0, Math.floor(q)); j <= Math.min(N - 1, Math.floor(q + CREATURES.demon.guiseCut(still))); j++) {
+      const img = shots[j], u = q - j;
+      if (!img) continue;
+      const flick = calm || still || u < 0 || u >= 0.24 ? 1 : [0.45, 1, 0.6, 1][Math.floor(u / 0.06)];
+      const a = s.backdrop * vis(q, j, still) * FAINT * (calm ? 0.65 : 1) * flick;
+      if (a > 0.004) { ctx.globalAlpha = a; ctx.drawImage(img, 0, 0, W, H); }
     }
     ctx.restore();
   }
-  return { begin, step, add, shoot, get shots() { return shots; }, depth };
+  return { begin, step, add, shoot, guise, count, get shots() { return shots; }, get faces() { return faces; } };
 })();

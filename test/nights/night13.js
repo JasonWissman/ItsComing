@@ -4,8 +4,8 @@
 // hand takes nothing. Then it puts each thing down while looking down, and the thing calms and is quiet; it turns to face
 // it and waits for it to arrive. The ending (not a death) follows without a cut: it lifts its arms and takes hold of you,
 // its face comes out of the dark of its hood and goes through angry, neutral, angry, confused and sad; it cries, holding
-// you, and comes back to neutral; the dark turns and every night before goes by behind it, into a pale light; content and
-// then happy, the meadow turns into place round you, and it lets you go. There the view is yours: a turn, a look down and a
+// you, and comes back to neutral; it wears the face of each thing that came before, one after another, each one's night
+// faint and still behind it; its own face again, and a pale light; content and then happy, the meadow turns into place round you, and it lets you go. There the view is yours: a turn, a look down and a
 // zoom are only that, and a click goes on: the meadow and it fade into the bedroom in the morning, and the last screen says
 // you have faced your demons.
 // (two at a time, so one is put down while another is still falling: it lies clear of where that one will lie)
@@ -69,8 +69,8 @@ const ending = [
   ['waitUntil', 'G.L.s.grab > 0.95', 9000], ['expect', "G.state === 'won' && G.L.creature.hug.lift > 0.95 && G.L.creature.dist < 0.8 && G.L.s.meadow === 0", 'it stops close in front of you, lifts its arms and takes hold of you'],
   ['expect', 'G.L.creature.hug.wrists.every(([x, y], i) => (i ? x > 0.8 : x < 0.2) && y > 0.7)', 'its hands at the lower corners of the view'],
   noHands('your hands are empty and out of the view while it holds you'),
-  ['waitUntil', 'G.L.s.swirl > 0.4', 30000],
-  ['expect', 'JSON.stringify(window._moods) === "[0,1,2,3,4,5]" && G.L.creature.hug.grab === 1 && G.L.s.backdrop === 1 && VOID_RECAP.shots.length === 12 && VOID_RECAP.shots.every(Boolean)', 'angry, neutral, angry, confused, sad and neutral again, holding you; and every night before goes by behind it'],
+  ['waitUntil', 'G.L.s.form > 4.3', 30000],
+  ['expect', 'JSON.stringify(window._moods) === "[0,1,2,3,4,5]" && G.L.creature.hug.grab === 1 && G.L.s.backdrop === 1 && VOID_RECAP.shots.length === 12 && VOID_RECAP.shots.every(Boolean) && VOID_RECAP.faces.length === 12 && VOID_RECAP.faces.every(Boolean) && !!G.L.creature.guise && G.L.creature.guise.faces.some(f => f[0] === VOID_RECAP.faces[Math.floor(G.L.s.form)])', 'angry, neutral, angry, confused, sad and neutral again, holding you; then it wears the faces of the others, each with its night behind it'],
   key('r', true), key('ArrowLeft', true), ['expect', "G.state === 'won' && !G.L.s.leaving", 'R or a turn does nothing there'],
   ['waitUntil', 'G.L.s.meadow > 0.5', 20000],
   ['expect', 'G.L.creature.hug && G.L.creature.hug.grab === 1 && G.L.s.backdrop === 0 && G.L.s.spin > 0', 'out of the pale light the meadow comes, turning into place, and it is still holding you'],
