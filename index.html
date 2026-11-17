@@ -117,6 +117,18 @@
   :root[data-theme="day"] .kzoom, :root[data-theme="day"] .kmenu { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
   :root[data-theme="day"] .hwhat, :root[data-theme="day"] .kplus { color: #3a332c; }
   :root[data-theme="day"] .hcard, :root[data-theme="day"] .runcard { background: rgba(58,51,44,.06); }
+  /* the warning before a new game (flashing lights): black, red words under an eye struck through, a solid red Accept */
+  #disclaimer { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; box-sizing: border-box; padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); text-align: center; color: #d0202a; cursor: default; }
+  #disclaimer .dbox { display: flex; flex-direction: column; align-items: center; gap: clamp(14px, 3.2vh, 26px); max-width: 32em; margin: auto 0; opacity: 0; transition: opacity .5s; }
+  #disclaimer.on .dbox { opacity: 1; }
+  #disclaimer.go .dbox { opacity: 0; transition: opacity .35s; }
+  #disclaimer.out { opacity: 0; transition: opacity .6s; }
+  #disclaimer .deye { width: clamp(34px, 6vh, 46px); height: clamp(34px, 6vh, 46px); flex: none; }
+  #disclaimer p { margin: 0; font: 400 clamp(17px, 2.3vw, 23px)/1.55 'IM Fell English', Georgia, serif; letter-spacing: .01em; color: #d0202a; }
+  #disclaimer .daccept { font-family: inherit; font-size: calc(15px * var(--text-scale)); letter-spacing: .16em; text-transform: uppercase; background: #d0202a; color: #000; border: 1px solid #d0202a; padding: 11px 36px; min-width: 170px; min-height: 44px; cursor: pointer; transition: background .15s, box-shadow .15s; -webkit-tap-highlight-color: transparent; }
+  #disclaimer .daccept:hover, #disclaimer .daccept:focus-visible { background: #e8323c; border-color: #e8323c; box-shadow: 0 0 18px rgba(208,32,42,.35); outline: none; }
+  #disclaimer .daccept:focus-visible { outline: 1px solid #d0202a; outline-offset: 4px; }
+  @media (prefers-reduced-motion: reduce) { #disclaimer .dbox, #disclaimer.go .dbox { transition: opacity .2s; } }
   /* the prologue before a new game: black, two lines fading up one after the other in the middle, then all of it out */
   #prologue { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1em; padding: 24px; box-sizing: border-box; text-align: center; opacity: 0; transition: opacity .6s; cursor: default; }
   #prologue.on { opacity: 1; }

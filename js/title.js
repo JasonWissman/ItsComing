@@ -2,35 +2,42 @@
 // ---------- the title screen: eyes in the dark ----------
 // Pitch black, and a way off two pale points of eyes. It does not move while the title is in front of you; it
 // comes on only behind a dialog (Scores, How to play, Settings: each covers it), so each time you close one it is
-// nearer, and more of what the eyes belong to shows. (At its nearest, a click on the dark makes it twitch instead.) A click on the dark itself is a blink: the view goes black for a
-// moment and it takes its step in there, unseen. STEPS of them and it is close enough to touch, bent down to look at
-// you; it stays there. Drawn on its own canvas (#titleScene) over the game's, which the title then leaves undrawn. It is
-// the same after the last night (the morning is only the screens straight after it): there is a Scores button then.
+// nearer, and more of what the eyes belong to shows. A click on the dark itself and it comes on in front of you: a
+// scuttle, quick and jerky as an insect's, limbs going, low and wide, to where the next step would have put it (with
+// reduced motion, a short smooth slide). At its nearest, a click on the dark makes it twitch instead. STEPS of them and
+// it is close enough to touch, bent down to look at you; it stays there. A faint light somewhere behind it, far off,
+// makes a soft rim round the edge of it and a little haze about it, so its shape is there to see even on a screen
+// whose blacks swallow it. Drawn on its own canvas (#titleScene) over the game's, which the title then leaves undrawn.
+// It is the same after the last night (the morning is only the screens straight after it): there is a Scores button then.
 const TITLE = (() => {
-  const D = [22, 13, 7.5, 4.2, 2.4, 1.55, 1.05];   // how far off it is, metres, after each dialog closed (or blink)
+  const D = [22, 13, 7.5, 4.2, 2.4, 1.55, 1.05];   // how far off it is, metres, after each dialog closed (or scuttle)
   // the last two: so close it has to bend down to you. LEAN is how far it has (its head dropped and come on ahead of it,
   // its shoulders hunched up round it); DROP how far down its head has come then, from where it would be stood up straight
   // (0) to as low as it can come and still be all in the dark over the title's words (1), so its head stays whole in the
   // view and its eyes clear of the words, on a phone as on a wide screen
   const LEAN = [0, 0, 0, 0, 0, 0.6, 1], DROP = [0, 0, 0, 0, 0, 0.62, 1];
-  const BLINK = [0.12, 0.18, 0.42];
-  const TWITCH = 0.9;   // the blink, seconds: shutting, shut (where it steps), opening again
-  let cv = null, ctx = null, W = 0, H = 0, dpr = 1, step = 0, drawn = 0, blinkAt = null, twitchAt = null, on = false, shown = false;
-  let grainTile = null;
+  const SCURRY = 0.42, SLIDE = 0.35;   // the scuttle to its next place, seconds (and the slide, with reduced motion)
+  // the scuttle comes in bursts, a lunge and a catch, each of its slot of the time: how much of the way each covers
+  const BURSTS = [0.24, 0.13, 0.3, 0.11, 0.22];
+  const TWITCH = 0.9;   // the twitch at its nearest, seconds
+  const LIGHT = [104, 112, 134];   // the far light behind it: cold and dim
+  let cv = null, ctx = null, W = 0, H = 0, dpr = 1, step = 0, drawn = 0, scurry = null, twitchAt = null, on = false, shown = false;
+  let cur = { d: D[0], lean: 0, drop: 0 };   // where it was last drawn (a scuttle starts from there)
+  let grainTile = null, fig = null, figCtx = null, glow = null, glowCtx = null;
   function canvas() {
     if (!cv) { cv = document.getElementById('titleScene'); if (cv) ctx = cv.getContext('2d'); }
     return cv;
   }
-  function enter() { step = drawn = 0; blinkAt = null; twitchAt = null; on = true; }
-  // a step nearer. With veil, the view blinks shut first and it is drawn at its new place only once that is black;
-  // without (a dialog has just been over it), it is there at once
-  // Once it is as near as it comes, a click on the dark does not blink: it twitches where it is instead, its head
-  // jerking over and its shoulders hitching (TWITCH seconds)
-  function advance(veil) {
+  function enter() { step = drawn = 0; scurry = null; twitchAt = null; cur = { d: D[0], lean: 0, drop: 0 }; on = true; }
+  // a step nearer. With seen (a click on the dark), it scuttles there in front of you; without (a dialog has just been
+  // over it), it is there at once. Once it is as near as it comes, a click on the dark twitches it where it is instead,
+  // its head jerking over and its shoulders hitching (TWITCH seconds)
+  function advance(seen) {
     if (!on) return;
-    if (veil && step === D.length - 1 && drawn === step && blinkAt === null) { twitchAt = -1; return; }
+    if (seen && step === D.length - 1) { if (!scurry && drawn === step) twitchAt = -1; return; }   // (still on its way there: nothing more)
     step = Math.min(D.length - 1, step + 1);
-    if (veil) { if (blinkAt === null) blinkAt = -1; } else drawn = step;   // (-1: the blink starts on the next frame drawn)
+    if (seen) scurry = { at: -1, from: { d: cur.d, lean: cur.lean, drop: cur.drop } };   // (-1: it starts on the next frame drawn; clicked again on the way, it goes on from where it has got to)
+    else { drawn = step; scurry = null; }
   }
   // is the scene up (the title is showing)? sets the page's class to match
   function active() {
@@ -38,17 +45,32 @@ const TITLE = (() => {
     if (a !== shown) { shown = a; document.body.classList.toggle('titlescene', a); }
     return a;
   }
+  // how far along the way the scuttle has it at k (0..1 of its time): each burst a quick lunge, then a catch, still
+  function scuttle(k) {
+    const n = BURSTS.length, i = Math.min(n - 1, Math.floor(k * n)), f = k * n - i;
+    let p = 0; for (let j = 0; j < i; j++) p += BURSTS[j];
+    return p + BURSTS[i] * smoothstep(f / 0.6);
+  }
   // a tall, thin figure standing, in metres (feet at 0,0, +y up, about 2.3 m to the top of its head), its arms past its
   // knees; its neck and head are drawn on their own (head). hunch (0..1): bent down toward you, its shoulders drawn up high and the
-  // top of it sunk between them
-  function figure(g, col, tilt, hunch, shrug) {
+  // top of it sunk between them. run (0..1), ph: scuttling, its legs going under it in turn, knees out, its hands
+  // clawing at the air ahead of it, out and up and down, quick as a spider's
+  function figure(g, col, hunch, shrug, run, ph) {
     const up = 0.07 * hunch, sink = 0.14 * hunch, wide = 0.025 * hunch, sh = shrug || 0;   // shrug: one shoulder up, the other down
     const upL = up - sh * 0.06, upR = up + sh * 0.06;
-    for (const s of [-1, 1]) P_limb(g, [[s * 0.075, 1.0], [s * 0.1, 0.53], [s * 0.11, 0.03]], 0.072, col);
+    for (const s of [-1, 1]) {
+      const lift = run * Math.max(0, Math.sin(ph + (s > 0 ? 0 : Math.PI)));
+      P_limb(g, [[s * 0.075, 1.0], [s * (0.1 + 0.1 * run + 0.06 * lift), 0.53 + 0.1 * lift], [s * (0.11 + 0.12 * run), 0.03 + 0.24 * lift]], 0.072, col);
+    }
     g.fillStyle = col; g.beginPath();
     g.moveTo(-0.12, 0.96); g.lineTo(0.12, 0.96); g.quadraticCurveTo(0.09, 1.3, 0.19 + wide, 1.7 + upR); g.quadraticCurveTo(0.2 + wide, 1.8 + upR, 0.06, 1.83 - sink);
     g.lineTo(-0.06, 1.83 - sink); g.quadraticCurveTo(-0.2 - wide, 1.8 + upL, -0.19 - wide, 1.7 + upL); g.quadraticCurveTo(-0.09, 1.3, -0.12, 0.96); g.fill();
-    for (const s of [-1, 1]) { const hd = [s * 0.27, 0.74]; P_limb(g, [[s * (0.18 + wide), 1.74 + (s > 0 ? upR : upL)], [s * (0.25 + wide), 1.26], hd], 0.05, col); fingers(g, hd[0], hd[1], -Math.PI / 2 + s * 0.08, 0.16, 0.15, 0.018, col); }
+    for (const s of [-1, 1]) {
+      const c = Math.sin(ph * 1.3 + (s > 0 ? 0 : 2.2)), o = 0.5 + 0.5 * Math.sin(ph * 1.3 + (s > 0 ? 1.1 : 3.4));
+      const hd = [s * (0.27 + run * (0.12 + 0.16 * o)), 0.74 + run * (0.28 + 0.26 * c)];
+      P_limb(g, [[s * (0.18 + wide), 1.74 + (s > 0 ? upR : upL)], [s * (0.25 + wide + 0.14 * run), 1.26 + 0.12 * run * c], hd], 0.05, col);
+      fingers(g, hd[0], hd[1], -Math.PI / 2 + s * (0.08 + run * (0.5 + 0.4 * o)), 0.16 + 0.1 * run, 0.15, 0.018, col);
+    }
   }
   // its head, in metres about its middle, its eyes ey up from that. near (0..1): close enough to make out a face of sorts,
   // the dome of it catching what little light there is and the eyes sunk in dark
@@ -85,24 +107,28 @@ const TITLE = (() => {
     if (w !== W || h !== H || cv.width !== Math.round(w * dpr)) { W = w; H = h; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     const g = ctx; g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    // the eyes sit high in the view, clear of the title and its buttons below
-    // the blink: how shut the view is (0 open, 1 black); while it is shut, it is drawn where it has stepped to
-    let shut = 0;
-    if (blinkAt !== null) {
-      if (blinkAt < 0) blinkAt = t;
-      const k = t - blinkAt;
-      if (k < BLINK[0]) shut = k / BLINK[0];
-      else if (k < BLINK[0] + BLINK[1]) { shut = 1; drawn = step; }
-      else if (k < BLINK[0] + BLINK[1] + BLINK[2]) shut = 1 - (k - BLINK[0] - BLINK[1]) / BLINK[2];
-      else blinkAt = drawn !== step ? t : null;   // clicked again while it opened: another blink, so that step is not seen either
+    const still = SAVE.data.settings.reducedMotion;
+    // where it is: where it last stood, or on its way from there to its next place (the scuttle; with reduced motion, a
+    // plain slide); run is how hard its limbs are going (in at once, out as it stops), ph where they are in their going
+    if (hidden) { drawn = step; scurry = null; }
+    let d = D[drawn], lean = LEAN[drawn], drop = DROP[drawn], run = 0, ph = 0;
+    if (scurry) {
+      if (scurry.at < 0) scurry.at = t;
+      const k = (t - scurry.at) / (still ? SLIDE : SCURRY);
+      if (k >= 1 || k < 0) { scurry = null; drawn = step; d = D[drawn]; lean = LEAN[drawn]; drop = DROP[drawn]; }
+      else {
+        const p = still ? smoothstep(k) : scuttle(k), f = scurry.from;
+        d = lerp(f.d, D[step], p); lean = lerp(f.lean, LEAN[step], p); drop = lerp(f.drop, DROP[step], p);
+        if (!still) { run = Math.min(1, k / 0.08, (1 - k) / 0.14); ph = (t - scurry.at) * TAU * 9; }
+      }
     }
-    if (hidden) drawn = step;
-    const y0 = H * 0.36, f = Math.min(H * 1.25, W * 1.6), d = D[drawn], lean = LEAN[drawn];
+    cur = { d, lean, drop };
+    // the eyes sit high in the view, clear of the title and its buttons below
+    const y0 = H * 0.36, f = Math.min(H * 1.25, W * 1.6);
     const fl = g.createLinearGradient(0, y0 - H * 0.06, 0, y0 + H * 0.3); fl.addColorStop(0, 'rgba(18,17,21,0)'); fl.addColorStop(0.2, 'rgba(18,17,21,1)'); fl.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = fl; g.fillRect(0, y0 - H * 0.06, W, H * 0.36);   // the faintest ground, lightest far off, no edge to it
-    const ppm = f / d, feet = y0 + f * 1.62 / d, sway = Math.sin(t * 0.21) * 0.04, sx = W / 2 + sway * ppm;
+    const ppm = f / d, feet = y0 + f * 1.62 / d, sway = Math.sin(t * 0.21) * 0.04 + run * 0.035 * Math.sin(ph * 0.5 + 1.3), sx = W / 2 + sway * ppm;
     const show = clamp((24 - d) / 20, 0, 1);   // more of it shows as it nears
-    const still = SAVE.data.settings.reducedMotion;
     // the twitch (advance at its nearest): a hard jerk of the head over to one side and back in two snaps, the shoulders
     // hitching against it, settling; with reduced motion, a small slow lean instead
     const jerk = still ? 0 : headTiltJerk(t, 3.1, 0.18) * show, dir = jerk >= 0 ? 1 : -1;   // (it twitches further the way its head already leans)
@@ -118,19 +144,49 @@ const TITLE = (() => {
         shrug = -dir * (0.9 * snap + 0.15 * Math.sin(k * 47) * (1 - k / TWITCH));
       }
     }
-    const tilt = jerk + tw;
+    const tilt = jerk + tw + run * 0.16 * Math.sin(ph * 1.7);   // (scuttling, its head jitters on its neck)
+    // scuttling it goes low and wide, its head pushed on down ahead of it
+    const sqx = 1 + 0.12 * run, sqy = 1 - 0.16 * run;
     // the head: on its neck 2.1 m up; bent down to you, nearer than the rest of it (so larger) and lower (DROP), the
     // whole of it in the view and over the words
     // (its eyes 2 cm over its middle, upright; bent down, lower on its face, more of the dome of it over them)
     const hppm = f / (d - 0.22 * lean), hx = W / 2 + sway * hppm, eo = lerp(0.02, -0.025, lean);
-    let hy = feet - 2.1 * ppm;
-    if (lean > 0) { const low = words() - 12 - 0.165 * hppm; hy = clamp(lerp(y0 + f * (1.62 - 2.1) / (d - 0.22 * lean), low, DROP[drawn]), H * 0.03 + 0.165 * hppm, low); }
+    let hy = feet - (2.1 * sqy - 0.12 * run) * ppm;
+    if (lean > 0) { const low = words() - 12 - 0.165 * hppm; hy = clamp(lerp(y0 + f * (1.62 - 2.1) / (d - 0.22 * lean), low, drop), H * 0.03 + 0.165 * hppm, low); }
     const col = rgba([6 + 9 * show, 6 + 8 * show, 8 + 9 * show]);
     if (!hidden) {
-      g.save(); g.translate(sx, feet); g.scale(ppm, -ppm); figure(g, col, tilt, lean, shrug); g.restore();
-      P_limb(g, [[sx, feet - (1.8 - 0.14 * lean) * ppm], [hx, hy]], 0.05 * ppm, col);   // the neck, up (or out) to the head
-      g.save(); g.translate(hx, hy); g.scale(hppm, -hppm); head(g, col, tilt, lean, eo, [34, 32, 36]); g.restore();
-      const blink = (t % 4.7 > 4.55) || (t % 7.3 > 7.18);
+      // the light behind it: a dim haze in the air about it, as big as it is near, a little stronger as more of it shows
+      const lite = 0.55 + 0.45 * show, cx = lerp(sx, hx, 0.5 * lean), cy = lerp(feet - 1.25 * ppm, hy, 0.55 * lean);
+      const hr = Math.min(Math.hypot(W, H) * 0.75, 1.5 * Math.max(ppm, hppm * lean));
+      const hz = g.createRadialGradient(cx, cy, 0, cx, cy, hr);
+      hz.addColorStop(0, rgba(LIGHT, 0.06 * lite)); hz.addColorStop(0.45, rgba(LIGHT, 0.028 * lite)); hz.addColorStop(1, rgba(LIGHT, 0));
+      g.fillStyle = hz; g.fillRect(cx - hr, cy - hr, hr * 2, hr * 2);
+      // the light round the edge of it: its shape (all of it at once) blurred out behind it, a narrow rim hugging its
+      // outline and a softer, wider one about that, both as wide as it is near. Done small (no more than ~260 px across,
+      // however big it is in the view) and drawn up to size, soft as it is, so it costs next to nothing; then it, sharp, over
+      const bx0 = Math.min(sx - 0.75 * ppm * sqx, hx - 0.2 * hppm), bx1 = Math.max(sx + 0.75 * ppm * sqx, hx + 0.2 * hppm);
+      const by0 = Math.min(feet - 2.0 * ppm, hy - 0.2 * hppm), by1 = feet + 0.08 * ppm;
+      const rim = clamp(0.025 * ppm, 1.6, 14), soft = clamp(0.16 * ppm, 6, 52), pad = soft * 1.6;
+      const x0 = Math.floor(Math.max(-pad, bx0 - pad)), y0b = Math.floor(Math.max(-pad, by0 - pad)), x1 = Math.ceil(Math.min(W + pad, bx1 + pad)), y1 = Math.ceil(Math.min(H + pad, by1 + pad));
+      const body = q => {
+        q.save(); q.translate(sx, feet); q.scale(ppm * sqx, -ppm * sqy); figure(q, col, lean, shrug, run, ph); q.restore();
+        P_limb(q, [[sx, feet - (1.8 - 0.14 * lean) * ppm * sqy], [hx, hy]], 0.05 * ppm, col);   // the neck, up (or out) to the head
+        q.save(); q.translate(hx, hy); q.scale(hppm, -hppm); head(q, col, tilt, lean, eo, [34, 32, 36]); q.restore();
+      };
+      if (x1 > x0 && y1 > y0b) {
+        const s = Math.min(dpr, 260 / Math.max(x1 - x0, y1 - y0b)), lw = Math.ceil((x1 - x0) * s), lh = Math.ceil((y1 - y0b) * s);
+        if (!fig) { fig = document.createElement('canvas'); figCtx = fig.getContext('2d'); glow = document.createElement('canvas'); glowCtx = glow.getContext('2d'); }
+        for (const c of [fig, glow]) if (c.width < lw || c.height < lh) { c.width = Math.max(c.width, lw); c.height = Math.max(c.height, lh); }
+        const q = figCtx; q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, lw, lh); q.setTransform(s, 0, 0, s, -x0 * s, -y0b * s); body(q);
+        // (its shadow only: the shape itself is drawn off the canvas, its shadow thrown back onto it)
+        const k = glowCtx, off = glow.width + lw + 16; k.setTransform(1, 0, 0, 1, 0, 0); k.clearRect(0, 0, lw, lh); k.shadowOffsetX = off;
+        k.shadowColor = rgba(LIGHT, 0.12 * lite); k.shadowBlur = soft * s; k.drawImage(fig, 0, 0, lw, lh, -off, 0, lw, lh);
+        k.shadowColor = rgba(LIGHT, 0.24 * lite); k.shadowBlur = rim * s; k.drawImage(fig, 0, 0, lw, lh, -off, 0, lw, lh);
+        k.shadowColor = 'rgba(0,0,0,0)'; k.shadowOffsetX = 0;
+        g.drawImage(glow, 0, 0, lw, lh, x0, y0b, lw / s, lh / s);
+      }
+      body(g);
+      const blink = !run && ((t % 4.7 > 4.55) || (t % 7.3 > 7.18));
       if (!blink) {   // the eyes, drawn over in screen space so even far off they are two points
         // (near, they stay small: two hard points of light in the dark of its face)
         const r = Math.max(1.1, Math.min(0.014 * hppm, 5.5 + 0.0016 * hppm)), sep = Math.max(2.6, 0.042 * hppm), up = eo * hppm;
@@ -146,8 +202,8 @@ const TITLE = (() => {
     const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.15, W / 2, H / 2, Math.hypot(W, H) * 0.62);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.85)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
     if (!still) grain(0.07);
-    if (shut > 0) { g.fillStyle = 'rgba(0,0,0,' + smoothstep(shut).toFixed(3) + ')'; g.fillRect(0, 0, W, H); }
   }
-  // how near it is, as it is seen (0 far off, 1 as near as it comes): the title's drone follows it (game.js)
-  return { enter, advance, active, draw, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get on() { return on; }, STEPS: D.length - 1 };
+  // how near it is, as it is seen (0 far off, 1 as near as it comes): the title's drone follows it (game.js). dist: how
+  // far off it is drawn now, metres; moving: on its way to its next place
+  return { enter, advance, active, draw, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D };
 })();
