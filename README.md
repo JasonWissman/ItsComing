@@ -463,16 +463,22 @@ The title screen is pitch black, with two pale points of eyes a long way off. Th
 with no intro text or list of controls on it: those are in How to play. How to play, Scores and Settings open as
 dialogs over the middle of the view, over what is out there, and it comes on only behind them: each time one closes
 it is a step nearer and more of it shows, until it is close enough to touch, bent down to you with its head sunk
-between its shoulders, where it stays. A click on the dark of
-the title does not begin the night: the view blinks shut for a moment and it takes its step in there. It never moves
-while you can see it. A faint deep drone sits under the title, a little louder and thicker each step it takes (and 2 dB
+between its shoulders, where it stays. A faint light somewhere far behind it gives it a soft, dim rim and a little haze
+about it (as wide as it is near), so its outline holds even on a screen whose blacks swallow a dark figure. A click on
+the dark of the title does not begin the night: it scuttles at you to where its next step would put it, in plain sight,
+fast and jerky as an insect (about 0.4 s, in lunges, its legs and clawing arms going, low and wide); at its nearest it
+twitches instead. With reduced motion it slides there smoothly. Otherwise it never moves while you can see it. A faint deep drone sits under the title, a little louder and thicker each step it takes (and 2 dB
 up on that far off, easing to nothing as it nears). The sound is made as the page loads and the drone set fading in at
 once; where the browser will not start sound before the page is touched (most do not, on a first visit: Chrome may
 once the site has been played on before, Firefox and Safari not by default), it waits at the start of its fade and
-plays it out from the first gesture of any kind (a press, a key, a touch, a wheel). Begin (or Enter) opens a new game with a
+plays it out from the first gesture of any kind (a press, a key, a touch, a wheel). Begin (or Enter) first shows a
+warning, every time a game is begun (it is one press, and whoever is at the screen now may not be who saw it last): black,
+an eye struck through and red words ("This game contains bright, flashing lights and imagery that may cause discomfort
+and/or seizures for those with photosensitive epilepsy. Player discretion is advised."), and a solid red Accept, focused
+(Enter, Space, a click or tap, or A or Start on a pad); nothing else gets past it. Then a
 prologue (silent: the title's drone fades slowly away under it, and night 1's bed fades in as night 1 begins): black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /
-"Each night something visits you in your dreams..."), then all of it fades into night 1's card; a click or a key skips
-it (`newGame` in js/game.js). Begin is the one button drawn inverted,
+"Each night something visits you in your dreams..."), then all of it fades into night 1's card. It is short and it is not skippable: no click or key gets past it, or through it
+to the game (`newGame` in js/game.js). Begin is the one button drawn inverted,
 light with dark letters. Every button and control in the menus answers with a soft tap. All the game's text is set in
 IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`), except the keycaps drawn in How to play,
 which are a plain sans, and the lettering on things in the nights themselves (a gear plate, a breaker box's tape).

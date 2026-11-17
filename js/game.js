@@ -177,16 +177,71 @@ function validateContent() {
 // last night is won. As it goes it keeps each night's time (the attempt that won it); finished, it is kept as G.lastRun
 // for the results after the ending, which show only this run.
 function beginRun() { G.run = { t: 0, night: 0, nights: [] }; }
-// ---------- a new game: before the first night, a black screen and two lines, one after the other ----------
-// The lines come up slowly in the middle of the dark, one at a time (the first gone before the second comes), and fade;
-// then night 1's card. A click or a
-// key (after the first moment) skips it. Over everything, so nothing on the title behind it can be pressed.
-const PROLOGUE = ['You haven\u2019t had a good night\u2019s sleep in ages.', 'Each night something visits you in your dreams\u2026'];
-let prologueOn = false;
+// ---------- a new game: the warning, then a black screen and two lines, one after the other ----------
+// Begin first puts up the warning about flashing lights: black, red words, Accept (focused: Enter, Space, a click or a
+// tap, or A or Start on a pad). Every time a game is begun, not once a visit: it is one press, and whoever is at the
+// screen now may not be who pressed it last time. Nothing else gets past it, and nothing on the title behind it can be
+// pressed. Then the prologue: the lines come up slowly in the middle of the dark, one at a time (the first gone before
+// the second comes), and fade; then night 1's card. It is short and it is watched: no click or key skips it, and no stray
+// key or click gets through it to the game. Both over everything.
+const DISCLAIMER = 'This game contains bright, flashing lights and imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy. Player discretion is advised.';
+const PROLOGUE = ['You haven’t had a good night’s sleep in ages.', 'Each night something visits you in your dreams…'];
+let prologueOn = false, disclaimerOn = false, disclaimerAccept = null;
 const PROLOGUE_FADE = 6;   // seconds the title's drone takes to fade out under it; night 1's bed fades in when night 1 begins
+function introUp() { return disclaimerOn || prologueOn; }   // the warning or the prologue is up: nothing else is pressed
+// a key while one is up goes no further (the game never sees it); the browser's own (with Ctrl, Cmd or Alt, F1..F12)
+// still do what they do there
+function swallowKey(e) {
+  e.stopImmediatePropagation();
+  if (!(e.ctrlKey || e.metaKey || e.altKey || /^F\d+$/.test(e.key))) e.preventDefault();
+}
+function swallowPointer(el) { for (const ev of ['click', 'mousedown', 'mouseup', 'pointerdown', 'touchstart', 'touchend', 'contextmenu', 'wheel']) el.addEventListener(ev, e => e.stopPropagation()); }
 function newGame() {
+  if (introUp()) return;
   beginRun();
-  if (prologueOn) return;
+  // (a browser driven by the tests goes past the warning, unless a test asks for it: window.DISCLAIMER_TEST)
+  if (navigator.webdriver && !window.DISCLAIMER_TEST) { prologue(); return; }
+  disclaimer();
+}
+function disclaimer() {
+  const still = SAVE.data.settings.reducedMotion;
+  const el = document.createElement('div'); el.id = 'disclaimer';
+  el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'disclaimerText');
+  // an eye with a line through it
+  el.innerHTML = '<div class="dbox"><svg class="deye" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 24c5-8.5 12-13 20-13s15 4.5 20 13c-5 8.5-12 13-20 13S9 32.5 4 24z"/><circle cx="24" cy="24" r="6.5"/><path d="M9 41L39 7"/></svg>' +
+    '<p id="disclaimerText">' + DISCLAIMER + '</p><button type="button" class="daccept">Accept</button></div>';
+  document.body.appendChild(el);
+  disclaimerOn = true;
+  const btn = el.querySelector('.daccept'), t0 = performance.now();
+  let done = false;
+  const accept = () => {
+    if (done || performance.now() - t0 < 400) return;   // (not the double-click or the held key that pressed Begin)
+    done = true; disclaimerAccept = null; ensureAudio(); AUDIO.sfx('tap');
+    el.classList.add('go');   // its words go; the black stays until the prologue (or night 1's card) is up over it
+    setTimeout(() => {
+      prologue();
+      const gone = () => { document.removeEventListener('keydown', key, true); el.remove(); disclaimerOn = false; };
+      if (prologueOn) setTimeout(gone, 900);
+      else { el.classList.add('out'); setTimeout(gone, still ? 300 : 700); }
+    }, still ? 150 : 450);
+  };
+  const key = e => {
+    swallowKey(e);
+    if (done) return;
+    if (e.key === 'Tab') btn.focus();   // the one thing on it to go to
+    else if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) accept();
+  };
+  document.addEventListener('keydown', key, true);
+  swallowPointer(el);
+  el.addEventListener('mousedown', e => { if (e.target !== btn) e.preventDefault(); });   // a click off it leaves Accept focused
+  btn.addEventListener('blur', () => { if (!done) setTimeout(() => { if (!done && el.isConnected) btn.focus(); }, 0); });   // (and nothing else takes it)
+  btn.addEventListener('click', accept);
+  disclaimerAccept = accept;
+  btn.focus();
+  requestAnimationFrame(() => el.classList.add('on'));
+}
+function prologue() {
   // (a browser driven by the tests goes straight to night 1, unless a test asks for it: window.PROLOGUE_TEST)
   if (navigator.webdriver && !window.PROLOGUE_TEST) { startLevel(0, true); return; }
   AUDIO.stopAmbient(PROLOGUE_FADE);   // the title's drone fades slowly away under the lines (the prologue itself is silent)
@@ -195,25 +250,20 @@ function newGame() {
   el.innerHTML = PROLOGUE.map(t => '<p>' + t + '</p>').join('');
   document.body.appendChild(el);
   prologueOn = true;
-  const lines = el.querySelectorAll('p'), timers = [], at = (ms, fn) => timers.push(setTimeout(fn, ms));
-  const t0 = performance.now();
-  let done = false;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // (nothing behind it is pressed by a stray key)
+  const lines = el.querySelectorAll('p'), at = (ms, fn) => setTimeout(fn, ms);
   const finish = () => {
-    if (done) return; done = true; timers.forEach(clearTimeout);
     // the lines go, the black stays; night 1's card is put up under it, and only then does the black lift off it (so the
     // title is never seen again in between)
     lines.forEach(l => { l.classList.remove('on'); l.classList.add('gone'); });
     setTimeout(() => {
-      document.removeEventListener('keydown', key, true);
       startLevel(0, true);
       el.classList.add('out');
-      setTimeout(() => { el.remove(); prologueOn = false; }, still ? 300 : 1300);
+      setTimeout(() => { document.removeEventListener('keydown', swallowKey, true); el.remove(); prologueOn = false; }, still ? 300 : 1300);
     }, still ? 200 : 900);
   };
-  const skip = () => { if (performance.now() - t0 > 600) finish(); };
-  const key = e => { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) skip(); };
-  document.addEventListener('keydown', key, true);
-  el.addEventListener('click', e => { e.stopPropagation(); skip(); });
+  document.addEventListener('keydown', swallowKey, true);
+  swallowPointer(el);
   requestAnimationFrame(() => el.classList.add('on'));
   // one line at a time: the first fades up, holds and fades away; then the second, dimmer, like falling asleep
   at(still ? 300 : 900, () => lines[0].classList.add('on'));
@@ -317,7 +367,7 @@ function proceedFromSurvived() {
 function onKeyDown(e) {
   const k = e.key;
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
-  if (e.repeat) return;
+  if (e.repeat || introUp()) return;   // (the warning and the prologue keep the keys from the game: a pad's go round them)
   if (G.state === 'title') ensureAudio();   // a key on the title is the first gesture its drone waits on (titleSound)
   if (k === 'm' || k === 'M') { toggleMute(); return; }
   if ((k === 'f' || k === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && fullscreenAble()) { toggleFullscreen(); return; }   // full screen, in and out (as #fsBtn)
@@ -387,6 +437,7 @@ function pauseGame() { setState('paused'); MENU.show('pause'); AUDIO.suspend(); 
 function resumeGame() { setState('play'); hideOverlay(); MENU.clear(); AUDIO.resume(); }
 
 function proceed() {
+  if (introUp()) return;   // (the warning and the prologue take no press but their own)
   if (performance.now() < G.overlayArmed) return; // the arm is on the wall clock, so it is 350 ms whatever the frame rate
   ensureAudio();
   switch (G.state) {
@@ -419,7 +470,7 @@ function onMouseUp() { G.holding = null; drawLetGo('mouse'); }
 function onClick(e) {
   if (G.drawSwallow) { G.drawSwallow = false; if (G.state === 'play') return; }   // the click that ends a draw is not another use
   // the list screens are not click-anywhere, nor is the title: a click on the dark there only brings it a step nearer,
-  // in the blink it takes (TITLE.advance); the cards are click-anywhere
+  // scuttling at you in plain sight (TITLE.advance); the cards are click-anywhere
   if (G.state === 'title') { ensureAudio(); if (MENU.kind === 'title' && !(e.target.closest && e.target.closest('button, a'))) TITLE.advance(true); return; }
   if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) { MENU.hurry(); return; } proceed(); return; }   // (the results after the ending: a click hurries them)
   ensureAudio();
@@ -1198,6 +1249,10 @@ function pollGamepad() {
   const a = pad.buttons[0] && pad.buttons[0].pressed, b = pad.buttons[1] && pad.buttons[1].pressed, start = pad.buttons[9] && pad.buttons[9].pressed;
   const zoom = (pad.buttons[7] && pad.buttons[7].pressed) || (pad.buttons[6] && pad.buttons[6].pressed) || (pad.buttons[5] && pad.buttons[5].pressed);
   const fake = key => ({ key, preventDefault() {}, shiftKey: false });
+  if (introUp()) {   // the warning: A or Start accepts it; the prologue: nothing
+    if (disclaimerAccept && ((a && !PAD.a) || (start && !PAD.start))) disclaimerAccept();
+    Object.assign(PAD, { dir, a, start, b, zoom: !!zoom }); return;
+  }
   if (dir !== PAD.dir && dir) {
     if (G.state === 'play' || lookFree()) { if (!(G.state === 'play' && G.L.padDir && G.L.padDir(dir))) onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir])); }   // a night may take the d-pad first (the pay phone's keys)
     else {
