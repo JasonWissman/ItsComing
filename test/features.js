@@ -85,18 +85,23 @@ const hoverHit = lookFor;
   await page.keyboard.press('ArrowRight'); const f3 = await focusAct();
   await page.keyboard.press('ArrowLeft'); const f4 = await focusAct();
   check(f1 === 'settings' && f2 === 'accept' && f3 === 'settings' && f4 === 'accept', 'Tab and the arrows go between Accept and Adjust settings, and nowhere else (' + [f1, f2, f3, f4] + ')');
-  // Adjust settings: Settings in the same card, all of it but Erase progress; Back (or Esc) is the warning again
+  // Adjust settings: Settings in the same card, all of it (Set to default too; Erase progress is in Scores); Back (or Esc) is the warning again
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter'); await page.waitForTimeout(250);
   dw = await page.evaluate(() => { const d = document.getElementById('disclaimer'), card = d && d.querySelector('.dcard');
     return { up: !!d, h: (d.querySelector('h1') || {}).textContent, sets: [...d.querySelectorAll('[data-set]')].map(e => e.dataset.set).join(), acts: [...d.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(), erase: !!d.querySelector('[data-act="reset"]'), focus: document.activeElement && document.activeElement.dataset.act,
       cardBg: getComputedStyle(card).backgroundColor, st: G.state, menu: MENU.kind, warn: !!d.querySelector('.daccept') }; });
-  check(dw.up && dw.h === 'Settings' && dw.sets === 'master,effects,ambient,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'back' && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
-    'Adjust settings: Settings in the same card, every setting but no Erase progress, Back focused; the game does not start (' + JSON.stringify(dw) + ')');
+  check(dw.up && dw.h === 'Settings' && dw.sets === 'master,effects,ambient,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'back,defaults' && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
+    'Adjust settings: Settings in the same card, every setting and Set to default (no Erase progress), Back focused; the game does not start (' + JSON.stringify(dw) + ')');
   // the keys work in it: Tab round to the reduce motion switch, Space flips it (both flags), a slider moves with the arrows
   await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', false); document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').focus(); });
   await page.keyboard.press(' '); await page.waitForTimeout(80);
   let rs = await page.evaluate(() => ({ rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash, on: document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').checked, up: !!document.getElementById('disclaimer') }));
   check(rs.rm && rs.rf && rs.on && rs.up, 'from the warning, Space on Reduce motion and flashing effects turns it on, both its flags with it (' + JSON.stringify(rs) + ')');
+  // its Set to default: everything back as it began, the switch and a slider moved to match, the warning still up and not accepted
+  rs = await page.evaluate(() => { MENU.applySetting('effects', 0.4); const d = document.getElementById('disclaimer'), e = d.querySelector('input[data-set="effects"]'); e.value = 0.4; d.querySelector('button[data-act="defaults"]').click();
+    return { rm: SAVE.data.settings.reducedMotion, fx: SAVE.data.settings.effects, on: d.querySelector('input[data-set="reduceMotionFlash"]').checked, val: +e.value, pct: e.parentElement.querySelector('.pct').textContent, up: !!document.getElementById('disclaimer') && !!d.querySelector('h1'), warned: SAVE.data.warned }; });
+  check(!rs.rm && rs.fx === 1 && !rs.on && rs.val === 1 && rs.pct === '100%' && rs.up && !rs.warned, 'and its Set to default puts every setting back, its controls following, still in Settings, the warning not accepted (' + JSON.stringify(rs) + ')');
+  await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').checked = true; document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').focus(); });
   await page.keyboard.press('Enter'); await page.waitForTimeout(80);
   rs = await page.evaluate(() => ({ rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash }));
   check(!rs.rm && !rs.rf, 'and Enter flips it back off (' + JSON.stringify(rs) + ')');
@@ -118,10 +123,10 @@ const hoverHit = lookFor;
   await padTap(15); const pf1 = await focusAct();
   await padTap(0); await page.waitForTimeout(100);
   const pin = await page.evaluate(() => ({ set: !!document.querySelector('#disclaimer .dset'), focus: document.activeElement && document.activeElement.dataset.act }));
-  await padTap(13); const pf2 = await page.evaluate(() => document.activeElement && document.activeElement.dataset.set);
+  await padTap(13); const pf2a = await focusAct(); await padTap(13); const pf2 = await page.evaluate(() => document.activeElement && document.activeElement.dataset.set);   // (Back, Set to default, then round to the first slider)
   await padTap(1); await page.waitForTimeout(100);
   const pout = await page.evaluate(() => ({ warn: !!document.querySelector('#disclaimer .daccept'), focus: document.activeElement && document.activeElement.dataset.act, up: !!document.getElementById('disclaimer') }));
-  check(pf1 === 'settings' && pin.set && pin.focus === 'back' && pf2 === 'master' && pout.warn && pout.focus === 'accept' && pout.up, 'a pad: the d-pad to Adjust settings, A opens Settings, the d-pad goes round it, B is Back to the warning, Accept focused (' + JSON.stringify([pf1, pin, pf2, pout]) + ')');
+  check(pf1 === 'settings' && pin.set && pin.focus === 'back' && pf2a === 'defaults' && pf2 === 'master' && pout.warn && pout.focus === 'accept' && pout.up, 'a pad: the d-pad to Adjust settings, A opens Settings, the d-pad goes round it, B is Back to the warning, Accept focused (' + JSON.stringify([pf1, pin, pf2, pout]) + ')');
   await padTap(9); await page.waitForTimeout(1600);
   await page.evaluate(() => { navigator.getGamepads = () => []; });
   dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), pro: !!document.getElementById('prologue'), st: G.state, warned: SAVE.data.warned, stored: JSON.parse(localStorage.getItem('itscoming.v2')).warned }));
@@ -153,8 +158,8 @@ const hoverHit = lookFor;
     check(r.fits && r.b[0] >= 0 && r.b[1] <= r.h && r.b[2] >= 44 && r.s[2] >= 44 && r.s[1] <= r.h && r.c[0] >= 16 && r.c[1] <= r.w - 16, 'on a phone it all fits, Accept and Adjust settings full-size targets (' + JSON.stringify(r) + ')');
     await mp.screenshot({ path: path.join(__dirname, 'shots', 'phone-warning.png') });
     await mp.tap('#disclaimer .dsettings'); await mp.waitForTimeout(300);
-    const rs2 = await mp.evaluate(() => { const d = document.getElementById('disclaimer'), back = d.querySelector('button[data-act="back"]').getBoundingClientRect(); return { fits: d.scrollHeight <= d.clientHeight + 1, back: back.bottom <= innerHeight, swipe: !!d.querySelector('[data-set="swipeReverse"]'), erase: !!d.querySelector('[data-act="reset"]') }; });
-    check(rs2.fits && rs2.back && rs2.swipe && !rs2.erase, 'and its Settings fit on a phone on its side, with reverse swipes, no Erase progress (' + JSON.stringify(rs2) + ')');
+    const rs2 = await mp.evaluate(() => { const d = document.getElementById('disclaimer'), back = d.querySelector('button[data-act="back"]').getBoundingClientRect(); return { fits: d.scrollHeight <= d.clientHeight + 1, back: back.bottom <= innerHeight, swipe: !!d.querySelector('[data-set="swipeReverse"]'), erase: !!d.querySelector('[data-act="reset"]'), def: !!d.querySelector('[data-act="defaults"]') }; });
+    check(rs2.fits && rs2.back && rs2.swipe && !rs2.erase && rs2.def, 'and its Settings fit on a phone on its side, with reverse swipes and Set to default, no Erase progress (' + JSON.stringify(rs2) + ')');
     await mp.tap('#disclaimer button[data-act="back"]'); await mp.waitForTimeout(300);
     await mp.tap('#disclaimer .daccept'); await mp.waitForTimeout(1300);
     check(await mp.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card'), 'Back, then a tap on Accept goes on');
@@ -263,7 +268,30 @@ const hoverHit = lookFor;
   await page.click('#overlay input[data-set="reduceTextures"]'); await page.waitForTimeout(80);
   check(await page.evaluate(() => R.detail === false && SAVE.data.settings.reduceTextures === true), 'Reduce surface textures on: the plainer, faster surfaces');
   await page.click('#overlay input[data-set="reduceTextures"]'); await page.waitForTimeout(80);
-  check(await page.evaluate(() => !!document.querySelector('#overlay button[data-act="reset"]')), 'Settings from the game has Erase progress (only the warning\'s has not)');
+  check(await page.evaluate(() => !document.querySelector('#overlay button[data-act="reset"]') && [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'back:Back,defaults:Set to default'), 'Settings has Back and Set to default where Erase progress was (that is in Scores now)');
+  // Set to default: every setting as it began, at once, the switches and sliders (and their percentages) following; the
+  // progress, the best run and the accepted warning untouched; no question asked, the dialog stays, its button focused
+  v = await page.evaluate(() => {
+    const before = { u: G.unlocked, run: JSON.stringify(SAVE.data.bestRun), warned: SAVE.data.warned };
+    for (const [k, x] of [['master', 0.2], ['effects', 0.45], ['ambient', 0], ['textSize', 1.3], ['captions', true], ['reduceTextures', true], ['reduceMotionFlash', true], ['muted', true]]) {
+      MENU.applySetting(k, x); const i = document.querySelector('#overlay [data-set="' + k + '"]'); if (i.type === 'checkbox') i.checked = x; else i.value = x;
+    }
+    setMuted(true);
+    document.querySelector('#overlay button[data-act="defaults"]').focus();
+    return before;
+  });
+  await page.keyboard.press('Enter'); await page.waitForTimeout(120);
+  const dv = await page.evaluate(() => {
+    const S = SAVE.data.settings, saved = JSON.parse(localStorage.getItem('itscoming.v2')).settings, q = k => document.querySelector('#overlay [data-set="' + k + '"]');
+    return { kind: MENU.kind, confirm: !!document.querySelector('#overlay .confirm'), focus: document.activeElement && document.activeElement.dataset.act,
+      S: [S.master, S.effects, S.ambient, S.textSize, S.captions, S.reduceTextures, S.reducedMotion, S.reducedFlash, S.muted, S.swipeReverse].join(), saved: [saved.master, saved.effects, saved.textSize, saved.captions].join(),
+      ctl: ['master', 'effects', 'ambient', 'textSize'].map(k => q(k).value + '/' + q(k).parentElement.querySelector('.pct').textContent + '/' + q(k).getAttribute('aria-valuetext')).join(),
+      sw: ['muted', 'reduceMotionFlash', 'captions', 'reduceTextures'].map(k => q(k).checked).join(), muted: G.muted, detail: R.detail, scale: document.documentElement.style.getPropertyValue('--text-scale').trim(),
+      u: G.unlocked, run: JSON.stringify(SAVE.data.bestRun), warned: SAVE.data.warned };
+  });
+  check(dv.kind === 'settings' && !dv.confirm && dv.focus === 'defaults' && dv.S === '1,1,1,1,false,false,false,false,false,false' && dv.saved === '1,1,1,false', 'Set to default puts every setting back as it began, saved, with no question, Settings still open and its button focused (' + JSON.stringify(dv) + ')');
+  check(dv.ctl === '1/100%/100%,1/100%/100%,1/100%/100%,1/100%/100%' && dv.sw === 'false,false,false,false' && !dv.muted && dv.detail && dv.scale === '1', 'and the sliders, their percentages and the switches move with it, all applied (sound, textures, text size) (' + JSON.stringify(dv) + ')');
+  check(dv.u === v.u && dv.run === v.run && dv.warned === v.warned, 'and nothing but the settings: progress, the best run and the accepted warning as they were');
   await page.keyboard.press('m'); await page.waitForTimeout(80);
   check(await page.evaluate(() => G.muted && document.querySelector('input[data-set="muted"]').checked), 'M with Settings open mutes, and its Mute switch follows');
   await page.keyboard.press('m'); await page.waitForTimeout(80);
@@ -322,45 +350,79 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state !== 'title' && !document.body.classList.contains('titlescene')), 'Begin leaves the title, and its scene goes with it');
   await page.goto(URL); await page.waitForTimeout(300);
 
-  console.log('== erasing progress asks first ==');
-  await page.click('#overlay button[data-act="settings"]'); await page.waitForTimeout(120);
+  console.log('== erasing progress asks first (in Scores) ==');
+  await page.evaluate(() => { SAVE.data.bestRun.nightmare = { t: 400, nights: LEVELS.map(() => 400 / 13) }; SAVE.persist(); MENU.applySetting('captions', true); });
+  await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(120);
+  check(await page.evaluate(() => [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'back:Back,reset:Erase progress' && document.querySelector('#overlay button[data-act="reset"]').classList.contains('danger')), 'Scores has Back and, beside it, Erase progress (in red)');
   await page.click('#overlay button[data-act="reset"]'); await page.waitForTimeout(120);
-  tv = await page.evaluate(() => ({ kind: MENU.kind, box: !!document.querySelector('#overlay .confirm .cpanel'), h: (document.querySelector('#overlay .confirm h2') || {}).textContent, focus: document.activeElement && document.activeElement.dataset.act, u: G.unlocked, under: !!document.querySelector('#overlay .panel .settings') }));
-  check(tv.kind === 'settings' && tv.box && tv.h === 'Erase all progress?' && tv.focus === 'keep' && tv.u === 3 && tv.under, 'Erase opens a small dialog of its own over Settings, Cancel focused, nothing erased yet (' + JSON.stringify(tv) + ')');
+  tv = await page.evaluate(() => ({ kind: MENU.kind, box: !!document.querySelector('#overlay .confirm .cpanel'), h: (document.querySelector('#overlay .confirm h2') || {}).textContent, focus: document.activeElement && document.activeElement.dataset.act, u: G.unlocked, under: !!document.querySelector('#overlay .panel.nightsp .runcard') }));
+  check(tv.kind === 'nights' && tv.box && tv.h === 'Erase all progress?' && tv.focus === 'keep' && tv.u === 3 && tv.under, 'Erase opens a small dialog of its own over Scores, Cancel focused, nothing erased yet (' + JSON.stringify(tv) + ')');
   await page.keyboard.press('Tab'); await page.keyboard.press('Tab'); await page.waitForTimeout(50);
   check(await page.evaluate(() => document.activeElement && document.activeElement.dataset.act === 'keep'), 'the keys stay inside the little dialog');
   await page.click('#overlay .confirm button[data-act="keep"]'); await page.waitForTimeout(120);
-  check(await page.evaluate(() => MENU.kind === 'settings' && !document.querySelector('#overlay .confirm') && G.unlocked === 3), 'Cancel closes it and erases nothing');
+  check(await page.evaluate(() => MENU.kind === 'nights' && !document.querySelector('#overlay .confirm') && G.unlocked === 3 && !!SAVE.data.bestRun.nightmare && document.activeElement && document.activeElement.dataset.act === 'reset'), 'Cancel closes it and erases nothing (Erase progress focused again)');
   await page.click('#overlay button[data-act="reset"]'); await page.waitForTimeout(120);
   await page.keyboard.press('Escape'); await page.waitForTimeout(120);
-  check(await page.evaluate(() => MENU.kind === 'settings' && !document.querySelector('#overlay .confirm') && G.unlocked === 3), 'Esc closes it, back to Settings, erasing nothing');
+  check(await page.evaluate(() => MENU.kind === 'nights' && !document.querySelector('#overlay .confirm') && G.unlocked === 3), 'Esc closes it, back to Scores, erasing nothing');
   await page.click('#overlay button[data-act="reset"]'); await page.waitForTimeout(120);
   await page.click('#overlay .confirm button[data-act="erase"]'); await page.waitForTimeout(200);
-  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'Erase erases, and the title is back with no Nights');
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'Erase erases, and the title is back with no Scores');
+  check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.bestRun).length && !Object.keys(d.bestRun).length && d.unlocked.nightmare === 0 && !d.complete.nightmare && d.warned === false && d.settings.captions === false; }), 'everything it erased before goes as it did: nights reached, the best run, the warning accepted, the settings');
 
-  console.log('== the Nights screen ==');
-  await page.evaluate(() => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 9 }, complete: {}, bestRun: { nightmare: 1234.5 }, best: { field: { nightmare: { time: 41.2, wins: 3, tries: 5 } } }, settings: {} })));
+  console.log('== the Scores screen ==');
+  // an older save with best times for single nights and no full run: no run is made up from them, and they are dropped
+  await page.evaluate(() => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 9 }, complete: {}, bestRun: {}, best: { field: { nightmare: { time: 41.2, wins: 3, tries: 5 } } }, settings: {} })));
+  await page.goto(URL); await page.waitForTimeout(300);
+  await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+  tv = await page.evaluate(() => ({ cards: document.querySelectorAll('#overlay .ncard').length, run: document.querySelector('#overlay .runcard .rtime').textContent, label: document.querySelector('#overlay .runcard .rlabel').textContent, hint: (document.querySelector('#overlay .runcard .rhint') || {}).textContent, stars: !!document.querySelector('#overlay .stars'), best: 'best' in SAVE.data, u: G.unlocked,
+    btns: [...document.querySelectorAll('#overlay button')].map(b => b.dataset.act).join(), p: (() => { const p = document.querySelector('#overlay .panel'); return p.scrollHeight <= p.clientHeight + 1; })() }));
+  check(tv.cards === 0 && tv.run === '—' && tv.label === 'Best run' && /No full run yet/.test(tv.hint) && /in one go/.test(tv.hint) && !tv.stars && !tv.best && tv.u === 9 && tv.btns === 'back,reset' && tv.p, 'no best run yet (an old save\'s single-night bests make none, and are dropped): only a word on what one is, and Erase progress (' + JSON.stringify(tv) + ')');
+  await shot(page, 'scores-empty');
+  // with a best run: its breakdown, night by night, and under it its whole time and its stars
+  const runNights = [41.4, 22.6, 35.5, 48.5, 30.2, 27.7, 52.5, 18.4, 44.6, 39.5, 33.3, 25.5, 60.6], runT = runNights.reduce((a, b) => a + b, 0);
+  await page.evaluate(([n, t]) => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 13 }, complete: { nightmare: true }, bestRun: { nightmare: { t, nights: n } }, settings: {} })), [runNights, runT]);
   await page.goto(URL); await page.waitForTimeout(300);
   await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
   tv = await page.evaluate(() => {
     const p = document.querySelector('#overlay .panel'), cards = [...document.querySelectorAll('#overlay .ncard')], r = c => c.getBoundingClientRect();
-    return { fits: p.scrollHeight <= p.clientHeight + 1, open: document.querySelectorAll('#overlay .ncard.shown').length, btns: [...document.querySelectorAll('#overlay button')].map(b => b.dataset.act).join(), tab: cards.filter(c => c.tabIndex >= 0 || c.matches('button, [data-act]')).length, cursor: getComputedStyle(cards[0]).cursor, cols: new Set(cards.map(c => Math.round(r(c).left))).size, seventh: Math.round(r(cards[6]).top) === Math.round(r(cards[0]).top) && Math.round(r(cards[5]).left) === Math.round(r(cards[0]).left) && Math.round(r(cards[6]).left) > Math.round(r(cards[0]).left),
-      best: (cards[0].querySelector('.nbest') || {}).textContent, run: document.querySelector('#overlay .runcard .rtime').textContent, label: document.querySelector('#overlay .runcard .rlabel').textContent,
-      frag: !!document.querySelector('#overlay button[data-act="fragments"]'), bottom: Math.round(r(p).bottom) <= innerHeight };
+    return { fits: p.scrollHeight <= p.clientHeight + 1, n: cards.length, btns: [...document.querySelectorAll('#overlay button')].map(b => b.dataset.act).join(), tab: cards.filter(c => c.tabIndex >= 0 || c.matches('button, [data-act]')).length, cursor: getComputedStyle(cards[0]).cursor, cols: new Set(cards.map(c => Math.round(r(c).left))).size, seventh: Math.round(r(cards[6]).top) === Math.round(r(cards[0]).top) && Math.round(r(cards[5]).left) === Math.round(r(cards[0]).left) && Math.round(r(cards[6]).left) > Math.round(r(cards[0]).left),
+      times: cards.map(c => c.querySelector('.nbest').textContent).join(), run: document.querySelector('#overlay .runcard .rtime').textContent, label: document.querySelector('#overlay .runcard .rlabel').textContent, stars: document.querySelector('#overlay .runcard .stars').getAttribute('aria-label'), on: document.querySelectorAll('#overlay .runcard .star.on').length, stamp: !!document.querySelector('#overlay .stamp'),
+      bottom: Math.round(r(p).bottom) <= innerHeight };
   });
-  check(tv.open === 10 && tv.btns === 'back' && tv.tab === 0 && tv.cursor === 'default', 'the Nights screen only shows: its cards are not buttons, nothing to press but Back (' + JSON.stringify(tv) + ')');
+  check(tv.n === 13 && tv.btns === 'back,reset' && tv.tab === 0 && tv.cursor === 'default', 'the Scores screen only shows: its cards are not buttons, nothing to press but Back and Erase progress (' + JSON.stringify(tv) + ')');
+  // (41+23+36+49+30+28+53+18+45+40+33+26 = 422 of 480 (8:00): The Void 58, though its own 60.6 would round to 61)
+  check(tv.times === '41 s,23 s,36 s,49 s,30 s,28 s,53 s,18 s,45 s,40 s,33 s,26 s,58 s' && tv.run === '8:00' && tv.label === 'Best run' && tv.stars === '1 of 3 stars' && tv.on === 1 && !tv.stamp, 'the best run: each night\'s share of it, The Void making them add up to its whole time, which is under them with its stars (1 of 3 over six minutes) and no stamp here (' + JSON.stringify(tv) + ')');
   const bg0 = await page.evaluate(() => getComputedStyle(document.querySelector('#overlay .ncard')).backgroundColor);
   await page.hover('#overlay .ncard'); await page.waitForTimeout(250);
   check(await page.evaluate(b => getComputedStyle(document.querySelector('#overlay .ncard')).backgroundColor === b, bg0), 'and a card does not light up under the pointer');
   await page.click('#overlay .ncard'); await page.waitForTimeout(150);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'nights'), 'a click on a card starts nothing');
-  check(tv.fits && tv.bottom && tv.open === 10 && tv.cols === 2 && tv.seventh, 'the nights in two columns, 1 to 6 down the first and 7 to 13 down the second, all in view without scrolling (' + JSON.stringify(tv) + ')');
-  check(tv.best === 'best41 s' && tv.label === 'Best full run' && tv.run === '20:35' && !tv.frag, 'each night\'s best inside its card, the best full run in a card of its own, and no Fragments (' + JSON.stringify(tv) + ')');
-  await page.evaluate(() => { SAVE.data.bestRun = {}; MENU.act('back', 'title'); MENU.act('nights'); });
-  check(await page.evaluate(() => document.querySelector('#overlay .runcard .rtime').textContent === '—' && /in one go/.test(document.querySelector('#overlay .runcard .rhint').textContent)), 'no full run yet: a dash, and a line on what one is');
+  check(tv.fits && tv.bottom && tv.cols === 2 && tv.seventh, 'the nights in two columns, 1 to 6 down the first and 7 to 13 down the second, all in view without scrolling (' + JSON.stringify(tv) + ')');
+  await shot(page, 'scores-best');
+  // an older save's best full run (only its whole time): still the time to beat, with no breakdown
+  await page.evaluate(() => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: 1234.5 }, settings: {} })));
+  await page.goto(URL); await page.waitForTimeout(300);
+  await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+  tv = await page.evaluate(() => ({ run: document.querySelector('#overlay .runcard .rtime').textContent, dashes: [...document.querySelectorAll('#overlay .ncard .nbest')].every(e => e.textContent === '—'), kept: JSON.stringify(SAVE.data.bestRun), slower: SAVE.recordRun('nightmare', 1300, []), same: SAVE.recordRun('nightmare', 1234.7, []), faster: SAVE.recordRun('nightmare', 1200.25, LEVELS.map(() => 1200.25 / 13)) }));
+  check(tv.run === '20:35' && tv.dashes && tv.kept === '{"nightmare":{"t":1234.5,"nights":null}}' && !tv.slower && !tv.same && tv.faster, 'an older save\'s best full run (a time only) is still the best: its time, dashes for the nights; a slower run (or one that reads the same) does not beat it, a faster one does (' + JSON.stringify(tv) + ')');
+  await page.evaluate(() => { MENU.act('back', 'title'); MENU.act('nights'); });
   await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(150);
   check(await page.evaluate(() => new Set([...document.querySelectorAll('#overlay .ncard')].map(c => Math.round(c.getBoundingClientRect().left))).size === 1), 'on a phone, one column');
   await page.setViewportSize({ width: 1280, height: 760 });
+  {
+    // a phone on its side: the nights in three columns and the run on one line, all of it in view, nothing scrolled
+    const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true }), mp = await ctx.newPage();
+    await mp.goto(URL); await mp.waitForTimeout(300);
+    await mp.evaluate(([n, t]) => { localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: { t, nights: n } }, settings: {} })); }, [runNights, runT]);
+    await mp.goto(URL); await mp.waitForTimeout(300);
+    await mp.tap('#overlay button[data-act="nights"]'); await mp.waitForTimeout(250);
+    const r = await mp.evaluate(() => { const p = document.querySelector('#overlay .panel'), b = p.getBoundingClientRect(), cards = [...document.querySelectorAll('#overlay .ncard')]; return { fits: p.scrollHeight <= p.clientHeight + 1, inView: b.top >= 0 && b.bottom <= innerHeight, cols: new Set(cards.map(c => Math.round(c.getBoundingClientRect().left))).size, h1: document.querySelector('#overlay h1').getBoundingClientRect().top >= 0 }; });
+    check(r.fits && r.inView && r.cols === 3 && r.h1, 'on a phone on its side the Scores fit, nights in three columns (' + JSON.stringify(r) + ')');
+    await mp.screenshot({ path: path.join(__dirname, 'shots', 'phone-scores.png') });
+    await mp.tap('#overlay button[data-act="reset"]'); await mp.waitForTimeout(250);
+    check(await mp.evaluate(() => { const b = document.querySelector('#overlay .confirm .cpanel').getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight; }), 'and its Erase question is all in view');
+    await ctx.close();
+  }
 
   console.log('== the full run ==');
   await page.evaluate(() => localStorage.clear());
@@ -377,7 +439,7 @@ const hoverHit = lookFor;
   await playFor(1);
   await page.evaluate(() => { win(); for (let k = 0; k < 60; k++) G.step(0.05); });
   check(await page.evaluate(() => Math.abs(G.run.t - 3) < 0.06 && G.run.night === 1), 'a night won: the run goes on to the next, and the watching after is not on the clock');
-  check(await page.evaluate(() => G.run.nights.length === 1 && Math.abs(G.run.nights[0].t - 1) < 0.06), 'and it keeps the time of the attempt that won it (' + await page.evaluate(() => JSON.stringify(G.run.nights)) + ')');
+  check(await page.evaluate(() => G.run.nights.length === 1 && Math.abs(G.run.nights[0].t - 3) < 0.06 && Math.abs(G.run.from - G.run.t) < 1e-9), 'and it keeps the night\'s share of the run\'s clock, every attempt at it (2 s and, after the restart, 1 s) (' + await page.evaluate(() => JSON.stringify(G.run.nights)) + ')');
   await page.evaluate(() => proceedFromSurvived());
   check(await page.evaluate(() => G.levelIndex === 1 && G.run && G.run.night === 1), 'Next night keeps the run');
   await page.evaluate(() => { G.overlayArmed = 0; proceed(); for (let k = 0; k < 20; k++) G.step(0.05); G.L.creature.u = 0.999; for (let k = 0; k < 200 && G.state !== 'dead'; k++) G.step(0.05); });
@@ -390,14 +452,26 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.levelIndex === 0 && G.run && G.run.t === 0 && G.run.night === 0), 'Begin again: a new run, from night 1');
   await page.evaluate(() => { startLevel(3, true); });
   check(await page.evaluate(() => G.run === null), 'a night started directly (a test\'s ?level=) is no run');
-  // the last night won with a run on it: counted, and kept if it is the best
-  const last = await page.evaluate(() => { G.run = { t: 900, night: LEVELS.length - 1 }; startLevel(LEVELS.length - 1, false); for (let k = 0; k < 20; k++) G.step(0.05); win(); return { best: SAVE.data.bestRun.nightmare, run: G.run, saved: JSON.parse(localStorage.getItem('itscoming.v2')).bestRun.nightmare }; });
-  check(last.best > 900 && last.best < 902 && last.saved === last.best && last.run === null, 'winning the last night on a run records the full run, in the save (' + JSON.stringify(last) + ')');
-  check(await page.evaluate(b => G.lastRun && Math.abs(G.lastRun.t - b) < 0.06 && !!G.lastRun.nights[LEVELS.length - 1], last.best), 'and keeps it for the results after the ending');
-  await page.evaluate(() => { G.run = { t: 1500, night: LEVELS.length - 1 }; startLevel(LEVELS.length - 1, false); win(); });
-  check(await page.evaluate(b => SAVE.data.bestRun.nightmare === b && Math.abs(G.lastRun.t - 1500) < 1, last.best), 'a slower run does not replace the best, though the results show its own time');
+  // the last night won with a run on it: counted, and kept (whole time and breakdown) if it is the best; a full run's
+  // nights add up to its whole time, each night its share of the run's clock (from the run's time when it began)
+  const last = await page.evaluate(() => { G.run = { t: 900, night: LEVELS.length - 1, from: 880, nights: [] }; startLevel(LEVELS.length - 1, false); for (let k = 0; k < 20; k++) G.step(0.05); win(); return { best: SAVE.data.bestRun.nightmare, run: G.run, saved: JSON.parse(localStorage.getItem('itscoming.v2')).bestRun.nightmare, lr: G.lastRun }; });
+  check(last.best && last.best.t > 900 && last.best.t < 902 && JSON.stringify(last.saved) === JSON.stringify(last.best) && last.best.nights.length === 13 && Math.abs(last.best.nights[12] - (last.best.t - 880)) < 0.011 && last.run === null, 'winning the last night on a run records the full run, its whole time and its nights, in the save (' + JSON.stringify(last.best) + ')');
+  check(last.lr && last.lr.t === last.best.t && JSON.stringify(last.lr.nights) === JSON.stringify(last.best.nights) && last.lr.best === true, 'and keeps it for the results after the ending, the very same numbers, marked a new best (the first run is one)');
+  await page.evaluate(() => { G.run = { t: 1500, night: LEVELS.length - 1, from: 1400, nights: [] }; startLevel(LEVELS.length - 1, false); win(); });
+  check(await page.evaluate(b => SAVE.data.bestRun.nightmare.t === b && Math.abs(G.lastRun.t - 1500) < 1 && G.lastRun.best === false, last.best.t), 'a slower run does not replace the best, though the results show its own time, not marked a best');
+  await page.evaluate(() => { G.run = { t: 300, night: LEVELS.length - 1, from: 250, nights: [] }; startLevel(LEVELS.length - 1, false); win(); });
+  check(await page.evaluate(() => SAVE.data.bestRun.nightmare.t < 301 && G.lastRun.best === true && JSON.parse(localStorage.getItem('itscoming.v2')).bestRun.nightmare.t === SAVE.data.bestRun.nightmare.t), 'a faster one does, saved, and is marked the new best');
   await page.evaluate(() => { startLevel(LEVELS.length - 1, false); win(); });
   check(await page.evaluate(() => G.lastRun === null), 'the last night won with no run on it leaves no run for the results');
+  // a whole run through, every night won on the run: its nights add up to its whole time exactly
+  tv = await page.evaluate(() => {
+    beginRun();
+    for (let i = 0; i < LEVELS.length; i++) { startLevel(i, false); const n = 3 + ((i * 7) % 11); for (let k = 0; k < n; k++) G.step(0.0537); win(); }
+    const sum = G.lastRun.nights.reduce((a, b) => a + b, 0);
+    return { t: G.lastRun.t, sum, n: G.lastRun.nights.filter(x => x > 0).length };
+  });
+  check(tv.n === 13 && Math.abs(tv.sum - tv.t) < 0.06, 'a whole run, night by night: thirteen nights whose times add up to the whole run (' + JSON.stringify(tv) + ')');
+  await page.evaluate(() => { SAVE.data.bestRun = {}; SAVE.persist(); G.lastRun = null; });
 
   console.log('== the win screen between nights ==');
   await page.goto(URL + '?level=1&go&nofr&seed=1'); await page.waitForTimeout(300);
@@ -600,7 +674,7 @@ const hoverHit = lookFor;
     [{ textures: true, reducedFlash: false, reducedMotion: true }, { rt: false, rm: true, rf: true, detail: true }],
     [{ reducedFlash: false, reducedMotion: false }, { rt: false, rm: false, rf: false, detail: true }],
   ]) {
-    await page.evaluate(o => { localStorage.clear(); localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 2 }, complete: {}, bestRun: {}, best: {}, settings: Object.assign({ master: 0.5 }, o) })); }, old);
+    await page.evaluate(o => { localStorage.clear(); localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 2 }, complete: {}, bestRun: {}, settings: Object.assign({ master: 0.5 }, o) })); }, old);
     await page.goto(T.INDEX); await page.waitForTimeout(300);
     const got = await page.evaluate(() => ({ rt: SAVE.data.settings.reduceTextures, rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash, detail: R.detail, old: 'textures' in SAVE.data.settings, master: SAVE.data.settings.master, warned: SAVE.data.warned,
       on: (MENU.act('settings', 'title'), [document.querySelector('input[data-set="reduceTextures"]').checked, document.querySelector('input[data-set="reduceMotionFlash"]').checked]) }));
@@ -624,16 +698,16 @@ const hoverHit = lookFor;
       best: { field: { easy: { time: 40, wins: 1, tries: 2 }, normal: { time: 31.5, wins: 2, tries: 3 }, hard: { time: 50, wins: 1, tries: 4 } } }, settings: { difficulty: 3, muted: true } }));
   });
   await page.goto(T.INDEX); await page.waitForTimeout(300);
-  v = await page.evaluate(() => ({ d: G.difficulty, u: SAVE.data.unlocked, c: SAVE.data.complete, b: SAVE.data.best.field, m: SAVE.data.settings.muted, f: 'fragments' in SAVE.data, r: SAVE.data.bestRun, s: SAVE.data.settings }));
+  v = await page.evaluate(() => ({ d: G.difficulty, u: SAVE.data.unlocked, c: SAVE.data.complete, b: 'best' in SAVE.data || 'best' in JSON.parse(localStorage.getItem('itscoming.v2') || '{}'), m: SAVE.data.settings.muted, f: 'fragments' in SAVE.data, r: SAVE.data.bestRun, s: SAVE.data.settings }));
   check(v.d === 0 && v.u.nightmare === 5 && Object.keys(v.u).length === 1 && v.c.nightmare === true && v.m && !v.f && v.r && !Object.keys(v.r).length && v.s.difficulty === undefined, 'a four-difficulty save: the furthest night reached on any of them, and the campaign complete (' + JSON.stringify(v.u) + ')');
-  check(v.b.nightmare.time === 31.5 && v.b.nightmare.wins === 4 && v.b.nightmare.tries === 9 && Object.keys(v.b).length === 1, 'best time kept, wins and tries added up');
+  check(!v.b && v.r && !Object.keys(v.r).length, 'its best times for single nights are not kept, and no full run is made up from them');
   await page.evaluate(() => {
     localStorage.clear();
     localStorage.setItem('itscoming.v2', JSON.stringify({ v: 3, unlocked: { normal: 6, nightmare: 2 }, complete: {}, fragments: [], best: { road: { normal: { time: 20, wins: 1, tries: 1 }, nightmare: { time: 25, wins: 1, tries: 3 } } }, settings: { difficulty: 1 } }));
   });
   await page.goto(T.INDEX); await page.waitForTimeout(300);
-  v = await page.evaluate(() => ({ u: SAVE.data.unlocked, b: SAVE.data.best.road }));
-  check(v.u.nightmare === 6 && v.b.nightmare.time === 20 && v.b.nightmare.wins === 2 && v.b.nightmare.tries === 4, 'a two-difficulty save folds the same way');
+  v = await page.evaluate(() => ({ u: SAVE.data.unlocked, b: 'best' in SAVE.data, r: SAVE.data.bestRun }));
+  check(v.u.nightmare === 6 && !v.b && !Object.keys(v.r).length, 'a two-difficulty save folds the same way');
   await page.evaluate(() => localStorage.clear());
 
   console.log('== the last night, holding on ==');
@@ -998,17 +1072,56 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => TITLE.on && !document.documentElement.getAttribute('data-theme')), 'and so it is after a reload');
   await page.evaluate(() => { SAVE.setSetting('theme', 'day'); showTitle(); });
   check(await page.evaluate(() => TITLE.on && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme === ''), 'a save from when the morning stayed on the title gets the dark title, and the morning dropped from it');
-  // a full run to the end: this run's times and nothing else (no bests); reduced motion shows it all at once
+  // a full run to the end: this run's times and its whole time with its stars; not a new best, no stamp. Reduced motion
+  // shows it all at once
   tv = await page.evaluate(() => {
     MENU.applySetting('reducedMotion', true);
-    G.lastRun = { t: 1500.4, nights: LEVELS.map((l, i) => ({ t: 30 + i })) };
+    const nights = LEVELS.map((l, i) => 30 + i);
+    G.lastRun = { t: nights.reduce((a, b) => a + b, 0) + 0.4, nights, best: false };
     setState('end'); MENU.show('results');
     const cards = [...document.querySelectorAll('#overlay .rcard')];
-    const o = { in: cards.filter(c => c.classList.contains('in')).length, fin: document.querySelector('#overlay .rlast').classList.contains('in'), first: cards[0].querySelector('.nbest').textContent, second: cards[1].querySelector('.nbest').textContent, label: document.querySelector('#overlay .rrun .rlabel').textContent, time: document.querySelector('#overlay .rrun .rtime').textContent, best: /best/i.test(document.querySelector('#overlay .results').textContent) };
-    MENU.applySetting('reducedMotion', false); G.lastRun = null;
+    const o = { in: cards.filter(c => c.classList.contains('in')).length, fin: document.querySelector('#overlay .rlast').classList.contains('in'), first: cards[0].querySelector('.nbest').textContent, second: cards[1].querySelector('.nbest').textContent, void: cards[12].querySelector('.nbest').textContent, label: document.querySelector('#overlay .rrun .rlabel').textContent, time: document.querySelector('#overlay .rrun .rtime').textContent, stamp: !!document.querySelector('#overlay .stamp'), best: /best/i.test(document.querySelector('#overlay .results').textContent), stars: document.querySelector('#overlay .rrun .stars').getAttribute('aria-label'), role: document.querySelector('#overlay .rrun .stars').getAttribute('role'), drawn: document.querySelectorAll('#overlay .rrun .stars svg').length, on: document.querySelectorAll('#overlay .rrun .star.on').length };
     return o;
   });
-  check(tv.in === 13 && tv.fin && tv.first === '30 s' && tv.second === '31 s' && tv.label === 'This run' && tv.time === '25:00' && !tv.best, 'after a full run: its own times and its whole time, no word of any best; with reduced motion all at once (' + JSON.stringify(tv) + ')');
+  check(tv.in === 13 && tv.fin && tv.first === '30 s' && tv.second === '31 s' && tv.void === '42 s' && tv.label === 'This run' && tv.time === '7:48' && !tv.stamp && !tv.best, 'after a full run that is not a best: its own times and its whole time, no Best run stamp; with reduced motion all at once (' + JSON.stringify(tv) + ')');
+  check(tv.stars === '1 of 3 stars' && tv.role === 'img' && tv.drawn === 3 && tv.on === 1, 'and its stars, drawn three with those earned filled, read out as one ("1 of 3 stars") (' + JSON.stringify(tv) + ')');
+  // a new best: the stamp beside the whole time, on its line, to its right
+  tv = await page.evaluate(() => {
+    G.lastRun = { t: 170.3, nights: LEVELS.map(() => 170.3 / 13), best: true };
+    MENU.show('results');
+    const s = document.querySelector('#overlay .rrun .stamp'), t = document.querySelector('#overlay .rrun .rtime'), a = s && s.getBoundingClientRect(), b = t.getBoundingClientRect();
+    return { stamp: s && s.textContent, right: !!s && a.left >= b.right, level: !!s && a.top < b.bottom && a.bottom > b.top, seen: !!s && getComputedStyle(s).opacity === '1', time: t.textContent, stars: document.querySelector('#overlay .rrun .stars').getAttribute('aria-label') };
+  });
+  check(tv.stamp === 'Best run' && tv.right && tv.level && tv.seen && tv.time === '2:50' && tv.stars === '3 of 3 stars', 'a new best run: a Best run stamp beside its whole time, and under three minutes three stars (' + JSON.stringify(tv) + ')');
+  await shot(page, 'results-best');
+  // the stars by the whole time as shown: under 3:00 three, under 6:00 two, else one
+  tv = await page.evaluate(() => [179, 179.49, 179.5, 180, 359, 359.49, 359.5, 360, 1000].map(t => { G.lastRun = { t, nights: LEVELS.map(() => t / 13), best: false }; MENU.show('results'); return document.querySelector('#overlay .rrun .rtime').textContent + '=' + document.querySelectorAll('#overlay .rrun .star.on').length; }).join());
+  check(tv === '2:59=3,2:59=3,3:00=2,3:00=2,5:59=2,5:59=2,6:00=1,6:00=1,16:40=1', 'stars: 2:59 three, 3:00 two, 5:59 two, 6:00 one (' + tv + ')');
+  // the nights as shown add up to the whole run as shown, on the results and on the Scores alike, whatever the times
+  // (random, and ones made to drift: every night just past a half, or just under)
+  tv = await page.evaluate(() => {
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const sets = [LEVELS.map(() => 20.5), LEVELS.map(() => 20.49), LEVELS.map((l, i) => (i % 2 ? 30.5 : 12.5)), LEVELS.map(() => 59.51)];
+    for (let k = 0; k < 40; k++) sets.push(LEVELS.map(() => 5 + rnd() * 120));
+    const secs = s => { const m = s.match(/^(\d+):(\d\d)$/); return m ? +m[1] * 60 + +m[2] : NaN; };
+    const bad = []; let drifted = 0;
+    const saved = SAVE.data.bestRun.nightmare;
+    for (const nights of sets) {
+      const t = Math.round(nights.reduce((a, b) => a + b, 0) * 100) / 100;
+      if (nights.reduce((a, b) => a + Math.round(b), 0) !== Math.round(t)) drifted++;
+      for (const where of ['results', 'nights']) {
+        if (where === 'results') { G.lastRun = { t, nights, best: false }; MENU.show('results'); } else { SAVE.data.bestRun.nightmare = { t, nights }; MENU.show('nights', { from: 'title' }); }
+        const shown = [...document.querySelectorAll('#overlay .ncard .nbest')].map(e => parseInt(e.textContent, 10));
+        const total = secs(document.querySelector('#overlay .runcard .rtime').textContent);
+        const others = shown.slice(0, -1).every((x, i) => x === Math.round(nights[i]));
+        if (shown.length !== 13 || shown.reduce((a, b) => a + b, 0) !== total || total !== Math.round(t) || !others || shown[12] < 0) bad.push(where + ':' + JSON.stringify({ t, shown, total }));
+      }
+    }
+    if (saved) SAVE.data.bestRun.nightmare = saved; else delete SAVE.data.bestRun.nightmare;
+    MENU.applySetting('reducedMotion', false); G.lastRun = null; setState('end'); MENU.show('ending');
+    return { n: sets.length, drifted, bad: bad.slice(0, 3) };
+  });
+  check(tv.n === 44 && tv.drifted >= 4 && !tv.bad.length, 'over 44 sets of times (' + tv.drifted + ' where rounding each night would drift), the nights shown add up to the whole run shown, on the results and the Scores: each night rounded, The Void taking up the difference (' + JSON.stringify(tv) + ')');
   // a press while it still holds you does nothing; in the meadow a key (R too: it goes on, it does not start the night
   // again), A on a pad, or a tap goes on, just as a click does
   for (const [how, press] of [['a key (R)', async () => page.keyboard.press('r')], ['A on a pad', async () => page.evaluate(() => {

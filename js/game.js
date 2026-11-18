@@ -18,7 +18,7 @@ const G = {
   hb: { next: 0, last: -10 }, toastT: 0, lastToast: { msg: '', t: -10 }, invSig: '', debug: false, paused: false,
   difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, lastLane: {}, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
   run: null,   // the full run under way, if one is: { t, night, nights } (see the run, below)
-  lastRun: null,   // the full run just finished, for the results after the ending: { t, nights }
+  lastRun: null,   // the full run just finished, for the results after the ending: { t, nights: [seconds], best }
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
@@ -174,9 +174,10 @@ function validateContent() {
 // after a death and restarts too, but not the cards, the death and survived screens, the pause menu, the watching once a
 // night is won, or a hidden tab (nothing runs then). It goes on through Next night; quitting to the title ends it, and
 // so does a reload (the run in progress lives only here, not in the save). It is finished, and counted, the moment the
-// last night is won. As it goes it keeps each night's time (the attempt that won it); finished, it is kept as G.lastRun
-// for the results after the ending, which show only this run.
-function beginRun() { G.run = { t: 0, night: 0, nights: [] }; }
+// last night is won. As it goes it keeps each night's share of its clock (every attempt at that night, from its start
+// to its win: from: the clock when it began), so the nights add up to the whole run; finished, it is kept as G.lastRun
+// for the results after the ending (best: true if it was a new best run).
+function beginRun() { G.run = { t: 0, night: 0, from: 0, nights: [] }; }
 // ---------- a new game: the warning, then a black screen and two lines, one after the other ----------
 // Begin first puts up the warning about flashing lights: a card like the other dialogs on black, red words, a solid red
 // Accept (focused: Enter, Space, a click or a tap, or A or Start on a pad) and beside it a quiet Adjust settings, which
@@ -318,11 +319,14 @@ function runWon(L) {
   const r = G.run, last = L.index === LEVELS.length - 1;
   if (last) G.lastRun = null;
   if (!r || r.night !== L.index) { G.run = null; return; }
-  const t = Math.round(L.t * 10) / 10;
-  (r.nights = r.nights || [])[L.index] = { t };
+  // to the hundredth: the results and the save hold the very same numbers, so they read the same
+  const c = x => Math.round(x * 100) / 100;
+  (r.nights = r.nights || [])[L.index] = { t: c(r.t - (r.from || 0)) };
+  r.from = r.t;
   if (last) {
-    G.lastRun = { t: r.t, nights: r.nights };
-    SAVE.recordRun(L.diff.id, r.t); G.run = null;
+    const t = c(r.t), nights = LEVELS.map((l, i) => (r.nights[i] ? r.nights[i].t : null));
+    G.lastRun = { t, nights, best: SAVE.recordRun(L.diff.id, t, nights) };
+    G.run = null;
   } else r.night = L.index + 1;
 }
 
@@ -827,7 +831,6 @@ function win() {
   for (const c of L.creatures) if (c.sealHold) { c.hold = null; c.sealHold = false; } // the aftermath decides where it stands now
   setState('won');
   SAVE.unlock(L.diff.id, L.index + 1);
-  SAVE.recordWin(L.def.id, L.diff.id, L.t);
   runWon(L);
   startAftermath(L);
 }
@@ -841,7 +844,6 @@ function die(c, cause) {
   c.lunge = 0; c.frozen = true; c.lungeFrom = c.dist;
   G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = 0; G.cam.zoomHeld = false; // it rises to eye level, so the view comes up to meet it
   G.deathTime = L.t; G.deathAt = G.t; // the night clock, and the global clock for the toast test (toasts are stamped with G.t)
-  SAVE.recordTry(L.def.id, L.diff.id);
 }
 function deathLine(L) {
   const T = L.text.death || {};

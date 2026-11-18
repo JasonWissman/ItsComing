@@ -108,7 +108,7 @@ async function runStep(page, step) {
           while (Date.now() - t0 < 30000 && (await st(page)).state !== 'end') await page.waitForTimeout(200);
           const s = await st(page);
           check(s.state === 'end', 'the ending played out -> end (' + s.state + ')');
-          const done = await page.evaluate(tier => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.complete && d.complete[tier] === true && d.best[LEVELS[LEVELS.length - 1].id] && d.best[LEVELS[LEVELS.length - 1].id][tier].wins >= 1; }, tier);
+          const done = await page.evaluate(tier => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.complete && d.complete[tier] === true && d.unlocked[tier] === LEVELS.length; }, tier);
           check(done, 'campaign marked complete in the save');
           continue;
         }
@@ -118,8 +118,9 @@ async function runStep(page, step) {
         while (Date.now() - t0 < 12000 && (await st(page)).state !== 'survived') await page.waitForTimeout(200);
         s = await st(page);
         check(s.state === 'survived', 'aftermath finished -> survived (' + s.state + ')');
-        const saved = await page.evaluate(([id, tier]) => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.best[id] && d.best[id][tier] && d.best[id][tier].wins >= 1 && d.unlocked[tier] >= 1; }, [id, tier]);
-        check(saved, 'win recorded in the save');
+        // (only whole runs are scores: a single night won records how far you have come, no time of its own)
+        const saved = await page.evaluate(([n, tier]) => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !('best' in d) && d.unlocked[tier] >= n; }, [n, tier]);
+        check(saved, 'win recorded in the save (the next night reached)');
       }
     }
   }
