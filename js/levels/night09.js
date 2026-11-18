@@ -34,7 +34,7 @@ Object.assign(ICONS, {
     P_rect(ctx, -0.3, 0.1, 0.62, 0.76, coverD);                  // the back board, a little bigger
     P_rect(ctx, -0.31, 0.12, 0.6, 0.73, paper);                  // the edges of the pages
     P_rect(ctx, -0.34, 0.1, 0.62, 0.74, cover);                  // the front cover
-    P_rect(ctx, -0.34, 0.1, 0.62, 0.05, coverD); P_ell(ctx, 0.2, 0.2, 0.06, 0.04, P.col([120, 70, 58]));   // a worn corner
+    P_rect(ctx, -0.34, 0.1, 0.62, 0.05, coverD);
     P_rect(ctx, -0.22, 0.52, 0.34, 0.13, label); P_line(ctx, -0.18, 0.585, 0.06, 0.585, 0.015, P.col([60, 70, 110]));
     P_rect(ctx, 0.16, 0.08, 0.05, 0.8, band);                    // the elastic band
     for (let k = 0; k < 6; k++) { P_ell(ctx, -0.27 + k * 0.1, 0.86, 0.022, 0.05, ring); }
@@ -79,23 +79,23 @@ Object.assign(ICONS, {
   // ---------------- the notebook ----------------
   // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice, '%' scrawled across a page of its own in
   // blood; {n} an ordinary number, {k} the one to ring
-  const NAMES = ['Danny: {n}, after six', 'Mrs Pell upstairs: {n}', 'the garage: {n}', 'ask for Ray'];   // always in the notebook
+  const NAMES = ['Danny: {n}, on vacation this week', 'Mrs Pell nursing home: {n}', 'DMV: {n}', 'try again tomorrow'];   // always in the notebook
   const NUMBERED = [   // pages with someone ordinary's number on them: at least one more of these is always in it
-    ['#dentist', 'Dr Okafor, Tuesday the 14th', 'twenty to ten', 'if you can\'t make it ring {n}'],
-    ['#night bus', 'from the corner, :15 and :45', 'last one 12.45, not Sundays', 'Star Cabs: {n}'],
-    ['#rota', 'Mon, Tue lates', 'Wed off', 'ask K. about the spare keys', 'K. is on {n}'],
-    ['#surgery', 'Dr Marsh: {n}', 'repeat prescription', 'Fridays, before eleven'],
+    ['#dentist', 'Dr Okafor, Tuesday the 14th', 'twenty to ten', 'if you can\'t make it ring {n}', 'open 9am - 5pm'],
+    ['#night bus', 'from the corner, :15 and :45', 'last one 12.45, not Sundays', 'Full schedule: {n}'],
+    ['#yoga', 'Mon, Tue 7pm', 'Wed off', 'ask Kristy about the spare keys', 'Studio phone {n}'],
+    ['#surgery', 'Dr Marsh: {n}', 'repeat prescription', 'Fridays, before six'],
   ];
   const PLAIN = [
-    ['#shop', 'milk', '~bread', 'batteries, the square kind', 'bulbs, 60', '~stamps', 'something for the cough'],
-    ['#Ruth\'s old address', '22 Corder Lane, top flat', 'the bell doesn\'t work,', 'go around the back', '(she moved. write anyway)'],
-    ['pay the gas', '~library books (3)', 'bins Thursday', '~ring Mum back', 'fix the hall light'],
-    ['#soup', '2 onions, carrots', 'a stock cube', 'an hour, low', 'salt at the end'],
-    ['#birthdays', 'Mum, 3rd March', 'Danny, the 19th', 'Ruth ?'],
+    ['milk', '~bread', 'batteries, the square kind', 'bulbs, 60w', '~stamps', 'flashlight. I can\'t see'],
+    ['#Ruth\'s old address', '22 Corder Lane, top flat', 'the bell doesn\'t work,', 'go around the back', 'she moved.', 'she\'s not there.'],
+    ['pay the gas', '~library books (3)', 'bins Thursday', '~ring Mum back', 'fix the street lamp'],
+    ['#soup', '2 onions, carrots', 'bone broth', 'mystery meat', 'an hour, low', 'salt at the end'],
+    ['#birthdays', 'Carla, March 3rd', 'Danny, May 19th', 'Ruth ?', 'Shadow person ?'],
   ];
-  const COAT = ['saw it again, by the lamps', 'same corner, same time', 'only the eyes, even under the lamps', 'then the teeth. it was smiling', 'it doesn\'t look at the cars'];
+  const COAT = ['saw it again', 'by the lamps', 'only the eyes', 'it\'s looking at me', 'it\'s getting closer', 'it\'s coming'];
   const KEY = ['%{k}'];   // the number to ring, alone on its page, written large and fast in red
-  // seven pages: the thing by the lamps, five ordinary ones and the one with the number, never first; every number distinct.
+  // seven pages: the thing by the lamps, five ordinary ones and the one with the number, never on the first two; every number distinct.
   // The five always include the names with their numbers and one more numbered page, so there are always a few
   // ordinary numbers to mistake for the one
   function writeNotebook(rand) {
@@ -105,7 +105,7 @@ Object.assign(ICONS, {
     const key = num();
     const numbered = shuffle(NUMBERED.slice());
     const pages = shuffle([NAMES, numbered[0], COAT].concat(shuffle(numbered.slice(1).concat(PLAIN)).slice(0, 3)));
-    const keyPage = 1 + Math.floor(rand() * pages.length);
+    const keyPage = 2 + Math.floor(rand() * (pages.length - 1));   // page 3 to 7
     rand();   // one draw kept here, so every seed lays the night out as it always has
     pages.splice(keyPage, 0, KEY);
     const filled = pages.map(lines => lines.map(l => l.replace('{k}', key).replace(/\{n\}/g, () => { const n = num(); others.push(n); return n; })));
@@ -194,11 +194,7 @@ Object.assign(ICONS, {
   };
   function paper(g, back, rand) {
     g.fillStyle = back ? '#d8ceb2' : '#e3d9be'; g.fillRect(0, 0, TW, TH);
-    if (!back && rand() < 0.3) {   // a ring where a cup stood on it
-      const x = TW * (0.55 + rand() * 0.3), y = TH * (0.55 + rand() * 0.3), r = 58 + rand() * 14;
-      g.strokeStyle = 'rgba(140,100,40,.16)'; g.lineWidth = 7; g.beginPath(); g.arc(x, y, r, 0, TAU); g.stroke();
-      g.fillStyle = 'rgba(140,100,40,.06)'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
-    }
+    if (!back && rand() < 0.3) { rand(); rand(); rand(); }   // (where a cup ring was once drawn: the draws kept, so the ink falls as it did)
     g.fillStyle = 'rgba(78,98,140,.33)'; for (let y = RULE0; y < TH - 20; y += RULE) g.fillRect(0, y, TW, 2);
     if (!back) { g.fillStyle = 'rgba(178,72,72,.45)'; g.fillRect(MARGIN, 42, 2, TH - 42); }
     g.fillStyle = 'rgba(110,86,50,.3)'; for (let x = 4; x < TW; x += 9) g.fillRect(x, 40, 4, 1.5);   // the perforation
@@ -237,13 +233,12 @@ Object.assign(ICONS, {
     g.save(); g.translate(TW / 2, TH * 0.45); g.rotate(-6 * DEG); g.font = "italic bold 96px 'Segoe Print', 'Bradley Hand', 'Liberation Serif', Georgia, serif";
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#850c0a'; g.fillText(text, 0, 0, TW - 40); g.restore();
   }
-  // the cover: board covered in worn red-brown cloth, with its label and a worn corner, as it is drawn as a thing you hold
+  // the cover: board covered in worn red-brown cloth, with its label, as it is drawn as a thing you hold
   // (ICONS.notebook); and inside it, bare grey board
   function coverOut(g) {
     const v = g.createRadialGradient(TW * 0.3, TH * 0.2, 20, TW * 0.4, TH * 0.4, TH * 0.85);
     v.addColorStop(0, '#6a3a2c'); v.addColorStop(1, '#3e2119'); g.fillStyle = v; g.fillRect(0, 0, TW, TH);
     g.strokeStyle = 'rgba(20,10,8,.55)'; g.lineWidth = 14; g.strokeRect(7, 7, TW - 14, TH - 14);
-    g.fillStyle = 'rgba(255,225,200,.07)'; g.beginPath(); g.arc(TW * 0.86, TH * 0.9, 46, 0, TAU); g.fill();
     g.fillStyle = 'rgba(0,0,0,.18)'; for (let k = 0; k < 7; k++) g.fillRect(40 + k * 61, 180 + (k % 3) * 140, 2, 60 + (k % 2) * 40);   // scuffs
     g.fillStyle = '#cfc2a0'; g.fillRect(118, 360, 250, 92); g.strokeStyle = 'rgba(60,40,30,.35)'; g.lineWidth = 3; g.strokeRect(118, 360, 250, 92);
     g.fillStyle = 'rgba(60,70,110,.85)'; g.fillRect(140, 408, 180, 5);

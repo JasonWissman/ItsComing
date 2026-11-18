@@ -42,7 +42,7 @@
   const plain = l => (/^[#~!%]/.test(l) ? l.slice(1) : l);
   const slug = t => t.toLowerCase().replace(/\{[nk]\}/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32);
   // the pages with no heading, named here by their first line (any other is called by its first line)
-  const UNHEADED = [['Danny:', 'Names and numbers', 'names'], ['saw it again', 'The thing by the lamps', 'lamps'], ['pay the gas', 'Things to do', 'todo']];
+  const UNHEADED = [['Danny:', 'Names and numbers', 'names'], ['saw it again', 'The thing by the lamps', 'lamps'], ['pay the gas', 'Things to do', 'todo'], ['milk', 'Shopping list', 'shop']];
   function kindOf(lines, isKey) {
     const L = norm(lines, isKey), head = L.find(l => l[0] === '#');
     const named = !isKey && !head && UNHEADED.find(u => L[0].startsWith(u[0]));
@@ -79,13 +79,13 @@
     ['What it is', '<p>A small reporter\'s pad with its spiral along the top, lying shut on the shelf under the pay phone. Click it and the hand lifts the cover back over the spiral to stand against the backboard; each click after turns the next page back the same way, and a click on the last page shuts it. It is read where it lies, zoomed in (Shift, Z or Space). Each page is drawn once into a 560 x 740 canvas and laid on the pad in perspective.</p>'],
     ['Which pages, in what order', '<ul><li>' + nPages + ' pages behind a red-brown cloth cover (bare grey board inside).</li>' +
       '<li>Always in it: ' + always.map(k => '<b>' + esc(k.title) + '</b>').join(', ') + ', and the page with the number.</li>' +
-      '<li>Then one of the dated pages with someone\'s number on it (dentist, night bus, rota, surgery), and three more drawn from the other numbered pages and the plain ones (' + some.length + ' to choose from in all), so there are always a few ordinary numbers to mistake for the one.</li>' +
-      '<li>Those six are shuffled; the page with the number is then put in at a random place, never first: page ' + keySlots.join(', ') + ', each about as often.</li>' +
+      '<li>Then one of the dated pages with someone\'s number on it (dentist, night bus, yoga, surgery), and three more drawn from the other numbered pages and the plain ones (' + some.length + ' to choose from in all), so there are always a few ordinary numbers to mistake for the one.</li>' +
+      '<li>Those six are shuffled; the page with the number is then put in at a random place, never on the first two: page ' + keySlots.join(', ') + ', each about as often.</li>' +
       '<li>Chosen per night, per attempt: the night\'s generator is seeded from the run seed, the night and how many nights have been built this session, so a retry is a new notebook. Set the run seed and attempt above to see one.</li></ul>'],
     ['The numbers', '<ul><li>All of them <code>555-01xx</code>, every one different on the page and between pages. The one to ring is drawn first.</li>' +
       '<li>It is alone on its page, scrawled large on a rising slant as if with a fingertip in blood: an SVG drawn with each figure leaning and sized differently, a dark rim, a skipping second pass, a wet sheen, blood soaked into the paper, a smear wiped under it, drips running down and spots flicked off. Until that image loads, the same figures in a plain red italic.</li>' +
       '<li>Every other number belongs to someone ordinary and is not in service; the phone says so.</li></ul>'],
-    ['The hand', '<ul><li>Blue-black ink (<code>#22305c</code>) in an italic handwriting face, 33 px, on blue rules 66 px apart, right of a red margin, under the perforation and nine holes for the spiral; a page in three has a ring where a cup stood. The edges are browned.</li>' +
+    ['The hand', '<ul><li>Blue-black ink (<code>#22305c</code>) in an italic handwriting face, 33 px, on blue rules 66 px apart, right of a red margin, under the perforation and nine holes for the spiral. The edges are browned.</li>' +
       '<li>Each line a little off the level and the margin, each word a little off the line; a line too long for the page runs on to the next rule, indented.</li>' +
       '<li>Marks in the text: <span class="mk">#</span> a heading, underlined; <span class="mk">~</span> crossed out (and a little fainter); <span class="mk">!</span> underlined twice; <span class="mk">%</span> the number in blood. The page number is in small Georgia italic at the foot, bottom right.</li></ul>'],
   ];
@@ -102,7 +102,7 @@
   };
   // the cover and the backs of the pages: drawn the same every time
   const FIXED = [
-    { id: 'cover', title: 'The cover', d: 'Worn red-brown cloth over board, a dark border, a scuffed worn corner, a cream label with a blue line on it, and the holes for the spiral.', canvas: 'out' },
+    { id: 'cover', title: 'The cover', d: 'Worn red-brown cloth over board, a dark border, scuffs, a cream label with a blue line on it, and the holes for the spiral.', canvas: 'out' },
     { id: 'inside-cover', title: 'Inside the cover', d: 'Bare grey board with its grain, seen once the cover is turned back.', canvas: 'inside' },
     { id: 'page-back', title: 'The back of a page', d: 'A little darker paper with the rules but no margin, seen as each page stands turned back against the board.', canvas: 'back' },
   ];
