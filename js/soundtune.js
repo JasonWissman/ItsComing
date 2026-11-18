@@ -18,6 +18,7 @@ const TUNES = {
   'footstep:shoesRun': { pitch: -12 },
   'hinge': { pitch: -11.5, speed: 1.27, tone: 2 },
   'screech': { pitch: 12, speed: 0.63, tone: -1 },
+  'growl': { pitch: -2.5, speed: 0.87, tone: 1 }, 'growl2': { pitch: 3, speed: 0.87, tone: 1 },
   'screechRage': { pitch: 12, speed: 0.63, tone: -1 },
   'ui': { pitch: -12 },
   'pickup': { pitch: -4.5 },

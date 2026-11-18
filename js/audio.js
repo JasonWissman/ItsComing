@@ -442,7 +442,8 @@ const AUDIO = (() => {
       // the demon angry while it holds you (night 13, its first two angry faces): a deep, gravelly growl. A low voice and a rough
       // fifth over it and a breath of grit, all rattled by a fast, uneven flutter (the gravel), lifting a little and sinking
       // as it dies; a little different each time
-      case 'growl': {
+      // (growl2, the second: the same growl, tuned apart from the first in js/soundtune.js)
+      case 'growl': case 'growl2': {
         const t0 = now(), T = 1.45 + Math.random() * 0.2, f = 55 + Math.random() * 8;
         const out = ac.createGain(), lp = ac.createBiquadFilter(), am = ac.createGain(), lfo = ac.createOscillator(), lfoG = ac.createGain();
         out.gain.setValueAtTime(0.0001, t0); out.gain.exponentialRampToValueAtTime(1, t0 + 0.16); out.gain.setValueAtTime(1, t0 + T * 0.55); out.gain.exponentialRampToValueAtTime(0.0001, t0 + T);

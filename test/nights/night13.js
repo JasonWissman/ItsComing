@@ -80,7 +80,7 @@ const ending = [
   key('r', true), key('ArrowLeft', true), ['expect', "G.state === 'won' && !G.L.s.leaving", 'R or a turn does nothing there'],
   ['waitUntil', 'G.L.s.endT > END.neutral[1] + 0.2', 8000],
   ['expect', 'JSON.stringify(window._moods) === "[0,1,2,3,4,5,6]" && G.L.s.shown === 0 && !G.L.s.scare.faces.length && G.L.creature.hug.grab === 1 && G.L.s.meadow === 0', 'it takes them back into itself, and is its grey neutral face again, in the dark, holding you'],
-  ['expect', "(g => g.length === 2 && g[0].u > 0 && g[0].u < 0.5 && g[0].m < 0.5 && g[1].m >= 1.5 && g[1].m <= 2.6)(window._sfx.filter(x => x.n === 'growl'))", 'it growls, deep and gravelly, as its angry face comes up out of the hood and again as it snaps to angry and leans in'],
+  ['expect', "(g => g.length === 2 && g[0].u > 0 && g[0].u < 0.5 && g[0].m < 0.5 && g[1].m >= 1.5 && g[1].m <= 2.6)(window._sfx.filter(x => /^growl/.test(x.n)))", 'it growls, deep and gravelly, as its angry face comes up out of the hood and again as it snaps to angry and leans in'],
   ['expect', "(sc => sc.length === 1 && Math.abs(sc[0].t - END.scare[0]) < 0.2)(window._sfx.filter(x => /screech/.test(x.n)))", 'and screeches only at the scare'],
   ['waitUntil', 'G.L.s.meadow > 0.5', 20000],
   ['expect', 'G.L.creature.hug && G.L.creature.hug.grab === 1 && G.L.s.spin > 0', 'out of the pale light the meadow comes, turning into place, and it is still holding you'],
