@@ -94,6 +94,40 @@ const fleeCases = [0, 1].flatMap(k => [0, 0.25, 0.5, 0.7, 0.85, 0.93, 0.97, 0.99
   ['expect', '__fl.carSeen && __fl.minSep > 0.3', 'street ' + k + ', ' + frac + ' of the way in: the car came and it was never in the car'],
   ['expect', '__fl.hidAt >= 0 && __fl.hidAt < 2.2 && __fl.lampD < 1.2 && __fl.still >= 0.9 && __fl.awayAt >= __fl.hidAt + 0.95 && __fl.doorAt >= 0 && __fl.awayAt >= __fl.doorAt && __fl.walked > 2 && !__fl.onRoad', 'street ' + k + ', ' + frac + ': it scurried behind a lamp post, stood there facing you till the car door opened, and walked off along the pavement'],
 ]));
+// The car's back door opening, from the booth, on either street: the door stands out from the kerb side between the car and
+// you, so wherever on the view it overlaps a part of the car (its side, the lit doorway, the strip and seams along it, the
+// cabin), it must be drawn after it, at every stage of its opening. Stepped by hand, the view held on the door (as the
+// win's view turns to it, at its own zoom and a little either side), each frame drawn and measured on the screen
+const doorOrder = k => `(() => {
+  const L = G.L, s = L.s, c = L.creature, save = [SAVE.recordWin, SAVE.unlock]; SAVE.recordWin = SAVE.unlock = () => {};
+  c.lane = L.lanes[${k}]; L.lane = c.lane; L.laneIdx = ${k}; s.man = null; update(0.001);
+  s.man.t0 = L.t - 0.5 * s.man.arrive; update(0.01); win();
+  // two convex polygons on the view overlap (by more than a hair): no line between them separates them
+  const apart = (a, b) => [a, b].some(P => P.some((p, i) => { const q = P[(i + 1) % P.length], nx = q[1] - p[1], ny = p[0] - q[0], l = Math.hypot(nx, ny) || 1;
+    const pa = a.map(v => (v[0] * nx + v[1] * ny) / l), pb = b.map(v => (v[0] * nx + v[1] * ny) / l);
+    return Math.max(...pa) < Math.min(...pb) + 0.5 || Math.max(...pb) < Math.min(...pa) + 0.5; }));
+  const out = { frames: 0, overlaps: 0, bad: 0, doorSeen: 0 };
+  for (let i = 0; i < 2500 && G.state === 'won' && !(s.end && s.end.doorT !== undefined && L.aftermathT > s.end.doorT + 1); i++) {
+    update(0.01);
+    const e = s.end;
+    if (!e || e.doorT === undefined || i % 4) continue;
+    for (const dy of [-6, 0, 6]) {
+      G.cam.yaw = G.cam.tYaw = e.doorYaw + dy * DEG; G.cam.pitch = G.cam.tPitch = e.doorPitch * 0.8; render();
+      const drawn = (e.drawn || []).filter(p => p.alpha === undefined || p.alpha >= 0.5).map(p => ({ p, v: R.screenPoly(p.pts) })).filter(q => q.v);
+      const door = drawn.filter(q => q.p.door && q.p.alpha === undefined), car = drawn.filter(q => !q.p.door);
+      if (!door.length) continue;
+      out.frames++; out.doorSeen++;
+      for (const d of door) for (const q of car) if (!apart(d.v, q.v)) { out.overlaps++; if (!(d.p.sd < q.p.sd)) out.bad++; }
+    }
+  }
+  SAVE.recordWin = save[0]; SAVE.unlock = save[1];
+  return out;
+})()`;
+const doorCases = [0, 1].flatMap(k => [
+  ['eval', 'restartLevel()'], ['wait', 300],
+  ['eval', 'window.__door = ' + doorOrder(k)],
+  ['expect', '__door.frames > 20 && __door.overlaps > 20 && __door.bad === 0', 'street ' + k + ': the open door is drawn over every part of the car behind it on the view, at every stage of its opening'],
+]);
 // the instruction card's printing, drawn large on a canvas of its own (1 px a tenth of a mm): every letter of it inside the
 // card, clear of its edges by most of the margin, and the heading inside the red band. Returns where the ink reaches (mm in
 // from each edge)
@@ -275,6 +309,7 @@ module.exports = {
     ['waitUntil', 'G.L.aftermathT > G.L.s.end.doorT + 0.6', 3000],
     ['expect', 'Math.abs(wrapPi(G.L.s.end.doorYaw - G.cam.yaw)) < 35 * DEG && Math.abs(wrapPi(G.L.s.end.doorYaw - 45 * DEG)) > 16 * DEG', 'the open door is in view, and not behind the pay phone'],
     ['waitUntil', 'G.L.creature.away', 4000],
+    ...doorCases,
     ...fleeCases,
   ],
 };

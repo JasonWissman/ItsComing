@@ -28,7 +28,7 @@ LEVELS.push({
     hint: 'The lamp is dead; there is a bulb in the drawer. It cannot stand the light, and the covers only hold with the lamp on. Light first; then hold the covers until they are all the way up, before its hands reach you.',
     objective: 'Get the lamp on. Then pull the covers up.',
     death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is not afraid of the dark.', grabbed: 'Its hands pulled their way up the bed to you, and then it came up after them.' },
-    win: 'You pulled the covers over your head. It pulled at them, but you were stronger.',
+    win: 'You pulled the covers over your head.\nIt pulled at them, but you were stronger.',
   },
   lanes: [
     // it starts where it peers round the edge from (WAYS below): the start is held to that, whatever the spread of the night.

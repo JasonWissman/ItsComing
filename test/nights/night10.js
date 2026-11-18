@@ -141,6 +141,29 @@ const caught = [
   ['eval', 'G.attempt = __att0 - 1; restartLevel()'], ['wait', 300],
   ['expect', "G.state === 'play' && !G.L.creature.angry && G.L.s.placedAt < 0", 'the same night again, from the start, the doll calm'],
 ];
+// Doing nothing is the end of you: it comes on all night, so standing still and doing nothing it has you in the end, the
+// slowest way (square on before a live glass, holding it there) within three minutes, and sooner never facing a glass (the
+// view down at the floor). Played out at once, a thirtieth of a second at a time, with nothing touched but where the view
+// is held; then the same night again from the start
+const idle = how => [
+  ['eval', `window.__att0 = G.attempt; window.__idle = (() => {
+    const c = G.L.creature, s = G.L.s, cam = G.cam, k = s.mirrors.findIndex(m => m.live), d0 = c.dist;
+    let t = 0, steady = true, prev = c.dist, seen = 0, n = 0;
+    const hold = () => { cam.yaw = cam.tYaw = k * 90 * DEG; cam.pitch = cam.tPitch = ${how === 'down' ? 'G.L.lookDown' : '0'}; cam.zoom = 1; };
+    hold(); render();   // (the view drawn once held there, so what is seen is judged from it at once)
+    while (G.state === 'play' && t < 400) {
+      hold(); update(1 / 30); t += 1 / 30; n++;
+      if (n % 30 === 0) render();
+      if (G.state === 'play') { if (c.dist > prev + 1e-9) steady = false; prev = c.dist; if (c.seen) seen++; }
+    }
+    return { t, d0, steady, seen: seen / n, state: G.state, cause: G.deathCause };
+  })()`],
+  ['expect', `(r => (r.state === 'dying' || r.state === 'dead') && r.cause === 'unplayed' && r.steady && r.t > 40 && r.t < ${how === 'down' ? 90 : 180} && r.seen ${how === 'down' ? '=== 0' : '> 0.95'})(window.__idle)`,
+    how === 'down' ? 'doing nothing, never facing a glass, it comes on all the while and has you in about a minute' : 'doing nothing square on before a live glass, it creeps in all the while and has you in under three minutes'],
+  ['waitUntil', "G.state === 'dead'", 4000],
+  ['eval', 'G.attempt = __att0 - 1; restartLevel()'], ['wait', 300],
+  ['expect', "G.state === 'play' && G.L.creature.u < 0.02 && !G.L.creature.angry && G.L.s.placedAt < 0", 'the same night again, from the start'],
+];
 module.exports = {
-  nightmare: caught.concat(sheets,dance, emptyTouch, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
+  nightmare: caught.concat(idle('glass'), idle('down'), sheets,dance, emptyTouch, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
 };
