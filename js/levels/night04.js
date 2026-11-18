@@ -33,24 +33,32 @@
       links(ctx, P, [[-0.46, 0.52], [-0.12, 0.58], [0.2, 0.56], [0.46, 0.5]], 8, 1.15, steel);
       links(ctx, P, [[0.18, 0.56], [0.06, 0.3], [0.02, 0.04]], 5, 1.15, steel);
     },
-    // the padlock that will never open: rusted through to orange-brown, pitted, its keyhole choked with rust, and a thick
-    // dull shackle seized a little crooked in the body (the worn look of a decoy drains it further on top of this)
+    // the padlock that will never open: the same padlock as the good ones (js/icons.js padlock), its brass and its steel
+    // shackle, with rust spread over about half of it, from the bottom corner up across the body to the keyhole, pitted
+    // and flaking at its edge, and up one leg of the shackle. Every decoy is drawn worn (wornc drains it toward rust-brown
+    // and darkens it), so the clean brass and steel here are pitched to come out near the good padlocks' (a shade duller),
+    // and the rust to come out rust
     rustlock(ctx, P) {
-      const rust = P.col([178, 90, 40]), rustD = P.col([108, 50, 24]), rustL = P.col([212, 132, 70]), pit = P.col([46, 24, 14]), shackle = P.col([104, 84, 70]);
-      ctx.save(); ctx.translate(0.03, 0.58); ctx.rotate(-0.13);    // the shackle, seized crooked in the body
-      ctx.strokeStyle = shackle; ctx.lineWidth = 0.12; ctx.lineCap = 'butt';
-      ctx.beginPath(); ctx.moveTo(-0.19, -0.02); ctx.lineTo(-0.19, 0.05); ctx.arc(0, 0.05, 0.19, Math.PI, 0, true); ctx.lineTo(0.19, -0.02); ctx.stroke();
-      P_poly(ctx, [[-0.25, 0.02], [-0.13, 0.03], [-0.14, 0.13], [-0.25, 0.1]], rustD); P_poly(ctx, [[0.06, 0.21], [0.16, 0.17], [0.13, 0.25]], rustD);
+      const brass = P.col([186, 192, 56]), brassL = P.col([214, 235, 125]), brassD = P.col([124, 130, 37]), dark = P.col([28, 42, 29]);
+      const steel = P.col([84, 152, 203]), steelL = P.col([109, 180, 227]);
+      const rust = P.col([225, 88, 21]), rustD = P.col([145, 47, 14]), rustL = P.col([249, 123, 48]), pit = P.col([58, 29, 22]);
+      ctx.strokeStyle = steel; ctx.lineWidth = 0.085; ctx.beginPath(); ctx.moveTo(-0.2, 0.55); ctx.lineTo(-0.2, 0.64); ctx.arc(0, 0.64, 0.2, Math.PI, 0, true); ctx.lineTo(0.2, 0.55); ctx.stroke();
+      ctx.strokeStyle = steelL; ctx.lineWidth = 0.022; ctx.beginPath(); ctx.arc(0, 0.64, 0.2, Math.PI * 0.95, Math.PI * 0.62, true); ctx.stroke();
+      ctx.strokeStyle = rust; ctx.lineWidth = 0.085; ctx.beginPath(); ctx.moveTo(-0.2, 0.55); ctx.lineTo(-0.2, 0.64); ctx.arc(0, 0.64, 0.2, Math.PI, Math.PI * 0.8, true); ctx.stroke();   // rust up the left leg
+      P_ell(ctx, -0.2, 0.7, 0.03, 0.022, rustD);
+      P_rect(ctx, -0.3, 0.08, 0.6, 0.5, brass);
+      P_rect(ctx, -0.3, 0.08, 0.6, 0.07, brassD); P_rect(ctx, -0.3, 0.53, 0.6, 0.05, brassL); P_rect(ctx, 0.24, 0.15, 0.06, 0.38, brassD);
+      // the rust, over the bottom and the left of the body, a ragged edge up to the keyhole
+      ctx.save(); ctx.beginPath(); ctx.rect(-0.3, 0.08, 0.6, 0.5); ctx.clip();
+      P_poly(ctx, [[-0.31, 0.07], [0.31, 0.07], [0.31, 0.19], [0.24, 0.23], [0.18, 0.2], [0.12, 0.27], [0.05, 0.25], [0.02, 0.33], [-0.05, 0.36], [-0.1, 0.33],
+        [-0.15, 0.42], [-0.2, 0.4], [-0.24, 0.49], [-0.28, 0.47], [-0.31, 0.53]], rust);
+      P_poly(ctx, [[-0.31, 0.07], [0.31, 0.07], [0.31, 0.13], [0.1, 0.15], [-0.08, 0.13], [-0.2, 0.18], [-0.31, 0.2]], rustD);   // darker along the bottom
+      P_ell(ctx, 0.17, 0.44, 0.035, 0.026, rust); P_ell(ctx, 0.08, 0.5, 0.02, 0.016, rust);   // a spot or two above the edge
+      for (const pts of [[[-0.22, 0.3], [-0.12, 0.27], [-0.14, 0.22], [-0.24, 0.24]], [[0.12, 0.17], [0.2, 0.16], [0.17, 0.12]]]) P_poly(ctx, pts, rustL);   // flaking
+      for (const [x, y, r] of [[-0.18, 0.34, 0.016], [-0.05, 0.22, 0.018], [0.15, 0.13, 0.014], [-0.26, 0.4, 0.013], [0.04, 0.17, 0.012]]) P_ell(ctx, x, y, r, r * 0.8, pit);   // pits
       ctx.restore();
-      // the body, its corners eaten away
-      P_poly(ctx, [[-0.3, 0.09], [0.22, 0.1], [0.31, 0.14], [0.3, 0.55], [0.25, 0.62], [-0.2, 0.6], [-0.3, 0.55], [-0.32, 0.2]], rust);
-      P_poly(ctx, [[-0.3, 0.09], [0.22, 0.1], [0.31, 0.14], [0.31, 0.2], [0.1, 0.17], [-0.12, 0.2], [-0.32, 0.18]], rustD);     // the bottom, rotten darker
-      P_poly(ctx, [[-0.32, 0.3], [-0.2, 0.36], [-0.14, 0.26], [-0.18, 0.18], [-0.32, 0.2]], rustD);                              // a dark scab
-      P_poly(ctx, [[0.02, 0.36], [0.05, 0.36], [0.07, 0.14], [0.0, 0.16]], rustD);                                               // run down from the keyhole
-      P_poly(ctx, [[0.2, 0.55], [0.24, 0.55], [0.25, 0.22], [0.2, 0.26]], rustD);
-      for (const pts of [[[-0.2, 0.5], [-0.06, 0.55], [-0.02, 0.48], [-0.14, 0.44]], [[0.1, 0.3], [0.2, 0.33], [0.18, 0.24], [0.11, 0.24]], [[-0.27, 0.42], [-0.2, 0.44], [-0.22, 0.38]]]) P_poly(ctx, pts, rustL); // flaking
-      for (const [x, y, r] of [[-0.12, 0.38, 0.022], [0.16, 0.48, 0.018], [0.25, 0.35, 0.02], [-0.06, 0.26, 0.02], [0.1, 0.42, 0.014], [-0.24, 0.5, 0.015], [0.04, 0.53, 0.016]]) P_ell(ctx, x, y, r, r * 0.8, pit); // pits
-      P_ell(ctx, 0, 0.42, 0.055, 0.055, pit); P_rect(ctx, -0.018, 0.3, 0.036, 0.12, pit); P_ell(ctx, 0.01, 0.42, 0.03, 0.026, rustD); // the keyhole, choked with rust
+      P_ell(ctx, 0, 0.38, 0.055, 0.055, dark); P_poly(ctx, [[-0.028, 0.37], [0.028, 0.37], [0.045, 0.21], [-0.045, 0.21]], dark);
+      P_poly(ctx, [[-0.045, 0.21], [0.045, 0.21], [0.04, 0.26], [-0.04, 0.26]], rustD);   // the foot of the keyhole crusted over
     },
     // the padlocks' key (the one key opens both): a stout key in the same brass as the locks, lying across its card (a round bow with a hole, a
     // long shank, a two-toothed bit), a bright edge down it so it catches the eye on the dark ground
@@ -121,8 +129,9 @@ LEVELS.push({
     for (const [x0, x1, z0, z1] of [[-3.4, -3.0, -2.8, 2.8], [3.0, 3.4, -2.8, 2.8], [-3.0, -1.2, -2.8, -2.4], [1.2, 3.0, -2.8, -2.4], [-3.0, -1.2, 2.4, 2.8], [1.2, 3.0, 2.4, 2.8]])
       SC.box(L, x0, x1, 0, wallH, z0, z1, stone, { tex: 'stone', texScale: 1.1 });
     for (const z of [2.6, -2.6]) { SC.box(L, -1.4, -1.05, 0, 2.1, z - 0.25, z + 0.25, stoneD); SC.box(L, 1.05, 1.4, 0, 2.1, z - 0.25, z + 0.25, stoneD); }
-    SC.box(L, -0.5, 0.6, 0.4, 0.48, -1.9, -1.5, [72, 62, 50]);
-    for (const [x, z] of [[-0.45, -1.85], [0.55, -1.85], [-0.45, -1.55], [0.55, -1.55]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [60, 50, 40]);
+    // the table, along the west wall between the gates (never in front of either gateway), its long side to the yard
+    SC.box(L, -2.98, -2.58, 0.4, 0.48, 0.05, 1.15, [72, 62, 50]);
+    for (const [x, z] of [[-2.93, 0.1], [-2.63, 0.1], [-2.93, 1.1], [-2.63, 1.1]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [60, 50, 40]);
     SC.groundDots(L, 23, 90, 0.8, 3.0, 360, [50, 56, 40], 0.07);
     const rng = mulberry32(41);
     for (let i = 0; i < 28; i++) { const x = (rng() - 0.5) * 70, z = 5 + Math.pow(rng(), 1.2) * 45; if (Math.abs(x) < 1.8 && z < 25) continue; SC.boulder(L, x, z, 0.6 + rng() * 1.8, (rng() * 1e6) | 0); }
@@ -160,7 +169,7 @@ LEVELS.push({
       { x: 2.0, y: 0.42, z: -2.28, wx: 2.0, wz: -2.4, setup: peg },     // hung on the back wall
       { x: -2.0, y: 0.42, z: 2.28, wx: -2.0, wz: 2.4, setup: peg },     // hung on the wall beside the gate
       { x: 1.9, y: 0, z: -0.5, flat: true },                             // coiled on the ground
-      { x: -0.9, y: 0, z: -1.0, flat: true },                            // coiled on the ground, by the table
+      { x: -0.9, y: 0, z: -1.0, flat: true },                            // coiled on the ground, in the back half
     ];
     const CHAINS = ['chain', 'chain2'], PADLOCKS = ['padlock', 'padlock2'], LOCKS = PADLOCKS.concat('oldlock');
     for (const id of CHAINS) {
@@ -192,12 +201,12 @@ LEVELS.push({
       [
         { deg: 150, dist: 1.7, y: 0 },                  // south-south-east
         { x: -2.0, y: 0, z: -0.9 },                     // west-south-west
-        { x: -1.5, y: 0, z: -1.9 },                     // south-west, off the end of the table
+        { x: -1.5, y: 0, z: -1.9 },                     // south-west, beside the back gate
       ],
     ];
     PADLOCKS.forEach((id, k) => mkItem(L, id, 'Padlock', lockSpots[k], { w: 0.24, h: 0.28, flat: true, icon: 'padlock', held: { grip: 'pinch', at: [-0.2, 0.62], angle: 0.15, size: 0.2 } }));
     mkItem(L, 'gatekey', 'Key', [
-      { x: 0.05, y: 0.48, z: -1.7 },                    // on the table
+      { x: -2.68, y: 0.48, z: 0.6, jitter: 0.05 },     // on the table, on its near side (drawn after the top), and not off its edge
       { x: -2.6, y: 0, z: 1.9 },                        // north-west corner
       { x: 2.5, y: 0, z: -1.3 },                        // south-east
       { x: -0.9, y: 0, z: 2.1 },                        // by the gate post

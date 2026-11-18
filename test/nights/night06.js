@@ -84,6 +84,19 @@ const rain = [
   ['expect', hides(5, 1, -0.7) + ' && !' + hides(5, 1, 0.5), 'out past the side door, the rain behind its open leaf is hidden by it, the rain beside it is not'],
 ];
 const shutIn = [['wait', 300], ['expect', 'G.L.s.sealedN && G.L.s.sealedE && ' + sh + '.openings.length === 0', 'with both ways shut, no rain is in view']];
+// Every place the winch handle can start rests on something drawn there to bear it: at each spot, jittered as far as it
+// may be either way, there is a level face of the room (the deck, the workbench, the shelf, the rowboat's bottom) at its
+// height under it. Nothing hangs on the walls, where no nail or hook is drawn. And the handle this time lies at one of them.
+const onSurface = `(() => {
+  const L = G.L, flats = L.props.filter(p => p.kind === 'poly' && p.pts.length >= 3 && !p.detail && p.pts.every(v => Math.abs(v[1] - p.pts[0][1]) < 1e-4));
+  const inside = (x, z, pts) => { let c = false; for (let a = 0, b = pts.length - 1; a < pts.length; b = a++) { const A = pts[a], B = pts[b]; if ((A[2] > z) !== (B[2] > z) && x < (B[0] - A[0]) * (z - A[2]) / (B[2] - A[2]) + A[0]) c = !c; } return c; };
+  const under = (x, y, z) => flats.some(p => Math.abs(p.pts[0][1] - y) < 0.03 && inside(x, z, p.pts));
+  const bad = L.handleSpots.filter(sp => { const j = sp.jitter !== undefined ? sp.jitter : sp.flat === false ? 0 : 0.12;
+    return [[-1, -1], [-1, 1], [1, -1], [1, 1], [0, 0]].some(([a, b]) => { const w = L.pt(sp.x + a * j, sp.y, sp.z + b * j); return !under(w[0], w[1], w[2]); }); });
+  const h = L.items.find(i => i.id === 'handle');
+  return L.handleSpots.length >= 4 && !bad.length && L.handleSpots.some(sp => Math.abs(sp.y - h.y) < 1e-6) && under(h.x, h.y, h.z);
+})()`;
+const handleSpots = [['expect', onSurface, 'every place the winch handle can start rests on a surface drawn there (deck, bench, shelf, boat), and it lies on one']];
 module.exports = {
-  nightmare: rain.concat(oneOar, winch, door, shutIn),
+  nightmare: handleSpots.concat(rain, oneOar, winch, door, shutIn),
 };
