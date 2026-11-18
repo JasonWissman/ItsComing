@@ -444,6 +444,19 @@ const AUDIO = (() => {
         for (let i = 0; i < 10; i++) noise(1.8, { type: 'bandpass', freq: 260 * Math.pow(1.27, i), q: 1.1, vol: 0.05 + 0.012 * i, attack: 0.7, delay: i * 1.0 });
         tone(46, 10.5, { vol: 0.14, type: 'triangle', endFreq: 120, attack: 3 });
         break;
+      // night 13's scare: the faces of the others taken back into it, a rush of air drawn in, swelling, falling in pitch and
+      // cut off short, a low note rising under it, and a soft blow as the last goes in
+      case 'absorb': {
+        const t0 = now(), T = 0.58, src = ac.createBufferSource(), flt = ac.createBiquadFilter(), g = ac.createGain();
+        src.buffer = noiseBuf; src.loop = true; flt.type = 'bandpass'; flt.Q.value = 1.6;
+        flt.frequency.setValueAtTime(3200, t0); flt.frequency.exponentialRampToValueAtTime(260, t0 + T);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.5, t0 + T); g.gain.linearRampToValueAtTime(0.0001, t0 + T + 0.03);
+        src.connect(flt); flt.connect(g); chain(g, pan);
+        src.start(t0, Math.random() * 1.2); src.stop(t0 + T + 0.08);
+        tone(42, T, { vol: 0.22, type: 'sawtooth', endFreq: 96, attack: T * 0.8, pan });
+        noise(0.18, { freq: 160, vol: 0.6, delay: T, pan }); tone(58, 0.3, { vol: 0.45, endFreq: 32, delay: T, pan });
+        break;
+      }
       case 'birds': { const f0 = 2200 + Math.random() * 1200; for (let i = 0; i < 4 + Math.floor(Math.random() * 4); i++) tone(f0 + Math.random() * 600, 0.07, { vol: 0.05, type: 'sine', endFreq: f0 + 300 + Math.random() * 500, delay: i * 0.11, pan }); break; }
       case 'stingWet': noise(0.5, { freq: 1600, vol: 1.0, attack: 0.002 }); noise(1.4, { type: 'bandpass', freq: 500, q: 1, vol: 0.7, delay: 0.1, attack: 0.05 }); tone(42, 1.4, { vol: 0.7, endFreq: 26 }); tone(700, 0.9, { vol: 0.3, type: 'sawtooth', endFreq: 200, delay: 0.15 }); break;
       case 'stingScrape': noise(1.1, { type: 'bandpass', freq: 2400, q: 3, vol: 0.9, attack: 0.002 }); tone(1400, 0.8, { vol: 0.35, type: 'sawtooth', endFreq: 3000 }); tone(45, 1.3, { vol: 0.7, endFreq: 28, delay: 0.1 }); break;

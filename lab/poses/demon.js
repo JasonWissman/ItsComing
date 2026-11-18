@@ -7,14 +7,14 @@
   // night 13's END, in seconds from when it reaches you
   const END = {
     settle: 1.0, stoop: [0.2, 2.2], near: [0.9, 3.0], lift: [0.8, 2.8], unveil: [2.2, 3.2], grab: [3.6, 3.95], moods: 4.4, lean: [7.2, 7.8, 8.8, 9.6], sad: 11.55,
-    neutral: [15.2, 16.6], forms: [17.0, 20.0], light: [20.6, 27.6], content: [22.6, 23.6], happy: [24.6, 25.6], release: 27.6,
-    walk: [28.6, 32.2], disrobe: [32.8, 35.4], dance: [35.0, 39.5],
+    down: [16.2, 16.8], scare: [17.5, 18.4, 19.0], neutral: [19.0, 19.6], confused: [22.4, 23.2], light: [23.0, 30.0], content: [25.0, 26.0], happy: [27.0, 28.0], release: 30.0,
+    walk: [31.0, 34.6], disrobe: [35.2, 37.8], dance: [37.4, 41.9],
   };
-  // the faces it wears in turn while it holds you (END.forms): each of the others as it comes up into your face in its death
-  // lunge, as night 13 draws them (VOID_RECAP's faceShot, and its FACES, copied here: how far into its lunge, k, and the
-  // square round its face, s its side, x, y its middle off the middle of the view, all as much of the view's height), from
-  // the eye, 0.55 m off, its face at eye level; each drawn once, alone, onto a square canvas of its own. (But the climber:
-  // the night draws it off the wall at you, and far bigger than the lab's camera does)
+  // the faces round it at the scare (END.scare): each of the others as it comes up into your face in its death lunge, as
+  // night 13 draws them (VOID_RECAP's faceShot, and its FACES, copied here: how far into its lunge, k, and the square round
+  // its face, s its side, x, y its middle off the middle of the view, all as much of the view's height), from the eye, 0.55 m
+  // off, its face at eye level; each drawn once, alone, onto a square canvas of its own, its edges let go into the dark.
+  // (But the climber: the night draws it off the wall at you, and far bigger than the lab's camera does)
   const OTHERS = ['walker', 'crawler', 'smiler', 'watcher', 'runner', 'swimmer', 'climber', 'customer', 'signalman', 'other', 'carrier', 'tall'];
   const FACES = {
     walker: { s: 0.42, y: 0.14 }, crawler: { s: 0.9, y: 0.3 }, smiler: { s: 0.6, x: -0.15, y: 0.03 }, watcher: { s: 0.74, x: -0.12, y: -0.06 },
@@ -41,7 +41,7 @@
         const ctx = cv.getContext('2d');
         ctx.translate(cx, cy + ppm * (EYE - c.yOff)); ctx.scale(ppm, -ppm);
         CR.draw(ctx, c, P);
-        return cv;
+        return CREATURES.demon.vignette(cv);
       } catch (e) { console.error(e); return null; }
     });
     Object.assign(R, keep); G.L.eyeH = eye0;
@@ -52,14 +52,15 @@
   // the light it carries (night 13's dynamicLights): its own dull red, more as it rages; while it holds you, the light of
   // its face (moodLight); in the meadow the sun on it. As LIGHT.at has it at its middle, with the flicker LIGHT.update gives
   const DULL = [[200, 60, 60], 0.25, 0.5];
-  const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2], [[200, 176, 184], 0.34, 0.15], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
+  const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2],
+    [[255, 40, 24], 0.85, 0.8], [[200, 176, 184], 0.34, 0.15], [[176, 170, 226], 0.4, 0.25], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
   const flick = (f, t) => 1 + f * 0.35 * (Math.sin(t * 17.3 + 13) + 0.6 * Math.sin(t * 29.1 + 26) + 0.4 * Math.sin(t * 7.7));
   function ownLight(c) {
     const reveal = c.meadow || 0, lv = c.leave || 0, out = [];
     if (c.endT !== undefined) {
       const m = c.mood || 0, i = Math.min(Math.floor(m), MOOD_LIGHT.length - 2), k = smoothstep(m - i), A = MOOD_LIGHT[i], B = MOOD_LIGHT[i + 1], u = c.unveil === undefined ? 1 : c.unveil;
       const more = 0.16 * span(c.endT, 0.3, 2.6) * (1 - Math.min(1, m));
-      out.push({ r: 3, i: (lerp(DULL[1], lerp(A[1], B[1], k), u) + more) * (1 - reveal) * c.fade, color: mixc(DULL[0], mixc(A[0], B[0], k), u), flicker: lerp(DULL[2], lerp(A[2], B[2], k), u), d: 0.1 });
+      out.push({ r: 3, i: (lerp(DULL[1], lerp(A[1], B[1], k), u) * (1 - 0.45 * Math.max(0, c.nod || 0)) + more) * (1 - reveal) * c.fade, color: mixc(DULL[0], mixc(A[0], B[0], k), u), flicker: lerp(DULL[2], lerp(A[2], B[2], k), u), d: 0.1 });
     } else {
       const a = (c.rage || 0) * (1 - (c.calm || 0));
       out.push({ r: 3 + a * 4, i: (0.25 + a * 0.5) * c.fade, color: [200, 60, 60], flicker: 0.5, d: 0.1 });
@@ -97,16 +98,17 @@
   }
   const holdAnger = (c, dt) => { c.rage += (rageFor(c.anger) - c.rage) * Math.min(1, dt * 4); };
   // the ending as night 13's update plays it, t seconds after it reached you (CR.ending). Bent down to you as it was when
-  // it got to you (Y0, as the night bends it over the last few metres). (The nights going by behind it, and the meadow
-  // turning into place, are the night's, not its: see night 13 itself)
+  // it got to you (Y0, as the night bends it over the last few metres). At the scare the faces of the others are round it
+  // (scareBack, scareFront: as night 13 draws them round its face, in the view's own proportions, here the card's). (The
+  // light, the shake and the meadow turning into place are the night's, not its: see night 13 itself)
   const Y0 = -0.42;
   function ending(c, t, dt) {
-    const still = !!c.stillMode, prev = c.dist, o = CR.ending(END, t, D0, Y0);
+    const still = !!c.stillMode, prev = c.dist, o = CR.ending(END, t, D0, Y0, still);
     c.endT = t; c.still = still; c.frozen = true;
-    for (const k of ['settle', 'hug', 'unveil', 'yOff', 'sob', 'calm', 'mood', 'disrobe']) c[k] = o[k];
+    for (const k of ['settle', 'hug', 'unveil', 'yOff', 'sob', 'calm', 'mood', 'nod', 'jolt', 'disrobe']) c[k] = o[k];
     c.dist = o.dist;
     c.meadow = span(t, END.light[0], END.light[1]); c.soft = c.meadow;
-    c.guise = t > END.forms[0] - 1 && t < END.forms[1] + 1 ? CR.guiseAt((t - END.forms[0]) / (END.forms[1] - END.forms[0]) * OTHERS.length, othersFaces(), still) : null;
+    c.scare = CR.scareAt(o.scare, OTHERS.length, still); c.gulp = c.scare.gulp;
     let dance = t > END.dance[0] && t < END.dance[1] ? Math.min(1, (t - END.dance[0]) * 2, (END.dance[1] - t) * 2) : 0;
     const u = (t - END.dance[1] - 7) % 12;
     if (t > END.dance[1] + 7 && u < 2.6 && !c.leaving) dance = 0.5 * Math.min(1, u * 2, (2.6 - u) * 2);
@@ -116,6 +118,13 @@
     c.gait += moved * CR.stepRate * Math.PI; c.moving = moved > 0.024 * dt;
     if (!c.moving) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
   }
+  // the faces at the scare, behind it or in front of it (layer), round the middle of its face, a unit the card's height
+  const scareLayer = layer => (ctx, c) => {
+    if (!c.scare || !c.scare.faces.length) return;
+    const M = ctx.getTransform(), ppm = Math.hypot(M.c, M.d) / (ctx.canvas.width / R.W), vh = R.H / ppm;
+    ctx.translate(0, CR.eyesY(c) - 0.03); ctx.scale(vh, -vh);
+    CR.scareDraw(ctx, othersFaces(), c.scare, layer, 1, R.W / 2 / R.H);
+  };
   // a stretch of the ending, from t0 on
   const endPart = (t0, extra) => Object.assign({
     still: true,
@@ -140,10 +149,13 @@
       endPart(0, { name: 'It lifts its arms, and takes hold of you', note: 'Caught empty-handed and facing it (the ending): it stops, its head comes level, it bends down to you and its arms come up, the hands open, high either side of its head; its angry face comes up out of the hood; then, quick, it reaches out and takes hold of you, the arms coming at you out of the bottom of the view and the hands at its lower corners, the fingers curling in over your shoulders.', dur: 4.6, fit: { h: 2.8, y0: 1.35, w: 0.9 } }),
       endPart(END.moods - 0.2, { name: 'Its faces, holding you', note: 'Holding you, its face goes through angry, neutral, angry again (leaning in close at you, and drawing back), confused, then a glitching flicker of faces (pain, envy, sorrow, grimace, terror, empty, shock, each snapped to the next) to sad, crying, its light changing with each.', dur: 7.6, fit: FACE }),
       endPart(END.lean[0] - 0.3, { name: 'Angry again, leaning in', note: 'Into its second angry face it leans in at you, closer (0.48 m) and lower, holds it, and draws back to where it was as it goes confused.', dur: 3.4, fit: FACE }),
-      endPart(END.sad - 0.2, { name: 'Crying, holding you', note: 'Sad, it cries a while, still holding you (the tears running, its shoulders heaving in sobs); then it stops, and its face is the grey neutral face again.', dur: 5.6, fit: FACE }),
+      endPart(END.sad - 0.2, { name: 'Crying, holding you', note: 'Sad, it cries a while, still holding you (the tears running, its shoulders heaving in sobs); then it stops, and its head starts to go down.', dur: 5.2, fit: FACE }),
       endPart(END.sad + 1, { name: 'Crying, reduced motion', note: 'The same with reduced motion on (c.still): no heaving or trembling, the tears not running.', dur: 3, hold: true, reduced: true, fit: FACE }),
-      endPart(END.forms[0] - 0.4, { name: 'Wearing their faces', note: 'Neutral, still holding you, it wears the face of each thing that came for you before, in the order they came, each as it was coming up into your face in its death lunge, held a quarter of a second and snapped to the next, its head jumping to a new angle and place with each (behind it, in the night, not here, the night that one came in shows faint and still); then its own face again.', dur: 4, fit: FACE }),
-      endPart(END.forms[0] - 0.4, { name: 'Wearing their faces, reduced motion', note: 'The same with reduced motion on: each face comes slowly over the one before, and its head keeps still.', dur: 4, reduced: true, fit: FACE }),
+      endPart(END.down[0] - 0.4, { name: 'Looking down', note: 'Done crying, still holding you, its head goes down, bowed to the ground: lower, the opening of the hood lower and narrower, its sad face low in it and lost in the shadow of the hood, its light lower. It is still a moment.', dur: 2.0, fit: FACE }),
+      endPart(END.scare[0] - 0.5, { name: 'The scare', note: 'All at once it throws its head back (in a tenth of a second), its face enraged, the jaw dropped, its head seizing; and round it in the dark, all at once, big, are the faces of all the others, each as it came up into your face in its death lunge, jittering and glitching. (In the night: its screech, a blow under it, a shake and a flash.)', dur: 1.5, fit: FACE, back: scareLayer('back'), front: scareLayer('front') }),
+      endPart(END.scare[1] - 0.15, { name: 'Taking them back', note: 'One after another the faces fly into the opening of its hood, turning and shrinking to nothing, in front of it as they go, the opening widening as each goes in; its head comes forward and level, and its face goes back to grey.', dur: 1.6, fit: FACE, back: scareLayer('back'), front: scareLayer('front') }),
+      endPart(END.down[0] - 0.4, { name: 'The scare, reduced motion', note: 'The same with reduced motion on: its head lifts slowly and not as far, no seizing; the faces fade in where they are, keep still, and fade out one after another.', dur: 3.4, reduced: true, fit: FACE, back: scareLayer('back'), front: scareLayer('front') }),
+      endPart(END.scare[2] - 0.2, { name: 'Grey again, and confused', note: 'Its grey neutral face again, a few seconds, in the dark, still holding you; then confused, as the pale light starts to come.', dur: 4.6, fit: FACE }),
       endPart(END.content[0] - 0.4, { name: 'Content, happy, letting go', note: 'As the meadow comes out of the pale light and turns into place: content, then happy; then it lets you go (its hands open and its arms come away and down) and straightens, settled and smaller.', dur: 6.6, fit: { h: 2.8, y0: 1.35, w: 1.2 } }),
       endPart(END.release - 0.2, { name: 'Letting go, stepping back', note: 'It lets you go and straightens up, settled and smaller, and steps back to 3.3 m.', dur: 5.6, fit: { h: 2.8, w: 1.3 } }),
       endPart(END.disrobe[0] - 0.3, { name: 'Taking off its robe', note: 'In the meadow, as the music box starts: its hands go up and push the hood back, take the robe at the shoulders and let it drop, the sleeves and black gloves sliding off with it; it hops clear of the heap.', dur: 3.4, fit: { h: 2.8, w: 1.6 } }),

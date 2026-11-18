@@ -5,11 +5,12 @@
 // are empty. It comes from anywhere, a tall thing in a black hood. Take up anything and it is enraged: it screeches, and
 // comes on in fits; put it all down again and it calms, and is quiet. The ending plays out here, without a cut: caught
 // empty-handed and facing it, it stops and lifts its arms, its face comes out of the dark of its hood, angry, and it takes
-// hold of you; its face goes through angry, neutral, angry (leaning in at you), confused and sad, and it cries, holding you,
-// and comes back to its grey neutral face. Then, still holding you, it wears the faces of all the others, one after
-// another, each as it was when it came up into your face, and behind it each one's night shows faint and still: it was
-// this one all along. Its own face again, in the dark, and the dark opens into a pale light; it is content, and happy,
-// and the meadow comes out of the light, turning and settling into place in the sun. It lets you go and steps back, and
+// hold of you; its face goes through angry, neutral, angry (leaning in at you), confused and sad, and it cries, holding you.
+// It stops, and its head goes down, bowed to the ground, its face lost in the hood; and all at once it throws its head back,
+// enraged, screeching, and all round it in the dark are the faces of all the others, each as it was when it came up into
+// your face: it was this one all along. It takes them back into itself, one after another, and its face is its grey
+// neutral face again, a while, in the dark. Confused, as the dark opens into a pale light; it is content, and happy, and
+// the meadow comes out of the light, turning and settling into place in the sun. It lets you go and steps back, and
 // there you may look about as long as you like; a press and it is the bedroom. The bow still comes up and draws as it did on night 5, but it is
 // never loosed: drawn at, it comes for you, faster and faster, and is on you before the bow is full.
 const VOID_TOOLS = [
@@ -50,17 +51,18 @@ const END = {
   moods: 4.4,                           // then its faces in turn, each held and going into the next (CREATURES.demon.moodAt):
   lean: [7.2, 7.8, 8.8, 9.6],           // angry again, it leans in at you, close, and draws back as it is confused;
   sad: 11.55,                           // through the glitch to sad, crying
-  neutral: [15.2, 16.6],                // it cries a while, holding you, and stops: its grey neutral face again
-  forms: [17.0, 20.0],                  // and, still holding you, it wears the face of each thing that came for you before, one
-                                        // after another, its head jumping with each, while behind it the night that thing came
-                                        // in shows faint and still (VOID_RECAP); then its own face again, in the dark
-  light: [20.6, 27.6],                  // the pale void, and the meadow coming out of it, turning and settling into place
-  content: [22.6, 23.6], happy: [24.6, 25.6],   // content, and happy
-  release: 27.6,                        // and, the meadow settled, it lets you go
-  walk: [28.6, 32.2],                   // it steps back and round to the north, where the foot of the bed will be
-  disrobe: [32.8, 35.4],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
-  dance: [35.0, 39.5],                  // and dances a little to the tune in its shirt and shorts
-  wait: 33.4, arm: 34.0, idle: 5,       // from here the meadow is yours to look about in, and waits for a press (taken from
+  down: [16.2, 16.8],                   // it cries a while, holding you, and stops, its head going down, bowed to the ground
+  scare: [17.5, 18.4, 19.0],            // and still; then it throws its head back, enraged, and the faces of all the others are
+                                        // round it at once (VOID_RECAP); and it takes them back into itself, one after another
+  neutral: [19.0, 19.6],                // its grey neutral face again, a while, in the dark
+  confused: [22.4, 23.2],               // confused,
+  light: [23.0, 30.0],                  // as the pale void comes, and the meadow coming out of it, turning and settling into place
+  content: [25.0, 26.0], happy: [27.0, 28.0],   // content, and happy
+  release: 30.0,                        // and, the meadow settled, it lets you go
+  walk: [31.0, 34.6],                   // it steps back and round to the north, where the foot of the bed will be
+  disrobe: [35.2, 37.8],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
+  dance: [37.4, 41.9],                  // and dances a little to the tune in its shirt and shorts
+  wait: 35.8, arm: 36.4, idle: 5,       // from here the meadow is yours to look about in, and waits for a press (taken from
                                         // `arm`); if you do nothing for `idle` seconds a small line says how to go on
   leave: 4.2,                           // after the press: the meadow and it fade, the bedroom comes up, and then the last screen
 };
@@ -80,7 +82,7 @@ LEVELS.push({
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;
-    Object.assign(s, { ending: false, endT: 0, reveal: 0, meadow: 0, room: 0, lv: 0, gone: 0, glitterAt: -1, wait: false, leaving: false, leaveT: 0, idle: 0, form: -1, backdrop: 0, spin: 0 });
+    Object.assign(s, { ending: false, endT: 0, reveal: 0, meadow: 0, room: 0, lv: 0, gone: 0, glitterAt: -1, wait: false, leaving: false, leaveT: 0, idle: 0, scare: null, shown: 0, spin: 0 });
     // a floor that is only a floor near you (and the lamp, off, a little way out): the void's own props, which fade as the light comes
     const v0 = L.props.length;
     // (in narrow rings of many sides, so it darkens smoothly instead of in visible steps; drawn before the room's floors,
@@ -252,18 +254,20 @@ LEVELS.push({
         cr.yaw = yaw0 + wrapPi(yaw1 - yaw0) * span(s.endT, END.walk[0], END.walk[1]);
         return s.pose.dist;
       };
-      VOID_RECAP.begin();   // (the nights gone by, drawn ready while it holds you)
+      VOID_RECAP.begin();   // (the faces of the others, drawn ready while it holds you)
       AUDIO.sfx('stingHum'); win(); return true;
     };
     const LAST = CREATURES.demon.moods - 1;
     // the light on it while it holds you follows its face: its own dull red while the face is still in the dark of the hood,
-    // red hot when it is angry, grey when it is neither, cold when it is lost and sad, warm when it is content and happy (as
-    // the light coming is). One for each face, in the order of DEMON_MOODS
+    // red hot when it is angry (hotter yet at the scare), grey when it is neither, cold when it is lost and sad, warm when it
+    // is content and happy (as the light coming is); and lower while its head is bowed. One for each face, in the order of
+    // DEMON_MOODS
     const DULL = [[200, 60, 60], 0.25, 0.5];
-    const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2], [[200, 176, 184], 0.34, 0.15], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
+    const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2],
+      [[255, 40, 24], 0.85, 0.8], [[200, 176, 184], 0.34, 0.15], [[176, 170, 226], 0.4, 0.25], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
     const moodLight = c => {
       const m = c.mood || 0, i = Math.min(Math.floor(m), MOOD_LIGHT.length - 2), k = smoothstep(m - i), A = MOOD_LIGHT[i], B = MOOD_LIGHT[i + 1], u = c.unveil === undefined ? 1 : c.unveil;
-      return { color: mixc(DULL[0], mixc(A[0], B[0], k), u), i: lerp(DULL[1], lerp(A[1], B[1], k), u), flicker: lerp(DULL[2], lerp(A[2], B[2], k), u) };
+      return { color: mixc(DULL[0], mixc(A[0], B[0], k), u), i: lerp(DULL[1], lerp(A[1], B[1], k), u) * (1 - 0.45 * Math.max(0, c.nod || 0)), flicker: lerp(DULL[2], lerp(A[2], B[2], k), u) };
     };
     // where the room's furniture will stand (x0, x1, z0, z1, as buildBedroom puts them): the bed, the nightstand, the chair, the
     // dresser; a thing lying there, or against or beyond a wall, is in the way of the room
@@ -305,10 +309,10 @@ LEVELS.push({
       c.still = still;
       // it lifts its arms, its face comes out of the dark, angry, and it takes hold of you; its face goes through what it was
       // until it is sad, and it cries, holding you, and stops; content, happy, it lets you go and straightens up, settled
-      const o = s.pose = CREATURES.demon.ending(END, t, s.d0, s.y0);
-      for (const k of ['settle', 'hug', 'unveil', 'yOff', 'sob', 'calm', 'mood', 'disrobe']) c[k] = o[k];
+      const o = s.pose = CREATURES.demon.ending(END, t, s.d0, s.y0, still);
+      for (const k of ['settle', 'hug', 'unveil', 'yOff', 'sob', 'calm', 'mood', 'nod', 'jolt', 'disrobe']) c[k] = o[k];
       s.grab = o.hug ? o.hug.grab : 0;
-      VOID_RECAP.step(t);   // (the next of the nights gone by, drawn ready, while it is still holding you)
+      VOID_RECAP.step(t);   // (the next of the faces of the others, drawn ready, while it is still holding you)
       // a thing this close is drawn from its feet: looked up at too steeply, they would be behind the eye and it would vanish,
       // so the view never looks up further than keeps them in front (it bends down to you, so the view comes level anyway)
       const up = Math.atan(0.7 * c.dist / Math.max(0.5, L.eyeH - c.pos().y - c.yOff));
@@ -317,17 +321,26 @@ LEVELS.push({
       if (t >= END.grab[1] + 0.6 && !s.held) { s.held = true; AUDIO.voice('exhale', 0.5, 0); }
       if (c.mood >= 3.5 && !s.sob) { s.sob = true; s.sobT = 3.4; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
       if (s.sob && c.sob > 0.5) { s.sobT -= dt; if (s.sobT <= 0) { s.sobT = 3.6; AUDIO.voice('slow', 0.38, 0); } }   // crying, holding you
-      if (t >= END.neutral[1] - 0.6 && !s.breath) { s.breath = true; AUDIO.voice('exhale', 0.4, 0); }   // and it stops, with a long breath
-      if (t >= END.forms[0] - 0.05 && !s.warp) { s.warp = true; AUDIO.sfx('warp', 0); }   // and it starts to change
+      if (t >= END.down[0] - 0.2 && !s.breath) { s.breath = true; AUDIO.voice('exhale', 0.3, 0); }   // and it stops, with a breath, and is still
+      // the scare: its head thrown back, its screech (as it screeches enraged, and as it took hold of you) with a blow under
+      // it, the view shaken and a flash (no shake with reduced motion, no flash with reduced flashing), and the faces of all
+      // the others round it at once (VOID_RECAP: s.scare, where each is); then a rush of air drawn in as it takes them back
+      // (c.gulp, its hood's opening wider as each goes in), and its breath going out after
+      if (t >= END.scare[0] && !s.scared) {
+        s.scared = true; AUDIO.sfx('screech', 0); AUDIO.sfx('thud', 0);
+        if (!still) G.shake(0.6);
+        if (!SAVE.data.settings.reducedFlash) G.flash(0.6);
+      }
+      if (t >= END.scare[1] && !s.took) { s.took = true; AUDIO.sfx('absorb', 0); }
+      if (t >= END.neutral[0] + 0.3 && !s.breath2) { s.breath2 = true; AUDIO.voice('exhale', 0.4, 0); }
+      s.scare = CREATURES.demon.scareAt(o.scare, VOID_RECAP.count(), still);
+      c.gulp = s.scare.gulp;
+      s.shown = s.scare.faces.filter(f => f.back + f.front > 0.5 && VOID_RECAP.faces[f.i]).length;
+      if (t >= END.light[0] - 1.5 && !s.warp) { s.warp = true; AUDIO.sfx('warp', 0); }   // the dark starting to turn
       if (c.mood >= LAST && !s.hum) { s.hum = true; AUDIO.voice('hum', 0.5, 0); }   // happy
       if (t >= END.release && !s.let) { s.let = true; AUDIO.sfx('cloth', 0); }   // it lets you go
-      // it wears the faces of the others, each in turn, and the night each came in is behind it, faint (VOID_RECAP: s.form,
-      // where it is in them, a step each, and s.backdrop, whether they are there at all); then its own face again, and the
-      // light: the pale void, and out of it the meadow in the sun, turning round you (s.spin) and settling into place;
+      // the light: the pale void, and out of it the meadow in the sun, turning round you (s.spin) and settling into place;
       // later, after a press, the meadow goes and the room is there
-      s.form = (t - END.forms[0]) / (END.forms[1] - END.forms[0]) * VOID_RECAP.count();
-      c.guise = VOID_RECAP.guise(s.form, still);
-      s.backdrop = c.guise ? 1 : 0;
       const mv = s.meadow = span(t, END.light[0], END.light[1]);
       s.spin = still ? 0 : 1.25 * Math.PI * Math.pow(1 - clamp((t - END.light[0]) / (END.release - END.light[0]), 0, 1), 3);
       if (s.leaving) s.leaveT += dt;
@@ -342,10 +355,10 @@ LEVELS.push({
       for (const k of ['skyTop', 'fog', 'ground']) L.pal[k] = mixc(pal(k), MORNING_PAL[k], lv);
       L.pal.fogDist = lerp(mv < VOID_PALE ? lerp(VOID_PAL.fogDist, PALE_PAL.fogDist, mv / VOID_PALE) : lerp(PALE_PAL.fogDist, MEADOW_PAL.fogDist, pale * pale), MORNING_PAL.fogDist, lv);
       c.soft = mv;
-      // everything on the floor goes as it puts on the first of the faces; and if anything is still there as the light
-      // comes, one thing at a time: first what lies where the bed, the nightstand, the chair or a wall will be
+      // everything on the floor goes as the faces come; and if anything is still there as the light comes, one thing at a
+      // time: first what lies where the bed, the nightstand, the chair or a wall will be
       const left = L.items.filter(i => !i.taken);
-      if (s.backdrop > 0.98) for (const i of left) i.taken = true;
+      if (t >= END.scare[0]) for (const i of left) i.taken = true;
       if (mv > 0.08 && left.length && mv > s.gone) { (left.find(inTheWay) || left[0]).taken = true; s.gone = mv + 0.5 / tools.length; }
       if (mv > 0.05 && !s.dawn) { s.dawn = true; AUDIO.stopAmbient(); if (AUDIO.on()) AUDIO.startAmbient({ tune: 'ambient:13dawn', wind: 0.32, drone: 0, windFreq: 760 }); WEATHER.set({ kind: 'motes', density: 1.0, wind: 0.15 }, 7); }   // a breeze, and pollen in the sun
       if (mv > 0.3) { s.birdT = (s.birdT === undefined ? 0.5 : s.birdT) - dt; if (s.birdT <= 0) { s.birdT = 1.5 + Math.random() * 2.8; AUDIO.sfx('birds', Math.random() * 1.6 - 0.8, true); } }
@@ -433,7 +446,10 @@ LEVELS.push({
       pools();
       fallDraw();
       meadow.draw();
-      VOID_RECAP.add(s);   // (the nights gone by, behind it)
+      if (s.scare && s.scare.faces.length) {   // (the faces of the others, round the middle of its face as it is drawn)
+        const c = c0(), p = c.pos(), at = R.screenPos(p.x, drawnAt(c, CREATURES.demon.eyesY(c) - 0.03), p.z);
+        if (at) VOID_RECAP.add(s.scare, at);
+      }
       if (s.glitterAt < 0) return;
       // the glitter: sparks spiralling up and out from where it stood, twinkling, gone in a few seconds (with reduced motion
       // they drift up and out without turning; with reduced flashing they glow steadily as they go)
@@ -456,7 +472,8 @@ LEVELS.push({
         out.push({ x: p.x, y: 1.4, z: p.z, r: 3, i: (ml.i + more) * (1 - s.reveal) * c.fade, color: ml.color, flicker: ml.flicker, seed: 13 });
       }
       else if (c.fade > 0.05) out.push({ x: p.x, y: 1.4, z: p.z, r: 3 + a * 4, i: (0.25 + a * 0.5) * (1 - s.reveal) * c.fade, color: [200, 60, 60], flicker: 0.5, seed: 13 });
-      if (s.backdrop > 0.01) out.push({ x: p.x, y: 2.4, z: p.z, r: 2.6, i: 0.2 * s.backdrop * (1 - s.reveal), color: [196, 186, 236], flicker: 0.3, seed: 31 });   // the nights behind it, catching its edges
+      const up = s.scare ? Math.min(1, s.shown / 6) : 0;
+      if (up > 0.01) out.push({ x: p.x, y: 2.4, z: p.z, r: 2.6, i: 0.3 * up, color: [196, 186, 236], flicker: 0.5, seed: 31 });   // the faces round it, catching its edges
       if (m > 0.01) out.push({ x: p.x * 0.6 - 2, y: 4.5, z: p.z * 0.6 - 1, r: 10, i: 0.32 * m, color: [255, 238, 200] });   // the sun on it
       if (s.room > 0.01) out.push(Object.assign({}, sun, { i: sun.i * s.room }));
       return out;
@@ -693,24 +710,19 @@ function buildMeadow(L, s, c0) {
   };
 }
 
-// ---------- the nights gone by, and the faces it wore ----------
-// While it holds you, it wears the face of each thing that came for you before, in the order they came, and behind it the
-// night that one came in shows, faint and still. Each night is built again as the game builds it and drawn once, as you
-// stood in it at its start: its ground and its sky, what lay about, its lights, and the thing that came for you there a
-// little way off on its way in, from where you stood facing the way you faced, onto a canvas of its own at half the view's
-// resolution (js/render.js R.aside sets the game's own canvas and scene aside for it); and then that thing's face as you
-// last saw it there, come up into your face in its death lunge, alone, onto a small square canvas (faceShot). One night
-// every little while as it holds its first faces, long before they are wanted. Then (s.form, END.forms) each face in turn
-// is over its own in the opening of its hood (CREATURES.demon's c.guise: guise), held a step and snapped to the next, its
-// head jumping to a new angle and place with each, as its own faces snap in its glitch but each held twice as long; and
-// behind it, for as long as it wears that one's face, the night it came in, faint over the dark, still, the whole of the
-// view, cut to with a flicker (drawn behind it and in front of everything else, while s.backdrop). With reduced motion
-// each face comes slowly over the one before (and each night with it), and its head keeps still; with reduced flashing the
-// nights are fainter and come with no flicker.
+// ---------- the faces of the others ----------
+// At the scare (END.scare), with its head thrown back, the face of each thing that came for you before is round it in the
+// dark, all at once, big; and then it takes them back into itself (CREATURES.demon.scareAt: where each is, and how much of
+// it is there behind it and in front of it). Each is that thing's face as you last saw it on its own night, come up into
+// your face in its death lunge: the night is built again as the game builds it (whether or not you played it), the thing
+// put a good way in from where it started and brought up into the eye as game.js plays the lunge, and drawn alone (nothing
+// of the night round it) from the eye onto a small square canvas of its own (faceShot), its edges let go into the dark.
+// One night every little while as it holds its first faces, long before they are wanted. A face that could not be drawn is
+// simply not there. With reduced flashing they are dimmer.
 const VOID_RECAP = (() => {
   const count = () => LEVELS.length - 1;   // every night before this one
   const AT = 4.6, EVERY = 0.9;   // (one every EVERY seconds from AT: after it has taken hold of you, while it holds its faces)
-  let shots = [], faces = [], key = '';
+  let faces = [], key = '';
   // each one's face, as faceShot frames it: how far into its lunge (k), and the square round its face (s, its side, as much
   // of the view's height; x, y, where its middle is, right and up from the middle of the view, the same)
   const FACES = {
@@ -722,50 +734,35 @@ const VOID_RECAP = (() => {
   // ready to draw them (again, if the view has changed size since they were drawn)
   function begin() {
     const k = R.W + 'x' + R.H + '@' + R.ctx.canvas.width;
-    if (k !== key) { key = k; shots = []; faces = []; }
+    if (k !== key) { key = k; faces = []; }
   }
   // the next of them, when it is time, while there are any left to draw
   function step(t) {
-    if (shots.length >= count() || t < AT + shots.length * EVERY) return;
-    shots.push(shoot(shots.length));
+    if (faces.length >= count() || t < AT + faces.length * EVERY) return;
+    faces.push(take(faces.length));
   }
-  // night i as it was at its start, drawn whole onto a canvas half the view's size (null if it could not be)
-  function shoot(i) {
-    const dpr = R.ctx.canvas.width / R.W, out = document.createElement('canvas');
-    out.width = Math.max(1, Math.round(R.W * dpr * 0.5)); out.height = Math.max(1, Math.round(R.H * dpr * 0.5));
+  // the face of the thing that came for you on night i (null if it could not be drawn)
+  function take(i) {
+    const dpr = R.ctx.canvas.width / R.W;
     const cam = G.cam, keep = { L: G.L, attempt: G.attempt, inv: G.inv, active: G.active, hover: G.hover, state: G.state, lanes: Object.assign({}, G.lastLane), lights: LIGHT.list, cam: { yaw: cam.yaw, tYaw: cam.tYaw, pitch: cam.pitch, tPitch: cam.tPitch, dirIdx: cam.dirIdx, zoom: cam.zoom } };
-    let L = null, back = null, ok = false;
+    let L = null;
     const safe = fn => { try { return fn(); } catch (e) { return null; } };
     try {
       G.inv = [];
       L = buildLevel(i);
-      const c = L.creature, CR = c.CR, yaw0 = L.def.startFacing !== undefined ? L.facing + L.def.startFacing * DEG : c.yaw;
-      const view = { yaw: Math.round(yaw0 / (45 * DEG)) * 45 * DEG, pitch: 0, zoom: 1, shakeX: 0, shakeY: 0 };
-      // (as it is drawn in play: a night's drawing may look at the night being played, the state and the view)
-      G.L = L; G.state = 'play'; cam.yaw = cam.tYaw = view.yaw; cam.pitch = cam.tPitch = 0; cam.zoom = 1; cam.dirIdx = ((Math.round(view.yaw / (45 * DEG)) % 8) + 8) % 8;
-      // it, a good way in from where it started, so it is there to be seen
-      c.u = 0.6; c.dist = c.D0 * Math.pow(1 - c.u, c.gamma); c.t = 2.5; c.gait = 0.6;
+      const c = L.creature;
+      // (as it is drawn in play: its drawing may look at the night being played, the state and its lights)
+      G.L = L; G.state = 'play'; cam.zoom = 1;
+      c.u = 0.6; c.dist = c.D0 * Math.pow(1 - c.u, c.gamma); c.t = 2.5; c.gait = 0.6;   // (a good way in from where it started)
       LIGHT.set(L.lights.concat((L.dynamicLights && safe(() => L.dynamicLights())) || []));
-      back = R.aside(out, L.props, 0.5);
-      R.hover = null;
-      R.begin(view, L, G.t);
-      for (const it of L.items) if (!it.taken) R.add({ kind: 'sprite', x: it.x, y: it.y, z: it.z, w: it.w, h: it.h, flat: it.flat, card: true, attach: !!it.attach, dist: Math.hypot(it.x, it.z), layer: 1, draw: (ctx, P) => { ctx.scale(it.w, it.h); safe(() => it.icon(ctx, P)); } });
-      if (L.dynamic) safe(() => L.dynamic());
-      const pos = c.pos();
-      R.add({ kind: 'sprite', x: pos.x, y: pos.y + (c.yOff || 0), z: pos.z, w: CR.w, h: CR.h, fogScale: 0.85, dist: Math.hypot(c.dist, c.lat || 0), layer: 1, noContact: true, draw: (ctx, P) => { ctx.save(); safe(() => CR.draw(ctx, c, P)); ctx.restore(); } });
-      R.flush();
-      ok = true;
-      back(); back = null;
-      faces[i] = safe(() => faceShot(L, c, dpr));
-    } catch (e) { ok = false; } finally {
-      if (back) back();
+      return CREATURES.demon.vignette(faceShot(L, c, dpr));
+    } catch (e) { return null; } finally {
       G.L = keep.L; G.attempt = keep.attempt; G.inv = keep.inv; G.active = keep.active; G.hover = keep.hover; G.state = keep.state; Object.assign(cam, keep.cam);
       for (const k of Object.keys(G.lastLane)) if (!(k in keep.lanes)) delete G.lastLane[k];
       Object.assign(G.lastLane, keep.lanes);
       LIGHT.set(keep.lights);
       if (L && L.onEnd) safe(() => L.onEnd());
     }
-    return ok ? out : null;
   }
   // its face as you last saw it there: its death lunge, come up into your face, as game.js plays it (to lunge k of 1), from
   // your eye, drawn alone (nothing of the night round it) onto a square canvas of its own, the part of the view round its
@@ -792,31 +789,21 @@ const VOID_RECAP = (() => {
     } finally { back(); }
     return out;
   }
-  // what it wears at q (s.form), and how much of the jth night is there (CREATURES.demon.guiseAt and guiseVis)
-  const guise = (q, still) => CREATURES.demon.guiseAt(q, Array.from({ length: count() }, (_, j) => faces[j] || null), still);
-  const vis = (q, j, still) => CREATURES.demon.guiseVis(q, j, count(), still);
-  // behind it: a renderable as far off as anything, drawn just before it (sortDist a little over its own distance, under
-  // the things on the floor), covering the whole view in its own pixels
-  function add(s) {
-    if (!(s.backdrop > 0.004)) return;
+  // the faces in the scare (sc: CREATURES.demon.scareAt), round the middle of its face (at, where it is in the view): those
+  // behind it as a renderable as far off as anything, drawn just before it (sortDist a little over its own distance), and
+  // those going into it as one drawn just after it, each covering the whole view in its own pixels
+  function add(sc, at) {
     const y = R.yaw, d = 400;
-    R.add({ kind: 'sprite', x: Math.sin(y) * d, y: -d, z: Math.cos(y) * d, w: 4 * d, h: 4 * d, layer: 1, dist: d, sortDist: 1.2, noContact: true, noLight: true, noFog: true, draw: ctx => draw(ctx, s) });
-  }
-  // each night faint over the dark, still, the whole of the view, for as long as its face is the face it wears; cut to
-  // from the one before with a flicker (with reduced flashing fainter yet, and with no flicker)
-  const FAINT = 0.34;
-  function draw(ctx, s) {
-    const W = R.W, H = R.H, dpr = ctx.canvas.width / W, S = SAVE.data.settings, still = !!S.reducedMotion, calm = !!S.reducedFlash;
-    const q = s.form, N = count();
-    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, R.viewY * dpr);
-    for (let j = Math.max(0, Math.floor(q)); j <= Math.min(N - 1, Math.floor(q + CREATURES.demon.guiseCut(still))); j++) {
-      const img = shots[j], u = q - j;
-      if (!img) continue;
-      const flick = calm || still || u < 0 || u >= 0.24 ? 1 : [0.45, 1, 0.6, 1][Math.floor(u / 0.06)];
-      const a = s.backdrop * vis(q, j, still) * FAINT * (calm ? 0.65 : 1) * flick;
-      if (a > 0.004) { ctx.globalAlpha = a; ctx.drawImage(img, 0, 0, W, H); }
+    for (const [layer, sortDist] of [['back', 1.2], ['front', 0.2]]) {
+      if (!sc.faces.some(f => f[layer] > 0.004)) continue;
+      R.add({ kind: 'sprite', x: Math.sin(y) * d, y: -d, z: Math.cos(y) * d, w: 4 * d, h: 4 * d, layer: 1, dist: d, sortDist, noContact: true, noLight: true, noFog: true, draw: ctx => draw(ctx, sc, at, layer) });
     }
+  }
+  function draw(ctx, sc, at, layer) {
+    const H = R.H, dpr = ctx.canvas.width / R.W, calm = !!SAVE.data.settings.reducedFlash;
+    ctx.save(); ctx.setTransform(dpr * H, 0, 0, dpr * H, dpr * at.x, dpr * (at.y + R.viewY));
+    CREATURES.demon.scareDraw(ctx, faces, sc, layer, calm ? 0.55 : 1, R.W / 2 / H);
     ctx.restore();
   }
-  return { begin, step, add, shoot, guise, count, get shots() { return shots; }, get faces() { return faces; } };
+  return { begin, step, add, take, count, get faces() { return faces; } };
 })();

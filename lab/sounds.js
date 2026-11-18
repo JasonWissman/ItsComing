@@ -30,7 +30,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'bang', n: [1, 6, 7], d: 'A heavy boom. Something hits the boards (1), the side door bangs open (6), the dropped toolbox hits the wall (7).', src: 'night01, 06, 07 · game.js “held” aftermath (unused)' },
   { kind: 'sfx', name: 'boardRattle', n: [1], d: 'Boards rattling on their nails after a blow. It pounds on the boards at the end.', src: 'night01 aftermath' },
   { kind: 'sfx', name: 'crack', n: [1, 6], d: 'A sharp dry crack. A board splits (1); the one oar across the side door snaps (6).', src: 'night01 boards · night06' },
-  { kind: 'sfx', name: 'thud', n: [1, 4, 6, 11], d: 'A deep dull thud. A blow on the wall (1), it hits the gate (4), a door swinging shut (6), the carrier falling (11).', src: 'night01, 04, 06, 11' },
+  { kind: 'sfx', name: 'thud', n: [1, 4, 6, 11, 13], d: 'A deep dull thud. A blow on the wall (1), it hits the gate (4), a door swinging shut (6), the carrier falling (11); the blow under the demon’s screech at the scare (13).', src: 'night01, 04, 06, 11, 13' },
   // ---- night 2: the road ----
   { kind: 'sfx', name: 'keys', n: [2, 6], d: 'A small jingle of keys. Key into the ignition (2), the tackle box key (6).', src: 'night02, night06' },
   { kind: 'sfx', name: 'crank', n: [2], d: 'The starter motor chugging for a second without catching. The engine will not start yet.', src: 'night02 ignition' },
@@ -106,9 +106,10 @@ const SOUNDS = [
   { kind: 'sfx', name: 'hangers', n: R12, d: 'Coat hangers clinking now and then on the wind; not on night 12, where the closet is a way in.', src: 'story.js' },
   { kind: 'sfx', name: 'whoosh', n: [12], d: 'A sweep of air, low to high and back down. On Nightmare it glides round the bed to the other way in.', src: 'night12' },
   // ---- night 13: the void and the ending ----
-  { kind: 'sfx', name: 'screech', n: [13], d: 'A scraping shriek, rising and breaking, gritty; a little different each time; an octave up, slower and duller than it was made. The demon enraged: again and again while you hold anything, more often the angrier it is (every 3 s down to under 1 s); once as it takes hold of you at the end.', src: 'night13 screech · ending grab' },
+  { kind: 'sfx', name: 'screech', n: [13], d: 'A scraping shriek, rising and breaking, gritty; a little different each time; an octave up, slower and duller than it was made. The demon enraged: again and again while you hold anything, more often the angrier it is (every 3 s down to under 1 s); once as it takes hold of you at the end; and at the scare, as it throws its head back and the faces of the others are all round it (with thud under it).', src: 'night13 screech · ending grab · scare' },
+  { kind: 'sfx', name: 'absorb', n: [13], d: 'A rush of air drawn in, swelling, falling in pitch and cut off short, a low note rising under it, and a soft blow at the end. The demon taking the faces of the others back into itself after the scare.', src: 'night13 ending' },
   { kind: 'sfx', name: 'screechRage', n: [13], d: 'A longer, wilder screech: two shrieks at odds and a growl under them; an octave up, slower and duller, as screech. The demon beside itself (five or more held, or the bow drawn at it), every second or so.', src: 'night13 screech' },
-  { kind: 'sfx', name: 'warp', n: [13], d: 'A rushing that swells and climbs for ten seconds over a rising low note. The dark turning at the end, every night going by behind it.', src: 'night13 ending' },
+  { kind: 'sfx', name: 'warp', n: [13], d: 'A rushing that swells and climbs for ten seconds over a rising low note. The dark turning at the end, as the pale light comes and the meadow turns into place.', src: 'night13 ending' },
   { kind: 'sfx', name: 'birds', n: [13], d: 'A little birdsong. Dawn in the meadow at the end.', src: 'night13 ending' },
   { kind: 'sfx', name: 'win', n: 'all', d: 'A soft rising chord. A night survived (the fade at the end of the aftermath); the ending’s last moment.', src: 'game.js · night13' },
   // ---- defined but never played ----

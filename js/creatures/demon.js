@@ -9,10 +9,12 @@
 // lightens), c.disrobe (in the meadow it takes the robe off: see demonOff), c.dance and c.fade; c.mood, the face it makes
 // while it holds you (see DEMON_MOODS), and c.unveil, how far that face has come up out of the dark of the hood (0: still
 // only the two eyes); c.hug, its arms lifted up and then reaching out and taking hold of you (see demonHugArms); c.sob
-// (crying: its shoulders heave); c.tilt0 and c.settle (its head comes level from where it was), and c.still (reduced
-// motion: no trembling, no heaving, no tear running). All of the ending's come from demonEnding.
-// The faces it goes through, in order: angry, neutral, angry, confused, sad, neutral, content, happy. c.mood 0 is the first
-// and 7 the last, and between two whole numbers it is part way from one to the next. Each is a set of numbers, so any two
+// (crying: its shoulders heave); c.tilt0 and c.settle (its head comes level from where it was); c.nod (its head bowed to
+// the ground, 1, or thrown back, -1), c.jolt (its head seizing, after it is thrown back) and c.gulp (the opening of its
+// hood wider for a moment, taking something in); and c.still (reduced motion: no trembling, no heaving, no tear running).
+// All of the ending's come from demonEnding.
+// The faces it goes through, in order: angry, neutral, angry, confused, sad, angry, neutral, confused, content, happy.
+// c.mood 0 is the first and 9 the last, and between two whole numbers it is part way from one to the next. Each is a set of numbers, so any two
 // blend smoothly. Measured from fy (see draw): the eyes sit at fy + 0.03, brows bi (inner end) and bo (outer end) above
 // them, bq one brow raised and the other lowered by that much; er, eh the eye's half width and height, open how far it is
 // open, lid its slant (outer corner down), lidLine an upper lid drawn over it, sock a dark socket, glow red light in it, arc
@@ -33,14 +35,20 @@ const DEMON_MOODS = [
   { skin: [164, 154, 164], fw: 0, jaw: 0.1, brow: 1, bi: 0.044, bo: 0.05, bw: 0.012, bq: 0.024, er: 0.018, eh: 0.015, open: 1, lid: 0, lidLine: 0.6, sock: 0.1, glow: 0, arc: 0, my: -0.082, mw: 0.024, mc: 0, mu: 0.007, md: -0.009, mr: 0.55, mk: 0.32, teeth: 0, joy: 0, tears: 0, blush: 0, tilt: -0.2, trem: 0 },
   // sad: the brows up in the middle, heavy lids, tears running, the mouth turned down and trembling
   { skin: [168, 162, 182], fw: 0.004, jaw: 0, brow: 1, bi: 0.052, bo: 0.016, bw: 0.012, bq: 0, er: 0.018, eh: 0.012, open: 0.5, lid: 0.3, lidLine: 1, sock: 0.2, glow: 0, arc: 0, my: -0.086, mw: 0.032, mc: -0.018, mu: 0.005, md: -0.008, mr: 0.3, mk: 0, teeth: 0, joy: 0, tears: 1, blush: 0.15, tilt: 0.15, trem: 0.35 },
+  // angry once more, the scare: its head thrown back, the faces of all the others round it (night 13), its jaw dropped
+  // in a screech, shaking hard
+  Object.assign({}, DEMON_ANGRY, { tilt: 0, trem: 1, jaw: 0.8, md: -0.068 }),
   // neutral again: the same grey face as before, the tears gone
   DEMON_NEUTRAL,
+  // confused again, as the light comes
+  null,
   // content: warmer, the brows soft, the eyes half closed, the corners of the mouth turned up in a small closed smile
   { skin: [224, 202, 186], fw: 0.012, jaw: 0, brow: 0.6, bi: 0.038, bo: 0.032, bw: 0.01, bq: 0, er: 0.018, eh: 0.012, open: 0.45, lid: 0.1, lidLine: 1, sock: 0, glow: 0, arc: 0, my: -0.07, mw: 0.04, mc: 0.012, mu: -0.006, md: -0.013, mr: 0.3, mk: 0, teeth: 0, joy: 0.1, tears: 0, blush: 0.4, tilt: 0.05, trem: 0 },
   // happy: eyes closed in two arches under faint, soft brows, round pink cheeks, a wide open smile
   { skin: [240, 214, 186], fw: 0.02, jaw: 0, brow: 0.32, bi: 0.04, bo: 0.036, bw: 0.01, bq: 0, er: 0.016, eh: 0.012, open: 0, lid: 0, lidLine: 0, sock: 0, glow: 0, arc: 1, my: -0.045, mw: 0.05, mc: 0, mu: 0, md: -0.04, mr: 1, mk: 0, teeth: 0, joy: 1, tears: 0, blush: 1, tilt: 0, trem: 0 },
 ];
-const DEMON_MOOD_NAMES = ['angry', 'neutral', 'angry', 'confused', 'sad', 'neutral', 'content', 'happy'];
+DEMON_MOODS[7] = DEMON_MOODS[3];
+const DEMON_MOOD_NAMES = ['angry', 'neutral', 'angry', 'confused', 'sad', 'angry', 'neutral', 'confused', 'content', 'happy'];
 // Between confused and sad it does not blend: it glitches, flicking through these faces one after another, each held a
 // moment and snapped to the next, as if trying each on to understand what is happening, before it lands on sad. Each is
 // the neutral face with these changes
@@ -69,7 +77,8 @@ function demonBlend(A, B, k) {
 // How long it holds each face and how long it takes to go into the next (seconds), in the order of DEMON_MOODS, while it
 // holds you, as far as sad: the first slow; into the second angry quick (and it is held longer, as it leans in at you), and
 // out of it to confused quick, so the slow ones run into the glitch. From sad on the night times them (demonEnding): it
-// cries a while, holding you still, and comes back to its grey neutral face
+// cries a while, holding you still, bows its head, throws it back angry (the scare), and comes back to its grey neutral
+// face
 const DEMON_MOOD_TIME = [[1.0, 0.9], [1.0, 0.25], [1.6, 0.4], [1.0, 0.9]];
 // which face it is making u seconds into its faces (0: the first, angry; a part-way number while it goes into the next;
 // 4, sad, once it is there)
@@ -84,15 +93,27 @@ function demonMoodAt(u) {
 }
 // The ending, as night 13 plays it and the lab shows it: how it is t seconds after it reached you. E is the night's
 // timeline (END in js/levels/night13.js; the lab keeps a copy), d0 how far off it was then and y0 how far it was already
-// bent down to you. Its body (settle, hug, unveil, yOff, sob, calm, mood, disrobe) and how far off it is (dist, from where
-// you stand). It holds you from when it takes hold until it lets you go, after it is happy: its arms lifted first (hug.lift),
-// then reaching out and taking hold of you (hug.grab), quick, its hands at the lower corners of the view
-function demonEnding(E, t, d0, y0) {
+// bent down to you; still, reduced motion. Its body (settle, hug, unveil, yOff, sob, calm, mood, nod, jolt, disrobe), how far
+// off it is (dist, from where you stand), and scare: where it is in the scare (null outside it; see demonScareAt). It holds
+// you from when it takes hold until it lets you go, after it is happy: its arms lifted first (hug.lift), then reaching out
+// and taking hold of you (hug.grab), quick, its hands at the lower corners of the view. Crying, it stops and its head goes
+// down, bowed toward the ground, its face lost in the shadow of the hood (E.down), and is still; then (E.scare[0]) it throws
+// its head back, fast, angry (with reduced motion it lifts it, slower and not as far), its head seizing while the faces of
+// the others are all round it; they are taken back into it (E.scare[1] to [2]) and its head comes level again
+function demonEnding(E, t, d0, y0, still) {
   const sp = (a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1)), lin = (a, b) => clamp((t - a) / (b - a), 0, 1), rel = E.release;
   const go = sp(rel, rel + 0.9);   // letting you go: the hands open and come away, and the arms down
   const lift = sp(E.lift[0], E.lift[1]) * (1 - sp(rel + 0.3, rel + 1.5)), grab = (1 - Math.pow(1 - lin(E.grab[0], E.grab[1]), 3)) * (1 - go);
   const lean = sp(E.lean[0], E.lean[1]) * (1 - sp(E.lean[2], E.lean[3]));   // the second angry face: in at you, and back
   const walk = sp(E.walk[0], E.walk[1]), calm = sp(rel, rel + 1.6);
+  const [s0, s1, s2] = E.scare, u = t - s0;
+  // its head: bowed, then thrown back (in a tenth of a second) and held back as the faces are up; it comes forward as it
+  // takes them back, and level
+  let nod = sp(E.down[0], E.down[1]);
+  if (u >= 0) {
+    nod = still ? lerp(1, -0.35, sp(s0, s0 + 0.6)) : lerp(1, -1 + 0.25 * sp(s0 + 0.12, s1), 1 - Math.pow(1 - lin(s0, s0 + 0.1), 3));
+    nod *= 1 - sp(s1, s2 + 0.3);
+  }
   return {
     settle: sp(0, E.settle),
     hug: lift > 0.001 || grab > 0.001 ? { lift, grab } : null,
@@ -100,11 +121,82 @@ function demonEnding(E, t, d0, y0) {
     // bent down to your face while it holds you (further as it leans in), and straight once it lets you go
     yOff: (lerp(y0 || 0, -0.72, sp(E.stoop[0], E.stoop[1])) - 0.07 * lean) * (1 - calm),
     dist: lerp(lerp(d0, 0.68, sp(E.near[0], E.near[1])) - 0.2 * lean, 3.3, walk),
-    sob: sp(E.sad - 0.3, E.sad + 0.9) * (1 - sp(E.neutral[0], E.neutral[1])),
+    sob: sp(E.sad - 0.3, E.sad + 0.9) * (1 - sp(E.down[0] - 0.5, E.down[0] + 0.5)),
     calm,
-    mood: t < E.moods ? 0 : t < E.neutral[0] ? Math.min(4, demonMoodAt(t - E.moods)) : 4 + lin(E.neutral[0], E.neutral[1]) + lin(E.content[0], E.content[1]) + lin(E.happy[0], E.happy[1]),
+    // sad until the scare; angry in a snap (with reduced motion over a third of a second); then neutral, confused, content
+    // and happy
+    mood: t < E.moods ? 0 : u < 0 ? Math.min(4, demonMoodAt(t - E.moods)) : 4 + lin(s0, s0 + (still ? 0.3 : 0.03)) + lin(E.neutral[0], E.neutral[1]) + lin(E.confused[0], E.confused[1]) + lin(E.content[0], E.content[1]) + lin(E.happy[0], E.happy[1]),
+    nod,
+    jolt: still || u < 0 ? 0 : Math.min(1, u / 0.06) * (1 - sp(s0 + 0.2, s1 + 0.2)),
+    scare: u >= 0 && t < s2 + 0.05 ? { u, up: s1 - s0, take: s2 - s1 } : null,
     disrobe: clamp((t - E.disrobe[0]) / (E.disrobe[1] - E.disrobe[0]), 0, 1),
   };
+}
+// ---------- the scare ----------
+// Its head thrown back, the faces of all the others (night 13: each as it came up into your face in its death lunge, a
+// square picture, top down) are all round it at once, big, in the dark behind it: here, where each is from the middle of
+// its face in the view (x right, as much of half the view's width; y up, as much of its height), how big (the side of its
+// square, as much of the view's height) and how it is turned; and which face goes where (the most striking the biggest,
+// out in the open)
+const DEMON_SCARE_SLOTS = [
+  [-0.64, 0.17, 0.5, -0.14], [0.66, 0.2, 0.54, 0.12], [-0.9, -0.24, 0.42, 0.2], [0.9, -0.2, 0.44, -0.18],
+  [-0.3, 0.38, 0.36, 0.08], [0.3, 0.42, 0.4, -0.1], [-0.5, -0.36, 0.34, -0.24], [0.52, -0.38, 0.36, 0.22],
+  [-1.0, 0.3, 0.4, 0.1], [1.0, 0.34, 0.42, -0.08], [-0.33, 0.02, 0.3, 0.3], [0.35, -0.02, 0.32, -0.26],
+];
+// (the walker, crawler, smiler, watcher, runner, swimmer, climber, customer, signalman, other, carrier, tall: the slot each has)
+const DEMON_SCARE_AT = [10, 6, 0, 4, 3, 7, 8, 1, 2, 5, 9, 11];
+// the faces in the scare (sc from demonEnding; n faces; still: reduced motion): each { i, x, y, s, r, back, front } (back
+// and front: how much of it is there behind it and in front of it), and gulp, how far the opening of its hood is widened
+// as they go into it. They come all at once in a snap, a little big and settling, and loom a little closer while they are
+// there, each jittering and glitching on a beat of its own; then, one after another, each flies into the opening of its
+// hood, turning and shrinking to nothing, in front of it as it goes. With reduced motion they come over a third of a
+// second, keep still, and fade where they are, one after another.
+function demonScareAt(sc, n, still) {
+  const out = { faces: [], gulp: 0 };
+  if (!sc) return out;
+  const h = x => { const v = Math.sin(x * 12.9898 + 78.233) * 43758.5453; return v - Math.floor(v); };
+  const u = sc.u, fly = Math.max(0.1, sc.take * 0.55), late = sc.take - fly;
+  for (let i = 0; i < n; i++) {
+    const [x0, y0, s0, r0] = DEMON_SCARE_SLOTS[DEMON_SCARE_AT[i % DEMON_SCARE_AT.length] % DEMON_SCARE_SLOTS.length];
+    const k = clamp((u - sc.up - late * ((i * 5) % n) / Math.max(1, n - 1)) / fly, 0, 1);   // (how far into it it has gone)
+    let x = x0, y = y0, s = s0, r = r0, a, front = 0;
+    if (still) a = smoothstep(clamp(u / 0.35, 0, 1)) * (1 - smoothstep(k));
+    else {
+      const pop = 1 + 0.3 * Math.pow(1 - clamp(u / 0.12, 0, 1), 2), loom = 1 + 0.08 * clamp(u / sc.up, 0, 1), b = Math.floor(u / 0.055) + i * 7.31;
+      const glitch = h(b + 0.37) < 0.1 && k === 0;
+      x += (h(b) - 0.5) * 0.02 + (glitch ? (h(b + 0.6) - 0.5) * 0.09 : 0); y += (h(b + 0.21) - 0.5) * 0.02; r += (h(b + 0.44) - 0.5) * 0.09;
+      s *= pop * loom * (glitch ? 1.06 : 1);
+      const e = k * k * k;
+      x = lerp(x, 0, e); y = lerp(y, 0, e); s *= lerp(1, 0.04, e); r += (i % 2 ? 1 : -1) * 2.4 * k * k;
+      a = 1 - smoothstep(clamp((k - 0.82) / 0.18, 0, 1));
+      front = smoothstep(clamp(k / 0.15, 0, 1));
+      if (k > 0.75 && k < 1) out.gulp = Math.max(out.gulp, Math.sin(Math.PI * (k - 0.75) / 0.25));
+    }
+    if (a > 0.004) out.faces.push({ i, x, y, s, r, back: a * (1 - front), front: a * front });
+  }
+  return out;
+}
+// the faces (imgs, by i) of those in the scare (sc: demonScareAt), behind it (layer 'back') or in front of it ('front'),
+// drawn a of the way; ctx with its middle at the middle of its face, a unit the view's height, y down; wide, half the
+// view's width as much of its height (spread no narrower than a square view)
+function demonScareDraw(ctx, imgs, sc, layer, a, wide) {
+  const a0 = ctx.globalAlpha, xw = Math.max(0.5, wide || 0.89);
+  for (const f of sc.faces) {
+    const img = imgs[f.i], al = f[layer] * a;
+    if (!img || al < 0.004) continue;
+    ctx.save(); ctx.translate(f.x * xw, -f.y); ctx.rotate(f.r); ctx.globalAlpha = a0 * al;
+    ctx.drawImage(img, -f.s / 2, -f.s / 2, f.s, f.s);
+    ctx.restore();
+  }
+  ctx.globalAlpha = a0;
+}
+// a face's picture for the scare, its edges let go into the dark: the square's corners and edges gone, soft
+function demonVignette(cv) {
+  if (!cv) return cv;
+  const x = cv.getContext('2d'), w = cv.width, hh = cv.height, g = x.createRadialGradient(w / 2, hh / 2, Math.min(w, hh) * 0.3, w / 2, hh / 2, Math.min(w, hh) * 0.5);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'destination-in'; x.fillStyle = g; x.fillRect(0, 0, w, hh); x.restore();
+  return cv;
 }
 // the face for mood m; still (reduced motion): no glitching, confused blends straight into sad
 function demonMood(m, still) {
@@ -165,49 +257,6 @@ function demonMoodFace(ctx, c, P, fy, F) {
       P_ell(ctx, px, py, 0.0065, 0.009, rgba(tear, 0.9 * a)); P_ell(ctx, px - 0.002, py + 0.003, 0.002, 0.003, rgba([255, 255, 255], a));
     }
   }
-}
-// The faces of the others, worn one after another (night 13, while it holds you): q is where it is in them, 0 as the first
-// of n is all there and n as its own face is back, each held a whole step. Each comes in over the last `cut` of the step
-// before it (a fifth: a snap, as its own faces snap in its glitch, demonMood; with reduced motion half of it, slowly over
-// the one before), and is gone once the next is all there. guiseVis: how much of the jth is there (j = n: its own face, back)
-const demonGuiseCut = still => (still ? 0.5 : 0.2);
-function demonGuiseVis(q, j, n, still) {
-  const f = demonGuiseCut(still), inn = i => smoothstep(clamp((q - i) / f + 1, 0, 1));
-  return j >= n ? inn(j) : inn(j) * (1 - inn(j + 1));
-}
-// its head, as each is put on, jumps: turned (radians) and moved across and up (metres) to where that one has it
-const DEMON_GUISE_JUMPS = [[0.14, 0.03, 0.01], [-0.12, -0.035, -0.01], [0.08, 0.02, 0.02], [-0.16, -0.015, 0], [0.11, 0.04, -0.015], [-0.07, -0.03, 0.015],
-  [0.16, 0.015, 0.005], [-0.1, -0.04, -0.005], [0.06, 0.035, 0.02], [-0.14, 0.01, -0.015], [0.12, -0.02, 0.01], [-0.06, 0.03, -0.01]];
-// c.guise at q, the faces (pictures, one for each, in order: see demonGuise) being worn: each in turn over its own, its
-// head jumping with each (not with reduced motion: each comes slowly over the one before, and its head keeps still);
-// null before the first and once its own face is back
-function demonGuiseAt(q, imgs, still) {
-  const n = imgs.length, f = demonGuiseCut(still);
-  if (!(q > -f) || q >= n) return null;
-  const out = { faces: [], tilt: 0, x: 0, y: 0, open: 0 };
-  for (let j = Math.max(0, Math.floor(q)); j <= Math.min(n - 1, Math.floor(q + f)); j++) { const a = demonGuiseVis(q, j, n, still); if (a > 0.004) out.faces.push([imgs[j], a]); }
-  out.open = smoothstep(clamp(q / f + 1, 0, 1)) * (1 - demonGuiseVis(q, n, n, still));
-  if (!still) {
-    const j = clamp(Math.floor(q + f), 0, n), k = smoothstep(clamp((q - j) / f + 1, 0, 1)), H = i => (i >= 0 && i < n ? DEMON_GUISE_JUMPS[i % DEMON_GUISE_JUMPS.length] : [0, 0, 0]);
-    [out.tilt, out.x, out.y] = H(j - 1).map((v, i) => lerp(v, H(j)[i], k));
-  }
-  return out;
-}
-// The faces of the others, over its own: c.guise, set by night 13 while it holds you, is { faces: [[img, a], ...], tilt,
-// x, y, open }: each img a square picture of a face (top down, as a canvas has it), drawn a of the way over what is under it,
-// in turn, filling the opening of its hood (its own face blacked out under them, as much as the most of them is there);
-// its head turned by tilt and moved by x, y (metres) from where it would be, and the opening of the hood open of the way
-// wider. Drawn in the head's frame, clipped to the opening (oy, its middle; ory, its half height)
-function demonGuise(ctx, gu, oy, ory) {
-  let most = 0;
-  for (const f of gu.faces) if (f[0]) most = Math.max(most, f[1]);   // (one that could not be drawn: its own face shows)
-  if (most < 0.004) return;
-  const a0 = ctx.globalAlpha, s = 2 * ory;
-  ctx.globalAlpha = a0 * most; ctx.fillStyle = '#000'; ctx.fillRect(-s, oy - s, 2 * s, 2 * s);
-  ctx.save(); ctx.translate(0, oy); ctx.scale(1, -1);
-  for (const [img, a] of gu.faces) if (img && a > 0.004) { ctx.globalAlpha = a0 * a; ctx.drawImage(img, -s / 2, -s / 2, s, s); }
-  ctx.restore();
-  ctx.globalAlpha = a0;
 }
 // its arms lifted and then taking hold of you (c.hug: lift 0..1, grab 0..1). A thing this close is drawn as you see it, in
 // the view's own pixels: from its shoulders (where draw() has them) its arms come up, the hands open and the long fingers
@@ -523,7 +572,7 @@ CREATURES.demon = {
     pose(c, k) { c.yOff -= (demonEyesY(c) - CREATURES.demon.faceY) * smoothstep(k); },
   },
   voice: { kind: 'exhale', every: [4, 8] },
-  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, ending: demonEnding, heave: demonHeave, guiseAt: demonGuiseAt, guiseVis: demonGuiseVis, guiseCut: demonGuiseCut,   // for the ending and the tests
+  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, ending: demonEnding, heave: demonHeave, scareAt: demonScareAt, scareDraw: demonScareDraw, vignette: demonVignette,   // for the ending and the tests
   // what of its box is it, to aim at (js/game.js creatureBox: the bow's draw bar on night 13): the robe and the hood, up to just above
   // its eyes, wider enraged
   body(c) { const a = demonRage(c); return [-0.42 - a * 0.08, 0.42 + a * 0.08, 0, demonEyesY(c) + 0.3]; },
@@ -635,13 +684,15 @@ CREATURES.demon = {
     // the head, in its hood. Making a face for the ending (c.mood), its head comes level from where it was and leans as the
     // face does
     const F = c.mood !== undefined && c.mood !== null ? demonMood(c.mood, c.still) : null;
-    // (enraged, once the lunge has come up into your face, it seizes: demonSeize)
-    const sz = demonSeize(c, F || still || c.still ? 0 : a * smoothstep(dspan(lunge, 0.55, 0.9)));
+    // (enraged, once the lunge has come up into your face, it seizes: demonSeize; and so, a little, as its head is thrown
+    // back at the end, c.jolt)
+    const sz = demonSeize(c, F ? (c.still ? 0 : 0.4 * (c.jolt || 0)) : still || c.still ? 0 : a * smoothstep(dspan(lunge, 0.55, 0.9)));
     const tilt = F ? lerp(c.tilt0 || 0, F.tilt + (c.still ? 0 : F.trem * Math.sin(t * 31) * 0.018), c.settle === undefined ? 1 : c.settle) + dance * Math.sin(t * 2.6) * 0.18
       : demonTilt(c) * (1 - lunge) * (1 - calm) + dance * Math.sin(t * 2.6) * 0.18 + sz.tilt;
-    // (wearing the faces of the others, its head jumps to where each puts it: demonGuise)
-    const gu = F && c.guise ? c.guise : null;
-    ctx.save(); ctx.translate(sh + sz.x + (gu ? gu.x : 0), top + sz.y + (gu ? gu.y : 0)); ctx.rotate(tilt + (gu ? gu.tilt : 0) + heave * 0.6 * Math.sin(t * 9.1));
+    // (bowed, c.nod 1, its head is lower and further forward, the opening of the hood lower and narrower and its face low in
+    // it, in the shadow of the hood; thrown back, -1, it is higher, the opening wider and its face up out of the shadow)
+    const nod = F ? clamp(c.nod || 0, -1, 1) : 0, dn = Math.max(0, nod), bk = Math.max(0, -nod);
+    ctx.save(); ctx.translate(sh + sz.x, top + sz.y - 0.06 * dn + 0.04 * bk); ctx.rotate(tilt + heave * 0.6 * Math.sin(t * 9.1));
     const hc = 0.3 + a * 0.1, hr = 0.168 + a * 0.02, hh = 0.235 + a * 0.05;
     // enraged, in your face, the hood falls: it slides down off the head onto the shoulders and is gone into the dark
     const drop = F ? 0 : a * smoothstep(dspan(lunge, 0.45, 0.8));
@@ -656,8 +707,9 @@ CREATURES.demon = {
     // the opening of the hood, and the dark in it
     const lk = a * smoothstep(dspan(lunge, 0.25, 0.85));   // enraged and in your face: the opening stretches down with the jaw
     const lk3 = F ? 0 : a * smoothstep(dspan(lunge, 0.62, 0.95));   // and at the last: it shatters
-    const go = gu ? gu.open : 0;   // (and the opening of its hood wider, to take them)
-    const fy = 0.285 + a * 0.1, oy = fy - 0.015 - a * 0.015 - lk * 0.05 - 0.006 * go, orx = 0.098 + a * 0.012 + lk * 0.03 + 0.03 * go, ory = 0.152 + a * 0.04 + lk * 0.075 + 0.02 * go;
+    const go = F ? clamp(c.gulp || 0, 0, 1) : 0;   // (and the opening of its hood wider for a moment, taking something in)
+    const fy = 0.285 + a * 0.1, oy = fy - 0.015 - a * 0.015 - lk * 0.05 - 0.006 * go - 0.045 * dn + 0.02 * bk;
+    const orx = (0.098 + a * 0.012 + lk * 0.03 + 0.03 * go) * (1 + 0.06 * bk), ory = (0.152 + a * 0.04 + lk * 0.075 + 0.02 * go) * (1 - 0.14 * dn) * (1 + 0.1 * bk);
     // the face, all of it, as one piece: drawn once, or (shattering, in the lunge) once into each shard
     const drawFace = () => {
       if (drop < 0.99) { ctx.save(); ctx.globalAlpha *= 1 - drop; P_ell(ctx, 0, oy, orx + 0.014, ory + 0.014, rim); ctx.restore(); }
@@ -667,11 +719,18 @@ CREATURES.demon = {
       if (F && show > 0.004) {
         ctx.save(); ctx.beginPath(); ctx.ellipse(0, oy, orx, ory, 0, 0, TAU); ctx.clip();
         ctx.globalAlpha *= show;
+        // (bowed or thrown back, the face is lower or higher in the opening, and seen foreshortened)
+        if (nod) { ctx.save(); ctx.translate(0, fy - 0.075 * dn + 0.03 * bk); ctx.scale(1, 1 - 0.3 * dn - 0.1 * bk); ctx.translate(0, -fy); }
         demonMoodFace(ctx, c, P, fy, F);
-        if (gu) demonGuise(ctx, gu, oy, ory);
-        const sy0 = fy + 0.02, shade = ctx.createLinearGradient(0, oy + ory, 0, sy0);
-        shade.addColorStop(0, P.cola([0, 0, 0], 0.85)); shade.addColorStop(0.45, P.cola([0, 0, 0], 0.3)); shade.addColorStop(1, P.cola([0, 0, 0], 0));
+        if (nod) ctx.restore();
+        const sy0 = fy + 0.02, shade = ctx.createLinearGradient(0, oy + ory, 0, sy0), sa = 1 - 0.8 * bk;
+        shade.addColorStop(0, P.cola([0, 0, 0], 0.85 * sa)); shade.addColorStop(0.45, P.cola([0, 0, 0], 0.3 * sa)); shade.addColorStop(1, P.cola([0, 0, 0], 0));
         ctx.fillStyle = shade; ctx.fillRect(-orx, sy0, orx * 2, ory * 2);
+        if (dn > 0.004) {   // bowed: the hood's shadow down over all of it but the mouth and chin
+          const low = ctx.createLinearGradient(0, oy + ory, 0, oy - ory);
+          low.addColorStop(0, P.cola([0, 0, 0], dn)); low.addColorStop(0.5, P.cola([0, 0, 0], 0.92 * dn)); low.addColorStop(1, P.cola([0, 0, 0], 0.45 * dn));
+          ctx.fillStyle = low; ctx.fillRect(-orx, oy - ory, orx * 2, ory * 2);
+        }
         ctx.restore();
       }
       if (show < 0.996) {
