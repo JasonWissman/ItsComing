@@ -134,6 +134,17 @@
   }, extra);
   // the face, close up: as it holds you, bent down to your face, about 0.7 m off
   const FACE = { h: 2.25, y0: 1.45, w: 0.6 };
+  // the whole ending, one stretch, framed as it goes: close on it as it takes hold of you, closer on its face while it holds
+  // you, and out again as it lets you go, steps back, takes off its robe and dances (each frame eased into the next)
+  const GRAB = { h: 2.8, y0: 1.35, w: 0.9 }, WIDE = { h: 2.8, y0: 0, w: 1.6 };
+  const FRAMES = [[0, GRAB], [3.95, GRAB], [END.moods + 0.2, FACE], [END.content[0] - 0.4, FACE], [END.release - 0.6, { h: 2.8, y0: 1.35, w: 1.2 }], [END.release + 0.4, { h: 2.8, y0: 1.35, w: 1.2 }], [END.walk[0] + 1.2, { h: 2.8, y0: 0, w: 1.3 }], [END.disrobe[0] - 0.4, { h: 2.8, y0: 0, w: 1.3 }], [END.disrobe[0] + 0.6, WIDE]];
+  const frameAt = (c, T) => {
+    let i = 0; while (i < FRAMES.length - 1 && T >= FRAMES[i + 1][0]) i++;
+    const [t0, A] = FRAMES[i], nx = FRAMES[i + 1];
+    if (!nx) return A;
+    const [t1, B] = nx, k = smoothstep(clamp((T - t0) / (t1 - t0), 0, 1));
+    return { h: lerp(A.h, B.h, k), y0: lerp(A.y0, B.y0, k), w: lerp(A.w, B.w, k) };
+  };
   const base = LAB.lunge();
   LAB.creature('demon', {
     night: 13, stage: 'The Void', dist: 8, fit: { h: 2.75, w: 1.3 },
@@ -146,6 +157,7 @@
         set(c) { c.anger = 3; c.rage = rageFor(3); }, tick(c, k, dt) { holdAnger(c, dt); come(c, dt, true, 1.5); } },
       { name: 'Taking something up, and putting it down', note: 'You pick one thing up at 1 s and put it down at 5 s: its rage comes on and goes off again at the rate the night eases it.', dist: 7, dur: 8.5, fit: { h: 3.3, w: 1.9 }, draw: drawAt(),
         tick(c, k, dt, T) { c.anger = T >= 1 && T < 5 ? 1 : 0; holdAnger(c, dt); come(c, dt, false); } },
+      endPart(0, { name: 'The whole ending', note: 'The ending as the night plays it, in one go: from when it reaches you (it lifts its arms and takes hold of you) through its faces, crying, looking down, the scare and taking the faces back, grey and confused, content and happy as the meadow comes, letting you go, stepping back, taking off its robe, and dancing in the meadow. The frame follows it, close on its face while it holds you and out again after. (Its light changes with each face; the pale light, the meadow, the shake and the flash are the night\u2019s, not drawn here.)', dur: END.dance[1] + 1.2, fit: frameAt, back: scareLayer('back'), front: scareLayer('front') }),
       endPart(0, { name: 'It lifts its arms, and takes hold of you', note: 'Caught empty-handed and facing it (the ending): it stops, its head comes level, it bends down to you and its arms come up, the hands open, high either side of its head; its angry face comes up out of the hood; then, quick, it reaches out and takes hold of you, the arms coming at you out of the bottom of the view and the hands at its lower corners, the fingers curling in over your shoulders; a faint soft glow of its light about the dark arms and hands (no hard edge).', dur: 4.6, fit: { h: 2.8, y0: 1.35, w: 0.9 } }),
       endPart(END.moods - 0.2, { name: 'Its faces, holding you', note: 'Holding you, its face goes through angry, neutral, angry again (leaning in close at you, and drawing back), confused, then a glitching flicker of faces (pain, envy, sorrow, grimace, terror, empty, shock, each snapped to the next) to sad, crying, its light changing with each.', dur: 7.6, fit: FACE }),
       endPart(END.moods - 0.2, { name: 'Its faces, reduced motion', note: 'The same with reduced motion on (c.still): every change of face a slow fade (into and out of its second angry face over 0.6 s); from confused to sad no glitch, but pain, sorrow, terror and empty each fading in and out in turn over 1.6 s; no trembling, nothing snapped.', dur: 7.6, reduced: true, fit: FACE }),

@@ -4,6 +4,7 @@
 //   spec: { night, stage, dist (default c.dist), lit (0..1), fit: { h, w, y0 } (the metres to frame, if not CR.h/CR.w),
 //           setup(c) (once per animation, after CR.init), anims: [anim, ...] }
 //   anim: { name, note (what the game uses it for), dur (seconds per loop, default 4), dist, lit, fit,
+//           (fit may be a function (c, T) giving the frame as the animation goes, for one that moves from close to far),
 //           walk (metres a second: drives c.gait as the game does), modes (true: CR.speedMult runs, so its own modes cycle),
 //           seen (what speedMult is told, default true), still (no breathing sway), set(c), tick(c, k, dt, T) (k: 0..1 through
 //           the loop, T: seconds since the loop began), back(ctx, c, P) / front(ctx, c, P) (props, in the creature's metres,
@@ -95,7 +96,7 @@ const LAB = (() => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const a = this.anim(), c = this.c, entry = this.entry;
     // the frame: fit this creature (and its props) to the card, or one scale for all of them
-    const fit = Object.assign({ h: c ? c.CR.h : 2, w: c ? c.CR.w : 1, y0: 0 }, entry.fit, a.fit);
+    const fit = Object.assign({ h: c ? c.CR.h : 2, w: c ? c.CR.w : 1, y0: 0 }, entry.fit, typeof a.fit === 'function' ? (c ? a.fit(c, this.T) : null) : a.fit);
     const d = c ? Math.max(0.3, c.dist) : 10;
     let ppm = o.scale === 'true' ? (H * 0.8) / o.trueH : Math.min((H * 0.8) / (fit.h - fit.y0), (W * 0.86) / fit.w);
     let feetY = H * 0.9 + fit.y0 * ppm;
