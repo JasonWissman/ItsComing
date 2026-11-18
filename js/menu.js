@@ -8,6 +8,42 @@ const MENU = (() => {
   // (7 to 13) down the right; one column on a phone
   const col = i => (i < Math.floor(LEVELS.length / 2) ? ' c1' : ' c2');
   const fmtRun = t => { const s = Math.round(t); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  // a run's times as shown, in whole seconds: the whole run rounded, each night rounded but the last (The Void), which is
+  // whatever makes the nights add up to the whole run exactly as shown (rounding each on its own would drift a second or
+  // a few). The whole run is the run's own clock, which is the nights' times added up (game.js: the run). A run kept by
+  // an older save has no breakdown: nights all null
+  function shown(run) {
+    const n = LEVELS.length, total = Math.round(run.t), nights = new Array(n).fill(null);
+    if (!run.nights) return { total, nights };
+    let rest = total;
+    for (let i = 0; i < n - 1; i++) { const t = run.nights[i]; if (t !== null && t !== undefined) { nights[i] = Math.round(t); rest -= nights[i]; } }
+    if (run.nights[n - 1] !== null && run.nights[n - 1] !== undefined) nights[n - 1] = rest;
+    return { total, nights };
+  }
+  // the stars for a whole run, by its time as shown: under 3 minutes three, under 6 two, else one
+  const starCount = total => (total < 180 ? 3 : total < 360 ? 2 : 1);
+  // drawn: three five-pointed stars, those earned filled, the rest only outlined; read out as one ("2 of 3 stars")
+  const STAR = 'M12 2.6l2.75 6.05 6.6.72-4.93 4.45 1.38 6.5L12 17.02 6.2 20.32l1.38-6.5L2.65 9.37l6.6-.72z';
+  function starsHtml(n) {
+    let o = '';
+    for (let i = 0; i < 3; i++) o += '<svg class="star' + (i < n ? ' on' : '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + STAR + '"/></svg>';
+    return '<span class="stars" role="img" aria-label="' + n + ' of 3 stars">' + o + '</span>';
+  }
+  // a whole run's card: its label, the time (with the Best run stamp beside it, when it is one), its stars under it
+  const runTime = (run, label, stamp) => {
+    const v = shown(run);
+    return '<div class="rlabel">' + label + '</div><div class="rline"><div class="rtime">' + fmtRun(v.total) + '</div>' + (stamp ? '<span class="stamp">Best run</span>' : '') + '</div>' + starsHtml(starCount(v.total));
+  };
+  // the thirteen cards of a run's breakdown, each night's time as shown (a dash for one it has none for)
+  function runCards(run, cls) {
+    const v = run ? shown(run) : null;
+    let cards = '';
+    for (let i = 0; i < LEVELS.length; i++) {
+      const t = v ? v.nights[i] : null;
+      cards += '<div class="ncard ' + cls + col(i) + '"><span class="nname">' + (i + 1) + '. ' + LEVELS[i].title + '</span><span class="nbest">' + (t === null ? '&mdash;' : fmtTime(t)) + '</span></div>';
+    }
+    return '<div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>';
+  }
   function btn(act, label, arg, cls) { return '<button type="button" class="mbtn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '"' + (arg !== undefined ? ' data-arg="' + arg + '"' : '') + '>' + label + '</button>'; }
   function html(kind, d) {
     d = d || {};
@@ -71,16 +107,12 @@ const MENU = (() => {
         return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('done', 'The End', undefined, 'primary') + '</div>';
       case 'results': {
         // after the ending: the nights as on the Scores screen, each card's time coming in one after another (reveal), then
-        // the full run, then the way out. Only this run's own times (game.js: G.lastRun), no bests: how it went this time.
+        // the whole run with its stars, then the way out. This run's own times (game.js: G.lastRun), adding up to its
+        // whole time; the Best run stamp beside that only when it is a new best (and so the one on the Scores screen now).
         // (No run, only when the last night was reached by ?level=: then dashes)
         const R0 = G.lastRun;
-        let cards = '';
-        for (let i = 0; i < LEVELS.length; i++) {
-          const mine = R0 && R0.nights[i];
-          cards += '<div class="ncard rcard' + col(i) + '"><span class="nname">' + (i + 1) + '. ' + LEVELS[i].title + '</span><span class="nbest">' + (mine ? fmtTime(mine.t) : '&mdash;') + '</span></div>';
-        }
-        const run = '<div class="rlabel">This run</div><div class="rtime' + (R0 ? '' : ' none') + '">' + (R0 ? fmtRun(R0.t) : '&mdash;') + '</div>';
-        return '<div class="results"><div class="kicker">Morning</div><h1>Every night survived</h1><div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>' +
+        const run = R0 ? runTime(R0, 'This run', R0.best) : '<div class="rlabel">This run</div><div class="rline"><div class="rtime none">&mdash;</div></div>';
+        return '<div class="results"><div class="kicker">Morning</div><h1>Every night survived</h1>' + runCards(R0, 'rcard') +
           '<div class="runcard rrun">' + run + '</div><div class="mrow rlast">' + btn('finish', 'Finish game', undefined, 'primary') + '</div></div>';
       }
       case 'survived':
@@ -88,36 +120,26 @@ const MENU = (() => {
         return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'Next night') + '</div>' +
           '<button type="button" class="tbtn" data-act="title">Quit</button>';
       case 'nights': {   // (the Scores dialog)
-        // how the nights have gone, to look at: a card for each night with its best time inside it, in two columns (one
-        // on a phone); a night not reached yet is a blank card. Not buttons: no night is picked from here (every game is
-        // all of them from the first). Under them, the best full run: night 1 to the end of the last night (game.js: the run)
-        const diff = G.diff(), unlocked = G.unlocked, b0 = id => ((SAVE.data.best[id] || {})[diff.id]) || null;
-        let cards = '';
-        for (let i = 0; i < LEVELS.length; i++) {
-          const def = LEVELS[i];
-          if (i <= unlocked) {
-            const e = b0(def.id), best = e && e.wins ? '<span class="nbest"><small>best</small>' + fmtTime(e.time) + '</span>' : '';
-            cards += '<div class="ncard shown' + col(i) + '"><span class="nname">' + (i + 1) + '. ' + def.title + '</span>' + best + '</div>';
-          } else cards += '<div class="ncard locked' + col(i) + '">' + (i + 1) + '. &hellip;</div>';
-        }
-        const run = SAVE.data.bestRun[diff.id];
-        const runCard = '<div class="runcard"><div class="rlabel">Best full run</div>' + (run !== undefined && run !== null
-          ? '<div class="rtime">' + fmtRun(run) + '</div>'
-          : '<div class="rtime none">&mdash;</div><div class="rhint">Survive all ' + LEVELS.length + ' nights in one go. Retries are allowed; the clock keeps running.</div>') + '</div>';
-        const complete = SAVE.data.complete && SAVE.data.complete[diff.id] ? '<p class="fine">Every night survived.</p>' : '';
-        return '<h1>Scores</h1><div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>' + runCard + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
+        // the best full run, to look at: a card for each night with its share of that run's time, in two columns (one on
+        // a phone; not buttons: no night is picked from here), and under them the run's whole time and stars. No run
+        // yet: only a word on what one is. And at the bottom, by Back, Erase progress (it asks first: show)
+        const best = SAVE.data.bestRun[G.diff().id];
+        const body = best
+          ? runCards(best, 'shown') + '<div class="runcard">' + runTime(best, 'Best run', false) + '</div>'
+          : '<div class="runcard empty"><div class="rlabel">Best run</div><div class="rline"><div class="rtime none">&mdash;</div></div><div class="rhint">No full run yet. Survive all ' + LEVELS.length + ' nights in one go: retries are allowed, but the clock keeps running.</div></div>';
+        return '<h1>Scores</h1>' + body + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('reset', 'Erase progress', undefined, 'danger') + '</div>';
       }
       case 'settings': {
         // the sliders, each with its value as a percentage at its right (following it as it moves); then the on/off
-        // settings, each a switch (a checkbox with the role of a switch, drawn as one: .sw). From the warning before a new
-        // game (d.from 'warning': game.js) the same, but no Erase progress
+        // settings, each a switch (a checkbox with the role of a switch, drawn as one: .sw). Beside Back, Set to default:
+        // every setting back as it began (nothing else). From the warning before a new game (d.from 'warning': game.js) the same
         const sw = (k, label) => '<label class="opt"><span class="olabel">' + label + '</span><span class="swwrap"><input type="checkbox" role="switch" class="swi" data-set="' + k + '"' + (switchOn(k) ? ' checked' : '') + '><span class="sw" aria-hidden="true"></span></span></label>';
         const rng = (k, label, min, max) => '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="0.05" data-set="' + k + '" value="' + S[k] + '" aria-valuetext="' + pct(S[k]) + '"><output class="pct" aria-hidden="true">' + pct(S[k]) + '</output></span></label>';
         return '<h1>Settings</h1><div class="settings"><div class="sgrp">' +
           rng('master', 'Volume', 0, 1) + rng('effects', 'Effects', 0, 1) + rng('ambient', 'Ambience', 0, 1) + rng('textSize', 'Text size', 0.85, 1.4) +
           '</div><div class="sgrp">' +
           sw('muted', 'Mute') + sw('reduceMotionFlash', 'Reduce motion and flashing effects') + sw('captions', 'Captions for sounds') + (touchUI() ? sw('swipeReverse', 'Reverse swipes') : '') + sw('reduceTextures', 'Reduce surface textures') +
-          '</div></div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + (d.from === 'warning' ? '' : btn('reset', 'Erase progress', undefined, 'danger')) + '</div>';
+          '</div></div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('defaults', 'Set to default') + '</div>';
       }
       default: return '';
     }
@@ -138,8 +160,8 @@ const MENU = (() => {
     const ov = UI.overlay;
     const from = current.data.from || 'title';
     const dlg = DIALOGS.includes(kind) && ((from === 'title' && G.state === 'title') || from === 'pause');
-    // erasing progress asks first, in a small dialog of its own over Settings
-    const confirm = kind === 'settings' && current.data.confirmReset ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-label="Erase all progress?"><h2>Erase all progress?</h2><p>Every night reached and every best time will be gone.</p><div class="mrow">' + btn('keep', 'Cancel') + btn('erase', 'Erase', undefined, 'danger') + '</div></div></div>' : '';
+    // erasing progress asks first, in a small dialog of its own over Scores
+    const confirm = kind === 'nights' && current.data.confirmReset ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-label="Erase all progress?"><h2>Erase all progress?</h2><p>Every night reached and your best run will be gone.</p><div class="mrow">' + btn('keep', 'Cancel') + btn('erase', 'Erase', undefined, 'danger') + '</div></div></div>' : '';
     showOverlay((dlg ? '<div class="panel ' + kind + 'p" role="dialog" aria-modal="true">' + html(kind, current.data) + '</div>' : html(kind, current.data)) + confirm);
     ov.classList.toggle('dlg', dlg);
     ov.classList.toggle('titlelow', kind === 'title' && TITLE.on);
@@ -171,7 +193,7 @@ const MENU = (() => {
   // the keys and a pad go through navKey and the caller
   function settingsInto(root, back) {
     root.innerHTML = html('settings', { from: 'warning' });
-    root.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); if (b.dataset.act === 'back') back(); }));
+    root.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); if (b.dataset.act === 'back') back(); else if (b.dataset.act === 'defaults') toDefaults(root); }));
     wire(root);
     const first = root.querySelector('button[data-act]'); if (first) first.focus();
   }
@@ -223,6 +245,17 @@ const MENU = (() => {
     else if (k === 'textSize') document.documentElement.style.setProperty('--text-scale', v);
     else if (k === 'reduceTextures') R.detail = !v;
   }
+  // Set to default: every setting as it began, applied at once, and the controls on screen moved to match (the focus
+  // stays on the button)
+  function toDefaults(root) {
+    const S = SAVE.defaults();
+    setMuted(!!S.muted); applyAll();
+    root.querySelectorAll('[data-set]').forEach(inp => {
+      if (inp.type === 'checkbox') { inp.checked = switchOn(inp.dataset.set); return; }
+      const v = S[inp.dataset.set]; inp.value = v; inp.setAttribute('aria-valuetext', pct(v));
+      const out = inp.parentElement.querySelector('.pct'); if (out) out.textContent = pct(v);
+    });
+  }
   function applyAll() {
     const S = SAVE.data.settings;
     AUDIO.setVolume('master', S.master); AUDIO.setVolume('effects', S.effects); AUDIO.setVolume('ambient', S.ambient);
@@ -242,8 +275,9 @@ const MENU = (() => {
       case 'retry': startLevel(G.levelIndex, false); break;
       case 'next': proceedFromSurvived(); break;
       case 'title': showTitle(); break;
-      case 'reset': show('settings', Object.assign({}, current.data, { confirmReset: true })); break;
-      case 'keep': show('settings', Object.assign({}, current.data, { confirmReset: false })); break;
+      case 'defaults': toDefaults(UI.overlay); break;
+      case 'reset': show('nights', Object.assign({}, current.data, { confirmReset: true })); break;
+      case 'keep': show('nights', Object.assign({}, current.data, { confirmReset: false, focus: 'reset' })); break;
       case 'erase': SAVE.reset(); G.run = null; setMuted(false); applyAll(); showTitle(); break;
       case 'back': {
         const from = arg || 'title', was = current && current.kind;
@@ -265,7 +299,7 @@ const MENU = (() => {
     if (!ring(root).length) return false;
     if (navKey(e, root)) return true;
     const idx = ring(root).indexOf(document.activeElement);
-    if (k === 'Escape' && current.kind === 'settings' && current.data.confirmReset) { act('keep'); return true; }
+    if (k === 'Escape' && current.kind === 'nights' && current.data.confirmReset) { act('keep'); return true; }
     if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings' || current.kind === 'howto')) { act('back', current.data.from); return true; }
     if (k === 'Enter' && idx >= 0) return true;   // the focused button handles it
     return false;

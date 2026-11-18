@@ -79,7 +79,11 @@ line at a time, with a marker for which side a sound came from), on a touch scre
 textures (off by default; on drops the boards, logs and stone built into walls and floors, which is faster on slow
 machines). Reduce motion and flashing defaults on when your system asks for reduced motion. A save from before the
 switches carries over: surface detail off is Reduce surface textures on, and the one reduction switch is on if either
-of the old two was. Erase progress asks first, in a small dialog of its own (Cancel, Erase). The UI's accent red, for its
+of the old two was. Beside Back, Set to default puts every setting back as a new save has it, at once and with no
+question (the switches and sliders follow; progress, the best run and the accepted warning are untouched); the
+Settings opened from the warning have it too. Erase progress is on the Scores screen, beside its Back, and asks first,
+in a small dialog of its own (Cancel, Erase); it forgets everything as before: nights reached, the best run, the
+accepted warning and the settings. The UI's accent red, for its
 words and controls (the warning, "It got you", muted, Erase progress), is `--red` (`#f04a54`) in `index.html`.
 
 ## One game
@@ -101,8 +105,9 @@ open (a thing that can run is seen running there, side on, as the walker runs ro
 Where you cannot see it any more once you have won (behind a shut door or shutter), you hear and feel it beating on
 that door instead, hard and fast, until the night fades.
 
-Saves from versions with several difficulties carry over: the furthest night reached on any of them,
-and the best time on any of them, count for the one game.
+Saves from versions with several difficulties carry over: the furthest night reached on any of them counts for the one
+game. Best times for single nights (older saves kept them) are dropped: the only score is a whole run, and none is made
+up from them. An older save's best full run, kept as a time only, is still the time to beat, shown with no breakdown.
 
 ## The nights
 
@@ -463,8 +468,11 @@ turn, look and zoom), a tap of Use or A there fades
 the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme for its last
 screens. The last
 screen there says "You have faced your demons." over one button, The End, which brings up how the nights went this
-time: the thirteen cards of the Scores screen, each coming in whole with this run's time one after another (nothing
-there before it comes: no empty placeholders; the time of the attempt that won it, no best times here, only this run), then this run's whole time, then Finish game, home to the title: the usual dark one, with it out there again (the
+time: the thirteen cards of the Scores screen, each coming in whole with this run's time for that night one after
+another (nothing there before it comes: no empty placeholders), then this run's whole time with its stars (under 3:00
+three, under 6:00 two, else one: drawn, those earned filled, read out as "2 of 3 stars") and, only if it beats the
+best run saved (or is the first), a red Best run stamp beside the time: it is then the best run on the Scores screen.
+Then Finish game, home to the title: the usual dark one, with it out there again (the
 light theme goes with the last screens and is never kept for the title). A click or a key hurries it to the
 end, and with reduced motion it is all there at once.
 
@@ -473,14 +481,19 @@ places it might be, the creature's starting distance and pace vary slightly,
 and the car takes a different number of tries to start. Some pause, some lurch, one only moves when unseen.
 There is no picking a night and no continuing: it is a short game, and every game is all thirteen nights in a row,
 from the prologue and night 1 (Begin, or Enter on the title). The death screen offers Try again (the same night) and
-Quit. Progress and best times are saved in `localStorage`; once a night has been survived the title has a Scores
-button, which shows how they have gone and nothing more: a card for every night (its best time inside it; a night not
-reached yet is blank), in two columns, and under them the best full run. The cards are not buttons.
+Quit. Progress and the best full run are saved in `localStorage`; once a night has been survived the title has a Scores
+button, which shows the best full run: a card for every night with that run's time for it, in two columns (three on a
+phone on its side), and under them its whole time and stars; with no full run yet, only a word on what one is. The
+cards are not buttons. Under them, beside Back, is Erase progress. There are no best times for single nights.
 
 A full run is night 1 to the end of night 13 in one go, timed: every game is one. Its clock runs only while you play:
 every attempt counts, retries after a death and restarts included, but not the cards, the death and win screens, the
 pause menu, or the watching after a night is won. It carries on through Next night; quitting to the title ends it,
-and so does reloading the page. It finishes the moment the last night is won, and the best is kept in the save. (The
+and so does reloading the page. It finishes the moment the last night is won, and the best is kept in the save, its
+breakdown with it. Each night's time is its share of the run's clock, every attempt at it, so the nights add up to the
+whole run. Shown in whole seconds, each night is rounded and The Void, the last, is whatever makes them add up to the
+whole run exactly as shown (rounding each on its own would drift a second or a few). A run only replaces the best when
+it is faster by the whole seconds shown. (The
 test switches such as `?level=N` still start a night directly, for debugging, but never on a run.)
 
 The title screen is pitch black, with two pale points of eyes a long way off. The title and its buttons sit below them,
@@ -501,7 +514,7 @@ warning, in a card like the other dialogs on black: an eye struck through and re
 imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy." / "Options for reduced
 motion and flashing are available in the settings dialog." / a blank line / "Player discretion is advised."), a solid
 red Accept, focused (Enter, Space, a click or tap, or A or Start on a pad), and beside it a text-only Adjust settings,
-which turns the card into Settings (everything but Erase progress); its Back (or Esc, or B) is the warning again, Accept
+which turns the card into Settings (all of it, Set to default too); its Back (or Esc, or B) is the warning again, Accept
 focused, so it still takes Accept to go on. Nothing else gets past it. Once accepted it is remembered with the save
 (`warned`), and a later game goes straight on (Erase progress forgets it with the rest). Then a
 prologue (silent: the title's drone fades slowly away under it, and night 1's bed fades in as night 1 begins): black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /
@@ -757,8 +770,9 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 once, short of full, as soon as it is full, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
 the one game (no picker, no hints), the warning (its card, Adjust settings and back, remembered once accepted),
-restart, mute, menus (the pause menu and its Controls, Settings' percentages and switches, How to play's cards, the Scores screen,
-erasing progress, the win screen between nights, the title's click), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
+restart, mute, menus (the pause menu and its Controls, Settings' percentages and switches, How to play's cards, Set to default, the Scores screen (the best run, its
+breakdown adding up, its stars), erasing progress from it, the results after the ending (the Best run stamp only for a
+new best), the win screen between nights, the title's click), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
 reduced motion, clear of the zoom button on a phone), a wrong thing coming back, a plank falling to the floor where a
 click takes it again (hanging, as it tips, from the end it is meant to), a decoy dropping, the empty hand's reach, one fumble for many fast clicks, and a target's own choices. `test/lanes.js` runs `validateContent()` and checks every
