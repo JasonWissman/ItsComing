@@ -98,7 +98,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'tubeOn', n: [11], d: 'A tube light humming on.', src: 'night11' },
   // ---- night 12: the bedroom, and the story sounds of every night ----
   { kind: 'sfx', name: 'drawer', n: [12], d: 'A drawer sliding open.', src: 'night12' },
-  { kind: 'sfx', name: 'cloth', n: [12], d: 'Cloth twisting. Its hands on the covers; pulling them up.', src: 'night12' },
+  { kind: 'sfx', name: 'cloth', n: [12, 13], d: 'Cloth twisting. Its hands on the covers; pulling them up (12). The demon\u2019s robe as it takes hold of you, and as it lets you go (13).', src: 'night12 · night13 grab, release' },
   { kind: 'sfx', name: 'tug', n: [12], d: 'The covers yanked hard, the bed creaking.', src: 'night12' },
   { kind: 'sfx', name: 'flicker', n: [12], d: 'A bulb flickering out with a buzz. The lamp goes dark.', src: 'night12' },
   { kind: 'sfx', name: 'tick', n: R12, d: 'A clock tick (one a second). For the first ten seconds of every night, from the north-west; on night 12 again once won.', src: 'story.js · night12' },
@@ -106,7 +106,8 @@ const SOUNDS = [
   { kind: 'sfx', name: 'hangers', n: R12, d: 'Coat hangers clinking now and then on the wind; not on night 12, where the closet is a way in.', src: 'story.js' },
   { kind: 'sfx', name: 'whoosh', n: [12], d: 'A sweep of air, low to high and back down. On Nightmare it glides round the bed to the other way in.', src: 'night12' },
   // ---- night 13: the void and the ending ----
-  { kind: 'sfx', name: 'screech', n: [13], d: 'A scraping shriek, rising and breaking, gritty; a little different each time; an octave up, slower and duller than it was made. The demon enraged: again and again while you hold anything, more often the angrier it is (every 3 s down to under 1 s); once as it takes hold of you at the end; and at the scare, as it throws its head back and the faces of the others are all round it (with thud under it).', src: 'night13 screech · ending grab · scare' },
+  { kind: 'sfx', name: 'growl', n: [13], d: 'A deep, gravelly growl: a low voice and a rough fifth over it and a breath of grit, rattled by a fast uneven flutter, lifting a little and sinking as it dies. The demon holding you: its angry face coming up out of the hood, and its second angry face as it leans in.', src: 'night13.js' },
+  { kind: 'sfx', name: 'screech', n: [13], d: 'A scraping shriek, rising and breaking, gritty; a little different each time; an octave up, slower and duller than it was made. The demon enraged: again and again while you hold anything, more often the angrier it is (every 3 s down to under 1 s); and at the scare, as it throws its head back and the faces of the others are all round it (with thud under it).', src: 'night13 screech · scare' },
   { kind: 'sfx', name: 'absorb', n: [13], d: 'A rush of air drawn in, swelling, falling in pitch and cut off short, a low note rising under it, and a soft blow at the end. The demon taking the faces of the others back into itself after the scare.', src: 'night13 ending' },
   { kind: 'sfx', name: 'screechRage', n: [13], d: 'A longer, wilder screech: two shrieks at odds and a growl under them; an octave up, slower and duller, as screech. The demon beside itself (five or more held, or the bow drawn at it), every second or so.', src: 'night13 screech' },
   { kind: 'sfx', name: 'warp', n: [13], d: 'A rushing that swells and climbs for ten seconds over a rising low note. The dark turning at the end, as the pale light comes and the meadow turns into place.', src: 'night13 ending' },

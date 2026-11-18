@@ -17,6 +17,8 @@ const clear = '(() => { const f = G.L.items.filter(i => !i.taken).map(o => ({ a:
   ' worst = Math.max(worst, Math.max(0, (p.w + q.w) / 2 - Math.abs(wrapPi(p.a - q.a)) * (p.d + q.d) / 2) * Math.max(0, Math.min(p.d + p.h, q.d + q.h) - Math.max(p.d, q.d))); }' +
   ' return worst < 0.15; })()';
 // from the moment it reaches you, note each face it holds (a whole number) in the order it comes
+// what it is heard to do while it holds you: each effect, when (s.endT) and with what face (c.mood, c.unveil)
+const watchSfx = "window._sfx = []; if (!AUDIO.__w) { const o = AUDIO.sfx; AUDIO.__w = true; AUDIO.sfx = function (n) { if (G.L && G.L.s && G.L.s.ending) window._sfx.push({ n, t: G.L.s.endT, m: G.L.creature.mood, u: G.L.creature.unveil }); return o.apply(this, arguments); }; }";
 const watchMoods = "window._moods = []; (function f() { const m = G.L.creature.mood; if (Number.isInteger(m) && window._moods[window._moods.length - 1] !== m) window._moods.push(m); if (G.state === 'won') requestAnimationFrame(f); })();";
 // enraged, it comes in fits: over a few seconds of its own time it stops dead, lurches on fast and jerks aside
 const fits = '(() => { const c = G.L.creature, t0 = c.t, pace = [], side = []; for (let i = 0; i < 60; i++) { c.t = t0 + i * 0.07; pace.push(CREATURES.demon.speedMult(c, 0.05, true) / (1 + 0.45 * c.anger)); side.push(CREATURES.demon.lateral(Object.assign({}, c, { dist: 10 }))); } c.t = t0;' +
@@ -52,7 +54,7 @@ const noHands = what => ['expect', '!G.hand.cur && !G.hand.off.cur && !G.hand.re
 const letGo = [dropAll, ['expect', 'G.inv.length === 0', 'empty-handed again'], ['waitUntil', 'G.L.items.every(i => !i.taken)', 2000], ['expect', clear, 'what was put down lies clear of everything else on the floor'],
   ['waitUntil', 'G.L.creature.rage < 0.05 && Math.abs(G.L.creature.lat) < 0.02', 2000], ['expect', 'G.L.creature.rage < 0.05', 'nothing held: it calms, two pale eyes in its hood again'],
   ['eval', 'window._sc = G.L.s.screeches || 0;'], ['wait', 3500], ['expect', '(G.L.s.screeches || 0) === window._sc', 'and it is quiet: no screeching while you hold nothing'],
-  ['eval', 'G.L.creature.switched = true; G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; G.L.creature.u = 0.9;'], ['waitUntil', 'G.L.won || G.L.creature.dist < 3', 20000], ['expect', 'G.L.won || G.cam.tPitch < -0.1', 'facing it as it looms in, the view lifts to its face'], ['waitUntil', 'G.L.won', 20000], ['eval', watchMoods], ['expect', 'G.L.won && G.L.s.ending', 'it came and it was the ending']];
+  ['eval', 'G.L.creature.switched = true; G.cam.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; G.L.creature.u = 0.9;'], ['waitUntil', 'G.L.won || G.L.creature.dist < 3', 20000], ['expect', 'G.L.won || G.cam.tPitch < -0.1', 'facing it as it looms in, the view lifts to its face'], ['waitUntil', 'G.L.won', 20000], ['eval', watchMoods], ['eval', watchSfx], ['expect', 'G.L.won && G.L.s.ending', 'it came and it was the ending']];
 // in the meadow: a key that turns, looks or zooms does only that
 const key = (k, up) => ['eval', `window.dispatchEvent(new KeyboardEvent('keydown', { key: '${k}' }));` + (up ? `window.dispatchEvent(new KeyboardEvent('keyup', { key: '${k}' }));` : '')];
 // (each waited for, not a fixed time: the meadow is a lot to draw, and the frames can come slowly)
@@ -78,6 +80,8 @@ const ending = [
   key('r', true), key('ArrowLeft', true), ['expect', "G.state === 'won' && !G.L.s.leaving", 'R or a turn does nothing there'],
   ['waitUntil', 'G.L.s.endT > END.neutral[1] + 0.2', 8000],
   ['expect', 'JSON.stringify(window._moods) === "[0,1,2,3,4,5,6]" && G.L.s.shown === 0 && !G.L.s.scare.faces.length && G.L.creature.hug.grab === 1 && G.L.s.meadow === 0', 'it takes them back into itself, and is its grey neutral face again, in the dark, holding you'],
+  ['expect', "(g => g.length === 2 && g[0].u > 0 && g[0].u < 0.5 && g[0].m < 0.5 && g[1].m >= 1.5 && g[1].m <= 2.6)(window._sfx.filter(x => x.n === 'growl'))", 'it growls, deep and gravelly, as its angry face comes up out of the hood and again as it snaps to angry and leans in'],
+  ['expect', "(sc => sc.length === 1 && Math.abs(sc[0].t - END.scare[0]) < 0.2)(window._sfx.filter(x => /screech/.test(x.n)))", 'and screeches only at the scare'],
   ['waitUntil', 'G.L.s.meadow > 0.5', 20000],
   ['expect', 'G.L.creature.hug && G.L.creature.hug.grab === 1 && G.L.s.spin > 0', 'out of the pale light the meadow comes, turning into place, and it is still holding you'],
   ['waitUntil', 'G.L.s.wait', 20000],

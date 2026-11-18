@@ -425,8 +425,9 @@ some on the ground, so you have to turn and look down to find them.
     faint soft glow of its light about the dark arms and hands. All through the night in the
     void a faint cold light stands straight behind it (as big as it is, so wider in the view as
     it nears), so its dark shape reads against the black, until the pale light comes.
-    Holding you, its face goes slowly through angry (square teeth, the top row uneven),
-    neutral, angry (leaning right in at you, its face filling the view, then drawing back),
+    Holding you, its face goes slowly through angry (square teeth, the top row uneven; a
+    deep, gravelly growl as it comes up out of the hood), neutral, angry (growling again,
+    leaning right in at you, its face filling the view, then drawing back),
     confused (then, glitching, a flicker of faces under a second: pain, envy, sorrow, grimace,
     terror, empty, shock; with reduced motion no glitch, but pain, sorrow, terror and empty
     each fading slowly into the next, and every change of face a slow fade) and sad; it cries a while, its shoulders

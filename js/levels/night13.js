@@ -317,7 +317,11 @@ LEVELS.push({
       // so the view never looks up further than keeps them in front (it bends down to you, so the view comes level anyway)
       const up = Math.atan(0.7 * c.dist / Math.max(0.5, L.eyeH - c.pos().y - c.yOff));
       if (G.cam.pitch < -up) G.cam.pitch = -up;
-      if (t >= END.grab[0] && !s.grabbed) { s.grabbed = true; AUDIO.sfx('screech', 0); if (!still) G.shake(0.05); }   // it takes hold of you
+      // its first two angry faces while it holds you growl, deep and gravelly, as each face shows (kept apart from the
+      // screech of the scare): as the angry face comes up out of the hood, and as it snaps to angry again and leans in
+      if (c.unveil >= 0.08 && !s.growl1) { s.growl1 = true; AUDIO.sfx('growl', 0); }
+      if (c.mood >= 1.5 && c.mood < 2.6 && !s.growl2) { s.growl2 = true; AUDIO.sfx('growl', 0); }
+      if (t >= END.grab[0] && !s.grabbed) { s.grabbed = true; AUDIO.sfx('cloth', 0); if (!still) G.shake(0.05); }   // it takes hold of you
       if (t >= END.grab[1] + 0.6 && !s.held) { s.held = true; AUDIO.voice('exhale', 0.5, 0); }
       if (c.mood >= 3.5 && !s.sob) { s.sob = true; s.sobT = 3.4; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
       if (s.sob && c.sob > 0.5) { s.sobT -= dt; if (s.sobT <= 0) { s.sobT = 3.6; AUDIO.voice('slow', 0.38, 0); } }   // crying, holding you

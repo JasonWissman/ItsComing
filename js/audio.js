@@ -439,6 +439,30 @@ const AUDIO = (() => {
         for (let i = 0; i < 14; i++) noise(0.04, { type: 'bandpass', freq: 2200 + Math.random() * 2400, q: 7, vol: 0.16, delay: 0.02 + i * 0.07, pan });
         break;
       }
+      // the demon angry while it holds you (night 13, its first two angry faces): a deep, gravelly growl. A low voice and a rough
+      // fifth over it and a breath of grit, all rattled by a fast, uneven flutter (the gravel), lifting a little and sinking
+      // as it dies; a little different each time
+      case 'growl': {
+        const t0 = now(), T = 1.45 + Math.random() * 0.2, f = 55 + Math.random() * 8;
+        const out = ac.createGain(), lp = ac.createBiquadFilter(), am = ac.createGain(), lfo = ac.createOscillator(), lfoG = ac.createGain();
+        out.gain.setValueAtTime(0.0001, t0); out.gain.exponentialRampToValueAtTime(1, t0 + 0.16); out.gain.setValueAtTime(1, t0 + T * 0.55); out.gain.exponentialRampToValueAtTime(0.0001, t0 + T);
+        lp.type = 'lowpass'; lp.Q.value = 3; lp.frequency.setValueAtTime(520, t0); lp.frequency.linearRampToValueAtTime(950, t0 + T * 0.3); lp.frequency.exponentialRampToValueAtTime(260, t0 + T);
+        am.gain.value = 0.55; lfo.type = 'square'; lfoG.gain.value = 0.45;
+        lfo.frequency.setValueAtTime(23, t0); lfo.frequency.linearRampToValueAtTime(34, t0 + T * 0.35); lfo.frequency.linearRampToValueAtTime(17, t0 + T);
+        lfo.connect(lfoG); lfoG.connect(am.gain);
+        const voice = (mul, type, vol) => {
+          const o = ac.createOscillator(), g = ac.createGain(); o.type = type; g.gain.value = vol;
+          o.frequency.setValueAtTime(f * mul * 0.92, t0); o.frequency.linearRampToValueAtTime(f * mul * 1.12, t0 + T * 0.35); o.frequency.linearRampToValueAtTime(f * mul * 0.78, t0 + T);
+          o.connect(g); g.connect(am); o.start(t0); o.stop(t0 + T + 0.05);
+        };
+        voice(1, 'sawtooth', 0.34); voice(1.5 * 1.012, 'sawtooth', 0.14); voice(0.5, 'square', 0.12);
+        const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
+        src.buffer = noiseBuf; src.loop = true; bp.type = 'bandpass'; bp.frequency.value = 380; bp.Q.value = 1.3; ng.gain.value = 0.42;
+        src.connect(bp); bp.connect(ng); ng.connect(am); src.start(t0, Math.random() * 1.2); src.stop(t0 + T + 0.05);
+        am.connect(lp); lp.connect(out); chain(out, pan);
+        lfo.start(t0); lfo.stop(t0 + T + 0.05);
+        break;
+      }
       // the dark turning at the end of night 13: a rushing that swells and climbs for ten seconds, a low note rising under it
       case 'warp':
         for (let i = 0; i < 10; i++) noise(1.8, { type: 'bandpass', freq: 260 * Math.pow(1.27, i), q: 1.1, vol: 0.05 + 0.012 * i, attack: 0.7, delay: i * 1.0 });
