@@ -293,8 +293,9 @@ some on the ground, so you have to turn and look down to find them.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass. The night has a clock: it comes on all night, steadily while the mirror you face does not show it,
     and more slowly held in the glass, where it comes a step nearer in the snap of each move of its dance and is dead still
-    between them, so its reflections creep in from far back in every mirror (about three minutes for a player who spends
-    half the night facing a mirror; five never looking away, a little over two never facing one). In every glass it dances on the spot, a
+    between them, so its reflections creep in from well back in every mirror, a little larger with every snap, and doing
+    nothing is always the end of you (about a minute and a half for a player who spends half the night facing a mirror;
+    two and a half minutes standing still square on before a live one, about one never facing one). In every glass it dances on the spot, a
     wind-up doll's dance, every move snapped into all at once and then held dead still a long
     beat before the next (an arm going up and coming down, a wrist flopping over, a knee
     coming up, a leg kicked out to the side, the head snapping over to one side, a lean from

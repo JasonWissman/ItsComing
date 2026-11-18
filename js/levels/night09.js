@@ -1257,7 +1257,7 @@ Object.assign(ICONS, {
           const at = (a, dy) => [x + d.nz * a, y + dy, z + d.nx * a];   // a along the pane, dy up it
           R.add({ kind: 'poly', pts: [at(-0.0008, d.len), at(0.0008, d.len), at(0.0009, 0.006), at(0.0026, 0.0032), at(0, 0), at(-0.0026, 0.0032), at(-0.0009, 0.006)].map(p => L.pt(p[0], p[1], p[2])), color: [196, 208, 228], alpha: 0.3, noFog: true, noLight: true });
         }
-        if (s.end && s.end.pose) for (const p of carParts()) R.add(p);
+        if (s.end && s.end.pose) { s.end.drawn = carParts(); for (const p of s.end.drawn) R.add(p); }   // (kept for the tests: what of the car was drawn, the open door's pieces marked door)
         for (const p of shatterParts()) R.add(p);
       };
       // ---------------- the glass it comes through ----------------
@@ -1458,10 +1458,25 @@ Object.assign(ICONS, {
           const D = (k, y) => W(-0.11 - ca * k, 0.9 + sa * k, y);    // a point k along the open door from its hinge
           const n0 = carPt(P, 0, 0, 0), n1 = carPt(P, sa, ca, 0), n = [n1[0] - n0[0], n1[2] - n0[2]];   // its outer face's normal: out from the car's side, turned forward as it opens
           const mid = D(0.5, 0.55), outer = (eye[0] - mid[0]) * n[0] + (eye[2] - mid[2]) * n[1] > 0;
-          out.push({ kind: 'poly', pts: [D(0, 0.3), D(1.0, 0.3), D(1.0, 0.78), D(0, 0.78)], color: outer ? scalec(col, 0.8) : [104, 88, 70] });
-          out.push({ kind: 'poly', pts: [D(0.02, 0.78), D(0.98, 0.78), D(0.74, 1.26), D(0.02, 1.26)], color: [150, 172, 198], alpha: 0.16, noLight: true });   // its window
-          out.push({ kind: 'poly', pts: [D(0.74, 1.24), D(0.98, 0.78), D(1.0, 0.78), D(0.76, 1.27)], color: scalec(col, 0.7) });   // and the frame round it
-          if (outer) out.push({ kind: 'poly', pts: [D(0.78, 0.66), D(0.91, 0.66), D(0.91, 0.69), D(0.78, 0.69)], color: [176, 178, 184] });
+          // The open door stands out from the kerb side, between the car and the booth: every part of the car lies on the
+          // far side of the plane of that side and the eye on this one, so wherever the door and the car overlap on the
+          // view, the door is the nearer. By its own middle it can still come out further than the side behind it (the
+          // car that came along the cross street is seen obliquely, close by), and the lit doorway, the chrome strip
+          // and the seams on that side were drawn over it. So it is drawn after every part of the car it overlaps across
+          // the view (and never earlier than its own distance would put it)
+          const panel = [D(0, 0.3), D(1.0, 0.3), D(1.0, 0.78), D(0, 0.78)], glass = [D(0.02, 0.78), D(0.98, 0.78), D(0.74, 1.26), D(0.02, 1.26)];
+          const yawOf = v => Math.atan2(v[0], v[2]), dy = yawOf(mid), span = pts => pts.reduce((r, v) => { const a = wrapPi(yawOf(v) - dy); return [Math.min(r[0], a), Math.max(r[1], a)]; }, [Infinity, -Infinity]);
+          const ds = span(panel.concat(glass));
+          let sd = meanD(panel);
+          for (const r of out) {
+            if (r.alpha !== undefined && r.alpha < 0.5) continue;   // (the beams of its lamps: light in the rain, not the car)
+            const rs = span(r.pts);
+            if (rs[1] > ds[0] && rs[0] < ds[1]) sd = Math.min(sd, r.sortDist !== undefined ? r.sortDist : meanD(r.pts));
+          }
+          out.push({ kind: 'poly', pts: panel, color: outer ? scalec(col, 0.8) : [104, 88, 70], sortDist: sd - 0.01, door: true });
+          out.push({ kind: 'poly', pts: glass, color: [150, 172, 198], alpha: 0.16, noLight: true, sortDist: sd - 0.011, door: true });   // its window
+          out.push({ kind: 'poly', pts: [D(0.74, 1.24), D(0.98, 0.78), D(1.0, 0.78), D(0.76, 1.27)], color: scalec(col, 0.7), sortDist: sd - 0.012, door: true });   // and the frame round it
+          if (outer) out.push({ kind: 'poly', pts: [D(0.78, 0.66), D(0.91, 0.66), D(0.91, 0.69), D(0.78, 0.69)], color: [176, 178, 184], sortDist: sd - 0.013, door: true });
         }
         // the beams through the rain, and, while its lamps are toward you, their glare on the wet road, which stops at the kerb
         const facing = -carPt(P, 2.2, 0, 0)[0] * P.fx - carPt(P, 2.2, 0, 0)[2] * P.fz > 0;

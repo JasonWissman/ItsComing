@@ -39,9 +39,12 @@ LEVELS.push({
     { deg: 270, name: 'the west mirror', barrierDist: 0, noSwitch: true },
   ],
   // the clock: held in a glass it creeps in at seenMult (a step with each move of its dance), unseen at unseenMult (x1.4 on
-  // Nightmare); time 300 is about three minutes for a player who spends half the night facing a mirror (five, never looking
-  // away; a little over two, never facing one)
-  creatures: [{ type: 'other', startDist: 30, time: 300, seenMult: 0.6, unseenMult: 1.0 }],
+  // Nightmare), steadily all the way in (linear), so doing nothing is always the end of you. On Nightmare (its clock x0.6)
+  // time 160 is about a minute and a half for a player who spends half the night facing a mirror, about two and a half
+  // minutes standing still before a live mirror and doing nothing, and about a minute never facing one (or standing still
+  // before a sheeted one). It starts near enough (startDist: its reflection about 21 m back in the glass) to be seen in
+  // every glass from the first, a little larger with every snap of its dance
+  creatures: [{ type: 'other', startDist: 14, time: 160, seenMult: 0.6, unseenMult: 1.0 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s, CR = CREATURES.other, c0 = () => L.creatures[0];
@@ -123,10 +126,17 @@ LEVELS.push({
       })));
       return { x: +(Math.sin(m.deg * DEG) * PED).toFixed(2), z: +(Math.cos(m.deg * DEG) * PED).toFixed(2) };
     });
-    // the lamp's table on four legs, each drawn before the parts of the top that hide its upper end (the near leg before
-    // the top's front edges, the others before the top itself) and after the walls behind it
-    SC.box(L, 2.2, 3.4, 0.98, 1.03, 2.2, 3.4, [70, 56, 44]);
-    for (const [x, z] of [[2.27, 2.27], [3.33, 2.27], [2.27, 3.33], [3.33, 3.33]]) SC.sprite(L, x, 0, z, 0.05, 0.98, (ctx, P) => { ctx.scale(0.05, 0.98); P_rect(ctx, -0.5, 0, 1, 1, P.col([54, 43, 34])); }, { sortDist: x + z < 5 ? 3.9 : 4.15 });
+    // the lamp's table on four legs, each drawn after the walls behind it. A leg is only as tall as it shows under the
+    // table from the middle of the room (the eye never leaves it): the rest of it is behind the top and its edges anyway,
+    // and drawn whole, the far corner's leg (by its middle further off than the parts of the cut-up top round it) was
+    // drawn over the top as a little brown upright bar standing on it. Seen past the near edge of the underside (where
+    // the line to it first comes under the table) it is cut off at the height that edge hides
+    const TB = { x0: 2.2, x1: 3.4, z0: 2.2, z1: 3.4, y: 0.98 };
+    SC.box(L, TB.x0, TB.x1, TB.y, TB.y + 0.05, TB.z0, TB.z1, [70, 56, 44]);
+    for (const [x, z] of [[2.27, 2.27], [3.33, 2.27], [2.27, 3.33], [3.33, 3.33]]) {
+      const under = Math.max(TB.x0 / x, TB.z0 / z), h = Math.min(TB.y, L.eyeH - (L.eyeH - TB.y) / under + 0.004);
+      SC.sprite(L, x, 0, z, 0.05, h, (ctx, P) => { ctx.scale(0.05, h); P_rect(ctx, -0.5, 0, 1, 1, P.col([54, 43, 34])); }, { sortDist: x + z < 5 ? 3.9 : 4.15 });
+    }
     // the chair stands with its back to the east wall, facing into the room, so what lies on its seat is in plain view
     SC.box(L, 2.8, 3.19, 0.4, 0.45, -1.7, -1.3, [88, 70, 50]); SC.box(L, 3.19, 3.25, 0.4, 0.95, -1.7, -1.3, [88, 70, 50]);
     for (const [x, z] of [[2.83, -1.67], [3.22, -1.67], [2.83, -1.33], [3.22, -1.33]]) SC.box(L, x - 0.03, x + 0.03, 0, 0.4, z - 0.03, z + 0.03, [70, 56, 40]);
