@@ -50,8 +50,9 @@ const DEMON_MOODS = [
 DEMON_MOODS[7] = DEMON_MOODS[3];
 const DEMON_MOOD_NAMES = ['angry', 'neutral', 'angry', 'confused', 'sad', 'angry', 'neutral', 'confused', 'content', 'happy'];
 // Between confused and sad it does not blend: it glitches, flicking through these faces one after another, each held a
-// moment and snapped to the next, as if trying each on to understand what is happening, before it lands on sad. Each is
-// the neutral face with these changes
+// moment and snapped to the next, as if trying each on to understand what is happening, before it lands on sad (with
+// reduced motion, some of them, each fading slowly into the next: DEMON_GLITCH_STILL). Each is the neutral face with these
+// changes
 const DEMON_GLITCH = [
   // pain: the brows knotted up in the middle, the eyes screwed shut, a wide grimace full of teeth, shaking
   { skin: [178, 120, 116], bi: 0.05, bo: 0.008, bw: 0.015, open: 0.12, lid: 0.25, lidLine: 1, sock: 0.6, my: -0.085, mw: 0.052, mc: -0.01, mu: 0.012, md: -0.02, mr: 0.15, teeth: 1, tilt: 0.12, trem: 1, jaw: 0.2 },
@@ -80,16 +81,20 @@ function demonBlend(A, B, k) {
 // cries a while, holding you still, bows its head, throws it back angry (the scare), and comes back to its grey neutral
 // face
 const DEMON_MOOD_TIME = [[1.0, 0.9], [1.0, 0.25], [1.6, 0.4], [1.0, 0.9]];
+// with reduced motion: the same in all, but no quick turns: each goes into the next over at least 0.6 s, and the glitch
+// from confused to sad is a slow run of cross-fades (see demonMood) over 1.6 s, its faces each come and gone in turn
+const DEMON_MOOD_TIME_STILL = [[1.0, 0.9], [0.65, 0.6], [1.4, 0.6], [0.3, 1.6]];
 // which face it is making u seconds into its faces (0: the first, angry; a part-way number while it goes into the next;
-// 4, sad, once it is there)
-function demonMoodAt(u) {
+// 4, sad, once it is there); still: reduced motion
+function demonMoodAt(u, still) {
+  const MT = still ? DEMON_MOOD_TIME_STILL : DEMON_MOOD_TIME;
   let t0 = 0;
-  for (let j = 0; j < DEMON_MOOD_TIME.length; j++) {
-    const [h, b] = DEMON_MOOD_TIME[j];
+  for (let j = 0; j < MT.length; j++) {
+    const [h, b] = MT[j];
     if (u < t0 + h + b) return j + clamp((u - t0 - h) / b, 0, 1);
     t0 += h + b;
   }
-  return DEMON_MOOD_TIME.length;
+  return MT.length;
 }
 // The ending, as night 13 plays it and the lab shows it: how it is t seconds after it reached you. E is the night's
 // timeline (END in js/levels/night13.js; the lab keeps a copy), d0 how far off it was then and y0 how far it was already
@@ -119,13 +124,13 @@ function demonEnding(E, t, d0, y0, still) {
     hug: lift > 0.001 || grab > 0.001 ? { lift, grab } : null,
     unveil: sp(E.unveil[0], E.unveil[1]),
     // bent down to your face while it holds you (further as it leans in), and straight once it lets you go
-    yOff: (lerp(y0 || 0, -0.72, sp(E.stoop[0], E.stoop[1])) - 0.07 * lean) * (1 - calm),
-    dist: lerp(lerp(d0, 0.68, sp(E.near[0], E.near[1])) - 0.2 * lean, 3.3, walk),
+    yOff: (lerp(y0 || 0, -0.72, sp(E.stoop[0], E.stoop[1])) - 0.1 * lean) * (1 - calm),
+    dist: lerp(lerp(d0, 0.68, sp(E.near[0], E.near[1])) - 0.36 * lean, 3.3, walk),
     sob: sp(E.sad - 0.3, E.sad + 0.9) * (1 - sp(E.down[0] - 0.5, E.down[0] + 0.5)),
     calm,
     // sad until the scare; angry in a snap (with reduced motion over a third of a second); then neutral, confused, content
     // and happy
-    mood: t < E.moods ? 0 : u < 0 ? Math.min(4, demonMoodAt(t - E.moods)) : 4 + lin(s0, s0 + (still ? 0.3 : 0.03)) + lin(E.neutral[0], E.neutral[1]) + lin(E.confused[0], E.confused[1]) + lin(E.content[0], E.content[1]) + lin(E.happy[0], E.happy[1]),
+    mood: t < E.moods ? 0 : u < 0 ? Math.min(4, demonMoodAt(t - E.moods, still)) : 4 + lin(s0, s0 + (still ? 0.3 : 0.03)) + lin(E.neutral[0], E.neutral[1]) + lin(E.confused[0], E.confused[1]) + lin(E.content[0], E.content[1]) + lin(E.happy[0], E.happy[1]),
     nod,
     jolt: still || u < 0 ? 0 : Math.min(1, u / 0.06) * (1 - sp(s0 + 0.2, s1 + 0.2)),
     scare: u >= 0 && t < s2 + 0.05 ? { u, up: s1 - s0, take: s2 - s1 } : null,
@@ -198,16 +203,23 @@ function demonVignette(cv) {
   x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'destination-in'; x.fillStyle = g; x.fillRect(0, 0, w, hh); x.restore();
   return cv;
 }
-// the face for mood m; still (reduced motion): no glitching, confused blends straight into sad
+// the faces it tries on, with reduced motion: pain, sorrow, terror and empty, each cross-faded slowly into the next
+const DEMON_GLITCH_STILL = [0, 2, 4, 5];
+// the face for mood m; still (reduced motion): no glitching: from confused to sad it goes through some of the same faces,
+// but each fades into the next, nothing snapped
 function demonMood(m, still) {
   const i = clamp(Math.floor(m), 0, DEMON_MOODS.length - 2), u = clamp(m - i, 0, 1);
-  if (i === DEMON_GLITCH_FROM && !still && u > 0 && u < 1) {
-    // even steps through confused, the glitch faces, and sad: each held, then snapped to the next in the last fifth
-    const seq = [DEMON_MOODS[i], ...DEMON_GLITCH, DEMON_MOODS[i + 1]], n = seq.length - 1, q = u * n, j = Math.min(n - 1, Math.floor(q));
-    return demonBlend(seq[j], seq[j + 1], smoothstep((q - j - 0.8) / 0.2));
+  if (i === DEMON_GLITCH_FROM && u > 0 && u < 1) {
+    // even steps through confused, the glitch faces, and sad: each held, then snapped to the next in the last fifth (with
+    // reduced motion, the whole of each step a fade into the next)
+    const seq = [DEMON_MOODS[i], ...(still ? DEMON_GLITCH_STILL.map(k => DEMON_GLITCH[k]) : DEMON_GLITCH), DEMON_MOODS[i + 1]], n = seq.length - 1, q = u * n, j = Math.min(n - 1, Math.floor(q));
+    return demonBlend(seq[j], seq[j + 1], still ? smoothstep(q - j) : smoothstep((q - j - 0.8) / 0.2));
   }
   return demonBlend(DEMON_MOODS[i], DEMON_MOODS[i + 1], smoothstep(u));
 }
+// the top row of its teeth, left to right: how far each is off its place (as much of the mouth's half width), and its
+// width and length (as much of the usual)
+const DEMON_TEETH_TOP = [[0.05, 0.9, 0.78], [-0.07, 1.25, 1.22], [0.03, 0.85, 0.96], [0.08, 1.12, 1.38], [-0.04, 1.0, 0.7]];
 // the face for c.mood, drawn in the head's frame (fy as draw() has it)
 function demonMoodFace(ctx, c, P, fy, F) {
   const t = c.t, move = c.still ? 0 : 1;
@@ -222,10 +234,12 @@ function demonMoodFace(ctx, c, P, fy, F) {
   if (F.teeth > 0.02 || F.joy > 0.02) {
     ctx.save(); mouth(); ctx.clip();
     const tooth = P.cola([224, 212, 200], Math.min(1, F.teeth * 1.5)), edge = (y0, x) => cy + (y0 - cy) * (1 - (x / w) * (x / w));
+    // square teeth, the top row uneven (each its own width, length and place: the same every time), the bottom even
     if (F.teeth > 0.02) for (let i = -2; i <= 2; i++) {
-      const x = i * w * 0.38, up = edge(uy, x), dn = edge(dy, x);
-      P_line(ctx, x, up + 0.02, x, up - Math.abs(up - dn) * 0.36 * F.teeth, 0.011, tooth);
-      P_line(ctx, x, dn - 0.02, x, dn + Math.abs(up - dn) * 0.26 * F.teeth, 0.011, tooth);
+      const x = i * w * 0.38, up = edge(uy, x), dn = edge(dy, x), gap = Math.abs(up - dn) * F.teeth, [ox, tw, tl] = DEMON_TEETH_TOP[i + 2];
+      ctx.fillStyle = tooth;
+      ctx.fillRect(x + ox * w - 0.0055 * tw, up - gap * 0.36 * tl, 0.011 * tw, gap * 0.36 * tl + 0.02);
+      ctx.fillRect(x - 0.005, dn - 0.02, 0.01, gap * 0.26 + 0.02);
     }
     if (F.joy > 0.02) P_ell(ctx, 0, dy + 0.013, w * 0.44, 0.011, P.cola([230, 120, 130], F.joy));
     ctx.restore();
@@ -264,6 +278,7 @@ function demonMoodFace(ctx, c, P, fy, F) {
 // did: the arms come at you out of the bottom of the view, the forearms up from below its sides, the hands at its lower
 // corners, big and near, the palms toward you and the fingers curling in over your shoulders. At lift 0 and grab 0 it is
 // the arm as draw() has it.
+let demonGlowCv = null;   // (the light about its arms, drawn small: see demonHugArms)
 function demonHugArms(ctx, c, P, body, S0, E0, H0, wid, fing) {
   const h = c.hug, l = h.lift, w = h.grab, g = Math.max(l, w);
   const M = ctx.getTransform(), dpr = ctx.canvas.width / R.W, W = R.W, H = R.H, cx = W / 2;
@@ -276,6 +291,7 @@ function demonHugArms(ctx, c, P, body, S0, E0, H0, wid, fing) {
   // its own dark, as its light has it, and that light catching the inner edge of the arms
   const base = mixc([4, 3, 6], [104, 90, 126], c.soft || 0), rim = P.col(mixc(base, [150, 130, 140], 0.6));
   // a limb in the view: from a to b round the control point m, its width going from wa to wb, round at both ends
+  let dc = ctx;   // (where the limbs go: the view, or the light round them)
   const limb = (a, m, b, wa, wb, col, dx) => {
     const n = 12, L = [], Rt = [];
     for (let i = 0; i <= n; i++) {
@@ -283,13 +299,29 @@ function demonHugArms(ctx, c, P, body, S0, E0, H0, wid, fing) {
       const tx = 2 * (1 - u) * (m[0] - a[0]) + 2 * u * (b[0] - m[0]), ty = 2 * (1 - u) * (m[1] - a[1]) + 2 * u * (b[1] - m[1]), tl = Math.hypot(tx, ty) || 1, hw = lerp(wa, wb, u) / 2;
       L.push([x - ty / tl * hw, y + tx / tl * hw]); Rt.push([x + ty / tl * hw, y - tx / tl * hw]);
     }
-    ctx.fillStyle = col; ctx.beginPath(); L.concat(Rt.reverse()).forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.arc(a[0] + (dx || 0), a[1], wa / 2, 0, TAU); ctx.moveTo(b[0] + (dx || 0) + wb / 2, b[1]); ctx.arc(b[0] + (dx || 0), b[1], wb / 2, 0, TAU); ctx.fill();
+    dc.fillStyle = col; dc.beginPath(); L.concat(Rt.reverse()).forEach((p, i) => (i ? dc.lineTo(p[0], p[1]) : dc.moveTo(p[0], p[1]))); dc.closePath(); dc.fill();
+    dc.beginPath(); dc.arc(a[0] + (dx || 0), a[1], wa / 2, 0, TAU); dc.moveTo(b[0] + (dx || 0) + wb / 2, b[1]); dc.arc(b[0] + (dx || 0), b[1], wb / 2, 0, TAU); dc.fill();
   };
   ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, R.viewY * dpr);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  // first the light along the edges of both arms and hands, then the arms and hands over it, so no edge shows across a wrist
-  for (const pass of g > 0.01 ? [0, 1] : [1]) for (const s of [-1, 1]) {
+  // first its light about both arms and hands: their shapes, small, on a canvas of their own, only the soft blur of them
+  // kept (thrown back from off the canvas as a shadow) and drawn up to size behind them, a faint glow rather than an edge;
+  // then the arms and hands over it, so no edge shows across a wrist
+  let gx = null;
+  const GS = 0.25, gw = Math.ceil(W * GS) + 2, gh = Math.ceil(H * GS) + 2, OFF = gw + 40;
+  if (g > 0.01) {
+    if (!demonGlowCv) demonGlowCv = document.createElement('canvas');
+    if (demonGlowCv.width < gw || demonGlowCv.height < gh) { demonGlowCv.width = Math.max(demonGlowCv.width, gw); demonGlowCv.height = Math.max(demonGlowCv.height, gh); }
+    gx = demonGlowCv.getContext('2d');
+    gx.setTransform(1, 0, 0, 1, 0, 0); gx.clearRect(0, 0, gw, gh);
+    gx.setTransform(GS, 0, 0, GS, -OFF, 0); gx.shadowOffsetX = OFF; gx.shadowOffsetY = 0; gx.shadowBlur = 0.036 * H * GS; gx.shadowColor = rim;
+    gx.lineCap = 'round'; gx.lineJoin = 'round';
+  }
+  for (const pass of gx ? [0, 1] : [1]) for (const s of [-1, 1]) {
+    if (pass && gx && s < 0) {   // (the light, done: drawn up behind the arms)
+      gx.shadowColor = 'rgba(0,0,0,0)'; gx.shadowOffsetX = 0;
+      const a1 = ctx.globalAlpha; ctx.globalAlpha = a1 * 0.75 * g; ctx.drawImage(demonGlowCv, 0, 0, gw, gh, 0, 0, gw / GS, gh / GS); ctx.globalAlpha = a1;
+    }
     const i = s > 0 ? 1 : 0, edge = s > 0 ? W : 0, X = u => edge - s * (u + squeeze);   // u: how far in from that edge
     // the shoulder where it is; lifted, the elbow out low beside it and the hand up beside its head; holding you, the elbow
     // below the bottom of the view and out past its side, the hand low in the corner
@@ -302,9 +334,9 @@ function demonHugArms(ctx, c, P, body, S0, E0, H0, wid, fing) {
     const wU = lerp(lerp(wid * k, 0.075 * H, l), 0.16 * H, w), wE = lerp(lerp(wid * k, 0.07 * H, l), 0.13 * W, w), wW = lerp(lerp(wid * k, 0.06 * H, l), 0.085 * W, w);
     const a0 = ctx.globalAlpha;
     if (pass === 0) {
-      if (w > 0.01) { ctx.globalAlpha = a0 * 0.3 * w; limb(E, Cm, Wr, wE + 0.014 * W, wW + 0.014 * W, body); }   // soft at the edge: too near the eye to be sharp
-      ctx.globalAlpha = a0 * g; limb(E, Cm, Wr, wE + 0.008 * H, wW + 0.008 * H, rim, -s * 0.004 * W * w);   // its light along the edge
-    } else { limb(S, mix2(S, E, 0.5), E, wid * k, wU, body); limb(E, Cm, Wr, wE, wW, body); }
+      if (w > 0.01) { ctx.globalAlpha = a0 * 0.3 * w; limb(E, Cm, Wr, wE + 0.014 * W, wW + 0.014 * W, body); ctx.globalAlpha = a0; }   // soft at the edge: too near the eye to be sharp
+      dc = gx; limb(E, Cm, Wr, wE, wW, '#fff', -s * 0.004 * W * w);   // its light about the forearm (a little more along the inside)
+    } else { dc = ctx; limb(S, mix2(S, E, 0.5), E, wid * k, wU, body); limb(E, Cm, Wr, wE, wW, body); }
     // the hand: from the fingers hanging as draw() has them, to open and lifted with the fingers spread up and out, to
     // turned up and in at the corner of the view, the palm toward you and the fingers curled in over your shoulder
     const f0 = fing[i], rest = [Math.cos(f0.angle), -Math.sin(f0.angle)];
@@ -325,10 +357,10 @@ function demonHugArms(ctx, c, P, body, S0, E0, H0, wid, fing) {
       parts.push([o, m, fw * 1.1], [m, [m[0] + d2[0] * L * 0.5, m[1] + d2[1] * L * 0.5], fw * 0.85]);
     }
     const palm = [at(Wr, 0, -pw * 0.32), at(Wr, 0, pw * 0.3), at(top, 0, pw * 0.5), at(top, pl * 0.08, 0), at(top, 0, -pw * 0.46)];
-    const col = pass ? body : rim, more = pass ? 0 : 0.008 * H;   // its light round the edge, then the hand
-    ctx.strokeStyle = col; ctx.fillStyle = col;
-    if (g > 0.01) { ctx.lineWidth = more * 2 + 1e-3; ctx.beginPath(); palm.forEach((p, n) => (n ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill(); if (more) ctx.stroke(); }
-    for (const [p, q, ww] of parts) { ctx.lineWidth = ww + more; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); }
+    const col = pass ? body : '#fff';   // its light about the hand, then the hand
+    dc.strokeStyle = col; dc.fillStyle = col;
+    if (g > 0.01) { dc.beginPath(); palm.forEach((p, n) => (n ? dc.lineTo(p[0], p[1]) : dc.moveTo(p[0], p[1]))); dc.closePath(); dc.fill(); }
+    for (const [p, q, ww] of parts) { dc.lineWidth = ww; dc.beginPath(); dc.moveTo(p[0], p[1]); dc.lineTo(q[0], q[1]); dc.stroke(); }
     ctx.globalAlpha = a0;
   }
   ctx.restore();
@@ -572,7 +604,7 @@ CREATURES.demon = {
     pose(c, k) { c.yOff -= (demonEyesY(c) - CREATURES.demon.faceY) * smoothstep(k); },
   },
   voice: { kind: 'exhale', every: [4, 8] },
-  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, ending: demonEnding, heave: demonHeave, scareAt: demonScareAt, scareDraw: demonScareDraw, vignette: demonVignette,   // for the ending and the tests
+  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, mood: demonMood, ending: demonEnding, heave: demonHeave, scareAt: demonScareAt, scareDraw: demonScareDraw, vignette: demonVignette,   // for the ending and the tests
   // what of its box is it, to aim at (js/game.js creatureBox: the bow's draw bar on night 13): the robe and the hood, up to just above
   // its eyes, wider enraged
   body(c) { const a = demonRage(c); return [-0.42 - a * 0.08, 0.42 + a * 0.08, 0, demonEyesY(c) + 0.3]; },

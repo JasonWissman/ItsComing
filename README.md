@@ -421,10 +421,15 @@ some on the ground, so you have to turn and look down to find them.
     empty-handed, it stops close in front of you, bent down to your face, and lifts its arms,
     the hands open high either side of its head; its face comes up out of the dark of the hood,
     angry, and quick, it reaches out and takes hold of you, as the tall thing in the bedroom
-    did: its arms come at you out of the bottom of the view, its hands at the lower corners.
-    Holding you, its face goes slowly through angry, neutral, angry (leaning in close at you,
-    then drawing back), confused (then, glitching, a flicker of faces under a second: pain,
-    envy, sorrow, grimace, terror, empty, shock) and sad; it cries a while, its shoulders
+    did: its arms come at you out of the bottom of the view, its hands at the lower corners, a
+    faint soft glow of its light about the dark arms and hands. All through the night in the
+    void a faint cold light stands straight behind it (as big as it is, so wider in the view as
+    it nears), so its dark shape reads against the black, until the pale light comes.
+    Holding you, its face goes slowly through angry (square teeth, the top row uneven),
+    neutral, angry (leaning right in at you, its face filling the view, then drawing back),
+    confused (then, glitching, a flicker of faces under a second: pain, envy, sorrow, grimace,
+    terror, empty, shock; with reduced motion no glitch, but pain, sorrow, terror and empty
+    each fading slowly into the next, and every change of face a slow fade) and sad; it cries a while, its shoulders
     heaving, still holding you, and stops; its head goes down, bowed toward the ground, its
     face lost in the shadow of the hood, and for a moment it is still and quiet. Then all at
     once it throws its head back, its face enraged, screeching (its own screech, a blow under
@@ -481,8 +486,9 @@ The title screen is pitch black, with two pale points of eyes a long way off. Th
 with no intro text or list of controls on it: those are in How to play. How to play, Scores and Settings open as
 dialogs over the middle of the view, over what is out there, and it comes on only behind them: each time one closes
 it is a step nearer and more of it shows, until it is close enough to touch, bent down to you with its head sunk
-between its shoulders, where it stays. A faint light somewhere far behind it gives it a soft, dim rim and a little haze
-about it (as wide as it is near), so its outline holds even on a screen whose blacks swallow a dark figure. A click on
+between its shoulders, where it stays. A faint light straight behind it, one soft round of cold light a little wider
+than it is at every step, keeps its edges dark against light, so its outline holds even on a screen whose blacks
+swallow a dark figure. A click on
 the dark of the title does not begin the night: it scuttles at you to where its next step would put it, in plain sight,
 fast and jerky as an insect (about 0.4 s, in lunges, its legs and clawing arms going, low and wide); at its nearest it
 twitches instead. With reduced motion it slides there smoothly. Otherwise it never moves while you can see it. A faint deep drone sits under the title, a little louder and thicker each step it takes (and 2 dB

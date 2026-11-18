@@ -876,7 +876,7 @@ const hoverHit = lookFor;
   check(hold.held.lift > 0.99 && hold.held.grab > 0.99 && hold.held.overlay > 0.99 && hold.held.dist < 0.75, 'it holds you, close in front of you (' + JSON.stringify(hold.held) + ')');
   check(hold.held.aim < 0.02 && hold.held.faceX > 0.4 && hold.held.faceX < 0.6 && hold.held.faceY > 0.1 && hold.held.faceY < 0.5, 'the view stays on its face (' + (hold.held.faceX || 0).toFixed(2) + ', ' + (hold.held.faceY || 0).toFixed(2) + ')');
   check(hold.tops.length >= 9 && hold.tops.every(([w, y]) => y !== null && (y > 0.01 || w === 'angry2')), 'close in, it bends down to you so its head stays in the view: as it reaches you, holds you, and through every face (but as it leans right in, angry, its face filling the view: ' + hold.tops.map(([w, y]) => w + ':' + y).join(', ') + ')');
-  check(hold.lean.angry2 < 0.55 && Math.abs(hold.lean.other - 0.68) < 0.02, 'angry again, it leans in close at you, and back again for confused (' + JSON.stringify(hold.lean) + ')');
+  check(hold.lean.angry2 < 0.4 && Math.abs(hold.lean.other - 0.68) < 0.02, 'angry again, it leans right in at you (closer than 0.4 m), and back again for confused (' + JSON.stringify(hold.lean) + ')');
   const E13 = await page.evaluate(() => END);   // (night 13's timeline)
   check(hold.crying.sob === 1 && hold.crying.mood === 4 && hold.crying.grab === 1 && hold.crying.dist === 0.68 && hold.crying.shown === 0 && hold.crying.nod === 0 && hold.crying.kneel === undefined, 'sad, it cries a while in place, still holding you: it does not let go or sink down (' + JSON.stringify(hold.crying) + ')');
   check(!!hold.bowed && hold.bowed.mood === 4 && hold.bowed.sob < 0.05 && hold.bowed.shown === 0 && hold.bowed.grab === 1 && hold.bowed.t < E13.scare[0] && hold.bowed.held > 0.5 && hold.bowed.still, 'then it stops crying and its head goes down, bowed toward the ground, and stays down a while, still holding you, before anything else (' + JSON.stringify(hold.bowed) + ')');
@@ -888,6 +888,24 @@ const hoverHit = lookFor;
   check(hold.neutral.mood === 6 && hold.neutral.sob === 0 && Math.abs(hold.neutral.nod) < 1e-6 && hold.neutral.grab === 1 && hold.neutral.shown === 0 && hold.neutral.meadow === 0, 'and its face is the grey neutral face again, its head level, in the dark, still holding you (' + JSON.stringify(hold.neutral) + ')');
   const greyAgain = await page.evaluate(() => JSON.stringify(DEMON_MOODS[6]) === JSON.stringify(DEMON_MOODS[1]) && DEMON_MOODS[7] === DEMON_MOODS[3] && DEMON_MOODS[5].skin === DEMON_MOODS[0].skin && DEMON_MOODS[5].glow === 1);
   check(greyAgain, 'the same grey neutral face it made the first time, the same confused face, and its angry face at the scare');
+  // with reduced motion its faces, holding you, change by fades only: from confused to sad it still tries faces on, but each
+  // fades into the next (no snap), and the turns into and out of its second angry face are slow too
+  const glitch = await page.evaluate(() => {
+    const D = CREATURES.demon, keys = ['tilt', 'mw', 'my', 'bi', 'open'], rate = (still, a, b) => {
+      let worst = 0, prev = D.mood(a, still), tried = 0;
+      for (let i = 1; i <= 400; i++) {
+        const m = lerp(a, b, i / 400), F = D.mood(m, still);
+        worst = Math.max(worst, ...keys.map(k => Math.abs(F[k] - prev[k]) / (Math.abs(D.mood(a, still)[k]) + 0.02)), Math.max(...F.skin.map((v, j) => Math.abs(v - prev.skin[j]))) / 255);
+        if (DEMON_GLITCH.some(G1 => Math.max(...G1.skin.map((v, j) => Math.abs(v - F.skin[j]))) < 4)) tried++;
+        prev = F;
+      }
+      return { worst: +worst.toFixed(3), tried };
+    };
+    const quick = s => { let t = 0; const T = []; for (let u = 0; u < 12; u += 0.01) { const m = D.moodAt(u, s); if (m > 1.02 && m < 1.98) t += 0.01; if (m > 2.02 && m < 2.98) T.push(u); } return [+t.toFixed(2), +(T.length * 0.01).toFixed(2)]; };
+    return { snap: rate(false, 3, 4), still: rate(true, 3, 4), quick: quick(false), slow: quick(true), end: D.moodAt(20, true) };
+  });
+  check(glitch.still.worst < glitch.snap.worst / 3 && glitch.still.tried > 0 && glitch.slow[0] >= 0.5 && glitch.slow[1] >= 0.5 && glitch.quick[0] < 0.3 && glitch.end === 4,
+    'with reduced motion its faces fade one into the next: the glitch to sad tries faces on in slow cross-fades (no snap), and into and out of the second angry face is slow (' + JSON.stringify(glitch) + ')');
   check(hold.pale.every(v => v > 200), 'the dark lightens into a pale void (' + hold.pale + ')');
   check(hold.spun > 1 && hold.settled.spin === 0 && hold.settled.meadow === 1 && hold.settled.grab === 1 && hold.settled.shown === 0 && hold.settled.mood === 9, 'the meadow comes out of the light turning round you both and settles into place, and it is happy, still holding you (' + JSON.stringify([hold.spun, hold.settled]) + ')');
   check(hold.let.hug === null && hold.let.calm > 0.5, 'then it lets you go (' + JSON.stringify(hold.let) + ')');

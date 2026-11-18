@@ -5,9 +5,10 @@
 // nearer, and more of what the eyes belong to shows. A click on the dark itself and it comes on in front of you: a
 // scuttle, quick and jerky as an insect's, limbs going, low and wide, to where the next step would have put it (with
 // reduced motion, a short smooth slide). At its nearest, a click on the dark makes it twitch instead. STEPS of them and
-// it is close enough to touch, bent down to look at you; it stays there. A faint light somewhere behind it, far off,
-// makes a soft rim round the edge of it and a little haze about it, so its shape is there to see even on a screen
-// whose blacks swallow it. Drawn on its own canvas (#titleScene) over the game's, which the title then leaves undrawn.
+// it is close enough to touch, bent down to look at you; it stays there. A faint light straight behind it, far off, one
+// soft round of it a little wider than it is however near it comes, so its edges are dark against light and its shape
+// is there to see even on a screen whose blacks swallow it. Drawn on its own canvas (#titleScene) over the game's, which
+// the title then leaves undrawn.
 // It is the same after the last night (the morning is only the screens straight after it): there is a Scores button then.
 const TITLE = (() => {
   const D = [22, 13, 7.5, 4.2, 2.4, 1.55, 1.05];   // how far off it is, metres, after each dialog closed (or scuttle)
@@ -21,9 +22,10 @@ const TITLE = (() => {
   const BURSTS = [0.24, 0.13, 0.3, 0.11, 0.22];
   const TWITCH = 0.9;   // the twitch at its nearest, seconds
   const LIGHT = [104, 112, 134];   // the far light behind it: cold and dim
+  const HALO = [[0, 1], [0.2, 0.88], [0.4, 0.6], [0.6, 0.32], [0.8, 0.11], [1, 0]];   // how it falls away from the middle of it
   let cv = null, ctx = null, W = 0, H = 0, dpr = 1, step = 0, drawn = 0, scurry = null, twitchAt = null, on = false, shown = false;
   let cur = { d: D[0], lean: 0, drop: 0 };   // where it was last drawn (a scuttle starts from there)
-  let grainTile = null, fig = null, figCtx = null, glow = null, glowCtx = null;
+  let grainTile = null;
   function canvas() {
     if (!cv) { cv = document.getElementById('titleScene'); if (cv) ctx = cv.getContext('2d'); }
     return cv;
@@ -155,37 +157,18 @@ const TITLE = (() => {
     if (lean > 0) { const low = words() - 12 - 0.165 * hppm; hy = clamp(lerp(y0 + f * (1.62 - 2.1) / (d - 0.22 * lean), low, drop), H * 0.03 + 0.165 * hppm, low); }
     const col = rgba([6 + 9 * show, 6 + 8 * show, 8 + 9 * show]);
     if (!hidden) {
-      // the light behind it: a dim haze in the air about it, as big as it is near, a little stronger as more of it shows
-      const lite = 0.55 + 0.45 * show, cx = lerp(sx, hx, 0.5 * lean), cy = lerp(feet - 1.25 * ppm, hy, 0.55 * lean);
-      const hr = Math.min(Math.hypot(W, H) * 0.75, 1.5 * Math.max(ppm, hppm * lean));
+      // the light behind it: one soft round of cold light straight behind it, about its chest (bent down to you, about its
+      // head and shoulders), a little wider than the shape of it however near it is, so its edges are always dark against
+      // light: far off, the small shape of it reads against it; near, it frames its head and shoulders
+      const cx = lerp(sx, hx, lean), cy = lerp(feet - 1.7 * ppm * sqy, hy + 0.05 * hppm, lean);
+      const hr = lerp(1.85 * ppm, 0.78 * hppm, lean) * (1 + 0.1 * run);
       const hz = g.createRadialGradient(cx, cy, 0, cx, cy, hr);
-      hz.addColorStop(0, rgba(LIGHT, 0.06 * lite)); hz.addColorStop(0.45, rgba(LIGHT, 0.028 * lite)); hz.addColorStop(1, rgba(LIGHT, 0));
+      for (const [k, a] of HALO) hz.addColorStop(k, rgba(LIGHT, 0.3 * a));   // (falling away smoothly, with no edge to it)
       g.fillStyle = hz; g.fillRect(cx - hr, cy - hr, hr * 2, hr * 2);
-      // the light round the edge of it: its shape (all of it at once) blurred out behind it, a narrow rim hugging its
-      // outline and a softer, wider one about that, both as wide as it is near. Done small (no more than ~260 px across,
-      // however big it is in the view) and drawn up to size, soft as it is, so it costs next to nothing; then it, sharp, over
-      const bx0 = Math.min(sx - 0.75 * ppm * sqx, hx - 0.2 * hppm), bx1 = Math.max(sx + 0.75 * ppm * sqx, hx + 0.2 * hppm);
-      const by0 = Math.min(feet - 2.0 * ppm, hy - 0.2 * hppm), by1 = feet + 0.08 * ppm;
-      const rim = clamp(0.025 * ppm, 1.6, 14), soft = clamp(0.16 * ppm, 6, 52), pad = soft * 1.6;
-      const x0 = Math.floor(Math.max(-pad, bx0 - pad)), y0b = Math.floor(Math.max(-pad, by0 - pad)), x1 = Math.ceil(Math.min(W + pad, bx1 + pad)), y1 = Math.ceil(Math.min(H + pad, by1 + pad));
-      const body = q => {
-        q.save(); q.translate(sx, feet); q.scale(ppm * sqx, -ppm * sqy); figure(q, col, lean, shrug, run, ph); q.restore();
-        P_limb(q, [[sx, feet - (1.8 - 0.14 * lean) * ppm * sqy], [hx, hy]], 0.05 * ppm, col);   // the neck, up (or out) to the head
-        q.save(); q.translate(hx, hy); q.scale(hppm, -hppm); head(q, col, tilt, lean, eo, [34, 32, 36]); q.restore();
-      };
-      if (x1 > x0 && y1 > y0b) {
-        const s = Math.min(dpr, 260 / Math.max(x1 - x0, y1 - y0b)), lw = Math.ceil((x1 - x0) * s), lh = Math.ceil((y1 - y0b) * s);
-        if (!fig) { fig = document.createElement('canvas'); figCtx = fig.getContext('2d'); glow = document.createElement('canvas'); glowCtx = glow.getContext('2d'); }
-        for (const c of [fig, glow]) if (c.width < lw || c.height < lh) { c.width = Math.max(c.width, lw); c.height = Math.max(c.height, lh); }
-        const q = figCtx; q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, lw, lh); q.setTransform(s, 0, 0, s, -x0 * s, -y0b * s); body(q);
-        // (its shadow only: the shape itself is drawn off the canvas, its shadow thrown back onto it)
-        const k = glowCtx, off = glow.width + lw + 16; k.setTransform(1, 0, 0, 1, 0, 0); k.clearRect(0, 0, lw, lh); k.shadowOffsetX = off;
-        k.shadowColor = rgba(LIGHT, 0.12 * lite); k.shadowBlur = soft * s; k.drawImage(fig, 0, 0, lw, lh, -off, 0, lw, lh);
-        k.shadowColor = rgba(LIGHT, 0.24 * lite); k.shadowBlur = rim * s; k.drawImage(fig, 0, 0, lw, lh, -off, 0, lw, lh);
-        k.shadowColor = 'rgba(0,0,0,0)'; k.shadowOffsetX = 0;
-        g.drawImage(glow, 0, 0, lw, lh, x0, y0b, lw / s, lh / s);
-      }
-      body(g);
+      // then it, over the light
+      g.save(); g.translate(sx, feet); g.scale(ppm * sqx, -ppm * sqy); figure(g, col, lean, shrug, run, ph); g.restore();
+      P_limb(g, [[sx, feet - (1.8 - 0.14 * lean) * ppm * sqy], [hx, hy]], 0.05 * ppm, col);   // the neck, up (or out) to the head
+      g.save(); g.translate(hx, hy); g.scale(hppm, -hppm); head(g, col, tilt, lean, eo, [34, 32, 36]); g.restore();
       const blink = !run && ((t % 4.7 > 4.55) || (t % 7.3 > 7.18));
       if (!blink) {   // the eyes, drawn over in screen space so even far off they are two points
         // (near, they stay small: two hard points of light in the dark of its face)

@@ -442,7 +442,29 @@ LEVELS.push({
         } });
       }
     };
+    // a faint cold light straight behind it, as on the title: one soft round of it about its hood and shoulders, a little
+    // wider than it is however near it comes (it is as big in the world, so it grows in the view as it nears), so its
+    // dark shape stands against it from far off to holding you. Drawn just before it (and before the faces round it at
+    // the scare, so it never lies over them); steady, never flickering; and gone as the pale light comes
+    const BACK = [104, 112, 134], BACK_FALL = [[0, 1], [0.2, 0.9], [0.4, 0.66], [0.6, 0.38], [0.8, 0.14], [1, 0]];
+    const backLight = () => {
+      const c = c0(), a = Math.max(0, c.fade) * (1 - s.reveal) * (1 - clamp(s.meadow / VOID_PALE, 0, 1));
+      if (a <= 0.01) return;
+      // (coming on, about its chest and wide enough for all of it; holding you, about its hood, and only so wide)
+      const p = c.pos(), d = Math.hypot(c.dist, c.lat || 0), k = clamp((d - 0.8) / 2.5, 0, 1);
+      const r = lerp(0.75, 2.3, k), yc = CREATURES.demon.eyesY(c) - lerp(0.05, 0.5, k), la = a * lerp(0.21, 0.25, k);
+      R.add({ kind: 'sprite', x: p.x, y: p.y + (c.yOff || 0), z: p.z, w: 2 * r, h: c.CR.h, dist: d, sortDist: Math.max(d + 0.4, 1.3), layer: 1, noContact: true, noLight: true, noFog: true, draw: ctx => {
+        // (as the renderer has it, a height up it is where the same height up the thing itself is drawn; and round in the view)
+        const m = ctx.getTransform(), o = m.transformPoint({ x: 0, y: yc }), rr = r * Math.hypot(m.a, m.b);
+        if (!(rr > 1)) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, rr);
+        for (const [at, f] of BACK_FALL) g.addColorStop(at, rgba(BACK, f * la));
+        ctx.fillStyle = g; ctx.fillRect(o.x - rr, o.y - rr, rr * 2, rr * 2);
+      } });
+    };
     L.dynamic = () => {
+      backLight();
       pools();
       fallDraw();
       meadow.draw();
