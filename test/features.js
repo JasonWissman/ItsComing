@@ -60,40 +60,107 @@ const hoverHit = lookFor;
   await page.mouse.click(640, 380); await page.mouse.click(200, 120); await page.waitForTimeout(1700);
   check(await page.evaluate(() => !!document.getElementById('prologue') && G.state === 'title' && !G.muted && MENU.kind === 'title'), 'no click or key skips the prologue, or gets through it to the game (no mute, no restart, the title still under it)');
   console.log('== Begin: the warning about flashing lights first ==');
+  const WARNING = 'This game contains flashing imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy.\nOptions for reduced motion and flashing are available in the settings dialog.\n\nPlayer discretion is advised.';
   await page.goto(URL); await page.waitForTimeout(300);
   await page.evaluate(() => { window.DISCLAIMER_TEST = true; window.PROLOGUE_TEST = true; });
+  const panelLook = await page.evaluate(() => { const c = getComputedStyle; MENU.show('howto', { from: 'title' }); const p = document.querySelector('#overlay .panel'), o = { bg: c(p).backgroundColor, border: c(p).borderTopWidth + ' ' + c(p).borderTopColor }; MENU.show('title'); return o; });
   await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(700);
-  let dw = await page.evaluate(() => { const d = document.getElementById('disclaimer'), b = d && d.querySelector('button'), p = d && d.querySelector('p'), cs = e => getComputedStyle(e), r = b && b.getBoundingClientRect();
-    return d && { text: p.textContent, color: cs(p).color, font: cs(p).fontFamily, bg: cs(d).backgroundColor, z: +cs(d).zIndex, icon: !!d.querySelector('svg.deye'), iconAbove: d.querySelector('svg.deye').getBoundingClientRect().bottom <= p.getBoundingClientRect().top, label: b.textContent, bbg: cs(b).backgroundColor, bfg: cs(b).color, focus: document.activeElement === b, inView: r.top >= 0 && r.bottom <= innerHeight, role: d.getAttribute('role'), st: G.state, pro: !!document.getElementById('prologue'), drone: !!AUDIO.bed }; });
-  check(dw && dw.text === 'This game contains bright, flashing lights and imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy. Player discretion is advised.' && dw.color === 'rgb(208, 32, 42)' && /IM Fell English/.test(dw.font) && dw.bg === 'rgb(0, 0, 0)' && dw.z >= 1000 && dw.icon && dw.iconAbove && dw.label === 'Accept' && dw.bbg === 'rgb(208, 32, 42)' && dw.bfg === 'rgb(0, 0, 0)' && dw.focus && dw.inView && dw.role === 'alertdialog' && dw.st === 'title' && !dw.pro && dw.drone, 'Begin: first the warning, red on black under an eye struck through, a solid red Accept with black letters, focused; no prologue yet, the title\'s drone still going (' + JSON.stringify(dw) + ')');
-  for (const k of ['Escape', 'm', 'Tab', 'ArrowDown']) await page.keyboard.press(k);
+  let dw = await page.evaluate(() => { const d = document.getElementById('disclaimer'), card = d && d.querySelector('.dcard'), b = d && d.querySelector('button.daccept'), s = d && d.querySelector('button.dsettings'), p = d && d.querySelector('p'), cs = e => getComputedStyle(e), r = b && b.getBoundingClientRect(), rs = s && s.getBoundingClientRect();
+    return d && { text: p.textContent, lines: cs(p).whiteSpace, color: cs(p).color, font: cs(p).fontFamily, bg: cs(d).backgroundColor, z: +cs(d).zIndex, cardBg: cs(card).backgroundColor, cardBorder: cs(card).borderTopWidth + ' ' + cs(card).borderTopColor, inCard: card.contains(p) && card.contains(b) && card.contains(s),
+      icon: !!d.querySelector('svg.deye'), iconAbove: d.querySelector('svg.deye').getBoundingClientRect().bottom <= p.getBoundingClientRect().top, label: b.textContent, bbg: cs(b).backgroundColor, bfg: cs(b).color, focus: document.activeElement === b, inView: r.top >= 0 && r.bottom <= innerHeight,
+      slabel: s.textContent, sbg: cs(s).backgroundColor, sborder: cs(s).borderTopStyle, beside: Math.abs((rs.top + rs.bottom) / 2 - (r.top + r.bottom) / 2) < 4 && rs.left > r.right, below: r.top > p.getBoundingClientRect().bottom,
+      role: card.getAttribute('role'), st: G.state, pro: !!document.getElementById('prologue'), drone: !!AUDIO.bed };
+  });
+  check(dw && dw.text === WARNING && dw.lines === 'pre-line' && dw.color === 'rgb(240, 74, 84)' && /IM Fell English/.test(dw.font) && dw.bg === 'rgb(0, 0, 0)' && dw.z >= 1000 && dw.icon && dw.iconAbove && dw.label === 'Accept' && dw.bbg === 'rgb(240, 74, 84)' && dw.bfg === 'rgb(0, 0, 0)' && dw.focus && dw.inView && dw.role === 'alertdialog' && dw.st === 'title' && !dw.pro && dw.drone,
+    'Begin: first the warning, its words exactly (a line each, a blank line before the last), red (#f04a54) under an eye struck through, a solid red Accept with black letters, focused; no prologue yet, the title\'s drone still going (' + JSON.stringify(dw) + ')');
+  check(dw.inCard && dw.cardBg === panelLook.bg && dw.cardBorder === panelLook.border, 'the warning is in a card, as the other dialogs are (How to play\'s), on the black (' + JSON.stringify([dw.cardBg, dw.cardBorder, panelLook]) + ')');
+  check(dw.slabel === 'Adjust settings' && dw.sbg === 'rgba(0, 0, 0, 0)' && dw.sborder === 'none' && dw.beside && dw.below, 'beside Accept, under the words, a text-only Adjust settings (' + JSON.stringify(dw) + ')');
+  for (const k of ['Escape', 'm', 'r']) await page.keyboard.press(k);
   await page.mouse.click(100, 100); await page.waitForTimeout(300);
-  dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), focus: document.activeElement === document.querySelector('#disclaimer button'), muted: G.muted, st: G.state, menu: MENU.kind, pro: !!document.getElementById('prologue') }));
-  check(dw.up && dw.focus && !dw.muted && dw.st === 'title' && dw.menu === 'title' && !dw.pro, 'nothing but Accept gets past it: other keys and a click off it do nothing, and Tab keeps to Accept (' + JSON.stringify(dw) + ')');
-  await page.keyboard.press('Enter'); await page.waitForTimeout(1600);
-  dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), pro: !!document.getElementById('prologue'), st: G.state }));
-  check(!dw.up && dw.pro && dw.st === 'title', 'Enter accepts it, and the prologue comes on (' + JSON.stringify(dw) + ')');
+  dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), focus: document.activeElement === document.querySelector('#disclaimer .daccept'), muted: G.muted, st: G.state, menu: MENU.kind, pro: !!document.getElementById('prologue') }));
+  check(dw.up && dw.focus && !dw.muted && dw.st === 'title' && dw.menu === 'title' && !dw.pro, 'nothing but its own buttons gets past it: other keys and a click off it do nothing, Accept keeps the focus (' + JSON.stringify(dw) + ')');
+  const focusAct = () => page.evaluate(() => document.activeElement && document.activeElement.dataset.act);
+  await page.keyboard.press('Tab'); const f1 = await focusAct();
+  await page.keyboard.press('Tab'); const f2 = await focusAct();
+  await page.keyboard.press('ArrowRight'); const f3 = await focusAct();
+  await page.keyboard.press('ArrowLeft'); const f4 = await focusAct();
+  check(f1 === 'settings' && f2 === 'accept' && f3 === 'settings' && f4 === 'accept', 'Tab and the arrows go between Accept and Adjust settings, and nowhere else (' + [f1, f2, f3, f4] + ')');
+  // Adjust settings: Settings in the same card, all of it but Erase progress; Back (or Esc) is the warning again
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter'); await page.waitForTimeout(250);
+  dw = await page.evaluate(() => { const d = document.getElementById('disclaimer'), card = d && d.querySelector('.dcard');
+    return { up: !!d, h: (d.querySelector('h1') || {}).textContent, sets: [...d.querySelectorAll('[data-set]')].map(e => e.dataset.set).join(), acts: [...d.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(), erase: !!d.querySelector('[data-act="reset"]'), focus: document.activeElement && document.activeElement.dataset.act,
+      cardBg: getComputedStyle(card).backgroundColor, st: G.state, menu: MENU.kind, warn: !!d.querySelector('.daccept') }; });
+  check(dw.up && dw.h === 'Settings' && dw.sets === 'master,effects,ambient,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'back' && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
+    'Adjust settings: Settings in the same card, every setting but no Erase progress, Back focused; the game does not start (' + JSON.stringify(dw) + ')');
+  // the keys work in it: Tab round to the reduce motion switch, Space flips it (both flags), a slider moves with the arrows
+  await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', false); document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').focus(); });
+  await page.keyboard.press(' '); await page.waitForTimeout(80);
+  let rs = await page.evaluate(() => ({ rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash, on: document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').checked, up: !!document.getElementById('disclaimer') }));
+  check(rs.rm && rs.rf && rs.on && rs.up, 'from the warning, Space on Reduce motion and flashing effects turns it on, both its flags with it (' + JSON.stringify(rs) + ')');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(80);
+  rs = await page.evaluate(() => ({ rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash }));
+  check(!rs.rm && !rs.rf, 'and Enter flips it back off (' + JSON.stringify(rs) + ')');
+  await page.evaluate(() => document.querySelector('#disclaimer input[data-set="effects"]').focus());
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(80);
+  rs = await page.evaluate(() => ({ v: SAVE.data.settings.effects, pct: document.querySelector('#disclaimer input[data-set="effects"]').parentElement.querySelector('.pct').textContent, focus: document.activeElement.dataset.set }));
+  check(Math.abs(rs.v - 0.95) < 1e-6 && rs.pct === '95%' && rs.focus === 'effects', 'and left on a slider turns it down, its percentage following (' + JSON.stringify(rs) + ')');
+  await page.evaluate(() => MENU.applySetting('effects', 1));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), warn: (document.querySelector('#disclaimer p') || {}).textContent, focus: document.activeElement && document.activeElement.dataset.act, st: G.state, pro: !!document.getElementById('prologue') }));
+  check(dw.up && dw.warn === WARNING && dw.focus === 'accept' && dw.st === 'title' && !dw.pro, 'Esc in it is Back: the same warning again, Accept focused, nothing begun (' + JSON.stringify(dw) + ')');
+  await page.click('#disclaimer .dsettings'); await page.waitForTimeout(200);
+  await page.click('#disclaimer button[data-act="back"]'); await page.waitForTimeout(200);
+  dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), accept: !!document.querySelector('#disclaimer .daccept'), focus: document.activeElement && document.activeElement.dataset.act, pro: !!document.getElementById('prologue') }));
+  check(dw.up && dw.accept && dw.focus === 'accept' && !dw.pro, 'a click on Adjust settings and then on Back: the warning again, Accept focused (' + JSON.stringify(dw) + ')');
+  // a pad: the d-pad goes to Adjust settings, A opens it, B is Back, Start (on the warning) accepts
+  await page.evaluate(() => { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; });
+  const padTap = async i => { await page.evaluate(i => { window._pad.buttons[i].pressed = true; }, i); await page.waitForTimeout(80); await page.evaluate(i => { window._pad.buttons[i].pressed = false; }, i); await page.waitForTimeout(80); };
+  await padTap(15); const pf1 = await focusAct();
+  await padTap(0); await page.waitForTimeout(100);
+  const pin = await page.evaluate(() => ({ set: !!document.querySelector('#disclaimer .dset'), focus: document.activeElement && document.activeElement.dataset.act }));
+  await padTap(13); const pf2 = await page.evaluate(() => document.activeElement && document.activeElement.dataset.set);
+  await padTap(1); await page.waitForTimeout(100);
+  const pout = await page.evaluate(() => ({ warn: !!document.querySelector('#disclaimer .daccept'), focus: document.activeElement && document.activeElement.dataset.act, up: !!document.getElementById('disclaimer') }));
+  check(pf1 === 'settings' && pin.set && pin.focus === 'back' && pf2 === 'master' && pout.warn && pout.focus === 'accept' && pout.up, 'a pad: the d-pad to Adjust settings, A opens Settings, the d-pad goes round it, B is Back to the warning, Accept focused (' + JSON.stringify([pf1, pin, pf2, pout]) + ')');
+  await padTap(9); await page.waitForTimeout(1600);
+  await page.evaluate(() => { navigator.getGamepads = () => []; });
+  dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), pro: !!document.getElementById('prologue'), st: G.state, warned: SAVE.data.warned, stored: JSON.parse(localStorage.getItem('itscoming.v2')).warned }));
+  check(!dw.up && dw.pro && dw.st === 'title' && dw.warned === true && dw.stored === true, 'Start accepts it, the prologue comes on, and its acceptance is saved (' + JSON.stringify(dw) + ')');
+  // remembered: once it has been accepted, a new game goes straight on (a reload, even); 'force' still shows it
   await page.goto(URL); await page.waitForTimeout(300);
   await page.evaluate(() => { window.DISCLAIMER_TEST = true; });
   await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(600);
-  await page.click('#disclaimer button'); await page.waitForTimeout(1300);
-  check(await page.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card' && /Night 1/.test(document.querySelector('.kicker').textContent)), 'a click on Accept goes on (here past the prologue, as the tests do) to night 1\'s card');
+  check(await page.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card' && SAVE.data.warned), 'accepted once, a new game (after a reload) goes on with no warning');
   await page.keyboard.press('Escape'); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.state === 'title'), 'back to the title');
-  await page.keyboard.press('Enter'); await page.waitForTimeout(500);
-  check(await page.evaluate(() => !!document.getElementById('disclaimer')), 'and a new game begun again shows the warning again');
+  await page.evaluate(() => { window.DISCLAIMER_TEST = 'force'; });
+  await page.keyboard.press('Enter'); await page.waitForTimeout(600);
+  check(await page.evaluate(() => !!document.getElementById('disclaimer')), 'a test can still force it (DISCLAIMER_TEST = \'force\')');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(1300);
+  check(await page.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card' && /Night 1/.test(document.querySelector('.kicker').textContent)), 'Enter on Accept goes on (here past the prologue, as the tests do) to night 1\'s card');
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(URL); await page.waitForTimeout(300);
+  await page.evaluate(() => { window.DISCLAIMER_TEST = true; });
+  await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(600);
+  check(await page.evaluate(() => !!document.getElementById('disclaimer') && !SAVE.data.warned), 'with nothing saved, it is shown');
+  await page.click('#disclaimer .daccept'); await page.waitForTimeout(1300);
+  check(await page.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card' && SAVE.data.warned), 'a click on Accept goes on, and remembers');
   {
     const ctx = await browser.newContext({ viewport: { width: 740, height: 360 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 }), mp = await ctx.newPage();
     await mp.goto(URL); await mp.waitForTimeout(300);
     await mp.evaluate(() => { window.DISCLAIMER_TEST = true; });
     await mp.tap('#overlay button[data-act="begin"]'); await mp.waitForTimeout(700);
-    const r = await mp.evaluate(() => { const d = document.getElementById('disclaimer'), b = d.querySelector('button').getBoundingClientRect(), p = d.querySelector('p').getBoundingClientRect(); return { fits: d.scrollHeight <= d.clientHeight + 1, b: [b.top, b.bottom, b.height], p: [p.left, p.right], w: innerWidth, h: innerHeight }; });
-    check(r.fits && r.b[0] >= 0 && r.b[1] <= r.h && r.b[2] >= 44 && r.p[0] >= 16 && r.p[1] <= r.w - 16, 'on a phone it all fits, Accept a full-size target (' + JSON.stringify(r) + ')');
+    const r = await mp.evaluate(() => { const d = document.getElementById('disclaimer'), b = d.querySelector('.daccept').getBoundingClientRect(), s = d.querySelector('.dsettings').getBoundingClientRect(), p = d.querySelector('p').getBoundingClientRect(), c = d.querySelector('.dcard').getBoundingClientRect(); return { fits: d.scrollHeight <= d.clientHeight + 1, b: [b.top, b.bottom, b.height], s: [s.top, s.bottom, s.height], p: [p.left, p.right], c: [c.left, c.right], w: innerWidth, h: innerHeight }; });
+    check(r.fits && r.b[0] >= 0 && r.b[1] <= r.h && r.b[2] >= 44 && r.s[2] >= 44 && r.s[1] <= r.h && r.c[0] >= 16 && r.c[1] <= r.w - 16, 'on a phone it all fits, Accept and Adjust settings full-size targets (' + JSON.stringify(r) + ')');
     await mp.screenshot({ path: path.join(__dirname, 'shots', 'phone-warning.png') });
-    await mp.tap('#disclaimer button'); await mp.waitForTimeout(1300);
-    check(await mp.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card'), 'a tap on Accept goes on');
+    await mp.tap('#disclaimer .dsettings'); await mp.waitForTimeout(300);
+    const rs2 = await mp.evaluate(() => { const d = document.getElementById('disclaimer'), back = d.querySelector('button[data-act="back"]').getBoundingClientRect(); return { fits: d.scrollHeight <= d.clientHeight + 1, back: back.bottom <= innerHeight, swipe: !!d.querySelector('[data-set="swipeReverse"]'), erase: !!d.querySelector('[data-act="reset"]') }; });
+    check(rs2.fits && rs2.back && rs2.swipe && !rs2.erase, 'and its Settings fit on a phone on its side, with reverse swipes, no Erase progress (' + JSON.stringify(rs2) + ')');
+    await mp.tap('#disclaimer button[data-act="back"]'); await mp.waitForTimeout(300);
+    await mp.tap('#disclaimer .daccept'); await mp.waitForTimeout(1300);
+    check(await mp.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card'), 'Back, then a tap on Accept goes on');
     await ctx.close();
   }
+  await page.evaluate(() => localStorage.clear());
   console.log('== one game, no difficulty to pick ==');
   await page.goto(URL); await page.waitForTimeout(300);
   check(await page.evaluate(() => G.difficulty === 0 && DIFFICULTIES.length === 1 && G.diff().id === 'nightmare' && !document.querySelector('.diff, [data-diff]')), 'the title offers no difficulty: there is one game');
@@ -102,8 +169,13 @@ const hoverHit = lookFor;
   let v = await page.evaluate(() => ({ T: G.L.creature.T, um: G.L.creature.unseenMult, kicker: document.querySelector('.kicker').textContent, hasHint: !!document.querySelector('#overlay .hint'), intro: document.querySelector('#overlay .intro').textContent }));
   check(v.T > 80 * 0.6 * 0.88 && v.T < 80 * 0.6 * 1.12 && Math.abs(v.um - 1.35 * 1.4) < 1e-6, 'the time and unseen speed are Nightmare\'s (' + v.T.toFixed(1) + 's, x' + v.um.toFixed(2) + ')');
   check(/^Night 1 of \d+$/.test(v.kicker.trim()) && !v.hasHint && !/planks|hammer/i.test(v.intro), 'the card names the night only, with no objective and no solution hint (' + v.kicker + ')');
+  // the card comes in staggered: the night and its name with it, its words a moment later, then the prompt
+  v = await page.evaluate(() => { const c = getComputedStyle, q = s => document.querySelector('#overlay ' + s); return { k: c(q('.kicker')).animationName, h: c(q('h1')).animationName, intro: [c(q('.intro')).animationName, c(q('.intro')).animationDelay], prompt: [c(q('.prompt')).animationName, c(q('.prompt')).animationDelay, c(q('.prompt')).opacity] }; });
+  check(v.k === 'none' && v.h === 'none' && v.intro[0] === 'cardin' && parseFloat(v.intro[1]) > 0.3 && /cardin/.test(v.prompt[0]) && /breathe/.test(v.prompt[0]) && Math.max(...v.prompt[1].split(',').map(parseFloat)) > parseFloat(v.intro[1]) + 0.5 && v.prompt[2] === '0',
+    'the card: Night 1 of 13 and its name first, its words a moment after, then the prompt after that (not in yet) (' + JSON.stringify(v) + ')');
   await shot(page, 'card');
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
+  check(await page.evaluate(() => G.state === 'play'), 'and a click goes on before the prompt is even in, as ever');
   check(await page.evaluate(() => document.getElementById('objective').textContent === ''), 'no HUD objective');
   await page.evaluate(() => { G.L.lane = G.L.lanes[0]; G.L.creature.retarget(0); });   // the back door, wherever it was coming from
   await hoverHit(page, 'target', 'door');
@@ -135,29 +207,72 @@ const hoverHit = lookFor;
   console.log('== menus ==');
   await T.open(page, 'level=2&go');
   await page.keyboard.press('Escape'); await page.waitForTimeout(150);
-  check(await page.evaluate(() => G.state === 'paused' && MENU.kind === 'pause' && document.querySelectorAll('#overlay button[data-act]').length === 5 && document.activeElement && document.activeElement.dataset.act === 'resume'), 'pause menu with five focusable buttons, Resume focused');
-  // the pause menu: no line under the heading, short labels, one narrow column of buttons all of a width, and Mute in it
+  check(await page.evaluate(() => G.state === 'paused' && MENU.kind === 'pause' && document.querySelectorAll('#overlay button[data-act]').length === 4 && document.activeElement && document.activeElement.dataset.act === 'resume'), 'pause menu with four focusable buttons, Resume focused');
+  // the pause menu: no line under the heading, short labels, one narrow column of buttons all of a width; no Restart, no
+  // Mute (R and M still do them, and Mute is in Settings); Controls in Restart's place; Quit with no border, quieter
   v = await page.evaluate(() => {
-    const bs = [...document.querySelectorAll('#overlay button[data-act]')];
-    return { labels: bs.map(b => b.textContent).join(','), widths: [...new Set(bs.map(b => Math.round(b.getBoundingClientRect().width)))], intro: !!document.querySelector('#overlay .intro'), text: document.getElementById('overlay').textContent };
+    const bs = [...document.querySelectorAll('#overlay button[data-act]')], q = document.querySelector('#overlay button[data-act="title"]'), r = document.querySelector('#overlay button[data-act="resume"]'), c = getComputedStyle;
+    return { labels: bs.map(b => b.textContent).join(','), widths: [...new Set(bs.map(b => Math.round(b.getBoundingClientRect().width)))], intro: !!document.querySelector('#overlay .intro'), text: document.getElementById('overlay').textContent,
+      quitBorder: c(q).borderTopColor, quitBg: c(q).backgroundColor, quitFg: c(q).color, resumeFg: c(r).color };
   });
-  check(v.labels === 'Resume,Restart,Settings,Mute,Quit' && v.widths.length === 1 && v.widths[0] <= 260 && !v.intro && !/It is not/.test(v.text), 'pause: Resume, Restart, Settings, Mute, Quit (no Nights: no night is picked mid-game), all one narrow width, nothing under the heading (' + JSON.stringify(v) + ')');
-  await page.click('#overlay button[data-act="mute"]'); await page.waitForTimeout(80);
-  check(await page.evaluate(() => G.muted && G.state === 'paused' && document.querySelector('#overlay button[data-act="mute"]').textContent === 'Unmute'), 'Mute in the pause menu mutes, stays paused, and its label turns to Unmute');
+  check(v.labels === 'Resume,Controls,Settings,Quit' && v.widths.length === 1 && v.widths[0] <= 260 && !v.intro && !/It is not/.test(v.text), 'pause: Resume, Controls, Settings, Quit (no Restart, no Mute, no Nights), all one narrow width, nothing under the heading (' + JSON.stringify(v) + ')');
+  check(v.quitBorder === 'rgba(0, 0, 0, 0)' && v.quitBg === 'rgba(0, 0, 0, 0)' && v.quitFg === 'rgb(169, 162, 148)' && v.quitFg !== v.resumeFg, 'Quit has no border, in the secondary colour (' + JSON.stringify(v) + ')');
   await page.keyboard.press('m'); await page.waitForTimeout(80);
-  check(await page.evaluate(() => !G.muted && document.querySelector('#overlay button[data-act="mute"]').textContent === 'Mute'), 'M while paused unmutes, and the button follows');
+  check(await page.evaluate(() => G.muted && G.state === 'paused' && !document.querySelector('#overlay button[data-act="mute"]')), 'M while paused still mutes, and stays paused');
+  await page.keyboard.press('m'); await page.waitForTimeout(80);
+  check(await page.evaluate(() => !G.muted), 'M again unmutes');
+  // Controls: How to play, the same dialog as from the title; closing it, the pause menu again, Controls focused
+  await page.click('#overlay button[data-act="controls"]'); await page.waitForTimeout(150);
+  v = await page.evaluate(() => ({ kind: MENU.kind, st: G.state, dlg: UI.overlay.classList.contains('dlg'), panel: !!document.querySelector('#overlay .panel.howtop .howcards'), cards: [...document.querySelectorAll('#overlay .hcard .hwhat')].map(e => e.textContent).join(','), back: (document.querySelector('#overlay button[data-act="back"]') || {}).dataset }));
+  check(v.kind === 'howto' && v.st === 'paused' && v.dlg && v.panel && v.cards === 'Look around,Zoom in,Interact,Pause' && v.back && v.back.arg === 'pause', 'Controls in the pause menu opens How to play, the same dialog as on the title, still paused (' + JSON.stringify(v) + ')');
+  await page.click('#overlay .panel', { position: { x: 12, y: 12 } }); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'paused' && MENU.kind === 'howto'), 'a click in it does not resume');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'paused' && MENU.kind === 'pause' && document.activeElement && document.activeElement.dataset.act === 'controls'), 'Esc closes it: the pause menu again, Controls focused');
+  await page.click('#overlay button[data-act="controls"]'); await page.waitForTimeout(150);
+  await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'paused' && MENU.kind === 'pause'), 'and so does its Back');
   await page.evaluate(() => document.querySelector('#overlay button[data-act="resume"]').focus());
   check(await page.evaluate(() => typeof AUDIO.suspend === 'function' && typeof AUDIO.setVolume === 'function'), 'audio exposes suspend and volume buses');
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.waitForTimeout(50);
   check(await page.evaluate(() => document.activeElement.dataset.act === 'settings'), 'arrow keys move between buttons');
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
-  check(await page.evaluate(() => MENU.kind === 'settings'), 'Settings opens from pause');
+  check(await page.evaluate(() => MENU.kind === 'settings' && UI.overlay.classList.contains('dlg') && !!document.querySelector('#overlay .panel .settings')), 'Settings opens from pause, in the dialog');
+  // the settings: a percentage at the right of each slider, following it; the on/off ones are switches
+  v = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('#overlay .settings input[type=range]')].map(r => { const o = r.parentElement.querySelector('.pct'); return { k: r.dataset.set, pct: o && o.textContent, right: o && o.getBoundingClientRect().left >= r.getBoundingClientRect().right }; });
+    const sw = [...document.querySelectorAll('#overlay .settings input[type=checkbox]')].map(c => ({ k: c.dataset.set, role: c.getAttribute('role'), name: c.closest('label').querySelector('.olabel').textContent, drawn: !!c.parentElement.querySelector('.sw') }));
+    return { rows, sw, text: UI.overlay.textContent };
+  });
+  check(v.rows.map(r => r.k + ':' + r.pct).join() === 'master:100%,effects:100%,ambient:100%,textSize:100%' && v.rows.every(r => r.right), 'each slider has its percentage at its right (' + JSON.stringify(v.rows) + ')');
+  check(v.sw.map(s => s.k).join() === 'muted,reduceMotionFlash,captions,reduceTextures' && v.sw.every(s => s.role === 'switch' && s.drawn) && v.sw[1].name === 'Reduce motion and flashing effects' && v.sw[3].name === 'Reduce surface textures' && !/Surface detail|Reduce flashing \(|Reduce motion \(/.test(v.text),
+    'the on/off settings are switches (role switch): Mute, Reduce motion and flashing effects (one, for both), Captions, Reduce surface textures (' + JSON.stringify(v.sw) + ')');
   await page.evaluate(() => { const r = document.querySelector('input[data-set="effects"]'); r.value = '0.3'; r.dispatchEvent(new Event('input', { bubbles: true })); });
-  await page.click('label.opt input[data-set="reducedFlash"]'); await page.waitForTimeout(100);
-  check(await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('itscoming.v2')).settings; return Math.abs(s.effects - 0.3) < 1e-6 && s.reducedFlash === true && G.state === 'paused'; }), 'settings persist and changing them does not close the menu');
+  check(await page.evaluate(() => document.querySelector('input[data-set="effects"]').parentElement.querySelector('.pct').textContent === '30%'), 'the percentage follows the slider as it moves');
+  await page.evaluate(() => document.querySelector('input[data-set="effects"]').focus());
+  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(50);
+  check(await page.evaluate(() => Math.abs(SAVE.data.settings.effects - 0.35) < 1e-6 && document.querySelector('input[data-set="effects"]').parentElement.querySelector('.pct').textContent === '35%'), 'and as the keys move it');
+  await page.click('#overlay input[data-set="reduceMotionFlash"]'); await page.waitForTimeout(100);
+  check(await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('itscoming.v2')).settings; return Math.abs(s.effects - 0.35) < 1e-6 && s.reducedFlash === true && s.reducedMotion === true && SAVE.data.settings.reducedMotion && SAVE.data.settings.reducedFlash && G.state === 'paused' && document.querySelector('input[data-set="reduceMotionFlash"]').checked; }), 'settings persist and changing them does not close the menu; the one switch turns both reduced motion and reduced flashing on');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(80);
+  check(await page.evaluate(() => !SAVE.data.settings.reducedMotion && !SAVE.data.settings.reducedFlash && !document.querySelector('input[data-set="reduceMotionFlash"]').checked && MENU.kind === 'settings'), 'Enter on the focused switch flips it back: both off');
+  await page.keyboard.press(' '); await page.waitForTimeout(80);
+  check(await page.evaluate(() => SAVE.data.settings.reducedMotion && SAVE.data.settings.reducedFlash && MENU.kind === 'settings' && G.state === 'paused'), 'and Space flips it on again');
+  await page.evaluate(() => MENU.applySetting('reduceMotionFlash', false));
+  check(await page.evaluate(() => R.detail === true && !SAVE.data.settings.reduceTextures), 'textures are shown by default (Reduce surface textures off)');
+  await page.click('#overlay input[data-set="reduceTextures"]'); await page.waitForTimeout(80);
+  check(await page.evaluate(() => R.detail === false && SAVE.data.settings.reduceTextures === true), 'Reduce surface textures on: the plainer, faster surfaces');
+  await page.click('#overlay input[data-set="reduceTextures"]'); await page.waitForTimeout(80);
+  check(await page.evaluate(() => !!document.querySelector('#overlay button[data-act="reset"]')), 'Settings from the game has Erase progress (only the warning\'s has not)');
+  await page.keyboard.press('m'); await page.waitForTimeout(80);
+  check(await page.evaluate(() => G.muted && document.querySelector('input[data-set="muted"]').checked), 'M with Settings open mutes, and its Mute switch follows');
+  await page.keyboard.press('m'); await page.waitForTimeout(80);
   await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(150);
+  check(await page.evaluate(() => MENU.kind === 'pause' && document.activeElement && document.activeElement.dataset.act === 'settings'), 'Back from Settings: the pause menu, Settings focused');
   await page.click('#overlay button[data-act="title"]'); await page.waitForTimeout(300);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title'), 'Back to title from pause');
+  v = await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); startLevel(1, true); const o = { stag: !!document.querySelector('#overlay .s2, #overlay .s3'), intro: getComputedStyle(document.querySelector('#overlay .intro')).animationName }; MENU.applySetting('reduceMotionFlash', false); showTitle(); return o; });
+  check(!v.stag && v.intro === 'none', 'with reduced motion a night\'s card comes in all together (' + JSON.stringify(v) + ')');
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
   check(await page.evaluate(() => G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'with no night survived yet, the title has no Scores button: there is nothing to show');
@@ -478,6 +593,23 @@ const hoverHit = lookFor;
   await tap(1);
   check(await page.evaluate(() => MENU.kind === 'title'), 'B goes back to the title');
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
+
+  console.log('== settings saved before the switches carry over ==');
+  for (const [old, want] of [
+    [{ textures: false, reducedFlash: true, reducedMotion: false }, { rt: true, rm: true, rf: true, detail: false }],
+    [{ textures: true, reducedFlash: false, reducedMotion: true }, { rt: false, rm: true, rf: true, detail: true }],
+    [{ reducedFlash: false, reducedMotion: false }, { rt: false, rm: false, rf: false, detail: true }],
+  ]) {
+    await page.evaluate(o => { localStorage.clear(); localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 2 }, complete: {}, bestRun: {}, best: {}, settings: Object.assign({ master: 0.5 }, o) })); }, old);
+    await page.goto(T.INDEX); await page.waitForTimeout(300);
+    const got = await page.evaluate(() => ({ rt: SAVE.data.settings.reduceTextures, rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash, detail: R.detail, old: 'textures' in SAVE.data.settings, master: SAVE.data.settings.master, warned: SAVE.data.warned,
+      on: (MENU.act('settings', 'title'), [document.querySelector('input[data-set="reduceTextures"]').checked, document.querySelector('input[data-set="reduceMotionFlash"]').checked]) }));
+    check(got.rt === want.rt && got.rm === want.rm && got.rf === want.rf && got.detail === want.detail && !got.old && got.master === 0.5 && got.warned === false && got.on[0] === want.rt && got.on[1] === want.rm,
+      'an older save ' + JSON.stringify(old) + ': surface detail off is Reduce surface textures on, and reduced motion and flashing are one, on if either was (' + JSON.stringify(got) + ')');
+  }
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(T.INDEX); await page.waitForTimeout(300);
+  check(await page.evaluate(() => SAVE.data.settings.reduceTextures === false && R.detail === true && SAVE.data.warned === false), 'a new player: textures shown (Reduce surface textures off), the warning not yet accepted');
 
   console.log('== a v1 save keeps its progress ==');
   await page.goto(T.INDEX); await page.waitForTimeout(200);
@@ -837,6 +969,8 @@ const hoverHit = lookFor;
   await page.click('#overlay button[data-act="done"]'); await page.waitForTimeout(1200);
   tv = await page.evaluate(() => ({ kind: MENU.kind, cards: document.querySelectorAll('#overlay .results .rcard').length, in: document.querySelectorAll('#overlay .rcard.in').length, run: document.querySelector('#overlay .rrun').classList.contains('in'), fin: document.querySelector('#overlay .rlast').classList.contains('in') }));
   check(tv.kind === 'results' && tv.cards === 13 && tv.in > 0 && tv.in < 13 && !tv.run && !tv.fin, 'The End: the results, the cards filling in one after another (' + JSON.stringify(tv) + ')');
+  tv = await page.evaluate(() => [...document.querySelectorAll('#overlay .rcard')].filter(c => !c.classList.contains('in')).map(c => getComputedStyle(c).opacity));
+  check(tv.length > 0 && tv.every(o => o === '0'), 'the nights not in yet are not there at all: no placeholder for any of them (' + tv + ')');
   await page.waitForTimeout(4600);
   tv = await page.evaluate(() => ({ in: document.querySelectorAll('#overlay .rcard.in').length, run: document.querySelector('#overlay .rrun').classList.contains('in'), label: document.querySelector('#overlay .rrun .rlabel').textContent, fin: document.querySelector('#overlay .rlast').classList.contains('in'), focus: document.activeElement && document.activeElement.dataset.act, left: [...document.querySelectorAll('#overlay .rcard')].filter(c => Math.round(c.getBoundingClientRect().left) === Math.round(document.querySelector('#overlay .rcard').getBoundingClientRect().left)).length }));
   check(tv.in === 13 && tv.run && tv.label === 'This run' && tv.fin && tv.focus === 'finish' && tv.left === 6, 'then this run (not a full run here: a dash), then Finish game, focused; six nights down the left (' + JSON.stringify(tv) + ')');
@@ -1243,13 +1377,20 @@ const hoverHit = lookFor;
     // the menu button: the pause menu, with everything in it
     await pg.tap('#menuBtn'); await pg.waitForTimeout(500);
     r = await pg.evaluate(() => ({ state: G.state, acts: [...UI.overlay.querySelectorAll('button[data-act]')].map(b => b.dataset.act), menuBtn: getComputedStyle(UI.menuBtn).display, zoomBtn: getComputedStyle(UI.zoomBtn).display }));
-    check(r.state === 'paused' && ['resume', 'restart', 'settings', 'mute', 'title'].every(a => r.acts.includes(a)) && !r.acts.includes('nights') && r.menuBtn === 'none' && r.zoomBtn === 'none', 'the menu button pauses: Resume, Restart, Settings, Mute, Quit (the buttons themselves hidden over it) (' + JSON.stringify(r) + ')');
+    check(r.state === 'paused' && r.acts.join() === 'resume,controls,settings,title' && r.menuBtn === 'none' && r.zoomBtn === 'none', 'the menu button pauses: Resume, Controls, Settings, Quit (the buttons themselves hidden over it) (' + JSON.stringify(r) + ')');
+    r = await pg.evaluate(() => { const p = [...UI.overlay.querySelectorAll('button[data-act]')].map(b => b.getBoundingClientRect()); return { inView: p.every(q => q.top >= 0 && q.bottom <= innerHeight), tall: p.every(q => q.height >= 34) }; });
+    check(r.inView && r.tall, 'on a phone on its side the pause menu is all in view (' + JSON.stringify(r) + ')');
     await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-pause.png') });
-    await pg.tap('button[data-act="mute"]'); await pg.waitForTimeout(150);
-    check(await pg.evaluate(() => G.muted), 'Mute in the pause menu mutes (there is no sound line on a phone)');
-    await pg.tap('button[data-act="mute"]'); await pg.tap('button[data-act="settings"]'); await pg.waitForTimeout(300);
-    r = await pg.evaluate(() => ({ rev: !!UI.overlay.querySelector('[data-set="swipeReverse"]'), left: !!UI.overlay.querySelector('[data-set="touchLeft"]') }));
-    check(r.rev && !r.left, 'settings on a phone: reverse swipes (and no touch-buttons side any more)');
+    await pg.tap('button[data-act="controls"]'); await pg.waitForTimeout(300);
+    r = await pg.evaluate(() => ({ kind: MENU.kind, st: G.state, gest: document.querySelectorAll('#overlay .hcard kbd.gest').length, fits: (p => p && p.scrollHeight <= p.clientHeight + 1)(document.querySelector('#overlay .panel')) }));
+    check(r.kind === 'howto' && r.st === 'paused' && r.gest === 3 && r.fits, 'Controls on a phone: How to play, the touch one, all in view (' + JSON.stringify(r) + ')');
+    await pg.tap('button[data-act="back"]'); await pg.waitForTimeout(200);
+    await pg.tap('button[data-act="settings"]'); await pg.waitForTimeout(300);
+    r = await pg.evaluate(() => ({ rev: !!UI.overlay.querySelector('[data-set="swipeReverse"]'), left: !!UI.overlay.querySelector('[data-set="touchLeft"]'), fits: (p => p && p.scrollHeight <= p.clientHeight + 1)(document.querySelector('#overlay .panel')) }));
+    check(r.rev && !r.left && r.fits, 'settings on a phone: reverse swipes (and no touch-buttons side any more), all in view (' + JSON.stringify(r) + ')');
+    await pg.tap('#overlay input[data-set="muted"]'); await pg.waitForTimeout(150);
+    check(await pg.evaluate(() => G.muted && document.querySelector('#overlay input[data-set="muted"]').checked), 'a tap on Settings\' Mute switch mutes (there is no sound line on a phone)');
+    await pg.tap('#overlay input[data-set="muted"]'); await pg.waitForTimeout(150);
     await pg.tap('button[data-act="back"]'); await pg.waitForTimeout(200);
     await pg.tap('button[data-act="resume"]'); await pg.waitForTimeout(300);
     check(await pg.evaluate(() => G.state === 'play'), 'Resume, by tap, goes back to the night');

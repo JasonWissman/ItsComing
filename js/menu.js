@@ -62,10 +62,11 @@ const MENU = (() => {
           '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
       }
       case 'pause':
-        // one narrow column of buttons all of a width; R, M and Esc do the same from the keyboard
-        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('restart', 'Restart') + btn('settings', 'Settings', 'pause') + btn('mute', G.muted ? 'Unmute' : 'Mute') + btn('title', 'Quit') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
+        // one narrow column of buttons all of a width: Resume, Controls (How to play, as on the title), Settings, and a
+        // quiet Quit. R (restart) and M (mute) still work from the keyboard; Esc resumes
+        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('controls', 'Controls') + btn('settings', 'Settings', 'pause') + btn('title', 'Quit', undefined, 'quiet') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
       case 'dead':
-        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + btn('title', 'Quit') + '</div>';
+        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + btn('title', 'Quit', undefined, 'quiet') + '</div>';
       case 'ending':   // the last screen of the last night, over the morning room
         return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('done', 'The End', undefined, 'primary') + '</div>';
       case 'results': {
@@ -107,20 +108,27 @@ const MENU = (() => {
         return '<h1>Scores</h1><div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>' + runCard + complete + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
       }
       case 'settings': {
-        const chk = (k, label) => '<label class="opt"><input type="checkbox" data-set="' + k + '"' + (S[k] ? ' checked' : '') + '> ' + label + '</label>';
-        const rng = (k, label) => '<label class="opt"><span>' + label + '</span><input type="range" min="0" max="1" step="0.05" data-set="' + k + '" value="' + S[k] + '"></label>';
-        return '<h1>Settings</h1><div class="settings">' +
-          rng('master', 'Volume') + rng('effects', 'Effects') + rng('ambient', 'Ambience') + chk('muted', 'Mute') +
-          chk('reducedFlash', 'Reduce flashing (softer red pulse, dimmer flashes)') + chk('reducedMotion', 'Reduce motion (no jitter or sway)') + chk('captions', 'Captions for sounds') + (touchUI() ? chk('swipeReverse', 'Reverse swipes (swipe left to turn left)') : '') + chk('textures', 'Surface detail: boards and stone (off is faster)') +
-          '<label class="opt"><span>Text size</span><input type="range" min="0.85" max="1.4" step="0.05" data-set="textSize" value="' + S.textSize + '"></label>' +
-          '</div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('reset', 'Erase progress', undefined, 'danger') + '</div>';
+        // the sliders, each with its value as a percentage at its right (following it as it moves); then the on/off
+        // settings, each a switch (a checkbox with the role of a switch, drawn as one: .sw). From the warning before a new
+        // game (d.from 'warning': game.js) the same, but no Erase progress
+        const sw = (k, label) => '<label class="opt"><span class="olabel">' + label + '</span><span class="swwrap"><input type="checkbox" role="switch" class="swi" data-set="' + k + '"' + (switchOn(k) ? ' checked' : '') + '><span class="sw" aria-hidden="true"></span></span></label>';
+        const rng = (k, label, min, max) => '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="0.05" data-set="' + k + '" value="' + S[k] + '" aria-valuetext="' + pct(S[k]) + '"><output class="pct" aria-hidden="true">' + pct(S[k]) + '</output></span></label>';
+        return '<h1>Settings</h1><div class="settings"><div class="sgrp">' +
+          rng('master', 'Volume', 0, 1) + rng('effects', 'Effects', 0, 1) + rng('ambient', 'Ambience', 0, 1) + rng('textSize', 'Text size', 0.85, 1.4) +
+          '</div><div class="sgrp">' +
+          sw('muted', 'Mute') + sw('reduceMotionFlash', 'Reduce motion and flashing effects') + sw('captions', 'Captions for sounds') + (touchUI() ? sw('swipeReverse', 'Reverse swipes') : '') + sw('reduceTextures', 'Reduce surface textures') +
+          '</div></div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + (d.from === 'warning' ? '' : btn('reset', 'Erase progress', undefined, 'danger')) + '</div>';
       }
       default: return '';
     }
   }
   // over the title, its sub-screens open as dialogs: a panel over the middle of the view, over what is coming (TITLE),
   // which comes on behind it while it is open
+  // (and from the pause menu, Controls and Settings open as the same dialogs, over the night paused behind them)
   const DIALOGS = ['nights', 'settings', 'howto'];
+  const pct = v => Math.round(v * 100) + '%';
+  // the one switch for reduced motion and reduced flashing: both flags the game reads go with it (save.js keeps them alike)
+  const switchOn = k => { const S = SAVE.data.settings; return k === 'reduceMotionFlash' ? !!(S.reducedMotion || S.reducedFlash) : !!S[k]; };
   // every button and control in the menus answers with a soft tap (AUDIO 'tap': quiet, and no caption: it is the
   // click of the thing you pressed, nothing to be told about)
   const tap = () => { ensureAudio(); AUDIO.sfx('tap'); };
@@ -128,24 +136,65 @@ const MENU = (() => {
     stopReveal();
     current = { kind, data: data || {} };
     const ov = UI.overlay;
-    const dlg = DIALOGS.includes(kind) && (current.data.from || 'title') === 'title' && G.state === 'title';
+    const from = current.data.from || 'title';
+    const dlg = DIALOGS.includes(kind) && ((from === 'title' && G.state === 'title') || from === 'pause');
     // erasing progress asks first, in a small dialog of its own over Settings
     const confirm = kind === 'settings' && current.data.confirmReset ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-label="Erase all progress?"><h2>Erase all progress?</h2><p>Every night reached and every best time will be gone.</p><div class="mrow">' + btn('keep', 'Cancel') + btn('erase', 'Erase', undefined, 'danger') + '</div></div></div>' : '';
     showOverlay((dlg ? '<div class="panel ' + kind + 'p" role="dialog" aria-modal="true">' + html(kind, current.data) + '</div>' : html(kind, current.data)) + confirm);
     ov.classList.toggle('dlg', dlg);
     ov.classList.toggle('titlelow', kind === 'title' && TITLE.on);
     ov.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); act(b.dataset.act, b.dataset.arg); }));
-    ov.querySelectorAll('[data-set]').forEach(inp => {
-      const stop = e => e.stopPropagation();
-      inp.addEventListener('click', stop); inp.parentElement.addEventListener('click', stop);
-      inp.addEventListener('input', () => { const v = inp.type === 'checkbox' ? inp.checked : parseFloat(inp.value); applySetting(inp.dataset.set, v); });
-      inp.addEventListener('change', tap);   // (a slider once it is let go, at the volume it now has)
-    });
+    wire(ov);
     const box = ov.querySelector('.confirm');
     if (box) box.addEventListener('click', e => { e.stopPropagation(); if (e.target === box) act('keep'); });   // a click off the little dialog backs out of it
-    const first = (box || ov).querySelector('button[data-act]');
+    // focus: the first button, or (back from a sub-screen) the button that opened it
+    const first = (!box && current.data.focus && ov.querySelector('button[data-act="' + current.data.focus + '"]')) || (box || ov).querySelector('button[data-act]');
     if (first && kind !== 'title' && kind !== 'results') first.focus();
     if (kind === 'results') reveal(false);
+  }
+  // the settings' controls in a screen (the menus' overlay, or the warning's card): each applied and saved as it changes,
+  // a slider's percentage following it
+  function wire(root) {
+    root.querySelectorAll('[data-set]').forEach(inp => {
+      const stop = e => e.stopPropagation();
+      inp.addEventListener('click', stop); inp.closest('label').addEventListener('click', stop);
+      const out = inp.type === 'range' && inp.parentElement.querySelector('.pct');
+      inp.addEventListener('input', () => {
+        const v = inp.type === 'checkbox' ? inp.checked : parseFloat(inp.value);
+        if (out) { out.textContent = pct(v); inp.setAttribute('aria-valuetext', pct(v)); }
+        applySetting(inp.dataset.set, v);
+      });
+      inp.addEventListener('change', tap);   // (a slider once it is let go, at the volume it now has)
+    });
+  }
+  // Settings in a box of the caller's own, over everything (the warning before a new game: game.js). Its Back calls back();
+  // the keys and a pad go through navKey and the caller
+  function settingsInto(root, back) {
+    root.innerHTML = html('settings', { from: 'warning' });
+    root.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); if (b.dataset.act === 'back') back(); }));
+    wire(root);
+    const first = root.querySelector('button[data-act]'); if (first) first.focus();
+  }
+  // the keys in a screen of buttons and settings: arrows (and WASD, Tab) move round them; Space and Enter flip a focused
+  // switch, left and right move a focused slider. True if the key was taken
+  function ring(root) { return [...root.querySelectorAll('button[data-act], input[data-set]')]; }
+  function navKey(e, root) {
+    const k = e.key, btns = ring(root);
+    if (!btns.length) return false;
+    const idx = btns.indexOf(document.activeElement);
+    const f = document.activeElement; // the control keeps the keys it uses: Space flips a switch, left and right move a slider
+    if (f && f.tagName === 'INPUT' && (k === ' ' || (f.type === 'range' && (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'Home' || k === 'End')))) return false;
+    if (k === 'Enter' && f && f.tagName === 'INPUT' && f.type === 'checkbox' && idx >= 0) { if (!e.repeat) f.click(); return true; }   // Enter flips a switch too
+    if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'd' || k === 'Tab' && !e.shiftKey) { e.preventDefault(); btns[(idx + 1 + btns.length) % btns.length].focus(); return true; }
+    if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'a' || k === 'Tab' && e.shiftKey) { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); return true; }
+    return false;
+  }
+  // a pad's d-pad on a focused slider: left and right move it, as the arrow keys do
+  function padSlide(f, dir) {
+    if (!(f && f.tagName === 'INPUT' && f.type === 'range')) return false;
+    if (dir === 1) f.stepDown(); else f.stepUp();
+    f.dispatchEvent(new Event('input'));
+    return true;
   }
   // the results after the ending: each night's card takes its time one after another, then the full run, then the way
   // out. A click or a key hurries it to the end; with reduced motion it is all there at once
@@ -166,17 +215,19 @@ const MENU = (() => {
   }
   function hurry() { if (revealing) reveal(true); }
   function applySetting(k, v) {
+    // reduced motion and reduced flashing are one switch: it sets both flags (each still read where it was)
+    if (k === 'reduceMotionFlash') { SAVE.setSetting('reducedMotion', !!v); SAVE.setSetting('reducedFlash', !!v); return; }
     SAVE.setSetting(k, v);
     if (k === 'muted') setMuted(v);
     else if (k === 'master' || k === 'effects' || k === 'ambient') AUDIO.setVolume(k, v);
     else if (k === 'textSize') document.documentElement.style.setProperty('--text-scale', v);
-    else if (k === 'textures') R.detail = !!v;
+    else if (k === 'reduceTextures') R.detail = !v;
   }
   function applyAll() {
     const S = SAVE.data.settings;
     AUDIO.setVolume('master', S.master); AUDIO.setVolume('effects', S.effects); AUDIO.setVolume('ambient', S.ambient);
     document.documentElement.style.setProperty('--text-scale', S.textSize);
-    R.detail = S.textures !== false;
+    R.detail = !S.reduceTextures;
   }
   function act(a, arg) {
     switch (a) {
@@ -187,19 +238,18 @@ const MENU = (() => {
       case 'settings': show('settings', { from: arg || 'title' }); break;
       case 'howto': show('howto', { from: 'title' }); break;
       case 'resume': resumeGame(); break;
-      case 'restart': restartLevel(); break;
+      case 'controls': show('howto', { from: 'pause' }); break;   // the pause menu's Controls: How to play, as on the title
       case 'retry': startLevel(G.levelIndex, false); break;
       case 'next': proceedFromSurvived(); break;
       case 'title': showTitle(); break;
       case 'reset': show('settings', Object.assign({}, current.data, { confirmReset: true })); break;
       case 'keep': show('settings', Object.assign({}, current.data, { confirmReset: false })); break;
       case 'erase': SAVE.reset(); G.run = null; setMuted(false); applyAll(); showTitle(); break;
-      case 'mute': toggleMute(); break;   // the button's own label follows (setMuted)
       case 'back': {
-        const from = arg || 'title';
+        const from = arg || 'title', was = current && current.kind;
         if (from === 'title' && G.state === 'title') { show('title'); TITLE.advance(); }   // closing a dialog over the title: it came on while it was open
         else if (from === 'title') showTitle();
-        else if (from === 'pause') show('pause');
+        else if (from === 'pause') show('pause', { focus: was === 'howto' ? 'controls' : 'settings' });   // focus back on what opened it
         else showTitle();
         break;
       }
@@ -211,17 +261,14 @@ const MENU = (() => {
     if (!current) return false;
     if (revealing && current.kind === 'results') { hurry(); return true; }
     const k = e.key;
-    const btns = [...(UI.overlay.querySelector('.confirm') || UI.overlay).querySelectorAll('button[data-act], input[data-set]')]; // sliders and checkboxes are in the ring too; a dialog over them keeps it to its own
-    if (!btns.length) return false;
-    const idx = btns.indexOf(document.activeElement);
-    const f = document.activeElement; // the control keeps the keys it uses: Space ticks a box, left and right move a slider
-    if (f && f.tagName === 'INPUT' && (k === ' ' || (f.type === 'range' && (k === 'ArrowLeft' || k === 'ArrowRight')))) return false;
-    if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'd' || k === 'Tab' && !e.shiftKey) { e.preventDefault(); btns[(idx + 1 + btns.length) % btns.length].focus(); return true; }
-    if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'a' || k === 'Tab' && e.shiftKey) { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); return true; }
+    const root = UI.overlay.querySelector('.confirm') || UI.overlay;   // sliders and switches are in the ring too; a dialog over them keeps it to its own
+    if (!ring(root).length) return false;
+    if (navKey(e, root)) return true;
+    const idx = ring(root).indexOf(document.activeElement);
     if (k === 'Escape' && current.kind === 'settings' && current.data.confirmReset) { act('keep'); return true; }
     if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings' || current.kind === 'howto')) { act('back', current.data.from); return true; }
     if (k === 'Enter' && idx >= 0) return true;   // the focused button handles it
     return false;
   }
-  return { show, act, onKey, hurry, applySetting, applyAll, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; } };
+  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, navKey, padSlide, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; } };
 })();

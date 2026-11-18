@@ -178,15 +178,16 @@ function validateContent() {
 // for the results after the ending, which show only this run.
 function beginRun() { G.run = { t: 0, night: 0, nights: [] }; }
 // ---------- a new game: the warning, then a black screen and two lines, one after the other ----------
-// Begin first puts up the warning about flashing lights: black, red words, Accept (focused: Enter, Space, a click or a
-// tap, or A or Start on a pad). Every time a game is begun, not once a visit: it is one press, and whoever is at the
-// screen now may not be who pressed it last time. Nothing else gets past it, and nothing on the title behind it can be
-// pressed. Then the prologue: the lines come up slowly in the middle of the dark, one at a time (the first gone before
-// the second comes), and fade; then night 1's card. It is short and it is watched: no click or key skips it, and no stray
-// key or click gets through it to the game. Both over everything.
-const DISCLAIMER = 'This game contains bright, flashing lights and imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy. Player discretion is advised.';
+// Begin first puts up the warning about flashing lights: a card like the other dialogs on black, red words, a solid red
+// Accept (focused: Enter, Space, a click or a tap, or A or Start on a pad) and beside it a quiet Adjust settings, which
+// turns the card into Settings (all of it but Erase progress); its Back (Esc, B) is the warning again, Accept focused.
+// Once accepted it is remembered (SAVE.data.warned) and a later game goes straight on. Nothing else gets past it, and
+// nothing on the title behind it can be pressed. Then the prologue: the lines come up slowly in the middle of the dark,
+// one at a time (the first gone before the second comes), and fade; then night 1's card. It is short and it is watched:
+// no click or key skips it, and no stray key or click gets through it to the game. Both over everything.
+const DISCLAIMER = 'This game contains flashing imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy.\nOptions for reduced motion and flashing are available in the settings dialog.\n\nPlayer discretion is advised.';
 const PROLOGUE = ['You haven’t had a good night’s sleep in ages.', 'Each night something visits you in your dreams…'];
-let prologueOn = false, disclaimerOn = false, disclaimerAccept = null;
+let prologueOn = false, disclaimerOn = false, disclaimerPad = null;
 const PROLOGUE_FADE = 6;   // seconds the title's drone takes to fade out under it; night 1's bed fades in when night 1 begins
 function introUp() { return disclaimerOn || prologueOn; }   // the warning or the prologue is up: nothing else is pressed
 // a key while one is up goes no further (the game never sees it); the browser's own (with Ctrl, Cmd or Alt, F1..F12)
@@ -199,46 +200,87 @@ function swallowPointer(el) { for (const ev of ['click', 'mousedown', 'mouseup',
 function newGame() {
   if (introUp()) return;
   beginRun();
-  // (a browser driven by the tests goes past the warning, unless a test asks for it: window.DISCLAIMER_TEST)
+  // (a browser driven by the tests goes past the warning, unless a test asks for it: window.DISCLAIMER_TEST; 'force'
+  // shows it even once it has been accepted)
   if (navigator.webdriver && !window.DISCLAIMER_TEST) { prologue(); return; }
+  if (SAVE.data.warned && window.DISCLAIMER_TEST !== 'force') { prologue(); return; }
   disclaimer();
 }
 function disclaimer() {
-  const still = SAVE.data.settings.reducedMotion;
+  const still = () => SAVE.data.settings.reducedMotion;
   const el = document.createElement('div'); el.id = 'disclaimer';
-  el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'disclaimerText');
-  // an eye with a line through it
-  el.innerHTML = '<div class="dbox"><svg class="deye" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
-    '<path d="M4 24c5-8.5 12-13 20-13s15 4.5 20 13c-5 8.5-12 13-20 13S9 32.5 4 24z"/><circle cx="24" cy="24" r="6.5"/><path d="M9 41L39 7"/></svg>' +
-    '<p id="disclaimerText">' + DISCLAIMER + '</p><button type="button" class="daccept">Accept</button></div>';
   document.body.appendChild(el);
   disclaimerOn = true;
-  const btn = el.querySelector('.daccept'), t0 = performance.now();
-  let done = false;
+  const t0 = performance.now();
+  let done = false, card = null, accept0 = null, settingsOn = false;
+  // the warning: an eye with a line through it, the words, then Accept and Adjust settings side by side
+  const warn = () => {
+    settingsOn = false;
+    el.innerHTML = '<div class="dbox"><div class="dcard dwarn" role="alertdialog" aria-modal="true" aria-labelledby="disclaimerText">' +
+      '<svg class="deye" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M4 24c5-8.5 12-13 20-13s15 4.5 20 13c-5 8.5-12 13-20 13S9 32.5 4 24z"/><circle cx="24" cy="24" r="6.5"/><path d="M9 41L39 7"/></svg>' +
+      '<p id="disclaimerText">' + DISCLAIMER + '</p>' +
+      '<div class="dbtns"><button type="button" class="daccept" data-act="accept">Accept</button><button type="button" class="dsettings" data-act="settings">Adjust settings</button></div></div></div>';
+    card = el.querySelector('.dcard');
+    accept0 = el.querySelector('.daccept');
+    accept0.addEventListener('click', accept);
+    el.querySelector('.dsettings').addEventListener('click', openSettings);
+    accept0.focus();
+  };
+  // Settings in the same card, over the same black; Back is the warning again
+  const openSettings = () => {
+    if (done) return;
+    ensureAudio(); AUDIO.sfx('tap');
+    settingsOn = true;
+    el.innerHTML = '<div class="dbox"><div class="dcard dset" role="dialog" aria-modal="true" aria-label="Settings"></div></div>';
+    card = el.querySelector('.dcard');
+    MENU.settingsInto(card, warn);
+  };
   const accept = () => {
-    if (done || performance.now() - t0 < 400) return;   // (not the double-click or the held key that pressed Begin)
-    done = true; disclaimerAccept = null; ensureAudio(); AUDIO.sfx('tap');
+    if (done || settingsOn || performance.now() - t0 < 400) return;   // (not the double-click or the held key that pressed Begin)
+    done = true; disclaimerPad = null; ensureAudio(); AUDIO.sfx('tap');
+    SAVE.markWarned();   // a later game goes straight on
     el.classList.add('go');   // its words go; the black stays until the prologue (or night 1's card) is up over it
     setTimeout(() => {
       prologue();
       const gone = () => { document.removeEventListener('keydown', key, true); el.remove(); disclaimerOn = false; };
       if (prologueOn) setTimeout(gone, 900);
-      else { el.classList.add('out'); setTimeout(gone, still ? 300 : 700); }
-    }, still ? 150 : 450);
+      else { el.classList.add('out'); setTimeout(gone, still() ? 300 : 700); }
+    }, still() ? 150 : 450);
   };
+  const press = () => { const f = document.activeElement; if (f && card && card.contains(f) && (f.tagName === 'BUTTON' || f.type === 'checkbox')) f.click(); };
+  // the keys go no further than it (the game never sees them); in it, the arrows and Tab go round its buttons (and in
+  // Settings its sliders and switches), Enter and Space press, and in Settings Esc is Back. A focused slider or switch
+  // keeps the keys it uses (left and right, Space)
   const key = e => {
+    e.stopImmediatePropagation();
+    if (done) { swallowKey(e); return; }
+    const f = document.activeElement, k = e.key;
+    if (settingsOn && f && f.tagName === 'INPUT' && card.contains(f) && (k === ' ' || (f.type === 'range' && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(k)))) return;
     swallowKey(e);
-    if (done) return;
-    if (e.key === 'Tab') btn.focus();   // the one thing on it to go to
-    else if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) accept();
+    if (settingsOn && k === 'Escape') { if (!e.repeat) { AUDIO.sfx('tap'); warn(); } return; }
+    if (MENU.navKey(e, card)) return;
+    if ((k === 'Enter' || k === ' ') && !e.repeat) press();
   };
   document.addEventListener('keydown', key, true);
   swallowPointer(el);
-  el.addEventListener('mousedown', e => { if (e.target !== btn) e.preventDefault(); });   // a click off it leaves Accept focused
-  btn.addEventListener('blur', () => { if (!done) setTimeout(() => { if (!done && el.isConnected) btn.focus(); }, 0); });   // (and nothing else takes it)
-  btn.addEventListener('click', accept);
-  disclaimerAccept = accept;
-  btn.focus();
+  el.addEventListener('mousedown', e => { if (!(e.target.closest && e.target.closest('button, input, label'))) e.preventDefault(); });   // a click off its controls leaves the focus where it is
+  // the focus stays in it: anything that takes it away gives it back (to Accept, or to Settings' Back)
+  el.addEventListener('focusout', () => setTimeout(() => {
+    if (done || !el.isConnected || (card && card.contains(document.activeElement))) return;
+    const b = settingsOn ? card.querySelector('button[data-act="back"]') : accept0; if (b) b.focus();
+  }, 0));
+  // a pad: the d-pad goes round, a slider takes left and right; A presses; in Settings, B and Start are Back, on the
+  // warning Start accepts
+  disclaimerPad = (what, dir) => {
+    if (done) return;
+    const fake = key => ({ key, preventDefault() {}, shiftKey: false });
+    if (what === 'dir') { if (!(settingsOn && dir <= 2 && MENU.padSlide(document.activeElement, dir))) MENU.navKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'), card); }
+    else if (what === 'a') press();
+    else if (what === 'b' && settingsOn) { AUDIO.sfx('tap'); warn(); }
+    else if (what === 'start') { if (settingsOn) { AUDIO.sfx('tap'); warn(); } else accept(); }
+  };
+  warn();
   requestAnimationFrame(() => el.classList.add('on'));
 }
 function prologue() {
@@ -309,7 +351,10 @@ function startLevel(i, withCard) {
     setState('card');
     const d = G.diff(), T = G.L.text;
     const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">' + (touchUI() ? 'Tap when you are ready' : 'Click or press Enter when you are ready') + '</p>');
+    // the night and its name come up with the card; its words a moment after, then the prompt (.s2, .s3: they only look
+    // later, a click or Enter goes on at once as ever; with reduced motion all of it together)
+    const st = SAVE.data.settings.reducedMotion ? '' : ' s2', st3 = SAVE.data.settings.reducedMotion ? '' : ' s3';
+    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro' + st + '">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint' + st + '">' + T.objective + '</p>' : '') + '<p class="prompt' + st3 + '">' + (touchUI() ? 'Tap when you are ready' : 'Click or press Enter when you are ready') + '</p>');
   } else {
     setState('play');
     hideOverlay();
@@ -424,7 +469,7 @@ function setMuted(m) {
   AUDIO.setMuted(G.muted);
   UI.mute.textContent = G.muted ? 'muted (M)' : 'sound on (M)';
   UI.mute.classList.toggle('off', G.muted);
-  const pb = UI.overlay.querySelector('button[data-act="mute"]'); if (pb) pb.textContent = G.muted ? 'Unmute' : 'Mute';   // the pause menu's
+  const sw = UI.overlay.querySelector('input[data-set="muted"]'); if (sw) sw.checked = G.muted;   // Settings' switch follows M
   SAVE.setSetting('muted', G.muted);
 }
 function restartLevel() {
@@ -839,7 +884,7 @@ function updateHover() {
     if (h.kind === 'item') tip = h.ref.name + (h.ref.uses > 1 ? ' ×' + h.ref.uses : '');
     else if (h.kind === 'target') tip = (G.hints() && h.ref.hint) ? h.ref.hint() : (h.ref.hold && !h.ref.done ? h.ref.name + ' (hold)' : h.ref.name);
     else if (h.kind === 'creature') { const u = activeUse(G.L); tip = u ? (u.hoverText ? u.hoverText(h.ref, G.L) : h.ref.dist < u.range ? (u.fireText || 'Fire.') : 'Too far.') : ''; }
-  } else if (G.state === 'play' && G.cam.pitch > 0.5 && G.inv.length) tip = 'Put down the ' + G.inv[G.active].name.toLowerCase();
+  }   // (the floor, looking down with something held: no line; a click there still puts it down)
   UI.tooltip.textContent = tip;
   UI.tooltip.style.display = tip ? 'block' : 'none';
   const holdT = G.L && G.L.targets.find(t => t.hold && !t.done && t.progress > 0);
@@ -1249,23 +1294,26 @@ function pollGamepad() {
   const a = pad.buttons[0] && pad.buttons[0].pressed, b = pad.buttons[1] && pad.buttons[1].pressed, start = pad.buttons[9] && pad.buttons[9].pressed;
   const zoom = (pad.buttons[7] && pad.buttons[7].pressed) || (pad.buttons[6] && pad.buttons[6].pressed) || (pad.buttons[5] && pad.buttons[5].pressed);
   const fake = key => ({ key, preventDefault() {}, shiftKey: false });
-  if (introUp()) {   // the warning: A or Start accepts it; the prologue: nothing
-    if (disclaimerAccept && ((a && !PAD.a) || (start && !PAD.start))) disclaimerAccept();
+  if (introUp()) {   // the warning: its own (disclaimerPad: A presses, Start accepts, B backs out of its Settings); the prologue: nothing
+    if (disclaimerPad) {
+      if (dir !== PAD.dir && dir) disclaimerPad('dir', dir);
+      if (a && !PAD.a) disclaimerPad('a');
+      if (b && !PAD.b) disclaimerPad('b');
+      if (start && !PAD.start) disclaimerPad('start');
+    }
     Object.assign(PAD, { dir, a, start, b, zoom: !!zoom }); return;
   }
   if (dir !== PAD.dir && dir) {
     if (G.state === 'play' || lookFree()) { if (!(G.state === 'play' && G.L.padDir && G.L.padDir(dir))) onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir])); }   // a night may take the d-pad first (the pay phone's keys)
     else {
-      const f = document.activeElement;
-      if (f && f.tagName === 'INPUT' && f.type === 'range' && dir <= 2) { if (dir === 1) f.stepDown(); else f.stepUp(); f.dispatchEvent(new Event('input')); } // left and right move a slider
-      else MENU.onKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'));
+      if (!(dir <= 2 && MENU.padSlide(document.activeElement, dir))) MENU.onKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'));   // left and right move a slider
     }
   }
   PAD.dir = dir;
   if (!a && PAD.a) drawLetGo('pad');   // A let go: a bow drawn by holding it is loosed
   if (a && !PAD.a) {
     if (G.state === 'play') { if (!(G.L.padUse && G.L.padUse())) gamepadUse('pad'); }
-    else { // A presses the focused button or ticks the focused box; only the click-anywhere screens go on with it
+    else { // A presses the focused button or flips the focused switch; only the click-anywhere screens go on with it
       const f = document.activeElement;
       if (f && (f.tagName === 'BUTTON' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();
       else if (!(f && f.tagName === 'INPUT') && !LIST_SCREENS.includes(MENU.kind)) proceed();

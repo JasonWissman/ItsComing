@@ -49,6 +49,8 @@ const { check, st, face, findHit, clickAt, lookForAndClick } = T;
   await page.keyboard.press('m'); check(await page.evaluate(() => G.muted && AUDIO.muted), 'M mutes'); await page.keyboard.press('m');
   await lookForAndClick(page, 'item', 'hammer');
   await face(page, 0, true);
+  await page.mouse.move(640, 600); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.inv.length === 1 && !G.hover && document.getElementById('tooltip').style.display === 'none' && document.getElementById('tooltip').textContent === ''), 'over the floor with something held: no line about putting it down');
   await page.mouse.click(640, 600); await page.waitForTimeout(200);
   s = await st(page); check(s.inv.length === 0, 'clicking the floor drops the held item');
   check(await page.evaluate(() => R.hits.some(h => h.kind === 'item' && h.ref.id === 'hammer')), 'dropped hammer is visible and clickable again');

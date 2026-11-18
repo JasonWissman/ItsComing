@@ -13,7 +13,10 @@ const SAVE = (() => {
       best: {},                                                  // best[levelId][diff] = { time, wins, tries }
       complete: {},                                              // complete[diff] = true once night 13 is won
       bestRun: {},                                               // bestRun[diff] = seconds, the fastest full run (game.js: the run)
-      settings: { muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', swipeReverse: false, textures: true },
+      // reducedMotion and reducedFlash are the two flags the game reads; Settings has one switch for both (MENU), so they
+      // are always the same. reduceTextures: plainer, faster walls and floors (render.js: R.detail is its opposite)
+      settings: { muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', swipeReverse: false, reduceTextures: false },
+      warned: false,                                             // the warning about flashing lights has been accepted (game.js: disclaimer)
     };
   }
   let data = fresh();
@@ -42,12 +45,21 @@ const SAVE = (() => {
           data = Object.assign(f, d, { unlocked, settings, best: d.best || {}, complete: d.complete || {}, bestRun: d.bestRun || {} });
           delete data.fragments;   // an older save's list of fragments seen: there are none any more
           delete data.settings.touchLeft;   // the touch buttons' side: there are no touch buttons to move any more (swipes)
+          tidy(data.settings, d.settings || {});
+          data.warned = d.warned === true;
           return data;
         }
       }
       migrate();
     } catch (e) { data = fresh(); }
     return data;
+  }
+  // settings saved before the switches were what they are now: surface detail off is reduced textures on, and reduced
+  // motion and reduced flashing (once two settings) are one, on if either was
+  function tidy(S, old) {
+    if (old.reduceTextures === undefined && old.textures === false) S.reduceTextures = true;
+    delete S.textures;
+    S.reducedMotion = S.reducedFlash = !!(S.reducedMotion || S.reducedFlash);
   }
   // a v2 save had four difficulties and a v3 save two: fold them all into the one game, keeping the best of each
   function fold(d) {
@@ -71,6 +83,7 @@ const SAVE = (() => {
   function recordRun(diff, time) { const b = data.bestRun[diff]; if (b === undefined || b === null || time < b) { data.bestRun[diff] = Math.round(time * 10) / 10; persist(); } }
   function setSetting(k, v) { data.settings[k] = v; persist(); }
   function markComplete(diff) { data.complete[diff] = true; persist(); }
+  function markWarned() { data.warned = true; persist(); }
   function reset() { data = fresh(); persist(); }
-  return { load, persist, unlock, recordTry, recordWin, recordRun, setSetting, markComplete, reset, get data() { return data; } };
+  return { load, persist, unlock, recordTry, recordWin, recordRun, setSetting, markComplete, markWarned, reset, get data() { return data; } };
 })();

@@ -39,9 +39,11 @@ Headphones are recommended. Sound starts after your first click.
 | `M` | mute |
 
 `WASD` also works for turning and looking. Clicking the floor while looking
-down puts the active item back down. How to play shows the four that matter most as cards (Look around, Zoom in,
-Interact, Pause). The pause menu has Resume, Restart, Settings, Mute (Unmute while muted) and Quit, its
-buttons all one width; `R`, `M` and `Esc` work there as anywhere.
+down puts the active item back down (there is no line about it under the pointer). How to play shows the four that
+matter most as cards (Look around, Zoom in, Interact, Pause). The pause menu has Resume, Controls (How to play, the same
+dialog as on the title; closing it is the pause menu again), Settings and Quit, its buttons all one width; there is no
+Restart or Mute in it, but `R`, `M` and `Esc` work there as anywhere (and Mute is in Settings). Quit, there and on the
+death screen and the win screen, is quieter than the rest: no border, in the secondary (slightly darker) text colour.
 
 On phones and tablets (a touch screen as the main pointer) the game is played on its side: held upright, a screen asks
 for the device to be turned sideways, and a night under way pauses behind it. The view is the controls. Swipe across it
@@ -51,7 +53,7 @@ to interact exactly where you tap, as a click there; press and hold where a thin
 while the finger stays down, its sights following the finger, and looses when it lifts). A swipe is never a tap. A
 round zoom button in the bottom right corner is a toggle: a tap zooms in and the view stays zoomed (the button lit, its
 plus turned to a minus) while you swipe and tap on the view as ever; a tap on it again zooms back out (the keys and a
-pad's trigger still zoom while held). A menu button top left, where the sound line is on a desktop, opens the pause menu (Mute is in it). The
+pad's trigger still zoom while held). A menu button top left, where the sound line is on a desktop, opens the pause menu (Mute is in its Settings). The
 view fills the whole screen, and the things held float over its bottom edge, each slot on a faint backing of its own
 (no strip under them); a tap on a slot switches to it (never a tap on the scene behind), and tapping the held item
 again while looking down puts it down. Where the browser can put the page full screen (not Safari on an iPhone), a
@@ -69,12 +71,16 @@ it, type the number with the number keys. With a gamepad the d-pad moves a highl
 keys, coin return; past the last one in a direction it turns as usual) and A presses what is highlighted. The notebook on
 the shelf under the phone is read where it lies: click or tap it (or press A) to open it, and again to turn each page.
 
-Settings has volume sliders, a mute, reduced flashing (a softer red pulse and
-dimmer flashes), reduced motion (no jitter or sway), captions for sounds (one
-line at a time, with a marker for which side a sound came from), a text size
-slider, on a touch screen a switch to reverse swipes, and one for surface detail (boards, logs and stone
-built into walls and floors; off is faster on slow machines). The two reduction settings default on when your
-system asks for reduced motion. Erase progress asks first, in a small dialog of its own (Cancel, Erase).
+Settings has sliders for the volume, effects, ambience and text size, each with its value as a percentage at its
+right (following it as it moves), and then switches (`role="switch"`; a click, a tap, Space, Enter or A flips one): Mute,
+Reduce motion and flashing effects (one switch for both: a softer red pulse and dimmer flashes, no jitter or sway; the
+game still reads the two flags, `reducedMotion` and `reducedFlash`, and the switch sets both), Captions for sounds (one
+line at a time, with a marker for which side a sound came from), on a touch screen Reverse swipes, and Reduce surface
+textures (off by default; on drops the boards, logs and stone built into walls and floors, which is faster on slow
+machines). Reduce motion and flashing defaults on when your system asks for reduced motion. A save from before the
+switches carries over: surface detail off is Reduce surface textures on, and the one reduction switch is on if either
+of the old two was. Erase progress asks first, in a small dialog of its own (Cancel, Erase). The UI's accent red, for its
+words and controls (the warning, "It got you", muted, Erase progress), is `--red` (`#f04a54`) in `index.html`.
 
 ## One game
 
@@ -450,8 +456,8 @@ turn, look and zoom), a tap of Use or A there fades
 the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme for its last
 screens. The last
 screen there says "You have faced your demons." over one button, The End, which brings up how the nights went this
-time: the thirteen cards of the Scores screen, each taking this run's time one after another (the time of the attempt
-that won it; no best times here, only this run), then this run's whole time, then Finish game, home to the title: the usual dark one, with it out there again (the
+time: the thirteen cards of the Scores screen, each coming in whole with this run's time one after another (nothing
+there before it comes: no empty placeholders; the time of the attempt that won it, no best times here, only this run), then this run's whole time, then Finish game, home to the title: the usual dark one, with it out there again (the
 light theme goes with the last screens and is never kept for the title). A click or a key hurries it to the
 end, and with reduced motion it is all there at once.
 
@@ -483,13 +489,18 @@ up on that far off, easing to nothing as it nears). The sound is made as the pag
 once; where the browser will not start sound before the page is touched (most do not, on a first visit: Chrome may
 once the site has been played on before, Firefox and Safari not by default), it waits at the start of its fade and
 plays it out from the first gesture of any kind (a press, a key, a touch, a wheel). Begin (or Enter) first shows a
-warning, every time a game is begun (it is one press, and whoever is at the screen now may not be who saw it last): black,
-an eye struck through and red words ("This game contains bright, flashing lights and imagery that may cause discomfort
-and/or seizures for those with photosensitive epilepsy. Player discretion is advised."), and a solid red Accept, focused
-(Enter, Space, a click or tap, or A or Start on a pad); nothing else gets past it. Then a
+warning, in a card like the other dialogs on black: an eye struck through and red words ("This game contains flashing
+imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy." / "Options for reduced
+motion and flashing are available in the settings dialog." / a blank line / "Player discretion is advised."), a solid
+red Accept, focused (Enter, Space, a click or tap, or A or Start on a pad), and beside it a text-only Adjust settings,
+which turns the card into Settings (everything but Erase progress); its Back (or Esc, or B) is the warning again, Accept
+focused, so it still takes Accept to go on. Nothing else gets past it. Once accepted it is remembered with the save
+(`warned`), and a later game goes straight on (Erase progress forgets it with the rest). Then a
 prologue (silent: the title's drone fades slowly away under it, and night 1's bed fades in as night 1 begins): black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /
 "Each night something visits you in your dreams..."), then all of it fades into night 1's card. It is short and it is not skippable: no click or key gets past it, or through it
-to the game (`newGame` in js/game.js). Begin is the one button drawn inverted,
+to the game (`newGame` in js/game.js). A night's card comes in a little at a time: the night and its name, then a
+moment later its words, then "Click or press Enter when you are ready" (all together with reduced motion); a click or
+Enter goes on at once, as ever. Begin is the one button drawn inverted,
 light with dark letters. Every button and control in the menus answers with a soft tap. All the game's text is set in
 IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`), except the keycaps drawn in How to play,
 which are a plain sans, and the lettering on things in the nights themselves (a gear plate, a breaker box's tape).
@@ -737,7 +748,8 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 `test/play.js` runs each night's declared solution per tier and seed (a night's steps can `draw` a bow: let go at
 once, short of full, as soon as it is full, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
-the one game (no picker, no hints), restart, mute, menus (the pause menu, How to play's cards, the Scores screen,
+the one game (no picker, no hints), the warning (its card, Adjust settings and back, remembered once accepted),
+restart, mute, menus (the pause menu and its Controls, Settings' percentages and switches, How to play's cards, the Scores screen,
 erasing progress, the win screen between nights, the title's click), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
 reduced motion, clear of the zoom button on a phone), a wrong thing coming back, a plank falling to the floor where a
