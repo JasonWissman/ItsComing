@@ -81,22 +81,29 @@ LEVELS.push({
     // the rowboat lies upturned along the west wall, its bow toward the water: plank sides narrowing to a stem, its flat
     // bottom uppermost (things can lie on it), and the keel along the middle
     const hullC = [72, 62, 50], hx0 = -2.3, hx1 = -1.4, hmx = -1.85, hz0 = -1.9, hz1 = 0.9, stem = 1.5, HH = 0.45, strakes = { tex: 'planks', texScale: 0.6 };
-    SC.quad(L, [hx0, 0, hz0], [hx1, 0, hz0], [hx1, HH, hz0], [hx0, HH, hz0], scalec(hullC, 0.78));                  // the transom
-    SC.quad(L, [hx0, 0, hz0], [hx0, 0, hz1], [hx0, HH, hz1], [hx0, HH, hz0], scalec(hullC, 0.66), strakes);         // the sides
-    SC.quad(L, [hx1, 0, hz0], [hx1, 0, hz1], [hx1, HH, hz1], [hx1, HH, hz0], scalec(hullC, 0.66), strakes);
-    SC.quad(L, [hx0, 0, hz1], [hmx, 0, stem], [hmx, HH, stem], [hx0, HH, hz1], scalec(hullC, 0.6));                 // the bow
-    SC.quad(L, [hx1, 0, hz1], [hmx, 0, stem], [hmx, HH, stem], [hx1, HH, hz1], scalec(hullC, 0.74), strakes);
+    // Only the hull's near side and its near bow plank are drawn: its far side, its far bow plank and the transom are always
+    // behind the bottom (or the near side) from where you stand, and are left out. Drawn, they were cut into pieces on
+    // the renderer's grid like any long face, and the pieces of the far side nearest you came out nearer than the bottom
+    // and were drawn over it: its planks showed through the middle of the bottom
+    SC.quad(L, [hx1, 0, hz0], [hx1, 0, hz1], [hx1, HH, hz1], [hx1, HH, hz0], scalec(hullC, 0.66), strakes);         // the near side
+    SC.quad(L, [hx1, 0, hz1], [hmx, 0, stem], [hmx, HH, stem], [hx1, HH, hz1], scalec(hullC, 0.74), strakes);       // the bow
     // the bottom, uppermost, and the keel along it: the bow's part of the bottom, the rest of it, then the keel, one straight
-    // after another and before anything lying on the boat (all of which is nearer than 2.3)
+    // after another and before anything lying on the boat (all of which is nearer than 2.3), each drawn whole, so what lies
+    // on it keeps its own order (the key in front of the tackle box it came out of)
     SC.quad(L, [hx0, HH, hz1], [hx1, HH, hz1], [hmx, HH, stem], [hmx, HH, stem], scalec(hullC, 1.08), { sortDist: 2.38 });
     SC.quad(L, [hx0, HH, hz0], [hx1, HH, hz0], [hx1, HH, hz1], [hx0, HH, hz1], scalec(hullC, 1.08), { sortDist: 2.37 });
     SC.box(L, hmx - 0.05, hmx + 0.05, HH, HH + 0.1, hz0, stem - 0.14, [50, 42, 34], { sortDist: 2.36 });
-    // the workbench. Its top is drawn before whatever stands on it, all of which is nearer than this: drawn by its own middle
-    // it covered the far end of the bench, where the tackle box and the key that comes out of it can lie
+    // the workbench. Its top is not pinned to a drawing distance: the renderer cuts it on the same grid as the back
+    // wall behind it, draws each piece of it after the piece of wall behind, and whatever stands on it (the tackle box, the
+    // key that comes out of it, the winch handle) after the piece it stands on. (Pinned whole at 2.8 m, it came out further
+    // than the pieces of the back wall nearest you, which were drawn over it: the wall's boards showed through the top.)
     const benchC = [78, 64, 48], bx0 = 0.6, bx1 = 2.3, by0 = 0.86, by1 = 0.92, bz0 = -2.35, bz1 = -1.7;
-    for (const z of [bz0, bz1]) SC.quad(L, [bx0, by0, z], [bx1, by0, z], [bx1, by1, z], [bx0, by1, z], scalec(benchC, 0.78));
-    for (const x of [bx0, bx1]) SC.quad(L, [x, by0, bz0], [x, by0, bz1], [x, by1, bz1], [x, by1, bz0], scalec(benchC, 0.66));
-    SC.quad(L, [bx0, by1, bz0], [bx1, by1, bz0], [bx1, by1, bz1], [bx0, by1, bz1], scalec(benchC, 1.08), { sortDist: 2.8 });
+    // the edge of the top: its front and its near end. Its back, against the wall, and its far end, by the side wall, are
+    // never seen from where you stand (the top is always in front of them) and are not drawn: put just in front of the
+    // wall, the back was drawn after the nearest piece of wall it overlapped, over the tackle box standing on the bench
+    SC.quad(L, [bx0, by0, bz1], [bx1, by0, bz1], [bx1, by1, bz1], [bx0, by1, bz1], scalec(benchC, 0.78));
+    SC.quad(L, [bx0, by0, bz0], [bx0, by0, bz1], [bx0, by1, bz1], [bx0, by1, bz0], scalec(benchC, 0.66));
+    SC.quad(L, [bx0, by1, bz0], [bx1, by1, bz0], [bx1, by1, bz1], [bx0, by1, bz1], scalec(benchC, 1.08));
     for (const [x, z] of [[0.65, -2.3], [2.25, -2.3], [0.65, -1.75], [2.25, -1.75]]) SC.box(L, x - 0.04, x + 0.04, 0, 0.86, z - 0.04, z + 0.04, [60, 48, 36]);
     SC.box(L, -2.38, -2.05, 1.5, 1.55, -0.2, 1.4, [66, 54, 42]);
     // the pulley over the water door, the cable from the winch drum up to it and across to the door
@@ -127,14 +134,19 @@ LEVELS.push({
       SC.wallV(L, 2.2, z0, 2.2, z1, 0.9, 0.95, cradle, { sortDist: 2.1 });                                            // the strap across, and the arms' ends
       for (const z of [z0, z1]) SC.wallV(L, 2.2, z - Math.sign(z - zc) * 0.025, 2.2, z, 0.9, 1.1, cradle, { sortDist: 2.1 });
     } });
-    // items
-    mkItem(L, 'handle', 'Winch handle', [
-      { x: 1.2, y: 0.92, z: -2.0 },                     // on the workbench
-      { x: 1.6, y: 0, z: -2.1 },                        // on the deck under the bench
-      { x: -2.33, y: 1.25, z: -0.7, flat: false },      // hanging on a nail on the west wall, clear of the shelf
-      { x: -1.6, y: 0.46, z: 0.3 },                     // on the rowboat's upturned bottom, beside the keel
-      { x: -1.9, y: 0, z: 2.2 },                        // in the corner by the water door
-    ], { w: 0.45, h: 0.45, flat: true });
+    // items. Every place the winch handle can be is on something that bears it (HANDLE_SPOTS, checked by the night's test):
+    // the workbench, the deck, the shelf, the rowboat's bottom. (It hung on a nail on the west wall once, with no nail
+    // drawn there, and showed floating against the boards.) On the shelf it stands on its socket at the near end, toward
+    // you, where it is in front of the shelf's top as it is drawn
+    const HANDLE_SPOTS = [
+      { x: 1.2, y: 0.92, z: -2.0, on: 'bench' },                         // on the workbench
+      { x: 1.6, y: 0, z: -2.1, on: 'deck' },                             // on the deck under the bench
+      { x: -2.16, y: 1.525, z: 0.0, flat: false, jitter: 0, on: 'shelf' },  // standing on the shelf, at its near end (its socket, drawn a little up its card, on the top)
+      { x: -1.6, y: 0.46, z: 0.3, on: 'boat' },                          // on the rowboat's upturned bottom, beside the keel
+      { x: -1.9, y: 0, z: 2.2, on: 'deck' },                             // in the corner by the water door
+    ];
+    mkItem(L, 'handle', 'Winch handle', HANDLE_SPOTS, { w: 0.45, h: 0.45, flat: true });
+    L.handleSpots = HANDLE_SPOTS;
     // the two oars of the upturned rowboat, which bar the side door between them: each laid across its brackets, one on the
     // other (one alone is not enough to hold it). Each lies in a place of its own: one on the deck by the boat's bow, on
     // the deck toward the water door, or leaning in the corner by the winch; the other on the deck toward the back wall,

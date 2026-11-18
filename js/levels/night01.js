@@ -2,10 +2,11 @@
 // ============================================================ 1. THE FIELD ============================================================
 // The rotten plank: one board gone soft, split along its length, its ends dark and crumbling, flecked with mould. It is a
 // decoy, and every decoy is drawn worn (wornc drains it toward rust-brown and darkens it), so these colours are pitched
-// blue-green: they come out grey-green, nothing like the warm brown of a sound plank.
+// a little green and pale: once worn they come out the brown of a sound plank, only a shade greyer and darker (body
+// 110,86,56 against 118,90,56), so its colour hardly gives it away and its shape (the split, the ragged dark ends) does.
 Object.assign(ICONS, {
   rottenPlank(ctx, P) {
-    const body = P.col([53, 137, 123]), lite = P.col([75, 169, 158]), mid = P.col([40, 111, 102]), dark = P.col([24, 78, 73]), crack = P.col([0, 32, 39]), mould = P.col([107, 216, 207]);
+    const body = P.col([136, 124, 83]), lite = P.col([171, 158, 102]), mid = P.col([114, 102, 73]), dark = P.col([81, 79, 66]), crack = P.col([37, 40, 40]), mould = P.col([133, 163, 137]);
     const edge = [[-0.47, 0.82], [-0.2, 0.84], [0.1, 0.82], [0.33, 0.85], [0.4, 0.8], [0.45, 0.71], [0.49, 0.66], [0.46, 0.57], [0.5, 0.47],
       [0.45, 0.36], [0.49, 0.26], [0.44, 0.17], [0.3, 0.15], [0.0, 0.18], [-0.3, 0.16], [-0.46, 0.19], [-0.5, 0.31], [-0.45, 0.43], [-0.5, 0.56], [-0.44, 0.68]];
     ctx.save(); ctx.rotate(-0.03);
@@ -355,17 +356,17 @@ LEVELS.push({
       for (let i = 0; i < n; i++) {
         const r = Math.random;
         s.crumbs.push({ x: x + (r() - 0.5) * 0.08, y: y + (r() - 0.5) * 0.12, z: z + (r() - 0.5) * 0.04, vx: (r() - 0.5) * 0.5 - Math.sin(yaw) * r() * 0.3, vy: r() * 0.6, vz: (r() - 0.5) * 0.5 - Math.cos(yaw) * r() * 0.3,
-          r: 0.012 + r() * 0.022, col: [[110, 118, 92], [74, 80, 60], [140, 146, 118], [52, 50, 40]][i % 4], t: 0 });
+          r: 0.012 + r() * 0.022, col: [[106, 84, 58], [74, 60, 44], [130, 106, 76], [50, 42, 34]][i % 4], t: 0 });
       }
-      for (let i = 0; dust && i < 4; i++) s.crumbs.push({ x: x + (Math.random() - 0.5) * 0.1, y: y - 0.05 + i * 0.04, z, vx: 0, vy: -0.3, vz: 0, r: 0.035 + i * 0.012, col: [96, 96, 82], t: 0, dust: true });
+      for (let i = 0; dust && i < 4; i++) s.crumbs.push({ x: x + (Math.random() - 0.5) * 0.1, y: y - 0.05 + i * 0.04, z, vx: 0, vy: -0.3, vz: 0, r: 0.035 + i * 0.012, col: [96, 88, 76], t: 0, dust: true });
       if (chunk) s.crumbs.push({ x: a.x + Math.cos(yaw) * w * 1.04, y: a.y - 0.19, z: a.z - Math.sin(yaw) * w * 1.04, vx: 0, vy: 0, vz: 0, t: 0, hang: 1.3, chunk: fx.side });
     };
     // the end left on the nail: a ragged stub of the rotten board, torn across, the nail through it
     const stub = (ctx, P, side) => {
       ctx.scale(-side, 1);   // the torn edge toward where the board was
-      P_poly(ctx, [[-0.05, 0.02], [0.03, 0.0], [0.05, 0.08], [0.02, 0.14], [0.055, 0.2], [0.015, 0.27], [0.045, 0.34], [0.03, 0.39], [-0.05, 0.38]], P.col([53, 137, 123]));
-      P_poly(ctx, [[-0.05, 0.02], [-0.02, 0.02], [-0.03, 0.2], [-0.02, 0.38], [-0.05, 0.38]], P.col([24, 78, 73]));
-      P_line(ctx, 0.0, 0.03, 0.03, 0.36, 0.008, P.col([0, 32, 39]));
+      P_poly(ctx, [[-0.05, 0.02], [0.03, 0.0], [0.05, 0.08], [0.02, 0.14], [0.055, 0.2], [0.015, 0.27], [0.045, 0.34], [0.03, 0.39], [-0.05, 0.38]], P.col([136, 124, 83]));
+      P_poly(ctx, [[-0.05, 0.02], [-0.02, 0.02], [-0.03, 0.2], [-0.02, 0.38], [-0.05, 0.38]], P.col([81, 79, 66]));
+      P_line(ctx, 0.0, 0.03, 0.03, 0.36, 0.008, P.col([37, 40, 40]));
       P_ell(ctx, -0.012, 0.2, 0.013, 0.013, P.col([46, 44, 42]));
     };
     const crumbsOn = dt => {
