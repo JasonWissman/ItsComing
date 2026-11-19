@@ -4,8 +4,8 @@
 // has you at once. Then a look at the run: its window shut as it reaches the glass, it runs along the glass to one still
 // open, side on, its heels ringing, and turns back to the glass, keeping its width as it turns (it is drawn at every step
 // of the turn and measured). Then a shutter only part way down when it gets there: it takes hold of the bottom edge,
-// shoves it up into its housing (the crank's turns lost, a crash, the view shaking) and comes through the glass. Last, at a
-// player's pace: it
+// shoves it up into its housing (the crank's turns lost, a crash, the view shaking) and comes through the glass. Then the
+// soda fountain's easter egg, three ways (below, at soda). Last, at a player's pace: it
 // watches for a few seconds, tries the shutter by hand (it will not come down), turns round and throws the power main
 // about nine seconds in, takes a few seconds to find the crank in the dark, faces the windows and cranks at a click every
 // quarter of a second, the one it is coming for first, then wherever it goes (it runs across the lot for it); the third
@@ -74,6 +74,96 @@ const turnWidths = `(() => {
   keep.forEach(([k, v]) => { c[k] = v; });
   return ws;
 })()`;
+// ---- the soda (an easter egg) ----
+// The fountain behind you and the counter's top are nothing to point at (no pointer, no line, not even in what the view
+// can hit) until the cup from the shelf is in hand, and the counter not until it is full. Then the whole of it: the cup
+// filled at the fountain and set on the counter, and it comes through the glass with the lights still on, goes to the
+// counter, drinks it (three gulps), sets the cup down empty and pounds the counter, one fist and then both, faster and
+// faster; refilled and set down it drinks again; a third time the fountain sputters, EMPTY, and it has you. Then the same
+// but never refilled: it pounds until it has had enough, and has you. Either way the death screen says one thing. And
+// with the main thrown, the cup on the counter is nothing to it: it comes through the glass as it always did.
+const target = id => `G.L.targets.find(t => t.id === '${id}')`;
+const cupIt = 'G.L.items.find(i => i.id === "cup")';
+// the view put on a point of a target (the fountain's middle; the counter's top straight ahead), and the pointer on it
+const pointAt = id => `(() => { const L = G.L, p = '${id}' === 'counter' ? (q => ({ x: q[0], y: q[1], z: q[2] }))(L.pt(0, 1.0, 1.1)) : (t => ({ x: t.x, y: t.y + t.h / 2, z: t.z }))(${target(id)});
+  lookAtPoint(p); G.cam.yaw = G.cam.tYaw; G.cam.pitch = G.cam.tPitch; window.__pt = p; })()`;
+const hovered = id => `(() => { const t = ${target(id)}, q = R.screenPos(__pt.x, __pt.y, __pt.z); G.mouse.x = q.x; G.mouse.y = q.y + R.viewY; updateHover();
+  const r = { hit: R.hits.some(h => h.ref === t), on: !!G.hover && G.hover.ref === t, cursor: UI.canvas.style.cursor, tip: UI.tooltip.textContent }; G.mouse.x = G.mouse.y = -1; updateHover(); return r; })()`;
+const notThere = (id, why) => [['eval', pointAt(id)], ['wait', 200], ['eval', 'window.__h = ' + hovered(id)],
+  ['expect', `${target(id)}.hidden && !__h.hit && !__h.on && __h.cursor !== 'pointer' && !__h.tip`, why]];
+const there = (id, why) => [['eval', pointAt(id)], ['wait', 200], ['eval', 'window.__h = ' + hovered(id)],
+  ['expect', `!${target(id)}.hidden && __h.hit && __h.on && __h.cursor === 'pointer' && !!__h.tip`, why]];
+// counts the soda's sounds as they are played
+const listen = 'window.__snd = {}; window.__sfx0 = AUDIO.sfx; AUDIO.sfx = (n, p, q) => { __snd[n] = (__snd[n] || 0) + 1; return __sfx0(n, p, q); }';
+const unlisten = 'AUDIO.sfx = __sfx0';
+// a full cup on the counter, straight ahead, at once (the cup taken and filled by the script, not looked for)
+const quickCup = [
+  ['eval', `(() => { G.mouse.x = -1; pickup(${cupIt}); useTarget(${target('fountain')}); })()`], ['wait', 650],
+  ['eval', `(() => { G.cam.yaw = G.cam.tYaw = G.L.facing; G.cam.pitch = G.cam.tPitch = 0.3; useTarget(${target('counter')}); })()`], ['wait', 400],
+  ['expect', `G.L.s.cupOn && ${cupIt}.full && !${cupIt}.taken && !G.hasItem('cup')`, 'a full cup on the counter'],
+];
+// it at the glass in a moment, the lights still on
+const toGlass = ['eval', '(() => { const c = G.L.creature, s = G.L.s; c.u = 1 - (s.glassD[c.lane.idx] + 1.0) / c.D0; })()'];
+const insatiable = [
+  ['eval', 'G.deathCause = null; G.deathScreen = null'],
+  ['waitUntil', 'G.state === "dying"', 9000],
+  ['expect', 'G.deathCause === "soda" && G.L.creature.lunge >= 0', 'it has you'],
+  ['waitUntil', 'G.state === "dead"', 8000],
+  ['expect', 'G.deathScreen && G.deathScreen.text === "It is insatiable."', 'the death screen: "It is insatiable."'],
+];
+const soda = [
+  ...notThere('fountain', 'without the cup the fountain is nothing to point at: no pointer, no line, nothing the view can hit'),
+  ...notThere('counter', 'nor the counter'),
+  ['pickup', 'cup'],
+  ['expect', `G.inv.length === 1 && G.inv[0] === ${cupIt} && !${cupIt}.full && G.inv[0].icon === ICONS.paperCup`, 'the empty paper cup in hand'],
+  ...there('fountain', 'with the cup in hand the fountain can be pointed at'),
+  ...notThere('counter', 'the counter still cannot, with the cup empty'),
+  ['eval', listen],
+  ['use', 'fountain'],
+  ['waitUntil', `${cupIt}.full`, 2000],
+  ['expect', `__snd.sodaPour === 1 && G.L.s.fills === 1 && G.inv[G.active] === ${cupIt} && ${cupIt}.icon === ICONS.paperCupFull`, 'the fountain pours: the cup is full in hand, and shows it'],
+  ['use', 'fountain'], ['expect', '/full/.test(G.lastToast.msg) && G.L.s.fills === 1', 'full already: it is not filled again'], ['waitUntil', '!G.fumbling', 3000],
+  ...there('counter', 'with the cup full the counter can be pointed at'),
+  ['use', 'counter'],
+  ['waitUntil', 'G.L.s.cupOn', 2000],
+  ['expect', `!G.hasItem('cup') && !${cupIt}.taken && ${cupIt}.full && __snd.cupDown === 1 && ${target('counter')}.hidden && ${target('fountain')}.hidden`, 'set down on the counter, full; the fountain and the counter are nothing again'],
+  // it comes through the glass, the lights still on: to the counter, and the soda
+  toGlass,
+  ['waitUntil', 'G.L.s.through && G.L.s.soda', 4000],
+  ['expect', 'G.state === "play" && G.L.s.power && G.L.creature.catchDist < 1', 'through the glass with the lights on and a soda on the counter: it does not come for you'],
+  ['waitUntil', 'G.L.s.soda.ph === "lift"', 5000],
+  ['expect', `G.L.creature.dist < 2 && G.L.creature.soda.hold && ${cupIt}.taken && !G.L.s.cupOn`, 'at the counter across from it, it takes the cup up'],
+  ['waitUntil', 'G.L.s.soda.ph === "bang"', 5000],
+  ['expect', `__snd.gulp === 3 && !${cupIt}.full && G.L.s.cupOn && !${cupIt}.taken && G.L.s.soda.drinks === 1 && /another/.test(G.lastToast.msg)`, 'it drinks it off, three gulps, sets the cup down empty, and wants another'],
+  ['waitUntil', '__snd.counterPound >= 2', 3000],
+  ['expect', 'G.L.s.soda.anger > 0 && G.L.s.soda.bang > 0.9', 'and pounds the counter'],
+  // refilled and set down again: it drinks that too
+  ['pickup', 'cup'], ['use', 'fountain'], ['waitUntil', `${cupIt}.full`, 2000], ['use', 'counter'],
+  ['waitUntil', 'G.L.s.soda.drinks === 2 && G.L.s.soda.ph === "bang"', 9000],
+  ['expect', `__snd.gulp === 6 && __snd.sodaPour === 2 && G.state === 'play' && !${cupIt}.full`, 'refilled in time: it drinks again, and pounds again'],
+  // the third time: the fountain sputters, empty, and it has you
+  ['pickup', 'cup'], ['use', 'fountain'],
+  ['expect', `G.L.s.dryAt !== undefined && !${cupIt}.full && __snd.sodaSputter === 1 && G.lastToast.msg === 'It is empty.' && /empty/i.test(${target('fountain')}.name) && G.L.s.soda.ph === 'fury'`, 'a third time the fountain sputters: it is empty, and it is furious'],
+  ...insatiable,
+  ['eval', unlisten],
+  ['eval', 'restartLevel()'], ['wait', 300],
+  // not refilled: it pounds, one fist and slowly, then both and faster and faster, and then it has you
+  ...quickCup, ['eval', listen], toGlass,
+  ['waitUntil', 'G.L.s.soda && G.L.s.soda.ph === "bang"', 9000],
+  ['eval', 'window.__b0 = { t: G.L.t, n: __snd.counterPound || 0 }'], ['wait', 3000],
+  ['eval', 'window.__b1 = { t: G.L.t, n: __snd.counterPound || 0 }'], ['waitUntil', 'G.L.s.soda.anger > 0.75', 9000], ['wait', 1500],
+  ['expect', '(() => { const early = (__b1.n - __b0.n) / (__b1.t - __b0.t), late = (__snd.counterPound - __b1.n) / (G.L.t - __b1.t); return early > 0.5 && late > 1.6 * early && G.state === "play"; })()', 'it pounds faster and faster as it waits'],
+  ['expect', 'G.L.s.soda.anger > 0.9 && Math.abs(G.L.s.soda.jerk) >= 0 && G.L.s.soda.fist[0] >= 0', 'angrier and angrier'],
+  ...insatiable,
+  ['eval', unlisten],
+  ['eval', 'restartLevel()'], ['wait', 300],
+  // the main thrown: the soda on the counter is nothing to it
+  ...quickCup,
+  ['eval', `(() => { useTarget(${target('main')}); })()`], ['waitUntil', '!G.L.s.power && !G.hand.reach', 3000], toGlass,
+  ['waitUntil', 'G.state === "dying"', 9000],
+  ['expect', 'G.deathCause === "through" && !G.L.s.soda && G.L.s.cupOn', 'in the dark it comes through the glass for you as it always did, the soda left standing'],
+  ['eval', 'restartLevel()'], ['wait', 300],
+];
 const nightmare = [
   // lit: how fast it comes
   ['eval', 'window.__a = { d: G.L.creature.dist, t: G.L.t }'], ['wait', 600],
@@ -134,7 +224,7 @@ const nightmare = [
   ['expect', '__run >= 1 && __run <= 12', 'it ran up to the glass, a heel to a stride'],
   ['eval', 'AUDIO.footstep = __step; SAVE.recordWin = __save[0]; SAVE.unlock = __save[1]'],
   ['eval', 'restartLevel()'], ['wait', 300],
-].concat(refusals, [
+].concat(soda, refusals, [
   // at a player's pace: watch it come, try the shutter of its window by hand
   ['waitUntil', 'G.L.t >= 5', 8000],
   onTarget(k => [['use', 'shutter' + k]]),

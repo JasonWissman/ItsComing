@@ -74,6 +74,11 @@ const SOUNDS = [
   { kind: 'sfx', name: 'shutterGrab', n: [8], d: 'Small hands tugging a roller shutter: a jerk and a steel rattle.', src: 'night08' },
   { kind: 'sfx', name: 'shutterSlam', n: [8], d: 'A huge metal crash. A shutter shoved up into its housing.', src: 'night08' },
   { kind: 'sfx', name: 'shutterBang', n: [8], d: 'Deep booming fists on a steel shutter.', src: 'night08 aftermath' },
+  { kind: 'sfx', name: 'sodaPour', n: [8], d: 'A valve click, soda drumming into a paper cup and fizzing. The soda fountain fills the cup.', src: 'night08 soda fountain' },
+  { kind: 'sfx', name: 'sodaSputter', n: [8], d: 'A valve click, air, a few wet spits and a gurgle. The soda fountain run dry.', src: 'night08 soda fountain' },
+  { kind: 'sfx', name: 'gulp', n: [8], d: 'A big low swallow. It drinks the soda, three of them a cup.', src: 'night08 soda' },
+  { kind: 'sfx', name: 'counterPound', n: [8], d: 'A heavy fist on the diner counter, things on it jumping. Slow and single, then fast with both fists.', src: 'night08 soda' },
+  { kind: 'sfx', name: 'cupDown', n: [8], d: 'A light paper tap. A paper cup set down on the counter.', src: 'night08 soda' },
   // ---- night 9: the phone booth ----
   { kind: 'sfx', name: 'receiver', n: [9], d: 'The receiver lifted, then a dial tone.', src: 'night09' },
   { kind: 'sfx', name: 'dial', n: [9], d: 'A touch-tone beep (a random key pair). A number key pressed.', src: 'night09 keypad' },

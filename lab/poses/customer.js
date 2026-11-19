@@ -102,6 +102,75 @@
     glass(ctx, c, P);
   };
 
+  // ---- the soda (night08 sodaStep): at the counter across from a paper cup of soda it takes it, drinks it off, sets it
+  // down empty and pounds the counter, one fist and slowly, then both, faster and faster ----
+  const SODA = { idle: 0.5, reach: 0.42, lift: 0.45, drink: 1.5, gulps: [0.22, 0.66, 1.1], lower: 0.45, set: 0.28, wait: 9, fury: 0.85 };
+  const EYE = 1.65, CZ = 1.62, CUPZ = 1.36, CUP_S = 0.16 * CZ / CUPZ, CUP_B = EYE + (1.0 - EYE) * CZ / CUPZ, EDGE = EYE + (1.0 - EYE) * CZ / 1.45;
+  const GRIP = [0.045, CUP_B + 0.42 * CUP_S], MOUTH = [0.13, 1.55];
+  // the cup (a plain stand-in for night08's paperCup icon, which the lab does not load): tapered, white, a red band
+  const labCup = (ctx, P, full) => {
+    P_poly(ctx, [[-0.37, 0.88], [0.37, 0.88], [0.26, 0.0], [-0.26, 0.0]], P.col([52, 46, 44]));
+    P_poly(ctx, [[-0.33, 0.86], [0.33, 0.86], [0.23, 0.03], [-0.23, 0.03]], P.col([236, 232, 222]));
+    P_poly(ctx, [[-0.305, 0.62], [0.305, 0.62], [0.28, 0.4], [-0.28, 0.4]], P.col([184, 38, 34]));
+    P_ell(ctx, 0, 0.87, 0.33, 0.065, P.col([248, 246, 240])); P_ell(ctx, 0, 0.87, 0.29, 0.048, P.col(full ? [66, 34, 20] : [168, 160, 146]));
+  };
+  // when each blow lands, from the start of the pounding (b0) to T: one fist while it is only impatient, both as it gets angry
+  const blowsTo = (b0, T, fury) => {
+    const last = [b0, b0], next = [Infinity, b0 + 0.4];
+    let t = b0, guard = 0;
+    while (guard++ < 400) {
+      const i = next[1] <= next[0] ? 1 : 0, at = next[i];
+      if (at > T) break;
+      t = at;
+      const an = fury ? 1 : clamp((t - b0) / SODA.wait, 0, 1), both = fury || an >= 0.35;
+      const gap = fury ? 0.14 : an < 0.35 ? lerp(1.05, 0.72, an / 0.35) : lerp(0.5, 0.2, (an - 0.35) / 0.65);
+      last[i] = at; next[i] = at + (both ? 2 * gap : gap);
+      if (both && next[1 - i] === Infinity) { last[1 - i] = at; next[1 - i] = at + gap; }
+    }
+    return { last, next, hitAt: Math.max(last[0], last[1]), side: last[1] >= last[0] ? 1 : -1 };
+  };
+  const sodaTick = (c, k, dt, T) => {
+    c.moving = false; c.dist = CZ;
+    const sd = c.soda || (c.soda = { S: CUP_S, drawCup: labCup });
+    Object.assign(sd, { k: 0, hx: GRIP[0], hy: GRIP[1], bang: 0, fist: [0, 0], hold: false, full: true, tilt: 0, gape: 0, jerk: 0, shake: 0, anger: 0 });
+    const L2 = (p, q, e) => [lerp(p[0], q[0], e), lerp(p[1], q[1], e)];
+    let t = T - SODA.idle;
+    c.labCupOn = true; c.labFull = true;
+    if (t < 0) return;
+    if (t < SODA.reach) { sd.k = smoothstep(t / SODA.reach); return; }
+    t -= SODA.reach; c.labCupOn = false; sd.hold = true; sd.k = 1;
+    if (t < SODA.lift) { const e = smoothstep(t / SODA.lift); [sd.hx, sd.hy] = L2(GRIP, MOUTH, e); sd.tilt = 1.05 * e; return; }
+    t -= SODA.lift;
+    if (t < SODA.drink) {
+      const u = t / SODA.drink, g = SODA.gulps.reduce((m, t0) => Math.max(m, t >= t0 ? Math.exp(-(t - t0) * 9) : 0), 0);
+      sd.hx = MOUTH[0] - 0.02 * u; sd.hy = MOUTH[1] + 0.03 * u; sd.tilt = 1.05 + 0.7 * u; sd.gape = 0.16 + 0.22 * g; return;
+    }
+    t -= SODA.drink; sd.full = false; c.labFull = false;
+    if (t < SODA.lower) { const e = smoothstep(t / SODA.lower); [sd.hx, sd.hy] = L2(MOUTH, GRIP, e); sd.tilt = 1.05 * (1 - e); return; }
+    t -= SODA.lower; sd.hold = false; c.labCupOn = true;
+    if (t < SODA.set) { const e = smoothstep(t / SODA.set); sd.k = 1 - e; sd.bang = e; return; }
+    t -= SODA.set; sd.k = 0; sd.bang = 1;
+    const fury = t >= SODA.wait, b0 = T - t, an = fury ? 1 : t / SODA.wait, B = blowsTo(b0, T, fury), pk = lerp(0.6, 1, an);
+    sd.anger = an;
+    sd.fist = [0, 1].map(i => {
+      const a = B.last[i], b = B.next[i];
+      if (b === Infinity) return 0;
+      const fall = Math.min(0.08, (b - a) * 0.3), up = b - fall;
+      return T < up ? pk * smoothstep(clamp((T - a - 0.05) / Math.max(0.05, up - a - 0.05), 0, 1)) : pk * clamp((b - T) / fall, 0, 1);
+    });
+    const since = T - B.hitAt;
+    sd.jerk = B.side * (0.06 + 0.3 * an) * Math.exp(-since * 9);
+    sd.shake = an * an * (fury ? 0.022 : 0.013) * Math.sin(T * 61);
+    sd.gape = an * 0.28 + 0.2 * an * Math.exp(-since * 8);
+    c.labHop = since < 0.6 ? (0.01 + 0.025 * an) * Math.abs(Math.sin(since * 26)) * Math.exp(-since * 8) : 0;
+  };
+  // the counter in front of it (its far edge, as it shows at its distance), and the cup on it
+  const counterFront = (ctx, c, P) => {
+    P_rect(ctx, -1.2, EDGE - 0.32, 2.4, 0.32, P.col([112, 104, 90])); P_rect(ctx, -1.2, -0.2, 2.4, EDGE - 0.12, P.col([108, 34, 34]));
+    if (c.labCupOn) { ctx.save(); ctx.translate(0, CUP_B + (c.labHop || 0) * CZ / CUPZ); ctx.scale(CUP_S, CUP_S); labCup(ctx, P, c.labFull); ctx.restore(); }
+  };
+  const SODA_DUR = SODA.idle + SODA.reach + SODA.lift + SODA.drink + SODA.lower + SODA.set;
+
   LAB.creature('customer', {
     night: 8, stage: 'The Diner', dist: 14,
     anims: [
@@ -122,6 +191,10 @@
       { name: 'Jumping for a shutter', note: 'At a shutter barely started down (a turn of ten), the edge above even its reach: it jumps, hangs from the edge by its hands, and drops as it shoves it up.',
         dist: D_SHOVE + 0.12, dur: LEAD + SHOVE.heave + SHOVE.fly + SHOVE.after + 0.5, fit: { h: 2.75, w: 1.5 }, front: shutter,
         set(c) { c.labShove0 = 0.1; }, tick: shover(0.1) },
+      { name: 'A soda at the counter', note: 'In through the glass with the lights on and a full cup of soda on the counter: it takes the cup, tips it up and drinks it off in three gulps, sets it down empty and starts on the counter with one fist, slowly.',
+        dist: CZ, dur: SODA_DUR + 3.2, fit: { h: 2.05, w: 1.4 }, front: counterFront, tick: sodaTick },
+      { name: 'Pounding the counter for another', note: 'Not refilled: one fist and then both, faster and harder, the cup jumping, its head snapping over at every blow, its body shuddering, its teeth bared; nine seconds, then a flurry, and it has you.',
+        dist: CZ, dur: SODA_DUR + SODA.wait + SODA.fury, fit: { h: 2.05, w: 1.4 }, front: counterFront, tick: sodaTick },
       LAB.lunge({ note: 'Through the glass: it comes straight from the window at your face, the shadow under the brim filling the view, the mouth coming apart, the jaw dropping, the hands reaching.', dist: GLASS }),
     ],
   });
