@@ -107,7 +107,7 @@ that door instead, hard and fast, until the night fades.
 
 Saves from versions with several difficulties carry over: the furthest night reached on any of them counts for the one
 game. Best times for single nights (older saves kept them) are dropped: the only score is a whole run, and none is made
-up from them. An older save's best full run, kept as a time only, is still the time to beat, shown with no breakdown.
+up from them. A best run without its full breakdown (from an older save) is dropped.
 
 ## The nights
 

@@ -399,12 +399,12 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'nights'), 'a click on a card starts nothing');
   check(tv.fits && tv.bottom && tv.cols === 2 && tv.seventh, 'the nights in two columns, 1 to 6 down the first and 7 to 13 down the second, all in view without scrolling (' + JSON.stringify(tv) + ')');
   await shot(page, 'scores-best');
-  // an older save's best full run (only its whole time): still the time to beat, with no breakdown
+  // an older save's best full run (only its whole time, no breakdown) is dropped: no score yet, and the next run is the best
   await page.evaluate(() => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: 1234.5 }, settings: {} })));
   await page.goto(URL); await page.waitForTimeout(300);
   await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
-  tv = await page.evaluate(() => ({ run: document.querySelector('#overlay .runcard .rtime').textContent, dashes: [...document.querySelectorAll('#overlay .ncard .nbest')].every(e => e.textContent === '—'), kept: JSON.stringify(SAVE.data.bestRun), slower: SAVE.recordRun('nightmare', 1300, []), same: SAVE.recordRun('nightmare', 1234.7, []), faster: SAVE.recordRun('nightmare', 1200.25, LEVELS.map(() => 1200.25 / 13)) }));
-  check(tv.run === '20:35' && tv.dashes && tv.kept === '{"nightmare":{"t":1234.5,"nights":null}}' && !tv.slower && !tv.same && tv.faster, 'an older save\'s best full run (a time only) is still the best: its time, dashes for the nights; a slower run (or one that reads the same) does not beat it, a faster one does (' + JSON.stringify(tv) + ')');
+  tv = await page.evaluate(() => ({ empty: /no full run yet/i.test(document.querySelector('#overlay').textContent), kept: JSON.stringify(SAVE.data.bestRun), first: SAVE.recordRun('nightmare', 1300, LEVELS.map(() => 100)) }));
+  check(tv.empty && tv.kept === '{}' && tv.first, 'an older save\'s best full run with no breakdown (a time only) is dropped: no full run yet, and the next run is the best (' + JSON.stringify(tv) + ')');
   await page.evaluate(() => { MENU.act('back', 'title'); MENU.act('nights'); });
   await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(150);
   check(await page.evaluate(() => new Set([...document.querySelectorAll('#overlay .ncard')].map(c => Math.round(c.getBoundingClientRect().left))).size === 1), 'on a phone, one column');

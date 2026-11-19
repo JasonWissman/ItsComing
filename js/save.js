@@ -56,14 +56,13 @@ const SAVE = (() => {
     } catch (e) { data = fresh(); }
     return data;
   }
-  // the best runs as kept now; an older save kept only a full run's whole time (a number): it is still the time to beat,
-  // with no breakdown (nights null: the Scores show dashes for them)
+  // the best runs as kept now: a whole time and every night's time in it. Anything else an older save kept (a whole time
+  // alone, or a run with nights missing) is dropped: there was no release before this, so nothing is lost
   function runs(old) {
-    const out = {};
+    const out = {}, num = n => typeof n === 'number' && isFinite(n) && n >= 0;
     for (const k in (old || {})) {
       const r = old[k];
-      if (typeof r === 'number' && isFinite(r) && r > 0) out[k] = { t: r, nights: null };
-      else if (r && typeof r.t === 'number' && isFinite(r.t) && r.t > 0) out[k] = { t: r.t, nights: Array.isArray(r.nights) ? r.nights.map(n => (typeof n === 'number' && isFinite(n) ? n : null)) : null };
+      if (r && num(r.t) && r.t > 0 && Array.isArray(r.nights) && r.nights.length && r.nights.every(num)) out[k] = { t: r.t, nights: r.nights.slice() };
     }
     return out;
   }

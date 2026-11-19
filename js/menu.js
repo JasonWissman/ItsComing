@@ -10,8 +10,7 @@ const MENU = (() => {
   const fmtRun = t => { const s = Math.round(t); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   // a run's times as shown, in whole seconds: the whole run rounded, each night rounded but the last (The Void), which is
   // whatever makes the nights add up to the whole run exactly as shown (rounding each on its own would drift a second or
-  // a few). The whole run is the run's own clock, which is the nights' times added up (game.js: the run). A run kept by
-  // an older save has no breakdown: nights all null
+  // a few). The whole run is the run's own clock, which is the nights' times added up (game.js: the run).
   function shown(run) {
     const n = LEVELS.length, total = Math.round(run.t), nights = new Array(n).fill(null);
     if (!run.nights) return { total, nights };
