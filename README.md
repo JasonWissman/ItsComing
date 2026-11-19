@@ -63,7 +63,7 @@ mouse), and F does the same; a click on it is never a click in the scene, and th
 scroll or zoom. A gamepad works too: d-pad or left stick turns and
 looks, A uses, B puts the held thing down, a trigger zooms, Start pauses. In
 menus the d-pad moves between buttons and settings, left and right move a
-slider, A presses or ticks, and B goes back as Escape does.
+slider or go along a row of choices, A presses or ticks, and B goes back as Escape does.
 
 On the Phone Booth, the pay phone and the notebook are looked at as anything else is, with nothing done to the view: hold
 the zoom to see them closer. Click or tap the phone's keys where they are drawn (with the zoom held or not), or, facing
@@ -71,8 +71,20 @@ it, type the number with the number keys. With a gamepad the d-pad moves a highl
 keys, coin return; past the last one in a direction it turns as usual) and A presses what is highlighted. The notebook on
 the shelf under the phone is read where it lies: click or tap it (or press A) to open it, and again to turn each page.
 
-Settings has sliders for the volume, effects, ambience and text size, each with its value as a percentage at its
-right (following it as it moves), and then switches (`role="switch"`; a click, a tap, Space, Enter or A flips one): Mute,
+Settings has, first, Volume and Brightness, each with a Calibrate button beside it, then rows of choices (radio groups:
+the arrows, or a pad's d-pad, go along a row choosing as they go; Enter, Space, A, a click or a tap choose): Effects and
+Ambience, each Normal or Quieter (half as loud, -6 dB), and Text size, Smaller (0.85), Normal (1) or Bigger (1.4, the
+ends of the range its old slider had). Volume's Calibrate opens a dialog in the same card: a line on what to do, the main
+volume's slider (its percentage beside it), and two buttons side by side, "Play the quietest sound in the game" (the
+first beat of the heartbeat, its lub, as faint as the game first plays it) and "Play the loudest sound in the game"
+(`stingCalibrate`: the death sting without its glitter, its falling saw played backwards first so it climbs into the
+peak), each five times a steady 2 s apart, panned from the left speaker over to the right, five marks on the button
+lighting in turn; pressed again it starts over. They are tuned as the game tunes them and go through the effects volume
+(Quieter is heard), with the rest of the sound ducked under them while they play; in a paused night they still play.
+Brightness's Calibrate shows the title's creature, the shape of it alone in the demon's robe colour unlit on The Void's
+black, to be barely made out. Done (or Esc, or B) is Settings again, with the focus back on the Calibrate that opened it.
+A save from when these were sliders carries over: an effects or ambience slider under 75% is Quieter, the text size the
+nearest of the three. Then come switches (`role="switch"`; a click, a tap, Space, Enter or A flips one): Mute,
 Reduce motion and flashing effects (one switch for both: a softer red pulse and dimmer flashes, no jitter or sway; the
 game still reads the two flags, `reducedMotion` and `reducedFlash`, and the switch sets both), Captions for sounds (one
 line at a time, with a marker for which side a sound came from), on a touch screen Reverse swipes, and Reduce surface
@@ -80,7 +92,7 @@ textures (off by default; on drops the boards, logs and stone built into walls a
 machines). Reduce motion and flashing defaults on when your system asks for reduced motion. A save from before the
 switches carries over: surface detail off is Reduce surface textures on, and the one reduction switch is on if either
 of the old two was. Beside Back, Set to default puts every setting back as a new save has it, at once and with no
-question (the switches and sliders follow; progress, the best run and the accepted warning are untouched); the
+question (the switches, the rows of choices and the volume's slider follow; progress, the best run and the accepted warning are untouched); the
 Settings opened from the warning have it too. Erase progress is on the Scores screen, beside its Back, and asks first,
 in a small dialog of its own (Cancel, Erase); it forgets everything as before: nights reached, the best run, the
 accepted warning and the settings. The UI's accent red, for its
@@ -770,7 +782,7 @@ npm run test:spots     # screenshot every item spot into montages under test/sho
 once, short of full, as soon as it is full, or after a time; on the thing or off it; by mouse, touch or pad). `test/flow.js` covers the
 screens, death and retry, pause, mute, drops and the error overlay. `test/features.js` covers
 the one game (no picker, no hints), the warning (its card, Adjust settings and back, remembered once accepted),
-restart, mute, menus (the pause menu and its Controls, Settings' percentages and switches, How to play's cards, Set to default, the Scores screen (the best run, its
+restart, mute, menus (the pause menu and its Controls, Settings' rows of choices and switches, How to play's cards, Set to default, the Scores screen (the best run, its
 breakdown adding up, its stars), erasing progress from it, the results after the ending (the Best run stamp only for a
 new best), the win screen between nights, the title's click), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
@@ -782,7 +794,11 @@ unseen, early, without a jump in distance, and never on nights that opt out.
 `test/story.js` checks the bedside lamp is only in the bedroom, the clock ticks, and no text before the bedroom uses
 the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
 the game asks for exists in the synthesiser, that every lane cue is played as footsteps, and that every death
-sting, footstep and voice has a caption. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
+sting, footstep and voice has a caption (and that the volume calibration's loudest sound is the sting as it should be,
+tuned as it is). `test/settings.js` (run by `test/features.js` too, or on its own) covers Settings' Calibrate dialogs:
+from the title, a paused night and the warning, by keys, a pad and touch, on a phone on its side, the five pans left to
+right, starting over, the focus coming back; and renders the two sounds offline through the game's own chain, against
+the heartbeat and the sting as the game plays them. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
 
 ## Debugging
 

@@ -59,6 +59,29 @@ const lab = fs.readFileSync(path.join(root, 'lab/sounds.js'), 'utf8');
 const labRows = names(lab, /\{ kind: '(?:sfx|sting)', name: '([A-Za-z]+)'/g);
 for (const name of synth.sfx) check(labRows.has(name), "effect '" + name + "' has no row in the Sounds Audit (lab/sounds.js)");
 check(/kind: 'ambient', name: 'title[^\n]*near: 0/.test(lab) && /kind: 'ambient', name: 'title[^\n]*near: 1/.test(lab) && audio.includes('function titleDrone('), "the title's drone is in js/audio.js, and in the Sounds Audit far and close");
+// the volume calibration's loudest sound (Settings, Volume, Calibrate): the sting with its glitter taken out (the six
+// quick square-wave blips) and its falling saw played backwards ahead of it (swell: the same sweep and envelope mirrored),
+// the rest of it (the noise burst, the falling saw, the deep drop) as in the sting, after the climb; tuned as the sting
+// is; a caption and a row in the Sounds Audit. Its quietest: the heartbeat's first beat (its lub), tuned as the heartbeat,
+// as loud as game.js first plays the heartbeat, five of each panned left to right
+{
+  const caseOf = n => { const a = audio.indexOf("case '" + n + "':"); return a < 0 ? '' : audio.slice(a, audio.indexOf('break;', a)); };
+  const sting = caseOf('sting'), cal = caseOf('stingCalibrate');
+  const peak = ["noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002", "tone(400, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 40", 'tone(40, 1.5, { vol: 0.7, endFreq: 25'];
+  check(peak.every(p => sting.includes(p)) && /for \(let i = 0; i < 6; i\+\+\) tone\(1200 \+ Math\.random\(\) \* 2000, 0\.12, \{ vol: 0\.2, type: 'square'/.test(sting), "the sting is still its noise burst, falling saw and deep drop, with its glitter (six square blips) over them");
+  check(synth.sfx.has('stingCalibrate') && peak.every(p => cal.includes(p + ', delay: rev')) && !/square|Math\.random/.test(cal) && /const rev = 1\.2 \+ 0\.004;/.test(cal) && /swell\(40, 1\.2, \{ vol: 0\.5, type: 'sawtooth', endFreq: 400/.test(cal),
+    "stingCalibrate: the sting's falling saw reversed (40 Hz up to 400 Hz over its 1.2 s, as loud), then the sting's peak with no glitter");
+  const sw = body('swell');
+  check(/exponentialRampToValueAtTime\(o\.vol, t0 \+ dur\)/.test(sw) && /linearRampToValueAtTime\(0\.0001, t0 \+ dur \+ att\)/.test(sw) && /flip\.gain\.value = -1/.test(sw) && /setValueAtTime\(freq, t0 \+ att\); osc\.frequency\.exponentialRampToValueAtTime\(o\.endFreq \|\| freq, t0 \+ att \+ dur\)/.test(sw),
+    'swell is tone() backwards: its decay mirrored into a swell, its few ms of attack into a cut, its sweep run the other way, its polarity turned over');
+  const tunes = src['js/soundtune.js'], tuneOf = n => (tunes.match(new RegExp("\\n  '" + n + "': (\\{[^}]*\\})")) || [])[1];
+  check(!!tuneOf('sting') && tuneOf('stingCalibrate') === tuneOf('sting'), "stingCalibrate is tuned as the sting is (" + tuneOf('stingCalibrate') + ' / ' + tuneOf('sting') + ')');
+  check(SFX.has('stingCalibrate') && labRows.has('stingCalibrate'), 'stingCalibrate has a caption and a row in the Sounds Audit');
+  check(/tuned\('heartbeat', \(\) => tone\(54, 0\.13, \{ vol: CAL\.heart, endFreq: 36, pan \}\)\)/.test(audio) && /function heartbeat\(vol, fast\) \{\s*tone\(54, 0\.13, \{ vol: vol, endFreq: 36 \}\);/.test(audio) && /tuned\('stingCalibrate', \(\) => sfx\('stingCalibrate', pan\)\)/.test(audio),
+    "the calibration plays the heartbeat's lub as the heartbeat plays it (tuned as 'heartbeat') and stingCalibrate as an effect, each panned");
+  check(/CAL = \{ pans: \[-1, -0\.5, 0, 0\.5, 1\], gap: 2, heart: 0\.04 \+ 0\.02 \* 0\.5/.test(audio) && /AUDIO\.heartbeat\(0\.04 \+ prox \* 0\.5, prox > 0\.7\)/.test(src['js/game.js']) && /!G\.muted && prox > 0\.02\)/.test(src['js/game.js']),
+    'five of each, 2 s apart, left to right; the lub as loud as the game first plays the heartbeat (0.04 + prox * 0.5 from prox 0.02)');
+}
 console.log('  ' + Object.entries(used).map(([k, v]) => v.size + ' ' + k).join(', ') + ' names checked');
 console.log(failures ? ('\n' + failures + ' FAILURES in sounds') : ('\nALL CHECKS PASSED in sounds (' + checks + ' checks)'));
 process.exit(failures ? 1 : 0);

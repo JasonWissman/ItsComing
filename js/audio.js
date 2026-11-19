@@ -2,7 +2,7 @@
 // ---------- Web Audio: everything is synthesized, no sound files ----------
 const AUDIO = (() => {
   let ac = null, master = null, noiseBuf = null, muted = false;
-  const bus = { effects: null, ambient: null };
+  const bus = { effects: null, ambient: null, cal: null };   // (cal: the volume calibration's own way in: as loud as the effects, never ducked)
   const volume = { master: 1, effects: 1, ambient: 1 };
   let amb = null;     // ambient bed (wind + drone)
   let loopNode = null; // creature loop (stone grind / engine)
@@ -19,6 +19,7 @@ const AUDIO = (() => {
       master.connect(comp); comp.connect(ac.destination);
       bus.effects = ac.createGain(); bus.effects.gain.value = volume.effects; bus.effects.connect(master);
       bus.ambient = ac.createGain(); bus.ambient.gain.value = volume.ambient; bus.ambient.connect(master);
+      bus.cal = ac.createGain(); bus.cal.gain.value = volume.effects; bus.cal.connect(master);
       const len = ac.sampleRate * 2;
       noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
       const d = noiseBuf.getChannelData(0);
@@ -37,7 +38,10 @@ const AUDIO = (() => {
     volume[which] = clamp(+v || 0, 0, 1);
     if (!ac) return;
     if (which === 'master') setMuted(muted);
-    else if (bus[which]) bus[which].gain.setTargetAtTime(Math.max(0.0001, volume[which]), ac.currentTime, 0.03);
+    else if (bus[which]) {
+      if (!cal) bus[which].gain.setTargetAtTime(Math.max(0.0001, volume[which]), ac.currentTime, 0.03);   // (ducked under a calibration: set when it ends)
+      if (which === 'effects') bus.cal.gain.setTargetAtTime(Math.max(0.0001, volume.effects), ac.currentTime, 0.03);
+    }
   }
   function suspend() { if (ac && ac.state === 'running') ac.suspend().catch(() => {}); }
   const now = () => ac.currentTime;
@@ -55,9 +59,10 @@ const AUDIO = (() => {
     if (!pan || !ac.createStereoPanner) return null;
     const p = ac.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); return p;
   }
+  let out = null;   // where an effect goes: the effects bus, or (a calibration playing) that calibration's own gain
   function chain(last, pan) {
-    const p = panNode(pan);
-    if (p) { last.connect(p); p.connect(bus.effects); } else last.connect(bus.effects);
+    const p = panNode(pan), dest = out || bus.effects;
+    if (p) { last.connect(p); p.connect(dest); } else last.connect(dest);
   }
 
   // filtered noise burst
@@ -92,6 +97,21 @@ const AUDIO = (() => {
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + att + dur);
     osc.connect(g); chain(g, o.pan);
     osc.start(t0); osc.stop(t0 + att + dur + 0.05);
+  }
+  // tone() backwards in time (the climb of stingCalibrate): it swells up from nothing to vol over dur, then is cut in the
+  // few ms tone() takes to come in; its pitch held at freq for those few ms, then swept up to endFreq over dur; turned over (a gain of -1), so a sawtooth's
+  // ramps run backwards as well
+  function swell(freq, dur, o) {
+    if (!ac) return;
+    const t0 = now() + (o.delay || 0), att = o.attack || 0.004;
+    const osc = ac.createOscillator(); osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0); osc.frequency.setValueAtTime(freq, t0 + att); osc.frequency.exponentialRampToValueAtTime(o.endFreq || freq, t0 + att + dur);
+    const g = ac.createGain(), flip = ac.createGain(); flip.gain.value = -1;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.vol, t0 + dur);
+    g.gain.linearRampToValueAtTime(0.0001, t0 + dur + att);
+    osc.connect(flip); flip.connect(g); chain(g, o.pan);
+    osc.start(t0); osc.stop(t0 + dur + att + 0.05);
   }
 
   // ---- ambient bed ----
@@ -363,6 +383,20 @@ const AUDIO = (() => {
         tone(40, 1.5, { vol: 0.7, endFreq: 25 });
         for (let i = 0; i < 6; i++) tone(1200 + Math.random() * 2000, 0.12, { vol: 0.2, type: 'square', delay: 0.05 + i * 0.09 });
         break;
+      // the volume calibration's loudest sound (Settings: Calibrate): the sting above without its glitter (the six quick
+      // square-wave blips over it), and its falling saw played backwards first, so it climbs into the peak (the noise
+      // burst, the deep drop, the saw falling away) and falls away from it again. The climb is the falling saw reversed
+      // in time: the same sweep run 40 Hz up to 400 Hz, its swell the fall's decay mirrored (from nothing up to 0.5
+      // over the 1.2 s, then down in the 4 ms of its attack) and its polarity turned over, so the saw's ramps run
+      // backwards too. It ends as the peak begins (rev), exactly where the reversed copy would meet the original
+      case 'stingCalibrate': {
+        const rev = 1.2 + 0.004;
+        swell(40, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 400, pan });
+        noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002, delay: rev, pan });
+        tone(400, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 40, delay: rev, pan });
+        tone(40, 1.5, { vol: 0.7, endFreq: 25, delay: rev, pan });
+        break;
+      }
       case 'win': for (const [f, d] of [[220, 0], [277, 0.25], [330, 0.5], [415, 0.9]]) tone(f, 2.2, { vol: 0.08, type: 'triangle', attack: 0.3, delay: d }); break;
       case 'thud': noise(0.15, { freq: 150, vol: 0.9 }); tone(45, 0.25, { vol: 0.8, endFreq: 30 }); break;
       case 'splash': noise(0.35, { freq: 1800, q: 0.7, vol: 0.5, attack: 0.005, pan }); noise(0.9, { type: 'bandpass', freq: 600, q: 0.8, vol: 0.25, delay: 0.08, attack: 0.05, pan }); tone(120, 0.25, { vol: 0.2, endFreq: 60, pan }); break;
@@ -521,6 +555,38 @@ const AUDIO = (() => {
   }
   // each played as it is tuned (js/soundtune.js: TUNES, by the sound's key; an ambient bed's key is its params' tune)
   const tuned = (key, fn) => (typeof TUNE !== 'undefined' ? TUNE.run(key, fn) : fn());
+
+  // ---- the volume calibration (Settings: Volume, Calibrate) ----
+  // The quietest sound in the game, or the loudest, five times a steady CAL.gap seconds apart, panned from the left
+  // speaker to the right across the five (the middle one not panned at all, as the game's own unpanned sounds are). The
+  // quietest: the first beat of the heartbeat (its lub) as loud as the heartbeat is when it is first heard (game.js
+  // heartbeat: 0.04 + prox * 0.5, from prox 0.02). The loudest: stingCalibrate (the death sting, climbing in). Each is
+  // played as the game plays it, tuned as 'heartbeat' and as 'stingCalibrate' (js/soundtune.js), and through the effects
+  // volume (bus.cal is kept at it), with the master volume and mute over it as over everything. While it plays, the rest
+  // (the effects bus and the ambient bed) is ducked out of the way, and back when it ends. Started again while it plays,
+  // it starts over: what was still sounding is faded out at once, so nothing piles up. A context suspended (a paused
+  // night) is resumed for it
+  const CAL = { pans: [-1, -0.5, 0, 0.5, 1], gap: 2, heart: 0.04 + 0.02 * 0.5, len: { quiet: 0.4, loud: 4.2 } };
+  let cal = null, calLast = null;
+  function calibrate(which, onBeat) {
+    if (!ac) return false;
+    calStop();
+    resume();
+    const seq = ac.createGain(); seq.__tuneBus = true; seq.connect(bus.cal);   // (a bus to TUNE: a tune's vol goes in before it)
+    for (const b of [bus.effects, bus.ambient]) glide(b.gain, 0.0001, 0.05);
+    const c = cal = calLast = { which, seq, timers: [], pans: [] };
+    const play = pan => { out = seq; try { if (which === 'quiet') tuned('heartbeat', () => tone(54, 0.13, { vol: CAL.heart, endFreq: 36, pan })); else tuned('stingCalibrate', () => sfx('stingCalibrate', pan)); } finally { out = null; } };
+    CAL.pans.forEach((pan, i) => c.timers.push(setTimeout(() => { if (cal !== c) return; c.pans.push(pan); play(pan); if (onBeat) onBeat(i); }, i * CAL.gap * 1000)));
+    c.timers.push(setTimeout(() => { if (cal !== c) return; calStop(); if (onBeat) onBeat(-1); }, ((CAL.pans.length - 1) * CAL.gap + CAL.len[which === 'quiet' ? 'quiet' : 'loud']) * 1000));
+    return true;
+  }
+  function calStop() {
+    if (!cal) return;
+    const c = cal; cal = null;
+    c.timers.forEach(clearTimeout);
+    glide(c.seq.gain, 0.0001, 0.02); setTimeout(() => { try { c.seq.disconnect(); } catch (e) {} }, 400);
+    for (const k of ['effects', 'ambient']) glide(bus[k].gain, Math.max(0.0001, volume[k]), 0.15);
+  }
   return {
     init, on, running, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
     startAmbient: p => tuned(p && p.tune, () => startAmbient(p)),
@@ -531,6 +597,8 @@ const AUDIO = (() => {
     voice: (kind, vol, pan) => tuned('voice:' + kind, () => voice(kind, vol, pan)),
     // 'footstep:kind' (a lane's cue: game.js laneCues): a few of that thing's footsteps, that way
     sfx: (name, pan, soft) => (typeof name === 'string' && name.startsWith('footstep:') ? cueSteps(name.slice(9), pan, soft) : tuned(name, () => sfx(name, pan, soft))),
+    calibrate, calStop, CAL,
+    get calibration() { return calLast ? { which: calLast.which, pans: calLast.pans.slice(), playing: cal === calLast } : null; },   // (the tests' look at it)
     get muted() { return muted; },
     get bed() { return amb ? { title: !!amb.title, k: amb.k } : null; },   // the ambient bed playing (the tests' look at it)
   };

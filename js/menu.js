@@ -46,7 +46,6 @@ const MENU = (() => {
   function btn(act, label, arg, cls) { return '<button type="button" class="mbtn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '"' + (arg !== undefined ? ' data-arg="' + arg + '"' : '') + '>' + label + '</button>'; }
   function html(kind, d) {
     d = d || {};
-    const S = SAVE.data.settings;
     switch (kind) {
       case 'title': {
         // the title itself: the name and the way in, and nothing else over what is out there (how to play is a dialog).
@@ -129,13 +128,16 @@ const MENU = (() => {
         return '<h1>Scores</h1>' + body + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('reset', 'Erase progress', undefined, 'danger') + '</div>';
       }
       case 'settings': {
-        // the sliders, each with its value as a percentage at its right (following it as it moves); then the on/off
-        // settings, each a switch (a checkbox with the role of a switch, drawn as one: .sw). Beside Back, Set to default:
-        // every setting back as it began (nothing else). From the warning before a new game (d.from 'warning': game.js) the same
+        if (d.sub === 'volume') return volumeHtml();
+        if (d.sub === 'brightness') return brightnessHtml();
+        // Volume and Brightness, each a Calibrate button (a dialog of its own: volumeHtml, brightnessHtml); the effects,
+        // the ambience and the text size, each a row of choices (seg); then the on/off settings, each a switch (a checkbox
+        // with the role of a switch, drawn as one: .sw). Beside Back, Set to default: every setting back as it began
+        // (nothing else). From the warning before a new game (d.from 'warning': game.js) the same
         const sw = (k, label) => '<label class="opt"><span class="olabel">' + label + '</span><span class="swwrap"><input type="checkbox" role="switch" class="swi" data-set="' + k + '"' + (switchOn(k) ? ' checked' : '') + '><span class="sw" aria-hidden="true"></span></span></label>';
-        const rng = (k, label, min, max) => '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="0.05" data-set="' + k + '" value="' + S[k] + '" aria-valuetext="' + pct(S[k]) + '"><output class="pct" aria-hidden="true">' + pct(S[k]) + '</output></span></label>';
+        const cal = (act, label) => '<div class="opt"><span class="olabel">' + label + '</span><button type="button" class="calbtn" data-act="' + act + '" aria-label="Calibrate ' + label.toLowerCase() + '">Calibrate</button></div>';
         return '<h1>Settings</h1><div class="settings"><div class="sgrp">' +
-          rng('master', 'Volume', 0, 1) + rng('effects', 'Effects', 0, 1) + rng('ambient', 'Ambience', 0, 1) + rng('textSize', 'Text size', 0.85, 1.4) +
+          cal('calvol', 'Volume') + cal('calbright', 'Brightness') + seg('effects', 'Effects', SAVE.LOUDNESS) + seg('ambient', 'Ambience', SAVE.LOUDNESS) + seg('textSize', 'Text size', SAVE.TEXT_SIZES) +
           '</div><div class="sgrp">' +
           sw('muted', 'Mute') + sw('reduceMotionFlash', 'Reduce motion and flashing effects') + sw('captions', 'Captions for sounds') + (touchUI() ? sw('swipeReverse', 'Reverse swipes') : '') + sw('reduceTextures', 'Reduce surface textures') +
           '</div></div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('defaults', 'Set to default') + '</div>';
@@ -148,6 +150,86 @@ const MENU = (() => {
   // (and from the pause menu, Controls and Settings open as the same dialogs, over the night paused behind them)
   const DIALOGS = ['nights', 'settings', 'howto'];
   const pct = v => Math.round(v * 100) + '%';
+  // a slider, its value as a percentage at its right (following it as it moves)
+  const rng = (k, label, min, max) => { const v = SAVE.data.settings[k]; return '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="0.05" data-set="' + k + '" value="' + v + '" aria-valuetext="' + pct(v) + '"><output class="pct" aria-hidden="true">' + pct(v) + '</output></span></label>'; };
+  // a row of choices, one of them chosen (choices: [[label, value], ...]): a radio group, its buttons side by side. The
+  // arrows (left and right; a pad's d-pad too) go along it choosing as they go, Enter, Space and A choose the one with the
+  // focus, a click or a tap chooses; only the chosen one is in the round the other keys go (ring)
+  function seg(k, label, choices) {
+    const on = SAVE.nearest(choices, SAVE.data.settings[k]);
+    return '<div class="opt optseg"><span class="olabel">' + label + '</span><span class="seg" role="radiogroup" aria-label="' + label + '" data-set="' + k + '">' +
+      choices.map(([t, v]) => '<button type="button" role="radio" data-v="' + v + '" aria-checked="' + (v === on) + '" tabindex="' + (v === on ? 0 : -1) + '">' + t + '</button>').join('') + '</span></div>';
+  }
+  // the choice in a row made: the setting applied and saved, the buttons following
+  function segPick(o) {
+    const g = o.closest('.seg'); if (!g || o.getAttribute('aria-checked') === 'true') return false;
+    for (const b of g.querySelectorAll('[role="radio"]')) { const on = b === o; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; }
+    applySetting(g.dataset.set, parseFloat(o.dataset.v));
+    return true;
+  }
+  // along a row by dir (-1, 1), choosing (it stops at either end)
+  function segStep(o, dir) {
+    const all = [...o.closest('.seg').querySelectorAll('[role="radio"]')], n = all[Math.max(0, Math.min(all.length - 1, all.indexOf(o) + dir))];
+    if (n !== o) { segPick(n); tap(); }
+    n.focus();
+  }
+  const isRadio = f => !!(f && f.getAttribute && f.getAttribute('role') === 'radio' && f.closest('.seg'));
+  // Volume's Calibrate: the main volume (the slider, as it was in Settings), between the two ends of what the game plays:
+  // the quietest sound (the heartbeat's first beat, as faint as it first comes) and the loudest (the sting, climbing in),
+  // each five times from the left speaker over to the right (AUDIO.calibrate); five marks under each light in turn with
+  // them. Done (Esc, a pad's B) is Settings again
+  function volumeHtml() {
+    const play = (act, label, note) => '<div class="calcol"><button type="button" class="mbtn calplay" data-act="' + act + '">' + label + '<span class="caldots" aria-hidden="true">' + '<i></i>'.repeat(5) + '</span></button><p class="calnote">' + note + '</p></div>';
+    return '<h1>Volume</h1><p class="caltext">Adjust your device and speaker volume and/or the slider below until you can hear both of these sounds comfortably.</p>' +
+      '<div class="calvol">' + rng('master', 'Volume', 0, 1) + '</div>' +
+      '<p class="calmute"' + (SAVE.data.settings.muted ? '' : ' hidden') + '>Sound is muted: turn Mute off (M) to hear these.</p>' +
+      '<div class="calplays">' + play('calquiet', 'Play the quietest sound in the game', 'Increase volume until you can hear this comfortably') + play('calloud', 'Play the loudest sound in the game', 'Decrease volume until you can hear this comfortably') + '</div>' +
+      '<div class="mrow">' + btn('caldone', 'Done', 'calvol', 'primary') + '</div>';
+  }
+  // Brightness's Calibrate: the thing on the title, the shape of it alone in The Void's dark (TITLE.shape, drawn by
+  // drawShape): the black of the void, and the demon's robe as it is there with no light on it. Done is Settings again
+  function brightnessHtml() {
+    return '<h1>Brightness</h1><p class="caltext">Increase your device brightness until you can barely see the outline of this creature</p>' +
+      '<canvas class="calshape" role="img" aria-label="A dark figure, very faintly, on black"></canvas>' +
+      '<div class="mrow">' + btn('caldone', 'Done', 'calbright', 'primary') + '</div>';
+  }
+  const VOID_BLACK = '#000', ROBE_DARK = 'rgb(12,10,15)';   // (js/levels/night13.js VOID_PAL's sky and fog; js/creatures/demon.js: its robe, robeC, unlit)
+  function drawShape(cv) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = VOID_BLACK; g.fillRect(0, 0, w, h);
+    const ppm = Math.min(h * 0.88 / TITLE.SHAPE_H, w * 0.9 / TITLE.SHAPE_W);
+    TITLE.shape(g, w / 2, h / 2 + TITLE.SHAPE_H * ppm / 2, ppm, ROBE_DARK);
+  }
+  window.addEventListener('resize', () => document.querySelectorAll('canvas.calshape').forEach(drawShape));
+  // a play button pressed: its five again from the first (what was still sounding of the last faded out at once)
+  function calPlay(a, root) {
+    ensureAudio();
+    const b = root.querySelector('button[data-act="' + a + '"]'); if (!b) return;
+    root.querySelectorAll('button.calplay').forEach(x => { x.classList.remove('playing'); x.querySelectorAll('.caldots i').forEach(i => i.classList.remove('on')); });
+    const note = root.querySelector('.calmute'); if (note) note.hidden = !SAVE.data.settings.muted;
+    b.classList.add('playing');
+    AUDIO.calibrate(a === 'calquiet' ? 'quiet' : 'loud', i => {
+      if (!b.isConnected) return;
+      if (i < 0) { b.classList.remove('playing'); b.querySelectorAll('.caldots i').forEach(x => x.classList.remove('on')); return; }
+      b.querySelectorAll('.caldots i').forEach((x, j) => x.classList.toggle('on', j === i));
+    });
+  }
+  // after Settings (or one of its dialogs) is put in a screen: the shape drawn, and the calibration's sound stopped if
+  // it is not the volume's dialog any more
+  function settled(root, d) {
+    if (!(d && d.sub === 'volume')) AUDIO.calStop();
+    const cv = root.querySelector('canvas.calshape'); if (cv) drawShape(cv);
+  }
+  // what to focus in Settings or one of its dialogs: what opened it (back from a dialog), else in Settings Back, in the
+  // volume's dialog the first play button, in the brightness's Done
+  function settingsFocus(root, d) {
+    return (d.focus && root.querySelector('button[data-act="' + d.focus + '"]')) || root.querySelector(d.sub === 'volume' ? 'button[data-act="calquiet"]' : d.sub ? 'button[data-act="caldone"]' : 'button[data-act="back"]');
+  }
+  // Esc (or a pad's B) in one of Settings' dialogs: Settings again, as Done. True if it was one
+  function subBack(root) { const b = root.querySelector('button[data-act="caldone"]'); if (!b) return false; b.click(); return true; }
   // the one switch for reduced motion and reduced flashing: both flags the game reads go with it (save.js keeps them alike)
   const switchOn = k => { const S = SAVE.data.settings; return k === 'reduceMotionFlash' ? !!(S.reducedMotion || S.reducedFlash) : !!S[k]; };
   // every button and control in the menus answers with a soft tap (AUDIO 'tap': quiet, and no caption: it is the
@@ -161,23 +243,25 @@ const MENU = (() => {
     const dlg = DIALOGS.includes(kind) && ((from === 'title' && G.state === 'title') || from === 'pause');
     // erasing progress asks first, in a small dialog of its own over Scores
     const confirm = kind === 'nights' && current.data.confirmReset ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-label="Erase all progress?"><h2>Erase all progress?</h2><p>Every night reached and your best run will be gone.</p><div class="mrow">' + btn('keep', 'Cancel') + btn('erase', 'Erase', undefined, 'danger') + '</div></div></div>' : '';
-    showOverlay((dlg ? '<div class="panel ' + kind + 'p" role="dialog" aria-modal="true">' + html(kind, current.data) + '</div>' : html(kind, current.data)) + confirm);
+    const sub = kind === 'settings' && current.data.sub ? ' calp cal-' + current.data.sub : '';   // (Settings' calibration dialogs, in the same panel)
+    showOverlay((dlg ? '<div class="panel ' + kind + 'p' + sub + '" role="dialog" aria-modal="true">' + html(kind, current.data) + '</div>' : html(kind, current.data)) + confirm);
     ov.classList.toggle('dlg', dlg);
     ov.classList.toggle('titlelow', kind === 'title' && TITLE.on);
     ov.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); act(b.dataset.act, b.dataset.arg); }));
     wire(ov);
+    if (kind === 'settings') settled(ov, current.data); else AUDIO.calStop();
     const box = ov.querySelector('.confirm');
     if (box) box.addEventListener('click', e => { e.stopPropagation(); if (e.target === box) act('keep'); });   // a click off the little dialog backs out of it
     // focus: the first button, or (back from a sub-screen) the button that opened it
-    const first = (!box && current.data.focus && ov.querySelector('button[data-act="' + current.data.focus + '"]')) || (box || ov).querySelector('button[data-act]');
+    const first = kind === 'settings' ? settingsFocus(ov, current.data) : (!box && current.data.focus && ov.querySelector('button[data-act="' + current.data.focus + '"]')) || (box || ov).querySelector('button[data-act]');
     if (first && kind !== 'title' && kind !== 'results') first.focus();
     if (kind === 'results') reveal(false);
   }
   // the settings' controls in a screen (the menus' overlay, or the warning's card): each applied and saved as it changes,
-  // a slider's percentage following it
+  // a slider's percentage following it, a row of choices its chosen one
   function wire(root) {
-    root.querySelectorAll('[data-set]').forEach(inp => {
-      const stop = e => e.stopPropagation();
+    const stop = e => e.stopPropagation();
+    root.querySelectorAll('input[data-set]').forEach(inp => {
       inp.addEventListener('click', stop); inp.closest('label').addEventListener('click', stop);
       const out = inp.type === 'range' && inp.parentElement.querySelector('.pct');
       inp.addEventListener('input', () => {
@@ -187,18 +271,32 @@ const MENU = (() => {
       });
       inp.addEventListener('change', tap);   // (a slider once it is let go, at the volume it now has)
     });
+    root.querySelectorAll('.seg [role="radio"]').forEach(o => o.addEventListener('click', e => { e.stopPropagation(); if (segPick(o)) tap(); }));
   }
   // Settings in a box of the caller's own, over everything (the warning before a new game: game.js). Its Back calls back();
-  // the keys and a pad go through navKey and the caller
-  function settingsInto(root, back) {
-    root.innerHTML = html('settings', { from: 'warning' });
-    root.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); if (b.dataset.act === 'back') back(); else if (b.dataset.act === 'defaults') toDefaults(root); }));
+  // its Calibrate buttons put their dialogs in the same box, and their Done puts Settings back. The keys and a pad go
+  // through navKey and the caller (Esc and B through subBack first)
+  function settingsInto(root, back, d) {
+    d = Object.assign({ from: 'warning' }, d || {});
+    root.innerHTML = html('settings', d);
+    root.classList.toggle('calp', !!d.sub);
+    const go = d2 => settingsInto(root, back, d2);
+    root.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation(); tap();
+      const a = b.dataset.act;
+      if (a === 'back') back();
+      else if (a === 'defaults') toDefaults(root);
+      else if (a === 'calvol' || a === 'calbright') go({ sub: a === 'calvol' ? 'volume' : 'brightness' });
+      else if (a === 'caldone') go({ focus: b.dataset.arg });
+      else if (a === 'calquiet' || a === 'calloud') calPlay(a, root);
+    }));
     wire(root);
-    const first = root.querySelector('button[data-act]'); if (first) first.focus();
+    settled(root, d);
+    const first = settingsFocus(root, d); if (first) first.focus();
   }
   // the keys in a screen of buttons and settings: arrows (and WASD, Tab) move round them; Space and Enter flip a focused
-  // switch, left and right move a focused slider. True if the key was taken
-  function ring(root) { return [...root.querySelectorAll('button[data-act], input[data-set]')]; }
+  // switch, left and right move a focused slider or go along a focused row of choices. True if the key was taken
+  function ring(root) { return [...root.querySelectorAll('button[data-act], input[data-set], .seg [role="radio"][aria-checked="true"]')]; }
   function navKey(e, root) {
     const k = e.key, btns = ring(root);
     if (!btns.length) return false;
@@ -206,12 +304,17 @@ const MENU = (() => {
     const f = document.activeElement; // the control keeps the keys it uses: Space flips a switch, left and right move a slider
     if (f && f.tagName === 'INPUT' && (k === ' ' || (f.type === 'range' && (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'Home' || k === 'End')))) return false;
     if (k === 'Enter' && f && f.tagName === 'INPUT' && f.type === 'checkbox' && idx >= 0) { if (!e.repeat) f.click(); return true; }   // Enter flips a switch too
+    if (isRadio(f) && root.contains(f)) {   // a row of choices: left and right go along it, Enter and Space choose
+      if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); segStep(f, k === 'ArrowLeft' ? -1 : 1); return true; }
+      if (k === 'Enter' || k === ' ') { e.preventDefault(); if (!e.repeat) f.click(); return true; }
+    }
     if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'd' || k === 'Tab' && !e.shiftKey) { e.preventDefault(); btns[(idx + 1 + btns.length) % btns.length].focus(); return true; }
     if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'a' || k === 'Tab' && e.shiftKey) { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); return true; }
     return false;
   }
-  // a pad's d-pad on a focused slider: left and right move it, as the arrow keys do
+  // a pad's d-pad on a focused slider or row of choices: left and right move it, as the arrow keys do
   function padSlide(f, dir) {
+    if (isRadio(f)) { segStep(f, dir === 1 ? -1 : 1); return true; }
     if (!(f && f.tagName === 'INPUT' && f.type === 'range')) return false;
     if (dir === 1) f.stepDown(); else f.stepUp();
     f.dispatchEvent(new Event('input'));
@@ -249,10 +352,14 @@ const MENU = (() => {
   function toDefaults(root) {
     const S = SAVE.defaults();
     setMuted(!!S.muted); applyAll();
-    root.querySelectorAll('[data-set]').forEach(inp => {
+    root.querySelectorAll('input[data-set]').forEach(inp => {
       if (inp.type === 'checkbox') { inp.checked = switchOn(inp.dataset.set); return; }
       const v = S[inp.dataset.set]; inp.value = v; inp.setAttribute('aria-valuetext', pct(v));
       const out = inp.parentElement.querySelector('.pct'); if (out) out.textContent = pct(v);
+    });
+    root.querySelectorAll('.seg[data-set]').forEach(g => {
+      const os = [...g.querySelectorAll('[role="radio"]')], on = SAVE.nearest(os.map(o => [o.textContent, parseFloat(o.dataset.v)]), S[g.dataset.set]);
+      os.forEach(o => { const c = parseFloat(o.dataset.v) === on; o.setAttribute('aria-checked', c); o.tabIndex = c ? 0 : -1; });
     });
   }
   function applyAll() {
@@ -268,6 +375,10 @@ const MENU = (() => {
       case 'finish': G.lastRun = null; if (G.seed === null) G.runSeed = Date.now() % 1000000; showTitle(); break;   // home; the next run new layouts, unless the seed is fixed
       case 'nights': show('nights', { from: 'title' }); break;   // only from the title (and its Back goes there)
       case 'settings': show('settings', { from: arg || 'title' }); break;
+      // Settings' calibration dialogs, in its place in the same panel; Done is Settings again, focus on what opened it
+      case 'calvol': case 'calbright': show('settings', { from: current.data.from, sub: a === 'calvol' ? 'volume' : 'brightness' }); break;
+      case 'caldone': show('settings', { from: current.data.from, focus: arg }); break;
+      case 'calquiet': case 'calloud': calPlay(a, UI.overlay); break;
       case 'howto': show('howto', { from: 'title' }); break;
       case 'resume': resumeGame(); break;
       case 'controls': show('howto', { from: 'pause' }); break;   // the pause menu's Controls: How to play, as on the title
@@ -299,9 +410,10 @@ const MENU = (() => {
     if (navKey(e, root)) return true;
     const idx = ring(root).indexOf(document.activeElement);
     if (k === 'Escape' && current.kind === 'nights' && current.data.confirmReset) { act('keep'); return true; }
+    if (k === 'Escape' && current.kind === 'settings' && current.data.sub) { act('caldone', current.data.sub === 'volume' ? 'calvol' : 'calbright'); return true; }
     if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings' || current.kind === 'howto')) { act('back', current.data.from); return true; }
     if (k === 'Enter' && idx >= 0) return true;   // the focused button handles it
     return false;
   }
-  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, navKey, padSlide, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; } };
+  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, subBack, navKey, padSlide, get sub() { return current && current.kind === 'settings' ? current.data.sub || null : null; }, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; } };
 })();

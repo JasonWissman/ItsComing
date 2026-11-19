@@ -4,6 +4,11 @@
 function prefersReduced() { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } }
 const SAVE = (() => {
   const KEY = 'itscoming.v2';
+  // Settings' choices that are no longer sliders: the effects and the ambience each Normal or Quieter (half as loud: -6
+  // dB), the text Smaller, Normal or Bigger (the two ends of the range its old slider had, either side of 1)
+  const QUIETER = 0.5;
+  const LOUDNESS = [['Normal', 1], ['Quieter', QUIETER]];
+  const TEXT_SIZES = [['Smaller', 0.85], ['Normal', 1], ['Bigger', 1.4]];
   // there is one game now; every difficulty there used to be is folded into it, keeping how far any of them got
   const ONLY = 'nightmare', OLD = ['easy', 'normal', 'hard', 'nightmare'];
   function fresh() {
@@ -68,10 +73,15 @@ const SAVE = (() => {
   }
   // settings saved before the switches were what they are now: surface detail off is reduced textures on, and reduced
   // motion and reduced flashing (once two settings) are one, on if either was
+  // (and from when the effects, the ambience and the text size were sliders: each to the nearest of its choices now, so
+  // an effects or ambience slider under 75% is Quieter; the main volume is still a slider, kept as it was)
   function tidy(S, old) {
     if (old.reduceTextures === undefined && old.textures === false) S.reduceTextures = true;
     delete S.textures;
     S.reducedMotion = S.reducedFlash = !!(S.reducedMotion || S.reducedFlash);
+    const num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
+    S.effects = loudness(S.effects); S.ambient = loudness(S.ambient); S.textSize = nearest(TEXT_SIZES, num(S.textSize, 1));
+    S.master = Math.min(1, Math.max(0, num(S.master, 1)));
   }
   // a v2 save had four difficulties and a v3 save two: fold them all into the one game, keeping the furthest reached
   function fold(d) {
@@ -83,6 +93,9 @@ const SAVE = (() => {
     const settings = Object.assign({}, d.settings || {}); delete settings.difficulty;
     Object.assign(d, { v: 4, unlocked, complete, settings, bestRun: {} });   // (their best times for single nights are not kept)
   }
+  function loudness(v) { return typeof v === 'number' && isFinite(v) && v < 0.75 ? QUIETER : 1; }
+  // the value of the choice nearest v (choices: [[label, value], ...])
+  function nearest(choices, v) { let best = choices[0][1]; for (const [, c] of choices) if (Math.abs(c - v) < Math.abs(best - v)) best = c; return best; }
   function unlock(diff, levelIndex) { if (levelIndex > (data.unlocked[diff] || 0)) { data.unlocked[diff] = levelIndex; persist(); } }
   // a full run finished: kept, breakdown and all, only if it is the first or faster than the best (by the whole seconds
   // shown: a run that reads the same as the best is not a new best). True if it is the new best
@@ -99,5 +112,5 @@ const SAVE = (() => {
   function markComplete(diff) { data.complete[diff] = true; persist(); }
   function markWarned() { data.warned = true; persist(); }
   function reset() { data = fresh(); persist(); }
-  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, reset, get data() { return data; } };
+  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, reset, nearest, LOUDNESS, TEXT_SIZES, get data() { return data; } };
 })();

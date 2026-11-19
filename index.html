@@ -329,11 +329,52 @@
   :root[data-theme="day"] .swi:checked + .sw { background: #2e2823; border-color: #2e2823; }
   :root[data-theme="day"] .swi:checked + .sw::after { background: #f4f0e8; }
   :root[data-theme="day"] .opt .pct { color: rgba(58,51,44,.7); }
+  /* a row of choices (Effects: Normal | Quieter; Text size: Smaller | Normal | Bigger): one outlined bar, the chosen one
+     filled with the light of the text, as a switch is when on; and a Calibrate button (Volume, Brightness) drawn the same */
+  .optseg .olabel { white-space: nowrap; }
+  .seg { display: inline-flex; flex: none; border: 1px solid rgba(207,200,186,.38); border-radius: 7px; }
+  .seg [role=radio], .calbtn { font: inherit; font-size: calc(14px * var(--text-scale)); letter-spacing: .04em; background: none; border: none; color: rgba(207,200,186,.8); padding: 4px 13px; min-height: 30px; min-width: 64px; cursor: pointer; transition: background .15s, color .15s; -webkit-tap-highlight-color: transparent; }
+  .seg [role=radio]:first-child { border-radius: 6px 0 0 6px; } .seg [role=radio]:last-child { border-radius: 0 6px 6px 0; }
+  .seg [role=radio] + [role=radio] { border-left: 1px solid rgba(207,200,186,.38); }
+  .seg [role=radio]:hover, .calbtn:hover { color: #efe6d2; background: rgba(239,230,210,.08); }
+  .seg [role=radio][aria-checked=true] { background: #efe6d2; color: #0b0a0a; }
+  .seg [role=radio]:focus-visible, .calbtn:focus-visible { outline: 2px solid rgba(239,230,210,.9); outline-offset: 2px; position: relative; z-index: 1; }
+  .calbtn { flex: none; border: 1px solid rgba(207,200,186,.38); border-radius: 7px; color: #efe6d2; letter-spacing: .1em; text-transform: uppercase; font-size: calc(12px * var(--text-scale)); }
+  :root[data-theme="day"] .seg, :root[data-theme="day"] .calbtn, :root[data-theme="day"] .seg [role=radio] + [role=radio] { border-color: rgba(58,51,44,.4); }
+  :root[data-theme="day"] .seg [role=radio], :root[data-theme="day"] .calbtn { color: #2e2823; }
+  :root[data-theme="day"] .seg [role=radio][aria-checked=true] { background: #2e2823; color: #f4f0e8; }
+  /* Settings' calibration dialogs (Volume, Brightness: .calp, in the same panel or the warning's card): the words over it,
+     the volume slider under them; the two sounds side by side, each with its word under it; the shape on black */
+  :is(#overlay, #disclaimer) .calp .caltext { max-width: 560px; margin: 0 auto 14px; font-size: calc(17px * var(--text-scale)); line-height: 1.5; color: #cfc8ba; text-align: center; letter-spacing: normal; white-space: normal; }
+  .calp .calvol { width: min(440px, 100%); margin: 0 auto; text-align: left; }
+  :is(#overlay, #disclaimer) .calp .calmute { margin: 10px auto 0; font-size: calc(14px * var(--text-scale)); color: var(--red); text-align: center; }
+  :is(#overlay, #disclaimer) .calp .calmute[hidden] { display: none; }
+  .calp .calplays { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; width: min(600px, 100%); margin: 18px auto 0; }
+  .calp .calcol { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; }
+  .calp .calplay { min-width: 0; width: 100%; text-transform: none; letter-spacing: .03em; font-size: calc(16px * var(--text-scale)); line-height: 1.3; padding: 12px 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .calp .caldots { display: flex; gap: 9px; }   /* the five, left speaker to right, each lit as it plays */
+  .calp .caldots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(207,200,186,.22); transition: background .12s; }
+  .calp .caldots i.on { background: #efe6d2; box-shadow: 0 0 6px rgba(239,230,210,.6); }
+  :is(#overlay, #disclaimer) .calp .calnote { margin: 0; font-size: calc(14px * var(--text-scale)); line-height: 1.4; font-style: italic; color: rgba(207,200,186,.72); text-align: center; }
+  .calp .calshape { display: block; width: 100%; height: clamp(160px, 100vh - 330px, 440px); margin: 4px auto 0; background: #000; }
+  .calp .mrow { margin-top: 18px; }
+  #disclaimer .dcard.dset.calp { text-align: center; }   /* (the warning's own words are red, and its p says so: not these) */
+  @media (max-width: 560px) { .calp .calplays { grid-template-columns: 1fr; gap: 12px; } }
+  @media (max-height: 520px) {
+    :is(#overlay, #disclaimer) .calp .caltext { max-width: 720px; margin-bottom: 8px; font-size: calc(15px * var(--text-scale)); line-height: 1.4; }
+    .calp .calplays { width: min(720px, 100%); margin-top: 10px; gap: 14px; }
+    .calp .calplay { padding: 7px 10px 6px; gap: 5px; font-size: calc(14.5px * var(--text-scale)); letter-spacing: .01em; }
+    .calp .calcol { gap: 5px; }
+    :is(#overlay, #disclaimer) .calp .calnote { font-size: calc(13px * var(--text-scale)); }
+    .calp .calshape { height: max(140px, 100vh - 196px - 60px * (var(--text-scale) - 1)); margin-top: 0; }   /* (less of it the more the bigger text takes) */
+    .calp .mrow, #disclaimer .dset.calp .mrow { margin-top: 10px; }
+  }
   @media (max-height: 520px) and (min-width: 700px) {
     .settings { flex-direction: row; justify-content: center; gap: 36px; width: 100%; margin: 4px auto; }
     .sgrp { flex: 0 1 360px; gap: 4px; }
     .opt { min-height: 28px; }
     .opt input[type=range] { width: 130px; }
+    .seg [role=radio] { min-width: 0; padding: 4px 9px; } .optseg { gap: 8px; }
   }
   button:focus-visible { outline: 1px solid rgba(239,230,210,.9); outline-offset: 2px; }
   #overlay .hint { font-style: italic; color: rgba(239,230,210,.85); font-size: calc(17px * var(--text-scale)); }

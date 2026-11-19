@@ -259,7 +259,7 @@ function disclaimer() {
     const f = document.activeElement, k = e.key;
     if (settingsOn && f && f.tagName === 'INPUT' && card.contains(f) && (k === ' ' || (f.type === 'range' && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(k)))) return;
     swallowKey(e);
-    if (settingsOn && k === 'Escape') { if (!e.repeat) { AUDIO.sfx('tap'); warn(); } return; }
+    if (settingsOn && k === 'Escape') { if (!e.repeat && !MENU.subBack(card)) { AUDIO.sfx('tap'); warn(); } return; }   // (in one of Settings' dialogs, Settings again)
     if (MENU.navKey(e, card)) return;
     if ((k === 'Enter' || k === ' ') && !e.repeat) press();
   };
@@ -269,17 +269,17 @@ function disclaimer() {
   // the focus stays in it: anything that takes it away gives it back (to Accept, or to Settings' Back)
   el.addEventListener('focusout', () => setTimeout(() => {
     if (done || !el.isConnected || (card && card.contains(document.activeElement))) return;
-    const b = settingsOn ? card.querySelector('button[data-act="back"]') : accept0; if (b) b.focus();
+    const b = settingsOn ? card.querySelector('button[data-act="back"], button[data-act="caldone"]') : accept0; if (b) b.focus();
   }, 0));
-  // a pad: the d-pad goes round, a slider takes left and right; A presses; in Settings, B and Start are Back, on the
-  // warning Start accepts
+  // a pad: the d-pad goes round, a slider (or a row of choices) takes left and right; A presses; in Settings, B and Start
+  // are Back (in one of its Calibrate dialogs, Done), on the warning Start accepts
   disclaimerPad = (what, dir) => {
     if (done) return;
     const fake = key => ({ key, preventDefault() {}, shiftKey: false });
     if (what === 'dir') { if (!(settingsOn && dir <= 2 && MENU.padSlide(document.activeElement, dir))) MENU.navKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'), card); }
     else if (what === 'a') press();
-    else if (what === 'b' && settingsOn) { AUDIO.sfx('tap'); warn(); }
-    else if (what === 'start') { if (settingsOn) { AUDIO.sfx('tap'); warn(); } else accept(); }
+    else if (what === 'b' && settingsOn) { if (!MENU.subBack(card)) { AUDIO.sfx('tap'); warn(); } }
+    else if (what === 'start') { if (settingsOn) { if (!MENU.subBack(card)) { AUDIO.sfx('tap'); warn(); } } else accept(); }
   };
   warn();
   requestAnimationFrame(() => el.classList.add('on'));

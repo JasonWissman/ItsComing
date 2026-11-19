@@ -91,6 +91,7 @@ const TUNES = {
   'phoneRing': { pitch: -3 },
   'wetThud': { pitch: -3.5 },
   'sting': { pitch: -3.5, speed: 0.71 },
+  'stingCalibrate': { pitch: -3.5, speed: 0.71 },   // (the volume calibration's loudest sound: the sting's own tune, so it is as loud as the sting is)
   'stingShriek': { pitch: 9, speed: 0.57 },
   'stingHum': { pitch: -7.5, speed: 0.87, tone: -1.9, vol: 9 },
   'stingStone': { pitch: -9, speed: 0.71 },
@@ -177,10 +178,11 @@ const TUNE = (() => {
     const S = (window.AudioScheduledSourceNode || AudioBufferSourceNode).prototype, start = S.start, stop = S.stop;
     S.start = function (t, off, d) { const a = [t === undefined ? 0 : when(t)]; if (off !== undefined) a.push(off); if (d !== undefined) a.push(dur(d)); return start.apply(this, a); };
     S.stop = function (t) { return stop.call(this, t === undefined ? 0 : when(t)); };
-    // the volume: a gain between what it made and the bus it joins
+    // the volume: a gain between what it made and the bus it joins (or a gain marked __tuneBus, standing in for one:
+    // the volume calibration's, js/audio.js calibrate)
     const N = AudioNode.prototype, connect = N.connect;
     N.connect = function (dest, ...rest) {
-      if (cur && cur.vol !== 0 && buses.includes(dest)) {
+      if (cur && cur.vol !== 0 && (buses.includes(dest) || dest.__tuneBus)) {
         const g = this.context.createGain(); g.gain.value = gf(cur);
         connect.call(this, g); return connect.call(g, dest, ...rest);
       }

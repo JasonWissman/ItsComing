@@ -90,26 +90,27 @@ const hoverHit = lookFor;
   dw = await page.evaluate(() => { const d = document.getElementById('disclaimer'), card = d && d.querySelector('.dcard');
     return { up: !!d, h: (d.querySelector('h1') || {}).textContent, sets: [...d.querySelectorAll('[data-set]')].map(e => e.dataset.set).join(), acts: [...d.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(), erase: !!d.querySelector('[data-act="reset"]'), focus: document.activeElement && document.activeElement.dataset.act,
       cardBg: getComputedStyle(card).backgroundColor, st: G.state, menu: MENU.kind, warn: !!d.querySelector('.daccept') }; });
-  check(dw.up && dw.h === 'Settings' && dw.sets === 'master,effects,ambient,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'back,defaults' && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
+  check(dw.up && dw.h === 'Settings' && dw.sets === 'effects,ambient,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'calvol,calbright,back,defaults' && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
     'Adjust settings: Settings in the same card, every setting and Set to default (no Erase progress), Back focused; the game does not start (' + JSON.stringify(dw) + ')');
   // the keys work in it: Tab round to the reduce motion switch, Space flips it (both flags), a slider moves with the arrows
   await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', false); document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').focus(); });
   await page.keyboard.press(' '); await page.waitForTimeout(80);
   let rs = await page.evaluate(() => ({ rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash, on: document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').checked, up: !!document.getElementById('disclaimer') }));
   check(rs.rm && rs.rf && rs.on && rs.up, 'from the warning, Space on Reduce motion and flashing effects turns it on, both its flags with it (' + JSON.stringify(rs) + ')');
-  // its Set to default: everything back as it began, the switch and a slider moved to match, the warning still up and not accepted
-  rs = await page.evaluate(() => { MENU.applySetting('effects', 0.4); const d = document.getElementById('disclaimer'), e = d.querySelector('input[data-set="effects"]'); e.value = 0.4; d.querySelector('button[data-act="defaults"]').click();
-    return { rm: SAVE.data.settings.reducedMotion, fx: SAVE.data.settings.effects, on: d.querySelector('input[data-set="reduceMotionFlash"]').checked, val: +e.value, pct: e.parentElement.querySelector('.pct').textContent, up: !!document.getElementById('disclaimer') && !!d.querySelector('h1'), warned: SAVE.data.warned }; });
-  check(!rs.rm && rs.fx === 1 && !rs.on && rs.val === 1 && rs.pct === '100%' && rs.up && !rs.warned, 'and its Set to default puts every setting back, its controls following, still in Settings, the warning not accepted (' + JSON.stringify(rs) + ')');
+  // its Set to default: everything back as it began, the switch and a row of choices moved to match, the warning still up and not accepted
+  rs = await page.evaluate(() => { const d = document.getElementById('disclaimer'); d.querySelector('.seg[data-set="effects"] [data-v="0.5"]').click(); const was = SAVE.data.settings.effects; d.querySelector('button[data-act="defaults"]').click();
+    return { was, rm: SAVE.data.settings.reducedMotion, fx: SAVE.data.settings.effects, on: d.querySelector('input[data-set="reduceMotionFlash"]').checked, chosen: d.querySelector('.seg[data-set="effects"] [aria-checked="true"]').textContent, up: !!document.getElementById('disclaimer') && !!d.querySelector('h1'), warned: SAVE.data.warned }; });
+  check(rs.was === 0.5 && !rs.rm && rs.fx === 1 && !rs.on && rs.chosen === 'Normal' && rs.up && !rs.warned, 'and its Set to default puts every setting back, its controls following, still in Settings, the warning not accepted (' + JSON.stringify(rs) + ')');
   await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').checked = true; document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').focus(); });
   await page.keyboard.press('Enter'); await page.waitForTimeout(80);
   rs = await page.evaluate(() => ({ rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash }));
   check(!rs.rm && !rs.rf, 'and Enter flips it back off (' + JSON.stringify(rs) + ')');
-  await page.evaluate(() => document.querySelector('#disclaimer input[data-set="effects"]').focus());
+  await page.evaluate(() => document.querySelector('#disclaimer .seg[data-set="effects"] [aria-checked="true"]').focus());
+  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(80);
+  rs = await page.evaluate(() => ({ v: SAVE.data.settings.effects, chosen: document.querySelector('#disclaimer .seg[data-set="effects"] [aria-checked="true"]').textContent, focus: document.activeElement.textContent, up: !!document.querySelector('#disclaimer .dset') }));
+  check(rs.v === 0.5 && rs.chosen === 'Quieter' && rs.focus === 'Quieter' && rs.up, 'and right on Effects chooses Quieter, the focus going with it (' + JSON.stringify(rs) + ')');
   await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(80);
-  rs = await page.evaluate(() => ({ v: SAVE.data.settings.effects, pct: document.querySelector('#disclaimer input[data-set="effects"]').parentElement.querySelector('.pct').textContent, focus: document.activeElement.dataset.set }));
-  check(Math.abs(rs.v - 0.95) < 1e-6 && rs.pct === '95%' && rs.focus === 'effects', 'and left on a slider turns it down, its percentage following (' + JSON.stringify(rs) + ')');
-  await page.evaluate(() => MENU.applySetting('effects', 1));
+  check(await page.evaluate(() => SAVE.data.settings.effects === 1 && document.activeElement.textContent === 'Normal'), 'and left, Normal again');
   await page.keyboard.press('Escape'); await page.waitForTimeout(200);
   dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), warn: (document.querySelector('#disclaimer p') || {}).textContent, focus: document.activeElement && document.activeElement.dataset.act, st: G.state, pro: !!document.getElementById('prologue') }));
   check(dw.up && dw.warn === WARNING && dw.focus === 'accept' && dw.st === 'title' && !dw.pro, 'Esc in it is Back: the same warning again, Accept focused, nothing begun (' + JSON.stringify(dw) + ')');
@@ -123,10 +124,10 @@ const hoverHit = lookFor;
   await padTap(15); const pf1 = await focusAct();
   await padTap(0); await page.waitForTimeout(100);
   const pin = await page.evaluate(() => ({ set: !!document.querySelector('#disclaimer .dset'), focus: document.activeElement && document.activeElement.dataset.act }));
-  await padTap(13); const pf2a = await focusAct(); await padTap(13); const pf2 = await page.evaluate(() => document.activeElement && document.activeElement.dataset.set);   // (Back, Set to default, then round to the first slider)
+  await padTap(13); const pf2a = await focusAct(); await padTap(13); const pf2 = await focusAct();   // (Back, Set to default, then round to the first: Volume's Calibrate)
   await padTap(1); await page.waitForTimeout(100);
   const pout = await page.evaluate(() => ({ warn: !!document.querySelector('#disclaimer .daccept'), focus: document.activeElement && document.activeElement.dataset.act, up: !!document.getElementById('disclaimer') }));
-  check(pf1 === 'settings' && pin.set && pin.focus === 'back' && pf2a === 'defaults' && pf2 === 'master' && pout.warn && pout.focus === 'accept' && pout.up, 'a pad: the d-pad to Adjust settings, A opens Settings, the d-pad goes round it, B is Back to the warning, Accept focused (' + JSON.stringify([pf1, pin, pf2, pout]) + ')');
+  check(pf1 === 'settings' && pin.set && pin.focus === 'back' && pf2a === 'defaults' && pf2 === 'calvol' && pout.warn && pout.focus === 'accept' && pout.up, 'a pad: the d-pad to Adjust settings, A opens Settings, the d-pad goes round it, B is Back to the warning, Accept focused (' + JSON.stringify([pf1, pin, pf2, pout]) + ')');
   await padTap(9); await page.waitForTimeout(1600);
   await page.evaluate(() => { navigator.getGamepads = () => []; });
   dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), pro: !!document.getElementById('prologue'), st: G.state, warned: SAVE.data.warned, stored: JSON.parse(localStorage.getItem('itscoming.v2')).warned }));
@@ -243,22 +244,48 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => document.activeElement.dataset.act === 'settings'), 'arrow keys move between buttons');
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   check(await page.evaluate(() => MENU.kind === 'settings' && UI.overlay.classList.contains('dlg') && !!document.querySelector('#overlay .panel .settings')), 'Settings opens from pause, in the dialog');
-  // the settings: a percentage at the right of each slider, following it; the on/off ones are switches
+  // the settings: Volume and Brightness each a Calibrate button (no slider left in Settings); Effects and Ambience (Normal
+  // or Quieter) and Text size (Smaller, Normal or Bigger) each a row of choices, a radio group; the on/off ones are switches
   v = await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('#overlay .settings input[type=range]')].map(r => { const o = r.parentElement.querySelector('.pct'); return { k: r.dataset.set, pct: o && o.textContent, right: o && o.getBoundingClientRect().left >= r.getBoundingClientRect().right }; });
+    const segs = [...document.querySelectorAll('#overlay .settings .seg')].map(g => ({ k: g.dataset.set, role: g.getAttribute('role'), name: g.getAttribute('aria-label'), label: g.closest('.opt').querySelector('.olabel').textContent,
+      opts: [...g.querySelectorAll('button')].map(b => b.textContent + (b.getAttribute('role') === 'radio' ? '' : '(not a radio)') + (b.getAttribute('aria-checked') === 'true' ? '*' : '')).join('|'), tabs: [...g.querySelectorAll('button')].map(b => b.tabIndex).join('') }));
+    const cals = [...document.querySelectorAll('#overlay .settings button.calbtn')].map(b => b.closest('.opt').querySelector('.olabel').textContent + ':' + b.textContent + ':' + b.dataset.act);
     const sw = [...document.querySelectorAll('#overlay .settings input[type=checkbox]')].map(c => ({ k: c.dataset.set, role: c.getAttribute('role'), name: c.closest('label').querySelector('.olabel').textContent, drawn: !!c.parentElement.querySelector('.sw') }));
-    return { rows, sw, text: UI.overlay.textContent };
+    return { segs, cals, sliders: document.querySelectorAll('#overlay .settings input[type=range]').length, sw, text: UI.overlay.textContent };
   });
-  check(v.rows.map(r => r.k + ':' + r.pct).join() === 'master:100%,effects:100%,ambient:100%,textSize:100%' && v.rows.every(r => r.right), 'each slider has its percentage at its right (' + JSON.stringify(v.rows) + ')');
+  check(v.sliders === 0 && v.cals.join() === 'Volume:Calibrate:calvol,Brightness:Calibrate:calbright', 'no sliders in Settings: Volume and Brightness each have a Calibrate button beside them (' + JSON.stringify(v.cals) + ')');
+  check(v.segs.map(g => g.k + '=' + g.opts).join() === 'effects=Normal*|Quieter,ambient=Normal*|Quieter,textSize=Smaller|Normal*|Bigger' && v.segs.every(g => g.role === 'radiogroup' && g.name === g.label) && v.segs.map(g => g.label).join() === 'Effects,Ambience,Text size' && v.segs.map(g => g.tabs).join() === '0-1,0-1,-10-1',
+    'Effects and Ambience are Normal or Quieter, Text size Smaller, Normal or Bigger: radio groups named for their rows, Normal chosen to begin with, only the chosen one a tab stop (' + JSON.stringify(v.segs) + ')');
   check(v.sw.map(s => s.k).join() === 'muted,reduceMotionFlash,captions,reduceTextures' && v.sw.every(s => s.role === 'switch' && s.drawn) && v.sw[1].name === 'Reduce motion and flashing effects' && v.sw[3].name === 'Reduce surface textures' && !/Surface detail|Reduce flashing \(|Reduce motion \(/.test(v.text),
     'the on/off settings are switches (role switch): Mute, Reduce motion and flashing effects (one, for both), Captions, Reduce surface textures (' + JSON.stringify(v.sw) + ')');
-  await page.evaluate(() => { const r = document.querySelector('input[data-set="effects"]'); r.value = '0.3'; r.dispatchEvent(new Event('input', { bubbles: true })); });
-  check(await page.evaluate(() => document.querySelector('input[data-set="effects"]').parentElement.querySelector('.pct').textContent === '30%'), 'the percentage follows the slider as it moves');
-  await page.evaluate(() => document.querySelector('input[data-set="effects"]').focus());
-  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(50);
-  check(await page.evaluate(() => Math.abs(SAVE.data.settings.effects - 0.35) < 1e-6 && document.querySelector('input[data-set="effects"]').parentElement.querySelector('.pct').textContent === '35%'), 'and as the keys move it');
+  // choosing: a click; the arrows along a row (choosing as they go, stopping at the ends), up and down to the next row;
+  // Enter and Space choose the one with the focus
+  const segState = () => page.evaluate(() => ({ fx: SAVE.data.settings.effects, amb: SAVE.data.settings.ambient, ts: SAVE.data.settings.textSize, scale: document.documentElement.style.getPropertyValue('--text-scale').trim(),
+    chosen: [...document.querySelectorAll('#overlay .seg')].map(g => g.querySelector('[aria-checked="true"]').textContent).join(), focus: document.activeElement && (document.activeElement.closest('.seg') ? document.activeElement.closest('.seg').dataset.set + ':' + document.activeElement.textContent : document.activeElement.dataset.act),
+    saved: (s => [s.effects, s.ambient, s.textSize].join())(JSON.parse(localStorage.getItem('itscoming.v2')).settings), kind: MENU.kind, st: G.state }));
+  await page.click('#overlay .seg[data-set="ambient"] [data-v="0.5"]'); await page.waitForTimeout(60);
+  const sg0 = await segState();
+  check(sg0.amb === 0.5 && sg0.chosen === 'Normal,Quieter,Normal' && sg0.saved === '1,0.5,1' && sg0.kind === 'settings' && sg0.st === 'paused', 'a click on Ambience\'s Quieter chooses it, saved, Settings still open (' + JSON.stringify(sg0) + ')');
+  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="effects"] [aria-checked="true"]').focus());
+  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(40); const sg1 = await segState();
+  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(40); const sg2 = await segState();
+  check(sg1.fx === 0.5 && sg1.focus === 'effects:Quieter' && sg2.fx === 0.5 && sg2.focus === 'effects:Quieter', 'right on Effects: Quieter, chosen with the focus; right again stays there (' + JSON.stringify([sg1, sg2]) + ')');
+  await page.keyboard.press('ArrowDown'); await page.waitForTimeout(40); const sg3 = await segState();
+  await page.keyboard.press('ArrowDown'); await page.waitForTimeout(40); const sg4 = await segState();
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(40); const sg5 = await segState();
+  check(sg3.focus === 'ambient:Quieter' && sg4.focus === 'textSize:Normal' && sg5.focus === 'textSize:Smaller' && sg5.ts === 0.85 && sg5.scale === '0.85', 'down goes to the next row (to its chosen one); left on Text size: Smaller, and the text is smaller (' + JSON.stringify([sg3.focus, sg4.focus, sg5]) + ')');
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(40); const sg6 = await segState();
+  check(sg6.ts === 1.4 && sg6.scale === '1.4' && sg6.focus === 'textSize:Bigger' && sg6.saved === '0.5,0.5,1.4', 'right twice: Bigger (' + JSON.stringify(sg6) + ')');
+  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="textSize"] [data-v="1"]').focus());
+  await page.keyboard.press('Enter'); await page.waitForTimeout(40); const sg7 = await segState();
+  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="effects"] [data-v="1"]').focus());
+  await page.keyboard.press(' '); await page.waitForTimeout(40); const sg8 = await segState();
+  check(sg7.ts === 1 && sg7.scale === '1' && sg8.fx === 1 && sg8.focus === 'effects:Normal' && sg8.kind === 'settings' && sg8.st === 'paused', 'Enter and Space choose the one with the focus (' + JSON.stringify([sg7, sg8]) + ')');
+  v = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+  check(v !== 'none', 'and the one with the focus shows it (outline ' + v + ')');
+  await page.click('#overlay .seg[data-set="effects"] [data-v="0.5"]'); await page.waitForTimeout(40);
   await page.click('#overlay input[data-set="reduceMotionFlash"]'); await page.waitForTimeout(100);
-  check(await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('itscoming.v2')).settings; return Math.abs(s.effects - 0.35) < 1e-6 && s.reducedFlash === true && s.reducedMotion === true && SAVE.data.settings.reducedMotion && SAVE.data.settings.reducedFlash && G.state === 'paused' && document.querySelector('input[data-set="reduceMotionFlash"]').checked; }), 'settings persist and changing them does not close the menu; the one switch turns both reduced motion and reduced flashing on');
+  check(await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('itscoming.v2')).settings; return s.effects === 0.5 && s.reducedFlash === true && s.reducedMotion === true && SAVE.data.settings.reducedMotion && SAVE.data.settings.reducedFlash && G.state === 'paused' && document.querySelector('input[data-set="reduceMotionFlash"]').checked; }), 'settings persist and changing them does not close the menu; the one switch turns both reduced motion and reduced flashing on');
   await page.keyboard.press('Enter'); await page.waitForTimeout(80);
   check(await page.evaluate(() => !SAVE.data.settings.reducedMotion && !SAVE.data.settings.reducedFlash && !document.querySelector('input[data-set="reduceMotionFlash"]').checked && MENU.kind === 'settings'), 'Enter on the focused switch flips it back: both off');
   await page.keyboard.press(' '); await page.waitForTimeout(80);
@@ -268,29 +295,33 @@ const hoverHit = lookFor;
   await page.click('#overlay input[data-set="reduceTextures"]'); await page.waitForTimeout(80);
   check(await page.evaluate(() => R.detail === false && SAVE.data.settings.reduceTextures === true), 'Reduce surface textures on: the plainer, faster surfaces');
   await page.click('#overlay input[data-set="reduceTextures"]'); await page.waitForTimeout(80);
-  check(await page.evaluate(() => !document.querySelector('#overlay button[data-act="reset"]') && [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'back:Back,defaults:Set to default'), 'Settings has Back and Set to default where Erase progress was (that is in Scores now)');
-  // Set to default: every setting as it began, at once, the switches and sliders (and their percentages) following; the
-  // progress, the best run and the accepted warning untouched; no question asked, the dialog stays, its button focused
+  check(await page.evaluate(() => !document.querySelector('#overlay button[data-act="reset"]') && [...document.querySelectorAll('#overlay .mrow button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'back:Back,defaults:Set to default'), 'Settings has Back and Set to default where Erase progress was (that is in Scores now)');
+  // Set to default: every setting as it began, at once, the switches and rows of choices following (and the volume's
+  // slider, in its dialog); the progress, the best run and the accepted warning untouched; no question asked, the dialog
+  // stays, its button focused
   v = await page.evaluate(() => {
     const before = { u: G.unlocked, run: JSON.stringify(SAVE.data.bestRun), warned: SAVE.data.warned };
-    for (const [k, x] of [['master', 0.2], ['effects', 0.45], ['ambient', 0], ['textSize', 1.3], ['captions', true], ['reduceTextures', true], ['reduceMotionFlash', true], ['muted', true]]) {
-      MENU.applySetting(k, x); const i = document.querySelector('#overlay [data-set="' + k + '"]'); if (i.type === 'checkbox') i.checked = x; else i.value = x;
-    }
+    for (const [k, x] of [['master', 0.2], ['effects', 0.5], ['ambient', 0.5], ['textSize', 1.4], ['captions', true], ['reduceTextures', true], ['reduceMotionFlash', true], ['muted', true]]) MENU.applySetting(k, x);
     setMuted(true);
-    document.querySelector('#overlay button[data-act="defaults"]').focus();
+    MENU.show('settings', { from: 'pause', focus: 'defaults' });   // (as it shows them all now)
+    before.shown = [...document.querySelectorAll('#overlay .seg')].map(g => g.querySelector('[aria-checked="true"]').textContent).join() + ';' + [...document.querySelectorAll('#overlay input[type=checkbox]')].map(c => c.checked).join();
     return before;
   });
   await page.keyboard.press('Enter'); await page.waitForTimeout(120);
   const dv = await page.evaluate(() => {
     const S = SAVE.data.settings, saved = JSON.parse(localStorage.getItem('itscoming.v2')).settings, q = k => document.querySelector('#overlay [data-set="' + k + '"]');
     return { kind: MENU.kind, confirm: !!document.querySelector('#overlay .confirm'), focus: document.activeElement && document.activeElement.dataset.act,
-      S: [S.master, S.effects, S.ambient, S.textSize, S.captions, S.reduceTextures, S.reducedMotion, S.reducedFlash, S.muted, S.swipeReverse].join(), saved: [saved.master, saved.effects, saved.textSize, saved.captions].join(),
-      ctl: ['master', 'effects', 'ambient', 'textSize'].map(k => q(k).value + '/' + q(k).parentElement.querySelector('.pct').textContent + '/' + q(k).getAttribute('aria-valuetext')).join(),
+      S: [S.master, S.effects, S.ambient, S.textSize, S.captions, S.reduceTextures, S.reducedMotion, S.reducedFlash, S.muted, S.swipeReverse].join(), saved: [saved.master, saved.effects, saved.ambient, saved.textSize, saved.captions].join(),
+      ctl: ['effects', 'ambient', 'textSize'].map(k => q(k).querySelector('[aria-checked="true"]').textContent + '/' + [...q(k).querySelectorAll('[role="radio"]')].map(b => b.tabIndex).join('')).join(),
       sw: ['muted', 'reduceMotionFlash', 'captions', 'reduceTextures'].map(k => q(k).checked).join(), muted: G.muted, detail: R.detail, scale: document.documentElement.style.getPropertyValue('--text-scale').trim(),
       u: G.unlocked, run: JSON.stringify(SAVE.data.bestRun), warned: SAVE.data.warned };
   });
-  check(dv.kind === 'settings' && !dv.confirm && dv.focus === 'defaults' && dv.S === '1,1,1,1,false,false,false,false,false,false' && dv.saved === '1,1,1,false', 'Set to default puts every setting back as it began, saved, with no question, Settings still open and its button focused (' + JSON.stringify(dv) + ')');
-  check(dv.ctl === '1/100%/100%,1/100%/100%,1/100%/100%,1/100%/100%' && dv.sw === 'false,false,false,false' && !dv.muted && dv.detail && dv.scale === '1', 'and the sliders, their percentages and the switches move with it, all applied (sound, textures, text size) (' + JSON.stringify(dv) + ')');
+  check(v.shown === 'Quieter,Quieter,Bigger;true,true,true,true' && dv.kind === 'settings' && !dv.confirm && dv.focus === 'defaults' && dv.S === '1,1,1,1,false,false,false,false,false,false' && dv.saved === '1,1,1,1,false', 'Set to default puts every setting back as it began (the volume, the rows of choices, the switches), saved, with no question, Settings still open and its button focused (' + JSON.stringify([v.shown, dv]) + ')');
+  check(dv.ctl === 'Normal/0-1,Normal/0-1,Normal/-10-1' && dv.sw === 'false,false,false,false' && !dv.muted && dv.detail && dv.scale === '1', 'and the rows of choices and the switches move with it, all applied (sound, textures, text size) (' + JSON.stringify(dv) + ')');
+  await page.click('#overlay button[data-act="calvol"]'); await page.waitForTimeout(100);
+  const mv = await page.evaluate(() => { const r = document.querySelector('#overlay input[data-set="master"]'); return r && [r.value, r.parentElement.querySelector('.pct').textContent, r.getAttribute('aria-valuetext')].join('/'); });
+  check(mv === '1/100%/100%', 'and the volume\'s slider, in its Calibrate dialog, is back at 100% (' + mv + ')');
+  await page.click('#overlay button[data-act="caldone"]'); await page.waitForTimeout(100);
   check(dv.u === v.u && dv.run === v.run && dv.warned === v.warned, 'and nothing but the settings: progress, the best run and the accepted warning as they were');
   await page.keyboard.press('m'); await page.waitForTimeout(80);
   check(await page.evaluate(() => G.muted && document.querySelector('input[data-set="muted"]').checked), 'M with Settings open mutes, and its Mute switch follows');
@@ -658,14 +689,28 @@ const hoverHit = lookFor;
   const cap0 = await page.evaluate(() => { document.querySelector('input[data-set="captions"]').focus(); return !!SAVE.data.settings.captions; });
   await tap(0);
   check(await page.evaluate(c0 => G.state === 'title' && MENU.kind === 'settings' && !!SAVE.data.settings.captions === !c0, cap0), 'A on a focused box ticks it and does not start the night');
+  await page.evaluate(() => document.querySelector('.seg[data-set="effects"] [aria-checked="true"]').focus());
+  await tap(15);
+  const padSeg1 = await page.evaluate(() => ({ fx: SAVE.data.settings.effects, focus: document.activeElement.textContent, kind: MENU.kind }));
+  await tap(0);
+  const padSeg2 = await page.evaluate(() => ({ fx: SAVE.data.settings.effects, st: G.state, kind: MENU.kind }));
+  await tap(14);
+  const padSeg3 = await page.evaluate(() => ({ fx: SAVE.data.settings.effects, focus: document.activeElement.textContent }));
+  check(padSeg1.fx === 0.5 && padSeg1.focus === 'Quieter' && padSeg1.kind === 'settings' && padSeg2.fx === 0.5 && padSeg2.st === 'title' && padSeg2.kind === 'settings' && padSeg3.fx === 1 && padSeg3.focus === 'Normal',
+    'the d-pad\'s right on Effects chooses Quieter, A on it does nothing else, left is Normal again (' + JSON.stringify([padSeg1, padSeg2, padSeg3]) + ')');
+  await page.evaluate(() => document.querySelector('button[data-act="calvol"]').focus());
+  await tap(0); await page.waitForTimeout(100);
+  check(await page.evaluate(() => MENU.sub === 'volume' && !!document.querySelector('#overlay input[data-set="master"]')), 'A on Volume\'s Calibrate opens its dialog');
   await page.evaluate(() => document.querySelector('input[data-set="master"]').focus());
   const vol0 = await page.evaluate(() => SAVE.data.settings.master);
   await tap(14);
-  check(await page.evaluate(v => Math.abs(SAVE.data.settings.master - (v - 0.05)) < 1e-6 && MENU.kind === 'settings', vol0), 'left on a focused slider turns it down');
+  check(await page.evaluate(v => Math.abs(SAVE.data.settings.master - (v - 0.05)) < 1e-6 && MENU.kind === 'settings' && document.querySelector('input[data-set="master"]').parentElement.querySelector('.pct').textContent === Math.round((v - 0.05) * 100) + '%', vol0), 'left on its focused slider turns the volume down, its percentage following');
   await tap(0);
-  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'settings'), 'A on a focused slider does nothing else');
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'settings' && MENU.sub === 'volume'), 'A on a focused slider does nothing else');
   await tap(1);
-  check(await page.evaluate(() => MENU.kind === 'title'), 'B goes back to the title');
+  check(await page.evaluate(() => MENU.kind === 'settings' && !MENU.sub && document.activeElement.dataset.act === 'calvol'), 'B is Done: Settings again, Volume\'s Calibrate focused');
+  await tap(1);
+  check(await page.evaluate(() => MENU.kind === 'title'), 'B again goes back to the title');
   await page.evaluate(() => { navigator.getGamepads = () => []; localStorage.clear(); });
 
   console.log('== settings saved before the switches carry over ==');
@@ -684,6 +729,24 @@ const hoverHit = lookFor;
   await page.evaluate(() => localStorage.clear());
   await page.goto(T.INDEX); await page.waitForTimeout(300);
   check(await page.evaluate(() => SAVE.data.settings.reduceTextures === false && R.detail === true && SAVE.data.warned === false), 'a new player: textures shown (Reduce surface textures off), the warning not yet accepted');
+  check(await page.evaluate(() => { const S = SAVE.data.settings; MENU.act('settings', 'title'); const shown = [...document.querySelectorAll('#overlay .seg')].map(g => g.querySelector('[aria-checked="true"]').textContent).join(); MENU.show('title'); return S.master === 1 && S.effects === 1 && S.ambient === 1 && S.textSize === 1 && shown === 'Normal,Normal,Normal'; }),
+    'a new player: the volume at 100%, Effects, Ambience and Text size all Normal');
+  console.log('== settings saved when the effects, the ambience and the text size were sliders ==');
+  // each to the nearest choice it has now: an effects or ambience slider under 75% is Quieter (0.5), else Normal; the
+  // text size Smaller (0.85), Normal (1) or Bigger (1.4), whichever is nearest; the volume kept as it was
+  for (const [old, want] of [
+    [{ master: 0.35, effects: 0.6, ambient: 0.8, textSize: 1.3 }, '0.35,0.5,1,1.4;Quieter,Normal,Bigger'],
+    [{ master: 0.8, effects: 0.75, ambient: 0, textSize: 0.9 }, '0.8,1,0.5,0.85;Normal,Quieter,Smaller'],
+    [{ effects: 0.74, ambient: 0.2, textSize: 1.15 }, '1,0.5,0.5,1;Quieter,Quieter,Normal'],
+    [{ effects: 1, ambient: 1, textSize: 1.25 }, '1,1,1,1.4;Normal,Normal,Bigger'],
+    [{ effects: 'loud', textSize: null }, '1,1,1,1;Normal,Normal,Normal'],
+  ]) {
+    await page.evaluate(o => { localStorage.clear(); localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 2 }, complete: {}, bestRun: {}, settings: o })); }, old);
+    await page.goto(T.INDEX); await page.waitForTimeout(300);
+    const got = await page.evaluate(() => { const S = SAVE.data.settings; MENU.act('settings', 'title'); return [S.master, S.effects, S.ambient, S.textSize].join() + ';' + [...document.querySelectorAll('#overlay .seg')].map(g => g.querySelector('[aria-checked="true"]').textContent).join() + '|' + document.documentElement.style.getPropertyValue('--text-scale').trim(); });
+    check(got.split('|')[0] === want && +got.split('|')[1] === +want.split(';')[0].split(',')[3], 'an older save ' + JSON.stringify(old) + ' comes in as ' + want + ', the text that size (' + got + ')');
+  }
+  await page.evaluate(() => localStorage.clear());
 
   console.log('== a v1 save keeps its progress ==');
   await page.goto(T.INDEX); await page.waitForTimeout(200);
@@ -1735,6 +1798,9 @@ const hoverHit = lookFor;
     check(!r.left && r.rev === false && r.cap === true, 'an older save with the touch buttons on the left loads without that setting, the rest kept (' + JSON.stringify(r) + ')');
     await sp.evaluate(() => { localStorage.clear(); }); await sp.close();
   }
+
+  // Settings' Calibrate dialogs (Volume, Brightness) and their sounds: test/settings.js, in this browser
+  await require('./settings').run(browser, check);
 
   if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }
   console.log(failures ? ('\n' + failures + ' FAILURES') : '\nALL CHECKS PASSED');

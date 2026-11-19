@@ -186,7 +186,15 @@ const TITLE = (() => {
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.85)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
     if (!still) grain(0.07);
   }
+  // the shape of it alone, as draw() puts it standing still and far enough off not to be bent down (figure, neck, head),
+  // all in the one colour col: no light behind it, no eyes, no grain. x, feet: where its feet are, px; ppm: px a metre
+  // (it is SHAPE_H m tall, SHAPE_W m wide). Settings' Brightness calibration (MENU) draws it so, in The Void's dark
+  function shape(g, x, feet, ppm, col) {
+    g.save(); g.translate(x, feet); g.scale(ppm, -ppm); figure(g, col, 0, 0, 0, 0); g.restore();
+    P_limb(g, [[x, feet - 1.8 * ppm], [x, feet - 2.1 * ppm]], 0.05 * ppm, col);
+    g.save(); g.translate(x, feet - 2.1 * ppm); g.scale(ppm, -ppm); head(g, col, 0, 0, 0, null); g.restore();
+  }
   // how near it is, as it is seen (0 far off, 1 as near as it comes): the title's drone follows it (game.js). dist: how
   // far off it is drawn now, metres; moving: on its way to its next place
-  return { enter, advance, active, draw, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D };
+  return { enter, advance, active, draw, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D, shape, SHAPE_H: 2.1 + 0.165, SHAPE_W: 0.8 };
 })();
