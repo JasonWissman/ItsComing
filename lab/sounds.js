@@ -88,6 +88,10 @@ const SOUNDS = [
   { kind: 'sfx', name: 'brake', n: [9], d: 'Tyres hissing on a wet road as it brakes.', src: 'night09 aftermath' },
   { kind: 'sfx', name: 'horn', n: [9], d: 'A car horn, twice.', src: 'night09 aftermath' },
   { kind: 'sfx', name: 'carDoor', n: [9], d: 'A car door opening.', src: 'night09 aftermath' },
+  { kind: 'sfx', name: 'dispatch', n: [9], d: 'A click, then a few clipped, crackling bursts of a voice too thin to make out, over the line\'s hiss: 911 answers.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'siren', n: [9], d: 'One wail of a police siren, up and down again in 1.6 s; played back to back while the police car comes and stands at the kerb.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'carThump', n: [9], d: 'A dull blow inside a car, the panel ringing and the springs creaking: the police car rocking with it inside.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'sirenDie', n: [9], d: 'The siren short-circuiting: the wail jumps, warbles and sags, sputtering, and cuts out in a crackle, a zap and a dying buzz.', src: 'night09 (911)' },
   { kind: 'sfx', name: 'page', n: [9], d: 'A page turned over. Leafing the notebook.', src: 'night09' },
   // ---- night 10: the mirror maze ----
   { kind: 'sfx', name: 'musicbox', n: [10, 13], d: 'A short music-box tune. The box’s song (10); the ending (13).', src: 'night10, night13' },
