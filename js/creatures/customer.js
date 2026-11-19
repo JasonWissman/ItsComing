@@ -24,6 +24,13 @@
 // stays bolt upright, its arms hang dead straight at its sides, and its head stays turned to you, under the hat.
 // A night can also put its hands on the bottom edge of a shutter (The Diner): c.shove { k 0..1 its hands coming up to it,
 // h the edge's height in its own metres from its feet, up 0..1 shoving it up }; its body lifts with c.yOff if it hangs.
+// And a night can stand it at a counter with a soda (The Diner, the soda fountain): c.soda, all in its own metres from
+// its feet, as the night sets them every frame: k 0..1 its right hand going to (hx, hy), the hand turned to hold a cup
+// there; hold whether it has the cup in that hand (drawn by c.soda.drawCup(ctx, P, full), S across, tilted by tilt, its
+// rim going over toward its face as tilt grows); bang 0..1 its two fists brought down onto the counter, fist [left,
+// right] how high each is raised (0 on the counter, 1 high); anger 0..1; jerk its head snapped over (radians); shake its
+// body shuddering across (metres); gape its jaw dropped (gulping, or its teeth bared in a rage). While it has the cup in
+// its hand the arm is drawn in front of its face.
 // Its frame, in metres from its feet: the hips at HIP, the top of the coat's shoulders at TOP, the head's middle 0.18 above
 // that and the crown of the hat about 1.9 m up.
 const CUST = { HIP: 0.9, TOP: 1.5, L1: 0.43, L2: 0.43 };
@@ -67,6 +74,7 @@ CREATURES.customer = {
   draw(ctx, c, P) {
     // its breath (every standing thing is drawn breathing) is held while it has hold of a shutter: its hands stay on the edge
     if (c.shove && !c.dead && !c.lunge) ctx.scale(1, 1 / (1 + 0.014 * Math.sin(c.t * 1.6)));
+    if (c.soda && c.soda.shake && !c.lunge) ctx.translate(c.soda.shake, 0);   // shuddering with rage at the counter
     // turning to run, or back: it turns as a solid thing turns, at its full width all the way round (drawTurn), the front
     // before it and the side after
     const turn = c.runPose ? (c.runTurn === undefined ? 1 : c.runTurn) : 0;
@@ -244,13 +252,15 @@ CREATURES.customer = {
     // at a shutter part way down (c.shove, set by the night): k how far its hands have come up to the bottom edge of it, h
     // how high that is (in its own metres, from its feet: the edge as seen from your eye), up 0..1 the shove
     const sv = c.shove && !lunge ? c.shove : null, grip = sv ? sv.k : 0, heave = sv ? sv.up : 0;
-    const back = !!c.away && !lunge, gape = Math.max(smoothstep(lunge * 1.5), 0.3 * heave);
+    // at a counter with a soda (c.soda, set by the night): reaching, drinking, pounding the counter
+    const sd = c.soda && !lunge ? c.soda : null;
+    const back = !!c.away && !lunge, gape = Math.max(smoothstep(lunge * 1.5), 0.3 * heave, sd ? sd.gape || 0 : 0);
     // the walk: stiff steps on straight legs, a foot barely lifting; now and then the feet stop and it slides on
     const st = c.moving ? 1 - this.glide(t) : 0, g = c.gait;
-    const press = lunge ? 0 : smoothstep((7.6 - c.dist) / 1.4);   // at the glass, the hands up and flat on it
+    const press = lunge || c.soda ? 0 : smoothstep((7.6 - c.dist) / 1.4);   // at the glass, the hands up and flat on it (not once it is inside)
     const reach = smoothstep(lunge * 1.6);
     // the head: laid slowly over and back, further at the glass; it comes upright and at you as it lunges
-    const tilt = this.tilt(t, lerp(0.22, 0.4, press)) * (1 - reach * 0.7) * (1 - heave * 0.6);
+    const tilt = this.tilt(t, lerp(0.22, 0.4, press)) * (1 - reach * 0.7) * (1 - heave * 0.6) + (sd ? sd.jerk || 0 : 0);
     const top = CUST.TOP, hk = 1 + lunge * 0.3;
     const headFrame = () => { ctx.translate(0, top); ctx.rotate(tilt * 0.35); ctx.translate(0, 0.07); ctx.rotate(tilt * 0.65); ctx.translate(0, 0.11); ctx.scale(hk, hk); };
     // the legs: dark trousers down over the shoes; one foot coming up a little at a time
@@ -267,6 +277,7 @@ CREATURES.customer = {
     // the arms: hanging dead still at its sides, never swinging; at the glass they come up, the elbows out, and the palms
     // press flat either side of its face; coming at you they reach for your face. At a shutter not yet down they go to the
     // bottom edge of it, wherever it is (the arms stretching as far as they must), and the fingers curl up round it.
+    let held = null;
     for (const s of [-1, 1]) {
       const sh = [s * 0.2, top - 0.05];
       const hang = { e: [s * 0.245, 1.2], h: [s * 0.255, 0.9] };
@@ -280,15 +291,40 @@ CREATURES.customer = {
         e = [lerp(e[0], G.e[0], grip), lerp(e[1], G.e[1], grip)]; h = [lerp(h[0], G.h[0], grip), lerp(h[1], G.h[1], grip)];
         ang = lerp(ang, Math.PI / 2, grip); open = lerp(open, 0.15, grip); size = lerp(size, 1.1, grip);
       }
+      if (sd) {
+        const L2 = (p, q, k) => [lerp(p[0], q[0], k), lerp(p[1], q[1], k)];
+        // pounding the counter: the fists come down on its far edge in front of it, and go up again, high when it is angry
+        const b = sd.bang || 0;
+        if (b > 0) {
+          const f = (sd.fist || [0, 0])[s > 0 ? 1 : 0], fh = [s * lerp(0.15, 0.2, f), 0.95 + f * 0.62], fe = [s * (0.34 + 0.08 * f), lerp(1.12, 1.4, f)];
+          e = L2(e, fe, b); h = L2(h, fh, b); ang = lerp(ang, -Math.PI / 2 + s * 0.2, b); open = lerp(open, 0, b); size = lerp(size, 1.25, b);
+        }
+        // the right hand to the cup: round it, the fingers across its front (turned toward its middle)
+        if (s > 0 && sd.k > 0) {
+          e = L2(e, [0.36, (sh[1] + sd.hy) / 2 - 0.06], sd.k); h = L2(h, [sd.hx, sd.hy], sd.k);
+          ang = lerp(ang, -Math.PI, sd.k); open = lerp(open, 0.35, sd.k); size = lerp(size, 1.1, sd.k);
+        }
+      }
+      // the cup in its hand: the arm comes after its face, the cup up to its mouth
+      if (sd && s > 0 && sd.hold) { held = { e, h, ang, open, size }; continue; }
       this.sleeve(ctx, K, [sh, e, h], 0.085, false);
       this.hand(ctx, K, h[0], h[1], ang, open, -s, size);
     }
     // the neck, lost in the shadow of the hat and the collar, and the head on it; then the collar up round its jaw
     ctx.save(); ctx.translate(0, top); ctx.rotate(tilt * 0.35); P_line(ctx, 0, 0, 0, 0.1, 0.05, K.shade); ctx.restore();
-    // hungry: its jaw working (harder as it comes on; not while it has hold of a shutter); coming at you, it gapes wide
-    const chomp = this.chomp(c, !!c.moving && !sv && !back);
+    // hungry: its jaw working (harder as it comes on, or as it rages at the counter; not while it has hold of a shutter);
+    // coming at you, it gapes wide
+    const chomp = this.chomp(c, (!!c.moving || (sd && sd.anger > 0.15)) && !sv && !back);
     ctx.save(); headFrame(); this.drawHead(ctx, c, P, K, near, gape, back, chomp); ctx.restore();
     if (!lunge) this.drawCollar(ctx, K, top);
+    if (held) {
+      const S = sd.S || 0.2, h = held.h;
+      ctx.save(); ctx.translate(h[0] - 0.045, h[1]); ctx.rotate(sd.tilt || 0); ctx.translate(0, -0.42 * S); ctx.scale(S, S);
+      if (sd.drawCup) sd.drawCup(ctx, P, !!sd.full);
+      ctx.restore();
+      this.sleeve(ctx, K, [[0.2, top - 0.05], held.e, h], 0.085, false);
+      this.hand(ctx, K, h[0], h[1], held.ang, held.open, -1, held.size);
+    }
   },
   // turning, a angle (0 face on, PI/2 side on, facing +x, mirrored by c.runDir): it turns as a solid thing turns, on the
   // spot, its body keeping its width (the front of it going round to the side, the far leg and arm going round behind it),

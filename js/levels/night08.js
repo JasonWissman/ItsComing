@@ -16,7 +16,29 @@ Object.assign(ICONS, {
     P_line(ctx, 0.18, 0.88, 0.18, 0.42, 0.022, shine);                           // a glint down the shaft
     P_line(ctx, -0.22, 0.3, -0.22, 0.07, 0.14, grip); P_line(ctx, -0.18, 0.28, -0.18, 0.09, 0.03, gripD);
   },
+  // a waxed paper soda cup, empty (its pale inside showing over the rim) and full (dark cola up to the rim under a head of
+  // foam)
+  paperCup(ctx, P) { dinerCup(ctx, P, false); },
+  paperCupFull(ctx, P) { dinerCup(ctx, P, true); },
 });
+// the cup: tapered, white, a red band round it with a white wave through it, edged dark so it reads on the pale counter
+function dinerCup(ctx, P, full) {
+  const edge = P.col([52, 46, 44]), paper = P.col([236, 232, 222]), shade = P.col([196, 190, 178]), red = P.col([184, 38, 34]);
+  const body = [[-0.33, 0.86], [0.33, 0.86], [0.23, 0.03], [-0.23, 0.03]];
+  P_poly(ctx, [[-0.37, 0.88], [0.37, 0.88], [0.26, 0.0], [-0.26, 0.0]], edge);
+  P_poly(ctx, body, paper);
+  P_poly(ctx, [[0.14, 0.86], [0.33, 0.86], [0.23, 0.03], [0.1, 0.03]], shade);                     // its shaded side
+  P_poly(ctx, [[-0.305, 0.62], [0.305, 0.62], [0.28, 0.4], [-0.28, 0.4]], red);                   // the band
+  ctx.strokeStyle = paper; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.beginPath();
+  for (let i = 0; i <= 12; i++) { const x = -0.27 + i * 0.045; ctx.lineTo(x, 0.51 + 0.04 * Math.sin(i * 1.3)); }
+  ctx.stroke();
+  P_ell(ctx, 0, 0.87, 0.36, 0.085, edge); P_ell(ctx, 0, 0.87, 0.33, 0.065, P.col([248, 246, 240]));   // the rolled rim
+  if (!full) { P_ell(ctx, 0, 0.865, 0.29, 0.048, P.col([168, 160, 146])); P_ell(ctx, 0.04, 0.855, 0.2, 0.03, P.col([140, 132, 120])); return; }
+  P_ell(ctx, 0, 0.87, 0.3, 0.05, P.col([66, 34, 20]));                                            // cola, to the brim
+  const foam = P.col([226, 206, 176]), foamL = P.col([246, 236, 216]);
+  P_ell(ctx, 0, 0.9, 0.29, 0.06, foam); P_ell(ctx, -0.1, 0.93, 0.12, 0.05, foamL); P_ell(ctx, 0.12, 0.92, 0.1, 0.04, foamL);   // a head of foam over it
+  for (const [x, y, r] of [[-0.2, 0.97, 0.03], [0.02, 0.99, 0.025], [0.2, 0.96, 0.022]]) P_ell(ctx, x, y, r, r, foamL);       // bubbles fizzing up
+}
 LEVELS.push({
   id: 'diner', title: 'The Diner', facing: 180, eyeH: 1.65, laneSwitch: false,   // its only change of way is its run to a window still open
   pal: { skyTop: [5, 5, 10], fog: [20, 17, 24], ground: [18, 16, 20], fogDist: 90 },
@@ -27,7 +49,7 @@ LEVELS.push({
   ],
   text: {
     intro: 'The last customer left an hour ago…\nbut another seems drawn in by the light.',
-    death: { default: 'One shutter was still open.', through: 'It came through the glass before the shutter was down.', lit: 'It was drawn in by the light.' },
+    death: { default: 'One shutter was still open.', through: 'It came through the glass before the shutter was down.', lit: 'It was drawn in by the light.', soda: 'It is insatiable.' },
     win: 'It beat on the shutter relentlessly, but they held.',
   },
   // three windows across the front, left to right as you face them; it comes for one. It stands at the glass on a line
@@ -238,6 +260,104 @@ LEVELS.push({
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
     ], { w: 0.5, h: 0.5, flat: true, tool: true, icon: 'shutterCrank', held: { grip: 'fist', at: [-0.22, 0.17], axis: 0, angle: -0.12, size: 0.36, tip: [0.36, 0.9] } });   // in the fist by its red grip, the rod standing up out of it; the hook leads it into an eye
 
+    // ---- the soda fountain behind you, and a paper cup on a shelf at the far end of the counter ----
+    // The fountain stands on a cabinet against the back wall, on the other side of the kitchen pass from the main; the cup
+    // is on a little shelf on the side wall over the end of the counter. Nothing about either says it does anything: the
+    // fountain cannot be pointed at until the cup is in hand, nor the counter until the cup in hand is full. Fill the cup,
+    // set it on the far side of the counter, and if it comes in through the glass while the lights are still on it has
+    // something else on its mind (the soda, below). Neither is needed for anything else, and neither costs a turn.
+    const FX = -mainX, FY = 0.9, FZ = -2.135, FW = 0.48, FH = 0.62;
+    SC.box(L, FX - 0.42, FX + 0.42, 0, FY - 0.03, -2.48, -2.08, [128, 118, 104]);   // the cabinet
+    SC.box(L, FX - 0.44, FX + 0.44, FY - 0.03, FY, -2.49, -2.06, chrome);
+    SC.box(L, FX - 0.23, FX + 0.23, FY, FY + FH, -2.44, -2.14, [112, 114, 120]);    // the fountain's body
+    SC.sprite(L, FX, FY, FZ, FW, FH, (ctx, P) => {   // its front: a lit header, three valves over a dark well and a drip tray
+      ctx.scale(FW, FH);
+      const on = lightsOn(), steel = P.col([156, 158, 164]), steelD = P.col([96, 98, 104]), ink = P.col([22, 22, 24]);
+      P_rect(ctx, -0.5, 0, 1, 1, P.col([44, 44, 48])); P_rect(ctx, -0.47, 0.02, 0.94, 0.955, steel);
+      P_rect(ctx, -0.47, 0.775, 0.94, 0.2, on ? P.raw([214, 52, 44]) : P.col([110, 30, 28]));                    // the header, lit from inside
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold italic 64px Georgia, serif';
+      ctx.save(); ctx.translate(0, 0.875); ctx.scale(0.0042, -0.0042 * FW / FH);
+      ctx.fillStyle = on ? P.raw([255, 244, 222]) : P.col([170, 150, 136]); ctx.fillText('Soda', 0, 0); ctx.restore();
+      // under it a little window that says EMPTY, dark, until the syrup runs out: then it blinks red (while there is power)
+      const dry = on && s.dryAt !== undefined && Math.floor((L.t - s.dryAt) * 2.5) % 2 === 0;
+      P_rect(ctx, -0.2, 0.69, 0.4, 0.065, ink);
+      ctx.font = 'bold 40px sans-serif'; ctx.save(); ctx.translate(0, 0.7225); ctx.scale(0.0024, -0.0024 * FW / FH);
+      ctx.fillStyle = dry ? P.raw([255, 70, 50]) : P.col([40, 30, 30]); ctx.fillText('EMPTY', 0, 0); ctx.restore();
+      [[-0.29, [190, 40, 36]], [0, [120, 64, 32]], [0.29, [214, 150, 40]]].forEach(([x, tab]) => {   // the valves: a tab of colour, a lever, a nozzle
+        P_rect(ctx, x - 0.11, 0.47, 0.22, 0.19, steelD); P_rect(ctx, x - 0.095, 0.48, 0.19, 0.17, P.col([186, 188, 194]));
+        P_rect(ctx, x - 0.075, 0.57, 0.15, 0.07, P.col(tab));
+        P_rect(ctx, x - 0.025, 0.42, 0.05, 0.07, ink); P_ell(ctx, x, 0.425, 0.035, 0.02, P.col([60, 60, 64]));
+      });
+      P_rect(ctx, -0.44, 0.09, 0.88, 0.32, P.col([26, 26, 28]));                                                   // the well
+      P_rect(ctx, -0.44, 0.03, 0.88, 0.07, steelD);                                                              // the drip tray
+      for (let x = -0.4; x < 0.42; x += 0.08) P_rect(ctx, x, 0.045, 0.04, 0.04, ink);
+    }, { face: BACK });
+    const nozzle = (() => { const p = L.pt(FX, FY + 0.43 * FH, FZ + 0.04); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; })();
+    // the shelf, on the side wall over the far end of the counter, on two brackets
+    const SHELF_Y = 1.42;
+    SC.box(L, 3.72, 3.99, SHELF_Y - 0.03, SHELF_Y, 0.82, 1.42, [104, 78, 54]);
+    for (const z of [0.9, 1.34]) SC.box(L, 3.94, 3.99, SHELF_Y - 0.2, SHELF_Y - 0.03, z - 0.015, z + 0.015, [60, 58, 56]);
+    // (one fixed spot, so the layout the rest of the night draws from its random stream is as it was)
+    const cup = mkItem(L, 'cup', 'Paper cup', { x: 3.86, y: SHELF_Y, z: 1.1, jitter: 0 }, { w: 0.16, h: 0.16, tool: true, icon: 'paperCup', material: 'soft', full: false,
+      held: { grip: 'fist', at: [0, 0.42], axis: 0, angle: 0.06, size: 0.17 } });
+    const setFull = v => { cup.full = v; cup.icon = v ? ICONS.paperCupFull : ICONS.paperCup; cup.name = v ? 'Cup of soda' : 'Paper cup'; G.invSig = ''; };
+    const inHand = () => G.inv.includes(cup);
+    const toHand = () => { const i = G.inv.indexOf(cup); if (i >= 0 && G.active !== i) { G.active = i; G.invSig = ''; } };
+    Object.assign(s, { fills: 0, cupOn: false, hopAt: -9, hopAmp: 0, pourAt: -9 });
+    const fountain = mkTarget(L, {
+      id: 'fountain', name: 'Soda fountain', x: FX, y: FY, z: FZ + 0.005, w: FW, h: FH, face: BACK, hidden: true,
+      hint() { return s.dryAt !== undefined ? 'Empty.' : cup.full ? 'The cup is full.' : 'Fill the cup.'; },
+      onClick() {
+        if (!inHand()) return true;
+        toHand();
+        if (cup.full) {   // full already: it goes under the nozzle and comes back
+          G.say('The cup is full already.', 'It is full.');
+          if (!G.fumble(cup, fountain, { preset: 'return', at: nozzle, sfx: { hit: 'pat' } }) && !G.fumbling) AUDIO.sfx('nope');
+          return true;
+        }
+        if (s.fills >= 2) {   // the third time: it coughs and spits, and nothing comes
+          G.thrust(nozzle, cup);
+          if (s.dryAt === undefined) s.dryAt = L.t;
+          fountain.name = 'Soda fountain: empty';
+          AUDIO.sfx('sodaSputter'); G.say('The fountain coughs and sputters. It is empty.', 'It is empty.');
+          if (s.soda && !cr().dead) sodaFury(1.35);
+          return true;
+        }
+        // under the nozzle, the hand held there while it pours: full as the hand comes back (L.update)
+        s.fills++; s.pourAt = L.t; s.pouring = true;
+        G.thrust(nozzle, cup); if (G.hand.thrust) G.hand.thrust.dur = 0.8;
+        AUDIO.sfx('sodaPour'); G.say('Soda fizzes into the cup.', 'The cup fills.');
+        return true;
+      },
+    });
+    // the counter's top, where the full cup is set down: on its far side (the side a customer sits), across from where it
+    // was clicked, clear of what else stands on the counter
+    const CUPZ = 1.36, CZ = 1.62, COUNTER_Y = 1.0;
+    const counter = mkTarget(L, {
+      id: 'counter', name: 'Counter', x: 0, y: COUNTER_Y, z: 0.76, w: 7.3, h: 0.68, flat: true, face: BACK, hidden: true,
+      hint() { return 'Set the cup on the counter.'; },
+      onClick() {
+        if (!inHand() || !cup.full || s.placing) return true;
+        toHand();
+        const x = counterX(), p = L.pt(x, COUNTER_Y, CUPZ);
+        s.cupX = x; s.placing = L.t;
+        G.thrust({ x: p[0], y: p[1], z: p[2], w: 0, h: 0 }, cup, true); G.removeFromInv(cup);
+        return true;
+      },
+    });
+    // where a click on the counter puts the cup: on its far side, on the line from the eye through the pointer (the middle
+    // of the view from a pad), clear of the register, the napkins, the bottles and the pie
+    const CLUTTER = [[-3.5, -2.7], [-0.97, -0.58], [0.33, 0.77], [1.98, 2.62]];
+    const counterX = () => {
+      const f = R.f, mx = G.mouse.x >= 0 ? G.mouse.x : R.W / 2, my = G.mouse.x >= 0 ? G.mouse.y - R.viewY : R.H / 2;
+      const cx = (mx - R.W / 2) / f, cy = (R.H / 2 - my) / f, cP = Math.cos(G.cam.pitch), sP = Math.sin(G.cam.pitch), cY = Math.cos(G.cam.yaw), sY = Math.sin(G.cam.yaw);
+      const cz = cy * sP + cP, wx = cx * cY + cz * sY, wz = -cx * sY + cz * cY, [lx, lz] = rotY(wx, wz, -L.facing);
+      let x = clamp(lx / Math.max(0.15, lz) * CUPZ, -2.55, 2.55);   // where that line crosses the far side of the counter
+      for (const [a, b] of CLUTTER) if (x > a - 0.08 && x < b + 0.08) x = x - a < b - x ? a - 0.09 : b + 0.09;
+      return clamp(x, -2.55, 2.55);
+    };
+    L.onPickup = it => { if (it === cup) s.cupOn = false; };
+
     // ---- the shutters: each its own way in, each cranked down with the crank in hand ----
     // the aperture a slanted way sees through its pane: the pane projected from the eye onto a plane across the way where
     // the way crosses the glass. Its sides stay upright; the top and bottom slant, so the rectangle kept is the part inside
@@ -285,6 +405,8 @@ LEVELS.push({
             if (!G.reach(t, { style: 'rattle', at: inReach(t, gearAt(i)) })) AUDIO.sfx('nope');
             return true;
           }
+          const ci = G.inv.findIndex(it => it.id === 'crank');   // (the cup in hand: the crank comes into it)
+          if (G.active !== ci) { G.active = ci; G.invSig = ''; }
           if (L.t - s.lastTurn < TURN) { s.queued = t; return true; }   // the ratchet is still going round: this turn comes next
           s.lastTurn = L.t; return false;                                 // one turn of the crank (useTarget turns it)
         },
@@ -434,6 +556,151 @@ LEVELS.push({
     L.isWon = () => s.down.every(Boolean) && !s.through;
     L.deathCause = () => (s.power ? 'lit' : s.through ? 'through' : null);
 
+    // ---- the soda ----
+    // It comes in through the glass with the lights still on and a full cup of soda standing on the counter: it does not
+    // come for you. It walks in to the counter across from the cup, takes it, tips it up and drinks it off, gulp by gulp,
+    // and sets it down again, empty. Then it pounds the counter: one fist, slowly, then both, faster and harder, its head
+    // snapping over at every blow and its whole body shuddering, until it has another (SODA.wait s the first time, a little
+    // less the second) or it has had enough of waiting, and it has you. Refilled and set down again in time, it drinks that
+    // too. The fountain has only two cups in it: tried a third time it sputters, EMPTY blinks on its front, and it goes
+    // into a fury and has you. Every way it ends, it is insatiable.
+    // It stands on the line from your eye through the cup (so the cup is straight below its face, as it sees it), just
+    // the other side of the counter; all its poses are in its own metres from its feet (js/creatures/customer.js).
+    const SODA = { pace: 2.2, reach: 0.42, lift: 0.45, drink: 1.5, gulps: [0.22, 0.66, 1.1], lower: 0.45, set: 0.28, shift: 0.55, wait: [9, 8], fury: 0.85 };
+    const standAt = x => [x * CZ / CUPZ, CZ];
+    // the cup as it shows at its distance: its base, and its size, in its own frame
+    const cupS = cup.w * CZ / CUPZ, cupBase = eye + (COUNTER_Y - eye) * CZ / CUPZ, GRIP = [0.045, cupBase + 0.42 * cupS], MOUTH = [0.13, 1.55];
+    const drawCup = (ctx, P, full) => (full ? ICONS.paperCupFull : ICONS.paperCup)(ctx, P);
+    const local = c => { const p = c.pos(); return rotY(p.x, p.z, -L.facing); };
+    const sodaWay = c => {
+      const way = Object.assign({}, L.lanes[c.lane.idx], { apertures: [], blockers: [], name: 'inside' });
+      return (x, z) => { const p = L.pt(x, 0, z), yaw = Math.atan2(p[0], p[2]); way.yaw = yaw; way.dirX = Math.sin(yaw); way.dirZ = Math.cos(yaw); c.lane = way; c.yaw = yaw; return Math.hypot(p[0], p[2]); };
+    };
+    const phase = (ph, dur) => Object.assign(s.soda, { ph, pt: L.t, dur: dur || 0 });
+    // to the cup: across the counter from it first, if it is not there already (set down somewhere else), then the hand to it
+    const toCup = () => {
+      const sd = s.soda, to = standAt(s.cupX);
+      if (s.cupOn && Math.abs(to[0] - sd.x) > 0.25) { Object.assign(sd, { from: [sd.x, sd.z], to }); phase('shift', SODA.shift); } else phase('reach', SODA.reach);
+    };
+    const sodaStart = c => {
+      const at = local(c), place = sodaWay(c), to = standAt(s.cupX);
+      s.soda = { ph: 'walk', pt: L.t, from: at, to, x: at[0], z: at[1], drinks: 0, anger: 0, k: 0, hx: GRIP[0], hy: GRIP[1], bang: 0, fist: [0, 0], last: [0, 0], next: [Infinity, Infinity],
+        hold: false, full: false, tilt: 0, gape: 0, jerk: 0, jerkAt: -9, jerkDir: 1, shake: 0, S: cupS, drawCup };
+      s.soda.dur = clamp(Math.hypot(to[0] - at[0], to[1] - at[1]) / SODA.pace, 1.2, 2.6);
+      c.soda = s.soda; c.catchDist = 0.3;
+      let px = at[0], pz = at[1];
+      c.distFn = (cc, dt) => {
+        const sd = s.soda, d = place(sd.x, sd.z), moved = Math.hypot(sd.x - px, sd.z - pz);
+        cc.gait += Math.max(0, moved - Math.abs(cc.dist - d)) * cc.CR.stepRate * Math.PI;   // its steps along the ground it really covers
+        px = sd.x; pz = sd.z;
+        return d;
+      };
+      G.say('It steps in through the broken glass, and goes to the counter.', 'It comes in, and goes to the counter.');
+    };
+    // one fist brought down on the counter: the thump, the counter jumping (and the cup on it), its head snapping over
+    const pound = (c, i) => {
+      const sd = s.soda;
+      AUDIO.sfx('counterPound', panTo(c.yaw)); G.shake(0.07 + 0.22 * sd.anger);
+      Object.assign(sd, { jerkAt: L.t, jerkDir: i ? 1 : -1 });
+      s.hopAt = L.t; s.hopAmp = 0.01 + 0.025 * sd.anger;
+    };
+    // its blows: one fist, slowly, while it is only impatient; both, in turn, and faster and faster, as it gets angrier
+    const blows = (c, fury) => {
+      const sd = s.soda, an = sd.anger, both = fury || an >= 0.35;
+      const gap = fury ? 0.14 : an < 0.35 ? lerp(1.05, 0.72, an / 0.35) : lerp(0.5, 0.2, (an - 0.35) / 0.65);
+      for (const i of [1, 0]) {   // 1 its right fist, 0 its left
+        if (!both && i === 0) { sd.next[0] = Infinity; continue; }
+        if (sd.next[i] === Infinity) { sd.last[i] = L.t; sd.next[i] = (sd.next[1 - i] === Infinity ? L.t : sd.next[1 - i]) + gap; }
+        if (L.t >= sd.next[i]) { pound(c, i); sd.last[i] = L.t; sd.next[i] = L.t + (both ? 2 * gap : gap); }
+      }
+      // how high each fist is: up from the counter after a blow, held, and down hard just before the next
+      const pk = lerp(0.6, 1, an);
+      sd.fist = [0, 1].map(i => {
+        const a = sd.last[i], b = sd.next[i];
+        if (b === Infinity) return 0;
+        const fall = Math.min(0.08, (b - a) * 0.3), up = b - fall;
+        return L.t < up ? pk * smoothstep(clamp((L.t - a - 0.05) / Math.max(0.05, up - a - 0.05), 0, 1)) : pk * clamp((b - L.t) / fall, 0, 1);
+      });
+    };
+    const sodaBang = () => {
+      const sd = s.soda;
+      phase('bang', SODA.wait[Math.min(Math.max(sd.drinks, 1), 2) - 1]);
+      Object.assign(sd, { anger0: sd.drinks > 1 ? 0.12 : 0, next: [Infinity, L.t + 0.4], last: [L.t, L.t] });
+    };
+    // its patience gone (or the fountain dry): a flurry of blows, both fists, as fast as they come, and then it has you
+    const sodaFury = dur => { const sd = s.soda; if (sd.ph === 'fury') return; phase('fury', dur); sd.anger = 1; sd.k = 0; sd.hold = false; sd.next = [Infinity, L.t + 0.1]; };
+    const sodaStep = (c, dt) => {
+      const sd = s.soda, a = L.t - sd.pt, rm = SAVE.data.settings.reducedMotion;
+      const ease = (p, q, k) => [lerp(p[0], q[0], k), lerp(p[1], q[1], k)];
+      const handTo = ([x, y]) => { sd.hx = x; sd.hy = y; };
+      switch (sd.ph) {
+        case 'walk': case 'shift': {   // to the counter, across from the cup
+          const u = clamp(a / sd.dur, 0, 1), e = sd.ph === 'walk' ? u : smoothstep(u);
+          sd.x = lerp(sd.from[0], sd.to[0], e); sd.z = lerp(sd.from[1], sd.to[1], e);
+          sd.bang = Math.max(0, sd.bang - dt * 5);
+          if (u >= 1) toCup();
+          break;
+        }
+        case 'reach':   // its right hand to the cup
+          sd.bang = Math.max(0, sd.bang - dt * 5); sd.k = smoothstep(a / sd.dur); handTo(GRIP);
+          if (a >= sd.dur) {
+            if (!s.cupOn) { sodaBang(); break; }   // taken from under its hand: it pounds the counter all the same
+            cup.taken = true; s.cupOn = false; G.hover = null; sd.hold = true; sd.full = cup.full;
+            phase('lift', SODA.lift);
+          }
+          break;
+        case 'lift': {   // up to its mouth, tipping
+          const e = smoothstep(a / sd.dur);
+          sd.k = 1; handTo(ease(GRIP, MOUTH, e)); sd.tilt = 1.05 * e;
+          if (a >= sd.dur) { phase('drink', SODA.drink); sd.gulp = 0; }
+          break;
+        }
+        case 'drink': {   // and down its throat, gulp by gulp, the cup going up and over
+          const u = clamp(a / sd.dur, 0, 1);
+          handTo([MOUTH[0] - 0.02 * u, MOUTH[1] + 0.03 * u]); sd.tilt = 1.05 + 0.7 * u;
+          if (sd.gulp < SODA.gulps.length && a >= SODA.gulps[sd.gulp]) { sd.gulp++; AUDIO.sfx('gulp', panTo(c.yaw)); }
+          const g = SODA.gulps.reduce((m, t0) => Math.max(m, a >= t0 ? Math.exp(-(a - t0) * 9) : 0), 0);
+          sd.gape = 0.16 + 0.22 * g;
+          if (a >= sd.dur) { sd.full = false; setFull(false); sd.drinks++; sd.gape = 0; phase('lower', SODA.lower); }
+          break;
+        }
+        case 'lower': {
+          const e = smoothstep(a / sd.dur);
+          handTo(ease(MOUTH, GRIP, e)); sd.tilt = 1.05 * (1 - e);
+          if (a >= sd.dur) {   // set down, empty, where it was
+            const p = L.pt(s.cupX, COUNTER_Y, CUPZ);
+            Object.assign(cup, { x: p[0], y: p[1], z: p[2], taken: false }); s.cupOn = true; sd.hold = false;
+            AUDIO.sfx('cupDown', panTo(c.yaw));
+            if (sd.drinks === 1) G.say('It sets the cup down empty and pounds the counter. It wants another.', 'It wants another.');
+            else G.say('Empty again. It pounds the counter.', 'It wants another.');
+            phase('set', SODA.set);
+          }
+          break;
+        }
+        case 'set':   // its hand off the cup, the fists coming up
+          sd.k = 1 - smoothstep(a / sd.dur); sd.bang = smoothstep(a / sd.dur);
+          if (a >= sd.dur) { sd.k = 0; sodaBang(); }
+          break;
+        case 'bang':   // waiting for another, angrier and angrier
+          sd.k = 0; sd.bang = Math.min(1, sd.bang + dt * 4);
+          sd.anger = clamp(sd.anger0 + (1 - sd.anger0) * a / sd.dur, 0, 1);
+          blows(c, false);
+          if (s.cupOn && cup.full) { toCup(); sd.fist = [0, 0]; }   // another: to it, and the fists down
+          else if (sd.anger >= 1) sodaFury(SODA.fury);                // its patience gone
+          break;
+        case 'fury':
+          sd.bang = Math.min(1, sd.bang + dt * 6); sd.k = Math.max(0, sd.k - dt * 6);
+          blows(c, true);
+          if (a >= sd.dur) { c.deathSpec = { delay: 0.12, dur: 0.45, sting: 'sting' }; die(c, 'soda'); return; }
+          break;
+      }
+      // its rage: the head snapping over at every blow, the body shuddering, the teeth bared (less of it all with reduced motion)
+      const an = sd.ph === 'bang' || sd.ph === 'fury' ? sd.anger : 0, since = L.t - sd.jerkAt;
+      sd.jerk = (rm ? 0.3 : 1) * sd.jerkDir * (0.06 + 0.3 * an) * Math.exp(-since * 9) * (sd.bang > 0.5 ? 1 : 0);
+      sd.shake = rm ? 0 : an * an * (sd.ph === 'fury' ? 0.022 : 0.013) * Math.sin(L.t * 61);
+      if (an > 0) sd.gape = an * 0.28 + 0.2 * an * Math.exp(-since * 8);
+    };
+
     L.update = dt => {
       const c = cr();
       if (s.target === undefined) s.target = c.lane.idx;
@@ -465,6 +732,20 @@ LEVELS.push({
         s.through = true; s.throughWin = c.lane.idx; s.queued = null; glass[c.lane.idx].alpha = 0;
         AUDIO.sfx('glassGive', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.4);
         c.hold = null; c.catchDist = Infinity; c.distFn = null; c.shove = null; c.yOff = 0;
+        if (s.power && s.cupOn && cup.full) sodaStart(c);   // the lights on and a soda on the counter: that, first
+      }
+      if (s.soda && !c.dead && G.state === 'play') sodaStep(c, dt);
+      // the fountain is only something to use with the cup in hand, the counter only with it full
+      fountain.hidden = !inHand(); counter.hidden = !(inHand() && cup.full);
+      if (s.pouring && L.t - s.pourAt >= 0.45) { s.pouring = false; setFull(true); }
+      if (s.placing !== undefined && L.t - s.placing >= 0.22) {   // let go of on the counter's far side
+        const p = L.pt(s.cupX, COUNTER_Y, CUPZ);
+        Object.assign(cup, { x: p[0], y: p[1], z: p[2], taken: false }); s.cupOn = true; s.placing = undefined; G.hover = null;
+        AUDIO.sfx('cupDown');
+      }
+      if (s.cupOn) {   // it jumps when the counter is pounded
+        const e = L.t - s.hopAt;
+        cup.y = COUNTER_Y + (e < 0.6 ? s.hopAmp * Math.abs(Math.sin(e * 26)) * Math.exp(-e * 8) : 0);
       }
     };
     // won: wherever it is, it comes straight up to the last shutter (its heels, running, on the other side; from far out it
@@ -593,6 +874,22 @@ LEVELS.push({
     L.dynamic = () => {
       const on = lightsOn();
       for (const [cx, cz] of TUBES) R.add(SC.mkQuad(L, [cx - 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz - 0.07], [cx + 0.65, 2.96, cz + 0.07], [cx - 0.65, 2.96, cz + 0.07], on ? [240, 246, 230] : [60, 62, 58], on ? { noFog: true, noLight: true } : {}));
+      // the soda fountain pouring (a dark stream from the middle nozzle down into the well, fizzing), and spitting dry
+      const pe = L.t - s.pourAt, de = s.dryAt === undefined ? 9 : L.t - s.dryAt;
+      if (pe < 0.85 || de < 1.0) {
+        const y0 = FY + 0.42 * FH, y1 = FY + 0.07 * FH, z = FZ + 0.03, sd = Math.hypot(FX, FZ) - 0.2, cola = [70, 38, 22];
+        const bit = (y, h, w, col, al) => R.add(SC.mkQuad(L, [FX - w, y, z], [FX + w, y, z], [FX + w, y + h, z], [FX - w, y + h, z], col, { alpha: al, sortDist: sd }));
+        if (pe < 0.85) {
+          const top = y0 - Math.max(0, pe - 0.7) / 0.15 * (y0 - y1), bot = Math.max(y1, y0 - pe / 0.08 * (y0 - y1));   // it starts, runs, and stops from the top
+          if (top > bot) bit(bot, top - bot, 0.011, cola, 0.95);
+          for (let k = 0; k < 6; k++) { const y = y0 - ((pe * 2.2 + k / 6) % 1) * (y0 - y1); if (y < top && y > bot) bit(y, 0.01, 0.006, [236, 220, 196], 0.9); }   // fizz in it
+          if (pe > 0.08) bit(y1, 0.012, 0.03 + 0.01 * Math.sin(pe * 40), [214, 196, 168], 0.85);   // foam where it lands
+        }
+        if (de < 1.0) for (let k = 0; k < 6; k++) {   // spat out a few drops at a time
+          const t0 = 0.06 + k * 0.15 + 0.04 * Math.sin(k * 7.1), e = de - t0;
+          if (e > 0 && e < 0.16) bit(y0 - e / 0.16 * (y0 - y1), 0.022, 0.005, cola, 0.9);
+        }
+      }
       // the shutters, outside the glass, coming down from the slot at the top: steel slats, a heavy bottom rail
       PANES.forEach(([x0, x1], i) => {
         R.glowAs(shutters[i]);   // the curtain, and the crank turning in its gearbox, glow with the window's shutter

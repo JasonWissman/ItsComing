@@ -274,6 +274,22 @@ some on the ground, so you have to turn and look down to find them.
    crank on it is lost, and it comes through the glass. A shutter all the way down holds
    it. With the last shutter down it runs up to it
    and beats on it, hard and fast, until the night fades.
+   There is a soda fountain behind you, on a cabinet against the back wall on the other side of the kitchen pass from
+   the main (a lit red Soda header, three valves over a dark well, a drip tray, and a little window that says EMPTY,
+   dark), and a waxed paper cup on a shelf on the side wall over the far end of the counter. Nothing says either does
+   anything: the fountain cannot be pointed at (no pointer, no line, nothing the view can hit) until the cup is in hand,
+   and the counter's top not until the cup in hand is full. With the cup, the fountain pours it full, fizzing, the cup
+   held under the nozzle (in hand it shows dark cola under a head of foam); full, a click on the counter sets it on the
+   far side, across from where you clicked and clear of the register, the napkins, the bottles and the pie. Thrown
+   main or not, it is optional and costs nothing else (the cup is a tool, and the crank comes back into the hand for a
+   shutter). But if it comes through the glass while the lights are still on and the full cup is standing on the
+   counter, it does not come for you: it walks in to the counter across from the cup, takes it up, tips it to its mouth
+   and drinks it off in three gulps, and sets it down again, empty. Then it pounds the counter, one fist and slowly at
+   first, then both, faster and harder, the cup jumping at every blow, its head snapping over and its body shuddering,
+   its teeth bared. Refill it (pick the cup up, the fountain, the counter) within nine seconds and it drinks that too and
+   starts again, with eight seconds this time. Tried a third time, the fountain coughs and sputters, EMPTY blinks red on
+   its front, and it goes into a flurry of blows and has you; and if it waits too long, it has you anyway. Either way,
+   it is insatiable.
 9. **The Phone Booth.** It is raining and something is coming toward the booth, up the main street or along the far
    pavement of the cross street from the east: a shade, far too tall and far too thin, all one dark, its body and its long
    arms and legs one shadow with no clothes and no edges to it, so that most of the time all you see of it is two small

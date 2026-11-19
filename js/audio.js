@@ -468,6 +468,17 @@ const AUDIO = (() => {
       // a roller shutter shoved up hard, slamming into its housing: a huge metal crash,
       // the roll and the housing ringing, and the slats rattling on as it bounces
       case 'shutterSlam': noise(0.5, { freq: 380, vol: 1.0, attack: 0.002, pan }); noise(0.18, { type: 'bandpass', freq: 2400, q: 0.8, vol: 0.45, pan }); tone(38, 0.8, { vol: 0.9, endFreq: 22, pan }); for (const f of [173, 241, 389, 562, 811]) tone(f, 1.1, { vol: 0.07, type: 'triangle', endFreq: f * 0.97, pan }); for (let i = 0; i < 9; i++) noise(0.035, { type: 'bandpass', freq: 700 + (i % 3) * 400, q: 3, vol: 0.22 * (1 - i / 10), delay: 0.08 + i * 0.06 + i * i * 0.004, pan }); break;
+      // the diner's soda fountain: the valve's click, the stream drumming into the cup and the fizz rising off it, and the
+      // valve let go
+      case 'sodaPour': tone(820, 0.025, { vol: 0.08, type: 'square', endFreq: 520, pan }); noise(0.75, { type: 'bandpass', freq: 1500, q: 0.9, vol: 0.2, attack: 0.04, pan }); noise(0.5, { type: 'bandpass', freq: 650, q: 1.2, vol: 0.12, attack: 0.05, pan }); for (let i = 0; i < 10; i++) noise(0.012, { type: 'highpass', freq: 5200 + Math.random() * 2000, vol: 0.05, delay: 0.25 + i * 0.07 + Math.random() * 0.04, pan }); noise(0.9, { type: 'highpass', freq: 6000, vol: 0.05, attack: 0.3, delay: 0.3, pan }); tone(600, 0.02, { vol: 0.06, type: 'square', endFreq: 420, delay: 0.78, pan }); break;
+      // the fountain run dry: the valve's click, then air and a cough, a few spits of syrup and a low gurgle in the lines
+      case 'sodaSputter': tone(820, 0.025, { vol: 0.08, type: 'square', endFreq: 520, pan }); noise(0.25, { type: 'bandpass', freq: 2400, q: 0.7, vol: 0.12, attack: 0.02, pan }); for (const d of [0.08, 0.2, 0.27, 0.45, 0.52, 0.74]) noise(0.05, { type: 'bandpass', freq: 700 + Math.random() * 600, q: 2.2, vol: 0.3, delay: d, attack: 0.003, pan }); tone(92, 0.5, { vol: 0.1, type: 'sawtooth', endFreq: 58, delay: 0.1, attack: 0.05, pan }); break;
+      // a big swallow: the throat working, wet and low
+      case 'gulp': noise(0.07, { type: 'bandpass', freq: 420, q: 2, vol: 0.28, attack: 0.01, pan }); tone(240, 0.11, { vol: 0.2, type: 'sine', endFreq: 120, pan }); tone(90, 0.16, { vol: 0.16, type: 'sine', endFreq: 60, delay: 0.04, pan }); break;
+      // a fist brought down on the diner's counter: a heavy thump in the wood under the top, and the things on it jumping
+      case 'counterPound': noise(0.2, { freq: 240, vol: 0.85, attack: 0.002, pan }); tone(68, 0.26, { vol: 0.6, endFreq: 42, pan }); noise(0.05, { type: 'bandpass', freq: 900, q: 1.3, vol: 0.28, pan }); for (let i = 0; i < 3; i++) noise(0.02, { type: 'bandpass', freq: 2400 + Math.random() * 1400, q: 6, vol: 0.07, delay: 0.03 + i * 0.035 + Math.random() * 0.02, pan }); break;
+      // a paper cup set down on the counter
+      case 'cupDown': noise(0.035, { type: 'bandpass', freq: 1150, q: 1.5, vol: 0.2, pan }); tone(310, 0.04, { vol: 0.05, type: 'triangle', endFreq: 230, pan }); break;
       case 'musicbox': [[880, 0], [1175, 0.25], [1319, 0.5], [1175, 0.75], [988, 1.0], [880, 1.3], [1319, 1.7], [1568, 1.95], [1319, 2.3], [1175, 2.55]].forEach(([f, d]) => tone(f, 0.55, { vol: 0.06, type: 'triangle', delay: d, pan })); break;
       case 'musicTurn': { // one turn of a music box's crank: a click, and the comb plucks the next few notes of that tune (from its start after a pause)
         const t0 = now(); if (!(t0 - (sfx.turnAt || -99) < 10)) sfx.turnN = 0; sfx.turnAt = t0;
