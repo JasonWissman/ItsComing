@@ -3,12 +3,17 @@
 // Checks first, each from a fresh start, with clicks on the switches as a click does them (useTarget):
 //  - lighting its place makes it flinch and run, side on, to a neighbouring place that is dark;
 //  - four switches on at once trip the main: it goes over to off, every light goes dark and every switch drops to off;
-//    no switch comes on while the main is off (a click is refused); the main pushed back on, with everything else still
-//    off, and then the switches work again;
+//    with the main off a switch can still be set, up or down, and nothing comes on; the main pushed back on, with
+//    everything else still off, and then the switches work again;
 //  - with the porch light on, lighting both its neighbours and then its place is a fourth switch: the main trips, it is
 //    not caught;
 //  - with the main off it comes at its own pace, no faster;
 //  - flipping switches at random gets you killed (several random runs, played out with G.step);
+//  - switches set with the main off come on when it goes on: more than three trip it straight back off (four, and
+//    seven: all but one); all eight, the porch light too, and the box bursts and the farm goes up: every place, the
+//    house, the box and the thing catch fire, it runs about burning in the open where you are looking, then turns on
+//    you and charges, and the card reads the fire's own line;
+//  - the clever win: the main off, its place and both its neighbours set, the main pushed on: it is caught at once;
 // then the night itself: the house switched off, both its neighbours lit, then its own place, and it comes apart.
 const sw = i => "G.L.targets.find(t => t.id === 'sw" + i + "')";
 const click = i => 'useTarget(' + sw(i) + ');';
@@ -46,7 +51,11 @@ const trip = fresh.concat([
   ['expect', 'G.L.dynamicLights().length === 0 && G.L.pal.ambient < 0.4', 'every light on the farm is out, the porch light too'],
   ['eval', 'window.__r1 = G.L.s.r; window.__t1 = G.L.t;'],
   ['eval', click(2) + click(0)],
-  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o) && G.lastToast.msg.includes("main is off")', 'with the main off a switch pushed up drops straight back, and you are told why'],
+  ['expect', '!G.L.s.power && G.L.s.on[2] && G.L.s.on[0] && G.L.s.on.filter(Boolean).length === 2 && G.lastToast.msg.includes("main is off")', 'with the main off a switch can still be set, and you are told the main is off'],
+  ['wait', 300],
+  ['expect', '!G.L.s.power && G.L.dynamicLights().length === 0 && G.L.s.pool < 0.05 && !G.L.s.litAt.some(t => t > window.__t1)', 'and nothing comes on: no light anywhere on the farm, the porch light too'],
+  ['eval', click(2) + click(0)],
+  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o)', 'set off again, with the main still off'],
   ['wait', 1500],
   ['expect', '!G.L.s.power && G.state === "play" && (window.__r1 - G.L.s.r) / (G.L.t - window.__t1) < 0.62 * 1.15 + 0.05', 'with the main off it stays off, and it comes at its own pace, no faster'],
   ['use', 'main'],
@@ -74,7 +83,8 @@ const trap = k => { const n = [(k + 6) % 7, (k + 1) % 7]; return [['use', 'sw' +
 const solve = [
   ['eval', 'const k = G.L.s.k, far = [0, 1, 2, 3, 4, 5, 6].filter(q => q !== k && !G.L.nb(k).includes(q)).slice(0, 3); ' + "far.forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
   ['expect', '!G.L.s.power && G.L.s.on.every(o => !o)', 'the box overloaded: the main trips, every light out'],
-  ['use', 'sw' + 1], ['expect', '!G.L.s.power && !G.L.s.on[1]', 'a switch refused while the main is off'],
+  ['use', 'sw' + 1], ['expect', '!G.L.s.power && G.L.s.on[1] && G.L.dynamicLights().length === 0', 'a switch set while the main is off: nothing comes on'],
+  ['use', 'sw' + 1], ['expect', '!G.L.s.power && !G.L.s.on[1]', 'and set off again'],
   ['use', 'main'],
   ['expect', 'G.L.s.power && !G.L.s.on[0]', 'the main back on; the porch light is off'],
   ['branch', 'G.L.s.k === 0', trap(0)], ['branch', 'G.L.s.k === 1', trap(1)], ['branch', 'G.L.s.k === 2', trap(2)], ['branch', 'G.L.s.k === 3', trap(3)],
@@ -83,6 +93,54 @@ const solve = [
   ['waitUntil', 'G.L.creature.fallT > 2.5', 6000],
   ['expect', 'G.L.creature.fallT > 2.5 && G.state === "won"', 'it shrieks and comes apart in the light, before the fade'],
 ];
+// the main tripped (three places far from it and the porch light on: a fourth), so it is off with every switch down
+const tripFirst = fresh.concat([
+  ['eval', 'const k = G.L.s.k, far = [0, 1, 2, 3, 4, 5, 6].filter(q => q !== k && !G.L.nb(k).includes(q)).slice(0, 3); ' + "far.forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
+  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o) && G.L.s.trips === 1', 'the main tripped: off, every switch down'],
+  ['wait', 400],   // (its flash gone)
+]);
+// n switches set with the main off (the porch light and then the places round from the tractor shed), then the main on:
+// more than three, and it trips straight back off as before
+const overload = n => tripFirst.concat([
+  ['eval', Array.from({ length: n }, (_, i) => click(i)).join('')],
+  ['expect', '!G.L.s.power && G.L.s.on.filter(Boolean).length === ' + n + ' && G.L.dynamicLights().length === 0', n + ' switches set with the main off, nothing on'],
+  ['use', 'main'],
+  ['expect', '!G.L.s.power && G.L.s.on.every(o => !o) && G.L.s.trips === 2 && !G.L.s.fire && G.state === "play"', 'the main pushed on with ' + n + ' set: it trips straight back off, every switch drops (no fire)'],
+  ['wait', 400],
+  ['expect', 'G.L.dynamicLights().length === 0', 'and every light is out again'],
+]);
+// every switch set, the porch light too, then the main: the farm goes up, and it gets you, burning
+const fire = tripFirst.concat([
+  ['eval', [0, 1, 2, 3, 4, 5, 6, 7].map(click).join('')],
+  ['expect', '!G.L.s.power && G.L.s.on.every(Boolean) && G.L.dynamicLights().length === 0', 'every switch set with the main off: nothing on yet'],
+  ['face', 7, true],
+  ['use', 'main'],
+  ['expect', '!!G.L.s.fire && G.state === "play"', 'the main pushed on with every switch set: the box bursts'],
+  ['waitUntil', 'G.L.s.fire.lit.every(t => t !== null && G.L.t > t)', 4000],
+  ['expect', 'G.L.s.fire.lit.length === 9 && G.L.s.fire.lit.every(t => t !== null)', 'every place, the house and the box are alight'],
+  ['expect', 'G.L.dynamicLights().length >= 9 && G.L.s.on.every(Boolean) && G.L.t - G.L.s.fire.at > 0.5', 'the fires light the farm (a light for each), every lamp blown'],
+  ['waitUntil', '!!G.L.s.fire.cr && G.L.creature.burn >= 1', 4000],
+  ['expect', 'G.L.creature.burn >= 1 && G.L.creature.shade < 0.1 && G.L.s.fire.cr.phase === "run" && G.L.creature.runPose', 'its spark found it: it is burning, and running'],
+  ['waitUntil', 'G.L.s.fire.cr.seenT > 1', 6000],
+  ['expect', 'G.L.s.fire.cr.seenT > 1 && G.L.s.r > 3 && G.state === "play"', 'it runs about in the open, where you can see it, and keeps off you while it does'],
+  ['waitUntil', 'G.L.s.fire.cr.phase !== "run"', 8000],
+  ['expect', 'G.L.s.fire.cr.ran > 10 && G.L.s.fire.cr.t > 2.5', 'it ran about for a while, more than 10 m, then turned on you'],
+  ['waitUntil', 'G.state === "dying" || G.state === "dead"', 4000],
+  ['expect', 'G.deathCause === "fire" && G.deathCreature.deathSpec && G.deathCreature.deathSpec.sting === "stingBurn" && G.L.creature.burn >= 1', 'then it charged and got you, burning'],
+  ['waitUntil', 'G.state === "dead"', 4000],
+  ['expect', 'G.deathScreen && G.deathScreen.text === "Apparently the electrical box wasn\'t rated for that."', 'the card: "Apparently the electrical box wasn\'t rated for that."'],
+]);
+// the clever win: the main off, its place and both its neighbours set, then the main on: caught the moment the lights come on
+const clever = tripFirst.concat([
+  ['eval', 'window.__kc = G.L.s.k; ' + "[G.L.s.k].concat(G.L.nb(G.L.s.k)).forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
+  ['expect', '!G.L.s.power && G.L.s.on.filter(Boolean).length === 3 && !G.L.s.on[0] && G.L.s.on[window.__kc + 1] && G.L.dynamicLights().length === 0 && G.L.s.k === window.__kc', 'its place and both its neighbours set with the main off: nothing on, and it has not moved'],
+  ['use', 'main'],
+  ['expect', 'G.L.s.power && G.L.s.on.filter(Boolean).length === 3 && G.L.dynamicLights().length === 6', 'the main on: the three lights come on with it'],
+  ['waitUntil', 'G.L.won', 1500],
+  ['expect', 'G.L.won && G.L.s.trapped && G.L.s.k === window.__kc && !G.L.s.run && G.L.s.flushes === 0', 'caught at once, with nowhere dark to go: won'],
+  ['waitUntil', 'G.L.creature.fallT > 1', 4000],
+  ['expect', 'G.L.creature.fallT > 1', 'and it comes apart in the light'],
+]);
 module.exports = {
-  nightmare: [].concat(flush, trip, houseOn, randoms, fresh, solve),
+  nightmare: [].concat(flush, trip, houseOn, randoms, overload(4), overload(7), fire, clever, fresh, solve),
 };

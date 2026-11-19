@@ -20,10 +20,11 @@ CREATURES.carrier = {
   // In its lunge it is lit up (glare): its own colours, whatever the dark and the light round it would make of them
   glare(c) { return c.lunge > 0 && c.fallT === undefined ? smoothstep(clamp(c.lunge * 2.5, 0, 1)) : 0; },
   shaded(c, P) {
-    const gl = this.glare(c), k = clamp(c.shade || 0, 0, 1) * (1 - gl);
-    if (k < 0.01 && gl < 0.01) return P;
-    const dark = col => mixc(col, [8, 9, 12], k);
-    if (gl < 0.01) return Object.assign({}, P, { col: col => P.col(dark(col)), cola: (col, a) => P.cola(dark(col), a) });
+    const gl = this.glare(c), k = clamp(c.shade || 0, 0, 1) * (1 - gl), ch = clamp(c.char || 0, 0, 1);
+    if (k < 0.01 && gl < 0.01 && ch < 0.01) return P;
+    const dark = col => mixc(ch > 0.01 ? mixc(col, [34, 22, 14], ch) : col, [8, 9, 12], k);   // (c.char: scorched toward a sooty brown)
+    const take = kk => (kk === undefined ? 1 : kk) * (1 - 0.7 * ch);   // (scorched, it takes less of the light on it: it stays sooty under its own fire)
+    if (gl < 0.01) return Object.assign({}, P, { col: (col, kk) => P.col(dark(col), take(kk)), cola: (col, a) => P.cola(dark(col), a) });
     const rgb = str => str.slice(str.indexOf('(') + 1, -1).split(',').map(Number);
     const lit = col => mixc(rgb(P.col(dark(col))), mixc(col, [255, 238, 214], 0.06), gl);
     return Object.assign({}, P, { col: col => rgba(lit(col)), cola: (col, a) => rgba(lit(col), a) });
@@ -92,9 +93,18 @@ CREATURES.carrier = {
     P_poly(ctx, [[-0.42, 0.7], [0.42, 0.7], [0.36, 1.25 - hunch * 0.3], [-0.36, 1.25 - hunch * 0.3]], sack);
     for (let k = 0; k < 4; k++) P_line(ctx, -0.3 + k * 0.2, 0.75, -0.25 + k * 0.2, 1.2, 0.012, sackD);
     P_rect(ctx, -0.12, 0.85, 0.22, 0.16, sackD);
-    // arms wrapped round itself; when it lunges they open
+    // arms wrapped round itself; when it lunges they open (and as it charges, burning: c.charge). Burning, it beats at
+    // itself, both arms thrown up and flailing over its head (c.flail)
+    const fl = smoothstep(clamp(c.flail || 0, 0, 1)) * (1 - lunge);
     for (const s of [-1, 1]) {
-      const open = lunge, up = s > 0 ? rec : 0;
+      if (fl > 0.02) {
+        const w = Math.sin(t * 13 + s * 1.7), v = Math.sin(t * 11 + s * 2.3);
+        const ex = lerp(s * 0.1, s * (0.6 + 0.08 * w), fl), ey = lerp(0.95, 1.5 + 0.12 * v, fl), hx = lerp(-s * 0.25, s * (0.38 + 0.24 * w), fl), hy = lerp(1.05, 2.0 + 0.14 * v, fl);
+        P_limb(ctx, [[s * 0.38, 1.15], [ex, ey], [hx, hy]], 0.11, sack);
+        fingers(ctx, hx, hy, Math.PI / 2 + s * 0.4 + w * 0.3, 0.45, 0.13, 0.025, skin);
+        continue;
+      }
+      const open = Math.max(lunge, clamp(c.charge || 0, 0, 1) * 0.8), up = s > 0 ? rec : 0;
       if (up > 0.02) {   // the arm thrown up in front of its face, the fingers spread against the light
         const ex = s * lerp(0.1 + open * 0.55, 0.52, up), ey = lerp(0.95 + open * 0.3, 1.36, up), hx = -s * lerp(0.25 - open * 0.7, -0.08, up), hy = lerp(1.05 + open * 0.4, 1.66, up);
         P_limb(ctx, [[s * 0.38, 1.15], [ex, ey], [hx, hy]], 0.11, sack);
@@ -113,10 +123,84 @@ CREATURES.carrier = {
     if (rec < 0.3) this.eyes(ctx, c, [[-0.08, 0.27], [0.08, 0.27]]);
     // straining at its stitches as it nears you, and as it rears back from the light; in your face they pull wide, two of
     // them snap, and its teeth show through, top and bottom
-    const strain = near * (0.006 + 0.004 * Math.sin(t * 7.3)) + rec * 0.03 + smoothstep(lunge) * 0.17;   // in your face, pulled open tall
-    this.sewnMouth(ctx, P, 0, 0.1 - lunge * 0.012, 0.25 + lunge * 0.02, strain, (lunge > 0.35 ? 1 : 0) + (lunge > 0.7 ? 1 : 0), 5, t);
+    const scream = Math.max(fl, clamp(c.charge || 0, 0, 1)) * (1 - lunge);   // burning: shrieking against its stitches
+    const strain = near * (0.006 + 0.004 * Math.sin(t * 7.3)) + rec * 0.03 + smoothstep(lunge) * 0.17 + scream * (0.07 + 0.012 * Math.sin(t * 37));   // in your face, pulled open tall
+    this.sewnMouth(ctx, P, 0, 0.1 - lunge * 0.012, 0.25 + lunge * 0.02, strain, (lunge > 0.35 || scream > 0.5 ? 1 : 0) + (lunge > 0.7 ? 1 : 0), 5, t);
     ctx.restore();
     ctx.restore();
+    if (c.burn > 0) this.burnFlames(ctx, c, this.BURN_SPOTS, 0);
+  },
+  // ---- on fire (night 11: every switch on at once and the main pushed on sets the farm alight, and it with it) ----
+  // c.burn (0..1): how far the fire has taken it, catching at its middle and spreading over it; c.char (0..1): how
+  // scorched it is. The flames are drawn over whatever pose it is in, leaning back off it as it runs.
+  // A flame: one frame of a flickering tongue of fire from a strip of FLAME.n frames painted once (flameStrip), so a farm
+  // full of them costs a drawImage each. flame(ctx, x, y, w, h, t, seed, a): its foot at (x, y), w across and h tall (in
+  // a sprite's metres, +y up), t (seconds) its flicker, seed its own, a how much of it there is. Reduced motion: it
+  // flickers slower and sways less.
+  FLAME: { n: 16, w: 96, h: 128, u: 56, sheet: null },   // (u: the flame's own width in a frame w wide, room for its tongues to sway out)
+  flameStrip() {
+    const F = this.FLAME;
+    if (F.sheet || typeof document === 'undefined') return F.sheet;
+    const cv = document.createElement('canvas'); cv.width = F.w * F.n; cv.height = F.h;
+    const g = cv.getContext('2d');
+    if (!g) return null;
+    const tongue = (w, h, sway, bulge, stops) => {   // a tongue of flame, its foot on 0 and its tip h up, swayed aside
+      const gr = g.createLinearGradient(0, 0, 0, -h);
+      for (const [o, col] of stops) gr.addColorStop(o, col);
+      g.fillStyle = gr; g.beginPath(); g.moveTo(-w / 2, 0);
+      g.bezierCurveTo(-w * 0.64 * bulge, -h * 0.34, -w * 0.18 + sway * 0.45, -h * 0.72, sway, -h);
+      g.bezierCurveTo(w * 0.18 + sway * 0.45, -h * 0.72, w * 0.64 * bulge, -h * 0.34, w / 2, 0);
+      g.quadraticCurveTo(0, h * 0.05, -w / 2, 0); g.fill();
+    };
+    // each frame a ragged crown of tongues (one tall in the middle, two lower either side, each swaying and stretching on
+    // its own beat, all looping in the strip), soft at the edges, a hotter orange body in it and a pale core at its foot
+    const soft = 'filter' in g, U = F.u;
+    for (let i = 0; i < F.n; i++) {
+      const ph = i / F.n * TAU, H = F.h - 8;
+      g.save(); g.translate(i * F.w + F.w / 2, F.h - 4); g.beginPath(); g.rect(-F.w / 2, -F.h, F.w, F.h); g.clip();
+      const halo = g.createRadialGradient(0, -H * 0.25, 0, 0, -H * 0.25, U * 0.55);   // the glow round its foot
+      halo.addColorStop(0, 'rgba(255,120,40,0.3)'); halo.addColorStop(1, 'rgba(255,80,20,0)');
+      g.fillStyle = halo; g.fillRect(-F.w / 2, -H * 0.8, F.w, H * 0.8);
+      const crown = [[0, 1, 0], [-0.24, 0.62, 2.1], [0.26, 0.7, 4.2], [-0.1, 0.8, 1.1]].map(([x, hh, o]) => ({ x: x * U, h: H * hh * (0.8 + 0.13 * Math.sin(3 * ph + o) + 0.07 * Math.sin(5 * ph + o * 2)), sw: (Math.sin(ph + o) * 0.16 + Math.sin(2 * ph + o * 1.7) * 0.07) * U }));
+      if (soft) g.filter = 'blur(1.4px)';
+      const lk = (i / F.n * 2) % 1, la = Math.sin(Math.PI * lk);   // a lick broken off the top, rising and going out (twice a cycle)
+      if (la > 0.05) { g.globalAlpha = la * 0.8; g.save(); g.translate(crown[0].sw * 1.3, -crown[0].h * (0.66 + 0.34 * lk)); tongue(U * 0.18, H * 0.16, crown[0].sw * 0.1, 1, [[0, 'rgba(255,140,40,0.9)'], [1, 'rgba(230,60,20,0)']]); g.restore(); g.globalAlpha = 1; }
+      for (const t of crown) { g.save(); g.translate(t.x, 0); tongue(U * 0.5, t.h, t.sw, 1.1, [[0, 'rgba(250,86,22,0.9)'], [0.5, 'rgba(226,58,14,0.7)'], [1, 'rgba(140,24,8,0)']]); g.restore(); }
+      if (soft) g.filter = 'blur(0.8px)';
+      for (const t of crown.slice(0, 3)) { g.save(); g.translate(t.x * 0.7, 0); tongue(U * 0.36, t.h * 0.7, t.sw * 0.7, 1, [[0, 'rgba(255,178,48,0.95)'], [0.55, 'rgba(255,128,30,0.75)'], [1, 'rgba(255,96,20,0)']]); g.restore(); }
+      tongue(U * 0.3, crown[0].h * 0.4, crown[0].sw * 0.3, 0.95, [[0, 'rgba(255,250,214,1)'], [0.6, 'rgba(255,222,120,0.85)'], [1, 'rgba(255,196,90,0)']]);
+      if (soft) g.filter = 'none';
+      g.restore();
+    }
+    F.sheet = cv;
+    return cv;
+  },
+  flame(ctx, x, y, w, h, t, seed, a, add) {   // (add: laid on as light, brightening what it overlaps)
+    const sh = this.flameStrip(), F = this.FLAME;
+    if (!sh || a <= 0.01 || w <= 0 || h <= 0) return;
+    const rm = typeof SAVE !== 'undefined' && SAVE.data && SAVE.data.settings.reducedMotion ? 0.4 : 1;
+    const f = ((Math.floor(t * 15 * rm + seed * 5.3) % F.n) + F.n) % F.n, k = 1 + Math.sin(t * 9 * rm + seed * 2.1) * 0.08 * rm;
+    ctx.save(); ctx.translate(x, y + h * k); ctx.scale(1, -1);
+    if (a < 1) ctx.globalAlpha *= a;
+    if (add) ctx.globalCompositeOperation = 'lighter';
+    const ww = w * F.w / F.u;
+    ctx.drawImage(sh, f * F.w, 0, F.w, F.h, -ww / 2, 0, ww, h * k);
+    ctx.restore();
+  },
+  // where it burns, standing: [x, y, size] in its metres, the first catching first
+  // (its face is left clear: the flames are on its body, its shoulders and arms, and up off the top of its head)
+  BURN_SPOTS: [[0.02, 0.78, 0.5], [-0.38, 1.08, 0.42], [0.38, 1.02, 0.42], [-0.2, 1.72, 0.44], [0.2, 1.78, 0.4], [-0.25, 0.5, 0.34], [0.27, 0.46, 0.34], [0, 1.86, 0.42], [-0.44, 0.84, 0.3], [0.45, 0.8, 0.3]],
+  burnFlames(ctx, c, spots, lean) {
+    const b = clamp(c.burn || 0, 0, 1), t = c.t, n = spots.length;
+    for (let i = 0; i < n; i++) {
+      const [x, y, s] = spots[i], on = clamp(b * (n + 2) - i, 0, 1);
+      if (on <= 0) continue;
+      const sz = s * (0.45 + 0.55 * on), seed = i * 1.7 + (c.idx || 0) * 3.1;
+      if (!lean) { this.flame(ctx, x, y - sz * 0.32, sz * 0.82, sz * 1.75, t, seed, Math.min(1, on * 1.5)); continue; }
+      ctx.save(); ctx.translate(x, y - sz * 0.3); ctx.transform(1, 0, -lean, 1, 0, 0);   // leaning back off it as it runs
+      this.flame(ctx, 0, 0, sz * 0.8, sz * 1.8, t, seed, Math.min(1, on * 1.5));
+      ctx.restore();
+    }
   },
   // flat out, seen from the side, and still bent double round what it carries: the sack of its body tipped forward over
   // short legs going like pistons, the bundle clutched to its front in both arms, the head thrust out low ahead with its
@@ -150,10 +234,14 @@ CREATURES.carrier = {
     const bx = cx + fw[0] * 0.34 + sp[0] * 0.08, by = cy + fw[1] * 0.34 + sp[1] * 0.08 + Math.sin(g * 2) * 0.012;
     P_ell(ctx, bx, by, 0.21, 0.17, bundleD, 0.3); P_ell(ctx, bx - 0.02, by + 0.03, 0.17, 0.12, bundle, 0.3);
     P_line(ctx, bx - 0.17, by - 0.05, bx + 0.12, by + 0.13, 0.018, twine); P_line(ctx, bx - 0.06, by + 0.15, bx + 0.08, by - 0.14, 0.018, twine);
-    // the near arm wrapped round it, the hand clawed over the top
-    const hx = bx - 0.02, hy = by + 0.15;
-    P_limb(ctx, [[shX - 0.04, shY - 0.04], [bx + 0.22, by - 0.06], [bx + 0.14, by + 0.12], [hx, hy]], 0.11, sack);
-    fingers(ctx, hx, hy, Math.PI + 0.6, 0.24, 0.1, 0.024, skin);
+    // the near arm wrapped round it, the hand clawed over the top; burning, it lets go and beats at the flames over its
+    // head instead
+    const burning = (c.burn || 0) > 0.2;
+    if (!burning) {
+      const hx = bx - 0.02, hy = by + 0.15;
+      P_limb(ctx, [[shX - 0.04, shY - 0.04], [bx + 0.22, by - 0.06], [bx + 0.14, by + 0.12], [hx, hy]], 0.11, sack);
+      fingers(ctx, hx, hy, Math.PI + 0.6, 0.24, 0.1, 0.024, skin);
+    }
     // the head, low and thrust out ahead of the shoulders, the face in profile on its front
     const nod = Math.sin(g * 2) * 0.02 * pace, hdx = shX + 0.17, hdy = shY + 0.05 + nod;
     for (let i = 0; i < 9; i++) {   // the straw hair, streaming back as it goes
@@ -169,6 +257,12 @@ CREATURES.carrier = {
     this.sewnMouth(ctx, P, 0, 0, 0.15, 0.004 + 0.01 * pace, 0, 3, t);
     ctx.restore();
     leg(legs[0], sack, skin);   // the near leg, in front of the body
+    if (burning) {
+      const w = Math.sin(t * 12), v = Math.cos(t * 12), hx = shX + 0.08 + 0.24 * w, hy = shY + 0.72 + 0.1 * v;
+      P_limb(ctx, [[shX - 0.04, shY - 0.02], [shX + 0.16 + 0.06 * v, shY + 0.38], [hx, hy]], 0.11, sack);
+      fingers(ctx, hx, hy, Math.PI / 2 + w * 0.5, 0.45, 0.12, 0.024, skin);
+    }
+    if (c.burn > 0) this.burnFlames(ctx, c, [[cx - sp[0] * 0.05, cy + 0.3, 0.46], [cx + sp[0] * 0.32 - 0.1, cy + sp[1] * 0.32 + 0.22, 0.42], [hipX - 0.12, hipY + 0.2, 0.36], [shX - 0.06, shY + 0.18, 0.4], [hdx - 0.08, hdy + 0.2, 0.38], [shX + 0.12, shY + 0.66, 0.3], [hipX + 0.05, hipY - 0.1, 0.26]], 0.6 * pace);
     ctx.restore();
   },
   // Its end, in the light (c.fallT seconds in). FALL.shriek: it rears up screaming, shaking, an arm over its face. Then its

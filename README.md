@@ -373,11 +373,30 @@ some on the ground, so you have to turn and look down to find them.
     the stitches of its mouth tearing, its knees go, and it comes apart in the light, sacking and straw. The box takes
     three lights at once: a fourth trips the main with a bang and sparks, the main snaps over to OFF, every switch drops to
     off and every light on the farm goes out (the porch light too). Nothing comes on again until the main is pushed back
-    over to ON (a switch pushed up while it is off clunks and drops back), and all the while it comes for you through the
-    dark, at its own pace. While the porch light is on it creeps in no nearer than the edge of that light and waits there;
+    over to ON, and all the while it comes for you through the dark, at its own pace. With the main off the switches can
+    still be set, up or down (each lever stands where it is set; no pilot lamp lights and nothing comes on): pushed back
+    on, the main brings on whatever is set with it, as if each had been switched on there and then, so three or fewer
+    come on (and with its place and both its neighbours set, it is caught the moment they do: a way to win), and more
+    than three trip it straight back off again, sparks, every switch dropping and every light going out, as before. While the porch light is on it creeps in no nearer than the edge of that light and waits there;
     with it off, it comes all the way. So the porch light has to go off before the trap, and then there is not long. If it
     reaches you, it is lit up in your face however dark it is: the stitches pulling wide, two of them snapping, its teeth
     showing through.
+    Every switch set with the main off, the porch light too, and the main pushed on: the box was not built for that. It
+    bursts with a cracking bang (shake; a flash, not with Reduced flashing) in a spray of sparks, every lamp on the farm
+    flares for 0.3 s and blows, and big glowing sparks fly out of it in high arcs, trailing, one to every place, one to
+    the house and one to the thing (0.5 to 1.7 s, the further the later). Each catches where its spark lands, the fire
+    running out over it from there (flickering flames on its front, roof and doors, each growing over 1.1 s, the whole
+    place over 2.2 s; smoke rolling up off it and embers going up; its light out over the yard and on the ground before
+    it, and its glow), and the box itself goes up at once, spitting sparks. The sky and the haze go red, the fire roars
+    and crackles all round. The thing, its spark on it, goes up (the fire taking it from its middle out, scorching it
+    near black), shrieking, and runs flat out about the open yard where you are looking, side on, flames streaming
+    back off it and an arm beating at them over its head (round you, never through you, and in front of the house, not
+    through it; out of sight it tears round faster to where you are looking), until you have had about 3 s of it in
+    view (9 s at most). Then it stops, faces you, both arms flailing over its head (0.6 s), and charges straight in at
+    8.5 m/s, arms reaching, and has you, burning (its face clear of the flames in the lunge). The card reads
+    "Apparently the electrical box wasn't rated for that." Its sounds: the box bursting, each place catching, the
+    crackle (its caption soft), the fire's roar (a loop, louder as more burns), its burning shrieks and its own sting.
+    Reduced motion: the flames flicker slower and sway less.
 12. **The Bedroom.** You are in bed. It is already there, in the hall beyond the doorway
     or in the closet (in front of the clothes on the rail), behind the wall at the side of
     the opening: at first only its head leans out round the edge, its fingers curled round
