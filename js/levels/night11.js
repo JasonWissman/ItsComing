@@ -12,6 +12,12 @@
 // The box takes three lights at once. Throw a fourth and the main breaker at the top of the box trips: a bang, the main
 // snaps over to OFF, every switch drops to off with it and every light on the farm goes out. Nothing comes on again until
 // the main is pushed back over to ON, and it does not stop coming for you while you find it in the dark.
+// With the main off the switches can still be set, up or down; nothing comes on until the main goes back on, and then
+// what is set comes on with it, as if each had been switched on there and then (so with its place and both neighbours
+// set, it is caught the moment the main goes on). More than three set and the main trips straight back off.
+// Every one of them set, the porch light too, and the main pushed on: the box cannot take it. It bursts in a spray of
+// sparks, every lamp on the farm flares and blows, and big sparks fly out from the box to every place, the house and
+// the thing: everything goes up, the box too, and the thing, burning, runs shrieking about the yard, then turns on you.
 // The porch light is one of the three. While it is on, the yard round you is lit and the thing will come no nearer than
 // the edge of that light; while it is off, nothing stands between you and it, and it comes. So to trap it, the house has
 // to go dark first.
@@ -37,7 +43,7 @@ LEVELS.push({
     hint: 'It cannot stand the light. Light its place and it runs to a dark place next to it; light the places either side of it first, then its own, and it has nowhere to go. The box takes three lights at once, the porch light too: a fourth trips the main, and nothing comes on until you push the main back on.',
     objective: 'Find it. Light the places either side of it, then its own. No more than three lights at once.',
     where: 'It is out there in the dark, at one of the places. Find it.',
-    death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.' },
+    death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.', fire: 'Apparently the electrical box wasn\'t rated for that.' },
     win: 'It collapsed in the light, right in front of you.',
   },
   // one way in from each place: it stands at the foot of one, and comes in toward you from there (build)
@@ -342,10 +348,9 @@ LEVELS.push({
     const HANDF = "bold 42px 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', 'Chalkboard SE', 'Liberation Sans', Arial, sans-serif";
     const PLATEF = "bold 40px 'Liberation Sans', Arial, sans-serif";
     // how far up a switch's lever stands (1 up, on; 0 down, off): flipped over quickly, all dropping at once when the main
-    // trips, and a click with the main off pushing it up only for it to fall straight back
+    // trips. It stands where it is set whether the main is on or off (with it off, nothing it is set to comes on)
     const lever = i => {
       const ft = L.t - s.flipAt[i], want = s.on[i] ? 1 : 0;
-      if (L.t - s.deadAt[i] < 0.35) { const u = (L.t - s.deadAt[i]) / 0.35; return Math.sin(Math.PI * u) * 0.8; }
       if (L.t - s.dropAt < 0.12 && s.wasOn[i]) return 1 - (L.t - s.dropAt) / 0.12;
       return ft < 0.08 ? lerp(1 - want, want, ft / 0.08) : want;
     };
@@ -356,8 +361,9 @@ LEVELS.push({
       if (jt < 0.3) return 1 - Math.sin(Math.PI * jt / 0.3) * 0.12;
       return ft < 0.1 ? lerp(1 - want, want, ft / 0.1) : want;
     };
-    // the box's own little lamp: on with the main, flickering up as it goes back on
-    const boxLamp = () => { if (!s.power) return 0.22; const k = L.t - s.backAt; return k < 0.3 ? (Math.sin(k * 90) > 0 ? 0.85 : 0.3) : 0.85; };
+    // the box's own little lamp: on with the main, flickering up as it goes back on. Off, the panel is dim, but not so dim
+    // the levers cannot be made out. Burning, it is lit by its own fire
+    const boxLamp = () => { if (s.fire && L.t - s.fire.at > FIRE.flare) return 0.62 + 0.16 * Math.sin(G.t * (rmK() < 1 ? 7 : 19)) * rmK(); if (!s.power) return 0.3; const k = L.t - s.backAt; return k < 0.3 ? (Math.sin(k * 90) > 0 ? 0.85 : 0.3) : 0.85; };
     inBox(() => SC.sprite(L, BX, PY, BZ - 0.005, PW, PH, (ctx, P) => {
       const b = boxLamp(), C = c => P.col(scalec(c, b));
       const plate = C([150, 154, 146]), dark = C([30, 32, 32]), chrome = C([220, 224, 226]), tape = C([226, 212, 168]), ink = C([22, 20, 32]), paint = C([200, 200, 196]);
@@ -394,7 +400,7 @@ LEVELS.push({
     // the main and the switches: each a target on the panel, flat on it as the panel is
     inBox(() => mkTarget(L, {
       id: 'main', name: 'Main', x: BX, y: PY + MY - 0.045, z: BZ - 0.012, w: 0.28, h: 0.135, face: FRONT,
-      hint() { return s.power ? 'The main. On.' : 'The main. Off: push it back on.'; },
+      hint() { return s.fire ? 'The box is burning.' : s.power ? 'The main. On.' : 'The main. Off: push it back on. Whatever switches are set come on with it.'; },
       onClick() { main(); return true; },
     }));
     LABELS.forEach((lab, i) => {
@@ -407,9 +413,10 @@ LEVELS.push({
 
     // ---------------- the state of things ----------------
     Object.assign(s, { on: [true, false, false, false, false, false, false, false], wasOn: [], power: true, trips: 0, tripAt: -99, dropAt: -99, mainAt: -9, mainJig: -9, pool: 1,
-      flipAt: Array(8).fill(-9), litAt: Array(8).fill(-9), backAt: -99, deadAt: Array(8).fill(-9), sparks: [], smoke: [], k: null, r: null, run: null, flinch: null, back: null, flushes: 0, trapped: false, ring: N, edge: EDGE, hideAt: RING.map(p => p.hide) });
-    const lit = k => s.power && s.on[k + 1];
-    const houseLit = () => s.power && s.on[0];
+      flipAt: Array(8).fill(-9), litAt: Array(8).fill(-9), backAt: -99, fire: null, sparks: [], smoke: [], k: null, r: null, run: null, flinch: null, back: null, flushes: 0, trapped: false, ring: N, edge: EDGE, hideAt: RING.map(p => p.hide) });
+    const blown = () => !!s.fire && L.t - s.fire.at > FIRE.flare;   // (every lamp on the farm blown, the farm alight)
+    const lit = k => s.power && s.on[k + 1] && !blown();
+    const houseLit = () => s.power && s.on[0] && !blown();
     const countOn = () => s.on.filter(Boolean).length;
     const nb = k => [(k + N - 1) % N, (k + 1) % N];
     L.nb = nb;   // (for the tests)
@@ -419,27 +426,35 @@ LEVELS.push({
     const outOfBox = (x, z) => inBox(() => W(x, 0, z));         // a way across the box's front (x) and out of it toward you (-z), in the world
     // a fourth light: the main trips. A bang and a spit of sparks off it, it snaps over to OFF, every switch drops to off
     // with it, and every light on the farm goes out
-    const trip = () => {
+    const trip = msg => {
       s.wasOn = s.on.slice(); s.on.fill(false); s.power = false; s.trips++; s.tripAt = s.dropAt = s.mainAt = L.t;
       AUDIO.sfx('breakerTrip'); G.shake(0.55); G.flash(0.3);
       const fwd = outOfBox(0, -1);
       for (let i = 0; i < 22; i++) { const a = fxr() * TAU, v = 0.8 + fxr() * 2.0, d = outOfBox(Math.cos(a) * v * 0.7, -Math.abs(Math.sin(a)) * v * 0.6); s.sparks.push({ x: BOXP.x + fwd.x * 0.02, y: BOXP.y, z: BOXP.z + fwd.z * 0.02, vx: d.x, vy: 0.6 + fxr() * 2.2, vz: d.z, age: 0, life: 0.4 + fxr() * 0.6 }); }
       for (let i = 0; i < 4; i++) { const q = outOfBox((fxr() - 0.5) * 0.1, -0.05); s.smoke.push({ x: BOXP.x + q.x, y: BOXP.y + 0.05, z: BOXP.z + q.z, age: -i * 0.12, r: 0.05 + fxr() * 0.04 }); }
-      G.say('The main trips. Every switch drops, and every light on the farm goes out.', 'The main trips.');
+      G.say(msg || 'The main trips. Every switch drops, and every light on the farm goes out.', 'The main trips.');
     };
-    // the main: pushed back over to ON, with everything else off; pushed while it is on, it is on already
+    // the main: pushed back over to ON, and whatever switches are set come on with it, as if each were switched on there
+    // and then: more than three and it trips straight back off; every one of them and the box goes up (ignite). Pushed
+    // while it is on, it is on already
     const main = () => {
-      if (L.won || G.state !== 'play') return;
+      if (L.won || G.state !== 'play' || s.fire) return;
       if (s.power) { s.mainJig = L.t; AUDIO.sfx('switch'); G.say('The main is on.', 'The main is on.'); return; }
+      const n = countOn();
+      if (n === s.on.length) { ignite(); return; }
       s.power = true; s.mainAt = s.backAt = L.t;
       AUDIO.sfx('lever'); AUDIO.sfx('clunk');
-      G.say('The main goes back on. Everything else is off.', 'The main is on.');
+      if (n > 3) { trip('The main goes on, and trips straight back off: too many switches on. Every switch drops, and every light goes out.'); return; }
+      s.on.forEach((o, i) => { if (o) s.litAt[i] = L.t; });
+      if (n) AUDIO.sfx('tubeOn');
+      G.say(n ? 'The main goes back on, and the lights you set come on with it.' : 'The main goes back on. Everything else is off.', 'The main is on.');
     };
     const flip = i => {
-      if (L.won || G.state !== 'play') return;
-      if (!s.power) {   // the main is off: the lever goes up, nothing comes on, and it drops back
-        s.deadAt[i] = L.t; AUDIO.sfx('clunk');
-        G.say('Nothing comes on. The main is off.', 'The main is off.');
+      if (L.won || G.state !== 'play' || s.fire) return;
+      if (!s.power) {   // the main is off: the switch is set, up or down, and nothing comes on until the main does
+        s.on[i] = !s.on[i]; s.flipAt[i] = L.t;
+        AUDIO.sfx('switch'); AUDIO.sfx('clunk');
+        G.say(s.on[i] ? 'Set on. Nothing comes on while the main is off.' : 'Set off. The main is off.', 'The main is off.');
         return;
       }
       s.on[i] = !s.on[i]; s.flipAt[i] = L.t;
@@ -520,6 +535,7 @@ LEVELS.push({
     const shadeOf = c => {
       if (L.won) return 0;
       let k = s.k;
+      if (c.burn > 0) return 0;   // (lit by its own fire)
       if (s.run) { const y = c.yaw; k = RING.reduce((b, p) => (Math.abs(wrapPi(y - p.yaw)) < Math.abs(wrapPi(y - RING[b].yaw)) ? p.k : b), 0); }
       return lit(k) ? 0 : 1;
     };
@@ -531,11 +547,11 @@ LEVELS.push({
         c.lane = way; place(c, RING[s.k].yaw, RING[s.k].hide); c.dist = s.r;
         c.distFn = () => s.r; c.shade = 1;
       }
-      if (!L.won && G.state === 'play') step(c, dt);
+      if (!L.won && G.state === 'play') { if (s.fire) fireStep(c, dt); else step(c, dt); }
       c.u = clamp(1 - s.r / c.D0, 0, 1);
       c.shade += (shadeOf(c) - c.shade) * Math.min(1, dt * 7);
       // the ambient dark: a little darker still with the main off
-      const amb = s.power ? 0.42 : 0.32;
+      const amb = s.fire ? 0.36 + 0.12 * fireAll() : s.power ? 0.42 : 0.32;
       L.pal.ambient += (amb - L.pal.ambient) * Math.min(1, dt * 6);
       poolLight(dt);
       // the sparks and the smoke from the box
@@ -543,10 +559,11 @@ LEVELS.push({
       s.sparks = s.sparks.filter(p => p.age < p.life);
       for (const p of s.smoke) { p.age += dt; if (p.age > 0) { p.y += dt * 0.35; p.r += dt * 0.12; } }
       s.smoke = s.smoke.filter(p => p.age < 2.6);
+      if (s.fire) fireFx(dt);
     };
     L.isWon = () => s.trapped;
-    L.deathCause = () => (!s.power || L.t - s.backAt < 8 ? 'trip' : 'default');
-    L.onCatch = c => { c.shade = 0.45; c.runPose = false; return false; };   // (in your face, a little of it shows)
+    L.deathCause = () => (s.fire ? 'fire' : !s.power || L.t - s.backAt < 8 ? 'trip' : 'default');
+    L.onCatch = c => { c.shade = s.fire ? 0 : 0.45; c.runPose = false; return false; };   // (in your face, a little of it shows)
     // caught: it shrieks, its knees go, and it comes apart in the light (carrier.drawFall); the view closes in on it
     const FALL = CREATURES.carrier.FALL, FALL_END = FALL.shriek + FALL.sink + FALL.apart + 1.8;
     L.aftermath = (t, dt) => {
@@ -585,6 +602,199 @@ LEVELS.push({
     L.heldZoom = boxZoom;
     L.watchPoint = () => { const c = L.creature, p = c.pos(); return { x: p.x, y: 0.7, z: p.z, zoom: clamp(s.r / 5.5, 1.35, 4) }; };
 
+    // ---------------- the farm alight ----------------
+    // Every switch set on with the main off, then the main pushed on: the box cannot take it. A cracking bang and a
+    // spray of sparks off it, every lamp on the farm flaring for a moment (FIRE.flare) and blowing, and big sparks
+    // flying out from the box in arcs, one to every place, one to the house and one to the thing: each catches where its
+    // spark lands, the fire running out over it from there (FIRE.spread seconds a metre, each flame growing over
+    // FIRE.spot), and the box goes up at once. The thing, burning, runs shrieking about the yard in the open, where you
+    // are looking (at FIRE.runV, for FIRE.run seconds in view), turns on you, its arms over its head (FIRE.turn), and charges
+    // (FIRE.charge metres a second) until it has you.
+    const FIRE = { flare: 0.3, box: 0.12, grow: 2.2, spot: 1.1, spread: 0.22, run: 3.2, runMax: 9, turn: 0.6, runV: 7.2, charge: 8.5, maxSparks: 170 };
+    const CR = CREATURES.carrier;
+    const rmK = () => (SAVE.data.settings.reducedMotion ? 0.4 : 1);   // (reduced motion: the fires flicker less)
+    const SITES = [];   // what burns: the seven places (0..6, as RING), the house (7) and the box (8)
+    // each in its own frame: hit, where its spark lands; light, its fire's light out over its front (lr: how far it
+    // reaches); glow, the bloom of it (gr: how big); top, where its smoke goes up from (wide: how wide a fire it is); pool,
+    // the fire's light on the ground before it (z0, z1, w); spots, its flames [x, y, z, size], each fixed where it burns
+    const site = (deg, o) => inFrame(deg, () => {
+      const si = SITES.length, hit = W(...o.hit);
+      const st = { si, yaw: deg * DEG, hit, light: Object.assign(W(...o.light), { r: o.lr, i: 0, color: [255, 136, 56], flicker: 0.7, seed: si * 5 + 3 }), glow: W(...o.glow), gr: o.gr, top: W(...o.top), wide: o.wide, spots: [] };
+      o.spots.forEach(([x, y, z, sz], j) => {
+        const p = W(x, y, z), w = sz * 1.0, h = sz * 2.0, seed = si * 7.1 + j * 1.9;
+        st.spots.push({ d: Math.hypot(p.x - hit.x, p.y - hit.y, p.z - hit.z) * FIRE.spread });
+        SC.sprite(L, x, y - sz * 0.3, z, w, h, ctx => {
+          const g = spotFire(si, j);
+          if (g <= 0) return;
+          const a = Math.min(1, g * 2), fw = w * (0.4 + 0.6 * g), fh = h * (0.35 + 0.65 * g);
+          CR.flame(ctx, (j % 2 ? 0.3 : -0.3) * fw, 0, fw * 0.8, fh * 0.75, G.t * 1.1, seed + 3.3, a);   // a lower one beside it, flickering its own way
+          CR.flame(ctx, 0, 0, fw, fh, G.t, seed, a * 0.85, true);   // and the main one, laid on as light, so where they overlap the fire burns hotter
+        }, { noFog: true, noLight: true, sortDist: Math.hypot(p.x, p.z) - (o.sortK || 0.45) });
+      });
+      if (o.pool) {   // its fire's light on the ground before it
+        const [z0, z1, pw] = o.pool, ph = z1 - z0;
+        SC.sprite(L, 0, 0.02, z0, pw, ph, (ctx, P) => {
+          const lv = siteFire(si);
+          if (lv <= 0) return;
+          const a = 0.5 * lv * (1 - P.fog * 0.6) * flick(si);
+          ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(0, ph * 0.62); ctx.scale(pw / 2, ph * 0.62);
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, 'rgba(255,128,48,' + a.toFixed(3) + ')'); g.addColorStop(0.5, 'rgba(255,100,36,' + (a * 0.42).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,80,30,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.restore();
+        }, { flat: true, layer: 0, sortDist: -0.9, noLight: true, noFog: false });
+      }
+      SITES.push(st);
+    });
+    const row = (x0, x1, n, y, z, sz) => Array.from({ length: n }, (_, i) => [lerp(x0, x1, n > 1 ? i / (n - 1) : 0.5), y, z, sz]);
+    site(225, { hit: [0, 3.6, 20.7], light: [0, 2.6, 17.5], lr: 15, glow: [0, 2.5, 20.6], gr: 4.5, top: [0, 4.2, 23], wide: 10, pool: [12, 22.5, 15],   // the tractor shed
+      spots: row(-4.8, 4.8, 7, 4.15, 20.8, 1.6).concat([[-2.7, 1.2, 20.75, 1.4], [2.7, 1.2, 20.75, 1.4], [-5.15, 1.6, 20.9, 1.5], [5.15, 1.6, 20.9, 1.5], [0.8, 1.0, 23.8, 1.8], [0.2, 2.1, 23.8, 1.3]]) });
+    site(270, { hit: [0, 2.5, 15.75], light: [0, 2.2, 13.5], lr: 11, glow: [0, 2, 15.8], gr: 3, top: [0, 3.9, 17.8], wide: 4.4, pool: [7.5, 17, 10],   // the shed
+      spots: [[-1.8, 0.3, 15.65, 1.2], [1.8, 0.4, 15.65, 1.1], [0, 1.0, 15.65, 1.3], [1.35, 1.5, 15.65, 1.0], [-1.2, 1.9, 15.65, 1.2], [-2.1, 2.55, 15.65, 1.3], [-1.05, 3.25, 15.65, 1.3], [0, 3.9, 15.65, 1.5], [1.05, 3.25, 15.65, 1.3], [2.1, 2.55, 15.65, 1.3]] });
+    site(315, { hit: [0, 2.75, 23.5], light: [0, 2.4, 21], lr: 16, glow: [0, 2.2, 23.4], gr: 6, top: [0, 4.5, 26], wide: 16, pool: [12, 25.2, 20],   // the stables
+      spots: row(-7.5, 7.5, 9, 3.15, 23.25, 1.7).concat(row(-5.6, 5.6, 5, 0.9, 23.9, 1.3)) });
+    site(0, { hit: [0, 5.05, 29.6], light: [0, 4, 26.5], lr: 20, glow: [0, 5, 29.8], gr: 8, top: [0, 10.9, 32], wide: 12, pool: [18, 31.2, 18],   // the barn
+      spots: [[-5.6, 0.4, 29.6, 2.2], [5.6, 0.7, 29.6, 2.2], [-1.2, 0.9, 29.6, 2.4], [1.4, 0.7, 29.6, 2.2], [0, 3.1, 29.6, 2.0], [-4.2, 3.3, 29.6, 2.2], [4.3, 2.9, 29.6, 2.2], [-5.8, 5.9, 29.6, 2.6], [5.8, 5.9, 29.6, 2.6],
+        [-3.7, 9.1, 29.6, 2.4], [3.7, 9.1, 29.6, 2.4], [0, 7.3, 29.6, 2.4], [-1.8, 10.0, 29.6, 2.0], [1.8, 10.0, 29.6, 2.0], [0, 10.8, 29.6, 2.8]] });
+    site(45, { hit: [1.0, 4.35, 24.5], light: [-0.5, 4, 22], lr: 18, glow: [-1, 5, 25], gr: 7, top: [-2.2, 14.6, 26], wide: 8, pool: [13, 26.2, 16],   // the silo
+      spots: [[-2.2, 13.4, 25.1, 2.6], [-3.6, 10, 25.9, 2.0], [-0.9, 8, 25.6, 2.0], [-3.4, 5.5, 25.6, 2.0], [-1.0, 3, 25.6, 2.0], [-2.4, 0.6, 25.1, 2.0],
+        [1.2, 3.3, 24.75, 1.6], [2.8, 3.4, 24.75, 1.6], [4.6, 3.3, 24.75, 1.6], [2.8, 0.8, 25.1, 1.4], [0.8, 1.0, 25.1, 1.2], [4.8, 0.8, 25.1, 1.2]] });
+    site(90, { hit: [0, 2.65, 15.6], light: [1.5, 2, 13.5], lr: 11, glow: [1.5, 1.6, 15.8], gr: 3.5, top: [0, 2.6, 17], wide: 7, pool: [7.5, 17, 11],   // the coop
+      spots: [[-1.4, 2.45, 15.65, 1.1], [0, 2.5, 15.65, 1.3], [1.4, 2.45, 15.65, 1.1], [0, 1.15, 15.9, 1.0], [-1.5, 0.3, 16.0, 0.8], [1.5, 0.3, 16.0, 0.8], [2.6, 0.3, 15.9, 1.0], [3.6, 0.9, 15.9, 1.0], [4.8, 0.4, 15.9, 1.0]] });
+    site(135, { hit: [-1.35, 5.42, 19.9], light: [0, 2.5, 18], lr: 16, glow: [1, 2.5, 22], gr: 6, top: [0, 4.4, 30], wide: 9, pool: [11, 21.5, 14],   // the driveway: the pickup, the garage and the yard light's pole
+      spots: [[2.15, 2.0, 21.4, 1.6], [1.6, 1.1, 20.0, 1.3], [2.8, 1.1, 20.0, 1.3], [2.2, 1.4, 23.5, 1.4], [-3.8, 3.1, 27.6, 1.7], [-1.9, 3.3, 27.6, 1.7], [0, 3.5, 27.6, 1.8], [1.9, 3.3, 27.6, 1.7], [3.8, 3.1, 27.6, 1.7],
+        [-1.8, 0.9, 27.85, 1.6], [2.4, 1.0, 27.85, 1.5], [-2.3, 3.6, 19.8, 1.0], [-1.6, 5.5, 19.8, 1.0]] });
+    site(180, { hit: [0.95, 2.04, 6.85], light: [0, 2.6, 3.2], lr: 10, glow: [0, 3, 6], gr: 6, top: [0, 8.5, 11], wide: 10, pool: [1.2, 7.4, 13],   // the house behind you
+      spots: row(-2.4, 2.4, 5, 2.8, 4.75, 1.2).concat([[-2.65, 1.0, 5.0, 1.0], [2.65, 1.0, 5.0, 1.0], [-3, 3.9, 6.9, 1.6], [0, 4.0, 6.9, 1.5], [3, 3.9, 6.9, 1.6], [-3, 1.5, 6.9, 1.4], [3, 1.5, 6.9, 1.4], [-4.3, 5.3, 6.9, 1.6], [4.3, 5.3, 6.9, 1.6],
+        [-2, 6.4, 8.6, 1.8], [2, 6.4, 8.6, 1.8], [-3.6, 6.0, 8.0, 1.7], [3.6, 6.0, 8.0, 1.7], [-3.5, 8.3, 11, 2.2], [0, 8.4, 11, 2.4], [3.5, 8.3, 11, 2.2], [2.6, 9.5, 11.9, 1.4]]) });
+    site(BOX_DEG, { hit: [BX + 0.06, PY + MY, BZ - 0.02], light: [0, 1.1, BZ - 0.4], lr: 3.5, glow: [0, 1.05, BZ - 0.05], gr: 0.14, top: [0, 1.4, BZ + 0.1], wide: 0.5, sortK: 0.08,   // the box on its post, at your left hand
+      spots: [[-0.17, 1.28, BZ - 0.04, 0.15], [0.14, 1.3, BZ - 0.04, 0.17], [0.03, 1.36, BZ + 0.1, 0.16], [0.21, 0.8, BZ - 0.05, 0.14], [-0.21, 0.66, BZ - 0.05, 0.14], [0.05, 0.2, BZ + 0.03, 0.18]] });   // (low: licking up its front and over its hood, not hiding the yard beyond it)
+    const BOX_SITE = SITES.length - 1;
+    // how far the fire has taken a place (0..1), and one of its flames
+    const siteFire = si => { const a = s.fire && s.fire.lit[si]; return a === null || a === undefined ? 0 : clamp((L.t - a) / FIRE.grow, 0, 1); };
+    const spotFire = (si, j) => { const a = s.fire && s.fire.lit[si]; return a === null || a === undefined ? 0 : clamp((L.t - a - SITES[si].spots[j].d) / FIRE.spot, 0, 1); };
+    const fireAll = () => (s.fire ? SITES.reduce((k, st) => k + siteFire(st.si), 0) / SITES.length : 0);
+    const flick = si => 1 + (0.16 * Math.sin(G.t * 11 + si * 2.1) + 0.08 * Math.sin(G.t * 23 + si)) * rmK();
+    const panAt = p => panTo(Math.atan2(p.x, p.z));
+    // the thing's chest, where its spark lands
+    const chest = () => { const p = L.creature.pos(); return { x: p.x, y: 1.0, z: p.z }; };
+    const spray = (p, n, v, life) => {   // sparks thrown off a point, every way and up
+      for (let i = 0; i < n && s.sparks.length < FIRE.maxSparks; i++) {
+        const a = fxr() * TAU, sp = v * (0.3 + fxr() * 0.9);
+        s.sparks.push({ x: p.x, y: p.y, z: p.z, vx: Math.cos(a) * sp, vy: v * (0.3 + fxr() * 1.1), vz: Math.sin(a) * sp, age: 0, life: life * (0.5 + fxr() * 0.8), big: true });
+      }
+    };
+    // every switch on, and the main pushed on: the box goes up, and the farm with it
+    const ignite = () => {
+      const rf = SAVE.data.settings.reducedFlash, c = L.creature;
+      s.power = true; s.mainAt = s.backAt = L.t;
+      s.on.forEach((o, i) => { s.litAt[i] = L.t; });
+      s.fire = { at: L.t, lit: SITES.map(() => null), embers: [], cr: null, crackle: 0.4 };
+      s.run = null; s.flinch = null; s.back = null; c.runPose = false; c.recoil = 1;
+      AUDIO.sfx('lever'); AUDIO.sfx('sparkBlast', panAt(BOXP));
+      G.shake(1.1); if (!rf) G.flash(0.3);
+      G.cam.zoomHeld = false; G.cam.tPitch = 0;   // (you start back from it, and look up)
+      // the spray off the box: out of its front and up, every way
+      const fwd = outOfBox(0, -1);
+      for (let i = 0; i < 90; i++) {
+        const a = fxr() * TAU, v = 1.2 + fxr() * 3.4, d = outOfBox(Math.cos(a) * v * 0.8, -Math.abs(Math.sin(a)) * v * 0.45 - 0.1);
+        s.sparks.push({ x: BOXP.x + fwd.x * 0.03, y: BOXP.y, z: BOXP.z + fwd.z * 0.03, vx: d.x, vy: 0.8 + fxr() * 4.2, vz: d.z, age: 0, life: 0.6 + fxr() * 1.0, big: i % 3 === 0 });
+      }
+      for (let i = 0; i < 6; i++) { const q = outOfBox((fxr() - 0.5) * 0.2, -0.05); s.smoke.push({ x: BOXP.x + q.x, y: BOXP.y + 0.05, z: BOXP.z + q.z, age: -i * 0.1, r: 0.04 + fxr() * 0.03, dark: true }); }
+      // the big sparks: out of the box in high arcs, one to every place and the house, and one to the thing
+      SITES.forEach((st, si) => {
+        if (si === BOX_SITE) return;
+        const d = Math.hypot(st.hit.x - BOXP.x, st.hit.z - BOXP.z);
+        s.fire.embers.push({ si, at: L.t + 0.05 + si * 0.035, T: 0.45 + d / 26, h: 1.4 + d * 0.22, to: st.hit, u: 0 });
+      });
+      { const p = chest(), d = Math.hypot(p.x - BOXP.x, p.z - BOXP.z); s.fire.embers.push({ si: -1, at: L.t + 0.1, T: 0.5 + d / 24, h: 1.2 + d * 0.18, to: p, u: 0 }); }
+      s.fire.lit[BOX_SITE] = L.t + FIRE.box;
+      AUDIO.setLoop('fire', 0.05, 0);
+      G.say('Every switch on at once. The box bursts in a shower of sparks, and the farm goes up.', 'The box bursts.');
+    };
+    L.ignite = ignite;   // (for the tests)
+    // where a spark in flight is (u: 0..1 of the way)
+    const emberAt = (e, u) => ({ x: lerp(BOXP.x, e.to.x, u), y: lerp(BOXP.y, e.to.y, u) + Math.sin(Math.PI * u) * e.h, z: lerp(BOXP.z, e.to.z, u) });
+    // the fire, from frame to frame: the sparks flying out and landing, the roar and the crackle, the box spitting
+    const fireFx = dt => {
+      const f = s.fire;
+      for (const e of f.embers) {
+        if (e.done || L.t < e.at) continue;
+        if (e.si < 0) e.to = chest();   // (the thing's spark finds it wherever it has got to)
+        e.u = clamp((L.t - e.at) / e.T, 0, 1);
+        if (e.u < 1) continue;
+        e.done = true;
+        spray(e.to, 12, 3, 0.8);
+        if (e.si < 0) { catchFire(); continue; }
+        f.lit[e.si] = L.t;
+        AUDIO.sfx('fireCatch', panAt(e.to));
+        if (e.si === 7) G.shake(0.25);   // (the house, close behind you)
+      }
+      if (f.lit[BOX_SITE] !== null && L.t > f.lit[BOX_SITE] && fxr() < dt * 9) {   // the box spitting sparks as it burns
+        const p = outOfBox((fxr() - 0.5) * 0.3, -0.05);
+        spray({ x: BOXP.x + p.x, y: BOXP.y + (fxr() - 0.4) * 0.4, z: BOXP.z + p.z }, 2, 1.6, 0.6);
+      }
+      const all = fireAll();
+      AUDIO.setLoop('fire', 0.05 + 0.4 * all, 0);
+      f.crackle -= dt;
+      if (f.crackle <= 0 && all > 0.05) { f.crackle = 0.07 + fxr() * 0.22 / (0.4 + all); AUDIO.sfx('fireCrackle', (fxr() - 0.5) * 1.8, true); }
+      // the sky over the farm, and the haze, going red with it: in a few steps, not every frame (the sky is kept until its
+      // colours change)
+      const k = Math.round(all * 6) / 6;
+      if (f.skyK !== k) { f.skyK = k; L.pal.fog = mixc(L.def.pal.fog, [78, 40, 28], k * 0.75).map(Math.round); L.pal.skyTop = mixc(L.def.pal.skyTop, [26, 12, 12], k * 0.6).map(Math.round); }
+    };
+    // its spark lands on it: it goes up, shrieking, and runs
+    const catchFire = () => {
+      const c = L.creature;
+      s.fire.cr = { t: 0, phase: 'run', wp: null, side: c.rand() < 0.5 ? -1 : 1, yaw: c.yaw, r: s.r, shriek: 1.3, steps: 0, ran: 0, seenT: 0 };
+      c.recoil = 0; c.burn = 0.01; c.char = 0;
+      AUDIO.sfx('burnShriek', panTo(c.yaw)); G.shake(0.2);
+    };
+    // a place in the open yard to run to, where you are looking (it changes from one to the next), to and fro across the
+    // view; the first, if it is far off where you are looking, straight out into the open from where it was. It runs
+    // round you to it (yaw and distance), never through you, and in front of the house, not through it (houseR)
+    const nextWaypoint = cr => {
+      const c = L.creature, cam = G.cam.yaw;
+      if (!cr.wp && cr.r > 10 && Math.abs(wrapPi(cr.yaw - cam)) < 70 * DEG) { cr.wp = { yaw: cr.yaw, r: 8.5 }; return; }
+      cr.side = -cr.side;
+      cr.wp = { yaw: cam + cr.side * (14 + c.rand() * 18) * DEG, r: 5 + c.rand() * 3 };
+    };
+    const houseR = (yaw, r) => lerp(r, Math.min(r, 4), smoothstep(1 - Math.abs(wrapPi(yaw - Math.PI)) / (48 * DEG)));
+    // the thing on fire: waiting for its spark (rearing back from the flare), then running about in the open (until you
+    // have had FIRE.run seconds of it in view, or FIRE.runMax in all), then turning on you and charging (the game catches
+    // it as it reaches you: L.deathCause, 'fire')
+    const fireStep = (c, dt) => {
+      const f = s.fire, cr = f.cr;
+      if (!cr) { c.recoil = L.t - f.at < 0.8 ? 1 : Math.max(0, c.recoil - dt * 3); return; }
+      cr.t += dt;
+      c.burn = Math.min(1, cr.t / 0.7); c.char = Math.min(0.85, 0.3 + cr.t / 4);
+      cr.shriek -= dt;
+      if (cr.phase === 'run') {
+        if (!cr.wp) nextWaypoint(cr);
+        if (c.seen) cr.seenT += dt;
+        const dy = wrapPi(cr.wp.yaw - cr.yaw), dr = cr.wp.r - cr.r, arc = dy * Math.max(3, cr.r), d = Math.hypot(arc, dr), v = FIRE.runV * (0.85 + 0.15 * Math.sin(cr.t * 5.3)) * (c.seen ? 1 : 1.6);   // (out of sight, it tears round to where you are looking)
+        if (d < 0.6) nextWaypoint(cr);
+        else {
+          const m = Math.min(d, v * dt);
+          cr.yaw += dy * m / d; cr.r += dr * m / d; cr.ran += m;
+          if (Math.abs(arc) > Math.abs(dr) * 0.3) c.runDir = dy > 0 ? 1 : -1;
+          place(c, cr.yaw, houseR(cr.yaw, cr.r));
+        }
+        c.runPose = true; c.runPace = 1; c.runGait = (c.runGait || 0) + dt * 17;
+        const n = Math.floor(c.runGait / Math.PI);
+        if (n !== cr.steps) { cr.steps = n; AUDIO.footstep('runner', clamp(4 / (s.r + 4), 0.12, 0.7), panTo(c.yaw)); }
+        if (cr.shriek <= 0) { cr.shriek = 1.1 + c.rand() * 0.6; AUDIO.sfx('burnShriek', panTo(c.yaw)); }
+        if (cr.seenT > FIRE.run || cr.t > FIRE.runMax) { cr.phase = 'turn'; cr.pt = 0; c.runPose = false; c.flail = 1; AUDIO.sfx('burnShriek', panTo(c.yaw)); }
+        return;
+      }
+      if (cr.phase === 'turn') {   // it stops, beats at itself, and turns on you
+        cr.pt += dt;
+        if (cr.pt < FIRE.turn) return;
+        cr.phase = 'charge'; c.flail = 0; c.charge = 1;
+        c.deathSpec = { delay: 0.08, dur: 0.36, sting: 'stingBurn' };
+        return;
+      }
+      s.r = Math.max(0.5, s.r - FIRE.charge * dt);   // straight at you
+    };
+
     // ---------------- light ----------------
     const lights = [];
     L.dynamicLights = () => {
@@ -592,26 +802,93 @@ LEVELS.push({
       if (houseLit()) lights.push(houseLights[0], houseLights[1]);
       for (let k = 0; k < N; k++) if (lit(k)) lights.push(lightsOf[k][0], lightsOf[k][1]);
       if (L.t - s.tripAt < 0.25) lights.push(Object.assign({}, FLASH, { r: 6, i: 1.6 * (1 - (L.t - s.tripAt) / 0.25), color: [210, 220, 255] }));   // the flash as the main trips
+      if (s.fire) {   // the fires: each place's, the house's and the box's, and the thing's own, and the burst off the box
+        const fl = L.t - s.fire.at;
+        if (fl < 0.35) lights.push(Object.assign({}, FLASH, { r: 9, i: (SAVE.data.settings.reducedFlash ? 0.6 : 1.4) * (1 - fl / 0.35), color: [255, 214, 170] }));
+        for (const st of SITES) { const lv = siteFire(st.si); if (lv > 0) { st.light.i = (st.si === BOX_SITE ? 0.9 : st.si === 7 ? 0.6 : 1.7) * lv; lights.push(st.light); } }   // (the house is close: less of it, or its white boards burn out to white)
+        const c = L.creature;
+        if (c.burn > 0) { const p = c.pos(); crLight.x = p.x; crLight.y = 2.3; crLight.z = p.z; crLight.i = 1.1 * c.burn; lights.push(crLight); }
+      }
       return lights;
     };
+    const crLight = { x: 0, y: 0, z: 0, r: 7, i: 0, color: [255, 140, 60], flicker: 0.8, seed: 77 };
     const glows = [];
     L.glows = () => {
       glows.length = 0;
       if (houseLit()) { glows.push(Object.assign({}, HOUSE.lamp, { r: 0.9, color: [255, 210, 150], a: 0.55 }), Object.assign({}, HOUSE.lamp, { r: 3.2, color: [255, 190, 120], a: 0.12 })); }
       for (let k = 0; k < N; k++) if (lit(k)) { const l = PLACE[k].lamp; glows.push({ x: l.x, y: l.y, z: l.z, r: 1.3, color: [255, 236, 200], a: 0.6 }, { x: l.x, y: l.y, z: l.z, r: 5, color: [255, 214, 150], a: 0.14 }); }
       if (L.t - s.tripAt < 0.4) glows.push({ x: BOXP.x, y: BOXP.y, z: BOXP.z, r: 0.5, color: [220, 230, 255], a: 0.9 * (1 - (L.t - s.tripAt) / 0.4) });
+      if (s.fire) {
+        const fl = L.t - s.fire.at, rf = SAVE.data.settings.reducedFlash;
+        if (fl < 0.5) glows.push({ x: BOXP.x, y: BOXP.y, z: BOXP.z, r: 0.16, color: [255, 214, 160], a: (rf ? 0.25 : 0.8) * (1 - fl / 0.5) });   // (at arm's length: a glow's size is in metres)   // the burst
+        for (const st of SITES) {
+          const lv = siteFire(st.si);
+          if (lv > 0) glows.push({ x: st.glow.x, y: st.glow.y, z: st.glow.z, r: st.gr * (0.6 + 0.4 * lv), color: [255, 120, 44], a: 0.26 * lv * flick(st.si) }, { x: st.glow.x, y: st.glow.y, z: st.glow.z, r: st.gr * 2.4, color: [255, 90, 30], a: 0.08 * lv });
+        }
+        for (const e of s.fire.embers) if (!e.done && L.t >= e.at) { const p = emberAt(e, e.u); glows.push({ x: p.x, y: p.y, z: p.z, r: Math.min(1.1, 0.045 * (p.x * p.x + (p.y - L.eyeH) ** 2 + p.z * p.z)), color: [255, 170, 80], a: 0.55 }); }
+        const c = L.creature;
+        if (c.burn > 0) { const p = c.pos(); glows.push({ x: p.x, y: p.y + 1.1, z: p.z, r: 2.2, color: [255, 120, 44], a: 0.3 * c.burn * flick(9) }); }
+      }
       return glows;
     };
     // what moves: the sparks off the box and its smoke
     L.dynamic = () => {
       for (const p of s.sparks) {
-        const a = 1 - p.age / p.life, sz = 0.005 + 0.004 * a;
+        if (Math.hypot(p.x, p.y - L.eyeH, p.z) < 0.75) continue;   // (one flying past your face is not drawn filling the view)
+        const a = 1 - p.age / p.life, sz = p.big ? 0.01 + 0.012 * a : 0.005 + 0.004 * a;
         R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: sz, h: sz, noFog: true, noLight: true, sortDist: Math.hypot(p.x, p.z) - 0.05, draw: ctx => { ctx.fillStyle = 'rgba(255,' + (236 - (1 - a) * 130 | 0) + ',' + (170 - (1 - a) * 120 | 0) + ',' + a.toFixed(2) + ')'; ctx.beginPath(); ctx.arc(0, sz / 2, sz / 2, 0, TAU); ctx.fill(); } });
       }
       for (const p of s.smoke) {
         if (p.age <= 0) continue;
-        const a = 0.35 * (1 - p.age / 2.6), r = p.r;
-        R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: r * 2, h: r * 2, sortDist: Math.hypot(p.x, p.z) - 0.06, draw: (ctx, P) => { P_ell(ctx, 0, r, r, r, P.cola([110, 108, 104], a)); } });
+        const a = (p.dark ? 0.5 : 0.35) * (1 - p.age / 2.6), r = p.r;
+        if (p.dark) R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: r * 2, h: r * 2, noLight: true, noFog: true, sortDist: Math.hypot(p.x, p.z) - 0.06, draw: (ctx, P) => { P_ell(ctx, 0, r, r, r, P.cola([34, 28, 26], a)); } });   // (the box burning: sooty)
+        else R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: r * 2, h: r * 2, sortDist: Math.hypot(p.x, p.z) - 0.06, draw: (ctx, P) => { P_ell(ctx, 0, r, r, r, P.cola([110, 108, 104], a)); } });
+      }
+      if (s.fire) fireDraw();
+    };
+    // the fire's moving parts, made up from the clock each frame (nothing kept): the big sparks in flight with their
+    // trails, smoke rolling up off each fire, embers going up from it, and the thing's light on the ground under it
+    const SMOKE = 4, EMBERS = 5;
+    const fireDraw = () => {
+      if (G.state === 'dying') { const dt = Math.min(0.05, G.t - (s.fire.drawnAt || G.t)); for (const p of s.sparks) { p.age += dt; p.vy -= 9.8 * dt; p.x += p.vx * dt; p.y = Math.max(0.01, p.y + p.vy * dt); p.z += p.vz * dt; } }
+      s.fire.drawnAt = G.t;
+      const t = G.t, rk = rmK();
+      for (const e of s.fire.embers) {
+        if (e.done || L.t < e.at) continue;
+        for (let k = 0; k < 8; k++) {   // the spark and its trail
+          const u = e.u - k * 0.03;
+          if (u < 0) break;
+          const p = emberAt(e, u), sz = (k ? 0.26 : 0.42) * (1 - k * 0.1) * clamp(Math.hypot(p.x, p.y - L.eyeH, p.z) / 6, 0.12, 1), a = 1 - k * 0.12;   // (no bigger than a spark close by)
+          R.add({ kind: 'sprite', x: p.x, y: p.y - sz / 2, z: p.z, w: sz, h: sz, noFog: true, noLight: true, sortDist: Math.hypot(p.x, p.z) - 0.1, draw: ctx => {
+            ctx.fillStyle = k ? 'rgba(255,' + (170 - k * 12) + ',50,' + (a * 0.8).toFixed(2) + ')' : 'rgba(255,240,200,1)'; ctx.beginPath(); ctx.arc(0, sz / 2, sz / 2, 0, TAU); ctx.fill();
+            if (!k) { ctx.fillStyle = 'rgba(255,160,60,0.45)'; ctx.beginPath(); ctx.arc(0, sz / 2, sz, 0, TAU); ctx.fill(); }
+          } });
+        }
+      }
+      for (const st of SITES) {
+        const lv = siteFire(st.si);
+        if (lv <= 0) continue;
+        const box = st.si === BOX_SITE, sc = box ? 0.12 : 1, d0 = Math.hypot(st.top.x, st.top.z);
+        for (let i = 0; i < (box ? 0 : SMOKE); i++) {   // (the box's own smoke is its puffs, s.smoke)   // smoke, rolling up off it and drifting away on the wind
+          const q = (t * 0.16 * (0.7 + 0.3 * rk) + i / SMOKE + st.si * 0.13) % 1, r = (0.8 + q * 3.2) * sc * Math.sqrt(st.wide / 8 + 0.3), a = 0.42 * lv * (1 - q) * Math.min(1, q * 5);
+          const x = st.top.x + (Math.sin(i * 2.7 + st.si) * st.wide * 0.25 + q * 4) * sc, y = st.top.y + q * 9 * sc, z = st.top.z + q * 1.5 * sc;
+          R.add({ kind: 'sprite', x, y, z, w: r * 2, h: r * 2, noLight: false, sortDist: d0 + 0.6 * sc, draw: (ctx, P) => { P_ell(ctx, 0, r, r, r * 0.9, P.cola([46, 38, 36], a)); } });
+        }
+        for (let i = 0; i < EMBERS; i++) {   // embers going up off it
+          const q = (t * 0.45 + i / EMBERS + st.si * 0.37) % 1, h = (i * 0.618 + st.si * 0.29) % 1, sz = 0.07 * (box ? 0.25 : 1) * (1 - q * 0.6);
+          const x = st.top.x + (h - 0.5) * st.wide * 0.9 + Math.sin(t * 2 + i * 3) * 0.4 * sc, y = st.top.y - 2 * sc + q * 7 * sc, z = st.top.z - 0.5 * sc;
+          R.add({ kind: 'sprite', x, y, z, w: sz, h: sz, noFog: true, noLight: true, sortDist: d0 - 0.5 * sc, draw: ctx => { ctx.fillStyle = 'rgba(255,' + (190 - q * 90 | 0) + ',70,' + (lv * (1 - q)).toFixed(2) + ')'; ctx.beginPath(); ctx.arc(0, sz / 2, sz / 2, 0, TAU); ctx.fill(); } });
+        }
+      }
+      const c = L.creature;
+      if (c.burn > 0) {   // its fire's light on the ground round its feet
+        const p = c.pos(), b = c.burn, pr = 3.2, d = Math.max(0.5, Math.hypot(p.x, p.z));   // (a flat sprite runs on away from you from its foot)
+        R.add({ kind: 'sprite', x: p.x - p.x / d * pr, y: 0.03, z: p.z - p.z / d * pr, w: pr * 2, h: pr * 2, flat: true, layer: 0, sortDist: -0.8, noLight: true, draw: ctx => {
+          const a = 0.42 * b * flick(9);
+          ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(0, pr); ctx.scale(pr, pr);
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, 'rgba(255,130,50,' + a.toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,90,30,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.restore();
+        } });
       }
     };
   }

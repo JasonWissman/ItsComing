@@ -6,6 +6,7 @@ const CAPTIONS = (() => {
     keyClick: 'a key clicks', coin: 'a coin drops in', coinReturn: 'a coin rattles into the return', carCome: 'a car, coming fast', brake: 'tyres hiss on the wet road', horn: 'a car horn, twice', carDoor: 'a car door opens', lampBreak: 'a street lamp pops, and glass falls',   // the pay phone's keys and coin, the car that comes, the lamps he breaks
     dispatch: 'a dispatcher\'s voice, crackling', siren: 'a police siren wails', carThump: 'thumps and banging inside the car', sirenDie: 'the siren sputters and dies with a crackle',   // the police, on 911 (the phone booth)
     boardRattle: 'the boards rattle on their nails',
+    sparkBlast: 'the box bursts in a shower of sparks', fireCatch: 'flames rush up', fireCrackle: 'fire crackling', burnShriek: 'a burning shriek', stingBurn: 'a burning scream',   // night 11's farm set alight
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
     shutterBang: 'fists pound on the shutter', shutterGrab: 'the shutter rattles in its rails', shutterSlam: 'a shutter slams up into its housing',
     clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', hinge: 'a hinge squeals', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click', twang: 'a bowstring twangs', bowCreak: 'a bowstring creaks', bowFull: 'the bowstring comes tight', thunk: 'an arrow thunks home',

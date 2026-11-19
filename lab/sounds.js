@@ -101,6 +101,12 @@ const SOUNDS = [
   { kind: 'sfx', name: 'breakerTrip', n: [11], d: 'A bang, the clack of a breaker, sparks, a hum dying. The power trips.', src: 'night11' },
   { kind: 'sfx', name: 'switch', n: [11, 12], d: 'A small switch click. Breakers (11), the lamp’s pull switch (12).', src: 'night11, night12' },
   { kind: 'sfx', name: 'tubeOn', n: [11], d: 'A tube light humming on.', src: 'night11' },
+  { kind: 'sfx', name: 'sparkBlast', n: [11], d: 'A cracking bang, a buzz dying under it, sparks crackling away round the speakers and a few pops (the lamps round the farm). Every switch on and the main pushed on: the box bursts and the farm goes up.', src: 'night11 (the fire)' },
+  { kind: 'sfx', name: 'fireCatch', n: [11], d: 'A deep whump and a rush of flame, spitting. A building (or the house) catching as a big spark lands on it.', src: 'night11 (the fire)' },
+  { kind: 'sfx', name: 'fireCrackle', n: [11], d: 'A few pops and snaps of burning wood, every fraction of a second while the farm burns (its caption soft).', src: 'night11 (the fire)' },
+  { kind: 'sfx', name: 'burnShriek', n: [11], d: 'A ragged rising shriek, cracking, through a stitched mouth. The carrier on fire, running about, and as it turns to charge you.', src: 'night11 (the fire)' },
+  { kind: 'sting', name: 'stingBurn', n: [11], d: 'A roar of fire in your face, a shriek rising over it, the sting’s deep drop. Caught by the carrier burning.', src: 'night11 (the fire: deathSpec)' },
+  { kind: 'loop', name: 'fire', n: [11], d: 'A low rushing roar breathing slowly, a brighter hiss over it, louder as more of the farm burns.', src: 'night11 (the fire)' },
   // ---- night 12: the bedroom, and the story sounds of every night ----
   { kind: 'sfx', name: 'drawer', n: [12], d: 'A drawer sliding open.', src: 'night12' },
   { kind: 'sfx', name: 'cloth', n: [12, 13], d: 'Cloth twisting. Its hands on the covers; pulling them up (12). The demon\u2019s robe as it takes hold of you, and as it lets you go (13).', src: 'night12 · night13 grab, release' },

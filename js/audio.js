@@ -246,6 +246,17 @@ const AUDIO = (() => {
         const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220;
         const g2 = ac.createGain(); g2.gain.value = 0.3;
         o.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); nodes.push(o, o2);
+      } else if (kind === 'fire') {   // night 11's farm burning: a low rushing roar breathing slowly, a brighter hiss over it
+        const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 0.8;
+        const lfo = ac.createOscillator(); lfo.frequency.value = 0.7; const lg = ac.createGain(); lg.gain.value = 160;
+        lfo.connect(lg); lg.connect(lp.frequency);
+        const src2 = ac.createBufferSource(); src2.buffer = noiseBuf; src2.loop = true;
+        const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = 0.6;
+        const g2 = ac.createGain(); g2.gain.value = 0.25;
+        const lfo2 = ac.createOscillator(); lfo2.frequency.value = 2.3; const lg2 = ac.createGain(); lg2.gain.value = 0.12;
+        lfo2.connect(lg2); lg2.connect(g2.gain);
+        src.connect(lp); lp.connect(g); src2.connect(bp); bp.connect(g2); g2.connect(g); nodes.push(src, src2, lfo, lfo2);
       }
       nodes.forEach(n => n.start());
       loopNode = { kind, g, nodes, pan: p };
@@ -346,6 +357,33 @@ const AUDIO = (() => {
       // a breaker tripping: a bang as the main snaps over, the clack of the lever hitting OFF, a spit of sparks, and the
       // hum of everything on it dying away
       case 'breakerTrip': noise(0.07, { type: 'highpass', freq: 1500, vol: 0.9, attack: 0.001, pan }); tone(70, 0.22, { vol: 0.6, endFreq: 38, pan }); noise(0.03, { type: 'highpass', freq: 900, vol: 0.55, delay: 0.05, pan }); tone(160, 0.05, { vol: 0.3, type: 'square', endFreq: 90, delay: 0.05, pan }); for (let i = 0; i < 6; i++) noise(0.022, { type: 'highpass', freq: 3200 + Math.random() * 2400, vol: 0.18 * (1 - i * 0.1), delay: 0.08 + i * (0.04 + Math.random() * 0.05), pan }); tone(120, 0.7, { vol: 0.12, type: 'sawtooth', endFreq: 40, delay: 0.04, pan }); break;
+      // night 11's farm set alight (every switch on and the main pushed on): the box bursting, a building catching, the fire
+      // crackling, the carrier burning, and caught by it burning
+      case 'sparkBlast':   // a cracking bang off the box, a buzz dying under it, the sparks crackling away and the lamps round the farm popping
+        noise(0.09, { type: 'highpass', freq: 1200, vol: 1.0, attack: 0.001, pan }); noise(0.5, { freq: 260, vol: 0.85, attack: 0.002, pan }); tone(48, 0.7, { vol: 0.75, endFreq: 26, pan });
+        tone(100, 0.9, { vol: 0.16, type: 'sawtooth', endFreq: 55, delay: 0.02, pan }); tone(150, 0.6, { vol: 0.09, type: 'square', endFreq: 70, delay: 0.03, pan });
+        for (let i = 0; i < 26; i++) noise(0.012 + Math.random() * 0.02, { type: 'highpass', freq: 2500 + Math.random() * 4000, vol: 0.3 * (1 - i / 30), delay: 0.04 + i * 0.045 + Math.random() * 0.04, pan: clamp((pan || 0) + (Math.random() - 0.5) * 0.8, -1, 1) });
+        for (let i = 0; i < 4; i++) noise(0.05, { freq: 900, vol: 0.35, delay: 0.25 + i * 0.07 + Math.random() * 0.04, pan: (Math.random() - 0.5) * 1.6 });
+        break;
+      case 'fireCatch':   // a building catching: a deep whump, and the flames rushing up it, spitting
+        noise(0.25, { freq: 180, vol: 0.7, attack: 0.01, pan }); tone(55, 0.5, { vol: 0.42, endFreq: 34, pan }); noise(1.1, { type: 'bandpass', freq: 700, q: 0.7, vol: 0.35, attack: 0.25, delay: 0.05, pan });
+        for (let i = 0; i < 6; i++) noise(0.02, { type: 'bandpass', freq: 1800 + Math.random() * 2000, q: 3, vol: 0.2, delay: 0.15 + i * 0.09 + Math.random() * 0.05, pan });
+        break;
+      case 'fireCrackle':   // a few pops and snaps of burning wood
+        for (let i = 0, n = 3 + Math.floor(Math.random() * 4); i < n; i++) noise(0.008 + Math.random() * 0.02, { type: 'bandpass', freq: 1200 + Math.random() * 3200, q: 2 + Math.random() * 3, vol: 0.12 + Math.random() * 0.2, delay: Math.random() * 0.25, pan });
+        if (Math.random() < 0.3) noise(0.05, { freq: 400, vol: 0.2, delay: Math.random() * 0.2, pan });
+        break;
+      case 'burnShriek': {   // the carrier burning: a ragged shriek through its stitched mouth, rising and cracking
+        const f0 = 620 + Math.random() * 200;
+        tone(f0, 1.1, { vol: 0.3, type: 'sawtooth', endFreq: f0 * 2.3, attack: 0.04, pan }); tone(f0 * 1.06, 1.0, { vol: 0.18, type: 'sawtooth', endFreq: f0 * 1.7, attack: 0.06, pan });
+        noise(1.1, { type: 'bandpass', freq: 2400, q: 1.6, vol: 0.45, attack: 0.03, pan }); noise(0.6, { type: 'bandpass', freq: 900, q: 1.2, vol: 0.28, attack: 0.02, pan });
+        tone(f0 * 0.5, 0.9, { vol: 0.11, type: 'square', endFreq: f0 * 0.38, delay: 0.25, pan });
+        break;
+      }
+      case 'stingBurn':   // caught by it burning: the roar of it in your face, its shriek over it, the sting's drop under it
+        noise(1.4, { freq: 2200, vol: 0.95, attack: 0.002 }); noise(1.6, { freq: 300, vol: 0.65, attack: 0.04 }); tone(900, 1.1, { vol: 0.38, type: 'sawtooth', endFreq: 2600 }); tone(42, 1.5, { vol: 0.7, endFreq: 24 });
+        for (let i = 0; i < 12; i++) noise(0.02, { type: 'bandpass', freq: 1500 + Math.random() * 3000, q: 3, vol: 0.28, delay: 0.05 + i * 0.08 + Math.random() * 0.04 });
+        break;
       case 'candle': tone(880, 0.4, { vol: 0.05, type: 'sine', endFreq: 1200 }); break;
       case 'chain': for (let i = 0; i < 7; i++) { tone(1800 + Math.random() * 1200, 0.04, { vol: 0.08, type: 'square', delay: i * 0.07 }); noise(0.03, { type: 'highpass', freq: 4000, vol: 0.08, delay: i * 0.07 }); } break;
       case 'lock': tone(500, 0.05, { vol: 0.2, type: 'square', endFreq: 300 }); tone(220, 0.1, { vol: 0.25, type: 'square', endFreq: 200, delay: 0.09 }); break;
