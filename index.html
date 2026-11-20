@@ -49,7 +49,15 @@
   body.titlescene #titleScene { display: block; }
   body.titlescene #overlay:not(.dlg) { background: transparent; }
   #overlay.titlelow { justify-content: flex-end; padding-bottom: max(9vh, 24px); }
-  #overlay.titlelow > .mrow { max-width: 1100px; }
+  /* the title's buttons (three, or four with Scores) always on the one line: wide as ever where there is room; where there
+     is not (a phone on its side), the gaps and the padding at their sides come in with the width of the view, each button
+     no narrower than its word; and only past that, at the larger text sizes, the words themselves a little smaller (and on
+     a view too short for them, so the thing above them has room) */
+  #overlay.titlelow > .mrow { flex-wrap: nowrap; gap: min(10px, 1.25vw); width: 100%; max-width: 1100px; }
+  #overlay.titlelow > .mrow > .mbtn { flex: 0 1 200px; min-width: min-content; white-space: nowrap; padding-left: clamp(6px, 3vw - 12px, 22px); padding-right: clamp(6px, 3vw - 12px, 22px);
+    font-size: min(calc(15px * var(--text-scale)), calc((100vw - 132px) / 25), 6vh); }
+  #overlay.titlelow > .mrow:not(:has(> :nth-child(4))) > .mbtn { font-size: min(calc(15px * var(--text-scale)), calc((100vw - 116px) / 19), 6vh); }
+  @media (max-width: 700px) { #overlay.titlelow > .mrow > .mbtn { letter-spacing: .09em; } }
   #overlay.dlg { background: rgba(0,0,0,.3); }
   #overlay.dlg > .panel { box-sizing: border-box; width: min(760px, 100%); max-width: 760px; min-height: min(62vh, 100%); max-height: calc(100vh - 48px); overflow: auto; display: flex; flex-direction: column; justify-content: flex-start; padding: 28px 32px; }
   /* the dialogs' card (and the warning's, before a new game: #disclaimer .dcard) */

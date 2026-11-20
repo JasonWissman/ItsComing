@@ -1129,8 +1129,57 @@ const hoverHit = lookFor;
   await page.waitForTimeout(4600);
   tv = await page.evaluate(() => ({ in: document.querySelectorAll('#overlay .rcard.in').length, run: document.querySelector('#overlay .rrun').classList.contains('in'), label: document.querySelector('#overlay .rrun .rlabel').textContent, fin: document.querySelector('#overlay .rlast').classList.contains('in'), focus: document.activeElement && document.activeElement.dataset.act, left: [...document.querySelectorAll('#overlay .rcard')].filter(c => Math.round(c.getBoundingClientRect().left) === Math.round(document.querySelector('#overlay .rcard').getBoundingClientRect().left)).length }));
   check(tv.in === 13 && tv.run && tv.label === 'This run' && tv.fin && tv.focus === 'finish' && tv.left === 6, 'then this run (not a full run here: a dash), then Finish game, focused; six nights down the left (' + JSON.stringify(tv) + ')');
-  await page.click('#overlay button[data-act="finish"]'); await page.waitForTimeout(200);
-  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores'), 'Finish game: home to the usual dark title, with it out there, and Scores on it (the morning is not kept)');
+  // Finish game: home slowly. Every frame of it traced (from the click): the black over everything, the title under it,
+  // how much of the light behind the thing is on, how far the words have come in
+  const homeTrace = () => page.evaluate(() => {
+    const t0 = performance.now(); window.__home = [];
+    const f = () => {
+      if (G.noRaf) G.step(1 / 60);   // (this page steps the game itself: a frame drawn for each traced)
+      const c = document.getElementById('homing'), cs = c && getComputedStyle(c);
+      window.__home.push({ t: performance.now() - t0, st: G.state, kind: MENU.kind, lit: TITLE.lit, ov: +getComputedStyle(UI.overlay).opacity, mute: +getComputedStyle(UI.mute).opacity, black: c ? (cs.backgroundColor === 'rgb(0, 0, 0)' ? +cs.opacity : 0) : -1, theme: document.documentElement.getAttribute('data-theme') });
+      if (performance.now() - t0 < 3900) requestAnimationFrame(f);
+    };
+    f();
+  });
+  await page.click('#overlay button[data-act="finish"]'); await homeTrace();
+  // presses while it plays go nowhere: Enter (on what was focused), a click on the dark, a key, Escape
+  await page.waitForTimeout(300); await page.keyboard.press('Enter'); await page.mouse.click(640, 120);
+  await page.waitForTimeout(1000); await page.keyboard.press('Enter'); await page.mouse.click(640, 120); await page.keyboard.press('Escape');
+  await page.waitForTimeout(900); await page.mouse.click(640, 120); await page.keyboard.press('h');
+  await page.waitForTimeout(1900);
+  tv = await page.evaluate(() => window.__home);
+  {
+    const at = (a, b) => tv.filter(s => s.t >= a && s.t < b);
+    const fade = at(0, 950), dark = at(1080, 1480), words = tv.filter(s => s.ov > 0.05 && s.ov < 0.95), end = tv[tv.length - 1];
+    const blacks = fade.map(s => s.black);
+    check(fade.length > 5 && fade.every(s => s.st === 'end' && s.kind === 'results' && s.theme === 'day') && blacks[0] < 0.2 && blacks.some(b => b > 0.3 && b < 0.8) && blacks[blacks.length - 1] > 0.9 && blacks.every((b, i) => !i || b >= blacks[i - 1] - 1e-6),
+      'Finish game: the results and the morning fade evenly to black, over about a second (' + blacks.map(b => b.toFixed(2)).join(' ') + ')');
+    check(dark.length > 3 && dark.every(s => s.st === 'title' && s.kind === 'title' && !s.theme && s.lit === 0 && s.ov === 0 && s.mute === 0 && (s.black === 1 || s.black === 0)),
+      'then a beat of black: the dark title under it, the light behind the thing off, the words and buttons (and the corners\' sound and full screen) not yet there (' + JSON.stringify(dark[0]) + ')');
+    // the light flicks on: on, off again, on, ... then on to stay; the words still out of sight all the while
+    const stutter = tv.filter(s => s.st === 'title' && s.ov === 0 && s.t > 1400).map(s => +s.lit.toFixed(2));
+    const pulses = stutter.filter((l, i) => l >= 0.5 && (!i || stutter[i - 1] < 0.3)).length;
+    check(pulses >= 2 && stutter.indexOf(0, stutter.findIndex(l => l >= 0.5)) > 0 && stutter.slice(-3).every(l => l === 1),
+      'then the light behind it flicks on, a fluorescent\'s couple of quick stutters and on, before any of the words come (' + pulses + ' times on: ' + stutter.join(' ') + ')');
+    check(words.length > 3 && words.every(s => s.lit === 1 && s.st === 'title') && words[words.length - 1].t - words[0].t > 450 && words.every((s, i) => !i || s.ov >= words[i - 1].ov - 1e-6),
+      'then the name and the buttons fade in, over most of a second, the light steady (' + words.map(s => s.ov.toFixed(2)).join(' ') + ')');
+    check(end.t > 3800 && end.black === -1 && end.ov === 1 && end.mute === 1 && end.lit === 1, 'and it is done in under four seconds: nothing over the title, everything in (' + JSON.stringify(end) + ')');
+  }
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && TITLE.step === 0 && !TITLE.moving && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores' && !document.getElementById('prologue') && !document.getElementById('disclaimer')),
+    'Finish game: home to the usual dark title, with it out there (the presses on the way did nothing: it is no nearer, nothing begun), and Scores on it (the morning is not kept)');
+  check(await page.evaluate(() => document.activeElement && document.activeElement.dataset.act === 'begin' && !UI.overlay.style.opacity && !UI.overlay.style.transition && UI.overlay.classList.contains('titlelow')), 'and the focus is on Begin, the overlay as the title always has it');
+  await page.keyboard.press('Escape'); await page.mouse.click(640, 120); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'title' && TITLE.step === 1), 'the title answers again once it is all in (a click on the dark: a step nearer)');
+  // with reduced motion and flashing the light comes up smoothly, no flicker
+  await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); STORY.theme(true); setState('end'); MENU.show('results'); });
+  await page.click('#overlay button[data-act="finish"]'); await homeTrace(); await page.waitForTimeout(4000);
+  tv = await page.evaluate(() => window.__home.filter(s => s.st === 'title' && s.ov === 0 && s.t > 1400).map(s => +s.lit.toFixed(3)));
+  check(tv.length > 10 && tv.every((l, i) => !i || l >= tv[i - 1]) && tv.filter(l => l > 0.05 && l < 0.95).length >= 5 && tv[tv.length - 1] === 1, 'with reduced motion and flashing: the light fades up smoothly instead, never flickering (' + tv.join(' ') + ')');
+  check(await page.evaluate(() => G.state === 'title' && TITLE.lit === 1 && !document.getElementById('homing') && document.activeElement && document.activeElement.dataset.act === 'begin'), 'and it ends the same: the title, all in, Begin focused');
+  await page.evaluate(() => MENU.applySetting('reduceMotionFlash', false));
+  // Quit (and any other way to the title) is at once, as ever: the light on, the words there
+  await page.evaluate(() => { startLevel(2, false); setState('play'); showTitle(); });
+  check(await page.evaluate(() => G.state === 'title' && TITLE.lit === 1 && !TITLE.flicking && !document.getElementById('homing') && UI.overlay.classList.contains('show') && !UI.overlay.style.opacity && !UI.mute.style.opacity), 'Quit to the title is at once, as ever: the light on, the words there, nothing over it');
   await page.reload(); await page.waitForTimeout(300);
   check(await page.evaluate(() => TITLE.on && !document.documentElement.getAttribute('data-theme')), 'and so it is after a reload');
   await page.evaluate(() => { SAVE.setSetting('theme', 'day'); showTitle(); });
@@ -1797,6 +1846,31 @@ const hoverHit = lookFor;
     r = await sp.evaluate(() => { const d = JSON.parse(JSON.stringify(SAVE.data)); d.settings.touchLeft = true; d.settings.captions = true; localStorage.setItem('itscoming.v2', JSON.stringify(d)); SAVE.load(); return { left: 'touchLeft' in SAVE.data.settings, rev: SAVE.data.settings.swipeReverse, cap: SAVE.data.settings.captions }; });
     check(!r.left && r.rev === false && r.cap === true, 'an older save with the touch buttons on the left loads without that setting, the rest kept (' + JSON.stringify(r) + ')');
     await sp.evaluate(() => { localStorage.clear(); }); await sp.close();
+  }
+
+  console.log('== the title\'s buttons on one line, on a phone on its side ==');
+  {
+    // four (Scores too) on one row however narrow and short, and at every text size; each wide enough for its word, all in
+    // the view, and its head above the words
+    for (const [w, h] of [[640, 295], [568, 320], [844, 390], [1280, 760]]) {
+      const bp = await browser.newPage({ viewport: { width: w, height: h } });
+      await bp.goto(URL); await bp.waitForTimeout(250);
+      const rows = [];
+      for (const ts of [0.85, 1, 1.4, 1.8]) {
+        const r = await bp.evaluate(ts => {
+          SAVE.data.unlocked[G.diff().id] = 3; document.documentElement.style.setProperty('--text-scale', ts); showTitle();
+          for (let i = 0; i < 6; i++) TITLE.advance();
+          return new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => {
+            const bs = [...document.querySelectorAll('#overlay .mrow .mbtn')], rs = bs.map(b => b.getBoundingClientRect()), k = document.querySelector('#overlay .kicker').getBoundingClientRect(), cr = document.querySelector('#overlay .credit').getBoundingClientRect();
+            res({ ts, n: bs.length, tops: new Set(rs.map(x => Math.round(x.top))).size, fit: bs.every(b => b.scrollWidth <= b.clientWidth + 1), left: Math.round(rs[0].left), right: Math.round(rs[rs.length - 1].right), credit: Math.round(cr.bottom), kicker: Math.round(k.top), widths: rs.map(x => Math.round(x.width)).join('/') });
+          })));
+        }, ts);
+        rows.push(r);
+      }
+      check(rows.every(r => r.n === 4 && r.tops === 1 && r.fit && r.left >= 0 && r.right <= w && r.credit <= h && r.kicker > 40), w + '×' + h + ': Begin, Scores, How to play and Settings share one row at every text size, each its word whole, the row and the credit in view (' + JSON.stringify(rows) + ')');
+      if (w === 1280) check(rows[1].widths === '200/200/200/200', 'on a wide screen they are as they always were, 200 px each (' + rows[1].widths + ')');
+      await bp.evaluate(() => localStorage.clear()); await bp.close();
+    }
   }
 
   // Settings' Calibrate dialogs (Volume, Brightness) and their sounds: test/settings.js, in this browser

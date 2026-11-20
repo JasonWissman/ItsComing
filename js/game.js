@@ -189,8 +189,9 @@ function beginRun() { G.run = { t: 0, night: 0, from: 0, nights: [] }; }
 const DISCLAIMER = 'This game contains flashing imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy.\nOptions for reduced motion and flashing are available in the settings dialog.\n\nPlayer discretion is advised.';
 const PROLOGUE = ['You haven’t had a good night’s sleep in ages.', 'Each night something visits you in your dreams…'];
 let prologueOn = false, disclaimerOn = false, disclaimerPad = null;
+let homing = null;   // Finish game's way home (finishHome), while it plays: 'fade' (to black), 'dark' (the title up, still dark and silent), 'words'
 const PROLOGUE_FADE = 6;   // seconds the title's drone takes to fade out under it; night 1's bed fades in when night 1 begins
-function introUp() { return disclaimerOn || prologueOn; }   // the warning or the prologue is up: nothing else is pressed
+function introUp() { return disclaimerOn || prologueOn || !!homing; }   // the warning, the prologue or Finish game's way home (finishHome) is up: nothing else is pressed
 // a key while one is up goes no further (the game never sees it); the browser's own (with Ctrl, Cmd or Alt, F1..F12)
 // still do what they do there
 function swallowKey(e) {
@@ -407,6 +408,42 @@ function finishEnding() {
   setState('end');
   MENU.show('ending');
 }
+// Finish game (the results after the ending): home to the title, slowly, not at once. Everything (the morning, the
+// results) fades to black (HOME.fade); a beat of black (HOME.hold), the title put up under it with the light behind the
+// thing off, so the title's dark is all there is; then the light flicks on, a fluorescent tube's stutter of quick blinks
+// and on, it standing dark against it (TITLE.flick; with reduced motion or flashing, a smooth fade up); then the name,
+// the buttons and the title's drone fade in (HOME.words), and the focus is on Begin. No click, key or pad gets through
+// until it is all in (as the prologue): the black over everything, then a clear sheet in its place, takes them
+const HOME = { fade: 1000, hold: 500, words: 800 };
+function finishHome() {
+  if (homing) return;
+  homing = 'fade';
+  const el = document.createElement('div'); el.id = 'homing';
+  el.style.cssText = 'position:fixed;inset:0;z-index:1000;background:#000;opacity:0;cursor:default;transition:opacity ' + HOME.fade + 'ms ease-in-out';
+  document.body.appendChild(el);
+  document.addEventListener('keydown', swallowKey, true);
+  swallowPointer(el);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  AUDIO.stopAmbient(HOME.fade / 1000); AUDIO.stopLoop();   // the morning's sound goes with it
+  void el.offsetWidth; el.style.opacity = '1';   // (from 0, so it fades)
+  const ov = UI.overlay, words = [ov, UI.mute, UI.fsBtn].filter(Boolean);   // (the corners' sound and full screen come with the words)
+  setTimeout(() => {
+    showTitle(); TITLE.dark(); homing = 'dark';
+    words.forEach(w => { w.style.transition = 'none'; w.style.opacity = '0'; });   // (under the black, out of sight till the light is on)
+    setTimeout(() => {
+      el.style.transition = 'none'; el.style.background = 'transparent';   // the title's own dark is the black now
+      setTimeout(() => {
+        homing = 'words';
+        words.forEach(w => { w.style.transition = 'opacity ' + HOME.words + 'ms ease-out'; void w.offsetWidth; w.style.opacity = '1'; });
+        setTimeout(() => {
+          words.forEach(w => { w.style.transition = w.style.opacity = ''; });
+          document.removeEventListener('keydown', swallowKey, true); el.remove(); homing = null;
+          const b = ov.querySelector('button[data-act]'); if (b && G.state === 'title') b.focus({ preventScroll: true });
+        }, HOME.words);
+      }, TITLE.flick());
+    }, HOME.hold);
+  }, HOME.fade);
+}
 function proceedFromSurvived() {
   const next = G.levelIndex + 1;
   if (next >= LEVELS.length) showTitle(); else startLevel(next, true); // the last night ends in the morning, not here
@@ -466,7 +503,7 @@ function audioOnLoad() {
 // sound is made as the page loads (audioOnLoad), so the drone is set going, fading in, at once; where the browser holds
 // sound back until the page has been touched (most do, on a first visit), it is held at the start of its fade and plays
 // it out from the first gesture. It goes with the title: anything that starts a night stops the ambient bed it is.
-function titleSound() { if (AUDIO.on() && TITLE.on && !prologueOn) AUDIO.titleDrone(TITLE.near); }   // (not under the prologue: it is fading away)
+function titleSound() { if (AUDIO.on() && TITLE.on && !prologueOn && homing !== 'dark') AUDIO.titleDrone(TITLE.near); }   // (not under the prologue: it is fading away; nor on Finish game's way home till its words come)
 function toggleMute() { setMuted(!G.muted); }
 function setMuted(m) {
   G.muted = !!m;
