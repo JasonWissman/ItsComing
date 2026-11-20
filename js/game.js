@@ -660,7 +660,7 @@ function useTarget(t) {
   let item = G.inv[G.active];
   if (!item || !t.accepts.includes(item.id)) item = G.inv.find(i => t.accepts.includes(i.id) && !i.decoy) || G.inv.find(i => t.accepts.includes(i.id)); // the genuine thing before a decoy, unless the decoy was chosen
   if (!item) {
-    if (t.accepts.length) G.say(t.hint ? t.hint() : 'You need something for this.', 'Not with what you have.');
+    if (t.accepts.length) G.say(t.hint ? t.hint() : 'You need something for this.', 'It\'s missing something.');
     else if (t.hint) G.say(t.hint(), t.name);
     noUse(t, act); return;
   }

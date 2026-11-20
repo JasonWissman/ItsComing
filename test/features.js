@@ -191,7 +191,7 @@ const hoverHit = lookFor;
   await face(page, 0, false);
   const r = await findHit(page, 'target', 'door');
   await page.mouse.click(r.x, r.y); await page.waitForTimeout(100);
-  check(await page.evaluate(() => document.getElementById('toast').textContent === 'Not with what you have.'), 'failure feedback is vague');
+  check(await page.evaluate(() => document.getElementById('toast').textContent === 'It\'s missing something.'), 'failure feedback is vague');
 
   console.log('== restart key ==');
   const hh = await lookFor(page, 'item', 'hammer');
@@ -1399,7 +1399,7 @@ const hoverHit = lookFor;
     G.step(0.05, 6);
     return Object.assign(o, { back: G.inv.includes(it) && it.taken && G.hand.cur === it && G.hand.up === 1 && !G.hand.gone, always: o.inInv.every(Boolean) });
   }, take('hammer'));
-  check(hv.preset === 'return' && hv.drop === false && hv.phases.join() === 'out,contact,home' && hv.back && hv.always && hv.toast === 'Not with what you have.', 'a wrong thing goes to the doorway, bumps it and comes back to the hand, and the line is still said (' + JSON.stringify(hv) + ')');
+  check(hv.preset === 'return' && hv.drop === false && hv.phases.join() === 'out,contact,home' && hv.back && hv.always && hv.toast === 'It\'s missing something.', 'a wrong thing goes to the doorway, bumps it and comes back to the hand, and the line is still said (' + JSON.stringify(hv) + ')');
   check(hv.unseen === 0, 'it is in the world from the first frame it leaves the hand: never a frame with it nowhere');
   // a thing missing what it needs (the planks without the hammer and nails): one plank goes up, will not stay, and falls to
   // the floor, where it can be seen and taken again; the rest of the pile stays in the hand
@@ -1497,7 +1497,7 @@ const hoverHit = lookFor;
     for (let i = 0; i < 50 && G.hand.reach; i++) { G.step(0.025, 1); if (door.touchedAt !== undefined) o.touched = true; }
     return Object.assign(o, { done: !G.hand.reach });
   });
-  check(hv.reach && !hv.fumble && hv.touched && hv.done && hv.toast === 'Not with what you have.', 'with nothing in hand, the hand goes up to the doorway, touches it and goes back down (' + JSON.stringify(hv) + ')');
+  check(hv.reach && !hv.fumble && hv.touched && hv.done && hv.toast === 'It\'s missing something.', 'with nothing in hand, the hand goes up to the doorway, touches it and goes back down (' + JSON.stringify(hv) + ')');
   // a night's own G.reach with something in hand: what it holds goes down, the empty hand does it, and it comes back up
   await n1();
   hv = await page.evaluate(take => {
