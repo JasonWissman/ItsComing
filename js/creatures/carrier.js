@@ -89,6 +89,7 @@ CREATURES.carrier = {
     }
     // the body: a sack, sagging, patched, the seams showing
     ctx.save(); ctx.translate(0, bob + rec * 0.06);
+    if (c.burn > 0) this.burnFlames(ctx, c, this.BURN_SPOTS, 0, true);   // (the flames behind it, rising up past its head and shoulders)
     P_ell(ctx, 0, 0.95, 0.5, 0.5, sack);
     P_poly(ctx, [[-0.42, 0.7], [0.42, 0.7], [0.36, 1.25 - hunch * 0.3], [-0.36, 1.25 - hunch * 0.3]], sack);
     for (let k = 0; k < 4; k++) P_line(ctx, -0.3 + k * 0.2, 0.75, -0.25 + k * 0.2, 1.2, 0.012, sackD);
@@ -127,8 +128,8 @@ CREATURES.carrier = {
     const strain = near * (0.006 + 0.004 * Math.sin(t * 7.3)) + rec * 0.03 + smoothstep(lunge) * 0.17 + scream * (0.07 + 0.012 * Math.sin(t * 37));   // in your face, pulled open tall
     this.sewnMouth(ctx, P, 0, 0.1 - lunge * 0.012, 0.25 + lunge * 0.02, strain, (lunge > 0.35 || scream > 0.5 ? 1 : 0) + (lunge > 0.7 ? 1 : 0), 5, t);
     ctx.restore();
+    if (c.burn > 0) this.burnFlames(ctx, c, this.BURN_SPOTS, 0, false);   // (and the ones on its front)
     ctx.restore();
-    if (c.burn > 0) this.burnFlames(ctx, c, this.BURN_SPOTS, 0);
   },
   // ---- on fire (night 11: every switch on at once and the main pushed on sets the farm alight, and it with it) ----
   // c.burn (0..1): how far the fire has taken it, catching at its middle and spreading over it; c.char (0..1): how
@@ -137,7 +138,7 @@ CREATURES.carrier = {
   // full of them costs a drawImage each. flame(ctx, x, y, w, h, t, seed, a): its foot at (x, y), w across and h tall (in
   // a sprite's metres, +y up), t (seconds) its flicker, seed its own, a how much of it there is. Reduced motion: it
   // flickers slower and sways less.
-  FLAME: { n: 16, w: 96, h: 128, u: 56, sheet: null },   // (u: the flame's own width in a frame w wide, room for its tongues to sway out)
+  FLAME: { n: 16, w: 96, h: 128, u: 56, foot: 0.2, sheet: null },   // (u: the flame's own width in a frame w wide, room for its tongues to sway out; foot: how much of its height fades in from its foot)
   flameStrip() {
     const F = this.FLAME;
     if (F.sheet || typeof document === 'undefined') return F.sheet;
@@ -170,6 +171,13 @@ CREATURES.carrier = {
       for (const t of crown.slice(0, 3)) { g.save(); g.translate(t.x * 0.7, 0); tongue(U * 0.36, t.h * 0.7, t.sw * 0.7, 1, [[0, 'rgba(255,178,48,0.95)'], [0.55, 'rgba(255,128,30,0.75)'], [1, 'rgba(255,96,20,0)']]); g.restore(); }
       tongue(U * 0.3, crown[0].h * 0.4, crown[0].sw * 0.3, 0.95, [[0, 'rgba(255,250,214,1)'], [0.6, 'rgba(255,222,120,0.85)'], [1, 'rgba(255,196,90,0)']]);
       if (soft) g.filter = 'none';
+      // its foot faded out (F.foot of its height), so there is no hard flat line along the bottom of it: it comes up out of
+      // whatever it is burning on
+      g.globalCompositeOperation = 'destination-out';
+      const ft = g.createLinearGradient(0, 0, 0, -H * F.foot);
+      ft.addColorStop(0, 'rgba(0,0,0,1)'); ft.addColorStop(0.3, 'rgba(0,0,0,0.72)'); ft.addColorStop(0.65, 'rgba(0,0,0,0.25)'); ft.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = ft; g.fillRect(-F.w / 2, -H * F.foot, F.w, H * F.foot + 4);
+      g.globalCompositeOperation = 'source-over';
       g.restore();
     }
     F.sheet = cv;
@@ -187,17 +195,27 @@ CREATURES.carrier = {
     ctx.drawImage(sh, f * F.w, 0, F.w, F.h, -ww / 2, 0, ww, h * k);
     ctx.restore();
   },
-  // where it burns, standing: [x, y, size] in its metres, the first catching first
-  // (its face is left clear: the flames are on its body, its shoulders and arms, and up off the top of its head)
-  BURN_SPOTS: [[0.02, 0.78, 0.5], [-0.38, 1.08, 0.42], [0.38, 1.02, 0.42], [-0.2, 1.72, 0.44], [0.2, 1.78, 0.4], [-0.25, 0.5, 0.34], [0.27, 0.46, 0.34], [0, 1.86, 0.42], [-0.44, 0.84, 0.3], [0.45, 0.8, 0.3]],
-  burnFlames(ctx, c, spots, lean) {
+  // where it burns, standing (and turning, charging and in your face): [x, y, size, behind] in its metres, (x, y) the
+  // foot of the flame, the first catching first. Every flame's foot is on it, never out in the air beside it: the ones
+  // behind it (behind: drawn before it) stand with their feet hidden behind its body and head, and only the fire rising
+  // up past its shoulders and over its head shows; the ones on its front have their feet well inside its body, kept in
+  // from its edges by their own width (about 0.4 size either side). Its face is left clear: the flames on its front are
+  // low and to either side of it, and what is over its head is behind it. (test/nights/night11.js checks every foot
+  // against its outline, in every burning pose)
+  BURN_SPOTS: [[0.02, 0.5, 0.36], [-0.24, 0.7, 0.36], [0.26, 0.66, 0.34], [-0.2, 1.0, 0.6, true], [0.21, 0.97, 0.58, true], [0, 1.12, 0.66, true], [-0.32, 0.93, 0.3], [0.33, 0.9, 0.3]],
+  // running: the same, from where its body, shoulders and head are in this stride (drawRun), in the spine's frame:
+  // [along the spine from the body's middle, out of its front, size, behind] (or [x, y] from its head with head: true)
+  RUN_SPOTS: [[0, 0.06, 0.4], [-0.24, 0.04, 0.34], [0.1, -0.02, 0.56, true], [-0.18, -0.02, 0.48, true], [0.32, 0, 0.5, true], [-0.07, -0.01, 0.38, true, true], [0.26, 0.02, 0.32]],
+  // the flames of the spots behind it (behind true) or on it (false), each growing as the fire takes it (c.burn), foot at
+  // (x, y); running, each leans back off it (lean: how far)
+  burnFlames(ctx, c, spots, lean, behind) {
     const b = clamp(c.burn || 0, 0, 1), t = c.t, n = spots.length;
     for (let i = 0; i < n; i++) {
-      const [x, y, s] = spots[i], on = clamp(b * (n + 2) - i, 0, 1);
-      if (on <= 0) continue;
+      const [x, y, s, back] = spots[i], on = clamp(b * (n + 2) - i, 0, 1);
+      if (on <= 0 || !!back !== behind) continue;
       const sz = s * (0.45 + 0.55 * on), seed = i * 1.7 + (c.idx || 0) * 3.1;
-      if (!lean) { this.flame(ctx, x, y - sz * 0.32, sz * 0.82, sz * 1.75, t, seed, Math.min(1, on * 1.5)); continue; }
-      ctx.save(); ctx.translate(x, y - sz * 0.3); ctx.transform(1, 0, -lean, 1, 0, 0);   // leaning back off it as it runs
+      if (!lean) { this.flame(ctx, x, y, sz * 0.82, sz * 1.75, t, seed, Math.min(1, on * 1.5)); continue; }
+      ctx.save(); ctx.translate(x, y); ctx.transform(1, 0, -lean, 1, 0, 0);   // leaning back off it as it runs
       this.flame(ctx, 0, 0, sz * 0.8, sz * 1.8, t, seed, Math.min(1, on * 1.5));
       ctx.restore();
     }
@@ -225,11 +243,14 @@ CREATURES.carrier = {
     leg(legs[1], sackD, skinD);   // the far leg, in its own shadow
     // the body: a sack slung forward from the hips, sagging at the belly, the light along its back, a seam or two
     const cx = hipX + sp[0] * 0.4 + 0.03, cy = hipY + sp[1] * 0.4;
+    const shX = hipX + sp[0] * 0.76, shY = hipY + sp[1] * 0.76;   // the shoulders, out over its front
+    const nod = Math.sin(g * 2) * 0.02 * pace, hdx = shX + 0.17, hdy = shY + 0.05 + nod;   // the head, low and thrust out ahead of them
+    const fire = c.burn > 0 ? this.RUN_SPOTS.map(([a, f, s, back, head]) => (head ? [hdx + a, hdy + f, s, back] : [cx + sp[0] * a + fw[0] * f, cy + sp[1] * a + fw[1] * f, s, back])) : null;
+    if (fire) this.burnFlames(ctx, c, fire, 0.6 * pace, true);   // (the flames behind it, streaming back off its back, shoulders and head)
     P_ell(ctx, cx, cy, 0.5, 0.37, sack, rot);
     P_ell(ctx, cx + fw[0] * 0.13, cy + fw[1] * 0.13, 0.38, 0.22, sackD, rot);
     P_ell(ctx, cx - fw[0] * 0.19, cy - fw[1] * 0.19, 0.36, 0.11, sackL, rot);
     for (const u of [-0.12, 0.14]) P_line(ctx, cx + sp[0] * u - fw[0] * 0.3, cy + sp[1] * u - fw[1] * 0.3, cx + sp[0] * u + fw[0] * 0.1, cy + sp[1] * u + fw[1] * 0.1, 0.014, sackD);
-    const shX = hipX + sp[0] * 0.76, shY = hipY + sp[1] * 0.76;   // the shoulders, out over its front
     // the bundle, held to its chest: tied, lumpy, never put down
     const bx = cx + fw[0] * 0.34 + sp[0] * 0.08, by = cy + fw[1] * 0.34 + sp[1] * 0.08 + Math.sin(g * 2) * 0.012;
     P_ell(ctx, bx, by, 0.21, 0.17, bundleD, 0.3); P_ell(ctx, bx - 0.02, by + 0.03, 0.17, 0.12, bundle, 0.3);
@@ -243,7 +264,6 @@ CREATURES.carrier = {
       fingers(ctx, hx, hy, Math.PI + 0.6, 0.24, 0.1, 0.024, skin);
     }
     // the head, low and thrust out ahead of the shoulders, the face in profile on its front
-    const nod = Math.sin(g * 2) * 0.02 * pace, hdx = shX + 0.17, hdy = shY + 0.05 + nod;
     for (let i = 0; i < 9; i++) {   // the straw hair, streaming back as it goes
       const a = Math.PI * (0.66 + i * 0.04) + Math.sin(t * 9 + i * 1.7) * 0.06 * pace, l = 0.22 + 0.1 * Math.sin(i * 2.1) + 0.14 * pace;
       const x0 = hdx - 0.06 + i * 0.014, y0 = hdy + 0.15 - i * 0.016;
@@ -262,7 +282,7 @@ CREATURES.carrier = {
       P_limb(ctx, [[shX - 0.04, shY - 0.02], [shX + 0.16 + 0.06 * v, shY + 0.38], [hx, hy]], 0.11, sack);
       fingers(ctx, hx, hy, Math.PI / 2 + w * 0.5, 0.45, 0.12, 0.024, skin);
     }
-    if (c.burn > 0) this.burnFlames(ctx, c, [[cx - sp[0] * 0.05, cy + 0.3, 0.46], [cx + sp[0] * 0.32 - 0.1, cy + sp[1] * 0.32 + 0.22, 0.42], [hipX - 0.12, hipY + 0.2, 0.36], [shX - 0.06, shY + 0.18, 0.4], [hdx - 0.08, hdy + 0.2, 0.38], [shX + 0.12, shY + 0.66, 0.3], [hipX + 0.05, hipY - 0.1, 0.26]], 0.6 * pace);
+    if (fire) this.burnFlames(ctx, c, fire, 0.6 * pace, false);   // (and the ones on its side)
     ctx.restore();
   },
   // Its end, in the light (c.fallT seconds in). FALL.shriek: it rears up screaming, shaking, an arm over its face. Then its
