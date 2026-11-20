@@ -5,6 +5,8 @@
 // your hands and it is plainly enraged: its eyes burn red, a snarling mouth opens in the dark under them, it shakes, and it
 // comes on in fits (demonFit): it lurches, stops dead, staggers aside, its head twitching. Empty-handed it is only tall,
 // and it walks.
+// Coming close it bends down toward you, its shoulders hunched over (c.stoop, metres: its shoulders and head that much
+// lower, the robe under them shorter, its feet where they were), so its face stays in the view (demonStoop).
 // For the ending the night also sets c.calm (it settles: no rage left in its body, a little smaller), c.soft (the dark
 // lightens), c.disrobe (in the meadow it takes the robe off: see demonOff), c.dance and c.fade; c.mood, the face it makes
 // while it holds you (see DEMON_MOODS), and c.unveil, how far that face has come up out of the dark of the hood (0: still
@@ -571,11 +573,23 @@ function demonFaded(ctx, c, P) {
 // how enraged it is, as it looks (rage, less any calm)
 const demonRage = c => clamp(c.rage || 0, 0, 1) * (1 - (c.calm || 0));
 // how high its eyes are, from its feet, as draw() puts them (the robe, the bob of its step, the hood all grow with rage; a
-// lurch dips it)
+// lurch dips it; bent down to you, c.stoop, they are that much lower)
 function demonEyesY(c) {
   const calm = c.calm || 0, a = demonRage(c), dip = a > 0.001 ? demonFit(c).dip * a : 0;
-  const top = 1.3 + a * 0.35 + 0.85 + Math.abs(Math.sin(c.gait)) * (0.04 + a * 0.06) - dip;
+  const top = 1.3 + a * 0.35 + 0.85 + Math.abs(Math.sin(c.gait)) * (0.04 + a * 0.06) - dip - (c.stoop || 0);
   return (top + 0.285 + a * 0.1 + 0.03) * (1 - 0.2 * calm);
+}
+// How far it bends down to you (c.stoop) so that its face stays in the view as it comes close: looked at straight ahead
+// from eyeH (the view is 62 degrees high: js/render.js VFOV), its eyes at the top of its step are no more than STOOP_UP of
+// the way from the middle of the view up to its top, whatever its rage (so the top of its hood is in the view too, with
+// room to spare). sunk: how far down it is already (c.yOff, below 0: the night's own bend, empty-handed, over the last few
+// metres). Far off it stands straight; it only bends as close as it must, and the closer, the further.
+const STOOP_UP = 0.4;
+function demonStoop(c, eyeH, sunk) {
+  const calm = c.calm || 0, a = demonRage(c), ks = 1 - 0.2 * calm;
+  const eyes = (1.3 + a * 0.35 + 0.85 + 0.04 + a * 0.06 + 0.285 + a * 0.1 + 0.03) * ks;   // (unbent, at the top of its step)
+  const want = eyeH + Math.tan(31 * DEG) * STOOP_UP * Math.max(0.3, c.dist);
+  return Math.max(0, eyes + (sunk || 0) - want) / ks;
 }
 // crying (c.sob), its shoulders heave: in fits, a few quick catches and then a breath (none with reduced motion)
 function demonHeave(c) {
@@ -609,16 +623,18 @@ CREATURES.demon = {
   name: 'the demon', h: 2.6, w: 1.6, faceY: 2.35, stepRate: 0.55, catchDist: 1.2, sound: 'walker',
   // the lunge brings faceY to eye level; enraged, it is taller and its face sits higher than that, so the pose lifts it the
   // rest of the way and the last thing you see is its face, not its chest
+  // (and from where it was when it reached you, bent down to you, c.bend0: the night's c.yOff then; the lunge's own lift
+  // starts from 0, which would put it back up, its face over the top of the view, for the moment before it comes)
   death: {
     delay: 0.25, dur: 0.5, sting: 'sting',
-    pose(c, k) { c.yOff -= (demonEyesY(c) - CREATURES.demon.faceY) * smoothstep(k); },
+    pose(c, k) { const K = smoothstep(k); c.yOff += (c.bend0 || 0) * (1 - K) - (demonEyesY(c) - CREATURES.demon.faceY) * K; },
   },
   voice: { kind: 'exhale', every: [4, 8] },
-  eyesY: demonEyesY, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, mood: demonMood, ending: demonEnding, heave: demonHeave, scareAt: demonScareAt, scareDraw: demonScareDraw, vignette: demonVignette,   // for the ending and the tests
+  eyesY: demonEyesY, stoopFor: demonStoop, tilt: demonTilt, fit: demonFit, seize: demonSeize, moods: DEMON_MOODS.length, moodNames: DEMON_MOOD_NAMES, moodAt: demonMoodAt, mood: demonMood, ending: demonEnding, heave: demonHeave, scareAt: demonScareAt, scareDraw: demonScareDraw, vignette: demonVignette,   // for the ending and the tests
   // what of its box is it, to aim at (js/game.js creatureBox: the bow's draw bar on night 13): the robe and the hood, up to just above
   // its eyes, wider enraged
   body(c) { const a = demonRage(c); return [-0.42 - a * 0.08, 0.42 + a * 0.08, 0, demonEyesY(c) + 0.3]; },
-  init(c) { c.anger = 0; c.rage = 0; c.calm = 0; c.soft = 0; c.dance = 0; c.disrobe = 0; c.fade = 1; },
+  init(c) { c.anger = 0; c.rage = 0; c.calm = 0; c.soft = 0; c.dance = 0; c.disrobe = 0; c.fade = 1; c.stoop = 0; c.bend0 = 0; },
   // enraged, it comes in fits: stopping dead, stepping, lurching
   speedMult(c, dt, seen) { const a = demonRage(c); return (1 + 0.45 * (c.anger || 0)) * (a > 0.001 ? lerp(1, demonFit(c).pace, a) : 1); },
   // and jerks aside (less as it comes up to you)
@@ -649,7 +665,10 @@ CREATURES.demon = {
     const bob = Math.abs(Math.sin(g)) * (0.04 + a * 0.06), sway = Math.sin(g) * (0.03 + a * 0.05);
     // crying (c.sob), its shoulders heave, in fits
     const heave = demonHeave(c);
-    const legL = 1.3 + a * 0.35, armL = 0.9 + a * 0.6, top = legL + 0.85 + bob + heave;
+    // bent down to you (c.stoop): its shoulders and head lower, the robe under them shorter, and its back hunched up over its
+    // shoulders (hk)
+    const stoop = c.stoop || 0, hk = clamp(stoop / 0.9, 0, 1);
+    const legL = 1.3 + a * 0.35, armL = 0.9 + a * 0.6, top = legL + 0.85 + bob + heave - stoop;
     // the robe, from the shoulders to the ground, flaring; its hem swings with each step and the folds with it
     const step = Math.sin(g) * (0.05 + a * 0.04), hemW = 0.36 + a * 0.1, sh = sway * 0.6;
     const sideX = 0.27, sideY = legL * 0.55;
@@ -704,7 +723,7 @@ CREATURES.demon = {
       ctx.beginPath(); ctx.moveTo(x0 * 0.6 + sh, top - 0.18); ctx.quadraticCurveTo(x0 + sway * 0.4, legL * 0.6, x1 + step * 0.8, 0.06); ctx.stroke();
     }
     // its shoulders under the fall of the hood
-    P_ell(ctx, sh, top - 0.03, 0.26, 0.085, robe);
+    P_ell(ctx, sh, top - 0.03 + 0.03 * hk, 0.26 + 0.04 * hk, 0.085 + 0.07 * hk, robe);
     // the arms in their long sleeves; enraged they are longer, and the hands, long-fingered and black, hang lower
     const raise = smoothstep(Math.max(near * (0.5 + a * 0.5), lunge));
     const sleeve = 0.1 - a * 0.012;

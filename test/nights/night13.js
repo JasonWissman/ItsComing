@@ -1,3 +1,4 @@
+// The Void (first, a death: the bow drawn at it, it rushes you, bent over so its face stays in the view; then afresh).
 // The Void: you begin with nothing in your hands, and everything you ever held lies around you. The harness gives in to the
 // temptation first: it takes up two things (one in each hand), and the thing in the black hood is enraged (red eyes, a
 // snarling mouth in the dark, coming on in fits, screeching); it takes up four more, and reaching for a seventh the full
@@ -38,6 +39,24 @@ const oneDown = [['eval', 'window.__it = G.inv[G.active]; G.cam.pitch = G.cam.tP
   ['expect', '!G.inv.includes(window.__it) && window.__it.taken', 'put down, it leaves your hand and falls (it is not lying there yet)'],
   ['waitUntil', '!window.__it.taken', 1500], ['expect', '!window.__it.taken && window.__it.y === 0', 'and lands where it lies'],
   ['eval', seen], ['wait', 250], ['expect', takeable, 'where it can be seen and taken again']];
+// Drawn at with the bow, it rushes you, enraged and taller: bent over toward you, its face stays in the view all the way
+// in and through its death lunge. Watched every frame, looking straight ahead at it, from 6 m in until it is well into its
+// lunge: where its eyes and the top of its hood are drawn, in this view and in a phone's held sideways (844 by 390), each
+// as a share of the view's height from its top: the top of its hood never over the top of the view (nor the compass), its
+// eyes never down in the bottom of it
+const faceRow = "(() => { const c = G.L.creature, p = c.pos(), y0 = p.y + (c.yOff || 0), e = CREATURES.demon.eyesY(c), cam = { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: G.cam.zoom, eyeH: G.L.eyeH };" +
+  ' const at = (W, H) => { const r = R.projectRect(p.x, y0 + e, p.z, 0.1, 0.27, Object.assign({ W, H }, cam)); return r && [r.y / H, (r.y + r.h) / H]; };' +
+  ' return { d: c.dist, lunge: c.lunge || 0, view: at(R.W, R.H), phone: at(844, 390) }; })()';
+const faceWatch = "window.__face = { n: 0, top: 9, eyes: 0, where: '' }; (function w() { const c = G.L.creature, F = window.__face; if ((G.state === 'play' && c.dist < 6) || (G.state === 'dying' && c.lunge < 0.85)) { const r = " + faceRow + ";" +
+  " for (const v of [r.view, r.phone]) { if (!v) { F.top = -9; continue; } if (v[0] < F.top) { F.top = v[0]; F.where = r.d.toFixed(2) + ' m, lunge ' + r.lunge.toFixed(2); } F.eyes = Math.max(F.eyes, v[1]); } F.n++; } if (G.state === 'play' || G.state === 'dying') requestAnimationFrame(w); })();";
+const rushed = [
+  ['eval', "(() => { const c = G.L.creature; c.switched = true; c.hold = 14; for (const id of ['arrows', 'bow']) pickup(G.L.items.find(i => i.id === id)); G.active = G.inv.findIndex(i => i.id === 'bow'); G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = c.yaw; G.cam.pitch = G.cam.tPitch = 0; })()"],
+  ['wait', 900], ['eval', faceWatch],
+  ['draw', 'full'],
+  ['waitUntil', "G.state === 'dead'", 6000],
+  ['expect', "(F => { console.log('its face, drawn at: ' + JSON.stringify(F)); return F.n > 10 && F.top > 0.08 && F.eyes < 0.6; })(window.__face) && G.L.s.fought", 'drawn at, it rushes you bent over toward you: its face in the view all the way in and through its lunge, here and on a phone held sideways'],
+  ['eval', 'restartLevel();'], ['wait', 300],
+];
 const start = [
   ['expect', 'G.inv.length === 0 && G.L.items.length === 16 && G.L.items.every(i => !i.taken)', 'empty-handed: everything you ever held lies around you'],
   ['wait', 400], ['expect', 'G.L.creature.rage < 0.05 && G.L.creature.lat === 0', 'holding nothing, it is calm: it only walks'],
@@ -110,5 +129,5 @@ const ending = [
   ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"done\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true", 'the last screen, The End, campaign marked complete'],
 ];
 module.exports = {
-  nightmare: [].concat(start, tempted, full, oneDown, letGo, ending),
+  nightmare: [].concat(rushed, start, tempted, full, oneDown, letGo, ending),
 };

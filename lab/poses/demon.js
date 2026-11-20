@@ -146,15 +146,19 @@
     return { h: lerp(A.h, B.h, k), y0: lerp(A.y0, B.y0, k), w: lerp(A.w, B.w, k) };
   };
   const base = LAB.lunge();
+  // coming close it bends over toward you as night 13 has it (CR.stoopFor, from your eye 1.65 m up), so its face stays in the
+  // view; and its death lunge comes up from as far down as it was (CR.death.pose: c.bend0)
+  const bendTo = c => { c.stoop = CR.stoopFor(c, 1.65, c.yOff); };
+  const lungeY = c => { const K = smoothstep(c.lunge); return (c.bend0 || 0) * (1 - K) - (CR.eyesY(c) - CR.faceY) * K; };
   LAB.creature('demon', {
     night: 13, stage: 'The Void', dist: 8, fit: { h: 2.75, w: 1.3 },
     anims: [
       { name: 'Far off in the dark', note: 'Empty-handed, far out in the void: the black fog has the robe, and all there is of it is two pale points (no haze round them).', dist: 24, dur: 6, draw: drawAt(voidFog),
         tick(c, k, dt) { come(c, dt, false); } },
       { name: 'Walking at you, empty-handed', note: 'Your hands empty, it only walks: from 8 m in to you, its arms rising toward you and bending down to you over the last few metres (so close in, its head stays in the view).', dur: 12, draw: drawAt(),
-        tick(c, k, dt) { come(c, dt, true, 1.2); c.yOff = -0.42 * smoothstep(clamp((3.6 - c.dist) / 2.4, 0, 1)); } },
-      { name: 'Enraged, coming on in fits', note: 'Holding three things: red slit eyes, the snarl, the shaking, and its fits (stop dead, step, lurch) and jerks aside as it comes from 12 m.', dist: 12, dur: 11, fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
-        set(c) { c.anger = 3; c.rage = rageFor(3); }, tick(c, k, dt) { holdAnger(c, dt); come(c, dt, true, 1.5); } },
+        tick(c, k, dt) { come(c, dt, true, 1.2); c.yOff = -0.42 * smoothstep(clamp((3.6 - c.dist) / 2.4, 0, 1)); bendTo(c); } },
+      { name: 'Enraged, coming on in fits', note: 'Holding three things: red slit eyes, the snarl, the shaking, and its fits (stop dead, step, lurch) and jerks aside as it comes from 12 m in to you; taller enraged, it bends over toward you over the last few metres, its shoulders hunched, so its face stays in the view.', dist: 12, dur: 11, fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
+        set(c) { c.anger = 3; c.rage = rageFor(3); }, tick(c, k, dt) { holdAnger(c, dt); come(c, dt, true, 1.2); bendTo(c); } },
       { name: 'Taking something up, and putting it down', note: 'You pick one thing up at 1 s and put it down at 5 s: its rage comes on and goes off again at the rate the night eases it.', dist: 7, dur: 8.5, fit: { h: 3.3, w: 1.9 }, draw: drawAt(),
         tick(c, k, dt, T) { c.anger = T >= 1 && T < 5 ? 1 : 0; holdAnger(c, dt); come(c, dt, false); } },
       endPart(0, { name: 'The whole ending', note: 'The ending as the night plays it, in one go: from when it reaches you (it lifts its arms and takes hold of you, and then its face comes up) through its faces, crying, looking down and crying on, the scare and taking the faces back, grey and confused (and the same mirrored), content and happy as the meadow comes, letting you go, stepping back, taking off its robe, and dancing in the meadow. The frame follows it, close on its face while it holds you and out again after. (Its light changes with each face; the pale light, the meadow, the shake and the flash are the night\u2019s, not drawn here.)', dur: END.dance[1] + 1.2, fit: frameAt, back: scareLayer('back'), front: scareLayer('front') }),
@@ -176,19 +180,19 @@
       endPart(END.dance[0] - 0.2, { name: 'Dancing in the meadow', note: 'Out of the robe, in a yellow striped shirt, red shorts, white socks and blue sneakers, it dances a little to the music box beside the heap of it: hops, kicks, hands up and waving, its head rocking.', dur: 4.9, fit: { h: 2.8, w: 1.6 } }),
       { name: 'Fading away', note: 'After your press in the meadow: it fades out over two seconds as the bedroom comes up, the robe on the grass with it.', dur: 3, still: true, fit: { h: 2.8, w: 1.6 }, draw: drawAt(),
         set(c) { c.tilt0 = 0; ending(c, END.dance[1] + 1.6, 0); c.leaving = true; }, tick(c, k, dt, T) { ending(c, END.dance[1] + 1.6 + T, dt); c.leave = span(T, 0, 3.0); c.fade = clamp(1 - (T - 0.3) / 2.0, 0, 1); } },
-      LAB.lunge({ note: 'Still holding something as it reaches you: enraged, it comes up into your face, lifted so its eyes end level with yours.', fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
-        set(c) { c.anger = 1; c.rage = rageFor(1); base.set(c); },
-        tick(c, k, dt, T) { base.tick(c, k, dt, T); c.lat = lerp(c.lat, 0, 0.3); c.yOff = -(CR.eyesY(c) - CR.faceY) * smoothstep(c.lunge); } }),
+      LAB.lunge({ note: 'Still holding something as it reaches you: enraged, bent over toward you as it came (so its face was in the view), it comes up into your face, lifted so its eyes end level with yours.', fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
+        set(c) { c.anger = 1; c.rage = rageFor(1); bendTo(c); base.set(c); c.bend0 = c.yOff; },
+        tick(c, k, dt, T) { base.tick(c, k, dt, T); c.lat = lerp(c.lat, 0, 0.3); c.yOff = lungeY(c); } }),
       // drawn at with the bow: as night 13's rushStep has it, from where it was it is brought in on a steepening curve to reach
       // you as the draw comes to 0.8 (1.2 s); then the death lunge
-      LAB.lunge({ name: 'Drawn at: it rushes you', note: 'The bow drawn at it (it is never loosed here): enraged, it comes for you from 14 m, slowly and then faster and faster as the string comes back, and is on you before the bow is full: the death lunge.', dist: 14, dur: 2.4, fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
+      LAB.lunge({ name: 'Drawn at: it rushes you', note: 'The bow drawn at it (it is never loosed here): enraged, it comes for you from 14 m, slowly and then faster and faster as the string comes back, bending over toward you as it nears so its face stays in the view, and is on you before the bow is full: the death lunge, up from as low as it was bent.', dist: 14, dur: 2.4, fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
         set(c) { c.anger = 2; c.rage = rageFor(2); c.frozen = true; c.from = c.dist; },
         tick(c, k, dt, T) {
           const q = clamp(T / 1.2, 0, 1), prev = c.dist;
           c.rage += (lerp(rageFor(2), 1, q) - c.rage) * Math.min(1, dt * (4 + 8 * q));
-          if (q < 1) { c.dist = lerp(c.from, CR.catchDist * 0.9, q * q * (0.4 + 0.6 * q)); c.gait += (prev - c.dist) * CR.stepRate * Math.PI; c.moving = true; c.lat = CR.lateral(Object.assign({}, c, { frozen: false })); return; }
-          if (!c.lungeFrom) { c.lungeFrom = c.dist; c.lat = 0; }
-          base.tick(c, k, dt, T - 1.2); c.yOff = -(CR.eyesY(c) - CR.faceY) * smoothstep(c.lunge);
+          if (q < 1) { c.dist = lerp(c.from, CR.catchDist * 0.9, q * q * (0.4 + 0.6 * q)); c.gait += (prev - c.dist) * CR.stepRate * Math.PI; c.moving = true; c.lat = CR.lateral(Object.assign({}, c, { frozen: false })); bendTo(c); return; }
+          if (!c.lungeFrom) { c.dist = CR.catchDist * 0.9; bendTo(c); c.lungeFrom = c.dist; c.lat = 0; }
+          base.tick(c, k, dt, T - 1.2); c.yOff = lungeY(c);
         } }),
     ],
   });

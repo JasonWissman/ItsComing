@@ -49,7 +49,7 @@
       { name: 'Catching fire', note: 'The easter egg: every switch set on with the main off, then the main pushed on. A big spark from the bursting box lands on it: the fire takes it from its middle out over 0.7 s, it scorches, and it throws its arms up over its head, beating at the flames.',
         dur: 2.6, lit: 0.4,
         set(c) { c.shade = 0; c.burn = 0; c.char = 0; c.flail = 0; }, tick(c, k, dt, T) { c.burn = clamp((T - 0.3) / 0.7, 0, 1); c.char = c.burn ? Math.min(0.85, 0.3 + (T - 0.3) / 4) : 0; c.flail = clamp((T - 0.5) / 0.3, 0, 1); } },
-      { name: 'Burning, running about', note: 'Running about the yard in the open, on fire, side on: the flames streaming back off it, scorched near black, the near arm beating at the fire over its head. It runs where you are looking, shrieking, until you have watched it a few seconds.',
+      { name: 'Burning, running about', note: 'Running about the yard in the open, on fire, side on: the flames streaming back off it, scorched near black, the near arm let go of its bundle and beating at the fire over its head (the bundle is not drawn: nothing on the front of its belly). It runs where you are looking, shrieking, until you have watched it a few seconds.',
         dur: RUN_T, lit: 0.4, fit: { w: 1.6, h: 2.2 },
         set(c) { c.runPose = true; c.runDir = 1; c.runPace = 1; c.shade = 0; c.burn = 1; c.char = 0.8; }, tick(c, k, dt) { c.runGait = (c.runGait || 0) + dt * 17; } },
       { name: 'Burning, turning on you', note: 'It stops, faces you and beats at itself, both arms flailing over its head, shrieking against its stitches (0.6 s), then charges.',
