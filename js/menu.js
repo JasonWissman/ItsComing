@@ -20,13 +20,25 @@ const MENU = (() => {
     return { total, nights };
   }
   // the stars for a whole run, by its time as shown: under 3 minutes three, under 6 two, else one
-  const starCount = total => (total < 180 ? 3 : total < 360 ? 2 : 1);
+  const STARS_AT = [180, 360];   // (seconds: under the first three stars, under the second two)
+  const starCount = total => (total < STARS_AT[0] ? 3 : total < STARS_AT[1] ? 2 : 1);
+  // what each takes, told on the stars: a tooltip (its title) on a hover, read out with them (aria-describedby), and on a
+  // touch screen shown by a tap on them (starTip)
+  const STARS_TIP = ['3 stars: under ' + STARS_AT[0] / 60 + ' minutes', '2 stars: under ' + STARS_AT[1] / 60 + ' minutes', '1 star: any finish'];
+  let tipN = 0;
   // drawn: three five-pointed stars, those earned filled, the rest only outlined; read out as one ("2 of 3 stars")
   const STAR = 'M12 2.6l2.75 6.05 6.6.72-4.93 4.45 1.38 6.5L12 17.02 6.2 20.32l1.38-6.5L2.65 9.37l6.6-.72z';
   function starsHtml(n) {
     let o = '';
     for (let i = 0; i < 3; i++) o += '<svg class="star' + (i < n ? ' on' : '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + STAR + '"/></svg>';
-    return '<span class="stars" role="img" aria-label="' + n + ' of 3 stars">' + o + '</span>';
+    const id = 'startip' + (++tipN);
+    return '<span class="stars" role="img" aria-label="' + n + ' of 3 stars" title="' + STARS_TIP.join('&#10;') + '" aria-describedby="' + id + '">' + o + '<span class="startip" id="' + id + '">' + STARS_TIP.map(t => '<span>' + t + '</span>').join(' ') + '</span></span>';
+  }
+  // a tap (or a click) on the stars: what each takes, shown under them for a few seconds (again: hidden)
+  function starTip(s) {
+    clearTimeout(s._tip);
+    const on = s.classList.toggle('tip');
+    if (on) s._tip = setTimeout(() => s.classList.remove('tip'), 5000);
   }
   // a whole run's card: its label, the time (with the Best run stamp beside it, when it is one), its stars under it
   const runTime = (run, label, stamp) => {
@@ -130,14 +142,15 @@ const MENU = (() => {
       case 'settings': {
         if (d.sub === 'volume') return volumeHtml();
         if (d.sub === 'brightness') return brightnessHtml();
-        // Volume and Brightness, each a Calibrate button (a dialog of its own: volumeHtml, brightnessHtml); the effects,
-        // the ambience and the text size, each a row of choices (seg); then the on/off settings, each a switch (a checkbox
-        // with the role of a switch, drawn as one: .sw). Beside Back, Set to default: every setting back as it began
-        // (nothing else). From the warning before a new game (d.from 'warning': game.js) the same
+        // Volume and Brightness, each a Calibrate button (a dialog of its own: volumeHtml, brightnessHtml: the effects and
+        // the ambience volumes are in Volume's); Display, windowed or full screen (displayRow); the text size, a row of
+        // choices (seg); then the on/off settings, each a switch (a checkbox with the role of a switch, drawn as one: .sw).
+        // Beside Back, Set to default: every setting back as it began (nothing else). From the warning before a new game
+        // (d.from 'warning': game.js) the same
         const sw = (k, label) => '<label class="opt"><span class="olabel">' + label + '</span><span class="swwrap"><input type="checkbox" role="switch" class="swi" data-set="' + k + '"' + (switchOn(k) ? ' checked' : '') + '><span class="sw" aria-hidden="true"></span></span></label>';
         const cal = (act, label) => '<div class="opt"><span class="olabel">' + label + '</span><button type="button" class="calbtn" data-act="' + act + '" aria-label="Calibrate ' + label.toLowerCase() + '">Calibrate</button></div>';
         return '<h1>Settings</h1><div class="settings"><div class="sgrp">' +
-          cal('calvol', 'Volume') + cal('calbright', 'Brightness') + seg('effects', 'Effects', SAVE.LOUDNESS) + seg('ambient', 'Ambience', SAVE.LOUDNESS) + seg('textSize', 'Text size', SAVE.TEXT_SIZES) +
+          cal('calvol', 'Volume') + cal('calbright', 'Brightness') + displayRow() + seg('textSize', 'Text size', SAVE.TEXT_SIZES) +
           '</div><div class="sgrp">' +
           sw('muted', 'Mute') + sw('reduceMotionFlash', 'Reduce motion and flashing effects') + sw('captions', 'Captions for sounds') + (touchUI() ? sw('swipeReverse', 'Reverse swipes') : '') + sw('reduceTextures', 'Reduce surface textures') +
           '</div></div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('defaults', 'Set to default') + '</div>';
@@ -150,23 +163,44 @@ const MENU = (() => {
   // (and from the pause menu, Controls and Settings open as the same dialogs, over the night paused behind them)
   const DIALOGS = ['nights', 'settings', 'howto'];
   const pct = v => Math.round(v * 100) + '%';
-  // a slider, its value as a percentage at its right (following it as it moves)
-  const rng = (k, label, min, max) => { const v = SAVE.data.settings[k]; return '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="0.05" data-set="' + k + '" value="' + v + '" aria-valuetext="' + pct(v) + '"><output class="pct" aria-hidden="true">' + pct(v) + '</output></span></label>'; };
-  // a row of choices, one of them chosen (choices: [[label, value], ...]): a radio group, its buttons side by side. The
-  // arrows (left and right; a pad's d-pad too) go along it choosing as they go, Enter, Space and A choose the one with the
-  // focus, a click or a tap chooses; only the chosen one is in the round the other keys go (ring)
-  function seg(k, label, choices) {
-    const on = SAVE.nearest(choices, SAVE.data.settings[k]);
+  // a slider, its value as a percentage at its right (following it as it moves); name: what it is read out as, when its
+  // label alone does not say
+  const rng = (k, label, min, max, name) => { const v = SAVE.data.settings[k]; return '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="0.05" data-set="' + k + '" value="' + v + '" aria-valuetext="' + pct(v) + '"' + (name ? ' aria-label="' + name + '"' : '') + '><output class="pct" aria-hidden="true">' + pct(v) + '</output></span></label>'; };
+  // a row of choices, one of them chosen (choices: [[label, value], ...]; chosen: the value chosen, else the setting's):
+  // a radio group, its buttons side by side. The arrows (left and right; a pad's d-pad too) go along it choosing as they
+  // go, Enter, Space and A choose the one with the focus, a click or a tap chooses; only the chosen one is in the round
+  // the other keys go (ring)
+  function seg(k, label, choices, chosen) {
+    const on = chosen !== undefined ? chosen : SAVE.nearest(choices, SAVE.data.settings[k]);
     return '<div class="opt optseg"><span class="olabel">' + label + '</span><span class="seg" role="radiogroup" aria-label="' + label + '" data-set="' + k + '">' +
       choices.map(([t, v]) => '<button type="button" role="radio" data-v="' + v + '" aria-checked="' + (v === on) + '" tabindex="' + (v === on ? 0 : -1) + '">' + t + '</button>').join('') + '</span></div>';
   }
   // the choice in a row made: the setting applied and saved, the buttons following
   function segPick(o) {
     const g = o.closest('.seg'); if (!g || o.getAttribute('aria-checked') === 'true') return false;
-    for (const b of g.querySelectorAll('[role="radio"]')) { const on = b === o; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; }
+    segShow(g, parseFloat(o.dataset.v));
     applySetting(g.dataset.set, parseFloat(o.dataset.v));
     return true;
   }
+  // a row of choices showing v chosen
+  function segShow(g, v) { for (const b of g.querySelectorAll('[role="radio"]')) { const on = parseFloat(b.dataset.v) === v; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; } }
+  // Display: Windowed or Fullscreen, as the full screen button in the corner (#fsBtn: game.js toggleFullscreen) has it.
+  // Not a setting: it is what the page is now, and follows it however it changes (that button, F, Esc out of full
+  // screen: fullscreenchange). Where the page cannot go full screen (Safari on an iPhone, the Fullscreen API not there for
+  // a page) no choice, only how to: add it to the Home Screen (the manifest has it open full screen from there); nothing
+  // elsewhere, or once it is open from the Home Screen already
+  const DISPLAY = [['Windowed', 0], ['Fullscreen', 1]];
+  const fsOn = () => (typeof fullscreenEl === 'function' && fullscreenEl() ? 1 : 0);
+  const fsAble = () => typeof fullscreenAble === 'function' && fullscreenAble();
+  const iOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = () => !!(navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches));
+  function displayRow() {
+    if (fsAble()) return seg('display', 'Display', DISPLAY, fsOn());
+    if (iOS() && !standalone()) return '<div class="opt optnote"><span class="olabel">Display</span><span class="onote">On iPhone, add this page to your Home Screen to play full screen.</span></div>';
+    return '';
+  }
+  function displaySync() { document.querySelectorAll('.seg[data-set="display"]').forEach(g => segShow(g, fsOn())); }
+  for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, displaySync);
   // along a row by dir (-1, 1), choosing (it stops at either end)
   function segStep(o, dir) {
     const all = [...o.closest('.seg').querySelectorAll('[role="radio"]')], n = all[Math.max(0, Math.min(all.length - 1, all.indexOf(o) + dir))];
@@ -174,17 +208,24 @@ const MENU = (() => {
     n.focus();
   }
   const isRadio = f => !!(f && f.getAttribute && f.getAttribute('role') === 'radio' && f.closest('.seg'));
-  // Volume's Calibrate: the main volume (the slider, as it was in Settings), between the two ends of what the game plays:
-  // the quietest sound (the heartbeat's first beat, as faint as it first comes) and the loudest (the sting, climbing in),
-  // each five times from the left speaker over to the right (AUDIO.calibrate); five marks under each light in turn with
-  // them. Done (Esc, a pad's B) is Settings again
+  // Volume's Calibrate: the game's two volumes, each in a section of its own with its slider and the two ends of what it
+  // plays. Sound effects: the quietest sound (the heartbeat's first beat, as faint as it first comes) and the loudest (the
+  // sting's crash), each seven times from the left ear over to the right (AUDIO.calibrate), seven marks under each
+  // lighting with them. Ambience: the quietest bed in the game and the loudest, a few seconds of each, a bar under it
+  // filling as it plays. While it is open whatever ambience was playing is faded out (AUDIO.hush: settled), so these are
+  // heard in clean space. Done (Esc, a pad's B) is Settings again
+  const CALS = { calquiet: 'quiet', calloud: 'loud', ambquiet: 'ambientQuiet', ambloud: 'ambientLoud' };
   function volumeHtml() {
-    const play = (act, label, note) => '<div class="calcol"><button type="button" class="mbtn calplay" data-act="' + act + '">' + label + '<span class="caldots" aria-hidden="true">' + '<i></i>'.repeat(5) + '</span></button><p class="calnote">' + note + '</p></div>';
-    return '<h1>Volume</h1><p class="caltext">Adjust your device and speaker volume and/or the slider below until you can hear both of these sounds comfortably.</p>' +
-      '<div class="calvol">' + rng('master', 'Volume', 0, 1) + '</div>' +
+    const QUIET = 'Increase volume until you can hear this comfortably', LOUD = 'Decrease volume until you can hear this comfortably';
+    const play = (act, label, note) => '<div class="calcol"><button type="button" class="mbtn calplay" data-act="' + act + '">' + label +
+      (act.startsWith('amb') ? '<span class="calbar" aria-hidden="true"><i></i></span>' : '<span class="caldots" aria-hidden="true">' + '<i></i>'.repeat(AUDIO.CAL.pans.length) + '</span>') + '</button><p class="calnote">' + note + '</p></div>';
+    const sec = (id, title, k, plays) => '<section class="calsec" aria-labelledby="cs-' + id + '"><h2 id="cs-' + id + '">' + title + '</h2><div class="calvol">' + rng(k, 'Volume', 0, 1, title + ' volume') + '</div><div class="calplays">' + plays + '</div></section>';
+    return '<h1>Volume</h1><p class="caltext">Adjust your device volume and/or the sliders below until you can hear each of these comfortably.</p>' +
       '<p class="calmute"' + (SAVE.data.settings.muted ? '' : ' hidden') + '>Sound is muted: turn Mute off (M) to hear these.</p>' +
-      '<div class="calplays">' + play('calquiet', 'Play the quietest sound in the game', 'Increase volume until you can hear this comfortably') + play('calloud', 'Play the loudest sound in the game', 'Decrease volume until you can hear this comfortably') + '</div>' +
-      '<div class="mrow">' + btn('caldone', 'Done', 'calvol', 'primary') + '</div>';
+      '<div class="calsecs">' +
+      sec('fx', 'Sound effects', 'effects', play('calquiet', 'Play the quietest sound in the game', QUIET) + play('calloud', 'Play the loudest sound in the game', LOUD)) +
+      sec('amb', 'Ambience', 'ambient', play('ambquiet', 'Play the quietest ambience in the game', QUIET) + play('ambloud', 'Play the loudest ambience in the game', LOUD)) +
+      '</div><div class="mrow">' + btn('caldone', 'Done', 'calvol', 'primary') + '</div>';
   }
   // Brightness's Calibrate: the thing on the title, the shape of it alone in The Void's dark (TITLE.shape, drawn by
   // drawShape): the black of the void, and the demon's robe as it is there with no light on it. Done is Settings again
@@ -204,23 +245,29 @@ const MENU = (() => {
     TITLE.shape(g, w / 2, h / 2 + TITLE.SHAPE_H * ppm / 2, ppm, ROBE_DARK);
   }
   window.addEventListener('resize', () => document.querySelectorAll('canvas.calshape').forEach(drawShape));
-  // a play button pressed: its five again from the first (what was still sounding of the last faded out at once)
+  // a play button pressed: it plays from the start (what was still sounding of the last, of either section, faded out at
+  // once: one at a time)
   function calPlay(a, root) {
     ensureAudio();
     const b = root.querySelector('button[data-act="' + a + '"]'); if (!b) return;
-    root.querySelectorAll('button.calplay').forEach(x => { x.classList.remove('playing'); x.querySelectorAll('.caldots i').forEach(i => i.classList.remove('on')); });
+    const idle = x => { x.classList.remove('playing'); x.querySelectorAll('.caldots i').forEach(i => i.classList.remove('on')); const bar = x.querySelector('.calbar i'); if (bar) { bar.style.transition = 'none'; bar.style.width = '0'; } };
+    root.querySelectorAll('button.calplay').forEach(idle);
     const note = root.querySelector('.calmute'); if (note) note.hidden = !SAVE.data.settings.muted;
     b.classList.add('playing');
-    AUDIO.calibrate(a === 'calquiet' ? 'quiet' : 'loud', i => {
+    const bar = b.querySelector('.calbar i');
+    AUDIO.calibrate(CALS[a], i => {
       if (!b.isConnected) return;
-      if (i < 0) { b.classList.remove('playing'); b.querySelectorAll('.caldots i').forEach(x => x.classList.remove('on')); return; }
+      if (i < 0) { idle(b); return; }
+      if (bar) { void bar.offsetWidth; bar.style.transition = 'width ' + AUDIO.CAL.bed.len + 's linear'; bar.style.width = '100%'; return; }
       b.querySelectorAll('.caldots i').forEach((x, j) => x.classList.toggle('on', j === i));
     });
   }
-  // after Settings (or one of its dialogs) is put in a screen: the shape drawn, and the calibration's sound stopped if
-  // it is not the volume's dialog any more
+  // after Settings (or one of its dialogs) is put in a screen: the shape drawn; in the volume's dialog the ambience
+  // faded out of the way, out of it back in, and the calibration's sound stopped
   function settled(root, d) {
-    if (!(d && d.sub === 'volume')) AUDIO.calStop();
+    const vol = !!(d && d.sub === 'volume');
+    if (!vol) AUDIO.calStop();
+    AUDIO.hush(vol);
     const cv = root.querySelector('canvas.calshape'); if (cv) drawShape(cv);
   }
   // what to focus in Settings or one of its dialogs: what opened it (back from a dialog), else in Settings Back, in the
@@ -249,7 +296,8 @@ const MENU = (() => {
     ov.classList.toggle('titlelow', kind === 'title' && TITLE.on);
     ov.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); act(b.dataset.act, b.dataset.arg); }));
     wire(ov);
-    if (kind === 'settings') settled(ov, current.data); else AUDIO.calStop();
+    if (kind === 'settings') settled(ov, current.data); else { AUDIO.calStop(); AUDIO.hush(false); }
+    ov.querySelectorAll('.stars').forEach(s => s.addEventListener('click', e => { e.stopPropagation(); starTip(s); }));
     const box = ov.querySelector('.confirm');
     if (box) box.addEventListener('click', e => { e.stopPropagation(); if (e.target === box) act('keep'); });   // a click off the little dialog backs out of it
     // focus: the first button, or (back from a sub-screen) the button that opened it
@@ -279,7 +327,7 @@ const MENU = (() => {
   function settingsInto(root, back, d) {
     d = Object.assign({ from: 'warning' }, d || {});
     root.innerHTML = html('settings', d);
-    root.classList.toggle('calp', !!d.sub);
+    root.classList.toggle('calp', !!d.sub); root.classList.toggle('cal-volume', d.sub === 'volume');
     const go = d2 => settingsInto(root, back, d2);
     root.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => {
       e.stopPropagation(); tap();
@@ -288,7 +336,7 @@ const MENU = (() => {
       else if (a === 'defaults') toDefaults(root);
       else if (a === 'calvol' || a === 'calbright') go({ sub: a === 'calvol' ? 'volume' : 'brightness' });
       else if (a === 'caldone') go({ focus: b.dataset.arg });
-      else if (a === 'calquiet' || a === 'calloud') calPlay(a, root);
+      else if (CALS[a]) calPlay(a, root);
     }));
     wire(root);
     settled(root, d);
@@ -338,13 +386,23 @@ const MENU = (() => {
     at(t1 + 1400, done);
   }
   function hurry() { if (revealing) reveal(true); }
+  // the text size: every size in the menus and the HUD is its own times --text-scale; and its name on the page
+  // (data-textsize: smaller, normal, bigger), for the few layouts that change with it rather than only grow
+  function textSize(v) {
+    const de = document.documentElement, i = SAVE.TEXT_SIZES.findIndex(([, x]) => x === v);
+    de.style.setProperty('--text-scale', v);
+    de.dataset.textsize = i < 0 ? 'normal' : SAVE.TEXT_SIZES[i][0].toLowerCase();
+  }
   function applySetting(k, v) {
     // reduced motion and reduced flashing are one switch: it sets both flags (each still read where it was)
     if (k === 'reduceMotionFlash') { SAVE.setSetting('reducedMotion', !!v); SAVE.setSetting('reducedFlash', !!v); return; }
+    // Display is not saved: it is the page in or out of full screen, as the corner button does it. If that does not
+    // happen (refused: no gesture behind it), the row goes back to what the page is
+    if (k === 'display') { if (!!v !== !!fsOn()) toggleFullscreen(); setTimeout(displaySync, 700); return; }
     SAVE.setSetting(k, v);
     if (k === 'muted') setMuted(v);
-    else if (k === 'master' || k === 'effects' || k === 'ambient') AUDIO.setVolume(k, v);
-    else if (k === 'textSize') document.documentElement.style.setProperty('--text-scale', v);
+    else if (k === 'effects' || k === 'ambient') AUDIO.setVolume(k, v);
+    else if (k === 'textSize') textSize(v);
     else if (k === 'reduceTextures') R.detail = !v;
   }
   // Set to default: every setting as it began, applied at once, and the controls on screen moved to match (the focus
@@ -358,14 +416,14 @@ const MENU = (() => {
       const out = inp.parentElement.querySelector('.pct'); if (out) out.textContent = pct(v);
     });
     root.querySelectorAll('.seg[data-set]').forEach(g => {
-      const os = [...g.querySelectorAll('[role="radio"]')], on = SAVE.nearest(os.map(o => [o.textContent, parseFloat(o.dataset.v)]), S[g.dataset.set]);
-      os.forEach(o => { const c = parseFloat(o.dataset.v) === on; o.setAttribute('aria-checked', c); o.tabIndex = c ? 0 : -1; });
+      if (!(g.dataset.set in S)) return;   // (Display: not a setting, left as the page is)
+      segShow(g, SAVE.nearest([...g.querySelectorAll('[role="radio"]')].map(o => [o.textContent, parseFloat(o.dataset.v)]), S[g.dataset.set]));
     });
   }
   function applyAll() {
     const S = SAVE.data.settings;
-    AUDIO.setVolume('master', S.master); AUDIO.setVolume('effects', S.effects); AUDIO.setVolume('ambient', S.ambient);
-    document.documentElement.style.setProperty('--text-scale', S.textSize);
+    AUDIO.setVolume('effects', S.effects); AUDIO.setVolume('ambient', S.ambient);
+    textSize(S.textSize);
     R.detail = !S.reduceTextures;
   }
   function act(a, arg) {
@@ -378,7 +436,7 @@ const MENU = (() => {
       // Settings' calibration dialogs, in its place in the same panel; Done is Settings again, focus on what opened it
       case 'calvol': case 'calbright': show('settings', { from: current.data.from, sub: a === 'calvol' ? 'volume' : 'brightness' }); break;
       case 'caldone': show('settings', { from: current.data.from, focus: arg }); break;
-      case 'calquiet': case 'calloud': calPlay(a, UI.overlay); break;
+      case 'calquiet': case 'calloud': case 'ambquiet': case 'ambloud': calPlay(a, UI.overlay); break;
       case 'howto': show('howto', { from: 'title' }); break;
       case 'resume': resumeGame(); break;
       case 'controls': show('howto', { from: 'pause' }); break;   // the pause menu's Controls: How to play, as on the title
@@ -415,5 +473,5 @@ const MENU = (() => {
     if (k === 'Enter' && idx >= 0) return true;   // the focused button handles it
     return false;
   }
-  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, subBack, navKey, padSlide, get sub() { return current && current.kind === 'settings' ? current.data.sub || null : null; }, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; } };
+  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, subBack, navKey, padSlide, get sub() { return current && current.kind === 'settings' ? current.data.sub || null : null; }, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; AUDIO.hush(false); } };
 })();

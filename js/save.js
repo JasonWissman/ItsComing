@@ -4,11 +4,11 @@
 function prefersReduced() { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } }
 const SAVE = (() => {
   const KEY = 'itscoming.v2';
-  // Settings' choices that are no longer sliders: the effects and the ambience each Normal or Quieter (half as loud: -6
-  // dB), the text Smaller, Normal or Bigger (the two ends of the range its old slider had, either side of 1)
-  const QUIETER = 0.5;
-  const LOUDNESS = [['Normal', 1], ['Quieter', QUIETER]];
-  const TEXT_SIZES = [['Smaller', 0.85], ['Normal', 1], ['Bigger', 1.4]];
+  // The two volumes (Settings, Volume, Calibrate): the effects and the ambience, each a slider, 0 to 1 (there is no main
+  // volume over them any more). The text size: Smaller, Normal or Bigger. Smaller is what Normal was (1), Normal what
+  // Bigger was (1.4), and Bigger larger again
+  const TEXT_SIZES = [['Smaller', 1], ['Normal', 1.4], ['Bigger', 1.8]];
+  const TEXT_NORMAL = 1.4;
   // there is one game now; every difficulty there used to be is folded into it, keeping how far any of them got
   const ONLY = 'nightmare', OLD = ['easy', 'normal', 'hard', 'nightmare'];
   function fresh() {
@@ -21,7 +21,7 @@ const SAVE = (() => {
       bestRun: {},
       // reducedMotion and reducedFlash are the two flags the game reads; Settings has one switch for both (MENU), so they
       // are always the same. reduceTextures: plainer, faster walls and floors (render.js: R.detail is its opposite)
-      settings: { muted: false, master: 1, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: 1, theme: 'night', swipeReverse: false, reduceTextures: false },
+      settings: { muted: false, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: TEXT_NORMAL, theme: 'night', swipeReverse: false, reduceTextures: false },
       warned: false,                                             // the warning about flashing lights has been accepted (game.js: disclaimer)
     };
   }
@@ -52,8 +52,9 @@ const SAVE = (() => {
           delete data.best;        // an older save's best time for each night: scores are whole runs now, and none is made up from those
           delete data.fragments;   // an older save's list of fragments seen: there are none any more
           delete data.settings.touchLeft;   // the touch buttons' side: there are no touch buttons to move any more (swipes)
-          tidy(data.settings, d.settings || {});
+          const folded = tidy(data.settings, d.settings || {});
           data.warned = d.warned === true;
+          if (folded) persist();
           return data;
         }
       }
@@ -73,15 +74,21 @@ const SAVE = (() => {
   }
   // settings saved before the switches were what they are now: surface detail off is reduced textures on, and reduced
   // motion and reduced flashing (once two settings) are one, on if either was
-  // (and from when the effects, the ambience and the text size were sliders: each to the nearest of its choices now, so
-  // an effects or ambience slider under 75% is Quieter; the main volume is still a slider, kept as it was)
+  // (and from when there was a main volume over the effects and the ambience, each of those Normal or Quieter, or before
+  // that a slider: the main volume is gone, folded into the two, so each is the main volume times its own (Quieter is
+  // half: 50% under a main volume at 100%). The text size to the nearest of its sizes now: what was Smaller (0.85) or
+  // Normal (1) is Smaller (1, the size Normal was), what was Bigger (1.4) Normal (the same size). True if a main volume
+  // was folded in, so the save is written again without it)
   function tidy(S, old) {
     if (old.reduceTextures === undefined && old.textures === false) S.reduceTextures = true;
     delete S.textures;
     S.reducedMotion = S.reducedFlash = !!(S.reducedMotion || S.reducedFlash);
-    const num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
-    S.effects = loudness(S.effects); S.ambient = loudness(S.ambient); S.textSize = nearest(TEXT_SIZES, num(S.textSize, 1));
-    S.master = Math.min(1, Math.max(0, num(S.master, 1)));
+    const num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d), vol = v => Math.round(Math.min(1, Math.max(0, v)) * 100) / 100;
+    const main = 'master' in old ? Math.min(1, Math.max(0, num(old.master, 1))) : 1;
+    S.effects = vol(main * num(S.effects, 1)); S.ambient = vol(main * num(S.ambient, 1));
+    delete S.master;
+    S.textSize = nearest(TEXT_SIZES, num(S.textSize, TEXT_NORMAL));
+    return 'master' in old;
   }
   // a v2 save had four difficulties and a v3 save two: fold them all into the one game, keeping the furthest reached
   function fold(d) {
@@ -93,7 +100,6 @@ const SAVE = (() => {
     const settings = Object.assign({}, d.settings || {}); delete settings.difficulty;
     Object.assign(d, { v: 4, unlocked, complete, settings, bestRun: {} });   // (their best times for single nights are not kept)
   }
-  function loudness(v) { return typeof v === 'number' && isFinite(v) && v < 0.75 ? QUIETER : 1; }
   // the value of the choice nearest v (choices: [[label, value], ...])
   function nearest(choices, v) { let best = choices[0][1]; for (const [, c] of choices) if (Math.abs(c - v) < Math.abs(best - v)) best = c; return best; }
   function unlock(diff, levelIndex) { if (levelIndex > (data.unlocked[diff] || 0)) { data.unlocked[diff] = levelIndex; persist(); } }
@@ -112,5 +118,5 @@ const SAVE = (() => {
   function markComplete(diff) { data.complete[diff] = true; persist(); }
   function markWarned() { data.warned = true; persist(); }
   function reset() { data = fresh(); persist(); }
-  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, reset, nearest, LOUDNESS, TEXT_SIZES, get data() { return data; } };
+  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, reset, nearest, TEXT_SIZES, get data() { return data; } };
 })();

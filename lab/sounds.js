@@ -14,7 +14,7 @@ const SOUNDS = [
   // ---- hands, items, the generic interactions (every night) ----
   { kind: 'sfx', name: 'ui', n: 'all', d: 'A tiny soft click. Switching the item in hand (keys 1–6, Tab, tapping the strip); on night 9 also choosing a key on the pay phone.', src: 'game.js inventory · night09 keypad' },
   { kind: 'sfx', name: 'tap', n: 'all', d: 'A soft, short tap, quieter than ui and with no caption. Any button or control in the menus pressed: the title, its dialogs, pause, the death and win screens, settings, the Nights cards, the end; each card filling in on the results after the ending.', src: 'menu.js (every button and setting) · game.js mute' },
-  { kind: 'sfx', name: 'stingCalibrate', n: 'all', d: 'The death sting without its glitter, climbing in: its falling saw played backwards (a saw rising out of nothing), then the sting’s peak (the noise burst, the deep drop, the saw falling away). Tuned as the sting is. Settings, Volume, Calibrate: “Play the loudest sound in the game”, five times, left to right (there with the heartbeat’s lub, the quietest).', src: 'menu.js volume calibration (AUDIO.calibrate)' },
+  { kind: 'sfx', name: 'stingCalibrate', n: 'all', d: 'The death sting’s crash alone: its noise burst and the deep drop under it (the impact), as loud as they are in the sting, with no saw (rising or falling) and no glitter. Tuned as the sting is; rendered offline it is no louder than the sting (test/settings.js). Settings, Volume, Calibrate, Sound effects: “Play the loudest sound in the game”, seven times in about two seconds, twice in the left ear, three times across, twice in the right (there with the heartbeat’s lub, the quietest).', src: 'menu.js volume calibration (AUDIO.calibrate)' },
   { kind: 'sfx', name: 'pickup', n: 'all', d: 'A short rising pluck with a brush of air. You take something into your hands.', src: 'game.js pickup · night07, 09, 10' },
   { kind: 'sfx', name: 'drop', n: 'all', d: 'A soft thump. You put the thing in hand down.', src: 'game.js drop · night10' },
   { kind: 'sfx', name: 'nope', n: 'all', d: 'A low buzzy blip. That will not work: wrong item, hands full, nothing to do there.', src: 'game.js · most nights' },
@@ -172,9 +172,9 @@ const SOUNDS = [
   { kind: 'ambient', name: 'night 4', n: [4], p: { tune: 'ambient:4', wind: 0.9, drone: 0.5, droneFreq: 65, windFreq: 500 }, d: 'Brighter gusting wind in the pit, a thin drone.', src: 'night04 ambient' },
   { kind: 'ambient', name: 'night 5', n: [5], p: { tune: 'ambient:5', wind: 1.1, drone: 0.6, droneFreq: 46, windFreq: 420 }, d: 'A strong cold wind (it is snowing).', src: 'night05 ambient' },
   { kind: 'ambient', name: 'night 6', n: [6], p: { tune: 'ambient:6', wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 }, d: 'Rain on the water, a low wind.', src: 'night06 ambient' },
-  { kind: 'ambient', name: 'night 7', n: [7], p: { tune: 'ambient:7', wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 }, d: 'A storm: the loudest wind and heavy rain (thunder comes on top).', src: 'night07 ambient' },
+  { kind: 'ambient', name: 'night 7', n: [7], p: { tune: 'ambient:7', wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 }, d: 'A storm: the loudest wind and heavy rain (thunder comes on top). Settings, Volume, Calibrate, Ambience plays a few seconds of it for “Play the loudest ambience in the game”.', src: 'night07 ambient · menu.js volume calibration (AUDIO.calibrate)' },
   { kind: 'ambient', name: 'night 8', n: [8], p: { tune: 'ambient:8', wind: 0.25, drone: 1.0, droneFreq: 60, windFreq: 300 }, d: 'Mostly the hum of the place (a strong 60 Hz drone), little wind.', src: 'night08 ambient' },
-  { kind: 'ambient', name: 'night 8 · power off', n: [8], p: { tune: 'ambient:8off', wind: 0.25, drone: 0.12, droneFreq: 60, windFreq: 300 }, d: 'The same, with the hum gone: the main is switched off.', src: 'night08 main off' },
+  { kind: 'ambient', name: 'night 8 · power off', n: [8], p: { tune: 'ambient:8off', wind: 0.25, drone: 0.12, droneFreq: 60, windFreq: 300 }, d: 'The same, with the hum gone: the main is switched off. The quietest bed in the game (rendered offline with its tune, K-weighted): Settings, Volume, Calibrate, Ambience plays a few seconds of it for “Play the quietest ambience in the game”.', src: 'night08 main off · menu.js volume calibration (AUDIO.calibrate)' },
   { kind: 'ambient', name: 'night 9', n: [9], p: { tune: 'ambient:9', wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 }, d: 'Steady rain on the street.', src: 'night09 ambient' },
   { kind: 'ambient', name: 'night 10', n: [10], p: { tune: 'ambient:10', wind: 0, drone: 0.3, droneFreq: 55, windFreq: 340 }, d: 'A quiet stage indoors: no wind at all, only a low hanging drone.', src: 'night10 ambient' },
   { kind: 'ambient', name: 'night 11', n: [11], p: { tune: 'ambient:11', wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 }, d: 'Wind over the farm, a low drone.', src: 'night11 ambient' },
@@ -229,7 +229,7 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
   let vol = 0.8, muted = false;
   try { const v = JSON.parse(localStorage.getItem('soundsAuditVol') || 'null'); if (v) { vol = clamp(+v.vol, 0, 1); muted = !!v.muted; } } catch (e) {}
   const applyVol = () => {
-    AUDIO.setVolume('master', vol); AUDIO.setMuted(muted);
+    AUDIO.setVolume('effects', vol); AUDIO.setVolume('ambient', vol); AUDIO.setMuted(muted);   // (the page's own listening level: both of the game's volumes, there being no main one)
     $('vol').value = vol; $('volOut').textContent = Math.round(vol * 100) + '%';
     $('mute').setAttribute('aria-pressed', String(muted)); $('mute').textContent = muted ? 'Unmute' : 'Mute';
     try { localStorage.setItem('soundsAuditVol', JSON.stringify({ vol, muted })); } catch (e) {}

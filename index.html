@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>It's Coming</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23000%27/%3E%3Cellipse cx=%2716%27 cy=%2712%27 rx=%275%27 ry=%277%27 fill=%27%23d8d0c0%27/%3E%3Ccircle cx=%2714%27 cy=%2711%27 r=%271%27/%3E%3Ccircle cx=%2718%27 cy=%2711%27 r=%271%27/%3E%3Cellipse cx=%2716%27 cy=%2715.5%27 rx=%271.4%27 ry=%272%27/%3E%3Cpath d=%27M11 30 L13 19 L19 19 L21 30 Z%27 fill=%27%23111%27/%3E%3C/svg%3E">
+<!-- added to the Home Screen (an iPhone's only way to full screen) or installed: full screen, on its side, on black -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="It's Coming">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="description" content="A first-person browser horror game. Something is coming straight at you. Look away to survive; look back and it is closer.">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: #cfc8ba; font-family: 'IM Fell English', Georgia, serif; -webkit-user-select: none; user-select: none; }
@@ -112,9 +120,9 @@
     #overlay .howcards { gap: 8px; margin: 6px auto 2px; }
     .hcard { flex-direction: row; justify-content: space-between; gap: 10px; padding: 8px 16px; }
     .hkeys { min-height: 0; gap: 6px; }
-    .hwhat { font-size: calc(18px * var(--text-scale)); text-align: right; }
+    .hwhat { font-size: calc(18px * min(var(--text-scale), 1.5)); text-align: right; }   /* (with Bigger text grown less: the four still fit) */
     kbd.key.gest, .kzoom { width: 48px; height: 48px; } kbd.key.gest svg { width: 32px; height: 32px; } .kzoom svg { width: 20px; height: 20px; } .kzoom { font-size: 8px; }
-    #overlay.dlg .fine { margin-top: 8px; }
+    #overlay.dlg .fine { margin-top: 8px; font-size: calc(11px * min(var(--text-scale), 1.5)); }
     #overlay.dlg .mrow { margin-top: 8px; }
     /* and every screen: scrolled from its top when it does not fit (centred, the top would be cut off); the pause menu's
        six buttons in two columns of three */
@@ -153,6 +161,8 @@
     #disclaimer .deye { width: 28px; height: 28px; }
     #disclaimer p { font-size: 16px; line-height: 1.42; }
     #disclaimer .dcard.dset { padding: 12px 22px 10px; }
+    #disclaimer:has(.dset) { padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: max(10px, env(safe-area-inset-bottom)); }   /* (Settings in its card: as the dialogs are over the title) */
+    #disclaimer:has(.cal-volume) { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: max(4px, env(safe-area-inset-bottom)); } #disclaimer .dcard.dset.cal-volume { padding-top: 8px; padding-bottom: 8px; } #disclaimer .dset.cal-volume h1 { margin-bottom: 2px; }
     #disclaimer .dset h1 { font-size: 26px; margin: 0 0 6px; }
     #disclaimer .dset .mrow { margin-top: 8px; }
   }
@@ -174,7 +184,7 @@
   #overlay .kicker { font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: rgba(207,200,186,.5); }
   /* --red: the accent red of the words and controls (the warning, It got you, muted, Erase progress); --text2: the
      secondary, a little darker than the buttons' own (Quit, Adjust settings) */
-  :root { --text-scale: 1; --red: #f04a54; --red-hi: #ff6a72; --text2: #a9a294; }
+  :root { --text-scale: 1.4; --red: #f04a54; --red-hi: #ff6a72; --text2: #a9a294; }
   #overlay .intro { font-size: calc(18px * var(--text-scale)); line-height: 1.6; color: #cfc8ba; margin: 0 auto 14px; white-space: pre-line; }   /* a night's text breaks its lines where it says \n */
   .mrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 18px auto 6px; }
   .mcol { display: flex; flex-direction: column; gap: 8px; align-items: center; margin: 18px auto 6px; }
@@ -252,6 +262,11 @@
   .runcard .rline { position: relative; display: flex; align-items: center; justify-content: center; }
   .runcard .stamp { position: absolute; left: 100%; margin-left: 16px; transform: rotate(-9deg); white-space: nowrap; padding: 3px 9px 2px; border: 2px solid var(--red); outline: 1px solid var(--red); outline-offset: 2px; border-radius: 3px; color: var(--red); font-size: calc(13px * var(--text-scale)); letter-spacing: .22em; text-transform: uppercase; line-height: 1.3; }
   .runcard .stars { display: flex; gap: 6px; margin-top: 4px; }
+  /* what each number of stars takes: a tooltip (the stars' title) on a hover, and this, shown over them by a tap or a click */
+  .runcard .stars { position: relative; cursor: help; -webkit-tap-highlight-color: transparent; }
+  .runcard .startip { position: absolute; right: calc(100% + 14px); top: 50%; transform: translateY(-50%); z-index: 3; box-sizing: border-box; display: flex; flex-direction: column; width: max-content; padding: 6px 12px; background: rgba(7,7,9,.97); border: 1px solid rgba(207,200,186,.32); border-radius: 6px; font-size: calc(13px * var(--text-scale)); line-height: 1.4; letter-spacing: .02em; color: #efe6d2; text-align: left; white-space: nowrap; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .15s, visibility 0s .15s; }
+  @media (max-width: 640px) { .runcard .startip { left: 50%; right: auto; top: auto; bottom: calc(100% + 8px); transform: translateX(-50%); } }
+  .runcard .stars.tip .startip { opacity: 1; visibility: visible; transition: opacity .15s; }
   .runcard .star { width: 22px; height: 22px; fill: none; stroke: rgba(207,200,186,.5); stroke-width: 1.4; stroke-linejoin: round; }
   .runcard .star.on { fill: #efe6d2; stroke: #efe6d2; }
   .runcard.empty .rhint { margin-top: 4px; max-width: 420px; text-align: center; }
@@ -262,6 +277,7 @@
   #overlay.dlg > .panel.nightsp h1 { margin: 0 0 12px; }
   #overlay.dlg > .panel.nightsp .mrow { margin-top: 12px; }
   #overlay.dlg > .panel.nightsp .runcard.empty { flex: 1; justify-content: center; }   /* no run yet: the word on what one is fills the dialog, the buttons at its foot */
+  :root[data-textsize=bigger] .ncard { min-height: 0; padding-top: 4px; padding-bottom: 4px; }   /* (bigger text: the cards no taller than their line, so the thirteen fit) */
   @media (max-width: 640px) { .nights { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; gap: 5px; } .nights > .c1, .nights > .c2 { grid-column: auto; } .ncard { min-height: 38px; padding: 6px 14px; } .runcard { margin-top: 10px; padding: 10px 14px; } .runcard .rtime { font-size: calc(34px * var(--text-scale)); } }
   /* after the ending: the nights again, as on the Nights screen, each card taking its time in turn (MENU reveal), then the
      full run, then Finish game. Over the morning room, so mostly in the day colours below */
@@ -289,13 +305,14 @@
      line under them (its label, the time with its stamp, the stars), so the results and the Scores both fit without
      scrolling */
   @media (max-height: 520px) and (min-width: 560px) {
-    .nights { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, auto); grid-auto-flow: column; gap: 4px 8px; }
+    .nights { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, auto); grid-auto-flow: column; gap: 3px 8px; }
     .nights > .c1, .nights > .c2 { grid-column: auto; }
-    .ncard, .results .ncard { min-height: 0; padding: 4px 12px; font-size: calc(14px * var(--text-scale)); }
-    .ncard .nbest { font-size: calc(13px * var(--text-scale)); }
-    .runcard { flex-direction: row; justify-content: center; gap: 18px; margin-top: 8px; padding: 6px 16px; }
-    .runcard .rtime { font-size: calc(30px * var(--text-scale)); }
+    .ncard, .results .ncard { min-height: 0; padding: 3px 10px; font-size: calc(13px * min(var(--text-scale), 1.55)); }   /* (with Bigger text grown less: the thirteen still fit) */
+    .ncard .nbest { font-size: calc(12px * min(var(--text-scale), 1.55)); }
+    .runcard { flex-direction: row; justify-content: center; gap: 18px; margin-top: 6px; padding: 3px 16px; }
+    .runcard .rtime { font-size: calc(26px * min(var(--text-scale), 1.55)); line-height: 1.1; }
     .runcard .stars { margin-top: 0; }
+    .runcard .startip { left: auto; right: 0; top: auto; bottom: calc(100% + 10px); transform: none; }   /* (the stars at the end of the line: over them) */
     .runcard .star { width: 19px; height: 19px; }
     .runcard .stamp { position: static; margin-left: 14px; }
     .runcard.empty { flex-direction: column; gap: 2px; }
@@ -303,7 +320,10 @@
     .results .kicker { display: none; }
     #overlay .results h1 { font-size: 28px; margin: 0 0 8px !important; }
     .results .rlast { margin-top: 8px; }
-    #overlay.dlg > .panel.nightsp { padding-top: 10px; padding-bottom: 10px; }
+    #overlay.dlg > .panel.nightsp { width: min(840px, 100%); max-width: 840px; padding-top: 10px; padding-bottom: 10px; }
+    .runcard .rlabel { font-size: calc(11px * min(var(--text-scale), 1.55)); }
+    #overlay .nightsp .mbtn, #overlay .results .mbtn { font-size: calc(15px * min(var(--text-scale), 1.55)); padding-top: 6px; padding-bottom: 6px; }
+    .runcard .stamp { font-size: calc(13px * min(var(--text-scale), 1.55)); }
     #overlay.dlg > .panel.nightsp h1 { margin: 0 0 8px; }
     #overlay.dlg > .panel.nightsp .mrow { margin-top: 8px; }
   }
@@ -317,6 +337,7 @@
   /* Settings: the sliders, each its percentage at its right; then the switches. Each row its name at the left and its
      control at the right. On a short screen (a phone on its side) the two groups side by side */
   .settings { display: flex; flex-direction: column; gap: 14px; margin: 10px auto; text-align: left; width: min(440px, 100%); }
+  @media (min-height: 521px) { :root[data-textsize=bigger] .settings { width: min(560px, 100%); } }   /* (Bigger text: wider, so its rows of choices stay beside their names) */
   .sgrp { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .opt { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 30px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.85); cursor: pointer; }
   .rngwrap { display: flex; align-items: center; gap: 10px; flex: none; }
@@ -337,9 +358,12 @@
   :root[data-theme="day"] .swi:checked + .sw { background: #2e2823; border-color: #2e2823; }
   :root[data-theme="day"] .swi:checked + .sw::after { background: #f4f0e8; }
   :root[data-theme="day"] .opt .pct { color: rgba(58,51,44,.7); }
-  /* a row of choices (Effects: Normal | Quieter; Text size: Smaller | Normal | Bigger): one outlined bar, the chosen one
+  /* a row of choices (Display: Windowed | Fullscreen; Text size: Smaller | Normal | Bigger): one outlined bar, the chosen one
      filled with the light of the text, as a switch is when on; and a Calibrate button (Volume, Brightness) drawn the same */
   .optseg .olabel { white-space: nowrap; }
+  .optseg { flex-wrap: wrap; row-gap: 4px; } .optseg .seg { margin-left: auto; }   /* (too wide beside its name, with bigger text: under it) */
+  /* Display where the page cannot go full screen (an iPhone): how to, in place of the choice */
+  .optnote { cursor: default; } .optnote .onote { flex: 0 1 62%; font-size: calc(13px * var(--text-scale)); line-height: 1.35; font-style: italic; color: rgba(207,200,186,.72); text-align: right; }
   .seg { display: inline-flex; flex: none; border: 1px solid rgba(207,200,186,.38); border-radius: 7px; }
   .seg [role=radio], .calbtn { font: inherit; font-size: calc(14px * var(--text-scale)); letter-spacing: .04em; background: none; border: none; color: rgba(207,200,186,.8); padding: 4px 13px; min-height: 30px; min-width: 64px; cursor: pointer; transition: background .15s, color .15s; -webkit-tap-highlight-color: transparent; }
   .seg [role=radio]:first-child { border-radius: 6px 0 0 6px; } .seg [role=radio]:last-child { border-radius: 0 6px 6px 0; }
@@ -351,38 +375,85 @@
   :root[data-theme="day"] .seg, :root[data-theme="day"] .calbtn, :root[data-theme="day"] .seg [role=radio] + [role=radio] { border-color: rgba(58,51,44,.4); }
   :root[data-theme="day"] .seg [role=radio], :root[data-theme="day"] .calbtn { color: #2e2823; }
   :root[data-theme="day"] .seg [role=radio][aria-checked=true] { background: #2e2823; color: #f4f0e8; }
-  /* Settings' calibration dialogs (Volume, Brightness: .calp, in the same panel or the warning's card): the words over it,
-     the volume slider under them; the two sounds side by side, each with its word under it; the shape on black */
-  :is(#overlay, #disclaimer) .calp .caltext { max-width: 560px; margin: 0 auto 14px; font-size: calc(17px * var(--text-scale)); line-height: 1.5; color: #cfc8ba; text-align: center; letter-spacing: normal; white-space: normal; }
-  .calp .calvol { width: min(440px, 100%); margin: 0 auto; text-align: left; }
-  :is(#overlay, #disclaimer) .calp .calmute { margin: 10px auto 0; font-size: calc(14px * var(--text-scale)); color: var(--red); text-align: center; }
+  /* Settings' calibration dialogs (Volume, Brightness: .calp, in the same panel or the warning's card): the words over it.
+     Volume's: its two sections side by side (one over the other on a narrow screen), Sound effects and Ambience, each
+     its name, its slider (the name says what it is: no label beside it), and its two sounds one over the other, each with
+     its word under it. Brightness's: the shape on black */
+  :is(#overlay, #disclaimer) .calp .caltext { max-width: 600px; margin: 0 auto 12px; font-size: calc(17px * var(--text-scale)); line-height: 1.45; color: #cfc8ba; text-align: center; letter-spacing: normal; white-space: normal; }
+  :is(#overlay, #disclaimer) .calp .calmute { margin: 0 auto 8px; font-size: calc(14px * var(--text-scale)); color: var(--red); text-align: center; }
   :is(#overlay, #disclaimer) .calp .calmute[hidden] { display: none; }
-  .calp .calplays { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; width: min(600px, 100%); margin: 18px auto 0; }
-  .calp .calcol { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; }
-  .calp .calplay { min-width: 0; width: 100%; text-transform: none; letter-spacing: .03em; font-size: calc(16px * var(--text-scale)); line-height: 1.3; padding: 12px 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .calp .caldots { display: flex; gap: 9px; }   /* the five, left speaker to right, each lit as it plays */
+  #overlay.dlg > .panel.cal-volume { width: min(940px, 100%); max-width: 940px; }   /* (wider: the two sections side by side) */
+  :is(#overlay, #disclaimer) .cal-volume .caltext, #disclaimer .calp .caltext { max-width: 780px; }
+  .calp .calsecs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; width: 100%; margin: 4px auto 0; text-align: left; }
+  .calp .calsec { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px 16px 14px; border: 1px solid rgba(207,200,186,.16); border-radius: 10px; background: rgba(207,200,186,.03); }
+  :is(#overlay, #disclaimer) .calp .calsec h2 { margin: 0; font-weight: normal; font-size: calc(13px * var(--text-scale)); line-height: 1.3; letter-spacing: .24em; text-transform: uppercase; color: #efe6d2; text-align: left; }
+  .calp .calvol { width: 100%; }
+  .calp .calvol .olabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* (its section's name says what it is) */
+  .calp .calvol .opt, .calp .calvol .rngwrap { flex: 1; min-width: 0; }
+  .calp .calsec .calvol .opt input[type=range] { flex: 1; width: auto; min-width: 60px; }
+  .calp .calplays { display: flex; flex-direction: column; gap: 10px; }
+  .calp .calcol { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; }
+  .calp .calplay { min-width: 0; width: 100%; text-transform: none; letter-spacing: .03em; font-size: calc(15px * var(--text-scale)); line-height: 1.3; padding: 10px 12px 9px; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .calp .caldots { display: flex; gap: 9px; }   /* the seven, left ear to right, each lit as it plays */
   .calp .caldots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(207,200,186,.22); transition: background .12s; }
   .calp .caldots i.on { background: #efe6d2; box-shadow: 0 0 6px rgba(239,230,210,.6); }
-  :is(#overlay, #disclaimer) .calp .calnote { margin: 0; font-size: calc(14px * var(--text-scale)); line-height: 1.4; font-style: italic; color: rgba(207,200,186,.72); text-align: center; }
+  .calp .calbar { display: block; width: 60%; height: 4px; margin: 1px 0; border-radius: 2px; background: rgba(207,200,186,.18); overflow: hidden; }   /* an ambience playing: how far through its few seconds */
+  .calp .calbar i { display: block; width: 0; height: 100%; background: #efe6d2; }
+  :is(#overlay, #disclaimer) .calp .calnote { margin: 0; font-size: calc(13.5px * var(--text-scale)); line-height: 1.35; font-style: italic; color: rgba(207,200,186,.72); text-align: center; }
   .calp .calshape { display: block; width: 100%; height: clamp(160px, 100vh - 330px, 440px); margin: 4px auto 0; background: #000; }
-  .calp .mrow { margin-top: 18px; }
+  .calp .mrow { margin-top: 16px; }
+  #disclaimer .dcard.dset.cal-volume { width: min(940px, 100%); }
   #disclaimer .dcard.dset.calp { text-align: center; }   /* (the warning's own words are red, and its p says so: not these) */
-  @media (max-width: 560px) { .calp .calplays { grid-template-columns: 1fr; gap: 12px; } }
+  /* Bigger text: wider still, and each section's name and slider on one line, so it fits on a laptop's screen */
+  :root[data-textsize=bigger] #overlay.dlg > .panel.cal-volume, :root[data-textsize=bigger] #disclaimer .dcard.dset.cal-volume { width: min(1060px, 100%); max-width: 1060px; }
+  :root[data-textsize=bigger] :is(#overlay, #disclaimer) .cal-volume .caltext { max-width: 960px; font-size: calc(15px * var(--text-scale)); }
+  :root[data-textsize=bigger] .calp .calsec { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; align-content: start; gap: 8px 14px; }
+  :root[data-textsize=bigger] .calp .calplay { font-size: calc(14px * var(--text-scale)); }
+  :root[data-textsize=bigger] .calp .calsec .calplays { grid-column: 1 / -1; }
+  :root[data-textsize=bigger] :is(#overlay, #disclaimer) .calp .calsec h2 { letter-spacing: .14em; white-space: nowrap; }
+  @media (max-width: 600px) { .calp .calsecs { grid-template-columns: 1fr; gap: 12px; } }
   @media (max-height: 520px) {
-    :is(#overlay, #disclaimer) .calp .caltext { max-width: 720px; margin-bottom: 8px; font-size: calc(15px * var(--text-scale)); line-height: 1.4; }
-    .calp .calplays { width: min(720px, 100%); margin-top: 10px; gap: 14px; }
-    .calp .calplay { padding: 7px 10px 6px; gap: 5px; font-size: calc(14.5px * var(--text-scale)); letter-spacing: .01em; }
-    .calp .calcol { gap: 5px; }
-    :is(#overlay, #disclaimer) .calp .calnote { font-size: calc(13px * var(--text-scale)); }
+    :is(#overlay, #disclaimer) .calp .caltext { max-width: 760px; margin-bottom: 6px; font-size: calc(14px * var(--text-scale)); line-height: 1.35; }
+    :is(#overlay, #disclaimer) .cal-volume .caltext { font-size: calc(12.5px * var(--text-scale)); max-width: none; }
+    .calp .calsecs { gap: 10px; margin-top: 2px; }
+    .calp .calsec { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; align-content: start; gap: 5px 12px; padding: 6px 10px 7px; }   /* its name and its slider on one line */
+    .calp .calsec .calplays { grid-column: 1 / -1; }
+    :root[data-textsize=bigger] .calp .calsec { grid-template-columns: minmax(0, 1fr); }   /* (too big for its name and slider on one line) */
+    :root[data-textsize=bigger] :is(#overlay, #disclaimer) .cal-volume .caltext { font-size: calc(12.5px * var(--text-scale)); }
+    :root[data-textsize=bigger] .calp .calplay { font-size: calc(13.5px * var(--text-scale)); }
+    :is(#overlay, #disclaimer) .calp .calsec h2 { letter-spacing: .16em; white-space: nowrap; }
+    .calp .calplays { gap: 6px; }
+    .calp .calplay { padding: 5px 10px 4px; gap: 3px; font-size: calc(13.5px * var(--text-scale)); letter-spacing: .01em; }
+    .calp .calcol { gap: 3px; }
+    :is(#overlay, #disclaimer) .calp .calnote { font-size: calc(11.5px * var(--text-scale)); }
+    .calp .calvol .opt { min-height: 24px; }
     .calp .calshape { height: max(140px, 100vh - 196px - 60px * (var(--text-scale) - 1)); margin-top: 0; }   /* (less of it the more the bigger text takes) */
-    .calp .mrow, #disclaimer .dset.calp .mrow { margin-top: 10px; }
+    .calp .mrow, #disclaimer .dset.calp .mrow { margin-top: 8px; }
   }
   @media (max-height: 520px) and (min-width: 700px) {
-    .settings { flex-direction: row; justify-content: center; gap: 36px; width: 100%; margin: 4px auto; }
+    .settings { flex-direction: row; justify-content: center; gap: 24px; width: 100%; margin: 4px auto; }
     .sgrp { flex: 0 1 360px; gap: 4px; }
     .opt { min-height: 28px; }
     .opt input[type=range] { width: 130px; }
-    .seg [role=radio] { min-width: 0; padding: 4px 9px; } .optseg { gap: 8px; }
+    .seg [role=radio] { min-width: 0; padding: 4px 8px; font-size: calc(12.5px * var(--text-scale)); } .optseg { gap: 8px; }
+  }
+  /* the smaller phones on their side (an iPhone 13 or SE, 340 or so high): what grows with the text grows less, so How to
+     play, the volume dialog and the results still fit at the Normal size */
+  @media (max-height: 360px) {
+    .hwhat { font-size: calc(16px * min(var(--text-scale), 1.4)); }
+    #overlay.dlg .mrow { margin-top: 6px; }
+    .ncard, .results .ncard { font-size: calc(12px * min(var(--text-scale), 1.5)); padding-top: 2px; padding-bottom: 2px; }
+    .ncard .nbest { font-size: calc(11px * min(var(--text-scale), 1.5)); }
+    .runcard .rtime { font-size: calc(24px * min(var(--text-scale), 1.5)); }
+    #overlay .results h1 { font-size: 24px; }
+    :is(#overlay, #disclaimer) .cal-volume .caltext, :root[data-textsize=bigger] :is(#overlay, #disclaimer) .cal-volume .caltext { font-size: calc(12px * min(var(--text-scale), 1.25)); }
+    :is(#overlay, #disclaimer) .calp .calsec h2 { font-size: calc(11px * min(var(--text-scale), 1.3)); }
+    .calp .calplay, :root[data-textsize=bigger] .calp .calplay { font-size: calc(12.5px * min(var(--text-scale), 1.3)); }
+    :is(#overlay, #disclaimer) .calp .calnote { font-size: calc(11px * min(var(--text-scale), 1.25)); }
+    .calp .calsec .calvol .opt input[type=range] { min-width: 40px; }
+    #overlay.dlg > .panel.cal-volume { padding-top: 8px; padding-bottom: 8px; }
+    #overlay.dlg > .panel.cal-volume h1, #disclaimer .dset.cal-volume h1 { font-size: 22px; margin-bottom: 2px; }
+    :is(#overlay, #disclaimer) .cal-volume .mrow .mbtn { padding-top: 5px; padding-bottom: 5px; font-size: calc(15px * min(var(--text-scale), 1.3)); }
   }
   button:focus-visible { outline: 1px solid rgba(239,230,210,.9); outline-offset: 2px; }
   #overlay .hint { font-style: italic; color: rgba(239,230,210,.85); font-size: calc(17px * var(--text-scale)); }
@@ -457,8 +528,11 @@
     body.tplay #menuBtn, body.tzoom #zoomBtn { display: flex; }
     body.menu #menuBtn, body.menu #zoomBtn { display: none; }
     #menuBtn { top: max(12px, env(safe-area-inset-top)); }
+    #objective { right: max(20px, calc(env(safe-area-inset-right) + 6px)); }
     body.fsok #objective { right: calc(max(14px, env(safe-area-inset-right)) + 52px); }
     #overlay { padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left)); }
+    /* (opened from the Home Screen the page runs under the notch and the rounded corners: the dialogs kept clear of them) */
+    #overlay.dlg { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-bottom: max(10px, env(safe-area-inset-bottom)); }
     /* the things held float over the view, each on a faint backing of its own, no strip under them: the view runs
        to the bottom of the screen (and under the home bar: viewport-fit=cover), the slots above that bar */
     #inventory { gap: 8px; bottom: calc(env(safe-area-inset-bottom) + 18px); touch-action: none; }

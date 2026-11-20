@@ -2,10 +2,18 @@
 // ---------- Web Audio: everything is synthesized, no sound files ----------
 const AUDIO = (() => {
   let ac = null, master = null, noiseBuf = null, muted = false;
-  const bus = { effects: null, ambient: null, cal: null };   // (cal: the volume calibration's own way in: as loud as the effects, never ducked)
-  const volume = { master: 1, effects: 1, ambient: 1 };
+  // Every sound goes through one of two volumes (Settings, Volume, Calibrate), and nothing else sets how loud it is:
+  //   the effects (bus.effects): every one-shot and sting, the footsteps and voices, the heartbeat, the creature loops
+  //     (grind, engine, the farm's fire: they are the things, not the place), the music box, the menus' taps and clicks;
+  //   the ambience (bus.ambient): the beds, a night's wind, rain and drone, and the title's drone.
+  // There is no main volume over them: the master gain is fixed (MASTER), Mute aside. cal and calAmb are the volume
+  // calibration's own ways in, as loud as the effects and as the ambience, never ducked
+  const bus = { effects: null, ambient: null, cal: null, calAmb: null };
+  const volume = { effects: 1, ambient: 1 };
+  const MASTER = 0.85;
   let amb = null;     // ambient bed (wind + drone)
   let loopNode = null; // creature loop (stone grind / engine)
+  let hushed = false; // the ambience faded out of the way while the volume calibration's dialog is open (hush)
 
   function init() {
     if (ac) return true;
@@ -13,13 +21,14 @@ const AUDIO = (() => {
       const AC = window.AudioContext || window.webkitAudioContext;
       ac = new AC();
       master = ac.createGain();
-      master.gain.value = muted ? 0.0001 : 0.85 * volume.master;
+      master.gain.value = muted ? 0.0001 : MASTER;
       const comp = ac.createDynamicsCompressor();
       comp.threshold.value = -18; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.25;
       master.connect(comp); comp.connect(ac.destination);
       bus.effects = ac.createGain(); bus.effects.gain.value = volume.effects; bus.effects.connect(master);
-      bus.ambient = ac.createGain(); bus.ambient.gain.value = volume.ambient; bus.ambient.connect(master);
+      bus.ambient = ac.createGain(); bus.ambient.gain.value = hushed ? 0.0001 : volume.ambient; bus.ambient.connect(master);
       bus.cal = ac.createGain(); bus.cal.gain.value = volume.effects; bus.cal.connect(master);
+      bus.calAmb = ac.createGain(); bus.calAmb.gain.value = volume.ambient; bus.calAmb.connect(master);
       const len = ac.sampleRate * 2;
       noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
       const d = noiseBuf.getChannelData(0);
@@ -32,16 +41,25 @@ const AUDIO = (() => {
   function resume() { if (ac && ac.state !== 'running') ac.resume().catch(() => {}); }
   function setMuted(m) {
     muted = !!m;
-    if (master) { master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(muted ? 0.0001 : 0.85 * volume.master, ac.currentTime, 0.03); }
+    if (master) { master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(muted ? 0.0001 : MASTER, ac.currentTime, 0.03); }
   }
+  // the effects or the ambience volume (0..1). A bus ducked under a calibration (or the ambience hushed) is left where it
+  // is going and set to its volume when that ends; the calibration's own way in follows at once
   function setVolume(which, v) {
+    if (!(which in volume)) return;
     volume[which] = clamp(+v || 0, 0, 1);
     if (!ac) return;
-    if (which === 'master') setMuted(muted);
-    else if (bus[which]) {
-      if (!cal) bus[which].gain.setTargetAtTime(Math.max(0.0001, volume[which]), ac.currentTime, 0.03);   // (ducked under a calibration: set when it ends)
-      if (which === 'effects') bus.cal.gain.setTargetAtTime(Math.max(0.0001, volume.effects), ac.currentTime, 0.03);
-    }
+    const t = ac.currentTime, held = which === 'effects' ? !!cal : !!cal || hushed;
+    if (!held) bus[which].gain.setTargetAtTime(volume[which], t, 0.03);
+    bus[which === 'effects' ? 'cal' : 'calAmb'].gain.setTargetAtTime(volume[which], t, 0.03);
+  }
+  // the ambience faded out over a second or so (on), or back in to its volume (off): while the volume calibration's dialog
+  // is open, so what it plays is heard on its own, in clean space (whatever bed is playing: the title's, a paused night's)
+  function hush(on) {
+    on = !!on;
+    if (hushed === on) return;
+    hushed = on;
+    if (ac && !cal) glide(bus.ambient.gain, on ? 0.0001 : volume.ambient, on ? 0.3 : 0.45);
   }
   function suspend() { if (ac && ac.state === 'running') ac.suspend().catch(() => {}); }
   const now = () => ac.currentTime;
@@ -98,31 +116,22 @@ const AUDIO = (() => {
     osc.connect(g); chain(g, o.pan);
     osc.start(t0); osc.stop(t0 + att + dur + 0.05);
   }
-  // tone() backwards in time (the climb of stingCalibrate): it swells up from nothing to vol over dur, then is cut in the
-  // few ms tone() takes to come in; its pitch held at freq for those few ms, then swept up to endFreq over dur; turned over (a gain of -1), so a sawtooth's
-  // ramps run backwards as well
-  function swell(freq, dur, o) {
-    if (!ac) return;
-    const t0 = now() + (o.delay || 0), att = o.attack || 0.004;
-    const osc = ac.createOscillator(); osc.type = o.type || 'sine';
-    osc.frequency.setValueAtTime(freq, t0); osc.frequency.setValueAtTime(freq, t0 + att); osc.frequency.exponentialRampToValueAtTime(o.endFreq || freq, t0 + att + dur);
-    const g = ac.createGain(), flip = ac.createGain(); flip.gain.value = -1;
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(o.vol, t0 + dur);
-    g.gain.linearRampToValueAtTime(0.0001, t0 + dur + att);
-    osc.connect(flip); flip.connect(g); chain(g, o.pan);
-    osc.start(t0); osc.stop(t0 + dur + att + 0.05);
-  }
 
   // ---- ambient bed ----
   function startAmbient(p) {
     if (typeof CAPTIONS !== 'undefined' && !(p && p.near !== undefined)) CAPTIONS.ambient(p);   // (the title's drone has none: it is the title's, not a sound in the night)
     if (!ac) return;
     stopAmbient();
-    p = p || {};
-    const g = ac.createGain(); g.gain.value = 0.0001; g.connect(bus.ambient);
+    const b = bed(p || {}, bus.ambient);
+    fadeIn(b.g.gain, b.title ? 4 : 3);
+    amb = b;
+  }
+  // a bed made and started, silent (its gain, g, at nothing: the caller fades it in), into dest: { g, nodes } (and the
+  // title's, { title, k, set } too)
+  function bed(p, dest) {
+    const g = ac.createGain(); g.gain.value = 0.0001; g.connect(dest);
     const nodes = [];
-    if (p.near !== undefined) { titleBed(g, nodes, p); return; }
+    if (p.near !== undefined) return titleBed(g, nodes, p);
     // wind: brown-ish noise through a slowly wandering low-pass
     const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
     const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.windFreq || 380; lp.Q.value = 0.7;
@@ -152,8 +161,7 @@ const AUDIO = (() => {
     }
     dg.connect(g);
     nodes.forEach(n => n.start());
-    fadeIn(g.gain, 3);
-    amb = { g, nodes };
+    return { g, nodes };
   }
   // the title's bed (p.near, 0..1: how near the thing on the title is): no wind, only a deep drone, two low notes beating
   // slowly against each other with a breath of rumble under them, and over them a low hum in the throat (a buzzing note two
@@ -193,7 +201,6 @@ const AUDIO = (() => {
     const hl = ac.createOscillator(); hl.frequency.value = 0.13; const hlg = ac.createGain(); hlg.gain.value = 0.6; hl.connect(hlg); hlg.connect(hg.gain);
     hs.connect(hb); hb.connect(hg); hg.connect(mlp); nodes.push(swell, hs, hl);
     nodes.forEach(n => n.start());
-    fadeIn(g.gain, 4);
     // far off it is 2 dB up on how loud the line from far to near would have it, easing back to that line as it nears
     // (the near end as it was): FAR_DB at nearness 0, 0 dB at 1
     const FAR_DB = 2;
@@ -206,7 +213,7 @@ const AUDIO = (() => {
       thick.gain.setTargetAtTime(Math.max(0.0001, 0.45 * k * k), now(), tc);
     };
     set(p.near, 0.05);
-    amb = { g, nodes, title: true, k: p.near, set };
+    return { g, nodes, title: true, k: p.near, set };
   }
   // the title's drone at nearness k: started if it is not playing, else moved there over a second or two
   function titleDrone(k) {
@@ -421,20 +428,13 @@ const AUDIO = (() => {
         tone(40, 1.5, { vol: 0.7, endFreq: 25 });
         for (let i = 0; i < 6; i++) tone(1200 + Math.random() * 2000, 0.12, { vol: 0.2, type: 'square', delay: 0.05 + i * 0.09 });
         break;
-      // the volume calibration's loudest sound (Settings: Calibrate): the sting above without its glitter (the six quick
-      // square-wave blips over it), and its falling saw played backwards first, so it climbs into the peak (the noise
-      // burst, the deep drop, the saw falling away) and falls away from it again. The climb is the falling saw reversed
-      // in time: the same sweep run 40 Hz up to 400 Hz, its swell the fall's decay mirrored (from nothing up to 0.5
-      // over the 1.2 s, then down in the 4 ms of its attack) and its polarity turned over, so the saw's ramps run
-      // backwards too. It ends as the peak begins (rev), exactly where the reversed copy would meet the original
-      case 'stingCalibrate': {
-        const rev = 1.2 + 0.004;
-        swell(40, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 400, pan });
-        noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002, delay: rev, pan });
-        tone(400, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 40, delay: rev, pan });
-        tone(40, 1.5, { vol: 0.7, endFreq: 25, delay: rev, pan });
+      // the volume calibration's loudest sound (Settings: Volume, Calibrate): the sting above cut down to its crash, the
+      // noise burst and the deep drop under it (the impact), as loud as they are in the sting; no saw (neither falling nor
+      // rising) and no glitter (the six quick square-wave blips)
+      case 'stingCalibrate':
+        noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002, pan });
+        tone(40, 1.5, { vol: 0.7, endFreq: 25, pan });
         break;
-      }
       case 'win': for (const [f, d] of [[220, 0], [277, 0.25], [330, 0.5], [415, 0.9]]) tone(f, 2.2, { vol: 0.08, type: 'triangle', attack: 0.3, delay: d }); break;
       case 'thud': noise(0.15, { freq: 150, vol: 0.9 }); tone(45, 0.25, { vol: 0.8, endFreq: 30 }); break;
       case 'splash': noise(0.35, { freq: 1800, q: 0.7, vol: 0.5, attack: 0.005, pan }); noise(0.9, { type: 'bandpass', freq: 600, q: 0.8, vol: 0.25, delay: 0.08, attack: 0.05, pan }); tone(120, 0.25, { vol: 0.2, endFreq: 60, pan }); break;
@@ -653,35 +653,70 @@ const AUDIO = (() => {
   const tuned = (key, fn) => (typeof TUNE !== 'undefined' ? TUNE.run(key, fn) : fn());
 
   // ---- the volume calibration (Settings: Volume, Calibrate) ----
-  // The quietest sound in the game, or the loudest, five times a steady CAL.gap seconds apart, panned from the left
-  // speaker to the right across the five (the middle one not panned at all, as the game's own unpanned sounds are). The
-  // quietest: the first beat of the heartbeat (its lub) as loud as the heartbeat is when it is first heard (game.js
-  // heartbeat: 0.04 + prox * 0.5, from prox 0.02). The loudest: stingCalibrate (the death sting, climbing in). Each is
-  // played as the game plays it, tuned as 'heartbeat' and as 'stingCalibrate' (js/soundtune.js), and through the effects
-  // volume (bus.cal is kept at it), with the master volume and mute over it as over everything. While it plays, the rest
-  // (the effects bus and the ambient bed) is ducked out of the way, and back when it ends. Started again while it plays,
-  // it starts over: what was still sounding is faded out at once, so nothing piles up. A context suspended (a paused
-  // night) is resumed for it
-  const CAL = { pans: [-1, -0.5, 0, 0.5, 1], gap: 2, heart: 0.04 + 0.02 * 0.5, len: { quiet: 0.4, loud: 4.2 } };
+  // Sound effects: the quietest sound in the game, or the loudest, seven times a steady CAL.gap seconds apart (all seven in
+  // about two seconds): twice in the left ear, three times on the way across (left of centre, centre, right of centre: the
+  // centre one not panned at all, as the game's own unpanned sounds are), twice in the right ear. Each cuts the one before
+  // it short (a fade of a few tens of ms), so they never pile up; the last rings out. The quietest: the first beat of the
+  // heartbeat (its lub) as loud as the heartbeat is when it is first heard (game.js heartbeat: 0.04 + prox * 0.5, from
+  // prox 0.02). The loudest: stingCalibrate (the sting's crash alone). Each is played as the game plays it, tuned as
+  // 'heartbeat' and as 'stingCalibrate' (js/soundtune.js), through the effects volume (bus.cal is kept at it).
+  // Ambience: the quietest bed in the game or the loudest (CAL.beds), a few seconds of it (CAL.bed), faded in and out,
+  // tuned as the game tunes it, through the ambience volume (bus.calAmb is kept at it). The quietest by loudness (rendered
+  // offline with its tune, K-weighted: test/settings.js) is night 8's once the main is off ('ambient:8off'); the loudest
+  // (by the user's choice) the lighthouse's storm, night 7's wind and rain ('ambient:7').
+  // Mute is over all of it as over everything. While one plays, the rest (the effects bus and the ambient bed) is ducked
+  // out of the way, and back when it ends; one plays at a time: another started stops it (what was still sounding faded
+  // out at once). A context suspended (a paused night) is resumed for it
+  const CAL = {
+    pans: [-1, -1, -0.5, 0, 0.5, 1, 1], gap: 0.3, heart: 0.04 + 0.02 * 0.5, len: { quiet: 0.4, loud: 1.6 },
+    beds: {   // (night08.js L.def.ambient with the hum gone, as its main switched off has it; night07.js L.def.ambient)
+      ambientQuiet: { tune: 'ambient:8off', wind: 0.25, drone: 0.12, droneFreq: 60, windFreq: 300 },
+      ambientLoud: { tune: 'ambient:7', wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 },
+    },
+    bed: { len: 6, fade: 1 },
+  };
   let cal = null, calLast = null;
+  // which: 'quiet' or 'loud' (sound effects), 'ambientQuiet' or 'ambientLoud' (ambience). onBeat(i) as each of the seven
+  // plays (the ambience: onBeat(0) as it starts), onBeat(-1) once it is over
   function calibrate(which, onBeat) {
     if (!ac) return false;
     calStop();
     resume();
-    const seq = ac.createGain(); seq.__tuneBus = true; seq.connect(bus.cal);   // (a bus to TUNE: a tune's vol goes in before it)
+    const seq = ac.createGain(); seq.connect(CAL.beds[which] ? bus.calAmb : bus.cal);
     for (const b of [bus.effects, bus.ambient]) glide(b.gain, 0.0001, 0.05);
-    const c = cal = calLast = { which, seq, timers: [], pans: [] };
-    const play = pan => { out = seq; try { if (which === 'quiet') tuned('heartbeat', () => tone(54, 0.13, { vol: CAL.heart, endFreq: 36, pan })); else tuned('stingCalibrate', () => sfx('stingCalibrate', pan)); } finally { out = null; } };
+    const c = cal = calLast = { which, seq, timers: [], pans: [], beats: [], nodes: [] };
+    const end = sec => c.timers.push(setTimeout(() => { if (cal !== c) return; calStop(); if (onBeat) onBeat(-1); }, sec * 1000));
+    if (CAL.beds[which]) {
+      const p = CAL.beds[which], t = now(), B = CAL.bed;
+      if (typeof CAPTIONS !== 'undefined') CAPTIONS.ambient(p);
+      const lane = ac.createGain(); lane.__tuneBus = true; lane.connect(seq);   // (a bus to TUNE: a tune's vol goes in before it)
+      const b = tuned(p.tune, () => bed(p, lane));
+      b.g.gain.value = 1; c.nodes = b.nodes; c.pans.push(0);
+      seq.gain.setValueAtTime(0, t); seq.gain.linearRampToValueAtTime(1, t + B.fade);
+      seq.gain.setValueAtTime(1, t + B.len - B.fade); seq.gain.linearRampToValueAtTime(0, t + B.len);
+      if (onBeat) onBeat(0);
+      end(B.len + 0.05);
+      return true;
+    }
+    const play = pan => {
+      const beat = ac.createGain(); beat.__tuneBus = true; beat.connect(seq);
+      const prev = c.beats[c.beats.length - 1]; if (prev) glide(prev.gain, 0.0001, 0.015);
+      c.beats.push(beat);
+      out = beat;
+      try { if (which === 'quiet') tuned('heartbeat', () => tone(54, 0.13, { vol: CAL.heart, endFreq: 36, pan })); else tuned('stingCalibrate', () => sfx('stingCalibrate', pan)); } finally { out = null; }
+    };
     CAL.pans.forEach((pan, i) => c.timers.push(setTimeout(() => { if (cal !== c) return; c.pans.push(pan); play(pan); if (onBeat) onBeat(i); }, i * CAL.gap * 1000)));
-    c.timers.push(setTimeout(() => { if (cal !== c) return; calStop(); if (onBeat) onBeat(-1); }, ((CAL.pans.length - 1) * CAL.gap + CAL.len[which === 'quiet' ? 'quiet' : 'loud']) * 1000));
+    end((CAL.pans.length - 1) * CAL.gap + CAL.len[which === 'quiet' ? 'quiet' : 'loud']);
     return true;
   }
   function calStop() {
     if (!cal) return;
     const c = cal; cal = null;
     c.timers.forEach(clearTimeout);
-    glide(c.seq.gain, 0.0001, 0.02); setTimeout(() => { try { c.seq.disconnect(); } catch (e) {} }, 400);
-    for (const k of ['effects', 'ambient']) glide(bus[k].gain, Math.max(0.0001, volume[k]), 0.15);
+    glide(c.seq.gain, 0.0001, 0.02);
+    setTimeout(() => { c.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { c.seq.disconnect(); } catch (e) {} }, 400);
+    glide(bus.effects.gain, volume.effects, 0.15);
+    if (!hushed) glide(bus.ambient.gain, volume.ambient, 0.15);
   }
   return {
     init, on, running, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
@@ -693,7 +728,10 @@ const AUDIO = (() => {
     voice: (kind, vol, pan) => tuned('voice:' + kind, () => voice(kind, vol, pan)),
     // 'footstep:kind' (a lane's cue: game.js laneCues): a few of that thing's footsteps, that way
     sfx: (name, pan, soft) => (typeof name === 'string' && name.startsWith('footstep:') ? cueSteps(name.slice(9), pan, soft) : tuned(name, () => sfx(name, pan, soft))),
-    calibrate, calStop, CAL,
+    calibrate, calStop, CAL, hush,
+    get hushed() { return hushed; },
+    // the two volumes' buses as they are now, and where the calibration's are (the tests' look at them)
+    get levels() { return ac ? { effects: bus.effects.gain.value, ambient: bus.ambient.gain.value, cal: bus.cal.gain.value, calAmb: bus.calAmb.gain.value, volume: Object.assign({}, volume) } : null; },
     get calibration() { return calLast ? { which: calLast.which, pans: calLast.pans.slice(), playing: cal === calLast } : null; },   // (the tests' look at it)
     get muted() { return muted; },
     get bed() { return amb ? { title: !!amb.title, k: amb.k } : null; },   // the ambient bed playing (the tests' look at it)
