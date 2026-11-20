@@ -156,7 +156,7 @@ some on the ground, so you have to turn and look down to find them.
    a gear it moves only while you watch it, so it never steps into your way behind your back. Caught, it comes through
    the window it reached, and the glass breaks in your face: cracks run out from where it hits, then the pane bursts in a
    flash and the shards fly at you (they drop away with reduced motion; the flash is dimmer with reduced flashing). The
-   whole road slides past as you go. The house keys are tried at the keyhole, blade first, will not go in and drop to the
+   whole road slides past as you go, and the night ends: "You drove off and did not look back." The house keys are tried at the keyhole, blade first, will not go in and drop to the
    floor at your feet; a wrong key costs only the moment it takes to try it, never any of its way in.
    In reverse or drive the key will not turn (it starts in park or neutral): your hand takes it and it strains a few
    degrees and goes back. In park or neutral the gas only makes the engine roar; the car stays where it is.
@@ -180,7 +180,8 @@ some on the ground, so you have to turn and look down to find them.
    and walks back into the dark.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
    You must look away to shut both gates, chain each with its own chain, and lock each
-   with its own padlock. A gate pulled shut swings to on a long, squealing iron hinge before it clangs into its post. The two good padlocks lie apart, each in a place of its own, and are
+   with its own padlock (a click anywhere on the chain, all the way across the post's face, is a click on the gate,
+   from any side). A gate pulled shut swings to on a long, squealing iron hinge before it clangs into its post. The two good padlocks lie apart, each in a place of its own, and are
    found and picked up one at a time; one key opens both. A third padlock is rusted solid:
    pressed down on the chain it will not snap shut, and drops. A chain thrown round a gate still swinging shut rides on its end and is knocked off to
    the ground as the gate meets its post (clicked as it is about to shut, it goes on as it shuts), and a shut gate with nothing to hold it, pushed, swings out a little
@@ -276,20 +277,22 @@ some on the ground, so you have to turn and look down to find them.
    and beats on it, hard and fast, until the night fades.
    There is a soda fountain behind you, on a cabinet against the back wall on the other side of the kitchen pass from
    the main (a lit red Soda header, three valves over a dark well, a drip tray, and a little window that says EMPTY,
-   dark), and a waxed paper cup on a shelf on the side wall over the far end of the counter. Nothing says either does
+   dark), and a row of paper cups along the shelf on the back wall, one of them (and only that one) with a red band
+   round it: that is the cup, and the plain ones are nothing to take. Nothing says either does
    anything: the fountain cannot be pointed at (no pointer, no line, nothing the view can hit) until the cup is in hand,
    and the counter's top not until the cup in hand is full. With the cup, the fountain pours it full, fizzing, the cup
    held under the nozzle (in hand it shows dark cola under a head of foam); full, a click on the counter sets it on the
    far side, across from where you clicked and clear of the register, the napkins, the bottles and the pie. Thrown
    main or not, it is optional and costs nothing else (the cup is a tool, and the crank comes back into the hand for a
-   shutter). But if it comes through the glass while the lights are still on and the full cup is standing on the
-   counter, it does not come for you: it walks in to the counter across from the cup, takes it up, tips it to its mouth
+   shutter); with the main thrown the fountain's header goes dark, but it still pours. But if it comes through the glass
+   (the glass breaking with the same sound as when it comes through for you), lit or in the dark, and the full cup is
+   standing on the counter, it does not come for you: it walks in to the counter across from the cup, takes it up, tips it to its mouth
    and drinks it off in three gulps, and sets it down again, empty. Then it pounds the counter, one fist and slowly at
    first, then both, faster and harder, the cup jumping at every blow, its head snapping over and its body shuddering,
    its teeth bared. Refill it (pick the cup up, the fountain, the counter) within nine seconds and it drinks that too and
    starts again, with eight seconds this time. Tried a third time, the fountain coughs and sputters, EMPTY blinks red on
-   its front, and it goes into a flurry of blows and has you; and if it waits too long, it has you anyway. Either way,
-   it is insatiable.
+   its front (with the power on), and it goes into a flurry of blows and has you; and if it waits too long, it has you anyway. Either way,
+   it is insatiable ("Nice try").
 9. **The Phone Booth.** It is raining and something is coming toward the booth, up the main street or along the far
    pavement of the cross street from the east: a shade, far too tall and far too thin, all one dark, its body and its long
    arms and legs one shadow with no clothes and no edges to it, so that most of the time all you see of it is two small

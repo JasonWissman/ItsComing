@@ -80,8 +80,11 @@ const turnWidths = `(() => {
 // filled at the fountain and set on the counter, and it comes through the glass with the lights still on, goes to the
 // counter, drinks it (three gulps), sets the cup down empty and pounds the counter, one fist and then both, faster and
 // faster; refilled and set down it drinks again; a third time the fountain sputters, EMPTY, and it has you. Then the same
-// but never refilled: it pounds until it has had enough, and has you. Either way the death screen says one thing. And
-// with the main thrown, the cup on the counter is nothing to it: it comes through the glass as it always did.
+// but never refilled: it pounds until it has had enough, and has you. Either way the death screen says "Nice try" and one
+// line. And with the main thrown it is the same: in the dark it comes for the cup on the counter, not for you, the
+// fountain still pours, and it drinks the refill too. The glass breaks as it breaks when it comes through for you (the
+// same sound, stingGlass). The cup is one of a row of paper cups on the shelf on the back wall, the only one with the red
+// band: the rest are plain and nothing to click.
 const target = id => `G.L.targets.find(t => t.id === '${id}')`;
 const cupIt = 'G.L.items.find(i => i.id === "cup")';
 // the view put on a point of a target (the fountain's middle; the counter's top straight ahead), and the pointer on it
@@ -98,20 +101,35 @@ const listen = 'window.__snd = {}; window.__sfx0 = AUDIO.sfx; AUDIO.sfx = (n, p,
 const unlisten = 'AUDIO.sfx = __sfx0';
 // a full cup on the counter, straight ahead, at once (the cup taken and filled by the script, not looked for)
 const quickCup = [
-  ['eval', `(() => { G.mouse.x = -1; pickup(${cupIt}); useTarget(${target('fountain')}); })()`], ['wait', 650],
-  ['eval', `(() => { G.cam.yaw = G.cam.tYaw = G.L.facing; G.cam.pitch = G.cam.tPitch = 0.3; useTarget(${target('counter')}); })()`], ['wait', 400],
+  ['eval', `(() => { G.mouse.x = -1; pickup(${cupIt}); useTarget(${target('fountain')}); })()`], ['waitUntil', `${cupIt}.full && !G.hand.thrust`, 3000],
+  ['eval', `(() => { G.cam.yaw = G.cam.tYaw = G.L.facing; G.cam.pitch = G.cam.tPitch = 0.3; useTarget(${target('counter')}); })()`], ['waitUntil', 'G.L.s.cupOn', 3000],
   ['expect', `G.L.s.cupOn && ${cupIt}.full && !${cupIt}.taken && !G.hasItem('cup')`, 'a full cup on the counter'],
 ];
 // it at the glass in a moment, the lights still on
-const toGlass = ['eval', '(() => { const c = G.L.creature, s = G.L.s; c.u = 1 - (s.glassD[c.lane.idx] + 1.0) / c.D0; })()'];
+const toGlass = ['eval', '(() => { const c = G.L.creature, s = G.L.s; c.hold = null; c.u = 1 - (s.glassD[c.lane.idx] + 1.0) / c.D0; })()'];
 const insatiable = [
   ['eval', 'G.deathCause = null; G.deathScreen = null'],
   ['waitUntil', 'G.state === "dying"', 9000],
   ['expect', 'G.deathCause === "soda" && G.L.creature.lunge >= 0', 'it has you'],
   ['waitUntil', 'G.state === "dead"', 8000],
-  ['expect', 'G.deathScreen && G.deathScreen.text === "It is insatiable."', 'the death screen: "It is insatiable."'],
+  ['expect', 'G.deathScreen && G.deathScreen.text === "It is insatiable." && G.deathScreen.title === "Nice try"', 'the death screen: "Nice try", and "It is insatiable."'],
+  ['expect', 'UI.overlay.querySelector("h1").textContent === "Nice try" && UI.overlay.querySelector("p.intro").textContent === "It is insatiable."', 'as shown: the heading "Nice try", and the line, exactly, with nothing in front of it'],
+];
+// the shelf on the back wall: a row of paper cups, and only the one with the band is the cup (an item, and a click there
+// takes it); over every other cup a click finds nothing to take
+const shelf = [
+  // (held out in the lot while the cup is looked for and filled: lit, it is at the glass in seventeen seconds)
+  ['eval', 'G.L.creature.hold = G.L.creature.dist'],
+  ['eval', `(() => { const c = ${cupIt}; lookAtPoint({ x: c.x, y: c.y + 0.08, z: c.z }); G.cam.yaw = G.cam.tYaw; G.cam.pitch = G.cam.tPitch; })()`], ['wait', 250],
+  ['expect', `(() => { const L = G.L, sh = L.s.shelf, c = ${cupIt}; if (!sh || sh.xs.length < 6) return false; let ok = 0;
+    for (let k = 0; k < sh.xs.length; k++) { const w = L.pt(sh.xs[k], sh.y + 0.08, sh.z), q = R.screenPos(w[0], w[1], w[2]); if (!q) return false; G.mouse.x = q.x; G.mouse.y = q.y + R.viewY; updateHover();
+      const it = G.hover && G.hover.kind === 'item' ? G.hover.ref : null; if (k === sh.cup ? it === c : !it) ok++; }
+    G.mouse.x = -1; updateHover(); const p = L.pt(sh.xs[sh.cup], sh.y, sh.z);
+    return ok === sh.xs.length && Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]) < 1e-6 && c.icon === ICONS.paperCup && L.items.filter(i => /cup/i.test(i.name)).length === 1 && L.props.filter(q => q.card && q.kind === 'sprite').length >= sh.xs.length - 1; })()`,
+  'a row of cups on the shelf on the back wall: the one with the red band is the cup, and the plain ones are nothing to click'],
 ];
 const soda = [
+  ...shelf,
   ...notThere('fountain', 'without the cup the fountain is nothing to point at: no pointer, no line, nothing the view can hit'),
   ...notThere('counter', 'nor the counter'),
   ['pickup', 'cup'],
@@ -127,10 +145,12 @@ const soda = [
   ['use', 'counter'],
   ['waitUntil', 'G.L.s.cupOn', 2000],
   ['expect', `!G.hasItem('cup') && !${cupIt}.taken && ${cupIt}.full && __snd.cupDown === 1 && ${target('counter')}.hidden && ${target('fountain')}.hidden`, 'set down on the counter, full; the fountain and the counter are nothing again'],
-  // it comes through the glass, the lights still on: to the counter, and the soda
+  // it comes through the glass, the lights still on: to the counter, and the soda. The glass breaks as it breaks when it
+  // comes through for you: the same sound as the sting it has you with then
   toGlass,
   ['waitUntil', 'G.L.s.through && G.L.s.soda', 4000],
   ['expect', 'G.state === "play" && G.L.s.power && G.L.creature.catchDist < 1', 'through the glass with the lights on and a soda on the counter: it does not come for you'],
+  ['expect', 'CREATURES.customer.death.sting === "stingGlass" && __snd.stingGlass === 1 && __snd.glassGive === 1', 'the glass broke with the same sound as when it comes through the glass for you'],
   ['waitUntil', 'G.L.s.soda.ph === "lift"', 5000],
   ['expect', `G.L.creature.dist < 2 && G.L.creature.soda.hold && ${cupIt}.taken && !G.L.s.cupOn`, 'at the counter across from it, it takes the cup up'],
   ['waitUntil', 'G.L.s.soda.ph === "bang"', 5000],
@@ -157,11 +177,30 @@ const soda = [
   ...insatiable,
   ['eval', unlisten],
   ['eval', 'restartLevel()'], ['wait', 300],
-  // the main thrown: the soda on the counter is nothing to it
+  // the main thrown: in the dark it is the same. It comes through the glass (the same glass breaking), goes to the counter
+  // and drinks; the fountain still pours in the dark, and it drinks the refill too; then it has had enough
   ...quickCup,
-  ['eval', `(() => { useTarget(${target('main')}); })()`], ['waitUntil', '!G.L.s.power && !G.hand.reach', 3000], toGlass,
+  ['eval', `(() => { useTarget(${target('main')}); })()`], ['waitUntil', '!G.L.s.power && !G.hand.reach', 3000], ['eval', listen], toGlass,
+  ['waitUntil', 'G.L.s.through && G.L.s.soda', 4000],
+  ['expect', 'G.state === "play" && !G.L.s.power && G.L.creature.catchDist < 1 && __snd.stingGlass === 1', 'in the dark, through the glass (breaking as it always does) with a soda on the counter: it does not come for you'],
+  ['waitUntil', 'G.L.s.soda.ph === "bang"', 9000],
+  ['expect', `__snd.gulp === 3 && !${cupIt}.full && G.L.s.cupOn && G.L.s.soda.drinks === 1 && G.L.pal.ambient < 0.5`, 'in the dark it drank it off and wants another'],
+  ['pickup', 'cup'], ['use', 'fountain'], ['waitUntil', `${cupIt}.full`, 2000],
+  ['expect', `!G.L.s.power && G.L.s.fills === 2 && __snd.sodaPour === 1`, 'the fountain pours with the power off'],
+  ['use', 'counter'],
+  ['waitUntil', 'G.L.s.soda.drinks === 2 && G.L.s.soda.ph === "bang"', 9000],
+  ['expect', `__snd.gulp === 6 && G.state === 'play'`, 'refilled in the dark: it drinks again'],
+  ['waitUntil', 'G.state !== "play" || G.L.s.soda.ph === "fury"', 15000],   // (eight seconds of its pounding first)
+  ...insatiable,
+  ['eval', unlisten],
+  ['eval', 'restartLevel()'], ['wait', 300],
+  // and the glass it comes through for you breaks with that same sound
+  ['eval', listen], ['eval', `(() => { useTarget(${target('main')}); })()`], ['waitUntil', '!G.L.s.power && !G.hand.reach', 3000], toGlass,
   ['waitUntil', 'G.state === "dying"', 9000],
-  ['expect', 'G.deathCause === "through" && !G.L.s.soda && G.L.s.cupOn', 'in the dark it comes through the glass for you as it always did, the soda left standing'],
+  ['expect', 'G.deathCause === "through" && !G.L.s.soda && __snd.stingGlass === 1 && __snd.glassGive === 1', 'no soda on the counter: it comes through the glass for you, and the glass breaks with the same sound'],
+  ['waitUntil', 'G.state === "dead"', 8000],
+  ['expect', 'G.deathScreen.text.endsWith("It came through the glass before the shutters were down.") && G.deathScreen.title === "It got you"', 'and the card says the shutters were not down'],
+  ['eval', unlisten],
   ['eval', 'restartLevel()'], ['wait', 300],
 ];
 const nightmare = [

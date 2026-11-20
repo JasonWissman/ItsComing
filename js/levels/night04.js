@@ -424,6 +424,8 @@ LEVELS.push({
     // head, so through a shut gate nearly all of it shows, however far off it is and even right at the gate, and the middle
     // of the gate is a gap, not a bar, so its face is in a gap when it stands at the gate. A gate that has just been shaken
     // (g.rattleAt) jolts on its hinges and its chain, and settles
+    // the chain (gatechain, 0.5 wide at x 1.0, from y 0.5) spans x 0.77-1.23 and y 0.53-1.07, the lock (padlock) y 0.36-0.6
+    const CHAIN_HIT = { x: 1.0, w: 0.6, y0: 0.32, h: 0.84 };
     const LEN = 2.1, TOP = 1.9, RISE = 0.38, FOOT = 0.1, BAND = 0.42, NGAP = 9, BARW = 0.011, GRIP = 2, ironC = [38, 38, 42];
     const archY = u => TOP + RISE * (1 - Math.pow((u - LEN / 2) / (LEN / 2), 2));
     const barU = k => 0.025 + k * (LEN - 0.05) / NGAP;   // along the gate from its hinge: k 0 and NGAP are the stiles
@@ -475,6 +477,10 @@ LEVELS.push({
         if (g.chained) R.add(iconSprite(L, 'gatechain', 1.0 * sg, 0.5 + lift, 2.3 * sg, 0.5, 0.75));
         if (g.locked) R.add(iconSprite(L, 'padlock', 1.01 * sg, 0.36 + lift * 1.4, 2.28 * sg, 0.2, 0.24));
         R.glowAs(null);
+        // the gate's own hit area stops short of its post, where the chain goes round and the lock hangs: a second hit area
+        // for the gate, just where the chain is drawn (all of it, from the bars across the post's face, and the lock under
+        // it) with a little room round it, so a click anywhere on the chain is a click on the gate whichever way it is seen
+        if (g.angle === 0) R.add(SC.mkSprite(L, CHAIN_HIT.x * sg, CHAIN_HIT.y0 + lift, 2.3 * sg, CHAIN_HIT.w, CHAIN_HIT.h, () => {}, { hit: { kind: 'target', ref: g }, hitPad: 6, noHover: true, hitOnly: true }));
       }
     };
     // ---- how it ends ----

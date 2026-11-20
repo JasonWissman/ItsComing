@@ -20,18 +20,23 @@ Object.assign(ICONS, {
   // foam)
   paperCup(ctx, P) { dinerCup(ctx, P, false); },
   paperCupFull(ctx, P) { dinerCup(ctx, P, true); },
+  // the others in the stack on the shelf: the same cup, plain white, no band
+  paperCupPlain(ctx, P) { dinerCup(ctx, P, false, true); },
 });
-// the cup: tapered, white, a red band round it with a white wave through it, edged dark so it reads on the pale counter
-function dinerCup(ctx, P, full) {
+// the cup: tapered, white, a red band round it with a white wave through it (none on a plain one), edged dark so it reads
+// on the pale counter
+function dinerCup(ctx, P, full, plain) {
   const edge = P.col([52, 46, 44]), paper = P.col([236, 232, 222]), shade = P.col([196, 190, 178]), red = P.col([184, 38, 34]);
   const body = [[-0.33, 0.86], [0.33, 0.86], [0.23, 0.03], [-0.23, 0.03]];
   P_poly(ctx, [[-0.37, 0.88], [0.37, 0.88], [0.26, 0.0], [-0.26, 0.0]], edge);
   P_poly(ctx, body, paper);
   P_poly(ctx, [[0.14, 0.86], [0.33, 0.86], [0.23, 0.03], [0.1, 0.03]], shade);                     // its shaded side
-  P_poly(ctx, [[-0.305, 0.62], [0.305, 0.62], [0.28, 0.4], [-0.28, 0.4]], red);                   // the band
-  ctx.strokeStyle = paper; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.beginPath();
-  for (let i = 0; i <= 12; i++) { const x = -0.27 + i * 0.045; ctx.lineTo(x, 0.51 + 0.04 * Math.sin(i * 1.3)); }
-  ctx.stroke();
+  if (!plain) {
+    P_poly(ctx, [[-0.305, 0.62], [0.305, 0.62], [0.28, 0.4], [-0.28, 0.4]], red);                 // the band
+    ctx.strokeStyle = paper; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.beginPath();
+    for (let i = 0; i <= 12; i++) { const x = -0.27 + i * 0.045; ctx.lineTo(x, 0.51 + 0.04 * Math.sin(i * 1.3)); }
+    ctx.stroke();
+  }
   P_ell(ctx, 0, 0.87, 0.36, 0.085, edge); P_ell(ctx, 0, 0.87, 0.33, 0.065, P.col([248, 246, 240]));   // the rolled rim
   if (!full) { P_ell(ctx, 0, 0.865, 0.29, 0.048, P.col([168, 160, 146])); P_ell(ctx, 0.04, 0.855, 0.2, 0.03, P.col([140, 132, 120])); return; }
   P_ell(ctx, 0, 0.87, 0.3, 0.05, P.col([66, 34, 20]));                                            // cola, to the brim
@@ -49,9 +54,9 @@ LEVELS.push({
   ],
   text: {
     intro: 'The last customer left an hour ago…\nbut another seems drawn in by the light.',
-    death: { default: 'One shutter was still open.', through: 'It came through the glass before the shutter was down.', lit: 'It was drawn in by the light.', soda: 'It is insatiable.' },
+    death: { default: 'One shutter was still open.', through: 'It came through the glass before the shutters were down.', lit: 'It was drawn in by the light.', soda: 'It is insatiable.' },
     eggs: ['soda'],   // (the easter egg: "Nice try", game.js deathLine)
-    win: 'It beat on the shutter relentlessly, but they held.',
+    win: 'It beat on the shutters relentlessly, but they held.',
   },
   // three windows across the front, left to right as you face them; it comes for one. It stands at the glass on a line
   // 5.45 m out, past the shutters, which is further along the slanted lanes either side.
@@ -89,8 +94,9 @@ LEVELS.push({
     disc(-1.45, 1.55, 0.17, [118, 120, 126], 4.28); disc(-1.45, 1.55, 0.13, [18, 16, 18], 4.27);
     SC.wallV(L, -3.975, -1.12, -3.975, -1.04, 0.92, 1.22, [118, 120, 126], { sortDist: 4.27 });
     SC.wallV(L, -1, -2.49, 1, -2.49, 1.0, 2.0, [14, 10, 10]); SC.box(L, -1.1, 1.1, 0.95, 1.02, -2.5, -2.3, chrome); // the kitchen pass
-    SC.box(L, 1.2, 3.8, 1.9, 1.95, -2.5, -2.3, [90, 74, 56]);
-    for (let x = 1.4; x < 3.7; x += 0.3) SC.box(L, x, x + 0.16, 1.95, 2.1, -2.48, -2.34, [230, 226, 214]);
+    // the shelf on the back wall, a row of paper cups along it (the soda's, below: one of them has the red band)
+    const SHELF = { y: 1.95, z: -2.41, xs: Array.from({ length: 8 }, (_, k) => 1.48 + k * 0.3) };
+    SC.box(L, 1.2, 3.8, SHELF.y - 0.05, SHELF.y, -2.5, -2.3, [90, 74, 56]);
     SC.box(L, 2.4, 3.8, 0, 0.9, -2.45, -1.85, [150, 138, 118]); SC.box(L, 3.0, 3.6, 0.9, 1.5, -2.4, -2.0, chrome); SC.box(L, 3.05, 3.55, 0.9, 1.0, -2.0, -1.9, [60, 40, 30]);
     // (what is fixed on a wall is drawn flat on it, its front looking into the room: the clock, the main, the gearboxes, the
     // signs; it never turns with the view)
@@ -261,12 +267,15 @@ LEVELS.push({
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
     ], { w: 0.5, h: 0.5, flat: true, tool: true, icon: 'shutterCrank', held: { grip: 'fist', at: [-0.22, 0.17], axis: 0, angle: -0.12, size: 0.36, tip: [0.36, 0.9] } });   // in the fist by its red grip, the rod standing up out of it; the hook leads it into an eye
 
-    // ---- the soda fountain behind you, and a paper cup on a shelf at the far end of the counter ----
+    // ---- the soda fountain behind you, and a paper cup on the shelf on the back wall ----
     // The fountain stands on a cabinet against the back wall, on the other side of the kitchen pass from the main; the cup
-    // is on a little shelf on the side wall over the end of the counter. Nothing about either says it does anything: the
-    // fountain cannot be pointed at until the cup is in hand, nor the counter until the cup in hand is full. Fill the cup,
-    // set it on the far side of the counter, and if it comes in through the glass while the lights are still on it has
-    // something else on its mind (the soda, below). Neither is needed for anything else, and neither costs a turn.
+    // is one of the row of paper cups on the shelf over the back counter, the only one with the red band on it (the rest
+    // are plain, and nothing to take). Nothing about either says it does anything: the fountain cannot be pointed at until
+    // the cup is in hand, nor the counter until the cup in hand is full. Fill the cup, set it on the far side of the
+    // counter, and if it comes in through the glass, lit or in the dark, it has something else on its mind (the soda,
+    // below). Neither is needed for anything else, and neither costs a turn. The fountain pours with the main thrown as
+    // well (its header goes dark with everything else, but the syrup and the gas need no power): the cup can be refilled
+    // in the dark.
     const FX = -mainX, FY = 0.9, FZ = -2.135, FW = 0.48, FH = 0.62;
     SC.box(L, FX - 0.42, FX + 0.42, 0, FY - 0.03, -2.48, -2.08, [128, 118, 104]);   // the cabinet
     SC.box(L, FX - 0.44, FX + 0.44, FY - 0.03, FY, -2.49, -2.06, chrome);
@@ -294,13 +303,13 @@ LEVELS.push({
       for (let x = -0.4; x < 0.42; x += 0.08) P_rect(ctx, x, 0.045, 0.04, 0.04, ink);
     }, { face: BACK });
     const nozzle = (() => { const p = L.pt(FX, FY + 0.43 * FH, FZ + 0.04); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; })();
-    // the shelf, on the side wall over the far end of the counter, on two brackets
-    const SHELF_Y = 1.42;
-    SC.box(L, 3.72, 3.99, SHELF_Y - 0.03, SHELF_Y, 0.82, 1.42, [104, 78, 54]);
-    for (const z of [0.9, 1.34]) SC.box(L, 3.94, 3.99, SHELF_Y - 0.2, SHELF_Y - 0.03, z - 0.015, z + 0.015, [60, 58, 56]);
-    // (one fixed spot, so the layout the rest of the night draws from its random stream is as it was)
-    const cup = mkItem(L, 'cup', 'Paper cup', { x: 3.86, y: SHELF_Y, z: 1.1, jitter: 0 }, { w: 0.16, h: 0.16, tool: true, icon: 'paperCup', material: 'soft', full: false,
+    // which cup on the shelf has the band: by a stream of its own, so the layout the rest of the night draws from its
+    // random stream is as it was. The others stand there plain, drawn as the cup is (a card facing you), and are nothing to click
+    const CUP_K = Math.floor(mulberry32((G.runSeed * 7919 + L.index * 131 + G.attempt * 17 + 808) >>> 0)() * SHELF.xs.length);
+    SHELF.xs.forEach((x, k) => { if (k !== CUP_K) SC.sprite(L, x, SHELF.y, SHELF.z, 0.16, 0.16, (ctx, P) => { ctx.scale(0.16, 0.16); ICONS.paperCupPlain(ctx, P); }, { card: true }); });
+    const cup = mkItem(L, 'cup', 'Paper cup', { x: SHELF.xs[CUP_K], y: SHELF.y, z: SHELF.z, jitter: 0 }, { w: 0.16, h: 0.16, tool: true, icon: 'paperCup', material: 'soft', full: false,
       held: { grip: 'fist', at: [0, 0.42], axis: 0, angle: 0.06, size: 0.17 } });
+    s.shelf = Object.assign({ cup: CUP_K }, SHELF);   // (the tests)
     const setFull = v => { cup.full = v; cup.icon = v ? ICONS.paperCupFull : ICONS.paperCup; cup.name = v ? 'Cup of soda' : 'Paper cup'; G.invSig = ''; };
     const inHand = () => G.inv.includes(cup);
     const toHand = () => { const i = G.inv.indexOf(cup); if (i >= 0 && G.active !== i) { G.active = i; G.invSig = ''; } };
@@ -558,7 +567,7 @@ LEVELS.push({
     L.deathCause = () => (s.power ? 'lit' : s.through ? 'through' : null);
 
     // ---- the soda ----
-    // It comes in through the glass with the lights still on and a full cup of soda standing on the counter: it does not
+    // It comes in through the glass, lit or in the dark, with a full cup of soda standing on the counter: it does not
     // come for you. It walks in to the counter across from the cup, takes it, tips it up and drinks it off, gulp by gulp,
     // and sets it down again, empty. Then it pounds the counter: one fist, slowly, then both, faster and harder, its head
     // snapping over at every blow and its whole body shuddering, until it has another (SODA.wait s the first time, a little
@@ -733,7 +742,9 @@ LEVELS.push({
         s.through = true; s.throughWin = c.lane.idx; s.queued = null; glass[c.lane.idx].alpha = 0;
         AUDIO.sfx('glassGive', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); G.shake(0.4);
         c.hold = null; c.catchDist = Infinity; c.distFn = null; c.shove = null; c.yOff = 0;
-        if (s.power && s.cupOn && cup.full) sodaStart(c);   // the lights on and a soda on the counter: that, first
+        // a soda on the counter, lit or in the dark: that, first. The glass breaks as it does when it comes through for you
+        // (the same sound: the sting it has you with then, js/creatures/customer.js death.sting)
+        if (s.cupOn && cup.full) { AUDIO.sfx(cr().CR.death.sting); sodaStart(c); }
       }
       if (s.soda && !c.dead && G.state === 'play') sodaStep(c, dt);
       // the fountain is only something to use with the cup in hand, the counter only with it full

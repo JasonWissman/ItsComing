@@ -52,7 +52,7 @@ LEVELS.push({
     // caught where it came up to the car: the window it came through
     death: { default: 'It came through the windshield.', passenger: 'It came through the passenger window.', driver: 'It came through the window beside you.', back: 'It came through the back window.',
       drove: 'You drove straight to the creature. It came through the windshield.', reversed: 'You backed straight into the creature. It came through the back window.' },
-    win: 'You slammed on the gas and it faded into the distance.',
+    win: 'You drove off and did not look back.',   // the same whichever way out you took and wherever it was
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
   // the road or along either verge, just off the beam
@@ -444,10 +444,6 @@ LEVELS.push({
       c.CR = Object.assign({}, c.CR, { sound: null });
       L.visFrac = cr => { const p = cr.pos(), r = R.projectRect(p.x, p.y, p.z, cr.CR.w, cr.CR.h, null); if (!r) return 0; const w = Math.min(r.x + r.w, R.W) - Math.max(r.x, 0), h = Math.min(r.y + r.h, R.H) - Math.max(r.y, 0); return w > 0 && h > 0 ? w * h / Math.max(1e-6, r.w * r.h) : 0; };
       AUDIO.setLoop('engine', 0.6);
-      const where = regionOf(b), behind = where === (s.dir > 0 ? 'back' : 'front');
-      L.text.win = where === 'left' || where === 'right' ? (s.dir < 0 ? 'It was crouched at the side of the car. You backed away down the road, and the dark at the roadside closed over it.' : 'It was crouched at the side of the car. You floored it, and the dark at the roadside closed over it.')
-        : behind ? (s.dir > 0 ? 'It was in the road behind you. You drove off, and it shrank away into the red of the tail lights.' : 'You backed away down the road with the lights full on it, and it stood in the road and watched you go.')
-        : s.dir < 0 ? 'You backed past it where it crouched at the side of the road behind you, and kept going.' : 'You drove past it where it crouched at the side of the road, and you did not look in the mirror.';
     }
     function stepsOn(c, x0, z0) {   // its own footsteps while the car gets away, as loud as it is near the car now
       drive.odo += Math.hypot(drive.cx - x0, drive.cz - z0);

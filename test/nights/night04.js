@@ -40,6 +40,13 @@ module.exports = {
     ['waitUntil', lies('chain'), 4000],   // knocked off as the gate swings into the post, it falls to the ground
     ['pickup', 'chain'],                  // where it is seen and taken again
     ['use', 'gate'], ['expect', gate('gate') + ".chained && !G.hasItem('chain')", 'the chain goes on the shut gate and is used up'],
+    // where the lock goes: a click anywhere across the chain as it is drawn (its whole width, out over the post's face, and
+    // a little past it) is a click on the gate, from straight on and from either side (looking down at it, the chain is drawn
+    // in perspective on its own card, and the same card a little bigger is the hit area: checked by eye, as the screenshots)
+    ['expect', '(async () => { const g = ' + gate('gate') + ', sg = g.sign, c0 = { d: G.cam.dirIdx, y: G.cam.yaw, p: G.cam.pitch }, d0 = Math.round(Math.atan2(g.x, g.z) / (45 * DEG)); let n = 0, bad = 0; ' +
+      'for (const k of [0, 1, -1]) { const d = (((d0 + k) % 8) + 8) % 8; G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); ' +
+      'for (let x = 0.72; x <= 1.281; x += 0.04) for (const y of [0.55, 0.72, 0.9, 1.05]) { const w = G.L.pt(x * sg, y, 2.3 * sg), q = R.screenPos(w[0], w[1], w[2]); if (!q || q.x < 2 || q.x > R.W - 2 || q.y < 2 || q.y > R.H - 2) continue; G.mouse.x = q.x; G.mouse.y = q.y + R.viewY; updateHover(); n++; if (!G.hover || (G.hover.kind === "target" && G.hover.ref !== g)) bad++; } } ' +
+      'G.mouse.x = -1; updateHover(); G.cam.dirIdx = c0.d; G.cam.yaw = G.cam.tYaw = c0.y; G.cam.pitch = G.cam.tPitch = c0.p; return n > 60 && bad === 0; })()', 'the whole chain, and a little round it, is the gate to click (to put the lock on it), seen from any side'],
     select('oldlock'), ['use', 'gate'], ['expect', '!' + gate('gate') + '.locked && ' + said('Rusted solid') + " && !G.hasItem('oldlock')", 'the rusted padlock will not do: it leaves the hand'],
     ['click', 'gate'], ['expect', said('Rusted solid') + ' && G.fumbling && G.fumbling.it === ' + item('oldlock'), 'clicked again while it is still at the gate: nothing more is tried, its line stays'],
     ['waitUntil', lies('oldlock'), 4000],   // it will not snap shut, and drops by the gate

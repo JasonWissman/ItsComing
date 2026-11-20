@@ -90,5 +90,5 @@ module.exports = {
     ['branch', 'G.L.s.dir < 0',
       [['expect', 'window.__gap() > window.__d0', 'backing away: the road slides away and it falls behind']],
       [['expect', '(() => { const p = G.L.creature.pos(); return Math.abs(p.x - 0.4) > 3 || p.z < G.L.eye.z; })()', 'driving on: it is off the road or behind the car']]],
-    ['expect', '!/It caught/.test(G.L.text.win) && G.L.text.win.length > 20', 'the night ends with a line for where it was and the way you went']],
+    ['expect', "G.state === 'won' && G.L.text.win === 'You drove off and did not look back.'", 'the night ends: You drove off and did not look back.']],
 };
