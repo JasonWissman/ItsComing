@@ -4,7 +4,7 @@ const CAPTIONS = (() => {
   const SFX = {
     bang: 'something hits the boards', crack: 'a board cracks', receiver: 'the receiver lifts, a dial tone', dial: 'a button beeps', ringback: 'ringing on the line', noService: 'three rising tones', answer: 'someone picks up', phoneRing: 'a phone rings', rev: 'the engine roars', smash: 'the boards tear away', hammer: 'hammering', splash: 'a splash', plunge: 'a splash, far below', dive: 'something goes under', wetThud: 'a wet blow', wetPound: 'something pounds on the door', slosh: 'water slapping',
     keyClick: 'a key clicks', coin: 'a coin drops in', coinReturn: 'a coin rattles into the return', carCome: 'a car, coming fast', brake: 'tyres hiss on the wet road', horn: 'a car horn, twice', carDoor: 'a car door opens', lampBreak: 'a street lamp pops, and glass falls',   // the pay phone's keys and coin, the car that comes, the lamps he breaks
-    dispatch: 'a dispatcher\'s voice, crackling', siren: 'a police siren wails', carThump: 'thumps and banging inside the car', sirenDie: 'the siren sputters and dies with a crackle',   // the police, on 911 (the phone booth)
+    dispatch: 'a dispatcher\'s voice, crackling', siren: 'a police siren wails', sirenAway: 'the siren fades into the distance',   // the police, on 911 (the phone booth)
     boardRattle: 'the boards rattle on their nails',
     sparkBlast: 'the box bursts in a shower of sparks', fireCatch: 'flames rush up', fireCrackle: 'fire crackling', burnShriek: 'a burning shriek', stingBurn: 'a burning scream',   // night 11's farm set alight
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',

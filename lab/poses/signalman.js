@@ -89,10 +89,6 @@
           if (T < 0.8) { c.moving = false; return; }
           c.away = true; c.frozen = true; c.moving = true; c.dist += dt * 1.3; c.gait += dt * 1.3 * CR.stepRate * Math.PI;
         } },
-      { name: 'In the officer\'s cap', note: 'Night 9, dialled on 911: the police came, and it got into their car. It climbs out of the back door in the officer\'s cap, a size too big and cocked to one side (navy, a gold badge and cord, a shining black peak), and stands looking at you a second before it comes.',
-        dist: 6, dur: 2.4, lit: 0.35, fit: { h: 2.85, w: 1.1 }, set(c) { c.copHat = true; },
-        tick(c, k, dt, T) { if (T >= 0.6 && !c.looked) { c.looked = true; c.lookT = c.t; } } },
-      LAB.lunge({ name: 'Death lunge, in the cap', note: 'It catches you in the officer\'s cap: as its head splits open into its petals the cap rides up on them and tips back.', dist: CR.catchDist, set(c) { c.frozen = true; c.lungeFrom = c.dist; c.copHat = true; } }),
       LAB.lunge({ note: 'It catches you: its head splits open into five petals lined with teeth, rings of teeth coming up out of its throat and moving out, only ever outward, the long hands up either side of your face.', dist: CR.catchDist }),
     ],
   });

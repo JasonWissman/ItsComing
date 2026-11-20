@@ -16,9 +16,6 @@
 // of its way it is; c.reach (0..1), one arm unspooling up to c.reachTo (across and up from its feet, in metres; c.reachSide
 // the arm), the hand closing on what it reaches (c.grip); c.rush (0..1), skittering, low; c.lampLit (0..1, more in the
 // flare), how lit it is by the lamp it stands behind (a faint rim along its shoulder, never its face); c.dark, out of the light.
-// Night 9's other ending (911: the police come, and it gets into their car): c.copHat, it has come out of the car in the
-// officer's cap, which it keeps on to the end (copHat); c.proxy, the night draws it itself for a while (setting
-// c.proxyDraw while it does), so it is not drawn where it is drawn otherwise.
 CREATURES.signalman = {
   name: 'the shade', h: 2.5, w: 0.8, faceY: 2.3, stepRate: 0.6, catchDist: 1.6, sound: 'walker', ignoresGaze: true,
   death: { delay: 0.3, dur: 0.5, sting: 'stingGlass' },
@@ -32,7 +29,6 @@ CREATURES.signalman = {
     return c.held ? 0 : 1;
   },
   draw(ctx, c, P) {
-    if (c.proxy && !c.proxyDraw) return;
     const g = c.gait, t = c.t, lunge = c.lunge || 0, back = !!c.away && !lunge;
     const m = ctx.getTransform(), px = 1 / (Math.hypot(m.a, m.b) || 1);   // a device pixel, here
     const W = w => Math.max(w, 0.9 * px);                                  // never thinner than a pixel: far off it is still a shape
@@ -101,7 +97,6 @@ CREATURES.signalman = {
     ctx.save(); ctx.translate(headC[0], headC[1]); ctx.rotate(tilt);
     if (!back) this.face(ctx, c, P, ink, turn, reveal, lunge, px);
     else P_ell(ctx, 0, 0, W(0.075), W(0.13), ink);
-    if (c.copHat) this.copHat(ctx, P, W, turn, back, lunge, px);
     ctx.restore();
     // where a lamp it stands behind lights it: a thin warm rim along the shoulder toward it, and nothing on the head or the
     // face, which stay all dark but the two points of the eyes
@@ -216,29 +211,6 @@ CREATURES.signalman = {
       }
       ctx.restore();
     }
-  },
-  // the officer's cap, on its head (in the head's frame): a peaked cap a little too big for it, cocked to one side, navy
-  // with a black band and a gold cord across it, a gold badge on the front and a black, shining peak. Coming at you, as its
-  // head splits open, the cap rides up on the opening petals and tips back
-  copHat(ctx, P, W, turn, back, lunge, px) {
-    const k = px < 0.03 ? smoothstep(clamp((lunge - 0.06) / 0.5, 0, 1)) : 0;
-    ctx.save(); ctx.translate(turn * 0.03, 0.078 + k * 0.27); ctx.rotate(0.1 + k * 0.4); ctx.scale(1.3, 1.3);
-    const crown = P.col([50, 60, 104], 0.7), crownT = P.col([84, 96, 146], 0.7), band = P.col([12, 12, 15], 0.5), peak = P.col([8, 8, 10], 0.4), gold = P.col([236, 196, 100], 0.6);
-    // the crown, flaring out wider than the band to a flat top seen from a little below
-    ctx.fillStyle = crown; ctx.beginPath(); ctx.moveTo(-0.082, 0.03);
-    ctx.bezierCurveTo(-0.1, 0.07, -0.136, 0.094, -0.13, 0.114); ctx.quadraticCurveTo(0, 0.146, 0.13, 0.114); ctx.bezierCurveTo(0.136, 0.094, 0.1, 0.07, 0.082, 0.03);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = crownT; ctx.lineWidth = W(0.008); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-0.126, 0.114); ctx.quadraticCurveTo(0, 0.146, 0.126, 0.114); ctx.stroke();
-    P_rect(ctx, -0.085, 0, 0.17, 0.034, band);                             // the band
-    P_line(ctx, -0.08, 0.025, 0.08, 0.025, W(0.006), gold);                // and the cord across it
-    if (!back) {
-      P_poly(ctx, [[-0.024, 0.088], [0.024, 0.088], [0.026, 0.062], [0, 0.04], [-0.026, 0.062]], gold);   // the badge
-      ctx.save(); ctx.globalAlpha *= 0.75; P_ell(ctx, -0.008, 0.074, W(0.006), W(0.006), P.raw([255, 244, 200])); ctx.restore();   // catching the light
-      // the peak: a black crescent jutting out under the band, a line of shine along it
-      ctx.fillStyle = peak; ctx.beginPath(); ctx.moveTo(-0.09, 0.006); ctx.quadraticCurveTo(0, -0.056, 0.09, 0.006); ctx.quadraticCurveTo(0, -0.016, -0.09, 0.006); ctx.fill();
-      ctx.strokeStyle = P.cola([150, 160, 190], 0.55); ctx.lineWidth = W(0.005); ctx.beginPath(); ctx.moveTo(-0.07, -0.006); ctx.quadraticCurveTo(0, -0.04, 0.07, -0.006); ctx.stroke();
-    }
-    ctx.restore();
   },
   // the arm reaching up to a lamp: out of the shoulder the same shadow unspools, far too long, lifting first and then paying
   // out toward what it reaches, writhing as it goes and stilled once it is there; the long fingers spread, then close on it

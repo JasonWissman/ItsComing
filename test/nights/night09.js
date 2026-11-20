@@ -128,54 +128,64 @@ const doorCases = [0, 1].flatMap(k => [
   ['eval', 'window.__door = ' + doorOrder(k)],
   ['expect', '__door.frames > 20 && __door.overlaps > 20 && __door.bad === 0', 'street ' + k + ': the open door is drawn over every part of the car behind it on the view, at every stage of its opening'],
 ]);
-// 911, the other ending. From the phone, lifted, 9-1-1 on its keys (with no coin on the main street: an emergency call is
-// free; with the coin in on the cross street), stepped by hand to the end: a dispatcher answers, and a police car comes
-// instead of the other (s.cop), the same way, to the same place, its light bar going and its siren wailing; it goes to the
-// car from behind its lamp post and in at a window, gone; the car rocks and thumps; the siren dies at the end of a wail and
-// the light bar goes out; the back door opens and it comes out of it in the officer's cap, stands still looking at you a
-// second or more, and comes at you: caught, and the night lost with its own line. calm: with reduced flashing, the light
-// bar swells slowly from red to blue and back, and never flashes
+// 911. From the phone, lifted, 9-1-1 on its keys (with no coin on the main street: an emergency call is free; with the
+// coin in on the cross street), called while it is skittering between two lamps, stepped by hand: a dispatcher answers,
+// and a police car (s.cop) comes the same way as the other, its light bar going and its siren wailing, and does not stop:
+// it drives straight on past the booth and away down the road until it is out of sight (far past where the other pulls
+// up), the siren's last wail going away after it, no horn, no door. Meanwhile it scurries to the nearest lamp post on its
+// street, gets behind it and stays there still, looking at you, off the road and never in the car's way, until the car
+// has gone; then it goes on with its way in from that post, and comes; caught, the screen says "Nice try" and "The police
+// can't help you here." calm: with reduced flashing, the light bar swells slowly from red to blue and back, never flashing
 const cop = (k, coin, calm) => `(() => {
   const L = G.L, s = L.s, c = L.creature, S = SAVE.data.settings, keep = [S.reducedFlash, SAVE.unlock];
   let unlocked = false; SAVE.unlock = () => { unlocked = true; }; S.reducedFlash = ${!!calm};
   c.lane = L.lanes[${k}]; L.lane = c.lane; L.laneIdx = ${k}; s.man = null; update(0.001);
-  s.man.t0 = L.t - 0.6 * s.man.arrive; update(0.01);
+  const rush = s.man.segs.filter(g => g.kind === 'rush')[2];   // (answered a little way into its third skitter between lamps)
+  s.man.t0 = L.t - (rush.t0 + 0.4 * (rush.t1 - rush.t0)) + 2.7; update(0.01);
   const T = id => L.targets.find(t => t.id === id), heard = [], sfx0 = AUDIO.sfx;
-  AUDIO.sfx = (n, ...a) => { heard.push([n, L.aftermathT, !!s.cop]); return sfx0(n, ...a); };
+  AUDIO.sfx = (n, ...a) => { heard.push([n, L.t]); return sfx0(n, ...a); };
   T('receiver').onClick();
   if (${!!coin}) T('slot').use();
   for (const d of '911') T('key' + d).onClick();
-  const out = { dialled: s.dialed === '911' && s.line === 'calling911' && !!s.credit === ${!!coin}, answeredIn: -1, won: false, maxRoll: 0, atCar: 99, gone: false, hatIn: false,
-    hatOut: false, nearDoor: 99, still: 0, lookRush: 1, red: 0, blue: 0, litAfter: 0, jump: 0, sirens: 0, sirenAfter: 0, minDist: 99 };
-  const t0 = L.t; let lastLv = null, last = null;
-  for (let i = 0; i < 4000 && G.state === 'play'; i++) {
+  const out = { dialled: s.dialed === '911' && s.line === 'calling911' && !!s.credit === ${!!coin}, answeredIn: -1, won: false, minV: 99, farthest: 0, red: 0, blue: 0, jump: 0,
+    hidAt: -1, lampD: 99, still: 0, moved: 0, onRoad: false, minSep: 99, looked: false, resumedAfter: -1, comeOn: 0, playing: true };
+  const t0 = L.t; let lastLv = null, last = null, lastPose = null, hideP = null, resumeD = 0;
+  for (let i = 0; i < 9000 && G.state === 'play'; i++) {
     update(0.01);
     if (L.won) out.won = true;
-    const K = s.cop; if (!K) continue;
+    const K = s.cop, p = c.pos(); if (!K) continue;
     if (out.answeredIn < 0) out.answeredIn = +(L.t - t0).toFixed(2);
-    const t = L.aftermathT, p = c.pos(), e = s.end;
-    out.police = e && e.cop; out.minDist = Math.min(out.minDist, Math.hypot(p.x, p.z));
-    const g = L.glows(), lv = [g.find(q => q.color[0] === 255 && q.color[1] === 60), g.find(q => q.color[0] === 90 && q.color[2] === 255)].map(q => (q ? q.a : 0));   // the light bar's red end and blue end
-    if (e.pose && t > e.tStop - 1 && (K.shortAt === undefined || t < K.shortAt)) { out.red = Math.max(out.red, lv[0]); out.blue = Math.max(out.blue, lv[1]); if (lastLv) out.jump = Math.max(out.jump, Math.abs(lv[0] - lastLv[0]), Math.abs(lv[1] - lastLv[1])); }
-    lastLv = e.pose && t > e.tStop - 1 ? lv : null;
-    if (K.shortAt !== undefined && t > K.shortAt + 1.15) out.litAfter = Math.max(out.litAfter, lv[0], lv[1], L.dynamicLights().filter(q => q.color[2] === 40 || q.color[0] === 70).length);
-    if (K.go && t >= K.leapT - 0.3 && t < K.leapT) out.atCar = Math.min(out.atCar, Math.hypot(p.x - e.pose.x, p.z - e.pose.z));
-    if (K.gone) { out.gone = true; if (c.copHat) out.hatIn = true; }
-    out.maxRoll = Math.max(out.maxRoll, Math.abs(K.rk.roll));
-    if (K.lookT !== undefined && t > K.emergeT + 0.6 && t < K.chargeT) { out.hatOut = c.copHat && !K.gone; out.nearDoor = Math.min(out.nearDoor, Math.hypot(p.x - e.pose.x, p.z - e.pose.z)); }
-    if (K.lookT !== undefined && t > K.lookT && t < K.chargeT) { if (last && Math.hypot(p.x - last.x, p.z - last.z) < 1e-6) out.still += 0.01; out.lookRush = Math.min(out.lookRush, c.rush); out.looked = K.looked && c.t - c.lookT < 2; }
-    if (e.doorT !== undefined && out.doorAt === undefined) out.doorAt = +(t - K.shortAt).toFixed(2);
+    const P = K.pose;
+    if (P) {
+      if (lastPose) out.minV = Math.min(out.minV, Math.hypot(P.x - lastPose.x, P.z - lastPose.z) / 0.01);   // (never standing: it does not stop)
+      out.farthest = Math.max(out.farthest, Math.hypot(P.x, P.z) * (P.x * P.fx + P.z * P.fz > 0 ? 1 : 0));   // how far away, going away
+      const dx = p.x - P.x, dz = p.z - P.z, a = dx * P.fx + dz * P.fz, b = Math.abs(-dx * P.fz + dz * P.fx);
+      out.minSep = Math.min(out.minSep, Math.hypot(Math.max(0, Math.abs(a) - 2.27), Math.max(0, b - 0.905)) - 0.35);
+      const g = L.glows(), lv = [g.find(q => q.color[0] === 255 && q.color[1] === 60), g.find(q => q.color[0] === 90 && q.color[2] === 255)].map(q => (q ? q.a : 0));   // the light bar's red end and blue end
+      if (K.fade > 0.99) { out.red = Math.max(out.red, lv[0]); out.blue = Math.max(out.blue, lv[1]); if (lastLv) out.jump = Math.max(out.jump, Math.abs(lv[0] - lastLv[0]), Math.abs(lv[1] - lastLv[1])); }
+      lastLv = K.fade > 0.99 ? lv : null;
+    }
+    lastPose = P;
+    const h = s.hide;
+    if (h && L.t - h.t0 >= h.rushT) {   // behind the post
+      if (out.hidAt < 0) { out.hidAt = +(L.t - h.t0).toFixed(2); out.lampD = Math.min(...s.man.stops.map(st => Math.hypot(p.x - st.lamp.x, p.z - st.lamp.z))); hideP = p; }
+      if (last && Math.hypot(p.x - last.x, p.z - last.z) < 1e-6 && !c.rush) out.still += 0.01; else out.moved += 0.01;
+      if (c.t - c.lookT < 0.05) out.looked = true;
+    }
+    if (h && (p.z > 1 && p.z < 8 || p.z >= 8 && Math.abs(p.x) < 3.5) && L.t - h.t0 >= h.rushT) out.onRoad = true;
+    if (!h && out.hidAt >= 0 && out.resumedAfter < 0) { out.resumedAfter = K.gone ? +(L.t - K.goneAt).toFixed(2) : -9; resumeD = c.dist; out.carGoneAtResume = K.gone; }
+    if (out.resumedAfter >= 0) out.comeOn = Math.max(out.comeOn, resumeD - c.dist);
     last = p;
   }
-  out.dying = G.state === 'dying' && G.deathCause === 'police' && G.deathCreature === c && !!c.copHat;
+  out.playing = !out.won && !unlocked;
+  out.dying = G.state === 'dying' && G.deathCause === 'police' && G.deathCreature === c;
   for (let i = 0; i < 400 && G.state === 'dying'; i++) update(0.01);
-  out.dead = G.state === 'dead' && /wearing the cap/.test(G.deathScreen.text) && !L.won && !unlocked;
-  const K = s.cop || {};
-  out.sirens = heard.filter(h => h[0] === 'siren').length; out.sirenAfter = heard.filter(h => h[0] === 'siren' && h[1] > K.shortAt).length;
-  out.cut = heard.some(h => h[0] === 'sirenDie' && Math.abs(h[1] - K.shortAt) < 0.05); out.thumps = heard.filter(h => h[0] === 'carThump').length;
-  out.dispatch = heard.some(h => h[0] === 'dispatch'); out.horn = heard.some(h => h[0] === 'horn');
-  out.door = heard.some(h => h[0] === 'carDoor');
-  for (const k of ['red', 'blue', 'jump', 'maxRoll', 'atCar', 'nearDoor', 'still', 'minDist']) out[k] = +out[k].toFixed(3);
+  out.dead = G.state === 'dead' && G.deathScreen.text === 'The police can\\'t help you here.' && G.deathScreen.title === 'Nice try' && !L.won && !unlocked;
+  const K = s.cop || {}, awayAt = (heard.find(h => h[0] === 'sirenAway') || [])[1];
+  out.sirens = heard.filter(h => h[0] === 'siren').length; out.away = heard.filter(h => h[0] === 'sirenAway').length; out.sirenAfter = heard.filter(h => h[0] === 'siren' && h[1] > awayAt).length;
+  out.dispatch = heard.some(h => h[0] === 'dispatch'); out.horn = heard.some(h => h[0] === 'horn' || h[0] === 'carDoor' || h[0] === 'brake');
+  out.gone = !!K.gone;
+  for (const k of ['red', 'blue', 'jump', 'minV', 'farthest', 'lampD', 'still', 'moved', 'minSep', 'comeOn']) out[k] = +out[k].toFixed(3);
   AUDIO.sfx = sfx0; S.reducedFlash = keep[0]; SAVE.unlock = keep[1];
   return out;
 })()`;
@@ -184,14 +194,42 @@ const copCases = [[0, false, false], [1, true, false], [1, false, true]].flatMap
   return [
     ['eval', 'restartLevel()'], ['wait', 300],
     ['eval', 'window.__cop = ' + cop(k, coin, calm)],
-    ['expect', '__cop.dialled && __cop.dispatch && __cop.answeredIn > 2 && __cop.answeredIn < 3.5 && __cop.police && !__cop.horn', at + '9-1-1 calls, and a dispatcher answers at once; then the police car comes (and does not sound its horn)'],
+    ['expect', '__cop.dialled && __cop.dispatch && __cop.answeredIn > 2 && __cop.answeredIn < 3.5 && __cop.sirens >= 2', at + '9-1-1 calls, and a dispatcher answers at once; then the police car comes, siren wailing'],
     ['expect', calm ? '__cop.red > 0.15 && __cop.blue > 0.15 && __cop.jump < 0.02' : '__cop.red > 0.5 && __cop.blue > 0.5 && __cop.jump > 0.3', at + (calm ? 'its light bar swells slowly from red to blue, never flashing' : 'its light bar flashes red and blue')],
-    ['expect', '__cop.sirens >= 4 && __cop.atCar < 2.6 && __cop.gone && !__cop.hatIn', at + 'it wails as it comes; it goes to the car and in at a window, and is gone'],
-    ['expect', '__cop.maxRoll > 0.01 && __cop.thumps >= 5 && __cop.cut && __cop.sirenAfter === 0 && __cop.litAfter === 0', at + 'the car rocks and thumps; the siren dies with a crackle at the end of a wail and the light bar goes out for good'],
-    ['expect', '__cop.door && __cop.doorAt > 1.5 && __cop.hatOut && __cop.nearDoor < 3.2 && __cop.still >= 0.9 && __cop.lookRush === 0 && __cop.looked', at + 'the door opens, and it comes out in the officer\'s cap and stands looking at you'],
-    ['expect', '__cop.dying && __cop.dead && !__cop.won && __cop.minDist < 1.8', at + 'it comes at you, cap and all: caught, the night lost with its own line'],
+    ['expect', '__cop.minV > 5 && __cop.farthest > 80 && __cop.gone && !__cop.horn && __cop.away === 1 && __cop.sirenAfter === 0', at + 'it never stops: it drives straight past and off out of sight, the siren going away after it (no brakes, no horn, no door)'],
+    ['expect', '__cop.hidAt >= 0 && __cop.hidAt < 2.2 && __cop.lampD < 1.2 && __cop.looked && __cop.moved < 0.05 && __cop.still > 8 && !__cop.onRoad && __cop.minSep > 0.3', at + 'it scurried behind a lamp post and hid there still, looking at you, off the road, while the police went by'],
+    ['expect', '__cop.carGoneAtResume && __cop.resumedAfter >= 0.9 && __cop.resumedAfter < 1.2 && __cop.comeOn > 5', at + 'once they had gone it came on again from that post'],
+    ['expect', '__cop.playing && __cop.dying && __cop.dead', at + 'no help came: caught, the night lost with "Nice try" and "The police can\'t help you here."'],
   ];
 });
+// after 911, the phone is still a phone: hang up on the dispatcher (a coin put in comes back: the call was free), and the
+// right number, dialled after, still brings the car; 911 dialled again gets a dispatcher who says a car has been sent
+// already, and no second police car comes
+const copThenWin = `(() => {
+  const L = G.L, s = L.s, c = L.creature, save = [SAVE.recordWin, SAVE.unlock]; SAVE.recordWin = SAVE.unlock = () => {};
+  c.lane = L.lanes[0]; L.lane = c.lane; L.laneIdx = 0; s.man = null; update(0.001);
+  s.man.t0 = L.t - 0.3 * s.man.arrive; update(0.01);
+  const T = id => L.targets.find(t => t.id === id), step = (n, until) => { for (let i = 0; i < n && G.state === 'play' && !(until && until()); i++) update(0.01); };
+  const out = {};
+  T('receiver').onClick(); T('slot').use(); for (const d of '911') T('key' + d).onClick();
+  step(400, () => s.line === 'emergency');
+  const first = s.cop; out.sent = !!first && s.called911;
+  T('key5').onClick(); out.keysHeld = s.dialed === '911' && /still on the line/i.test(G.lastToast.msg);
+  T('receiver').onClick(); out.hungUp = s.hook === 'on' && s.line === 'idle' && s.credit === 0 && s.returnAt > 0 && /You hang up/.test(G.lastToast.msg);
+  step(100);
+  out.coinBack = !${coin}.taken && ${coin}.y > 1.2;
+  T('receiver').onClick(); for (const d of '911') T('key' + d).onClick();
+  step(400, () => s.line === 'emergency');
+  out.again = s.cop === first && /already been sent/.test(G.lastToast.msg);
+  T('receiver').onClick(); T('receiver').onClick(); T('slot').use();
+  for (const d of s.number) T('key' + d).onClick();
+  step(1500, () => L.won);
+  out.won = L.won && G.state === 'won' && s.cop === first;
+  for (let i = 0; i < 2500 && G.state === 'won' && !(s.end && s.end.doorT !== undefined); i++) update(0.01);
+  out.car = !!(s.end && s.end.pose && s.end.doorT !== undefined && !s.end.cop);
+  SAVE.recordWin = save[0]; SAVE.unlock = save[1];
+  return out;
+})()`;
 // the instruction card's printing, drawn large on a canvas of its own (1 px a tenth of a mm): every letter of it inside the
 // card, clear of its edges by most of the margin, and the heading inside the red band. Returns where the ink reaches (mm in
 // from each edge)
@@ -378,6 +416,11 @@ module.exports = {
     ['eval', 'restartLevel()'], ['wait', 300],
     ['expect', "(() => { const L = G.L, s = L.s, T = id => L.targets.find(t => t.id === id); T('receiver').onClick(); T('key9').onClick(); const a = s.dialed === '9'; T('key5').onClick(); const b = s.dialed === '' && s.line === 'tone' && s.deadKeys === 1; T('key9').onClick(); T('key1').onClick(); T('slot').use(); const c = s.dialed === '' && s.credit > 0; for (const d of s.number) T('key' + d).onClick(); return a && b && c && s.line === 'connecting' && !s.cop; })()", 'with no coin, a 9 is taken and a 5 after it wipes it; a coin wipes a 9-1 too; and the number dialled after rings as ever'],
     ...copCases,
+    ['eval', 'restartLevel()'], ['wait', 300],
+    ['eval', 'window.__cw = ' + copThenWin],
+    ['expect', '__cw.sent && __cw.keysHeld && __cw.hungUp && __cw.coinBack', 'after 911 the receiver hangs up as ever, and the coin put in for it comes back into the return'],
+    ['expect', '__cw.again', '911 again: a dispatcher says a car has been sent already, and no second police car comes'],
+    ['expect', '__cw.won && __cw.car', 'and the right number, dialled after, still brings the car'],
     ...doorCases,
     ...fleeCases,
   ],
