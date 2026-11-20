@@ -287,8 +287,8 @@ some on the ground, so you have to turn and look down to find them.
    and beats on it, hard and fast, until the night fades.
    There is a soda fountain behind you, on a cabinet against the back wall on the other side of the kitchen pass from
    the main (a lit red Soda header, three valves over a dark well, a drip tray, and a little window that says EMPTY,
-   dark), and a row of paper cups along the shelf on the back wall, one of them (and only that one) with a red band
-   round it: that is the cup, and the plain ones are nothing to take. Nothing says either does
+   dark), and a row of plain paper cups along the shelf on the back wall, all alike: one of them (and only that one)
+   can be taken, and nothing marks which. Nothing says either does
    anything: the fountain cannot be pointed at (no pointer, no line, nothing the view can hit) until the cup is in hand,
    and the counter's top not until the cup in hand is full. With the cup, the fountain pours it full, fizzing, the cup
    held under the nozzle (in hand it shows dark cola under a head of foam); full, a click on the counter sets it on the

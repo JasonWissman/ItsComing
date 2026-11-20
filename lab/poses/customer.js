@@ -107,11 +107,11 @@
   const SODA = { idle: 0.5, reach: 0.42, lift: 0.45, drink: 1.5, gulps: [0.22, 0.66, 1.1], lower: 0.45, set: 0.28, wait: 9, fury: 0.85 };
   const EYE = 1.65, CZ = 1.62, CUPZ = 1.36, CUP_S = 0.16 * CZ / CUPZ, CUP_B = EYE + (1.0 - EYE) * CZ / CUPZ, EDGE = EYE + (1.0 - EYE) * CZ / 1.45;
   const GRIP = [0.045, CUP_B + 0.42 * CUP_S], MOUTH = [0.13, 1.55];
-  // the cup (a plain stand-in for night08's paperCup icon, which the lab does not load): tapered, white, a red band
+  // the cup (a stand-in for night08's paperCup icon, which the lab does not load): tapered, plain white
   const labCup = (ctx, P, full) => {
     P_poly(ctx, [[-0.37, 0.88], [0.37, 0.88], [0.26, 0.0], [-0.26, 0.0]], P.col([52, 46, 44]));
     P_poly(ctx, [[-0.33, 0.86], [0.33, 0.86], [0.23, 0.03], [-0.23, 0.03]], P.col([236, 232, 222]));
-    P_poly(ctx, [[-0.305, 0.62], [0.305, 0.62], [0.28, 0.4], [-0.28, 0.4]], P.col([184, 38, 34]));
+    P_poly(ctx, [[0.14, 0.86], [0.33, 0.86], [0.23, 0.03], [0.1, 0.03]], P.col([196, 190, 178]));
     P_ell(ctx, 0, 0.87, 0.33, 0.065, P.col([248, 246, 240])); P_ell(ctx, 0, 0.87, 0.29, 0.048, P.col(full ? [66, 34, 20] : [168, 160, 146]));
   };
   // when each blow lands, from the start of the pounding (b0) to T: one fist while it is only impatient, both as it gets angry

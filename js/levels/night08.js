@@ -6,37 +6,32 @@
 // the glass if it is already there, across the lot if not). A shutter it reaches only part way down, it takes by the
 // bottom edge and shoves back up into its housing, and comes through. With all three down it beats on the last one it came to.
 Object.assign(ICONS, {
-  // the shutter crank: a long bright steel rod with a hook at the top, a crank bend and a red rubber grip, edged dark so it
-  // reads on a pale tile and on a dark one, with the lights out. Drawn bold: it lies on the floor or a counter some way off.
-  shutterCrank(ctx, P) {
-    const edge = P.col([34, 34, 38]), steel = P.col([200, 202, 208]), shine = P.col([236, 238, 242]), grip = P.col([186, 46, 36]), gripD = P.col([130, 30, 24]);
-    const rod = [[0.36, 0.84], [0.36, 0.96], [0.2, 0.96], [0.2, 0.36], [-0.22, 0.36]];
-    P_limb(ctx, rod, 0.13, edge); P_line(ctx, -0.22, 0.36, -0.22, 0.03, 0.2, edge);
-    P_limb(ctx, rod, 0.075, steel);
-    P_line(ctx, 0.18, 0.88, 0.18, 0.42, 0.022, shine);                           // a glint down the shaft
-    P_line(ctx, -0.22, 0.3, -0.22, 0.07, 0.14, grip); P_line(ctx, -0.18, 0.28, -0.18, 0.09, 0.03, gripD);
-  },
-  // a waxed paper soda cup, empty (its pale inside showing over the rim) and full (dark cola up to the rim under a head of
-  // foam)
+  // the shutter crank: a bright steel arm, the hub at one end that goes into a gearbox's eye and a round red grip at the
+  // other, edged dark so it reads on a pale tile and on a dark one, with the lights out. The same crank, drawn the same
+  // way, as goes round in the gearbox while it is turned (dinerCrank), laid over on its side: hub low on the right, grip
+  // up on the left.
+  shutterCrank(ctx, P) { dinerCrank(ctx, P, 0.2, 0.22, -0.2, 0.77); },
+  // a waxed paper soda cup, plain white, empty (its pale inside showing over the rim) and full (dark cola up to the rim
+  // under a head of foam). The row of them on the shelf are all this cup, and the one you can take looks no different.
   paperCup(ctx, P) { dinerCup(ctx, P, false); },
   paperCupFull(ctx, P) { dinerCup(ctx, P, true); },
-  // the others in the stack on the shelf: the same cup, plain white, no band
-  paperCupPlain(ctx, P) { dinerCup(ctx, P, false, true); },
 });
-// the cup: tapered, white, a red band round it with a white wave through it (none on a plain one), edged dark so it reads
-// on the pale counter
-function dinerCup(ctx, P, full, plain) {
-  const edge = P.col([52, 46, 44]), paper = P.col([236, 232, 222]), shade = P.col([196, 190, 178]), red = P.col([184, 38, 34]);
+// the crank, its hub at (hx, hy) and its grip at (gx, gy): an arm as long as that, a hub and a grip in proportion to it,
+// each edged dark (as the gearbox shows it: an arm 0.36 long, the hub 0.09 across and the grip 0.1, both as round as the
+// arm is wide and wider, end on)
+function dinerCrank(ctx, P, hx, hy, gx, gy) {
+  const k = Math.hypot(gx - hx, gy - hy) / 0.36, edge = P.col([34, 34, 38]), steel = P.col([200, 202, 208]);
+  P_line(ctx, hx, hy, gx, gy, 0.13 * k, edge); P_line(ctx, hx, hy, gx, gy, 0.075 * k, steel);
+  P_ell(ctx, hx, hy, 0.09 * k, 0.09 * k, edge); P_ell(ctx, hx, hy, 0.055 * k, 0.055 * k, steel);
+  P_ell(ctx, gx, gy, 0.1 * k, 0.1 * k, edge); P_ell(ctx, gx, gy, 0.075 * k, 0.075 * k, P.col([186, 46, 36]));   // the grip, end on
+}
+// the cup: tapered, plain white, edged dark so it reads on the pale counter
+function dinerCup(ctx, P, full) {
+  const edge = P.col([52, 46, 44]), paper = P.col([236, 232, 222]), shade = P.col([196, 190, 178]);
   const body = [[-0.33, 0.86], [0.33, 0.86], [0.23, 0.03], [-0.23, 0.03]];
   P_poly(ctx, [[-0.37, 0.88], [0.37, 0.88], [0.26, 0.0], [-0.26, 0.0]], edge);
   P_poly(ctx, body, paper);
   P_poly(ctx, [[0.14, 0.86], [0.33, 0.86], [0.23, 0.03], [0.1, 0.03]], shade);                     // its shaded side
-  if (!plain) {
-    P_poly(ctx, [[-0.305, 0.62], [0.305, 0.62], [0.28, 0.4], [-0.28, 0.4]], red);                 // the band
-    ctx.strokeStyle = paper; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.beginPath();
-    for (let i = 0; i <= 12; i++) { const x = -0.27 + i * 0.045; ctx.lineTo(x, 0.51 + 0.04 * Math.sin(i * 1.3)); }
-    ctx.stroke();
-  }
   P_ell(ctx, 0, 0.87, 0.36, 0.085, edge); P_ell(ctx, 0, 0.87, 0.33, 0.065, P.col([248, 246, 240]));   // the rolled rim
   if (!full) { P_ell(ctx, 0, 0.865, 0.29, 0.048, P.col([168, 160, 146])); P_ell(ctx, 0.04, 0.855, 0.2, 0.03, P.col([140, 132, 120])); return; }
   P_ell(ctx, 0, 0.87, 0.3, 0.05, P.col([66, 34, 20]));                                            // cola, to the brim
@@ -94,7 +89,7 @@ LEVELS.push({
     disc(-1.45, 1.55, 0.17, [118, 120, 126], 4.28); disc(-1.45, 1.55, 0.13, [18, 16, 18], 4.27);
     SC.wallV(L, -3.975, -1.12, -3.975, -1.04, 0.92, 1.22, [118, 120, 126], { sortDist: 4.27 });
     SC.wallV(L, -1, -2.49, 1, -2.49, 1.0, 2.0, [14, 10, 10]); SC.box(L, -1.1, 1.1, 0.95, 1.02, -2.5, -2.3, chrome); // the kitchen pass
-    // the shelf on the back wall, a row of paper cups along it (the soda's, below: one of them has the red band)
+    // the shelf on the back wall, a row of paper cups along it (the soda's, below: one of them can be taken, and looks no different)
     const SHELF = { y: 1.95, z: -2.41, xs: Array.from({ length: 8 }, (_, k) => 1.48 + k * 0.3) };
     SC.box(L, 1.2, 3.8, SHELF.y - 0.05, SHELF.y, -2.5, -2.3, [90, 74, 56]);
     SC.box(L, 2.4, 3.8, 0, 0.9, -2.45, -1.85, [150, 138, 118]); SC.box(L, 3.0, 3.6, 0.9, 1.5, -2.4, -2.0, chrome); SC.box(L, 3.05, 3.55, 0.9, 1.0, -2.0, -1.9, [60, 40, 30]);
@@ -151,7 +146,7 @@ LEVELS.push({
         P_rect(ctx, -0.42, 0.05, 0.84, 0.12, P.col([80, 82, 88]));
         for (const y of [0.12, 0.88]) for (const x of [-0.3, 0.3]) P_ell(ctx, x, y, 0.05, 0.03, P.col([50, 50, 54]));   // its bolts
         P_ell(ctx, 0, 0.55, 0.32, 0.21, P.col([20, 20, 22])); P_ell(ctx, 0, 0.55, 0.15, 0.1, P.col([176, 176, 182]));
-        P_rect(ctx, -0.05, 0.52, 0.1, 0.06, P.col([20, 20, 22]));                                                         // the slot the hook catches in
+        P_rect(ctx, -0.05, 0.52, 0.1, 0.06, P.col([20, 20, 22]));                                                         // the slot the crank's hub catches in
       }, { sortDist: sd, face: FRONT });
       shutterArt[i] = L.props.slice(n0);   // the slot, the rails, the rod and the gearbox: pointed at, the window's shutter glows in them
       return pane;
@@ -265,12 +260,12 @@ LEVELS.push({
       { x: 2.7, y: 0.9, z: -2.15 },                     // on the back counter, beside the coffee machine
       { x: -0.5, y: 1.02, z: -2.36, jitter: 0 },        // on the ledge of the kitchen pass, at its front edge (no jitter: the ledge is 20 cm deep)
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
-    ], { w: 0.5, h: 0.5, flat: true, tool: true, icon: 'shutterCrank', held: { grip: 'fist', at: [-0.22, 0.17], axis: 0, angle: -0.12, size: 0.36, tip: [0.36, 0.9] } });   // in the fist by its red grip, the rod standing up out of it; the hook leads it into an eye
+    ], { w: 0.4, h: 0.4, flat: true, tool: true, icon: 'shutterCrank', held: { grip: 'fist', at: [0.06, 0.41], axis: -0.63, angle: 0.3, size: 0.3, tip: [0.2, 0.22] } });   // in the fist by its arm, the red grip up out of the top of it; the hub leads it into an eye
 
     // ---- the soda fountain behind you, and a paper cup on the shelf on the back wall ----
     // The fountain stands on a cabinet against the back wall, on the other side of the kitchen pass from the main; the cup
-    // is one of the row of paper cups on the shelf over the back counter, the only one with the red band on it (the rest
-    // are plain, and nothing to take). Nothing about either says it does anything: the fountain cannot be pointed at until
+    // is one of the row of plain paper cups on the shelf over the back counter, the only one that can be taken (it looks
+    // just like the rest, which are nothing to take). Nothing about either says it does anything: the fountain cannot be pointed at until
     // the cup is in hand, nor the counter until the cup in hand is full. Fill the cup, set it on the far side of the
     // counter, and if it comes in through the glass, lit or in the dark, it has something else on its mind (the soda,
     // below). Neither is needed for anything else, and neither costs a turn. The fountain pours with the main thrown as
@@ -303,10 +298,10 @@ LEVELS.push({
       for (let x = -0.4; x < 0.42; x += 0.08) P_rect(ctx, x, 0.045, 0.04, 0.04, ink);
     }, { face: BACK });
     const nozzle = (() => { const p = L.pt(FX, FY + 0.43 * FH, FZ + 0.04); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; })();
-    // which cup on the shelf has the band: by a stream of its own, so the layout the rest of the night draws from its
-    // random stream is as it was. The others stand there plain, drawn as the cup is (a card facing you), and are nothing to click
+    // which cup on the shelf is the one: by a stream of its own, so the layout the rest of the night draws from its random
+    // stream is as it was. The others stand there drawn exactly as the cup is (a card facing you), and are nothing to click
     const CUP_K = Math.floor(mulberry32((G.runSeed * 7919 + L.index * 131 + G.attempt * 17 + 808) >>> 0)() * SHELF.xs.length);
-    SHELF.xs.forEach((x, k) => { if (k !== CUP_K) SC.sprite(L, x, SHELF.y, SHELF.z, 0.16, 0.16, (ctx, P) => { ctx.scale(0.16, 0.16); ICONS.paperCupPlain(ctx, P); }, { card: true }); });
+    SHELF.xs.forEach((x, k) => { if (k !== CUP_K) SC.sprite(L, x, SHELF.y, SHELF.z, 0.16, 0.16, (ctx, P) => { ctx.scale(0.16, 0.16); ICONS.paperCup(ctx, P); }, { card: true }); });
     const cup = mkItem(L, 'cup', 'Paper cup', { x: SHELF.xs[CUP_K], y: SHELF.y, z: SHELF.z, jitter: 0 }, { w: 0.16, h: 0.16, tool: true, icon: 'paperCup', material: 'soft', full: false,
       held: { grip: 'fist', at: [0, 0.42], axis: 0, angle: 0.06, size: 0.17 } });
     s.shelf = Object.assign({ cup: CUP_K }, SHELF);   // (the tests)
@@ -398,7 +393,7 @@ LEVELS.push({
           if (s.through) { s.queued = null; G.say('Too late. It is inside.', 'Too late. It is inside.'); AUDIO.sfx('nope'); return true; }
           if (t.done) {
             G.say('That shutter is down.', 'That shutter is down.');
-            // the crank goes to the gearbox's eye, hook first, and will not turn: it knocks against the stop (the shutter is at the
+            // the crank goes to the gearbox's eye, hub first, and will not turn: it knocks against the stop (the shutter is at the
             // bottom of its rails) and comes back to the hand. With nothing in hand, the hand knocks on the glass in front of the steel.
             const act = G.inv[G.active];
             if (act) { if (!G.fumble(act, t, { preset: 'return', at: gearAt(i), sfx: { hit: 'clunk' } }) && !G.fumbling) AUDIO.sfx('nope'); }
@@ -910,10 +905,7 @@ LEVELS.push({
           const rot = -clamp((L.t - s.turnAt[i]) / (TURN * 0.85), 0, 1) * TAU;
           R.add(SC.mkSprite(L, GEAR[i], 0.833, ZG - 0.1, 0.34, 0.34, (ctx, P) => {
             ctx.scale(0.34, 0.34); ctx.translate(0, 0.5);
-            const ex = Math.sin(rot) * 0.36, ey = Math.cos(rot) * 0.36, edge = P.col([34, 34, 38]);
-            P_line(ctx, 0, 0, ex, ey, 0.13, edge); P_line(ctx, 0, 0, ex, ey, 0.075, P.col([200, 202, 208]));
-            P_ell(ctx, 0, 0, 0.09, 0.09, edge); P_ell(ctx, 0, 0, 0.055, 0.055, P.col([200, 202, 208]));
-            P_ell(ctx, ex, ey, 0.1, 0.1, edge); P_ell(ctx, ex, ey, 0.075, 0.075, P.col([186, 46, 36]));   // the grip, end on
+            dinerCrank(ctx, P, 0, 0, Math.sin(rot) * 0.36, Math.cos(rot) * 0.36);
           }, { sortDist: panes[i].sortD - 0.12, face: FRONT }));
         }
         if (s.shove && s.shove.i === i && !s.through) shoveArt(i, x0, x1);

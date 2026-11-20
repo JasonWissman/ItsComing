@@ -83,8 +83,8 @@ const turnWidths = `(() => {
 // but never refilled: it pounds until it has had enough, and has you. Either way the death screen says "Nice try" and one
 // line. And with the main thrown it is the same: in the dark it comes for the cup on the counter, not for you, the
 // fountain still pours, and it drinks the refill too. The glass breaks as it breaks when it comes through for you (the
-// same sound, stingGlass). The cup is one of a row of paper cups on the shelf on the back wall, the only one with the red
-// band: the rest are plain and nothing to click.
+// same sound, stingGlass). The cup is one of a row of plain paper cups on the shelf on the back wall, drawn exactly as the
+// rest are (no mark on it): it is the only one a click takes, and the rest are nothing to click.
 const target = id => `G.L.targets.find(t => t.id === '${id}')`;
 const cupIt = 'G.L.items.find(i => i.id === "cup")';
 // the view put on a point of a target (the fountain's middle; the counter's top straight ahead), and the pointer on it
@@ -115,8 +115,8 @@ const insatiable = [
   ['expect', 'G.deathScreen && G.deathScreen.text === "It is insatiable." && G.deathScreen.title === "Nice try"', 'the death screen: "Nice try", and "It is insatiable."'],
   ['expect', 'UI.overlay.querySelector("h1").textContent === "Nice try" && UI.overlay.querySelector("p.intro").textContent === "It is insatiable."', 'as shown: the heading "Nice try", and the line, exactly, with nothing in front of it'],
 ];
-// the shelf on the back wall: a row of paper cups, and only the one with the band is the cup (an item, and a click there
-// takes it); over every other cup a click finds nothing to take
+// the shelf on the back wall: a row of paper cups, all drawn alike, and only one of them is the cup (an item, and a click
+// there takes it); over every other cup a click finds nothing to take
 const shelf = [
   // (held out in the lot while the cup is looked for and filled: lit, it is at the glass in seventeen seconds)
   ['eval', 'G.L.creature.hold = G.L.creature.dist'],
@@ -126,7 +126,7 @@ const shelf = [
       const it = G.hover && G.hover.kind === 'item' ? G.hover.ref : null; if (k === sh.cup ? it === c : !it) ok++; }
     G.mouse.x = -1; updateHover(); const p = L.pt(sh.xs[sh.cup], sh.y, sh.z);
     return ok === sh.xs.length && Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]) < 1e-6 && c.icon === ICONS.paperCup && L.items.filter(i => /cup/i.test(i.name)).length === 1 && L.props.filter(q => q.card && q.kind === 'sprite').length >= sh.xs.length - 1; })()`,
-  'a row of cups on the shelf on the back wall: the one with the red band is the cup, and the plain ones are nothing to click'],
+  'a row of cups on the shelf on the back wall, all alike: one of them is the cup, and the rest are nothing to click'],
 ];
 const soda = [
   ...shelf,

@@ -110,7 +110,7 @@ CREATURES.customer = {
     const Y = y => y + by, pt = (x, y) => [F(x), Y(y)];
     P_poly(ctx, [pt(-0.07, 0.5), pt(0.012, 0.98), pt(0.07, 0.5)], K.trousers);   // the skirt parting onto the trousers
     P_limb(ctx, [pt(0.012, 0.98), pt(0.07, 0.5)], 0.008, K.coatD);
-    P_poly(ctx, [[F(-0.065), top + 0.025], [F(0.065), top + 0.025], [F(0.01), top - 0.2]], K.shade);   // its throat, in shadow
+    P_poly(ctx, [[F(-0.07), top + 0.031], [F(0.07), top + 0.031], [F(0.01), top - 0.2]], K.shade);   // its throat, in shadow, up over the coat's top edge
     for (const s of [-1, 1]) {   // the lapels, wide, notched, an edge of shadow down the inside of each
       const lap = [[F(s * 0.06), top + 0.025], [F(s * 0.175), top - 0.02], [F(s * 0.16), top - 0.11], [F(s * 0.118), top - 0.1], [F(s * 0.135), top - 0.15], [F(s * 0.04), top - 0.36]];
       P_poly(ctx, lap, K.coatL);
@@ -226,8 +226,13 @@ CREATURES.customer = {
     const ch = chomp || 0, drop = Math.max(gape * 0.065, ch * 0.012);
     // the face and the jaw under it, grey; the jaw dropping away as it comes at you
     P_ell(ctx, 0, 0, 0.08, 0.102, K.skin);
-    P_ell(ctx, 0, -0.05 - drop, 0.066 + gape * 0.008, 0.055 + gape * 0.075, K.skin);
-    P_line(ctx, -0.045, -0.105 - drop * 1.7, 0.045, -0.105 - drop * 1.7, 0.004, K.skinD);   // the shadow under the chin
+    // the jaw, its underside in shade: a crescent along the bottom of it, inside its edge, that goes down with it as it
+    // drops (a line drawn under the chin hung below it, pale against the black of the neck, whenever the jaw was working)
+    const jy = -0.05 - drop, jw = 0.066 + gape * 0.008, jh = 0.055 + gape * 0.075;
+    P_ell(ctx, 0, jy, jw, jh, K.skinD);
+    ctx.save(); ctx.beginPath(); ctx.ellipse(0, jy, jw, jh, 0, 0, TAU); ctx.clip();
+    P_ell(ctx, 0, jy + 0.009, jw * 1.02, jh, K.skin);
+    ctx.restore();
     // the mouth: thin, its small teeth showing, working a little; coming at you it comes apart, the bottom row going down
     const mw = 0.04 + gape * 0.03, cy = -0.062 + gape * 0.01;
     this.grin(ctx, K, mw, cy, -0.005 - gape * 0.006, -0.016 - ch * 0.022 - gape * 0.16, 0.0075 + gape * 0.014, Math.max(gape, ch * 0.4));
