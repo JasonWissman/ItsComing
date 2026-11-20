@@ -22,7 +22,17 @@ const TITLE = (() => {
   const BURSTS = [0.24, 0.13, 0.3, 0.11, 0.22];
   const TWITCH = 0.9;   // the twitch at its nearest, seconds
   const LIGHT = [104, 112, 134];   // the far light behind it: cold and dim
-  const HALO = [[0, 1], [0.2, 0.88], [0.4, 0.6], [0.6, 0.32], [0.8, 0.11], [1, 0]];   // how it falls away from the middle of it
+  // how bright it is at the middle of it, and how wide it is (radius, against the shape of it: GLOW times what was once
+  // a round only a little wider than it); it falls away from the middle as (1 - x²)³, flat at the middle and flat again
+  // at its rim, in many stops, so there is no edge or ring to it anywhere and it goes into the dark as the dark goes
+  const PEAK = 0.21, GLOW = 1.85;
+  const HALO = []; for (let i = 0; i <= 24; i++) { const x = i / 24; HALO.push([x, Math.pow(1 - x * x, 3)]); }
+  // Finish game home (game.js finishHome): the light behind it off, then on with a fluorescent tube's stutter, a couple
+  // of quick blinks and on (FLICK: [seconds, level], each held to the next; done at FLICK_T); with reduced motion or
+  // flashing, a smooth fade up instead (FADE_T)
+  const FLICK = [[0, 0.75], [0.05, 0], [0.2, 0.95], [0.25, 0.2], [0.3, 0], [0.52, 0.85], [0.57, 1]], FLICK_T = 0.75, FADE_T = 1.2;
+  let lightAt = null;   // null: the light on, as always; else the wall clock (ms) it flicks on at (Infinity: still off)
+  let lit = 1;          // how much of it is on, as last drawn
   let cv = null, ctx = null, W = 0, H = 0, dpr = 1, step = 0, drawn = 0, scurry = null, twitchAt = null, on = false, shown = false;
   let cur = { d: D[0], lean: 0, drop: 0 };   // where it was last drawn (a scuttle starts from there)
   let grainTile = null;
@@ -30,7 +40,22 @@ const TITLE = (() => {
     if (!cv) { cv = document.getElementById('titleScene'); if (cv) ctx = cv.getContext('2d'); }
     return cv;
   }
-  function enter() { step = drawn = 0; scurry = null; twitchAt = null; cur = { d: D[0], lean: 0, drop: 0 }; on = true; }
+  function enter() { step = drawn = 0; scurry = null; twitchAt = null; cur = { d: D[0], lean: 0, drop: 0 }; on = true; lightAt = null; lit = 1; }
+  // the light off (and the thing with it: nothing but the dark), until flick() puts it on
+  function dark() { lightAt = Infinity; lit = 0; }
+  const soft = () => !!(SAVE.data.settings.reducedFlash || SAVE.data.settings.reducedMotion);
+  // the light on: the stutter, or the slow fade up; how long it takes, ms
+  function flick() { lightAt = performance.now(); return (soft() ? FADE_T : FLICK_T) * 1000; }
+  // how much of the light is on now (0..1)
+  function light(now) {
+    if (lightAt === null) return 1;
+    const k = (now - lightAt) / 1000;
+    if (!(k >= 0)) return 0;   // (still off: Infinity, or not yet)
+    if (soft()) { if (k >= FADE_T) { lightAt = null; return 1; } return smoothstep(k / FADE_T); }
+    if (k >= FLICK_T) { lightAt = null; return 1; }
+    let v = 0; for (const [at, l] of FLICK) if (k >= at) v = l;
+    return v;
+  }
   // a step nearer. With seen (a click on the dark), it scuttles there in front of you; without (a dialog has just been
   // over it), it is there at once. Once it is as near as it comes, a click on the dark twitches it where it is instead,
   // its head jerking over and its shoulders hitching (TWITCH seconds)
@@ -127,8 +152,9 @@ const TITLE = (() => {
     cur = { d, lean, drop };
     // the eyes sit high in the view, clear of the title and its buttons below
     const y0 = H * 0.36, f = Math.min(H * 1.25, W * 1.6);
-    const fl = g.createLinearGradient(0, y0 - H * 0.06, 0, y0 + H * 0.3); fl.addColorStop(0, 'rgba(18,17,21,0)'); fl.addColorStop(0.2, 'rgba(18,17,21,1)'); fl.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = fl; g.fillRect(0, y0 - H * 0.06, W, H * 0.36);   // the faintest ground, lightest far off, no edge to it
+    lit = light(performance.now());
+    const fl = g.createLinearGradient(0, y0 - H * 0.06, 0, y0 + H * 0.3); fl.addColorStop(0, 'rgba(18,17,21,0)'); fl.addColorStop(0.2, 'rgba(18,17,21,' + lit + ')'); fl.addColorStop(1, 'rgba(0,0,0,0)');
+    if (lit > 0) { g.fillStyle = fl; g.fillRect(0, y0 - H * 0.06, W, H * 0.36); }   // the faintest ground, lightest far off, no edge to it
     const ppm = f / d, feet = y0 + f * 1.62 / d, sway = Math.sin(t * 0.21) * 0.04 + run * 0.035 * Math.sin(ph * 0.5 + 1.3), sx = W / 2 + sway * ppm;
     const show = clamp((24 - d) / 20, 0, 1);   // more of it shows as it nears
     // the twitch (advance at its nearest): a hard jerk of the head over to one side and back in two snaps, the shoulders
@@ -152,19 +178,23 @@ const TITLE = (() => {
     // the head: on its neck 2.1 m up; bent down to you, nearer than the rest of it (so larger) and lower (DROP), the
     // whole of it in the view and over the words
     // (its eyes 2 cm over its middle, upright; bent down, lower on its face, more of the dome of it over them)
-    const hppm = f / (d - 0.22 * lean), hx = W / 2 + sway * hppm, eo = lerp(0.02, -0.025, lean);
+    // (and on a short view, a phone on its side, no bigger than the dark over the words has room for, whole: its head
+    // never comes down over the title, however little room the words leave it)
+    let hppm = f / (d - 0.22 * lean);
+    if (lean > 0) hppm = lerp(hppm, Math.min(hppm, Math.max(40, words() - 12 - H * 0.03) / 0.34), Math.min(1, lean / 0.6));
+    const hx = W / 2 + sway * hppm, eo = lerp(0.02, -0.025, lean);
     let hy = feet - (2.1 * sqy - 0.12 * run) * ppm;
     if (lean > 0) { const low = words() - 12 - 0.165 * hppm; hy = clamp(lerp(y0 + f * (1.62 - 2.1) / (d - 0.22 * lean), low, drop), H * 0.03 + 0.165 * hppm, low); }
     const col = rgba([6 + 9 * show, 6 + 8 * show, 8 + 9 * show]);
-    if (!hidden) {
+    if (!hidden && lit > 0) {   // (the light off: nothing of it to see, its eyes too)
       // the light behind it: one soft round of cold light straight behind it, about its chest (bent down to you, about its
-      // head and shoulders), a little wider than the shape of it however near it is, so its edges are always dark against
-      // light: far off, the small shape of it reads against it; near, it frames its head and shoulders
+      // head and shoulders), wide and faint, wider than the shape of it however near it is, so its edges are always dark
+      // against light: far off, the small shape of it reads against it; near, it frames its head and shoulders
       const cx = lerp(sx, hx, lean), cy = lerp(feet - 1.7 * ppm * sqy, hy + 0.05 * hppm, lean);
-      const hr = lerp(1.85 * ppm, 0.78 * hppm, lean) * (1 + 0.1 * run);
+      const hr = lerp(1.85 * ppm, 0.78 * hppm, lean) * GLOW * (1 + 0.1 * run);
       const hz = g.createRadialGradient(cx, cy, 0, cx, cy, hr);
-      for (const [k, a] of HALO) hz.addColorStop(k, rgba(LIGHT, 0.3 * a));   // (falling away smoothly, with no edge to it)
-      g.fillStyle = hz; g.fillRect(cx - hr, cy - hr, hr * 2, hr * 2);
+      for (const [k, a] of HALO) hz.addColorStop(k, rgba(LIGHT, PEAK * lit * a));   // (falling away smoothly, with no edge to it)
+      g.fillStyle = hz; g.fillRect(Math.max(0, cx - hr), Math.max(0, cy - hr), Math.min(W, cx + hr) - Math.max(0, cx - hr), Math.min(H, cy + hr) - Math.max(0, cy - hr));
       // then it, over the light
       g.save(); g.translate(sx, feet); g.scale(ppm * sqx, -ppm * sqy); figure(g, col, lean, shrug, run, ph); g.restore();
       P_limb(g, [[sx, feet - (1.8 - 0.14 * lean) * ppm * sqy], [hx, hy]], 0.05 * ppm, col);   // the neck, up (or out) to the head
@@ -176,15 +206,22 @@ const TITLE = (() => {
         for (const s of [-1, 1]) {   // (the head turns about its middle, the eyes with it)
           const x = hx + s * sep * Math.cos(tilt) - up * Math.sin(tilt), y = hy - up * Math.cos(tilt) - s * sep * Math.sin(tilt);
           const gr = Math.max(6, r * 3.5), gl = g.createRadialGradient(x, y, 0, x, y, gr);
-          gl.addColorStop(0, 'rgba(235,228,210,.3)'); gl.addColorStop(1, 'rgba(235,228,210,0)');
+          gl.addColorStop(0, 'rgba(235,228,210,' + (0.3 * lit) + ')'); gl.addColorStop(1, 'rgba(235,228,210,0)');
           g.fillStyle = gl; g.fillRect(x - gr, y - gr, gr * 2, gr * 2);
-          g.fillStyle = '#ebe4d2'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+          g.fillStyle = rgba([235, 228, 210], lit); g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
         }
       }
     }
     const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.15, W / 2, H / 2, Math.hypot(W, H) * 0.62);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.85)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
-    if (!still) grain(0.07);
+    if (!still) grain(0.07); else dither();
+  }
+  // with reduced motion there is no grain over it, and the light's long faint falling away would show its steps (one
+  // level of 255 at a time) as rings: a still, fine dither over it instead, each pixel a level up or not, at random
+  let ditherTile = null;
+  function dither() {
+    if (!ditherTile) { ditherTile = document.createElement('canvas'); ditherTile.width = ditherTile.height = 128; const g = ditherTile.getContext('2d'), im = g.createImageData(128, 128); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() < 0.5 ? 0 : 1; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } g.putImageData(im, 0, 0); }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = ctx.createPattern(ditherTile, 'repeat'); ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore();
   }
   // the shape of it alone, as draw() puts it standing still and far enough off not to be bent down (figure, neck, head),
   // all in the one colour col: no light behind it, no eyes, no grain. x, feet: where its feet are, px; ppm: px a metre
@@ -196,5 +233,5 @@ const TITLE = (() => {
   }
   // how near it is, as it is seen (0 far off, 1 as near as it comes): the title's drone follows it (game.js). dist: how
   // far off it is drawn now, metres; moving: on its way to its next place
-  return { enter, advance, active, draw, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D, shape, SHAPE_H: 2.1 + 0.165, SHAPE_W: 0.8 };
+  return { enter, advance, active, draw, dark, flick, get lit() { return lit; }, get flicking() { return lightAt !== null; }, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D, shape, SHAPE_H: 2.1 + 0.165, SHAPE_W: 0.8 };
 })();

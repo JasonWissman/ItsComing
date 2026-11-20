@@ -372,7 +372,7 @@ const MENU = (() => {
     switch (a) {
       case 'begin': newGame(); break;
       case 'done': show('results'); break;   // the ending's "The End": how the nights went this time
-      case 'finish': G.lastRun = null; if (G.seed === null) G.runSeed = Date.now() % 1000000; showTitle(); break;   // home; the next run new layouts, unless the seed is fixed
+      case 'finish': G.lastRun = null; if (G.seed === null) G.runSeed = Date.now() % 1000000; finishHome(); break;   // home, slowly (game.js); the next run new layouts, unless the seed is fixed
       case 'nights': show('nights', { from: 'title' }); break;   // only from the title (and its Back goes there)
       case 'settings': show('settings', { from: arg || 'title' }); break;
       // Settings' calibration dialogs, in its place in the same panel; Done is Settings again, focus on what opened it
