@@ -590,8 +590,8 @@ const AUDIO = (() => {
       case 'brake': noise(1.1, { type: 'bandpass', freq: 2600, q: 1.2, vol: 0.3, attack: 0.05, pan }); tone(70, 1.0, { vol: 0.18, type: 'sawtooth', endFreq: 40, pan }); break;
       case 'horn': for (const d of [0, 0.32]) { tone(392, 0.22, { vol: 0.12, type: 'square', delay: d, pan }); tone(494, 0.22, { vol: 0.09, type: 'square', delay: d, pan }); } break;
       case 'carDoor': noise(0.05, { freq: 1600, vol: 0.35, pan }); tone(160, 0.08, { vol: 0.25, type: 'square', endFreq: 100, pan }); tone(240, 0.5, { vol: 0.05, type: 'sawtooth', endFreq: 200, delay: 0.08, pan }); break;
-      // the police, called on 911 at the phone booth: the dispatcher answering, the siren's wail (one rise and fall: the night
-      // plays them back to back while the police car comes), and the siren going away once it is past
+      // the police, called on 911 at the phone booth: the dispatcher answering, and the siren's wail (one rise and fall: the
+      // night plays them back to back while the police car comes)
       case 'dispatch': {   // a click, then a few clipped, crackling bursts of a voice, too thin to make out, and the line's hiss under it
         noise(0.03, { type: 'highpass', freq: 2000, vol: 0.2 });
         noise(1.9, { type: 'bandpass', freq: 2600, q: 0.7, vol: 0.03, attack: 0.05 });
@@ -619,24 +619,50 @@ const AUDIO = (() => {
         for (const o of oscs) { o.start(t0); o.stop(t0 + dur + 0.05); }
         break;
       }
-      case 'sirenAway': {   // the siren going away, past: four more wails, the pitch dropped as it passes, each fainter and duller as it goes off
-        const t0 = now(), dur = 1.6, lp = ac.createBiquadFilter(), g = ac.createGain(), g2 = ac.createGain(), oscs = [];
+      // the police car halting by the shade and fleeing it: its tyres screeching as it brakes hard, its siren switched off,
+      // the shade's shriek at it, and the car slamming its foot down to get away
+      case 'tireScreech': {   // tyres locked on the wet road: a high squeal wavering over a rough hiss, held, and cut off as it stops
+        const t0 = now(), dur = 1.05, bp = ac.createBiquadFilter(), g = ac.createGain(), nodes = [];
+        bp.type = 'bandpass'; bp.frequency.value = 1900; bp.Q.value = 2.2;
+        for (const [f, type, v] of [[1180, 'sawtooth', 1], [1795, 'square', 0.45], [2410, 'sawtooth', 0.35]]) {
+          const o = ac.createOscillator(), og = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+          o.type = type; o.frequency.setValueAtTime(f, t0); o.frequency.linearRampToValueAtTime(f * 0.86, t0 + dur);
+          lfo.frequency.value = 13 + Math.random() * 6; lg.gain.value = f * 0.025; lfo.connect(lg); lg.connect(o.frequency);
+          og.gain.value = v; o.connect(og); og.connect(bp); nodes.push(o, lfo);
+        }
+        bp.connect(g);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.05, t0 + 0.05); g.gain.setValueAtTime(0.05, t0 + dur - 0.12); g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        chain(g, pan);
+        for (const n of nodes) { n.start(t0); n.stop(t0 + dur + 0.05); }
+        noise(dur, { type: 'bandpass', freq: 2600, q: 1.4, vol: 0.16, attack: 0.03, pan });   // the hiss of the wet road under it
+        break;
+      }
+      case 'sirenOff': {   // the siren switched off: its wail sagging down from where it was, slower and slower, and gone
+        const t0 = now(), dur = 1.3, lp = ac.createBiquadFilter(), g = ac.createGain(), g2 = ac.createGain(), oscs = [];
         lp.type = 'lowpass'; lp.Q.value = 0.7; g2.gain.value = 0.35;
-        lp.frequency.setValueAtTime(2400, t0); lp.frequency.exponentialRampToValueAtTime(700, t0 + 4 * dur);
+        lp.frequency.setValueAtTime(2600, t0); lp.frequency.exponentialRampToValueAtTime(600, t0 + dur);
         for (const [type, k] of [['sawtooth', 1], ['square', 0.5]]) {
           const o = ac.createOscillator(); o.type = type;
-          for (let i = 0; i < 4; i++) {
-            const a = t0 + i * dur, f = 0.88 - i * 0.01;
-            o.frequency.setValueAtTime(620 * k * f, a); o.frequency.linearRampToValueAtTime(1320 * k * f, a + dur * 0.5); o.frequency.linearRampToValueAtTime(620 * k * f, a + dur);
-          }
+          o.frequency.setValueAtTime(640 * k, t0); o.frequency.exponentialRampToValueAtTime(150 * k, t0 + dur);
           o.connect(k < 1 ? g2 : lp); oscs.push(o);
         }
         g2.connect(lp); lp.connect(g);
-        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.065, t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.004, t0 + 4 * dur - 0.1); g.gain.linearRampToValueAtTime(0.0001, t0 + 4 * dur);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.07, t0 + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
         chain(g, pan);
-        for (const o of oscs) { o.start(t0); o.stop(t0 + 4 * dur + 0.05); }
+        for (const o of oscs) { o.start(t0); o.stop(t0 + dur + 0.05); }
         break;
       }
+      case 'shadeShriek': {   // the shade, its head split open: voices at odds tearing upward, a rasp through them and something huge under them
+        for (const [f, d] of [[610, 0], [905, 0.03], [1330, 0.07]]) { tone(f, 1.0, { vol: 0.08, type: 'sawtooth', endFreq: f * 2.1, attack: 0.02, delay: d, pan }); tone(f * 2.05, 0.5, { vol: 0.04, type: 'square', endFreq: f * 1.3, delay: d + 0.75, pan }); }
+        noise(1.1, { type: 'bandpass', freq: 3100, q: 2.4, vol: 0.45, attack: 0.01, pan });
+        tone(46, 1.3, { vol: 0.45, endFreq: 30, attack: 0.01, pan }); noise(0.5, { freq: 260, vol: 0.5, attack: 0.005, pan });
+        for (let i = 0; i < 10; i++) noise(0.05, { type: 'bandpass', freq: 1800 + Math.random() * 2600, q: 6, vol: 0.2, delay: 0.04 + i * 0.09, pan });
+        break;
+      }
+      case 'peelOut':   // away: the engine roaring up, the back tyres spinning and squealing, catching, squealing again, and the roar going off down the road
+        tone(52, 2.8, { vol: 0.42, type: 'sawtooth', endFreq: 175, attack: 0.06, pan }); noise(2.6, { freq: 330, vol: 0.34, attack: 0.08, pan });
+        for (const [d, l, v] of [[0, 0.55, 0.42], [0.5, 0.42, 0.34], [0.86, 0.36, 0.24]]) { noise(l, { type: 'bandpass', freq: 2250 + d * 300, q: 8, vol: v, attack: 0.02, delay: d, pan }); tone(1250 + d * 200, l, { vol: 0.04 * v / 0.42, type: 'sawtooth', endFreq: 1480 + d * 200, attack: 0.02, delay: d, pan }); }
+        break;
       // the car pulling away
       case 'rev': tone(55, 2.4, { vol: 0.45, type: 'sawtooth', endFreq: 190, attack: 0.05 }); noise(1.6, { type: 'bandpass', freq: 2400, q: 6, vol: 0.35, attack: 0.02 }); noise(2.2, { freq: 300, vol: 0.35, attack: 0.1 }); break;
       default: break;

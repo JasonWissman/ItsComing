@@ -95,7 +95,10 @@ const SOUNDS = [
   { kind: 'sfx', name: 'carDoor', n: [9], d: 'A car door opening.', src: 'night09 aftermath' },
   { kind: 'sfx', name: 'dispatch', n: [9], d: 'A click, then a few clipped, crackling bursts of a voice too thin to make out, over the line\'s hiss: 911 answers.', src: 'night09 (911)' },
   { kind: 'sfx', name: 'siren', n: [9], d: 'One wail of a police siren, up and down again in 1.6 s; played back to back while the police car comes down the street.', src: 'night09 (911)' },
-  { kind: 'sfx', name: 'sirenAway', n: [9], d: 'The siren going away: four more wails, dropped in pitch as the police car passes the booth, each fainter and duller until it is gone.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'tireScreech', n: [9], d: 'Tyres locked on a wet road: a high squeal wavering over a rough hiss, held about a second and cut off. The police car screeching to a halt by the shade\'s last lamp.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'sirenOff', n: [9], d: 'The siren switched off: its wail sagging down in pitch, slower and slower, and gone in a little over a second. The police car halted by the lamp post, at the end of the wail it was in.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'shadeShriek', n: [9], d: 'The shade\'s shriek: three voices at odds tearing upward, a rasp through them, a deep thud under them. It jumps out in front of the post at the police car, its head split open.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'peelOut', n: [9], d: 'The police car slamming its foot down to get away: the engine roaring up, the back tyres squealing three times as they spin and catch, and the roar going off down the road.', src: 'night09 (911)' },
   { kind: 'sfx', name: 'page', n: [9], d: 'A page turned over. Leafing the notebook.', src: 'night09' },
   // ---- night 10: the mirror maze ----
   { kind: 'sfx', name: 'musicbox', n: [10, 13], d: 'A short music-box tune. The box’s song (10); the ending (13).', src: 'night10, night13' },

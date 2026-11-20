@@ -89,6 +89,19 @@
           if (T < 0.8) { c.moving = false; return; }
           c.away = true; c.frozen = true; c.moving = true; c.dist += dt * 1.3; c.gait += dt * 1.3 * CR.stepRate * Math.PI;
         } },
+      // the police (911): night09 copMan sets c.torch while the flashlight is on it and c.scare (and c.hop, off the ground)
+      // as it jumps out at them; c.scareSide is the side of the view the car is on
+      { name: 'Caught in a flashlight', note: 'The police car has screeched to a halt by its lamp and a flashlight from its window finds it: a pale light down that side of it, and its eyes shining back. It stands dead still.',
+        dist: 13, dur: 2.4, lit: 0.3, fit: NEAR, set(c) { c.scareSide = 1; c.torch = 0; },
+        tick(c, k, dt, T) { c.torch = T < 0.4 ? 0 : T < 0.6 ? (Math.sin(T * 70) < -0.3 ? 0.2 : 1) : 1; } },
+      { name: 'Jumped out at the police', note: 'Then it jumps out in front of the post at the car, upright and leaning at it, one arm out at it and the other up over its head, its head split open into its petals of teeth, turned to the car (here, to the right), with a shriek; it holds it as the car goes, then shuts.',
+        dist: 13, dur: 3.6, lit: 0.3, fit: { h: 3.2, w: 2.2 }, set(c) { c.scareSide = 1; c.torch = 1; c.scare = 0; c.hop = 0; },
+        tick(c, k, dt, T) {
+          const e = T - 0.4, j = clamp(e / 0.28, 0, 1);
+          c.hop = e > 0 && e < 0.28 ? Math.sin(Math.PI * j) * 0.3 : 0; c.yOff = c.hop;
+          c.scare = smoothstep(clamp((e - 0.11) / 0.3, 0, 1)) * (1 - smoothstep(clamp((e - 2.6) / 0.45, 0, 1)));
+          c.torch = e < 0.7 ? 1 : Math.max(0, 1 - (e - 0.7) / 0.05);
+        } },
       LAB.lunge({ note: 'It catches you: its head splits open into five petals lined with teeth, rings of teeth coming up out of its throat and moving out, only ever outward, the long hands up either side of your face.', dist: CR.catchDist }),
     ],
   });
