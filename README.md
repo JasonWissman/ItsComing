@@ -457,7 +457,7 @@ some on the ground, so you have to turn and look down to find them.
     air from wherever you look (`test/nights/night11.js` checks every foot against the building behind it). The sky and the haze go red, the fire roars
     and crackles all round. The thing, its spark on it, goes up (the fire taking it from its middle out, scorching it
     near black), shrieking, and runs flat out about the open yard where you are looking, side on, flames streaming
-    back off it and an arm beating at them over its head (round you, never through you, and in front of the house, not
+    back off it and an arm beating at them over its head (the bundle let go of, nothing on its front) (round you, never through you, and in front of the house, not
     through it; out of sight it tears round faster to where you are looking), until you have had about 3 s of it in
     view (9 s at most). Then it stops, faces you, both arms flailing over its head (0.6 s), and charges straight in at
     8.5 m/s, arms reaching, and has you, burning (its face clear of the flames in the lunge). The flames on it have their
@@ -476,13 +476,17 @@ some on the ground, so you have to turn and look down to find them.
     nothing sudden in it, its feet stepping softly under it; its fingers slide back off the
     frame as it goes, and it stoops under the top of the frame until it is through. On
     Nightmare, once, early and unseen, it changes its way: it glides round the foot of the
-    bed to the other way in, with a whoosh. (`test/nights/night12.js` watches every frame
+    bed to the other way in, setting off with three quick, heavy thumping footsteps (the
+    running step), panned from where it was to where it goes. (`test/nights/night12.js` watches every frame
     from your eye: nothing of it, body, head, hands or feet, jumps.) It is all but black, even
     in the lamp's light; only its two pale eyes show. It
     cannot stand the light: when the lamp comes on it lifts an arm across its face and
     folds down onto its haunches out of sight, keeps low (out in the open, a dark shape
     crawling along the floor on its hands and feet, its two pale eyes on you all the way) to the bed, and comes up at the foot of it (or at its
-    side, out of the closet) until only its eyes are over the edge. It is always drawn
+    side, out of the closet) until only its eyes are over the edge. Lit while it is still
+    behind the wall or in the opening, it first goes along behind the wall to the middle of the
+    frame and comes straight out through the middle of it before it turns for the bed, so it never
+    goes through the wall, the frame or the closet's doors (the same way when it rips the covers away). It is always drawn
     whole, and drawn before the bed, so the bed hides whatever of it is behind the bed.
     Then its long hands snatch up over the edge onto the covers, and pull: one and then
     the other, each reaching on up the bed with its
@@ -490,13 +494,15 @@ some on the ground, so you have to turn and look down to find them.
     pull nearer to you. Pull the covers up before they reach you; if they do, it comes up the
     bed after them. The lamp must come
     first: pulled up in the dark, the covers do not save you; it is at the bed all at once,
-    takes hold of them, rips them down off you and is in your face. If the lamp burns
+    takes hold of them, rips them down off you and is in your face ("It pulled the covers
+    away. It is strong in the dark."). If the lamp burns
     out before the covers are up (it flickers first), its hands let go and it rises again
     from behind the bed and comes on; one pull of the chain brings the light back, and it
     goes down again. When it has you, its hands shoot out over the bed and take hold of you;
     then all at once its face is right in front of yours, its head twitching, and its head
     swells out over everything until the black of it is all there is. Your hand
-    pulls the lamp's chain (nothing comes of it with no bulb in or the cord out, and it sticks),
+    pulls the lamp's chain (nothing comes of it with no bulb in, and the line is "It's missing something."; nor
+    with the cord out; and it sticks),
     opens the drawer, pushes the plug in and is on the covers' hem as you hold them; the wrong
     bulb will not go into the socket and drops onto the bed, to be taken again. Then they
     come up over your eyes and the rest happens under them, the cloth hanging in long folds:
@@ -514,7 +520,10 @@ some on the ground, so you have to turn and look down to find them.
     comes for you, slowly and then faster and faster as the string comes back, more and more
     enraged, and it is on you before the bow is full ("Fighting only made it stronger."; never
     the ending). Let go early and the bow only comes back down, no arrow gone, and it comes on
-    at its own pace again. Far off its eyes are two points a pixel or so across, set as far
+    at its own pace again. However it comes (enraged and taller, holding anything or rushing
+    you as the bow is drawn, or calm), it bends over toward you as it nears, its shoulders
+    hunched, as far as keeps its face in the view as you look ahead at it, all the way in and
+    up through its death lunge (on a phone held sideways too). Far off its eyes are two points a pixel or so across, set as far
     apart on its head as they always are, with no haze round them.
     Put it all down again (each falls from your hand to the floor;
     reach for another with your hands full and the full hand only goes toward it) and it

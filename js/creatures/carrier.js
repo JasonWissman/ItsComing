@@ -251,13 +251,16 @@ CREATURES.carrier = {
     P_ell(ctx, cx + fw[0] * 0.13, cy + fw[1] * 0.13, 0.38, 0.22, sackD, rot);
     P_ell(ctx, cx - fw[0] * 0.19, cy - fw[1] * 0.19, 0.36, 0.11, sackL, rot);
     for (const u of [-0.12, 0.14]) P_line(ctx, cx + sp[0] * u - fw[0] * 0.3, cy + sp[1] * u - fw[1] * 0.3, cx + sp[0] * u + fw[0] * 0.1, cy + sp[1] * u + fw[1] * 0.1, 0.014, sackD);
-    // the bundle, held to its chest: tied, lumpy, never put down
+    // the bundle, held to its chest: tied, lumpy, never put down. Burning, its arm has let go of it to beat at the flames
+    // over its head (below), so it is not drawn: on its own, held by nothing, it was a lump stuck on the front of its belly
     const bx = cx + fw[0] * 0.34 + sp[0] * 0.08, by = cy + fw[1] * 0.34 + sp[1] * 0.08 + Math.sin(g * 2) * 0.012;
-    P_ell(ctx, bx, by, 0.21, 0.17, bundleD, 0.3); P_ell(ctx, bx - 0.02, by + 0.03, 0.17, 0.12, bundle, 0.3);
-    P_line(ctx, bx - 0.17, by - 0.05, bx + 0.12, by + 0.13, 0.018, twine); P_line(ctx, bx - 0.06, by + 0.15, bx + 0.08, by - 0.14, 0.018, twine);
+    const burning = (c.burn || 0) > 0.2;
+    if (!burning) {
+      P_ell(ctx, bx, by, 0.21, 0.17, bundleD, 0.3); P_ell(ctx, bx - 0.02, by + 0.03, 0.17, 0.12, bundle, 0.3);
+      P_line(ctx, bx - 0.17, by - 0.05, bx + 0.12, by + 0.13, 0.018, twine); P_line(ctx, bx - 0.06, by + 0.15, bx + 0.08, by - 0.14, 0.018, twine);
+    }
     // the near arm wrapped round it, the hand clawed over the top; burning, it lets go and beats at the flames over its
     // head instead
-    const burning = (c.burn || 0) > 0.2;
     if (!burning) {
       const hx = bx - 0.02, hy = by + 0.15;
       P_limb(ctx, [[shX - 0.04, shY - 0.04], [bx + 0.22, by - 0.06], [bx + 0.14, by + 0.12], [hx, hy]], 0.11, sack);

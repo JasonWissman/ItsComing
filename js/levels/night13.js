@@ -243,6 +243,8 @@ LEVELS.push({
     L.deathCause = () => s.fought ? 'fought' : G.inv.length ? 'default' : 'away';
     const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1));
     L.onCatch = c => {
+      if (G.state === 'play') bend(c);   // (as it is where it reached you)
+      c.bend0 = c.yOff || 0;   // (its death lunge comes up from as far down as it was: CREATURES.demon.death.pose)
       if (s.rush > 0) s.fought = true;   // (drawn at, it came for you: a death, whatever else)
       if (s.fought || G.inv.length > 0 || !facingIt(c)) return false;
       s.ending = true; s.endT = 0; c.frozen = true; c.hold = null;
@@ -253,7 +255,8 @@ LEVELS.push({
       // it comes in a little closer as it takes hold of you (from as far as it was, bent down as far as it was); later it
       // steps back from you, and later still back and round to the north (the foot of the bed): CREATURES.demon.ending
       const yaw0 = c.yaw, yaw1 = L.facing;
-      s.d0 = c.dist; s.y0 = c.yOff || 0;
+      // (as far down as it was bent, its face where it was: bent over, c.stoop, as low as if it were that much further down)
+      s.d0 = c.dist; s.y0 = (c.yOff || 0) - (c.stoop || 0) * (1 - 0.2 * (c.calm || 0)); c.stoop = 0;
       s.pose = CREATURES.demon.ending(END, 0, s.d0, s.y0);
       c.distFn = cr => {
         cr.yaw = yaw0 + wrapPi(yaw1 - yaw0) * span(s.endT, END.walk[0], END.walk[1]);
@@ -289,6 +292,14 @@ LEVELS.push({
     // side or behind, and, standing still facing it, you died for looking away. So once it is within SWITCH_NEAR of you it
     // keeps to its way.
     const SWITCH_NEAR = 12;
+    // How far down it is bent, coming close (c.yOff, sunk: empty-handed, over the last few metres, as it always has), and,
+    // whatever it is (enraged, drawn at with the bow and rushing you, or calm), bent over toward you as far again as keeps
+    // its face in the view as you look ahead at it, all the way in to the death lunge (c.stoop: CREATURES.demon.stoopFor;
+    // enraged it is taller, and the view does not lift to it). Its lunge comes up from there (death.pose, c.bend0)
+    const bend = c => {
+      c.yOff = -0.42 * smoothstep(clamp((3.6 - c.dist) / 2.4, 0, 1)) * (1 - clamp(c.rage, 0, 1));
+      c.stoop = c.CR.stoopFor(c, L.eyeH, c.yOff);
+    };
     L.update = dt => {
       const c = c0();
       fallStep(dt); bowStep(dt);
@@ -300,9 +311,10 @@ LEVELS.push({
       screech(c, dt);
       // empty-handed (and so calm), it bends down to you as it comes the last few metres, so its head is not lost over the top
       // of the view; and facing it, the view lifts to its face as it looms in: you look up at it. Looking down (a target
-      // below the horizon), or turning away, takes the view back as it was.
+      // below the horizon), or turning away, takes the view back as it was. (bend: and however it comes, it bends over
+      // toward you as far as keeps its face in the view)
       if (!s.ending && G.state === 'play') {
-        c.yOff = -0.42 * smoothstep(clamp((3.6 - c.dist) / 2.4, 0, 1)) * (1 - clamp(c.rage, 0, 1));
+        bend(c);
         const near = smoothstep(clamp((6 - c.dist) / 4.5, 0, 1)), face = c.CR.eyesY(c) + c.yOff;
         if (near > 0 && !G.inv.length && G.cam.tPitch <= 0 && facingIt(c)) G.cam.tPitch = -Math.atan2(face - L.eyeH, Math.max(c.dist, 0.6)) * 0.8 * near;
         else if (G.cam.tPitch < 0) G.cam.tPitch = 0;
@@ -479,6 +491,7 @@ LEVELS.push({
       } });
     };
     L.dynamic = () => {
+      if (!s.ending && G.state === 'play') bend(c0());   // (where it is now, after this frame's move: drawn at you, it closes fast)
       backLight();
       pools();
       fallDraw();

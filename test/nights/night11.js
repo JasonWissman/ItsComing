@@ -255,7 +255,35 @@ const footsOnIt = () => {
   window.__feet = bad;
   return bad.length === 0;
 };
+// running alight, side on, either way, all through its stride: its arm has let go of the bundle to beat at the flames, so
+// the bundle is not drawn (on its own it was a lump stuck on the front of its belly); not burning, it is still carried
+const bundleRun = () => {
+  const c = G.L.creature, CR = c.CR, keep = {}, keys = ['burn', 'char', 'flail', 'charge', 'lunge', 'runPose', 'runDir', 'runPace', 'runGait', 'recoil', 'shade', 'fallT'];
+  keys.forEach(k => { keep[k] = c[k]; });
+  // drawn with the bundle's two colours bright red and everything else black (and no flames), and looked at for red
+  const cv = document.createElement('canvas'); cv.width = 400; cv.height = 400;
+  const ctx = cv.getContext('2d', { willReadFrequently: true }), BUNDLE = ['134,114,82', '98,82,58'], flame = CR.flame;
+  const P = { fog: 0, col: k => (BUNDLE.includes(k.slice(0, 3).join()) ? 'rgb(255,0,0)' : 'rgb(0,0,0)'), cola: () => 'rgb(0,0,0)', raw: () => 'rgb(0,0,0)' };
+  const drawn = burn => {
+    Object.assign(c, { burn, char: 0, shade: 0, flail: 0, charge: 0, lunge: 0, recoil: 0, fallT: undefined });
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 400, 400); ctx.setTransform(150, 0, 0, -150, 200, 360);
+    CR.draw(ctx, c, P);
+    const px = ctx.getImageData(0, 0, 400, 400).data;
+    for (let i = 0; i < px.length; i += 4) if (px[i] > 200 && px[i + 1] < 40 && px[i + 3] > 200) return true;
+    return false;
+  };
+  let ok = true;
+  try {
+    CR.flame = () => {};
+    for (const dir of [1, -1]) for (let i = 0; i < 16; i++) {
+      Object.assign(c, { runPose: true, runDir: dir, runPace: 1, runGait: i / 16 * 2 * Math.PI });
+      if (drawn(1) || !drawn(0)) ok = false;
+    }
+  } finally { CR.flame = flame; Object.assign(c, keep); }
+  return ok;
+};
 const feet = fresh.concat([
+  ['expect', '(' + bundleRun + ')()', 'running alight, either way, all through its stride, nothing is stuck on the front of its belly: the bundle it let go of is not drawn (and running unburnt, it still carries it)'],
   ['expect', '(' + footsOnSurfaces + ')()', 'the farm alight: every flame\'s foot is on a wall, a roof, a door or the ground, none hanging off an edge into the air'],
   ['expect', '(' + footsOnIt + ')()', 'the thing alight, in every pose: every flame\'s foot is on it, none out in the air beside it or over its head'],
 ]);

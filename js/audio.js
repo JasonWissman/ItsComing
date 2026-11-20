@@ -491,17 +491,6 @@ const AUDIO = (() => {
         noise(0.025, { type: 'bandpass', freq: 2400, q: 6, vol: 0.14, pan }); tone(140, 0.08, { vol: 0.3, type: 'square', endFreq: 90, delay: 0.85, pan }); noise(0.06, { freq: 700, vol: 0.35, delay: 0.85, pan }); break;
       case 'tick': noise(0.012, { type: 'bandpass', freq: 3200, q: 4, vol: 0.14, pan }); tone(1600, 0.02, { vol: 0.05, type: 'square', pan }); break;
       case 'knock': for (const d of [0, 0.32]) { noise(0.06, { freq: 500, vol: 0.5, delay: d, pan }); tone(160, 0.12, { vol: 0.3, endFreq: 100, delay: d, pan }); } break;
-      // a sweep of air going past and away, low to high and back down, swelling and fading (night 12: it glides round the bed
-      // to the other way in)
-      case 'whoosh': {
-        const t0 = now(), T = 1.6, src = ac.createBufferSource(), flt = ac.createBiquadFilter(), g = ac.createGain();
-        src.buffer = noiseBuf; src.loop = true; flt.type = 'bandpass'; flt.Q.value = 1.4;
-        flt.frequency.setValueAtTime(260, t0); flt.frequency.exponentialRampToValueAtTime(1500, t0 + T * 0.5); flt.frequency.exponentialRampToValueAtTime(320, t0 + T);
-        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.32, t0 + T * 0.45); g.gain.exponentialRampToValueAtTime(0.0001, t0 + T);
-        src.connect(flt); flt.connect(g); chain(g, pan);
-        src.start(t0, Math.random() * 1.2); src.stop(t0 + T + 0.05);
-        break;
-      }
       case 'hangers': for (let i = 0; i < 6; i++) tone(2200 + Math.random() * 1400, 0.05, { vol: 0.045, type: 'triangle', delay: i * 0.06 + Math.random() * 0.03, pan }); break;
       case 'switch': tone(900, 0.02, { vol: 0.14, type: 'square', endFreq: 500 }); noise(0.02, { freq: 2500, vol: 0.2, delay: 0.02 }); break;
       case 'flicker': for (let i = 0; i < 4; i++) noise(0.02, { type: 'highpass', freq: 3000, vol: 0.15, delay: i * 0.09 + Math.random() * 0.04 }); tone(120, 0.5, { vol: 0.06, type: 'sawtooth', endFreq: 40, delay: 0.3 }); break;

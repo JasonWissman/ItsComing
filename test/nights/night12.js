@@ -30,6 +30,7 @@ const fumbles = [].concat(
     ['eval', 'pickup(' + seeAndTake + ');'], ['expect', "G.inv.some(i => i.id === 'bulb2')", 'and taken']],
   fresh, [['eval', 'G.cam.dirIdx = 2; G.cam.yaw = G.cam.tYaw = Math.atan2(' + T('lamp') + '.x, ' + T('lamp') + '.z); G.cam.pitch = G.cam.tPitch = 0;'], ['wait', 300], ['eval', 'useTarget(' + T('lamp') + ');'],
     ['expect', "G.hand.reach && G.hand.reach.style === 'pull' && G.hand.reach.target === " + T('lamp'), 'no bulb in it, nothing in hand: your hand goes to the lamp\'s chain'],
+    ['expect', "G.lastToast.msg === 'It\\'s missing something.'", 'and the line is "It\'s missing something."'],
     ['waitUntil', 'G.L.s.tugAt > 0', 2000], ['expect', 'G.L.s.tugAt > 0 && !G.L.s.lampOn', 'and pulls it, and nothing comes of it']],
   [['eval', 'restartLevel();'], ['wait', 250]]);
 // at first only its head round the edge of the opening, its body behind the wall, and that counts as seeing it; brought on
@@ -59,6 +60,14 @@ const sampler = "window.__glide = { worst: {}, where: {}, n: 0, last: null, draw
   "if (live && pd) { const k = (1 / 60) / (nd.at - pd.at); put('tilt', Math.abs(nd.tilt - pd.tilt) * k); if (nd.parts.length === pd.parts.length) nd.parts.forEach((v, i) => put('part', j(v, pd.parts[i], k), i)); if (nd.feet.length === pd.feet.length) nd.feet.forEach((v, i) => put('foot', j(v, pd.feet[i], k), i)); } } " +
   "if (W.look) { const g = c.pos(); G.cam.yaw = G.cam.tYaw = Math.atan2(g.x, g.z); G.cam.pitch = G.cam.tPitch = 0; } requestAnimationFrame(w); })();";
 const glideOk = (what, keys) => "(W => { const ok = W.n > 120 && " + keys.map(k => "(W.worst." + k + " || 0) <= " + SMOOTH[k]).join(' && ') + "; console.log('" + what + ": ' + JSON.stringify(W.worst) + ' ' + JSON.stringify(W.where) + ' over ' + W.n + ' frames'); return ok; })(window.__glide)";
+// what it is heard to do: each footstep (its kind, how loud, where, when on the night's clock) and each effect
+const hearSteps = " window.__steps = []; window.__fx = []; if (!AUDIO.__h12) { AUDIO.__h12 = true; const f = AUDIO.footstep, x = AUDIO.sfx; AUDIO.footstep = function (k, v, p) { window.__steps.push({ k, v, p, t: G.L.t }); return f.apply(this, arguments); }; AUDIO.sfx = function (n) { window.__fx.push(n); return x.apply(this, arguments); }; }";
+// as it sets off round the bed: three running steps, a sixth of a second apart, loud enough to be heard and captioned,
+// the first from where it was and the last from where it goes (the view held still), and no sweep of air
+const thumps = "(X => { const st = window.__steps.filter(s => s.k === 'runner'), pan = b => Math.max(-0.85, Math.min(0.85, Math.sin(wrapPi(b - X.yaw)))); console.log('thumps: ' + JSON.stringify(st) + ' from ' + pan(X.b0).toFixed(2) + ' to ' + pan(X.b1).toFixed(2));" +
+  ' return st.length === 3 && st[0].t - X.t0 < 0.1 && st.every((s, i) => !i || (s.t - st[i - 1].t > 0.1 && s.t - st[i - 1].t < 0.25)) && st.every(s => s.v >= 0.12)' +
+  ' && Math.abs(st[0].p - pan(X.b0)) < 0.05 && Math.abs(st[2].p - pan(X.b1)) < 0.05 && (st[1].p - st[0].p) * (st[2].p - st[1].p) >= 0 && Math.abs(st[2].p - st[0].p) > 0.2' +
+  " && !window.__fx.includes('whoosh'); })(window.__x)";
 const glide = [
   ['eval', 'restartLevel();'], ['wait', 250],
   ['eval', 'G.L.s.switched = true; ' + sampler + ' window.__glide.look = true; G.L.s.peerTill = 0; G.L.creature.u = 0.55;'],
@@ -66,8 +75,11 @@ const glide = [
   ['eval', 'window.__glide.stop = true;'],
   ['expect', glideOk('stepping out and coming on', ['body', 'part', 'foot', 'tilt']), 'it glides out round the edge of the opening and on toward the bed: nothing of it jumps from one frame to the next'],
   ['eval', 'restartLevel();'], ['wait', 250],
-  ['eval', "G.L.s.switchAt = 0; G.L.s.peerTill = 0; G.L.creature.u = 0.3; G.L.visFrac = () => 0; window.__lane0 = G.L.creature.lane.idx; " + sampler],
+  ['eval', "G.L.s.switchAt = 0; G.L.s.peerTill = 0; G.L.creature.u = 0.3; G.L.visFrac = () => 0; window.__lane0 = G.L.creature.lane.idx; " + sampler + hearSteps],
   ['waitUntil', "G.L.s.mode === 'cross'", 20000],
+  ['eval', 'window.__x = { b0: G.L.s.cross.b0, b1: G.L.s.cross.b0 + G.L.s.cross.db, yaw: G.cam.yaw, t0: G.L.t };'],
+  ['waitUntil', 'G.L.t > window.__x.t0 + 1', 5000],
+  ['expect', thumps, 'shifting round to the other way in, three quick, heavy thumping footsteps (and no whoosh), panned from where it was to where it goes'],
   ['waitUntil', "G.L.s.mode === 'come' && G.L.creature.lane.idx !== window.__lane0", 40000],
   ['eval', 'window.__glide.stop = true;'],
   ['expect', glideOk('round the bed', ['round']) + " && G.L.s.switched", 'unseen, it changed its way: round the bed to the other way in, gliding (no jump)'],
@@ -90,6 +102,26 @@ const stoop = [
   ['waitUntil', 'G.L.creature.dist <= G.L.creature.lane.apertures[0].z - 0.6', 20000],
   ['expect', 'window.__stoop.n > 10 && window.__stoop.worst <= 0', 'coming through the opening it stoops: nothing of it shows over the top of the frame'],
 ];
+// Lit while it still peers round the edge of the opening, behind the wall, it goes low along the floor to the bed: first
+// along behind the wall to the middle of the frame, then straight out through the middle of it, and only then on to the
+// bed. Watched every frame, each way in: where it goes through the wall it is in the middle of the opening, clear of the
+// frame either side by more than its own half-width; for the first 0.45 m in front of the wall it is still there (clear
+// of the frame, and in the closet of its doors swung back either side), and never in among those doors; and it gets to
+// its place at the bed
+const crawled = lane => "(P => { const ap = G.L.creature.lane.apertures[0], z = ap.z, mid = (ap.x1 + ap.x0) / 2, room = (ap.x1 - ap.x0) / 2 - 0.25; let bad = null;" +
+  ' for (let i = 1; i < P.length; i++) { const a = P[i - 1], b = P[i];' +
+  "  if ((a.d - z) * (b.d - z) <= 0 && a.d !== b.d) { const lat = a.lat + (b.lat - a.lat) * (z - a.d) / (b.d - a.d); if (Math.abs(lat - mid) > room) bad = bad || 'through the wall at ' + lat.toFixed(2); }" +
+  "  if (b.d < z && b.d > z - 0.45 && Math.abs(b.lat - mid) > room) bad = bad || 'beside the frame at ' + b.d.toFixed(2) + ', ' + b.lat.toFixed(2);" +
+  '  if (' + lane + " === 1 && b.d > 2.85 && b.d < 3.25 && Math.abs(b.lat) > 0.8 && Math.abs(b.lat) < 1.8) bad = bad || 'in among the closet doors at ' + b.d.toFixed(2) + ', ' + b.lat.toFixed(2); }" +
+  ' const e = P[P.length - 1], sp = ' + (lane ? '{ d: 1.04, lat: 1.35 }' : '{ d: 2.08, lat: 0 }') + "; if (Math.hypot(e.d - sp.d, e.lat - sp.lat) > 0.02) bad = bad || 'it ended at ' + e.d.toFixed(2) + ', ' + e.lat.toFixed(2);" +
+  " console.log('the crawl from way " + lane + ": ' + P.length + ' frames, ' + (bad || 'clear')); return P.length > 60 && !bad; })(window.__crawl)";
+const crawlFrom = lane => [
+  ['eval', 'restartLevel(); for (let i = 0; i < 60 && G.L.creature.lane.idx !== ' + lane + '; i++) restartLevel();'], ['wait', 250],
+  ['expect', '(c => c.lane.idx === ' + lane + " && G.L.s.mode === 'peer' && c.dist > c.lane.apertures[0].z && Math.abs(c.lat) > (c.lane.apertures[0].x1 - c.lane.apertures[0].x0) / 2)(G.L.creature)", (lane ? 'in the closet' : 'beyond the doorway') + ', it peers round the edge of the opening, behind the wall'],
+  ['eval', "const s = G.L.s; s.fitted = s.plugged = true; s.lampOn = true; s.wasLit = true; s.onAt = G.L.t; s.lampT = 60; window.__crawl = []; (function w() { const c = G.L.creature; window.__crawl.push({ d: c.dist, lat: c.lat }); if (G.state === 'play' && !(c.reach > 0)) requestAnimationFrame(w); })();"],
+  ['waitUntil', "G.L.s.mode === 'duck' && G.L.creature.reach > 0", 20000],
+  ['expect', crawled(lane), 'lit early, it went along behind the wall to the middle of the ' + (lane ? 'closet\'s opening' : 'doorway') + ' and came straight out through it before it turned for the bed: never through the wall, the frame' + (lane ? ' or the doors' : '')],
+];
 // its hands on the covers pull, again and again, each pull further up the bed, and when they reach you it comes up the
 // bed after them (its own death and its own line); the fingers open as each hand reaches, and close on the cloth to pull it
 const grabbed = [].concat(fresh, [
@@ -108,7 +140,7 @@ const dark = [].concat(fresh, [
   ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 3000],
   ['expect', "G.deathCause === 'dark' && !G.L.s.lampOn && !G.L.s.coversUp && G.L.s.yankK === 1 && G.L.creature.lungeFrom < 2.2", 'covers up in the dark: it came to the bed, pulled them down off you, and had you'],
   ['waitUntil', "G.state === 'dead'", 4000],
-  ['expect', "G.deathScreen.text === G.L.text.death.dark && /not afraid of the dark/.test(G.deathScreen.text)", 'and the card says it took the covers: the dark does not stop it'],
+  ['expect', "G.deathScreen.text === G.L.text.death.dark && G.deathScreen.text === 'It pulled the covers away. It is strong in the dark.'", 'and the card says it took the covers: the dark does not stop it'],
   ['eval', 'restartLevel();'], ['wait', 250],
 ]);
 // the light: it flinches from it and goes down (out of sight below the bed, or low along the floor out in the open), comes up at the bed with only its eyes over
@@ -128,5 +160,5 @@ const duck = [
 const coverHand = ['eval', "window.__coverHand = false; (function w() { if (G.holding && G.holding.id === 'covers' && G.hand.reach && G.hand.reach.target === G.holding) window.__coverHand = true; if (G.state === 'play') requestAnimationFrame(w); })();"];
 module.exports = {
   // Nightmare charges 3.5x speed for every second spent looking away, so the harness faces each thing directly instead of sweeping
-  nightmare: fumbles.concat(card, peering, glide, stoop, dark, grabbed, [mattress, ['face', 5, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 4, false], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ['expect', 'G.L.s.grab && G.L.s.grab.k < 1', 'and the covers came up before its hands reached you'], ...under]),
+  nightmare: fumbles.concat(card, peering, glide, stoop, crawlFrom(0), crawlFrom(1), dark, grabbed, [mattress, ['face', 5, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 4, false], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ['expect', 'G.L.s.grab && G.L.s.grab.k < 1', 'and the covers came up before its hands reached you'], ...under]),
 };

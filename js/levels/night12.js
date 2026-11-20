@@ -27,13 +27,13 @@ LEVELS.push({
     intro: 'You woke up suddenly.',
     hint: 'The lamp is dead; there is a bulb in the drawer. It cannot stand the light, and the covers only hold with the lamp on. Light first; then hold the covers until they are all the way up, before its hands reach you.',
     objective: 'Get the lamp on. Then pull the covers up.',
-    death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is not afraid of the dark.', grabbed: 'Its hands pulled their way up the bed to you, and then it came up after them.' },
+    death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is strong in the dark.', grabbed: 'Its hands pulled their way up the bed to you, and then it came up after them.' },
     win: 'You pulled the covers over your head.\nIt pulled at them, but you were stronger.',
   },
   lanes: [
     // it starts where it peers round the edge from (WAYS below): the start is held to that, whatever the spread of the night.
-    // (Their cues are never played: it changes its way itself, gliding round the bed with a whoosh (crossing, below). The
-    // closet's clinking hangers keep the story's hangers on the wind out of this night.)
+    // (Their cues are never played: it changes its way itself, gliding round the bed after a few quick, heavy footsteps
+    // (crossing, below). The closet's clinking hangers keep the story's hangers on the wind out of this night.)
     { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.9, maxStart: 4.1, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
     { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 4.2, maxStart: 3.4, cue: 'hangers', apertures: [{ z: 3.2, x0: -0.9, x1: 0.9, y0: 0, y1: 2.2 }] },
   ],
@@ -146,7 +146,7 @@ LEVELS.push({
       hint() { return s.coversUp ? 'Up over you.' : 'The covers. Hold on to them until they are all the way up; they slip back if you let go too soon.'; },
       use(item) {
         if (item !== null) return false;
-        if (!s.lampOn) { yank(); return true; }   // up in the dark: it is not afraid of the dark
+        if (!s.lampOn) { yank(); return true; }   // up in the dark: it is strong in the dark
         s.coversUp = true; AUDIO.sfx('hiss'); G.say('The covers are up.', 'Up.'); return true;
       },
     });
@@ -214,9 +214,10 @@ LEVELS.push({
       c.switched = true; s.switchAt = 0.12 + L.rand() * 0.28;   // (it changes its way itself: crossing, below)
     };
     // On Nightmare it may change its way once, early, while you are not looking (as the game would have it, but on its feet):
-    // out in the room, it glides round the foot of the bed, in between it and the dresser, to the other way in, with a sweep of air
-    // (the whoosh: its own sound, the only warning), and comes on from there. Its feet drift with it; the night's clock
-    // waits while it goes. Half way round it is counted along the other way.
+    // out in the room, it glides round the foot of the bed, in between it and the dresser, to the other way in, and comes on
+    // from there. As it sets off, a few quick, heavy thumps of footsteps, from where it was to where it is going (thumping,
+    // below: the only warning). Its feet drift with it; the night's clock waits while it goes. Half way round it is counted
+    // along the other way.
     const CROSS = { v: 0.4, acc: 0.2, clear: 2.3, wide: 2.75 };   // (round, it keeps between the bed and the dresser)
     const toFrame = (ln, x, z) => [x * ln.dirX + z * ln.dirZ, x * Math.cos(ln.yaw) - z * Math.sin(ln.yaw)];
     const reframe = (c, to) => {   // the same place, and its walk, said along the other way
@@ -240,7 +241,21 @@ LEVELS.push({
       const r1 = clamp(r0, CROSS.clear, WAYS[to.idx].apZ - 0.3), rA = clamp(Math.min(r0, r1), CROSS.clear, CROSS.wide), db = wrapPi(to.yaw - b0);
       s.mode = 'cross'; s.cross = { to, b0, db, r0, r1, rA, k: 0, v: 0, len: Math.abs(db) * rA + Math.abs(r0 - rA) + Math.abs(r1 - rA) };
       c.distFn = crossing; c.along = null; c.glideFeet = true;
-      AUDIO.sfx('whoosh', panOf(c));
+      s.thumps = { t0: L.t, n: 0, b0, b1: b0 + db, r0, r1 };
+    };
+    // its footsteps as it shifts round: THUMPS.n of them, THUMPS.gap seconds apart (on the night's clock), each a heavy
+    // running step (the runner's, through the effects as every footstep is), panned along from where it was to where it
+    // is going and as loud as a step that far off
+    const THUMPS = { n: 3, gap: 0.16 };
+    const thumping = () => {
+      const T = s.thumps;
+      if (!T) return;
+      while (T.n < THUMPS.n && L.t >= T.t0 + T.n * THUMPS.gap) {
+        const k = T.n / (THUMPS.n - 1), b = T.b0 + (T.b1 - T.b0) * k, r = lerp(T.r0, T.r1, k);
+        AUDIO.footstep('runner', clamp(4 / (r + 4), 0.12, 0.7), clamp(Math.sin(wrapPi(b - G.cam.yaw)), -0.85, 0.85));
+        T.n++;
+      }
+      if (T.n >= THUMPS.n) s.thumps = null;
     };
     const crossing = (c, dt) => {
       const X = s.cross, want = Math.min(CROSS.v, Math.sqrt(2 * CROSS.acc * Math.max(0, 1 - X.k) * X.len));
@@ -271,15 +286,40 @@ LEVELS.push({
     const startDuck = c => {
       s.mode = 'duck'; s.grab = null;
       s.duck = { t0: L.t, d: c.dist, lat: c.lat, peer: c.peer || 0, duck0: c.duck || 0, eye0: c.duck ? c.eyeTo : null, cued: !!(s.duck && s.duck.cued) };
-      const sp = way(c).spot; s.duck.creep = clamp(Math.hypot(c.dist - sp.d, c.lat - sp.lat) * 2, 0.8, 5);   // (low along the floor, not in a rush)
+      s.duck.route = route(c, { d: c.dist, lat: c.lat }, way(c).spot); s.duck.creep = clamp(s.duck.route.len * 2, 0.8, 5);   // (low along the floor, not in a rush)
       stopWalking(c);
       c.flinchSide = c.lat > 0.05 ? -1 : 1;   // the arm toward the middle of the room
       hold(c, c.dist);
       AUDIO.voice('slow', 0.5, panOf(c));
     };
     const DUCK = { flinch: 1.1, down: 2.7, up: 1.2, look: 1.1, reach: 0.22 };   // (its hands come up onto the covers in a snatch)
+    // The way it goes, low along the floor, to its place at the bed (or at you, pulling the covers away in the dark):
+    // straight there from out in the room; but from in the opening, or from behind the wall beside it, first along behind
+    // the wall to the middle of the frame, then straight out through the middle of it into the room (OUT metres past it:
+    // clear of the frame, and in the closet of its doors swung back either side), and only then on to the bed, so it never
+    // goes through the wall, the frame or a door. A list of points {d, lat}; along(rt, m) is the point m of the way along it.
+    const OUT = 0.45;
+    const route = (c, from, to) => {
+      const w = way(c), pts = [from];
+      if (from.d > w.apZ - 0.05 || (from.d > w.apZ - OUT && Math.abs(from.lat) < w.edge)) {
+        if (Math.abs(from.lat) > 1e-3) pts.push({ d: from.d, lat: 0 });
+        if (from.d > w.apZ - OUT && to.d < w.apZ - OUT) pts.push({ d: w.apZ - OUT, lat: 0 });
+      }
+      pts.push(to);
+      const segs = pts.slice(1).map((q, i) => Math.hypot(q.d - pts[i].d, q.lat - pts[i].lat));
+      return { pts, segs, len: segs.reduce((a, b) => a + b, 0) };
+    };
+    const along = (rt, m) => {
+      let x = clamp(m, 0, 1) * rt.len;
+      for (let i = 0; i < rt.segs.length; i++) {
+        const l = rt.segs[i];
+        if (x <= l || i === rt.segs.length - 1) { const k = l > 1e-9 ? clamp(x / l, 0, 1) : 1, a = rt.pts[i], b = rt.pts[i + 1]; return { d: lerp(a.d, b.d, k), lat: lerp(a.lat, b.lat, k) }; }
+        x -= l;
+      }
+      return rt.pts[rt.pts.length - 1];
+    };
     const ducking = c => {
-      const D = s.duck, t = L.t - D.t0, sp = way(c).spot, hide = c.hideBelow === undefined ? 0.6 : c.hideBelow;
+      const D = s.duck, t = L.t - D.t0, hide = c.hideBelow === undefined ? 0.6 : c.hideBelow;
       const T2 = DUCK.down, T3 = T2 + D.creep, T4 = T3 + DUCK.up, T5 = T4 + DUCK.look;
       c.flinch = smoothstep(t / 1.0) * (1 - smoothstep((t - DUCK.flinch) / 0.7));
       c.duck = lerp(D.duck0, 1, smoothstep((t - DUCK.flinch + 0.1) / (T2 - DUCK.flinch + 0.1)));
@@ -288,8 +328,9 @@ LEVELS.push({
       // tall one's crawl, a stride a little under half a metre), so they stop when it stops and nothing of it jumps
       const m = smoothstep((t - T2 + 0.2) / D.creep), low = Math.max(hide - 0.4, 0.26);
       c.faceAway = 0;
-      if (!s.came) hold(c, lerp(D.d, sp.d, m));   // (under the covers, at the end, the night walks it to the bed itself)
-      c.runLat = lerp(D.lat, sp.lat, m); c.peer = D.peer * (1 - smoothstep(t / T2));
+      const at = along(D.route, m);
+      if (!s.came) hold(c, at.d);   // (under the covers, at the end, the night walks it to the bed itself)
+      c.runLat = at.lat; c.peer = D.peer * (1 - smoothstep(t / T2));
       { const nd = c.hold !== null ? c.hold : c.dist, was = D.at || { d: nd, lat: c.runLat, t: L.t }, mv = Math.hypot(nd - was.d, c.runLat - was.lat), dt = Math.max(0, L.t - was.t);
         c.crawl = (c.crawl || 0) + mv * c.CR.CRAWL;
         if (mv < 0.02 * dt) { const rest = Math.round(c.crawl / Math.PI) * Math.PI; c.crawl += (rest - c.crawl) * Math.min(1, dt * 3); }   // still: it settles, all fours down
@@ -347,13 +388,14 @@ LEVELS.push({
     // its hands on the covers, and it rips them down off you and is in your face
     const yank = () => {
       const c = c0(), sp = way(c).spot, to = c.dist < sp.d ? { d: c.dist, lat: c.lat } : sp;
-      s.mode = 'yank'; s.yank = { t0: L.t, d: c.dist, lat: c.lat, to, duck0: c.duck || 0, peer0: c.peer || 0 }; s.yankK = 0;
+      s.mode = 'yank'; s.yank = { t0: L.t, d: c.dist, lat: c.lat, to, route: route(c, { d: c.dist, lat: c.lat }, to), duck0: c.duck || 0, peer0: c.peer || 0 }; s.yankK = 0;
       G.holding = null; stopWalking(c); hold(c, c.dist);
     };
     const yanking = c => {
       const Y = s.yank, t = L.t - Y.t0, hide = c.hideBelow === undefined ? 0.6 : c.hideBelow;
       const m = easeIn(clamp((t - 0.3) / 0.3, 0, 1));
-      hold(c, lerp(Y.d, Y.to.d, m)); c.runLat = lerp(Y.lat, Y.to.lat, m);
+      const at = along(Y.route, m);
+      hold(c, at.d); c.runLat = at.lat;
       c.duck = Y.duck0 * (1 - m); c.peer = Y.peer0 * (1 - m); c.flinch = 0;
       c.reach = smoothstep((t - 0.45) / 0.15); c.gripY = hide - 0.03; c.faceAway = 0;
       s.yankK = smoothstep((t - 0.62) / 0.2);
@@ -387,6 +429,7 @@ LEVELS.push({
       if (s.lampOn && !L.won) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out. It is coming up again.', 'Dark.'); } }
       c.inLight = s.lampOn;
       behave(c, dt);
+      thumping();
       if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', Math.sin(wrapPi(-Math.PI / 4 - G.cam.yaw)) * 0.7, true); } } // the clock is on the dresser to the north-west, whichever way you face
     };
     // a cord on the floor: a pale cloth flex, so it shows on the dark boards; it goes under the bed, behind the mattress

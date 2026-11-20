@@ -833,9 +833,11 @@ const hoverHit = lookFor;
   // shows round its face, close in: pale and no red, or red
   const look = () => page.evaluate(() => {
     const c = G.L.creature, u = G.L.update;
-    G.L.update = dt => { u(dt); G.cam.pitch = G.cam.tPitch = -0.36; };   // (up at its face, held or not)
+    G.L.update = dt => { u(dt); const cp = c.pos(); G.cam.pitch = G.cam.tPitch = -Math.atan2(cp.y + c.yOff + CREATURES.demon.eyesY(c) - G.L.eyeH, c.dist); };   // (at its face, held or not: enraged, it is taller, and bent over toward you)
     G.cam.zoomHeld = true; G.mouse.x = -1; G.step(0.05, 24); G.cam.zoomHeld = false; G.L.update = u;
-    const cp = c.pos(), fp = R.screenPos(cp.x, cp.y + c.yOff + CREATURES.demon.eyesY(c) - 0.06, cp.z), ctx = R.ctx || document.getElementById('game').getContext('2d');
+    // (where its face is drawn: the renderer spreads its card's height evenly between where its feet and its top are seen)
+    const cp = c.pos(), yf = cp.y + c.yOff, b0 = R.screenPos(cp.x, yf, cp.z), b1 = R.screenPos(cp.x, yf + c.CR.h, cp.z), ctx = R.ctx || document.getElementById('game').getContext('2d');
+    const fp = { x: b0.x, y: lerp(b0.y, b1.y, (CREATURES.demon.eyesY(c) - 0.06) / c.CR.h) };
     const dpr = ctx.canvas.width / R.W, x0 = Math.round((fp.x - 90) * dpr), y0 = Math.round((fp.y - 90 + R.viewY) * dpr), n = Math.round(180 * dpr), px = ctx.getImageData(x0, y0, n, n).data;
     let red = 0, pale = 0, dark = 0;
     for (let i = 0; i < px.length; i += 4) { const r = px[i], g = px[i + 1], b = px[i + 2]; if (r > 170 && g < 110 && b < 90) red++; else if (r > 150 && g > 150 && b > 140) pale++; if (r + g + b < 90) dark++; }
