@@ -4,12 +4,14 @@
 // Nothing at all: a faint floor that fades into black. Around you lies everything you ever held against it, and your hands
 // are empty. It comes from anywhere, a tall thing in a black hood. Take up anything and it is enraged: it screeches, and
 // comes on in fits; put it all down again and it calms, and is quiet. The ending plays out here, without a cut: caught
-// empty-handed and facing it, it stops and lifts its arms, its face comes out of the dark of its hood, angry, and it takes
-// hold of you; its face goes through angry, neutral, angry (leaning in at you), confused and sad, and it cries, holding you.
-// It stops, and its head goes down, bowed to the ground, its face lost in the hood; and all at once it throws its head back,
+// empty-handed and facing it, it stops and lifts its arms and takes hold of you, its hands gripping the bottom of the view;
+// then its face comes out of the dark of its hood, angry; its face goes through angry, neutral, angry (leaning in at you),
+// confused, confused the other way, and sad, and it cries, holding you. Its head goes down, bowed to the ground, its face
+// lost in the hood, and it cries on a while; it stops, and is still; and all at once it throws its head back,
 // enraged, screeching, and all round it in the dark are the faces of all the others, each as it was when it came up into
 // your face: it was this one all along. It takes them back into itself, one after another, and its face is its grey
-// neutral face again, a while, in the dark. Confused, as the dark opens into a pale light; it is content, and happy, and
+// neutral face again, a while, in the dark. Confused, and confused the other way as the dark opens into a pale light; it is
+// content, and happy, and
 // the meadow comes out of the light, turning and settling into place in the sun. It lets you go and steps back, and
 // there you may look about as long as you like; a press and it is the bedroom. The bow still comes up and draws as it did on night 5, but it is
 // never loosed: drawn at, it comes for you, faster and faster, and is on you before the bow is full.
@@ -46,23 +48,26 @@ const END = {
   stoop: [0.2, 2.2],                    // it bends down to your face
   near: [0.9, 3.0],                     // and comes in close
   lift: [0.8, 2.8],                     // its arms come up, the hands open, high either side of its head
-  unveil: [2.2, 3.2],                   // its face comes up out of the dark of its hood, angry
-  grab: [3.6, 3.95],                    // and it reaches out and takes hold of you, quick: its hands at the lower corners
-  moods: 4.4,                           // then its faces in turn, each held and going into the next (CREATURES.demon.moodAt):
-  lean: [7.2, 7.8, 8.8, 9.6],           // angry again, it leans in at you, close, and draws back as it is confused;
-  sad: 11.55,                           // through the glitch to sad, crying
-  down: [16.2, 16.8],                   // it cries a while, holding you, and stops, its head going down, bowed to the ground
-  scare: [17.5, 18.4, 19.0],            // and still; then it throws its head back, enraged, and the faces of all the others are
-                                        // round it at once (VOID_RECAP); and it takes them back into itself, one after another
-  neutral: [19.0, 19.6],                // its grey neutral face again, a while, in the dark
-  confused: [22.4, 23.2],               // confused,
-  light: [23.0, 30.0],                  // as the pale void comes, and the meadow coming out of it, turning and settling into place
-  content: [25.0, 26.0], happy: [27.0, 28.0],   // content, and happy
-  release: 30.0,                        // and, the meadow settled, it lets you go
-  walk: [31.0, 34.6],                   // it steps back and round to the north, where the foot of the bed will be
-  disrobe: [35.2, 37.8],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
-  dance: [37.4, 41.9],                  // and dances a little to the tune in its shirt and shorts
-  wait: 35.8, arm: 36.4, idle: 5,       // from here the meadow is yours to look about in, and waits for a press (taken from
+  grab: [3.6, 3.95],                    // and it reaches out and takes hold of you, quick: its hands gripping the bottom edge
+  unveil: [4.3, 5.1],                   // its hands there, its face comes up out of the dark of its hood, angry
+  moods: 6.0,                           // then its faces in turn, each held and going into the next (CREATURES.demon.moodAt):
+  lean: [8.8, 9.4, 10.4, 11.2],         // angry again, it leans in at you, close, and draws back as it is confused (and
+                                        // confused the other way);
+  sad: 14.85,                           // through the glitch to sad, crying
+  down: [19.5, 20.1],                   // it cries a while, holding you, its head going down, bowed to the ground,
+  hush: 23.1,                           // and cries on, bowed, and stops,
+  scare: [23.8, 25.7, 26.3],            // and is still; then it throws its head back, enraged, and the faces of all the others
+                                        // are round it at once (VOID_RECAP); and it takes them back into itself, one after another
+  neutral: [26.3, 26.9],                // its grey neutral face again, a while, in the dark
+  confused: [29.7, 30.5],               // confused,
+  mirror: [32.3, 33.1],                 // and confused the other way (held as long),
+  light: [32.9, 39.9],                  // as the pale void comes, and the meadow coming out of it, turning and settling into place
+  content: [34.9, 35.9], happy: [36.9, 37.9],   // content, and happy
+  release: 39.9,                        // and, the meadow settled, it lets you go
+  walk: [40.9, 44.5],                   // it steps back and round to the north, where the foot of the bed will be
+  disrobe: [45.1, 47.7],                // and as the tune starts it takes off its robe: the hood back, the robe dropped, a hop clear
+  dance: [47.3, 51.8],                  // and dances a little to the tune in its shirt and shorts
+  wait: 45.7, arm: 46.3, idle: 5,       // from here the meadow is yours to look about in, and waits for a press (taken from
                                         // `arm`); if you do nothing for `idle` seconds a small line says how to go on
   leave: 4.2,                           // after the press: the meadow and it fade, the bedroom comes up, and then the last screen
 };
@@ -263,8 +268,8 @@ LEVELS.push({
     // is content and happy (as the light coming is); and lower while its head is bowed. One for each face, in the order of
     // DEMON_MOODS
     const DULL = [[200, 60, 60], 0.25, 0.5];
-    const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2],
-      [[255, 40, 24], 0.85, 0.8], [[200, 176, 184], 0.34, 0.15], [[176, 170, 226], 0.4, 0.25], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
+    const MOOD_LIGHT = [[[255, 46, 30], 0.6, 0.7], [[200, 176, 184], 0.34, 0.15], [[255, 46, 30], 0.6, 0.7], [[176, 170, 226], 0.4, 0.25], [[176, 170, 226], 0.4, 0.25], [[120, 140, 210], 0.36, 0.2],
+      [[255, 40, 24], 0.85, 0.8], [[200, 176, 184], 0.34, 0.15], [[176, 170, 226], 0.4, 0.25], [[176, 170, 226], 0.4, 0.25], [[255, 206, 166], 0.45, 0.05], [[255, 226, 176], 0.6, 0.05]];
     const moodLight = c => {
       const m = c.mood || 0, i = Math.min(Math.floor(m), MOOD_LIGHT.length - 2), k = smoothstep(m - i), A = MOOD_LIGHT[i], B = MOOD_LIGHT[i + 1], u = c.unveil === undefined ? 1 : c.unveil;
       return { color: mixc(DULL[0], mixc(A[0], B[0], k), u), i: lerp(DULL[1], lerp(A[1], B[1], k), u) * (1 - 0.45 * Math.max(0, c.nod || 0)), flicker: lerp(DULL[2], lerp(A[2], B[2], k), u) };
@@ -318,14 +323,18 @@ LEVELS.push({
       const up = Math.atan(0.7 * c.dist / Math.max(0.5, L.eyeH - c.pos().y - c.yOff));
       if (G.cam.pitch < -up) G.cam.pitch = -up;
       // its first two angry faces while it holds you growl, deep and gravelly, as each face shows (kept apart from the
-      // screech of the scare): as the angry face comes up out of the hood, and as it snaps to angry again and leans in
+      // screech of the scare): as the angry face comes up out of the hood (once its hands are on you), and as it snaps to
+      // angry again and leans in
       if (c.unveil >= 0.08 && !s.growl1) { s.growl1 = true; AUDIO.sfx('growl', 0); }
       if (c.mood >= 1.5 && c.mood < 2.6 && !s.growl2) { s.growl2 = true; AUDIO.sfx('growl2', 0); }
       if (t >= END.grab[0] && !s.grabbed) { s.grabbed = true; AUDIO.sfx('cloth', 0); if (!still) G.shake(0.05); }   // it takes hold of you
       if (t >= END.grab[1] + 0.6 && !s.held) { s.held = true; AUDIO.voice('exhale', 0.5, 0); }
-      if (c.mood >= 3.5 && !s.sob) { s.sob = true; s.sobT = 3.4; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
-      if (s.sob && c.sob > 0.5) { s.sobT -= dt; if (s.sobT <= 0) { s.sobT = 3.6; AUDIO.voice('slow', 0.38, 0); } }   // crying, holding you
-      if (t >= END.down[0] - 0.2 && !s.breath) { s.breath = true; AUDIO.voice('exhale', 0.3, 0); }   // and it stops, with a breath, and is still
+      if (c.mood >= 4.5 && !s.sob) { s.sob = true; s.sobT = 3.4; AUDIO.voice('slow', 0.45, 0); }   // the sorrow
+      // crying, holding you; and as its head goes down a sob at once, and closer together while it is bowed (none that would
+      // run on past where it stops)
+      if (s.sob && c.nod > 0.6 && !s.bowSob) { s.bowSob = true; s.sobT = 0; }
+      if (s.sob && c.sob > 0.5) { s.sobT -= dt; if (s.sobT <= 0 && t < END.hush - 1.2) { s.sobT = s.bowSob ? 1.9 : 3.6; AUDIO.voice('slow', s.bowSob ? 0.34 : 0.38, 0); } }
+      if (t >= END.hush && !s.breath) { s.breath = true; AUDIO.voice('exhale', 0.3, 0); }   // and it stops, with a breath, and is still
       // the scare: its head thrown back, its screech (as it screeches enraged, and as it took hold of you) with a blow under
       // it, the view shaken and a flash (no shake with reduced motion, no flash with reduced flashing), and the faces of all
       // the others round it at once (VOID_RECAP: s.scare, where each is); then a rush of air drawn in as it takes them back
@@ -333,7 +342,7 @@ LEVELS.push({
       if (t >= END.scare[0] && !s.scared) {
         s.scared = true; AUDIO.sfx('screech', 0); AUDIO.sfx('thud', 0);
         if (!still) G.shake(0.6);
-        if (!SAVE.data.settings.reducedFlash) G.flash(0.6);
+        if (!SAVE.data.settings.reducedFlash) G.flash(0.25);   // (a soft flash: the faces are the scare)
       }
       if (t >= END.scare[1] && !s.took) { s.took = true; AUDIO.sfx('absorb', 0); }
       if (t >= END.neutral[0] + 0.3 && !s.breath2) { s.breath2 = true; AUDIO.voice('exhale', 0.4, 0); }
@@ -446,17 +455,19 @@ LEVELS.push({
         } });
       }
     };
-    // a faint cold light straight behind it, as on the title: one soft round of it about its hood and shoulders, a little
+    // a faint cold light straight behind it, as on the title: one soft, wide round of it about its hood and shoulders, far
     // wider than it is however near it comes (it is as big in the world, so it grows in the view as it nears), so its
-    // dark shape stands against it from far off to holding you. Drawn just before it (and before the faces round it at
-    // the scare, so it never lies over them); steady, never flickering; and gone as the pale light comes
-    const BACK = [104, 112, 134], BACK_FALL = [[0, 1], [0.2, 0.9], [0.4, 0.66], [0.6, 0.38], [0.8, 0.14], [1, 0]];
+    // dark shape stands against it from far off to holding you. Faint, and falling off gently all the way out (a bell, not
+    // a disc: no edge anywhere). Drawn just before it (and before the faces round it at the scare, so it never lies over
+    // them); steady, never flickering; and gone as the pale light comes
+    const BACK = [104, 112, 134], BACK_FALL = Array.from({ length: 13 }, (_, i) => { const x = i / 12, e = Math.exp(-4); return [x, (Math.exp(-4 * x * x) - e) / (1 - e)]; });
     const backLight = () => {
       const c = c0(), a = Math.max(0, c.fade) * (1 - s.reveal) * (1 - clamp(s.meadow / VOID_PALE, 0, 1));
       if (a <= 0.01) return;
-      // (coming on, about its chest and wide enough for all of it; holding you, about its hood, and only so wide)
+      // (coming on, about its chest and wide enough for all of it and more; holding you, about its hood, and wider still
+      // than the view)
       const p = c.pos(), d = Math.hypot(c.dist, c.lat || 0), k = clamp((d - 0.8) / 2.5, 0, 1);
-      const r = lerp(0.75, 2.3, k), yc = CREATURES.demon.eyesY(c) - lerp(0.05, 0.5, k), la = a * lerp(0.21, 0.25, k);
+      const r = lerp(1.7, 4.2, k), yc = CREATURES.demon.eyesY(c) - lerp(0.05, 0.5, k), la = a * lerp(0.12, 0.14, k);
       R.add({ kind: 'sprite', x: p.x, y: p.y + (c.yOff || 0), z: p.z, w: 2 * r, h: c.CR.h, dist: d, sortDist: Math.max(d + 0.4, 1.3), layer: 1, noContact: true, noLight: true, noFog: true, draw: ctx => {
         // (as the renderer has it, a height up it is where the same height up the thing itself is drawn; and round in the view)
         const m = ctx.getTransform(), o = m.transformPoint({ x: 0, y: yc }), rr = r * Math.hypot(m.a, m.b);
@@ -747,7 +758,7 @@ function buildMeadow(L, s, c0) {
 // simply not there. With reduced flashing they are dimmer.
 const VOID_RECAP = (() => {
   const count = () => LEVELS.length - 1;   // every night before this one
-  const AT = 4.6, EVERY = 0.9;   // (one every EVERY seconds from AT: after it has taken hold of you, while it holds its faces)
+  const AT = 5.4, EVERY = 0.9;   // (one every EVERY seconds from AT: after it has taken hold of you and its face is up, while it holds its faces)
   let faces = [], key = '';
   // each one's face, as faceShot frames it: how far into its lunge (k), and the square round its face (s, its side, as much
   // of the view's height; x, y, where its middle is, right and up from the middle of the view, the same)

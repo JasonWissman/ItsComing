@@ -942,15 +942,17 @@ const hoverHit = lookFor;
   });
   const hold = await page.evaluate(() => {
     const c = G.L.creature, s = G.L.s, o = { flashes: [], white: 0, tops: [] };
-    const step = () => { G.step(1 / 30, 1); if (G.flashAmt > 0.01) o.flashes.push(+s.endT.toFixed(2)); o.white = Math.max(o.white, G.white); };
+    o.flashMax = 0;
+    const step = () => { G.step(1 / 30, 1); if (G.flashAmt > 0.01) o.flashes.push(+s.endT.toFixed(2)); o.flashMax = Math.max(o.flashMax, G.flashAmt); o.white = Math.max(o.white, G.white); };
     const until = t => { while (s.endT < t - 1e-6) step(); };
     o.tops.push(['catch', window._hoodTop()]);
     until(END.lift[0] + 0.5); const h0 = c.hug && { lift: c.hug.lift, grab: c.hug.grab };
     o.tops.push(['bending', window._hoodTop()]);
-    until(END.unveil[0] - 0.05); o.veiled = { unveil: c.unveil, mood: c.mood, grab: c.hug.grab };   // its face still in the dark of the hood
     until(END.lift[1]); o.lifted = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
-    until(END.grab[0] - 0.05); o.angry = { unveil: c.unveil, mood: c.mood, grab: c.hug.grab };      // out of it, angry, and not yet holding you
+    until(END.grab[0] - 0.05); o.reaching = { unveil: c.unveil, mood: c.mood, grab: c.hug.grab };   // its arms up, its face still in the dark of the hood
     until(END.grab[1] + 0.3); o.holding = c.hug && c.hug.wrists && c.hug.wrists.map(p => p.map(v => +v.toFixed(2)));
+    o.veiled = { unveil: c.unveil, mood: c.mood, grab: c.hug.grab, at: +(END.unveil[0] - END.grab[1]).toFixed(2) };   // holding you, its hands settled, its face still in the dark
+    until(END.unveil[1]); o.angry = { unveil: c.unveil, mood: c.mood, grab: c.hug.grab };      // and only then out of it, angry
     o.grabTook = +(END.grab[1] - END.grab[0]).toFixed(2);
     until(END.moods + 0.3);
     const cp = c.pos(), face = cp.y + c.yOff + CREATURES.demon.eyesY(c), fp = R.screenPos(cp.x, face, cp.z);
@@ -965,16 +967,16 @@ const hoverHit = lookFor;
       if (Number.isInteger(m)) {
         if (seen.length && seen[seen.length - 1].m === m) seen[seen.length - 1].t1 = s.endT;
         else { seen.push({ m, t0: s.endT, t1: s.endT, grab: s.grab, meadow: s.meadow }); o.tops.push([CREATURES.demon.moodNames[m] + m, window._hoodTop()]); }
-        if (m === 2) o.lean.angry2 = Math.min(o.lean.angry2, c.dist); else if (m <= 4 && c.hug && c.hug.grab > 0.99) o.lean.other = Math.max(o.lean.other, c.dist);
+        if (m === 2) o.lean.angry2 = Math.min(o.lean.angry2, c.dist); else if (m <= 5 && c.hug && c.hug.grab > 0.99) o.lean.other = Math.max(o.lean.other, c.dist);
       }
     };
     while (s.endT < END.sad + 1) { step(); watch(); }
     while (s.endT < END.down[0] - 0.6) { step(); watch(); }
     o.crying = { sob: c.sob, mood: c.mood, grab: c.hug && c.hug.grab, dist: +c.dist.toFixed(2), shown: s.shown, nod: c.nod, kneel: c.kneel };
-    // it stops crying and its head goes down, and stays down a while, sad, no faces yet
-    let bowed = null;
-    while (s.endT < END.scare[0] - 0.05) { step(); watch(); if (c.nod > 0.95) bowed = bowed || { t: +s.endT.toFixed(2), mood: c.mood, sob: c.sob, shown: s.shown, grab: c.hug && c.hug.grab }; }
-    o.bowed = bowed && Object.assign(bowed, { held: +(s.endT - bowed.t).toFixed(2), still: c.nod > 0.95 && s.shown === 0 });
+    // its head goes down, and stays down a while, sad and still crying, no faces yet; then it stops crying, and is still
+    let bowed = null, sobbing = 0;
+    while (s.endT < END.scare[0] - 0.05) { step(); watch(); if (c.nod > 0.95) { bowed = bowed || { t: +s.endT.toFixed(2), mood: c.mood, sob: c.sob, shown: s.shown, grab: c.hug && c.hug.grab }; if (c.sob > 0.95) sobbing += 1 / 30; } }
+    o.bowed = bowed && Object.assign(bowed, { held: +(s.endT - bowed.t).toFixed(2), sobbing: +sobbing.toFixed(2), quiet: c.sob, still: c.nod > 0.95 && s.shown === 0 });
     // the scare: every face there is comes in the same step, while it holds you, its head thrown back fast with its angry
     // face, the view shaken and a flash
     const faces = VOID_RECAP.faces, n = faces.filter(Boolean).length;
@@ -1001,30 +1003,39 @@ const hoverHit = lookFor;
     o.spun = +spun.toFixed(2); o.settled = settled;
     until(END.release + 1.5); o.let = { hug: c.hug, calm: c.calm };
     o.moods = seen.map(x => x.m); o.seen = seen.map(x => [x.m, +x.t0.toFixed(2), +x.t1.toFixed(2), +x.grab.toFixed(2)]);
-    o.neutralAt = (seen.find(x => x.m === 6) || {}).t0;
-    o.held2 = seen.filter(x => x.m >= 1 && x.m <= 7).every(x => x.t1 - x.t0 >= 0.8 && x.grab > 0.99) && seen.filter(x => x.m <= 6).every(x => x.meadow === 0);
+    o.neutralAt = (seen.find(x => x.m === 7) || {}).t0;
+    o.held2 = seen.filter(x => x.m >= 1 && x.m <= 9).every(x => x.t1 - x.t0 >= 0.8 && x.grab > 0.99) && seen.filter(x => x.m <= 8).every(x => x.meadow === 0);
+    // each confused face held as long as its mirror (the first pair, and the pair as the light comes)
+    const len = m => (x => x && +(x.t1 - x.t0).toFixed(2))(seen.find(x => x.m === m));
+    o.pairs = [[len(3), len(4)], [len(8), len(9)]];
     o.blends = seen.slice(1).map((x, i) => +(x.t0 - seen[i].t1).toFixed(2)); o.down = down;
     return o;
   });
   check(hold.held.h0 && hold.held.h0.lift > 0 && hold.held.h0.lift < 0.5 && hold.held.h0.grab === 0, 'it lifts its arms slowly (' + JSON.stringify(hold.held.h0) + ')');
   check(hold.lifted && hold.lifted.every(([x, y], i) => (i ? x > 0.6 && x < 0.95 : x > 0.05 && x < 0.4) && y > 0.2 && y < 0.5), 'its hands come up high in the view, one each side of its head (' + JSON.stringify(hold.lifted) + ')');
-  check(hold.veiled.unveil === 0 && hold.veiled.mood === 0 && hold.veiled.grab === 0 && hold.angry.unveil === 1 && hold.angry.mood === 0 && hold.angry.grab === 0, 'its arms lifted, its face comes up out of the dark of its hood, angry, before it takes hold of you (' + JSON.stringify([hold.veiled, hold.angry]) + ')');
-  check(hold.grabTook < 0.5 && hold.holding && hold.holding.every(([x, y], i) => (i ? x > 0.8 : x < 0.2) && y > 0.75), 'then, quick, it reaches out and takes hold of you: its hands at the lower corners of the view, as the tall thing in the bedroom grabbed (' + JSON.stringify(hold.holding) + ')');
+  check(hold.reaching.unveil === 0 && hold.reaching.grab === 0 && hold.veiled.unveil === 0 && hold.veiled.mood === 0 && hold.veiled.grab === 1 && hold.veiled.at >= 0.2 && hold.angry.unveil === 1 && hold.angry.mood === 0 && hold.angry.grab === 1, 'its arms lifted, it takes hold of you with its face still in the dark of its hood; only once its hands have settled does its face come up out of the dark, angry (' + JSON.stringify([hold.reaching, hold.veiled, hold.angry]) + ')');
+  check(hold.grabTook < 0.5 && hold.holding && hold.holding.every(([x, y], i) => (i ? x > 0.8 : x < 0.2) && y > 0.98 && y < 1.2), 'then, quick, it reaches out and takes hold of you, as the tall thing in the bedroom grabbed: its hands low in the corners of the view, gripping its bottom edge (' + JSON.stringify(hold.holding) + ')');
   check(hold.held.lift > 0.99 && hold.held.grab > 0.99 && hold.held.overlay > 0.99 && hold.held.dist < 0.75, 'it holds you, close in front of you (' + JSON.stringify(hold.held) + ')');
   check(hold.held.aim < 0.02 && hold.held.faceX > 0.4 && hold.held.faceX < 0.6 && hold.held.faceY > 0.1 && hold.held.faceY < 0.5, 'the view stays on its face (' + (hold.held.faceX || 0).toFixed(2) + ', ' + (hold.held.faceY || 0).toFixed(2) + ')');
   check(hold.tops.length >= 9 && hold.tops.every(([w, y]) => y !== null && (y > 0.01 || w === 'angry2')), 'close in, it bends down to you so its head stays in the view: as it reaches you, holds you, and through every face (but as it leans right in, angry, its face filling the view: ' + hold.tops.map(([w, y]) => w + ':' + y).join(', ') + ')');
   check(hold.lean.angry2 < 0.4 && Math.abs(hold.lean.other - 0.68) < 0.02, 'angry again, it leans right in at you (closer than 0.4 m), and back again for confused (' + JSON.stringify(hold.lean) + ')');
   const E13 = await page.evaluate(() => END);   // (night 13's timeline)
-  check(hold.crying.sob === 1 && hold.crying.mood === 4 && hold.crying.grab === 1 && hold.crying.dist === 0.68 && hold.crying.shown === 0 && hold.crying.nod === 0 && hold.crying.kneel === undefined, 'sad, it cries a while in place, still holding you: it does not let go or sink down (' + JSON.stringify(hold.crying) + ')');
-  check(!!hold.bowed && hold.bowed.mood === 4 && hold.bowed.sob < 0.05 && hold.bowed.shown === 0 && hold.bowed.grab === 1 && hold.bowed.t < E13.scare[0] && hold.bowed.held > 0.5 && hold.bowed.still, 'then it stops crying and its head goes down, bowed toward the ground, and stays down a while, still holding you, before anything else (' + JSON.stringify(hold.bowed) + ')');
+  check(hold.crying.sob === 1 && hold.crying.mood === 5 && hold.crying.grab === 1 && hold.crying.dist === 0.68 && hold.crying.shown === 0 && hold.crying.nod === 0 && hold.crying.kneel === undefined, 'sad, it cries a while in place, still holding you: it does not let go or sink down (' + JSON.stringify(hold.crying) + ')');
+  check(!!hold.bowed && hold.bowed.mood === 5 && hold.bowed.sob > 0.95 && hold.bowed.sobbing > 2.5 && hold.bowed.quiet < 0.05 && hold.bowed.shown === 0 && hold.bowed.grab === 1 && hold.bowed.t < E13.scare[0] && hold.bowed.held > 3 && hold.bowed.still, 'then its head goes down, bowed toward the ground, and it cries on a good while, bowed, still holding you; then it stops, and is still, before anything else (' + JSON.stringify(hold.bowed) + ')');
   const SC = hold.scare, TK = hold.taken;
   check(SC.n === 12 && !SC.partial && SC.first !== null && SC.first >= E13.scare[0] - 1e-6 && SC.first < E13.scare[0] + 0.05 && SC.shown === 12 && SC.behind === 12 && SC.lit && SC.grab === 1,
     'at the scare the faces of all twelve of the others come at once, in the same step, all round it, behind it, while it still holds you (' + JSON.stringify(SC) + ')');
-  check(SC.mood === 5 && SC.nod < -0.7 && SC.shake > 0.3 && hold.flashes.length > 0 && hold.flashes.every(t => t >= E13.scare[0] - 0.05 && t < E13.scare[0] + 0.5), 'with its angry face, its head thrown back, the view shaken and a flash (the only flash in it) (' + JSON.stringify([SC.mood, SC.nod, SC.shake, hold.flashes]) + ')');
-  check(TK.front >= 1 && TK.gulp > 0.5 && TK.upFor > 0.6 && TK.upFor < 1.3 && TK.took > 0.3 && TK.took < 0.9 && TK.gone !== null && hold.neutralAt !== undefined && TK.gone < hold.neutralAt, 'up a moment, then they fly into it, in front of it, one after another, the opening of its hood taking them, and all are gone before its face is neutral again (' + JSON.stringify([TK, hold.neutralAt]) + ')');
-  check(hold.neutral.mood === 6 && hold.neutral.sob === 0 && Math.abs(hold.neutral.nod) < 1e-6 && hold.neutral.grab === 1 && hold.neutral.shown === 0 && hold.neutral.meadow === 0, 'and its face is the grey neutral face again, its head level, in the dark, still holding you (' + JSON.stringify(hold.neutral) + ')');
-  const greyAgain = await page.evaluate(() => JSON.stringify(DEMON_MOODS[6]) === JSON.stringify(DEMON_MOODS[1]) && DEMON_MOODS[7] === DEMON_MOODS[3] && DEMON_MOODS[5].skin === DEMON_MOODS[0].skin && DEMON_MOODS[5].glow === 1);
-  check(greyAgain, 'the same grey neutral face it made the first time, the same confused face, and its angry face at the scare');
+  check(SC.mood === 6 && SC.nod < -0.7 && SC.shake > 0.3 && hold.flashes.length > 0 && hold.flashes.every(t => t >= E13.scare[0] - 0.05 && t < E13.scare[0] + 0.5) && hold.flashMax <= 0.3, 'with its angry face, its head thrown back, the view shaken and a soft flash (the only flash in it) (' + JSON.stringify([SC.mood, SC.nod, SC.shake, hold.flashes, hold.flashMax]) + ')');
+  check(TK.front >= 1 && TK.gulp > 0.5 && TK.upFor > 1.6 && TK.upFor < 2.3 && TK.took > 0.3 && TK.took < 0.9 && TK.gone !== null && hold.neutralAt !== undefined && TK.gone < hold.neutralAt, 'up nearly two seconds, then they fly into it, in front of it, one after another, the opening of its hood taking them, and all are gone before its face is neutral again (' + JSON.stringify([TK, hold.neutralAt]) + ')');
+  check(hold.neutral.mood === 7 && hold.neutral.sob === 0 && Math.abs(hold.neutral.nod) < 1e-6 && hold.neutral.grab === 1 && hold.neutral.shown === 0 && hold.neutral.meadow === 0, 'and its face is the grey neutral face again, its head level, in the dark, still holding you (' + JSON.stringify(hold.neutral) + ')');
+  const greyAgain = await page.evaluate(() => JSON.stringify(DEMON_MOODS[7]) === JSON.stringify(DEMON_MOODS[1]) && DEMON_MOODS[8] === DEMON_MOODS[3] && DEMON_MOODS[9] === DEMON_MOODS[4] && DEMON_MOODS[6].skin === DEMON_MOODS[0].skin && DEMON_MOODS[6].glow === 1);
+  check(greyAgain, 'the same grey neutral face it made the first time, the same confused faces, and its angry face at the scare');
+  // the second confused face is the first in a mirror: the raised brow, the twist of the mouth and the tilt of the head the
+  // other way, all else the same (and nothing else in the face is to one side); held as long as the first, both times
+  const mirrored = await page.evaluate(() => { const A = DEMON_MOODS[3], B = DEMON_MOODS[4], flip = ['bq', 'mk', 'tilt']; return Object.keys(A).every(k => (flip.includes(k) ? A[k] !== 0 && B[k] === -A[k] : JSON.stringify(A[k]) === JSON.stringify(B[k]))); });
+  check(mirrored && hold.pairs.every(([a, b]) => a > 0.8 && Math.abs(a - b) < 0.1), 'confused, it goes smoothly over into the same face mirrored, each held as long as the other, before the glitch and again as the light comes (' + JSON.stringify(hold.pairs) + ')');
+  // angry, its eyes are round (all its angry faces while it holds you, and at the scare)
+  check(await page.evaluate(() => [0, 2, 6].every(i => DEMON_MOODS[i].er === DEMON_MOODS[i].eh && DEMON_MOODS[i].glow === 1)), 'its angry faces have round eyes');
   // with reduced motion its faces, holding you, change by fades only: from confused to sad it still tries faces on, but each
   // fades into the next (no snap), and the turns into and out of its second angry face are slow too
   const glitch = await page.evaluate(() => {
@@ -1039,16 +1050,16 @@ const hoverHit = lookFor;
       return { worst: +worst.toFixed(3), tried };
     };
     const quick = s => { let t = 0; const T = []; for (let u = 0; u < 12; u += 0.01) { const m = D.moodAt(u, s); if (m > 1.02 && m < 1.98) t += 0.01; if (m > 2.02 && m < 2.98) T.push(u); } return [+t.toFixed(2), +(T.length * 0.01).toFixed(2)]; };
-    return { snap: rate(false, 3, 4), still: rate(true, 3, 4), quick: quick(false), slow: quick(true), end: D.moodAt(20, true) };
+    return { snap: rate(false, 4, 5), still: rate(true, 4, 5), quick: quick(false), slow: quick(true), end: D.moodAt(20, true), same: +(D.moodAt(8.75, true) - D.moodAt(8.75, false)).toFixed(2) };
   });
-  check(glitch.still.worst < glitch.snap.worst / 3 && glitch.still.tried > 0 && glitch.slow[0] >= 0.5 && glitch.slow[1] >= 0.5 && glitch.quick[0] < 0.3 && glitch.end === 4,
+  check(glitch.still.worst < glitch.snap.worst / 3 && glitch.still.tried > 0 && glitch.slow[0] >= 0.5 && glitch.slow[1] >= 0.5 && glitch.quick[0] < 0.3 && glitch.end === 5 && glitch.same === 0,
     'with reduced motion its faces fade one into the next: the glitch to sad tries faces on in slow cross-fades (no snap), and into and out of the second angry face is slow (' + JSON.stringify(glitch) + ')');
   check(hold.pale.every(v => v > 200), 'the dark lightens into a pale void (' + hold.pale + ')');
-  check(hold.spun > 1 && hold.settled.spin === 0 && hold.settled.meadow === 1 && hold.settled.grab === 1 && hold.settled.shown === 0 && hold.settled.mood === 9, 'the meadow comes out of the light turning round you both and settles into place, and it is happy, still holding you (' + JSON.stringify([hold.spun, hold.settled]) + ')');
+  check(hold.spun > 1 && hold.settled.spin === 0 && hold.settled.meadow === 1 && hold.settled.grab === 1 && hold.settled.shown === 0 && hold.settled.mood === 11, 'the meadow comes out of the light turning round you both and settles into place, and it is happy, still holding you (' + JSON.stringify([hold.spun, hold.settled]) + ')');
   check(hold.let.hug === null && hold.let.calm > 0.5, 'then it lets you go (' + JSON.stringify(hold.let) + ')');
   const moodNames = await page.evaluate(() => CREATURES.demon.moodNames.join(', '));
-  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6,7,8,9]' && moodNames === 'angry, neutral, angry, confused, sad, angry, neutral, confused, content, happy' && !hold.down && hold.held2, 'its face goes through ' + moodNames + ', in that order, each held a while, all of it holding you (' + JSON.stringify(hold.seen) + ')');
-  check(hold.blends.every((b, i) => (i === 1 || i === 2 ? b > 0.1 && b < 0.45 : i === 4 ? b < 0.1 : b >= 0.55)), 'each change of face is slow, but for the quick ones into its second angry face and out of it, and the snap to angry at the scare (' + hold.blends.join(', ') + ' s)');
+  check(JSON.stringify(hold.moods) === '[0,1,2,3,4,5,6,7,8,9,10,11]' && moodNames === 'angry, neutral, angry, confused, confused mirrored, sad, angry, neutral, confused, confused mirrored, content, happy' && !hold.down && hold.held2, 'its face goes through ' + moodNames + ', in that order, each held a while, all of it holding you (' + JSON.stringify(hold.seen) + ')');
+  check(hold.blends.every((b, i) => (i === 1 || i === 2 ? b > 0.1 && b < 0.45 : i === 5 ? b < 0.1 : b >= 0.55)), 'each change of face is slow, but for the quick ones into its second angry face and out of it, and the snap to angry at the scare (' + hold.blends.join(', ') + ' s)');
   check(hold.white < 0.01, 'nothing in it goes white');
   const meadow = await page.evaluate(() => {
     const c = G.L.creature, s = G.L.s;
@@ -1072,7 +1083,7 @@ const hoverHit = lookFor;
     return Object.assign(at, { after: { state: G.state, leaving: s.leaving, meadow: s.meadow, fade: c.fade }, quiet, lineAt, turned });
   });
   check(meadow.quiet === 0 && meadow.turned > 3 && meadow.lineAt && meadow.lineAt.idle >= 5 && meadow.lineAt.i > 52 + 50, 'in the meadow no line says to stay; CLICK WHEN YOU ARE READY comes only after five seconds with nothing done, and a look about starts the count again (' + JSON.stringify([meadow.quiet, meadow.turned, meadow.lineAt]) + ')');
-  check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 9 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
+  check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 11 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
   check(meadow.ground[1] > meadow.ground[0] + 40 && meadow.sky[2] > 200 && meadow.sky[2] > meadow.sky[0] + 80 && meadow.room === 0, 'green grass and a blue sky, and no room yet (' + JSON.stringify([meadow.ground, meadow.sky]) + ')');
   check(meadow.after.state === 'won' && !meadow.after.leaving && meadow.after.meadow === 1 && meadow.after.fade === 1, 'left alone, the meadow simply stays');
   for (const k of ['Alt', 'Meta', 'Shift', 'Control+Shift+KeyS', 'F2']) await page.keyboard.press(k);
