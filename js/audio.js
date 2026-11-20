@@ -671,7 +671,7 @@ const AUDIO = (() => {
     pans: [-1, -1, -0.5, 0, 0.5, 1, 1], gap: 0.3, heart: 0.04 + 0.02 * 0.5, len: { quiet: 0.4, loud: 1.6 },
     beds: {   // (night08.js L.def.ambient with the hum gone, as its main switched off has it; night07.js L.def.ambient)
       ambientQuiet: { tune: 'ambient:8off', wind: 0.25, drone: 0.12, droneFreq: 60, windFreq: 300 },
-      ambientLoud: { tune: 'ambient:7', wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 },
+      ambientLoud: { tune: 'ambient:9', wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 },
     },
     bed: { len: 6, fade: 1 },
   };

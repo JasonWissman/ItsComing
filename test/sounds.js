@@ -79,14 +79,14 @@ check(/kind: 'ambient', name: 'title[^\n]*near: 0/.test(lab) && /kind: 'ambient'
     "the calibration plays the heartbeat's lub as the heartbeat plays it (tuned as 'heartbeat') and stingCalibrate as an effect, each panned");
   check(/pans: \[-1, -1, -0\.5, 0, 0\.5, 1, 1\], gap: 0\.3, heart: 0\.04 \+ 0\.02 \* 0\.5/.test(audio) && /AUDIO\.heartbeat\(0\.04 \+ prox \* 0\.5, prox > 0\.7\)/.test(src['js/game.js']) && /!G\.muted && prox > 0\.02\)/.test(src['js/game.js']),
     'seven of each, 0.3 s apart (all seven in 1.8 s): twice left, left of centre, centre, right of centre, twice right; the lub as loud as the game first plays the heartbeat (0.04 + prox * 0.5 from prox 0.02)');
-  // the ambience's two ends: night 8's bed with its main off, and night 7's storm, as the nights have them
+  // the ambience's two ends: night 8's bed with its main off, and night 9's rain, as the nights have them
   const bedOf = k => (audio.match(new RegExp(k + ': (\\{ tune: [^}]*\\})')) || [])[1];
-  const n7 = (src['js/levels/night07.js'].match(/ambient: (\{ tune: 'ambient:7'[^}]*\})/) || [])[1], n8 = (src['js/levels/night08.js'].match(/ambient: (\{ tune: 'ambient:8'[^}]*\})/) || [])[1];
+  const n7 = (src['js/levels/night09.js'].match(/ambient: (\{ tune: 'ambient:9'[^}]*\})/) || [])[1], n8 = (src['js/levels/night08.js'].match(/ambient: (\{ tune: 'ambient:8'[^}]*\})/) || [])[1];
   const obj = t => t && Function('return ' + t)();
   const q = obj(bedOf('ambientQuiet')), l = obj(bedOf('ambientLoud')), e8 = obj(n8), e7 = obj(n7);
   check(q && e8 && JSON.stringify(q) === JSON.stringify(Object.assign({}, e8, { drone: 0.12, tune: 'ambient:8off' })) && /startAmbient\(Object\.assign\(\{\}, L\.def\.ambient, \{ drone: 0\.12, tune: 'ambient:8off' \}\)\)/.test(src['js/levels/night08.js']),
     "the quietest ambience is night 8's bed once its main is off, as night08.js plays it (" + JSON.stringify(q) + ')');
-  check(l && e7 && JSON.stringify(l) === JSON.stringify(e7), "the loudest ambience is night 7's storm (the lighthouse's wind and rain), as night07.js has it (" + JSON.stringify(l) + ')');
+  check(l && e7 && JSON.stringify(l) === JSON.stringify(e7), "the loudest ambience is night 9's rain (the loudest bed by measure), as night09.js has it (" + JSON.stringify(l) + ')');
 }
 // every sound goes through the effects volume or the ambience volume, and nothing else: no main volume left; only the
 // buses (and the calibration's own two ways in, kept at those volumes) join the master gain; nothing outside js/audio.js

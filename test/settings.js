@@ -373,8 +373,8 @@ async function run(browser, check) {
     console.log('    the beds, quietest first (LUFS): ' + order.map(([n, l]) => n + ' ' + l).join(', '));
     const calQ = await page.evaluate(() => AUDIO.CAL.beds.ambientQuiet.tune), calL = await page.evaluate(() => AUDIO.CAL.beds.ambientLoud.tune);
     check(order[0][0] === '8off' && calQ === 'ambient:8off', 'the quietest bed in the game is night 8\'s with its main off (' + order[0][1] + ' LUFS), and it is the calibration\'s quietest ambience (' + calQ + ')');
-    check(calL === 'ambient:7', 'the calibration\'s loudest ambience is the lighthouse\'s storm (' + calL + ', ' + loudness['7'] + ' LUFS; the loudest by measure: ' + order[order.length - 1][0] + ', ' + order[order.length - 1][1] + ')');
-    for (const [k, n] of [['ambientQuiet', '8off'], ['ambientLoud', '7']]) {
+    check(calL === 'ambient:9' && order[order.length - 1][0] === '9', 'the calibration\'s loudest ambience is the loudest bed in the game by measure, night 9\'s rain (' + calL + ', ' + loudness['9'] + ' LUFS)');
+    for (const [k, n] of [['ambientQuiet', '8off'], ['ambientLoud', '9']]) {
       const r = await runs(1, "AUDIO.calibrate('" + k + "')", 6.5, '', 2, null), r2 = await runs(1, "AUDIO.calibrate('" + k + "')", 6.5, "AUDIO.setVolume('ambient', 0.5); AUDIO.setVolume('effects', 0.1)", 2, null);
       // (held on for as long as the bed was measured in the game, over the same stretch of its slow swells: as loud as there)
       const full = await runs(1, "AUDIO.calibrate('" + k + "')", 16, 'AUDIO.CAL.bed.len = 16', 6, null);

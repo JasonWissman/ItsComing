@@ -779,13 +779,13 @@ const hoverHit = lookFor;
     'a new player: both volumes at 100% (no main volume), the text Normal (1.4)');
   console.log('== settings saved with a main volume, Effects and Ambience Normal or Quieter (or sliders before that), and the old text sizes ==');
   // the main volume folded into the two: each the main volume times its own (Quieter is 0.5); written back without it. The
-  // text: Smaller (0.85) or Normal (1) as it was is Smaller now (1, the size Normal was), Bigger (1.4) is Normal (1.4),
-  // anything between to the nearest
+  // text: a save from before the sizes moved up (one with a main volume) keeps its size's name: Smaller (0.85) is Smaller
+  // (1), Normal (1) is Normal (1.4), Bigger (1.4) is Bigger (1.8), anything between to the nearest; none at all, Normal
   for (const [old, want] of [
-    [{ master: 1, effects: 0.5, ambient: 1, textSize: 1 }, '0.5,1,1;Smaller'],
-    [{ master: 0.6, effects: 1, ambient: 0.5, textSize: 1.4 }, '0.6,0.3,1.4;Normal'],
+    [{ master: 1, effects: 0.5, ambient: 1, textSize: 1 }, '0.5,1,1.4;Normal'],
+    [{ master: 0.6, effects: 1, ambient: 0.5, textSize: 1.4 }, '0.6,0.3,1.8;Bigger'],
     [{ master: 0.35, effects: 0.6, ambient: 0.8, textSize: 0.85 }, '0.21,0.28,1;Smaller'],
-    [{ master: 0.8, effects: 0.75, ambient: 0, textSize: 1.3 }, '0.6,0,1.4;Normal'],
+    [{ master: 0.8, effects: 0.75, ambient: 0, textSize: 1.3 }, '0.6,0,1.8;Bigger'],
     [{ effects: 0.74, ambient: 0.2, textSize: 1.15 }, '0.74,0.2,1;Smaller'],
     [{ effects: 1, ambient: 1, textSize: 1.8 }, '1,1,1.8;Bigger'],
     [{ master: 'loud', effects: 'loud', textSize: null }, '1,1,1.4;Normal'],

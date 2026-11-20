@@ -76,8 +76,8 @@ const SAVE = (() => {
   // motion and reduced flashing (once two settings) are one, on if either was
   // (and from when there was a main volume over the effects and the ambience, each of those Normal or Quieter, or before
   // that a slider: the main volume is gone, folded into the two, so each is the main volume times its own (Quieter is
-  // half: 50% under a main volume at 100%). The text size to the nearest of its sizes now: what was Smaller (0.85) or
-  // Normal (1) is Smaller (1, the size Normal was), what was Bigger (1.4) Normal (the same size). True if a main volume
+  // half: 50% under a main volume at 100%). The text size to the nearest of its sizes now; a save from before they moved
+  // up keeps its size's name (below). True if a main volume
   // was folded in, so the save is written again without it)
   function tidy(S, old) {
     if (old.reduceTextures === undefined && old.textures === false) S.reduceTextures = true;
@@ -87,7 +87,11 @@ const SAVE = (() => {
     const main = 'master' in old ? Math.min(1, Math.max(0, num(old.master, 1))) : 1;
     S.effects = vol(main * num(S.effects, 1)); S.ambient = vol(main * num(S.ambient, 1));
     delete S.master;
-    S.textSize = nearest(TEXT_SIZES, num(S.textSize, TEXT_NORMAL));
+    // (a save from before the sizes moved up, the one with a main volume, keeps its size's name: Smaller, Normal or Bigger,
+    // each now the bigger size it names)
+    const ts = num(S.textSize, TEXT_NORMAL);
+    const OLD = [['Smaller', 0.85], ['Normal', 1], ['Bigger', 1.4]];
+    S.textSize = typeof S.textSize !== 'number' || !isFinite(S.textSize) ? TEXT_NORMAL : 'master' in old ? TEXT_SIZES[OLD.findIndex(o => o[1] === nearest(OLD, ts))][1] : nearest(TEXT_SIZES, ts);
     return 'master' in old;
   }
   // a v2 save had four difficulties and a v3 save two: fold them all into the one game, keeping the furthest reached
