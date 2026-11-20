@@ -429,6 +429,24 @@ LEVELS.push({
     L.onLaneSwitch = c => { s.scut = { from: c.wallTh, to: FACE[c.lane.idx] }; };
     const onLane = () => Math.abs(wrapPi(s.beamA - azOf(L.creature))) < 22.5 * DEG;
     L.isWon = () => (s.power && s.turning) || !!s.boxHit;
+    // The lightning in the thunder: as the thunder sounds (WEATHER calls L.onThunder as it plays it) the whole view lifts a
+    // little toward a cold blue-white, laid over it so the dark comes up most: a quick flicker as the rumble comes in, a
+    // dip, and a stronger one with the crack in it (the thunder's bright noise comes in 0.3 s after it starts), dying away
+    // over half a second or so. With reduced flashing it is one soft swell, a third as strong, with no flicker in it.
+    // L.thunderLift(tau, calm): how far the view is lifted (0..LIFT.peak) tau seconds after the thunder began.
+    const LIFT = { peak: 0.13, calm: 0.04, color: '196,212,255' };
+    const pulse = (tau, t0, rise, decay) => tau < t0 ? 0 : tau < t0 + rise ? (tau - t0) / rise : Math.exp(-(tau - t0 - rise) / decay);
+    L.onThunder = () => { s.thunderT = G.t; };
+    L.thunderLift = (tau, calm) => {
+      if (!(tau >= 0) || tau > 1.8) return 0;
+      if (calm) return LIFT.calm * smoothstep(tau / 0.35) * (1 - smoothstep((tau - 0.35) / 0.9));
+      return LIFT.peak * Math.max(0.65 * pulse(tau, 0, 0.04, 0.07), pulse(tau, 0.24, 0.05, 0.28)) * (1 - smoothstep((tau - 1.2) / 0.6));
+    };
+    L.overlay = (ctx, W, H) => {
+      const a = s.thunderT === undefined ? 0 : L.thunderLift(G.t - s.thunderT, SAVE.data.settings.reducedFlash);
+      if (a < 0.002) return;
+      ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = 'rgba(' + LIFT.color + ',' + a.toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); ctx.restore();
+    };
     L.objectiveText = () => (s.power ? 'Lit. ' : (s.bulb ? '' : 'Put the new bulb in the lamp. ') + (s.fuse ? '' : s.blownIn ? 'Take the blown fuse out of the fuse box. ' : 'Put a new fuse in the fuse box. ')) + (s.turning ? 'Turning.' : 'Turn the crank (' + Math.min(need, Math.floor(winder.count || 0)) + '/' + need + ').');
     L.update = dt => {
       const c = L.creature;

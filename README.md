@@ -241,7 +241,10 @@ some on the ground, so you have to turn and look down to find them.
    handle the wheel moves a hair under your hand and no further. The key goes into the padlock
    before it springs open. An oar put up while the side door is still swinging shut is knocked
    back into your hands by the leaf. When it gets you it bursts up out of the water at your
-   face, the water thrown up in a great splash behind it.
+   face with a body under its head, a mass of dark swampy weed hanging in dripping strands, and two thin weed-draped
+   arms reaching up out of the water at you, the hooked fingers spread. The water moves as the lighthouse's sea does
+   when something goes in: a heap of white thrown up and falling back, rings of foam spreading on the water, spray dragged
+   up after it and flung off it, each drop on its own arc, and water streaming off its face and shoulders.
 7. **The Lighthouse.** The lamp is out and something is clinging to the outside of
    the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
    and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
@@ -258,7 +261,9 @@ some on the ground, so you have to turn and look down to find them.
    Further down (the hover says "Too far down.") the box, going faster and faster, kicks out off the stone, goes past
    it out over the water and into the sea, and is gone. A fuse tried with the blown one still in knocks against it and comes
    back to your hand; the blown fuse you pulled, pushed back into the empty clips, sits there a beat with nothing
-   coming on and drops out onto the floor.
+   coming on and drops out onto the floor. A storm is on: now and then the lightning flashes, and a second or few later
+   the thunder comes; as it sounds the view lifts a little toward a cold blue-white, a flicker as the rumble comes in and
+   a stronger one with the crack, dying away in a second (with reduced flashing, one soft swell a third as strong).
 8. **The Diner.** Something tall is out in the lot, taller than a man should be: a long
    belted trenchcoat in a dull dark drab, its collar turned up, grey hands hanging at its sides,
    and a hat with its brim pulled low. Under the brim there is no face, only shadow, black

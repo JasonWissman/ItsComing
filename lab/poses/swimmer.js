@@ -66,9 +66,10 @@
           c.runPose = false; c.runLat = 0; c.dist -= dt * PACE * 0.55;
         },
         draw(ctx, c, P) { ctx.translate(c.runLat || 0, 0); draw(ctx, c, P); } },
-      LAB.lunge({ name: 'Rising out at you', note: 'It catches you: it bursts up out of the water to your face, the water thrown up in a great splash behind it, the weed hanging off its jaw, the mouth opening under the eyes.', dist: CR.catchDist,
+      LAB.lunge({ name: 'Rising out at you', note: 'It catches you: it bursts up out of the water to your face, a body of dark dripping weed under its head and two thin weed-draped arms reaching up at you; the water moves as it comes, white heaped up and falling back, foam rings spreading, spray flung up on its arcs and falling, water streaming off it; the mouth opens under the eyes.', dist: CR.catchDist,
         tick(c, k, dt, T) {
           base.tick(c, k, dt, T);
+          CR.death.pose(c, c.lunge);   // (as the game's 'dying' does: it stamps when the lunge began, for the water it comes up out of)
           c.yOff = lerp(0, G.L.eyeH - CR.faceY, smoothstep(c.lunge));   // the game lifts it to eye level as it comes (game.js, 'dying')
         },
         // the lab holds its face where it was, so the lift shows as the water line dropping away beneath it

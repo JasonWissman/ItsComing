@@ -1,6 +1,8 @@
 'use strict';
 // ---------- weather: a pool of particles living in a cylinder around the eye ----------
 // spec: { kind: 'rain'|'snow'|'ash'|'mist'|'motes', density, wind, lightning: [minGap, maxGap] }
+// With lightning, each flash is followed a second or few later by the thunder, and the night's L.onThunder() is called as
+// it sounds. WEATHER.strike() brings the next flash on now (the tests use it).
 // A night that puts you under a roof (the boathouse) gives L.weatherShelter(): { openings: [[[x, y, z], ...], ...], the
 // world polygons the outside is seen through (a doorway as it stands open), and hides(x, y, z): true for a particle in
 // the sheltered space, or kept from view by something out there (a door leaf swung open), and covers?: more world polygons,
@@ -36,6 +38,7 @@ const WEATHER = (() => {
     const n = Math.round((COUNT[kind] || 150) * (s.density || 1));
     for (let i = 0; i < n; i++) parts.push(spawn({}, true));
   }
+  function strike() { if (spec && spec.lightning) nextBolt = 0; }
   function update(dt, t) {
     if (!kind) return;
     for (const p of parts) {
@@ -54,7 +57,7 @@ const WEATHER = (() => {
         LIGHT.flash(reduced ? 0.35 : 0.9); G.flash(reduced ? 0.15 : 0.32);
         thunderAt = t + 1 + Math.random() * 3;
       }
-      if (thunderAt && t >= thunderAt) { thunderAt = 0; AUDIO.sfx('thunder'); G.shake(0.25); }
+      if (thunderAt && t >= thunderAt) { thunderAt = 0; AUDIO.sfx('thunder'); G.shake(0.25); if (G.L && G.L.onThunder) G.L.onThunder(); }   // (a night may answer the thunder: night 7 lifts the view with it)
     }
   }
   function draw(ctx) {
@@ -133,5 +136,5 @@ const WEATHER = (() => {
       ctx.globalAlpha = 1;
     }
   }
-  return { set, update, draw, get kind() { return kind; } };
+  return { set, update, draw, strike, get kind() { return kind; } };
 })();
