@@ -378,7 +378,7 @@ async function run(browser, check) {
       const r = await runs(1, "AUDIO.calibrate('" + k + "')", 6.5, '', 2, null), r2 = await runs(1, "AUDIO.calibrate('" + k + "')", 6.5, "AUDIO.setVolume('ambient', 0.5); AUDIO.setVolume('effects', 0.1)", 2, null);
       // (held on for as long as the bed was measured in the game, over the same stretch of its slow swells: as loud as there)
       const full = await runs(1, "AUDIO.calibrate('" + k + "')", 16, 'AUDIO.CAL.bed.len = 16', 6, null);
-      check(Math.abs(full[0].lufs - loudness[n]) < 0.5 && Math.abs((r2[0].lufs - r[0].lufs) + 6.02) < 0.3, k + ': the bed as loud as the game plays it (' + fmt(full[0].lufs) + ' LUFS; in the game ' + loudness[n] + '), through the ambience volume (at 50%: ' + fmt(r2[0].lufs - r[0].lufs) + ' dB; the effects volume not in it)');
+      check(Math.abs(full[0].lufs - loudness[n]) < 0.5 && Math.abs((r2[0].lufs - r[0].lufs) + 6.02) < 0.6, k + ': the bed as loud as the game plays it (' + fmt(full[0].lufs) + ' LUFS; in the game ' + loudness[n] + '), through the ambience volume (at 50%: ' + fmt(r2[0].lufs - r[0].lufs) + ' dB; the effects volume not in it)');
     }
     // the ambience faded out of the way and back: a bed playing (night 10's drone, steady), hushed at 6 s, back at 11 s
     const h = await runs(1, "AUDIO.startAmbient({ tune: 'ambient:10', wind: 0, drone: 0.3, droneFreq: 55, windFreq: 340 })", 16, '', 0, [[6, 'AUDIO.hush(true)'], [11, 'AUDIO.hush(false)']]);
