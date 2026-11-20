@@ -508,29 +508,35 @@ some on the ground, so you have to turn and look down to find them.
     nothing at all, facing it as the night starts, is always the ending (on Nightmare it may
     change its way once, unseen, far out, but never once it is within 12 m). Faced
     empty-handed, it stops close in front of you, bent down to your face, and lifts its arms,
-    the hands open high either side of its head; its face comes up out of the dark of the hood,
-    angry, and quick, it reaches out and takes hold of you, as the tall thing in the bedroom
-    did: its arms come at you out of the bottom of the view, its hands at the lower corners, a
-    faint soft glow of its light about the dark arms and hands. All through the night in the
-    void a faint cold light stands straight behind it (as big as it is, so wider in the view as
-    it nears), so its dark shape reads against the black, until the pale light comes.
-    Holding you, its face goes slowly through angry (square teeth, the top row uneven; a
-    deep, gravelly growl as it comes up out of the hood), neutral, angry (growling again,
-    leaning right in at you, its face filling the view, then drawing back),
-    confused (then, glitching, a flicker of faces under a second: pain, envy, sorrow, grimace,
+    the hands open high either side of its head; quick, it reaches out and takes hold of you,
+    as the tall thing in the bedroom did: its arms come at you out of the bottom of the view,
+    its hands low in the corners gripping the bottom edge of the view, the faintest soft glow
+    of its light about the dark arms and hands; and only once its hands are there does its face
+    come up out of the dark of the hood, angry. All through the night in the void a faint
+    cold light stands straight behind it, soft and wide (far wider than it is, so wider in the
+    view as it nears, and falling off gently with no edge), so its dark shape reads against
+    the black, until the pale light comes.
+    Holding you, its face goes slowly through angry (its eyes round and burning red, square
+    teeth, the top row uneven; a deep, gravelly growl as it comes up out of the hood),
+    neutral, angry (growling again, leaning right in at you, its face filling the view, then
+    drawing back), confused, the same confused face mirrored (going smoothly over, its head
+    righting itself and tipping the other way, each held as long as the other; then,
+    glitching, a flicker of faces under a second: pain, envy, sorrow, grimace,
     terror, empty, shock; with reduced motion no glitch, but pain, sorrow, terror and empty
     each fading slowly into the next, and every change of face a slow fade) and sad; it cries a while, its shoulders
-    heaving, still holding you, and stops; its head goes down, bowed toward the ground, its
-    face lost in the shadow of the hood, and for a moment it is still and quiet. Then all at
+    heaving, still holding you; its head goes down, bowed toward the ground, its face lost in
+    the shadow of the hood, and it cries on a few seconds more, sobbing, its tears dropping
+    out of the dark of the hood; then it stops, and for a moment it is still and quiet. Then all at
     once it throws its head back, its face enraged, screeching (its own screech, a blow under
-    it, the view shaken and a white flash), and all round it in the dark, at once and big,
+    it, the view shaken and a soft white flash), and all round it in the dark, at once and big,
     are the faces of every thing that came for you before, each as it was coming up into your
     face in its death lunge, jittering and glitching (each drawn alone, once, while it held its
     first faces, from its own night built again, whether or not you played it; a face that
-    could not be drawn is simply not there). It was this one all along. Under a second later it
-    takes them back: one after another they fly into the opening of its hood, turning and
+    could not be drawn is simply not there). It was this one all along. Nearly two seconds
+    later it takes them back: one after another they fly into the opening of its hood, turning and
     shrinking to nothing, with a rush of air drawn in, and its face is its grey neutral face
-    again, a few seconds, in the dark. Confused as the dark opens into a pale light; it is
+    again, a few seconds, in the dark. Confused, and confused the other way (as before, the
+    one going smoothly into the other, each held as long) as the dark opens into a pale light; it is
     content, and happy, and the meadow (wild flowers, trees, clouds, birdsong and a breeze)
     comes out of the pale void, turning round you and settling into place in the sun; then it
     lets you go and steps back. With reduced motion its head lifts slowly and not as far, the
