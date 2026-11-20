@@ -85,13 +85,13 @@ const hoverHit = lookFor;
   await page.keyboard.press('ArrowRight'); const f3 = await focusAct();
   await page.keyboard.press('ArrowLeft'); const f4 = await focusAct();
   check(f1 === 'settings' && f2 === 'accept' && f3 === 'settings' && f4 === 'accept', 'Tab and the arrows go between Accept and Adjust settings, and nowhere else (' + [f1, f2, f3, f4] + ')');
-  // Adjust settings: Settings in the same card, all of it (Set to default too; Erase progress is in Scores); Back (or Esc) is the warning again
+  // Adjust settings: Settings in the same card, all of it (Set to default too; Erase progress is in Scores); Done (or Esc) is the warning again
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter'); await page.waitForTimeout(250);
   dw = await page.evaluate(() => { const d = document.getElementById('disclaimer'), card = d && d.querySelector('.dcard');
-    return { up: !!d, h: (d.querySelector('h1') || {}).textContent, sets: [...d.querySelectorAll('[data-set]')].map(e => e.dataset.set).join(), acts: [...d.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(), erase: !!d.querySelector('[data-act="reset"]'), focus: document.activeElement && document.activeElement.dataset.act,
+    return { up: !!d, h: (d.querySelector('h1') || {}).textContent, sets: [...d.querySelectorAll('[data-set]')].map(e => e.dataset.set).join(), acts: [...d.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(), done: d.querySelector('button[data-act="back"]').textContent, primary: d.querySelector('button[data-act="back"]').classList.contains('primary'), erase: !!d.querySelector('[data-act="reset"]'), focus: document.activeElement && document.activeElement.dataset.act,
       cardBg: getComputedStyle(card).backgroundColor, st: G.state, menu: MENU.kind, warn: !!d.querySelector('.daccept') }; });
-  check(dw.up && dw.h === 'Settings' && dw.sets === 'display,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'calvol,calbright,back,defaults' && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
-    'Adjust settings: Settings in the same card, every setting and Set to default (no Erase progress), Back focused; the game does not start (' + JSON.stringify(dw) + ')');
+  check(dw.up && dw.h === 'Settings' && dw.sets === 'display,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'calvol,calbright,defaults,back' && dw.done === 'Done' && dw.primary && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
+    'Adjust settings: Settings in the same card, every setting, then Set to default (no Erase progress) and Done at its right, primary and focused; the game does not start (' + JSON.stringify(dw) + ')');
   // the keys work in it: Tab round to the reduce motion switch, Space flips it (both flags), a slider moves with the arrows
   await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', false); document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').focus(); });
   await page.keyboard.press(' '); await page.waitForTimeout(80);
@@ -113,21 +113,21 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => SAVE.data.settings.textSize === 1.4 && document.activeElement.textContent === 'Normal'), 'and left, Normal again');
   await page.keyboard.press('Escape'); await page.waitForTimeout(200);
   dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), warn: (document.querySelector('#disclaimer p') || {}).textContent, focus: document.activeElement && document.activeElement.dataset.act, st: G.state, pro: !!document.getElementById('prologue') }));
-  check(dw.up && dw.warn === WARNING && dw.focus === 'accept' && dw.st === 'title' && !dw.pro, 'Esc in it is Back: the same warning again, Accept focused, nothing begun (' + JSON.stringify(dw) + ')');
+  check(dw.up && dw.warn === WARNING && dw.focus === 'accept' && dw.st === 'title' && !dw.pro, 'Esc in it is Done: the same warning again, Accept focused, nothing begun (' + JSON.stringify(dw) + ')');
   await page.click('#disclaimer .dsettings'); await page.waitForTimeout(200);
   await page.click('#disclaimer button[data-act="back"]'); await page.waitForTimeout(200);
   dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), accept: !!document.querySelector('#disclaimer .daccept'), focus: document.activeElement && document.activeElement.dataset.act, pro: !!document.getElementById('prologue') }));
-  check(dw.up && dw.accept && dw.focus === 'accept' && !dw.pro, 'a click on Adjust settings and then on Back: the warning again, Accept focused (' + JSON.stringify(dw) + ')');
-  // a pad: the d-pad goes to Adjust settings, A opens it, B is Back, Start (on the warning) accepts
+  check(dw.up && dw.accept && dw.focus === 'accept' && !dw.pro, 'a click on Adjust settings and then on Done: the warning again, Accept focused (' + JSON.stringify(dw) + ')');
+  // a pad: the d-pad goes to Adjust settings, A opens it, B is Done, Start (on the warning) accepts
   await page.evaluate(() => { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; });
   const padTap = async i => { await page.evaluate(i => { window._pad.buttons[i].pressed = true; }, i); await page.waitForTimeout(80); await page.evaluate(i => { window._pad.buttons[i].pressed = false; }, i); await page.waitForTimeout(80); };
   await padTap(15); const pf1 = await focusAct();
   await padTap(0); await page.waitForTimeout(100);
   const pin = await page.evaluate(() => ({ set: !!document.querySelector('#disclaimer .dset'), focus: document.activeElement && document.activeElement.dataset.act }));
-  await padTap(13); const pf2a = await focusAct(); await padTap(13); const pf2 = await focusAct();   // (Back, Set to default, then round to the first: Volume's Calibrate)
+  await padTap(12); const pf2a = await focusAct(); await padTap(13); const pf2b = await focusAct(); await padTap(13); const pf2 = await focusAct();   // (Done, up to Set to default, down to Done again, then round to the first: Volume's Calibrate)
   await padTap(1); await page.waitForTimeout(100);
   const pout = await page.evaluate(() => ({ warn: !!document.querySelector('#disclaimer .daccept'), focus: document.activeElement && document.activeElement.dataset.act, up: !!document.getElementById('disclaimer') }));
-  check(pf1 === 'settings' && pin.set && pin.focus === 'back' && pf2a === 'defaults' && pf2 === 'calvol' && pout.warn && pout.focus === 'accept' && pout.up, 'a pad: the d-pad to Adjust settings, A opens Settings, the d-pad goes round it, B is Back to the warning, Accept focused (' + JSON.stringify([pf1, pin, pf2, pout]) + ')');
+  check(pf1 === 'settings' && pin.set && pin.focus === 'back' && pf2a === 'defaults' && pf2b === 'back' && pf2 === 'calvol' && pout.warn && pout.focus === 'accept' && pout.up, 'a pad: the d-pad to Adjust settings, A opens Settings (Done focused), the d-pad goes round it (Set to default before Done, then round to the first), B is Done: the warning, Accept focused (' + JSON.stringify([pf1, pin, pf2a, pf2b, pf2, pout]) + ')');
   await padTap(9); await page.waitForTimeout(1600);
   await page.evaluate(() => { navigator.getGamepads = () => []; });
   dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), pro: !!document.getElementById('prologue'), st: G.state, warned: SAVE.data.warned, stored: JSON.parse(localStorage.getItem('itscoming.v2')).warned }));
@@ -163,7 +163,7 @@ const hoverHit = lookFor;
     check(rs2.fits && rs2.back && rs2.swipe && !rs2.erase && rs2.def, 'and its Settings fit on a phone on its side, with reverse swipes and Set to default, no Erase progress (' + JSON.stringify(rs2) + ')');
     await mp.tap('#disclaimer button[data-act="back"]'); await mp.waitForTimeout(300);
     await mp.tap('#disclaimer .daccept'); await mp.waitForTimeout(1300);
-    check(await mp.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card'), 'Back, then a tap on Accept goes on');
+    check(await mp.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card'), 'Done, then a tap on Accept goes on');
     await ctx.close();
   }
   await page.evaluate(() => localStorage.clear());
@@ -328,7 +328,7 @@ const hoverHit = lookFor;
   await page.click('#overlay input[data-set="reduceTextures"]'); await page.waitForTimeout(80);
   check(await page.evaluate(() => R.detail === false && SAVE.data.settings.reduceTextures === true), 'Reduce surface textures on: the plainer, faster surfaces');
   await page.click('#overlay input[data-set="reduceTextures"]'); await page.waitForTimeout(80);
-  check(await page.evaluate(() => !document.querySelector('#overlay button[data-act="reset"]') && [...document.querySelectorAll('#overlay .mrow button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'back:Back,defaults:Set to default'), 'Settings has Back and Set to default where Erase progress was (that is in Scores now)');
+  check(await page.evaluate(() => !document.querySelector('#overlay button[data-act="reset"]') && [...document.querySelectorAll('#overlay .mrow button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'defaults:Set to default,back:Done' && document.querySelector('#overlay button[data-act="back"]').classList.contains('primary')), 'Settings has Set to default and, at its right, Done (primary, as in the Calibrate dialogs), where Erase progress was (that is in Scores now)');
   // Set to default: every setting as it began, at once, the switches and rows of choices following (and the volume's
   // slider, in its dialog); the progress, the best run and the accepted warning untouched; no question asked, the dialog
   // stays, its button focused
@@ -361,7 +361,7 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.muted && document.querySelector('input[data-set="muted"]').checked), 'M with Settings open mutes, and its Mute switch follows');
   await page.keyboard.press('m'); await page.waitForTimeout(80);
   await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(150);
-  check(await page.evaluate(() => MENU.kind === 'pause' && document.activeElement && document.activeElement.dataset.act === 'settings'), 'Back from Settings: the pause menu, Settings focused');
+  check(await page.evaluate(() => MENU.kind === 'pause' && document.activeElement && document.activeElement.dataset.act === 'settings'), 'Done in Settings: the pause menu, Settings focused');
   await page.click('#overlay button[data-act="title"]'); await page.waitForTimeout(300);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title'), 'Back to title from pause');
   v = await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); startLevel(1, true); const o = { stag: !!document.querySelector('#overlay .s2, #overlay .s3'), intro: getComputedStyle(document.querySelector('#overlay .intro')).animationName }; MENU.applySetting('reduceMotionFlash', false); showTitle(); return o; });
@@ -1187,18 +1187,28 @@ const hoverHit = lookFor;
   check(tv.kind === 'results' && tv.cards === 13 && tv.in > 0 && tv.in < 13 && !tv.run && !tv.fin, 'The End: the results, the cards filling in one after another (' + JSON.stringify(tv) + ')');
   tv = await page.evaluate(() => [...document.querySelectorAll('#overlay .rcard')].filter(c => !c.classList.contains('in')).map(c => getComputedStyle(c).opacity));
   check(tv.length > 0 && tv.every(o => o === '0'), 'the nights not in yet are not there at all: no placeholder for any of them (' + tv + ')');
-  await page.waitForTimeout(4600);
+  tv = await page.evaluate(() => { const c = getComputedStyle, b = document.querySelector('#overlay > .results'), h = document.querySelector('#overlay .results h1'), card = document.querySelector('#overlay .rcard');
+    return { theme: document.documentElement.getAttribute('data-theme'), saved: SAVE.data.settings.theme, bg: c(b).backgroundColor, border: c(b).borderTopWidth + ' ' + c(b).borderTopColor, h1: c(h).color, card: c(card).backgroundColor + ' ' + c(card).color }; });
+  const sv = panelLook;   // (the dialogs' card, the Scores dialog's among them, as the title has it)
+  check(!tv.theme && tv.saved !== 'day' && tv.bg === sv.bg && tv.border === sv.border && tv.h1 === 'rgb(239, 230, 210)' && tv.card === 'rgba(0, 0, 0, 0.45) rgb(239, 230, 210)',
+    'the results are in the dark theme, in the same card as the Scores dialog, light words on it (the morning was the last screen\'s only) (' + JSON.stringify([tv, sv]) + ')');
+  tv = await page.evaluate(() => { G.lastRun = { t: 170.3, nights: LEVELS.map(() => 170.3 / 13), best: true }; MENU.show('results'); MENU.hurry(); const s = document.querySelector('#overlay .rrun .stamp'), on = document.querySelector('#overlay .rrun .star.on'); const o = { stamp: getComputedStyle(s).color, star: getComputedStyle(on).fill }; G.lastRun = null; MENU.show('results'); MENU.hurry(); return o; });
+  check(tv.stamp === 'rgb(240, 74, 84)' && tv.star === 'rgb(239, 230, 210)', 'its Best run stamp in the game\'s red and its stars in the light of the words, as on the Scores dialog (' + JSON.stringify(tv) + ')');
+  await page.evaluate(() => MENU.show('results')); await page.waitForTimeout(5800);
   tv = await page.evaluate(() => ({ in: document.querySelectorAll('#overlay .rcard.in').length, run: document.querySelector('#overlay .rrun').classList.contains('in'), label: document.querySelector('#overlay .rrun .rlabel').textContent, fin: document.querySelector('#overlay .rlast').classList.contains('in'), focus: document.activeElement && document.activeElement.dataset.act, left: [...document.querySelectorAll('#overlay .rcard')].filter(c => Math.round(c.getBoundingClientRect().left) === Math.round(document.querySelector('#overlay .rcard').getBoundingClientRect().left)).length }));
   check(tv.in === 13 && tv.run && tv.label === 'This run' && tv.fin && tv.focus === 'finish' && tv.left === 6, 'then this run (not a full run here: a dash), then Finish game, focused; six nights down the left (' + JSON.stringify(tv) + ')');
   // Finish game: home slowly. Every frame of it traced (from the click): the black over everything, the title under it,
-  // how much of the light behind the thing is on, how far the words have come in
+  // how much of the light behind the thing is on (and how bright the title's own canvas is about it, as drawn), how
+  // far the words have come in
   const homeTrace = () => page.evaluate(() => {
     const t0 = performance.now(); window.__home = [];
     const f = () => {
       if (G.noRaf) G.step(1 / 60);   // (this page steps the game itself: a frame drawn for each traced)
       const c = document.getElementById('homing'), cs = c && getComputedStyle(c);
-      window.__home.push({ t: performance.now() - t0, st: G.state, kind: MENU.kind, lit: TITLE.lit, ov: +getComputedStyle(UI.overlay).opacity, mute: +getComputedStyle(UI.mute).opacity, black: c ? (cs.backgroundColor === 'rgb(0, 0, 0)' ? +cs.opacity : 0) : -1, theme: document.documentElement.getAttribute('data-theme') });
-      if (performance.now() - t0 < 3900) requestAnimationFrame(f);
+      let px = -1;
+      if (G.state === 'title') { const cv = document.getElementById('titleScene'), d = cv.getContext('2d').getImageData(cv.width * 0.35, cv.height * 0.1, cv.width * 0.3, cv.height * 0.4).data; px = 0; for (let i = 0; i < d.length; i += 4) px += d[i] + d[i + 1] + d[i + 2]; px /= d.length * 0.75; }
+      window.__home.push({ t: performance.now() - t0, st: G.state, kind: MENU.kind, lit: TITLE.lit, px, ov: +getComputedStyle(UI.overlay).opacity, mute: +getComputedStyle(UI.mute).opacity, black: c ? (cs.backgroundColor === 'rgb(0, 0, 0)' ? +cs.opacity : 0) : -1, theme: document.documentElement.getAttribute('data-theme') });
+      if (performance.now() - t0 < 5600) requestAnimationFrame(f);
     };
     f();
   });
@@ -1207,40 +1217,48 @@ const hoverHit = lookFor;
   await page.waitForTimeout(300); await page.keyboard.press('Enter'); await page.mouse.click(640, 120);
   await page.waitForTimeout(1000); await page.keyboard.press('Enter'); await page.mouse.click(640, 120); await page.keyboard.press('Escape');
   await page.waitForTimeout(900); await page.mouse.click(640, 120); await page.keyboard.press('h');
-  await page.waitForTimeout(1900);
+  await page.waitForTimeout(3500);
   tv = await page.evaluate(() => window.__home);
+  // the light coming on: smoothly up, never back down (no flicker), over well over a second, eased from nothing (no
+  // jump out of the dark), to on; the words out of sight all the while, and the title's own canvas brightening with it,
+  // frame by frame, never a frame darker than the one before
+  const lightUp = trace => {
+    const up = trace.filter(s => s.st === 'title' && s.ov === 0 && s.black !== 1 && s.lit > 0), lits = up.map(s => s.lit), px = up.map(s => s.px);
+    const first = up[0], top = up.find(s => s.lit === 1);
+    return { n: up.length, mono: lits.every((l, i) => !i || l >= lits[i - 1] - 1e-9), pxMono: px.every((p, i) => !i || p >= px[i - 1] - 0.25), px: px.map(p => p.toFixed(1)).join(' '), mid: lits.filter(l => l > 0.05 && l < 0.95).length, first: first && +first.lit.toFixed(3), span: first && top ? Math.round(top.t - first.t) : 0, end: lits[lits.length - 1], lits: lits.map(l => l.toFixed(2)).join(' ') };
+  };
   {
     const at = (a, b) => tv.filter(s => s.t >= a && s.t < b);
-    const fade = at(0, 950), dark = at(1080, 1480), words = tv.filter(s => s.ov > 0.05 && s.ov < 0.95), end = tv[tv.length - 1];
+    const fade = at(0, 1150), dark = at(1420, 1820), words = tv.filter(s => s.ov > 0.05 && s.ov < 0.95), end = tv[tv.length - 1];
     const blacks = fade.map(s => s.black);
-    check(fade.length > 5 && fade.every(s => s.st === 'end' && s.kind === 'results' && s.theme === 'day') && blacks[0] < 0.2 && blacks.some(b => b > 0.3 && b < 0.8) && blacks[blacks.length - 1] > 0.9 && blacks.every((b, i) => !i || b >= blacks[i - 1] - 1e-6),
-      'Finish game: the results and the morning fade evenly to black, over about a second (' + blacks.map(b => b.toFixed(2)).join(' ') + ')');
-    check(dark.length > 3 && dark.every(s => s.st === 'title' && s.kind === 'title' && !s.theme && s.lit === 0 && s.ov === 0 && s.mute === 0 && (s.black === 1 || s.black === 0)),
-      'then a beat of black: the dark title under it, the light behind the thing off, the words and buttons (and the corners\' sound and full screen) not yet there (' + JSON.stringify(dark[0]) + ')');
-    // the light flicks on: on, off again, on, ... then on to stay; the words still out of sight all the while
-    const stutter = tv.filter(s => s.st === 'title' && s.ov === 0 && s.t > 1400).map(s => +s.lit.toFixed(2));
-    const pulses = stutter.filter((l, i) => l >= 0.5 && (!i || stutter[i - 1] < 0.3)).length;
-    check(pulses >= 2 && stutter.indexOf(0, stutter.findIndex(l => l >= 0.5)) > 0 && stutter.slice(-3).every(l => l === 1),
-      'then the light behind it flicks on, a fluorescent\'s couple of quick stutters and on, before any of the words come (' + pulses + ' times on: ' + stutter.join(' ') + ')');
-    check(words.length > 3 && words.every(s => s.lit === 1 && s.st === 'title') && words[words.length - 1].t - words[0].t > 450 && words.every((s, i) => !i || s.ov >= words[i - 1].ov - 1e-6),
-      'then the name and the buttons fade in, over most of a second, the light steady (' + words.map(s => s.ov.toFixed(2)).join(' ') + ')');
-    check(end.t > 3800 && end.black === -1 && end.ov === 1 && end.mute === 1 && end.lit === 1, 'and it is done in under four seconds: nothing over the title, everything in (' + JSON.stringify(end) + ')');
+    check(fade.length > 5 && fade.every(s => s.st === 'end' && s.kind === 'results' && !s.theme) && blacks[0] < 0.2 && blacks.some(b => b > 0.3 && b < 0.8) && blacks[blacks.length - 1] > 0.9 && blacks.every((b, i) => !i || b >= blacks[i - 1] - 1e-6),
+      'Finish game: the (dark) results and the dimmed morning behind them fade smoothly to black, over a little more than a second (' + blacks.map(b => b.toFixed(2)).join(' ') + ')');
+    check(tv.filter(s => s.st === 'title').every(s => s.t > 1150) && tv.filter(s => s.st === 'end').every(s => s.black === -1 || s.black >= 0) && tv.filter(s => s.st === 'title' && s.t < tv.find(x => x.st === 'title').t + 1).every(s => s.black === 1),
+      'and the title is put up under it only once it is all black (no frame of the one over the other)');
+    check(dark.length > 3 && dark.every(s => s.st === 'title' && s.kind === 'title' && !s.theme && s.lit === 0 && s.px === 0 && s.ov === 0 && s.mute === 0 && (s.black === 1 || s.black === 0)),
+      'then a brief pause in black: the dark title under it, the light behind the thing off and nothing of it drawn (not its shape, not its eyes), the words and buttons (and the corners\' sound and full screen) not yet there (' + JSON.stringify(dark[0]) + ')');
+    const L = lightUp(tv);
+    check(L.n > 8 && L.mono && L.pxMono && L.mid >= 6 && L.first < 0.05 && L.span > 1000 && L.end === 1,
+      'then the light behind it comes slowly on, one smooth eased fade up with no flicker, the thing and its eyes coming up out of the black with it, before any of the words come (' + JSON.stringify(L) + ')');
+    check(words.length > 3 && words.every(s => s.lit === 1 && s.st === 'title') && words[words.length - 1].t - words[0].t > 900 && words.every((s, i) => !i || s.ov >= words[i - 1].ov - 1e-6) && words.every(s => Math.abs(s.mute - s.ov) < 0.08),
+      'then the name, the buttons and the corners\' controls fade in together, slowly, the light steady (' + words.map(s => s.ov.toFixed(2)).join(' ') + ')');
+    check(end.t > 5000 && end.black === -1 && end.ov === 1 && end.mute === 1 && end.lit === 1, 'and it is all in by about five seconds: nothing over the title, everything in (' + JSON.stringify(end) + ')');
   }
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && TITLE.step === 0 && !TITLE.moving && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores' && !document.getElementById('prologue') && !document.getElementById('disclaimer')),
     'Finish game: home to the usual dark title, with it out there (the presses on the way did nothing: it is no nearer, nothing begun), and Scores on it (the morning is not kept)');
   check(await page.evaluate(() => document.activeElement && document.activeElement.dataset.act === 'begin' && !UI.overlay.style.opacity && !UI.overlay.style.transition && UI.overlay.classList.contains('titlelow')), 'and the focus is on Begin, the overlay as the title always has it');
   await page.keyboard.press('Escape'); await page.mouse.click(640, 120); await page.waitForTimeout(150);
   check(await page.evaluate(() => G.state === 'title' && TITLE.step === 1), 'the title answers again once it is all in (a click on the dark: a step nearer)');
-  // with reduced motion and flashing the light comes up smoothly, no flicker
+  // with reduced motion and flashing the same: the light comes up smoothly, no flicker
   await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); STORY.theme(true); setState('end'); MENU.show('results'); });
-  await page.click('#overlay button[data-act="finish"]'); await homeTrace(); await page.waitForTimeout(4000);
-  tv = await page.evaluate(() => window.__home.filter(s => s.st === 'title' && s.ov === 0 && s.t > 1400).map(s => +s.lit.toFixed(3)));
-  check(tv.length > 10 && tv.every((l, i) => !i || l >= tv[i - 1]) && tv.filter(l => l > 0.05 && l < 0.95).length >= 5 && tv[tv.length - 1] === 1, 'with reduced motion and flashing: the light fades up smoothly instead, never flickering (' + tv.join(' ') + ')');
+  await page.click('#overlay button[data-act="finish"]'); await homeTrace(); await page.waitForTimeout(5900);
+  tv = lightUp(await page.evaluate(() => window.__home));
+  check(tv.n > 8 && tv.mono && tv.pxMono && tv.mid >= 6 && tv.first < 0.05 && tv.span > 1000 && tv.end === 1, 'with reduced motion and flashing: the light fades up the same smooth way, never flickering (' + JSON.stringify(tv) + ')');
   check(await page.evaluate(() => G.state === 'title' && TITLE.lit === 1 && !document.getElementById('homing') && document.activeElement && document.activeElement.dataset.act === 'begin'), 'and it ends the same: the title, all in, Begin focused');
   await page.evaluate(() => MENU.applySetting('reduceMotionFlash', false));
   // Quit (and any other way to the title) is at once, as ever: the light on, the words there
   await page.evaluate(() => { startLevel(2, false); setState('play'); showTitle(); });
-  check(await page.evaluate(() => G.state === 'title' && TITLE.lit === 1 && !TITLE.flicking && !document.getElementById('homing') && UI.overlay.classList.contains('show') && !UI.overlay.style.opacity && !UI.mute.style.opacity), 'Quit to the title is at once, as ever: the light on, the words there, nothing over it');
+  check(await page.evaluate(() => G.state === 'title' && TITLE.lit === 1 && !TITLE.lighting && !document.getElementById('homing') && UI.overlay.classList.contains('show') && !UI.overlay.style.opacity && !UI.mute.style.opacity), 'Quit to the title is at once, as ever: the light on, the words there, nothing over it');
   await page.reload(); await page.waitForTimeout(300);
   check(await page.evaluate(() => TITLE.on && !document.documentElement.getAttribute('data-theme')), 'and so it is after a reload');
   await page.evaluate(() => { SAVE.setSetting('theme', 'day'); showTitle(); });

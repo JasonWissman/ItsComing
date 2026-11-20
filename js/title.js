@@ -27,11 +27,10 @@ const TITLE = (() => {
   // at its rim, in many stops, so there is no edge or ring to it anywhere and it goes into the dark as the dark goes
   const PEAK = 0.21, GLOW = 1.85;
   const HALO = []; for (let i = 0; i <= 24; i++) { const x = i / 24; HALO.push([x, Math.pow(1 - x * x, 3)]); }
-  // Finish game home (game.js finishHome): the light behind it off, then on with a fluorescent tube's stutter, a couple
-  // of quick blinks and on (FLICK: [seconds, level], each held to the next; done at FLICK_T); with reduced motion or
-  // flashing, a smooth fade up instead (FADE_T)
-  const FLICK = [[0, 0.75], [0.05, 0], [0.2, 0.95], [0.25, 0.2], [0.3, 0], [0.52, 0.85], [0.57, 1]], FLICK_T = 0.75, FADE_T = 1.2;
-  let lightAt = null;   // null: the light on, as always; else the wall clock (ms) it flicks on at (Infinity: still off)
+  // Finish game home (game.js finishHome): the light behind it off, then slowly on, one smooth eased fade up over
+  // LIGHT_T seconds (no flicker, with reduced flashing or without); it, its eyes and the ground come up with it
+  const LIGHT_T = 1.4;
+  let lightAt = null;   // null: the light on, as always; else the wall clock (ms) it starts coming on at (Infinity: still off)
   let lit = 1;          // how much of it is on, as last drawn
   let cv = null, ctx = null, W = 0, H = 0, dpr = 1, step = 0, drawn = 0, scurry = null, twitchAt = null, on = false, shown = false;
   let cur = { d: D[0], lean: 0, drop: 0 };   // where it was last drawn (a scuttle starts from there)
@@ -41,20 +40,18 @@ const TITLE = (() => {
     return cv;
   }
   function enter() { step = drawn = 0; scurry = null; twitchAt = null; cur = { d: D[0], lean: 0, drop: 0 }; on = true; lightAt = null; lit = 1; }
-  // the light off (and the thing with it: nothing but the dark), until flick() puts it on
+  // the light off (and the thing with it: nothing but the dark), until lightUp() puts it on
   function dark() { lightAt = Infinity; lit = 0; }
-  const soft = () => !!(SAVE.data.settings.reducedFlash || SAVE.data.settings.reducedMotion);
-  // the light on: the stutter, or the slow fade up; how long it takes, ms
-  function flick() { lightAt = performance.now(); return (soft() ? FADE_T : FLICK_T) * 1000; }
-  // how much of the light is on now (0..1)
+  // the light on, slowly; how long it takes, ms
+  function lightUp() { lightAt = performance.now(); return LIGHT_T * 1000; }
+  // how much of the light is on now (0..1): eased in and out (smootherstep), so it neither jumps from the dark nor
+  // stops short at the top
   function light(now) {
     if (lightAt === null) return 1;
-    const k = (now - lightAt) / 1000;
+    const k = (now - lightAt) / 1000 / LIGHT_T;
     if (!(k >= 0)) return 0;   // (still off: Infinity, or not yet)
-    if (soft()) { if (k >= FADE_T) { lightAt = null; return 1; } return smoothstep(k / FADE_T); }
-    if (k >= FLICK_T) { lightAt = null; return 1; }
-    let v = 0; for (const [at, l] of FLICK) if (k >= at) v = l;
-    return v;
+    if (k >= 1) { lightAt = null; return 1; }
+    return k * k * k * (k * (k * 6 - 15) + 10);
   }
   // a step nearer. With seen (a click on the dark), it scuttles there in front of you; without (a dialog has just been
   // over it), it is there at once. Once it is as near as it comes, a click on the dark twitches it where it is instead,
@@ -195,10 +192,12 @@ const TITLE = (() => {
       const hz = g.createRadialGradient(cx, cy, 0, cx, cy, hr);
       for (const [k, a] of HALO) hz.addColorStop(k, rgba(LIGHT, PEAK * lit * a));   // (falling away smoothly, with no edge to it)
       g.fillStyle = hz; g.fillRect(Math.max(0, cx - hr), Math.max(0, cy - hr), Math.min(W, cx + hr) - Math.max(0, cx - hr), Math.min(H, cy + hr) - Math.max(0, cy - hr));
-      // then it, over the light
+      // then it, over the light (coming up out of the black with it as it comes on: never a shape before the light)
+      g.save(); g.globalAlpha = lit;
       g.save(); g.translate(sx, feet); g.scale(ppm * sqx, -ppm * sqy); figure(g, col, lean, shrug, run, ph); g.restore();
       P_limb(g, [[sx, feet - (1.8 - 0.14 * lean) * ppm * sqy], [hx, hy]], 0.05 * ppm, col);   // the neck, up (or out) to the head
       g.save(); g.translate(hx, hy); g.scale(hppm, -hppm); head(g, col, tilt, lean, eo, [34, 32, 36]); g.restore();
+      g.restore();
       const blink = !run && ((t % 4.7 > 4.55) || (t % 7.3 > 7.18));
       if (!blink) {   // the eyes, drawn over in screen space so even far off they are two points
         // (near, they stay small: two hard points of light in the dark of its face)
@@ -233,5 +232,5 @@ const TITLE = (() => {
   }
   // how near it is, as it is seen (0 far off, 1 as near as it comes): the title's drone follows it (game.js). dist: how
   // far off it is drawn now, metres; moving: on its way to its next place
-  return { enter, advance, active, draw, dark, flick, get lit() { return lit; }, get flicking() { return lightAt !== null; }, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D, shape, SHAPE_H: 2.1 + 0.165, SHAPE_W: 0.8 };
+  return { enter, advance, active, draw, dark, lightUp, get lit() { return lit; }, get lighting() { return lightAt !== null; }, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D, shape, SHAPE_H: 2.1 + 0.165, SHAPE_W: 0.8 };
 })();
