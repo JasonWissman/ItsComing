@@ -52,7 +52,7 @@ const TUNES = {
   'scrape': { pitch: -7, speed: 1.03 },
   'bowFull': { pitch: -2.5 },
   'thunk': { pitch: 0.5 },
-  'splash': { pitch: -4.5, speed: 0.84 },
+  'splash': { pitch: 1, speed: 0.8652, tone: -0.9, vol: -2 },
   'dive': { pitch: -3.5, speed: 0.64 },
   'wetPound': { pitch: -2, vol: 1 },
   'bar': { vol: 2 },

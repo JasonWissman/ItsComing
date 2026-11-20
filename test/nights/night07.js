@@ -87,8 +87,30 @@ const blownStillIn = [
   ...dropsOut('blownfuse', 'the blown fuse pushed back in'),
   ['eval', 'restartLevel()'], ['wait', 300],
 ];
+// Lightning (WEATHER.strike brings it on now), and a second or few later its thunder: as the thunder sounds the view lifts
+// a little toward a cold blue-white, flickering with it (L.overlay, laid over the view). Its lift (L.thunderLift) is
+// there from the start of the sound and peaks with the crack in it, and is subtle: at most 0.15 (over black, the view comes
+// up no more than that far toward white). With reduced flashing it is one soft swell with no flicker, at most 0.05. The
+// thing waits meanwhile.
+const lifted = (tau, calm) => '(() => { const s = G.L.s, was = s.thunderT, rf = SAVE.data.settings.reducedFlash, cv = document.createElement("canvas"), x = cv.getContext("2d"); cv.width = cv.height = 8;' +
+  ' x.fillStyle = "#000"; x.fillRect(0, 0, 8, 8); s.thunderT = G.t - ' + tau + '; SAVE.data.settings.reducedFlash = ' + calm + '; G.L.overlay(x, 8, 8); s.thunderT = was; SAVE.data.settings.reducedFlash = rf;' +
+  ' return x.getImageData(4, 4, 1, 1).data[2] / 255; })()';
+const curve = calm => 'Array.from({ length: 90 }, (_, i) => G.L.thunderLift(i / 50, ' + calm + '))';
+const thunder = [
+  ['eval', '(c => { window.__held7 = c.hold; if (c.hold === null) c.hold = c.dist; })(G.L.creature)'],
+  ['eval', 'window.__thunder = []; if (!window.__sfx7) { window.__sfx7 = AUDIO.sfx; AUDIO.sfx = (n, ...r) => { if (n === "thunder") window.__thunder.push(G.t); return window.__sfx7(n, ...r); }; } WEATHER.strike();'],
+  ['waitUntil', 'window.__thunder.length > 0', 7000],
+  ['expect', 'G.L.s.thunderT === window.__thunder[0] && G.L.thunderLift(G.t - G.L.s.thunderT, SAVE.data.settings.reducedFlash) > 0', 'the thunder sounds, and the view is lifted with it'],
+  ['expect', '(k => k.slice(1, 4).some(v => v > 0.05) && Math.max(...k) <= 0.15 && k.indexOf(Math.max(...k)) >= 12 && k.indexOf(Math.max(...k)) <= 18 && k[7] < k[2] * 0.5 && k[89] < 0.001)(' + curve(false) + ')',
+    'the lift flickers in at once with the rumble, dips, comes again strongest with the crack (0.24-0.36 s), is gone by 1.8 s, and never passes 0.15'],
+  ['expect', lifted(0.3, false) + ' > 0.08 && ' + lifted(0.3, false) + ' <= 0.16 && ' + lifted(2, false) + ' === 0', 'laid over the view it lifts black a little toward blue-white, and then not at all'],
+  ['expect', '(k => { const m = k.indexOf(Math.max(...k)); return Math.max(...k) <= 0.05 && Math.max(...k) > 0.02 && k.every((v, i) => i === 0 || (i <= m ? v >= k[i - 1] : v <= k[i - 1])); })(' + curve(true) + ')',
+    'with reduced flashing it is one soft swell, no flicker in it, at most 0.05'],
+  ['expect', lifted(0.3, true) + ' <= 0.06', 'and laid over the view, with reduced flashing, black comes up no further than that'],
+  ['eval', '(c => { if (window.__held7 === null) c.hold = null; })(G.L.creature)'],
+];
 module.exports = {
-  nightmare: blownStillIn.concat(toolboxDrop, [
+  nightmare: thunder.concat(blownStillIn, toolboxDrop, [
     ['pickup', 'bulb'],
     ['use', 'fusebox'], ['expect', 'G.L.s.open && G.L.s.blownIn && (G.L.targets.find(t => t.id === "blownfuse").hidden || G.L.t >= G.L.s.openAt + 0.2)', 'fuse box open, the blown fuse still in it (to point at once the door has swung)'],
     ['waitUntil', '!G.L.targets.find(t => t.id === "blownfuse").hidden', 2000],

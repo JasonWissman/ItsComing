@@ -12,6 +12,18 @@
 const oar = "G.L.items.find(i => i.id === 'oar')";
 const pause = ['eval', '(c => { window.__held6 = c.hold; if (c.hold === null) c.hold = c.dist; })(G.L.creature)'];
 const resume = ['eval', '(c => { if (window.__held6 === null) c.hold = null; })(G.L.creature)'];
+// The water the swimmer bursts up out of in its death lunge (CREATURES.swimmer.burst), drawn at three moments after the
+// lunge began onto a canvas of its own: each is unlike the one before (it is not a still shape: the drops fly on their
+// arcs, the heap of white rises and falls, the foam spreads)
+const splashMoves = `(() => {
+  const CR = CREATURES.swimmer, cv = document.createElement('canvas'), x = cv.getContext('2d'), P = { col: k => rgba(k), cola: (k, a) => rgba(k, a) };
+  cv.width = cv.height = 200;
+  const frame = s => { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, 200, 200); x.setTransform(60, 0, 0, -60, 100, 100);
+    CR.burst(x, P, -1.5, s, 1.5, false); CR.burst(x, P, -1.5, s, 1.5, true); return x.getImageData(0, 0, 200, 200).data; };
+  const diff = (a, b) => { let n = 0; for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i] - b[i]) > 24) n++; return n; };
+  const a = frame(0.2), b = frame(0.25), c = frame(0.45);
+  return diff(a, b) > 150 && diff(b, c) > 150;
+})()`;
 // one oar across the shut side door does not hold it: it throws itself at the door, the oar snaps, the door bursts open
 // and it comes in; the death screen says why. (Set up directly, then the night starts again.)
 const oneOar = [
@@ -21,6 +33,9 @@ const oneOar = [
     c.u = 1 - Math.pow(4 / c.D0, 1 / c.gamma); c.hold = null; c.mode = 'up'; c.modeT = 0; c.upFor = 99; })()`],
   ['waitUntil', '!!G.L.s.snap', 6000], ['expect', 'G.L.s.oars === 0 && G.L.s.doorOpen && !G.L.s.sealedE', 'with one oar across, it breaks the oar and the door bursts open'],
   ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 8000],
+  ['waitUntil', "G.state === 'dead' || G.L.creature.lunge > 0.5", 3000],
+  ['expect', 'G.L.creature.burstT !== undefined && G.L.creature.burstY > 1', 'its death lunge stamps when it began to come up out of the water, and how high it comes'],
+  ['expect', splashMoves, 'the water it bursts up out of moves: the spray rises and falls and the foam spreads, frame to frame'],
   ['expect', "G.deathCause === 'oneoar' && deathLine(G.L).includes(\"One oar wasn't strong enough.\")", 'and the death screen says one oar was not strong enough'],
   ['eval', 'restartLevel();'], ['wait', 1500], ['expect', "G.state === 'play' && !G.L.s.snap && G.L.s.oars === 0", 'the night starts again'],
 ];
