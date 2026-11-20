@@ -100,7 +100,7 @@ const MENU = (() => {
         // quiet Quit. R (restart) and M (mute) still work from the keyboard; Esc resumes
         return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('controls', 'Controls') + btn('settings', 'Settings', 'pause') + btn('title', 'Quit', undefined, 'quiet') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
       case 'dead':
-        return '<h1 class="red">It got you</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + btn('title', 'Quit', undefined, 'quiet') + '</div>';
+        return '<h1 class="red">' + (d.title || 'It got you') + '</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + btn('title', 'Quit', undefined, 'quiet') + '</div>';
       case 'ending':   // the last screen of the last night, over the morning room
         return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('done', 'The End', undefined, 'primary') + '</div>';
       case 'results': {

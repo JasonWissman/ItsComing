@@ -44,6 +44,7 @@ LEVELS.push({
     objective: 'Find it. Light the places either side of it, then its own. No more than three lights at once.',
     where: 'It is out there in the dark, at one of the places. Find it.',
     death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.', fire: 'Apparently the electrical box wasn\'t rated for that.' },
+    eggs: ['fire'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'It collapsed in the light, right in front of you.',
   },
   // one way in from each place: it stands at the foot of one, and comes in toward you from there (build)

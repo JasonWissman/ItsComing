@@ -50,6 +50,7 @@ LEVELS.push({
   text: {
     intro: 'The last customer left an hour ago…\nbut another seems drawn in by the light.',
     death: { default: 'One shutter was still open.', through: 'It came through the glass before the shutter was down.', lit: 'It was drawn in by the light.', soda: 'It is insatiable.' },
+    eggs: ['soda'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'It beat on the shutter relentlessly, but they held.',
   },
   // three windows across the front, left to right as you face them; it comes for one. It stands at the glass on a line

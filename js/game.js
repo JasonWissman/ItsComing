@@ -845,9 +845,13 @@ function die(c, cause) {
   G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = 0; G.cam.zoomHeld = false; // it rises to eye level, so the view comes up to meet it
   G.deathTime = L.t; G.deathAt = G.t; // the night clock, and the global clock for the toast test (toasts are stamped with G.t)
 }
+// a night's easter-egg deaths (L.text.eggs: the causes that are one): the screen says "Nice try", and the line is the
+// night's own, with no toast put in front of it
+const isEggDeath = L => !!(L && L.text && L.text.eggs && L.text.eggs.includes(G.deathCause));
 function deathLine(L) {
   const T = L.text.death || {};
   let line = T[G.deathCause] || T.default || '';
+  if (isEggDeath(L)) return line;
   if (G.lastToast.msg && G.deathAt - G.lastToast.t < 1.2 && !line.includes(G.lastToast.msg)) line = G.lastToast.msg + (line ? ' ' + line : '');
   return line;
 }
@@ -969,7 +973,7 @@ function update(dt) {
     if (G.stateT > delay + dur + 0.25) { G.fade = 1; G.fadeTarget = 1; }
     if (G.stateT > delay + dur + 1.2) {
       setState('dead');
-      G.deathScreen = { text: deathLine(L) };   // the night's own line (and the toast it cut off): no count of the seconds
+      G.deathScreen = { text: deathLine(L), title: isEggDeath(L) ? 'Nice try' : 'It got you' };   // the night's own line (and the toast it cut off): no count of the seconds
       MENU.show('dead', G.deathScreen);
     }
   } else if (G.state === 'title') {
