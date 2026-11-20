@@ -4,7 +4,7 @@
 //  - lighting its place makes it flinch and run, side on, to a neighbouring place that is dark;
 //  - four switches on at once trip the main: it goes over to off, every light goes dark and every switch drops to off;
 //    with the main off a switch can still be set, up or down, and nothing comes on; the main pushed back on, with
-//    everything else still off, and then the switches work again;
+//    everything else still off, and then the switches work again; pushed while it is on, it goes off (by hand);
 //  - with the porch light on, lighting both its neighbours and then its place is a fourth switch: the main trips, it is
 //    not caught;
 //  - with the main off it comes at its own pace, no faster;
@@ -14,6 +14,10 @@
 //    house, the box and the thing catch fire, it runs about burning in the open where you are looking, then turns on
 //    you and charges, and the card reads the fire's own line;
 //  - the clever win: the main off, its place and both its neighbours set, the main pushed on: it is caught at once;
+//  - the main put off by hand, whenever you like: every light out, the switches left as they are set, and it comes in
+//    the dark at its own pace; back on, the same rules (four set trip it straight back off); the clever win and the fire
+//    from there; and left off, it gets you, the card saying you put the main off;
+//  - every flame's foot on the farm alight is on a surface, and on the thing alight, in every pose, on its body;
 // then the night itself: the house switched off, both its neighbours lit, then its own place, and it comes apart.
 const sw = i => "G.L.targets.find(t => t.id === 'sw" + i + "')";
 const click = i => 'useTarget(' + sw(i) + ');';
@@ -63,7 +67,9 @@ const trip = fresh.concat([
   ['eval', click(0)],
   ['expect', 'G.L.s.power && G.L.s.on[0] && G.L.dynamicLights().length > 0', 'and now a switch works again (the porch light back on)'],
   ['use', 'main'],
-  ['expect', 'G.L.s.power && G.L.s.on[0] && G.L.s.trips === 1', 'the main pushed while it is on: it stays on, and nothing changes'],
+  ['expect', '!G.L.s.power && G.L.s.offBy === "hand" && G.L.s.on[0] && G.L.s.trips === 1 && G.L.dynamicLights().length === 0', 'the main pushed while it is on: over to OFF, every light out, the switch left set (not a trip)'],
+  ['use', 'main'],
+  ['expect', 'G.L.s.power && G.L.s.on[0] && G.L.dynamicLights().length > 0', 'and back on, the porch light with it'],
 ]);
 const houseOn = fresh.concat([
   ['eval', "const k = G.L.s.k; G.L.nb(k).forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1)))); useTarget(G.L.targets.find(t => t.id === 'sw' + (k + 1)));"],
@@ -141,6 +147,118 @@ const clever = tripFirst.concat([
   ['waitUntil', 'G.L.creature.fallT > 1', 4000],
   ['expect', 'G.L.creature.fallT > 1', 'and it comes apart in the light'],
 ]);
+// the main put off by hand, whenever you like: it goes over to OFF and every light goes out, the porch light too, but
+// the switches stay where they are set; to the thing it is the dark, and it comes for you at its own pace, all the way.
+// Pushed back on, what is set comes on with it, by the same rules as ever: three or fewer light, four to seven trip it
+// straight back off, all eight and the box goes up
+const mainOff = fresh.concat([
+  ['eval', 'window.__r0 = G.L.s.r; window.__t0 = G.L.t;'],
+  ['use', 'main'],
+  ['expect', '!G.L.s.power && G.L.s.offBy === "hand" && G.L.s.trips === 0 && G.L.s.on[0] && G.L.s.on.filter(Boolean).length === 1 && /main (is off|over to OFF)/.test(G.lastToast.msg)', 'the main pushed while it is on: it goes over to OFF, and the porch light\'s switch stays set (no trip)'],
+  ['wait', 400],
+  ['expect', 'G.L.dynamicLights().length === 0 && G.L.pal.ambient < 0.4 && G.L.s.pool < 0.05', 'every light on the farm is out, the porch light too'],
+  ['wait', 1500],
+  ['expect', '!G.L.s.power && G.state === "play" && G.L.creature.shade > 0.5 && (window.__r0 - G.L.s.r) / (G.L.t - window.__t0) > 0.25 && (window.__r0 - G.L.s.r) / (G.L.t - window.__t0) < 0.62 * 1.15 + 0.05', 'in the dark it comes for you at its own pace, as with the main tripped'],
+  ['use', 'main'],
+  ['expect', 'G.L.s.power && G.L.s.on[0] && G.L.dynamicLights().length > 0 && G.L.s.trips === 0', 'pushed back on: the porch light, still set, comes on with it'],
+  ['use', 'main'],
+  ['expect', '!G.L.s.power && G.L.s.offBy === "hand" && G.L.s.on[0]', 'and off again'],
+  ['eval', 'const k = G.L.s.k, far = [0, 1, 2, 3, 4, 5, 6].filter(q => q !== k && !G.L.nb(k).includes(q)).slice(0, 3); ' + "far.forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
+  ['expect', '!G.L.s.power && G.L.s.on.filter(Boolean).length === 4 && G.L.dynamicLights().length === 0', 'three more set with it off (four, the porch light too): nothing comes on'],
+  ['use', 'main'],
+  ['expect', '!G.L.s.power && G.L.s.offBy === "trip" && G.L.s.trips === 1 && G.L.s.on.every(o => !o) && !G.L.s.fire', 'pushed on with four set: it trips straight back off, every switch drops, as ever'],
+]);
+// with the main put off by hand: the porch light's switch set off, its place and both its neighbours set, and the main on
+const offClever = fresh.concat([
+  ['use', 'main'],
+  ['eval', 'window.__kc = G.L.s.k; ' + click(0) + "[G.L.s.k].concat(G.L.nb(G.L.s.k)).forEach(q => useTarget(G.L.targets.find(t => t.id === 'sw' + (q + 1))));"],
+  ['expect', '!G.L.s.power && G.L.s.offBy === "hand" && !G.L.s.on[0] && G.L.s.on.filter(Boolean).length === 3 && G.L.dynamicLights().length === 0', 'the main put off by hand, the porch light set off, its place and both neighbours set: nothing on'],
+  ['use', 'main'],
+  ['waitUntil', 'G.L.won', 1500],
+  ['expect', 'G.L.won && G.L.s.trapped && G.L.s.k === window.__kc && G.L.s.flushes === 0', 'the main on: caught at once, with nowhere dark to go'],
+]);
+// with the main put off by hand, every switch set, and the main on: the box goes up
+const offFire = fresh.concat([
+  ['use', 'main'],
+  ['eval', [1, 2, 3, 4, 5, 6, 7].map(click).join('')],
+  ['expect', '!G.L.s.power && G.L.s.on.every(Boolean) && G.L.dynamicLights().length === 0 && !G.L.s.fire', 'the main put off by hand and every switch set (the porch light was already): nothing on'],
+  ['use', 'main'],
+  ['expect', '!!G.L.s.fire && G.state === "play"', 'the main on: the box bursts'],
+]);
+// the main put off by hand and left off: it comes all the way, and the card says why (played out with G.step)
+const offDeath = fresh.concat([
+  ['use', 'main'],
+  ['eval', '(() => { for (let i = 0; i < 2400 && G.state !== "dead"; i++) G.step(0.05); })()'],
+  ['expect', 'G.state === "dead" && G.deathCause === "off" && G.deathScreen.text === "You put the main off. In the dark, it came for you." && G.deathScreen.title === "It got you"', 'left in the dark with the main off by hand, it got you: "You put the main off. In the dark, it came for you."'],
+]);
+// every flame on the farm alight has its foot on something, seen from where you stand (you never move, so a foot over a
+// surface from here is over it whichever way you look and however you zoom): over the walls, roofs, doors and pickup of
+// its own place (within a metre in front of the flame to 3.5 m behind it, along the line from you), or on the ground.
+// Its foot: where the flame comes up out of its soft foot (CR.flameStrip), across the main flame's width (0.45 of it
+// either side) and the lower one's beside it (night11.js: FLAME_LO, FLAME_LW)
+const footsOnSurfaces = () => {
+  const L = G.L, eyeH = L.eyeH, bad = [];
+  const polys = L.props.filter(p => p.kind === 'poly' && p.alpha === undefined && p.layer !== 0 && p.pts.some(v => v[1] > 0.03));
+  const inPoly = (u, v, pts) => { let k = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > v) !== (b[1] > v) && u < a[0] + (b[0] - a[0]) * (v - a[1]) / (b[1] - a[1])) k = !k; } return k; };
+  const depthAt = (q, u, v) => {   // where the line from the eye through (u, v) meets the poly's plane
+    const a = q[0], e1 = [q[1][0] - a[0], q[1][1] - a[1], q[1][2] - a[2]], e2 = [q[2][0] - a[0], q[2][1] - a[1], q[2][2] - a[2]];
+    const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]], den = n[0] * u + n[1] * v + n[2];
+    return Math.abs(den) < 1e-9 ? a[2] : (n[0] * a[0] + n[1] * a[1] + n[2] * a[2]) / den;
+  };
+  for (const st of L.fireSites) {
+    const c = Math.cos(st.yaw), s = Math.sin(st.yaw);
+    const near = polys.map(p => p.pts.map(v => [v[0] * c - v[2] * s, v[1] - eyeH, v[0] * s + v[2] * c])).filter(q => q.every(v => v[2] > 0.2)).map(q => ({ q, uv: q.map(v => [v[0] / v[2], v[1] / v[2]]) }));
+    st.spots.forEach((sp, j) => {
+      const [x, y, z] = sp.at, w = sp.sz, h = sp.sz * 2;
+      if (y <= 0.1) return;   // (on the ground)
+      const pts = [-0.45, -0.3, -0.15, 0, 0.15, 0.3, 0.45].map(k => [x + k * w, y + 0.07 * h]).concat([-0.45, 0, 0.45].map(k => [x + sp.side * 0.22 * w + k * 0.75 * w, y + 0.07 * h * 0.75]));
+      for (const [px, py] of pts) {
+        const u = px / z, v = (py - eyeH) / z;
+        if (!near.some(S => { if (!inPoly(u, v, S.uv)) return false; const d = depthAt(S.q, u, v); return d > z - 1 && d < z + 3.5; })) { bad.push(st.si + '/' + j); break; }
+      }
+    });
+  }
+  window.__feet = bad;
+  return bad.length === 0;
+};
+// the thing alight, in every pose it burns in (standing, running either way through its stride, beating at itself,
+// charging, in your face): every flame's foot is on it, inside its outline (drawn solid, with no flames), never out in
+// the air beside it or over its head
+const footsOnIt = () => {
+  const c = G.L.creature, CR = c.CR, keep = {}, keys = ['burn', 'char', 'flail', 'charge', 'lunge', 'runPose', 'runDir', 'runPace', 'runGait', 'recoil', 'moving', 'gait', 't', 'shade'];
+  keys.forEach(k => { keep[k] = c[k]; });
+  const cv = document.createElement('canvas'); cv.width = 600; cv.height = 800;
+  const ctx = cv.getContext('2d', { willReadFrequently: true }), base = new DOMMatrix().translate(300, 740).scale(250, -250);
+  const solid = { col: () => 'rgb(0,0,0)', cola: () => 'rgb(0,0,0)', raw: () => 'rgb(0,0,0)', fog: 0 }, flame = CR.flame, bad = [];
+  const poses = [];
+  for (let i = 0; i < 6; i++) {
+    const t = 10 + i * 0.37, g = i * 1.1;
+    poses.push({ t, gait: g, moving: i % 2 === 0 }, { t, gait: g, flail: 1 }, { t, gait: g, charge: 1, moving: true }, { t, gait: g, charge: 1, lunge: 0.2 + i * 0.12 });
+    for (const dir of [1, -1]) poses.push({ t, runPose: true, runDir: dir, runPace: 1, runGait: i * 0.55 });
+  }
+  try {
+    poses.forEach((o, n) => {
+      Object.assign(c, { burn: 1, char: 0.85, flail: 0, charge: 0, lunge: 0, runPose: false, recoil: 0, moving: false, shade: 0 }, o);
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 600, 800); ctx.setTransform(base);
+      CR.flame = () => {}; CR.draw(ctx, c, solid);
+      const img = ctx.getImageData(0, 0, 600, 800).data, on = (X, Y) => X >= 0 && Y >= 0 && X < 600 && Y < 800 && img[(Y * 600 + X) * 4 + 3] > 200;
+      const fl = []; CR.flame = (cx, x, y, w, h) => { fl.push({ m: cx.getTransform(), x, y, w, h }); };
+      ctx.setTransform(base); CR.draw(ctx, c, solid); CR.flame = flame;
+      fl.forEach((f, j) => {
+        for (const k of [-0.45, -0.22, 0, 0.22, 0.45]) {
+          const p = f.m.transformPoint(new DOMPoint(f.x + k * f.w, f.y + 0.11 * f.h)), X = Math.round(p.x), Y = Math.round(p.y);
+          if (!(on(X, Y) && on(X - 2, Y) && on(X + 2, Y) && on(X, Y - 2) && on(X, Y + 2))) { bad.push(n + '/' + j); break; }
+        }
+      });
+    });
+  } finally { CR.flame = flame; Object.assign(c, keep); }
+  window.__feet = bad;
+  return bad.length === 0;
+};
+const feet = fresh.concat([
+  ['expect', '(' + footsOnSurfaces + ')()', 'the farm alight: every flame\'s foot is on a wall, a roof, a door or the ground, none hanging off an edge into the air'],
+  ['expect', '(' + footsOnIt + ')()', 'the thing alight, in every pose: every flame\'s foot is on it, none out in the air beside it or over its head'],
+]);
 module.exports = {
-  nightmare: [].concat(flush, trip, houseOn, randoms, overload(4), overload(7), fire, clever, fresh, solve),
+  nightmare: [].concat(flush, trip, houseOn, randoms, overload(4), overload(7), fire, clever, mainOff, offClever, offFire, offDeath, feet, fresh, solve),
 };

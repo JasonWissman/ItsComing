@@ -409,7 +409,13 @@ some on the ground, so you have to turn and look down to find them.
     still be set, up or down (each lever stands where it is set; no pilot lamp lights and nothing comes on): pushed back
     on, the main brings on whatever is set with it, as if each had been switched on there and then, so three or fewer
     come on (and with its place and both its neighbours set, it is caught the moment they do: a way to win), and more
-    than three trip it straight back off again, sparks, every switch dropping and every light going out, as before. While the porch light is on it creeps in no nearer than the edge of that light and waits there;
+    than three trip it straight back off again, sparks, every switch dropping and every light going out, as before.
+    You can push the main over to OFF yourself, too, whenever you like (a click on it while it is on): every light on
+    the farm goes out, the porch light with them, but the switches stay where they are set (no sparks, nothing drops),
+    and pushed back on it brings on what is set by the same rules (three or fewer light, four to seven trip it, all
+    eight set the farm alight). To the thing the main off by hand is the dark, as when it trips: it stops flinching
+    from a light that has gone out, and comes in for you at its own pace, all the way, the porch light no longer
+    keeping it off; caught that way, the card reads "You put the main off. In the dark, it came for you." While the porch light is on it creeps in no nearer than the edge of that light and waits there;
     with it off, it comes all the way. So the porch light has to go off before the trap, and then there is not long. If it
     reaches you, it is lit up in your face however dark it is: the stitches pulling wide, two of them snapping, its teeth
     showing through.
@@ -419,13 +425,18 @@ some on the ground, so you have to turn and look down to find them.
     the house and one to the thing (0.5 to 1.7 s, the further the later). Each catches where its spark lands, the fire
     running out over it from there (flickering flames on its front, roof and doors, each growing over 1.1 s, the whole
     place over 2.2 s; smoke rolling up off it and embers going up; its light out over the yard and on the ground before
-    it, and its glow), and the box itself goes up at once, spitting sparks. The sky and the haze go red, the fire roars
+    it, and its glow), and the box itself goes up at once, spitting sparks. Every flame stands on something: its foot
+    fades in softly (no hard flat line along the bottom of it) and sits on a wall, a roof just under its edge, a door,
+    the pickup or the ground, kept in from the edges by its own width, so none hangs off a corner or an eave into the
+    air from wherever you look (`test/nights/night11.js` checks every foot against the building behind it). The sky and the haze go red, the fire roars
     and crackles all round. The thing, its spark on it, goes up (the fire taking it from its middle out, scorching it
     near black), shrieking, and runs flat out about the open yard where you are looking, side on, flames streaming
     back off it and an arm beating at them over its head (round you, never through you, and in front of the house, not
     through it; out of sight it tears round faster to where you are looking), until you have had about 3 s of it in
     view (9 s at most). Then it stops, faces you, both arms flailing over its head (0.6 s), and charges straight in at
-    8.5 m/s, arms reaching, and has you, burning (its face clear of the flames in the lunge). The card reads
+    8.5 m/s, arms reaching, and has you, burning (its face clear of the flames in the lunge). The flames on it have their
+    feet on it in every pose: those on its front low on its body, kept in from its edges, and the fire over its head
+    and shoulders rising from behind it, its feet hidden behind its body, so nothing floats over its head. The card reads
     "Apparently the electrical box wasn't rated for that." Its sounds: the box bursting, each place catching, the
     crackle (its caption soft), the fire's roar (a loop, louder as more burns), its burning shrieks and its own sting.
     Reduced motion: the flames flicker slower and sway less.

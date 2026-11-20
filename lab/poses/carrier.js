@@ -59,7 +59,7 @@
         fit: (c, T) => ({ h: 2.2 + c.dist * 0.1 }),
         set(c) { c.shade = 0; c.burn = 1; c.char = 0.85; c.flail = 0; c.charge = 1; c.dist = 9; },
         tick(c, k, dt) { const d = Math.max(1.5, c.dist - 8.5 * dt); step(c, dt, c.dist - d); c.dist = d; } },
-      LAB.lunge({ name: 'Death lunge, burning', note: 'It has you, on fire: in your face, lit up, the flames round it and up off its head (its face is left clear of them), the stitches snapping. The card reads "Apparently the electrical box wasn\'t rated for that."', dist: CR.catchDist,
+      LAB.lunge({ name: 'Death lunge, burning', note: 'It has you, on fire: in your face, lit up, the flames low on its body and rising up from behind its head and shoulders (its face is left clear of them, and every flame has its foot on it), the stitches snapping. The card reads "Apparently the electrical box wasn\'t rated for that."', dist: CR.catchDist,
         set(c) { c.shade = 0; c.runPose = false; c.burn = 1; c.char = 0.85; c.charge = 1; c.deathSpec = { delay: 0.08, dur: 0.36 }; base.set(c); } }),
       LAB.lunge({ note: 'It reaches you in the dark: in your face it is lit up so you see it, the arms opening off the bundle, the stitches of its mouth pulling wide and two of them snapping, its teeth showing through.', dist: CR.catchDist,
         set(c) { c.shade = 0.45; c.runPose = false; base.set(c); } }),

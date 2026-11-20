@@ -12,6 +12,9 @@
 // The box takes three lights at once. Throw a fourth and the main breaker at the top of the box trips: a bang, the main
 // snaps over to OFF, every switch drops to off with it and every light on the farm goes out. Nothing comes on again until
 // the main is pushed back over to ON, and it does not stop coming for you while you find it in the dark.
+// You can push the main over to OFF yourself, too, whenever you like: every light on the farm goes out, the porch light
+// with them, but the switches stay where they are set. To the thing it is the dark, as when the main trips: it comes in
+// for you at its own pace, all the way (no porch light to stop it), until the main goes back on.
 // With the main off the switches can still be set, up or down; nothing comes on until the main goes back on, and then
 // what is set comes on with it, as if each had been switched on there and then (so with its place and both neighbours
 // set, it is caught the moment the main goes on). More than three set and the main trips straight back off.
@@ -40,10 +43,10 @@ LEVELS.push({
   ambient: { tune: 'ambient:11', wind: 0.9, drone: 0.6, droneFreq: 44, windFreq: 300 },
   text: {
     intro: 'The lights are out across the farm.\nSomething is out there in the dark.',
-    hint: 'It cannot stand the light. Light its place and it runs to a dark place next to it; light the places either side of it first, then its own, and it has nowhere to go. The box takes three lights at once, the porch light too: a fourth trips the main, and nothing comes on until you push the main back on.',
+    hint: 'It cannot stand the light. Light its place and it runs to a dark place next to it; light the places either side of it first, then its own, and it has nowhere to go. The box takes three lights at once, the porch light too: a fourth trips the main, and nothing comes on until you push the main back on. You can push the main off yourself, too: every light goes out, the switches stay as they are set, and they come on with the main.',
     objective: 'Find it. Light the places either side of it, then its own. No more than three lights at once.',
     where: 'It is out there in the dark, at one of the places. Find it.',
-    death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.', fire: 'Apparently the electrical box wasn\'t rated for that.' },
+    death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.', off: 'You put the main off. In the dark, it came for you.', fire: 'Apparently the electrical box wasn\'t rated for that.' },
     eggs: ['fire'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'It collapsed in the light, right in front of you.',
   },
@@ -355,11 +358,10 @@ LEVELS.push({
       if (L.t - s.dropAt < 0.12 && s.wasOn[i]) return 1 - (L.t - s.dropAt) / 0.12;
       return ft < 0.08 ? lerp(1 - want, want, ft / 0.08) : want;
     };
-    // how far over the main's lever is (1 over to ON, 0 to OFF): it snaps over when it trips and is pushed back over when
-    // you put it on; pushed while it is on, it gives a little and settles back
+    // how far over the main's lever is (1 over to ON, 0 to OFF): it snaps over when it trips, and is pushed over when you
+    // put it off or on
     const mainLever = () => {
-      const want = s.power ? 1 : 0, ft = L.t - s.mainAt, jt = L.t - s.mainJig;
-      if (jt < 0.3) return 1 - Math.sin(Math.PI * jt / 0.3) * 0.12;
+      const want = s.power ? 1 : 0, ft = L.t - s.mainAt;
       return ft < 0.1 ? lerp(1 - want, want, ft / 0.1) : want;
     };
     // the box's own little lamp: on with the main, flickering up as it goes back on. Off, the panel is dim, but not so dim
@@ -401,7 +403,7 @@ LEVELS.push({
     // the main and the switches: each a target on the panel, flat on it as the panel is
     inBox(() => mkTarget(L, {
       id: 'main', name: 'Main', x: BX, y: PY + MY - 0.045, z: BZ - 0.012, w: 0.28, h: 0.135, face: FRONT,
-      hint() { return s.fire ? 'The box is burning.' : s.power ? 'The main. On.' : 'The main. Off: push it back on. Whatever switches are set come on with it.'; },
+      hint() { return s.fire ? 'The box is burning.' : s.power ? 'The main. On: push it over to OFF and every light goes out.' : 'The main. Off: push it back on. Whatever switches are set come on with it.'; },
       onClick() { main(); return true; },
     }));
     LABELS.forEach((lab, i) => {
@@ -413,7 +415,7 @@ LEVELS.push({
     });
 
     // ---------------- the state of things ----------------
-    Object.assign(s, { on: [true, false, false, false, false, false, false, false], wasOn: [], power: true, trips: 0, tripAt: -99, dropAt: -99, mainAt: -9, mainJig: -9, pool: 1,
+    Object.assign(s, { on: [true, false, false, false, false, false, false, false], wasOn: [], power: true, trips: 0, tripAt: -99, dropAt: -99, mainAt: -9, offBy: null, pool: 1,
       flipAt: Array(8).fill(-9), litAt: Array(8).fill(-9), backAt: -99, fire: null, sparks: [], smoke: [], k: null, r: null, run: null, flinch: null, back: null, flushes: 0, trapped: false, ring: N, edge: EDGE, hideAt: RING.map(p => p.hide) });
     const blown = () => !!s.fire && L.t - s.fire.at > FIRE.flare;   // (every lamp on the farm blown, the farm alight)
     const lit = k => s.power && s.on[k + 1] && !blown();
@@ -428,7 +430,7 @@ LEVELS.push({
     // a fourth light: the main trips. A bang and a spit of sparks off it, it snaps over to OFF, every switch drops to off
     // with it, and every light on the farm goes out
     const trip = msg => {
-      s.wasOn = s.on.slice(); s.on.fill(false); s.power = false; s.trips++; s.tripAt = s.dropAt = s.mainAt = L.t;
+      s.wasOn = s.on.slice(); s.on.fill(false); s.power = false; s.offBy = 'trip'; s.trips++; s.tripAt = s.dropAt = s.mainAt = L.t;
       AUDIO.sfx('breakerTrip'); G.shake(0.55); G.flash(0.3);
       const fwd = outOfBox(0, -1);
       for (let i = 0; i < 22; i++) { const a = fxr() * TAU, v = 0.8 + fxr() * 2.0, d = outOfBox(Math.cos(a) * v * 0.7, -Math.abs(Math.sin(a)) * v * 0.6); s.sparks.push({ x: BOXP.x + fwd.x * 0.02, y: BOXP.y, z: BOXP.z + fwd.z * 0.02, vx: d.x, vy: 0.6 + fxr() * 2.2, vz: d.z, age: 0, life: 0.4 + fxr() * 0.6 }); }
@@ -437,10 +439,15 @@ LEVELS.push({
     };
     // the main: pushed back over to ON, and whatever switches are set come on with it, as if each were switched on there
     // and then: more than three and it trips straight back off; every one of them and the box goes up (ignite). Pushed
-    // while it is on, it is on already
+    // while it is on, over to OFF (off): every light on the farm goes out, and the switches stay where they are set
+    const off = () => {
+      s.power = false; s.offBy = 'hand'; s.mainAt = L.t;
+      AUDIO.sfx('lever'); AUDIO.sfx('clunk');
+      G.say(countOn() ? 'You push the main over to OFF. Every light on the farm goes out; the switches stay as they are set.' : 'You push the main over to OFF. The farm is dark.', 'The main is off.');
+    };
     const main = () => {
       if (L.won || G.state !== 'play' || s.fire) return;
-      if (s.power) { s.mainJig = L.t; AUDIO.sfx('switch'); G.say('The main is on.', 'The main is on.'); return; }
+      if (s.power) { off(); return; }
       const n = countOn();
       if (n === s.on.length) { ignite(); return; }
       s.power = true; s.mainAt = s.backAt = L.t;
@@ -470,7 +477,7 @@ LEVELS.push({
     // distance is s.r. At its place, in the dark: still at first, then creeping in toward you, no nearer than the edge of
     // the porch light while that is on, and all the way while it is not. Its place lit: it flinches and runs to a dark
     // neighbour, or, with both of them lit, it is caught.
-    const CREEP = { wait: 5, lit: 0.2, dark: 0.62, back: 2.6 };   // (with the main tripped it is dark, and it comes at its own pace)
+    const CREEP = { wait: 5, lit: 0.2, dark: 0.62, back: 2.6 };   // (with the main off, tripped or put off by you, it is dark, and it comes at its own pace)
     const RUN = { speed: 6.5, min: 0.8, max: 3.4, flinch: 0.32, behind: 17 };
     let way = null;
     const place = (c, yaw, r) => { way.yaw = yaw; way.dirX = Math.sin(yaw); way.dirZ = Math.cos(yaw); c.yaw = yaw; s.r = r; };
@@ -563,7 +570,7 @@ LEVELS.push({
       if (s.fire) fireFx(dt);
     };
     L.isWon = () => s.trapped;
-    L.deathCause = () => (s.fire ? 'fire' : !s.power || L.t - s.backAt < 8 ? 'trip' : 'default');
+    L.deathCause = () => (s.fire ? 'fire' : !s.power || L.t - s.backAt < 8 ? (s.offBy === 'hand' ? 'off' : 'trip') : 'default');   // (the main off, or not long back on: tripped, or put off by you)
     L.onCatch = c => { c.shade = s.fire ? 0 : 0.45; c.runPose = false; return false; };   // (in your face, a little of it shows)
     // caught: it shrieks, its knees go, and it comes apart in the light (carrier.drawFall); the view closes in on it
     const FALL = CREATURES.carrier.FALL, FALL_END = FALL.shriek + FALL.sink + FALL.apart + 1.8;
@@ -617,18 +624,25 @@ LEVELS.push({
     const SITES = [];   // what burns: the seven places (0..6, as RING), the house (7) and the box (8)
     // each in its own frame: hit, where its spark lands; light, its fire's light out over its front (lr: how far it
     // reaches); glow, the bloom of it (gr: how big); top, where its smoke goes up from (wide: how wide a fire it is); pool,
-    // the fire's light on the ground before it (z0, z1, w); spots, its flames [x, y, z, size], each fixed where it burns
+    // the fire's light on the ground before it (z0, z1, w); spots, its flames [x, y, z, size], each fixed where it burns,
+    // y the foot of it. Every flame's foot sits on something, seen from where you stand (and you never move, so it is
+    // so whichever way you look and however you zoom): on a wall, a roof, a door, the pickup, or the ground. Its foot is
+    // kept in from the edges of what it is on by the width of it (about size / 2 either side, and the lower flame beside
+    // it out to 0.6 size on its own side), so none of it hangs off a corner or an eave into the air; the flame itself is
+    // soft at its foot (CR.flameStrip), with no hard line along it. Along a roof or a gable the feet sit just under its
+    // edge and the flames rise up over it. (test/nights/night11.js checks each foot against the building it is on)
+    const FLAME_LO = 0.22, FLAME_LW = 0.75;   // the lower flame beside each: how far to its side (in sizes) and how big
     const site = (deg, o) => inFrame(deg, () => {
       const si = SITES.length, hit = W(...o.hit);
       const st = { si, yaw: deg * DEG, hit, light: Object.assign(W(...o.light), { r: o.lr, i: 0, color: [255, 136, 56], flicker: 0.7, seed: si * 5 + 3 }), glow: W(...o.glow), gr: o.gr, top: W(...o.top), wide: o.wide, spots: [] };
       o.spots.forEach(([x, y, z, sz], j) => {
-        const p = W(x, y, z), w = sz * 1.0, h = sz * 2.0, seed = si * 7.1 + j * 1.9;
-        st.spots.push({ d: Math.hypot(p.x - hit.x, p.y - hit.y, p.z - hit.z) * FIRE.spread });
-        SC.sprite(L, x, y - sz * 0.3, z, w, h, ctx => {
+        const p = W(x, y, z), w = sz, h = sz * 2, seed = si * 7.1 + j * 1.9, side = j % 2 ? 1 : -1;
+        st.spots.push({ d: Math.hypot(p.x - hit.x, p.y - hit.y, p.z - hit.z) * FIRE.spread, at: [x, y, z], sz, side });
+        SC.sprite(L, x, y, z, w, h, ctx => {
           const g = spotFire(si, j);
           if (g <= 0) return;
           const a = Math.min(1, g * 2), fw = w * (0.4 + 0.6 * g), fh = h * (0.35 + 0.65 * g);
-          CR.flame(ctx, (j % 2 ? 0.3 : -0.3) * fw, 0, fw * 0.8, fh * 0.75, G.t * 1.1, seed + 3.3, a);   // a lower one beside it, flickering its own way
+          CR.flame(ctx, side * FLAME_LO * fw, 0, fw * FLAME_LW, fh * FLAME_LW, G.t * 1.1, seed + 3.3, a);   // a lower one beside it, flickering its own way
           CR.flame(ctx, 0, 0, fw, fh, G.t, seed, a * 0.85, true);   // and the main one, laid on as light, so where they overlap the fire burns hotter
         }, { noFog: true, noLight: true, sortDist: Math.hypot(p.x, p.z) - (o.sortK || 0.45) });
       });
@@ -646,29 +660,30 @@ LEVELS.push({
       SITES.push(st);
     });
     const row = (x0, x1, n, y, z, sz) => Array.from({ length: n }, (_, i) => [lerp(x0, x1, n > 1 ? i / (n - 1) : 0.5), y, z, sz]);
-    site(225, { hit: [0, 3.6, 20.7], light: [0, 2.6, 17.5], lr: 15, glow: [0, 2.5, 20.6], gr: 4.5, top: [0, 4.2, 23], wide: 10, pool: [12, 22.5, 15],   // the tractor shed
-      spots: row(-4.8, 4.8, 7, 4.15, 20.8, 1.6).concat([[-2.7, 1.2, 20.75, 1.4], [2.7, 1.2, 20.75, 1.4], [-5.15, 1.6, 20.9, 1.5], [5.15, 1.6, 20.9, 1.5], [0.8, 1.0, 23.8, 1.8], [0.2, 2.1, 23.8, 1.3]]) });
-    site(270, { hit: [0, 2.5, 15.75], light: [0, 2.2, 13.5], lr: 11, glow: [0, 2, 15.8], gr: 3, top: [0, 3.9, 17.8], wide: 4.4, pool: [7.5, 17, 10],   // the shed
-      spots: [[-1.8, 0.3, 15.65, 1.2], [1.8, 0.4, 15.65, 1.1], [0, 1.0, 15.65, 1.3], [1.35, 1.5, 15.65, 1.0], [-1.2, 1.9, 15.65, 1.2], [-2.1, 2.55, 15.65, 1.3], [-1.05, 3.25, 15.65, 1.3], [0, 3.9, 15.65, 1.5], [1.05, 3.25, 15.65, 1.3], [2.1, 2.55, 15.65, 1.3]] });
-    site(315, { hit: [0, 2.75, 23.5], light: [0, 2.4, 21], lr: 16, glow: [0, 2.2, 23.4], gr: 6, top: [0, 4.5, 26], wide: 16, pool: [12, 25.2, 20],   // the stables
-      spots: row(-7.5, 7.5, 9, 3.15, 23.25, 1.7).concat(row(-5.6, 5.6, 5, 0.9, 23.9, 1.3)) });
-    site(0, { hit: [0, 5.05, 29.6], light: [0, 4, 26.5], lr: 20, glow: [0, 5, 29.8], gr: 8, top: [0, 10.9, 32], wide: 12, pool: [18, 31.2, 18],   // the barn
-      spots: [[-5.6, 0.4, 29.6, 2.2], [5.6, 0.7, 29.6, 2.2], [-1.2, 0.9, 29.6, 2.4], [1.4, 0.7, 29.6, 2.2], [0, 3.1, 29.6, 2.0], [-4.2, 3.3, 29.6, 2.2], [4.3, 2.9, 29.6, 2.2], [-5.8, 5.9, 29.6, 2.6], [5.8, 5.9, 29.6, 2.6],
-        [-3.7, 9.1, 29.6, 2.4], [3.7, 9.1, 29.6, 2.4], [0, 7.3, 29.6, 2.4], [-1.8, 10.0, 29.6, 2.0], [1.8, 10.0, 29.6, 2.0], [0, 10.8, 29.6, 2.8]] });
-    site(45, { hit: [1.0, 4.35, 24.5], light: [-0.5, 4, 22], lr: 18, glow: [-1, 5, 25], gr: 7, top: [-2.2, 14.6, 26], wide: 8, pool: [13, 26.2, 16],   // the silo
-      spots: [[-2.2, 13.4, 25.1, 2.6], [-3.6, 10, 25.9, 2.0], [-0.9, 8, 25.6, 2.0], [-3.4, 5.5, 25.6, 2.0], [-1.0, 3, 25.6, 2.0], [-2.4, 0.6, 25.1, 2.0],
-        [1.2, 3.3, 24.75, 1.6], [2.8, 3.4, 24.75, 1.6], [4.6, 3.3, 24.75, 1.6], [2.8, 0.8, 25.1, 1.4], [0.8, 1.0, 25.1, 1.2], [4.8, 0.8, 25.1, 1.2]] });
-    site(90, { hit: [0, 2.65, 15.6], light: [1.5, 2, 13.5], lr: 11, glow: [1.5, 1.6, 15.8], gr: 3.5, top: [0, 2.6, 17], wide: 7, pool: [7.5, 17, 11],   // the coop
-      spots: [[-1.4, 2.45, 15.65, 1.1], [0, 2.5, 15.65, 1.3], [1.4, 2.45, 15.65, 1.1], [0, 1.15, 15.9, 1.0], [-1.5, 0.3, 16.0, 0.8], [1.5, 0.3, 16.0, 0.8], [2.6, 0.3, 15.9, 1.0], [3.6, 0.9, 15.9, 1.0], [4.8, 0.4, 15.9, 1.0]] });
-    site(135, { hit: [-1.35, 5.42, 19.9], light: [0, 2.5, 18], lr: 16, glow: [1, 2.5, 22], gr: 6, top: [0, 4.4, 30], wide: 9, pool: [11, 21.5, 14],   // the driveway: the pickup, the garage and the yard light's pole
-      spots: [[2.15, 2.0, 21.4, 1.6], [1.6, 1.1, 20.0, 1.3], [2.8, 1.1, 20.0, 1.3], [2.2, 1.4, 23.5, 1.4], [-3.8, 3.1, 27.6, 1.7], [-1.9, 3.3, 27.6, 1.7], [0, 3.5, 27.6, 1.8], [1.9, 3.3, 27.6, 1.7], [3.8, 3.1, 27.6, 1.7],
-        [-1.8, 0.9, 27.85, 1.6], [2.4, 1.0, 27.85, 1.5], [-2.3, 3.6, 19.8, 1.0], [-1.6, 5.5, 19.8, 1.0]] });
-    site(180, { hit: [0.95, 2.04, 6.85], light: [0, 2.6, 3.2], lr: 10, glow: [0, 3, 6], gr: 6, top: [0, 8.5, 11], wide: 10, pool: [1.2, 7.4, 13],   // the house behind you
-      spots: row(-2.4, 2.4, 5, 2.8, 4.75, 1.2).concat([[-2.65, 1.0, 5.0, 1.0], [2.65, 1.0, 5.0, 1.0], [-3, 3.9, 6.9, 1.6], [0, 4.0, 6.9, 1.5], [3, 3.9, 6.9, 1.6], [-3, 1.5, 6.9, 1.4], [3, 1.5, 6.9, 1.4], [-4.3, 5.3, 6.9, 1.6], [4.3, 5.3, 6.9, 1.6],
-        [-2, 6.4, 8.6, 1.8], [2, 6.4, 8.6, 1.8], [-3.6, 6.0, 8.0, 1.7], [3.6, 6.0, 8.0, 1.7], [-3.5, 8.3, 11, 2.2], [0, 8.4, 11, 2.4], [3.5, 8.3, 11, 2.2], [2.6, 9.5, 11.9, 1.4]]) });
+    site(225, { hit: [0, 3.6, 20.7], light: [0, 2.6, 17.5], lr: 15, glow: [0, 2.5, 20.6], gr: 4.5, top: [0, 4.2, 23], wide: 10, pool: [12, 22.5, 15],   // the tractor shed: along the beam under its eave, on the ground at the feet of its posts and its side walls, and on the tractor
+      spots: row(-4.4, 4.4, 7, 3.6, 20.8, 1.6).concat([[-2.7, 0, 20.75, 1.3], [2.7, 0, 20.75, 1.3], [-4.4, 0, 20.9, 1.2], [4.4, 0, 20.9, 1.2], [0.8, 0.45, 23.8, 1.8], [0.2, 1.7, 23.8, 1.3]]) });
+    site(270, { hit: [0, 2.5, 15.75], light: [0, 2.2, 13.5], lr: 11, glow: [0, 2, 15.8], gr: 3, top: [0, 3.9, 17.8], wide: 4.4, pool: [7.5, 17, 10],   // the shed: its front, its door and window, and up its gable under the roof's edge
+      spots: [[-1.7, 0, 15.65, 1.2], [1.55, 0.05, 15.65, 1.1], [0, 0.6, 15.65, 1.3], [1.35, 1.2, 15.65, 1.0], [-1.2, 1.5, 15.65, 1.2], [-1.5, 2.1, 15.65, 1.2], [-0.9, 2.6, 15.65, 1.2], [0, 3.1, 15.65, 1.25], [0.9, 2.6, 15.65, 1.2], [1.45, 2.1, 15.65, 1.2]] });
+    site(315, { hit: [0, 2.75, 23.5], light: [0, 2.4, 21], lr: 16, glow: [0, 2.2, 23.4], gr: 6, top: [0, 4.5, 26], wide: 16, pool: [12, 25.2, 20],   // the stables: all along its roof, and its stable doors
+      spots: row(-7, 7, 9, 2.95, 23.25, 1.7).concat(row(-5.6, 5.6, 5, 0.5, 23.9, 1.3)) });
+    site(0, { hit: [0, 5.05, 29.6], light: [0, 4, 26.5], lr: 20, glow: [0, 5, 29.8], gr: 8, top: [0, 10.9, 32], wide: 12, pool: [18, 31.2, 18],   // the barn: its great doors, its front and up its gable to the peak
+      spots: [[-4.9, 0, 29.6, 2.2], [4.9, 0, 29.6, 2.2], [-1.2, 0.15, 29.6, 2.4], [1.4, 0, 29.6, 2.2], [0, 2.5, 29.6, 2.0], [-4.2, 2.6, 29.6, 2.2], [4.3, 2.2, 29.6, 2.2], [-4.4, 5.3, 29.6, 2.4], [4.4, 5.3, 29.6, 2.4],
+        [-2.6, 8.0, 29.6, 2.4], [2.6, 8.0, 29.6, 2.4], [0, 6.6, 29.6, 2.4], [-1.4, 9.1, 29.6, 1.8], [1.4, 9.1, 29.6, 1.8], [0, 9.7, 29.6, 2.6]] });
+    site(45, { hit: [1.0, 4.35, 24.5], light: [-0.5, 4, 22], lr: 18, glow: [-1, 5, 25], gr: 7, top: [-2.2, 14.6, 26], wide: 8, pool: [13, 26.2, 16],   // the silo, up to its dome, and the roof and front of the feed room
+      spots: [[-2.2, 12.3, 25.1, 2.6], [-3.2, 9.4, 25.9, 2.0], [-0.9, 7.4, 25.6, 2.0], [-3.4, 4.9, 25.6, 2.0], [-1.0, 2.4, 25.6, 2.0], [-2.4, 0, 25.1, 2.0],
+        [1.3, 2.82, 24.75, 1.6], [2.75, 2.9, 24.75, 1.6], [4.2, 2.82, 24.75, 1.6], [2.8, 0.38, 25.1, 1.4], [1.1, 0.3, 25.1, 1.2], [4.4, 0.1, 25.1, 1.2]] });
+    site(90, { hit: [0, 2.65, 15.6], light: [1.5, 2, 13.5], lr: 11, glow: [1.5, 1.6, 15.8], gr: 3.5, top: [0, 2.6, 17], wide: 7, pool: [7.5, 17, 11],   // the coop: under its roof's edge, its door, the ground under it and the straw in the run
+      spots: [[-1.0, 2.12, 15.65, 1.1], [0, 2.1, 15.65, 1.3], [1.0, 2.12, 15.65, 1.1], [0, 0.85, 15.9, 1.0], [-1.4, 0, 16.0, 0.8], [1.4, 0, 16.0, 0.8], [2.6, 0, 15.9, 1.0], [3.6, 0, 15.9, 1.0], [4.7, 0, 15.9, 1.0]] });
+    site(135, { hit: [-1.35, 5.42, 19.9], light: [0, 2.5, 18], lr: 16, glow: [1, 2.5, 22], gr: 6, top: [0, 4.4, 30], wide: 9, pool: [11, 21.5, 14],   // the driveway: the pickup, the garage, and the grass at the foot of the yard light's pole
+      spots: [[2.15, 1.55, 21.4, 1.4], [1.75, 0.6, 20.0, 1.1], [2.6, 0.6, 20.0, 1.1], [2.2, 0.98, 23.5, 1.4], [-3.2, 2.6, 27.6, 1.6], [-1.6, 2.75, 27.6, 1.6], [0, 2.9, 27.6, 1.7], [1.6, 2.75, 27.6, 1.6], [3.2, 2.6, 27.6, 1.6],
+        [-1.8, 0.42, 27.85, 1.6], [2.4, 0.55, 27.85, 1.5], [-2.3, 0, 19.8, 0.9]] });
+    site(180, { hit: [0.95, 2.04, 6.85], light: [0, 2.6, 3.2], lr: 10, glow: [0, 3, 6], gr: 6, top: [0, 8.5, 11], wide: 10, pool: [1.2, 7.4, 13],   // the house behind you: along the porch roof, its windows, up its front and its roof, and the chimney
+      spots: row(-2.2, 2.2, 5, 2.44, 4.75, 1.2).concat([[-2.65, 0.7, 5.0, 1.0], [2.65, 0.7, 5.0, 1.0], [-3, 3.42, 6.9, 1.6], [0, 3.55, 6.9, 1.5], [3, 3.42, 6.9, 1.6], [-3, 1.08, 6.9, 1.4], [3, 1.08, 6.9, 1.4], [-3.5, 4.82, 6.9, 1.6], [3.5, 4.82, 6.9, 1.6],
+        [-2, 5.86, 8.6, 1.8], [2, 5.86, 8.6, 1.8], [-3.6, 5.49, 8.0, 1.7], [3.6, 5.49, 8.0, 1.7], [-3.5, 7.64, 11, 2.2], [0, 7.68, 11, 2.4], [3.5, 7.64, 11, 2.2], [2.55, 9.2, 11.9, 0.7]]) });
     site(BOX_DEG, { hit: [BX + 0.06, PY + MY, BZ - 0.02], light: [0, 1.1, BZ - 0.4], lr: 3.5, glow: [0, 1.05, BZ - 0.05], gr: 0.14, top: [0, 1.4, BZ + 0.1], wide: 0.5, sortK: 0.08,   // the box on its post, at your left hand
-      spots: [[-0.17, 1.28, BZ - 0.04, 0.15], [0.14, 1.3, BZ - 0.04, 0.17], [0.03, 1.36, BZ + 0.1, 0.16], [0.21, 0.8, BZ - 0.05, 0.14], [-0.21, 0.66, BZ - 0.05, 0.14], [0.05, 0.2, BZ + 0.03, 0.18]] });   // (low: licking up its front and over its hood, not hiding the yard beyond it)
+      spots: [[-0.14, 1.235, BZ - 0.04, 0.15], [0.12, 1.25, BZ - 0.04, 0.17], [0.03, 1.31, BZ + 0.1, 0.16], [0.14, 0.76, BZ - 0.05, 0.14], [-0.14, 0.62, BZ - 0.05, 0.14], [0.04, 0, BZ + 0.03, 0.18]] });   // (low: licking up its front and over its hood, not hiding the yard beyond it)
     const BOX_SITE = SITES.length - 1;
+    L.fireSites = SITES;   // (for the tests)
     // how far the fire has taken a place (0..1), and one of its flames
     const siteFire = si => { const a = s.fire && s.fire.lit[si]; return a === null || a === undefined ? 0 : clamp((L.t - a) / FIRE.grow, 0, 1); };
     const spotFire = (si, j) => { const a = s.fire && s.fire.lit[si]; return a === null || a === undefined ? 0 : clamp((L.t - a - SITES[si].spots[j].d) / FIRE.spot, 0, 1); };
