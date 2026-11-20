@@ -123,7 +123,7 @@ const AUDIO = (() => {
     if (!ac) return;
     stopAmbient();
     const b = bed(p || {}, bus.ambient);
-    fadeIn(b.g.gain, b.title ? 4 : 3);
+    fadeIn(b.g.gain, p && p.fade > 0 ? p.fade : b.title ? 4 : 3);
     amb = b;
   }
   // a bed made and started, silent (its gain, g, at nothing: the caller fades it in), into dest: { g, nodes } (and the
@@ -215,10 +215,11 @@ const AUDIO = (() => {
     set(p.near, 0.05);
     return { g, nodes, title: true, k: p.near, set };
   }
-  // the title's drone at nearness k: started if it is not playing, else moved there over a second or two
-  function titleDrone(k) {
+  // the title's drone at nearness k: started if it is not playing (fading in over fade seconds, else its usual four),
+  // else moved there over a second or two
+  function titleDrone(k, fade) {
     if (!ac) return;
-    if (!amb || !amb.title) startAmbient({ tune: 'ambient:title', near: k });   // (tuned as 'ambient:title', by AUDIO.titleDrone below)
+    if (!amb || !amb.title) startAmbient({ tune: 'ambient:title', near: k, fade });   // (tuned as 'ambient:title', by AUDIO.titleDrone below)
     else if (Math.abs(amb.k - k) > 1e-3) { amb.k = k; amb.set(k, 1.2); }
   }
   // the bed faded out and let go: over about 1.6 s, or over sec seconds (the title's drone as the prologue comes up)
@@ -721,7 +722,7 @@ const AUDIO = (() => {
   return {
     init, on, running, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
     startAmbient: p => tuned(p && p.tune, () => startAmbient(p)),
-    titleDrone: k => (amb && amb.title ? titleDrone(k) : tuned('ambient:title', () => titleDrone(k))),
+    titleDrone: (k, fade) => (amb && amb.title ? titleDrone(k) : tuned('ambient:title', () => titleDrone(k, fade))),
     setLoop: (kind, vol, pan) => tuned(kind ? 'loop:' + kind : null, () => setLoop(kind, vol, pan)),
     heartbeat: (vol, fast) => tuned('heartbeat', () => heartbeat(vol, fast)),
     footstep: (kind, vol, pan) => tuned('footstep:' + kind, () => footstep(kind, vol, pan)),

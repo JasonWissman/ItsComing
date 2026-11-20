@@ -101,9 +101,10 @@ line at a time, with a marker for which side a sound came from), on a touch scre
 textures (off by default; on drops the boards, logs and stone built into walls and floors, which is faster on slow
 machines). Reduce motion and flashing defaults on when your system asks for reduced motion. A save from before the
 switches carries over: surface detail off is Reduce surface textures on, and the one reduction switch is on if either
-of the old two was. Beside Back, Set to default puts every setting back as a new save has it, at once and with no
+of the old two was. At the foot, Set to default puts every setting back as a new save has it, at once and with no
 question (the switches, the rows of choices and the volume's slider follow; progress, the best run and the accepted warning are untouched); the
-Settings opened from the warning have it too. Erase progress is on the Scores screen, beside its Back, and asks first,
+Settings opened from the warning have it too. To its right is Done (primary, as in the Calibrate dialogs; Esc or B too),
+which goes back to what opened Settings. Erase progress is on the Scores screen, beside its Back, and asks first,
 in a small dialog of its own (Cancel, Erase); it forgets everything as before: nights reached, the best run, the
 accepted warning and the settings. The UI's accent red, for its
 words and controls (the warning, "It got you", muted, Erase progress), is `--red` (`#f04a54`) in `index.html`.
@@ -556,15 +557,19 @@ clock ticks for the first ten seconds of each night from the same direction. Sur
 offers Next night, and, quieter and further down, Quit to the title. Finishing the last night ends in that meadow; a click, a key (other than those that
 turn, look and zoom), a tap of Use or A there fades
 the meadow and the thing away into the bedroom, in the morning, and switches the game to a light theme for its last
-screens. The last
+screen. The last
 screen there says "You have faced your demons." over one button, The End, which brings up how the nights went this
-time: the thirteen cards of the Scores screen, each coming in whole with this run's time for that night one after
+time, back in the dark theme to match the Scores dialog (the pale veil over the morning room eases to a dark one, the
+room still there behind, dimmed, and the results come in the Scores dialog's dark card): the thirteen cards of the Scores screen, each coming in whole with this run's time for that night one after
 another (nothing there before it comes: no empty placeholders), then this run's whole time with its stars (under 3:00
 three, under 6:00 two, else one: drawn, those earned filled, read out as "2 of 3 stars"; what each takes is their tooltip and their description when read out, and a tap or click on them shows it) and, only if it beats the
 best run saved (or is the first), a red Best run stamp beside the time: it is then the best run on the Scores screen.
-Then Finish game, home to the title: the usual dark one, with it out there again (the
-light theme goes with the last screens and is never kept for the title). A click or a key hurries it to the
-end, and with reduced motion it is all there at once.
+A click or a key hurries the results to the end, and with reduced motion they are all there at once. Then Finish
+game, home to the title: the usual dark one, with it out there again (the light theme is never kept for the title),
+slowly: everything fades smoothly to black (1.2 s), a brief pause in black, then the light behind the thing comes on
+in one smooth, eased fade (1.4 s, no flicker, with or without reduced flashing), it and its eyes coming up out of the
+black with it, then the title, its buttons, the corner controls and the title's drone fade in together (1.4 s);
+nothing can be pressed until it is all in (`finishHome` in js/game.js, `TITLE.lightUp` in js/title.js).
 
 Each night is a little different every time it loads, and trying a night again never brings it the same way twice in a row: every item has several
 places it might be, the creature's starting distance and pace vary slightly,
@@ -604,7 +609,7 @@ warning, in a card like the other dialogs on black: an eye struck through and re
 imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy." / "Options for reduced
 motion and flashing are available in the settings dialog." / a blank line / "Player discretion is advised."), a solid
 red Accept, focused (Enter, Space, a click or tap, or A or Start on a pad), and beside it a text-only Adjust settings,
-which turns the card into Settings (all of it, Set to default too); its Back (or Esc, or B) is the warning again, Accept
+which turns the card into Settings (all of it, Set to default too); its Done (or Esc, or B) is the warning again, Accept
 focused, so it still takes Accept to go on. Nothing else gets past it. Once accepted it is remembered with the save
 (`warned`), and a later game goes straight on (Erase progress forgets it with the rest). Then a
 prologue (silent: the title's drone fades slowly away under it, and night 1's bed fades in as night 1 begins): black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /

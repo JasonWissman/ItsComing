@@ -145,15 +145,16 @@ const MENU = (() => {
         // Volume and Brightness, each a Calibrate button (a dialog of its own: volumeHtml, brightnessHtml: the effects and
         // the ambience volumes are in Volume's); Display, windowed or full screen (displayRow); the text size, a row of
         // choices (seg); then the on/off settings, each a switch (a checkbox with the role of a switch, drawn as one: .sw).
-        // Beside Back, Set to default: every setting back as it began (nothing else). From the warning before a new game
-        // (d.from 'warning': game.js) the same
+        // At the foot Set to default (every setting back as it began, nothing else) and, to its right, Done (data-act
+        // 'back': it, Esc and a pad's B go back to what opened Settings). From the warning before a new game (d.from
+        // 'warning': game.js) the same
         const sw = (k, label) => '<label class="opt"><span class="olabel">' + label + '</span><span class="swwrap"><input type="checkbox" role="switch" class="swi" data-set="' + k + '"' + (switchOn(k) ? ' checked' : '') + '><span class="sw" aria-hidden="true"></span></span></label>';
         const cal = (act, label) => '<div class="opt"><span class="olabel">' + label + '</span><button type="button" class="calbtn" data-act="' + act + '" aria-label="Calibrate ' + label.toLowerCase() + '">Calibrate</button></div>';
         return '<h1>Settings</h1><div class="settings"><div class="sgrp">' +
           cal('calvol', 'Volume') + cal('calbright', 'Brightness') + displayRow() + seg('textSize', 'Text size', SAVE.TEXT_SIZES) +
           '</div><div class="sgrp">' +
           sw('muted', 'Mute') + sw('reduceMotionFlash', 'Reduce motion and flashing effects') + sw('captions', 'Captions for sounds') + (touchUI() ? sw('swipeReverse', 'Reverse swipes') : '') + sw('reduceTextures', 'Reduce surface textures') +
-          '</div></div><div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('defaults', 'Set to default') + '</div>';
+          '</div></div><div class="mrow">' + btn('defaults', 'Set to default') + btn('back', 'Done', d.from || 'title', 'primary') + '</div>';
       }
       default: return '';
     }
@@ -270,7 +271,7 @@ const MENU = (() => {
     AUDIO.hush(vol);
     const cv = root.querySelector('canvas.calshape'); if (cv) drawShape(cv);
   }
-  // what to focus in Settings or one of its dialogs: what opened it (back from a dialog), else in Settings Back, in the
+  // what to focus in Settings or one of its dialogs: what opened it (back from a dialog), else in Settings Done, in the
   // volume's dialog the first play button, in the brightness's Done
   function settingsFocus(root, d) {
     return (d.focus && root.querySelector('button[data-act="' + d.focus + '"]')) || root.querySelector(d.sub === 'volume' ? 'button[data-act="calquiet"]' : d.sub ? 'button[data-act="caldone"]' : 'button[data-act="back"]');
@@ -296,6 +297,7 @@ const MENU = (() => {
     ov.classList.toggle('titlelow', kind === 'title' && TITLE.on);
     ov.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); act(b.dataset.act, b.dataset.arg); }));
     wire(ov);
+    if (kind === 'results') toDark(ov);
     if (kind === 'settings') settled(ov, current.data); else { AUDIO.calStop(); AUDIO.hush(false); }
     ov.querySelectorAll('.stars').forEach(s => s.addEventListener('click', e => { e.stopPropagation(); starTip(s); }));
     const box = ov.querySelector('.confirm');
@@ -304,6 +306,16 @@ const MENU = (() => {
     const first = kind === 'settings' ? settingsFocus(ov, current.data) : (!box && current.data.focus && ov.querySelector('button[data-act="' + current.data.focus + '"]')) || (box || ov).querySelector('button[data-act]');
     if (first && kind !== 'title' && kind !== 'results') first.focus();
     if (kind === 'results') reveal(false);
+  }
+  // the results are in the dark theme, as the Scores dialog is (the morning's light one is the last screen's only, The
+  // End): from it, the pale veil over the morning room eases to the dark one as their card fades in, rather than the
+  // whole screen going from light to dark at once
+  function toDark(ov) {
+    if (document.documentElement.getAttribute('data-theme') !== 'day') return;
+    const fade = [ov, UI.mute, UI.fsBtn].filter(Boolean);
+    fade.forEach(e => { e.style.transition = 'opacity .5s, background-color 1s ease-in-out, color 1s ease-in-out, border-color 1s ease-in-out'; });
+    STORY.theme(false);
+    setTimeout(() => fade.forEach(e => { e.style.transition = ''; }), 1100);
   }
   // the settings' controls in a screen (the menus' overlay, or the warning's card): each applied and saved as it changes,
   // a slider's percentage following it, a row of choices its chosen one
@@ -321,7 +333,7 @@ const MENU = (() => {
     });
     root.querySelectorAll('.seg [role="radio"]').forEach(o => o.addEventListener('click', e => { e.stopPropagation(); if (segPick(o)) tap(); }));
   }
-  // Settings in a box of the caller's own, over everything (the warning before a new game: game.js). Its Back calls back();
+  // Settings in a box of the caller's own, over everything (the warning before a new game: game.js). Its Done calls back();
   // its Calibrate buttons put their dialogs in the same box, and their Done puts Settings back. The keys and a pad go
   // through navKey and the caller (Esc and B through subBack first)
   function settingsInto(root, back, d) {

@@ -167,7 +167,7 @@ async function run(browser, check) {
     check(!v.sub && v.focus === 'calbright' && !v2.sub && v2.kind === 'settings' && v2.focus === 'calbright', 'Esc or Done: Settings again, Brightness\'s Calibrate focused (' + JSON.stringify([v, v2]) + ')');
     const step0 = await page.evaluate(() => TITLE.step);
     await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(150);
-    check(await page.evaluate(s0 => MENU.kind === 'title' && TITLE.step === s0 + 1, step0), 'and Back from Settings: the title, the thing a step nearer, as after any dialog');
+    check(await page.evaluate(s0 => MENU.kind === 'title' && TITLE.step === s0 + 1, step0), 'and Done in Settings: the title, the thing a step nearer, as after any dialog');
     // at each text size, the volume dialog in view on a laptop's screen
     for (const ts of [1, 1.4, 1.8]) {
       await page.evaluate(ts => { MENU.applySetting('textSize', ts); MENU.show('settings', { from: 'title', sub: 'volume' }); }, ts); await page.waitForTimeout(150);

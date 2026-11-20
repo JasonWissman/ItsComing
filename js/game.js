@@ -181,7 +181,7 @@ function beginRun() { G.run = { t: 0, night: 0, from: 0, nights: [] }; }
 // ---------- a new game: the warning, then a black screen and two lines, one after the other ----------
 // Begin first puts up the warning about flashing lights: a card like the other dialogs on black, red words, a solid red
 // Accept (focused: Enter, Space, a click or a tap, or A or Start on a pad) and beside it a quiet Adjust settings, which
-// turns the card into Settings (all of it but Erase progress); its Back (Esc, B) is the warning again, Accept focused.
+// turns the card into Settings (all of it but Erase progress); its Done (Esc, B) is the warning again, Accept focused.
 // Once accepted it is remembered (SAVE.data.warned) and a later game goes straight on. Nothing else gets past it, and
 // nothing on the title behind it can be pressed. Then the prologue: the lines come up slowly in the middle of the dark,
 // one at a time (the first gone before the second comes), and fade; then night 1's card. It is short and it is watched:
@@ -229,7 +229,7 @@ function disclaimer() {
     el.querySelector('.dsettings').addEventListener('click', openSettings);
     accept0.focus();
   };
-  // Settings in the same card, over the same black; Back is the warning again
+  // Settings in the same card, over the same black; Done is the warning again
   const openSettings = () => {
     if (done) return;
     ensureAudio(); AUDIO.sfx('tap');
@@ -252,7 +252,7 @@ function disclaimer() {
   };
   const press = () => { const f = document.activeElement; if (f && card && card.contains(f) && (f.tagName === 'BUTTON' || f.type === 'checkbox')) f.click(); };
   // the keys go no further than it (the game never sees them); in it, the arrows and Tab go round its buttons (and in
-  // Settings its sliders and switches), Enter and Space press, and in Settings Esc is Back. A focused slider or switch
+  // Settings its sliders and switches), Enter and Space press, and in Settings Esc is Done. A focused slider or switch
   // keeps the keys it uses (left and right, Space)
   const key = e => {
     e.stopImmediatePropagation();
@@ -267,13 +267,13 @@ function disclaimer() {
   document.addEventListener('keydown', key, true);
   swallowPointer(el);
   el.addEventListener('mousedown', e => { if (!(e.target.closest && e.target.closest('button, input, label'))) e.preventDefault(); });   // a click off its controls leaves the focus where it is
-  // the focus stays in it: anything that takes it away gives it back (to Accept, or to Settings' Back)
+  // the focus stays in it: anything that takes it away gives it back (to Accept, or to Settings' Done)
   el.addEventListener('focusout', () => setTimeout(() => {
     if (done || !el.isConnected || (card && card.contains(document.activeElement))) return;
     const b = settingsOn ? card.querySelector('button[data-act="back"], button[data-act="caldone"]') : accept0; if (b) b.focus();
   }, 0));
   // a pad: the d-pad goes round, a slider (or a row of choices) takes left and right; A presses; in Settings, B and Start
-  // are Back (in one of its Calibrate dialogs, Done), on the warning Start accepts
+  // are Done (in one of its Calibrate dialogs, theirs), on the warning Start accepts
   disclaimerPad = (what, dir) => {
     if (done) return;
     const fake = key => ({ key, preventDefault() {}, shiftKey: false });
@@ -398,8 +398,8 @@ function showTitle() {
   MENU.show('title'); G.overlayArmed = 0; // nothing on the title can be skipped by accident, so it takes a click or Enter at once
 }
 // the end of the last night: it has glittered away and the room is the bedroom, in the morning; the campaign is marked
-// complete for this difficulty. The light theme is on for the last screen and the results after it, and goes with them:
-// Finish game is home to the usual dark title (with Scores on it now)
+// complete for this difficulty. The light theme is on for the last screen only (the results after it are in the dark
+// one, as the Scores dialog is: MENU toDark); Finish game is home to the usual dark title (with Scores on it now)
 function finishEnding() {
   const L = G.L;
   SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id);
@@ -408,13 +408,15 @@ function finishEnding() {
   setState('end');
   MENU.show('ending');
 }
-// Finish game (the results after the ending): home to the title, slowly, not at once. Everything (the morning, the
-// results) fades to black (HOME.fade); a beat of black (HOME.hold), the title put up under it with the light behind the
-// thing off, so the title's dark is all there is; then the light flicks on, a fluorescent tube's stutter of quick blinks
-// and on, it standing dark against it (TITLE.flick; with reduced motion or flashing, a smooth fade up); then the name,
-// the buttons and the title's drone fade in (HOME.words), and the focus is on Begin. No click, key or pad gets through
-// until it is all in (as the prologue): the black over everything, then a clear sheet in its place, takes them
-const HOME = { fade: 1000, hold: 500, words: 800 };
+// Finish game (the results after the ending): home to the title, slowly, not at once. Everything (the results, the
+// dimmed morning room behind them) fades smoothly to black (HOME.fade); the title is put up under the black once it is
+// all black, with the light behind the thing off, so the title's dark is all there is, and that is held a moment
+// (HOME.hold); then the light behind it comes slowly on, one smooth eased fade up with it standing dark against it
+// (TITLE.lightUp: no flicker, whatever the settings); then the name, the buttons, the corners' controls and the title's
+// drone fade in slowly together (HOME.words, the drone over HOME.drone), the focus on Begin as they come. No click, key
+// or pad gets through until it is all in (as the prologue): the black over everything, then a clear sheet in its
+// place, takes them
+const HOME = { fade: 1200, hold: 600, words: 1400, drone: 2 };
 function finishHome() {
   if (homing) return;
   homing = 'fade';
@@ -427,22 +429,25 @@ function finishHome() {
   AUDIO.stopAmbient(HOME.fade / 1000); AUDIO.stopLoop();   // the morning's sound goes with it
   void el.offsetWidth; el.style.opacity = '1';   // (from 0, so it fades)
   const ov = UI.overlay, words = [ov, UI.mute, UI.fsBtn].filter(Boolean);   // (the corners' sound and full screen come with the words)
-  setTimeout(() => {
+  const later = (ms, fn) => setTimeout(fn, ms);
+  later(HOME.fade + 80, () => {   // (a little past the fade's end, so it is all black before anything changes under it)
     showTitle(); TITLE.dark(); homing = 'dark';
     words.forEach(w => { w.style.transition = 'none'; w.style.opacity = '0'; });   // (under the black, out of sight till the light is on)
-    setTimeout(() => {
-      el.style.transition = 'none'; el.style.background = 'transparent';   // the title's own dark is the black now
-      setTimeout(() => {
+    later(HOME.hold, () => {
+      // the title's own dark is the black now (it has been drawn, all black, under it all the hold): the sheet stays,
+      // clear, to take the presses
+      el.style.transition = 'none'; el.style.background = 'transparent';
+      later(TITLE.lightUp(), () => {
         homing = 'words';
-        words.forEach(w => { w.style.transition = 'opacity ' + HOME.words + 'ms ease-out'; void w.offsetWidth; w.style.opacity = '1'; });
-        setTimeout(() => {
+        words.forEach(w => { w.style.transition = 'opacity ' + HOME.words + 'ms ease-in-out'; void w.offsetWidth; w.style.opacity = '1'; });
+        const b = ov.querySelector('button[data-act]'); if (b && G.state === 'title') b.focus({ preventScroll: true });   // (its ring, if it shows one, comes in with it)
+        later(HOME.words, () => {
           words.forEach(w => { w.style.transition = w.style.opacity = ''; });
           document.removeEventListener('keydown', swallowKey, true); el.remove(); homing = null;
-          const b = ov.querySelector('button[data-act]'); if (b && G.state === 'title') b.focus({ preventScroll: true });
-        }, HOME.words);
-      }, TITLE.flick());
-    }, HOME.hold);
-  }, HOME.fade);
+        });
+      });
+    });
+  });
 }
 function proceedFromSurvived() {
   const next = G.levelIndex + 1;
@@ -503,7 +508,7 @@ function audioOnLoad() {
 // sound is made as the page loads (audioOnLoad), so the drone is set going, fading in, at once; where the browser holds
 // sound back until the page has been touched (most do, on a first visit), it is held at the start of its fade and plays
 // it out from the first gesture. It goes with the title: anything that starts a night stops the ambient bed it is.
-function titleSound() { if (AUDIO.on() && TITLE.on && !prologueOn && homing !== 'dark') AUDIO.titleDrone(TITLE.near); }   // (not under the prologue: it is fading away; nor on Finish game's way home till its words come)
+function titleSound() { if (AUDIO.on() && TITLE.on && !prologueOn && homing !== 'dark') AUDIO.titleDrone(TITLE.near, homing ? HOME.drone : undefined); }   // (not under the prologue: it is fading away; nor on Finish game's way home till its words come, and then in with them)
 function toggleMute() { setMuted(!G.muted); }
 function setMuted(m) {
   G.muted = !!m;
