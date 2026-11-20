@@ -590,7 +590,7 @@ const AUDIO = (() => {
       case 'horn': for (const d of [0, 0.32]) { tone(392, 0.22, { vol: 0.12, type: 'square', delay: d, pan }); tone(494, 0.22, { vol: 0.09, type: 'square', delay: d, pan }); } break;
       case 'carDoor': noise(0.05, { freq: 1600, vol: 0.35, pan }); tone(160, 0.08, { vol: 0.25, type: 'square', endFreq: 100, pan }); tone(240, 0.5, { vol: 0.05, type: 'sawtooth', endFreq: 200, delay: 0.08, pan }); break;
       // the police, called on 911 at the phone booth: the dispatcher answering, the siren's wail (one rise and fall: the night
-      // plays them back to back while it wails), thumps in the car as it rocks, and the siren short-circuiting
+      // plays them back to back while the police car comes), and the siren going away once it is past
       case 'dispatch': {   // a click, then a few clipped, crackling bursts of a voice, too thin to make out, and the line's hiss under it
         noise(0.03, { type: 'highpass', freq: 2000, vol: 0.2 });
         noise(1.9, { type: 'bandpass', freq: 2600, q: 0.7, vol: 0.03, attack: 0.05 });
@@ -618,24 +618,22 @@ const AUDIO = (() => {
         for (const o of oscs) { o.start(t0); o.stop(t0 + dur + 0.05); }
         break;
       }
-      case 'carThump':   // something heavy thrown about inside a car: a dull blow on the body, the panel ringing, the springs creaking
-        noise(0.12, { freq: 260, vol: 0.5, attack: 0.002, pan }); tone(58, 0.22, { vol: 0.4, endFreq: 38, pan });
-        noise(0.18, { type: 'bandpass', freq: 650 + Math.random() * 300, q: 2.2, vol: 0.16, delay: 0.01, pan }); tone(170 + Math.random() * 40, 0.16, { vol: 0.05, type: 'triangle', endFreq: 130, delay: 0.01, pan });
-        if (Math.random() < 0.5) tone(260, 0.3, { vol: 0.025, type: 'sawtooth', endFreq: 190, delay: 0.08, pan });
-        break;
-      case 'sirenDie': {   // the siren short-circuiting: the wail jumps, warbles and sags, sputtering, and cuts out in a crackle, a zap and a dying buzz
-        const t0 = now(), dur = 1.1, o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain(), lp = ac.createBiquadFilter(), g = ac.createGain();
-        o.type = 'sawtooth'; o.frequency.setValueAtTime(700, t0); o.frequency.linearRampToValueAtTime(1050, t0 + 0.22); o.frequency.exponentialRampToValueAtTime(140, t0 + dur);
-        lfo.frequency.setValueAtTime(9, t0); lfo.frequency.linearRampToValueAtTime(23, t0 + dur); lg.gain.value = 160; lfo.connect(lg); lg.connect(o.frequency);
-        lp.type = 'lowpass'; lp.frequency.value = 2400;
-        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.07, t0 + 0.02);
-        for (let i = 0; i < 10; i++) g.gain.setValueAtTime(Math.random() < 0.45 ? 0.0001 : 0.07 * (1 - i / 11), t0 + 0.3 + i * 0.07 + Math.random() * 0.03);
-        g.gain.setValueAtTime(0.02, t0 + dur - 0.06); g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
-        o.connect(lp); lp.connect(g); chain(g, pan);
-        o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
-        for (let i = 0; i < 9; i++) noise(0.02 + Math.random() * 0.03, { type: 'highpass', freq: 2500 + Math.random() * 3000, vol: 0.2 * (1 - i * 0.07), delay: 0.25 + i * 0.09 + Math.random() * 0.05, pan });
-        noise(0.06, { type: 'bandpass', freq: 1800, q: 1.2, vol: 0.3, attack: 0.001, delay: 0.12, pan }); tone(100, 0.5, { vol: 0.07, type: 'square', endFreq: 50, delay: 0.15, pan });
-        tone(60, 0.6, { vol: 0.05, type: 'sawtooth', endFreq: 45, delay: 0.7, pan });
+      case 'sirenAway': {   // the siren going away, past: four more wails, the pitch dropped as it passes, each fainter and duller as it goes off
+        const t0 = now(), dur = 1.6, lp = ac.createBiquadFilter(), g = ac.createGain(), g2 = ac.createGain(), oscs = [];
+        lp.type = 'lowpass'; lp.Q.value = 0.7; g2.gain.value = 0.35;
+        lp.frequency.setValueAtTime(2400, t0); lp.frequency.exponentialRampToValueAtTime(700, t0 + 4 * dur);
+        for (const [type, k] of [['sawtooth', 1], ['square', 0.5]]) {
+          const o = ac.createOscillator(); o.type = type;
+          for (let i = 0; i < 4; i++) {
+            const a = t0 + i * dur, f = 0.88 - i * 0.01;
+            o.frequency.setValueAtTime(620 * k * f, a); o.frequency.linearRampToValueAtTime(1320 * k * f, a + dur * 0.5); o.frequency.linearRampToValueAtTime(620 * k * f, a + dur);
+          }
+          o.connect(k < 1 ? g2 : lp); oscs.push(o);
+        }
+        g2.connect(lp); lp.connect(g);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.065, t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.004, t0 + 4 * dur - 0.1); g.gain.linearRampToValueAtTime(0.0001, t0 + 4 * dur);
+        chain(g, pan);
+        for (const o of oscs) { o.start(t0); o.stop(t0 + 4 * dur + 0.05); }
         break;
       }
       // the car pulling away

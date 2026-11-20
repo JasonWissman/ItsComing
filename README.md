@@ -332,18 +332,18 @@ some on the ground, so you have to turn and look down to find them.
    first, the pane between you goes as it hits: cracks run out across it to the frame, then as it
    comes through the middle bursts in with a flash and the pieces fly in at you, turning, and
    drop (fewer, and only falling, with reduced motion; the flash held down with reduced flash).
-   There is another way for it to end. Dial 911 (lift the receiver and press 9, 1, 1; with no coin in, as an emergency
-   call is free on any pay phone, or with one): it rings once and a dispatcher answers, a crackle of a voice. A police car
-   comes instead of the other, the same way and to the same place, black and white with a gold star on its doors, its
-   siren wailing and its light bar flashing red and blue on the wet street (with reduced flashing the bar swells slowly
-   from red to blue and back instead). The shade gets behind its lamp post as before; but once the car has stopped it
-   skitters to it, round the end of the car to the side nearer you, crouches by the window nearer you and leaps in, and is
-   gone. The car rocks on its springs and thumps; at the end of a wail the siren sputters and dies with a crackle, sparks
-   spit off the light bar and its lights stutter out. Then the back door opens on the lit inside, and it climbs out in the
-   officer's cap, a size too big and cocked to one side, stands looking at you a second (the view closing in on it), and
-   skitters at the booth: it comes through the glass, cap and all (the cap riding up on its opening head), and the night is
-   lost: "Help arrived. It was wearing the cap." The view follows all this on its own, as it does when the car comes for
-   you. A 9 pressed with no coin in is taken; any key that is not the rest of 911 wipes it (and clicks as a key with no
+   There is also 911 (lift the receiver and press 9, 1, 1; with no coin in, as an emergency call is free on any pay
+   phone, or with one): it rings once and a dispatcher answers, a crackle of a voice: help is on its way. A police car
+   comes down its street the way the other would, black and white with a gold star on its doors, its siren wailing and
+   its light bar flashing red and blue on the wet street (with reduced flashing the bar swells slowly from red to blue and
+   back instead), and it does not stop: it drives straight on past the booth and away down the road into the rain, the
+   siren's last wail dropping in pitch and fading after it. The moment the police are sent, the shade scurries behind the
+   nearest lamp post on its street and hides there, still, peering round it at you, until the car is out of sight; a
+   moment later it comes on from that post as before (breaking that lamp first if it still burns). The line stays open to
+   the dispatcher until you hang up (keys do nothing meanwhile), and then the phone is as it was: a coin put in for the
+   call comes back, and the right number still brings the car. The police come once a night; 911 again gets a dispatcher
+   who says a car has already been sent. Caught after calling them, the screen says "Nice try": "The police can't help
+   you here." A 9 pressed with no coin in is taken; any key that is not the rest of 911 wipes it (and clicks as a key with no
    credit does), as does a coin put in, so the right number dialled after is never spoiled.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass. The night has a clock: it comes on all night, steadily while the mirror you face does not show it,
