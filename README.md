@@ -311,7 +311,8 @@ some on the ground, so you have to turn and look down to find them.
    the post, utterly still for a few seconds, and even in that light there is no face to it, only the two pale points of
    its eyes and a faint rim of light along its shoulder; then its arm unspools up out of it,
    the same shadow, impossibly long, to the lamp's head and breaks it (a pop and a white flare, glass and sparks coming
-   down), and it stutters and is out for good. In the dark it skitters on, low and fast on all four
+   down), and it stutters and is out for good (under a lamp there is only the pool of its light on the ground round the
+   post). In the dark it skitters on, low and fast on all four
    of its long limbs like a spider, to the next lamp nearer the booth, waits, breaks that, and so on to the last; then it
    walks across to the glass. With every lamp to get through it is quick about all of it, and its whole way in takes as
    long as its steady walk used to, so the race is the same. Only coming at you does a face come out of the dark into
@@ -321,7 +322,7 @@ some on the ground, so you have to turn and look down to find them.
    on the little shelf under the phone. Click it and its cover goes back over the
    spiral; click again and the page is lifted by its corner and turned over, and a click on the last page shuts it. Nothing
    is done to the view: you look down at it and hold the zoom to read it, and it stays open where it lies when you turn
-   away. Find the number in it (it has a page to itself, scrawled large across it in red
+   away. Find the number in it (it has a page to itself, always page 3, 4 or 5, scrawled large across it in red
    that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
    floor by the panes near the phone), then do what the card under the keys says, in big bold words you can read from
    where you stand (LIFT PHONE, INSERT COIN, DIAL NUMBER): lift the receiver, put
@@ -343,16 +344,25 @@ some on the ground, so you have to turn and look down to find them.
    comes through the middle bursts in with a flash and the pieces fly in at you, turning, and
    drop (fewer, and only falling, with reduced motion; the flash held down with reduced flash).
    There is also 911 (lift the receiver and press 9, 1, 1; with no coin in, as an emergency call is free on any pay
-   phone, or with one): it rings once and a dispatcher answers, a crackle of a voice: help is on its way. A police car
-   comes down its street the way the other would, black and white with a gold star on its doors, its siren wailing and
-   its light bar flashing red and blue on the wet street (with reduced flashing the bar swells slowly from red to blue and
-   back instead), and it does not stop: it drives straight on past the booth and away down the road into the rain, the
-   siren's last wail dropping in pitch and fading after it. The moment the police are sent, the shade scurries behind the
-   nearest lamp post on its street and hides there, still, peering round it at you, until the car is out of sight; a
-   moment later it comes on from that post as before (breaking that lamp first if it still burns). The line stays open to
-   the dispatcher until you hang up (keys do nothing meanwhile), and then the phone is as it was: a coin put in for the
-   call comes back, and the right number still brings the car. The police come once a night; 911 again gets a dispatcher
-   who says a car has already been sent. Caught after calling them, the screen says "Nice try": "The police can't help
+   phone, or with one): it rings once and a dispatcher answers, a crackle of a voice: help is on its way. Nothing comes
+   until the shade has got to the last lamp on its way in (called once it is past it, they come at once, and it skitters
+   back behind that post). Then a police car comes tearing down its street, black and white with a gold star on its
+   doors, its siren wailing and its light bar flashing red and blue on the wet street (with reduced flashing the bar
+   swells slowly from red to blue and back instead), and screeches to a halt on the road beside that lamp post, its nose
+   dipping, black rubber left on the road. The siren winds down. A flashlight comes on at its window, sweeps in and finds
+   the shade: a beam through the rain, a pool of light round its feet and on the wall behind, a pale light down its side
+   and its eyes shining back. Then it jumps out in front of the post at the car with a shriek (popping the lamp over it if
+   it still burns), upright and leaning at it, one arm out at it and the other up over its head, its head split open into
+   its petals of teeth, turned to the car. The flashlight goes off, and the car slams its foot down: its back tyres spin,
+   smoking and squealing, and it fishtails away down the road (on round the corner and off along the cross street from
+   the main street; on past the booth and away west, wide of the parked car, along the cross street), keeping to the road,
+   until it is out of sight. The shade shuts, and comes on for you from where it stands. (With reduced flashing the
+   flashlight comes and goes smoothly; with reduced motion the shade does not leap and the car hardly swerves.) Should the
+   right number be answered while the police are there, the shade sees them off first, and the car that comes for you
+   comes once they have gone; answered before they have come, they never come. The line stays open to the dispatcher
+   until you hang up (keys do nothing meanwhile), and then the phone is as it was: a coin put in for the call comes back,
+   and the right number still brings the car. The police come once a night; 911 again gets a dispatcher who says a car
+   has already been sent. Caught after calling them, the screen says "Nice try": "The police can't help
    you here." A 9 pressed with no coin in is taken; any key that is not the rest of 911 wipes it (and clicks as a key with no
    credit does), as does a coin put in, so the right number dialled after is never spoiled.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see

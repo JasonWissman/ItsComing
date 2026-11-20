@@ -16,11 +16,15 @@
 // of its way it is; c.reach (0..1), one arm unspooling up to c.reachTo (across and up from its feet, in metres; c.reachSide
 // the arm), the hand closing on what it reaches (c.grip); c.rush (0..1), skittering, low; c.lampLit (0..1, more in the
 // flare), how lit it is by the lamp it stands behind (a faint rim along its shoulder, never its face); c.dark, out of the light.
+// The police (night 9, 911): c.torch (0..1), a flashlight on it from the side c.scareSide of the view (1 the right): a pale
+// light down that side of it, and its eyes shining back; c.scare (0..1), jumped out at them, upright and leaning at them,
+// one arm out at them and the other up over its head, its head turned to them and split open into its petals of teeth
+// (the maw of its lunge, seen from the side).
 CREATURES.signalman = {
   name: 'the shade', h: 2.5, w: 0.8, faceY: 2.3, stepRate: 0.6, catchDist: 1.6, sound: 'walker', ignoresGaze: true,
   death: { delay: 0.3, dur: 0.5, sting: 'stingGlass' },
   voice: { kind: 'hum', every: [7, 13] },
-  init(c) { c.held = false; c.away = false; c.lookT = -9; c.unseenFor = 9; c.wasSeen = false; c.side = 0; c.reach = 0; c.rush = 0; c.grip = 0; c.dark = false; c.lampLit = 0; },
+  init(c) { c.held = false; c.away = false; c.lookT = -9; c.unseenFor = 9; c.wasSeen = false; c.side = 0; c.reach = 0; c.rush = 0; c.grip = 0; c.dark = false; c.lampLit = 0; c.torch = 0; c.scare = 0; c.scareSide = 1; },
   lateral(c) { return c.side || 0; },
   speedMult(c, dt, seen) {
     // the head: looked at after a while unwatched, it is still turned aside, and a moment later it snaps round to you
@@ -33,14 +37,15 @@ CREATURES.signalman = {
     const m = ctx.getTransform(), px = 1 / (Math.hypot(m.a, m.b) || 1);   // a device pixel, here
     const W = w => Math.max(w, 0.9 * px);                                  // never thinner than a pixel: far off it is still a shape
     const ink = P.col([9, 8, 11], 0.2), haze = P.cola([4, 3, 6], 0.32);  // (it takes little of any light)
-    const mv = c.moving ? 1 : 0, ru = back || lunge ? 0 : clamp(c.rush || 0, 0, 1), ruE = smoothstep(Math.min(1, ru * 1.6));
+    const sc = back || lunge ? 0 : smoothstep(clamp(c.scare || 0, 0, 1)), sd = c.scareSide || 1;   // (jumped out at the police)
+    const mv = c.moving ? 1 : 0, ru = back || lunge ? 0 : clamp(c.rush || 0, 0, 1) * (1 - sc), ruE = smoothstep(Math.min(1, ru * 1.6));
     const reveal = back ? 0 : smoothstep(lunge * 1.6);   // (only coming at you: no lamp ever lights its face)
     const lk = smoothstep(lunge * 1.5);
     // the skeleton of the pose: upright (walking, or standing dead still), folded down low (skittering), or coming at you
     const bob = mv * Math.abs(Math.sin(g)) * (0.03 + 0.05 * ru);
     const hipY = lerp(1.12, 0.6, ruE) + bob, shY = lerp(1.9, 0.98, ruE) + bob, shW = lerp(0.105, 0.2, ruE);
     const sway = (c.moving && !ru ? Math.sin(g * 0.5) * 0.025 : 0);
-    const headC = [sway * 1.4, lerp(2.3, 1.13, ruE) + bob + lk * 0.04], neckB = [sway, shY + 0.02];
+    const headC = [sway * 1.4 + sd * 0.07 * sc, lerp(2.3, 1.13, ruE) + bob + lk * 0.04 + sc * 0.06], neckB = [sway, shY + 0.02];
     // the limbs, as joints from the body out: legs, then arms (the one reaching is drawn on its own)
     const legs = [], arms = [];
     for (const s of [-1, 1]) {
@@ -50,9 +55,16 @@ CREATURES.signalman = {
       // legs; coming at you, up and out either side of your face, the fingers spread
       const aph = g + (s > 0 ? 0 : Math.PI), alift = mv * Math.max(0, Math.sin(aph)) * 0.18 * ru, asw = mv * Math.sin(aph) * 0.05 * (1 - ru);
       const shp = [s * shW + sway, shY - 0.02];
-      const el = [lerp(lerp(s * 0.15 + asw, s * 0.56, ruE), s * 0.42, lk), lerp(lerp(1.32, 1.36, ruE) + alift, 2.0, lk)];
-      const wr = [lerp(lerp(s * 0.13 + asw * 1.8, s * 0.5, ruE), s * 0.36, lk), lerp(lerp(0.6 + bob, 0.06 + alift, ruE), 2.42, lk)];
-      arms.push({ s, pts: [shp, el, wr], ang: lerp(lerp(-Math.PI / 2 + s * 0.06, -Math.PI / 2 + s * 0.5, ruE), Math.PI / 2 - s * 0.45, lk), spread: lerp(lerp(0.07, 0.34, ruE), 0.32, lk) });
+      let el = [lerp(lerp(s * 0.15 + asw, s * 0.56, ruE), s * 0.42, lk), lerp(lerp(1.32, 1.36, ruE) + alift, 2.0, lk)];
+      let wr = [lerp(lerp(s * 0.13 + asw * 1.8, s * 0.5, ruE), s * 0.36, lk), lerp(lerp(0.6 + bob, 0.06 + alift, ruE), 2.42, lk)];
+      let ang = lerp(lerp(-Math.PI / 2 + s * 0.06, -Math.PI / 2 + s * 0.5, ruE), Math.PI / 2 - s * 0.45, lk), spread = lerp(lerp(0.07, 0.34, ruE), 0.32, lk);
+      if (sc > 0) {   // at the police: the arm on their side out at them, high, the other up over its head, the fingers spread
+        const out = s === sd;
+        el = [lerp(el[0], out ? sd * 0.5 : s * 0.3 + sd * 0.04, sc), lerp(el[1], out ? 2.02 : 2.2, sc)];
+        wr = [lerp(wr[0], out ? sd * 0.98 : s * 0.16 + sd * 0.3, sc), lerp(wr[1], out ? 2.32 : 2.74, sc)];
+        ang = lerp(ang, out ? (sd > 0 ? 0.3 : Math.PI - 0.3) : Math.PI / 2 - sd * 0.55, sc); spread = lerp(spread, 0.38, sc);
+      }
+      arms.push({ s, pts: [shp, el, wr], ang, spread });
     }
     const reaching = c.reach > 0.001 && c.reachTo && !back && !lunge ? (c.reachSide || 1) : 0;
     // the torso: narrow shoulders falling away to a waist hardly thicker than an arm, all of a piece with the neck
@@ -67,6 +79,7 @@ CREATURES.signalman = {
     const limbPath = pts => { ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); };
     const strokeLimbs = (list, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = W(w); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); for (const p of list) limbPath(p); ctx.stroke(); };
     if (back) { ctx.save(); ctx.scale(-1, 1); }
+    if (sc > 0) { ctx.save(); ctx.transform(1, 0, sd * 0.16 * sc, 1, 0, 0); }   // (leaning at them from the feet up)
     // the smoke at its edges, first: the same shapes a little bigger and faint, and a few wisps lifting off it
     const armPts = arms.filter(a => a.s !== reaching).map(a => a.pts);
     strokeLimbs(legs.concat(armPts), 0.075, haze);
@@ -85,7 +98,7 @@ CREATURES.signalman = {
     ctx.fillStyle = ink; torso(); ctx.fill();
     for (const a of arms) if (a.s !== reaching) {
       strokeLimbs([a.pts.slice(0, 2)], 0.034, ink); strokeLimbs([a.pts.slice(1)], 0.026, ink);
-      this.hand(ctx, ink, a.pts[2][0], a.pts[2][1], a.ang, a.spread + Math.abs(this.twitch(t + a.s, 2.3, 7)) * 0.3, 0.2, lerp(0.15, 0.5, lk) * -a.s, W);
+      this.hand(ctx, ink, a.pts[2][0], a.pts[2][1], a.ang, a.spread + Math.abs(this.twitch(t + a.s, 2.3, 7)) * 0.3, lerp(0.2, 0.26, sc), lerp(lerp(0.15, 0.5, lk), 0.45, sc) * -a.s, W);
     }
     for (const lg of legs) P_ell(ctx, lg[2][0], lg[2][1], W(0.05), W(0.018), ink);   // the feet, long and thin
     if (reaching) this.reachArm(ctx, c, P, ink, haze, [reaching * shW + sway, shY - 0.02], reaching, W, px);
@@ -93,7 +106,7 @@ CREATURES.signalman = {
     // the head. Looked at, it is turned aside, and snaps round to you a moment later; now and then it jerks over
     const since = t - (c.lookT === undefined ? -9 : c.lookT);
     const turn = back || lunge ? 0 : since < 0.5 ? 1 - smoothstep((since - 0.38) / 0.07) : 0;
-    const tilt = (headTiltJerk(t, 4.1, 0.05) * (c.moving ? 1 : 0.15)) * (1 - lunge) + turn * 0.14 + ru * 0.25 * Math.sin(g * 0.5) + (reaching ? -reaching * 0.12 * smoothstep(c.reach) : 0);
+    const tilt = (headTiltJerk(t, 4.1, 0.05) * (c.moving ? 1 : 0.15)) * (1 - lunge) * (1 - sc) + turn * 0.14 + ru * 0.25 * Math.sin(g * 0.5) + (reaching ? -reaching * 0.12 * smoothstep(c.reach) : 0) - sd * 0.3 * sc;
     ctx.save(); ctx.translate(headC[0], headC[1]); ctx.rotate(tilt);
     if (!back) this.face(ctx, c, P, ink, turn, reveal, lunge, px);
     else P_ell(ctx, 0, 0, W(0.075), W(0.13), ink);
@@ -104,6 +117,15 @@ CREATURES.signalman = {
       const sd = c.reachTo && c.reachTo.x < 0 ? -1 : 1, rim = P.cola([255, 176, 104], Math.min(1, c.lampLit) * 0.3);
       ctx.strokeStyle = rim; ctx.lineWidth = W(0.005); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sd * 0.03 + sway, shY + 0.04); ctx.quadraticCurveTo(sd * (shW - 0.02) + sway, shY + 0.02, sd * shW + sway, shY - 0.02); ctx.stroke();
     }
+    // a flashlight on it: a pale light down the side it comes from, over the dark of it (its body and its head)
+    if (!back && !lunge && (c.torch || 0) > 0.02) {
+      const gr = ctx.createLinearGradient(sd * (shW + 0.02), 0, -sd * 0.06, 0);
+      gr.addColorStop(0, P.cola([206, 214, 236], 0.42 * c.torch)); gr.addColorStop(1, P.cola([206, 214, 236], 0));
+      ctx.fillStyle = gr; torso(); ctx.fill();
+      ctx.save(); ctx.translate(headC[0], headC[1]); ctx.rotate(tilt); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(sd * 0.012, 0, 0.07, 0.125, 0, 0, TAU); ctx.fill(); ctx.restore();
+      strokeLimbs(legs, 0.012, P.cola([206, 214, 236], 0.18 * c.torch));
+    }
+    if (sc > 0) ctx.restore();
     if (back) ctx.restore();
     if (c.held && !c.moving && !lunge) P_ell(ctx, 0, 0.02, 0.35, 0.04, P.cola([0, 0, 0], 0.25));
   },
@@ -116,17 +138,27 @@ CREATURES.signalman = {
   // with teeth along its edges and the maw ringed with more of them, row inside row, down into the black: no eyes, no
   // face, only the mouth. k is how far open (the shut face below fades as it opens)
   face(ctx, c, P, ink, turn, reveal, lunge, px) {
+    const sc = lunge ? 0 : smoothstep(clamp(c.scare || 0, 0, 1));
+    if (sc > 0.001) { this.scareFace(ctx, c, P, ink, sc, px); return; }
     const k = px < 0.03 ? smoothstep(clamp((lunge - 0.06) / 0.5, 0, 1)) : 0;
     if (k < 0.999) { ctx.save(); ctx.globalAlpha *= 1 - smoothstep(k / 0.4); this.faceShut(ctx, c, P, ink, turn, reveal, lunge, px); ctx.restore(); }
     if (k > 0.001) this.maw(ctx, c, P, ink, k);
   },
-  maw(ctx, c, P, ink, k) {
+  // at the police (c.scare): its head turned to them (c.scareSide), the shut face going as it splits open, the back of
+  // its head dark behind the maw, and the maw larger than in its lunge (and less lit: it is still dark), seen from the side
+  scareFace(ctx, c, P, ink, sc, px) {
+    const sd = c.scareSide || 1;
+    if (sc < 0.999) { ctx.save(); ctx.globalAlpha *= 1 - smoothstep(sc / 0.4); this.faceShut(ctx, c, P, ink, 0, 0, 0, px); ctx.restore(); }
+    P_ell(ctx, -sd * 0.035 * sc, 0.01, Math.max(0.075, 0.9 * px), Math.max(0.13, 0.9 * px), ink);   // the back of its head
+    if (px < 0.05) { ctx.save(); ctx.translate(sd * 0.14 * sc, 0.03); ctx.scale(sd * 0.55 * 2, 2); this.maw(ctx, c, P, ink, sc, 0.3); ctx.restore(); }
+  },
+  maw(ctx, c, P, ink, k, lk) {   // (lk: how much of the light on it its flesh takes; all of it, unless given)
     const t = c.t, cx = 0, cy = -0.01, N = 5, w = TAU / N * 0.5 * 0.94;
     // the petals only open out, larger and wider as it comes, steady; inside them its teeth keep coming up out of its
     // throat and moving out to the rim, ring after ring, only ever outward
     const still = SAVE.data.settings.reducedMotion;
     const rbP = lerp(0.03, 0.075, k), rb = rbP, rt = lerp(0.12, 0.34, k), wide = lerp(0.85, 1.15, k);
-    const flesh = P.col([58, 14, 18]), fleshD = P.col([30, 6, 9]), tooth = P.cola([200, 190, 156], 0.97);
+    const flesh = P.col([58, 14, 18], lk), fleshD = P.col([30, 6, 9], lk), tooth = P.cola([200, 190, 156], 0.97);
     const at = (r, a) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
     const toothAt = (x, y, dx, dy, l, wd) => {   // a fang from (x,y) pointing (dx,dy)
       ctx.moveTo(x - dy * wd, y + dx * wd); ctx.lineTo(x + dy * wd, y - dx * wd); ctx.lineTo(x + dx * l, y + dy * l);
@@ -205,9 +237,10 @@ CREATURES.signalman = {
         const k = s > 0 ? 1.12 : 1, rx = lerp(0.005, 0.0125 + gape * 0.002, big) * k, ry = lerp(0.005, 0.02 + gape * 0.014, big) * k;   // stretched tall
         P_ell(ctx, x, y, rx, ry, P.raw([222, 224, 206]));
       } else {
-        const pr = Math.max(clamp(0.0006 * c.dist, 0.003, 0.008), 1.25 * px);
-        P_ell(ctx, x, y, pr * 2.2, pr * 2.2, rgba([226, 232, 200], c.dist > 3 ? 0.2 : 0.1));
-        P_ell(ctx, x, y, pr, pr, P.raw([230, 236, 206]));
+        const pr = Math.max(clamp(0.0006 * c.dist, 0.003, 0.008), 1.25 * px), tb = c.torch || 0;
+        if (tb > 0.02) P_ell(ctx, x, y, pr * 5, pr * 5, rgba([214, 255, 200], 0.3 * tb));   // a flashlight on it: its eyes shine back
+        P_ell(ctx, x, y, pr * 2.2, pr * 2.2, rgba([226, 232, 200], (c.dist > 3 ? 0.2 : 0.1) + 0.3 * tb));
+        P_ell(ctx, x, y, pr * (1 + 0.4 * tb), pr * (1 + 0.4 * tb), P.raw([230, 236, 206]));
       }
       ctx.restore();
     }
