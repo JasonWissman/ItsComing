@@ -59,29 +59,52 @@ const lab = fs.readFileSync(path.join(root, 'lab/sounds.js'), 'utf8');
 const labRows = names(lab, /\{ kind: '(?:sfx|sting)', name: '([A-Za-z]+)'/g);
 for (const name of synth.sfx) check(labRows.has(name), "effect '" + name + "' has no row in the Sounds Audit (lab/sounds.js)");
 check(/kind: 'ambient', name: 'title[^\n]*near: 0/.test(lab) && /kind: 'ambient', name: 'title[^\n]*near: 1/.test(lab) && audio.includes('function titleDrone('), "the title's drone is in js/audio.js, and in the Sounds Audit far and close");
-// the volume calibration's loudest sound (Settings, Volume, Calibrate): the sting with its glitter taken out (the six
-// quick square-wave blips) and its falling saw played backwards ahead of it (swell: the same sweep and envelope mirrored),
-// the rest of it (the noise burst, the falling saw, the deep drop) as in the sting, after the climb; tuned as the sting
-// is; a caption and a row in the Sounds Audit. Its quietest: the heartbeat's first beat (its lub), tuned as the heartbeat,
-// as loud as game.js first plays the heartbeat, five of each panned left to right
+// the volume calibration's loudest sound (Settings, Volume, Calibrate, Sound effects): the sting's crash alone, its noise
+// burst and the deep drop under it, as in the sting; no saw at all (neither the sting's falling saw nor a rising one) and
+// no glitter; tuned as the sting is; a caption and a row in the Sounds Audit. Its quietest: the heartbeat's first beat
+// (its lub), tuned as the heartbeat, as loud as game.js first plays the heartbeat; seven of each, twice left, three
+// across, twice right, in about two seconds
 {
   const caseOf = n => { const a = audio.indexOf("case '" + n + "':"); return a < 0 ? '' : audio.slice(a, audio.indexOf('break;', a)); };
   const sting = caseOf('sting'), cal = caseOf('stingCalibrate');
-  const peak = ["noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002", "tone(400, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 40", 'tone(40, 1.5, { vol: 0.7, endFreq: 25'];
-  check(peak.every(p => sting.includes(p)) && /for \(let i = 0; i < 6; i\+\+\) tone\(1200 \+ Math\.random\(\) \* 2000, 0\.12, \{ vol: 0\.2, type: 'square'/.test(sting), "the sting is still its noise burst, falling saw and deep drop, with its glitter (six square blips) over them");
-  check(synth.sfx.has('stingCalibrate') && peak.every(p => cal.includes(p + ', delay: rev')) && !/square|Math\.random/.test(cal) && /const rev = 1\.2 \+ 0\.004;/.test(cal) && /swell\(40, 1\.2, \{ vol: 0\.5, type: 'sawtooth', endFreq: 400/.test(cal),
-    "stingCalibrate: the sting's falling saw reversed (40 Hz up to 400 Hz over its 1.2 s, as loud), then the sting's peak with no glitter");
-  const sw = body('swell');
-  check(/exponentialRampToValueAtTime\(o\.vol, t0 \+ dur\)/.test(sw) && /linearRampToValueAtTime\(0\.0001, t0 \+ dur \+ att\)/.test(sw) && /flip\.gain\.value = -1/.test(sw) && /setValueAtTime\(freq, t0 \+ att\); osc\.frequency\.exponentialRampToValueAtTime\(o\.endFreq \|\| freq, t0 \+ att \+ dur\)/.test(sw),
-    'swell is tone() backwards: its decay mirrored into a swell, its few ms of attack into a cut, its sweep run the other way, its polarity turned over');
+  const crash = ['noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002', 'tone(40, 1.5, { vol: 0.7, endFreq: 25'];
+  check(crash.every(p => sting.includes(p)) && sting.includes("tone(400, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 40") && /for \(let i = 0; i < 6; i\+\+\) tone\(1200 \+ Math\.random\(\) \* 2000, 0\.12, \{ vol: 0\.2, type: 'square'/.test(sting), "the sting is still its noise burst, falling saw and deep drop, with its glitter (six square blips) over them");
+  check(synth.sfx.has('stingCalibrate') && crash.every(p => cal.includes(p + ', pan')) && (cal.match(/noise\(|tone\(/g) || []).length === 2 && !/sawtooth|square|swell|Math\.random|delay/.test(cal),
+    "stingCalibrate: the sting's crash alone (its noise burst and deep drop, as loud as in the sting), no saw rising or falling, no glitter");
+  check(!/function swell\(/.test(audio), 'the reversed saw (swell) is gone with the climb it made');
   const tunes = src['js/soundtune.js'], tuneOf = n => (tunes.match(new RegExp("\\n  '" + n + "': (\\{[^}]*\\})")) || [])[1];
   check(!!tuneOf('sting') && tuneOf('stingCalibrate') === tuneOf('sting'), "stingCalibrate is tuned as the sting is (" + tuneOf('stingCalibrate') + ' / ' + tuneOf('sting') + ')');
-  check(SFX.has('stingCalibrate') && labRows.has('stingCalibrate'), 'stingCalibrate has a caption and a row in the Sounds Audit');
+  check(SFX.has('stingCalibrate') && labRows.has('stingCalibrate') && /The death sting’s crash alone[^']*no saw/.test(lab) && !/stingCalibrate[^\n]*climbing in/.test(lab), 'stingCalibrate has a caption and a row in the Sounds Audit that says what it is now');
   check(/tuned\('heartbeat', \(\) => tone\(54, 0\.13, \{ vol: CAL\.heart, endFreq: 36, pan \}\)\)/.test(audio) && /function heartbeat\(vol, fast\) \{\s*tone\(54, 0\.13, \{ vol: vol, endFreq: 36 \}\);/.test(audio) && /tuned\('stingCalibrate', \(\) => sfx\('stingCalibrate', pan\)\)/.test(audio),
     "the calibration plays the heartbeat's lub as the heartbeat plays it (tuned as 'heartbeat') and stingCalibrate as an effect, each panned");
-  check(/CAL = \{ pans: \[-1, -0\.5, 0, 0\.5, 1\], gap: 2, heart: 0\.04 \+ 0\.02 \* 0\.5/.test(audio) && /AUDIO\.heartbeat\(0\.04 \+ prox \* 0\.5, prox > 0\.7\)/.test(src['js/game.js']) && /!G\.muted && prox > 0\.02\)/.test(src['js/game.js']),
-    'five of each, 2 s apart, left to right; the lub as loud as the game first plays the heartbeat (0.04 + prox * 0.5 from prox 0.02)');
+  check(/pans: \[-1, -1, -0\.5, 0, 0\.5, 1, 1\], gap: 0\.3, heart: 0\.04 \+ 0\.02 \* 0\.5/.test(audio) && /AUDIO\.heartbeat\(0\.04 \+ prox \* 0\.5, prox > 0\.7\)/.test(src['js/game.js']) && /!G\.muted && prox > 0\.02\)/.test(src['js/game.js']),
+    'seven of each, 0.3 s apart (all seven in 1.8 s): twice left, left of centre, centre, right of centre, twice right; the lub as loud as the game first plays the heartbeat (0.04 + prox * 0.5 from prox 0.02)');
+  // the ambience's two ends: night 8's bed with its main off, and night 7's storm, as the nights have them
+  const bedOf = k => (audio.match(new RegExp(k + ': (\\{ tune: [^}]*\\})')) || [])[1];
+  const n7 = (src['js/levels/night07.js'].match(/ambient: (\{ tune: 'ambient:7'[^}]*\})/) || [])[1], n8 = (src['js/levels/night08.js'].match(/ambient: (\{ tune: 'ambient:8'[^}]*\})/) || [])[1];
+  const obj = t => t && Function('return ' + t)();
+  const q = obj(bedOf('ambientQuiet')), l = obj(bedOf('ambientLoud')), e8 = obj(n8), e7 = obj(n7);
+  check(q && e8 && JSON.stringify(q) === JSON.stringify(Object.assign({}, e8, { drone: 0.12, tune: 'ambient:8off' })) && /startAmbient\(Object\.assign\(\{\}, L\.def\.ambient, \{ drone: 0\.12, tune: 'ambient:8off' \}\)\)/.test(src['js/levels/night08.js']),
+    "the quietest ambience is night 8's bed once its main is off, as night08.js plays it (" + JSON.stringify(q) + ')');
+  check(l && e7 && JSON.stringify(l) === JSON.stringify(e7), "the loudest ambience is night 7's storm (the lighthouse's wind and rain), as night07.js has it (" + JSON.stringify(l) + ')');
 }
+// every sound goes through the effects volume or the ambience volume, and nothing else: no main volume left; only the
+// buses (and the calibration's own two ways in, kept at those volumes) join the master gain; nothing outside js/audio.js
+// makes a sound node of its own; an effect goes out through chain() (or straight to bus.effects), a bed to bus.ambient.
+// (test/settings.js renders every one of them with each volume at nothing)
+{
+  const joins = [...audio.matchAll(/([\w.]+)\.connect\(master\)/g)].map(m => m[1]).sort().join();
+  check(joins === 'bus.ambient,bus.cal,bus.calAmb,bus.effects', 'only the two buses and the calibration\'s two ways in join the master gain (' + joins + ')');
+  check(/const volume = \{ effects: 1, ambient: 1 \};/.test(audio) && !/volume\.master|setVolume\('master'/.test(audio) && /master\.gain\.value = muted \? 0\.0001 : MASTER;/.test(audio), 'two volumes, effects and ambience; no main volume (the master gain fixed, Mute aside)');
+  const direct = [...audio.matchAll(/\.connect\((bus\.\w+)\)/g)].map(m => m[1]);
+  check(direct.every(d => ['bus.effects', 'bus.ambient', 'bus.cal', 'bus.calAmb'].includes(d)) && /dest = out \|\| bus\.effects/.test(audio) && /const b = bed\(p \|\| \{\}, bus\.ambient\)/.test(audio), 'effects go to the effects bus (chain), beds to the ambience bus (' + [...new Set(direct)].join() + ')');
+  const others = files.filter(f => f !== 'js/audio.js' && f !== 'js/soundtune.js' && /create(Oscillator|Gain|BufferSource|BiquadFilter|StereoPanner)\(|new (window\.)?AudioContext/.test(src[f]));
+  check(!others.length, 'no other script makes sound of its own (' + others.join() + ')');
+  for (const [f, t] of [['js/menu.js', src['js/menu.js']], ['lab/sounds.js', lab]]) check(!/\bmaster\b/.test(t.replace(/\/\/[^\n]*/g, '')), f + ': no main volume left in its code');
+  check(/settings: \{ muted: false, effects: 1, ambient: 1, /.test(src['js/save.js']) && /delete S\.master;/.test(src['js/save.js']), 'js/save.js: a new save has the two volumes and no main one, and an old save\'s main volume is folded into them and dropped');
+}
+// the clock's tick at the start of a night: 14 semitones up on the -48.5 it was
+check(/\n  'tick': \{ pitch: -34\.5 \},/.test(src['js/soundtune.js']), 'the tick is tuned 14 semitones higher than it was (-48.5 + 14 = -34.5)');
 console.log('  ' + Object.entries(used).map(([k, v]) => v.size + ' ' + k).join(', ') + ' names checked');
 console.log(failures ? ('\n' + failures + ' FAILURES in sounds') : ('\nALL CHECKS PASSED in sounds (' + checks + ' checks)'));
 process.exit(failures ? 1 : 0);

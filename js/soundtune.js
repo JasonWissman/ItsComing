@@ -82,7 +82,7 @@ const TUNES = {
   'cloth': { pitch: -4 },
   'tug': { pitch: -9 },
   'flicker': { pitch: -6 },
-  'tick': { pitch: -48.5 },
+  'tick': { pitch: -34.5 },   // (14 semitones up on the -48.5 it was set to by ear: the ten ticks at the start of a night carry better)
   'knock': { pitch: -4 },
   'hangers': { pitch: -13.5 },
   'birds': { pitch: 3 },
@@ -91,7 +91,7 @@ const TUNES = {
   'phoneRing': { pitch: -3 },
   'wetThud': { pitch: -3.5 },
   'sting': { pitch: -3.5, speed: 0.71 },
-  'stingCalibrate': { pitch: -3.5, speed: 0.71 },   // (the volume calibration's loudest sound: the sting's own tune, so it is as loud as the sting is)
+  'stingCalibrate': { pitch: -3.5, speed: 0.71 },   // (the volume calibration's loudest sound, the sting's crash: the sting's own tune, so it is as loud as it is in the sting)
   'stingShriek': { pitch: 9, speed: 0.57 },
   'stingHum': { pitch: -7.5, speed: 0.87, tone: -1.9, vol: 9 },
   'stingStone': { pitch: -9, speed: 0.71 },

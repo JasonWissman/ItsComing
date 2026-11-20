@@ -72,19 +72,29 @@ keys, coin return; past the last one in a direction it turns as usual) and A pre
 the shelf under the phone is read where it lies: click or tap it (or press A) to open it, and again to turn each page.
 
 Settings has, first, Volume and Brightness, each with a Calibrate button beside it, then rows of choices (radio groups:
-the arrows, or a pad's d-pad, go along a row choosing as they go; Enter, Space, A, a click or a tap choose): Effects and
-Ambience, each Normal or Quieter (half as loud, -6 dB), and Text size, Smaller (0.85), Normal (1) or Bigger (1.4, the
-ends of the range its old slider had). Volume's Calibrate opens a dialog in the same card: a line on what to do, the main
-volume's slider (its percentage beside it), and two buttons side by side, "Play the quietest sound in the game" (the
-first beat of the heartbeat, its lub, as faint as the game first plays it) and "Play the loudest sound in the game"
-(`stingCalibrate`: the death sting without its glitter, its falling saw played backwards first so it climbs into the
-peak), each five times a steady 2 s apart, panned from the left speaker over to the right, five marks on the button
-lighting in turn; pressed again it starts over. They are tuned as the game tunes them and go through the effects volume
-(Quieter is heard), with the rest of the sound ducked under them while they play; in a paused night they still play.
-Brightness's Calibrate shows the title's creature, the shape of it alone in the demon's robe colour unlit on The Void's
-black, to be barely made out. Done (or Esc, or B) is Settings again, with the focus back on the Calibrate that opened it.
-A save from when these were sliders carries over: an effects or ambience slider under 75% is Quieter, the text size the
-nearest of the three. Then come switches (`role="switch"`; a click, a tap, Space, Enter or A flips one): Mute,
+the arrows, or a pad's d-pad, go along a row choosing as they go; Enter, Space, A, a click or a tap choose): Display,
+Windowed or Fullscreen (the same as the full screen button in the corner, and following it however the page goes in or
+out of full screen; not saved, so Set to default leaves it be; where the page cannot go full screen, as on an iPhone, the
+row says instead to add the page to the Home Screen, which opens it full screen from there: `manifest.webmanifest`), and
+Text size, Smaller (1), Normal (1.4, the default) or Bigger (1.8). Every sound goes through one of two volumes, the
+effects (every one-shot, sting, footstep, voice, the heartbeat, the creature loops and the menus' taps) or the ambience
+(the nights' beds of wind, rain and drone, and the title's drone); there is no main volume over them, Mute aside.
+Volume's Calibrate opens a dialog in the same card: a line on what to do, then two sections side by side. Sound effects:
+its slider (its percentage beside it), "Play the quietest sound in the game" (the first beat of the heartbeat, its lub,
+as faint as the game first plays it) and "Play the loudest sound in the game" (`stingCalibrate`: the death sting's crash
+alone, its noise burst and deep drop, no saw), each seven times in about two seconds, twice in the left ear, three times
+across, twice in the right, seven marks on the button lighting in turn. Ambience: its slider, "Play the quietest
+ambience in the game" (night 8's bed once its main is off, the quietest bed by measure) and "Play the loudest ambience in
+the game" (the lighthouse's storm, night 7's), a few seconds of each faded in and out, a bar filling as it plays. Each
+button has its word under it (increase, or decrease, the volume until you can hear it comfortably); one plays at a time,
+and pressed again it starts over. They are tuned as the game tunes them and go through their own volume, with the rest
+ducked under them while they play; while the dialog is open whatever ambience was playing (the title's drone, a paused
+night's bed) is faded out, and back in as it closes; in a paused night they still play. Brightness's Calibrate shows the
+title's creature, the shape of it alone in the demon's robe colour unlit on The Void's black, to be barely made out. Done
+(or Esc, or B) is Settings again, with the focus back on the Calibrate that opened it. An older save carries over: its
+main volume is folded into the two (each the main volume times its own, Quieter being half), and its text size to the
+nearest of the three now (what was Smaller or Normal is Smaller, the same size Normal was; Bigger is Normal). Then come
+switches (`role="switch"`; a click, a tap, Space, Enter or A flips one): Mute,
 Reduce motion and flashing effects (one switch for both: a softer red pulse and dimmer flashes, no jitter or sway; the
 game still reads the two flags, `reducedMotion` and `reducedFlash`, and the switch sets both), Captions for sounds (one
 line at a time, with a marker for which side a sound came from), on a touch screen Reverse swipes, and Reduce surface
@@ -530,7 +540,7 @@ screens. The last
 screen there says "You have faced your demons." over one button, The End, which brings up how the nights went this
 time: the thirteen cards of the Scores screen, each coming in whole with this run's time for that night one after
 another (nothing there before it comes: no empty placeholders), then this run's whole time with its stars (under 3:00
-three, under 6:00 two, else one: drawn, those earned filled, read out as "2 of 3 stars") and, only if it beats the
+three, under 6:00 two, else one: drawn, those earned filled, read out as "2 of 3 stars"; what each takes is their tooltip and their description when read out, and a tap or click on them shows it) and, only if it beats the
 best run saved (or is the first), a red Best run stamp beside the time: it is then the best run on the Scores screen.
 Then Finish game, home to the title: the usual dark one, with it out there again (the
 light theme goes with the last screens and is never kept for the title). A click or a key hurries it to the

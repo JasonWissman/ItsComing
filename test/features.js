@@ -90,7 +90,7 @@ const hoverHit = lookFor;
   dw = await page.evaluate(() => { const d = document.getElementById('disclaimer'), card = d && d.querySelector('.dcard');
     return { up: !!d, h: (d.querySelector('h1') || {}).textContent, sets: [...d.querySelectorAll('[data-set]')].map(e => e.dataset.set).join(), acts: [...d.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(), erase: !!d.querySelector('[data-act="reset"]'), focus: document.activeElement && document.activeElement.dataset.act,
       cardBg: getComputedStyle(card).backgroundColor, st: G.state, menu: MENU.kind, warn: !!d.querySelector('.daccept') }; });
-  check(dw.up && dw.h === 'Settings' && dw.sets === 'effects,ambient,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'calvol,calbright,back,defaults' && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
+  check(dw.up && dw.h === 'Settings' && dw.sets === 'display,textSize,muted,reduceMotionFlash,captions,reduceTextures' && dw.acts === 'calvol,calbright,back,defaults' && !dw.erase && dw.focus === 'back' && dw.cardBg === panelLook.bg && dw.st === 'title' && dw.menu === 'title' && !dw.warn,
     'Adjust settings: Settings in the same card, every setting and Set to default (no Erase progress), Back focused; the game does not start (' + JSON.stringify(dw) + ')');
   // the keys work in it: Tab round to the reduce motion switch, Space flips it (both flags), a slider moves with the arrows
   await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', false); document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').focus(); });
@@ -98,19 +98,19 @@ const hoverHit = lookFor;
   let rs = await page.evaluate(() => ({ rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash, on: document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').checked, up: !!document.getElementById('disclaimer') }));
   check(rs.rm && rs.rf && rs.on && rs.up, 'from the warning, Space on Reduce motion and flashing effects turns it on, both its flags with it (' + JSON.stringify(rs) + ')');
   // its Set to default: everything back as it began, the switch and a row of choices moved to match, the warning still up and not accepted
-  rs = await page.evaluate(() => { const d = document.getElementById('disclaimer'); d.querySelector('.seg[data-set="effects"] [data-v="0.5"]').click(); const was = SAVE.data.settings.effects; d.querySelector('button[data-act="defaults"]').click();
-    return { was, rm: SAVE.data.settings.reducedMotion, fx: SAVE.data.settings.effects, on: d.querySelector('input[data-set="reduceMotionFlash"]').checked, chosen: d.querySelector('.seg[data-set="effects"] [aria-checked="true"]').textContent, up: !!document.getElementById('disclaimer') && !!d.querySelector('h1'), warned: SAVE.data.warned }; });
-  check(rs.was === 0.5 && !rs.rm && rs.fx === 1 && !rs.on && rs.chosen === 'Normal' && rs.up && !rs.warned, 'and its Set to default puts every setting back, its controls following, still in Settings, the warning not accepted (' + JSON.stringify(rs) + ')');
+  rs = await page.evaluate(() => { const d = document.getElementById('disclaimer'); d.querySelector('.seg[data-set="textSize"] [data-v="1.8"]').click(); MENU.applySetting('effects', 0.3); const was = SAVE.data.settings.textSize; d.querySelector('button[data-act="defaults"]').click();
+    return { was, rm: SAVE.data.settings.reducedMotion, ts: SAVE.data.settings.textSize, fx: SAVE.data.settings.effects, on: d.querySelector('input[data-set="reduceMotionFlash"]').checked, chosen: d.querySelector('.seg[data-set="textSize"] [aria-checked="true"]').textContent, up: !!document.getElementById('disclaimer') && !!d.querySelector('h1'), warned: SAVE.data.warned }; });
+  check(rs.was === 1.8 && !rs.rm && rs.ts === 1.4 && rs.fx === 1 && !rs.on && rs.chosen === 'Normal' && rs.up && !rs.warned, 'and its Set to default puts every setting back (the volumes too), its controls following, still in Settings, the warning not accepted (' + JSON.stringify(rs) + ')');
   await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').checked = true; document.querySelector('#disclaimer input[data-set="reduceMotionFlash"]').focus(); });
   await page.keyboard.press('Enter'); await page.waitForTimeout(80);
   rs = await page.evaluate(() => ({ rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash }));
   check(!rs.rm && !rs.rf, 'and Enter flips it back off (' + JSON.stringify(rs) + ')');
-  await page.evaluate(() => document.querySelector('#disclaimer .seg[data-set="effects"] [aria-checked="true"]').focus());
+  await page.evaluate(() => document.querySelector('#disclaimer .seg[data-set="textSize"] [aria-checked="true"]').focus());
   await page.keyboard.press('ArrowRight'); await page.waitForTimeout(80);
-  rs = await page.evaluate(() => ({ v: SAVE.data.settings.effects, chosen: document.querySelector('#disclaimer .seg[data-set="effects"] [aria-checked="true"]').textContent, focus: document.activeElement.textContent, up: !!document.querySelector('#disclaimer .dset') }));
-  check(rs.v === 0.5 && rs.chosen === 'Quieter' && rs.focus === 'Quieter' && rs.up, 'and right on Effects chooses Quieter, the focus going with it (' + JSON.stringify(rs) + ')');
+  rs = await page.evaluate(() => ({ v: SAVE.data.settings.textSize, chosen: document.querySelector('#disclaimer .seg[data-set="textSize"] [aria-checked="true"]').textContent, focus: document.activeElement.textContent, up: !!document.querySelector('#disclaimer .dset') }));
+  check(rs.v === 1.8 && rs.chosen === 'Bigger' && rs.focus === 'Bigger' && rs.up, 'and right on Text size chooses Bigger, the focus going with it (' + JSON.stringify(rs) + ')');
   await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(80);
-  check(await page.evaluate(() => SAVE.data.settings.effects === 1 && document.activeElement.textContent === 'Normal'), 'and left, Normal again');
+  check(await page.evaluate(() => SAVE.data.settings.textSize === 1.4 && document.activeElement.textContent === 'Normal'), 'and left, Normal again');
   await page.keyboard.press('Escape'); await page.waitForTimeout(200);
   dw = await page.evaluate(() => ({ up: !!document.getElementById('disclaimer'), warn: (document.querySelector('#disclaimer p') || {}).textContent, focus: document.activeElement && document.activeElement.dataset.act, st: G.state, pro: !!document.getElementById('prologue') }));
   check(dw.up && dw.warn === WARNING && dw.focus === 'accept' && dw.st === 'title' && !dw.pro, 'Esc in it is Back: the same warning again, Accept focused, nothing begun (' + JSON.stringify(dw) + ')');
@@ -148,7 +148,7 @@ const hoverHit = lookFor;
   await page.evaluate(() => { window.DISCLAIMER_TEST = true; });
   await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(600);
   check(await page.evaluate(() => !!document.getElementById('disclaimer') && !SAVE.data.warned), 'with nothing saved, it is shown');
-  await page.click('#disclaimer .daccept'); await page.waitForTimeout(1300);
+  await page.click('#disclaimer .daccept'); await page.waitForTimeout(1700);
   check(await page.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card' && SAVE.data.warned), 'a click on Accept goes on, and remembers');
   {
     const ctx = await browser.newContext({ viewport: { width: 740, height: 360 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 }), mp = await ctx.newPage();
@@ -244,8 +244,9 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => document.activeElement.dataset.act === 'settings'), 'arrow keys move between buttons');
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   check(await page.evaluate(() => MENU.kind === 'settings' && UI.overlay.classList.contains('dlg') && !!document.querySelector('#overlay .panel .settings')), 'Settings opens from pause, in the dialog');
-  // the settings: Volume and Brightness each a Calibrate button (no slider left in Settings); Effects and Ambience (Normal
-  // or Quieter) and Text size (Smaller, Normal or Bigger) each a row of choices, a radio group; the on/off ones are switches
+  // the settings: Volume and Brightness each a Calibrate button (no slider left in Settings: the effects and the ambience
+  // are in Volume's); Display (Windowed or Fullscreen) and Text size (Smaller, Normal or Bigger) each a row of choices, a
+  // radio group; the on/off ones are switches
   v = await page.evaluate(() => {
     const segs = [...document.querySelectorAll('#overlay .settings .seg')].map(g => ({ k: g.dataset.set, role: g.getAttribute('role'), name: g.getAttribute('aria-label'), label: g.closest('.opt').querySelector('.olabel').textContent,
       opts: [...g.querySelectorAll('button')].map(b => b.textContent + (b.getAttribute('role') === 'radio' ? '' : '(not a radio)') + (b.getAttribute('aria-checked') === 'true' ? '*' : '')).join('|'), tabs: [...g.querySelectorAll('button')].map(b => b.tabIndex).join('') }));
@@ -254,38 +255,70 @@ const hoverHit = lookFor;
     return { segs, cals, sliders: document.querySelectorAll('#overlay .settings input[type=range]').length, sw, text: UI.overlay.textContent };
   });
   check(v.sliders === 0 && v.cals.join() === 'Volume:Calibrate:calvol,Brightness:Calibrate:calbright', 'no sliders in Settings: Volume and Brightness each have a Calibrate button beside them (' + JSON.stringify(v.cals) + ')');
-  check(v.segs.map(g => g.k + '=' + g.opts).join() === 'effects=Normal*|Quieter,ambient=Normal*|Quieter,textSize=Smaller|Normal*|Bigger' && v.segs.every(g => g.role === 'radiogroup' && g.name === g.label) && v.segs.map(g => g.label).join() === 'Effects,Ambience,Text size' && v.segs.map(g => g.tabs).join() === '0-1,0-1,-10-1',
-    'Effects and Ambience are Normal or Quieter, Text size Smaller, Normal or Bigger: radio groups named for their rows, Normal chosen to begin with, only the chosen one a tab stop (' + JSON.stringify(v.segs) + ')');
+  check(v.segs.map(g => g.k + '=' + g.opts).join() === 'display=Windowed*|Fullscreen,textSize=Smaller|Normal*|Bigger' && v.segs.every(g => g.role === 'radiogroup' && g.name === g.label) && v.segs.map(g => g.label).join() === 'Display,Text size' && v.segs.map(g => g.tabs).join() === '0-1,-10-1' && !/Effects|Ambience/.test(v.text),
+    'Display is Windowed or Fullscreen, Text size Smaller, Normal or Bigger: radio groups named for their rows, Windowed and Normal chosen to begin with, only the chosen one a tab stop; no Effects or Ambience rows (' + JSON.stringify(v.segs) + ')');
   check(v.sw.map(s => s.k).join() === 'muted,reduceMotionFlash,captions,reduceTextures' && v.sw.every(s => s.role === 'switch' && s.drawn) && v.sw[1].name === 'Reduce motion and flashing effects' && v.sw[3].name === 'Reduce surface textures' && !/Surface detail|Reduce flashing \(|Reduce motion \(/.test(v.text),
     'the on/off settings are switches (role switch): Mute, Reduce motion and flashing effects (one, for both), Captions, Reduce surface textures (' + JSON.stringify(v.sw) + ')');
   // choosing: a click; the arrows along a row (choosing as they go, stopping at the ends), up and down to the next row;
-  // Enter and Space choose the one with the focus
-  const segState = () => page.evaluate(() => ({ fx: SAVE.data.settings.effects, amb: SAVE.data.settings.ambient, ts: SAVE.data.settings.textSize, scale: document.documentElement.style.getPropertyValue('--text-scale').trim(),
+  // Enter and Space choose the one with the focus. The text sizes: Smaller 1 (what Normal was), Normal 1.4 (what Bigger
+  // was), Bigger 1.8
+  const segState = () => page.evaluate(() => ({ ts: SAVE.data.settings.textSize, scale: document.documentElement.style.getPropertyValue('--text-scale').trim(), named: document.documentElement.dataset.textsize,
     chosen: [...document.querySelectorAll('#overlay .seg')].map(g => g.querySelector('[aria-checked="true"]').textContent).join(), focus: document.activeElement && (document.activeElement.closest('.seg') ? document.activeElement.closest('.seg').dataset.set + ':' + document.activeElement.textContent : document.activeElement.dataset.act),
-    saved: (s => [s.effects, s.ambient, s.textSize].join())(JSON.parse(localStorage.getItem('itscoming.v2')).settings), kind: MENU.kind, st: G.state }));
-  await page.click('#overlay .seg[data-set="ambient"] [data-v="0.5"]'); await page.waitForTimeout(60);
+    saved: JSON.parse(localStorage.getItem('itscoming.v2')).settings.textSize, kind: MENU.kind, st: G.state }));
+  await page.click('#overlay .seg[data-set="textSize"] [data-v="1.8"]'); await page.waitForTimeout(60);
   const sg0 = await segState();
-  check(sg0.amb === 0.5 && sg0.chosen === 'Normal,Quieter,Normal' && sg0.saved === '1,0.5,1' && sg0.kind === 'settings' && sg0.st === 'paused', 'a click on Ambience\'s Quieter chooses it, saved, Settings still open (' + JSON.stringify(sg0) + ')');
-  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="effects"] [aria-checked="true"]').focus());
+  check(sg0.ts === 1.8 && sg0.scale === '1.8' && sg0.named === 'bigger' && sg0.chosen === 'Windowed,Bigger' && sg0.saved === 1.8 && sg0.kind === 'settings' && sg0.st === 'paused', 'a click on Text size\'s Bigger chooses it (1.8), saved, the text that size, Settings still open (' + JSON.stringify(sg0) + ')');
+  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="textSize"] [aria-checked="true"]').focus());
   await page.keyboard.press('ArrowRight'); await page.waitForTimeout(40); const sg1 = await segState();
-  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(40); const sg2 = await segState();
-  check(sg1.fx === 0.5 && sg1.focus === 'effects:Quieter' && sg2.fx === 0.5 && sg2.focus === 'effects:Quieter', 'right on Effects: Quieter, chosen with the focus; right again stays there (' + JSON.stringify([sg1, sg2]) + ')');
-  await page.keyboard.press('ArrowDown'); await page.waitForTimeout(40); const sg3 = await segState();
-  await page.keyboard.press('ArrowDown'); await page.waitForTimeout(40); const sg4 = await segState();
-  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(40); const sg5 = await segState();
-  check(sg3.focus === 'ambient:Quieter' && sg4.focus === 'textSize:Normal' && sg5.focus === 'textSize:Smaller' && sg5.ts === 0.85 && sg5.scale === '0.85', 'down goes to the next row (to its chosen one); left on Text size: Smaller, and the text is smaller (' + JSON.stringify([sg3.focus, sg4.focus, sg5]) + ')');
-  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(40); const sg6 = await segState();
-  check(sg6.ts === 1.4 && sg6.scale === '1.4' && sg6.focus === 'textSize:Bigger' && sg6.saved === '0.5,0.5,1.4', 'right twice: Bigger (' + JSON.stringify(sg6) + ')');
-  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="textSize"] [data-v="1"]').focus());
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(40); const sg2 = await segState();
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(40); const sg3 = await segState();
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(40); const sg4 = await segState();
+  check(sg1.ts === 1.8 && sg1.focus === 'textSize:Bigger' && sg2.ts === 1.4 && sg2.focus === 'textSize:Normal' && sg2.named === 'normal' && sg3.ts === 1 && sg3.scale === '1' && sg3.focus === 'textSize:Smaller' && sg3.named === 'smaller' && sg4.ts === 1 && sg4.focus === 'textSize:Smaller',
+    'right on Bigger stays there; left: Normal (1.4), Smaller (1), and left again stays there (' + JSON.stringify([sg1, sg2, sg3, sg4]) + ')');
+  await page.keyboard.press('ArrowUp'); await page.waitForTimeout(40); const sg5 = await segState();
+  await page.keyboard.press('ArrowDown'); await page.waitForTimeout(40); const sg6 = await segState();
+  check(sg5.focus === 'display:Windowed' && sg6.focus === 'textSize:Smaller' && sg5.ts === 1, 'up and down go between the rows, to the chosen one (nothing chosen by going) (' + JSON.stringify([sg5.focus, sg6.focus]) + ')');
+  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="textSize"] [data-v="1.4"]').focus());
   await page.keyboard.press('Enter'); await page.waitForTimeout(40); const sg7 = await segState();
-  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="effects"] [data-v="1"]').focus());
+  await page.evaluate(() => document.querySelector('#overlay .seg[data-set="textSize"] [data-v="1.8"]').focus());
   await page.keyboard.press(' '); await page.waitForTimeout(40); const sg8 = await segState();
-  check(sg7.ts === 1 && sg7.scale === '1' && sg8.fx === 1 && sg8.focus === 'effects:Normal' && sg8.kind === 'settings' && sg8.st === 'paused', 'Enter and Space choose the one with the focus (' + JSON.stringify([sg7, sg8]) + ')');
+  check(sg7.ts === 1.4 && sg7.scale === '1.4' && sg8.ts === 1.8 && sg8.focus === 'textSize:Bigger' && sg8.kind === 'settings' && sg8.st === 'paused', 'Enter and Space choose the one with the focus (' + JSON.stringify([sg7, sg8]) + ')');
   v = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
   check(v !== 'none', 'and the one with the focus shows it (outline ' + v + ')');
-  await page.click('#overlay .seg[data-set="effects"] [data-v="0.5"]'); await page.waitForTimeout(40);
+  await page.evaluate(() => MENU.applySetting('textSize', 1.4));
+  // Display: the page full screen or not, as the corner button has it, and following it however it changes
+  const disp = () => page.evaluate(() => ({ chosen: document.querySelector('#overlay .seg[data-set="display"] [aria-checked="true"]').textContent, fs: !!(document.fullscreenElement || document.webkitFullscreenElement), btn: UI.fsBtn.classList.contains('on'), saved: 'display' in JSON.parse(localStorage.getItem('itscoming.v2')).settings, kind: MENU.kind }));
+  await page.click('#overlay .seg[data-set="display"] [data-v="1"]'); await page.waitForTimeout(500);
+  const d1 = await disp();
+  await page.evaluate(() => UI.fsBtn.click()); await page.waitForTimeout(500);
+  const d2 = await disp();
+  await page.click('#overlay .seg[data-set="display"] [data-v="1"]'); await page.waitForTimeout(500);
+  await page.evaluate(() => document.exitFullscreen()); await page.waitForTimeout(500);   // (as Esc leaves full screen)
+  const d3 = await disp();
+  check(d1.chosen === 'Fullscreen' && d1.fs && d1.btn && !d1.saved && d2.chosen === 'Windowed' && !d2.fs && !d2.btn && d3.chosen === 'Windowed' && !d3.fs && d3.kind === 'settings',
+    'Display: Fullscreen puts the page full screen as the corner button does (its button showing it), not saved; the corner button out of it, or leaving it another way, and the row follows to Windowed (' + JSON.stringify([d1, d2, d3]) + ')');
+  // where the page cannot go full screen: on an iPhone, how to (the Home Screen) in place of the choice; elsewhere nothing
+  v = await page.evaluate(() => {
+    const out = {};
+    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, get: () => false });
+    Object.defineProperty(document, 'webkitFullscreenEnabled', { configurable: true, get: () => false });
+    Object.defineProperty(navigator, 'userAgent', { configurable: true, get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+    MENU.show('settings', { from: 'pause' });
+    const row = [...document.querySelectorAll('#overlay .opt')].find(o => o.querySelector('.olabel').textContent === 'Display');
+    out.ios = row && !row.querySelector('.seg') && row.querySelector('.onote').textContent;
+    Object.defineProperty(navigator, 'userAgent', { configurable: true, get: () => 'Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile' });
+    MENU.show('settings', { from: 'pause' });
+    out.other = [...document.querySelectorAll('#overlay .olabel')].map(o => o.textContent).includes('Display');
+    delete document.fullscreenEnabled; delete document.webkitFullscreenEnabled; delete navigator.userAgent;
+    MENU.show('settings', { from: 'pause' });
+    out.back = !!document.querySelector('#overlay .seg[data-set="display"]');
+    return out;
+  });
+  check(v.ios === 'On iPhone, add this page to your Home Screen to play full screen.' && !v.other && v.back, 'no full screen for the page (an iPhone): the Display row says to add it to the Home Screen; on anything else with none, no Display row (' + JSON.stringify(v) + ')');
+  await page.click('#overlay .seg[data-set="display"] [data-v="1"]'); await page.waitForTimeout(400);   // (full screen, for Set to default below to leave be)
+  await page.click('#overlay .seg[data-set="textSize"] [data-v="1"]'); await page.waitForTimeout(40);
   await page.click('#overlay input[data-set="reduceMotionFlash"]'); await page.waitForTimeout(100);
-  check(await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('itscoming.v2')).settings; return s.effects === 0.5 && s.reducedFlash === true && s.reducedMotion === true && SAVE.data.settings.reducedMotion && SAVE.data.settings.reducedFlash && G.state === 'paused' && document.querySelector('input[data-set="reduceMotionFlash"]').checked; }), 'settings persist and changing them does not close the menu; the one switch turns both reduced motion and reduced flashing on');
+  check(await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('itscoming.v2')).settings; return s.textSize === 1 && s.reducedFlash === true && s.reducedMotion === true && SAVE.data.settings.reducedMotion && SAVE.data.settings.reducedFlash && G.state === 'paused' && document.querySelector('input[data-set="reduceMotionFlash"]').checked; }), 'settings persist and changing them does not close the menu; the one switch turns both reduced motion and reduced flashing on');
   await page.keyboard.press('Enter'); await page.waitForTimeout(80);
   check(await page.evaluate(() => !SAVE.data.settings.reducedMotion && !SAVE.data.settings.reducedFlash && !document.querySelector('input[data-set="reduceMotionFlash"]').checked && MENU.kind === 'settings'), 'Enter on the focused switch flips it back: both off');
   await page.keyboard.press(' '); await page.waitForTimeout(80);
@@ -301,7 +334,7 @@ const hoverHit = lookFor;
   // stays, its button focused
   v = await page.evaluate(() => {
     const before = { u: G.unlocked, run: JSON.stringify(SAVE.data.bestRun), warned: SAVE.data.warned };
-    for (const [k, x] of [['master', 0.2], ['effects', 0.5], ['ambient', 0.5], ['textSize', 1.4], ['captions', true], ['reduceTextures', true], ['reduceMotionFlash', true], ['muted', true]]) MENU.applySetting(k, x);
+    for (const [k, x] of [['effects', 0.3], ['ambient', 0.45], ['textSize', 1.8], ['captions', true], ['reduceTextures', true], ['reduceMotionFlash', true], ['muted', true]]) MENU.applySetting(k, x);
     setMuted(true);
     MENU.show('settings', { from: 'pause', focus: 'defaults' });   // (as it shows them all now)
     before.shown = [...document.querySelectorAll('#overlay .seg')].map(g => g.querySelector('[aria-checked="true"]').textContent).join() + ';' + [...document.querySelectorAll('#overlay input[type=checkbox]')].map(c => c.checked).join();
@@ -311,16 +344,17 @@ const hoverHit = lookFor;
   const dv = await page.evaluate(() => {
     const S = SAVE.data.settings, saved = JSON.parse(localStorage.getItem('itscoming.v2')).settings, q = k => document.querySelector('#overlay [data-set="' + k + '"]');
     return { kind: MENU.kind, confirm: !!document.querySelector('#overlay .confirm'), focus: document.activeElement && document.activeElement.dataset.act,
-      S: [S.master, S.effects, S.ambient, S.textSize, S.captions, S.reduceTextures, S.reducedMotion, S.reducedFlash, S.muted, S.swipeReverse].join(), saved: [saved.master, saved.effects, saved.ambient, saved.textSize, saved.captions].join(),
-      ctl: ['effects', 'ambient', 'textSize'].map(k => q(k).querySelector('[aria-checked="true"]').textContent + '/' + [...q(k).querySelectorAll('[role="radio"]')].map(b => b.tabIndex).join('')).join(),
-      sw: ['muted', 'reduceMotionFlash', 'captions', 'reduceTextures'].map(k => q(k).checked).join(), muted: G.muted, detail: R.detail, scale: document.documentElement.style.getPropertyValue('--text-scale').trim(),
+      S: [S.effects, S.ambient, S.textSize, S.captions, S.reduceTextures, S.reducedMotion, S.reducedFlash, S.muted, S.swipeReverse, 'master' in S].join(), saved: [saved.effects, saved.ambient, saved.textSize, saved.captions, 'master' in saved].join(),
+      ctl: ['display', 'textSize'].map(k => q(k).querySelector('[aria-checked="true"]').textContent + '/' + [...q(k).querySelectorAll('[role="radio"]')].map(b => b.tabIndex).join('')).join(), fs: !!document.fullscreenElement,
+      sw: ['muted', 'reduceMotionFlash', 'captions', 'reduceTextures'].map(k => q(k).checked).join(), muted: G.muted, detail: R.detail, scale: document.documentElement.style.getPropertyValue('--text-scale').trim(), vol: AUDIO.levels && AUDIO.levels.volume,
       u: G.unlocked, run: JSON.stringify(SAVE.data.bestRun), warned: SAVE.data.warned };
   });
-  check(v.shown === 'Quieter,Quieter,Bigger;true,true,true,true' && dv.kind === 'settings' && !dv.confirm && dv.focus === 'defaults' && dv.S === '1,1,1,1,false,false,false,false,false,false' && dv.saved === '1,1,1,1,false', 'Set to default puts every setting back as it began (the volume, the rows of choices, the switches), saved, with no question, Settings still open and its button focused (' + JSON.stringify([v.shown, dv]) + ')');
-  check(dv.ctl === 'Normal/0-1,Normal/0-1,Normal/-10-1' && dv.sw === 'false,false,false,false' && !dv.muted && dv.detail && dv.scale === '1', 'and the rows of choices and the switches move with it, all applied (sound, textures, text size) (' + JSON.stringify(dv) + ')');
+  check(v.shown === 'Fullscreen,Bigger;true,true,true,true' && dv.kind === 'settings' && !dv.confirm && dv.focus === 'defaults' && dv.S === '1,1,1.4,false,false,false,false,false,false,false' && dv.saved === '1,1,1.4,false,false', 'Set to default puts every setting back as it began (both volumes at 100%, the text Normal, the switches), saved, with no question, Settings still open and its button focused (' + JSON.stringify([v.shown, dv]) + ')');
+  check(dv.ctl === 'Fullscreen/-10,Normal/-10-1' && dv.fs && dv.sw === 'false,false,false,false' && !dv.muted && dv.detail && dv.scale === '1.4' && (!dv.vol || (dv.vol.effects === 1 && dv.vol.ambient === 1)), 'and the rows of choices and the switches move with it, all applied (sound, textures, text size); Display left as the page is (full screen still) (' + JSON.stringify(dv) + ')');
+  await page.evaluate(() => document.exitFullscreen()); await page.waitForTimeout(300);
   await page.click('#overlay button[data-act="calvol"]'); await page.waitForTimeout(100);
-  const mv = await page.evaluate(() => { const r = document.querySelector('#overlay input[data-set="master"]'); return r && [r.value, r.parentElement.querySelector('.pct').textContent, r.getAttribute('aria-valuetext')].join('/'); });
-  check(mv === '1/100%/100%', 'and the volume\'s slider, in its Calibrate dialog, is back at 100% (' + mv + ')');
+  const mv = await page.evaluate(() => ['effects', 'ambient'].map(k => { const r = document.querySelector('#overlay input[data-set="' + k + '"]'); return r && [r.value, r.parentElement.querySelector('.pct').textContent, r.getAttribute('aria-valuetext')].join('/'); }).join());
+  check(mv === '1/100%/100%,1/100%/100%', 'and the volume dialog\'s two sliders are back at 100% (' + mv + ')');
   await page.click('#overlay button[data-act="caldone"]'); await page.waitForTimeout(100);
   check(dv.u === v.u && dv.run === v.run && dv.warned === v.warned, 'and nothing but the settings: progress, the best run and the accepted warning as they were');
   await page.keyboard.press('m'); await page.waitForTimeout(80);
@@ -423,7 +457,17 @@ const hoverHit = lookFor;
   check(tv.n === 13 && tv.btns === 'back,reset' && tv.tab === 0 && tv.cursor === 'default', 'the Scores screen only shows: its cards are not buttons, nothing to press but Back and Erase progress (' + JSON.stringify(tv) + ')');
   // (41+23+36+49+30+28+53+18+45+40+33+26 = 422 of 480 (8:00): The Void 58, though its own 60.6 would round to 61)
   check(tv.times === '41 s,23 s,36 s,49 s,30 s,28 s,53 s,18 s,45 s,40 s,33 s,26 s,58 s' && tv.run === '8:00' && tv.label === 'Best run' && tv.stars === '1 of 3 stars' && tv.on === 1 && !tv.stamp, 'the best run: each night\'s share of it, The Void making them add up to its whole time, which is under them with its stars (1 of 3 over six minutes) and no stamp here (' + JSON.stringify(tv) + ')');
-  const bg0 = await page.evaluate(() => getComputedStyle(document.querySelector('#overlay .ncard')).backgroundColor);
+  // the stars tell what each takes: a tooltip (title) on a hover, read out with them (aria-describedby), shown by a tap or click
+  const starTip = () => page.evaluate(() => { const s = document.querySelector('#overlay .runcard .stars'), d = document.getElementById(s.getAttribute('aria-describedby')), t = s.querySelector('.startip'), r = t.getBoundingClientRect();
+    return { title: s.getAttribute('title'), desc: d && d.textContent, same: d === t, shown: getComputedStyle(t).visibility === 'visible', inView: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight, kind: MENU.kind }; });
+  const tip0 = await starTip();
+  await page.click('#overlay .runcard .stars'); await page.waitForTimeout(250);
+  const tip1 = await starTip();
+  await page.click('#overlay .runcard .stars'); await page.waitForTimeout(250);
+  const tip2 = await starTip();
+  check(tip0.title === '3 stars: under 3 minutes\n2 stars: under 6 minutes\n1 star: any finish' && tip0.desc === '3 stars: under 3 minutes 2 stars: under 6 minutes 1 star: any finish' && tip0.same && !tip0.shown && tip1.shown && tip1.inView && tip1.kind === 'nights' && !tip2.shown,
+    'the stars tell what each takes (3 under 3 minutes, 2 under 6, 1 any finish): their tooltip, their description when read out, and shown in view by a click on them, hidden by another (' + JSON.stringify([tip0, tip1, tip2]) + ')');
+  const bg0 =await page.evaluate(() => getComputedStyle(document.querySelector('#overlay .ncard')).backgroundColor);
   await page.hover('#overlay .ncard'); await page.waitForTimeout(250);
   check(await page.evaluate(b => getComputedStyle(document.querySelector('#overlay .ncard')).backgroundColor === b, bg0), 'and a card does not light up under the pointer');
   await page.click('#overlay .ncard'); await page.waitForTimeout(150);
@@ -689,22 +733,24 @@ const hoverHit = lookFor;
   const cap0 = await page.evaluate(() => { document.querySelector('input[data-set="captions"]').focus(); return !!SAVE.data.settings.captions; });
   await tap(0);
   check(await page.evaluate(c0 => G.state === 'title' && MENU.kind === 'settings' && !!SAVE.data.settings.captions === !c0, cap0), 'A on a focused box ticks it and does not start the night');
-  await page.evaluate(() => document.querySelector('.seg[data-set="effects"] [aria-checked="true"]').focus());
+  await page.evaluate(() => document.querySelector('.seg[data-set="textSize"] [aria-checked="true"]').focus());
   await tap(15);
-  const padSeg1 = await page.evaluate(() => ({ fx: SAVE.data.settings.effects, focus: document.activeElement.textContent, kind: MENU.kind }));
+  const padSeg1 = await page.evaluate(() => ({ ts: SAVE.data.settings.textSize, focus: document.activeElement.textContent, kind: MENU.kind }));
   await tap(0);
-  const padSeg2 = await page.evaluate(() => ({ fx: SAVE.data.settings.effects, st: G.state, kind: MENU.kind }));
+  const padSeg2 = await page.evaluate(() => ({ ts: SAVE.data.settings.textSize, st: G.state, kind: MENU.kind }));
   await tap(14);
-  const padSeg3 = await page.evaluate(() => ({ fx: SAVE.data.settings.effects, focus: document.activeElement.textContent }));
-  check(padSeg1.fx === 0.5 && padSeg1.focus === 'Quieter' && padSeg1.kind === 'settings' && padSeg2.fx === 0.5 && padSeg2.st === 'title' && padSeg2.kind === 'settings' && padSeg3.fx === 1 && padSeg3.focus === 'Normal',
-    'the d-pad\'s right on Effects chooses Quieter, A on it does nothing else, left is Normal again (' + JSON.stringify([padSeg1, padSeg2, padSeg3]) + ')');
+  const padSeg3 = await page.evaluate(() => ({ ts: SAVE.data.settings.textSize, focus: document.activeElement.textContent }));
+  check(padSeg1.ts === 1.8 && padSeg1.focus === 'Bigger' && padSeg1.kind === 'settings' && padSeg2.ts === 1.8 && padSeg2.st === 'title' && padSeg2.kind === 'settings' && padSeg3.ts === 1.4 && padSeg3.focus === 'Normal',
+    'the d-pad\'s right on Text size chooses Bigger, A on it does nothing else, left is Normal again (' + JSON.stringify([padSeg1, padSeg2, padSeg3]) + ')');
   await page.evaluate(() => document.querySelector('button[data-act="calvol"]').focus());
   await tap(0); await page.waitForTimeout(100);
-  check(await page.evaluate(() => MENU.sub === 'volume' && !!document.querySelector('#overlay input[data-set="master"]')), 'A on Volume\'s Calibrate opens its dialog');
-  await page.evaluate(() => document.querySelector('input[data-set="master"]').focus());
-  const vol0 = await page.evaluate(() => SAVE.data.settings.master);
-  await tap(14);
-  check(await page.evaluate(v => Math.abs(SAVE.data.settings.master - (v - 0.05)) < 1e-6 && MENU.kind === 'settings' && document.querySelector('input[data-set="master"]').parentElement.querySelector('.pct').textContent === Math.round((v - 0.05) * 100) + '%', vol0), 'left on its focused slider turns the volume down, its percentage following');
+  check(await page.evaluate(() => MENU.sub === 'volume' && !!document.querySelector('#overlay input[data-set="effects"]') && !!document.querySelector('#overlay input[data-set="ambient"]')), 'A on Volume\'s Calibrate opens its dialog, its two sliders in it');
+  for (const k of ['effects', 'ambient']) {
+    await page.evaluate(k => document.querySelector('input[data-set="' + k + '"]').focus(), k);
+    const vol0 = await page.evaluate(k => SAVE.data.settings[k], k);
+    await tap(14);
+    check(await page.evaluate(([k, v]) => Math.abs(SAVE.data.settings[k] - (v - 0.05)) < 1e-6 && MENU.kind === 'settings' && document.querySelector('input[data-set="' + k + '"]').parentElement.querySelector('.pct').textContent === Math.round((v - 0.05) * 100) + '%', [k, vol0]), 'left on the focused ' + k + ' slider turns that volume down, its percentage following');
+  }
   await tap(0);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'settings' && MENU.sub === 'volume'), 'A on a focused slider does nothing else');
   await tap(1);
@@ -721,30 +767,34 @@ const hoverHit = lookFor;
   ]) {
     await page.evaluate(o => { localStorage.clear(); localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 2 }, complete: {}, bestRun: {}, settings: Object.assign({ master: 0.5 }, o) })); }, old);
     await page.goto(T.INDEX); await page.waitForTimeout(300);
-    const got = await page.evaluate(() => ({ rt: SAVE.data.settings.reduceTextures, rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash, detail: R.detail, old: 'textures' in SAVE.data.settings, master: SAVE.data.settings.master, warned: SAVE.data.warned,
+    const got = await page.evaluate(() => ({ rt: SAVE.data.settings.reduceTextures, rm: SAVE.data.settings.reducedMotion, rf: SAVE.data.settings.reducedFlash, detail: R.detail, old: 'textures' in SAVE.data.settings, fx: SAVE.data.settings.effects, warned: SAVE.data.warned,
       on: (MENU.act('settings', 'title'), [document.querySelector('input[data-set="reduceTextures"]').checked, document.querySelector('input[data-set="reduceMotionFlash"]').checked]) }));
-    check(got.rt === want.rt && got.rm === want.rm && got.rf === want.rf && got.detail === want.detail && !got.old && got.master === 0.5 && got.warned === false && got.on[0] === want.rt && got.on[1] === want.rm,
+    check(got.rt === want.rt && got.rm === want.rm && got.rf === want.rf && got.detail === want.detail && !got.old && got.fx === 0.5 && got.warned === false && got.on[0] === want.rt && got.on[1] === want.rm,
       'an older save ' + JSON.stringify(old) + ': surface detail off is Reduce surface textures on, and reduced motion and flashing are one, on if either was (' + JSON.stringify(got) + ')');
   }
   await page.evaluate(() => localStorage.clear());
   await page.goto(T.INDEX); await page.waitForTimeout(300);
   check(await page.evaluate(() => SAVE.data.settings.reduceTextures === false && R.detail === true && SAVE.data.warned === false), 'a new player: textures shown (Reduce surface textures off), the warning not yet accepted');
-  check(await page.evaluate(() => { const S = SAVE.data.settings; MENU.act('settings', 'title'); const shown = [...document.querySelectorAll('#overlay .seg')].map(g => g.querySelector('[aria-checked="true"]').textContent).join(); MENU.show('title'); return S.master === 1 && S.effects === 1 && S.ambient === 1 && S.textSize === 1 && shown === 'Normal,Normal,Normal'; }),
-    'a new player: the volume at 100%, Effects, Ambience and Text size all Normal');
-  console.log('== settings saved when the effects, the ambience and the text size were sliders ==');
-  // each to the nearest choice it has now: an effects or ambience slider under 75% is Quieter (0.5), else Normal; the
-  // text size Smaller (0.85), Normal (1) or Bigger (1.4), whichever is nearest; the volume kept as it was
+  check(await page.evaluate(() => { const S = SAVE.data.settings; MENU.act('settings', 'title'); const shown = [...document.querySelectorAll('#overlay .seg[data-set="textSize"]')].map(g => g.querySelector('[aria-checked="true"]').textContent).join(); MENU.show('title'); return !('master' in S) && S.effects === 1 && S.ambient === 1 && S.textSize === 1.4 && shown === 'Normal' && document.documentElement.style.getPropertyValue('--text-scale').trim() === '1.4'; }),
+    'a new player: both volumes at 100% (no main volume), the text Normal (1.4)');
+  console.log('== settings saved with a main volume, Effects and Ambience Normal or Quieter (or sliders before that), and the old text sizes ==');
+  // the main volume folded into the two: each the main volume times its own (Quieter is 0.5); written back without it. The
+  // text: Smaller (0.85) or Normal (1) as it was is Smaller now (1, the size Normal was), Bigger (1.4) is Normal (1.4),
+  // anything between to the nearest
   for (const [old, want] of [
-    [{ master: 0.35, effects: 0.6, ambient: 0.8, textSize: 1.3 }, '0.35,0.5,1,1.4;Quieter,Normal,Bigger'],
-    [{ master: 0.8, effects: 0.75, ambient: 0, textSize: 0.9 }, '0.8,1,0.5,0.85;Normal,Quieter,Smaller'],
-    [{ effects: 0.74, ambient: 0.2, textSize: 1.15 }, '1,0.5,0.5,1;Quieter,Quieter,Normal'],
-    [{ effects: 1, ambient: 1, textSize: 1.25 }, '1,1,1,1.4;Normal,Normal,Bigger'],
-    [{ effects: 'loud', textSize: null }, '1,1,1,1;Normal,Normal,Normal'],
+    [{ master: 1, effects: 0.5, ambient: 1, textSize: 1 }, '0.5,1,1;Smaller'],
+    [{ master: 0.6, effects: 1, ambient: 0.5, textSize: 1.4 }, '0.6,0.3,1.4;Normal'],
+    [{ master: 0.35, effects: 0.6, ambient: 0.8, textSize: 0.85 }, '0.21,0.28,1;Smaller'],
+    [{ master: 0.8, effects: 0.75, ambient: 0, textSize: 1.3 }, '0.6,0,1.4;Normal'],
+    [{ effects: 0.74, ambient: 0.2, textSize: 1.15 }, '0.74,0.2,1;Smaller'],
+    [{ effects: 1, ambient: 1, textSize: 1.8 }, '1,1,1.8;Bigger'],
+    [{ master: 'loud', effects: 'loud', textSize: null }, '1,1,1.4;Normal'],
   ]) {
     await page.evaluate(o => { localStorage.clear(); localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 2 }, complete: {}, bestRun: {}, settings: o })); }, old);
     await page.goto(T.INDEX); await page.waitForTimeout(300);
-    const got = await page.evaluate(() => { const S = SAVE.data.settings; MENU.act('settings', 'title'); return [S.master, S.effects, S.ambient, S.textSize].join() + ';' + [...document.querySelectorAll('#overlay .seg')].map(g => g.querySelector('[aria-checked="true"]').textContent).join() + '|' + document.documentElement.style.getPropertyValue('--text-scale').trim(); });
-    check(got.split('|')[0] === want && +got.split('|')[1] === +want.split(';')[0].split(',')[3], 'an older save ' + JSON.stringify(old) + ' comes in as ' + want + ', the text that size (' + got + ')');
+    const got = await page.evaluate(() => { const S = SAVE.data.settings; MENU.act('settings', 'title'); return [S.effects, S.ambient, S.textSize].join() + ';' + document.querySelector('#overlay .seg[data-set="textSize"] [aria-checked="true"]').textContent + '|' + document.documentElement.style.getPropertyValue('--text-scale').trim() + '|' + ('master' in S) + '|' + ('master' in JSON.parse(localStorage.getItem('itscoming.v2')).settings) + '|' + AUDIO.levels.volume.effects + ',' + AUDIO.levels.volume.ambient; });
+    const [vals, scale, inS, stored, heard] = got.split('|');
+    check(vals === want && +scale === +want.split(';')[0].split(',')[2] && inS === 'false' && stored === 'false' && heard === want.split(',').slice(0, 2).join(), 'an older save ' + JSON.stringify(old) + ' comes in as ' + want + ' (effects, ambience, text), heard so, the text that size, no main volume kept (' + got + ')');
   }
   await page.evaluate(() => localStorage.clear());
 
@@ -1148,6 +1198,8 @@ const hoverHit = lookFor;
   });
   check(tv.in === 13 && tv.fin && tv.first === '30 s' && tv.second === '31 s' && tv.void === '42 s' && tv.label === 'This run' && tv.time === '7:48' && !tv.stamp && !tv.best, 'after a full run that is not a best: its own times and its whole time, no Best run stamp; with reduced motion all at once (' + JSON.stringify(tv) + ')');
   check(tv.stars === '1 of 3 stars' && tv.role === 'img' && tv.drawn === 3 && tv.on === 1, 'and its stars, drawn three with those earned filled, read out as one ("1 of 3 stars") (' + JSON.stringify(tv) + ')');
+  tv = await page.evaluate(() => { const s = document.querySelector('#overlay .rrun .stars'); s.click(); const t = s.querySelector('.startip'); return { title: s.getAttribute('title'), desc: (document.getElementById(s.getAttribute('aria-describedby')) || {}).textContent, tip: s.classList.contains('tip'), kind: MENU.kind }; });
+  check(/^3 stars: under 3 minutes\n2 stars: under 6 minutes\n1 star: any finish$/.test(tv.title) && /under 3 minutes 2 stars: under 6 minutes 1 star/.test(tv.desc) && tv.tip && tv.kind === 'results', 'and there too they tell what each takes, shown by a tap on them (' + JSON.stringify(tv) + ')');
   // a new best: the stamp beside the whole time, on its line, to its right
   tv = await page.evaluate(() => {
     G.lastRun = { t: 170.3, nights: LEVELS.map(() => 170.3 / 13), best: true };
@@ -1797,6 +1849,23 @@ const hoverHit = lookFor;
     r = await sp.evaluate(() => { const d = JSON.parse(JSON.stringify(SAVE.data)); d.settings.touchLeft = true; d.settings.captions = true; localStorage.setItem('itscoming.v2', JSON.stringify(d)); SAVE.load(); return { left: 'touchLeft' in SAVE.data.settings, rev: SAVE.data.settings.swipeReverse, cap: SAVE.data.settings.captions }; });
     check(!r.left && r.rev === false && r.cap === true, 'an older save with the touch buttons on the left loads without that setting, the rest kept (' + JSON.stringify(r) + ')');
     await sp.evaluate(() => { localStorage.clear(); }); await sp.close();
+  }
+
+  // added to the Home Screen (an iPhone's only way to full screen) or installed: the manifest, its icons and the iOS tags
+  console.log('== the web app manifest ==');
+  {
+    const fs = require('fs'), root = path.join(__dirname, '..'), html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+    let m = null; try { m = JSON.parse(fs.readFileSync(path.join(root, 'manifest.webmanifest'), 'utf8')); } catch (e) { m = null; }
+    check(/<link rel="manifest" href="manifest\.webmanifest">/.test(html) && !!m, 'index.html links manifest.webmanifest, and it is valid JSON');
+    check(m && m.name === 'It\'s Coming' && m.short_name === 'It\'s Coming' && m.display === 'fullscreen' && Array.isArray(m.display_override) && m.display_override.join() === 'fullscreen,standalone' && m.orientation === 'landscape' && m.background_color === '#000000' && m.theme_color === '#000000' && m.start_url === './',
+      'it opens full screen (standalone where not), on its side, on black, at the game (' + JSON.stringify(m && { display: m.display, o: m.orientation, start: m.start_url }) + ')');
+    const png = f => { try { const b = fs.readFileSync(path.join(root, f)); return b.readUInt32BE(0) === 0x89504e47 ? b.readUInt32BE(16) + 'x' + b.readUInt32BE(20) : null; } catch (e) { return null; } };
+    const icons = (m && m.icons || []).map(i => i.sizes + '=' + png(i.src) + ':' + i.type);
+    check(icons.join() === '192x192=192x192:image/png,512x512=512x512:image/png,180x180=180x180:image/png', 'its icons are there, PNGs the sizes they say (' + icons.join() + ')');
+    const meta = ['<meta name="apple-mobile-web-app-capable" content="yes">', '<meta name="mobile-web-app-capable" content="yes">', '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">', '<meta name="apple-mobile-web-app-title" content="It\'s Coming">', '<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">'];
+    check(meta.every(t => html.includes(t)) && png('icons/apple-touch-icon.png') === '180x180' && /viewport-fit=cover/.test(html), 'and the iOS tags: Home Screen web app, black translucent status bar, its title and touch icon (180 x 180); the page runs under the notch (viewport-fit=cover)');
+    check(/#fsBtn \{[^}]*top: max\(12px, env\(safe-area-inset-top\)\); right: max\(14px, env\(safe-area-inset-right\)\)/.test(html) && /#menuBtn \{ top: max\(12px, env\(safe-area-inset-top\)\); \}/.test(html) && /#menuBtn \{[^}]*left: max\(14px, env\(safe-area-inset-left\)\)/.test(html) && /#zoomBtn \{ right: max\(16px, env\(safe-area-inset-right\)\); bottom: max\(18px, env\(safe-area-inset-bottom\)\)/.test(html) && /#objective \{ right: max\(20px, calc\(env\(safe-area-inset-right\) \+ 6px\)\); \}/.test(html) && /#overlay\.dlg \{ padding-left: max\(10px, env\(safe-area-inset-left\)\)/.test(html),
+      'the corner buttons, the objective and the dialogs keep clear of the notch and the rounded corners (env(safe-area-inset-*))');
   }
 
   // Settings' Calibrate dialogs (Volume, Brightness) and their sounds: test/settings.js, in this browser
