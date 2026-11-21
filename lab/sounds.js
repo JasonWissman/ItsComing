@@ -55,6 +55,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'bowFull', n: [5, 13], d: 'A hard click as the string comes tight: the bow is fully drawn.', src: 'game.js draw' },
   { kind: 'sfx', name: 'twang', n: [5, 13], d: 'A low bowstring twang. An arrow is loosed.', src: 'game.js loose · night05, 13 uses' },
   { kind: 'sfx', name: 'thunk', n: [5, 13], d: 'A heavy wet thunk. An arrow hits the creature.', src: 'night05, night13' },
+  { kind: 'sfx', name: 'batSqueak', n: [5], d: 'A small tick and three thin, high squeaks, each falling. An arrow takes a bat out of the sky (the night’s easter egg).', src: 'night05 bats' },
   // ---- night 6: the boathouse ----
   { kind: 'sfx', name: 'splash', n: [6], d: 'A splash. The swimmer surfaces.', src: 'swimmer.js · night06' },
   { kind: 'sfx', name: 'dive', n: [6], d: 'A low gulp of water. It goes under.', src: 'swimmer.js · night06' },

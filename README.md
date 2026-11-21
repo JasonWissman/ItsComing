@@ -213,13 +213,24 @@ some on the ground, so you have to turn and look down to find them.
    you hold it. Let go full with it in your sights and the arrow goes in, however far off it
    is (the further, the smaller it is to aim at). Let go before full and the arrow drops into
    the snow short of it; full but off it, it misses. A click looses nothing: the bow comes up
-   and is let down again. The first hit drops it for a moment and the second puts it down.
+   and is let down again. The first hit puts it all the way down: out of a sprint its knees give and it topples
+   sideways into the snow (side on, it pitches forward and skids; on all fours, its arms go from under it and it rolls
+   over), lies there flat for about a second, bleeding, then lifts its head to you, plants a hand, pushes itself up onto
+   its hands and feet and comes on again, a little over two seconds after it was hit. It can be hit while it is down
+   (lying, it is a low, flat thing to aim at, and the next arrow takes over two seconds to nock and draw, so only a
+   draw begun at once finds it still getting up): a second arrow then kills it where it lies. The second hit puts it down.
    Hit, its body twitches, small sharp jerks of its limbs and trunk, the arrows in it shaking with it; dead in the
    snow, the jerks die away over a few seconds (with reduced motion, they are barely there).
-   Drawn on, it may react: about one draw in three (a click that only lifts the bow does not count), it
-   breaks sideways to a new place, running side on as it does in the tree line, and drops to watch
-   from there, so the aim has to come after it; it does not do it twice within a few seconds, nor once
-   it is close. With all three arrows gone and it still up, it comes flat out. The bow floats where
+   The first shot is the easier one, the second the harder. Unhurt it is bold: while the bow is drawn on it, it holds
+   its line (it does not break away by itself, and its weave narrows), and only about one draw in eight (a click that
+   only lifts the bow does not count) makes it break sideways to a new place, running side on as it does in the tree
+   line, and drop to watch from there; it does not do it twice within a few seconds, nor once it is close. With an
+   arrow in it, it is wary: it comes on faster and never straight, weaving wide, quick and unevenly, breaking to one
+   side every second or two by itself and from about every other draw, so the aim has to come after it; inside about
+   14 m it comes straight. With all three arrows gone and it still up, it comes flat out, straight. Three small
+   bats flit about the night sky over the clearing, faint against it and easy to miss; one can be shot (drawn full and
+   let go on it: a small, restless target, and the thing itself always comes first), and it squeaks and tumbles out of
+   the sky with the arrow through it. That is this night's easter egg, and it costs the arrow. The bow floats where
    your hands would hold it. Pressed with no arrows, the bow comes up and tips to show the bare shelf,
    the string is plucked twice where an arrow should sit and twitches on nothing, and it is let down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
    and drops head first to the boards at your feet, where you have to pick it up again. When it reaches you it comes

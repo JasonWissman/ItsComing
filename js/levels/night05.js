@@ -5,9 +5,13 @@
 // it stays full for as long as you hold it. Let go full with the aim on it and the arrow goes in, however far off it is (the
 // further, the smaller it is to aim at); full but off it, it misses; let go before it is full and it drops into the snow
 // short of it. A tap looses nothing: the bow comes up, the string starts back, and it is let down again. Two hits put it
-// down (the first drops it for a moment); with all three arrows gone and it still up, it stops watching and comes flat
-// out. It comes fast, and out in the open it keeps breaking sideways to a new place by itself (CREATURES.runner.dart);
-// drawn on, it may also break sideways (30% of draws, never twice within a few seconds), so the aim has to come after it.
+// down (the first drops it all the way into the snow, where it lies about a second before it gets up); with all three
+// arrows gone and it still up, it stops watching and comes flat out. It comes fast, and out in the open it keeps breaking
+// sideways to a new place by itself (CREATURES.runner.dart). The first shot is the easier one: unhurt it is bold, and with
+// the bow drawn on it, it holds its line (no breaking away by itself, a narrower weave) and seldom breaks from the draw
+// (12% of draws). The second is the harder: hurt, it is wary, and comes on weaving wide and quick, breaking to one side
+// every second or two, and from about every other draw, so the aim has to come after it.
+// Over the clearing a few bats fly (CLEARING_BATS, below), and one can be shot: this night's easter egg.
 // (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
 const CLEARING_BOW = (() => {
   const FILL = 1.5, MIN = 0.18;
@@ -171,6 +175,117 @@ const CLEARING_BOW = (() => {
     if (l > 0.3) R.add(Object.assign({ pts: [at(l - 0.06), head], color: [150, 152, 160], lw: 0.03 * k }, o));   // the head
   }
   return { FILL, MIN, COL, rayAt, inHands, hold, grope, arrow };
+})();
+// ---- the bats ----
+// Three small bats flit about the night sky over the clearing: dark, faint against it, never still, mostly high in the
+// view, so they are easy to miss unless you look up from the snow. Each keeps to a part of the sky of its own (one out
+// over the steps, one between, one out past the open side, lower, where the porch roof leaves less sky) and wanders it:
+// a way round from the eye, a height and a distance, each a sum of slow sines with a quick jitter over it, its wings
+// never stopping. They are on a random stream of their own (never L.rand or the thing's: the night's layout and its
+// rolls are what they would be without them).
+// One can be shot: drawn full and let go with the aim on it (within its wingspan and the few pixels the thing is given
+// too), in open sky (not behind the porch roof or the cabin), and only when the aim is not on the thing, which always
+// comes first. The arrow takes it: it squeaks and tumbles out of the sky with the arrow through it, to lie in the snow.
+// With reduced motion they fly at half the pace without the jitter, their wings beat slowly and gently, and one that is
+// hit drops without spinning.
+const CLEARING_BATS = (() => {
+  const SPAN = 0.7, PAD = 6, COL = [10, 9, 14], EL = [5 * DEG, 25 * DEG];
+  const calm = () => SAVE.data.settings.reducedMotion;
+  function make(L) {
+    const rnd = mulberry32((G.runSeed * 9973 + 50505) >>> 0), r = (a, b) => a + rnd() * (b - a);
+    return [[-25, 12, 17, 4.5], [40, 11, 16, 4], [100, 8, 11, 2.5]].map(([deg, e0, e1, sway]) => {
+      const b = {
+        a0: (deg + r(-8, 8)) * DEG, e0: r(e0, e1) * DEG, d0: r(21, 30),
+        A: [r(18, 26) * DEG, r(0.26, 0.4), r(0, TAU), r(4, 7) * DEG, r(1.1, 1.7), r(0, TAU), r(1.0, 1.6) * DEG, r(4.5, 6.5), r(0, TAU), r(2.3, 3.1)],
+        E: [r(0.7, 1.1) * sway * DEG, r(0.33, 0.5), r(0, TAU), r(1.5, 2.5) * DEG, r(1.6, 2.3), r(0, TAU), r(0.6, 1.0) * DEG, r(5, 7), r(0, TAU)],
+        D: [r(3, 6), r(0.2, 0.33), r(0, TAU)],
+        t: r(0, 60), flap: r(0, TAU), rate: r(46, 58), x: 0, y: 0, z: 0, at: 0, bank: 0, doomed: false, hit: null,
+      };
+      b.spr = { kind: 'sprite', w: SPAN, h: SPAN, noContact: true, draw: (ctx, P) => draw(ctx, P, b) };
+      place(L, b);
+      return b;
+    });
+  }
+  // where it is at its own time b.t (b.x, b.y, b.z; b.at its way round from the eye)
+  function place(L, b) {
+    const t = b.t, A = b.A, E = b.E, D = b.D, j = calm() ? 0 : 1;
+    b.at = b.a0 + A[0] * Math.sin(A[1] * t + A[2]) + A[3] * Math.sin(A[4] * t + A[5]) + j * A[6] * Math.sin(A[7] * t + A[8]) * Math.sin(A[9] * t);
+    const e = clamp(b.e0 + E[0] * Math.sin(E[1] * t + E[2]) + E[3] * Math.sin(E[4] * t + E[5]) + j * E[6] * Math.sin(E[7] * t + E[8]), EL[0], EL[1]);
+    const d = b.d0 + D[0] * Math.sin(D[1] * t + D[2]), yaw = L.facing + b.at;
+    b.x = Math.sin(yaw) * d; b.z = Math.cos(yaw) * d; b.y = L.eyeH + d * Math.tan(e);
+  }
+  function update(L, dt) {
+    const slow = calm();
+    for (const b of L.s.bats) {
+      const h = b.hit;
+      if (h) {   // hit: it falls, turning over and over, and lies where it comes down
+        if (h.landed) continue;
+        h.vy -= 9.8 * dt; const drag = Math.exp(-dt * 1.4);
+        h.vx *= drag; h.vz *= drag; h.vy = Math.max(h.vy * Math.exp(-dt * 0.5), -11);
+        b.x += h.vx * dt; b.y += h.vy * dt; b.z += h.vz * dt; h.rot += h.spin * dt * (slow ? 0 : 1); h.t += dt;
+        if (b.y <= 0.06) { b.y = 0.06; h.landed = true; if (h.land) h.land(b); }
+        continue;
+      }
+      const was = b.at, x = b.x, y = b.y, z = b.z;
+      b.t += dt * (slow ? 0.5 : 1);
+      place(L, b);
+      if (dt > 0) { b.vx = (b.x - x) / dt; b.vy = (b.y - y) / dt; b.vz = (b.z - z) / dt; b.bank += (clamp((b.at - was) / dt * 1.3, -0.55, 0.55) - b.bank) * Math.min(1, dt * 7); }
+      b.flap += dt * (slow ? b.rate * 0.22 : b.rate * (0.8 + 0.2 * Math.sin(b.t * 1.9 + b.rate)));   // (its beat quickens and slackens)
+    }
+  }
+  function add(L) {
+    for (const b of L.s.bats) { const p = b.spr; p.x = b.x; p.y = b.y - SPAN / 2; p.z = b.z; p.dist = Math.hypot(b.x, b.z); R.add(p); }
+  }
+  // a bat, seen from below and behind as it goes: two wings from the shoulders out to the tips, scalloped along their
+  // trailing edge, beating; a small body and head between them. Hit: its wings folded in, the arrow through it.
+  function draw(ctx, P, b) {
+    const h = b.hit, col = P.col(COL);
+    ctx.translate(0, SPAN / 2);
+    if (h && h.landed) {   // lying in the snow, a wing out
+      P_ell(ctx, 0, -SPAN / 2 + 0.03, 0.09, 0.035, col);
+      P_poly(ctx, [[0.03, -SPAN / 2 + 0.04], [0.26, -SPAN / 2 + 0.09], [0.2, -SPAN / 2 + 0.01]], col);
+      return;
+    }
+    ctx.globalAlpha *= h ? 0.95 : 0.8;
+    ctx.rotate(h ? h.rot : -b.bank);
+    const up = h ? -0.55 + 0.25 * Math.sin(h.t * 23) : Math.sin(b.flap) * (calm() ? 0.5 : 1), reach = h ? 0.6 : 1;
+    for (const s of [-1, 1]) {
+      P_poly(ctx, [[s * 0.03, 0.035], [s * 0.17 * reach, 0.05 + up * 0.11], [s * (0.35 - 0.08 * up * up) * reach, up * 0.2], [s * 0.22 * reach, -0.03 + up * 0.09], [s * 0.12 * reach, -0.06 + up * 0.03], [s * 0.03, -0.05]], col);
+    }
+    P_ell(ctx, 0, 0, 0.04, 0.06, col); P_ell(ctx, 0, 0.06, 0.03, 0.03, col);
+    if (h) {   // the arrow through it: the shaft, and its fletching
+      P_line(ctx, -0.34, -0.12, 0.3, 0.1, 0.022, P.col([176, 142, 98]));
+      P_line(ctx, -0.34, -0.12, -0.22, -0.08, 0.05, P.col([176, 46, 38]));
+    }
+  }
+  // is the line from the eye to it open sky? Not under the porch roof (which comes down to 2.95 m at its front edge,
+  // 3.4 m out to either side and 1.75 m in front of the eye), nor through the cabin wall behind you
+  function clear(L, b) {
+    const q = rotY(b.x, b.z, -L.facing), dy = b.y - L.eyeH;   // the porch's own frame: the steps toward +z
+    const tx = q[0] ? 3.4 / Math.abs(q[0]) : Infinity, tz = q[1] > 0 ? 1.75 / q[1] : q[1] < 0 ? 1.6 / -q[1] : Infinity, t = Math.min(tx, tz);
+    if (t >= 1) return false;                  // (it is never in under the roof)
+    if (tz < tx && q[1] < 0) return false;     // out through the wall
+    return L.eyeH + dy * t < lerp(2.95, 3.2, clamp((1.75 - q[1] * t) / 3.35, 0, 1)) - 0.05;
+  }
+  // where it is on the view (page coordinates) and how near the aim must be, or null when it is behind you
+  function screen(b) { const p = R.screenPos(b.x, b.y, b.z); return p ? { x: p.x, y: p.y + R.viewY, r: SPAN * 0.5 * p.scale + PAD } : null; }
+  // the bat under an aim, if any (the nearest to it)
+  function at(L, aim) {
+    let best = null, bd = Infinity;
+    for (const b of L.s.bats) {
+      if (b.hit || b.doomed) continue;
+      const p = screen(b); if (!p || !clear(L, b)) continue;
+      const d = Math.hypot(aim.x - p.x, aim.y - p.y);
+      if (d <= p.r && d < bd) { best = b; bd = d; }
+    }
+    return best;
+  }
+  // the arrow reaches it: it is knocked on a little the arrow's way and falls (land(b) is called where it comes down)
+  function strike(b, from, land) {
+    const dx = b.x - from[0], dz = b.z - from[2], l = Math.hypot(dx, dz) || 1;
+    b.hit = { t: 0, vx: (b.vx || 0) * 0.3 + dx / l * 3, vy: Math.min(1, (b.vy || 0) * 0.3 + 0.5), vz: (b.vz || 0) * 0.3 + dz / l * 3, rot: -b.bank, spin: (b.bank >= 0 ? -1 : 1) * 9, landed: false, land };
+  }
+  return { SPAN, make, update, add, at, clear, screen, strike };
 })();
 LEVELS.push({
   id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
@@ -378,12 +493,32 @@ LEVELS.push({
       if (c.hits === 1) { CREATURES.runner.hurt(c); G.toast('It went down. It is getting back up.'); }
       else { CREATURES.runner.kill(c); G.toast('It stopped.'); }
     };
+    // a bat with an arrow in it (this night's easter egg, kept in the save the moment it happens: foundEgg): it squeaks
+    // and tumbles out of the sky, and lies in the snow with the arrow standing in it; s.batsHit counts them
+    s.bats = CLEARING_BATS.make(L); s.batsHit = 0;
+    const batHit = (b, from) => {
+      if (b.hit) return;
+      CLEARING_BATS.strike(b, from, bat => stuck.push({ head: [bat.x, 0.02, bat.z], tail: [bat.x + 0.12, 0.5, bat.z + 0.1] }));
+      s.batsHit++;
+      AUDIO.sfx('batSqueak', clamp(Math.sin(wrapPi(Math.atan2(b.x, b.z) - G.cam.yaw)), -0.85, 0.85)); G.shake(0.04);
+      foundEgg();
+      G.toast('You shot a bat out of the sky.');
+    };
     s.loose = (outcome, c, aim, power) => {
       const ray = CLEARING_BOW.rayAt(aim), eye = [0, L.eyeH, 0], from = add3(add3(eye, ray, 0.9), [0, -1, 0], 0.14);
       const dReal = Math.hypot(c.dist, c.lat || 0), hl = Math.hypot(ray[0], ray[2]) || 1, hd = [ray[0] / hl, 0, ray[2] / hl];
       const ground = dist => add3([0, 0.02, 0], hd, dist);
       const CLEAR = 4.6;   // the nearest an arrow comes down: past the porch and its steps (any nearer stood in the boards, its head under them)
+      // drawn full and not on the thing (which always comes first), with a bat under the aim: the arrow is the bat's
+      const bat = outcome === 'miss' ? CLEARING_BATS.at(L, aim) : null;
+      if (bat) { outcome = 'bat'; if (G.draw) G.draw.outcome = outcome; }
       s.spent++; s.outcomes.push(outcome);
+      if (bat) {   // it follows the bat in, as an arrow that hits the thing follows it
+        const d = Math.hypot(bat.x, bat.z);
+        bat.doomed = true;
+        fly({ from, to: () => [bat.x, bat.y, bat.z], arc: 0.01 * d, dur: 0.05 + d / 80, done: () => batHit(bat, from) });
+        return;
+      }
       if (outcome === 'hit') {
         const at = () => { const p = c.pos(), b = c.CR.body(c); return [p.x, p.y + (c.yOff || 0) + (b[2] + b[3]) / 2, p.z]; };
         fly({ from, to: at, arc: 0.01 * dReal, dur: 0.05 + dReal / 80, done: () => hitIt(c) });
@@ -407,16 +542,20 @@ LEVELS.push({
     const spentAll = c => s.spent >= 3 && !flights.length && !c.dead && !c.reckless;
     // drawn on, it may break sideways to a new place (CREATURES.runner.dodge), side on and flat out, and the aim has to
     // come after it. A draw is rolled for once, as it passes the least that looses anything (a click that only lifts the bow
-    // is not a draw), on the thing's own seeded stream; never within s.dodge.gap seconds of the last one, and only when it
-    // can (out in the open, up, not already running). s.dodge.rolls and .count are what the tests read.
-    s.dodge = { chance: 0.3, gap: 4, at: -Infinity, rolls: 0, count: 0 };
+    // is not a draw), on the thing's own seeded stream; never within the gap of the last one, and only when it can (out in
+    // the open, up, not already running). Unhurt it is bold and seldom does (s.dodge.chance, never within .gap seconds);
+    // with an arrow in it, it is wary and does about every other time (.wary, .waryGap). While a draw is on it at all the
+    // runner knows (c.drawnOn): unhurt, it holds its line and does not break away by itself. s.dodge.rolls and .count are
+    // what the tests read.
+    s.dodge = { chance: 0.12, gap: 4, wary: 0.5, waryGap: 2.5, at: -Infinity, rolls: 0, count: 0 };
     const reactToDraw = c => {
-      const d = G.draw, k = s.dodge;
-      if (!d || d.state !== 'drawing' || d.rolled || d.t < CLEARING_BOW.MIN || G.state !== 'play') return;
+      const d = G.draw, k = s.dodge, drawn = !!d && d.state === 'drawing' && d.t >= CLEARING_BOW.MIN && G.state === 'play';
+      c.drawnOn = drawn;
+      if (!drawn || d.rolled) return;
       d.rolled = true;
-      if (L.t - k.at < k.gap || !CREATURES.runner.canDodge(c)) return;
+      if (L.t - k.at < (c.wounded ? k.waryGap : k.gap) || !CREATURES.runner.canDodge(c)) return;
       k.rolls++;
-      if (c.rand() >= k.chance) return;
+      if (c.rand() >= (c.wounded ? k.wary : k.chance)) return;
       CREATURES.runner.dodge(c); k.at = L.t; k.count++;
     };
     const standOn = (x, z) => (Math.abs(x) <= 3.2 && Math.abs(z) <= 1.6 ? 0.35 : (Math.abs(x) <= 0.8 && z > 1.6 && z <= 2.2) || (x > 3.2 && x <= 3.8 && Math.abs(z) <= 0.6) ? 0.18 : 0);
@@ -425,6 +564,7 @@ LEVELS.push({
     L.update = dt => {
       const c = L.creature, p = c.pos(), q = rotY(p.x, p.z, -L.facing); c.stand = standOn(q[0], q[1]); c.yOff = c.stand;
       reactToDraw(c);
+      CLEARING_BATS.update(L, dt);
       for (let i = flights.length - 1; i >= 0; i--) {
         const f = flights[i]; f.t += dt;
         if (f.t < f.dur) continue;
@@ -451,6 +591,7 @@ LEVELS.push({
         arrow(add3(h, u, -0.75 / l), h, f.fade ? fade : undefined);
       }
       for (const a of stuck) arrow(a.tail, a.head, undefined, 1.8);
+      CLEARING_BATS.add(L);
     };
     // the win: watch it go down, closer in the further off it is, and the view lowered to it as it falls
     L.watchPoint = () => { const c = L.creature, p = c.pos(), k = c.dead ? clamp((c.deadT || 0) / 0.85, 0, 1) : 0; return { x: p.x, y: p.y + (c.yOff || 0) + lerp(1.0, 0.3, k), z: p.z }; };

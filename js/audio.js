@@ -415,6 +415,10 @@ const AUDIO = (() => {
       case 'bowFull': tone(260, 0.05, { vol: 0.1, type: 'square', endFreq: 190 }); noise(0.04, { type: 'bandpass', freq: 2600, q: 5, vol: 0.18 }); tone(118, 0.4, { vol: 0.06, type: 'sawtooth', endFreq: 104, delay: 0.03, attack: 0.02 }); break;   // drawn full: a small hard click as the string comes tight, and a low creak held under it
       case 'twang': tone(98, 0.45, { vol: 0.3, type: 'triangle', endFreq: 88 }); tone(196, 0.25, { vol: 0.12, type: 'triangle', endFreq: 180 }); noise(0.06, { type: 'highpass', freq: 2500, vol: 0.25 }); noise(0.35, { type: 'bandpass', freq: 1800, q: 1.5, vol: 0.12, delay: 0.03, attack: 0.03 }); break;
       case 'thunk': noise(0.09, { freq: 450, vol: 0.8, pan }); tone(85, 0.16, { vol: 0.6, endFreq: 55, pan }); noise(0.03, { type: 'bandpass', freq: 2200, q: 3, vol: 0.25, pan }); break;
+      case 'batSqueak':   // a bat hit in the air (night 5's easter egg): the arrow's small tick, then three thin, high squeaks, each falling, the last the longest
+        noise(0.02, { type: 'bandpass', freq: 2600, q: 3, vol: 0.12, pan });
+        for (const [d, f, len] of [[0.02, 4700, 0.05], [0.09, 5500, 0.05], [0.17, 4200, 0.11]]) { tone(f, len, { vol: 0.07, type: 'triangle', endFreq: f * 0.68, delay: d, pan }); tone(f * 1.5, len * 0.7, { vol: 0.025, type: 'sine', endFreq: f, delay: d, pan }); }
+        break;
       case 'load': tone(300, 0.06, { vol: 0.2, type: 'square', endFreq: 220 }); noise(0.05, { freq: 900, vol: 0.2, delay: 0.12 }); tone(400, 0.05, { vol: 0.2, type: 'square', endFreq: 260, delay: 0.2 }); break;
       case 'ratchet': tone(320, 0.04, { vol: 0.18, type: 'square', endFreq: 200 }); noise(0.05, { freq: 1400, vol: 0.25, delay: 0.03 }); break;
       case 'thunder': noise(2.2, { freq: 160, vol: 0.55, attack: 0.15 }); tone(38, 1.8, { vol: 0.45, endFreq: 22, attack: 0.1 }); noise(0.5, { freq: 700, vol: 0.25, delay: 0.3 }); break;
