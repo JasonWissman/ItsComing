@@ -47,7 +47,7 @@ LEVELS.push({
     objective: 'Find it. Light the places either side of it, then its own. No more than three lights at once.',
     where: 'It is out there in the dark, at one of the places. Find it.',
     egg: 'Overload the electrical box.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
-    death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.', off: 'You put the main off. In the dark, it came for you.', fire: 'Apparently the electrical box wasn\'t rated for that.' },
+    death: { default: 'It came for you in the dark.', trip: 'The power tripped, and it came for you in the dark.', off: 'You put the main off. In the dark, it came for you.', fire: 'Apparently the electrical box wasn\'t rated for that.' },
     eggs: ['fire'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'It collapsed in the light, right in front of you.',
   },
@@ -330,14 +330,16 @@ LEVELS.push({
     // as you look that way. A grey steel box with a rain hood, standing open, no door on it. Inside, at the top, the main breaker: a big lever lying across, over to the right for ON and
     // to the left for OFF, a red tag over it marked MAIN and a green lamp beside it that is lit while it is on. Under it,
     // two rows of four big toggle switches, each with a red pilot lamp and a strip of tape under it with the place written
-    // on it in marker. Up is on. A little lamp in the top of the box lights its inside while the main is on (the panel is
-    // lit by it alone). The panel and every part of it are fixed flat on the front of the box (face: they never turn
-    // toward you), so what you click is where it is drawn whichever way you look.
+    // on it in marker (the tape on a little plate tipped up to face you: LAB, below). Up is on. A little lamp in the top
+    // of the box lights its inside while the main is on (the panel is lit by it alone). The panel and every part of it
+    // are fixed flat on the front of the box (face: they never turn toward you), so what you click is where it is drawn
+    // whichever way you look. The box is as wide as the labels need: every one of them, the longest and the outermost,
+    // sits inside the panel's pale plate (PLATE) with room to spare.
     // It is built in the frame looking out at the stables (BOX_DEG), BX across the way out (0: square in the middle of the
     // view as you face the stables; it stands too low to hide them or their way in) and BZ out along it;
     // FRONT, the way its front looks, is back along that way at you (in the night's frame: face is not turned by the frame)
     const BOX_DEG = 315, BX = 0, BZ = 0.98, FRONT = (BOX_DEG + 180) * DEG;
-    const BY = 0.5, BW = 0.5, BH = 0.82, PY = BY + 0.02, PW = 0.46, PH = 0.78;
+    const BY = 0.5, BW = 0.58, BH = 0.82, PY = BY + 0.02, PW = 0.54, PH = 0.78, PLATE = 0.245;   // (PLATE: half the width of the panel's pale plate, inside its dark frame)
     const BN = Math.hypot(BX + BW / 2, BZ);   // how far the nearest edge of its front is: the panel is drawn after every part of that face
     const steel = [66, 74, 70];
     const inBox = fn => inFrame(BOX_DEG, fn);
@@ -348,8 +350,25 @@ LEVELS.push({
       poly([[BX - BW / 2 - 0.02, BY + BH + 0.005, BZ - 0.03], [BX + BW / 2 + 0.02, BY + BH + 0.005, BZ - 0.03], [BX + BW / 2 + 0.02, BY + BH + 0.05, BZ + 0.21], [BX - BW / 2 - 0.02, BY + BH + 0.05, BZ + 0.21]], scalec(steel, 0.85));   // the rain hood
     });
     const LABELS = ['HOUSE'].concat(RING.map(p => p.label));
-    const COLS = [-0.165, -0.055, 0.055, 0.165], ROWS = [0.43, 0.22], MY = 0.62;   // (MY: the main's lever, across the top)
+    const COLS = [-0.177, -0.059, 0.059, 0.177], ROWS = [0.43, 0.22], MY = 0.62;   // (MY: the main's lever, across the top)
     const swAt = i => [COLS[i % 4], ROWS[Math.floor(i / 4)]];
+    // Each switch's label is a strip of tape on a little plate that stands out from the panel under the switch, tipped
+    // back to face up at you (LAB.tilt from the panel's face: its top edge on the panel, its bottom edge out toward you),
+    // so the writing is seen nearly square on, not squashed from above as the panel is. The panel is one flat drawing on
+    // the front of the box and the eye never moves, so a label tipped out of it is drawn on it where it is seen from the
+    // eye: each point of it, out from the panel by d, goes on the panel along the line from the eye through it (onPanel).
+    // Seen from the eye that is exactly the tipped label, whichever way you look and however you zoom.
+    const LAB = { w: 0.104, h: 0.03, top: -0.046, tilt: 32 * DEG, k: 0.00054, max: 176 };   // (k: metres to a px of its writing; max: the widest its writing may be, px)
+    const EYE = [-BX, L.eyeH - PY], PZ = BZ - 0.005;   // the eye, across and up the panel, and how far the panel is out from it
+    const onPanel = (x, y, d) => { const t = PZ / (PZ - d); return [EYE[0] + (x - EYE[0]) * t, EYE[1] + (y - EYE[1]) * t]; };
+    // a point of label i on the panel: u across it from its middle, v down it from its top edge (both in metres on the label)
+    const onLabel = (i, u, v) => { const [cx, ry] = swAt(i); return onPanel(cx + u, ry + LAB.top - v * Math.cos(LAB.tilt), v * Math.sin(LAB.tilt)); };
+    const LABQ = LABELS.map((lab, i) => {
+      const hw = LAB.w / 2, quad = [onLabel(i, -hw, 0), onLabel(i, hw, 0), onLabel(i, hw, LAB.h), onLabel(i, -hw, LAB.h)];
+      // its writing goes on the flat map that is true at its middle: across it, and up it
+      const c = onLabel(i, 0, LAB.h / 2), e = 1e-3, r = onLabel(i, e, LAB.h / 2), up = onLabel(i, 0, LAB.h / 2 - e);
+      return { quad, map: [(r[0] - c[0]) / e, (r[1] - c[1]) / e, (up[0] - c[0]) / e, (up[1] - c[1]) / e, c[0], c[1]] };
+    });
     const HANDF = "bold 42px 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', 'Chalkboard SE', 'Liberation Sans', Arial, sans-serif";
     const PLATEF = "bold 40px 'Liberation Sans', Arial, sans-serif";
     // how far up a switch's lever stands (1 up, on; 0 down, off): flipped over quickly, all dropping at once when the main
@@ -372,9 +391,9 @@ LEVELS.push({
       const b = boxLamp(), C = c => P.col(scalec(c, b));
       const plate = C([150, 154, 146]), dark = C([30, 32, 32]), chrome = C([220, 224, 226]), tape = C([226, 212, 168]), ink = C([22, 20, 32]), paint = C([200, 200, 196]);
       P_rect(ctx, -PW / 2, 0, PW, PH, C(scalec(steel, 0.7)));
-      P_rect(ctx, -0.205, 0.02, 0.41, PH - 0.04, plate);
+      P_rect(ctx, -PLATE, 0.02, 2 * PLATE, PH - 0.04, plate);
       const g = ctx.createLinearGradient(0, PH, 0, 0); g.addColorStop(0, 'rgba(255,250,230,' + (0.12 * b).toFixed(3) + ')'); g.addColorStop(1, 'rgba(0,0,0,' + (0.25).toFixed(3) + ')');
-      ctx.fillStyle = g; ctx.fillRect(-0.205, 0.02, 0.41, PH - 0.04);   // the lamp at the top: brighter up there, falling off down the panel
+      ctx.fillStyle = g; ctx.fillRect(-PLATE, 0.02, 2 * PLATE, PH - 0.04);   // the lamp at the top: brighter up there, falling off down the panel
       const text = (t, x, y, k, font, col, max) => { ctx.save(); ctx.translate(x, y); ctx.scale(k, -k); ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = col; ctx.fillText(t, 0, 2, max); ctx.restore(); };
       // the main: its red tag, a black plate with OFF and ON at either end, the lever across it, and its green lamp
       P_rect(ctx, -0.06, MY + 0.05, 0.12, 0.036, C([150, 30, 26]));
@@ -395,9 +414,13 @@ LEVELS.push({
         P_line(ctx, cx, ry, cx, ly, 0.011, chrome); P_ell(ctx, cx, ly, 0.009, 0.009, chrome);
         P_ell(ctx, cx + 0.034, ry + 0.028, 0.0085, 0.0085, on ? P.raw([255, 70, 50]) : C([80, 26, 24]));   // the pilot lamp
         if (on) P_ell(ctx, cx + 0.034, ry + 0.028, 0.017, 0.017, 'rgba(255,70,50,0.25)');
-        P_rect(ctx, cx - 0.048, ry - 0.072, 0.096, 0.026, tape);                                  // the tape, and the place in marker
-        ctx.save(); ctx.translate(cx, ry - 0.059); ctx.rotate((i % 3 - 1) * 0.03); ctx.scale(0.00047, -0.00047);
-        ctx.font = HANDF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = ink; ctx.fillText(LABELS[i], 0, 2, 190);
+        // its label, tipped up to face you: the shadow it throws down the panel under it (the box's lamp is above), the
+        // tape, and the place in marker
+        const q = LABQ[i].quad, m = LABQ[i].map;
+        P_poly(ctx, [[q[3][0] + 0.002, q[3][1]], [q[2][0] - 0.002, q[2][1]], [q[2][0] - 0.006, q[2][1] - 0.011], [q[3][0] + 0.006, q[3][1] - 0.011]], 'rgba(0,0,0,' + (0.1 + 0.2 * b).toFixed(3) + ')');
+        P_poly(ctx, q, tape);
+        ctx.save(); ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]); ctx.rotate((i % 3 - 1) * 0.03); ctx.scale(LAB.k, -LAB.k);
+        ctx.font = HANDF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = ink; ctx.fillText(LABELS[i], 0, 2, LAB.max);
         ctx.restore();
       }
     }, { sortDist: BN - 0.02, noLight: true, face: FRONT }));
@@ -410,10 +433,24 @@ LEVELS.push({
     LABELS.forEach((lab, i) => {
       const [cx, ry] = swAt(i);
       inBox(() => mkTarget(L, {
-        id: 'sw' + i, name: lab.charAt(0) + lab.slice(1).toLowerCase(), x: BX + cx, y: PY + ry - 0.075, z: BZ - 0.012, w: 0.1, h: 0.13, face: FRONT,
+        id: 'sw' + i, name: lab.charAt(0) + lab.slice(1).toLowerCase(), x: BX + cx, y: PY + ry - 0.09, z: BZ - 0.012, w: 0.11, h: 0.145, face: FRONT,   // (the switch and its label under it)
         onClick() { flip(i); return true; },
       }));
     });
+
+    // the panel's pale plate and every label on it, as points in the world (for the tests): each label's tape, and its
+    // writing as wide as it is written (in the font the page has, squeezed to LAB.max if it is wider) and as tall as its capitals
+    L.panelLayout = () => {
+      const world = ([x, y]) => inBox(() => W(BX + x, PY + y, PZ)), cx = document.createElement('canvas').getContext('2d');
+      cx.font = HANDF;
+      return {
+        plate: [[-PLATE, 0.02], [PLATE, 0.02], [PLATE, PH - 0.02], [-PLATE, PH - 0.02]].map(world), frame: [[-PW / 2, 0], [PW / 2, 0], [PW / 2, PH], [-PW / 2, PH]].map(world),
+        labels: LABELS.map((lab, i) => {
+          const m = LABQ[i].map, hw = Math.min(cx.measureText(lab).width, LAB.max) * LAB.k / 2, hh = 42 * 0.72 * LAB.k / 2, at = (u, v) => [m[0] * u + m[2] * v + m[4], m[1] * u + m[3] * v + m[5]];
+          return { label: lab, tape: LABQ[i].quad.map(world), text: [at(-hw, hh), at(hw, hh), at(hw, -hh), at(-hw, -hh)].map(world), squeeze: Math.min(1, LAB.max / cx.measureText(lab).width), tapeW: LAB.w, textW: 2 * hw };
+        }),
+      };
+    };
 
     // ---------------- the state of things ----------------
     Object.assign(s, { on: [true, false, false, false, false, false, false, false], wasOn: [], power: true, trips: 0, tripAt: -99, dropAt: -99, mainAt: -9, offBy: null, pool: 1,
@@ -705,6 +742,7 @@ LEVELS.push({
       s.power = true; s.mainAt = s.backAt = L.t;
       s.on.forEach((o, i) => { s.litAt[i] = L.t; });
       s.fire = { at: L.t, lit: SITES.map(() => null), embers: [], cr: null, crackle: 0.4 };
+      foundEgg();   // the night's easter egg, found the moment the box goes up (kept in the save: game.js)
       s.run = null; s.flinch = null; s.back = null; c.runPose = false; c.recoil = 1;
       AUDIO.sfx('lever'); AUDIO.sfx('sparkBlast', panAt(BOXP));
       G.shake(1.1); if (!rf) G.flash(0.3);

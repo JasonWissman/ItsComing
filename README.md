@@ -281,7 +281,26 @@ some on the ground, so you have to turn and look down to find them.
    on the back wall in the first ten seconds or so (your hand takes the lever and pulls it
    down, and the lights go with it), find the crank (without it, your hand tries a
    window's gearbox and it will not move), and crank all three
-   shutters down; each time its window shuts it turns side on (stiffly, on the spot, as a
+   shutters down. The main goes back on as well, whenever you like and as often as you like: a click on it
+   while it is off and your hand pushes the lever back up, and every light comes back with it (the tubes
+   striking, a blink, a blink, and on; the OPEN sign, the fountain's header, the main's own green lamp; the hum
+   of the place, its powered bed again; with Reduced flashing the lights go and come back at once, no stutter).
+   From the moment the lights are really on it is drawn in by them again, at the pace it has in the light
+   (the whole lot in seventeen seconds, wherever it has got to; a run to another window that it is in the middle
+   of quickens there and then, as it slows there and then when the main is thrown), and if it has you with
+   the lights on the card reads "It was drawn in by the light." however long they were off before. It slows
+   from the click when the main is thrown, and quickens only once the lever is over and the lights are on: both
+   ways, the moment in between is yours. The main's hover line says which way it stands and what a click does
+   (without hints, "Main switch", or "Main switch: off").
+   The crank is drawn from the side wherever it is not in a gearbox (in its slot, in the hand, lying on the floor or a
+   counter): an L of bright steel edged dark, the arm, the red grip square off one end of it (a round bar, its
+   far end rounded, against a steel collar) and, off the other end and the other way, the short shaft that goes
+   into a gearbox's eye, its tip cut down to a key. Put to a gearbox it leaves the hand (it goes toward the eye
+   and is given up there, as a thing used up is) and is drawn in the eye from the front, going once round with
+   every turn, its shaft in the eye and its grip pointing out at you, end on; while it is in a gearbox the hand
+   does not hold it, and 0.9 s after its last turn it comes back out of the eye up into the hand, as a thing
+   picked up does: there is only ever one of it.
+   Each time its window shuts it turns side on (stiffly, on the spot, as a
    solid figure turns, never squeezing thin) and skips to one still
    open, along the glass if it is already there, across the lot if not. If it reaches an
    open window it comes through the glass. If it reaches one whose shutter is only part
@@ -308,7 +327,8 @@ some on the ground, so you have to turn and look down to find them.
    its teeth bared. Refill it (pick the cup up, the fountain, the counter) within nine seconds and it drinks that too and
    starts again, with eight seconds this time. Tried a third time, the fountain coughs and sputters, EMPTY blinks red on
    its front (with the power on), and it goes into a flurry of blows and has you; and if it waits too long, it has you anyway. Either way,
-   it is insatiable ("Nice try").
+   it is insatiable ("Nice try"). Its first gulp is the night's easter egg found ("Serve the customer a drink."):
+   kept in the save there and then (`foundEgg`), whatever happens after.
 9. **The Phone Booth.** It is raining and something is coming toward the booth, up the main street or along the far
    pavement of the cross street from the east: a shade, far too tall and far too thin, all one dark, its body and its long
    arms and legs one shadow with no clothes and no edges to it, so that most of the time all you see of it is two small
@@ -423,7 +443,14 @@ some on the ground, so you have to turn and look down to find them.
     game eases to as to any zoom: smooth, no bounce); looking anywhere else it zooms as usual. It stands open, with no door, on the MAIN breaker across the top, a big lever over to
     ON with a green lamp beside it, and under it two rows of big toggle switches, each with a red pilot lamp and a strip of tape with the place
     written on it in marker (HOUSE, then the places in order round from the tractor shed); a click flips one, up is on.
-    The panel and its parts are fixed flat on the front of the box, so they stay where they are drawn however you look.
+    Each strip of tape is on a little plate that stands out from the panel under its switch, tipped back 32 degrees to
+    face up at you (a shadow under it on the panel), so its writing is read nearly square on, not squashed as the
+    panel is, seen from above; the box is wide enough (0.58 m) that every label, the longest (DRIVEWAY) and the
+    outermost, sits inside the panel's pale plate with room to spare, looking down at it and zoomed in
+    (`test/nights/night11.js` puts each label's tape and writing on the view and measures them against the plate).
+    The panel and its parts are fixed flat on the front of the box, so they stay where they are drawn however you look
+    (the tipped labels too: the eye never moves, so each is drawn on the panel where it is seen from the eye, and a
+    click on a label is a click on its switch).
     Something bent under a bundle stands in the dark at the foot of one place, all but black, two pale points of eyes;
     its mouth is sewn shut with thick crosses of twine over a patch of burlap. It cannot stand the light:
     light its place and it throws an arm over its face and runs, side on, to a neighbouring place that is dark, at the
@@ -431,7 +458,8 @@ some on the ground, so you have to turn and look down to find them.
     the stitches of its mouth tearing, its knees go, and it comes apart in the light, sacking and straw. The box takes
     three lights at once: a fourth trips the main with a bang and sparks, the main snaps over to OFF, every switch drops to
     off and every light on the farm goes out (the porch light too). Nothing comes on again until the main is pushed back
-    over to ON, and all the while it comes for you through the dark, at its own pace. With the main off the switches can
+    over to ON, and all the while it comes for you through the dark, at its own pace (caught that way, the card reads
+    "The power tripped, and it came for you in the dark."). With the main off the switches can
     still be set, up or down (each lever stands where it is set; no pilot lamp lights and nothing comes on): pushed back
     on, the main brings on whatever is set with it, as if each had been switched on there and then, so three or fewer
     come on (and with its place and both its neighbours set, it is caught the moment they do: a way to win), and more
@@ -463,7 +491,8 @@ some on the ground, so you have to turn and look down to find them.
     8.5 m/s, arms reaching, and has you, burning (its face clear of the flames in the lunge). The flames on it have their
     feet on it in every pose: those on its front low on its body, kept in from its edges, and the fire over its head
     and shoulders rising from behind it, its feet hidden behind its body, so nothing floats over its head. The card reads
-    "Apparently the electrical box wasn't rated for that." Its sounds: the box bursting, each place catching, the
+    "Apparently the electrical box wasn't rated for that." The box bursting is the night's easter egg found
+    ("Overload the electrical box."): kept in the save there and then (`foundEgg`), long before it has you. Its sounds: the box bursting, each place catching, the
     crackle (its caption soft), the fire's roar (a loop, louder as more burns), its burning shrieks and its own sting.
     Reduced motion: the flames flicker slower and sway less.
 12. **The Bedroom.** You are in bed. It is already there, in the hall beyond the doorway

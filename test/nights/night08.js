@@ -5,7 +5,8 @@
 // open, side on, its heels ringing, and turns back to the glass, keeping its width as it turns (it is drawn at every step
 // of the turn and measured). Then a shutter only part way down when it gets there: it takes hold of the bottom edge,
 // shoves it up into its housing (the crank's turns lost, a crash, the view shaking) and comes through the glass. Then the
-// soda fountain's easter egg, three ways (below, at soda). Last, at a player's pace: it
+// soda fountain's easter egg, three ways (below, at soda), and the main put back on (below, at mainAgain: the lights and
+// its pace come back with the lever, as often as it is thrown, and so does the death by the light). Last, at a player's pace: it
 // watches for a few seconds, tries the shutter by hand (it will not come down), turns round and throws the power main
 // about nine seconds in, takes a few seconds to find the crank in the dark, faces the windows and cranks at a click every
 // quarter of a second, the one it is coming for first, then wherever it goes (it runs across the lot for it); the third
@@ -30,19 +31,41 @@ const litRun = `(() => {
 })()`;
 // what does not work, shown where it was tried: lit, with no crank, the shutter of its window (the hand goes to the gearbox,
 // tries to turn it and it will not move); the main thrown (it is off at once, but the lever, the clunk and the lights wait for
-// the hand, which takes the grip and comes down with it); the main again (the hand tries the lever and it stays down); a
-// shutter that is down, with the crank (it goes to the gearbox's eye, knocks and comes back to the hand) and with nothing in
-// hand (the hand knocks on the glass)
+// the hand, which takes the grip and comes down with it); the main again (the hand pushes the lever back up, and the lights,
+// the hum of the place and its pace come back with it: it is drawn in by the light again only once the lights are on), and
+// thrown again (off again: it goes both ways as often as you like); a shutter that is down, with the crank (it goes to the
+// gearbox's eye, knocks and comes back to the hand) and with nothing in hand (the hand knocks on the glass)
 const onK = mk => ['branch', '__k === 0', mk(0), [['branch', '__k === 1', mk(1), mk(2)]]];
+const mainT = 'G.L.targets.find(t => t.id === "main")';
 const refusals = [
   onTarget(k => [['use', 'shutter' + k]]),
   ['expect', 'G.L.s.byHand && G.hand.reach && G.hand.reach.style === "rattle" && !G.L.targets.some(t => t.crank && t.count)', 'no crank: the hand goes to the gearbox and tries it, and the shutter does not come down'],
+  ['eval', 'window.__amb = []; window.__amb0 = AUDIO.startAmbient; AUDIO.startAmbient = p => { __amb.push(p.tune + "/" + p.drone); return __amb0(p); }'],
+  ['expect', `${mainT}.name === 'Main switch' && /On: pull it down/.test(${mainT}.hint())`, 'the main, on: its line says to pull it down'],
   ['eval', 'window.__tc = G.L.t'], ['use', 'main'],
   ['expect', '!G.L.s.power && !G.L.creature.drawn && G.hand.reach && G.hand.reach.target.id === "main" && G.hand.reach.style === "pull"', 'the main thrown: off at once, and the hand goes up to the lever'],
-  ['waitUntil', 'G.L.s.levered && G.L.s.lever === 0 && !G.hand.reach', 3000],
-  ['expect', 'G.L.s.offAt > __tc + 0.1 && G.L.pal.ambient < 0.5', 'the lever and the lights waited for the hand, and went with it'],
-  ['use', 'main'], ['expect', 'G.hand.reach && G.hand.reach.style === "rattle" && !G.L.s.power', 'thrown already: the hand tries the lever'],
-  ['waitUntil', 'G.L.s.jigAt > __tc && !G.hand.reach && G.L.s.lever === 0', 3000],
+  ['expect', '/goes out/.test(G.lastToast.msg) && /slows down/.test(G.lastToast.msg)', 'and you are told: the lights go out, and it slows down'],
+  ['waitUntil', 'G.L.s.swung && G.L.s.lever === 0 && !G.hand.reach', 3000],
+  ['expect', 'G.L.s.swAt > __tc + 0.1 && G.L.pal.ambient < 0.5 && !G.L.s.lightsOn() && G.L.dynamicLights().length === 0', 'the lever and the lights waited for the hand, and went with it'],
+  ['expect', `${mainT}.name === 'Main switch: off' && /Off: push it back up/.test(${mainT}.hint())`, 'the main, off: its line says so, and that it goes back up'],
+  // in the dark: how fast it comes
+  ['eval', 'window.__d = { d: G.L.creature.dist, t: G.L.t }'], ['wait', 600],
+  ['eval', 'window.__vDark = (__d.d - G.L.creature.dist) / (G.L.t - __d.t)'],
+  // the main again: pushed back up. It is on from the click, but the lights are not until the lever is over, and nor is it
+  // drawn in by them until then
+  ['eval', 'window.__tc = G.L.t'], ['use', 'main'],
+  ['expect', 'G.L.s.power && G.L.s.throws === 2 && G.hand.reach && G.hand.reach.target.id === "main" && G.hand.reach.style === "push"', 'the main again: on, and the hand pushes the lever back up'],
+  ['expect', '/back on/.test(G.lastToast.msg) && /faster/.test(G.lastToast.msg)', 'and you are told: the lights come back on, and it comes faster'],
+  ['waitUntil', 'G.L.s.swung && G.L.s.lever === 1 && !G.hand.reach', 3000],
+  ['expect', 'G.L.s.swAt > __tc + 0.1 && G.L.s.lit() && G.L.s.lightsOn() && G.L.dynamicLights().length > 0 && G.L.pal.ambient > 0.9 && G.L.creature.drawn', 'the lights came back with the lever: the tubes, the sign, the fountain\'s header (and it is drawn in by them again)'],
+  ['expect', `${mainT}.name === 'Main switch' && /On: pull it down/.test(${mainT}.hint())`, 'and its line says it is on again'],
+  ['expect', '__amb.join() === "ambient:8off/0.12,ambient:8/1"', 'the hum of the place stopped with the main, and came back with it (its powered bed)'],
+  ['eval', 'window.__d = { d: G.L.creature.dist, t: G.L.t }'], ['wait', 600],
+  ['expect', '(() => { const v = (__d.d - G.L.creature.dist) / (G.L.t - __d.t); window.__vAgain = v; return v > 3 * __vDark && Math.abs(v - __vLit) < 0.15 * __vLit; })()', 'lit again, it comes as fast as it did before the main was thrown: more than three times its pace in the dark'],
+  // and off again, and it walks again: the main goes both ways, as often as you like
+  ['use', 'main'], ['waitUntil', '!G.L.s.power && G.L.s.lever === 0 && !G.hand.reach', 3000],
+  ['expect', 'G.L.s.throws === 3 && !G.L.s.lit() && !G.L.s.lightsOn() && G.L.dynamicLights().length === 0 && G.L.pal.ambient < 0.5 && !G.L.creature.drawn && __amb.length === 3 && __amb[2] === "ambient:8off/0.12"', 'thrown again: off again, every light out, and it walks'],
+  ['eval', 'AUDIO.startAmbient = __amb0'],
   ['pickup', 'crank'],
   ['eval', `(() => { const L = G.L, s = L.s, k = [0, 1, 2].find(i => i !== s.target), t = L.targets.find(t => t.id === 'shutter' + k);
     t.count = s.turns - 1; s.lastTurn = -9; useTarget(t); window.__k = k; })()`],
@@ -128,7 +151,10 @@ const shelf = [
     return ok === sh.xs.length && Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]) < 1e-6 && c.icon === ICONS.paperCup && L.items.filter(i => /cup/i.test(i.name)).length === 1 && L.props.filter(q => q.card && q.kind === 'sprite').length >= sh.xs.length - 1; })()`,
   'a row of cups on the shelf on the back wall, all alike: one of them is the cup, and the rest are nothing to click'],
 ];
+// the night's easter egg in the save (SAVE.data.eggs, by the night's id), in memory and as it is stored
+const eggKept = 'SAVE.data.eggs.diner === true && JSON.parse(localStorage.getItem("itscoming.v2")).eggs.diner === true';
 const soda = [
+  ['eval', 'delete SAVE.data.eggs.diner; SAVE.persist()'],   // (not found yet, whatever an earlier run left in the save)
   ...shelf,
   ...notThere('fountain', 'without the cup the fountain is nothing to point at: no pointer, no line, nothing the view can hit'),
   ...notThere('counter', 'nor the counter'),
@@ -153,6 +179,9 @@ const soda = [
   ['expect', 'CREATURES.customer.death.sting === "stingGlass" && __snd.stingGlass === 1 && __snd.glassGive === 1', 'the glass broke with the same sound as when it comes through the glass for you'],
   ['waitUntil', 'G.L.s.soda.ph === "lift"', 5000],
   ['expect', `G.L.creature.dist < 2 && G.L.creature.soda.hold && ${cupIt}.taken && !G.L.s.cupOn`, 'at the counter across from it, it takes the cup up'],
+  ['expect', 'G.L.def.id === "diner" && LEVELS[G.levelIndex].text.egg === "Serve the customer a drink." && !SAVE.data.eggs.diner', 'the cup filled, set down and taken up, but not drunk from yet: the easter egg is not in the save'],
+  ['waitUntil', '__snd.gulp >= 1', 3000],
+  ['expect', eggKept + ' && G.state === "play" && G.L.s.soda.drinks === 0', 'at its first gulp the easter egg is found: kept in the save at once (the night goes on)'],
   ['waitUntil', 'G.L.s.soda.ph === "bang"', 5000],
   ['expect', `__snd.gulp === 3 && !${cupIt}.full && G.L.s.cupOn && !${cupIt}.taken && G.L.s.soda.drinks === 1 && /another/.test(G.lastToast.msg)`, 'it drinks it off, three gulps, sets the cup down empty, and wants another'],
   ['waitUntil', '__snd.counterPound >= 2', 3000],
@@ -202,6 +231,49 @@ const soda = [
   ['expect', 'G.deathScreen.text.endsWith("It came through the glass before the shutters were down.") && G.deathScreen.title === "It got you"', 'and the card says the shutters were not down'],
   ['eval', unlisten],
   ['eval', 'restartLevel()'], ['wait', 300],
+];
+// ---- the main put back on ----
+// Thrown and then pushed back up, it is drawn in by the light again: at the glass with the lights on it comes through, and
+// the card says it was the light, as if the main had never been thrown. Off, on and off again, it comes through in the dark,
+// and the card says the shutters. And its run to another window goes by the light as the light is: its window shut out in
+// the lot in the dark, it runs across to another; with the main put back on as it sets off, it is there far sooner.
+const useMain = `useTarget(${mainT})`;
+// its run across the lot from a window shut with it 28 m out, the main off: how long it takes (stepped by hand, 10 ms at a
+// time), with the main left off, and with the main put back on as it sets off
+const lotRuns = `(() => {
+  const run = on => {
+    restartLevel();
+    const L = G.L, s = L.s, c = L.creature, it = L.items.find(i => i.id === 'crank'), main = L.targets.find(t => t.id === 'main');
+    useTarget(main); for (let k = 0; k < 60; k++) update(0.01);
+    it.taken = true; G.inv.push(it); c.u = 1 - 28 / c.D0; update(0.01);
+    const t = L.targets.find(q => q.id === 'shutter' + s.target); t.count = s.turns - 1; s.lastTurn = -9; useTarget(t);
+    const lot = !!s.slide && !s.slide.atGlass;
+    if (on) useTarget(main);
+    let n = 0, lit = 0; while (s.slide && n < 3000) { update(0.01); n++; if (s.lit()) lit++; }
+    return { lot, t: n * 0.01, lit: lit * 0.01, power: s.power };
+  };
+  const dark = run(false), on = run(true); restartLevel();
+  return { dark, on };
+})()`;
+const mainAgain = [
+  ['eval', useMain], ['waitUntil', '!G.L.s.power && G.L.s.lever === 0 && !G.hand.reach', 3000],
+  ['eval', useMain], ['waitUntil', 'G.L.s.power && G.L.s.lever === 1 && G.L.s.lit() && !G.hand.reach', 3000],
+  ['eval', 'G.deathCause = null; G.deathScreen = null'], toGlass,
+  ['waitUntil', 'G.state === "dying"', 9000],
+  ['expect', 'G.deathCause === "lit" && G.L.s.through && G.L.s.throws === 2', 'the main thrown and put back on: lit again, it came through the glass, drawn in by the light'],
+  ['waitUntil', 'G.state === "dead"', 8000],
+  ['expect', 'G.deathScreen.text.endsWith("It was drawn in by the light.") && G.deathScreen.title === "It got you"', 'and the card says so: "It was drawn in by the light."'],
+  ['eval', 'restartLevel()'], ['wait', 300],
+  ['eval', useMain], ['waitUntil', '!G.L.s.power && G.L.s.lever === 0 && !G.hand.reach', 3000],
+  ['eval', useMain], ['waitUntil', 'G.L.s.power && G.L.s.lever === 1 && !G.hand.reach', 3000],
+  ['eval', useMain], ['waitUntil', '!G.L.s.power && G.L.s.lever === 0 && !G.hand.reach', 3000],
+  ['eval', 'G.deathCause = null; G.deathScreen = null'], toGlass,
+  ['waitUntil', 'G.state === "dying"', 9000],
+  ['expect', 'G.deathCause === "through" && G.L.s.throws === 3 && !G.L.s.lit()', 'off, on and off again: it came through the glass in the dark, and it is the shutters that were not down'],
+  ['eval', 'restartLevel()'], ['wait', 300],
+  ['eval', 'window.__runs = ' + lotRuns], ['wait', 300],
+  ['expect', '__runs.dark.lot && __runs.on.lot && !__runs.dark.power && __runs.on.power && __runs.dark.lit === 0 && __runs.on.lit > 0.5', 'its window shut out in the lot in the dark: it runs across to another (with the main left off, and with it put back on as it sets off)'],
+  ['expect', '__runs.dark.t > 2 && __runs.on.t < 0.75 * __runs.dark.t', 'its run goes by the light as the light is: the main put back on as it sets off, it is at the other window far sooner'],
 ];
 const nightmare = [
   // lit: how fast it comes
@@ -263,7 +335,7 @@ const nightmare = [
   ['expect', '__run >= 1 && __run <= 12', 'it ran up to the glass, a heel to a stride'],
   ['eval', 'AUDIO.footstep = __step; SAVE.recordWin = __save[0]; SAVE.unlock = __save[1]'],
   ['eval', 'restartLevel()'], ['wait', 300],
-].concat(soda, refusals, [
+].concat(soda, mainAgain, refusals, [
   // at a player's pace: watch it come, try the shutter of its window by hand
   ['waitUntil', 'G.L.t >= 5', 8000],
   onTarget(k => [['use', 'shutter' + k]]),

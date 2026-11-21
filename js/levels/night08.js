@@ -1,29 +1,60 @@
 'use strict';
 // ============================================================ 8. THE DINER ============================================================
 // It is drawn to the light. While the diner is lit it crosses the lot far faster than three shutters can be cranked, and
-// it does not matter whether you watch it; with the power main thrown it walks, slowly. Three windows across the front, a
+// it does not matter whether you watch it; with the power main thrown it walks, slowly (and with the main put back on,
+// which it can be, as often as you like, it is as fast again from that moment). Three windows across the front, a
 // roll-down shutter on each and one crank: shut the window it is coming for and it runs to one that is still open (along
 // the glass if it is already there, across the lot if not). A shutter it reaches only part way down, it takes by the
 // bottom edge and shoves back up into its housing, and comes through. With all three down it beats on the last one it came to.
 Object.assign(ICONS, {
-  // the shutter crank: a bright steel arm, the hub at one end that goes into a gearbox's eye and a round red grip at the
-  // other, edged dark so it reads on a pale tile and on a dark one, with the lights out. The same crank, drawn the same
-  // way, as goes round in the gearbox while it is turned (dinerCrank), laid over on its side: hub low on the right, grip
-  // up on the left.
-  shutterCrank(ctx, P) { dinerCrank(ctx, P, 0.2, 0.22, -0.2, 0.77); },
+  // the shutter crank, seen from the side (dinerCrankSide): in the slot, in the hand and lying about
+  shutterCrank(ctx, P) { dinerCrankSide(ctx, P); },
   // a waxed paper soda cup, plain white, empty (its pale inside showing over the rim) and full (dark cola up to the rim
   // under a head of foam). The row of them on the shelf are all this cup, and the one you can take looks no different.
   paperCup(ctx, P) { dinerCup(ctx, P, false); },
   paperCupFull(ctx, P) { dinerCup(ctx, P, true); },
 });
-// the crank, its hub at (hx, hy) and its grip at (gx, gy): an arm as long as that, a hub and a grip in proportion to it,
-// each edged dark (as the gearbox shows it: an arm 0.36 long, the hub 0.09 across and the grip 0.1, both as round as the
-// arm is wide and wider, end on)
+// the crank's colours: a dark edge, so it reads on a pale tile and on a dark one, with the lights out; bright steel; red
+const CRANK = { edge: [34, 34, 38], steel: [200, 202, 208], red: [186, 46, 36] };
+// the crank as it goes round in a gearbox, seen from the front, its hub at (hx, hy) and its grip at (gx, gy): an arm as
+// long as that, a hub and a grip in proportion to it, each edged dark (as the gearbox shows it: an arm 0.36 long, the hub
+// 0.09 across and the grip 0.1, both as round as the arm is wide and wider, end on)
 function dinerCrank(ctx, P, hx, hy, gx, gy) {
-  const k = Math.hypot(gx - hx, gy - hy) / 0.36, edge = P.col([34, 34, 38]), steel = P.col([200, 202, 208]);
+  const k = Math.hypot(gx - hx, gy - hy) / 0.36, edge = P.col(CRANK.edge), steel = P.col(CRANK.steel);
   P_line(ctx, hx, hy, gx, gy, 0.13 * k, edge); P_line(ctx, hx, hy, gx, gy, 0.075 * k, steel);
   P_ell(ctx, hx, hy, 0.09 * k, 0.09 * k, edge); P_ell(ctx, hx, hy, 0.055 * k, 0.055 * k, steel);
-  P_ell(ctx, gx, gy, 0.1 * k, 0.1 * k, edge); P_ell(ctx, gx, gy, 0.075 * k, 0.075 * k, P.col([186, 46, 36]));   // the grip, end on
+  P_ell(ctx, gx, gy, 0.1 * k, 0.1 * k, edge); P_ell(ctx, gx, gy, 0.075 * k, 0.075 * k, P.col(CRANK.red));   // the grip, end on
+}
+// the same crank out of the gearbox, seen from the side: an L. The steel arm; square off one end of it the red grip, a
+// round bar a hand closes on (a cylinder from here, its far end rounded); and off the other end, the other way, the short
+// shaft that goes into a gearbox's eye, its tip cut down to the key that catches in the slot there. The same steel, red
+// and dark edge as it has going round in the gearbox, where the shaft is in the eye and the grip points out at you (end
+// on). DINER_CRANK is where its parts are in the icon (x -0.5..0.5 across, y 0..1 up), for the hand that holds it
+// (mkItem, held): the middle of the grip, the way the grip runs, and the tip of the shaft
+const DINER_CRANK = (() => {
+  const LEAN = 0.3, S = 1.12, O = [-0.118, 0.526], c = Math.cos(LEAN) * S, sn = Math.sin(LEAN) * S;
+  const at = (x, y) => [O[0] + x * c - y * sn, O[1] + x * sn + y * c];   // from its own frame (the arm upright) to the icon
+  // its own frame: the arm from the grip's end (0, A) up to the shaft's (0, B); the grip out to the right from its collar
+  // (G0) to its rounded end (G1), the shaft out to the left (to S1) and its key beyond it (to TIP)
+  const A = -0.29, B = 0.29, G0 = 0.095, G1 = 0.42, S1 = -0.115, TIP = -0.185;
+  return { S, at, A, B, G0, G1, S1, TIP, grip: at((G0 + G1) / 2 + 0.01, A), tip: at(TIP, B), axis: Math.PI / 2 - LEAN };
+})();
+function dinerCrankSide(ctx, P) {
+  const K = DINER_CRANK, { S, A, B, G0, G1, S1, TIP } = K, edge = P.col(CRANK.edge), steel = P.col(CRANK.steel), red = P.col(CRANK.red);
+  const bar = (x0, y0, x1, y1, w, col) => { const p = K.at(x0, y0), q = K.at(x1, y1); P_line(ctx, p[0], p[1], q[0], q[1], w * S, col); };   // (round ended)
+  const block = (x0, y0, x1, y1, col) => P_poly(ctx, [K.at(x0, y0), K.at(x1, y0), K.at(x1, y1), K.at(x0, y1)], col);
+  const ball = (x, y, r, col) => { const p = K.at(x, y); P_ell(ctx, p[0], p[1], r * S, r * S, col); };
+  const E = 0.0325, GR = 0.085;   // the dark edge's width; half the grip's thickness
+  // the dark edge of all of it first, one outline
+  bar(0, A, 0, B, 0.1 + 2 * E, edge); bar(0, B, S1, B, 0.08 + 2 * E, edge); block(TIP - E, B - 0.026 - E, S1, B + 0.026 + E, edge);
+  block(0, A - 0.03 - E, G0, A + 0.03 + E, edge); block(G0 - 0.03 - E, A - 0.115 - E, G0 + E, A + 0.115 + E, edge);
+  block(G0, A - GR - E, G1 - GR, A + GR + E, edge); ball(G1 - GR, A, GR + E, edge);
+  // the shaft and its key; the arm; the pin the grip turns on, and its collar
+  block(TIP, B - 0.026, S1, B + 0.026, steel); bar(0, B, S1, B, 0.08, steel);
+  bar(0, A, 0, B, 0.1, steel); block(0, A - 0.03, G0, A + 0.03, steel);
+  // the grip: a round red bar, square against its collar, rounded at its far end
+  block(G0, A - GR, G1 - GR, A + GR, red); ball(G1 - GR, A, GR, red);
+  block(G0 - 0.03, A - 0.115, G0, A + 0.115, steel);
 }
 // the cup: tapered, plain white, edged dark so it reads on the pale counter
 function dinerCup(ctx, P, full) {
@@ -193,7 +224,9 @@ LEVELS.push({
 
     // ---- the power main: a big lever switch on the back wall, on one side of the kitchen pass or the other (either way in
     // view from straight back, and square in the view a turn to that side) ----
-    Object.assign(s, { power: true, offAt: -9, lever: 1, amb: 1, down: [false, false, false], shown: [0, 0, 0], turnAt: [-9, -9, -9], lastTurn: -9, queued: null, slide: null, slides: 0, through: false, byHand: false, dent: [0, 0, 0], hit: null, blows: 0, jigAt: -9 });
+    // It goes both ways, as often as you like: down for off, back up for on. s.power is the main as it is set, from the
+    // click; s.swAt is when its lever goes over in the hand, and the lights go, or come back, with the lever (L.update).
+    Object.assign(s, { power: true, swAt: -9, throws: 0, swung: true, clunked: true, lever: 1, amb: 1, down: [false, false, false], shown: [0, 0, 0], turnAt: [-9, -9, -9], inAt: -9, boxed: -1, lastTurn: -9, queued: null, slide: null, slides: 0, through: false, byHand: false, dent: [0, 0, 0], hit: null, blows: 0 });
     const mainX = [-1.75, 1.75][Math.floor(L.rand() * 2)], MW = 0.72, MH = 0.95, MY = 0.95;
     SC.wallV(L, mainX - 0.11, -2.485, mainX - 0.06, -2.485, 0, MY + 0.06, [48, 50, 54]);   // its conduit, down into the floor, clamped to the wall
     for (const y of [0.3, 0.7]) SC.wallV(L, mainX - 0.13, -2.483, mainX - 0.04, -2.483, y, y + 0.04, [70, 72, 76]);
@@ -211,14 +244,12 @@ LEVELS.push({
       ctx.moveTo(x, y0); ctx.lineTo(x + 0.035, y1); ctx.lineTo(x + 0.07, y0); ctx.moveTo(x + 0.016, y0 + 0.03); ctx.lineTo(x + 0.054, y0 + 0.03); x += 0.1;
       ctx.moveTo(x + 0.02, y0); ctx.lineTo(x + 0.02, y1); x += 0.07;
       ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.lineTo(x + 0.07, y0); ctx.lineTo(x + 0.07, y1); ctx.stroke();
-      P_ell(ctx, -0.36, 0.17, 0.04, 0.03, s.power ? P.raw([120, 255, 140]) : P.col([30, 50, 34]));                      // the pilot light
+      P_ell(ctx, -0.36, 0.17, 0.04, 0.03, live() ? P.raw([120, 255, 140]) : P.col([30, 50, 34]));                      // the pilot light
       // I and O beside the lever's two ends, as on any switch: on is up, off is down
       P_line(ctx, 0.14, 0.78, 0.14, 0.88, 0.022, ink);
       ctx.strokeStyle = ink; ctx.lineWidth = 0.018; ctx.beginPath(); ctx.ellipse(0.14, 0.15, 0.03, 0.045, 0, 0, TAU); ctx.stroke();
-      // the lever: a pivot on the side of the box and a long arm with a red grip, up for on and down for off (shaken at its
-      // stop when the hand tries to put it back up)
-      const je = L.t - s.jigAt, a = lerp(Math.PI - 0.32, 0.32, s.lever) + (je >= 0 && je < 0.8 ? (SAVE.data.settings.reducedMotion ? 0.025 : 0.06) * Math.sin(je * 52) * (je < 0.45 ? 1 : Math.exp(-(je - 0.45) * 12)) : 0);
-      const px = 0.3, py = 0.5, ex = px + Math.sin(a) * 0.4, ey = py + Math.cos(a) * 0.4;
+      // the lever: a pivot on the side of the box and a long arm with a red grip, up for on and down for off
+      const a = lerp(Math.PI - 0.32, 0.32, s.lever), px = 0.3, py = 0.5, ex = px + Math.sin(a) * 0.4, ey = py + Math.cos(a) * 0.4;
       P_rect(ctx, 0.2, 0.36, 0.14, 0.28, bodyD);
       P_line(ctx, px, py, ex, ey, 0.05, P.col([150, 150, 156]));
       P_line(ctx, px + (ex - px) * 0.62, py + (ey - py) * 0.62, ex, ey, 0.1, P.col([176, 34, 28]));
@@ -234,34 +265,52 @@ LEVELS.push({
       const p = HANDS.pointOn(t, Array.isArray(at) && t.face !== undefined ? onFace(t, at[0], at[1]) : at, 0.02), dy = p.y - eye, k = Math.min(1, 1.5 / Math.hypot(p.x, dy, p.z));
       return { x: p.x * k, y: eye + dy * k, z: p.z * k };
     };
+    // The hand goes up to the lever, takes its grip and puts it over: pulled down, every light in the place goes out, and
+    // it walks; pushed back up, they all come back on (the tubes, the OPEN sign, the fountain's header, the hum of the
+    // place), and it is drawn in by them again from that moment, as fast as ever. Off, it slows from the click, though the
+    // lever, the lights and the clunk wait for the hand; on, it quickens only once the lever is over and the lights are
+    // really on (lit, below): both ways, the moment in between is yours.
     const main = mkTarget(L, {
       id: 'main', name: 'Main switch', x: mainX, y: MY, z: -2.42, w: MW, h: MH, face: BACK,
+      hint() { return s.power ? 'The main switch. On: pull it down and every light goes out.' : 'The main switch. Off: push it back up and the lights come back on.'; },
       onClick() {
-        // off already: the hand takes the grip and tries it, and it will not come back up (it shakes at its stop)
-        if (!s.power) { G.say('The main is off, and it stays off.', 'The power is off.'); if (!G.reach(main, { style: 'rattle', at: inReach(main, gripAt(0)), onTouch() { s.jigAt = L.t; } })) AUDIO.sfx('nope'); return true; }
-        // the hand goes up to the lever, takes its grip and pulls it down; the lights go as it comes down. It is off from the
-        // click (it slows from then), but the lever, the lights and the clunk wait for the hand (L.update)
-        s.power = false; s.offAt = L.t + 0.26; s.clunked = false; s.levered = false;
-        s.pulling = G.reach(main, { style: 'pull', at: inReach(main, gripAt(1)), onTouch() { s.offAt = Math.min(s.offAt, L.t); } });
-        if (!s.pulling) s.offAt = L.t;
-        if (AUDIO.on()) AUDIO.startAmbient(Object.assign({}, L.def.ambient, { drone: 0.12, tune: 'ambient:8off' }));   // the hum of the place stops with it
-        if (s.through) G.say('Every light in the place goes out at once.', 'Every light in the place goes out.');
-        else G.say('Every light in the place goes out at once. Out in the lot, it slows down.', 'Every light in the place goes out. Out in the lot, it slows down.');
+        if (L.t < s.swAt) return true;   // the lever is still on its way over in the hand
+        const on = !s.power, rc = G.hand.reach, there = !!rc && rc.target === main && rc.touched > 0;   // (there: the hand is still on the grip)
+        s.power = on; s.throws++; s.swung = s.clunked = false; s.swAt = L.t + 0.26;
+        main.name = on ? 'Main switch' : 'Main switch: off';
+        s.pulling = G.reach(main, { style: on ? 'push' : 'pull', at: inReach(main, gripAt(s.lever)), onTouch() { s.swAt = Math.min(s.swAt, L.t); } });
+        if (!s.pulling) s.swAt = L.t; else if (there) s.swAt = L.t + 0.1;
+        if (AUDIO.on()) {   // the hum of the place stops with it, and comes back with it
+          if (on) AUDIO.startAmbient(L.def.ambient);
+          else AUDIO.startAmbient(Object.assign({}, L.def.ambient, { drone: 0.12, tune: 'ambient:8off' }));
+        }
+        const out = !s.through && !L.won;   // (it is still out in the lot, coming)
+        if (on) G.say('Every light in the place comes back on.' + (out ? ' Out in the lot, it comes faster again.' : ''), 'The lights come back on.' + (out ? ' Out in the lot, it comes faster.' : ''));
+        else G.say('Every light in the place goes out at once.' + (out ? ' Out in the lot, it slows down.' : ''), 'Every light in the place goes out.' + (out ? ' Out in the lot, it slows down.' : ''));
         return true;
       },
     });
     glowWith(main, [mainArt]);
-    // the power goes with a stutter as the lever comes down: two blinks, then nothing
-    const lightsOn = () => s.power || L.t < s.offAt || [0.07, 0.17].some(k => Math.abs(L.t - s.offAt - k) < 0.035);
+    // whether the lever has gone over yet for the last throw of it; whether there is power in the place (as the lever
+    // stands); and whether the lights are really on, which is what draws it
+    const over = () => L.t >= s.swAt, live = () => s.power === over(), lit = () => s.power && over();
+    // the power goes with a stutter as the lever comes down (two blinks, then nothing) and comes back with one as it goes
+    // up (the tubes striking: a blink, a blink, and on); with reduced flashing it goes, and comes back, at once
+    const lightsOn = () => {
+      const e = L.t - s.swAt;
+      if (e < 0 || SAVE.data.settings.reducedFlash) return live();
+      return s.power ? !(e >= 0.05 && e < 0.13) && !(e >= 0.19 && e < 0.25) : [0.07, 0.17].some(k => Math.abs(e - k) < 0.035);
+    };
+    Object.assign(s, { lit, lightsOn });   // (for the tests)
 
     // ---- the shutter crank: one, lying somewhere behind the counter ----
-    mkItem(L, 'crank', 'Shutter crank', [
+    const crankIt = mkItem(L, 'crank', 'Shutter crank', [
       { x: 2.4, y: 0, z: -0.3 },                        // on the floor behind the counter
       { x: 1.3, y: 1.0, z: 1.05 },                      // on the counter, clear of the lamp
       { x: 2.7, y: 0.9, z: -2.15 },                     // on the back counter, beside the coffee machine
       { x: -0.5, y: 1.02, z: -2.36, jitter: 0 },        // on the ledge of the kitchen pass, at its front edge (no jitter: the ledge is 20 cm deep)
       { x: -3.2, y: 0, z: 0.3 },                        // on the floor by the register
-    ], { w: 0.4, h: 0.4, flat: true, tool: true, icon: 'shutterCrank', held: { grip: 'fist', at: [0.06, 0.41], axis: -0.63, angle: 0.3, size: 0.3, tip: [0.2, 0.22] } });   // in the fist by its arm, the red grip up out of the top of it; the hub leads it into an eye
+    ], { w: 0.4, h: 0.4, flat: true, tool: true, icon: 'shutterCrank', held: { grip: 'fist', at: DINER_CRANK.grip, axis: DINER_CRANK.axis, angle: -0.1, size: 0.3, tip: DINER_CRANK.tip } });   // in the fist by its red grip, the arm standing up out of it; the shaft's tip leads it into an eye
 
     // ---- the soda fountain behind you, and a paper cup on the shelf on the back wall ----
     // The fountain stands on a cabinet against the back wall, on the other side of the kitchen pass from the main; the cup
@@ -380,11 +429,21 @@ LEVELS.push({
     Object.assign(s, { turns: TURNS, turn: TURN, glassD: panes.map(q => q.glassD) });   // for the tests
     // the eye in a window's gearbox, where the crank goes in (and the hand goes, with it or without it)
     const gearAt = i => { const p = L.pt(GEAR[i], 1.0, ZG - 0.07); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; };
+    // The crank is in a gearbox while it goes round there and for a moment after (BOXED s from its last turn): the hand
+    // does not hold it then. It is drawn in the eye, from the front, going round (L.dynamic); in the hand, lying about and
+    // in its slot it is drawn from the side (ICONS.shutterCrank). It leaves the hand for the eye at its first turn there,
+    // and comes back out of the eye up into the hand when the turning stops (L.update), so there is only ever one of it.
+    const BOXED = 0.9;
+    const unbox = () => { s.turnAt.fill(-9); s.boxed = -1; if (G.hand.gone === crankIt && G.hasItem('crank')) G.hand.gone = null; };
     const shutters = PANES.map(([x0, x1], i) => {
       const t = mkTarget(L, {
         id: 'shutter' + i, name: ['Left', 'Middle', 'Right'][i] + ' shutter', x: (x0 + x1) / 2, y: BOT, z: 4.95, w: x1 - x0, h: TOP - BOT, face: FRONT,
         crank: { n: TURNS, sfx: 'ratchet', onTurn() {
-          s.turnAt[i] = L.t;
+          // the crank goes into this gearbox's eye (if it is not in it already, still going round or only just stopped):
+          // out of the hand, which gives it up there as it gives up a thing used up, and into the eye, where it is drawn
+          // going round (L.dynamic). There is one crank: it is in this gearbox now, and in no other
+          if (!(L.t - s.turnAt[i] < BOXED)) { s.inAt = L.t; if (G.hand.cur === crankIt && G.hand.gone !== crankIt) G.thrust(t, crankIt, true); }
+          s.turnAt.fill(-9); s.turnAt[i] = L.t;
           // the hand turns it at the gearbox, not at the middle of the window
           const th = G.hand.thrust, rc = G.hand.reach;
           if (th && th.t === 0) th.at = gearAt(i);
@@ -397,6 +456,7 @@ LEVELS.push({
             // the crank goes to the gearbox's eye, hub first, and will not turn: it knocks against the stop (the shutter is at the
             // bottom of its rails) and comes back to the hand. With nothing in hand, the hand knocks on the glass in front of the steel.
             const act = G.inv[G.active];
+            unbox();   // (if it is still in the eye from the last turn, it is in the hand again for this)
             if (act) { if (!G.fumble(act, t, { preset: 'return', at: gearAt(i), sfx: { hit: 'clunk' } }) && !G.fumbling) AUDIO.sfx('nope'); }
             else if (!G.reach(t, { style: 'knock', at: inReach(t, [0, 0.45]), sfx: 'glassTap' })) AUDIO.sfx('nope');
             return true;
@@ -448,9 +508,11 @@ LEVELS.push({
       const c = cr(), ln = L.lanes[k], p0 = c.pos(), keep = ln.barrierDist + 0.15;
       const r0 = Math.max(Math.hypot(p0.x, p0.z), keep), atGlass = r0 < keep + 2;
       const yaw0 = Math.atan2(p0.x, p0.z), turn = wrapPi(ln.yaw - yaw0), dir = turn >= 0 ? 1 : -1;
-      // lit, it runs quicker: a run along the glass buys a hand cranking with the lights on almost nothing
+      // lit, it runs quicker: a run along the glass buys a hand cranking with the lights on almost nothing. Its run goes by
+      // the light as it is from moment to moment (quick): the main thrown, or put back on, while it runs, and it slows or
+      // quickens there and then
       const len = atGlass ? Math.hypot(Math.sin(ln.yaw) * r0 - p0.x, Math.cos(ln.yaw) * r0 - p0.z) : r0 * Math.abs(turn);
-      const run = atGlass ? clamp(len / RUN.glass, 0.5, 1.3) * (s.power ? 0.4 : 1) : clamp(len / RUN.lot, 1.2, 5) * (s.power ? 0.5 : 1), piv = RUN.pivot;
+      const run = atGlass ? clamp(len / RUN.glass, 0.5, 1.3) : clamp(len / RUN.lot, 1.2, 5), quick = atGlass ? 0.4 : 0.5, piv = RUN.pivot;
       c.u = clamp(1 - r0 / c.D0, 0, 1);
       const way = Object.assign({}, ln, { apertures: [], blockers: [], name: atGlass ? 'along the glass' : 'across the lot' });
       const place = (x, z) => { const yaw = Math.atan2(x, z); way.yaw = yaw; way.dirX = Math.sin(yaw); way.dirZ = Math.cos(yaw); c.lane = way; c.yaw = yaw; return Math.hypot(x, z); };
@@ -464,13 +526,14 @@ LEVELS.push({
       const th0 = c.runPose ? (c.runDir || 1) * c.runTurn : 0, spin = Math.abs(dir - th0) * piv;
       const x0 = c.runPose && th0 * dir >= 0.5 ? RUN.ramp * clamp(c.runAmt, 0, 1) : 0, e00 = runAt(x0);
       if (!c.runPose) Object.assign(c, { runPose: true, runTurn: 0, runDir: dir, runAmt: 0, runGait: 0, runStep: 0 });
-      let T = 0, e0 = 0, out = -1, outTurn = 1, px = p0.x, pz = p0.z;
+      let T = 0, ran = 0, e0 = 0, out = -1, outTurn = 1, px = p0.x, pz = p0.z;   // (ran: how much of the run is behind it, 0..1)
       c.distFn = (cc, dt) => {
         const m = cc.frozen || cc.dead ? 0 : cc.CR.speedMult(cc, dt, cc.seen);
         cc.u = clamp(cc.u + dt * m / cc.T, 0, 1);
         const r = Math.max(cc.D0 * (1 - cc.u), keep);
         T += dt;
-        e0 = Math.max(e0, (runAt(x0 + (1 - x0) * clamp((T - spin) / run, 0, 1)) - e00) / (1 - e00));
+        ran = Math.min(1, ran + clamp(T - spin, 0, dt) / (run * (lit() ? quick : 1)));
+        e0 = Math.max(e0, (runAt(x0 + (1 - x0) * ran) - e00) / (1 - e00));
         if (!atGlass) e0 = Math.max(e0, clamp((r0 - r) / (r0 - keep), 0, 1));   // out in the lot it is on k's way by the time it reaches the glass: the run never holds it back
         const yaw = yaw0 + turn * e0;
         const d = atGlass ? place(lerp(p0.x, Math.sin(ln.yaw) * r, e0), lerp(p0.z, Math.cos(ln.yaw) * r, e0)) : place(Math.sin(yaw) * r, Math.cos(yaw) * r);
@@ -560,7 +623,7 @@ LEVELS.push({
       panes[i].ap.y1 = panes[i].top(bottom(s.shown[i]));
     };
     L.isWon = () => s.down.every(Boolean) && !s.through;
-    L.deathCause = () => (s.power ? 'lit' : s.through ? 'through' : null);
+    L.deathCause = () => (lit() ? 'lit' : s.through ? 'through' : null);   // (lit: the lights on as it has you, whenever they went on)
 
     // ---- the soda ----
     // It comes in through the glass, lit or in the dark, with a full cup of soda standing on the counter: it does not
@@ -664,7 +727,10 @@ LEVELS.push({
         case 'drink': {   // and down its throat, gulp by gulp, the cup going up and over
           const u = clamp(a / sd.dur, 0, 1);
           handTo([MOUTH[0] - 0.02 * u, MOUTH[1] + 0.03 * u]); sd.tilt = 1.05 + 0.7 * u;
-          if (sd.gulp < SODA.gulps.length && a >= SODA.gulps[sd.gulp]) { sd.gulp++; AUDIO.sfx('gulp', panTo(c.yaw)); }
+          if (sd.gulp < SODA.gulps.length && a >= SODA.gulps[sd.gulp]) {
+            sd.gulp++; AUDIO.sfx('gulp', panTo(c.yaw));
+            if (sd.gulp === 1) foundEgg();   // the night's easter egg, found at its first gulp of the soda (kept in the save: game.js)
+          }
           const g = SODA.gulps.reduce((m, t0) => Math.max(m, a >= t0 ? Math.exp(-(a - t0) * 9) : 0), 0);
           sd.gape = 0.16 + 0.22 * g;
           if (a >= sd.dur) { sd.full = false; setFull(false); sd.drinks++; sd.gape = 0; phase('lower', SODA.lower); }
@@ -710,13 +776,27 @@ LEVELS.push({
     L.update = dt => {
       const c = cr();
       if (s.target === undefined) s.target = c.lane.idx;
-      // lit, it is at the glass LIT_T s after it sets off, however far out it started
-      c.drawn = s.power; c.drawnMult = c.T * (1 - panes[c.lane.idx].glassD / c.D0) / LIT_T;
-      if (!s.power && !s.levered && L.t >= s.offAt) { s.levered = true; AUDIO.sfx('lever'); G.shake(0.12); }   // the lever goes over in the hand
-      if (!s.power && !s.clunked && L.t - s.offAt >= 0.14) { s.clunked = true; AUDIO.sfx('clunk'); AUDIO.sfx('tubeDie'); }   // the main's clunk, and the tubes dying
-      s.lever = Math.max(s.power || L.t < s.offAt ? 1 : 0, s.lever - dt * 5);
-      if (s.pulling && G.hand.reach === s.pulling) s.pulling.at = inReach(main, gripAt(s.lever));   // the hand comes down with the grip
-      s.amb += ((lightsOn() ? 1 : DARK_AMB) - s.amb) * Math.min(1, dt * (s.power ? 6 : 14)); L.pal.ambient = s.amb;
+      // lit, it is at the glass LIT_T s after it sets off, however far out it started: that is its pace whenever the lights
+      // are on, from the moment they are (put back on with it half way in, it covers what is left at that pace)
+      c.drawn = lit(); c.drawnMult = c.T * (1 - panes[c.lane.idx].glassD / c.D0) / LIT_T;
+      if (!s.swung && over()) { s.swung = true; AUDIO.sfx('lever'); G.shake(0.12); }   // the lever goes over in the hand
+      if (!s.clunked && L.t - s.swAt >= 0.14) { s.clunked = true; AUDIO.sfx('clunk'); AUDIO.sfx(s.power ? 'tubeOn' : 'tubeDie'); }   // the main's clunk, and the tubes dying, or humming back on
+      s.lever += clamp((live() ? 1 : 0) - s.lever, -dt * 5, dt * 5);
+      if (s.pulling && G.hand.reach === s.pulling) s.pulling.at = inReach(main, gripAt(s.lever));   // the hand goes down, or up, with the grip
+      s.amb += ((lightsOn() ? 1 : DARK_AMB) - s.amb) * Math.min(1, dt * 14); L.pal.ambient = s.amb;
+      // the crank in a gearbox's eye: not in the hand (it went from the hand into the eye: onTurn); out of the eye again,
+      // it comes from there up into the hand, as a thing picked up does
+      if (!G.hasItem('crank')) s.turnAt.fill(-9);   // (put down: it is in no gearbox)
+      if (!L.won) {
+        const bi = s.turnAt.findIndex(t => L.t - t < BOXED), th = G.hand.thrust;
+        if (bi >= 0) { s.boxed = bi; if (G.hand.cur === crankIt && !(th && th.item === crankIt && th.release)) G.hand.gone = crankIt; }
+        else if (s.boxed >= 0) {
+          const e = gearAt(s.boxed);
+          if (G.state === 'play' && G.inv[G.active] === crankIt && G.hand.cur === crankIt) HANDS.picked(crankIt, { x: e.x, y: e.y - 0.12, z: e.z, w: 0.3, h: 0.3 });
+          else if (G.hand.gone === crankIt && G.hasItem('crank')) G.hand.gone = null;
+          s.boxed = -1;
+        }
+      }
       // a turn clicked while the crank was still going round
       if (s.queued && L.t - s.lastTurn >= TURN && G.state === 'play') { const t = s.queued; s.queued = null; if (!t.done && G.hasItem('crank')) useTarget(t); }
       // each shutter comes down a step at a time as the crank goes round, and the glass it covers stops showing the lot
@@ -901,13 +981,15 @@ LEVELS.push({
       // the shutters, outside the glass, coming down from the slot at the top: steel slats, a heavy bottom rail
       PANES.forEach(([x0, x1], i) => {
         R.glowAs(shutters[i]);   // the curtain, and the crank turning in its gearbox, glow with the window's shutter
-        // the crank in its gearbox, going once round with each turn, its grip swinging about the eye, then still a moment
-        if (L.t - s.turnAt[i] < 0.9 && !L.won) {
-          const rot = -clamp((L.t - s.turnAt[i]) / (TURN * 0.85), 0, 1) * TAU;
+        // the crank in its gearbox, seen from the front (its shaft in the eye, its grip pointing out at you), going once
+        // round with each turn, its grip swinging about the eye, then still a moment; it comes into view there as it
+        // leaves the hand
+        if (L.t - s.turnAt[i] < BOXED && !L.won) {
+          const rot = -clamp((L.t - s.turnAt[i]) / (TURN * 0.85), 0, 1) * TAU, al = SAVE.data.settings.reducedMotion ? 1 : clamp((L.t - s.inAt) / 0.14, 0, 1);
           R.add(SC.mkSprite(L, GEAR[i], 0.833, ZG - 0.1, 0.34, 0.34, (ctx, P) => {
             ctx.scale(0.34, 0.34); ctx.translate(0, 0.5);
             dinerCrank(ctx, P, 0, 0, Math.sin(rot) * 0.36, Math.cos(rot) * 0.36);
-          }, { sortDist: panes[i].sortD - 0.12, face: FRONT }));
+          }, Object.assign({ sortDist: panes[i].sortD - 0.12, face: FRONT }, al < 1 ? { alpha: al } : null)));
         }
         if (s.shove && s.shove.i === i && !s.through) shoveArt(i, x0, x1);
         const cov = (TOP - BOT) * s.shown[i];
