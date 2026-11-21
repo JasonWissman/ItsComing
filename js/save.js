@@ -23,6 +23,7 @@ const SAVE = (() => {
       // are always the same. reduceTextures: plainer, faster walls and floors (render.js: R.detail is its opposite)
       settings: { muted: false, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: TEXT_NORMAL, theme: 'night', swipeReverse: false, reduceTextures: false },
       warned: false,                                             // the warning about flashing lights has been accepted (game.js: disclaimer)
+      eggs: {},                                                  // eggs[night id] = true once that night's easter egg has been found (game.js: foundEgg; Scores)
     };
   }
   let data = fresh();
@@ -54,6 +55,7 @@ const SAVE = (() => {
           delete data.settings.touchLeft;   // the touch buttons' side: there are no touch buttons to move any more (swipes)
           const folded = tidy(data.settings, d.settings || {});
           data.warned = d.warned === true;
+          data.eggs = {}; for (const k in (d.eggs || {})) if (d.eggs[k] === true) data.eggs[k] = true;
           if (folded) persist();
           return data;
         }
@@ -121,6 +123,8 @@ const SAVE = (() => {
   function defaults() { const theme = data.settings.theme; data.settings = Object.assign(fresh().settings, { theme }); persist(); return data.settings; }
   function markComplete(diff) { data.complete[diff] = true; persist(); }
   function markWarned() { data.warned = true; persist(); }
+  // a night's easter egg found (id: the night's id): kept; true if it was not known before
+  function egg(id) { if (!id || data.eggs[id]) return false; data.eggs[id] = true; persist(); return true; }
   function reset() { data = fresh(); persist(); }
-  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, reset, nearest, TEXT_SIZES, get data() { return data; } };
+  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, egg, reset, nearest, TEXT_SIZES, get data() { return data; } };
 })();

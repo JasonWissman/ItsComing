@@ -50,6 +50,7 @@ LEVELS.push({
     intro: 'The lighthouse has gone dark.\nYou hear something, and look down over the rail.',
     hint: 'The bulb in the big lamp behind you has blown, and so has the fuse. Put the spare bulb in, change the fuse (there is a new one in the toolbox), then turn the crank until the light goes round.',
     objective: 'New bulb in the lamp. New fuse in the fuse box. Turn the crank.',
+    egg: 'Hit the creature with the toolbox.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came over the rail and grabbed you.' },
     win: 'It fell, and you haven\'t seen it again.',
   },

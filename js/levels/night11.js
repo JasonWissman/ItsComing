@@ -46,6 +46,7 @@ LEVELS.push({
     hint: 'It cannot stand the light. Light its place and it runs to a dark place next to it; light the places either side of it first, then its own, and it has nowhere to go. The box takes three lights at once, the porch light too: a fourth trips the main, and nothing comes on until you push the main back on. You can push the main off yourself, too: every light goes out, the switches stay as they are set, and they come on with the main.',
     objective: 'Find it. Light the places either side of it, then its own. No more than three lights at once.',
     where: 'It is out there in the dark, at one of the places. Find it.',
+    egg: 'Overload the electrical box.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came for you in the dark.', trip: 'The main tripped. In the dark, it came for you.', off: 'You put the main off. In the dark, it came for you.', fire: 'Apparently the electrical box wasn\'t rated for that.' },
     eggs: ['fire'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'It collapsed in the light, right in front of you.',

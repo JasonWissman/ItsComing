@@ -182,6 +182,7 @@ LEVELS.push({
     intro: 'You heard a rustling in the bushes.',
     hint: 'The bow is somewhere on the porch, and its three arrows are lying about, each in a different place. Hold to draw until the bar is full, and let go with it in your sights. It takes two hits to put it down.',
     objective: 'Get the bow and the arrows. Two hits.',
+    egg: 'Shoot a bat out of the sky.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It dragged you out into the woods.', wounded: 'It was injured, but it still reached you.', spent: 'You missed. It dragged you out to the woods.' },
     win: 'It twitched, but eventually stopped moving.',
   },

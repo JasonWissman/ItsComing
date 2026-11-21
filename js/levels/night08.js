@@ -49,6 +49,7 @@ LEVELS.push({
   ],
   text: {
     intro: 'The last customer left an hour ago…\nbut another seems drawn in by the light.',
+    egg: 'Serve the customer a drink.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'One shutter was still open.', through: 'It came through the glass before the shutters were down.', lit: 'It was drawn in by the light.', soda: 'It is insatiable.' },
     eggs: ['soda'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'It beat on the shutters relentlessly, but they held.',

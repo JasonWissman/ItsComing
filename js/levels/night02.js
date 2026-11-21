@@ -50,6 +50,7 @@ LEVELS.push({
     hint: 'The keys fell somewhere when the car stalled.',
     objective: 'Start the car and get away.',
     // caught where it came up to the car: the window it came through
+    egg: 'Hit the creature with your car.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came through the windshield.', passenger: 'It came through the passenger window.', driver: 'It came through the window beside you.', back: 'It came through the back window.',
       drove: 'You drove straight to the creature. It came through the windshield.', reversed: 'You backed straight into the creature. It came through the back window.' },
     win: 'You drove off and did not look back.',   // the same whichever way out you took and wherever it was

@@ -268,6 +268,7 @@ Object.assign(ICONS, {
     lights: [{ x: 0, y: 2.25, z: 0, r: 3.3, i: 0.55, color: [214, 228, 255], flicker: 0.05 }],
     text: {
       intro: 'You missed the bus,\nand you don\'t remember who to call for help.',
+      egg: 'Call 911.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
       death: { default: 'It came into the booth.', ringing: 'It was still ringing when it came through the glass.', dead: 'You were still listening to a dead line when it came through the glass.', nocoin: 'The phone would not operate without a coin.', police: 'The police can\'t help you here.' },
       eggs: ['police'],   // (caught after calling 911 that night: the easter egg, "Nice try", game.js deathLine)
       win: 'A mysterious car came for you, just in time.',

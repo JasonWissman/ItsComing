@@ -887,6 +887,9 @@ function die(c, cause) {
   G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = 0; G.cam.zoomHeld = false; // it rises to eye level, so the view comes up to meet it
   G.deathTime = L.t; G.deathAt = G.t; // the night clock, and the global clock for the toast test (toasts are stamped with G.t)
 }
+// A night's easter egg, found (a night calls this the moment it happens, whether or not it then kills you): kept in the
+// save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time
+function foundEgg(id) { return SAVE.egg(id || (G.L && G.L.def && G.L.def.id)); }
 // a night's easter-egg deaths (L.text.eggs: the causes that are one): the screen says "Nice try", and the line is the
 // night's own, with no toast put in front of it
 const isEggDeath = L => !!(L && L.text && L.text.eggs && L.text.eggs.includes(G.deathCause));
