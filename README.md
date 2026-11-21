@@ -162,12 +162,19 @@ some on the ground, so you have to turn and look down to find them.
    gets there) to one side of the car or into the road behind, lit red by the tail lights, and shifts about there; some
    nights it goes round again. Find the car keys (the green ones), put the stick in park and turn the key in the dash
    beside the dials until it catches; then look round for it, pick a gear and hit the gas. Drive with it in the road
-   ahead, or reverse with it in the road behind, and the car runs into it; anywhere else either way gets away (past it on
-   a verge, it scuttles sideways out of your lights). Once the engine runs it stops going round, and once the stick is in
+   ahead, or reverse with it in the road behind, and the car runs into it (the night's easter egg, kept in the save from
+   the moment it is hit): it goes up off the bumper and down the road, turning over; the car lurches to a halt and stalls;
+   it lies in a heap in the lights, a limb jerks, and again; it gets up a limb at a time, stands on its hind legs in jolts,
+   its head hanging, looks at you, and comes through the glass. Nothing in the car answers meanwhile and the view stays on
+   it. The card says "Nice try" and "You drove straight into it, but it is too strong." (backed, in reverse). Anywhere
+   else either way gets away (past it on a verge, it scuttles sideways out of your lights). Once the engine runs it stops going round, and once the stick is in
    a gear it moves only while you watch it, so it never steps into your way behind your back. Caught, it comes through
    the window it reached, and the glass breaks in your face: cracks run out from where it hits, then the pane bursts in a
    flash and the shards fly at you (they drop away with reduced motion; the flash is dimmer with reduced flashing). The
-   whole road slides past as you go, and the night ends: "You drove off and did not look back." The house keys are tried at the keyhole, blade first, will not go in and drop to the
+   whole road slides past as you go, and the night ends: "You drove off and did not look back." Caught with the engine
+   running and the car not away, the card says "The engine was running, but you couldn't get away fast enough." A thing
+   put down in the car goes only where all of it stays in sight from your seat: the open floor short of the dash, beside
+   or behind your seat, or the passenger seat's cushion, never under the dash, a seat or the console. The house keys are tried at the keyhole, blade first, will not go in and drop to the
    floor at your feet; a wrong key costs only the moment it takes to try it, never any of its way in.
    In reverse or drive the key will not turn (it starts in park or neutral): your hand takes it and it strains a few
    degrees and goes back. In park or neutral the gas only makes the engine roar; the car stays where it is.

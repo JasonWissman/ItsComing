@@ -49,10 +49,13 @@ LEVELS.push({
     intro: 'You\'re miles from anything.',
     hint: 'The keys fell somewhere when the car stalled.',
     objective: 'Start the car and get away.',
-    // caught where it came up to the car: the window it came through
+    // caught where it came up to the car: the window it came through. With the engine running (and the car not yet away)
+    // the card says that instead; and having driven into it (ahead in drive, behind in reverse), that
     egg: 'Hit the creature with your car.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came through the windshield.', passenger: 'It came through the passenger window.', driver: 'It came through the window beside you.', back: 'It came through the back window.',
-      drove: 'You drove straight to the creature. It came through the windshield.', reversed: 'You backed straight into the creature. It came through the back window.' },
+      running: 'The engine was running, but you couldn\'t get away fast enough.',
+      drove: 'You drove straight into it, but it is too strong.', reversed: 'You backed straight into it, but it is too strong.' },
+    eggs: ['drove', 'reversed'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'You drove off and did not look back.',   // the same whichever way out you took and wherever it was
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
@@ -158,7 +161,7 @@ LEVELS.push({
     // reverse or drive and the gas takes you away; in park or neutral the engine only roars. Straight ahead is only a way
     // out if the thing is not in the road
     Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), gear: 'D', lastCrank: -10, gone: false, dir: 0, pressT: -10, keyAng: 0, ram: null, floored: false,
-      turnAt: -10, jigAt: -10, gearFrom: 'D', gearAt: -10, dead: false });
+      turnAt: -10, jigAt: -10, gearFrom: 'D', gearAt: -10, dead: false, stalled: false });
     const GEAR_NAME = { P: 'park', R: 'reverse', N: 'neutral', D: 'drive' };
     const inGearNow = () => s.gear === 'R' || s.gear === 'D';   // (park and neutral: the engine turns and the car stays put)
     // Your hand on the car (js/hands.js): it goes to the key to turn it, to the gearstick to move it, and to the lock with no
@@ -172,11 +175,33 @@ LEVELS.push({
     // where keys dropped from the ignition land: on the floor at your feet, in front of the seat and short of the pedal, where
     // looking down finds them, clear of anything else lying there (the first of these that is; failing all, the first)
     const FEET = [[-0.05, 0.26], [-0.18, 0.3], [0.07, 0.22], [-0.29, 0.26], [-0.13, 0.18], [-0.3, 0.4]];
+    const feet = it => FEET.find(([x, z]) => L.items.every(o => o === it || o.taken || Math.hypot(o.x - x, o.z - z) > 0.24));
     const atFeet = it => {
-      const clear = ([x, z]) => L.items.every(o => o === it || o.taken || Math.hypot(o.x - x, o.z - z) > 0.24);
-      const [x, z] = FEET.find(clear) || FEET[0], p = L.pt(x, 0.36, z);
+      const [x, z] = feet(it) || FEET[0], p = L.pt(x, 0.36, z);
       return { x: p[0], y: 0.36, z: p[2] };
     };
+    // ---- putting a thing down ----
+    // The game puts a thing down on the floor a pace out along the view, as far back toward you as the floor's outline
+    // (game.js dropActive). In a car that is under the dash, or under a seat: the keys went where the dash covered them and
+    // could hardly be found again. So here a thing put down goes to the nearest place that way where all of it lies in
+    // plain sight from your seat and can be taken again (G.landSpot: on the surface, nothing between your eye and any
+    // part of it, clear of what else lies there, of the pedal and of the stick): on the open floor (the footwells short of
+    // the dash, beside and behind your seat: never under the dash, a seat or the console) or on the cushion of the
+    // passenger seat, or at your feet where there is room (FEET), whichever is nearest where you are looking.
+    const RESTS = [
+      { y: 0.36, poly: [[-0.4, -0.6], [1.2, -0.6], [1.2, -0.22], [0.62, -0.22], [0.62, -0.04], [0.27, -0.04], [0.27, 0.36], [1.2, 0.36], [1.2, 0.66], [-0.4, 0.66]] },
+      { y: 0.66, poly: [[0.62, -0.12], [1.1, -0.12], [1.1, 0.3], [0.62, 0.3]] },
+    ];
+    function restFor(it) {
+      const ix = Math.sin(G.cam.yaw), iz = Math.cos(G.cam.yaw), floor = L.floor, off = p => Math.hypot(p.x - ix, p.z - iz);
+      let best = null;
+      const take = p => { if (p && (!best || off(p) < off(best))) best = p; };
+      for (const r of RESTS) { L.floor = r; take(G.landSpot(null, it)); }   // (the surface G.landSpot is to look at)
+      L.floor = floor;
+      if (feet(it)) take(atFeet(it));
+      return best || atFeet(it);
+    }
+    L.onDrop = (it, fx) => { if (fx) return; const p = restFor(it); it.x = p.x; it.y = p.y; it.z = p.z; };   // (dropped from the ignition it has its own place, atFeet)
     // (what it does is done in any case a moment later, if the hand was called away before it got there)
     const pending = [];
     const handTo = (t, opts, then) => {
@@ -198,6 +223,7 @@ LEVELS.push({
       hint() { return s.started ? 'Running.' : s.keyIn ? (inGearNow() ? 'Turn the key. It is still in ' + GEAR_NAME[s.gear] + ', though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
       use(item) { if (item.id !== 'keys') return false; s.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.say('The key is in. Turn it.', 'The key is in.'); return true; },
       onClick() {
+        if (s.ram) return true;   // (the car has run at it: nothing in the car answers now)
         // the house keys still at the keyhole, out of the hand: another click does nothing more until they drop (it would
         // say there is no key over their line, or put the car key in under them)
         const fx = G.fumbling;
@@ -221,7 +247,7 @@ LEVELS.push({
           return true;
         }
         if (s.started) { G.say('It is running. Now the gearstick, and the gas.', 'The engine is running.'); handTo(ign, { style: 'touch', at: KEYHEAD, sfx: 'keys' }); return true; }
-        if (s.cranking > 0 || s.ram) return true;
+        if (s.cranking > 0) return true;
         if (inGearNow()) {   // the key will not turn: it strains a few degrees in the hand and goes back
           G.say('Nothing, not even a click. It will only start in park or neutral.', 'Nothing. Not even a click. The gearstick is in ' + GEAR_NAME[s.gear] + '.');
           handTo(ign, { style: 'rattle', at: KEYHEAD }, () => { s.jigAt = L.t; });
@@ -287,34 +313,77 @@ LEVELS.push({
         return true;
       },
     });
-    // drive with it in the road ahead (or reverse with it in the road behind): the car leaps at it and it comes down the
-    // road at the car, fast, then up over the hood (or the boot). The eye goes with the car (as it does getting away), and
-    // the lunge starts from where it is by then, from the car (its pos is measured from the eye wherever the eye is)
-    const RAM_GAP = 2.6;
+    // Drive with it in the road ahead (or reverse with it in the road behind): the car leaps at it as it comes down the
+    // road at the car, and hits it. It goes up off the bumper and down the road, turning over in the lights; the car
+    // lurches to a halt and the engine dies. It lies in a heap in the road, far enough off to be seen over the hood (or
+    // over the back seat and the boot); a limb jerks, and again; it gets up, a limb at a time, and stands; its head comes up
+    // at you; and it comes through the glass: the death lunge, from where it stands. What it does, second by second, is
+    // the crawler's own (CREATURES.crawler.struck); where it is, the car, the sounds and the view are here. The eye goes
+    // with the car (as it does getting away: how far off the thing is, is measured from the eye wherever the eye is); the
+    // view stays on it and closes in a little as it lies there (L.viewZoom), and nothing in the car answers meanwhile.
+    // This is the night's easter egg (text.egg), found the moment the car hits it; caught this way the card says "Nice
+    // try" (text.eggs) and only what happened, not what the gearstick last said.
+    // RAM_GAP: where the bumper meets it, from your seat. LIE: where it comes to rest (ahead, behind). BRAKE: how hard the
+    // car stops (m/s²)
+    const RAM_GAP = 2.6, LIE = { 1: 9.4, [-1]: 7.2 }, BRAKE = 26;
+    // the view stays on it (a key or a swipe turns it for a frame at most), a little below level once it is down
+    function watch(c, pitch) {
+      G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = pitch || 0;
+    }
     function ram(c, dir) {
       G.shake(0.5); s.floored = true;
-      G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = 0;   // you look up at the road
-      s.ramDir = dir;
-      if (c.dist < RAM_GAP + 1.5) { hit(c); return; }
-      s.ram = { t: 0, v: 0, s: 0, dir, from: c.dist, T: clamp(0.4 + c.dist / 60, 0.6, 1.4) };
+      const near = c.dist < RAM_GAP + 1.5;   // at the bumper already: the car only lurches into it
+      s.ram = { t: 0, v: near ? 3 : 0, s: 0, dir, from: c.dist, T: near ? 0.25 : clamp(0.4 + c.dist / 60, 0.6, 1.4), hit: -1, stage: 'run', stages: ['run'] };
       L.eye = { x: 0, y: 0, z: 0 };
       c.hold = c.dist; c.mode = 'scuttle'; c.modeT = -2; c.runPose = false;
+      watch(c);   // you look up at the road
     }
-    function hit(c) {
-      G.lastToast = { msg: '', t: -10 };   // the card says what happened, not what the gearstick last said
-      die(c, s.ramDir < 0 ? 'reversed' : 'drove');
+    function impact(c) {
+      const r = s.ram;
+      r.hit = 0; r.gap = c.hold = c.dist = RAM_GAP;
+      foundEgg();   // (kept whether or not you live to see it)
+      AUDIO.sfx('carHit'); G.shake(1.1); G.flash(0.35);
+      c.CR = Object.assign({}, c.CR, { sound: null, voice: null });   // thrown, it makes no steps, and no sound but what is played for it here
+      c.frozen = true; c.runPose = false; roam.yOff = 0;
     }
     function ramOn(dt) {
-      const r = s.ram, c = L.creature;
-      r.t += dt; r.v += 9 * dt; r.s += r.v * dt;
+      const r = s.ram, c = L.creature, CR = CREATURES.crawler, K = CR.STRUCK;
+      let pitch = 0;
+      if (r.hit < 0) {   // the run at it: the gap between you closes from both ends
+        r.t += dt; r.v += 9 * dt; r.s += r.v * dt;
+        G.shake(0.14);
+        const k = Math.min(1, r.t / r.T);
+        c.hold = (r.from - r.s) * (1 - k * k) + RAM_GAP * k * k;
+        if (k >= 1) impact(c);
+      } else {
+        const t0 = r.hit, T = r.hit += dt, at = t => t0 < t && T >= t, pan = panOf(bear());
+        if (r.v > 0) {   // the car, braked to a stop in a length or two; as it stops the engine dies
+          r.v = Math.max(0, r.v - BRAKE * dt); r.s += r.v * dt; G.shake(0.3);
+          if (!r.v) { s.started = false; s.stalled = true; s.floored = false; AUDIO.stopLoop(); AUDIO.sfx('stall'); G.shake(0.45); }
+        }
+        const p = c.struck = CR.struck(T);
+        c.hold = lerp(r.gap, LIE[r.dir], p.along); c.yOff = p.y;
+        if (p.stage !== r.stage) r.stages.push(r.stage = p.stage);
+        if (at(K.land)) { AUDIO.sfx('bodyDrop', pan); G.shake(0.25); }
+        if (K.jerks.some(at)) AUDIO.voice('clicks', 0.16, pan);
+        if (K.cracks.some(at)) AUDIO.sfx('joints', pan);
+        if (at(K.look)) AUDIO.voice('clicks', 0.6, pan);
+        // the nose dips as the car stops (not with reduced motion); then the view settles a little below level, on it
+        pitch = 0.05 * smoothstep((T - 0.3) / 1.2) + (SAVE.data.settings.reducedMotion ? 0 : 0.07 * Math.sin(Math.PI * clamp(T / 0.55, 0, 1)));
+        if (T >= K.leap) {   // and it comes
+          c.struck = null; c.yOff = 0; c.dist = c.hold; c.mode = 'pause'; c.modeT = 1;
+          G.lastToast = { msg: '', t: -10 };
+          die(c, r.dir < 0 ? 'reversed' : 'drove');
+        }
+      }
       const e = toWorld(0, r.s * r.dir); L.eye.x = e.x; L.eye.z = e.z;
-      G.shake(0.14);
-      const k = Math.min(1, r.t / r.T);
-      c.hold = lerp(r.from, r.s + RAM_GAP, k * k);   // along the road from where the car started
-      if (k >= 1) { c.hold = c.dist = RAM_GAP; hit(c); }   // the car stops dead there (s.ram stays, so the speedometer does too)
+      if (G.state === 'play') watch(c, pitch);
     }
+    L.viewZoom = () => (s.ram && s.ram.hit >= 0 ? 1 + 0.9 * smoothstep((s.ram.hit - 0.7) / 1.3) : 0);
+    // caught with the engine running (and the car not away): the card says that, and only that
+    L.onCatch = c => { if (!s.started) return false; G.lastToast = { msg: '', t: -10 }; die(c, 'running'); return true; };
     L.isWon = () => s.gone;
-    L.objectiveText = () => s.started ? (inGearNow() ? 'The gas.' : 'Into reverse or drive. Then the gas.') : (inGearNow() ? 'Put it in park. ' : '') + (s.keyIn ? 'Turn the key until it starts.' : 'Find the keys. Start the car.');
+    L.objectiveText = () => s.ram ? '' : s.started ? (inGearNow() ? 'The gas.' : 'Into reverse or drive. Then the gas.') : (inGearNow() ? 'Put it in park. ' : '') + (s.keyIn ? 'Turn the key until it starts.' : 'Find the keys. Start the car.');
 
     // ---- where it is: it goes round the car ----
     // Its way in is the game's (its distance from how far it has come, faster unseen), but where round the car it is, is
@@ -495,7 +564,7 @@ LEVELS.push({
       if (s.cranking > 0) s.cranking -= dt;
       // the key turns to start while it cranks (once the hand has it), and rests at on once the engine runs; out of park it
       // strains a few degrees in the hand and goes back
-      let ka = !s.keyIn || s.turnAt === Infinity ? 0 : s.cranking > 0 && L.t >= s.turnAt ? 92 * DEG : s.started ? 58 * DEG : 0;
+      let ka = !s.keyIn || s.turnAt === Infinity ? 0 : s.cranking > 0 && L.t >= s.turnAt ? 92 * DEG : s.started || s.stalled ? 58 * DEG : 0;   // (stalled again, having hit it, it is still at on)
       const jt = L.t - s.jigAt;
       if (s.keyIn && !s.started && jt >= 0 && jt < 0.45) ka = (12 + 3 * Math.sin(jt * 47)) * DEG * Math.min(1, jt / 0.06, (0.45 - jt) / 0.12);
       s.keyAng += (ka - s.keyAng) * Math.min(1, dt * 18);
