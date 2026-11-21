@@ -17,14 +17,25 @@
 // the arm), the hand closing on what it reaches (c.grip); c.rush (0..1), skittering, low; c.lampLit (0..1, more in the
 // flare), how lit it is by the lamp it stands behind (a faint rim along its shoulder, never its face); c.dark, out of the light.
 // The police (night 9, 911): c.torch (0..1), a flashlight on it from the side c.scareSide of the view (1 the right): a pale
-// light down that side of it, and its eyes shining back; c.scare (0..1), jumped out at them, upright and leaning at them,
+// light down that side of it, and its eyes shining back; c.convulse (0..1), convulsing in that light: its spine kinked
+// and thrown from side to side, one shoulder up and the other down, its knees buckling, its elbows out and its forearms
+// flung about from them at wrong angles, its head snapping from one side to the other, every joint of it jerked to a
+// new place several times a second with a shudder through it (jerk), and the first of its tentacles squirming out of its
+// back (with reduced motion a slow writhe instead); c.scare (0..1), jumped out at them, upright and leaning at them,
 // one arm out at them and the other up over its head, its head turned to them and split open into its petals of teeth
 // (the maw of its lunge, seen from the side).
+// Its tentacles (tentacles, tentacle): jumped out at the police, and coming at you, long black limbs unfurl out of its
+// back and shoulders, tapering, waving and writhing, its own black with a faint cold rim along the edge the light is on:
+// at the police a fan of them behind it, away from the car, one over its head and one out low at them (seven); coming at
+// you a fan of them all round behind it, five more out from behind its maw between the petals, and two that come round
+// from its shoulders and curl in at your face from either side, as thick at their far ends as at their roots (drawn over
+// it, short of the maw's teeth): seventeen. Reduced motion: they wave slowly, and less. c.tentacles: how many it drew,
+// the last time it was drawn.
 CREATURES.signalman = {
   name: 'the shade', h: 2.5, w: 0.8, faceY: 2.3, stepRate: 0.6, catchDist: 1.6, sound: 'walker', ignoresGaze: true,
   death: { delay: 0.3, dur: 0.5, sting: 'stingGlass' },
   voice: { kind: 'hum', every: [7, 13] },
-  init(c) { c.held = false; c.away = false; c.lookT = -9; c.unseenFor = 9; c.wasSeen = false; c.side = 0; c.reach = 0; c.rush = 0; c.grip = 0; c.dark = false; c.lampLit = 0; c.torch = 0; c.scare = 0; c.scareSide = 1; },
+  init(c) { c.held = false; c.away = false; c.lookT = -9; c.unseenFor = 9; c.wasSeen = false; c.side = 0; c.reach = 0; c.rush = 0; c.grip = 0; c.dark = false; c.lampLit = 0; c.torch = 0; c.scare = 0; c.scareSide = 1; c.convulse = 0; c.tentacles = 0; },
   lateral(c) { return c.side || 0; },
   speedMult(c, dt, seen) {
     // the head: looked at after a while unwatched, it is still turned aside, and a moment later it snaps round to you
@@ -41,23 +52,42 @@ CREATURES.signalman = {
     const mv = c.moving ? 1 : 0, ru = back || lunge ? 0 : clamp(c.rush || 0, 0, 1) * (1 - sc), ruE = smoothstep(Math.min(1, ru * 1.6));
     const reveal = back ? 0 : smoothstep(lunge * 1.6);   // (only coming at you: no lamp ever lights its face)
     const lk = smoothstep(lunge * 1.5);
+    // convulsing (in the police flashlight, before it jumps out at them): every joint of it jerked somewhere new several
+    // times a second (jk: each its own, by a seed), less and less as it springs out of it (with reduced motion, a slow writhe)
+    const still = SAVE.data.settings.reducedMotion, cv = back || lunge ? 0 : clamp(c.convulse || 0, 0, 1) * (1 - sc);
+    const jk = cv > 0 ? (seed, rate) => this.jerk(t, seed, rate, still) : () => 0;
     // the skeleton of the pose: upright (walking, or standing dead still), folded down low (skittering), or coming at you
+    // (convulsing: sunk on its knees and hunched, its shoulders narrowed as it twists, the whole of it above the hips
+    // thrown over one way and the other (bend), the spine kinked aside at the waist (kink) and thrown from side to side
+    // (sway), one shoulder up and the other down (shT), the head flung about on the neck)
     const bob = mv * Math.abs(Math.sin(g)) * (0.03 + 0.05 * ru);
-    const hipY = lerp(1.12, 0.6, ruE) + bob, shY = lerp(1.9, 0.98, ruE) + bob, shW = lerp(0.105, 0.2, ruE);
-    const sway = (c.moving && !ru ? Math.sin(g * 0.5) * 0.025 : 0);
-    const headC = [sway * 1.4 + sd * 0.07 * sc, lerp(2.3, 1.13, ruE) + bob + lk * 0.04 + sc * 0.06], neckB = [sway, shY + 0.02];
+    const hipY = lerp(1.12, 0.6, ruE) + bob - cv * (0.1 + 0.08 * jk(3, 6)), shY = lerp(1.9, 0.98, ruE) + bob - cv * (0.07 - 0.06 * jk(4, 9)), shW = lerp(0.105, 0.2, ruE) * (1 - cv * 0.3 * (1 + jk(10, 7)));
+    const sway = (c.moving && !ru ? Math.sin(g * 0.5) * 0.025 : 0) + cv * jk(1, 7) * 0.11;
+    const kink = cv * jk(2, 8) * 0.1, shT = cv * jk(5, 8) * 0.09, bend = cv * jk(11, 6) * 0.44;
+    // (the legs are drawn with the rest of it, thrown over about the hips by bend: unbent here, the feet stay where they
+    // stand and the knees go half the way)
+    const unbend = (p, f) => { const a = -bend * f, dx = p[0] - kink * 0.6, dy = p[1] - hipY, ca = Math.cos(a), sa = Math.sin(a); return [kink * 0.6 + dx * ca - dy * sa, hipY + dx * sa + dy * ca]; };
+    const headC = [sway * 1.4 + sd * 0.07 * sc + cv * jk(6, 10) * 0.08, lerp(2.3, 1.13, ruE) + bob + lk * 0.04 + sc * 0.06 - cv * (0.07 - 0.05 * jk(7, 10))], neckB = [sway, shY + 0.02];
     // the limbs, as joints from the body out: legs, then arms (the one reaching is drawn on its own)
     const legs = [], arms = [];
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? Math.PI : 0), lift = mv * Math.max(0, Math.sin(ph)) * (0.16 + 0.1 * ru), swing = mv * Math.sin(ph) * (0.1 - 0.05 * ru);
-      legs.push([[s * 0.035, hipY], [lerp(s * 0.05 + swing * 0.4, s * 0.32, ruE), lerp(0.58, 0.78, ruE) + lift * 0.7], [lerp(s * 0.06 + swing, s * 0.24, ruE), lift * (1 - ruE * 0.4) + 0.01]]);
+      // (convulsing: the knees thrown out and in)
+      const knee = [lerp(s * 0.05 + swing * 0.4, s * 0.32, ruE) + cv * (s * (0.09 + 0.1 * Math.abs(jk(20 + s, 9))) + 0.1 * jk(24, 7)), lerp(0.58, 0.78, ruE) + lift * 0.7 + cv * 0.06 * jk(22 + s, 9)], foot = [lerp(s * 0.06 + swing, s * 0.24, ruE), lift * (1 - ruE * 0.4) + 0.01];
+      legs.push([[s * 0.035 + kink * 0.6, hipY], bend ? unbend(knee, 0.5) : knee, bend ? unbend(foot, 1) : foot]);
       // arms: hanging to the knees, loose, a little swing against the stride; skittering, down to the ground ahead as front
       // legs; coming at you, up and out either side of your face, the fingers spread
       const aph = g + (s > 0 ? 0 : Math.PI), alift = mv * Math.max(0, Math.sin(aph)) * 0.18 * ru, asw = mv * Math.sin(aph) * 0.05 * (1 - ru);
-      const shp = [s * shW + sway, shY - 0.02];
+      const shp = [s * shW + sway, shY - 0.02 + s * shT];
       let el = [lerp(lerp(s * 0.15 + asw, s * 0.56, ruE), s * 0.42, lk), lerp(lerp(1.32, 1.36, ruE) + alift, 2.0, lk)];
       let wr = [lerp(lerp(s * 0.13 + asw * 1.8, s * 0.5, ruE), s * 0.36, lk), lerp(lerp(0.6 + bob, 0.06 + alift, ruE), 2.42, lk)];
       let ang = lerp(lerp(-Math.PI / 2 + s * 0.06, -Math.PI / 2 + s * 0.5, ruE), Math.PI / 2 - s * 0.45, lk), spread = lerp(lerp(0.07, 0.34, ruE), 0.32, lk);
+      if (cv > 0) {   // convulsing: the elbow thrown out and up, the forearm flung about from it (anywhere from hanging to straight up over it), the fingers clawed
+        const ex = s * (0.16 + 0.26 * Math.abs(jk(30 + s, 9))) + sway, ey = shY - 0.3 + 0.5 * jk(32 + s, 8), fa = -Math.PI / 2 + s * 0.3 + jk(34 + s, 11) * 2.6;
+        el = [lerp(el[0], ex, cv), lerp(el[1], ey, cv)];
+        wr = [lerp(wr[0], ex + Math.cos(fa) * 0.7, cv), lerp(wr[1], Math.max(0.1, ey + Math.sin(fa) * 0.7), cv)];
+        ang = lerp(ang, fa + jk(36 + s, 12) * 0.7, cv); spread = lerp(spread, 0.42, cv);
+      }
       if (sc > 0) {   // at the police: the arm on their side out at them, high, the other up over its head, the fingers spread
         const out = s === sd;
         el = [lerp(el[0], out ? sd * 0.5 : s * 0.3 + sd * 0.04, sc), lerp(el[1], out ? 2.02 : 2.2, sc)];
@@ -70,16 +100,22 @@ CREATURES.signalman = {
     // the torso: narrow shoulders falling away to a waist hardly thicker than an arm, all of a piece with the neck
     const torso = () => {
       ctx.beginPath();
-      ctx.moveTo(-shW + sway, shY); ctx.quadraticCurveTo(-0.07 + sway * 0.6, lerp(shY, hipY, 0.35), -0.042, lerp(shY, hipY, 0.78));
-      ctx.lineTo(-0.055, hipY); ctx.lineTo(0.055, hipY); ctx.lineTo(0.042, lerp(shY, hipY, 0.78));
-      ctx.quadraticCurveTo(0.07 + sway * 0.6, lerp(shY, hipY, 0.35), shW + sway, shY);
+      ctx.moveTo(-shW + sway, shY - shT); ctx.quadraticCurveTo(-0.07 + sway * 0.6 + kink, lerp(shY, hipY, 0.35), -0.042 + kink, lerp(shY, hipY, 0.78));
+      ctx.lineTo(-0.055 + kink * 0.6, hipY); ctx.lineTo(0.055 + kink * 0.6, hipY); ctx.lineTo(0.042 + kink, lerp(shY, hipY, 0.78));
+      ctx.quadraticCurveTo(0.07 + sway * 0.6 + kink, lerp(shY, hipY, 0.35), shW + sway, shY + shT);
       ctx.quadraticCurveTo(0.05 + sway, shY + 0.06, neckB[0] + 0.02, neckB[1] + 0.02); ctx.lineTo(neckB[0] - 0.02, neckB[1] + 0.02);
-      ctx.quadraticCurveTo(-0.05 + sway, shY + 0.06, -shW + sway, shY); ctx.closePath();
+      ctx.quadraticCurveTo(-0.05 + sway, shY + 0.06, -shW + sway, shY - shT); ctx.closePath();
     };
     const limbPath = pts => { ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); };
     const strokeLimbs = (list, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = W(w); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); for (const p of list) limbPath(p); ctx.stroke(); };
     if (back) { ctx.save(); ctx.scale(-1, 1); }
-    if (sc > 0) { ctx.save(); ctx.transform(1, 0, sd * 0.16 * sc, 1, 0, 0); }   // (leaning at them from the feet up)
+    // (leaning at the police from the feet up; convulsing, thrown over about its hips)
+    const leaning = sc > 0 || cv > 0;
+    if (leaning) { ctx.save(); ctx.transform(1, 0, sd * 0.16 * sc, 1, 0, 0); if (bend) { ctx.translate(kink * 0.6, hipY); ctx.rotate(bend); ctx.translate(-kink * 0.6, -hipY); } }
+    // its tentacles, behind it: out of its back and shoulders at the police (the first of them squirming out as it
+    // convulses), and all round behind it coming at you
+    const tk = back ? 0 : Math.max(sc, lk, cv * 0.14), tent = (which, at) => (tk > 0.01 ? this.tentacles(ctx, c, P, haze, tk, which, sd, at, sway, W) : 0);
+    c.tentacles = tent(lunge ? 'fan' : 'side', shY);
     // the smoke at its edges, first: the same shapes a little bigger and faint, and a few wisps lifting off it
     const armPts = arms.filter(a => a.s !== reaching).map(a => a.pts);
     strokeLimbs(legs.concat(armPts), 0.075, haze);
@@ -98,7 +134,7 @@ CREATURES.signalman = {
     ctx.fillStyle = ink; torso(); ctx.fill();
     for (const a of arms) if (a.s !== reaching) {
       strokeLimbs([a.pts.slice(0, 2)], 0.034, ink); strokeLimbs([a.pts.slice(1)], 0.026, ink);
-      this.hand(ctx, ink, a.pts[2][0], a.pts[2][1], a.ang, a.spread + Math.abs(this.twitch(t + a.s, 2.3, 7)) * 0.3, lerp(0.2, 0.26, sc), lerp(lerp(0.15, 0.5, lk), 0.45, sc) * -a.s, W);
+      this.hand(ctx, ink, a.pts[2][0], a.pts[2][1], a.ang, a.spread + Math.abs(this.twitch(t + a.s, 2.3, 7)) * 0.3, lerp(0.2, 0.26, sc), lerp(lerp(lerp(0.15, 0.5, lk), 0.45, sc), 1.0, cv) * -a.s, W);
     }
     for (const lg of legs) P_ell(ctx, lg[2][0], lg[2][1], W(0.05), W(0.018), ink);   // the feet, long and thin
     if (reaching) this.reachArm(ctx, c, P, ink, haze, [reaching * shW + sway, shY - 0.02], reaching, W, px);
@@ -106,9 +142,13 @@ CREATURES.signalman = {
     // the head. Looked at, it is turned aside, and snaps round to you a moment later; now and then it jerks over
     const since = t - (c.lookT === undefined ? -9 : c.lookT);
     const turn = back || lunge ? 0 : since < 0.5 ? 1 - smoothstep((since - 0.38) / 0.07) : 0;
-    const tilt = (headTiltJerk(t, 4.1, 0.05) * (c.moving ? 1 : 0.15)) * (1 - lunge) * (1 - sc) + turn * 0.14 + ru * 0.25 * Math.sin(g * 0.5) + (reaching ? -reaching * 0.12 * smoothstep(c.reach) : 0) - sd * 0.3 * sc;
+    // (convulsing: snapped over onto one shoulder and the other, and turned from one side to the other, cturn)
+    const cturn = cv * clamp(jk(9, 9) * 1.7, -1, 1);
+    const tilt = (headTiltJerk(t, 4.1, 0.05) * (c.moving ? 1 : 0.15)) * (1 - lunge) * (1 - sc) + turn * 0.14 + ru * 0.25 * Math.sin(g * 0.5) + (reaching ? -reaching * 0.12 * smoothstep(c.reach) : 0) - sd * 0.3 * sc + cv * jk(8, 10) * 0.95;
+    if (lunge) c.tentacles += tent('crown', headC[1] - 0.01);   // (coming at you: more of them out from behind its maw, between the petals)
     ctx.save(); ctx.translate(headC[0], headC[1]); ctx.rotate(tilt);
-    if (!back) this.face(ctx, c, P, ink, turn, reveal, lunge, px);
+    if (cturn < 0) ctx.scale(-1, 1);
+    if (!back) this.face(ctx, c, P, ink, Math.max(turn, Math.abs(cturn)), reveal, lunge, px, cv * (0.3 + 0.6 * Math.abs(jk(12, 7))));   // (its jaw dropping out of its head and snapping back)
     else P_ell(ctx, 0, 0, W(0.075), W(0.13), ink);
     ctx.restore();
     // where a lamp it stands behind lights it: a thin warm rim along the shoulder toward it, and nothing on the head or the
@@ -119,13 +159,14 @@ CREATURES.signalman = {
     }
     // a flashlight on it: a pale light down the side it comes from, over the dark of it (its body and its head)
     if (!back && !lunge && (c.torch || 0) > 0.02) {
-      const gr = ctx.createLinearGradient(sd * (shW + 0.02), 0, -sd * 0.06, 0);
+      const gr = ctx.createLinearGradient(sd * (shW + 0.02) + sway, 0, -sd * 0.06 + sway, 0);
       gr.addColorStop(0, P.cola([206, 214, 236], 0.42 * c.torch)); gr.addColorStop(1, P.cola([206, 214, 236], 0));
       ctx.fillStyle = gr; torso(); ctx.fill();
-      ctx.save(); ctx.translate(headC[0], headC[1]); ctx.rotate(tilt); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(sd * 0.012, 0, 0.07, 0.125, 0, 0, TAU); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.translate(headC[0], headC[1]); ctx.rotate(tilt); ctx.translate(-sway, 0); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(sd * 0.012 + sway, 0, 0.07, 0.125, 0, 0, TAU); ctx.fill(); ctx.restore();
       strokeLimbs(legs, 0.012, P.cola([206, 214, 236], 0.18 * c.torch));
     }
-    if (sc > 0) ctx.restore();
+    if (leaning) ctx.restore();
+    if (lunge) c.tentacles += tent('near', shY);   // (and those that come round at your face, over it)
     if (back) ctx.restore();
     if (c.held && !c.moving && !lunge) P_ell(ctx, 0, 0.02, 0.35, 0.04, P.cola([0, 0, 0], 0.25));
   },
@@ -137,11 +178,11 @@ CREATURES.signalman = {
   // the face, in the lunge: the head splits open into five petals, peeled back from a round maw, every one of them lined
   // with teeth along its edges and the maw ringed with more of them, row inside row, down into the black: no eyes, no
   // face, only the mouth. k is how far open (the shut face below fades as it opens)
-  face(ctx, c, P, ink, turn, reveal, lunge, px) {
+  face(ctx, c, P, ink, turn, reveal, lunge, px, jaw) {
     const sc = lunge ? 0 : smoothstep(clamp(c.scare || 0, 0, 1));
     if (sc > 0.001) { this.scareFace(ctx, c, P, ink, sc, px); return; }
     const k = px < 0.03 ? smoothstep(clamp((lunge - 0.06) / 0.5, 0, 1)) : 0;
-    if (k < 0.999) { ctx.save(); ctx.globalAlpha *= 1 - smoothstep(k / 0.4); this.faceShut(ctx, c, P, ink, turn, reveal, lunge, px); ctx.restore(); }
+    if (k < 0.999) { ctx.save(); ctx.globalAlpha *= 1 - smoothstep(k / 0.4); this.faceShut(ctx, c, P, ink, turn, reveal, lunge, px, jaw); ctx.restore(); }
     if (k > 0.001) this.maw(ctx, c, P, ink, k);
   },
   // at the police (c.scare): its head turned to them (c.scareSide), the shut face going as it splits open, the back of
@@ -201,8 +242,8 @@ CREATURES.signalman = {
     }
     ctx.globalAlpha = a1;
   },
-  faceShut(ctx, c, P, ink, turn, reveal, lunge, px) {
-    const fx = turn * 0.045, rv = clamp(reveal, 0, 1), gape = smoothstep(lunge * 1.3);
+  faceShut(ctx, c, P, ink, turn, reveal, lunge, px, jaw) {   // (jaw: how far its jaw has dropped, convulsing: the dark of it only)
+    const fx = turn * 0.045, rv = clamp(reveal, 0, 1), gape = Math.max(smoothstep(lunge * 1.3), jaw || 0);
     // the head: long and narrow, the jaw dropping out of it as the mouth opens
     P_ell(ctx, 0, 0, Math.max(0.075, 0.9 * px), Math.max(0.13, 0.9 * px), ink);
     if (gape > 0.01) P_ell(ctx, fx * 0.5, -0.1 - gape * 0.12, 0.058, 0.05 + gape * 0.14, ink);   // the jaw, dropping far too far
@@ -286,6 +327,82 @@ CREATURES.signalman = {
     }
     ctx.moveTo(x + sa * 0.012, y - ca * 0.012); ctx.lineTo(x + Math.cos(ang - 0.7) * len * 0.36, y + Math.sin(ang - 0.7) * len * 0.36);   // the thumb
     ctx.stroke();
+  },
+  // Its tentacles (k: how far out they have come; coiled up short until then). At the police ('side'; sd: the side of the
+  // view they are on): out of its back and shoulders, fanned out behind it away from them, one up over its head toward
+  // them and one out low at them. Coming at you: all round behind it ('fan'), five a side; out from behind its maw
+  // between the petals ('crown', drawn under the maw: at is how high its middle is); and two that come round from its
+  // shoulders, out below and up in at your face from either side ('near', drawn over it all, short of the maw's teeth),
+  // as thick at their far ends as at their roots, as what comes at the eye is. Each is a line of points from its root:
+  // off along an angle and bending by curl along its length, a wave running out along it ('near': along a curve through
+  // three points, growing along it). Returns how many it drew
+  TENT: {
+    // [x toward its back, y, angle (0 straight back, up from there), length, width, curl, phase]
+    side: [[0.03, 1.9, 1.15, 1.9, 0.11, 0.8, 0], [0.05, 1.8, 0.62, 2.2, 0.125, -0.5, 1.7], [0.05, 1.66, 0.2, 2.0, 0.115, 0.9, 3.1], [0.04, 1.5, -0.3, 1.7, 0.1, -0.7, 4.4],
+      [0.03, 1.32, -0.9, 1.5, 0.095, 1.3, 5.6], [0, 1.93, 1.75, 1.7, 0.1, -1.1, 2.3], [-0.03, 1.55, 3.5, 1.4, 0.09, 0.9, 0.9]],
+    // (either side) [x out to that side, y, angle (0 straight up, out to that side from there), length, width, curl, phase]
+    fan: [[0.04, 1.97, 0.42, 1.7, 0.075, 0.35, 0], [0.08, 1.92, 0.95, 2.0, 0.085, -0.4, 1.3], [0.1, 1.85, 1.45, 1.9, 0.085, 0.45, 2.9], [0.09, 1.74, 1.95, 1.7, 0.075, -0.5, 4.2], [0.07, 1.58, 2.45, 1.5, 0.07, 0.6, 5.3]],
+    // [angle out from the middle of the maw (0 to the right, up from there), length, width, curl, phase]: one to each gap between its petals
+    crown: [[1.57, 0.62, 0.05, 0.5, 0.4], [0.2, 0.7, 0.05, -0.7, 2.2], [2.94, 0.7, 0.05, 0.7, 4.1], [-0.94, 0.78, 0.055, 0.6, 5.5], [4.08, 0.78, 0.055, -0.6, 1.2]],
+    // (either side) [the three points its curve goes through (x out to that side), width, phase]
+    near: [[[0.1, 1.84], [0.86, 1.66], [0.37, 2.2], 0.075, 0.6]],
+  },
+  tentacles(ctx, c, P, haze, k, which, sd, at, sway, W) {
+    const t = c.t, still = SAVE.data.settings.reducedMotion, wv = still ? 2.2 : 10, amp = still ? 0.2 : 0.42, N = 14, T = this.TENT;
+    const ink = P.col([9, 8, 11], 0.06);   // (black whatever is shone on them: a flashlight leaves them dark against what it lights)
+    const rim = rgba(mixc([150, 158, 186], P.fogColor || [0, 0, 0], P.fog || 0), 0.4), light = which === 'side' ? [sd, 0.3] : [0.25, 1];
+    // (mx: mirrored across; a0 a mathematical angle before the mirror)
+    const one = (x0, y0, mx, a0, len, w, curl, ph, wave) => {
+      const L = len * (0.12 + 0.88 * k), coil = (1 - k) * 2.0 * (curl < 0 ? -1 : 1), pts = [];
+      let x = x0, y = y0;
+      for (let i = 0; i <= N; i++) {
+        const s = i / N, a = a0 + curl * s + coil * s + (amp * (0.2 + s) * Math.sin(5.5 * s - t * wv + ph) + amp * 0.4 * s * Math.sin(12 * s - t * wv * 1.6 + ph * 2.3)) * wave;
+        pts.push([x, y, 1]);
+        x += mx * Math.cos(a) * L / N; y += Math.sin(a) * L / N;
+      }
+      this.tentacle(ctx, pts, w * (0.55 + 0.45 * k), ink, haze, rim, light, W);
+    };
+    if (which === 'side') { for (const q of T.side) one(-sd * q[0] + sway, q[1] + at - 1.9, -sd, q[2], q[3], q[4], q[5], q[6], 1); return T.side.length; }
+    if (which === 'fan') { for (const s of [-1, 1]) for (const q of T.fan) one(s * q[0] + sway, q[1] + at - 1.9, s, Math.PI / 2 - q[2], q[3], q[4], -q[5], q[6] + s * 1.1, 0.8); return 2 * T.fan.length; }
+    if (which === 'crown') { for (const q of T.crown) one(sway + Math.cos(q[0]) * 0.03, at + Math.sin(q[0]) * 0.03, 1, q[0], q[1], q[2], q[3], q[4], 1.1); return T.crown.length; }
+    for (const s of [-1, 1]) for (const [p0, p1, p2, w, ph0] of T.near) {
+      const pts = [], ph = ph0 + s * 1.3;
+      for (let i = 0; i <= N; i++) {
+        const u = i / N, v = u * k, wob = still ? 0.012 : 0.03, ox = wob * u * Math.sin(6 * u - t * wv + ph), oy = wob * u * Math.cos(5 * u - t * wv * 1.3 + ph);
+        pts.push([sway + s * ((1 - v) * (1 - v) * p0[0] + 2 * v * (1 - v) * p1[0] + v * v * p2[0] + ox), (1 - v) * (1 - v) * p0[1] + 2 * v * (1 - v) * p1[1] + v * v * p2[1] + at - 1.9 + oy, 1 + 1.6 * u]);
+      }
+      this.tentacle(ctx, pts, w * (0.55 + 0.45 * k), ink, haze, rim, light, W);
+    }
+    return 2 * T.near.length;
+  },
+  // one tentacle, down a line of points (pts: [x, y, how much larger there]), w wide at its root and tapering to a point:
+  // the smoke at its edge, the black of it, and a faint cold rim along the edge the light (light: where it comes from) is on
+  tentacle(ctx, pts, w, ink, haze, rim, light, W) {
+    const n = pts.length - 1, A = [], B = [], E = [];
+    for (let i = 0; i < n; i++) {
+      const p = pts[i], a = pts[Math.max(0, i - 1)], b = pts[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+      const hw = W(w * (0.1 + 0.9 * Math.pow(1 - i / n, 0.8)) * p[2]) / 2;
+      A.push([p[0] + nx * hw, p[1] + ny * hw]); B.push([p[0] - nx * hw, p[1] - ny * hw]);
+      const e = nx * light[0] + ny * light[1] > 0 ? 0.8 * hw : -0.8 * hw; E.push([p[0] + nx * e, p[1] + ny * e, e > 0]);
+    }
+    ctx.beginPath(); ctx.moveTo(A[0][0], A[0][1]);
+    for (let i = 1; i < n; i++) ctx.lineTo(A[i][0], A[i][1]);
+    ctx.lineTo(pts[n][0], pts[n][1]);
+    for (let i = n - 1; i >= 0; i--) ctx.lineTo(B[i][0], B[i][1]);
+    ctx.closePath();
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.strokeStyle = haze; ctx.lineWidth = W(0.035); ctx.stroke();
+    ctx.fillStyle = ink; ctx.fill();
+    ctx.strokeStyle = rim; ctx.lineWidth = W(0.008); ctx.beginPath();
+    for (let i = 2; i < n; i++) { if (i === 2 || E[i][2] !== E[i - 1][2]) ctx.moveTo(E[i][0], E[i][1]); else ctx.lineTo(E[i][0], E[i][1]); }
+    ctx.stroke();
+  },
+  // a convulsion's jerk, -1..1: a value held, then snapped to the next, rate times a second, with a shudder through it;
+  // each joint its own (seed). With reduced motion (still) a slow writhe instead
+  jerk(t, seed, rate, still) {
+    if (still) return Math.sin(t * 1.7 + seed * 2.4) * 0.35;
+    const u = t * rate + seed * 3.7, i = Math.floor(u), h = q => { const x = Math.sin((q + seed * 17.3) * 127.1) * 43758.5453; return (x - Math.floor(x)) * 2 - 1; };
+    return lerp(h(i - 1), h(i), smoothstep(Math.min(1, (u - i) / 0.28))) * 0.86 + Math.sin(t * 53 + seed * 5.1) * 0.14;
   },
   // a jerk: now and then (not every period, by a hash of which one it is) a sharp shudder at the start of a period
   twitch(t, period, seed) {

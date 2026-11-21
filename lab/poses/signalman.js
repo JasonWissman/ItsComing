@@ -89,20 +89,25 @@
           if (T < 0.8) { c.moving = false; return; }
           c.away = true; c.frozen = true; c.moving = true; c.dist += dt * 1.3; c.gait += dt * 1.3 * CR.stepRate * Math.PI;
         } },
-      // the police (911): night09 copMan sets c.torch while the flashlight is on it and c.scare (and c.hop, off the ground)
-      // as it jumps out at them; c.scareSide is the side of the view the car is on
+      // the police (911): night09 copMan sets c.torch while the flashlight is on it, c.convulse for the second it convulses
+      // in that light (COP.conv), and c.scare (and c.hop, off the ground) as it jumps out at them, its tentacles out;
+      // c.scareSide is the side of the view the car is on
       { name: 'Caught in a flashlight', note: 'The police car has screeched to a halt by its lamp and a flashlight from its window finds it: a pale light down that side of it, and its eyes shining back. It stands dead still.',
         dist: 13, dur: 2.4, lit: 0.3, fit: NEAR, set(c) { c.scareSide = 1; c.torch = 0; },
         tick(c, k, dt, T) { c.torch = T < 0.4 ? 0 : T < 0.6 ? (Math.sin(T * 70) < -0.3 ? 0.2 : 1) : 1; } },
-      { name: 'Jumped out at the police', note: 'Then it jumps out in front of the post at the car, upright and leaning at it, one arm out at it and the other up over its head, its head split open into its petals of teeth, turned to the car (here, to the right), with a shriek; it holds it as the car goes, then shuts.',
-        dist: 13, dur: 3.6, lit: 0.3, fit: { h: 3.2, w: 2.2 }, set(c) { c.scareSide = 1; c.torch = 1; c.scare = 0; c.hop = 0; },
+      { name: 'Convulsing in the flashlight', note: 'In that light it convulses for a second, with a shriek tearing upward: thrown over at the waist one way and the other, its spine kinked, one shoulder up and the other down, its knees buckling, its elbows out and its forearms flung about from them at wrong angles, its head snapping from side to side and its jaw dropping out of it, every joint jerked somewhere new several times a second, and the first of its tentacles squirming out of its back. (With reduced motion, a slow writhe.)',
+        dist: 13, dur: 1.5, lit: 0.3, fit: { h: 3.0, w: 2.4 }, set(c) { c.scareSide = 1; c.torch = 1; c.convulse = 0; },
+        tick(c, k, dt, T) { c.convulse = smoothstep(clamp((T - 0.3) / 0.12, 0, 1)); } },
+      { name: 'Jumped out at the police', note: 'Then it springs out of its convulsion, out in front of the post at the car, upright and leaning at it, one arm out at it and the other up over its head, its head split open into its petals of teeth, turned to the car (here, to the right), and long black tentacles unfurling out of its back and shoulders, waving: a fan of them behind it, one up over its head and one out low at the car; with a snarl, high and gravelly. It holds it as the car goes, then shuts, and they draw back into it.',
+        dist: 13, dur: 4.2, lit: 0.3, fit: { h: 4.2, w: 4.6, y0: -0.3 }, set(c) { c.scareSide = 1; c.torch = 1; c.scare = 0; c.hop = 0; c.convulse = 0; },
         tick(c, k, dt, T) {
-          const e = T - 0.4, j = clamp(e / 0.28, 0, 1);
+          const e = T - 1.0, j = clamp(e / 0.28, 0, 1);
+          c.convulse = e < 0 ? smoothstep(clamp(T / 0.12, 0, 1)) : 1 - smoothstep(clamp(e / (0.28 * 0.8), 0, 1));
           c.hop = e > 0 && e < 0.28 ? Math.sin(Math.PI * j) * 0.3 : 0; c.yOff = c.hop;
-          c.scare = smoothstep(clamp((e - 0.11) / 0.3, 0, 1)) * (1 - smoothstep(clamp((e - 2.6) / 0.45, 0, 1)));
+          c.scare = smoothstep(clamp((e - 0.11) / 0.3, 0, 1)) * (1 - smoothstep(clamp((e - 2.25) / 0.45, 0, 1)));
           c.torch = e < 0.7 ? 1 : Math.max(0, 1 - (e - 0.7) / 0.05);
         } },
-      LAB.lunge({ note: 'It catches you: its head splits open into five petals lined with teeth, rings of teeth coming up out of its throat and moving out, only ever outward, the long hands up either side of your face.', dist: CR.catchDist }),
+      LAB.lunge({ note: 'It catches you: its head splits open into five petals lined with teeth, rings of teeth coming up out of its throat and moving out, only ever outward, the long hands up either side of your face; and long black tentacles unfurl all round behind it, waving, more of them out from behind the maw between its petals, and two that come round from its shoulders and curl in at your face from either side.', dist: CR.catchDist }),
     ],
   });
 })();
