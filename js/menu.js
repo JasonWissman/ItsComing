@@ -55,16 +55,35 @@ const MENU = (() => {
     }
     return '<div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>';
   }
+  // the nights' easter eggs, one for each night that has one (its text.egg names it: js/levels/*.js), found or not (the
+  // save's eggs, by the night's id: game.js foundEgg). A night with none yet has egg ''
+  const eggList = () => LEVELS.map((l, i) => { const egg = (l.text && l.text.egg) || ''; return { i, title: l.title, egg, found: !!(egg && SAVE.data.eggs[l.id]) }; });
+  const eggsFound = () => eggList().filter(x => x.found).length;
+  // Scores is there to open (on the title, and in the pause menu) once there is something in it: a best run (a whole
+  // game finished), or an easter egg found
+  const scoresOpen = () => !!SAVE.data.bestRun[G.diff().id] || eggsFound() > 0;
+  // the Scores' second tab: the thirteen nights in order, each with its easter egg. One found: what it was (the night's
+  // own line for it); one not found yet: ???, nothing given away; a night with none: a dash, dimmed. And how many of
+  // those there are have been found
+  function eggsHtml(eggs) {
+    const had = eggs.filter(x => x.egg).length, found = eggs.filter(x => x.found).length;
+    let rows = '';
+    for (const x of eggs) {
+      const what = x.found ? '<span class="ewhat">' + escapeHtml(x.egg) + '</span>' : x.egg ? '<span class="ewhat" role="img" aria-label="not found yet">???</span>' : '<span class="ewhat" role="img" aria-label="none">&mdash;</span>';
+      rows += '<div class="egg ' + (x.found ? 'found' : x.egg ? 'unknown' : 'none') + col(x.i) + '" role="listitem"' + (x.egg ? '' : ' aria-disabled="true"') + '><span class="ename">' + (x.i + 1) + '. ' + x.title + '</span>' + what + '</div>';
+    }
+    return '<div class="eggs" role="list" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + rows + '</div><p class="eggcount">' + found + ' of ' + had + ' found</p>';
+  }
   function btn(act, label, arg, cls) { return '<button type="button" class="mbtn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '"' + (arg !== undefined ? ' data-arg="' + arg + '"' : '') + '>' + label + '</button>'; }
   function html(kind, d) {
     d = d || {};
     switch (kind) {
       case 'title': {
         // the title itself: the name and the way in, and nothing else over what is out there (how to play is a dialog).
-        // There is one way in, Begin: every game is all the nights in a row from the first. Scores (how the nights have gone,
-        // to look at, not to pick from) only once one has been survived
+        // There is one way in, Begin: every game is all the nights in a row from the first. Scores (the best run and the
+        // easter eggs found, to look at, not to pick from) only once there is one of either (scoresOpen)
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
-          '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (G.unlocked > 0 ? btn('nights', 'Scores') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
+          '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (scoresOpen() ? btn('nights', 'Scores') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
           '<p class="fine credit">created by <a href="https://jasonwissman.com" target="_blank" rel="noopener">jason wissman</a></p>';
       }
       case 'howto': {
@@ -108,11 +127,12 @@ const MENU = (() => {
           '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
       }
       case 'pause':
-        // one narrow column of buttons all of a width: Resume, Controls (How to play, as on the title), Settings, and a
-        // quiet Quit. R (restart) and M (mute) still work from the keyboard; Esc resumes
-        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('controls', 'Controls') + btn('settings', 'Settings', 'pause') + btn('title', 'Quit', undefined, 'quiet') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
-      case 'dead':
-        return '<h1 class="red">' + (d.title || 'It got you') + '</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + btn('title', 'Quit', undefined, 'quiet') + '</div>';
+        // one narrow column of buttons all of a width: Resume, Controls (How to play, as on the title), Settings, Scores
+        // (once the title has it: scoresOpen) and a quiet Quit, which asks first (show: confirmQuit) and is the only way
+        // out to the title. R (restart) and M (mute) still work from the keyboard; Esc resumes
+        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('controls', 'Controls') + btn('settings', 'Settings', 'pause') + (scoresOpen() ? btn('nights', 'Scores', 'pause') : '') + btn('quit', 'Quit', undefined, 'quiet') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
+      case 'dead':   // (no way out to the title from here but the pause menu's Quit: Esc, B, or the menu button on a phone)
+        return '<h1 class="red">' + (d.title || 'It got you') + '</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + '</div>';
       case 'ending':   // the last screen of the last night, over the morning room
         return '<h1 class="big">You have faced your demons.</h1><div class="mrow">' + btn('done', 'The End', undefined, 'primary') + '</div>';
       case 'results': {
@@ -126,18 +146,26 @@ const MENU = (() => {
           '<div class="runcard rrun">' + run + '</div><div class="mrow rlast">' + btn('finish', 'Finish game', undefined, 'primary') + '</div></div>';
       }
       case 'survived':
-        // on to the next night, or, quietly and further down, out to the title
-        return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'Next night') + '</div>' +
-          '<button type="button" class="tbtn" data-act="title">Quit</button>';
+        // on to the next night (and no other way from here: the pause menu has Quit)
+        return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'Next night') + '</div>';
       case 'nights': {   // (the Scores dialog)
         // the best full run, to look at: a card for each night with its share of that run's time, in two columns (one on
         // a phone; not buttons: no night is picked from here), and under them the run's whole time and stars. No run
-        // yet: only a word on what one is. And at the bottom, by Back, Erase progress (it asks first: show)
-        const best = SAVE.data.bestRun[G.diff().id];
+        // yet: only a word on what one is. And at the bottom, by Back, Erase progress (it asks first: show; not when
+        // Scores is opened from the pause menu, a game under way).
+        // Once an easter egg has been found, two tabs: Best run (that) and Easter eggs (eggsHtml); both panels are in
+        // the page, the one not chosen hidden (pickTab). It opens on Best run, or on the eggs while there is no run yet
+        const best = SAVE.data.bestRun[G.diff().id], from = d.from || 'title';
         const body = best
           ? runCards(best, 'shown') + '<div class="runcard">' + runTime(best, 'Best run', false) + '</div>'
           : '<div class="runcard empty"><div class="rlabel">Best run</div><div class="rline"><div class="rtime none">&mdash;</div></div><div class="rhint">No full run yet. Survive all ' + LEVELS.length + ' nights in one go: retries are allowed, but the clock keeps running.</div></div>';
-        return '<h1>Scores</h1>' + body + '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + btn('reset', 'Erase progress', undefined, 'danger') + '</div>';
+        const foot = '<div class="mrow">' + btn('back', 'Back', from) + (from === 'pause' ? '' : btn('reset', 'Erase progress', undefined, 'danger')) + '</div>';
+        const eggs = eggList();
+        if (!eggs.some(x => x.found)) return '<h1>Scores</h1>' + body + foot;
+        const on = d.tab || (best ? 'run' : 'eggs');
+        const tab = (k, label) => '<button type="button" role="tab" id="tab-' + k + '" data-tab="' + k + '" aria-controls="panel-' + k + '" aria-selected="' + (k === on) + '" tabindex="' + (k === on ? 0 : -1) + '">' + label + '</button>';
+        const panel = (k, inner) => '<div class="tabpanel" role="tabpanel" id="panel-' + k + '" aria-labelledby="tab-' + k + '"' + (k === on ? '' : ' hidden') + '>' + inner + '</div>';
+        return '<h1>Scores</h1><div class="tabs" role="tablist" aria-label="Scores">' + tab('run', 'Best run') + tab('eggs', 'Easter eggs') + '</div><div class="tabstack">' + panel('run', body) + panel('eggs', eggsHtml(eggs)) + '</div>' + foot;
       }
       case 'settings': {
         if (d.sub === 'volume') return volumeHtml();
@@ -163,10 +191,11 @@ const MENU = (() => {
   // which comes on behind it while it is open
   // (and from the pause menu, Controls and Settings open as the same dialogs, over the night paused behind them)
   const DIALOGS = ['nights', 'settings', 'howto'];
+  const QUIT_TEXT = 'Are you sure you want to quit? Your progress will be lost.';   // (the pause menu's Quit asks: show)
   const pct = v => Math.round(v * 100) + '%';
   // a slider, its value as a percentage at its right (following it as it moves); name: what it is read out as, when its
   // label alone does not say
-  const rng = (k, label, min, max, name) => { const v = SAVE.data.settings[k]; return '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="0.05" data-set="' + k + '" value="' + v + '" aria-valuetext="' + pct(v) + '"' + (name ? ' aria-label="' + name + '"' : '') + '><output class="pct" aria-hidden="true">' + pct(v) + '</output></span></label>'; };
+  const rng = (k, label, min, max, name, step) => { const v = SAVE.data.settings[k]; return '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="' + (step || 0.05) + '" data-set="' + k + '" value="' + v + '" aria-valuetext="' + pct(v) + '"' + (name ? ' aria-label="' + name + '"' : '') + '><output class="pct" aria-hidden="true">' + pct(v) + '</output></span></label>'; };
   // a row of choices, one of them chosen (choices: [[label, value], ...]; chosen: the value chosen, else the setting's):
   // a radio group, its buttons side by side. The arrows (left and right; a pad's d-pad too) go along it choosing as they
   // go, Enter, Space and A choose the one with the focus, a click or a tap chooses; only the chosen one is in the round
@@ -209,31 +238,57 @@ const MENU = (() => {
     n.focus();
   }
   const isRadio = f => !!(f && f.getAttribute && f.getAttribute('role') === 'radio' && f.closest('.seg'));
+  // the Scores' tabs (role tablist, tab, tabpanel): a click or a tap on one chooses it; with the focus on the chosen one
+  // (the only one of them in the round the keys go: ring) left and right, and a pad's d-pad, go along them choosing as they
+  // go (Home and End: the first and the last). The panel of the one chosen is shown, the other's hidden. True if it changed
+  const isTab = f => !!(f && f.getAttribute && f.getAttribute('role') === 'tab');
+  function pickTab(root, k) {
+    let changed = false;
+    for (const t of root.querySelectorAll('[role="tab"]')) {
+      const on = t.dataset.tab === k, p = document.getElementById(t.getAttribute('aria-controls'));
+      if (on && t.getAttribute('aria-selected') !== 'true') changed = true;
+      t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1;
+      if (p) p.hidden = !on;
+    }
+    if (changed && current && current.kind === 'nights') current.data.tab = k;
+    return changed;
+  }
+  function tabStep(o, dir) {
+    const list = o.closest('[role="tablist"]'), all = [...list.querySelectorAll('[role="tab"]')], n = all[Math.max(0, Math.min(all.length - 1, all.indexOf(o) + dir))];
+    if (n !== o && pickTab(list.parentElement, n.dataset.tab)) tap();
+    n.focus();
+  }
   // Volume's Calibrate: the game's two volumes, each in a section of its own with its slider and the two ends of what it
-  // plays. Sound effects: the quietest sound (the heartbeat's first beat, as faint as it first comes) and the loudest (the
-  // sting's crash), each seven times from the left ear over to the right (AUDIO.calibrate), seven marks under each
-  // lighting with them. Ambience: the quietest bed in the game and the loudest, a few seconds of each, a bar under it
-  // filling as it plays. While it is open whatever ambience was playing is faded out (AUDIO.hush: settled), so these are
-  // heard in clean space. Done (Esc, a pad's B) is Settings again
+  // plays. Sound effects: the quietest sound (the heartbeat's first beat, as faint as it first comes, seven times from
+  // the left ear over to the right) and the loudest (the sting itself, once, in the middle): AUDIO.calibrate. Ambience:
+  // the quietest bed in the game and the loudest, a few seconds of each. Each of the four is a button with a play mark at
+  // its left, which is a stop mark while its sound plays (PLAY_ICON; .playing, aria-pressed): pressed then, it stops.
+  // These buttons make no tap of their own (the menus' click would be over the very sound being judged). While the
+  // dialog is open whatever ambience was playing is faded out (AUDIO.hush: settled), so these are heard in clean
+  // space. Done (Esc, a pad's B) is Settings again
   const CALS = { calquiet: 'quiet', calloud: 'loud', ambquiet: 'ambientQuiet', ambloud: 'ambientLoud' };
+  const PLAY_ICON = '<span class="calico" aria-hidden="true"><svg class="icoplay" viewBox="0 0 16 16"><path d="M4.2 2.2v11.6L13.6 8z"/></svg><svg class="icostop" viewBox="0 0 16 16"><rect x="3.2" y="3.2" width="9.6" height="9.6" rx="1.2"/></svg></span>';
   function volumeHtml() {
-    const QUIET = 'Increase volume until you can hear this comfortably', LOUD = 'Decrease volume until you can hear this comfortably';
-    const play = (act, label, note) => '<div class="calcol"><button type="button" class="mbtn calplay" data-act="' + act + '">' + label +
-      (act.startsWith('amb') ? '<span class="calbar" aria-hidden="true"><i></i></span>' : '<span class="caldots" aria-hidden="true">' + '<i></i>'.repeat(AUDIO.CAL.pans.length) + '</span>') + '</button><p class="calnote">' + note + '</p></div>';
+    const play = (act, label) => '<button type="button" class="mbtn calplay" data-act="' + act + '" aria-pressed="false">' + PLAY_ICON + '<span class="callabel">' + label + '</span></button>';
     const sec = (id, title, k, plays) => '<section class="calsec" aria-labelledby="cs-' + id + '"><h2 id="cs-' + id + '">' + title + '</h2><div class="calvol">' + rng(k, 'Volume', 0, 1, title + ' volume') + '</div><div class="calplays">' + plays + '</div></section>';
     return '<h1>Volume</h1><p class="caltext">Adjust your device volume and/or the sliders below until you can hear each of these comfortably.</p>' +
       '<p class="calmute"' + (SAVE.data.settings.muted ? '' : ' hidden') + '>Sound is muted: turn Mute off (M) to hear these.</p>' +
       '<div class="calsecs">' +
-      sec('fx', 'Sound effects', 'effects', play('calquiet', 'Play the quietest sound in the game', QUIET) + play('calloud', 'Play the loudest sound in the game', LOUD)) +
-      sec('amb', 'Ambience', 'ambient', play('ambquiet', 'Play the quietest ambience in the game', QUIET) + play('ambloud', 'Play the loudest ambience in the game', LOUD)) +
+      sec('fx', 'Sound effects', 'effects', play('calquiet', 'Play the quietest sound in the game') + play('calloud', 'Play the loudest sound in the game')) +
+      sec('amb', 'Ambience', 'ambient', play('ambquiet', 'Play the quietest ambience in the game') + play('ambloud', 'Play the loudest ambience in the game')) +
       '</div><div class="mrow">' + btn('caldone', 'Done', 'calvol', 'primary') + '</div>';
   }
   // Brightness's Calibrate: the thing on the title, the shape of it alone in The Void's dark (TITLE.shape, drawn by
-  // drawShape): the black of the void, and the demon's robe as it is there with no light on it. Done is Settings again
+  // drawShape): the black of the void, and the demon's robe as it is there with no light on it. Under it the game's own
+  // brightness, a slider (SAVE.BRIGHT: 60% to 160%, 100% as it is drawn), its percentage beside it; the creature here
+  // is shown through it, as the game and the title are (brightness), so what is seen here is what will be seen there.
+  // Done is Settings again
   function brightnessHtml() {
-    return '<h1>Brightness</h1><p class="caltext">Increase your device brightness until you can barely see the outline of this creature</p>' +
+    const B = SAVE.BRIGHT;
+    return '<h1>Brightness</h1><p class="caltext">Increase your device brightness, or the slider below, until you can barely see the outline of this creature</p>' +
       '<canvas class="calshape" role="img" aria-label="A dark figure, very faintly, on black"></canvas>' +
-      '<div class="mrow">' + btn('caldone', 'Done', 'calbright', 'primary') + '</div>';
+      '<div class="calfoot"><div class="calbright">' + rng('brightness', 'Brightness', B.min, B.max, undefined, B.step) + '</div>' +
+      '<div class="mrow">' + btn('caldone', 'Done', 'calbright', 'primary') + '</div></div>';
   }
   const VOID_BLACK = '#000', ROBE_DARK = 'rgb(12,10,15)';   // (js/levels/night13.js VOID_PAL's sky and fog; js/creatures/demon.js: its robe, robeC, unlit)
   function drawShape(cv) {
@@ -246,22 +301,18 @@ const MENU = (() => {
     TITLE.shape(g, w / 2, h / 2 + TITLE.SHAPE_H * ppm / 2, ppm, ROBE_DARK);
   }
   window.addEventListener('resize', () => document.querySelectorAll('canvas.calshape').forEach(drawShape));
-  // a play button pressed: it plays from the start (what was still sounding of the last, of either section, faded out at
-  // once: one at a time)
+  // a play button pressed: its sound plays from the start, its mark a stop mark until it is over (what was still sounding
+  // of another, of either section, faded out at once: one at a time); pressed while its own sound plays, that stops
   function calPlay(a, root) {
     ensureAudio();
     const b = root.querySelector('button[data-act="' + a + '"]'); if (!b) return;
-    const idle = x => { x.classList.remove('playing'); x.querySelectorAll('.caldots i').forEach(i => i.classList.remove('on')); const bar = x.querySelector('.calbar i'); if (bar) { bar.style.transition = 'none'; bar.style.width = '0'; } };
+    const idle = x => { x.classList.remove('playing'); x.setAttribute('aria-pressed', 'false'); };
+    const was = b.classList.contains('playing');
     root.querySelectorAll('button.calplay').forEach(idle);
     const note = root.querySelector('.calmute'); if (note) note.hidden = !SAVE.data.settings.muted;
-    b.classList.add('playing');
-    const bar = b.querySelector('.calbar i');
-    AUDIO.calibrate(CALS[a], i => {
-      if (!b.isConnected) return;
-      if (i < 0) { idle(b); return; }
-      if (bar) { void bar.offsetWidth; bar.style.transition = 'width ' + AUDIO.CAL.bed.len + 's linear'; bar.style.width = '100%'; return; }
-      b.querySelectorAll('.caldots i').forEach((x, j) => x.classList.toggle('on', j === i));
-    });
+    if (was) { AUDIO.calStop(); return; }
+    b.classList.add('playing'); b.setAttribute('aria-pressed', 'true');
+    if (!AUDIO.calibrate(CALS[a], i => { if (i < 0 && b.isConnected) idle(b); })) idle(b);
   }
   // after Settings (or one of its dialogs) is put in a screen: the shape drawn; in the volume's dialog the ambience
   // faded out of the way, out of it back in, and the calibration's sound stopped
@@ -281,27 +332,32 @@ const MENU = (() => {
   // the one switch for reduced motion and reduced flashing: both flags the game reads go with it (save.js keeps them alike)
   const switchOn = k => { const S = SAVE.data.settings; return k === 'reduceMotionFlash' ? !!(S.reducedMotion || S.reducedFlash) : !!S[k]; };
   // every button and control in the menus answers with a soft tap (AUDIO 'tap': quiet, and no caption: it is the
-  // click of the thing you pressed, nothing to be told about)
+  // click of the thing you pressed, nothing to be told about); all but the volume dialog's four play buttons (CALS),
+  // pressed to play or to stop: what they play is to be heard on its own
   const tap = () => { ensureAudio(); AUDIO.sfx('tap'); };
+  const tapFor = a => { if (!CALS[a]) tap(); };
   function show(kind, data) {
     stopReveal();
     current = { kind, data: data || {} };
     const ov = UI.overlay;
     const from = current.data.from || 'title';
     const dlg = DIALOGS.includes(kind) && ((from === 'title' && G.state === 'title') || from === 'pause');
-    // erasing progress asks first, in a small dialog of its own over Scores
-    const confirm = kind === 'nights' && current.data.confirmReset ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-label="Erase all progress?"><h2>Erase all progress?</h2><p>Every night reached and your best run will be gone.</p><div class="mrow">' + btn('keep', 'Cancel') + btn('erase', 'Erase', undefined, 'danger') + '</div></div></div>' : '';
+    // erasing progress asks first, in a small dialog of its own over Scores; and so does quitting, over the pause menu
+    // (Cancel first, so it has the focus; Esc, B or a click off it is Cancel)
+    const confirm = kind === 'nights' && current.data.confirmReset ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-label="Erase all progress?"><h2>Erase all progress?</h2><p>Every night reached, your best run and the easter eggs found will be gone.</p><div class="mrow">' + btn('keep', 'Cancel') + btn('erase', 'Erase', undefined, 'danger') + '</div></div></div>'
+      : kind === 'pause' && current.data.confirmQuit ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-describedby="quitText"><p class="cask" id="quitText">' + QUIT_TEXT + '</p><div class="mrow">' + btn('stay', 'Cancel') + btn('title', 'Quit', undefined, 'danger') + '</div></div></div>' : '';
     const sub = kind === 'settings' && current.data.sub ? ' calp cal-' + current.data.sub : '';   // (Settings' calibration dialogs, in the same panel)
     showOverlay((dlg ? '<div class="panel ' + kind + 'p' + sub + '" role="dialog" aria-modal="true">' + html(kind, current.data) + '</div>' : html(kind, current.data)) + confirm);
     ov.classList.toggle('dlg', dlg);
     ov.classList.toggle('titlelow', kind === 'title' && TITLE.on);
-    ov.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tap(); act(b.dataset.act, b.dataset.arg); }));
+    ov.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tapFor(b.dataset.act); act(b.dataset.act, b.dataset.arg); }));
+    ov.querySelectorAll('[role="tab"]').forEach(t => t.addEventListener('click', e => { e.stopPropagation(); if (pickTab(ov, t.dataset.tab)) tap(); }));
     wire(ov);
     if (kind === 'results') toDark(ov);
     if (kind === 'settings') settled(ov, current.data); else { AUDIO.calStop(); AUDIO.hush(false); }
     ov.querySelectorAll('.stars').forEach(s => s.addEventListener('click', e => { e.stopPropagation(); starTip(s); }));
     const box = ov.querySelector('.confirm');
-    if (box) box.addEventListener('click', e => { e.stopPropagation(); if (e.target === box) act('keep'); });   // a click off the little dialog backs out of it
+    if (box) box.addEventListener('click', e => { e.stopPropagation(); if (e.target === box) act(kind === 'pause' ? 'stay' : 'keep'); });   // a click off the little dialog backs out of it
     // focus: the first button, or (back from a sub-screen) the button that opened it
     const first = kind === 'settings' ? settingsFocus(ov, current.data) : (!box && current.data.focus && ov.querySelector('button[data-act="' + current.data.focus + '"]')) || (box || ov).querySelector('button[data-act]');
     if (first && kind !== 'title' && kind !== 'results') first.focus();
@@ -342,8 +398,9 @@ const MENU = (() => {
     root.classList.toggle('calp', !!d.sub); root.classList.toggle('cal-volume', d.sub === 'volume');
     const go = d2 => settingsInto(root, back, d2);
     root.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => {
-      e.stopPropagation(); tap();
+      e.stopPropagation();
       const a = b.dataset.act;
+      tapFor(a);
       if (a === 'back') back();
       else if (a === 'defaults') toDefaults(root);
       else if (a === 'calvol' || a === 'calbright') go({ sub: a === 'calvol' ? 'volume' : 'brightness' });
@@ -356,7 +413,7 @@ const MENU = (() => {
   }
   // the keys in a screen of buttons and settings: arrows (and WASD, Tab) move round them; Space and Enter flip a focused
   // switch, left and right move a focused slider or go along a focused row of choices. True if the key was taken
-  function ring(root) { return [...root.querySelectorAll('button[data-act], input[data-set], .seg [role="radio"][aria-checked="true"]')]; }
+  function ring(root) { return [...root.querySelectorAll('button[data-act], input[data-set], .seg [role="radio"][aria-checked="true"], [role="tab"][aria-selected="true"]')]; }
   function navKey(e, root) {
     const k = e.key, btns = ring(root);
     if (!btns.length) return false;
@@ -368,13 +425,18 @@ const MENU = (() => {
       if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); segStep(f, k === 'ArrowLeft' ? -1 : 1); return true; }
       if (k === 'Enter' || k === ' ') { e.preventDefault(); if (!e.repeat) f.click(); return true; }
     }
+    if (isTab(f) && root.contains(f)) {   // the Scores' tabs: left and right go along them (the one with the focus is the one chosen)
+      if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'Home' || k === 'End') { e.preventDefault(); tabStep(f, k === 'ArrowLeft' ? -1 : k === 'ArrowRight' ? 1 : k === 'Home' ? -99 : 99); return true; }
+      if (k === 'Enter' || k === ' ') { e.preventDefault(); return true; }
+    }
     if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'd' || k === 'Tab' && !e.shiftKey) { e.preventDefault(); btns[(idx + 1 + btns.length) % btns.length].focus(); return true; }
     if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'a' || k === 'Tab' && e.shiftKey) { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length].focus(); return true; }
     return false;
   }
-  // a pad's d-pad on a focused slider or row of choices: left and right move it, as the arrow keys do
+  // a pad's d-pad on a focused slider, row of choices or tab: left and right move it, as the arrow keys do
   function padSlide(f, dir) {
     if (isRadio(f)) { segStep(f, dir === 1 ? -1 : 1); return true; }
+    if (isTab(f)) { tabStep(f, dir === 1 ? -1 : 1); return true; }
     if (!(f && f.tagName === 'INPUT' && f.type === 'range')) return false;
     if (dir === 1) f.stepDown(); else f.stepUp();
     f.dispatchEvent(new Event('input'));
@@ -405,6 +467,15 @@ const MENU = (() => {
     de.style.setProperty('--text-scale', v);
     de.dataset.textsize = i < 0 ? 'normal' : SAVE.TEXT_SIZES[i][0].toLowerCase();
   }
+  // the brightness of the view (Settings, Brightness, Calibrate; SAVE.BRIGHT). At 100% nothing at all is done to the
+  // picture: no filter, and so nothing for it to cost. At anything else the game's canvas, the title's, and the creature
+  // in the brightness dialog are shown through a CSS filter (index.html: :root.bright, its amount --bright); the menus,
+  // the HUD and every word over them are not
+  function brightness(v) {
+    const de = document.documentElement, on = typeof v === 'number' && isFinite(v) && Math.abs(v - 1) > 0.001;
+    de.classList.toggle('bright', on);
+    if (on) de.style.setProperty('--bright', v); else de.style.removeProperty('--bright');
+  }
   function applySetting(k, v) {
     // reduced motion and reduced flashing are one switch: it sets both flags (each still read where it was)
     if (k === 'reduceMotionFlash') { SAVE.setSetting('reducedMotion', !!v); SAVE.setSetting('reducedFlash', !!v); return; }
@@ -415,6 +486,7 @@ const MENU = (() => {
     if (k === 'muted') setMuted(v);
     else if (k === 'effects' || k === 'ambient') AUDIO.setVolume(k, v);
     else if (k === 'textSize') textSize(v);
+    else if (k === 'brightness') brightness(v);
     else if (k === 'reduceTextures') R.detail = !v;
   }
   // Set to default: every setting as it began, applied at once, and the controls on screen moved to match (the focus
@@ -436,6 +508,7 @@ const MENU = (() => {
     const S = SAVE.data.settings;
     AUDIO.setVolume('effects', S.effects); AUDIO.setVolume('ambient', S.ambient);
     textSize(S.textSize);
+    brightness(S.brightness);
     R.detail = !S.reduceTextures;
   }
   function act(a, arg) {
@@ -443,7 +516,7 @@ const MENU = (() => {
       case 'begin': newGame(); break;
       case 'done': show('results'); break;   // the ending's "The End": how the nights went this time
       case 'finish': G.lastRun = null; if (G.seed === null) G.runSeed = Date.now() % 1000000; finishHome(); break;   // home, slowly (game.js); the next run new layouts, unless the seed is fixed
-      case 'nights': show('nights', { from: 'title' }); break;   // only from the title (and its Back goes there)
+      case 'nights': show('nights', { from: arg || 'title' }); break;   // from the title, or the pause menu (its Back goes where it came from)
       case 'settings': show('settings', { from: arg || 'title' }); break;
       // Settings' calibration dialogs, in its place in the same panel; Done is Settings again, focus on what opened it
       case 'calvol': case 'calbright': show('settings', { from: current.data.from, sub: a === 'calvol' ? 'volume' : 'brightness' }); break;
@@ -454,6 +527,10 @@ const MENU = (() => {
       case 'controls': show('howto', { from: 'pause' }); break;   // the pause menu's Controls: How to play, as on the title
       case 'retry': startLevel(G.levelIndex, false); break;
       case 'next': proceedFromSurvived(); break;
+      // out to the title: only ever from the pause menu's Quit, which asks first (quit: the little dialog; stay: its
+      // Cancel, the pause menu again with Quit focused; title: its Quit)
+      case 'quit': show('pause', { confirmQuit: true }); break;
+      case 'stay': show('pause', { focus: 'quit' }); break;
       case 'title': showTitle(); break;
       case 'defaults': toDefaults(UI.overlay); break;
       case 'reset': show('nights', Object.assign({}, current.data, { confirmReset: true })); break;
@@ -463,7 +540,7 @@ const MENU = (() => {
         const from = arg || 'title', was = current && current.kind;
         if (from === 'title' && G.state === 'title') { show('title'); TITLE.advance(); }   // closing a dialog over the title: it came on while it was open
         else if (from === 'title') showTitle();
-        else if (from === 'pause') show('pause', { focus: was === 'howto' ? 'controls' : 'settings' });   // focus back on what opened it
+        else if (from === 'pause') show('pause', { focus: was === 'howto' ? 'controls' : was === 'nights' ? 'nights' : 'settings' });   // focus back on what opened it
         else showTitle();
         break;
       }
@@ -480,10 +557,12 @@ const MENU = (() => {
     if (navKey(e, root)) return true;
     const idx = ring(root).indexOf(document.activeElement);
     if (k === 'Escape' && current.kind === 'nights' && current.data.confirmReset) { act('keep'); return true; }
+    if (k === 'Escape' && current.kind === 'pause' && current.data.confirmQuit) { act('stay'); return true; }
     if (k === 'Escape' && current.kind === 'settings' && current.data.sub) { act('caldone', current.data.sub === 'volume' ? 'calvol' : 'calbright'); return true; }
     if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings' || current.kind === 'howto')) { act('back', current.data.from); return true; }
     if (k === 'Enter' && idx >= 0) return true;   // the focused button handles it
+    if (root !== UI.overlay) return true;   // a little dialog asking: no key goes past it (not Enter with nothing focused, to resume behind it)
     return false;
   }
-  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, subBack, navKey, padSlide, get sub() { return current && current.kind === 'settings' ? current.data.sub || null : null; }, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; AUDIO.hush(false); } };
+  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, subBack, navKey, padSlide, scoresOpen, QUIT_TEXT, get confirming() { return !!(current && (current.data.confirmReset || current.data.confirmQuit)); }, get sub() { return current && current.kind === 'settings' ? current.data.sub || null : null; }, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; AUDIO.hush(false); } };
 })();

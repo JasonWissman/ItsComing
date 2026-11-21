@@ -92,7 +92,6 @@ const TUNES = {
   'phoneRing': { pitch: -3 },
   'wetThud': { pitch: -3.5 },
   'sting': { pitch: -3.5, speed: 0.71 },
-  'stingCalibrate': { pitch: -3.5, speed: 0.71 },   // (the volume calibration's loudest sound, the sting's crash: the sting's own tune, so it is as loud as it is in the sting)
   'stingShriek': { pitch: 9, speed: 0.57 },
   'stingHum': { pitch: -7.5, speed: 0.87, tone: -1.9, vol: 9 },
   'stingStone': { pitch: -9, speed: 0.71 },

@@ -429,13 +429,6 @@ const AUDIO = (() => {
         tone(40, 1.5, { vol: 0.7, endFreq: 25 });
         for (let i = 0; i < 6; i++) tone(1200 + Math.random() * 2000, 0.12, { vol: 0.2, type: 'square', delay: 0.05 + i * 0.09 });
         break;
-      // the volume calibration's loudest sound (Settings: Volume, Calibrate): the sting above cut down to its crash, the
-      // noise burst and the deep drop under it (the impact), as loud as they are in the sting; no saw (neither falling nor
-      // rising) and no glitter (the six quick square-wave blips)
-      case 'stingCalibrate':
-        noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002, pan });
-        tone(40, 1.5, { vol: 0.7, endFreq: 25, pan });
-        break;
       case 'win': for (const [f, d] of [[220, 0], [277, 0.25], [330, 0.5], [415, 0.9]]) tone(f, 2.2, { vol: 0.08, type: 'triangle', attack: 0.3, delay: d }); break;
       case 'thud': noise(0.15, { freq: 150, vol: 0.9 }); tone(45, 0.25, { vol: 0.8, endFreq: 30 }); break;
       case 'splash': noise(0.35, { freq: 1800, q: 0.7, vol: 0.5, attack: 0.005, pan }); noise(0.9, { type: 'bandpass', freq: 600, q: 0.8, vol: 0.25, delay: 0.08, attack: 0.05, pan }); tone(120, 0.25, { vol: 0.2, endFreq: 60, pan }); break;
@@ -669,13 +662,14 @@ const AUDIO = (() => {
   const tuned = (key, fn) => (typeof TUNE !== 'undefined' ? TUNE.run(key, fn) : fn());
 
   // ---- the volume calibration (Settings: Volume, Calibrate) ----
-  // Sound effects: the quietest sound in the game, or the loudest, seven times a steady CAL.gap seconds apart (all seven in
-  // about two seconds): twice in the left ear, three times on the way across (left of centre, centre, right of centre: the
-  // centre one not panned at all, as the game's own unpanned sounds are), twice in the right ear. Each cuts the one before
-  // it short (a fade of a few tens of ms), so they never pile up; the last rings out. The quietest: the first beat of the
-  // heartbeat (its lub) as loud as the heartbeat is when it is first heard (game.js heartbeat: 0.04 + prox * 0.5, from
-  // prox 0.02). The loudest: stingCalibrate (the sting's crash alone). Each is played as the game plays it, tuned as
-  // 'heartbeat' and as 'stingCalibrate' (js/soundtune.js), through the effects volume (bus.cal is kept at it).
+  // Sound effects. The quietest sound in the game, seven times a steady CAL.gap seconds apart (all seven in about two
+  // seconds): twice in the left ear, three times on the way across (left of centre, centre, right of centre: the centre
+  // one not panned at all, as the game's own unpanned sounds are), twice in the right ear. Each cuts the one before it
+  // short (a fade of a few tens of ms), so they never pile up; the last rings out. It is the first beat of the heartbeat
+  // (its lub) as loud as the heartbeat is when it is first heard (game.js heartbeat: 0.04 + prox * 0.5, from prox 0.02).
+  // The loudest sound in the game: the sting itself (the effect 'sting', as a death plays it), once, in the middle (not
+  // panned), CAL.len.loud seconds of it (all of it, as it is tuned). Each is played as the game plays it, tuned as
+  // 'heartbeat' and as 'sting' (js/soundtune.js), through the effects volume (bus.cal is kept at it).
   // Ambience: the quietest bed in the game or the loudest (CAL.beds), a few seconds of it (CAL.bed), faded in and out,
   // tuned as the game tunes it, through the ambience volume (bus.calAmb is kept at it). The quietest by loudness (rendered
   // offline with its tune, K-weighted: test/settings.js) is night 8's once the main is off ('ambient:8off'); the loudest
@@ -684,7 +678,7 @@ const AUDIO = (() => {
   // out of the way, and back when it ends; one plays at a time: another started stops it (what was still sounding faded
   // out at once). A context suspended (a paused night) is resumed for it
   const CAL = {
-    pans: [-1, -1, -0.5, 0, 0.5, 1, 1], gap: 0.3, heart: 0.04 + 0.02 * 0.5, len: { quiet: 0.4, loud: 1.6 },
+    pans: [-1, -1, -0.5, 0, 0.5, 1, 1], gap: 0.3, heart: 0.04 + 0.02 * 0.5, len: { quiet: 0.4, loud: 2.4 },
     beds: {   // (night08.js L.def.ambient with the hum gone, as its main switched off has it; night07.js L.def.ambient)
       ambientQuiet: { tune: 'ambient:8off', wind: 0.25, drone: 0.12, droneFreq: 60, windFreq: 300 },
       ambientLoud: { tune: 'ambient:9', wind: 0.35, rain: 1, drone: 0.45, droneFreq: 47, windFreq: 300 },
@@ -693,7 +687,7 @@ const AUDIO = (() => {
   };
   let cal = null, calLast = null;
   // which: 'quiet' or 'loud' (sound effects), 'ambientQuiet' or 'ambientLoud' (ambience). onBeat(i) as each of the seven
-  // plays (the ambience: onBeat(0) as it starts), onBeat(-1) once it is over
+  // plays (the sting and the ambience: onBeat(0) as it starts), onBeat(-1) once it is over
   function calibrate(which, onBeat) {
     if (!ac) return false;
     calStop();
@@ -714,15 +708,21 @@ const AUDIO = (() => {
       end(B.len + 0.05);
       return true;
     }
+    // (what it plays goes into a gain of its own, a bus to TUNE, on its way to the calibration's)
+    const into = fn => { const beat = ac.createGain(); beat.__tuneBus = true; beat.connect(seq); c.beats.push(beat); out = beat; try { fn(); } finally { out = null; } };
+    if (which === 'loud') {   // the sting, as a death plays it: once, in the middle
+      c.pans.push(0);
+      into(() => tuned('sting', () => sfx('sting')));
+      if (onBeat) onBeat(0);
+      end(CAL.len.loud);
+      return true;
+    }
     const play = pan => {
-      const beat = ac.createGain(); beat.__tuneBus = true; beat.connect(seq);
       const prev = c.beats[c.beats.length - 1]; if (prev) glide(prev.gain, 0.0001, 0.015);
-      c.beats.push(beat);
-      out = beat;
-      try { if (which === 'quiet') tuned('heartbeat', () => tone(54, 0.13, { vol: CAL.heart, endFreq: 36, pan })); else tuned('stingCalibrate', () => sfx('stingCalibrate', pan)); } finally { out = null; }
+      into(() => tuned('heartbeat', () => tone(54, 0.13, { vol: CAL.heart, endFreq: 36, pan })));
     };
     CAL.pans.forEach((pan, i) => c.timers.push(setTimeout(() => { if (cal !== c) return; c.pans.push(pan); play(pan); if (onBeat) onBeat(i); }, i * CAL.gap * 1000)));
-    end((CAL.pans.length - 1) * CAL.gap + CAL.len[which === 'quiet' ? 'quiet' : 'loud']);
+    end((CAL.pans.length - 1) * CAL.gap + CAL.len.quiet);
     return true;
   }
   function calStop() {

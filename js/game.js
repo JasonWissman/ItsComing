@@ -354,17 +354,26 @@ function startLevel(i, withCard) {
   G.fade = 1; G.fadeTarget = 0;
   if (withCard) {
     setState('card');
-    const d = G.diff(), T = G.L.text;
-    const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
-    // the night and its name come up with the card; its words a moment after, then the prompt (.s2, .s3: they only look
-    // later, a click or Enter goes on at once as ever; with reduced motion all of it together)
-    const st = SAVE.data.settings.reducedMotion ? '' : ' s2', st3 = SAVE.data.settings.reducedMotion ? '' : ' s3';
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro' + st + '">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint' + st + '">' + T.objective + '</p>' : '') + '<p class="prompt' + st3 + '">' + (touchUI() ? 'Tap when you are ready' : 'Click or press Enter when you are ready') + '</p>');
+    showCard(false);
   } else {
     setState('play');
     hideOverlay();
     beginPlay();
   }
+}
+// A night's card. The night and its name come up with it; its words a moment after, then the prompt (.s2, .s3:
+// index.html). It takes no press to go on (a click, a tap, Enter, a pad's A or Start: proceed) until its words have
+// faded in, CARD_IN ms (the .s2 fade's delay and its length), so a press meant for the screen before, or made before
+// there is anything to read, does not begin the night; the prompt comes in after that. With reduced motion all of it is
+// there at once, and only the usual short guard (showOverlay's) is on it. again: the card put back as it was after the
+// pause menu, all of it there, with that same short guard
+const CARD_IN = 550 + 900;
+function showCard(again) {
+  const i = G.levelIndex, d = G.diff(), T = G.L.text, still = again || SAVE.data.settings.reducedMotion;
+  const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
+  const st = still ? '' : ' s2', st3 = still ? '' : ' s3';
+  showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro' + st + '">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint' + st + '">' + T.objective + '</p>' : '') + '<p class="prompt' + st3 + '">' + (touchUI() ? 'Tap when you are ready' : 'Click or press Enter when you are ready') + '</p>');
+  if (!still) G.overlayArmed = performance.now() + CARD_IN;
 }
 function beginPlay() {
   const L = G.L;
@@ -373,7 +382,7 @@ function beginPlay() {
   G.fadeTarget = 0;
   STORY.startNight(L);
 }
-function setState(s) { G.state = s; G.stateT = 0; }
+function setState(s) { G.state = s; G.stateT = 0; if (s !== 'paused') G.pausedFrom = null; }
 
 // ---------------- overlays ----------------
 function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.remove('dlg', 'titlelow'); UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350; } // a double-click cannot skip a card
@@ -464,9 +473,11 @@ function onKeyDown(e) {
   if ((k === 'f' || k === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && fullscreenAble()) { toggleFullscreen(); return; }   // full screen, in and out (as #fsBtn)
   if (lookFree() && lookKey(k)) return;   // a won night that gives the view back takes turning and looking as looking, not as the press it waits on
   if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress(e)) return;   // a won night may be waiting on any press (the last night's meadow)
-  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
+  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card' && G.pausedFrom !== 'card' && !MENU.confirming) { restartLevel(); return; }   // (not from a card, nor from under a question being asked)
   if (G.state !== 'play' && MENU.onKey(e)) return;
-  if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
+  // Esc: the pause menu, from a night, its card, the death screen and the win screen alike, and from it back to where it
+  // was. Never straight out to the title: the only way there is the pause menu's Quit
+  if (k === 'Escape') { if (canPause()) pauseGame(); else if (G.state === 'paused') resumeGame(); return; }
   if (G.state !== 'play') {
     if (k === 'Enter' && !LIST_SCREENS.includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
     if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = true;
@@ -524,8 +535,29 @@ function restartLevel() {
   startLevel(G.levelIndex, false);
   G.toast('Again.');
 }
-function pauseGame() { setState('paused'); MENU.show('pause'); AUDIO.suspend(); }
-function resumeGame() { setState('play'); hideOverlay(); MENU.clear(); AUDIO.resume(); }
+// The pause menu: over a night being played, and over the screens round it too, a night's card, the death screen and
+// the win screen (PAUSABLE), since it is the only place with Quit (Esc, a pad's B or Start in play, the menu button on a
+// phone). Resume (or Esc) puts back exactly what it was over: the night goes on, or the card, the death screen or the
+// win screen is up again as it was (G.pausedFrom: the state it was opened from, while it is open)
+const PAUSABLE = ['play', 'card', 'dead', 'survived'];
+function canPause() { return PAUSABLE.includes(G.state) && !introUp(); }
+function pauseGame() {
+  if (!canPause()) return;
+  const from = G.state;
+  setState('paused'); G.pausedFrom = from;
+  MENU.show('pause'); AUDIO.suspend();
+}
+function resumeGame() {
+  if (G.state !== 'paused') return;
+  const from = G.pausedFrom || 'play';
+  MENU.clear();
+  if (from === 'play') { setState('play'); hideOverlay(); AUDIO.resume(); return; }
+  G.state = from; G.pausedFrom = null;   // (as it was: its clock is not started again)
+  if (from === 'card') showCard(true);
+  else if (from === 'dead') MENU.show('dead', G.deathScreen);
+  else MENU.show('survived', G.survivedScreen);
+  AUDIO.resume();
+}
 
 function proceed() {
   if (introUp()) return;   // (the warning and the prologue take no press but their own)
@@ -1001,7 +1033,8 @@ function update(dt) {
         if (G.fadeTarget < 1) { G.fadeTarget = 1; AUDIO.sfx('win'); AUDIO.stopAmbient(); }
         if (G.fade > 0.97) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
-          MENU.show('survived', { title: L.def.title, text: L.text.win });
+          G.survivedScreen = { title: L.def.title, text: L.text.win };   // (kept: the pause menu puts it back, as the death screen)
+          MENU.show('survived', G.survivedScreen);
         }
       }
     }
@@ -1371,9 +1404,9 @@ function pollGamepad() {
     }
   }
   PAD.a = a;
-  if (start && !PAD.start) { if (G.state === 'play') pauseGame(); else if (LIST_SCREENS.includes(MENU.kind)) MENU.onKey(fake('Escape')); else proceed(); }
+  if (start && !PAD.start) { if (G.state === 'play') pauseGame(); else if (LIST_SCREENS.includes(MENU.kind) || MENU.confirming) MENU.onKey(fake('Escape')); else proceed(); }   // (a question being asked: Start is its Cancel, as B)
   PAD.start = start;
-  if (b && !PAD.b) { if (G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); } else if (G.state !== 'play') onKeyDown(fake('Escape')); } // B goes back, as Escape does
+  if (b && !PAD.b) { if (G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); } else if (G.state !== 'play') onKeyDown(fake('Escape')); } // B goes back, as Escape does (on a card, the death screen or the win screen: the pause menu)
   PAD.b = b;
   if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play' || lookFree()) G.cam.zoomHeld = PAD.zoom; }
 }
@@ -1455,11 +1488,13 @@ function swipe(dx, dy) {
   if (!(G.state === 'play' || (G.state === 'won' && (lookFree() || (G.L && G.L.onPress))))) return;
   onKeyDown({ key: swipeKey(dx, dy), preventDefault() {}, target: UI.canvas });
 }
-// the two buttons, shown (index.html, on a coarse pointer) only as a night is played: the menu while it is, zoom too where
-// a won night gives the view back or waits on a press (the last night's meadow: zoom goes to it, as the key does)
+// the two buttons, shown (index.html, on a coarse pointer) only round a night: the menu while it is played and on its
+// card, the death screen and the win screen (wherever the pause menu can be opened: it is the way to Quit); zoom while
+// it is played, and where a won night gives the view back or waits on a press (the last night's meadow: zoom goes to
+// it, as the key does)
 let chromeSig = '';
 function touchChrome(L) {
-  const menu = G.state === 'play', zoom = menu || (G.state === 'won' && !!L && (lookFree() || !!L.onPress));
+  const menu = canPause(), zoom = G.state === 'play' || (G.state === 'won' && !!L && (lookFree() || !!L.onPress));
   const sig = (menu ? 'm' : '') + (zoom ? 'z' : '');
   if (sig !== chromeSig) {
     chromeSig = sig;
@@ -1484,7 +1519,7 @@ function bindTouch() {
   });
   z.addEventListener('click', e => e.stopPropagation());
   z.addEventListener('contextmenu', e => e.preventDefault());
-  UI.menuBtn.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); AUDIO.sfx('tap'); if (G.state === 'play') pauseGame(); });
+  UI.menuBtn.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); AUDIO.sfx('tap'); pauseGame(); });   // (wherever it can be: canPause)
   if (PORTRAIT && PORTRAIT.addEventListener) PORTRAIT.addEventListener('change', () => { if (PORTRAIT.matches && G.state === 'play') pauseGame(); });
   // full screen (#fsBtn, top right on a touch screen): a tap goes in, and out again. Its own click only: never a tap on the
   // view or a swipe (it is not the view), nor a click on the card or the title behind it
@@ -1539,6 +1574,7 @@ function frame(now) {
       G.errorCount++;
       console.error(e);
       G.error = e; setState('error'); MENU.clear(); // whatever screen was up, the error overlay is click-anywhere
+      touchChrome(G.L);   // (nothing is drawn while it is up: the touch buttons put away now)
       showOverlay('<h1 class="red">Something broke</h1><p class="intro">' + escapeHtml(e.message) + '<br>seed ' + G.runSeed + '</p><p class="prompt">Press R, click or tap to start the night over</p>');
       G.overlayArmed = 0; // the clock does not run in the error state, so the overlay must not wait on it
     }

@@ -9,6 +9,9 @@ const SAVE = (() => {
   // Bigger was (1.4), and Bigger larger again
   const TEXT_SIZES = [['Smaller', 1], ['Normal', 1.4], ['Bigger', 1.8]];
   const TEXT_NORMAL = 1.4;
+  // The brightness of the view (Settings, Brightness, Calibrate): a slider, BRIGHT.min to BRIGHT.max in steps of
+  // BRIGHT.step, 1 (100%) being the picture as it is drawn, with nothing done to it (MENU.brightness)
+  const BRIGHT = { min: 0.6, max: 1.6, step: 0.05 };
   // there is one game now; every difficulty there used to be is folded into it, keeping how far any of them got
   const ONLY = 'nightmare', OLD = ['easy', 'normal', 'hard', 'nightmare'];
   function fresh() {
@@ -21,7 +24,7 @@ const SAVE = (() => {
       bestRun: {},
       // reducedMotion and reducedFlash are the two flags the game reads; Settings has one switch for both (MENU), so they
       // are always the same. reduceTextures: plainer, faster walls and floors (render.js: R.detail is its opposite)
-      settings: { muted: false, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: TEXT_NORMAL, theme: 'night', swipeReverse: false, reduceTextures: false },
+      settings: { muted: false, effects: 1, ambient: 1, brightness: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: TEXT_NORMAL, theme: 'night', swipeReverse: false, reduceTextures: false },
       warned: false,                                             // the warning about flashing lights has been accepted (game.js: disclaimer)
       eggs: {},                                                  // eggs[night id] = true once that night's easter egg has been found (game.js: foundEgg; Scores)
     };
@@ -89,6 +92,7 @@ const SAVE = (() => {
     const main = 'master' in old ? Math.min(1, Math.max(0, num(old.master, 1))) : 1;
     S.effects = vol(main * num(S.effects, 1)); S.ambient = vol(main * num(S.ambient, 1));
     delete S.master;
+    S.brightness = Math.round(Math.min(BRIGHT.max, Math.max(BRIGHT.min, num(S.brightness, 1))) * 100) / 100;   // (a save from before there was one: 1; never out of the slider's range)
     // (a save from before the sizes moved up, the one with a main volume, keeps its size's name: Smaller, Normal or Bigger,
     // each now the bigger size it names)
     const ts = num(S.textSize, TEXT_NORMAL);
@@ -126,5 +130,5 @@ const SAVE = (() => {
   // a night's easter egg found (id: the night's id): kept; true if it was not known before
   function egg(id) { if (!id || data.eggs[id]) return false; data.eggs[id] = true; persist(); return true; }
   function reset() { data = fresh(); persist(); }
-  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, egg, reset, nearest, TEXT_SIZES, get data() { return data; } };
+  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, egg, reset, nearest, TEXT_SIZES, BRIGHT, get data() { return data; } };
 })();
