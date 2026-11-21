@@ -212,8 +212,9 @@ const hoverHit = lookFor;
   await hoverHit(page, 'item', 'hammer');
   check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Hammer'), 'item names show');
   await face(page, 0, false);
-  const r = await findHit(page, 'target', 'door');
-  await page.mouse.click(r.x, r.y); await page.waitForTimeout(100);
+  const r = await findHit(page, 'target', 'door') || await lookFor(page, 'target', 'door');
+  if (!r) console.log('  (no door in view: ' + await page.evaluate(() => JSON.stringify({ st: G.state, dist: G.L.creature.dist, dir: G.cam.dirIdx, hits: R.hits.map(h => h.kind + ':' + (h.ref.id || '')) })) + ')');
+  else { await page.mouse.click(r.x, r.y); await page.waitForTimeout(100); }
   check(await page.evaluate(() => document.getElementById('toast').textContent === 'It\'s missing something.'), 'failure feedback is vague');
 
   console.log('== restart key ==');
@@ -1499,8 +1500,8 @@ const hoverHit = lookFor;
       'then the name, the buttons and the corners\' controls fade in together, slowly, the light steady (' + words.map(s => s.ov.toFixed(2)).join(' ') + ')');
     check(end.t > 5000 && end.black === -1 && end.ov === 1 && end.mute === 1 && end.lit === 1, 'and it is all in by about five seconds: nothing over the title, everything in (' + JSON.stringify(end) + ')');
   }
-  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && TITLE.step === 0 && !TITLE.moving && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores' && !document.getElementById('prologue') && !document.getElementById('disclaimer')),
-    'Finish game: home to the usual dark title, with it out there (the presses on the way did nothing: it is no nearer, nothing begun), and Scores on it (the morning is not kept)');
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && TITLE.step === 0 && !TITLE.moving && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && !!document.querySelector('#overlay button[data-act="nights"]') === MENU.scoresOpen() && !document.getElementById('prologue') && !document.getElementById('disclaimer')),
+    'Finish game: home to the usual dark title, with it out there (the presses on the way did nothing: it is no nearer, nothing begun), Scores on it if there is a best run or an easter egg (the morning is not kept)');
   check(await page.evaluate(() => document.activeElement && document.activeElement.dataset.act === 'begin' && !UI.overlay.style.opacity && !UI.overlay.style.transition && UI.overlay.classList.contains('titlelow')), 'and the focus is on Begin, the overlay as the title always has it');
   await page.keyboard.press('Escape'); await page.mouse.click(640, 120); await page.waitForTimeout(150);
   check(await page.evaluate(() => G.state === 'title' && TITLE.step === 1), 'the title answers again once it is all in (a click on the dark: a step nearer)');
@@ -1984,10 +1985,10 @@ const hoverHit = lookFor;
     await pg.tap('button[data-act="resume"]'); await pg.waitForTimeout(300);
     // the menu button is there on the death screen too (the pause menu is the only way to Quit): it opens the pause menu
     // over it, and Resume is the death screen again
-    await pg.evaluate(() => { G.L.creature.u = 0.997; });
+    await pg.evaluate(() => { if (G.state !== 'play') resumeGame(); die(); });   // (caught, here and now)
     for (let i = 0; i < 40 && await pg.evaluate(() => G.state !== 'dead'); i++) await pg.waitForTimeout(150);
     await pg.waitForTimeout(250);
-    const ds0 = await pg.evaluate(() => ({ st: G.state, menuBtn: getComputedStyle(UI.menuBtn).display, zoomBtn: getComputedStyle(UI.zoomBtn).display, btns: [...UI.overlay.querySelectorAll('button')].map(b => b.textContent).join(), h: UI.overlay.querySelector('h1').textContent, text: UI.overlay.querySelector('.intro').textContent, clear: (() => { const m = UI.menuBtn.getBoundingClientRect(), h = UI.overlay.querySelector('h1').getBoundingClientRect(); return m.bottom <= h.top || m.right <= h.left; })() }));
+    const ds0 = await pg.evaluate(() => G.state !== 'dead' ? { st: G.state } : ({ st: G.state, menuBtn: getComputedStyle(UI.menuBtn).display, zoomBtn: getComputedStyle(UI.zoomBtn).display, btns: [...UI.overlay.querySelectorAll('button')].map(b => b.textContent).join(), h: UI.overlay.querySelector('h1').textContent, text: UI.overlay.querySelector('.intro').textContent, clear: (() => { const m = UI.menuBtn.getBoundingClientRect(), h = UI.overlay.querySelector('h1').getBoundingClientRect(); return m.bottom <= h.top || m.right <= h.left; })() }));
     await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-dead.png') });
     await pg.tap('#menuBtn'); await pg.waitForTimeout(300);
     const ds1 = await pg.evaluate(() => ({ st: G.state, from: G.pausedFrom, kind: MENU.kind, menuBtn: getComputedStyle(UI.menuBtn).display, acts: [...UI.overlay.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join() }));
