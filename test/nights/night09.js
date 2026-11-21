@@ -250,7 +250,7 @@ const cop = (k, coin, calm, past) => `(() => {
   out.order = ['come', 'tireScreech', 'halt', 'sirenOff', 'torch', 'shadeShriek', 'conv', 'growlHigh', 'scare', 'torchOff', 'peelOut', 'flee', 'resume', 'gone'].every((n, j, a) => ev[n] !== undefined && (!j || ev[n] >= ev[a[j - 1]])) && ev.halt > ev.tireScreech && ev.torch > ev.sirenOff && ev.torchOff > ev.scare && ev.resume > ev.peelOut;
   out.shriekToSnarl = +(ev.growlHigh - ev.shadeShriek).toFixed(2);
   for (const n of ['minSep', 'nearParked', 'maxDip', 'aimErr', 'torchJump', 'maxV', 'fish', 'maxHop', 'comeOn', 'farthest', 'red', 'blue', 'barJump', 'convFor', 'convMoved', 'convScare']) out[n] = +out[n].toFixed(3);
-  AUDIO.sfx = sfx0; G.toast = toast0; S.reducedFlash = keep[0]; S.reducedMotion = keep[1]; SAVE.unlock = keep[2];
+  AUDIO.sfx = sfx0; G.toast = toast0; S.reducedFlash = keep[0]; S.reducedMotion = keep[1]; SAVE.unlock = keep[2]; SAVE.persist();   // (the egg found saved the settings as they were mid-run: saved again as they are)
   return out;
 })()`;
 const copCases = [[0, false, false, false], [1, true, false, false], [1, false, true, true], [0, true, true, true]].flatMap(([k, coin, calm, past]) => {

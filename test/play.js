@@ -97,6 +97,9 @@ async function runStep(page, step) {
       const steps = sol[tier];
       for (const seed of SEEDS) {
         console.log('== night ' + n + ' (' + tier + ', seed ' + seed + ') ==');
+        // every night starts with the reduction settings off, whatever the night before left in the save: a night's test may
+        // turn them on for a stretch, and anything saved meanwhile (an easter egg found) would carry them into the next
+        await page.evaluate(() => { try { const d = JSON.parse(localStorage.getItem('itscoming.v2')); if (d && d.settings) { d.settings.reducedMotion = d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); } } catch (e) {} }).catch(() => {});
         await page.goto(T.INDEX + '?level=' + n + '&go&seed=' + seed); await page.waitForTimeout(300);
         const s0 = await st(page);
         check(s0.state === 'play' && s0.level === n - 1, 'night ' + n + ' playing on ' + tier);
