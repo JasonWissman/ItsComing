@@ -26,10 +26,14 @@
 // notebook's pages, and what will not work shows on the phone itself: a key pressed for nothing clicks and the display
 // blinks at you, a coin put in on the hook goes into the slot and drops through into the coin return, the empty return is
 // felt with the fingers.
-// And there is 911 (free, coin or none): a dispatcher answers and a police car is sent, though it is not seen until the
+// And there is 911 (free, coin or none): a dispatcher answers (the night's easter egg, found: foundEgg), with three lines
+// while the shade has still to get to its last lamp ("911, what is your emergency?", "a WHAT?", "Ok, stay there. I'm
+// sending a unit now.") and only the last of them once it has, and a police car is sent, though it is not seen until the
 // shade has got to the last lamp on its way in. Then it comes tearing down that street, siren wailing and its light bar
-// going, screeches to a halt by that lamp post, shuts off its siren and shines a flashlight out of its window at it. The
-// shade jumps out in front of the post at it, its head split open into its petals of teeth; the flashlight goes off and
+// going, screeches to a halt by that lamp post, shuts off its siren and shines a flashlight out of its window at it. In
+// that light the shade convulses for a second, with a shriek, and then
+// jumps out in front of the post at it, its head split open into its petals of teeth and its tentacles out, with a snarl;
+// the flashlight goes off and
 // the police car spins its tyres and fishtails off down the road and away, and the shade comes on for you as before
 // (copBegin, copSetOff, copRun, copMan, below the car). The police come once a night; caught after calling them, it is
 // "The police can't help you here."
@@ -305,7 +309,7 @@ Object.assign(ICONS, {
       Object.assign(s, { pages: nb.pages, keyPage: nb.keyPage, number: nb.number, numberText: nb.numberText, others: nb.others,
         hook: 'on', line: 'idle', dialed: '', doneAt: 0, ringFrom: null, answeredAt: null, nbOpen: false, page: 0, nbWant: 0, nbAnims: [], nbHand: null, nbRect: null, bloodDrawn: false,
         credit: 0, returnAt: 0, keyT: {}, padSel: null, deadKeys: 0, end: null, lands: [], lagN: 0, keyHit: {}, blinkAt: -9, handsetT: -9, coinDropT: -9, finger: null, fingerAt: 0, glides: [],
-        man: null, lampsOut: 0, sparks: [], cop: null, called911: false, parked: [], smoke: [] });
+        man: null, lampsOut: 0, sparks: [], cop: null, called911: false, talk: null, parked: [], smoke: [] });
 
       // ---------------- the street ----------------
       const roadC = [27, 28, 33], paveC = [54, 54, 58], kerbC = [88, 88, 92], paint = [150, 148, 138];
@@ -602,7 +606,7 @@ Object.assign(ICONS, {
       const lift = () => { s.hook = 'off'; s.line = 'tone'; s.dialed = ''; s.lagN = 0; s.handsetT = L.t; AUDIO.sfx('receiver'); G.say('You lift the receiver. A dial tone.', 'A dial tone.'); };
       const hangUp = () => {
         const ringing = s.line === 'ringing' || s.line === 'connecting' || s.line === 'calling911', onCall = s.line === 'emergency';
-        s.hook = 'on'; s.line = 'idle'; s.dialed = ''; s.lagN = 0; s.ringFrom = null; s.freeDial = false; s.ring911 = false; s.handsetT = L.t; AUDIO.sfx('clunk');
+        s.hook = 'on'; s.line = 'idle'; s.dialed = ''; s.lagN = 0; s.ringFrom = null; s.freeDial = false; s.ring911 = false; s.talk = null; s.handsetT = L.t; AUDIO.sfx('clunk');
         for (const l of s.lands) { l.digit = false; l.sfx = 'keyClick'; }   // (keys still to be pressed, pressed on a dead phone)
         if (s.credit) { s.credit = 0; s.returnAt = L.t + 0.45; AUDIO.sfx('coinReturn'); }
         if (ringing) G.say('You hung up. The ringing stops.', 'The ringing stops.');
@@ -642,6 +646,9 @@ Object.assign(ICONS, {
       // put in wipes it too, so a stray 9 never spoils a number dialled after. Three figures of it, coin or none, and it
       // calls (no number in the notebook starts with a 9: they are all 555-01xx)
       const EMERGENCY = '911';
+      // what the dispatcher says ([when, from her answering; its crackle; the words]): all three while the shade has still
+      // to get to its last lamp, only the last once it has (L.update)
+      const DISPATCH = [[0, 'dispatchAsk', '"911, what is your emergency?"'], [2.0, 'dispatchWhat', '"a WHAT?"'], [3.7, 'dispatchSend', '"Ok, stay there. I\'m sending a unit now."']];
       const unFree = () => {
         if (!s.freeDial) return;
         s.freeDial = false;
@@ -1010,9 +1017,12 @@ Object.assign(ICONS, {
       // (pastLast; then copSetOff, and the police car's part, copRun, below the car). From then until it has seen them off
       // it is theirs to move (copHolds, copMan): at that lamp it goes on as it would until its time there is up, and then
       // stands there in the dark; were it past the lamp already it skitters back behind the post. Once the car is braking for
-      // it, it stands dead still (an arm reaching for the lamp comes back down), and the flashlight finds it there. Then it
-      // jumps out in front of the post at the car, upright, its head split open into its petals of teeth at it and its arms
-      // up (c.scare, toward c.scareSide on the view), shrieking, and the lamp over it pops if it still burned. Once the car
+      // it, it stands dead still (an arm reaching for the lamp comes back down), and the flashlight finds it there. In that
+      // light it convulses, a second of it (COP.conv, up to the jump; c.convulse: twisting, its limbs jerking at wrong
+      // angles and its head snapping from side to side, a slow writhe with reduced motion), with a shriek tearing upward
+      // (shadeShriek). Then it jumps out in front of the post at the car, upright, its head split open into its petals of
+      // teeth at it, its arms up and its tentacles out (c.scare, toward c.scareSide on the view), with a snarl, high and
+      // gravelly (growlHigh), and the lamp over it pops if it still burned. Once the car
       // has gone off it shuts, and comes on for you from where it is: across to the glass, as it would have from the lamp (its
       // walk, from there). s.cop.back: toPost's { t0, from, to, rushT }, back to the post; s.cop.from: where it jumps from
       const lastStop = () => s.man.stops[s.man.stops.length - 1];
@@ -1033,18 +1043,24 @@ Object.assign(ICONS, {
             c.lampLit = lp ? Math.min(1.4, lampLevel(lp)) : 0; c.dark = !lp || (lp.outAt !== undefined && L.t - lp.outAt > 0.3);
           }
           K.from = { d: m.d, lat: m.lat }; c.side = m.lat; c.hop = 0; c.scare = 0;
+          // in the flashlight, the last of its time there: it convulses, with a shriek
+          const cv = K.t - (sc0 - COP.conv);
+          if (cv >= 0 && !K.shrieked) { K.shrieked = true; AUDIO.sfx('shadeShriek', carPan(c.pos())); }
+          c.convulse = smoothstep(clamp(cv / (SAVE.data.settings.reducedMotion ? 0.6 : 0.12), 0, 1));   // (reduced motion: it comes on slowly, a writhe)
           return;
         }
-        // out in front of the post, at the car: a spring, a shriek (and the lamp over it popping), and its head opened at it
+        // out in front of the post, at the car: a spring out of its convulsion, a snarl (and the lamp over it popping), and
+        // its head opened at it
         const e = K.t - sc0, still = SAVE.data.settings.reducedMotion, k = clamp(e / COP.jump, 0, 1), q = smoothstep(k);
         m.d = lerp(K.from.d, Q.jumpTo.d, q); m.lat = lerp(K.from.lat, Q.jumpTo.lat, q); c.side = m.lat;
         c.hop = still ? 0 : Math.sin(Math.PI * k) * 0.3;
         c.reach = Math.max(0, (c.reach || 0) - dt * 4); c.grip = 0; c.lampLit = 0; c.dark = true;
-        if (!K.shrieked && e >= COP.jump * 0.6) { K.shrieked = true; AUDIO.sfx('shadeShriek', carPan(c.pos())); if (lp && lp.outAt === undefined) breakLamp(lp); }
+        c.convulse = 1 - smoothstep(clamp(e / (COP.jump * 0.8), 0, 1));
+        if (!K.snarled && e >= COP.jump * 0.6) { K.snarled = true; AUDIO.sfx('growlHigh', carPan(c.pos())); if (lp && lp.outAt === undefined) breakLamp(lp); }
         const end = COP.go + COP.hold;   // (from the jump: the car gone off, and it shuts)
         c.scare = smoothstep(clamp((e - COP.jump * 0.4) / 0.3, 0, 1)) * (1 - smoothstep(clamp((e - end) / 0.45, 0, 1)));
         if (e >= end + 0.45) {   // shut: and on for you, from here
-          K.manDone = true; c.scare = 0; c.hop = 0; c.torch = 0;
+          K.manDone = true; c.scare = 0; c.hop = 0; c.torch = 0; c.convulse = 0;
           const g = m.segs.find(w => w.kind === 'walk');
           g.pts = [{ d: m.d, lat: m.lat }].concat(g.pts.slice(1));
           g.len = 0; for (let j = 0; j + 1 < g.pts.length; j++) g.len += gap(g.pts[j], g.pts[j + 1]);
@@ -1070,7 +1086,7 @@ Object.assign(ICONS, {
             if (s.cop && s.cop.phase === 'wait' && pastLast()) copSetOff(c);
             if (copHolds()) copMan(c, dt); else manNow(c);
           } else if (!s.flee && copHolds()) copMan(c, dt);
-          else { c.reach = Math.max(0, (c.reach || 0) - dt * 2); c.rush = 0; c.grip = 0; c.lampLit = Math.max(0, (c.lampLit || 0) - dt * 3); c.scare = Math.max(0, (c.scare || 0) - dt * 2); c.torch = 0; c.hop = 0; if (s.flee) fleeNow(c); c.side = s.man.lat + (c.wob || 0); }
+          else { c.reach = Math.max(0, (c.reach || 0) - dt * 2); c.rush = 0; c.grip = 0; c.lampLit = Math.max(0, (c.lampLit || 0) - dt * 3); c.scare = Math.max(0, (c.scare || 0) - dt * 2); c.convulse = Math.max(0, (c.convulse || 0) - dt * 4); c.torch = 0; c.hop = 0; if (s.flee) fleeNow(c); c.side = s.man.lat + (c.wob || 0); }
           const p = c.pos();
           c.yFoot += (groundAt(p.x, p.z) - c.lane.y - c.yFoot) * Math.min(1, dt * 14);   // up the kerb and down it in a stride
           c.yOff = c.yFoot + (c.hop || 0);                                                 // (and off the ground, jumping)
@@ -1105,18 +1121,25 @@ Object.assign(ICONS, {
         if (s.line === 'ringing' && L.t - s.ringFrom >= 7) {
           s.line = 'answered'; s.answeredAt = L.t; AUDIO.sfx('answer'); G.say('Someone picks up.', 'Someone picks up.', 3.5);
         }
-        // 911: one ring, and a dispatcher answers at once; the police are sent (copBegin; they come, copSetOff, copRun),
-        // once a night: called again, the dispatcher says a car has been sent already. The line stays open to the dispatcher
+        // 911: one ring, and a dispatcher answers at once (the night's easter egg, found: foundEgg). While the shade has
+        // still to get to its last lamp she has three lines (DISPATCH), said one after another, each a crackle of a voice
+        // and its words, a beat between them for what you say back, which is not heard (s.talk: { t0, lines, i: the next of
+        // them }); once it is at that lamp, or past it, there is only the last of them, at once. As she says the last the
+        // police are sent (copBegin; they come, copSetOff, copRun), once a night: called again after that, the dispatcher
+        // says a car has been sent already. Hanging up cuts her off: what she had not yet said is not said, and a car she
+        // had not yet sent is not sent (called again, she starts over). The line stays open to the dispatcher
         // till you hang up; then the phone is as it was (a coin put in for it comes back: 911 is free)
         if (s.line === 'calling911' && !s.ring911 && L.t - s.doneAt > 0.9) { s.ring911 = true; AUDIO.sfx('ringback'); G.say('It is ringing.', 'It is ringing.'); }
         if (s.line === 'calling911' && L.t - s.doneAt > 2.7) {
-          s.line = 'emergency'; s.answeredAt = L.t; AUDIO.sfx('dispatch');
-          if (s.called911) G.say('A dispatcher answers, through the static. A car has already been sent.', 'A voice: a car has already been sent.', 3.5);
-          else {
-            s.called911 = true;
-            G.say('A dispatcher answers, through the static. Help is on its way.', 'A voice: help is on its way.', 3.5);
-            if (c && !c.dead && G.state === 'play' && !L.won) copBegin(c);   // (sent: it comes once it is at its last lamp)
-          }
+          s.line = 'emergency'; s.answeredAt = L.t; s.called911 = true; foundEgg();
+          if (s.cop) { AUDIO.sfx('dispatch'); G.say('A dispatcher answers, through the static. A car has already been sent.', 'A voice: a car has already been sent.', 3.5); }
+          else s.talk = { t0: L.t, i: 0, lines: pastLast() ? DISPATCH.slice(-1) : DISPATCH };
+        }
+        if (s.talk && (s.line !== 'emergency' || G.state !== 'play' || L.won)) s.talk = null;
+        while (s.talk && L.t - s.talk.t0 >= s.talk.lines[s.talk.i][0] - s.talk.lines[0][0]) {
+          const k = s.talk, [, sfx, words] = k.lines[k.i++], last = k.i === k.lines.length;
+          AUDIO.sfx(sfx); G.toast(words, last ? 3.5 : 2.6);
+          if (last) { s.talk = null; if (c && !c.dead) copBegin(c); }   // (sent: it comes once it is at its last lamp)
         }
         if (s.cop) copRun(dt);
       };
@@ -1449,11 +1472,12 @@ Object.assign(ICONS, {
       // it comes down that street from far off (from) at V and screeches to a halt (brake: its braking distance) on the road
       // beside the post, its nose slewed in a little toward the kerb (slew). Its siren winds down at the end of the wail it
       // is in; then, each from there: a flashlight comes on at its window on that side and finds the shade (torchOn); the
-      // shade jumps out at it (scare, the jump taking jump); and from that, the flashlight goes off (torchOff) and the car
+      // shade convulses in its light (for conv, up to the jump) and jumps out at it (scare, the jump taking jump); and from
+      // that, the flashlight goes off (torchOff) and the car
       // goes (go): its tyres spin (spin) and it is away (accel, up to vMax, and vTurn round the corner from the main street),
       // fishtailing from side to side (swerve: how far it swings either way, sway: how far it goes from one side to the
       // other and back), down the road and away out of sight (far). The shade shuts its head hold after it goes
-      const COP = { cyc: 1.6, black: [26, 26, 30], white: [208, 208, 212], V: 17, from: 72, brake: 9, slew: 5 * DEG, torchOn: 0.6, scare: 2.1, jump: 0.28, torchOff: 0.7, go: 0.95, hold: 1.3, spin: 0.5, accel: 9, vMax: 25, vTurn: 11, far: 110, swerve: 0.8, sway: 14 };
+      const COP = { cyc: 1.6, black: [26, 26, 30], white: [208, 208, 212], V: 17, from: 72, brake: 9, slew: 5 * DEG, torchOn: 0.6, scare: 2.2, conv: 1.0, jump: 0.28, torchOff: 0.7, go: 0.95, hold: 1.3, spin: 0.5, accel: 9, vMax: 25, vTurn: 11, far: 110, swerve: 0.8, sway: 14 };
       const carPath = (laneN, stopX) => {
         const pts = [];
         const line = (x0, z0, x1, z1) => { const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.2)); for (let i = pts.length ? 1 : 0; i <= n; i++) pts.push([lerp(x0, x1, i / n), lerp(z0, z1, i / n)]); };

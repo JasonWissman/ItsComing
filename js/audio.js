@@ -515,8 +515,9 @@ const AUDIO = (() => {
       // the demon angry while it holds you (night 13, its first two angry faces): a deep, gravelly growl. A low voice and a rough
       // fifth over it and a breath of grit, all rattled by a fast, uneven flutter (the gravel), lifting a little and sinking
       // as it dies; a little different each time
-      // (growl2, the second: the same growl, tuned apart from the first in js/soundtune.js)
-      case 'growl': case 'growl2': {
+      // (growl2, the second: the same growl, tuned apart from the first in js/soundtune.js; growlHigh: the same growl
+      // again, tuned far up and quicker there into a shrill, gravelly snarl: the shade's, jumping out at the police, night 9)
+      case 'growl': case 'growl2': case 'growlHigh': {
         const t0 = now(), T = 1.45 + Math.random() * 0.2, f = 55 + Math.random() * 8;
         const out = ac.createGain(), lp = ac.createBiquadFilter(), am = ac.createGain(), lfo = ac.createOscillator(), lfoG = ac.createGain();
         out.gain.setValueAtTime(0.0001, t0); out.gain.exponentialRampToValueAtTime(1, t0 + 0.16); out.gain.setValueAtTime(1, t0 + T * 0.55); out.gain.exponentialRampToValueAtTime(0.0001, t0 + T);
@@ -592,6 +593,29 @@ const AUDIO = (() => {
           d += len + (i % 3 === 2 ? 0.16 : 0.03 + Math.random() * 0.05);
         }
         noise(0.04, { type: 'highpass', freq: 1800, vol: 0.12, delay: d + 0.05 });
+        break;
+      }
+      // the dispatcher's lines (911, the phone booth), each a crackle of a voice too thin to make out, a burst to a syllable
+      // ([how long, how high, how loud, the gap after]), over the line's hiss: asking what the emergency is (a click as the
+      // line opens, then ten quick syllables, the last of them rising); "a WHAT?" (a short low one, and a long loud one
+      // tearing upward); and telling you to stay there, a car is coming (three phrases, level, the last falling)
+      case 'dispatchAsk': case 'dispatchWhat': case 'dispatchSend': {
+        const said = {
+          dispatchAsk: [[0.09, 1, 1, 0.02], [0.08, 0.95, 0.9, 0.02], [0.1, 0.9, 1, 0.13], [0.07, 1, 0.9, 0.02], [0.05, 0.95, 0.7, 0.02], [0.06, 0.95, 0.8, 0.02], [0.06, 1.05, 0.9, 0.02], [0.08, 1.15, 1, 0.02], [0.07, 1.25, 0.9, 0.02], [0.13, 1.5, 1.1, 0]],
+          dispatchWhat: [[0.06, 0.85, 0.7, 0.05], [0.3, 1.25, 1.7, 0]],
+          dispatchSend: [[0.08, 1.05, 1, 0.02], [0.12, 0.9, 1, 0.2], [0.11, 1, 1.1, 0.03], [0.14, 0.88, 1, 0.24], [0.06, 1, 0.8, 0.02], [0.08, 1.05, 1, 0.02], [0.06, 0.98, 0.8, 0.02], [0.05, 0.95, 0.7, 0.02], [0.08, 1, 0.9, 0.02], [0.06, 0.92, 0.8, 0.02], [0.15, 0.78, 1, 0]],
+        }[name];
+        let d = 0.02;
+        if (name === 'dispatchAsk') { noise(0.03, { type: 'highpass', freq: 2000, vol: 0.2 }); d = 0.12; }
+        noise(said.reduce((a, q) => a + q[0] + q[3], 0) + 0.25, { type: 'bandpass', freq: 2600, q: 0.7, vol: 0.03, attack: 0.05 });
+        for (const [len, hi, loud, gap] of said) {
+          const up = name === 'dispatchWhat' && len > 0.2;   // (the WHAT: torn upward as it goes)
+          noise(len, { type: 'bandpass', freq: (800 + Math.random() * 500) * hi, q: 3, vol: 0.16 * loud, attack: 0.02, delay: d });
+          if (up) noise(len * 0.6, { type: 'bandpass', freq: 1900 + Math.random() * 300, q: 4, vol: 0.2, attack: 0.05, delay: d + len * 0.4 });
+          tone((150 + Math.random() * 40) * hi, len, { vol: 0.025 * loud, type: 'sawtooth', endFreq: (140 + Math.random() * 30) * hi * (up ? 1.7 : 1), attack: 0.02, delay: d });
+          d += len + gap + (gap < 0.05 ? Math.random() * 0.03 : 0);
+        }
+        if (name === 'dispatchSend') noise(0.04, { type: 'highpass', freq: 1800, vol: 0.12, delay: d + 0.06 });   // (a tick on the line as the voice stops)
         break;
       }
       case 'siren': {   // one wail: up and down again in 1.6 s, a reedy sawtooth with a square an octave under it

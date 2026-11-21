@@ -322,7 +322,10 @@ some on the ground, so you have to turn and look down to find them.
    of its long limbs like a spider, to the next lamp nearer the booth, waits, breaks that, and so on to the last; then it
    walks across to the glass. With every lamp to get through it is quick about all of it, and its whole way in takes as
    long as its steady walk used to, so the race is the same. Only coming at you does a face come out of the dark into
-   yours: its whole head splits open into five petals lined with teeth, and out of the throat in the middle ring after ring of teeth keeps coming up and out toward you. The pay phone, a slim unit a size smaller than life on a backboard no wider than itself,
+   yours: its whole head splits open into five petals lined with teeth, and out of the throat in the middle ring after ring of teeth keeps coming up and out toward you, while long black tentacles
+   unfurl all round behind it, waving, more of them out from behind the maw between its petals, and two that come round
+   from its shoulders and curl in at your face from either side (its own black, a faint cold rim along their edges; they
+   wave slowly with reduced motion). The pay phone, a slim unit a size smaller than life on a backboard no wider than itself,
    stands across the corner of the booth between the two streets, the glass clear either side of it, so while you use it
    both streets are at the edges of the view and you see it coming out of the corner of your eye. Your notebook lies shut
    on the little shelf under the phone. Click it and its cover goes back over the
@@ -350,24 +353,37 @@ some on the ground, so you have to turn and look down to find them.
    comes through the middle bursts in with a flash and the pieces fly in at you, turning, and
    drop (fewer, and only falling, with reduced motion; the flash held down with reduced flash).
    There is also 911 (lift the receiver and press 9, 1, 1; with no coin in, as an emergency call is free on any pay
-   phone, or with one): it rings once and a dispatcher answers, a crackle of a voice: help is on its way. Nothing comes
+   phone, or with one): it rings once and a dispatcher answers, a crackle of a voice (this is the night's easter egg,
+   "Call 911.", kept in the save from the moment she answers). While the shade has still to get to its last lamp she has
+   three lines, one after another, each with its crackle and a beat between them for what you say back, which is not
+   heard: "911, what is your emergency?", "a WHAT?", "Ok, stay there. I'm sending a unit now."; and with the last the
+   police are sent. Once the shade is at its last lamp, or past it, she says only that last line, at once. Hang up while
+   she is still talking and she is cut off: the rest is not said and no car is sent (call again and she starts over).
+   Nothing comes
    until the shade has got to the last lamp on its way in (called once it is past it, they come at once, and it skitters
    back behind that post). Then a police car comes tearing down its street, black and white with a gold star on its
    doors, its siren wailing and its light bar flashing red and blue on the wet street (with reduced flashing the bar
    swells slowly from red to blue and back instead), and screeches to a halt on the road beside that lamp post, its nose
    dipping, black rubber left on the road. The siren winds down. A flashlight comes on at its window, sweeps in and finds
    the shade: a beam through the rain, a pool of light round its feet and on the wall behind, a pale light down its side
-   and its eyes shining back. Then it jumps out in front of the post at the car with a shriek (popping the lamp over it if
+   and its eyes shining back. In that light it convulses for a second, with a shriek tearing upward: thrown over at the
+   waist one way and the other, its spine kinked, one shoulder up and the other down, its knees buckling, its elbows out
+   and its forearms flung about from them at wrong angles, its head snapping from side to side and its jaw dropping out
+   of it, every joint jerked somewhere new several times a second, and the first of its tentacles squirming out of its
+   back. Then it springs out of that, out in front of the post at the car, with a snarl, shrill and gravelly (the demon's
+   growl of the last night, far up: popping the lamp over it if
    it still burns), upright and leaning at it, one arm out at it and the other up over its head, its head split open into
-   its petals of teeth, turned to the car. The flashlight goes off, and the car slams its foot down: its back tyres spin,
+   its petals of teeth, turned to the car, and long black tentacles unfurling out of its back and shoulders, waving: a
+   fan of them behind it, one up over its head and one out low at the car. The flashlight goes off, and the car slams its foot down: its back tyres spin,
    smoking and squealing, and it fishtails away down the road (on round the corner and off along the cross street from
    the main street; on past the booth and away west, wide of the parked car, along the cross street), keeping to the road,
-   until it is out of sight. The shade shuts, and comes on for you from where it stands. (With reduced flashing the
-   flashlight comes and goes smoothly; with reduced motion the shade does not leap and the car hardly swerves.) Should the
+   until it is out of sight. The shade shuts, its tentacles drawing back into it, and comes on for you from where it stands. (With reduced flashing the
+   flashlight comes and goes smoothly; with reduced motion the shade does not leap, its convulsion is a slow writhe that
+   comes on gently, its tentacles wave slowly and the car hardly swerves.) Should the
    right number be answered while the police are there, the shade sees them off first, and the car that comes for you
    comes once they have gone; answered before they have come, they never come. The line stays open to the dispatcher
    until you hang up (keys do nothing meanwhile), and then the phone is as it was: a coin put in for the call comes back,
-   and the right number still brings the car. The police come once a night; 911 again gets a dispatcher who says a car
+   and the right number still brings the car. The police come once a night; 911 again, once they have been sent, gets a dispatcher who says a car
    has already been sent. Caught after calling them, the screen says "Nice try": "The police can't help
    you here." A 9 pressed with no coin in is taken; any key that is not the rest of 911 wipes it (and clicks as a key with no
    credit does), as does a coin put in, so the right number dialled after is never spoiled.
