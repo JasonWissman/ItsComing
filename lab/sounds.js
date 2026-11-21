@@ -14,7 +14,6 @@ const SOUNDS = [
   // ---- hands, items, the generic interactions (every night) ----
   { kind: 'sfx', name: 'ui', n: 'all', d: 'A tiny soft click. Switching the item in hand (keys 1–6, Tab, tapping the strip); on night 9 also choosing a key on the pay phone.', src: 'game.js inventory · night09 keypad' },
   { kind: 'sfx', name: 'tap', n: 'all', d: 'A soft, short tap, quieter than ui and with no caption. Any button or control in the menus pressed: the title, its dialogs, pause, the death and win screens, settings, the Nights cards, the end; each card filling in on the results after the ending.', src: 'menu.js (every button and setting) · game.js mute' },
-  { kind: 'sfx', name: 'stingCalibrate', n: 'all', d: 'The death sting’s crash alone: its noise burst and the deep drop under it (the impact), as loud as they are in the sting, with no saw (rising or falling) and no glitter. Tuned as the sting is; rendered offline it is no louder than the sting (test/settings.js). Settings, Volume, Calibrate, Sound effects: “Play the loudest sound in the game”, seven times in about two seconds, twice in the left ear, three times across, twice in the right (there with the heartbeat’s lub, the quietest).', src: 'menu.js volume calibration (AUDIO.calibrate)' },
   { kind: 'sfx', name: 'pickup', n: 'all', d: 'A short rising pluck with a brush of air. You take something into your hands.', src: 'game.js pickup · night07, 09, 10' },
   { kind: 'sfx', name: 'drop', n: 'all', d: 'A soft thump. You put the thing in hand down.', src: 'game.js drop · night10' },
   { kind: 'sfx', name: 'nope', n: 'all', d: 'A low buzzy blip. That will not work: wrong item, hands full, nothing to do there.', src: 'game.js · most nights' },
@@ -149,7 +148,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'phoneRing', n: 'unused', d: 'An old phone’s trilling ring. Never called.', src: '—' },
   { kind: 'sfx', name: 'wetThud', n: 'unused', d: 'A wet heavy blow. Never called.', src: '—' },
   // ---- death stings (and the other uses of the same sounds) ----
-  { kind: 'sting', name: 'sting', n: [1, 11, 12, 13], d: 'A scream: white noise, a falling saw tone, glitter. Death by the walker (1, the default), the carrier (11), grabbed or in the dark (12), the demon (13).', src: 'game.js die default · carrier, demon, night12' },
+  { kind: 'sting', name: 'sting', n: [1, 11, 12, 13], d: 'A scream: white noise, a falling saw tone, glitter. Death by the walker (1, the default), the carrier (11), grabbed or in the dark (12), the demon (13). And the loudest sound in the game: Settings, Volume, Calibrate, Sound effects, “Play the loudest sound in the game” plays it once, in the middle (there with the heartbeat’s lub, the quietest).', src: 'game.js die default · carrier, demon, night12 · menu.js volume calibration (AUDIO.calibrate)' },
   { kind: 'sting', name: 'stingShriek', n: [2, 11], d: 'A rising shriek. Death by the crawler (2); the carrier’s shriek as it falls (11).', src: 'crawler.js · night11' },
   { kind: 'sting', name: 'stingHum', n: [3, 10, 12, 13], d: 'A soft chord, then a thump. Death by the smiler (3), the other (10), the tall one (12); on 13 it catches you empty-handed and the ending begins.', src: 'smiler, other, tall · night13' },
   { kind: 'sting', name: 'stingStone', n: [4], d: 'Stone grinding and a crash. Death by the watcher.', src: 'watcher.js' },

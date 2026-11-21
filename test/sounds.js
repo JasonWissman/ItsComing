@@ -59,26 +59,32 @@ const lab = fs.readFileSync(path.join(root, 'lab/sounds.js'), 'utf8');
 const labRows = names(lab, /\{ kind: '(?:sfx|sting)', name: '([A-Za-z]+)'/g);
 for (const name of synth.sfx) check(labRows.has(name), "effect '" + name + "' has no row in the Sounds Audit (lab/sounds.js)");
 check(/kind: 'ambient', name: 'title[^\n]*near: 0/.test(lab) && /kind: 'ambient', name: 'title[^\n]*near: 1/.test(lab) && audio.includes('function titleDrone('), "the title's drone is in js/audio.js, and in the Sounds Audit far and close");
-// the volume calibration's loudest sound (Settings, Volume, Calibrate, Sound effects): the sting's crash alone, its noise
-// burst and the deep drop under it, as in the sting; no saw at all (neither the sting's falling saw nor a rising one) and
-// no glitter; tuned as the sting is; a caption and a row in the Sounds Audit. Its quietest: the heartbeat's first beat
-// (its lub), tuned as the heartbeat, as loud as game.js first plays the heartbeat; seven of each, twice left, three
-// across, twice right, in about two seconds
+// the volume calibration's loudest sound (Settings, Volume, Calibrate, Sound effects): the sting itself, the very effect a
+// death plays ('sting', with its tune), once, in the middle (not panned); no sound of the calibration's own for it any
+// more (stingCalibrate, the sting's crash alone, is gone: its case, its tune, its caption, its row in the Sounds Audit).
+// Its quietest: the heartbeat's first beat (its lub), tuned as the heartbeat, as loud as game.js first plays the
+// heartbeat; seven of it, twice left, three across, twice right, in about two seconds
 {
   const caseOf = n => { const a = audio.indexOf("case '" + n + "':"); return a < 0 ? '' : audio.slice(a, audio.indexOf('break;', a)); };
-  const sting = caseOf('sting'), cal = caseOf('stingCalibrate');
+  const sting = caseOf('sting');
   const crash = ['noise(1.4, { freq: 2500, vol: 1.0, attack: 0.002', 'tone(40, 1.5, { vol: 0.7, endFreq: 25'];
   check(crash.every(p => sting.includes(p)) && sting.includes("tone(400, 1.2, { vol: 0.5, type: 'sawtooth', endFreq: 40") && /for \(let i = 0; i < 6; i\+\+\) tone\(1200 \+ Math\.random\(\) \* 2000, 0\.12, \{ vol: 0\.2, type: 'square'/.test(sting), "the sting is still its noise burst, falling saw and deep drop, with its glitter (six square blips) over them");
-  check(synth.sfx.has('stingCalibrate') && crash.every(p => cal.includes(p + ', pan')) && (cal.match(/noise\(|tone\(/g) || []).length === 2 && !/sawtooth|square|swell|Math\.random|delay/.test(cal),
-    "stingCalibrate: the sting's crash alone (its noise burst and deep drop, as loud as in the sting), no saw rising or falling, no glitter");
-  check(!/function swell\(/.test(audio), 'the reversed saw (swell) is gone with the climb it made');
   const tunes = src['js/soundtune.js'], tuneOf = n => (tunes.match(new RegExp("\\n  '" + n + "': (\\{[^}]*\\})")) || [])[1];
-  check(!!tuneOf('sting') && tuneOf('stingCalibrate') === tuneOf('sting'), "stingCalibrate is tuned as the sting is (" + tuneOf('stingCalibrate') + ' / ' + tuneOf('sting') + ')');
-  check(SFX.has('stingCalibrate') && labRows.has('stingCalibrate') && /The death sting’s crash alone[^']*no saw/.test(lab) && !/stingCalibrate[^\n]*climbing in/.test(lab), 'stingCalibrate has a caption and a row in the Sounds Audit that says what it is now');
-  check(/tuned\('heartbeat', \(\) => tone\(54, 0\.13, \{ vol: CAL\.heart, endFreq: 36, pan \}\)\)/.test(audio) && /function heartbeat\(vol, fast\) \{\s*tone\(54, 0\.13, \{ vol: vol, endFreq: 36 \}\);/.test(audio) && /tuned\('stingCalibrate', \(\) => sfx\('stingCalibrate', pan\)\)/.test(audio),
-    "the calibration plays the heartbeat's lub as the heartbeat plays it (tuned as 'heartbeat') and stingCalibrate as an effect, each panned");
+  const everywhere = Object.values(src).join('\n') + lab + fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  check(!synth.sfx.has('stingCalibrate') && !SFX.has('stingCalibrate') && !labRows.has('stingCalibrate') && !tuneOf('stingCalibrate') && !/stingCalibrate/.test(everywhere), 'stingCalibrate is gone: no case in js/audio.js, no tune, no caption, no row in the Sounds Audit, no word of it anywhere');
+  check(!/function swell\(/.test(audio), 'the reversed saw (swell) is gone with the climb it made');
+  check(!!tuneOf('sting') && SFX.has('sting') && labRows.has('sting') && /name: 'sting',[^\n]*the loudest sound in the game[^\n]*once, in the middle/.test(lab), "the sting has its tune (" + tuneOf('sting') + "), its caption, and its row in the Sounds Audit says it is the calibration's loudest sound too");
+  const calib = audio.slice(audio.indexOf('  function calibrate(which, onBeat)'), audio.indexOf('  function calStop()'));
+  check(/if \(which === 'loud'\) \{[^}]*c\.pans\.push\(0\);\s*into\(\(\) => tuned\('sting', \(\) => sfx\('sting'\)\)\);[^}]*end\(CAL\.len\.loud\);\s*return true;\s*\}/.test(calib) && (calib.match(/sfx\('sting'\)/g) || []).length === 1 && !/sfx\('sting', /.test(calib),
+    "the calibration's loudest sound is the effect 'sting' itself, tuned as 'sting', played once and not panned (pan 0), through the calibration's own way in to the effects volume");
+  check(/tuned\('heartbeat', \(\) => tone\(54, 0\.13, \{ vol: CAL\.heart, endFreq: 36, pan \}\)\)/.test(audio) && /function heartbeat\(vol, fast\) \{\s*tone\(54, 0\.13, \{ vol: vol, endFreq: 36 \}\);/.test(audio),
+    "the calibration plays the heartbeat's lub as the heartbeat plays it (tuned as 'heartbeat'), panned");
   check(/pans: \[-1, -1, -0\.5, 0, 0\.5, 1, 1\], gap: 0\.3, heart: 0\.04 \+ 0\.02 \* 0\.5/.test(audio) && /AUDIO\.heartbeat\(0\.04 \+ prox \* 0\.5, prox > 0\.7\)/.test(src['js/game.js']) && /!G\.muted && prox > 0\.02\)/.test(src['js/game.js']),
-    'seven of each, 0.3 s apart (all seven in 1.8 s): twice left, left of centre, centre, right of centre, twice right; the lub as loud as the game first plays the heartbeat (0.04 + prox * 0.5 from prox 0.02)');
+    'seven of the quietest, 0.3 s apart (all seven in 1.8 s): twice left, left of centre, centre, right of centre, twice right; the lub as loud as the game first plays the heartbeat (0.04 + prox * 0.5 from prox 0.02)');
+  // the four play buttons make no click of their own (js/menu.js: tapFor), pressed to play or to stop
+  const menu = src['js/menu.js'];
+  check(/const tapFor = a => \{ if \(!CALS\[a\]\) tap\(\); \};/.test(menu) && /tapFor\(b\.dataset\.act\); act\(b\.dataset\.act, b\.dataset\.arg\);/.test(menu) && /const a = b\.dataset\.act;\s*tapFor\(a\);/.test(menu) && !/function calPlay[\s\S]*?\n  \}/.exec(menu)[0].includes("sfx('tap')") && !/function calPlay[\s\S]*?\n  \}/.exec(menu)[0].includes('tap()'),
+    "the volume dialog's four play buttons are pressed without the menus' tap (in the menus' overlay and in the warning's card alike)");
   // the ambience's two ends: night 8's bed with its main off, and night 9's rain, as the nights have them
   const bedOf = k => (audio.match(new RegExp(k + ': (\\{ tune: [^}]*\\})')) || [])[1];
   const n7 = (src['js/levels/night09.js'].match(/ambient: (\{ tune: 'ambient:9'[^}]*\})/) || [])[1], n8 = (src['js/levels/night08.js'].match(/ambient: (\{ tune: 'ambient:8'[^}]*\})/) || [])[1];

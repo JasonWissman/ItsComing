@@ -137,7 +137,17 @@ const hoverHit = lookFor;
   await page.evaluate(() => { window.DISCLAIMER_TEST = true; });
   await page.click('#overlay button[data-act="begin"]'); await page.waitForTimeout(600);
   check(await page.evaluate(() => !document.getElementById('disclaimer') && G.state === 'card' && SAVE.data.warned), 'accepted once, a new game (after a reload) goes on with no warning');
-  await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  // Esc on a night's card is the pause menu, never straight out to the title; Resume (or Esc again) is the card again
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  const ce1 = await page.evaluate(() => ({ st: G.state, from: G.pausedFrom, kind: MENU.kind, acts: [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join(), run: !!G.run }));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  const ce2 = await page.evaluate(() => ({ st: G.state, from: G.pausedFrom, kind: MENU.kind, kicker: (document.querySelector('#overlay .kicker') || {}).textContent, prompt: !!document.querySelector('#overlay .prompt'), stag: !!document.querySelector('#overlay .s2, #overlay .s3'), run: !!G.run }));
+  check(ce1.st === 'paused' && ce1.from === 'card' && ce1.kind === 'pause' && ce1.acts === 'resume,controls,settings,quit' && ce1.run && ce2.st === 'card' && !ce2.from && ce2.kind === null && /Night 1 of/.test(ce2.kicker) && ce2.prompt && !ce2.stag && ce2.run,
+    'Esc on a night\'s card: the pause menu (not the title, the run kept); Esc again: the card again, all of it there (' + JSON.stringify([ce1, ce2]) + ')');
+  await page.keyboard.press('r'); await page.waitForTimeout(100);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150); await page.keyboard.press('r'); await page.waitForTimeout(150);
+  check(await page.evaluate(() => G.state === 'paused' && G.pausedFrom === 'card'), 'R does nothing on a card, nor in the pause menu over one');
+  await page.evaluate(() => showTitle()); await page.waitForTimeout(300);
   await page.evaluate(() => { window.DISCLAIMER_TEST = 'force'; });
   await page.keyboard.press('Enter'); await page.waitForTimeout(600);
   check(await page.evaluate(() => !!document.getElementById('disclaimer')), 'a test can still force it (DISCLAIMER_TEST = \'force\')');
@@ -180,8 +190,21 @@ const hoverHit = lookFor;
   check(v.k === 'none' && v.h === 'none' && v.intro[0] === 'cardin' && parseFloat(v.intro[1]) > 0.3 && /cardin/.test(v.prompt[0]) && /breathe/.test(v.prompt[0]) && Math.max(...v.prompt[1].split(',').map(parseFloat)) > parseFloat(v.intro[1]) + 0.5 && v.prompt[2] === '0',
     'the card: Night 1 of 13 and its name first, its words a moment after, then the prompt after that (not in yet) (' + JSON.stringify(v) + ')');
   await shot(page, 'card');
+  // the card takes no press to go on until its words have faded in (CARD_IN: the fade's delay and length): not a click,
+  // Enter, a pad's A or Start; then the prompt comes, and a click goes on
+  const gate = await page.evaluate(() => { showTitle(); MENU.act('begin'); const c = getComputedStyle(document.querySelector('#overlay .intro')); return { st: G.state, CARD_IN, css: Math.round((parseFloat(c.animationDelay) + parseFloat(c.animationDuration)) * 1000), left: Math.round(G.overlayArmed - performance.now()) }; });   // (the card afresh, to be timed)
+  check(gate.st === 'card' && gate.CARD_IN === gate.css && gate.CARD_IN >= 1000 && gate.left > gate.CARD_IN - 100 && gate.left <= gate.CARD_IN, 'the card is held for as long as its words take to fade in (' + JSON.stringify(gate) + ' ms)');
+  await page.waitForTimeout(350);   // (past the short guard every screen has: it is the card's own hold that is being tried)
+  await page.mouse.click(640, 380); await page.keyboard.press('Enter'); await page.waitForTimeout(60);
+  await page.evaluate(() => { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; window._pad.buttons[0].pressed = true; });
+  await page.waitForTimeout(80); await page.evaluate(() => { window._pad.buttons[0].pressed = false; window._pad.buttons[9].pressed = true; }); await page.waitForTimeout(80);
+  await page.evaluate(() => { window._pad.buttons[9].pressed = false; navigator.getGamepads = () => []; });
+  const early = await page.evaluate(() => ({ st: G.state, left: Math.round(G.overlayArmed - performance.now()), intro: +getComputedStyle(document.querySelector('#overlay .intro')).opacity }));
+  check(early.st === 'card' && early.left > 0, 'a click, Enter, a pad\'s A and Start while its words are still coming in: the card stays (' + JSON.stringify(early) + ')');
+  await page.waitForTimeout(Math.max(0, early.left) + 60);
+  const ready = await page.evaluate(() => ({ st: G.state, intro: +getComputedStyle(document.querySelector('#overlay .intro')).opacity, prompt: +getComputedStyle(document.querySelector('#overlay .prompt')).opacity }));
   await page.mouse.click(640, 380); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.state === 'play'), 'and a click goes on before the prompt is even in, as ever');
+  check(ready.st === 'card' && ready.intro > 0.95 && ready.prompt < 0.5 && await page.evaluate(() => G.state === 'play'), 'once its words are in (the prompt only now coming) a click goes on (' + JSON.stringify(ready) + ')');
   check(await page.evaluate(() => document.getElementById('objective').textContent === ''), 'no HUD objective');
   await page.evaluate(() => { G.L.lane = G.L.lanes[0]; G.L.creature.retarget(0); });   // the back door, wherever it was coming from
   await hoverHit(page, 'target', 'door');
@@ -189,8 +212,9 @@ const hoverHit = lookFor;
   await hoverHit(page, 'item', 'hammer');
   check(await page.evaluate(() => document.getElementById('tooltip').textContent === 'Hammer'), 'item names show');
   await face(page, 0, false);
-  const r = await findHit(page, 'target', 'door');
-  await page.mouse.click(r.x, r.y); await page.waitForTimeout(100);
+  const r = await findHit(page, 'target', 'door') || await lookFor(page, 'target', 'door');
+  if (!r) console.log('  (no door in view: ' + await page.evaluate(() => JSON.stringify({ st: G.state, dist: G.L.creature.dist, dir: G.cam.dirIdx, hits: R.hits.map(h => h.kind + ':' + (h.ref.id || '')) })) + ')');
+  else { await page.mouse.click(r.x, r.y); await page.waitForTimeout(100); }
   check(await page.evaluate(() => document.getElementById('toast').textContent === 'It\'s missing something.'), 'failure feedback is vague');
 
   console.log('== restart key ==');
@@ -217,7 +241,7 @@ const hoverHit = lookFor;
   // the pause menu: no line under the heading, short labels, one narrow column of buttons all of a width; no Restart, no
   // Mute (R and M still do them, and Mute is in Settings); Controls in Restart's place; Quit with no border, quieter
   v = await page.evaluate(() => {
-    const bs = [...document.querySelectorAll('#overlay button[data-act]')], q = document.querySelector('#overlay button[data-act="title"]'), r = document.querySelector('#overlay button[data-act="resume"]'), c = getComputedStyle;
+    const bs = [...document.querySelectorAll('#overlay button[data-act]')], q = document.querySelector('#overlay button[data-act="quit"]'), r = document.querySelector('#overlay button[data-act="resume"]'), c = getComputedStyle;
     return { labels: bs.map(b => b.textContent).join(','), widths: [...new Set(bs.map(b => Math.round(b.getBoundingClientRect().width)))], intro: !!document.querySelector('#overlay .intro'), text: document.getElementById('overlay').textContent,
       quitBorder: c(q).borderTopColor, quitBg: c(q).backgroundColor, quitFg: c(q).color, resumeFg: c(r).color };
   });
@@ -362,16 +386,56 @@ const hoverHit = lookFor;
   await page.keyboard.press('m'); await page.waitForTimeout(80);
   await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(150);
   check(await page.evaluate(() => MENU.kind === 'pause' && document.activeElement && document.activeElement.dataset.act === 'settings'), 'Done in Settings: the pause menu, Settings focused');
-  await page.click('#overlay button[data-act="title"]'); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title'), 'Back to title from pause');
-  v = await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); startLevel(1, true); const o = { stag: !!document.querySelector('#overlay .s2, #overlay .s3'), intro: getComputedStyle(document.querySelector('#overlay .intro')).animationName }; MENU.applySetting('reduceMotionFlash', false); showTitle(); return o; });
-  check(!v.stag && v.intro === 'none', 'with reduced motion a night\'s card comes in all together (' + JSON.stringify(v) + ')');
+  // Quit asks first: a little dialog over the pause menu, its words exactly, Cancel (focused) and Quit; Cancel, Esc, a
+  // pad's B or Start, or a click off it, is the pause menu again (Quit focused), still paused; only its Quit goes out
+  const quitLook = () => page.evaluate(() => { const box = document.querySelector('#overlay .confirm .cpanel'), f = document.activeElement; return { st: G.state, kind: MENU.kind, box: !!box, role: box && box.getAttribute('role'), text: box && box.querySelector('p').textContent, said: box && document.getElementById(box.getAttribute('aria-describedby')).textContent, btns: box && [...box.querySelectorAll('button')].map(b => b.dataset.act + ':' + b.textContent).join(), focus: f && f.dataset.act, inBox: !!(box && box.contains(f)), asking: MENU.confirming }; });
+  await page.click('#overlay button[data-act="quit"]'); await page.waitForTimeout(150);
+  let qv = await quitLook();
+  check(qv.st === 'paused' && qv.kind === 'pause' && qv.box && qv.role === 'alertdialog' && qv.text === 'Are you sure you want to quit? Your progress will be lost.' && qv.said === qv.text && qv.btns === 'stay:Cancel,title:Quit' && qv.focus === 'stay' && qv.inBox && qv.asking,
+    'Quit in the pause menu asks first: "Are you sure you want to quit? Your progress will be lost.", Cancel (focused) and Quit; nothing quit yet (' + JSON.stringify(qv) + ')');
+  await shot(page, 'quit-confirm');
+  await page.keyboard.press('Tab'); await page.keyboard.press('Tab'); await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowUp'); await page.waitForTimeout(50);
+  const qring = await quitLook();
+  await page.keyboard.press('r'); await page.waitForTimeout(100);
+  const qr = await page.evaluate(() => G.state + ' ' + !!document.querySelector('#overlay .confirm'));
+  check(qring.focus === 'stay' && qring.inBox && qr === 'paused true', 'the keys stay inside it (Tab and the arrows go between its two buttons), and R does not restart the night from under it (' + JSON.stringify([qring.focus, qr]) + ')');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+  const q1 = await quitLook();
+  await page.click('#overlay button[data-act="quit"]'); await page.waitForTimeout(120);
+  await page.click('#overlay .confirm button[data-act="stay"]'); await page.waitForTimeout(150);
+  const q2 = await quitLook();
+  await page.click('#overlay button[data-act="quit"]'); await page.waitForTimeout(120);
+  await page.mouse.click(60, 700); await page.waitForTimeout(150);   // (off the little dialog)
+  const q3 = await quitLook();
+  await page.evaluate(() => { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; });
+  const q4 = [];
+  for (const b of [1, 9]) {
+    await page.click('#overlay button[data-act="quit"]'); await page.waitForTimeout(120);
+    await page.evaluate(b => { window._pad.buttons[b].pressed = true; }, b); await page.waitForTimeout(80); await page.evaluate(b => { window._pad.buttons[b].pressed = false; }, b); await page.waitForTimeout(100);
+    q4.push(await quitLook());
+  }
+  await page.evaluate(() => { navigator.getGamepads = () => []; });
+  check([q1, q2, q3, ...q4].every(q => q.st === 'paused' && q.kind === 'pause' && !q.box && q.focus === 'quit' && !q.asking), 'Esc, its Cancel, a click off it, and a pad\'s B or Start: the pause menu again, Quit focused, still paused (' + JSON.stringify([q1, q2, q3, ...q4].map(q => [q.st, q.box, q.focus])) + ')');
+  await page.click('#overlay button[data-act="quit"]'); await page.waitForTimeout(120);
+  await page.click('#overlay .confirm button[data-act="title"]'); await page.waitForTimeout(300);
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && G.run === null), 'and its Quit goes out to the title');
+  v = await page.evaluate(() => { MENU.applySetting('reduceMotionFlash', true); startLevel(1, true); const o = { stag: !!document.querySelector('#overlay .s2, #overlay .s3'), intro: getComputedStyle(document.querySelector('#overlay .intro')).animationName, held: Math.round(G.overlayArmed - performance.now()) }; MENU.applySetting('reduceMotionFlash', false); showTitle(); return o; });
+  check(!v.stag && v.intro === 'none' && v.held > 250 && v.held <= 350, 'with reduced motion a night\'s card comes in all together, and is held only the usual moment (' + JSON.stringify(v) + ')');
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'with no night survived yet, the title has no Scores button: there is nothing to show');
-  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.unlocked.nightmare = 3; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
+  check(await page.evaluate(() => G.unlocked === 0 && !MENU.scoresOpen() && !document.querySelector('#overlay button[data-act="nights"]')), 'with nothing to show yet, the title has no Scores button');
+  // Scores is there once there is something in it: a best run (a whole game finished) or an easter egg found. Nights
+  // survived alone are not enough; an egg named for a night that has none is nothing either
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.unlocked.nightmare = 3; d.eggs = { field: true, nosuchnight: true }; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
-  check(await page.evaluate(() => !!document.querySelector('#overlay button[data-act="nights"]') && [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() === 'begin,nights,howto,settings' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores'), 'with a night survived, the title has a Scores button; Begin is the only way in (no Continue)');
+  const sc0 = await page.evaluate(() => ({ u: G.unlocked, open: MENU.scoresOpen(), btn: !!document.querySelector('#overlay button[data-act="nights"]'), fieldEgg: !!(LEVELS[0].text && LEVELS[0].text.egg) }));
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.eggs = { road: true }; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
+  await page.reload(); await page.waitForTimeout(300);
+  const sc1 = await page.evaluate(() => ({ open: MENU.scoresOpen(), acts: [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() }));
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.eggs = {}; d.bestRun = { nightmare: { t: 400, nights: LEVELS.map(() => 400 / 13) } }; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
+  await page.reload(); await page.waitForTimeout(300);
+  check(sc0.u === 3 && (sc0.fieldEgg || (!sc0.open && !sc0.btn)) && sc1.open && sc1.acts === 'begin,nights,howto,settings', 'nights survived are not enough for it (nor an egg for a night that has none); one easter egg found is (' + JSON.stringify([sc0, sc1]) + ')');
+  check(await page.evaluate(() => MENU.scoresOpen() && !!document.querySelector('#overlay button[data-act="nights"]') && [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() === 'begin,nights,howto,settings' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores'), 'with a best run, the title has a Scores button; Begin is the only way in (no Continue)');
   check(await page.evaluate(() => { const f = document.querySelector('#overlay .fine'), a = f && f.querySelector('a'); return /^created by jason wissman$/.test(f.textContent) && a && a.textContent === 'jason wissman' && a.href === 'https://jasonwissman.com/'; }), 'the line under the title credits jason wissman, linked to jasonwissman.com');
   await page.goto(URL); await page.waitForTimeout(300);
   await page.keyboard.press('c'); await page.waitForTimeout(400);
@@ -415,8 +479,64 @@ const hoverHit = lookFor;
   check(await page.evaluate(() => G.state !== 'title' && !document.body.classList.contains('titlescene')), 'Begin leaves the title, and its scene goes with it');
   await page.goto(URL); await page.waitForTimeout(300);
 
+  console.log('== the title: the light behind it is left behind by a scuttle, and glides after it ==');
+  {
+    // stepped a sixtieth at a time (?nofr): where the thing is (TITLE.dist) and the light behind it (TITLE.glow: its
+    // middle and its reach) each frame, from a click on the dark until well after
+    const lp = await browser.newPage({ viewport: { width: 1280, height: 760 } });
+    await lp.goto(URL + '?nofr&seed=1'); await lp.waitForTimeout(300);
+    const trace = (reduced, secs) => lp.evaluate(([reduced, secs]) => {
+      MENU.applySetting('reduceMotionFlash', reduced); showTitle();
+      for (let i = 0; i < 30; i++) G.step(1 / 60);
+      const rest = TITLE.glow, d0 = TITLE.dist, out = [];
+      TITLE.advance(true);
+      for (let i = 0; i < secs * 60; i++) { G.step(1 / 60); const g = TITLE.glow; out.push({ t: (i + 1) / 60, d: TITLE.dist, moving: TITLE.moving, x: g.x, y: g.y, r: g.r, gliding: g.gliding }); }
+      return { rest, d0, d1: TITLE.D[1], out, lag: TITLE.GLIDE.lag, scurry: TITLE.SCURRY, step: TITLE.step };
+    }, [reduced, secs]);
+    const look = tr => {
+      const o = tr.out, r0 = tr.rest.r, r1 = o[o.length - 1].r, y0 = tr.rest.y, y1 = o[o.length - 1].y;
+      const light = o.map(s => (s.r - r0) / (r1 - r0)), thing = o.map(s => (1 / s.d - 1 / tr.d0) / (1 / tr.d1 - 1 / tr.d0));   // how far each has got, 0 to 1 (as it is seen: its size)
+      const at = t => Math.min(o.length - 1, Math.round(t * 60) - 1), steps = a => a.map((v, i) => v - (i ? a[i - 1] : 0));
+      const ls = steps(light), ts = steps(thing), arrive = o.findIndex(s => !s.moving), there = light.findIndex(p => p > 0.98), settled = o.findIndex(s => !s.gliding);
+      return { lagMs: Math.round(tr.lag * 1000), ratio: +(r1 / r0).toFixed(3), want: +(tr.d0 / tr.d1).toFixed(3), thingAt: +(o[arrive].t).toFixed(2), lightAt: +(o[there].t).toFixed(2), settledAt: settled < 0 ? null : +(o[settled].t).toFixed(2),
+        inLag: +Math.max(...light.slice(0, at(tr.lag))).toFixed(4), thingInLag: +thing[at(tr.lag)].toFixed(3), lightWhenThere: +light[arrive].toFixed(3), thingWhenThere: +thing[arrive].toFixed(3),
+        mono: ls.every(v => v > -1e-4), maxStep: +Math.max(...ls).toFixed(4), thingMaxStep: +Math.max(...ts).toFixed(4), jerk: +Math.max(...ls.map((v, i) => Math.abs(v - (i ? ls[i - 1] : 0)))).toFixed(4),
+        yMoved: +(((o[arrive].y - y0) / (y1 - y0)) || 0).toFixed(3), final: +light[light.length - 1].toFixed(4), glidingAtArrive: o[arrive].gliding, endGliding: o[o.length - 1].gliding };
+    };
+    const L1 = look(await trace(false, 2.5));
+    check(Math.abs(L1.ratio - L1.want) < 0.01 && L1.final === 1 && !L1.endGliding && L1.settledAt !== null, 'after a scuttle the light ends up straight behind it again, where it now stands (its reach ' + L1.ratio + ' times what it was, as the thing is ' + L1.want + ' times nearer), and is at rest (' + JSON.stringify(L1) + ')');
+    check(L1.inLag < 0.01 && L1.thingInLag > 0.1, 'the light starts later: for the first ' + L1.lagMs + ' ms it has not moved (' + L1.inLag + ' of its way) while the thing has jerked forward (' + L1.thingInLag + ' of its)');
+    check(L1.thingAt <= 0.45 && L1.thingWhenThere === 1 && L1.lightWhenThere > 0.15 && L1.lightWhenThere < 0.65 && L1.glidingAtArrive && L1.lightAt > L1.thingAt + 0.35 && L1.lightAt < 1.6,
+      'it lags behind: when the thing is there (' + L1.thingAt + ' s) the light is only ' + Math.round(L1.lightWhenThere * 100) + '% of its way, and glides in after it (there at ' + L1.lightAt + ' s)');
+    check(L1.mono && L1.maxStep < 0.06 && L1.jerk < 0.012 && L1.thingMaxStep > 2.5 * L1.maxStep, 'and it moves smoothly: always onward, never more than ' + (L1.maxStep * 100).toFixed(1) + '% of its way in a frame (the thing: ' + (L1.thingMaxStep * 100).toFixed(1) + '%), its speed changing gently, its middle and its reach together (' + JSON.stringify({ maxStep: L1.maxStep, jerk: L1.jerk, y: L1.yMoved }) + ')');
+    // clicked again on the way: it goes on from where it has got to, with no jump back or stop
+    const again = await lp.evaluate(() => {
+      showTitle(); for (let i = 0; i < 30; i++) G.step(1 / 60);
+      const r0 = TITLE.glow.r, out = [];
+      TITLE.advance(true);
+      for (let i = 0; i < 150; i++) { if (i === 30) TITLE.advance(true); G.step(1 / 60); out.push(TITLE.glow.r); }
+      const steps = out.map((v, i) => v - (i ? out[i - 1] : r0));
+      return { mono: steps.every(v => v > -0.01), jump: Math.max(...steps.map((v, i) => Math.abs(v - (i ? steps[i - 1] : 0)))) / (out[out.length - 1] - r0), ratio: out[out.length - 1] / r0, want: TITLE.D[0] / TITLE.D[2], step: TITLE.step, gliding: TITLE.glow.gliding };
+    });
+    check(again.mono && again.jump < 0.012 && Math.abs(again.ratio - again.want) < 0.02 && again.step === 2 && !again.gliding, 'clicked again while the light is on its way: it goes on from where it has got to, to behind the new place, with no jump or stop (' + JSON.stringify(again) + ')');
+    // a dialog closed over it (the thing simply nearer): the light is there at once, as ever
+    const snap = await lp.evaluate(() => {
+      showTitle(); for (let i = 0; i < 10; i++) G.step(1 / 60);
+      const r0 = TITLE.glow.r;
+      MENU.act('howto'); G.step(1 / 60); MENU.act('back', 'title'); G.step(1 / 60);
+      return { ratio: TITLE.glow.r / r0, want: TITLE.D[0] / TITLE.D[1], gliding: TITLE.glow.gliding, step: TITLE.step };
+    });
+    check(Math.abs(snap.ratio - snap.want) < 0.01 && !snap.gliding && snap.step === 1, 'a dialog closed over it: the thing is a step nearer and the light behind it at once, no glide (' + JSON.stringify(snap) + ')');
+    // with reduced motion (the thing slides, smoothly): the light after it the same way
+    const L2 = look(await trace(true, 2.5));
+    check(Math.abs(L2.ratio - L2.want) < 0.01 && L2.inLag < 0.01 && L2.lightAt > L2.thingAt + 0.3 && L2.mono && L2.maxStep < 0.06 && !L2.endGliding, 'with reduced motion it slides there and the light follows the same way, later and smoothly (' + JSON.stringify(L2) + ')');
+    await lp.evaluate(() => MENU.applySetting('reduceMotionFlash', false));
+    await lp.close();
+  }
+
   console.log('== erasing progress asks first (in Scores) ==');
-  await page.evaluate(() => { SAVE.data.bestRun.nightmare = { t: 400, nights: LEVELS.map(() => 400 / 13) }; SAVE.persist(); MENU.applySetting('captions', true); });
+  await page.evaluate(() => { SAVE.data.bestRun.nightmare = { t: 400, nights: LEVELS.map(() => 400 / 13) }; SAVE.egg('road'); SAVE.egg('booth'); SAVE.persist(); MENU.applySetting('captions', true); MENU.applySetting('brightness', 1.2); });
+  check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.eggs.road === true && d.eggs.booth === true && Object.keys(d.eggs).length === 2 && SAVE.egg('road') === false; }), 'an easter egg found is kept in the save, by its night, once');
   await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(120);
   check(await page.evaluate(() => [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'back:Back,reset:Erase progress' && document.querySelector('#overlay button[data-act="reset"]').classList.contains('danger')), 'Scores has Back and, beside it, Erase progress (in red)');
   await page.click('#overlay button[data-act="reset"]'); await page.waitForTimeout(120);
@@ -433,12 +553,14 @@ const hoverHit = lookFor;
   await page.click('#overlay .confirm button[data-act="erase"]'); await page.waitForTimeout(200);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'Erase erases, and the title is back with no Scores');
   check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.bestRun).length && !Object.keys(d.bestRun).length && d.unlocked.nightmare === 0 && !d.complete.nightmare && d.warned === false && d.settings.captions === false; }), 'everything it erased before goes as it did: nights reached, the best run, the warning accepted, the settings');
+  check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.eggs).length && !Object.keys(d.eggs).length && !MENU.scoresOpen() && d.settings.brightness === 1 && !document.documentElement.classList.contains('bright') && getComputedStyle(UI.canvas).filter === 'none'; }), 'and the easter eggs found go with it (nothing left for Scores to show), the brightness back at 100% with no filter on the view');
 
   console.log('== the Scores screen ==');
   // an older save with best times for single nights and no full run: no run is made up from them, and they are dropped
   await page.evaluate(() => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 9 }, complete: {}, bestRun: {}, best: { field: { nightmare: { time: 41.2, wins: 3, tries: 5 } } }, settings: {} })));
   await page.goto(URL); await page.waitForTimeout(300);
-  await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+  check(await page.evaluate(() => G.unlocked === 9 && !document.querySelector('#overlay button[data-act="nights"]')), 'nights survived, but no full run and no easter egg: no Scores button on the title yet');
+  await page.evaluate(() => MENU.act('nights')); await page.waitForTimeout(200);   // (opened all the same, to see it empty)
   tv = await page.evaluate(() => ({ cards: document.querySelectorAll('#overlay .ncard').length, run: document.querySelector('#overlay .runcard .rtime').textContent, label: document.querySelector('#overlay .runcard .rlabel').textContent, hint: (document.querySelector('#overlay .runcard .rhint') || {}).textContent, stars: !!document.querySelector('#overlay .stars'), best: 'best' in SAVE.data, u: G.unlocked,
     btns: [...document.querySelectorAll('#overlay button')].map(b => b.dataset.act).join(), p: (() => { const p = document.querySelector('#overlay .panel'); return p.scrollHeight <= p.clientHeight + 1; })() }));
   check(tv.cards === 0 && tv.run === '—' && tv.label === 'Best run' && /No full run yet/.test(tv.hint) && /in one go/.test(tv.hint) && !tv.stars && !tv.best && tv.u === 9 && tv.btns === 'back,reset' && tv.p, 'no best run yet (an old save\'s single-night bests make none, and are dropped): only a word on what one is, and Erase progress (' + JSON.stringify(tv) + ')');
@@ -477,7 +599,7 @@ const hoverHit = lookFor;
   // an older save's best full run (only its whole time, no breakdown) is dropped: no score yet, and the next run is the best
   await page.evaluate(() => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: 1234.5 }, settings: {} })));
   await page.goto(URL); await page.waitForTimeout(300);
-  await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+  await page.evaluate(() => MENU.act('nights')); await page.waitForTimeout(200);
   tv = await page.evaluate(() => ({ empty: /no full run yet/i.test(document.querySelector('#overlay').textContent), kept: JSON.stringify(SAVE.data.bestRun), first: SAVE.recordRun('nightmare', 1300, LEVELS.map(() => 100)) }));
   check(tv.empty && tv.kept === '{}' && tv.first, 'an older save\'s best full run with no breakdown (a time only) is dropped: no full run yet, and the next run is the best (' + JSON.stringify(tv) + ')');
   await page.evaluate(() => { MENU.act('back', 'title'); MENU.act('nights'); });
@@ -497,6 +619,132 @@ const hoverHit = lookFor;
     await mp.tap('#overlay button[data-act="reset"]'); await mp.waitForTimeout(250);
     check(await mp.evaluate(() => { const b = document.querySelector('#overlay .confirm .cpanel').getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight; }), 'and its Erase question is all in view');
     await ctx.close();
+  }
+
+  console.log('== Scores: the easter eggs tab ==');
+  {
+    // one easter egg a night, for the nights that have one (LEVELS[i].text.egg); the save keeps which have been found
+    const defs = await page.evaluate(() => LEVELS.map(l => ({ id: l.id, title: l.title, egg: (l.text && l.text.egg) || '' })));
+    const withEgg = defs.filter(d => d.egg), have = ['road', 'lighthouse', 'booth'].filter(id => defs.some(d => d.id === id && d.egg));
+    check(defs.length === 13 && withEgg.length >= 6 && have.length === 3 && withEgg.every(d => /\S/.test(d.egg) && !/\n/.test(d.egg)), 'the nights name their easter eggs, a line each (' + withEgg.map(d => d.id).join() + ')');
+    const setSave = (o) => page.evaluate(([o, n, t]) => localStorage.setItem('itscoming.v2', JSON.stringify(Object.assign({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: { t, nights: n } }, settings: {} }, o))), [o, runNights, runT]);
+    const tabsLook = (pg) => (pg || page).evaluate(() => {
+      const p = document.querySelector('#overlay .panel'), list = p.querySelector('[role="tablist"]'), tabs = [...p.querySelectorAll('[role="tab"]')], r = e => e.getBoundingClientRect(), f = document.activeElement;
+      const panels = tabs.map(t => document.getElementById(t.getAttribute('aria-controls')));
+      const rows = [...p.querySelectorAll('.eggs .egg')];
+      return { list: !!list, listRole: list && list.parentElement === p, tabs: tabs.map(t => t.textContent + (t.getAttribute('aria-selected') === 'true' ? '*' : '') + '/' + t.tabIndex).join(), isBtn: tabs.every(t => t.tagName === 'BUTTON'),
+        panels: panels.map((q, i) => q && q.getAttribute('role') === 'tabpanel' && q.getAttribute('aria-labelledby') === tabs[i].id ? (q.hidden || getComputedStyle(q).visibility === 'hidden' ? 'hidden' : 'shown') : 'bad').join(),
+        focus: f && (f.getAttribute('role') === 'tab' ? 'tab:' + f.textContent : f.dataset.act), kind: MENU.kind, st: G.state,
+        rows: rows.map(e => ({ cls: e.className.replace(/ c[12]$/, ''), name: e.querySelector('.ename').textContent, what: e.querySelector('.ewhat').textContent, off: e.getAttribute('aria-disabled') === 'true', role: e.getAttribute('role'), dim: +getComputedStyle(e).color.split(',').pop().replace(/[^\d.]/g, '') < 0.5 })),
+        count: (p.querySelector('.eggcount') || {}).textContent, text: p.textContent, acts: [...p.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(),
+        fits: p.scrollHeight <= p.clientHeight + 1 && p.scrollWidth <= p.clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth, inView: r(p).top >= 0 && r(p).bottom <= innerHeight && rows.every(e => r(e).left >= r(p).left && r(e).right <= r(p).right),
+        clipped: rows.filter(e => { const w = e.querySelector('.ewhat'), n = e.querySelector('.ename'); return w.scrollWidth > w.clientWidth + 1 || n.scrollWidth > n.clientWidth + 1; }).length, tabH: Math.min(...tabs.map(t => r(t).height)) };
+    });
+    // no egg found: Scores as it was, no tabs at all
+    await setSave({}); await page.goto(URL); await page.waitForTimeout(300);
+    await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+    check(await page.evaluate(() => !document.querySelector('#overlay [role="tablist"], #overlay [role="tab"], #overlay .eggs') && document.querySelectorAll('#overlay .ncard').length === 13), 'with no easter egg found yet: no tabs, no Easter eggs tab: Scores is the best run alone');
+    // three found: two tabs, Best run first and chosen; the eggs' panel there but hidden
+    await setSave({ eggs: { road: true, lighthouse: true, booth: true } }); await page.goto(URL); await page.waitForTimeout(300);
+    await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+    let ev = await tabsLook();
+    check(ev.list && ev.listRole && ev.isBtn && ev.tabs === 'Best run*/0,Easter eggs/-1' && ev.panels === 'shown,hidden' && ev.acts === 'back,reset' && ev.focus === 'back' && ev.fits && ev.inView,
+      'once an easter egg is found Scores has two tabs (tablist, tab, tabpanel): Best run, chosen, and Easter eggs; only the chosen one in the tab order; all of it in view (' + JSON.stringify({ tabs: ev.tabs, panels: ev.panels, acts: ev.acts, focus: ev.focus, fits: ev.fits, inView: ev.inView }) + ')');
+    await shot(page, 'scores-tabs-run');
+    await page.click('#overlay [role="tab"][data-tab="eggs"]'); await page.waitForTimeout(200);
+    ev = await tabsLook();
+    const want = defs.map((d, i) => ({ cls: 'egg ' + (have.includes(d.id) ? 'found' : d.egg ? 'unknown' : 'none'), name: (i + 1) + '. ' + d.title, what: have.includes(d.id) ? d.egg : d.egg ? '???' : '—', off: !d.egg, role: 'listitem' }));
+    check(ev.tabs === 'Best run/-1,Easter eggs*/0' && ev.panels === 'hidden,shown' && ev.kind === 'nights' && ev.st === 'title', 'a click on Easter eggs chooses it: its panel shown, Best run\'s hidden (' + JSON.stringify([ev.tabs, ev.panels]) + ')');
+    check(ev.rows.length === 13 && JSON.stringify(ev.rows.map(r => ({ cls: r.cls, name: r.name, what: r.what, off: r.off, role: r.role }))) === JSON.stringify(want),
+      'the thirteen nights in order: one found shows its night\'s own line; one not found yet ???; a night with no easter egg a dash, disabled (' + JSON.stringify(ev.rows.map(r => r.name + ': ' + r.what)) + ')');
+    check(withEgg.filter(d => !have.includes(d.id)).every(d => !ev.text.includes(d.egg)) && ev.rows.filter(r => r.off).every(r => r.dim) && ev.rows.filter(r => !r.off).every(r => !r.dim), 'what is not found yet is not given away anywhere in the dialog; the nights with none are dimmed');
+    check(ev.count === '3 of ' + withEgg.length + ' found' && ev.fits && ev.inView && !ev.clipped, 'and how many: "' + ev.count + '"; the list in view, nothing cut off (' + JSON.stringify({ fits: ev.fits, inView: ev.inView, clipped: ev.clipped }) + ')');
+    await shot(page, 'scores-eggs');
+    // the keys: on the chosen tab, left and right go along the tabs choosing as they go; down goes on to the buttons, up back
+    await page.evaluate(() => document.querySelector('#overlay [role="tab"][aria-selected="true"]').focus());
+    await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(60); const k1 = await tabsLook();
+    await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(60); const k2 = await tabsLook();
+    await page.keyboard.press('ArrowRight'); await page.waitForTimeout(60); const k3 = await tabsLook();
+    await page.keyboard.press('Enter'); await page.keyboard.press(' '); await page.waitForTimeout(60); const k4 = await tabsLook();
+    await page.keyboard.press('ArrowDown'); await page.waitForTimeout(40); const k5 = await tabsLook();
+    await page.keyboard.press('ArrowUp'); await page.waitForTimeout(40); const k6 = await tabsLook();
+    await page.keyboard.press('Home'); await page.waitForTimeout(40); const k7 = await tabsLook();
+    await page.keyboard.press('End'); await page.waitForTimeout(40); const k8 = await tabsLook();
+    check(k1.tabs === 'Best run*/0,Easter eggs/-1' && k1.focus === 'tab:Best run' && k1.panels === 'shown,hidden' && k2.tabs === k1.tabs && k2.focus === 'tab:Best run' && k3.tabs === 'Best run/-1,Easter eggs*/0' && k3.focus === 'tab:Easter eggs' && k3.panels === 'hidden,shown',
+      'by the keys: left on the chosen tab chooses Best run (the focus going with it; left again stays), right Easter eggs (' + JSON.stringify([k1.tabs, k1.focus, k3.tabs, k3.focus]) + ')');
+    check(k4.tabs === k3.tabs && k4.kind === 'nights' && k4.st === 'title' && k5.focus === 'back' && k6.focus === 'tab:Easter eggs' && k7.focus === 'tab:Best run' && k7.tabs === k1.tabs && k8.focus === 'tab:Easter eggs' && k8.tabs === k3.tabs,
+      'Enter and Space on it change nothing; down goes on to Back, up back to the chosen tab; Home and End the first and the last (' + JSON.stringify([k4.tabs, k5.focus, k6.focus, k7.focus, k8.focus]) + ')');
+    // a pad: the d-pad up from Back to the chosen tab, left and right along the tabs, B back out
+    await page.evaluate(() => { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; document.querySelector('#overlay button[data-act="back"]').focus(); });
+    const padTab = async i => { await page.evaluate(i => { window._pad.buttons[i].pressed = true; }, i); await page.waitForTimeout(80); await page.evaluate(i => { window._pad.buttons[i].pressed = false; }, i); await page.waitForTimeout(80); };
+    await padTab(12); const g1 = await tabsLook();
+    await padTab(14); const g2 = await tabsLook();
+    await padTab(15); const g3 = await tabsLook();
+    await padTab(0); const g4 = await tabsLook();
+    await padTab(1); await page.waitForTimeout(100);
+    const g5 = await page.evaluate(() => MENU.kind + ' ' + G.state);
+    await page.evaluate(() => { navigator.getGamepads = () => []; });
+    check(g1.focus === 'tab:Easter eggs' && g2.focus === 'tab:Best run' && g2.tabs === 'Best run*/0,Easter eggs/-1' && g3.focus === 'tab:Easter eggs' && g3.tabs === 'Best run/-1,Easter eggs*/0' && g4.tabs === g3.tabs && g4.kind === 'nights' && g5 === 'title title',
+      'a pad: up from Back to the chosen tab, left and right choose along them, A changes nothing, B is Back (' + JSON.stringify([g1.focus, g2.tabs, g3.tabs, g5]) + ')');
+    // an egg found, but no full run yet: Scores is on the title for it, opens on the eggs; Best run is its empty state
+    await setSave({ bestRun: {}, unlocked: { nightmare: 2 }, eggs: { road: true } }); await page.goto(URL); await page.waitForTimeout(300);
+    const nr0 = await page.evaluate(() => !!document.querySelector('#overlay button[data-act="nights"]'));
+    await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+    const nr1 = await tabsLook();
+    await page.click('#overlay [role="tab"][data-tab="run"]'); await page.waitForTimeout(150);
+    const nr2 = await page.evaluate(() => { const q = document.getElementById('panel-run'); return { shown: !q.hidden, empty: !!q.querySelector('.runcard.empty'), hint: (q.querySelector('.rhint') || {}).textContent, cards: q.querySelectorAll('.ncard').length, time: q.querySelector('.rtime').textContent }; });
+    check(nr0 && nr1.tabs === 'Best run/-1,Easter eggs*/0' && nr1.count === '1 of ' + withEgg.length + ' found' && nr1.fits && nr2.shown && nr2.empty && /No full run yet/.test(nr2.hint) && nr2.cards === 0 && nr2.time === '—',
+      'an easter egg found before any full run: Scores is on the title, open on the eggs (1 found); its Best run tab says there is no full run yet, as ever (' + JSON.stringify([nr0, nr1.tabs, nr1.count, nr2]) + ')');
+    await shot(page, 'scores-eggs-norun');
+    // the list is the nights' own: a night given an easter egg is ??? at once and counts; found, it shows its line
+    const dyn = await page.evaluate(() => {
+      const l = LEVELS[0], had = l.text.egg; l.text.egg = 'Wave at the walker.';
+      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelector('#overlay .eggs .egg'); return e.className.replace(/ c[12]$/, '') + '|' + e.querySelector('.ewhat').textContent + '|' + document.querySelector('#overlay .eggcount').textContent; };
+      const a = row(), first = SAVE.egg(l.id), b = row(), again = SAVE.egg(l.id);
+      if (had === undefined) delete l.text.egg; else l.text.egg = had;
+      delete SAVE.data.eggs[l.id]; SAVE.persist();
+      return { a, b, first, again, c: row() };
+    });
+    check(dyn.a === 'egg unknown|???|1 of ' + (withEgg.length + 1) + ' found' && dyn.first && !dyn.again && dyn.b === 'egg found|Wave at the walker.|2 of ' + (withEgg.length + 1) + ' found' && dyn.c === 'egg none|—|1 of ' + withEgg.length + ' found',
+      'it is driven by the nights\' own text.egg: a night given one is ??? and counted, then shows its line once found (' + JSON.stringify(dyn) + ')');
+    // a night finds its own: foundEgg() with no id is the night being played; true the first time only; saved
+    await page.goto(URL + '?level=5&go'); await page.waitForTimeout(400);
+    const fe = await page.evaluate(() => { const id = G.L.def.id, had = !!SAVE.data.eggs[id], a = foundEgg(), b = foundEgg(), c = foundEgg('nosuch'); return { id, had, a, b, c, saved: JSON.parse(localStorage.getItem('itscoming.v2')).eggs, open: MENU.scoresOpen() }; });
+    check(fe.id === 'clearing' && !fe.had && fe.a === true && fe.b === false && fe.saved.clearing === true && fe.saved.road === true && fe.open, 'in a night, foundEgg() marks that night\'s easter egg found (true the first time), saved with the others (' + JSON.stringify(fe) + ')');
+    // and from the pause menu: Scores is there too now (as on the title), its dialog over the paused night with no Erase
+    // progress; Back, or Esc, is the pause menu again with Scores focused
+    await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+    const ps1 = await page.evaluate(() => ({ st: G.state, acts: [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join(), widths: [...new Set([...document.querySelectorAll('#overlay button[data-act]')].map(b => Math.round(b.getBoundingClientRect().width)))].length }));
+    await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+    const ps2 = await tabsLook();
+    const ps2b = await page.evaluate(() => ({ dlg: UI.overlay.classList.contains('dlg'), panel: !!document.querySelector('#overlay .panel.nightsp'), reset: !!document.querySelector('#overlay [data-act="reset"]'), back: document.querySelector('#overlay button[data-act="back"]').dataset.arg }));
+    await page.click('#overlay .panel', { position: { x: 12, y: 12 } }); await page.waitForTimeout(120);
+    const ps3 = await page.evaluate(() => G.state + ' ' + MENU.kind);
+    await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(150);
+    const ps4 = await page.evaluate(() => ({ st: G.state, kind: MENU.kind, focus: document.activeElement && document.activeElement.dataset.act }));
+    await page.keyboard.press('Enter'); await page.waitForTimeout(150); await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+    const ps5 = await page.evaluate(() => ({ st: G.state, kind: MENU.kind, focus: document.activeElement && document.activeElement.dataset.act }));
+    check(ps1.st === 'paused' && ps1.acts === 'resume:Resume,controls:Controls,settings:Settings,nights:Scores,quit:Quit' && ps1.widths === 1, 'the pause menu has Scores too once the title has it: Resume, Controls, Settings, Scores, Quit, all one width (' + JSON.stringify(ps1) + ')');
+    check(ps2.st === 'paused' && ps2.kind === 'nights' && ps2b.dlg && ps2b.panel && !ps2b.reset && ps2.acts === 'back' && ps2b.back === 'pause' && ps2.list && ps2.count === '2 of ' + withEgg.length + ' found' && ps3 === 'paused nights',
+      'it opens the Scores dialog over the paused night (still paused, a click in it resumes nothing), with no Erase progress (' + JSON.stringify([ps2.kind, ps2b, ps2.acts, ps2.count, ps3]) + ')');
+    check(ps4.st === 'paused' && ps4.kind === 'pause' && ps4.focus === 'nights' && ps5.st === 'paused' && ps5.kind === 'pause' && ps5.focus === 'nights', 'its Back, and Esc, are the pause menu again, Scores focused (' + JSON.stringify([ps4, ps5]) + ')');
+    await page.evaluate(() => { SAVE.data.eggs = {}; SAVE.data.bestRun = {}; SAVE.persist(); MENU.show('pause'); });
+    check(await page.evaluate(() => [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() === 'resume,controls,settings,quit'), 'and with nothing for Scores to show, the pause menu has no Scores (as the title has none)');
+    // a phone on its side: the eggs' tab fits, each night on a line, nothing scrolled either way; the tabs fair targets
+    const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 }), mp = await ctx.newPage();
+    await mp.goto(URL); await mp.waitForTimeout(300);
+    await mp.evaluate(([n, t, ids]) => { localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: { t, nights: n } }, settings: {}, eggs: Object.fromEntries(ids.map(i => [i, true])) })); }, [runNights, runT, withEgg.map(d => d.id)]);
+    await mp.goto(URL); await mp.waitForTimeout(300);
+    await mp.tap('#overlay button[data-act="nights"]'); await mp.waitForTimeout(250);
+    const m1 = await tabsLook(mp);
+    await mp.screenshot({ path: path.join(__dirname, 'shots', 'phone-scores-tabs-run.png') });
+    await mp.tap('#overlay [role="tab"][data-tab="eggs"]'); await mp.waitForTimeout(250);
+    const m2 = await tabsLook(mp);
+    await mp.screenshot({ path: path.join(__dirname, 'shots', 'phone-scores-eggs.png') });
+    check(m1.tabs === 'Best run*/0,Easter eggs/-1' && m1.fits && m1.inView && m1.tabH >= 30 && m2.tabs === 'Best run/-1,Easter eggs*/0' && m2.panels === 'hidden,shown' && m2.fits && m2.inView && !m2.clipped && m2.count === withEgg.length + ' of ' + withEgg.length + ' found' && m2.rows.filter(r => r.cls === 'egg found').length === withEgg.length,
+      'on a phone on its side (844 x 390): the tabs tapped, each a fair target; both tabs fit with nothing scrolled, down or across, every easter egg\'s line whole (' + JSON.stringify({ run: [m1.fits, m1.inView, m1.tabH], eggs: [m2.fits, m2.inView, m2.clipped, m2.count] }) + ')');
+    await ctx.close();
+    await page.evaluate(() => localStorage.clear());
   }
 
   console.log('== the full run ==');
@@ -552,13 +800,19 @@ const hoverHit = lookFor;
   await page.goto(URL + '?level=1&go&nofr&seed=1'); await page.waitForTimeout(300);
   tv = await page.evaluate(() => {
     win(); for (let k = 0; k < 600 && G.state !== 'survived'; k++) G.step(0.05);
-    const next = document.querySelector('#overlay button[data-act="next"]'), quit = document.querySelector('#overlay button[data-act="title"]');
-    return { st: G.state, next: next && next.textContent, quit: quit && quit.textContent, plain: quit && quit.classList.contains('tbtn') && !quit.classList.contains('mbtn'), below: quit && next && quit.getBoundingClientRect().top - next.getBoundingClientRect().bottom,
-      grey: quit && getComputedStyle(quit).color !== getComputedStyle(next).color, nights: !!document.querySelector('#overlay button[data-act="nights"]'), frag: !!document.querySelector('#overlay .fragment, #overlay em') };
+    const next = document.querySelector('#overlay button[data-act="next"]');
+    return { st: G.state, next: next && next.textContent, btns: [...document.querySelectorAll('#overlay button')].map(b => b.textContent).join(), quit: /quit/i.test(UI.overlay.textContent), frag: !!document.querySelector('#overlay .fragment, #overlay em'), text: document.querySelector('#overlay .intro').textContent, kicker: document.querySelector('#overlay .kicker').textContent };
   });
-  check(tv.st === 'survived' && tv.next === 'Next night' && tv.quit === 'Quit' && tv.plain && tv.below > 30 && tv.grey && !tv.nights && !tv.frag, 'You survived: Next night, and under it a plain, quieter Quit; no Nights, no fragment (' + JSON.stringify(tv) + ')');
-  await page.click('#overlay button[data-act="title"]'); await page.waitForTimeout(150);
-  check(await page.evaluate(() => G.state === 'title'), 'Quit goes to the title');
+  check(tv.st === 'survived' && tv.next === 'Next night' && tv.btns === 'Next night' && !tv.quit && !tv.frag, 'You survived: Next night, and nothing else (no Quit, no Nights, no fragment) (' + JSON.stringify(tv) + ')');
+  // Esc there is the pause menu (the only place with Quit), not the title; Resume is the win screen again, as it was
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+  const sv1 = await page.evaluate(() => ({ st: G.state, from: G.pausedFrom, kind: MENU.kind, acts: [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() }));
+  await page.click('#overlay button[data-act="resume"]'); await page.waitForTimeout(150);
+  const sv2 = await page.evaluate(() => ({ st: G.state, from: G.pausedFrom, kind: MENU.kind, h: document.querySelector('#overlay h1').textContent, text: document.querySelector('#overlay .intro').textContent, kicker: document.querySelector('#overlay .kicker').textContent, btns: [...document.querySelectorAll('#overlay button')].map(b => b.textContent).join(), level: G.levelIndex }));
+  check(sv1.st === 'paused' && sv1.from === 'survived' && sv1.kind === 'pause' && sv1.acts === 'resume,controls,settings,quit' && sv2.st === 'survived' && !sv2.from && sv2.kind === 'survived' && sv2.h === 'You survived' && sv2.text === tv.text && sv2.kicker === tv.kicker && sv2.btns === 'Next night' && sv2.level === 0,
+    'Esc on the win screen: the pause menu, not the title; Resume: the win screen again, the same words (' + JSON.stringify([sv1, sv2]) + ')');
+  await page.waitForTimeout(450); await page.mouse.click(640, 120); await page.waitForTimeout(200);
+  check(await page.evaluate(() => G.state === 'card' && G.levelIndex === 1), 'and from there it goes on to the next night as ever');
   await page.goto(URL); await page.waitForTimeout(300);
 
   console.log('== mute ==');
@@ -802,7 +1056,7 @@ const hoverHit = lookFor;
   await page.goto(T.INDEX); await page.waitForTimeout(200);
   await page.evaluate(() => { localStorage.clear(); localStorage.setItem('itscoming.unlocked', '3'); localStorage.setItem('itscoming.difficulty', '2'); });
   await page.goto(T.INDEX); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.difficulty === 0 && G.unlocked === 3 && !!document.querySelector('#overlay button[data-act="nights"]')), 'its progress is credited (the Nights button shows it)');
+  check(await page.evaluate(() => G.difficulty === 0 && G.unlocked === 3 && SAVE.data.unlocked.nightmare === 3), 'its progress is credited');
 
   console.log('== saves with several difficulties fold into the one game ==');
   await page.evaluate(() => {
@@ -1246,8 +1500,8 @@ const hoverHit = lookFor;
       'then the name, the buttons and the corners\' controls fade in together, slowly, the light steady (' + words.map(s => s.ov.toFixed(2)).join(' ') + ')');
     check(end.t > 5000 && end.black === -1 && end.ov === 1 && end.mute === 1 && end.lit === 1, 'and it is all in by about five seconds: nothing over the title, everything in (' + JSON.stringify(end) + ')');
   }
-  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && TITLE.step === 0 && !TITLE.moving && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores' && !document.getElementById('prologue') && !document.getElementById('disclaimer')),
-    'Finish game: home to the usual dark title, with it out there (the presses on the way did nothing: it is no nearer, nothing begun), and Scores on it (the morning is not kept)');
+  check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && TITLE.step === 0 && !TITLE.moving && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && !!document.querySelector('#overlay button[data-act="nights"]') === MENU.scoresOpen() && !document.getElementById('prologue') && !document.getElementById('disclaimer')),
+    'Finish game: home to the usual dark title, with it out there (the presses on the way did nothing: it is no nearer, nothing begun), Scores on it if there is a best run or an easter egg (the morning is not kept)');
   check(await page.evaluate(() => document.activeElement && document.activeElement.dataset.act === 'begin' && !UI.overlay.style.opacity && !UI.overlay.style.transition && UI.overlay.classList.contains('titlelow')), 'and the focus is on Begin, the overlay as the title always has it');
   await page.keyboard.press('Escape'); await page.mouse.click(640, 120); await page.waitForTimeout(150);
   check(await page.evaluate(() => G.state === 'title' && TITLE.step === 1), 'the title answers again once it is all in (a click on the dark: a step nearer)');
@@ -1703,7 +1957,7 @@ const hoverHit = lookFor;
     // the menu button: the pause menu, with everything in it
     await pg.tap('#menuBtn'); await pg.waitForTimeout(500);
     r = await pg.evaluate(() => ({ state: G.state, acts: [...UI.overlay.querySelectorAll('button[data-act]')].map(b => b.dataset.act), menuBtn: getComputedStyle(UI.menuBtn).display, zoomBtn: getComputedStyle(UI.zoomBtn).display }));
-    check(r.state === 'paused' && r.acts.join() === 'resume,controls,settings,title' && r.menuBtn === 'none' && r.zoomBtn === 'none', 'the menu button pauses: Resume, Controls, Settings, Quit (the buttons themselves hidden over it) (' + JSON.stringify(r) + ')');
+    check(r.state === 'paused' && r.acts.join() === 'resume,controls,settings,quit' && r.menuBtn === 'none' && r.zoomBtn === 'none', 'the menu button pauses: Resume, Controls, Settings, Quit (the buttons themselves hidden over it) (' + JSON.stringify(r) + ')');
     r = await pg.evaluate(() => { const p = [...UI.overlay.querySelectorAll('button[data-act]')].map(b => b.getBoundingClientRect()); return { inView: p.every(q => q.top >= 0 && q.bottom <= innerHeight), tall: p.every(q => q.height >= 34) }; });
     check(r.inView && r.tall, 'on a phone on its side the pause menu is all in view (' + JSON.stringify(r) + ')');
     await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-pause.png') });
@@ -1720,6 +1974,50 @@ const hoverHit = lookFor;
     await pg.tap('button[data-act="back"]'); await pg.waitForTimeout(200);
     await pg.tap('button[data-act="resume"]'); await pg.waitForTimeout(300);
     check(await pg.evaluate(() => G.state === 'play'), 'Resume, by tap, goes back to the night');
+    // Quit by touch: it asks, in view; Cancel by a tap is the pause menu again
+    await pg.tap('#menuBtn'); await pg.waitForTimeout(300);
+    await pg.tap('button[data-act="quit"]'); await pg.waitForTimeout(250);
+    r = await pg.evaluate(() => { const b = document.querySelector('#overlay .confirm .cpanel'), q = b && b.getBoundingClientRect(), bs = b ? [...b.querySelectorAll('button')].map(x => x.getBoundingClientRect()) : []; return { box: !!b, text: b && b.querySelector('p').textContent, inView: !!q && q.top >= 0 && q.bottom <= innerHeight && q.left >= 0 && q.right <= innerWidth, tall: bs.length === 2 && bs.every(x => x.height >= 34), st: G.state }; });
+    await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-quit-confirm.png') });
+    await pg.tap('#overlay .confirm button[data-act="stay"]'); await pg.waitForTimeout(200);
+    const qs = await pg.evaluate(() => G.state + ' ' + MENU.kind + ' ' + !!document.querySelector('#overlay .confirm'));
+    check(r.box && r.text === 'Are you sure you want to quit? Your progress will be lost.' && r.inView && r.tall && r.st === 'paused' && qs === 'paused pause false', 'Quit on a phone asks too, all in view, its two buttons fair targets; a tap on Cancel is the pause menu again (' + JSON.stringify([r, qs]) + ')');
+    await pg.tap('button[data-act="resume"]'); await pg.waitForTimeout(300);
+    // the menu button is there on the death screen too (the pause menu is the only way to Quit): it opens the pause menu
+    // over it, and Resume is the death screen again
+    await pg.evaluate(() => { if (G.state !== 'play') resumeGame(); die(); });   // (caught, here and now)
+    for (let i = 0; i < 40 && await pg.evaluate(() => G.state !== 'dead'); i++) await pg.waitForTimeout(150);
+    await pg.waitForTimeout(250);
+    const ds0 = await pg.evaluate(() => G.state !== 'dead' ? { st: G.state } : ({ st: G.state, menuBtn: getComputedStyle(UI.menuBtn).display, zoomBtn: getComputedStyle(UI.zoomBtn).display, btns: [...UI.overlay.querySelectorAll('button')].map(b => b.textContent).join(), h: UI.overlay.querySelector('h1').textContent, text: UI.overlay.querySelector('.intro').textContent, clear: (() => { const m = UI.menuBtn.getBoundingClientRect(), h = UI.overlay.querySelector('h1').getBoundingClientRect(); return m.bottom <= h.top || m.right <= h.left; })() }));
+    await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-dead.png') });
+    await pg.tap('#menuBtn'); await pg.waitForTimeout(300);
+    const ds1 = await pg.evaluate(() => ({ st: G.state, from: G.pausedFrom, kind: MENU.kind, menuBtn: getComputedStyle(UI.menuBtn).display, acts: [...UI.overlay.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join() }));
+    await pg.tap('button[data-act="resume"]'); await pg.waitForTimeout(300);
+    const ds2 = await pg.evaluate(() => ({ st: G.state, kind: MENU.kind, menuBtn: getComputedStyle(UI.menuBtn).display, btns: [...UI.overlay.querySelectorAll('button')].map(b => b.textContent).join(), h: UI.overlay.querySelector('h1').textContent, text: UI.overlay.querySelector('.intro').textContent }));
+    check(ds0.st === 'dead' && ds0.menuBtn === 'flex' && ds0.zoomBtn === 'none' && ds0.btns === 'Try again' && ds0.clear && ds1.st === 'paused' && ds1.from === 'dead' && ds1.kind === 'pause' && ds1.menuBtn === 'none' && ds1.acts === 'resume,controls,settings,quit' && ds2.st === 'dead' && ds2.kind === 'dead' && ds2.menuBtn === 'flex' && ds2.btns === 'Try again' && ds2.h === ds0.h && ds2.text === ds0.text,
+      'on a phone the death screen (Try again only) keeps the menu button, clear of its words: a tap on it is the pause menu, and Resume the death screen again, the same (' + JSON.stringify([ds0, ds1, ds2]) + ')');
+    // and on the win screen, and a night's card
+    await pg.evaluate(() => { startLevel(0, false); win(); G.L.aftermathT = 1e9; G.fade = 1; });
+    for (let i = 0; i < 40 && await pg.evaluate(() => G.state !== 'survived'); i++) await pg.waitForTimeout(150);
+    await pg.waitForTimeout(250);
+    const ws0 = await pg.evaluate(() => ({ st: G.state, menuBtn: getComputedStyle(UI.menuBtn).display, btns: [...UI.overlay.querySelectorAll('button')].map(b => b.textContent).join() }));
+    await pg.screenshot({ path: path.join(__dirname, 'shots', 'phone-survived.png') });
+    await pg.tap('#menuBtn'); await pg.waitForTimeout(300);
+    const ws1 = await pg.evaluate(() => ({ st: G.state, from: G.pausedFrom, kind: MENU.kind }));
+    await pg.tap('button[data-act="resume"]'); await pg.waitForTimeout(500);
+    const ws2 = await pg.evaluate(() => ({ st: G.state, kind: MENU.kind, btns: [...UI.overlay.querySelectorAll('button')].map(b => b.textContent).join() }));
+    await pg.tap('button[data-act="next"]'); await pg.waitForTimeout(400);
+    const cd0 = await pg.evaluate(() => ({ st: G.state, level: G.levelIndex, menuBtn: getComputedStyle(UI.menuBtn).display }));
+    await pg.tap('#menuBtn'); await pg.waitForTimeout(300);
+    const cd1 = await pg.evaluate(() => ({ st: G.state, from: G.pausedFrom, kind: MENU.kind }));
+    await pg.tap('button[data-act="resume"]'); await pg.waitForTimeout(500);
+    const cd2 = await pg.evaluate(() => ({ st: G.state, kicker: (UI.overlay.querySelector('.kicker') || {}).textContent, level: G.levelIndex }));
+    check(ws0.st === 'survived' && ws0.menuBtn === 'flex' && ws0.btns === 'Next night' && ws1.st === 'paused' && ws1.from === 'survived' && ws2.st === 'survived' && ws2.kind === 'survived' && ws2.btns === 'Next night',
+      'the win screen (Next night only) has the menu button too: the pause menu over it, and Resume the win screen again (' + JSON.stringify([ws0, ws1, ws2]) + ')');
+    check(cd0.st === 'card' && cd0.level === 1 && cd0.menuBtn === 'flex' && cd1.st === 'paused' && cd1.from === 'card' && cd1.kind === 'pause' && cd2.st === 'card' && /Night 2 of/.test(cd2.kicker) && cd2.level === 1,
+      'and so has a night\'s card: a tap on the menu button there is the pause menu (it does not begin the night), Resume the card again (' + JSON.stringify([cd0, cd1, cd2]) + ')');
+    await pg.evaluate(() => { startLevel(0, false); });
+    await pg.waitForTimeout(200);
     // a won night that waits on a press (the last night's meadow): a swipe up, the zoom button or a tap is the press
     await pg.evaluate(() => { window.__got = []; G.L.onPress = e => { window.__got.push(e ? e.key : 'tap'); return true; }; G.L.after = { custom: true }; G.L.aftermath = () => false; setState('won'); });
     await pg.waitForTimeout(150);
@@ -1740,8 +2038,11 @@ const hoverHit = lookFor;
     await m.pg.tap('button[data-act="begin"]'); await m.pg.waitForTimeout(500);
     r = await m.pg.evaluate(() => ({ state: G.state, prompt: (UI.overlay.querySelector('.prompt') || {}).textContent }));
     check(r.state === 'card' && /^Tap when you are ready/.test(r.prompt || ''), 'the night\'s card on a phone says tap (' + JSON.stringify(r) + ')');
+    await m.pg.touchscreen.tap(200, 200); await m.pg.waitForTimeout(200);
+    const tapEarly = await m.pg.evaluate(() => ({ st: G.state, left: Math.round(G.overlayArmed - performance.now()) }));
+    await m.pg.waitForTimeout(Math.max(0, tapEarly.left) + 80);
     await m.pg.touchscreen.tap(200, 200); await m.pg.waitForTimeout(400);
-    check(await m.pg.evaluate(() => G.state === 'play'), 'a tap on the card begins the night');
+    check(tapEarly.st === 'card' && tapEarly.left > 0 && await m.pg.evaluate(() => G.state === 'play'), 'a tap on the card while its words are still coming in does nothing; once they are in, a tap begins the night (' + JSON.stringify(tapEarly) + ')');
     await m.ctx.close();
 
     // night 5's bow on a phone: press and hold on it, let go when the bar is full: it flies at it; a quick tap looses nothing
@@ -1941,7 +2242,7 @@ const hoverHit = lookFor;
       const rows = [];
       for (const ts of [0.85, 1, 1.4, 1.8]) {
         const r = await bp.evaluate(ts => {
-          SAVE.data.unlocked[G.diff().id] = 3; document.documentElement.style.setProperty('--text-scale', ts); showTitle();
+          SAVE.data.unlocked[G.diff().id] = 3; SAVE.data.eggs.road = true; document.documentElement.style.setProperty('--text-scale', ts); showTitle();   // (an easter egg found: Scores is on the title)
           for (let i = 0; i < 6; i++) TITLE.advance();
           return new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => {
             const bs = [...document.querySelectorAll('#overlay .mrow .mbtn')], rs = bs.map(b => b.getBoundingClientRect()), k = document.querySelector('#overlay .kicker').getBoundingClientRect(), cr = document.querySelector('#overlay .credit').getBoundingClientRect();

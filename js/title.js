@@ -7,8 +7,9 @@
 // reduced motion, a short smooth slide). At its nearest, a click on the dark makes it twitch instead. STEPS of them and
 // it is close enough to touch, bent down to look at you; it stays there. A faint light straight behind it, far off, one
 // soft round of it a little wider than it is however near it comes, so its edges are dark against light and its shape
-// is there to see even on a screen whose blacks swallow it. Drawn on its own canvas (#titleScene) over the game's, which
-// the title then leaves undrawn.
+// is there to see even on a screen whose blacks swallow it. When it scuttles at you the light is left behind a moment,
+// then glides smoothly after it (GLIDE). Drawn on its own canvas (#titleScene) over the game's, which the title then
+// leaves undrawn.
 // It is the same after the last night (the morning is only the screens straight after it): there is a Scores button then.
 const TITLE = (() => {
   const D = [22, 13, 7.5, 4.2, 2.4, 1.55, 1.05];   // how far off it is, metres, after each dialog closed (or scuttle)
@@ -32,6 +33,16 @@ const TITLE = (() => {
   const LIGHT_T = 1.4;
   let lightAt = null;   // null: the light on, as always; else the wall clock (ms) it starts coming on at (Infinity: still off)
   let lit = 1;          // how much of it is on, as last drawn
+  // The light when it scuttles at you (a click on the dark): the thing jerks forward and the light is left where it was.
+  // A moment later (GLIDE.lag, seconds) the light sets off after it and glides to behind where the thing has gone, its
+  // middle and its reach together, as a weight drawn on a spring that never overshoots (critically damped; GLIDE.w is
+  // how quick, 1/s: it is most of the way in half a second and settled in about one). So it starts gently, never jumps,
+  // and comes to rest without a stop; clicked again on the way, it goes on from where it has got to, at the speed it
+  // has. Any other time (standing still; a dialog closed over it, when the thing is simply nearer) the light is
+  // straight behind it, as ever
+  const GLIDE = { lag: 0.14, w: 5.5 };
+  let glow = null;      // the light as last drawn: its middle x, y and its reach r, px (vx, vy, vr: their speeds, gliding)
+  let gliding = false, lagTo = 0, lstep = 0, lastT = 0;   // lstep: the step whose place the light is at, or making for
   let cv = null, ctx = null, W = 0, H = 0, dpr = 1, step = 0, drawn = 0, scurry = null, twitchAt = null, on = false, shown = false;
   let cur = { d: D[0], lean: 0, drop: 0 };   // where it was last drawn (a scuttle starts from there)
   let grainTile = null;
@@ -39,7 +50,7 @@ const TITLE = (() => {
     if (!cv) { cv = document.getElementById('titleScene'); if (cv) ctx = cv.getContext('2d'); }
     return cv;
   }
-  function enter() { step = drawn = 0; scurry = null; twitchAt = null; cur = { d: D[0], lean: 0, drop: 0 }; on = true; lightAt = null; lit = 1; }
+  function enter() { step = drawn = 0; scurry = null; twitchAt = null; cur = { d: D[0], lean: 0, drop: 0 }; on = true; lightAt = null; lit = 1; glow = null; gliding = false; }
   // the light off (and the thing with it: nothing but the dark), until lightUp() puts it on
   function dark() { lightAt = Infinity; lit = 0; }
   // the light on, slowly; how long it takes, ms
@@ -61,7 +72,7 @@ const TITLE = (() => {
     if (seen && step === D.length - 1) { if (!scurry && drawn === step) twitchAt = -1; return; }   // (still on its way there: nothing more)
     step = Math.min(D.length - 1, step + 1);
     if (seen) scurry = { at: -1, from: { d: cur.d, lean: cur.lean, drop: cur.drop } };   // (-1: it starts on the next frame drawn; clicked again on the way, it goes on from where it has got to)
-    else { drawn = step; scurry = null; }
+    else { drawn = step; scurry = null; gliding = false; }
   }
   // is the scene up (the title is showing)? sets the page's class to match
   function active() {
@@ -123,6 +134,41 @@ const TITLE = (() => {
     if (k) wordsTop = k.getBoundingClientRect().top;
     return wordsTop > 40 ? wordsTop : H * 0.6;
   }
+  // Where it stands in the view at t, d metres off, bent down to you by lean with its head come down by drop (run: how
+  // hard it is scuttling, ph where its limbs are in that): px a metre for its body and for its head (ppm, hppm), its
+  // feet (sx, feet), its head (hx, hy), how it is squashed as it scuttles (sqx, sqy).
+  // The eyes sit high in the view (y0), clear of the title and its buttons below. The head: on its neck 2.1 m up; bent
+  // down to you, nearer than the rest of it (so larger) and lower (drop), the whole of it in the view and over the words
+  // (and on a short view, a phone on its side, no bigger than the dark over the words has room for, whole: its head never
+  // comes down over the title, however little room the words leave it)
+  function place(t, d, lean, drop, run, ph) {
+    const y0 = H * 0.36, f = Math.min(H * 1.25, W * 1.6);
+    const ppm = f / d, feet = y0 + f * 1.62 / d, sway = Math.sin(t * 0.21) * 0.04 + run * 0.035 * Math.sin(ph * 0.5 + 1.3), sx = W / 2 + sway * ppm;
+    const sqx = 1 + 0.12 * run, sqy = 1 - 0.16 * run;   // scuttling it goes low and wide, its head pushed on down ahead of it
+    let hppm = f / (d - 0.22 * lean);
+    if (lean > 0) hppm = lerp(hppm, Math.min(hppm, Math.max(40, words() - 12 - H * 0.03) / 0.34), Math.min(1, lean / 0.6));
+    const hx = W / 2 + sway * hppm;
+    let hy = feet - (2.1 * sqy - 0.12 * run) * ppm;
+    if (lean > 0) { const low = words() - 12 - 0.165 * hppm; hy = clamp(lerp(y0 + f * (1.62 - 2.1) / (d - 0.22 * lean), low, drop), H * 0.03 + 0.165 * hppm, low); }
+    return { y0, ppm, feet, sx, sqx, sqy, hppm, hx, hy };
+  }
+  // the light behind it, standing as place() has it: one soft round of cold light straight behind it, about its chest
+  // (bent down to you, about its head and shoulders), wide and faint, wider than the shape of it however near it is, so
+  // its edges are dark against light: far off, the small shape of it reads against it; near, it frames its head and
+  // shoulders. Its middle (x, y) and how far it reaches (r), px
+  function halo(p, lean) {
+    return { x: lerp(p.sx, p.hx, lean), y: lerp(p.feet - 1.7 * p.ppm * p.sqy, p.hy + 0.05 * p.hppm, lean), r: lerp(1.85 * p.ppm, 0.78 * p.hppm, lean) * GLOW };
+  }
+  // the gliding light (g: glow) a step of dt seconds nearer to, on its spring: the exact step of a critically damped
+  // one, whatever dt is
+  function follow(g, to, dt) {
+    const w = GLIDE.w, e = Math.exp(-w * dt);
+    for (const [k, v] of [['x', 'vx'], ['y', 'vy'], ['r', 'vr']]) {
+      const y = g[k] - to[k], c = g[v] + w * y;
+      g[k] = to[k] + (y + c * dt) * e;
+      g[v] = (g[v] - w * c * dt) * e;
+    }
+  }
   // hidden: a dialog is open over it, and whatever it is doing back there is not seen
   function draw(t, hidden) {
     if (!canvas()) return;
@@ -134,10 +180,10 @@ const TITLE = (() => {
     const still = SAVE.data.settings.reducedMotion;
     // where it is: where it last stood, or on its way from there to its next place (the scuttle; with reduced motion, a
     // plain slide); run is how hard its limbs are going (in at once, out as it stops), ph where they are in their going
-    if (hidden) { drawn = step; scurry = null; }
+    if (hidden) { drawn = step; scurry = null; gliding = false; }
     let d = D[drawn], lean = LEAN[drawn], drop = DROP[drawn], run = 0, ph = 0;
     if (scurry) {
-      if (scurry.at < 0) scurry.at = t;
+      if (scurry.at < 0) { scurry.at = t; gliding = true; lagTo = t + GLIDE.lag; }   // it goes: the light stays a moment, then comes after it
       const k = (t - scurry.at) / (still ? SLIDE : SCURRY);
       if (k >= 1 || k < 0) { scurry = null; drawn = step; d = D[drawn]; lean = LEAN[drawn]; drop = DROP[drawn]; }
       else {
@@ -147,12 +193,23 @@ const TITLE = (() => {
       }
     }
     cur = { d, lean, drop };
-    // the eyes sit high in the view, clear of the title and its buttons below
-    const y0 = H * 0.36, f = Math.min(H * 1.25, W * 1.6);
+    const { y0, ppm, feet, sx, sqx, sqy, hppm, hx, hy } = place(t, d, lean, drop, run, ph);
     lit = light(performance.now());
     const fl = g.createLinearGradient(0, y0 - H * 0.06, 0, y0 + H * 0.3); fl.addColorStop(0, 'rgba(18,17,21,0)'); fl.addColorStop(0.2, 'rgba(18,17,21,' + lit + ')'); fl.addColorStop(1, 'rgba(0,0,0,0)');
     if (lit > 0) { g.fillStyle = fl; g.fillRect(0, y0 - H * 0.06, W, H * 0.36); }   // the faintest ground, lightest far off, no edge to it
-    const ppm = f / d, feet = y0 + f * 1.62 / d, sway = Math.sin(t * 0.21) * 0.04 + run * 0.035 * Math.sin(ph * 0.5 + 1.3), sx = W / 2 + sway * ppm;
+    // the light behind it: behind where it stands, or, when it has scuttled off, gliding after it (GLIDE): held where
+    // it was for the lag, then on its way to behind the place the thing was making for (standing there, not as it is
+    // flung about on the way), until it is there
+    if (!hidden) {
+      if (!gliding) lstep = drawn; else if (lstep !== step && t >= lagTo) lstep = step;
+      const to = halo(place(t, D[lstep], LEAN[lstep], DROP[lstep], 0, 0), LEAN[lstep]);
+      if (!gliding || !glow) glow = { x: to.x, y: to.y, r: to.r, vx: 0, vy: 0, vr: 0 };
+      else {
+        follow(glow, to, clamp(t - lastT, 0, 0.05));
+        if (lstep === step && !scurry && Math.abs(glow.x - to.x) + Math.abs(glow.y - to.y) + Math.abs(glow.r - to.r) < 0.4 && Math.abs(glow.vx) + Math.abs(glow.vy) + Math.abs(glow.vr) < 3) gliding = false;   // there
+      }
+    }
+    lastT = t;
     const show = clamp((24 - d) / 20, 0, 1);   // more of it shows as it nears
     // the twitch (advance at its nearest): a hard jerk of the head over to one side and back in two snaps, the shoulders
     // hitching against it, settling; with reduced motion, a small slow lean instead
@@ -170,25 +227,10 @@ const TITLE = (() => {
       }
     }
     const tilt = jerk + tw + run * 0.16 * Math.sin(ph * 1.7);   // (scuttling, its head jitters on its neck)
-    // scuttling it goes low and wide, its head pushed on down ahead of it
-    const sqx = 1 + 0.12 * run, sqy = 1 - 0.16 * run;
-    // the head: on its neck 2.1 m up; bent down to you, nearer than the rest of it (so larger) and lower (DROP), the
-    // whole of it in the view and over the words
-    // (its eyes 2 cm over its middle, upright; bent down, lower on its face, more of the dome of it over them)
-    // (and on a short view, a phone on its side, no bigger than the dark over the words has room for, whole: its head
-    // never comes down over the title, however little room the words leave it)
-    let hppm = f / (d - 0.22 * lean);
-    if (lean > 0) hppm = lerp(hppm, Math.min(hppm, Math.max(40, words() - 12 - H * 0.03) / 0.34), Math.min(1, lean / 0.6));
-    const hx = W / 2 + sway * hppm, eo = lerp(0.02, -0.025, lean);
-    let hy = feet - (2.1 * sqy - 0.12 * run) * ppm;
-    if (lean > 0) { const low = words() - 12 - 0.165 * hppm; hy = clamp(lerp(y0 + f * (1.62 - 2.1) / (d - 0.22 * lean), low, drop), H * 0.03 + 0.165 * hppm, low); }
+    const eo = lerp(0.02, -0.025, lean);   // (its eyes 2 cm over the middle of its head, upright; bent down, lower on its face, more of the dome of it over them)
     const col = rgba([6 + 9 * show, 6 + 8 * show, 8 + 9 * show]);
     if (!hidden && lit > 0) {   // (the light off: nothing of it to see, its eyes too)
-      // the light behind it: one soft round of cold light straight behind it, about its chest (bent down to you, about its
-      // head and shoulders), wide and faint, wider than the shape of it however near it is, so its edges are always dark
-      // against light: far off, the small shape of it reads against it; near, it frames its head and shoulders
-      const cx = lerp(sx, hx, lean), cy = lerp(feet - 1.7 * ppm * sqy, hy + 0.05 * hppm, lean);
-      const hr = lerp(1.85 * ppm, 0.78 * hppm, lean) * GLOW * (1 + 0.1 * run);
+      const cx = glow.x, cy = glow.y, hr = glow.r;   // the light behind it (halo, and GLIDE)
       const hz = g.createRadialGradient(cx, cy, 0, cx, cy, hr);
       for (const [k, a] of HALO) hz.addColorStop(k, rgba(LIGHT, PEAK * lit * a));   // (falling away smoothly, with no edge to it)
       g.fillStyle = hz; g.fillRect(Math.max(0, cx - hr), Math.max(0, cy - hr), Math.min(W, cx + hr) - Math.max(0, cx - hr), Math.min(H, cy + hr) - Math.max(0, cy - hr));
@@ -232,5 +274,6 @@ const TITLE = (() => {
   }
   // how near it is, as it is seen (0 far off, 1 as near as it comes): the title's drone follows it (game.js). dist: how
   // far off it is drawn now, metres; moving: on its way to its next place
-  return { enter, advance, active, draw, dark, lightUp, get lit() { return lit; }, get lighting() { return lightAt !== null; }, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D, shape, SHAPE_H: 2.1 + 0.165, SHAPE_W: 0.8 };
+  // glow: the light behind it as last drawn (its middle and reach, px; gliding: on its way after a scuttle)
+  return { enter, advance, active, draw, dark, lightUp, GLIDE, SCURRY, get glow() { return glow ? { x: glow.x, y: glow.y, r: glow.r, gliding } : null; }, get lit() { return lit; }, get lighting() { return lightAt !== null; }, get step() { return step; }, get near() { return drawn / (D.length - 1); }, get dist() { return cur.d; }, get moving() { return !!scurry; }, get on() { return on; }, STEPS: D.length - 1, D, shape, SHAPE_H: 2.1 + 0.165, SHAPE_W: 0.8 };
 })();
