@@ -654,6 +654,26 @@ const AUDIO = (() => {
         break;
       // the car pulling away
       case 'rev': tone(55, 2.4, { vol: 0.45, type: 'sawtooth', endFreq: 190, attack: 0.05 }); noise(1.6, { type: 'bandpass', freq: 2400, q: 6, vol: 0.35, attack: 0.02 }); noise(2.2, { freq: 300, vol: 0.35, attack: 0.1 }); break;
+      // night 2, the car driven into it. carHit: the blow on the bumper, the bodywork giving and something breaking in it,
+      // and the tyres biting for the moment it takes to stop
+      case 'carHit':
+        noise(0.22, { freq: 190, vol: 1.0, attack: 0.001 }); tone(54, 0.42, { vol: 0.9, endFreq: 28 });
+        noise(0.1, { type: 'bandpass', freq: 1250, q: 1.1, vol: 0.55, attack: 0.001 });
+        for (let i = 0; i < 4; i++) noise(0.03, { type: 'bandpass', freq: 2100 + Math.random() * 1900, q: 5, vol: 0.3, delay: 0.03 + i * 0.04 });
+        noise(0.42, { type: 'bandpass', freq: 2500, q: 2.6, vol: 0.24, attack: 0.03, delay: 0.07 }); tone(1340, 0.38, { vol: 0.03, type: 'sawtooth', endFreq: 1120, attack: 0.03, delay: 0.07 });
+        break;
+      // stall: the engine dying under you: four turns, each slower and lower, and a tick as it settles
+      case 'stall':
+        [[0, 62], [0.17, 53], [0.38, 44], [0.66, 35]].forEach(([d, f], i) => { tone(f, 0.17 + i * 0.03, { vol: 0.34 - i * 0.05, type: 'sawtooth', endFreq: f * 0.78, delay: d }); noise(0.07, { freq: 380, vol: 0.22 - i * 0.04, delay: d }); });
+        noise(0.03, { type: 'bandpass', freq: 1900, q: 3, vol: 0.12, delay: 1.05 });
+        break;
+      // bodyDrop: something heavy and soft coming down on a wet road, and sliding a little
+      case 'bodyDrop': noise(0.2, { freq: 240, vol: 0.75, attack: 0.002, pan }); tone(48, 0.3, { vol: 0.55, endFreq: 30, pan }); noise(0.38, { type: 'bandpass', freq: 850, q: 0.8, vol: 0.2, attack: 0.03, delay: 0.05, pan }); break;
+      // joints: two or three dry cracks close together, and something wet moving under them (it gets up, wrongly)
+      case 'joints':
+        for (let i = 0, n = 2 + Math.floor(Math.random() * 2); i < n; i++) { const d = i * (0.07 + Math.random() * 0.06); noise(0.022, { type: 'bandpass', freq: 1500 + Math.random() * 1400, q: 3.5, vol: 0.42, attack: 0.001, delay: d, pan }); tone(210 + Math.random() * 90, 0.04, { vol: 0.12, type: 'triangle', endFreq: 120, delay: d, pan }); }
+        noise(0.1, { type: 'bandpass', freq: 600, q: 1.2, vol: 0.13, attack: 0.02, delay: 0.05, pan });
+        break;
       default: break;
     }
   }

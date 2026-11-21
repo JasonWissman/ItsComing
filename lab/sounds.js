@@ -39,6 +39,10 @@ const SOUNDS = [
   { kind: 'sfx', name: 'rev', n: [2], d: 'The engine revving hard as the car pulls away, and again changing up a gear.', src: 'night02 pedal' },
   { kind: 'sfx', name: 'lever', n: [2, 7, 8, 11], d: 'A heavy lever thrown over with a clack. Gearstick (2), the lamp starts turning (7), the main switched off (8) or on (11).', src: 'night02, 07, 08, 11' },
   { kind: 'sfx', name: 'clunk', n: [2, 4, 6, 7, 8, 9, 11, 12], d: 'A heavy click. Pedal to the floor (2), a wrong thing knocked on the gate lock (4), boxes opening (6, 7), shutter down (8), receiver hung up (9), breakers (11), plug in (12).', src: 'many nights' },
+  { kind: 'sfx', name: 'carHit', n: [2], d: 'A heavy blow on the bumper, the bodywork giving, and the tyres biting for a moment. You drove straight into it (the easter egg).', src: 'night02 ram' },
+  { kind: 'sfx', name: 'stall', n: [2], d: 'The engine dying: four turns, each slower and lower, and a tick as it settles. The car lurches to a halt, having hit it.', src: 'night02 ram' },
+  { kind: 'sfx', name: 'bodyDrop', n: [2], d: 'Something heavy and soft coming down on a wet road and sliding a little. It lands in the road, thrown by the car.', src: 'night02 ram' },
+  { kind: 'sfx', name: 'joints', n: [2], d: 'Two or three dry cracks close together over something wet. It gets up out of the road, a limb at a time, and stands.', src: 'night02 ram' },
   // ---- night 3: the graveyard ----
   { kind: 'sfx', name: 'pour', n: [3], d: 'A fine hiss of grains pouring. A salt (or sugar) line laid across a way in.', src: 'night03' },
   { kind: 'sfx', name: 'strike', n: [3], d: 'A match struck and flaring.', src: 'night03 lanterns' },

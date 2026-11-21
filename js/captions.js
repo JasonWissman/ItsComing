@@ -6,6 +6,7 @@ const CAPTIONS = (() => {
     keyClick: 'a key clicks', coin: 'a coin drops in', coinReturn: 'a coin rattles into the return', carCome: 'a car, coming fast', brake: 'tyres hiss on the wet road', horn: 'a car horn, twice', carDoor: 'a car door opens', lampBreak: 'a street lamp pops, and glass falls',   // the pay phone's keys and coin, the car that comes, the lamps he breaks
     dispatch: 'a dispatcher\'s voice, crackling', siren: 'a police siren wails', tireScreech: 'tyres screech', sirenOff: 'the siren winds down', shadeShriek: 'an inhuman shriek', peelOut: 'tyres squeal, an engine roars away',   // the police, on 911 (the phone booth)
     boardRattle: 'the boards rattle on their nails',
+    carHit: 'the car hits something heavy', stall: 'the engine dies', bodyDrop: 'something heavy lands on the road', joints: 'joints crack',   // the road: the car driven into it
     sparkBlast: 'the box bursts in a shower of sparks', fireCatch: 'flames rush up', fireCrackle: 'fire crackling', burnShriek: 'a burning shriek', stingBurn: 'a burning scream',   // night 11's farm set alight
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
     sodaPour: 'soda pours, fizzing', sodaSputter: 'the soda fountain sputters, empty', gulp: 'gulping', counterPound: 'a fist pounds the counter', cupDown: 'a paper cup set down',
