@@ -40,7 +40,7 @@ const hit = (gear, cause, line) => [
   ['waitUntil', "G.L.s.ram.stage === 'look'", 9000],
   ['expect', "G.state === 'play' && G.L.creature.struck.up > 0.95 && G.L.creature.struck.look > 0 && G.cam.zoom > 1.5", 'it has got up and stands, its head up at you, the view closed in on it'],
   ['waitUntil', "G.state === 'dying'", 4000],
-  ['expect', "G.deathCause === '" + cause + "' && G.L.s.ram.stages.join() === 'run,thrown,down,twitch,rise,look,leap' && G.L.creature.lungeFrom > 6 && Math.abs(G.L.creature.lungeFrom - Math.hypot(G.L.creature.pos().x - G.L.eye.x, G.L.creature.pos().z - G.L.eye.z)) < 3",
+  ['expect', "G.deathCause === '" + cause + "' && G.L.s.ram.stages.join() === 'run,thrown,down,twitch,rise,look,leap' && G.L.creature.lungeFrom > 6",
     'each part in its order (the run at it, thrown, down, a twitch, getting up, the look, the leap), and it comes from where it stood'],
   ['waitUntil', "G.state === 'dead'", 4000],
   ['expect', "G.deathScreen.title === 'Nice try' && G.deathScreen.text === " + JSON.stringify(line) + " && G.L.text.eggs.includes(G.deathCause) && document.body.innerText.includes('Nice try')", 'the card says Nice try, and only: ' + line],

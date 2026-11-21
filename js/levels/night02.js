@@ -175,9 +175,9 @@ LEVELS.push({
     // where keys dropped from the ignition land: on the floor at your feet, in front of the seat and short of the pedal, where
     // looking down finds them, clear of anything else lying there (the first of these that is; failing all, the first)
     const FEET = [[-0.05, 0.26], [-0.18, 0.3], [0.07, 0.22], [-0.29, 0.26], [-0.13, 0.18], [-0.3, 0.4]];
+    const feet = it => FEET.find(([x, z]) => L.items.every(o => o === it || o.taken || Math.hypot(o.x - x, o.z - z) > 0.24));
     const atFeet = it => {
-      const clear = ([x, z]) => L.items.every(o => o === it || o.taken || Math.hypot(o.x - x, o.z - z) > 0.24);
-      const [x, z] = FEET.find(clear) || FEET[0], p = L.pt(x, 0.36, z);
+      const [x, z] = feet(it) || FEET[0], p = L.pt(x, 0.36, z);
       return { x: p[0], y: 0.36, z: p[2] };
     };
     // ---- putting a thing down ----
@@ -187,7 +187,7 @@ LEVELS.push({
     // plain sight from your seat and can be taken again (G.landSpot: on the surface, nothing between your eye and any
     // part of it, clear of what else lies there, of the pedal and of the stick): on the open floor (the footwells short of
     // the dash, beside and behind your seat: never under the dash, a seat or the console) or on the cushion of the
-    // passenger seat, whichever is nearer where you are looking; failing both, at your feet (FEET).
+    // passenger seat, or at your feet where there is room (FEET), whichever is nearest where you are looking.
     const RESTS = [
       { y: 0.36, poly: [[-0.4, -0.6], [1.2, -0.6], [1.2, -0.22], [0.62, -0.22], [0.62, -0.04], [0.27, -0.04], [0.27, 0.36], [1.2, 0.36], [1.2, 0.66], [-0.4, 0.66]] },
       { y: 0.66, poly: [[0.62, -0.12], [1.1, -0.12], [1.1, 0.3], [0.62, 0.3]] },
@@ -195,12 +195,10 @@ LEVELS.push({
     function restFor(it) {
       const ix = Math.sin(G.cam.yaw), iz = Math.cos(G.cam.yaw), floor = L.floor, off = p => Math.hypot(p.x - ix, p.z - iz);
       let best = null;
-      for (const r of RESTS) {
-        L.floor = r;   // (the surface G.landSpot is to look at)
-        const p = G.landSpot(null, it);
-        if (p && (!best || off(p) < off(best))) best = p;
-      }
+      const take = p => { if (p && (!best || off(p) < off(best))) best = p; };
+      for (const r of RESTS) { L.floor = r; take(G.landSpot(null, it)); }   // (the surface G.landSpot is to look at)
       L.floor = floor;
+      if (feet(it)) take(atFeet(it));
       return best || atFeet(it);
     }
     L.onDrop = (it, fx) => { if (fx) return; const p = restFor(it); it.x = p.x; it.y = p.y; it.z = p.z; };   // (dropped from the ignition it has its own place, atFeet)
