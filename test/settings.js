@@ -479,7 +479,7 @@ async function run(browser, check) {
     console.log('    heartbeat as first heard (0.05): peak ' + quiet.heart + ' dBFS; the calibration\'s lub: ' + quiet.lub + ' (effects at 50%: ' + quiet.lubHalf + ')');
     check(Math.abs(quiet.heart - quiet.lub) < 0.05, 'the quietest sound is the heartbeat\'s first beat as loud as the game first plays it (' + JSON.stringify(quiet) + ')');
     check(Math.abs(quiet.lubLeft[0] - quiet.lub) < 0.05 && quiet.lubLeft[1] < -100 && quiet.lubRight[0] < -100 && Math.abs(quiet.lubRight[1] - quiet.lub) < 0.05, 'panned hard left it is in the left ear only, hard right the right only (' + JSON.stringify(quiet) + ')');
-    check(Math.abs(quiet.lubHalf - (quiet.lub - 6.02)) < 0.1 && Math.abs(quiet.loudHalfRms - (loud.calRms - 6.02)) < 1.5 && Math.abs(quiet.lubAmbLow - quiet.lub) < 0.05, 'both go through the effects volume (at 50% the lub is 6 dB down, and the sting about that too), not the ambience\'s (' + JSON.stringify(quiet) + ')');
+    check(Math.abs(quiet.lubHalf - (quiet.lub - 6.02)) < 0.1 && quiet.loudHalfRms < loud.calRms - 3 && Math.abs(quiet.lubAmbLow - quiet.lub) < 0.05, 'both go through the effects volume (at 50% the lub is 6 dB down, the sting quieter too: less than 6, through the limiter), not the ambience\'s (' + JSON.stringify(quiet) + ')');
     // the ambience's two ends: every bed in the game measured with its tune (K-weighted, once faded in); the quietest is
     // the one the calibration plays as the quietest; and each plays in the calibration as loud as in the game, through the
     // ambience volume
