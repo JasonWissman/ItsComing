@@ -441,6 +441,14 @@ const AUDIO = (() => {
       case 'splash': noise(0.35, { freq: 1800, q: 0.7, vol: 0.5, attack: 0.005, pan }); noise(0.9, { type: 'bandpass', freq: 600, q: 0.8, vol: 0.25, delay: 0.08, attack: 0.05, pan }); tone(120, 0.25, { vol: 0.2, endFreq: 60, pan }); break;
       // something heavy into the sea far below: a deep thump, the water thrown up, and the spray coming back down on it
       case 'plunge': tone(52, 0.7, { vol: 0.5, endFreq: 30, pan }); noise(0.3, { freq: 900, vol: 0.45, attack: 0.01, pan }); noise(1.4, { type: 'bandpass', freq: 520, q: 0.6, vol: 0.32, delay: 0.06, attack: 0.08, pan }); noise(0.9, { type: 'highpass', freq: 2400, vol: 0.1, delay: 0.25, attack: 0.15, pan }); break;
+      // a steel toolbox coming down on a skull: one hard, hollow knock, the box ringing short and dull over it, and the tools
+      // left in it jumping
+      case 'clonk':
+        noise(0.045, { type: 'bandpass', freq: 1100, q: 1.4, vol: 0.75, attack: 0.001, pan });
+        tone(190, 0.2, { vol: 0.6, type: 'triangle', endFreq: 105, pan }); tone(96, 0.16, { vol: 0.45, endFreq: 62, pan });
+        tone(590, 0.12, { vol: 0.2, type: 'square', endFreq: 520, pan }); tone(884, 0.08, { vol: 0.08, type: 'square', endFreq: 800, pan });
+        for (const d of [0.05, 0.1]) noise(0.025, { type: 'bandpass', freq: 3200, q: 4, vol: 0.14, delay: d, pan });
+        break;
       case 'dive': noise(0.5, { type: 'bandpass', freq: 400, q: 1.2, vol: 0.3, attack: 0.02, pan }); tone(90, 0.4, { vol: 0.15, endFreq: 40, pan }); break;
       case 'wetThud': noise(0.2, { freq: 220, vol: 0.8, pan }); noise(0.3, { type: 'bandpass', freq: 900, q: 1, vol: 0.3, delay: 0.03, pan }); tone(50, 0.3, { vol: 0.6, endFreq: 32, pan }); break;
       // a body thrown against a barred door from the water: a deep boom, the wet slap of it, and the boards and the bar rattling

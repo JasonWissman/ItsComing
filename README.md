@@ -226,9 +226,9 @@ some on the ground, so you have to turn and look down to find them.
    up out of its sprint into your face, its black hair hanging round it.
 6. **The Boathouse.** Something swims in across the water, going under for a
    while and coming up closer. It rains outside, never under the roof: the rain shows only out through the water door
-   (above the slats let down) and the side door while it stands open (not through its leaf). The winch is chained and padlocked: the key is in the
+   (above the slats let down) and the side door while it stands open (not through its leaf). A lamp on the far shore shows through the water door as a small soft glow. The winch is chained and padlocked: the key is in the
    tackle box. Crank the water door down, and shut the side door and bar it with both oars
-   of the upturned rowboat, which lie about the boathouse each in a place of its own (lying on the deck or leaning
+   of the upturned rowboat (painted white, a little worn, with a red sheer strake and a red keel), which lie about the boathouse each in a place of its own (lying on the deck or leaning
    on the wall, each as long as it is across the door): one
    across the iron brackets, then the other on top of it (the door or either bracket will do).
    One oar alone is not enough: it throws itself at the door, the oar snaps, the door bursts
@@ -253,14 +253,18 @@ some on the ground, so you have to turn and look down to find them.
    the toolbox (the only good fuse there is), and turn the crank so
    the beam goes round: its first pass knocks it sliding back down the wall, and the next
    knocks it off the tower, to fall all the way down into the sea. The lamp turns with the
-   crank, lit or dark. There is another way: once the new fuse is out of the toolbox, the toolbox itself can be taken
+   crank, lit or dark. The night's easter egg: once the new fuse is out of the toolbox, the toolbox itself can be taken
    up (heavy, held open in front of you), and with it in hand a click on the thing, looking over the rail at it, lets it
    go over the rail on the line straight down to it. The tower flares out below the gallery, so it hits the stone and
    comes down the wall, tumbling and banging, spilling a spanner and a screwdriver. If the thing is no more than about
-   8 m below the gallery floor (the hover says "Drop the toolbox on it."), the box comes down onto its back, and it
-   loses its hold, slides scrabbling and falls all the way into the sea as from the beam: a win, with a line of its own.
-   Further down (the hover says "Too far down.") the box, going faster and faster, kicks out off the stone, goes past
-   it out over the water and into the sea, and is gone. A fuse tried with the blown one still in knocks against it and comes
+   8 m below the gallery floor (the hover says "Drop the toolbox on it."), the box catches it full in its upturned face
+   with a clonk: its head snaps round, one hand and both feet come off the stone and it hangs by the other arm,
+   swinging, for about a second; then it swings back in, hooks on again and climbs on from where it was (stopped there
+   for under two seconds in all), and from then on it has a black eye, one eye swollen all but shut and purple-black
+   round it, on the wall and in your face if it gets you. It is not a win: the toolbox bounces off into the sea and the
+   night goes on. Further down (the hover says "Too far down.") the box, going faster and faster, kicks out off the
+   stone, goes past it out over the water and into the sea, and is gone. Across the water the lights of a town show low
+   on the horizon, each a small soft glow. A fuse tried with the blown one still in knocks against it and comes
    back to your hand; the blown fuse you pulled, pushed back into the empty clips, sits there a beat with nothing
    coming on and drops out onto the floor. A storm is on: now and then the lightning flashes, and a second or few later
    the thunder comes; as it sounds the view lifts a little toward a cold blue-white, a flicker as the rumble comes in and

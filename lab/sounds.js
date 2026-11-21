@@ -28,7 +28,7 @@ const SOUNDS = [
   // ---- night 1: the field ----
   { kind: 'sfx', name: 'hammer', n: [1], d: 'Three hard knocks. Nailing a board over a doorway.', src: 'night01 boards; fumble hit' },
   { kind: 'sfx', name: 'smash', n: [1], d: 'A loud splintering crash. It tears half-nailed boards away.', src: 'night01 onReach' },
-  { kind: 'sfx', name: 'bang', n: [1, 6, 7], d: 'A heavy boom. Something hits the boards (1), the side door bangs open (6), the dropped toolbox hits the wall (7).', src: 'night01, 06, 07 · game.js “held” aftermath (unused)' },
+  { kind: 'sfx', name: 'bang', n: [1, 6], d: 'A heavy boom. Something hits the boards (1), the side door bangs open (6).', src: 'night01, 06 · game.js “held” aftermath (unused)' },
   { kind: 'sfx', name: 'boardRattle', n: [1], d: 'Boards rattling on their nails after a blow. It pounds on the boards at the end.', src: 'night01 aftermath' },
   { kind: 'sfx', name: 'crack', n: [1, 6], d: 'A sharp dry crack. A board splits (1); the one oar across the side door snaps (6).', src: 'night01 boards · night06' },
   { kind: 'sfx', name: 'thud', n: [1, 4, 6, 11, 13], d: 'A deep dull thud. A blow on the wall (1), it hits the gate (4), a door swinging shut (6), the carrier falling (11); the blow under the demon’s screech at the scare (13).', src: 'night01, 04, 06, 11, 13' },
@@ -49,7 +49,7 @@ const SOUNDS = [
   // ---- night 4: the quarry ----
   { kind: 'sfx', name: 'hinge', n: [4], d: 'One reedy iron note, steady, rising a little (about 2.5 semitones) as a heavy gate swings, and gone as it stops. A quarry gate pulled shut, swinging until it clangs into its post.', src: 'night04 gate' },
   { kind: 'sfx', name: 'lock', n: [4, 6], d: 'A padlock snapping shut (4), or springing open (6).', src: 'night04, night06' },
-  { kind: 'sfx', name: 'scrape', n: [7], d: 'A grating scratch. The climber’s claws on the lighthouse stone.', src: 'night07' },
+  { kind: 'sfx', name: 'scrape', n: [7], d: 'A grating scratch. The climber’s claws on the lighthouse stone: knocked down the wall by the beam, and hooking on again after the toolbox.', src: 'night07' },
   // ---- night 5: the clearing; the bow ----
   { kind: 'sfx', name: 'bowCreak', n: [5, 13], d: 'A small wooden creak, repeated while the bow is drawn.', src: 'game.js draw' },
   { kind: 'sfx', name: 'bowFull', n: [5, 13], d: 'A hard click as the string comes tight: the bow is fully drawn.', src: 'game.js draw' },
@@ -67,6 +67,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'lampOn', n: [7, 12], d: 'A deep hum rising as a lamp comes on.', src: 'night07, night12' },
   { kind: 'sfx', name: 'thunder', n: [7], d: 'A long low rumble a few seconds after each lightning flash.', src: 'weather.js (lightning only on night 7)' },
   { kind: 'sfx', name: 'plunge', n: [7], d: 'A deep thump and spray, far below. Something falls into the sea.', src: 'night07' },
+  { kind: 'sfx', name: 'clonk', n: [7], d: 'One hard, hollow knock with a short dull ring of steel and the tools jumping in the box. The dropped toolbox catches the climber full in the face (the night’s easter egg); the box’s clatter plays with it.', src: 'night07 toolbox hit' },
   // ---- night 8: the diner ----
   { kind: 'sfx', name: 'glassTap', n: [8], d: 'Three light taps on glass. It touches the windows as it passes; your knuckle on the glass.', src: 'night08' },
   { kind: 'sfx', name: 'glassGive', n: [8], d: 'Glass groaning and starting to crack. A window is giving way.', src: 'night08' },

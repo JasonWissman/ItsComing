@@ -99,8 +99,7 @@
   const stepPace = c => { const p = (c.climbPh / Math.PI) % 1; return p < 0.5 ? 0.35 : 0.35 + 2.04 * Math.sin((p - 0.5) * 2 * Math.PI); };
   const climb = seen => (c, k, dt) => { c.labT = (c.labT || 0) + dt; c.dist -= dt * stepPace(c) * PACE * (seen ? SEEN : 1); };
   // the aftermath (night07 L.aftermath and the distFn it sets): rush up into view, climb; a pass of the beam knocks it back
-  // down the wall (slide) until its hooks catch (cling), or, the last pass, it scrabbles (slip), lets go and falls; the
-  // dropped toolbox does the same as the last pass, without the light
+  // down the wall (slide) until its hooks catch (cling), or, the last pass, it scrabbles (slip), lets go and falls
   const AFTER = { near: 5.5, rush: 1.25, climb: 0.3, closest: 2.5, cling: 0.7, knock: 3, slip: 0.55, slipV: 4, push: 5.2, spin: 1.3 };
   const after = plan => (c, k, dt, T) => {
     const a = c.lab, eye = G.L.eyeH;
@@ -108,8 +107,8 @@
     for (const h of plan.hits || []) if (!a.done[h.t] && T >= h.t) {
       a.done[h.t] = true; const last = h.last;
       c.distFn = c.distFn || (() => c.dist); c.frozen = true;
-      a.mode = last ? 'slip' : 'slide'; c.slideV = h.v || 0.6; c.slideTo = last ? Infinity : c.dist + AFTER.knock; a.slip = AFTER.slip;
-      if (!h.box) c.struck = 1;
+      a.mode = last ? 'slip' : 'slide'; c.slideV = 0.6; c.slideTo = last ? Infinity : c.dist + AFTER.knock; a.slip = AFTER.slip;
+      c.struck = 1;
     }
     if (a.mode === 'rush') { c.dist = Math.max(AFTER.near, c.dist - dt * a.rate); if (c.dist <= AFTER.near) a.mode = 'climb'; }
     else if (a.mode === 'climb') c.dist = Math.max(Math.min(c.dist, AFTER.closest), c.dist - dt * AFTER.climb);
@@ -137,18 +136,27 @@
     }
   };
   const start = (mode, extra) => c => { c.lab = Object.assign({ mode, done: {} }, extra); c.labBeams = []; c.labT = 0; c.look = 1; };
-  // the toolbox it is hit by: dropped over the rail it comes down the stone from you, tumbling, onto its back between its
-  // shoulders, and bounces off out from the wall (the box: red steel, its lid standing open)
-  const BOX = 0.75;
+  // the toolbox it is hit by (night07 updateBox): dropped over the rail it comes down the stone from you, tumbling, onto
+  // its upturned face, and bounces off out from the wall and away (the box: red steel, its lid standing open). BOX: when
+  // it gets there, on the card's clock; EYE: the side of its face that takes it (+1 its right)
+  const BOX = 0.75, EYE = 1;
   const toolbox = (ctx, c, P) => {
-    const T = c.labT || 0; if (T > BOX + 0.6) return;
-    const q = Math.min(1, T / BOX), b = Math.max(0, T - BOX), s = lerp(3.2, 1, easeIn(q)) * (1 - b * 0.6);
-    const x = b * 0.4, y = lerp(-2.4, H / 2 + 0.15, easeIn(q)) + b * 2.2 - b * b * 1.5;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(T * 5 + b * 6); ctx.scale(s, s);
+    const T = c.labT || 0, pr = axesOf(c); if (T > BOX + 0.7 || !pr) return;
+    const hd = pr([CLIMB.head[0] + EYE * 0.08, CLIMB.head[1], CLIMB.head[2] + 0.1]), hx = hd[0], hy = H / 2 - hd[1];   // its face, on the card
+    const q = Math.min(1, T / BOX), b = Math.max(0, T - BOX), s = lerp(3.2, 1, easeIn(q)) * (1 - b * 0.5);
+    const x = hx + b * 0.9, y = lerp(-2.6, hy - 0.12, easeIn(q)) + b * 2.6 - b * b * 1.2;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(T * 5 + b * 7); ctx.scale(s, s);
     P_rect(ctx, -0.28, -0.19, 0.56, 0.33, P.col([172, 36, 30])); P_rect(ctx, -0.28, 0.1, 0.56, 0.04, P.col([108, 22, 18]));
     P_rect(ctx, -0.26, 0.14, 0.52, 0.2, P.col([196, 60, 50])); P_rect(ctx, -0.05, -0.08, 0.1, 0.07, P.col([150, 146, 138]));
     ctx.restore();
   };
+  // as the night plays it: it climbs (watched) until the box lands, hangs by one hand while it is held there (CR.knock,
+  // timed by its own speedMult), and climbs on
+  const hit = (c, k, dt, T) => {
+    if (!c.lab.hit && T >= BOX) { c.lab.hit = true; CR.knock(c, EYE); }
+    if (c.hold === null) climb(true)(c, k, dt); else c.labT = (c.labT || 0) + dt;
+  };
+  const blackEye = c => { c.blackEye = EYE; c.bruise = 1; };
 
   LAB.creature('climber', {
     night: 7, stage: 'The Lighthouse', dist: 6, fit: { h: 2.0, w: 1.9, y0: 0 },
@@ -170,12 +178,18 @@
       { name: 'The last pass: it lets go and falls', note: 'The second pass of the light: it slides on, scrabbling at the stone and catching at nothing, peels away and falls, turning over, into the sea.',
         dist: 6, dur: 4.4, modes: true, still: true, back: wall, front: splash, draw: fallDraw,
         set(c) { start('climb')(c); c.distFn = () => c.dist; c.frozen = true; c.labBeams = [0.5]; }, tick: after({ hits: [{ t: 0.5, last: true }] }) },
-      { name: 'Hit by the dropped toolbox', note: 'Dropped over the rail within reach, the toolbox comes down the stone onto its back: it loses its hold, scrabbles and falls into the sea.',
-        dist: 6, dur: 4.5, modes: true, seen: true, still: true, back: wall, draw: fallDraw,
-        front(ctx, c, P) { ctx.save(); splash(ctx, c, P); ctx.restore(); toolbox(ctx, c, P); },
-        set: start('play'), tick: after({ hits: [{ t: BOX, last: true, box: true, v: 2 }] }) },
+      { name: 'Hit by the dropped toolbox', note: 'Dropped over the rail within reach, the toolbox comes down the stone onto its upturned face with a clonk: its head snaps round, one hand and both feet come off the stone and it hangs by the other arm, swinging, for about a second; then it swings back in, hooks on and climbs on, with a black eye coming up.',
+        dist: 6, dur: BOX + CR.dangleFor + 2.4, modes: true, seen: true, still: true, back: wall, front: toolbox, fit: { h: 2.0, w: 2.4, y0: 0 }, set: start('play'), tick: hit },
+      { name: 'Hanging by one hand', note: 'The middle of that, held: one hand hooked in the stone, the other thrown out and clawing at the air, its feet off the wall and kicking, all of it swinging under the one arm; the eye that took the box screwed shut.',
+        dist: 4.5, dur: CLIMB.dangle.hang, modes: false, still: true, back: wall, fit: { h: 2.0, w: 2.4, y0: 0 },
+        set(c) { start('play')(c); CR.knock(c, EYE); c.dangle.t = CLIMB.dangle.snap + CLIMB.dangle.drop; c.bruise = 0.3; },
+        tick(c, k, dt) { c.dangle.t += dt; c.bruise = Math.min(1, c.bruise + dt * 0.8); } },
+      { name: 'Climbing on with a black eye', note: 'Ever after the toolbox: one eye swollen all but shut, the socket purple-black and the bruise spread round it. Seen close, climbing while you watch.',
+        dist: 3.2, dur: 4 * Math.PI / 2.6, modes: true, seen: true, still: true, back: wall, set(c) { c.look = 1; blackEye(c); }, tick: climb(true) },
       LAB.lunge({ name: 'Over the rail at you', note: 'It catches you: up off the stone and over the rail, righting itself, its face coming up to yours and its hooked hands reaching.', dist: 1.6, back: wall, fit: { h: 2.4, w: 1.9, y0: 0.5 },
         set(c) { c.frozen = true; c.lungeFrom = c.dist; c.look = 1; } }),
+      LAB.lunge({ name: 'Over the rail at you, with the black eye', note: 'The same, after the toolbox: the black eye comes up to your face with the rest of it.', dist: 1.6, back: wall, fit: { h: 2.4, w: 1.9, y0: 0.5 },
+        set(c) { c.frozen = true; c.lungeFrom = c.dist; c.look = 1; blackEye(c); } }),
     ],
   });
 })();

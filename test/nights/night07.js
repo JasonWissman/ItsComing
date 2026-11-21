@@ -1,10 +1,11 @@
-// The Lighthouse, played four times. First the things that do not work before the blown fuse is out: a click on the lamp
+// The Lighthouse, played five times. First the things that do not work before the blown fuse is out: a click on the lamp
 // with nothing in hand (the hand goes to it and the old bulb rattles in its socket); the fuse box opened (the hand pulls its
 // door open); the spare bulb (tried in the open toolbox, it comes back), and then the new fuse from the toolbox, tried
 // at the clips with the blown fuse still in (each knocks against it and comes back to the hand); and, without the new one,
 // the blown fuse taken out and pushed back (it is the one tried, and drops out). Only the one good fuse is to be found: no
 // other fuse lies about. Then the toolbox
-// dropped over the rail, twice, a miss and a win (toolboxDrop, below). Then from the start: the
+// dropped over the rail, twice, a miss and a hit (toolboxDrop, below: the hit is the night's easter egg, and the night is
+// then won the ordinary way, with the black eye on it). Then from the start: the
 // spare bulb; open the fuse box and pull out
 // the blown fuse; push it back into the empty clips (it sits there a beat and drops out to the floor, where it is picked up
 // again); the bulb tried at the empty clips (back to the hand); the bulb into the lamp; the new fuse from the toolbox; one
@@ -13,6 +14,18 @@
 // checks that the open door is part of the fuse box, and that the empty holder says "the one that blew" only when that is
 // what you are holding. Won, the beam knocks the thing off the tower: it lets go of the stone, clear of the wall, and goes
 // into the sea beyond the foot of the tower (14.7 m from its axis) before the night fades.
+// The town across the water: sixteen lights low on the horizon, each a small soft glow (a radial gradient that fades to
+// nothing, filled as a disc), not a flat square. Drawn here onto a canvas that only notes what is asked of it.
+const farGlows = (n, near, far) => `(() => {
+  const ps = G.L.props.filter(p => p.kind === 'sprite' && p.noFog && p.noLight && p.layer !== 0 && Math.hypot(p.x, p.z) > ${near} && Math.hypot(p.x, p.z) < ${far});   // (not the stars: they are in the sky's own layer)
+  return ps.length === ${n} && ps.every(p => {
+    const did = [], stops = [], ctx = { createRadialGradient() { did.push('grad'); return { addColorStop(o, c) { stops.push([o, c]); } }; }, beginPath() {}, arc() { did.push('arc'); }, fill() { did.push('fill'); }, fillRect() { did.push('rect'); }, rect() { did.push('rect'); }, scale() {}, save() {}, restore() {} };
+    p.draw(ctx, { t: 0, raw: c => rgba(c), col: c => rgba(c) }, 4);
+    const a = stops.map(q => +q[1].slice(q[1].lastIndexOf(',') + 1, -1));
+    return did.join() === 'grad,arc,fill' && stops.length >= 3 && stops[0][0] === 0 && stops[stops.length - 1][0] === 1 && a[a.length - 1] === 0 && a[0] > 0.2 && a[0] < 0.9 && a.every((v, i) => !i || v < a[i - 1]) && p.w < 8;
+  });
+})()`;
+const town = [['expect', farGlows(16, 150, 400), 'the town across the water is sixteen small soft glows, each fading to nothing, not squares']];
 const crank = [['clickUntil', 'winder', 'G.L.s.turning', 250, 12],
   ['waitUntil', '!!G.L.s.fall', 9000],
   ['waitUntil', 'G.L.creature.gone && !!G.L.s.splash && G.state === "won"', 6000],
@@ -42,30 +55,60 @@ const toolboxFree = 'G.L.targets.find(t => t.id === "toolbox").hidden && ' + ite
 // The toolbox dropped over the rail onto it, twice. The fuse out of the toolbox, the toolbox itself is taken up; with it in
 // hand the thing (made to be a given way down, looked at over the rail) is clicked. Too far down (15 m off, its middle more than
 // 8 m below the gallery floor), the hover says so, and the box kicks out off the stone and goes past it into the sea: gone,
-// and the night goes on. Then from the start, near (6 m off): it comes down the stone onto it, and the thing lets go and falls
-// all the way into the sea as it does from the beam; the night is won, with its own line.
+// the night goes on, and no easter egg is found. Then from the start, near (6 m off): it comes down the stone onto its face.
+// That is the night's easter egg, kept in the save the moment it lands (SAVE.data.eggs.lighthouse), and it is not a win:
+// the thing loses its hold with one hand and hangs by the other (c.dangle), held where it is, for CREATURES.climber.dangleFor
+// (1.85 s: a second of it hanging, with the drop onto the arm before and the swing back in after); then it is back on
+// the stone, and climbs on from where it was, with a black eye (c.blackEye, the bruise come up: c.bruise 1). The toolbox
+// goes on down into the sea. Then, with the thing sent back down the wall, the night is won the ordinary way (bulb, fuse,
+// crank): the beam knocks it off as ever, the black eye still on it, and the night's own line is the one shown.
 const overRail = d => ['eval', '(() => { const c = G.L.creature; c.u = 1 - Math.pow(' + d + ' / c.D0, 1 / c.gamma); const di = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.dirIdx = di; G.cam.yaw = G.cam.tYaw = di * 45 * DEG; G.cam.pitch = G.cam.tPitch = PITCH_DOWN; })()'];
 const hovered = tip => '(() => { const h = [...R.hits].reverse().find(h => h.kind === "creature"); if (!h) return false; G.mouse.x = h.x + h.w / 2; G.mouse.y = h.y + h.h / 2; updateHover(); return UI.tooltip.textContent === ' + JSON.stringify(tip) + ' && UI.canvas.style.cursor === "pointer"; })()';
 const takeToolbox = [
   ['use', 'toolbox'], ['pickup', 'fuse'], ['pickup', 'toolbox'],
   ['expect', 'G.inv[G.active].id === "toolbox" && G.L.targets.find(t => t.id === "toolbox").hidden && activeUse(G.L) && activeUse(G.L).tool === "toolbox"', 'the toolbox, the fuse out of it, is taken up'],
 ];
+const C7 = 'G.L.creature', DANGLE = 'CREATURES.climber.dangleFor';
+const eggSaved = '(SAVE.data.eggs.lighthouse === true && JSON.parse(localStorage.getItem("itscoming.v2")).eggs.lighthouse === true)';
 const toolboxDrop = [
   ['eval', 'restartLevel()'], ['wait', 300],
+  ['eval', 'delete SAVE.data.eggs.lighthouse; SAVE.persist();'],
   ...takeToolbox, overRail(15), ['wait', 200],
   ['expect', hovered('Too far down.'), 'over the rail at it, far down, with the toolbox: the hover says it is too far down'],
   ['shoot'], ['expect', 'G.L.s.box && !G.L.s.box.hit && !G.hasItem("toolbox")', 'too far down: the toolbox goes over the rail anyway'],
   ['waitUntil', 'G.L.s.box.gone && !!G.L.s.boxSplash', 6000],
   ['expect', 'G.L.s.box.flung && G.L.s.box.hits >= 2 && !G.L.s.boxHit && G.state === "play" && !G.hasItem("toolbox") && G.L.items.every(i => i.id !== "toolbox" || i.taken) && !activeUse(G.L)', 'it came down the stone, kicked out off it, went past it into the sea and is gone; the night goes on'],
+  ['expect', '!' + C7 + '.dangle && !' + C7 + '.blackEye && !SAVE.data.eggs.lighthouse', 'a miss: it keeps its hold, has no black eye, and no easter egg is found'],
   ['eval', 'restartLevel()'], ['wait', 300],
   ...takeToolbox, overRail(6), ['wait', 200],
   ['expect', hovered('Drop the toolbox on it.'), 'over the rail at it, near, with the toolbox: the hover offers to drop it'],
+  ['eval', 'window.__sfxN7 = []; if (!window.__sfxO7) { window.__sfxO7 = AUDIO.sfx; AUDIO.sfx = (n, ...r) => { window.__sfxN7.push(n); return window.__sfxO7(n, ...r); }; }'],
   ['shoot'], ['expect', 'G.L.s.box && G.L.s.box.hit && !G.hasItem("toolbox")', 'near enough: the toolbox goes over the rail'],
-  ['waitUntil', 'G.L.s.boxHit && G.state === "won" && G.L.s.box.struck', 4000],
-  ['expect', 'G.L.s.box.hits >= 1 && !G.L.s.turning && G.L.text.win.includes("toolbox")', 'it came down the stone onto it: the night is won, with a line of its own'],
-  ['waitUntil', '!!G.L.s.fall', 4000],
-  ...crank.slice(2),
-  ['waitUntil', 'G.state === "survived" && UI.overlay.textContent.includes("toolbox")', 12000],
+  ['waitUntil', 'G.L.s.boxHit && G.L.s.box.struck && !!' + C7 + '.dangle', 4000],
+  ['eval', 'window.__hit7 = (c => ({ t: G.L.t - c.dangle.t, d: c.dist, side: c.dangle.side }))(' + C7 + ')'],
+  ['expect', 'G.L.s.box.hits >= 1 && G.state === "play" && !G.L.won && !G.L.isWon() && !G.L.s.turning', 'it came down the stone onto it, and that is not a win: the night goes on'],
+  ['expect', eggSaved + ' && G.L.text.egg === "Hit the creature with the toolbox."', 'the easter egg is in the save the moment it lands, under the night\'s id'],
+  ['expect', 'window.__sfxN7.includes("clonk") && G.lastToast.msg === "Full in the face. It hangs there by one hand."', 'it lands with a clonk, and the night says what it did'],
+  ['expect', '(c => c.hold === c.dist && c.dist === window.__hit7.d && Math.abs(c.blackEye) === 1 && c.blackEye === c.dangle.side && ' + DANGLE + ' > 1.5 && ' + DANGLE + ' < 2.2 && CLIMB.dangle.hang === 1)(' + C7 + ')',
+    'it has lost its hold with one hand: held where it is, for about two seconds in all (one of them hanging), and that side\'s eye is the black one'],
+  ['waitUntil', C7 + '.dangle && ' + C7 + '.dangle.t > 0.6 && ' + C7 + '.dangle.t < 1.3', 3000],
+  ['expect', '(c => { const d = CREATURES.climber.dangling(c); return d.hold === -c.dangle.side && d.off === 1 && d.back === 0 && d.sw > 0.5 && d.sw < 1.7 && c.dist === window.__hit7.d && c.bruise > 0.3; })(' + C7 + ')',
+    'half way through it hangs by the other hand, the rest of it off the stone and swinging, where it was on the wall; the bruise is coming up'],
+  ['waitUntil', '!' + C7 + '.dangle', 4000],
+  ['expect', '(c => { const e = G.L.t - window.__hit7.t; return e >= ' + DANGLE + ' - 0.05 && e < ' + DANGLE + ' + 0.6 && c.hold === null && c.dist <= window.__hit7.d && c.dist > window.__hit7.d - 0.3 && G.state === "play"; })(' + C7 + ')',
+    'after that long and no longer it is back on the stone, free to climb, no further down the wall than it was'],
+  ['waitUntil', C7 + '.dist < window.__hit7.d - 0.04 && ' + C7 + '.bruise === 1', 8000],
+  ['expect', C7 + '.blackEye === window.__hit7.side && !' + C7 + '.dangle && window.__sfxN7.includes("scrape") && G.state === "play"', 'it hooks on again and climbs on from where it was, with a black eye'],
+  ['waitUntil', 'G.L.s.box.gone && !!G.L.s.boxSplash', 6000],
+  ['eval', 'AUDIO.sfx = window.__sfxO7; window.__sfxO7 = null;'],
+  // the night is still to be won, the ordinary way (the thing sent back down the wall, to give the time for it)
+  ['eval', '(c => { c.u = Math.max(0, 1 - Math.pow(22 / c.D0, 1 / c.gamma)); })(' + C7 + ')'],
+  ['pickup', 'bulb'], ['use', 'fusebox'], ['waitUntil', '!G.L.targets.find(t => t.id === "blownfuse").hidden', 2000],
+  ['use', 'blownfuse'], ['use', 'fusebox'], ['expect', 'G.L.s.fuse && !G.L.s.power', 'the new fuse, out of the toolbox before it went over the rail, goes in'],
+  ['use', 'lamp'], ['expect', 'G.L.s.bulb && G.L.s.power', 'the bulb in: the lamp is lit'],
+  ...crank,
+  ['expect', C7 + '.blackEye === window.__hit7.side && G.L.text.win === "It fell, and you haven\'t seen it again."', 'won by the light, as ever, the black eye on it all the way down'],
+  ['waitUntil', 'G.state === "survived" && UI.overlay.textContent.includes("It fell")', 12000],
   ['eval', 'restartLevel()'], ['wait', 300],
 ];
 const blownStillIn = [
@@ -110,7 +153,7 @@ const thunder = [
   ['eval', '(c => { if (window.__held7 === null) c.hold = null; })(G.L.creature)'],
 ];
 module.exports = {
-  nightmare: thunder.concat(blownStillIn, toolboxDrop, [
+  nightmare: town.concat(thunder, blownStillIn, toolboxDrop, [
     ['pickup', 'bulb'],
     ['use', 'fusebox'], ['expect', 'G.L.s.open && G.L.s.blownIn && (G.L.targets.find(t => t.id === "blownfuse").hidden || G.L.t >= G.L.s.openAt + 0.2)', 'fuse box open, the blown fuse still in it (to point at once the door has swung)'],
     ['waitUntil', '!G.L.targets.find(t => t.id === "blownfuse").hidden', 2000],
@@ -123,5 +166,6 @@ module.exports = {
     ['use', 'toolbox'], ['expect', 'G.L.targets.find(t => t.id === "toolbox").open', 'the toolbox is open'],
     ['pickup', 'fuse'],
     ['use', 'winder'], ['waitUntil', 'G.L.s.lensA > 0.12 && !G.L.s.turning', 2000],   // a turn before the lamp is lit: the lamp goes round a little with it, dark
-    ['use', 'fusebox'], ['expect', 'G.L.s.fuse && G.L.s.power', 'new fuse in, the lamp is lit']]).concat(crank),
+    ['use', 'fusebox'], ['expect', 'G.L.s.fuse && G.L.s.power', 'new fuse in, the lamp is lit']]).concat(crank, [
+    ['expect', '!G.L.creature.blackEye && !G.L.creature.dangle && !G.L.s.boxHit', 'won without the toolbox: no black eye on it']]),
 };

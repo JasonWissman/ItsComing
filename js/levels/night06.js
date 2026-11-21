@@ -64,7 +64,15 @@ LEVELS.push({
     const rng = mulberry32(66);
     for (let i = 0; i < 44; i++) { const x = (rng() - 0.5) * 170, z = 56 + rng() * 28; SC.tree(L, x, z, 8 + rng() * 7, 'fir', (rng() * 1e6) | 0); }
     for (let i = 0; i < 26; i++) { const side = rng() < 0.5 ? -1 : 1, x = side * (46 + rng() * 30), z = -30 + rng() * 70; SC.tree(L, x, z, 7 + rng() * 7, rng() < 0.6 ? 'fir' : 'bare', (rng() * 1e6) | 0); }
-    SC.sprite(L, -34, 1.2, 66, 0.9, 0.7, (ctx, P) => { ctx.scale(0.9, 0.7); P_rect(ctx, -0.5, 0, 1, 1, P.raw([214, 176, 108])); }, { noFog: true, noLight: true });
+    // a lamp on the far shore, among the trees: a small soft glow, warm and dim, fading to nothing with no edge to it. r
+    // is how far out it fades, in metres, so it is the size its distance makes it; its faint skirt is never under a few
+    // pixels across, so it does not shrink to a hard dot
+    const farLight = (x, y, z, r, col, a) => SC.sprite(L, x, y - r, z, 2 * r, 2 * r, (ctx, P, px) => {
+      const R0 = Math.max(r, 3 / (px || 1)), g = ctx.createRadialGradient(0, r, 0, 0, r, R0);
+      g.addColorStop(0, rgba(col, a)); g.addColorStop(0.2, rgba(col, a * 0.55)); g.addColorStop(0.5, rgba(col, a * 0.14)); g.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, r, R0, 0, TAU); ctx.fill();
+    }, { noFog: true, noLight: true });
+    farLight(-34, 1.55, 66, 0.85, [236, 188, 118], 0.7);
     // the deck and the walls
     SC.floorQ(L, -2.4, -2.4, 2.4, 2.6, 0.006, deck, { tex: 'planks', texScale: 1.3 });
     SC.wallV(L, -2.4, -2.4, 2.4, -2.4, 0, 3.0, wood, tex);
@@ -79,20 +87,40 @@ LEVELS.push({
     for (const z of [-1.8, -0.6, 0.6, 1.8]) SC.box(L, -2.4, 2.4, 2.84, 3.0, z - 0.06, z + 0.06, [44, 36, 28]);
     // furniture: an upturned rowboat, a workbench, a shelf, the winch, a life ring on the wall
     // the rowboat lies upturned along the west wall, its bow toward the water: plank sides narrowing to a stem, its flat
-    // bottom uppermost (things can lie on it), and the keel along the middle
-    const hullC = [72, 62, 50], hx0 = -2.3, hx1 = -1.4, hmx = -1.85, hz0 = -1.9, hz1 = 0.9, stem = 1.5, HH = 0.45, strakes = { tex: 'planks', texScale: 0.6 };
+    // bottom uppermost (things can lie on it), and the keel along the middle. It is painted: white, gone a little grey and
+    // yellow, with a red sheer strake (the lowest plank of each side as it lies, next the deck) and a red keel, the paint
+    // worn through to the wood where it has been dragged up a beach: along the chine, and in scrapes on the bottom.
+    // White under what lies on it (the green tackle box, the key on its orange float, the iron handle): each shows on it
+    const hullW = [170, 164, 150], hullR = [146, 44, 36], bare = [108, 92, 72];
+    const hx0 = -2.3, hx1 = -1.4, hmx = -1.85, hz0 = -1.9, hz1 = 0.9, stem = 1.5, HH = 0.45, SHEER = HH / 4, strakes = { tex: 'planks', texScale: 0.6 };
     // Only the hull's near side and its near bow plank are drawn: its far side, its far bow plank and the transom are always
     // behind the bottom (or the near side) from where you stand, and are left out. Drawn, they were cut into pieces on
     // the renderer's grid like any long face, and the pieces of the far side nearest you came out nearer than the bottom
     // and were drawn over it: its planks showed through the middle of the bottom
-    SC.quad(L, [hx1, 0, hz0], [hx1, 0, hz1], [hx1, HH, hz1], [hx1, HH, hz0], scalec(hullC, 0.66), strakes);         // the near side
-    SC.quad(L, [hx1, 0, hz1], [hmx, 0, stem], [hmx, HH, stem], [hx1, HH, hz1], scalec(hullC, 0.74), strakes);       // the bow
-    // the bottom, uppermost, and the keel along it: the bow's part of the bottom, the rest of it, then the keel, one straight
-    // after another and before anything lying on the boat (all of which is nearer than 2.3), each drawn whole, so what lies
-    // on it keeps its own order (the key in front of the tackle box it came out of)
-    SC.quad(L, [hx0, HH, hz1], [hx1, HH, hz1], [hmx, HH, stem], [hmx, HH, stem], scalec(hullC, 1.08), { sortDist: 2.38 });
-    SC.quad(L, [hx0, HH, hz0], [hx1, HH, hz0], [hx1, HH, hz1], [hx0, HH, hz1], scalec(hullC, 1.08), { sortDist: 2.37 });
-    SC.box(L, hmx - 0.05, hmx + 0.05, HH, HH + 0.1, hz0, stem - 0.14, [50, 42, 34], { sortDist: 2.36 });
+    // (each in two: the red sheer strake, one plank, and the three white ones above it)
+    for (const [y0, y1, col] of [[0, SHEER, hullR], [SHEER, HH, hullW]]) {
+      SC.quad(L, [hx1, y0, hz0], [hx1, y0, hz1], [hx1, y1, hz1], [hx1, y1, hz0], scalec(col, 0.66), strakes);         // the near side
+      SC.quad(L, [hx1, y0, hz1], [hmx, y0, stem], [hmx, y1, stem], [hx1, y1, hz1], scalec(col, 0.74), strakes);       // the bow
+    }
+    // the bottom, uppermost, and the keel along it: the bow's part of the bottom, the rest of it, what is on the paint (the
+    // seams between its boards, and where it is worn), then the keel, one straight after another and before anything
+    // lying on the boat (all of which is nearer than 2.3), each drawn whole, so what lies on it keeps its own order (the
+    // key in front of the tackle box it came out of)
+    SC.quad(L, [hx0, HH, hz1], [hx1, HH, hz1], [hmx, HH, stem], [hmx, HH, stem], scalec(hullW, 1.08), { sortDist: 2.38 });
+    SC.quad(L, [hx0, HH, hz0], [hx1, HH, hz0], [hx1, HH, hz1 + 0.012], [hx0, HH, hz1 + 0.012], scalec(hullW, 1.08), { sortDist: 2.37 });   // (a little over the bow's part, so no line shows between them)
+    { const on = { sortDist: 2.365 }, bowZ = x => hz1 + (stem - hz1) * (1 - Math.abs(x - hmx) / (hx1 - hmx)), y = HH + 0.001;
+      const strip = (x0, x1, z0, z1, col, alpha) => SC.quad(L, [x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], col, Object.assign({ alpha }, on));
+      // a scrape: a ragged sliver, its ends drawn out to nothing
+      const scrape = (x, z0, z1, w, alpha) => { const l = z1 - z0; SC.quad(L, [x, y, z0], [x + w, y, z0 + l * 0.3], [x + w * 0.7, y, z1], [x - w * 0.15, y, z1 - l * 0.4], bare, Object.assign({ alpha }, on)); };
+      // the seams between the bottom boards, running the length of it and on to where the bow cuts them off
+      for (const o of [-0.3, -0.15, 0.15, 0.3]) strip(hmx + o - 0.006, hmx + o + 0.006, hz0, bowZ(hmx + o), scalec(hullW, 0.74), 1);
+      // worn to the wood: along the chine nearest you, in lengths, and scrapes on the bottom running the way it was dragged
+      for (const [z0, z1, w] of [[-1.72, -1.1, 0.022], [-0.85, -0.3, 0.03], [0.1, 0.84, 0.024]]) scrape(hx1 - w, z0, z1, w, 0.6);
+      for (const [x, z0, z1, w, al] of [[-1.62, -0.55, 0.05, 0.03, 0.42], [-1.7, 0.45, 0.8, 0.02, 0.38], [-2.08, -1.3, -0.5, 0.032, 0.42], [-2.0, 0.2, 0.62, 0.018, 0.35], [-1.56, -1.75, -1.45, 0.022, 0.4]]) scrape(x, z0, z1, w, al);
+    }
+    SC.box(L, hmx - 0.05, hmx + 0.05, HH, HH + 0.1, hz0, stem - 0.14, hullR, { sortDist: 2.36 });
+    // (the keel's paint worn off along its top, where it took the ground)
+    for (const [z0, z1] of [[-1.55, -0.9], [-0.35, 0.3], [0.62, 1.05]]) SC.quad(L, [hmx - 0.028, HH + 0.101, z0], [hmx + 0.03, HH + 0.101, z0 + 0.12], [hmx + 0.022, HH + 0.101, z1], [hmx - 0.03, HH + 0.101, z1 - 0.15], bare, { sortDist: 2.355, alpha: 0.5 });
     // the workbench. Its top is not pinned to a drawing distance: the renderer cuts it on the same grid as the back
     // wall behind it, draws each piece of it after the piece of wall behind, and whatever stands on it (the tackle box, the
     // key that comes out of it, the winch handle) after the piece it stands on. (Pinned whole at 2.8 m, it came out further

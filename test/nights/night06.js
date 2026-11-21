@@ -10,6 +10,30 @@
 // the side door's leaf), the thing is held where
 // it is, so the race against it is the one the solution always ran: the tries cost no more than they did as a line of text.
 const oar = "G.L.items.find(i => i.id === 'oar')";
+// The lamp on the far shore, seen out through the water door: one light, a small soft glow (a radial gradient that fades
+// to nothing, filled as a disc under 2 m across), not a flat square. Drawn here onto a canvas that only notes what is
+// asked of it.
+const farGlows = (n, near, far) => `(() => {
+  const ps = G.L.props.filter(p => p.kind === 'sprite' && p.noFog && p.noLight && p.layer !== 0 && Math.hypot(p.x, p.z) > ${near} && Math.hypot(p.x, p.z) < ${far});   // (not the stars: they are in the sky's own layer)
+  return ps.length === ${n} && ps.every(p => {
+    const did = [], stops = [], ctx = { createRadialGradient() { did.push('grad'); return { addColorStop(o, c) { stops.push([o, c]); } }; }, beginPath() {}, arc() { did.push('arc'); }, fill() { did.push('fill'); }, fillRect() { did.push('rect'); }, rect() { did.push('rect'); }, scale() {}, save() {}, restore() {} };
+    p.draw(ctx, { t: 0, raw: c => rgba(c), col: c => rgba(c) }, 4);
+    const a = stops.map(q => +q[1].slice(q[1].lastIndexOf(',') + 1, -1));
+    return did.join() === 'grad,arc,fill' && stops.length >= 3 && stops[0][0] === 0 && stops[stops.length - 1][0] === 1 && a[a.length - 1] === 0 && a[0] > 0.2 && a[0] < 0.9 && a.every((v, i) => !i || v < a[i - 1]) && p.w < 8;
+  });
+})()`;
+// The upturned rowboat is painted, red and white: its bottom (uppermost: the two faces things lie on) white, and red on it
+// in the sheer strake of the side and the bow and in the keel; some of the paint worn through to the wood
+const boatPaint = `(() => {
+  const ps = G.L.props.filter(p => p.kind === 'poly' && p.pts.every(v => v[0] > -2.36 && v[0] < -1.34 && v[2] > -1.96 && v[2] < 1.56 && v[1] < 0.6));
+  const red = ps.filter(p => p.color[0] > 80 && p.color[0] > 2 * p.color[1]), white = ps.filter(p => Math.min(...p.color) > 95 && p.color[0] - p.color[2] < 40);
+  const top = ps.filter(p => p.pts.every(v => Math.abs(v[1] - 0.45) < 1e-6) && p.sortDist > 2.366), worn = ps.filter(p => p.alpha < 1 && p.color[0] > p.color[2] + 20 && p.color[0] < 130);
+  return red.length >= 5 && white.length >= 6 && top.length === 2 && top.every(p => Math.min(...p.color) > 150) && worn.length >= 6;
+})()`;
+const scenery = [
+  ['expect', farGlows(1, 50, 400), 'the lamp on the far shore is one small soft glow, fading to nothing, not a square'],
+  ['expect', boatPaint, 'the upturned rowboat is painted: a white bottom, a red sheer strake and keel, worn in places'],
+];
 const pause = ['eval', '(c => { window.__held6 = c.hold; if (c.hold === null) c.hold = c.dist; })(G.L.creature)'];
 const resume = ['eval', '(c => { if (window.__held6 === null) c.hold = null; })(G.L.creature)'];
 // The water the swimmer bursts up out of in its death lunge (CREATURES.swimmer.burst), drawn at three moments after the
@@ -113,5 +137,5 @@ const onSurface = `(() => {
 })()`;
 const handleSpots = [['expect', onSurface, 'every place the winch handle can start rests on a surface drawn there (deck, bench, shelf, boat), and it lies on one']];
 module.exports = {
-  nightmare: handleSpots.concat(rain, oneOar, winch, door, shutIn),
+  nightmare: scenery.concat(handleSpots, rain, oneOar, winch, door, shutIn),
 };
