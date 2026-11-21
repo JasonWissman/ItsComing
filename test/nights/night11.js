@@ -5,6 +5,10 @@
 //  - four switches on at once trip the main: it goes over to off, every light goes dark and every switch drops to off;
 //    with the main off a switch can still be set, up or down, and nothing comes on; the main pushed back on, with
 //    everything else still off, and then the switches work again; pushed while it is on, it goes off (by hand);
+//    and on the box every switch's label (its tape, and its writing) is inside the panel's pale plate with room to
+//    spare, as the view shows it looking down at the box and zoomed in on it, tipped up to face you (not squashed);
+//  - the main tripped and left off: it comes all the way, and the card reads "The power tripped, and it came for you
+//    in the dark.";
 //  - with the porch light on, lighting both its neighbours and then its place is a fourth switch: the main trips, it is
 //    not caught;
 //  - with the main off it comes at its own pace, no faster;
@@ -12,7 +16,8 @@
 //  - switches set with the main off come on when it goes on: more than three trip it straight back off (four, and
 //    seven: all but one); all eight, the porch light too, and the box bursts and the farm goes up: every place, the
 //    house, the box and the thing catch fire, it runs about burning in the open where you are looking, then turns on
-//    you and charges, and the card reads the fire's own line;
+//    you and charges, and the card reads the fire's own line; the easter egg is in the save from the moment the box
+//    bursts (SAVE.data.eggs, by the night's id);
 //  - the clever win: the main off, its place and both its neighbours set, the main pushed on: it is caught at once;
 //  - the main put off by hand, whenever you like: every light out, the switches left as they are set, and it comes in
 //    the dark at its own pace; back on, the same rules (four set trip it straight back off); the clever win and the fire
@@ -32,6 +37,24 @@ const flush = fresh.concat([
   ['expect', 'window.__nb.includes(G.L.s.k) && !G.L.s.on[G.L.s.k + 1] && G.L.creature.shade > 0.5 && Math.abs(G.L.s.r - window.__r0) < 2', 'it is at that neighbour now, in the dark, no further from you than it was'],
 ]);
 const main = "G.L.targets.find(t => t.id === 'main')";
+// The labels on the box, as the view shows them (G.L.panelLayout: the pale plate, each label's tape and its writing, as
+// points in the world, each put on the view): how far inside the plate's outline the nearest corner of any tape or any
+// writing is (px); whether every label's writing is narrower than its tape; and how tall each tape shows for its width
+// (it is 0.03 by 0.104 m: tipped up to face you it shows near enough that, where flat on the panel and seen from above
+// it showed a good deal squatter)
+const labels = `(() => {
+  const P = G.L.panelLayout(), scr = p => { const q = R.screenPos(p.x, p.y, p.z); return q ? [q.x, q.y] : [NaN, NaN]; };
+  const plate = P.plate.map(scr), mid = [0, 1].map(k => plate.reduce((a, q) => a + q[k] / 4, 0));
+  const inside = q => { let m = Infinity; for (let i = 0; i < 4; i++) { const a = plate[i], b = plate[(i + 1) % 4], l = Math.hypot(b[0] - a[0], b[1] - a[1]), sd = v => ((b[0] - a[0]) * (v[1] - a[1]) - (b[1] - a[1]) * (v[0] - a[0])) / l; m = Math.min(m, sd(q) * Math.sign(sd(mid))); } return m; };
+  const tapes = P.labels.map(l => l.tape.map(scr)), len = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  return { n: P.labels.length, names: P.labels.map(l => l.label).join(), tape: Math.min(...tapes.flat().map(inside)), text: Math.min(...P.labels.flatMap(l => l.text.map(scr)).map(inside)),
+    fits: P.labels.every(l => l.textW <= l.tapeW - 0.006 && l.squeeze >= 0.7), squat: Math.min(...tapes.map(t => len(t[0], t[3]) / len(t[0], t[1]))), plateW: len(plate[0], plate[1]),
+    onPlate: R.hits.filter(h => h.kind === 'target' && /^sw/.test(h.ref.id)).every(h => h.poly.every(v => inside([v[0], v[1] - R.viewY]) > -1)) };
+})()`;
+const labelsIn = (px, where) => [['eval', 'window.__lab = ' + labels],
+  ['expect', '__lab.n === 8 && __lab.names === "HOUSE,TRACTOR,SHED,STABLES,BARN,SILO,COOP,DRIVEWAY" && __lab.tape >= ' + px + ' && __lab.text >= ' + px + ' + 1 && __lab.fits && __lab.onPlate',
+    where + ': every label (its tape and its writing, DRIVEWAY the longest) is inside the pale plate, at least ' + px + ' px in from its edge, and so is every switch\'s own spot to click'],
+  ['expect', '__lab.squat > 0.26 && __lab.squat < 0.32', where + ': the labels face you (each tape shows as tall for its width as it is, not squashed from above)']];
 const trip = fresh.concat([
   ['expect', 'G.L.s.power && ' + main + ' && ' + main + '.face !== undefined && G.L.targets.filter(t => /^sw/.test(t.id)).every(t => t.face === ' + main + '.face)', 'the main breaker and the switches, fixed flat on the front of the box'],
   // the box is at your left, short of the stables and square in the middle of the view as you face them, its front to
@@ -41,9 +64,11 @@ const trip = fresh.concat([
   ['expect', '(() => { const m = ' + main + ', a = Math.atan2(m.x, m.z) / DEG, d = Math.hypot(m.x, m.z), front = -(Math.sin(m.face) * m.x + Math.cos(m.face) * m.z); ' +
     "const hs = R.hits.filter(h => h.kind === 'target' && (h.ref.id === 'main' || /^sw/.test(h.ref.id)) && h.poly); " +
     'return Math.abs(a + 45) < 2 && d < 1.3 && front > 0.9 * d && hs.length === 9 && hs.every(h => h.x >= 0 && h.x + h.w <= R.W && h.y >= R.viewY && h.y + h.h <= R.viewY + R.H); })()', 'the box at your left, square before you as you face the stables, its front to you; facing the stables and looking down, the main and every switch are in view'],
+  ...labelsIn(4, 'looking down at the box'),
   ['eval', 'G.cam.zoomHeld = true'], ['wait', 1200],
   ['expect', '(() => { const z = G.L.boxZoom(); const hs = R.hits.filter(h => h.kind === "target" && (h.ref.id === "main" || /^sw/.test(h.ref.id))); ' +
     'return z > 1.3 && z < 2.6 && Math.abs(G.cam.zoom - z) < 0.03 && hs.length === 9 && hs.every(h => h.x >= 0 && h.x + h.w <= R.W && h.y >= R.viewY + 80 && h.y + h.h <= R.viewY + R.H); })()', 'zoomed on the box, it closes in only as far as keeps all of it in view'],
+  ...labelsIn(6, 'zoomed in on the box'),
   ['face', 7, false],
   ['wait', 1200],
   ['expect', 'G.L.boxZoom() === null && G.cam.zoom > 2.5', 'looking ahead at the stables over it, the zoom is the usual one'],
@@ -120,8 +145,11 @@ const fire = tripFirst.concat([
   ['eval', [0, 1, 2, 3, 4, 5, 6, 7].map(click).join('')],
   ['expect', '!G.L.s.power && G.L.s.on.every(Boolean) && G.L.dynamicLights().length === 0', 'every switch set with the main off: nothing on yet'],
   ['face', 7, true],
+  ['eval', 'delete SAVE.data.eggs.barn; SAVE.persist()'],   // (not found yet, whatever an earlier run left in the save)
+  ['expect', 'G.L.def.id === "barn" && LEVELS[G.levelIndex].text.egg === "Overload the electrical box." && !SAVE.data.eggs.barn', 'every switch set, the main still off: the easter egg is not in the save'],
   ['use', 'main'],
   ['expect', '!!G.L.s.fire && G.state === "play"', 'the main pushed on with every switch set: the box bursts'],
+  ['expect', 'SAVE.data.eggs.barn === true && JSON.parse(localStorage.getItem("itscoming.v2")).eggs.barn === true && G.state === "play"', 'and the easter egg is found: kept in the save the moment the fire starts (long before it has you)'],
   ['waitUntil', 'G.L.s.fire.lit.every(t => t !== null && G.L.t > t)', 4000],
   ['expect', 'G.L.s.fire.lit.length === 9 && G.L.s.fire.lit.every(t => t !== null)', 'every place, the house and the box are alight'],
   ['expect', 'G.L.dynamicLights().length >= 9 && G.L.s.on.every(Boolean) && G.L.t - G.L.s.fire.at > 0.5', 'the fires light the farm (a light for each), every lamp blown'],
@@ -190,6 +218,13 @@ const offDeath = fresh.concat([
   ['use', 'main'],
   ['eval', '(() => { for (let i = 0; i < 2400 && G.state !== "dead"; i++) G.step(0.05); })()'],
   ['expect', 'G.state === "dead" && G.deathCause === "off" && G.deathScreen.text === "You put the main off. In the dark, it came for you." && G.deathScreen.title === "It got you"', 'left in the dark with the main off by hand, it got you: "You put the main off. In the dark, it came for you."'],
+]);
+// the main tripped (a fourth light) and left off: it comes all the way, and the card says the power tripped (played out
+// with G.step)
+const tripDeath = tripFirst.concat([
+  ['eval', '(() => { for (let i = 0; i < 2400 && G.state !== "dead"; i++) G.step(0.05); })()'],
+  ['expect', 'G.state === "dead" && G.deathCause === "trip" && G.L.text.death.trip === "The power tripped, and it came for you in the dark." && G.deathScreen.text === "The power tripped, and it came for you in the dark." && G.deathScreen.title === "It got you"',
+    'left in the dark with the main tripped, it got you: "The power tripped, and it came for you in the dark."'],
 ]);
 // every flame on the farm alight has its foot on something, seen from where you stand (you never move, so a foot over a
 // surface from here is over it whichever way you look and however you zoom): over the walls, roofs, doors and pickup of
@@ -288,5 +323,5 @@ const feet = fresh.concat([
   ['expect', '(' + footsOnIt + ')()', 'the thing alight, in every pose: every flame\'s foot is on it, none out in the air beside it or over its head'],
 ]);
 module.exports = {
-  nightmare: [].concat(flush, trip, houseOn, randoms, overload(4), overload(7), fire, clever, mainOff, offClever, offFire, offDeath, feet, fresh, solve),
+  nightmare: [].concat(flush, trip, houseOn, randoms, overload(4), overload(7), fire, clever, mainOff, offClever, offFire, offDeath, tripDeath, feet, fresh, solve),
 };
