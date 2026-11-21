@@ -12,6 +12,7 @@ const CAPTIONS = (() => {
     sodaPour: 'soda pours, fizzing', sodaSputter: 'the soda fountain sputters, empty', gulp: 'gulping', counterPound: 'a fist pounds the counter', cupDown: 'a paper cup set down',
     shutterBang: 'fists pound on the shutter', shutterGrab: 'the shutter rattles in its rails', shutterSlam: 'a shutter slams up into its housing',
     clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', hinge: 'a hinge squeals', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click', twang: 'a bowstring twangs', bowCreak: 'a bowstring creaks', bowFull: 'the bowstring comes tight', thunk: 'an arrow thunks home',
+    batSqueak: 'a bat squeaks',   // night 5's easter egg: one shot out of the sky
     scrape: 'scratching', drawer: 'a drawer slides open', tug: 'the covers are yanked', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', tick: 'a clock ticks', musicbox: 'a music box', musicTurn: 'a few notes of a music box', birds: 'birdsong', start: 'the engine catches',
     musicSour: 'a music box plays wrong notes',
     crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', cloth: 'cloth twisting', breakerTrip: 'a breaker trips with a bang', bar: 'a bar drops into place',

@@ -15,7 +15,7 @@
     if (!c.moving && !c.dead) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
     c.lat = CR.lateral(c);
   };
-  // an arrow in it (night05 hitIt): the first puts it down a moment, the second kills it
+  // an arrow in it (night05 hitIt): the first puts it down in the snow for a moment, the second kills it
   const hit = c => {
     c.hits++; c.hurtFlash = 0.35; c.arrows.push(c.hits);
     if (c.hits === 1) c.CR.hurt(c); else c.CR.kill(c);
@@ -31,15 +31,25 @@
         set(c) { c.darts = Infinity; }, tick(c, k, dt) { drive(c, dt); } },
       { name: 'Breaking sideways', note: 'Out past 16 m, and when you draw the bow on it: side on, flat out along the tree line to a new place, then down to watch from there.', dist: 30, dur: 2.6, fit: { w: 2.0 },
         set(c) { c.CR.sprint(c); c.CR.breakAway(c); c.darts = Infinity; }, tick(c, k, dt) { drive(c, dt); } },
-      { name: 'First arrow: down, and up again', note: 'Hit once while sprinting: it drops to all fours, bleeding and twitching, then gets back up and comes on faster, still twitching.', dist: 20, dur: 4.6,
-        set(c) { c.CR.sprint(c); c.sprintFor = 99; },
+      { name: 'First arrow: down, and up again', note: 'Hit once while sprinting: its knees give and it topples sideways all the way down into the snow, lies there about a second, bleeding and twitching, then its head comes up, it plants a hand, pushes itself up onto its hands and feet and comes on again, faster and wary.', dist: 20, dur: 5, fit: { w: 2.3 },
+        set(c) { c.CR.sprint(c); c.sprintFor = 99; c.darts = Infinity; },
         tick(c, k, dt, T) { if (T >= 0.6 && !c.hits) hit(c); drive(c, dt); } },
-      { name: 'Second arrow: it falls', note: 'Hit again as it comes on wounded: its knees give, it topples sideways into the snow and lies there with the arrows in it, twitching less and less.', dist: 14, dur: 6.5, fit: { w: 2.3 },
+      { name: 'First arrow, on all fours', note: 'Hit once while it is down watching you: its arms go from under it, its head drops and it rolls over onto its side in the snow, lies there, and gets up as it does from a sprint.', dist: 20, dur: 4.6, fit: { w: 2.3 },
+        set(c) { c.mode = 'crouch'; c.modeT = 0; c.darts = Infinity; },
+        tick(c, k, dt, T) { if (T >= 0.6 && !c.hits) hit(c); else if (!c.hits) c.modeT = 0.5; drive(c, dt); } },
+      { name: 'First arrow, side on', note: 'Hit once as it breaks sideways: it pitches forward out of its run, skids on its side the way it was going, lies there, and gets up.', dist: 30, dur: 4.4, fit: { w: 2.6 },
+        set(c) { c.CR.sprint(c); c.CR.breakAway(c); c.dartDur = 1.1; c.darts = Infinity; },
+        tick(c, k, dt, T) { if (T >= 0.45 && !c.hits) hit(c); drive(c, dt); } },
+      { name: 'Hurt and wary', note: 'After the first arrow it never comes straight: a wide, quick, uneven weave, and every second or two it breaks to one side and runs on from there, until it is near (the card shows where it is from side to side). Unhurt, with the bow drawn on it, it holds its line instead.', dist: 42, dur: 4.8, fit: { w: 11, h: 3 },
         set(c) { wounded(c); c.CR.sprint(c); },
+        tick(c, k, dt) { drive(c, dt); },
+        draw(ctx, c, P, CR) { ctx.translate(c.lat, 0); CR.draw(ctx, c, P); } },
+      { name: 'Second arrow: it falls', note: 'Hit again as it comes on wounded: its knees give, it topples sideways into the snow and lies there with the arrows in it, twitching less and less.', dist: 14, dur: 6.5, fit: { w: 2.3 },
+        set(c) { wounded(c); c.CR.sprint(c); c.darts = Infinity; },
         tick(c, k, dt, T) { if (T >= 0.7 && c.hits < 2) hit(c); drive(c, dt); } },
-      { name: 'Second arrow while it is down', note: 'Hit again before it is back up from the first: it sinks flat where it crouched, then lies in the snow twitching.', dist: 16, dur: 5.5, fit: { w: 2.3 },
-        set(c) { wounded(c); c.CR.hurt(c); },
-        tick(c, k, dt, T) { if (T >= 0.7 && c.hits < 2) hit(c); drive(c, dt); } },
+      { name: 'Second arrow while it is down', note: 'Hit again before it is back up from the first, here as it pushes itself up: it drops back into the snow and lies there twitching.', dist: 16, dur: 6.5, fit: { w: 2.3 },
+        set(c) { c.CR.sprint(c); c.sprintFor = 99; c.darts = Infinity; },
+        tick(c, k, dt, T) { if ((T >= 0.4 && !c.hits) || (T >= 2.1 && c.hits < 2)) hit(c); drive(c, dt); } },
       LAB.lunge({ dist: 1.4, dur: 1.2, note: 'It reaches the porch: up out of its sprint, its long hands reaching for your face, its black hair hanging round it.',
         set(c) { c.CR.sprint(c); c.frozen = true; c.lungeFrom = c.dist; } }),   // it catches you running, not crouched
     ],

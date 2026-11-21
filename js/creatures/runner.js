@@ -9,17 +9,26 @@ CREATURES.runner = {
   // watch, it often breaks sideways to a new place instead (c.mode 'dart'), running side on, flat out and a little toward
   // you, and drops to watch again from there; from wherever it is it then comes straight at you (c.dartAng, the angle off
   // its way, closes as it nears). A bow drawn on it may make it break sideways the same way, nearer in too (dodge; the
-  // night rolls for it). Hit once it goes down and gets back up faster (hurt); with all your arrows gone it stops watching
-  // altogether (c.reckless). Killed, it falls the way it was going (kill) and lies in the snow, with whatever arrows are in
-  // it (c.arrows).
-  init(c) { c.mode = 'crouch'; c.modeT = -0.5; c.sprintFor = this.SPRINT[0]; c.hits = 0; c.wounded = false; c.dead = false; c.hurtFlash = 0; c.dartAng = 0; c.darts = 0; c.weave = 1; c.arrows = []; },
+  // night rolls for it). Unhurt it is bold: while the bow is drawn on it (c.drawnOn, the night's) it does not break away
+  // by itself and its weave narrows, so the first shot is the easier one. Hit once (hurt) it falls, lies in the snow a
+  // moment and gets up (c.mode 'stumble', through DOWN), and then it is wary: it comes on faster and never straight, its
+  // weave wide, quick and uneven (WARY), breaking to one side every second or two (JINK) until it is near. With all your
+  // arrows gone it stops watching altogether and comes straight (c.reckless). Killed, it falls the way it was going (kill)
+  // and lies in the snow, with whatever arrows are in it (c.arrows).
+  init(c) { c.mode = 'crouch'; c.modeT = -0.5; c.sprintFor = this.SPRINT[0]; c.hits = 0; c.wounded = false; c.dead = false; c.hurtFlash = 0; c.dartAng = 0; c.darts = 0; c.weave = 1; c.wv = 0; c.weaveA = this.WEAVE[0]; c.arrows = []; },
   speedMult(c, dt, seen) {
     if (c.dead) { c.deadT = (c.deadT || 0) + dt; return 0; }
     c.modeT += dt;
     if (c.hurtFlash > 0) c.hurtFlash -= dt;
     this.creep(c, dt);
-    c.weave = clamp(c.weave + dt * (c.mode === 'dart' ? -3 : 1.5), 0, 1);   // no weaving while it runs side on
-    if (c.mode === 'dart') {   // (wounded, it may still break sideways from a bow drawn on it, and it runs on from there)
+    const down = c.mode === 'stumble', wary = c.wounded && !c.reckless;
+    if (!down) {   // its weave goes on (c.wv), as wide as it now is (c.weaveA); down in the snow it lies where it fell
+      const W = wary ? this.WARY : this.WEAVE;
+      c.weave = clamp(c.weave + dt * (c.mode === 'dart' ? -3 : 1.5), 0, 1);   // no weaving while it runs side on
+      c.wv += dt * W[1];
+      c.weaveA += clamp(W[0] * (c.drawnOn && !c.wounded ? this.CALM : 1) - c.weaveA, -dt * 1.2, dt * 1.2);
+    }
+    if (c.mode === 'dart') {   // (wounded, it breaks sideways by itself and from a bow drawn on it, and it runs on from there)
       c.runGait = (c.runGait || 0) + dt * 17;
       const n = Math.floor(c.runGait / Math.PI);
       if (n !== c.runStep) { c.runStep = n; AUDIO.footstep('runner', clamp(2.4 / (c.dist + 1.6), 0, 0.85) * 0.6, Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85); }
@@ -30,8 +39,18 @@ CREATURES.runner = {
       return c.dartK || 0;
     }
     if (c.wounded || c.reckless) {
-      if (c.mode === 'stumble') { if (c.modeT > 1.5) { c.mode = 'sprint'; c.modeT = 0; } return 0; }
+      if (down) {
+        const D = this.DOWN;
+        if (c.slide) { c.dartAng = clamp(c.dartAng + c.slide * dt, -0.16, 0.16); c.slide *= Math.exp(-dt * 7); }   // brought down running side on, it tumbles on a little that way
+        if (c.modeT >= D.fall + D.lie + D.rise) { this.sprint(c); return 0; }
+        // falling out of a sprint its weight carries it on a metre or so through the snow (never as far as you)
+        return c.downFrom === 'sprint' && c.dist > c.catchDist + 2 ? this.RUN * Math.pow(1 - Math.min(1, c.modeT / D.fall), 2) : 0;
+      }
       if (c.mode !== 'sprint') this.sprint(c);
+      if (wary && c.modeT >= c.sprintFor) {   // hurt and wary: a second or two straight (weaving), then it may break to one side
+        this.sprint(c);
+        if (c.darts !== Infinity && c.dist >= this.JINK_NEAR && c.rand() < this.JINK) { this.breakAway(c); return c.dartK; }
+      }
       return c.reckless ? 2.3 : 2.0;
     }
     // a sprint of SPRINT seconds, then it breaks sideways (DART_SPRINT of the time) or drops to watch for CROUCH seconds,
@@ -53,13 +72,23 @@ CREATURES.runner = {
     c.crawlPh = (c.crawlPh || 0) + Math.abs(d) * 5.5;
   },
   RUN: 2.1, SPRINT: [1.4, 2.2], CROUCH: 0.8, DART_SPRINT: 0.4, DART_CROUCH: 0.6, DART_NEAR: 16,
-  sprint(c) { c.mode = 'sprint'; c.modeT = 0; c.sprintFor = lerp(this.SPRINT[0], this.SPRINT[1], c.rand()); },
+  // its weave from side to side, [metres, radians a second]: unhurt (WEAVE; CALM of that while the bow is drawn on it),
+  // and hurt and wary (WARY), when it also breaks to one side (JINK of the time) after each JINK_RUN seconds of running,
+  // out past JINK_NEAR m; nearer than that it comes straight, its weave closing as it always has
+  WEAVE: [1.1, 1.3], CALM: 0.5, WARY: [1.7, 2.0], JINK: 0.6, JINK_RUN: [1.1, 1.9], JINK_NEAR: 14,
+  // the first arrow: it falls (fall seconds), lies in the snow (lie) and gets up (rise); downAt(c) is where it is in that
+  DOWN: { fall: 0.5, lie: 0.9, rise: 0.7 },
+  downAt(c) {
+    const D = this.DOWN, t = Math.max(0, c.modeT);
+    return t < D.fall ? { ph: 'fall', k: t / D.fall } : t < D.fall + D.lie ? { ph: 'lie', k: (t - D.fall) / D.lie } : { ph: 'rise', k: Math.min(1, (t - D.fall - D.lie) / D.rise) };
+  },
+  sprint(c) { const S = c.wounded && !c.reckless ? this.JINK_RUN : this.SPRINT; c.mode = 'sprint'; c.modeT = 0; c.sprintFor = lerp(S[0], S[1], c.rand()); },
   // break sideways along the tree line (chance k), as often as it likes while it is out past DART_NEAR m (c.darts counts
   // them; a test that wants it to keep still sets it to Infinity): a few metres to one side, never more than MAX (7
   // degrees) off its way, which the porch leaves open on either side, at about 11 m/s, closing a little as it goes
-  // (c.dartK; a dodge does too)
+  // (c.dartK; a dodge does too). Not while the bow is drawn on it: unhurt, it holds its line and watches the arrow.
   dart(c, k) {
-    if (c.darts === Infinity || c.dist < this.DART_NEAR || c.rand() >= k) return false;
+    if (c.darts === Infinity || c.drawnOn || c.dist < this.DART_NEAR || c.rand() >= k) return false;
     c.darts++;
     this.breakAway(c);
     return true;
@@ -85,26 +114,45 @@ CREATURES.runner = {
   },
   ang(c) { return c.mode === 'dart' ? lerp(c.dartFrom, c.dartTo, smoothstep(c.modeT / c.dartDur)) : c.dartAng; },
   settle(c) { if (c.mode === 'dart') c.dartAng = this.ang(c); },   // stopped part way through a run: it stays where it got to
-  hurt(c) { this.settle(c); c.wounded = true; c.mode = 'stumble'; c.modeT = 0; },
-  // killed: it falls the way it was going, and if it was sprinting its weight carries it on a metre or so through the snow
+  // what it was doing when an arrow took it ('sprint', 'run' side on, 'crouch' on all fours), and which way it goes over
+  // (+1: its head to the right of the view): the way it was running side on, else away from its way
+  fellFrom(c) { return c.mode === 'sprint' ? 'sprint' : c.mode === 'dart' ? 'run' : 'crouch'; },
+  fellTo(c) { return c.mode === 'dart' ? (c.runDir || 1) : (c.lat || 0) >= 0 ? 1 : -1; },
+  // the first arrow: it goes down where it is (c.downFrom, c.side), all the way into the snow, lies there a moment and
+  // gets up (DOWN), wounded. It can be hit again while it is down: it is a low, flat thing to aim at (body), and a second
+  // arrow then kills it where it lies
+  hurt(c) {
+    c.downFrom = this.fellFrom(c); c.side = this.fellTo(c);
+    if (c.mode === 'dart') { const s = clamp(c.modeT / c.dartDur, 0, 1); c.slide = (c.dartTo - c.dartFrom) * 6 * s * (1 - s) / c.dartDur * 0.6; } else c.slide = 0;
+    this.settle(c); c.wounded = true; c.mode = 'stumble'; c.modeT = 0;
+  },
+  // killed: it falls the way it was going, and if it was sprinting its weight carries it on a metre or so through the snow;
+  // still down from the first arrow (c.deadFrom 'down', c.deadAt where it was in that), it drops back and lies where it is
   kill(c) {
-    c.deadFrom = c.mode === 'sprint' ? 'sprint' : 'crouch';
+    if (c.mode === 'stumble') { c.deadFrom = 'down'; c.deadAt = this.downAt(c); }
+    else { c.deadFrom = this.fellFrom(c); c.side = this.fellTo(c); }
     this.settle(c);
     c.dead = true; c.deadT = 0; c.latHold = c.lat; c.hold = null;
-    let v = c.deadFrom === 'crouch' ? 0 : 4.5;
+    let v = c.deadFrom === 'sprint' ? 4.5 : 0;
     c.distFn = (cr, dt) => { v *= Math.exp(-dt * 3.5); return Math.max(Math.min(cr.dist, 1.8), cr.dist - v * dt); };
   },
-  // the part of its box its pose fills, for aiming at it: crouched it is half its height, side on it is wider
+  // the part of its box its pose fills, for aiming at it: crouched it is half its height, side on it is wider; going down
+  // from the first arrow it shrinks to what lies in the snow (FLAT), and grows again as it gets up
+  UP: { sprint: [-0.6, 0.6, 0, 1.55], run: [-0.85, 0.85, 0, 1.85], crouch: [-0.75, 0.75, 0, 1.0], rise: [-0.95, 0.95, 0, 1.1] }, FLAT: [-1.05, 1.05, 0, 0.45],
   body(c) {
-    if (c.mode === 'dart' && !c.lunge) return [-0.85, 0.85, 0, 1.85];
-    if ((c.mode === 'crouch' || c.mode === 'stumble') && !c.lunge) return [-0.75, 0.75, 0, 1.0];
-    if (!c.lunge) return [-0.6, 0.6, 0, 1.55];   // sprinting, low and wide
-    return [-0.55, 0.55, 0, 2.0];
+    if (c.lunge) return [-0.55, 0.55, 0, 2.0];
+    if (c.mode === 'stumble') {
+      const d = this.downAt(c), up = d.ph === 'rise' ? this.UP.rise : this.UP[c.downFrom] || this.UP.crouch, flat = this.FLAT;
+      const k = d.ph === 'fall' ? smoothstep(d.k) : d.ph === 'lie' ? 1 : 1 - smoothstep(d.k);
+      return [lerp(up[0], flat[0], k), lerp(up[1], flat[1], k), 0, lerp(up[3], flat[3], k)];
+    }
+    return this.UP[c.mode === 'dart' ? 'run' : c.mode === 'crouch' ? 'crouch' : 'sprint'];   // (sprinting, low and wide)
   },
   lateral(c) {
     if (c.dead) return c.latHold || 0;
-    const near = clamp((c.dist - 3) / 12, 0, 1);
-    return Math.tan(this.ang(c)) * c.dist * near + Math.sin(c.t * 1.3) * 1.1 * clamp((c.dist - 4) / 10, 0, 1) * c.weave;
+    const near = clamp((c.dist - 3) / 12, 0, 1), A = c.weaveA === undefined ? this.WEAVE[0] : c.weaveA, wv = c.wv === undefined ? c.t * this.WEAVE[1] : c.wv;
+    const wary = clamp((A - this.WEAVE[0]) / (this.WARY[0] - this.WEAVE[0]), 0, 1);   // hurt, its weave is uneven as well as wide and quick
+    return Math.tan(this.ang(c)) * c.dist * near + (Math.sin(wv) + 0.3 * wary * Math.sin(wv * 2.3 + 1)) * A * clamp((c.dist - 4) / 10, 0, 1) * c.weave;
   },
   // Hit, its body twitches: small sharp jerks, each a kick that comes in a frame or two and settles at once, at odd moments
   // and on each part of it apart (0 its trunk, 1 and 2 its limbs on the left and right, 3 its head, 4 and 5 the arrows in
@@ -154,7 +202,7 @@ CREATURES.runner = {
       if (k < 1) { this.drawFall(ctx, c, P, k); return; }
       // lying face-up in the snow, the arrows standing up out of it, its head the way it fell
       // (twitching: the trunk jerks up off the snow and back, the arm and the leg kick, the head knocks, the arrows go with it)
-      if ((c.latHold || 0) >= 0) ctx.scale(-1, 1);
+      if ((c.side || ((c.latHold || 0) >= 0 ? 1 : -1)) > 0) ctx.scale(-1, 1);
       const J = this.jerks(c);
       ctx.save(); ctx.translate(0, Math.abs(J[0]) * 0.06); this.about(ctx, 0, 0.12, J[0] * 0.07);
       P_ell(ctx, 0, 0.16, 0.95, 0.15, rags);
@@ -169,10 +217,11 @@ CREATURES.runner = {
       ctx.restore();
       return;
     }
+    if (c.mode === 'stumble' && !lunge) { this.drawDown(ctx, c, P); return; }   // the first arrow: down into the snow, and up again
     if (c.mode === 'dart' && !lunge) { this.drawRun(ctx, c, P); return; }
     const crouch = c.mode === 'crouch' || c.mode === 'stumble';
     if (crouch && !lunge) {
-      const stumble = c.mode === 'stumble';
+      const stumble = c.wounded;   // (on all fours with an arrow in it: only as it goes down from there, drawFall)
       const lift = smoothstep(Math.min(1, Math.max(0, c.modeT) / 0.4));
       const J = this.jerks(c);   // hit, it twitches: the knees and elbows kick out, the back and the arrows in it jerk, the head knocks
       // creeping to the side (c.crawlK): a hand and the foot on the other side lift and reach the way it goes together, then
@@ -358,21 +407,45 @@ CREATURES.runner = {
     P_ell(ctx, hx + 0.08, hy - 0.08, 0.04, 0.05 + Math.abs(Math.sin(g)) * 0.015, black);   // the jaw, hanging open
     ctx.restore();
   },
-  // falling, killed (always by a second arrow, so it is sprinting, or still down from the first, or caught side on breaking
-  // away from a draw, when it goes down as from all fours): its knees give, it sags onto them and topples sideways into the
-  // snow (then it is drawn lying)
-  drawFall(ctx, c, P, k) {
-    if (c.deadFrom === 'crouch') {   // still down on all fours from the first: it sinks flat, its limbs going out from under it
-      ctx.save(); ctx.scale(1 + 0.3 * smoothstep(k), 1 - 0.75 * easeIn(k));
-      this.draw(ctx, Object.assign({}, c, { dead: false, mode: 'stumble', modeT: 1, hurtFlash: 0 }), P);
+  // Going down with an arrow in it, k 0..1 (the first, which it gets up from: drawDown; or killed), from what it was doing
+  // (from) and toward side (+1: its head ends to the right of the view). Out of a sprint: its knees give, it sags onto
+  // them and topples sideways into the snow, sliding as it goes over so that it ends where it will lie. Side on, breaking
+  // away: it pitches forward out of its run and skids on its side the way it was going. On all fours: its arms go from
+  // under it, its head and chest drop, and it rolls over onto its side. Killed while still down from the first
+  // (c.deadFrom 'down'): it drops back from however far up it had got. (Then it is drawn lying: drawRise at 0, or dead.)
+  drawFall(ctx, c, P, k, from, side) {
+    from = from || c.deadFrom; side = side || c.side || ((c.latHold || 0) >= 0 ? 1 : -1);
+    if (from === 'down') {
+      const at = c.deadAt || { ph: 'lie', k: 1 };
+      if (at.ph === 'fall' && k < 0.6) this.drawFall(ctx, c, P, lerp(at.k, 1, smoothstep(k / 0.6)), c.downFrom, side);
+      else this.drawRise(ctx, c, P, at.ph === 'rise' ? at.k * (1 - smoothstep(k / 0.5)) : 0, side, 1);
+      return;
+    }
+    if (from === 'crouch') {
+      const roll = smoothstep((k - 0.2) / 0.8), e = smoothstep(k);
+      ctx.save(); ctx.translate(side * 0.2 * roll, 0); ctx.scale(1 + 0.22 * e, 1 - 0.6 * e); this.about(ctx, side * 0.5, 0, -side * 0.38 * roll);
+      this.draw(ctx, Object.assign({}, c, { dead: false, mode: 'crouch', modeT: 0.4 * (1 - k * 1.6), hurtFlash: 0, crawlK: 0 }), P);
       ctx.restore();
       return;
     }
+    if (from === 'run') {
+      if (k < 0.45) {   // its legs go: it pitches forward out of the run
+        const e = smoothstep(k / 0.45);
+        ctx.save(); ctx.translate(side * 0.12 * e, -0.34 * e); this.about(ctx, -side * 0.1, 0.5, -side * 0.75 * e);
+        this.drawRun(ctx, Object.assign({}, c, { runDir: side, runGait: (c.runGait || 0) + k * 6 }), P);
+        ctx.restore();
+      } else {          // and it is down, skidding on its side through the snow
+        const e = (k - 0.45) / 0.55, skid = 1 - easeOut(e);
+        ctx.save(); ctx.translate(-side * 0.55 * skid, 0.05 * Math.sin(Math.min(1, e * 2.2) * Math.PI));
+        this.drawRise(ctx, c, P, 0, side, e * 0.3);
+        ctx.restore();
+      }
+      return;
+    }
     const rags = P.col([26, 22, 22]), ragsL = P.col([48, 40, 38]), skin = P.col([196, 184, 172]), black = P.col([6, 4, 6]), blood = P.col([120, 10, 12]);
-    const kb = smoothstep(k / 0.4), side = (c.latHold || 0) >= 0 ? 1 : -1, tip = smoothstep((k - 0.4) / 0.6) * 1.4;   // it goes over away from its way
-    const crouched = c.deadFrom === 'crouch';
-    const hip = lerp(crouched ? 0.62 : 0.78, 0.5, kb), sh = hip + lerp(0.5, 0.48, kb);   // from low in its sprint
-    ctx.save(); ctx.translate(side * 0.25, 0); ctx.rotate(-side * tip); ctx.translate(-side * 0.25, 0);
+    const kb = smoothstep(k / 0.4), over = smoothstep((k - 0.4) / 0.6), tip = over * 1.4;   // it goes over away from its way
+    const hip = lerp(0.78, 0.5, kb), sh = hip + lerp(0.5, 0.48, kb);   // from low in its sprint
+    ctx.save(); ctx.translate(side * (0.25 - 0.45 * over), 0); ctx.rotate(-side * tip); ctx.translate(-side * 0.25, 0);
     for (const s of [-1, 1]) {   // the knees go down into the snow
       P_limb(ctx, [[s * 0.1, hip], [s * 0.24, lerp(0.5, 0.07, kb)], [s * 0.3, 0.03]], 0.085, rags);
     }
@@ -393,6 +466,74 @@ CREATURES.runner = {
     P_ell(ctx, -0.052, 0.23, 0.036, 0.042, black); P_ell(ctx, 0.052, 0.23, 0.036, 0.042, black);
     P_ell(ctx, 0, 0.08, 0.045, 0.07, black);
     ctx.restore();
+    ctx.restore();
+  },
+  // The first arrow (c.mode 'stumble'): it falls (drawFall), lies in the snow, and gets up (drawRise), where downAt(c) says
+  // it is in that; the red of the hit over it for a moment, low as it goes down
+  drawDown(ctx, c, P) {
+    const d = this.downAt(c);
+    if (d.ph === 'fall') this.drawFall(ctx, c, P, d.k, c.downFrom, c.side || 1);
+    else this.drawRise(ctx, c, P, d.ph === 'rise' ? d.k : 0, c.side || 1, d.ph === 'lie' ? d.k : 1);
+    if (c.hurtFlash > 0) {
+      const k = d.ph === 'fall' ? smoothstep(d.k) : 1, x = c.downFrom === 'run' ? (c.side || 1) * 0.25 * (1 - k) : 0;
+      ctx.globalAlpha = 0.5; P_ell(ctx, x, lerp(c.downFrom === 'crouch' ? 0.5 : 0.95, 0.3, k), lerp(0.75, 1.0, k), lerp(0.8, 0.4, k), P.col([120, 10, 12])); ctx.globalAlpha = 1;
+    }
+  },
+  // Down in the snow from the first arrow, and getting up, r 0..1: seen side on, its head toward the left of the view
+  // (side +1: mirrored). Lying (r 0) it is flat on its side, an arm flung out past its head, as it will lie dead, twitching
+  // hard. Then its head comes up and turns to you, the flung arm comes over and down and plants its hand, it pushes its
+  // shoulders up off the snow, drags its knees in under it and comes up onto its hands and feet, gathered to launch itself
+  // at you again (and from there it is drawn sprinting). settle (0..1 through its lying): just down, its legs are still
+  // bent from the fall and slide out straight.
+  drawRise(ctx, c, P, r, side, settle) {
+    const rags = P.col([26, 22, 22]), ragsL = P.col([48, 40, 38]), skin = P.col([196, 184, 172]), skinD = P.col([120, 104, 96]), black = P.col([6, 4, 6]), blood = P.col([120, 10, 12]);
+    const farRags = P.col([16, 13, 13]), farSkin = P.col([150, 138, 128]);
+    const J = this.jerks(c), t = c.t;
+    const mix = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
+    const armK = smoothstep(r / 0.35), shK = smoothstep((r - 0.12) / 0.6), hipK = smoothstep((r - 0.38) / 0.62), legK = smoothstep((r - 0.25) / 0.6), headK = smoothstep(r / 0.4);
+    const st = 1 - smoothstep((settle === undefined ? 1 : settle) / 0.3);
+    ctx.save(); if (side > 0) ctx.scale(-1, 1);
+    P_ell(ctx, -0.25, 0.045, 0.5, 0.05, blood);   // its blood in the snow where it lies
+    const S = mix([-0.5, 0.2], [-0.3, 0.77], shK), H = mix([0.22, 0.17], [0.36, 0.65], hipK);
+    S[1] += Math.abs(J[0]) * 0.05 * (1 - shK * 0.5); H[1] += Math.abs(J[0]) * 0.02;
+    const leg = (knee, foot, far) => {
+      P_limb(ctx, [H, knee, foot], 0.085, far ? farRags : rags);
+      P_line(ctx, foot[0] - 0.02, foot[1], foot[0] + 0.1, foot[1] + 0.03 * (1 - legK), 0.055, far ? farSkin : skinD);   // the bare foot
+    };
+    const arm = (elbow, hand, ang, far) => {
+      P_line(ctx, S[0], S[1], elbow[0], elbow[1], 0.075, far ? farRags : rags);
+      P_line(ctx, elbow[0], elbow[1], hand[0], hand[1], 0.055, far ? farSkin : skin);
+      fingers(ctx, hand[0], hand[1], ang, 0.3, 0.12, 0.018, far ? farSkin : skin);
+    };
+    // the far leg and arm, a shade darker: the leg stays out behind it, the hand is planted under it
+    leg(mix([0.56 - st * 0.12, 0.21 + st * 0.2], [0.58, 0.3], legK), mix([0.9 - st * 0.2, 0.15 + st * 0.05], [0.86, 0.03], legK), true);
+    arm(mix([-0.3, 0.1], [-0.2, 0.42], shK), mix([-0.12, 0.05], [-0.16, 0.02], armK), Math.PI + 0.25, true);
+    // the trunk, in its rags, a lighter tear along its back, which humps as it pushes up
+    const dx = H[0] - S[0], dy = H[1] - S[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, hump = 0.07 * Math.sin(Math.PI * shK) + 0.05 * shK;
+    const on = (u, w) => [lerp(S[0], H[0], u) + nx * w, lerp(S[1], H[1], u) + ny * w];
+    P_poly(ctx, [on(-0.07, -0.15), on(-0.06, 0.16), on(0.45, 0.17 + hump), on(1.06, 0.13), on(1.07, -0.13)], rags);
+    const t0 = on(0.12, 0.07), t1 = on(0.8, 0.06);
+    P_line(ctx, t0[0], t0[1], t1[0], t1[1], 0.045, ragsL);
+    P_ell(ctx, lerp(S[0], H[0], 0.42), lerp(S[1], H[1], 0.42), 0.13, 0.09, blood, Math.atan2(dy, dx));
+    c.arrows.forEach((a, i) => this.arrow(ctx, P, lerp(S[0], H[0], 0.36 + i * 0.3), lerp(S[1], H[1], 0.36 + i * 0.3) + 0.06, i, J[4 + i % 2] * 0.3));
+    // the near leg: lying straight out behind it, then dragged in under it, the foot set to push off
+    leg(mix([0.6 - st * 0.14, 0.13 + st * 0.22 + J[2] * 0.05], [0.14, 0.3], legK), mix([0.97 - st * 0.25, 0.07], [0.5, 0.03], legK), false);
+    // the head: along the snow past its shoulder, then up, and turned to you (its sockets and its open jaw)
+    const ho = mix([-0.43, 0], [-0.22, 0.09], headK), crane = 0.1 * Math.sin(Math.PI * clamp(r / 0.8, 0, 1));
+    const hx = S[0] + ho[0] - Math.abs(J[3]) * 0.03 * (1 - headK), hy = S[1] + ho[1] + crane + J[3] * 0.05;
+    P_line(ctx, S[0] - 0.04, S[1], hx, hy, 0.075, skin);   // the neck
+    if (headK > 0) { ctx.save(); ctx.globalAlpha *= headK; strands(ctx, hx, hy + 0.1, 9, Math.min(0.36, hy + 0.06), black, 5, t); ctx.restore(); }
+    P_ell(ctx, hx, hy, lerp(0.16, 0.14, headK), lerp(0.14, 0.17, headK), skin, J[3] * 0.2 * (1 - headK));
+    if (headK > 0) {
+      ctx.save(); ctx.globalAlpha *= headK;
+      P_ell(ctx, hx - 0.055, hy + 0.03, 0.036, 0.04, black); P_ell(ctx, hx + 0.055, hy + 0.03, 0.036, 0.04, black);
+      P_ell(ctx, hx, hy - 0.1, 0.045, 0.065, black);
+      ctx.restore();
+    }
+    // the near arm: flung out past its head, then over and down, the hand planted in the snow under its shoulder
+    const hand = mix([-0.9, 0.45], [-0.42, 0.02], armK), elbow = mix([-0.72, 0.36], [-0.46, 0.42], armK);
+    hand[1] += 0.12 * Math.sin(Math.PI * armK) + Math.abs(J[1]) * 0.05 * (1 - armK); hand[0] += J[1] * 0.05 * (1 - armK); elbow[1] += J[1] * 0.05;
+    arm(elbow, hand, lerp(2.45 + J[1] * 0.8, Math.PI + 0.3, armK), false);
     ctx.restore();
   },
 };

@@ -2,17 +2,22 @@
 // with it in your sights; two hits. The arrows are picked up one at a time and go together in one slot. Then the harness
 // proves what each kind of letting go does, with the thing held where it is (so the test is not a race against Nightmare
 // speed): a click looses nothing (the bow is let back down), a draw let go before full falls short, one drawn full but off
-// it misses (each of those spends an arrow; the three are given back between runs, as there are only three). Then a run
-// where one hit, drawn full on it at 47 m, and two that fall short leave it nothing to stop it: it comes in and reaches you.
-// Then the night again: a draw held full for a few seconds before letting go still goes in, and one from a pad puts it down.
+// it misses (each of those spends an arrow; the three are given back between runs, as there are only three). Then the
+// bats: one is shot out of the sky (the night's easter egg, kept in the save), and the night goes on. Then a run where one
+// hit, drawn full on it at 47 m from a pad, and two that fall short leave it nothing to stop it: it comes in and reaches you.
+// Then the night again: a draw held full for a few seconds before letting go still goes in; the first arrow puts it all
+// the way down in the snow, where it lies about a second and gets up; and a second, followed with the pointer while it
+// comes on hurt and wary, puts it down for good.
 // Before any of that, what will not go: the first time, two arrows are picked up before the bow, and one is clicked at it
 // with no bow (it is raised to shoot, finds no bow, and drops head first to the boards at your feet, where it is picked up
 // again); the second time the bow comes first, and pressed with no arrows it comes up, tips to show the bare shelf, the
 // string is plucked on nothing, and it is let down.
-// Drawn on, it may break sideways (30% of draws, never twice within a few seconds): the draws here follow its body while
-// they are held, as a player keeps it in the sights, so a break mid-draw is followed. The rate itself, and that it really
-// runs to the side when it does, are checked with the game stepped by hand (dodge, below): many draws let back down at
-// once, nothing loosed.
+// How it moves while the bow is drawn on it: unhurt it is bold (it seldom breaks sideways from a draw, about 12% of them,
+// and never by itself while one is on it, and its weave narrows); with an arrow in it, it is wary (about every other
+// draw, a wide quick weave, and a break to one side every second or two by itself). So it moves less on the first draw
+// than on the second: both are measured here (sway, below), the game stepped by hand, as are the rates (dodge). The draws
+// that loose something follow its body while they are held, as a player keeps it in the sights, so a break mid-draw is
+// followed.
 const arrows = "(G.inv.find(i => i.id === 'arrows') || { uses: 0 }).uses";
 const last = 'G.L.s.outcomes[G.L.s.outcomes.length - 1]';
 const hold = d => ['eval', 'const c = G.L.creature; c.switched = true; c.darts = Infinity; c.u = 1 - Math.pow(' + d + ' / c.D0, 1 / c.gamma); c.hold = ' + d + ';' +
@@ -36,10 +41,10 @@ const noArrows = [apart, ['pickup', 'bow'], hold(70), ['wait', 300],
   ['waitUntil', '!G.L.s.groping && G.L.s.bowUp < 0.3', 3000],
   ['pickup', 'arrows'], slot(1), ['pickup', 'arrows'], slot(2), ['pickup', 'arrows'], slot(3)];
 // many draws past the least that looses anything, each let straight back down (nothing loosed or spent), the cooldown
-// cleared between them, the game stepped by hand: about 30% of them make it break sideways, side on, at least 4 degrees
-// to a new place, its distance unchanged; then, with a break certain, a second draw within the cooldown does not, and one
-// after it does. window._dodge holds what was seen.
-const dodge = ['eval', `(() => {
+// cleared between them, the game stepped by hand: a share of them (the chance it has as it is now: s.dodge[chance]) make
+// it break sideways, side on, at least 4 degrees to a new place, its distance unchanged; then, with a break certain, a
+// second draw within the cooldown (s.dodge[gap]) does not, and one after it does. window[as] holds what was seen.
+const dodge = (as, chance, gap) => ['eval', `(() => {
   const L = G.L, c = L.creature, k = L.s.dodge, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
   const r = { n: 200, rolls: k.rolls, count: k.count, runs: 0, sideways: 0, moved: [], dist: 0 };
   const drawOnce = () => { G.drawBtn = 'mouse'; step(15); const d = G.draw; drawLetGo('mouse', true); return d; };
@@ -55,16 +60,93 @@ const dodge = ['eval', `(() => {
     r.dist = Math.max(r.dist, Math.abs(c.dist - d0));
   }
   r.rolls = k.rolls - r.rolls; r.count = k.count - r.count;
-  const ch = k.chance; k.chance = 1; k.at = -Infinity; step(200);
+  const ch = k.${chance}; k.${chance} = 1; k.at = -Infinity; step(200);
   const c0 = k.count; drawOnce(); r.forced = k.count - c0; step(100);
-  drawOnce(); r.soon = k.count - c0 - r.forced; step(Math.ceil(k.gap * 60));
+  drawOnce(); r.soon = k.count - c0 - r.forced; step(Math.ceil(k.${gap} * 60));
   drawOnce(); r.later = k.count - c0 - r.forced - r.soon; step(100);
-  k.chance = ch; G.drawBtn = null; G.draw = null;
-  window._dodge = r;
+  k.${chance} = ch; G.drawBtn = null; G.draw = null;
+  window.${as} = r;
+})()`];
+// How much it moves from side to side while the bow is drawn on it, as it is now (unhurt, or hurt and up): 24 draws
+// of two seconds, each let back down (nothing loosed), free to break away as it does in the night (c.darts counting
+// again), the game stepped by hand. range: how far its bearing from the porch swings in a draw, in degrees, on average;
+// path: how far it travels. window._sway[as] holds them.
+const sway = as => ['eval', `(() => {
+  const L = G.L, c = L.creature, k = L.s.dodge, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
+  const n = 24, r = { range: 0, path: 0 }, darts = c.darts;
+  c.darts = 0;
+  for (let i = 0; i < n; i++) {
+    k.at = -Infinity; step(45);
+    let lo = Infinity, hi = -Infinity, was = Math.atan2(c.lat, c.dist);
+    G.drawBtn = 'mouse';
+    for (let j = 0; j < 120; j++) { step(1); const a = Math.atan2(c.lat, c.dist); r.path += Math.abs(a - was); was = a; lo = Math.min(lo, a); hi = Math.max(hi, a); }
+    drawLetGo('mouse', true);
+    r.range += hi - lo;
+  }
+  r.range = +(r.range / n / DEG).toFixed(2); r.path = +(r.path / n / DEG).toFixed(2);
+  step(45); let g = 0; while (c.mode === 'dart' && g++ < 200) step(1);
+  c.darts = darts; G.drawBtn = null; G.draw = null;
+  (window._sway = window._sway || {})['${as}'] = r;
+})()`];
+// The first arrow, from the moment it is loosed (the game stepped by hand from here until it is up again): it goes down
+// (c.mode 'stumble') through a fall, a lying and a rising, in that order; where each began (the seconds since the hit),
+// how tall its body was while it lay, whether it moved or could dodge while it lay, and what it is once it is up.
+const down = ['eval', `(() => {
+  const L = G.L, c = L.creature, CR = c.CR, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
+  let g = 0; while (!c.wounded && g++ < 300) step(1);
+  const r = { mode: c.mode, order: [], at: {}, tall: 0, drift: 0, dodge: false, end: 0 };
+  let ph = null, lat0 = 0, d0 = 0;
+  while (c.mode === 'stumble' && g++ < 2000) {
+    const d = CR.downAt(c);
+    if (d.ph !== ph) { ph = d.ph; r.order.push(ph); r.at[ph] = c.modeT; if (ph === 'lie') { lat0 = c.lat; d0 = c.dist; } }
+    if (ph === 'lie') { r.tall = Math.max(r.tall, CR.body(c)[3]); r.drift = Math.max(r.drift, Math.abs(c.lat - lat0), Math.abs(c.dist - d0)); r.dodge = r.dodge || CR.canDodge(c); }
+    r.end = c.modeT; step(1);
+  }
+  r.after = { mode: c.mode, wounded: c.wounded, dead: c.dead, hits: c.hits, arrows: c.arrows.length };
+  window._down = r;
+})()`];
+// A bat shot out of the sky, by hand: the view turned to one that is in open sky, the pointer kept on it through a full
+// draw (the game's own press and let-go, the game stepped by hand), and let go on it. window._bat holds what happened:
+// the outcome, the egg in the save, the arrow spent, the bat down in the snow, the other two still flying, the night
+// going on. (The save's egg is cleared first, so each run finds it anew.)
+const batShot = ['eval', `(() => {
+  const L = G.L, s = L.s, c = L.creature, id = L.def.id, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
+  const uses = () => (G.inv.find(i => i.id === 'arrows') || { uses: 0 }).uses;
+  delete SAVE.data.eggs[id];
+  const r = { arrows0: uses(), spent0: s.spent, bats: s.bats.length, high: s.bats.every(b => b.y > L.eyeH + 1.5 && Math.hypot(b.x, b.z) > 14 && Math.hypot(b.x, b.z) < 37) };
+  let b = null, g = 0;
+  while (!b && g++ < 3000) {   // until one is in open sky, well inside the view, looking ahead
+    for (const d of [4, 5, 3, 6]) {
+      G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; render();
+      b = s.bats.find(q => { const p = CLEARING_BATS.screen(q); return p && CLEARING_BATS.clear(L, q) && p.x > 200 && p.x < R.W - 200 && p.y > R.viewY + 60 && p.y < R.viewY + R.H * 0.42; });
+      if (b) break;
+    }
+    if (!b) step(10);
+  }
+  if (!b) { window._bat = r; return; }
+  const aim = () => { const p = CLEARING_BATS.screen(b); G.mouse.x = p.x; G.mouse.y = p.y; return p; };
+  r.radius = aim().r;
+  drawPress(L, null, 'mouse');
+  g = 0; while (!(G.draw && G.draw.full) && g++ < 200) { aim(); step(1); }
+  for (let i = 0; i < 8; i++) { aim(); step(1); }
+  aim(); r.y0 = b.y;
+  drawLetGo('mouse'); G.drawSwallow = false;
+  r.out = s.outcomes[s.outcomes.length - 1]; r.drawOut = G.draw && G.draw.outcome;
+  g = 0; while (!b.hit && g++ < 120) step(1);
+  r.flight = g / 60; r.hit = !!b.hit; r.egg = SAVE.data.eggs[id] === true; r.saved = JSON.parse(localStorage.getItem('itscoming.v2')).eggs[id] === true; r.toast = G.lastToast.msg;
+  g = 0; while (b.hit && !b.hit.landed && g++ < 400) step(1);
+  r.fall = g / 60; r.landed = !!(b.hit && b.hit.landed); r.y1 = b.y; r.batsHit = s.batsHit; r.flying = s.bats.filter(q => !q.hit).length;
+  r.arrows = uses(); r.spent = s.spent; r.state = G.state; r.thing = { dead: c.dead, wounded: c.wounded, hits: c.hits };
+  // and with reduced motion they fly at half the pace, their wings slow (the same three seconds of a bat's way, both ways)
+  const q = s.bats.find(x => !x.hit), t0 = q.t;
+  const pace = rm => { SAVE.data.settings.reducedMotion = rm; q.t = t0; step(1); const f0 = q.flap, t1 = q.t; let d = 0, x = q.x, y = q.y, z = q.z; for (let i = 0; i < 180; i++) { step(1); d += Math.hypot(q.x - x, q.y - y, q.z - z); x = q.x; y = q.y; z = q.z; } return { d, flap: q.flap - f0, t: q.t - t1 }; };
+  const was = SAVE.data.settings.reducedMotion, fast = pace(false), slow = pace(true); SAVE.data.settings.reducedMotion = was;
+  r.clock = +(slow.t / fast.t).toFixed(2); r.pace = +(slow.d / fast.d).toFixed(2); r.beat = +(slow.flap / fast.flap).toFixed(2);
+  window._bat = r;
 })()`];
 const kinds = [
   hold(25), ['wait', 300],
-  dodge, ['expect', '(r => r.rolls === r.n && r.count >= 0.2 * r.n && r.count <= 0.4 * r.n)(window._dodge)', 'drawn on 200 times: about 30% of draws make it break away'],
+  dodge('_dodge', 'chance', 'gap'), ['expect', '(r => r.rolls === r.n && r.count >= 0.05 * r.n && r.count <= 0.2 * r.n)(window._dodge)', 'unhurt, drawn on 200 times: it is bold, and only about 12% of draws make it break away'],
   ['expect', '(r => r.runs === r.count && r.sideways === r.count && r.dist < 0.01)(window._dodge)', 'each time it runs side on, the way it runs, to a new place at least 4 degrees and 1.5 m to the side, no nearer'],
   ['expect', '(r => r.forced === 1 && r.soon === 0 && r.later === 1)(window._dodge)', 'drawn on again within a few seconds of breaking away, it does not; after that, it may again'],
   ['eval', 'window._rolls = G.L.s.dodge.rolls;'],
@@ -72,11 +154,22 @@ const kinds = [
   ['wait', 500], ['expect', arrows + ' === 3 && !G.L.s.outcomes.length', 'a click looses nothing and spends nothing'],
   ['draw', 'short'], ['expect', last + " === 'short' && " + arrows + ' === 2 && G.draw.from < 1', 'let go before full: it falls short, an arrow spent'],
   nock, ['draw', 'full', 'off'], ['expect', last + " === 'miss' && " + arrows + " === 1 && G.draw.from === 1 && UI.drawbar.classList.contains('full')", 'drawn full (the bar shows it) but off it: a miss, an arrow spent'],
-  ['wait', 1200], ['expect', '!G.L.creature.wounded && G.L.creature.hits === 0', 'nothing that missed touched it'],
+  ['wait', 1200], ['expect', '!G.L.creature.wounded && G.L.creature.hits === 0 && G.L.s.batsHit === 0', 'nothing that missed touched it (or a bat)'],
   ['draw', 'click', null, 'pad'], ['wait', 200], ['expect', arrows + ' === 1 && G.L.s.outcomes.length === 2', 'a tap of A looses nothing either'],
 ];
+const bat = [
+  refill, ['wait', 600],
+  batShot,
+  ['expect', '(r => r.bats === 3 && r.high)(window._bat)', 'three bats over the clearing, each up in the sky and well out from the porch'],
+  ['expect', "(r => r.out === 'bat' && r.drawOut === 'bat' && r.hit && r.flight < 0.7)(window._bat)", 'drawn full and let go with the aim kept on a bat: the arrow takes it'],
+  ['expect', "(r => r.egg && r.saved && SAVE.data.eggs[G.L.def.id] === true && r.toast === 'You shot a bat out of the sky.')(window._bat)", "the night's easter egg is in the save the moment the bat is hit (SAVE.data.eggs.clearing)"],
+  ['expect', '(r => r.landed && r.y1 < 0.2 && r.y0 > 3 && r.fall > 0.5 && r.fall < 3.5 && r.batsHit === 1 && r.flying === 2)(window._bat)', 'the bat tumbles out of the sky and lies in the snow; the other two fly on'],
+  ['expect', "(r => r.arrows === r.arrows0 - 1 && r.spent === r.spent0 + 1 && r.state === 'play' && !r.thing.dead && !r.thing.wounded && r.thing.hits === 0)(window._bat)", 'it cost the arrow as any shot does, and the night goes on: the thing untouched and still coming'],
+  ['expect', '(r => r.radius >= 10 && r.radius <= 30)(window._bat)', 'a small thing to hit: the aim has to be within about its wingspan of it'],
+  ['expect', '(r => r.clock === 0.5 && r.pace < 0.8 && r.beat < 0.4)(window._bat)', 'with reduced motion the bats fly at half the pace, without the jitter, their wings beating slowly'],
+];
 const spentAll = [
-  refill, hold(47), nock, ['draw', 'full'], ['expect', last + " === 'hit' && G.L.creature.dist > 45", 'drawn full and let go on it at 47 m: it flies at it'],
+  refill, hold(47), nock, ['draw', 'full', null, 'pad'], ['expect', last + " === 'hit' && G.L.creature.dist > 45", 'held on A until full and let go on it at 47 m: it flies at it'],
   ['wait', 1500], ['expect', 'G.L.creature.wounded && G.L.creature.hits === 1', 'the first hit wounds it, from 47 m'],
   ['draw', 'short', null, 'pad'], nock, ['draw', 'short', null, 'touch'], ['expect', arrows + " === 0 && G.L.s.outcomes.slice(-2).join() === 'short,short'", 'all three arrows gone, one in it (A and a finger held on it draw too)'],
   ['eval', 'G.L.creature.hold = null;'], ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 15000],
@@ -85,11 +178,24 @@ const spentAll = [
 ];
 const kill = [
   hold(30), ['wait', 300],
+  sway('first'),
   ['draw', 4000], ['expect', last + " === 'hit' && G.L.s.outcomes.length === 1 && G.draw.from === 1", 'held full for a few seconds (it does not slip), then let go on it: it flies at it'],
-  ['wait', 900], ['expect', 'G.L.creature.wounded && !G.L.creature.dead && ' + arrows + ' === 2', 'the first hit wounds it'],
-  nock, ['draw', 'full', null, 'pad'], ['expect', last + " === 'hit'", 'held on A until full and let go: it flies at it'],
-  ['wait', 1000], ['expect', 'G.L.creature.dead && G.L.creature.arrows.length === 2', 'the second hit puts it down, two arrows in it'],
+  down,
+  ['expect', "(r => r.mode === 'stumble' && r.order.slice(-2).join() === 'lie,rise' && r.at.lie > 0.4 && r.at.lie < 0.65)(window._down)", 'the first hit: it goes down, falling for about half a second'],
+  ['expect', '(r => r.at.rise - r.at.lie >= 0.8 && r.at.rise - r.at.lie <= 1.2 && r.tall < 0.5 && r.drift < 1e-6 && !r.dodge)(window._down)', 'it lies flat in the snow for about a second (0.8 to 1.2 s), where it fell, a low thing to aim at'],
+  ['expect', "(r => r.end - r.at.rise > 0.5 && r.end - r.at.rise < 0.9 && r.after.mode === 'sprint' && r.after.wounded && !r.after.dead && r.after.hits === 1 && r.after.arrows === 1)(window._down)", 'then it gets back up (well under a second) and comes on, wounded, the arrow in it'],
+  ['expect', arrows + ' === 2', 'one arrow spent'],
+  sway('second'),
+  ['expect', '(s => s.second.range > 1.5 * s.first.range && s.second.path > 2 * s.first.path && s.first.range < 5 && s.second.range > 5.5)(window._sway)', 'drawn on at 30 m, it moves from side to side less the first time (unhurt) than the second (hurt and wary): its swing more than half as wide again, and more than twice as far travelled'],
+  dodge('_wary', 'wary', 'waryGap'), ['expect', '(r => r.rolls === r.n && r.count >= 0.38 * r.n && r.count <= 0.62 * r.n)(window._wary)', 'hurt, drawn on 200 times: it is wary, and about half the draws make it break away'],
+  ['expect', '(r => r.runs === r.count && r.sideways === r.count && r.dist < 0.01 && r.forced === 1 && r.soon === 0 && r.later === 1)(window._wary)', 'each time side on to a new place, and not again at once'],
+  // the second arrow, with it free to break to one side as it comes (c.darts counting again) and the pointer kept on it;
+  // and a bat under every aim, to show the thing comes first
+  ['eval', 'G.L.creature.darts = 0; window._at = CLEARING_BATS.at; CLEARING_BATS.at = L => L.s.bats.find(b => !b.hit);'],
+  nock, ['draw', 'full'], ['expect', last + " === 'hit'", 'drawn full with the pointer kept on it as it weaves and breaks away: it flies at it (and not at a bat, though one is under the aim)'],
+  ['eval', 'CLEARING_BATS.at = window._at;'],
+  ['wait', 1000], ['expect', 'G.L.creature.dead && G.L.creature.arrows.length === 2 && G.L.s.batsHit === 0', 'the second hit puts it down, two arrows in it'],
 ];
 module.exports = {
-  nightmare: noBow.concat(kinds, spentAll, noArrows, kill),
+  nightmare: noBow.concat(kinds, bat, spentAll, noArrows, kill),
 };
