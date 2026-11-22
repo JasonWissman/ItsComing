@@ -86,6 +86,23 @@ const tvLib = '(' + function () {
       if (bad) console.log('the way to the television: ' + bad);
       return !bad;
     },
+    // every target as it is hit from every way you can look: pointed at in the middle of what shows of it, which target
+    // is under the pointer (the view left looking north again)
+    hits() {
+      const out = {};
+      for (const down of [0, 1]) for (let d = 0; d < 8; d++) {
+        G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = down ? PITCH_DOWN : 0; render();
+        for (const h of [...R.hits]) {
+          if (h.kind !== 'target') continue;
+          const x0 = Math.max(0, h.x), y0 = Math.max(0, h.y), x1 = Math.min(R.W, h.x + h.w), y1 = Math.min(R.H, h.y + h.h);
+          if (x1 - x0 < 8 || y1 - y0 < 8) continue;
+          G.mouse.x = (x0 + x1) / 2; G.mouse.y = (y0 + y1) / 2 + R.viewY; updateHover();
+          out[d + (down ? 'd' : '') + ':' + h.ref.id] = G.hover ? G.hover.ref.id : '';
+        }
+      }
+      G.mouse.x = G.mouse.y = -1; G.cam.dirIdx = 0; G.cam.yaw = G.cam.tYaw = 0; G.cam.pitch = G.cam.tPitch = 0; render(); updateHover();
+      return out;
+    },
     hover() { const h = [...R.hits].reverse().find(q => q.kind === 'target' && q.ref.id === 'tv'); if (!h) return null; G.mouse.x = h.x + h.w / 2; G.mouse.y = h.y + h.h / 2 + R.viewY; updateHover(); return G.hover && G.hover.ref.id === 'tv' ? UI.tooltip.textContent : ''; },
   };
 }.toString() + ')();';
@@ -96,8 +113,11 @@ const tvFar = [
   ['expect', X("tv.free(8, () => G.L.creature.dist < 3.95) === 'play' && G.L.s.mode === 'come' && G.L.creature.dist > 3.6"), 'it has begun to come out, far off still (behind its opening)'],
   ['wait', 200],
   ['expect', X("tv.T('tv').hidden && tv.hover() === null && !G.L.s.tv"), 'without the remote the television is only scenery: not a target, nothing on it to point at'],
+  ['eval', X("(tv.was = tv.hits())")],
+  ['expect', X("(k => k.length >= 4 && !k.some(q => /:tv$/.test(q)) && ['drawer', 'lamp', 'covers', 'socket'].every(id => k.some(q => q.endsWith(':' + id) && tv.was[q] === id)))(Object.keys(tv.was))"), 'the night\'s own targets, each pointed at from wherever it shows'],
   ['eval', X("(tv.remote(), pickup(G.L.items.find(i => i.id === 'bulb')), G.hand.reach = null, delete SAVE.data.eggs.bedroom, tv.arm())")], ['wait', 250],
   ['expect', X("G.inv[G.active].id === 'bulb' && !tv.T('tv').hidden && tv.hover() === 'Turn on the TV'"), 'with the remote carried (the bulb in hand, not it) the television is a target: "Turn on the TV"'],
+  ['expect', X("(now => Object.keys(tv.was).every(q => now[q] === tv.was[q]) && now['0:tv'] === 'tv' && now['1:tv'] === 'tv' && (console.log('targets: ' + JSON.stringify(now)), true))(tv.hits())"), 'and it is in the way of none of the others (the drawer emptied): each is hit just as before, and the set itself looking north and north-east'],
   ['use', 'tv'],
   ['expect', X("!!G.L.s.tv && G.L.s.mode === 'tv' && SAVE.data.eggs.bedroom === true && G.L.text.egg === 'Put on a horror movie.' && G.inv[G.active].id === 'remote' && tv.T('tv').hidden"), 'clicked, it comes on: the easter egg is saved for the night, the remote is in your hand, and the set is no longer a target'],
   ['expect', X("tv.run(0.5) === 'play' && tv.when('tvOn') >= 0 && tv.when('tvOn') < 0.05 && tv.when('tvStatic') < 0.05 && tv.when('tvStatic') >= 0 && tv.when('tvDrone') < 0 && G.L.creature.tv.look > 0.9 && tv.far(tv.at(), tv.p0) < 0.12"), 'a click, and static; it stops where it is and looks round at it'],
