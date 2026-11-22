@@ -194,14 +194,34 @@ const paced = [
 const TAKERS = { walker: ['hammer', 'planks'], crawler: ['keys'], smiler: ['salt', 'lantern'], watcher: ['chain', 'padlock'], runner: ['bow', 'arrows'], swimmer: ['beam'], climber: ['fuse'], customer: ['handle'], signalman: ['journal'], other: ['musicbox'], carrier: ['matches'], tall: ['bulb'] };
 // step the game's clock to `to` seconds of the gathering, noting as it goes: when each came up to you and how near, when it
 // took its things, how high each leapt and whether it came down again, how many were in the air at once (most and least),
-// how much the view shook, and what was heard
-const stepTo = to => ['eval', `(() => { const E = G.L.s.egg, W = window.__egg || (window.__egg = { came: {}, took: {}, near: {}, up: {}, down: {}, air: [99, 0], shake: 0, n: 0 });
-  while (E.t < ${to}) { update(1 / 60); W.n++; W.shake = Math.max(W.shake, G.shakeAmt); let air = 0;
+// how much the view shook and how far it was lightened by a flash (and when, first), and what was heard
+const stepTo = to => ['eval', `(() => { const E = G.L.s.egg, W = window.__egg || (window.__egg = { came: {}, took: {}, near: {}, up: {}, down: {}, air: [99, 0], shake: 0, flash: 0, n: 0 });
+  while (E.t < ${to}) { update(1 / 60); W.n++; W.shake = Math.max(W.shake, G.shakeAmt); W.flash = Math.max(W.flash, G.flashAmt); if (G.flashAmt > 0 && W.flashAt === undefined) W.flashAt = E.t; let air = 0;
     for (const o of E.others) { const k = o.type;
       if (o.on) W.near[k] = Math.min(W.near[k] === undefined ? 99 : W.near[k], o.c.dist);
       if (o.came && W.came[k] === undefined) W.came[k] = E.t; if (o.took && W.took[k] === undefined) W.took[k] = E.t;
       if (E.t > VOID_EGG.joy + 0.3) { W.up[k] = Math.max(W.up[k] || 0, o.hopY); if (o.hopY < 0.01) W.down[k] = true; if (o.hopY > 0.05) air++; } }
     if (E.t > VOID_EGG.joy + 0.6 && E.t < VOID_EGG.joy + 5) { W.air[0] = Math.min(W.air[0], air); W.air[1] = Math.max(W.air[1], air); } } })()`];
+// the frolic, stepped to `to` and watched: for each of the thirteen (by its kind), how far it went in all (path), the most
+// in one step of the clock (step) and each step over 20 cm (jumps), the corners of where it has been (lo, hi), whether it
+// leapt on the spot and hopped as it ran, which ways it was turned (1 right, 2 left), how high it hopped and how far it
+// leant; each time one of them was out of the meadow's bounds, or on you, the tree or the pool's water (bad); and the
+// nearest any two of them came to one another (pair)
+const frolic = to => ['eval', `(() => { const E = G.L.s.egg, FR = VOID_FROLIC, F = window.__fro = { path: {}, step: {}, jumps: {}, creep: {}, lo: {}, hi: {}, leapt: {}, hopped: {}, faces: {}, up: 0, lean: 0, bad: [], off: 0, pair: 9 };
+  const prev = E.movers.map(m => [m.fu, m.fv]);
+  for (const m of E.movers) { const k = m.kind; F.path[k] = 0; F.step[k] = 0; F.jumps[k] = []; F.creep[k] = 0; F.lo[k] = [m.fu, m.fv]; F.hi[k] = [m.fu, m.fv]; F.faces[k] = 0; }
+  while (E.t < ${to}) { update(1 / 60);
+    E.movers.forEach((m, i) => { const k = m.kind, q = prev[i], d = Math.hypot(m.fu - q[0], m.fv - q[1]), c = m.c, w = c.pos();
+      F.path[k] += d; F.step[k] = Math.max(F.step[k], d); if (d > 0.2) F.jumps[k].push(d); else if (d > 1e-9) F.creep[k]++;
+      F.lo[k][0] = Math.min(F.lo[k][0], m.fu); F.lo[k][1] = Math.min(F.lo[k][1], m.fv); F.hi[k][0] = Math.max(F.hi[k][0], m.fu); F.hi[k][1] = Math.max(F.hi[k][1], m.fv);
+      if (m.fv < FR.v0 - 0.4 || m.fv > FR.v1 + 0.6 || Math.abs(m.fu) > FR.wedge * m.fv + 0.7 || Math.hypot(m.fu, m.fv) < FR.you - 0.01 || (!m.pool && Math.hypot(m.fu - E.poolU, m.fv - E.poolV) < FR.water)
+        || Math.hypot(m.fu - FR.tree[0], m.fv - FR.tree[1]) < FR.tree[2] - 0.01) F.bad.push(k + '@' + E.t.toFixed(1));
+      F.off = Math.max(F.off, Math.abs(Math.hypot(w.x, w.z) - Math.hypot(m.fu, m.fv)), Math.abs(wrapPi(Math.atan2(w.x, w.z) - G.L.facing - Math.atan2(m.fu, m.fv))));
+      if (m !== E.dm) { if (m.run < 0.1 && m.hopY > 0.1) F.leapt[k] = true; if (m.run > 0.9 && m.hopY > 0.01) F.hopped[k] = true; F.up = Math.max(F.up, m.hopY); }
+      for (const n of E.movers) if (n !== m && !n.pool && !m.pool) F.pair = Math.min(F.pair, Math.hypot(n.fu - m.fu, n.fv - m.fv));
+      F.faces[k] |= m.face > 0.9 ? 1 : m.face < -0.9 ? 2 : 0; F.lean = Math.max(F.lean, Math.abs(m.lean));
+      q[0] = m.fu; q[1] = m.fv; }); } })()`];
+const RUNNERS = "['walker', 'crawler', 'smiler', 'runner', 'climber', 'customer', 'signalman', 'other', 'carrier', 'tall', 'demon']";
 const eggInView = `(() => { const E = G.L.s.egg, bad = [];
   for (const [W, H] of [[1280, 760], [844, 390], [1920, 1080]]) { const cam = { yaw: G.L.facing, pitch: 0, zoom: clamp(0.6 * (W / H) / 0.93, 1, 1.32), W, H, eyeH: G.L.eyeH };
     for (const c of E.others.map(o => o.c).concat([G.L.creature])) { const p = c.pos(), r = R.projectRect(p.x, 0, p.z, 1.0, Math.min(2.4, c.CR.h), cam); if (!r || r.x < 0 || r.x + r.w > W || r.y < 0 || r.y + r.h > H) bad.push(c.type + '@' + W); } }
@@ -231,6 +251,8 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   stepTo('VOID_EGG.joy + 0.5'),
   ['expect', "(E => E.thrown.length === 16 && E.others.every(o => o.held.length === 0 && o.threw !== null) && E.thrown.filter(th => { const u = E.t - th.t0; return th.vy * u - 4.9 * u * u > 0.6; }).length === 16 && new Set(E.thrown.map(th => th.it.id)).size === 16)(G.L.s.egg)", 'then all at once they throw it all up into the air: sixteen things, well over their heads'],
   ['expect', "(v => v.some(x => x.n === 'cheer' && Math.abs(x.t - VOID_EGG.joy) < 0.05) && v.some(x => x.n === 'win' && Math.abs(x.t - VOID_EGG.joy) < 0.05))(window._sfx)", 'with a bright flourish and the chord of a night won'],
+  ['expect', "(W => { console.log('the flash at ' + W.flashAt.toFixed(2) + ', ' + W.flash.toFixed(2)); return Math.abs(W.flashAt - VOID_EGG.joy) < 0.05 && W.flash > 0.15 && W.flash <= 0.25 && window._sfx.some(x => x.n === 'twinkle' && Math.abs(x.t - VOID_EGG.joy) < 0.05) && !SAVE.data.settings.reducedFlash; })(window.__egg)",
+    'and, that instant, the view lightened by the flash of the other ending\'s scare, with a happy twinkle: a happy jump scare'],
   stepTo('VOID_EGG.light[0] + 1.6'),
   ['expect', "G.L.s.meadow > 0.1 && G.L.s.meadow < 0.4 && G.L.pal.skyTop[0] > 150 && G.L.pal.fog[0] > 150", 'as the dark turns to the pale light'],
   stepTo('VOID_EGG.joy + 5'),
@@ -243,6 +265,18 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   ['expect', "G.state === 'won' && G.L.s.wait && !G.L.s.leaving && G.L.lookFree() && (window._sfx.filter(x => x.n === 'musicbox').length >= 2)", 'the music box plays, and the meadow waits for a press, the view yours again'],
   ['expect', flowersDrawn + ' === 0', 'the easter egg\'s meadow has no flowers, only grass (there is a crowd in it)'],
   noHands('your hands are empty'),
+  // and then they frolic: about the meadow, each in its own way, for as long as you stay
+  ['expect', "G.L.s.egg.movers.length === 13 && G.L.s.egg.movers.every(m => !m.fro) && VOID_EGG.frolic > VOID_EGG.arm + 1 && VOID_EGG.frolic - VOID_EGG.light[1] > 2", 'they have leapt there in the meadow a few seconds, each still at its place'],
+  frolic('VOID_EGG.frolic + 24'),
+  ['expect', `(F => { console.log('the frolic: went ' + Object.keys(F.path).map(k => k + ' ' + F.path[k].toFixed(0)).join(', ') + ' m; out of bounds ' + (F.bad.slice(0, 6).join(' ') || 'never')); return ${RUNNERS}.every(k => F.path[k] > 12 && Math.max(F.hi[k][0] - F.lo[k][0], F.hi[k][1] - F.lo[k][1]) > 4 && F.step[k] < 8 / 60); })(window.__fro)`,
+    'after the leaping they run about the meadow: each of the eleven that run (and the thing in the hood among them) goes a good many metres, all over it, and never in a jump'],
+  ['expect', "(F => !F.bad.length && F.off < 1e-6 && G.L.s.egg.movers.every(m => Math.hypot(m.fu, m.fv) >= VOID_FROLIC.you - 0.01))(window.__fro)", 'within the meadow in front of you all the while: never on you, the big tree or the pool; and each is drawn where it is'],
+  ['expect', `(F => F.step.runner > F.step.walker * 1.5 && F.step.crawler > F.step.other * 1.2 && ${RUNNERS}.filter(k => F.faces[k] === 3).length >= 9 && F.lean > 0.08)(window.__fro)`, 'at their own speeds (the runner the fastest), turned and leaning the way they go'],
+  ['expect', `(F => ${RUNNERS}.filter(k => k !== 'demon').every(k => F.leapt[k] && F.hopped[k]))(window.__fro)`, 'with little hops as they run, and now and then stopping to leap on the spot'],
+  ['expect', "(F => { console.log('the stone one: ' + F.jumps.watcher.length + ' jumps, of ' + F.jumps.watcher.map(d => d.toFixed(1)).join(' ')); return F.jumps.watcher.length >= 4 && F.jumps.watcher.every(d => d >= 2.5) && F.creep.watcher === 0; })(window.__fro)", 'the stone one is never seen to move: it is somewhere else, all at once, metres away, again and again'],
+  ['expect', "(F => F.path.swimmer === 0 && G.L.s.egg.others.find(o => o.pool).dove !== undefined)(window.__fro)", 'the swimmer keeps to its pool, ducking under and bursting up again'],
+  ['expect', "(c => c.dance > 0.5 && c.disrobe === 1 && c.noHeap === true && c.fade === 1 && Math.hypot(G.L.s.egg.dm.fu - G.L.s.egg.heapU, G.L.s.egg.dm.fv - G.L.s.egg.heapV) >= VOID_FROLIC.heap - 0.01 && window.__fro.pair > 0.4)(G.L.creature)", 'the thing in the hood, in its shirt and shorts, skips about among them, dancing, its robe left where it fell'],
+  ['expect', "(E => E.thrown.length === 16 && E.thrown.every(th => E.t - th.t0 > th.tl && th.fade === 1) && G.state === 'won' && G.L.s.wait && !G.L.s.leaving && G.L.lookFree())(G.L.s.egg)", 'what they threw still lies in the grass, and the meadow still waits for a press'],
   ['eval', 'G.noRaf = false; G._last = performance.now(); requestAnimationFrame(frame);'], ['wait', 200],
   key('ArrowLeft', true), ['wait', 300], ['expect', "G.state === 'won' && !G.L.s.leaving", 'a turn only turns the view'],
   ['eval', "document.getElementById('game').dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 640, clientY: 380 }))"],
@@ -253,13 +287,18 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   ['expect', "JSON.stringify(G.lastRun) === window.__run0", 'the run\'s time is as it was when the last thing was taken up: none of the gathering counted'],
   ['eval', "SAVE.data.bestRun = JSON.parse(window.__best0); SAVE.persist();"],
 ];
-// with reduced motion and flashing: the same, come slower and from nearer, no jolt, no flash, and only a gentle bob for a leap
+// with reduced motion and flashing: the same, come slower and from nearer, no jolt, no flash, and only a gentle bob for a leap;
+// and in the meadow they amble, slowly
 const eggStill = [
   ['eval', "SAVE.setSetting('reducedMotion', true); SAVE.setSetting('reducedFlash', true); startLevel(G.levelIndex, false);"], ['wait', 300], far,
   ['eval', "G.noRaf = true; window.__egg = null; for (const it of G.L.items.slice()) pickup(it); G.shakeAmt = 0; G.flashAmt = 0;"],
   ['expect', "G.state === 'won' && !!G.L.s.egg", 'with reduced motion: the last thing taken up, the same'],
   stepTo('VOID_EGG.joy + 4'),
-  ['expect', "(W => { console.log('reduced motion: came at ' + W.came.walker.toFixed(2) + ', leaps ' + Math.max(...Object.values(W.up)).toFixed(3) + ', shake ' + W.shake); return W.came.walker > VOID_EGG.first + 1 && Object.values(W.up).every(v => v > 0.005 && v <= 0.06) && W.shake === 0 && G.flashAmt === 0 && G.L.s.egg.thrown.length === 16 && G.L.creature.dance === 0 && G.L.creature.disrobe === 1; })(window.__egg)", 'each comes slower, with no jolt; they throw it all up, and only bob for joy; it takes off its robe, and does not dance'],
+  ['expect', "(W => { console.log('reduced motion: came at ' + W.came.walker.toFixed(2) + ', leaps ' + Math.max(...Object.values(W.up)).toFixed(3) + ', shake ' + W.shake); return W.came.walker > VOID_EGG.first + 1 && Object.values(W.up).every(v => v > 0.005 && v <= 0.06) && W.shake === 0 && G.flashAmt === 0 && W.flash === 0 && W.flashAt === undefined && G.L.s.egg.thrown.length === 16 && G.L.creature.dance === 0 && G.L.creature.disrobe === 1; })(window.__egg)", 'each comes slower, with no jolt; they throw it all up, and only bob for joy; it takes off its robe, and does not dance'],
+  ['expect', "window._sfx.some(x => x.n === 'twinkle' && Math.abs(x.t - VOID_EGG.joy) < 0.05)", 'with reduced flashing: the twinkle, and no flash'],
+  frolic('VOID_EGG.frolic + 24'),
+  ['expect', `(F => { console.log('reduced motion, the frolic: went ' + Object.keys(F.path).map(k => k + ' ' + F.path[k].toFixed(1)).join(', ') + ' m; hops ' + F.up.toFixed(3)); return ${RUNNERS}.every(k => F.path[k] > 3 && F.step[k] < 1.6 / 60) && !F.bad.length && F.up <= 0.06 && F.lean === 0 && F.path.swimmer === 0 && F.jumps.watcher.length >= 2 && F.creep.watcher === 0 && G.L.creature.dance === 0 && G.L.s.wait; })(window.__fro)`,
+    'and in the meadow they amble, slowly, with only a gentle bob: no running, no leaning, no dance; the meadow waits'],
   ['eval', "SAVE.setSetting('reducedMotion', false); SAVE.setSetting('reducedFlash', false); SAVE.data.complete = {}; SAVE.persist(); G.noRaf = false; G._last = performance.now(); requestAnimationFrame(frame); startLevel(G.levelIndex, false);"], ['wait', 400],
 ];
 module.exports = {

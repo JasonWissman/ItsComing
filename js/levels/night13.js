@@ -860,10 +860,10 @@ const VOID_OTHERS = [
 ];
 // the frolic: where they may run (metres from you: v ahead, to the north; u to the right of that): from v0 to v1 ahead,
 // within `wedge` of that either side (so in the view, looking north); no nearer you than `you`; clear of the big tree
-// ([u, v, how far]), the swimmer's pool, the heap of the robe and one another; how fast each goes (metres a second; with
+// ([u, v, how far]), the swimmer's pool (`water`: how far its water reaches), the heap of the robe and one another; how fast each goes (metres a second; with
 // reduced motion all of them `amble`); and how long each leaps on the spot (`leap`) once in every `every` seconds or so
 const VOID_FROLIC = {
-  v0: 3.6, v1: 12, wedge: 0.74, you: 3.1, tree: [Math.sin(-0.72) * 11.5, Math.cos(-0.72) * 11.5, 1.8], pool: 1.7, heap: 0.9, apart: 1.6, amble: 0.5, leap: 2.8, every: 8.5,
+  v0: 3.6, v1: 12, wedge: 0.74, you: 3.1, tree: [Math.sin(-0.72) * 11.5, Math.cos(-0.72) * 11.5, 1.8], water: 1.0, pool: 1.25, heap: 0.9, apart: 1.6, amble: 0.5, leap: 2.8, every: 8.5,
   speed: { walker: 2.4, crawler: 3.4, smiler: 3.1, runner: 5.2, climber: 3.2, customer: 2.6, signalman: 3.0, other: 2.2, carrier: 2.5, tall: 2.8, demon: 2.7 },
 };
 function buildGathering(L, s, c0, K) {
@@ -1001,15 +1001,16 @@ function buildGathering(L, s, c0, K) {
   // ---- the frolic ----
   // is a spot (u, v) one of the meadow's, where one of them may be?
   const spot = (u, v) => v >= FR.v0 && v <= FR.v1 && Math.abs(u) <= FR.wedge * v && Math.hypot(u - FR.tree[0], v - FR.tree[1]) > FR.tree[2] + 0.4
-    && Math.hypot(u - E.poolU, v - E.poolV) > FR.pool + 0.5 && Math.hypot(u - E.heapU, v - E.heapV) > FR.heap + 0.4;
+    && Math.hypot(u - E.poolU, v - E.poolV) > FR.pool + 0.6 && Math.hypot(u - E.heapU, v - E.heapV) > FR.heap + 0.4;
   let AX = 0, AY = 0;   // (the way it would go, summed: no objects made in a frame)
   const shy = (m, x, y, r, w) => { const ex = m.fu - x, ey = m.fv - y, e2 = ex * ex + ey * ey; if (e2 < r * r && e2 > 1e-6) { const e = Math.sqrt(e2), k = (1 - e / r) * w / e; AX += ex * k; AY += ey * k; } };
-  const keepOff = (m, x, y, r) => { const ex = m.fu - x, ey = m.fv - y, e2 = ex * ex + ey * ey; if (e2 < r * r) { const e = Math.sqrt(e2) || 1e-3; m.fu = x + ex / e * r; m.fv = y + ey / e * r; } };
+  // (one that stood nearer than that as it set off is moved out of it, not put out of it at once)
+  const keepOff = (m, x, y, r, by) => { const ex = m.fu - x, ey = m.fv - y, e2 = ex * ex + ey * ey; if (e2 < r * r) { const e = Math.sqrt(e2) || 1e-3, k = Math.min(r - e, by) / e; m.fu += (e2 ? ex : 1e-3) * k; m.fv += ey * k; } };
   // somewhere new to make for: another of them, to run after it a while; or a spot of the meadow, at a run or a dart
   const aim = m => {
     m.chase = null;
     if (m.rnd() < 0.22) { const q = E.movers[Math.floor(m.rnd() * E.movers.length)]; if (q !== m && !q.jumps && !q.pool) { m.chase = q; m.tT = 2.5 + m.rnd() * 2.5; m.dart = 1.15; return; } }
-    const v = FR.v0 + 0.3 + m.rnd() * (FR.v1 - FR.v0 - 0.6), u = (m.rnd() * 2 - 1) * FR.wedge * v * 0.94;
+    const v = FR.v0 + 0.3 + m.rnd() * (FR.v1 - FR.v0 - 0.6), u = (m.rnd() < 0.5 ? -1 : 1) * Math.pow(m.rnd(), 0.7) * FR.wedge * v * 0.94;
     if (!spot(u, v)) { m.tT = 0; return; }   // (not there: another, next time)
     m.tu = u; m.tv = v; m.tT = 3 + m.rnd() * 4; m.dart = 0.7 + m.rnd() * 0.65;
   };
@@ -1032,23 +1033,26 @@ function buildGathering(L, s, c0, K) {
     let du = m.tu - m.fu, dv = m.tv - m.fv, d = Math.hypot(du, dv);
     if (m.tT <= 0 || d < (m.chase ? 1.6 : 0.7)) { aim(m); if (m.chase) { m.tu = m.chase.fu; m.tv = m.chase.fv; } du = m.tu - m.fu; dv = m.tv - m.fv; d = Math.hypot(du, dv); }
     AX = d > 1e-3 ? du / d : m.hu; AY = d > 1e-3 ? dv / d : m.hv;
-    for (const q of E.movers) if (q !== m) shy(m, q.fu, q.fv, q.pool ? FR.pool + 0.7 : FR.apart, q.pool ? 4 : 2.5);
+    for (const q of E.movers) if (q !== m) shy(m, q.fu, q.fv, q.pool ? FR.pool + 0.6 : FR.apart, 4);
     shy(m, 0, 0, FR.you + 0.9, 4); shy(m, FR.tree[0], FR.tree[1], FR.tree[2] + 0.7, 4); shy(m, E.heapU, E.heapV, FR.heap + 0.5, 3);
     const lim = FR.wedge * m.fv;
-    if (m.fv < FR.v0) AY += (FR.v0 - m.fv) * 3; else if (m.fv > FR.v1) AY -= (m.fv - FR.v1) * 3;
-    if (Math.abs(m.fu) > lim) AX -= Math.sign(m.fu) * (Math.abs(m.fu) - lim) * 3;
+    if (m.fv < FR.v0) AY += (FR.v0 - m.fv) * 8; else if (m.fv > FR.v1) AY -= (m.fv - FR.v1) * 8;
+    if (Math.abs(m.fu) > lim) AX -= Math.sign(m.fu) * (Math.abs(m.fu) - lim) * 8;
     // it turns toward that, so fast and no faster (so it goes in loops), slower through a tight turn
     const al = Math.hypot(AX, AY) || 1, dot = (m.hu * AX + m.hv * AY) / al, turn = clamp(Math.atan2(m.hu * AY - m.hv * AX, m.hu * AX + m.hv * AY), -1, 1) * Math.min(1, dt * (still ? 2 : 5.5));
     const ct = Math.cos(turn), st = Math.sin(turn), hu = m.hu * ct - m.hv * st, hv = m.hu * st + m.hv * ct, hl = Math.hypot(hu, hv) || 1;
     m.hu = hu / hl; m.hv = hv / hl;
     const sp = (still ? FR.amble : m.speed * m.dart) * m.run * (0.55 + 0.45 * Math.max(0, dot)), u0 = m.fu, v0 = m.fv;
     m.fu += m.hu * sp * dt; m.fv += m.hv * sp * dt;
-    keepOff(m, 0, 0, FR.you); keepOff(m, FR.tree[0], FR.tree[1], FR.tree[2]); keepOff(m, E.poolU, E.poolV, FR.pool); keepOff(m, E.heapU, E.heapV, FR.heap);
+    const by = dt * (still ? 0.5 : 2.5);
+    keepOff(m, 0, 0, FR.you, by); keepOff(m, FR.tree[0], FR.tree[1], FR.tree[2], by); keepOff(m, E.poolU, E.poolV, FR.pool, by); keepOff(m, E.heapU, E.heapV, FR.heap, by);
+    for (const q of E.movers) if (q !== m && !q.pool) keepOff(m, q.fu, q.fv, 0.75, still ? by : by * 3);   // (nor through one another)
+    m.fv = clamp(m.fv, FR.v0, FR.v1); m.fu = clamp(m.fu, -FR.wedge * m.fv - 0.3, FR.wedge * m.fv + 0.3);
     m.went = Math.hypot(m.fu - u0, m.fv - v0);
     // turned the way it goes (to the left or the right of you), and leaning into it
     const r = Math.hypot(m.fu, m.fv) || 1, across = (m.hu * m.fv - m.hv * m.fu) / r, k = sp / (m.speed || 1);
     if (Math.abs(across) * sp > 0.3) m.face += ((across > 0 ? 1 : -1) - m.face) * Math.min(1, dt * 10);
-    m.lean += ((still ? 0 : -0.11 * across * Math.min(1, k)) - m.lean) * Math.min(1, dt * 6);
+    m.lean += ((still ? 0 : -0.18 * across * Math.min(1, k)) - m.lean) * Math.min(1, dt * 6);
   }
   // when each runs and when it leaps on the spot, from the moment it sets off (with reduced motion it only ambles)
   const wants = (m, t, still) => s.leaving ? 0 : still || (t - m.at0) % m.per < m.per - FR.leap ? 1 : 0;
