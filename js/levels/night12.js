@@ -9,13 +9,20 @@
 // They grab the cloth and pull, again and again, and every pull brings them further up the bed toward you: pull the
 // covers up before they reach you, or it comes up the bed after them. The covers stop it, but only with the lamp on:
 // pulled up in the dark, it takes them and pulls them away.
-// The wrong bulb: the same glass on a bayonet cap, two pins and no thread, so it will not screw into this lamp
+// The night's easter egg: there is a small old television in the room, and its remote control is in the drawer with the
+// bulb. Put it on (the remote need only be carried) and, whatever it was doing, the thing goes over to it and watches the
+// film; at the fright it lurches back and puts its fist through the screen; then its head comes round to you, and it
+// comes on again from there (the television, below).
+// The remote control: a small dark one, its red power button at the top and rows of little buttons under it
 Object.assign(ICONS, {
-  bulbPin(ctx, P) {
-    const glass = P.col([214, 212, 200]), brass = P.col([150, 130, 70]), fil = P.col([120, 110, 90]);
-    P_ell(ctx, 0, 0.62, 0.26, 0.3, glass); P_poly(ctx, [[-0.16, 0.4], [0.16, 0.4], [0.12, 0.2], [-0.12, 0.2]], glass);
-    P_rect(ctx, -0.12, 0.05, 0.24, 0.16, brass); P_rect(ctx, -0.21, 0.1, 0.1, 0.05, brass); P_rect(ctx, 0.11, 0.1, 0.1, 0.05, brass);
-    P_line(ctx, -0.06, 0.45, 0, 0.7, 0.012, fil); P_line(ctx, 0, 0.7, 0.06, 0.45, 0.012, fil);
+  remote(ctx, P) {
+    ctx.save(); ctx.translate(0, 0.5); ctx.rotate(-0.16); ctx.translate(0, -0.5);
+    P_rect(ctx, -0.17, 0.03, 0.34, 0.94, P.col([30, 30, 36])); P_rect(ctx, -0.145, 0.055, 0.29, 0.89, P.col([52, 52, 60]));
+    P_ell(ctx, -0.07, 0.86, 0.045, 0.04, P.col([206, 46, 40]));
+    const key = P.col([150, 150, 156]);
+    for (let r = 0; r < 5; r++) for (let k = 0; k < 3; k++) P_rect(ctx, -0.11 + k * 0.085, 0.66 - r * 0.115, 0.05, 0.06, key);
+    P_rect(ctx, -0.045, 0.1, 0.09, 0.04, P.col([96, 96, 104]));
+    ctx.restore();
   },
 });
 LEVELS.push({
@@ -27,7 +34,10 @@ LEVELS.push({
     intro: 'You woke up suddenly.',
     hint: 'The lamp is dead; there is a bulb in the drawer. It cannot stand the light, and the covers only hold with the lamp on. Light first; then hold the covers until they are all the way up, before its hands reach you.',
     objective: 'Get the lamp on. Then pull the covers up.',
-    death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is strong in the dark.', grabbed: 'Its hands pulled their way up the bed to you, and then it came up after them.' },
+    // (tv: caught, by whichever of its ways, after the television was put on: the night's easter egg. Not one of text.eggs:
+    // the screen says "It got you")
+    death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is strong in the dark.', grabbed: 'Its hands pulled their way up the bed to you, and then it came up after them.', tv: 'Ironically it doesn\'t seem to like horror.' },
+    egg: 'Put on a horror movie.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     win: 'You pulled the covers over your head.\nIt pulled at them, but you were stronger.',
   },
   lanes: [
@@ -42,8 +52,8 @@ LEVELS.push({
   build(L) {
     const s = L.s;
     const parts = STORY.buildBedroom(L, false);
-    const decoy = !!L.diff.decoys, unplugged = L.nightmare, sticks = L.nightmare;
-    Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, tick: 0, tugAt: -9, mode: null, latBias: 0 });
+    const unplugged = L.nightmare, sticks = L.nightmare;
+    Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, tick: 0, tugAt: -9, mode: null, latBias: 0, tv: null });
     // Drawing order in this room (it is built in local coordinates, and this night faces north, so they are world ones).
     // The mattress is one long quad whose middle is further off than the nightstand beside it and the bed's own legs, so
     // it was drawn first and they over it: the nightstand stood on the covers and the legs showed through. Whatever is
@@ -65,13 +75,12 @@ LEVELS.push({
     SC.wallV(L, -1.55, -1.094, -1.45, -1.094, 0.22, 0.36, [120, 114, 104], { sortDist: 1.86 });
     for (const x of [-1.515, -1.485]) SC.wallV(L, x - 0.007, -1.092, x + 0.007, -1.092, 0.26, 0.31, [22, 20, 20], { sortDist: 1.859 });
     const c0 = () => L.creatures[0];
-    // the drawer, in the side of the nightstand that faces the bed, holds the bulb (and, on Nightmare, one that will not fit).
+    // the drawer, in the side of the nightstand that faces the bed, holds the bulb, and the television's remote control.
     // It is built into the nightstand (a container's card would turn with the view and stand out from it at an angle):
     // opened, it slides out toward you, dark inside, and they stand in it
-    // Both are held the same way, by the cap between finger and thumb, the glass up (js/hands.js)
-    const BULB_HELD = { grip: 'pinch', at: [0, 0.1], angle: -0.12, tip: [0, 0.05] };
-    const bulbs = [{ id: 'bulb', name: 'Bulb', z: decoy ? 0.07 : 0.15, opts: { w: 0.14, h: 0.2, icon: 'bulb', material: 'glass' } }]
-      .concat(decoy ? [{ id: 'bulb2', name: 'Bulb', z: 0.235, opts: { w: 0.14, h: 0.2, icon: 'bulbPin', decoy: true, decoyText: 'Wrong kind of bulb. It will not go in.', held: BULB_HELD, material: 'glass' } }] : []);
+    // (the remote is a tool: it stays with you; held in the fist by its lower end)
+    const bulbs = [{ id: 'bulb', name: 'Bulb', z: 0.07, opts: { w: 0.14, h: 0.2, icon: 'bulb', material: 'glass' } },
+      { id: 'remote', name: 'Remote', z: 0.235, opts: { w: 0.2, h: 0.2, icon: 'remote', tool: true, held: { grip: 'fist', at: [0.02, 0.26], angle: -0.3, size: 0.2 } } }];
     const drawer = mkTarget(L, {
       id: 'drawer', name: 'Drawer', x: 0.93, y: 0.43, z: 0.15, w: 0.4, h: 0.18, open: false, yielded: [],
       hint() { return drawer.open ? 'Nothing else in it.' : 'The nightstand drawer.'; },
@@ -91,8 +100,7 @@ LEVELS.push({
     const knobs = [knob(0), knob(0.09)];
     // The lamp's switch is the pull chain under its shade, and your hand pulls it (js/hands.js): the chain jerks and the switch
     // clicks as the hand gets there. With no bulb in, or the cord out, nothing comes of it; on Nightmare it sticks twice (the
-    // chain barely gives) before it goes. The light comes on as it is pulled. The wrong bulb is tried in the socket, will not
-    // go in, and drops onto the bed (soft), where it can be taken again.
+    // chain barely gives) before it goes. The light comes on as it is pulled.
     const CHAIN = [0.2, 0.31];
     const pull = (stiff, then) => {
       const was = G.hand.reach, go = () => { s.tugAt = L.t; s.stiff = stiff; AUDIO.sfx('switch'); if (then) then(); };
@@ -100,8 +108,7 @@ LEVELS.push({
       if (!r || r === was) go();   // no hand to show, or it is there already, still on the chain: at once
     };
     const lampT = mkTarget(L, {
-      id: 'lamp', name: 'Lamp', x: 1.2, y: 0.62, z: 0.15, w: 0.4, h: 0.55, accepts: ['bulb'].concat(decoy ? ['bulb2'] : []),
-      fumble: { decoy: { preset: 'bump', at: [0, 0.5], sfx: { land: 'flop' } } },
+      id: 'lamp', name: 'Lamp', x: 1.2, y: 0.62, z: 0.15, w: 0.4, h: 0.55, accepts: ['bulb'],
       hint() { return !s.fitted ? 'The lamp. Dead. No bulb in it.' : !s.plugged ? 'A bulb in it now. Nothing happens; the cord is loose somewhere.' : s.lampOn ? 'On.' : 'Off. Switch it on.'; },
       use(item) { if (item.id !== 'bulb') return false; s.fitted = true; lampT.accepts = []; AUDIO.sfx('fit'); G.say('The bulb goes in. Now the switch.', 'In.'); return true; },
       onEmpty() { pull(false); },   // no bulb in it yet, and nothing in hand: the chain is pulled, and nothing
@@ -146,6 +153,8 @@ LEVELS.push({
       hint() { return s.coversUp ? 'Up over you.' : 'The covers. Hold on to them until they are all the way up; they slip back if you let go too soon.'; },
       use(item) {
         if (item !== null) return false;
+        // (while it is at the television they do not hold in the dark either, and slip back; it is not there to take them)
+        if (!s.lampOn && s.mode === 'tv') { covers.done = false; covers.progress = 0; G.say('They will not hold in the dark. The lamp first.', 'The lamp first.'); return true; }
         if (!s.lampOn) { yank(); return true; }   // up in the dark: it is strong in the dark
         s.coversUp = true; AUDIO.sfx('hiss'); G.say('The covers are up.', 'Up.'); return true;
       },
@@ -368,7 +377,7 @@ LEVELS.push({
       s.jerk = u > CLOSE && u < DRAG ? Math.sin(Math.PI * (u - CLOSE) / (DRAG - CLOSE)) : 0;
       if (n !== G2.n && u >= CLOSE) { G2.n = n; AUDIO.sfx('cloth', panOf(c)); G.shake(0.12); }
       if (gt >= GRAB.pulls * GRAB.every && G.state === 'play') {   // they are at you: it comes up the bed after them
-        G.holding = null; c.deathSpec = Object.assign({}, c.CR.death, { delay: 0.05, sting: 'sting' }); die(c, 'grabbed');
+        G.holding = null; c.deathSpec = Object.assign({}, c.CR.death, { delay: 0.05, sting: 'sting' }); die(c, cause('grabbed'));
       }
     };
     // The light goes out with it down there: it rises, slowly, from behind the bed, and comes on again from where it is
@@ -400,11 +409,298 @@ LEVELS.push({
       c.reach = smoothstep((t - 0.45) / 0.15); c.gripY = hide - 0.03; c.faceAway = 0;
       s.yankK = smoothstep((t - 0.62) / 0.2);
       if (t >= 0.62 && !Y.tugged) { Y.tugged = true; AUDIO.sfx('tug', panOf(c)); G.shake(0.9); }
-      if (t >= 0.86 && G.state === 'play') { c.deathSpec = Object.assign({}, c.CR.death, { delay: 0.05, sting: 'sting' }); die(c, 'dark'); }   // at once: its hands at you, its face
+      if (t >= 0.86 && G.state === 'play') { c.deathSpec = Object.assign({}, c.CR.death, { delay: 0.05, sting: 'sting' }); die(c, cause('dark')); }   // at once: its hands at you, its face
     };
+    // ---- the television (the night's easter egg) ----
+    // A small old set on a low cabinet out past the foot of the bed, to the right of the doorway, turned to face you: a
+    // rounded screen, two dials and a speaker, a rabbit-ear aerial. Off, its glass is dark, with a faint reflection. It is
+    // only scenery until you carry the remote control (from the drawer); then it can be put on, once ("Turn on the TV").
+    // It comes on with a click to a second of snow, and then plays its little film (film, below) to the fright at the end
+    // of it. Its light is its own: it is not the lamp, and the night's rules know nothing of it.
+    // The thing, whatever it was doing (tvStart, tving): stops and looks round at it; scurries over to it on all fours (out
+    // through the middle of its opening first, if it was still behind it, and round the foot of the bed) and bends double
+    // over it, its face up against the glass; at the fright it is thrown back, its arms up, and then puts its fist through
+    // the screen: the set is dead, its glass burst out, smoking, its aerial bent. Then its head comes round to you, tilting
+    // on over past where a head should turn, and it comes on again from where it stands (tvEnd): in the dark, on its feet,
+    // with the night's clock where it was when the set came on (it has gained nothing by it); in the lamp's light, an arm
+    // across its face and down on its haunches, as the light always has it. It cannot catch you while this lasts. Caught
+    // after it, by whichever of its ways, the line is the television's (cause 'tv').
+    const TVB = 29, TVD = 2.68, KT = CREATURES.tall.SCALE;   // its bearing from the bed (degrees), and how far off its front is
+    const tvXZ = (x, z) => rotY(x, z, TVB * DEG);   // from across it and away from you, to the room
+    const TVW = 0.62, TVH = 0.46, TVY = 0.45, SCRW = 0.4, SCRH = 0.3, SCR0 = [-0.27, 0.085];   // the set's front; its screen (its lower left corner on the front)
+    const SCRC = (() => { const q = tvXZ(SCR0[0] + SCRW / 2, TVD + 0.03); return { x: q[0], y: TVY + SCR0[1] + SCRH / 2, z: q[1] }; })();   // the middle of the screen, in the room
+    // times, in seconds from the click: the snow until the film; the film's fright (scare); what the thing does; and, with
+    // nothing to break it, the set going off of itself (end)
+    const TVT = { look: 0.55, film: 1.0, scare: 7.0, lurch: 7.08, punch: 7.6, hit: 7.78, out: 8.3, turn: 8.75, resume: 9.85, end: 8.3 };
+    const TV_CUES = [['tvDrone', TVT.film + 0.05], ['tvCreak', TVT.film + 1.5], ['tvDrone', TVT.film + 2.4], ['tvCreak', TVT.film + 4.25], ['tvShriek', TVT.scare]];
+    const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+    SC.withYaw(L, TVB, () => {
+      SC.box(L, -0.36, 0.36, 0, TVY, TVD, TVD + 0.42, [52, 40, 32]);              // the low cabinet it stands on
+      SC.box(L, -TVW / 2, TVW / 2, TVY, TVY + TVH, TVD + 0.03, TVD + 0.38, [58, 46, 38]);   // the set
+      SC.sprite(L, 0, 0, TVD - 0.002, 0.72, TVY, (ctx, P) => {                   // the cabinet's two doors, and their knobs
+        for (const sd of [-1, 1]) { P_rect(ctx, sd > 0 ? 0.012 : -0.33, 0.04, 0.318, TVY - 0.09, P.col([40, 31, 25])); P_ell(ctx, sd * 0.05, 0.24, 0.014, 0.014, P.col([110, 100, 84])); }
+      }, { face: TVB * DEG + Math.PI, sortDist: TVD - 0.04 });
+    });
+    const tvPan = () => clamp(Math.sin(wrapPi(TVB * DEG - G.cam.yaw)), -0.85, 0.85);
+    const tvState = () => { const X = s.tv; return !X ? 'off' : X.smashAt !== undefined ? 'smashed' : X.offAt !== undefined ? 'done' : L.t - X.t0 < TVT.film ? 'snow' : 'film'; };
+    // how bright its picture is now (0..1): its glow in the room, and on the thing bent over it
+    const tvBright = () => {
+      const X = s.tv, st = tvState(), rf = SAVE.data.settings.reducedFlash;
+      if (st === 'snow') return rf ? 0.6 : 0.72 + 0.22 * hash(Math.floor(L.t * 20));
+      if (st === 'film') {
+        const t = L.t - X.t0, fl = rf ? 0.5 + 0.2 * Math.sin(L.t * 1.7) : hash(Math.floor(L.t * 14));
+        return t >= TVT.scare ? (rf ? lerp(0.4, 0.85, smoothstep((t - TVT.scare) / 0.5)) : 0.85 + 0.15 * fl) : 0.3 + 0.14 * fl + 0.12 * smoothstep((t - TVT.film - 4) / 1.4);
+      }
+      if (st === 'smashed') { const q = L.t - X.smashAt; return q < 0.3 && !rf ? 0.8 * (1 - q / 0.3) * hash(Math.floor(L.t * 40)) : 0; }   // (its sparks)
+      return 0;
+    };
+    // ---- its picture, drawn in the screen's own box: 0..1 across it and 0..1 up it ----
+    const INK = [5, 8, 7], PALE = [186, 206, 178];   // the film is black and a sickly pale green
+    const grey = (v, a) => rgba(mixc(INK, PALE, clamp(v, 0, 1)), a);
+    let snow = null;
+    const snowOf = () => {   // a few frames of snow, made once
+      if (snow) return snow;
+      const rnd = mulberry32(1212);
+      snow = [0, 1, 2, 3, 4].map(() => {
+        const cv = document.createElement('canvas'); cv.width = 44; cv.height = 33; const g = cv.getContext('2d');
+        for (let y = 0; y < 33; y++) for (let x = 0; x < 44; x++) { g.fillStyle = grey(Math.pow(rnd(), 1.5)); g.fillRect(x, y, 1, 1); }
+        return cv;
+      });
+      return snow;
+    };
+    // The film (f: seconds into it), in three shots. A long dark corridor, the view pushing slowly in, a door at the end
+    // of it under a lamp: the door comes open a crack. Close on the door's edge: a pale hand curls round it out of the
+    // dark, finger by finger. The corridor again, nearer, and creeping in: the hand is gone and the door swings wider on
+    // the dark, and there are two eyes in it; then they are gone too, and nothing moves. Then the fright (scare).
+    const corridor = (ctx, f, z, open, eyes, rm) => {
+      const cx = 0.5 + (rm ? 0 : 0.012 * Math.sin(f * 0.9)), x0 = cx - z, x1 = cx + z, y0 = 0.5 - z * 1.2, y1 = 0.5 + z * 1.15;
+      P_poly(ctx, [[0, 1], [1, 1], [x1, y1], [x0, y1]], grey(0.07)); P_poly(ctx, [[0, 0], [1, 0], [x1, y0], [x0, y0]], grey(0.2));
+      P_poly(ctx, [[0, 0], [x0, y0], [x0, y1], [0, 1]], grey(0.12)); P_poly(ctx, [[1, 0], [x1, y0], [x1, y1], [1, 1]], grey(0.15));
+      for (let i = 0; i < 3; i++) {   // the doorways along it, coming out past you as the view goes in
+        const k = Math.pow(((i + 0.35) / 3 + f * 0.035) % 1, 1.8), ax = lerp(x0, 0, k), bx = lerp(x1, 1, k), ay = lerp(y0, 0, k), by = lerp(y1, 1, k);
+        ctx.strokeStyle = grey(0.02); ctx.lineWidth = 0.008 + 0.03 * k; ctx.strokeRect(ax, ay, bx - ax, by - ay);
+      }
+      P_ell(ctx, cx, y0 - z * 0.12, z * 0.8, z * 0.1, grey(0.34));   // the lamp's pool of light on the floor before the door
+      P_rect(ctx, x0, y0, 2 * z, y1 - y0, grey(0.3));                 // the end wall
+      // the door's leaf, hinged on the left and swinging in: the dark shows down its right side
+      const dw = z * 1.05, dh = (y1 - y0) * 0.88, dx = cx - dw / 2, ex = dx + dw * (1 - open);
+      P_rect(ctx, dx - z * 0.06, y0, dw + z * 0.12, dh + z * 0.06, grey(0.13)); P_rect(ctx, dx, y0, dw, dh, grey(0)); P_rect(ctx, dx, y0, dw * (1 - open), dh, grey(0.66));
+      P_ell(ctx, ex - z * 0.1, y0 + dh * 0.46, z * 0.04, z * 0.05, grey(0.18));
+      if (eyes > 0) for (const sd of [-1, 1]) P_ell(ctx, ex + dw * open * 0.5 + sd * z * 0.11, y0 + dh * 0.78, z * 0.05, z * 0.065, grey(1, eyes));
+    };
+    const film = (ctx, f, rm) => {
+      if (f < 2.6) corridor(ctx, f, 0.2 + 0.035 * f / 2.6, 0.2 * smoothstep((f - 1.5) / 0.9), 0, rm);
+      else if (f < 4.2) {
+        const q = f - 2.6, k = 1 + (rm ? 0 : 0.05 * q / 1.6), E = 0.56;   // (E: the edge of the door across the picture)
+        ctx.save(); ctx.translate(E, 0.5); ctx.scale(k, k); ctx.translate(-E, -0.5);
+        P_rect(ctx, -0.1, -0.1, 1.2, 1.2, grey(0)); P_rect(ctx, -0.1, -0.1, E + 0.1, 1.2, grey(0.6));
+        P_rect(ctx, 0.08, 0.1, 0.3, 0.34, grey(0.52)); P_rect(ctx, 0.08, 0.54, 0.3, 0.4, grey(0.52)); P_rect(ctx, E - 0.025, -0.1, 0.025, 1.2, grey(0.8));   // its panels; its edge, catching the light
+        for (let i = 0; i < 4; i++) {   // the hand: each finger comes round the edge and lies along the face of the door
+          const g = smoothstep((q - 0.25 - i * 0.26) / 0.24), y = 0.68 - i * 0.115, l = (i === 0 || i === 3 ? 0.21 : 0.27) * g;
+          if (g > 0) { P_limb(ctx, [[E + 0.07, y + 0.01], [E - 0.01, y + 0.012], [E - 0.01 - l, y - 0.02]], 0.075, grey(1)); P_ell(ctx, E - 0.012 - l, y - 0.02, 0.02, 0.026, grey(0.7)); }
+        }
+        ctx.restore();
+      } else corridor(ctx, f, 0.3 + 0.14 * smoothstep((f - 4.2) / 1.3), 0.3 + 0.34 * smoothstep((f - 4.2) / 1.1), smoothstep((f - 4.7) / 0.3) * (1 - smoothstep((f - 5.35) / 0.1)), rm);
+    };
+    // The fright (q: seconds into it): a pale screaming face is suddenly all there is on the screen, shaking, the picture
+    // flashing behind it. With flashes reduced it comes up out of the dark instead, and holds still.
+    const scare = (ctx, q, rf, rm) => {
+      const k = rf ? 1 : lerp(0.2, 1, easeOut(clamp(q / 0.09, 0, 1))), still = rf || rm;
+      ctx.save(); if (rf) ctx.globalAlpha *= smoothstep(q / 0.5);
+      P_rect(ctx, 0, 0, 1, 1, grey(rf || Math.floor(q * 14) % 2 ? 0 : 0.2));
+      ctx.translate(0.5 + (still ? 0 : 0.03 * Math.sin(q * 91)), 0.5 + (still ? 0 : 0.03 * Math.sin(q * 67 + 1))); ctx.scale(k, k);
+      P_ell(ctx, 0, 0.12, 0.47, 0.66, grey(0.1));    // its hair
+      P_ell(ctx, 0, 0, 0.33, 0.52, grey(1));         // its face
+      P_poly(ctx, [[-0.37, 0.56], [-0.31, 0.02], [-0.21, 0.4], [-0.08, 0.56]], grey(0.08)); P_poly(ctx, [[0.37, 0.56], [0.32, -0.04], [0.2, 0.38], [0.04, 0.56]], grey(0.08));
+      for (const sd of [-1, 1]) { P_ell(ctx, sd * 0.135, 0.14, 0.09, 0.125, grey(0)); P_ell(ctx, sd * 0.128, 0.13, 0.017, 0.022, grey(1)); }   // the hollows of its eyes, a pin of light in each
+      for (const sd of [-1, 1]) P_ell(ctx, sd * 0.025, -0.06, 0.012, 0.022, grey(0.25));
+      const mo = still ? 1 : 0.82 + 0.18 * Math.abs(Math.sin(q * 30));   // its mouth, wide open
+      P_ell(ctx, 0, -0.27, 0.125, 0.2 * mo, grey(0));
+      for (let i = -2; i <= 2; i++) P_rect(ctx, i * 0.042 - 0.015, -0.27 + 0.2 * mo * Math.sqrt(1 - Math.pow(i * 0.042 / 0.125, 2)) - 0.05, 0.03, 0.05, grey(0.86));
+      ctx.restore();
+    };
+    const HOLE = Array.from({ length: 13 }, (_, i) => { const a = i * TAU / 13, r = (i % 2 ? 0.15 : 0.27) + 0.09 * hash(i + 5); return [0.5 + Math.cos(a) * r, 0.5 + Math.sin(a) * r * 1.2]; });   // the hole its fist left in the glass
+    const picture = (ctx, P) => {
+      const X = s.tv, st = tvState(), S = SAVE.data.settings, rf = S.reducedFlash, rm = S.reducedMotion;
+      if (st === 'off' || st === 'done') {   // dark glass, the window faintly in it
+        P_rect(ctx, 0, 0, 1, 1, P.col([20, 25, 28]));
+        P_rect(ctx, 0.6, 0.48, 0.22, 0.34, rgba([96, 116, 156], 0.13)); P_rect(ctx, 0.705, 0.48, 0.012, 0.34, rgba([20, 25, 28], 0.6)); P_rect(ctx, 0.6, 0.64, 0.22, 0.016, rgba([20, 25, 28], 0.6));
+        const q = st === 'done' ? L.t - X.offAt : 9;   // gone off: the picture drawn in to a line, a dot, and out
+        if (q < 0.5) P_ell(ctx, 0.5, 0.5, lerp(0.5, 0.012, smoothstep(q / 0.2)), lerp(0.016, 0.012, smoothstep(q / 0.2)), grey(1, 1 - smoothstep((q - 0.2) / 0.3)));
+      } else if (st === 'smashed') {
+        P_rect(ctx, 0, 0, 1, 1, P.col([24, 28, 30]));
+        HOLE.forEach(([x, y], i) => { if (i % 2 === 0) P_line(ctx, x, y, 0.5 + (x - 0.5) * 2.4, 0.5 + (y - 0.5) * 2.4, 0.007, 'rgba(196,210,204,0.34)'); });   // cracks, out to its edges
+        P_poly(ctx, HOLE, 'rgb(2,2,3)');
+        ctx.strokeStyle = 'rgba(196,210,204,0.5)'; ctx.lineWidth = 0.008; ctx.lineJoin = 'miter'; ctx.beginPath(); HOLE.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.stroke();   // the broken edge of the glass
+      } else {
+        const t = L.t - X.t0;
+        if (st === 'snow') {
+          P_rect(ctx, 0, 0, 1, 1, grey(0.45));
+          ctx.save(); if (rf) ctx.globalAlpha *= 0.3; ctx.drawImage(snowOf()[Math.floor(L.t * (rf ? 3 : 22)) % 5], 0, 0, 1, 1); ctx.restore();
+        } else if (t < TVT.scare) film(ctx, t - TVT.film, rm);
+        else scare(ctx, t - TVT.scare, rf, rm);
+        for (let i = 0; i < 12; i++) P_rect(ctx, 0, i / 12, 1, 0.03, 'rgba(0,0,0,0.24)');   // its lines
+        P_rect(ctx, 0, 0.98 - (L.t * (rf ? 0.07 : 0.3)) % 1.3, 1, 0.12, 'rgba(255,255,255,0.05)');   // a band rolling down it
+        P_rect(ctx, 0, 0, 1, 1, rgba([0, 0, 0], rf ? 0.06 : 0.03 + 0.15 * hash(Math.floor(L.t * 17))));   // and its flicker
+      }
+      if (st !== 'smashed') P_poly(ctx, [[0.06, 0.94], [0.36, 0.94], [0.17, 0.62], [0.04, 0.72]], 'rgba(226,234,238,0.055)');   // the shine on the glass
+    };
+    const rounded = (ctx, x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath(); };
+    // the set's front: the screen in its dark surround, and beside it two dials over the slots of the speaker
+    const drawSet = (ctx, P) => {
+      P_rect(ctx, -TVW / 2, 0, TVW, TVH, P.col([64, 50, 40])); P_rect(ctx, -TVW / 2 + 0.014, 0.014, TVW - 0.028, TVH - 0.028, P.col([46, 38, 33]));
+      P_rect(ctx, 0.165, 0.03, 0.125, TVH - 0.06, P.col([34, 30, 29]));
+      for (const y of [0.34, 0.235]) { P_ell(ctx, 0.2275, y, 0.038, 0.038, P.col([128, 120, 106])); P_ell(ctx, 0.2275, y, 0.024, 0.024, P.col([64, 58, 54])); P_line(ctx, 0.2275, y, 0.2275 + (y > 0.3 ? 0.016 : -0.02), y + 0.02, 0.008, P.col([170, 160, 140])); }
+      for (let i = 0; i < 5; i++) P_rect(ctx, 0.185, 0.05 + i * 0.026, 0.085, 0.011, P.col([14, 13, 13]));
+      ctx.fillStyle = P.col([20, 19, 19]); rounded(ctx, SCR0[0] - 0.018, SCR0[1] - 0.018, SCRW + 0.036, SCRH + 0.036, 0.06); ctx.fill();
+      ctx.save(); rounded(ctx, SCR0[0], SCR0[1], SCRW, SCRH, 0.05); ctx.clip();
+      ctx.translate(SCR0[0], SCR0[1]); ctx.scale(SCRW, SCRH); picture(ctx, P);
+      ctx.restore();
+    };
+    // its aerial, two rods in a V; the blow that kills the set bends one over
+    const drawAerial = (ctx, P) => {
+      const col = P.col([132, 130, 122]), bent = s.tv && s.tv.smashAt !== undefined ? smoothstep((L.t - s.tv.smashAt) / 0.12) : 0;
+      P_ell(ctx, 0, 0.02, 0.045, 0.024, P.col([40, 36, 34]));
+      P_limb(ctx, [[-0.012, 0.03], [-0.12, 0.23], [lerp(-0.225, -0.31, bent), lerp(0.43, 0.2, bent)]], 0.009, col); P_limb(ctx, [[0.012, 0.03], [0.2, 0.4]], 0.009, col);
+    };
+    // the glass bursting out of it, the sparks, and then a thread of smoke for a few seconds (about the middle of the screen)
+    const drawBurst = ctx => {
+      const q = L.t - s.tv.smashAt, rf = SAVE.data.settings.reducedFlash;
+      ctx.translate(0, 0.7);
+      if (q < 0.9) for (let i = 0; i < 16; i++) {
+        const a = hash(i) * TAU, v = 0.5 + 1.3 * hash(i + 31), x = Math.cos(a) * v * q * 0.8 - 0.3 * q, y = Math.sin(a) * v * q * 0.55 + 0.6 * q - 2.6 * q * q, r = 0.016 + 0.024 * hash(i + 7), sp = q * (8 + 10 * hash(i + 3)) + i;
+        P_poly(ctx, [[x + Math.cos(sp) * r, y + Math.sin(sp) * r], [x + Math.cos(sp + 2.3) * r * 0.7, y + Math.sin(sp + 2.3) * r * 0.7], [x + Math.cos(sp + 4) * r, y + Math.sin(sp + 4) * r]], rgba([200, 218, 212], 0.9 * (1 - q / 0.9)));
+      }
+      if (q < 0.45) for (let i = 0; i < 10; i++) { const a = hash(i + 60) * TAU, v = 1.0 + 1.6 * hash(i + 70); P_ell(ctx, Math.cos(a) * v * q, Math.sin(a) * v * q - 1.6 * q * q, 0.009, 0.009, rgba([255, 236, 170], 1 - q / 0.45)); }
+      if (q < 0.1 && !rf) P_ell(ctx, 0, 0, 0.2 - q, 0.16 - q, rgba([255, 250, 230], 0.75 * (1 - q / 0.1)));
+      const a = 0.4 * smoothstep((q - 0.25) / 0.6) * (1 - smoothstep((q - 3.5) / 2.8));
+      if (a > 0) {
+        ctx.strokeStyle = rgba([150, 150, 158], a); ctx.lineWidth = 0.016; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+        for (let y = 0, top = Math.min(0.6, (q - 0.25) * 0.24); y <= top; y += 0.03) { const x = Math.sin(y * 14 - L.t * 1.5) * 0.012 * (1 + y * 5) + y * 0.06; if (y) ctx.lineTo(x, 0.02 + y); else ctx.moveTo(x, 0.02 + y); }
+        ctx.stroke();
+      }
+    };
+    const tvFront = SC.withYaw(L, TVB, () => SC.mkSprite(L, 0, TVY, TVD + 0.028, TVW, TVH, drawSet, { face: TVB * DEG + Math.PI, sortDist: TVD - 0.06 }));
+    const tvAerial = SC.withYaw(L, TVB, () => SC.mkSprite(L, 0.03, TVY + TVH, TVD + 0.2, 0.7, 0.5, drawAerial, { sortDist: TVD - 0.05 }));
+    const tvBurst = { kind: 'sprite', x: SCRC.x * 0.96, y: SCRC.y - 0.7, z: SCRC.z * 0.96, w: 1.4, h: 1.4, draw: drawBurst, sortDist: 2.13, noLight: true };
+    const tvP = tvXZ(0, TVD + 0.03);
+    const tvT = mkTarget(L, {
+      id: 'tv', name: 'Turn on the TV', x: tvP[0], y: TVY, z: tvP[1], w: TVW, h: TVH, accepts: ['remote'],
+      hint() { return 'Turn on the TV'; },
+      use(item) { if (item.id !== 'remote' || s.tv || s.mode === 'yank' || G.state !== 'play') return false; tvOn(); return true; },
+    });
+    // (scenery until the remote is carried; put on once; and not once it has begun to take you)
+    Object.defineProperty(tvT, 'hidden', { get: () => !!s.tv || s.mode === 'yank' || !G.hasItem('remote') });
+    const tvOn = () => {
+      s.tv = { t0: L.t, cues: [] };
+      foundEgg();   // the night's easter egg, found the moment the set comes on (kept in the save: game.js)
+      AUDIO.sfx('tvOn', tvPan()); AUDIO.sfx('tvStatic', tvPan());
+      tvStart(c0());
+    };
+    // the set itself: its film's sounds as they come (small and tinny, from where it stands); left to itself (the night won
+    // while it played), it goes off when the film is over
+    const tvRun = () => {
+      const X = s.tv;
+      if (!X || X.smashAt !== undefined || X.offAt !== undefined) return;
+      const t = L.t - X.t0;
+      TV_CUES.forEach(([name, at], i) => { if (t >= at && !X.cues[i]) { X.cues[i] = true; AUDIO.sfx(name, tvPan()); } });
+      if (t >= TVT.end && s.mode !== 'tv') X.offAt = L.t;
+    };
+    // where the middle of the screen is seen in the plane the thing stands in, about its feet (the tall one's c.tv.at)
+    const tvAt = c => {
+      const p = c.pos(), r = Math.hypot(p.x, p.z) || 1, ux = p.x / r, uz = p.z / r, k = r / Math.max(0.5, SCRC.x * ux + SCRC.z * uz);
+      return [((SCRC.x * k - p.x) * uz - (SCRC.z * k - p.z) * ux) / KT, (L.eyeH + (SCRC.y - L.eyeH) * k - p.y - (c.yOff || 0)) / KT];
+    };
+    // where it stands to watch, beside the set and a little nearer you; and the corner it goes round, from the closet's
+    // side of the bed, to get there (the foot of the bed between)
+    const WATCH = tvXZ(-0.56, TVD - 0.32), ROUND = [-1.2, 2.35];
+    const tvStart = c => {
+      const X = s.tv;
+      X.u = c.u;
+      X.c0 = { duck: c.duck || 0, eyeTo: c.duck ? c.eyeTo : 0.52, peer: c.peer || 0, flinch: c.flinch || 0, reach: c.reach || 0 };
+      s.mode = 'tv'; s.grab = null; s.jerk = 0; s.duck = null; s.switched = true; s.thumps = null;
+      stopWalking(c); hold(c, c.dist);
+      c.tv = { at: tvAt(c), side: 1, look: 0, watch: 0, lurch: 0, punch: 0, turn: 0, nod: 0, lit: 0 };
+    };
+    // its way to the set, in the room: as it goes to the bed (route: out through the middle of its opening first), then
+    // round the foot of the bed if it is on the closet's side of it
+    const tvRoute = c => {
+      const [wd, wl] = toFrame(c.lane, WATCH[0], WATCH[1]);
+      const pts = route(c, { d: c.dist, lat: c.lat }, { d: wd, lat: wl }).pts.slice(0, -1).map(q => { const p = APPROACH.position(c.lane, q.d, q.lat, L.eyeH); return [p.x, p.z]; });
+      const a = pts[pts.length - 1];
+      if (a[0] < -0.85 && a[1] < 2.25) pts.push(ROUND);
+      pts.push(WATCH);
+      const segs = pts.slice(1).map((q, i) => Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]));
+      return { pts, segs, len: segs.reduce((x, y) => x + y, 0) };
+    };
+    const tvAlong = (rt, m) => {
+      let x = clamp(m, 0, 1) * rt.len;
+      for (let i = 0; i < rt.segs.length; i++) {
+        const l = rt.segs[i];
+        if (x <= l || i === rt.segs.length - 1) { const k = l > 1e-9 ? clamp(x / l, 0, 1) : 1, a = rt.pts[i], b = rt.pts[i + 1]; return [lerp(a[0], b[0], k), lerp(a[1], b[1], k)]; }
+        x -= l;
+      }
+      return rt.pts[rt.pts.length - 1];
+    };
+    const tving = c => {
+      const X = s.tv, t = L.t - X.t0, C = X.c0, T = c.tv, rm = SAVE.data.settings.reducedMotion;
+      // it lets go of whatever it was doing, and looks round
+      c.flinch = C.flinch * (1 - smoothstep(t / 0.3)); c.reach = C.reach * (1 - smoothstep(t / 0.2)); c.faceAway = 0;
+      c.peer = C.peer * (1 - smoothstep((t - TVT.look + 0.1) / 0.4));
+      // then over to it, quickly, down on all fours (the further, the longer it takes, a little)
+      if (t >= TVT.look && !X.route) { X.route = tvRoute(c); X.go = clamp(X.route.len / 3.2, 0.7, 1.5); X.arrive = TVT.look + X.go; }
+      const m = X.route ? smoothstep((t - TVT.look) / X.go) : 0;
+      // (thrown back at the fright it goes a step back from the set, and in again behind its fist)
+      const lurchIn = smoothstep((t - TVT.lurch) / (rm ? 0.3 : 0.09)), lurchOut = smoothstep((t - TVT.punch) / 0.14), back = (rm ? 0.1 : 0.24) * lurchIn * (1 - lurchOut);
+      if (X.route) {
+        let p = tvAlong(X.route, m);
+        if (back > 0) { const ax = WATCH[0] - SCRC.x, az = WATCH[1] - SCRC.z, al = Math.hypot(ax, az); p = [p[0] + ax / al * back, p[1] + az / al * back]; }
+        // from the closet's way it is counted along the doorway's from here on (round the corner of the bed's foot)
+        if (c.lane.idx !== 0 && ((p[1] > 1.2 && p[0] < -1.05) || m >= 1)) reframe(c, L.lanes[0]);
+        const [d, lat] = toFrame(c.lane, p[0], p[1]), was = X.at || p;
+        hold(c, d); c.runLat = lat;
+        c.crawl = (c.crawl || 0) + Math.hypot(p[0] - was[0], p[1] - was[1]) * c.CR.CRAWL * 0.5; X.at = p;
+      }
+      const downK = smoothstep((t - TVT.look) / 0.22), upK = X.route ? smoothstep((t - X.arrive + 0.15) / 0.5) : 0;
+      c.duck = lerp(lerp(C.duck, 1, downK), 0, upK); c.eyeTo = lerp(C.eyeTo, 0.52, downK);
+      if (upK > 0 && !X.planted) { X.planted = true; c.walk = null; c.CR.pace(c, 0, c.hold, c.runLat); }   // (its feet together under it there)
+      // bent over the set, watching; thrown back; its fist through the screen, and out; its head round to you
+      const punchIn = easeIn(clamp((t - TVT.punch) / (TVT.hit - TVT.punch), 0, 1)), punchOut = smoothstep((t - TVT.out) / 0.42);
+      T.at = tvAt(c); T.side = T.at[0] >= 0 ? 1 : -1;
+      T.look = smoothstep(t / 0.3); T.watch = upK * (1 - lurchIn); T.lurch = lurchIn * (1 - lurchOut) * (rm ? 0.55 : 1); T.punch = punchIn * (1 - punchOut);
+      T.turn = smoothstep((t - TVT.turn) / (TVT.resume - TVT.turn - 0.05));
+      T.nod = (0.07 * Math.sin(L.t * 1.3) + 0.035 * Math.sin(L.t * 3.1)) * (rm ? 0.4 : 1);
+      T.lit = tvBright() * clamp(1.6 - Math.hypot(c.pos().x - SCRC.x, c.pos().z - SCRC.z), 0, 1);
+      if (t >= TVT.lurch && !X.yelped) { X.yelped = true; AUDIO.sfx('tvYelp', panOf(c)); }
+      if (t >= TVT.hit && X.smashAt === undefined) { X.smashAt = L.t; AUDIO.sfx('tvSmash', tvPan()); if (!rm) G.shake(0.45); }
+      if (t >= TVT.resume) tvEnd(c);
+    };
+    // and it comes on again from where it stands, the night's clock where it was when the set came on
+    const tvEnd = c => {
+      const X = s.tv;
+      X.over = true; c.u = X.u;
+      if (c.tv.turn > 0.99) c.tv.look = 0;   // (its head is round to you)
+      if (shown() || L.won) startDuck(c);   // the lamp is on: an arm across its face and down, as the light always has it
+      else { s.latBias = 0; s.latBias = c.runLat - latAt(c, c.dist); come(c); }
+    };
+    // (afterwards its head comes back upright as it goes; broken off, by the night being won, it lets all of it go)
+    const tvAfter = (c, dt) => {
+      const T = c.tv;
+      if (!T) return;
+      T.at = tvAt(c); T.lit = 0;
+      for (const k of ['look', 'watch', 'lurch', 'punch']) T[k] = Math.max(0, T[k] - dt / 0.35);
+      T.turn = Math.max(0, T.turn - dt / (s.mode === 'duck' ? 0.8 : 1.6));
+      if (!(T.look + T.watch + T.lurch + T.punch + T.turn > 0)) c.tv = null;
+    };
+    // caught after the television was put on, by whichever of its ways: the television's own line, and no toast before it
+    const cause = k => { if (!s.tv) return k; G.lastToast = { msg: '', t: -10 }; return 'tv'; };
+    L.deathCause = () => (s.tv ? cause('default') : null);
+    L.onCatch = () => s.mode === 'tv';   // (it cannot catch you while it is at the set)
     const behave = (c, dt) => {
       if (s.mode === 'yank') { yanking(c); return; }
       ready(c);   // it only peers, at first
+      if (s.mode === 'tv') { if (L.won) tvEnd(c); else { tving(c); return; } }   // at the television (the night won meanwhile, it breaks off)
+      tvAfter(c, dt);
       const lit = shown() || L.won;
       if (lit && s.mode !== 'duck') startDuck(c);
       else if (!lit && s.mode === 'duck') { s.mode = 'rise'; s.riseAt = L.t; s.rise0 = c.duck || 0; }
@@ -430,6 +726,7 @@ LEVELS.push({
       c.inLight = s.lampOn;
       behave(c, dt);
       thumping();
+      tvRun();
       if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', Math.sin(wrapPi(-Math.PI / 4 - G.cam.yaw)) * 0.7, true); } } // the clock is on the dresser to the north-west, whichever way you face
     };
     // a cord on the floor: a pale cloth flex, so it shows on the dark boards; it goes under the bed, behind the mattress
@@ -492,6 +789,9 @@ LEVELS.push({
       strip(zE, x => up(x, yE) + th(x), zE - 0.03, x => up(x, yB), mixc(scalec(BLANKET, 0.82), scalec(SHEET, 0.74), p), COV - 0.003);
       R.glowAs(null);
       R.add(lampDetail);
+      // the television: its front (and its picture), its aerial; the glass bursting out of it, and its smoke
+      R.glowAs(tvT); R.add(tvFront); R.add(tvAerial); R.glowAs(null);
+      if (s.tv && s.tv.smashAt !== undefined && L.t - s.tv.smashAt < 6.5) R.add(tvBurst);
       // How low it must be to be out of sight behind the bed, where it is: the height of your line of sight there over the
       // bed's top where it leaves the bed (or over the covers' turned-down edge, if it is beyond that). That is only where
       // it goes down to: what is drawn of it is hidden by the bed itself, drawn over it (below).
@@ -587,8 +887,20 @@ LEVELS.push({
       }
       P_limb(ctx, [[-sd * 0.045, hy], [-sd * lerp(0.045, 0.08, open), hy - 0.03], [-sd * lerp(0.03, 0.085, open), hy - lerp(0.05, 0.07, open)]], 0.013, col);   // the thumb
     };
-    L.dynamicLights = () => { if (!shown()) return []; const p = L.pt(1.2, 1.05, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }]; };
-    L.glows = () => { if (!shown()) return null; const p = L.pt(1.2, 1.0, 0.15); return [{ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }]; };
+    // (the television's picture lights what is near it a little, and flickers: its own light, not the lamp's)
+    const TVL = tvXZ(SCR0[0] + SCRW / 2, TVD - 0.4);
+    L.dynamicLights = () => {
+      const out = [], b = tvBright();
+      if (shown()) { const p = L.pt(1.2, 1.05, 0.15); out.push({ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }); }
+      if (b > 0.01) out.push({ x: TVL[0], y: SCRC.y + 0.05, z: TVL[1], r: 2.4, i: 0.6 * b, color: [156, 196, 172] });
+      return out;
+    };
+    L.glows = () => {
+      const out = [], b = tvBright();
+      if (shown()) { const p = L.pt(1.2, 1.0, 0.15); out.push({ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }); }
+      if (b > 0.01) out.push({ x: SCRC.x, y: SCRC.y, z: SCRC.z, r: 0.5, color: [170, 206, 184], a: 0.2 * b });
+      return out.length ? out : null;
+    };
     // ---- the win: the covers come up over your eyes, and it plays out under them ----
     // You look up from the covers at it once more, then they come up over your head: the hem rises across the view (the
     // middle first, where your hands are) and you are under the fabric, in the dark, the lamp a faint warm glow through
