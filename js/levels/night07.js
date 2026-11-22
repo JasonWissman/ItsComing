@@ -145,7 +145,9 @@ LEVELS.push({
       const p = at(a0, RR, 0), az = Math.atan2(p[0], p[2]);
       if (i % 3 === 0 && [0, 45, -45].every(l => Math.abs(wrapPi(az - l * DEG)) > 22 * DEG)) SC.sprite(L, p[0], 0, p[2], 0.06, 1.01, (ctx, P) => { ctx.scale(0.06, 1.01); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
     }
-    // two stanchions on the lamp room: the fuse box on one at chest height, the crank on the other at the waist. Each is
+    // two stanchions on the lamp room: the fuse box on one at chest height, the crank on the other at the chest too (all of
+    // it well inside the view looking ahead, turned to it: at the waist it lay across the bottom edge of that view and the
+    // top edge of the one looking down). Each is
     // fixed to the face of its stanchion that looks your way, and drawn after the stanchion, so the iron does not hide it
     // (nor the glow round it when you point at it). The crank is drawn flat on that face (MFACE: its front looks out across
     // the gallery); the fuse box is bolted to it on an iron wedge that turns it most of the way round toward you (FFACE),
@@ -157,7 +159,7 @@ LEVELS.push({
     // the fuse box: its foot at 1.1 m, turned on its wedge so its edge nearer the lamp room's middle is just off the
     // stanchion's face and the other stands out from it
     const fb = [fbP[0] - 0.05, 1.1, fbP[2] + 0.2 + Math.sin(-FFACE) * FBW / 2];
-    const WDS = 0.5, wd = [wdP[0], 0.7, wdP[2] + 0.22];                // the crank: its foot at 0.7 m, so nothing on the floor is behind it
+    const WDS = 0.5, wd = [wdP[0], 1.2, wdP[2] + 0.22];                // the crank: its foot at 1.2 m, clear above what you hold at the foot of the view
     const mounted = (x, z) => Math.hypot(x, z) + 0.012;   // just behind its own spot, well in front of the iron
     const MFACE = 0;
     // the wedge: an iron block between the stanchion's face and the back of the box, its top, bottom and outer side
