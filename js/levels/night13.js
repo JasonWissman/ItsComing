@@ -876,7 +876,7 @@ function buildGathering(L, s, c0, K) {
     const c = c0();
     E = s.egg = {
       t: 0, phase: 'rush', d0: c.dist, yaw0: c.yaw, joy: 0, glow: 0, thrown: [],
-      others: VOID_OTHERS.map((d, n) => Object.assign({}, d, { n, c: make(d.type, n), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, age: n % 3, on: false, came: false, took: false, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
+      others: VOID_OTHERS.map((d, n) => Object.assign({}, d, { n, c: make(d.type, n), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
     };
     s.ending = true; s.endT = 0; s.armAt = EGG.arm;
     // the thing in the hood: stopped where it is, and placed by its bearing and distance from here on
@@ -907,16 +907,16 @@ function buildGathering(L, s, c0, K) {
   // how each stands, comes and leaps: its own fields (js/creatures), set every frame. q: u (seconds since it set out),
   // rush, near, back (0..1 through each), joy (0..1), hop (0..1 through each leap; -1 on the ground)
   const POSE = {
-    walker(c, q, o) { o.poseDist = q.joy ? lerp(c.dist, 2.2, q.joy) : 0; },   // (its arms come up as they do when it is close)
-    crawler(c, q) { c.mode = q.joy ? 'scuttle' : 'pause'; c.modeT = 1; },
+    walker(c, q, o) { o.poseDist = q.joy > 0.01 ? lerp(c.dist, 2.2, q.joy) : 0; },   // (its arms come up as they do when it is close)
+    crawler(c, q) { c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; },
     smiler(c, q) { c.rush = q.joy; },
     watcher(c, q, o) {   // stone: it stands in one pose, and is in another each time it comes down
       if (!c.pose) c.pose = 2;
-      if (q.back >= 1 && !q.joy) c.pose = 2;   // (in its place: its hands up either side of its head, the chain in one and the lock in the other)
+      if (q.back >= 1 && q.joy < 0.05) c.pose = 2;   // (in its place: its hands up either side of its head, the chain in one and the lock in the other)
       const n = q.hop < 0 ? -1 : Math.floor(q.jt / q.T);
       if (n !== o.hops) { if (o.hops !== undefined && n >= 0) c.pose = 1 + (c.pose % 3); o.hops = n; }
     },
-    runner(c, q) { c.mode = q.back > 0.15 && !q.joy ? 'crouch' : 'sprint'; c.modeT = 1; },
+    runner(c, q) { c.mode = q.back > 0.15 && q.joy < 0.5 ? 'crouch' : 'sprint'; c.modeT = 1; },
     swimmer(c, q) {
       // it comes skimming in, only its head above the black floor as it was above the water, and bursts up out of it at you
       c.mode = 'up';
@@ -925,7 +925,7 @@ function buildGathering(L, s, c0, K) {
       c.lunge = k; c.yOff = lift * smoothstep(k);
     },
     climber(c, q) { c.lunge = 0.75 + 0.25 * Math.max(q.near, q.joy); },
-    customer(c, q) { c.shove = q.joy > 0 ? { k: q.joy, h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null; },
+    customer(c, q) { c.shove = q.joy > 0.01 ? { k: q.joy, h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null; },
     // (its long arm up, holding the notebook out to be seen; then high, waving)
     signalman(c, q, o) { const up = Math.max(q.back, q.joy); c.reach = up; c.grip = o.held[0] ? 1 : 0; c.reachSide = 1; c.reachTo = { x: lerp(0.42, 0.5 + (q.still ? 0 : 0.3 * Math.sin(q.t * 7)), q.joy), y: lerp(2.05, 3.1, q.joy) }; },
     other(c, q, o, dt) { c.danceT = (c.danceT || 0) + dt * (1 + 2 * q.joy); c.dance = 1; c.smile = 1; const it = o.held[0]; c.carry = it ? (ctx, P) => it.icon(ctx, P) : null; },   // (the box in its arms, as it carried it off: its own drawing)
@@ -987,7 +987,7 @@ function buildGathering(L, s, c0, K) {
       o.hopY = 0; o.squash = 1;
       if (jt >= 0) {
         if (o.threw === null) throwAll(o, t);
-        const amp = s.leaving ? 0 : joyAmp(jt, o);
+        const amp = joyAmp(jt, o) * (s.leaving ? o.joyK : 1);   // (as you go on, they come down and stand)
         if (still) o.hopY = 0.05 * amp * (0.5 + 0.5 * Math.sin(jt * 2.2 + o.ph * 6));
         else if (amp > 0.02) {
           const A = o.hop * amp, T = Math.sqrt(8 * A / GR) + 0.08, x = (jt / T) % 1, air = clamp(x * (T / (T - 0.08)), 0, 1);
@@ -996,7 +996,8 @@ function buildGathering(L, s, c0, K) {
         }
       }
       o.age++;
-      const q = { u, rush, near, back, joy: jt >= 0 && !s.leaving ? span(jt, 0, 0.3) : 0, hop, jt, T: hopT, t, still, R1 };
+      o.joyK += ((jt >= 0 && !s.leaving ? 1 : 0) - o.joyK) * Math.min(1, dt * 7);
+      const q = { u, rush, near, back, joy: smoothstep(o.joyK), hop, jt, T: hopT, t, still, R1 };
       if (POSE[o.type]) POSE[o.type](oc, q, o, dt);
       o.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3 - o.ph * 0.5) / 1.6, 0, 1) : 1;
     }
@@ -1012,7 +1013,7 @@ function buildGathering(L, s, c0, K) {
     if (E.joy) { c.mood = CREATURES.demon.moods - 1; c.unveil = span(t, EGG.unveil[0], EGG.unveil[1]); c.settle = 1; c.tilt0 = 0; }
     c.disrobe = clamp((t - EGG.disrobe[0]) / (EGG.disrobe[1] - EGG.disrobe[0]), 0, 1);
     const dj = t - EGG.disrobe[1] + 0.4;
-    c.dance = still || s.leaving || dj <= 0 ? 0 : Math.min(1, dj * 2) * joyAmp(dj, null);
+    c.dance += ((still || s.leaving || dj <= 0 ? 0 : Math.min(1, dj * 2) * joyAmp(dj, null)) - c.dance) * Math.min(1, dt * 7);
     if (t >= EGG.joy && !E.cheered) {
       E.cheered = true; AUDIO.sfx('cheer', 0); AUDIO.sfx('win');
       if (!still) G.shake(0.2);

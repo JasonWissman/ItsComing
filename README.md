@@ -674,6 +674,40 @@ some on the ground, so you have to turn and look down to find them.
     socks and blue sneakers, and it dances a little beside the robe on the grass. The view is yours again there: turn, look down and zoom as in
     any night, for as long as you like; only if you do nothing at all for five seconds does a
     small line say CLICK WHEN YOU ARE READY.
+    The night's easter egg ("Take up everything."): have every one of the sixteen things in
+    your hand at least once in the same attempt. Your hands hold six, so some must be put
+    down again to take up the rest, while it comes on enraged; a thing taken up twice counts
+    once, and a full hand reaching for a seventh takes nothing. The moment the last thing not
+    yet taken is in your hand the night is won another way (the easter egg is saved then, and
+    the run's clock stops as at any win): it stops where it is and backs off into the dark,
+    the view is taken (level, to the north), and out of the dark each of the twelve others,
+    in the order of their nights, 0.7 s apart, rushes up to you along its own way (half a
+    second, to under two metres, with its own steps and voice and a jolt of the view), takes
+    what was its own out of your hands, or from the floor where you put it down, and backs
+    away slowly, facing you, holding it: the walker the hammer and the planks, the crawler
+    the car keys, the warden the salt and the lantern, the stone one the chain and the
+    padlock (never seen to move: it is nearer all at once, three times, and goes back a pose
+    at a time), the runner the bow and the arrows, the swimmer the bar (it skims in, only
+    its head above the black floor, and bursts up out of it; a pool of its own lies round
+    it), the climber the fuse, the customer the winch handle (the nearest thing to its
+    shutter crank), the shade the notebook, the doll the music box (in its arms, as it
+    carried it off), the carrier the matches, and the tall one the bulb. Each is drawn by
+    its own code, in its own poses, with what it holds at its hand. They end in two rows in
+    an arc in front of you, the shorter in front and the taller behind, six either side, and
+    the thing in the hood comes back, calm, two pale eyes, into the middle of them, a faint
+    cold light behind them all. They stand there, still and quiet, three seconds. Then all
+    at once (a bright flourish, and the chord of a night won) they throw it all up into the
+    air, where it turns, and falls, and lies where it lands; and they leap up and down for
+    joy, each in its own time, arms up where they have them (the stone one in a new pose
+    each time it comes down), as its happy face comes up out of the hood and it takes off
+    its robe and dances, the music box plays, and the dark turns to the pale light and the
+    meadow, all thirteen of them in it, leaping, gentler after a while and now and then a
+    little more. From there it is the ending as it always is: the view is yours, a press
+    goes on (they all fade, glittering, as the bedroom comes), the last screen, The End,
+    the results, the campaign complete. With reduced motion each comes slower and from
+    nearer with no jolt, the things thrown turn slowly, and a leap is only a gentle bob.
+    The view closes in a little on a wide screen (a phone held sideways) so the whole
+    gathering fills it, and eases back out as the meadow comes.
 
 Creatures move faster when you are not looking at them, but otherwise they
 come at a steady pace, no faster at the end than at the start. A thread runs through the
