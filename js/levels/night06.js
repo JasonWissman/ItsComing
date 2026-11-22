@@ -795,7 +795,7 @@ LEVELS.push({
         const k = clamp((L.t - fr.t) / fr.dur, 0, 1), p = ringFlight(fr, k), sc = lerp(fr.scale, 1, smoothstep(k * 5)), open = clamp(Math.abs(L.eyeH - p[1]) / Math.max(0.5, p[3]) + 0.13 * Math.sin(L.t * 13), 0.1, 0.8);
         const w = 1.0 * sc;
         R.add({ kind: 'sprite', x: p[0], y: p[1] - w / 2, z: p[2], w, h: w, noContact: true, draw: (ctx, P) => { ctx.translate(0, w / 2); ctx.scale(sc, sc); ctx.rotate(0.12 * Math.sin(L.t * 9)); SW.lifeRing(ctx, P, 0, 0, SW.RING_R, open, L.t * 15, null, SW.RING_TUBE); } });
-      } else if (fr && fr.phase === 'float') {
+      } else if (fr && fr.phase === 'float' && !L.creature.ringOn) {
         const p = APPROACH.position(L.lanes[fr.lane], fr.d, 0, L.eyeH), q = L.t - fr.land, k = SW.ringK(fr.d), soft = SAVE.data.settings.reducedMotion ? 0.6 : 1;
         R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: 1.0, h: 0.5, noContact: true, draw: (ctx, P) => {
           for (let i = 0; i < 2; i++) { const u = (i * 0.5 + L.t * 0.22) % 1, rr = SW.RING_R + 0.12 + u * 0.5; ctx.strokeStyle = P.cola([150, 165, 175], 0.4 * (1 - u)); ctx.lineWidth = 0.02; ctx.beginPath(); ctx.ellipse(0, 0, rr, rr * k, 0, 0, TAU); ctx.stroke(); }
