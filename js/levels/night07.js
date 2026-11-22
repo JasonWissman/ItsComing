@@ -333,17 +333,19 @@ LEVELS.push({
     // Once the fuse is out of it the toolbox is only a box, and heavy: it can be taken up itself, and with it in hand a click
     // on the thing (looking over the rail at it) lets it go over the rail straight down onto it. The tower flares out below
     // the gallery, so the box does not fall clear: it hits the stone and comes down the wall, tumbling and banging, spilling
-    // a tool or two. Within REACH of the gallery floor (the middle of the thing that far down or less) it is still on the
-    // stone when it gets there and catches it full in its upturned face, with a clonk: its head snaps round, one hand
+    // a tool or two. However far down the thing is, anywhere on the tower below you, the box comes all the way down the
+    // stone to it (the fall takes as long as that height does: under a second to it just under the rail, three or so to
+    // it at the foot of its climb), drifting across the face to where it is as it comes, so it lands on it where it has
+    // got to by then, and catches it full in its upturned face, with a clonk: its head snaps round, one hand
     // and both feet come off the stone and it hangs by the other arm, swinging, for about a second; then it swings back
     // in, hooks on again and climbs on from where it was, with a black eye (CREATURES.climber.knock). That is this night's
     // easter egg (foundEgg), and all it does: the thing is stopped where it hangs for those two seconds, the toolbox
-    // bounces off out from the wall and into the sea, and the night goes on. Further down it never gets there: going
-    // faster and faster down the stone, it catches a corner, is flung out from the wall and goes past it, out over the
-    // water, and down into the sea; it is gone.
-    const REACH = 8, HYP = Math.hypot(1, SLOPE), NRM = [1 / HYP, SLOPE / HYP], DOWN = [SLOPE / HYP, -1 / HYP];   // the stone's outward normal and the way down it, in (r, y)
+    // bounces off out from the wall and into the sea, and the night goes on. (It had a reach once, 8 m below the gallery
+    // floor: dropped on it further down than that, the box kicked out off the stone and went past it. No longer.)
+    // It misses only if the night is over before it gets there (won, or the thing has you).
+    const HYP = Math.hypot(1, SLOPE), NRM = [1 / HYP, SLOPE / HYP], DOWN = [SLOPE / HYP, -1 / HYP];   // the stone's outward normal and the way down it, in (r, y)
     const TBW = 0.56, TBH = 0.38 * 1.4;   // the toolbox open: its lid stands up behind it
-    const reachable = c => !!c.wallAt && stoneFrame(c).at[1] >= -REACH;
+    const TRACK = 5;   // how quickly the box comes across the face to the line down to the thing (1/s)
     let toolboxItem = null;
     L.onPickup = it => {   // the fuse taken out of it: the toolbox, open and emptied of what you came for, can be taken up itself
       if (it.id !== 'fuse' || toolboxItem || !toolbox.open || !(toolbox.yielded || []).includes(it)) return;
@@ -385,11 +387,11 @@ LEVELS.push({
       const th = c.wallTh * DEG, from = hw ? [hw.x, hw.y, hw.z] : L.pt(Math.sin(G.cam.yaw) * 0.4, L.eyeH - 0.4, Math.cos(G.cam.yaw) * 0.4);
       // out over the rail and down outside it, on the line straight down to it, and let go there with a push out and down, clear
       // of the edge of the floor
-      s.box = { it, th, r: 3.3, y: 0.7, vr: 1.0, vy: -1.5, across: 0, va: (L.rand() - 0.5) * 0.2, spin: 0, spinV: 2, size: 0.2, t: 0, out: 0.3, from, hit: reachable(c), hits: 0, clk: -1 };
+      s.box = { it, th, r: 3.3, y: 0.7, vr: 1.0, vy: -1.5, across: 0, va: (L.rand() - 0.5) * 0.2, spin: 0, spinV: 2, size: 0.2, t: 0, out: 0.3, from, hit: true, hits: 0, clk: -1, y0: stoneFrame(c).at[1] };
       AUDIO.sfx('woodKnock', panOf(bodyAt(s.box)));   // (it scrapes over the rail)
       return true;
     };
-    L.uses = [{ tool: 'toolbox', range: Infinity, sights: false, onClick: dropBox, hoverText: c => (reachable(c) ? 'Drop the toolbox on it.' : 'Too far down.') }];
+    L.uses = [{ tool: 'toolbox', range: Infinity, sights: false, onClick: dropBox, hoverText: () => 'Drop the toolbox on it.' }];
     // the tools that come out of it at the first knock on the stone
     const spill = b => {
       s.spill = [['wrench', 0.24, 0.24], ['lighthouseScrewdriver', 0.26, 0.26]].map(([icon, w, h], k) => ({
@@ -404,28 +406,28 @@ LEVELS.push({
       if (!b || b.gone) return;
       b.t += dt;
       if (b.t < b.out) { b.spin += dt * 1.5; return; }   // out of your hand, over the rail
-      const yc = c.wallAt ? stoneFrame(c).at[1] : -99;
-      // too far down: once it is going fast enough on the stone (about where it would no longer be on it when it got there,
-      // and never closer to it than 2.5 m) a corner catches and it is flung out from the wall
-      const fling = !b.hit && !b.flung && b.y < Math.max(yc + 2.5, -REACH * 0.85);
-      fallStep(b, dt, 0.32, fling ? (bb, vn, vt) => { bb.flung = true; return 3.5 + vt * 0.15; } : () => 0.35 + L.rand() * 0.35, (bb, v) => {
+      // the thing's middle on the stone now (never reckoned below the sea: at the very start of a long climb it is drawn at
+      // the water's edge), and how far to its right the box is, across the face
+      const yc = Math.max(c.wallAt ? stoneFrame(c).at[1] : -99, WATER + 0.5), offNow = () => wrapPi(b.th - c.wallTh * DEG) * rad(yc) + b.across;
+      // until it lands on it, it comes across the face to the line down to it, wherever it has got to (it runs round the
+      // tower at 1.6 m a second at most: the box keeps within a third of a metre of that line)
+      if (!b.struck && G.state === 'play') b.across -= offNow() * (1 - Math.exp(-dt * TRACK));
+      fallStep(b, dt, 0.32, () => 0.35 + L.rand() * 0.35, (bb, v) => {
         bb.hits++;
         if (bb.hits === 1) spill(bb);
         if (b.t - b.clk > 0.12) { b.clk = b.t; AUDIO.sfx(v > 3 ? 'clatter' : 'woodKnock', panOf(bodyAt(bb))); }
-        if (bb.flung && !bb.said) { bb.said = true; G.say('Too far down: it kicks out off the stone, goes past it and on down into the sea.', 'It kicks out off the stone and goes past it, a long way down.'); c.look = 1; }
       });
-      // within reach it comes down the stone onto it: full in its face, on the side of it the box came down, and the thing
-      // loses its hold with the hand on that side and hangs by the other (the night's easter egg, found)
+      // it comes down the stone onto it, however far down that is: full in its face, on the side of it the box came down,
+      // and the thing loses its hold with the hand on that side and hangs by the other (the night's easter egg, found)
       if (b.hit && !b.struck && G.state === 'play' && b.y - b.size <= yc + 0.5) {
-        const off = wrapPi(b.th - c.wallTh * DEG) * rad(yc) + b.across;   // how far to its right the box is, across the face
-        if (Math.abs(off) < 0.9) {
-          b.struck = true; s.boxHit = true; s.hung = true;
-          b.vr = Math.max(b.vr, 0) + 2.4; b.vy = Math.max(b.vy * 0.2, -2) + 1.2; b.spinV = -b.spinV * 1.4 - 4;   // it bounces off its head, out from the wall
-          AUDIO.sfx('clonk', panOf(bodyAt(b))); AUDIO.sfx('clatter', panOf(bodyAt(b))); G.shake(0.3);
-          CREATURES.climber.knock(c, off >= 0 ? 1 : -1);
-          foundEgg();
-          G.say('The toolbox catches it full in the face. It hangs there by one hand.', 'Full in the face. It hangs there by one hand.');
-        }
+        const off = offNow();
+        b.fell = b.t - b.out; b.struckY = yc;   // how long it was falling, and how far down it landed
+        b.struck = true; s.boxHit = true; s.hung = true;
+        b.vr = Math.max(b.vr, 0) + 2.4; b.vy = Math.max(b.vy * 0.2, -2) + 1.2; b.spinV = -b.spinV * 1.4 - 4;   // it bounces off its head, out from the wall
+        AUDIO.sfx('clonk', panOf(bodyAt(b))); AUDIO.sfx('clatter', panOf(bodyAt(b))); G.shake(0.3);
+        CREATURES.climber.knock(c, off >= 0 ? 1 : -1);
+        foundEgg();
+        G.say('The toolbox catches it full in the face. It hangs there by one hand.', 'Full in the face. It hangs there by one hand.');
       }
       if (b.y <= WATER + 0.1) {   // into the sea, far below: a little white where it went in, and it is gone
         b.gone = true; const p = bodyAt(b);
