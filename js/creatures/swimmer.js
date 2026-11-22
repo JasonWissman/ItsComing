@@ -2,6 +2,10 @@
 // The swimmer: a drowned head, mossy and wet, only the crown and the staring eyes above the water.
 // It surfaces for a few seconds, slow and visible, then goes under (unseen by definition, and fast)
 // and comes up closer with a splash panned to its lane. Its feet are at the water line (lane.y).
+// The Boathouse's easter egg throws it a life ring (js/levels/night06.js): c.ringPend while it is under on its way to where
+// the ring will be (c.ringD metres off; c.ringReady once the ring is on the water there), then c.ringOn: it has come up
+// through it (c.ringT when, on its own clock), and from then on it does not go under: it comes on steadily, paddling
+// (c.padGait its paws), at the pace its going under and coming up came to, and wears the ring in every pose after.
 CREATURES.swimmer = {
   name: 'the swimmer', h: 0.5, w: 0.6, faceY: 0.06, stepRate: 0, catchDist: 1.6, sound: null,
   // (pose: it stamps the moment the lunge began, c.burstT, on its own clock, so the water it comes up out of goes on moving
@@ -20,21 +24,50 @@ CREATURES.swimmer = {
     if (c.frozen || c.dead || G.L.won) { c.mode = 'up'; return 0; }
     c.modeT += dt;
     const pan = Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
+    if (c.ringOn) {
+      // in the ring: it looks at it a moment, then paddles in. Its pace is what a whole turn of its usual round comes to (up
+      // for RING_UP seconds at 0.55, under for RING_DOWN at 2.5 and never seen there), so it arrives when it would have:
+      // the game multiplies this by whether it is seen, as it does the surfaced share of the usual round
+      const g0 = c.padGait || 0, looking = c.t - c.ringT < this.RING_LOOK;
+      c.padGait = g0 + dt * (c.moving ? 9 : 5.5);
+      if (!looking && c.mode === 'up' && Math.floor(c.padGait / Math.PI) !== Math.floor(g0 / Math.PI)) AUDIO.sfx('paddle', pan, true);   // a paw going in
+      if (looking) return 0;
+      const gaze = (seen ? c.seenMult : c.unseenMult) || 1;
+      return (this.RING_UP * 0.55 + this.RING_DOWN * 2.5 * c.unseenMult / gaze) / (this.RING_UP + this.RING_DOWN);
+    }
+    if (c.ringPend) {
+      // the ring is on its way: under, as fast as ever, to where it will float, and up through it once it is there
+      const there = c.dist <= c.ringD + 0.01 || c.modeT > c.downFor + 2;
+      c.mode = 'down';
+      if (there && c.ringReady && c.modeT > c.downFor) { c.ringPend = false; c.ringOn = true; c.ringT = c.t; c.padGait = 0; c.mode = 'up'; c.modeT = 0; c.surfaced = G.L.t; AUDIO.sfx('splash', pan); return 0; }
+      return there ? 0 : 2.5;
+    }
     if (c.mode === 'up' && c.modeT > c.upFor) { c.mode = 'down'; c.modeT = 0; c.downFor = 2 + c.rand() * 2; c.diveDist = c.dist; c.diveT = G.L.t; AUDIO.sfx('dive', pan); }
     else if (c.mode === 'down' && c.modeT > c.downFor) { c.mode = 'up'; c.modeT = 0; c.upFor = 2.6 + c.rand() * 0.9; c.surfaced = G.L.t; AUDIO.sfx('splash', pan); }
     return c.mode === 'down' ? 2.5 : 0.55;
   },
+  // in the ring: how long it looks at it before it paddles on (s), and the mean lengths of its usual turns up and under
+  // (init and speedMult above: up 2.6 to 3.5 s, under 2 to 4), which set its steady pace
+  RING_LOOK: 0.6, RING_UP: 3.05, RING_DOWN: 3,
+  // the ring as it is worn and as it floats: the radius of the hoop (to the middle of its tube) and of the tube, in
+  // metres, and how open it shows from where you stand, d metres off (flat on the water, seen from above: never so
+  // nearly edge on that it stops reading as a ring)
+  // RING_H: how much higher it rides in the ring than it shows without one; RING_Y: where the ring sits on it, under the
+  // arms, measured as the head and the body are drawn (so in the ring the hoop floats just above the water line)
+  RING_R: 0.3, RING_TUBE: 0.075, RING_H: 0.33, RING_Y: -0.3,
+  ringK(d) { return clamp(1.8 / Math.max(d, 0.1), 0.22, 0.5); },
   draw(ctx, c, P) {
     if (c.mode === 'down' && !c.lunge && !G.L.won) return;
     if (c.runPose && !c.lunge) { this.drawSwim(ctx, c, P); return; }
+    if (c.ringOn && !c.lunge) { this.drawRinged(ctx, c, P); return; }
     const t = c.t, near = clamp(1 - c.dist / 10, 0, 1), lunge = c.lunge || 0;
-    const skin = P.col([146, 156, 148]), skinD = P.col([98, 110, 102]), socket = P.col([36, 40, 38]), moss = P.col([52, 76, 40]), mossL = P.col([78, 102, 56]);
-    const weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]), mouth = P.col([10, 8, 8]);
-    const wet = P.cola([230, 240, 235], 0.3), ring = [150, 165, 175];
+    const ring = [150, 165, 175];
     const fresh = clamp(1 - (G.L.t - c.surfaced) / 1.2, 0, 1);
     // it rises a little as it closes, and all the way out when it lunges; the water line is y = 0 until the lunge lifts the
     // whole drawing toward the eye (c.yOff): then it is y = -c.yOff, and the rings stay down there on the water and fade
-    const rise = (0.02 + near * 0.08 + Math.sin(t * 1.1) * 0.015) * (1 - lunge);   // the death lift is the game's: the face ends at eye height
+    // (in the life ring it rode higher, held up by it: the lunge begins from there, the ring round its chest)
+    const ringed = !!c.ringOn, rk = ringed ? lerp(this.ringK(c.dist), 0.16, smoothstep(lunge)) : 0;
+    const rise = (0.02 + near * 0.08 + Math.sin(t * 1.1) * 0.015) * (1 - lunge) + (ringed ? this.RING_H * (1 - smoothstep(lunge)) : 0);   // the death lift is the game's: the face ends at eye height
     const wl = -(c.yOff || 0), calm = 1 - lunge;
     // the seconds since the lunge began (stamped by death.pose; drawn without it, the lunge's own share of death.dur)
     const s = lunge > 0 ? (c.burstT === undefined ? lunge * this.death.dur : Math.max(0, c.t - c.burstT)) : 0;
@@ -43,16 +76,32 @@ CREATURES.swimmer = {
     if (lunge > 0) this.burst(ctx, P, wl, s, lift, false);   // the water it bursts up out of: the most of it behind it
     ctx.save(); ctx.beginPath(); ctx.rect(-4, wl, 8, 4 - wl); ctx.clip(); // nothing below the water line is drawn: the water shows there
     ctx.translate(0, rise);
-    if (lunge > 0) this.drawBody(ctx, P, lunge, t);   // what comes up out of the water under the head
+    if (ringed) this.lifeRing(ctx, P, 0, this.RING_Y, this.RING_R, rk, 0.3, 'back', this.RING_TUBE);
+    if (lunge > 0) this.drawBody(ctx, P, lunge, t, ringed ? () => this.lifeRing(ctx, P, 0, this.RING_Y, this.RING_R, rk, 0.3, 'front', this.RING_TUBE) : null);   // what comes up out of the water under the head
+    this.head(ctx, P, t, near, lunge);
+    ctx.restore();
+    // drips off the chin and the weed, and the ring where the water meets it
+    for (let i = 0; i < 3; i++) { const k = (t * 0.9 + i * 0.37) % 1, y = rise + 0.05 - k * 0.12; if (y > wl) P_ell(ctx, -0.1 + i * 0.1, y, 0.008, 0.014, P.cola([200, 214, 210], 0.6 * (1 - k))); }
+    if (calm > 0.01) P_ell(ctx, 0, wl, 0.24, 0.025, P.cola(ring, 0.5 * calm));
+    if (lunge > 0) { this.burst(ctx, P, wl, s, lift, true); this.shed(ctx, P, wl, lunge, s, t); }   // the rest of the spray in front of it, and the water pouring off it
+  },
+  // the head, as it shows above the water: near, how close it has come (0..1); lunge, its death lunge (0..1); look, where
+  // it is looking, [across, down] (-1..1: the face turned and tipped that way, as it looks down at the ring it finds itself
+  // in), and with it a small round mouth
+  head(ctx, P, t, near, lunge, look) {
+    const skin = P.col([146, 156, 148]), skinD = P.col([98, 110, 102]), socket = P.col([36, 40, 38]), moss = P.col([52, 76, 40]), mossL = P.col([78, 102, 56]);
+    const weed = P.col([18, 26, 18]), eye = P.col([196, 204, 192]), mouth = P.col([10, 8, 8]), wet = P.cola([230, 240, 235], 0.3);
+    const lx = look ? look[0] : 0, ly = look ? look[1] : 0, fx = lx * 0.05, fy = -ly * 0.075;
     // the head: a long drowned skull, grey and wet, moss grown over the crown in patches
     P_ell(ctx, 0, 0.1, 0.17, 0.27, skin);
     P_ell(ctx, 0.06, 0.05, 0.1, 0.22, skinD);
     for (const [x, y, rx, ry, c2] of [[0, 0.33, 0.12, 0.05, moss], [-0.09, 0.28, 0.07, 0.05, mossL], [0.08, 0.3, 0.07, 0.04, moss], [0.13, 0.19, 0.035, 0.06, mossL], [-0.14, 0.14, 0.03, 0.07, moss], [0.02, 0.25, 0.04, 0.025, mossL]]) P_ell(ctx, x, y, rx, ry, c2);
     P_ell(ctx, -0.07, 0.27, 0.04, 0.015, wet, -0.4);
     // sunken sockets just above the water, and in them small blank milky eyes that do not blink
-    const eyeY = 0.045 + lunge * 0.02, open = 0.016 + near * 0.008 + lunge * 0.014;
-    for (const s2 of [-1, 1]) { P_ell(ctx, s2 * 0.068, eyeY + 0.004, 0.05, 0.034, socket); P_ell(ctx, s2 * 0.068, eyeY, 0.03, open, eye); }
-    P_line(ctx, 0, eyeY - 0.012, 0.006, eyeY - 0.075, 0.026, skinD);
+    const eyeY = 0.045 + lunge * 0.02 + fy, open = 0.016 + near * 0.008 + lunge * 0.014;
+    for (const s2 of [-1, 1]) { P_ell(ctx, fx + s2 * 0.068, eyeY + 0.004, 0.05, 0.034, socket); P_ell(ctx, fx * 1.25 + s2 * 0.068, eyeY - Math.max(0, ly) * 0.006, 0.03, open, eye); }
+    P_line(ctx, fx * 1.3, eyeY - 0.012, fx * 1.5 + 0.006, eyeY - 0.075, 0.026, skinD);
+    if (look && look[2] > 0.01) P_ell(ctx, fx * 1.5, eyeY - 0.125, 0.022 * look[2], 0.03 * look[2], mouth);
     if (lunge > 0) P_ell(ctx, 0, -0.14, 0.05 + lunge * 0.05, 0.03 + lunge * 0.11, mouth);
     // weed hangs straight down from the crown like wet hair, parted over the eyes
     for (let i = 0; i < 13; i++) {
@@ -60,11 +109,100 @@ CREATURES.swimmer = {
       const l = 0.2 + ((i * 37) % 11) / 11 * 0.16 + lunge * 0.15, sway = Math.sin(t * 0.8 + i * 1.7) * 0.012;
       P_limb(ctx, [[x * 0.9, 0.34], [x + sway, 0.34 - l * 0.5], [x * 1.05 + sway * 2, 0.34 - l]], 0.011, weed);
     }
+  },
+  // A life ring: a fat hoop, white with four red bands, a round tube seen at a slant. x, y its middle; rx its radius, to
+  // the middle of the tube; k how open it shows (1 face on, 0 edge on; over 1, a hoop standing on edge seen from its side);
+  // spin, the bands' turn round it; part, 'back' (the far half only), 'front' (the near half) or neither (all of it, far
+  // half first); tube, the tube's radius. Stroked along the hoop at the tube's width, which is how a tube shows from any side
+  lifeRing(ctx, P, x, y, rx, k, spin, part, tube) {
+    const w = (tube || rx * 0.25) * 2, ry = Math.max(rx * k, 0.0001), Q = Math.PI / 2, sp = ((spin % Q) + Q) % Q;
+    const cols = [[P.col([150, 150, 146]), P.col([120, 30, 28])], [P.col([230, 226, 214]), P.col([196, 46, 38])]];   // [white, red]: in its own shade underneath, lit on top
+    const arc = (a0, a1, col, dy, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.ellipse(x, y + dy, rx, ry, 0, a0, a1); ctx.stroke(); };
+    ctx.lineCap = 'butt';
+    for (const half of part ? [part] : ['back', 'front']) {
+      const h0 = half === 'back' ? 0 : Math.PI, h1 = h0 + Math.PI;
+      for (let pass = 0; pass < 2; pass++) {
+        const dy = pass ? w * 0.13 : 0, lw = pass ? w * 0.7 : w;
+        arc(h0, h1, cols[pass][0], dy, lw);
+        for (let j = -1; j < 5; j++) { const a0 = Math.max(h0, sp + j * Q), a1 = Math.min(h1, sp + j * Q + Q * 0.4); if (a1 > a0) arc(a0, a1, cols[pass][1], dy, lw); }
+      }
+    }
+  },
+  // In the life ring. It comes up through it from under the water, the head and both arms up through the hole, the ring
+  // round its chest under the arms, the water it came up through thrown up round it and streaming off it; it holds its
+  // hands up out of the way and looks down at the ring, one side and the other, and then at you (RING_LOOK seconds: it
+  // does not move on meanwhile); then the arms come down over the front of the ring and it paddles in like a dog, the head
+  // held up out of the water, the hands going round one after the other in small quick circles in front of the ring, a
+  // little splash where each goes in, the whole of it bobbing. q is the seconds since it came up; with reduced motion the
+  // bobbing and the splashes are gentler, the timing the same.
+  drawRinged(ctx, c, P) {
+    const t = c.t, q = Math.max(0, t - (c.ringT || 0)), g = c.padGait || 0, h = this.hash, soft = SAVE.data.settings.reducedMotion ? 0.45 : 1;
+    const R = this.RING_R, TB = this.RING_TUBE, k = this.ringK(c.dist);
+    const arm = P.col([122, 134, 124]), armD = P.col([86, 98, 90]), mass = P.col([26, 40, 22]), dark = P.col([12, 20, 11]), mid = P.col([40, 60, 30]);
+    const rip = [150, 165, 175], foam = [214, 224, 228];
+    const pad = smoothstep((q - this.RING_LOOK) / 0.3);   // 0 looking at the ring, 1 paddling
+    // up through the hole from under the water, a little too far, and settling; then the bob of its paddling
+    const pop = -0.8 * (1 - easeOut(q / 0.17)) + 0.07 * soft * Math.sin(Math.PI * clamp(q / 0.45, 0, 1));
+    const bob = (Math.sin(g * 2) * 0.014 * pad + Math.sin(t * 1.3) * 0.012) * soft;
+    const yR = this.RING_H + this.RING_Y + bob * 0.7 + 0.05 * soft * Math.sin(Math.PI * clamp(q / 0.4, 0, 1)) * Math.exp(-q * 3), yB = pop + bob;   // the ring, knocked up as it comes through, and the body
+    // where it looks: down at the ring to one side, then the other, then up at you; paddling, the chin held up
+    const dn = smoothstep((q - 0.16) / 0.1) - smoothstep((q - 0.6) / 0.12);
+    const look = [-0.9 * smoothstep((q - 0.16) / 0.1) + 1.8 * smoothstep((q - 0.36) / 0.1) - 0.9 * smoothstep((q - 0.6) / 0.12), dn - 0.3 * pad, dn];
+    // the water round it: rings going out, and what it threw up coming through (most of it behind it)
+    for (let i = 0; i < 3; i++) { const u = (i * 0.33 + t * (0.12 + 0.2 * pad)) % 1; P_ell(ctx, 0, 0, R + 0.1 + u * 0.6, (R + 0.1 + u * 0.6) * k * 0.9, P.cola(rip, 0.3 * (1 - u))); }
+    const burst = front => { if (q < 1.4) { ctx.save(); ctx.scale(0.62 * (0.7 + 0.3 * soft), 0.62 * (0.55 + 0.45 * soft)); this.burst(ctx, P, 0, q, 0.9, front); ctx.restore(); } };
+    burst(false);
+    this.lifeRing(ctx, P, 0, yR, R, k, 0.3, 'back', TB);
+    ctx.save(); ctx.beginPath(); ctx.rect(-4, 0, 8, 4); ctx.clip();   // what is in the hole, from the water up
+    ctx.translate(0, yB);
+    // the shoulders, a mass of wet weed filling the hole, a few strands of it hanging over the ring behind
+    P_poly(ctx, [[-0.21, -0.2], [-0.23, 0.1], [-0.15, 0.2], [-0.06, 0.26], [0.06, 0.26], [0.15, 0.2], [0.23, 0.1], [0.21, -0.2]], mass);
+    for (let i = 0; i < 6; i++) P_ell(ctx, (h(i, 91) - 0.5) * 0.34, 0.02 + h(i, 92) * 0.16, 0.04 + 0.03 * h(i, 93), 0.03 + 0.02 * h(i, 94), i % 2 ? dark : mid, (h(i, 95) - 0.5));
+    // the arms: up through the hole beside the head, then held up and out of the way while it looks (the hands hanging
+    // from the wrists); paddling, they come forward over the front of the ring, the elbows resting on it, and the hands
+    // go round one after the other in small quick circles in the water before it (drawn lower: it is nearer you)
+    const yW = -(R + TB + 0.1) * k - yB, out = smoothstep(q / 0.26);   // the water the hands go into; and the arms spreading once they are through
+    const arms = [-1, 1].map(sd => {
+      const ph = g + (sd > 0 ? 0 : Math.PI), sh = [sd * 0.19, 0.16];
+      const el = [sd * lerp(lerp(0.2, 0.42, out), 0.27, pad), lerp(0.22 + 0.02 * Math.sin(t * 9 + sd), yR - yB - R * k * 0.55 + TB * 0.6, pad)];
+      const hd = [sd * lerp(lerp(0.16, 0.5, out), 0.14 + 0.05 * Math.cos(ph), pad), lerp(0.5 + 0.015 * Math.sin(t * 11 + sd * 2), yW + 0.075 + 0.07 * Math.sin(ph), pad)];
+      return { sd, ph, sh, el, hd };
+    });
+    ctx.save(); ctx.translate(0, this.RING_H); ctx.rotate(-look[0] * 0.1 * (1 - pad) + Math.sin(g) * 0.05 * pad * soft); this.head(ctx, P, t, 0.5, 0, look); ctx.restore();
     ctx.restore();
-    // drips off the chin and the weed, and the ring where the water meets it
-    for (let i = 0; i < 3; i++) { const k = (t * 0.9 + i * 0.37) % 1, y = rise + 0.05 - k * 0.12; if (y > wl) P_ell(ctx, -0.1 + i * 0.1, y, 0.008, 0.014, P.cola([200, 214, 210], 0.6 * (1 - k))); }
-    if (calm > 0.01) P_ell(ctx, 0, wl, 0.24, 0.025, P.cola(ring, 0.5 * calm));
-    if (lunge > 0) { this.burst(ctx, P, wl, s, lift, true); this.shed(ctx, P, wl, lunge, s, t); }   // the rest of the spray in front of it, and the water pouring off it
+    this.lifeRing(ctx, P, 0, yR, R, k, 0.3, 'front', TB);
+    P_ell(ctx, 0, yR - R * k - TB * 0.72, R * 0.92, 0.02, P.cola(foam, 0.34 + 0.12 * Math.sin(t * 5)));   // the water against the front of it
+    // (over the ring: nothing of them shows under the water they came up out of, or the water they paddle in)
+    ctx.save(); ctx.translate(0, yB);
+    ctx.beginPath(); ctx.rect(-4, pad > 0.5 ? yW : -yB, 8, 6); ctx.clip();
+    for (const a of arms) {
+      const up = 1 - pad, hx = a.hd[0], hy = a.hd[1];
+      P_limb(ctx, [a.sh, a.el], 0.058, armD);
+      P_limb(ctx, [a.sh, [lerp(a.sh[0], a.el[0], 0.55), lerp(a.sh[1], a.el[1], 0.55) + 0.015]], 0.052, mass);   // (weed draped on the upper arm)
+      P_limb(ctx, [a.el, a.hd], 0.046, arm);
+      // the hand: a small palm, the fingers hanging from it (up, they hang off the limp wrist; paddling, they claw down at the water)
+      P_ell(ctx, hx, hy - 0.012, 0.046, 0.04, arm);
+      fingers(ctx, hx, hy - 0.03, -Math.PI / 2 + a.sd * 0.25 * up + 0.35 * Math.cos(a.ph) * pad * a.sd, 0.27, 0.09, 0.019, arm);
+    }
+    ctx.restore();
+    // a little splash where each hand goes in, one after the other
+    if (pad > 0.5) for (const a of arms) {
+      const s = ((((a.ph - Math.PI * 7 / 6) % TAU) + TAU) % TAU) / 2.6;
+      if (s > 1) continue;
+      const x = a.sd * 0.13, y = -(R + TB + 0.1) * k;
+      P_ell(ctx, x, y, 0.05 + s * 0.1, 0.013 + s * 0.014, P.cola(foam, 0.65 * (1 - s)));
+      for (let i = 0; i < 7; i++) P_ell(ctx, x + (i - 3) * 0.032 * (1 + s), y + Math.sin(s * Math.PI) * (0.035 + (i % 3) * 0.035) * soft, 0.011, 0.016, P.cola(foam, 0.85 * (1 - s)));
+    }
+    // the water streaming off it for a while after it comes up: off the chin, the hands and the elbows, and off the ring
+    const wet = 1 - smoothstep((q - 0.9) / 1.2);
+    if (wet > 0.01) for (let i = 0; i < 14; i++) {
+      const a = arms[i % 2], src = i % 7, x0 = src < 2 ? a.hd[0] : src < 4 ? a.el[0] : src < 5 ? (h(i, 96) - 0.5) * 0.2 : (h(i, 96) - 0.5) * 2 * R;
+      const y0 = (src < 2 ? a.hd[1] - 0.08 : src < 4 ? a.el[1] - 0.03 : src < 5 ? this.RING_H - 0.18 : yR - yB - TB * 0.5) + yB;
+      const ph = (q * (1.5 + h(i, 97)) + h(i, 98)) % 1, y = y0 - 0.5 * ph * ph - 0.1 * ph, low = src >= 5 ? yR - R * k - TB : 0;
+      if (y < Math.min(low, 0) - 0.02) continue;
+      P_ell(ctx, x0, y, 0.008, 0.014 + 0.012 * ph, P.cola([218, 230, 236], 0.75 * (1 - ph) * wet));
+    }
+    burst(true);
   },
   // a steady scatter for the splash: the same drop does the same thing every frame
   hash(i, q) { const x = Math.sin(i * 12.9898 + q * 78.233) * 43758.5453; return x - Math.floor(x); },
@@ -158,7 +296,7 @@ CREATURES.swimmer = {
   // same weed, coming up out of the water and reaching out at you, the hands nearer than the head and so larger, the long
   // hooked fingers spread to take hold. k is the lunge, 0..1; drawn under the head, the water line cutting off whatever
   // is still under it (the caller's clip).
-  drawBody(ctx, P, k, t) {
+  drawBody(ctx, P, k, t, between) {
     const h = this.hash, e = easeOut(k);
     const mass = P.col([26, 40, 22]), dark = P.col([12, 20, 11]), mid = P.col([36, 54, 28]), lite = P.col([54, 76, 38]), slime = P.cola([160, 196, 120], 0.2);
     const skin = P.col([54, 66, 50]), skinD = P.col([40, 50, 36]);
@@ -179,6 +317,7 @@ CREATURES.swimmer = {
       const p = [[x, y0], [x * 1.06 + sw(1), y0 - l * 0.3], [x * 1.12 - sw(2) * 0.6, y0 - l * 0.62], [x * 1.2 + sw(3), y0 - l]];
       P_limb(ctx, p.slice(0, 3), w, weedy[i % 4]); P_limb(ctx, p.slice(2), w * 0.6, weedy[i % 4]);   // tapering
     }
+    if (between) between();   // (the near half of the life ring it wears, round the mass and under the arms)
     // the arms: out of the weed at the shoulders, the elbows wide and low, the forearms coming up and in, the hands
     // reaching out at you and growing as they come
     for (const sd of [-1, 1]) {
@@ -234,6 +373,8 @@ CREATURES.swimmer = {
     // the back and shoulders just breaking the surface, moss on them
     P_ell(ctx, -0.3, -0.01 + bob * 0.5, 0.3, 0.075, skinD);
     P_ell(ctx, -0.36, 0.03, 0.09, 0.03, moss); P_ell(ctx, -0.18, 0.04, 0.06, 0.022, mossL);
+    // in the life ring (The Boathouse's easter egg): the hoop round its chest, standing up out of the water over its back
+    if (c.ringOn) { ctx.save(); ctx.translate(-0.2, -0.02 + bob * 0.5); ctx.rotate(-0.22); this.lifeRing(ctx, P, 0, 0, 0.12, 2.7, 0.5, null, this.RING_TUBE); ctx.restore(); }
     // the weed off the crown, streaming back along the water
     for (let i = 0; i < 9; i++) {
       const y0 = 0.16 - i * 0.012, l = 0.4 + ((i * 37) % 11) / 11 * 0.35, sw = Math.sin(t * 3 + i * 1.3) * 0.02;

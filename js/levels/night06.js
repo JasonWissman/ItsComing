@@ -20,6 +20,15 @@ Object.assign(ICONS, {
     P_rect(ctx, -0.16, 0.06, 0.12, 0.06, brass); P_rect(ctx, -0.16, 0.16, 0.08, 0.05, brass);
     ctx.restore();
   },
+  // the life ring, face on: a fat hoop, white with four red bands, its grab line round the outside of it
+  lifeRing(ctx, P) {
+    const cx = 0, cy = 0.5, r = 0.365, w = 0.2;   // the middle of the tube, and how fat it is
+    const arc = (a0, a1, rr, lw, col) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(cx, cy, rr, a0, a1); ctx.stroke(); };
+    ctx.lineCap = 'butt';
+    arc(0, TAU, r + w / 2 + 0.016, 0.02, P.col([176, 160, 120]));
+    arc(0, TAU, r, w, P.col([156, 154, 148])); arc(0, TAU, r + 0.008, w * 0.72, P.col([230, 226, 214]));
+    for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; arc(a - 0.3, a + 0.3, r, w + 0.012, P.col([124, 30, 28])); arc(a - 0.3, a + 0.3, r + 0.008, w * 0.72, P.col([196, 46, 38])); }
+  },
 });
 LEVELS.push({
   id: 'boathouse', title: 'The Boathouse', facing: 0, eyeH: 1.65,
@@ -30,8 +39,11 @@ LEVELS.push({
     intro: 'Something is in the water.',
     hint: 'Unlock the winch, put the handle on and crank the water door down; then shut the side door and bar it with both oars.',
     objective: 'Shut both ways in: crank the water door down, and shut the side door and bar it with both oars.',
-    death: { default: 'It splashed into the boathouse and pulled you under.', reached: 'It came through the main opening, and pulled you down.', side: 'It came in the side, and pulled you under.', oneoar: 'One oar wasn\'t strong enough.' },
+    // (ring: caught, by whichever way, after the life ring was thrown to it: the night's easter egg. Not one of text.eggs:
+    // the screen still says "It got you")
+    death: { default: 'It splashed into the boathouse and pulled you under.', reached: 'It came through the main opening, and pulled you down.', side: 'It came in the side, and pulled you under.', oneoar: 'One oar wasn\'t strong enough.', ring: 'It really didn\'t need saving, but that was nice of you.' },
     win: 'It threw itself at the doors, but they held.',
+    egg: 'Throw it the life ring.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },
   // the thing swims: its feet are at the water line, a little below the deck
   lanes: [
@@ -138,15 +150,10 @@ LEVELS.push({
     SC.box(L, 1.8, 2.1, 2.42, 2.58, 2.5, 2.62, iron);
     SC.quad(L, [1.94, 1.5, 2.5], [1.96, 1.5, 2.5], [1.96, 2.42, 2.5], [1.94, 2.42, 2.5], [28, 28, 30]);
     SC.quad(L, [0, 2.44, 2.61], [1.95, 2.44, 2.61], [1.95, 2.47, 2.61], [0, 2.47, 2.61], [28, 28, 30]);
-    // a life ring hung flat on the west wall, between two battens, on a peg through the top of its hole: white, with four red
-    // bands, in pieces of the ring laid on the boards
-    { const rx = -2.37, ry = 2.12, rz = -1.5, r0 = 0.165, r1 = 0.26, N = 24;
-      for (let k = 0; k < N; k++) {
-        const a0 = k / N * TAU, a1 = (k + 1.15) / N * TAU, m = ((k + 0.5) / N * 4) % 1, P = (a, r) => [rx, ry + Math.sin(a) * r, rz + Math.cos(a) * r];
-        SC.quad(L, P(a0, r0), P(a1, r0), P(a1, r1), P(a0, r1), m > 0.2 && m < 0.55 ? [150, 50, 40] : [200, 196, 186]);
-      }
-      SC.box(L, rx - 0.03, rx + 0.04, ry + r0 - 0.035, ry + r0 - 0.005, rz - 0.015, rz + 0.015, [40, 32, 26]);   // the peg, the ring's top resting on it
-    }
+    // a life ring hung flat on the west wall, on a peg through the top of its hole: white, with four red bands. It is a
+    // thing you can take (the item, below): the peg stays
+    const RING = { x: -2.365, y: 2.1, z: -1.5, w: 0.7 };   // its middle on the wall, and how wide it is
+    SC.box(L, RING.x - 0.03, RING.x + 0.05, RING.y + RING.w * 0.265 - 0.035, RING.y + RING.w * 0.265 - 0.005, RING.z - 0.015, RING.z + 0.015, [40, 32, 26]);   // the peg, the ring's top resting on it
     // the iron brackets either side of the side door that take the oars that bar it: each a cradle open at the top, bolted
     // to the wall, two arms out from the wall plate and a strap across their ends, so that from the room it shows as a U the
     // oars drop into, one on the other. They and the oars carry sort distances that draw them over the door leaf and frame
@@ -190,6 +197,10 @@ LEVELS.push({
     mkItem(L, 'oar', 'Oar', [onDeck(-30, 0.4), onDeck(20, 0.35), { x: 2.3, y: 0, z: 1.7, flat: false }], { w: OAR_W, h: OAR_H, flat: true, icon: 'oar', held: oarHeld });
     mkItem(L, 'oar2', 'Oar', [onDeck(185, 0.3), onDeck(105, 0.3), { x: -1.3, y: 0, z: -2.3, flat: false }], { w: OAR_W, h: OAR_H, flat: true, icon: 'oar', held: oarHeld });
     const OARS = ['oar', 'oar2'];
+    // the life ring off the wall: taken up by its rim. On the wall it lies flat on the boards (L.dynamic fixes its card to
+    // the wall's face); put down, it lies on the deck as anything does
+    const ring = mkItem(L, 'lifering', 'Life ring', { x: RING.x, y: RING.y - RING.w / 2, z: RING.z, flat: false, jitter: 0 },
+      { w: RING.w, h: RING.w, icon: 'lifeRing', onWall: true, held: { grip: 'fist', at: [0.2, 0.2], axis: 0.9, angle: -0.25, size: 0.4 } });
     // where an oar knocked off the winch comes down: on the deck from near your feet out toward the winch (an oar that
     // long lies nowhere nearer it), or a little to the left of that if the other oar already lies there
     const oarLand = it => {
@@ -439,6 +450,65 @@ LEVELS.push({
       return n + ' ' + e;
     };
     const panOf = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
+    // ---- the life ring, thrown to it (the night's easter egg) ----
+    // With the ring in hand, a click on the thing where it shows out on the water throws it the ring: it leaves the hand
+    // and flies out through the doorway in an arc, spinning flat, and lands on the water with a plop. The thing goes under
+    // the moment you click, as it does, wherever it was; the ring floats, bobbing, where it will next come up; it comes up
+    // through it (CREATURES.swimmer: c.ringPend, then c.ringOn) and from then on paddles in wearing it, never going
+    // under, and arrives when it would have. Caught after that, the death screen says so (text.death.ring); the night is
+    // won as it always is. s.ring is the ring once it has left the hand: phase 'fly', 'float' or 'on' (it wears it); t,
+    // when it was thrown; dur, how long it flies; its path (below); d, how far out it floats, on the lane `lane`; land,
+    // when it landed; y, its height now.
+    // It can only be thrown at what you can see. With the water door's slats down across the line to it, the side door's
+    // leaf shut or swinging, or the thing under the water, a click is whatever it would have been: the use (L.uses, below)
+    // names its tool only while the ring is in your hand and the thing in sight, so the game does not offer the thing
+    // as something to click at any other time, and carrying the ring changes nothing.
+    const SW = CREATURES.swimmer, THROW = 0.9, DOORWAY = [2.6, 2.4];   // how far off each way's doorway is
+    const doorTop = () => 2.4 - 2.4 * clamp((winch.count || 0) / need, 0, 1);   // the water door's opening: up to the lowest slat
+    const ringSeen = c => {
+      if (c.dead || c.lunge || L.won || SW.hidden(c) || APPROACH.apertureFrac(c.lane, c.dist, c.lat, SW.w, SW.h, L.eyeH) < 0.3) return false;
+      if (c.lane.idx === 1) return s.doorOpen;
+      return L.eyeH + (c.lane.y + 0.2 - L.eyeH) * Math.min(1, DOORWAY[0] / c.dist) < doorTop() - 0.03;   // the line to its eyes passes under the slats
+    };
+    const canThrow = () => G.state === 'play' && !s.ring && G.inv[G.active] === ring && ringSeen(L.creature);
+    const throwRing = c => {
+      if (!canThrow()) return false;
+      foundEgg();   // the night's easter egg, found the moment it is thrown (kept in the save: game.js)
+      // from where it is in your hand: the place out in the room where it is the size it shows there
+      const hw = G.hand.cur === ring && G.hand.up > 0.5 ? HANDS.handWorld(ring, 1.5) : null;
+      G.removeFromInv(ring); HANDS.threw(ring);
+      const from = hw ? [hw.p.x, hw.p.y, hw.p.z] : [Math.sin(G.cam.yaw + 0.4) * 1.2, L.eyeH - 0.55, Math.cos(G.cam.yaw + 0.4) * 1.2];
+      // it goes under at once, as it does (swimming across into a doorway, it goes down where it is and comes up on the way in)
+      if (s.swim) { c.runPose = false; c.runLat = 0; s.swim = null; c.hold = null; c.u = clamp(1 - Math.pow(c.dist / c.D0, 1 / c.gamma), 0, 0.995); }
+      c.mode = 'down'; c.modeT = 0; c.downFor = 2 + c.rand() * 2; c.diveDist = c.dist; c.diveT = L.t; AUDIO.sfx('dive', panOf(c.yaw));
+      // where it will come up, after that long under at its usual pace there: the ring lands at that spot (never nearer
+      // than just outside the doorway; held where it is, it comes up where it is)
+      const lane = c.lane, uUp = Math.min(0.995, c.u + c.downFor * 2.5 * c.unseenMult / c.T), near = Math.min(c.dist, (lane.barrierDist || 0) + 0.6);
+      const d = c.hold !== null ? c.dist : Math.max(c.D0 * Math.pow(1 - uUp, c.gamma), near);
+      Object.assign(c, { ringPend: true, ringReady: false, ringD: d });
+      // (on Nightmare its one early change of way, made unseen, waits until it is up and in the ring: it does not come up
+      // somewhere else than where the ring is)
+      if (!c.switched) c.switchAt = Math.max(c.switchAt === undefined ? 0.12 + c.rand() * 0.28 : c.switchAt, uUp + 0.004);
+      // its flight, along the lane: z metres out and x to the right of it, from the hand to the water d metres off
+      const rx = Math.cos(lane.yaw), rz = -Math.sin(lane.yaw), z0 = Math.max(0.5, from[0] * lane.dirX + from[2] * lane.dirZ), x0 = from[0] * rx + from[2] * rz;
+      const y1 = lane.y + SW.RING_H + SW.RING_Y, zd = DOORWAY[lane.idx], top = lane.idx === 0 ? doorTop() : 2.1;
+      // the arc: as high as the throw is long, and never so high that it does not pass under the top of the opening
+      const kd = clamp((1 / z0 - 1 / zd) / Math.max(1e-6, 1 / z0 - 1 / d), 0.02, 0.98), room = (top - 0.3 - lerp(from[1], y1, kd)) / (4 * kd * (1 - kd));
+      s.ring = { phase: 'fly', t: L.t, dur: THROW, lane: lane.idx, d, z0, x0, y0: from[1], y1, zd, arc: clamp(Math.min(0.35 + d * 0.05, room), 0, 1.6), scale: hw ? Math.min(1, hw.scale) : 1, y: from[1] };
+      AUDIO.sfx('ringThrow', panOf(c.yaw));
+      return true;
+    };
+    // where the ring is in the air, k of the way through its flight (0..1): [x, y, z] in the world, and how far out along
+    // the lane. It shrinks away steadily as you see it (its distance goes as 1 / k), comes in to the middle of the lane
+    // before it reaches the doorway, and rises and falls on its arc
+    const ringFlight = (r, k) => {
+      const lane = L.lanes[r.lane], z = 1 / lerp(1 / r.z0, 1 / r.d, k), x = r.x0 * (1 - smoothstep((z - r.z0) / Math.max(0.05, r.zd - 0.3 - r.z0)));
+      return [lane.dirX * z + Math.cos(lane.yaw) * x, lerp(r.y0, r.y1, k) + r.arc * 4 * k * (1 - k), lane.dirZ * z - Math.sin(lane.yaw) * x, z];
+    };
+    // how it rides on the water: knocked under as it lands and up again, then bobbing (gentler with reduced motion)
+    const ringBob = r => { const q = L.t - r.land, soft = SAVE.data.settings.reducedMotion ? 0.45 : 1; return (-0.06 * Math.exp(-q * 4) * Math.cos(q * 13) + 0.018 * Math.sin(L.t * 2.1)) * soft; };
+    L.uses = [Object.defineProperty({ range: Infinity, sights: false, onClick: throwRing, hoverText: () => 'Throw it the life ring.' }, 'tool', { enumerable: true, get: () => (canThrow() ? 'lifering' : null) })];
+    L.onPickup = it => { if (it === ring) ring.onWall = false; };
     // ---- the way round ----
     // Held at a way you have shut, after a moment it goes round to one still open (the game moves it there, 3 m out). It
     // goes under at the shut one, swims round out of sight, comes up off to one side of the open one and swims across into
@@ -447,7 +517,7 @@ LEVELS.push({
     // turns to the door and comes on. Its early change of mind, unseen, is only a dive: it comes up on the new way.
     L.onLaneSwitch = (c, ln) => {
       c.diveT = -10;   // no rings on the new way, where it did not go under
-      if (!s.wasHeld) { if (c.mode === 'up') { c.mode = 'down'; c.modeT = 0; } return; }
+      if (!s.wasHeld) { if (c.mode === 'up' && !c.ringOn) { c.mode = 'down'; c.modeT = 0; } return; }   // (in the life ring it does not dive: unseen, it is on the new way)
       const ap = ln.apertures[0], out = Math.max(Math.abs(ap.x0), Math.abs(ap.x1)) * c.dist / ap.z + 0.9;   // wholly out of the doorway's view, wake and all
       s.swim = { t: 0, side: ln.idx === 1 ? -1 : 1, out, across: 0.55 + out * 0.22, d0: c.dist, strokes: 0, up: false };
       c.hold = c.dist; c.mode = 'down'; c.modeT = 0; c.runLat = s.swim.side * out;
@@ -540,6 +610,12 @@ LEVELS.push({
       if (s.doorClosing > 0) { s.doorClosing -= dt * (s.leafSlow ? 0.25 : 1); s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
       const c = L.creature;
       if (s.swim) swimRound(c, dt);
+      // the life ring: it lands (and from then the thing may come up through it), floats, and is worn
+      const r = s.ring;
+      if (r) {
+        if (r.phase === 'fly') { if (L.t - r.t >= r.dur) { r.phase = 'float'; r.land = L.t; c.ringReady = true; AUDIO.sfx('ringPlop', panOf(L.lanes[r.lane].yaw)); } else r.y = ringFlight(r, (L.t - r.t) / r.dur)[1]; }
+        if (r.phase === 'float') { if (c.ringOn) r.phase = 'on'; else r.y = r.y1 + ringBob(r); }
+      }
       s.wasHeld = !!c.sealHold;   // read by L.onLaneSwitch, which the game calls after this, when it sends it round
       // the water it throws in: flying, then splashing down on the deck
       for (let i = s.drops.length - 1; i >= 0; i--) {
@@ -552,7 +628,9 @@ LEVELS.push({
       s.surges = s.surges.filter(j => L.t - j.t < 1.8);
       s.swing += (s.swingT - s.swing) * (1 - Math.exp(-dt * 3)); s.swingT *= Math.exp(-dt * 0.4);
     };
-    L.deathCause = c => (c.lane.idx === 1 ? (s.snap ? 'oneoar' : 'side') : null);
+    // (caught after the life ring was thrown, by whichever way: the night's easter egg says so, in its own line and no
+    // other: a line toasted a moment before is not put in front of it, as game.js deathLine otherwise would)
+    L.deathCause = c => { if (s.ring) { G.lastToast = { msg: '', t: -10 }; return 'ring'; } return c.lane.idx === 1 ? (s.snap ? 'oneoar' : 'side') : null; };
     // a shut, unbarred door really does slow it: it bangs the door open and stands in it for a moment, long enough to shut and
     // bar it. With one oar across it, it throws itself at the door once, the door jumps on the oar, and at the second blow the
     // oar snaps and the door bursts open (L.update), and it comes on in
@@ -705,6 +783,26 @@ LEVELS.push({
           ctx.scale(w, w); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.cola([96, 118, 134], 0.14 * (1 - k)));
           ctx.strokeStyle = P.cola([170, 186, 196], 0.6 * (1 - k)); ctx.lineWidth = 0.05; ctx.beginPath(); ctx.ellipse(0, 0.5, 0.5, 0.5, 0, 0, TAU); ctx.stroke();
           ctx.lineWidth = 0.035; ctx.beginPath(); ctx.ellipse(0, 0.5, 0.3, 0.3, 0, 0, TAU); ctx.stroke();
+        } });
+      }
+      // the life ring. On the wall it lies flat on the boards (its card fixed to the wall's face, looking into the room);
+      // in the air it spins flat, wobbling, on its arc out through the doorway; on the water it floats where it landed,
+      // a small splash round it as it lands, rings going out from it, bobbing, until the thing comes up through it
+      const rp = L.rend && L.rend.get(ring);
+      if (rp) rp.face = ring.onWall ? Math.PI / 2 + (L.facing || 0) : undefined;
+      const fr = s.ring;
+      if (fr && fr.phase === 'fly') {
+        const k = clamp((L.t - fr.t) / fr.dur, 0, 1), p = ringFlight(fr, k), sc = lerp(fr.scale, 1, smoothstep(k * 5)), open = clamp(Math.abs(L.eyeH - p[1]) / Math.max(0.5, p[3]) + 0.13 * Math.sin(L.t * 13), 0.1, 0.8);
+        const w = 1.0 * sc;
+        R.add({ kind: 'sprite', x: p[0], y: p[1] - w / 2, z: p[2], w, h: w, noContact: true, draw: (ctx, P) => { ctx.translate(0, w / 2); ctx.scale(sc, sc); ctx.rotate(0.12 * Math.sin(L.t * 9)); SW.lifeRing(ctx, P, 0, 0, SW.RING_R, open, L.t * 15, null, SW.RING_TUBE); } });
+      } else if (fr && fr.phase === 'float') {
+        const p = APPROACH.position(L.lanes[fr.lane], fr.d, 0, L.eyeH), q = L.t - fr.land, k = SW.ringK(fr.d), soft = SAVE.data.settings.reducedMotion ? 0.6 : 1;
+        R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: 1.0, h: 0.5, noContact: true, draw: (ctx, P) => {
+          for (let i = 0; i < 2; i++) { const u = (i * 0.5 + L.t * 0.22) % 1, rr = SW.RING_R + 0.12 + u * 0.5; ctx.strokeStyle = P.cola([150, 165, 175], 0.4 * (1 - u)); ctx.lineWidth = 0.02; ctx.beginPath(); ctx.ellipse(0, 0, rr, rr * k, 0, 0, TAU); ctx.stroke(); }
+          const splash = front => { if (q < 1.2) { ctx.save(); ctx.scale(0.42 * soft, 0.34 * soft); SW.burst(ctx, P, 0, q, 0.5, front); ctx.restore(); } };
+          splash(false);
+          ctx.save(); ctx.rotate(0.05 * Math.sin(L.t * 1.7) * soft); SW.lifeRing(ctx, P, 0, fr.y - p.y, SW.RING_R, k, 0.3, null, SW.RING_TUBE); ctx.restore();
+          splash(true);
         } });
       }
       // out beyond the water door it is behind the slats, which by their middles come out nearer than it does: while it
