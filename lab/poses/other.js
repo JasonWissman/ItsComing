@@ -49,6 +49,17 @@
     c.gait += moved * CR.stepRate * Math.PI; c.moving = moved > 0.024 * dt;
     if (!c.moving) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
   }
+  // a dust sheet hung before it, as over a mirror (night 10's sheet, its folds and its uneven hem), and what the cloth
+  // shows of it pressing through from behind (c.press, as night 10's pressOf gives it)
+  const CLOTH = { base: [156, 148, 132], fold: [114, 106, 94], lite: [180, 172, 156] };
+  function sheet(ctx, c, P) {
+    P_poly(ctx, [[-0.9, 2.62], [0.9, 2.62], [0.97, 2.56], [1.0, 1.4], [1.05, 0.1], [0.8, 0.05], [0.52, 0.11], [0.2, 0.03], [-0.1, 0.1], [-0.42, 0.04], [-0.74, 0.1], [-1.04, 0.07], [-1.0, 1.4], [-0.97, 2.56]], P.col(CLOTH.base));
+    for (const [xa, xb, w] of [[-0.66, -0.72, 0.13], [0.04, 0.1, 0.15], [0.58, 0.68, 0.12]]) {
+      P_poly(ctx, [[xa, 2.5], [xb + w / 2, 0.15], [xb - w / 2, 0.15]], P.col(CLOTH.fold));
+      P_poly(ctx, [[xa + 0.02, 2.5], [xb + w / 2 + 0.07, 0.15], [xb + w / 2, 0.15]], P.col(CLOTH.lite));
+    }
+    if (c.press) CR.pressed(ctx, P, Object.assign({ cloth: CLOTH }, c.press));
+  }
   const base = LAB.lunge();
   LAB.creature('other', {
     night: 10, stage: 'The Mirror Maze', dist: GLASS, fit: { h: 1.45, w: 1.0 },
@@ -113,6 +124,10 @@
           c.dist = IN; c.yOff = 0; c.runPose = true; c.runDir = SIDE;
           if (T < F.back + F.run) c.runGait = (c.runGait || 0) + dt * 16;
         } },
+      { name: 'Pressing through the dust sheet', note: 'The easter egg: every mirror under a dust sheet. After a beat of silence its face comes pressing out through the cloth from inside (the swell of its head, its brow, the hollows of its eyes, its nose, its mouth opening into a wail), then a hand either side of it, fingers spread, the cloth stretched toward you and pulled into creases to the frame; and then it comes through. Drawn on the sheet in the cloth\'s own colours (pressed: k its face, hands its hands).',
+        dist: 3.75, dur: 4.6, still: true, fit: { h: 2.75, w: 2.3 }, front: sheet,
+        set(c) { c.angry = 1; c.dance = 0; c.press = { k: 0, hands: 0, t: 0 }; },
+        tick(c, k, dt, T) { c.press = { k: smoothstep((T - 0.6) / 1.1), hands: smoothstep((T - 1.1) / 0.8), t: T }; } },
       LAB.lunge({ note: 'It has you, from behind: weeping all the way in, the red eyes and the red tears, the sob opening into a wail and its hands coming up to take hold.', dist: CR.catchDist,
         set(c) { c.angry = 1; c.dance = 0; c.smile = false; base.set(c); } }),
     ],

@@ -169,16 +169,16 @@ LEVELS.push({
       P_poly(ctx, [[-0.47, 0.36], [0.47, 0.36], [0.455, 0.44], [-0.455, 0.44]], c('lite'));
       P_line(ctx, 0.03, 0.46, 0.02, 0.88, 0.018, c('fold'));
     };
-    const sheetBundle = (ctx, P) => {
+    const sheetBundle = (ctx, P) => {   // gathered up in one hand: a soft mass of it, in long folds, two ends of it hanging down
       const c = k => P.col(CLOTH[k]);
-      P_poly(ctx, [[-0.26, 0.34], [-0.47, 0.03], [-0.24, 0.1], [-0.08, 0.3]], c('fold'));          // a corner of it hanging out
-      P_poly(ctx, [[-0.44, 0.34], [-0.36, 0.62], [-0.12, 0.8], [0.18, 0.78], [0.42, 0.58], [0.46, 0.3], [0.3, 0.1], [-0.02, 0.05], [-0.32, 0.14]], c('base'));
-      P_poly(ctx, [[-0.34, 0.6], [-0.12, 0.8], [0.18, 0.78], [0.3, 0.68], [0.04, 0.62], [-0.16, 0.5]], c('lite'));
-      P_limb(ctx, [[-0.36, 0.36], [-0.16, 0.5], [0.04, 0.62], [0.3, 0.68]], 0.03, c('fold'));
-      P_limb(ctx, [[-0.1, 0.12], [0.06, 0.34], [0.34, 0.42]], 0.03, c('fold'));
-      P_limb(ctx, [[0.06, 0.34], [-0.02, 0.5]], 0.024, c('fold'));
+      P_poly(ctx, [[-0.32, 0.42], [-0.44, 0.02], [-0.22, 0.09], [-0.1, 0.38]], c('fold'));
+      P_poly(ctx, [[0.02, 0.4], [0.1, 0], [0.31, 0.07], [0.28, 0.42]], c('base'));
+      P_line(ctx, 0.17, 0.36, 0.2, 0.06, 0.02, c('fold'));
+      P_poly(ctx, [[-0.42, 0.44], [-0.4, 0.62], [-0.28, 0.78], [-0.06, 0.87], [0.18, 0.85], [0.36, 0.72], [0.44, 0.54], [0.4, 0.38], [0.22, 0.3], [-0.06, 0.28], [-0.3, 0.32]], c('base'));
+      P_poly(ctx, [[-0.36, 0.64], [-0.28, 0.78], [-0.06, 0.87], [0.18, 0.85], [0.32, 0.75], [0.1, 0.74], [-0.14, 0.72]], c('lite'));
+      for (const [x0, x1, x2] of [[-0.22, -0.3, -0.24], [-0.02, -0.08, 0], [0.19, 0.17, 0.25]]) P_limb(ctx, [[x0, 0.8], [x1, 0.58], [x2, 0.36]], 0.02, c('fold'));
     };
-    const sheetItem = icon => ({ w: 0.46, h: 0.36, flat: true, icon, held: { grip: 'fist', at: [0.02, 0.42], angle: 0.12, size: 0.3 } });
+    const sheetItem = icon => ({ w: 0.46, h: 0.36, flat: true, icon, held: { grip: 'fist', at: [0.02, 0.45], angle: 0.12, size: 0.27 } });
     for (const [x, z] of [[2.55, 3.08], [3.08, 2.55]]) mkItem(L, 'dustsheet', 'Dust sheet', { x, y: 0, z, jitter: 0 }, sheetItem(sheetFolded));
     L.onPickup = it => { if (it.id === 'dustsheet') it.icon = sheetBundle; };   // shaken out of its folds: from now on a bundle
     const sheetInHand = () => { const it = G.inv[G.active]; return !!it && it.id === 'dustsheet'; };
@@ -186,15 +186,15 @@ LEVELS.push({
     // down: the hand goes out to its hem and pulls, and it slides off the glass into a heap, m.anim, from when the hand has
     // it); bare, with a dust sheet in your hand, the mirror (the sheet is thrown up over it: flung up to the top of the
     // frame, its hem swinging up after it and settling). SHEET: how long each takes
-    const SHEET = { down: 0.25, up: 0.45 };
+    const SHEET = { down: 0.25, up: 0.5, torn: 0.16 };   // (torn: ripped down off the glass as it comes through, the easter egg)
     const pullDown = (k, t) => {
       const m = s.mirrors[k]; m.live = true; m.heap++;
       G.say('The sheet comes down. Glass.', 'Glass.');
       const r = G.reach(t, { style: 'pull', at: [0.4, 0.4], sfx: 'flop' });
-      s.sheetFall = { k, t0: L.t + (r ? r.out : 0) }; m.anim = { t0: s.sheetFall.t0 };   // (L.update hisses as it goes)
+      s.sheetFall = { k, t0: L.t + (r ? r.out : 0) }; m.anim = { t0: s.sheetFall.t0, T: SHEET.down };   // (L.update hisses as it goes)
     };
     const cover = k => {
-      const m = s.mirrors[k]; m.live = false; m.anim = { up: true, t0: s.now };
+      const m = s.mirrors[k]; m.live = false; m.anim = { up: true, t0: s.now, T: SHEET.up };
       if (s.mirrors.every(q => !q.live)) { ignored(k); return; }
       AUDIO.sfx('flop', panTo(Math.sin(m.deg * DEG), Math.cos(m.deg * DEG)));
       G.say('The sheet goes up over the glass, and hangs.', 'Covered.');
@@ -217,7 +217,7 @@ LEVELS.push({
     // the heap a sheet lies in at the foot of its glass, there to be taken up again. From the middle of the room the
     // pedestal stands before the middle of it, so it is clicked either side of the pedestal (and never takes a click meant
     // for the pedestal or the box on it)
-    const heapShown = k => { const m = s.mirrors[k], a = m.anim; return m.heap - (a && !a.up && s.now < a.t0 + SHEET.down ? 1 : 0) > 0; };
+    const heapShown = k => { const m = s.mirrors[k], a = m.anim; return m.heap - (a && !a.up && s.now < a.t0 + a.T ? 1 : 0) > 0; };
     const takeHeap = (k, side) => {
       const m = s.mirrors[k]; m.heap--;
       const it = newItem(L, 'dustsheet', 'Dust sheet', sheetItem(sheetBundle)), at = onLine(3.2, side * 0.5, 0.05, k);
@@ -479,7 +479,7 @@ LEVELS.push({
         s.fetch.ap = clamp(0.9 + (s.fetch.D - AT) * 0.045, 1.3, 2.4);
         c.retarget(1 + s.odd); c.dist = c.hold = s.fetch.D; c.lat = 0; c.back = false; c.smile = false; c.danceMir = sideOf(s.odd);
         L.lane = c.lane; L.laneIdx = c.lane.idx;
-        if (!m.live) { m.live = true; m.heap++; s.sheetFall = { k: s.odd, t0: L.t, hissed: true }; m.anim = { t0: L.t }; AUDIO.sfx('hiss'); }   // a sheet over it slides off
+        if (!m.live) { m.live = true; m.heap++; s.sheetFall = { k: s.odd, t0: L.t, hissed: true }; m.anim = { t0: L.t, T: SHEET.down }; AUDIO.sfx('hiss'); }   // a sheet over it slides off
         s.ripples = [];
       }
       const f = s.fetch; f.t += dt;
@@ -592,12 +592,12 @@ LEVELS.push({
       const e = s.egg, T = G.stateT;
       s.now = e.at + T;
       if (!e.pressed && T >= EGG.hush) { e.pressed = true; AUDIO.sfx('sheetPress', 0); }
-      if (!e.burst && k > 0) { e.burst = true; const m = s.mirrors[e.k]; m.live = true; m.heap++; m.anim = { t0: s.now }; if (!gentle()) G.shake(1.2); }
+      if (!e.burst && k > 0) { e.burst = true; const m = s.mirrors[e.k]; m.live = true; m.heap++; m.anim = { t0: s.now, T: SHEET.torn, torn: true }; if (!gentle()) G.shake(1.2); }
     };
     const ignored = k => {
       const c = c0();
       foundEgg();
-      s.egg = { k, at: s.now, pressed: false, burst: false };
+      s.egg = { k, at: s.now, pressed: false, burst: false, shown: [] };
       c.retarget(1 + k); c.dist = c.hold = EGG.from; c.lat = c.runLat = 0; c.yOff = 0;
       Object.assign(c, { back: false, smile: false, angry: 1, dance: 0, danceMir: 1, runPose: false, arms: null, carry: null, rush: 0, tint: null });
       L.lane = c.lane; L.laneIdx = c.lane.idx;
@@ -631,7 +631,7 @@ LEVELS.push({
       // alike otherwise: unlit by the fire out to the west, which would warm the one in the west glass and no other
       // (a sheet on its way up: the glass still shows it until the cloth is over it)
       if (c.lane.follow) s.mirrors.forEach((m, k) => {
-        if (!m.live && !(m.anim && m.anim.up && s.now < m.anim.t0 + SHEET.up)) return;
+        if (!m.live && !(m.anim && m.anim.up && s.now < m.anim.t0 + m.anim.T)) return;
         const dd = 7 + c.dist, q = L.at(m.deg, dd, 0), back = G.state === 'dying';
         R.add({ kind: 'sprite', x: q[0], y: q[1], z: q[2], w: CR.w, h: CR.h, dist: dd, sortDist: 7.1, fogScale: 0.6, noLight: true, draw: (ctx, P) => {
           c.back = back; c.danceMir = sideOf(k); CR.draw(ctx, c, P);
@@ -655,17 +655,18 @@ LEVELS.push({
       // the sheets: hanging over the glass; sliding off it (squeezed down to the floor); thrown up over it (the top of it up
       // to the frame first, the hem swinging up after it and dropping back); and the heap of those that have come down
       s.mirrors.forEach((m, k) => {
-        const a = m.anim, u = a ? clamp((s.now - a.t0) / (a.up ? SHEET.up : SHEET.down), 0, 1) : 1;
+        const a = m.anim, u = a ? clamp((s.now - a.t0) / a.T, 0, 1) : 1;
         let fy = null;
         if (a && u < 1) {
-          if (a.up) { const r = easeOut(u / 0.6), lift = Math.sin(Math.PI * u) * 0.34 * r; fy = y => 0.05 + (y - 0.05) * r + lift * Math.max(0, 1 - y / 1.4); }
-          else { const e = easeIn(u); fy = y => 0.05 + (y - 0.05) * (1 - e); }
+          if (a.up) { const r = easeOut(u / 0.75), lift = Math.sin(Math.PI * u) * 0.34 * r; fy = y => 0.05 + (y - 0.05) * r + lift * Math.max(0, 1 - y / 1.4); }
+          else { const e = a.torn ? easeOut(u) : easeIn(u); fy = y => 0.05 + (y - 0.05) * (1 - e); }
         }
         if (fy) for (const q of sheetAt[k]) R.add(Object.assign({}, q, { pts: q.pts.map(w => [w[0], fy(w[1]), w[2]]) }));
         else if (!m.live) for (const q of sheetAt[k]) R.add(q);
         if (heapShown(k)) for (const q of heapAt[k]) R.add(q);
         const pr = s.egg && !fy && !m.live ? pressOf(k) : null;
         if (pr) { Object.assign(bulges[k].press, pr); R.add(bulges[k]); }
+        if (s.egg) s.egg.shown[k] = pr;   // (what each sheet shows of it now)
       });
       // (the red of the death comes up with the cloth, not before it: the hush is only quiet)
       if (s.egg && G.state === 'dying') G.danger = Math.min(G.danger, 0.06 + 0.94 * smoothstep((G.stateT - EGG.hush) / (EGG.burst - EGG.hush)));
