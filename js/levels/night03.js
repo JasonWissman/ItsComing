@@ -449,7 +449,8 @@ LEVELS.push({
     L.uses = NONE;
     s.egg = null;        // its sugar rush, while it lasts: { phase: take, look, pour, still, buzz, run or shudder; t (in the phase); T (in all); ... }
     s.spent = [];        // the emptied bags, where they fell: { from, to, t0 }
-    s.give = GIVE;       // (the tests read its times)
+    s.puffs = [];        // the dust it leaves behind it as it runs: { x, y, z, t0 }
+    s.give = GIVE; s.yard = yard;   // (the tests read its times, and what stands in its way)
     // the bag it could be handed now, if any: the sugar is the thing in your hand, and it is up, coming, near and in view
     const giving = c => {
       const it = G.inv[G.active];
@@ -508,11 +509,11 @@ LEVELS.push({
     // fence, and comes back the same way. (slow: the plainer round, one loop)
     const ROUNDS = {
       path: { out: [[0, 4.9]], back: [[0, 7.8], [0, 5.4]],
-        wild: [[4.5, 7.2], [-6.5, 10.5], [8, 14.5], [1, 19.5], [-9, 16], [-5, 7], [4.5, 6.2], [7.5, 10.5], [2, 13.5], [-3.5, 10.5]],
-        slow: [[3.8, 6.8], [7, 10.5], [5.5, 15], [0, 17.5], [-5.5, 15], [-7, 10.5], [-3.6, 9]] },
+        wild: [[4.5, 6.8], [-6, 8.5], [8, 11], [1.5, 14], [-8.5, 12.5], [-6.5, 7.2], [4.5, 6.2], [9, 9.5], [3.5, 12.5], [-4.5, 11], [-7, 8.6], [-2.2, 7.6]],
+        slow: [[4.5, 6.8], [9, 10], [7.5, 13.5], [0, 14.8], [-7.5, 13.5], [-9, 10], [-4, 8.2]] },
       side: { out: [[4.9, 0]], back: [[7.8, 0], [5.4, 0]],
-        wild: [[6.6, 3], [6, 6.8], [-2.5, 9.5], [7, 13.5], [-1, 18.5], [-8.5, 14], [-4.5, 6.6], [3.5, 8], [7.4, 6.4], [9.6, 2.6]],
-        slow: [[6.6, 3], [5.5, 7.5], [-1, 10], [-6, 13.5], [-1, 17], [5.5, 13.5], [8, 8], [9.6, 3]] },
+        wild: [[6.6, 3], [6, 6.8], [-2.5, 8.5], [7, 11.5], [-0.5, 14], [-8.5, 12.5], [-6, 7], [3.5, 6.4], [8.5, 9.8], [1.5, 12.5], [-3.5, 9.5], [2.5, 6.6], [7.4, 6.4], [9.6, 2.6]],
+        slow: [[6.6, 3], [5.5, 7.5], [-1, 9], [-7.5, 11.5], [-1, 14.5], [6.5, 12.5], [8.2, 8], [9.6, 3]] },
     };
     // on its way's own clear line through the fence (so it goes out and comes in by the gap)
     const onWay = (c, q) => { const along = c.lane.idx === 0 ? q[1] : q[0], off = c.lane.idx === 0 ? q[0] : q[1]; return Math.abs(off) < 0.8 && along < 4.4; };
@@ -531,9 +532,9 @@ LEVELS.push({
     // how far along its run it is, t seconds into one of T (0..1): off the mark in GIVE.launch, flat out, and the last
     // GIVE.skid of it a skid to a stop
     const runProf = (t, T) => { const a = GIVE.launch, d = GIVE.skid, V = 1 / (T - (a + d) / 2); return t < a ? V * t * t / (2 * a) : t < T - d ? V * (t - a / 2) : 1 - V * (T - t) * (T - t) / (2 * d); };
-    const dropBag = (c, e, sy) => {   // it lets the bag fall: from its hand to the ground beside it, a little your side of it
-      const from = partOf(c, 0.06, sy), to = partOf(c, 0.46, 0), k = 1 - 0.3 / Math.max(0.3, Math.hypot(to.x, to.z));
-      s.spent.push({ from, to: { x: to.x * k, y: e.home.y, z: to.z * k }, t0: L.t, landed: false });
+    const dropBag = (c, e, sy) => {   // it lets the bag fall: from its hand to the ground beside it
+      const from = partOf(c, 0.06, sy), to = partOf(c, 0.52, 0);
+      s.spent.push({ from, to: { x: to.x, y: e.home.y, z: to.z }, t0: L.t, landed: false });
       c.bagHas = false;
     };
     const eggEnd = (c, e) => {   // and the night has it again, as it was when it took the bag
@@ -588,6 +589,8 @@ LEVELS.push({
           const P = e.path, T = e.runT, u = Math.min(e.t, T), a = P.len * runProf(u, T), q = P.at(a), w = L.pt(q[0], 0, q[1]);
           const vx = (w[0] - e.at.x) / Math.max(dt, 1e-4), vz = (w[2] - e.at.z) / Math.max(dt, 1e-4);
           e.at = { x: w[0], y: e.home.y, z: w[2] }; e.d = Math.hypot(w[0], w[2]); c.yaw = Math.atan2(w[0], w[2]);
+          e.gone = (e.gone || 0) + Math.hypot(vx, vz) * dt;
+          if (e.gone >= 0.8) { e.gone = 0; s.puffs.push({ x: w[0], y: e.home.y, z: w[2], t0: L.t }); }   // a puff of dust every stride or so, left hanging along the way it went
           const front = a >= P.front, vt = vx * Math.cos(c.yaw) - vz * Math.sin(c.yaw);   // (vt: across the view, to the right)
           if (Math.abs(vt) > 2) c.runDir = vt > 0 ? 1 : -1;
           c.runPose = !front; c.rush = front ? 1 : 0;
@@ -611,6 +614,7 @@ LEVELS.push({
         }
       }
     };
+    const PUFF = 0.9;   // how long a puff of its dust hangs
     const emptyBag = (ctx, P) => {   // the bag, emptied and crumpled, lying where it fell
       const paper = P.col([228, 26, 22]), band = P.col([226, 214, 196]), dark = P.col([136, 14, 12]);
       P_poly(ctx, [[-0.18, 0.04], [-0.02, 0.01], [0.15, 0.03], [0.19, 0.1], [0.14, 0.2], [0.03, 0.17], [-0.06, 0.22], [-0.17, 0.17], [-0.2, 0.1]], paper);
@@ -622,6 +626,14 @@ LEVELS.push({
       if (e && e.phase === 'take') {   // the bag, out of your hand and into its
         const k = smoothstep(e.t / GIVE.take), to = partOf(c, 0.26, 0.62), it = e.it;
         R.add({ kind: 'sprite', x: lerp(e.from.x, to.x, k), y: lerp(e.from.y, to.y, k) + Math.sin(k * Math.PI) * 0.1, z: lerp(e.from.z, to.z, k), w: it.w, h: it.h, worn: true, draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); } });
+      }
+      const cp = L.rend && L.rend.get(c);   // out in the yard it is kept clear of the murk, so it can be followed (0.85: as game.js draws it)
+      if (cp && (e || cp.eggFog)) { cp.eggFog = !!(e && e.phase === 'run'); cp.fogScale = cp.eggFog ? 0.45 : 0.85; }
+      while (s.puffs.length && L.t - s.puffs[0].t0 > PUFF) s.puffs.shift();
+      for (const p of s.puffs) {   // its dust, rising, spreading and thinning
+        if (!p.spr) p.spr = { kind: 'sprite', x: p.x, y: p.y, z: p.z, w: 0.9, h: 0.7, draw: (ctx, P) => { const k = p.k; P_ell(ctx, 0, 0.1 + k * 0.26, 0.11 + k * 0.24, 0.08 + k * 0.17, P.cola([160, 152, 140], (1 - k) * 0.5)); } };
+        p.k = clamp((L.t - p.t0) / PUFF, 0, 1);
+        R.add(p.spr);
       }
       for (const b of s.spent) {
         const u = (L.t - b.t0) / 0.42;
