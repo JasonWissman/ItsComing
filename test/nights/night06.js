@@ -157,6 +157,25 @@ const ringEgg = [
   ['expect', "G.state === 'survived' && G.L.won && G.L.text.win.startsWith('It threw itself at the door')", 'with both ways shut after the throw the night is won, as it always is'],
   ['eval', 'restartLevel();'], ['wait', 1500], ['expect', "G.state === 'play' && !G.L.s.ring && !G.L.won", 'and the night starts again, with no ring thrown'],
 ];
+// It never swims in over the boards. The water ends at each doorway's sill (L.waterEdge: 2.6 m off at the water door,
+// 2.4 m at the side door) and it comes no nearer than its stopping place outside it (L.stopDist), where all of it as it
+// is drawn (its rings on the water, the life ring round it, its paws) is still over water from where you stand: its death
+// lunge begins from there. On each way, in the ring and without it: brought in from 6 m and stepped by hand until it has
+// you, it was never nearer than that while the night was still being played, and the lunge began from there.
+const edgeRun = (lane, ring) => [
+  ['eval', `(() => { const L = G.L, c = L.creature, s = L.s, ln = L.lanes[${lane}], o = window.__edge = { min: 99 };
+    c.retarget(${lane}); c.switched = true; c.reached = false; L.laneIdx = ${lane}; L.lane = ln; L.barrierDist = ln.barrierDist; c.hold = null;
+    c.u = 1 - 6 / c.D0; c.mode = 'up'; c.modeT = 0; c.upFor = 2;
+    if (${ring}) { c.ringOn = true; c.ringT = c.t - 5; c.padGait = 0; s.ring = { phase: 'on', lane: ${lane}, d: 6 }; }
+    let n = 0;
+    while (G.state === 'play' && n++ < 6000) { update(1 / 60); if (G.state === 'play') { o.min = Math.min(o.min, c.dist); if (CREATURES.swimmer.hidden(c)) o.under = true; } }
+    o.state = G.state; o.from = c.lungeFrom; o.edge = L.waterEdge[${lane}]; o.stop = L.stopDist[${lane}]; o.cause = G.deathCause; o.lane = c.lane.idx;
+    o.rim = o.min - CREATURES.swimmer.RING_R - CREATURES.swimmer.RING_TUBE; })()`],
+  ['expect', `(o => o.state === 'dying' && o.lane === ${lane} && o.edge === ${lane ? 2.4 : 2.6} && o.stop >= o.edge + 0.8 && o.min >= o.stop - 0.06 && o.from >= o.stop - 0.06 && o.from <= o.stop + 0.001 && o.rim > o.edge + 0.3 && ${ring ? "!o.under && o.cause === 'ring'" : "o.cause !== 'ring'"})(window.__edge)`,
+    'at the ' + (lane ? 'side door' : 'water door') + (ring ? ', in the life ring' : ', with no ring') + ': it comes no nearer than its stopping place outside the water\'s edge, and lunges from there'],
+  ['eval', 'restartLevel();'], ['wait', 1500], ['expect', "G.state === 'play' && !G.L.s.ring", 'the night starts again'],
+];
+const waterEdge = [].concat(edgeRun(0, false), edgeRun(0, true), edgeRun(1, false), edgeRun(1, true));
 const winch = [
   pause, ['use', 'winch'], ['expect', 'G.L.s.locked && G.hand.reach && G.hand.reach.target.id === "winch" && G.hand.reach.style === "rattle"', 'with nothing in hand the hand goes to the padlock and rattles it'],
   ['waitUntil', 'G.L.s.rattleT > 0 && !G.hand.reach', 3000], resume,
@@ -231,5 +250,5 @@ const onSurface = `(() => {
 })()`;
 const handleSpots = [['expect', onSurface, 'every place the winch handle can start rests on a surface drawn there (deck, bench, shelf, boat), and it lies on one']];
 module.exports = {
-  nightmare: scenery.concat(handleSpots, rain, ringEgg, oneOar, winch, door, shutIn),
+  nightmare: scenery.concat(handleSpots, rain, ringEgg, oneOar, waterEdge, winch, door, shutIn),
 };

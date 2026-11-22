@@ -20,12 +20,12 @@ Object.assign(ICONS, {
     P_rect(ctx, -0.16, 0.06, 0.12, 0.06, brass); P_rect(ctx, -0.16, 0.16, 0.08, 0.05, brass);
     ctx.restore();
   },
-  // the life ring, face on: a fat hoop, white with four red bands, its grab line round the outside of it
+  // the life ring, face on: a fat hoop, white with four red bands, and nothing round the outside of it (it had a grab
+  // line there once, a thin pale yellow ring round its rim: on the wall it read as an outline, and was taken off)
   lifeRing(ctx, P) {
     const cx = 0, cy = 0.5, r = 0.365, w = 0.2;   // the middle of the tube, and how fat it is
     const arc = (a0, a1, rr, lw, col) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(cx, cy, rr, a0, a1); ctx.stroke(); };
     ctx.lineCap = 'butt';
-    arc(0, TAU, r + w / 2 + 0.016, 0.02, P.col([176, 160, 120]));
     arc(0, TAU, r, w, P.col([156, 154, 148])); arc(0, TAU, r + 0.008, w * 0.72, P.col([230, 226, 214]));
     for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; arc(a - 0.3, a + 0.3, r, w + 0.012, P.col([124, 30, 28])); arc(a - 0.3, a + 0.3, r + 0.008, w * 0.72, P.col([196, 46, 38])); }
   },
@@ -45,12 +45,18 @@ LEVELS.push({
     win: 'It threw itself at the doors, but they held.',
     egg: 'Throw it the life ring.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },
-  // the thing swims: its feet are at the water line, a little below the deck
+  // the thing swims: its feet are at the water line, a little below the deck. It never swims in over the boards: the
+  // water ends at each doorway's sill (the deck's edge: 2.6 m off at the water door, 2.4 m at the side door), and it
+  // comes no nearer than 0.85 m outside that (its catchDist on each way, set in build: STOP), which is where all of it
+  // as it is drawn, its rings on the water and the life ring round it and its paws paddling, is still over water from
+  // where you stand (measured: 3.45 m and 3.2 m in the ring, 2.95 m and 2.75 m without). Its death lunge comes up out of
+  // the water from there. A shut way holds it a little further out again (barrierDist). Its time is the longer by what
+  // those last metres took it, so it gets to you when it always did
   lanes: [
-    { deg: 0, name: 'water door', barrierDist: 2.9, y: -0.15, cue: 'splash', default: true },
-    { deg: 90, name: 'side door', barrierDist: 2.7, y: -0.15, cue: 'splash' },
+    { deg: 0, name: 'water door', barrierDist: 3.55, y: -0.15, cue: 'splash', default: true },
+    { deg: 90, name: 'side door', barrierDist: 3.35, y: -0.15, cue: 'splash' },
   ],
-  creatures: [{ type: 'swimmer', startDist: 70, time: 105, unseenMult: 1.3 }],
+  creatures: [{ type: 'swimmer', startDist: 70, time: 108, unseenMult: 1.3, catchDist: 3.45 }],
   // the aftermath is the night's own (L.aftermath in build): it comes on to the door it was coming for and pounds on it
   aftermath: { type: 'custom' },
   build(L) {
@@ -464,6 +470,9 @@ LEVELS.push({
     // names its tool only while the ring is in your hand and the thing in sight, so the game does not offer the thing
     // as something to click at any other time, and carrying the ring changes nothing.
     const SW = CREATURES.swimmer, THROW = 0.9, DOORWAY = [2.6, 2.4];   // how far off each way's doorway is
+    // the water's edge on each way is its doorway's sill; it stops, and lunges from, STOP_OUT outside it (see the lanes)
+    const STOP_OUT = 0.85, STOP = DOORWAY.map(d => d + STOP_OUT);
+    L.waterEdge = DOORWAY; L.stopDist = STOP;
     const doorTop = () => 2.4 - 2.4 * clamp((winch.count || 0) / need, 0, 1);   // the water door's opening: up to the lowest slat
     const ringSeen = c => {
       if (c.dead || c.lunge || L.won || SW.hidden(c) || APPROACH.apertureFrac(c.lane, c.dist, c.lat, SW.w, SW.h, L.eyeH) < 0.3) return false;
@@ -609,6 +618,7 @@ LEVELS.push({
       s.crankA += ((winch.count || 0) * 1.3 - s.crankA) * (1 - Math.exp(-dt * 12));   // the crank goes round smoothly to where it was turned
       if (s.doorClosing > 0) { s.doorClosing -= dt * (s.leafSlow ? 0.25 : 1); s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
       const c = L.creature;
+      c.catchDist = STOP[c.lane.idx];   // the way it is on now: no nearer than its water's edge
       if (s.swim) swimRound(c, dt);
       // the life ring: it lands (and from then the thing may come up through it), floats, and is worn
       const r = s.ring;

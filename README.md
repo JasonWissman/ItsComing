@@ -328,7 +328,11 @@ some on the ground, so you have to turn and look down to find them.
    stop it and win the night as ever, sent round it swims across with the hoop standing up round its chest, and when it
    has you it comes up at your face with the ring round the weed under its arms ("It got you": "It really didn't need
    saving, but that was nice of you."). With reduced motion the ring and the thing bob less and the splashes are
-   smaller; the timing is the same.
+   smaller; the timing is the same. It never swims in over the boards, in the ring or out of it: the water ends at each
+   doorway's sill (2.6 m from you at the water door, 2.4 m at the side door) and it comes no nearer than 0.85 m outside
+   that (3.45 m and 3.25 m), where all of it, its rings on the water, the life ring and its paws, is still over water as
+   you see it; its death lunge comes up out of the water from there. (A shut way holds it 10 cm further out.) The life
+   ring is a plain hoop, white and red, with nothing round its rim.
 7. **The Lighthouse.** The lamp is out and something is clinging to the outside of
    the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
    and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
