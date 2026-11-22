@@ -307,7 +307,7 @@ LEVELS.push({
         AUDIO.sfx('rev');
         if (!inGearNow()) { G.shake(0.12); G.say('It roars and goes nowhere. It is in ' + GEAR_NAME[s.gear] + '.', 'The engine roars. The car is still in ' + GEAR_NAME[s.gear] + '.'); return true; }
         const c = L.creature, dir = s.gear === 'R' ? -1 : 1;
-        if (inPath(bear(), dir) && !c.dead) { ram(c, dir); return true; }   // straight at it, ahead in drive or behind in reverse
+        if (sectorOf(bear()) === (dir > 0 ? 'ahead' : 'behind') && !c.dead) { ram(c, dir); return true; }   // toward it, ahead in drive or behind in reverse: into it (off the road, it springs into it first)
         s.gone = true; s.dir = dir; G.shake(0.35);
         if (!L.won) win();   // away now: nothing it does before the next frame can undo the gas
         return true;
@@ -323,17 +323,32 @@ LEVELS.push({
     // view stays on it and closes in a little as it lies there (L.viewZoom), and nothing in the car answers meanwhile.
     // This is the night's easter egg (text.egg), found the moment the car hits it; caught this way the card says "Nice
     // try" (text.eggs) and only what happened, not what the gearstick last said.
+    // It need not be in the road for that. Driving its way at all (forward with it anywhere ahead of the car, reversing with
+    // it anywhere behind: sectorOf, below) is the same end: from a verge, or off a front or rear corner of the car, it
+    // springs into the road in the car's path as the car sets off (LEAP: one long low bound from where it is, 0.35 to 0.5 s
+    // by how far it has to come, the crawler's c.leap; with reduced motion a little slower), lands in the road a moment
+    // before the bumper reaches it (the run at it lasts at least LEAP.lead longer than the bound), and is hit as above.
+    // Only squarely beside the car is it out of both ways, and only the way straight away from it is a way out otherwise.
     // RAM_GAP: where the bumper meets it, from your seat. LIE: where it comes to rest (ahead, behind). BRAKE: how hard the
     // car stops (m/s²)
-    const RAM_GAP = 2.6, LIE = { 1: 9.4, [-1]: 7.2 }, BRAKE = 26;
+    const RAM_GAP = 2.6, LIE = { 1: 9.4, [-1]: 7.2 }, BRAKE = 26, LEAP = { min: 0.35, max: 0.5, per: 80, slow: 1.3, lead: 0.15, land: RAM_GAP + 2.4 };
     // the view stays on it (a key or a swipe turns it for a frame at most), a little below level once it is down
     function watch(c, pitch) {
       G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = pitch || 0;
     }
     function ram(c, dir) {
       G.shake(0.5); s.floored = true;
-      const near = c.dist < RAM_GAP + 1.5;   // at the bumper already: the car only lurches into it
-      s.ram = { t: 0, v: near ? 3 : 0, s: 0, dir, from: c.dist, T: near ? 0.25 : clamp(0.4 + c.dist / 60, 0.6, 1.4), hit: -1, stage: 'run', stages: ['run'] };
+      const b = bear(), off = !inPath(b, dir), x0 = Math.sin(b) * c.dist, z0 = Math.cos(b) * c.dist * dir;   // where it is: across the road, and along the car's way
+      const from = off ? Math.max(z0, LEAP.land) : c.dist;   // (off the road, it comes down in the road at least a length ahead of the bumper)
+      const near = from < RAM_GAP + 1.5;   // at the bumper already: the car only lurches into it
+      s.ram = { t: 0, v: near ? 3 : 0, s: 0, dir, from, T: near ? 0.25 : clamp(0.4 + from / 60, 0.6, 1.4), hit: -1, stage: 'run', stages: ['run'], leapt: off, landT: -1 };
+      if (off) {   // it springs into the road, in the car's path
+        const T = clamp(LEAP.min + Math.abs(x0) / LEAP.per, LEAP.min, LEAP.max) * (SAVE.data.settings.reducedMotion ? LEAP.slow : 1);
+        s.ram.leap = { t: 0, T, x0, z0, y0: c.yOff || 0, h: clamp(0.3 + Math.abs(x0) * 0.07, 0.45, 1.2), b0: b, d0: c.dist };
+        s.ram.leapT = T; s.ram.T = Math.max(s.ram.T, T + LEAP.lead);
+        roam.rem = 0; roam.circling = false; c.leap = 0; c.runDir = -Math.sign(x0) * dir || 1;
+        AUDIO.voice('clicks', clamp(5 / (c.dist + 4), 0.2, 0.7), panOf(b));
+      }
       L.eye = { x: 0, y: 0, z: 0 };
       c.hold = c.dist; c.mode = 'scuttle'; c.modeT = -2; c.runPose = false;
       watch(c);   // you look up at the road
@@ -353,7 +368,15 @@ LEVELS.push({
         r.t += dt; r.v += 9 * dt; r.s += r.v * dt;
         G.shake(0.14);
         const k = Math.min(1, r.t / r.T);
-        c.hold = (r.from - r.s) * (1 - k * k) + RAM_GAP * k * k;
+        const along = (r.from - r.s) * (1 - k * k) + RAM_GAP * k * k, lp = r.leap;
+        if (lp) {   // in the air, from where it was to the road in the car's path (which is closing on it already)
+          lp.t += dt;
+          const q = Math.min(1, lp.t / lp.T), e = q * (2 - q), x = lp.x0 * (1 - e), z = lerp(lp.z0, along, e);
+          roam.b = q >= 1 ? (r.dir > 0 ? 0 : Math.PI) : Math.atan2(x, z * r.dir);
+          c.hold = c.dist = Math.hypot(x, z); c.yaw = L.facing + roam.b;
+          roam.yOff = c.yOff = lerp(lp.y0, 0, q) + lp.h * 4 * q * (1 - q); c.leap = q;
+          if (q >= 1) { r.leap = null; r.landT = r.t; c.leap = undefined; c.yOff = roam.yOff = 0; AUDIO.footstep('crawler', clamp(6 / (c.dist + 5), 0.2, 0.8), panOf(roam.b)); }
+        } else c.hold = along;
         if (k >= 1) impact(c);
       } else {
         const t0 = r.hit, T = r.hit += dt, at = t => t0 < t && T >= t, pan = panOf(bear());
@@ -393,12 +416,20 @@ LEVELS.push({
     // through the dark to one side or into the road behind (heard going, its steps panned to where it is, a click as it
     // goes and as it gets there), and there it shifts about the same way; some nights it goes round again later. Once the
     // car is running it stops going round; once it is in gear, it moves only while you are watching it, so it never steps
-    // into the way you have chosen behind your back. Which way out is safe goes by where it is: in drive with it in the
-    // road ahead, or in reverse with it in the road behind, the car runs into it; anywhere else either way gets away.
+    // into the way you have chosen behind your back. Which way out is safe goes by where it is (sectorOf): in drive with it
+    // anywhere ahead, or in reverse with it anywhere behind, the car runs into it (it springs into the road if it is not
+    // in it: ram); the way straight away from it gets away, and squarely beside the car either way does.
     // It is caught through the window it came up to (L.deathCause), which shatters as it comes (L.overlay)
     const REGION = { front: [0, 11 * DEG, -11 * DEG], back: [Math.PI, Math.PI - 11 * DEG, -Math.PI + 11 * DEG], right: [90 * DEG, 66 * DEG, 114 * DEG], left: [-90 * DEG, -66 * DEG, -114 * DEG] };
     const PATH = 5.5 * DEG;   // the road itself, ahead or behind: inside this the car runs into it
     const regionOf = b => { const a = Math.abs(wrapPi(b)); return a <= 40 * DEG ? 'front' : a >= 140 * DEG ? 'back' : b > 0 ? 'right' : 'left'; };
+    // Which way the car can go, by where it is: ahead of the car (the road ahead, its verges, and off the front corners),
+    // behind it (the road behind, its verges, and off the rear corners), or beside it: squarely to the left or right,
+    // within BESIDE of straight out of the side window (of its twelve ways round the car, only the two at 90 degrees; the
+    // two at 66 are ahead, the two at 114 behind). Toward it is into it; beside it either way gets away
+    const BESIDE = 12 * DEG;
+    const sectorOf = b => { const a = Math.abs(wrapPi(b)); return a < 90 * DEG - BESIDE ? 'ahead' : a > 90 * DEG + BESIDE ? 'behind' : 'beside'; };
+    s.sectorOf = sectorOf;
     const inPath = (b, dir) => Math.abs(wrapPi(dir > 0 ? b : b - Math.PI)) < PATH;
     const rr = mulberry32(((L.rand() * 4294967295) ^ Math.imul(G.runSeed + 1, 0x9e3779b1) ^ Math.imul(L.night, 0x85ebca6b)) >>> 0);
     for (let i = 0; i < 5; i++) rr();   // (its first few draws from nearby seeds are alike)

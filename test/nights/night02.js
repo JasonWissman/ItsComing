@@ -18,19 +18,23 @@
 // land where all of them shows from the seat (never under the dash, a seat or the console) and a click takes them again.
 // Then the same layout from the start, and it is sent round the car: it runs flat out round to the road behind, side-on.
 // Then the same layout again from the start for the real run, where it goes round on its own; for the way out it is set
-// down by the seed, so seeds 1-4 between them take every case: one more than a multiple of 4 on a verge ahead (drive past
-// it), two more in the road behind (drive away from it), three more beside the car (reverse), a multiple of 4 in the road
-// ahead (reverse).
+// down by the seed, so seeds 1-8 between them take every case: one more than a multiple of 4 on a verge ahead (reverse:
+// driving on would be into it), two more in the road behind (drive away from it), three more squarely beside the car
+// (reverse, or drive on seeds 7 more than a multiple of 8), a multiple of 4 in the road ahead (reverse).
+// Before that, driving into it from off the road (it leaps into the road, and is hit), and every way it can be round the
+// car in each gear (ways).
 const again = ['eval', 'G.attempt = __att0 - 1; delete G.lastLane.road; restartLevel()'];   // the attempt number feeds the layout (and a retry avoids its last way in): the same night again
 const fresh = ['expect', "G.state === 'play' && !G.L.s.started && !G.L.s.keyIn && G.L.s.gear === 'D' && !G.L.eye && __layout() === __lay0", 'the same night again, from the start'];
 // driving into it: `gear` D with it in the road ahead, R with it in the road behind
-const hit = (gear, cause, line) => [
-  ['eval', "(() => { G.L.s.roam.put(" + (gear === 'R' ? 'Math.PI' : '0') + ", 12); Object.assign(G.L.s, { keyIn: true, started: true, gear: '" + gear + "' }); delete SAVE.data.eggs.road; })()"],
+const hit = (gear, cause, line, deg) => [
+  ['eval', "(() => { G.L.s.roam.put(" + (deg !== undefined ? deg + ' * DEG' : gear === 'R' ? 'Math.PI' : '0') + ", 12); Object.assign(G.L.s, { keyIn: true, started: true, gear: '" + gear + "' }); delete SAVE.data.eggs.road; })()"],
   ['face', 0, true], ['eval', "G.toast('Drive.')"], ['click', 'gas'],
   gear === 'R'
     ? ['expect', "G.state === 'play' && G.L.s.ram && G.L.eye && G.L.eye.z < 0 && Math.abs(wrapPi(G.cam.tYaw - Math.PI)) < 0.1", 'in reverse with it in the road behind, the car leaps back at it, and you look round at it']
     : ['expect', "G.state === 'play' && G.L.s.ram && !G.L.s.gone && G.L.eye && G.L.eye.z > 0 && G.cam.tPitch < 0.2", 'in drive with it in the road, the car leaps at it, and you look up at the road'],
   ['waitUntil', 'G.L.s.ram.hit >= 0', 4000],
+  ['expect', '(r => ' + (deg === undefined ? '!r.leapt && r.landT < 0' : 'r.leapt && r.landT > 0.3 && r.landT < r.T && !r.leap && G.L.creature.leap === undefined') + ' && Math.abs(wrapPi(G.L.s.roam.b' + (gear === 'R' ? ' - Math.PI' : '') + ')) < 1e-6)(G.L.s.ram)',
+    deg === undefined ? 'it was in the road already: no leap' : 'it was off the road: it sprang into the road in the car\'s path, and had landed there before the car hit it'],
   ['expect', "G.state === 'play' && SAVE.data.eggs.road === true && JSON.parse(localStorage.getItem('itscoming.v2')).eggs.road === true", 'the car hits it: the easter egg is in the save from that moment, and the night goes on'],
   ['waitUntil', "G.L.s.ram.stage === 'down'", 5000],
   ['expect', "(c => G.L.s.ram.v === 0 && !G.L.s.started && G.L.s.stalled && c.struck.down === 1 && c.dist > 6 && c.yOff === 0 && c.visFrac > 0.5)(G.L.creature)", 'the car has lurched to a halt and stalled; it lies in a heap down the road, where it shows over the ' + (gear === 'R' ? 'boot' : 'hood')],
@@ -93,10 +97,45 @@ const PUT = `window.__putDown = async id => {
   }
   return out;
 }`;
+// every way it can be round the car (the road, the verges and off the corners, ahead and behind, and squarely beside it), in
+// drive and in reverse: toward it (forward with it ahead, reversing with it behind) is the easter egg, with a leap into the
+// road where it was off it, and none where it was in it; the opposite way, or either way with it squarely beside the car,
+// gets away. The leap: 0.35 to 0.5 s, up off the road and down again, ending in the road in the car's path before the hit
+const WAYS = [0, 11, -11, 66, -66, 90, -90, 114, -114, 169, -169, 180];
+const ruleOf = (deg, gear) => { const a = Math.abs(deg), sec = a < 78 ? 'ahead' : a > 102 ? 'behind' : 'beside'; return sec !== (gear === 'D' ? 'ahead' : 'behind') ? 'win' : a === 0 || a === 180 ? 'egg' : 'egg+leap'; };
+const WANT = WAYS.map(d => d + ':' + ruleOf(d, 'D') + '/' + ruleOf(d, 'R')).join(' ');
+const ways = ['expect', `(async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms)), out = [], bad = [];
+  for (const deg of ${JSON.stringify(WAYS)}) {
+    const got = [];
+    for (const gear of ['D', 'R']) {
+      G.attempt = __att0 - 1; delete G.lastLane.road; restartLevel();
+      const L = G.L, s = L.s, c = L.creature, dir = gear === 'R' ? -1 : 1;
+      delete SAVE.data.eggs.road;
+      s.roam.put(deg * DEG, 12); Object.assign(s, { keyIn: true, started: true, gear });
+      const sec = s.sectorOf(deg * DEG);
+      L.targets.find(t => t.id === 'gas').onClick();
+      if (!s.ram) { got.push(s.gone && L.won && !SAVE.data.eggs.road ? 'win' : '?'); if (s.dir !== dir) bad.push(deg + gear + ' went the wrong way'); continue; }
+      const r = s.ram, leapT = r.leapT; let top = 0, t0 = performance.now();
+      while (r.hit < 0 && performance.now() - t0 < 4000) { top = Math.max(top, c.yOff || 0); await wait(8); }
+      const inRoad = Math.abs(wrapPi(s.roam.b - (dir > 0 ? 0 : Math.PI))) < 1e-6;
+      if (r.hit < 0 || !inRoad || r.dir !== dir || SAVE.data.eggs.road !== true || s.gone || L.won) bad.push(deg + gear + ' not hit in the road');
+      if (r.leapt && !(leapT >= 0.35 && leapT <= (SAVE.data.settings.reducedMotion ? 0.66 : 0.5) && r.landT >= leapT && r.landT < r.T && top > 0.3 && c.leap === undefined)) bad.push(deg + gear + ' leap ' + leapT + ' landed ' + r.landT + ' of ' + r.T + ' top ' + top);
+      if (sec !== (dir > 0 ? 'ahead' : 'behind')) bad.push(deg + gear + ' sector ' + sec);
+      got.push(r.leapt ? 'egg+leap' : 'egg');
+    }
+    out.push(deg + ':' + got.join('/'));
+  }
+  G.attempt = __att0 - 1; delete G.lastLane.road; restartLevel();
+  window.__ways = out.join(' '); window.__waysBad = bad;
+  return !bad.length && window.__ways === ${JSON.stringify(WANT)};
+})()`, 'each of its twelve ways round the car, in drive and in reverse: toward it is the easter egg (it leaps into the road, in time, where it was off it), the opposite way or squarely beside it gets away'];
 const drove = [
   ['eval', "window.__layout = () => G.L.items.map(i => i.id + i.x.toFixed(2) + i.z.toFixed(2)).join() + ':' + G.L.creature.lane.idx; window.__lay0 = __layout(); window.__att0 = G.attempt"],
   ...hit('D', 'drove', 'You drove straight into it, but it is too strong.'),
   ...hit('R', 'reversed', 'You backed straight into it, but it is too strong.'),
+  ...hit('D', 'drove', 'You drove straight into it, but it is too strong.', -66),   // off the front corner, on your side: it leaps into the road
+  ways, fresh,
   caught(true),
   ['waitUntil', "G.state === 'dead'", 6000],
   ['expect', "G.deathCause === 'running' && G.deathScreen.title === 'It got you' && G.deathScreen.text === 'The engine was running, but you couldn\\'t get away fast enough.'", 'caught with the engine running: the card says exactly that (and not what the gearstick last said)'],
@@ -120,8 +159,8 @@ const drove = [
 ];
 // where it is for the way out, by the seed: on a verge ahead, in the road behind, beside the car, in the road ahead
 const place = ['eval', '(() => { const c = G.L.creature, k = G.runSeed % 4; G.L.s.roam.put([0, 11 * DEG * (c.lane.deg < 0 ? -1 : 1), Math.PI, (G.runSeed % 8 === 3 ? -1 : 1) * Math.PI / 2][k], Math.max(8, Math.min(c.dist, 30))); })()'];
-const reverse = [['clickUntil', 'gear', "G.L.s.gear === 'R'", 200, 3], ['expect', "G.L.s.gear === 'R' && Math.abs(wrapPi(G.L.s.roam.b - Math.PI)) > 6 * DEG", 'it is not in the road behind: into reverse']];
-const forward = [['clickUntil', 'gear', "G.L.s.gear === 'D'", 200, 3], ['expect', "G.L.s.gear === 'D' && Math.abs(wrapPi(G.L.s.roam.b)) > 6 * DEG", 'it is not in the road ahead: into drive']];
+const reverse = [['clickUntil', 'gear', "G.L.s.gear === 'R'", 200, 3], ['expect', "G.L.s.gear === 'R' && G.L.s.sectorOf(G.L.s.roam.b) !== 'behind'", 'it is not behind the car: into reverse']];
+const forward = [['clickUntil', 'gear', "G.L.s.gear === 'D'", 200, 3], ['expect', "G.L.s.gear === 'D' && G.L.s.sectorOf(G.L.s.roam.b) !== 'ahead'", 'it is not ahead of the car: into drive']];
 module.exports = {
   nightmare: [...drove,
     ['face', 0, false], ['click', 'ignition'],
@@ -160,7 +199,7 @@ module.exports = {
     // the stick goes round P R N D: neutral is a place of its own on the plate, and in it the engine runs and the car stays put
     ['clickUntil', 'gear', "G.L.s.gear === 'N'", 200, 3],
     ['use', 'gas'], ['expect', "!G.L.s.gone && G.L.s.started && G.L.s.gear === 'N' && G.state === 'play' && !G.L.eye", 'into neutral (by way of reverse): the gas only revs, the car does not move'],
-    place, ['branch', 'G.runSeed % 4 === 1 || G.runSeed % 4 === 2', forward, reverse],
+    place, ['branch', 'G.runSeed % 4 === 2 || G.runSeed % 8 === 7', forward, reverse],
     ['use', 'gas'], ['expect', 'G.L.won', 'the gas, in gear: away at once'],
     ['eval', 'window.__gap = () => { const p = G.L.creature.pos(), e = G.L.eye || { x: 0, z: 0 }; return Math.hypot(p.x - e.x, p.z - e.z); }; window.__d0 = window.__gap()'],
     ['expect', "G.L.s.gone && G.L.s.dir === (G.L.s.gear === 'R' ? -1 : 1)", 'the car pulls away the way it was put in gear'],
