@@ -12,15 +12,60 @@
 // With both gates shut it is put at its own gate and looked at: through the gate's thin bars it is seen whole, and the bars
 // are close enough to hold it, with a gap, not a bar, in the middle. Once both are locked, in the blinks of the ending it
 // comes to its gate and shakes it three times with its fists on the bars, and does not get in.
+// Before any of that, the staring contest (the night's easter egg), with the game's clock stepped by hand: with its hands
+// over its face a full minute's stare does nothing; after a glance away it is in a pose whose eyes show, and 40 s of
+// staring, a glance away and 40 s more is still nothing (the glance started the count again); at the full minute it
+// blinks and rubs its eyes, the egg is saved, and it is then in the same pose at the same distance, the night going on.
+// It can be lost again (with reduced motion on, the slower one), and a look away from the middle of that ends it at once.
 const gate = id => "G.L.targets.find(t => t.id === '" + id + "')";
 const item = id => "G.L.items.find(i => i.id === '" + id + "')";
 const said = text => "G.lastToast.msg.includes('" + text + "')";
 const select = id => ['eval', "G.active = G.inv.findIndex(i => i.id === '" + id + "')"];
 const lies = id => '!G.fumbling && !' + item(id) + '.taken && ' + item(id) + '.y === G.L.floor.y';   // dropped, and lying on the ground
 const back = id => "!G.fumbling && G.hasItem('" + id + "') && G.hand.cur && G.hand.cur.id === '" + id + "'";   // back in the hand
+const IT = 'G.L.creature', EYES = 'CREATURES.watcher.eyesShow(' + IT + ')', NOW = 'CREATURES.watcher.blinkAt(' + IT + '.blink)';
+const clock = secs => ['eval', 'for (let i = 0; i < ' + Math.round(secs / 0.05) + '; i++) update(0.05);'];   // the game's own update, stepped
+const turn = k => ['eval', '(c => { G.cam.dirIdx = (((Math.round(c.yaw / (45 * DEG)) + ' + k + ') % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = c.yaw + ' + k + ' * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; })(' + IT + ')'];
+const glance = [turn(4), ['waitUntil', '!' + IT + '.seen', 3000], ['wait', 100]];   // away from it
+const lookBack = [turn(0), ['waitUntil', IT + '.seen && ' + EYES, 3000]];
+const toRub = ['eval', 'for (let i = 0; i < 400 && ' + IT + '.blink && ' + NOW + '.ph === null; i++) update(0.02);'];   // on to where it rubs its eyes
+const same = IT + '.pose === window.__was.pose && ' + IT + '.dist === window.__was.dist';
+const contest = [
+  ['eval', '(c => { delete SAVE.data.eggs.quarry; SAVE.persist(); window.__hold = c.hold; c.hold = 6; })(' + IT + ')'], turn(0), ['wait', 250],
+  ['eval', IT + '.pose = 0;'],   // (as it stands until it is first looked away from and back at: the harness's first frames may be one)
+  ['expect', IT + '.seen && ' + IT + '.pose === 0 && !' + EYES, 'with its hands over its face: seen, its eyes hidden'],
+  clock(62),
+  ['expect', '!' + IT + '.blink && G.L.s.stare === 0 && !SAVE.data.eggs.quarry', 'stared at for a full minute with its eyes covered: nothing, and no count kept'],
+  ...glance, ...lookBack,
+  ['expect', '[1, 2, 3].includes(' + IT + '.pose)', 'looked away from and back at: a pose whose eyes show'],
+  clock(40),
+  ['expect', 'G.L.s.stare >= 40 && G.L.s.stare < 45 && !' + IT + '.blink', '40 s of staring is counted, and it has not blinked'],
+  ...glance,
+  ['expect', 'G.L.s.stare === 0', 'a glance away before the minute is up starts the count again'],
+  ...lookBack, ['eval', 'window.__was = { pose: ' + IT + '.pose, dist: ' + IT + '.dist };'],
+  clock(40),
+  ['expect', '!' + IT + '.blink && !SAVE.data.eggs.quarry && G.L.s.stare >= 40', '40 s more after the glance: still nothing (80 s in all, but not unbroken)'],
+  clock(20.1),
+  ['expect', '!!' + IT + '.blink && ' + IT + '.blink.slow === false && ' + IT + '.blink.t < 1', 'a full minute unbroken: it blinks first'],
+  ['expect', "SAVE.data.eggs.quarry === true && JSON.parse(localStorage.getItem('itscoming.v2')).eggs.quarry === true && LEVELS[G.levelIndex].text.egg === 'Win a staring contest.'", 'the easter egg is saved by the night\'s id, and the night names it'],
+  toRub,
+  ['expect', '(b => b.ph !== null && b.up > 0.99 && b.shut > 0.99)(' + NOW + ') && ' + same + ' && ' + IT + '.seen', 'it rubs its eyes with its fists, its eyes shut, where it stood and in the pose it held'],
+  clock(3),
+  ['expect', '!' + IT + '.blink && ' + same + " && G.state === 'play' && !" + IT + '.dead && G.L.s.stare > 0 && G.L.s.stare < 8', 'then it is as it was: the same pose, the same distance, the night going on (and the count begun again)'],
+  ['eval', 'SAVE.data.settings.reducedMotion = true;'], clock(60),
+  ['expect', '!!' + IT + '.blink && ' + IT + '.blink.slow === true', 'another full minute and it loses again (with reduced motion on, the slower, gentler one)'],
+  ['eval', 'SAVE.data.settings.reducedMotion = false;'], toRub,
+  ['expect', '(b => b.ph !== null && b.up > 0.99)(' + NOW + ')', 'rubbing its eyes again'],
+  ...glance,
+  ['expect', '!' + IT + '.blink && ' + IT + ".dist === window.__was.dist && G.state === 'play'", 'looked away from as it rubs its eyes: that is over at once, and it is where it was'],
+  ...lookBack,
+  ['expect', '[1, 2, 3].includes(' + IT + '.pose) && ' + IT + '.pose !== window.__was.pose && !' + IT + '.blink', 'looked back at, it is in a new pose, as ever'],
+  ['eval', IT + '.hold = window.__hold;'],
+];
 module.exports = {
   nightmare: [
     ['eval', 'G.L.creature.hold = G.L.creature.dist;'],
+    ...contest,
     ['use', 'backgate'], ['expect', said('swings shut') + " && G.hand.reach && G.hand.reach.style === 'pull'", 'empty-handed, the open back gate is pulled shut'],
     ['waitUntil', gate('backgate') + '.shut', 3000],
     ['click', 'backgate'], ['expect', said('nothing holds it') + " && G.hand.reach && G.hand.reach.style === 'push'", 'pushed, the shut back gate with nothing to hold it'],

@@ -41,6 +41,7 @@
   };
   // each time you look back: nearer, in a new pose (under 4 m only reaching or screaming), the first one its hands over its face
   const LOOKS = [[24, 0], [18, 3], [13, 1], [9, 2], [6, 3], [3.6, 1], [2.4, 2]], LOOK = 1.25;
+  const STARES = [3, 1, 2], STARE = 4.4;   // the poses its eyes show in, and how long each is shown losing
   LAB.creature('watcher', {
     night: 4, stage: 'The Quarry', dist: 8,
     anims: [
@@ -66,6 +67,12 @@
           holdBars(c);   // the game tells it where the bars are every frame once the night is won
         },
         front(ctx, c, P) { gate(ctx, c, P); dark(ctx, blinkDark(c.times, c.t)); } },
+      { name: 'Losing the staring contest', note: 'Looked at for a full minute without a glance away (in a pose whose face shows: pointing, reaching, screaming), it blinks first: twice, a third time, rubs its eyes with its fists, and is at once as it was.', dist: 3.2, dur: STARES.length * STARE, fit: { h: 2.4, w: 1.8 },
+        set(c) { c.pose = STARES[0]; },
+        tick(c, k, dt, T) {   // each pose in turn, held a moment, then losing (night04 stareOn sets c.blink and counts it on)
+          const i = clamp(Math.floor(T / STARE), 0, STARES.length - 1), t = T - i * STARE - 0.8;
+          c.pose = STARES[i]; c.blink = t >= 0 && t < c.CR.BLINK.full.dur ? { t, slow: false } : null;
+        } },
       LAB.lunge({ dist: 1.6, dur: 1.0, zoom: 2, note: 'You looked away: it is on you at once, screaming, its head cocked.' }),
     ],
   });

@@ -52,6 +52,7 @@ const SOUNDS = [
   // ---- night 4: the quarry ----
   { kind: 'sfx', name: 'hinge', n: [4], d: 'One reedy iron note, steady, rising a little (about 2.5 semitones) as a heavy gate swings, and gone as it stops. A quarry gate pulled shut, swinging until it clangs into its post.', src: 'night04 gate' },
   { kind: 'sfx', name: 'lock', n: [4, 6], d: 'A padlock snapping shut (4), or springing open (6).', src: 'night04, night06' },
+  { kind: 'sfx', name: 'stoneRub', n: [4], d: 'A short, dry rub of stone on stone, quiet, a little different each time. The watcher rubbing its eyes with its fists, once for each rub, when it loses the staring contest (the night\'s easter egg).', src: 'night04 (the staring contest)' },
   { kind: 'sfx', name: 'scrape', n: [7], d: 'A grating scratch. The climber’s claws on the lighthouse stone: knocked down the wall by the beam, and hooking on again after the toolbox.', src: 'night07' },
   // ---- night 5: the clearing; the bow ----
   { kind: 'sfx', name: 'bowCreak', n: [5, 13], d: 'A small wooden creak, repeated while the bow is drawn.', src: 'game.js draw' },

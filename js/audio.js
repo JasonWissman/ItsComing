@@ -434,6 +434,8 @@ const AUDIO = (() => {
         for (let i = 0; i < 6; i++) tone(1200 + Math.random() * 2000, 0.12, { vol: 0.2, type: 'square', delay: 0.05 + i * 0.09 });
         break;
       case 'win': for (const [f, d] of [[220, 0], [277, 0.25], [330, 0.5], [415, 0.9]]) tone(f, 2.2, { vol: 0.08, type: 'triangle', attack: 0.3, delay: d }); break;
+      // stone rubbed on stone, once: a short dry grind, small and close, a little different each time (the watcher's fists at its eyes)
+      case 'stoneRub': { const f = 520 + Math.random() * 160; noise(0.13, { type: 'bandpass', freq: f, q: 2.2, vol: 0.2, attack: 0.03, pan }); noise(0.09, { type: 'bandpass', freq: f * 3.1, q: 4, vol: 0.07, attack: 0.02, delay: 0.02, pan }); tone(118 + Math.random() * 14, 0.11, { vol: 0.05, type: 'triangle', endFreq: 96, attack: 0.02, pan }); break; }
       case 'thud': noise(0.15, { freq: 150, vol: 0.9 }); tone(45, 0.25, { vol: 0.8, endFreq: 30 }); break;
       case 'splash': noise(0.35, { freq: 1800, q: 0.7, vol: 0.5, attack: 0.005, pan }); noise(0.9, { type: 'bandpass', freq: 600, q: 0.8, vol: 0.25, delay: 0.08, attack: 0.05, pan }); tone(120, 0.25, { vol: 0.2, endFreq: 60, pan }); break;
       // something heavy into the sea far below: a deep thump, the water thrown up, and the spray coming back down on it

@@ -110,6 +110,7 @@ LEVELS.push({
     objective: 'Shut, chain and padlock both gates.',
     death: { default: 'You looked away, and it only needed a moment.' },
     win: 'Every time you blinked it came nearer, but when it arrived, it could not break through.',
+    egg: 'Win a staring contest.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },
   // the gap between the gate posts, no lintel; a second gap in the wall behind you
   lanes: [
@@ -331,6 +332,7 @@ LEVELS.push({
       return !!G.fumble(act, g, o);
     }
     L.update = dt => {
+      stareOn(dt);
       runOn(dt);
       if (L.won && s.after) L.creature.hold = s.after.d;   // in the end it is where the blinks have put it
       for (const g of [gate, gate2]) {
@@ -415,6 +417,39 @@ LEVELS.push({
       c.hold = Math.hypot(p.x, p.z); c.yaw = Math.atan2(p.x, p.z);
       const dir = at.t.x * Math.cos(c.yaw) - at.t.z * Math.sin(c.yaw);   // across the view of someone looking at it: right or left
       if (Math.abs(dir) > 1e-3) c.runDir = Math.sign(dir);
+    }
+
+    // ---- the staring contest (this night's easter egg) ----
+    // Look at it for a full minute without once looking away, and it blinks first. The count (s.stare, seconds) runs only
+    // in play, while it is seen (the game's own test, c.seen: any glance away, or it going out of view, starts the count
+    // again from nothing) and while its eyes show to you: it stands facing you in a pose with its face uncovered (reaching,
+    // screaming or pointing: the watcher's eyesShow; not with its hands over its face, as it stands until you first look
+    // away, and not side-on going round), with its head in the view, not off the edge of it. At STARE seconds it has lost
+    // (foundEgg, kept in the save the first time): c.blink is on, and the watcher draws it over the pose it holds: two
+    // quick blinks of its stone lids, a third that stays shut, its fists up and rubbing at its eyes (a little grind of
+    // stone for each rub), and then it is exactly as it was, having never left that pose or moved (it is being looked at
+    // all the while). Look away while it is at it, or win the night, and it is over at once: it is as it was and does as
+    // it always does. Nothing else comes of it, and it can be done again: the count starts over when it is done.
+    const STARE = 60;
+    s.stare = 0;
+    const faceShown = c => {   // its head, whole in the view (as seen or not is judged: with the view not zoomed)
+      const p = c.pos(), r = R.projectRect(p.x, p.y + 1.5, p.z, 0.5, 0.6, { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH });
+      return !!r && r.x >= 0 && r.y >= 0 && r.x + r.w <= R.W && r.y + r.h <= R.H;
+    };
+    function stareOn(dt) {
+      const c = L.creature, CR = c.CR, held = G.state === 'play' && !L.won && c.seen && CR.eyesShow(c) && faceShown(c);
+      const b = c.blink;
+      if (b) {
+        const B = b.slow ? CR.BLINK.slow : CR.BLINK.full, t0 = b.t;
+        b.t += dt;
+        if (!held || b.t >= B.dur) { c.blink = null; return; }
+        const at = t => Math.floor((t - B.rub[0]) / (B.rub[1] - B.rub[0]) * B.strokes);   // which rub of its fists
+        if (b.t >= B.rub[0] && b.t < B.rub[1] && (t0 < B.rub[0] || at(b.t) !== at(t0))) AUDIO.sfx('stoneRub', Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85);
+        return;
+      }
+      if (!held) { s.stare = 0; return; }
+      s.stare += dt;
+      if (s.stare >= STARE) { s.stare = 0; c.blink = { t: 0, slow: !!SAVE.data.settings.reducedMotion }; foundEgg(); }
     }
 
     // Each gate is an arched iron frame (a stile at each end, a rail along the bottom and the arch over the top) barred
