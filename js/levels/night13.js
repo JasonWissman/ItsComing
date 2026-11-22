@@ -876,7 +876,7 @@ function buildGathering(L, s, c0, K) {
     const c = c0();
     E = s.egg = {
       t: 0, phase: 'rush', d0: c.dist, yaw0: c.yaw, joy: 0, glow: 0, thrown: [],
-      others: VOID_OTHERS.map((d, n) => Object.assign({}, d, { n, c: make(d.type, n), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, on: false, came: false, took: false, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
+      others: VOID_OTHERS.map((d, n) => Object.assign({}, d, { n, c: make(d.type, n), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, age: n % 3, on: false, came: false, took: false, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
     };
     s.ending = true; s.endT = 0; s.armAt = EGG.arm;
     // the thing in the hood: stopped where it is, and placed by its bearing and distance from here on
@@ -995,6 +995,7 @@ function buildGathering(L, s, c0, K) {
           o.squash = 1 + 0.06 * Math.sin(TAU * air) * Math.min(1, amp * 2) - (air >= 1 ? 0.06 : 0);
         }
       }
+      o.age++;
       const q = { u, rush, near, back, joy: jt >= 0 && !s.leaving ? span(jt, 0, 0.3) : 0, hop, jt, T: hopT, t, still, R1 };
       if (POSE[o.type]) POSE[o.type](oc, q, o, dt);
       o.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3 - o.ph * 0.5) / 1.6, 0, 1) : 1;
@@ -1052,6 +1053,44 @@ function buildGathering(L, s, c0, K) {
       P_ell(ctx, -0.12, 0.62, 0.12, 0.035, rgba(rim, 0.35)); P_ell(ctx, 0.14, 0.34, 0.09, 0.028, rgba(rim, 0.3));
     } });
   };
+  // one of them, as its own code draws it (with the game's own slow breath and lean), and what it holds at its hand
+  const paint = (o, ctx, P) => {
+    const c = o.c;
+    ctx.save();
+    if (o.squash !== 1) ctx.scale(1, o.squash);
+    if (!c.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(c.t * 1.6)); ctx.rotate(0.008 * Math.sin(c.t * 0.7) * (c.idleK === undefined ? 1 : c.idleK)); }
+    const d = c.dist; if (o.poseDist) c.dist = o.poseDist;
+    try { c.CR.draw(ctx, c, P); } finally { c.dist = d; }
+    ctx.restore();
+    o.held.forEach((it, k) => {
+      if (!it || o.own) return;   // (own: its own drawing has it)
+      const a = o.at[k] || o.at[0], size = a[3] || 1;
+      ctx.save(); ctx.translate(a[0], a[1] * o.squash); ctx.rotate(a[2] || 0); ctx.scale(it.w * size, it.h * size); ctx.translate(0, -0.5);
+      it.icon(ctx, P); ctx.restore();
+    });
+  };
+  // Going, each fades as one picture, not part by part (its parts lie over one another): it is drawn onto a small canvas
+  // of its own (again every third step of the clock: it stands still then) and that is put into the view, faded. (Drawing
+  // them all that way all the time, at a lower rate, was tried for speed: copying the pictures cost more than drawing them.)
+  // BOX: how far its drawing reaches, in metres from its feet (left, right, down, up)
+  const BOX = { signalman: [-1.3, 1.6, -0.25, 3.8], swimmer: [-1.4, 1.4, -1.3, 2.0], climber: [-1.6, 1.6, -0.3, 3.0], carrier: [-1.4, 1.4, -0.25, 3.1], crawler: [-1.5, 1.5, -0.25, 2.1] };
+  const shown = (o, ctx, P) => {
+    const m = ctx.getTransform(), sx = Math.abs(m.a), sy = Math.abs(m.d), B = BOX[o.type] || [-1.3, 1.3, -0.25, o.c.CR.h + 0.9];
+    const w = Math.ceil((B[1] - B[0]) * sx) + 2, h = Math.ceil((B[3] - B[2]) * sy) + 2;
+    if (o.fade >= 1 || typeof document === 'undefined' || m.b || m.c || w > 1600 || h > 1600 || w < 8 || h < 8) { paint(o, ctx, P); return; }
+    const cv = o.cv || (o.cv = document.createElement('canvas')), K = o.cvK;
+    if (!K || Math.abs(K.sx / sx - 1) > 0.03 || Math.abs(K.sy / sy - 1) > 0.03 || o.age >= 3) {
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+      const x = cv.getContext('2d');
+      x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, h);
+      x.setTransform(sx, 0, 0, -sy, 1 - B[0] * sx, 1 + B[3] * sy);
+      paint(o, x, P);
+      o.cvK = { sx, sy, ox: 1 - B[0] * sx, oy: 1 + B[3] * sy }; o.age = 0;
+    }
+    const k = o.cvK, kx = sx / k.sx, ky = sy / k.sy;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(cv, m.e - k.ox * kx, m.f - k.oy * ky, cv.width * kx, cv.height * ky);
+  };
   function draw() {
     if (!E) return;
     const t = E.t;
@@ -1069,28 +1108,7 @@ function buildGathering(L, s, c0, K) {
     for (const o of E.others) {
       if (!o.on || o.fade <= 0.004) continue;
       const c = o.c, CR = c.CR, p = c.pos();
-      let sp = o.sprite;
-      if (!sp) {
-        sp = o.sprite = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, layer: 1, noContact: true, draw: (ctx, P) => {
-          ctx.save();
-          if (o.squash !== 1) ctx.scale(1, o.squash);
-          if (!c.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(c.t * 1.6)); ctx.rotate(0.008 * Math.sin(c.t * 0.7) * (c.idleK === undefined ? 1 : c.idleK)); }
-          const d = c.dist; if (o.poseDist) c.dist = o.poseDist;
-          try { CR.draw(ctx, c, P); } finally { c.dist = d; }
-          ctx.restore();
-          o.held.forEach((it, k) => {   // what it holds, at its hand
-            if (!it || o.own) return;   // (own: its own drawing has it)
-            const a = o.at[k] || o.at[0], size = a[3] || 1;
-            ctx.save(); ctx.translate(a[0], a[1] * o.squash); ctx.rotate(a[2] || 0); ctx.scale(it.w * size, it.h * size); ctx.translate(0, -0.5);
-            it.icon(ctx, P); ctx.restore();
-            if (window.__eggMarks) { ctx.fillStyle = '#f0f'; ctx.fillRect(a[0] - 0.03, a[1] - 0.03, 0.06, 0.06); }
-          });
-          if (window.__eggMarks) {
-            for (let y = 0; y <= 2.5001; y += 0.25) { ctx.fillStyle = Math.abs(y % 1) < 0.01 ? '#ff0' : 'rgba(255,255,0,0.45)'; ctx.fillRect(-0.75, y - 0.004, 1.5, 0.008); }
-            for (let x = -0.75; x <= 0.7501; x += 0.25) { ctx.fillStyle = Math.abs(x) < 0.01 ? '#0ff' : 'rgba(0,255,255,0.45)'; ctx.fillRect(x - 0.004, 0, 0.008, 2.5); }
-          }
-        } };
-      }
+      const sp = o.sprite || (o.sprite = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, layer: 1, noContact: true, draw: (ctx, P) => shown(o, ctx, P) });
       sp.x = p.x; sp.y = p.y + (c.yOff || 0) + o.hopY; sp.z = p.z; sp.dist = c.dist; sp.alpha = o.fade < 1 ? o.fade : undefined;
       R.add(sp);
       if (o.type === 'swimmer' && c.lunge > 0) pond(p, c.dist, c.lunge * o.fade);
@@ -1119,8 +1137,9 @@ function buildGathering(L, s, c0, K) {
       { x: Math.sin(f) * 5.2, y: 2.6, z: Math.cos(f) * 5.2, r: 7.5, i: 0.3 * k * E.glow, color: [190, 196, 226] },
     ];
   }
-  // the view: level, to the north, on the middle of them, and as close as still takes in all of them (closer on a wide view)
-  const watch = () => ({ x: Math.sin(L.facing) * 6, y: L.eyeH + 0.12, z: Math.cos(L.facing) * 6, zoom: clamp(0.6 * (R.W / R.H) / 0.93, 1, 1.32) });
+  // the view: level, to the north, on the middle of them, and as close as still takes in all of them (closer on a wide
+  // view); easing back out as the meadow comes, to be as it will be when the view is yours again
+  const watch = () => ({ x: Math.sin(L.facing) * 6, y: L.eyeH + 0.12, z: Math.cos(L.facing) * 6, zoom: lerp(clamp(0.6 * (R.W / R.H) / 0.93, 1, 1.32), 1, E ? span(E.t, EGG.joy + 2.5, EGG.wait - 1.2) : 0) });
   // where each of the others stands (for the glitter as they go)
   const places = () => (E ? E.others.map(o => { const p = o.c.pos(); return { x: p.x, z: p.z, h: Math.max(1, o.c.CR.h) }; }) : []);
   return { begin, update, draw, lights, watch, places };
