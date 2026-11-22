@@ -493,6 +493,21 @@ const AUDIO = (() => {
       }
       // a turn of the crank where the box will not play: the comb drags its notes flat and out of tune against each other, and the crank sticks
       case 'musicSour': [[880, 0, 790], [1245, 0.26, 1050], [1109, 0.6, 930]].forEach(([f, d, e]) => { tone(f, 0.7, { vol: 0.06, type: 'triangle', delay: d, endFreq: e, pan }); tone(f * 1.06, 0.6, { vol: 0.04, type: 'triangle', delay: d + 0.02, endFreq: e * 1.04, pan }); });
+      // night 10's easter egg (every mirror under a dust sheet): from inside the cloth it presses its face and hands out
+      // through it. The sheet creaks as it stretches, three long strains, each tighter (higher) than the last, the weave
+      // rasping under them; its sob, two short hitches, and then one that rises into a wail as it comes through; and the
+      // thump as it has you. About 3.3 s, and it is the whole of that death's sound after the hush (night10.js: EGG)
+      case 'sheetPress': {
+        for (const [d, f, v] of [[0, 150, 0.6], [0.55, 190, 0.8], [1.1, 240, 1]]) {
+          noise(0.5, { type: 'bandpass', freq: f * 3, q: 5, vol: 0.2 * v, attack: 0.25, delay: d, pan });
+          tone(f, 0.45, { vol: 0.05 * v, type: 'sawtooth', endFreq: f * 1.5, attack: 0.12, delay: d + 0.05, pan });
+          tone(f * 1.012, 0.45, { vol: 0.03 * v, type: 'sawtooth', endFreq: f * 1.56, attack: 0.12, delay: d + 0.08, pan });
+        }
+        for (const d of [0.5, 0.95]) tone(540, 0.16, { vol: 0.07, type: 'triangle', endFreq: 430, attack: 0.03, delay: d, pan });
+        tone(470, 1.1, { vol: 0.16, type: 'triangle', endFreq: 960, attack: 0.35, delay: 1.35, pan }); tone(476, 1.1, { vol: 0.07, type: 'sine', endFreq: 1930, attack: 0.4, delay: 1.4, pan });
+        noise(0.3, { freq: 200, vol: 0.9, delay: 2.7 }); tone(40, 0.6, { vol: 0.8, endFreq: 26, delay: 2.7 });
+        break;
+      }
         noise(0.025, { type: 'bandpass', freq: 2400, q: 6, vol: 0.14, pan }); tone(140, 0.08, { vol: 0.3, type: 'square', endFreq: 90, delay: 0.85, pan }); noise(0.06, { freq: 700, vol: 0.35, delay: 0.85, pan }); break;
       case 'tick': noise(0.012, { type: 'bandpass', freq: 3200, q: 4, vol: 0.14, pan }); tone(1600, 0.02, { vol: 0.05, type: 'square', pan }); break;
       case 'knock': for (const d of [0, 0.32]) { noise(0.06, { freq: 500, vol: 0.5, delay: d, pan }); tone(160, 0.12, { vol: 0.3, endFreq: 100, delay: d, pan }); } break;

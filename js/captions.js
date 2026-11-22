@@ -15,7 +15,7 @@ const CAPTIONS = (() => {
     clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', hinge: 'a hinge squeals', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click', twang: 'a bowstring twangs', bowCreak: 'a bowstring creaks', bowFull: 'the bowstring comes tight', thunk: 'an arrow thunks home',
     batSqueak: 'a bat squeaks',   // night 5's easter egg: one shot out of the sky
     scrape: 'scratching', drawer: 'a drawer slides open', tug: 'the covers are yanked', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', tick: 'a clock ticks', musicbox: 'a music box', musicTurn: 'a few notes of a music box', birds: 'birdsong', start: 'the engine catches',
-    musicSour: 'a music box plays wrong notes',
+    musicSour: 'a music box plays wrong notes', sheetPress: 'cloth creaks, stretching, and a sob rises to a wail',   // (night 10's easter egg: every mirror covered)
     crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', cloth: 'cloth twisting', breakerTrip: 'a breaker trips with a bang', bar: 'a bar drops into place',
     fit: 'something clicks into place', ratchet: 'a ratchet', switch: 'a switch', keys: 'keys', load: 'the gun loads', win: 'a chord', drop: 'something set down',
     tink: 'metal taps on something', woodKnock: 'wood knocks against wood', clatter: 'something clatters to the floor', flop: 'something soft drops', pat: 'a hand on it', page: 'a page turns', rattle: 'a rattle',
