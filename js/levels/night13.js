@@ -598,7 +598,7 @@ function buildMeadow(L, s, c0) {
   const sprites = [];
   const flower = (b, r, kind) => {
     const f = FL[kind], h = rnd(f.h[0], f.h[1]), ph = rnd(0, TAU), size = rnd(1.3, 1.75), y = groundY(b, r), q = at(b, r, y), leaf = rng() < 0.5 ? 1 : -1;
-    const p = { kind: 'sprite', x: q.x, y, z: q.z, w: 0.2, h: h + 0.08, layer: 1, noLight: true, noContact: true, b, r, bloom: rnd(0.38, 0.72), alpha: 0, grow: 1, draw: (ctx, P) => {
+    const p = { kind: 'sprite', flower: true, x: q.x, y, z: q.z, w: 0.2, h: h + 0.08, layer: 1, noLight: true, noContact: true, b, r, bloom: rnd(0.38, 0.72), alpha: 0, grow: 1, draw: (ctx, P) => {
       const k = p.grow, sx = sway(ph, q.x) * 0.035 * h, hh = h * k, hx = sx, hs = size * k;
       if (r > 20) { P_ell(ctx, hx, hh, 0.035 * hs, 0.03 * hs, P.col(f.col)); return; }   // far off, a dot of colour
       ctx.strokeStyle = P.col([70, 128, 50]); ctx.lineWidth = 0.012; ctx.lineCap = 'round';
@@ -731,6 +731,7 @@ function buildMeadow(L, s, c0) {
       for (const p of clouds) { const b = p.b0 + (still ? 0 : G.t * p.drift * 0.1), r = p.D * Math.cos(p.el); p.x = Math.sin(fwd + rot + b) * r; p.z = Math.cos(fwd + rot + b) * r; p.alpha = ca; if (Math.abs(wrapPi(b - view)) < 1.3) R.add(p); }
       for (const p of sprites) {
         if (Math.abs(wrapPi(p.b - view)) > (p.r < 4 ? 1.25 : 0.9)) continue;
+        if (p.flower && s.egg) continue;   // the easter egg's meadow has no flowers, only grass: there is a crowd in it to draw
         const k = smoothstep((s.meadow - p.bloom) / 0.28);   // each comes up in its turn, growing as it comes
         p.alpha = k * (1 - s.lv); p.grow = 0.55 + 0.45 * k;
         if (p.alpha <= 0.004) continue;

@@ -751,7 +751,7 @@ some on the ground, so you have to turn and look down to find them.
     joy, each in its own time, arms up where they have them (the stone one in a new pose
     each time it comes down), as its happy face comes up out of the hood and it takes off
     its robe and dances, the music box plays, and the dark turns to the pale light and the
-    meadow, all thirteen of them in it, leaping, gentler after a while and now and then a
+    meadow (this one without its wild flowers, only grass: there is a crowd in it to draw), all thirteen of them in it, leaping, gentler after a while and now and then a
     little more. From there it is the ending as it always is: the view is yours, a press
     goes on (they all fade, glittering, as the bedroom comes), the last screen, The End,
     the results, the campaign complete. With reduced motion each comes slower and from

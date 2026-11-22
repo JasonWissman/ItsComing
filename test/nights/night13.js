@@ -15,6 +15,8 @@
 // ever; then all sixteen: the others come for what was theirs, and it is won another way: see `egg` below), and the same
 // with reduced motion; then afresh for the ending above.
 // (two at a time, so one is put down while another is still falling: it lies clear of where that one will lie)
+// how many of the meadow's wild flowers are drawn in a frame (the normal ending's meadow has them; the easter egg's, with a crowd in it, only grass)
+const flowersDrawn = "(() => { const add = R.add; let n = 0, all = 0; R.add = p => { all++; if (p.flower) n++; return add(p); }; try { render(); } finally { R.add = add; } return all > 50 ? n : -1; })()";
 const dropAll = ['waitUntil', "G.inv.length === 0 ? true : (G.cam.pitch = G.cam.tPitch = PITCH_DOWN, G.active = 0, dropActive(), G.inv.length && (G.active = 0, dropActive()), false)", 8000];
 // nothing put down lies over another thing: as cards facing the eye, no two overlap by more than a sliver
 const clear = '(() => { const f = G.L.items.filter(i => !i.taken).map(o => ({ a: Math.atan2(o.x, o.z), d: Math.hypot(o.x, o.z), w: o.w, h: o.h })); let worst = 0;' +
@@ -124,6 +126,7 @@ const ending = [
   ...lookAbout,
   ['wait', 1500], ['expect', "G.state === 'won' && G.L.s.wait && !G.L.s.leaving && G.L.s.meadow === 1", 'the meadow waits for as long as you like'],
   noHands('and in the meadow'),
+  ['expect', flowersDrawn + ' > 20', 'the meadow has its wild flowers'],
   ['eval', "document.getElementById('game').dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 640, clientY: 380 }))"],
   ['expect', 'G.L.s.leaving', 'a click and it goes on'],
   ['waitUntil', "G.state === 'end'", 12000],
@@ -208,6 +211,7 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   ['eval', 'window.__egg.up = {}; window.__egg.down = {};'], stepTo('VOID_EGG.arm + 1.2'),
   ['expect', "(W => Object.keys(W.up).length === 12 && Object.keys(W.up).every(t => W.up[t] > 0.12 && W.down[t]) && G.L.creature.dance > 0.5)(window.__egg)", 'still leaping and dancing there'],
   ['expect', "G.state === 'won' && G.L.s.wait && !G.L.s.leaving && G.L.lookFree() && (window._sfx.filter(x => x.n === 'musicbox').length >= 2)", 'the music box plays, and the meadow waits for a press, the view yours again'],
+  ['expect', flowersDrawn + ' === 0', 'the easter egg\'s meadow has no flowers, only grass (there is a crowd in it)'],
   noHands('your hands are empty'),
   ['eval', 'G.noRaf = false; G._last = performance.now(); requestAnimationFrame(frame);'], ['wait', 200],
   key('ArrowLeft', true), ['wait', 300], ['expect', "G.state === 'won' && !G.L.s.leaving", 'a turn only turns the view'],
