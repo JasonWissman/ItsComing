@@ -124,10 +124,13 @@
           c.dist = IN; c.yOff = 0; c.runPose = true; c.runDir = SIDE;
           if (T < F.back + F.run) c.runGait = (c.runGait || 0) + dt * 16;
         } },
-      { name: 'Pressing through the dust sheet', note: 'The easter egg: every mirror under a dust sheet. After a beat of silence its face comes pressing out through the cloth from inside (the swell of its head, its brow, the hollows of its eyes, its nose, its mouth opening into a wail), then a hand either side of it, fingers spread, the cloth stretched toward you and pulled into creases to the frame; and then it comes through. Drawn on the sheet in the cloth\'s own colours (pressed: k its face, hands its hands).',
+      { name: 'Pressing through the dust sheet', note: 'The easter egg: every mirror under a dust sheet. After a beat of silence its face comes pressing out through the cloth from inside (the swell of its head, its brow, the hollows of its eyes, its nose, its mouth opening into a wail), then a hand either side of it, fingers spread, the cloth stretched toward you and pulled into creases to the frame; and then it comes at you in the sheet (the next pose). Drawn on the sheet in the cloth\'s own colours (pressed: k its face, hands its hands).',
         dist: 3.75, dur: 4.6, still: true, fit: { h: 2.75, w: 2.3 }, front: sheet,
         set(c) { c.angry = 1; c.dance = 0; c.press = { k: 0, hands: 0, t: 0 }; },
         tick(c, k, dt, T) { c.press = { k: smoothstep((T - 0.6) / 1.1), hands: smoothstep((T - 1.1) / 0.8), t: T }; } },
+      LAB.lunge({ name: 'Through the sheet at you', note: 'The end of the easter egg: the face and the hands that pressed out through the cloth come at you as they are, in the sheet. The moulded face grows toward your eye, its mouth dropping open, a cloth-covered hand reaching either side, and the rest of the sheet is dragged off the mirror behind them: pulled out into a cone, then off the frame, rounding into a ring of folds about the face, its hem flaring and rippling, until it is past every edge of the view. The doll itself is never seen.',
+        dist: 3.42, dur: 2.2, fit: { h: 2.75, w: 2.3 },
+        set(c) { c.shroud = { from: 3.42, eye: EYE, press: 1, cloth: CLOTH }; c.deathSpec = { delay: 0.7, dur: 0.55 }; base.set(c); } }),
       LAB.lunge({ note: 'It has you, from behind: weeping all the way in, the red eyes and the red tears, the sob opening into a wail and its hands coming up to take hold.', dist: CR.catchDist,
         set(c) { c.angry = 1; c.dance = 0; c.smile = false; base.set(c); } }),
     ],
