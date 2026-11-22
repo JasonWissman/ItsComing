@@ -67,7 +67,7 @@
           holdBars(c);   // the game tells it where the bars are every frame once the night is won
         },
         front(ctx, c, P) { gate(ctx, c, P); dark(ctx, blinkDark(c.times, c.t)); } },
-      { name: 'Losing the staring contest', note: 'Looked at for a full minute without a glance away (in a pose whose face shows: pointing, reaching, screaming), it blinks first: twice, a third time, rubs its eyes with its fists, and is at once as it was.', dist: 3.2, dur: STARES.length * STARE, fit: { h: 2.4, w: 1.8 },
+      { name: 'Losing the staring contest', note: 'Looked at for half a minute without a glance away (in a pose whose face shows: pointing, reaching, screaming), it blinks first: twice, a third time, rubs its eyes with its fists, and is at once as it was.', dist: 3.2, dur: STARES.length * STARE, fit: { h: 2.4, w: 1.8 },
         set(c) { c.pose = STARES[0]; },
         tick(c, k, dt, T) {   // each pose in turn, held a moment, then losing (night04 stareOn sets c.blink and counts it on)
           const i = clamp(Math.floor(T / STARE), 0, STARES.length - 1), t = T - i * STARE - 0.8;

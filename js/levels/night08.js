@@ -121,7 +121,7 @@ LEVELS.push({
     disc(-1.45, 1.55, 0.17, [118, 120, 126], 4.28); disc(-1.45, 1.55, 0.13, [18, 16, 18], 4.27);
     SC.wallV(L, -3.975, -1.12, -3.975, -1.04, 0.92, 1.22, [118, 120, 126], { sortDist: 4.27 });
     SC.wallV(L, -1, -2.49, 1, -2.49, 1.0, 2.0, [14, 10, 10]); SC.box(L, -1.1, 1.1, 0.95, 1.02, -2.5, -2.3, chrome); // the kitchen pass
-    // the shelf on the back wall, a row of paper cups along it (the soda's, below: one of them can be taken, and looks no different)
+    // the shelf on the back wall, a row of paper cups along it (the soda's, below: the one at the end nearest you can be taken, and looks no different)
     const SHELF = { y: 1.95, z: -2.41, xs: Array.from({ length: 8 }, (_, k) => 1.48 + k * 0.3) };
     SC.box(L, 1.2, 3.8, SHELF.y - 0.05, SHELF.y, -2.5, -2.3, [90, 74, 56]);
     SC.box(L, 2.4, 3.8, 0, 0.9, -2.45, -1.85, [150, 138, 118]); SC.box(L, 3.0, 3.6, 0.9, 1.5, -2.4, -2.0, chrome); SC.box(L, 3.05, 3.55, 0.9, 1.0, -2.0, -1.9, [60, 40, 30]);
@@ -314,7 +314,7 @@ LEVELS.push({
 
     // ---- the soda fountain behind you, and a paper cup on the shelf on the back wall ----
     // The fountain stands on a cabinet against the back wall, on the other side of the kitchen pass from the main; the cup
-    // is one of the row of plain paper cups on the shelf over the back counter, the only one that can be taken (it looks
+    // is the nearest of the row of plain paper cups on the shelf over the back counter, the only one that can be taken (it looks
     // just like the rest, which are nothing to take). Nothing about either says it does anything: the fountain cannot be pointed at until
     // the cup is in hand, nor the counter until the cup in hand is full. Fill the cup, set it on the far side of the
     // counter, and if it comes in through the glass, lit or in the dark, it has something else on its mind (the soda,
@@ -348,9 +348,10 @@ LEVELS.push({
       for (let x = -0.4; x < 0.42; x += 0.08) P_rect(ctx, x, 0.045, 0.04, 0.04, ink);
     }, { face: BACK });
     const nozzle = (() => { const p = L.pt(FX, FY + 0.43 * FH, FZ + 0.04); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; })();
-    // which cup on the shelf is the one: by a stream of its own, so the layout the rest of the night draws from its random
-    // stream is as it was. The others stand there drawn exactly as the cup is (a card facing you), and are nothing to click
-    const CUP_K = Math.floor(mulberry32((G.runSeed * 7919 + L.index * 131 + G.attempt * 17 + 808) >>> 0)() * SHELF.xs.length);
+    // which cup on the shelf is the one: always the one at the end of the row nearest you (the first of them, in over
+    // the back counter; the row runs away from you along the wall). The others stand there drawn exactly as the cup is
+    // (a card facing you), and are nothing to click
+    const CUP_K = SHELF.xs.reduce((m, x, k) => Math.abs(x) < Math.abs(SHELF.xs[m]) ? k : m, 0);
     SHELF.xs.forEach((x, k) => { if (k !== CUP_K) SC.sprite(L, x, SHELF.y, SHELF.z, 0.16, 0.16, (ctx, P) => { ctx.scale(0.16, 0.16); ICONS.paperCup(ctx, P); }, { card: true }); });
     const cup = mkItem(L, 'cup', 'Paper cup', { x: SHELF.xs[CUP_K], y: SHELF.y, z: SHELF.z, jitter: 0 }, { w: 0.16, h: 0.16, tool: true, icon: 'paperCup', material: 'soft', full: false,
       held: { grip: 'fist', at: [0, 0.42], axis: 0, angle: 0.06, size: 0.17 } });

@@ -135,7 +135,7 @@ const doorCases = [0, 1].flatMap(k => [
 // lamp on its way in (called while it is skittering between lamps further out; or, past: called once it has left the last
 // lamp, when she says only the last line, they come at once and it skitters back behind that post). Then the police car comes down its street, its light
 // bar going and its siren wailing; screeches to a halt on the road by that post (its nose dipping); its siren winds down;
-// a flashlight comes on at its window and finds it; in that light it convulses for a second, with a shriek (where it
+// a flashlight comes on at its window and finds it; from the instant that light is on it, it convulses for a second, with a shriek (where it
 // stands, the flashlight on it; no tentacles drawn before, the first of them as it convulses); it jumps out in front of
 // the post, facing the car, its head split open at it and its tentacles out, with a snarl, the growl far up (the lamp
 // over it out by then, popped as it snarls if it still burned); the flashlight goes off; the car
@@ -208,9 +208,10 @@ const cop = (k, coin, calm, past) => `(() => {
     mark('torch', K.torch > 0.9);
     out.torchJump = Math.max(out.torchJump, Math.abs(K.torch - lastTorch)); lastTorch = K.torch;
     const lt = (L.dynamicLights() || []).find(l => l.cone && l.color[0] === 225);   // the flashlight's light: at the shade's chest, once it has found it
+    if (lt && K.t < K.scareT) { const h = [p.x - lt.x, p.y + c.yOff + 1.6 - lt.y, p.z - lt.z], hl = Math.hypot(...h); mark('lit', Math.acos(clamp((h[0] * lt.cone.x + h[1] * lt.cone.y + h[2] * lt.cone.z) / hl, -1, 1)) / DEG <= 16); }   // its beam on the shade (inside its cone)
     if (lt && K.torch > 0.9 && K.t > K.torchOnT + 0.6) { const h = [p.x - lt.x, p.y + c.yOff + 1.6 - lt.y, p.z - lt.z], hl = Math.hypot(...h); out.aimErr = Math.min(out.aimErr, Math.acos(clamp((h[0] * lt.cone.x + h[1] * lt.cone.y + h[2] * lt.cone.z) / hl, -1, 1)) / DEG); }
     // in the flashlight, before it jumps: convulsing, where it stands, the light on it; and what it draws of its tentacles
-    if (K.torch > 0.9 && K.t > K.torchOnT + 0.3 && !c.convulse && out.tentStill < 0 && ev.scare === undefined) out.tentStill = tentNow();
+    if (K.torch > 0.5 && K.t > K.torchOnT && !c.convulse && out.tentStill < 0 && ev.scare === undefined) out.tentStill = tentNow();
     if (c.convulse > 0.05 && K.t < K.scareT) {
       out.convFor += 0.01; if (K.torch < 0.9) out.convLit = false; out.convScare = Math.max(out.convScare, c.scare);
       if (!convAt) convAt = { x: p.x, z: p.z }; out.convMoved = Math.max(out.convMoved, Math.hypot(p.x - convAt.x, p.z - convAt.z));
@@ -266,6 +267,7 @@ const copCases = [[0, false, false, false], [1, true, false, false], [1, false, 
     ['expect', past ? '__cop.back && __cop.atLast && __cop.waitFrames <= 1' : '__cop.waitFrames > 200 && !__cop.waitSeen && __cop.atLast && !__cop.back', at + (past ? 'the police come at once, and it skitters back behind its last lamp post' : 'nothing of the police is seen or heard until it has got to its last lamp')],
     ['expect', '__cop.order && __cop.sirens >= 2 && __cop.sirenAfter === 0 && !__cop.horn', at + 'in order: siren, tyres screeching, halted, siren off, flashlight on, its shriek as it convulses, its snarl and its head open at the car, flashlight off, the car away, it comes on, the car gone'],
     ['expect', '__cop.convFor > 0.85 && __cop.convFor < 1.2 && __cop.convLit && __cop.convMoved < 0.01 && __cop.convScare === 0 && __cop.ev.conv - __cop.ev.shadeShriek < 0.15', at + 'in the flashlight it convulses for about a second where it stands, with its shriek, before it jumps'],
+    ['expect', '__cop.ev.lit >= __cop.ev.torch && __cop.ev.lit - __cop.ev.torch <= 0.55 && __cop.ev.shadeShriek - __cop.ev.lit >= 0 && __cop.ev.shadeShriek - __cop.ev.lit <= 0.03 && __cop.ev.conv - __cop.ev.lit <= 0.12', at + 'it starts to convulse (and shrieks) the instant the flashlight\'s beam is on it as it sweeps in: no wait after'],
     ['expect', '__cop.shriekToSnarl > 1.05 && __cop.shriekToSnarl < 1.3 && __cop.ev.scare - __cop.ev.growlHigh >= 0 && __cop.ev.scare - __cop.ev.growlHigh < 0.4', at + 'the jump scare\'s sound is the high growl (growlHigh), as its head opens: the shriek was the convulsion\'s'],
     ['expect', '__cop.tentStill === 0 && __cop.tentConv === 7 && __cop.tentScare === 7 && __cop.tentAfter === 0 && __cop.tentLunge === 17', at + 'its tentacles: none while it stands in the light, the first of them as it convulses, seven out at the police, drawn back in after, and seventeen as it comes at you'],
     ['expect', '__cop.haltPost < 4 && __cop.maxDip > 0.02 && __cop.aimErr < 10', at + 'the car halted by the lamp post, nose dipping, and its flashlight found it'],

@@ -17,7 +17,7 @@
 // comes back to your hand (G.refuse); a dust sheet is pulled down by hand and slides off the glass.
 // The sheets go back up, too. Two mirrors start under one; pulled down, it lies in a heap at the foot of its glass and can
 // be taken up (a click on the heap, either side of the pedestal: a bundle of cloth in your hand), and two more lie folded
-// on the floor under the lamp's table. A click on a bare mirror with a sheet in your hand throws it up over the glass. A
+// on top of the lamp's table. A click on a bare mirror with a sheet in your hand throws it up over the glass. A
 // covered mirror shows nothing, so before it the thing comes on as it does unseen. Cover all four (the night's easter
 // egg) and it does not like it: a beat of silence, and then, in the sheet before you, its face presses out through the
 // cloth from inside, a hand either side of it, fingers spread, the other sheets bulging too; and that face and those
@@ -154,12 +154,13 @@ LEVELS.push({
     // items: the music box in one place and its crank in another, well apart and in another direction from you (never in
     // the same corner, nor the two along one wall where the first view finds both)
     const boxSpots = [{ x: 2.6, y: 1.03, z: 3.0 }, { x: -2.7, y: 0, z: -2.7 }, { x: 2.0, y: 0, z: -2.6 }, { x: -2.6, y: 0, z: 1.4 }, { x: -1.3, y: 0, z: 3.0 }];
-    const crankSpots = [{ x: 2.95, y: 1.03, z: 2.45 }, { x: 3.02, y: 0.45, z: -1.52 }, { x: -2.9, y: 0, z: 2.9 }, { x: 2.9, y: 0, z: -2.9 }, { x: 1.6, y: 0, z: 3.1 }, { x: -3.1, y: 0, z: -1.0 }, { x: 3.1, y: 0, z: 1.2 }, { x: 1.2, y: 0, z: -3.1 }];
+    const crankSpots = [{ x: 2.5, y: 1.03, z: 2.95 }, { x: 3.02, y: 0.45, z: -1.52 }, { x: -2.9, y: 0, z: 2.9 }, { x: 2.9, y: 0, z: -2.9 }, { x: 1.6, y: 0, z: 3.1 }, { x: -3.1, y: 0, z: -1.0 }, { x: 3.1, y: 0, z: 1.2 }, { x: 1.2, y: 0, z: -3.1 }];
     const box = mkItem(L, 'musicbox', 'Music box', boxSpots, { w: 0.36, h: 0.36, flat: true });
     const apart = p => Math.hypot(p.x - box.x, p.z - box.z) > 2.2 && Math.abs(wrapPi(Math.atan2(p.x, p.z) - Math.atan2(box.x, box.z))) > 60 * DEG;
     mkItem(L, 'crank', 'Crank handle', crankSpots.filter(apart), { w: 0.28, h: 0.28, flat: true, icon: 'boxcrank', held: { grip: 'fist', at: [-0.05, 0.3], axis: Math.PI / 2, angle: -0.6, size: 0.22, tip: [0.3, 0.3] } });   // (by its arm, its knob up and its socket out in front)
-    // The dust sheets: one over each of two mirrors, and two spare ones folded on the floor under the lamp's table (always
-    // there, side by side between its legs as the eye sees them: placed outright, with no roll of the night's dice, so the
+    // The dust sheets: one over each of two mirrors, and two spare ones folded on top of the lamp's table (always
+    // there, side by side on the right of its top as the eye sees it, the left of it kept for the box or the crank (only
+    // one of the two is ever on the table: they are kept apart), so neither hides the other: placed outright, with no roll of the night's dice, so the
     // box and the crank lie where they always did). In your hand a sheet is a bundle of pale cloth
     const CLOTH = { base: [156, 148, 132], fold: [114, 106, 94], lite: [180, 172, 156] };
     const sheetFolded = (ctx, P) => {
@@ -180,7 +181,7 @@ LEVELS.push({
       for (const [x0, x1, x2] of [[-0.22, -0.3, -0.24], [-0.02, -0.08, 0], [0.19, 0.17, 0.25]]) P_limb(ctx, [[x0, 0.8], [x1, 0.58], [x2, 0.36]], 0.02, c('fold'));
     };
     const sheetItem = icon => ({ w: 0.46, h: 0.36, flat: true, icon, held: { grip: 'fist', at: [0.02, 0.45], angle: 0.12, size: 0.27 } });
-    for (const [x, z] of [[2.55, 3.08], [3.08, 2.55]]) mkItem(L, 'dustsheet', 'Dust sheet', { x, y: 0, z, jitter: 0 }, sheetItem(sheetFolded));
+    for (const [x, z] of [[2.97, 2.69], [3.22, 2.43]]) mkItem(L, 'dustsheet', 'Dust sheet', { x, y: TB.y + 0.05, z, jitter: 0 }, sheetItem(sheetFolded));
     L.onPickup = it => { if (it.id === 'dustsheet') it.icon = sheetBundle; };   // shaken out of its folds: from now on a bundle
     const sheetInHand = () => { const it = G.inv[G.active]; return !!it && it.id === 'dustsheet'; };
     // Each mirror is a thing to click while there is something to do with it: under a sheet, the sheet (a click pulls it

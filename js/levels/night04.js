@@ -420,7 +420,7 @@ LEVELS.push({
     }
 
     // ---- the staring contest (this night's easter egg) ----
-    // Look at it for a full minute without once looking away, and it blinks first. The count (s.stare, seconds) runs only
+    // Look at it for half a minute without once looking away, and it blinks first. The count (s.stare, seconds) runs only
     // in play, while it is seen (the game's own test, c.seen: any glance away, or it going out of view, starts the count
     // again from nothing) and while its eyes show to you: it stands facing you in a pose with its face uncovered (reaching,
     // screaming or pointing: the watcher's eyesShow; not with its hands over its face, as it stands until you first look
@@ -430,7 +430,7 @@ LEVELS.push({
     // stone for each rub), and then it is exactly as it was, having never left that pose or moved (it is being looked at
     // all the while). Look away while it is at it, or win the night, and it is over at once: it is as it was and does as
     // it always does. Nothing else comes of it, and it can be done again: the count starts over when it is done.
-    const STARE = 60;
+    const STARE = 30;
     s.stare = 0;
     const faceShown = c => {   // its head, whole in the view (as seen or not is judged: with the view not zoomed)
       const p = c.pos(), r = R.projectRect(p.x, p.y + 1.5, p.z, 0.5, 0.6, { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH });

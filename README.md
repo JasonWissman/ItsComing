@@ -41,7 +41,7 @@ Headphones are recommended. Sound starts after your first click.
 `WASD` also works for turning and looking. Clicking the floor while looking
 down puts the active item back down (there is no line about it under the pointer). How to play shows the four that
 matter most as cards (Look around, Zoom in, Interact, Pause). The pause menu has Resume, Controls (How to play, the same
-dialog as on the title; closing it is the pause menu again), Settings, Scores (once the title has it: the same dialog,
+dialog as on the title; closing it is the pause menu again), Settings, Scores (once the title has it, a whole run finished: the same dialog,
 over the paused night, without Erase progress; its Back is the pause menu again) and Quit, its buttons all one width;
 there is no Restart or Mute in it, but `R`, `M` and `Esc` work there as anywhere (and Mute is in Settings). Quit is
 quieter than the rest (no border, in the secondary, slightly darker, text colour), and it is the only way out to the
@@ -273,7 +273,7 @@ some on the ground, so you have to turn and look down to find them.
    tries it, then runs round the outside of the yard to the other one, but only while
    nothing is looking: catch it going round and it stops dead, mid-stride. At the end it
    comes on only when you blink, up to the gate, and shakes it on its chain.
-   Easter egg: win a staring contest. Look at it for a full minute (60 s) without once looking away or
+   Easter egg: win a staring contest. Look at it for half a minute (30 s) without once looking away or
    letting it out of view, while it faces you with its eyes showing (reaching, screaming or pointing, its head in the
    view; not with its hands over its face, and not side-on going round), and it blinks first: two quick blinks of its
    stone lids, a third that stays shut, its fists up to rub its eyes with a little grind of stone, and then it is at once
@@ -308,7 +308,7 @@ some on the ground, so you have to turn and look down to find them.
    side every second or two by itself and from about every other draw, so the aim has to come after it; inside about
    14 m it comes straight. With all three arrows gone and it still up, it comes flat out, straight. Three small
    bats flit about the night sky over the clearing, faint against it and easy to miss; one can be shot (drawn full and
-   let go on it: a small, restless target, and the thing itself always comes first), and it squeaks and tumbles out of
+   let go on or close by it: a small, restless target, taken by an aim within about its wingspan of it either way; the thing itself always comes first), and it squeaks and tumbles out of
    the sky with the arrow through it. That is this night's easter egg, and it costs the arrow. The bow floats where
    your hands would hold it. Pressed with no arrows, the bow comes up and tips to show the bare shelf,
    the string is plucked twice where an arrow should sit and twitches on nothing, and it is let down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
@@ -425,8 +425,8 @@ some on the ground, so you have to turn and look down to find them.
    and beats on it, hard and fast, until the night fades.
    There is a soda fountain behind you, on a cabinet against the back wall on the other side of the kitchen pass from
    the main (a lit red Soda header, three valves over a dark well, a drip tray, and a little window that says EMPTY,
-   dark), and a row of plain paper cups along the shelf on the back wall, all alike: one of them (and only that one)
-   can be taken, and nothing marks which. Nothing says either does
+   dark), and a row of plain paper cups along the shelf on the back wall, all alike: the one at the end of the row nearest you (and only that one)
+   can be taken, and nothing marks it. Nothing says either does
    anything: the fountain cannot be pointed at (no pointer, no line, nothing the view can hit) until the cup is in hand,
    and the counter's top not until the cup in hand is full. With the cup, the fountain pours it full, fizzing, the cup
    held under the nozzle (in hand it shows dark cola under a head of foam); full, a click on the counter sets it on the
@@ -499,7 +499,7 @@ some on the ground, so you have to turn and look down to find them.
    swells slowly from red to blue and back instead), and screeches to a halt on the road beside that lamp post, its nose
    dipping, black rubber left on the road. The siren winds down. A flashlight comes on at its window, sweeps in and finds
    the shade: a beam through the rain, a pool of light round its feet and on the wall behind, a pale light down its side
-   and its eyes shining back. In that light it convulses for a second, with a shriek tearing upward: thrown over at the
+   and its eyes shining back. The instant that light is on it (as the beam sweeps onto it, with no wait after), it convulses for a second, with a shriek tearing upward: thrown over at the
    waist one way and the other, its spine kinked, one shoulder up and the other down, its knees buckling, its elbows out
    and its forearms flung about from them at wrong angles, its head snapping from side to side and its jaw dropping out
    of it, every joint jerked somewhere new several times a second, and the first of its tentacles squirming out of its
@@ -559,9 +559,10 @@ some on the ground, so you have to turn and look down to find them.
     played for an illusion. The creature surprised you from behind."; caught without the box ever having played, "It
     just wants to hear its song."
     The dust sheets go back up. A sheet pulled down lies in a heap at the foot of its glass; a click on the heap (either
-    side of the pedestal) takes it up, a bundle of pale cloth in your hand, and two more lie folded on the floor under the
-    lamp's table (always there: they take no roll of the night's dice, so the box and the crank lie where they always
-    did). A click on a bare mirror with a sheet in hand throws it up over the glass, where it hangs as the first two did
+    side of the pedestal) takes it up, a bundle of pale cloth in your hand, and two more lie folded on top of the
+    lamp's table, side by side on the right of its top, the left of it kept for the box or the crank when one of them
+    lies there (the sheets are always there: they take no roll of the night's dice, so the box and the crank fall
+    as they always did). A click on a bare mirror with a sheet in hand throws it up over the glass, where it hangs as the first two did
     and can be pulled down again. A covered mirror shows nothing, so standing before one counts as looking away (it
     comes on at its unseen pace), and the box plays before a covered odd mirror as it always did (the tune pulls the
     sheet off). The night's easter egg ("Cover every mirror."): the moment all four are under sheets the night is over.
@@ -862,8 +863,10 @@ and the car takes a different number of tries to start. Some pause, some lurch, 
 There is no picking a night and no continuing: it is a short game, and every game is all thirteen nights in a row,
 from the prologue and night 1 (Begin, or Enter on the title). The death screen offers Try again (the same night) and
 nothing else: the only way out to the title is the pause menu's Quit (Esc there, as anywhere), which asks first.
-Progress, the best full run and the easter eggs found are saved in `localStorage`. Once there is a best full run (a
-whole game finished) or an easter egg has been found, the title has a Scores button, and the pause menu too. Scores
+Progress, the best full run and the easter eggs found are saved in `localStorage`. Only once there is a best full run (a
+whole game finished) does the title have a Scores button, and the pause menu too (the same rule in both); easter eggs
+found before that are saved all the same, and are in its Easter eggs tab once Scores is there, but do not bring the
+button by themselves. Scores
 shows the best full run: a card for every night with that run's time for it, in two columns (three on a
 phone on its side), and under them its whole time and stars; with no full run yet, only a word on what one is. The
 cards are not buttons. Under them, beside Back, is Erase progress. There are no best times for single nights.
