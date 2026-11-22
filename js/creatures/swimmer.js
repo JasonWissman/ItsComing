@@ -138,12 +138,12 @@ CREATURES.swimmer = {
   drawRinged(ctx, c, P) {
     const t = c.t, q = Math.max(0, t - (c.ringT || 0)), g = c.padGait || 0, h = this.hash, soft = SAVE.data.settings.reducedMotion ? 0.45 : 1;
     const R = this.RING_R, TB = this.RING_TUBE, k = this.ringK(c.dist);
-    const arm = P.col([122, 134, 124]), armD = P.col([86, 98, 90]), mass = P.col([26, 40, 22]), dark = P.col([12, 20, 11]), mid = P.col([40, 60, 30]);
+    const arm = P.col([150, 160, 150]), armD = P.col([96, 108, 98]), mass = P.col([26, 40, 22]), dark = P.col([12, 20, 11]), mid = P.col([40, 60, 30]);
     const rip = [150, 165, 175], foam = [214, 224, 228];
     const pad = smoothstep((q - this.RING_LOOK) / 0.3);   // 0 looking at the ring, 1 paddling
     // up through the hole from under the water, a little too far, and settling; then the bob of its paddling
     const pop = -0.8 * (1 - easeOut(q / 0.17)) + 0.07 * soft * Math.sin(Math.PI * clamp(q / 0.45, 0, 1));
-    const bob = (Math.sin(g * 2) * 0.014 * pad + Math.sin(t * 1.3) * 0.012) * soft;
+    const bob = (Math.sin(g * 2) * 0.026 * pad + Math.sin(t * 1.3) * 0.012) * soft;
     const yR = this.RING_H + this.RING_Y + bob * 0.7 + 0.05 * soft * Math.sin(Math.PI * clamp(q / 0.4, 0, 1)) * Math.exp(-q * 3), yB = pop + bob;   // the ring, knocked up as it comes through, and the body
     // where it looks: down at the ring to one side, then the other, then up at you; paddling, the chin held up
     const dn = smoothstep((q - 0.16) / 0.1) - smoothstep((q - 0.6) / 0.12);
@@ -165,10 +165,10 @@ CREATURES.swimmer = {
     const arms = [-1, 1].map(sd => {
       const ph = g + (sd > 0 ? 0 : Math.PI), sh = [sd * 0.19, 0.16];
       const el = [sd * lerp(lerp(0.2, 0.42, out), 0.27, pad), lerp(0.22 + 0.02 * Math.sin(t * 9 + sd), yR - yB - R * k * 0.55 + TB * 0.6, pad)];
-      const hd = [sd * lerp(lerp(0.16, 0.5, out), 0.14 + 0.05 * Math.cos(ph), pad), lerp(0.5 + 0.015 * Math.sin(t * 11 + sd * 2), yW + 0.075 + 0.07 * Math.sin(ph), pad)];
+      const hd = [sd * lerp(lerp(0.16, 0.5, out), 0.15 + 0.06 * Math.cos(ph), pad), lerp(0.5 + 0.015 * Math.sin(t * 11 + sd * 2), yW + 0.1 + 0.09 * Math.sin(ph), pad)];
       return { sd, ph, sh, el, hd };
     });
-    ctx.save(); ctx.translate(0, this.RING_H); ctx.rotate(-look[0] * 0.1 * (1 - pad) + Math.sin(g) * 0.05 * pad * soft); this.head(ctx, P, t, 0.5, 0, look); ctx.restore();
+    ctx.save(); ctx.translate(0, this.RING_H); ctx.rotate(-look[0] * 0.1 * (1 - pad) + Math.sin(g) * 0.075 * pad * soft); this.head(ctx, P, t, 0.5, 0, look); ctx.restore();
     ctx.restore();
     this.lifeRing(ctx, P, 0, yR, R, k, 0.3, 'front', TB);
     P_ell(ctx, 0, yR - R * k - TB * 0.72, R * 0.92, 0.02, P.cola(foam, 0.34 + 0.12 * Math.sin(t * 5)));   // the water against the front of it
@@ -181,17 +181,17 @@ CREATURES.swimmer = {
       P_limb(ctx, [a.sh, [lerp(a.sh[0], a.el[0], 0.55), lerp(a.sh[1], a.el[1], 0.55) + 0.015]], 0.052, mass);   // (weed draped on the upper arm)
       P_limb(ctx, [a.el, a.hd], 0.046, arm);
       // the hand: a small palm, the fingers hanging from it (up, they hang off the limp wrist; paddling, they claw down at the water)
-      P_ell(ctx, hx, hy - 0.012, 0.046, 0.04, arm);
-      fingers(ctx, hx, hy - 0.03, -Math.PI / 2 + a.sd * 0.25 * up + 0.35 * Math.cos(a.ph) * pad * a.sd, 0.27, 0.09, 0.019, arm);
+      P_ell(ctx, hx, hy - 0.012, 0.054, 0.046, arm);
+      fingers(ctx, hx, hy - 0.035, -Math.PI / 2 + a.sd * 0.25 * up + 0.35 * Math.cos(a.ph) * pad * a.sd, 0.27, 0.1, 0.022, arm);
     }
     ctx.restore();
     // a little splash where each hand goes in, one after the other
     if (pad > 0.5) for (const a of arms) {
-      const s = ((((a.ph - Math.PI * 7 / 6) % TAU) + TAU) % TAU) / 2.6;
+      const s = ((((a.ph - Math.PI * 4 / 3) % TAU) + TAU) % TAU) / 2.8;   // from when it comes down onto the water
       if (s > 1) continue;
-      const x = a.sd * 0.13, y = -(R + TB + 0.1) * k;
-      P_ell(ctx, x, y, 0.05 + s * 0.1, 0.013 + s * 0.014, P.cola(foam, 0.65 * (1 - s)));
-      for (let i = 0; i < 7; i++) P_ell(ctx, x + (i - 3) * 0.032 * (1 + s), y + Math.sin(s * Math.PI) * (0.035 + (i % 3) * 0.035) * soft, 0.011, 0.016, P.cola(foam, 0.85 * (1 - s)));
+      const x = a.sd * 0.14, y = -(R + TB + 0.1) * k;
+      P_ell(ctx, x, y, 0.07 + s * 0.13, 0.016 + s * 0.016, P.cola(foam, 0.7 * (1 - s)));
+      for (let i = 0; i < 7; i++) P_ell(ctx, x + (i - 3) * 0.04 * (1 + s), y + Math.sin(s * Math.PI) * (0.05 + (i % 3) * 0.045) * soft, 0.015, 0.021, P.cola(foam, 0.9 * (1 - s)));
     }
     // the water streaming off it for a while after it comes up: off the chin, the hands and the elbows, and off the ring
     const wet = 1 - smoothstep((q - 0.9) / 1.2);
