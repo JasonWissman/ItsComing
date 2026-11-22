@@ -38,6 +38,17 @@
   // doorway side on, slowing as it comes, closing 0.8 m; then it turns to the door and comes on at its surfaced pace
   const SW = { T1: 0.7, side: -1, out: 0.55 * D_SIDE / 2.4 + 0.9 };
   SW.across = 0.55 + SW.out * 0.22;
+  // The Boathouse's easter egg (night06: the life ring thrown to it). The ring floating where it landed, as the night
+  // draws it on the water (L.dynamic), until the thing comes up through it; and its steady pace in it, as speedMult sets it
+  const RING_AT = 0.7;
+  const ringPace = PACE * (CR.RING_UP * 0.55 + CR.RING_DOWN * 2.5 * UNSEEN) / (CR.RING_UP + CR.RING_DOWN);
+  const floating = (ctx, c, P) => {
+    water(ctx, c, P);
+    if (c.ringOn) return;
+    const y = CR.RING_H + CR.RING_Y + Math.sin(c.t * 2.1) * 0.02;
+    P_ell(ctx, 0, 0, CR.RING_R + 0.2, (CR.RING_R + 0.2) * CR.ringK(c.dist), P.cola([150, 165, 175], 0.25));
+    CR.lifeRing(ctx, P, 0, y, CR.RING_R, CR.ringK(c.dist), 0.3, null, CR.RING_TUBE);
+  };
   const base = LAB.lunge();
   LAB.creature('swimmer', {
     night: 6, stage: 'The Boathouse', dist: 8, fit: { h: 0.75, w: 1.3, y0: -0.12 },
@@ -66,6 +77,26 @@
           c.runPose = false; c.runLat = 0; c.dist -= dt * PACE * 0.55;
         },
         draw(ctx, c, P) { ctx.translate(c.runLat || 0, 0); draw(ctx, c, P); } },
+      { name: 'Up through the life ring', note: 'The night\'s easter egg: the life ring thrown to it floats where it landed; it comes up through it, head and both arms up through the hole, holds its hands up out of the way and looks down at the ring, one side and the other, then at you, and starts to paddle.',
+        dist: 6, dur: RING_AT + 2.6, fit: { h: 1.0, w: 1.5, y0: -0.3 }, still: true, back: floating, draw,
+        set(c) { c.mode = 'down'; },
+        tick(c, k, dt, T) {
+          if (T < RING_AT) { c.mode = 'down'; return; }
+          if (!c.ringOn) { c.ringOn = true; c.ringT = c.t; c.padGait = 0; c.mode = 'up'; c.surfaced = c.t; }
+          if (c.t - c.ringT > CR.RING_LOOK) { c.padGait += dt * 9; c.dist -= dt * ringPace; }
+        } },
+      { name: 'Doggy paddling in the ring', note: 'From then on it does not go under: it comes on steadily in the ring, the head held up out of the water, the hands going round one after the other in front of it, a little splash at each, bobbing.',
+        dist: 9, dur: 5, fit: { h: 1.0, w: 1.5, y0: -0.3 }, still: true, back: water, draw,
+        set(c) { c.ringOn = true; c.ringT = -9; c.padGait = 0; c.mode = 'up'; c.moving = true; },
+        tick(c, k, dt) { c.padGait += dt * 9; c.dist = Math.max(2.9, c.dist - dt * ringPace); } },
+      { name: 'Swimming side on, in the ring', note: 'Sent round from a shut door to an open one with the ring on: the same stroke, the hoop standing up out of the water round its chest.',
+        dist: 6, dur: TAU / 7.5 * 2, fit: { h: 0.5, w: 1.3, y0: -0.5 }, still: true, back: water, draw,
+        set(c) { c.ringOn = true; c.ringT = -9; c.runPose = true; c.runDir = -1; c.runGait = 0; c.moving = true; }, tick(c, k, dt) { c.runGait += dt * 7.5; } },
+      LAB.lunge({ name: 'Rising out at you, in the ring', note: 'It catches you with the ring on: the same lunge, the ring round the weed under its arms.', dist: CR.catchDist,
+        set(c) { c.frozen = true; c.lungeFrom = c.dist; c.ringOn = true; c.ringT = -9; },
+        tick(c, k, dt, T) { base.tick(c, k, dt, T); CR.death.pose(c, c.lunge); c.yOff = lerp(0, G.L.eyeH - CR.faceY, smoothstep(c.lunge)); },
+        draw(ctx, c, P) { ctx.translate(0, -(c.yOff || 0)); draw(ctx, c, P); },
+        back: water, fit: { h: 0.6, w: 1.3, y0: -0.5 } }),
       LAB.lunge({ name: 'Rising out at you', note: 'It catches you: it bursts up out of the water to your face, a body of dark dripping weed under its head and two thin weed-draped arms reaching up at you; the water moves as it comes, white heaped up and falling back, foam rings spreading, spray flung up on its arcs and falling, water streaming off it; the mouth opens under the eyes.', dist: CR.catchDist,
         tick(c, k, dt, T) {
           base.tick(c, k, dt, T);

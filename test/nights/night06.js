@@ -63,6 +63,100 @@ const oneOar = [
   ['expect', "G.deathCause === 'oneoar' && deathLine(G.L).includes(\"One oar wasn't strong enough.\")", 'and the death screen says one oar was not strong enough'],
   ['eval', 'restartLevel();'], ['wait', 1500], ['expect', "G.state === 'play' && !G.L.s.snap && G.L.s.oars === 0", 'the night starts again'],
 ];
+// The night's easter egg: throw it the life ring. The ring hangs on the west wall, flat on the boards, and can be taken.
+// Carried, it changes nothing: there is nothing to throw it at while the thing is under the water, or while the water
+// door's slats are down across the line to it. With it in hand and the thing up in plain sight out on the water, pointing
+// at the thing says so and a click throws it: it leaves the inventory for good, the egg is kept in the save at once, and
+// the thing goes under that moment. The ring flies (under a second), lands on the water where the thing will come up, and
+// floats there, bobbing. The thing comes up through it and from then on never goes under: it comes on steadily, and
+// arrives about when its usual round of going under and coming up would have brought it (that round played out here
+// forty times over from the same place, with the sounds off). Caught, the screen says "It got you" and the one line, with
+// nothing put in front of it (a line is toasted a moment before, as a click on the winch would). Then again: thrown, and
+// both ways shut after it has come up in the ring: the night is won as it always is. (Stepped by hand, a sixtieth of a
+// second at a time, so it takes no longer than it must.)
+const C6 = 'G.L.creature', ringItem = 'G.L.items.find(i => i.id === "lifering")';
+const RING_LINE = "It really didn't need saving, but that was nice of you.";
+const onWater = `c.retarget(0); c.switched = true; c.reached = false; G.L.laneIdx = 0; G.L.lane = G.L.lanes[0]; G.L.barrierDist = G.L.lanes[0].barrierDist; c.hold = null;`;   // on the water door's way, its early change of way already made
+const surfaced = d => ['eval', `(c => { ${onWater} c.u = 1 - Math.min(${d}, c.D0 * 0.9) / c.D0; c.mode = 'up'; c.modeT = 0; c.upFor = 99; })(${C6})`];
+const pointAtIt = ['eval', `(() => { const h = R.hits.find(h => h.kind === 'creature'); if (h) UI.canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: h.x + h.w / 2, clientY: h.y + h.h / 2, bubbles: true })); })()`];
+const ringSaved = '(SAVE.data.eggs.boathouse === true && JSON.parse(localStorage.getItem("itscoming.v2")).eggs.boathouse === true)';
+// from the click to the end, by hand: what the ring and the thing did, kept in window.__ring
+const ringRun = `(() => {
+  const L = G.L, c = L.creature, s = L.s, r = s.ring, CR = CREATURES.swimmer, o = window.__ring = { ys: [], steps: [] }, dt = 1 / 60;
+  let n = 0;
+  while (r.phase === 'fly' && n++ < 120) { update(dt); o.peak = Math.max(o.peak || -9, r.y); }
+  o.flew = L.t - r.t; o.landedDown = c.mode === 'down' && CR.hidden(c) && !c.ringOn;
+  o.outside = r.d >= c.lane.barrierDist + 0.5 && r.d < c.diveDist;
+  for (let i = 0; i < 30 && r.phase === 'float'; i++) { update(dt); o.ys.push(r.y); }
+  n = 0; while (!c.ringOn && n++ < 400) update(dt);
+  update(dt);
+  o.upAfter = L.t - r.t; o.through = c.ringOn && c.mode === 'up' && r.phase === 'on' && Math.abs(c.dist - r.d) < 0.15; o.upAt = c.dist;
+  // its usual round from here, forty times over: how long it would have taken to reach you
+  const sfx = AUDIO.sfx, cap = CAPTIONS.sfx, D = u => c.D0 * Math.pow(1 - u, c.gamma), u0 = c.u; let sum = 0;
+  AUDIO.sfx = () => {}; CAPTIONS.sfx = () => {};
+  try {
+    for (let k = 0; k < 40; k++) {
+      const f = { rand: mulberry32(900 + k), yaw: c.yaw, dist: c.dist, t: 0 }; let u = u0, t = 0;
+      CR.init(f); f.modeT = 0; f.upFor = 2.6 + f.rand() * 0.9;
+      while (D(u) > c.catchDist && t < 300) { const m = CR.speedMult(f, dt, f.mode === 'up'); u += dt * m * (f.mode === 'up' ? c.seenMult : c.unseenMult) / c.T; f.dist = D(u); t += dt; }
+      sum += t;
+    }
+  } finally { AUDIO.sfx = sfx; CAPTIONS.sfx = cap; }
+  o.usual = sum / 40;
+  // and in the ring: watched all the way in
+  const t0 = L.t; let prev = c.dist, toasted = false;
+  o.under = 0; o.back = 0; o.jump = 0; o.stalls = 0;
+  while (G.state === 'play' && L.t - t0 < 300) {
+    if (!toasted && c.dist < c.catchDist + 0.25) { toasted = true; G.toast('The winch. Its handle is gone.'); }
+    update(dt);
+    if (c.mode === 'down' || CR.hidden(c)) o.under++;
+    const step = prev - c.dist; prev = c.dist;
+    if (step < -1e-9) o.back++;
+    o.jump = Math.max(o.jump, step);
+    if (L.t - t0 > CR.RING_LOOK + 0.1 && G.state === 'play') { o.steps.push(step); if (step <= 0) o.stalls++; }
+  }
+  o.took = L.t - t0; o.seen = c.seen; o.toasted = toasted; o.state = G.state;
+  // (its pace is one pace, a little quicker only while it is out of your sight, as ever)
+  o.even = o.steps.every((v, i) => !i || Math.abs(v - o.steps[i - 1]) < o.steps[i - 1] * 0.15) && Math.max(...o.steps) < Math.min(...o.steps) * 1.3;
+})()`;
+const ringEgg = [
+  ['eval', `delete SAVE.data.eggs.boathouse; SAVE.persist(); ${C6}.switched = true;`],
+  ['expect', "G.L.text.egg === 'Throw it the life ring.' && G.L.text.death.ring === " + JSON.stringify(RING_LINE) + " && !(G.L.text.eggs || []).includes('ring')", 'the night names its easter egg, and being caught after it is not a "Nice try"'],
+  ['face', 6], ['wait', 200],
+  ['expect', `(it => it && !it.taken && it.onWall && it.name === 'Life ring' && it.y > 1.5 && G.L.rend.get(it).face !== undefined && R.hits.some(h => h.kind === 'item' && h.ref === it && h.poly))(${ringItem})`, 'the life ring hangs on the west wall, flat on the boards, and can be pointed at'],
+  ['pickup', 'lifering'],
+  ['expect', `G.inv[G.active].id === 'lifering' && !${ringItem}.onWall && !G.L.s.ring`, 'the life ring can be picked up'],
+  ['eval', `(c => { ${onWater} c.u = 1 - 30 / c.D0; c.mode = 'down'; c.modeT = 0; c.downFor = 99; })(${C6})`], ['face', 0], ['wait', 200],
+  ['expect', '!activeUse(G.L) && !R.hits.some(h => h.kind === "creature")', 'while it is under the water there is nothing to throw the ring at'],
+  surfaced(60), ['wait', 250],
+  ['expect', `(w => { const up = !!activeUse(G.L); w.count = 7; const down = !activeUse(G.L); w.count = 0; return up && down; })(G.L.targets.find(t => t.id === 'winch'))`, 'up in plain sight it can be thrown; with the water door\'s slats down across the line to it, it cannot'],
+  pointAtIt, ['wait', 150],
+  ['expect', 'G.hover && G.hover.kind === "creature" && UI.tooltip.textContent === "Throw it the life ring."', 'pointing at it with the ring in hand: "Throw it the life ring."'],
+  ['shoot'],
+  ['expect', `!G.hasItem('lifering') && ${ringItem}.taken && !activeUse(G.L)`, 'a click on it throws the ring: it has left the inventory, for good'],
+  ['expect', ringSaved, 'the easter egg is found, and kept in the save, the moment it is thrown'],
+  ['expect', `(c => c.mode === 'down' && c.ringPend && CREATURES.swimmer.hidden(c) && G.L.s.ring.phase === 'fly')(${C6})`, 'and it goes under at once, the ring in the air'],
+  ['eval', ringRun],
+  ['expect', '(o => o.flew > 0.75 && o.flew < 1.05 && o.peak > G.L.lanes[0].y + 0.5 && o.landedDown && o.outside)(window.__ring)', 'the ring flies for under a second, on an arc, and lands out on the water short of where it went under, while it is still under'],
+  ['expect', '(o => o.ys.length === 30 && Math.max(...o.ys) - Math.min(...o.ys) > 0.005 && o.ys.every(y => Math.abs(y - G.L.lanes[0].y) < 0.15))(window.__ring)', 'the ring floats on the water where it landed, bobbing'],
+  ['expect', '(o => o.through && o.upAfter > 1.9 && o.upAfter < 4.3)(window.__ring)', 'its next surfacing is through the ring, where the ring floats'],
+  ['expect', '(o => o.under === 0 && o.back === 0 && o.stalls === 0 && o.jump < 0.08 && o.even)(window.__ring)', 'from then on it never goes under: it comes on steadily, its distance falling smoothly, every frame'],
+  ['expect', '(o => o.seen !== undefined && o.usual > 8 && Math.abs(o.took - o.usual) < o.usual * 0.1)(window.__ring)', 'and it reaches you about when its usual going under and coming up would have brought it'],
+  ['expect', "window.__ring.toasted && (G.state === 'dying' || G.state === 'dead') && G.deathCause === 'ring'", 'caught after the throw: the cause is the ring'],
+  ['waitUntil', "G.state === 'dead'", 8000],
+  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === " + JSON.stringify(RING_LINE) + " && deathLine(G.L) === " + JSON.stringify(RING_LINE), 'the death screen: "It got you", and exactly the one line, with no line toasted a moment before put in front of it'],
+  ['expect', "UI.overlay.querySelector('h1').textContent === 'It got you' && UI.overlay.querySelector('p.intro').textContent === " + JSON.stringify(RING_LINE), 'as shown: the heading "It got you", and the line'],
+  ['eval', 'restartLevel();'], ['wait', 1500],
+  ['expect', `G.state === 'play' && !G.L.s.ring && !${C6}.ringOn && ${ringItem}.onWall && !${ringItem}.taken`, 'the night starts again, the ring back on the wall'],
+  // thrown again, and the night won after it: it is a win like any other
+  ['face', 6], ['pickup', 'lifering'], ['face', 0], surfaced(40), ['wait', 250], ['shoot'],
+  ['eval', `(c => { let n = 0; while (!c.ringOn && n++ < 600) update(1 / 60); for (let i = 0; i < 90; i++) update(1 / 60); })(${C6})`],
+  ['expect', `${C6}.ringOn && G.state === 'play' && ${C6}.dist > 6`, 'thrown again: it is up in the ring and coming on'],
+  ['eval', `(() => { const s = G.L.s, w = G.L.targets.find(t => t.id === 'winch'); w.count = 7; w.done = true; Object.assign(s, { locked: false, handleIn: true, sealedN: true, doorOpen: false, doorClosing: 0, doorClosed: true, doorA: 0, oars: 2, sealedE: true }); })()`],
+  ['waitUntil', 'G.L.won', 3000], ['waitUntil', "G.state === 'survived'", 14000],
+  ['expect', "G.state === 'survived' && G.L.won && G.L.text.win.startsWith('It threw itself at the door')", 'with both ways shut after the throw the night is won, as it always is'],
+  ['eval', 'restartLevel();'], ['wait', 1500], ['expect', "G.state === 'play' && !G.L.s.ring && !G.L.won", 'and the night starts again, with no ring thrown'],
+];
 const winch = [
   pause, ['use', 'winch'], ['expect', 'G.L.s.locked && G.hand.reach && G.hand.reach.target.id === "winch" && G.hand.reach.style === "rattle"', 'with nothing in hand the hand goes to the padlock and rattles it'],
   ['waitUntil', 'G.L.s.rattleT > 0 && !G.hand.reach', 3000], resume,
@@ -137,5 +231,5 @@ const onSurface = `(() => {
 })()`;
 const handleSpots = [['expect', onSurface, 'every place the winch handle can start rests on a surface drawn there (deck, bench, shelf, boat), and it lies on one']];
 module.exports = {
-  nightmare: scenery.concat(handleSpots, rain, oneOar, winch, door, shutIn),
+  nightmare: scenery.concat(handleSpots, rain, ringEgg, oneOar, winch, door, shutIn),
 };

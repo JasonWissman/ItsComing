@@ -453,6 +453,12 @@ const AUDIO = (() => {
       // a body thrown against a barred door from the water: a deep boom, the wet slap of it, and the boards and the bar rattling
       case 'wetPound': noise(0.24, { freq: 240, vol: 1.0, attack: 0.002, pan }); tone(44, 0.45, { vol: 0.95, endFreq: 26, pan }); noise(0.4, { type: 'bandpass', freq: 750, q: 0.9, vol: 0.45, delay: 0.015, pan }); for (let i = 0; i < 5; i++) noise(0.03, { type: 'bandpass', freq: 1500 + i * 450, q: 5, vol: 0.24, delay: 0.05 + i * 0.03 + Math.random() * 0.02, pan }); break;
       case 'slosh': noise(0.12, { type: 'bandpass', freq: 1100, q: 0.9, vol: 0.42, attack: 0.004, pan }); noise(0.55, { type: 'bandpass', freq: 520, q: 0.7, vol: 0.3, delay: 0.05, attack: 0.03, pan }); noise(0.25, { type: 'highpass', freq: 2600, vol: 0.12, delay: 0.1, attack: 0.02, pan }); break;
+      // a life ring thrown (The Boathouse's easter egg): the whirr of it spinning away through the air, beat by beat, thinning
+      case 'ringThrow': noise(0.5, { type: 'bandpass', freq: 900, q: 1.6, vol: 0.2, attack: 0.08, pan }); noise(0.55, { type: 'bandpass', freq: 2300, q: 2.2, vol: 0.12, attack: 0.2, delay: 0.1, pan }); for (let i = 0; i < 5; i++) noise(0.05, { type: 'bandpass', freq: 600 + i * 90, q: 3, vol: 0.09 * (1 - i * 0.14), delay: i * 0.11, pan }); break;
+      // and landing flat on the water: a small hollow plop, and the water it throws up coming back down
+      case 'ringPlop': tone(330, 0.13, { vol: 0.3, endFreq: 110, pan }); noise(0.1, { type: 'bandpass', freq: 1500, q: 0.9, vol: 0.3, attack: 0.003, pan }); noise(0.4, { type: 'bandpass', freq: 700, q: 0.8, vol: 0.14, delay: 0.06, attack: 0.04, pan }); break;
+      // a hand paddling at the water like a dog's paw: a small quick splash, a little different each time
+      case 'paddle': { const f = 1300 + Math.random() * 500; noise(0.07, { type: 'bandpass', freq: f, q: 1.1, vol: 0.16, attack: 0.004, pan }); noise(0.16, { type: 'bandpass', freq: 600, q: 0.8, vol: 0.08, delay: 0.03, attack: 0.02, pan }); break; }
       case 'bar': noise(0.15, { freq: 400, vol: 0.6 }); tone(80, 0.3, { vol: 0.5, endFreq: 45 }); noise(0.06, { freq: 1500, vol: 0.3, delay: 0.16 }); break;
       case 'fit': tone(520, 0.05, { vol: 0.18, type: 'square', endFreq: 380 }); noise(0.05, { freq: 1200, vol: 0.2, delay: 0.05 }); break;
       case 'clunk': tone(140, 0.08, { vol: 0.35, type: 'square', endFreq: 90, pan }); noise(0.06, { freq: 700, vol: 0.4, pan }); break;

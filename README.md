@@ -316,6 +316,19 @@ some on the ground, so you have to turn and look down to find them.
    arms reaching up out of the water at you, the hooked fingers spread. The water moves as the lighthouse's sea does
    when something goes in: a heap of white thrown up and falling back, rings of foam spreading on the water, spray dragged
    up after it and flung off it, each drop on its own arc, and water streaming off its face and shoulders.
+   A life ring, red and white, hangs flat on the west wall on a peg, and can be taken; carried or put down it changes
+   nothing. With it in hand, a click on the thing where it shows out on the water (through the open water door, under
+   whatever slats are down, or through the side door while it stands open; "Throw it the life ring.") throws it: that
+   is this night's easter egg, and it costs the ring. The ring flies out through the doorway on an arc, spinning flat
+   (0.9 s, a whirr and a plop), and lands where the thing will next come up; the thing goes under the moment you
+   click, as it does. It comes up through the ring, head and both arms up through the hole, holds its hands up and
+   looks down at the ring, one side and the other, then at you (0.6 s), and from then on it never goes under: it
+   paddles in like a dog, head up, the hands going round one after the other in front of the ring, at the steady pace
+   its going under and coming up came to, so it arrives when it would have. Everything else is as it was: the doors
+   stop it and win the night as ever, sent round it swims across with the hoop standing up round its chest, and when it
+   has you it comes up at your face with the ring round the weed under its arms ("It got you": "It really didn't need
+   saving, but that was nice of you."). With reduced motion the ring and the thing bob less and the splashes are
+   smaller; the timing is the same.
 7. **The Lighthouse.** The lamp is out and something is clinging to the outside of
    the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
    and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse

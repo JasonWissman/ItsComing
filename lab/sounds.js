@@ -70,6 +70,9 @@ const SOUNDS = [
   { kind: 'sfx', name: 'slosh', n: [6], d: 'Water slapping. Its strokes as it swims in; water slopping under the door.', src: 'night06' },
   { kind: 'sfx', name: 'wetPound', n: [6], d: 'A deep wet boom with the oars rattling. It throws itself against a barred door; against the side door with one oar across it, just before the oar snaps.', src: 'night06 aftermath, onReach' },
   { kind: 'sfx', name: 'bar', n: [6], d: 'A heavy thing dropping into place. The water door comes down; an oar drops into the side door’s brackets.', src: 'night06' },
+  { kind: 'sfx', name: 'ringThrow', n: [6], d: 'A whirring whoosh, thinning away. The life ring thrown out over the water (the night’s easter egg).', src: 'night06 life ring' },
+  { kind: 'sfx', name: 'ringPlop', n: [6], d: 'A small hollow plop. The life ring lands on the water.', src: 'night06 life ring' },
+  { kind: 'sfx', name: 'paddle', n: [6], d: 'A small quick splash, over and over. Its hands paddling as it comes on in the life ring.', src: 'swimmer.js · night06 life ring' },
   { kind: 'sfx', name: 'ratchet', n: [6, 7, 8], d: 'One click of a ratchet. Each turn of a crank or winch.', src: 'game.js crank · night06, 07, 08' },
   { kind: 'sfx', name: 'fit', n: [6, 7, 10, 12], d: 'A neat click. A part goes into place: winch handle (6), bulb or fuse (7), crank (10), bulb (12).', src: 'night06, 07, 10, 12' },
   // ---- night 7: the lighthouse ----
