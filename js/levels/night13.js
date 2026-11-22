@@ -288,12 +288,21 @@ LEVELS.push({
     const sun = (() => { const d = [-1, -0.45, -0.15], n = Math.hypot(d[0], d[1], d[2]); return { x: 3.4, y: 2.4, z: 1.6, r: 12, i: 0.55, color: [255, 244, 210], cone: { x: d[0] / n, y: d[1] / n, z: d[2] / n, cos: Math.cos(40 * DEG) } }; })();
     const meadow = buildMeadow(L, s, c0);
     // ---- the easter egg: everything taken up ----
-    // Your hands hold six things and sixteen lie here, so some must be put down again to take up the rest, while it comes
-    // on enraged. The moment the last thing not yet taken up this attempt is in your hand (s.had: each thing you have had),
-    // the night is won another way: the others come for what was theirs (buildGathering)
+    // On this night your hands are never full (L.handMax: js/game.js pickup; any other night's hold six): all sixteen things
+    // can be carried at once, while it comes on enraged. The moment the last thing not yet taken up this attempt is in your
+    // hand (s.had: each thing you have had, so one put down again still counts), the night is won another way: the others
+    // come for what was theirs (buildGathering).
+    // So that there is time for it: it is no angrier for a seventh thing than for six (ANGER_MAX: its pace goes by c.anger),
+    // and each thing taken up for the first time this attempt checks it: it stops dead where it is for CHECK seconds, and
+    // then comes on as enraged as ever. Taken up one after another without dawdling (a second or so each), all sixteen are
+    // in your hands with it still well off; stop to hold what you have and it is on you as it always was. A thing put down
+    // and taken up again does not check it twice, so it cannot be held off for good
     s.had = {}; s.egg = null; s.armAt = END.arm;
+    L.handMax = Infinity;
+    const ANGER_MAX = 6, CHECK = 1.6;
+    s.check = 0;   // how much longer it stands checked
     const gather = buildGathering(L, s, c0, { falls, lightStep: (dt, mv) => lightStep(dt, mv), tuneStep: (t, at) => tuneStep(t, at), idleStep: dt => idleStep(dt), meadow });
-    L.onPickup = it => { s.had[it.id] = true; if (!s.ending && G.state === 'play' && tools.every(t => s.had[t[0]])) gather.begin(); };
+    L.onPickup = it => { if (!s.had[it.id]) s.check = CHECK; s.had[it.id] = true; if (!s.ending && G.state === 'play' && tools.every(t => s.had[t[0]])) gather.begin(); };
     // On Nightmare it may change its way once (js/game.js maybeSwitchLane), unseen, early on: far out in the dark. But that
     // judges it unseen by how much of it is in the view, and as it looms in over the last metre or so it fills the view and
     // more: it counted as unseen right there in front of you, changed its way at the last moment and came at you from the
@@ -311,7 +320,12 @@ LEVELS.push({
     L.update = dt => {
       const c = c0();
       fallStep(dt); bowStep(dt);
-      c.anger = s.egg ? 0 : G.inv.length;   // (the others come for it all, the easter egg: it is calm)
+      c.anger = s.egg ? 0 : Math.min(G.inv.length, ANGER_MAX);   // (the others come for it all, the easter egg: it is calm)
+      // (checked: stopped dead where it is, a moment, by a thing taken up for the first time)
+      if (G.state === 'play' && !s.ending) {
+        s.check = Math.max(0, s.check - dt);
+        if (s.check > 0) { c.frozen = true; s.checked = true; } else if (s.checked) { c.frozen = false; s.checked = false; }
+      }
       rushStep(c);
       if (c.dist < SWITCH_NEAR) c.switched = true;
       const rage = c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0;   // anything held and it is plainly enraged; drawn at, more and more

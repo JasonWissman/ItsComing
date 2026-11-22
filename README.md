@@ -744,8 +744,10 @@ some on the ground, so you have to turn and look down to find them.
     up through its death lunge (on a phone held sideways too). Far off its eyes are two points a pixel or so across, set as far
     apart on its head as they always are, with no haze round them.
     Put it all down again (each falls from your hand to the floor;
-    reach for another with your hands full and the full hand only goes toward it) and it
-    calms. Let it come, and face it when it does: empty-handed, it bends down to you over the
+    on this night your hands are never full: all sixteen things can be carried at once, and it is
+    no angrier for a seventh than for six) and it
+    calms. Each thing taken up for the first time in an attempt stops it dead where it is for 1.6 s
+    before it comes on again, as enraged as ever. Let it come, and face it when it does: empty-handed, it bends down to you over the
     last few metres (its head stays in the view) and the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too; doing
     nothing at all, facing it as the night starts, is always the ending (on Nightmare it may
@@ -792,9 +794,14 @@ some on the ground, so you have to turn and look down to find them.
     any night, for as long as you like; only if you do nothing at all for five seconds does a
     small line say CLICK WHEN YOU ARE READY.
     The night's easter egg ("Take up everything."): have every one of the sixteen things in
-    your hand at least once in the same attempt. Your hands hold six, so some must be put
-    down again to take up the rest, while it comes on enraged; a thing taken up twice counts
-    once, and a full hand reaching for a seventh takes nothing. The moment the last thing not
+    your hand at least once in the same attempt. On this night alone the hands are never full
+    (every other night's hold six), so all sixteen can be carried at once and nothing need be
+    put down; a thing put down again still counts, and one taken up twice counts
+    once. With more than six held the inventory's slots are smaller (44 px, 34 px on a phone), in
+    one row (two where the page is narrow), and only the held thing is named. It comes on enraged
+    the while, but each thing first taken up stops it dead a moment, so taken up one after
+    another, a second or so each, the last is in your hand with it still well off (15 m or
+    more on seeds 1 to 5); stand holding them and it is on you as ever. The moment the last thing not
     yet taken is in your hand the night is won another way (the easter egg is saved then, and
     the run's clock stops as at any win): it stops where it is and backs off into the dark,
     the view is taken (level, to the north), and out of the dark each of the twelve others,

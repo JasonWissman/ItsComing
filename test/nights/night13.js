@@ -1,8 +1,8 @@
 // The Void (first, a death: the bow drawn at it, it rushes you, bent over so its face stays in the view; then afresh).
 // The Void: you begin with nothing in your hands, and everything you ever held lies around you. The harness gives in to the
 // temptation first: it takes up two things (one in each hand), and the thing in the black hood is enraged (red eyes, a
-// snarling mouth in the dark, coming on in fits, screeching); it takes up four more, and reaching for a seventh the full
-// hand takes nothing. Then it puts each thing down while looking down, and the thing calms and is quiet; it turns to face
+// snarling mouth in the dark, coming on in fits, screeching); it takes up four more, and a seventh too: on this night the
+// hands are never full, and it is no angrier for it. Then it puts each thing down while looking down, and the thing calms and is quiet; it turns to face
 // it and waits for it to arrive. The ending (not a death) follows without a cut: it lifts its arms and takes hold of you,
 // and once its hands are there its face comes out of the dark of its hood and goes through angry, neutral, angry,
 // confused, confused the other way, and sad; it cries, holding you, bows its head and cries on, and stops; then it throws
@@ -11,8 +11,8 @@
 // the meadow turns into place round you, and it lets you go. There the view is yours: a turn, a look down and a
 // zoom are only that, and a click goes on: the meadow and it fade into the bedroom in the morning, and the last screen says
 // you have faced your demons.
-// Before that, the easter egg (fifteen things taken up at one time or another and then caught holding some: a death as
-// ever; then all sixteen: the others come for what was theirs, and it is won another way: see `egg` below), and the same
+// Before that, the easter egg (all sixteen things taken up one after another with real clicks, at a player's pace, before
+// it can reach you; fifteen held at once and then caught holding them: a death as ever; then all sixteen: the others come for what was theirs, and it is won another way: see `egg` below), and the same
 // with reduced motion; then afresh for the ending above.
 // (two at a time, so one is put down while another is still falling: it lies clear of where that one will lie)
 // how many of the meadow's wild flowers are drawn in a frame (the normal ending's meadow has them; the easter egg's, with a crowd in it, only grass)
@@ -66,21 +66,26 @@ const start = [
   ['expect', 'G.inv.length === 0 && G.L.items.length === 16 && G.L.items.every(i => !i.taken)', 'empty-handed: everything you ever held lies around you'],
   ['wait', 400], ['expect', 'G.L.creature.rage < 0.05 && G.L.creature.lat === 0', 'holding nothing, it is calm: it only walks'],
 ];
-// the temptation: take one thing up and it is enraged at once; a second, one in each hand; four more and the hands are full
+// the temptation: take one thing up and it is enraged at once (and stopped dead a moment, each time a thing is first
+// taken up); a second, one in each hand; four more
 const tempted = [
   ['pickup', 'hammer'], ['waitUntil', 'G.L.creature.rage > 0.6', 1500],
   ['expect', 'G.inv.length === 1 && G.L.creature.rage > 0.6', 'holding anything, it is enraged: red eyes and a snarling mouth in the dark of its hood'],
-  ['expect', fits, 'and it comes on in fits: stopping dead, lurching, jerking aside'],
+  ['eval', 'window.__d0 = G.L.creature.dist; window.__chk = G.L.creature.frozen && G.L.s.check > 0;'], ['wait', 400],
+  ['expect', "window.__chk && G.L.creature.frozen && G.L.creature.dist === window.__d0 && G.state === 'play'", 'a thing taken up for the first time checks it: it stands where it is a moment'],
+  ['waitUntil', '!G.L.creature.frozen', 2500], ['wait', 500], ['expect', 'G.L.s.check === 0 && G.L.creature.dist < window.__d0', 'and then it comes on again'],
+  ['expect', fits, 'in fits: stopping dead, lurching, jerking aside'],
   ['waitUntil', '(G.L.s.screeches || 0) > 0', 1500], ['expect', '(G.L.s.screeches || 0) > 0', 'and it screeches'],
   ['pickup', 'salt'], ['wait', 600], bothHands,
   ['eval', "G.L.items.filter(i => !i.taken).slice(0, 4).forEach(i => pickup(i))"], ['wait', 300],
   ['expect', 'G.inv.length === 6 && G.L.creature.anger === 6', 'six things held: it is angrier, and comes faster'],
 ];
-// six held, reaching for another: the full hand goes toward it and back, and nothing is taken
-// (what happened noted at once, in the same step: the push of the hand is over in a third of a second, and under load the
-// next look at the page can come later than that)
-const full = [['eval', "window.__fl = G.L.items.find(i => !i.taken); pickup(window.__fl); window.__full = G.lastToast.msg === 'Your hands are full.' && G.inv.length === 6 && !window.__fl.taken && !!G.hand.thrust && G.hand.thrust.item === G.inv[G.active] && !!G.hand.thrust.at;"],
-  ['expect', 'window.__full === true', 'six held, reaching for another: the full hand goes toward it, and takes nothing']];
+// six held, reaching for another: on this night the hands are never full, so it is taken like any other (no refusal, no
+// "hands full"); the thing in the hood is no angrier for a seventh than for six; and the inventory goes over to its
+// smaller slots
+const full = [['eval', "window.__fl = G.L.items.find(i => !i.taken); pickup(window.__fl); window.__full = G.lastToast.msg !== 'Your hands are full.' && G.inv.length === 7 && window.__fl.taken && G.inv.includes(window.__fl) && !G.hand.thrust;"],
+  ['expect', 'window.__full === true', 'six held, reaching for another: it is taken too (the hands are never full here), with no refusal'],
+  ['wait', 200], ['expect', "G.L.creature.anger === 6 && document.getElementById('inventory').classList.contains('many') && document.querySelectorAll('#inventory .slot').length === 7", 'seven held: it is no angrier than for six, and the inventory shows all seven, in smaller slots']];
 const noHands = what => ['expect', '!G.hand.cur && !G.hand.off.cur && !G.hand.reach && !G.hand.box && !G.fumbling', what];
 const letGo = [dropAll, ['expect', 'G.inv.length === 0', 'empty-handed again'], ['waitUntil', 'G.L.items.every(i => !i.taken)', 2000], ['expect', clear, 'what was put down lies clear of everything else on the floor'],
   ['waitUntil', 'G.L.creature.rage < 0.05 && Math.abs(G.L.creature.lat) < 0.02', 2000], ['expect', 'G.L.creature.rage < 0.05', 'nothing held: it calms, two pale eyes in its hood again'],
@@ -135,30 +140,55 @@ const ending = [
   ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"done\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true", 'the last screen, The End, campaign marked complete'],
 ];
 // ---- the easter egg: everything taken up (each thing in your hand at least once this attempt) ----
-// The hand holds six, so the harness takes six, puts them down, takes six more, puts them down, and takes the rest: the
-// moment the last thing not yet taken is in its hand the night is won another way. The others come for what was theirs,
+// On this night the hands are never full: all sixteen things can be held at once (a thing put down again still counts,
+// and one taken up twice counts once). The harness takes up fifteen, with no refusal and no "hands full", puts one down
+// and takes it up again; the moment the last thing not yet taken is in its hand the night is won another way. The others
+// come for what was theirs,
 // one after another; stand in two rows with the thing in the hood in the middle; throw it all up and leap for joy as it
 // takes off its robe; the meadow comes, all of them in it; and from there the ending is as it always is. Most of it is
 // stepped on the game's own clock (update(1/60) in the page, the frame loop stopped), so it takes moments, with
 // tolerances of a step or two on its times.
 // (it is kept well off meanwhile: this is about the things, not the race)
 const far = ['eval', '(() => { const c = G.L.creature; c.switched = true; c.hold = 30; })()'];
-// take up the next n things never yet taken this attempt (not the one kept for last), as a click on each would
-const takeNew = n => ['eval', `G.L.items.filter(i => !G.L.s.had[i.id] && i.id !== 'musicbox').slice(0, ${n}).forEach(i => pickup(i))`];
+// take up the next n things never yet taken this attempt (not the one kept for last), as a click on each would, noting
+// any that was refused or answered with "hands full"
+const takeNew = n => ['eval', `window.__refused = window.__refused || 0; G.L.items.filter(i => !G.L.s.had[i.id] && i.id !== 'musicbox').slice(0, ${n}).forEach(i => { pickup(i); if (!G.inv.includes(i) || /full/i.test(G.lastToast.msg) || G.hand.thrust) window.__refused++; })`];
 const hadN = 'Object.keys(G.L.s.had).length';
-const allDown = [dropAll, ['waitUntil', 'G.L.items.every(i => !i.taken)', 3000]];
-const fifteen = [far,
-  takeNew(6), ['expect', `G.inv.length === 6 && ${hadN} === 6 && !G.L.s.egg`, 'six things taken up: the hands are full'],
-  ['eval', "window.__fl = G.L.items.find(i => !i.taken); pickup(window.__fl);"], ['expect', `G.inv.length === 6 && !window.__fl.taken && ${hadN} === 6`, 'a seventh is not taken, and does not count'],
-  ...allDown, takeNew(6), ['expect', `G.inv.length === 6 && ${hadN} === 12 && !G.L.s.egg`, 'put down, and six more taken up'],
-  ...allDown, ['eval', "pickup(G.L.items.find(i => G.L.s.had[i.id]))"], ['expect', `G.inv.length === 1 && ${hadN} === 12`, 'a thing taken up again does not count twice'],
-  takeNew(3), ['wait', 700], ['expect', `G.inv.length === 4 && ${hadN} === 15 && !G.L.s.egg && G.state === 'play' && !G.L.s.ending && G.L.creature.rage > 0.5`, 'fifteen of the sixteen taken up at one time or another: nothing yet, and it is as enraged as ever'],
+// every slot of the inventory within the page, none over another, and only the held thing named (with a sixteenth slot,
+// and on a phone held sideways: test/features.js)
+const slotsFit = `(() => { const rs = [...document.querySelectorAll('#inventory .slot')].map(e => e.getBoundingClientRect()), W = window.innerWidth, H = window.innerHeight;
+  const inside = rs.every(r => r.width >= 30 && r.height >= 30 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H);
+  const apart = rs.every((a, i) => rs.every((b, j) => j <= i || a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5));
+  const lab = [...document.querySelectorAll('#inventory .slot .label')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.getBoundingClientRect());
+  const ok = rs.length === G.inv.length && inside && apart && lab.length === 1 && lab[0].left >= 0 && lab[0].right <= W;
+  if (!ok) console.log('inventory: ' + JSON.stringify({ n: rs.length, W, H, inside, apart, lab: lab.length })); return ok; })()`;
+const fifteen = [far, ['eval', 'window.__refused = 0;'],
+  takeNew(6), ['expect', `G.inv.length === 6 && ${hadN} === 6 && !G.L.s.egg`, 'six things taken up'],
+  takeNew(9), ['wait', 700], ['expect', `G.inv.length === 15 && ${hadN} === 15 && window.__refused === 0 && G.lastToast.msg !== 'Your hands are full.'`, 'and nine more: fifteen held at once, none refused, no "hands full"'],
+  ['expect', `!G.L.s.egg && G.state === 'play' && !G.L.s.ending && G.L.creature.rage > 0.5 && G.L.creature.anger === 6`, 'fifteen of the sixteen: nothing yet, and it is as enraged as ever (no angrier than for six)'],
+  ['expect', slotsFit, 'the inventory shows all fifteen, every slot within the view and none over another, only the held thing named'],
+  ['eval', 'window.__it = G.inv[G.active]; G.cam.pitch = G.cam.tPitch = PITCH_DOWN; dropActive();'], ['waitUntil', '!window.__it.taken', 2000],
+  ['eval', 'pickup(window.__it); G.cam.pitch = G.cam.tPitch = 0;'], ['expect', `G.inv.length === 15 && ${hadN} === 15 && !G.L.s.egg`, 'one put down and taken up again does not count twice'],
 ];
 // fifteen is not all: holding any of it when it reaches you is still a death
 const fifteenDeath = [...fifteen,
   ['eval', '(() => { const c = G.L.creature; c.hold = null; c.u = 0.995; })()'], ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 6000],
-  ['expect', "(G.state === 'dying' || G.state === 'dead') && G.deathCause === 'default' && !G.L.s.egg && !G.L.won", 'with one thing never taken up, it reaches you holding the rest: a death, as ever, and no easter egg'],
+  ['expect', "(G.state === 'dying' || G.state === 'dead') && G.deathCause === 'default' && !G.L.s.egg && !G.L.won", 'with one thing never taken up, it reaches you holding the other fifteen: a death, as ever, and no easter egg'],
   ['eval', 'restartLevel();'], ['wait', 300],
+];
+// The race, as a player runs it: from the start of the night (it is not kept off), each of the sixteen is turned to,
+// looked at for most of a second and taken up with a real click, one after another (about a second and a quarter each). A
+// thing taken up for the first time stops it dead a moment, so at that pace it is still well off when the last is in hand
+const turnTo = id => `(async () => { const it = G.L.items.find(i => i.id === '${id}'), d = ((Math.round(Math.atan2(it.x, it.z) / (45 * DEG)) % 8) + 8) % 8, fr = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  for (const down of [true, false]) { G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = down ? PITCH_DOWN : 0; await fr();
+    const h = [...R.hits].reverse().find(h => h.kind === 'item' && h.ref === it); if (h && h.x >= 0 && h.y >= 0 && h.x + h.w <= R.W && h.y + h.h <= R.H) break; } })()`;
+const ALL = ['hammer', 'planks', 'keys', 'salt', 'lantern', 'chain', 'padlock', 'bow', 'arrows', 'beam', 'fuse', 'handle', 'journal', 'matches', 'bulb', 'musicbox'];
+const paced = [
+  ['eval', 'window.__t0 = performance.now(); window.__nearest = 99; window.__fullMsg = false; (function w() { if (G.state === "play") { window.__nearest = Math.min(window.__nearest, G.L.creature.dist); if (G.lastToast.msg === "Your hands are full.") window.__fullMsg = true; requestAnimationFrame(w); } })();'],
+  ...ALL.flatMap(id => [['eval', turnTo(id)], ['wait', 850], ['pickup', id]]),
+  ['expect', "(() => { console.log('sixteen taken up in ' + ((performance.now() - window.__t0) / 1000).toFixed(1) + ' s; it came no nearer than ' + window.__nearest.toFixed(1) + ' m'); return G.state === 'won' && !!G.L.s.egg && G.inv.length === 16 && !window.__fullMsg && window.__nearest > 4; })()",
+    'all sixteen taken up one after another at a player\'s pace, with real clicks: none refused, the easter egg begun, and it never came within four metres'],
+  ['eval', "delete SAVE.data.eggs.void; SAVE.data.complete = {}; SAVE.persist(); startLevel(G.levelIndex, false);"], ['wait', 400],
 ];
 // who takes what, and where each stands
 const TAKERS = { walker: ['hammer', 'planks'], crawler: ['keys'], smiler: ['salt', 'lantern'], watcher: ['chain', 'padlock'], runner: ['bow', 'arrows'], swimmer: ['beam'], climber: ['fuse'], customer: ['handle'], signalman: ['journal'], other: ['musicbox'], carrier: ['matches'], tall: ['bulb'] };
@@ -183,7 +213,7 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   ['eval', 'G.noRaf = true;'], ['wait', 80],
   ['expect', "G.state === 'won' && G.L.won && !!G.L.s.egg && G.L.s.ending && G.L.s.egg.t < 1.6", 'the last thing taken up: the night is won, and the others are coming'],
   ['expect', "SAVE.data.eggs.void === true && JSON.parse(localStorage.getItem('itscoming.v2')).eggs.void === true && G.L.text.egg === 'Take up everything.'", 'the easter egg is saved, by the night\'s id'],
-  ['expect', "G.inv.length === 5 && G.L.creature.frozen && G.L.creature.anger === 0 && G.L.items.filter(i => i.by).length === 0", 'nothing is taken yet: what you hold is still in your hands, and it has stopped where it was'],
+  ['expect', "G.inv.length === 16 && window.__refused === 0 && G.lastToast.msg !== 'Your hands are full.' && G.L.creature.frozen && G.L.creature.anger === 0 && G.L.items.filter(i => i.by).length === 0", 'nothing is taken yet: what you hold is still in your hands, and it has stopped where it was'],
   key('r', true), ['expect', "G.state === 'won' && !!G.L.s.egg", 'R does nothing there'],
   ['expect', "(r => { window.__run0 = JSON.stringify(r); return !G.run && !!r && r.t >= 431.2 && r.t < 450 && r.best === true && r.nights.length === 13 && Math.abs(r.nights[12] - (r.t - 400)) < 0.02 && SAVE.data.bestRun[G.diff().id].t === r.t; })(G.lastRun)", 'the run is finished, and timed, the moment the last thing was taken up: this night\'s share of it, and a best run saved'],
   stepTo('VOID_EGG.first + 0.2'),
@@ -226,12 +256,12 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
 // with reduced motion and flashing: the same, come slower and from nearer, no jolt, no flash, and only a gentle bob for a leap
 const eggStill = [
   ['eval', "SAVE.setSetting('reducedMotion', true); SAVE.setSetting('reducedFlash', true); startLevel(G.levelIndex, false);"], ['wait', 300], far,
-  ['eval', "G.noRaf = true; window.__egg = null; for (const it of G.L.items.slice()) { if (G.inv.length >= 6) { const d = G.inv[0]; G.removeFromInv(d); d.taken = false; } pickup(it); } G.shakeAmt = 0; G.flashAmt = 0;"],
+  ['eval', "G.noRaf = true; window.__egg = null; for (const it of G.L.items.slice()) pickup(it); G.shakeAmt = 0; G.flashAmt = 0;"],
   ['expect', "G.state === 'won' && !!G.L.s.egg", 'with reduced motion: the last thing taken up, the same'],
   stepTo('VOID_EGG.joy + 4'),
   ['expect', "(W => { console.log('reduced motion: came at ' + W.came.walker.toFixed(2) + ', leaps ' + Math.max(...Object.values(W.up)).toFixed(3) + ', shake ' + W.shake); return W.came.walker > VOID_EGG.first + 1 && Object.values(W.up).every(v => v > 0.005 && v <= 0.06) && W.shake === 0 && G.flashAmt === 0 && G.L.s.egg.thrown.length === 16 && G.L.creature.dance === 0 && G.L.creature.disrobe === 1; })(window.__egg)", 'each comes slower, with no jolt; they throw it all up, and only bob for joy; it takes off its robe, and does not dance'],
   ['eval', "SAVE.setSetting('reducedMotion', false); SAVE.setSetting('reducedFlash', false); SAVE.data.complete = {}; SAVE.persist(); G.noRaf = false; G._last = performance.now(); requestAnimationFrame(frame); startLevel(G.levelIndex, false);"], ['wait', 400],
 ];
 module.exports = {
-  nightmare: [].concat(rushed, fifteenDeath, egg, eggStill, start, tempted, full, oneDown, letGo, ending),
+  nightmare: [].concat(rushed, paced, fifteenDeath, egg, eggStill, start, tempted, full, oneDown, letGo, ending),
 };
