@@ -880,6 +880,15 @@ that line; one not found yet shows its name and "???", giving nothing away; a ni
 dash, dimmed. Under the list is how many have been found ("3 of 6 found"). It is drawn entirely from the nights'
 `text.egg`, so a night given one later appears with no change here. Erase progress forgets them too.
 
+The first time an easter egg is found (and only then) a small note says so: "Secret discovered: Sugar rush", with a
+little star, and a short bright chime of two notes (the `secret` sound, about half a second; its caption is "a bright
+chime"). The titles are short ones of their own, one a night, in `EGG_TITLES` in js/game.js by the night's id (a night
+with none there is named by its `text.egg`). The note (`#secret` in index.html) is in the top left corner, under the
+sound line (on a phone under the menu button, on two short lines): the one corner nothing else uses, on a desktop or a
+phone. It slides in from the edge and fades in over 0.35 s, stays 4 s and fades out over 0.6 s; with reduced motion it
+only fades. It is not part of the HUD, so it also shows when the easter egg ends the night at once (over a death
+screen, a win, a cutscene), and it never takes a click.
+
 A full run is night 1 to the end of night 13 in one go, timed: every game is one. Its clock runs only while you play:
 every attempt counts, retries after a death and restarts included, but not the cards, the death and win screens, the
 pause menu, or the watching after a night is won. It carries on through Next night; quitting to the title ends it,
@@ -1170,7 +1179,7 @@ title; Quit asking first), pause, mute, drops and the error overlay. `test/featu
 the one game (no picker, no hints), the warning (its card, Adjust settings and back, remembered once accepted), a
 night's card held until its words are in, restart, mute, menus (the pause menu, its Controls, its Scores and its Quit
 with the question it asks, Settings' rows of choices and switches, How to play's cards, Set to default, the Scores screen (the best run, its
-breakdown adding up, its stars; the Easter eggs tab, its tabs by click, keys, pad and tap, its rows and count, driven by the nights' `text.egg`), erasing progress from it (eggs too), the results after the ending (the Best run stamp only for a
+breakdown adding up, its stars; the Easter eggs tab, its tabs by click, keys, pad and tap, its rows and count, driven by the nights' `text.egg`; the note and chime for an easter egg found the first time, in its corner on a desktop and a phone and over a death screen), erasing progress from it (eggs too), the results after the ending (the Best run stamp only for a
 new best), the win screen between nights, the title's click, and the light behind the thing lagging its scuttle and gliding after it), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, the menu button on the death screen, the win screen and a card, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
 reduced motion, clear of the zoom button on a phone), a wrong thing coming back, a plank falling to the floor where a
