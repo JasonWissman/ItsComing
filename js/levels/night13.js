@@ -912,6 +912,7 @@ function buildGathering(L, s, c0, K) {
     smiler(c, q) { c.rush = q.joy; },
     watcher(c, q, o) {   // stone: it stands in one pose, and is in another each time it comes down
       if (!c.pose) c.pose = 2;
+      if (q.back >= 1 && !q.joy) c.pose = 2;   // (in its place: its hands up either side of its head, the chain in one and the lock in the other)
       const n = q.hop < 0 ? -1 : Math.floor(q.jt / q.T);
       if (n !== o.hops) { if (o.hops !== undefined && n >= 0) c.pose = 1 + (c.pose % 3); o.hops = n; }
     },
@@ -961,11 +962,14 @@ function buildGathering(L, s, c0, K) {
       if (!o.on) continue;
       const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < R1 + EGG.snatch ? 1 : 0, back = span(u, R1 + EGG.snatch, R1 + EGG.snatch + B1);
       // up to you along its own way, a little in toward the middle so it is in your face; then back out to its place
-      oc.dist = u < R1 ? lerp(far, o.near, still ? smoothstep(rush) : easeOut(rush)) : lerp(o.near, o.r, back);
-      oc.yaw = L.facing + o.b * lerp(1, 0.6, rush * (1 - back));
+      // (the stone one is never seen to move: it is nearer, all at once, three times; and goes back so, a pose at a time)
+      const stone = o.type === 'watcher', rk = stone ? Math.ceil(rush * 3 - 1e-9) / 3 : rush, bk = stone ? Math.floor(back * 7 + 1e-9) / 7 : back;
+      oc.dist = u < R1 ? lerp(far, o.near, still && !stone ? smoothstep(rk) : easeOut(rk)) : lerp(o.near, o.r, bk);
+      oc.yaw = L.facing + o.b * lerp(1, 0.6, rk * (1 - bk));
+      if (stone && o.step !== rk + bk) { if (o.step !== undefined) { oc.pose = 1 + (oc.pose % 3); if (bk > 0) AUDIO.sfx('stoneRub', pan(oc)); } o.step = rk + bk; }
       const moved = Math.abs(prev - oc.dist), g0 = oc.gait;
       oc.gait += moved * oc.CR.stepRate * Math.PI; oc.moving = moved > 0.024 * dt;
-      if (!oc.moving) { const rest = Math.round(oc.gait / Math.PI) * Math.PI; oc.gait += (rest - oc.gait) * Math.min(1, dt * 4); }
+      if (!oc.moving || stone) { const rest = Math.round(oc.gait / Math.PI) * Math.PI; oc.gait += (rest - oc.gait) * Math.min(1, dt * 4); }
       oc.idleK = (oc.idleK === undefined ? 1 : oc.idleK) + ((oc.moving ? 0 : 1) - (oc.idleK === undefined ? 1 : oc.idleK)) * Math.min(1, dt * 2.5);
       if (oc.CR.sound && Math.floor(oc.gait / Math.PI) !== Math.floor(g0 / Math.PI)) AUDIO.footstep(oc.CR.sound, clamp(2.4 / (oc.dist + 1.6), 0, 0.85) * (u < R1 ? 0.7 : 0.3), pan(oc));
       // there: its own voice, a rush of air, a jolt; and it takes what was its own
@@ -1039,6 +1043,15 @@ function buildGathering(L, s, c0, K) {
       it.icon(ctx, P);
     } });
   };
+  // the water the swimmer stands in: a pool of its own round it, black in the void, the sky's blue in the meadow
+  const pond = (p, d, a) => {
+    const w = 2.3, h = 2.3, col = mixc([20, 28, 40], [86, 142, 196], s.meadow), rim = mixc([52, 62, 80], [176, 212, 236], s.meadow);
+    R.add({ kind: 'sprite', x: p.x * (1 - h / 2 / d), y: 0.004, z: p.z * (1 - h / 2 / d), w, h, flat: true, layer: 0, sortDist: 0.012, noLight: true, noContact: true, alpha: a, draw: ctx => {
+      ctx.scale(w, h);
+      P_ell(ctx, 0, 0.5, 0.43, 0.43, rgba(rim, 0.3)); P_ell(ctx, 0, 0.5, 0.39, 0.39, rgba(rim, 0.55)); P_ell(ctx, 0, 0.5, 0.36, 0.36, rgba(col, 0.92));
+      P_ell(ctx, -0.12, 0.62, 0.12, 0.035, rgba(rim, 0.35)); P_ell(ctx, 0.14, 0.34, 0.09, 0.028, rgba(rim, 0.3));
+    } });
+  };
   function draw() {
     if (!E) return;
     const t = E.t;
@@ -1080,6 +1093,7 @@ function buildGathering(L, s, c0, K) {
       }
       sp.x = p.x; sp.y = p.y + (c.yOff || 0) + o.hopY; sp.z = p.z; sp.dist = c.dist; sp.alpha = o.fade < 1 ? o.fade : undefined;
       R.add(sp);
+      if (o.type === 'swimmer' && c.lunge > 0) pond(p, c.dist, c.lunge * o.fade);
       // a thing on its way from your hand (or the floor) to its hand
       for (const f of o.fly) {
         const k = easeOut(clamp(f.t / 0.2, 0, 1)), to = handAt(o, f.k), a = o.at[f.k] || o.at[0];
