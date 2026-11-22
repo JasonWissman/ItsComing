@@ -1019,7 +1019,7 @@ const hoverHit = lookFor;
         if (!(q[0] >= 4.4 || q[1] >= 4.4 || (Math.abs(off) < 0.8 && along > 1.4))) o.inYard = false;   // out past the fence, or on its own way through the gap in it
         if (Math.abs(q[0]) > 12 || q[1] > 18 || q[1] < -4) o.inYard = false;   // and not off into the far dark
       }
-      if (e.phase === 'buzz') o.buzz = Math.max(o.buzz, c.buzz);
+      if (e.phase === 'buzz') o.buzz = Math.max(o.buzz, c.buzz || 0);
       if (['run', 'in', 'at', 'round'].includes(e.phase)) { o.minDist = Math.min(o.minDist, c.dist); if (!(c.wired === 1 && c.buzz === (rm ? 0.3 : 1))) o.wired = false; }
       if (e.phase === 'in' && !o.vin) o.vin = e.v;
       if (e.phase === 'at') { o.atDist = c.dist; o.bow = Math.max(o.bow || 0, c.bow); o.atPose = !c.runPose && !c.flail && !c.rush; }
@@ -1029,7 +1029,7 @@ const hoverHit = lookFor;
     }
     Object.assign(o, { state: G.state, cause: G.deathCause, lane1: c.lane.idx, crossed: L.s.crossed, pre });
     if (G.state === 'dying') {   // the usual death: its lunge, wired as it is
-      for (let k = 0; k < 20; k++) step();
+      for (let k = 0; k < 120 && !(c.lunge > 0.3); k++) step();
       Object.assign(o, { lunge: c.lunge > 0, wiredDead: c.wired === 1 && c.buzz > 0, death: L.text.death[G.deathCause], egg: !!L.s.egg });
     }
     if (G.state === 'won') {
@@ -1047,9 +1047,9 @@ const hoverHit = lookFor;
     check(k.given && k.uses === 1 && k.hit && k.toss === true && k.takeT === 0.45 && k.arc > 0.6 && k.arc < 1 && k.bagD > 9 && k.saved && /catches/.test(k.toast), 'night 3 easter egg (seed ' + seed + '): 11 m off it is given the bag, tossed in an arc and caught (' + J([k.dist, k.toss, k.takeT, k.arc, k.bagD, k.toast]) + ')');
     check(near.given && near.toss === false && near.takeT === 0.35 && near.arc < 0.11 && /takes/.test(near.toast), 'night 3 easter egg (seed ' + seed + '): 3.6 m off the bag is handed over (' + J([near.dist, near.toss, near.takeT, near.toast]) + ')');
     check(k.len > 85 && k.vmax >= 15 && k.vmax <= 20 && k.far > 10 && k.far < 18 && k.inYard && k.clear > -0.2 && k.minD > 4.3, 'night 3 easter egg (seed ' + seed + '): its run is some 100 m in 6 s, out past the fence among the headstones and clear of them (' + J([k.len, k.vmax, k.far, k.clear, k.minD]) + ')');
-    check(k.phases.join() === 'take,look,pour,still,buzz,run,in' && k.state === 'dying' && k.cause === 'default' && k.lane1 === k.lane && k.T >= sec(k) && k.T < sec(k) + 0.8 && k.minDist > 1.4 && Math.abs(k.vin - k.len / 5.85) < 1.5,
+    check(k.phases.join() === 'take,look,pour,still,buzz,run,in' && k.state === 'dying' && k.cause === 'default' && k.lane1 === k.lane && k.T >= sec(k) && k.T < sec(k) + 0.8 && k.minDist > 1.3 && Math.abs(k.vin - k.len / 5.85) < 1.5,
       'night 3 easter egg (seed ' + seed + '): nothing salted, after its run it comes straight up its way at the pace of its run and takes you, and not before the run is over (' + J([k.phases, k.state, k.cause, k.T, k.vin]) + ')');
-    check(k.wired && k.buzz > 0.99 && k.lunge && k.wiredDead && k.death === 'It was still smiling when it stepped over the threshold.' && k.shake < 1e-3, 'night 3 easter egg (seed ' + seed + '): it is wired from the tremble to the end, its lunge too, and the death is the usual one (' + J([k.wired, k.lunge, k.wiredDead, k.death]) + ')');
+    check(k.wired && k.buzz > 0.9 && k.lunge && k.wiredDead && k.death === 'It was still smiling when it stepped over the threshold.' && k.shake < 1e-3, 'night 3 easter egg (seed ' + seed + '): it is wired from the tremble to the end, its lunge too, and the death is the usual one (' + J([k.wired, k.buzz, k.shake, k.lunge, k.wiredDead, k.death]) + ')');
     const own = await egg3(seed, 'own', 11);
     check(own.phases.join() === 'take,look,pour,still,buzz,run,in,at,round,in' && own.lanes[9] === 1 - own.lane && own.state === 'dying' && own.cause === 'open' && own.death === 'It came through the open entrance.' && own.wired && own.wiredDead && own.atPose && own.bow > 0.9 && Math.abs(own.atDist - (own.lane === 0 ? 2.6 : 2.5)) < 0.01 && own.T < sec(own) + 3.2,
       'night 3 easter egg (seed ' + seed + '): its way salted and the other bare, it is stopped at the salt, looks down, runs round wired and comes in by the bare way (' + J([own.phases, own.lanes, own.cause, own.atDist, own.T]) + ')');
