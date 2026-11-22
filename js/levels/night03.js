@@ -416,8 +416,8 @@ LEVELS.push({
     const bowTo = (c, want, rate, dt) => { c.bow = clamp((c.bow || 0) + clamp(want - (c.bow || 0), -rate * dt, rate * dt), 0, 1); };
     L.update = dt => {
       const c = L.creature;
-      L.uses = giving(c) ? GIVES : NONE;   // the sugar in your hand, and it near: it can be handed the bag (the easter egg, above)
-      if (s.egg) { eggUpdate(c, dt); if (s.egg) return; }   // its sugar rush: the night's own hold on it waits
+      L.uses = giving(c) ? GIVES : NONE;   // the sugar in your hand, and it near enough: it can be given the bag (the easter egg, below)
+      if (s.egg) { eggUpdate(c, dt); if (s.egg) return; }   // its sugar rush, to the end of the night: it is moved from there, by these same rules
       if (L.won) return;   // the aftermath has it now
       if (c.sealHold) { if (s.heldAt === undefined) s.heldAt = L.t; } else s.heldAt = undefined;
       const held = s.heldAt !== undefined ? L.t - s.heldAt : -1, dark = held >= 0 && strength(c.lane) < 2;
@@ -429,29 +429,37 @@ LEVELS.push({
       else bowTo(c, held >= 0 && (held < 1.8 || (dark && held > SALT.hold - SALT.look)) ? 1 : 0, 3, dt);
     };
 
-    // ---- the easter egg: the bag of sugar, handed to it ----
-    // With the sugar in your hand and the thing near (within GIVE.range metres, and in plain view), a click on it hands it
-    // the bag, for good: the night's easter egg (foundEgg, kept in the save from that moment). It stops where it is, takes the
+    // ---- the easter egg: the bag of sugar, given to it ----
+    // With the sugar in your hand and the thing within GIVE.range metres and in plain view, a click on it gives it the bag,
+    // for good: the night's easter egg (foundEgg, kept in the save from that moment). Within GIVE.near it is handed over;
+    // farther off it is tossed, a short underarm arc from your hand (GIVE.toss), and caught. It stops where it is, takes the
     // bag in its free hand and holds it up, and looks at it, its head cocked one way and then the other; tips its head back
     // and pours the whole bag into its open mouth, swallows, and lets the empty bag fall (it lies there for the rest of the
     // night); stands dead still a moment; begins to tremble, more and more, its eyes wide; and tears off round the
-    // graveyard: out by the way it came, in among the headstones and round them, across the view and back, away and near,
-    // its arms in the air, at three or four times the pace it runs at, for GIVE.run seconds. Then it comes back in by the
-    // way it went out, skids to a stop where it stood when it was handed the bag, shudders once, and the night goes on from
-    // there: no ground gained and none lost, only the time. All the while it cannot reach you: its approach is suspended
-    // (its own c.distFn, c.frozen, its way kept), and what it was doing (walking in, held at the salt, going round) is put
-    // back as it was; a way that held it at the salt holds it afresh. Won meanwhile, it cuts the run short and comes back,
-    // and the night ends as it does. With reduced motion the tremble is slight and the run slower, on a plainer round, in
-    // the same time. The smiler draws all of it from the fields set here (js/creatures/smiler.js: c.bag, c.bagHas, c.cock,
+    // graveyard: in among the headstones and round them, across the view and back, away and near, its arms in the air, at
+    // three or four times the pace it runs at, for GIVE.run seconds. All that while it cannot reach you: its approach is
+    // suspended (its own c.distFn, c.frozen, its way kept).
+    // Then it does not go back to where it was. Still wired (the tremble, the eyes, the hair, the patter and the dust, to
+    // the end of the night), it comes straight up its way to the salt at the pace of its run, and the night is decided
+    // there by its own rules, quickly: a bare way it comes straight in by; at a salted one it skids to a stop and looks
+    // down at the salt, trembling, and then, if the other way is weaker and it may go round (as game.js judges it), it
+    // runs round to that one after GIVE.wait and comes up it the same way; with nowhere weaker to go and no lantern
+    // burning by the line it steps over after GIVE.cross (the night's SALT.hold, hurried). What kills is the night's own
+    // catch, with its own cause. You are free to act all the while: the night is won, as ever, the moment both ways are
+    // salted and both lanterns lit, and then it cuts short whatever it was at and comes to the salt line, still wired, for
+    // the night's own ending (L.aftermath); won before it has begun to run, it does not go. With reduced motion the
+    // tremble is slight and the run slower, on a plainer round, in the same time, and it comes up to the line at that
+    // slower pace. The smiler draws all of it from the fields set here (js/creatures/smiler.js: c.bag, c.bagHas, c.cock,
     // c.tip, c.pour, c.gulp, c.wired, c.buzz, c.flail, c.skid, c.dust).
-    const GIVE = { range: 4.5, take: 0.35, look: 1.0, pour: 1.2, still: 0.4, buzz: 0.8, run: 6, launch: 0.3, skid: 0.5, shudder: 0.6, pace: 5 };   // (pace: what it runs at, going round, m/s)
+    // (pace: what it runs at, going round, m/s; from: how far out on its way its run ends and it comes straight in)
+    const GIVE = { range: 12, near: 4.5, take: 0.35, toss: 0.45, look: 1.0, pour: 1.2, still: 0.4, buzz: 0.8, run: 6, launch: 0.3, skid: 0.5, pace: 5, from: 7.8, wait: 0.5, cross: 1.1 };
     const NONE = [], GIVES = [{ tool: 'sugar', range: GIVE.range, sights: false, hoverText: () => 'Give it the sugar', onClick: c => { giveSugar(c); return true; } }];
     L.uses = NONE;
-    s.egg = null;        // its sugar rush, while it lasts: { phase: take, look, pour, still, buzz, run or shudder; t (in the phase); T (in all); ... }
+    s.egg = null;        // its sugar rush, until the night ends: { phase: take, look, pour, still, buzz, run, in, at or round; t (in the phase); T (in all); ... }
     s.spent = [];        // the emptied bags, where they fell: { from, to, t0 }
     s.puffs = [];        // the dust it leaves behind it as it runs: { x, y, z, t0 }
     s.give = GIVE; s.yard = yard;   // (the tests read its times, and what stands in its way)
-    // the bag it could be handed now, if any: the sugar is the thing in your hand, and it is up, coming, near and in view
+    // the bag it could be given now, if any: the sugar is the thing in your hand, and it is up, coming, near enough and in view
     const giving = c => {
       const it = G.inv[G.active];
       return !s.egg && !L.won && G.state === 'play' && !c.dead && !c.lunge && it && it.id === 'sugar' && !(G.fumbling && G.fumbling.it === it)
@@ -462,12 +470,13 @@ LEVELS.push({
     const partOf = (c, sx, sy) => { const p = c.pos(), e = G.cam.yaw; return { x: p.x + Math.cos(e) * sx, y: p.y + sy, z: p.z - Math.sin(e) * sx }; };
     const giveSugar = c => {
       const it = giving(c); if (!it) return;
-      const from = HANDS.handWorld(it, Math.max(0.3, 0.6 * c.dist)).p, p = c.pos();
+      const toss = Math.hypot(c.dist, c.lat || 0) > GIVE.near;   // too far to hand it over: it is tossed
+      const from = HANDS.handWorld(it, toss ? 0.7 : Math.max(0.3, 0.6 * c.dist)).p, p = c.pos();
       G.removeFromInv(it); HANDS.threw(it);
       foundEgg();   // found the moment the bag leaves your hand
       const e = s.egg = {
-        phase: 'take', t: 0, T: 0, it, from, slow: !!SAVE.data.settings.reducedMotion, cadence: 0,
-        dist: c.dist, d: c.dist, home: { x: p.x, y: p.y, z: p.z }, at: { x: p.x, y: p.y, z: p.z },
+        phase: 'take', t: 0, T: 0, it, from, toss, takeT: toss ? GIVE.toss : GIVE.take, slow: !!SAVE.data.settings.reducedMotion, cadence: 0,
+        dist: c.dist, d: c.dist, to: c.lane.idx, home: { x: p.x, y: p.y, z: p.z }, at: { x: p.x, y: p.y, z: p.z },
         was: { pos: c.pos, hold: c.hold, distFn: c.distFn, round: c.round, sealHold: c.sealHold, frozen: c.frozen, fixedLane: c.fixedLane, runPose: c.runPose, runLat: c.runLat, runDir: c.runDir, timeScale: c.timeScale },
       };
       // its approach is suspended: it keeps the distance set here, takes no hitch, changes no way, and nothing holds it
@@ -475,7 +484,7 @@ LEVELS.push({
       c.round = null; c.hold = null; c.sealHold = false; c.sealHeldAt = undefined; s.heldAt = undefined; c.frozen = true; c.fixedLane = true; c.runPose = false; c.rush = 0;
       c.distFn = (cr, dt2) => { cr.gait += e.cadence * dt2 - Math.abs(cr.dist - e.d) * sr; return e.d; };   // (its steps at its own quick patter, not one for every stride of ground)
       L.uses = NONE;
-      G.toast('It takes the bag.');
+      G.toast(toss ? 'It catches the bag.' : 'It takes the bag.');
     };
     // the way it runs: a smooth line through the points given ([x, z], in the yard's own measure), eased round whatever
     // stands in the yard and kept outside the fence round the porch, but for the clear way it goes out and comes in by
@@ -504,61 +513,115 @@ LEVELS.push({
       let j = 0;   // (it only ever goes forward along it)
       return { S, cum, len: cum[cum.length - 1], at(a) { while (j < S.length - 2 && cum[j + 1] < a) j++; const k = clamp((a - cum[j]) / Math.max(1e-6, cum[j + 1] - cum[j]), 0, 1); return [lerp(S[j][0], S[j + 1][0], k), lerp(S[j][1], S[j + 1][1], k)]; } };
     };
-    // its round of the yard, from where it stands and back to it. Whichever way it came by, the wild of it is north of the
-    // porch, where the open front shows the most of the yard: from the side gate it goes out east, round the corner of the
-    // fence, and comes back the same way. (slow: the plainer round, one loop)
+    // its round of the yard, from where it stands to GIVE.from metres out on its way, facing in. Whichever way it came by,
+    // the wild of it is north of the porch, where the open front shows the most of the yard: from the side gate it goes out
+    // east, round the corner of the fence, and comes back the same way. (slow: the plainer round, one loop)
     const ROUNDS = {
-      path: { out: [[0, 4.9]], back: [[0, 7.8], [0, 5.4]],
-        wild: [[4.5, 6.8], [-6, 8.5], [8, 11], [1.5, 14], [-8.5, 12.5], [-6.5, 7.2], [4.5, 6.2], [9, 9.5], [3.5, 12.5], [-4.5, 11], [-7, 8.6], [-2.2, 7.6]],
-        slow: [[4.5, 6.8], [9, 10], [7.5, 13.5], [0, 14.8], [-7.5, 13.5], [-9, 10], [-4, 8.2]] },
-      side: { out: [[4.9, 0]], back: [[7.8, 0], [5.4, 0]],
-        wild: [[6.6, 3], [6, 6.8], [-2.5, 8.5], [7, 11.5], [-0.5, 14], [-8.5, 12.5], [-6, 7], [3.5, 6.4], [8.5, 9.8], [1.5, 12.5], [-3.5, 9.5], [2.5, 6.6], [7.4, 6.4], [9.6, 2.6]],
-        slow: [[6.6, 3], [5.5, 7.5], [-1, 9], [-7.5, 11.5], [-1, 14.5], [6.5, 12.5], [8.2, 8], [9.6, 3]] },
+      path: { out: [[0, 4.9]], in: [[0, 9.8], [0, GIVE.from]],
+        wild: [[4.5, 6.8], [-6, 8.5], [8, 11], [1.5, 14], [-8.5, 12.5], [-6.5, 7.2], [4.5, 6.2], [9, 9.5], [3.5, 12.5], [-4.5, 11], [-7, 8.6], [-3.2, 9.4]],
+        slow: [[4.5, 6.8], [9, 10], [7.5, 13.5], [0, 14.8], [-7.5, 13.5], [-9, 10], [-4.2, 9.2]] },
+      side: { out: [[4.9, 0]], in: [[9.8, 0], [GIVE.from, 0]],
+        wild: [[6.6, 3], [6, 6.8], [-2.5, 8.5], [7, 11.5], [-0.5, 14], [-8.5, 12.5], [-6, 7], [3.5, 6.4], [8.5, 9.8], [1.5, 12.5], [-3.5, 9.5], [2.5, 6.6], [7.4, 6.4], [10.6, 2.6]],
+        slow: [[6.6, 3], [5.5, 7.5], [-1, 9], [-7.5, 11.5], [-1, 14.5], [6.5, 12.5], [8.2, 8], [10.6, 3]] },
     };
+    const roundsOf = idx => ROUNDS[idx === 0 ? 'path' : 'side'], wayPt = (idx, d) => (idx === 0 ? [0, d] : [d, 0]);
+    const FRONT = 1.6;   // the last of a run, down its way: it is coming straight at you
     // on its way's own clear line through the fence (so it goes out and comes in by the gap)
     const onWay = (c, q) => { const along = c.lane.idx === 0 ? q[1] : q[0], off = c.lane.idx === 0 ? q[0] : q[1]; return Math.abs(off) < 0.8 && along < 4.4; };
-    const roundOf = (c, e, from) => {   // (from: cut short, from where it has got to, straight back)
-      const R0 = ROUNDS[c.lane.idx === 0 ? 'path' : 'side'], home = toLocal(e.home), way = onWay(c, home);
-      let pts;
-      if (from) {
-        const far = c.lane.idx === 0 ? from[1] < FENCE : from[0] < 6;   // on the other side of the porch from its way: round the corner of the fence first
-        pts = [from].concat(far && Math.hypot(from[0] - home[0], from[1] - home[1]) > 6 ? [[6.5, 6.5]] : []);
-      } else pts = [home].concat(way ? R0.out : [], e.slow ? R0.slow : R0.wild);
-      const back = way ? R0.back : [];
-      const P = runPath(pts.concat(back, [home]));
-      P.front = P.len - (back.length ? Math.hypot(back[0][0] - home[0], back[0][1] - home[1]) * 0.8 : 3);   // from here on it is coming straight at you
+    const roundOf = (c, e) => {
+      const R0 = roundsOf(e.to), home = toLocal(e.home);
+      const P = runPath([home].concat(onWay(c, home) ? R0.out : [], e.slow ? R0.slow : R0.wild, R0.in));
+      P.front = P.len - FRONT;
       return P;
     };
-    // how far along its run it is, t seconds into one of T (0..1): off the mark in GIVE.launch, flat out, and the last
-    // GIVE.skid of it a skid to a stop
-    const runProf = (t, T) => { const a = GIVE.launch, d = GIVE.skid, V = 1 / (T - (a + d) / 2); return t < a ? V * t * t / (2 * a) : t < T - d ? V * (t - a / 2) : 1 - V * (T - t) * (T - t) / (2 * d); };
+    // wired, from the salt of one way round to the other (the corner of the fence between them), and facing in along it
+    const ROUND_BY = [[5.6, 6.4], [9.8, 4.6], [10.4, 1.6]];   // (from the path to the side gate; the other way about, mirrored)
+    const wiredRound = (c, e, to) => {
+      const a = c.lane.idx, P = runPath([wayPt(a, e.d), wayPt(a, 4.9)].concat(ROUND_BY.map(q => (a === 0 ? q : [q[1], q[0]])), roundsOf(to).in));
+      P.front = P.len - FRONT;
+      return P;
+    };
+    // the night won while it is out there: from where it has got to, straight to the salt line of the way it was making
+    // for (stop: how far out it stands there), round the corner of the fence if that is on the other side of the porch
+    const cutRun = (c, e, from, stop) => {
+      const inside = from[0] < FENCE && from[1] < FENCE, R0 = roundsOf(e.to);
+      let pts = [from];
+      if (!(inside && c.lane.idx === e.to)) {
+        if (inside) pts.push(wayPt(c.lane.idx, 4.9));
+        const far = inside || (e.to === 0 ? from[1] < FENCE : from[0] < 6);
+        if (far && Math.hypot(from[0] - R0.in[1][0], from[1] - R0.in[1][1]) > 6) pts.push([6.5, 6.5]);
+        pts = pts.concat([R0.in[1]]);
+      }
+      const P = runPath(pts.concat([wayPt(e.to, stop)]));
+      P.front = P.len - Math.min(P.len * 0.5, (GIVE.from - stop) * 0.8);
+      return P;
+    };
+    // how far along its run it is, t seconds into one of T (0..1): off the mark in GIVE.launch, flat out, and (d) the last
+    // of it a skid to a stop
+    const runProf = (t, T, d) => { const a = GIVE.launch, V = 1 / (T - (a + d) / 2); return t < a ? V * t * t / (2 * a) : !d || t < T - d ? Math.min(1, V * (t - a / 2)) : 1 - V * (T - t) * (T - t) / (2 * d); };
     const dropBag = (c, e, sy) => {   // it lets the bag fall: from its hand to the ground beside it
       const from = partOf(c, 0.06, sy), to = partOf(c, 0.52, 0);
       s.spent.push({ from, to: { x: to.x, y: e.home.y, z: to.z }, t0: L.t, landed: false });
       c.bagHas = false;
     };
-    const eggEnd = (c, e) => {   // and the night has it again, as it was when it took the bag
-      const w = e.was;
-      c.pos = w.pos; c.frozen = w.frozen || L.won; c.fixedLane = w.fixedLane; c.timeScale = w.timeScale; c.yaw = c.lane.yaw; c.dist = e.dist;
-      c.bag = c.cock = c.tip = c.pour = c.gulp = c.wired = c.buzz = c.flail = c.skid = c.dust = 0; c.bagHas = false; c.rush = 0;
+    // won before it had begun to run: the night's ending has it as it was when it took the bag (trembling already, it stays so)
+    const eggBack = (c, e) => {
+      const w = e.was, wired = e.phase === 'buzz';
+      c.pos = w.pos; c.frozen = true; c.fixedLane = w.fixedLane; c.timeScale = w.timeScale; c.yaw = c.lane.yaw; c.dist = e.dist;
+      c.bag = c.cock = c.tip = c.pour = c.gulp = c.flail = c.skid = c.dust = 0; c.bagHas = false; c.rush = 0;
+      if (wired) c.wired = 1; else c.wired = c.buzz = 0;
       c.distFn = w.distFn; c.hold = w.sealHold ? null : w.hold;
-      if (w.sealHold && !L.won) { c.hold = w.hold; c.sealHold = true; c.sealHeldAt = L.t; }   // a way that held it at the salt holds it afresh, where it stood: its clocks start again (game.js, and L.update here)
       c.round = w.round; c.runPose = !!(w.round && w.runPose); c.runLat = w.round ? w.runLat : 0; if (w.round) c.runDir = w.runDir;
       s.egg = null;
+    };
+    // won once it is wired: the night's ending has it where it stands on its way, wired still (c.wired and c.buzz are left on it)
+    const wiredEnd = (c, e) => {
+      const d = e.d;
+      c.dist = d; c.distFn = () => d; c.runPose = false; c.runLat = 0; c.yaw = c.lane.yaw; c.flail = c.skid = c.dust = 0; c.rush = 0; c.timeScale = e.was.timeScale;
+      s.egg = null;
+    };
+    // a frame of a run along e.path (stop: it ends in a skid): where it is, which way it faces, its dust. True once it is there
+    const runStep = (c, e, dt, stop) => {
+      const P = e.path, T = e.runT, u = Math.min(e.t, T), a = P.len * runProf(u, T, stop ? GIVE.skid : 0), q = P.at(a), w = L.pt(q[0], 0, q[1]);
+      const vx = (w[0] - e.at.x) / Math.max(dt, 1e-4), vz = (w[2] - e.at.z) / Math.max(dt, 1e-4);
+      e.at = { x: w[0], y: e.home.y, z: w[2] }; e.d = Math.hypot(w[0], w[2]); c.yaw = Math.atan2(w[0], w[2]);
+      e.gone = (e.gone || 0) + Math.hypot(vx, vz) * dt;
+      if (e.gone >= 0.8) { e.gone = 0; s.puffs.push({ x: w[0], y: e.home.y, z: w[2], t0: L.t }); }   // a puff of dust every stride or so, left hanging along the way it went
+      const front = a >= P.front, vt = vx * Math.cos(c.yaw) - vz * Math.sin(c.yaw);   // (vt: across the view, to the right)
+      if (Math.abs(vt) > 2) c.runDir = vt > 0 ? 1 : -1;
+      c.runPose = !front; c.rush = front ? 1 : 0; c.flail = 1; c.bow = 0;
+      c.runGait = (c.runGait || 0) + dt * (e.slow ? 22 : 34);
+      c.skid = stop && front ? clamp(1 - (T - u) / GIVE.skid, 0, 1) : 0; c.dust = c.skid * 0.5;
+      e.cadence = c.skid > 0 ? 0 : e.slow ? 21 : 30;
+      if (c.skid > 0 && !e.skidded) { e.skidded = true; AUDIO.sfx('skid', panOf(c)); }
+      return e.t >= T;
+    };
+    // off the yard and on its way again (the way it was making for), facing in, as far out as its run left it
+    const land = (c, e) => {
+      if (c.lane.idx !== e.to) { c.retarget(e.to); c.reached = false; L.laneIdx = e.to; L.lane = c.lane; L.barrierDist = c.lane.barrierDist || 0; }
+      c.pos = e.was.pos; c.runLat = 0; c.runPose = false; c.yaw = c.lane.yaw; e.d = Math.hypot(e.at.x, e.at.z); e.vel = e.v;
+    };
+    const takeOff = (c, e, path, T) => {   // out into the yard, along path
+      const p = c.pos();
+      e.at = { x: p.x, y: p.y, z: p.z }; e.path = path; e.runT = T; e.skidded = false; c.pos = () => e.at; c.runLat = 0;
     };
     const eggUpdate = (c, dt) => {
       const e = s.egg, amp = e.slow ? 0.3 : 1;
       const go = ph => { e.phase = ph; e.t = 0; };
-      if (L.won && !e.cut) {   // won meanwhile: out in the yard, it comes straight back; not yet off, it does not go
+      if (G.state !== 'play' && !L.won) return;   // it has you: the lunge is the smiler's own, wired as it is
+      if (L.won && !e.cut) {   // won meanwhile: out in the yard, it comes straight to the salt; on its way, it is there; not yet off, it does not go
         e.cut = true;
-        if (e.phase === 'run') { e.path = roundOf(c, e, toLocal(e.at)); e.runT = clamp(e.path.len / (GIVE.pace * 3.5), GIVE.launch + GIVE.skid + 0.2, 2); e.t = 0; e.skidded = false; }
-        else if (e.phase !== 'shudder') { if (c.bagHas) dropBag(c, e, 0.9); eggEnd(c, e); return; }
+        if (e.phase === 'run' || e.phase === 'round') {
+          e.path = cutRun(c, e, toLocal(e.at), saltDist(L.lanes[e.to]) + 0.25);
+          e.runT = clamp(e.path.len / (e.v || GIVE.pace * 3.5), GIVE.launch + GIVE.skid + 0.2, 2); e.t = 0; e.skidded = false;
+        } else if (e.phase === 'in' || e.phase === 'at') { wiredEnd(c, e); return; }
+        else { if (c.bagHas) dropBag(c, e, 0.9); eggBack(c, e); return; }
       }
       e.t += dt; e.T += dt;
       switch (e.phase) {
-        case 'take':   // it stops, and its free hand comes out for the bag
-          c.bag = 0.5 * smoothstep(e.t / GIVE.take); bowTo(c, 0, 3, dt);
-          if (e.t >= GIVE.take) { c.bagHas = true; AUDIO.sfx('pat', panOf(c)); AUDIO.voice('hum', 0.4, panOf(c)); go('look'); }
+        case 'take':   // it stops, and its free hand comes out for the bag (tossed, the bag is in the air first)
+          c.bag = 0.5 * smoothstep((e.t - (e.takeT - GIVE.take)) / GIVE.take); bowTo(c, 0, 3, dt);
+          if (e.t >= e.takeT) { c.bagHas = true; AUDIO.sfx('pat', panOf(c)); AUDIO.voice('hum', 0.4, panOf(c)); go('look'); }
           break;
         case 'look':   // it holds the bag up and looks at it, its head cocked to it, and then the other way
           c.bag = lerp(0.5, 1, smoothstep(e.t / 0.25)); bowTo(c, 0.7, 5, dt);
@@ -583,35 +646,46 @@ LEVELS.push({
         case 'buzz': {   // it begins to tremble, more and more, its eyes wide
           const k = clamp(e.t / GIVE.buzz, 0, 1);
           c.buzz = amp * k * k; c.wired = smoothstep(k * 2.5);
-          if (e.t >= GIVE.buzz) { e.path = roundOf(c, e); e.runT = GIVE.run; c.pos = () => e.at; c.runLat = 0; c.flail = 1; c.buzz = amp; go('run'); }
-          break;
-        }
-        case 'run': {   // round the yard, flat out, and back to where it stood, skidding
-          const P = e.path, T = e.runT, u = Math.min(e.t, T), a = P.len * runProf(u, T), q = P.at(a), w = L.pt(q[0], 0, q[1]);
-          const vx = (w[0] - e.at.x) / Math.max(dt, 1e-4), vz = (w[2] - e.at.z) / Math.max(dt, 1e-4);
-          e.at = { x: w[0], y: e.home.y, z: w[2] }; e.d = Math.hypot(w[0], w[2]); c.yaw = Math.atan2(w[0], w[2]);
-          e.gone = (e.gone || 0) + Math.hypot(vx, vz) * dt;
-          if (e.gone >= 0.8) { e.gone = 0; s.puffs.push({ x: w[0], y: e.home.y, z: w[2], t0: L.t }); }   // a puff of dust every stride or so, left hanging along the way it went
-          const front = a >= P.front, vt = vx * Math.cos(c.yaw) - vz * Math.sin(c.yaw);   // (vt: across the view, to the right)
-          if (Math.abs(vt) > 2) c.runDir = vt > 0 ? 1 : -1;
-          c.runPose = !front; c.rush = front ? 1 : 0;
-          c.runGait = (c.runGait || 0) + dt * (e.slow ? 22 : 34);
-          c.skid = front ? clamp(1 - (T - u) / GIVE.skid, 0, 1) : 0; c.dust = c.skid * 0.5;
-          e.cadence = c.skid > 0 ? 0 : e.slow ? 21 : 30;
-          if (c.skid > 0 && !e.skidded) { e.skidded = true; AUDIO.sfx('skid', panOf(c)); }
-          if (e.t >= T) {   // there: where it stood, on its way again
-            c.pos = e.was.pos; c.runLat = e.was.runLat || 0; c.yaw = c.lane.yaw; e.d = e.dist; c.runPose = false; c.rush = 0; c.flail = 0; e.cadence = 0;
-            if (L.won) { eggEnd(c, e); return; }
-            AUDIO.sfx('shudder', panOf(c)); go('shudder');
+          if (e.t >= GIVE.buzz) {
+            const P = roundOf(c, e);
+            e.v = P.len / (GIVE.run - GIVE.launch / 2);   // the pace of its run, which it keeps to the end
+            takeOff(c, e, P, GIVE.run); c.buzz = amp; c.wired = 1; go('run');
           }
           break;
         }
-        case 'shudder': {   // it straightens, shudders once from head to foot, and comes on
-          const k = clamp(e.t / GIVE.shudder, 0, 1);
-          c.skid = Math.max(0, 1 - e.t / 0.18); c.dust = 0.5 + 0.5 * k;
-          c.buzz = amp * Math.sin(Math.PI * clamp((k - 0.25) / 0.6, 0, 1)); c.wired = 1 - smoothstep((k - 0.6) / 0.4);
-          if (e.t >= GIVE.shudder) eggEnd(c, e);
+        case 'run':     // round the yard, flat out, and down onto its way
+        case 'round':   // or from the salt of one way round to the other
+          if (runStep(c, e, dt, e.cut)) {
+            land(c, e);
+            if (e.cut) { wiredEnd(c, e); return; }
+            go('in');
+          }
           break;
+        case 'in': {   // straight up its way: to the salt, if there is salt across it, and in if there is none (or it has stepped over it)
+          const lane = c.lane, sealed = L.sealed(lane), stop = sealed ? Math.min(lane.barrierDist, e.d) : c.catchDist - 0.05, left = e.d - stop;
+          const vmax = sealed ? Math.min(e.v, Math.sqrt(2 * e.v / GIVE.skid * Math.max(0, left)) + 0.2) : e.v;
+          e.vel = Math.min(vmax, (e.vel || 0) + e.v / GIVE.launch * dt);
+          const d0 = e.d; e.d = Math.max(stop, e.d - e.vel * dt);
+          c.rush = 1; c.runPose = false; c.yaw = lane.yaw; bowTo(c, 0, 6, dt);
+          c.skid = sealed ? clamp(1 - e.vel / e.v, 0, 1) : 0; c.dust = c.skid * 0.5;
+          c.flail = sealed ? 1 : clamp((e.d - 2.4) / 2, 0, 1);
+          e.cadence = c.skid > 0.05 ? 0 : e.slow ? 21 : 30;
+          e.gone = (e.gone || 0) + d0 - e.d;
+          if (e.gone >= 0.8) { e.gone = 0; const p = c.pos(); s.puffs.push({ x: p.x, y: p.y, z: p.z, t0: L.t }); }
+          if (sealed && c.skid > 0.05 && !e.skidded) { e.skidded = true; AUDIO.sfx('skid', panOf(c)); }
+          if (sealed && e.d - stop <= 1e-3) { e.skidded = false; AUDIO.sfx('shudder', panOf(c)); go('at'); }
+          break;
+        }
+        case 'at': {   // stopped at the salt: it looks down at it, trembling, and the night's own rules send it on
+          const lane = c.lane, other = L.lanes[1 - lane.idx];
+          c.rush = 0; c.flail = 0; e.cadence = 0; e.vel = 0; c.skid = Math.max(0, 1 - e.t / 0.18); c.dust = Math.min(1, 0.5 + e.t / 0.6 * 0.5);
+          if (!L.sealed(lane)) { go('in'); break; }
+          const round = L.diff.laneSwitch && L.def.laneSwitch !== false && L.roundOpen(other, c), dark = strength(lane) < 2;
+          bowTo(c, round || dark || e.t < 1.8 ? 1 : 0, 5, dt);
+          if (round) {   // the other way is weaker: round to it
+            if (e.t >= GIVE.wait) { const P = wiredRound(c, e, other.idx); e.to = other.idx; takeOff(c, e, P, P.len / e.v + GIVE.launch / 2); go('round'); }
+          } else if (dark && e.t >= GIVE.cross) { s.crossed = lane.idx; go('in'); }   // nowhere weaker, and no lantern here: over the line
+          break;   // (salted and lit, with nowhere it may go: it stands there, as it would)
         }
       }
     };
@@ -624,12 +698,13 @@ LEVELS.push({
     };
     function drawEgg() {
       const e = s.egg, c = L.creature;
-      if (e && e.phase === 'take') {   // the bag, out of your hand and into its
-        const k = smoothstep(e.t / GIVE.take), to = partOf(c, 0.26, 0.62), it = e.it;
-        R.add({ kind: 'sprite', x: lerp(e.from.x, to.x, k), y: lerp(e.from.y, to.y, k) + Math.sin(k * Math.PI) * 0.1, z: lerp(e.from.z, to.z, k), w: it.w, h: it.h, worn: true, draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); } });
+      if (e && e.phase === 'take') {   // the bag, out of your hand and into its: handed over, or tossed underarm, turning over once as it goes
+        const u = clamp(e.t / e.takeT, 0, 1), k = e.toss ? u : smoothstep(u), to = partOf(c, 0.26, 0.62), it = e.it;
+        const up = e.toss ? 4 * k * (1 - k) * (0.25 + 0.05 * e.dist) : Math.sin(k * Math.PI) * 0.1, spin = e.toss ? -smoothstep(u) * TAU : 0;
+        R.add({ kind: 'sprite', x: lerp(e.from.x, to.x, k), y: lerp(e.from.y, to.y, k) + up, z: lerp(e.from.z, to.z, k), w: it.w, h: it.h, worn: true, draw: (ctx, P) => { if (spin) { ctx.translate(0, it.h / 2); ctx.rotate(spin); ctx.translate(0, -it.h / 2); } ctx.scale(it.w, it.h); it.icon(ctx, P); } });
       }
       const cp = L.rend && L.rend.get(c);   // out in the yard it is kept clear of the murk, so it can be followed (0.85: as game.js draws it)
-      if (cp && (e || cp.eggFog)) { cp.eggFog = !!(e && e.phase === 'run'); cp.fogScale = cp.eggFog ? 0.45 : 0.85; }
+      if (cp && (e || cp.eggFog)) { cp.eggFog = !!(e && (e.phase === 'run' || e.phase === 'round')); cp.fogScale = cp.eggFog ? 0.45 : 0.85; }
       while (s.puffs.length && L.t - s.puffs[0].t0 > PUFF) s.puffs.shift();
       for (const p of s.puffs) {   // its dust, rising, spreading and thinning
         if (!p.spr) p.spr = { kind: 'sprite', x: p.x, y: p.y, z: p.z, w: 0.9, h: 0.7, draw: (ctx, P) => { const k = p.k; P_ell(ctx, 0, 0.1 + k * 0.26, 0.11 + k * 0.24, 0.08 + k * 0.17, P.cola([160, 152, 140], (1 - k) * 0.5)); } };
@@ -660,7 +735,7 @@ LEVELS.push({
       const c = L.creature, a = s.end || (s.end = { phase: 'round' });
       c.frozen = true;   // no more hitches
       if (a.phase === 'round') {
-        if (c.round || s.egg) return false;   // (or coming back from its sugar rush, which a win cuts short)
+        if (c.round || s.egg) return false;   // (or out in the yard on its sugar rush, which a win cuts short: it comes to the line wired)
         a.phase = 'come'; a.at = Math.min(c.dist, saltDist(c.lane) + 0.25);   // where it stops: at the line, or where it already stood
         const far = c.dist - a.at;
         if (far > 0.01) {
