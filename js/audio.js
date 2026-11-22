@@ -612,6 +612,12 @@ const AUDIO = (() => {
         noise(0.7, { type: 'bandpass', freq: 2600, q: 0.7, vol: 0.05, attack: 0.22 }); noise(0.5, { type: 'highpass', freq: 5200, vol: 0.025, attack: 0.3, delay: 0.1 });
         break;
       }
+      // an easter egg found for the first time (game.js secretToast): a small bright bell, two notes going up a fourth, the
+      // second ringing a little; about half a second, and not loud
+      case 'secret':
+        tone(1175, 0.2, { vol: 0.07, type: 'triangle', attack: 0.004 }); tone(2350, 0.12, { vol: 0.02, attack: 0.004 });
+        tone(1568, 0.42, { vol: 0.075, type: 'triangle', attack: 0.004, delay: 0.11 }); tone(3136, 0.26, { vol: 0.02, attack: 0.004, delay: 0.11 });
+        break;
       case 'birds': { const f0 = 2200 + Math.random() * 1200; for (let i = 0; i < 4 + Math.floor(Math.random() * 4); i++) tone(f0 + Math.random() * 600, 0.07, { vol: 0.05, type: 'sine', endFreq: f0 + 300 + Math.random() * 500, delay: i * 0.11, pan }); break; }
       case 'stingWet': noise(0.5, { freq: 1600, vol: 1.0, attack: 0.002 }); noise(1.4, { type: 'bandpass', freq: 500, q: 1, vol: 0.7, delay: 0.1, attack: 0.05 }); tone(42, 1.4, { vol: 0.7, endFreq: 26 }); tone(700, 0.9, { vol: 0.3, type: 'sawtooth', endFreq: 200, delay: 0.15 }); break;
       case 'stingScrape': noise(1.1, { type: 'bandpass', freq: 2400, q: 3, vol: 0.9, attack: 0.002 }); tone(1400, 0.8, { vol: 0.35, type: 'sawtooth', endFreq: 3000 }); tone(45, 1.3, { vol: 0.7, endFreq: 28, delay: 0.1 }); break;
