@@ -20,7 +20,8 @@
 // on the floor under the lamp's table. A click on a bare mirror with a sheet in your hand throws it up over the glass. A
 // covered mirror shows nothing, so before it the thing comes on as it does unseen. Cover all four (the night's easter
 // egg) and it does not like it: a beat of silence, and then, in the sheet before you, its face presses out through the
-// cloth from inside, a hand either side of it, fingers spread, the other sheets bulging too; and it comes through.
+// cloth from inside, a hand either side of it, fingers spread, the other sheets bulging too; and that face and those
+// hands come at you as they are, in the cloth, dragging the sheet off the mirror behind them.
 LEVELS.push({
   id: 'mirrors', title: 'The Mirror Maze', facing: 0, eyeH: 1.65, laneMode: 'default', laneSwitch: false,
   pal: { skyTop: [14, 8, 8], fog: [58, 40, 36], ground: [30, 26, 26], fogDist: 40 },
@@ -186,7 +187,7 @@ LEVELS.push({
     // down: the hand goes out to its hem and pulls, and it slides off the glass into a heap, m.anim, from when the hand has
     // it); bare, with a dust sheet in your hand, the mirror (the sheet is thrown up over it: flung up to the top of the
     // frame, its hem swinging up after it and settling). SHEET: how long each takes
-    const SHEET = { down: 0.25, up: 0.5, torn: 0.16 };   // (torn: ripped down off the glass as it comes through, the easter egg)
+    const SHEET = { down: 0.25, up: 0.5 };
     const pullDown = (k, t) => {
       const m = s.mirrors[k]; m.live = true; m.heap++;
       G.say('The sheet comes down. Glass.', 'Glass.');
@@ -582,17 +583,20 @@ LEVELS.push({
     // flop; the game stops the rest), EGG.hush seconds; then, in that sheet, its face comes pressing out through the cloth
     // from inside (CREATURES.other.pressed: brow, eye sockets, nose, the open mouth), a hand either side of it from
     // EGG.hands, fingers spread, the cloth stretching toward you and creaking, its sob rising to a wail (sheetPress); from
-    // EGG.others the other three sheets bulge with its face too; and at EGG.burst the sheet is torn down off the glass and
-    // it comes through at you, weeping, the lunge any death here ends in. It stands behind that sheet from the first (on
-    // that mirror's own line, EGG.from off), where the cloth hides it. With reduced motion the cloth bulges less and does
-    // not tremble, and nothing shakes
-    const EGG = { hush: 1.0, face: 1.1, hands: 1.5, handsT: 0.8, others: 1.35, burst: 2.9, dur: 0.55, from: 3.75 };
+    // EGG.others the other three sheets bulge with its face too (and stay so); and at EGG.burst that same face and those
+    // hands, still in the cloth, come at you: the lunge any death here ends in, but what lunges is the sheet with it inside
+    // (CREATURES.other.shroud: c.shroud), the moulded face growing toward your eye, a cloth-covered hand reaching either
+    // side, and the rest of the sheet dragged off the mirror's frame behind them, streaming back from the face in a ring of
+    // folds, its hem flaring, until it fills the view. The doll itself is never seen. For the game it is on that mirror's
+    // own line from the first, EGG.from off (the sheet's own place), drawing nothing until then. With reduced motion the
+    // cloth bulges less and does not tremble, the sheet flares less and does not ripple, and nothing shakes
+    const EGG = { hush: 1.0, face: 1.1, hands: 1.5, handsT: 0.8, others: 1.35, burst: 2.9, dur: 0.55, from: 3.42 };
     const gentle = () => !!SAVE.data.settings.reducedMotion;
     const eggStep = (c, k) => {
       const e = s.egg, T = G.stateT;
       s.now = e.at + T;
       if (!e.pressed && T >= EGG.hush) { e.pressed = true; AUDIO.sfx('sheetPress', 0); }
-      if (!e.burst && k > 0) { e.burst = true; const m = s.mirrors[e.k]; m.live = true; m.heap++; m.anim = { t0: s.now, T: SHEET.torn, torn: true }; if (!gentle()) G.shake(1.2); }
+      if (!e.burst && k > 0) { e.burst = true; const m = s.mirrors[e.k]; m.live = true; m.anim = null; c.shroud.hidden = false; if (!gentle()) G.shake(1.2); }   // the sheet leaves the glass with it
     };
     const ignored = k => {
       const c = c0();
@@ -600,6 +604,8 @@ LEVELS.push({
       s.egg = { k, at: s.now, pressed: false, burst: false, shown: [] };
       c.retarget(1 + k); c.dist = c.hold = EGG.from; c.lat = c.runLat = 0; c.yOff = 0;
       Object.assign(c, { back: false, smile: false, angry: 1, dance: 0, danceMir: 1, runPose: false, arms: null, carry: null, rush: 0, tint: null });
+      // what the game draws of it from here on: nothing, and then the sheet with it inside (press: how far it was pressed into it)
+      c.shroud = { hidden: true, from: EGG.from, eye: L.eyeH, press: gentle() ? 0.6 : 1, still: gentle(), cloth: CLOTH };
       L.lane = c.lane; L.laneIdx = c.lane.idx;
       c.deathSpec = { delay: EGG.burst, dur: EGG.dur, sting: 'flop', pose: eggStep };
       die(c, 'ignored');
@@ -659,7 +665,7 @@ LEVELS.push({
         let fy = null;
         if (a && u < 1) {
           if (a.up) { const r = easeOut(u / 0.75), lift = Math.sin(Math.PI * u) * 0.34 * r; fy = y => 0.05 + (y - 0.05) * r + lift * Math.max(0, 1 - y / 1.4); }
-          else { const e = a.torn ? easeOut(u) : easeIn(u); fy = y => 0.05 + (y - 0.05) * (1 - e); }
+          else { const e = easeIn(u); fy = y => 0.05 + (y - 0.05) * (1 - e); }
         }
         if (fy) for (const q of sheetAt[k]) R.add(Object.assign({}, q, { pts: q.pts.map(w => [w[0], fy(w[1]), w[2]]) }));
         else if (!m.live) for (const q of sheetAt[k]) R.add(q);

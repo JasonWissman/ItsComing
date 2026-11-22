@@ -17,7 +17,8 @@
 // clock (the night runs it, so every mirror shows the same moment), and c.danceMir -1 draws the mirror image of it.
 // c.tint (a light, as LIGHT.at gives) lights it by hand where the night has the renderer leave it unlit.
 // pressed() is not the doll but what a dust sheet shows of it, pushing out through the cloth from behind (night 10's
-// easter egg, every mirror covered: the night draws it on the sheet).
+// easter egg, every mirror covered: the night draws it on the sheet), and shroud() is that sheet coming at you with it
+// inside: with c.shroud set, that is all that is drawn of it (nothing at all while c.shroud.hidden).
 CREATURES.other = {
   name: 'the doll', h: 1.35, w: 0.72, faceY: 1.14, stepRate: 1.6, catchDist: 1.3, sound: null, seenFrac: 0.6,
   death: { delay: 0.4, dur: 0.6, sting: 'stingHum' },
@@ -82,7 +83,8 @@ CREATURES.other = {
   // cloth webbed taut between the fingertips; both grow as they press (the cloth stretching out toward you), and from each
   // the cloth is pulled into creases to the top of the frame it hangs from and out to its sides. o.t is its clock: the
   // cloth trembles with the strain (o.still: it does not). o.y: how high its face is (1.17: the doll's, seen in a sheet
-  // just before it).
+  // just before it). For the lunge in the sheet (shroud): o.bare leaves out the creases to the frame, o.reach (0..1)
+  // brings its hands in and on toward you, and o.wail (0..1) drops its jaw.
   pressed(ctx, P, o) {
     const k = clamp(o.k || 0, 0, 1), hk = clamp(o.hands || 0, 0, 1);
     if (k <= 0 && hk <= 0) return;
@@ -102,9 +104,9 @@ CREATURES.other = {
       P_line(ctx, x + ux * r0, y + uy * r0, x + ux * r1, y + uy * r1, w, P.cola(C.fold, 0.8 * kk));
       P_line(ctx, x + ux * r0 + uy * w, y + uy * r0 - ux * w, x + ux * r1 + uy * w * 0.5, y + uy * r1 - ux * w * 0.5, w * 0.7, P.cola(hi, 0.6 * kk));
     };
-    const fy = (o.y || 1.17) + 0.05 * k, S = lerp(1.3, 1.85, k) * (1 + 0.012 * Math.sin(t * 33) * shiver * k);
+    const fy = (o.y || 1.17) + 0.05 * k, S = lerp(1.3, 1.85, k) * (1 + 0.012 * Math.sin(t * 33) * shiver * k), reach = clamp(o.reach || 0, 0, 1), wail = clamp(o.wail || 0, 0, 1);
     if (k > 0) {
-      for (const [x, y, w] of [[-0.8, 2.56, 0.03], [0.76, 2.56, 0.03], [-0.26, 2.6, 0.022], [0.3, 2.6, 0.022], [-0.98, 1.55, 0.022], [0.98, 1.65, 0.022], [-0.62, 0.15, 0.02], [0.56, 0.12, 0.02]]) crease(0, fy, x, y, 0.19 * S, w, k);
+      if (!o.bare) for (const [x, y, w] of [[-0.8, 2.56, 0.03], [0.76, 2.56, 0.03], [-0.26, 2.6, 0.022], [0.3, 2.6, 0.022], [-0.98, 1.55, 0.022], [0.98, 1.65, 0.022], [-0.62, 0.15, 0.02], [0.56, 0.12, 0.02]]) crease(0, fy, x, y, 0.19 * S, w, k);
       ctx.save(); ctx.translate(0, fy); ctx.scale(S, S);
       blob(0, 0, 0.26, 0.3, C.base, k);                    // the cloth drawn smooth over it
       blob(0, -0.215, 0.2, 0.1, C.fold, 0.85 * k);         // the hollow under its chin
@@ -118,7 +120,7 @@ CREATURES.other = {
       }
       blob(0, -0.028, 0.02, 0.05, hi, k);                  // its nose
       blob(0, -0.068, 0.026, 0.013, C.fold, 0.8 * k);
-      const open = smoothstep((k - 0.25) / 0.75), my = -0.108 - 0.014 * open, mw = 0.03 + 0.007 * open, mh = 0.013 + 0.032 * open;
+      const open = smoothstep((k - 0.25) / 0.75), my = -0.108 - 0.014 * open - 0.016 * wail, mw = 0.03 + 0.007 * open + 0.008 * wail, mh = 0.013 + 0.032 * open + 0.03 * wail;
       blob(0, my, mw * 1.7, mh * 1.6, deep, 0.9 * k);      // its mouth: open, and opening
       P_ell(ctx, 0, my, mw, mh, P.cola(deep, 0.9 * k));
       blob(0, my + mh + 0.012, 0.04, 0.012, hi, 0.6 * k);  // the upper lip
@@ -126,8 +128,8 @@ CREATURES.other = {
       ctx.restore();
     }
     if (hk > 0) for (const s of [-1, 1]) {
-      const Sh = lerp(1.35, 2.0, hk) * (1 + 0.014 * Math.sin(t * 29 + s) * shiver * hk), hx = s * lerp(0.4, 0.5, hk), hy = fy - 0.04;
-      for (const [x, y, w] of [[s * 1.0, hy + 0.55, 0.02], [s * 1.02, hy - 0.45, 0.02], [s * 0.9, 2.58, 0.024]]) crease(hx, hy, x, y, 0.13 * Sh, w, hk);
+      const Sh = lerp(1.35, 2.0, hk) * (1 + 0.014 * Math.sin(t * 29 + s) * shiver * hk) * (1 + 0.2 * reach), hx = s * (lerp(0.4, 0.5, hk) - 0.07 * reach), hy = fy - 0.04 - 0.1 * reach;
+      if (!o.bare) for (const [x, y, w] of [[s * 1.0, hy + 0.55, 0.02], [s * 1.02, hy - 0.45, 0.02], [s * 0.9, 2.58, 0.024]]) crease(hx, hy, x, y, 0.13 * Sh, w, hk);
       ctx.save(); ctx.translate(hx, hy); ctx.scale(s * Sh, Sh);   // (the thumb on the side of its face)
       const F = [[-1.2, 0.05], [-0.42, 0.08], [-0.06, 0.088], [0.28, 0.08], [0.62, 0.064]], at = (a, r) => [Math.sin(a) * r, Math.cos(a) * r];
       const tips = F.map(([a, l]) => at(a, 0.035 + l));
@@ -146,6 +148,57 @@ CREATURES.other = {
       ctx.restore();
     }
   },
+  // The sheet coming at you with it inside (the end of night 10's easter egg): the face and the hands that pressed out
+  // through the cloth (pressed, as far in as they were: o.press) are what lunges, and the rest of the sheet is dragged
+  // after them. Drawn in the doll's own place (metres, from its feet, as it is o.d from you), from the sheet as it hung
+  // (o.from off, its outline, its face o.press deep in it): as the face comes on, the sheet is first pulled out into a
+  // cone, its edges still on the frame, then comes off the frame and trails behind it (never further back than TRAIL),
+  // rounding from a sheet's shape into a ring about the face and flaring wider the further it comes, its hem rippling,
+  // so that at the end it is past every edge of the view; folds run out from the face to the hem all the way round, and
+  // the cloth darkens away from the face (it is further off). o.eye: the eye's height, o.up: how far the game has lifted
+  // it (c.yOff), o.k: the lunge (0..1), o.t: its clock, o.still: reduced motion (less flare, no ripple, no tremble).
+  // o.rim: how far the hem reaches from the face in this drawing, in these metres (kept for the tests).
+  shroudHem: [[-0.9, 2.62], [-0.45, 2.62], [0, 2.62], [0.45, 2.62], [0.9, 2.62], [0.97, 2.56], [0.99, 2.0], [1.0, 1.4], [1.02, 0.75], [1.05, 0.1], [0.8, 0.05], [0.52, 0.11], [0.2, 0.03], [-0.1, 0.1], [-0.42, 0.04], [-0.74, 0.1], [-1.04, 0.07], [-1.02, 0.75], [-1.0, 1.4], [-0.99, 2.0], [-0.97, 2.56]],
+  shroud(ctx, P, o) {
+    const C = Object.assign({ base: [156, 148, 132], fold: [114, 106, 94], lite: [180, 172, 156] }, o.cloth);
+    const TRAIL = 1.2, RING = 1.25, press = o.press === undefined ? 1 : o.press, k = clamp(o.k || 0, 0, 1), t = o.t || 0, calm = !!o.still;
+    const d = o.d, z = Math.max(0, o.from - d), eye = o.eye, up = o.up || 0;
+    const flow = smoothstep(z / 0.8), depth = TRAIL * (1 - Math.exp(-z / TRAIL)), m = d / (d + depth);
+    const flare = lerp(1, calm ? 1.35 : 1.75, smoothstep((z - 0.6) / 2.2)), ripple = calm ? 0 : 0.07 * flow;
+    // its face: where it was in the sheet, and on to where the game brings its face up to your eye
+    const y0 = 1.17 + 0.05 * press, kk = lerp(press, 1, smoothstep(k)), fy = lerp(y0, 1.11, smoothstep(k)), fyP = fy - 0.05 * kk;
+    const mid = lerp(y0, fy + up, smoothstep(z));   // the height the hem hangs about: where it hung, then its face's
+    // a point of the sheet (as it hung: x across, y up) where it is now, in this drawing
+    const at = (x, y, i) => {
+      const vx = x, vy = y - y0, r = Math.hypot(vx, vy) || 1e-6, rr = lerp(r, RING, 0.5 * flow) * flare * (1 + ripple * Math.sin(i * 2.3 + t * 17)) / r;
+      return [vx * rr * m, eye + (mid + vy * rr - eye) * m - up];
+    };
+    const hem = this.shroudHem.map(([x, y], i) => at(x, y, i));
+    o.rim = Math.max(...hem.map(q => Math.hypot(q[0], q[1] - fy)));
+    const path = () => { ctx.beginPath(); hem.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); };
+    ctx.fillStyle = P.col(C.base); path(); ctx.fill();
+    // further from its face the cloth is further from you: darker
+    ctx.save(); path(); ctx.clip();
+    const g = ctx.createRadialGradient(0, fy, 0.3, 0, fy, Math.max(0.35, o.rim));
+    g.addColorStop(0, P.cola(C.fold, 0)); g.addColorStop(1, P.cola(C.fold.map(v => v * 0.7), 0.75 * flow));
+    ctx.fillStyle = g; ctx.fillRect(-o.rim - 1, fy - o.rim - 1, 2 * o.rim + 2, 2 * o.rim + 2);
+    ctx.restore();
+    // the long folds it hung in, going as it is pulled
+    const hung = 1 - smoothstep(k / 0.3);
+    if (hung > 0) for (const [xa, xb, w] of [[-0.66, -0.72, 0.13], [0.04, 0.1, 0.15], [0.58, 0.68, 0.12]]) {
+      P_poly(ctx, [at(xa, 2.5, 0), at(xb + w / 2, 0.15, 0), at(xb - w / 2, 0.15, 0)], P.cola(C.fold, hung));
+      P_poly(ctx, [at(xa + 0.02, 2.5, 0), at(xb + w / 2 + 0.07, 0.15, 0), at(xb + w / 2, 0.15, 0)], P.cola(C.lite, hung));
+    }
+    // the folds from its face out to the hem, all the way round: a dark one to each point of the hem, light beside it
+    const a = lerp(0.3, 0.9, flow), r0 = 0.3;
+    hem.forEach((q, i) => {
+      const dx = q[0], dy = q[1] - fy, len = Math.hypot(dx, dy); if (len < r0 * 1.2) return;
+      const ux = dx / len, uy = dy / len, w = len * (i % 2 ? 0.03 : 0.045), b = [ux * r0, fy + uy * r0];
+      P_poly(ctx, [b, [q[0] - uy * w, q[1] + ux * w], [q[0] + uy * w, q[1] - ux * w]], P.cola(C.fold, a));
+      P_poly(ctx, [b, [q[0] + uy * w, q[1] - ux * w], [q[0] + uy * w * 2.3, q[1] - ux * w * 2.3]], P.cola(C.lite, a * 0.8));
+    });
+    this.pressed(ctx, P, { k: kk, hands: kk, y: fyP, bare: true, reach: smoothstep(k), wail: k, t, still: calm, cloth: o.cloth });
+  },
   colours(P) {
     return {
       porcelain: P.col([234, 224, 210]), porcelainD: P.col([198, 186, 172]), hair: P.col([40, 27, 22]), hairL: P.col([68, 46, 34]),
@@ -154,6 +207,7 @@ CREATURES.other = {
     };
   },
   draw(ctx, c, P) {
+    if (c.shroud) { if (!c.shroud.hidden) this.shroud(ctx, P, Object.assign(c.shroud, { d: c.dist, up: c.yOff || 0, k: c.lunge || 0, t: c.t })); return; }   // in the sheet: the sheet is all there is to see
     if (c.tint) { const li = c.tint, Q = P; P = Object.assign({}, Q, { col: k => Q.col(LIGHT.apply(k, li)), cola: (k, a) => Q.cola(LIGHT.apply(k, li), a) }); }
     if (c.runPose) { this.drawRun(ctx, c, P); return; }
     const t = c.t, lunge = c.lunge || 0, back = !!c.back, rush = c.rush || 0, g = rush ? (c.runGait || 0) : (c.gait || 0);

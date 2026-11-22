@@ -498,9 +498,15 @@ some on the ground, so you have to turn and look down to find them.
     The last sheet settles and the room is dead quiet for a second; then in that sheet its face presses out through the
     cloth from inside (the swell of its head, its brow, the hollows of its eyes, its nose, its mouth opening), a hand
     either side of it, fingers spread, the cloth stretched toward you and creaking, its sob rising to a wail, the other
-    three sheets bulging with its face too; at 2.9 s the sheet is torn down and it comes through at you, the night's
-    usual lunge ("Nice try": "It does not like to be ignored."). Nothing can be pressed meanwhile (it is the death,
-    from the moment the sheet goes up). With reduced motion the cloth bulges less, does not tremble, and nothing shakes.
+    three sheets bulging with its face too (and they stay so); at 2.9 s that same face and those hands come at you as
+    they are, in the cloth: the night's usual lunge (0.55 s, the same sting), but what lunges is the sheet with it
+    inside. The moulded face grows toward your eye, its mouth dropping open, a cloth-covered hand reaching either side,
+    and the rest of the sheet is dragged along behind them: pulled out into a cone with its edges still on the frame,
+    then off the mirror altogether, rounding into a ring of folds that run out from the face to the hem, the hem flaring
+    and rippling like a shroud, until the cloth is past every edge of the view. The doll itself is never seen, and no
+    sheet is left on that mirror ("Nice try": "It does not like to be ignored."). Nothing can be pressed meanwhile (it
+    is the death, from the moment the sheet goes up). With reduced motion the cloth bulges less and does not tremble,
+    the sheet flares less and does not ripple, and nothing shakes.
 11. **The Farm.** You stand in the yard by the farm's electrical box, the house at your back with its porch light on,
     facing the barn: the night always starts that way, wherever the thing is, and finding it is part of it (the card
     does not say where it is coming from). Round you in a ring, at the compass points, are the farm's places, each with

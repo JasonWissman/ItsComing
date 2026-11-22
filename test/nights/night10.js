@@ -18,8 +18,9 @@
 // could be picked up put them, and the next roll is the same); two folded sheets lie under the lamp's table; one in hand,
 // a bare mirror takes it (the glass shows nothing under it, and before it the thing is unseen), it is pulled down again,
 // its heap taken up and thrown back over; and the last bare mirror covered is the easter egg: found and saved at once,
-// nothing to press, a hush, its face and then its hands pressed out through that sheet, the other sheets bulging, and it
-// comes through: "Nice try", "It does not like to be ignored.". Later, with every sheet down, the odd mirror is covered
+// nothing to press, a hush, its face and then its hands pressed out through that sheet, the other sheets bulging, and
+// then the sheet itself comes at you with it inside (no sheet torn down, no doll: the sheet leaves its mirror, its hem
+// growing from the sheet's own size to past the edges of the view): "Nice try", "It does not like to be ignored.". Later, with every sheet down, the odd mirror is covered
 // again and uncovered, and the box still plays before it.
 const ped = k => 'pedestal' + k;
 // watch for something that may only be true for a moment (an animation under way), from now on, every frame; saw: it was
@@ -71,7 +72,7 @@ const coverAgain = k => [look(k), ['wait', 200],
 ];
 // the last bare mirror covered: the easter egg
 const lastSheet = k => [look(k), ['wait', 200],
-  ['eval', `delete SAVE.data.eggs.mirrors; window._eg = { hush: 0, face: 0, hands: 0, others: 0, lungeAt: -1, torn: false, shake: 0, calm: 0 };
+  ['eval', `delete SAVE.data.eggs.mirrors; window._eg = { hush: 0, face: 0, hands: 0, others: 0, lungeAt: -1, shake: 0, bare: 0, early: 0, hung: 0, heaps: 0, rim0: -1, rim1: 0, near: 9, othersEnd: 0 };
     (function w() {
       const e = window._eg, s = G.L.s, T = G.stateT, c = G.L.creature;
       if (G.state === 'dying' && s.egg) {
@@ -80,8 +81,17 @@ const lastSheet = k => [look(k), ['wait', 200],
         if (own) { e.face = Math.max(e.face, own.k); e.hands = Math.max(e.hands, own.hands); }
         e.others = Math.max(e.others, oth);
         if (c.lunge > 0 && e.lungeAt < 0) e.lungeAt = T;
-        if (c.angry !== 1 || c.smile) e.calm++;
-        if (s.egg.burst && s.mirrors[s.egg.k].live) e.torn = true;
+        const sh = c.shroud, m = s.mirrors[s.egg.k];
+        if (!sh) e.bare++;                                   // the doll itself would be drawn
+        else if (!c.lunge) { if (!sh.hidden) e.early++; }    // before the lunge nothing is drawn of it: the sheet hangs
+        else if (!sh.hidden) {                               // lunging: the sheet is off its mirror and is what comes
+          if (!m.live || m.anim) e.hung++;
+          if (m.heap) e.heaps++;
+          const view = sh.rim / c.dist;                      // how far its hem reaches from its face, in the view (1: the side edges)
+          if (e.rim0 < 0) e.rim0 = view;
+          e.rim1 = Math.max(e.rim1, view); e.near = Math.min(e.near, c.dist);
+          e.othersEnd = oth;
+        }
       }
       if (G.state === 'play' || G.state === 'dying') requestAnimationFrame(w);
     })()`],
@@ -95,7 +105,9 @@ const lastSheet = k => [look(k), ['wait', 200],
   ['waitUntil', "G.state === 'dead'", 8000],
   ['expect', '(e => e.hush === 0 && e.shake === 0)(window._eg)', 'first a hush: for most of a second nothing shows in any sheet, and nothing shakes'],
   ['expect', '(e => e.face > 0.95 && e.hands > 0.95 && e.others > 0.6)(window._eg)', 'then its face presses out through that sheet, and its two hands, and the other sheets bulge too'],
-  ['expect', '(e => e.lungeAt > 2.85 && e.lungeAt < 3.1 && e.torn && !e.calm)(window._eg)', 'and at 2.9 s the sheet is torn down and it comes through at you, weeping'],
+  ['expect', '(e => e.lungeAt > 2.85 && e.lungeAt < 3.1 && !e.bare && !e.early && e.rim0 > 0)(window._eg)', 'and at 2.9 s it comes at you in the sheet: the doll itself is never drawn, and nothing of it before then'],
+  ['expect', '(e => !e.hung && !e.heaps && e.othersEnd > 0.6)(window._eg)', 'the sheet leaves its mirror with it (not torn down: no sheet hangs there and none lies in a heap), the other three still bulging'],
+  ['expect', '(e => e.rim0 < 0.6 && e.rim1 > 1.25 && e.near < 0.7)(window._eg)', 'the sheet streams back from its face, its hem growing from the sheet\'s own size on the mirror to past every edge of the view as it reaches you'],
   ['expect', "G.state === 'dead' && G.deathCause === 'ignored' && G.deathScreen.title === 'Nice try' && G.deathScreen.text === 'It does not like to be ignored.'", 'the screen says "Nice try": "It does not like to be ignored."'],
 ];
 const bare = k => 'G.L.s.mirrors[' + k + '].live && !G.L.s.egg';
