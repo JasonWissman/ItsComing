@@ -47,6 +47,10 @@ const SOUNDS = [
   { kind: 'sfx', name: 'strike', n: [3], d: 'A match struck and flaring.', src: 'night03 lanterns' },
   { kind: 'sfx', name: 'candle', n: [3], d: 'A faint rising tone. A lantern’s flame catches.', src: 'night03 lanterns' },
   { kind: 'sfx', name: 'chain', n: [3, 4, 6], d: 'A run of small metal links. Lantern hung on its hook (3), chain round the gate (4), the winch chain springs loose (6).', src: 'night03, 04, 06' },
+  { kind: 'sfx', name: 'sugarPour', n: [3], d: 'A dry rush of grains out of a paper bag, thinning as it empties, the paper crackling. The easter egg: handed the bag of sugar, the smiler pours all of it into its mouth (then a gulp). About 0.9 s.', src: 'night03 (easter egg)' },
+  { kind: 'sfx', name: 'sugarBuzz', n: [3], d: 'A buzz that climbs and quickens, jittering, and ends on a ping. The sugar takes hold: it begins to tremble, then tears off round the graveyard. About 0.9 s.', src: 'night03 (easter egg)' },
+  { kind: 'sfx', name: 'skid', n: [3], d: 'Boots scraping over gravel, grit flying, and a thump as they stop. It skids back to where it stood when it was handed the bag.', src: 'night03 (easter egg)' },
+  { kind: 'sfx', name: 'shudder', n: [3], d: 'A quick rattle, its keys jangling with it. The last of the sugar goes through it, and it comes on again.', src: 'night03 (easter egg)' },
   { kind: 'sfx', name: 'gate', n: [4], d: 'Iron on iron, a heavy clang. The quarry gates shut and shaken (4).', src: 'night04' },
   { kind: 'sfx', name: 'creak', n: [4, 6, 7], d: 'A long creak of hinges. Gates and doors swinging, boxes and lids opening.', src: 'night04, 06, 07 · levels.js opening' },
   // ---- night 4: the quarry ----
@@ -82,7 +86,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'shutterBang', n: [8], d: 'Deep booming fists on a steel shutter.', src: 'night08 aftermath' },
   { kind: 'sfx', name: 'sodaPour', n: [8], d: 'A valve click, soda drumming into a paper cup and fizzing. The soda fountain fills the cup.', src: 'night08 soda fountain' },
   { kind: 'sfx', name: 'sodaSputter', n: [8], d: 'A valve click, air, a few wet spits and a gurgle. The soda fountain run dry.', src: 'night08 soda fountain' },
-  { kind: 'sfx', name: 'gulp', n: [8], d: 'A big low swallow. It drinks the soda, three of them a cup.', src: 'night08 soda' },
+  { kind: 'sfx', name: 'gulp', n: [3, 8], d: 'A big low swallow. It drinks the soda, three of them a cup (8); the smiler swallows a whole bag of sugar (3, the easter egg).', src: 'night08 soda · night03 (easter egg)' },
   { kind: 'sfx', name: 'counterPound', n: [8], d: 'A heavy fist on the diner counter, things on it jumping. Slow and single, then fast with both fists.', src: 'night08 soda' },
   { kind: 'sfx', name: 'cupDown', n: [8], d: 'A light paper tap. A paper cup set down on the counter.', src: 'night08 soda' },
   // ---- night 9: the phone booth ----

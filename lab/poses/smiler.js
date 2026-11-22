@@ -6,6 +6,7 @@
   const SALT = { hold: 6, look: 1.2 };   // night03: held this long where it has nowhere weaker to go, it steps over
   const END = { run: 2.5, stop: 0.4, bow: 0.45, look: 1.3, rise: 0.3, turn: 0.75, walk: 2.8, walkSpeed: 2.2, runCadence: 17 };
   const ROUND = { wait: 0.8, round: 0.5 };                                // game.js ROUND: standing a moment, then out of sight
+  const GIVE = { take: 0.35, look: 1.0, pour: 1.2, buzz: 0.8, skid: 0.5, shudder: 0.6 };   // night03 GIVE: the easter egg's times
   const RUN = { lat0: 3.6, T1: 0.8, d2: 5.5, lat1: 3.0, in: 0.65 };   // roundLat and its times, worked out for the path and the side gate
   // the game's walk in (game.js updateCreature): u at m/T a second, a hitch jumps it on (c.hitched), the legs from how far it moved
   const drive = (c, dt, held) => {
@@ -83,6 +84,50 @@
           } else { c.turn = 1; c.away = true; c.bow = 0; c.dist += dt * END.walkSpeed; }
           step(c, prev, dt);
         } },
+      // night 3's easter egg (night03 GIVE: handed the bag of sugar): the three parts of it
+      { name: 'Looking at the bag of sugar', note: 'The easter egg: handed the red bag, he stops, his free hand comes out for it, and he holds it up by its neck and looks at it, his head cocked to it and then the other way.', dist: 3.2, dur: 2.6, fit: { w: 1.5 },
+        tick(c, k, dt, T) {
+          drive(c, dt, 3.2);
+          if (T < GIVE.take) { c.bagHas = false; c.cock = 0; c.bag = 0.5 * smoothstep(T / GIVE.take); bowTo(c, 0, 3, dt); return; }
+          const u = Math.min(T - GIVE.take, GIVE.look);
+          c.bagHas = true; c.bag = lerp(0.5, 1, smoothstep(u / 0.25)); bowTo(c, 0.7, 5, dt);
+          c.cock = smoothstep(u / 0.2) - 1.7 * smoothstep((u - 0.5) / 0.16);
+        } },
+      { name: 'Pouring it in', note: 'His head goes back, his mouth open to the sky, and the bag is upended over it: all of it runs in, he swallows, lets the empty bag fall, and stands dead still.', dist: 3.2, dur: 3, fit: { h: 2.1, w: 1.5 },
+        set(c) { c.bag = 1; c.bagHas = true; c.bow = 0.7; c.cock = -0.7; },
+        tick(c, k, dt, T) {
+          drive(c, dt, 3.2);
+          const u = T - 0.4, at = GIVE.pour - 0.17;
+          if (u < 0) return;
+          if (u < GIVE.pour) {
+            c.tip = clamp(u / 0.28, 0, 1); c.cock *= Math.max(0, 1 - dt * 12); bowTo(c, 0, 6, dt);
+            c.pour = clamp((u - 0.24) / (at - 0.24), 0, 1); c.gulp = u >= at ? Math.exp(-(u - at) * 7) : 0;
+            return;
+          }
+          c.bagHas = false; c.pour = c.gulp = 0; c.tip = Math.max(0, c.tip - dt * 9); c.bag = Math.max(0, c.bag - dt * 7);
+        } },
+      { name: 'The sugar rush', note: 'He begins to tremble, his eyes wide and his hair on end, and tears off round the graveyard, arms in the air, the staff with them; then straight back at you, a skid to a stop where he stood, one last shudder, and he comes on as before.', dist: 3.2, dur: 8.2, fit: { h: 2.5, w: 6.4 },
+        tick(c, k, dt, T) {
+          const B = GIVE.buzz, R1 = B + 3.4, R2 = R1 + 1.1, S = R2 + GIVE.shudder, prev = c.dist;   // trembling; side on, across and back; straight at you, skidding; the shudder
+          c.CR.speedMult(c, dt, true);
+          if (T < B) { const q = T / B; c.buzz = q * q; c.wired = smoothstep(q * 2.5); c.x = 0; }
+          else if (T < R1) {
+            const a = (T - B) * 2.6;
+            c.buzz = 1; c.wired = 1; c.flail = 1; c.runPose = true; c.x = Math.sin(a) * 2.3; c.runDir = Math.cos(a) >= 0 ? 1 : -1; c.dist = 8;
+            c.runGait = (c.runGait || 0) + dt * 34;
+          } else if (T < R2) {
+            const u = T - R1, left = R2 - T;
+            c.runPose = false; c.rush = 1; c.x = 0; c.dist = lerp(8, 3.2, easeOut(u / 1.1));
+            c.skid = clamp(1 - left / GIVE.skid, 0, 1); c.dust = c.skid * 0.5;
+            if (!c.skid) c.gait += 30 * dt - (prev - c.dist) * c.CR.stepRate * Math.PI;
+          } else if (T < S) {
+            const q = (T - R2) / GIVE.shudder;
+            c.rush = 0; c.flail = 0; c.dist = 3.2; c.skid = Math.max(0, 1 - (T - R2) / 0.18); c.dust = 0.5 + 0.5 * q;
+            c.buzz = Math.sin(Math.PI * clamp((q - 0.25) / 0.6, 0, 1)); c.wired = 1 - smoothstep((q - 0.6) / 0.4);
+          } else { c.buzz = c.wired = c.skid = c.dust = 0; if (!c.on) { c.on = true; c.u = 1 - c.dist / c.D0; } drive(c, dt); return; }
+          step(c, prev, dt);
+        },
+        draw(ctx, c, P, CR) { ctx.translate(c.x || 0, 0); CR.draw(ctx, c, P); } },
       LAB.lunge({ dist: 1.4, dur: 2.4, zoom: 2.2, note: 'He reaches you: the staff falls away, and both bony hands come at you, fingers hooked, as his head jerks over and the grin gapes.' }),
     ],
   });

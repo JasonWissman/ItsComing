@@ -223,7 +223,23 @@ some on the ground, so you have to turn and look down to find them.
    he runs round to it, side on. With nowhere better to go, a line with no light by it
    holds him only a while: he looks down at the salt once more and steps over. When the
    last lantern is lit he comes right up to the salt, looks down at it, then turns round
-   and walks back into the dark.
+   and walks back into the dark. The night's easter egg ("Give it a sugar rush."): with the bag of sugar in
+   your hand and him within 4.5 m and in plain view (walking in, standing at the salt, or running off to go round), he
+   is a thing to click, "Give it the sugar", and a click hands him the bag for good; farther off he is not, and a click
+   does what it always did. It is found, and kept in the save, the moment the bag leaves your hand, and it is no death.
+   He stops and takes the bag in his free hand (0.35 s), holds it up by its neck and looks at it, his head cocked to it and
+   then the other way (1 s), tips his head back and pours all of it into his open mouth, swallows, and lets the empty bag
+   fall, where it lies for the rest of the night (1.2 s); stands stock still (0.4 s); begins to tremble, more and more, his
+   eyes wide with a pinprick in each and his hair on end (0.8 s); and tears off round the graveyard for 6 s, out by the way
+   he came and in among the headstones north of the porch (from the side gate, out east and round the corner of the
+   fence), round them, across the view and back, his arms in the air and the staff with them, dust hanging along the way he
+   went, some 100 m at about 18 m/s, three or four times his running pace. Then straight back in by the gap he went out by,
+   a skid to a stop where he stood when he took the bag, one last shudder (0.6 s), and the night goes on from there: no
+   ground gained and none lost, only the 10 seconds or so, in which you are free to act. He cannot reach you meanwhile; a
+   way that held him at the salt holds him afresh (its clocks start again), and a run round that he was handed the bag in
+   the middle of is finished. Won while he is out in the yard, he comes straight back and the night ends as it does. With
+   reduced motion the tremble is slight and the run is one plain loop at about twice his running pace, in the same time;
+   the view is never shaken.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
    You must look away to shut both gates, chain each with its own chain, and lock each
    with its own padlock (a click anywhere on the chain, all the way across the post's face, is a click on the gate,
