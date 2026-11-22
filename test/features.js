@@ -424,17 +424,17 @@ const hoverHit = lookFor;
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
   check(await page.evaluate(() => G.unlocked === 0 && !MENU.scoresOpen() && !document.querySelector('#overlay button[data-act="nights"]')), 'with nothing to show yet, the title has no Scores button');
-  // Scores is there once there is something in it: a best run (a whole game finished) or an easter egg found. Nights
-  // survived alone are not enough; an egg named for a night that has none is nothing either
+  // Scores is there only once a whole game has been finished (a best run). Nights survived alone are not enough, and
+  // nor is an easter egg found (it is saved all the same, and is in Scores once that is there)
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.unlocked.nightmare = 3; d.eggs = { field: true, nosuchnight: true }; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
   const sc0 = await page.evaluate(() => ({ u: G.unlocked, open: MENU.scoresOpen(), btn: !!document.querySelector('#overlay button[data-act="nights"]'), fieldEgg: !!(LEVELS[0].text && LEVELS[0].text.egg) }));
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.eggs = { road: true }; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
-  const sc1 = await page.evaluate(() => ({ open: MENU.scoresOpen(), acts: [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() }));
+  const sc1 = await page.evaluate(() => ({ open: MENU.scoresOpen(), kept: SAVE.data.eggs.road === true, acts: [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() }));
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.eggs = {}; d.bestRun = { nightmare: { t: 400, nights: LEVELS.map(() => 400 / 13) } }; localStorage.setItem('itscoming.v2', JSON.stringify(d)); });
   await page.reload(); await page.waitForTimeout(300);
-  check(sc0.u === 3 && (sc0.fieldEgg || (!sc0.open && !sc0.btn)) && sc1.open && sc1.acts === 'begin,nights,howto,settings', 'nights survived are not enough for it (nor an egg for a night that has none); one easter egg found is (' + JSON.stringify([sc0, sc1]) + ')');
+  check(sc0.u === 3 && (sc0.fieldEgg || (!sc0.open && !sc0.btn)) && !sc0.open && !sc0.btn && !sc1.open && sc1.kept && sc1.acts === 'begin,howto,settings', 'nights survived are not enough for it, nor is an easter egg found (kept in the save all the same): no Scores button until a whole run is finished (' + JSON.stringify([sc0, sc1]) + ')');
   check(await page.evaluate(() => MENU.scoresOpen() && !!document.querySelector('#overlay button[data-act="nights"]') && [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() === 'begin,nights,howto,settings' && document.querySelector('#overlay button[data-act="nights"]').textContent === 'Scores'), 'with a best run, the title has a Scores button; Begin is the only way in (no Continue)');
   check(await page.evaluate(() => { const f = document.querySelector('#overlay .fine'), a = f && f.querySelector('a'); return /^created by jason wissman$/.test(f.textContent) && a && a.textContent === 'jason wissman' && a.href === 'https://jasonwissman.com/'; }), 'the line under the title credits jason wissman, linked to jasonwissman.com');
   await page.goto(URL); await page.waitForTimeout(300);
@@ -559,7 +559,7 @@ const hoverHit = lookFor;
   // an older save with best times for single nights and no full run: no run is made up from them, and they are dropped
   await page.evaluate(() => localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 9 }, complete: {}, bestRun: {}, best: { field: { nightmare: { time: 41.2, wins: 3, tries: 5 } } }, settings: {} })));
   await page.goto(URL); await page.waitForTimeout(300);
-  check(await page.evaluate(() => G.unlocked === 9 && !document.querySelector('#overlay button[data-act="nights"]')), 'nights survived, but no full run and no easter egg: no Scores button on the title yet');
+  check(await page.evaluate(() => G.unlocked === 9 && !document.querySelector('#overlay button[data-act="nights"]')), 'nights survived, but no full run: no Scores button on the title yet');
   await page.evaluate(() => MENU.act('nights')); await page.waitForTimeout(200);   // (opened all the same, to see it empty)
   tv = await page.evaluate(() => ({ cards: document.querySelectorAll('#overlay .ncard').length, run: document.querySelector('#overlay .runcard .rtime').textContent, label: document.querySelector('#overlay .runcard .rlabel').textContent, hint: (document.querySelector('#overlay .runcard .rhint') || {}).textContent, stars: !!document.querySelector('#overlay .stars'), best: 'best' in SAVE.data, u: G.unlocked,
     btns: [...document.querySelectorAll('#overlay button')].map(b => b.dataset.act).join(), p: (() => { const p = document.querySelector('#overlay .panel'); return p.scrollHeight <= p.clientHeight + 1; })() }));
@@ -686,16 +686,22 @@ const hoverHit = lookFor;
     await page.evaluate(() => { navigator.getGamepads = () => []; });
     check(g1.focus === 'tab:Easter eggs' && g2.focus === 'tab:Best run' && g2.tabs === 'Best run*/0,Easter eggs/-1' && g3.focus === 'tab:Easter eggs' && g3.tabs === 'Best run/-1,Easter eggs*/0' && g4.tabs === g3.tabs && g4.kind === 'nights' && g5 === 'title title',
       'a pad: up from Back to the chosen tab, left and right choose along them, A changes nothing, B is Back (' + JSON.stringify([g1.focus, g2.tabs, g3.tabs, g5]) + ')');
-    // an egg found, but no full run yet: Scores is on the title for it, opens on the eggs; Best run is its empty state
+    // an egg found, but no full run yet: no Scores on the title for it (the egg is kept); opened all the same, it is on
+    // the eggs, and Best run is its empty state. With a run finished after, Scores is there and the egg is in it
     await setSave({ bestRun: {}, unlocked: { nightmare: 2 }, eggs: { road: true } }); await page.goto(URL); await page.waitForTimeout(300);
-    const nr0 = await page.evaluate(() => !!document.querySelector('#overlay button[data-act="nights"]'));
-    await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+    const nr0 = await page.evaluate(() => !document.querySelector('#overlay button[data-act="nights"]') && !MENU.scoresOpen() && SAVE.data.eggs.road === true);
+    await page.evaluate(() => MENU.act('nights')); await page.waitForTimeout(200);
     const nr1 = await tabsLook();
     await page.click('#overlay [role="tab"][data-tab="run"]'); await page.waitForTimeout(150);
     const nr2 = await page.evaluate(() => { const q = document.getElementById('panel-run'); return { shown: !q.hidden, empty: !!q.querySelector('.runcard.empty'), hint: (q.querySelector('.rhint') || {}).textContent, cards: q.querySelectorAll('.ncard').length, time: q.querySelector('.rtime').textContent }; });
     check(nr0 && nr1.tabs === 'Best run/-1,Easter eggs*/0' && nr1.count === '1 of ' + withEgg.length + ' found' && nr1.fits && nr2.shown && nr2.empty && /No full run yet/.test(nr2.hint) && nr2.cards === 0 && nr2.time === '—',
-      'an easter egg found before any full run: Scores is on the title, open on the eggs (1 found); its Best run tab says there is no full run yet, as ever (' + JSON.stringify([nr0, nr1.tabs, nr1.count, nr2]) + ')');
+      'an easter egg found before any full run: no Scores button on the title for it, the egg kept in the save; opened all the same it is on the eggs (1 found), its Best run tab saying there is no full run yet (' + JSON.stringify([nr0, nr1.tabs, nr1.count, nr2]) + ')');
     await shot(page, 'scores-eggs-norun');
+    await setSave({ eggs: { road: true } }); await page.goto(URL); await page.waitForTimeout(300);
+    const nr3 = await page.evaluate(() => !!document.querySelector('#overlay button[data-act="nights"]') && MENU.scoresOpen());
+    await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
+    const nr4 = await tabsLook();
+    check(nr3 && nr4.tabs === 'Best run*/0,Easter eggs/-1' && nr4.count === '1 of ' + withEgg.length + ' found', 'and once a whole run is finished, Scores is on the title, with that egg in its Easter eggs tab (' + JSON.stringify([nr3, nr4.tabs, nr4.count]) + ')');
     // the list is the nights' own: a night given an easter egg is ??? at once and counts; found, it shows its line
     const dyn = await page.evaluate(() => {
       // (the first night that has none of its own; every night has one now, so for this one is taken off the first night
@@ -730,12 +736,12 @@ const hoverHit = lookFor;
     const ps4 = await page.evaluate(() => ({ st: G.state, kind: MENU.kind, focus: document.activeElement && document.activeElement.dataset.act }));
     await page.keyboard.press('Enter'); await page.waitForTimeout(150); await page.keyboard.press('Escape'); await page.waitForTimeout(150);
     const ps5 = await page.evaluate(() => ({ st: G.state, kind: MENU.kind, focus: document.activeElement && document.activeElement.dataset.act }));
-    check(ps1.st === 'paused' && ps1.acts === 'resume:Resume,controls:Controls,settings:Settings,nights:Scores,quit:Quit' && ps1.widths === 1, 'the pause menu has Scores too once the title has it: Resume, Controls, Settings, Scores, Quit, all one width (' + JSON.stringify(ps1) + ')');
+    check(ps1.st === 'paused' && ps1.acts === 'resume:Resume,controls:Controls,settings:Settings,nights:Scores,quit:Quit' && ps1.widths === 1, 'the pause menu has Scores too once the title has it (a whole run finished): Resume, Controls, Settings, Scores, Quit, all one width (' + JSON.stringify(ps1) + ')');
     check(ps2.st === 'paused' && ps2.kind === 'nights' && ps2b.dlg && ps2b.panel && !ps2b.reset && ps2.acts === 'back' && ps2b.back === 'pause' && ps2.list && ps2.count === '2 of ' + withEgg.length + ' found' && ps3 === 'paused nights',
       'it opens the Scores dialog over the paused night (still paused, a click in it resumes nothing), with no Erase progress (' + JSON.stringify([ps2.kind, ps2b, ps2.acts, ps2.count, ps3]) + ')');
     check(ps4.st === 'paused' && ps4.kind === 'pause' && ps4.focus === 'nights' && ps5.st === 'paused' && ps5.kind === 'pause' && ps5.focus === 'nights', 'its Back, and Esc, are the pause menu again, Scores focused (' + JSON.stringify([ps4, ps5]) + ')');
-    await page.evaluate(() => { SAVE.data.eggs = {}; SAVE.data.bestRun = {}; SAVE.persist(); MENU.show('pause'); });
-    check(await page.evaluate(() => [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() === 'resume,controls,settings,quit'), 'and with nothing for Scores to show, the pause menu has no Scores (as the title has none)');
+    await page.evaluate(() => { SAVE.data.bestRun = {}; SAVE.persist(); MENU.show('pause'); });
+    check(await page.evaluate(() => SAVE.data.eggs.road === true && SAVE.data.eggs.clearing === true && !MENU.scoresOpen() && [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act).join() === 'resume,controls,settings,quit'), 'and with no full run finished, the pause menu has no Scores (as the title has none), though easter eggs have been found');
     // a phone on its side: the eggs' tab fits, each night on a line, nothing scrolled either way; the tabs fair targets
     const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 }), mp = await ctx.newPage();
     await mp.goto(URL); await mp.waitForTimeout(300);
@@ -1554,7 +1560,7 @@ const hoverHit = lookFor;
     check(end.t > 5000 && end.black === -1 && end.ov === 1 && end.mute === 1 && end.lit === 1, 'and it is all in by about five seconds: nothing over the title, everything in (' + JSON.stringify(end) + ')');
   }
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && TITLE.on && TITLE.active() && TITLE.step === 0 && !TITLE.moving && !document.documentElement.getAttribute('data-theme') && SAVE.data.settings.theme !== 'day' && !!document.querySelector('#overlay button[data-act="nights"]') === MENU.scoresOpen() && !document.getElementById('prologue') && !document.getElementById('disclaimer')),
-    'Finish game: home to the usual dark title, with it out there (the presses on the way did nothing: it is no nearer, nothing begun), Scores on it if there is a best run or an easter egg (the morning is not kept)');
+    'Finish game: home to the usual dark title, with it out there (the presses on the way did nothing: it is no nearer, nothing begun), Scores on it if there is a best run (the morning is not kept)');
   check(await page.evaluate(() => document.activeElement && document.activeElement.dataset.act === 'begin' && !UI.overlay.style.opacity && !UI.overlay.style.transition && UI.overlay.classList.contains('titlelow')), 'and the focus is on Begin, the overlay as the title always has it');
   await page.keyboard.press('Escape'); await page.mouse.click(640, 120); await page.waitForTimeout(150);
   check(await page.evaluate(() => G.state === 'title' && TITLE.step === 1), 'the title answers again once it is all in (a click on the dark: a step nearer)');
@@ -2295,7 +2301,7 @@ const hoverHit = lookFor;
       const rows = [];
       for (const ts of [0.85, 1, 1.4, 1.8]) {
         const r = await bp.evaluate(ts => {
-          SAVE.data.unlocked[G.diff().id] = 3; SAVE.data.eggs.road = true; document.documentElement.style.setProperty('--text-scale', ts); showTitle();   // (an easter egg found: Scores is on the title)
+          SAVE.data.unlocked[G.diff().id] = 3; SAVE.data.bestRun[G.diff().id] = { t: 400, nights: LEVELS.map(() => 400 / LEVELS.length) }; document.documentElement.style.setProperty('--text-scale', ts); showTitle();   // (a whole run finished: Scores is on the title)
           for (let i = 0; i < 6; i++) TITLE.advance();
           return new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => {
             const bs = [...document.querySelectorAll('#overlay .mrow .mbtn')], rs = bs.map(b => b.getBoundingClientRect()), k = document.querySelector('#overlay .kicker').getBoundingClientRect(), cr = document.querySelector('#overlay .credit').getBoundingClientRect();

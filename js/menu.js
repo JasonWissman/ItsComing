@@ -58,10 +58,10 @@ const MENU = (() => {
   // the nights' easter eggs, one for each night that has one (its text.egg names it: js/levels/*.js), found or not (the
   // save's eggs, by the night's id: game.js foundEgg). A night with none yet has egg ''
   const eggList = () => LEVELS.map((l, i) => { const egg = (l.text && l.text.egg) || ''; return { i, title: l.title, egg, found: !!(egg && SAVE.data.eggs[l.id]) }; });
-  const eggsFound = () => eggList().filter(x => x.found).length;
-  // Scores is there to open (on the title, and in the pause menu) once there is something in it: a best run (a whole
-  // game finished), or an easter egg found
-  const scoresOpen = () => !!SAVE.data.bestRun[G.diff().id] || eggsFound() > 0;
+  // Scores is there to open (on the title, and in the pause menu alike) only once a whole game has been finished: there
+  // is a best run. Easter eggs found before that are kept in the save all the same, and are in its Easter eggs tab when
+  // it is there to open; they do not bring the button by themselves
+  const scoresOpen = () => !!SAVE.data.bestRun[G.diff().id];
   // the Scores' second tab: the thirteen nights in order, each with its easter egg. One found: what it was (the night's
   // own line for it); one not found yet: ???, nothing given away; a night with none: a dash, dimmed. And how many of
   // those there are have been found
@@ -81,7 +81,7 @@ const MENU = (() => {
       case 'title': {
         // the title itself: the name and the way in, and nothing else over what is out there (how to play is a dialog).
         // There is one way in, Begin: every game is all the nights in a row from the first. Scores (the best run and the
-        // easter eggs found, to look at, not to pick from) only once there is one of either (scoresOpen)
+        // easter eggs found, to look at, not to pick from) only once a whole run has been finished (scoresOpen)
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
           '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (scoresOpen() ? btn('nights', 'Scores') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
           '<p class="fine credit">created by <a href="https://jasonwissman.com" target="_blank" rel="noopener">jason wissman</a></p>';

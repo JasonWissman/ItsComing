@@ -41,7 +41,7 @@ Headphones are recommended. Sound starts after your first click.
 `WASD` also works for turning and looking. Clicking the floor while looking
 down puts the active item back down (there is no line about it under the pointer). How to play shows the four that
 matter most as cards (Look around, Zoom in, Interact, Pause). The pause menu has Resume, Controls (How to play, the same
-dialog as on the title; closing it is the pause menu again), Settings, Scores (once the title has it: the same dialog,
+dialog as on the title; closing it is the pause menu again), Settings, Scores (once the title has it, a whole run finished: the same dialog,
 over the paused night, without Erase progress; its Back is the pause menu again) and Quit, its buttons all one width;
 there is no Restart or Mute in it, but `R`, `M` and `Esc` work there as anywhere (and Mute is in Settings). Quit is
 quieter than the rest (no border, in the secondary, slightly darker, text colour), and it is the only way out to the
@@ -830,8 +830,10 @@ and the car takes a different number of tries to start. Some pause, some lurch, 
 There is no picking a night and no continuing: it is a short game, and every game is all thirteen nights in a row,
 from the prologue and night 1 (Begin, or Enter on the title). The death screen offers Try again (the same night) and
 nothing else: the only way out to the title is the pause menu's Quit (Esc there, as anywhere), which asks first.
-Progress, the best full run and the easter eggs found are saved in `localStorage`. Once there is a best full run (a
-whole game finished) or an easter egg has been found, the title has a Scores button, and the pause menu too. Scores
+Progress, the best full run and the easter eggs found are saved in `localStorage`. Only once there is a best full run (a
+whole game finished) does the title have a Scores button, and the pause menu too (the same rule in both); easter eggs
+found before that are saved all the same, and are in its Easter eggs tab once Scores is there, but do not bring the
+button by themselves. Scores
 shows the best full run: a card for every night with that run's time for it, in two columns (three on a
 phone on its side), and under them its whole time and stars; with no full run yet, only a word on what one is. The
 cards are not buttons. Under them, beside Back, is Erase progress. There are no best times for single nights.
