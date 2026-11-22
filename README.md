@@ -223,6 +223,13 @@ some on the ground, so you have to turn and look down to find them.
    tries it, then runs round the outside of the yard to the other one, but only while
    nothing is looking: catch it going round and it stops dead, mid-stride. At the end it
    comes on only when you blink, up to the gate, and shakes it on its chain.
+   Easter egg: win a staring contest. Look at it for a full minute (60 s) without once looking away or
+   letting it out of view, while it faces you with its eyes showing (reaching, screaming or pointing, its head in the
+   view; not with its hands over its face, and not side-on going round), and it blinks first: two quick blinks of its
+   stone lids, a third that stays shut, its fists up to rub its eyes with a little grind of stone, and then it is at once
+   exactly as it was, in the same pose, where it stood (about 2.9 s; 3.5 s, slower and gentler, with reduced motion).
+   Nothing else comes of it. Look away while it is at it and it is over at once; it can be done again after another full
+   minute.
 5. **The Clearing.** Something that sprints at you, fast, drops to all fours to watch, and
    sprints again (down on all fours it creeps from side to side on its hands and feet, never gliding); out in the open it keeps breaking sideways to a new place, running side on
    and closing as it goes, so it is seldom where you last saw it. The bow is on the porch, and its three arrows lie about, each in a

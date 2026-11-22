@@ -138,7 +138,7 @@ CREATURES.watcher = {
     if (up) {
       const cock = pose === 2 ? 0.35 : 0, cs = Math.cos(cock), sn = Math.sin(cock), ey = 0.33, tw = bl.ph === null ? 0 : Math.sin(bl.ph * TAU) * bl.amp;
       WATCHER_ARMS[pose].forEach(([el, hand], i) => {
-        const s = i ? 1 : -1, fx = s * 0.078 + s * tw * 0.012, fy = ey - 0.004 + tw * 0.014;
+        const s = i ? 1 : -1, fx = s * 0.08 + s * tw * 0.02, fy = ey - 0.004 + tw * 0.02;
         const to = [fx * cs - fy * sn, 1.5 + fx * sn + fy * cs], e = [lerp(el[0], s * 0.4, up), lerp(el[1], 1.34, up)], h = [lerp(hand[0], to[0], up), lerp(hand[1], to[1], up)];
         P_limb(ctx, [shoulder(s), e, h], 0.1, stone);
         const a = cock + s * (0.3 + tw * 0.55), ca = Math.cos(a), sa = Math.sin(a);
