@@ -9,6 +9,8 @@ CREATURES.walker = {
   // its eyes are at the height of yours: at the boards across a doorway, it looks in through the gap left between them,
   // its hands on the board under the gap. c.handLift ([left, right], 0..1) raises a hand off the board to strike it, and
   // c.blow (1 at a blow, falling away) throws its head and shoulders in at the boards.
+  // c.look (-1..1) turns its head to one side (+1: to the right of the view): the face slides round the head and narrows.
+  // c.climb (0..1) is it coming in through a window (drawClimb, below).
   lateral(c) { return c.runLat || 0; },
   // c.headroom (metres above its feet as drawn, or undefined) is a height it must keep under: the lintel of a doorway it is
   // coming in through (The Field's are a head too low for it). It ducks under it, as far as it must (duckFor): the
@@ -163,6 +165,7 @@ CREATURES.walker = {
     }
   },
   draw(ctx, c, P) {
+    if (c.climb !== undefined) { if (!c.climbParts) this.drawClimb(ctx, c, P, 'out'); return; }   // (climbParts: a night draws the two halves of it itself)
     if (c.runPose || c.charge) { c.duck = 0; (c.runPose ? this.drawRun : this.drawCharge).call(this, ctx, c, P); return; }   // upright again after either
     const g = c.gait, t = c.t;
     const near = clamp(1 - c.dist / 22, 0, 1);
@@ -208,7 +211,8 @@ CREATURES.walker = {
       this.claws(ctx, hx, hy, ang, lerp(lerp(0.16, 0.3, raise), lerp(0.1, 0.3, lift), pk), 0.17 + raise * 0.05, 0.018, body, P, ba);
     }
     // neck and head with a snapping tilt (ducking, the head is thrust out at you, low between the shoulders)
-    const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0)) * (1 - 0.6 * dk);
+    const lk = c.look || 0;
+    const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0)) * (1 - 0.6 * dk) * (1 - Math.abs(lk));
     ctx.save();
     ctx.translate(sway * 0.6, top);
     ctx.rotate(tilt);
@@ -218,10 +222,114 @@ CREATURES.walker = {
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
     if (faceA > 0) {
       ctx.globalAlpha = faceA;
+      if (lk) { ctx.translate(lk * 0.05, 0); ctx.scale(1 - 0.45 * Math.abs(lk), 1); }   // its head turned: the face round to that side of it
       this.face(ctx, P, skin, eye, body, 0.315, 0.014, 0.028 + near * 0.012, 0.012 + near * 0.03 + (c.lunge || 0) * 0.045);
       ctx.globalAlpha = 1;
     }
     ctx.restore();
+  },
+  // ---- in through a window ----
+  // c.climb (0..1) takes it through a window frame too small for it, limb by limb. It stands outside, close against the
+  // frame, its head above the top of it; a hand comes up and its long fingers hook over the sill, then the other; it
+  // bends, and its head comes down into the frame turned on its side, one thin arm reaching in ahead of it and feeling
+  // down the wall under the sill; the head and shoulders come through and hang there, the other elbow jutting up in the
+  // frame; the body pours over the sill head first, the hands walking down to the floor; one long leg is lifted over,
+  // folded, knee high, and reaches down to the floor wide of it, then the other; it crouches under the window on all
+  // fours, knees above its back, and unfolds to its full height, the arms coming up for you (as draw() has it standing).
+  // It is drawn in two halves, for what is still outside the wall and what has come in: pass 'out' is drawn behind the
+  // wall (which hides all of it but what shows in the frame) and 'in' in front of it. c.frame is the frame as the thing's
+  // own drawing sees it (metres from its feet: l and r the sides, sl and sr the sill's height at each), FRAME where none
+  // is given; c.gentle moves it evenly, without the starts and stops or the twitch of its head. CLIMB_T maps time through
+  // the climb (0..1) to c.climb, so the slow parts are slow (climbAt).
+  FRAME: { l: -0.44, r: 0.44, sl: 1.08, sr: 1.08 },
+  CLIMB_T: [[0, 0], [0.07, 0.05], [0.14, 0.10], [0.2, 0.14], [0.34, 0.22], [0.5, 0.38], [0.64, 0.54], [0.69, 0.58], [0.78, 0.68], [0.82, 0.72], [0.89, 0.82], [1, 1]],
+  climbAt(u) {
+    const T = this.CLIMB_T; let i = 1;
+    while (i < T.length - 1 && T[i][0] < u) i++;
+    return lerp(T[i - 1][1], T[i][1], clamp((u - T[i - 1][0]) / (T[i][0] - T[i - 1][0]), 0, 1));
+  },
+  // when each part of it is through the frame (c.climb): from then it is drawn in front of the wall
+  CLIMB_IN: { armA: 0.14, head: 0.2, chest: 0.36, armB: 0.4, legA: 0.58, legB: 0.72 },
+  // where every joint of it is at c.climb = k. A is its arm and leg on the left of the view, B on the right; x is from
+  // the middle of the frame, y from the ground, or from the sill (s).
+  climbPose(c, k) {
+    const F = c.frame || this.FRAME, PI = Math.PI, gentle = !!c.gentle;
+    const up = smoothstep((k - 0.82) / 0.18), cx = (F.l + F.r) / 2 * (1 - up);   // standing, it is where it stands
+    const sillAt = x => lerp(F.sl, F.sr, clamp((cx + x - F.l) / (F.r - F.l), 0, 1));
+    const s = (at, x, d) => [at, x, sillAt(x) + d];
+    const at = keys => {
+      let i = 1;
+      while (i < keys.length - 1 && keys[i][0] < k) i++;
+      const a = keys[i - 1], b = keys[i], u = clamp((k - a[0]) / (b[0] - a[0]), 0, 1), e = gentle ? lerp(u, smoothstep(u), 0.4) : smoothstep(u);
+      return a.length === 2 ? lerp(a[1], b[1], e) : [lerp(a[1], b[1], e) + cx, lerp(a[2], b[2], e)];
+    };
+    // standing inside at the end, as draw() has it: the arms up toward you by how near it is
+    const raise = smoothstep(clamp(1 - c.dist / 22, 0, 1)), EX = lerp(0.24, 0.52, raise), EY = lerp(1.38, 1.55, raise), HX = lerp(0.27, 0.4, raise), HY = lerp(0.72, 1.95, raise);
+    return {
+      raise, up, sillAt: x => sillAt(x - cx),
+      bl: at([[0, -0.15, 1.16], [0.10, -0.15, 1.18], [0.22, -0.15, 1.22], s(0.38, -0.13, 0.78), s(0.54, -0.14, 0.16), s(0.68, -0.14, 0.1), [0.82, -0.15, 0.98], [1, -0.15, 1.16]]),
+      br: at([[0, 0.15, 1.16], [0.10, 0.15, 1.18], [0.22, 0.15, 1.22], s(0.38, 0.17, 0.78), s(0.54, 0.14, 0.14), s(0.68, 0.14, 0.12), [0.82, 0.15, 0.98], [1, 0.15, 1.16]]),
+      tl: at([[0, -0.22, 2.0], [0.10, -0.22, 1.96], [0.22, -0.27, 1.72], s(0.38, -0.22, 0.42), [0.54, -0.2, 0.86], [0.68, -0.2, 0.74], [0.82, -0.21, 0.8], [1, -0.22, 2.0]]),
+      tr: at([[0, 0.22, 2.0], [0.10, 0.22, 1.96], [0.22, 0.17, 1.52], s(0.38, 0.2, 0.36), [0.54, 0.18, 0.8], [0.68, 0.18, 0.7], [0.82, 0.21, 0.8], [1, 0.22, 2.0]]),
+      hc: at([[0, 0, 2.3], [0.10, 0, 2.26], s(0.22, 0.12, 0.5), s(0.38, 0.06, 0.12), [0.54, 0, 0.52], [0.68, 0, 0.45], [0.82, 0, 0.58], [1, 0, 2.3]]),
+      hr: at([[0, 0], [0.10, 0], [0.22, -1.25], [0.38, -1.5], [0.54, -0.8], [0.68, -0.45], [0.82, -0.15], [1, 0]]),
+      hs: at([[0, 1], [0.10, 1], [0.22, 1.08], [0.38, 1.16], [0.54, 1.2], [0.68, 1.24], [0.82, 1.24], [1, 1]]),
+      eA: at([[0, -0.26, 1.45], [0.05, -0.4, 1.42], [0.14, -0.4, 1.42], s(0.22, -0.42, 0.75), s(0.38, -0.46, 0.1), [0.54, -0.5, 0.62], [0.68, -0.5, 0.55], [0.82, -0.48, 0.5], [1, -EX, EY]]),
+      hA: at([[0, -0.27, 0.9], s(0.05, -0.3, 0.02), s(0.14, -0.3, 0.02), s(0.22, -0.2, 0.45), [0.38, -0.38, 0.62], [0.54, -0.42, 0.04], [0.68, -0.4, 0.04], [0.82, -0.36, 0.04], [1, -HX, HY]]),
+      aA: at([[0, -0.5 * PI], [0.14, -0.5 * PI], [0.22, -0.3 * PI], [0.38, -0.5 * PI], [0.54, -0.75 * PI], [0.82, -0.75 * PI], [1, lerp(-0.5, 0.65, raise) * PI - 2 * PI]]),
+      eB: at([[0, 0.26, 1.45], [0.05, 0.26, 1.45], [0.10, 0.4, 1.42], [0.22, 0.42, 1.5], s(0.38, 0.46, 0.55), [0.54, 0.5, 0.66], [0.68, 0.5, 0.58], [0.82, 0.48, 0.5], [1, EX, EY]]),
+      hB: at([[0, 0.27, 0.9], [0.05, 0.27, 0.9], s(0.10, 0.3, 0.02), s(0.4, 0.32, 0.02), [0.54, 0.4, 0.04], [0.68, 0.4, 0.04], [0.82, 0.36, 0.04], [1, HX, HY]]),
+      aB: at([[0, -0.5 * PI], [0.4, -0.5 * PI], [0.54, -0.25 * PI], [0.82, -0.25 * PI], [1, lerp(-0.5, 0.35, raise) * PI]]),
+      sp: at([[0, 0.16], [0.14, 0.16], [0.22, 0.34], [0.82, 0.3], [1, lerp(0.16, 0.3, raise)]]),   // how far its fingers spread
+      len: 0.17 + raise * 0.05 * up,
+      kA: at([[0, -0.12, 0.61], [0.22, -0.13, 0.63], s(0.38, -0.2, 0.2), s(0.54, -0.24, 0.72), s(0.58, -0.3, 0.75), s(0.68, -0.42, 0.62), [0.82, -0.5, 1.3], [1, -0.12, 0.61]]),
+      fA: at([[0, -0.15, 0.03], [0.22, -0.15, 0.03], [0.38, -0.18, 0.45], s(0.54, -0.2, -0.1), s(0.58, -0.25, 0.1), [0.68, -0.62, 0.03], [0.82, -0.62, 0.03], [1, -0.15, 0.03]]),
+      kB: at([[0, 0.12, 0.61], [0.22, 0.13, 0.63], s(0.38, 0.2, 0.2), s(0.54, 0.26, 0.66), s(0.68, 0.26, 0.7), s(0.72, 0.3, 0.72), [0.82, 0.5, 1.28], [1, 0.12, 0.61]]),
+      fB: at([[0, 0.15, 0.03], [0.22, 0.15, 0.03], [0.38, 0.18, 0.45], s(0.54, 0.22, -0.1), s(0.68, 0.22, -0.1), s(0.72, 0.25, 0.1), [0.82, 0.64, 0.03], [1, 0.15, 0.03]]),
+    };
+  },
+  drawClimb(ctx, c, P, pass) {
+    const k = clamp(c.climb || 0, 0, 1), J = this.climbPose(c, k), IN = this.CLIMB_IN;
+    const body = P.col([6, 6, 10]), skin = P.col([92, 84, 88]), eye = P.col([225, 218, 205]), ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
+    const on = part => (k >= IN[part] ? pass === 'in' : pass === 'out');
+    const mid = (a, b, u) => [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
+    const hip = mid(J.bl, J.br, 0.5), sh = mid(J.tl, J.tr, 0.5), ax = Math.hypot(sh[0] - hip[0], sh[1] - hip[1]) || 1, ux = (sh[0] - hip[0]) / ax, uy = (sh[1] - hip[1]) / ax;
+    const leg = (s, kn, ft) => {
+      const r = mid(J.bl, J.br, s < 0 ? 0.233 : 0.767), root = [r[0] + ux * 0.06, r[1] + uy * 0.06];
+      this.limb(ctx, root, kn, ft, this.LEG, body, ridge, ba);
+      P_line(ctx, ft[0] - 0.03, ft[1], ft[0] + s * 0.09, ft[1], 0.045, body);
+    };
+    const arm = (s, el, hd, ang, grips) => {
+      const root = mid(s < 0 ? J.tl : J.tr, s < 0 ? J.bl : J.br, 0.06);
+      this.limb(ctx, root, el, hd, this.ARM, body, ridge, ba);
+      this.shoulder(ctx, root[0], root[1], body, ridge, ba);
+      if (!grips) this.claws(ctx, hd[0], hd[1], ang, J.sp, J.len, 0.018, body, P, ba);
+    };
+    // a hand that has hold of the sill from outside: the arm is behind the wall, the fingers over the sill on this side
+    const gripA = k >= 0.05 && k < IN.armA, gripB = k >= 0.10 && k < IN.armB;
+    if (on('legB')) leg(1, J.kB, J.fB);
+    if (on('legA')) leg(-1, J.kA, J.fA);
+    if (on('chest')) this.chest(ctx, body, ridge, ba, J.bl, J.br, J.tr, J.tl, true);
+    if (on('armB')) arm(1, J.eB, J.hB, J.aB, gripB);
+    if (on('armA')) arm(-1, J.eA, J.hA, J.aA, gripA);
+    if (pass === 'in') {
+      if (gripA) this.grip(ctx, P, -1, J.hA[0], J.sillAt(J.hA[0]) - 0.11);
+      if (gripB) this.grip(ctx, P, 1, J.hB[0], J.sillAt(J.hB[0]) - 0.11);
+    }
+    if (on('head')) {
+      // its head twitches as it comes; standing up, it takes the tilt it stands with (draw's, about the foot of its neck)
+      const tilt = headTiltJerk(c.t, 2.7, 0.33) * J.up, hr = J.hr + tilt + (c.gentle ? 0 : headTiltJerk(c.t, 1.9, 0.09) * (1 - J.up)), hs = J.hs;
+      const hc = [J.hc[0] - Math.sin(tilt) * 0.3, J.hc[1] + (Math.cos(tilt) - 1) * 0.3];
+      const base = [hc[0] + Math.sin(hr) * 0.17 * hs, hc[1] - Math.cos(hr) * 0.17 * hs];   // where the neck meets it
+      P_line(ctx, sh[0], sh[1], base[0], base[1], 0.056, body);
+      this.faint(ctx, ba, () => P_line(ctx, lerp(sh[0], base[0], 0.15) + 0.012, lerp(sh[1], base[1], 0.15), lerp(sh[0], base[0], 0.9) + 0.006, lerp(sh[1], base[1], 0.9), 0.007, ridge));   // a tendon
+      ctx.save();
+      ctx.translate(hc[0], hc[1]); ctx.rotate(hr); ctx.scale(hs, hs); ctx.translate(0, -0.3);
+      P_ell(ctx, 0, 0.3, 0.115, 0.175, body);
+      const near = clamp(1 - c.dist / 22, 0, 1);
+      this.face(ctx, P, skin, eye, body, 0.315, 0.014, 0.028 + near * 0.012, 0.012 + near * 0.03 + 0.02 * Math.sin(Math.PI * k));
+      ctx.restore();
+    }
   },
   // flat out, straight at you, seen from the front: bent forward so the shoulders come down and the head is thrust out
   // ahead of them, a knee driving up at you with each stride while the other leg is down and pushing off, the long arms
