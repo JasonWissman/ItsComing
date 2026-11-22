@@ -185,7 +185,9 @@ const tvPeer = [
   ['expect', X("tv.run(10.0) === 'play' && (q => q > 7.7 && q < 7.9)(G.L.s.tv.smashAt - G.L.s.tv.t0) && tv.when('tvShriek') > 6.95 && tv.when('tvShriek') < 7.1 && G.L.s.mode === 'come' && tv.shakes === 0 && (l => l > 0.3 && l < 0.6)(tv.max('lurch', 7, 7.7)) && tv.max('off', 7.1, 7.59) < 0.12 && tv.alive()"), 'with motion and flashes reduced: the same times, no shake of the view, and its lurch gentler'],
   // the night won while it watches: it breaks off for the bed, and the set, its film over, goes off of itself
   ['eval', X("(SAVE.data.settings.reducedMotion = tv.was[0], SAVE.data.settings.reducedFlash = tv.was[1], tv.fresh(0), tv.lamp(), G.L.s.peerTill = 0)")], ['wait', 250],
-  ['expect', X("tv.on() && tv.run(2.6) === 'play' && G.L.creature.tv.watch > 0.9"), 'watching, the lamp on'],
+  // (the covers take three seconds to hold and the view has to turn to them first, all before it smashes the set at 7.8 s:
+  // so they are taken hold of early, as it goes over, not once it has watched a while)
+  ['expect', X("tv.on() && tv.run(1.2) === 'play' && G.L.s.mode === 'tv' && !!G.L.creature.tv"), 'the set on, the lamp on: it is going over to it'],
   ['hold', 'covers', 9000],
   ['expect', "G.L.won && G.state === 'won' && G.L.s.mode === 'duck' && G.L.s.tv.smashAt === undefined", 'the covers up meanwhile: the night is won, and it breaks off'],
   ['waitUntil', "G.L.s.tv.offAt !== undefined && !G.L.creature.tv", 9000],
