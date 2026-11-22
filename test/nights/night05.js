@@ -118,7 +118,7 @@ const batShot = ['eval', `(() => {
   while (!b && g++ < 3000) {   // until one is in open sky, well inside the view, looking ahead
     for (const d of [4, 5, 3, 6]) {
       G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; render();
-      b = s.bats.find(q => { const p = CLEARING_BATS.screen(q); return p && CLEARING_BATS.clear(L, q) && p.x > 200 && p.x < R.W - 200 && p.y > R.viewY + 60 && p.y < R.viewY + R.H * 0.42; });
+      b = s.bats.find(q => { const p = CLEARING_BATS.screen(q); return p && CLEARING_BATS.clear(L, q) && p.x > 300 && p.x < R.W - 300 && p.y > R.viewY + 80 && p.y < R.viewY + R.H * 0.36; });   // (well inside: it flies on for the second and a half of the draw, and must still be in open sky when the arrow goes)
       if (b) break;
     }
     if (!b) step(10);
