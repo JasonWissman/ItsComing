@@ -2,8 +2,8 @@
 // The crawler: pale, on all fours, in bursts. A night can send it scuttling sideways (The Road's shying out of the
 // lights, and its runs round the car): c.runPose on, side-on, facing c.runDir (1 right, -1 left), its legs at c.runGait.
 // Springing into the road in front of the car (The Road), it is drawn side-on in one bound, as c.leap (0..1) has it (drawLeap).
-// Hit by a car (The Road: you drove straight into it), it is drawn as c.struck has it (struck(T), drawStruck): thrown,
-// lying in a heap, twitching, getting up and standing.
+// Hit by a car (The Road: you drove straight into it), it is drawn as c.struck has it (struck(T), drawStruck): knocked
+// back down the road, lying in a heap, twitching, getting up and standing, and down on all fours again to come on.
 CREATURES.crawler = {
   name: 'the crawler', h: 1.1, w: 2.0, faceY: 0.3, stepRate: 2.4, catchDist: 1.3, sound: 'crawler',
   death: { delay: 0.08, dur: 0.28, sting: 'stingShriek' },
@@ -115,30 +115,39 @@ CREATURES.crawler = {
   },
 
   // ---- hit by a car (The Road: you drove straight into it) ----
-  // What it does from the moment the car hits it, T seconds on. It goes up off the bumper and down the road, turning over
-  // twice in the air, its limbs thrown about; it comes down at STRUCK.land, bounces low and slides to where it lies
-  // (STRUCK.rest), a heap in the road: on its side, its head on the tarmac, one arm bent up into the air. It lies still.
-  // From STRUCK.twitch that arm jerks, and again (STRUCK.jerks). From STRUCK.rise it gets its limbs under it one at a time,
-  // the raised arm first, its head still hanging on one side; from STRUCK.stand it stands up on its hind legs, in jolts
-  // (a crack of its joints at each: STRUCK.cracks), taller than a man, bow-legged, its arms hanging to its knees; at
-  // STRUCK.look the head snaps up straight at you and the mouth opens; at STRUCK.crouch it drops forward onto all fours
-  // again, and at STRUCK.leap it comes (the night's death lunge goes on from there, in its usual shape).
-  // struck(T) is that as numbers: stage (thrown, down, twitch, rise, look, leap); along (0 at the bumper to 1 where it
+  // What it does from the moment the car hits it, T seconds on. It is knocked back off the bumper and down the road,
+  // turning over twice in the air, its limbs thrown about; it comes down at STRUCK.land, bounces low and slides to where
+  // it lies (STRUCK.rest), a heap in the road: on its side, its head on the tarmac, one arm bent up into the air. It
+  // lies a beat. At STRUCK.twitch that arm jerks, and again (STRUCK.jerks). From STRUCK.rise it gets its limbs under it
+  // one at a time, the raised arm first, its head still hanging on one side; from STRUCK.stand it stands up on its hind
+  // legs, in jolts (a crack of its joints at each: STRUCK.cracks), taller than a man, bow-legged, its arms hanging to
+  // its knees; at STRUCK.look the head snaps up straight at you and the mouth opens; at STRUCK.crouch it drops forward
+  // onto all fours again, and at STRUCK.leap it is up and comes on (the night lets it go from there, in its usual shape).
+  // struck(T, K) is that as numbers, by the times K (STRUCK, or knock(f, gentle): the same with everything after it
+  // comes to rest f times as long, so f < 1 has it up sooner; gentle, for reduced motion, it is knocked back lower and
+  // turns over once): stage (thrown, down, twitch, rise, look, leap); along (0 at the bumper to 1 where it
   // lies); y (how high off the road, m); spin (how far over it has turned); fl (its limbs flung out, in the air); down
   // (1 in a heap, 0 on all fours); up (1 standing); tw (a jerk, now); hang (the head on one side); look (the head up at you)
-  STRUCK: { land: 0.8, rest: 1.45, twitch: 2.5, rise: 3.9, stand: 5.0, look: 6.9, crouch: 7.7, leap: 7.9, jerks: [2.5, 3.05, 3.2, 3.7], cracks: [3.9, 5.0, 5.55, 6.1] },
-  struck(T) {
-    const K = this.STRUCK, fl = clamp(T / K.land, 0, 1), bo = clamp((T - K.land) / 0.36, 0, 1), lie = smoothstep((T - K.land + 0.12) / (K.rest - K.land + 0.12));
+  STRUCK: { land: 0.8, rest: 1.45, twitch: 1.95, rise: 2.4, stand: 3.3, look: 4.4, crouch: 4.9, leap: 5.1, jerks: [1.95, 2.2], cracks: [2.4, 3.3, 3.6, 3.95], high: 1.55, turns: 2 },
+  knock(f, gentle) {
+    const K = this.STRUCK, at = t => (t <= K.rest ? t : K.rest + (t - K.rest) * f), o = {};
+    for (const k in K) o[k] = Array.isArray(K[k]) ? K[k].map(at) : k === 'high' || k === 'turns' ? K[k] : at(K[k]);
+    if (gentle) { o.high = 0.6; o.turns = 1; }
+    return o;
+  },
+  struck(T, K) {
+    K = K || this.STRUCK;
+    const fl = clamp(T / K.land, 0, 1), bo = clamp((T - K.land) / 0.36, 0, 1), lie = smoothstep((T - K.land + 0.12) / (K.rest - K.land + 0.12));
     const jolt = k => { const n = 3, i = Math.min(n - 1, Math.floor(k * n)); return (i + smoothstep((k * n - i) / 0.4)) / n; };   // up in three jolts, a wait after each
     const look = smoothstep((T - K.look) / 0.09);
     return {
       stage: T < K.rest ? 'thrown' : T < K.twitch ? 'down' : T < K.rise ? 'twitch' : T < K.look ? 'rise' : T < K.crouch ? 'look' : 'leap',
       along: 1 - Math.pow(1 - clamp(T / K.rest, 0, 1), 2.2),
-      y: T < K.land ? 1.55 * 4 * fl * (1 - fl) : 0.22 * 4 * bo * (1 - bo),
-      spin: TAU * 2 * Math.pow(1 - clamp(T / (K.land + 0.3), 0, 1), 1.3),
+      y: T < K.land ? K.high * 4 * fl * (1 - fl) : 0.22 * 4 * bo * (1 - bo),
+      spin: TAU * K.turns * Math.pow(1 - clamp(T / (K.land + 0.3), 0, 1), 1.3),
       fl: smoothstep(T / 0.12) * (1 - lie),
       down: T < K.rise ? lie : 1 - clamp((T - K.rise) / (K.stand - K.rise), 0, 1),
-      up: T < K.stand ? 0 : T < K.crouch ? jolt(clamp((T - K.stand) / (K.look - 0.25 - K.stand), 0, 1)) : 1 - smoothstep((T - K.crouch) / (K.leap - K.crouch)),
+      up: T < K.stand ? 0 : T < K.crouch ? jolt(clamp((T - K.stand) / ((K.look - K.stand) * 0.87), 0, 1)) : 1 - smoothstep((T - K.crouch) / (K.leap - K.crouch)),
       tw: K.jerks.reduce((m, tj) => { const x = (T - tj) / 0.24; return x > 0 && x < 1 ? Math.max(m, Math.sin(Math.PI * Math.sqrt(x))) : m; }, 0),
       hang: clamp(T / K.rest, 0, 1) * (1 - look),
       look,

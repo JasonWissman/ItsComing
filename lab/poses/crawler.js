@@ -2,7 +2,7 @@
 // Night 2, The Car: the crawler (js/creatures/crawler.js; its moves are set by js/levels/night02.js; its leap into the road and what it does hit by the car are its own)
 (() => {
   const NIGHT = { D0: 85, T: 90 };   // night 2's creatures entry: startDist 85, time 90 (a steady pace, gamma 1)
-  const RAM_GAP = 2.6, LIE = 9.4;    // driving at it: where the bumper meets it, from your seat, and where it comes to rest down the road
+  const RAM_GAP = 2.6, LIE = 15;    // driving at it: where the bumper meets it, from your seat, and where it comes to rest down the road ahead
   // hit by the car (night02 ramOn, after the hit): as the crawler's own struck(T) has it, T seconds after the blow
   const struck = (c, T) => { const p = c.struck = c.CR.struck(T); c.yOff = p.y; c.dist = lerp(RAM_GAP, LIE, p.along); };
   // the game's walk in (game.js updateCreature): u at m/T a second, the distance from u, the legs from how far it moved
@@ -23,7 +23,7 @@
         tick(c, k, dt) { bursts(c, dt); } },
       { name: 'Closing in', note: 'The bursts bring it up to the windshield: the mouth opens wider and the teeth show as it nears.', dist: 13, dur: 9, lit: 0.6,
         tick(c, k, dt) { bursts(c, dt); } },
-      { name: 'Hit by the car', note: 'You put it in drive with it in the road: it scuttles flat out at the car, the car hits it, and it goes up off the bumper and down the road, turning over, to lie in a heap in the lights.', dist: 30, dur: 2.9, lit: 0.65, fit: { h: 3.1, w: 2.7 },
+      { name: 'Hit by the car', note: 'You put it in drive with it in the road: it scuttles flat out at the car, the car hits it, and it is knocked back off the bumper and away down the road, turning over, to lie in a heap in the lights 15 m off.', dist: 30, dur: 2.9, lit: 0.65, fit: { h: 3.1, w: 2.7 },
         set(c) { c.mode = 'scuttle'; c.modeT = -2; c.ram = { t: 0, v: 0, s: 0, from: c.dist, T: clamp(0.4 + c.dist / 60, 0.6, 1.4) }; },
         tick(c, k, dt, T) {
           const r = c.ram;
@@ -44,16 +44,13 @@
           c.CR.speedMult(c, dt, true);
           if (q < 1) { c.leap = q; c.yOff = 0.9 * 4 * q * (1 - q); } else { c.leap = undefined; c.yOff = 0; }
         } },
-      { name: 'Lying in the road', note: 'Thrown by the car, it lies in a heap in the headlights: on its side, its head on the road, one arm bent up into the air. It does not move. Then that arm jerks, and again.', dist: LIE, dur: 2.2, lit: 0.7, fit: { h: 1.3, w: 2.5 },
-        set(c) { c.frozen = true; },
-        tick(c, k, dt, T) { struck(c, c.CR.STRUCK.rest + 0.25 + T); } },   // (from just after it comes to rest until it starts to get up)
-      { name: 'Getting up', note: 'It gets its limbs under it one at a time and stands up on its hind legs, in jolts, its head hanging on one side. The head snaps up at you. It drops forward, and comes through the windshield.', dist: LIE, dur: 5.6, lit: 0.7, fit: { h: 2.2, w: 2.5 }, zoom: 2.4,
+      { name: 'Knocked back down the road, and getting up', note: 'The easter egg: the car hits it and it is knocked back down the road, turning over, to lie in a heap 15 m off, on its side, one arm bent up into the air. A beat; the arm jerks. It gets its limbs under it one at a time and stands up on its hind legs, in jolts, its head hanging on one side. The head snaps up at you. It drops onto all fours and comes on at the car again (up 5.1 s after the blow): the car is yours meanwhile, and the other way is the way out.', dist: RAM_GAP, dur: 8, lit: 0.7, fit: { h: 2.4, w: 2.7 },
         set(c) { c.frozen = true; },
         tick(c, k, dt, T) {
-          const K = c.CR.STRUCK, t = K.rise - 0.3 + T;
-          if (t < K.leap) { struck(c, t); return; }
-          const sp = c.CR.death, e = clamp((t - K.leap - sp.delay) / sp.dur, 0, 1);   // the death lunge, from where it stood
-          c.struck = null; c.yOff = 0; c.lungeFrom = LIE; c.lunge = e; c.dist = lerp(LIE, 0.55, easeIn(e));
+          const K = c.CR.STRUCK;
+          if (T < K.leap) { struck(c, T); return; }
+          if (c.struck) { c.struck = null; c.yOff = 0; c.frozen = false; c.dist = LIE; c.u = 1 - LIE / c.D0; c.mode = 'scuttle'; c.modeT = 0; }
+          bursts(c, dt);   // and it comes, as it always comes
         } },
       { name: 'Shying out of the lights', note: 'Driving away past it on the verge: side on, it scuttles flat out across the verge out of the headlights.', dist: 8, dur: 2, lit: 0.2, fit: { w: 2.2 },
         set(c) { c.runPose = true; c.runDir = 1; },
