@@ -11,6 +11,9 @@
 // the meadow turns into place round you, and it lets you go. There the view is yours: a turn, a look down and a
 // zoom are only that, and a click goes on: the meadow and it fade into the bedroom in the morning, and the last screen says
 // you have faced your demons.
+// Before that, the easter egg (fifteen things taken up at one time or another and then caught holding some: a death as
+// ever; then all sixteen: the others come for what was theirs, and it is won another way: see `egg` below), and the same
+// with reduced motion; then afresh for the ending above.
 // (two at a time, so one is put down while another is still falling: it lies clear of where that one will lie)
 const dropAll = ['waitUntil', "G.inv.length === 0 ? true : (G.cam.pitch = G.cam.tPitch = PITCH_DOWN, G.active = 0, dropActive(), G.inv.length && (G.active = 0, dropActive()), false)", 8000];
 // nothing put down lies over another thing: as cards facing the eye, no two overlap by more than a sliver
@@ -128,6 +131,103 @@ const ending = [
   ['expect', 'G.L.s.room === 1 && G.L.s.lv === 1 && G.L.creature.fade === 0 && Math.abs(G.L.eyeH - 1.15) < 0.01', 'the meadow and it are gone and it is the bedroom, in the morning'],
   ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"done\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true", 'the last screen, The End, campaign marked complete'],
 ];
+// ---- the easter egg: everything taken up (each thing in your hand at least once this attempt) ----
+// The hand holds six, so the harness takes six, puts them down, takes six more, puts them down, and takes the rest: the
+// moment the last thing not yet taken is in its hand the night is won another way. The others come for what was theirs,
+// one after another; stand in two rows with the thing in the hood in the middle; throw it all up and leap for joy as it
+// takes off its robe; the meadow comes, all of them in it; and from there the ending is as it always is. Most of it is
+// stepped on the game's own clock (update(1/60) in the page, the frame loop stopped), so it takes moments, with
+// tolerances of a step or two on its times.
+// (it is kept well off meanwhile: this is about the things, not the race)
+const far = ['eval', '(() => { const c = G.L.creature; c.switched = true; c.hold = 30; })()'];
+// take up the next n things never yet taken this attempt (not the one kept for last), as a click on each would
+const takeNew = n => ['eval', `G.L.items.filter(i => !G.L.s.had[i.id] && i.id !== 'musicbox').slice(0, ${n}).forEach(i => pickup(i))`];
+const hadN = 'Object.keys(G.L.s.had).length';
+const allDown = [dropAll, ['waitUntil', 'G.L.items.every(i => !i.taken)', 3000]];
+const fifteen = [far,
+  takeNew(6), ['expect', `G.inv.length === 6 && ${hadN} === 6 && !G.L.s.egg`, 'six things taken up: the hands are full'],
+  ['eval', "window.__fl = G.L.items.find(i => !i.taken); pickup(window.__fl);"], ['expect', `G.inv.length === 6 && !window.__fl.taken && ${hadN} === 6`, 'a seventh is not taken, and does not count'],
+  ...allDown, takeNew(6), ['expect', `G.inv.length === 6 && ${hadN} === 12 && !G.L.s.egg`, 'put down, and six more taken up'],
+  ...allDown, ['eval', "pickup(G.L.items.find(i => G.L.s.had[i.id]))"], ['expect', `G.inv.length === 1 && ${hadN} === 12`, 'a thing taken up again does not count twice'],
+  takeNew(3), ['wait', 700], ['expect', `G.inv.length === 4 && ${hadN} === 15 && !G.L.s.egg && G.state === 'play' && !G.L.s.ending && G.L.creature.rage > 0.5`, 'fifteen of the sixteen taken up at one time or another: nothing yet, and it is as enraged as ever'],
+];
+// fifteen is not all: holding any of it when it reaches you is still a death
+const fifteenDeath = [...fifteen,
+  ['eval', '(() => { const c = G.L.creature; c.hold = null; c.u = 0.995; })()'], ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 6000],
+  ['expect', "(G.state === 'dying' || G.state === 'dead') && G.deathCause === 'default' && !G.L.s.egg && !G.L.won", 'with one thing never taken up, it reaches you holding the rest: a death, as ever, and no easter egg'],
+  ['eval', 'restartLevel();'], ['wait', 300],
+];
+// who takes what, and where each stands
+const TAKERS = { walker: ['hammer', 'planks'], crawler: ['keys'], smiler: ['salt', 'lantern'], watcher: ['chain', 'padlock'], runner: ['bow', 'arrows'], swimmer: ['beam'], climber: ['fuse'], customer: ['handle'], signalman: ['journal'], other: ['musicbox'], carrier: ['matches'], tall: ['bulb'] };
+// step the game's clock to `to` seconds of the gathering, noting as it goes: when each came up to you and how near, when it
+// took its things, how high each leapt and whether it came down again, how many were in the air at once (most and least),
+// how much the view shook, and what was heard
+const stepTo = to => ['eval', `(() => { const E = G.L.s.egg, W = window.__egg || (window.__egg = { came: {}, took: {}, near: {}, up: {}, down: {}, air: [99, 0], shake: 0, n: 0 });
+  while (E.t < ${to}) { update(1 / 60); W.n++; W.shake = Math.max(W.shake, G.shakeAmt); let air = 0;
+    for (const o of E.others) { const k = o.type;
+      if (o.on) W.near[k] = Math.min(W.near[k] === undefined ? 99 : W.near[k], o.c.dist);
+      if (o.came && W.came[k] === undefined) W.came[k] = E.t; if (o.took && W.took[k] === undefined) W.took[k] = E.t;
+      if (E.t > VOID_EGG.joy + 0.3) { W.up[k] = Math.max(W.up[k] || 0, o.hopY); if (o.hopY < 0.01) W.down[k] = true; if (o.hopY > 0.05) air++; } }
+    if (E.t > VOID_EGG.joy + 0.6 && E.t < VOID_EGG.joy + 5) { W.air[0] = Math.min(W.air[0], air); W.air[1] = Math.max(W.air[1], air); } } })()`];
+const eggInView = `(() => { const E = G.L.s.egg, bad = [];
+  for (const [W, H] of [[1280, 760], [844, 390], [1920, 1080]]) { const cam = { yaw: G.L.facing, pitch: 0, zoom: clamp(0.6 * (W / H) / 0.93, 1, 1.32), W, H, eyeH: G.L.eyeH };
+    for (const c of E.others.map(o => o.c).concat([G.L.creature])) { const p = c.pos(), r = R.projectRect(p.x, 0, p.z, 1.0, Math.min(2.4, c.CR.h), cam); if (!r || r.x < 0 || r.x + r.w > W || r.y < 0 || r.y + r.h > H) bad.push(c.type + '@' + W); } }
+  if (bad.length) console.log('out of the view: ' + bad.join(' ')); return !bad.length; })()`;
+// (as the last night of a whole run, 431.2 s on its clock so far, 400 of them the twelve nights before: the best there is)
+const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; delete SAVE.data.eggs.void; SAVE.persist();'],
+  ['eval', "window.__best0 = JSON.stringify(SAVE.data.bestRun); SAVE.data.bestRun = {}; G.run = { t: 431.2, night: G.L.index, from: 400, nights: Array.from({ length: G.L.index }, () => ({ t: 400 / G.L.index })) };"],
+  ['pickup', 'musicbox'],   // (the last of them, with a real click)
+  ['eval', 'G.noRaf = true;'], ['wait', 80],
+  ['expect', "G.state === 'won' && G.L.won && !!G.L.s.egg && G.L.s.ending && G.L.s.egg.t < 1.6", 'the last thing taken up: the night is won, and the others are coming'],
+  ['expect', "SAVE.data.eggs.void === true && JSON.parse(localStorage.getItem('itscoming.v2')).eggs.void === true && G.L.text.egg === 'Take up everything.'", 'the easter egg is saved, by the night\'s id'],
+  ['expect', "G.inv.length === 5 && G.L.creature.frozen && G.L.creature.anger === 0 && G.L.items.filter(i => i.by).length === 0", 'nothing is taken yet: what you hold is still in your hands, and it has stopped where it was'],
+  key('r', true), ['expect', "G.state === 'won' && !!G.L.s.egg", 'R does nothing there'],
+  ['expect', "(r => { window.__run0 = JSON.stringify(r); return !G.run && !!r && r.t >= 431.2 && r.t < 450 && r.best === true && r.nights.length === 13 && Math.abs(r.nights[12] - (r.t - 400)) < 0.02 && SAVE.data.bestRun[G.diff().id].t === r.t; })(G.lastRun)", 'the run is finished, and timed, the moment the last thing was taken up: this night\'s share of it, and a best run saved'],
+  stepTo('VOID_EGG.first + 0.2'),
+  ['expect', "(E => E.others.filter(o => o.on).map(o => o.type).join() === 'walker' && E.others[0].c.dist > 3 && E.others[0].c.dist < 12 && G.L.creature.fade < 0.1 && Math.abs(wrapPi(G.cam.yaw - G.L.facing)) < 0.25 && G.cam.pitch < 0.25)(G.L.s.egg)", 'the view is taken, level, to the north; it has backed off into the dark; and the first of them is coming, the walker'],
+  stepTo('VOID_EGG.hold + 0.1'),
+  ['expect', `(E => E.others.every(o => o.took && o.came) && G.inv.length === 0 && G.L.items.every(i => i.taken && i.by) && E.others.every(o => JSON.stringify(o.held.map(i => i.id)) === JSON.stringify(${JSON.stringify(TAKERS)}[o.type]) && o.held.every(i => i.by === o.type)))(G.L.s.egg)`, 'each of the twelve came and took what was its own: all sixteen things, out of your hands and off the floor, each held by the creature of its night'],
+  ['expect', "(W => { const k = G.L.s.egg.others.map(o => o.type), took = k.map(t => W.took[t]), came = k.map(t => W.came[t]); console.log('took at ' + took.map(v => v.toFixed(2)).join(' ')); return took.every((v, i) => Math.abs(v - (VOID_EGG.first + i * VOID_EGG.every + VOID_EGG.rush + 0.12)) < 0.06) && came.every((v, i) => Math.abs(v - (VOID_EGG.first + i * VOID_EGG.every + VOID_EGG.rush)) < 0.06); })(window.__egg)", 'one after another, in the order of their nights, each a moment after the one before, each up to you in half a second'],
+  ['expect', "(W => G.L.s.egg.others.every(o => W.near[o.type] < o.near + 0.02 && W.near[o.type] < 2) && W.shake > 0.05)(window.__egg)", 'each came right up to you (under two metres), with a jolt'],
+  ['expect', "(E => E.others.every(o => Math.abs(o.c.dist - o.r) < 0.01 && Math.abs(wrapPi(o.c.yaw - G.L.facing - o.b)) < 0.001 && o.hopY === 0) && E.others.filter(o => o.b < 0).length === 6 && E.others.filter(o => o.b > 0).length === 6 && new Set(E.others.map(o => o.b)).size === 12 && E.others.filter(o => o.r > 6).every(o => o.c.CR.h >= 1.9))(G.L.s.egg)", 'they backed away to their places: twelve of them in two rows facing you, six either side, the taller behind'],
+  ['expect', "(c => c.fade === 1 && Math.abs(c.dist - VOID_EGG.place[1]) < 0.01 && Math.abs(wrapPi(c.yaw - G.L.facing)) < 0.001 && c.rage < 0.05 && c.mood === undefined && !c.disrobe && !c.dance && G.L.s.egg.others.every(o => Math.abs(o.b) > 0.12))(G.L.creature)", 'and the thing in the hood in the middle of them, calm, hooded: thirteen figures'],
+  ['expect', eggInView, 'all thirteen within the view, on a desktop and on a phone held sideways'],
+  ['eval', "window.__at = G.L.s.egg.others.map(o => [o.c.dist, o.c.yaw, o.hopY, o.held.length]).join(); window.__sfxN = window._sfx.length;"],
+  stepTo('VOID_EGG.joy - 0.05'),
+  ['expect', "G.L.s.egg.phase === 'hold' && window.__at === G.L.s.egg.others.map(o => [o.c.dist, o.c.yaw, o.hopY, o.held.length]).join() && window._sfx.length === window.__sfxN && G.L.s.meadow === 0 && VOID_EGG.joy - VOID_EGG.hold >= 3", 'they hold there, still and quiet, three seconds, each with what it took'],
+  stepTo('VOID_EGG.joy + 0.5'),
+  ['expect', "(E => E.thrown.length === 16 && E.others.every(o => o.held.length === 0 && o.threw !== null) && E.thrown.filter(th => { const u = E.t - th.t0; return th.vy * u - 4.9 * u * u > 0.6; }).length === 16 && new Set(E.thrown.map(th => th.it.id)).size === 16)(G.L.s.egg)", 'then all at once they throw it all up into the air: sixteen things, well over their heads'],
+  ['expect', "(v => v.some(x => x.n === 'cheer' && Math.abs(x.t - VOID_EGG.joy) < 0.05) && v.some(x => x.n === 'win' && Math.abs(x.t - VOID_EGG.joy) < 0.05))(window._sfx)", 'with a bright flourish and the chord of a night won'],
+  stepTo('VOID_EGG.light[0] + 1.6'),
+  ['expect', "G.L.s.meadow > 0.1 && G.L.s.meadow < 0.4 && G.L.pal.skyTop[0] > 150 && G.L.pal.fog[0] > 150", 'as the dark turns to the pale light'],
+  stepTo('VOID_EGG.joy + 5'),
+  ['expect', "(W => { const k = Object.keys(W.up); console.log('leaps ' + k.map(t => t + ' ' + W.up[t].toFixed(2)).join(', ') + '; in the air at once ' + W.air); return k.length === 12 && k.every(t => W.up[t] > 0.2 && W.down[t]) && W.air[1] - W.air[0] >= 3; })(window.__egg)", 'and they leap up and down for joy, every one of them, again and again, each in its own time'],
+  ['expect', "(c => c.disrobe === 1 && c.dance > 0.5 && c.mood === CREATURES.demon.moods - 1 && c.unveil === 1 && c.calm > 0.9)(G.L.creature)", 'as its happy face comes out of the hood and it takes off its robe, and dances'],
+  stepTo('VOID_EGG.light[1] + 0.2'),
+  ['expect', "(E => G.L.s.meadow === 1 && G.L.s.spin === 0 && G.L.pal.ground[1] > G.L.pal.ground[0] + 40 && G.L.pal.skyTop[2] > 200 && G.L.s.room === 0 && E.others.every(o => o.on && o.fade === 1 && Math.abs(o.c.dist - o.r) < 0.01) && G.L.creature.fade === 1 && E.thrown.every(th => E.t - th.t0 > th.tl && th.fade === 1))(G.L.s.egg)", 'the meadow: a green meadow under a blue sky, all thirteen of them in it, and what they threw lying in the grass'],
+  ['eval', 'window.__egg.up = {}; window.__egg.down = {};'], stepTo('VOID_EGG.arm + 1.2'),
+  ['expect', "(W => Object.keys(W.up).length === 12 && Object.keys(W.up).every(t => W.up[t] > 0.12 && W.down[t]) && G.L.creature.dance > 0.5)(window.__egg)", 'still leaping and dancing there'],
+  ['expect', "G.state === 'won' && G.L.s.wait && !G.L.s.leaving && G.L.lookFree() && (window._sfx.filter(x => x.n === 'musicbox').length >= 2)", 'the music box plays, and the meadow waits for a press, the view yours again'],
+  noHands('your hands are empty'),
+  ['eval', 'G.noRaf = false; G._last = performance.now(); requestAnimationFrame(frame);'], ['wait', 200],
+  key('ArrowLeft', true), ['wait', 300], ['expect', "G.state === 'won' && !G.L.s.leaving", 'a turn only turns the view'],
+  ['eval', "document.getElementById('game').dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 640, clientY: 380 }))"],
+  ['expect', 'G.L.s.leaving', 'a click and it goes on'],
+  ['waitUntil', "G.state === 'end'", 12000],
+  ['expect', "G.L.s.room === 1 && G.L.creature.fade === 0 && G.L.s.egg.others.every(o => o.fade === 0) && G.L.s.egg.thrown.every(th => th.fade === 0)", 'the meadow and all of them are gone, and it is the bedroom, in the morning'],
+  ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"done\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true && JSON.parse(localStorage.getItem('itscoming.v2')).unlocked[G.diff().id] === LEVELS.length", 'the night was won: the last screen, The End, and the campaign marked complete'],
+  ['expect', "JSON.stringify(G.lastRun) === window.__run0", 'the run\'s time is as it was when the last thing was taken up: none of the gathering counted'],
+  ['eval', "SAVE.data.bestRun = JSON.parse(window.__best0); SAVE.persist();"],
+];
+// with reduced motion and flashing: the same, come slower and from nearer, no jolt, no flash, and only a gentle bob for a leap
+const eggStill = [
+  ['eval', "SAVE.setSetting('reducedMotion', true); SAVE.setSetting('reducedFlash', true); startLevel(G.levelIndex, false);"], ['wait', 300], far,
+  ['eval', "G.noRaf = true; window.__egg = null; for (const it of G.L.items.slice()) { if (G.inv.length >= 6) { const d = G.inv[0]; G.removeFromInv(d); d.taken = false; } pickup(it); } G.shakeAmt = 0; G.flashAmt = 0;"],
+  ['expect', "G.state === 'won' && !!G.L.s.egg", 'with reduced motion: the last thing taken up, the same'],
+  stepTo('VOID_EGG.joy + 4'),
+  ['expect', "(W => { console.log('reduced motion: came at ' + W.came.walker.toFixed(2) + ', leaps ' + Math.max(...Object.values(W.up)).toFixed(3) + ', shake ' + W.shake); return W.came.walker > VOID_EGG.first + 1 && Object.values(W.up).every(v => v > 0.005 && v <= 0.06) && W.shake === 0 && G.flashAmt === 0 && G.L.s.egg.thrown.length === 16 && G.L.creature.dance === 0 && G.L.creature.disrobe === 1; })(window.__egg)", 'each comes slower, with no jolt; they throw it all up, and only bob for joy; it takes off its robe, and does not dance'],
+  ['eval', "SAVE.setSetting('reducedMotion', false); SAVE.setSetting('reducedFlash', false); SAVE.data.complete = {}; SAVE.persist(); G.noRaf = false; G._last = performance.now(); requestAnimationFrame(frame); startLevel(G.levelIndex, false);"], ['wait', 400],
+];
 module.exports = {
-  nightmare: [].concat(rushed, start, tempted, full, oneDown, letGo, ending),
+  nightmare: [].concat(rushed, fifteenDeath, egg, eggStill, start, tempted, full, oneDown, letGo, ending),
 };

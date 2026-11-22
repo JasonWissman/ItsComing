@@ -992,7 +992,8 @@ function update(dt) {
   // a night may close in further once won (a long way off, it is small) or widen it to take in more, or bring the view in
   // close in play (facing the pay phone)
   // (zoom held: 2.6, or as a night has it where it frames something itself, L.heldZoom: the farm's box, whole in view)
-  const tz = (c.zoomHeld && (G.state === 'play' || free)) ? ((G.state === 'play' && L.heldZoom && L.heldZoom()) || 2.6) : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
+  // (the last night's ending is watched as it is, unless what it points the view at says how close: the void's easter egg)
+  const tz = (c.zoomHeld && (G.state === 'play' || free)) ? ((G.state === 'play' && L.heldZoom && L.heldZoom()) || 2.6) : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (watching && wp && wp.zoom) || (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;

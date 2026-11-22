@@ -81,6 +81,7 @@ LEVELS.push({
     objective: 'Hold nothing.',
     death: { default: 'You were still holding on to something.', away: 'It craves your fear.', fought: 'Fighting only made it stronger.' },
     win: '',
+    egg: 'Take up everything.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },
   lanes: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].map((name, k) => ({ deg: k * 45, name, barrierDist: 0, default: k === 0 })),
   creatures: [{ type: 'demon', startDist: 40, time: 75, unseenMult: 1.3 }],
@@ -195,7 +196,7 @@ LEVELS.push({
     L.hands = { lit: 0.8 };   // (what you hold, seen against the dark: lit a little more than the void would have it)
     L.offHand = () => {
       const a = G.inv[G.active];
-      if (!a || twoHanded(a) || G.state !== 'play' || bowUp()) return null;   // (the bow up, both hands are on it)
+      if (!a || twoHanded(a) || (G.state !== 'play' && !s.egg) || bowUp()) return null;   // (the bow up, both hands are on it; held still while the others come for it all: the easter egg)
       for (let k = 1; k < G.inv.length; k++) { const o = G.inv[(G.active + k) % G.inv.length]; if (!twoHanded(o)) return o; }
       return null;
     };
@@ -247,7 +248,7 @@ LEVELS.push({
       c.bend0 = c.yOff || 0;   // (its death lunge comes up from as far down as it was: CREATURES.demon.death.pose)
       if (s.rush > 0) s.fought = true;   // (drawn at, it came for you: a death, whatever else)
       if (s.fought || G.inv.length > 0 || !facingIt(c)) return false;
-      s.ending = true; s.endT = 0; c.frozen = true; c.hold = null;
+      s.ending = true; s.endT = 0; s.armAt = END.arm; c.frozen = true; c.hold = null;
       c.lane = Object.assign({}, c.lane, { follow: 'free', apertures: [], blockers: [] });   // placed by yaw and distance from here on
       // its head comes level from the tilt it had (as draw() has it, empty-handed); its first face is already there, in the
       // dark of the hood, not yet seen
@@ -286,6 +287,13 @@ LEVELS.push({
     };
     const sun = (() => { const d = [-1, -0.45, -0.15], n = Math.hypot(d[0], d[1], d[2]); return { x: 3.4, y: 2.4, z: 1.6, r: 12, i: 0.55, color: [255, 244, 210], cone: { x: d[0] / n, y: d[1] / n, z: d[2] / n, cos: Math.cos(40 * DEG) } }; })();
     const meadow = buildMeadow(L, s, c0);
+    // ---- the easter egg: everything taken up ----
+    // Your hands hold six things and sixteen lie here, so some must be put down again to take up the rest, while it comes
+    // on enraged. The moment the last thing not yet taken up this attempt is in your hand (s.had: each thing you have had),
+    // the night is won another way: the others come for what was theirs (buildGathering)
+    s.had = {}; s.egg = null; s.armAt = END.arm;
+    const gather = buildGathering(L, s, c0, { falls, lightStep: (dt, mv) => lightStep(dt, mv), tuneStep: (t, at) => tuneStep(t, at), idleStep: dt => idleStep(dt), meadow });
+    L.onPickup = it => { s.had[it.id] = true; if (!s.ending && G.state === 'play' && tools.every(t => s.had[t[0]])) gather.begin(); };
     // On Nightmare it may change its way once (js/game.js maybeSwitchLane), unseen, early on: far out in the dark. But that
     // judges it unseen by how much of it is in the view, and as it looms in over the last metre or so it fills the view and
     // more: it counted as unseen right there in front of you, changed its way at the last moment and came at you from the
@@ -303,7 +311,7 @@ LEVELS.push({
     L.update = dt => {
       const c = c0();
       fallStep(dt); bowStep(dt);
-      c.anger = G.inv.length;
+      c.anger = s.egg ? 0 : G.inv.length;   // (the others come for it all, the easter egg: it is calm)
       rushStep(c);
       if (c.dist < SWITCH_NEAR) c.switched = true;
       const rage = c.anger > 0 ? Math.min(1, 0.6 + 0.4 * c.anger / 6) : 0;   // anything held and it is plainly enraged; drawn at, more and more
@@ -321,6 +329,7 @@ LEVELS.push({
       }
       if (!s.ending) return;
       const still = !!SAVE.data.settings.reducedMotion;
+      if (s.egg) { gather.update(dt, still); return; }   // (the easter egg: the others come for what was theirs)
       s.endT += dt;
       const t = s.endT;
       c.still = still;
@@ -368,6 +377,29 @@ LEVELS.push({
       // later, after a press, the meadow goes and the room is there
       const mv = s.meadow = span(t, END.light[0], END.light[1]);
       s.spin = still ? 0 : 1.25 * Math.PI * Math.pow(1 - clamp((t - END.light[0]) / (END.release - END.light[0]), 0, 1), 3);
+      lightStep(dt, mv);
+      // everything on the floor goes as the faces come; and if anything is still there as the light comes, one thing at a
+      // time: first what lies where the bed, the nightstand, the chair or a wall will be
+      const left = L.items.filter(i => !i.taken);
+      if (t >= END.scare[0]) for (const i of left) i.taken = true;
+      if (mv > 0.08 && left.length && mv > s.gone) { (left.find(inTheWay) || left[0]).taken = true; s.gone = mv + 0.5 / tools.length; }
+      // in the meadow, as the tune starts, it takes off its robe and leaves it on the grass (c.disrobe); it dances a little to
+      // the tune; then, while the meadow waits, now and then a little more
+      let dance = t > END.dance[0] && t < END.dance[1] ? Math.min(1, (t - END.dance[0]) * 2, (END.dance[1] - t) * 2) : 0;
+      const u = (t - END.dance[1] - 7) % 12;
+      if (t > END.dance[1] + 7 && u < 2.6 && !s.leaving) dance = 0.5 * Math.min(1, u * 2, (2.6 - u) * 2);
+      c.dance = still ? 0 : dance;
+      tuneStep(t, END.disrobe[0]);
+      if (t >= END.wait) s.wait = true;
+      if (s.wait && !s.leaving) idleStep(dt);
+      // after the press it fades from the meadow, glittering as it goes
+      c.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3) / 2.0, 0, 1) : 1;
+      meadow.update();
+    };
+    // the light (mv: how far it has come): the pale void, and out of it the meadow in the sun; later, after a press, the
+    // meadow goes and the room is there. Both endings come to it (the easter egg's too: buildGathering)
+    const lightStep = (dt, mv) => {
+      const c = c0();
       if (s.leaving) s.leaveT += dt;
       const lt = s.leaveT, lv = s.lv = s.leaving ? span(lt, 0, 3.0) : 0, room = s.room = s.leaving ? span(lt, 0.5, 3.4) : 0, rvBeyond = smoothstep(clamp((room - 0.75) / 0.25, 0, 1));
       s.reveal = mv;
@@ -380,27 +412,14 @@ LEVELS.push({
       for (const k of ['skyTop', 'fog', 'ground']) L.pal[k] = mixc(pal(k), MORNING_PAL[k], lv);
       L.pal.fogDist = lerp(mv < VOID_PALE ? lerp(VOID_PAL.fogDist, PALE_PAL.fogDist, mv / VOID_PALE) : lerp(PALE_PAL.fogDist, MEADOW_PAL.fogDist, pale * pale), MORNING_PAL.fogDist, lv);
       c.soft = mv;
-      // everything on the floor goes as the faces come; and if anything is still there as the light comes, one thing at a
-      // time: first what lies where the bed, the nightstand, the chair or a wall will be
-      const left = L.items.filter(i => !i.taken);
-      if (t >= END.scare[0]) for (const i of left) i.taken = true;
-      if (mv > 0.08 && left.length && mv > s.gone) { (left.find(inTheWay) || left[0]).taken = true; s.gone = mv + 0.5 / tools.length; }
       if (mv > 0.05 && !s.dawn) { s.dawn = true; AUDIO.stopAmbient(); if (AUDIO.on()) AUDIO.startAmbient({ tune: 'ambient:13dawn', wind: 0.32, drone: 0, windFreq: 760 }); WEATHER.set({ kind: 'motes', density: 1.0, wind: 0.15 }, 7); }   // a breeze, and pollen in the sun
       if (mv > 0.3) { s.birdT = (s.birdT === undefined ? 0.5 : s.birdT) - dt; if (s.birdT <= 0) { s.birdT = 1.5 + Math.random() * 2.8; AUDIO.sfx('birds', Math.random() * 1.6 - 0.8, true); } }
-      // in the meadow, as the tune starts, it takes off its robe and leaves it on the grass (c.disrobe); it dances a little to
-      // the tune; then, while the meadow waits, now and then a little more
-      let dance = t > END.dance[0] && t < END.dance[1] ? Math.min(1, (t - END.dance[0]) * 2, (END.dance[1] - t) * 2) : 0;
-      const u = (t - END.dance[1] - 7) % 12;
-      if (t > END.dance[1] + 7 && u < 2.6 && !s.leaving) dance = 0.5 * Math.min(1, u * 2, (2.6 - u) * 2);
-      c.dance = still ? 0 : dance;
-      if (t > END.disrobe[0] && !s.tune) { s.tune = true; AUDIO.sfx('musicbox', 0); }
-      if (t > END.disrobe[0] + 3.2 && !s.tune2) { s.tune2 = true; AUDIO.sfx('musicbox', 0); }
-      if (t > END.disrobe[0] + 6.4 && !s.tune3) { s.tune3 = true; AUDIO.sfx('musicbox', 0); }
-      if (t >= END.wait) s.wait = true;
-      if (s.wait && !s.leaving) idleStep(dt);
-      // after the press it fades from the meadow, glittering as it goes
-      c.fade = s.leaving ? clamp(1 - (lt - 0.3) / 2.0, 0, 1) : 1;
-      meadow.update();
+    };
+    // the music box's tune, three times over, from `at`
+    const tuneStep = (t, at) => {
+      if (t > at && !s.tune) { s.tune = true; AUDIO.sfx('musicbox', 0); }
+      if (t > at + 3.2 && !s.tune2) { s.tune2 = true; AUDIO.sfx('musicbox', 0); }
+      if (t > at + 6.4 && !s.tune3) { s.tune3 = true; AUDIO.sfx('musicbox', 0); }
     };
     // Enraged, it screeches: a scraping shriek, again and again while anything is in your hands, the more often the angrier
     // it is (and a wilder one when it is beside itself: most of it held, or the bow drawn at it), from where it is. Calm,
@@ -426,7 +445,7 @@ LEVELS.push({
     L.onPress = e => {
       if (!s.ending) return false;
       if (s.wait) s.idle = 0;
-      if (!aside(e) && s.wait && !s.leaving && s.endT >= END.arm) { s.leaving = true; s.leaveT = 0; s.glitterAt = s.endT + 0.3; AUDIO.sfx('win'); }
+      if (!aside(e) && s.wait && !s.leaving && s.endT >= s.armAt) { s.leaving = true; s.leaveT = 0; s.glitterAt = s.endT + 0.3; AUDIO.sfx('win'); }
       return true;
     };
     const idleStep = dt => {
@@ -446,6 +465,7 @@ LEVELS.push({
       return y0 + hh + (at.y - lerp(b.y, tp.y, hh / c.CR.h)) / at.scale;
     };
     L.watchPoint = () => {
+      if (s.egg) return gather.watch();
       const c = c0(), p = c.pos(), k = span(s.endT, END.release + 0.4, END.release + 3.6);
       const y = drawnAt(c, CREATURES.demon.eyesY(c) - 0.02);   // (just under its eyes: the top of its hood in the view too)
       return { x: p.x, y: lerp(y, L.eyeH + 0.05, k), z: p.z };
@@ -496,17 +516,24 @@ LEVELS.push({
       pools();
       fallDraw();
       meadow.draw();
+      gather.draw();
       if (s.scare && s.scare.faces.length) {   // (the faces of the others, round the middle of its face as it is drawn)
         const c = c0(), p = c.pos(), at = R.screenPos(p.x, drawnAt(c, CREATURES.demon.eyesY(c) - 0.03), p.z);
         if (at) VOID_RECAP.add(s.scare, at);
       }
       if (s.glitterAt < 0) return;
       // the glitter: sparks spiralling up and out from where it stood, twinkling, gone in a few seconds (with reduced motion
-      // they drift up and out without turning; with reduced flashing they glow steadily as they go)
-      const c = c0(), p = c.pos(), k = s.endT - s.glitterAt, S = SAVE.data.settings;
+      // they drift up and out without turning; with reduced flashing they glow steadily as they go); and, fewer, from where
+      // each of the others stood (the easter egg)
+      const k = s.endT - s.glitterAt;
       if (k < 0 || k > 3.2) return;
-      for (let i = 0; i < 46; i++) {
-        const a = i * 2.39996 + (S.reducedMotion ? 0 : k * (0.8 + (i % 5) * 0.2)), r = 0.12 + (i % 7) * 0.06 + k * (0.25 + (i % 3) * 0.12), y = 0.2 + (i % 11) * 0.19 + k * (0.35 + (i % 4) * 0.18);
+      glitter(c0().pos(), k, 46, 1);
+      for (const q of gather.places()) glitter(q, k, 9, q.h / 2.6);
+    };
+    const glitter = (p, k, n, tall) => {
+      const S = SAVE.data.settings;
+      for (let i = 0; i < n; i++) {
+        const a = i * 2.39996 + (S.reducedMotion ? 0 : k * (0.8 + (i % 5) * 0.2)), r = 0.12 + (i % 7) * 0.06 + k * (0.25 + (i % 3) * 0.12), y = (0.2 + (i % 11) * 0.19) * tall + k * (0.35 + (i % 4) * 0.18);
         const tw = S.reducedFlash ? 0.7 : 0.5 + 0.5 * Math.sin(k * 14 + i * 1.7), al = clamp(1.2 - k / 2.6, 0, 1) * (0.35 + 0.65 * tw), sz = 0.05 + (i % 3) * 0.025;
         const col = (i % 4) === 0 ? [255, 214, 120] : (i % 4) === 1 ? [255, 190, 220] : [255, 250, 236];
         R.add(SC.mkSprite(L, p.x + Math.sin(a) * r, y, p.z + Math.cos(a) * r, sz, sz, (ctx, P) => {
@@ -517,7 +544,8 @@ LEVELS.push({
     };
     L.dynamicLights = () => {
       const c = c0(), p = c.pos(), a = (c.rage || 0) * (1 - (c.calm || 0)), out = [], m = s.meadow * (1 - s.lv);
-      if (c.fade > 0.05 && s.ending) {   // (a little brighter as it takes hold of you, so its arms show coming)
+      if (s.egg) out.push(...gather.lights());
+      else if (c.fade > 0.05 && s.ending) {   // (a little brighter as it takes hold of you, so its arms show coming)
         const ml = moodLight(c), more = 0.16 * span(s.endT, 0.3, 2.6) * (1 - Math.min(1, c.mood || 0));
         out.push({ x: p.x, y: 1.4, z: p.z, r: 3, i: (ml.i + more) * (1 - s.reveal) * c.fade, color: ml.color, flicker: ml.flicker, seed: 13 });
       }
@@ -741,7 +769,7 @@ function buildMeadow(L, s, c0) {
       }
       // a small line, only if you wait: in the meadow, how to go on (after a few seconds with nothing done at all)
       const ts = SAVE.data.settings.textSize || 1;
-      const idle = s.wait && !s.leaving && s.endT >= END.arm ? smoothstep((s.idle - END.idle) / 1.5) : 0;
+      const idle = s.wait && !s.leaving && s.endT >= s.armAt ? smoothstep((s.idle - END.idle) / 1.5) : 0;
       s.idleLineA = idle > (s.idleLineA || 0) ? idle : Math.max(idle, (s.idleLineA || 0) - 1 / 30 / 0.4);
       const line = (text, a, dark) => {
         if (a <= 0.01) return;
@@ -758,6 +786,364 @@ function buildMeadow(L, s, c0) {
       line(word + ' WHEN YOU ARE READY', s.idleLineA, [24, 44, 16]);
     },
   };
+}
+
+// ---------- the others, come for what was theirs (the easter egg) ----------
+// Everything taken up (each thing in your hand at least once this attempt), the night ends another way, and is won: the
+// thing in the hood stops and backs off into the dark, the view is taken (level, to the north), and out of the dark each
+// of the others, in the order of their nights, rushes up to you along its own way, fast, takes what was its own out of
+// your hands (or from the floor, if you had put it down again), and backs away slowly, facing you, holding it, to its
+// place: two rows of them in an arc in front of you, the taller behind. The thing in the hood comes back, calm, into the
+// middle of them. They stand there, still, a few seconds. Then all at once they throw it all up into the air and leap
+// for joy, again and again, as its face comes up out of the hood, happy, and it takes off its robe and dances, and the
+// dark turns to the pale light and the meadow comes, all of them in it. From there it is the ending as it always is: the
+// meadow waits for a press, and then the bedroom, in the morning.
+// Each is drawn by its own code (js/creatures), made as the game makes a creature and posed with its own fields; what it
+// holds is drawn at its hand. Times are seconds from the moment the last thing was taken up.
+const VOID_EGG = {
+  far: 17,                              // each comes out of the dark from this far off
+  first: 1.7, every: 0.7,               // the first of them, and each one after it
+  rush: 0.5, snatch: 0.45, back: 2.9,   // each: up to you, fast; it takes what was its own; then backs away, slowly, to its place
+  gone: [0.15, 1.3],                    // meanwhile the thing in the hood has backed off into the dark
+  demon: [9.2, 12.9],                   // and it comes back, calm, into the middle of them
+  hold: 13.4,                           // all of them there, still (the last is in its place at first + 11 * every + rush + snatch + back = 13.25)
+  joy: 16.6,                            // then all at once they throw it all up into the air and leap for joy
+  unveil: [16.6, 17.1],                 // its face comes up out of the hood, happy,
+  disrobe: [17.1, 19.7],                // and it takes off its robe: the hood back, the robe dropped, a hop clear; and dances
+  light: [16.9, 22.4],                  // as the dark turns to the pale light, and the meadow comes
+  wait: 23.2, arm: 23.8,                // from here the meadow is yours to look about in, and waits for a press (taken from `arm`)
+  place: [0, 6.0],                      // where the thing in the hood stands among them: its bearing from the north, and how far off
+};
+// who takes what: each thing to the creature of the night it came from, in the order of their nights. The diner's and the
+// farm's things are not among the sixteen, so the customer takes the winch handle (the nearest thing to its shutter
+// crank) and the carrier the matches; the tall one the bulb (the bedroom's as well as the lighthouse's).
+// b, r: its place among them (its bearing from the north, radians, and how far off); near: how near it comes for its
+// things; at: where it holds each of them ([x, y] from its feet, in its own drawing; the turn of the thing; its size, 1 by
+// default); hop: how high it leaps (metres)
+const VOID_OTHERS = [
+  { type: 'walker', takes: ['hammer', 'planks'], b: -0.165, r: 7, near: 1.9, at: [[-0.45, 1.5, 0.3], [0.5, 1.2, 1.35]], hop: 0.34 },
+  { type: 'crawler', takes: ['keys'], b: -0.258, r: 5.5, near: 1.4, at: [[0, 0.5, 0]], hop: 0.3 },
+  { type: 'smiler', takes: ['salt', 'lantern'], b: 0.258, r: 5.5, near: 1.5, at: [[-0.3, 0.8, 0], [0.31, 0.36, 0]], hop: 0.26 },
+  { type: 'watcher', takes: ['chain', 'padlock'], b: 0.537, r: 7, near: 1.8, at: [[-0.6, 1.5, 0], [0.6, 1.62, 0]], hop: 0.3 },
+  { type: 'runner', takes: ['bow', 'arrows'], b: -0.63, r: 5.5, near: 1.7, at: [[-0.5, 0.62, 1.45], [0.5, 0.42, 1.3]], hop: 0.44 },
+  { type: 'swimmer', takes: ['beam'], b: 0.444, r: 5.5, near: 1.4, at: [[0, 0.3, 0]], hop: 0.26 },
+  { type: 'climber', takes: ['fuse'], b: -0.537, r: 7, near: 1.6, at: [[0.47, 1.86, 0]], hop: 0.36 },
+  { type: 'customer', takes: ['handle'], b: -0.351, r: 7, near: 1.7, at: [[0.34, 1.12, 0]], hop: 0.3 },
+  { type: 'signalman', takes: ['journal'], b: 0.351, r: 7, near: 1.9, at: [[0.42, 2.0, 0]], hop: 0.32 },
+  { type: 'other', takes: ['musicbox'], b: -0.444, r: 5.5, near: 1.3, at: [[0, 0.72, 0]], hop: 0.3, own: true },
+  { type: 'carrier', takes: ['matches'], b: 0.63, r: 5.5, near: 1.5, at: [[0.3, 0.8, 0]], hop: 0.28 },
+  { type: 'tall', takes: ['bulb'], b: 0.165, r: 7, near: 1.9, at: [[0.5, 1.24, 0]], hop: 0.3 },
+];
+function buildGathering(L, s, c0, K) {
+  const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1)), GR = 9.8;
+  let E = null;   // the gathering, once it has begun (s.egg)
+  // a creature as the game makes one (js/game.js makeCreature), standing free of any way in: placed by its bearing and distance
+  const make = (type, n) => {
+    const CR = CREATURES[type];
+    const c = {
+      type, CR, lane: { y: 0, follow: 'free', apertures: [], blockers: [] }, yaw: L.facing, idx: n + 1, D0: VOID_EGG.far, T: 60, gamma: 1, seenMult: 1, unseenMult: 1,
+      u: 0, dist: VOID_EGG.far, gait: 0, t: n * 1.3, seen: true, seenLast: true, visFrac: 1, visible: true, lit: 0, lat: 0, yOff: 0, lunge: 0,
+      frozen: false, reached: false, hits: 0, dead: false, moving: false, timeScale: CR.timeScale || 1, rand: mulberry32(1300 + n * 77),
+      distFn: null, hold: null, catchDist: CR.catchDist, laneOptions: null, fixedLane: true,
+      retarget() {}, pos() { return { x: Math.sin(this.yaw) * this.dist, y: 0, z: Math.cos(this.yaw) * this.dist }; },
+    };
+    CR.init(c);
+    return c;
+  };
+  // a point of the view (sx, sy: in its pixels), `depth` metres out from the eye
+  const viewPoint = (sx, sy, depth) => {
+    const c = G.cam, f = R.f, xc = (sx - R.W / 2) / f, yc = -(sy - R.H / 2) / f;
+    const cy = Math.cos(c.yaw), sw = Math.sin(c.yaw), cp = Math.cos(c.pitch), sp = Math.sin(c.pitch);
+    const dy = yc * cp - sp, cz = yc * sp + cp;
+    return { x: (xc * cy + cz * sw) * depth, y: L.eyeH + dy * depth, z: (-xc * sw + cz * cy) * depth };
+  };
+  // where a thing is as it is taken: in your hand (the one it is seen in, or out of sight below), falling, or on the floor
+  const whereIs = it => {
+    const f = K.falls.find(q => q.it === it);
+    if (f) { K.falls.splice(K.falls.indexOf(f), 1); return { x: it.x, y: 0.3, z: it.z }; }
+    if (!G.inv.includes(it)) return { x: it.x, y: 0.05, z: it.z };
+    const H = G.hand;
+    if (H.cur === it && H.up > 0.5) return HANDS.handWorld(it, 0.8).p;
+    if (H.off.cur === it && H.off.up > 0.5) return viewPoint(R.W * 0.3, R.H * 0.86, 0.7);
+    return viewPoint(R.W * 0.5, R.H * 1.08, 0.7);
+  };
+  // where the k-th thing a creature holds is, in the world (its hand, as it stands now)
+  const handAt = (o, k) => {
+    const c = o.c, p = c.pos(), a = o.at[k] || o.at[0];
+    return { x: p.x + Math.cos(c.yaw) * a[0], y: (c.yOff || 0) + o.hopY + a[1], z: p.z - Math.sin(c.yaw) * a[0] };
+  };
+  function begin() {
+    const c = c0();
+    E = s.egg = {
+      t: 0, phase: 'rush', d0: c.dist, yaw0: c.yaw, joy: 0, glow: 0, thrown: [],
+      others: VOID_OTHERS.map((d, n) => Object.assign({}, d, { n, c: make(d.type, n), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
+    };
+    s.ending = true; s.endT = 0; s.armAt = VOID_EGG.arm;
+    // the thing in the hood: stopped where it is, and placed by its bearing and distance from here on
+    c.frozen = true; c.hold = null;
+    c.lane = Object.assign({}, c.lane, { follow: 'free', apertures: [], blockers: [] });
+    c.distFn = cr => {
+      const t = E.t, back = t >= VOID_EGG.demon[0] - 0.4;
+      cr.yaw = back ? L.facing + VOID_EGG.place[0] : E.yaw0;
+      return back ? lerp(15, VOID_EGG.place[1], span(t, VOID_EGG.demon[0], VOID_EGG.demon[1])) : E.d0 + 9 * easeIn(clamp((t - VOID_EGG.gone[0]) / (VOID_EGG.gone[1] - VOID_EGG.gone[0]), 0, 1));
+    };
+    L.keepHeld = true;   // (js/hands.js: what you hold stays in your hands until it is taken from them)
+    foundEgg();
+    AUDIO.sfx('stingHum'); win();
+  }
+  const pan = c => Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
+  // one of them takes what was its own: out of your hand, or from where it lies
+  function take(o) {
+    o.took = true;
+    o.items.forEach((it, k) => {
+      const from = whereIs(it);
+      if (G.inv.includes(it)) { HANDS.dropped(it); G.removeFromInv(it); }
+      it.taken = true; it.by = o.type;
+      o.fly.push({ it, k, t: 0, from });
+    });
+    G.hover = null; G.invSig = '';
+    AUDIO.sfx('pickup', pan(o.c));
+  }
+  // how each stands, comes and leaps: its own fields (js/creatures), set every frame. q: u (seconds since it set out),
+  // rush, near, back (0..1 through each), joy (0..1), hop (0..1 through each leap; -1 on the ground)
+  const POSE = {
+    walker(c, q, o) { o.poseDist = q.joy > 0.01 ? lerp(c.dist, 2.2, q.joy) : 0; },   // (its arms come up as they do when it is close)
+    crawler(c, q) { c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; },
+    smiler(c, q) { c.rush = q.joy; },
+    watcher(c, q, o) {   // stone: it stands in one pose, and is in another each time it comes down
+      if (!c.pose) c.pose = 2;
+      if (q.back >= 1 && q.joy < 0.05) c.pose = 2;   // (in its place: its hands up either side of its head, the chain in one and the lock in the other)
+      const n = q.hop < 0 ? -1 : Math.floor(q.jt / q.T);
+      if (n !== o.hops) { if (o.hops !== undefined && n >= 0) c.pose = 1 + (c.pose % 3); o.hops = n; }
+    },
+    runner(c, q) { c.mode = q.back > 0.15 && q.joy < 0.5 ? 'crouch' : 'sprint'; c.modeT = 1; },
+    swimmer(c, q) {
+      // it comes skimming in, only its head above the black floor as it was above the water, and bursts up out of it at you
+      c.mode = 'up';
+      const k = clamp((q.u - q.R1 * 0.8) / 0.4, 0, 1), lift = 0.95;
+      if (k > 0 && c.burstT === undefined) { c.burstT = c.t; c.burstY = lift; if (!q.still) AUDIO.sfx('splash', pan(c)); }
+      c.lunge = k; c.yOff = lift * smoothstep(k);
+    },
+    climber(c, q) { c.lunge = 0.75 + 0.25 * Math.max(q.near, q.joy); },
+    customer(c, q) { c.shove = q.joy > 0.01 ? { k: q.joy, h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null; },
+    // (its long arm up, holding the notebook out to be seen; then high, waving)
+    signalman(c, q, o) { const up = Math.max(q.back, q.joy); c.reach = up; c.grip = o.held[0] ? 1 : 0; c.reachSide = 1; c.reachTo = { x: lerp(0.42, 0.5 + (q.still ? 0 : 0.3 * Math.sin(q.t * 7)), q.joy), y: lerp(2.05, 3.1, q.joy) }; },
+    other(c, q, o, dt) { c.danceT = (c.danceT || 0) + dt * (1 + 2 * q.joy); c.dance = 1; c.smile = 1; const it = o.held[0]; c.carry = it ? (ctx, P) => it.icon(ctx, P) : null; },   // (the box in its arms, as it carried it off: its own drawing)
+    carrier(c, q) { c.flail = q.joy; },
+    tall(c, q) { c.reach = Math.max(q.back, q.joy); c.gripY = lerp(1.62, 2.5, q.joy); },   // (its hands up in front of it, with the bulb; then high)
+  };
+  // how hard they leap, jt seconds into the joy: all out for a while, then gentler, and now and then (each in its own
+  // time) a little more, for as long as the meadow waits
+  const joyAmp = (jt, o) => {
+    const first = 1 - 0.62 * span(jt, 7, 10), u = (jt - 10 + (o ? o.ph * 12 : 0)) % 9;
+    return jt > 10 && u < 3 ? Math.max(first, 0.38 + 0.5 * Math.min(1, u * 2, (3 - u) * 2)) : first;
+  };
+  // thrown: each thing goes up from its hand, turning, a little toward you and to one side, and comes down on the ground
+  function throwAll(o, t) {
+    o.threw = t;
+    const c = o.c, rs = mulberry32(900 + o.n * 31);
+    o.held.forEach((it, k) => {
+      if (!it) return;
+      const p0 = handAt(o, k), vy = 6.4 + rs() * 1.2, side = (rs() - 0.5) * 1.5 + (k ? 0.5 : -0.5) * (o.held.length > 1 ? 1 : 0), toYou = 0.35 + rs() * 0.5;
+      const tl = (vy + Math.sqrt(vy * vy + 2 * GR * Math.max(0, p0.y - 0.02))) / GR;
+      E.thrown.push({ it, by: o.type, t0: t + k * 0.06, p0, vy, tl, vx: Math.cos(c.yaw) * side - Math.sin(c.yaw) * toYou, vz: -Math.sin(c.yaw) * side - Math.cos(c.yaw) * toYou, rot0: (o.at[k] || o.at[0])[2] || 0, spin: (rs() < 0.5 ? -1 : 1) * (4 + rs() * 5), fade: 1 });
+    });
+    o.held = [];
+  }
+  function update(dt, still) {
+    const c = c0(), t = E.t = s.endT += dt, R1 = still ? 1.1 : VOID_EGG.rush, B1 = VOID_EGG.back - (R1 - VOID_EGG.rush), far = still ? 9 : VOID_EGG.far;
+    E.phase = t < VOID_EGG.hold ? 'rush' : t < VOID_EGG.joy ? 'hold' : 'joy';
+    // ---- the others ----
+    const joyT = t - VOID_EGG.joy;
+    for (const o of E.others) {
+      const oc = o.c, u = t - (VOID_EGG.first + o.n * VOID_EGG.every);
+      oc.t += dt * oc.timeScale; oc.still = still;
+      o.on = u >= 0;
+      if (!o.on) continue;
+      const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < R1 + VOID_EGG.snatch ? 1 : 0, back = span(u, R1 + VOID_EGG.snatch, R1 + VOID_EGG.snatch + B1);
+      // up to you along its own way, a little in toward the middle so it is in your face; then back out to its place
+      // (the stone one is never seen to move: it is nearer, all at once, three times; and goes back so, a pose at a time)
+      const stone = o.type === 'watcher', rk = stone ? Math.ceil(rush * 3 - 1e-9) / 3 : rush, bk = stone ? Math.floor(back * 7 + 1e-9) / 7 : back;
+      oc.dist = u < R1 ? lerp(far, o.near, still && !stone ? smoothstep(rk) : easeOut(rk)) : lerp(o.near, o.r, bk);
+      oc.yaw = L.facing + o.b * lerp(1, 0.6, rk * (1 - bk));
+      if (stone && o.step !== rk + bk) { if (o.step !== undefined) { oc.pose = 1 + (oc.pose % 3); if (bk > 0) AUDIO.sfx('stoneRub', pan(oc)); } o.step = rk + bk; }
+      const moved = Math.abs(prev - oc.dist), g0 = oc.gait;
+      oc.gait += moved * oc.CR.stepRate * Math.PI; oc.moving = moved > 0.024 * dt;
+      if (!oc.moving || stone) { const rest = Math.round(oc.gait / Math.PI) * Math.PI; oc.gait += (rest - oc.gait) * Math.min(1, dt * 4); }
+      oc.idleK = (oc.idleK === undefined ? 1 : oc.idleK) + ((oc.moving ? 0 : 1) - (oc.idleK === undefined ? 1 : oc.idleK)) * Math.min(1, dt * 2.5);
+      if (oc.CR.sound && Math.floor(oc.gait / Math.PI) !== Math.floor(g0 / Math.PI)) AUDIO.footstep(oc.CR.sound, clamp(2.4 / (oc.dist + 1.6), 0, 0.85) * (u < R1 ? 0.7 : 0.3), pan(oc));
+      // there: its own voice, a rush of air, a jolt; and it takes what was its own
+      if (u >= R1 && !o.came) {
+        o.came = true;
+        if (oc.CR.voice) AUDIO.voice(oc.CR.voice.kind, 0.6, pan(oc));
+        AUDIO.sfx(o.type === 'watcher' ? 'stoneRub' : 'cloth', pan(oc));
+        if (!still) G.shake(0.14);
+      }
+      if (u >= R1 + 0.12 && !o.took) take(o);
+      for (const f of o.fly.slice()) { f.t += dt; if (f.t >= 0.2) { o.fly.splice(o.fly.indexOf(f), 1); o.held[f.k] = f.it; } }
+      // the joy: it throws what it holds up into the air (each a moment after the other), and leaps, again and again
+      const jt = joyT - o.ph * 0.18;
+      let hop = -1, hopT = 1;
+      o.hopY = 0; o.squash = 1;
+      if (jt >= 0) {
+        if (o.threw === null) throwAll(o, t);
+        const amp = joyAmp(jt, o) * (s.leaving ? o.joyK : 1);   // (as you go on, they come down and stand)
+        if (still) o.hopY = 0.05 * amp * (0.5 + 0.5 * Math.sin(jt * 2.2 + o.ph * 6));
+        else if (amp > 0.02) {
+          const A = o.hop * amp, T = Math.sqrt(8 * A / GR) + 0.08, x = (jt / T) % 1, air = clamp(x * (T / (T - 0.08)), 0, 1);
+          hop = x; hopT = T; o.hopY = 4 * A * air * (1 - air);
+          o.squash = 1 + 0.06 * Math.sin(TAU * air) * Math.min(1, amp * 2) - (air >= 1 ? 0.06 : 0);
+        }
+      }
+      o.age++;
+      o.joyK += ((jt >= 0 && !s.leaving ? 1 : 0) - o.joyK) * Math.min(1, dt * 7);
+      const q = { u, rush, near, back, joy: smoothstep(o.joyK), hop, jt, T: hopT, t, still, R1 };
+      if (POSE[o.type]) POSE[o.type](oc, q, o, dt);
+      o.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3 - o.ph * 0.5) / 1.6, 0, 1) : 1;
+    }
+    // ---- the thing in the hood ----
+    // it stops, straightens and backs off into the dark; comes back, calm, two pale eyes in its hood; and at the joy its face
+    // comes up out of the hood, happy, it takes off its robe and dances
+    const ease = Math.min(1, dt * 5);
+    c.still = still;
+    c.yOff += (0 - c.yOff) * ease; c.stoop += (0 - c.stoop) * ease;
+    const away = span(t, VOID_EGG.gone[0] + 0.3, VOID_EGG.gone[1]), here = span(t, VOID_EGG.demon[0], VOID_EGG.demon[0] + 1.4);
+    E.joy = t >= VOID_EGG.joy ? 1 : 0;
+    c.calm = span(t, VOID_EGG.joy, VOID_EGG.joy + 1.6);
+    if (E.joy) { c.mood = CREATURES.demon.moods - 1; c.unveil = span(t, VOID_EGG.unveil[0], VOID_EGG.unveil[1]); c.settle = 1; c.tilt0 = 0; }
+    c.disrobe = clamp((t - VOID_EGG.disrobe[0]) / (VOID_EGG.disrobe[1] - VOID_EGG.disrobe[0]), 0, 1);
+    const dj = t - VOID_EGG.disrobe[1] + 0.4;
+    c.dance += ((still || s.leaving || dj <= 0 ? 0 : Math.min(1, dj * 2) * joyAmp(dj, null)) - c.dance) * Math.min(1, dt * 7);
+    if (t >= VOID_EGG.joy && !E.cheered) {
+      E.cheered = true; AUDIO.sfx('cheer', 0); AUDIO.sfx('win');
+      if (!still) G.shake(0.2);
+    }
+    if (t >= VOID_EGG.unveil[0] + 0.2 && !E.hum) { E.hum = true; AUDIO.voice('hum', 0.5, 0); }
+    if (t >= VOID_EGG.disrobe[0] + 0.5 && !E.cloth) { E.cloth = true; AUDIO.sfx('cloth', 0); }
+    // the light behind them all, as they gather
+    E.glow = span(t, VOID_EGG.first + 1.5, VOID_EGG.first + 5);
+    // ---- the light, the meadow, the tune, and the wait ----
+    const mv = s.meadow = span(t, VOID_EGG.light[0], VOID_EGG.light[1]);
+    s.spin = 0;
+    K.lightStep(dt, mv);
+    K.tuneStep(t, VOID_EGG.disrobe[0]);
+    if (t >= VOID_EGG.wait) s.wait = true;
+    if (s.wait && !s.leaving) K.idleStep(dt);
+    c.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3) / 2.0, 0, 1) : t < VOID_EGG.demon[0] ? 1 - away : here;
+    for (const th of E.thrown) th.fade = s.leaving ? clamp(1 - (s.leaveT - 0.2) / 1.2, 0, 1) : 1;
+    K.meadow.update();
+  }
+  const calmed = () => !!SAVE.data.settings.reducedMotion;
+  // drawn square to the view about its middle (turned rot), as a thing in the air is (fallDraw)
+  const inAir = (it, x, y, z, rot, size, alpha) => {
+    const w = it.w * size, h = it.h * size, big = Math.max(w, h) * 1.2;
+    R.add({ kind: 'sprite', x, y: y - big / 2, z, w: big, h: big, layer: 1, noContact: true, alpha, draw: (ctx, P) => {
+      ctx.translate(0, big / 2);
+      const m = ctx.getTransform(), sx = Math.hypot(m.a, m.b), sy = Math.hypot(m.c, m.d);
+      if (sy > 1e-6) ctx.scale(1, sx / sy);
+      ctx.rotate(rot); ctx.translate(0, -h / 2); ctx.scale(w, h);
+      it.icon(ctx, P);
+    } });
+  };
+  // the water the swimmer stands in: a pool of its own round it, black in the void, the sky's blue in the meadow
+  const pond = (p, d, a) => {
+    const w = 2.3, h = 2.3, col = mixc([20, 28, 40], [86, 142, 196], s.meadow), rim = mixc([52, 62, 80], [176, 212, 236], s.meadow);
+    R.add({ kind: 'sprite', x: p.x * (1 - h / 2 / d), y: 0.004, z: p.z * (1 - h / 2 / d), w, h, flat: true, layer: 0, sortDist: 0.012, noLight: true, noContact: true, alpha: a, draw: ctx => {
+      ctx.scale(w, h);
+      P_ell(ctx, 0, 0.5, 0.43, 0.43, rgba(rim, 0.3)); P_ell(ctx, 0, 0.5, 0.39, 0.39, rgba(rim, 0.55)); P_ell(ctx, 0, 0.5, 0.36, 0.36, rgba(col, 0.92));
+      P_ell(ctx, -0.12, 0.62, 0.12, 0.035, rgba(rim, 0.35)); P_ell(ctx, 0.14, 0.34, 0.09, 0.028, rgba(rim, 0.3));
+    } });
+  };
+  // one of them, as its own code draws it (with the game's own slow breath and lean), and what it holds at its hand
+  const paint = (o, ctx, P) => {
+    const c = o.c;
+    ctx.save();
+    if (o.squash !== 1) ctx.scale(1, o.squash);
+    if (!c.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(c.t * 1.6)); ctx.rotate(0.008 * Math.sin(c.t * 0.7) * (c.idleK === undefined ? 1 : c.idleK)); }
+    const d = c.dist; if (o.poseDist) c.dist = o.poseDist;
+    try { c.CR.draw(ctx, c, P); } finally { c.dist = d; }
+    ctx.restore();
+    o.held.forEach((it, k) => {
+      if (!it || o.own) return;   // (own: its own drawing has it)
+      const a = o.at[k] || o.at[0], size = a[3] || 1;
+      ctx.save(); ctx.translate(a[0], a[1] * o.squash); ctx.rotate(a[2] || 0); ctx.scale(it.w * size, it.h * size); ctx.translate(0, -0.5);
+      it.icon(ctx, P); ctx.restore();
+    });
+  };
+  // Going, each fades as one picture, not part by part (its parts lie over one another): it is drawn onto a small canvas
+  // of its own (again every third step of the clock: it stands still then) and that is put into the view, faded. (Drawing
+  // them all that way all the time, at a lower rate, was tried for speed: copying the pictures cost more than drawing them.)
+  // BOX: how far its drawing reaches, in metres from its feet (left, right, down, up)
+  const BOX = { signalman: [-1.3, 1.6, -0.25, 3.8], swimmer: [-1.4, 1.4, -1.3, 2.0], climber: [-1.6, 1.6, -0.3, 3.0], carrier: [-1.4, 1.4, -0.25, 3.1], crawler: [-1.5, 1.5, -0.25, 2.1] };
+  const shown = (o, ctx, P) => {
+    const m = ctx.getTransform(), sx = Math.abs(m.a), sy = Math.abs(m.d), B = BOX[o.type] || [-1.3, 1.3, -0.25, o.c.CR.h + 0.9];
+    const w = Math.ceil((B[1] - B[0]) * sx) + 2, h = Math.ceil((B[3] - B[2]) * sy) + 2;
+    if (o.fade >= 1 || typeof document === 'undefined' || m.b || m.c || w > 1600 || h > 1600 || w < 8 || h < 8) { paint(o, ctx, P); return; }
+    const cv = o.cv || (o.cv = document.createElement('canvas')), K = o.cvK;
+    if (!K || Math.abs(K.sx / sx - 1) > 0.03 || Math.abs(K.sy / sy - 1) > 0.03 || o.age >= 3) {
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+      const x = cv.getContext('2d');
+      x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, h);
+      x.setTransform(sx, 0, 0, -sy, 1 - B[0] * sx, 1 + B[3] * sy);
+      paint(o, x, P);
+      o.cvK = { sx, sy, ox: 1 - B[0] * sx, oy: 1 + B[3] * sy }; o.age = 0;
+    }
+    const k = o.cvK, kx = sx / k.sx, ky = sy / k.sy;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(cv, m.e - k.ox * kx, m.f - k.oy * ky, cv.width * kx, cv.height * ky);
+  };
+  function draw() {
+    if (!E) return;
+    const t = E.t;
+    // the light behind them all: faint, cold and wide, as the one behind it always is, so each dark shape stands against it
+    const ga = E.glow * (1 - clamp(s.meadow / VOID_PALE, 0, 1));
+    if (ga > 0.01) {
+      const d = 9, x = Math.sin(L.facing) * d, z = Math.cos(L.facing) * d, e = Math.exp(-3.4);
+      R.add({ kind: 'sprite', x, y: 0, z, w: 26, h: 6, dist: d, sortDist: 30, layer: 1, noContact: true, noLight: true, noFog: true, draw: ctx => {
+        ctx.translate(0, 1.9); ctx.scale(12.5, 3.9);
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        for (let i = 0; i <= 10; i++) { const u = i / 10; g.addColorStop(u, rgba([104, 112, 134], 0.4 * ga * (Math.exp(-3.4 * u * u) - e) / (1 - e))); }
+        ctx.fillStyle = g; ctx.fillRect(-1, -1, 2, 2);
+      } });
+    }
+    for (const o of E.others) {
+      if (!o.on || o.fade <= 0.004) continue;
+      const c = o.c, CR = c.CR, p = c.pos();
+      const sp = o.sprite || (o.sprite = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, layer: 1, noContact: true, draw: (ctx, P) => shown(o, ctx, P) });
+      sp.x = p.x; sp.y = p.y + (c.yOff || 0) + o.hopY; sp.z = p.z; sp.dist = c.dist; sp.alpha = o.fade < 1 ? o.fade : undefined;
+      R.add(sp);
+      if (o.type === 'swimmer' && c.lunge > 0) pond(p, c.dist, c.lunge * o.fade);
+      // a thing on its way from your hand (or the floor) to its hand
+      for (const f of o.fly) {
+        const k = easeOut(clamp(f.t / 0.2, 0, 1)), to = handAt(o, f.k), a = o.at[f.k] || o.at[0];
+        inAir(f.it, lerp(f.from.x, to.x, k), lerp(f.from.y, to.y, k) + Math.sin(Math.PI * k) * 0.08, lerp(f.from.z, to.z, k), (a[2] || 0) * k, lerp(0.8, a[3] || 1, k));
+      }
+    }
+    // what they threw: up, turning, and down onto the ground, where it lies
+    for (const th of E.thrown) {
+      const u = t - th.t0, it = th.it;
+      if (u < 0 || th.fade <= 0.004) continue;
+      const fl = Math.min(u, th.tl), x = th.p0.x + th.vx * fl, z = th.p0.z + th.vz * fl, al = th.fade < 1 ? th.fade : undefined;
+      if (u < th.tl) inAir(it, x, Math.max(0.02, th.p0.y + th.vy * u - GR * u * u / 2), z, th.rot0 + th.spin * u * (calmed() ? 0.35 : 1), 1, al);
+      else R.add({ kind: 'sprite', x, y: 0, z, w: it.w, h: it.h, flat: true, card: true, layer: 1, dist: Math.hypot(x, z), alpha: al, draw: (ctx, P) => { ctx.scale(it.w, it.h); it.icon(ctx, P); } });
+    }
+  }
+  // the light on them: what little there is about you in the dark as each comes up to you, and a faint cold light on them
+  // all where they stand, both gone as the pale light comes
+  function lights() {
+    const k = (1 - s.reveal) * span(E.t, 0.3, 1.6), f = L.facing;
+    if (k <= 0.01) return [];
+    return [
+      { x: Math.sin(f) * 0.6, y: 1.5, z: Math.cos(f) * 0.6, r: 3.4, i: 0.34 * k, color: [196, 200, 226] },
+      { x: Math.sin(f) * 5.2, y: 2.6, z: Math.cos(f) * 5.2, r: 7.5, i: 0.3 * k * E.glow, color: [190, 196, 226] },
+    ];
+  }
+  // the view: level, to the north, on the middle of them, and as close as still takes in all of them (closer on a wide
+  // view); easing back out as the meadow comes, to be as it will be when the view is yours again
+  const watch = () => ({ x: Math.sin(L.facing) * 6, y: L.eyeH + 0.12, z: Math.cos(L.facing) * 6, zoom: lerp(clamp(0.6 * (R.W / R.H) / 0.93, 1, 1.32), 1, E ? span(E.t, VOID_EGG.joy + 2.5, VOID_EGG.wait - 1.2) : 0) });
+  // where each of the others stands (for the glitter as they go)
+  const places = () => (E ? E.others.map(o => { const p = o.c.pos(); return { x: p.x, z: p.z, h: Math.max(1, o.c.CR.h) }; }) : []);
+  return { begin, update, draw, lights, watch, places };
 }
 
 // ---------- the faces of the others ----------
