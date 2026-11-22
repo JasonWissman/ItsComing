@@ -6,7 +6,7 @@
   const SALT = { hold: 6, look: 1.2 };   // night03: held this long where it has nowhere weaker to go, it steps over
   const END = { run: 2.5, stop: 0.4, bow: 0.45, look: 1.3, rise: 0.3, turn: 0.75, walk: 2.8, walkSpeed: 2.2, runCadence: 17 };
   const ROUND = { wait: 0.8, round: 0.5 };                                // game.js ROUND: standing a moment, then out of sight
-  const GIVE = { take: 0.35, look: 1.0, pour: 1.2, buzz: 0.8, skid: 0.5, shudder: 0.6 };   // night03 GIVE: the easter egg's times
+  const GIVE = { take: 0.35, look: 1.0, pour: 1.2, buzz: 0.8, skid: 0.5 };   // night03 GIVE: the easter egg's times
   const RUN = { lat0: 3.6, T1: 0.8, d2: 5.5, lat1: 3.0, in: 0.65 };   // roundLat and its times, worked out for the path and the side gate
   // the game's walk in (game.js updateCreature): u at m/T a second, a hitch jumps it on (c.hitched), the legs from how far it moved
   const drive = (c, dt, held) => {
@@ -106,9 +106,9 @@
           }
           c.bagHas = false; c.pour = c.gulp = 0; c.tip = Math.max(0, c.tip - dt * 9); c.bag = Math.max(0, c.bag - dt * 7);
         } },
-      { name: 'The sugar rush', note: 'He begins to tremble, his eyes wide and his hair on end, and tears off round the graveyard, arms in the air, the staff with them; then straight back at you, a skid to a stop where he stood, one last shudder, and he comes on as before.', dist: 3.2, dur: 8.2, fit: { h: 2.5, w: 6.4 },
+      { name: 'The sugar rush', note: 'He begins to tremble, his eyes wide and his hair on end, and tears off round the graveyard, arms in the air, the staff with them; then straight up his way at you, the same pace, and a skid to a stop at the salt, still wired.', dist: 3.2, dur: 7.6, fit: { h: 2.5, w: 6.4 },
         tick(c, k, dt, T) {
-          const B = GIVE.buzz, R1 = B + 3.4, R2 = R1 + 1.1, S = R2 + GIVE.shudder, prev = c.dist;   // trembling; side on, across and back; straight at you, skidding; the shudder
+          const B = GIVE.buzz, R1 = B + 3.4, R2 = R1 + 1.1, prev = c.dist;   // trembling; side on, across and back; straight at you, skidding; at the salt
           c.CR.speedMult(c, dt, true);
           if (T < B) { const q = T / B; c.buzz = q * q; c.wired = smoothstep(q * 2.5); c.x = 0; }
           else if (T < R1) {
@@ -117,17 +117,21 @@
             c.runGait = (c.runGait || 0) + dt * 34;
           } else if (T < R2) {
             const u = T - R1, left = R2 - T;
-            c.runPose = false; c.rush = 1; c.x = 0; c.dist = lerp(8, 3.2, easeOut(u / 1.1));
+            c.runPose = false; c.rush = 1; c.x = 0; c.dist = lerp(8, BARRIER, easeOut(u / 1.1));
             c.skid = clamp(1 - left / GIVE.skid, 0, 1); c.dust = c.skid * 0.5;
             if (!c.skid) c.gait += 30 * dt - (prev - c.dist) * c.CR.stepRate * Math.PI;
-          } else if (T < S) {
-            const q = (T - R2) / GIVE.shudder;
-            c.rush = 0; c.flail = 0; c.dist = 3.2; c.skid = Math.max(0, 1 - (T - R2) / 0.18); c.dust = 0.5 + 0.5 * q;
-            c.buzz = Math.sin(Math.PI * clamp((q - 0.25) / 0.6, 0, 1)); c.wired = 1 - smoothstep((q - 0.6) / 0.4);
-          } else { c.buzz = c.wired = c.skid = c.dust = 0; if (!c.on) { c.on = true; c.u = 1 - c.dist / c.D0; } drive(c, dt); return; }
+          } else {   // stopped by the salt: he looks down at it, trembling as much as ever
+            const u = T - R2;
+            c.rush = 0; c.flail = 0; c.dist = BARRIER; c.skid = Math.max(0, 1 - u / 0.18); c.dust = Math.min(1, 0.5 + u / 0.6 * 0.5);
+            bowTo(c, 1, 5, dt);
+          }
           step(c, prev, dt);
         },
         draw(ctx, c, P, CR) { ctx.translate(c.x || 0, 0); CR.draw(ctx, c, P); } },
+      { name: 'Wired, at the salt', note: 'The sugar still in him, stopped at the line: he looks down at the salt and up at you, trembling from head to foot, his hair on end and a pinprick in each wide eye. It does not wear off before the night ends.', dist: BARRIER, dur: 6, fit: { y0: -0.85 },
+        back: saltLine,
+        set(c) { c.wired = 1; c.buzz = 1; },
+        tick(c, k, dt, T) { drive(c, dt, BARRIER); bowTo(c, T % 3 < 1.6 ? 1 : 0, 4, dt); } },
       LAB.lunge({ dist: 1.4, dur: 2.4, zoom: 2.2, note: 'He reaches you: the staff falls away, and both bony hands come at you, fingers hooked, as his head jerks over and the grin gapes.' }),
     ],
   });

@@ -26,6 +26,8 @@
 //    trembling; c.flail 0..1: both arms in the air, waving, the staff with them, running side on or straight at you);
 //  - skidding to a stop (c.skid 0..1: heels dug in, sitting back, the arms flung out; c.dust 0..1: the dust he raised, as it
 //    spreads and thins).
+// The sugar stays in him to the end of the night: c.wired and c.buzz are drawn in every view of him (bowed over the salt,
+// reaching for you, side on, in profile and from behind).
 CREATURES.smiler = {
   name: 'the smiler', h: 1.75, w: 1.0, faceY: 1.32, stepRate: 1.3, catchDist: 1.4, sound: 'smiler',
   runW: 1.7,   // how wide the side-on run is drawn, the trailing heel to the leading toe and the staff's hook
@@ -367,17 +369,18 @@ CREATURES.smiler = {
   // the head in profile, facing +x, in the frame of the chin: the bald dome, the wisps off the back of it, the brow over a
   // deep socket and one wide eye, the hooked nose, the cheek sunk in, and the grin right back under the ear
   profile(ctx, c, P, near) {
-    const K = this.pal(P), t = c.t;
+    const K = this.pal(P), t = c.t, up = c.wired || 0;   // (wired: the wisps straight out behind his head, quivering, and a pinprick in the eye)
     ctx.strokeStyle = K.hairA; ctx.lineWidth = 0.005; ctx.lineCap = 'round'; ctx.beginPath();
-    for (let i = 0; i < 4; i++) { const sw = Math.sin(t * 1.7 + i * 1.9) * 0.014, y0 = 0.17 + i * 0.035; ctx.moveTo(-0.09, y0); ctx.quadraticCurveTo(-0.16, y0 + 0.04, -0.2 - i * 0.012 + sw, y0 + (i === 3 ? 0.07 : -0.03 - i * 0.015)); }
+    for (let i = 0; i < 4; i++) { const sw = Math.sin(t * 1.7 + i * 1.9) * 0.014 + Math.sin(t * 63 + i * 2.1) * 0.008 * up, y0 = 0.17 + i * 0.035; ctx.moveTo(-0.09, y0); ctx.quadraticCurveTo(-0.16, y0 + lerp(0.04, 0.015 + i * 0.012, up), -0.2 - i * 0.012 - up * 0.05 + sw, y0 + lerp(i === 3 ? 0.07 : -0.03 - i * 0.015, 0.01 + i * 0.03, up)); }
     ctx.stroke();
     P_ell(ctx, -0.015, 0.205, 0.122, 0.122, K.skin);
     P_poly(ctx, [[0.098, 0.21], [0.108, 0.13], [0.1, 0.06], [0.07, 0.004], [0.025, -0.004], [-0.04, 0.05], [-0.07, 0.12]], K.skin);
     P_ell(ctx, 0.035, 0.115, 0.03, 0.036, K.shade);   // the cheek, sunk in
     P_poly(ctx, [[0.07, 0.27], [0.122, 0.245], [0.118, 0.222], [0.078, 0.228]], K.skin);   // the brow
-    const er = 0.022 + near * 0.012;
+    const er = 0.022 + near * 0.012 + up * 0.009;
     P_ell(ctx, 0.078, 0.205, 0.03, 0.028, K.skinD);
     P_ell(ctx, 0.088, 0.205, er * 0.72, er * 1.05, K.white);
+    if (up > 0.05) P_ell(ctx, 0.094 + this.jit(t, 9) * er * 0.15, 0.205 + this.jit(t, 12) * er * 0.2, er * 0.16 * up, er * 0.16 * up, P.col([26, 18, 18]));
     P_poly(ctx, [[0.108, 0.212], [0.15, 0.155], [0.162, 0.125], [0.15, 0.108], [0.128, 0.118], [0.108, 0.13]], K.skin);   // the nose
     P_ell(ctx, 0.132, 0.122, 0.008, 0.005, K.skinD);
     P_ell(ctx, -0.035, 0.18, 0.027, 0.048, K.skinS); P_ell(ctx, -0.032, 0.18, 0.012, 0.03, K.skinD);   // the ear
@@ -480,7 +483,7 @@ CREATURES.smiler = {
     // the head, in front of him and so behind everything else from here: only the top of it shows, past his right shoulder
     const tilt = (0.06 + near * 0.5) * (Math.floor(t / 7) % 2 ? 1 : -1);   // the same tilt, seen from the other side
     ctx.save(); ctx.translate(0.05, 1.15 + bob); ctx.rotate(tilt);
-    this.wisps(ctx, K, t, true);
+    this.wisps(ctx, K, t, true, c.wired || 0);   // (wired, they stand on end from behind as well)
     for (const s of [-1, 1]) P_ell(ctx, s * 0.11, 0.17, 0.026, 0.046, K.shade);
     P_ell(ctx, 0, 0.2, 0.108, 0.13, K.shade);
     ctx.restore();
