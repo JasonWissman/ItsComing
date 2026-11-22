@@ -317,8 +317,8 @@ CREATURES.runner = {
     const hs = lerp(1.12, 1, lunge);
     ctx.save(); ctx.translate(tic * 0.03, lerp(1.02, 1.6, lunge) + bob * 0.4); ctx.rotate(-roll * 0.7 + tic * 0.18 + Math.sin(g * 0.5) * 0.08 * lunge + J[3] * 0.15); ctx.scale(hs, hs);
     if (lunge) P_line(ctx, 0, 0, 0, 0.08, 0.08 * lunge, skin);   // (sprinting, the head is out ahead of the neck)
-    strands(ctx, 0, 0.3, 9, 0.34 + 0.06 * run, black, 5, t);
-    if (lunge > 0) this.mane(ctx, black, t, lunge);   // up in your face its hair shows: a black mass over the crown, hanging round the face
+    if (lunge > 0) this.hair(ctx, 0.34 + 0.06 * run, black, t, smoothstep(lunge));   // up in your face the same few strands stand on end
+    else strands(ctx, 0, 0.3, 9, 0.4, black, 5, t);
     P_ell(ctx, 0, 0.22, 0.13, 0.16, skin);
     P_ell(ctx, -0.052, 0.25, 0.036, 0.042, black); P_ell(ctx, 0.052, 0.25, 0.036, 0.042, black);
     P_ell(ctx, 0, 0.1, 0.045 + lunge * 0.01, 0.055 + near * 0.025 + lunge * 0.03 + 0.02 * land * run, black);
@@ -327,22 +327,17 @@ CREATURES.runner = {
     ctx.restore();
     if (hurt) { ctx.globalAlpha = 0.5; P_ell(ctx, 0, 1.0, 0.7, 0.85, blood); ctx.globalAlpha = 1; }
   },
-  // its hair, seen close (the lunge, k 0..1 as it comes in): a black cap over the crown of the head (whose face, drawn over
-  // it, is at 0, 0.22) and long lank locks from round the crown hanging down either side of the face to below the jaw,
-  // flung out a little by the lunge and stirring; drawn behind the face, so only the crown and the sides show
-  mane(ctx, col, t, k) {
-    ctx.save(); ctx.globalAlpha *= clamp(k * 4, 0, 1);
-    P_ell(ctx, 0, 0.29, 0.165, 0.125, col);
-    for (let i = 0; i < 14; i++) {
-      const u = i / 13, a = lerp(0.25, Math.PI - 0.25, u), side = Math.cos(a) >= 0 ? 1 : -1;   // round the crown, side to side
-      const x0 = Math.cos(a) * 0.15, y0 = 0.25 + Math.sin(a) * 0.13;
-      const len = 0.34 + 0.12 * (0.5 + 0.5 * Math.sin(i * 2.7 + 1)) + 0.08 * (1 - Math.sin(a));
-      const fl = (0.05 + 0.07 * k) * side * (0.4 + Math.abs(Math.cos(a))), st = Math.sin(t * 2.1 + i * 1.3) * 0.02;
-      const x2 = x0 + fl * 1.6 + st, y2 = y0 - len;
-      ctx.strokeStyle = col; ctx.lineWidth = 0.022 - 0.008 * Math.abs(u - 0.5); ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(x0 + side * 0.05 + st, y0 - len * 0.45, x2, y2); ctx.stroke();
+  // its hair: the same few lank strands in every pose, hanging from behind the head (creatures.js strands); in the lunge
+  // (up 0..1 as it comes in) each swings out by its own side and stands on end from the crown, fanned and shivering
+  hair(ctx, len, col, t, up) {
+    const n = 9, seed = 5, still = SAVE.data.settings.reducedMotion;
+    for (let i = 0; i < n; i++) {
+      const j = i - (n - 1) / 2, side = j > 0 || (j === 0 && seed % 2) ? 1 : -1;
+      const hang = -Math.PI / 2 + j * 0.16, stand = Math.PI / 2 - j * 0.21 - (side < 0 ? 2 * Math.PI : 0);   // (the left ones go round by the left)
+      const a = lerp(hang, stand, up) + Math.sin(t * 1.3 + i + seed) * 0.05 + (still ? 0 : Math.sin(t * 23 + i * 1.9) * 0.035 * up);
+      const l = len * (0.7 + 0.3 * Math.sin(i * 2.3 + seed)), x = j * 0.03, y = lerp(0.3, 0.33, up);
+      P_line(ctx, x, y, x + Math.cos(a) * l + j * 0.04 * (1 - up), y + Math.sin(a) * l, 0.012, col);
     }
-    ctx.restore();
   },
   // long pale fingers from (x, y) fanned about ang, each bent at the middle joint by curl toward the middle of the hand,
   // so they hook like claws

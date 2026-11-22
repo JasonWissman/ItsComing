@@ -43,7 +43,7 @@ async function drawBow(page, when, where, via) {
       const st = await page.evaluate(w => {
         const d = G.draw, box = creatureBox(G.L.creature), at = box && { x: box.x + box.w / 2, y: box.y + box.h / 2 };
         if (!d || d.state !== 'drawing') return { done: false, at };
-        const m = (d.u.draw.min || 0.18) / (d.u.draw.fill || 1.5);
+        const m = (d.u.draw.min || 0.18) / (d.fill || d.u.draw.fill || 1.5);
         return { done: w === 'short' ? d.power > m + 0.03 : w === 'full' ? d.power >= 1 : false, at };
       }, when);
       if (st.done) break;

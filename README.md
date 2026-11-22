@@ -244,9 +244,10 @@ some on the ground, so you have to turn and look down to find them.
    and is let down again. The first hit puts it all the way down: out of a sprint its knees give and it topples
    sideways into the snow (side on, it pitches forward and skids; on all fours, its arms go from under it and it rolls
    over), lies there flat for about a second, bleeding, then lifts its head to you, plants a hand, pushes itself up onto
-   its hands and feet and comes on again, a little over two seconds after it was hit. It can be hit while it is down
-   (lying, it is a low, flat thing to aim at, and the next arrow takes over two seconds to nock and draw, so only a
-   draw begun at once finds it still getting up): a second arrow then kills it where it lies. The second hit puts it down.
+   its hands and feet and comes on again, a little over two seconds after it was hit. There is no second arrow while it
+   lies there: a draw begun too soon after the first hit comes back slower (the bar fills over longer), and is full
+   only once it has got up and run about for a second or so; drawn on while it is down, it takes note as it gets up
+   (and may break away then). A draw begun after that takes its usual second and a half. The second hit puts it down.
    Hit, its body twitches, small sharp jerks of its limbs and trunk, the arrows in it shaking with it; dead in the
    snow, the jerks die away over a few seconds (with reduced motion, they are barely there).
    The first shot is the easier one, the second the harder. Unhurt it is bold: while the bow is drawn on it, it holds
@@ -262,7 +263,7 @@ some on the ground, so you have to turn and look down to find them.
    your hands would hold it. Pressed with no arrows, the bow comes up and tips to show the bare shelf,
    the string is plucked twice where an arrow should sit and twitches on nothing, and it is let down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
    and drops head first to the boards at your feet, where you have to pick it up again. When it reaches you it comes
-   up out of its sprint into your face, its black hair hanging round it.
+   up out of its sprint into your face, its few lank strands of hair standing on end.
 6. **The Boathouse.** Something swims in across the water, going under for a
    while and coming up closer. It rains outside, never under the roof: the rain shows only out through the water door
    (above the slats let down) and the side door while it stands open (not through its leaf). A lamp on the far shore shows through the water door as a small soft glow. The winch is chained and padlocked: the key is in the
@@ -828,7 +829,7 @@ LEVELS.push({
   not be drawn on its lane: the climber takes `c.wallAt(c)` and `c.wallFrame(c)` from its night and is drawn on the
   tower's stone, and the night's `L.visFrac(c)` judges whether it is seen where it is drawn.
 - **A bow** (`uses[].draw`): held, the button (Use, A) draws it, and the power bar beside the aim fills over `fill`
-  seconds to full (it turns green, and `bowFull` clicks), and stays full for as long as it is held. All that matters
+  seconds (or, for one draw, what `fillFor(L)` gives as it starts: `G.draw.fill`) to full (it turns green, and `bowFull` clicks), and stays full for as long as it is held. All that matters
   is whether it is full when you let go: full with the aim on the thing's body, at any distance, and
   `loose('hit', ...)` is called; full but off the thing is 'miss'; before full is 'short'. Each spends one of the ammo.
   Let go before `min` seconds and nothing is loosed. `inHands` draws what you hold over the view (and asks

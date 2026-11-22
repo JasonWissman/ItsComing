@@ -102,7 +102,7 @@ const CLEARING_BOW = (() => {
     // drawn full, and for as long as it is held there, the string shines: a bright glint along it the moment it tops out
     // (with the click), settling to a steady pale sheen, so the bow itself says it is full
     if (d && d.state === 'drawing' && d.full) {
-      const since = d.t - (d.u.draw.fill || FILL), glint = Math.exp(-since * 5);
+      const since = d.t - (d.fill || d.u.draw.fill || FILL), glint = Math.exp(-since * 5);
       for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.008 + 0.006 * glint, rgba(C.stringL, 0.16 + 0.3 * glint));
       for (const sgn of [1, -1]) seg(ctx, tipOf(sgn), nock, 0.0045, rgba(C.stringL));
     }
@@ -313,7 +313,7 @@ LEVELS.push({
   // click on it with no bow finds the bow missing, and the arrow is raised to a bow that is not there and drops to the boards.
   uses: [{
     tool: 'bow', ammo: 'arrows', range: Infinity, sfx: 'twang', shake: 0.1, emptyText: L => { L.s.grope(); return 'No arrows.'; }, fireText: 'Draw.',
-    draw: { fill: CLEARING_BOW.FILL, min: CLEARING_BOW.MIN, loose: (outcome, c, aim, power, L) => L.s.loose(outcome, c, aim, power) },
+    draw: { fill: CLEARING_BOW.FILL, min: CLEARING_BOW.MIN, fillFor: L => L.s.fillFor(), loose: (outcome, c, aim, power, L) => L.s.loose(outcome, c, aim, power) },
     inHands: (ctx, W, H, d, L, aim) => CLEARING_BOW.inHands(ctx, W, H, d, L, aim),
   }, { tool: 'arrows', ammo: 'bow', range: Infinity, fireText: 'Draw.', emptyText: L => { L.s.noBow(); return 'No bow.'; } }],
   build(L) {
@@ -485,12 +485,20 @@ LEVELS.push({
     const panOf = c => Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
     const pathAt = (f, k) => { const to = f.to(); return [lerp(f.from[0], to[0], k), lerp(f.from[1], to[1], k) + f.arc * 4 * k * (1 - k), lerp(f.from[2], to[2], k)]; };
     const fly = f => { f.t = 0; flights.push(f); };
+    s.SCURRY = 1.2; s.again = -Infinity; s.fillFor = () => Math.max(CLEARING_BOW.FILL, s.again - L.t);
     s.spent = 0; s.lastLand = -10; s.outcomes = [];   // every arrow loosed, in order (the tests read it)
     const hitIt = c => {
       if (c.dead || G.state !== 'play') return;   // it reached you first
       c.hits++; c.hurtFlash = 0.35; c.arrows.push(c.hits);
       AUDIO.sfx('thunk', panOf(c)); G.shake(0.08);
-      if (c.hits === 1) { CREATURES.runner.hurt(c); G.toast('It went down. It is getting back up.'); }
+      if (c.hits === 1) {
+        CREATURES.runner.hurt(c); G.toast('It went down. It is getting back up.');
+        // no second arrow while it lies there: a draw begun too soon after the first hit comes back slower, so that it is
+        // full only once the thing has got up and run about a little (s.again; one already coming back is slowed the same)
+        const D = CREATURES.runner.DOWN, d = G.draw;
+        s.again = L.t + D.fall + D.lie + D.rise + s.SCURRY;
+        if (d && d.state === 'drawing') { const k = d.power; d.fill = Math.max(d.fill, d.t + s.again - L.t); d.t = k * d.fill; d.full = false; }
+      }
       else { CREATURES.runner.kill(c); G.toast('It stopped.'); }
     };
     // a bat with an arrow in it (this night's easter egg, kept in the save the moment it happens: foundEgg): it squeaks
@@ -551,7 +559,7 @@ LEVELS.push({
     const reactToDraw = c => {
       const d = G.draw, k = s.dodge, drawn = !!d && d.state === 'drawing' && d.t >= CLEARING_BOW.MIN && G.state === 'play';
       c.drawnOn = drawn;
-      if (!drawn || d.rolled) return;
+      if (!drawn || d.rolled || c.mode === 'stumble') return;   // (drawn on while it is down: it takes note as it gets up)
       d.rolled = true;
       if (L.t - k.at < (c.wounded ? k.waryGap : k.gap) || !CREATURES.runner.canDodge(c)) return;
       k.rolls++;

@@ -168,9 +168,23 @@ const bat = [
   ['expect', '(r => r.radius >= 10 && r.radius <= 30)(window._bat)', 'a small thing to hit: the aim has to be within about its wingspan of it'],
   ['expect', '(r => r.clock === 0.5 && r.pace < 0.8 && r.beat < 0.4)(window._bat)', 'with reduced motion the bats fly at half the pace, without the jitter, their wings beating slowly'],
 ];
+// The first arrow in it and it down in the snow: a draw begun at once (the game stepped by hand, nothing loosed) fills
+// slower than usual (d.fill), and tops out only after it has got up and run about a little; a later one is as usual.
+const again = ['eval', `(() => {
+  const L = G.L, c = L.creature, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
+  const r = { was: c.mode, up: c.mode === 'stumble' ? null : L.t, spent: L.s.spent };
+  G.drawBtn = 'mouse'; step(1); r.fill = G.draw.fill;
+  let g = 0; while (G.draw && G.draw.power < 1 && g++ < 600) { step(1); if (r.up === null && c.mode !== 'stumble') r.up = L.t; }
+  r.full = L.t; r.downAtFull = c.mode === 'stumble'; drawLetGo('mouse', true); step(180);
+  G.drawBtn = 'mouse'; step(1); r.later = G.draw.fill; drawLetGo('mouse', true); step(40);
+  G.drawBtn = null; G.draw = null; r.spent = L.s.spent - r.spent;
+  window._again = r;
+})()`];
 const spentAll = [
   refill, hold(47), nock, ['draw', 'full', null, 'pad'], ['expect', last + " === 'hit' && G.L.creature.dist > 45", 'held on A until full and let go on it at 47 m: it flies at it'],
   ['wait', 1500], ['expect', 'G.L.creature.wounded && G.L.creature.hits === 1', 'the first hit wounds it, from 47 m'],
+  again, ['expect', '(r => r.fill > 1.7 && r.downAtFull === false && r.up !== null && r.full - r.up >= 1.1 && r.full - r.up <= 1.4 && r.spent === 0)(window._again)', 'drawn again at once while it is down: the bow comes back slower, and is full only once it has got up and run about for a second or so'],
+  ['expect', '(r => Math.abs(r.later - 1.5) < 1e-9)(window._again)', 'a draw begun after that takes its usual second and a half'],
   ['draw', 'short', null, 'pad'], nock, ['draw', 'short', null, 'touch'], ['expect', arrows + " === 0 && G.L.s.outcomes.slice(-2).join() === 'short,short'", 'all three arrows gone, one in it (A and a finger held on it draw too)'],
   ['eval', 'G.L.creature.hold = null;'], ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 15000],
   ['expect', "G.L.creature.reckless && G.deathCause === 'spent'", 'with every arrow gone and only one in it, it came in and reached you'],

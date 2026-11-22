@@ -827,10 +827,10 @@ function updateDraw(L, dt) {
   if (d && d.state !== 'drawing') { d.t += dt; if (d.t >= d.dur) G.draw = d = null; }   // letting it back down, or nocking the next
   const u = drawUse(L);
   if (d && d.state === 'easing' && G.drawBtn && G.state === 'play') G.draw = d = null;   // pressed again while it was being let down (after a click): it draws again at once
-  if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, full: false, creak: 0, u, src: G.drawBtn };
+  if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, full: false, creak: 0, u, src: G.drawBtn, fill: (u.draw.fillFor && u.draw.fillFor(L)) || u.draw.fill || DRAW_FILL };   // (fillFor: this one draw may take longer)
   if (!d || d.state !== 'drawing') return;
   if (G.state !== 'play' || !u) { looseDraw(L, d, true); return; }
-  d.t += dt; d.power = Math.min(1, d.t / (u.draw.fill || DRAW_FILL));
+  d.t += dt; d.power = Math.min(1, d.t / d.fill);
   if (d.power >= 1 && !d.full) { d.full = true; d.creak = d.t; AUDIO.sfx('bowFull'); }   // it tops out: the string comes tight with a click, and it holds there as long as it is held
   else if (d.t - d.creak >= (d.full ? 1.2 : 0.3)) { d.creak = d.t; AUDIO.sfx('bowCreak', 0, d.full); }   // a creak as it comes back; held full, one now and then
 }
@@ -1359,7 +1359,7 @@ function updateDrawBar() {
   const full = p >= 1 && d.state !== 'easing';
   UI.drawfill.style.height = (p * 100).toFixed(1) + '%';
   UI.drawbar.classList.toggle('full', full);
-  UI.drawmin.style.bottom = ((d.u.draw.min || DRAW_MIN) / (d.u.draw.fill || DRAW_FILL) * 100).toFixed(1) + '%';
+  UI.drawmin.style.bottom = ((d.u.draw.min || DRAW_MIN) / (d.fill || d.u.draw.fill || DRAW_FILL) * 100).toFixed(1) + '%';
   const lab = full ? 'full' : '';
   if (UI.drawlabel.textContent !== lab) UI.drawlabel.textContent = lab;
 }

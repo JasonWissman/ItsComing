@@ -50,7 +50,7 @@
       { name: 'Second arrow while it is down', note: 'Hit again before it is back up from the first, here as it pushes itself up: it drops back into the snow and lies there twitching.', dist: 16, dur: 6.5, fit: { w: 2.3 },
         set(c) { c.CR.sprint(c); c.sprintFor = 99; c.darts = Infinity; },
         tick(c, k, dt, T) { if ((T >= 0.4 && !c.hits) || (T >= 2.1 && c.hits < 2)) hit(c); drive(c, dt); } },
-      LAB.lunge({ dist: 1.4, dur: 1.2, note: 'It reaches the porch: up out of its sprint, its long hands reaching for your face, its black hair hanging round it.',
+      LAB.lunge({ dist: 1.4, dur: 1.2, note: 'It reaches the porch: up out of its sprint, its long hands reaching for your face, its few strands of hair standing on end.',
         set(c) { c.CR.sprint(c); c.frozen = true; c.lungeFrom = c.dist; } }),   // it catches you running, not crouched
     ],
   });
