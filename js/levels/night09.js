@@ -31,7 +31,7 @@
 // sending a unit now.") and only the last of them once it has, and a police car is sent, though it is not seen until the
 // shade has got to the last lamp on its way in. Then it comes tearing down that street, siren wailing and its light bar
 // going, screeches to a halt by that lamp post, shuts off its siren and shines a flashlight out of its window at it. In
-// that light the shade convulses for a second, with a shriek, and then
+// that light the shade convulses for a second from the instant it is on it, with a shriek, and then
 // jumps out in front of the post at it, its head split open into its petals of teeth and its tentacles out, with a snarl;
 // the flashlight goes off and
 // the police car spins its tyres and fishtails off down the road and away, and the shade comes on for you as before
@@ -1017,8 +1017,8 @@ Object.assign(ICONS, {
       // (pastLast; then copSetOff, and the police car's part, copRun, below the car). From then until it has seen them off
       // it is theirs to move (copHolds, copMan): at that lamp it goes on as it would until its time there is up, and then
       // stands there in the dark; were it past the lamp already it skitters back behind the post. Once the car is braking for
-      // it, it stands dead still (an arm reaching for the lamp comes back down), and the flashlight finds it there. In that
-      // light it convulses, a second of it (COP.conv, up to the jump; c.convulse: twisting, its limbs jerking at wrong
+      // it, it stands dead still (an arm reaching for the lamp comes back down), and the flashlight finds it there. The instant
+      // that light is on it, it convulses, a second of it (COP.conv, up to the jump; c.convulse: twisting, its limbs jerking at wrong
       // angles and its head snapping from side to side, a slow writhe with reduced motion), with a shriek tearing upward
       // (shadeShriek). Then it jumps out in front of the post at the car, upright, its head split open into its petals of
       // teeth at it, its arms up and its tentacles out (c.scare, toward c.scareSide on the view), with a snarl, high and
@@ -1477,7 +1477,7 @@ Object.assign(ICONS, {
       // goes (go): its tyres spin (spin) and it is away (accel, up to vMax, and vTurn round the corner from the main street),
       // fishtailing from side to side (swerve: how far it swings either way, sway: how far it goes from one side to the
       // other and back), down the road and away out of sight (far). The shade shuts its head hold after it goes
-      const COP = { cyc: 1.6, black: [26, 26, 30], white: [208, 208, 212], V: 17, from: 72, brake: 9, slew: 5 * DEG, torchOn: 0.6, scare: 2.2, conv: 1.0, jump: 0.28, torchOff: 0.7, go: 0.95, hold: 1.3, spin: 0.5, accel: 9, vMax: 25, vTurn: 11, far: 110, swerve: 0.8, sway: 14 };
+      const COP = { cyc: 1.6, black: [26, 26, 30], white: [208, 208, 212], V: 17, from: 72, brake: 9, slew: 5 * DEG, torchOn: 0.6, find: 0.55, beam: 16 * DEG, conv: 1.0, jump: 0.28, torchOff: 0.7, go: 0.95, hold: 1.3, spin: 0.5, accel: 9, vMax: 25, vTurn: 11, far: 110, swerve: 0.8, sway: 14 };
       const carPath = (laneN, stopX) => {
         const pts = [];
         const line = (x0, z0, x1, z1) => { const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.2)); for (let i = pts.length ? 1 : 0; i <= n; i++) pts.push([lerp(x0, x1, i / n), lerp(z0, z1, i / n)]); };
@@ -1804,15 +1804,18 @@ Object.assign(ICONS, {
         s.cop = { cop: true, phase: 'wait', t: 0, pose: null, fade: 0, torch: 0, sv: 0, gone: false };
         if (pastLast()) copSetOff(c);
       };
+      // the flashlight on the shade at t (s.cop.t): it convulses from that instant, COP.conv of it, and the rest follows
+      // from there (scareT, the shade at the car; torchOffT, the flashlight off; goT, the car away)
+      const copLit = (K, t) => { K.lit = true; K.scareT = t + COP.conv; K.torchOffT = K.scareT + COP.torchOff; K.goT = K.scareT + COP.go; };
       // set off (the times from then, s.cop.t): tc, when it brakes; haltT, halted; offT, its siren off, at the end of the
-      // wail it is in; torchOnT, the flashlight on; scareT, the shade at it; torchOffT, the flashlight off; goT, away. Were
+      // wail it is in; torchOnT, the flashlight on; (copLit, once its beam is on the shade:) scareT, the shade at it; torchOffT, the flashlight off; goT, away. Were
       // the shade past its last lamp it goes back behind the post (s.cop.back)
       const copSetOff = c => {
         const K = s.cop, Q = K.q = copScene(c), m = s.man, last = lastStop();
         Object.assign(K, { phase: 'come', t: 0, sirenAt: 0, tc: (Q.in.len - COP.brake) / COP.V });
         K.haltT = K.tc + 2 * COP.brake / COP.V;
         K.offT = Math.ceil((K.haltT + 0.15) / COP.cyc) * COP.cyc;
-        K.torchOnT = K.offT + COP.torchOn; K.scareT = K.offT + COP.scare; K.torchOffT = K.scareT + COP.torchOff; K.goT = K.scareT + COP.go;
+        K.torchOnT = K.offT + COP.torchOn; copLit(K, K.torchOnT + COP.find); K.lit = false;   // (at the latest: the end of its sweep)
         if (m.segs.indexOf(m.seg) > lastIdx()) K.back = { t0: L.t, from: { d: m.d, lat: m.lat }, to: last, rushT: Math.max(FLEE.min, gap(last, { d: m.d, lat: m.lat }) / RUSH_V) };
         K.pose = comePose(K, 0); c.hold = null;
       };
@@ -1867,6 +1870,12 @@ Object.assign(ICONS, {
         const on = K.torchOnT, off = K.torchOffT, ramp = SAVE.data.settings.reducedFlash ? 0.3 : 0.05;
         const flick = ramp < 0.1 && t - on < 0.22 && Math.sin((t - on) * 70) < -0.3 ? 0.2 : 1;
         K.torch = t < on ? 0 : t < off ? clamp((t - on) / ramp, 0, 1) * flick : clamp(1 - (t - off) / ramp, 0, 1);
+        // the instant its beam comes onto the shade as it sweeps in (the shade's chest inside the cone of it), the shade
+        // starts to convulse: no wait for the sweep to finish, or after it
+        if (!K.lit && t >= on) {
+          const tr = copTorch(), h = tr && [0, 1, 2].map(j => tr.him[j] - tr.O[j]);
+          if (tr && (h[0] * tr.d[0] + h[1] * tr.d[1] + h[2] * tr.d[2]) / Math.hypot(h[0], h[1], h[2]) >= Math.cos(COP.beam)) copLit(K, t);
+        }
       };
       // still about the scene (out of play, while it is won): the police car, or the shade seeing it off
       const copBusy = () => !!s.cop && s.cop.phase !== 'wait' && !s.cop.gone && (!s.cop.manDone || s.cop.sv < 30);
@@ -1877,7 +1886,7 @@ Object.assign(ICONS, {
         const K = s.cop; if (!K || !K.pose || K.torch < 0.01) return null;
         const Q = K.q, c = sm(), cp = c.pos(), P = K.pose, O = carPt(P, 0.2, Q.side * 0.96, 1.08);
         const him = [cp.x, cp.y + (c.yOff || 0) + 1.6, cp.z];
-        const sweep = smoothstep(clamp((K.t - K.torchOnT) / 0.55, 0, 1)), ahead = carPt(P, 7, Q.side * 2.2, 0.3);
+        const sweep = smoothstep(clamp((K.t - K.torchOnT) / COP.find, 0, 1)), ahead = carPt(P, 7, Q.side * 2.2, 0.3);
         const T = [0, 1, 2].map(j => lerp(ahead[j], him[j], sweep));
         const dl = Math.hypot(T[0] - O[0], T[1] - O[1], T[2] - O[2]), d = [0, 1, 2].map(j => (T[j] - O[j]) / dl);
         let len = 9, hit = null;
@@ -1949,7 +1958,7 @@ Object.assign(ICONS, {
           }
         }
         const tr = copTorch();   // the flashlight, on the shade and the post and the wall behind
-        if (tr) out.push({ x: tr.O[0], y: tr.O[1], z: tr.O[2], r: 10, i: 1.1 * tr.k, color: [225, 232, 255], cone: { x: tr.d[0], y: tr.d[1], z: tr.d[2], cos: Math.cos(16 * DEG) } });
+        if (tr) out.push({ x: tr.O[0], y: tr.O[1], z: tr.O[2], r: 10, i: 1.1 * tr.k, color: [225, 232, 255], cone: { x: tr.d[0], y: tr.d[1], z: tr.d[2], cos: Math.cos(COP.beam) } });
         return out;
       };
       // a street lamp's halo is drawn over everything, so one behind the shade (inside its outline as seen from the booth) is left out

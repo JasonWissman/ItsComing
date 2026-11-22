@@ -473,7 +473,7 @@ some on the ground, so you have to turn and look down to find them.
    swells slowly from red to blue and back instead), and screeches to a halt on the road beside that lamp post, its nose
    dipping, black rubber left on the road. The siren winds down. A flashlight comes on at its window, sweeps in and finds
    the shade: a beam through the rain, a pool of light round its feet and on the wall behind, a pale light down its side
-   and its eyes shining back. In that light it convulses for a second, with a shriek tearing upward: thrown over at the
+   and its eyes shining back. The instant that light is on it (as the beam sweeps onto it, with no wait after), it convulses for a second, with a shriek tearing upward: thrown over at the
    waist one way and the other, its spine kinked, one shoulder up and the other down, its knees buckling, its elbows out
    and its forearms flung about from them at wrong angles, its head snapping from side to side and its jaw dropping out
    of it, every joint jerked somewhere new several times a second, and the first of its tentacles squirming out of its
