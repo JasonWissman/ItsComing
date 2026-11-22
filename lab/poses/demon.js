@@ -10,7 +10,7 @@
     down: [19.5, 20.1], hush: 23.1, scare: [23.8, 25.7, 26.3], neutral: [26.3, 26.9], confused: [29.7, 30.5], mirror: [32.3, 33.1], light: [32.9, 39.9], content: [34.9, 35.9], happy: [36.9, 37.9],
     release: 39.9, walk: [40.9, 44.5], disrobe: [45.1, 47.7], dance: [47.3, 51.8],
   };
-  // and of its easter egg's EGG (from the moment the last thing is taken up): the joy, its face, its robe, the light
+  // and of its easter egg's VOID_EGG (from the moment the last thing is taken up): the joy, its face, its robe, the light
   const EGG = { joy: 16.6, unveil: [16.6, 17.1], disrobe: [17.1, 19.7], light: [16.9, 22.4] };
   // the faces round it at the scare (END.scare): each of the others as it comes up into your face in its death lunge, as
   // night 13 draws them (VOID_RECAP's faceShot, and its FACES, copied here: how far into its lunge, k, and the square round
@@ -182,7 +182,7 @@
       endPart(END.dance[0] - 0.2, { name: 'Dancing in the meadow', note: 'Out of the robe, in a yellow striped shirt, red shorts, white socks and blue sneakers, it dances a little to the music box beside the heap of it: hops, kicks, hands up and waving, its head rocking.', dur: 4.9, fit: { h: 2.8, w: 1.6 } }),
       { name: 'Fading away', note: 'After your press in the meadow: it fades out over two seconds as the bedroom comes up, the robe on the grass with it.', dur: 3, still: true, fit: { h: 2.8, w: 1.6 }, draw: drawAt(),
         set(c) { c.tilt0 = 0; ending(c, END.dance[1] + 1.6, 0); c.leaving = true; }, tick(c, k, dt, T) { ending(c, END.dance[1] + 1.6 + T, dt); c.leave = span(T, 0, 3.0); c.fade = clamp(1 - (T - 0.3) / 2.0, 0, 1); } },
-      // the easter egg (night 13's buildGathering, its EGG): everything taken up, it stands in the middle of the others,
+      // the easter egg (night 13's buildGathering, its VOID_EGG): everything taken up, it stands in the middle of the others,
       // calm; then, as they all leap for joy, its face comes up, it takes off its robe and dances as the light comes
       { name: 'Among the others: the joy', note: 'The easter egg (everything taken up): in the middle of the others it stands calm and hooded, two pale eyes, a few seconds; then, as they throw what they hold into the air and leap, its happy face comes up out of the hood, it pushes the hood back, drops the robe, hops clear and dances, the dark turning to the pale light and the meadow round it.', dist: 6, dur: 11, still: true, fit: { h: 2.8, w: 1.6 }, draw: drawAt(),
         tick(c, k, dt, T) {

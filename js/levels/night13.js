@@ -800,7 +800,7 @@ function buildMeadow(L, s, c0) {
 // meadow waits for a press, and then the bedroom, in the morning.
 // Each is drawn by its own code (js/creatures), made as the game makes a creature and posed with its own fields; what it
 // holds is drawn at its hand. Times are seconds from the moment the last thing was taken up.
-const EGG = {
+const VOID_EGG = {
   far: 17,                              // each comes out of the dark from this far off
   first: 1.7, every: 0.7,               // the first of them, and each one after it
   rush: 0.5, snatch: 0.45, back: 2.9,   // each: up to you, fast; it takes what was its own; then backs away, slowly, to its place
@@ -841,8 +841,8 @@ function buildGathering(L, s, c0, K) {
   const make = (type, n) => {
     const CR = CREATURES[type];
     const c = {
-      type, CR, lane: { y: 0, follow: 'free', apertures: [], blockers: [] }, yaw: L.facing, idx: n + 1, D0: EGG.far, T: 60, gamma: 1, seenMult: 1, unseenMult: 1,
-      u: 0, dist: EGG.far, gait: 0, t: n * 1.3, seen: true, seenLast: true, visFrac: 1, visible: true, lit: 0, lat: 0, yOff: 0, lunge: 0,
+      type, CR, lane: { y: 0, follow: 'free', apertures: [], blockers: [] }, yaw: L.facing, idx: n + 1, D0: VOID_EGG.far, T: 60, gamma: 1, seenMult: 1, unseenMult: 1,
+      u: 0, dist: VOID_EGG.far, gait: 0, t: n * 1.3, seen: true, seenLast: true, visFrac: 1, visible: true, lit: 0, lat: 0, yOff: 0, lunge: 0,
       frozen: false, reached: false, hits: 0, dead: false, moving: false, timeScale: CR.timeScale || 1, rand: mulberry32(1300 + n * 77),
       distFn: null, hold: null, catchDist: CR.catchDist, laneOptions: null, fixedLane: true,
       retarget() {}, pos() { return { x: Math.sin(this.yaw) * this.dist, y: 0, z: Math.cos(this.yaw) * this.dist }; },
@@ -878,14 +878,14 @@ function buildGathering(L, s, c0, K) {
       t: 0, phase: 'rush', d0: c.dist, yaw0: c.yaw, joy: 0, glow: 0, thrown: [],
       others: VOID_OTHERS.map((d, n) => Object.assign({}, d, { n, c: make(d.type, n), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
     };
-    s.ending = true; s.endT = 0; s.armAt = EGG.arm;
+    s.ending = true; s.endT = 0; s.armAt = VOID_EGG.arm;
     // the thing in the hood: stopped where it is, and placed by its bearing and distance from here on
     c.frozen = true; c.hold = null;
     c.lane = Object.assign({}, c.lane, { follow: 'free', apertures: [], blockers: [] });
     c.distFn = cr => {
-      const t = E.t, back = t >= EGG.demon[0] - 0.4;
-      cr.yaw = back ? L.facing + EGG.place[0] : E.yaw0;
-      return back ? lerp(15, EGG.place[1], span(t, EGG.demon[0], EGG.demon[1])) : E.d0 + 9 * easeIn(clamp((t - EGG.gone[0]) / (EGG.gone[1] - EGG.gone[0]), 0, 1));
+      const t = E.t, back = t >= VOID_EGG.demon[0] - 0.4;
+      cr.yaw = back ? L.facing + VOID_EGG.place[0] : E.yaw0;
+      return back ? lerp(15, VOID_EGG.place[1], span(t, VOID_EGG.demon[0], VOID_EGG.demon[1])) : E.d0 + 9 * easeIn(clamp((t - VOID_EGG.gone[0]) / (VOID_EGG.gone[1] - VOID_EGG.gone[0]), 0, 1));
     };
     L.keepHeld = true;   // (js/hands.js: what you hold stays in your hands until it is taken from them)
     foundEgg();
@@ -951,16 +951,16 @@ function buildGathering(L, s, c0, K) {
     o.held = [];
   }
   function update(dt, still) {
-    const c = c0(), t = E.t = s.endT += dt, R1 = still ? 1.1 : EGG.rush, B1 = EGG.back - (R1 - EGG.rush), far = still ? 9 : EGG.far;
-    E.phase = t < EGG.hold ? 'rush' : t < EGG.joy ? 'hold' : 'joy';
+    const c = c0(), t = E.t = s.endT += dt, R1 = still ? 1.1 : VOID_EGG.rush, B1 = VOID_EGG.back - (R1 - VOID_EGG.rush), far = still ? 9 : VOID_EGG.far;
+    E.phase = t < VOID_EGG.hold ? 'rush' : t < VOID_EGG.joy ? 'hold' : 'joy';
     // ---- the others ----
-    const joyT = t - EGG.joy;
+    const joyT = t - VOID_EGG.joy;
     for (const o of E.others) {
-      const oc = o.c, u = t - (EGG.first + o.n * EGG.every);
+      const oc = o.c, u = t - (VOID_EGG.first + o.n * VOID_EGG.every);
       oc.t += dt * oc.timeScale; oc.still = still;
       o.on = u >= 0;
       if (!o.on) continue;
-      const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < R1 + EGG.snatch ? 1 : 0, back = span(u, R1 + EGG.snatch, R1 + EGG.snatch + B1);
+      const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < R1 + VOID_EGG.snatch ? 1 : 0, back = span(u, R1 + VOID_EGG.snatch, R1 + VOID_EGG.snatch + B1);
       // up to you along its own way, a little in toward the middle so it is in your face; then back out to its place
       // (the stone one is never seen to move: it is nearer, all at once, three times; and goes back so, a pose at a time)
       const stone = o.type === 'watcher', rk = stone ? Math.ceil(rush * 3 - 1e-9) / 3 : rush, bk = stone ? Math.floor(back * 7 + 1e-9) / 7 : back;
@@ -1007,29 +1007,29 @@ function buildGathering(L, s, c0, K) {
     const ease = Math.min(1, dt * 5);
     c.still = still;
     c.yOff += (0 - c.yOff) * ease; c.stoop += (0 - c.stoop) * ease;
-    const away = span(t, EGG.gone[0] + 0.3, EGG.gone[1]), here = span(t, EGG.demon[0], EGG.demon[0] + 1.4);
-    E.joy = t >= EGG.joy ? 1 : 0;
-    c.calm = span(t, EGG.joy, EGG.joy + 1.6);
-    if (E.joy) { c.mood = CREATURES.demon.moods - 1; c.unveil = span(t, EGG.unveil[0], EGG.unveil[1]); c.settle = 1; c.tilt0 = 0; }
-    c.disrobe = clamp((t - EGG.disrobe[0]) / (EGG.disrobe[1] - EGG.disrobe[0]), 0, 1);
-    const dj = t - EGG.disrobe[1] + 0.4;
+    const away = span(t, VOID_EGG.gone[0] + 0.3, VOID_EGG.gone[1]), here = span(t, VOID_EGG.demon[0], VOID_EGG.demon[0] + 1.4);
+    E.joy = t >= VOID_EGG.joy ? 1 : 0;
+    c.calm = span(t, VOID_EGG.joy, VOID_EGG.joy + 1.6);
+    if (E.joy) { c.mood = CREATURES.demon.moods - 1; c.unveil = span(t, VOID_EGG.unveil[0], VOID_EGG.unveil[1]); c.settle = 1; c.tilt0 = 0; }
+    c.disrobe = clamp((t - VOID_EGG.disrobe[0]) / (VOID_EGG.disrobe[1] - VOID_EGG.disrobe[0]), 0, 1);
+    const dj = t - VOID_EGG.disrobe[1] + 0.4;
     c.dance += ((still || s.leaving || dj <= 0 ? 0 : Math.min(1, dj * 2) * joyAmp(dj, null)) - c.dance) * Math.min(1, dt * 7);
-    if (t >= EGG.joy && !E.cheered) {
+    if (t >= VOID_EGG.joy && !E.cheered) {
       E.cheered = true; AUDIO.sfx('cheer', 0); AUDIO.sfx('win');
       if (!still) G.shake(0.2);
     }
-    if (t >= EGG.unveil[0] + 0.2 && !E.hum) { E.hum = true; AUDIO.voice('hum', 0.5, 0); }
-    if (t >= EGG.disrobe[0] + 0.5 && !E.cloth) { E.cloth = true; AUDIO.sfx('cloth', 0); }
+    if (t >= VOID_EGG.unveil[0] + 0.2 && !E.hum) { E.hum = true; AUDIO.voice('hum', 0.5, 0); }
+    if (t >= VOID_EGG.disrobe[0] + 0.5 && !E.cloth) { E.cloth = true; AUDIO.sfx('cloth', 0); }
     // the light behind them all, as they gather
-    E.glow = span(t, EGG.first + 1.5, EGG.first + 5);
+    E.glow = span(t, VOID_EGG.first + 1.5, VOID_EGG.first + 5);
     // ---- the light, the meadow, the tune, and the wait ----
-    const mv = s.meadow = span(t, EGG.light[0], EGG.light[1]);
+    const mv = s.meadow = span(t, VOID_EGG.light[0], VOID_EGG.light[1]);
     s.spin = 0;
     K.lightStep(dt, mv);
-    K.tuneStep(t, EGG.disrobe[0]);
-    if (t >= EGG.wait) s.wait = true;
+    K.tuneStep(t, VOID_EGG.disrobe[0]);
+    if (t >= VOID_EGG.wait) s.wait = true;
     if (s.wait && !s.leaving) K.idleStep(dt);
-    c.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3) / 2.0, 0, 1) : t < EGG.demon[0] ? 1 - away : here;
+    c.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3) / 2.0, 0, 1) : t < VOID_EGG.demon[0] ? 1 - away : here;
     for (const th of E.thrown) th.fade = s.leaving ? clamp(1 - (s.leaveT - 0.2) / 1.2, 0, 1) : 1;
     K.meadow.update();
   }
@@ -1140,7 +1140,7 @@ function buildGathering(L, s, c0, K) {
   }
   // the view: level, to the north, on the middle of them, and as close as still takes in all of them (closer on a wide
   // view); easing back out as the meadow comes, to be as it will be when the view is yours again
-  const watch = () => ({ x: Math.sin(L.facing) * 6, y: L.eyeH + 0.12, z: Math.cos(L.facing) * 6, zoom: lerp(clamp(0.6 * (R.W / R.H) / 0.93, 1, 1.32), 1, E ? span(E.t, EGG.joy + 2.5, EGG.wait - 1.2) : 0) });
+  const watch = () => ({ x: Math.sin(L.facing) * 6, y: L.eyeH + 0.12, z: Math.cos(L.facing) * 6, zoom: lerp(clamp(0.6 * (R.W / R.H) / 0.93, 1, 1.32), 1, E ? span(E.t, VOID_EGG.joy + 2.5, VOID_EGG.wait - 1.2) : 0) });
   // where each of the others stands (for the glitter as they go)
   const places = () => (E ? E.others.map(o => { const p = o.c.pos(); return { x: p.x, z: p.z, h: Math.max(1, o.c.CR.h) }; }) : []);
   return { begin, update, draw, lights, watch, places };
