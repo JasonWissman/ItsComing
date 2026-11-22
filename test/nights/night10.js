@@ -15,7 +15,7 @@
 // the pedestal into your hand.
 // The dust sheets (on a night of its own): the night's dice are rolled as they always were (for seeds 1 to
 // 10 the box, the crank, the odd mirror, the sheeted mirrors and the doll's side are where the night before the sheets
-// could be picked up put them, and the next roll is the same); two folded sheets lie under the lamp's table; one in hand,
+// could be picked up put them, and the next roll is the same); two folded sheets lie on top of the lamp's table; one in hand,
 // a bare mirror takes it (the glass shows nothing under it, and before it the thing is unseen), it is pulled down again,
 // its heap taken up and thrown back over; and the last bare mirror covered is the easter egg: found and saved at once,
 // nothing to press, a hush, its face and then its hands pressed out through that sheet, the other sheets bulging, and
@@ -33,8 +33,9 @@ const sheetCount = "G.inv.filter(i => i.id === 'dustsheet').length";
 const shownAgo = k => '(G.L.s.shown[' + k + '] ? G.L.t - G.L.s.shown[' + k + '].at : 99)';
 // the night as its dice roll it for seeds 1 to 10 (each: the box, the crank, the odd mirror, which mirrors are bare, the
 // side it comes out to, the arm it leads with, and the next roll after the night is built), as it was before the sheets
-// could be picked up: nothing about them takes a roll
-const LAYOUT = '[[[1.89,0,-2.553],[2.911,1.03,2.354],1,"0011",1,-1,0.219],[[-2.596,0,-2.614],[-2.902,0,2.806],2,"0110",-1,1,0.498],[[2.587,1.03,3.082],[-3.12,0,-1.084],0,"0011",1,-1,0.138],[[-2.818,0,-2.677],[2.81,0,-2.798],3,"0011",-1,1,0.106],[[-2.667,0,1.505],[3.091,0,1.135],3,"0110",-1,-1,0.804],[[2.692,1.03,2.998],[1.291,0,-3.098],1,"1010",1,-1,0.947],[[1.885,0,-2.533],[3.157,0,1.263],2,"0110",-1,-1,0.734],[[-1.402,0,2.912],[2.928,1.03,2.386],2,"1010",-1,1,0.104],[[-2.68,0,-2.589],[2.878,1.03,2.4],0,"1001",-1,1,0.464],[[-2.561,0,1.457],[3.159,0,1.12],1,"0011",1,1,0.774]]';
+// could be picked up: nothing about them takes a roll (the crank's place on the lamp's table is the left of its top now,
+// the sheets lying folded on the right of it: the same roll, 0.45 m over and 0.5 m back)
+const LAYOUT = '[[[1.89,0,-2.553],[2.461,1.03,2.854],1,"0011",1,-1,0.219],[[-2.596,0,-2.614],[-2.902,0,2.806],2,"0110",-1,1,0.498],[[2.587,1.03,3.082],[-3.12,0,-1.084],0,"0011",1,-1,0.138],[[-2.818,0,-2.677],[2.81,0,-2.798],3,"0011",-1,1,0.106],[[-2.667,0,1.505],[3.091,0,1.135],3,"0110",-1,-1,0.804],[[2.692,1.03,2.998],[1.291,0,-3.098],1,"1010",1,-1,0.947],[[1.885,0,-2.533],[3.157,0,1.263],2,"0110",-1,-1,0.734],[[-1.402,0,2.912],[2.478,1.03,2.886],2,"1010",-1,1,0.104],[[-2.68,0,-2.589],[2.428,1.03,2.9],0,"1001",-1,1,0.464],[[-2.561,0,1.457],[3.159,0,1.12],1,"0011",1,1,0.774]]';
 const layout = [
   ['eval', `window._layout = (() => {
     const keep = [G.runSeed, G.attempt, G.inv], out = [], spare = [];
@@ -48,7 +49,7 @@ const layout = [
     return { rolled: JSON.stringify(out), spare };
   })()`],
   ['expect', "window._layout.rolled === '" + LAYOUT + "'", 'for seeds 1 to 10 the box, the crank, the odd mirror, the sheeted mirrors and its side are where they were before, and the next roll is the same'],
-  ['expect', "window._layout.spare.every(q => q === '[[2.55,0,3.08,false],[3.08,0,2.55,false]]')", 'and on every one the two spare sheets lie folded under the lamp\'s table, in the same two places'],
+  ['expect', "window._layout.spare.every(q => q === '[[2.97,1.03,2.69,false],[3.22,1.03,2.43,false]]')", 'and on every one the two spare sheets lie folded on top of the lamp\'s table (not under it), in the same two places'],
   ['expect', "G.L.text.egg === 'Cover every mirror.' && G.L.text.eggs.includes('ignored') && G.L.s.mirrors.filter(m => m.live).length === 2 && G.L.targets.filter(t => /^sheet/.test(t.id) && !t.hidden).length === 2", 'two mirrors under sheets, two bare (nothing to click on a bare one with empty hands)'],
 ];
 // a bare mirror (not the last one): a sheet thrown over it, pulled down again, its heap taken up and thrown back over
@@ -112,7 +113,7 @@ const lastSheet = k => [look(k), ['wait', 200],
 ];
 const bare = k => 'G.L.s.mirrors[' + k + '].live && !G.L.s.egg';
 const egg = [['eval', 'window.__att0 = G.attempt']].concat(layout,
-  [['pickup', 'dustsheet'], ['expect', sheetCount + " === 1 && G.L.items.some(i => i.id === 'dustsheet' && !i.taken)", 'one folded sheet taken from under the table, the other still there'], ['pickup', 'dustsheet'],
+  [['pickup', 'dustsheet'], ['expect', sheetCount + " === 1 && G.L.items.some(i => i.id === 'dustsheet' && !i.taken)", 'one folded sheet taken from the top of the table, the other still there'], ['pickup', 'dustsheet'],
     ['expect', sheetCount + " === 2 && G.inv[G.active].id === 'dustsheet'", 'and the other: two sheets in hand']],
   ...[0, 1, 2, 3].map(k => [['branch', bare(k) + ' && G.L.s.mirrors.filter(m => m.live).length > 1', coverAgain(k)]]),
   ...[0, 1, 2, 3].map(k => [['branch', bare(k), lastSheet(k)]]),

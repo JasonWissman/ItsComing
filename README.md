@@ -399,8 +399,8 @@ some on the ground, so you have to turn and look down to find them.
    and beats on it, hard and fast, until the night fades.
    There is a soda fountain behind you, on a cabinet against the back wall on the other side of the kitchen pass from
    the main (a lit red Soda header, three valves over a dark well, a drip tray, and a little window that says EMPTY,
-   dark), and a row of plain paper cups along the shelf on the back wall, all alike: one of them (and only that one)
-   can be taken, and nothing marks which. Nothing says either does
+   dark), and a row of plain paper cups along the shelf on the back wall, all alike: the one at the end of the row nearest you (and only that one)
+   can be taken, and nothing marks it. Nothing says either does
    anything: the fountain cannot be pointed at (no pointer, no line, nothing the view can hit) until the cup is in hand,
    and the counter's top not until the cup in hand is full. With the cup, the fountain pours it full, fizzing, the cup
    held under the nozzle (in hand it shows dark cola under a head of foam); full, a click on the counter sets it on the
@@ -533,9 +533,10 @@ some on the ground, so you have to turn and look down to find them.
     played for an illusion. The creature surprised you from behind."; caught without the box ever having played, "It
     just wants to hear its song."
     The dust sheets go back up. A sheet pulled down lies in a heap at the foot of its glass; a click on the heap (either
-    side of the pedestal) takes it up, a bundle of pale cloth in your hand, and two more lie folded on the floor under the
-    lamp's table (always there: they take no roll of the night's dice, so the box and the crank lie where they always
-    did). A click on a bare mirror with a sheet in hand throws it up over the glass, where it hangs as the first two did
+    side of the pedestal) takes it up, a bundle of pale cloth in your hand, and two more lie folded on top of the
+    lamp's table, side by side on the right of its top, the left of it kept for the box or the crank when one of them
+    lies there (the sheets are always there: they take no roll of the night's dice, so the box and the crank fall
+    as they always did). A click on a bare mirror with a sheet in hand throws it up over the glass, where it hangs as the first two did
     and can be pulled down again. A covered mirror shows nothing, so standing before one counts as looking away (it
     comes on at its unseen pace), and the box plays before a covered odd mirror as it always did (the tune pulls the
     sheet off). The night's easter egg ("Cover every mirror."): the moment all four are under sheets the night is over.
