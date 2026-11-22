@@ -16,6 +16,8 @@
 // In the glass it dances on the spot (dancePose): c.dance (0..1) is how far it is in its dance, c.danceT the dance's
 // clock (the night runs it, so every mirror shows the same moment), and c.danceMir -1 draws the mirror image of it.
 // c.tint (a light, as LIGHT.at gives) lights it by hand where the night has the renderer leave it unlit.
+// pressed() is not the doll but what a dust sheet shows of it, pushing out through the cloth from behind (night 10's
+// easter egg, every mirror covered: the night draws it on the sheet).
 CREATURES.other = {
   name: 'the doll', h: 1.35, w: 0.72, faceY: 1.14, stepRate: 1.6, catchDist: 1.3, sound: null, seenFrac: 0.6,
   death: { delay: 0.4, dur: 0.6, sting: 'stingHum' },
@@ -72,6 +74,78 @@ CREATURES.other = {
     return mir < 0 ? this.mirrorPose(p) : p;
   },
   mirrorPose(p) { return { aL: p.aR, bL: p.bR, rL: p.rR, kL: p.kR, xL: p.xR, aR: p.aL, bR: p.bL, rR: p.rL, kR: p.kL, xR: p.xL, tilt: -p.tilt, sway: -p.sway }; },
+  // Pressing out through a dust sheet from inside: the cloth, pushed into the shape of it. Drawn on the sheet, in metres
+  // (x across, y up from the floor below it), all in the cloth's own colours (o.cloth: base, fold, lite, deep), light where
+  // it is pushed out at you and dark where it is not: o.k (0..1) is how far its face is into the cloth (the smooth swell of
+  // its head, the ridge of its brow, the two hollows of its eye sockets, its nose, and its mouth, opening into a wail as
+  // it comes), o.hands (0..1) its two hands, one either side of its face, palms flat to the cloth and fingers spread, the
+  // cloth webbed taut between the fingertips; both grow as they press (the cloth stretching out toward you), and from each
+  // the cloth is pulled into creases to the top of the frame it hangs from and out to its sides. o.t is its clock: the
+  // cloth trembles with the strain (o.still: it does not). o.y: how high its face is (1.17: the doll's, seen in a sheet
+  // just before it).
+  pressed(ctx, P, o) {
+    const k = clamp(o.k || 0, 0, 1), hk = clamp(o.hands || 0, 0, 1);
+    if (k <= 0 && hk <= 0) return;
+    const C = Object.assign({ base: [156, 148, 132], fold: [114, 106, 94], lite: [180, 172, 156] }, o.cloth);
+    const hi = C.lite.map(v => Math.min(255, v + 22)), deep = C.deep || C.fold.map(v => v * 0.5);
+    const t = o.t || 0, shiver = o.still ? 0 : 1;
+    // a soft-edged patch of light or shade on the cloth
+    const blob = (x, y, rx, ry, c, a, rot) => {
+      ctx.save(); ctx.translate(x, y); if (rot) ctx.rotate(rot); ctx.scale(rx, ry);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      g.addColorStop(0, P.cola(c, a)); g.addColorStop(0.55, P.cola(c, a * 0.75)); g.addColorStop(1, P.cola(c, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.restore();
+    };
+    // a crease pulled taut from (x, y) toward (tx, ty), from r0 out, as far as it is pressed (kk)
+    const crease = (x, y, tx, ty, r0, w, kk) => {
+      const dx = tx - x, dy = ty - y, d = Math.hypot(dx, dy), r1 = r0 + (d - r0) * (0.3 + 0.7 * kk), ux = dx / d, uy = dy / d;
+      P_line(ctx, x + ux * r0, y + uy * r0, x + ux * r1, y + uy * r1, w, P.cola(C.fold, 0.8 * kk));
+      P_line(ctx, x + ux * r0 + uy * w, y + uy * r0 - ux * w, x + ux * r1 + uy * w * 0.5, y + uy * r1 - ux * w * 0.5, w * 0.7, P.cola(hi, 0.6 * kk));
+    };
+    const fy = (o.y || 1.17) + 0.05 * k, S = lerp(1.3, 1.85, k) * (1 + 0.012 * Math.sin(t * 33) * shiver * k);
+    if (k > 0) {
+      for (const [x, y, w] of [[-0.8, 2.56, 0.03], [0.76, 2.56, 0.03], [-0.26, 2.6, 0.022], [0.3, 2.6, 0.022], [-0.98, 1.55, 0.022], [0.98, 1.65, 0.022], [-0.62, 0.15, 0.02], [0.56, 0.12, 0.02]]) crease(0, fy, x, y, 0.19 * S, w, k);
+      ctx.save(); ctx.translate(0, fy); ctx.scale(S, S);
+      blob(0, 0, 0.26, 0.3, C.base, k);                    // the cloth drawn smooth over it
+      blob(0, -0.215, 0.2, 0.1, C.fold, 0.85 * k);         // the hollow under its chin
+      blob(0, 0.035, 0.15, 0.19, C.lite, 0.95 * k);        // its head, pushing the cloth out
+      blob(0, 0.07, 0.1, 0.1, hi, 0.7 * k);
+      blob(0, 0.085, 0.105, 0.04, hi, 0.85 * k);           // the ridge of its brow
+      for (const s of [-1, 1]) {
+        blob(s * 0.048, 0.012, 0.043, 0.044, deep, 0.95 * k);                       // an eye socket: the cloth sucked into it
+        P_ell(ctx, s * 0.048, 0.01, 0.021, 0.024, P.cola(deep, 0.85 * k));
+        blob(s * 0.082, -0.05, 0.04, 0.04, hi, 0.55 * k);                           // a cheek
+      }
+      blob(0, -0.028, 0.02, 0.05, hi, k);                  // its nose
+      blob(0, -0.068, 0.026, 0.013, C.fold, 0.8 * k);
+      const open = smoothstep((k - 0.25) / 0.75), my = -0.108 - 0.014 * open, mw = 0.03 + 0.007 * open, mh = 0.013 + 0.032 * open;
+      blob(0, my, mw * 1.7, mh * 1.6, deep, 0.9 * k);      // its mouth: open, and opening
+      P_ell(ctx, 0, my, mw, mh, P.cola(deep, 0.9 * k));
+      blob(0, my + mh + 0.012, 0.04, 0.012, hi, 0.6 * k);  // the upper lip
+      blob(0, my - mh - 0.024, 0.045, 0.026, hi, 0.7 * k); // its chin
+      ctx.restore();
+    }
+    if (hk > 0) for (const s of [-1, 1]) {
+      const Sh = lerp(1.35, 2.0, hk) * (1 + 0.014 * Math.sin(t * 29 + s) * shiver * hk), hx = s * lerp(0.4, 0.5, hk), hy = fy - 0.04;
+      for (const [x, y, w] of [[s * 1.0, hy + 0.55, 0.02], [s * 1.02, hy - 0.45, 0.02], [s * 0.9, 2.58, 0.024]]) crease(hx, hy, x, y, 0.13 * Sh, w, hk);
+      ctx.save(); ctx.translate(hx, hy); ctx.scale(s * Sh, Sh);   // (the thumb on the side of its face)
+      const F = [[-1.2, 0.05], [-0.42, 0.08], [-0.06, 0.088], [0.28, 0.08], [0.62, 0.064]], at = (a, r) => [Math.sin(a) * r, Math.cos(a) * r];
+      const tips = F.map(([a, l]) => at(a, 0.035 + l));
+      blob(0, 0.035, 0.17, 0.18, C.base, hk);              // the cloth drawn over the whole hand
+      blob(0.01, -0.085, 0.12, 0.06, C.fold, 0.8 * hk);    // the hollow under the heel of it
+      ctx.fillStyle = P.cola(C.lite, 0.55 * hk);           // the cloth, webbed taut from fingertip to fingertip
+      ctx.beginPath(); ctx.moveTo(-0.035, -0.04); for (const q of tips) ctx.lineTo(q[0], q[1]); ctx.lineTo(0.04, -0.04); ctx.closePath(); ctx.fill();
+      for (let i = 0; i < 4; i++) { const am = (F[i][0] + F[i + 1][0]) / 2, q = at(am, 0.082); blob(q[0], q[1], 0.013, 0.03, deep, 0.6 * hk, -am); }   // the hollows between the fingers
+      blob(0, 0, 0.052, 0.052, hi, 0.9 * hk);              // the palm
+      for (let i = 0; i < 5; i++) {
+        const b = at(F[i][0], 0.03), q = tips[i];
+        P_line(ctx, b[0], b[1], q[0], q[1], 0.019, P.cola(C.lite, hk));
+        P_line(ctx, b[0], b[1], q[0], q[1], 0.009, P.cola(hi, hk));
+        P_ell(ctx, q[0], q[1], 0.0125, 0.0125, P.cola(hi.map(v => Math.min(255, v + 14)), hk));   // a fingertip, pressed hardest of all
+      }
+      ctx.restore();
+    }
+  },
   colours(P) {
     return {
       porcelain: P.col([234, 224, 210]), porcelainD: P.col([198, 186, 172]), hair: P.col([40, 27, 22]), hairL: P.col([68, 46, 34]),

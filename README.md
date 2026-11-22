@@ -488,6 +488,19 @@ some on the ground, so you have to turn and look down to find them.
     your face, the sob opening into a wail and its hands coming up as it lunges. After a wrong mirror the card reads "You
     played for an illusion. The creature surprised you from behind."; caught without the box ever having played, "It
     just wants to hear its song."
+    The dust sheets go back up. A sheet pulled down lies in a heap at the foot of its glass; a click on the heap (either
+    side of the pedestal) takes it up, a bundle of pale cloth in your hand, and two more lie folded on the floor under the
+    lamp's table (always there: they take no roll of the night's dice, so the box and the crank lie where they always
+    did). A click on a bare mirror with a sheet in hand throws it up over the glass, where it hangs as the first two did
+    and can be pulled down again. A covered mirror shows nothing, so standing before one counts as looking away (it
+    comes on at its unseen pace), and the box plays before a covered odd mirror as it always did (the tune pulls the
+    sheet off). The night's easter egg ("Cover every mirror."): the moment all four are under sheets the night is over.
+    The last sheet settles and the room is dead quiet for a second; then in that sheet its face presses out through the
+    cloth from inside (the swell of its head, its brow, the hollows of its eyes, its nose, its mouth opening), a hand
+    either side of it, fingers spread, the cloth stretched toward you and creaking, its sob rising to a wail, the other
+    three sheets bulging with its face too; at 2.9 s the sheet is torn down and it comes through at you, the night's
+    usual lunge ("Nice try": "It does not like to be ignored."). Nothing can be pressed meanwhile (it is the death,
+    from the moment the sheet goes up). With reduced motion the cloth bulges less, does not tremble, and nothing shakes.
 11. **The Farm.** You stand in the yard by the farm's electrical box, the house at your back with its porch light on,
     facing the barn: the night always starts that way, wherever the thing is, and finding it is part of it (the card
     does not say where it is coming from). Round you in a ring, at the compass points, are the farm's places, each with

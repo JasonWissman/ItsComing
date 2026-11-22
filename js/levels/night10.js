@@ -15,6 +15,12 @@
 // night's clock (WRONG), so a couple of wrong tries can lose it. Your hand is on the crank as it turns, wrenches at it when it jams
 // (the box jumps), and takes the box back up off the pedestal; the crank tried on a bare pedestal feels about its top and
 // comes back to your hand (G.refuse); a dust sheet is pulled down by hand and slides off the glass.
+// The sheets go back up, too. Two mirrors start under one; pulled down, it lies in a heap at the foot of its glass and can
+// be taken up (a click on the heap, either side of the pedestal: a bundle of cloth in your hand), and two more lie folded
+// on the floor under the lamp's table. A click on a bare mirror with a sheet in your hand throws it up over the glass. A
+// covered mirror shows nothing, so before it the thing comes on as it does unseen. Cover all four (the night's easter
+// egg) and it does not like it: a beat of silence, and then, in the sheet before you, its face presses out through the
+// cloth from inside, a hand either side of it, fingers spread, the other sheets bulging too; and it comes through.
 LEVELS.push({
   id: 'mirrors', title: 'The Mirror Maze', facing: 0, eyeH: 1.65, laneMode: 'default', laneSwitch: false,
   pal: { skyTop: [14, 8, 8], fog: [58, 40, 36], ground: [30, 26, 26], fogDist: 40 },
@@ -26,7 +32,10 @@ LEVELS.push({
     hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is upset with you: click the box to take it back.',
     objective: 'Find the odd mirror. Put the music box on its pedestal, fit the crank, turn it.',
     // wrong: it had you after the box played wrong before any mirror; unplayed: the box never played at all
-    death: { default: 'The strange doll leapt out from its mirror and grabbed you.', wrong: 'You played for an illusion. The creature surprised you from behind.', unplayed: 'It just wants to hear its song.' },
+    egg: 'Cover every mirror.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
+    // ignored: every mirror under a dust sheet, and it came out through the cloth
+    death: { default: 'The strange doll leapt out from its mirror and grabbed you.', wrong: 'You played for an illusion. The creature surprised you from behind.', unplayed: 'It just wants to hear its song.', ignored: 'It does not like to be ignored.' },
+    eggs: ['ignored'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'It only wanted its music box.',
   },
   lanes: [
@@ -55,7 +64,8 @@ LEVELS.push({
     SC.quad(L, [-3.6, 3.2, -3.6], [3.6, 3.2, -3.6], [3.6, 3.2, 3.6], [-3.6, 3.2, 3.6], [40, 30, 30]);
     // four mirrors, one in the middle of each wall, each a hole in a painted wall with a dark room behind the glass
     s.odd = Math.floor(L.rand() * 4);
-    s.mirrors = [0, 90, 180, 270].map((deg, k) => ({ deg, live: true, odd: k === s.odd }));
+    // (live: its glass is bare; heap: the dust sheets lying at its foot; anim: its sheet on its way down, or up: thrown over it)
+    s.mirrors = [0, 90, 180, 270].map((deg, k) => ({ deg, live: true, odd: k === s.odd, heap: 0, anim: null }));
     // which way round the doll dances in mirror k: s.lead in the three alike and the other way round in the odd one. Which
     // arm leads is rolled with each load (below), so the odd mirror is told only by comparing it with the others, never by
     // which arm one glass shows going up. s.shown[k] is what that glass last drew (when, its dance time, which way round,
@@ -147,22 +157,86 @@ LEVELS.push({
     const box = mkItem(L, 'musicbox', 'Music box', boxSpots, { w: 0.36, h: 0.36, flat: true });
     const apart = p => Math.hypot(p.x - box.x, p.z - box.z) > 2.2 && Math.abs(wrapPi(Math.atan2(p.x, p.z) - Math.atan2(box.x, box.z))) > 60 * DEG;
     mkItem(L, 'crank', 'Crank handle', crankSpots.filter(apart), { w: 0.28, h: 0.28, flat: true, icon: 'boxcrank', held: { grip: 'fist', at: [-0.05, 0.3], axis: Math.PI / 2, angle: -0.6, size: 0.22, tip: [0.3, 0.3] } });   // (by its arm, its knob up and its socket out in front)
+    // The dust sheets: one over each of two mirrors, and two spare ones folded on the floor under the lamp's table (always
+    // there, side by side between its legs as the eye sees them: placed outright, with no roll of the night's dice, so the
+    // box and the crank lie where they always did). In your hand a sheet is a bundle of pale cloth
+    const CLOTH = { base: [156, 148, 132], fold: [114, 106, 94], lite: [180, 172, 156] };
+    const sheetFolded = (ctx, P) => {
+      const c = k => P.col(CLOTH[k]);
+      P_poly(ctx, [[-0.47, 0.06], [0.47, 0.06], [0.47, 0.36], [-0.47, 0.36]], c('fold'));          // its folded edge, toward you
+      for (const y of [0.13, 0.21, 0.29]) P_line(ctx, -0.44, y, 0.44, y + 0.008, 0.024, c('base'));
+      P_poly(ctx, [[-0.47, 0.36], [0.47, 0.36], [0.39, 0.9], [-0.39, 0.9]], c('base'));            // its top
+      P_poly(ctx, [[-0.47, 0.36], [0.47, 0.36], [0.455, 0.44], [-0.455, 0.44]], c('lite'));
+      P_line(ctx, 0.03, 0.46, 0.02, 0.88, 0.018, c('fold'));
+    };
+    const sheetBundle = (ctx, P) => {   // gathered up in one hand: a soft mass of it, in long folds, two ends of it hanging down
+      const c = k => P.col(CLOTH[k]);
+      P_poly(ctx, [[-0.32, 0.42], [-0.44, 0.02], [-0.22, 0.09], [-0.1, 0.38]], c('fold'));
+      P_poly(ctx, [[0.02, 0.4], [0.1, 0], [0.31, 0.07], [0.28, 0.42]], c('base'));
+      P_line(ctx, 0.17, 0.36, 0.2, 0.06, 0.02, c('fold'));
+      P_poly(ctx, [[-0.42, 0.44], [-0.4, 0.62], [-0.28, 0.78], [-0.06, 0.87], [0.18, 0.85], [0.36, 0.72], [0.44, 0.54], [0.4, 0.38], [0.22, 0.3], [-0.06, 0.28], [-0.3, 0.32]], c('base'));
+      P_poly(ctx, [[-0.36, 0.64], [-0.28, 0.78], [-0.06, 0.87], [0.18, 0.85], [0.32, 0.75], [0.1, 0.74], [-0.14, 0.72]], c('lite'));
+      for (const [x0, x1, x2] of [[-0.22, -0.3, -0.24], [-0.02, -0.08, 0], [0.19, 0.17, 0.25]]) P_limb(ctx, [[x0, 0.8], [x1, 0.58], [x2, 0.36]], 0.02, c('fold'));
+    };
+    const sheetItem = icon => ({ w: 0.46, h: 0.36, flat: true, icon, held: { grip: 'fist', at: [0.02, 0.45], angle: 0.12, size: 0.27 } });
+    for (const [x, z] of [[2.55, 3.08], [3.08, 2.55]]) mkItem(L, 'dustsheet', 'Dust sheet', { x, y: 0, z, jitter: 0 }, sheetItem(sheetFolded));
+    L.onPickup = it => { if (it.id === 'dustsheet') it.icon = sheetBundle; };   // shaken out of its folds: from now on a bundle
+    const sheetInHand = () => { const it = G.inv[G.active]; return !!it && it.id === 'dustsheet'; };
+    // Each mirror is a thing to click while there is something to do with it: under a sheet, the sheet (a click pulls it
+    // down: the hand goes out to its hem and pulls, and it slides off the glass into a heap, m.anim, from when the hand has
+    // it); bare, with a dust sheet in your hand, the mirror (the sheet is thrown up over it: flung up to the top of the
+    // frame, its hem swinging up after it and settling). SHEET: how long each takes
+    const SHEET = { down: 0.25, up: 0.5, torn: 0.16 };   // (torn: ripped down off the glass as it comes through, the easter egg)
+    const pullDown = (k, t) => {
+      const m = s.mirrors[k]; m.live = true; m.heap++;
+      G.say('The sheet comes down. Glass.', 'Glass.');
+      const r = G.reach(t, { style: 'pull', at: [0.4, 0.4], sfx: 'flop' });
+      s.sheetFall = { k, t0: L.t + (r ? r.out : 0) }; m.anim = { t0: s.sheetFall.t0, T: SHEET.down };   // (L.update hisses as it goes)
+    };
+    const cover = k => {
+      const m = s.mirrors[k]; m.live = false; m.anim = { up: true, t0: s.now, T: SHEET.up };
+      if (s.mirrors.every(q => !q.live)) { ignored(k); return; }
+      AUDIO.sfx('flop', panTo(Math.sin(m.deg * DEG), Math.cos(m.deg * DEG)));
+      G.say('The sheet goes up over the glass, and hangs.', 'Covered.');
+    };
+    // a point d along mirror k's line and lat to its right, in the night's own frame (as mkTarget takes it)
+    const byMirror = (k, d, lat) => { const r = s.mirrors[k].deg * DEG; return { x: Math.sin(r) * d + Math.cos(r) * lat, z: Math.cos(r) * d - Math.sin(r) * lat }; };
+    const sheetTargets = s.mirrors.map((m, k) => {
+      const t = mkTarget(L, { id: 'sheet' + k, deg: m.deg, dist: 3.4, y: 0.2, w: 1.75, h: 2.4,
+        hint() { return m.live ? 'Bare glass. The dust sheet would go back up over it.' : 'A dust sheet over the glass.'; },
+        onClick() { if (m.live) return false; pullDown(k, this); return true; },
+        use(item) { if (item.id !== 'dustsheet' || !m.live) return false; cover(k); return true; },
+      });
+      Object.defineProperties(t, {
+        name: { get: () => (m.live ? 'Mirror' : 'Dust sheet') },
+        accepts: { get: () => (m.live ? ['dustsheet'] : []) },
+        hidden: { get: () => !!s.egg || L.won || (m.live && !sheetInHand()) },
+      });
+      return t;
+    });
+    // the heap a sheet lies in at the foot of its glass, there to be taken up again. From the middle of the room the
+    // pedestal stands before the middle of it, so it is clicked either side of the pedestal (and never takes a click meant
+    // for the pedestal or the box on it)
+    const heapShown = k => { const m = s.mirrors[k], a = m.anim; return m.heap - (a && !a.up && s.now < a.t0 + a.T ? 1 : 0) > 0; };
+    const takeHeap = (k, side) => {
+      const m = s.mirrors[k]; m.heap--;
+      const it = newItem(L, 'dustsheet', 'Dust sheet', sheetItem(sheetBundle)), at = onLine(3.2, side * 0.5, 0.05, k);
+      it.x = at[0]; it.y = at[1]; it.z = at[2];
+      HANDS.picked(it); G.inv.push(it); G.active = G.inv.length - 1;   // up off the floor into your hand
+      AUDIO.sfx('pickup'); G.hover = null;
+    };
+    const heapTargets = s.mirrors.map((m, k) => [-1, 1].map(side => {
+      const t = mkTarget(L, Object.assign({ id: 'heap' + k + (side < 0 ? 'l' : 'r'), name: 'Dust sheet', y: 0, w: 0.3, h: 0.36, reach: false,
+        hint() { return 'A dust sheet, in a heap. Take it up.'; },
+        onClick() { takeHeap(k, side); return true; } }, byMirror(k, 3.2, side * 0.59)));
+      Object.defineProperty(t, 'hidden', { get: () => !!s.egg || L.won || !heapShown(k) });
+      return t;
+    }));
     // Nightmare puts dust sheets over two of the mirrors, chosen by the night
     if (L.nightmare) {
       const order = [0, 1, 2, 3];
       for (let i = 3; i > 0; i--) { const j = Math.floor(L.rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
-      for (const k of order.slice(0, 2)) {
-        const m = s.mirrors[k]; m.live = false;
-        // pulled down: the hand goes out to its hem and pulls, and it slides off the glass into a heap (s.sheetFall, from when
-        // the hand has it)
-        mkTarget(L, { id: 'sheet' + k, name: 'Dust sheet', deg: m.deg, dist: 3.4, y: 0.2, w: 1.75, h: 2.4, hint() { return m.live ? 'Pulled down.' : 'A dust sheet over the glass.'; }, onClick() {
-          if (m.live) return false;
-          m.live = true; this.hidden = true; G.say('The sheet comes down. Glass.', 'Glass.');
-          const r = G.reach(this, { style: 'pull', at: [0.4, 0.4], sfx: 'flop' });
-          s.sheetFall = { k, t0: L.t + (r ? r.out : 0) };   // (L.update hisses as it goes)
-          return true;
-        } });
-      }
+      for (const k of order.slice(0, 2)) s.mirrors[k].live = false;
     }
     // which side of the pedestal it will stand to take the box, and run off to behind the glass; the box's crank is in the
     // half of its front away from it (s.flip). Behind the south mirror it always goes left: the way out is on its right, and
@@ -172,7 +246,7 @@ LEVELS.push({
     s.lead = (sideRoll * 2) % 1 < 0.5 ? 1 : -1;   // the next bit of the same roll, so the layout and the doll's start are as they were
     // placedAt: the pedestal the box is on (-1: none); crankIn: its crank is in its front; turns: turns before the odd mirror;
     // sour: it has played wrong where it is, and its crank sticks; angryTill: the doll is angry until then
-    Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99, wrongs: 0, sour: false, angryTill: -99 });
+    Object.assign(s, { placedAt: -1, crankIn: false, turns: 0, crankA: 0, crankTo: 0, spin: 0, wrongAt: -99, wrongs: 0, sour: false, angryTill: -99, now: 0, egg: null });
     const panTo = (x, z) => Math.sin(wrapPi(Math.atan2(x, z) + L.facing - G.cam.yaw)) * 0.7;
     const pedTargets = [];
     const refresh = () => pedTargets.forEach(t => { t.accepts = s.placedAt < 0 ? ['musicbox', 'crank'] : s.crankIn ? [] : ['crank']; });
@@ -405,7 +479,7 @@ LEVELS.push({
         s.fetch.ap = clamp(0.9 + (s.fetch.D - AT) * 0.045, 1.3, 2.4);
         c.retarget(1 + s.odd); c.dist = c.hold = s.fetch.D; c.lat = 0; c.back = false; c.smile = false; c.danceMir = sideOf(s.odd);
         L.lane = c.lane; L.laneIdx = c.lane.idx;
-        if (!m.live) { m.live = true; s.sheetFall = { k: s.odd, t0: L.t, hissed: true }; const sh = L.targets.find(q => q.id === 'sheet' + s.odd); if (sh) sh.hidden = true; AUDIO.sfx('hiss'); }   // a sheet over it slides off
+        if (!m.live) { m.live = true; m.heap++; s.sheetFall = { k: s.odd, t0: L.t, hissed: true }; m.anim = { t0: L.t, T: SHEET.down }; AUDIO.sfx('hiss'); }   // a sheet over it slides off
         s.ripples = [];
       }
       const f = s.fetch; f.t += dt;
@@ -453,6 +527,7 @@ LEVELS.push({
       f.done = t >= T6 + F.after;
     };
     L.update = dt => {
+      s.now = L.t;   // the sheets' clock (the easter egg runs it on while you die: eggStep)
       // the crank goes a whole turn round with each click and the dancer turns with it; once the box plays she spins
       s.crankA += (s.crankTo - s.crankA) * (1 - Math.exp(-dt * 7));
       if (s.sheetFall && !s.sheetFall.hissed && L.t >= s.sheetFall.t0) { s.sheetFall.hissed = true; AUDIO.sfx('hiss'); }   // a sheet pulled down slides off the glass
@@ -486,8 +561,7 @@ LEVELS.push({
         list.push(poly([[xa + 0.02, 2.5, Z - 0.004], [xb + w / 2 + 0.07, 0.15, Z - 0.004], [xb + w / 2, 0.15, Z - 0.004]], lite, 3.475));
       }
       sheetAt[k] = list;
-      const sheet = L.targets.find(t => t.id === 'sheet' + k);
-      if (sheet) glowWith(sheet, list);
+      glowWith(sheetTargets[k], list);
       // the heap is built where it lies, on the floor at the foot of the glass, so it stays put however you turn: a corner
       // of the sheet spread flat on the tiles toward you, and the crumpled mound, a front slope up from a ragged foot to an
       // uneven ridge (its back, against the glass, never shows from the middle of the room), in folds of light and shade
@@ -500,7 +574,50 @@ LEVELS.push({
         heap.push(poly([[RX[i], 0.004, FZ[i]], [RX[i + 1], 0.004, FZ[i + 1]], [RX[i + 1], RY[i + 1], RZ[i + 1]], [RX[i], RY[i], RZ[i]]], c));
       }
       heapAt[k] = heap;
+      for (const t of heapTargets[k]) glowWith(t, heap);
     }));
+    // ---- the easter egg: every mirror under a dust sheet ----
+    // The moment the last bare mirror is covered (foundEgg) the night is over, and what follows is its death, all of it
+    // (so nothing can be pressed): the last sheet settles and the room is dead quiet (the death's own sound is that sheet's
+    // flop; the game stops the rest), EGG.hush seconds; then, in that sheet, its face comes pressing out through the cloth
+    // from inside (CREATURES.other.pressed: brow, eye sockets, nose, the open mouth), a hand either side of it from
+    // EGG.hands, fingers spread, the cloth stretching toward you and creaking, its sob rising to a wail (sheetPress); from
+    // EGG.others the other three sheets bulge with its face too; and at EGG.burst the sheet is torn down off the glass and
+    // it comes through at you, weeping, the lunge any death here ends in. It stands behind that sheet from the first (on
+    // that mirror's own line, EGG.from off), where the cloth hides it. With reduced motion the cloth bulges less and does
+    // not tremble, and nothing shakes
+    const EGG = { hush: 1.0, face: 1.1, hands: 1.5, handsT: 0.8, others: 1.35, burst: 2.9, dur: 0.55, from: 3.75 };
+    const gentle = () => !!SAVE.data.settings.reducedMotion;
+    const eggStep = (c, k) => {
+      const e = s.egg, T = G.stateT;
+      s.now = e.at + T;
+      if (!e.pressed && T >= EGG.hush) { e.pressed = true; AUDIO.sfx('sheetPress', 0); }
+      if (!e.burst && k > 0) { e.burst = true; const m = s.mirrors[e.k]; m.live = true; m.heap++; m.anim = { t0: s.now, T: SHEET.torn, torn: true }; if (!gentle()) G.shake(1.2); }
+    };
+    const ignored = k => {
+      const c = c0();
+      foundEgg();
+      s.egg = { k, at: s.now, pressed: false, burst: false, shown: [] };
+      c.retarget(1 + k); c.dist = c.hold = EGG.from; c.lat = c.runLat = 0; c.yOff = 0;
+      Object.assign(c, { back: false, smile: false, angry: 1, dance: 0, danceMir: 1, runPose: false, arms: null, carry: null, rush: 0, tint: null });
+      L.lane = c.lane; L.laneIdx = c.lane.idx;
+      c.deathSpec = { delay: EGG.burst, dur: EGG.dur, sting: 'flop', pose: eggStep };
+      die(c, 'ignored');
+      G.shakeAmt = 0;   // (no jolt as the sheet goes up: the room is still)
+    };
+    // how far its face (and its hands) are pressed into mirror k's sheet now
+    const pressOf = k => {
+      const e = s.egg, T = s.now - e.at, own = k === e.k, g = gentle() ? 0.6 : 1;
+      if (own && e.burst) return null;
+      const face = smoothstep((T - (own ? EGG.hush : EGG.others)) / EGG.face) * (own ? 1 : 0.7) * g;
+      return face > 0 ? { k: face, hands: own ? smoothstep((T - EGG.hands) / EGG.handsT) * g : 0, t: T, still: gentle(), cloth: CLOTH } : null;
+    };
+    const bulges = s.mirrors.map((m, k) => {
+      const q = onLine(3.42, 0, 0, k), o = {};
+      const b = SC.mkSprite(L, 0, 0, 0, 2.2, 2.7, (ctx, P) => CR.pressed(ctx, P, o), { x: q[0], y: q[1], z: q[2], face: m.deg * DEG + Math.PI, sortDist: 3.47 });
+      b.press = o;
+      return b;
+    });
     // a ring of light spreading on the glass where the thing goes through it
     const ripple = (q, a) => SC.mkSprite(L, 0, 0, 0, 1, 1, (ctx, P) => {
       ctx.lineWidth = 0.02;
@@ -512,8 +629,9 @@ LEVELS.push({
       // mirror image of the others'. Once it has you, it has turned to face you, so the glass behind it shows its back.
       // What each glass last drew is kept in s.shown (its dance time, which way round, and the pose). Every glass shows it
       // alike otherwise: unlit by the fire out to the west, which would warm the one in the west glass and no other
+      // (a sheet on its way up: the glass still shows it until the cloth is over it)
       if (c.lane.follow) s.mirrors.forEach((m, k) => {
-        if (!m.live) return;
+        if (!m.live && !(m.anim && m.anim.up && s.now < m.anim.t0 + m.anim.T)) return;
         const dd = 7 + c.dist, q = L.at(m.deg, dd, 0), back = G.state === 'dying';
         R.add({ kind: 'sprite', x: q[0], y: q[1], z: q[2], w: CR.w, h: CR.h, dist: dd, sortDist: 7.1, fogScale: 0.6, noLight: true, draw: (ctx, P) => {
           c.back = back; c.danceMir = sideOf(k); CR.draw(ctx, c, P);
@@ -534,12 +652,24 @@ LEVELS.push({
         const li = k > 0 && LIGHT.at(p.x, p.y + c.yOff + CR.h / 2, p.z);
         if (li) c.tint = { lit: li.lit * k, color: li.color };
       }
+      // the sheets: hanging over the glass; sliding off it (squeezed down to the floor); thrown up over it (the top of it up
+      // to the frame first, the hem swinging up after it and dropping back); and the heap of those that have come down
       s.mirrors.forEach((m, k) => {
-        const sf = s.sheetFall && s.sheetFall.k === k ? clamp((L.t - s.sheetFall.t0) / 0.25, 0, 1) : 1;
-        if (!m.live) for (const q of sheetAt[k]) R.add(q);
-        else if (sf < 1) { const e = easeIn(sf); for (const q of sheetAt[k]) R.add(Object.assign({}, q, { pts: q.pts.map(w => [w[0], 0.05 + (w[1] - 0.05) * (1 - e), w[2]]) })); }   // it slides off the glass
-        else if (L.targets.some(t => t.id === 'sheet' + k)) for (const q of heapAt[k]) R.add(q);
+        const a = m.anim, u = a ? clamp((s.now - a.t0) / a.T, 0, 1) : 1;
+        let fy = null;
+        if (a && u < 1) {
+          if (a.up) { const r = easeOut(u / 0.75), lift = Math.sin(Math.PI * u) * 0.34 * r; fy = y => 0.05 + (y - 0.05) * r + lift * Math.max(0, 1 - y / 1.4); }
+          else { const e = a.torn ? easeOut(u) : easeIn(u); fy = y => 0.05 + (y - 0.05) * (1 - e); }
+        }
+        if (fy) for (const q of sheetAt[k]) R.add(Object.assign({}, q, { pts: q.pts.map(w => [w[0], fy(w[1]), w[2]]) }));
+        else if (!m.live) for (const q of sheetAt[k]) R.add(q);
+        if (heapShown(k)) for (const q of heapAt[k]) R.add(q);
+        const pr = s.egg && !fy && !m.live ? pressOf(k) : null;
+        if (pr) { Object.assign(bulges[k].press, pr); R.add(bulges[k]); }
+        if (s.egg) s.egg.shown[k] = pr;   // (what each sheet shows of it now)
       });
+      // (the red of the death comes up with the cloth, not before it: the hush is only quiet)
+      if (s.egg && G.state === 'dying') G.danger = Math.min(G.danger, 0.06 + 0.94 * smoothstep((G.stateT - EGG.hush) / (EGG.burst - EGG.hush)));
       if (s.ripples) for (const rp of s.ripples) { const a = (L.t - rp.t0) / 0.9; if (a < 1) R.add(ripple(onLine(3.47, rp.lat, 0.35), a)); }
       // the music box on its pedestal (whichever it is on), or on its way off it into the doll's arms: over the pedestal's
       // cap and the doll
