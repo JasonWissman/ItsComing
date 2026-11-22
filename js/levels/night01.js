@@ -74,8 +74,9 @@ LEVELS.push({
     intro: 'You find yourself in a shed.\nSomething in the distance approaches.',
     hint: 'There are loose planks all over the house, a hammer and nails. Board up both doorways.',
     objective: 'Board up both doorways.',
-    death: { default: 'It came through the open door.', reached: 'It tore the boards off and came in.', round: 'It came through the open door behind you.' },
+    death: { default: 'It came through the open door.', reached: 'It tore the boards off and came in.', round: 'It came through the open door behind you.', window: 'You gave it a window of opportunity.' },
     win: 'The boards held.',
+    egg: 'Give it a window of opportunity.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },
   // the back doorway looks north over the field; the front doorway looks south down the lane. A cue is the creak of the
   // step as it comes up to a doorway it has run round to.
@@ -156,15 +157,44 @@ LEVELS.push({
     // thing too, if it runs past (see the run round the house). A little dark glass in it, with the moon's sheen across
     // each pane, drawn after everything outside (the thing goes no nearer than BEHIND_WALLS, below) and before the
     // window's own wood: a mullion down the middle and a transom a course below the head, a frame round it like the
-    // doorways', and the sill under it.
+    // doorways', and the sill under it. The glass can be broken (the bottle, thrown through it: the night's easter egg,
+    // below), and the bars torn out, so the glass and the bars are drawn each frame while they are there (L.dynamic);
+    // broken, what is left of the glass is a ragged edge of it round each pane (winShards), and nothing over the field.
+    const winGlass = [], winBars = [];
+    let winShards = null;
     {
       const { x0, x1, y0, y1, z } = WIN, xm = (x0 + x1) / 2, yt = y1 - BOARD, zi = z + 0.012, glassAt = Math.hypot(xm, z) + 0.25;
-      SC.wallV(L, x0, z, x1, z, y0, y1, [40, 50, 72], { alpha: 0.24, noLight: true, sortDist: glassAt });
-      for (const [a, b, c, d] of [[x0, xm, y0, yt], [xm, x1, y0, yt], [x0, xm, yt, y1], [xm, x1, yt, y1]]) {   // the sheen: a pale streak across each pane
+      const panes = [[x0, xm, y0, yt], [xm, x1, y0, yt], [x0, xm, yt, y1], [xm, x1, yt, y1]];
+      winGlass.push(SC.mkWallV(L, x0, z, x1, z, y0, y1, [40, 50, 72], { alpha: 0.24, noLight: true, sortDist: glassAt }));
+      for (const [a, b, c, d] of panes) {   // the sheen: a pale streak across each pane
         const w = b - a, h = d - c, k = 0.24;
-        SC.quad(L, [a + w * 0.12, c + h * 0.1, z + 0.004], [a + w * (0.12 + k * 0.5), c + h * 0.1, z + 0.004], [a + w * (0.62 + k * 0.4), d - h * 0.08, z + 0.004], [a + w * 0.62, d - h * 0.08, z + 0.004], [170, 186, 220], { alpha: 0.045, noLight: true, sortDist: glassAt - 0.01 });
+        winGlass.push(SC.mkQuad(L, [a + w * 0.12, c + h * 0.1, z + 0.004], [a + w * (0.12 + k * 0.5), c + h * 0.1, z + 0.004], [a + w * (0.62 + k * 0.4), d - h * 0.08, z + 0.004], [a + w * 0.62, d - h * 0.08, z + 0.004], [170, 186, 220], { alpha: 0.045, noLight: true, sortDist: glassAt - 0.01 }));
       }
-      SC.wallV(L, xm - 0.026, zi, xm + 0.026, zi, y0, y1, woodD); SC.wallV(L, x0, zi, x1, zi, yt - 0.02, yt + 0.02, woodD);   // mullion, transom
+      winBars.push(SC.mkWallV(L, xm - 0.026, zi, xm + 0.026, zi, y0, y1, woodD), SC.mkWallV(L, x0, zi, x1, zi, yt - 0.02, yt + 0.02, woodD));   // mullion, transom
+      // the broken glass: teeth of it left standing in the putty along every edge of every pane, long ones in the
+      // corners, each with the moon along its broken edge. Those along the bars go with the bars (bar).
+      const sr = mulberry32(23), teeth = [];
+      for (const [a, b, c, d] of panes) {
+        const deep = Math.min(0.17, (d - c) * 0.42);
+        // each edge of the pane: its ends, the way in from it, and whether it is a bar's
+        for (const [p, q, nx, ny, bar] of [[[a, c], [b, c], 0, 1, c > y0 + 0.01], [[a, d], [b, d], 0, -1, d < y1 - 0.01], [[a, c], [a, d], 1, 0, a > x0 + 0.01], [[b, c], [b, d], -1, 0, b < x1 - 0.01]]) {
+          const len = Math.hypot(q[0] - p[0], q[1] - p[1]), ux = (q[0] - p[0]) / len, uy = (q[1] - p[1]) / len;
+          for (let t = 0; t < len - 0.02;) {
+            const w = Math.min(len - t, 0.05 + sr() * 0.1), end = Math.min(t, len - t - w) < 0.06, h = (end ? 0.6 + sr() * 0.4 : sr() < 0.3 ? 0 : 0.15 + sr() * 0.5) * deep, m = t + w * (0.2 + sr() * 0.6);
+            // (a panel fixed on the wall is drawn from its own middle, left to right as you face it: west is to the right)
+            if (h > 0.012) teeth.push({ bar, pts: [[p[0] + ux * t, p[1] + uy * t], [p[0] + ux * (t + w), p[1] + uy * (t + w)], [p[0] + ux * m + nx * h, p[1] + uy * m + ny * h]].map(v => [xm - v[0], v[1] - y0]) });
+            t += w;
+          }
+        }
+      }
+      winShards = SC.mkSprite(L, xm, y0, z + 0.004, x1 - x0, y1 - y0, (ctx, P) => {
+        const glass = P.cola([126, 146, 184], 0.34), edge = P.cola([204, 216, 240], 0.55);
+        for (const th of teeth) {
+          if (th.bar && s.barsOut) continue;
+          P_poly(ctx, th.pts, glass);
+          P_line(ctx, th.pts[1][0], th.pts[1][1], th.pts[2][0], th.pts[2][1], 0.006, edge);
+        }
+      }, { face: 0, noLight: true, noContact: true, sortDist: glassAt - 0.01 });
       const zf = z + 0.05;
       SC.wallV(L, x0 - 0.07, zf, x0 + 0.015, zf, y0, y1 + 0.07, frame); SC.wallV(L, x1 - 0.015, zf, x1 + 0.07, zf, y0, y1 + 0.07, frame); SC.wallV(L, x0 - 0.07, zf, x1 + 0.07, zf, y1 - 0.015, y1 + 0.07, frame);
       SC.box(L, x0 - 0.06, x1 + 0.06, 1.04, 1.1, z + 0.01, z + 0.15, [70, 56, 42]);
@@ -183,7 +213,7 @@ LEVELS.push({
     // before every wall of the house (the farthest, the side walls, at about 3.8 m), so the walls cover their ends.
     // The thing itself goes between while it is outside (L.dynamic): after the steps, so it stands on them, and before
     // the walls, so they hide it as it runs round the house.
-    const STEPS_AT = 4.2, BEHIND_WALLS = 4.0;
+    const STEPS_AT = 4.2, BEHIND_WALLS = 4.0, IN_FRONT = 2.2;   // (IN_FRONT: nearer than the front wall and everything on it)
     SC.box(L, -1.1, 1.1, 0, 0.16, 2.6, 3.3, [74, 70, 64], { sortDist: STEPS_AT });
     SC.box(L, -1.0, 1.0, 0, 0.16, -3.1, -2.4, [74, 70, 64], { sortDist: STEPS_AT });
     // furniture: table east, shelf west, chair south-west
@@ -289,7 +319,7 @@ LEVELS.push({
       { x: -2.55, y: 1.28, z: 1.0 },                    // on the shelf
       { x: 1.95, y: 0.78, z: 0.3 },                     // on the table, clear of the lamp
       { x: 1.75, y: 1.1, z: -2.31 },                    // on the windowsill
-    ], { w: 0.17, h: 0.36 });
+    ], { w: 0.17, h: 0.36, throwable: true });   // (it goes through the window, and nowhere else: see the window, below)
     // ---- when it will not go ----
     // What will not go up is put up all the same, and fails there (js/hands.js). A plank with nothing to fix it goes up
     // where the next board goes (boardSpot: across the doorway at that board's height, stretched to lie across the frame as
@@ -390,6 +420,8 @@ LEVELS.push({
       for (const c of s.crumbs) {
         if (c.chunk) { R.add({ kind: 'sprite', x: c.x, y: c.y, z: c.z, w: 0.12, h: 0.4, worn: true, alpha: c.t > 4 ? 5 - c.t : 1, noContact: true, layer: 1, draw: (ctx, P) => stub(ctx, P, c.chunk) }); continue; }
         const a = c.dust ? 0.2 * (1 - c.t / 0.7) : c.t > 2.5 ? 1 - (c.t - 2.5) : 1, rr = c.dust ? c.r * (1 + c.t * 2) : c.r;
+        // (a splinter of the window's glass is a pale sliver; what flies out into the field is behind the walls)
+        if (c.shard) { R.add({ kind: 'sprite', x: c.x, y: c.y - rr, z: c.z, w: rr * 2, h: rr * 2, alpha: a, noContact: true, noLight: true, layer: 1, sortDist: c.out ? BEHIND_WALLS : undefined, draw: (ctx, P) => P_poly(ctx, [[-rr, rr * 0.4], [rr * 0.7, 0], [rr * 0.2, rr * 2]], P.cola(c.col, 0.75)) }); continue; }
         R.add({ kind: 'sprite', x: c.x, y: c.y - rr, z: c.z, w: rr * 2, h: rr * 2, alpha: a, noContact: true, layer: 1, draw: (ctx, P) => P_ell(ctx, 0, rr, rr, rr * (c.dust ? 0.8 : 0.7), P.col(c.col)) });
       }
     };
@@ -406,7 +438,11 @@ LEVELS.push({
           // once it is in this doorway it is too late to board it: the plank is knocked out of your hands, and it comes on
           const c = L.creature;
           if (c.reached && c.lane.idx === lane) { G.say('It is already in the doorway.', 'Too late for that one.'); return G.refuse('clatter'); }
-          t.count++; AUDIO.sfx('hammer'); G.shake(0.15); if (t.count >= need) { t.done = true; boarded(t); } return true;
+          t.count++;
+          const last = t.count >= need;
+          if (last) t.done = true;
+          if (last && s.broken && (t === back ? front : back).done) { startEgg('hammer'); return true; }   // the last board, and the window broken (below)
+          AUDIO.sfx('hammer'); G.shake(0.15); if (last) boarded(t); return true;
         },
       });
       Object.assign(t, onDoor(t));
@@ -418,7 +454,12 @@ LEVELS.push({
     glowWith(back, frames[0]); glowWith(front, frames[1]);
     const doorOf = lane => (lane.idx === 0 ? back : front);
     L.objectiveText = () => (back.done && front.done ? 'Boarded up. Hold on.' : 'Board up both doorways (' + (back.count + front.count) + '/' + 2 * need + ')');
-    L.isWon = () => back.done && front.done;
+    // (with the window broken, or the bottle in the air on its way to it, boarding both is not the end of it: the easter egg, below)
+    const flying = () => !!G.throwing && G.throwing.it.id === 'bottle';
+    L.isWon = () => back.done && front.done && !s.broken && !flying();
+    const over = () => L.won || !!s.egg;   // it is not coming in by a doorway any more
+    const gentle = () => !!SAVE.data.settings.reducedMotion;
+    const shake = a => { if (!(s.egg && gentle())) G.shake(a); };   // (the easter egg's own, with reduced motion: nothing shakes)
 
     // ---- the run round the house ----
     // The moment the doorway it is coming for is boarded (and the other is not), it stops dead, breaks into a sprint
@@ -473,12 +514,13 @@ LEVELS.push({
     const hitBoards = c => {
       s.hitAt = L.t; c.charge = 0; c.CR = CREATURES.walker; c.peer = 0.35; c.blow = 1;
       jolt(doorOf(c.lane), 1.7);
-      AUDIO.sfx('bang', panTo(c.lane.yaw)); AUDIO.sfx('thud'); G.shake(0.85);
+      AUDIO.sfx('bang', panTo(c.lane.yaw)); AUDIO.sfx('thud'); shake(0.85);
     };
     L.update = dt => {
       crumbsOn(dt);
       const c = L.creature, r = s.run;
-      if (L.won && !s.closing && !r) {
+      if (!over() && back.done && front.done && c.hold === null && !r) c.hold = c.dist;   // (the bottle still in the air: it waits where it is)
+      if (over() && !s.closing && !r) {
         s.closing = true;
         const D = Math.max(0, c.dist - L.barrierDist), T = clamp(0.8 + D / 22, 0.6, CHARGE.most);
         s.charge = { t: s.cutShort ? 0 : -CHARGE.stop, from: c.dist, V: D / (T - CHARGE.ramp / 2) };   // just round the corner, it is running already
@@ -496,7 +538,7 @@ LEVELS.push({
       }
       if (!r) return;
       const T1 = RUN.stop, T2 = T1 + RUN.out, T3 = T2 + RUN.round - r.lead;
-      if (L.won && !r.arrived && r.t < T3) { r.t = T3; s.cutShort = true; }   // won while it was still going round: it comes round the corner now, to the doorway it was running to
+      if (over() && !r.arrived && r.t < T3) { r.t = T3; s.cutShort = true; }   // won while it was still going round: it comes round the corner now, to the doorway it was running to
       r.t += dt;
       if (r.t < T1) return;   // it stops dead in the field, as the last board goes up in front of it
       if (r.arrived && r.t >= r.inAt + r.inT) {   // and walks on, at its own pace, from where it came round: its steps, from that way
@@ -514,7 +556,7 @@ LEVELS.push({
         const a0 = Math.atan2(outLat(r.d), r.d), k = (r.t - T2) / (T3 - T2), e = (r.t - T2) / RUN.out;
         c.runLat = r.side * outLat(r.d) * (1 + 1.5 * e + 0.6 * e * e);   // on at the pace it ran out at, and faster
         yaw = r.from.yaw + r.side * lerp(a0, Math.PI - a0, k);
-        if (!r.banged && k > 0.4) { r.banged = true; AUDIO.sfx('thud', panTo(r.from.yaw + r.side * Math.PI / 2)); G.shake(0.12); }   // a blow on the side wall, not on the boards
+        if (!r.banged && k > 0.4) { r.banged = true; AUDIO.sfx('thud', panTo(r.from.yaw + r.side * Math.PI / 2)); shake(0.12); }   // a blow on the side wall, not on the boards
       } else {                 // round the corner and in front of the other doorway, then it turns to it
         if (!r.arrived) {
           r.arrived = true; r.inAt = Math.min(r.t, T3);
@@ -605,11 +647,29 @@ LEVELS.push({
     // of the house (see STEPS_AT): the walls, the frames and the boards are all drawn over it, as they stand in front
     // of it. Once it is through the doorway it is drawn as usual, over everything behind it.
     L.dynamic = () => {
-      R.glowAs(back); boards(back, ...PLANE(back)); R.glowAs(front); boards(front, ...PLANE(front)); R.glowAs(null);
+      R.glowAs(back); boards(back, ...PLANE(back)); R.glowAs(front); boards(front, ...PLANE(front));
+      R.glowAs(pane);   // the window: its glass, or what is left of it, and its bars
+      if (s.broken) R.add(winShards); else for (const q of winGlass) R.add(q);
+      if (!s.barsOut) for (const q of winBars) R.add(q);
+      R.glowAs(null);
       crumbsDraw();
-      const c = L.creature, cp = L.rend && L.rend.get(c);
-      if (cp) { const p = c.pos(); cp.sortDist = c.dist > c.lane.apertures[0].z + 0.05 ? Math.max(Math.hypot(p.x, p.z), BEHIND_WALLS) : undefined; }
-      c.headroom = L.won || c.charge || c.runPose ? undefined : headroom(c) - (c.yOff || 0) - c.pos().y;
+      const c = L.creature, cp = L.rend && L.rend.get(c), e = s.egg;
+      if (cp) {   // (in the easter egg it is outside until it has come in through the window, and then in front of everything by the wall)
+        const p = c.pos(), d = Math.hypot(p.x, p.z), inside = e ? e.stage === 'stand' || e.stage === 'lunge' : c.dist <= c.lane.apertures[0].z + 0.05;
+        cp.sortDist = inside ? (e ? Math.min(d, IN_FRONT) : undefined) : Math.max(d, BEHIND_WALLS);
+      }
+      if (c.climb !== undefined && c.climbParts) {
+        // coming in through the window: the two halves of it (the walker's drawClimb), what is still outside behind the
+        // walls and what is through in front of them; and the frame as its drawing sees it, from where it stands
+        const p = c.pos(), H = c.CR.h, b = R.screenPos(p.x, p.y, p.z), tp = R.screenPos(p.x, p.y + H, p.z);
+        if (b && tp) {
+          const sy = (b.y - tp.y) / H, at = (x, y) => { const q = R.screenPos(x, y, WIN.z); return q && [(q.x - b.x) / b.scale, (b.y - q.y) / sy]; };
+          const l = at(WIN.x1, WIN.y0), r = at(WIN.x0, WIN.y0);   // (looking out of it, its east side is on the left)
+          if (l && r) c.frame = { l: l[0], r: r[0], sl: l[1], sr: r[1] };
+        }
+        for (const pass of ['out', 'in']) R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: c.CR.w, h: H, dist: Math.hypot(p.x, p.z), fogScale: 0.85, noContact: true, sortDist: pass === 'out' ? BEHIND_WALLS : IN_FRONT, draw: (ctx, P) => c.CR.drawClimb(ctx, c, P, pass) });
+      }
+      c.headroom = over() || c.charge || c.runPose ? undefined : headroom(c) - (c.yOff || 0) - c.pos().y;
       if (s.hitAt !== undefined && c.peer > 0.6) {   // at the boards: its fingers over the one under the gap (grip; the night faces north, so x is the boards' own)
         const t = doorOf(c.lane), [z, sign] = PLANE(t), { zz, yAt } = boardAt(t, 0, z, sign), zb = Math.abs(zz) - 0.012;
         for (const side of [-1, 1]) {
@@ -625,10 +685,9 @@ LEVELS.push({
     // one sets them rattling on their nails. The night fades a few blows in, and it is still at them as it goes.
     const BLOW = 0.38, FIRST = 0.5;
     const liftOf = f => (f < 0.3 ? 0 : f < 0.85 ? smoothstep((f - 0.3) / 0.55) : 1 - smoothstep((f - 0.85) / 0.15));
-    L.aftermath = (t, dt) => {
-      const c = L.creature;
-      if (s.hitAt === undefined) return t >= 9;   // not at the boards yet (it always is, well before this)
-      const k = L.t - s.hitAt, phase = (k - FIRST) / BLOW;
+    // at the boards, pounding: how long it has been at them
+    const pound = dt => {
+      const c = L.creature, k = L.t - s.hitAt, phase = (k - FIRST) / BLOW;
       c.peer = Math.min(1, c.peer + dt / 0.45);
       c.blow = Math.max(0, c.blow - dt * 5);
       c.handLift = [0, 1].map(h => { const q = (phase - h) / 2; return q < -1 ? 0 : liftOf(q - Math.floor(q)); });
@@ -637,9 +696,146 @@ LEVELS.push({
         s.bangs = n + 1; c.blow = 1;
         jolt(doorOf(c.lane), 1);
         AUDIO.sfx('bang', panTo(c.lane.yaw)); if (n % 2) AUDIO.sfx('boardRattle', panTo(c.lane.yaw));
-        G.shake(0.45);
+        shake(0.45);
       }
-      return k >= 2.9;
+      return k;
+    };
+    L.aftermath = (t, dt) => {
+      if (s.hitAt === undefined) return t >= 9;   // not at the boards yet (it always is, well before this)
+      return pound(dt) >= 2.9;
+    };
+    // ---- the window, and the bottle through it: the night's easter egg ----
+    // With the bottle in hand the window can be clicked, and only then (it is no target otherwise): the bottle is thrown
+    // (the game's own throw) and goes through the glass, which breaks (stingGlass) in a burst of it, most of it out into
+    // the field; the bottle is gone, and the window is open from then on (s.broken), a ragged edge of glass round each
+    // pane. That changes nothing by itself: it still comes by the doorways, and through one left open. But board both with
+    // the window broken and the night is not won (L.isWon): the moment the last board is up (or the bottle lands, thrown
+    // as the last board went up) the rest plays out by itself, as the thing's death (startEgg, as night 10's egg: nothing
+    // can be pressed, and the view follows it):
+    //   door   it stops and charges the doorway it was coming for, as when the night is won (L.update), and hits the boards
+    //   pound  it stoops to the gap and pounds on them (pound), EGG.blows blows
+    //   still  it stops, a hand still raised, which comes slowly back to the board
+    //   turn   its head turns toward the window
+    //   run    it is up and running: along the front wall to the window, or from the back doorway round the east side of
+    //          the house (out of the doorway's view, a blow on the side wall, in past the corner) as it runs round to a doorway
+    //   face   it stands in the window, close against the frame, its head above the top of it
+    //   climb  the bars are torn out of the frame and it comes through (the walker's c.climb): found as the easter egg
+    //          (foundEgg) the moment it starts. It ends standing inside
+    //   stand  a moment, looking at you
+    //   lunge  and it has you: the death's own lunge, from where it stands
+    // The death screen says "It got you" and the night's own line for it (text.death.window), with no toast before it.
+    // With reduced motion nothing shakes, the view turns more slowly, and the climb is slower and even (the walker's c.gentle).
+    const AT = { x: (WIN.x0 + WIN.x1) / 2, z: WIN.z }, STAND = { x: 1.5, z: -1.95 }, WIN_YAW = Math.atan2(AT.x, AT.z), RUN_Z = -2.62;
+    const EGG = { blows: 4, still: 0.6, turn: 0.45, look: 0.4, rise: 0.25, dash: 0.75, out: 0.7, round: 1.1, in: 0.75, far: 4.5, face: 0.4, climb: 5, climbSlow: 7.5, stand: 1.1, lunge: 0.5 };
+    const pane = mkTarget(L, { id: 'window', name: 'Window', x: AT.x, y: WIN.y0, z: WIN.z + 0.03, w: WIN.x1 - WIN.x0, h: WIN.y1 - WIN.y0, face: 0, accepts: ['bottle'], use() { smash(); return true; } });
+    Object.defineProperty(pane, 'hidden', { get: () => !!s.broken || !(G.inv[G.active] && G.inv[G.active].id === 'bottle') });
+    const smash = () => {
+      s.broken = true;
+      const r = Math.random;
+      for (let i = 0; i < 34; i++) {
+        const out = i % 5 > 0;   // most of it goes out with the bottle
+        s.crumbs.push({ x: lerp(WIN.x0, WIN.x1, r()), y: lerp(WIN.y0, WIN.y1, r()), z: WIN.z + (out ? -0.05 : 0.05), vx: (r() - 0.5) * 1.6, vy: r() * 1.4 - 0.2, vz: out ? -(0.8 + r() * 2.6) : 0.2 + r() * 0.7,
+          r: 0.016 + r() * 0.03, col: [[150, 170, 205], [196, 210, 236], [112, 132, 170]][i % 3], t: 0, shard: true, out });
+      }
+      if (back.done && front.done && G.state === 'play') startEgg('stingGlass');   // the last board is up already: this is the end of it
+      else { AUDIO.sfx('stingGlass', panTo(WIN_YAW)); if (!gentle()) G.shake(0.3); }
+    };
+    // the bars of the window, torn out of it into the room as it comes
+    const tearBars = () => {
+      s.barsOut = true;
+      AUDIO.sfx('crack', panTo(WIN_YAW)); shake(0.25);
+      const r = Math.random;
+      for (let i = 0; i < 14; i++) s.crumbs.push({ x: AT.x + (r() - 0.5) * 0.4, y: lerp(WIN.y0 + 0.1, WIN.y1 - 0.1, r()), z: WIN.z + 0.06, vx: (r() - 0.5) * 1.8, vy: r() * 1.6, vz: 0.5 + r() * 1.9,
+        r: 0.014 + r() * 0.024, col: [[106, 84, 58], [74, 60, 44], [130, 106, 76], [50, 42, 34]][i % 4], t: 0 });
+    };
+    const startEgg = sting => {
+      const c = L.creature;
+      s.egg = { stage: 'door', t: 0, T: 0, cam: G.cam.yaw, cue: 0, steps: 0 };
+      c.deathSpec = { delay: Infinity, dur: EGG.lunge, sting, pose: eggPose };   // (the lunge waits on the rest of it: its delay is set when it comes to it)
+      die(c, 'window');   // its sound is the last nail going in, or the glass
+      G.shakeAmt = 0; if (!gentle()) G.shake(sting === 'hammer' ? 0.15 : 0.3);
+      if (AUDIO.on()) AUDIO.startAmbient(L.def.ambient);   // (a death stops the wind, and the night is not over yet)
+    };
+    // the view follows it: turned toward yaw, eased
+    const camTo = (e, yaw, pitch, dt) => {
+      e.cam += wrapPi(yaw - e.cam) * (1 - Math.exp(-dt * (gentle() ? 2.2 : 3.6)));
+      G.cam.tYaw = G.cam.yaw + wrapPi(e.cam - G.cam.yaw); G.cam.tPitch = pitch;
+      G.cam.dirIdx = ((Math.round(e.cam / (45 * DEG)) % 8) + 8) % 8;
+    };
+    const place = (c, x, z) => { c.hold = -z; c.runLat = -x; };   // where it is, in the house's own metres (on the front doorway's way, which looks south)
+    const yawOf = c => { const p = c.pos(); return Math.atan2(p.x, p.z); };
+    // what is heard as it comes through (at c.climb): its nails on the glass in the frame, the frame creaking, a breath, hands and feet on the floor
+    const CUES = [[0.05, 'tink'], [0.1, 'tink'], [0.22, 'creak'], [0.38, null], [0.54, 'woodKnock'], [0.6, 'woodKnock'], [0.68, 'woodKnock'], [0.82, 'woodKnock']];
+    const eggPose = (c, k) => {
+      const e = s.egg, dt = Math.min(0.1, G.stateT - e.T);
+      e.T = G.stateT;
+      if (e.stage === 'lunge') {   // from where it stands, straight at you (the death moves it along its way: this keeps it on its own line)
+        const r0 = Math.hypot(e.d, e.lat), r = lerp(r0, 0.55, easeIn(k));
+        c.dist = e.d * r / r0; c.lat = c.runLat = e.lat * r / r0;
+        camTo(e, yawOf(c), 0, dt);
+        return;
+      }
+      L.t += dt;       // the night's clock goes on (the boards' shudder, the crumbs)
+      L.update(dt);    // it comes round, if it was going round, and charges the boards
+      if (e.stage !== 'door') e.t += dt;
+      const next = st => { e.stage = st; e.t = 0; };
+      const settle = () => { c.handLift = (c.handLift || [0, 0]).map(v => Math.max(0, v - dt * 1.4)); c.blow = Math.max(0, (c.blow || 0) - dt * 5); };
+      let yaw = (s.run ? s.run.to : c.lane).yaw, pitch = 0, danger = 0;
+      if (e.stage === 'door') { if (s.hitAt !== undefined) next('pound'); }
+      else if (e.stage === 'pound') { if (pound(dt) >= FIRST + (EGG.blows - 1) * BLOW + 0.1) next('still'); }
+      else if (e.stage === 'still') { settle(); if (e.t >= EGG.still) { next('turn'); AUDIO.voice('exhale', 0.5, panTo(c.lane.yaw)); } }
+      else if (e.stage === 'turn') {
+        settle(); c.look = (c.lane.idx === 1 ? -1 : 1) * smoothstep(e.t / EGG.turn);   // east: to the left of the front doorway as you face it, the right of the back one
+        if (e.t >= EGG.turn + EGG.look) { next('run'); e.from = c.lane.idx; e.d = c.dist; e.yaw0 = c.lane.yaw; }
+      } else if (e.stage === 'run') {
+        const t = e.t - EGG.rise, back0 = e.from === 0, tIn = back0 ? t - EGG.out - EGG.round : t;
+        yaw = lerp(e.yaw0, WIN_YAW, smoothstep(e.t / (EGG.rise + (back0 ? EGG.out + EGG.round + EGG.in : EGG.dash))));
+        if (t < 0) { settle(); c.peer = clamp(-t / EGG.rise, 0, 1); }   // up from the gap
+        else {
+          c.peer = 0; c.look = 0; c.handLift = [0, 0]; c.runPose = true; c.runGait = (c.runGait || 0) + dt * 15;
+          if (back0 && tIn < 0) {   // out of the back doorway to the east, and on round the house, out of sight
+            const q = t / EGG.out;
+            c.runDir = 1; c.runLat = outLat(e.d) * (q < 1 ? Math.pow(q, 1.5) : 1 + 1.5 * (q - 1) + 0.6 * (q - 1) * (q - 1));
+            if (!e.banged && t > EGG.out + EGG.round * 0.4) { e.banged = true; AUDIO.sfx('thud', panTo(Math.PI / 2)); shake(0.12); }
+          } else {
+            if (c.lane.idx !== 1) c.retarget(1);
+            const u = clamp(tIn / (back0 ? EGG.in : EGG.dash), 0, 1);
+            if (back0) { c.runDir = 1; place(c, AT.x + EGG.far * (1 - easeOut(u)), RUN_Z); }   // in from the east, past the corner of the house
+            else { c.runDir = -1; place(c, AT.x * Math.pow(u, 1.4), lerp(-e.d, RUN_Z, u)); }   // along the front wall
+            if (u >= 1) { next('face'); c.runPose = false; c.climb = 0; c.climbParts = true; c.gentle = gentle(); }
+          }
+          const n = Math.floor(c.runGait / Math.PI);
+          if (n !== e.steps) { e.steps = n; AUDIO.footstep('runner', clamp(4 / (Math.hypot(c.dist, c.runLat) + 4), 0.12, 0.7), panTo(yawOf(c))); }
+        }
+      } else if (e.stage === 'face') {
+        yaw = WIN_YAW; place(c, AT.x, lerp(RUN_Z, AT.z, smoothstep(e.t / EGG.face)));
+        if (e.t >= EGG.face) { next('climb'); foundEgg(); tearBars(); }
+      } else if (e.stage === 'climb') {
+        const u = clamp(e.t / (gentle() ? EGG.climbSlow : EGG.climb), 0, 1), q = c.CR.climbAt(u), a = smoothstep((q - 0.82) / 0.18);
+        const x = lerp(AT.x, STAND.x, a), z = lerp(AT.z, STAND.z, a);   // through, it comes a step into the room as it stands up
+        c.climb = q; place(c, x, z);
+        yaw = Math.atan2(x, z); pitch = 0.1 * smoothstep((q - 0.3) / 0.25) * (1 - a); danger = 0.1 + 0.3 * q;   // (the view tips down a little as it comes down the wall)
+        for (; e.cue < CUES.length && q >= CUES[e.cue][0]; e.cue++) { const name = CUES[e.cue][1]; if (name) AUDIO.sfx(name, panTo(WIN_YAW)); else AUDIO.voice('exhale', 0.6, panTo(WIN_YAW)); }
+        if (u >= 1) { next('stand'); c.climb = undefined; c.climbParts = false; c.gait = Math.round(c.gait / Math.PI) * Math.PI; AUDIO.voice('exhale', 0.8, panTo(yaw)); }
+      } else if (e.stage === 'stand') {
+        yaw = Math.atan2(STAND.x, STAND.z); danger = 0.45 + 0.2 * clamp(e.t / EGG.stand, 0, 1);
+        if (e.t >= EGG.stand) {   // the death's own lunge, from here: its sting, and it comes
+          next('lunge'); e.d = -STAND.z; e.lat = -STAND.x;
+          c.deathSpec.delay = G.stateT + 0.22;
+          AUDIO.sfx('sting'); AUDIO.stopAmbient(); if (!gentle()) G.shake(1.4);
+          G.deathAt = G.t;   // (the death line is the night's own: nothing said before the last board went up is put in front of it)
+        }
+      }
+      // where it is, its stride and its feet, as the game moves it while a night is played or won (a death does not)
+      if (c.hold === null) c.hold = c.dist;
+      const was = c.dist, stride = c.gait, moved = Math.abs(was - c.hold);
+      c.dist = c.hold; c.lat = c.runLat || 0;
+      c.gait += moved * c.CR.stepRate * Math.PI; c.moving = moved > 0.024 * dt;
+      if (!c.moving) c.gait += (Math.round(c.gait / Math.PI) * Math.PI - c.gait) * Math.min(1, dt * 4);
+      if (Math.floor(c.gait / Math.PI) !== Math.floor(stride / Math.PI)) AUDIO.footstep(c.CR.sound, clamp(2.4 / (c.dist + 1.6), 0, 0.85) * 0.6, panTo(c.yaw));
+      c.lungeFrom = c.dist;              // (the death holds it where its lunge will start from)
+      camTo(e, yaw, pitch, dt);
+      G.danger = danger - 3 * dt;        // (the death raises it by this much a frame: until the lunge it is the cutscene's own)
     };
     // it is on you a fraction of a second after it reaches a doorway, so the death line says what happened rather than a toast
     L.onReach = c => { const t = doorOf(c.lane); if (t.count > 0 && !t.done) { t.count = 0; s.torn = true; AUDIO.sfx('smash'); G.shake(0.8); } };
