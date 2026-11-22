@@ -2330,6 +2330,39 @@ const hoverHit = lookFor;
   // Settings' Calibrate dialogs (Volume, Brightness) and their sounds: test/settings.js, in this browser
   await require('./settings').run(browser, check);
 
+  // The Void (night 13), where the hands are never full: with fifteen things held, and with a sixteenth slot beside them
+  // (the sixteenth taken up starts the easter egg, which takes the things out of the view), every slot of the inventory is
+  // within the page, none over another, all below the aim in the middle of the view and clear of a phone's zoom button, and
+  // only the held thing is named: at 1280 by 760, and on a phone held sideways (844 by 390)
+  for (const [what, opt] of [['at 1280 by 760', { viewport: { width: 1280, height: 760 } }], ['on a phone held sideways (844 by 390)', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true }]]) {
+    const ctx = await browser.newContext(opt), vp = await ctx.newPage();
+    vp.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
+    await vp.goto(URL + '?level=13&go&seed=1'); await vp.waitForTimeout(600);
+    const r = await vp.evaluate(async () => {
+      const c = G.L.creature; c.switched = true; c.hold = 30;
+      let refused = 0;
+      for (const it of G.L.items.filter(i => i.id !== 'musicbox')) { pickup(it); if (!G.inv.includes(it) || G.lastToast.msg === 'Your hands are full.') refused++; }
+      await new Promise(res => setTimeout(res, 400));
+      const inv = document.getElementById('inventory'), W = innerWidth, H = innerHeight, zb = document.getElementById('zoomBtn').getBoundingClientRect();
+      const fit = () => {
+        const rs = [...inv.querySelectorAll('.slot')].map(e => e.getBoundingClientRect()), m = Math.min(W, H) * 0.2;
+        const apart = (a, b) => a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5;
+        return { n: rs.length, size: Math.round(rs[0].width), rows: new Set(rs.map(q => Math.round(q.top))).size,
+          inside: rs.every(q => q.width >= 30 && q.left >= 0 && q.top >= 0 && q.right <= W && q.bottom <= H),
+          apart: rs.every((a, i) => rs.every((b, j) => j <= i || apart(a, b))),
+          clear: rs.every(q => q.top >= H / 2 + m && (zb.width < 1 || apart(q, zb))),
+          named: [...inv.querySelectorAll('.label')].filter(e => getComputedStyle(e).display !== 'none').length };
+      };
+      const fifteen = fit(), extra = inv.lastChild.cloneNode(true);
+      inv.appendChild(extra); const sixteen = fit(); extra.remove();
+      return { held: G.inv.length, refused, many: inv.classList.contains('many'), state: G.state, fifteen, sixteen };
+    });
+    const ok = f => f.inside && f.apart && f.clear && f.named === 1;
+    check(r.held === 15 && r.refused === 0 && r.many && r.state === 'play' && r.fifteen.n === 15 && ok(r.fifteen) && r.sixteen.n === 16 && ok(r.sixteen),
+      'the Void ' + what + ': fifteen things held at once, none refused; the inventory fits with fifteen and with sixteen (every slot in the page, none over another, clear of the aim and the zoom button) (' + JSON.stringify(r) + ')');
+    await vp.screenshot({ path: path.join(__dirname, 'shots', 'void-inventory-' + opt.viewport.width + '.png') });
+    await ctx.close();
+  }
   if (errors.length) { failures++; console.log('PAGE ERRORS:\n' + errors.join('\n')); }
   console.log(failures ? ('\n' + failures + ' FAILURES') : '\nALL CHECKS PASSED');
   await browser.close();

@@ -615,7 +615,7 @@ function pickup(it) {
   // things that stack (single planks) join the pile already in hand instead of taking a new slot
   const pile = it.stack && G.inv.find(i => i.id === it.id && i !== it);
   if (pile) { pile.uses += it.uses; it.taken = true; G.active = G.inv.indexOf(pile); G.invSig = ''; AUDIO.sfx('pickup'); HANDS.picked(pile, it); if (G.L.onPickup) G.L.onPickup(it); G.hover = null; return; }
-  if (G.inv.length >= 6) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); G.thrust(it); return; }   // your full hand goes toward it, and back (js/hands.js)
+  if (G.inv.length >= (G.L.handMax || 6)) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); G.thrust(it); return; }   // your full hand goes toward it, and back (js/hands.js)
   HANDS.picked(it);   // from where it lay, up into the hand
   it.taken = true; G.inv.push(it); G.active = G.inv.length - 1;
   AUDIO.sfx('pickup');
@@ -1315,6 +1315,7 @@ function updateHUD() {
   if (isig !== G.invSig) {
     G.invSig = isig;
     UI.inv.innerHTML = '';
+    UI.inv.classList.toggle('many', G.inv.length > 6);   // more than a hand's six (a night with no limit: L.handMax): smaller slots, only the held thing named
     G.inv.forEach((it, idx) => {
       const slot = document.createElement('div');
       slot.className = 'slot' + (idx === G.active ? ' active' : '');
