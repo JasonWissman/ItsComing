@@ -822,15 +822,32 @@ some on the ground, so you have to turn and look down to find them.
     the thing in the hood comes back, calm, two pale eyes, into the middle of them, a faint
     cold light behind them all. They stand there, still and quiet, three seconds. Then all
     at once (a bright flourish, and the chord of a night won) they throw it all up into the
-    air, where it turns, and falls, and lies where it lands; and they leap up and down for
+    air (this ending's jump scare, a happy one: that instant the view is lightened by the
+    same soft flash as the other ending's scare, none with reduced flashing, with a happy
+    twinkle of small bells running up, the sound `twinkle`), where it turns, and falls, and lies where it lands; and they leap up and down for
     joy, each in its own time, arms up where they have them (the stone one in a new pose
     each time it comes down), as its happy face comes up out of the hood and it takes off
     its robe and dances, the music box plays, and the dark turns to the pale light and the
-    meadow (this one without its wild flowers, only grass: there is a crowd in it to draw), all thirteen of them in it, leaping, gentler after a while and now and then a
-    little more. From there it is the ending as it always is: the view is yours, a press
+    meadow (this one without its wild flowers, only grass: there is a crowd in it to draw), all thirteen of them in it, leaping. And once they have leapt there a few seconds
+    (from 25.2 s, one after another over two seconds, just after the meadow starts waiting
+    for your press) they frolic, for as long as you stay: each runs about the meadow in its
+    own gait and at its own speed (the runner 5 m/s, the crawler and the warden over 3, the
+    doll and the walker a little over 2), in loops and darts, making for one spot and then
+    another or after one of the others, with little hops as it goes, turned and leaning the
+    way it goes; every eight to twelve seconds each stops to leap on the spot a few seconds
+    and is off again. The thing in the hood, in its shirt and shorts, skips about among them,
+    kicking and hopping, and stops to dance; its robe stays in a heap where it fell. The
+    stone one is never seen to move: every second or two it is somewhere else in the meadow,
+    all at once, in another pose. The swimmer keeps to its pool, and every five seconds
+    ducks under and bursts up out of it again with a splash. They keep to the meadow in
+    front of you (3.6 to 12 m off, within the view looking north), never nearer you than
+    3 m, and clear of the big tree, the pool, the robe and one another; what they threw
+    stays on the grass. From there it is the ending as it always is: the view is yours, a press
     goes on (they all fade, glittering, as the bedroom comes), the last screen, The End,
     the results, the campaign complete. With reduced motion each comes slower and from
-    nearer with no jolt, the things thrown turn slowly, and a leap is only a gentle bob.
+    nearer with no jolt, the things thrown turn slowly, and a leap is only a gentle bob;
+    and in the meadow they do not run but amble, slowly (half a metre a second), bobbing
+    gently, with no leaning, no ducking under and no dance.
     The view closes in a little on a wide screen (a phone held sideways) so the whole
     gathering fills it, and eases back out as the meadow comes.
 
