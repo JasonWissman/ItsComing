@@ -38,7 +38,7 @@
         set(c) { c.runPose = true; c.runDir = 1; c.moving = true; }, tick(c, k, dt) { c.runGait = (c.runGait || 0) + dt * 15; } },
       { name: 'Charging the boards', note: 'Once the night is won: straight at you, flat out, the arms coming up for the boards in the last few metres.', dur: 2.6,
         set(c) { c.charge = 1; c.moving = true; }, tick(c, k, dt) { c.gait += dt * 15; c.dist = lerp(14, 1.5, k); } },
-      { name: 'Climbing in through the window', note: 'The easter egg: both doorways boarded and the window broken, it comes in by the window. Fingers over the sill, the head through on its side, an arm feeling down the wall, the body over the sill, a leg at a time, and it unfolds inside.', dist: 3, dur: 8, still: true, fit: { h: 2.75, w: 2.0 },
+      { name: 'Climbing in through the window', note: 'The easter egg: both doorways boarded and the window broken, it comes in by the window. Fingers over the sill, the head through on its side, an arm feeling down the wall, the body over the sill, a leg at a time, and it unfolds inside.', dist: 3, dur: 3.4, still: true, fit: { h: 2.75, w: 2.0 },
         set(c) { c.climb = 0; },
         tick(c, k) { c.climb = CREATURES.walker.climbAt(clamp((k - 0.05) / 0.8, 0, 1)); },
         // the wall round the window (what is still outside shows only in the frame), the frame and the sill; then what has come in

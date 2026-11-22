@@ -1249,7 +1249,11 @@ function render() {
   if (G.throwing) {
     const th = G.throwing, k = th.t / th.dur, arc = Math.sin(k * Math.PI) * 0.8;
     const x = lerp(th.from.x, th.to.x, k), y = lerp(th.from.y, th.to.y, k) + arc, z = lerp(th.from.z, th.to.z, k);
-    R.add({ kind: 'sprite', x, y, z, w: th.it.w, h: th.it.h, draw: (ctx, P) => { ctx.scale(th.it.w, th.it.h); th.it.icon(ctx, P); } });
+    const sp = th.it.spin;   // (an item may tumble as it flies: { turns } end over end, { roll } about its length; night 1's bottle)
+    R.add({ kind: 'sprite', x, y, z, w: th.it.w, h: th.it.h, draw: (ctx, P) => {
+      if (sp) { const c = Math.cos(k * (sp.roll || 0) * TAU); ctx.translate(0, th.it.h / 2); ctx.rotate(-k * (sp.turns || 0) * TAU); ctx.scale(Math.sign(c || 1) * Math.max(0.78, Math.abs(c)), 1); ctx.translate(0, -th.it.h / 2); }
+      ctx.scale(th.it.w, th.it.h); th.it.icon(ctx, P);
+    } });
   }
   HANDS.add();   // a thing tried at a target, in the air or at it
   if (L.dynamic) L.dynamic();

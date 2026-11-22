@@ -98,7 +98,7 @@ const throwIt = [
   take(['bottle']), inHand('hammer'), ['face', WINDOW], ['expect', windowIs + " === 'none'", 'nor with the bottle carried and the hammer in hand'],
   inHand('bottle'), ['face', WINDOW], ['expect', windowIs + " === 'target'", 'with the bottle in hand the window is a target'],
   ['click', 'window'],
-  ['expect', "!!G.throwing && G.throwing.it.id === 'bottle' && !G.hasItem('bottle') && !G.L.s.broken", 'a click on it throws the bottle'],
+  ['expect', "!!G.throwing && G.throwing.it.id === 'bottle' && G.throwing.it.spin.turns >= 1 && G.throwing.it.spin.roll > 0 && !G.hasItem('bottle') && !G.L.s.broken", 'a click on it throws the bottle, which tumbles as it flies'],
   ['waitUntil', 'G.L.s.broken', 3000],
   ['expect', "!G.throwing && !G.hasItem('bottle') && !G.L.items.some(i => i.id === 'bottle' && !i.taken) && __sfx.includes('stingGlass') && G.L.s.crumbs.filter(c => c.shard).length > 20 && G.state === 'play' && !G.L.won",
     'it goes through the glass, which breaks: the sound of it, a burst of glass, and the bottle is gone'],
@@ -115,7 +115,7 @@ const openDoor = k => [take(['nails', 'planks'])].concat(board(k), [
 ]);
 const stage = st => "G.L.s.egg && G.L.s.egg.stage === '" + st + "'";
 const egg = k => [
-  ['eval', "window.__stages = []; clearInterval(window.__eggT); window.__eggT = setInterval(() => { const e = G.L && G.L.s.egg; if (e && __stages[__stages.length - 1] !== e.stage) __stages.push(e.stage); }, 15)"],
+  ['eval', "window.__stages = []; window.__at = {}; clearInterval(window.__eggT); window.__eggT = setInterval(() => { const e = G.L && G.L.s.egg; if (e && __stages[__stages.length - 1] !== e.stage) { __stages.push(e.stage); __at[e.stage] = G.stateT; } }, 10)"],
   take(['hammer', 'nails', 'planks', 'bottle']), inHand('bottle'), ['face', WINDOW], ['click', 'window'], ['waitUntil', 'G.L.s.broken', 3000],
 ].concat(board(k), [running(k), ['waitUntil', 'G.L.creature.lane.idx === ' + (1 - k), 4000],
   ['face', DIR[1 - k]], ['click', DOOR[1 - k]], ['wait', 150], ['click', DOOR[1 - k]], ['wait', 150],
@@ -138,8 +138,10 @@ const egg = k => [
   ['expect', '(p => G.L.creature.climb === undefined && p.z > -2.3 && p.x > 1)(G.L.creature.pos())', 'it stands inside, under the window'],
   ['waitUntil', "G.state === 'dead'", 6000],
   ['expect', "__stages.join() === 'door,pound,still,turn,run,face,climb,stand,lunge'", 'in order: the boards, the pounding, its head turning, the run, the window, the climb, a moment standing, the lunge'],
-  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'You gave it a window of opportunity.' && /It got you/.test(UI.overlay.textContent) && /You gave it a window of opportunity\\./.test(UI.overlay.textContent) && !/Nearly there/.test(UI.overlay.textContent)",
-    'the death screen: "It got you", and "You gave it a window of opportunity." alone'],
+  ['expect', "(SAVE.data.settings.reducedMotion ? [3.7, 4.3] : [2.4, 2.8]).every((v, i) => i ? __at.stand - __at.climb <= v : __at.stand - __at.climb >= v) && __at.lunge - __at.stand > 0.6 && __at.lunge - __at.stand < 0.85",
+    'the bars torn out and the climb in are quick (about 2.6 s; 4 s with reduced motion), and it stands 0.7 s before it lunges'],
+  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'Was that necessary?' && /It got you/.test(UI.overlay.textContent) && /Was that necessary\\?/.test(UI.overlay.textContent) && !/Nearly there/.test(UI.overlay.textContent)",
+    'the death screen: "It got you", and "Was that necessary?" alone'],
   ['eval', 'clearInterval(window.__eggT)'],
 ]);
 const windowEgg = [layouts, ['eval', 'window.__att0 = G.attempt; delete SAVE.data.eggs.field; SAVE.persist()'], sfxHook].concat(throwIt,   // (the egg not found yet, whatever an earlier seed left in the save)

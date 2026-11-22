@@ -74,7 +74,7 @@ LEVELS.push({
     intro: 'You find yourself in a shed.\nSomething in the distance approaches.',
     hint: 'There are loose planks all over the house, a hammer and nails. Board up both doorways.',
     objective: 'Board up both doorways.',
-    death: { default: 'It came through the open door.', reached: 'It tore the boards off and came in.', round: 'It came through the open door behind you.', window: 'You gave it a window of opportunity.' },
+    death: { default: 'It came through the open door.', reached: 'It tore the boards off and came in.', round: 'It came through the open door behind you.', window: 'Was that necessary?' },
     win: 'The boards held.',
     egg: 'Give it a window of opportunity.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },
@@ -319,7 +319,8 @@ LEVELS.push({
       { x: -2.55, y: 1.28, z: 1.0 },                    // on the shelf
       { x: 1.95, y: 0.78, z: 0.3 },                     // on the table, clear of the lamp
       { x: 1.75, y: 1.1, z: -2.31 },                    // on the windowsill
-    ], { w: 0.17, h: 0.36, throwable: true });   // (it goes through the window, and nowhere else: see the window, below)
+    ], { w: 0.17, h: 0.36, throwable: true, spin: { turns: 1.6, roll: 1.1 } });   // (it goes through the window, and nowhere else: see the window, below; thrown, it tumbles
+    // end over end, and a little about its length: game.js draws a thrown thing with its item's spin)
     // ---- when it will not go ----
     // What will not go up is put up all the same, and fails there (js/hands.js). A plank with nothing to fix it goes up
     // where the next board goes (boardSpot: across the doorway at that board's height, stretched to lie across the frame as
@@ -724,9 +725,11 @@ LEVELS.push({
     //   stand  a moment, looking at you
     //   lunge  and it has you: the death's own lunge, from where it stands
     // The death screen says "It got you" and the night's own line for it (text.death.window), with no toast before it.
-    // With reduced motion nothing shakes, the view turns more slowly, and the climb is slower and even (the walker's c.gentle).
+    // The bars go in one violent beat and it is through in EGG.climb seconds (2.6: quick, the same poses in the same order),
+    // then stands EGG.stand (0.7) before the lunge. With reduced motion nothing shakes, the view turns more slowly, and the
+    // climb is slower (EGG.climbSlow, 4 s) and evenly paced (the walker's c.gentle).
     const AT = { x: (WIN.x0 + WIN.x1) / 2, z: WIN.z }, STAND = { x: 1.5, z: -1.95 }, WIN_YAW = Math.atan2(AT.x, AT.z), RUN_Z = -2.62;
-    const EGG = { blows: 4, still: 0.6, turn: 0.45, look: 0.4, rise: 0.25, dash: 0.75, out: 0.7, round: 1.1, in: 0.75, far: 4.5, face: 0.4, climb: 5, climbSlow: 7.5, stand: 1.1, lunge: 0.5 };
+    const EGG = { blows: 4, still: 0.6, turn: 0.45, look: 0.4, rise: 0.25, dash: 0.75, out: 0.7, round: 1.1, in: 0.75, far: 4.5, face: 0.4, climb: 2.6, climbSlow: 4, stand: 0.7, lunge: 0.5 };
     const pane = mkTarget(L, { id: 'window', name: 'Window', x: AT.x, y: WIN.y0, z: WIN.z + 0.03, w: WIN.x1 - WIN.x0, h: WIN.y1 - WIN.y0, face: 0, accepts: ['bottle'], use() { smash(); return true; } });
     Object.defineProperty(pane, 'hidden', { get: () => !!s.broken || !(G.inv[G.active] && G.inv[G.active].id === 'bottle') });
     const smash = () => {
@@ -811,7 +814,7 @@ LEVELS.push({
         yaw = WIN_YAW; place(c, AT.x, lerp(RUN_Z, AT.z, smoothstep(e.t / EGG.face)));
         if (e.t >= EGG.face) { next('climb'); foundEgg(); tearBars(); }
       } else if (e.stage === 'climb') {
-        const u = clamp(e.t / (gentle() ? EGG.climbSlow : EGG.climb), 0, 1), q = c.CR.climbAt(u), a = smoothstep((q - 0.82) / 0.18);
+        const u = clamp(e.t / (gentle() ? EGG.climbSlow : EGG.climb), 0, 1), q = gentle() ? lerp(u, c.CR.climbAt(u), 0.35) : c.CR.climbAt(u), a = smoothstep((q - 0.82) / 0.18);
         const x = lerp(AT.x, STAND.x, a), z = lerp(AT.z, STAND.z, a);   // through, it comes a step into the room as it stands up
         c.climb = q; place(c, x, z);
         yaw = Math.atan2(x, z); pitch = 0.1 * smoothstep((q - 0.3) / 0.25) * (1 - a); danger = 0.1 + 0.3 * q;   // (the view tips down a little as it comes down the wall)
