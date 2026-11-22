@@ -974,52 +974,98 @@ const hoverHit = lookFor;
     return { before, hold: c.hold, dist: c.dist, barrier: L.barrierDist, state: G.state, lurched: c.hitchFlash > 0 };
   });
   check(lurch.lurched && lurch.before > lurch.barrier && lurch.state === 'play' && lurch.hold === lurch.barrier && lurch.dist === lurch.barrier,'night 3: a lurch across a salted line in one frame is held at the line, not past it (' + JSON.stringify(lurch) + ')');
-  // night 3's easter egg, the bag of sugar handed to it, in its other states (test/nights/night03.js plays it walking in).
-  // Handed the bag while it is held at the salt, it has its rush and the salt holds it afresh where it stood, and it goes
-  // round from there as it would have; handed it as it runs off going round, it comes back and finishes going round; won
-  // while it is out in the yard, it cuts the run short, comes straight back, and the night ends as it does; and after its
-  // rush it still walks in and takes you. It is never nearer than it stood when it took the bag.
-  const egg3 = (seed, mode) => page.goto(URL + '?level=3&go&seed=' + seed + '&nofr').then(() => page.waitForTimeout(150)).then(() => page.evaluate(mode => {
+  // night 3's easter egg, the bag of sugar given to it (test/nights/night03.js plays it won under its run). Every frame is
+  // stepped by hand. With the sugar in the hand it is given the bag from 11 m (tossed: in the air 0.45 s, in an arc) and
+  // not from 14 m; at 3.6 m it is handed over (0.35 s). After its 6 s round of the yard it does not go back: it comes
+  // straight up its way at the pace of its run, wired to the end, and the night's own rules decide it there. Its way bare,
+  // it comes straight in and takes you (the usual cause for that); its way salted and the other bare, it stops at the salt,
+  // runs round and comes in by the bare one ("open"); both salted and no lantern lit, it stops, looks down and steps over
+  // ("unlit"); both salted and only its own lit, it goes round to the dark one and steps over that. It never takes you
+  // before its run is over. Won while it is out in the yard, it cuts the run short and comes to the salt line; won while it
+  // stands at the salt, it is there already; either way the night's own ending plays and it is wired to the last. With
+  // reduced motion the tremble is slight, the run and the rush about half the pace, and the view is not shaken.
+  const egg3 = (seed, mode, dist, rm) => page.goto(URL + '?level=3&go&seed=' + seed + '&nofr').then(() => page.waitForTimeout(150)).then(() => page.evaluate(([mode, dist, rm]) => {
     const L = G.L, c = L.creature, lane = c.lane.idx; c.switched = true; c.nextHitch = 1e9;
+    SAVE.data.settings.reducedMotion = !!rm; delete SAVE.data.eggs.graveyard;
     const thr = idx => L.targets.find(t => t.id === (idx === 0 ? 'threshold' : 'sidethreshold')), hk = idx => L.targets.find(t => t.id === (idx === 0 ? 'hook' : 'hookE'));
     const salt = idx => { const t = thr(idx); t.done = true; t.count = 1; t.accepts = []; };
     const lamp = idx => { const h = hk(idx); h.hung = 'lantern'; h.lit = true; h.done = true; h.accepts = []; };
     const it = L.items.find(i => i.id === 'sugar'); it.taken = true; G.inv.push(it); G.active = G.inv.indexOf(it);
     const step = () => { const p = c.pos(), y = Math.atan2(p.x, p.z); G.cam.yaw = G.cam.tYaw = y; G.cam.dirIdx = ((Math.round(y / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0; G.step(1 / 60); };
-    const o = { lane, states: [], minD: 99 }, free = mode === 'walk' || mode === 'won';
-    const watch = () => { const p = c.pos(); o.minD = Math.min(o.minD, Math.hypot(p.x, p.z)); if (!o.states.includes(G.state)) o.states.push(G.state); };
-    if (!free) salt(lane);
-    c.u = 1 - (free ? 3.6 : L.barrierDist + 0.4) / c.D0;
-    const ready = () => mode === 'salt' ? c.sealHold : mode === 'round' ? !!(c.round && c.runPose && c.round.t > 0.1) : true;
-    let n = 0;
-    while (n++ < 600 && !(ready() && L.uses.length)) step();
+    // what the player has set up: bare (nothing), own (its way salted), dark (both salted), lit1 (both salted, its own lantern lit), won and late (lit1, and the rest done meanwhile)
+    if (mode !== 'bare') salt(lane);
+    if (mode === 'dark' || mode === 'lit1' || mode === 'won' || mode === 'late') salt(1 - lane);
+    if (mode === 'lit1' || mode === 'won' || mode === 'late') lamp(lane);
+    c.u = 1 - dist / c.D0; c.hold = dist;
+    for (let i = 0; i < 5; i++) step();
+    const o = { lane, dist: c.dist, uses: L.uses.length, hit: R.hits.some(h => h.kind === 'creature'), phases: [], lanes: [], minD: 99, minDist: 99, len: 0, vmax: 0, far: 0, clear: 99, inYard: true, shake: 0, buzz: 0, wired: true, arc: 0 };
     o.given = useOnCreature(L, c) && !!L.s.egg; if (!o.given) return o;
-    o.d0 = L.s.egg.dist; o.wasRound = !!L.s.egg.was.round; o.wasHeld = !!L.s.egg.was.sealHold;
-    if (mode === 'won') {
-      while (n++ < 2000 && !(L.s.egg.phase === 'run' && L.s.egg.t > 2)) { step(); watch(); }
-      salt(0); salt(1); lamp(0); lamp(1); win(); o.far = c.dist; const t0 = L.t;
-      while (n++ < 4000 && L.s.egg) { step(); if (L.s.egg) watch(); }
-      o.backIn = +(L.t - t0).toFixed(2); o.d1 = c.dist;
-      while (n++ < 6000 && G.state === 'won' && !(L.s.end && L.s.end.phase === 'walk')) step();
-      return Object.assign(o, { end: L.s.end && L.s.end.phase, state: G.state, away: !!c.away });
+    const e0 = L.s.egg, pre = L.s.give.look + L.s.give.pour + L.s.give.still + L.s.give.buzz;
+    Object.assign(o, { toss: e0.toss, takeT: e0.takeT, saved: SAVE.data.eggs.graveyard === true, toast: G.lastToast.msg, y0: e0.from.y });
+    let n = 0, prev = null, ph = '';
+    while (n++ < 60 * 30 && G.state === 'play') {
+      step();
+      const e = L.s.egg; if (!e) break;
+      if (e.phase !== ph) { ph = e.phase; o.phases.push(ph); o.lanes.push(c.lane.idx); }
+      const p = c.pos(), q = rotY(p.x, p.z, -L.facing), d = Math.hypot(p.x, p.z);
+      if (G.state === 'play') { o.T = e.T; o.shake = Math.max(o.shake, G.shakeAmt || 0); }
+      if (e.phase === 'take') { render(); if (e.bagAt) { o.arc = Math.max(o.arc, e.bagAt.over); o.bagD = Math.hypot(e.bagAt.x, e.bagAt.z); } }   // the bag in the air: how far over the straight line it rises, and how far it has got
+      if (e.phase === 'run' && !e.cut) {
+        o.minD = Math.min(o.minD, d);
+        if (prev) { const v = Math.hypot(q[0] - prev[0], q[1] - prev[1]); o.len += v; o.vmax = Math.max(o.vmax, v * 60); }
+        o.far = Math.max(o.far, d);
+        for (const [x, z, r] of L.s.yard) o.clear = Math.min(o.clear, Math.hypot(q[0] - x, q[1] - z) - r);
+        const along = lane === 0 ? q[1] : q[0], off = lane === 0 ? q[0] : q[1];
+        if (!(q[0] >= 4.4 || q[1] >= 4.4 || (Math.abs(off) < 0.8 && along > 1.4))) o.inYard = false;   // out past the fence, or on its own way through the gap in it
+        if (Math.abs(q[0]) > 12 || q[1] > 18 || q[1] < -4) o.inYard = false;   // and not off into the far dark
+      }
+      if (e.phase === 'buzz') o.buzz = Math.max(o.buzz, c.buzz);
+      if (['run', 'in', 'at', 'round'].includes(e.phase)) { o.minDist = Math.min(o.minDist, c.dist); if (!(c.wired === 1 && c.buzz === (rm ? 0.3 : 1))) o.wired = false; }
+      if (e.phase === 'in' && !o.vin) o.vin = e.v;
+      if (e.phase === 'at') { o.atDist = c.dist; o.bow = Math.max(o.bow || 0, c.bow); o.atPose = !c.runPose && !c.flail && !c.rush; }
+      if (mode === 'won' && e.phase === 'run' && e.t > 2 && !L.won) { lamp(1 - lane); win(); o.wonFar = d; o.t0 = L.t; }
+      if (mode === 'late' && e.phase === 'at' && e.t > 0.2 && !L.won) { lamp(1 - lane); win(); o.t0 = L.t; }
+      prev = q;
     }
-    while (n++ < 2000 && L.s.egg) { step(); if (L.s.egg) watch(); }
-    o.d1 = c.dist;
-    if (mode === 'salt') { step(); o.held = c.sealHold && c.hold === L.barrierDist; for (let k = 0; k < 90 && !c.round; k++) step(); o.round = !!c.round; }
-    if (mode === 'round') { o.roundBack = !!c.round && c.runPose; for (let k = 0; k < 240 && c.round; k++) step(); o.lane1 = c.lane.idx; o.runPose = !!c.runPose; }
-    if (mode === 'walk') { for (let k = 0; k < 600 && G.state === 'play'; k++) step(); o.state = G.state; o.cause = G.deathCause; }
+    Object.assign(o, { state: G.state, cause: G.deathCause, lane1: c.lane.idx, crossed: L.s.crossed, pre });
+    if (G.state === 'dying') {   // the usual death: its lunge, wired as it is
+      for (let k = 0; k < 20; k++) step();
+      Object.assign(o, { lunge: c.lunge > 0, wiredDead: c.wired === 1 && c.buzz > 0, death: L.text.death[G.deathCause], egg: !!L.s.egg });
+    }
+    if (G.state === 'won') {
+      while (n++ < 60 * 40 && L.s.egg) { step(); if (!(c.wired === 1 && c.buzz === 1)) o.wired = false; }
+      o.backIn = +(L.t - o.t0).toFixed(2); o.d1 = c.dist; o.line = (lane === 0 ? 1.77 : 2.0) + 0.25;
+      while (n++ < 60 * 60 && G.state === 'won' && !(L.s.end && L.s.end.phase === 'walk')) { step(); if (L.s.end && L.s.end.phase === 'stand') { o.stood = c.dist; o.bowed = Math.max(o.bowed || 0, c.bow); } if (!(c.wired === 1 && c.buzz === 1)) o.wired = false; }
+      Object.assign(o, { end: L.s.end && L.s.end.phase, state: G.state, away: !!c.away, saved: SAVE.data.eggs.graveyard === true });
+    }
     return o;
-  }, mode));
+  }, [mode, dist, rm]));
   for (const seed of [1, 2]) {
-    const a = await egg3(seed, 'salt'), b = await egg3(seed, 'round'), w = await egg3(seed, 'won'), k = await egg3(seed, 'walk');
-    check(a.given && a.wasHeld && a.states.join() === 'play' && a.minD >= a.d0 - 0.01 && Math.abs(a.d1 - a.d0) < 0.01 && a.held && a.round,
-      'night 3 easter egg (seed ' + seed + '): handed the bag at the salt, it has its rush, and the salt holds it afresh where it stood; it goes round from there (' + JSON.stringify(a) + ')');
-    check(b.given && b.wasRound && b.states.join() === 'play' && b.roundBack && b.lane1 === 1 - b.lane && !b.runPose,
-      'night 3 easter egg (seed ' + seed + '): handed the bag as it runs off going round, it comes back to where it was and goes round after all (' + JSON.stringify(b) + ')');
-    check(w.given && w.far > 5 && w.backIn < 2.3 && Math.abs(w.d1 - w.d0) < 0.01 && w.minD >= w.d0 - 0.01 && w.state === 'won' && w.end === 'walk' && w.away,
-      'night 3 easter egg (seed ' + seed + '): won while it is out in the yard, it comes straight back, and the night ends as it does (' + JSON.stringify(w) + ')');
-    check(k.given && k.states.join() === 'play' && k.minD >= k.d0 - 0.01 && k.state === 'dying' && k.cause === 'default',
-      'night 3 easter egg (seed ' + seed + '): after its rush it still walks in and takes you (' + JSON.stringify(k) + ')');
+    const J = JSON.stringify, sec = o => o.takeT + o.pre + 6;   // when its run is over
+    const far = await egg3(seed, 'bare', 14), k = await egg3(seed, 'bare', 11), near = await egg3(seed, 'dark', 3.6);
+    check(!far.given && far.uses === 0 && !far.hit && far.dist > 13.9, 'night 3 easter egg (seed ' + seed + '): 14 m off it is not a thing to click, and is given nothing (' + J(far) + ')');
+    check(k.given && k.uses === 1 && k.hit && k.toss === true && k.takeT === 0.45 && k.arc > 0.6 && k.arc < 1 && k.bagD > 9 && k.saved && /catches/.test(k.toast), 'night 3 easter egg (seed ' + seed + '): 11 m off it is given the bag, tossed in an arc and caught (' + J([k.dist, k.toss, k.takeT, k.arc, k.bagD, k.toast]) + ')');
+    check(near.given && near.toss === false && near.takeT === 0.35 && near.arc < 0.11 && /takes/.test(near.toast), 'night 3 easter egg (seed ' + seed + '): 3.6 m off the bag is handed over (' + J([near.dist, near.toss, near.takeT, near.toast]) + ')');
+    check(k.len > 85 && k.vmax >= 15 && k.vmax <= 20 && k.far > 10 && k.far < 18 && k.inYard && k.clear > -0.2 && k.minD > 4.3, 'night 3 easter egg (seed ' + seed + '): its run is some 100 m in 6 s, out past the fence among the headstones and clear of them (' + J([k.len, k.vmax, k.far, k.clear, k.minD]) + ')');
+    check(k.phases.join() === 'take,look,pour,still,buzz,run,in' && k.state === 'dying' && k.cause === 'default' && k.lane1 === k.lane && k.T >= sec(k) && k.T < sec(k) + 0.8 && k.minDist > 1.4 && Math.abs(k.vin - k.len / 5.85) < 1.5,
+      'night 3 easter egg (seed ' + seed + '): nothing salted, after its run it comes straight up its way at the pace of its run and takes you, and not before the run is over (' + J([k.phases, k.state, k.cause, k.T, k.vin]) + ')');
+    check(k.wired && k.buzz > 0.99 && k.lunge && k.wiredDead && k.death === 'It was still smiling when it stepped over the threshold.' && k.shake < 1e-3, 'night 3 easter egg (seed ' + seed + '): it is wired from the tremble to the end, its lunge too, and the death is the usual one (' + J([k.wired, k.lunge, k.wiredDead, k.death]) + ')');
+    const own = await egg3(seed, 'own', 11);
+    check(own.phases.join() === 'take,look,pour,still,buzz,run,in,at,round,in' && own.lanes[9] === 1 - own.lane && own.state === 'dying' && own.cause === 'open' && own.death === 'It came through the open entrance.' && own.wired && own.wiredDead && own.atPose && own.bow > 0.9 && Math.abs(own.atDist - (own.lane === 0 ? 2.6 : 2.5)) < 0.01 && own.T < sec(own) + 3.2,
+      'night 3 easter egg (seed ' + seed + '): its way salted and the other bare, it is stopped at the salt, looks down, runs round wired and comes in by the bare way (' + J([own.phases, own.lanes, own.cause, own.atDist, own.T]) + ')');
+    check(near.phases.join() === 'take,look,pour,still,buzz,run,in,at,in' && near.state === 'dying' && near.cause === 'unlit' && near.crossed === near.lane && near.death === 'The salt alone did not stop it. It loves the darkness.' && near.wired && near.wiredDead && near.T >= sec(near) && near.T < sec(near) + 2.2,
+      'night 3 easter egg (seed ' + seed + '): both ways salted and no lantern lit, it is stopped at the salt, looks down, and steps over it (' + J([near.phases, near.cause, near.crossed, near.T]) + ')');
+    const lit = await egg3(seed, 'lit1', 11);
+    check(lit.phases.join() === 'take,look,pour,still,buzz,run,in,at,round,in,at,in' && lit.state === 'dying' && lit.cause === 'unlit' && lit.crossed === 1 - lit.lane && lit.lane1 === 1 - lit.lane && lit.wired,
+      'night 3 easter egg (seed ' + seed + '): both salted and only its own lantern lit, it goes round to the dark way and steps over that (' + J([lit.phases, lit.cause, lit.crossed]) + ')');
+    const w = await egg3(seed, 'won', 11), late = await egg3(seed, 'late', 11);
+    check(w.given && w.wonFar > 5 && w.backIn < 2.3 && Math.abs(w.d1 - w.line) < 0.01 && Math.abs(w.stood - w.line) < 0.01 && w.bowed > 0.95 && w.state === 'won' && w.end === 'walk' && w.away && w.wired && w.saved && w.phases.join() === 'take,look,pour,still,buzz,run',
+      'night 3 easter egg (seed ' + seed + '): won while it is out in the yard, it cuts its run short, comes to the salt line and stands there wired, and the night ends as it does (' + J([w.wonFar, w.backIn, w.d1, w.stood, w.end, w.wired]) + ')');
+    check(late.given && late.phases.join() === 'take,look,pour,still,buzz,run,in,at' && late.backIn < 0.1 && Math.abs(late.stood - late.line) < 0.01 && late.bowed > 0.95 && late.state === 'won' && late.end === 'walk' && late.away && late.wired && late.saved,
+      'night 3 easter egg (seed ' + seed + '): the last lantern lit while it stands wired at the salt, the night is won there and ends as it does, the egg kept (' + J([late.phases, late.stood, late.end, late.wired]) + ')');
+    const slow = await egg3(seed, 'own', 11, true);
+    check(slow.phases.join() === own.phases.join() && slow.cause === 'open' && slow.buzz > 0.2 && slow.buzz < 0.31 && slow.wired && slow.vmax >= 8 && slow.vmax <= 11.5 && slow.len > 45 && slow.len < 70 && slow.vin < 11.5 && slow.inYard && slow.clear > -0.2 && slow.shake < 1e-3 && slow.T >= sec(slow) && slow.T > own.T + 0.8,
+      'night 3 easter egg (seed ' + seed + '): reduced motion: the same parts, the tremble slight, the run and the rush to the line about half the pace, no shake (' + J([slow.buzz, slow.vmax, slow.len, slow.vin, slow.T]) + ')');
   }
 
   console.log('== the death camera ==');

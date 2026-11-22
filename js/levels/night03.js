@@ -701,7 +701,8 @@ LEVELS.push({
       if (e && e.phase === 'take') {   // the bag, out of your hand and into its: handed over, or tossed underarm, turning over once as it goes
         const u = clamp(e.t / e.takeT, 0, 1), k = e.toss ? u : smoothstep(u), to = partOf(c, 0.26, 0.62), it = e.it;
         const up = e.toss ? 4 * k * (1 - k) * (0.25 + 0.05 * e.dist) : Math.sin(k * Math.PI) * 0.1, spin = e.toss ? -smoothstep(u) * TAU : 0;
-        R.add({ kind: 'sprite', x: lerp(e.from.x, to.x, k), y: lerp(e.from.y, to.y, k) + up, z: lerp(e.from.z, to.z, k), w: it.w, h: it.h, worn: true, draw: (ctx, P) => { if (spin) { ctx.translate(0, it.h / 2); ctx.rotate(spin); ctx.translate(0, -it.h / 2); } ctx.scale(it.w, it.h); it.icon(ctx, P); } });
+        e.bagAt = { x: lerp(e.from.x, to.x, k), y: lerp(e.from.y, to.y, k) + up, z: lerp(e.from.z, to.z, k), over: up };   // (the tests read where it is)
+        R.add({ kind: 'sprite', x: e.bagAt.x, y: e.bagAt.y, z: e.bagAt.z, w: it.w, h: it.h, worn: true, draw: (ctx, P) => { if (spin) { ctx.translate(0, it.h / 2); ctx.rotate(spin); ctx.translate(0, -it.h / 2); } ctx.scale(it.w, it.h); it.icon(ctx, P); } });
       }
       const cp = L.rend && L.rend.get(c);   // out in the yard it is kept clear of the murk, so it can be followed (0.85: as game.js draws it)
       if (cp && (e || cp.eggFog)) { cp.eggFog = !!(e && (e.phase === 'run' || e.phase === 'round')); cp.fogScale = cp.eggFog ? 0.45 : 0.85; }
