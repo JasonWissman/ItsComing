@@ -115,10 +115,11 @@ const batShot = ['eval', `(() => {
   delete SAVE.data.eggs[id];
   const r = { arrows0: uses(), spent0: s.spent, bats: s.bats.length, high: s.bats.every(b => b.y > L.eyeH + 1.5 && Math.hypot(b.x, b.z) > 14 && Math.hypot(b.x, b.z) < 37) };
   let b = null, g = 0;
+  const far = p => { const cb = creatureBox(c); return !cb || Math.abs(p.x - (cb.x + cb.w / 2)) > cb.w / 2 + p.r + 160; };
   while (!b && g++ < 3000) {   // until one is in open sky, well inside the view, looking ahead
     for (const d of [4, 5, 3, 6]) {
       G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; render();
-      b = s.bats.find(q => { const p = CLEARING_BATS.screen(q); return p && CLEARING_BATS.clear(L, q) && p.x > 300 && p.x < R.W - 300 && p.y > R.viewY + 80 && p.y < R.viewY + R.H * 0.36; });   // (well inside: it flies on for the second and a half of the draw, and must still be in open sky when the arrow goes)
+      b = s.bats.find(q => { const p = CLEARING_BATS.screen(q); return p && CLEARING_BATS.clear(L, q) && p.x > 200 && p.x < R.W - 200 && p.y > R.viewY + 60 && p.y < R.viewY + R.H * 0.42 && far(p); });   // (and well to one side of the thing: under the same aim, the thing comes first)
       if (b) break;
     }
     if (!b) step(10);
