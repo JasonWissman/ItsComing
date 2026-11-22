@@ -183,13 +183,12 @@ const CLEARING_BOW = (() => {
 // a way round from the eye, a height and a distance, each a sum of slow sines with a quick jitter over it, its wings
 // never stopping. They are on a random stream of their own (never L.rand or the thing's: the night's layout and its
 // rolls are what they would be without them).
-// One can be shot: drawn full and let go with the aim on it (within its wingspan and the few pixels the thing is given
-// too), in open sky (not behind the porch roof or the cabin), and only when the aim is not on the thing, which always
+// One can be shot: drawn full and let go with the aim on it (within a ring about twice its wingspan across, wider than it is drawn), in open sky (not behind the porch roof or the cabin), and only when the aim is not on the thing, which always
 // comes first. The arrow takes it: it squeaks and tumbles out of the sky with the arrow through it, to lie in the snow.
 // With reduced motion they fly at half the pace without the jitter, their wings beat slowly and gently, and one that is
 // hit drops without spinning.
 const CLEARING_BATS = (() => {
-  const SPAN = 0.7, PAD = 6, COL = [10, 9, 14], EL = [5 * DEG, 25 * DEG];
+  const SPAN = 0.7, PAD = 6, REACH = 1.8, COL = [10, 9, 14], EL = [5 * DEG, 25 * DEG];
   const calm = () => SAVE.data.settings.reducedMotion;
   function make(L) {
     const rnd = mulberry32((G.runSeed * 9973 + 50505) >>> 0), r = (a, b) => a + rnd() * (b - a);
@@ -267,8 +266,9 @@ const CLEARING_BATS = (() => {
     if (tz < tx && q[1] < 0) return false;     // out through the wall
     return L.eyeH + dy * t < lerp(2.95, 3.2, clamp((1.75 - q[1] * t) / 3.35, 0, 1)) - 0.05;
   }
-  // where it is on the view (page coordinates) and how near the aim must be, or null when it is behind you
-  function screen(b) { const p = R.screenPos(b.x, b.y, b.z); return p ? { x: p.x, y: p.y + R.viewY, r: SPAN * 0.5 * p.scale + PAD } : null; }
+  // where it is on the view (page coordinates) and how near the aim must be (REACH times its half span and the
+  // padding: a generous ring round it, well wider than it is drawn), or null when it is behind you
+  function screen(b) { const p = R.screenPos(b.x, b.y, b.z); return p ? { x: p.x, y: p.y + R.viewY, r: (SPAN * 0.5 * p.scale + PAD) * REACH } : null; }
   // the bat under an aim, if any (the nearest to it)
   function at(L, aim) {
     let best = null, bd = Infinity;

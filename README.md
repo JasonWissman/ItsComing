@@ -288,7 +288,7 @@ some on the ground, so you have to turn and look down to find them.
    side every second or two by itself and from about every other draw, so the aim has to come after it; inside about
    14 m it comes straight. With all three arrows gone and it still up, it comes flat out, straight. Three small
    bats flit about the night sky over the clearing, faint against it and easy to miss; one can be shot (drawn full and
-   let go on it: a small, restless target, and the thing itself always comes first), and it squeaks and tumbles out of
+   let go on or close by it: a small, restless target, taken by an aim within about its wingspan of it either way; the thing itself always comes first), and it squeaks and tumbles out of
    the sky with the arrow through it. That is this night's easter egg, and it costs the arrow. The bow floats where
    your hands would hold it. Pressed with no arrows, the bow comes up and tips to show the bare shelf,
    the string is plucked twice where an arrow should sit and twitches on nothing, and it is let down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,

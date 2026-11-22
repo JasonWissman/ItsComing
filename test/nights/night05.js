@@ -165,7 +165,7 @@ const bat = [
   ['expect', "(r => r.egg && r.saved && SAVE.data.eggs[G.L.def.id] === true && r.toast === 'You shot a bat out of the sky.')(window._bat)", "the night's easter egg is in the save the moment the bat is hit (SAVE.data.eggs.clearing)"],
   ['expect', '(r => r.landed && r.y1 < 0.2 && r.y0 > 3 && r.fall > 0.5 && r.fall < 3.5 && r.batsHit === 1 && r.flying === 2)(window._bat)', 'the bat tumbles out of the sky and lies in the snow; the other two fly on'],
   ['expect', "(r => r.arrows === r.arrows0 - 1 && r.spent === r.spent0 + 1 && r.state === 'play' && !r.thing.dead && !r.thing.wounded && r.thing.hits === 0)(window._bat)", 'it cost the arrow as any shot does, and the night goes on: the thing untouched and still coming'],
-  ['expect', '(r => r.radius >= 10 && r.radius <= 30)(window._bat)', 'a small thing to hit: the aim has to be within about its wingspan of it'],
+  ['expect', '(r => r.radius >= 18 && r.radius <= 54)(window._bat)', 'a small thing, but not a fiddly one to hit: the aim has to be within about its wingspan of it either way (1.8 times its half span and padding)'],
   ['expect', '(r => r.clock === 0.5 && r.pace < 0.8 && r.beat < 0.4)(window._bat)', 'with reduced motion the bats fly at half the pace, without the jitter, their wings beating slowly'],
 ];
 // The first arrow in it and it down in the snow: a draw begun at once (the game stepped by hand, nothing loosed) fills
