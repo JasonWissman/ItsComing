@@ -813,6 +813,14 @@ function buildMeadow(L, s, c0) {
 // for joy, again and again, as its face comes up out of the hood, happy, and it takes off its robe and dances, and the
 // dark turns to the pale light and the meadow comes, all of them in it. From there it is the ending as it always is: the
 // meadow waits for a press, and then the bedroom, in the morning.
+// The throw is this ending's jump scare, a happy one: the same soft flash as the other's (none with reduced flashing), a
+// twinkle of bells with the flourish. And in the meadow, once they have leapt there a little, they frolic (`frolic`, and
+// see `roam`): each runs about the meadow in its own gait, in loops and darts, after one another, hopping as it goes,
+// turned and leaning the way it goes, stopping now and then to leap on the spot and off again; the thing in the hood, out
+// of its robe (the heap of it left where it fell), skips about among them, dancing; the stone one is never seen to move
+// (it is somewhere else, all at once, in another pose); the swimmer keeps to its pool, ducking under and bursting up
+// again. They keep to the meadow in front of you, clear of you, the big tree, the pool and the robe, for as long as you
+// stay. With reduced motion they only amble, slowly.
 // Each is drawn by its own code (js/creatures), made as the game makes a creature and posed with its own fields; what it
 // holds is drawn at its hand. Times are seconds from the moment the last thing was taken up.
 const VOID_EGG = {
@@ -827,6 +835,7 @@ const VOID_EGG = {
   disrobe: [17.1, 19.7],                // and it takes off its robe: the hood back, the robe dropped, a hop clear; and dances
   light: [16.9, 22.4],                  // as the dark turns to the pale light, and the meadow comes
   wait: 23.2, arm: 23.8,                // from here the meadow is yours to look about in, and waits for a press (taken from `arm`)
+  frolic: 25.2,                         // and from here, one after another, they run about the meadow
   place: [0, 6.0],                      // where the thing in the hood stands among them: its bearing from the north, and how far off
 };
 // who takes what: each thing to the creature of the night it came from, in the order of their nights. The diner's and the
@@ -849,9 +858,22 @@ const VOID_OTHERS = [
   { type: 'carrier', takes: ['matches'], b: 0.63, r: 5.5, near: 1.5, at: [[0.3, 0.8, 0]], hop: 0.28 },
   { type: 'tall', takes: ['bulb'], b: 0.165, r: 7, near: 1.9, at: [[0.5, 1.24, 0]], hop: 0.3 },
 ];
+// the frolic: where they may run (metres from you: v ahead, to the north; u to the right of that): from v0 to v1 ahead,
+// within `wedge` of that either side (so in the view, looking north); no nearer you than `you`; clear of the big tree
+// ([u, v, how far]), the swimmer's pool, the heap of the robe and one another; how fast each goes (metres a second; with
+// reduced motion all of them `amble`); and how long each leaps on the spot (`leap`) once in every `every` seconds or so
+const VOID_FROLIC = {
+  v0: 3.6, v1: 12, wedge: 0.74, you: 3.1, tree: [Math.sin(-0.72) * 11.5, Math.cos(-0.72) * 11.5, 1.8], pool: 1.7, heap: 0.9, apart: 1.6, amble: 0.5, leap: 2.8, every: 8.5,
+  speed: { walker: 2.4, crawler: 3.4, smiler: 3.1, runner: 5.2, climber: 3.2, customer: 2.6, signalman: 3.0, other: 2.2, carrier: 2.5, tall: 2.8, demon: 2.7 },
+};
 function buildGathering(L, s, c0, K) {
-  const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1)), GR = 9.8;
+  const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1)), GR = 9.8, FR = VOID_FROLIC;
   let E = null;   // the gathering, once it has begun (s.egg)
+  // one that goes about the meadow (each of the others, and the thing in the hood): where it is (fu, fv), the way it is
+  // going (hu, hv), where it is making for (tu, tv; or after another of them, chase) and for how long yet (tT), how much
+  // of its running it is at (run: 0 leaping on the spot, 1 running), which way it is turned (face) and how it leans
+  const mover = (c, type, n, u, v) => ({ c, kind: type, fu: u, fv: v, hu: u > 0 ? -1 : 1, hv: 0, tu: u, tv: v, tT: 0, chase: null, dart: 1, run: 0, fro: false, went: 0, face: 1, lean: 0,
+    speed: FR.speed[type] || 0, jumps: type === 'watcher', pool: type === 'swimmer', per: FR.every + ((n * 0.37) % 1) * 4, at0: VOID_EGG.frolic + ((n * 0.618) % 1) * 1.8, rnd: mulberry32(4100 + n * 53) });
   // a creature as the game makes one (js/game.js makeCreature), standing free of any way in: placed by its bearing and distance
   const make = (type, n) => {
     const CR = CREATURES[type];
@@ -890,14 +912,18 @@ function buildGathering(L, s, c0, K) {
   function begin() {
     const c = c0();
     E = s.egg = {
-      t: 0, phase: 'rush', d0: c.dist, yaw0: c.yaw, joy: 0, glow: 0, thrown: [],
-      others: VOID_OTHERS.map((d, n) => Object.assign({}, d, { n, c: make(d.type, n), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
+      t: 0, phase: 'rush', d0: c.dist, yaw0: c.yaw, joy: 0, glow: 0, thrown: [], stepT: 0, dm: mover(c, 'demon', 12, Math.sin(VOID_EGG.place[0]) * VOID_EGG.place[1], Math.cos(VOID_EGG.place[0]) * VOID_EGG.place[1]),
+      others: VOID_OTHERS.map((d, n) => Object.assign(mover(null, d.type, n, Math.sin(d.b) * d.r, Math.cos(d.b) * d.r), d, { n, c: make(d.type, n), skip: 0.1 + 0.14 * ((n * 0.29) % 1), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
     };
+    E.movers = E.others.concat([E.dm]);
+    const sw = E.others.find(o => o.pool);
+    E.poolU = sw.fu; E.poolV = sw.fv; E.heapU = E.dm.fu; E.heapV = E.dm.fv;
     s.ending = true; s.endT = 0; s.armAt = VOID_EGG.arm;
     // the thing in the hood: stopped where it is, and placed by its bearing and distance from here on
     c.frozen = true; c.hold = null;
     c.lane = Object.assign({}, c.lane, { follow: 'free', apertures: [], blockers: [] });
     c.distFn = cr => {
+      if (E.dm.fro) { cr.yaw = L.facing + Math.atan2(E.dm.fu, E.dm.fv); return Math.hypot(E.dm.fu, E.dm.fv); }
       const t = E.t, back = t >= VOID_EGG.demon[0] - 0.4;
       cr.yaw = back ? L.facing + VOID_EGG.place[0] : E.yaw0;
       return back ? lerp(15, VOID_EGG.place[1], span(t, VOID_EGG.demon[0], VOID_EGG.demon[1])) : E.d0 + 9 * easeIn(clamp((t - VOID_EGG.gone[0]) / (VOID_EGG.gone[1] - VOID_EGG.gone[0]), 0, 1));
@@ -922,25 +948,32 @@ function buildGathering(L, s, c0, K) {
   // how each stands, comes and leaps: its own fields (js/creatures), set every frame. q: u (seconds since it set out),
   // rush, near, back (0..1 through each), joy (0..1), hop (0..1 through each leap; -1 on the ground)
   const POSE = {
-    walker(c, q, o) { o.poseDist = q.joy > 0.01 ? lerp(c.dist, 2.2, q.joy) : 0; },   // (its arms come up as they do when it is close)
+    walker(c, q, o) { o.poseDist = q.joy > 0.01 ? lerp(o.r, 2.2, q.joy * (1 - 0.6 * q.run)) : 0; },   // (its arms come up as they do when it is close)
     crawler(c, q) { c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; },
     smiler(c, q) { c.rush = q.joy; },
     watcher(c, q, o) {   // stone: it stands in one pose, and is in another each time it comes down
       if (!c.pose) c.pose = 2;
       if (q.back >= 1 && q.joy < 0.05) c.pose = 2;   // (in its place: its hands up either side of its head, the chain in one and the lock in the other)
-      const n = q.hop < 0 ? -1 : Math.floor(q.jt / q.T);
+      const n = q.hop < 0 ? -1 : q.n;
       if (n !== o.hops) { if (o.hops !== undefined && n >= 0) c.pose = 1 + (c.pose % 3); o.hops = n; }
     },
     runner(c, q) { c.mode = q.back > 0.15 && q.joy < 0.5 ? 'crouch' : 'sprint'; c.modeT = 1; },
-    swimmer(c, q) {
+    swimmer(c, q, o) {
       // it comes skimming in, only its head above the black floor as it was above the water, and bursts up out of it at you
       c.mode = 'up';
       const k = clamp((q.u - q.R1 * 0.8) / 0.4, 0, 1), lift = 0.95;
       if (k > 0 && c.burstT === undefined) { c.burstT = c.t; c.burstY = lift; if (!q.still) AUDIO.sfx('splash', pan(c)); }
-      c.lunge = k; c.yOff = lift * smoothstep(k);
+      // (frolicking, it keeps to its pool: now and then it ducks under and bursts up out of it again)
+      let dip = 0;
+      if (q.run > 0 && !q.still) {
+        const w = q.t * 0.19 + o.ph, x = w % 1, n = Math.floor(w);
+        if (x < 0.14) dip = Math.sin(Math.PI * x / 0.14) * q.run;
+        if (x >= 0.07 && x < 0.14 && o.dove !== n) { o.dove = n; c.burstT = c.t; AUDIO.sfx('splash', pan(c)); }
+      }
+      c.lunge = k; c.yOff = lift * smoothstep(k) * (1 - 0.62 * dip);
     },
     climber(c, q) { c.lunge = 0.75 + 0.25 * Math.max(q.near, q.joy); },
-    customer(c, q) { c.shove = q.joy > 0.01 ? { k: q.joy, h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null; },
+    customer(c, q) { c.shove = q.joy > 0.01 ? { k: q.joy * (1 - 0.5 * q.run), h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null; },
     // (its long arm up, holding the notebook out to be seen; then high, waving)
     signalman(c, q, o) { const up = Math.max(q.back, q.joy); c.reach = up; c.grip = o.held[0] ? 1 : 0; c.reachSide = 1; c.reachTo = { x: lerp(0.42, 0.5 + (q.still ? 0 : 0.3 * Math.sin(q.t * 7)), q.joy), y: lerp(2.05, 3.1, q.joy) }; },
     other(c, q, o, dt) { c.danceT = (c.danceT || 0) + dt * (1 + 2 * q.joy); c.dance = 1; c.smile = 1; const it = o.held[0]; c.carry = it ? (ctx, P) => it.icon(ctx, P) : null; },   // (the box in its arms, as it carried it off: its own drawing)
@@ -965,6 +998,60 @@ function buildGathering(L, s, c0, K) {
     });
     o.held = [];
   }
+  // ---- the frolic ----
+  // is a spot (u, v) one of the meadow's, where one of them may be?
+  const spot = (u, v) => v >= FR.v0 && v <= FR.v1 && Math.abs(u) <= FR.wedge * v && Math.hypot(u - FR.tree[0], v - FR.tree[1]) > FR.tree[2] + 0.4
+    && Math.hypot(u - E.poolU, v - E.poolV) > FR.pool + 0.5 && Math.hypot(u - E.heapU, v - E.heapV) > FR.heap + 0.4;
+  let AX = 0, AY = 0;   // (the way it would go, summed: no objects made in a frame)
+  const shy = (m, x, y, r, w) => { const ex = m.fu - x, ey = m.fv - y, e2 = ex * ex + ey * ey; if (e2 < r * r && e2 > 1e-6) { const e = Math.sqrt(e2), k = (1 - e / r) * w / e; AX += ex * k; AY += ey * k; } };
+  const keepOff = (m, x, y, r) => { const ex = m.fu - x, ey = m.fv - y, e2 = ex * ex + ey * ey; if (e2 < r * r) { const e = Math.sqrt(e2) || 1e-3; m.fu = x + ex / e * r; m.fv = y + ey / e * r; } };
+  // somewhere new to make for: another of them, to run after it a while; or a spot of the meadow, at a run or a dart
+  const aim = m => {
+    m.chase = null;
+    if (m.rnd() < 0.22) { const q = E.movers[Math.floor(m.rnd() * E.movers.length)]; if (q !== m && !q.jumps && !q.pool) { m.chase = q; m.tT = 2.5 + m.rnd() * 2.5; m.dart = 1.15; return; } }
+    const v = FR.v0 + 0.3 + m.rnd() * (FR.v1 - FR.v0 - 0.6), u = (m.rnd() * 2 - 1) * FR.wedge * v * 0.94;
+    if (!spot(u, v)) { m.tT = 0; return; }   // (not there: another, next time)
+    m.tu = u; m.tv = v; m.tT = 3 + m.rnd() * 4; m.dart = 0.7 + m.rnd() * 0.65;
+  };
+  // one of them, a moment on (want: running, 1, or leaping on the spot, 0); m.went: how far it went, metres
+  function roam(m, dt, want, still) {
+    m.run += (want - m.run) * Math.min(1, dt * 3);
+    m.went = 0;
+    if (m.pool) return;
+    if (m.jumps) {   // the stone one: it is not seen to go; it is somewhere else, all at once, in another pose
+      m.tT -= dt * want;
+      if (m.tT > 0) return;
+      const v = FR.v0 + 0.6 + m.rnd() * (FR.v1 - FR.v0 - 1.2), u = (m.rnd() * 2 - 1) * FR.wedge * v * 0.9;
+      if (!spot(u, v) || Math.hypot(u - m.fu, v - m.fv) < 2.5) return;
+      for (const q of E.movers) if (q !== m && Math.hypot(u - q.fu, v - q.fv) < 1.8) return;
+      m.fu = u; m.fv = v; m.tT = still ? 5 + m.rnd() * 3 : 1.4 + m.rnd() * 1.8; m.c.pose = 1 + (m.c.pose % 3); m.face = m.rnd() < 0.5 ? -1 : 1;
+      return;
+    }
+    m.tT -= dt;
+    if (m.chase) { m.tu = m.chase.fu; m.tv = m.chase.fv; }
+    let du = m.tu - m.fu, dv = m.tv - m.fv, d = Math.hypot(du, dv);
+    if (m.tT <= 0 || d < (m.chase ? 1.6 : 0.7)) { aim(m); if (m.chase) { m.tu = m.chase.fu; m.tv = m.chase.fv; } du = m.tu - m.fu; dv = m.tv - m.fv; d = Math.hypot(du, dv); }
+    AX = d > 1e-3 ? du / d : m.hu; AY = d > 1e-3 ? dv / d : m.hv;
+    for (const q of E.movers) if (q !== m) shy(m, q.fu, q.fv, q.pool ? FR.pool + 0.7 : FR.apart, q.pool ? 4 : 2.5);
+    shy(m, 0, 0, FR.you + 0.9, 4); shy(m, FR.tree[0], FR.tree[1], FR.tree[2] + 0.7, 4); shy(m, E.heapU, E.heapV, FR.heap + 0.5, 3);
+    const lim = FR.wedge * m.fv;
+    if (m.fv < FR.v0) AY += (FR.v0 - m.fv) * 3; else if (m.fv > FR.v1) AY -= (m.fv - FR.v1) * 3;
+    if (Math.abs(m.fu) > lim) AX -= Math.sign(m.fu) * (Math.abs(m.fu) - lim) * 3;
+    // it turns toward that, so fast and no faster (so it goes in loops), slower through a tight turn
+    const al = Math.hypot(AX, AY) || 1, dot = (m.hu * AX + m.hv * AY) / al, turn = clamp(Math.atan2(m.hu * AY - m.hv * AX, m.hu * AX + m.hv * AY), -1, 1) * Math.min(1, dt * (still ? 2 : 5.5));
+    const ct = Math.cos(turn), st = Math.sin(turn), hu = m.hu * ct - m.hv * st, hv = m.hu * st + m.hv * ct, hl = Math.hypot(hu, hv) || 1;
+    m.hu = hu / hl; m.hv = hv / hl;
+    const sp = (still ? FR.amble : m.speed * m.dart) * m.run * (0.55 + 0.45 * Math.max(0, dot)), u0 = m.fu, v0 = m.fv;
+    m.fu += m.hu * sp * dt; m.fv += m.hv * sp * dt;
+    keepOff(m, 0, 0, FR.you); keepOff(m, FR.tree[0], FR.tree[1], FR.tree[2]); keepOff(m, E.poolU, E.poolV, FR.pool); keepOff(m, E.heapU, E.heapV, FR.heap);
+    m.went = Math.hypot(m.fu - u0, m.fv - v0);
+    // turned the way it goes (to the left or the right of you), and leaning into it
+    const r = Math.hypot(m.fu, m.fv) || 1, across = (m.hu * m.fv - m.hv * m.fu) / r, k = sp / (m.speed || 1);
+    if (Math.abs(across) * sp > 0.3) m.face += ((across > 0 ? 1 : -1) - m.face) * Math.min(1, dt * 10);
+    m.lean += ((still ? 0 : -0.11 * across * Math.min(1, k)) - m.lean) * Math.min(1, dt * 6);
+  }
+  // when each runs and when it leaps on the spot, from the moment it sets off (with reduced motion it only ambles)
+  const wants = (m, t, still) => s.leaving ? 0 : still || (t - m.at0) % m.per < m.per - FR.leap ? 1 : 0;
   function update(dt, still) {
     const c = c0(), t = E.t = s.endT += dt, R1 = still ? 1.1 : VOID_EGG.rush, B1 = VOID_EGG.back - (R1 - VOID_EGG.rush), far = still ? 9 : VOID_EGG.far;
     E.phase = t < VOID_EGG.hold ? 'rush' : t < VOID_EGG.joy ? 'hold' : 'joy';
@@ -982,11 +1069,15 @@ function buildGathering(L, s, c0, K) {
       oc.dist = u < R1 ? lerp(far, o.near, still && !stone ? smoothstep(rk) : easeOut(rk)) : lerp(o.near, o.r, bk);
       oc.yaw = L.facing + o.b * lerp(1, 0.6, rk * (1 - bk));
       if (stone && o.step !== rk + bk) { if (o.step !== undefined) { oc.pose = 1 + (oc.pose % 3); if (bk > 0) AUDIO.sfx('stoneRub', pan(oc)); } o.step = rk + bk; }
-      const moved = Math.abs(prev - oc.dist), g0 = oc.gait;
+      // the frolic: about the meadow, each from its own moment
+      if (!o.fro && t >= o.at0 && !s.leaving) o.fro = true;
+      if (o.fro) { roam(o, dt, wants(o, t, still), still); oc.dist = Math.hypot(o.fu, o.fv); oc.yaw = L.facing + Math.atan2(o.fu, o.fv); }
+      const moved = o.fro ? o.went : Math.abs(prev - oc.dist), g0 = oc.gait;
       oc.gait += moved * oc.CR.stepRate * Math.PI; oc.moving = moved > 0.024 * dt;
       if (!oc.moving || stone) { const rest = Math.round(oc.gait / Math.PI) * Math.PI; oc.gait += (rest - oc.gait) * Math.min(1, dt * 4); }
       oc.idleK = (oc.idleK === undefined ? 1 : oc.idleK) + ((oc.moving ? 0 : 1) - (oc.idleK === undefined ? 1 : oc.idleK)) * Math.min(1, dt * 2.5);
-      if (oc.CR.sound && Math.floor(oc.gait / Math.PI) !== Math.floor(g0 / Math.PI)) AUDIO.footstep(oc.CR.sound, clamp(2.4 / (oc.dist + 1.6), 0, 0.85) * (u < R1 ? 0.7 : 0.3), pan(oc));
+      if (o.fro) { if (oc.CR.sound && E.stepT <= 0 && !still && Math.floor(oc.gait / Math.PI) !== Math.floor(g0 / Math.PI)) { E.stepT = 0.17; AUDIO.footstep(oc.CR.sound, clamp(2.4 / (oc.dist + 1.6), 0, 0.85) * 0.22, pan(oc)); } }   // (a patter of them, not every step of every one)
+      else if (oc.CR.sound && Math.floor(oc.gait / Math.PI) !== Math.floor(g0 / Math.PI)) AUDIO.footstep(oc.CR.sound, clamp(2.4 / (oc.dist + 1.6), 0, 0.85) * (u < R1 ? 0.7 : 0.3), pan(oc));
       // there: its own voice, a rush of air, a jolt; and it takes what was its own
       if (u >= R1 && !o.came) {
         o.came = true;
@@ -1002,17 +1093,21 @@ function buildGathering(L, s, c0, K) {
       o.hopY = 0; o.squash = 1;
       if (jt >= 0) {
         if (o.threw === null) throwAll(o, t);
-        const amp = joyAmp(jt, o) * (s.leaving ? o.joyK : 1);   // (as you go on, they come down and stand)
+        // (as you go on, they come down and stand; running, only little hops, and the stone one none)
+        const amp = (o.fro ? (stone ? 0.8 * (1 - o.run) : lerp(0.8, o.skip, o.run)) : joyAmp(jt, o)) * (s.leaving ? o.joyK : 1);
         if (still) o.hopY = 0.05 * amp * (0.5 + 0.5 * Math.sin(jt * 2.2 + o.ph * 6));
         else if (amp > 0.02) {
-          const A = o.hop * amp, T = Math.sqrt(8 * A / GR) + 0.08, x = (jt / T) % 1, air = clamp(x * (T / (T - 0.08)), 0, 1);
+          const A = o.hop * amp, T = Math.sqrt(8 * A / GR) + 0.08;
+          o.hx = o.hx === undefined ? jt / T : o.hx + dt / T;   // (how many leaps so far: each as long as its height takes)
+          const x = o.hx % 1, air = clamp(x * (T / (T - 0.08)), 0, 1);
           hop = x; hopT = T; o.hopY = 4 * A * air * (1 - air);
           o.squash = 1 + 0.06 * Math.sin(TAU * air) * Math.min(1, amp * 2) - (air >= 1 ? 0.06 : 0);
         }
       }
       o.age++;
       o.joyK += ((jt >= 0 && !s.leaving ? 1 : 0) - o.joyK) * Math.min(1, dt * 7);
-      const q = { u, rush, near, back, joy: smoothstep(o.joyK), hop, jt, T: hopT, t, still, R1 };
+      const q = o.q || (o.q = {});
+      q.u = u; q.rush = rush; q.near = near; q.back = back; q.joy = smoothstep(o.joyK); q.hop = hop; q.n = Math.floor(o.hx || 0); q.jt = jt; q.T = hopT; q.t = t; q.still = still; q.R1 = R1; q.run = o.fro ? o.run : 0;
       if (POSE[o.type]) POSE[o.type](oc, q, o, dt);
       o.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3 - o.ph * 0.5) / 1.6, 0, 1) : 1;
     }
@@ -1028,10 +1123,17 @@ function buildGathering(L, s, c0, K) {
     if (E.joy) { c.mood = CREATURES.demon.moods - 1; c.unveil = span(t, VOID_EGG.unveil[0], VOID_EGG.unveil[1]); c.settle = 1; c.tilt0 = 0; }
     c.disrobe = clamp((t - VOID_EGG.disrobe[0]) / (VOID_EGG.disrobe[1] - VOID_EGG.disrobe[0]), 0, 1);
     const dj = t - VOID_EGG.disrobe[1] + 0.4;
-    c.dance += ((still || s.leaving || dj <= 0 ? 0 : Math.min(1, dj * 2) * joyAmp(dj, null)) - c.dance) * Math.min(1, dt * 7);
+    // and it frolics with them: it skips about among them (dancing as it goes: its hops and kicks), and stops to dance
+    const dm = E.dm;
+    E.stepT -= dt;
+    if (!dm.fro && t >= dm.at0 && !s.leaving) { dm.fro = true; c.noHeap = true; }
+    if (dm.fro) { roam(dm, dt, wants(dm, t, still), still); c.tip = dm.lean; c.flip = Math.abs(dm.face) < 0.25 ? (dm.face < 0 ? -0.25 : 0.25) : dm.face; c.gait += dm.went * c.CR.stepRate * Math.PI; }
+    c.dance += ((still || s.leaving || dj <= 0 ? 0 : dm.fro ? lerp(1, 0.75, dm.run) : Math.min(1, dj * 2) * joyAmp(dj, null)) - c.dance) * Math.min(1, dt * 7);
     if (t >= VOID_EGG.joy && !E.cheered) {
-      E.cheered = true; AUDIO.sfx('cheer', 0); AUDIO.sfx('win');
+      // (the scare of this ending, a happy one: the same soft flash as the other's, and a twinkle of bells with the flourish)
+      E.cheered = true; AUDIO.sfx('cheer', 0); AUDIO.sfx('twinkle', 0); AUDIO.sfx('win');
       if (!still) G.shake(0.2);
+      if (!SAVE.data.settings.reducedFlash) G.flash(0.25);
     }
     if (t >= VOID_EGG.unveil[0] + 0.2 && !E.hum) { E.hum = true; AUDIO.voice('hum', 0.5, 0); }
     if (t >= VOID_EGG.disrobe[0] + 0.5 && !E.cloth) { E.cloth = true; AUDIO.sfx('cloth', 0); }
@@ -1073,6 +1175,7 @@ function buildGathering(L, s, c0, K) {
   const paint = (o, ctx, P) => {
     const c = o.c;
     ctx.save();
+    if (o.fro && !o.pool) { if (o.lean) ctx.rotate(o.lean); if (o.face !== 1) ctx.scale(Math.abs(o.face) < 0.25 ? (o.face < 0 ? -0.25 : 0.25) : o.face, 1); }   // (turned and leaning the way it goes)
     if (o.squash !== 1) ctx.scale(1, o.squash);
     if (!c.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(c.t * 1.6)); ctx.rotate(0.008 * Math.sin(c.t * 0.7) * (c.idleK === undefined ? 1 : c.idleK)); }
     const d = c.dist; if (o.poseDist) c.dist = o.poseDist;
@@ -1133,6 +1236,13 @@ function buildGathering(L, s, c0, K) {
         const k = easeOut(clamp(f.t / 0.2, 0, 1)), to = handAt(o, f.k), a = o.at[f.k] || o.at[0];
         inAir(f.it, lerp(f.from.x, to.x, k), lerp(f.from.y, to.y, k) + Math.sin(Math.PI * k) * 0.08, lerp(f.from.z, to.z, k), (a[2] || 0) * k, lerp(0.8, a[3] || 1, k));
       }
+    }
+    // the heap of its robe, where it fell, once it has gone off about the meadow
+    const dc = c0();
+    if (dc.noHeap && dc.fade > 0.004) {
+      const hp = E.heap || (E.heap = { kind: 'sprite', x: Math.sin(L.facing) * E.heapV + Math.cos(L.facing) * E.heapU, y: 0, z: Math.cos(L.facing) * E.heapV - Math.sin(L.facing) * E.heapU, w: 1.6, h: 1, dist: Math.hypot(E.heapU, E.heapV), layer: 1, noContact: true, draw: (ctx, P) => CREATURES.demon.heap(ctx, c0(), P) });
+      hp.alpha = dc.fade < 1 ? dc.fade : undefined;
+      R.add(hp);
     }
     // what they threw: up, turning, and down onto the ground, where it lies
     for (const th of E.thrown) {

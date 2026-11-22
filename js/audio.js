@@ -612,6 +612,12 @@ const AUDIO = (() => {
         noise(0.7, { type: 'bandpass', freq: 2600, q: 0.7, vol: 0.05, attack: 0.22 }); noise(0.5, { type: 'highpass', freq: 5200, vol: 0.025, attack: 0.3, delay: 0.1 });
         break;
       }
+      // a happy twinkle: a quick sparkle of small bells running up, each with a glint high over it, the last ringing (night
+      // 13's easter egg: the flash as they throw it all into the air)
+      case 'twinkle': {
+        [1568, 1976, 2349, 2637, 3136, 3951].forEach((f, i) => { const d = i * 0.07, last = i === 5; tone(f, last ? 0.42 : 0.22, { vol: 0.05, type: 'sine', attack: 0.004, delay: d }); tone(f * 2.76, last ? 0.2 : 0.1, { vol: 0.014, type: 'sine', attack: 0.002, delay: d }); });
+        break;
+      }
       case 'birds': { const f0 = 2200 + Math.random() * 1200; for (let i = 0; i < 4 + Math.floor(Math.random() * 4); i++) tone(f0 + Math.random() * 600, 0.07, { vol: 0.05, type: 'sine', endFreq: f0 + 300 + Math.random() * 500, delay: i * 0.11, pan }); break; }
       case 'stingWet': noise(0.5, { freq: 1600, vol: 1.0, attack: 0.002 }); noise(1.4, { type: 'bandpass', freq: 500, q: 1, vol: 0.7, delay: 0.1, attack: 0.05 }); tone(42, 1.4, { vol: 0.7, endFreq: 26 }); tone(700, 0.9, { vol: 0.3, type: 'sawtooth', endFreq: 200, delay: 0.15 }); break;
       case 'stingScrape': noise(1.1, { type: 'bandpass', freq: 2400, q: 3, vol: 0.9, attack: 0.002 }); tone(1400, 0.8, { vol: 0.35, type: 'sawtooth', endFreq: 3000 }); tone(45, 1.3, { vol: 0.7, endFreq: 28, delay: 0.1 }); break;
