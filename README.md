@@ -566,7 +566,8 @@ some on the ground, so you have to turn and look down to find them.
     and can be pulled down again. A covered mirror shows nothing, so standing before one counts as looking away (it
     comes on at its unseen pace), and the box plays before a covered odd mirror as it always did (the tune pulls the
     sheet off). The night's easter egg ("Cover every mirror."): the moment all four are under sheets the night is over.
-    The last sheet settles and the room is dead quiet for a second; then in that sheet its face presses out through the
+    The last sheet settles and for a second the room is quiet but for its feet (the doll's own little hard steps, eight
+    of them, quicker and louder each one, running up to the back of that sheet); then in that sheet its face presses out through the
     cloth from inside (the swell of its head, its brow, the hollows of its eyes, its nose, its mouth opening), a hand
     either side of it, fingers spread, the cloth stretched toward you and creaking, its sob rising to a wail, the other
     three sheets bulging with its face too (and they stay so); at 2.9 s that same face and those hands come at you as

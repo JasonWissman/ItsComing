@@ -73,7 +73,8 @@ const coverAgain = k => [look(k), ['wait', 200],
 ];
 // the last bare mirror covered: the easter egg
 const lastSheet = k => [look(k), ['wait', 200],
-  ['eval', `delete SAVE.data.eggs.mirrors; window._eg = { hush: 0, face: 0, hands: 0, others: 0, lungeAt: -1, shake: 0, bare: 0, early: 0, hung: 0, heaps: 0, rim0: -1, rim1: 0, near: 9, othersEnd: 0 };
+  ['eval', `delete SAVE.data.eggs.mirrors; window._eg = { hush: 0, face: 0, hands: 0, others: 0, lungeAt: -1, shake: 0, bare: 0, early: 0, hung: 0, heaps: 0, rim0: -1, rim1: 0, near: 9, othersEnd: 0, steps: [] };
+    { const fs = AUDIO.footstep; AUDIO.footstep = (kind, vol, pan) => { const g = G.L.s.egg; if (g) window._eg.steps.push({ kind, vol, pan, T: G.stateT, pressed: g.pressed, face: (g.shown[g.k] || { k: 0 }).k }); return fs(kind, vol, pan); }; }
     (function w() {
       const e = window._eg, s = G.L.s, T = G.stateT, c = G.L.creature;
       if (G.state === 'dying' && s.egg) {
@@ -105,6 +106,8 @@ const lastSheet = k => [look(k), ['wait', 200],
   ['expect', "G.state === 'dying' && G.cam.tYaw === window._lk[0] && G.cam.dirIdx === window._lk[1] && G.inv.length === window._lk[2] && !G.hover && G.L.targets.filter(t => /^(sheet|heap)/.test(t.id)).every(t => t.hidden)", 'nothing can be pressed: a turn and a click do nothing'],
   ['waitUntil', "G.state === 'dead'", 8000],
   ['expect', '(e => e.hush === 0 && e.shake === 0)(window._eg)', 'first a hush: for most of a second nothing shows in any sheet, and nothing shakes'],
+  ['expect', "(st => st.length >= 6 && st.length <= 8 && st.every(p => p.kind === 'smiler' && !p.pressed && p.face === 0 && p.T < 1.05 && Math.abs(p.pan) < 0.3) && st.every((p, i) => !i || (p.vol > st[i - 1].vol && p.T > st[i - 1].T)) && st[0].vol <= 0.15 && st[st.length - 1].vol >= 0.6 && st[st.length - 1].T > 0.85)(window._eg.steps)", 'in the hush its feet are heard running up to that sheet: six to eight of the doll\'s own steps, each louder than the last from faint to loud, from that mirror, all before its face shows and the last just as it does'],
+  ['expect', '(st => st.every((p, i) => i < 2 || p.T - st[i - 1].T < st[i - 1].T - st[i - 2].T + 0.035) && st[st.length - 1].T - st[st.length - 2].T < st[1].T - st[0].T)(window._eg.steps)', 'and quicker as they come'],
   ['expect', '(e => e.face > 0.95 && e.hands > 0.95 && e.others > 0.6)(window._eg)', 'then its face presses out through that sheet, and its two hands, and the other sheets bulge too'],
   ['expect', '(e => e.lungeAt > 2.85 && e.lungeAt < 3.1 && !e.bare && !e.early && e.rim0 > 0)(window._eg)', 'and at 2.9 s it comes at you in the sheet: the doll itself is never drawn, and nothing of it before then'],
   ['expect', '(e => !e.hung && !e.heaps && e.othersEnd > 0.6)(window._eg)', 'the sheet leaves its mirror with it (not torn down: no sheet hangs there and none lies in a heap), the other three still bulging'],
