@@ -698,14 +698,20 @@ const hoverHit = lookFor;
     await shot(page, 'scores-eggs-norun');
     // the list is the nights' own: a night given an easter egg is ??? at once and counts; found, it shows its line
     const dyn = await page.evaluate(() => {
-      const n = LEVELS.findIndex(d => !d.text.egg), l = LEVELS[n], had = l.text.egg; l.text.egg = 'Wave at the walker.';   // (the first night that has none of its own)
+      // (the first night that has none of its own; every night has one now, so for this one is taken off the first night
+      // whose own is not found yet, and put back after)
+      let n = LEVELS.findIndex(d => !d.text.egg), own;
+      if (n < 0) { n = LEVELS.findIndex(d => !SAVE.data.eggs[d.id]); own = LEVELS[n].text.egg; delete LEVELS[n].text.egg; }
+      const l = LEVELS[n], had = l.text.egg, base = LEVELS.filter(d => d.text.egg).length; l.text.egg = 'Wave at the walker.';
       const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelectorAll('#overlay .eggs .egg')[n]; return e.className.replace(/ c[12]$/, '') + '|' + e.querySelector('.ewhat').textContent + '|' + document.querySelector('#overlay .eggcount').textContent; };
       const a = row(), first = SAVE.egg(l.id), b = row(), again = SAVE.egg(l.id);
       if (had === undefined) delete l.text.egg; else l.text.egg = had;
       delete SAVE.data.eggs[l.id]; SAVE.persist();
-      return { a, b, first, again, c: row() };
+      const c = row();
+      if (own !== undefined) l.text.egg = own;
+      return { a, b, first, again, c, base };
     });
-    check(dyn.a === 'egg unknown|???|1 of ' + (withEgg.length + 1) + ' found' && dyn.first && !dyn.again && dyn.b === 'egg found|Wave at the walker.|2 of ' + (withEgg.length + 1) + ' found' && dyn.c === 'egg none|—|1 of ' + withEgg.length + ' found',
+    check(dyn.a === 'egg unknown|???|1 of ' + (dyn.base + 1) + ' found' && dyn.first && !dyn.again && dyn.b === 'egg found|Wave at the walker.|2 of ' + (dyn.base + 1) + ' found' && dyn.c === 'egg none|—|1 of ' + dyn.base + ' found' && dyn.base >= withEgg.length - 1,
       'it is driven by the nights\' own text.egg: a night given one is ??? and counted, then shows its line once found (' + JSON.stringify(dyn) + ')');
     // a night finds its own: foundEgg() with no id is the night being played; true the first time only; saved
     await page.goto(URL + '?level=5&go'); await page.waitForTimeout(400);

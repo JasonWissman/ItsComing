@@ -462,8 +462,9 @@ LEVELS.push({
       if (snow) return snow;
       const rnd = mulberry32(1212);
       snow = [0, 1, 2, 3, 4].map(() => {
-        const cv = document.createElement('canvas'); cv.width = 44; cv.height = 33; const g = cv.getContext('2d');
-        for (let y = 0; y < 33; y++) for (let x = 0; x < 44; x++) { g.fillStyle = grey(Math.pow(rnd(), 1.5)); g.fillRect(x, y, 1, 1); }
+        const cv = document.createElement('canvas'); cv.width = 44; cv.height = 33; const g = cv.getContext('2d'), im = g.createImageData(44, 33);
+        for (let i = 0; i < 44 * 33; i++) { const col = mixc(INK, PALE, Math.pow(rnd(), 1.5)); im.data[i * 4] = col[0]; im.data[i * 4 + 1] = col[1]; im.data[i * 4 + 2] = col[2]; im.data[i * 4 + 3] = 255; }
+        g.putImageData(im, 0, 0);
         return cv;
       });
       return snow;
