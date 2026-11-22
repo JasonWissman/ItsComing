@@ -97,7 +97,7 @@ LEVELS.push({
     L.addAperture(0, apN); L.addAperture(1, apE);
     SC.quad(L, [-2.5, 3.0, -2.5], [2.5, 3.0, -2.5], [2.5, 3.0, 2.7], [-2.5, 3.0, 2.7], [26, 21, 17]);
     for (const z of [-1.8, -0.6, 0.6, 1.8]) SC.box(L, -2.4, 2.4, 2.84, 3.0, z - 0.06, z + 0.06, [44, 36, 28]);
-    // furniture: an upturned rowboat, a workbench, a shelf, the winch, a life ring on the wall
+    // furniture: an upturned rowboat, a workbench, a shelf, the winch, a life ring on the wall (a thing you can take: below)
     // the rowboat lies upturned along the west wall, its bow toward the water: plank sides narrowing to a stem, its flat
     // bottom uppermost (things can lie on it), and the keel along the middle. It is painted: white, gone a little grey and
     // yellow, with a red sheer strake (the lowest plank of each side as it lies, next the deck) and a red keel, the paint
@@ -200,7 +200,7 @@ LEVELS.push({
     // the life ring off the wall: taken up by its rim. On the wall it lies flat on the boards (L.dynamic fixes its card to
     // the wall's face); put down, it lies on the deck as anything does
     const ring = mkItem(L, 'lifering', 'Life ring', { x: RING.x, y: RING.y - RING.w / 2, z: RING.z, flat: false, jitter: 0 },
-      { w: RING.w, h: RING.w, icon: 'lifeRing', onWall: true, held: { grip: 'fist', at: [0.2, 0.2], axis: 0.9, angle: -0.25, size: 0.4 } });
+      { w: RING.w, h: RING.w, icon: 'lifeRing', onWall: true, held: { grip: 'fist', at: [0.2, 0.2], axis: 0.9, angle: -0.25, size: 0.33 } });
     // where an oar knocked off the winch comes down: on the deck from near your feet out toward the winch (an oar that
     // long lies nowhere nearer it), or a little to the left of that if the other oar already lies there
     const oarLand = it => {
