@@ -49,8 +49,8 @@ const SOUNDS = [
   { kind: 'sfx', name: 'chain', n: [3, 4, 6], d: 'A run of small metal links. Lantern hung on its hook (3), chain round the gate (4), the winch chain springs loose (6).', src: 'night03, 04, 06' },
   { kind: 'sfx', name: 'sugarPour', n: [3], d: 'A dry rush of grains out of a paper bag, thinning as it empties, the paper crackling. The easter egg: handed the bag of sugar, the smiler pours all of it into its mouth (then a gulp). About 0.9 s.', src: 'night03 (easter egg)' },
   { kind: 'sfx', name: 'sugarBuzz', n: [3], d: 'A buzz that climbs and quickens, jittering, and ends on a ping. The sugar takes hold: it begins to tremble, then tears off round the graveyard. About 0.9 s.', src: 'night03 (easter egg)' },
-  { kind: 'sfx', name: 'skid', n: [3], d: 'Boots scraping over gravel, grit flying, and a thump as they stop. It skids back to where it stood when it was handed the bag.', src: 'night03 (easter egg)' },
-  { kind: 'sfx', name: 'shudder', n: [3], d: 'A quick rattle, its keys jangling with it. The last of the sugar goes through it, and it comes on again.', src: 'night03 (easter egg)' },
+  { kind: 'sfx', name: 'skid', n: [3], d: 'Boots scraping over gravel, grit flying, and a thump as they stop. Wired, it skids to a stop at the salt.', src: 'night03 (easter egg)' },
+  { kind: 'sfx', name: 'shudder', n: [3], d: 'A quick rattle, its keys jangling with it. Stopped at the salt, the sugar still going through it.', src: 'night03 (easter egg)' },
   { kind: 'sfx', name: 'gate', n: [4], d: 'Iron on iron, a heavy clang. The quarry gates shut and shaken (4).', src: 'night04' },
   { kind: 'sfx', name: 'creak', n: [4, 6, 7], d: 'A long creak of hinges. Gates and doors swinging, boxes and lids opening.', src: 'night04, 06, 07 · levels.js opening' },
   // ---- night 4: the quarry ----

@@ -224,22 +224,36 @@ some on the ground, so you have to turn and look down to find them.
    holds him only a while: he looks down at the salt once more and steps over. When the
    last lantern is lit he comes right up to the salt, looks down at it, then turns round
    and walks back into the dark. The night's easter egg ("Give it a sugar rush."): with the bag of sugar in
-   your hand and him within 4.5 m and in plain view (walking in, standing at the salt, or running off to go round), he
-   is a thing to click, "Give it the sugar", and a click hands him the bag for good; farther off he is not, and a click
-   does what it always did. It is found, and kept in the save, the moment the bag leaves your hand, and it is no death.
-   He stops and takes the bag in his free hand (0.35 s), holds it up by its neck and looks at it, his head cocked to it and
+   your hand and him within 12 m and in plain view (walking in, standing at the salt, or running off to go round), he
+   is a thing to click, "Give it the sugar", and a click gives him the bag for good; farther off he is not, and a click
+   does what it always did. Within 4.5 m the bag is handed to him (0.35 s); farther off it is tossed, a short underarm
+   arc from your hand, turning over once, and he catches it (0.45 s). It is found, and kept in the save, the moment the
+   bag leaves your hand, and it is no death.
+   He stops and takes the bag in his free hand, holds it up by its neck and looks at it, his head cocked to it and
    then the other way (1 s), tips his head back and pours all of it into his open mouth, swallows, and lets the empty bag
    fall, where it lies for the rest of the night (1.2 s); stands stock still (0.4 s); begins to tremble, more and more, his
-   eyes wide with a pinprick in each and his hair on end (0.8 s); and tears off round the graveyard for 6 s, out by the way
-   he came and in among the headstones north of the porch (from the side gate, out east and round the corner of the
-   fence), round them, across the view and back, his arms in the air and the staff with them, dust hanging along the way he
-   went, some 100 m at about 18 m/s, three or four times his running pace. Then straight back in by the gap he went out by,
-   a skid to a stop where he stood when he took the bag, one last shudder (0.6 s), and the night goes on from there: no
-   ground gained and none lost, only the 10 seconds or so, in which you are free to act. He cannot reach you meanwhile; a
-   way that held him at the salt holds him afresh (its clocks start again), and a run round that he was handed the bag in
-   the middle of is finished. Won while he is out in the yard, he comes straight back and the night ends as it does. With
-   reduced motion the tremble is slight and the run is one plain loop at about twice his running pace, in the same time;
-   the view is never shaken.
+   eyes wide with a pinprick in each and his hair on end (0.8 s); and tears off round the graveyard for 6 s, in among the
+   headstones north of the porch (from the side gate, out east and round the corner of the fence), round them, across the
+   view and back, his arms in the air and the staff with them, dust hanging along the way he went, some 100 m at about
+   17 m/s, three or four times his running pace. He cannot reach you in those 10 seconds or so, and you are free to act:
+   it is a countdown in which the salt and the lanterns can still be finished. He does not go back to where he was, and
+   the sugar does not wear off: from the tremble to the end of the night his hair is on end, his pupils are pinpricks
+   and he shakes, bowed over the salt, reaching for you, or walking away. His run ends 7.8 m out on his way, and he
+   comes straight up it at the same pace, and the night is decided at the salt by its own rules, hurried:
+   - a bare way he comes straight in by, and takes you: the usual death, with the usual line for it;
+   - at a salted way he skids to a stop at the line, as the salt always stops him, and looks down at it, trembling; if
+     the other way is weaker (bare, or salted with its lantern dark while this one's burns) he runs round to it after
+     half a second, out round the corner of the fence, about a second of it, and comes up that one the same way;
+   - with nowhere weaker to go and no lantern burning by the line, he looks down at the salt for 1.1 s and steps over
+     it (the 6 s the line holds him on any other night, hurried), and that is the usual death for a line with no light.
+
+   The night is won as it always is, the moment both ways are salted and both lanterns lit; there is no clock to run
+   out, so there is nothing for his arrival to win by itself. If you finish while he is out in the yard he cuts his run
+   short and comes straight to the salt line; if you finish while he stands at the salt he is there already; either way
+   the night's own ending plays, with him wired: he stops with his toes at the salt, looks down at it and up at you,
+   turns round and walks back into the dark, shaking. Won before he has begun to run, he does not go.
+   With reduced motion the tremble is slight, the run is one plain loop at about twice his running pace in the same
+   time, and he comes up to the line and goes round at that slower pace; the view is never shaken by any of it.
 4. **The Quarry.** A stone figure that only moves when nothing is looking at it.
    You must look away to shut both gates, chain each with its own chain, and lock each
    with its own padlock (a click anywhere on the chain, all the way across the post's face, is a click on the gate,
