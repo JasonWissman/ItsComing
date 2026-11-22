@@ -61,7 +61,7 @@ round zoom button in the bottom right corner is a toggle: a tap zooms in and the
 plus turned to a minus) while you swipe and tap on the view as ever; a tap on it again zooms back out (the keys and a
 pad's trigger still zoom while held). A menu button top left, where the sound line is on a desktop, opens the pause menu (Mute is in its Settings); it is
 there on a night's card, the death screen and the win screen too, since the pause menu is the only place with Quit. The
-view fills the whole screen, and the things held float over its bottom edge, each slot on a faint backing of its own
+view fills the whole screen, and the things held float over its bottom edge in the lower left corner (not the middle, where things to tap most often are), each slot on a faint backing of its own
 (no strip under them); a tap on a slot switches to it (never a tap on the scene behind), and tapping the held item
 again while looking down puts it down. Where the browser can put the page full screen (not Safari on an iPhone), a
 small button in the top right corner, on the title and in a night, goes full screen (and asks for the screen held
