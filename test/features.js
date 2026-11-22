@@ -2354,12 +2354,12 @@ const hoverHit = lookFor;
           named: [...inv.querySelectorAll('.label')].filter(e => getComputedStyle(e).display !== 'none').length };
       };
       const fifteen = fit(), extra = inv.lastChild.cloneNode(true);
-      inv.appendChild(extra); const sixteen = fit(); extra.remove();
+      extra.classList.remove('active'); inv.appendChild(extra); const sixteen = fit(); extra.remove();
       return { held: G.inv.length, refused, many: inv.classList.contains('many'), state: G.state, fifteen, sixteen };
     });
     const ok = f => f.inside && f.apart && f.clear && f.named === 1;
-    check(r.held === 15 && r.refused === 0 && r.many && r.state === 'play' && r.fifteen.n === 15 && ok(r.fifteen) && r.sixteen.n === 16 && ok(r.sixteen),
-      'the Void ' + what + ': fifteen things held at once, none refused; the inventory fits with fifteen and with sixteen (every slot in the page, none over another, clear of the aim and the zoom button) (' + JSON.stringify(r) + ')');
+    check(r.held === 15 && r.refused === 0 && r.many && r.state === 'play' && r.fifteen.n === 15 && ok(r.fifteen) && r.sixteen.n === 16 && ok(r.sixteen) && r.sixteen.rows === 1,
+      'the Void ' + what + ': fifteen things held at once, none refused; the inventory fits with fifteen and with sixteen (every slot in the page, in one row, none over another, clear of the aim and the zoom button) (' + JSON.stringify(r) + ')');
     await vp.screenshot({ path: path.join(__dirname, 'shots', 'void-inventory-' + opt.viewport.width + '.png') });
     await ctx.close();
   }

@@ -771,7 +771,7 @@ some on the ground, so you have to turn and look down to find them.
     your hand at least once in the same attempt. On this night alone the hands are never full
     (every other night's hold six), so all sixteen can be carried at once and nothing need be
     put down; a thing put down again still counts, and one taken up twice counts
-    once. With more than six held the inventory's slots are smaller (44 px, 38 px on a phone), in
+    once. With more than six held the inventory's slots are smaller (44 px, 34 px on a phone), in
     one row (two where the page is narrow), and only the held thing is named. It comes on enraged
     the while, but each thing first taken up stops it dead a moment, so taken up one after
     another, a second or so each, the last is in your hand with it still well off (15 m or

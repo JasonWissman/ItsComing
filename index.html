@@ -604,8 +604,8 @@
        to the bottom of the screen (and under the home bar: viewport-fit=cover), the slots above that bar */
     #inventory { gap: 8px; bottom: calc(env(safe-area-inset-bottom) + 18px); touch-action: none; }
     .slot, .slot canvas { width: 50px; height: 50px; }
-    #inventory.many { gap: 5px; max-width: calc(100% - 150px); }
-    #inventory.many .slot, #inventory.many .slot canvas { width: 38px; height: 38px; }
+    #inventory.many { gap: 4px; max-width: calc(100% - 180px); }   /* (clear of the zoom button in the corner) */
+    #inventory.many .slot, #inventory.many .slot canvas { width: 34px; height: 34px; }
     .slot { border-radius: 7px; border-color: rgba(207,200,186,.2); background: radial-gradient(closest-side, rgba(8,7,7,.38), rgba(8,7,7,.2)); box-shadow: 0 2px 10px rgba(0,0,0,.35); -webkit-tap-highlight-color: transparent; }
     .slot.active { border-color: rgba(239,230,210,.75); background: radial-gradient(closest-side, rgba(8,7,7,.48), rgba(8,7,7,.3)); box-shadow: 0 2px 10px rgba(0,0,0,.35), 0 0 10px rgba(239,230,210,.16); }
     :root[data-theme="day"] .slot { background: radial-gradient(closest-side, rgba(255,255,255,.42), rgba(255,255,255,.24)); box-shadow: 0 2px 10px rgba(58,51,44,.18); }
