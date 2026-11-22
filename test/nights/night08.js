@@ -106,7 +106,7 @@ const turnWidths = `(() => {
 // but never refilled: it pounds until it has had enough, and has you. Either way the death screen says "Nice try" and one
 // line. And with the main thrown it is the same: in the dark it comes for the cup on the counter, not for you, the
 // fountain still pours, and it drinks the refill too. The glass breaks as it breaks when it comes through for you (the
-// same sound, stingGlass). The cup is one of a row of plain paper cups on the shelf on the back wall, drawn exactly as the
+// same sound, stingGlass). The cup is the nearest of a row of plain paper cups on the shelf on the back wall, drawn exactly as the
 // rest are (no mark on it): it is the only one a click takes, and the rest are nothing to click.
 const target = id => `G.L.targets.find(t => t.id === '${id}')`;
 const cupIt = 'G.L.items.find(i => i.id === "cup")';
@@ -138,7 +138,7 @@ const insatiable = [
   ['expect', 'G.deathScreen && G.deathScreen.text === "It is insatiable." && G.deathScreen.title === "Nice try"', 'the death screen: "Nice try", and "It is insatiable."'],
   ['expect', 'UI.overlay.querySelector("h1").textContent === "Nice try" && UI.overlay.querySelector("p.intro").textContent === "It is insatiable."', 'as shown: the heading "Nice try", and the line, exactly, with nothing in front of it'],
 ];
-// the shelf on the back wall: a row of paper cups, all drawn alike, and only one of them is the cup (an item, and a click
+// the shelf on the back wall: a row of paper cups, all drawn alike, and only the one at its near end is the cup (an item, and a click
 // there takes it); over every other cup a click finds nothing to take
 const shelf = [
   // (held out in the lot while the cup is looked for and filled: lit, it is at the glass in seventeen seconds)
@@ -148,8 +148,8 @@ const shelf = [
     for (let k = 0; k < sh.xs.length; k++) { const w = L.pt(sh.xs[k], sh.y + 0.08, sh.z), q = R.screenPos(w[0], w[1], w[2]); if (!q) return false; G.mouse.x = q.x; G.mouse.y = q.y + R.viewY; updateHover();
       const it = G.hover && G.hover.kind === 'item' ? G.hover.ref : null; if (k === sh.cup ? it === c : !it) ok++; }
     G.mouse.x = -1; updateHover(); const p = L.pt(sh.xs[sh.cup], sh.y, sh.z);
-    return ok === sh.xs.length && Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]) < 1e-6 && c.icon === ICONS.paperCup && L.items.filter(i => /cup/i.test(i.name)).length === 1 && L.props.filter(q => q.card && q.kind === 'sprite').length >= sh.xs.length - 1; })()`,
-  'a row of cups on the shelf on the back wall, all alike: one of them is the cup, and the rest are nothing to click'],
+    return ok === sh.xs.length && sh.cup === 0 && sh.xs.every(x => Math.abs(x) >= Math.abs(sh.xs[sh.cup])) && Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]) < 1e-6 && c.icon === ICONS.paperCup && L.items.filter(i => /cup/i.test(i.name)).length === 1 && L.props.filter(q => q.card && q.kind === 'sprite').length >= sh.xs.length - 1; })()`,
+  'a row of cups on the shelf on the back wall, all alike: the one at the end of it nearest you is the cup (always that one), and the rest are nothing to click'],
 ];
 // the night's easter egg in the save (SAVE.data.eggs, by the night's id), in memory and as it is stored
 const eggKept = 'SAVE.data.eggs.diner === true && JSON.parse(localStorage.getItem("itscoming.v2")).eggs.diner === true';
