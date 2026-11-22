@@ -4,7 +4,7 @@
 // at the clips with the blown fuse still in (each knocks against it and comes back to the hand); and, without the new one,
 // the blown fuse taken out and pushed back (it is the one tried, and drops out). Only the one good fuse is to be found: no
 // other fuse lies about. Then the toolbox
-// dropped over the rail, twice, a miss and a hit (toolboxDrop, below: the hit is the night's easter egg, and the night is
+// dropped over the rail onto it, far down and near (toolboxDrop, below: the hit is the night's easter egg, and the night is
 // then won the ordinary way, with the black eye on it). Then from the start: the
 // spare bulb; open the fuse box and pull out
 // the blown fuse; push it back into the empty clips (it sits there a beat and drops out to the floor, where it is picked up
@@ -53,9 +53,11 @@ const clickOffFuse = '(() => { const tb = R.hits.find(h => h.kind === "target" &
   ' UI.canvas.dispatchEvent(new MouseEvent("click", { clientX: x, clientY: y, bubbles: true })); return true; } return false; })()';
 const toolboxFree = 'G.L.targets.find(t => t.id === "toolbox").hidden && ' + item('toolbox') + ' && !' + item('toolbox') + '.taken';
 // The toolbox dropped over the rail onto it, twice. The fuse out of the toolbox, the toolbox itself is taken up; with it in
-// hand the thing (made to be a given way down, looked at over the rail) is clicked. Too far down (15 m off, its middle more than
-// 8 m below the gallery floor), the hover says so, and the box kicks out off the stone and goes past it into the sea: gone,
-// the night goes on, and no easter egg is found. Then from the start, near (6 m off): it comes down the stone onto its face.
+// hand the thing (made to be a given way down, looked at over the rail) is clicked. It lands on it however far down it
+// is: at the foot of its climb, mid-way up (15 m off) and just under the rail (3 m), the box comes all the way down the
+// stone onto it, the fall taking as long as that height needs (b.fell: no quicker than a clear fall from the rail, and
+// longer the further down it is), and with it running round the tower meanwhile the box comes across the face after it.
+// Then from the start, near (6 m off), looked at closely: it comes down the stone onto its face.
 // That is the night's easter egg, kept in the save the moment it lands (SAVE.data.eggs.lighthouse), and it is not a win:
 // the thing loses its hold with one hand and hangs by the other (c.dangle), held where it is, for CREATURES.climber.dangleFor
 // (1.85 s: a second of it hanging, with the drop onto the arm before and the swing back in after); then it is back on
@@ -73,13 +75,26 @@ const eggSaved = '(SAVE.data.eggs.lighthouse === true && JSON.parse(localStorage
 const toolboxDrop = [
   ['eval', 'restartLevel()'], ['wait', 300],
   ['eval', 'delete SAVE.data.eggs.lighthouse; SAVE.persist();'],
-  ...takeToolbox, overRail(15), ['wait', 200],
-  ['expect', hovered('Too far down.'), 'over the rail at it, far down, with the toolbox: the hover says it is too far down'],
-  ['shoot'], ['expect', 'G.L.s.box && !G.L.s.box.hit && !G.hasItem("toolbox")', 'too far down: the toolbox goes over the rail anyway'],
-  ['waitUntil', 'G.L.s.box.gone && !!G.L.s.boxSplash', 6000],
-  ['expect', 'G.L.s.box.flung && G.L.s.box.hits >= 2 && !G.L.s.boxHit && G.state === "play" && !G.hasItem("toolbox") && G.L.items.every(i => i.id !== "toolbox" || i.taken) && !activeUse(G.L)', 'it came down the stone, kicked out off it, went past it into the sea and is gone; the night goes on'],
-  ['expect', '!' + C7 + '.dangle && !' + C7 + '.blackEye && !SAVE.data.eggs.lighthouse', 'a miss: it keeps its hold, has no black eye, and no easter egg is found'],
-  ['eval', 'restartLevel()'], ['wait', 300],
+  // at the foot of its climb, mid-way and just under the rail: each time it lands on it
+  ...[['c.D0', 'at the foot of its climb'], [15, 'mid-way up'], [3, 'just under the rail']].flatMap(([d, where], k) => [
+    ...takeToolbox, overRail(d), ['wait', 200],
+    ['expect', hovered('Drop the toolbox on it.'), where + ', over the rail at it with the toolbox: the hover offers to drop it'],
+    ['shoot'], ['expect', 'G.L.s.box && G.L.s.box.hit && !G.hasItem("toolbox")', where + ': the toolbox goes over the rail'],
+    ['waitUntil', 'G.L.s.boxHit && G.L.s.box.struck && !!' + C7 + '.dangle', 8000],
+    ['expect', '(c => G.L.s.box.hits >= ' + (k < 2 ? 2 : 0) + ' && Math.abs(c.blackEye) === 1 && c.hold === c.dist && G.state === "play" && !G.L.won)(' + C7 + ') && ' + eggSaved,
+      where + ': it came all the way down the stone onto it: it hangs by one hand with a black eye, and the easter egg is saved'],
+    ['eval', '(b => { const h = 0.7 - (b.struckY + 0.5 + b.size), ff = (-1.5 + Math.sqrt(2.25 + 2 * 9.8 * Math.max(0, h))) / 9.8; (window.__fell7 = window.__fell7 || [])[' + k + '] = { h, ff, t: b.fell, y0: b.y0 }; })(G.L.s.box)'],
+    ['expect', '(f => f.t >= f.ff * 0.95 - 0.02 && f.t <= f.ff * 2.5 + 0.4)(window.__fell7[' + k + '])', where + ': the fall took as long as that height needs (no quicker than a clear fall, and not much slower)'],
+    ['eval', 'delete SAVE.data.eggs.lighthouse; SAVE.persist(); restartLevel()'], ['wait', 300],
+  ]),
+  ['expect', '(f => f[0].h > 15 && f[1].h > 6 && f[1].h < f[0].h - 4 && f[2].h < 3 && f[0].t > f[1].t + 0.3 && f[1].t > f[2].t + 0.3 && f[0].t > 1.8 && f[2].t < 0.9)(window.__fell7)',
+    'the further down it is, the longer the box takes to get to it: over 15 m down, mid-way, and under 3 m'],
+  // it runs round the tower while the box is on its way down: the box comes across the face to it and lands on it all the same
+  ...takeToolbox, overRail(18), ['wait', 200], ['shoot'],
+  ['eval', '(c => { G.L.s.scut = { from: c.wallTh, to: c.wallTh + 14 }; })(' + C7 + ')'],
+  ['waitUntil', 'G.L.s.boxHit || G.L.s.box.gone', 8000],
+  ['expect', 'G.L.s.boxHit && G.L.s.box.struck && Math.abs(G.L.s.box.across) > 0.5 && !!' + C7 + '.dangle && Math.abs(' + C7 + '.blackEye) === 1', 'running round the tower as the box comes down, it is hit all the same: the box came across the face after it'],
+  ['eval', 'G.L.s.scut = null; delete SAVE.data.eggs.lighthouse; SAVE.persist(); restartLevel()'], ['wait', 300],
   ...takeToolbox, overRail(6), ['wait', 200],
   ['expect', hovered('Drop the toolbox on it.'), 'over the rail at it, near, with the toolbox: the hover offers to drop it'],
   ['eval', 'window.__sfxN7 = []; if (!window.__sfxO7) { window.__sfxO7 = AUDIO.sfx; AUDIO.sfx = (n, ...r) => { window.__sfxN7.push(n); return window.__sfxO7(n, ...r); }; }'],

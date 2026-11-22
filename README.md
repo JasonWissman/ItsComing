@@ -348,7 +348,11 @@ some on the ground, so you have to turn and look down to find them.
    stop it and win the night as ever, sent round it swims across with the hoop standing up round its chest, and when it
    has you it comes up at your face with the ring round the weed under its arms ("It got you": "It really didn't need
    saving, but that was nice of you."). With reduced motion the ring and the thing bob less and the splashes are
-   smaller; the timing is the same.
+   smaller; the timing is the same. It never swims in over the boards, in the ring or out of it: the water ends at each
+   doorway's sill (2.6 m from you at the water door, 2.4 m at the side door) and it comes no nearer than 0.85 m outside
+   that (3.45 m and 3.25 m), where all of it, its rings on the water, the life ring and its paws, is still over water as
+   you see it; its death lunge comes up out of the water from there. (A shut way holds it 10 cm further out.) The life
+   ring is a plain hoop, white and red, with nothing round its rim.
 7. **The Lighthouse.** The lamp is out and something is clinging to the outside of
    the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
    and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
@@ -359,14 +363,16 @@ some on the ground, so you have to turn and look down to find them.
    crank, lit or dark. The night's easter egg: once the new fuse is out of the toolbox, the toolbox itself can be taken
    up (heavy, held open in front of you), and with it in hand a click on the thing, looking over the rail at it, lets it
    go over the rail on the line straight down to it. The tower flares out below the gallery, so it hits the stone and
-   comes down the wall, tumbling and banging, spilling a spanner and a screwdriver. If the thing is no more than about
-   8 m below the gallery floor (the hover says "Drop the toolbox on it."), the box catches it full in its upturned face
+   comes down the wall, tumbling and banging, spilling a spanner and a screwdriver. However far down the thing is,
+   anywhere on the tower below you (the hover says "Drop the toolbox on it." whenever you can point at it), the box
+   comes all the way down the stone to it, the fall taking as long as the height needs (about a quarter of a second to
+   it just under the rail, 1.7 s to it 15 m off, 2.5 s to it at the foot of its climb), coming across the face to it as
+   it falls if it has moved, and catches it full in its upturned face
    with a clonk: its head snaps round, one hand and both feet come off the stone and it hangs by the other arm,
    swinging, for about a second; then it swings back in, hooks on again and climbs on from where it was (stopped there
    for under two seconds in all), and from then on it has a black eye, one eye swollen all but shut and purple-black
    round it, on the wall and in your face if it gets you. It is not a win: the toolbox bounces off into the sea and the
-   night goes on. Further down (the hover says "Too far down.") the box, going faster and faster, kicks out off the
-   stone, goes past it out over the water and into the sea, and is gone. Across the water the lights of a town show low
+   night goes on. (It misses only if the night ends, won or lost, while it is still falling.) Across the water the lights of a town show low
    on the horizon, each a small soft glow. A fuse tried with the blown one still in knocks against it and comes
    back to your hand; the blown fuse you pulled, pushed back into the empty clips, sits there a beat with nothing
    coming on and drops out onto the floor. A storm is on: now and then the lightning flashes, and a second or few later
