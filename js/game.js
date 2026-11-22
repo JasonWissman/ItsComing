@@ -921,7 +921,37 @@ function die(c, cause) {
 }
 // A night's easter egg, found (a night calls this the moment it happens, whether or not it then kills you): kept in the
 // save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time
-function foundEgg(id) { return SAVE.egg(id || (G.L && G.L.def && G.L.def.id)); }
+function foundEgg(id) {
+  id = id || (G.L && G.L.def && G.L.def.id);
+  const first = SAVE.egg(id);
+  if (first) secretToast(id);
+  return first;
+}
+// The first time an easter egg is found it is said, in a corner: "Secret discovered: " and the egg's short title (one for
+// each night, by the night's id; a night with none here is named by its own text.egg), with a small bright chime
+// ('secret'). The note (#secret, index.html) is not part of the HUD: it stays up over a death screen, a win or a cutscene
+// with the HUD hidden, for SECRET_HOLD seconds, and never takes a click. With reduced motion it fades and does not slide
+const EGG_TITLES = {
+  field: 'Window of opportunity', road: 'Hit and run', graveyard: 'Sugar rush', quarry: 'Staring contest', clearing: 'Bat out of the sky',
+  boathouse: 'Lifesaver', lighthouse: 'Heads up', diner: 'Refreshments', booth: 'Call 911', mirrors: 'Out of sight', barn: 'Overload',
+  bedroom: 'Movie night', void: 'Take everything',
+};
+const SECRET_HOLD = 4;   // seconds it is fully up (index.html: in over .35 s before, out over .6 s after)
+function eggTitle(id) {
+  if (EGG_TITLES[id]) return EGG_TITLES[id];
+  const def = typeof LEVELS !== 'undefined' && LEVELS.find(l => l.id === id);
+  return ((def && def.text && def.text.egg) || '').replace(/\.$/, '');
+}
+function secretToast(id) {
+  const title = eggTitle(id), el = UI.secret || $('secret');
+  if (!title || !el) return;
+  el.querySelector('.st').textContent = title;
+  el.classList.toggle('still', !!SAVE.data.settings.reducedMotion);
+  el.classList.add('show');
+  clearTimeout(secretToast.timer);
+  secretToast.timer = setTimeout(() => el.classList.remove('show'), (0.35 + SECRET_HOLD) * 1000);
+  AUDIO.sfx('secret');
+}
 // a night's easter-egg deaths (L.text.eggs: the causes that are one): the screen says "Nice try", and the line is the
 // night's own, with no toast put in front of it
 const isEggDeath = L => !!(L && L.text && L.text.eggs && L.text.eggs.includes(G.deathCause));
@@ -1591,7 +1621,7 @@ function frame(now) {
 G.step = function (dt, n) { for (let i = 0; i < (n || 1); i++) { update(dt); render(); } };
 function init() {
   UI.canvas = $('game'); UI.hud = $('hud'); UI.compass = $('compass'); UI.objective = $('objective'); UI.pitch = $('pitch');
-  UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute'); UI.zoomBtn = $('zoomBtn'); UI.menuBtn = $('menuBtn'); UI.fsBtn = $('fsBtn');
+  UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.secret = $('secret'); UI.debug = $('debug'); UI.mute = $('mute'); UI.zoomBtn = $('zoomBtn'); UI.menuBtn = $('menuBtn'); UI.fsBtn = $('fsBtn');
   UI.holdbar = $('holdbar'); UI.holdfill = $('holdfill');
   UI.drawbar = $('drawbar'); UI.drawfill = $('drawfill'); UI.drawmin = $('drawmin'); UI.drawlabel = $('drawlabel');
   R.attach(UI.canvas); R.resize();

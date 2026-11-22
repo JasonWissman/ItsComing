@@ -2382,6 +2382,65 @@ const hoverHit = lookFor;
   // Settings' Calibrate dialogs (Volume, Brightness) and their sounds: test/settings.js, in this browser
   await require('./settings').run(browser, check);
 
+  // An easter egg found for the first time is said in a corner: "Secret discovered: " and its title (game.js EGG_TITLES,
+  // by the night's id), with a small chime ('secret', captioned). The note is in the top left under the corner controls,
+  // in the page and over nothing else, at 1280 by 760 and on a phone held sideways (844 by 390); it goes after its time;
+  // the same egg found again says nothing; it shows over a death screen, and never takes a click
+  console.log('== an easter egg found: the note in the corner ==');
+  for (const [what, opt, tag] of [['at 1280 by 760', { viewport: { width: 1280, height: 760 } }, '1280'], ['on a phone held sideways (844 by 390)', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true }, '844']]) {
+    const ctx = await browser.newContext(opt), sp = await ctx.newPage();
+    sp.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
+    await sp.goto(URL + '?level=3&go&seed=1'); await sp.waitForTimeout(600);
+    const find = () => sp.evaluate(() => {
+      SAVE.data.eggs = {}; SAVE.persist(); MENU.applySetting('captions', true);
+      window.__heard = []; const sfx = AUDIO.sfx; window.__sfx = sfx; AUDIO.sfx = (name, ...a) => { window.__heard.push(name); return sfx(name, ...a); };
+      return { id: G.L.def.id, state: G.state, first: foundEgg(), caption: document.getElementById('caption').textContent };
+    });
+    const look = () => sp.evaluate(() => {
+      const el = document.getElementById('secret'), cs = getComputedStyle(el), r = el.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+      const apart = (a, b) => a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5;
+      const others = ['mute', 'menuBtn', 'fsBtn', 'zoomBtn', 'objective', 'compass', 'pitch', 'zoom', 'toast', 'inventory', 'caption'].map(id => [id, document.getElementById(id)])
+        .filter(([, e]) => e && getComputedStyle(e).display !== 'none').map(([id, e]) => [id, e.getBoundingClientRect()]).filter(([, q]) => q.width > 0 && q.height > 0);
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { text: el.textContent, shown: el.classList.contains('show'), op: +cs.opacity, vis: cs.visibility, pe: cs.pointerEvents, z: +cs.zIndex, inHud: !!el.closest('#hud'),
+        box: [r.left, r.top, r.right, r.bottom].map(Math.round), inside: r.width > 40 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H, corner: r.right < W * 0.4 && r.bottom < H * 0.3,
+        over: others.filter(([, q]) => !apart(r, q)).map(([id]) => id), seen: others.map(([id]) => id).join(), notHit: at !== el && !el.contains(at), heard: window.__heard.filter(n => n === 'secret').length };
+    });
+    const a = await find(); await sp.waitForTimeout(700);
+    const v = await look();
+    check(a.id === 'graveyard' && a.state === 'play' && a.first === true && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible' && v.heard === 1 && a.caption === 'a bright chime',
+      'an easter egg found for the first time, ' + what + ': "' + v.text + '" is up, the chime played once, with its caption (' + JSON.stringify({ a, heard: v.heard }) + ')');
+    check(v.inside && v.corner && !v.over.length && v.pe === 'none' && v.notHit && !v.inHud && /mute|menuBtn/.test(v.seen) && /compass/.test(v.seen),
+      'the note ' + what + ': in the page, in the top left corner, over none of the corner controls or the HUD, taking no click (' + JSON.stringify({ box: v.box, over: v.over, seen: v.seen }) + ')');
+    await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-' + tag + '.png') });
+    // again: nothing new said, nothing played (the note still up from the first is not started over)
+    const again = await sp.evaluate(() => { window.__heard = []; const el = document.getElementById('secret'); el.classList.remove('show'); const r = foundEgg(); return { r, shown: el.classList.contains('show'), heard: window.__heard.length }; });
+    check(again.r === false && !again.shown && again.heard === 0, 'the same easter egg found again ' + what + ': no note, no sound (' + JSON.stringify(again) + ')');
+    if (tag === '1280') {
+      // its time: up for about four seconds, then gone
+      await sp.evaluate(() => { SAVE.data.eggs = {}; window.__t0 = performance.now(); foundEgg(); });
+      await sp.waitForTimeout(3600); const mid = await look();
+      await sp.waitForTimeout(1900); const end = await look();
+      check(mid.shown && mid.op === 1 && !end.shown && end.op === 0 && end.vis === 'hidden', 'it is still up 3.6 s on, and gone (faded out, hidden) by 5.5 s (' + JSON.stringify({ mid: [mid.shown, mid.op], end: [end.shown, end.op, end.vis] }) + ')');
+      // reduced motion: it does not slide (no transform, shown or hidden)
+      const still = await sp.evaluate(() => { SAVE.data.eggs = {}; SAVE.data.settings.reducedMotion = true; foundEgg(); const el = document.getElementById('secret'), on = getComputedStyle(el).transform; el.classList.remove('show'); const off = getComputedStyle(el).transform; SAVE.data.settings.reducedMotion = false; return { on, off, cls: el.classList.contains('still') }; });
+      check(still.cls && /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/.test(still.on) && /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/.test(still.off), 'with reduced motion it only fades: it is not moved, coming or going (' + JSON.stringify(still) + ')');
+      // every night's easter egg has its title; one with none falls back to the night's own line
+      const titles = await sp.evaluate(() => ({ ids: LEVELS.map(l => l.id), t: LEVELS.map(l => EGG_TITLES[l.id] || ''), fall: (() => { const l = LEVELS[0], k = EGG_TITLES[l.id], own = l.text.egg; delete EGG_TITLES[l.id]; l.text.egg = 'Wave at it.'; const r = eggTitle(l.id); EGG_TITLES[l.id] = k; l.text.egg = own; return r; })(), none: eggTitle('nosuch') }));
+      check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t[0] === 'Window of opportunity' && titles.t[12] === 'Take everything' && titles.fall === 'Wave at it' && titles.none === '',
+        'every night\'s id has a short title for its easter egg; a night without one is named by its own line (' + JSON.stringify(titles.t) + ')');
+    }
+    // over a death screen: the HUD is gone, the note is there above the screen, and the screen's buttons still take the click
+    await sp.evaluate(() => { document.getElementById('secret').classList.remove('show'); die(); });
+    await sp.waitForFunction(() => G.state === 'dead' && +getComputedStyle(UI.overlay).opacity > 0.9, null, { timeout: 15000 }).catch(() => {});
+    await sp.evaluate(() => { SAVE.data.eggs = {}; window.__heard = []; foundEgg(); }); await sp.waitForTimeout(700);
+    const d = await look(), dd = await sp.evaluate(() => ({ state: G.state, oz: +getComputedStyle(UI.overlay).zIndex || 0, btn: !!document.querySelector('#overlay button') }));
+    check(dd.state === 'dead' && dd.btn && d.shown && d.op === 1 && d.vis === 'visible' && d.z > dd.oz && d.inside && d.notHit && d.heard === 1 && d.text === 'Secret discovered: Sugar rush' && !d.over.filter(id => id === 'mute' || id === 'menuBtn' || id === 'fsBtn').length,
+      'over a death screen ' + what + ': the note is up above it, in the page, clear of the corner controls, and takes no click (' + JSON.stringify({ dd, box: d.box, over: d.over, z: d.z }) + ')');
+    await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-death-' + tag + '.png') });
+    await ctx.close();
+  }
+
   // The Void (night 13), where the hands are never full: with fifteen things held, and with a sixteenth slot beside them
   // (the sixteenth taken up starts the easter egg, which takes the things out of the view), every slot of the inventory is
   // within the page, none over another, all below the aim in the middle of the view and clear of a phone's zoom button, and

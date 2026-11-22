@@ -36,6 +36,17 @@
   #tooltip { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%); font-size: calc(15px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 12px #000; display: none; font-style: italic; padding: 4px 30px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast { position: absolute; top: calc(var(--view-top, 0px) + 86px); left: 50%;   /* up under the compass: never across what you just used */ transform: translateX(-50%); font-size: calc(17px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 14px #000; opacity: 0; transition: opacity .35s; white-space: nowrap; padding: 6px 36px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast.show { opacity: 1; }
+  /* an easter egg found for the first time (js/game.js secretToast): a small note in the top left corner, under the
+     sound line (on a phone: under the menu button). Not in the HUD: it stays over a death screen, a win, a cutscene;
+     it never takes a click. It slides in from the edge and fades; with reduced motion it only fades */
+  #secret { position: fixed; z-index: 900; top: 52px; left: 20px; box-sizing: border-box; max-width: calc(100vw - 40px); display: flex; align-items: center; gap: 9px; padding: 7px 14px 7px 11px; background: rgba(7,7,9,.86); border: 1px solid rgba(207,200,186,.3); border-radius: 6px; color: #efe6d2; font-size: calc(14px * var(--text-scale)); line-height: 1.3; white-space: nowrap; pointer-events: none; opacity: 0; visibility: hidden; transform: translateX(-14px); transition: opacity .6s, transform .6s, visibility 0s .6s; }
+  #secret.show { opacity: 1; visibility: visible; transform: none; transition: opacity .35s, transform .35s cubic-bezier(.2,.7,.3,1), visibility 0s; }
+  #secret.still, #secret.still.show { transform: none; transition-property: opacity, visibility; }
+  #secret svg { flex: none; width: 15px; height: 15px; color: #efe6d2; filter: drop-shadow(0 0 5px rgba(239,230,210,.55)); }
+  #secret .sl, #secret .sc { color: rgba(207,200,186,.7); font-style: italic; }
+  #secret .sc { white-space: pre; }
+  #secret .stx { overflow: hidden; text-overflow: ellipsis; }
+  @media (prefers-reduced-motion: reduce) { #secret, #secret.show { transform: none; transition-property: opacity, visibility; } }
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
   /* the bow's power bar, beside where it is aimed: it fills upward as you hold; at the top it is full, and goes green */
@@ -595,6 +606,9 @@
     body.tplay #menuBtn, body.tzoom #zoomBtn { display: flex; }
     body.menu #zoomBtn { display: none; }   /* (the menu button stays over a night's card, the death screen and the win screen: body.tplay is on only where the pause menu can be opened, js/game.js touchChrome) */
     #menuBtn { top: max(12px, env(safe-area-inset-top)); }
+    /* the secret note under the menu button, on two short lines so it keeps to the corner (clear of the words under the compass) */
+    #secret { top: calc(max(12px, env(safe-area-inset-top)) + 44px); left: max(14px, env(safe-area-inset-left)); padding: 5px 12px 5px 9px; font-size: calc(13px * var(--text-scale)); line-height: 1.25; }
+    #secret .sl { display: block; font-size: .85em; } #secret .sc { display: none; }
     #objective { right: max(20px, calc(env(safe-area-inset-right) + 6px)); }
     body.fsok #objective { right: calc(max(14px, env(safe-area-inset-right)) + 52px); }
     #overlay { padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left)); }
@@ -633,6 +647,7 @@
   <div id="debug"></div>
 </div>
 <div id="caption" aria-live="polite"></div>
+<div id="secret" role="status"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0.5C8.5 5 11 7.5 15.5 8C11 8.5 8.5 11 8 15.5C7.5 11 5 8.5 0.5 8C5 7.5 7.5 5 8 0.5Z" fill="currentColor"/></svg><span class="stx"><span class="sl">Secret discovered</span><span class="sc">: </span><span class="st"></span></span></div>
 <button type="button" id="zoomBtn" aria-label="zoom (tap: on, tap again: off)" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6 20.5 20.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M7 10h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path class="zplus" d="M10 7v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>zoom</span></button>
 <div id="overlay"></div>
 <div id="mute">sound on (M)</div>
