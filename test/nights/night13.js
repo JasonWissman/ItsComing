@@ -71,7 +71,10 @@ const start = [
 const tempted = [
   ['pickup', 'hammer'], ['waitUntil', 'G.L.creature.rage > 0.6', 1500],
   ['expect', 'G.inv.length === 1 && G.L.creature.rage > 0.6', 'holding anything, it is enraged: red eyes and a snarling mouth in the dark of its hood'],
-  ['expect', fits, 'and it comes on in fits: stopping dead, lurching, jerking aside'],
+  ['eval', 'window.__d0 = G.L.creature.dist; window.__chk = G.L.creature.frozen && G.L.s.check > 0;'], ['wait', 400],
+  ['expect', "window.__chk && G.L.creature.frozen && G.L.creature.dist === window.__d0 && G.state === 'play'", 'a thing taken up for the first time checks it: it stands where it is a moment'],
+  ['waitUntil', '!G.L.creature.frozen', 2500], ['wait', 500], ['expect', 'G.L.s.check === 0 && G.L.creature.dist < window.__d0', 'and then it comes on again'],
+  ['expect', fits, 'in fits: stopping dead, lurching, jerking aside'],
   ['waitUntil', '(G.L.s.screeches || 0) > 0', 1500], ['expect', '(G.L.s.screeches || 0) > 0', 'and it screeches'],
   ['pickup', 'salt'], ['wait', 600], bothHands,
   ['eval', "G.L.items.filter(i => !i.taken).slice(0, 4).forEach(i => pickup(i))"], ['wait', 300],
