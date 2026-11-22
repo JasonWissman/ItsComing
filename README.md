@@ -253,7 +253,7 @@ some on the ground, so you have to turn and look down to find them.
    tries it, then runs round the outside of the yard to the other one, but only while
    nothing is looking: catch it going round and it stops dead, mid-stride. At the end it
    comes on only when you blink, up to the gate, and shakes it on its chain.
-   Easter egg: win a staring contest. Look at it for a full minute (60 s) without once looking away or
+   Easter egg: win a staring contest. Look at it for half a minute (30 s) without once looking away or
    letting it out of view, while it faces you with its eyes showing (reaching, screaming or pointing, its head in the
    view; not with its hands over its face, and not side-on going round), and it blinks first: two quick blinks of its
    stone lids, a third that stays shut, its fists up to rub its eyes with a little grind of stone, and then it is at once
