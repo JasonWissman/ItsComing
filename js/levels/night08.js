@@ -230,7 +230,10 @@ LEVELS.push({
     const mainX = [-1.75, 1.75][Math.floor(L.rand() * 2)], MW = 0.72, MH = 0.95, MY = 0.95;
     SC.wallV(L, mainX - 0.11, -2.485, mainX - 0.06, -2.485, 0, MY + 0.06, [48, 50, 54]);   // its conduit, down into the floor, clamped to the wall
     for (const y of [0.3, 0.7]) SC.wallV(L, mainX - 0.13, -2.483, mainX - 0.04, -2.483, y, y + 0.04, [70, 72, 76]);
-    const mainArt = SC.sprite(L, mainX, MY, -2.44, MW, MH, (ctx, P) => {
+    // the box stands off the wall: its sides, a darker shade of its face, from the wall out to the face (drawn below, on its front)
+    SC.box(L, mainX - 0.24 * MW, mainX + 0.48 * MW, MY + 0.03 * MH, MY + 0.95 * MH, -2.5, -2.425, [50, 52, 56]);
+    SC.box(L, mainX - 0.34 * MW, mainX - 0.2 * MW, MY + 0.36 * MH, MY + 0.64 * MH, -2.5, -2.425, [44, 46, 50]);   // and its lever's pivot block
+    const mainArt = SC.sprite(L, mainX, MY, -2.42, MW, MH, (ctx, P) => {
       ctx.scale(MW, MH);
       const body = P.col([92, 96, 100]), bodyD = P.col([58, 60, 64]), ink = P.col([24, 24, 26]), plate = P.col([214, 208, 196]);
       P_rect(ctx, -0.48, 0.03, 0.72, 0.92, bodyD); P_rect(ctx, -0.45, 0.06, 0.66, 0.86, body);                       // the box
