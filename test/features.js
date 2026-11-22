@@ -968,6 +968,53 @@ const hoverHit = lookFor;
     return { before, hold: c.hold, dist: c.dist, barrier: L.barrierDist, state: G.state, lurched: c.hitchFlash > 0 };
   });
   check(lurch.lurched && lurch.before > lurch.barrier && lurch.state === 'play' && lurch.hold === lurch.barrier && lurch.dist === lurch.barrier,'night 3: a lurch across a salted line in one frame is held at the line, not past it (' + JSON.stringify(lurch) + ')');
+  // night 3's easter egg, the bag of sugar handed to it, in its other states (test/nights/night03.js plays it walking in).
+  // Handed the bag while it is held at the salt, it has its rush and the salt holds it afresh where it stood, and it goes
+  // round from there as it would have; handed it as it runs off going round, it comes back and finishes going round; won
+  // while it is out in the yard, it cuts the run short, comes straight back, and the night ends as it does; and after its
+  // rush it still walks in and takes you. It is never nearer than it stood when it took the bag.
+  const egg3 = (seed, mode) => page.goto(URL + '?level=3&go&seed=' + seed + '&nofr').then(() => page.waitForTimeout(150)).then(() => page.evaluate(mode => {
+    const L = G.L, c = L.creature, lane = c.lane.idx; c.switched = true; c.nextHitch = 1e9;
+    const thr = idx => L.targets.find(t => t.id === (idx === 0 ? 'threshold' : 'sidethreshold')), hk = idx => L.targets.find(t => t.id === (idx === 0 ? 'hook' : 'hookE'));
+    const salt = idx => { const t = thr(idx); t.done = true; t.count = 1; t.accepts = []; };
+    const lamp = idx => { const h = hk(idx); h.hung = 'lantern'; h.lit = true; h.done = true; h.accepts = []; };
+    const it = L.items.find(i => i.id === 'sugar'); it.taken = true; G.inv.push(it); G.active = G.inv.indexOf(it);
+    const step = () => { const p = c.pos(), y = Math.atan2(p.x, p.z); G.cam.yaw = G.cam.tYaw = y; G.cam.dirIdx = ((Math.round(y / (45 * DEG)) % 8) + 8) % 8; G.cam.pitch = G.cam.tPitch = 0; G.step(1 / 60); };
+    const o = { lane, states: [], minD: 99 }, free = mode === 'walk' || mode === 'won';
+    const watch = () => { const p = c.pos(); o.minD = Math.min(o.minD, Math.hypot(p.x, p.z)); if (!o.states.includes(G.state)) o.states.push(G.state); };
+    if (!free) salt(lane);
+    c.u = 1 - (free ? 3.6 : L.barrierDist + 0.4) / c.D0;
+    const ready = () => mode === 'salt' ? c.sealHold : mode === 'round' ? !!(c.round && c.runPose && c.round.t > 0.1) : true;
+    let n = 0;
+    while (n++ < 600 && !(ready() && L.uses.length)) step();
+    o.given = useOnCreature(L, c) && !!L.s.egg; if (!o.given) return o;
+    o.d0 = L.s.egg.dist; o.wasRound = !!L.s.egg.was.round; o.wasHeld = !!L.s.egg.was.sealHold;
+    if (mode === 'won') {
+      while (n++ < 2000 && !(L.s.egg.phase === 'run' && L.s.egg.t > 2)) { step(); watch(); }
+      salt(0); salt(1); lamp(0); lamp(1); win(); o.far = c.dist; const t0 = L.t;
+      while (n++ < 4000 && L.s.egg) { step(); if (L.s.egg) watch(); }
+      o.backIn = +(L.t - t0).toFixed(2); o.d1 = c.dist;
+      while (n++ < 6000 && G.state === 'won' && !(L.s.end && L.s.end.phase === 'walk')) step();
+      return Object.assign(o, { end: L.s.end && L.s.end.phase, state: G.state, away: !!c.away });
+    }
+    while (n++ < 2000 && L.s.egg) { step(); if (L.s.egg) watch(); }
+    o.d1 = c.dist;
+    if (mode === 'salt') { step(); o.held = c.sealHold && c.hold === L.barrierDist; for (let k = 0; k < 90 && !c.round; k++) step(); o.round = !!c.round; }
+    if (mode === 'round') { o.roundBack = !!c.round && c.runPose; for (let k = 0; k < 240 && c.round; k++) step(); o.lane1 = c.lane.idx; o.runPose = !!c.runPose; }
+    if (mode === 'walk') { for (let k = 0; k < 600 && G.state === 'play'; k++) step(); o.state = G.state; o.cause = G.deathCause; }
+    return o;
+  }, mode));
+  for (const seed of [1, 2]) {
+    const a = await egg3(seed, 'salt'), b = await egg3(seed, 'round'), w = await egg3(seed, 'won'), k = await egg3(seed, 'walk');
+    check(a.given && a.wasHeld && a.states.join() === 'play' && a.minD >= a.d0 - 0.01 && Math.abs(a.d1 - a.d0) < 0.01 && a.held && a.round,
+      'night 3 easter egg (seed ' + seed + '): handed the bag at the salt, it has its rush, and the salt holds it afresh where it stood; it goes round from there (' + JSON.stringify(a) + ')');
+    check(b.given && b.wasRound && b.states.join() === 'play' && b.roundBack && b.lane1 === 1 - b.lane && !b.runPose,
+      'night 3 easter egg (seed ' + seed + '): handed the bag as it runs off going round, it comes back to where it was and goes round after all (' + JSON.stringify(b) + ')');
+    check(w.given && w.far > 5 && w.backIn < 2.3 && Math.abs(w.d1 - w.d0) < 0.01 && w.minD >= w.d0 - 0.01 && w.state === 'won' && w.end === 'walk' && w.away,
+      'night 3 easter egg (seed ' + seed + '): won while it is out in the yard, it comes straight back, and the night ends as it does (' + JSON.stringify(w) + ')');
+    check(k.given && k.states.join() === 'play' && k.minD >= k.d0 - 0.01 && k.state === 'dying' && k.cause === 'default',
+      'night 3 easter egg (seed ' + seed + '): after its rush it still walks in and takes you (' + JSON.stringify(k) + ')');
+  }
 
   console.log('== the death camera ==');
   await page.goto(URL + '?level=7&go&seed=1&nofr'); await page.waitForTimeout(250);

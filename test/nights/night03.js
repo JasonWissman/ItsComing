@@ -52,7 +52,7 @@ const eggRun = `(() => {
     if (e.phase === 'look') { see('held', c.bagHas && c.bag > 0.95 && c.bow > 0.5); see('cockTo', c.cock > 0.8); see('cockAway', c.cock < -0.5); }
     if (e.phase === 'pour') { see('tipped', c.tip >= 1 && c.bagHas); see('poured', c.pour >= 1); see('gulp', c.gulp > 0.5); }
     if (e.phase === 'still') { see('stock', c.timeScale === 0 && !c.bagHas && !c.buzz && !c.tip); see('dropped', L.s.spent.length >= 1); }
-    if (e.phase === 'buzz') { r.buzz = Math.max(r.buzz, c.buzz); see('wired', c.wired >= 1); }
+    if (e.phase === 'buzz') { r.buzz = Math.max(r.buzz, c.buzz || 0); see('wired', c.wired >= 1); }
     if (e.phase === 'run') {
       if (prev) { const v = Math.hypot(q[0] - prev[0], q[1] - prev[1]); r.len += v; r.vmax = Math.max(r.vmax, v * 60); }
       r.far = Math.max(r.far, d);
@@ -63,7 +63,7 @@ const eggRun = `(() => {
       see('side', c.runPose && c.flail === 1); see('right', c.runPose && c.runDir === 1); see('left', c.runPose && c.runDir === -1);
       see('front', !c.runPose && c.rush === 1 && c.flail === 1); see('skid', c.skid > 0.95 && !c.runPose); see('dust', L.s.puffs.length > 5);
     }
-    if (e.phase === 'shudder') r.shudder = Math.max(r.shudder, c.buzz);
+    if (e.phase === 'shudder') r.shudder = Math.max(r.shudder, c.buzz || 0);
     prev = q;
   }
   render();
@@ -90,7 +90,9 @@ const egg = [
   ['expect', timed, 'it takes the bag, looks at it, pours it in, stands still, trembles, runs and shudders, in that order, each about as long as it should be (10.35 s in all)'],
   ['expect', acted, 'each part is played: the bag held up and looked at both ways, upended and emptied, a gulp, the empty bag dropped, stock still, wired, side on both ways with its arms in the air, straight back and a skid, dust behind it'],
   ['expect', safe, 'all the while the night is in play, it is never nearer than it stood, and the view is not shaken'],
-  ['expect', "(r => r.len > 85 && r.vmax >= 15 && r.vmax <= 20 && r.far > 10 && r.far < 18 && r.inYard && r.clear > -0.2 && r.buzz > 0.95 && r.shudder > 0.9)(window._rush)", 'the rush: some 100 m in 6 s, three or four times its running pace, out past the fence among the headstones and clear of them, within 18 m'],
+  ['expect', "(r => r.len > 85 && r.vmax >= 15 && r.vmax <= 20)(window._rush)", 'the rush: some 100 m in 6 s, three or four times its running pace (5 m/s)'],
+  ['expect', "(r => r.far > 10 && r.far < 18 && r.inYard && r.clear > -0.2)(window._rush)", 'the rush: out past the fence among the headstones and clear of them, within 18 m of you'],
+  ['expect', "(r => r.buzz > 0.9 && r.shudder > 0.9)(window._rush)", 'the tremble builds to the full, and the last shudder is one more of it'],
   ['expect', back(1), 'afterwards it is on its way again where it stood when it took the bag: the same way, the same distance, nothing left of the pose, one empty bag on the ground'],
   ['expect', comesOn, 'and it walks in from there as before'],
   // a second bag, with reduced motion

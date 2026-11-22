@@ -539,9 +539,10 @@ LEVELS.push({
     };
     const eggEnd = (c, e) => {   // and the night has it again, as it was when it took the bag
       const w = e.was;
-      c.pos = w.pos; c.frozen = w.frozen; c.fixedLane = w.fixedLane; c.timeScale = w.timeScale; c.yaw = c.lane.yaw; c.dist = e.dist;
+      c.pos = w.pos; c.frozen = w.frozen || L.won; c.fixedLane = w.fixedLane; c.timeScale = w.timeScale; c.yaw = c.lane.yaw; c.dist = e.dist;
       c.bag = c.cock = c.tip = c.pour = c.gulp = c.wired = c.buzz = c.flail = c.skid = c.dust = 0; c.bagHas = false; c.rush = 0;
-      c.distFn = w.distFn; c.hold = w.sealHold ? null : w.hold;   // (a way that held it at the salt holds it afresh: game.js)
+      c.distFn = w.distFn; c.hold = w.sealHold ? null : w.hold;
+      if (w.sealHold && !L.won) { c.hold = w.hold; c.sealHold = true; c.sealHeldAt = L.t; }   // a way that held it at the salt holds it afresh, where it stood: its clocks start again (game.js, and L.update here)
       c.round = w.round; c.runPose = !!(w.round && w.runPose); c.runLat = w.round ? w.runLat : 0; if (w.round) c.runDir = w.runDir;
       s.egg = null;
     };
