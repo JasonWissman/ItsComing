@@ -585,14 +585,21 @@ LEVELS.push({
       if (s.run) { const y = c.yaw; k = RING.reduce((b, p) => (Math.abs(wrapPi(y - p.yaw)) < Math.abs(wrapPi(y - RING[b].yaw)) ? p.k : b), 0); }
       return lit(k) ? 0 : 1;
     };
+    // the start: at the foot of its place, in full shadow (and you, facing the barn, the box at your left: startFacing).
+    // Done as soon as there is a thing to place (the night makes it after this is built), which is before the night's
+    // card comes up over the yard (the lights are worked out every frame, card or no: L.dynamicLights), so that what
+    // stands behind the card is what stands there the moment the night starts, as dark
+    const start = () => {
+      const c = L.creature;
+      if (s.k !== null || !c) return;
+      s.k = c.lane.idx; c.D0 = RING[s.k].hide;
+      way = Object.assign({}, L.lanes[s.k], { apertures: [], blockers: [], name: 'round the yard' });
+      c.lane = way; place(c, RING[s.k].yaw, RING[s.k].hide); c.dist = s.r;
+      c.distFn = () => s.r; c.shade = 1;
+    };
     L.update = dt => {
       const c = L.creature;
-      if (s.k === null) {   // the start: at the foot of its place (and you, facing the barn, the box at your left: startFacing)
-        s.k = c.lane.idx; c.D0 = RING[s.k].hide;
-        way = Object.assign({}, L.lanes[s.k], { apertures: [], blockers: [], name: 'round the yard' });
-        c.lane = way; place(c, RING[s.k].yaw, RING[s.k].hide); c.dist = s.r;
-        c.distFn = () => s.r; c.shade = 1;
-      }
+      start();
       if (!L.won && G.state === 'play') { if (s.fire) fireStep(c, dt); else step(c, dt); }
       c.u = clamp(1 - s.r / c.D0, 0, 1);
       c.shade += (shadeOf(c) - c.shade) * Math.min(1, dt * 7);
@@ -853,6 +860,7 @@ LEVELS.push({
     // ---------------- light ----------------
     const lights = [];
     L.dynamicLights = () => {
+      start();
       lights.length = 0;
       if (houseLit()) lights.push(houseLights[0], houseLights[1]);
       for (let k = 0; k < N; k++) if (lit(k)) lights.push(lightsOf[k][0], lightsOf[k][1]);
