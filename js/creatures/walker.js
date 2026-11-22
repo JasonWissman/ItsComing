@@ -240,7 +240,7 @@ CREATURES.walker = {
   // wall (which hides all of it but what shows in the frame) and 'in' in front of it. c.frame is the frame as the thing's
   // own drawing sees it (metres from its feet: l and r the sides, sl and sr the sill's height at each), FRAME where none
   // is given; c.gentle moves it evenly, without the starts and stops or the twitch of its head. CLIMB_T maps time through
-  // the climb (0..1) to c.climb, so the slow parts are slow (climbAt).
+  // the climb (0..1) to c.climb, so the slow parts are slow (climbAt). The Field plays it in 2.6 s (4 s, evenly, with c.gentle).
   FRAME: { l: -0.44, r: 0.44, sl: 1.08, sr: 1.08 },
   CLIMB_T: [[0, 0], [0.07, 0.05], [0.14, 0.10], [0.2, 0.14], [0.34, 0.22], [0.5, 0.38], [0.64, 0.54], [0.69, 0.58], [0.78, 0.68], [0.82, 0.72], [0.89, 0.82], [1, 1]],
   climbAt(u) {

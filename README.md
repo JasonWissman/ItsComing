@@ -171,31 +171,37 @@ some on the ground, so you have to turn and look down to find them.
    charges that doorway, hits the boards, stoops to look in at you through the slit with its
    fingers over the board, and pounds on them until the night fades. The night's easter egg ("Give it a window of
    opportunity."): with the empty bottle in hand the window can be clicked (and only then: it is no target otherwise),
-   and the bottle is thrown through the glass, which shatters; the bottle is gone and the window stands open, a ragged
+   and the bottle is thrown through the glass, tumbling end over end as it flies, and the glass shatters; the bottle is gone and the window stands open, a ragged
    edge of glass round each pane. That alone changes nothing (it still comes through a doorway left open). But board
    both doorways with the window broken and the night is not won: it charges the boards and pounds on them as before,
    a few blows, then stops; its head turns toward the window; it runs round the house to it (from the front doorway
    along the wall, from the back one round the east side, a blow on the wall as it passes); it tears the bars out of the
-   frame and climbs in, long fingers over the sill, its head coming through on its side, one thin arm feeling down the
+   frame in one violent beat and climbs in quickly (about 2.6 s), long fingers over the sill, its head coming through on its side, one thin arm feeling down the
    wall, the body pouring over the sill and the long legs lifted over one at a time, and unfolds to its full height
-   inside; a moment looking at you, and it lunges. All of that plays by itself (nothing can be pressed, and the view
-   turns to follow it); the egg is found as it starts through the window. "It got you": "You gave it a window of
-   opportunity." With the window intact the win is as it was, and once that ending has begun the bottle can no longer be
+   inside; a moment (0.7 s) looking at you, and it lunges. All of that plays by itself (nothing can be pressed, and the view
+   turns to follow it); the egg is found as it starts through the window. "It got you": "Was that necessary?" With the window intact the win is as it was, and once that ending has begun the bottle can no longer be
    thrown; a bottle already in the air as the last board goes up holds the ending back until it lands, and its smash
    starts the other one. With reduced motion nothing in it shakes, the view turns more slowly, and the climb is slower
-   and even.
+   (about 4 s) and evenly paced.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
    fours, in bursts, in the headlights, shifting across from the road to a verge and back as it comes. Most nights,
    partway in, it breaks off and runs flat out round the car through the dark (heard going, a click as it goes and as it
    gets there) to one side of the car or into the road behind, lit red by the tail lights, and shifts about there; some
    nights it goes round again. Find the car keys (the green ones), put the stick in park and turn the key in the dash
-   beside the dials until it catches; then look round for it, pick a gear and hit the gas. Drive with it in the road
-   ahead, or reverse with it in the road behind, and the car runs into it (the night's easter egg, kept in the save from
-   the moment it is hit): it goes up off the bumper and down the road, turning over; the car lurches to a halt and stalls;
+   beside the dials until it catches; then look round for it, pick a gear and hit the gas. Which way is safe goes by
+   where it is round the car, in three sectors measured from the car's own axis: **ahead** (less than 78° off straight
+   ahead: the road ahead, its two verges at 11°, and off the front corners at 66°), **behind** (more than 102° off:
+   the road behind, its verges at 169°, and off the rear corners at 114°), and **beside** (within 12° of square to the
+   car: only its places at 90°, straight out of a side window). Drive forward with it anywhere ahead, or reverse with it
+   anywhere behind, and the car runs into it (the night's easter egg, kept in the save from the moment it is hit). If it
+   is not in the road already, it springs into it: one long low bound from where it is into the road in the car's path
+   (0.35 to 0.5 s by how far it has to come; about a third slower with reduced motion), landing at least 0.15 s before
+   the bumper reaches it. Then, as from the road: it goes up off the bumper and down the road, turning over; the car lurches to a halt and stalls;
    it lies in a heap in the lights, a limb jerks, and again; it gets up a limb at a time, stands on its hind legs in jolts,
    its head hanging, looks at you, and comes through the glass. Nothing in the car answers meanwhile and the view stays on
-   it. The card says "Nice try" and "You drove straight into it, but it is too strong." (backed, in reverse). Anywhere
-   else either way gets away (past it on a verge, it scuttles sideways out of your lights). Once the engine runs it stops going round, and once the stick is in
+   it. The card says "Nice try" and "You drove straight into it, but it is too strong." (backed, in reverse). The way out
+   is the way straight away from it (forward with it behind, reverse with it ahead), or either way when it is squarely
+   beside the car. Once the engine runs it stops going round, and once the stick is in
    a gear it moves only while you watch it, so it never steps into your way behind your back. Caught, it comes through
    the window it reached, and the glass breaks in your face: cracks run out from where it hits, then the pane bursts in a
    flash and the shards fly at you (they drop away with reduced motion; the flash is dimmer with reduced flashing). The

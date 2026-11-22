@@ -1,5 +1,5 @@
 'use strict';
-// Night 2, The Car: the crawler (js/creatures/crawler.js; its moves are set by js/levels/night02.js; hit by the car, by its own struck)
+// Night 2, The Car: the crawler (js/creatures/crawler.js; its moves are set by js/levels/night02.js; its leap into the road and what it does hit by the car are its own)
 (() => {
   const NIGHT = { D0: 85, T: 90 };   // night 2's creatures entry: startDist 85, time 90 (a steady pace, gamma 1)
   const RAM_GAP = 2.6, LIE = 9.4;    // driving at it: where the bumper meets it, from your seat, and where it comes to rest down the road
@@ -36,6 +36,13 @@
             return;
           }
           struck(c, T - r.hitT);   // and thrown from there
+        } },
+      { name: 'Leaping into the road', note: 'You drive its way with it off the road, on a verge or off a corner of the car: it springs into the road in front of the moving car in one long low bound (0.35 to 0.5 s), lands, and the car hits it.', dist: 9, dur: 1.5, lit: 0.6, fit: { h: 2.4, w: 2.7 },
+        set(c) { c.mode = 'scuttle'; c.modeT = -2; c.leap = 0; c.runDir = -1; },
+        tick(c, k, dt, T) {   // night02 ramOn: a beat crouched, the bound (c.leap, its height the night's), a beat where it landed
+          const q = clamp((T - 0.35) / 0.5, 0, 1);
+          c.CR.speedMult(c, dt, true);
+          if (q < 1) { c.leap = q; c.yOff = 0.9 * 4 * q * (1 - q); } else { c.leap = undefined; c.yOff = 0; }
         } },
       { name: 'Lying in the road', note: 'Thrown by the car, it lies in a heap in the headlights: on its side, its head on the road, one arm bent up into the air. It does not move. Then that arm jerks, and again.', dist: LIE, dur: 2.2, lit: 0.7, fit: { h: 1.3, w: 2.5 },
         set(c) { c.frozen = true; },

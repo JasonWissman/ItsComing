@@ -1,6 +1,7 @@
 'use strict';
 // The crawler: pale, on all fours, in bursts. A night can send it scuttling sideways (The Road's shying out of the
 // lights, and its runs round the car): c.runPose on, side-on, facing c.runDir (1 right, -1 left), its legs at c.runGait.
+// Springing into the road in front of the car (The Road), it is drawn side-on in one bound, as c.leap (0..1) has it (drawLeap).
 // Hit by a car (The Road: you drove straight into it), it is drawn as c.struck has it (struck(T), drawStruck): thrown,
 // lying in a heap, twitching, getting up and standing.
 CREATURES.crawler = {
@@ -16,6 +17,7 @@ CREATURES.crawler = {
   },
   draw(ctx, c, P) {
     if (c.struck && !c.lunge) { this.drawStruck(ctx, c, P); return; }
+    if (c.leap !== undefined && !c.lunge) { this.drawLeap(ctx, c, P); return; }
     if (c.runPose && !c.lunge) { this.drawRun(ctx, c, P); return; }
     const t = c.t;
     const scut = c.mode === 'scuttle' && !c.frozen;
@@ -82,6 +84,33 @@ CREATURES.crawler = {
     for (let i = 0; i < 3; i++) P_line(ctx, 0.07 + i * 0.03, -0.0, 0.07 + i * 0.03, -0.03, 0.01, skin);
     ctx.restore();
     leg(-0.34, 0.48, g, 0.46, skin, 0.07); leg(0.3, 0.52, g + Math.PI, 0.44, skin, 0.075);             // the near pair, over the body
+    ctx.restore();
+  },
+  // side-on, in one long low bound (The Road: it springs into the road in front of the moving car): c.leap 0..1. It is
+  // down on its hands, its hind legs driving it off; then stretched out flat in the air, the arms flung out ahead, the
+  // long legs trailing straight out behind, its mouth wide; then nose down, the hands reaching for the road and the legs
+  // coming up under it. Drawn facing right; c.runDir -1 mirrors it. (How high it is off the road is the night's: c.yOff)
+  drawLeap(ctx, c, P) {
+    const k = clamp(c.leap || 0, 0, 1), t = c.t, lit = c.lit || 0;
+    const skinC = mixc([84, 78, 72], [118, 111, 103], lit), skin = P.col(skinC), skinD = P.col(scalec(skinC, 0.56)), dark = P.col([34, 26, 29]), mouthC = P.col([12, 6, 8]);
+    const tri = (a, b, d) => (k < 0.4 ? lerp(a, b, smoothstep(k / 0.4)) : lerp(b, d, smoothstep((k - 0.4) / 0.6)));   // off the ground, in the air, coming down
+    ctx.save(); ctx.scale(c.runDir || 1, 1);
+    ctx.translate(0, 0.5); ctx.rotate(tri(0.42, 0.1, -0.4)); ctx.translate(0, -0.5);
+    const limb = (hx, hy, kx, ky, fx, fy, a, col, w) => { P_limb(ctx, [[hx, hy], [kx, ky], [fx, fy]], w, col); fingers(ctx, fx, fy, a, 0.5, 0.14, 0.018, col); };
+    const arm = (o, col, w) => limb(0.3, 0.52, tri(0.52, 0.74, 0.62), tri(0.92, 0.68 + o, 0.56 + o), tri(0.6, 1.16, 0.98), tri(0.16, 0.52 + o * 1.6, 0.04 + o), tri(0.2, 0.1, -0.7), col, w);
+    const leg = (o, col, w) => limb(-0.3, 0.5, tri(-0.5, -0.8, -0.4), tri(0.95, 0.6 + o, 0.92 + o), tri(-0.66, -1.26, -0.56), tri(0, 0.44 - o * 1.6, 0.32 - o), Math.PI - tri(0.2, -0.25, 0.5), col, w);
+    leg(0.09, skinD, 0.06); arm(0.1, skinD, 0.065);                                                       // the far pair
+    ctx.fillStyle = skin;                                                                                 // the back, long and low
+    ctx.beginPath(); ctx.moveTo(-0.62, 0.36); ctx.bezierCurveTo(-0.5, tri(0.9, 0.74, 0.86), 0.3, tri(0.92, 0.76, 0.9), 0.56, 0.4); ctx.lineTo(0.5, 0.3); ctx.bezierCurveTo(0.2, 0.36, -0.3, 0.3, -0.62, 0.36); ctx.fill();
+    for (let i = 0; i < 7; i++) { const x = -0.48 + i * 0.15, y = 0.4 + tri(0.42, 0.3, 0.4) * Math.sin((x + 0.62) / 1.18 * Math.PI) - 0.04; P_ell(ctx, x, y, 0.035, 0.026, skinD); }   // the spine
+    ctx.save(); ctx.translate(0.72, 0.38); ctx.rotate(tri(0.1, -0.1, 0.3) + Math.sin(t * 40) * 0.04);   // the head, out in front, its hair streaming back
+    for (let i = 0; i < 7; i++) P_line(ctx, -0.04, 0.08 - i * 0.02, -0.38 - i * 0.03 + Math.sin(t * 30 + i) * 0.03, 0.12 - i * 0.03, 0.016, dark);
+    P_ell(ctx, 0, 0, 0.15, 0.12, skin);
+    P_ell(ctx, 0.03, 0.04, 0.11, 0.05, skinD);                        // the brow
+    P_ell(ctx, 0.09, -0.05, 0.07, 0.075, mouthC);                     // the mouth, wide open
+    for (let i = 0; i < 3; i++) P_line(ctx, 0.06 + i * 0.03, 0.015, 0.06 + i * 0.03, -0.02, 0.01, skin);
+    ctx.restore();
+    leg(-0.07, skin, 0.07); arm(-0.08, skin, 0.075);                                                      // the near pair, over the body
     ctx.restore();
   },
 
