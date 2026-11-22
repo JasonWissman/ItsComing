@@ -698,8 +698,8 @@ const hoverHit = lookFor;
     await shot(page, 'scores-eggs-norun');
     // the list is the nights' own: a night given an easter egg is ??? at once and counts; found, it shows its line
     const dyn = await page.evaluate(() => {
-      const l = LEVELS[0], had = l.text.egg; l.text.egg = 'Wave at the walker.';
-      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelector('#overlay .eggs .egg'); return e.className.replace(/ c[12]$/, '') + '|' + e.querySelector('.ewhat').textContent + '|' + document.querySelector('#overlay .eggcount').textContent; };
+      const n = LEVELS.findIndex(d => !d.text.egg), l = LEVELS[n], had = l.text.egg; l.text.egg = 'Wave at the walker.';   // (the first night that has none of its own)
+      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelectorAll('#overlay .eggs .egg')[n]; return e.className.replace(/ c[12]$/, '') + '|' + e.querySelector('.ewhat').textContent + '|' + document.querySelector('#overlay .eggcount').textContent; };
       const a = row(), first = SAVE.egg(l.id), b = row(), again = SAVE.egg(l.id);
       if (had === undefined) delete l.text.egg; else l.text.egg = had;
       delete SAVE.data.eggs[l.id]; SAVE.persist();

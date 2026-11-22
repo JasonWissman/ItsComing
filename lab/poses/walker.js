@@ -38,6 +38,18 @@
         set(c) { c.runPose = true; c.runDir = 1; c.moving = true; }, tick(c, k, dt) { c.runGait = (c.runGait || 0) + dt * 15; } },
       { name: 'Charging the boards', note: 'Once the night is won: straight at you, flat out, the arms coming up for the boards in the last few metres.', dur: 2.6,
         set(c) { c.charge = 1; c.moving = true; }, tick(c, k, dt) { c.gait += dt * 15; c.dist = lerp(14, 1.5, k); } },
+      { name: 'Climbing in through the window', note: 'The easter egg: both doorways boarded and the window broken, it comes in by the window. Fingers over the sill, the head through on its side, an arm feeling down the wall, the body over the sill, a leg at a time, and it unfolds inside.', dist: 3, dur: 8, still: true, fit: { h: 2.75, w: 2.0 },
+        set(c) { c.climb = 0; },
+        tick(c, k) { c.climb = CREATURES.walker.climbAt(clamp((k - 0.05) / 0.8, 0, 1)); },
+        // the wall round the window (what is still outside shows only in the frame), the frame and the sill; then what has come in
+        front(ctx, c, P) {
+          const F = CREATURES.walker.FRAME, top = 2.16;
+          P_rect(ctx, -1.1, 0, 1.11 + F.l, 2.75, woodD(P)); P_rect(ctx, F.r - 0.01, 0, 1.11 - F.r, 2.75, woodD(P));
+          P_rect(ctx, F.l, 0, F.r - F.l, F.sl, woodD(P)); P_rect(ctx, F.l, top, F.r - F.l, 2.75 - top, woodD(P));
+          P_rect(ctx, F.l - 0.06, F.sl, 0.06, top - F.sl + 0.06, wood(P)); P_rect(ctx, F.r, F.sl, 0.06, top - F.sl + 0.06, wood(P)); P_rect(ctx, F.l, top, F.r - F.l, 0.06, wood(P));
+          P_rect(ctx, F.l - 0.08, F.sl - 0.07, F.r - F.l + 0.16, 0.07, wood(P));
+          CREATURES.walker.drawClimb(ctx, c, P, 'in');
+        } },
       LAB.lunge({ note: 'It reaches you: the head and the hands come at you.' }),
     ],
   });

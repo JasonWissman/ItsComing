@@ -157,7 +157,7 @@ const SOUNDS = [
   { kind: 'sting', name: 'stingHit', n: [5], d: 'A heavy blow. Death by the runner.', src: 'runner.js' },
   { kind: 'sting', name: 'stingWet', n: [6], d: 'A wet scream. Death by the swimmer.', src: 'swimmer.js' },
   { kind: 'sting', name: 'stingScrape', n: [7], d: 'Hooks screeching on stone. Death by the climber.', src: 'climber.js' },
-  { kind: 'sting', name: 'stingGlass', n: [8, 9], d: 'Glass shattering. Death by the customer (8; also the glass breaking as it comes in for the soda) or the signalman (9).', src: 'customer.js, night08, signalman.js' },
+  { kind: 'sting', name: 'stingGlass', n: [1, 8, 9], d: 'Glass shattering. The bottle thrown through the farmhouse window (1: the easter egg). Death by the customer (8; also the glass breaking as it comes in for the soda) or the signalman (9).', src: 'night01, customer.js, night08, signalman.js' },
   // ---- creature voices ----
   { kind: 'voice', name: 'exhale', n: [1, 7, 13], d: 'A long low breath. The walker (1), the climber (7), the demon (13; also when it has hold of you at the end).', src: 'walker, climber, demon · night13' },
   { kind: 'voice', name: 'clicks', n: [2], d: 'A run of dry clicks. The crawler.', src: 'crawler.js' },
