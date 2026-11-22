@@ -7,6 +7,8 @@
 // pulled up with the lamp off are a death of their own: it takes them and pulls them away; and its hands reaching you
 // are another.
 // First, the mattress's top is one piece drawn before the covers, so no part of it is drawn over them as they come up.
+// And the night's easter egg, the television (tv, below): the remote in the drawer where the wrong bulb was, the set put
+// on with it, the film, and what the thing does about it from each of its states.
 const relight = ['waitUntil', "G.L.won ? true : (!G.L.s.lampOn && G.L.s.fitted && G.L.s.plugged ? (useTarget(G.L.targets.find(t => t.id === 'lamp')), false) : false)", 20000];
 const lamp = [['use', 'drawer'], ['pickup', 'bulb'], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on']];
 const mattress = ['expect', "(() => { const m = R.statics.filter(p => p.kind === 'poly' && p.pts.length >= 3 && p.pts.every(v => Math.abs(v[1] - 0.58) < 1e-6 && Math.abs(v[0]) <= 0.751) && p.pts.some(v => v[2] > 1)); return m.length === 1 && m[0].sd > 1.62; })()", 'the mattress top is one piece, drawn before the covers'];
@@ -14,25 +16,183 @@ const under = [['waitUntil', 'G.L.s.over >= 1 && G.L.s.tugs === 3', 9000], ['exp
   // the card after: each of its two sentences on a line of its own (the text breaks where it says \n)
   ['waitUntil', "G.state === 'survived'", 12000],
   ['expect', "(p => !!p && p.innerText.split('\\n').map(l => l.trim()).join('|') === 'You pulled the covers over your head.|It pulled at them, but you were stronger.')(UI.overlay.querySelector('.intro'))", 'the survived card puts each sentence on a line of its own']];
-// What will not go, shown (js/hands.js), with it held where it is: the wrong bulb is tried in the lamp's socket, will not go
-// in, and drops onto the bed, where it can be seen and taken again (looked at as a player would, and clicked); with no bulb
-// in, your hand pulls the lamp's chain and nothing comes of it; holding the covers, your hand is on their hem.
+// With no bulb in, your hand pulls the lamp's chain and nothing comes of it (shown: js/hands.js); holding the covers, your
+// hand is on their hem. The drawer holds the bulb and the television's remote control, and no bulb that will not fit.
 const fresh = [['eval', 'restartLevel(); G.L.creature.hold = G.L.creature.dist;'], ['wait', 250]];
 const T = id => "G.L.targets.find(t => t.id === '" + id + "')";
-const seeAndTake = "(() => { const it = G.L.items.find(i => i.id === 'bulb2'); const yaw = Math.atan2(it.x, it.z); G.cam.dirIdx = ((Math.round(yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = PITCH_DOWN; return it; })()";
-const clickable = "(() => { const it = G.L.items.find(i => i.id === 'bulb2'), h = [...R.hits].reverse().find(h => h.kind === 'item' && h.ref === it); if (!h) return false; G.mouse.x = h.x + h.w / 2; G.mouse.y = h.y + h.h / 2 + R.viewY; updateHover(); return !!G.hover && G.hover.ref === it; })()";
 const fumbles = [].concat(
-  fresh, [['eval', T('drawer') + '.onClick(); const b = G.L.items.find(i => i.id === "bulb2"); b.taken = true; G.inv.push(b); G.active = 0; G.hand.reach = null; G.cam.dirIdx = 2; G.cam.yaw = G.cam.tYaw = Math.atan2(' + T('lamp') + '.x, ' + T('lamp') + '.z); G.cam.pitch = G.cam.tPitch = 0;'], ['wait', 300],
+  fresh, [['eval', T('drawer') + '.onClick();'],
+    ['expect', "(its => its.map(i => i.id).sort().join() === 'bulb,remote' && !its.some(i => i.decoy) && its.find(i => i.id === 'remote').name === 'Remote' && !ICONS.bulbPin)(G.L.items.filter(i => !i.taken))", 'the drawer holds the bulb and the remote control ("Remote"), and no wrong bulb'],
+    ['eval', 'const r = G.L.items.find(i => i.id === "remote"); pickup(r); G.hand.reach = null; G.cam.dirIdx = 2; G.cam.yaw = G.cam.tYaw = Math.atan2(' + T('lamp') + '.x, ' + T('lamp') + '.z); G.cam.pitch = G.cam.tPitch = 0;'], ['wait', 300],
     ['eval', 'useTarget(' + T('lamp') + ');'],
-    ['expect', "G.fumbling && G.fumbling.preset === 'bump' && G.fumbling.drop && !G.inv.length && /Wrong kind of bulb/.test(G.lastToast.msg)", 'the wrong bulb is tried in the lamp, and will not go in'],
-    ['waitUntil', '!G.fumbling', 3000], ['expect', "(() => { const it = G.L.items.find(i => i.id === 'bulb2'); return !it.taken && it.y === G.L.floor.y && !G.L.s.fitted; })()", 'it drops onto the bed'],
-    ['eval', seeAndTake], ['wait', 300], ['expect', clickable, 'where it can be seen and taken again'],
-    ['eval', 'pickup(' + seeAndTake + ');'], ['expect', "G.inv.some(i => i.id === 'bulb2')", 'and taken']],
+    ['expect', "G.inv.length === 1 && G.inv[0].id === 'remote' && !G.L.s.fitted && G.lastToast.msg === 'It\\'s missing something.'", 'the remote tried at the lamp is no bulb: "It\'s missing something.", and it stays in your hand'],
+    ['waitUntil', '!G.fumbling', 3000]],
   fresh, [['eval', 'G.cam.dirIdx = 2; G.cam.yaw = G.cam.tYaw = Math.atan2(' + T('lamp') + '.x, ' + T('lamp') + '.z); G.cam.pitch = G.cam.tPitch = 0;'], ['wait', 300], ['eval', 'useTarget(' + T('lamp') + ');'],
     ['expect', "G.hand.reach && G.hand.reach.style === 'pull' && G.hand.reach.target === " + T('lamp'), 'no bulb in it, nothing in hand: your hand goes to the lamp\'s chain'],
     ['expect', "G.lastToast.msg === 'It\\'s missing something.'", 'and the line is "It\'s missing something."'],
     ['waitUntil', 'G.L.s.tugAt > 0', 2000], ['expect', 'G.L.s.tugAt > 0 && !G.L.s.lampOn', 'and pulls it, and nothing comes of it']],
   [['eval', 'restartLevel();'], ['wait', 250]]);
+// ---- the television (the night's easter egg) ----
+// The night is stepped by hand (update(1/60)) from the moment the set comes on, every frame noted: where the thing is in
+// the room, its way in, how far down it is, and what the tall one's c.tv says of it (looking, watching, thrown back, its
+// fist out, its head coming round); and every effect that is played, and when. Times are seconds from the click.
+const tvLib = '(' + function () {
+  const W = [0.654, 2.336];   // where it stands to watch (night12.js WATCH)
+  const tv = window.__tv = {
+    T: id => G.L.targets.find(t => t.id === id), W, fx: [], log: [], shakes: 0,
+    // a fresh night, the thing coming by the way asked for (0: the doorway, 1: the closet)
+    fresh(lane) { restartLevel(); for (let i = 0; i < 80 && G.L.creature.lane.idx !== lane; i++) restartLevel(); return G.L.creature.lane.idx === lane; },
+    hear() {
+      if (AUDIO.__tv) return;
+      AUDIO.__tv = true;
+      const x = AUDIO.sfx, sh = G.shake;
+      // (whichever copy of this is the page's now; as the set clicks on: the night's clock, and where the thing is)
+      AUDIO.sfx = function (n) { const now = window.__tv; now.fx.push({ n, t: G.L ? G.L.t : 0 }); if (n === 'tvOn') { now.u0 = G.L.creature.u; now.p0 = now.at(); } return x.apply(this, arguments); };
+      G.shake = function (a) { if (G.L && G.L.s.mode === 'tv') window.__tv.shakes++; return sh.apply(this, arguments); };
+    },
+    lamp(secs) { const s = G.L.s; s.fitted = s.plugged = true; s.lampOn = true; s.wasLit = true; s.onAt = G.L.t; s.lampT = secs || 90; },
+    remote() { const d = tv.T('drawer'); if (!d.open) d.onClick(); const r = G.L.items.find(i => i.id === 'remote'); if (!r.taken) pickup(r); G.hand.reach = null; return G.inv.some(i => i.id === 'remote'); },
+    at() { const p = G.L.creature.pos(); return [p.x, p.z]; },
+    far(p, q) { return Math.hypot(p[0] - q[0], p[1] - q[1]); },
+    arm() { tv.hear(); tv.fx.length = 0; tv.log = []; tv.shakes = 0; tv.u0 = G.L.creature.u; tv.p0 = tv.at(); tv.grab0 = G.L.s.grab ? G.L.s.grab.k : 0; },
+    on() { tv.remote(); tv.arm(); useTarget(tv.T('tv')); return !!G.L.s.tv; },
+    t() { return G.L.t - G.L.s.tv.t0; },
+    // the night stepped on by hand with nothing noted (secs), or until a thing is so
+    free(secs, until) { for (let i = 0, n = Math.round(secs * 60); i < n && G.state === 'play' && !(until && until()); i++) update(1 / 60); return G.state; },
+    // and, the set on, to `to` seconds from the click, each frame noted
+    run(to, until) {
+      const L = G.L, c = L.creature;
+      while (tv.t() < to && G.state === 'play' && !(until && until())) {
+        update(1 / 60);
+        const P = c.tv || {}, p = tv.at();
+        tv.log.push({ t: tv.t(), mode: L.s.mode, st: G.state, p, off: tv.far(p, W), d: c.dist, lane: c.lane.idx, duck: c.duck || 0, flinch: c.flinch || 0, reach: c.reach || 0, peer: c.peer || 0, look: P.look || 0, watch: P.watch || 0, lurch: P.lurch || 0, punch: P.punch || 0, turn: P.turn || 0, lit: P.lit || 0, u: c.u });
+      }
+      return G.state;
+    },
+    in(a, b) { return tv.log.filter(f => f.t >= a && f.t <= b); },
+    max(k, a, b) { return Math.max(-1, ...tv.in(a, b).map(f => f[k])); },
+    min(k, a, b) { return Math.min(99, ...tv.in(a, b).map(f => f[k])); },
+    when(n, i) { const e = tv.fx.filter(f => f.n === n)[i || 0]; return e ? e.t - G.L.s.tv.t0 : -1; },
+    alive() { return G.state === 'play' && tv.log.every(f => f.st === 'play'); },
+    // it never went over the bed, nor through a wall but by the middle of its opening
+    clear() {
+      let bad = null;
+      tv.log.forEach((f, i) => {
+        const [x, z] = f.p, q = i ? tv.log[i - 1].p : f.p;
+        if (Math.abs(x) < 0.7 && z < 1.85 && f.t > 0.6 && tv.far(f.p, tv.p0) > 0.3) bad = bad || 'over the bed at ' + x.toFixed(2) + ', ' + z.toFixed(2);
+        if ((q[1] - 3.6) * (z - 3.6) < 0 && Math.abs(x) > 0.3) bad = bad || 'through the wall by the doorway at x ' + x.toFixed(2);
+        if ((q[0] + 3.2) * (x + 3.2) < 0 && Math.abs(z) > 0.65) bad = bad || 'through the wall by the closet at z ' + z.toFixed(2);
+      });
+      if (bad) console.log('the way to the television: ' + bad);
+      return !bad;
+    },
+    // every target as it is hit from every way you can look: pointed at in the middle of what shows of it, which target
+    // is under the pointer (the view left looking north again)
+    hits() {
+      const out = {};
+      for (const down of [0, 1]) for (let d = 0; d < 8; d++) {
+        G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = down ? PITCH_DOWN : 0; render();
+        for (const h of [...R.hits]) {
+          if (h.kind !== 'target') continue;
+          const x0 = Math.max(0, h.x), y0 = Math.max(0, h.y), x1 = Math.min(R.W, h.x + h.w), y1 = Math.min(R.H, h.y + h.h);
+          if (x1 - x0 < 8 || y1 - y0 < 8) continue;
+          G.mouse.x = (x0 + x1) / 2; G.mouse.y = (y0 + y1) / 2 + R.viewY; updateHover();
+          out[d + (down ? 'd' : '') + ':' + h.ref.id] = G.hover ? G.hover.ref.id : '';
+        }
+      }
+      G.mouse.x = G.mouse.y = -1; G.cam.dirIdx = 0; G.cam.yaw = G.cam.tYaw = 0; G.cam.pitch = G.cam.tPitch = 0; render(); updateHover();
+      return out;
+    },
+    hover() { const h = [...R.hits].reverse().find(q => q.kind === 'target' && q.ref.id === 'tv'); if (!h) return null; G.mouse.x = h.x + h.w / 2; G.mouse.y = h.y + h.h / 2 + R.viewY; updateHover(); return G.hover && G.hover.ref.id === 'tv' ? UI.tooltip.textContent : ''; },
+  };
+}.toString() + ')();';
+const X = e => '(tv => ' + e + ')(window.__tv)';
+// the whole of it, from far off on its approach, in the dark: it has just begun to come out of its opening
+const tvFar = [
+  ['eval', tvLib + ' window.__tv.fresh(0); G.L.s.switched = true; G.L.s.peerTill = 0;'], ['wait', 250], ['face', 0, false], ['wait', 200],
+  ['expect', X("tv.free(8, () => G.L.creature.dist < 3.95) === 'play' && G.L.s.mode === 'come' && G.L.creature.dist > 3.6"), 'it has begun to come out, far off still (behind its opening)'],
+  ['wait', 200],
+  ['expect', X("tv.T('tv').hidden && tv.hover() === null && !G.L.s.tv"), 'without the remote the television is only scenery: not a target, nothing on it to point at'],
+  ['eval', X("(tv.was = tv.hits())")],
+  ['expect', X("(k => k.length >= 4 && !k.some(q => /:tv$/.test(q)) && ['drawer', 'lamp', 'covers', 'socket'].every(id => k.some(q => q.endsWith(':' + id) && tv.was[q] === id)))(Object.keys(tv.was))"), 'the night\'s own targets, each pointed at from wherever it shows'],
+  ['eval', X("(tv.remote(), pickup(G.L.items.find(i => i.id === 'bulb')), G.hand.reach = null, delete SAVE.data.eggs.bedroom, tv.arm())")], ['wait', 250],
+  ['expect', X("G.inv[G.active].id === 'bulb' && !tv.T('tv').hidden && tv.hover() === 'Turn on the TV'"), 'with the remote carried (the bulb in hand, not it) the television is a target: "Turn on the TV"'],
+  ['expect', X("(now => Object.keys(tv.was).every(q => now[q] === tv.was[q]) && now['0:tv'] === 'tv' && now['1:tv'] === 'tv' && (console.log('targets: ' + JSON.stringify(now)), true))(tv.hits())"), 'and it is in the way of none of the others (the drawer emptied): each is hit just as before, and the set itself looking north and north-east'],
+  ['use', 'tv'],
+  ['expect', X("!!G.L.s.tv && G.L.s.mode === 'tv' && SAVE.data.eggs.bedroom === true && G.L.text.egg === 'Put on a horror movie.' && G.inv[G.active].id === 'remote' && tv.T('tv').hidden"), 'clicked, it comes on: the easter egg is saved for the night, the remote is in your hand, and the set is no longer a target'],
+  ['expect', X("tv.run(0.5) === 'play' && tv.when('tvOn') >= 0 && tv.when('tvOn') < 0.05 && tv.when('tvStatic') < 0.05 && tv.when('tvStatic') >= 0 && tv.when('tvDrone') < 0 && G.L.creature.tv.look > 0.9 && tv.far(tv.at(), tv.p0) < 0.12"), 'a click, and static; it stops where it is and looks round at it'],
+  ['expect', X("tv.run(1.3) === 'play' && tv.when('tvDrone') > 0.9 && tv.when('tvDrone') < 1.2"), 'about a second of static, and then the film begins'],
+  ['expect', X("tv.run(2.4) === 'play' && (f => !!f && f.t > 1.1 && f.t < 2.15)(tv.log.find(f => f.off < 0.06)) && tv.max('duck', 0.6, 2.2) > 0.9 && tv.clear() && G.L.creature.lane.idx === 0"), 'it scurries over to the set, low on all fours, in a second or so (out through the middle of the doorway)'],
+  ['expect', X("tv.run(6.9) === 'play' && tv.min('watch', 2.6, 6.9) > 0.95 && tv.max('off', 2.6, 6.9) < 0.06 && tv.max('lit', 2.6, 6.9) > 0.15 && tv.max('duck', 2.6, 6.9) < 0.05 && tv.when('tvCreak') > 2.3 && tv.when('tvCreak', 1) > 4.9 && tv.when('tvShriek') < 0"), 'and bends over it, its face at the screen, lit by it, watching, while the film plays (its door creaks, twice)'],
+  ['expect', X("tv.run(7.59) === 'play' && tv.when('tvShriek') > 6.95 && tv.when('tvShriek') < 7.1 && tv.max('lurch', 7.08, 7.59) > 0.9 && tv.max('off', 7.1, 7.59) > 0.15 && tv.when('tvYelp') > 7.05 && tv.when('tvYelp') < 7.2 && G.L.s.tv.smashAt === undefined"), 'the film\'s fright, with its tinny shriek: it is thrown back from the set, with a yelp'],
+  ['expect', X("tv.run(8.2) === 'play' && (q => q > 7.7 && q < 7.9)(G.L.s.tv.smashAt - G.L.s.tv.t0) && tv.max('punch', 7.7, 8.2) > 0.95 && tv.when('tvSmash') > 7.7 && tv.when('tvSmash') < 7.9 && tv.shakes === 1"), 'and at once its fist goes through the screen: the set is smashed'],
+  ['expect', X("tv.run(9.8) === 'play' && tv.max('turn', 9.5, 9.8) > 0.9 && tv.max('turn', 0, 8.7) === 0 && tv.in(0, 9.8).every(f => f.mode === 'tv')"), 'then its head comes round to you, slowly'],
+  ['expect', X("tv.run(10.0) === 'play' && G.L.s.mode === 'come' && Math.abs(G.L.creature.u - tv.u0) < 0.01 && tv.far(tv.at(), tv.W) < 0.1 && G.L.creature.hold === null && !G.L.creature.duck && tv.alive()"), 'and it comes on again, in the dark on its feet, from where it stands, the night\'s clock where it was; it caught nobody meanwhile'],
+  ['eval', X("(tv.before = G.L.s.tv.t0, useTarget(tv.T('tv')))")], ['wait', 300],
+  ['expect', X("G.L.s.tv.t0 === tv.before && G.L.s.tv.smashAt !== undefined && tv.T('tv').hidden && tv.hover() === null && tv.when('tvOn', 1) < 0"), 'the set cannot be put on twice: it stays smashed'],
+  ['expect', X("tv.free(6) === 'play' && !G.L.creature.tv && G.L.s.mode === 'come'"), 'its head comes upright again as it goes'],
+  // and the night can still be won
+  ['eval', X('tv.lamp()')], ['hold', 'covers', 9000],
+  ['expect', "G.L.won && G.L.s.coversUp && G.state === 'won'", 'after it the night is won as ever: the lamp, then the covers'],
+  ['waitUntil', "G.state === 'survived'", 14000],
+  ['expect', "G.survivedScreen.text === G.L.text.win && G.L.s.tugs === 3", 'and it is the night\'s own win'],
+  ['eval', 'restartLevel();'], ['wait', 250],
+];
+// from the closet, crawling along the floor in the lamp's light: round the foot of the bed to it; and the lamp still on
+// as its head comes round, it covers its eyes and goes down, and comes to the bed as the light has it
+const tvCrawl = [
+  ['eval', tvLib + ' window.__tv.fresh(1); G.L.s.peerTill = 0; window.__tv.lamp();'], ['wait', 250],
+  ['expect', X("tv.free(9, () => G.L.creature.dist < 2.9) === 'play' && G.L.s.mode === 'duck' && G.L.creature.duck > 0.99 && G.L.creature.lane.idx === 1"), 'from the closet, in the lamp\'s light: it is down, crawling along the floor'],
+  ['expect', X("tv.on() && tv.run(2.45) === 'play' && tv.far(tv.at(), tv.W) < 0.06 && tv.clear() && G.L.creature.lane.idx === 0 && G.L.lane.idx === 0 && tv.max('duck', 0, 2) > 0.99"), 'the set on: it scurries round the foot of the bed to it (never over the bed), and is counted along the doorway\'s way from there'],
+  ['expect', X("tv.run(9.8) === 'play' && tv.min('watch', 2.9, 6.9) > 0.95 && G.L.s.tv.smashAt !== undefined && G.L.s.lampOn && tv.in(0, 9.8).every(f => f.mode === 'tv' && f.flinch < 0.01)"), 'it watches, in the lamp\'s light too, and smashes the set'],
+  ['expect', X("tv.run(13.4) === 'play' && tv.in(9.9, 13.4).every(f => f.mode === 'duck') && tv.max('flinch', 9.9, 11.4) > 0.9 && G.L.creature.duck > 0.95 && tv.alive()"), 'the lamp on as its head comes round to you: it throws an arm across its face and goes down on its haunches'],
+  ['expect', X("tv.run(22) === 'play' && G.L.creature.reach > 0.99 && Math.hypot(tv.at()[0], tv.at()[1] - 2.08) < 0.05 && /hands/.test(G.lastToast.msg)"), 'and comes low to the foot of the bed, and its hands come up onto the covers (and you are told)'],
+  ['eval', 'restartLevel();'], ['wait', 250],
+];
+// at the bed, its hands on the covers and pulling: they let go; the lamp goes out while it watches, and the covers will
+// not hold in the dark meanwhile (nor does it take them); it comes on in the dark; then the covers in the dark are its
+// kill, and the line is the television's, under "It got you", with no toast before it
+const tvBed = [
+  ['eval', tvLib + ' window.__tv.fresh(0); G.L.s.peerTill = 0; window.__tv.lamp();'], ['wait', 250],
+  ['expect', X("tv.free(20, () => G.L.s.grab && G.L.s.grab.k > 0.25) === 'play' && G.L.s.mode === 'duck' && G.L.creature.reach === 1 && G.L.s.grab.k > 0.25"), 'at the foot of the bed, its hands on the covers, pulling'],
+  ['expect', X("tv.on() && tv.run(0.5) === 'play' && G.L.creature.reach < 0.02 && G.L.s.grab === null && G.L.creature.tv.look > 0.9"), 'the set on: its hands let go of the covers, and it looks round'],
+  ['expect', X("tv.run(3) === 'play' && tv.far(tv.at(), tv.W) < 0.06 && G.L.creature.tv.watch > 0.95"), 'and it goes over and watches'],
+  ['eval', X("(G.L.s.lampT = 0.01, tv.run(3.2), (c => { c.done = true; G.holding = null; c.use(null); })(tv.T('covers')))")],
+  ['expect', X("!G.L.s.lampOn && G.L.s.mode === 'tv' && G.state === 'play' && !tv.T('covers').done && !G.L.s.coversUp && /lamp first/i.test(G.lastToast.msg)"), 'the lamp out while it watches: the covers pulled up in the dark do not hold, and it does not come for them'],
+  ['expect', X("tv.run(10.0) === 'play' && G.L.s.mode === 'come' && Math.abs(G.L.creature.u - tv.u0) < 0.01 && tv.alive()"), 'its head round to you in the dark, it comes on from the set on its feet'],
+  ['eval', X("(G.toast('The covers.'), (c => { c.done = true; G.holding = null; c.use(null); })(tv.T('covers')))")],
+  ['waitUntil', "G.state === 'dead'", 6000],
+  ['expect', "G.deathCause === 'tv' && G.deathScreen.title === 'It got you' && G.deathScreen.text === 'Ironically it doesn\\'t seem to like horror.' && !(G.L.text.eggs || []).includes('tv')", 'caught after the television (the covers, in the dark): "It got you", and exactly "Ironically it doesn\'t seem to like horror."'],
+  ['eval', 'restartLevel();'], ['wait', 250],
+];
+// about to have you, from the closet's side (a step from the bed, in the dark): it cannot catch you while it is at the
+// set; afterwards it comes back and does, and that is the television's line too
+const tvClose = [
+  ['eval', tvLib + ' window.__tv.fresh(1); G.L.s.switched = true; G.L.s.peerTill = 0; G.L.creature.u = 0.999;'], ['wait', 250],
+  ['expect', X("tv.free(40, () => G.L.creature.dist < 1.1) === 'play' && G.L.s.mode === 'come' && G.L.creature.dist < 1.1 && G.L.creature.lane.idx === 1"), 'from the closet, in the dark, a step from having you'],
+  ['expect', X("tv.on() && tv.run(9.8) === 'play' && tv.alive() && tv.clear() && tv.min('watch', 2.9, 6.9) > 0.95 && G.L.s.tv.smashAt !== undefined"), 'the set on: it goes round the bed to it, watches and smashes it, and catches nobody meanwhile'],
+  ['expect', X("tv.run(10.0) === 'play' && G.L.s.mode === 'come' && Math.abs(G.L.creature.u - tv.u0) < 0.01"), 'then it comes on again, the night\'s clock where it was'],
+  ['eval', X("tv.run(40, () => G.L.creature.dist < 1.06) && G.toast('Light.')")],
+  ['waitUntil', "G.state === 'dead'", 8000],
+  ['expect', "G.deathCause === 'tv' && G.deathScreen.title === 'It got you' && G.deathScreen.text === 'Ironically it doesn\\'t seem to like horror.'", 'and when it reaches you after all, the line is the television\'s, with no toast before it'],
+  ['eval', 'restartLevel();'], ['wait', 250],
+];
+// still peering round the edge of the doorway, not yet in the room: it comes in through the middle of it and goes
+// straight to the set. With motion and flashes reduced: the same times, no shake, and it is thrown back less far
+const tvPeer = [
+  ['eval', tvLib + ' window.__tv.fresh(0); window.__tv.was = [SAVE.data.settings.reducedMotion, SAVE.data.settings.reducedFlash]; SAVE.data.settings.reducedMotion = SAVE.data.settings.reducedFlash = true;'], ['wait', 250],
+  ['expect', X("G.L.s.mode === 'peer' && G.L.creature.peer === 1 && tv.on() && tv.run(2.45) === 'play' && tv.far(tv.at(), tv.W) < 0.06 && tv.clear() && tv.max('peer', 1.2, 2.45) < 0.01"), 'peering round the edge of the doorway when the set comes on: it comes in through the middle of it and goes straight to the set'],
+  ['expect', X("tv.run(10.0) === 'play' && (q => q > 7.7 && q < 7.9)(G.L.s.tv.smashAt - G.L.s.tv.t0) && tv.when('tvShriek') > 6.95 && tv.when('tvShriek') < 7.1 && G.L.s.mode === 'come' && tv.shakes === 0 && (l => l > 0.3 && l < 0.6)(tv.max('lurch', 7, 7.7)) && tv.max('off', 7.1, 7.59) < 0.12 && tv.alive()"), 'with motion and flashes reduced: the same times, no shake of the view, and its lurch gentler'],
+  // the night won while it watches: it breaks off for the bed, and the set, its film over, goes off of itself
+  ['eval', X("(SAVE.data.settings.reducedMotion = tv.was[0], SAVE.data.settings.reducedFlash = tv.was[1], tv.fresh(0), tv.lamp(), G.L.s.peerTill = 0)")], ['wait', 250],
+  ['expect', X("tv.on() && tv.run(2.6) === 'play' && G.L.creature.tv.watch > 0.9"), 'watching, the lamp on'],
+  ['hold', 'covers', 9000],
+  ['expect', "G.L.won && G.state === 'won' && G.L.s.mode === 'duck' && G.L.s.tv.smashAt === undefined", 'the covers up meanwhile: the night is won, and it breaks off'],
+  ['waitUntil', "G.L.s.tv.offAt !== undefined && !G.L.creature.tv", 9000],
+  ['expect', X("G.L.s.tv.smashAt === undefined && tv.T('tv').hidden"), 'and the set, left to itself, goes off when its film is over'],
+  ['eval', 'restartLevel();'], ['wait', 250],
+];
+const tv = [].concat(tvFar, tvCrawl, tvBed, tvClose, tvPeer);
 // at first only its head round the edge of the opening, its body behind the wall, and that counts as seeing it; brought on
 // past the opening, it has stepped out into the room, its head over its shoulders and none of it hidden by the wall
 const peering = [
@@ -160,5 +320,5 @@ const duck = [
 const coverHand = ['eval', "window.__coverHand = false; (function w() { if (G.holding && G.holding.id === 'covers' && G.hand.reach && G.hand.reach.target === G.holding) window.__coverHand = true; if (G.state === 'play') requestAnimationFrame(w); })();"];
 module.exports = {
   // Nightmare charges 3.5x speed for every second spent looking away, so the harness faces each thing directly instead of sweeping
-  nightmare: fumbles.concat(card, peering, glide, stoop, crawlFrom(0), crawlFrom(1), dark, grabbed, [mattress, ['face', 5, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 4, false], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ['expect', 'G.L.s.grab && G.L.s.grab.k < 1', 'and the covers came up before its hands reached you'], ...under]),
+  nightmare: fumbles.concat(tv, card, peering, glide, stoop, crawlFrom(0), crawlFrom(1), dark, grabbed, [mattress, ['face', 5, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 4, false], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ['expect', 'G.L.s.grab && G.L.s.grab.k < 1', 'and the covers came up before its hands reached you'], ...under]),
 };
