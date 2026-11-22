@@ -74,7 +74,7 @@ LEVELS.push({
     intro: 'You find yourself in a shed.\nSomething in the distance approaches.',
     hint: 'There are loose planks all over the house, a hammer and nails. Board up both doorways.',
     objective: 'Board up both doorways.',
-    death: { default: 'It came through the open door.', reached: 'It tore the boards off and came in.', round: 'It came through the open door behind you.', window: 'Was that necessary?' },
+    death: { default: 'It came through the open door.', reached: 'It tore the boards off and came in.', round: 'It came through the open door behind you.', window: 'Must we throw things?' },
     win: 'The boards held.',
     egg: 'Give it a window of opportunity.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },
@@ -656,7 +656,7 @@ LEVELS.push({
       crumbsDraw();
       const c = L.creature, cp = L.rend && L.rend.get(c), e = s.egg;
       if (cp) {   // (in the easter egg it is outside until it has come in through the window, and then in front of everything by the wall)
-        const p = c.pos(), d = Math.hypot(p.x, p.z), inside = e ? e.stage === 'stand' || e.stage === 'lunge' : c.dist <= c.lane.apertures[0].z + 0.05;
+        const p = c.pos(), d = Math.hypot(p.x, p.z), inside = e ? e.stage === 'lunge' : c.dist <= c.lane.apertures[0].z + 0.05;
         cp.sortDist = inside ? (e ? Math.min(d, IN_FRONT) : undefined) : Math.max(d, BEHIND_WALLS);
       }
       if (c.climb !== undefined && c.climbParts) {
@@ -666,9 +666,10 @@ LEVELS.push({
         if (b && tp) {
           const sy = (b.y - tp.y) / H, at = (x, y) => { const q = R.screenPos(x, y, WIN.z); return q && [(q.x - b.x) / b.scale, (b.y - q.y) / sy]; };
           const l = at(WIN.x1, WIN.y0), r = at(WIN.x0, WIN.y0);   // (looking out of it, its east side is on the left)
-          if (l && r) c.frame = { l: l[0], r: r[0], sl: l[1], sr: r[1] };
+          if (e && e.stage === 'lunge') c.frame = undefined;   // (in, and coming at you: the frame is behind it)
+          else if (l && r) c.frame = { l: l[0], r: r[0], sl: l[1], sr: r[1] };
         }
-        for (const pass of ['out', 'in']) R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: c.CR.w, h: H, dist: Math.hypot(p.x, p.z), fogScale: 0.85, noContact: true, sortDist: pass === 'out' ? BEHIND_WALLS : IN_FRONT, draw: (ctx, P) => c.CR.drawClimb(ctx, c, P, pass) });
+        for (const pass of ['out', 'in']) R.add({ kind: 'sprite', x: p.x, y: p.y + (c.yOff || 0), z: p.z, w: c.CR.w, h: H, dist: Math.hypot(p.x, p.z), fogScale: 0.85, noContact: true, sortDist: pass === 'out' ? BEHIND_WALLS : IN_FRONT, draw: (ctx, P) => c.CR.drawClimb(ctx, c, P, pass) });
       }
       c.headroom = over() || c.charge || c.runPose ? undefined : headroom(c) - (c.yOff || 0) - c.pos().y;
       if (s.hitAt !== undefined && c.peer > 0.6) {   // at the boards: its fingers over the one under the gap (grip; the night faces north, so x is the boards' own)
@@ -721,15 +722,16 @@ LEVELS.push({
     //          the house (out of the doorway's view, a blow on the side wall, in past the corner) as it runs round to a doorway
     //   face   it stands in the window, close against the frame, its head above the top of it
     //   climb  the bars are torn out of the frame and it comes through (the walker's c.climb): found as the easter egg
-    //          (foundEgg) the moment it starts. It ends standing inside
-    //   stand  a moment, looking at you
-    //   lunge  and it has you: the death's own lunge, from where it stands
+    //          (foundEgg) the moment it starts. It ends low on the floor under the window, on all fours (c.climb at
+    //          the walker's CROUCH): it does not stand up
+    //   lunge  and it has you, at once: the death's own lunge, straight from that crouch, rising out of it as it comes
+    //          (c.climb on from CROUCH to 1 through the lunge), with no wait before it
     // The death screen says "It got you" and the night's own line for it (text.death.window), with no toast before it.
-    // The bars go in one violent beat and it is through in EGG.climb seconds (2.6: quick, the same poses in the same order),
-    // then stands EGG.stand (0.7) before the lunge. With reduced motion nothing shakes, the view turns more slowly, and the
-    // climb is slower (EGG.climbSlow, 4 s) and evenly paced (the walker's c.gentle).
-    const AT = { x: (WIN.x0 + WIN.x1) / 2, z: WIN.z }, STAND = { x: 1.5, z: -1.95 }, WIN_YAW = Math.atan2(AT.x, AT.z), RUN_Z = -2.62;
-    const EGG = { blows: 4, still: 0.6, turn: 0.45, look: 0.4, rise: 0.25, dash: 0.75, out: 0.7, round: 1.1, in: 0.75, far: 4.5, face: 0.4, climb: 2.6, climbSlow: 4, stand: 0.7, lunge: 0.5 };
+    // The bars go in one violent beat and it is through in EGG.climb seconds (1.5: fast, the same poses in the same order),
+    // and lunges the moment it is down. With reduced motion nothing shakes, the view turns more slowly, and the climb is
+    // slower (EGG.climbSlow, 2.5 s) and evenly paced (the walker's c.gentle).
+    const AT = { x: (WIN.x0 + WIN.x1) / 2, z: WIN.z }, WIN_YAW = Math.atan2(AT.x, AT.z), RUN_Z = -2.62;
+    const EGG = { blows: 4, still: 0.6, turn: 0.45, look: 0.4, rise: 0.25, dash: 0.75, out: 0.7, round: 1.1, in: 0.75, far: 4.5, face: 0.4, climb: 1.5, climbSlow: 2.5, lunge: 0.5 };
     const pane = mkTarget(L, { id: 'window', name: 'Window', x: AT.x, y: WIN.y0, z: WIN.z + 0.03, w: WIN.x1 - WIN.x0, h: WIN.y1 - WIN.y0, face: 0, accepts: ['bottle'], use() { smash(); return true; } });
     Object.defineProperty(pane, 'hidden', { get: () => !!s.broken || !(G.inv[G.active] && G.inv[G.active].id === 'bottle') });
     const smash = () => {
@@ -772,9 +774,10 @@ LEVELS.push({
     const eggPose = (c, k) => {
       const e = s.egg, dt = Math.min(0.1, G.stateT - e.T);
       e.T = G.stateT;
-      if (e.stage === 'lunge') {   // from where it stands, straight at you (the death moves it along its way: this keeps it on its own line)
+      if (e.stage === 'lunge') {   // from its crouch under the window, straight at you (the death moves it along its way: this keeps it on its own line)
         const r0 = Math.hypot(e.d, e.lat), r = lerp(r0, 0.55, easeIn(k));
         c.dist = e.d * r / r0; c.lat = c.runLat = e.lat * r / r0;
+        c.climb = lerp(c.CR.CROUCH, 1, k * k);   // rising out of the crouch as it comes, its arms coming up for you
         camTo(e, yawOf(c), 0, dt);
         return;
       }
@@ -814,17 +817,14 @@ LEVELS.push({
         yaw = WIN_YAW; place(c, AT.x, lerp(RUN_Z, AT.z, smoothstep(e.t / EGG.face)));
         if (e.t >= EGG.face) { next('climb'); foundEgg(); tearBars(); }
       } else if (e.stage === 'climb') {
-        const u = clamp(e.t / (gentle() ? EGG.climbSlow : EGG.climb), 0, 1), q = gentle() ? lerp(u, c.CR.climbAt(u), 0.35) : c.CR.climbAt(u), a = smoothstep((q - 0.82) / 0.18);
-        const x = lerp(AT.x, STAND.x, a), z = lerp(AT.z, STAND.z, a);   // through, it comes a step into the room as it stands up
-        c.climb = q; place(c, x, z);
-        yaw = Math.atan2(x, z); pitch = 0.1 * smoothstep((q - 0.3) / 0.25) * (1 - a); danger = 0.1 + 0.3 * q;   // (the view tips down a little as it comes down the wall)
+        // (the walker's climb as far as its crouch on the floor inside: CLIMB_T as far as CROUCH, in EGG.climb seconds)
+        const K = c.CR.CROUCH, u = clamp(e.t / (gentle() ? EGG.climbSlow : EGG.climb), 0, 1), q = Math.min(K, gentle() ? lerp(u * K, c.CR.climbAt(u * c.CR.CROUCH_T), 0.35) : c.CR.climbAt(u * c.CR.CROUCH_T));
+        c.climb = q; place(c, AT.x, AT.z);
+        yaw = WIN_YAW; pitch = 0.1 * smoothstep((q - 0.3) / 0.25); danger = 0.1 + 0.4 * q;   // (the view tips down a little as it comes down the wall)
         for (; e.cue < CUES.length && q >= CUES[e.cue][0]; e.cue++) { const name = CUES[e.cue][1]; if (name) AUDIO.sfx(name, panTo(WIN_YAW)); else AUDIO.voice('exhale', 0.6, panTo(WIN_YAW)); }
-        if (u >= 1) { next('stand'); c.climb = undefined; c.climbParts = false; c.gait = Math.round(c.gait / Math.PI) * Math.PI; AUDIO.voice('exhale', 0.8, panTo(yaw)); }
-      } else if (e.stage === 'stand') {
-        yaw = Math.atan2(STAND.x, STAND.z); danger = 0.45 + 0.2 * clamp(e.t / EGG.stand, 0, 1);
-        if (e.t >= EGG.stand) {   // the death's own lunge, from here: its sting, and it comes
-          next('lunge'); e.d = -STAND.z; e.lat = -STAND.x;
-          c.deathSpec.delay = G.stateT + 0.22;
+        if (u >= 1) {   // down, on all fours under the window: the death's own lunge, from there and at once (its sting, and it comes)
+          next('lunge'); e.d = -AT.z; e.lat = -AT.x; c.climb = K;
+          c.deathSpec.delay = G.stateT;
           AUDIO.sfx('sting'); AUDIO.stopAmbient(); if (!gentle()) G.shake(1.4);
           G.deathAt = G.t;   // (the death line is the night's own: nothing said before the last board went up is put in front of it)
         }

@@ -176,13 +176,13 @@ some on the ground, so you have to turn and look down to find them.
    both doorways with the window broken and the night is not won: it charges the boards and pounds on them as before,
    a few blows, then stops; its head turns toward the window; it runs round the house to it (from the front doorway
    along the wall, from the back one round the east side, a blow on the wall as it passes); it tears the bars out of the
-   frame in one violent beat and climbs in quickly (about 2.6 s), long fingers over the sill, its head coming through on its side, one thin arm feeling down the
-   wall, the body pouring over the sill and the long legs lifted over one at a time, and unfolds to its full height
-   inside; a moment (0.7 s) looking at you, and it lunges. All of that plays by itself (nothing can be pressed, and the view
-   turns to follow it); the egg is found as it starts through the window. "It got you": "Was that necessary?" With the window intact the win is as it was, and once that ending has begun the bottle can no longer be
+   frame in one violent beat and climbs in fast (about 1.5 s), long fingers over the sill, its head coming through on its side, one thin arm feeling down the
+   wall, the body pouring over the sill and the long legs lifted over one at a time, down on all fours under the window;
+   it does not stand up: it lunges at once, straight from that crouch, rising out of it at you. All of that plays by itself (nothing can be pressed, and the view
+   turns to follow it); the egg is found as it starts through the window. "It got you": "Must we throw things?" With the window intact the win is as it was, and once that ending has begun the bottle can no longer be
    thrown; a bottle already in the air as the last board goes up holds the ending back until it lands, and its smash
    starts the other one. With reduced motion nothing in it shakes, the view turns more slowly, and the climb is slower
-   (about 4 s) and evenly paced.
+   (about 2.5 s) and evenly paced.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
    fours, in bursts, in the headlights, shifting across from the road to a verge and back as it comes. Most nights,
    partway in, it breaks off and runs flat out round the car through the dark (heard going, a click as it goes and as it
