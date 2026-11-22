@@ -639,6 +639,13 @@ CREATURES.demon = {
   speedMult(c, dt, seen) { const a = demonRage(c); return (1 + 0.45 * (c.anger || 0)) * (a > 0.001 ? lerp(1, demonFit(c).pace, a) : 1); },
   // and jerks aside (less as it comes up to you)
   lateral(c) { const a = demonRage(c); return a > 0.001 && !c.frozen ? demonFit(c).side * a * clamp((c.dist - 1.5) / 2.5, 0, 1) : 0; },
+  // the heap of its robe alone, where it fell, in the frame of where its feet were then (for a night that has it go off
+  // and leave it: c.noHeap)
+  heap(ctx, c, P) {
+    const soft = c.soft || 0, take = lerp(0.3, 1, soft), robeC = mixc([12, 10, 15], [34, 31, 40], soft), ks = 1 - 0.2 * (c.calm || 0);
+    const K = { robe: P.col(robeC, take), fold: P.col(mixc([3, 2, 5], [14, 12, 18], soft), take), rim: P.col(mixc([26, 23, 32], [62, 58, 72], soft), take * 1.6), black: P.col([0, 0, 0], 0.1), mix: () => P.col(robeC, take) };
+    ctx.save(); ctx.scale(ks, ks); demonRobeDown(ctx, P, K, 2.15, 1.3, 0.36, 0, 1, 1, 0); ctx.restore();
+  },
   draw(ctx, c, P) {
     if (c.fade < 1 && !demonLayer.busy && typeof document !== 'undefined') { if (c.fade > 0) demonFaded(ctx, c, P); return; }
     const g = c.gait, t = c.t, near = clamp(1 - c.dist / 14, 0, 1), lunge = c.lunge || 0;
@@ -655,7 +662,7 @@ CREATURES.demon = {
     let Mo = null;
     if (O) { ctx.save(); ctx.scale(ks, ks); Mo = ctx.getTransform(); ctx.restore(); }
     const stepX = O ? 0.3 * smoothstep(O.hop) * ks : 0, stepUp = O ? Math.sin(Math.PI * O.hop) * 0.3 * ks : 0;
-    ctx.translate(shake + stepX, hop - dip + stepUp); ctx.rotate(swing + lean); ctx.scale(ks, ks);
+    ctx.translate(shake + stepX, hop - dip + stepUp); ctx.rotate(swing + lean + (c.tip || 0)); ctx.scale(ks * (c.flip || 1), ks);   // (c.tip, c.flip: skipping about the meadow, it leans and turns the way it goes)
     // all of it black: the robe, a shade lighter at the edge of the hood where it catches what light there is, and blacker in
     // its folds; the dark in the hood blackest of all. As the light comes, it lightens with the dark
     // (taking only a little of the light it stands in, so its own red light does not make it red)
@@ -679,7 +686,7 @@ CREATURES.demon = {
       const K = { robe, fold, rim, black, mix: k => P.col(mixc(robeC, F.skin, k), lerp(take, 1, k)) };
       const fall = top - lerp(top, 0.24, O.drop * O.drop);   // how far the top of the robe has fallen
       const robeDown = () => { ctx.save(); ctx.setTransform(Mo); demonRobeDown(ctx, P, K, top, legL, hemW, g, O.drop, O.slump, O.hop < 0.5 ? dspan(off, 0, 0.04) : 0); ctx.restore(); };
-      if (O.hop >= 0.5) robeDown();   // (behind it, once its feet are up over the heap)
+      if (O.hop >= 0.5 && !c.noHeap) robeDown();   // (behind it, once its feet are up over the heap; c.noHeap: the night draws the heap where it fell, with `heap`, as it goes off about the meadow)
       const kick = dance * Math.sin(t * 5.2), tuck = Math.sin(Math.PI * O.hop) * 0.55;   // one leg and then the other kicks up; both tuck in the hop
       demonKit(ctx, c, P, skin, top, sh, [Math.max(0, -kick) + tuck, Math.max(0, kick) + tuck]);
       const tilt = lerp(c.tilt0 || 0, F.tilt + (c.still ? 0 : F.trem * Math.sin(t * 31) * 0.018), c.settle === undefined ? 1 : c.settle) + dance * Math.sin(t * 2.6) * 0.18;

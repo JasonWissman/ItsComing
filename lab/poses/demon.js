@@ -192,6 +192,16 @@
           c.disrobe = clamp((t - EGG.disrobe[0]) / (EGG.disrobe[1] - EGG.disrobe[0]), 0, 1);
           c.dance = Math.min(1, Math.max(0, (t - EGG.disrobe[1] + 0.4) * 2));
         } },
+      // and then they frolic (VOID_FROLIC): out of its robe, the heap of it left where it fell (c.noHeap: the night draws it
+      // there), it skips about among them, leaning and turned the way it goes (c.tip, c.flip), and stops to dance
+      { name: 'Among the others: skipping about', note: 'The easter egg\'s meadow, once they have leapt there a little: in its shirt and shorts, its robe left on the grass where it fell (not drawn here: the night draws the heap), it skips about among the others, kicking and hopping as it goes, leaning and turned the way it goes, one way and then the other; and now and then it stops and dances on the spot.', dist: 6, dur: 12, still: true, fit: { h: 2.8, w: 3.6 }, draw: drawAt(),
+        set(c) { c.calm = 1; c.meadow = c.soft = 1; c.mood = CR.moods - 1; c.unveil = 1; c.settle = 1; c.tilt0 = 0; c.disrobe = 1; c.noHeap = true; c.dance = 1; c.run = 0; c.x = 0; },
+        tick(c, k, dt, T) {
+          const want = T % 6 < 4.2 ? 1 : 0, side = T % 12 < 6 ? 1 : -1;
+          c.run += (want - c.run) * Math.min(1, dt * 3);
+          c.x = clamp(c.x + side * 0.42 * c.run * dt, -0.9, 0.9); c.lat = c.x;
+          c.flip = side; c.tip = -0.18 * side * c.run; c.dance = lerp(1, 0.75, c.run); c.gait += 2.7 * c.run * dt * CR.stepRate * Math.PI;
+        } },
       LAB.lunge({ note: 'Still holding something as it reaches you: enraged, bent over toward you as it came (so its face was in the view), it comes up into your face, lifted so its eyes end level with yours.', fit: { h: 3.4, w: 1.9 }, draw: drawAt(),
         set(c) { c.anger = 1; c.rage = rageFor(1); bendTo(c); base.set(c); c.bend0 = c.yOff; },
         tick(c, k, dt, T) { base.tick(c, k, dt, T); c.lat = lerp(c.lat, 0, 0.3); c.yOff = lungeY(c); } }),
