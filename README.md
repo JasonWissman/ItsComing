@@ -178,19 +178,19 @@ some on the ground, so you have to turn and look down to find them.
    both doorways with the window broken and the night is not won: it charges the boards and pounds on them as before,
    a few blows, then stops; its head turns toward the window; it runs round the house to it (from the front doorway
    along the wall, from the back one round the east side, a blow on the wall as it passes); it tears the bars out of the
-   frame in one violent beat and climbs in fast (about 1.5 s), long fingers over the sill, its head coming through on its side, one thin arm feeling down the
+   frame in one violent beat and scrambles in (about 0.9 s), long fingers over the sill, its head coming through on its side, one thin arm feeling down the
    wall, the body pouring over the sill and the long legs lifted over one at a time, down on all fours under the window;
-   it does not stand up: it lunges at once, straight from that crouch, rising out of it at you. All of that plays by itself (nothing can be pressed, and the view
+   it does not stand up: it lunges at once, straight from that crouch, rising out of it at you (0.3 s: 1.2 s from the bars to you). Outside by the front wall it is cut to what the wall leaves in sight of it, so none of it shows under the foot of the wall. All of that plays by itself (nothing can be pressed, and the view
    turns to follow it); the egg is found as it starts through the window. "It got you": "Must we throw things?" With the window intact the win is as it was, and once that ending has begun the bottle can no longer be
    thrown; a bottle already in the air as the last board goes up holds the ending back until it lands, and its smash
    starts the other one. With reduced motion nothing in it shakes, the view turns more slowly, and the climb is slower
-   (about 2.5 s) and evenly paced.
+   (about 1.5 s) and evenly paced.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
    fours, in bursts, in the headlights, shifting across from the road to a verge and back as it comes. Most nights,
    partway in, it breaks off and runs flat out round the car through the dark (heard going, a click as it goes and as it
    gets there) to one side of the car or into the road behind, lit red by the tail lights, and shifts about there; some
    nights it goes round again. Find the car keys (the green ones), put the stick in park and turn the key in the dash
-   beside the dials until it catches; then look round for it, pick a gear and hit the gas. Which way is safe goes by
+   beside the dials until it catches (the second turn or the third, never later); then look round for it, pick a gear and hit the gas. Which way is safe goes by
    where it is round the car, in three sectors measured from the car's own axis: **ahead** (less than 78° off straight
    ahead: the road ahead, its two verges at 11°, and off the front corners at 66°), **behind** (more than 102° off:
    the road behind, its verges at 169°, and off the rear corners at 114°), and **beside** (within 12° of square to the
@@ -206,10 +206,14 @@ some on the ground, so you have to turn and look down to find them.
    hanging, looks at you, drops onto all fours (up 5.1 s after the blow) and comes on at the car again from where it
    landed, squarely in the road, at its usual pace (about 7 s more from 15 m while you watch it, sooner if you do not).
    That is your chance: the stick over to the other way (two clicks) and the gas, and you are away from it, which wins the
-   night as ever. Drive at it again and it is knocked back again, but each time it lands 2 m nearer (never nearer than
-   9 m ahead, 8 m behind) and is up in three quarters of the time before (never less than 0.4 of the first), so it
-   cannot be kept down. Caught at all after having hit it, the card says "It got you" and only "It got right back up." With
-   reduced motion nothing shakes, the nose does not dip, and it is knocked back lower, turning over once. The way out
+   night as ever. It is hit once and no more. Drive at it a second time and it is ready for that: the car leaps at it,
+   and whatever it was doing (in its heap, half up, standing, or up and coming) it is on all fours and looking at you
+   in 0.3 s, comes at the car flat out as the car comes at it, and 6.5 m off your seat it springs, arms thrown up, over
+   the bonnet (the boot, in reverse) and through the glass, which cracks as it meets it and bursts: about 1.2 s from
+   the gas to the glass from where it lay. The card says "It got you" and only "It was ready for that." (While it is
+   still in the air from the blow the wheels only spin.) Caught at all after having hit it and left it to get up, the
+   card says "It got you" and only "It got right back up." With
+   reduced motion nothing shakes, the nose does not dip, it is knocked back lower, turning over once, and its spring is a little slower. The way out
    is the way straight away from it (forward with it behind, reverse with it ahead), or either way when it is squarely
    beside the car. Once the engine runs it stops going round, and once the stick is in
    a gear it moves only while you watch it, so it never steps into your way behind your back. Caught, it comes through
