@@ -68,8 +68,8 @@ const hit = (gear, end, deg) => { const R = gear === 'R', sign = R ? -1 : 1, lie
     ['waitUntil', "G.state === 'dying'", 20000],
     ['expect', "G.deathCause === 'gotup' && G.L.creature.lungeFrom < 1.4", 'it reaches the car: caught, having been hit'],
     ['waitUntil', "G.state === 'dead'", 4000],
-    ['expect', "G.deathScreen.title === 'Nice try' && G.deathScreen.text === 'It got right back up.' && G.L.text.eggs.join() === 'gotup' && !G.L.text.death.drove && !G.L.text.death.reversed && document.body.innerText.includes('Nice try') && document.body.innerText.includes('It got right back up.')",
-      'the card says Nice try, and only: It got right back up.'],
+    ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'It got right back up.' && !G.L.text.eggs && !G.L.text.death.drove && !G.L.text.death.reversed && !document.body.innerText.includes('Nice try') && document.body.innerText.includes('It got you') && document.body.innerText.includes('It got right back up.')",
+      'the card says It got you, and only: It got right back up.'],
     crack(R ? 'back' : 'front'),
   ] : [
     ['clickUntil', 'gear', "G.L.s.gear === '" + other + "'", 200, 3],

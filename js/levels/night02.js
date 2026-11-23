@@ -55,8 +55,7 @@ LEVELS.push({
     egg: 'Hit the creature with your car.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came through the windshield.', passenger: 'It came through the passenger window.', driver: 'It came through the window beside you.', back: 'It came through the back window.',
       running: 'The engine was running, but you couldn\'t get away fast enough.',
-      gotup: 'It got right back up.' },
-    eggs: ['gotup'],   // (the easter egg: "Nice try", game.js deathLine)
+      gotup: 'It got right back up.' },   // (an ordinary death, "It got you": said alone, the toast cleared where it is caused)
     win: 'You drove off and did not look back.',   // the same whichever way out you took and wherever it was
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
@@ -333,7 +332,7 @@ LEVELS.push({
     // HIT.nearer (2 m) nearer, never nearer than HIT.least, and is up in HIT.sooner (0.75) of the time it took the time
     // before, never less than HIT.floor (0.4) of the first (s.hits counts them): it cannot be kept down.
     // This is the night's easter egg (text.egg), found the moment the car hits it. Caught at all after that, by
-    // whichever window, the card says "Nice try" (text.eggs) and "It got right back up." (the cause 'gotup').
+    // whichever window, the card says "It got you" and only "It got right back up." (the cause 'gotup': no toast put before it).
     // With reduced motion nothing shakes and the nose does not dip, and it is knocked back lower, turning over once.
     // It need not be in the road for that. Driving its way at all (forward with it anywhere ahead of the car, reversing with
     // it anywhere behind: sectorOf, below) is the same end: from a verge, or off a front or rear corner of the car, it

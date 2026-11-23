@@ -206,7 +206,7 @@ some on the ground, so you have to turn and look down to find them.
    That is your chance: the stick over to the other way (two clicks) and the gas, and you are away from it, which wins the
    night as ever. Drive at it again and it is knocked back again, but each time it lands 2 m nearer (never nearer than
    9 m ahead, 8 m behind) and is up in three quarters of the time before (never less than 0.4 of the first), so it
-   cannot be kept down. Caught at all after having hit it, the card says "Nice try" and "It got right back up." With
+   cannot be kept down. Caught at all after having hit it, the card says "It got you" and only "It got right back up." With
    reduced motion nothing shakes, the nose does not dip, and it is knocked back lower, turning over once. The way out
    is the way straight away from it (forward with it behind, reverse with it ahead), or either way when it is squarely
    beside the car. Once the engine runs it stops going round, and once the stick is in
