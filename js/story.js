@@ -80,7 +80,7 @@ const STORY = (() => {
     // (in the night it stands back against the wall at the head of the bed, its drawer facing down the room, where the
     // drawer has the room to come right out: the night draws the drawer itself. In the morning it is where the lamp of the
     // last night was left)
-    const ns = day ? { x0: 0.95, x1: 1.45, z0: -0.1, z1: 0.4, top: 0.62 } : { x0: 0.95, x1: 1.45, z0: -1.04, z1: -0.54, top: 0.62 };
+    const ns = { x0: 0.95, x1: 1.45, z0: -1.04, z1: -0.54, top: 0.62 };   // (the same in the morning as in the night)
     SC.box(L, ns.x0, ns.x1, 0, ns.top, ns.z0, ns.z1, wood);
     if (day) SC.box(L, 0.96, 1.44, 0.28, 0.5, -0.12, -0.11, [128, 96, 64]);
     SC.box(L, -2.9, -1.5, 0, 0.95, 3.05, 3.55, wood); SC.box(L, -2.85, -1.55, 0.95, 1.0, 3.0, 3.6, day ? [160, 124, 84] : [58, 44, 34]);
