@@ -526,6 +526,17 @@ const AUDIO = (() => {
       // through it. The sheet creaks as it stretches, three long strains, each tighter (higher) than the last, the weave
       // rasping under them; its sob, two short hitches, and then one that rises into a wail as it comes through; and the
       // thump as it has you. About 3.3 s, and it is the whole of that death's sound after the hush (night10.js: EGG)
+      // night 10's easter egg, as the sheet comes at you: a quick rush of air, rising and swelling, cut short (0.4 s)
+      case 'sheetWhoosh': {
+        const t0 = now(), T = 0.4, src = ac.createBufferSource(), flt = ac.createBiquadFilter(), g = ac.createGain();
+        src.buffer = noiseBuf; src.loop = true; flt.type = 'bandpass'; flt.Q.value = 1.3;
+        flt.frequency.setValueAtTime(420, t0); flt.frequency.exponentialRampToValueAtTime(2800, t0 + T);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.42, t0 + T * 0.8); g.gain.linearRampToValueAtTime(0.0001, t0 + T + 0.05);
+        src.connect(flt); flt.connect(g); chain(g, pan);
+        src.start(t0, Math.random() * 1.2); src.stop(t0 + T + 0.1);
+        noise(0.3, { type: 'highpass', freq: 3500, vol: 0.1, attack: 0.2, delay: 0.1, pan });   // (the thin air over it, coming up late)
+        break;
+      }
       case 'sheetPress': {
         for (const [d, f, v] of [[0, 150, 0.6], [0.55, 190, 0.8], [1.1, 240, 1]]) {
           noise(0.5, { type: 'bandpass', freq: f * 3, q: 5, vol: 0.2 * v, attack: 0.25, delay: d, pan });

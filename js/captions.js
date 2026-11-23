@@ -16,7 +16,7 @@ const CAPTIONS = (() => {
     batSqueak: 'a bat squeaks',   // night 5's easter egg: one shot out of the sky
     sugarPour: 'sugar pours out of a bag', sugarBuzz: 'a buzzing, rising', skid: 'boots skid on gravel', shudder: 'a shudder, keys jangling',   // night 3's easter egg: the bag of sugar, handed to it
     scrape: 'scratching', drawer: 'a drawer slides open', tug: 'the covers are yanked', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', tick: 'a clock ticks', musicbox: 'a music box', musicTurn: 'a few notes of a music box', birds: 'birdsong', start: 'the engine catches',
-    musicSour: 'a music box plays wrong notes', sheetPress: 'cloth creaks, stretching, and a sob rises to a wail',   // (night 10's easter egg: every mirror covered)
+    musicSour: 'a music box plays wrong notes', sheetPress: 'cloth creaks, stretching, and a sob rises to a wail', sheetWhoosh: 'a rush of air',   // (night 10's easter egg: every mirror covered)
     tvOn: 'a television clicks on', tvStatic: 'static hisses', tvDrone: 'a thin, eerie drone from the television', tvCreak: 'a door creaks, on the television', tvShriek: 'a tinny shriek from the television', tvYelp: 'it yelps', tvSmash: 'glass bursts, and a fizz of sparks',   // night 12's easter egg: the television
     crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', cloth: 'cloth twisting', breakerTrip: 'a breaker trips with a bang', bar: 'a bar drops into place',
     fit: 'something clicks into place', ratchet: 'a ratchet', switch: 'a switch', keys: 'keys', load: 'the gun loads', win: 'a chord', drop: 'something set down',

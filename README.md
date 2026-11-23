@@ -587,7 +587,7 @@ some on the ground, so you have to turn and look down to find them.
     cloth from inside (the swell of its head, its brow, the hollows of its eyes, its nose, its mouth opening), a hand
     either side of it, fingers spread, the cloth stretched toward you and creaking, its sob rising to a wail, the other
     three sheets bulging with its face too (and they stay so); at 2.9 s that same face and those hands come at you as
-    they are, in the cloth: the night's usual lunge (0.55 s, the same sting), but what lunges is the sheet with it
+    they are, in the cloth, with a quick rising rush of air: the night's usual lunge (0.55 s, the same sting), but what lunges is the sheet with it
     inside. The moulded face grows toward your eye, its mouth dropping open, a cloth-covered hand reaching either side,
     and the rest of the sheet is dragged along behind them: pulled out into a cone with its edges still on the frame,
     then off the mirror altogether, rounding into a ring of folds that run out from the face to the hem, the hem flaring

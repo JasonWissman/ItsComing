@@ -122,6 +122,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'musicbox', n: [10, 13], d: 'A short music-box tune. The box’s song (10); the ending (13).', src: 'night10, night13' },
   { kind: 'sfx', name: 'musicTurn', n: [10], d: 'One crank turn: a click and the next few notes of the tune.', src: 'night10' },
   { kind: 'sfx', name: 'musicSour', n: [10], d: 'The notes dragged flat and out of tune, the crank sticks. Wrong mirror: it comes closer.', src: 'night10' },
+  { kind: 'sfx', name: 'sheetWhoosh', n: [10], d: 'A quick rush of air, rising (a band of it sweeping up from about 400 Hz to 2.8 kHz) and swelling, cut short, with a thin hiss coming up over its end. About 0.4 s. The easter egg (every mirror covered): the sheet, with it inside, leaving the glass and coming at you, as its lunge begins.', src: 'night10 (easter egg)' },
   { kind: 'sfx', name: 'sheetPress', n: [10], d: 'A dust sheet creaking as it is stretched from inside, three strains each tighter than the last; a sob, two hitches and then one rising into a wail; a thump. The easter egg (every mirror covered): its face and hands press out through the cloth, and it comes through. About 3.3 s.', src: 'night10 (easter egg)' },
   // ---- night 11: the farm ----
   { kind: 'sfx', name: 'breakerTrip', n: [11], d: 'A bang, the clack of a breaker, sparks, a hum dying. The power trips.', src: 'night11' },
