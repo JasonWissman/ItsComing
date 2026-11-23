@@ -535,7 +535,7 @@ const hoverHit = lookFor;
   }
 
   console.log('== erasing progress asks first (in Scores) ==');
-  await page.evaluate(() => { SAVE.data.bestRun.nightmare = { t: 400, nights: LEVELS.map(() => 400 / 13) }; SAVE.egg('road'); SAVE.egg('booth'); SAVE.persist(); MENU.applySetting('captions', true); MENU.applySetting('brightness', 1.2); });
+  await page.evaluate(() => { SAVE.data.bestRun.nightmare = { t: 400, nights: LEVELS.map(() => 400 / 13) }; SAVE.egg('road'); SAVE.egg('booth'); SAVE.persist(); MENU.applySetting('captions', true); });
   check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.eggs.road === true && d.eggs.booth === true && Object.keys(d.eggs).length === 2 && SAVE.egg('road') === false; }), 'an easter egg found is kept in the save, by its night, once');
   await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(120);
   check(await page.evaluate(() => [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'back:Back,reset:Erase progress' && document.querySelector('#overlay button[data-act="reset"]').classList.contains('danger')), 'Scores has Back and, beside it, Erase progress (in red)');
@@ -553,7 +553,7 @@ const hoverHit = lookFor;
   await page.click('#overlay .confirm button[data-act="erase"]'); await page.waitForTimeout(200);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'Erase erases, and the title is back with no Scores');
   check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.bestRun).length && !Object.keys(d.bestRun).length && d.unlocked.nightmare === 0 && !d.complete.nightmare && d.warned === false && d.settings.captions === false; }), 'everything it erased before goes as it did: nights reached, the best run, the warning accepted, the settings');
-  check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.eggs).length && !Object.keys(d.eggs).length && !MENU.scoresOpen() && d.settings.brightness === 1 && !document.documentElement.classList.contains('bright') && getComputedStyle(UI.canvas).filter === 'none'; }), 'and the easter eggs found go with it (nothing left for Scores to show), the brightness back at 100% with no filter on the view');
+  check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.eggs).length && !Object.keys(d.eggs).length && !MENU.scoresOpen() && !('brightness' in d.settings) && getComputedStyle(UI.canvas).filter === 'none'; }), 'and the easter eggs found go with it (nothing left for Scores to show); no brightness in the settings, no filter on the view');
 
   console.log('== the Scores screen ==');
   // an older save with best times for single nights and no full run: no run is made up from them, and they are dropped
@@ -1484,7 +1484,7 @@ const hoverHit = lookFor;
         if (i === 40) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })); turned = s.idle; }
         if (i === 52) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); }
         said.length = 0; G.step(0.1, 1);
-        const line = said.find(x => /CLICK WHEN YOU ARE READY/.test(x[0]));
+        const line = said.find(x => /CLICK WHEN READY/.test(x[0]));
         if (line && !/,0\.0+\)$|,0\)$/.test(line[3]) && lineAt === null) lineAt = { idle: line[1], i };
         if (i < 100 && line && !/,0\.0+\)$|,0\)$/.test(line[3]) && s.idle < 4.9) quiet++;
         if (said.some(x => /Stay as long/i.test(x[0]))) quiet += 1000;
@@ -1492,7 +1492,7 @@ const hoverHit = lookFor;
     } finally { CanvasRenderingContext2D.prototype.fillText = fill; }
     return Object.assign(at, { after: { state: G.state, leaving: s.leaving, meadow: s.meadow, fade: c.fade }, quiet, lineAt, turned });
   });
-  check(meadow.quiet === 0 && meadow.turned > 3 && meadow.lineAt && meadow.lineAt.idle >= 5 && meadow.lineAt.i > 52 + 50, 'in the meadow no line says to stay; CLICK WHEN YOU ARE READY comes only after five seconds with nothing done, and a look about starts the count again (' + JSON.stringify([meadow.quiet, meadow.turned, meadow.lineAt]) + ')');
+  check(meadow.quiet === 0 && meadow.turned > 3 && meadow.lineAt && meadow.lineAt.idle >= 5 && meadow.lineAt.i > 52 + 50, 'in the meadow no line says to stay; CLICK WHEN READY comes only after five seconds with nothing done, and a look about starts the count again (' + JSON.stringify([meadow.quiet, meadow.turned, meadow.lineAt]) + ')');
   check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 11 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
   check(meadow.ground[1] > meadow.ground[0] + 40 && meadow.sky[2] > 200 && meadow.sky[2] > meadow.sky[0] + 80 && meadow.room === 0, 'green grass and a blue sky, and no room yet (' + JSON.stringify([meadow.ground, meadow.sky]) + ')');
   check(meadow.after.state === 'won' && !meadow.after.leaving && meadow.after.meadow === 1 && meadow.after.fade === 1, 'left alone, the meadow simply stays');
@@ -2141,7 +2141,7 @@ const hoverHit = lookFor;
     await m.pg.tap('button[data-act="back"]'); await m.pg.waitForTimeout(300);
     await m.pg.tap('button[data-act="begin"]'); await m.pg.waitForTimeout(500);
     r = await m.pg.evaluate(() => ({ state: G.state, prompt: (UI.overlay.querySelector('.prompt') || {}).textContent }));
-    check(r.state === 'card' && /^Tap when you are ready/.test(r.prompt || ''), 'the night\'s card on a phone says tap (' + JSON.stringify(r) + ')');
+    check(r.state === 'card' && /^Tap when ready$/.test(r.prompt || ''), 'the night\'s card on a phone says tap (' + JSON.stringify(r) + ')');
     await m.pg.touchscreen.tap(200, 200); await m.pg.waitForTimeout(200);
     const tapEarly = await m.pg.evaluate(() => ({ st: G.state, left: Math.round(G.overlayArmed - performance.now()) }));
     await m.pg.waitForTimeout(Math.max(0, tapEarly.left) + 80);

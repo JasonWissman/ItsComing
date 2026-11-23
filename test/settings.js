@@ -3,8 +3,9 @@
 // what it plays: the effects' quietest sound, seven times from the left ear over to the right in about two seconds, and
 // its loudest, the sting itself, once, in the middle; the ambience's quietest and loudest bed, a few seconds of each;
 // each a button with a play mark that is a stop mark while it plays, and no click of its own; the ambience playing
-// faded out while the dialog is open) and Brightness (the thing on the title, the shape of it alone in The Void's dark,
-// and the game's own brightness, a slider under it: a filter on the view only when it is not 100%). From the title, from
+// faded out while the dialog is open; with captions on, the quietest captioned "footsteps") and Brightness (the thing on
+// the title, the shape of it alone in The Void's dark, to set the device's brightness by: the game has none of its own
+// any more, no slider, no filter, and an old save's is dropped). From the title, from
 // a paused night, from the warning before a new game, by keys, a pad and touch, on a desktop and on a phone on its side;
 // and the sounds rendered offline through the game's own chain, against the heartbeat, the sting and the beds as the game
 // plays them; every sound through one of the two volumes.
@@ -14,7 +15,7 @@ const fs = require('fs');
 const T = require('./lib');
 const ROOT = path.join(__dirname, '..');
 const VOL_TEXT = 'Adjust your device volume and/or the sliders below until you can hear each of these comfortably.';
-const BRIGHT_TEXT = 'Increase your device brightness, or the slider below, until you can barely see the outline of this creature';
+const BRIGHT_TEXT = 'Increase your device brightness until you can barely perceive the outline of this creature.';
 const PANS = '-1,-1,-0.5,0,0.5,1,1';
 
 async function run(browser, check) {
@@ -51,9 +52,9 @@ async function run(browser, check) {
   }, sel);
   const volOK = v => v.h === 'Volume' && v.text === VOL_TEXT && v.secs.length === 2 && v.sliders === 2 && !v.master && v.done === 'Done' &&
     v.secs[0].name === 'Sound effects' && v.secs[0].label === 'Sound effects' && v.secs[0].set === 'effects' && v.secs[0].aria === 'Sound effects volume' && v.secs[0].acts === 'calquiet,calloud' &&
-    v.secs[0].labels.join('|') === 'Play the quietest sound in the game|Play the loudest sound in the game' &&
+    v.secs[0].labels.join('|') === 'Quietest sound in the game|Loudest sound in the game' &&
     v.secs[1].name === 'Ambience' && v.secs[1].label === 'Ambience' && v.secs[1].set === 'ambient' && v.secs[1].aria === 'Ambience volume' && v.secs[1].acts === 'ambquiet,ambloud' &&
-    v.secs[1].labels.join('|') === 'Play the quietest ambience in the game|Play the loudest ambience in the game' &&
+    v.secs[1].labels.join('|') === 'Quietest ambience in the game|Loudest ambience in the game' &&
     v.secs.every(s => s.named && s.icons === '1P,1P' && s.pressed === 'false,false' && s.extras === 0 && s.kids === 2 && s.order && s.inside) && !/Increase volume|Decrease volume/.test(v.all) && v.ring === 'effects,calquiet,calloud,ambient,ambquiet,ambloud,caldone';
   // the brightness dialog's shape, read back off its canvas: the background, the brightest and how much of it there is
   const brightLook = (page, sel) => page.evaluate(sel => {
@@ -70,7 +71,7 @@ async function run(browser, check) {
     const slider = sl ? { min: +sl.min, max: +sl.max, step: +sl.step, value: +sl.value, pct: pct.textContent, aria: sl.getAttribute('aria-valuetext'), name: name.textContent, labelled: sl.closest('label') === opt, under: sr.top >= r.bottom - 1, nameLeft: name.getBoundingClientRect().right <= sr.left, pctRight: pct.getBoundingClientRect().left >= sr.right, beforeDone: sr.bottom <= dr.top + 1 || sr.right <= dr.left, w: Math.round(sr.width), inView: sr.top >= 0 && sr.bottom <= innerHeight && sr.left >= 0 && pct.getBoundingClientRect().right <= innerWidth } : null;
     const filt = e => e ? getComputedStyle(e).filter : null;
     return { h: root.querySelector('h1').textContent, text: root.querySelector('.caltext').textContent, w: r.width, hgt: r.height, inView: r.top >= 0 && r.bottom <= innerHeight && dr.bottom <= innerHeight,
-      corner: corner.join(), max: max.join(), robeShare: robe / (d.length / 4), otherShare: other / (d.length / 4), tall: (bottom - top) / cv.height, done: root.querySelector('button[data-act="caldone"]').textContent, focus: document.activeElement && document.activeElement.dataset.act, slider,
+      sliders: root.querySelectorAll('input[type=range]').length, corner: corner.join(), max: max.join(), robeShare: robe / (d.length / 4), otherShare: other / (d.length / 4), tall: (bottom - top) / cv.height, done: root.querySelector('button[data-act="caldone"]').textContent, focus: document.activeElement && document.activeElement.dataset.act, slider,
       // what is under the brightness filter (the view, the title's scene, this creature) and what is not (the card, its words, the HUD)
       filters: { game: filt(document.getElementById('game')), title: filt(document.getElementById('titleScene')), shape: filt(cv), card: filt(root), words: filt(root.querySelector('.caltext')), overlay: filt(document.getElementById('overlay')), hud: filt(document.getElementById('hud')), html: filt(document.documentElement), body: filt(document.body) },
       cls: document.documentElement.classList.contains('bright'), v: SAVE.data.settings.brightness, saved: (JSON.parse(localStorage.getItem('itscoming.v2') || '{}').settings || {}).brightness };
@@ -133,6 +134,25 @@ async function run(browser, check) {
       'Play the quietest: seven, ' + spread + ' ms from the first to the last (about two seconds): twice in the left ear, left of centre, centre, right of centre, twice in the right; then done, its mark a play mark again (' + JSON.stringify(q) + ')');
     const steps = q.at.map(t => t - q.at[0]);   // (each one's time from the first: on its own timer, so one late does not push the rest)
     check(steps.every((t, i) => Math.abs(t - i * 300) < 160), 'a steady 0.3 s apart (' + steps.join(', ') + ' ms from the first)');
+    // with captions for sounds on, the quietest is captioned "footsteps" for as long as it plays, as the game captions a
+    // sound (its line in its corner, a speaker before it, the side it is on marked: left, then the middle, then right),
+    // and the line goes when it is over; with captions off there is no line
+    const capWatch = ms => page.evaluate(ms => new Promise(done => {
+      const c = document.getElementById('caption'), seen = [], t0 = performance.now();
+      document.querySelector('#overlay button[data-act="calquiet"]').click();
+      const iv = setInterval(() => {
+        const t = c.classList.contains('show') ? c.textContent : '';
+        if (seen[seen.length - 1] !== t) seen.push(t);
+        if (performance.now() - t0 > ms) { clearInterval(iv); const r = c.getBoundingClientRect(), p = document.querySelector('#overlay .panel').getBoundingClientRect(); done({ seen, icon: !!c.querySelector('svg'), corner: r.left < 40 && r.top < 90, clear: r.right <= p.left || r.bottom <= p.top, playing: AUDIO.calibration.playing }); }
+      }, 15);
+    }), ms);
+    await page.evaluate(() => MENU.applySetting('captions', true));
+    const cq = await capWatch(2900);
+    await page.evaluate(() => MENU.applySetting('captions', false));
+    const cq0 = await capWatch(700);
+    await page.evaluate(() => document.querySelector('#overlay button[data-act="calquiet"]').click()); await page.waitForTimeout(200);
+    check(cq.seen.filter(Boolean).join('|') === '\u25C0 footsteps|footsteps|footsteps \u25B6' && cq.seen[cq.seen.length - 1] === '' && cq.icon && cq.corner && cq.clear && !cq.playing && cq0.seen.join('') === '' && cq0.playing,
+      'captions on: the quietest sound is captioned "footsteps" while it plays (a speaker before it, in the top left corner clear of the dialog, the side marked as it goes over), and the line goes when it is over; captions off: no line (' + JSON.stringify([cq, cq0]) + ')');
     const ic0 = await icons(page);
     await page.click('#overlay button[data-act="calquiet"]'); await page.waitForTimeout(120);
     const q1 = await page.evaluate(() => ({ c: AUDIO.calibration, cls: document.querySelector('button[data-act="calquiet"]').classList.contains('playing') }));
@@ -200,57 +220,28 @@ async function run(browser, check) {
     // Brightness
     await page.click('#overlay button[data-act="calbright"]'); await page.waitForTimeout(200);
     let b = await brightLook(page, '#overlay .panel');
-    check(b.h === 'Brightness' && b.text === BRIGHT_TEXT && b.done === 'Done' && b.focus === 'caldone' && !(await page.evaluate(() => AUDIO.hushed)), 'Brightness\'s Calibrate opens its dialog: its words (the slider in them now), the creature, Done focused (the ambience not faded for it) (' + JSON.stringify(b) + ')');
+    check(b.h === 'Brightness' && b.text === BRIGHT_TEXT && b.done === 'Done' && b.focus === 'caldone' && !(await page.evaluate(() => AUDIO.hushed)), 'Brightness\'s Calibrate opens its dialog: its words (the device\'s brightness, and no slider), the creature, Done focused (the ambience not faded for it) (' + JSON.stringify(b) + ')');
     check(b.corner === '0,0,0' && b.max === '12,10,15' && b.robeShare > 0.02 && b.tall > 0.8 && b.hgt >= 300 && b.w >= 400 && b.inView, 'the title\'s creature, the whole of it standing, in the demon\'s robe colour unlit (12, 10, 15) on the void\'s black, nothing lighter (no glow, no light behind it, no eyes), large (' + JSON.stringify(b) + ')');
-    // the game's own brightness: a slider under the creature, 60% to 160% in steps of 5%, at 100% to begin with, its
-    // name at its left and its percentage at its right; at 100% no filter on anything at all
-    const S = b.slider;
-    check(S && S.name === 'Brightness' && S.labelled && S.min === 0.6 && S.max === 1.6 && Math.abs(S.step - 0.05) < 1e-9 && S.value === 1 && S.pct === '100%' && S.aria === '100%' && S.under && S.nameLeft && S.pctRight && S.beforeDone && S.inView && S.w >= 150,
-      'under the creature, the brightness slider: Brightness, 60% to 160% by 5%, at 100%, its percentage beside it, over Done (' + JSON.stringify(S) + ')');
-    check(b.v === 1 && !b.cls && NOFILTER(b.filters), 'at 100% there is no filter at all: not on the view, the title\'s scene or this creature, nor on anything else (' + JSON.stringify(b.filters) + ')');
+    // the game has no brightness of its own any more: no slider in the dialog (Done is all there is to press), nothing in
+    // the settings or the save, no filter on anything, and the rule and the plumbing for one are gone
+    const gone = await page.evaluate(() => ({ save: 'BRIGHT' in SAVE, menu: 'brightness' in MENU, css: [...document.styleSheets].some(ss => [...ss.cssRules].some(r => /\.bright\b|--bright/.test(r.cssText))), ring: [...document.querySelectorAll('#overlay button[data-act], #overlay input')].map(e => e.dataset.act || e.dataset.set).join() }));
+    check(!b.slider && b.sliders === 0 && b.v === undefined && b.saved === undefined && !b.cls && NOFILTER(b.filters) && !gone.save && !gone.menu && !gone.css && gone.ring === 'caldone',
+      'no brightness slider: nothing in the dialog but Done, no brightness in the settings or the save, no filter on the view, the title\'s scene, the creature or anything else, no rule for one (' + JSON.stringify([b.sliders, b.v, b.saved, b.filters, gone]) + ')');
     await shot(page, 'settings-brightness-desktop');
-    // moved by the keys: its percentage follows as it goes, the view, the title's scene and the creature here are shown
-    // through a brightness filter of that much (and nothing else is: not the card, its words, the menus or the HUD), saved
-    await page.evaluate(() => document.querySelector('#overlay input[data-set="brightness"]').focus());
-    await page.keyboard.press('ArrowRight'); await page.waitForTimeout(80);
-    const b1 = await brightLook(page, '#overlay .panel');
-    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
-    await page.waitForTimeout(80);
-    const b2 = await brightLook(page, '#overlay .panel');
-    check(Math.abs(b1.v - 1.05) < 1e-9 && b1.slider.pct === '105%' && b1.slider.aria === '105%' && b1.cls && FILTERED(b1.filters, 1.05) && Math.abs(b1.saved - 1.05) < 1e-9 && b1.h === 'Brightness',
-      'right on it: 105%, its percentage following; the view, the title\'s scene and this creature under a brightness(1.05) filter, the card and the menus not; saved (' + JSON.stringify([b1.v, b1.slider.pct, b1.filters, b1.saved]) + ')');
-    check(Math.abs(b2.v - 1.2) < 1e-9 && b2.slider.pct === '120%' && FILTERED(b2.filters, 1.2) && b2.max === '12,10,15', 'three more: 120%, the filter with it (the creature is drawn as ever: it is the filter that brightens it, as it does the game) (' + JSON.stringify([b2.v, b2.slider.pct, b2.filters.shape]) + ')');
-    await shot(page, 'settings-brightness-desktop-120');
-    await page.keyboard.press('End'); await page.waitForTimeout(60); const bmax = await brightLook(page, '#overlay .panel');
-    await page.keyboard.press('Home'); await page.waitForTimeout(60); const bmin = await brightLook(page, '#overlay .panel');
-    check(Math.abs(bmax.v - 1.6) < 1e-9 && bmax.slider.pct === '160%' && FILTERED(bmax.filters, 1.6) && Math.abs(bmin.v - 0.6) < 1e-9 && bmin.slider.pct === '60%' && FILTERED(bmin.filters, 0.6), 'its ends: 160% and 60% (' + JSON.stringify([bmax.slider.pct, bmin.slider.pct, bmin.filters.game]) + ')');
-    // back at 100% the filter is gone again, not left on at brightness(1)
-    await page.evaluate(() => { const i = document.querySelector('#overlay input[data-set="brightness"]'); i.value = 1; i.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(60);
-    const b3 = await brightLook(page, '#overlay .panel');
-    check(b3.v === 1 && b3.slider.pct === '100%' && !b3.cls && NOFILTER(b3.filters) && b3.saved === 1, 'back at 100%: no filter left on anything (' + JSON.stringify(b3.filters) + ')');
-    // kept through a reload, on the title and in a night; Set to default (in Settings) puts it back to 100%, no filter
-    await page.evaluate(() => MENU.applySetting('brightness', 1.3));
-    await page.reload(); await page.waitForTimeout(400);
-    const r1 = await page.evaluate(() => ({ v: SAVE.data.settings.brightness, cls: document.documentElement.classList.contains('bright'), title: getComputedStyle(document.getElementById('titleScene')).filter, game: getComputedStyle(UI.canvas).filter, overlay: getComputedStyle(UI.overlay).filter, mute: getComputedStyle(UI.mute).filter }));
-    await page.evaluate(() => startLevel(1, false)); await page.waitForTimeout(300);
-    const r2 = await page.evaluate(() => ({ st: G.state, game: getComputedStyle(UI.canvas).filter, hud: getComputedStyle(UI.hud).filter, inv: getComputedStyle(UI.inv).filter }));
-    await page.evaluate(() => { showTitle(); MENU.show('settings', { from: 'title' }); }); await page.waitForTimeout(150);
-    await page.click('#overlay button[data-act="defaults"]'); await page.waitForTimeout(150);
-    const r3 = await page.evaluate(() => ({ v: SAVE.data.settings.brightness, saved: JSON.parse(localStorage.getItem('itscoming.v2')).settings.brightness, cls: document.documentElement.classList.contains('bright'), game: getComputedStyle(UI.canvas).filter, title: getComputedStyle(document.getElementById('titleScene')).filter, kind: MENU.kind }));
-    await page.click('#overlay button[data-act="calbright"]'); await page.waitForTimeout(150);
-    const r4 = await brightLook(page, '#overlay .panel');
-    check(r1.v === 1.3 && r1.cls && r1.title === 'brightness(1.3)' && r1.game === 'brightness(1.3)' && r1.overlay === 'none' && r1.mute === 'none' && r2.st === 'play' && r2.game === 'brightness(1.3)' && r2.hud === 'none' && r2.inv === 'none',
-      'set to 130%: kept through a reload, on the title\'s scene and on the view in a night (its HUD and the menus never under it) (' + JSON.stringify([r1, r2]) + ')');
-    check(r3.v === 1 && r3.saved === 1 && !r3.cls && r3.game === 'none' && r3.title === 'none' && r3.kind === 'settings' && r4.slider.value === 1 && r4.slider.pct === '100%' && NOFILTER(r4.filters), 'Set to default puts it back to 100%, saved, no filter; its slider at 100% again (' + JSON.stringify([r3, r4.slider.pct]) + ')');
-    // a save from before there was one, or with a value out of its range: 100%, or the nearest end
+    // an old save with a brightness in it (in range, out of it, not a number): it loads without error, the brightness is
+    // ignored and dropped (the save written again without it), the rest of its settings kept; nothing is filtered
     const olds = [];
-    for (const [val, want] of [[undefined, 1], [0.2, 0.6], [9, 1.6], ['x', 1], [1.25, 1.25]]) {
-      await page.evaluate(val => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); if (val === undefined) delete d.settings.brightness; else d.settings.brightness = val; localStorage.setItem('itscoming.v2', JSON.stringify(d)); }, val);
+    for (const val of [1.3, 0.2, 9, 'x', null]) {
+      await page.evaluate(val => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.settings.brightness = val; d.settings.effects = 0.4; localStorage.setItem('itscoming.v2', JSON.stringify(d)); }, val);
       await page.reload(); await page.waitForTimeout(250);
-      olds.push([val === undefined ? 'none' : val, await page.evaluate(() => SAVE.data.settings.brightness), want]);
+      olds.push(await page.evaluate(() => ({ has: 'brightness' in SAVE.data.settings, saved: 'brightness' in JSON.parse(localStorage.getItem('itscoming.v2')).settings, eff: SAVE.data.settings.effects, cls: document.documentElement.classList.contains('bright'), game: getComputedStyle(UI.canvas).filter, title: getComputedStyle(document.getElementById('titleScene')).filter, kind: MENU.kind })));
     }
-    check(olds.every(o => o[1] === o[2]), 'a save with no brightness is at 100%; one out of range is brought to the nearest end (' + JSON.stringify(olds) + ')');
-    await page.evaluate(() => { MENU.applySetting('brightness', 1); MENU.show('settings', { from: 'title', sub: 'brightness' }); }); await page.waitForTimeout(150);
+    check(olds.every(o => !o.has && !o.saved && o.eff === 0.4 && !o.cls && o.game === 'none' && o.title === 'none' && o.kind === 'title') && !errors.length,
+      'an old save with a brightness (1.3, 0.2, 9, a word, null) loads without error: the brightness dropped from the settings and from the save, the rest kept, no filter (' + JSON.stringify(olds) + ', errors ' + JSON.stringify(errors) + ')');
+    await page.evaluate(() => { MENU.applySetting('effects', 1); MENU.show('settings', { from: 'title' }); }); await page.waitForTimeout(150);
+    await page.click('#overlay button[data-act="defaults"]'); await page.waitForTimeout(150);
+    check(await page.evaluate(() => MENU.kind === 'settings' && !('brightness' in SAVE.data.settings) && !('brightness' in JSON.parse(localStorage.getItem('itscoming.v2')).settings)), 'Set to default puts no brightness back');
+    await page.evaluate(() => { MENU.show('settings', { from: 'title', sub: 'brightness' }); }); await page.waitForTimeout(150);
     await page.keyboard.press('Escape'); await page.waitForTimeout(150);
     v = await page.evaluate(() => ({ sub: MENU.sub, focus: document.activeElement.dataset.act }));
     await page.click('#overlay button[data-act="calbright"]'); await page.waitForTimeout(150);
@@ -297,12 +288,7 @@ async function run(browser, check) {
     check(v.kind === 'settings' && !v.sub && v.focus === 'calvol' && !v.playing && v.st === 'paused' && !lv2.hushed && lv2.ambient > 0.9, 'Done: Settings again, over the paused night, Calibrate focused, the sound stopped, the night\'s bed faded back in (' + JSON.stringify([v, lv2]) + ')');
     await page.click('#overlay button[data-act="calbright"]'); await page.waitForTimeout(150);
     const b = await brightLook(page, '#overlay .panel');
-    check(b.max === '12,10,15' && b.robeShare > 0.02 && b.inView && b.slider && b.slider.pct === '100%' && NOFILTER(b.filters), 'and Brightness from there too, its slider at 100% and no filter on the paused view (' + JSON.stringify(b) + ')');
-    await page.evaluate(() => document.querySelector('#overlay input[data-set="brightness"]').focus());
-    await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(80);
-    const bn = await brightLook(page, '#overlay .panel');
-    check(Math.abs(bn.v - 0.9) < 1e-9 && bn.slider.pct === '90%' && FILTERED(bn.filters, 0.9) && await page.evaluate(() => G.state === 'paused'), 'turned down there: the paused night behind it darker at once (brightness(0.9) on the view), still paused (' + JSON.stringify([bn.v, bn.filters.game]) + ')');
-    await page.evaluate(() => { const i = document.querySelector('#overlay input[data-set="brightness"]'); i.value = 1; i.dispatchEvent(new Event('input', { bubbles: true })); });
+    check(b.max === '12,10,15' && b.robeShare > 0.02 && b.inView && !b.slider && b.sliders === 0 && NOFILTER(b.filters) && await page.evaluate(() => G.state === 'paused'), 'and Brightness from there too: the creature, no slider, no filter on the paused view (' + JSON.stringify(b) + ')');
     await page.keyboard.press('Escape'); await page.waitForTimeout(150);
     await page.keyboard.press('Escape'); await page.waitForTimeout(150);
     v = await page.evaluate(() => ({ kind: MENU.kind, focus: document.activeElement.dataset.act, st: G.state }));
@@ -350,15 +336,11 @@ async function run(browser, check) {
     await padTap(13); const p1 = await focusAct(page);
     await padTap(0); await page.waitForTimeout(150);
     const b = await brightLook(page, '#disclaimer .dcard');
-    // (the brightness slider there, by the pad: up from Done to it, right is a step brighter, the filter on at once)
-    await padTap(12); const pb1 = await page.evaluate(() => document.activeElement.dataset.set);
+    // (no slider there either: up from Done goes nowhere else, right changes nothing)
+    await padTap(12); const pb1 = await focusAct(page);
     await padTap(15); await page.waitForTimeout(60);
     const pb2 = await brightLook(page, '#disclaimer .dcard');
-    await padTap(14); await page.waitForTimeout(60);
-    const pb3 = await brightLook(page, '#disclaimer .dcard');
-    await padTap(13); const pb4 = await focusAct(page);
-    check(b.slider && b.slider.pct === '100%' && b.slider.under && b.slider.inView && pb1 === 'brightness' && Math.abs(pb2.v - 1.05) < 1e-9 && pb2.slider.pct === '105%' && pb2.filters.shape === 'brightness(1.05)' && pb2.filters.game === 'brightness(1.05)' && pb2.filters.card === 'none' && pb3.v === 1 && pb3.filters.shape === 'none' && pb4 === 'caldone',
-      'in the warning\'s card the brightness slider too: a pad\'s d-pad up to it, right a step brighter (the creature under the filter at once), left back to 100% and no filter, down to Done again (' + JSON.stringify([pb1, pb2.v, pb2.filters.shape, pb3.v, pb3.filters.shape, pb4]) + ')');
+    check(!b.slider && b.sliders === 0 && pb1 === 'caldone' && pb2.h === 'Brightness' && NOFILTER(pb2.filters), 'in the warning\'s card no brightness slider either: a pad\'s d-pad stays on Done, and nothing is filtered (' + JSON.stringify([pb1, pb2.h, pb2.filters.shape]) + ')');
     await padTap(1); await page.waitForTimeout(150);
     const p2 = await page.evaluate(() => ({ h: document.querySelector('#disclaimer h1').textContent, focus: document.activeElement.dataset.act }));
     await padTap(0); await page.waitForTimeout(150); await padTap(9); await page.waitForTimeout(150);
@@ -419,15 +401,8 @@ async function run(browser, check) {
     await page.tap(root + ' button[data-act="calbright"]'); await page.waitForTimeout(250);
     const b = await brightLook(page, sel); f0 = await fits();
     check(b.text === BRIGHT_TEXT && b.max === '12,10,15' && b.hgt >= 150 && b.tall > 0.8 && b.inView && f0.scroll <= 0 && f0.wide <= 0, from + ', on a phone: the brightness dialog fits (nothing scrolled, down or across), the creature large enough to judge (' + JSON.stringify([b, f0]) + ')');
-    check(b.slider && b.slider.name === 'Brightness' && b.slider.pct === '100%' && b.slider.under && b.slider.beforeDone && b.slider.inView && b.slider.w >= 120 && NOFILTER(b.filters), from + ', on a phone: its slider under the creature, beside Done, all in view, at 100% with no filter (' + JSON.stringify(b.slider) + ')');
+    check(!b.slider && b.sliders === 0 && NOFILTER(b.filters), from + ', on a phone: no slider under the creature, only Done; no filter (' + JSON.stringify([b.sliders, b.filters]) + ')');
     await shot(page, 'settings-brightness-phone-' + from);
-    // dragged by a finger (as a tap along it): brighter, the filter on the creature and the view, its percentage following
-    const box = await page.evaluate(root => { const r = document.querySelector(root + ' input[data-set="brightness"]').getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width }; }, root);
-    await page.touchscreen.tap(box.x + box.w * 0.92, box.y); await page.waitForTimeout(150);
-    const bt = await brightLook(page, sel), ft = await fits();
-    check(bt.v > 1.4 && bt.slider.pct === Math.round(bt.v * 100) + '%' && bt.filters.shape === 'brightness(' + bt.v + ')' && bt.filters.game === bt.filters.shape && bt.filters.card === 'none' && ft.scroll <= 0 && ft.wide <= 0, from + ', on a phone: a tap along the slider sets it (' + bt.slider.pct + '), the creature and the view brighter at once, the dialog still fitting (' + JSON.stringify([bt.v, bt.filters.shape, ft]) + ')');
-    await shot(page, 'settings-brightness-phone-' + from + '-bright');
-    await page.evaluate(() => MENU.applySetting('brightness', 1));
     await page.tap(root + ' button[data-act="caldone"]'); await page.waitForTimeout(200);
     check(await page.evaluate(root => document.querySelector(root + ' h1').textContent === 'Settings', root), from + ', on a phone: Done, Settings again');
     if (errors.length) check(false, 'no page errors: ' + errors.join(' | '));
