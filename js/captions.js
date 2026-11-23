@@ -39,7 +39,7 @@ const CAPTIONS = (() => {
     if (soft && hideAt > now) return;
     if (last.has(text) && now - last.get(text) < (gap || 1500)) return;
     last.set(text, now);
-    put(text, pan, now); calUp = false;
+    put(text, pan, now); calUp = false; if (el) el.classList.remove('cal');
   }
   function put(text, pan, now) {
     if (!el) { el = document.getElementById('caption'); words = el && el.querySelector('.ctx'); }
@@ -56,7 +56,7 @@ const CAPTIONS = (() => {
   // the volume dialog's quietest sound (js/menu.js calPlay): "footsteps" for as long as it plays, the side marker going
   // over from the left to the right with it. Each of its beats says it again (cal: never held back as a repeat), and
   // when it is over or stopped the line goes at once (calOver: only if it is still this one that is up)
-  function cal(pan) { if (!on()) return; put('footsteps', pan || 0, performance.now()); calUp = true; }
+  function cal(pan) { if (!on()) return; put('footsteps', pan || 0, performance.now()); calUp = true; if (el) el.classList.add('cal'); }
   function calOver() { if (calUp) hide(); }
   // every line there is (the tests measure them against the page)
   const all = () => [...Object.values(SFX), ...Object.values(STEPS), ...Object.values(VOICES), 'rain and wind', 'a low hum', 'wind', 'footsteps'];

@@ -523,7 +523,7 @@
     .calp .calplay { padding: 6px 12px 6px 9px; gap: 10px; font-size: calc(13.5px * var(--text-scale)); letter-spacing: .01em; }
     .calp .calico { width: 26px; height: 26px; } .calp .calico svg { width: 12px; height: 12px; }
     .calp .calvol .opt { min-height: 24px; }
-    .calp .calshape { height: max(140px, 100vh - 196px - 60px * (var(--text-scale) - 1)); margin-top: 0; }   /* (less of it the more the bigger text takes) */
+    .calp .calshape { height: max(140px, 100vh - 170px - 80px * (var(--text-scale) - 1)); margin-top: 0; }   /* (less of it the more the bigger text takes) */
     .calp .mrow, #disclaimer .dset.calp .mrow { margin-top: 8px; }
   }
   @media (max-height: 520px) and (min-width: 700px) {
@@ -576,7 +576,7 @@
   #caption { position: fixed; z-index: 1001; pointer-events: none; top: 50px; left: 20px; box-sizing: border-box; max-width: calc(50vw - 95px); display: flex; align-items: center; gap: .45em; font-size: min(calc(14px * var(--text-scale)), 2vw); line-height: 1.25; font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
   #caption.show { opacity: 1; }
   #caption svg { flex: none; width: 1em; height: 1em; opacity: .8; filter: drop-shadow(0 1px 2px #000); }
-  #caption .ctx { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  #caption .ctx { min-width: 0; overflow: hidden; text-overflow: ellipsis; padding-right: .2em; }   /* (the padding: an italic's last letter leans out of its box) */
   :root[data-theme="day"] #caption { color: #2e2823; text-shadow: 0 1px 2px #fff; }
   :root[data-theme="day"] #caption svg { filter: none; }
   :root[data-theme="day"] .opt, :root[data-theme="day"] #overlay .controls b { color: #2e2823; }
@@ -635,6 +635,7 @@
     body.menu #zoomBtn { display: none; }   /* (the menu button stays over a night's card, the death screen and the win screen: body.tplay is on only where the pause menu can be opened, js/game.js touchChrome) */
     #menuBtn { top: max(12px, env(safe-area-inset-top)); }
     /* a sound's caption under the menu button, a little smaller: its one line ends above the words under the compass */
+    #caption.cal { top: max(8px, env(safe-area-inset-top)); }   /* (the volume dialog's: no menu button there, and the dialog fills a phone: in the corner by its heading, over none of its words) */
     #caption { top: calc(max(12px, env(safe-area-inset-top)) + 42px); left: max(14px, env(safe-area-inset-left)); max-width: calc(50vw - 48px - max(14px, env(safe-area-inset-left))); font-size: min(calc(13px * var(--text-scale)), 2.1vw, 19px); }
     #objective { right: max(20px, calc(env(safe-area-inset-right) + 6px)); }
     body.fsok #objective { right: calc(max(14px, env(safe-area-inset-right)) + 52px); }
