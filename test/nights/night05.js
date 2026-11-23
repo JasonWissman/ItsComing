@@ -130,6 +130,8 @@ const batShot = ['eval', `(() => {
   drawPress(L, null, 'mouse');
   g = 0; while (!(G.draw && G.draw.full) && g++ < 200) { aim(); step(1); }
   for (let i = 0; i < 8; i++) { aim(); step(1); }
+  // (held full, as a player would, until it is in open sky and clear of the thing: a bat gone up behind the porch roof's edge, or across the thing, is not there to be hit)
+  g = 0; while (g++ < 900) { const p = aim(); if (CLEARING_BATS.clear(L, b) && far(p) && CLEARING_BATS.at(L, { x: p.x, y: p.y }) === b) break; step(1); }
   aim(); r.y0 = b.y;
   drawLetGo('mouse'); G.drawSwallow = false;
   r.out = s.outcomes[s.outcomes.length - 1]; r.drawOut = G.draw && G.draw.outcome;
