@@ -377,8 +377,9 @@ some on the ground, so you have to turn and look down to find them.
    anywhere on the tower below you (the hover says "Drop the toolbox on it." whenever you can point at it), the box
    comes all the way down the stone to it, the fall taking as long as the height needs (about a quarter of a second to
    it just under the rail, 1.7 s to it 15 m off, 2.5 s to it at the foot of its climb), coming across the face to it as
-   it falls if it has moved, and catches it full in its upturned face
-   with a clonk: its head snaps round, one hand and both feet come off the stone and it hangs by the other arm,
+   it falls if it has moved, and catches it full in its upturned face (the box is drawn coming down the wall onto its
+   face as you see it, and lands as its edge meets the brow, at any distance)
+   with a clang of iron on iron (the quarry gate's): its head snaps round, one hand and both feet come off the stone and it hangs by the other arm,
    swinging, for about a second; then it swings back in, hooks on again and climbs on from where it was (stopped there
    for under two seconds in all), and from then on it has a black eye, one eye swollen all but shut and purple-black
    round it, on the wall and in your face if it gets you. It is not a win: the toolbox bounces off into the sea and the
@@ -386,8 +387,9 @@ some on the ground, so you have to turn and look down to find them.
    on the horizon, each a small soft glow. A fuse tried with the blown one still in knocks against it and comes
    back to your hand; the blown fuse you pulled, pushed back into the empty clips, sits there a beat with nothing
    coming on and drops out onto the floor. A storm is on: now and then the lightning flashes, and a second or few later
-   the thunder comes; as it sounds the view lifts a little toward a cold blue-white, a flicker as the rumble comes in and
-   a stronger one with the crack, dying away in a second (with reduced flashing, one soft swell a third as strong).
+   the thunder comes; as it sounds the view lifts plainly toward a cold blue-white (up to a third of the way), a flicker
+   as the rumble comes in, the strongest with the crack and a third after it, dying away over two seconds (with reduced
+   flashing, one soft swell under a third as strong).
 8. **The Diner.** Something tall is out in the lot, taller than a man should be: a long
    belted trenchcoat in a dull dark drab, its collar turned up, grey hands hanging at its sides,
    and a hat with its brim pulled low. Under the brim there is no face, only shadow, black

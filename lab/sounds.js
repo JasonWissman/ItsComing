@@ -51,7 +51,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'sugarBuzz', n: [3], d: 'A buzz that climbs and quickens, jittering, and ends on a ping. The sugar takes hold: it begins to tremble, then tears off round the graveyard. About 0.9 s.', src: 'night03 (easter egg)' },
   { kind: 'sfx', name: 'skid', n: [3], d: 'Boots scraping over gravel, grit flying, and a thump as they stop. Wired, it skids to a stop at the salt.', src: 'night03 (easter egg)' },
   { kind: 'sfx', name: 'shudder', n: [3], d: 'A quick rattle, its keys jangling with it. Stopped at the salt, the sugar still going through it.', src: 'night03 (easter egg)' },
-  { kind: 'sfx', name: 'gate', n: [4], d: 'Iron on iron, a heavy clang. The quarry gates shut and shaken (4).', src: 'night04' },
+  { kind: 'sfx', name: 'gate', n: [4, 7], d: 'Iron on iron, a heavy clang. The quarry gates shut and shaken (4); the dropped toolbox catching the climber full in the face, with the box’s clatter (7, the night’s easter egg).', src: 'night04 · night07 toolbox hit' },
   { kind: 'sfx', name: 'creak', n: [4, 6, 7], d: 'A long creak of hinges. Gates and doors swinging, boxes and lids opening.', src: 'night04, 06, 07 · levels.js opening' },
   // ---- night 4: the quarry ----
   { kind: 'sfx', name: 'hinge', n: [4], d: 'One reedy iron note, steady, rising a little (about 2.5 semitones) as a heavy gate swings, and gone as it stops. A quarry gate pulled shut, swinging until it clangs into its post.', src: 'night04 gate' },
@@ -79,7 +79,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'lampOn', n: [7, 12], d: 'A deep hum rising as a lamp comes on.', src: 'night07, night12' },
   { kind: 'sfx', name: 'thunder', n: [7], d: 'A long low rumble a few seconds after each lightning flash.', src: 'weather.js (lightning only on night 7)' },
   { kind: 'sfx', name: 'plunge', n: [7], d: 'A deep thump and spray, far below. Something falls into the sea.', src: 'night07' },
-  { kind: 'sfx', name: 'clonk', n: [7], d: 'One hard, hollow knock with a short dull ring of steel and the tools jumping in the box. The dropped toolbox catches the climber full in the face (the night’s easter egg); the box’s clatter plays with it.', src: 'night07 toolbox hit' },
+  { kind: 'sfx', name: 'clonk', n: [7], d: 'One hard, hollow knock with a short dull ring of steel and the tools jumping in the box. It was the dropped toolbox catching the climber full in the face; that is the gate’s clang (gate) now, and nothing plays this at present.', src: 'not played (was night07 toolbox hit)' },
   // ---- night 8: the diner ----
   { kind: 'sfx', name: 'glassTap', n: [8], d: 'Three light taps on glass. It touches the windows as it passes; your knuckle on the glass.', src: 'night08' },
   { kind: 'sfx', name: 'glassGive', n: [8], d: 'Glass groaning and starting to crack. A window is giving way.', src: 'night08' },

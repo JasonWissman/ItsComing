@@ -178,7 +178,7 @@
       { name: 'The last pass: it lets go and falls', note: 'The second pass of the light: it slides on, scrabbling at the stone and catching at nothing, peels away and falls, turning over, into the sea.',
         dist: 6, dur: 4.4, modes: true, still: true, back: wall, front: splash, draw: fallDraw,
         set(c) { start('climb')(c); c.distFn = () => c.dist; c.frozen = true; c.labBeams = [0.5]; }, tick: after({ hits: [{ t: 0.5, last: true }] }) },
-      { name: 'Hit by the dropped toolbox', note: 'Dropped over the rail within reach, the toolbox comes down the stone onto its upturned face with a clonk: its head snaps round, one hand and both feet come off the stone and it hangs by the other arm, swinging, for about a second; then it swings back in, hooks on and climbs on, with a black eye coming up.',
+      { name: 'Hit by the dropped toolbox', note: 'Dropped over the rail within reach, the toolbox comes down the stone onto its upturned face with a clang: its head snaps round, one hand and both feet come off the stone and it hangs by the other arm, swinging, for about a second; then it swings back in, hooks on and climbs on, with a black eye coming up.',
         dist: 6, dur: BOX + CR.dangleFor + 2.4, modes: true, seen: true, still: true, back: wall, front: toolbox, fit: { h: 2.0, w: 2.4, y0: 0 }, set: start('play'), tick: hit },
       { name: 'Hanging by one hand', note: 'The middle of that, held: one hand hooked in the stone, the other thrown out and clawing at the air, its feet off the wall and kicking, all of it swinging under the one arm; the eye that took the box screwed shut.',
         dist: 4.5, dur: CLIMB.dangle.hang, modes: false, still: true, back: wall, fit: { h: 2.0, w: 2.4, y0: 0 },
