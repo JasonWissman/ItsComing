@@ -821,7 +821,7 @@ some on the ground, so you have to turn and look down to find them.
     the view is taken (level, to the north), and out of the dark each of the twelve others,
     in the order of their nights, one at a time, 2.5 s apart (so the claiming takes about half
     a minute), rushes up to you along its own way (0.7 s,
-    to under two metres, with its own steps and voice and a jolt of the view). Half a second
+    to under two metres, the low ones, the crawler and the doll, to a little over two so that they stay in the view; with its own steps and voice and a jolt of the view). Half a second
     before each sets out, your hand holds up what was its own: the game's own held thing
     (js/hands.js, told what to hold by the night), raised higher and further in toward the
     middle than a thing is carried; one hand only, the other empty. A thing you had put down
@@ -854,13 +854,20 @@ some on the ground, so you have to turn and look down to find them.
     joy, each in its own time, arms up where they have them (the stone one in a new pose
     each time it comes down), as its happy face comes up out of the hood and it takes off
     its robe and dances, the music box plays, and the dark turns to the pale light and the
-    meadow (this one without its wild flowers, only grass: there is a crowd in it to draw), all thirteen of them in it, leaping. And once they have leapt there a few seconds
+    meadow (this one without its wild flowers, only grass, and every other tuft of that: there is a crowd in it to draw), all thirteen of them in it, leaping. And once they have leapt there a few seconds
     (from 45.8 s, one after another over two seconds, just after the meadow starts waiting
     for your press) they frolic, for as long as you stay: each runs about the meadow in its
     own gait and at its own speed (the runner 5 m/s, the crawler and the warden over 3, the
     doll and the walker a little over 2), in loops and darts, making for one spot and then
-    another or after one of the others, with little hops as it goes, turned and leaning the
-    way it goes; every eight to twelve seconds each stops to leap on the spot a few seconds
+    another or after one of the others, with little hops as it goes, leaning the
+    way it goes. Each is a flat drawing and is never turned about its upright (no squeezing
+    thin as it comes round): going to the other side of you it is mirrored, whole and at once,
+    after 0.14 s going that way so it does not flicker; and the five that have a side-on run
+    of their own (the crawler, the runner, the doll, the carrier and the customer) are drawn
+    by it, facing the way they go, while they run mostly across your view, and front on
+    coming toward you or going away. The walker, the warden, the climber, the shade, the
+    tall one and the thing in the hood keep their front-on drawing, mirrored (the stone one
+    and the swimmer do not run). Every eight to twelve seconds each stops to leap on the spot a few seconds
     and is off again. The thing in the hood, in its shirt and shorts, skips about among them,
     kicking and hopping, and stops to dance; its robe stays in a heap where it fell. The
     stone one is never seen to move: every second or two it is somewhere else in the meadow,

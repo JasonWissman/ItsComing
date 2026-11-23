@@ -16,7 +16,7 @@
 // there you may look about as long as you like; a press and it is the bedroom. The bow still comes up and draws as it did on night 5, but it is
 // never loosed: drawn at, it comes for you, faster and faster, and is on you before the bow is full.
 const VOID_TOOLS = [
-  ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Bag of salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
+  ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
   ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['handle', 'Winch handle', 0.45, 0.45],
   ['fuse', 'Fuse', 0.34, 0.34], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['beam', 'Bar', 1.4, 0.45], ['journal', 'Notebook', 0.2, 0.26], ['bulb', 'Bulb', 0.2, 0.3],
 ];
@@ -640,10 +640,11 @@ function buildMeadow(L, s, c0) {
     } };
     sprites.push(p);
   };
+  let tufts = 0;
   const tuft = (b, r) => {
     const n = 4 + Math.floor(rng() * 3), h = rnd(0.14, 0.32), ph = rnd(0, TAU), y = groundY(b, r), q = at(b, r, y), blades = [];
     for (let i = 0; i < n; i++) blades.push([(i - (n - 1) / 2) * 0.014, rnd(-0.07, 0.07), h * rnd(0.6, 1.1), rng() < 0.5]);
-    const p = { kind: 'sprite', x: q.x, y, z: q.z, w: 0.22, h: h + 0.04, layer: 1, noLight: true, noContact: true, b, r, bloom: rnd(0.3, 0.6), alpha: 0, grow: 1, draw: (ctx, P) => {
+    const p = { kind: 'sprite', x: q.x, y, z: q.z, w: 0.22, h: h + 0.04, layer: 1, noLight: true, noContact: true, b, r, bloom: rnd(0.3, 0.6), alpha: 0, grow: 1, thin: tufts++ % 2 === 1, draw: (ctx, P) => {
       const sw = sway(ph, q.x) * 0.03;
       for (const light of [false, true]) {
         ctx.fillStyle = P.col(light ? [126, 178, 78] : [72, 128, 50]); ctx.beginPath();
@@ -746,7 +747,7 @@ function buildMeadow(L, s, c0) {
       for (const p of clouds) { const b = p.b0 + (still ? 0 : G.t * p.drift * 0.1), r = p.D * Math.cos(p.el); p.x = Math.sin(fwd + rot + b) * r; p.z = Math.cos(fwd + rot + b) * r; p.alpha = ca; if (Math.abs(wrapPi(b - view)) < 1.3) R.add(p); }
       for (const p of sprites) {
         if (Math.abs(wrapPi(p.b - view)) > (p.r < 4 ? 1.25 : 0.9)) continue;
-        if (p.flower && s.egg) continue;   // the easter egg's meadow has no flowers, only grass: there is a crowd in it to draw
+        if (s.egg && (p.flower || p.thin)) continue;   // the easter egg's meadow has no flowers, only grass, and every other tuft of that: there is a crowd in it to draw
         const k = smoothstep((s.meadow - p.bloom) / 0.28);   // each comes up in its turn, growing as it comes
         p.alpha = k * (1 - s.lv); p.grow = 0.55 + 0.45 * k;
         if (p.alpha <= 0.004) continue;
@@ -822,7 +823,11 @@ function buildMeadow(L, s, c0) {
 // The throw is this ending's jump scare, a happy one: the same soft flash as the other's (none with reduced flashing), a
 // party popper going off (`twinkle`) and a brassy ta-da (`cheer`), and a burst of paper confetti in the view. And in the meadow, once they have leapt there a little, they frolic (`frolic`, and
 // see `roam`): each runs about the meadow in its own gait, in loops and darts, after one another, hopping as it goes,
-// turned and leaning the way it goes, stopping now and then to leap on the spot and off again; the thing in the hood, out
+// leaning the way it goes, stopping now and then to leap on the spot and off again. Each is a flat drawing, and is never
+// turned about its upright (that squeezed it thin, and to nothing, as it came round): going to the other side of you its
+// drawing is mirrored, all at once (`face`, 1 or -1 and nothing between; only once it has gone that way a moment, so it
+// does not flicker); and those that have a drawing of themselves running side on (VOID_SIDE) are drawn so while they run
+// mostly across your view, and front on, as ever, coming toward you or going away; the thing in the hood, out
 // of its robe (the heap of it left where it fell), skips about among them, dancing; the stone one is never seen to move
 // (it is somewhere else, all at once, in another pose); the swimmer keeps to its pool, ducking under and bursting up
 // again. They keep to the meadow in front of you, clear of you, the big tree, the pool and the robe, for as long as you
@@ -853,11 +858,11 @@ const VOID_EGG = {
 // farm's things are not among the sixteen, so the customer takes the winch handle (the nearest thing to its shutter
 // crank) and the carrier the matches; the tall one the bulb (the bedroom's as well as the lighthouse's).
 // b, r: its place among them (its bearing from the north, radians, and how far off); near: how near it comes for its
-// things; at: where it holds each of them ([x, y] from its feet, in its own drawing; the turn of the thing; its size, 1 by
+// things (the low ones, the crawler and the doll, not so near: nearer, they are under the view and the take is not seen); at: where it holds each of them ([x, y] from its feet, in its own drawing; the turn of the thing; its size, 1 by
 // default); hop: how high it leaps (metres)
 const VOID_OTHERS = [
   { type: 'walker', takes: ['hammer', 'planks'], b: -0.165, r: 7, near: 1.9, at: [[-0.45, 1.5, 0.3], [0.5, 1.2, 1.35]], hop: 0.34 },
-  { type: 'crawler', takes: ['keys'], b: -0.258, r: 5.5, near: 1.4, at: [[0, 0.5, 0]], hop: 0.3 },
+  { type: 'crawler', takes: ['keys'], b: -0.258, r: 5.5, near: 2.5, at: [[0, 0.5, 0]], hop: 0.3 },
   { type: 'smiler', takes: ['salt', 'lantern'], b: 0.258, r: 5.5, near: 1.5, at: [[-0.3, 0.8, 0], [0.31, 0.36, 0]], hop: 0.26 },
   { type: 'watcher', takes: ['chain', 'padlock'], b: 0.537, r: 7, near: 1.8, at: [[-0.6, 1.5, 0], [0.6, 1.62, 0]], hop: 0.3 },
   { type: 'runner', takes: ['bow', 'arrows'], b: -0.63, r: 5.5, near: 1.7, at: [[-0.5, 0.62, 1.45], [0.5, 0.42, 1.3]], hop: 0.44 },
@@ -865,7 +870,7 @@ const VOID_OTHERS = [
   { type: 'climber', takes: ['fuse'], b: -0.537, r: 7, near: 1.6, at: [[0.47, 1.86, 0]], hop: 0.36 },
   { type: 'customer', takes: ['handle'], b: -0.351, r: 7, near: 1.7, at: [[0.34, 1.12, 0]], hop: 0.3 },
   { type: 'signalman', takes: ['journal'], b: 0.351, r: 7, near: 1.9, at: [[0.42, 2.0, 0]], hop: 0.32 },
-  { type: 'other', takes: ['musicbox'], b: -0.444, r: 5.5, near: 1.3, at: [[0, 0.72, 0]], hop: 0.3, own: true },
+  { type: 'other', takes: ['musicbox'], b: -0.444, r: 5.5, near: 2.2, at: [[0, 0.72, 0]], hop: 0.3, own: true },
   { type: 'carrier', takes: ['matches'], b: 0.63, r: 5.5, near: 1.5, at: [[0.3, 0.8, 0]], hop: 0.28 },
   { type: 'tall', takes: ['bulb'], b: 0.165, r: 7, near: 1.9, at: [[0.5, 1.24, 0]], hop: 0.3 },
 ];
@@ -877,13 +882,17 @@ const VOID_FROLIC = {
   v0: 3.6, v1: 12, wedge: 0.74, you: 3.1, tree: [Math.sin(-0.72) * 11.5, Math.cos(-0.72) * 11.5, 1.8], water: 1.0, pool: 1.25, heap: 0.9, apart: 1.6, amble: 0.5, leap: 2.8, every: 8.5,
   speed: { walker: 2.4, crawler: 3.4, smiler: 3.1, runner: 5.2, climber: 3.2, customer: 2.6, signalman: 3.0, other: 2.2, carrier: 2.5, tall: 2.8, demon: 2.7 },
 };
+// those drawn side on as they run across your view, each by its own creature's side-on run (js/creatures: the pose fields
+// its own night uses to send it running sideways), set in POSE below; the rest keep their front-on drawing, mirrored
+const VOID_SIDE = { crawler: true, runner: true, other: true, carrier: true, customer: true };
 function buildGathering(L, s, c0, K) {
   const span = (t, a, b) => smoothstep(clamp((t - a) / (b - a), 0, 1)), GR = 9.8, FR = VOID_FROLIC;
   let E = null;   // the gathering, once it has begun (s.egg)
   // one that goes about the meadow (each of the others, and the thing in the hood): where it is (fu, fv), the way it is
   // going (hu, hv), where it is making for (tu, tv; or after another of them, chase) and for how long yet (tT), how much
-  // of its running it is at (run: 0 leaping on the spot, 1 running), which way it is turned (face) and how it leans
-  const mover = (c, type, n, u, v) => ({ c, kind: type, fu: u, fv: v, hu: u > 0 ? -1 : 1, hv: 0, tu: u, tv: v, tT: 0, chase: null, dart: 1, run: 0, fro: false, went: 0, face: 1, lean: 0,
+  // of its running it is at (run: 0 leaping on the spot, 1 running), which side it is going to (face: 1 your right, -1 your
+  // left; flipT: how long it has been going the other way), whether it is drawn side on (side; sideT) and how it leans
+  const mover = (c, type, n, u, v) => ({ c, kind: type, fu: u, fv: v, hu: u > 0 ? -1 : 1, hv: 0, tu: u, tv: v, tT: 0, chase: null, dart: 1, run: 0, fro: false, went: 0, face: 1, flipT: 0, side: 0, sideT: 0, canSide: !!VOID_SIDE[type], lean: 0,
     speed: FR.speed[type] || 0, jumps: type === 'watcher', pool: type === 'swimmer', per: FR.every + ((n * 0.37) % 1) * 4, at0: VOID_EGG.frolic + ((n * 0.618) % 1) * 1.8, rnd: mulberry32(4100 + n * 53) });
   // a creature as the game makes one (js/game.js makeCreature), standing free of any way in: placed by its bearing and distance
   const make = (type, n) => {
@@ -967,7 +976,7 @@ function buildGathering(L, s, c0, K) {
   // rush, near, back (0..1 through each), joy (0..1), hop (0..1 through each leap; -1 on the ground)
   const POSE = {
     walker(c, q, o) { o.poseDist = q.joy > 0.01 ? lerp(o.r, 2.2, q.joy * (1 - 0.6 * q.run)) : 0; },   // (its arms come up as they do when it is close)
-    crawler(c, q) { c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; },
+    crawler(c, q, o) { c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; },
     smiler(c, q) { c.rush = q.joy; },
     watcher(c, q, o) {   // stone: it stands in one pose, and is in another each time it comes down
       if (!c.pose) c.pose = 2;
@@ -975,7 +984,7 @@ function buildGathering(L, s, c0, K) {
       const n = q.hop < 0 ? -1 : q.n;
       if (n !== o.hops) { if (o.hops !== undefined && n >= 0) c.pose = 1 + (c.pose % 3); o.hops = n; }
     },
-    runner(c, q) { c.mode = q.back > 0.15 && q.joy < 0.5 ? 'crouch' : 'sprint'; c.modeT = 1; },
+    runner(c, q, o) { c.mode = o.side ? 'dart' : q.back > 0.15 && q.joy < 0.5 ? 'crouch' : 'sprint'; c.modeT = 1; c.runDir = o.face; c.runGait = c.gait; },
     swimmer(c, q, o) {
       // it comes skimming in, only its head above the black floor as it was above the water, and bursts up out of it at you
       c.mode = 'up';
@@ -991,11 +1000,11 @@ function buildGathering(L, s, c0, K) {
       c.lunge = k; c.yOff = lift * smoothstep(k) * (1 - 0.62 * dip);
     },
     climber(c, q) { c.lunge = 0.75 + 0.25 * Math.max(q.near, q.joy); },
-    customer(c, q) { c.shove = q.joy > 0.01 ? { k: q.joy * (1 - 0.5 * q.run), h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null; },
+    customer(c, q, o) { c.runPose = !!o.side; c.runTurn = 1; c.runAmt = 1; c.runDir = o.face; c.runGait = c.gait; c.shove = q.joy > 0.01 ? { k: q.joy * (1 - 0.5 * q.run), h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null; },
     // (its long arm up, holding the notebook out to be seen; then high, waving)
     signalman(c, q, o) { const up = Math.max(q.back, q.joy); c.reach = up; c.grip = o.held[0] ? 1 : 0; c.reachSide = 1; c.reachTo = { x: lerp(0.42, 0.5 + (q.still ? 0 : 0.3 * Math.sin(q.t * 7)), q.joy), y: lerp(2.05, 3.1, q.joy) }; },
-    other(c, q, o, dt) { c.danceT = (c.danceT || 0) + dt * (1 + 2 * q.joy); c.dance = 1; c.smile = 1; const it = o.held[0]; c.carry = it ? (ctx, P) => it.icon(ctx, P) : null; },   // (the box in its arms, as it carried it off: its own drawing)
-    carrier(c, q) { c.flail = q.joy; },
+    other(c, q, o, dt) { c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; c.danceT = (c.danceT || 0) + dt * (1 + 2 * q.joy); c.dance = 1; c.smile = 1; const it = o.held[0]; c.carry = it ? (ctx, P) => it.icon(ctx, P) : null; },   // (the box in its arms, as it carried it off: its own drawing)
+    carrier(c, q, o) { c.flail = q.joy; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; },
     tall(c, q) { c.reach = Math.max(q.back, q.joy); c.gripY = lerp(1.62, 2.5, q.joy); },   // (its hands up in front of it, with the bulb; then high)
   };
   // how hard they leap, jt seconds into the joy: all out for a while, then gentler, and now and then (each in its own
@@ -1067,9 +1076,13 @@ function buildGathering(L, s, c0, K) {
     for (const q of E.movers) if (q !== m && !q.pool) keepOff(m, q.fu, q.fv, 0.75, still ? by : by * 3);   // (nor through one another)
     m.fv = clamp(m.fv, FR.v0, FR.v1); m.fu = clamp(m.fu, -FR.wedge * m.fv - 0.3, FR.wedge * m.fv + 0.3);
     m.went = Math.hypot(m.fu - u0, m.fv - v0);
-    // turned the way it goes (to the left or the right of you), and leaning into it
-    const r = Math.hypot(m.fu, m.fv) || 1, across = (m.hu * m.fv - m.hv * m.fu) / r, k = sp / (m.speed || 1);
-    if (Math.abs(across) * sp > 0.3) m.face += ((across > 0 ? 1 : -1) - m.face) * Math.min(1, dt * 10);
+    // which side of you it is going to: its drawing is mirrored at once when that changes (never turned through), once it
+    // has gone the new way a moment; side on, while it runs mostly across your view (those that have that drawing; a
+    // little more across to begin than to go on, and held a moment either way); and leaning into it
+    const r = Math.hypot(m.fu, m.fv) || 1, across = (m.hu * m.fv - m.hv * m.fu) / r, k = sp / (m.speed || 1), to = across > 0 ? 1 : -1;
+    if (to !== m.face && Math.abs(across) > 0.3 && sp > 0.1) { m.flipT += dt; if (m.flipT > 0.14) { m.face = to; m.flipT = 0; } } else m.flipT = 0;
+    const sideways = m.canSide && !still && m.run > 0.6 && Math.abs(across) > (m.side ? 0.5 : 0.78) ? 1 : 0;
+    if (sideways !== m.side) { m.sideT += dt; if (m.sideT > 0.2) { m.side = sideways; m.sideT = 0; } } else m.sideT = 0;
     m.lean += ((still ? 0 : -0.18 * across * Math.min(1, k)) - m.lean) * Math.min(1, dt * 6);
   }
   // when each runs and when it leaps on the spot, from the moment it sets off (with reduced motion it only ambles)
@@ -1153,7 +1166,7 @@ function buildGathering(L, s, c0, K) {
     const dm = E.dm;
     E.stepT -= dt;
     if (!dm.fro && t >= dm.at0 && !s.leaving) { dm.fro = true; c.noHeap = true; }
-    if (dm.fro) { roam(dm, dt, wants(dm, t, still), still); c.tip = dm.lean; c.flip = Math.abs(dm.face) < 0.25 ? (dm.face < 0 ? -0.25 : 0.25) : dm.face; c.gait += dm.went * c.CR.stepRate * Math.PI; }
+    if (dm.fro) { roam(dm, dt, wants(dm, t, still), still); c.tip = dm.lean; c.flip = dm.face; c.gait += dm.went * c.CR.stepRate * Math.PI; }
     c.dance += ((still || s.leaving || dj <= 0 ? 0 : dm.fro ? lerp(1, 0.75, dm.run) : Math.min(1, dj * 2) * joyAmp(dj, null)) - c.dance) * Math.min(1, dt * 7);
     if (t >= VOID_EGG.joy && !E.cheered) {
       // (the scare of this ending, a happy one: the same soft flash as the other's, a party popper going off, `twinkle`, and a
@@ -1241,7 +1254,7 @@ function buildGathering(L, s, c0, K) {
   const paint = (o, ctx, P) => {
     const c = o.c;
     ctx.save();
-    if (o.fro && !o.pool) { if (o.lean) ctx.rotate(o.lean); if (o.face !== 1) ctx.scale(Math.abs(o.face) < 0.25 ? (o.face < 0 ? -0.25 : 0.25) : o.face, 1); }   // (turned and leaning the way it goes)
+    if (o.fro && !o.pool && !o.side) { if (o.lean) ctx.rotate(o.lean); if (o.face < 0) ctx.scale(-1, 1); }   // (leaning the way it goes, and mirrored, whole, going to your left; side on, its own drawing faces the way it runs)
     if (o.squash !== 1) ctx.scale(1, o.squash);
     if (!c.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(c.t * 1.6)); ctx.rotate(0.008 * Math.sin(c.t * 0.7) * (c.idleK === undefined ? 1 : c.idleK)); }
     const d = c.dist; if (o.poseDist) c.dist = o.poseDist;
