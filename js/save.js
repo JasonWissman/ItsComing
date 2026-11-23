@@ -9,9 +9,6 @@ const SAVE = (() => {
   // Bigger was (1.4), and Bigger larger again
   const TEXT_SIZES = [['Smaller', 1], ['Normal', 1.4], ['Bigger', 1.8]];
   const TEXT_NORMAL = 1.4;
-  // The brightness of the view (Settings, Brightness, Calibrate): a slider, BRIGHT.min to BRIGHT.max in steps of
-  // BRIGHT.step, 1 (100%) being the picture as it is drawn, with nothing done to it (MENU.brightness)
-  const BRIGHT = { min: 0.6, max: 1.6, step: 0.05 };
   // there is one game now; every difficulty there used to be is folded into it, keeping how far any of them got
   const ONLY = 'nightmare', OLD = ['easy', 'normal', 'hard', 'nightmare'];
   function fresh() {
@@ -24,9 +21,12 @@ const SAVE = (() => {
       bestRun: {},
       // reducedMotion and reducedFlash are the two flags the game reads; Settings has one switch for both (MENU), so they
       // are always the same. reduceTextures: plainer, faster walls and floors (render.js: R.detail is its opposite)
-      settings: { muted: false, effects: 1, ambient: 1, brightness: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: TEXT_NORMAL, theme: 'night', swipeReverse: false, reduceTextures: false },
+      settings: { muted: false, effects: 1, ambient: 1, reducedFlash: prefersReduced(), reducedMotion: prefersReduced(), captions: false, textSize: TEXT_NORMAL, theme: 'night', swipeReverse: false, reduceTextures: false },
       warned: false,                                             // the warning about flashing lights has been accepted (game.js: disclaimer)
       eggs: {},                                                  // eggs[night id] = true once that night's easter egg has been found (game.js: foundEgg; Scores)
+      // the easter eggs first found in the run under way (night ids, in the order found), for the results after the
+      // ending: emptied as a run begins (game.js: beginRun). In the save, so whatever becomes of the page they are kept
+      runEggs: [],
     };
   }
   let data = fresh();
@@ -59,6 +59,7 @@ const SAVE = (() => {
           const folded = tidy(data.settings, d.settings || {});
           data.warned = d.warned === true;
           data.eggs = {}; for (const k in (d.eggs || {})) if (d.eggs[k] === true) data.eggs[k] = true;
+          data.runEggs = (Array.isArray(d.runEggs) ? d.runEggs : []).filter((k, i, a) => typeof k === 'string' && data.eggs[k] === true && a.indexOf(k) === i);
           if (folded) persist();
           return data;
         }
@@ -82,8 +83,9 @@ const SAVE = (() => {
   // (and from when there was a main volume over the effects and the ambience, each of those Normal or Quieter, or before
   // that a slider: the main volume is gone, folded into the two, so each is the main volume times its own (Quieter is
   // half: 50% under a main volume at 100%). The text size to the nearest of its sizes now; a save from before they moved
-  // up keeps its size's name (below). True if a main volume
-  // was folded in, so the save is written again without it)
+  // up keeps its size's name (below). And from when the game had a brightness of its own, a slider: there is none any
+  // more, and what it was set to is dropped. True if a main volume was folded in or a brightness dropped, so the save is
+  // written again without it)
   function tidy(S, old) {
     if (old.reduceTextures === undefined && old.textures === false) S.reduceTextures = true;
     delete S.textures;
@@ -92,13 +94,13 @@ const SAVE = (() => {
     const main = 'master' in old ? Math.min(1, Math.max(0, num(old.master, 1))) : 1;
     S.effects = vol(main * num(S.effects, 1)); S.ambient = vol(main * num(S.ambient, 1));
     delete S.master;
-    S.brightness = Math.round(Math.min(BRIGHT.max, Math.max(BRIGHT.min, num(S.brightness, 1))) * 100) / 100;   // (a save from before there was one: 1; never out of the slider's range)
+    delete S.brightness;
     // (a save from before the sizes moved up, the one with a main volume, keeps its size's name: Smaller, Normal or Bigger,
     // each now the bigger size it names)
     const ts = num(S.textSize, TEXT_NORMAL);
     const OLD = [['Smaller', 0.85], ['Normal', 1], ['Bigger', 1.4]];
     S.textSize = typeof S.textSize !== 'number' || !isFinite(S.textSize) ? TEXT_NORMAL : 'master' in old ? TEXT_SIZES[OLD.findIndex(o => o[1] === nearest(OLD, ts))][1] : nearest(TEXT_SIZES, ts);
-    return 'master' in old;
+    return 'master' in old || 'brightness' in old;
   }
   // a v2 save had four difficulties and a v3 save two: fold them all into the one game, keeping the furthest reached
   function fold(d) {
@@ -127,8 +129,10 @@ const SAVE = (() => {
   function defaults() { const theme = data.settings.theme; data.settings = Object.assign(fresh().settings, { theme }); persist(); return data.settings; }
   function markComplete(diff) { data.complete[diff] = true; persist(); }
   function markWarned() { data.warned = true; persist(); }
-  // a night's easter egg found (id: the night's id): kept; true if it was not known before
-  function egg(id) { if (!id || data.eggs[id]) return false; data.eggs[id] = true; persist(); return true; }
+  // a night's easter egg found (id: the night's id): kept; true if it was not known before (inRun: a full run is under
+  // way, and it is one of that run's own). runStart: a run begins, with none of its own yet
+  function egg(id, inRun) { if (!id || data.eggs[id]) return false; data.eggs[id] = true; if (inRun) data.runEggs.push(id); persist(); return true; }
+  function runStart() { if (data.runEggs.length) { data.runEggs = []; persist(); } }
   function reset() { data = fresh(); persist(); }
-  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, egg, reset, nearest, TEXT_SIZES, BRIGHT, get data() { return data; } };
+  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, egg, runStart, reset, nearest, TEXT_SIZES, get data() { return data; } };
 })();

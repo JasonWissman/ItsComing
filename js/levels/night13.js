@@ -800,7 +800,7 @@ function buildMeadow(L, s, c0) {
         ctx.restore();
       };
       const word = touchUI() ? 'TAP' : 'CLICK';
-      line(word + ' WHEN YOU ARE READY', s.idleLineA, [24, 44, 16]);
+      line(word + ' WHEN READY', s.idleLineA, [24, 44, 16]);
     },
   };
 }

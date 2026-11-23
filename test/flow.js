@@ -78,6 +78,72 @@ const { check, st, face, findHit, clickAt, lookForAndClick } = T;
   check((await st(page)).state === 'paused', 'Esc pauses');
   await page.keyboard.press('Escape'); await page.waitForTimeout(100);
   check((await st(page)).state === 'play', 'Esc resumes');
+  // P is Esc's twin: in a night the pause menu, from the pause menu back to the night. Not with Ctrl (the browser's own),
+  // and nothing under one of the pause menu's dialogs, where Esc goes back a step
+  await page.keyboard.press('p'); await page.waitForTimeout(100);
+  const pk1 = await page.evaluate(() => ({ st: G.state, kind: MENU.kind, fine: (document.querySelector('#overlay .fine') || {}).textContent }));
+  await page.keyboard.press('P'); await page.waitForTimeout(100);
+  const pk2 = await page.evaluate(() => G.state);
+  check(pk1.st === 'paused' && pk1.kind === 'pause' && pk1.fine === 'Esc or P resumes' && pk2 === 'play', 'P pauses, and P again resumes; the pause menu says so (' + JSON.stringify([pk1, pk2]) + ')');
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true })));
+  const pk3 = await page.evaluate(() => G.state);
+  await page.keyboard.press('p'); await page.waitForTimeout(100);
+  await page.click('#overlay button[data-act="settings"]'); await page.waitForTimeout(100);
+  await page.keyboard.press('p'); await page.waitForTimeout(100);
+  const pk4 = await page.evaluate(() => ({ st: G.state, kind: MENU.kind }));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(100);
+  await page.evaluate(() => MENU.act('quit')); await page.waitForTimeout(100);
+  await page.keyboard.press('p'); await page.waitForTimeout(100);
+  const pk5 = await page.evaluate(() => ({ st: G.state, kind: MENU.kind, asking: MENU.confirming }));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(100);
+  await page.keyboard.press('p'); await page.waitForTimeout(100);
+  const pk6 = await page.evaluate(() => G.state);
+  check(pk3 === 'play' && pk4.st === 'paused' && pk4.kind === 'settings' && pk5.st === 'paused' && pk5.kind === 'pause' && pk5.asking && pk6 === 'play',
+    'Ctrl+P is not the game\'s; under the pause menu\'s Settings, or the question Quit asks, P does nothing; back on the pause menu it resumes (' + JSON.stringify([pk3, pk4, pk5, pk6]) + ')');
+  const how = await page.evaluate(() => { MENU.show('howto', { from: 'title' }); const c = [...document.querySelectorAll('#overlay .hcard')].find(c => c.querySelector('.hwhat').textContent === 'Pause'); const o = [...c.querySelectorAll('kbd')].map(k => k.textContent).join(); MENU.clear(); hideOverlay(); return o; });
+  check(how === 'Esc,P', 'How to play names both keys for Pause (' + how + ')');
+
+  // Esc in full screen. The browser takes it to leave full screen and the page never hears of it. Where the page can ask
+  // for the key (the Keyboard Lock API: this browser has it) it does, for as long as it is full screen: Esc then pauses,
+  // still full screen. Leaving by the game's own F pauses nothing; left any other way (as the browser's Esc leaves it
+  // where there is no such API), a night being played is paused, and an Esc right behind that does not resume it
+  console.log('== full screen and Esc ==');
+  await page.evaluate(() => {
+    window.__kb = []; const kb = navigator.keyboard;
+    if (kb && kb.lock) { const l = kb.lock.bind(kb), u = kb.unlock.bind(kb); kb.lock = k => { window.__kb.push('lock:' + k.join()); return l(k); }; kb.unlock = () => { window.__kb.push('unlock'); return u(); }; }
+    else Object.defineProperty(navigator, 'keyboard', { value: { lock: k => { window.__kb.push('lock:' + k.join()); return Promise.resolve(); }, unlock: () => { window.__kb.push('unlock'); } }, configurable: true });
+  });
+  const fsLook = () => page.evaluate(() => ({ fs: !!document.fullscreenElement, st: G.state, kb: window.__kb.join(' ') }));
+  await page.keyboard.press('f'); await page.waitForTimeout(500);
+  const f1 = await fsLook();
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  const f2 = await fsLook();
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  const f3 = await fsLook();
+  check(f1.fs && f1.st === 'play' && f1.kb === 'lock:Escape' && f2.fs && f2.st === 'paused' && f3.fs && f3.st === 'play',
+    'F: full screen, and the page asks for Esc (keyboard.lock); Esc then pauses, still full screen, and Esc again resumes (' + JSON.stringify([f1, f2, f3]) + ')');
+  await page.keyboard.press('f'); await page.waitForTimeout(500);
+  const f4 = await fsLook();
+  check(!f4.fs && f4.st === 'play' && f4.kb === 'lock:Escape unlock', 'F again: out of full screen by the game\'s own doing, the key given back, and the night not paused (' + JSON.stringify(f4) + ')');
+  await page.keyboard.press('f'); await page.waitForTimeout(500);
+  await page.evaluate(() => document.exitFullscreen()); await page.waitForTimeout(250);   // (as the browser's Esc leaves it)
+  const f5 = await fsLook();
+  await page.keyboard.press('Escape'); await page.waitForTimeout(100);
+  const f6 = await fsLook();
+  await page.waitForTimeout(600); await page.keyboard.press('Escape'); await page.waitForTimeout(100);
+  const f7 = await fsLook();
+  check(!f5.fs && f5.st === 'paused' && f6.st === 'paused' && f7.st === 'play', 'full screen left by the browser while a night is played: paused, the one press; an Esc right behind it does not resume, a later one does (' + JSON.stringify([f5.st, f6.st, f7.st]) + ')');
+  // (left while the pause menu is up: nothing more happens; and with the corner's button, as F: not paused)
+  await page.keyboard.press('f'); await page.waitForTimeout(500);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(700);
+  await page.evaluate(() => document.exitFullscreen()); await page.waitForTimeout(250);
+  const f8 = await page.evaluate(() => ({ fs: !!document.fullscreenElement, st: G.state, kind: MENU.kind }));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(100);
+  await page.click('#fsBtn'); await page.waitForTimeout(500);
+  const f9 = await fsLook();
+  await page.click('#fsBtn'); await page.waitForTimeout(500);
+  const f10 = await fsLook();
+  check(!f8.fs && f8.st === 'paused' && f8.kind === 'pause' && f9.fs && f9.st === 'play' && !f10.fs && f10.st === 'play', 'left with the pause menu up: still the pause menu; in and out by the corner\'s button: never paused (' + JSON.stringify([f8, f9.st, f10.st]) + ')');
   await page.keyboard.press('m'); check(await page.evaluate(() => G.muted && AUDIO.muted), 'M mutes'); await page.keyboard.press('m');
   await lookForAndClick(page, 'item', 'hammer');
   await face(page, 0, true);

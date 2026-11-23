@@ -17,10 +17,6 @@
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: #cfc8ba; font-family: 'IM Fell English', Georgia, serif; -webkit-user-select: none; user-select: none; }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
-  /* the game's own brightness (Settings, Brightness, Calibrate: js/menu.js brightness): the view, the title's scene and the
-     creature in that dialog shown brighter or darker. Only when it is not 100% (:root.bright) is there a filter at all;
-     the menus, the HUD and their words are never under it */
-  :root.bright #game, :root.bright #titleScene, :root.bright canvas.calshape { filter: brightness(var(--bright, 1)); }
   #hud { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
   #hud.dim { opacity: 0 !important; }
   #compass { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 18px; font-size: 13px; letter-spacing: .18em; color: rgba(207,200,186,.35); }
@@ -36,17 +32,23 @@
   #tooltip { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%); font-size: calc(15px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 12px #000; display: none; font-style: italic; padding: 4px 30px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast { position: absolute; top: calc(var(--view-top, 0px) + 86px); left: 50%;   /* up under the compass: never across what you just used */ transform: translateX(-50%); font-size: calc(17px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 14px #000; opacity: 0; transition: opacity .35s; white-space: nowrap; padding: 6px 36px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast.show { opacity: 1; }
-  /* an easter egg found for the first time (js/game.js secretToast): a small note in the top left corner, under the
-     sound line (on a phone: under the menu button). Not in the HUD: it stays over a death screen, a win, a cutscene;
-     it never takes a click. It slides in from the edge and fades; with reduced motion it only fades */
-  #secret { position: fixed; z-index: 900; top: 52px; left: 20px; box-sizing: border-box; max-width: calc(100vw - 40px); display: flex; align-items: center; gap: 9px; padding: 7px 14px 7px 11px; background: rgba(7,7,9,.86); border: 1px solid rgba(207,200,186,.3); border-radius: 6px; color: #efe6d2; font-size: calc(14px * var(--text-scale)); line-height: 1.3; white-space: nowrap; pointer-events: none; opacity: 0; visibility: hidden; transform: translateX(-14px); transition: opacity .6s, transform .6s, visibility 0s .6s; }
-  #secret.show { opacity: 1; visibility: visible; transform: none; transition: opacity .35s, transform .35s cubic-bezier(.2,.7,.3,1), visibility 0s; }
-  #secret.still, #secret.still.show { transform: none; transition-property: opacity, visibility; }
+  /* an easter egg found for the first time (js/game.js secretTell): a small note in the middle of the bottom edge, said on
+     the screen after the night (the death screen, the win screen), never while the night is played. Not in the HUD; it
+     never takes a click. It comes up from the edge and fades; with reduced motion it only fades. The screen it is said
+     on keeps a strip clear for it (#overlay.secretroom, as tall as the note: --secret-room), so nothing of that screen
+     is ever under it, however short the screen or long its words: a clear border, which the veil is painted under and
+     what scrolls is not (one at the top to match, so the middle stays the middle; not on a short screen, where the room
+     is wanted) */
+  #secret { position: fixed; z-index: 900; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); box-sizing: border-box; width: max-content; max-width: calc(100vw - 32px); display: flex; align-items: center; gap: 9px; padding: 7px 14px 7px 11px; background: rgba(7,7,9,.86); border: 1px solid rgba(207,200,186,.3); border-radius: 6px; color: #efe6d2; font-size: calc(14px * var(--text-scale)); line-height: 1.3; pointer-events: none; opacity: 0; visibility: hidden; transform: translate(-50%, 12px); transition: opacity .6s, transform .6s, visibility 0s .6s; }
+  #secret.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .35s, transform .35s cubic-bezier(.2,.7,.3,1), visibility 0s; }
+  #secret.still, #secret.still.show { transform: translate(-50%, 0); transition-property: opacity, visibility; }
   #secret svg { flex: none; width: 15px; height: 15px; color: #efe6d2; filter: drop-shadow(0 0 5px rgba(239,230,210,.55)); }
   #secret .sl, #secret .sc { color: rgba(207,200,186,.7); font-style: italic; }
   #secret .sc { white-space: pre; }
-  #secret .stx { overflow: hidden; text-overflow: ellipsis; }
-  @media (prefers-reduced-motion: reduce) { #secret, #secret.show { transform: none; transition-property: opacity, visibility; } }
+  #secret .stx { min-width: 0; text-wrap: balance; }
+  @media (prefers-reduced-motion: reduce) { #secret, #secret.show { transform: translate(-50%, 0); transition-property: opacity, visibility; } }
+  #overlay.secretroom { border: 0 solid transparent; border-top-width: var(--secret-room, 64px); border-bottom-width: var(--secret-room, 64px); }
+  @media (max-height: 520px) { #overlay.secretroom { border-top-width: 0; } }
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
   /* the bow's power bar, beside where it is aimed: it fills upward as you hold; at the top it is full, and goes green */
@@ -166,7 +168,8 @@
   #disclaimer.out { opacity: 0; transition: opacity .6s; }
   #disclaimer .dcard { box-sizing: border-box; width: min(640px, 100%); display: flex; flex-direction: column; align-items: center; gap: clamp(14px, 3vh, 24px); padding: clamp(22px, 4.5vh, 34px) clamp(20px, 4vw, 40px); }
   #disclaimer .deye { width: clamp(30px, 6vh, 44px); height: clamp(30px, 6vh, 44px); flex: none; }
-  #disclaimer p { margin: 0; font: 400 clamp(17px, 2.1vw, 21px)/1.55 'IM Fell English', Georgia, serif; letter-spacing: .01em; color: var(--red); white-space: pre-line; }   /* its lines break where DISCLAIMER says \n */
+  #disclaimer p { margin: 0; font: 400 calc(clamp(12.2px, 1.5vw, 15px) * var(--text-scale))/1.55 'IM Fell English', Georgia, serif; letter-spacing: .01em; color: var(--red); white-space: pre-line; }   /* its lines break where DISCLAIMER says \n; the size of the text is the setting's, as everywhere (17 to 21px at Normal) */
+  :root[data-textsize=bigger] #disclaimer .dcard.dwarn { width: min(780px, 100%); }
   #disclaimer .dbtns { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px 18px; }
   #disclaimer .daccept { font-family: inherit; font-size: calc(15px * var(--text-scale)); letter-spacing: .16em; text-transform: uppercase; background: var(--red); color: #000; border: 1px solid var(--red); padding: 11px 36px; min-width: 170px; min-height: 44px; cursor: pointer; transition: background .15s, box-shadow .15s; -webkit-tap-highlight-color: transparent; }
   #disclaimer .daccept:hover, #disclaimer .daccept:focus-visible { background: var(--red-hi); border-color: var(--red-hi); box-shadow: 0 0 18px rgba(240,74,84,.35); outline: none; }
@@ -181,7 +184,7 @@
   @media (max-height: 520px) {
     #disclaimer .dcard { gap: 10px; padding: 16px 24px; }
     #disclaimer .deye { width: 28px; height: 28px; }
-    #disclaimer p { font-size: 16px; line-height: 1.42; }
+    #disclaimer p { font-size: calc(11.4px * min(var(--text-scale), 1.6)); line-height: 1.42; }   /* (with Bigger text grown less: it still fits) */
     #disclaimer .dcard.dset { padding: 12px 22px 10px; }
     #disclaimer:has(.dset) { padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: max(10px, env(safe-area-inset-bottom)); }   /* (Settings in its card: as the dialogs are over the title) */
     #disclaimer:has(.cal-volume) { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: max(4px, env(safe-area-inset-bottom)); } #disclaimer .dcard.dset.cal-volume { padding-top: 8px; padding-bottom: 8px; } #disclaimer .dset.cal-volume h1 { margin-bottom: 2px; }
@@ -192,7 +195,7 @@
   #prologue { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1em; padding: 24px; box-sizing: border-box; text-align: center; opacity: 0; transition: opacity .6s; cursor: default; }
   #prologue.on { opacity: 1; }
   #prologue.out { opacity: 0; transition: opacity 1.2s; }
-  #prologue p { margin: 0; max-width: 34em; font: 400 clamp(19px, 2.6vw, 28px)/1.5 'IM Fell English', Georgia, serif; color: #e8dfcb; letter-spacing: .01em; opacity: 0; transform: translateY(4px); transition: opacity 2.4s ease, transform 2.4s ease; }
+  #prologue p { margin: 0; max-width: 34em; font: 400 calc(clamp(13.6px, 1.86vw, 20px) * var(--text-scale))/1.5 'IM Fell English', Georgia, serif; color: #e8dfcb; letter-spacing: .01em; opacity: 0; transform: translateY(4px); transition: opacity 2.4s ease, transform 2.4s ease; }
   #prologue p.on { opacity: 1; transform: none; }
   #prologue p + p { color: #9b9384; }   /* the second line dimmer: falling asleep */
   #prologue p.gone { opacity: 0; transform: translateY(-3px); transition: opacity 1.6s ease, transform 1.6s ease; }
@@ -279,7 +282,8 @@
   /* a whole run's time, the Best run stamp beside it (an inked stamp, red, set at a tilt: it does not push the time off
      centre), and its stars under it: those earned filled, the rest outlined */
   .runcard .rline { position: relative; display: flex; align-items: center; justify-content: center; }
-  .runcard .stamp { position: absolute; left: 100%; margin-left: 16px; transform: rotate(-9deg); white-space: nowrap; padding: 3px 9px 2px; border: 2px solid var(--red); outline: 1px solid var(--red); outline-offset: 2px; border-radius: 3px; color: var(--red); font-size: calc(13px * var(--text-scale)); letter-spacing: .22em; text-transform: uppercase; line-height: 1.3; }
+  .stamp { display: inline-block; transform: rotate(-9deg); white-space: nowrap; padding: 3px 9px 2px; border: 2px solid var(--red); outline: 1px solid var(--red); outline-offset: 2px; border-radius: 3px; color: var(--red); font-size: calc(13px * var(--text-scale)); font-style: normal; letter-spacing: .22em; text-transform: uppercase; line-height: 1.3; }
+  .runcard .stamp { position: absolute; left: 100%; margin-left: 16px; }
   .runcard .stars { display: flex; gap: 6px; margin-top: 4px; }
   /* what each number of stars takes: a tooltip (the stars' title) on a hover, and this, shown over them by a tap or a click */
   .runcard .stars { position: relative; cursor: help; -webkit-tap-highlight-color: transparent; }
@@ -317,8 +321,8 @@
   @keyframes rstamp { 0% { opacity: 0; transform: rotate(-9deg) scale(1.9); } 100% { opacity: 1; transform: rotate(-9deg) scale(1); } }
   .rlast { opacity: 0; visibility: hidden; transition: opacity .9s, visibility 0s .9s; }
   .rlast.in { opacity: 1; visibility: visible; transition: opacity .9s; }
-  .results.still .rcard, .results.still .rtime, .results.still .rlast, .results.still .stars, .results.still .stamp { transition: none; animation: none; }
-  .results.still .rcard.in, .results.still .rrun.in { animation: none; }
+  :is(.results, .tabpanel).still :is(.rcard, .rtime, .rlast, .stars, .stamp, .egg, .emark, .emark path) { transition: none; animation: none; }
+  :is(.results, .tabpanel).still :is(.rcard.in, .rrun.in) { animation: none; }
   @media (max-width: 640px) { #overlay > .results { padding: 12px 14px 10px; } .results .ncard { min-height: 33px; padding: 4px 12px; } .results .nights { gap: 4px; } .results h1 { margin-bottom: 8px !important; } .results .rlast { margin-top: 10px; } }
   /* a phone on its side is short: the thirteen nights in three columns (down each in turn), and the whole run on one
      line under them (its label, the time with its stamp, the stars), so the results and the Scores both fit without
@@ -371,33 +375,53 @@
   .tabpanel > .runcard.empty { flex: 1; justify-content: center; }
   .tabpanel > .runcard { margin-top: 10px; padding-top: 9px; padding-bottom: 7px; }   /* (the tabs take a line: the run's card a little closer, so it all still fits) */
   :root[data-textsize=bigger] .tabpanel > .runcard .rtime { font-size: calc(32px * var(--text-scale)); }
-  :root[data-textsize=bigger] .egg { padding-top: 3px; padding-bottom: 3px; }   /* (bigger text: the thirteen still fit a laptop's screen) */
-  /* the secret scenes: a box for each night, in the Scores' two columns (1 to 6, 7 to 13; one on a narrow phone), with
-     nothing in it but its short title (game.js EGG_TITLES) after a check box. One found: the box filled, a check drawn in
-     it, the title bright, the border plain; one not found yet: the same title dimmed, the box empty, the border faint */
-  .eggs { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--rows, 7), auto); grid-auto-flow: row dense; gap: 5px 10px; width: 100%; margin: 0 auto; }
-  .eggs > .c1 { grid-column: 1; } .eggs > .c2 { grid-column: 2; }
-  .egg { box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-width: 0; padding: 8px 14px; text-align: left; background: none; border: 1px solid rgba(207,200,186,.13); color: rgba(207,200,186,.48); cursor: default; }
-  .egg .ename { min-width: 0; font-size: calc(15px * min(var(--text-scale), 1.5)); line-height: 1.25; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .egg .emark { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1.5px solid rgba(207,200,186,.34); border-radius: 3px; }
-  .egg .emark svg { display: none; width: 14px; height: 14px; fill: none; stroke: #14110f; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  /* the secret scenes: a box for each night, and they are the nights' own grid and the nights' own card (.nights, .ncard:
+     MENU eggsHtml), so each is where its night's is and the size its night's is, at every size of page and text: a
+     player going between the two tabs matches them by where they are. In it nothing but its short title (game.js
+     EGG_TITLES) after a check box, no bigger than its line. One found: the box filled, a check drawn in it, the title
+     bright, the border plain; one not found yet: the same title dimmed, the box empty, the border faint */
+  .egg { justify-content: flex-start; background: none; border: 1px solid rgba(207,200,186,.13); color: rgba(207,200,186,.48); cursor: default; }
+  .egg .emark { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: min(20px, 1.1em); height: min(20px, 1.1em); border: 1.5px solid rgba(207,200,186,.34); border-radius: 3px; }
+  .egg .emark svg { display: none; width: 72%; height: 72%; fill: none; stroke: #14110f; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
   .egg.found { background: rgba(0,0,0,.5); border-color: rgba(239,230,210,.62); color: #efe6d2; }
   .egg.found .emark { background: #efe6d2; border-color: #efe6d2; box-shadow: 0 0 8px rgba(239,230,210,.35); }
   .egg.found .emark svg { display: block; }
-  .eggcount { margin: 10px 0 0; font-size: calc(13px * min(var(--text-scale), 1.5)); font-style: italic; letter-spacing: .04em; color: rgba(207,200,186,.62); text-align: center; }
-  @media (max-width: 640px) { .eggs { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; } .eggs > .c1, .eggs > .c2 { grid-column: auto; } .tabs [role=tab] { padding-left: 12px; padding-right: 12px; letter-spacing: .1em; } }
-  /* a phone on its side is short: the boxes closer, the marks and titles a little smaller */
+  .eggcount { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 10px 0 0; font-size: calc(13px * min(var(--text-scale), 1.5)); font-style: italic; letter-spacing: .04em; color: rgba(207,200,186,.62); text-align: center; }
+  /* (the results after the ending: one of the run's own, checked off as it is watched (MENU reveal): its box lights as a
+     night's card does, the check box fills with a little bounce and the check is drawn in; then, if that is all of them,
+     a stamp beside the count, as Best run is stamped beside the time) */
+  .egg.tick { animation: rfill 1.2s ease-out; }
+  .egg.tick .emark { animation: epop .45s cubic-bezier(.3, 1.6, .5, 1); }
+  .egg.tick .emark path { stroke-dasharray: 15; animation: edraw .4s ease-out .12s backwards; }
+  @keyframes epop { from { transform: scale(.4); } }
+  @keyframes edraw { from { stroke-dashoffset: 15; } to { stroke-dashoffset: 0; } }
+  .eggcount .ecnt { position: relative; }
+  .eggcount .stamp { position: absolute; left: 100%; top: 50%; margin: -1.05em 0 0 20px; transform: rotate(-4deg); opacity: 0; }   /* (hung beside the count, which stays in the middle; less of a tilt than Best run's: it is longer, and under the boxes) */
+  .eggcount .stamp.in { opacity: 1; animation: estamp .45s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+  @keyframes estamp { 0% { opacity: 0; transform: rotate(-4deg) scale(1.9); } 100% { opacity: 1; transform: rotate(-4deg) scale(1); } }
+  .eggcount:has(.stamp) { margin-top: 24px; }
+  @media (max-width: 640px) { .eggcount:has(.stamp) { flex-direction: column; gap: 10px; } .eggcount .stamp { position: static; margin: 0; } }   /* (no room beside it: under it) */
+  /* (the results with their two tabs: a line more than without, so the rest a little closer, and it still fits a laptop's screen) */
+  .results:has(.tabs) .kicker { display: none; }
+  #overlay .results:has(.tabs) h1 { margin: 0 0 6px !important; }
+  .results:has(.tabs) .rlast { margin-top: 10px; }
+  #overlay > .results:has(.tabs) { padding-top: 12px; padding-bottom: 10px; }
+  @media (prefers-reduced-motion: reduce) { .egg.tick, .egg.tick .emark, .egg.tick .emark path, .eggcount .stamp.in { animation: none; } }
+  @media (max-width: 640px) { .tabs [role=tab] { padding-left: 12px; padding-right: 12px; letter-spacing: .1em; } }
+  /* a phone on its side is short: the tabs and the run's card closer, the count smaller */
   @media (max-height: 520px) and (min-width: 560px) {
     .tabs { margin-bottom: 5px; } .tabs [role=tab] { min-height: 30px; padding: 3px 16px 2px; font-size: calc(12px * min(var(--text-scale), 1.5)); }
     #overlay.dlg > .panel.nightsp:has(.tabs) h1 { margin-bottom: 2px; }
     .tabpanel > .runcard, :root[data-textsize=bigger] .tabpanel > .runcard { margin-top: 5px; padding-top: 2px; padding-bottom: 2px; }
     :root[data-textsize=bigger] .tabpanel > .runcard .rtime { font-size: calc(26px * min(var(--text-scale), 1.55)); }
     .tabpanel .ncard { padding-top: 2px; padding-bottom: 2px; }
-    .eggs { gap: 3px 8px; }
-    .egg { gap: 8px; padding: 1px 9px; }
-    .egg .ename { font-size: calc(12px * min(var(--text-scale), 1.5)); line-height: 1.2; }
-    .egg .emark { width: 13px; height: 13px; border-width: 1px; border-radius: 2px; } .egg .emark svg { width: 10px; height: 10px; stroke-width: 3; }
+    .egg .emark { border-width: 1px; border-radius: 2px; } .egg .emark svg { stroke-width: 3; }
     .eggcount { margin-top: 4px; font-size: calc(11px * min(var(--text-scale), 1.5)); line-height: 1.3; }
+    .eggcount .stamp { font-size: calc(11px * min(var(--text-scale), 1.5)); padding: 1px 7px 0; }
+    .eggcount:has(.stamp) { margin-top: 13px; }
+    #overlay .results:has(.tabs) h1 { margin-bottom: 2px !important; }
+    #overlay > .results:has(.tabs) { padding-top: 5px; padding-bottom: 5px; }
+    .results:has(.tabs) .rlast { margin-top: 6px; }
   }
   :root[data-theme="day"] .egg { border-color: rgba(58,51,44,.16); color: rgba(58,51,44,.48); }
   :root[data-theme="day"] .egg .emark { border-color: rgba(58,51,44,.36); }
@@ -451,7 +475,7 @@
      Volume's: its two sections side by side (one over the other on a narrow screen), Sound effects and Ambience, each
      its name, its slider (the name says what it is: no label beside it), and its two sounds one over the other, each a
      button with a round play mark at its left, a stop mark (lit) while it plays. Brightness's: the shape on black, and
-     under it the brightness slider (on a short screen, beside Done) */
+     Done under it */
   :is(#overlay, #disclaimer) .calp .caltext { max-width: 600px; margin: 0 auto 12px; font-size: calc(17px * var(--text-scale)); line-height: 1.45; color: #cfc8ba; text-align: center; letter-spacing: normal; white-space: normal; }
   :is(#overlay, #disclaimer) .calp .calmute { margin: 0 auto 8px; font-size: calc(14px * var(--text-scale)); color: var(--red); text-align: center; }
   :is(#overlay, #disclaimer) .calp .calmute[hidden] { display: none; }
@@ -473,13 +497,7 @@
   .calp .calplay.playing .icostop { display: block; }
   .calp .calplay.playing .calico { background: #efe6d2; border-color: #efe6d2; color: #0b0a0a; }
   .calp .callabel { flex: 1; min-width: 0; }
-  .calp .calshape { display: block; width: 100%; height: clamp(160px, 100vh - 374px, 440px); margin: 4px auto 0; background: #000; }
-  /* Brightness: the slider under the creature, its name at its left and its percentage at its right; then Done */
-  .calp .calfoot { display: flex; flex-direction: column; align-items: center; width: 100%; }
-  .calp .calbright { box-sizing: border-box; width: min(460px, 100%); margin: 12px auto 0; text-align: left; }
-  .calp .calbright .opt { gap: 14px; }
-  .calp .calbright .rngwrap { flex: 1; min-width: 0; }
-  .calp .calbright .opt input[type=range] { flex: 1; width: auto; min-width: 80px; }
+  .calp .calshape { display: block; width: 100%; height: clamp(160px, 100vh - 332px - 70px * (var(--text-scale) - 1), 440px); margin: 4px auto 0; background: #000; }   /* (less of it the more the bigger text takes) */
   .calp .mrow { margin-top: 16px; }
   #disclaimer .dcard.dset.cal-volume { width: min(940px, 100%); }
   #disclaimer .dcard.dset.calp { text-align: center; }   /* (the warning's own words are red, and its p says so: not these) */
@@ -507,10 +525,6 @@
     .calp .calvol .opt { min-height: 24px; }
     .calp .calshape { height: max(140px, 100vh - 196px - 60px * (var(--text-scale) - 1)); margin-top: 0; }   /* (less of it the more the bigger text takes) */
     .calp .mrow, #disclaimer .dset.calp .mrow { margin-top: 8px; }
-    /* the brightness slider and Done on the one line, so the creature keeps its height */
-    .calp .calfoot { flex-direction: row; justify-content: center; gap: 12px 28px; flex-wrap: wrap; margin-top: 8px; }
-    .calp .calfoot .calbright { flex: 0 1 400px; width: auto; margin: 0; }
-    :is(#overlay, #disclaimer) .calp .calfoot .mrow { margin: 0; }
   }
   @media (max-height: 520px) and (min-width: 700px) {
     .settings { flex-direction: row; justify-content: center; gap: 24px; width: 100%; margin: 4px auto; }
@@ -552,9 +566,19 @@
   #overlay .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; font-size: calc(14px * var(--text-scale)); color: rgba(207,200,186,.7); margin: 8px auto 0; text-align: left; width: max-content; max-width: 100%; }
   #overlay .controls b { color: #efe6d2; font-weight: normal; }
   @keyframes breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
-  #caption { position: fixed; z-index: 6; pointer-events: none; bottom: 190px; left: 50%; transform: translateX(-50%); font-size: calc(14px * var(--text-scale)); font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+  /* a caption for a sound (js/captions.js): a small speaker and its line, in the top left corner under the sound line (on
+     a phone: under the menu button), the one corner with nothing of the night in it on a desktop or a phone (the things
+     held are along the bottom, at the left on a phone; the hand holding one at the bottom right, over the zoom button; the
+     note for a secret, which was here, is said after the night now). One line, which ends above the line of words under
+     the compass (#toast) and short of the middle (#pitch, #zoom), so it is never over either; a line too long for that
+     is set smaller, not cut short (CAPTIONS put). Over everything but the turn-it-sideways screen (the volume dialog's own
+     caption is seen in the warning's card too) */
+  #caption { position: fixed; z-index: 1001; pointer-events: none; top: 50px; left: 20px; box-sizing: border-box; max-width: calc(50vw - 95px); display: flex; align-items: center; gap: .45em; font-size: min(calc(14px * var(--text-scale)), 2vw); line-height: 1.25; font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
   #caption.show { opacity: 1; }
+  #caption svg { flex: none; width: 1em; height: 1em; opacity: .8; filter: drop-shadow(0 1px 2px #000); }
+  #caption .ctx { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   :root[data-theme="day"] #caption { color: #2e2823; text-shadow: 0 1px 2px #fff; }
+  :root[data-theme="day"] #caption svg { filter: none; }
   :root[data-theme="day"] .opt, :root[data-theme="day"] #overlay .controls b { color: #2e2823; }
   :root[data-theme="day"] #overlay .prompt, :root[data-theme="day"] #overlay .prompt .alt { color: rgba(58,51,44,.7); }
   :root[data-theme="day"] .mbtn.danger { color: #8f1a20; border-color: rgba(143,26,32,.5); }   /* (on the pale sheet a darker red: the bright one is too faint on it) */
@@ -599,8 +623,8 @@
   #rotate { display: none; position: fixed; inset: 0; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; box-sizing: border-box; text-align: center; background: radial-gradient(ellipse at 50% 42%, #14110f, #000 70%); color: #efe6d2; touch-action: none; }
   #rotate svg { width: 120px; height: 120px; margin-bottom: 14px; color: #efe6d2; }
   #rotate .rphone { transform-origin: 60px 54px; animation: rturn 2.8s ease-in-out infinite; }
-  #rotate h2 { margin: 0; font-weight: normal; font-size: 26px; letter-spacing: .06em; }
-  #rotate p { margin: 6px 0 0; max-width: 18em; font-size: 15px; line-height: 1.5; font-style: italic; color: rgba(207,200,186,.6); }
+  #rotate h2 { margin: 0; font-weight: normal; font-size: calc(18.6px * var(--text-scale)); letter-spacing: .06em; }
+  #rotate p { margin: 6px 0 0; max-width: 18em; font-size: calc(10.7px * var(--text-scale)); line-height: 1.5; font-style: italic; color: rgba(207,200,186,.6); }
   @keyframes rturn { 0%, 20% { transform: none; } 50%, 80% { transform: rotate(-90deg); } 100% { transform: none; } }
   @media (prefers-reduced-motion: reduce) { #rotate .rphone { animation: none; transform: rotate(-90deg); } }
   @media (pointer: coarse) {
@@ -610,9 +634,8 @@
     body.tplay #menuBtn, body.tzoom #zoomBtn { display: flex; }
     body.menu #zoomBtn { display: none; }   /* (the menu button stays over a night's card, the death screen and the win screen: body.tplay is on only where the pause menu can be opened, js/game.js touchChrome) */
     #menuBtn { top: max(12px, env(safe-area-inset-top)); }
-    /* the secret note under the menu button, on two short lines so it keeps to the corner (clear of the words under the compass) */
-    #secret { top: calc(max(12px, env(safe-area-inset-top)) + 44px); left: max(14px, env(safe-area-inset-left)); padding: 5px 12px 5px 9px; font-size: calc(13px * var(--text-scale)); line-height: 1.25; }
-    #secret .sl { display: block; font-size: .85em; } #secret .sc { display: none; }
+    /* a sound's caption under the menu button, a little smaller: its one line ends above the words under the compass */
+    #caption { top: calc(max(12px, env(safe-area-inset-top)) + 42px); left: max(14px, env(safe-area-inset-left)); max-width: calc(50vw - 48px - max(14px, env(safe-area-inset-left))); font-size: min(calc(13px * var(--text-scale)), 2.1vw, 19px); }
     #objective { right: max(20px, calc(env(safe-area-inset-right) + 6px)); }
     body.fsok #objective { right: calc(max(14px, env(safe-area-inset-right)) + 52px); }
     #overlay { padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left)); }
@@ -632,6 +655,8 @@
     #compass { top: 18px; } #pitch { top: 40px; } #zoom { top: 58px; } #toast { top: calc(var(--view-top, 0px) + 80px); } #objective { top: 14px; }
   }
   @media (pointer: coarse) and (orientation: portrait) { #rotate { display: flex; } }
+  /* (a narrow page: the compass is lower, and the words under it; the caption under the compass's line, on two lines if it must) */
+  @media (max-width: 700px) { #caption { top: 66px; max-width: calc(50vw - 95px); white-space: normal; font-size: min(calc(13px * var(--text-scale)), 2.1vw, 16px); } #caption .ctx { overflow: visible; } }
   @media (max-width: 700px) { #compass { top: 44px; } #pitch { top: 74px; } #zoom { top: 94px; } #toast { top: calc(var(--view-top, 0px) + 116px); } #objective { top: 44px; } #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: calc(15px * var(--text-scale)); } #objective { max-width: 48vw; font-size: calc(12px * var(--text-scale)); } #compass { gap: 10px; font-size: 11px; } }
 </style>
 </head>
@@ -650,7 +675,7 @@
   <div id="inventory"></div>
   <div id="debug"></div>
 </div>
-<div id="caption" aria-live="polite"></div>
+<div id="caption" aria-live="polite"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.8 6h2.7L8 3v10L4.5 10H1.8z" fill="currentColor"/><path d="M10.3 5.7a3.3 3.3 0 0 1 0 4.6M12.2 3.8a6 6 0 0 1 0 8.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="ctx"></span></div>
 <div id="secret" role="status"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0.5C8.5 5 11 7.5 15.5 8C11 8.5 8.5 11 8 15.5C7.5 11 5 8.5 0.5 8C5 7.5 7.5 5 8 0.5Z" fill="currentColor"/></svg><span class="stx"><span class="sl">Secret discovered</span><span class="sc">: </span><span class="st"></span></span></div>
 <button type="button" id="zoomBtn" aria-label="zoom (tap: on, tap again: off)" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6 20.5 20.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M7 10h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path class="zplus" d="M10 7v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>zoom</span></button>
 <div id="overlay"></div>

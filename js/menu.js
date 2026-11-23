@@ -57,7 +57,7 @@ const MENU = (() => {
   }
   // the nights' easter eggs ("secret scenes", to the player), one for each night: its short title (game.js eggTitle, by
   // the night's id), and whether it has been found (the save's eggs: game.js foundEgg)
-  const eggList = () => LEVELS.map((l, i) => ({ i, name: eggTitle(l.id), found: !!SAVE.data.eggs[l.id] }));
+  const eggList = () => LEVELS.map((l, i) => ({ i, id: l.id, name: eggTitle(l.id), found: !!SAVE.data.eggs[l.id] }));
   // Scores is there to open (on the title, and in the pause menu alike) only once a whole game has been finished: there
   // is a best run. Easter eggs found before that are kept in the save all the same, and are in its Secret scenes tab when
   // it is there to open; they do not bring the button by themselves
@@ -65,13 +65,26 @@ const MENU = (() => {
   // the Scores' second tab, Secret scenes: thirteen boxes in the nights' order, each with nothing in it but its title
   // (no night's name or number, nor what it was: the titles are a list to guess from). The title is there found or not;
   // one found has a check drawn in its box and is bright, one not found yet an empty box and is dimmed (each says which,
-  // read aloud). Under them, how many have been found
-  function eggsHtml(eggs) {
+  // read aloud). Under them, how many have been found. The boxes are the nights' own (runCards: the same grid, the same
+  // card, .nights and .ncard, so the same place and size at every size of screen and text): flipping between the two
+  // tabs, a night's box and its secret's are in the one spot.
+  // fresh (the results after the ending): the ids of those first found in the run just finished. They start as not found
+  // and are checked off one after another as the tab is watched (reveal); if they make it all of them, a stamp says so
+  function eggsHtml(eggs, fresh) {
     let rows = '';
+    const isNew = x => !!fresh && x.found && fresh.includes(x.id), n = eggs.filter(x => x.found).length;
     for (const x of eggs) {
-      rows += '<div class="egg ' + (x.found ? 'found' : 'unknown') + col(x.i) + '" role="listitem" aria-label="' + escapeHtml(x.name) + (x.found ? ', found' : ', not found') + '"><span class="emark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 8.6l3.4 3.4L13 4.4"/></svg></span><span class="ename" aria-hidden="true">' + escapeHtml(x.name) + '</span></div>';
+      rows += '<div class="ncard egg ' + (x.found && !isNew(x) ? 'found' : 'unknown') + (isNew(x) ? ' fresh' : '') + col(x.i) + '" role="listitem" aria-label="' + escapeHtml(x.name) + (x.found ? ', found' : ', not found') + (isNew(x) ? ' in this run' : '') + '"><span class="emark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 8.6l3.4 3.4L13 4.4"/></svg></span><span class="nname ename" aria-hidden="true">' + escapeHtml(x.name) + '</span></div>';
     }
-    return '<div class="eggs" role="list" aria-label="Secret scenes" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + rows + '</div><p class="eggcount">' + eggs.filter(x => x.found).length + ' of ' + eggs.length + ' found</p>';
+    const all = !!fresh && fresh.length > 0 && n === eggs.length;
+    return '<div class="nights eggs" role="list" aria-label="Secret scenes" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + rows + '</div>' +
+      '<p class="eggcount"><span class="ecnt"><span class="ecount">' + (n - eggs.filter(isNew).length) + '</span> of ' + eggs.length + ' found' + (all ? '<span class="stamp estamp">All secrets found</span>' : '') + '</span></p>';
+  }
+  // two tabs over their two panels (role tablist, tab, tabpanel: pickTab), the one chosen shown: [[key, label, html], ...]
+  function tabsHtml(name, tabs, on) {
+    const tab = ([k, label]) => '<button type="button" role="tab" id="tab-' + k + '" data-tab="' + k + '" aria-controls="panel-' + k + '" aria-selected="' + (k === on) + '" tabindex="' + (k === on ? 0 : -1) + '">' + label + '</button>';
+    const panel = ([k, , inner]) => '<div class="tabpanel" role="tabpanel" id="panel-' + k + '" aria-labelledby="tab-' + k + '"' + (k === on ? '' : ' hidden') + '>' + inner + '</div>';
+    return '<div class="tabs" role="tablist" aria-label="' + name + '">' + tabs.map(tab).join('') + '</div><div class="tabstack">' + tabs.map(panel).join('') + '</div>';
   }
   function btn(act, label, arg, cls) { return '<button type="button" class="mbtn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '"' + (arg !== undefined ? ' data-arg="' + arg + '"' : '') + '>' + label + '</button>'; }
   function html(kind, d) {
@@ -121,15 +134,15 @@ const MENU = (() => {
           card(cluster('↑', '←', '↓', '→') + or + cluster('W', 'A', 'S', 'D'), 'Look around') +
           card(k('Shift') + or + k('Space'), 'Zoom in') +
           card(click, 'Interact') +
-          card(k('Esc'), 'Pause') +
+          card(k('Esc') + or + k('P'), 'Pause') +
           '</div>' +
           '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
       }
       case 'pause':
         // one narrow column of buttons all of a width: Resume, Controls (How to play, as on the title), Settings, Scores
         // (once the title has it: scoresOpen) and a quiet Quit, which asks first (show: confirmQuit) and is the only way
-        // out to the title. R (restart) and M (mute) still work from the keyboard; Esc resumes
-        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('controls', 'Controls') + btn('settings', 'Settings', 'pause') + (scoresOpen() ? btn('nights', 'Scores', 'pause') : '') + btn('quit', 'Quit', undefined, 'quiet') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc resumes</p>');
+        // out to the title. R (restart) and M (mute) still work from the keyboard; Esc or P resumes
+        return '<h1>Paused</h1><div class="mcol even">' + btn('resume', 'Resume') + btn('controls', 'Controls') + btn('settings', 'Settings', 'pause') + (scoresOpen() ? btn('nights', 'Scores', 'pause') : '') + btn('quit', 'Quit', undefined, 'quiet') + '</div>' + (touchUI() ? '' : '<p class="fine">Esc or P resumes</p>');
       case 'dead':   // (no way out to the title from here but the pause menu's Quit: Esc, B, or the menu button on a phone)
         return '<h1 class="red">' + (d.title || 'It got you') + '</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('retry', 'Try again') + '</div>';
       case 'ending':   // the last screen of the last night, over the morning room
@@ -139,10 +152,17 @@ const MENU = (() => {
         // the whole run with its stars, then the way out. This run's own times (game.js: G.lastRun), adding up to its
         // whole time; the Best run stamp beside that only when it is a new best (and so the one on the Scores screen now).
         // (No run, only when the last night was reached by ?level=: then dashes)
+        // If the run found easter eggs it did not have before (the save's runEggs: game.js foundEgg), two tabs, as Scores
+        // has: This run (all of the above) and Secret scenes, and it opens on the secret scenes, where the new ones are
+        // checked off one after another (eggsHtml fresh; reveal), with a stamp, All secrets found, if that is all of
+        // them now. The times come in when their tab is first opened
         const R0 = G.lastRun;
         const run = R0 ? runTime(R0, 'This run', R0.best) : '<div class="rlabel">This run</div><div class="rline"><div class="rtime none">&mdash;</div></div>';
-        return '<div class="results"><div class="kicker">Morning</div><h1>Every night survived</h1>' + runCards(R0, 'rcard') +
-          '<div class="runcard rrun">' + run + '</div><div class="mrow rlast">' + btn('finish', 'Finish game', undefined, 'primary') + '</div></div>';
+        const body = runCards(R0, 'rcard') + '<div class="runcard rrun">' + run + '</div>';
+        const fresh = R0 ? SAVE.data.runEggs.filter(id => SAVE.data.eggs[id]) : [];
+        return '<div class="results"><div class="kicker">Morning</div><h1>Every night survived</h1>' +
+          (fresh.length ? tabsHtml('Results', [['run', 'This run', body], ['eggs', 'Secret scenes', eggsHtml(eggList(), fresh)]], 'eggs') : body) +
+          '<div class="mrow rlast">' + btn('finish', 'Finish game', undefined, 'primary') + '</div></div>';
       }
       case 'survived':
         // on to the next night (and no other way from here: the pause menu has Quit)
@@ -161,16 +181,13 @@ const MENU = (() => {
         const foot = '<div class="mrow">' + btn('back', 'Back', from) + (from === 'pause' ? '' : btn('reset', 'Erase progress', undefined, 'danger')) + '</div>';
         const eggs = eggList();
         if (!eggs.some(x => x.found)) return '<h1>Scores</h1>' + body + foot;
-        const on = d.tab || (best ? 'run' : 'eggs');
-        const tab = (k, label) => '<button type="button" role="tab" id="tab-' + k + '" data-tab="' + k + '" aria-controls="panel-' + k + '" aria-selected="' + (k === on) + '" tabindex="' + (k === on ? 0 : -1) + '">' + label + '</button>';
-        const panel = (k, inner) => '<div class="tabpanel" role="tabpanel" id="panel-' + k + '" aria-labelledby="tab-' + k + '"' + (k === on ? '' : ' hidden') + '>' + inner + '</div>';
-        return '<h1>Scores</h1><div class="tabs" role="tablist" aria-label="Scores">' + tab('run', 'Best run') + tab('eggs', 'Secret scenes') + '</div><div class="tabstack">' + panel('run', body) + panel('eggs', eggsHtml(eggs)) + '</div>' + foot;
+        return '<h1>Scores</h1>' + tabsHtml('Scores', [['run', 'Best run', body], ['eggs', 'Secret scenes', eggsHtml(eggs)]], d.tab || (best ? 'run' : 'eggs')) + foot;
       }
       case 'settings': {
         if (d.sub === 'volume') return volumeHtml();
         if (d.sub === 'brightness') return brightnessHtml();
         // Volume and Brightness, each a Calibrate button (a dialog of its own: volumeHtml, brightnessHtml: the effects and
-        // the ambience volumes are in Volume's); Display, windowed or full screen (displayRow); the text size, a row of
+        // the ambience volumes are in Volume's; Brightness's has nothing to set, only the creature to set the device by); Display, windowed or full screen (displayRow); the text size, a row of
         // choices (seg); then the on/off settings, each a switch (a checkbox with the role of a switch, drawn as one: .sw).
         // At the foot Set to default (every setting back as it began, nothing else) and, to its right, Done (data-act
         // 'back': it, Esc and a pad's B go back to what opened Settings). From the warning before a new game (d.from
@@ -194,7 +211,7 @@ const MENU = (() => {
   const pct = v => Math.round(v * 100) + '%';
   // a slider, its value as a percentage at its right (following it as it moves); name: what it is read out as, when its
   // label alone does not say
-  const rng = (k, label, min, max, name, step) => { const v = SAVE.data.settings[k]; return '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="' + (step || 0.05) + '" data-set="' + k + '" value="' + v + '" aria-valuetext="' + pct(v) + '"' + (name ? ' aria-label="' + name + '"' : '') + '><output class="pct" aria-hidden="true">' + pct(v) + '</output></span></label>'; };
+  const rng = (k, label, min, max, name) => { const v = SAVE.data.settings[k]; return '<label class="opt"><span class="olabel">' + label + '</span><span class="rngwrap"><input type="range" min="' + min + '" max="' + max + '" step="0.05" data-set="' + k + '" value="' + v + '" aria-valuetext="' + pct(v) + '"' + (name ? ' aria-label="' + name + '"' : '') + '><output class="pct" aria-hidden="true">' + pct(v) + '</output></span></label>'; };
   // a row of choices, one of them chosen (choices: [[label, value], ...]; chosen: the value chosen, else the setting's):
   // a radio group, its buttons side by side. The arrows (left and right; a pad's d-pad too) go along it choosing as they
   // go, Enter, Space and A choose the one with the focus, a click or a tap chooses; only the chosen one is in the round
@@ -237,7 +254,7 @@ const MENU = (() => {
     n.focus();
   }
   const isRadio = f => !!(f && f.getAttribute && f.getAttribute('role') === 'radio' && f.closest('.seg'));
-  // the Scores' tabs (role tablist, tab, tabpanel): a click or a tap on one chooses it; with the focus on the chosen one
+  // the Scores' tabs, and the results' (role tablist, tab, tabpanel): a click or a tap on one chooses it; with the focus on the chosen one
   // (the only one of them in the round the keys go: ring) left and right, and a pad's d-pad, go along them choosing as they
   // go (Home and End: the first and the last). The panel of the one chosen is shown, the other's hidden. True if it changed
   const isTab = f => !!(f && f.getAttribute && f.getAttribute('role') === 'tab');
@@ -250,6 +267,7 @@ const MENU = (() => {
       if (p) p.hidden = !on;
     }
     if (changed && current && current.kind === 'nights') current.data.tab = k;
+    if (changed && current && current.kind === 'results') resultsTab(k);
     return changed;
   }
   function tabStep(o, dir) {
@@ -262,6 +280,8 @@ const MENU = (() => {
   // the left ear over to the right) and the loudest (the sting itself, once, in the middle): AUDIO.calibrate. Ambience:
   // the quietest bed in the game and the loudest, a few seconds of each. Each of the four is a button with a play mark at
   // its left, which is a stop mark while its sound plays (PLAY_ICON; .playing, aria-pressed): pressed then, it stops.
+  // With captions for sounds on, each is captioned as the game captions it; the quietest (which the game plays under
+  // everything, with no caption of its own) as "footsteps" for as long as it plays (CAPTIONS.cal).
   // These buttons make no tap of their own (the menus' click would be over the very sound being judged). While the
   // dialog is open whatever ambience was playing is faded out (AUDIO.hush: settled), so these are heard in clean
   // space. Done (Esc, a pad's B) is Settings again
@@ -273,21 +293,18 @@ const MENU = (() => {
     return '<h1>Volume</h1><p class="caltext">Adjust your device volume and/or the sliders below until you can hear each of these comfortably.</p>' +
       '<p class="calmute"' + (SAVE.data.settings.muted ? '' : ' hidden') + '>Sound is muted: turn Mute off (M) to hear these.</p>' +
       '<div class="calsecs">' +
-      sec('fx', 'Sound effects', 'effects', play('calquiet', 'Play the quietest sound in the game') + play('calloud', 'Play the loudest sound in the game')) +
-      sec('amb', 'Ambience', 'ambient', play('ambquiet', 'Play the quietest ambience in the game') + play('ambloud', 'Play the loudest ambience in the game')) +
+      sec('fx', 'Sound effects', 'effects', play('calquiet', 'Quietest sound in the game') + play('calloud', 'Loudest sound in the game')) +
+      sec('amb', 'Ambience', 'ambient', play('ambquiet', 'Quietest ambience in the game') + play('ambloud', 'Loudest ambience in the game')) +
       '</div><div class="mrow">' + btn('caldone', 'Done', 'calvol', 'primary') + '</div>';
   }
   // Brightness's Calibrate: the thing on the title, the shape of it alone in The Void's dark (TITLE.shape, drawn by
-  // drawShape): the black of the void, and the demon's robe as it is there with no light on it. Under it the game's own
-  // brightness, a slider (SAVE.BRIGHT: 60% to 160%, 100% as it is drawn), its percentage beside it; the creature here
-  // is shown through it, as the game and the title are (brightness), so what is seen here is what will be seen there.
-  // Done is Settings again
+  // drawShape): the black of the void, and the demon's robe as it is there with no light on it. It is the device's own
+  // brightness that is set by it: the game has none of its own (a slider there was washed the scenes out, or lost what
+  // is in their dark). Done is Settings again
   function brightnessHtml() {
-    const B = SAVE.BRIGHT;
-    return '<h1>Brightness</h1><p class="caltext">Increase your device brightness, or the slider below, until you can barely see the outline of this creature</p>' +
+    return '<h1>Brightness</h1><p class="caltext">Increase your device brightness until you can barely perceive the outline of this creature.</p>' +
       '<canvas class="calshape" role="img" aria-label="A dark figure, very faintly, on black"></canvas>' +
-      '<div class="calfoot"><div class="calbright">' + rng('brightness', 'Brightness', B.min, B.max, undefined, B.step) + '</div>' +
-      '<div class="mrow">' + btn('caldone', 'Done', 'calbright', 'primary') + '</div></div>';
+      '<div class="mrow">' + btn('caldone', 'Done', 'calbright', 'primary') + '</div>';
   }
   const VOID_BLACK = '#000', ROBE_DARK = 'rgb(12,10,15)';   // (js/levels/night13.js VOID_PAL's sky and fog; js/creatures/demon.js: its robe, robeC, unlit)
   function drawShape(cv) {
@@ -309,15 +326,19 @@ const MENU = (() => {
     const was = b.classList.contains('playing');
     root.querySelectorAll('button.calplay').forEach(idle);
     const note = root.querySelector('.calmute'); if (note) note.hidden = !SAVE.data.settings.muted;
+    CAPTIONS.calOver();
     if (was) { AUDIO.calStop(); return; }
     b.classList.add('playing'); b.setAttribute('aria-pressed', 'true');
-    if (!AUDIO.calibrate(CALS[a], i => { if (i < 0 && b.isConnected) idle(b); })) idle(b);
+    const steps = a === 'calquiet';
+    if (!AUDIO.calibrate(CALS[a], i => { if (i < 0) { CAPTIONS.calOver(); if (b.isConnected) idle(b); } else if (steps) CAPTIONS.cal(AUDIO.CAL.pans[i]); })) idle(b);
   }
+  // the calibration's sound stopped, and its caption with it
+  function calOff() { AUDIO.calStop(); if (typeof CAPTIONS !== 'undefined') CAPTIONS.calOver(); }
   // after Settings (or one of its dialogs) is put in a screen: the shape drawn; in the volume's dialog the ambience
   // faded out of the way, out of it back in, and the calibration's sound stopped
   function settled(root, d) {
     const vol = !!(d && d.sub === 'volume');
-    if (!vol) AUDIO.calStop();
+    if (!vol) calOff();
     AUDIO.hush(vol);
     const cv = root.querySelector('canvas.calshape'); if (cv) drawShape(cv);
   }
@@ -353,7 +374,7 @@ const MENU = (() => {
     ov.querySelectorAll('[role="tab"]').forEach(t => t.addEventListener('click', e => { e.stopPropagation(); if (pickTab(ov, t.dataset.tab)) tap(); }));
     wire(ov);
     if (kind === 'results') toDark(ov);
-    if (kind === 'settings') settled(ov, current.data); else { AUDIO.calStop(); AUDIO.hush(false); }
+    if (kind === 'settings') settled(ov, current.data); else { calOff(); AUDIO.hush(false); }
     ov.querySelectorAll('.stars').forEach(s => s.addEventListener('click', e => { e.stopPropagation(); starTip(s); }));
     const box = ov.querySelector('.confirm');
     if (box) box.addEventListener('click', e => { e.stopPropagation(); if (e.target === box) act(kind === 'pause' ? 'stay' : 'keep'); });   // a click off the little dialog backs out of it
@@ -442,38 +463,55 @@ const MENU = (() => {
     return true;
   }
   // the results after the ending: each night's card takes its time one after another, then the full run, then the way
-  // out. A click or a key hurries it to the end; with reduced motion it is all there at once
-  let timers = [], revealing = false;
+  // out. A click or a key hurries it to the end; with reduced motion it is all there at once.
+  // With its two tabs (the run found easter eggs: html) it is the secret scenes that are watched first (what: 'eggs'):
+  // each of the run's new ones is checked off in turn, the count under them going up with it, then the stamp if that is
+  // all of them, then the way out; the times ('run') come in the same way as ever the first time their tab is opened
+  // (resultsTab), whatever was still coming in on the other all there at once
+  let timers = [], revealing = false, revealWhat = 'run';
   function stopReveal() { timers.forEach(clearTimeout); timers = []; revealing = false; }
-  function reveal(now) {
+  function reveal(now, what) {
     stopReveal();
     const box = UI.overlay.querySelector('.results'); if (!box) return;
+    const eggs = box.querySelector('#panel-eggs'), runP = box.querySelector('#panel-run') || box;
+    what = revealWhat = what || (eggs && !eggs.hidden ? 'eggs' : 'run');
     const cards = [...box.querySelectorAll('.rcard')], run = box.querySelector('.rrun'), last = box.querySelector('.rlast');
-    const done = () => { revealing = false; last.classList.add('in'); const b = last.querySelector('button'); if (b) b.focus({ preventScroll: true }); };
-    if (now || SAVE.data.settings.reducedMotion) { box.classList.add('still'); cards.forEach(c => c.classList.add('in')); run.classList.add('in'); done(); return; }
+    const still = now || SAVE.data.settings.reducedMotion, at = (ms, fn) => timers.push(setTimeout(fn, ms));
+    const quiet = p => (SAVE.data.settings.reducedMotion ? box : p).classList.add('still');   // (hurried: only what was coming in; reduced motion: nothing moves at all)
+    // (the way out takes the focus as it comes, unless a tab has it: the keys are going along them)
+    const done = () => { revealing = false; const was = last.classList.contains('in'); last.classList.add('in'); const b = last.querySelector('button'); if (b && !was && !isTab(document.activeElement)) b.focus({ preventScroll: true }); };
+    if (what === 'eggs') {
+      const fresh = [...eggs.querySelectorAll('.egg.fresh.unknown')], count = eggs.querySelector('.ecount'), stamp = eggs.querySelector('.estamp');
+      const check = e => { e.classList.remove('unknown'); e.classList.add('found'); if (count) count.textContent = eggs.querySelectorAll('.egg.found').length; };
+      const end = () => { if (stamp) stamp.classList.add('in'); done(); };
+      if (still) { quiet(eggs); fresh.forEach(check); end(); return; }
+      revealing = true;
+      const GAP = 520, t0 = 1100;
+      fresh.forEach((e, i) => at(t0 + i * GAP, () => { check(e); e.classList.add('tick'); AUDIO.sfx('tap'); }));
+      at(t0 + fresh.length * GAP + 250, () => { if (stamp) AUDIO.sfx('win'); end(); });
+      return;
+    }
+    if (still) { quiet(runP); cards.forEach(c => c.classList.add('in')); run.classList.add('in'); done(); return; }
     revealing = true;
-    const at = (ms, fn) => timers.push(setTimeout(fn, ms)), GAP = 230, t0 = 700;
+    const GAP = 230, t0 = 700;
     cards.forEach((c, i) => at(t0 + i * GAP, () => { c.classList.add('in'); AUDIO.sfx('tap'); }));
     const t1 = t0 + cards.length * GAP + 450;
     at(t1, () => { run.classList.add('in'); AUDIO.sfx('win'); });
     at(t1 + 1400, done);
   }
-  function hurry() { if (revealing) reveal(true); }
+  function hurry() { if (revealing) reveal(true, revealWhat); }
+  // a tab of the results chosen: what was coming in on the other is all there; the times come in the first time they are shown
+  function resultsTab(k) {
+    hurry();
+    const run = UI.overlay.querySelector('.results .rrun');
+    if (k === 'run' && run && !run.classList.contains('in')) reveal(false, 'run');
+  }
   // the text size: every size in the menus and the HUD is its own times --text-scale; and its name on the page
   // (data-textsize: smaller, normal, bigger), for the few layouts that change with it rather than only grow
   function textSize(v) {
     const de = document.documentElement, i = SAVE.TEXT_SIZES.findIndex(([, x]) => x === v);
     de.style.setProperty('--text-scale', v);
     de.dataset.textsize = i < 0 ? 'normal' : SAVE.TEXT_SIZES[i][0].toLowerCase();
-  }
-  // the brightness of the view (Settings, Brightness, Calibrate; SAVE.BRIGHT). At 100% nothing at all is done to the
-  // picture: no filter, and so nothing for it to cost. At anything else the game's canvas, the title's, and the creature
-  // in the brightness dialog are shown through a CSS filter (index.html: :root.bright, its amount --bright); the menus,
-  // the HUD and every word over them are not
-  function brightness(v) {
-    const de = document.documentElement, on = typeof v === 'number' && isFinite(v) && Math.abs(v - 1) > 0.001;
-    de.classList.toggle('bright', on);
-    if (on) de.style.setProperty('--bright', v); else de.style.removeProperty('--bright');
   }
   function applySetting(k, v) {
     // reduced motion and reduced flashing are one switch: it sets both flags (each still read where it was)
@@ -485,7 +523,6 @@ const MENU = (() => {
     if (k === 'muted') setMuted(v);
     else if (k === 'effects' || k === 'ambient') AUDIO.setVolume(k, v);
     else if (k === 'textSize') textSize(v);
-    else if (k === 'brightness') brightness(v);
     else if (k === 'reduceTextures') R.detail = !v;
   }
   // Set to default: every setting as it began, applied at once, and the controls on screen moved to match (the focus
@@ -507,7 +544,6 @@ const MENU = (() => {
     const S = SAVE.data.settings;
     AUDIO.setVolume('effects', S.effects); AUDIO.setVolume('ambient', S.ambient);
     textSize(S.textSize);
-    brightness(S.brightness);
     R.detail = !S.reduceTextures;
   }
   function act(a, arg) {
