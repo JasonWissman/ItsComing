@@ -318,9 +318,39 @@ const duck = [
   ['expect', '(D => D.face === 0 && D.crawl >= D.moved * CREATURES.tall.CRAWL * 0.8)(window.__duck)', 'low along the floor its eyes stayed on you, and it crawled there, its hands and feet going as far as it went'],
   ['expect', "/hands are on the covers/.test(G.lastToast.msg)", 'and you are told its hands are on the covers'],
 ];
+// The drawer, open, is a box slid right out of the nightstand, and what is in it lies in it: from every view that shows
+// the whole of its open top, each thing is on its bottom, under its rim, drawn within the opening (its middle, and well
+// above and below it), and pointed at there it is the thing under the pointer; and it is taken with a click.
+const inDrawer = fresh.concat([
+  ['eval', T('drawer') + '.onClick(); G.hand.reach = null;'],
+  ['waitUntil', "(d => d.rim()[2][2] - d.rim()[1][2] > 0.27)(" + T('drawer') + ")", 3000],
+  ['expect', "(d => d.rim()[2][2] - d.rim()[1][2] > 0.27 && G.L.items.filter(i => !i.taken).length === 2)(" + T('drawer') + ")", 'the drawer slides right out: more than a quarter of a metre of it open, the bulb and the remote in it'],
+  ['eval', `window.__inDrawer = (() => {
+    const d = ${T('drawer')}, out = { views: 0, bad: [] }, pt = p => { const r = R.projectRect(p[0], p[1], p[2], 0, 0, null); return r && [r.x, r.y + r.h]; };
+    const inside = (q, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+    for (const it of G.L.items.filter(i => !i.taken)) if (!it.flat || Math.abs(it.y - d.floorY) > 0.01 || it.y + it.h * 0.5 > d.rim()[0][1]) out.bad.push(it.id + ' is not lying on the bottom of the drawer, under its rim');
+    for (const down of [0, 1]) for (const dir of [2, 3]) {
+      G.cam.dirIdx = dir; G.cam.yaw = G.cam.tYaw = dir * 45 * DEG; G.cam.pitch = G.cam.tPitch = down ? PITCH_DOWN : 0; G.mouse.x = -1; render();
+      const poly = d.rim().map(pt);
+      if (poly.some(q => !q || q[0] < 0 || q[0] > R.W || q[1] < 0 || q[1] > R.H)) continue;   // its open top is not all in this view
+      out.views++;
+      for (const h of [...R.hits].filter(h => h.kind === 'item')) {
+        const mid = [h.x + h.w / 2, h.y + h.h / 2], where = dir + (down ? 'd' : '') + ': the ' + h.ref.id;
+        for (const q of [mid, [mid[0], mid[1] - h.h * 0.3], [mid[0], mid[1] + h.h * 0.3]]) if (!inside(q, poly)) { out.bad.push(where + ' is not drawn within the open drawer'); break; }
+        G.mouse.x = mid[0]; G.mouse.y = mid[1] + R.viewY; updateHover();
+        if (!G.hover || G.hover.ref !== h.ref) out.bad.push(where + ' is not what is pointed at there');
+      }
+    }
+    G.mouse.x = G.mouse.y = -1; if (out.bad.length) console.log('in the drawer: ' + out.bad.join('; '));
+    return out;
+  })();`],
+  ['expect', 'window.__inDrawer.views >= 3 && !window.__inDrawer.bad.length', 'each lies in the open drawer: on its bottom, under its rim, drawn within its opening from every view that shows it all, and pointed at there'],
+  ['face', 3, true], ['pickup', 'remote'], ['pickup', 'bulb'],
+  ['expect', "G.inv.length === 2 && " + T('drawer') + ".yielded.every(i => i.taken)", 'and each is taken out of it with a click'],
+]);
 // holding the covers, your hand is on them (watched while the solution holds them)
 const coverHand = ['eval', "window.__coverHand = false; (function w() { if (G.holding && G.holding.id === 'covers' && G.hand.reach && G.hand.reach.target === G.holding) window.__coverHand = true; if (G.state === 'play') requestAnimationFrame(w); })();"];
 module.exports = {
   // Nightmare charges 3.5x speed for every second spent looking away, so the harness faces each thing directly instead of sweeping
-  nightmare: fumbles.concat(tv, card, peering, glide, stoop, crawlFrom(0), crawlFrom(1), dark, grabbed, [mattress, ['face', 5, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 4, false], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ['expect', 'G.L.s.grab && G.L.s.grab.k < 1', 'and the covers came up before its hands reached you'], ...under]),
+  nightmare: fumbles.concat(inDrawer, tv, card, peering, glide, stoop, crawlFrom(0), crawlFrom(1), dark, grabbed, [mattress, ['face', 5, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 4, false], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ['expect', 'G.L.s.grab && G.L.s.grab.k < 1', 'and the covers came up before its hands reached you'], ...under]),
 };

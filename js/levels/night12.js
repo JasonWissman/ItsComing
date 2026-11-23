@@ -83,8 +83,8 @@ LEVELS.push({
     // its bottom, the thickness of its sides; `in`: where each thing lies in it (across it, and how far behind its front)
     // (the remote is a tool: it stays with you; held in the fist by its lower end)
     const DR = { x0: NS.x0 + 0.03, x1: NS.x1 - 0.03, y0: 0.44, y1: 0.6, zf: NS.z1, out: 0.3, dur: 0.4, floor: 0.5, wall: 0.016 };
-    const bulbs = [{ id: 'bulb', name: 'Bulb', in: [0.22, 0.075], opts: { w: 0.13, h: 0.16, icon: 'bulb', material: 'glass' } },
-      { id: 'remote', name: 'Remote', in: [0.21, 0.205], opts: { w: 0.2, h: 0.19, icon: 'remote', tool: true, held: { grip: 'fist', at: [0.02, 0.26], angle: -0.3, size: 0.2 } } }];
+    const bulbs = [{ id: 'bulb', name: 'Bulb', in: [0.26, 0.085], opts: { w: 0.13, h: 0.16, icon: 'bulb', material: 'glass' } },
+      { id: 'remote', name: 'Remote', in: [0.22, 0.22], opts: { w: 0.2, h: 0.19, icon: 'remote', tool: true, held: { grip: 'fist', at: [0.02, 0.26], angle: -0.3, size: 0.2 } } }];
     // how far out it is now; and the drawer's target and the things in it go with it
     const drawerOut = () => (drawer.open ? DR.out * smoothstep(clamp((L.t - drawer.openAt) / DR.dur, 0, 1)) : 0);
     const rideDrawer = () => {
@@ -108,6 +108,9 @@ LEVELS.push({
         return true;
       },
     });
+    // (for the night's test: the four corners of its open top, inside its rim, as it is now; and its bottom's height)
+    drawer.rim = () => { const z1 = DR.zf + drawerOut(); return [[DR.x0 + DR.wall, DR.zf], [DR.x1 - DR.wall, DR.zf], [DR.x1 - DR.wall, z1 - DR.wall], [DR.x0 + DR.wall, z1 - DR.wall]].map(([x, z]) => L.pt(x, DR.y1, z)); };
+    drawer.floorY = DR.floor;
     const knob = SC.mkSprite(L, (DR.x0 + DR.x1) / 2, (DR.y0 + DR.y1) / 2 - 0.018, DR.zf + 0.014, 0.036, 0.036, (ctx, P) => { ctx.scale(0.036, 0.036); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([96, 92, 86])); P_ell(ctx, -0.1, 0.6, 0.3, 0.3, P.col([164, 158, 148])); }, { sortDist: 1.05 });
     // The lamp's switch is the pull chain under its shade, and your hand pulls it (js/hands.js): the chain jerks and the switch
     // clicks as the hand gets there. With no bulb in, or the cord out, nothing comes of it; on Nightmare it sticks twice (the

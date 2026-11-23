@@ -692,7 +692,14 @@ some on the ground, so you have to turn and look down to find them.
     swells out over everything until the black of it is all there is. Your hand
     pulls the lamp's chain (nothing comes of it with no bulb in, and the line is "It's missing something."; nor
     with the cord out; and it sticks),
-    opens the drawer, pushes the plug in and is on the covers' hem as you hold them. Then they
+    opens the drawer, pushes the plug in and is on the covers' hem as you hold them. The
+    nightstand stands at your right, back against the wall at the head of the bed, the lamp
+    on it, its drawer facing down the room (you see it looking east and south-east, ahead or
+    down). The drawer is shut flush in its front; opened, it slides 30 cm out along the
+    bedside, an open box (its front and knob, its two sides, its bottom, the dark of the
+    nightstand behind it), and the bulb and the remote lie in it on its bottom, under its rim,
+    where you look down into it (`test/nights/night12.js` checks each is drawn within the open
+    drawer from every view that shows it, and is what a click there takes). Then they
     come up over your eyes and the rest happens under them, the cloth hanging in long folds:
     its steps to the bed, the shadows of its two hands coming up onto the lamp-lit cloth and
     taking hold as they did on the bed, three hard pulls (one hand, the other, then both)
