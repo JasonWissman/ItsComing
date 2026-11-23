@@ -50,12 +50,13 @@ LEVELS.push({
     hint: 'The keys fell somewhere when the car stalled.',
     objective: 'Start the car and get away.',
     // caught where it came up to the car: the window it came through. With the engine running (and the car not yet away)
-    // the card says that instead; and having driven into it (ahead in drive, behind in reverse), that
+    // the card says that instead; and caught at all after having driven into it (it was knocked back down the road, and
+    // got up), the one line for that
     egg: 'Hit the creature with your car.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came through the windshield.', passenger: 'It came through the passenger window.', driver: 'It came through the window beside you.', back: 'It came through the back window.',
       running: 'The engine was running, but you couldn\'t get away fast enough.',
-      drove: 'You drove straight into it, but it is too strong.', reversed: 'You backed straight into it, but it is too strong.' },
-    eggs: ['drove', 'reversed'],   // (the easter egg: "Nice try", game.js deathLine)
+      gotup: 'It got right back up.' },
+    eggs: ['gotup'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'You drove off and did not look back.',   // the same whichever way out you took and wherever it was
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
@@ -161,7 +162,7 @@ LEVELS.push({
     // reverse or drive and the gas takes you away; in park or neutral the engine only roars. Straight ahead is only a way
     // out if the thing is not in the road
     Object.assign(s, { keyIn: false, cranks: 0, cranking: 0, started: false, cranksNeeded: 2 + Math.floor(L.rand() * 3), gear: 'D', lastCrank: -10, gone: false, dir: 0, pressT: -10, keyAng: 0, ram: null, floored: false,
-      turnAt: -10, jigAt: -10, gearFrom: 'D', gearAt: -10, dead: false, stalled: false });
+      turnAt: -10, jigAt: -10, gearFrom: 'D', gearAt: -10, dead: false, hits: 0, knock: null, carZ: 0 });
     const GEAR_NAME = { P: 'park', R: 'reverse', N: 'neutral', D: 'drive' };
     const inGearNow = () => s.gear === 'R' || s.gear === 'D';   // (park and neutral: the engine turns and the car stays put)
     // Your hand on the car (js/hands.js): it goes to the key to turn it, to the gearstick to move it, and to the lock with no
@@ -223,7 +224,7 @@ LEVELS.push({
       hint() { return s.started ? 'Running.' : s.keyIn ? (inGearNow() ? 'Turn the key. It is still in ' + GEAR_NAME[s.gear] + ', though.' : 'Turn the key.') : 'The ignition. No key in it.'; },
       use(item) { if (item.id !== 'keys') return false; s.keyIn = true; ign.accepts = []; AUDIO.sfx('keys'); G.say('The key is in. Turn it.', 'The key is in.'); return true; },
       onClick() {
-        if (s.ram) return true;   // (the car has run at it: nothing in the car answers now)
+        if (s.ram) return true;   // (the car is running at it: nothing in the car answers until it has stopped)
         // the house keys still at the keyhole, out of the hand: another click does nothing more until they drop (it would
         // say there is no key over their line, or put the car key in under them)
         const fx = G.fumbling;
@@ -307,22 +308,33 @@ LEVELS.push({
         AUDIO.sfx('rev');
         if (!inGearNow()) { G.shake(0.12); G.say('It roars and goes nowhere. It is in ' + GEAR_NAME[s.gear] + '.', 'The engine roars. The car is still in ' + GEAR_NAME[s.gear] + '.'); return true; }
         const c = L.creature, dir = s.gear === 'R' ? -1 : 1;
-        if (sectorOf(bear()) === (dir > 0 ? 'ahead' : 'behind') && !c.dead) { ram(c, dir); return true; }   // toward it, ahead in drive or behind in reverse: into it (off the road, it springs into it first)
+        if (sectorOf(bear()) === (dir > 0 ? 'ahead' : 'behind') && !c.dead) {
+          if (s.knock && s.knock.T < s.knock.K.rest) { G.shake(0.12); return true; }   // (it is still in the air from the last one: the wheels only spin)
+          ram(c, dir); return true;
+        }   // toward it, ahead in drive or behind in reverse: into it (off the road, it springs into it first)
         s.gone = true; s.dir = dir; G.shake(0.35);
         if (!L.won) win();   // away now: nothing it does before the next frame can undo the gas
         return true;
       },
     });
     // Drive with it in the road ahead (or reverse with it in the road behind): the car leaps at it as it comes down the
-    // road at the car, and hits it. It goes up off the bumper and down the road, turning over in the lights; the car
-    // lurches to a halt and the engine dies. It lies in a heap in the road, far enough off to be seen over the hood (or
-    // over the back seat and the boot); a limb jerks, and again; it gets up, a limb at a time, and stands; its head comes up
-    // at you; and it comes through the glass: the death lunge, from where it stands. What it does, second by second, is
-    // the crawler's own (CREATURES.crawler.struck); where it is, the car, the sounds and the view are here. The eye goes
-    // with the car (as it does getting away: how far off the thing is, is measured from the eye wherever the eye is); the
-    // view stays on it and closes in a little as it lies there (L.viewZoom), and nothing in the car answers meanwhile.
-    // This is the night's easter egg (text.egg), found the moment the car hits it; caught this way the card says "Nice
-    // try" (text.eggs) and only what happened, not what the gearstick last said.
+    // road at the car, and hits it. It is knocked back off the bumper and away down the road, the way the car was
+    // going, turning over in the lights, and comes down well off (LIE: 15 m ahead, 12 m behind, from your seat); the
+    // car lurches to a halt in a length or two, its engine still running and the stick where it was. The night is not
+    // over, and everything in the car answers again from the moment the car has stopped (about half a second after the
+    // blow). It lies in a heap a beat; a limb jerks; it gets up, a limb at a time, and stands; its head comes up at
+    // you; it drops onto all fours and comes on down the road at the car, as it always comes, from where it landed,
+    // squarely ahead of the car (or behind it) and staying in the road (STRUCK: up and coming 5.1 s after the blow).
+    // What it does, second by second, is the crawler's own (CREATURES.crawler.struck); where it is, the car and the
+    // sounds are here. The eye goes with the car (as it does getting away: how far off the thing is, is measured from
+    // the eye wherever the eye is; s.carZ is how far along the road the car now stands).
+    // That is the chance: the stick over to the other way (two clicks of it) and the gas, and the car is away from it,
+    // which wins the night as it is always won. Driving at it again knocks it back again, but each time it lands
+    // HIT.nearer (2 m) nearer, never nearer than HIT.least, and is up in HIT.sooner (0.75) of the time it took the time
+    // before, never less than HIT.floor (0.4) of the first (s.hits counts them): it cannot be kept down.
+    // This is the night's easter egg (text.egg), found the moment the car hits it. Caught at all after that, by
+    // whichever window, the card says "Nice try" (text.eggs) and "It got right back up." (the cause 'gotup').
+    // With reduced motion nothing shakes and the nose does not dip, and it is knocked back lower, turning over once.
     // It need not be in the road for that. Driving its way at all (forward with it anywhere ahead of the car, reversing with
     // it anywhere behind: sectorOf, below) is the same end: from a verge, or off a front or rear corner of the car, it
     // springs into the road in the car's path as the car sets off (LEAP: one long low bound from where it is, 0.35 to 0.5 s
@@ -331,17 +343,18 @@ LEVELS.push({
     // Only squarely beside the car is it out of both ways, and only the way straight away from it is a way out otherwise.
     // RAM_GAP: where the bumper meets it, from your seat. LIE: where it comes to rest (ahead, behind). BRAKE: how hard the
     // car stops (m/s²)
-    const RAM_GAP = 2.6, LIE = { 1: 9.4, [-1]: 7.2 }, BRAKE = 26, LEAP = { min: 0.35, max: 0.5, per: 80, slow: 1.3, lead: 0.15, land: RAM_GAP + 2.4 };
+    const RAM_GAP = 2.6, LIE = { 1: 15, [-1]: 12 }, HIT = { nearer: 2, least: { 1: 9, [-1]: 8 }, sooner: 0.75, floor: 0.4 }, BRAKE = 26, LEAP = { min: 0.35, max: 0.5, per: 80, slow: 1.3, lead: 0.15, land: RAM_GAP + 2.4 };
     // the view stays on it (a key or a swipe turns it for a frame at most), a little below level once it is down
     function watch(c, pitch) {
       G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = pitch || 0;
     }
+    const gentle = () => !!SAVE.data.settings.reducedMotion, jolt = a => { if (!gentle()) G.shake(a); };
     function ram(c, dir) {
-      G.shake(0.5); s.floored = true;
+      jolt(0.5); s.floored = true; s.knock = null;
       const b = bear(), off = !inPath(b, dir), x0 = Math.sin(b) * c.dist, z0 = Math.cos(b) * c.dist * dir;   // where it is: across the road, and along the car's way
       const from = off ? Math.max(z0, LEAP.land) : c.dist;   // (off the road, it comes down in the road at least a length ahead of the bumper)
       const near = from < RAM_GAP + 1.5;   // at the bumper already: the car only lurches into it
-      s.ram = { t: 0, v: near ? 3 : 0, s: 0, dir, from, T: near ? 0.25 : clamp(0.4 + from / 60, 0.6, 1.4), hit: -1, stage: 'run', stages: ['run'], leapt: off, landT: -1 };
+      s.ram = { t: 0, v: near ? 3 : 0, s: 0, dir, from, T: near ? 0.25 : clamp(0.4 + from / 60, 0.6, 1.4), hit: -1, leapt: off, landT: -1, z0: s.carZ };
       if (off) {   // it springs into the road, in the car's path
         const T = clamp(LEAP.min + Math.abs(x0) / LEAP.per, LEAP.min, LEAP.max) * (SAVE.data.settings.reducedMotion ? LEAP.slow : 1);
         s.ram.leap = { t: 0, T, x0, z0, y0: c.yOff || 0, h: clamp(0.3 + Math.abs(x0) * 0.07, 0.45, 1.2), b0: b, d0: c.dist };
@@ -349,24 +362,48 @@ LEVELS.push({
         roam.rem = 0; roam.circling = false; c.leap = 0; c.runDir = -Math.sign(x0) * dir || 1;
         AUDIO.voice('clicks', clamp(5 / (c.dist + 4), 0.2, 0.7), panOf(b));
       }
-      L.eye = { x: 0, y: 0, z: 0 };
-      c.hold = c.dist; c.mode = 'scuttle'; c.modeT = -2; c.runPose = false;
+      if (!L.eye) L.eye = { x: 0, y: 0, z: 0 };
+      c.hold = c.dist; c.mode = 'scuttle'; c.modeT = -2; c.runPose = false; c.frozen = true;
       watch(c);   // you look up at the road
     }
     function impact(c) {
-      const r = s.ram;
-      r.hit = 0; r.gap = c.hold = c.dist = RAM_GAP;
-      foundEgg();   // (kept whether or not you live to see it)
-      AUDIO.sfx('carHit'); G.shake(1.1); G.flash(0.35);
-      c.CR = Object.assign({}, c.CR, { sound: null, voice: null });   // thrown, it makes no steps, and no sound but what is played for it here
+      const r = s.ram, n = s.hits++, CR = CREATURES.crawler;
+      r.hit = 0; c.hold = c.dist = RAM_GAP;
+      foundEgg();   // (kept whether or not you get away)
+      AUDIO.sfx('carHit'); jolt(1.1); G.flash(0.35);
+      if (!s.CR0) s.CR0 = c.CR;
+      c.CR = Object.assign({}, s.CR0, { sound: null, voice: null });   // knocked back, it makes no steps, and no sound but what is played for it here
       c.frozen = true; c.runPose = false; roam.yOff = 0;
+      roam.b = r.dir > 0 ? 0 : Math.PI; roam.rem = 0; c.yaw = L.facing + roam.b;   // squarely in the road
+      // where it will lie, and how soon it is up: nearer and sooner each time
+      s.knock = { T: 0, n, dir: r.dir, gap: RAM_GAP, lie: Math.max(HIT.least[r.dir], LIE[r.dir] - HIT.nearer * n), stage: 'thrown', stages: ['thrown'],
+        K: CR.knock(Math.max(HIT.floor, Math.pow(HIT.sooner, n)), gentle()) };
+      c.struck = CR.struck(0, s.knock.K);
+      G.say('It is down, and it will not stay down. The other way: the stick, then the gas.', 'It is down. It will not stay down.');
+    }
+    // knocked back: down the road, lying there, getting up; then it is let go, and comes on as it always does
+    function knockOn(dt) {
+      const k = s.knock, c = L.creature, CR = CREATURES.crawler, K = k.K;
+      const t0 = k.T, T = k.T += dt, at = t => t0 < t && T >= t, pan = panOf(bear());
+      const p = c.struck = CR.struck(T, K);
+      c.hold = lerp(k.gap, k.lie, p.along); c.yOff = roam.yOff = p.y;
+      if (p.stage !== k.stage) k.stages.push(k.stage = p.stage);
+      if (at(K.land)) { AUDIO.sfx('bodyDrop', pan); jolt(0.25); }
+      if (K.jerks.some(at)) AUDIO.voice('clicks', 0.16, pan);
+      if (K.cracks.some(at)) AUDIO.sfx('joints', pan);
+      if (at(K.look)) AUDIO.voice('clicks', 0.6, pan);
+      if (T >= K.leap) {   // up, on all fours, and it comes
+        c.struck = null; c.yOff = roam.yOff = 0; c.CR = s.CR0; c.frozen = false;
+        c.dist = c.hold; c.u = clamp(1 - Math.pow(c.dist / c.D0, 1 / c.gamma), 0, 1); c.hold = null; c.mode = 'scuttle'; c.modeT = 0;
+        k.stages.push('up'); s.knocked = k; s.knock = null; s.upAt = L.t;
+      }
     }
     function ramOn(dt) {
-      const r = s.ram, c = L.creature, CR = CREATURES.crawler, K = CR.STRUCK;
+      const r = s.ram, c = L.creature;
       let pitch = 0;
       if (r.hit < 0) {   // the run at it: the gap between you closes from both ends
         r.t += dt; r.v += 9 * dt; r.s += r.v * dt;
-        G.shake(0.14);
+        jolt(0.14);
         const k = Math.min(1, r.t / r.T);
         const along = (r.from - r.s) * (1 - k * k) + RAM_GAP * k * k, lp = r.leap;
         if (lp) {   // in the air, from where it was to the road in the car's path (which is closing on it already)
@@ -378,35 +415,24 @@ LEVELS.push({
           if (q >= 1) { r.leap = null; r.landT = r.t; c.leap = undefined; c.yOff = roam.yOff = 0; AUDIO.footstep('crawler', clamp(6 / (c.dist + 5), 0.2, 0.8), panOf(roam.b)); }
         } else c.hold = along;
         if (k >= 1) impact(c);
-      } else {
-        const t0 = r.hit, T = r.hit += dt, at = t => t0 < t && T >= t, pan = panOf(bear());
-        if (r.v > 0) {   // the car, braked to a stop in a length or two; as it stops the engine dies
-          r.v = Math.max(0, r.v - BRAKE * dt); r.s += r.v * dt; G.shake(0.3);
-          if (!r.v) { s.started = false; s.stalled = true; s.floored = false; AUDIO.stopLoop(); AUDIO.sfx('stall'); G.shake(0.45); }
-        }
-        const p = c.struck = CR.struck(T);
-        c.hold = lerp(r.gap, LIE[r.dir], p.along); c.yOff = p.y;
-        if (p.stage !== r.stage) r.stages.push(r.stage = p.stage);
-        if (at(K.land)) { AUDIO.sfx('bodyDrop', pan); G.shake(0.25); }
-        if (K.jerks.some(at)) AUDIO.voice('clicks', 0.16, pan);
-        if (K.cracks.some(at)) AUDIO.sfx('joints', pan);
-        if (at(K.look)) AUDIO.voice('clicks', 0.6, pan);
-        // the nose dips as the car stops (not with reduced motion); then the view settles a little below level, on it
-        pitch = 0.05 * smoothstep((T - 0.3) / 1.2) + (SAVE.data.settings.reducedMotion ? 0 : 0.07 * Math.sin(Math.PI * clamp(T / 0.55, 0, 1)));
-        if (T >= K.leap) {   // and it comes
-          c.struck = null; c.yOff = 0; c.dist = c.hold; c.mode = 'pause'; c.modeT = 1;
-          G.lastToast = { msg: '', t: -10 };
-          die(c, r.dir < 0 ? 'reversed' : 'drove');
-        }
+      } else {   // the car, braked to a stop in a length or two, its engine still running: and it is yours again
+        const T = r.hit += dt;
+        r.v = Math.max(0, r.v - BRAKE * dt); r.s += r.v * dt; jolt(0.3);
+        pitch = gentle() ? 0 : 0.07 * Math.sin(Math.PI * clamp(T / 0.55, 0, 1));   // the nose dips as it stops
       }
-      const e = toWorld(0, r.s * r.dir); L.eye.x = e.x; L.eye.z = e.z;
+      s.carZ = r.z0 + r.s * r.dir;
+      const e = toWorld(0, s.carZ); L.eye.x = e.x; L.eye.z = e.z;
+      if (r.hit >= 0 && !r.v) { s.rammed = r; s.ram = null; s.floored = false; jolt(0.45); return; }
       if (G.state === 'play') watch(c, pitch);
     }
-    L.viewZoom = () => (s.ram && s.ram.hit >= 0 ? 1 + 0.9 * smoothstep((s.ram.hit - 0.7) / 1.3) : 0);
     // caught with the engine running (and the car not away): the card says that, and only that
-    L.onCatch = c => { if (!s.started) return false; G.lastToast = { msg: '', t: -10 }; die(c, 'running'); return true; };
+    L.onCatch = c => {
+      if (s.hits) { G.lastToast = { msg: '', t: -10 }; die(c, 'gotup'); return true; }   // having been hit, and got up: that, whichever window
+      if (!s.started) return false; G.lastToast = { msg: '', t: -10 }; die(c, 'running'); return true;
+    };
     L.isWon = () => s.gone;
-    L.objectiveText = () => s.ram ? '' : s.started ? (inGearNow() ? 'The gas.' : 'Into reverse or drive. Then the gas.') : (inGearNow() ? 'Put it in park. ' : '') + (s.keyIn ? 'Turn the key until it starts.' : 'Find the keys. Start the car.');
+    const toward = () => inGearNow() && sectorOf(bear()) === (s.gear === 'R' ? 'behind' : 'ahead');
+    L.objectiveText = () => s.ram ? '' : s.hits && s.started && toward() ? 'The other way: the stick, then the gas.' : s.started ? (inGearNow() ? 'The gas.' : 'Into reverse or drive. Then the gas.') : (inGearNow() ? 'Put it in park. ' : '') + (s.keyIn ? 'Turn the key until it starts.' : 'Find the keys. Start the car.');
 
     // ---- where it is: it goes round the car ----
     // Its way in is the game's (its distance from how far it has come, faster unseen), but where round the car it is, is
@@ -458,7 +484,7 @@ LEVELS.push({
     }
     function roamOn(dt) {
       const c = L.creature, b = bear();
-      if (s.gone || s.ram || L.won || c.dead || G.state !== 'play') return;
+      if (s.gone || s.ram || s.knock || L.won || c.dead || G.state !== 'play') return;
       c.yaw = L.facing + b;
       if (!roam.rem) {
         const inGear = s.started && inGearNow();
@@ -466,7 +492,7 @@ LEVELS.push({
         else if (!s.started && c.u >= roam.againU && c.dist > 14) {
           roam.againU = 2;
           goTo(REGION[pickOf(Object.keys(REGION).filter(k => k !== regionOf(b)))][0], 'round');
-        } else if (L.t >= roam.nextAt && c.dist > 6 && (!inGear || c.seen)) {   // shifting across, in a burst (not once it is at the car)
+        } else if (L.t >= roam.nextAt && c.dist > 6 && (!inGear || c.seen) && !s.hits) {   // (knocked back down the road, it keeps to the road)   // shifting across, in a burst (not once it is at the car)
           roam.nextAt = L.t + 3.5 + rr() * 3.5;
           const to = pickOf(REGION[regionOf(b)].filter(t => Math.abs(wrapPi(t - b)) > 2 * DEG));
           if (rr() < 0.75) goTo(to, 'shift');
@@ -531,17 +557,17 @@ LEVELS.push({
     const drive = { t: 0, v: 0, s: 0, cx: 0, cz: 0, gap: 0, side: 1, ahead: false, passedAt: -1, shifted: false, eyesFront: false, odo: 0, steps: 0 };
     const toWorld = (x, z) => { const p = L.pt(x, 0, z); return { x: p[0], y: 0, z: p[2] }; };
     function setOff() {
-      const c = L.creature, cp = c.pos(), loc = rotY(cp.x, cp.z, -L.facing), d0 = Math.hypot(loc[0], loc[1]), b = bear();
+      const c = L.creature, cp = c.pos(), loc = rotY(cp.x, cp.z, -L.facing), base = drive.base = s.carZ, d0 = Math.hypot(loc[0], loc[1] - base), b = bear();   // (base: where the car stands, having hit it)
       // ahead: it is somewhere the car is going (a verge it will pass, in drive ahead, in reverse behind); else beside the
       // car or the way it is leaving, and it can only come after it
       const ahead = Math.abs(wrapPi(s.dir > 0 ? b : b - Math.PI)) < 40 * DEG;
       Object.assign(drive, { cx: loc[0], cz: loc[1], gap: Math.min(d0, Math.max(3, d0 * 0.75)), side: loc[0] > 0.4 ? 1 : -1, ahead });
-      L.eye = { x: 0, y: 0, z: 0 };
-      c.frozen = false; c.hold = null; c.runPose = false; c.yOff = 0;
+      L.eye = toWorld(0, base);
+      c.frozen = false; c.hold = null; c.runPose = false; c.yOff = 0; c.struck = null; s.knock = null;   // (lying in the road, it is up as the car goes)
       c.pos = () => toWorld(drive.cx, drive.cz);
       // how far it is goes by the car as it is now (its open mouth, how loud it is); its steps are its own, played from how
       // far it has moved itself (driveOn), so a thing standing in the road makes no sound as you pull away from it
-      c.distFn = () => Math.hypot(drive.cx, drive.cz - drive.s * s.dir);
+      c.distFn = () => Math.hypot(drive.cx, drive.cz - base - drive.s * s.dir);
       c.CR = Object.assign({}, c.CR, { sound: null });
       L.visFrac = cr => { const p = cr.pos(), r = R.projectRect(p.x, p.y, p.z, cr.CR.w, cr.CR.h, null); if (!r) return 0; const w = Math.min(r.x + r.w, R.W) - Math.max(r.x, 0), h = Math.min(r.y + r.h, R.H) - Math.max(r.y, 0); return w > 0 && h > 0 ? w * h / Math.max(1e-6, r.w * r.h) : 0; };
       AUDIO.setLoop('engine', 0.6);
@@ -561,7 +587,7 @@ LEVELS.push({
       const fwd = dir > 0, acc = fwd ? 6.2 : 4.4, vmax = fwd ? 26 : 13;
       drive.v = Math.min(vmax, drive.v + acc * smoothstep(drive.t / 0.45) * dt);   // the tyres bite, then it pulls
       drive.s += drive.v * dt;
-      const e = toWorld(0, drive.s * dir);
+      const e = toWorld(0, drive.base + drive.s * dir);
       L.eye.x = e.x; L.eye.z = e.z;
       if (fwd && drive.t > 1.9 && !drive.shifted) { drive.shifted = true; AUDIO.sfx('rev'); }   // up a gear
       G.shake(0.04 + 0.05 * drive.v / vmax);
@@ -569,7 +595,7 @@ LEVELS.push({
       // the road behind it; anywhere else (in the road the car backs away from, beside the car, in the road behind as it
       // drives off) it scuttles after the car in bursts, gaining a little at first and never more. Either way it tires
       // within a few seconds and stands there
-      const carZ = drive.s * dir, burst = c.mode === 'scuttle' ? 10 : 1.8;
+      const carZ = drive.base + drive.s * dir, burst = c.mode === 'scuttle' ? 10 : 1.8;
       const toward = (x, z, v) => { const dx = x - drive.cx, dz = z - drive.cz, d = Math.hypot(dx, dz); if (d < 1e-3) return; const k = Math.min(1, v * dt / d); drive.cx += dx * k; drive.cz += dz * k; };
       if (drive.ahead && drive.passedAt < 0 && (carZ - drive.cz) * dir > -0.5) drive.passedAt = drive.t;
       if (drive.ahead && drive.passedAt < 0) {   // out of the way of the car: side-on, scuttling flat out across the verge while it goes
@@ -595,11 +621,12 @@ LEVELS.push({
       if (s.cranking > 0) s.cranking -= dt;
       // the key turns to start while it cranks (once the hand has it), and rests at on once the engine runs; out of park it
       // strains a few degrees in the hand and goes back
-      let ka = !s.keyIn || s.turnAt === Infinity ? 0 : s.cranking > 0 && L.t >= s.turnAt ? 92 * DEG : s.started || s.stalled ? 58 * DEG : 0;   // (stalled again, having hit it, it is still at on)
+      let ka = !s.keyIn || s.turnAt === Infinity ? 0 : s.cranking > 0 && L.t >= s.turnAt ? 92 * DEG : s.started ? 58 * DEG : 0;
       const jt = L.t - s.jigAt;
       if (s.keyIn && !s.started && jt >= 0 && jt < 0.45) ka = (12 + 3 * Math.sin(jt * 47)) * DEG * Math.min(1, jt / 0.06, (0.45 - jt) / 0.12);
       s.keyAng += (ka - s.keyAng) * Math.min(1, dt * 18);
       if (s.ram && G.state === 'play') ramOn(dt);
+      if (s.knock && !s.ram && !s.gone && G.state === 'play') knockOn(dt);
       roamOn(dt);
     };
     L.aftermath = (t, dt) => { driveOn(dt); return t >= 4.4; };   // the car keeps going while the night fades out
@@ -607,8 +634,8 @@ LEVELS.push({
     // off to the side (or at once, if it was beside or behind the car), goes back to the road ahead. You do not look round for it
     L.watchPoint = () => {
       if (!L.eye || s.dir < 0) return null;
-      if (!drive.eyesFront && Math.atan2(Math.abs(drive.cx), drive.cz - drive.s) > 62 * DEG) drive.eyesFront = true;
-      return drive.eyesFront ? Object.assign(toWorld(0.4, drive.s + 40), { y: 0.5 }) : null;
+      if (!drive.eyesFront && Math.atan2(Math.abs(drive.cx), drive.cz - drive.base - drive.s) > 62 * DEG) drive.eyesFront = true;
+      return drive.eyesFront ? Object.assign(toWorld(0.4, drive.base + drive.s + 40), { y: 0.5 }) : null;
     };
 
     // the ignition: a chrome ring round a dark face, four marks for its positions (lock, accessory, on, start) and the
@@ -737,8 +764,8 @@ LEVELS.push({
       shatter(ctx, W, H);
       const t = L.t - s.pressT, on = s.gone || s.floored, dur = 0.2 + (s.dead ? 0.5 : 0.22) + 0.12;
       if (!on && (t < 0 || t > dur)) return;
-      if (L.eye && (L.eye.x || L.eye.z)) return;   // (the car is away: the view is on the road)
-      const dn = pedalDown() + (on ? 0.025 : 0), p = L.pt(PX, PY + 0.07 - dn * 0.5, PZ - 0.02), q = R.screenPos(p[0], p[1], p[2]);
+      if ((s.gone || s.ram) && L.eye && (L.eye.x || L.eye.z)) return;   // (the car is away: the view is on the road)
+      const ey = L.eye || {}, dn = pedalDown() + (on ? 0.025 : 0), p = L.pt(PX, PY + 0.07 - dn * 0.5, PZ - 0.02), q = R.screenPos(p[0] + (ey.x || 0), p[1], p[2] + (ey.z || 0));
       if (!q || q.x < -W * 0.2 || q.x > W * 1.2 || q.y < -H * 0.2 || q.y > H * 1.2) return;
       const k = q.scale, gone = on ? 0 : 1 - smoothstep(t / 0.07) + smoothstep((t - dur + 0.2) / 0.2);   // in from below, and back out
       const tx = q.x, ty = q.y + gone * H * 0.5 + k * 0.01, ax = q.x + k * 0.02, ay = ty + k * 0.17;   // the toe, the ankle
@@ -763,8 +790,10 @@ LEVELS.push({
       ctx.restore();
     };
     // ---- the glass it comes through ----
-    // Caught, the window it comes up to breaks in its face: a star of cracks runs out from where it hits and rings join
-    // them, then the glass bursts in a flash, with the shriek of the glass, and shards fly at you (with reduced motion,
+    // Caught, the window it comes up to breaks in its face, and not before it is there: nothing shows on the glass until
+    // its hands and head meet it (GLASS: how far from your seat it is then, by the window; the moment in the lunge is
+    // worked out from where the lunge began, glass.tc), then a star of cracks runs out from where it hits and rings join
+    // them (CRAZE seconds), then the glass bursts in a flash (glass.tb), with the shriek of the glass, and shards fly at you (with reduced motion,
     // they drop away; with reduced flashing the flash is the game's dimmer one) and the cracked pane stays round the hole.
     // Drawn over the view, in the window's own outline as it is seen now. The windows' outlines in the car's frame:
     const PANES = {
@@ -773,7 +802,7 @@ LEVELS.push({
       driver: [[-0.45, 1.06, -0.5], [-0.45, 1.06, 0.58], [-0.45, 1.5, 0.2], [-0.45, 1.5, -0.5]],
       back: [[-0.47, 0.93, -1.12], [1.27, 0.93, -1.12], [1.27, 1.55, -1.12], [-0.47, 1.55, -1.12]],
     };
-    const glass = { at: null };
+    const glass = s.glass = { at: null }, GLASS = { front: 1.0, back: 1.15, passenger: 1.15, driver: 0.75 }, CRAZE = 0.06;
     function paneHit(win, b) {   // where the line from the seat toward it meets that window, in the car's frame (kept inside the pane)
       const sb = Math.sin(b), cb = Math.cos(b), y = 1.2;
       if (win === 'front') return [clamp(0.95 * sb / Math.max(0.2, cb), -0.35, 1.15), y, 0.95 - (y - 1.02) * 0.35 / 0.43];
@@ -786,7 +815,7 @@ LEVELS.push({
       const c = G.deathCreature;
       if (!c || c !== L.creature) return;
       if (glass.at !== G.deathAt) {   // a new death: which window, where, and its pattern of cracks
-        const win = G.deathCause === 'drove' ? 'front' : G.deathCause === 'reversed' ? 'back' : windowOf(bear()), h = mulberry32(((G.deathAt * 1000) | 0) + 7);
+        const win = windowOf(bear()), h = mulberry32(((G.deathAt * 1000) | 0) + 7);
         const rays = [];
         for (let i = 0, n = 13 + Math.floor(h() * 4); i < n; i++) {
           const a0 = (i + h() * 0.6) / n * TAU, pts = [[0, 0]];
@@ -796,9 +825,11 @@ LEVELS.push({
         }
         const shards = [];
         for (let i = 0; i < 26; i++) { const a = h() * TAU, sp = 0.4 + h() * 1.1; shards.push({ a, sp, r0: h() * 0.12, size: 0.02 + h() * 0.05, spin: (h() - 0.5) * 9, rot: h() * TAU, k: [h(), h(), h()] }); }
-        glass.at = G.deathAt; glass.win = win; glass.hit = paneHit(win, bear()); glass.rays = rays; glass.shards = shards; glass.broke = false;
+        glass.at = G.deathAt; glass.win = win; glass.hit = paneHit(win, bear()); glass.rays = rays; glass.shards = shards; glass.broke = false; glass.seenAt = undefined;
       }
-      const spec = c.deathSpec || c.CR.death || {}, t = G.stateT, tb = (spec.delay || 0) + (spec.dur || 0.3) * 0.5;   // it breaks halfway into the lunge
+      // when in the lunge it is at the glass (the lunge takes it from c.lungeFrom to 0.55 m, as the cube of its time: game.js)
+      const spec = c.deathSpec || c.CR.death || {}, t = G.stateT, from = c.lungeFrom;
+      const tc = glass.tc = (spec.delay || 0) + (spec.dur || 0.3) * Math.cbrt(clamp((from - GLASS[glass.win]) / Math.max(0.01, from - 0.55), 0, 1)), tb = glass.tb = tc + CRAZE;
       const e = L.eye || {}, pt = q => { const w = L.pt(q[0], q[1], q[2]); return R.screenPos(w[0] + (e.x || 0), w[1], w[2] + (e.z || 0)); };
       const o = pt(glass.hit);
       if (!o) return;
@@ -806,7 +837,8 @@ LEVELS.push({
         glass.broke = true;
         AUDIO.sfx('stingGlass', panOf(bear())); G.flash(0.7); G.shake(0.9);
       }
-      const still = SAVE.data.settings.reducedMotion, R0 = Math.max(W, H) * 0.75, grow = glass.broke ? 1 : Math.sqrt(clamp(t / tb, 0, 1)) * 0.75;
+      const still = SAVE.data.settings.reducedMotion, R0 = Math.max(W, H) * 0.75, grow = glass.broke ? 1 : t < tc ? 0 : 0.2 + 0.55 * (t - tc) / CRAZE;
+      if (grow > 0 && glass.seenAt === undefined) { glass.seenAt = t; glass.seenDist = c.dist; }   // (when a crack first showed)
       const hole = glass.broke ? R0 * 0.1 : 0;
       ctx.save();
       // (along each edge in short steps, leaving out what is behind the eye: a side window is right beside you)

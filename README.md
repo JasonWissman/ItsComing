@@ -176,13 +176,13 @@ some on the ground, so you have to turn and look down to find them.
    both doorways with the window broken and the night is not won: it charges the boards and pounds on them as before,
    a few blows, then stops; its head turns toward the window; it runs round the house to it (from the front doorway
    along the wall, from the back one round the east side, a blow on the wall as it passes); it tears the bars out of the
-   frame in one violent beat and climbs in quickly (about 2.6 s), long fingers over the sill, its head coming through on its side, one thin arm feeling down the
-   wall, the body pouring over the sill and the long legs lifted over one at a time, and unfolds to its full height
-   inside; a moment (0.7 s) looking at you, and it lunges. All of that plays by itself (nothing can be pressed, and the view
-   turns to follow it); the egg is found as it starts through the window. "It got you": "Was that necessary?" With the window intact the win is as it was, and once that ending has begun the bottle can no longer be
+   frame in one violent beat and climbs in fast (about 1.5 s), long fingers over the sill, its head coming through on its side, one thin arm feeling down the
+   wall, the body pouring over the sill and the long legs lifted over one at a time, down on all fours under the window;
+   it does not stand up: it lunges at once, straight from that crouch, rising out of it at you. All of that plays by itself (nothing can be pressed, and the view
+   turns to follow it); the egg is found as it starts through the window. "It got you": "Must we throw things?" With the window intact the win is as it was, and once that ending has begun the bottle can no longer be
    thrown; a bottle already in the air as the last board goes up holds the ending back until it lands, and its smash
    starts the other one. With reduced motion nothing in it shakes, the view turns more slowly, and the climb is slower
-   (about 4 s) and evenly paced.
+   (about 2.5 s) and evenly paced.
 2. **The Road.** Your car has stalled, in drive. Something pale comes up the road on all
    fours, in bursts, in the headlights, shifting across from the road to a verge and back as it comes. Most nights,
    partway in, it breaks off and runs flat out round the car through the dark (heard going, a click as it goes and as it
@@ -196,14 +196,24 @@ some on the ground, so you have to turn and look down to find them.
    anywhere behind, and the car runs into it (the night's easter egg, kept in the save from the moment it is hit). If it
    is not in the road already, it springs into it: one long low bound from where it is into the road in the car's path
    (0.35 to 0.5 s by how far it has to come; about a third slower with reduced motion), landing at least 0.15 s before
-   the bumper reaches it. Then, as from the road: it goes up off the bumper and down the road, turning over; the car lurches to a halt and stalls;
-   it lies in a heap in the lights, a limb jerks, and again; it gets up a limb at a time, stands on its hind legs in jolts,
-   its head hanging, looks at you, and comes through the glass. Nothing in the car answers meanwhile and the view stays on
-   it. The card says "Nice try" and "You drove straight into it, but it is too strong." (backed, in reverse). The way out
+   the bumper reaches it. Then, as from the road: it is knocked back off the bumper and away down the road, the way the
+   car was going, turning over, and lands well off (15 m ahead of your seat, 12 m behind in reverse); the car lurches to a
+   halt in a length or two with its engine still running and the stick where it was. The night is not over: about half
+   a second after the blow, once the car has stopped, everything in the car answers again and the view is yours. It lies
+   in a heap in the lights a beat, a limb jerks; it gets up a limb at a time, stands on its hind legs in jolts, its head
+   hanging, looks at you, drops onto all fours (up 5.1 s after the blow) and comes on at the car again from where it
+   landed, squarely in the road, at its usual pace (about 7 s more from 15 m while you watch it, sooner if you do not).
+   That is your chance: the stick over to the other way (two clicks) and the gas, and you are away from it, which wins the
+   night as ever. Drive at it again and it is knocked back again, but each time it lands 2 m nearer (never nearer than
+   9 m ahead, 8 m behind) and is up in three quarters of the time before (never less than 0.4 of the first), so it
+   cannot be kept down. Caught at all after having hit it, the card says "Nice try" and "It got right back up." With
+   reduced motion nothing shakes, the nose does not dip, and it is knocked back lower, turning over once. The way out
    is the way straight away from it (forward with it behind, reverse with it ahead), or either way when it is squarely
    beside the car. Once the engine runs it stops going round, and once the stick is in
    a gear it moves only while you watch it, so it never steps into your way behind your back. Caught, it comes through
-   the window it reached, and the glass breaks in your face: cracks run out from where it hits, then the pane bursts in a
+   the window it reached, and the glass breaks in your face, and not before it is there: nothing shows on the glass until its hands and head meet
+   it (for the windshield, 0.29 s into the death, three quarters of the way through its lunge), then cracks run out from
+   where it hits and 0.06 s later the pane bursts in a
    flash and the shards fly at you (they drop away with reduced motion; the flash is dimmer with reduced flashing). The
    whole road slides past as you go, and the night ends: "You drove off and did not look back." Caught with the engine
    running and the car not away, the card says "The engine was running, but you couldn't get away fast enough." A thing

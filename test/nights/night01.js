@@ -68,7 +68,7 @@ const quick = k => [['eval', 'G.L.creature.u = 1 - 15 / G.L.creature.D0']].conca
 // the sound, the window no target any more). With the window broken and a doorway open the night goes on as ever (boarding
 // the doorway it comes for sends it round the house; it comes in by the other and that is the death, with its own line).
 // Then, the same night again: the window broken and both doorways boarded, the egg plays out by itself, in order (it
-// charges the boards and pounds on them, stops, turns its head, runs to the window, climbs in through it, stands, lunges),
+// charges the boards and pounds on them, stops, turns its head, runs to the window, climbs in through it, and lunges straight from its crouch under it, with no wait),
 // the view on the window as it comes through, the egg kept in the save from the moment it starts through, and the death
 // screen says "It got you" and the night's line alone, though something was said just before the last board went up. And
 // the night again from the start, with the window whole, is won as it always was (the steps above).
@@ -115,7 +115,7 @@ const openDoor = k => [take(['nails', 'planks'])].concat(board(k), [
 ]);
 const stage = st => "G.L.s.egg && G.L.s.egg.stage === '" + st + "'";
 const egg = k => [
-  ['eval', "window.__stages = []; window.__at = {}; clearInterval(window.__eggT); window.__eggT = setInterval(() => { const e = G.L && G.L.s.egg; if (e && __stages[__stages.length - 1] !== e.stage) { __stages.push(e.stage); __at[e.stage] = G.stateT; } }, 10)"],
+  ['eval', "window.__stages = []; window.__at = {}; clearInterval(window.__eggT); window.__eggT = setInterval(() => { const e = G.L && G.L.s.egg; if (e && __stages[__stages.length - 1] !== e.stage) { __stages.push(e.stage); __at[e.stage] = G.stateT; if (e.stage === 'lunge') __at.crouch = G.L.creature.climb; } }, 10)"],
   take(['hammer', 'nails', 'planks', 'bottle']), inHand('bottle'), ['face', WINDOW], ['click', 'window'], ['waitUntil', 'G.L.s.broken', 3000],
 ].concat(board(k), [running(k), ['waitUntil', 'G.L.creature.lane.idx === ' + (1 - k), 4000],
   ['face', DIR[1 - k]], ['click', DOOR[1 - k]], ['wait', 150], ['click', DOOR[1 - k]], ['wait', 150],
@@ -134,14 +134,14 @@ const egg = k => [
   ['expect', 'G.L.s.barsOut && G.L.creature.climb !== undefined && Math.abs(G.L.creature.pos().x - 1.85) < 0.05 && Math.abs(G.L.creature.pos().z + 2.4) < 0.05', 'it is at the window, the bars torn out of it'],
   ['waitUntil', 'G.L.creature.climb > 0.5', 6000],
   ['expect', "G.state === 'dying' && Math.abs(wrapPi(G.cam.yaw - Math.atan2(1.85, -2.4))) < 0.2 && !!R.screenPos(1.85, 1.6, -2.4)", 'the view has turned to the window as it comes through'],
-  ['waitUntil', stage('stand'), 6000],
-  ['expect', '(p => G.L.creature.climb === undefined && p.z > -2.3 && p.x > 1)(G.L.creature.pos())', 'it stands inside, under the window'],
+  ['waitUntil', stage('lunge'), 6000],
+  ['expect', 'G.L.creature.climb !== undefined && __at.crouch >= 0.82 && __at.crouch < 0.9', 'it is down on all fours under the window, and the lunge has begun at once, from that crouch'],
   ['waitUntil', "G.state === 'dead'", 6000],
-  ['expect', "__stages.join() === 'door,pound,still,turn,run,face,climb,stand,lunge'", 'in order: the boards, the pounding, its head turning, the run, the window, the climb, a moment standing, the lunge'],
-  ['expect', "(SAVE.data.settings.reducedMotion ? [3.7, 4.3] : [2.4, 2.8]).every((v, i) => i ? __at.stand - __at.climb <= v : __at.stand - __at.climb >= v) && __at.lunge - __at.stand > 0.6 && __at.lunge - __at.stand < 0.85",
-    'the bars torn out and the climb in are quick (about 2.6 s; 4 s with reduced motion), and it stands 0.7 s before it lunges'],
-  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'Was that necessary?' && /It got you/.test(UI.overlay.textContent) && /Was that necessary\\?/.test(UI.overlay.textContent) && !/Nearly there/.test(UI.overlay.textContent)",
-    'the death screen: "It got you", and "Was that necessary?" alone'],
+  ['expect', "__stages.join() === 'door,pound,still,turn,run,face,climb,lunge'", 'in order: the boards, the pounding, its head turning, the run, the window, the climb, the lunge (it never stands)'],
+  ['expect', "(SAVE.data.settings.reducedMotion ? [2.3, 2.75] : [1.35, 1.7]).every((v, i) => i ? __at.lunge - __at.climb <= v : __at.lunge - __at.climb >= v) && G.deathCreature.deathSpec.delay <= __at.lunge + 0.05 && G.deathCreature.climb === 1",
+    'the bars torn out and the climb in are fast (about 1.5 s; 2.5 s with reduced motion), and the lunge follows with no delay, rising out of the crouch'],
+  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'Must we throw things?' && /It got you/.test(UI.overlay.textContent) && /Must we throw things\\?/.test(UI.overlay.textContent) && !/Nearly there/.test(UI.overlay.textContent)",
+    'the death screen: "It got you", and "Must we throw things?" alone'],
   ['eval', 'clearInterval(window.__eggT)'],
 ]);
 const windowEgg = [layouts, ['eval', 'window.__att0 = G.attempt; delete SAVE.data.eggs.field; SAVE.persist()'], sfxHook].concat(throwIt,   // (the egg not found yet, whatever an earlier seed left in the save)

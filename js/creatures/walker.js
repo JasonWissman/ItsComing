@@ -236,13 +236,17 @@ CREATURES.walker = {
   // frame; the body pours over the sill head first, the hands walking down to the floor; one long leg is lifted over,
   // folded, knee high, and reaches down to the floor wide of it, then the other; it crouches under the window on all
   // fours, knees above its back, and unfolds to its full height, the arms coming up for you (as draw() has it standing).
+  // (That last part, from the crouch, is played by The Field as its lunge: see CROUCH.)
   // It is drawn in two halves, for what is still outside the wall and what has come in: pass 'out' is drawn behind the
   // wall (which hides all of it but what shows in the frame) and 'in' in front of it. c.frame is the frame as the thing's
   // own drawing sees it (metres from its feet: l and r the sides, sl and sr the sill's height at each), FRAME where none
   // is given; c.gentle moves it evenly, without the starts and stops or the twitch of its head. CLIMB_T maps time through
-  // the climb (0..1) to c.climb, so the slow parts are slow (climbAt). The Field plays it in 2.6 s (4 s, evenly, with c.gentle).
+  // the climb (0..1) to c.climb, so the slow parts are slow (climbAt). The Field plays it only as far as the crouch
+  // (CROUCH, which CLIMB_T reaches at CROUCH_T), in 1.5 s (2.5 s, evenly, with c.gentle), and it lunges from there: the
+  // rest of c.climb, from CROUCH to 1, is then the lunge rising out of the crouch at you (c.lunge opens its mouth).
   FRAME: { l: -0.44, r: 0.44, sl: 1.08, sr: 1.08 },
   CLIMB_T: [[0, 0], [0.07, 0.05], [0.14, 0.10], [0.2, 0.14], [0.34, 0.22], [0.5, 0.38], [0.64, 0.54], [0.69, 0.58], [0.78, 0.68], [0.82, 0.72], [0.89, 0.82], [1, 1]],
+  CROUCH: 0.82, CROUCH_T: 0.89,
   climbAt(u) {
     const T = this.CLIMB_T; let i = 1;
     while (i < T.length - 1 && T[i][0] < u) i++;
@@ -327,7 +331,7 @@ CREATURES.walker = {
       ctx.translate(hc[0], hc[1]); ctx.rotate(hr); ctx.scale(hs, hs); ctx.translate(0, -0.3);
       P_ell(ctx, 0, 0.3, 0.115, 0.175, body);
       const near = clamp(1 - c.dist / 22, 0, 1);
-      this.face(ctx, P, skin, eye, body, 0.315, 0.014, 0.028 + near * 0.012, 0.012 + near * 0.03 + 0.02 * Math.sin(Math.PI * k));
+      this.face(ctx, P, skin, eye, body, 0.315, 0.014, 0.028 + near * 0.012, 0.012 + near * 0.03 + 0.02 * Math.sin(Math.PI * k) + (c.lunge || 0) * 0.045);
       ctx.restore();
     }
   },

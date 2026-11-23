@@ -38,9 +38,14 @@
         set(c) { c.runPose = true; c.runDir = 1; c.moving = true; }, tick(c, k, dt) { c.runGait = (c.runGait || 0) + dt * 15; } },
       { name: 'Charging the boards', note: 'Once the night is won: straight at you, flat out, the arms coming up for the boards in the last few metres.', dur: 2.6,
         set(c) { c.charge = 1; c.moving = true; }, tick(c, k, dt) { c.gait += dt * 15; c.dist = lerp(14, 1.5, k); } },
-      { name: 'Climbing in through the window', note: 'The easter egg: both doorways boarded and the window broken, it comes in by the window. Fingers over the sill, the head through on its side, an arm feeling down the wall, the body over the sill, a leg at a time, and it unfolds inside.', dist: 3, dur: 3.4, still: true, fit: { h: 2.75, w: 2.0 },
+      { name: 'Climbing in through the window', note: 'The easter egg: both doorways boarded and the window broken, it comes in by the window, fast. Fingers over the sill, the head through on its side, an arm feeling down the wall, the body over the sill, a leg at a time, down on all fours under the window; and it lunges straight from that crouch, rising out of it at you. It never stands.', dist: 3, dur: 3.2, still: true, fit: { h: 2.75, w: 2.0 },
         set(c) { c.climb = 0; },
-        tick(c, k) { c.climb = CREATURES.walker.climbAt(clamp((k - 0.05) / 0.8, 0, 1)); },
+        // (as The Field plays it: 1.5 s to the crouch, then the 0.5 s lunge out of it; held a moment at each end here)
+        tick(c, k, dt, T) {
+          const W = CREATURES.walker, t = T - 0.3, j = clamp((t - 1.5) / 0.5, 0, 1);
+          c.climb = t < 1.5 ? W.climbAt(clamp(t / 1.5, 0, 1) * W.CROUCH_T) : lerp(W.CROUCH, 1, j * j);
+          c.lunge = j; c.dist = lerp(3, 0.9, easeIn(j));
+        },
         // the wall round the window (what is still outside shows only in the frame), the frame and the sill; then what has come in
         front(ctx, c, P) {
           const F = CREATURES.walker.FRAME, top = 2.16;
