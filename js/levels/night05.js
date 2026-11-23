@@ -11,7 +11,8 @@
 // the bow drawn on it, it holds its line (no breaking away by itself, a narrower weave) and seldom breaks from the draw
 // (12% of draws). The second is the harder: hurt, it is wary, and comes on weaving wide and quick, breaking to one side
 // every second or two, and from about every other draw, so the aim has to come after it.
-// Over the clearing a few bats fly (CLEARING_BATS, below), and one can be shot: this night's easter egg.
+// Over the clearing a few bats fly (CLEARING_BATS, below), and one can be shot: this night's easter egg. What comes
+// down is more than a bat (CLEARING_VAMPIRE).
 // (The shared draw is drawPress/updateDraw/looseDraw in js/game.js.)
 const CLEARING_BOW = (() => {
   const FILL = 1.5, MIN = 0.18;
@@ -186,7 +187,8 @@ const CLEARING_BOW = (() => {
 // One can be shot: drawn full and let go with the aim on it (within a ring about twice its wingspan across, wider than it is drawn), in open sky (not behind the porch roof or the cabin), and only when the aim is not on the thing, which always
 // comes first. The arrow takes it: it squeaks and tumbles out of the sky with the arrow through it, to lie in the snow.
 // With reduced motion they fly at half the pace without the jitter, their wings beat slowly and gently, and one that is
-// hit drops without spinning.
+// hit drops without spinning. (One that has come down does not lie there long, and is not drawn once it has turned:
+// CLEARING_VAMPIRE, below.)
 const CLEARING_BATS = (() => {
   const SPAN = 0.7, PAD = 6, REACH = 1.8, COL = [10, 9, 14], EL = [5 * DEG, 25 * DEG];
   const calm = () => SAVE.data.settings.reducedMotion;
@@ -233,7 +235,7 @@ const CLEARING_BATS = (() => {
     }
   }
   function add(L) {
-    for (const b of L.s.bats) { const p = b.spr; p.x = b.x; p.y = b.y - SPAN / 2; p.z = b.z; p.dist = Math.hypot(b.x, b.z); R.add(p); }
+    for (const b of L.s.bats) { if (b.vamp && b.vamp.ph !== 'lie') continue; const p = b.spr; p.x = b.x; p.y = b.y - SPAN / 2; p.z = b.z; p.dist = Math.hypot(b.x, b.z); R.add(p); }
   }
   // a bat, seen from below and behind as it goes: two wings from the shoulders out to the tips, scalloped along their
   // trailing edge, beating; a small body and head between them. Hit: its wings folded in, the arrow through it.
@@ -286,6 +288,127 @@ const CLEARING_BATS = (() => {
     b.hit = { t: 0, vx: (b.vx || 0) * 0.3 + dx / l * 3, vy: Math.min(1, (b.vy || 0) * 0.3 + 0.5), vz: (b.vz || 0) * 0.3 + dz / l * 3, rot: -b.bank, spin: (b.bank >= 0 ? -1 : 1) * 9, landed: false, land };
   }
   return { SPAN, make, update, add, at, clear, screen, strike };
+})();
+// ---- the vampire ----
+// A bat shot out of the sky was not only a bat. It lies in the snow where it came down for half a second (LIE); then a
+// puff of dark smoke goes up from it, its wings open wide and stand up into a cape, and a figure rises under them out
+// of the snow (TURN): caped, high collared, its face pale, the arrow still in its chest. It staggers toward the porch,
+// lurching from foot to foot, a hand pressed to the wound and the other out before it, stumbling, slower as it comes;
+// and STOP metres short of the porch and its steps it drops to its knees, tips over and lies in the snow in a heap, the
+// arrow standing up out of it, and stays there. If the thing is put down first (its second arrow), it gets no further:
+// AFTER seconds on it falls where it is. It is only what the arrow did: it harms nothing, stops nothing, cannot be
+// aimed at (an arrow let go at it is one that missed), and the night is won and lost as ever.
+// Each bat shot gets one (b.vamp: ph 'lie', 'turn', 'walk', 'fall' or 'down', t the seconds it has been that, x and z
+// where it is, fellT when it began to go down); it is one sprite, and lying still it costs a few shapes. With reduced
+// motion it does not lurch or sway and there is no smoke: it rises, walks evenly, and goes down.
+const CLEARING_VAMPIRE = (() => {
+  const LIE = 0.55, TURN = 1.5, FALL = 1.4, PACE = 2.6, STEP = 6.5, STOP = 2.6, AFTER = 2, TILT = 1.46;
+  const C = { cape: [15, 12, 19], lining: [96, 14, 22], suit: [27, 24, 31], shirt: [150, 146, 152], skin: [208, 204, 198], hair: [9, 7, 11], blood: [118, 10, 14], shaft: [176, 142, 98], fletch: [176, 46, 38], nock: [222, 212, 190], smoke: [58, 52, 68] };
+  const calm = () => SAVE.data.settings.reducedMotion;
+  // how far outside the porch and its steps a place is (the deck, the steps at its front and at its open side)
+  function off(L, x, z) { const q = rotY(x, z, -L.facing); return Math.hypot(Math.max(0, Math.abs(q[0] - 0.3) - 3.5), Math.max(0, q[1] > 0.3 ? q[1] - 2.2 : -1.6 - q[1])); }
+  // the bat has come down (CLEARING_BATS.strike's land): it will turn. onTurn is called as it does (the night takes
+  // the arrow that stood in the bat out of the snow: it goes up with the figure)
+  function rise(b, onTurn) {
+    const v = b.vamp = { ph: 'lie', t: 0, x: b.x, z: b.z, g: 0, tw: 0, fellT: null, onTurn };
+    v.spr = { kind: 'sprite', w: 3.4, h: 2.2, y: 0, draw: (ctx, P) => draw(ctx, P, v) };
+  }
+  // every few steps it all but goes down (0 to 1)
+  const stumble = v => (calm() ? 0 : Math.pow(Math.max(0, Math.sin(v.tw * 1.7 + 0.6)), 10));
+  // killedAt: when the thing took its second arrow (the night's clock), or undefined
+  function update(L, dt, killedAt) {
+    for (const b of L.s.bats) {
+      const v = b.vamp; if (!v || v.ph === 'down') continue;
+      v.t += dt;
+      const pan = clamp(Math.sin(wrapPi(Math.atan2(v.x, v.z) - G.cam.yaw)), -0.85, 0.85), next = ph => { v.ph = ph; v.t = 0; };
+      if (v.ph === 'lie') { if (v.t >= LIE) { next('turn'); if (v.onTurn) v.onTurn(); AUDIO.sfx('hiss', pan); } }
+      else if (v.ph === 'turn') { if (v.t >= TURN) next('walk'); }
+      else if (v.ph === 'walk') {
+        const d = Math.hypot(v.x, v.z) || 1, slow = calm();
+        if (off(L, v.x, v.z) <= STOP || d < 3 || (killedAt !== undefined && L.t >= killedAt + AFTER)) { next('fall'); v.fellT = L.t; continue; }
+        // a lurch at each step, then a drag; weaker as it comes
+        v.tw += dt; v.g += dt * STEP * (slow ? 0.6 : 1);
+        const weak = clamp(1 - v.tw * 0.012, 0.7, 1), pace = PACE * weak * (slow ? 0.75 : 0.5 + Math.pow(Math.max(0, Math.sin(v.g)), 2)) * (1 - 0.7 * stumble(v));
+        const go = Math.min(pace * dt, Math.max(0, d - 2.9));
+        v.x -= v.x / d * go; v.z -= v.z / d * go;
+      } else if (v.t >= FALL) next('down');
+      else if (!v.thud && v.t >= FALL * 0.74) { v.thud = true; AUDIO.sfx('flop', pan); }   // into the snow
+    }
+  }
+  function add(L) {
+    for (const b of L.s.bats) { const v = b.vamp; if (!v || v.ph === 'lie') continue; const p = v.spr; p.x = v.x; p.z = v.z; p.dist = Math.hypot(v.x, v.z); R.add(p); }
+  }
+  // The figure, seen from in front (it comes toward you), its feet at (0, 0). o.wings: its cape thrown wide, as wings
+  // (0 hanging to 1); o.kneel: down on its knees (0 to 1); o.g: its step; o.reach: the free arm out before it (0 to 1).
+  // The arrow is in its chest on its left (your right), and that side's hand is pressed to it.
+  function figure(ctx, P, o) {
+    const cape = P.col(C.cape), lining = P.col(C.lining), suit = P.col(C.suit), skin = P.col(C.skin), hair = P.col(C.hair);
+    const kn = o.kneel, hipY = lerp(0.92, 0.42, kn), shY = hipY + 0.52, headY = hipY + 0.76 - 0.05 * kn, wg = o.wings, st = Math.sin(o.g);
+    const hw = lerp(0.46, 1.25, wg) + 0.22 * kn, sw = lerp(0.3, 0.85, wg), hemY = lerp(0.1, hipY + 0.05, wg) * (1 - 0.6 * kn), sway = 0.04 * Math.sin(o.g - 0.8) * (1 - kn);
+    // the cape behind it, from the points of its collar down to a scalloped hem
+    const back = [[-0.2, headY + 0.14], [-sw, shY + 0.02], [-hw + sway, hemY + 0.14]];
+    for (let i = 1; i < 6; i++) back.push([lerp(-hw, hw, i / 6) + sway, hemY + (i % 2 ? 0 : 0.1)]);
+    back.push([hw + sway, hemY + 0.14], [sw, shY + 0.02], [0.2, headY + 0.14]);
+    P_poly(ctx, back, cape);
+    for (const sd of [-1, 1]) P_poly(ctx, [[sd * 0.18, shY - 0.02], [sd * sw * 0.72, shY - 0.06], [sd * hw * 0.64 + sway, hemY + 0.17], [sd * 0.17, hemY + 0.2]], lining);   // its lining, either side of the body
+    // the legs: a step and a drag (kneeling, the thighs down to the knees in the snow)
+    for (const sd of [-1, 1]) {
+      const lift = Math.max(0, sd * st) * 0.08 * (1 - kn);
+      if (kn > 0.5) P_limb(ctx, [[sd * 0.1, hipY], [sd * 0.17, 0.07]], 0.14, suit);
+      else { P_limb(ctx, [[sd * 0.1, hipY], [sd * 0.13, hipY * 0.5 + lift], [sd * 0.13, 0.05 + lift]], 0.13, suit); P_ell(ctx, sd * 0.14, 0.035 + lift, 0.08, 0.04, hair); }
+    }
+    // the body: a dark coat, a little of the shirt at the throat
+    P_poly(ctx, [[-0.21, shY], [0.21, shY], [0.15, hipY - 0.04], [-0.15, hipY - 0.04]], suit);
+    P_poly(ctx, [[-0.06, shY], [0.06, shY], [0, shY - 0.2]], P.col(C.shirt));
+    // the collar, standing up behind the head
+    for (const sd of [-1, 1]) { P_poly(ctx, [[sd * 0.06, shY - 0.02], [sd * 0.27, headY + 0.17], [sd * 0.25, shY - 0.03]], cape); P_poly(ctx, [[sd * 0.09, shY], [sd * 0.23, headY + 0.1], [sd * 0.21, shY]], lining); }
+    // the free arm (your left): out before it as it comes, or thrown wide with the cape
+    const eb = [lerp(-0.4 - 0.05 * o.reach, -0.52, wg), lerp(shY - 0.28, shY + 0.04, wg)], hb = [lerp(-0.5 - 0.1 * o.reach + 0.03 * st, -0.86, wg), lerp(shY - 0.44 + 0.2 * o.reach, shY + 0.16, wg)];
+    P_limb(ctx, [[-0.21, shY - 0.04], eb, hb], 0.09, suit); P_ell(ctx, hb[0], hb[1], 0.05, 0.055, skin);
+    // the arrow in its chest: the shaft out toward you and down, its fletching at the end of it; the blood round it
+    const wx = 0.09, wy = shY - 0.22, ax = wx + 0.26, ay = wy - 0.2;
+    P_ell(ctx, wx, wy - 0.03, 0.05, 0.075, P.col(C.blood));
+    P_line(ctx, wx, wy, ax, ay, 0.024, P.col(C.shaft));
+    P_line(ctx, lerp(wx, ax, 0.62), lerp(wy, ay, 0.62), ax, ay, 0.055, P.col(C.fletch)); P_line(ctx, lerp(wx, ax, 0.93), lerp(wy, ay, 0.93), ax, ay, 0.055, P.col(C.nock));
+    // the arm on that side: bent, the hand pressed to the wound (thrown wide as it turns)
+    const ea = [lerp(0.36, 0.52, wg), lerp(shY - 0.3, shY + 0.04, wg)], ha = [lerp(wx + 0.06, 0.86, wg), lerp(wy + 0.03, shY + 0.16, wg)];
+    P_limb(ctx, [[0.21, shY - 0.04], ea, ha], 0.09, suit); P_ell(ctx, ha[0], ha[1], 0.05, 0.055, skin);
+    // the head, hung a little to one side: pale, the hair to a point on the brow, the eyes sunk, the mouth open on its teeth
+    const hx = 0.02 * st * (1 - kn) - 0.03 * kn;
+    P_ell(ctx, hx, headY, 0.105, 0.135, skin);
+    P_poly(ctx, [[hx - 0.11, headY + 0.03], [hx - 0.09, headY + 0.13], [hx, headY + 0.16], [hx + 0.09, headY + 0.13], [hx + 0.11, headY + 0.03], [hx + 0.055, headY + 0.1], [hx, headY + 0.045], [hx - 0.055, headY + 0.1]], hair);
+    for (const sd of [-1, 1]) { P_ell(ctx, hx + sd * 0.042, headY - 0.005, 0.026, 0.02, hair); P_ell(ctx, hx + sd * 0.042, headY - 0.008, 0.008, 0.008, P.col([190, 30, 26])); }
+    P_ell(ctx, hx, headY - 0.078, 0.032, 0.02 + 0.012 * o.reach, hair);
+    for (const sd of [-1, 1]) P_poly(ctx, [[hx + sd * 0.012, headY - 0.064], [hx + sd * 0.026, headY - 0.064], [hx + sd * 0.019, headY - 0.09]], P.col([232, 228, 220]));
+  }
+  function draw(ctx, P, v) {
+    const slow = calm();
+    if (v.ph === 'turn') {
+      const k = v.t / TURN, up = easeOut((k - 0.1) / 0.72);
+      // the smoke: a few dark puffs going up and out from where the bat lay, thinning
+      if (!slow) for (let i = 0; i < 7; i++) {
+        const u = clamp(k * 1.5 - i * 0.05, 0, 1), a = 0.5 * Math.sin(Math.PI * Math.min(1, u * 1.15)) * (1 - 0.5 * u), ang = i * 2.4;
+        if (a > 0.01) P_ell(ctx, Math.cos(ang) * (0.12 + 0.55 * u), 0.15 + (0.3 + 0.2 * (i % 3)) * u * 2.2 + Math.sin(ang) * 0.1, 0.16 + 0.34 * u, 0.14 + 0.28 * u, P.cola(C.smoke, a));
+      }
+      // the wings open and stand up into the cape, the figure rising under them
+      ctx.save(); ctx.scale(lerp(0.3, 1, smoothstep(k / 0.5)), lerp(0.06, 1, up));
+      figure(ctx, P, { wings: smoothstep(k / 0.3) * (1 - smoothstep((k - 0.52) / 0.44)), kneel: 0, g: 0, reach: 0 });
+      ctx.restore();
+      return;
+    }
+    if (v.ph === 'walk') {
+      const st = Math.sin(v.g), sm = stumble(v), k = slow ? 0 : 1;
+      ctx.translate(0.05 * st * k, Math.abs(st) * 0.03 * k - 0.1 * sm); ctx.rotate((0.1 * st + 0.16 * sm) * k);
+      figure(ctx, P, { wings: 0, kneel: 0, g: v.g, reach: 0.5 + 0.5 * Math.sin(v.g * 0.5 + 1) * k });
+      return;
+    }
+    // going down: onto its knees, then over onto its side (its right, your left: the arrow uppermost), where it lies
+    const k = v.ph === 'down' ? 1 : v.t / FALL, kneel = smoothstep(k / 0.38), over = easeIn(clamp((k - 0.36) / 0.4, 0, 1));
+    const hit = v.ph === 'down' || slow ? 0 : Math.max(0, Math.sin(clamp((k - 0.76) / 0.2, 0, 1) * Math.PI)) * 0.05;   // (it settles as it lands)
+    ctx.translate(-0.2 * over, 0); ctx.rotate(TILT * over - hit); ctx.scale(lerp(1, 0.5, over), 1); ctx.translate(0.2 * over, 0);
+    figure(ctx, P, { wings: 0.12 * over, kneel, g: 0, reach: 1 - over });
+  }
+  return { LIE, TURN, FALL, STOP, AFTER, off, rise, update, add };
 })();
 LEVELS.push({
   id: 'clearing', title: 'The Clearing', facing: 180, eyeH: 2.0,
@@ -499,14 +622,18 @@ LEVELS.push({
         s.again = L.t + D.fall + D.lie + D.rise + s.SCURRY;
         if (d && d.state === 'drawing') { const k = d.power; d.fill = Math.max(d.fill, d.t + s.again - L.t); d.t = k * d.fill; d.full = false; }
       }
-      else { CREATURES.runner.kill(c); G.toast('It stopped.'); }
+      else { CREATURES.runner.kill(c); s.killedAt = L.t; G.toast('It stopped.'); }   // (killedAt: a vampire still on its way falls two seconds on)
     };
     // a bat with an arrow in it (this night's easter egg, kept in the save the moment it happens: foundEgg): it squeaks
-    // and tumbles out of the sky, and lies in the snow with the arrow standing in it; s.batsHit counts them
+    // and tumbles out of the sky, and lies in the snow with the arrow standing in it; s.batsHit counts them. Then it
+    // turns (CLEARING_VAMPIRE), and the arrow that stood in the bat is the one in the figure's chest
     s.bats = CLEARING_BATS.make(L); s.batsHit = 0;
     const batHit = (b, from) => {
       if (b.hit) return;
-      CLEARING_BATS.strike(b, from, bat => stuck.push({ head: [bat.x, 0.02, bat.z], tail: [bat.x + 0.12, 0.5, bat.z + 0.1] }));
+      CLEARING_BATS.strike(b, from, bat => {
+        const a = { head: [bat.x, 0.02, bat.z], tail: [bat.x + 0.12, 0.5, bat.z + 0.1] };
+        stuck.push(a); CLEARING_VAMPIRE.rise(bat, () => { const i = stuck.indexOf(a); if (i >= 0) stuck.splice(i, 1); });
+      });
       s.batsHit++;
       AUDIO.sfx('batSqueak', clamp(Math.sin(wrapPi(Math.atan2(b.x, b.z) - G.cam.yaw)), -0.85, 0.85)); G.shake(0.04);
       foundEgg();
@@ -572,7 +699,7 @@ LEVELS.push({
     L.update = dt => {
       const c = L.creature, p = c.pos(), q = rotY(p.x, p.z, -L.facing); c.stand = standOn(q[0], q[1]); c.yOff = c.stand;
       reactToDraw(c);
-      CLEARING_BATS.update(L, dt);
+      CLEARING_BATS.update(L, dt); CLEARING_VAMPIRE.update(L, dt, s.killedAt);
       for (let i = flights.length - 1; i >= 0; i--) {
         const f = flights[i]; f.t += dt;
         if (f.t < f.dur) continue;
@@ -599,7 +726,7 @@ LEVELS.push({
         arrow(add3(h, u, -0.75 / l), h, f.fade ? fade : undefined);
       }
       for (const a of stuck) arrow(a.tail, a.head, undefined, 1.8);
-      CLEARING_BATS.add(L);
+      CLEARING_BATS.add(L); CLEARING_VAMPIRE.add(L);
     };
     // the win: watch it go down, closer in the further off it is, and the view lowered to it as it falls
     L.watchPoint = () => { const c = L.creature, p = c.pos(), k = c.dead ? clamp((c.deadT || 0) / 0.85, 0, 1) : 0; return { x: p.x, y: p.y + (c.yOff || 0) + lerp(1.0, 0.3, k), z: p.z }; };

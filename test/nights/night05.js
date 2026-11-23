@@ -3,7 +3,10 @@
 // proves what each kind of letting go does, with the thing held where it is (so the test is not a race against Nightmare
 // speed): a click looses nothing (the bow is let back down), a draw let go before full falls short, one drawn full but off
 // it misses (each of those spends an arrow; the three are given back between runs, as there are only three). Then the
-// bats: one is shot out of the sky (the night's easter egg, kept in the save), and the night goes on. Then a run where one
+// bats: one is shot out of the sky (the night's easter egg, kept in the save), and the night goes on. What comes down
+// turns into a vampire, the arrow still in it, which staggers toward the porch and collapses a few steps short of it
+// (vampWalk, below); and in the last run, one still on its way when the thing takes its second arrow collapses where it
+// is, two seconds on (vampLate). Then a run where one
 // hit, drawn full on it at 47 m from a pad, and two that fall short leave it nothing to stop it: it comes in and reaches you.
 // Then the night again: a draw held full for a few seconds before letting go still goes in; the first arrow puts it all
 // the way down in the snow, where it lies about a second and gets up; and a second, followed with the pointer while it
@@ -139,13 +142,49 @@ const batShot = ['eval', `(() => {
   r.flight = g / 60; r.hit = !!b.hit; r.egg = SAVE.data.eggs[id] === true; r.saved = JSON.parse(localStorage.getItem('itscoming.v2')).eggs[id] === true; r.toast = G.lastToast.msg;
   g = 0; while (b.hit && !b.hit.landed && g++ < 400) step(1);
   r.fall = g / 60; r.landed = !!(b.hit && b.hit.landed); r.y1 = b.y; r.batsHit = s.batsHit; r.flying = s.bats.filter(q => !q.hit).length;
+  r.vamp = b.vamp && { ph: b.vamp.ph, at: Math.hypot(b.vamp.x - b.x, b.vamp.z - b.z) }; window._batDown = b;
   r.arrows = uses(); r.spent = s.spent; r.state = G.state; r.thing = { dead: c.dead, wounded: c.wounded, hits: c.hits };
-  // and with reduced motion they fly at half the pace, their wings slow (the same three seconds of a bat's way, both ways)
+  window._bat = r;
+})()`];
+// and with reduced motion they fly at half the pace, their wings slow (the same three seconds of a bat's way, both ways)
+const batPace = ['eval', `(() => {
+  const L = G.L, s = L.s, r = window._bat, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
   const q = s.bats.find(x => !x.hit), t0 = q.t;
   const pace = rm => { SAVE.data.settings.reducedMotion = rm; q.t = t0; step(1); const f0 = q.flap, t1 = q.t; let d = 0, x = q.x, y = q.y, z = q.z; for (let i = 0; i < 180; i++) { step(1); d += Math.hypot(q.x - x, q.y - y, q.z - z); x = q.x; y = q.y; z = q.z; } return { d, flap: q.flap - f0, t: q.t - t1 }; };
   const was = SAVE.data.settings.reducedMotion, fast = pace(false), slow = pace(true); SAVE.data.settings.reducedMotion = was;
   r.clock = +(slow.t / fast.t).toFixed(2); r.pace = +(slow.d / fast.d).toFixed(2); r.beat = +(slow.flap / fast.flap).toFixed(2);
   window._bat = r;
+})()`];
+// The bat that came down, from the moment it lands (the game stepped by hand): it lies there half a second, then turns:
+// a caped figure stands up where it lay (b.vamp: ph 'lie', 'turn', 'walk', 'fall', 'down'; x and z where it is). It
+// comes toward the porch, never back, and CLEARING_VAMPIRE.STOP metres short of the porch and its steps (off: how far
+// outside them a place is) it goes down, and lies where it fell. The thing is held where it is meanwhile, untouched.
+const vampWalk = ['eval', `(() => {
+  const L = G.L, c = L.creature, V = CLEARING_VAMPIRE, v = window._batDown.vamp, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
+  const d = () => Math.hypot(v.x, v.z), r = window._vamp = { back: 0, hits: c.hits };
+  let g = 0; while (v.ph !== 'walk' && g++ < 400) step(1);
+  r.up = g / 60; r.d0 = d(); r.off0 = V.off(L, v.x, v.z); r.drawn = L.rend && !!v.spr;
+  let was = r.d0; g = 0;
+  while (v.ph === 'walk' && g++ < 4000) { step(1); if (d() > was + 1e-9) r.back++; was = d(); }
+  r.walked = g / 60; r.off = V.off(L, v.x, v.z); r.d = d();
+  g = 0; while (v.ph !== 'down' && g++ < 400) step(1);
+  r.fall = g / 60; step(120); r.ph = v.ph; r.moved = Math.abs(d() - r.d); r.stop = V.STOP;
+  r.state = G.state; r.thing = { dead: c.dead, wounded: c.wounded, hits: c.hits - r.hits }; r.aimed = R.hits.some(h => h.ref === v || h.ref === window._batDown);
+})()`];
+// The second run of it, with the thing about to take its second arrow: once the figure is up and walking it is put well
+// out (22 m off on its own bearing, if it was nearer: a harness's hold, as the thing's is), so it is still on its way
+// when the arrow lands
+const vampFar = ['eval', `(() => {
+  const v = window._batDown.vamp, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
+  let g = 0; while (v.ph !== 'walk' && g++ < 400) step(1);
+  const d = Math.hypot(v.x, v.z); if (d < 22) { v.x *= 22 / d; v.z *= 22 / d; }
+  window._late = { walking: v.ph === 'walk' };
+})()`];
+// and after it: when it went down, counted from the second arrow (s.killedAt), and how far from the porch it then was
+const vampLate = ['eval', `(() => {
+  const L = G.L, V = CLEARING_VAMPIRE, v = window._batDown.vamp, r = window._late, step = n => { for (let i = 0; i < n; i++) update(1 / 60); };
+  let g = 0; while (v.ph !== 'down' && g++ < 400 && G.state === 'won') step(1);
+  r.ph = v.ph; r.after = v.fellT - L.s.killedAt; r.off = V.off(L, v.x, v.z); r.stop = V.STOP; r.state = G.state; r.won = L.won;
 })()`];
 const kinds = [
   hold(25), ['wait', 300],
@@ -169,7 +208,13 @@ const bat = [
   ['expect', '(r => r.landed && r.y1 < 0.2 && r.y0 > 3 && r.fall > 0.5 && r.fall < 3.5 && r.batsHit === 1 && r.flying === 2)(window._bat)', 'the bat tumbles out of the sky and lies in the snow; the other two fly on'],
   ['expect', "(r => r.arrows === r.arrows0 - 1 && r.spent === r.spent0 + 1 && r.state === 'play' && !r.thing.dead && !r.thing.wounded && r.thing.hits === 0)(window._bat)", 'it cost the arrow as any shot does, and the night goes on: the thing untouched and still coming'],
   ['expect', '(r => r.radius >= 18 && r.radius <= 54)(window._bat)', 'a small thing, but not a fiddly one to hit: the aim has to be within about its wingspan of it either way (1.8 times its half span and padding)'],
-  ['expect', '(r => r.clock === 0.5 && r.pace < 0.8 && r.beat < 0.4)(window._bat)', 'with reduced motion the bats fly at half the pace, without the jitter, their wings beating slowly'],
+  ['expect', "(r => r.vamp && r.vamp.ph === 'lie' && r.vamp.at < 1e-6)(window._bat)", 'where the bat came down there is more than a bat: it lies there, about to turn'],
+  vampWalk,
+  ['expect', '(r => r.up > 1.5 && r.up < 2.4 && r.d0 > 12 && r.off0 > 8)(window._vamp)', 'it turns into a vampire where it lay, out in the snow, and stands up'],
+  ['expect', '(r => r.back === 0 && r.walked > 3 && r.walked < 40 && r.d < r.d0 - 6)(window._vamp)', 'it staggers toward the porch, never back'],
+  ['expect', "(r => r.ph === 'down' && r.off <= r.stop + 0.01 && r.off > r.stop - 0.2 && r.stop >= 1.5 && r.stop <= 4 && r.fall > 0.8 && r.fall < 2 && r.moved < 1e-9)(window._vamp)", 'a few steps short of the porch it collapses, and lies where it fell'],
+  ['expect', "(r => r.state === 'play' && !r.thing.dead && !r.thing.wounded && r.thing.hits === 0 && !r.aimed && G.L.s.batsHit === 1)(window._vamp)", 'it harmed nothing and changed nothing: the night goes on, the thing untouched, and it is not a thing to aim at'],
+  batPace, ['expect', '(r => r.clock === 0.5 && r.pace < 0.8 && r.beat < 0.4)(window._bat)', 'with reduced motion the bats fly at half the pace, without the jitter, their wings beating slowly'],
 ];
 // The first arrow in it and it down in the snow: a draw begun at once (the game stepped by hand, nothing loosed) fills
 // slower than usual (d.fill), and tops out only after it has got up and run about a little; a later one is as usual.
@@ -206,12 +251,19 @@ const kill = [
   ['expect', '(s => s.second.range > 1.5 * s.first.range && s.second.path > 2 * s.first.path && s.first.range < 5 && s.second.range > 5.5)(window._sway)', 'drawn on at 30 m, it moves from side to side less the first time (unhurt) than the second (hurt and wary): its swing more than half as wide again, and more than twice as far travelled'],
   dodge('_wary', 'wary', 'waryGap'), ['expect', '(r => r.rolls === r.n && r.count >= 0.38 * r.n && r.count <= 0.62 * r.n)(window._wary)', 'hurt, drawn on 200 times: it is wary, and about half the draws make it break away'],
   ['expect', '(r => r.runs === r.count && r.sideways === r.count && r.dist < 0.01 && r.forced === 1 && r.soon === 0 && r.later === 1)(window._wary)', 'each time side on to a new place, and not again at once'],
+  // a bat is shot before it (the third arrow is to spare): what it turns into is still staggering in when the second
+  // arrow lands
+  batShot, ['expect', "(r => r.out === 'bat' && r.landed && r.vamp && r.vamp.ph === 'lie')(window._bat)", 'a bat shot down before the second arrow: it lies there, about to turn'],
+  vampFar, ['expect', 'window._late.walking', 'it is up and on its way'],
+  ['eval', 'const c = G.L.creature; G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.yaw = G.cam.tYaw = G.cam.dirIdx * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0;'], ['wait', 300],   // (the view back on the thing)
   // the second arrow, with it free to break to one side as it comes (c.darts counting again) and the pointer kept on it;
   // and a bat under every aim, to show the thing comes first
   ['eval', 'G.L.creature.darts = 0; window._at = CLEARING_BATS.at; CLEARING_BATS.at = L => L.s.bats.find(b => !b.hit);'],
   nock, ['draw', 'full'], ['expect', last + " === 'hit'", 'drawn full with the pointer kept on it as it weaves and breaks away: it flies at it (and not at a bat, though one is under the aim)'],
   ['eval', 'CLEARING_BATS.at = window._at;'],
-  ['wait', 1000], ['expect', 'G.L.creature.dead && G.L.creature.arrows.length === 2 && G.L.s.batsHit === 0', 'the second hit puts it down, two arrows in it'],
+  ['wait', 1000], ['expect', 'G.L.creature.dead && G.L.creature.arrows.length === 2 && G.L.s.batsHit === 1', 'the second hit puts it down, two arrows in it (and none of them the bat\'s)'],
+  vampLate,
+  ['expect', "(r => r.ph === 'down' && r.after >= 1.95 && r.after <= 2.2 && r.off > r.stop + 3 && r.won)(window._late)", 'the vampire, still well short of the porch, collapses two seconds after the second arrow, and the night is won as ever'],
 ];
 module.exports = {
   nightmare: noBow.concat(kinds, bat, spentAll, noArrows, kill),
