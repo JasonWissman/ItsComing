@@ -7,7 +7,7 @@ const CAPTIONS = (() => {
     dispatch: 'a dispatcher\'s voice, crackling', siren: 'a police siren wails', tireScreech: 'tyres screech', sirenOff: 'the siren winds down', shadeShriek: 'an inhuman shriek', peelOut: 'tyres squeal, an engine roars away',   // the police, on 911 (the phone booth)
     dispatchAsk: 'a dispatcher\'s voice, crackling: a question', dispatchWhat: 'the dispatcher\'s voice, sharp', dispatchSend: 'the dispatcher\'s voice, level again', growlHigh: 'a shrill, gravelly snarl',   // (the dispatcher's three lines; the shade's snarl at the police)
     boardRattle: 'the boards rattle on their nails',
-    carHit: 'the car hits something heavy', stall: 'the engine dies', bodyDrop: 'something heavy lands on the road', joints: 'joints crack',   // the road: the car driven into it
+    carHit: 'the car hits something heavy', bodyDrop: 'something heavy lands on the road', joints: 'joints crack',   // the road: the car driven into it
     sparkBlast: 'the box bursts in a shower of sparks', fireCatch: 'flames rush up', fireCrackle: 'fire crackling', burnShriek: 'a burning shriek', stingBurn: 'a burning scream',   // night 11's farm set alight
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
     sodaPour: 'soda pours, fizzing', sodaSputter: 'the soda fountain sputters, empty', gulp: 'gulping', counterPound: 'a fist pounds the counter', cupDown: 'a paper cup set down',
@@ -21,7 +21,7 @@ const CAPTIONS = (() => {
     crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', cloth: 'cloth twisting', breakerTrip: 'a breaker trips with a bang', bar: 'a bar drops into place',
     fit: 'something clicks into place', ratchet: 'a ratchet', switch: 'a switch', keys: 'keys', load: 'the gun loads', win: 'a chord', drop: 'something set down',
     tink: 'metal taps on something', woodKnock: 'wood knocks against wood', clatter: 'something clatters to the floor', flop: 'something soft drops', pat: 'a hand on it', page: 'a page turns', rattle: 'a rattle',
-    screech: 'a screech', growl: 'a deep growl', growl2: 'a deep growl', screechRage: 'a wild screech', warp: 'a rushing, rising', absorb: 'a rush of air, drawn in', cheer: 'a bright flourish', secret: 'a bright chime', twinkle: 'a happy twinkle', sting: 'a scream', stingShriek: 'a shriek', stingHum: 'a rising hum', stingStone: 'stone grinding', stoneRub: 'stone rubbing on stone', stingHit: 'a blow', stingWet: 'a wet scream', stingScrape: 'hooks on stone', stingGlass: 'glass breaking',
+    screech: 'a screech', growl: 'a deep growl', growl2: 'a deep growl', screechRage: 'a wild screech', warp: 'a rushing, rising', absorb: 'a rush of air, drawn in', cheer: 'a bright flourish', twinkle: 'a happy twinkle', sting: 'a scream', stingShriek: 'a shriek', stingHum: 'a rising hum', stingStone: 'stone grinding', stoneRub: 'stone rubbing on stone', stingHit: 'a blow', stingWet: 'a wet scream', stingScrape: 'hooks on stone', stingGlass: 'glass breaking',
   };
   const STEPS = { walker: 'slow footsteps', crawler: 'scuttling', smiler: 'light footsteps', runner: 'running', climber: 'hooks on stone', shoes: 'hard heels', shoesRun: 'hard heels, running', tall: 'a slow, heavy step' };
   const VOICES = { exhale: 'a long breath', hum: 'humming', clicks: 'clicking', pant: 'panting', slow: 'a very slow breath', gurgle: 'a gurgle' };

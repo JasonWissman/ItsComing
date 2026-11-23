@@ -612,12 +612,6 @@ const AUDIO = (() => {
         noise(0.7, { type: 'bandpass', freq: 2600, q: 0.7, vol: 0.05, attack: 0.22 }); noise(0.5, { type: 'highpass', freq: 5200, vol: 0.025, attack: 0.3, delay: 0.1 });
         break;
       }
-      // an easter egg found for the first time (game.js secretToast): a small bright bell, two notes going up a fourth, the
-      // second ringing a little; about half a second, and not loud
-      case 'secret':
-        tone(1175, 0.2, { vol: 0.07, type: 'triangle', attack: 0.004 }); tone(2350, 0.12, { vol: 0.02, attack: 0.004 });
-        tone(1568, 0.42, { vol: 0.075, type: 'triangle', attack: 0.004, delay: 0.11 }); tone(3136, 0.26, { vol: 0.02, attack: 0.004, delay: 0.11 });
-        break;
       // a happy twinkle: a quick sparkle of small bells running up, each with a glint high over it, the last ringing (night
       // 13's easter egg: the flash as they throw it all into the air)
       case 'twinkle': {
@@ -753,11 +747,6 @@ const AUDIO = (() => {
         noise(0.1, { type: 'bandpass', freq: 1250, q: 1.1, vol: 0.55, attack: 0.001 });
         for (let i = 0; i < 4; i++) noise(0.03, { type: 'bandpass', freq: 2100 + Math.random() * 1900, q: 5, vol: 0.3, delay: 0.03 + i * 0.04 });
         noise(0.42, { type: 'bandpass', freq: 2500, q: 2.6, vol: 0.24, attack: 0.03, delay: 0.07 }); tone(1340, 0.38, { vol: 0.03, type: 'sawtooth', endFreq: 1120, attack: 0.03, delay: 0.07 });
-        break;
-      // stall: the engine dying under you: four turns, each slower and lower, and a tick as it settles
-      case 'stall':
-        [[0, 62], [0.17, 53], [0.38, 44], [0.66, 35]].forEach(([d, f], i) => { tone(f, 0.17 + i * 0.03, { vol: 0.34 - i * 0.05, type: 'sawtooth', endFreq: f * 0.78, delay: d }); noise(0.07, { freq: 380, vol: 0.22 - i * 0.04, delay: d }); });
-        noise(0.03, { type: 'bandpass', freq: 1900, q: 3, vol: 0.12, delay: 1.05 });
         break;
       // bodyDrop: something heavy and soft coming down on a wet road, and sliding a little
       case 'bodyDrop': noise(0.2, { freq: 240, vol: 0.75, attack: 0.002, pan }); tone(48, 0.3, { vol: 0.55, endFreq: 30, pan }); noise(0.38, { type: 'bandpass', freq: 850, q: 0.8, vol: 0.2, attack: 0.03, delay: 0.05, pan }); break;
