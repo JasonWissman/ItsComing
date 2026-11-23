@@ -163,7 +163,9 @@ some on the ground, so you have to turn and look down to find them.
    up both: board the one it is coming for and it runs round the house to the other (its footsteps from that doorway
    are heard once it has come round in front of it and walks again, not while it is still running). The
    window beside the front doorway is glass you can see out of, over the field, and if it
-   runs round that side you see it go past. The planks are wide old boards, and three of
+   runs round that side you see it go past. The mist lies out in the field, never in the room: it shows only out
+   through the doorways and the panes of the window, not across the walls, the boards nailed up, or the thing once it
+   is in the house. The planks are wide old boards, and three of
    them close most of a doorway, leaving a slit at eye level. A plank put up with no hammer and nails to fix it hangs
    there a moment and falls off to the floor in front of the doorway, to be picked up again; the rotten one goes up and,
    as the nail goes in, its end tears away in a shower of soft crumbs, a stub of it left on the nail, and it drops. A

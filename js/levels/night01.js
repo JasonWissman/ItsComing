@@ -681,6 +681,34 @@ LEVELS.push({
         }
       }
     };
+    // The mist is out in the field, not in the house (weather.js: L.weatherShelter). It is seen only out through the two
+    // doorways and the panes of the window, never across the boards nailed over a doorway, nor across the thing itself
+    // once it is in the house or coming in through the window, and no bank of it drifts through the room.
+    {
+      const rect = (x0, x1, y0, y1, z) => [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]];
+      const xm = (WIN.x0 + WIN.x1) / 2, yt = WIN.y1 - BOARD, wx0 = WIN.x0 + 0.015, wx1 = WIN.x1 - 0.015, wy0 = 1.1, wy1 = WIN.y1 - 0.015;
+      const DOORS = [rect(-0.8, 0.8, 0, doorH - 0.02, 2.55), rect(-0.7, 0.7, 0, doorH - 0.02, -2.35)];
+      const PANES = [[wx0, xm - 0.026, wy0, yt - 0.02], [xm + 0.026, wx1, wy0, yt - 0.02], [wx0, xm - 0.026, yt + 0.02, wy1], [xm + 0.026, wx1, yt + 0.02, wy1]].map(q => rect(q[0], q[1], q[2], q[3], WIN.z));
+      const HOLE = [rect(wx0, wx1, wy0, wy1, WIN.z)];
+      const hides = (x, y, z) => y < 2.75 && x > -2.85 && x < 2.85 && z > -2.45 && z < 2.65;   // indoors
+      L.weatherShelter = () => {
+        const covers = [];
+        for (const t of [back, front]) {
+          const [z, sign] = PLANE(t), hw = t.w / 2 + 0.1;
+          for (let k = 0; k < t.count; k++) {
+            const b = BOARDS[k], { zz, yAt } = boardAt(t, k, z, sign);
+            covers.push([[-hw, yAt(-hw) - b.hh, zz], [hw, yAt(hw) - b.hh, zz], [hw, yAt(hw) + b.hh, zz], [-hw, yAt(-hw) + b.hh, zz]]);
+          }
+        }
+        const c = L.creature, e = s.egg;
+        if (c && (c.climb !== undefined || (e ? e.stage === 'lunge' : c.dist <= c.lane.apertures[0].z + 0.05))) {
+          // the thing, in the house or half in: the card it is drawn on, square to the line from the eye
+          const p = c.pos(), d = Math.hypot(p.x, p.z) || 1, ux = p.z / d * c.CR.w * 0.5, uz = -p.x / d * c.CR.w * 0.5, y0 = p.y + (c.yOff || 0), y1 = y0 + c.CR.h;
+          covers.push([[p.x - ux, y0, p.z - uz], [p.x + ux, y0, p.z + uz], [p.x + ux, y1, p.z + uz], [p.x - ux, y1, p.z - uz]]);
+        }
+        return { openings: DOORS.concat(s.barsOut ? HOLE : PANES), covers, hides };
+      };
+    }
     // The aftermath: it charges the boards (L.update), and from the moment it hits them it stoops to look in at you
     // through the gap and pounds on them, a hand at a time, BLOW seconds apart: a hand lets go, rises out of sight behind
     // the board above and comes down; each blow is loud, jolts the boards in at you and shakes the view, and every other
