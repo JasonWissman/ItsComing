@@ -758,7 +758,7 @@ some on the ground, so you have to turn and look down to find them.
     Put it all down again (each falls from your hand to the floor;
     on this night your hands are never full: all sixteen things can be carried at once, and it is
     no angrier for a seventh than for six) and it
-    calms. Each thing taken up for the first time in an attempt stops it dead where it is for 1.6 s
+    calms. Each thing taken up for the first time in an attempt stops it dead where it is for 1.0 s
     before it comes on again, as enraged as ever. Let it come, and face it when it does: empty-handed, it bends down to you over the
     last few metres (its head stays in the view) and the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too; doing
@@ -811,9 +811,11 @@ some on the ground, so you have to turn and look down to find them.
     put down; a thing put down again still counts, and one taken up twice counts
     once. With more than six held the inventory's slots are smaller (44 px, 34 px on a phone), in
     one row (two where the page is narrow), and only the held thing is named. It comes on enraged
-    the while, but each thing first taken up stops it dead a moment, so taken up one after
-    another, a second or so each, the last is in your hand with it still well off (15 m or
-    more on seeds 1 to 5); stand holding them and it is on you as ever. The moment the last thing not
+    the while, but each thing first taken up stops it dead a moment (1.0 s), so taken up one after
+    another briskly, a second and a half each or less, the last is in your hand with it still well off (18 m or
+    more on seeds 1 to 5, measured turning to each thing in turn); at a slower pace, a second and three quarters each, it is a near thing (it
+    reached you first on three of those five seeds, and was 6 and 12 m off on the other two);
+    stand holding them and it is on you as ever. The moment the last thing not
     yet taken is in your hand the night is won another way (the easter egg is saved then, and
     the run's clock stops as at any win): it stops where it is and backs off into the dark,
     the view is taken (level, to the north), and out of the dark each of the twelve others,

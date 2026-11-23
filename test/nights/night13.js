@@ -164,6 +164,7 @@ const slotsFit = `(() => { const rs = [...document.querySelectorAll('#inventory 
   if (!ok) console.log('inventory: ' + JSON.stringify({ n: rs.length, W, H, inside, apart, lab: lab.length })); return ok; })()`;
 const fifteen = [far, ['eval', 'window.__refused = 0;'],
   takeNew(6), ['expect', `G.inv.length === 6 && ${hadN} === 6 && !G.L.s.egg`, 'six things taken up'],
+  ['expect', 'G.L.s.check <= 1.0 && G.L.s.check > 0.8', 'each thing first taken up checks it for a second, no more'],
   takeNew(9), ['wait', 700], ['expect', `G.inv.length === 15 && ${hadN} === 15 && window.__refused === 0 && G.lastToast.msg !== 'Your hands are full.'`, 'and nine more: fifteen held at once, none refused, no "hands full"'],
   ['expect', `!G.L.s.egg && G.state === 'play' && !G.L.s.ending && G.L.creature.rage > 0.5 && G.L.creature.anger === 6`, 'fifteen of the sixteen: nothing yet, and it is as enraged as ever (no angrier than for six)'],
   ['expect', slotsFit, 'the inventory shows all fifteen, every slot within the view and none over another, only the held thing named'],

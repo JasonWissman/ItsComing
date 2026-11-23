@@ -294,12 +294,13 @@ LEVELS.push({
     // come for what was theirs (buildGathering).
     // So that there is time for it: it is no angrier for a seventh thing than for six (ANGER_MAX: its pace goes by c.anger),
     // and each thing taken up for the first time this attempt checks it: it stops dead where it is for CHECK seconds, and
-    // then comes on as enraged as ever. Taken up one after another without dawdling (a second or so each), all sixteen are
-    // in your hands with it still well off; stop to hold what you have and it is on you as it always was. A thing put down
+    // then comes on as enraged as ever. Taken up one after another briskly (a second and a half each, or less), all sixteen
+    // are in your hands with it still well off (18 m or more on seeds 1 to 5); at a slower pace (a second and three quarters
+    // each) it is a near thing, and on some seeds it is on you first; stop to hold what you have and it is on you as it always was. A thing put down
     // and taken up again does not check it twice, so it cannot be held off for good
     s.had = {}; s.egg = null; s.armAt = END.arm;
     L.handMax = Infinity;
-    const ANGER_MAX = 6, CHECK = 1.6;
+    const ANGER_MAX = 6, CHECK = 1.0;
     s.check = 0;   // how much longer it stands checked
     const gather = buildGathering(L, s, c0, { falls, lightStep: (dt, mv) => lightStep(dt, mv), tuneStep: (t, at) => tuneStep(t, at), idleStep: dt => idleStep(dt), meadow });
     L.onPickup = it => { if (!s.had[it.id]) s.check = CHECK; s.had[it.id] = true; if (!s.ending && G.state === 'play' && tools.every(t => s.had[t[0]])) gather.begin(); };
