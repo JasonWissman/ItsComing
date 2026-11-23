@@ -4,6 +4,9 @@
 // Springing into the road in front of the car (The Road), it is drawn side-on in one bound, as c.leap (0..1) has it (drawLeap).
 // Hit by a car (The Road: you drove straight into it), it is drawn as c.struck has it (struck(T), drawStruck): knocked
 // back down the road, lying in a heap, twitching, getting up and standing, and down on all fours again to come on.
+// Driven at a second time, it is down on all fours and looking at you at once, out of whichever of those it was at (readied),
+// and springs at the glass: c.pounce (0..1) has it in the air at you, its arms thrown up and out for you, its long legs
+// trailing under it.
 CREATURES.crawler = {
   name: 'the crawler', h: 1.1, w: 2.0, faceY: 0.3, stepRate: 2.4, catchDist: 1.3, sound: 'crawler',
   death: { delay: 0.08, dur: 0.28, sting: 'stingShriek' },
@@ -29,21 +32,22 @@ CREATURES.crawler = {
     const mouthC = P.col([12, 6, 8]);
     const j = k => (scut ? Math.sin(t * 57 + k * 7.3) * 0.035 + Math.sin(t * 91 + k * 3.1) * 0.02 : 0);
     const lift = c.mode === 'pause' ? smoothstep(Math.min(1, c.modeT / 0.5)) * 0.14 : 0;
-    const lunge = c.lunge || 0;
-    // rear legs (long, knees way out)
+    const lunge = c.lunge || 0, pn = smoothstep(c.pounce || 0);
+    // rear legs (long, knees way out; in the air they trail under it, the feet hanging)
     for (const s of [-1, 1]) {
-      P_limb(ctx, [[s * 0.2, 0.55 + j(1)], [s * 0.86 + j(2 + s), 0.78 + j(3)], [s * 0.98 + j(4 + s), 0.02]], 0.07, skinD);
-      fingers(ctx, s * 0.98 + j(4 + s), 0.02, s > 0 ? 0.2 : Math.PI - 0.2, 0.35, 0.13, 0.02, skinD);
+      const fx = s * lerp(0.98, 0.84, pn) + j(4 + s), fy = lerp(0.02, -0.1, pn), fa = lerp(0.2, 1.25, pn);
+      P_limb(ctx, [[s * 0.2, 0.55 + j(1)], [s * lerp(0.86, 0.6, pn) + j(2 + s), lerp(0.78, 0.36, pn) + j(3)], [fx, fy]], 0.07, skinD);
+      fingers(ctx, fx, fy, s > 0 ? -fa + 0.4 : Math.PI + fa - 0.4, 0.35, 0.13, 0.02, skinD);
     }
     // hump of the back, spine showing
     ctx.fillStyle = skin;
     ctx.beginPath(); ctx.moveTo(-0.44, 0.26); ctx.bezierCurveTo(-0.4, 1.02 + j(5), 0.4, 1.02 + j(6), 0.44, 0.26); ctx.closePath(); ctx.fill();
     for (let i = 0; i < 6; i++) { const a = -0.35 + i * 0.14; P_ell(ctx, a, 0.88 - Math.abs(a) * 1.15 + j(7 + i) * 0.5, 0.035, 0.028, skinD); }
-    // front arms: elbows above the back
+    // front arms: elbows above the back (in the air, thrown up and out, the hands open over its shoulders)
     for (const s of [-1, 1]) {
-      const ex = s * 0.64 + j(8 + s), ey = 0.98 + j(9 + s), hx = s * 0.6 + j(10 + s);
-      P_limb(ctx, [[s * 0.28, 0.6], [ex, ey], [hx, 0.02]], 0.075, skin);
-      fingers(ctx, hx, 0.02, s > 0 ? 0.35 : Math.PI - 0.35, 0.4, 0.16, 0.022, skin);
+      const ex = s * lerp(0.64, 0.7, pn) + j(8 + s), ey = lerp(0.98, 0.8, pn) + j(9 + s), hx = s * lerp(0.6, 0.95, pn) + j(10 + s), hy = lerp(0.02, 1.12, pn), ha = lerp(0.35, 1.15, pn);
+      P_limb(ctx, [[s * 0.28, 0.6], [ex, ey], [hx, hy]], 0.075, skin);
+      fingers(ctx, hx, hy, s > 0 ? ha : Math.PI - ha, lerp(0.4, 0.55, pn), lerp(0.16, 0.2, pn), 0.022, skin);
     }
     // head: low, in front, no eyes, big mouth
     const hy = 0.3 + lift + lunge * 0.1;
@@ -123,18 +127,16 @@ CREATURES.crawler = {
   // legs, in jolts (a crack of its joints at each: STRUCK.cracks), taller than a man, bow-legged, its arms hanging to
   // its knees; at STRUCK.look the head snaps up straight at you and the mouth opens; at STRUCK.crouch it drops forward
   // onto all fours again, and at STRUCK.leap it is up and comes on (the night lets it go from there, in its usual shape).
-  // struck(T, K) is that as numbers, by the times K (STRUCK, or knock(f, gentle): the same with everything after it
-  // comes to rest f times as long, so f < 1 has it up sooner; gentle, for reduced motion, it is knocked back lower and
-  // turns over once): stage (thrown, down, twitch, rise, look, leap); along (0 at the bumper to 1 where it
-  // lies); y (how high off the road, m); spin (how far over it has turned); fl (its limbs flung out, in the air); down
-  // (1 in a heap, 0 on all fours); up (1 standing); tw (a jerk, now); hang (the head on one side); look (the head up at you)
+  // struck(T, K) is that as numbers, by the times K (STRUCK, or knock(gentle): the same, but for reduced motion it is
+  // knocked back lower and turns over once): stage (thrown, down, twitch, rise, look, leap); along (0 at the bumper
+  // to 1 where it lies); y (how high off the road, m); spin (how far over it has turned); fl (its limbs flung out, in
+  // the air); down (1 in a heap, 0 on all fours); up (1 standing); tw (a jerk, now); hang (the head on one side); look
+  // (the head up at you). readied(p, e) is one of those, p, brought e (0..1) of the way to all fours with its head up
+  // at you and its mouth open: out of the heap, or down from standing, whichever it was (The Road: the car comes at
+  // it a second time).
   STRUCK: { land: 0.8, rest: 1.45, twitch: 1.95, rise: 2.4, stand: 3.3, look: 4.4, crouch: 4.9, leap: 5.1, jerks: [1.95, 2.2], cracks: [2.4, 3.3, 3.6, 3.95], high: 1.55, turns: 2 },
-  knock(f, gentle) {
-    const K = this.STRUCK, at = t => (t <= K.rest ? t : K.rest + (t - K.rest) * f), o = {};
-    for (const k in K) o[k] = Array.isArray(K[k]) ? K[k].map(at) : k === 'high' || k === 'turns' ? K[k] : at(K[k]);
-    if (gentle) { o.high = 0.6; o.turns = 1; }
-    return o;
-  },
+  knock(gentle) { return gentle ? Object.assign({}, this.STRUCK, { high: 0.6, turns: 1 }) : this.STRUCK; },
+  readied(p, e) { return Object.assign({}, p, { down: p.down * (1 - e), up: p.up * (1 - e), hang: p.hang * (1 - e), look: Math.max(p.look, e), tw: 0 }); },
   struck(T, K) {
     K = K || this.STRUCK;
     const fl = clamp(T / K.land, 0, 1), bo = clamp((T - K.land) / 0.36, 0, 1), lie = smoothstep((T - K.land + 0.12) / (K.rest - K.land + 0.12));

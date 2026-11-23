@@ -647,6 +647,19 @@ LEVELS.push({
     // wall. So while it is outside the house it goes by how far it really is, and never nearer than behind every wall
     // of the house (see STEPS_AT): the walls, the frames and the boards are all drawn over it, as they stand in front
     // of it. Once it is through the doorway it is drawn as usual, over everything behind it.
+    // That is not quite enough close against the front wall, in the easter egg (below). It is drawn on a card square to the
+    // view, and seen from the middle of the room the front wall is not: the end of the card on the far side of it along
+    // the wall is nearer than the wall there, and came out below the foot of the wall, on the floor of the room (its
+    // foot, as it stood at the window). So by the front wall it is cut to what the wall leaves in sight of it (the
+    // walker's c.clip, in the card's own metres): running to the window, all that is above the foot of the wall; at the
+    // window and coming through it, the hole of the window itself, for the half of it that is still outside.
+    // onCard: where a point of the front wall's plane is on its card, from where it stands
+    const onCard = (c, p) => {
+      const y0 = p.y + (c.yOff || 0), H = c.CR.h, b = R.screenPos(p.x, y0, p.z), tp = R.screenPos(p.x, y0 + H, p.z);
+      if (!b || !tp) return null;
+      const sy = (b.y - tp.y) / H;
+      return (x, y) => { const q = R.screenPos(x, y, WIN.z); return q && [(q.x - b.x) / b.scale, (b.y - q.y) / sy]; };
+    };
     L.dynamic = () => {
       R.glowAs(back); boards(back, ...PLANE(back)); R.glowAs(front); boards(front, ...PLANE(front));
       R.glowAs(pane);   // the window: its glass, or what is left of it, and its bars
@@ -659,17 +672,21 @@ LEVELS.push({
         const p = c.pos(), d = Math.hypot(p.x, p.z), inside = e ? e.stage === 'lunge' : c.dist <= c.lane.apertures[0].z + 0.05;
         cp.sortDist = inside ? (e ? Math.min(d, IN_FRONT) : undefined) : Math.max(d, BEHIND_WALLS);
       }
-      if (c.climb !== undefined && c.climbParts) {
+      const parts = c.climb !== undefined && c.climbParts, lunging = !!e && e.stage === 'lunge';
+      const at = e && !lunging && e.stage !== 'door' && c.lane.idx === 1 && (parts || c.runPose) ? onCard(c, c.pos()) : null;   // (by the front wall: running to the window, at it, coming through)
+      c.clip = undefined;
+      if (at && !parts) {   // running to the window: above the foot of the wall (a finger over it, for the card's own breathing)
+        const p = c.pos(), a = at(p.x - 1, 0), b = at(p.x + 1, 0);
+        if (a && b) { const dx = (b[0] - a[0]) * 4, dy = (b[1] - a[1]) * 4; c.clip = [[a[0] - dx, a[1] - dy + 0.02], [b[0] + dx, b[1] + dy + 0.02], [b[0] + dx, 9], [a[0] - dx, 9]]; }
+      }
+      if (parts) {
         // coming in through the window: the two halves of it (the walker's drawClimb), what is still outside behind the
-        // walls and what is through in front of them; and the frame as its drawing sees it, from where it stands
-        const p = c.pos(), H = c.CR.h, b = R.screenPos(p.x, p.y, p.z), tp = R.screenPos(p.x, p.y + H, p.z);
-        if (b && tp) {
-          const sy = (b.y - tp.y) / H, at = (x, y) => { const q = R.screenPos(x, y, WIN.z); return q && [(q.x - b.x) / b.scale, (b.y - q.y) / sy]; };
-          const l = at(WIN.x1, WIN.y0), r = at(WIN.x0, WIN.y0);   // (looking out of it, its east side is on the left)
-          if (e && e.stage === 'lunge') c.frame = undefined;   // (in, and coming at you: the frame is behind it)
-          else if (l && r) c.frame = { l: l[0], r: r[0], sl: l[1], sr: r[1] };
-        }
-        for (const pass of ['out', 'in']) R.add({ kind: 'sprite', x: p.x, y: p.y + (c.yOff || 0), z: p.z, w: c.CR.w, h: H, dist: Math.hypot(p.x, p.z), fogScale: 0.85, noContact: true, sortDist: pass === 'out' ? BEHIND_WALLS : IN_FRONT, draw: (ctx, P) => c.CR.drawClimb(ctx, c, P, pass) });
+        // walls and what is through in front of them; and the frame as its drawing sees it, from where it stands, and
+        // the hole of it, which is all that shows of the half outside
+        const p = c.pos(), hole = at && [[WIN.x1, WIN.y0], [WIN.x0, WIN.y0], [WIN.x0, WIN.y1], [WIN.x1, WIN.y1]].map(q => at(q[0], q[1]));   // (looking out of it, its east side is on the left)
+        if (lunging) c.frame = undefined;   // (in, and coming at you: the frame is behind it)
+        else if (hole && hole.every(Boolean)) { c.frame = { l: hole[0][0], r: hole[1][0], sl: hole[0][1], sr: hole[1][1] }; c.clip = hole; }
+        for (const pass of ['out', 'in']) R.add({ kind: 'sprite', x: p.x, y: p.y + (c.yOff || 0), z: p.z, w: c.CR.w, h: c.CR.h, dist: Math.hypot(p.x, p.z), fogScale: 0.85, noContact: true, sortDist: pass === 'out' ? BEHIND_WALLS : IN_FRONT, draw: (ctx, P) => c.CR.drawClimb(ctx, c, P, pass) });
       }
       c.headroom = over() || c.charge || c.runPose ? undefined : headroom(c) - (c.yOff || 0) - c.pos().y;
       if (s.hitAt !== undefined && c.peer > 0.6) {   // at the boards: its fingers over the one under the gap (grip; the night faces north, so x is the boards' own)
@@ -755,11 +772,12 @@ LEVELS.push({
     //   lunge  and it has you, at once: the death's own lunge, straight from that crouch, rising out of it as it comes
     //          (c.climb on from CROUCH to 1 through the lunge), with no wait before it
     // The death screen says "It got you" and the night's own line for it (text.death.window), with no toast before it.
-    // The bars go in one violent beat and it is through in EGG.climb seconds (1.5: fast, the same poses in the same order),
-    // and lunges the moment it is down. With reduced motion nothing shakes, the view turns more slowly, and the climb is
-    // slower (EGG.climbSlow, 2.5 s) and evenly paced (the walker's c.gentle).
+    // The bars go in one violent beat and it is through in EGG.climb seconds (0.9: a scramble, the same poses in the same
+    // order), and lunges the moment it is down, in EGG.lunge (0.3): 1.2 s from the bars to you. With reduced motion
+    // nothing shakes, the view turns more slowly, and the climb is slower (EGG.climbSlow, 1.5 s) and evenly paced (the
+    // walker's c.gentle).
     const AT = { x: (WIN.x0 + WIN.x1) / 2, z: WIN.z }, WIN_YAW = Math.atan2(AT.x, AT.z), RUN_Z = -2.62;
-    const EGG = { blows: 4, still: 0.6, turn: 0.45, look: 0.4, rise: 0.25, dash: 0.75, out: 0.7, round: 1.1, in: 0.75, far: 4.5, face: 0.4, climb: 1.5, climbSlow: 2.5, lunge: 0.5 };
+    const EGG = { blows: 4, still: 0.6, turn: 0.45, look: 0.4, rise: 0.25, dash: 0.75, out: 0.7, round: 1.1, in: 0.75, far: 4.5, face: 0.4, climb: 0.9, climbSlow: 1.5, lunge: 0.3 };
     const pane = mkTarget(L, { id: 'window', name: 'Window', x: AT.x, y: WIN.y0, z: WIN.z + 0.03, w: WIN.x1 - WIN.x0, h: WIN.y1 - WIN.y0, face: 0, accepts: ['bottle'], use() { smash(); return true; } });
     Object.defineProperty(pane, 'hidden', { get: () => !!s.broken || !(G.inv[G.active] && G.inv[G.active].id === 'bottle') });
     const smash = () => {
