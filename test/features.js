@@ -453,7 +453,7 @@ const hoverHit = lookFor;
     borders: [...document.querySelectorAll('#overlay .hcard, #overlay .hkeys, #overlay .hwhat')].some(e => { const c = getComputedStyle(e); return parseFloat(c.borderTopWidth) || parseFloat(c.borderBottomWidth); }),
     cols: getComputedStyle(document.querySelector('#overlay .howcards')).gridTemplateColumns.split(' ').length }));
   check(tv.dlg && tv.panel && tv.step === 0 && tv.state === 'title', 'How to play opens in a dialog with the controls in it, and the night does not start (' + JSON.stringify(tv) + ')');
-  check(tv.cards === 'Look around,Zoom in,Interact,Pause' && tv.keys === '8,2,1,1' && !tv.borders && tv.cols === 2, 'How to play is four cards, two by two, with no borders: Look around, Zoom in, Interact, Pause, each drawn as its keys (' + JSON.stringify(tv) + ')');
+  check(tv.cards === 'Look around,Zoom in,Interact,Pause' && tv.keys === '8,2,1,2' && !tv.borders && tv.cols === 2, 'How to play is four cards, two by two, with no borders: Look around, Zoom in, Interact, Pause, each drawn as its keys (' + JSON.stringify(tv) + ')');
   await page.click('#overlay .panel', { position: { x: 12, y: 12 } }); await page.waitForTimeout(150);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'howto'), 'a click in the dialog is not a click to begin');
   await page.keyboard.press('Escape'); await page.waitForTimeout(150);
@@ -636,7 +636,7 @@ const hoverHit = lookFor;
         panels: panels.map((q, i) => q && q.getAttribute('role') === 'tabpanel' && q.getAttribute('aria-labelledby') === tabs[i].id ? (q.hidden || getComputedStyle(q).visibility === 'hidden' ? 'hidden' : 'shown') : 'bad').join(),
         focus: f && (f.getAttribute('role') === 'tab' ? 'tab:' + f.textContent : f.dataset.act), kind: MENU.kind, st: G.state,
         rows: rows.map(e => { const m = e.querySelector('.emark'), g = m.querySelector('svg'), cs = getComputedStyle(e), al = c => { const q = c.match(/[\d.]+/g); return q.length > 3 ? +q[3] : 1; };
-          return { cls: e.className.replace(/ c[12]$/, ''), name: e.querySelector('.ename').textContent, text: e.textContent, label: e.getAttribute('aria-label'), role: e.getAttribute('role'), dim: al(cs.color) < 0.5,
+          return { cls: e.className.replace(/ c[12]$/, '').replace(/^ncard /, ''), name: e.querySelector('.ename').textContent, text: e.textContent, label: e.getAttribute('aria-label'), role: e.getAttribute('role'), dim: al(cs.color) < 0.5,
             tick: getComputedStyle(g).display !== 'none' && r(g).width >= 9, box: r(m).width >= 12 && r(m).height >= 12 && parseFloat(getComputedStyle(m).borderTopWidth) >= 1, filled: al(getComputedStyle(m).backgroundColor) > 0.9, border: al(cs.borderTopColor), markHid: m.getAttribute('aria-hidden') === 'true' }; }),
         count: (p.querySelector('.eggcount') || {}).textContent, text: p.textContent, acts: [...p.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(),
         fits: p.scrollHeight <= p.clientHeight + 1 && p.scrollWidth <= p.clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth, inView: r(p).top >= 0 && r(p).bottom <= innerHeight && rows.every(e => r(e).left >= r(p).left && r(e).right <= r(p).right),
@@ -711,7 +711,7 @@ const hoverHit = lookFor;
     // title is the same either way, and does not come from the night's own line (text.egg, which the UI no longer shows)
     const dyn = await page.evaluate(() => {
       const n = LEVELS.findIndex(d => !SAVE.data.eggs[d.id]), l = LEVELS[n], own = l.text.egg; delete l.text.egg;
-      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelectorAll('#overlay .eggs .egg')[n]; return e.className.replace(/ c[12]$/, '') + '|' + e.textContent + '|' + e.getAttribute('aria-label') + '|' + document.querySelector('#overlay .eggcount').textContent; };
+      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelectorAll('#overlay .eggs .egg')[n]; return e.className.replace(/ c[12]$/, '').replace(/^ncard /, '') + '|' + e.textContent + '|' + e.getAttribute('aria-label') + '|' + document.querySelector('#overlay .eggcount').textContent; };
       const a = row(), first = SAVE.egg(l.id), b = row(), again = SAVE.egg(l.id);
       delete SAVE.data.eggs[l.id]; SAVE.persist(); l.text.egg = own;
       return { a, b, first, again, c: row(), t: EGG_TITLES[l.id] };
@@ -2380,6 +2380,9 @@ const hoverHit = lookFor;
 
   // Settings' Calibrate dialogs (Volume, Brightness) and their sounds: test/settings.js, in this browser
   await require('./settings').run(browser, check);
+  // the shell round the nights (the Scores' tabs box for box, the captions' corner, the results' Secret scenes tab, the
+  // words that follow the text size): test/shell.js, in this browser
+  await require('./shell').run(browser, check);
 
   // An easter egg found for the first time is said: "Secret discovered: " and its title (game.js EGG_TITLES, by the
   // night's id), and no sound with it (no sfx is played, no caption comes up). Not while the night is played: it is held,

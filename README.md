@@ -35,7 +35,7 @@ Headphones are recommended. Sound starts after your first click.
 | hold the button, then let go | draw a bow, and loose the arrow |
 | `1`–`6`, `Tab` | choose which held item is active |
 | `R` | restart the current night |
-| `Esc` | pause |
+| `Esc` or `P` | pause (and resume) |
 | `M` | mute |
 
 `WASD` also works for turning and looking. Clicking the floor while looking
@@ -43,13 +43,21 @@ down puts the active item back down (there is no line about it under the pointer
 matter most as cards (Look around, Zoom in, Interact, Pause). The pause menu has Resume, Controls (How to play, the same
 dialog as on the title; closing it is the pause menu again), Settings, Scores (once the title has it, a whole run finished: the same dialog,
 over the paused night, without Erase progress; its Back is the pause menu again) and Quit, its buttons all one width;
-there is no Restart or Mute in it, but `R`, `M` and `Esc` work there as anywhere (and Mute is in Settings). Quit is
+there is no Restart or Mute in it, but `R`, `M`, `Esc` and `P` work there as anywhere (and Mute is in Settings). Quit is
 quieter than the rest (no border, in the secondary, slightly darker, text colour), and it is the only way out to the
 title: it asks first, in a small dialog over the pause menu, "Are you sure you want to quit? Your progress will be
 lost.", with Cancel (focused; Esc, B, Start or a click off it too) and Quit. `Esc` never goes straight to the title: in
 a night, on a night's card, on the death screen and on the win screen alike it opens the pause menu (a pad's B on those
 screens too), and Resume (or `Esc` again) puts back exactly what it was over: the night, the card, the death screen or
-the win screen.
+the win screen. `P` is the same key: the pause menu wherever `Esc` opens it, and from the pause menu itself back; under
+one of the pause menu's dialogs (where `Esc` goes back a step) it does nothing, and Ctrl+P is the browser's.
+
+In full screen the browser takes `Esc` to leave full screen and the page never hears of it. Where the browser can hand
+the page the key (the Keyboard Lock API, Chromium on a desktop: `navigator.keyboard.lock(['Escape'])`, asked for whenever
+the page is full screen and given back when it is not), a tap of `Esc` pauses and the page stays full screen; the
+browser then leaves full screen on `Esc` held down. Everywhere else, full screen left while a night is being played
+pauses it, so the one press both leaves full screen and pauses. Leaving by the game's own doing (`F`, the corner's
+button, Settings' Display) pauses nothing, and the two never both act (`fullscreenSync` in js/game.js).
 
 On phones and tablets (a touch screen as the main pointer) the game is played on its side: held upright, a screen asks
 for the device to be turned sideways, and a night under way pauses behind it. The view is the controls. Swipe across it
@@ -87,36 +95,39 @@ Text size, Smaller (1), Normal (1.4, the default) or Bigger (1.8). Every sound g
 effects (every one-shot, sting, footstep, voice, the heartbeat, the creature loops and the menus' taps) or the ambience
 (the nights' beds of wind, rain and drone, and the title's drone); there is no main volume over them, Mute aside.
 Volume's Calibrate opens a dialog in the same card: a line on what to do, then two sections side by side. Sound effects:
-its slider (its percentage beside it), "Play the quietest sound in the game" (the first beat of the heartbeat, its lub,
+its slider (its percentage beside it), "Quietest sound in the game" (the first beat of the heartbeat, its lub,
 as faint as the game first plays it, seven times in about two seconds: twice in the left ear, three times across, twice
-in the right) and "Play the loudest sound in the game" (the death sting itself, the effect `sting` as the game plays
-it, once, in the middle). Ambience: its slider, "Play the quietest ambience in the game" (night 8's bed once its main
-is off, the quietest bed by measure) and "Play the loudest ambience in the game" (night 9's rain, the loudest), a few
+in the right) and "Loudest sound in the game" (the death sting itself, the effect `sting` as the game plays
+it, once, in the middle). Ambience: its slider, "Quietest ambience in the game" (night 8's bed once its main
+is off, the quietest bed by measure) and "Loudest ambience in the game" (night 9's rain, the loudest), a few
 seconds of each faded in and out. Each of the four buttons has a play mark at its left (a triangle in a ring, as in the
 Sounds Audit), which is a stop mark (a square, the ring lit) while its sound plays and a play mark again when it ends;
 pressed while it plays, it stops. There is nothing under the buttons (no dots, bars or words), and they make no click
 of their own, pressed to play or to stop, so nothing is over the sound being judged. One plays at a time. They are
 tuned as the game tunes them and go through their own volume, with the rest ducked under them while they play; while
 the dialog is open whatever ambience was playing (the title's drone, a paused night's bed) is faded out, and back in as
-it closes; in a paused night they still play. Brightness's Calibrate shows the title's creature, the shape of it alone
-in the demon's robe colour unlit on The Void's black, to be barely made out ("Increase your device brightness, or the
-slider below, until you can barely see the outline of this creature"), and under it the game's own brightness: a slider,
-60% to 160% in steps of 5%, its percentage beside it, 100% by default (on a phone on its side it sits beside Done). It
-is a CSS `filter: brightness()` on the game's canvas, the title's scene and that creature (so what is judged there is
-what is seen in the game), never on the menus, the HUD or their words; at 100% there is no filter at all, so it costs
-nothing unless used. It is saved with the settings, and Set to default puts it back to 100%. Done
+it closes; in a paused night they still play. With captions for sounds on, each is captioned as the game captions it,
+and the quietest (which has no caption in the game) as "footsteps" for as long as it plays, the side it is on marked.
+Brightness's Calibrate shows the title's creature, the shape of it alone
+in the demon's robe colour unlit on The Void's black, to be barely made out ("Increase your device brightness until you
+can barely perceive the outline of this creature."), and Done. It is the device's brightness that is set by it: the
+game has none of its own (there was a slider, a CSS filter on the view; it washed the scenes out or lost what is in
+their dark, and is gone: an older save's brightness is dropped as it loads). Done
 (or Esc, or B) is Settings again, with the focus back on the Calibrate that opened it. An older save carries over: its
 main volume is folded into the two (each the main volume times its own, Quieter being half), and its text size to the
 nearest of the three now (what was Smaller or Normal is Smaller, the same size Normal was; Bigger is Normal). Then come
 switches (`role="switch"`; a click, a tap, Space, Enter or A flips one): Mute,
 Reduce motion and flashing effects (one switch for both: a softer red pulse and dimmer flashes, no jitter or sway; the
 game still reads the two flags, `reducedMotion` and `reducedFlash`, and the switch sets both), Captions for sounds (one
-line at a time, with a marker for which side a sound came from), on a touch screen Reverse swipes, and Reduce surface
+line at a time, a small speaker before it and a marker for which side the sound came from, in the top left corner under
+the sound line, on a phone under the menu button: the one corner with nothing of the night in it; it ends above the line
+of words under the compass and short of the middle, a line too long for that set smaller, never cut; only sounds that
+tell something of the night have one, so the clock's tick at the start of a night has none), on a touch screen Reverse swipes, and Reduce surface
 textures (off by default; on drops the boards, logs and stone built into walls and floors, which is faster on slow
 machines). Reduce motion and flashing defaults on when your system asks for reduced motion. A save from before the
 switches carries over: surface detail off is Reduce surface textures on, and the one reduction switch is on if either
 of the old two was. At the foot, Set to default puts every setting back as a new save has it, at once and with no
-question (the switches, the rows of choices, the volumes' sliders and the brightness follow; progress, the best run, the easter eggs found and the accepted warning are untouched); the
+question (the switches, the rows of choices and the volumes' sliders follow; progress, the best run, the easter eggs found and the accepted warning are untouched); the
 Settings opened from the warning have it too. To its right is Done (primary, as in the Calibrate dialogs; Esc or B too),
 which goes back to what opened Settings. Erase progress is on the Scores screen, beside its Back (when Scores is opened
 from the title: not from the pause menu), and asks first, in a small dialog of its own (Cancel, Erase); it forgets
@@ -819,7 +830,7 @@ some on the ground, so you have to turn and look down to find them.
     of black cloth: underneath it wears a yellow shirt striped sky blue, red shorts, white
     socks and blue sneakers, and it dances a little beside the robe on the grass. The view is yours again there: turn, look down and zoom as in
     any night, for as long as you like; only if you do nothing at all for five seconds does a
-    small line say CLICK WHEN YOU ARE READY.
+    small line say CLICK WHEN READY.
     The night's easter egg ("Take up everything."): have every one of the sixteen things in
     your hand at least once in the same attempt. On this night alone the hands are never full
     (every other night's hold six), so all sixteen can be carried at once and nothing need be
@@ -950,15 +961,27 @@ not what it was, so the titles are a list to guess from. The title is there whet
 found has a check drawn in a filled check box, its title bright and its border plain; one not found yet has an empty
 check box, its title dimmed and its border faint (so the mark says which, not the colour alone; read aloud, each is
 "Sugar rush, found" or "Sugar rush, not found"). Under the boxes is how many have been found ("3 of 13 found"). Erase
-progress forgets them too.
+progress forgets them too. The boxes are the nights' own: the same grid and the same card as Best run's (`.nights`,
+`.ncard`), so each secret scene's box is exactly where its night's box is and the size it is, at every size of page and
+text, and the two tabs are matched by where things are.
 
 The first time an easter egg is found (and only then) a small note says so: "Secret discovered: Sugar rush", with a
 little star. No sound is played with it (a chime took the player out of the night). The title is the one above (a night
-with none there is named by its `text.egg`). The note (`#secret` in index.html) is in the top left corner, under the
-sound line (on a phone under the menu button, on two short lines): the one corner nothing else uses, on a desktop or a
-phone. It slides in from the edge and fades in over 0.35 s, stays 4 s and fades out over 0.6 s; with reduced motion it
-only fades. It is not part of the HUD, so it also shows when the easter egg ends the night at once (over a death
-screen, a win, a cutscene), and it never takes a click.
+with none there is named by its `text.egg`). It is not said while the night is played, where there is no time to read
+it: it is held, and said on the screen that follows, the death screen or the win screen (the last night: its last
+screen), `secretTell` in js/game.js. The note (`#secret` in index.html) is in the middle of the bottom edge, where none
+of those screens has anything, and the screen keeps a strip clear for it (a clear border on the overlay as tall as the
+note, with one at the top to match on all but a short screen), so nothing of the screen is under it however long its
+words, on a desktop or a phone. It comes up from the edge and fades in over 0.35 s, stays 7 s and fades out over 0.6 s;
+with reduced motion it only fades. It goes at once when the night goes on, it is not part of the HUD, and it never takes
+a click. Quitting to the title forgets one not yet said (it is in Scores).
+
+The results after the ending show the run's own. The easter eggs first found between Begin and those results are kept
+with the save (`runEggs`, emptied as a run begins). If there are any, the results have Scores' two tabs, This run and
+Secret scenes, and open on Secret scenes: the ones found before are checked, the run's own are checked off one after
+another as it is watched (the count going up with them; all at once with reduced motion), and if that makes all
+thirteen a stamp, All secrets found, comes down beside the count, in the style of Best run's. The times come in, as
+ever, the first time their tab is opened. A run that found none has the results as they were, with no tabs.
 
 A full run is night 1 to the end of night 13 in one go, timed: every game is one. Its clock runs only while you play:
 every attempt counts, retries after a death and restarts included, but not the cards, the death and win screens, the
@@ -997,7 +1020,7 @@ focused, so it still takes Accept to go on. Nothing else gets past it. Once acce
 prologue (silent: the title's drone fades slowly away under it, and night 1's bed fades in as night 1 begins): black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /
 "Each night something visits you in your dreams..."), then all of it fades into night 1's card. It is short and it is not skippable: no click or key gets past it, or through it
 to the game (`newGame` in js/game.js). A night's card comes in a little at a time: the night and its name, then a
-moment later its words, then "Click or press Enter when you are ready" (all together with reduced motion); a click or
+moment later its words, then "Click or enter when ready" (on a phone "Tap when ready"; all together with reduced motion); a click or
 Enter goes on at once, as ever. Begin is the one button drawn inverted,
 light with dark letters. Every button and control in the menus answers with a soft tap. All the game's text is set in
 IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`), except the keycaps drawn in How to play,
@@ -1265,9 +1288,9 @@ sting, footstep and voice has a caption (and that the volume calibration's loude
 once and not panned, and that its four play buttons make no click). `test/settings.js` (run by `test/features.js` too, or on its own) covers Settings' Calibrate dialogs:
 from the title, a paused night and the warning, by keys, a pad and touch, on a phone on its side, the five pans left to
 right, the loudest once in the middle, each button's play mark turning to a stop mark and back, stopping one by
-pressing it again, no click from the four, the focus coming back; the brightness slider (no filter at 100%, a filter
-on the view, the title's scene and the creature otherwise, never on the menus; saved; Set to default); and renders the
-two sounds offline through the game's own chain, against the heartbeat and the sting as the game plays them. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
+pressing it again, no click from the four, the focus coming back, the quietest captioned "footsteps"; the brightness
+dialog (the creature, no slider, no filter on anything, an older save's brightness dropped); and renders the
+two sounds offline through the game's own chain, against the heartbeat and the sting as the game plays them. `test/shell.js` (run by `test/features.js` too, or on its own) covers the shell round the nights: the Secret scenes' boxes against Best run's box for box, the captions' corner (every line, whole, over nothing of the HUD), the results' Secret scenes tab and its stamp, the run's own secret scenes in the save, the labels with no count, and the warning's and the prologue's words following the text size; `test/flow.js` has P and Esc in full screen. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
 
 ## Debugging
 
