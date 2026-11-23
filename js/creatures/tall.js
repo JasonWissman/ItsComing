@@ -26,14 +26,6 @@
 // While its hands are coming at you, c.armsApart (set by the night) leaves its arms out of its own drawing, and c.part === 'arms' draws only
 // them: the night draws them in front of the bed, which is in front of the rest of it.
 // Light slows it (c.inLight), in case it is ever in the light and not already down out of it.
-// The television (the night's easter egg), c.tv, or nothing: { at: [x, y] (the middle of the set's screen as it is seen in
-//   the plane the thing stands in: drawn units, about its feet), side (+1: the set is to the right of it in the view),
-//   look (0..1: its eyes, and its head a little, turned to the set), watch (0..1: bent double over the set, its face up
-//   against the glass at the near edge of the screen, one long hand hooked over the top of the set and the other on the
-//   floor), nod (its head following the picture: a small tilt), lurch (0..1: thrown back from it, upright, both arms flung
-//   up with the fingers spread, its eyes wide), punch (0..1: the arm on that side driven straight out, its fist at `at`,
-//   in the screen), turn (0..1: its head coming round to you, tilting on over, past where a head should turn),
-//   lit (0..1: the picture's light on the side of it that faces the set) }.
 CREATURES.tall = {
   name: 'the tall one', h: 2.3, w: 1.1, faceY: 2.0, stepRate: 1.3, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
   voice: { kind: 'slow', every: [6, 12] },
@@ -185,54 +177,34 @@ CREATURES.tall = {
     const hyC = Ey - 0.36 * hs, topC = hyC + 0.1, hipC = Math.max(0.04, topC - 0.5);
     const kneeC = clamp(topC + 0.12, 0.3, 1.15);
     const tp = lerp(top, topC, duck), hip = lerp(hipS, hipC, duck), hunch = lean * 0.08 + st * 0.05 + duck * 0.06, sw = 0.26 + lean * 0.04 + duck * 0.04;
-    // the television (c.tv): where its neck and its hips go, bent over the set, thrown back from it, lunging after its fist.
-    // Its back runs from its hips to its neck whichever way that is (phi: off upright; nothing of this without c.tv)
-    const tv = c.tv || null, tside = tv ? (tv.side || 1) : 1, tat = tv && tv.at ? tv.at : [0.6, 0.95];
-    const tvW = tv ? (tv.watch || 0) * free : 0, tvL = tv ? (tv.lurch || 0) * free : 0, tvP = tv ? (tv.punch || 0) * free : 0, tvT = tv ? (tv.turn || 0) * free : 0, tvK = tv ? (tv.look || 0) * free * (1 - tvT) : 0;
-    let bx = 0, by = 0, hdx = 0, hdy = 0, tvTilt = 0;
-    if (tv) {
-      const tw = -tside * 0.6, Hc = [tat[0] - tside * 0.31, tat[1] + 0.04];   // watching: its head tipped to the screen, its face at the edge of it
-      bx += (Hc[0] + Math.sin(tw) * 0.34 * hs - sway * 0.6) * tvW; by += (Hc[1] - Math.cos(tw) * 0.34 * hs - tp) * tvW; hdx -= tside * 0.2 * tvW; hdy -= 0.1 * tvW;
-      bx -= tside * 0.36 * tvL; by -= 0.3 * tvL; hdx -= tside * 0.1 * tvL; hdy -= 0.16 * tvL;   // (its knees giving under it)
-      bx += tside * 0.16 * tvP; by -= 0.34 * tvP; hdx -= tside * 0.05 * tvP;
-      tvTilt = tw * tvW + tside * 0.42 * tvL - tside * 0.25 * tvP - tside * 0.2 * tvK * (1 - tvW) * (1 - tvL) + tside * 2.0 * tvT + (tv.nod || 0) * tvW;
-    }
-    const nbx = sway * 0.6 + bx, nby = tp + by, hipX = sway + hdx, hipY = hip + hdy;
-    const phi = tv ? Math.atan2(bx - hdx, Math.max(0.05, tp - hip) + by - hdy) : 0, bdx = Math.sin(phi), bdy = Math.cos(phi);   // (its back's own up; across it: [bdy, -bdx])
-    const hx = sway * 0.6 + peer * ps * 0.44 + bx, hy = lerp(top - sink, hyC, duck) + by;
+    const hx = sway * 0.6 + peer * ps * 0.44, hy = lerp(top - sink, hyC, duck);
     c.headTop = (hy + 0.54 * hs) * K;   // (the top of its head, as drawn: metres above its feet)
     // where its parts were drawn this frame (drawn units, about its feet), for the checks that it never jumps
-    const drawn = part === 'arms' ? null : (c.drawn = { at: c.t / (c.timeScale || 1), lat: c.lat || 0, dist: c.dist, head: [hx, hy], neck: [nbx, nby + hunch], hip: [hipX, hipY], feet: [], hands: [], tilt: 0 });
+    const drawn = part === 'arms' ? null : (c.drawn = { at: c.t / (c.timeScale || 1), lat: c.lat || 0, dist: c.dist, head: [hx, hy], neck: [sway * 0.6, tp + hunch], hip: [sway, hip], feet: [], hands: [], tilt: 0 });
     if (part !== 'arms') {
       // legs: hip, knee, foot (down there the knees are up and out beside its shoulders). On its own feet, each foot is
       // where it is on the floor (nearer you, lower in the view), lifted as it steps
       // (on its own feet as it goes down on its haunches, its legs fold from the one into the other)
       for (const s of [-1, 1]) {
         const f = ft ? ft[s > 0 ? 1 : 0] : null, fb = f ? 1 - duck : 0;
-        const hpx = lerp(s * 0.1 + sway, s * 0.12, duck) + hdx;
+        const hpx = lerp(s * 0.1 + sway, s * 0.12, duck);
         const ph = g + (s > 0 ? Math.PI : 0), gl = Math.max(0, Math.sin(ph)) * 0.22 * (1 - duck * 0.6);
         let fx = lerp(s * 0.18 + sway * 0.3, s * 0.32, duck), fy = gl + 0.03, toe = 0;
-        let kx = lerp(s * (0.14 + st * 0.08) + sway * 0.6, s * 0.44, duck) + hdx * 0.4, ky = lerp(lerp(0.75, 0.68, st) + gl * 0.7, kneeC + gl * 0.3, duck);
+        let kx = lerp(s * (0.14 + st * 0.08) + sway * 0.6, s * 0.44, duck), ky = lerp(lerp(0.75, 0.68, st) + gl * 0.7, kneeC + gl * 0.3, duck);
         // crawling: the foot comes up and on, its knee lifting higher beside its shoulder, and back down (smooth in the phase)
         if (crawlK > 0) { const cl = Math.max(0, Math.sin(crawlPh + (s > 0 ? Math.PI : 0))), sl = Math.cos(crawlPh + (s > 0 ? Math.PI : 0)); fy += cl * 0.12 * crawlK; fx += s * sl * 0.05 * crawlK; ky += cl * 0.16 * crawlK; kx += s * cl * 0.05 * crawlK; }
         if (f) {
           const fl = f.lift / K, ffx = f.x / K, ffy = fl + 0.03 - E * f.dz / Math.max(0.2, R0 - f.dz) / K;
-          const fkx = lerp(hpx, ffx, 0.5) + s * (0.04 + st * 0.08) + fl * s * 0.3 - hdx * 0.1, fky = lerp(lerp(0.75, 0.68, st), (hip + ffy) * 0.5, 0.25) + fl * 0.75;
+          const fkx = lerp(hpx, ffx, 0.5) + s * (0.04 + st * 0.08) + fl * s * 0.3, fky = lerp(lerp(0.75, 0.68, st), (hip + ffy) * 0.5, 0.25) + fl * 0.75;
           fx = lerp(fx, ffx, fb); fy = lerp(fy, ffy, fb); kx = lerp(kx, fkx, fb); ky = lerp(ky, fky, fb); toe = fl * 0.3 * fb;
         }
-        P_limb(ctx, [[hpx, hipY + 0.05], [kx, ky], [fx, fy]], 0.085, body);
+        P_limb(ctx, [[hpx, hip + 0.05], [kx, ky], [fx, fy]], 0.085, body);
         if (drawn) drawn.feet.push([fx, fy], [kx, ky]);
         P_line(ctx, fx - 0.03 * s, fy, fx + s * 0.11, fy - toe, 0.08, body);
       }
-      if (!tv) P_poly(ctx, [[-0.17 + sway, hip], [0.17 + sway, hip], [sw + sway * 0.6, tp + hunch], [sway * 0.6, tp], [-sw + sway * 0.6, tp + hunch]], body);
-      else {   // (the same, along its back; its hips turn half as far)
-        const hc = Math.cos(phi * 0.5), hsn = Math.sin(phi * 0.5);
-        P_poly(ctx, [[hipX - 0.17 * hc, hipY + 0.17 * hsn], [hipX + 0.17 * hc, hipY - 0.17 * hsn], [nbx + bdy * sw + bdx * hunch, nby - bdx * sw + bdy * hunch], [nbx, nby], [nbx - bdy * sw + bdx * hunch, nby + bdx * sw + bdy * hunch]], body);
-        const bend = clamp(Math.abs(phi) / 1.2, 0, 1);
-        if (bend > 0) P_ell(ctx, lerp(hipX, nbx, 0.12), lerp(hipY, nby, 0.12) + 0.02, 0.19, 0.12 + 0.05 * bend, body);   // bent over: the round of its hips, uppermost
-      }
+      P_poly(ctx, [[-0.17 + sway, hip], [0.17 + sway, hip], [sw + sway * 0.6, tp + hunch], [sway * 0.6, tp], [-sw + sway * 0.6, tp + hunch]], body);
       const rb = Math.max(st, duck), rk = smoothstep(rb / 0.2);
-      if (rk > 0) P_ell(ctx, nbx, nby + hunch * 0.5, sw * rk, 0.03 * rk + 0.1 * rb, body);   // its back rounded up behind its head
+      if (rk > 0) P_ell(ctx, sway * 0.6, tp + hunch * 0.5, sw * rk, 0.03 * rk + 0.1 * rb, body);   // its back rounded up behind its head
     }
     // arms: down to the knees, rising very slowly as it comes; down there, its hands flat on the floor in front of it
     const raise = smoothstep(near * 0.8) * (1 - duck);
@@ -241,7 +213,7 @@ CREATURES.tall = {
     // (right in front of you its hands are on you, out of sight either side)
     const showArms = part === 'arms' || !(c.armsApart && grabK > 0) && !c.close;
     for (const s of [-1, 1]) {
-      const sx = nbx + bdy * s * (sw - 0.01) + bdx * (hunch - 0.08), sy = nby - bdx * s * (sw - 0.01) + bdy * (hunch - 0.08);
+      const sx = s * (sw - 0.01) + sway * 0.6, sy = tp - 0.08 + hunch;
       let ex = s * lerp(0.28, 0.62, raise), ey = lerp(1.6, 1.9, raise) - lean * 0.1 - st * 0.25;
       let px = s * lerp(0.3, 0.5, raise), py = lerp(0.85, 2.35, raise) - lean * 0.1 * raise - st * 0.2;
       let ang = lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), spread = lerp(0.16, 0.32, raise), len = 0.24 + raise * 0.06;
@@ -256,20 +228,12 @@ CREATURES.tall = {
       if (flinch > 0 && s === (c.flinchSide || 1)) mix(flinch, s * 0.46, tp + 0.05, -s * 0.06, hy + 0.36, s > 0 ? Math.PI * 0.95 : Math.PI * 0.05, 0.22, 0.26);
       // up over the edge of the bed: the hands on it, wide apart, the fingers hooked over onto the covers
       if (reach > 0) mix(reach, s * 0.66, grip - 0.42, s * 0.4, grip, -Math.PI / 2 + s * 0.2, 0.13, 0.17);
-      // the television. Watching: the hand on that side hooked over the top of the set, the long arm's elbow up over its
-      // back; the other flat on the floor under it. Thrown back: both arms flung up, the fingers spread. Then the arm on
-      // that side driven straight out, its fist in the screen, the other flung out behind
-      const tvArm = s === tside;
-      if (tvW > 0) { if (tvArm) mix(tvW, tat[0] - tside * 0.42, tat[1] + 0.92, tat[0] - tside * 0.02, tat[1] + 0.33, -Math.PI / 2, 0.12, 0.16); else mix(tvW, nbx - tside * 0.5, nby + 0.2, nbx - tside * 0.16, 0.05, -Math.PI / 2 - tside * 0.4, 0.2, 0.2); }
-      if (tvL > 0) mix(tvL, nbx + s * 0.6, nby + 0.02, nbx + s * 0.5, nby + (tvArm ? 0.6 : 0.68), Math.PI / 2 - s * 0.3, 0.42, 0.3);
-      if (tvP > 0) { if (tvArm) mix(tvP, lerp(sx, tat[0], 0.5), lerp(sy, tat[1], 0.5) + 0.07, tat[0], tat[1], tside > 0 ? -0.5 : Math.PI + 0.5, 0.05, 0.07); else mix(tvP, nbx - tside * 0.55, nby + 0.1, nbx - tside * 0.9, nby - 0.12, tside > 0 ? Math.PI : 0, 0.3, 0.26); }
       const arm = () => {
         if (grabK > 0) { this.grabArm(ctx, s, sx, sy, px, py, grabK, R0, E, body); return; }
         P_limb(ctx, [[sx, sy], [ex, ey], [px, py]], 0.065, body);
         if (drawn) drawn.hands.push([px, py], [ex, ey]);
         fingers(ctx, px, py, ang, spread, len, 0.02, body);
         if (reach > 0.3) P_ell(ctx, px, py + 0.01, 0.06, 0.045, body);   // the back of the hand, knuckles up
-        if (tvP > 0.3 && tvArm) P_ell(ctx, px, py, 0.075, 0.07, body);   // its fist
       };
       if (!showArms) continue;
       // the arm thrown up across its face from the light goes in front of the head: drawn after it
@@ -278,10 +242,10 @@ CREATURES.tall = {
     if (part === 'arms') { ctx.restore(); return; }
     // the head, bent under the frame and turned to you; leaning out round an edge it tips over that way; flinching it turns
     // from the light; down there it holds still, peering up
-    const still = free * (1 - peer) * (1 - duck) * (tv ? 1 - Math.max(tvK, tvW, tvL, tvP, tvT) : 1);
-    let tilt = -0.3 * Math.cos(Math.PI * t / 2.7) * still * (1 - grabK) + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) * free - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35 + tvTilt;
+    const still = free * (1 - peer) * (1 - duck);
+    let tilt = -0.3 * Math.cos(Math.PI * t / 2.7) * still * (1 - grabK) + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) * free - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35;
     if (drawn) drawn.tilt = tilt;
-    if (peer > 0) P_line(ctx, nbx, nby - 0.04, hx, hy + 0.06, 0.09, body);   // the neck, stretched out round the edge
+    if (peer > 0) P_line(ctx, sway * 0.6, tp - 0.04, hx, hy + 0.06, 0.09, body);   // the neck, stretched out round the edge
     ctx.save(); ctx.translate(hx, hy);
     // right in front of you its head twitches, for a moment, hard and fast
     const tw = c.close && c.twitchT !== undefined ? c.twitchT : -1;
@@ -295,9 +259,6 @@ CREATURES.tall = {
     const gulp = lunge > 0 ? (c.gulp || 0) : 0;
     if (gulp > 0) { const mc = 0.3, gg = 1 + gulp * gulp * 90; ctx.translate(0, mc); ctx.scale(gg, gg); ctx.translate(0, -mc); }
     P_line(ctx, 0, 0, 0, 0.14, 0.08, body);
-    // the picture's light on it: a pale edge down the side of its head that faces the set (its head's own frame)
-    const tvLit = tv && lunge <= 0 ? clamp(tv.lit || 0, 0, 1) : 0;
-    if (tvLit > 0.02) P_ell(ctx, tside * Math.cos(tilt) * 0.02, 0.34 - tside * Math.sin(tilt) * 0.02, 0.13, 0.2, rgba([150, 176, 160], 0.75 * tvLit));
     P_ell(ctx, 0, 0.34, 0.13, 0.2, body);
     // its face turned down, only the dark of its head: its eyes go as it turns
     const look = lunge > 0 ? 1 : 1 - smoothstep(((c.faceAway || 0) - 0.3) / 0.4);
@@ -305,11 +266,9 @@ CREATURES.tall = {
     ctx.globalAlpha *= look;
     // its face is nothing but two round pale eyes in the dark of its head, a soft glow round each, the same in any light
     // (peering up, they widen; right in front of you they are wide)
-    const er = 0.017 * (1 + duck * 0.2 + lerp(grabK * 0.15, 0.3, c.closeK === undefined ? (c.close ? 1 : 0) : c.closeK) + 0.55 * tvL);
-    // (turned to the set, its eyes are over at that side of its head, the further one nearly round the edge of it)
-    const esh = tside * tvK * (lunge > 0 ? 0 : 1);
+    const er = 0.017 * (1 + duck * 0.2 + lerp(grabK * 0.15, 0.3, c.closeK === undefined ? (c.close ? 1 : 0) : c.closeK));
     for (const s of [-1, 1]) {
-      const x = esh * 0.072 + s * 0.046 * (1 - 0.5 * Math.abs(esh)), y = 0.37, gr = er * 3.2, gl = ctx.createRadialGradient(x, y, 0, x, y, gr);
+      const x = s * 0.046, y = 0.37, gr = er * 3.2, gl = ctx.createRadialGradient(x, y, 0, x, y, gr);
       gl.addColorStop(0, rgba([235, 228, 210], 0.3)); gl.addColorStop(1, rgba([235, 228, 210], 0));
       ctx.fillStyle = gl; ctx.fillRect(x - gr, y - gr, gr * 2, gr * 2);
       P_ell(ctx, x, y, er, er, P.raw([235, 228, 210]));

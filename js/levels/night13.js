@@ -98,8 +98,8 @@ LEVELS.push({
     const voidProps = L.props.slice(v0);
     // the room that was always here: built now, invisible until the meadow has gone
     const r0 = L.props.length;
-    STORY.buildBedroom(L, true);
-    STORY.lamp(L, 1.2, 0.62, -0.79, { lit: false });
+    const bedroom = STORY.buildBedroom(L, true);
+    STORY.lamp(L, bedroom.lamp[0], bedroom.lamp[1], bedroom.lamp[2], { lit: false });
     const roomProps = L.props.slice(r0);
     for (const p of voidProps) p.alpha0 = p.alpha === undefined ? 1 : p.alpha;
     for (const p of roomProps) { p.alpha0 = p.alpha === undefined ? 1 : p.alpha; p.alpha = 0; }
@@ -279,8 +279,9 @@ LEVELS.push({
       return { color: mixc(DULL[0], mixc(A[0], B[0], k), u), i: lerp(DULL[1], lerp(A[1], B[1], k), u) * (1 - 0.45 * Math.max(0, c.nod || 0)), flicker: lerp(DULL[2], lerp(A[2], B[2], k), u) };
     };
     // where the room's furniture will stand (x0, x1, z0, z1, as buildBedroom puts them): the bed, the nightstand, the chair, the
-    // dresser; a thing lying there, or against or beyond a wall, is in the way of the room
-    const FURNITURE = [[-0.8, 0.8, -1.05, 1.9], [0.95, 1.45, -1.04, -0.54], [-2.6, -2.15, -0.9, -0.45], [-2.9, -1.5, 3.05, 3.55]];
+    // dresser (and the strip behind the wall at the head of the bed); a thing lying there, or against or beyond a wall, is
+    // in the way of the room
+    const FURNITURE = bedroom.furniture.concat([[-3.2, 2.2, -1.2, bedroom.headWall]]);
     const inTheWay = it => {
       const q = rotY(it.x, it.z, -L.facing), m = 0.5 * Math.max(it.w, it.h);
       return q[0] < ROOM.x0 + m || q[0] > ROOM.x1 - m || q[1] < ROOM.z0 + m || q[1] > ROOM.z1 - m || FURNITURE.some(f => q[0] > f[0] - m && q[0] < f[1] + m && q[1] > f[2] - m && q[1] < f[3] + m);

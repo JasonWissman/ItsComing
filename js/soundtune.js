@@ -21,6 +21,7 @@ const TUNES = {
   'shadeShriek': { pitch: -3.5, speed: 0.93 },
   'growl': { pitch: -2.5, speed: 0.87, tone: 1 }, 'growl2': { pitch: 3, speed: 0.87, tone: 1 },
   'growlHigh': { pitch: 17, speed: 1.15, tone: 1.5 },   // (the same growl far up, a little quicker and its filters wide open: the shade's snarl at the police, night 9. Rendered: its voice at about 160 Hz, three times the growl's; A-weighted, its weight at 2.6 kHz against the growl's 0.9; its flutter 77 to 88 Hz, still a rattle)
+  'growlLow': { pitch: -13, speed: 0.6, tone: 0.8, vol: 3 },   // (the same growl an octave under the demon's and slower, its filters let up a little so its rattle still carries: the tall one's, as its face comes in, night 12)
   'screechRage': { pitch: 12, speed: 0.63, tone: -1 },
   'ui': { pitch: -12 },
   'pickup': { pitch: -4.5 },

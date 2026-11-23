@@ -219,29 +219,6 @@
     });
     ctx.restore();
   }
-  // ---- the television (night 12's easter egg) ----
-  // The set as night 12 has it, seen in the plane the thing stands in while it watches (TV_D off; the set a little beyond
-  // it and to the right): the middle of its screen at TV_AT (drawn units about its feet: the tall one's c.tv.at), all of
-  // it TV_K as big as it is. Its picture here is only a sketch of the night's ('off', 'snow', 'film', 'scare', 'smashed').
-  const TV_D = 2.43, TV_AT = [0.662, 0.941], TV_K = 0.895;
-  const TVT = { scare: 7.0, lurch: 7.08, punch: 7.6, hit: 7.78, out: 8.3 };   // night 12's times, in seconds from the click
-  const tvSet = what => (ctx, c, P) => {
-    const T = c.t / c.timeScale, st = typeof what === 'function' ? what(T) : what, rod = P.col([132, 130, 122]), bent = st === 'smashed' ? 1 : 0;
-    const g = (v, a) => rgba(mixc([5, 8, 7], [186, 206, 178], v), a);
-    ctx.translate(TV_AT[0] * CR.SCALE, TV_AT[1] * CR.SCALE); ctx.scale(TV_K, TV_K);   // (from the middle of the screen, in metres)
-    P_rect(ctx, -0.29, -0.685, 0.72, 0.45, P.col([52, 40, 32])); P_rect(ctx, -0.24, -0.235, 0.62, 0.46, P.col([64, 50, 40])); P_rect(ctx, 0.235, -0.205, 0.125, 0.4, P.col([34, 30, 29]));
-    for (const y of [0.105, 0]) P_ell(ctx, 0.2975, y, 0.038, 0.038, P.col([128, 120, 106]));
-    P_limb(ctx, [[0.088, 0.255], [-0.02, 0.455], [lerp(-0.125, -0.21, bent), lerp(0.655, 0.425, bent)]], 0.009, rod); P_limb(ctx, [[0.112, 0.255], [0.3, 0.625]], 0.009, rod);
-    P_rect(ctx, -0.218, -0.168, 0.436, 0.336, P.col([20, 19, 19]));
-    ctx.beginPath(); ctx.rect(-0.2, -0.15, 0.4, 0.3); ctx.clip();
-    if (st === 'off') P_rect(ctx, -0.2, -0.15, 0.4, 0.3, P.col([20, 25, 28]));
-    else if (st === 'smashed') { P_rect(ctx, -0.2, -0.15, 0.4, 0.3, P.col([24, 28, 30])); P_poly(ctx, Array.from({ length: 12 }, (_, i) => { const a = i * TAU / 12, r = i % 2 ? 0.06 : 0.12; return [Math.cos(a) * r, Math.sin(a) * r]; }), 'rgb(2,2,3)'); }
-    else if (st === 'snow') for (let i = 0; i < 120; i++) { const n = i * 7 + Math.floor(T * 20) * 13; P_rect(ctx, -0.2 + ((n * 37) % 100) / 250, -0.15 + ((n * 61) % 100) / 333, 0.022, 0.014, g(((n * 17) % 10) / 10)); }
-    else if (st === 'scare') { P_rect(ctx, -0.2, -0.15, 0.4, 0.3, g(0.05)); P_ell(ctx, 0, 0, 0.13, 0.155, g(1)); for (const sd of [-1, 1]) P_ell(ctx, sd * 0.054, 0.04, 0.036, 0.038, g(0)); P_ell(ctx, 0, -0.08, 0.05, 0.06, g(0)); }
-    else { P_rect(ctx, -0.2, -0.15, 0.4, 0.3, g(0.12)); P_rect(ctx, -0.09, -0.09, 0.18, 0.17, g(0.3)); P_rect(ctx, -0.045, -0.09, 0.09, 0.145, g(0)); P_rect(ctx, -0.045, -0.09, 0.07, 0.145, g(0.64)); }   // the end of its corridor, the door ajar
-  };
-  // what the tall one is told of the set (c.tv), where it stands (c.lat across from its place by the set)
-  const tvPose = (c, o) => { c.tv = Object.assign({ at: [TV_AT[0] - (c.lat || 0) / CR.SCALE, TV_AT[1]], side: 1, look: 0, watch: 0, lurch: 0, punch: 0, turn: 0, nod: 0, lit: 0 }, o); };
   LAB.creature('tall', {
     night: 12, stage: 'The Bedroom', dist: DOOR.peerD, fit: { h: 2.5, w: 1.6 },
     anims: [
@@ -285,28 +262,6 @@
         set(c) { c.frozen = true; c.lungeFrom = c.dist; hideBehindBed(c); armsApart(c); } }),
       { name: 'Under the covers: it pulls, and goes', note: 'The win: the covers up over your head, the lamp a glow through them. The shadows of its two hands come up onto the cloth and take hold as they did on the bed, reaching up it, closing and pulling, one, the other, then both; then they let go and sink away.',
         dur: 5.4, still: true, draw(ctx, c, P) { underCovers(ctx, c, P, c.t / c.timeScale); } },
-      // the night's easter egg: the television put on with the remote from the drawer
-      { name: 'Looking round at the TV', note: 'The easter egg: the television comes on (a click, then static). Whatever it was doing, it stops, and its eyes and its head go round to the set.',
-        dist: TV_D, dur: 2.8, fit: { h: 2.5, w: 2.4 }, back: tvSet(T => (T < 0.7 ? 'off' : 'snow')),
-        tick(c, k, dt, T) { tvPose(c, { look: smoothstep((T - 0.7) / 0.3) }); } },
-      { name: 'Watching the TV', note: 'It scurries over to the set on all fours and bends double over it, its face up against the glass at the edge of the screen, one long hand hooked over the top of the set and the other on the floor, its head following the picture a little, lit by its flicker.',
-        dist: TV_D, dur: 7, fit: { h: 1.9, w: 2.9 }, draw: at(), back: tvSet('film'),
-        tick(c, k, dt, T) {
-          const was = c.lat === undefined ? -1.15 : c.lat, upK = smoothstep((T - 1.1 + 0.15) / 0.5);
-          c.lat = lerp(-1.15, 0, smoothstep(T / 1.1)); c.crawl = (c.crawl || 0) + Math.abs(c.lat - was) * CR.CRAWL * 0.5; c.duck = 1 - upK; c.eyeTo = 0.52;
-          tvPose(c, { look: 1, watch: upK, nod: 0.07 * Math.sin(T * 1.3) + 0.035 * Math.sin(T * 3.1), lit: (0.36 + 0.12 * Math.sin(T * 11)) * upK });
-        } },
-      { name: 'The jump scare: it lurches and punches the set', note: 'The film\'s fright (a screaming face fills the little screen): it is thrown back from the set, its arms flung up and its eyes wide, with a yelp; then at once its fist goes through the screen, and the set is dead, its aerial bent.',
-        dist: TV_D, dur: 3.6, fit: { h: 2.6, w: 3.0 }, draw: at(), back: tvSet(T => (T < 1 ? 'film' : T < 1 + TVT.hit - TVT.scare ? 'scare' : 'smashed')),
-        tick(c, k, dt, T) {
-          const t = T - 1 + TVT.scare;   // (the fright a second in)
-          const lurchIn = smoothstep((t - TVT.lurch) / 0.09), lurchOut = smoothstep((t - TVT.punch) / 0.14), punchIn = easeIn(clamp((t - TVT.punch) / (TVT.hit - TVT.punch), 0, 1)), punchOut = smoothstep((t - TVT.out) / 0.42);
-          c.lat = -0.22 * lurchIn * (1 - lurchOut);   // (a step back from it, and in again behind its fist)
-          tvPose(c, { look: 1, watch: 1 - lurchIn, lurch: lurchIn * (1 - lurchOut), punch: punchIn * (1 - punchOut), lit: t >= TVT.hit ? 0 : t >= TVT.scare ? 0.9 : 0.4 });
-        } },
-      { name: 'Its head turns back to you', note: 'Beside the smashed set, its head comes round to you, slowly, tilting on over past where a head should turn; then it comes on again from there (its head coming upright as it goes). In the lamp\'s light it throws an arm across its face and goes down instead.',
-        dist: TV_D, dur: 4.4, fit: { h: 2.5, w: 2.4 }, back: tvSet('smashed'),
-        tick(c, k, dt, T) { tvPose(c, { look: T < 1.7 ? 1 : 0, turn: smoothstep((T - 0.6) / 1.05) * (1 - clamp((T - 2.2) / 1.6, 0, 1)) }); } },
     ],
   });
 })();
