@@ -356,7 +356,7 @@
   /* (quitting asks too, over the pause menu: its one line, larger, in place of a heading) */
   .confirm .cpanel:has(.cask) { width: min(440px, 100%); padding-top: 26px; }
   .confirm p.cask { margin: 0 0 4px; font-size: calc(16px * var(--text-scale)); line-height: 1.45; color: #efe6d2; text-wrap: balance; }
-  /* Scores' two tabs (there once an easter egg has been found): Best run | Easter eggs, the chosen one lit and underlined;
+  /* Scores' two tabs (there once an easter egg has been found): Best run | Secret scenes, the chosen one lit and underlined;
      their two panels one over the other in the same place (.tabstack), only the chosen one seen, so the dialog is the
      same size whichever it is on */
   .tabs { display: flex; justify-content: center; gap: 6px; box-sizing: border-box; width: 100%; margin: 0 auto 10px; border-bottom: 1px solid rgba(207,200,186,.16); }
@@ -372,20 +372,21 @@
   .tabpanel > .runcard { margin-top: 10px; padding-top: 9px; padding-bottom: 7px; }   /* (the tabs take a line: the run's card a little closer, so it all still fits) */
   :root[data-textsize=bigger] .tabpanel > .runcard .rtime { font-size: calc(32px * var(--text-scale)); }
   :root[data-textsize=bigger] .egg { padding-top: 3px; padding-bottom: 3px; }   /* (bigger text: the thirteen still fit a laptop's screen) */
-  /* the easter eggs: a card for each night, in the Scores' two columns (1 to 6, 7 to 13; one on a phone), its name over
-     what its easter egg was. One found is lit; one not found yet says ???; a night with none is dimmed, a dash */
+  /* the secret scenes: a box for each night, in the Scores' two columns (1 to 6, 7 to 13; one on a narrow phone), with
+     nothing in it but its short title (game.js EGG_TITLES) after a check box. One found: the box filled, a check drawn in
+     it, the title bright, the border plain; one not found yet: the same title dimmed, the box empty, the border faint */
   .eggs { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--rows, 7), auto); grid-auto-flow: row dense; gap: 5px 10px; width: 100%; margin: 0 auto; }
   .eggs > .c1 { grid-column: 1; } .eggs > .c2 { grid-column: 2; }
-  .egg { box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 5px 16px; text-align: left; background: rgba(0,0,0,.45); border: 1px solid rgba(207,200,186,.22); color: #efe6d2; cursor: default; }
-  .egg .ename { font-size: calc(14px * min(var(--text-scale), 1.5)); line-height: 1.25; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .egg .ewhat { font-size: calc(12.5px * min(var(--text-scale), 1.5)); line-height: 1.3; font-style: italic; color: rgba(207,200,186,.78); }
-  .egg.found { border-color: rgba(239,230,210,.5); }
-  .egg.unknown .ewhat { font-style: normal; letter-spacing: .22em; color: rgba(207,200,186,.5); }
-  .egg.none { background: none; border-color: rgba(207,200,186,.1); color: rgba(207,200,186,.3); }
-  .egg.none .ewhat { font-style: normal; color: inherit; }
+  .egg { box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-width: 0; padding: 8px 14px; text-align: left; background: none; border: 1px solid rgba(207,200,186,.13); color: rgba(207,200,186,.48); cursor: default; }
+  .egg .ename { min-width: 0; font-size: calc(15px * min(var(--text-scale), 1.5)); line-height: 1.25; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .egg .emark { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1.5px solid rgba(207,200,186,.34); border-radius: 3px; }
+  .egg .emark svg { display: none; width: 14px; height: 14px; fill: none; stroke: #14110f; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .egg.found { background: rgba(0,0,0,.5); border-color: rgba(239,230,210,.62); color: #efe6d2; }
+  .egg.found .emark { background: #efe6d2; border-color: #efe6d2; box-shadow: 0 0 8px rgba(239,230,210,.35); }
+  .egg.found .emark svg { display: block; }
   .eggcount { margin: 10px 0 0; font-size: calc(13px * min(var(--text-scale), 1.5)); font-style: italic; letter-spacing: .04em; color: rgba(207,200,186,.62); text-align: center; }
   @media (max-width: 640px) { .eggs { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; } .eggs > .c1, .eggs > .c2 { grid-column: auto; } .tabs [role=tab] { padding-left: 12px; padding-right: 12px; letter-spacing: .1em; } }
-  /* a phone on its side is short: each night on one line, its name at the left and its easter egg at the right */
+  /* a phone on its side is short: the boxes closer, the marks and titles a little smaller */
   @media (max-height: 520px) and (min-width: 560px) {
     .tabs { margin-bottom: 5px; } .tabs [role=tab] { min-height: 30px; padding: 3px 16px 2px; font-size: calc(12px * min(var(--text-scale), 1.5)); }
     #overlay.dlg > .panel.nightsp:has(.tabs) h1 { margin-bottom: 2px; }
@@ -393,15 +394,18 @@
     :root[data-textsize=bigger] .tabpanel > .runcard .rtime { font-size: calc(26px * min(var(--text-scale), 1.55)); }
     .tabpanel .ncard { padding-top: 2px; padding-bottom: 2px; }
     .eggs { gap: 3px 8px; }
-    .egg { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 8px; padding: 1px 8px; }
-    .egg .ename { flex: none; font-size: calc(12px * min(var(--text-scale), 1.5)); line-height: 1.2; }
-    .egg .ewhat { min-width: 0; text-align: right; font-size: calc(10.5px * min(var(--text-scale), 1.5)); line-height: 1.2; }
+    .egg { gap: 8px; padding: 1px 9px; }
+    .egg .ename { font-size: calc(12px * min(var(--text-scale), 1.5)); line-height: 1.2; }
+    .egg .emark { width: 13px; height: 13px; border-width: 1px; border-radius: 2px; } .egg .emark svg { width: 10px; height: 10px; stroke-width: 3; }
     .eggcount { margin-top: 4px; font-size: calc(11px * min(var(--text-scale), 1.5)); line-height: 1.3; }
   }
-  :root[data-theme="day"] .egg { background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.3); color: #2e2823; }
-  :root[data-theme="day"] .egg .ewhat, :root[data-theme="day"] .eggcount, :root[data-theme="day"] .tabs [role=tab] { color: rgba(58,51,44,.7); }
+  :root[data-theme="day"] .egg { border-color: rgba(58,51,44,.16); color: rgba(58,51,44,.48); }
+  :root[data-theme="day"] .egg .emark { border-color: rgba(58,51,44,.36); }
+  :root[data-theme="day"] .egg.found { background: rgba(255,255,255,.6); border-color: rgba(58,51,44,.62); color: #2e2823; }
+  :root[data-theme="day"] .egg.found .emark { background: #2e2823; border-color: #2e2823; box-shadow: none; }
+  :root[data-theme="day"] .egg.found .emark svg { stroke: #f4eee0; }
+  :root[data-theme="day"] .eggcount, :root[data-theme="day"] .tabs [role=tab] { color: rgba(58,51,44,.7); }
   :root[data-theme="day"] .tabs [role=tab][aria-selected=true] { color: #2e2823; border-bottom-color: #2e2823; }
-  :root[data-theme="day"] .egg.none { background: none; color: rgba(58,51,44,.3); border-color: rgba(58,51,44,.15); }
   /* Settings: the sliders, each its percentage at its right; then the switches. Each row its name at the left and its
      control at the right. On a short screen (a phone on its side) the two groups side by side */
   .settings { display: flex; flex-direction: column; gap: 14px; margin: 10px auto; text-align: left; width: min(440px, 100%); }

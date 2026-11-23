@@ -55,24 +55,23 @@ const MENU = (() => {
     }
     return '<div class="nights" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + cards + '</div>';
   }
-  // the nights' easter eggs, one for each night that has one (its text.egg names it: js/levels/*.js), found or not (the
-  // save's eggs, by the night's id: game.js foundEgg). A night with none yet has egg ''
-  const eggList = () => LEVELS.map((l, i) => { const egg = (l.text && l.text.egg) || ''; return { i, title: l.title, egg, found: !!(egg && SAVE.data.eggs[l.id]) }; });
+  // the nights' easter eggs ("secret scenes", to the player), one for each night: its short title (game.js eggTitle, by
+  // the night's id), and whether it has been found (the save's eggs: game.js foundEgg)
+  const eggList = () => LEVELS.map((l, i) => ({ i, name: eggTitle(l.id), found: !!SAVE.data.eggs[l.id] }));
   // Scores is there to open (on the title, and in the pause menu alike) only once a whole game has been finished: there
-  // is a best run. Easter eggs found before that are kept in the save all the same, and are in its Easter eggs tab when
+  // is a best run. Easter eggs found before that are kept in the save all the same, and are in its Secret scenes tab when
   // it is there to open; they do not bring the button by themselves
   const scoresOpen = () => !!SAVE.data.bestRun[G.diff().id];
-  // the Scores' second tab: the thirteen nights in order, each with its easter egg. One found: what it was (the night's
-  // own line for it); one not found yet: ???, nothing given away; a night with none: a dash, dimmed. And how many of
-  // those there are have been found
+  // the Scores' second tab, Secret scenes: thirteen boxes in the nights' order, each with nothing in it but its title
+  // (no night's name or number, nor what it was: the titles are a list to guess from). The title is there found or not;
+  // one found has a check drawn in its box and is bright, one not found yet an empty box and is dimmed (each says which,
+  // read aloud). Under them, how many have been found
   function eggsHtml(eggs) {
-    const had = eggs.filter(x => x.egg).length, found = eggs.filter(x => x.found).length;
     let rows = '';
     for (const x of eggs) {
-      const what = x.found ? '<span class="ewhat">' + escapeHtml(x.egg) + '</span>' : x.egg ? '<span class="ewhat" role="img" aria-label="not found yet">???</span>' : '<span class="ewhat" role="img" aria-label="none">&mdash;</span>';
-      rows += '<div class="egg ' + (x.found ? 'found' : x.egg ? 'unknown' : 'none') + col(x.i) + '" role="listitem"' + (x.egg ? '' : ' aria-disabled="true"') + '><span class="ename">' + (x.i + 1) + '. ' + x.title + '</span>' + what + '</div>';
+      rows += '<div class="egg ' + (x.found ? 'found' : 'unknown') + col(x.i) + '" role="listitem" aria-label="' + escapeHtml(x.name) + (x.found ? ', found' : ', not found') + '"><span class="emark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 8.6l3.4 3.4L13 4.4"/></svg></span><span class="ename" aria-hidden="true">' + escapeHtml(x.name) + '</span></div>';
     }
-    return '<div class="eggs" role="list" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + rows + '</div><p class="eggcount">' + found + ' of ' + had + ' found</p>';
+    return '<div class="eggs" role="list" aria-label="Secret scenes" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + rows + '</div><p class="eggcount">' + eggs.filter(x => x.found).length + ' of ' + eggs.length + ' found</p>';
   }
   function btn(act, label, arg, cls) { return '<button type="button" class="mbtn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '"' + (arg !== undefined ? ' data-arg="' + arg + '"' : '') + '>' + label + '</button>'; }
   function html(kind, d) {
@@ -153,7 +152,7 @@ const MENU = (() => {
         // a phone; not buttons: no night is picked from here), and under them the run's whole time and stars. No run
         // yet: only a word on what one is. And at the bottom, by Back, Erase progress (it asks first: show; not when
         // Scores is opened from the pause menu, a game under way).
-        // Once an easter egg has been found, two tabs: Best run (that) and Easter eggs (eggsHtml); both panels are in
+        // Once an easter egg has been found, two tabs: Best run (that) and Secret scenes (eggsHtml); both panels are in
         // the page, the one not chosen hidden (pickTab). It opens on Best run, or on the eggs while there is no run yet
         const best = SAVE.data.bestRun[G.diff().id], from = d.from || 'title';
         const body = best
@@ -165,7 +164,7 @@ const MENU = (() => {
         const on = d.tab || (best ? 'run' : 'eggs');
         const tab = (k, label) => '<button type="button" role="tab" id="tab-' + k + '" data-tab="' + k + '" aria-controls="panel-' + k + '" aria-selected="' + (k === on) + '" tabindex="' + (k === on ? 0 : -1) + '">' + label + '</button>';
         const panel = (k, inner) => '<div class="tabpanel" role="tabpanel" id="panel-' + k + '" aria-labelledby="tab-' + k + '"' + (k === on ? '' : ' hidden') + '>' + inner + '</div>';
-        return '<h1>Scores</h1><div class="tabs" role="tablist" aria-label="Scores">' + tab('run', 'Best run') + tab('eggs', 'Easter eggs') + '</div><div class="tabstack">' + panel('run', body) + panel('eggs', eggsHtml(eggs)) + '</div>' + foot;
+        return '<h1>Scores</h1><div class="tabs" role="tablist" aria-label="Scores">' + tab('run', 'Best run') + tab('eggs', 'Secret scenes') + '</div><div class="tabstack">' + panel('run', body) + panel('eggs', eggsHtml(eggs)) + '</div>' + foot;
       }
       case 'settings': {
         if (d.sub === 'volume') return volumeHtml();

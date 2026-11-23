@@ -893,24 +893,30 @@ from the prologue and night 1 (Begin, or Enter on the title). The death screen o
 nothing else: the only way out to the title is the pause menu's Quit (Esc there, as anywhere), which asks first.
 Progress, the best full run and the easter eggs found are saved in `localStorage`. Only once there is a best full run (a
 whole game finished) does the title have a Scores button, and the pause menu too (the same rule in both); easter eggs
-found before that are saved all the same, and are in its Easter eggs tab once Scores is there, but do not bring the
+found before that are saved all the same, and are in its Secret scenes tab once Scores is there, but do not bring the
 button by themselves. Scores
 shows the best full run: a card for every night with that run's time for it, in two columns (three on a
 phone on its side), and under them its whole time and stars; with no full run yet, only a word on what one is. The
 cards are not buttons. Under them, beside Back, is Erase progress. There are no best times for single nights.
 
-There is one easter egg a night, on the nights that have one so far (each night's `text.egg`, a line naming it, in
-`js/levels/`; a night calls `foundEgg()` in js/game.js the moment it happens, and the save keeps which have been found,
-by the night's id). As soon as the first is found, Scores has two tabs, Best run and Easter eggs (`role="tablist"`,
-`tab`, `tabpanel`: a click or a tap chooses one; with the focus on the chosen tab, left and right, or a pad's d-pad, go
-along them). Easter eggs lists the thirteen nights in order: one whose easter egg has been found shows its name and
-that line; one not found yet shows its name and "???", giving nothing away; a night with no easter egg yet shows a
-dash, dimmed. Under the list is how many have been found ("3 of 6 found"). It is drawn entirely from the nights'
-`text.egg`, so a night given one later appears with no change here. Erase progress forgets them too.
+There is one easter egg a night (to the player they are "secret scenes": that is the only name the game shows for
+them). A night calls `foundEgg()` in js/game.js the moment its own happens, and the save keeps which have been found,
+by the night's id. Each has a short title, in `EGG_TITLES` in js/game.js by the night's id, in the nights' order:
+Through the window, Hit and run, Sugar rush, Staring contest, Bat shot crazy, Lifesaver, Butterfingers, Thirst
+quencher, Its an emergency, Cover up, Power overload, Movie night, Flip the script. (Each night's `text.egg`, a line
+saying what it is, is still in `js/levels/` but is not shown anywhere.)
+
+As soon as the first is found, Scores has two tabs, Best run and Secret scenes (`role="tablist"`, `tab`, `tabpanel`: a
+click or a tap chooses one; with the focus on the chosen tab, left and right, or a pad's d-pad, go along them). Secret
+scenes is thirteen boxes in the nights' order, and the only text in each is its title: no night's name or number, and
+not what it was, so the titles are a list to guess from. The title is there whether it has been found or not. One
+found has a check drawn in a filled check box, its title bright and its border plain; one not found yet has an empty
+check box, its title dimmed and its border faint (so the mark says which, not the colour alone; read aloud, each is
+"Sugar rush, found" or "Sugar rush, not found"). Under the boxes is how many have been found ("3 of 13 found"). Erase
+progress forgets them too.
 
 The first time an easter egg is found (and only then) a small note says so: "Secret discovered: Sugar rush", with a
-little star, and a short bright chime of two notes (the `secret` sound, about half a second; its caption is "a bright
-chime"). The titles are short ones of their own, one a night, in `EGG_TITLES` in js/game.js by the night's id (a night
+little star. No sound is played with it (a chime took the player out of the night). The title is the one above (a night
 with none there is named by its `text.egg`). The note (`#secret` in index.html) is in the top left corner, under the
 sound line (on a phone under the menu button, on two short lines): the one corner nothing else uses, on a desktop or a
 phone. It slides in from the edge and fades in over 0.35 s, stays 4 s and fades out over 0.6 s; with reduced motion it
@@ -1207,7 +1213,7 @@ title; Quit asking first), pause, mute, drops and the error overlay. `test/featu
 the one game (no picker, no hints), the warning (its card, Adjust settings and back, remembered once accepted), a
 night's card held until its words are in, restart, mute, menus (the pause menu, its Controls, its Scores and its Quit
 with the question it asks, Settings' rows of choices and switches, How to play's cards, Set to default, the Scores screen (the best run, its
-breakdown adding up, its stars; the Easter eggs tab, its tabs by click, keys, pad and tap, its rows and count, driven by the nights' `text.egg`; the note and chime for an easter egg found the first time, in its corner on a desktop and a phone and over a death screen), erasing progress from it (eggs too), the results after the ending (the Best run stamp only for a
+breakdown adding up, its stars; the Secret scenes tab, its tabs by click, keys, pad and tap, its thirteen boxes (title only, checked or not, labelled) and count, driven by the save; the note for an easter egg found the first time, with no sound, in its corner on a desktop and a phone and over a death screen), erasing progress from it (eggs too), the results after the ending (the Best run stamp only for a
 new best), the win screen between nights, the title's click, and the light behind the thing lagging its scuttle and gliding after it), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, the menu button on the death screen, the win screen and a card, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
 reduced motion, clear of the zoom button on a phone), a wrong thing coming back, a plank falling to the floor where a

@@ -928,13 +928,13 @@ function foundEgg(id) {
   return first;
 }
 // The first time an easter egg is found it is said, in a corner: "Secret discovered: " and the egg's short title (one for
-// each night, by the night's id; a night with none here is named by its own text.egg), with a small bright chime
-// ('secret'). The note (#secret, index.html) is not part of the HUD: it stays up over a death screen, a win or a cutscene
+// each night, by the night's id; a night with none here is named by its own text.egg), and no sound with it (a
+// chime took the player out of the night). The note (#secret, index.html) is not part of the HUD: it stays up over a death screen, a win or a cutscene
 // with the HUD hidden, for SECRET_HOLD seconds, and never takes a click. With reduced motion it fades and does not slide
 const EGG_TITLES = {
-  field: 'Window of opportunity', road: 'Hit and run', graveyard: 'Sugar rush', quarry: 'Staring contest', clearing: 'Bat out of the sky',
-  boathouse: 'Lifesaver', lighthouse: 'Heads up', diner: 'Refreshments', booth: 'Call 911', mirrors: 'Out of sight', barn: 'Overload',
-  bedroom: 'Movie night', void: 'Take everything',
+  field: 'Through the window', road: 'Hit and run', graveyard: 'Sugar rush', quarry: 'Staring contest', clearing: 'Bat shot crazy',
+  boathouse: 'Lifesaver', lighthouse: 'Butterfingers', diner: 'Thirst quencher', booth: 'Its an emergency', mirrors: 'Cover up', barn: 'Power overload',
+  bedroom: 'Movie night', void: 'Flip the script',
 };
 const SECRET_HOLD = 4;   // seconds it is fully up (index.html: in over .35 s before, out over .6 s after)
 function eggTitle(id) {
@@ -950,7 +950,6 @@ function secretToast(id) {
   el.classList.add('show');
   clearTimeout(secretToast.timer);
   secretToast.timer = setTimeout(() => el.classList.remove('show'), (0.35 + SECRET_HOLD) * 1000);
-  AUDIO.sfx('secret');
 }
 // a night's easter-egg deaths (L.text.eggs: the causes that are one): the screen says "Nice try", and the line is the
 // night's own, with no toast put in front of it
