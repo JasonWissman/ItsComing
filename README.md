@@ -501,13 +501,14 @@ some on the ground, so you have to turn and look down to find them.
    phone, or with one): it rings once and a dispatcher answers, a crackle of a voice (this is the night's easter egg,
    "Call 911.", kept in the save from the moment she answers). While the shade has still to get to its last lamp she has
    three lines, one after another, each with its crackle and a beat between them for what you say back, which is not
-   heard: "911, what is your emergency?", "a WHAT?", "Ok, stay there. I'm sending a unit now."; and with the last the
+   heard: "911, what is your emergency?", "Are you sure?", "Ok, stay there. I'm sending a unit now." (shown in curly
+   quotation marks, opening and closing: the game's typeface draws the straight mark as a closing one); and with the last the
    police are sent. Once the shade is at its last lamp, or past it, she says only that last line, at once. Hang up while
    she is still talking and she is cut off: the rest is not said and no car is sent (call again and she starts over).
    Nothing comes
    until the shade has got to the last lamp on its way in (called once it is past it, they come at once, and it skitters
    back behind that post). Then a police car comes tearing down its street, black and white with a gold star on its
-   doors, its siren wailing and its light bar flashing red and blue on the wet street (with reduced flashing the bar
+   doors, its siren wailing (its first wail coming up out of silence, far off) and its light bar flashing red and blue on the wet street (with reduced flashing the bar
    swells slowly from red to blue and back instead), and screeches to a halt on the road beside that lamp post, its nose
    dipping, black rubber left on the road. The siren winds down. A flashlight comes on at its window, sweeps in and finds
    the shade: a beam through the rain, a pool of light round its feet and on the wall behind, a pale light down its side
@@ -520,9 +521,12 @@ some on the ground, so you have to turn and look down to find them.
    it still burns), upright and leaning at it, one arm out at it and the other up over its head, its head split open into
    its petals of teeth, turned to the car, and long black tentacles unfurling out of its back and shoulders, waving: a
    fan of them behind it, one up over its head and one out low at the car. The flashlight goes off, and the car slams its foot down: its back tyres spin,
-   smoking and squealing, and it fishtails away down the road (on round the corner and off along the cross street from
+   smoking, with a short plain squeal as it pulls away, and it fishtails away down the road (on round the corner and off along the cross street from
    the main street; on past the booth and away west, wide of the parked car, along the cross street), keeping to the road,
-   until it is out of sight. The shade shuts, its tentacles drawing back into it, and comes on for you from where it stands. (With reduced flashing the
+   until it is out of sight. The shade shuts, its tentacles drawing back into it, skitters back behind its lamp post and stands
+   there hidden, in the dark, for fourteen seconds (the right call, from hanging up on the dispatcher, takes seven seconds
+   of ringing and the time to dial: the night can still be won there), and then comes on for you across to the glass. As
+   its lunge begins, this time or any other, it snarls that same high growl. (With reduced flashing the
    flashlight comes and goes smoothly; with reduced motion the shade does not leap, its convulsion is a slow writhe that
    comes on gently, its tentacles wave slowly and the car hardly swerves.) Should the
    right number be answered while the police are there, the shade sees them off first, and the car that comes for you
