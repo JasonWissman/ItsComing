@@ -437,7 +437,7 @@ module.exports = {
     ['eval', "(() => { const h = [...R.hits].reverse().find(h => h.kind === 'target' && h.ref.id === 'notebook'), x = h.x + h.w / 2, y = h.y + h.h / 2; for (const type of ['touchstart', 'touchend']) { const t = new Touch({ identifier: 5, target: UI.canvas, clientX: x, clientY: y }); UI.canvas.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchstart' ? [t] : [], changedTouches: [t] })); } })()"],
     ['waitUntil', settled, 3000],
     ['expect', 'G.L.s.page === 2', 'a tap on it (a finger) turns the page too'],
-    padOn, ...tap(0), padOff,
+    padOn, ['wait', 200], ...tap(0), ['wait', 120], padOff,   // (a moment for the pad to be seen and its aim to be on the book before A, and for A to be read before it goes)
     ['waitUntil', settled, 3000],
     ['expect', 'G.L.s.page === 3', 'and so does A'],
     // it has been at its first lamp all this while: it reached up to it and broke it, and skittered on in the dark to the next
