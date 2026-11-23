@@ -1,6 +1,6 @@
 // The Boathouse: both ways must be shut. The winch is chained and padlocked, and the key is in the tackle box; the handle
 // will not go on while the padlock is there. Unlock it, fit the handle and crank the water door down, then shut the side
-// door and bar it with both oars (one alone is not enough: it breaks through, and the night says so). The player first
+// door and bar it with both oars (one alone is not enough: it knocks it out of the brackets, and the night says so). The player first
 // tries the winch with nothing in hand (the hand rattles the padlock on its chain), then the handle (it goes on the boss,
 // the chain snaps taut, the padlock jumps, and it comes back to the hand), then an oar (it does not fit; its end jams at
 // the boss and it drops to the deck, where it lies to be picked up again), before
@@ -48,20 +48,36 @@ const splashMoves = `(() => {
   const a = frame(0.2), b = frame(0.25), c = frame(0.45);
   return diff(a, b) > 150 && diff(b, c) > 150;
 })()`;
-// one oar across the shut side door does not hold it: it throws itself at the door, the oar snaps, the door bursts open
-// and it comes in; the death screen says why. (Set up directly, then the night starts again.)
+// one oar across the shut side door does not hold it: it throws itself at the door, and at the second blow the oar is
+// knocked out of its brackets, whole, and the door bursts open. The oar jumps up out of the cradles and into the room,
+// turning over as it goes, comes down on the deck (never through it) with a clatter, and lies there flat, inside the
+// room and clear of the wall, while the thing is in the doorway; then it comes in, and the death screen says why. (Set
+// up directly, then the night starts again. s.oarPose(tau) is where the oar is tau seconds after the blow: its middle
+// and the way its length runs.)
+const oarFalls = `(() => {
+  const s = G.L.s, f = s.fell, P = s.oarPose, ends = t => { const p = P(t); return [-1, 1].map(k => p.c.map((v, i) => v + k * p.u[i] * 1.275)); };
+  let low = 9, turned = 0;
+  for (let t = 0; t <= 3; t += 1 / 60) { low = Math.min(low, ...ends(t).map(e => e[1])); turned = Math.max(turned, Math.abs(P(t).u[1])); }
+  const up = P(0.15), rest = ends(3);
+  return f.T1 > 0.3 && f.T1 < 0.8 && up.c[1] > 1.12 && up.c[0] < 2.2 && turned > 0.3 && low > 0.02 &&
+    rest.every(e => Math.abs(e[1] - 0.03) < 0.005 && e[0] > 0.2 && e[0] < 2.3 && Math.abs(e[2]) < 2.2) && Math.hypot(...P(3).c.map((v, i) => v - P(2.5).c[i])) < 1e-3;
+})()`;
 const oneOar = [
   ['eval', `(() => { const s = G.L.s, c = G.L.creature, ln = G.L.lanes[1];
     Object.assign(s, { doorOpen: false, doorClosing: 0, doorClosed: true, doorA: 0, oars: 1 });
     c.retarget(1); c.switched = true; G.L.laneIdx = 1; G.L.lane = ln; G.L.barrierDist = ln.barrierDist;
-    c.u = 1 - Math.pow(4 / c.D0, 1 / c.gamma); c.hold = null; c.mode = 'up'; c.modeT = 0; c.upFor = 99; })()`],
-  ['waitUntil', '!!G.L.s.snap', 6000], ['expect', 'G.L.s.oars === 0 && G.L.s.doorOpen && !G.L.s.sealedE', 'with one oar across, it breaks the oar and the door bursts open'],
+    c.u = 1 - Math.pow(4 / c.D0, 1 / c.gamma); c.hold = null; c.mode = 'up'; c.modeT = 0; c.upFor = 99;
+    window.__sfxN6 = []; if (!window.__sfxO6) { window.__sfxO6 = AUDIO.sfx; AUDIO.sfx = (n, ...r) => { window.__sfxN6.push(n); return window.__sfxO6(n, ...r); }; } })()`],
+  ['waitUntil', '!!G.L.s.fell', 6000], ['expect', 'G.L.s.oars === 0 && G.L.s.doorOpen && !G.L.s.sealedE && G.L.creature.hold !== null', 'with one oar across, it knocks the oar out of its brackets and the door bursts open; it is in the doorway'],
+  ['expect', oarFalls, 'the oar comes out whole: up out of the cradles and into the room, turning over, down onto the deck and never through it, to lie flat inside the door'],
   ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 8000],
+  ['expect', "(f => f.down && G.L.t - f.t > f.T1 + 0.3 && window.__sfxN6.includes('clatter') && !window.__sfxN6.includes('crack'))(G.L.s.fell)", 'it clattered down on the deck and lay there before the thing came in (no crack: it did not break)'],
+  ['eval', 'AUDIO.sfx = window.__sfxO6; window.__sfxO6 = null;'],
   ['waitUntil', "G.state === 'dead' || G.L.creature.lunge > 0.5", 3000],
   ['expect', 'G.L.creature.burstT !== undefined && G.L.creature.burstY > 1', 'its death lunge stamps when it began to come up out of the water, and how high it comes'],
   ['expect', splashMoves, 'the water it bursts up out of moves: the spray rises and falls and the foam spreads, frame to frame'],
   ['expect', "G.deathCause === 'oneoar' && deathLine(G.L).includes(\"One oar wasn't strong enough.\")", 'and the death screen says one oar was not strong enough'],
-  ['eval', 'restartLevel();'], ['wait', 1500], ['expect', "G.state === 'play' && !G.L.s.snap && G.L.s.oars === 0", 'the night starts again'],
+  ['eval', 'restartLevel();'], ['wait', 1500], ['expect', "G.state === 'play' && !G.L.s.fell && G.L.s.oars === 0", 'the night starts again'],
 ];
 // The night's easter egg: throw it the life ring. The ring hangs on the west wall, flat on the boards, and can be taken.
 // Carried, it changes nothing: there is nothing to throw it at while the thing is under the water, or while the water
@@ -152,6 +168,13 @@ const ringEgg = [
   ['face', 6], ['pickup', 'lifering'], ['face', 0], surfaced(40), ['wait', 250], ['shoot'],
   ['eval', `(c => { let n = 0; while (!c.ringOn && n++ < 600) update(1 / 60); for (let i = 0; i < 90; i++) update(1 / 60); })(${C6})`],
   ['expect', `${C6}.ringOn && G.state === 'play' && ${C6}.dist > 6`, 'thrown again: it is up in the ring and coming on'],
+  // its hands go round far faster than it bobs: a paw goes in (the paddle sound) about eight times a second, where its
+  // bob (c.padGait) comes round under three times; with reduced motion they keep to the bob
+  ['eval', `(c => { const CR = CREATURES.swimmer, sfx = AUDIO.sfx, cap = CAPTIONS.sfx, o = window.__pad6 = { n: 0, calm: 0, k: CR.paddle() }; CAPTIONS.sfx = () => {};
+    const run = () => { let n = 0; AUDIO.sfx = name => { if (name === 'paddle') n++; }; const g0 = c.padGait; for (let i = 0; i < 120; i++) update(1 / 60); return [n, (c.padGait - g0) / Math.PI]; };
+    try { [o.n, o.bobs] = run(); SAVE.data.settings.reducedMotion = true; o.calmK = CR.paddle(); [o.calm, o.calmBobs] = run(); } finally { SAVE.data.settings.reducedMotion = false; AUDIO.sfx = sfx; CAPTIONS.sfx = cap; } })(${C6})`],
+  ['expect', '(o => o.k >= 2.5 && o.k <= 3 && Math.abs(o.n - o.bobs * o.k) <= 1.5 && o.n > 2.2 * o.bobs && o.n >= 9)(window.__pad6)', 'paddling, its hands go round two and a half to three times as fast as it bobs: a blur of paws'],
+  ['expect', '(o => o.calmK === 1 && Math.abs(o.calm - o.calmBobs) <= 1.5)(window.__pad6)', 'with reduced motion its hands keep to the pace of its bob'],
   ['eval', `(() => { const s = G.L.s, w = G.L.targets.find(t => t.id === 'winch'); w.count = 7; w.done = true; Object.assign(s, { locked: false, handleIn: true, sealedN: true, doorOpen: false, doorClosing: 0, doorClosed: true, doorA: 0, oars: 2, sealedE: true }); })()`],
   ['waitUntil', 'G.L.won', 3000], ['waitUntil', "G.state === 'survived'", 14000],
   ['expect', "G.state === 'survived' && G.L.won && G.L.text.win.startsWith('It threw itself at the door')", 'with both ways shut after the throw the night is won, as it always is'],

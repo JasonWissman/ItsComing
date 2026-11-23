@@ -28,9 +28,9 @@ CREATURES.swimmer = {
       // in the ring: it looks at it a moment, then paddles in. Its pace is what a whole turn of its usual round comes to (up
       // for RING_UP seconds at 0.55, under for RING_DOWN at 2.5 and never seen there), so it arrives when it would have:
       // the game multiplies this by whether it is seen, as it does the surfaced share of the usual round
-      const g0 = c.padGait || 0, looking = c.t - c.ringT < this.RING_LOOK;
+      const g0 = c.padGait || 0, looking = c.t - c.ringT < this.RING_LOOK, pk = this.paddle() / Math.PI;
       c.padGait = g0 + dt * (c.moving ? 9 : 5.5);
-      if (!looking && c.mode === 'up' && Math.floor(c.padGait / Math.PI) !== Math.floor(g0 / Math.PI)) AUDIO.sfx('paddle', pan, true);   // a paw going in
+      if (!looking && c.mode === 'up' && Math.floor(c.padGait * pk) !== Math.floor(g0 * pk)) AUDIO.sfx('paddle', pan, true);   // a paw going in
       if (looking) return 0;
       const gaze = (seen ? c.seenMult : c.unseenMult) || 1;
       return (this.RING_UP * 0.55 + this.RING_DOWN * 2.5 * c.unseenMult / gaze) / (this.RING_UP + this.RING_DOWN);
@@ -49,6 +49,11 @@ CREATURES.swimmer = {
   // in the ring: how long it looks at it before it paddles on (s), and the mean lengths of its usual turns up and under
   // (init and speedMult above: up 2.6 to 3.5 s, under 2 to 4), which set its steady pace
   RING_LOOK: 0.6, RING_UP: 3.05, RING_DOWN: 3,
+  // paddling, its hands go round far faster than the rest of it moves: PADDLE turns of them for each one of c.padGait,
+  // which its bobbing and the roll of its head keep to (about four turns of each hand a second as it comes on, a blur
+  // of paws and a froth of small splashes under an unhurried head). With reduced motion they go at the body's own pace
+  PADDLE: 2.8,
+  paddle() { return SAVE.data.settings.reducedMotion ? 1 : this.PADDLE; },
   // the ring as it is worn and as it floats: the radius of the hoop (to the middle of its tube) and of the tube, in
   // metres, and how open it shows from where you stand, d metres off (flat on the water, seen from above: never so
   // nearly edge on that it stops reading as a ring)
@@ -132,9 +137,10 @@ CREATURES.swimmer = {
   // round its chest under the arms, the water it came up through thrown up round it and streaming off it; it holds its
   // hands up out of the way and looks down at the ring, one side and the other, and then at you (RING_LOOK seconds: it
   // does not move on meanwhile); then the arms come down over the front of the ring and it paddles in like a dog, the head
-  // held up out of the water, the hands going round one after the other in small quick circles in front of the ring, a
-  // little splash where each goes in, the whole of it bobbing. q is the seconds since it came up; with reduced motion the
-  // bobbing and the splashes are gentler, the timing the same.
+  // held up out of the water, the hands going round one after the other in small circles in front of the ring, very fast
+  // (PADDLE: far faster than it bobs), a little splash where each goes in, the whole of it bobbing. q is the seconds
+  // since it came up; with reduced motion the bobbing and the splashes are gentler and the hands go round no faster
+  // than it bobs, the pace it comes on at the same.
   drawRinged(ctx, c, P) {
     const t = c.t, q = Math.max(0, t - (c.ringT || 0)), g = c.padGait || 0, h = this.hash, soft = SAVE.data.settings.reducedMotion ? 0.45 : 1;
     const R = this.RING_R, TB = this.RING_TUBE, k = this.ringK(c.dist);
@@ -163,7 +169,7 @@ CREATURES.swimmer = {
     // go round one after the other in small quick circles in the water before it (drawn lower: it is nearer you)
     const yW = -(R + TB + 0.1) * k - yB, out = smoothstep(q / 0.26);   // the water the hands go into; and the arms spreading once they are through
     const arms = [-1, 1].map(sd => {
-      const ph = g + (sd > 0 ? 0 : Math.PI), sh = [sd * 0.19, 0.16];
+      const ph = g * this.paddle() + (sd > 0 ? 0 : Math.PI), sh = [sd * 0.19, 0.16];
       const el = [sd * lerp(lerp(0.2, 0.42, out), 0.27, pad), lerp(0.22 + 0.02 * Math.sin(t * 9 + sd), yR - yB - R * k * 0.55 + TB * 0.6, pad)];
       const hd = [sd * lerp(lerp(0.16, 0.5, out), 0.15 + 0.06 * Math.cos(ph), pad), lerp(0.5 + 0.015 * Math.sin(t * 11 + sd * 2), yW + 0.1 + 0.09 * Math.sin(ph), pad)];
       return { sd, ph, sh, el, hd };

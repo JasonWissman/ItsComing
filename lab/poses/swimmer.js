@@ -85,7 +85,7 @@
           if (!c.ringOn) { c.ringOn = true; c.ringT = c.t; c.padGait = 0; c.mode = 'up'; c.surfaced = c.t; }
           if (c.t - c.ringT > CR.RING_LOOK) { c.padGait += dt * 9; c.dist -= dt * ringPace; }
         } },
-      { name: 'Doggy paddling in the ring', note: 'From then on it does not go under: it comes on steadily in the ring, the head held up out of the water, the hands going round one after the other in front of it, a little splash at each, bobbing.',
+      { name: 'Doggy paddling in the ring', note: 'From then on it does not go under: it comes on steadily in the ring, the head held up out of the water, the hands going round one after the other in front of it, comically fast (CREATURES.swimmer.PADDLE turns of them to each bob), a little splash at each, bobbing.',
         dist: 9, dur: 5, fit: { h: 1.0, w: 1.5, y0: -0.3 }, still: true, back: water, draw,
         set(c) { c.ringOn = true; c.ringT = -9; c.padGait = 0; c.mode = 'up'; c.moving = true; },
         tick(c, k, dt) { c.padGait += dt * 9; c.dist = Math.max(2.9, c.dist - dt * ringPace); } },
