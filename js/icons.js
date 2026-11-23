@@ -400,6 +400,15 @@ const ICONS = {
     P_ell(ctx, 0, 0.62, 0.26, 0.3, glass); P_poly(ctx, [[-0.16, 0.4], [0.16, 0.4], [0.12, 0.2], [-0.12, 0.2]], glass);
     P_rect(ctx, -0.12, 0.05, 0.24, 0.16, brass); P_line(ctx, -0.12, 0.1, 0.12, 0.1, 0.015, P.col([90, 76, 40])); P_line(ctx, -0.12, 0.16, 0.12, 0.16, 0.015, P.col([90, 76, 40]));
     P_line(ctx, -0.06, 0.45, 0, 0.7, 0.012, fil); P_line(ctx, 0, 0.7, 0.06, 0.45, 0.012, fil);
+  },
+  // the bedside lamp, as a thing to be taken up (night 13): the story's own drawing of it (js/story.js STORY.lamp, made
+  // once here as a prop of no night, for its drawing: so it is the lamp of the bedroom, whatever that comes to look like),
+  // unlit, and the pull chain under its shade as night 12 hangs it
+  lamp(ctx, P) {
+    const art = ICONS.lamp.art || (ICONS.lamp.art = STORY.lamp({ props: [], pt: (x, y, z) => [x, y, z] }, 0, 0, 0));
+    ctx.save(); ctx.scale(1 / art.w, 1 / art.h); art.draw(ctx, P); ctx.restore();
+    const chain = P.col([150, 140, 118]);
+    P_line(ctx, 0.24, 0.5, 0.24, 0.35, 0.016, chain); P_ell(ctx, 0.24, 0.34, 0.03, 0.022, chain);
   }
 };
 
