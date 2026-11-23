@@ -843,10 +843,14 @@ some on the ground, so you have to turn and look down to find them.
     an arc in front of you, the shorter in front and the taller behind, six either side, and
     the thing in the hood comes back, calm, two pale eyes, into the middle of them, a faint
     cold light behind them all. They stand there (all in their places 34 s after the last thing was taken up), still and quiet, three seconds. Then all
-    at once (a bright flourish, and the chord of a night won) they throw it all up into the
+    at once (a brassy "ta-da!", the sound `cheer`: two party-horn chord stabs, a short one and a
+    higher one held most of a second; and the chord of a night won) they throw it all up into the
     air (this ending's jump scare, a happy one: that instant the view is lightened by the
-    same soft flash as the other ending's scare, none with reduced flashing, with a happy
-    twinkle of small bells running up, the sound `twinkle`), where it turns, and falls, and lies where it lands; and they leap up and down for
+    same soft flash as the other ending's scare, none with reduced flashing, with a party
+    popper going off, the sound `twinkle`: a sharp crack and the confetti sprinkling down; and
+    confetti in the picture, 44 bits of coloured paper bursting up into the view from its two
+    bottom corners, fluttering down and gone in 2.6 s, drawn flat over the view; with reduced
+    motion no burst, only ten let fall slowly from above), where it turns, and falls, and lies where it lands; and they leap up and down for
     joy, each in its own time, arms up where they have them (the stone one in a new pose
     each time it comes down), as its happy face comes up out of the hood and it takes off
     its robe and dances, the music box plays, and the dark turns to the pale light and the

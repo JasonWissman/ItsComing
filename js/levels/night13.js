@@ -576,7 +576,7 @@ LEVELS.push({
       if (s.room > 0.01) out.push({ x: 2.2, y: 1.45, z: 1.6, r: 2.2, color: [255, 246, 220], a: 0.4 * s.room });
       return out.length ? out : null;
     };
-    L.overlay = (ctx, W, H) => meadow.overlay(ctx, W, H);
+    L.overlay = (ctx, W, H) => { meadow.overlay(ctx, W, H); gather.overlay(ctx, W, H); };
     L.floor = { poly: [[-6, -6], [6, -6], [6, 6], [-6, 6]], y: 0 };
   }
 });
@@ -1156,7 +1156,8 @@ function buildGathering(L, s, c0, K) {
     if (dm.fro) { roam(dm, dt, wants(dm, t, still), still); c.tip = dm.lean; c.flip = Math.abs(dm.face) < 0.25 ? (dm.face < 0 ? -0.25 : 0.25) : dm.face; c.gait += dm.went * c.CR.stepRate * Math.PI; }
     c.dance += ((still || s.leaving || dj <= 0 ? 0 : dm.fro ? lerp(1, 0.75, dm.run) : Math.min(1, dj * 2) * joyAmp(dj, null)) - c.dance) * Math.min(1, dt * 7);
     if (t >= VOID_EGG.joy && !E.cheered) {
-      // (the scare of this ending, a happy one: the same soft flash as the other's, and a twinkle of bells with the flourish)
+      // (the scare of this ending, a happy one: the same soft flash as the other's, a party popper going off, `twinkle`, and a
+      // brassy ta-da, `cheer`; and paper in the air: the confetti, below)
       E.cheered = true; AUDIO.sfx('cheer', 0); AUDIO.sfx('twinkle', 0); AUDIO.sfx('win');
       if (!still) G.shake(0.2);
       if (!SAVE.data.settings.reducedFlash) G.flash(0.25);
@@ -1177,6 +1178,45 @@ function buildGathering(L, s, c0, K) {
     K.meadow.update();
   }
   const calmed = () => !!SAVE.data.settings.reducedMotion;
+  // ---- the confetti ----
+  // The throw is a party popper going off, so there is paper in the air: bits of coloured paper burst up into the view from
+  // its two bottom corners, up and in, slow in the air and flutter down, turning over, and are gone CONF.T seconds on.
+  // Drawn flat on the view (the overlay): each a small rectangle, where the time alone puts it (nothing is kept from
+  // frame to frame and nothing made in one; what each is like was drawn by lot once, here). With reduced motion there is
+  // no burst: only a few of them, let fall slowly from above.
+  const CONF = { n: 44, still: 10, T: 2.6, drag: 3.1, cols: ['#f25c54', '#f7b32b', '#4fc1e8', '#7bd389', '#c77dff', '#fff4d6', '#ff8fab'] };
+  const conf = (() => {
+    const r = mulberry32(7741), a = k => { const v = new Float32Array(CONF.n); for (let i = 0; i < CONF.n; i++) v[i] = k(i); return v; };
+    // (ang: how steeply it goes up, 0 flat to 1 straight up; sp: how fast, view heights a second; fall: how fast it comes
+    // down; sway, w, ph: its flutter; size: its length, of the view's height; late: when it goes; col: which colour)
+    return { ang: a(() => 0.3 + r() * 0.68), sp: a(() => 1.5 + r() * 2.1), fall: a(() => 0.15 + r() * 0.17), sway: a(() => 0.008 + r() * 0.022), w: a(() => 4 + r() * 6), ph: a(() => r() * TAU), size: a(() => 0.016 + r() * 0.016), late: a(() => r() * 0.1), col: a(() => Math.floor(r() * CONF.cols.length)) };
+  })();
+  function overlay(ctx, W, H) {
+    if (!E) return;
+    E.confN = 0;
+    const t = E.t - VOID_EGG.joy;
+    if (t < 0 || t > CONF.T + 0.1 || s.leaving) return;
+    const still = calmed(), n = still ? CONF.still : CONF.n, C = conf;
+    for (let i = 0; i < n; i++) {
+      const u = t - C.late[i];
+      if (u < 0 || u > CONF.T) continue;
+      let x, y;
+      if (still) { x = (i + 0.5) / n * W + C.sway[i] * H * Math.sin(u * 1.3 + C.ph[i]); y = (-0.04 + (0.1 + C.fall[i] * 0.9) * u) * H; }
+      else {
+        const side = i % 2 ? 1 : -1, e = (1 - Math.exp(-CONF.drag * u)) / CONF.drag, a = C.ang[i] * Math.PI / 2;
+        x = W / 2 + side * (W * 0.47 - Math.cos(a) * C.sp[i] * e * H) + C.sway[i] * H * Math.sin(u * C.w[i] * 0.6 + C.ph[i]) * Math.min(1, u);
+        y = (1.02 - Math.sin(a) * C.sp[i] * e + C.fall[i] * (u - e)) * H;
+      }
+      if (y > H + 20 || y < -20) continue;
+      const turn = Math.cos(u * C.w[i] * (still ? 0.35 : 1) + C.ph[i]), len = C.size[i] * H;
+      ctx.save();
+      ctx.globalAlpha = clamp((CONF.T - u) / 0.5, 0, 1) * (still ? 0.8 : 1);
+      ctx.translate(x, y); ctx.rotate(C.ph[i] + u * (still ? 0.6 : 2.2) * (i % 3 - 1)); ctx.scale(1, Math.abs(turn) < 0.18 ? 0.18 : turn);   // (a bit of paper turning over as it falls)
+      ctx.fillStyle = CONF.cols[C.col[i]]; ctx.fillRect(-len / 2, -len * 0.3, len, len * 0.6);
+      ctx.restore();
+      E.confN++;
+    }
+  }
   // drawn square to the view about its middle (turned rot), as a thing in the air is (fallDraw)
   const inAir = (it, x, y, z, rot, size, alpha) => {
     const w = it.w * size, h = it.h * size, big = Math.max(w, h) * 1.2;
@@ -1294,7 +1334,7 @@ function buildGathering(L, s, c0, K) {
   const watch = () => ({ x: Math.sin(L.facing) * 6, y: L.eyeH + 0.12, z: Math.cos(L.facing) * 6, zoom: lerp(clamp(0.6 * (R.W / R.H) / 0.93, 1, 1.32), 1, E ? span(E.t, VOID_EGG.joy + 2.5, VOID_EGG.wait - 1.2) : 0) });
   // where each of the others stands (for the glitter as they go)
   const places = () => (E ? E.others.map(o => { const p = o.c.pos(); return { x: p.x, z: p.z, h: Math.max(1, o.c.CR.h) }; }) : []);
-  return { begin, update, draw, lights, watch, places };
+  return { begin, update, draw, overlay, lights, watch, places };
 }
 
 // ---------- the faces of the others ----------

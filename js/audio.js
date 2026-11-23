@@ -605,11 +605,29 @@ const AUDIO = (() => {
         noise(0.18, { freq: 160, vol: 0.6, delay: T, pan }); tone(58, 0.3, { vol: 0.45, endFreq: 32, delay: T, pan });
         break;
       }
-      // a small bright flourish, as of many glad at once: a quick run up a major chord in clear notes, the last ringing over a
-      // shimmer an octave up, with a breath of bright air swelling under it (night 13's easter egg: they all leap for joy)
+      // "ta-da!": two brassy chord stabs, as of party horns blown together, a short one and then a higher one held most of
+      // a second, a little raw and a little comic. Each note is two saws a few cents apart and a square an octave under,
+      // scooped up into pitch as a horn is, through a filter that blares open at the start of each stab; the held chord
+      // wobbles more and more as it is held, and droops a little as it lets go; a spit of air at the front of each
+      // (night 13's easter egg: they all throw what they hold into the air and leap for joy)
       case 'cheer': {
-        [523, 659, 784, 1047, 1319].forEach((f, i) => { tone(f, i === 4 ? 1.1 : 0.32, { vol: 0.07, type: 'triangle', attack: 0.01, delay: i * 0.075 }); tone(f * 2, i === 4 ? 0.9 : 0.2, { vol: 0.022, delay: i * 0.075 + 0.01 }); });
-        noise(0.7, { type: 'bandpass', freq: 2600, q: 0.7, vol: 0.05, attack: 0.22 }); noise(0.5, { type: 'highpass', freq: 5200, vol: 0.025, attack: 0.3, delay: 0.1 });
+        const t0 = now();
+        const stab = (at, T, notes, vol, wob) => {
+          const st = t0 + at, g = ac.createGain(), lp = ac.createBiquadFilter(), end = st + T + 0.14;
+          g.gain.setValueAtTime(0.0001, st); g.gain.linearRampToValueAtTime(vol, st + 0.014); g.gain.linearRampToValueAtTime(vol * 0.72, st + T); g.gain.exponentialRampToValueAtTime(0.0001, end);
+          lp.type = 'lowpass'; lp.Q.value = 2.4; lp.frequency.setValueAtTime(650, st); lp.frequency.exponentialRampToValueAtTime(4600, st + 0.04); lp.frequency.exponentialRampToValueAtTime(2300, end);
+          let lfoG = null;
+          if (wob) { const lfo = ac.createOscillator(); lfoG = ac.createGain(); lfo.frequency.value = 6.4; lfoG.gain.setValueAtTime(0, st); lfoG.gain.linearRampToValueAtTime(wob, st + T); lfo.connect(lfoG); lfo.start(st); lfo.stop(end + 0.05); }
+          for (const f of notes) for (const [mul, type, v] of [[1, 'sawtooth', 0.3], [1.008, 'sawtooth', 0.2], [0.5, 'square', 0.09]]) {
+            const o = ac.createOscillator(), og = ac.createGain(); o.type = type; og.gain.value = v;
+            o.frequency.setValueAtTime(f * mul * 0.92, st); o.frequency.exponentialRampToValueAtTime(f * mul, st + 0.05);
+            if (wob) { o.frequency.setValueAtTime(f * mul, st + T); o.frequency.exponentialRampToValueAtTime(f * mul * 0.96, end); lfoG.connect(o.detune); }
+            o.connect(og); og.connect(lp); o.start(st); o.stop(end + 0.05);
+          }
+          lp.connect(g); chain(g, 0);
+        };
+        stab(0, 0.1, [392, 494, 587], 0.2); stab(0.2, 0.7, [523, 659, 784, 1047], 0.2, 22);
+        noise(0.05, { type: 'bandpass', freq: 2100, q: 1, vol: 0.1, attack: 0.002 }); noise(0.07, { type: 'bandpass', freq: 2600, q: 1, vol: 0.12, attack: 0.002, delay: 0.2 });
         break;
       }
       // an easter egg found for the first time (game.js secretToast): a small bright bell, two notes going up a fourth, the
@@ -618,10 +636,19 @@ const AUDIO = (() => {
         tone(1175, 0.2, { vol: 0.07, type: 'triangle', attack: 0.004 }); tone(2350, 0.12, { vol: 0.02, attack: 0.004 });
         tone(1568, 0.42, { vol: 0.075, type: 'triangle', attack: 0.004, delay: 0.11 }); tone(3136, 0.26, { vol: 0.02, attack: 0.004, delay: 0.11 });
         break;
-      // a happy twinkle: a quick sparkle of small bells running up, each with a glint high over it, the last ringing (night
-      // 13's easter egg: the flash as they throw it all into the air)
+      // a party popper going off: a sharp crack (a burst of bright noise with a snap falling through it and a small thump of
+      // the tube under it), the hiss of the paper flying out, and then the confetti coming down: a light sprinkle of tiny
+      // ticks, thinning out, most of a second, here and there a glint; a little different each time (night 13's easter
+      // egg: the flash as they throw it all into the air; it is played under this name, `twinkle`)
       case 'twinkle': {
-        [1568, 1976, 2349, 2637, 3136, 3951].forEach((f, i) => { const d = i * 0.07, last = i === 5; tone(f, last ? 0.42 : 0.22, { vol: 0.05, type: 'sine', attack: 0.004, delay: d }); tone(f * 2.76, last ? 0.2 : 0.1, { vol: 0.014, type: 'sine', attack: 0.002, delay: d }); });
+        noise(0.05, { type: 'highpass', freq: 1700, vol: 0.95, attack: 0.001 }); noise(0.11, { type: 'bandpass', freq: 1150, q: 3.5, vol: 0.55, attack: 0.001 });
+        tone(980, 0.045, { vol: 0.4, type: 'square', endFreq: 190, attack: 0.001 }); tone(210, 0.09, { vol: 0.5, endFreq: 72, attack: 0.002 });
+        noise(0.3, { type: 'bandpass', freq: 5400, q: 0.8, vol: 0.17, attack: 0.03, delay: 0.02 });
+        for (let i = 0; i < 34; i++) {
+          const d = 0.1 + Math.pow(Math.random(), 0.8) * 0.85, k = 1 - d * 0.75, pn = Math.random() * 1.6 - 0.8;
+          noise(0.012 + Math.random() * 0.012, { type: 'bandpass', freq: 3400 + Math.random() * 4600, q: 6, vol: (0.2 + Math.random() * 0.2) * k, attack: 0.001, delay: d, pan: pn });
+          if (i % 5 === 0) tone(4200 + Math.random() * 2600, 0.035, { vol: 0.03 * k, attack: 0.002, delay: d, pan: pn });
+        }
         break;
       }
       case 'birds': { const f0 = 2200 + Math.random() * 1200; for (let i = 0; i < 4 + Math.floor(Math.random() * 4); i++) tone(f0 + Math.random() * 600, 0.07, { vol: 0.05, type: 'sine', endFreq: f0 + 300 + Math.random() * 500, delay: i * 0.11, pan }); break; }
