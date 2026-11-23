@@ -760,7 +760,7 @@ some on the ground, so you have to turn and look down to find them.
     Put it all down again (each falls from your hand to the floor;
     on this night your hands are never full: all sixteen things can be carried at once, and it is
     no angrier for a seventh than for six) and it
-    calms. Each thing taken up for the first time in an attempt stops it dead where it is for 1.6 s
+    calms. Each thing taken up for the first time in an attempt stops it dead where it is for 1.0 s
     before it comes on again, as enraged as ever. Let it come, and face it when it does: empty-handed, it bends down to you over the
     last few metres (its head stays in the view) and the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too; doing
@@ -813,15 +813,26 @@ some on the ground, so you have to turn and look down to find them.
     put down; a thing put down again still counts, and one taken up twice counts
     once. With more than six held the inventory's slots are smaller (44 px, 34 px on a phone), in
     one row (two where the page is narrow), and only the held thing is named. It comes on enraged
-    the while, but each thing first taken up stops it dead a moment, so taken up one after
-    another, a second or so each, the last is in your hand with it still well off (15 m or
-    more on seeds 1 to 5); stand holding them and it is on you as ever. The moment the last thing not
+    the while, but each thing first taken up stops it dead a moment (1.0 s), so taken up one after
+    another briskly, a second and a half each or less, the last is in your hand with it still well off (18 m or
+    more on seeds 1 to 5, measured turning to each thing in turn); at a slower pace, a second and three quarters each, it is a near thing (it
+    reached you first on three of those five seeds, and was 6 and 12 m off on the other two);
+    stand holding them and it is on you as ever. The moment the last thing not
     yet taken is in your hand the night is won another way (the easter egg is saved then, and
     the run's clock stops as at any win): it stops where it is and backs off into the dark,
     the view is taken (level, to the north), and out of the dark each of the twelve others,
-    in the order of their nights, 0.7 s apart, rushes up to you along its own way (half a
-    second, to under two metres, with its own steps and voice and a jolt of the view), takes
-    what was its own out of your hands, or from the floor where you put it down, and backs
+    in the order of their nights, one at a time, 2.5 s apart (so the claiming takes about half
+    a minute), rushes up to you along its own way (0.7 s,
+    to under two metres, the low ones, the crawler and the doll, to a little over two so that they stay in the view; with its own steps and voice and a jolt of the view). Half a second
+    before each sets out, your hand holds up what was its own: the game's own held thing
+    (js/hands.js, told what to hold by the night), raised higher and further in toward the
+    middle than a thing is carried; one hand only, the other empty. A thing you had put down
+    again comes up off the floor into your hand first, so each of the sixteen is handed over
+    the same way. The creature stops in front of you, and 0.15 s later takes the thing out of
+    your raised hand: it passes from your hand to its own over 0.35 s (the pick-up sound as it
+    leaves yours, a soft pat as it lands in its hand; your hand is left open, and goes down); it
+    holds it up half a second, looking at it; one with two things takes the first, your hand
+    brings up the second, and it takes that 0.9 s after the first. Then it backs
     away slowly, facing you, holding it: the walker the hammer and the planks, the crawler
     the car keys, the warden the salt and the lantern, the stone one the chain and the
     padlock (never seen to move: it is nearer all at once, three times, and goes back a pose
@@ -833,21 +844,32 @@ some on the ground, so you have to turn and look down to find them.
     its own code, in its own poses, with what it holds at its hand. They end in two rows in
     an arc in front of you, the shorter in front and the taller behind, six either side, and
     the thing in the hood comes back, calm, two pale eyes, into the middle of them, a faint
-    cold light behind them all. They stand there, still and quiet, three seconds. Then all
-    at once (a bright flourish, and the chord of a night won) they throw it all up into the
+    cold light behind them all. They stand there (all in their places 34 s after the last thing was taken up), still and quiet, three seconds. Then all
+    at once (a brassy "ta-da!", the sound `cheer`: two party-horn chord stabs, a short one and a
+    higher one held most of a second; and the chord of a night won) they throw it all up into the
     air (this ending's jump scare, a happy one: that instant the view is lightened by the
-    same soft flash as the other ending's scare, none with reduced flashing, with a happy
-    twinkle of small bells running up, the sound `twinkle`), where it turns, and falls, and lies where it lands; and they leap up and down for
+    same soft flash as the other ending's scare, none with reduced flashing, with a party
+    popper going off, the sound `twinkle`: a sharp crack and the confetti sprinkling down; and
+    confetti in the picture, 44 bits of coloured paper bursting up into the view from its two
+    bottom corners, fluttering down and gone in 2.6 s, drawn flat over the view; with reduced
+    motion no burst, only ten let fall slowly from above), where it turns, and falls, and lies where it lands; and they leap up and down for
     joy, each in its own time, arms up where they have them (the stone one in a new pose
     each time it comes down), as its happy face comes up out of the hood and it takes off
     its robe and dances, the music box plays, and the dark turns to the pale light and the
-    meadow (this one without its wild flowers, only grass: there is a crowd in it to draw), all thirteen of them in it, leaping. And once they have leapt there a few seconds
-    (from 25.2 s, one after another over two seconds, just after the meadow starts waiting
+    meadow (this one without its wild flowers, only grass, and every other tuft of that: there is a crowd in it to draw), all thirteen of them in it, leaping. And once they have leapt there a few seconds
+    (from 45.8 s, one after another over two seconds, just after the meadow starts waiting
     for your press) they frolic, for as long as you stay: each runs about the meadow in its
     own gait and at its own speed (the runner 5 m/s, the crawler and the warden over 3, the
     doll and the walker a little over 2), in loops and darts, making for one spot and then
-    another or after one of the others, with little hops as it goes, turned and leaning the
-    way it goes; every eight to twelve seconds each stops to leap on the spot a few seconds
+    another or after one of the others, with little hops as it goes, leaning the
+    way it goes. Each is a flat drawing and is never turned about its upright (no squeezing
+    thin as it comes round): going to the other side of you it is mirrored, whole and at once,
+    after 0.14 s going that way so it does not flicker; and the five that have a side-on run
+    of their own (the crawler, the runner, the doll, the carrier and the customer) are drawn
+    by it, facing the way they go, while they run mostly across your view, and front on
+    coming toward you or going away. The walker, the warden, the climber, the shade, the
+    tall one and the thing in the hood keep their front-on drawing, mirrored (the stone one
+    and the swimmer do not run). Every eight to twelve seconds each stops to leap on the spot a few seconds
     and is off again. The thing in the hood, in its shirt and shorts, skips about among them,
     kicking and hopping, and stops to dance; its robe stays in a heap where it fell. The
     stone one is never seen to move: every second or two it is somewhere else in the meadow,
