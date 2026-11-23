@@ -842,7 +842,8 @@ function buildMeadow(L, s, c0) {
 // holds is drawn at its hand. Times are seconds from the moment the last thing was taken up.
 const VOID_EGG = {
   far: 17,                              // each comes out of the dark from this far off
-  first: 1.3, every: 2.2,               // the first of them sets out, and each one after it: one at a time
+  first: 1.7, every: 2.2,               // the first of them sets out (the view has come round to the north by then, from wherever you
+                                        // were looking), and each one after it: one at a time
   rush: 0.6,                            // each: up to you, fast
   show: 0.1,                            // there, and not before, your hand holds its thing up (so long after it arrives)
   up: { x: -0.17, y: -0.15 },           // (held up: so far in from the corner of the view and up, as much of the view's height; js/hands.js spec.x, y)
@@ -851,14 +852,14 @@ const VOID_EGG = {
   back: 1.0,                            // then it is off with it, briskly, to its place: there at rush + take + pass + look + back = 2.7 after it set
                                         // out, and four fifths of the way (well clear of you) when the next, set out at 2.2, is within four metres
   gone: [0.15, 1.3],                    // meanwhile the thing in the hood has backed off into the dark
-  demon: [26.9, 29.5],                  // and it comes back, calm, into the middle of them (as the last of them goes to its place)
-  hold: 29.6,                           // all of them there, still (the last is in its place at first + 11 * every + 2.7 = 28.2)
-  joy: 32.8,                            // then all at once they throw it all up into the air and leap for joy
-  unveil: [32.8, 33.3],                 // its face comes up out of the hood, happy,
-  disrobe: [33.3, 35.9],                // and it takes off its robe: the hood back, the robe dropped, a hop clear; and dances
-  light: [33.1, 38.6],                  // as the dark turns to the pale light, and the meadow comes
-  wait: 39.4, arm: 40.0,                // from here the meadow is yours to look about in, and waits for a press (taken from `arm`)
-  frolic: 41.4,                         // and from here, one after another, they run about the meadow
+  demon: [27.3, 29.9],                  // and it comes back, calm, into the middle of them (as the last of them goes to its place)
+  hold: 30.0,                           // all of them there, still (the last is in its place at first + 11 * every + 2.7 = 28.6)
+  joy: 33.2,                            // then all at once they throw it all up into the air and leap for joy
+  unveil: [33.2, 33.7],                 // its face comes up out of the hood, happy,
+  disrobe: [33.7, 36.3],                // and it takes off its robe: the hood back, the robe dropped, a hop clear; and dances
+  light: [33.5, 39.0],                  // as the dark turns to the pale light, and the meadow comes
+  wait: 39.8, arm: 40.4,                // from here the meadow is yours to look about in, and waits for a press (taken from `arm`)
+  frolic: 41.8,                         // and from here, one after another, they run about the meadow
   place: [0, 6.0],                      // where the thing in the hood stands among them: its bearing from the north, and how far off
 };
 // who takes what: one thing each, the thing of its own night, in the order of their nights (the hammer that boarded the
@@ -1128,8 +1129,8 @@ function buildGathering(L, s, c0, K) {
       const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < off ? 1 : 0, back = span(u, off, off + V.back);
       // up to you along its own way, a little in toward the middle so it is in your face; then off to its place, briskly
       // (the stone one is never seen to move: it is nearer, all at once, three times; and goes back so, a pose at a time)
-      const stone = o.type === 'watcher', rk = stone ? Math.ceil(rush * 3 - 1e-9) / 3 : rush, bk = stone ? Math.floor(back * 4 + 1e-9) / 4 : back;
-      oc.dist = u < R1 ? lerp(far, o.near, still && !stone ? smoothstep(rk) : easeOut(rk)) : lerp(o.near, o.r, bk);
+      const stone = o.type === 'watcher', rk = stone ? Math.floor(rush * 3 + 1e-9) / 3 : rush, bk = stone ? Math.floor(back * 4 + 1e-9) / 4 : back;
+      oc.dist = u < R1 ? lerp(far, o.near, still ? smoothstep(rk) : easeOut(rk)) : lerp(o.near, o.r, bk);
       oc.yaw = L.facing + o.b * lerp(1, 0.6, rk * (1 - bk));
       if (stone && o.step !== rk + bk) { if (o.step !== undefined) { oc.pose = 1 + (oc.pose % 3); if (bk > 0) AUDIO.sfx('stoneRub', pan(oc)); } o.step = rk + bk; }
       // the frolic: about the meadow, each from its own moment

@@ -1911,13 +1911,13 @@ const hoverHit = lookFor;
     return { still: b0 === b1, lag, sways: c0 !== c1, lag2 };
   }, take('hammer'));
   check(hv.still && hv.lag === 0 && hv.sways && hv.lag2 > 0.005, 'with reduced motion the hand holds still, with no lag as the view turns; without it, it breathes and lags (' + JSON.stringify(hv) + ')');
-  // six things in hand on the last night: the bar, held in both hands, stays in the bottom right, not over to the left of the
-  // inventory in the middle of the bottom edge
+  // six things in hand on the last night: the planks, the longest thing carried there, stay in the bottom right, not over to
+  // the left of the inventory in the middle of the bottom edge
   await T.open(page, 'level=13&go&seed=1&nofr');
   hv = await page.evaluate(() => {
     G.L.creature.hold = G.L.creature.dist; G.mouse.x = -1;
-    pickup(G.L.items.find(i => i.id === 'beam')); G.L.items.filter(i => !i.taken).slice(0, 5).forEach(i => pickup(i));   // (taken up: you begin it with nothing)
-    G.active = Math.max(0, G.inv.findIndex(i => i.id === 'beam')); G.step(0.05, 30);
+    pickup(G.L.items.find(i => i.id === 'planks')); G.L.items.filter(i => !i.taken).slice(0, 5).forEach(i => pickup(i));   // (taken up: you begin it with nothing)
+    G.active = Math.max(0, G.inv.findIndex(i => i.id === 'planks')); G.step(0.05, 30);
     const b = G.hand.box, inv = document.getElementById('inventory').getBoundingClientRect();
     return { id: G.hand.cur && G.hand.cur.id, n: G.inv.length, box: b && [b.x0, b.y0, b.x1, b.y1].map(Math.round), right: !!b && b.x0 > R.W / 2 && b.x0 > inv.right - 4 };
   });
