@@ -819,9 +819,18 @@ some on the ground, so you have to turn and look down to find them.
     yet taken is in your hand the night is won another way (the easter egg is saved then, and
     the run's clock stops as at any win): it stops where it is and backs off into the dark,
     the view is taken (level, to the north), and out of the dark each of the twelve others,
-    in the order of their nights, 0.7 s apart, rushes up to you along its own way (half a
-    second, to under two metres, with its own steps and voice and a jolt of the view), takes
-    what was its own out of your hands, or from the floor where you put it down, and backs
+    in the order of their nights, one at a time, 2.5 s apart (so the claiming takes about half
+    a minute), rushes up to you along its own way (0.7 s,
+    to under two metres, with its own steps and voice and a jolt of the view). Half a second
+    before each sets out, your hand holds up what was its own: the game's own held thing
+    (js/hands.js, told what to hold by the night), raised higher and further in toward the
+    middle than a thing is carried; one hand only, the other empty. A thing you had put down
+    again comes up off the floor into your hand first, so each of the sixteen is handed over
+    the same way. The creature stops in front of you, and 0.15 s later takes the thing out of
+    your raised hand: it passes from your hand to its own over 0.35 s (the pick-up sound as it
+    leaves yours, a soft pat as it lands in its hand; your hand is left open, and goes down); it
+    holds it up half a second, looking at it; one with two things takes the first, your hand
+    brings up the second, and it takes that 0.9 s after the first. Then it backs
     away slowly, facing you, holding it: the walker the hammer and the planks, the crawler
     the car keys, the warden the salt and the lantern, the stone one the chain and the
     padlock (never seen to move: it is nearer all at once, three times, and goes back a pose
@@ -833,7 +842,7 @@ some on the ground, so you have to turn and look down to find them.
     its own code, in its own poses, with what it holds at its hand. They end in two rows in
     an arc in front of you, the shorter in front and the taller behind, six either side, and
     the thing in the hood comes back, calm, two pale eyes, into the middle of them, a faint
-    cold light behind them all. They stand there, still and quiet, three seconds. Then all
+    cold light behind them all. They stand there (all in their places 34 s after the last thing was taken up), still and quiet, three seconds. Then all
     at once (a bright flourish, and the chord of a night won) they throw it all up into the
     air (this ending's jump scare, a happy one: that instant the view is lightened by the
     same soft flash as the other ending's scare, none with reduced flashing, with a happy
@@ -842,7 +851,7 @@ some on the ground, so you have to turn and look down to find them.
     each time it comes down), as its happy face comes up out of the hood and it takes off
     its robe and dances, the music box plays, and the dark turns to the pale light and the
     meadow (this one without its wild flowers, only grass: there is a crowd in it to draw), all thirteen of them in it, leaping. And once they have leapt there a few seconds
-    (from 25.2 s, one after another over two seconds, just after the meadow starts waiting
+    (from 45.8 s, one after another over two seconds, just after the meadow starts waiting
     for your press) they frolic, for as long as you stay: each runs about the meadow in its
     own gait and at its own speed (the runner 5 m/s, the crawler and the warden over 3, the
     doll and the walker a little over 2), in loops and darts, making for one spot and then
