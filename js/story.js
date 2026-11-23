@@ -77,7 +77,12 @@ const STORY = (() => {
     SC.box(L, -0.5, 0.5, 0.58, 0.74, -0.95, -0.45, day ? [236, 232, 220] : [110, 106, 112]);
     if (day) SC.box(L, -0.78, 0.78, 0.58, 0.66, 0.2, 1.9, [228, 222, 206]);
     // the nightstand with its drawer, the lamp on it; the dresser with a mirror and the clock; a chair
-    SC.box(L, 0.95, 1.45, 0, 0.62, -0.1, 0.4, wood); SC.box(L, 0.96, 1.44, 0.28, 0.5, -0.12, -0.11, day ? [128, 96, 64] : [42, 32, 26]);
+    // (in the night it stands back against the wall at the head of the bed, its drawer facing down the room, where the
+    // drawer has the room to come right out: the night draws the drawer itself. In the morning it is where the lamp of the
+    // last night was left)
+    const ns = day ? { x0: 0.95, x1: 1.45, z0: -0.1, z1: 0.4, top: 0.62 } : { x0: 0.95, x1: 1.45, z0: -1.04, z1: -0.54, top: 0.62 };
+    SC.box(L, ns.x0, ns.x1, 0, ns.top, ns.z0, ns.z1, wood);
+    if (day) SC.box(L, 0.96, 1.44, 0.28, 0.5, -0.12, -0.11, [128, 96, 64]);
     SC.box(L, -2.9, -1.5, 0, 0.95, 3.05, 3.55, wood); SC.box(L, -2.85, -1.55, 0.95, 1.0, 3.0, 3.6, day ? [160, 124, 84] : [58, 44, 34]);
     SC.wallV(L, -2.7, 3.58, -1.7, 3.58, 1.05, 2.05, day ? [200, 212, 224] : [24, 22, 30], { noLight: !day });
     SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 1.0, 1.05, wood); SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 2.05, 2.1, wood);
@@ -86,7 +91,7 @@ const STORY = (() => {
     SC.box(L, -2.6, -2.15, 0.42, 0.47, -0.9, -0.45, wood); SC.box(L, -2.6, -2.15, 0.47, 0.95, -0.9, -0.85, wood);
     for (const [x, z] of [[-2.57, -0.87], [-2.18, -0.87], [-2.57, -0.48], [-2.18, -0.48]]) SC.box(L, x - 0.025, x + 0.025, 0, 0.42, z - 0.025, z + 0.025, wood);
     SC.wallV(L, 0.2, -1.09, 1.0, -1.09, 1.5, 2.1, day ? [180, 190, 170] : [40, 44, 40]); SC.wallV(L, 0.16, -1.085, 1.04, -1.085, 1.46, 1.5, wood); SC.wallV(L, 0.16, -1.085, 1.04, -1.085, 2.1, 2.14, wood);
-    return { apN, apW, lamp: [1.2, 0.62, 0.15] };
+    return { apN, apW, nightstand: ns, lamp: [(ns.x0 + ns.x1) / 2, ns.top, (ns.z0 + ns.z1) / 2] };
   }
   function theme(day) { if (day) document.documentElement.setAttribute('data-theme', 'day'); else document.documentElement.removeAttribute('data-theme'); }
   return { lamp, clock, startNight, update, buildBedroom, theme };

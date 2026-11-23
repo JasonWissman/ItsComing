@@ -57,37 +57,49 @@ LEVELS.push({
     // Drawing order in this room (it is built in local coordinates, and this night faces north, so they are world ones).
     // The mattress is one long quad whose middle is further off than the nightstand beside it and the bed's own legs, so
     // it was drawn first and they over it: the nightstand stood on the covers and the legs showed through. Whatever is
-    // beside or under the bed goes behind the mattress (BED). The nightstand's drawer face, on its far side where you
-    // cannot see it, is not drawn: the drawer you use is on the side that faces the bed.
+    // beside or under the bed goes behind the mattress (BED). The nightstand stands back against the wall at the head of
+    // the bed, on your right, its drawer facing down the room (NS: where it is; LX, LZ: the lamp on it).
     // The mattress's top is drawn whole, just before the covers (MATTRESS, between them and BED): left to itself it was cut
     // into pieces each sorted where it is, and the pieces nearer than the covers were drawn over them as they came up.
+    const NS = parts.nightstand, LX = parts.lamp[0], LZ = parts.lamp[2];
     const BED = 1.7, MATTRESS = 1.66, within = (p, x0, x1, z0, z1) => p.kind === 'poly' && p.pts.every(v => v[0] >= x0 && v[0] <= x1 && v[2] >= z0 && v[2] <= z1);
     for (const p of L.props) {
       if (p.sortDist !== undefined) continue;
       if (within(p, -0.75, 0.75, -1.0, 1.9) && p.pts.every(v => v[1] === 0.58) && Math.min(...p.pts.map(v => v[2])) === -1.0) p.sortDist = MATTRESS;
-      else if (within(p, 0.94, 1.46, -0.13, -0.105)) p.alpha = 0;
-      else if (within(p, 0.94, 1.46, -0.13, 0.41) || [-0.72, 0.72].some(x => within(p, x - 0.05, x + 0.05, -0.95, -0.85) || within(p, x - 0.05, x + 0.05, 1.8, 1.9))) p.sortDist = BED;
+      else if (within(p, NS.x0 - 0.01, NS.x1 + 0.01, NS.z0 - 0.01, NS.z1 + 0.01) || [-0.72, 0.72].some(x => within(p, x - 0.05, x + 0.05, -0.95, -0.85) || within(p, x - 0.05, x + 0.05, 1.8, 1.9))) p.sortDist = BED;
     }
     const lampArt = STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => shown() });
     // its cord runs off the back of the nightstand (and, under the bed, to the wall on the other side)
-    SC.quad(L, [1.25, 0.624, 0.11], [1.26, 0.624, 0.13], [1.46, 0.624, 0.03], [1.45, 0.624, 0.01], [30, 26, 24], { sortDist: 1.4 });
+    SC.quad(L, [LX + 0.05, NS.top + 0.004, LZ - 0.04], [LX + 0.07, NS.top + 0.004, LZ - 0.03], [NS.x1 - 0.04, NS.top + 0.004, NS.z0], [NS.x1 - 0.06, NS.top + 0.004, NS.z0], [30, 26, 24], { sortDist: 1.5 });
     // the wall socket, low on the wall behind the bed on the closet side: a pale plate with its two slots
     SC.wallV(L, -1.55, -1.094, -1.45, -1.094, 0.22, 0.36, [120, 114, 104], { sortDist: 1.86 });
     for (const x of [-1.515, -1.485]) SC.wallV(L, x - 0.007, -1.092, x + 0.007, -1.092, 0.26, 0.31, [22, 20, 20], { sortDist: 1.859 });
     const c0 = () => L.creatures[0];
-    // the drawer, in the side of the nightstand that faces the bed, holds the bulb, and the television's remote control.
-    // It is built into the nightstand (a container's card would turn with the view and stand out from it at an angle):
-    // opened, it slides out toward you, dark inside, and they stand in it
+    // the drawer, in the front of the nightstand, holds the bulb, and the television's remote control. It is built into
+    // the nightstand (a container's card would turn with the view and stand out from it at an angle): opened, it slides
+    // right out along the bedside (DR.out), an open box (its front, its two sides, its bottom, the dark of the nightstand
+    // behind), and they lie in it on its bottom, under its rim, where you look down into it from the bed.
+    // DR: its front's width and height, the cabinet's face it is in (zf), how far it comes out and how long that takes,
+    // its bottom, the thickness of its sides; `in`: where each thing lies in it (across it, and how far behind its front)
     // (the remote is a tool: it stays with you; held in the fist by its lower end)
-    const bulbs = [{ id: 'bulb', name: 'Bulb', z: 0.07, opts: { w: 0.14, h: 0.2, icon: 'bulb', material: 'glass' } },
-      { id: 'remote', name: 'Remote', z: 0.235, opts: { w: 0.2, h: 0.2, icon: 'remote', tool: true, held: { grip: 'fist', at: [0.02, 0.26], angle: -0.3, size: 0.2 } } }];
+    const DR = { x0: NS.x0 + 0.03, x1: NS.x1 - 0.03, y0: 0.44, y1: 0.6, zf: NS.z1, out: 0.3, dur: 0.4, floor: 0.5, wall: 0.016 };
+    const bulbs = [{ id: 'bulb', name: 'Bulb', in: [0.22, 0.075], opts: { w: 0.13, h: 0.16, icon: 'bulb', material: 'glass' } },
+      { id: 'remote', name: 'Remote', in: [0.21, 0.205], opts: { w: 0.2, h: 0.19, icon: 'remote', tool: true, held: { grip: 'fist', at: [0.02, 0.26], angle: -0.3, size: 0.2 } } }];
+    // how far out it is now; and the drawer's target and the things in it go with it
+    const drawerOut = () => (drawer.open ? DR.out * smoothstep(clamp((L.t - drawer.openAt) / DR.dur, 0, 1)) : 0);
+    const rideDrawer = () => {
+      const out = drawerOut(), at = (x, y, z) => L.pt(x, y, z);
+      const t = at((DR.x0 + DR.x1) / 2, DR.y0 - 0.01, DR.zf + out * 0.5); drawer.x = t[0]; drawer.y = t[1]; drawer.z = t[2]; drawer.w = 0.42 + out * 0.3;
+      for (const it of drawer.yielded) if (!it.taken) { const q = at(DR.x0 + it.in[0], DR.floor + 0.004, DR.zf + out - it.in[1]); it.x = q[0]; it.y = q[1]; it.z = q[2]; }
+      return out;
+    };
     const drawer = mkTarget(L, {
-      id: 'drawer', name: 'Drawer', x: 0.93, y: 0.43, z: 0.15, w: 0.4, h: 0.18, open: false, yielded: [],
+      id: 'drawer', name: 'Drawer', x: (DR.x0 + DR.x1) / 2, y: DR.y0 - 0.01, z: DR.zf, w: 0.42, h: 0.18, open: false, yielded: [],
       hint() { return drawer.open ? 'Nothing else in it.' : 'The nightstand drawer.'; },
       onClick() {   // your hand opens it (js/hands.js); clicked again, it goes into it
         if (!drawer.open) {
-          drawer.open = drawer.done = true; AUDIO.sfx('drawer'); // its own sound: not the creak that warns of the doorway, nor a creature's scratching
-          for (const b of bulbs) drawer.yielded.push(mkItem(L, b.id, b.name, { x: 0.875, y: 0.47, z: b.z, jitter: 0 }, b.opts));
+          drawer.open = drawer.done = true; drawer.openAt = L.t; AUDIO.sfx('drawer'); // its own sound: not the creak that warns of the doorway, nor a creature's scratching
+          for (const b of bulbs) drawer.yielded.push(Object.assign(mkItem(L, b.id, b.name, { x: DR.x0 + b.in[0], y: DR.floor + 0.004, z: DR.zf - b.in[1], flat: true, jitter: 0 }, b.opts), { in: b.in }));
           G.reach(drawer, 'pull');
           return true;
         }
@@ -96,8 +108,7 @@ LEVELS.push({
         return true;
       },
     });
-    const knob = out => SC.mkSprite(L, 0.938 - out, 0.495, 0.15, 0.036, 0.036, (ctx, P) => { ctx.scale(0.036, 0.036); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([96, 92, 86])); P_ell(ctx, -0.1, 0.6, 0.3, 0.3, P.col([164, 158, 148])); }, { sortDist: 1.672 });
-    const knobs = [knob(0), knob(0.09)];
+    const knob = SC.mkSprite(L, (DR.x0 + DR.x1) / 2, (DR.y0 + DR.y1) / 2 - 0.018, DR.zf + 0.014, 0.036, 0.036, (ctx, P) => { ctx.scale(0.036, 0.036); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([96, 92, 86])); P_ell(ctx, -0.1, 0.6, 0.3, 0.3, P.col([164, 158, 148])); }, { sortDist: 1.05 });
     // The lamp's switch is the pull chain under its shade, and your hand pulls it (js/hands.js): the chain jerks and the switch
     // clicks as the hand gets there. With no bulb in, or the cord out, nothing comes of it; on Nightmare it sticks twice (the
     // chain barely gives) before it goes. The light comes on as it is pulled.
@@ -108,7 +119,7 @@ LEVELS.push({
       if (!r || r === was) go();   // no hand to show, or it is there already, still on the chain: at once
     };
     const lampT = mkTarget(L, {
-      id: 'lamp', name: 'Lamp', x: 1.2, y: 0.62, z: 0.15, w: 0.4, h: 0.55, accepts: ['bulb'],
+      id: 'lamp', name: 'Lamp', x: LX, y: NS.top, z: LZ, w: 0.4, h: 0.55, accepts: ['bulb'],
       hint() { return !s.fitted ? 'The lamp. Dead. No bulb in it.' : !s.plugged ? 'A bulb in it now. Nothing happens; the cord is loose somewhere.' : s.lampOn ? 'On.' : 'Off. Switch it on.'; },
       use(item) { if (item.id !== 'bulb') return false; s.fitted = true; lampT.accepts = []; AUDIO.sfx('fit'); G.say('The bulb goes in. Now the switch.', 'In.'); return true; },
       onEmpty() { pull(false); },   // no bulb in it yet, and nothing in hand: the chain is pulled, and nothing
@@ -127,7 +138,7 @@ LEVELS.push({
     const shown = () => s.lampOn && L.t >= (s.onAt || 0);   // the light, once the chain has been pulled
     // the lamp's own details, over it: the socket (and the bulb, once it is in) dark through the shade, bright when it is
     // on; the pull chain under the shade, which jerks when it is pulled
-    const lampDetail = SC.mkSprite(L, 1.2, 0.62, 0.15, 0.34, 0.5, (ctx, P) => {
+    const lampDetail = SC.mkSprite(L, LX, NS.top, LZ, 0.34, 0.5, (ctx, P) => {
       ctx.scale(0.34, 0.5);
       if (shown()) {
         const g = ctx.createRadialGradient(0, 0.7, 0.01, 0, 0.7, 0.2); g.addColorStop(0, 'rgba(255,250,232,0.95)'); g.addColorStop(1, 'rgba(255,236,190,0)');
@@ -139,7 +150,7 @@ LEVELS.push({
       }
       const tug = clamp(1 - (L.t - s.tugAt) / 0.35, 0, 1) * (s.stiff ? 0.018 : 0.06), chain = P.col([150, 140, 118]);
       P_line(ctx, 0.24, 0.5, 0.24, 0.35 - tug, 0.016, chain); P_ell(ctx, 0.24, 0.34 - tug, 0.03, 0.022, chain);
-    }, { sortDist: Math.hypot(1.2, 0.15) - 0.002 });
+    }, { sortDist: Math.hypot(LX, LZ) - 0.002 });
     glowWith(lampT, [lampArt, lampDetail]);
     // on Nightmare the lamp's plug lies on the floor by the wall socket, on the closet side, pulled out
     const PLUG = [-1.74, -0.7];
@@ -758,21 +769,28 @@ LEVELS.push({
           flex([[-1.5, -1.08], [-1.42, -0.95], [-1.25, -0.72], [-1.0, -0.5], [-0.7, -0.4]], 0.012);
         }
       }
-      // the drawer: shut, its front with a dark gap round it; open, slid out toward you, the hole and its sides dark. It is
-      // drawn before the mattress, whose edge hides the bottom of it once it is out, as it would
+      // the drawer. Shut, its front is flush in the nightstand's, a dark gap round it. Open, it is a box slid out on its
+      // runners: the dark of the nightstand behind it, its bottom, its far side; then what lies in it (drawn where it is);
+      // then its near side and its front, over them. (You look down into it from the bed, from its front's side.)
+      const out = rideDrawer(), z1 = DR.zf + out, W = DR.wall, WOOD = [66, 50, 38], RIM = [84, 64, 50];
       const dw = (x0, z0, x1, z1, y0, y1, col, sd) => R.add(SC.mkWallV(L, x0, z0, x1, z1, y0, y1, col, { sortDist: sd }));
-      const fx = drawer.open ? 0.854 : 0.944;
+      const lid = (x0, x1, za, zb, y, col, sd) => R.add(SC.mkQuad(L, [x0, y, za], [x1, y, za], [x1, y, zb], [x0, y, zb], col, { sortDist: sd }));
       R.glowAs(drawer);
-      if (drawer.open) {
-        dw(0.947, -0.03, 0.947, 0.33, 0.44, 0.595, [8, 7, 7], 1.69);
-        dw(fx, -0.02, 0.947, -0.02, 0.452, 0.585, [40, 30, 24], 1.684); dw(fx, 0.32, 0.947, 0.32, 0.452, 0.585, [40, 30, 24], 1.684);
-        R.add(SC.mkQuad(L, [fx, 0.595, -0.03], [fx + 0.016, 0.595, -0.03], [fx + 0.016, 0.595, 0.33], [fx, 0.595, 0.33], [84, 64, 50], { sortDist: 1.676 }));
-      } else dw(0.947, -0.045, 0.947, 0.345, 0.428, 0.606, [12, 10, 8], 1.69);
-      dw(fx, -0.03, fx, 0.33, 0.44, 0.595, [66, 50, 38], 1.68);
-      R.add(knobs[drawer.open ? 1 : 0]);
+      dw(DR.x0 - 0.012, DR.zf + 0.002, DR.x1 + 0.012, DR.zf + 0.002, DR.y0 - 0.012, DR.y1 + 0.008, [9, 8, 8], 1.69);   // the gap round it; the hole it came out of
+      if (out > 0.004) {
+        lid(DR.x0 + W, DR.x1 - W, DR.zf, z1, DR.floor, [38, 29, 23], 1.686);                       // its bottom
+        dw(DR.x1 - W, DR.zf, DR.x1 - W, z1, DR.floor, DR.y1, [50, 38, 30], 1.684);                    // its far side, from inside
+        lid(DR.x1 - W, DR.x1, DR.zf, z1, DR.y1, RIM, 1.682);                                           // and its top edge
+        dw(DR.x0, DR.zf, DR.x0, z1, DR.y0, DR.y1, scalec(WOOD, 0.8), 1.1);                            // its near side, from outside
+        lid(DR.x0, DR.x0 + W, DR.zf, z1, DR.y1, RIM, 1.09);
+        lid(DR.x0, DR.x1, z1 - W, z1, DR.y1, RIM, 1.07);                                               // the top edge of its front
+      }
+      dw(DR.x0, z1 + 0.004, DR.x1, z1 + 0.004, DR.y0, DR.y1, WOOD, 1.08);                              // its front
+      const kp = L.pt((DR.x0 + DR.x1) / 2, 0, z1 + 0.014); knob.x = kp[0]; knob.z = kp[2];
+      R.add(knob);
       R.glowAs(covers);
       // the covers: bunched at the foot they are as thick all the way across; drawn up, they rise over you and lie flat on the
-      // mattress at the sides (so the drawer beside the bed stays in sight)
+      // mattress at the sides
       const { p, zE, yE, roll } = coversAt(), zF = zE + 0.14, B = 0.585, XS = [-X, -0.6, -0.25, 0.25, 0.6, X];
       const q = (a, b, c, d, col, sd) => R.add(SC.mkQuad(L, a, b, c, d, col, { sortDist: sd }));
       const tent = x => lerp(1, 1 - clamp((Math.abs(x) - 0.25) / 0.35, 0, 1), p), up = (x, y) => B + (y - B) * tent(x), th = x => roll * tent(x);
@@ -892,13 +910,13 @@ LEVELS.push({
     const TVL = tvXZ(SCR0[0] + SCRW / 2, TVD - 0.4);
     L.dynamicLights = () => {
       const out = [], b = tvBright();
-      if (shown()) { const p = L.pt(1.2, 1.05, 0.15); out.push({ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }); }
+      if (shown()) { const p = L.pt(LX, 1.05, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }); }
       if (b > 0.01) out.push({ x: TVL[0], y: SCRC.y + 0.05, z: TVL[1], r: 2.4, i: 0.6 * b, color: [156, 196, 172] });
       return out;
     };
     L.glows = () => {
       const out = [], b = tvBright();
-      if (shown()) { const p = L.pt(1.2, 1.0, 0.15); out.push({ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }); }
+      if (shown()) { const p = L.pt(LX, 1.0, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }); }
       if (b > 0.01) out.push({ x: SCRC.x, y: SCRC.y, z: SCRC.z, r: 0.5, color: [170, 206, 184], a: 0.2 * b });
       return out.length ? out : null;
     };
@@ -1009,7 +1027,7 @@ LEVELS.push({
       // the dark under the covers
       ctx.fillStyle = rgba([15, 12, 18]); ctx.fillRect(0, 0, W, H);
       // the lamp, a warm glow through the cloth on its side of you (weaker and lower if it is behind you)
-      const lr = wrapPi(Math.atan2(1.2, 0.15) - G.cam.yaw), front = 0.5 + 0.5 * Math.max(0, Math.cos(lr)), side = Math.sin(lr);
+      const lr = wrapPi(Math.atan2(LX, LZ) - G.cam.yaw), front = 0.5 + 0.5 * Math.max(0, Math.cos(lr)), side = Math.sin(lr);
       const gx = W / 2 + side * W * 0.42 + jx * 0.5, gy = H * (0.52 + 0.14 * Math.max(0, -Math.cos(lr))) + jy * 0.5;
       const glow = (s.lampOn ? 1 : 0.3) * front;
       const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, Math.max(W, H) * 0.72);
