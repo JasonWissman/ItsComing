@@ -123,14 +123,14 @@ LEVELS.push({
     // in the hand (js/hands.js): a bag carried by its gathered neck, hanging from the fist, the sugar as the salt; the box of
     // matches between finger and thumb, big enough to read; a lantern hanging by its bail
     const bagHeld = { grip: 'fist', at: [0, 0.84], axis: Math.PI / 2, angle: 0.1, size: 0.25 };
-    mkItem(L, 'salt', 'Bag of salt', [
+    mkItem(L, 'salt', 'Salt', [
       { deg: 225, dist: 1.6, y: 0 },                    // south-west
       { x: 1.25, y: 0, z: -1.2 },                       // south-east
       { x: -1.3, y: 0, z: -0.45 },                      // in front of the bench
       { x: -1.4, y: 0, z: 1.15 },                       // by the west column
       { x: -1.9, y: 0.5, z: -0.3, jitter: 0.05 },       // on the bench
     ], { w: 0.34, h: 0.42, flat: true, uses: 2, held: bagHeld });
-    mkItem(L, 'sugar', 'Bag of salt', [{ x: 0.9, y: 0, z: 0.9 }, { x: -0.5, y: 0, z: -1.3 }],
+    mkItem(L, 'sugar', 'Sugar', [{ x: 0.9, y: 0, z: 0.9 }, { x: -0.5, y: 0, z: -1.3 }],
       { w: 0.34, h: 0.42, flat: true, uses: 2, icon: 'sugarbag', decoy: true, decoyText: 'Sugar. It dissolves instantly.', held: bagHeld });
     mkItem(L, 'matches', 'Matches', [
       { x: 2.05, y: 1.16, z: -1.15, flat: false },      // on the ledge

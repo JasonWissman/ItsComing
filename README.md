@@ -233,7 +233,7 @@ some on the ground, so you have to turn and look down to find them.
    forward low, white wisps of hair, a long ragged coat and cape, a ring of keys at his
    belt and a hooked staff with no lantern on it. Salt both ways in, the doorway and the
    side gate, and hang and light a lantern by each: a way is done only with both. The
-   sugar comes in a red bag: poured across a way, it lies there a moment and the wind takes
+   sugar comes in a red bag (the two are named "Salt" and "Sugar" in the hand): poured across a way, it lies there a moment and the wind takes
    it off the stone in a drift of grains, and the bag is let fall by the slab. A match struck
    at a hook with no lantern on it flares, finds nothing to light and is shaken out, and
    anything knocked against a hook or its lantern sets it swinging. A salt line stops him; he comes up to it and looks down at

@@ -84,7 +84,9 @@ module.exports = {
     // the first tries are played out with the thing held where it is, so the night is solved in the time it was before
     ['eval', 'G.L.creature.hold = G.L.creature.dist'],
     ['use', 'threshold'], ['expect', 'G.hand.reach && G.hand.reach.target === ' + tgt('threshold') + ' && !G.fumbling && !' + tgt('threshold') + '.done', 'nothing in hand: the empty hand goes to the bare stone'],
-    ['pickup', 'sugar'], sel('sugar'), ['use', 'threshold', 1, 200],
+    ['pickup', 'sugar'], sel('sugar'),
+    ['expect', "G.L.items.find(i => i.id === 'sugar').name === 'Sugar' && G.L.items.find(i => i.id === 'salt').name === 'Salt' && !/bag of/i.test(document.body.innerText) && /Sugar/.test(document.body.innerText)", 'the two bags are named Sugar and Salt, and the one in the hand reads Sugar'],
+    ['use', 'threshold', 1, 200],
     ['expect', '!' + tgt('threshold') + ".done && !G.hasItem('sugar') && /sugar/i.test(G.lastToast.msg) && G.fumbling && G.fumbling.it === " + item('sugar'), 'the sugar does not salt the doorway: it leaves the hand for the stone'],
     ['waitUntil', 'G.L.s.sugars.length === 1 && G.L.s.sugars[0].t === ' + tgt('threshold') + ' && G.fumbling && G.fumbling.phase === "contact"', 3000],
     ['click', 'threshold'], ['expect', '/sugar/i.test(G.lastToast.msg) && !G.hand.reach && G.fumbling && G.fumbling.it === ' + item('sugar'), 'clicked again while it pours: nothing more is tried, its line stays'],
