@@ -76,7 +76,7 @@ const STORY = (() => {
     for (const z of [0.7, 2.5]) SC.wallV(L, 2.17, z - 0.3, 2.17, z + 0.3, 0.2, 2.3, cloth);
     // the bed: mattress, headboard, a small pillow at the small of your back; the covers are the night's business (a plain
     // sheet in the morning), and in the night the pillow is too (it can be lifted: the night draws it)
-    const bed = { x0: -0.75, x1: 0.75, z0: S + 0.1, z1: 1.9, top: 0.58 }, pillow = { x0: -0.21, x1: 0.21, y0: bed.top, y1: bed.top + 0.08, z0: bed.z0 + 0.02, z1: bed.z0 + 0.26 };
+    const bed = { x0: -0.75, x1: 0.75, z0: S + 0.1, z1: 1.9, top: 0.58 }, pillow = { x0: -0.11, x1: 0.11, y0: bed.top, y1: bed.top + 0.08, z0: bed.z0 + 0.02, z1: bed.z0 + 0.26 };
     SC.box(L, bed.x0, bed.x1, 0.32, bed.top, bed.z0, bed.z1, cloth); SC.box(L, -0.8, 0.8, 0.3, 1.3, S + 0.02, bed.z0, wood);
     for (const [x, z] of [[-0.72, bed.z0 + 0.1], [0.72, bed.z0 + 0.1], [-0.72, 1.85], [0.72, 1.85]]) SC.box(L, x - 0.04, x + 0.04, 0, 0.32, z - 0.04, z + 0.04, wood);
     if (day) SC.box(L, pillow.x0, pillow.x1, pillow.y0, pillow.y1, pillow.z0, pillow.z1, [236, 232, 220]);
