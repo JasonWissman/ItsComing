@@ -333,7 +333,7 @@ LEVELS.push({
     const azOf = c => { const th = (c.wallTh === undefined ? FACE[c.lane.idx] : c.wallTh) * DEG, v = rotY(Math.cos(th), Math.sin(th), L.facing); return Math.atan2(v[0], v[1]); };
     // ---- the toolbox, dropped over the rail onto it ----
     // Once the fuse is out of it the toolbox is only a box, and heavy: it can be taken up itself, and with it in hand a click
-    // on the thing (looking over the rail at it) lets it go over the rail straight down onto it. The tower flares out below
+    // on the thing (looking over the rail at it) swings it up over the rail and lets it go, straight down onto it. The tower flares out below
     // the gallery, so the box does not fall clear: it hits the stone and comes down the wall, tumbling and banging, spilling
     // a tool or two. However far down the thing is, anywhere on the tower below you, the box comes all the way down the
     // stone to it (the fall takes as long as that height does: under a second to it just under the rail, three or so to
@@ -348,10 +348,25 @@ LEVELS.push({
     const HYP = Math.hypot(1, SLOPE), NRM = [1 / HYP, SLOPE / HYP], DOWN = [SLOPE / HYP, -1 / HYP];   // the stone's outward normal and the way down it, in (r, y)
     const TBW = 0.56, TBH = 0.38 * 1.4;   // the toolbox open: its lid stands up behind it
     const TRACK = 5;   // how quickly the box comes across the face to the line down to the thing (1/s)
-    // the box brought onto its face as it is drawn (see updateBox): how near to the middle of that face it is drawn as it
-    // lands (rest, metres at the thing's distance), how much further off for each metre up the wall it still is (spread),
-    // how quickly it is brought there (pull, 1/s), and how far up the wall from that face it lands (near, metres)
-    const AIM = { rest: 0.2, spread: 0.3, pull: 30, near: 0.5 };
+    // where the box is drawn landing, from its face as that is drawn (see updateBox): how near to the middle of that face
+    // (rest, metres at the thing's distance), how much further off for each metre up the wall it still is as it lands
+    // (spread), and how far up the wall from that face it lands (near, metres)
+    const AIM = { rest: 0.2, spread: 0.3, near: 0.5 };
+    // let go of: held out over the rail at arm's length on the line straight down to the thing, clear of the rail's top bar
+    // and of the edge of the floor by more than the box's own half width (r from the tower's axis, y above the floor),
+    // and let go there with a small push out (vr) and down (vy). With the thing all but at the rail, its brow under your
+    // hands, it is let go straight over that instead: no further out than where it will land (never nearer than `near`),
+    // and `over` above it (never higher than `top`). lift, how high it is swung up over the rail on its way out of your
+    // hand, and out, how long that takes
+    const DROP = { r: 3.55, y: 0.75, vr: 0.3, vy: -1.2, near: 3.32, over: 0.55, top: 1.0, lift: 0.26, out: 0.34 };
+    const dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+    // where the box is drawn landing: AIM.near up the wall from its face as that is drawn (hd, and its frame f), and `land`
+    // out from the stone there (rise: how much further out a thing a metre up the wall is seen, at the face)
+    const landing = c => {
+      const eye = [0, L.eyeH, 0], hd = CREATURES.climber.headAt(c, eye), f = hd.frame;
+      const rise = Math.max(0, dot(hd.sight, f.out) / (dot(hd.sight, f.up) || 1e-6)), land = AIM.near * rise - (AIM.rest + AIM.spread * AIM.near);
+      return { eye, hd, f, land, p: hd.p.map((v, i) => v + f.up[i] * AIM.near + f.out[i] * land) };
+    };
     let toolboxItem = null;
     L.onPickup = it => {   // the fuse taken out of it: the toolbox, open and emptied of what you came for, can be taken up itself
       if (it.id !== 'fuse' || toolboxItem || !toolbox.open || !(toolbox.yielded || []).includes(it)) return;
@@ -362,6 +377,8 @@ LEVELS.push({
     // where a thing coming down the wall is, in the world: th round the tower's axis, r out from it, y up, and across the
     // face (metres to the thing's right, as you look down at it)
     const bodyAt = b => { const p = at(b.th, b.r, b.y); return L.pt(p[0] - Math.sin(b.th) * b.across, p[1], p[2] + Math.cos(b.th) * b.across); };
+    // (and the other way: where on the tower a point of the world is)
+    const onWall = p => { const q = rotY(p[0], p[2], -L.facing), dx = q[0] - AX, dz = q[1] - AZ; return { th: Math.atan2(dz, dx), r: Math.hypot(dx, dz), y: p[1] }; };
     const drawnAt = b => { const p = bodyAt(b); return b.shift ? p.map((v, i) => v + b.into[i] * b.shift) : p; };   // (the toolbox, as it is drawn: AIM)
     const panOf = p => Math.sin(wrapPi(Math.atan2(p[0], p[2]) - G.cam.yaw)) * 0.85;
     // a body falling down the outside of the tower, in the plane through the axis (r, y): gravity, and the stone. On the stone
@@ -389,20 +406,23 @@ LEVELS.push({
       const it = G.inv.find(i => i.id === 'toolbox');
       if (!it) return false;
       G.active = G.inv.indexOf(it);
-      const hw = G.hand.cur === it && G.hand.up > 0.5 ? HANDS.handWorld(it, 0.7).p : null;   // from where it is in your hand
+      const hw = G.hand.cur === it && G.hand.up > 0.5 ? HANDS.handWorld(it, 0.7) : null;   // from where it is in your hand
       G.removeFromInv(it); HANDS.dropped(it);
-      const th = c.wallTh * DEG, from = hw ? [hw.x, hw.y, hw.z] : L.pt(Math.sin(G.cam.yaw) * 0.4, L.eyeH - 0.4, Math.cos(G.cam.yaw) * 0.4);
-      // out over the rail and down outside it, on the line straight down to it, and let go there with a push out and down, clear
-      // of the edge of the floor
-      s.box = { it, th, r: 3.3, y: 0.7, vr: 1.0, vy: -1.5, across: 0, va: (L.rand() - 0.5) * 0.2, spin: 0, spinV: 2, size: 0.2, t: 0, out: 0.3, from, hit: true, hits: 0, clk: -1, y0: stoneFrame(c).at[1] };
+      const th = c.wallTh * DEG, from = hw ? [hw.p.x, hw.p.y, hw.p.z] : L.pt(Math.sin(G.cam.yaw) * 0.4, L.eyeH - 0.4, Math.cos(G.cam.yaw) * 0.4);
+      // up out of your hand, over the rail's top bar and out past the edge of the floor to the line straight down to it
+      // (DROP), and let go there. (It went out between the rail's bars once, to a place just outside them and under
+      // the top one, and was drawn behind them: it read as going through the rail.)
+      const to = onWall(landing(c).p), r = clamp(to.r, DROP.near, DROP.r), y = clamp(to.y + DROP.over, DROP.y, DROP.top);
+      s.box = { it, th, r, y, vr: DROP.vr, vy: DROP.vy, across: 0, va: (L.rand() - 0.5) * 0.2, spin: 0, spinV: 2, size: 0.2, t: 0, out: DROP.out, from, scale0: hw ? Math.min(1, hw.scale) : 1, hit: true, hits: 0, clk: -1, y0: stoneFrame(c).at[1], from0: y };
       AUDIO.sfx('woodKnock', panOf(bodyAt(s.box)));   // (it scrapes over the rail)
       return true;
     };
     L.uses = [{ tool: 'toolbox', range: Infinity, sights: false, onClick: dropBox, hoverText: () => 'Drop the toolbox on it.' }];
-    // the tools that come out of it at the first knock on the stone
+    // the tools that come out of it at the first knock on the stone: from where the box is drawn, not from where it truly is
     const spill = b => {
-      s.spill = [['wrench', 0.24, 0.24], ['lighthouseScrewdriver', 0.26, 0.26]].map(([icon, w, h], k) => ({
-        icon: ICONS[icon], w, h, th: b.th, r: b.r + 0.05, y: b.y + 0.1, vr: b.vr + 0.8 + L.rand() * 0.8, vy: b.vy + 1 + L.rand(), across: b.across, va: (k ? 1 : -1) * (0.5 + L.rand() * 0.5),
+      const w = onWall(drawnAt(b));
+      s.spill = [['wrench', 0.24, 0.24], ['lighthouseScrewdriver', 0.26, 0.26]].map(([icon, w0, h], k) => ({
+        icon: ICONS[icon], w: w0, h, th: w.th, r: w.r + 0.05, y: w.y + 0.1, vr: b.vr + 0.8 + L.rand() * 0.8, vy: b.vy + 1 + L.rand(), across: 0, va: (k ? 1 : -1) * (0.5 + L.rand() * 0.5),
         spin: L.rand() * TAU, spinV: (k ? -1 : 1) * (6 + L.rand() * 4), size: 0.06,
       }));
     };
@@ -427,23 +447,36 @@ LEVELS.push({
       });
       // It lands where you see its face. The thing is drawn end on, its length shown up the wall as you would see it from
       // well out over the sea (CREATURES.climber.headAt: the point, at its own distance, that its head is drawn at), while
-      // you look down the wall all but along it: a box coming truly down the stone is seen to cross that face a third of
-      // the way down, pass over all of it and go on beyond its feet, and to land on nothing. So the box is drawn where it
-      // would be seen coming down onto that face: no nearer to it, as you see the two, than AIM.rest metres (at the
-      // thing's distance: the box's edge on its brow) and AIM.spread more for each metre up the wall it still is. Where
-      // the box as it truly is would be seen nearer than that, or past it, it is drawn further into the wall by as much as
-      // keeps it there (b.shift, metres, come to at AIM.pull a second), so it comes down the wall onto its face and is on
-      // it as it lands: within AIM.near of it up the wall.
+      // you look down the wall all but along it: a box coming truly down the stone is seen over that face a third of the
+      // way down, to pass over all of it and go on beyond its feet, and to land on nothing. So the box is drawn falling
+      // straight from where it was let go, out over the rail, to that face: at each height up the wall from the face, as
+      // far out from the stone as the straight line between the two is there (b.up0 and b.out0, where it was let go, as
+      // the face's own frame has it; it lands AIM.near up the wall from the face, drawn AIM.rest and AIM.spread for that
+      // half metre from the middle of it: the box's edge on its brow). b.shift is how far into the wall from where it
+      // truly is that puts it (metres; out from it, under 0). It is nothing as it is let go, so nothing jumps there, and
+      // the line is outside the stone and outside the edge of the gallery floor all the way down, as you see it: the box
+      // is never drawn in under the floor or in the wall. (It was once drawn up the wall from the face by AIM.spread for
+      // every metre it still had to fall, brought there in a tenth of a second: let go, it was pulled back in over the
+      // floor, sank through it, and came most of the way down hidden under the gallery.)
       const aim = () => {
-        const eye = [0, L.eyeH, 0], hd = CREATURES.climber.headAt(c, eye), q = bodyAt(b), d = q.map((v, i) => v - hd.p[i]), f = hd.frame, dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
-        const up = dot(d, f.up), out = dot(d, f.out), rise = Math.max(0, dot(hd.sight, f.out) / (dot(hd.sight, f.up) || 1e-6));
-        const far = dot(q.map((v, i) => v - eye[i]), hd.sight) / (dot(hd.p.map((v, i) => v - eye[i]), hd.sight) || 1);   // how far to it the box has come, as you look (0 to 1)
+        const { eye, hd, f, land } = landing(c), q = bodyAt(b), d = q.map((v, i) => v - hd.p[i]), into = f.out.map(v => -v);
+        const up = dot(d, f.up), out = dot(d, f.out);
+        if (b.up0 === undefined) { b.up0 = Math.max(up, AIM.near + 0.05); b.out0 = out; }
         // (seen(at): how far from the middle of that face a thing at `at` is seen, in metres at the thing's distance)
         const seen = at => { const e = at.map((v, i) => v - eye[i]), k = (dot(hd.p.map((v, i) => v - eye[i]), hd.sight) || 1) / (dot(e, hd.sight) || 1); return Math.hypot(...e.map((v, i) => v * k - (hd.p[i] - eye[i]))); };
-        return { up, out, seen, into: f.out.map(v => -v), shift: Math.max(0, out - up * rise + (AIM.rest + AIM.spread * Math.max(0, up)) * clamp(far, 0, 1)) };
+        let shift = out - lerp(land, b.out0, clamp((up - AIM.near) / (b.up0 - AIM.near), 0, 1));
+        // With the thing just under the rail its brow is in under the lip of the gallery, as you see it. The box is not put
+        // there: at the floor's level and below it is drawn no further in than where the line from your eye to it clears
+        // the floor's edge by the box's own half width (under(sh) is by how much it does not; it lands lower on the face
+        // instead), coming to that over the last of its way down to the floor, so it does not jump as it passes it
+        const at = sh => q.map((v, i) => v + into[i] * sh);
+        const under = sh => { const p = at(sh), k = L.eyeH / (L.eyeH - p[1]), a = rotY(p[0] * k, p[2] * k, -L.facing); return 3.25 + TBW * 0.45 * k - Math.hypot(a[0] - AX, a[1] - AZ); };
+        const low = clamp(1 - at(shift)[1] / 0.3, 0, 1);
+        if (low > 0 && under(shift) > 0) { let lo = shift - 1.2, hi = shift; for (let i = 0; i < 8; i++) { const m = (lo + hi) / 2; if (under(m) > 0) hi = m; else lo = m; } shift = lerp(shift, lo, low); }
+        return { up, out, seen, into, shift };
       };
       const g = c.wallAt && !b.struck && G.state === 'play' ? aim() : null;
-      if (g) { b.shift = lerp(b.shift || 0, g.shift, 1 - Math.exp(-dt * AIM.pull)); b.into = g.into; }
+      if (g) { b.shift = g.shift; b.into = g.into; }
       // it comes down the stone onto it, however far down that is: full in its face, on the side of it the box came down,
       // and the thing loses its hold with the hand on that side and hangs by the other (the night's easter egg, found)
       if (b.hit && !b.struck && G.state === 'play' && ((g && g.up <= AIM.near) || b.y - b.size <= WATER + 1)) {
@@ -633,19 +666,27 @@ LEVELS.push({
           R.add(Object.assign({ kind: 'poly', pts: [pt(k - 0.07), p1], color: [228, 234, 238], alpha: 0.8, stroke: true, lw: (jet ? 0.2 : 0.14) * sz }, o));
         }
       }
-      // the toolbox on its way down the wall, turning over and over, and what fell out of it
-      const tumbling = (q, p, w, h, icon) => {
-        const S = Math.max(w, h) * 1.25, d = Math.hypot(p[0], p[1] - L.eyeH, p[2]);
-        R.add({ kind: 'sprite', x: p[0], y: p[1] - S / 2, z: p[2], w: S, h: S, card: true, layer: 1, dist: d, noContact: true, draw: (ctx, P) => {
-          ctx.translate(0, S / 2); ctx.rotate(q.spin); ctx.scale(w, h); ctx.translate(0, -0.5); icon(ctx, P);
+      // the toolbox on its way down the wall, turning over and over, and what fell out of it. Each is out from the stone,
+      // between you and the thing on it: never drawn behind the thing, however far below it they have fallen
+      const cr = L.creature, front = Math.hypot(cr.dist, cr.lat || 0) - 0.05;
+      const tumbling = (q, p, w, h, icon, o) => {
+        const S = Math.max(w, h) * 1.25, d = Math.hypot(p[0], p[1] - L.eyeH, p[2]), k = (o && o.scale) || 1;
+        R.add({ kind: 'sprite', x: p[0], y: p[1] - S / 2, z: p[2], w: S, h: S, card: true, layer: 1, dist: d, sortDist: (o && o.sortDist) || Math.min(d, front), noContact: true, draw: (ctx, P) => {
+          ctx.translate(0, S / 2); ctx.rotate(q.spin); ctx.scale(w * k, h * k); ctx.translate(0, -0.5); icon(ctx, P);
         } });
       };
       const b = s.box;
       if (b && !b.gone) {
-        let p = drawnAt(b);
-        if (b.t < b.out) { const k = smoothstep(b.t / b.out); p = p.map((v, i) => lerp(b.from[i], v, k)); }   // from your hand out over the rail
+        let p = drawnAt(b), o = null;
+        if (b.t < b.out) {
+          // out of your hand: swung up over the rail's top bar and out to where it is let go, the size it was in the hand
+          // at first. Until it is let go it is in your hands, and drawn as what you hold is: over the rail and the floor
+          const k = smoothstep(b.t / b.out);
+          p = p.map((v, i) => lerp(b.from[i], v, k)); p[1] += Math.sin(Math.PI * k) * DROP.lift;
+          o = { sortDist: 0.05, scale: lerp(b.scale0, 1, k) };
+        } else if (p[1] > 0) o = { sortDist: 0.05 };   // let go, and still above the floor: held out over the rail it is seen over it, bars and all
         b.drawn = p;   // (where it is drawn)
-        tumbling(b, p, TBW, TBH, ICONS.lighthouseToolbox);
+        tumbling(b, p, TBW, TBH, ICONS.lighthouseToolbox, o);
       }
       for (const q of s.spill || []) if (!q.gone) tumbling(q, bodyAt(q), q.w, q.h, q.icon);
       // the fuse box and the crank, showing their state
