@@ -13,9 +13,12 @@
 // still running, the night goes on and the car answers again: the stick is clicked over to the other way and the gas
 // takes the car away from it, which wins the night as ever. Then the same in reverse with it in the road behind, and
 // this time nothing is done: it lies there, twitches, gets up, stands, looks, drops to all fours and comes on, each
-// part in its order, and when it reaches the car the card says "Nice try" and only "It got right back up."; the glass
-// shows no crack until it is at the glass. Then from off a front corner (it leaps into the road and is hit), hit a
-// second time as it lies there (it lands nearer and is up sooner), and away from it. Then
+// part in its order, and when it reaches the car the card says "It got you" and only "It got right back up."; the glass
+// shows no crack until it is at the glass. Then from off a front corner (it leaps into the road and is hit), and driven
+// at a second time as it lies there: it is not hit again. It is on all fours and looking at once, comes at the car as
+// the car comes at it, and 6.5 m off it springs, over the bonnet and through the windshield: "It got you", and only
+// "It was ready for that." (the glass cracks as it meets it, and bursts). The same in reverse once it is up and coming
+// again: it stops, looks, and comes through the back window. Then
 // caught with the engine running and the car not away, the card says exactly "The
 // engine was running, but you couldn't get away fast enough." (with the engine dead, the window it came through, as
 // before). Then things are put down from every way you can look, wherever in the view you click: the keys and the bottle
@@ -35,13 +38,29 @@ const fresh = ['expect', "G.state === 'play' && !G.L.s.started && !G.L.s.keyIn &
 const GLASS = { front: 1.0, back: 1.15, passenger: 1.15, driver: 0.75 };
 const crack = win => ['expect', "(g => g.win === '" + win + "' && g.broke && g.seenAt >= g.tc - 1e-6 && g.seenDist <= " + GLASS[win] + " + 1e-6 && g.seenDist > " + (GLASS[win] - 0.4) + " && g.tb - g.tc > 0.04 && g.tb - g.tc < 0.08 && g.tc > 0.15)(G.L.s.glass)",
   'the ' + win + ' glass shows nothing until it is at the glass (' + GLASS[win] + ' m from the seat), cracks as it meets it, and bursts a moment after'];
+// driven at a second time (from where it lies, or once it is up and coming: `up`): no second blow. It gets ready, comes,
+// springs from 6.5 m (or from where it is, if it is nearer) and comes through the glass that way: the death 'ready'
+const sfxHook = ['eval', "window.__sfx = []; (s0 => { AUDIO.sfx = (n, p, so) => { __sfx.push(n); return s0(n, p, so); }; })(AUDIO.sfx)"];
+const second = (R, up) => [
+  ['face', 0, true], ['eval', "G.toast('Again.'); __sfx.length = 0; window.__d2 = G.L.creature.dist"], ['click', 'gas'],
+  ['expect', "(r => !!r && r.again && r.hit < 0 && Math.abs(r.ready - " + (up ? 0.15 : 0.3) + ") < 1e-6 && r.T <= r.ready + 0.5 + 1e-6 && G.L.s.wasHit && !G.L.s.gone && (G.state === 'play' || G.deathCause === 'ready'))(G.L.s.ram)",
+    'the gas again, at it ' + (up ? 'as it comes: it stops and looks' : 'as it lies there: it is getting onto all fours') + ', the car leaping at it, and it will spring in under a second'],
+  ['waitUntil', "G.state === 'dying'", 4000],
+  ['expect', "(r => G.deathCause === 'ready' && r.stage === 'spring' && r.hit < 0 && !G.L.s.knock && !G.L.creature.struck && Math.abs(r.sprangFrom - Math.min(6.5, __d2)) < 0.3 && r.sprangFrom <= __d2 && G.L.creature.pounce !== undefined && !__sfx.includes('carHit') && __sfx.includes('stingShriek'))(G.L.s.ram)",
+    'it was not hit a second time: on all fours and coming, and 6.5 m off (or from where it was, nearer) it sprang at the glass'],
+  ['waitUntil', "G.state === 'dead'", 4000],
+  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'It was ready for that.' && !G.L.text.eggs && /It got you/.test(UI.overlay.textContent) && /It was ready for that\\./.test(UI.overlay.textContent) && !/Nice try|Again\\.|got right back up/.test(UI.overlay.textContent)",
+    'the card says It got you, and only: It was ready for that.'],
+  ['expect', "__sfx.includes('stingGlass') && (G.L.eye.z - __eyeZ) * " + (R ? -1 : 1) + " > 0.2", 'the glass went with its own sound, and the car ran on under it meanwhile'],
+  crack(R ? 'back' : 'front'),
+];
 const hit = (gear, end, deg) => { const R = gear === 'R', sign = R ? -1 : 1, lie = R ? 12 : 15, other = R ? 'D' : 'R'; return [
   ['eval', "(() => { G.L.s.roam.put(" + (deg !== undefined ? deg + ' * DEG' : R ? 'Math.PI' : '0') + ", 12); Object.assign(G.L.s, { keyIn: true, started: true, gear: '" + gear + "' }); delete SAVE.data.eggs.road; })()"],
   ['face', 0, true], ['eval', "G.toast('Drive.')"], ['click', 'gas'],
   R
     ? ['expect', "G.state === 'play' && G.L.s.ram && G.L.eye && G.L.eye.z < 0 && Math.abs(wrapPi(G.cam.tYaw - Math.PI)) < 0.1", 'in reverse with it in the road behind, the car leaps back at it, and you look round at it']
     : ['expect', "G.state === 'play' && G.L.s.ram && !G.L.s.gone && G.L.eye && G.L.eye.z > 0 && G.cam.tPitch < 0.2", 'in drive with it in the road, the car leaps at it, and you look up at the road'],
-  ['waitUntil', 'G.L.s.hits === 1', 4000],
+  ['waitUntil', 'G.L.s.wasHit', 4000],
   ['expect', '(r => ' + (deg === undefined ? '!r.leapt && r.landT < 0' : 'r.leapt && r.landT > 0.3 && r.landT < r.T && !r.leap && G.L.creature.leap === undefined') + ' && Math.abs(wrapPi(G.L.s.roam.b' + (R ? ' - Math.PI' : '') + ')) < 1e-6)(G.L.s.ram || G.L.s.rammed)',
     deg === undefined ? 'it was in the road already: no leap' : 'it was off the road: it sprang into the road in the car\'s path, and had landed there before the car hit it'],
   ['expect', "G.state === 'play' && SAVE.data.eggs.road === true && JSON.parse(localStorage.getItem('itscoming.v2')).eggs.road === true", 'the car hits it: the easter egg is in the save from that moment, and the night goes on'],
@@ -51,14 +70,11 @@ const hit = (gear, end, deg) => { const R = gear === 'R', sign = R ? -1 : 1, lie
     'it was knocked back down the road, the way the car was going: it lies in a heap ' + lie + ' m ' + (R ? 'behind, where it shows over the boot' : 'ahead, where it shows over the hood')],
   ['eval', "window.__yaw = G.cam.tYaw; lookKey('ArrowLeft')"], ['wait', 250],
   ['expect', "Math.abs(wrapPi(G.cam.tYaw - __yaw)) > 0.5 && G.cam.zoom < 1.05", 'the view is yours again: it turns, and is not closed in on the thing'],
-  ...(end === 'again' ? [
-    ['face', 0, true], ['click', 'gas'],
-    ['waitUntil', 'G.L.s.hits === 2', 5000],
-    ['waitUntil', "!G.L.s.ram && G.L.s.knock && G.L.s.knock.stage === 'down'", 5000],
-    ['expect', "(k => k.n === 1 && Math.abs(G.L.creature.dist - " + (lie - 2) + ") < 0.05 && Math.abs(k.K.leap - (1.45 + 0.75 * (CREATURES.crawler.STRUCK.leap - 1.45))) < 1e-6 && G.state === 'play' && G.L.s.started)(G.L.s.knock)",
-      'the gas again, at it as it lies there: it is knocked back a second time, lands 2 m nearer and will be up in three quarters of the time'],
-  ] : []),
-  ...(end === 'caught' ? [
+  ...(end === 'again' ? [['eval', 'window.__eyeZ = G.L.eye.z'], ...second(R, false)] : end === 'againUp' ? [
+    ['waitUntil', "!G.L.s.knock && G.L.s.knocked", 9000], ['wait', 600],
+    ['expect', "G.state === 'play' && !G.L.creature.struck && G.L.creature.dist > 6.5", 'left alone it got up, and comes on down the road'],
+    ['eval', 'window.__eyeZ = G.L.eye.z'], ...second(R, true),
+  ] : end === 'caught' ? [
     ['waitUntil', "!G.L.s.knock && G.L.s.knocked", 9000],
     ['expect', "(c => G.state === 'play' && G.L.s.knocked.stages.join() === 'thrown,down,twitch,rise,look,leap,up' && !c.struck && !c.frozen && c.hold === null && c.dist > " + (lie - 1.5) + " && c.dist <= " + lie + " + 0.01 && G.L.s.sectorOf(G.L.s.roam.b) === '" + (R ? 'behind' : 'ahead') + "')(G.L.creature)",
       'each part in its order (knocked back, down, a twitch, getting up, the look, onto all fours), and it is let go where it landed, squarely ' + (R ? 'behind' : 'ahead of') + ' the car'],
@@ -161,11 +177,20 @@ const ways = ['expect', `(async () => {
   window.__ways = out.join(' '); window.__waysBad = bad;
   return !bad.length && window.__ways === ${JSON.stringify(WANT)};
 })()`, 'each of its twelve ways round the car, in drive and in reverse: toward it is the easter egg (it leaps into the road, in time, where it was off it), the opposite way or squarely beside it gets away'];
+// the engine catches on the second turn of the key or the third, whatever the seed: never a fourth
+const turns = ['expect', `(() => {
+  const keep = [G.runSeed, G.attempt, JSON.stringify(G.lastLane)], seen = {};
+  for (let S = 1; S <= 60; S++) for (let a = 0; a < 3; a++) { G.runSeed = S; G.attempt = a; seen[buildLevelDef(LEVELS[1], 1).s.cranksNeeded] = true; }
+  G.runSeed = keep[0]; G.attempt = keep[1]; G.lastLane = JSON.parse(keep[2]);
+  return Object.keys(seen).sort().join() === '2,3';
+})()`, 'the engine catches on the second turn of the key or the third, on every seed (1 to 60, three tries of each): never later'];
 const drove = [
   ['eval', "window.__layout = () => G.L.items.map(i => i.id + i.x.toFixed(2) + i.z.toFixed(2)).join() + ':' + G.L.creature.lane.idx; window.__lay0 = __layout(); window.__att0 = G.attempt"],
+  turns, sfxHook,
   ...hit('D', 'away'),      // hit, the stick to reverse, and away
   ...hit('R', 'caught'),    // hit, and left to get up and come on
-  ...hit('D', 'again', -66),   // off the front corner, on your side: it leaps into the road; hit twice, then away
+  ...hit('D', 'again', -66),   // off the front corner, on your side: it leaps into the road; driven at again as it lies there, it springs
+  ...hit('R', 'againUp'),   // hit in reverse, left to get up, and driven at again: through the back window
   ...hit('D', 'caught'),    // (through the windshield)
   ways, fresh,
   caught(true),
@@ -227,7 +252,7 @@ module.exports = {
       "const q = R.screenPos(a.x, a.y, a.z), hs = R.hits.filter(h => h.kind === 'target' && h.ref.id === 'gear' && h.poly && h.poly.length === 4); if (!q || hs.length !== 2) return false; " +
       "const top = h => Math.min(...h.poly.map(p => p[1])), bot = h => Math.max(...h.poly.map(p => p[1])), [stick, plate] = hs.slice().sort((x, y) => top(x) - top(y)), y = q.y + R.viewY; " +
       "return inPoly(q.x, y, stick.poly) && y < top(stick) + (bot(stick) - top(stick)) * 0.4 && !inPoly(q.x, y, plate.poly) && bot(plate) > bot(stick); })()", 'the hand is on the knob, up at the top of the stick where it is drawn, over the plate lying flat on the console'],
-    ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6], ['expect', 'G.L.s.started', 'engine started'],
+    ['clickUntil', 'ignition', 'G.L.s.started', 1300, 6], ['expect', 'G.L.s.started && G.L.s.cranks === G.L.s.cranksNeeded && G.L.s.cranks >= 2 && G.L.s.cranks <= 3', 'engine started, on the second turn of the key or the third'],
     ['use', 'gas'], ['expect', "!G.L.s.gone && G.L.s.gear === 'P' && G.state === 'play'", 'in park the gas only revs'],
     // the stick goes round P R N D: neutral is a place of its own on the plate, and in it the engine runs and the car stays put
     ['clickUntil', 'gear', "G.L.s.gear === 'N'", 200, 3],

@@ -11,6 +11,10 @@ CREATURES.walker = {
   // c.blow (1 at a blow, falling away) throws its head and shoulders in at the boards.
   // c.look (-1..1) turns its head to one side (+1: to the right of the view): the face slides round the head and narrows.
   // c.climb (0..1) is it coming in through a window (drawClimb, below).
+  // c.clip (a polygon, in its own metres from its feet) is all of it that can be seen where it stands outside a wall: none
+  // of it is drawn outside that. It is drawn on a card square to the view, and a wall it stands close against is not, so
+  // the end of the card comes out past the foot of the wall; the night that stands it there says what the wall leaves in
+  // sight (The Field, at its window).
   lateral(c) { return c.runLat || 0; },
   // c.headroom (metres above its feet as drawn, or undefined) is a height it must keep under: the lintel of a doorway it is
   // coming in through (The Field's are a head too low for it). It ducks under it, as far as it must (duckFor): the
@@ -166,6 +170,7 @@ CREATURES.walker = {
   },
   draw(ctx, c, P) {
     if (c.climb !== undefined) { if (!c.climbParts) this.drawClimb(ctx, c, P, 'out'); return; }   // (climbParts: a night draws the two halves of it itself)
+    if (c.clip) this.clipTo(ctx, c.clip);
     if (c.runPose || c.charge) { c.duck = 0; (c.runPose ? this.drawRun : this.drawCharge).call(this, ctx, c, P); return; }   // upright again after either
     const g = c.gait, t = c.t;
     const near = clamp(1 - c.dist / 22, 0, 1);
@@ -228,6 +233,7 @@ CREATURES.walker = {
     }
     ctx.restore();
   },
+  clipTo(ctx, poly) { ctx.beginPath(); poly.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); ctx.clip(); },
   // ---- in through a window ----
   // c.climb (0..1) takes it through a window frame too small for it, limb by limb. It stands outside, close against the
   // frame, its head above the top of it; a hand comes up and its long fingers hook over the sill, then the other; it
@@ -238,11 +244,12 @@ CREATURES.walker = {
   // fours, knees above its back, and unfolds to its full height, the arms coming up for you (as draw() has it standing).
   // (That last part, from the crouch, is played by The Field as its lunge: see CROUCH.)
   // It is drawn in two halves, for what is still outside the wall and what has come in: pass 'out' is drawn behind the
-  // wall (which hides all of it but what shows in the frame) and 'in' in front of it. c.frame is the frame as the thing's
+  // wall (which hides all of it but what shows in the frame; with c.clip, the hole of the window as its card has it,
+  // nothing of that half is drawn outside the hole at all) and 'in' in front of it. c.frame is the frame as the thing's
   // own drawing sees it (metres from its feet: l and r the sides, sl and sr the sill's height at each), FRAME where none
   // is given; c.gentle moves it evenly, without the starts and stops or the twitch of its head. CLIMB_T maps time through
   // the climb (0..1) to c.climb, so the slow parts are slow (climbAt). The Field plays it only as far as the crouch
-  // (CROUCH, which CLIMB_T reaches at CROUCH_T), in 1.5 s (2.5 s, evenly, with c.gentle), and it lunges from there: the
+  // (CROUCH, which CLIMB_T reaches at CROUCH_T), in 0.9 s (1.5 s, evenly, with c.gentle), and it lunges from there: the
   // rest of c.climb, from CROUCH to 1, is then the lunge rising out of the crouch at you (c.lunge opens its mouth).
   FRAME: { l: -0.44, r: 0.44, sl: 1.08, sr: 1.08 },
   CLIMB_T: [[0, 0], [0.07, 0.05], [0.14, 0.10], [0.2, 0.14], [0.34, 0.22], [0.5, 0.38], [0.64, 0.54], [0.69, 0.58], [0.78, 0.68], [0.82, 0.72], [0.89, 0.82], [1, 1]],
@@ -296,6 +303,7 @@ CREATURES.walker = {
     const k = clamp(c.climb || 0, 0, 1), J = this.climbPose(c, k), IN = this.CLIMB_IN;
     const body = P.col([6, 6, 10]), skin = P.col([92, 84, 88]), eye = P.col([225, 218, 205]), ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
     const on = part => (k >= IN[part] ? pass === 'in' : pass === 'out');
+    if (pass === 'out' && c.clip) this.clipTo(ctx, c.clip);
     const mid = (a, b, u) => [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
     const hip = mid(J.bl, J.br, 0.5), sh = mid(J.tl, J.tr, 0.5), ax = Math.hypot(sh[0] - hip[0], sh[1] - hip[1]) || 1, ux = (sh[0] - hip[0]) / ax, uy = (sh[1] - hip[1]) / ax;
     const leg = (s, kn, ft) => {

@@ -72,6 +72,9 @@ const quick = k => [['eval', 'G.L.creature.u = 1 - 15 / G.L.creature.D0']].conca
 // the view on the window as it comes through, the egg kept in the save from the moment it starts through, and the death
 // screen says "It got you" and the night's line alone, though something was said just before the last board went up. And
 // the night again from the start, with the window whole, is won as it always was (the steps above).
+// All the while it is outside by the front wall (running to the window, standing in it, half through it), the picture
+// itself is looked at (leak, below): with what is outside drawn as a plain marker, none of the marker shows on the floor
+// under the foot of the wall, nor, once it is at the window, anywhere but in the hole of the window.
 const LAYOUTS = [3670514754, 3182466661, 666963135, 1014729768, 2157629576, 3291411627, 3930209026, 497375984, 3611011127, 392029248];
 const layouts = ['expect', `(() => {
   const keep = [G.runSeed, G.attempt, JSON.stringify(G.lastLane)], out = [];
@@ -114,8 +117,39 @@ const openDoor = k => [take(['nails', 'planks'])].concat(board(k), [
     'and comes in by the open doorway: the death it always was, and no easter egg'],
 ]);
 const stage = st => "G.L.s.egg && G.L.s.egg.stage === '" + st + "'";
+// What is outside the front wall, drawn in one flat colour (its running self, and the half of it still outside as it comes
+// through the window), and the picture read back: a marked pixel on the floor of the room, under the foot of the front
+// wall between the doorway and the corner, is some of it showing through the wall; and at the window or coming through
+// it, so is one anywhere but in the hole of the window (2 px of grace at the edges). __leak: how many looks, how much of
+// the marker was seen in all (so the look is known to see it), and how much of it was where it must not be
+const LEAK = `window.__leak = { looks: 0, seen: 0, n: 0, at: [], last: 0 }; window.__look = () => {
+  const c = G.L.creature, e = G.L.s.egg, W = CREATURES.walker, m = 'rgb(255,0,255)', MARK = { col: () => m, cola: () => m, raw: () => m };
+  const climb0 = W.drawClimb, run0 = W.drawRun;
+  W.drawClimb = function (ctx, cr, P, pass) { if (pass === 'out') climb0.call(this, ctx, cr, MARK, pass); };
+  W.drawRun = function (ctx, cr) { run0.call(this, ctx, cr, MARK); };
+  try { render(); } finally { W.drawClimb = climb0; W.drawRun = run0; }
+  const cv = UI.canvas, k = cv.width / R.W, px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+  const at = (x, y) => { const q = R.screenPos(x, y, -2.4); return q && [q.x, q.y]; };
+  const hole = [at(2.4, 1.08), at(1.3, 1.08), at(1.3, 2.16), at(2.4, 2.16)], a = at(0.7, 0), b = at(2.8, 0);
+  render();
+  if (!hole.every(Boolean) || !a || !b) return;
+  const mx = (hole[0][0] + hole[1][0] + hole[2][0] + hole[3][0]) / 4, my = (hole[0][1] + hole[1][1] + hole[2][1] + hole[3][1]) / 4;
+  const grown = hole.map(p => [p[0] + Math.sign(p[0] - mx) * 2, p[1] + Math.sign(p[1] - my) * 2]);
+  let seen = 0, n = 0;
+  for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
+    const i = (y * cv.width + x) * 4;
+    if (!(px[i] > 80 && px[i + 2] > 80 && px[i + 1] < px[i] * 0.45 && Math.abs(px[i] - px[i + 2]) < 70)) continue;
+    seen++;
+    const sx = x / k, sy = y / k - R.viewY;
+    if (c.climbParts ? !inPoly(sx, sy, grown) : sx > Math.min(a[0], b[0]) && sx < Math.max(a[0], b[0]) && sy > a[1] + (b[1] - a[1]) * (sx - a[0]) / (b[0] - a[0]) + 2) n++;
+  }
+  __leak.looks++; __leak.seen += seen; __leak.n += n;
+  if (n) __leak.at.push(e.stage + (c.climb === undefined ? '' : ' ' + c.climb.toFixed(2)) + ': ' + n);
+}`;
 const egg = k => [
-  ['eval', "window.__stages = []; window.__at = {}; clearInterval(window.__eggT); window.__eggT = setInterval(() => { const e = G.L && G.L.s.egg; if (e && __stages[__stages.length - 1] !== e.stage) { __stages.push(e.stage); __at[e.stage] = G.stateT; if (e.stage === 'lunge') __at.crouch = G.L.creature.climb; } }, 10)"],
+  ['eval', LEAK],
+  ['eval', "window.__stages = []; window.__at = {}; clearInterval(window.__eggT); window.__eggT = setInterval(() => { const e = G.L && G.L.s.egg; if (e && __stages[__stages.length - 1] !== e.stage) { __stages.push(e.stage); __at[e.stage] = G.stateT; if (e.stage === 'lunge') __at.crouch = G.L.creature.climb; } " +
+    "if (e && G.state === 'dying' && G.L.creature.lane.idx === 1 && (e.stage === 'run' || e.stage === 'face' || e.stage === 'climb') && performance.now() - __leak.last > 90) { __look(); __leak.last = performance.now(); } }, 10)"],
   take(['hammer', 'nails', 'planks', 'bottle']), inHand('bottle'), ['face', WINDOW], ['click', 'window'], ['waitUntil', 'G.L.s.broken', 3000],
 ].concat(board(k), [running(k), ['waitUntil', 'G.L.creature.lane.idx === ' + (1 - k), 4000],
   ['face', DIR[1 - k]], ['click', DOOR[1 - k]], ['wait', 150], ['click', DOOR[1 - k]], ['wait', 150],
@@ -138,8 +172,10 @@ const egg = k => [
   ['expect', 'G.L.creature.climb !== undefined && __at.crouch >= 0.82 && __at.crouch < 0.9', 'it is down on all fours under the window, and the lunge has begun at once, from that crouch'],
   ['waitUntil', "G.state === 'dead'", 6000],
   ['expect', "__stages.join() === 'door,pound,still,turn,run,face,climb,lunge'", 'in order: the boards, the pounding, its head turning, the run, the window, the climb, the lunge (it never stands)'],
-  ['expect', "(SAVE.data.settings.reducedMotion ? [2.3, 2.75] : [1.35, 1.7]).every((v, i) => i ? __at.lunge - __at.climb <= v : __at.lunge - __at.climb >= v) && G.deathCreature.deathSpec.delay <= __at.lunge + 0.05 && G.deathCreature.climb === 1",
-    'the bars torn out and the climb in are fast (about 1.5 s; 2.5 s with reduced motion), and the lunge follows with no delay, rising out of the crouch'],
+  ['expect', "(SAVE.data.settings.reducedMotion ? [1.35, 1.75] : [0.75, 1.15]).every((v, i) => i ? __at.lunge - __at.climb <= v : __at.lunge - __at.climb >= v) && G.deathCreature.deathSpec.delay <= __at.lunge + 0.05 && G.deathCreature.deathSpec.dur <= 0.3 + 1e-9 && G.deathCreature.climb === 1",
+    'the bars torn out and the climb in are a scramble (about 0.9 s; 1.5 s with reduced motion), and the lunge follows with no delay, rising out of the crouch in 0.3 s'],
+  ['expect', "__leak.looks >= 4 && __leak.seen > 400 && __leak.n === 0",
+    'while it was outside by the front wall (running to the window, standing in it, coming through) none of it showed through the wall: nothing on the floor under the wall, and at the window nothing but in the hole of it'],
   ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'Must we throw things?' && /It got you/.test(UI.overlay.textContent) && /Must we throw things\\?/.test(UI.overlay.textContent) && !/Nearly there/.test(UI.overlay.textContent)",
     'the death screen: "It got you", and "Must we throw things?" alone'],
   ['eval', 'clearInterval(window.__eggT)'],
