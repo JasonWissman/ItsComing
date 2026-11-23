@@ -93,7 +93,7 @@ const TUNES = {
   'phoneRing': { pitch: -3 },
   'wetThud': { pitch: -3.5 },
   'sting': { pitch: -3.5, speed: 0.71 },
-  'stingShriek': { pitch: 9, speed: 0.57 },
+  'stingShriek': { pitch: 13, speed: 0.655, vol: -6 },   // (on the 9 st and x0.57 it was set to by ear: 4 semitones up, 0.87 of the length (0.57 / 0.87), 6 dB quieter)
   'stingHum': { pitch: -7.5, speed: 0.87, tone: -1.9, vol: 9 },
   'stingStone': { pitch: -9, speed: 0.71 },
   'stingHit': { pitch: -5, speed: 0.66, tone: 1.3 },

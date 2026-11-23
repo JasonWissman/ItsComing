@@ -107,14 +107,15 @@ const SOUNDS = [
   { kind: 'sfx', name: 'carDoor', n: [9], d: 'A car door opening.', src: 'night09 aftermath' },
   { kind: 'sfx', name: 'dispatch', n: [9], d: 'A click, then a few clipped, crackling bursts of a voice too thin to make out, over the line\'s hiss: 911 answers a second call that night (a car has already been sent).', src: 'night09 (911)' },
   { kind: 'sfx', name: 'dispatchAsk', n: [9], d: 'The dispatcher\'s first line, "911, what is your emergency?": a click as the line opens, then ten quick crackling syllables over the line\'s hiss, the last of them rising. About 1.3 s.', src: 'night09 (911)' },
-  { kind: 'sfx', name: 'dispatchWhat', n: [9], d: 'The dispatcher\'s second line, "a WHAT?": a short low crackle, then a long loud one torn upward. Under half a second.', src: 'night09 (911)' },
-  { kind: 'sfx', name: 'dispatchSend', n: [9], d: 'The dispatcher\'s last line, "Ok, stay there. I\'m sending a unit now.": three crackling phrases, level, the last falling, and a tick on the line as the voice stops. About 1.7 s. (Alone, when the shade is already at its last lamp.)', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'dispatchDescribe', n: [9], d: 'The dispatcher\'s second line, "Could you describe this creature, please?": eight crackling syllables, slower and even, a breath before the last, which rises. About 1.1 s.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'dispatchSee', n: [9], d: 'The dispatcher\'s third line, "I see.": two crackles, the second long, low and falling. A third of a second.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'dispatchSend', n: [9], d: 'The dispatcher\'s last line, "Ok, stay there. I\'m sending a unit now.": three crackling phrases, level, the last falling, and a tick on the line as the voice stops. About 1.7 s. (Alone, when the shade is already at its last lamp; and cutting in for whatever she had left to say, once it gets there while she is talking.)', src: 'night09 (911)' },
   { kind: 'sfx', name: 'sirenIn', n: [9], d: 'The siren’s first wail, far off: the same wail (siren) coming up out of silence over the whole 1.6 s of it (an eighth of its level half a second in, under half at a second, its full level only as it ends), muffled at first and opening. The police car as it first comes into the street.', src: 'night09 (911)' },
   { kind: 'sfx', name: 'siren', n: [9], d: 'One wail of a police siren, up and down again in 1.6 s; played back to back while the police car comes down the street, after the first (sirenIn).', src: 'night09 (911)' },
   { kind: 'sfx', name: 'tireScreech', n: [9], d: 'Tyres locked on a wet road: a high squeal wavering over a rough hiss, held about a second and cut off. The police car screeching to a halt by the shade\'s last lamp.', src: 'night09 (911)' },
   { kind: 'sfx', name: 'sirenOff', n: [9], d: 'The siren switched off: its wail sagging down in pitch, slower and slower, and gone in a little over a second. The police car halted by the lamp post, at the end of the wail it was in.', src: 'night09 (911)' },
   { kind: 'sfx', name: 'shadeShriek', n: [9], d: 'The shade\'s shriek: three voices at odds tearing upward, a rasp through them, a deep thud under them. Caught in the police flashlight it convulses for a second, twisting, with this.', src: 'night09 (911)' },
-  { kind: 'sfx', name: 'growlHigh', n: [9], d: 'The demon\'s growl (growl) tuned far up and quicker: a shrill, gravelly snarl, its flutter a rattle in the throat. The shade jumping out in front of the post at the police car, its head split open and its tentacles out; and as its lunge begins, whenever it comes at you.', src: 'night09 (911)' },
+  { kind: 'sfx', name: 'growlHigh', n: [9], d: 'The demon\'s growl (growl) tuned far up and quicker: a shrill, gravelly snarl, its flutter a rattle in the throat. The shade jumping out in front of the post at the police car, its head split open and its tentacles out; and whenever it comes at you, from the instant the glass breaks (the sting), not a beat after it.', src: 'night09 (911)' },
   { kind: 'sfx', name: 'peelOut', n: [9], d: 'The police car slamming its foot down to get away: the engine roaring up, a short plain squeal of tyres as it pulls away (half a second, a high wavering note rising as they bite) over the three hissing bursts of the back tyres spinning and catching, and the roar going off down the road.', src: 'night09 (911)' },
   { kind: 'sfx', name: 'page', n: [9], d: 'A page turned over. Leafing the notebook.', src: 'night09' },
   // ---- night 10: the mirror maze ----
@@ -242,7 +243,24 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
   // ---- adjustments (lab/soundtweak.js), kept in this browser too ----
   let tweaks = {};
   try { tweaks = JSON.parse(localStorage.getItem('soundsAuditTweaks2') || '{}') || {}; } catch (e) { tweaks = {}; }
-  const saveTweaks = () => { try { localStorage.setItem('soundsAuditTweaks2', JSON.stringify(tweaks)); } catch (e) {} };
+  // A nudge is laid over the sound as the game tunes it (js/soundtune.js). Once that tune is changed (the nudge put into
+  // the game), the nudge kept here would bend the sound a second time: so the tune each nudge was made over is kept with
+  // it (soundsAuditOver), and a nudge whose sound has been retuned since is dropped: its sliders start again from nothing
+  // on the sound as the game now has it. (WAS: the tune before, for a nudge made before any of that was kept)
+  const tuneNow = s => JSON.stringify(TUNE.of(s.kind === 'sfx' || s.kind === 'sting' ? s.name : s.kind === 'heartbeat' ? 'heartbeat' : s.kind === 'ambient' ? (s.p && s.p.tune) || '' : s.kind + ':' + s.name) || TUNE.DEF);
+  const WAS = { 'sting:stingShriek': JSON.stringify(Object.assign({}, TUNE.DEF, { pitch: 9, speed: 0.57 })) };
+  const saveTweaks = () => {
+    try {
+      localStorage.setItem('soundsAuditTweaks2', JSON.stringify(tweaks));
+      localStorage.setItem('soundsAuditOver', JSON.stringify(Object.fromEntries(SOUNDS.filter(s => tweaks[ids(s)]).map(s => [ids(s), tuneNow(s)]))));
+    } catch (e) {}
+  };
+  {
+    let over = {};
+    try { over = JSON.parse(localStorage.getItem('soundsAuditOver') || '{}') || {}; } catch (e) { over = {}; }
+    for (const s of SOUNDS) { const id = ids(s), base = over[id] || WAS[id]; if (tweaks[id] && base && base !== tuneNow(s)) delete tweaks[id]; }
+    saveTweaks();
+  }
   const tw = s => Object.assign({}, TUNE.DEF, tweaks[ids(s)]);
   // the four, as their sliders run: pitch in semitones, speed as a power of two (shown as x), tone in octaves, volume in dB
   const ADJ = [

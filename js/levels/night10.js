@@ -106,8 +106,9 @@ LEVELS.push({
         for (let x = -3.1; x < 3.5; x += 0.6) if (Math.abs(x) > 1.1) SC.sprite(L, x, 2.85, 3.46, 0.1, 0.12, (ctx, P) => { ctx.scale(0.1, 0.12); P_rect(ctx, -0.26, 0, 0.52, 0.3, P.col([96, 76, 40])); P_ell(ctx, 0, 0.6, 0.4, 0.38, P.col([106, 92, 74])); P_ell(ctx, -0.13, 0.7, 0.1, 0.1, P.col([150, 138, 116])); }, onWall);
       });
     });
-    // the way out onto the dark fair, through the south wall to the right of its mirror: curtains pulled aside, and the
-    // carousel beyond
+    // the way out onto the dark fair, through the south wall to the right of its mirror: curtains pulled aside, and
+    // beyond them only the dark and the posts of the carousel under its canopy (nothing on it: no pale shape out there
+    // to be taken for a thing standing in the doorway)
     const OUT = 213.3 * DEG, outAt = d => [Math.sin(OUT) * d, Math.cos(OUT) * d];
     for (const [x0, x1] of [[-2.9, -2.62], [-1.98, -1.7]]) SC.wallV(L, x0, -3.52, x1, -3.52, 0, 2.3, [70, 20, 30]);
     SC.floorQ(L, -80, -80, 80, -3.6, -0.01, [46, 42, 40]);
@@ -115,7 +116,6 @@ LEVELS.push({
     for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; SC.box(L, X + Math.sin(a) * 5 - 0.1, X + Math.sin(a) * 5 + 0.1, 0, 2.6, Z + Math.cos(a) * 5 - 0.1, Z + Math.cos(a) * 5 + 0.1, [60, 50, 44]); }
     SC.quad(L, [X - 5.5, 2.6, Z + 5.5], [X + 5.5, 2.6, Z + 5.5], [X + 5.5, 2.6, Z - 5.5], [X - 5.5, 2.6, Z - 5.5], [90, 40, 44]);
     SC.quad(L, [X - 5.5, 2.6, Z + 5.5], [X + 5.5, 2.6, Z + 5.5], [X, 5.0, Z], [X, 5.0, Z], [110, 50, 54]); SC.quad(L, [X - 5.5, 2.6, Z - 5.5], [X + 5.5, 2.6, Z - 5.5], [X, 5.0, Z], [X, 5.0, Z], [80, 36, 40]);
-    for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.3; SC.sprite(L, X + Math.sin(a) * 3.2, 0.6, Z + Math.cos(a) * 3.2, 0.9, 1.4, (ctx, P) => { ctx.scale(0.9, 1.4); P_ell(ctx, 0, 0.55, 0.45, 0.3, P.col([120, 110, 100])); P_rect(ctx, -0.05, 0, 0.1, 0.55, P.col([80, 70, 60])); P_ell(ctx, 0.3, 0.7, 0.14, 0.12, P.col([120, 110, 100])); }); }
     const rng = mulberry32(110);
     for (let i = 0; i < 14; i++) {
       const x = (rng() - 0.5) * 60, z = -8 - rng() * 50, along = x * Math.sin(OUT) + z * Math.cos(OUT), lat = x * Math.cos(OUT) - z * Math.sin(OUT), h = 2.2 + rng() * 2;

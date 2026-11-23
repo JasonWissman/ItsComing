@@ -482,9 +482,10 @@ some on the ground, so you have to turn and look down to find them.
    that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
    floor by the panes near the phone), then do what the card under the keys says, in big bold words you can read from
    where you stand (LIFT PHONE, INSERT COIN, DIAL NUMBER): lift the receiver, put
-   the coin in and dial on the phone's own keys. Lifted, the receiver is in your left hand, its armoured cord running from
-   the bottom of the phone down in a loop and up into the bottom of the receiver (wherever you look, it meets it), and
-   your right hand presses each key with a fingertip, going from key to key as you dial (what it held goes
+   the coin in and dial on the phone's own keys. Lifted, the receiver is in your right hand (the side its hook is on), its armoured cord running from
+   the bottom of the phone down that side of the shelf in a loop, clear of the notebook, and up into the bottom of the
+   receiver (wherever you look, it meets it); the coin is in your left, and
+   that hand presses each key with a fingertip, going from key to key as you dial (what it held goes
    down meanwhile; keys pressed faster than it can go are pressed in turn); a key goes down when the finger gets there, and
    one the phone will not take only clicks, the display blinking its credit at you (or NOT IN SERVICE). A coin put in with
    the receiver on its hook goes from your fingers into the slot, rattles down through the works and drops into the coin
@@ -502,13 +503,18 @@ some on the ground, so you have to turn and look down to find them.
    There is also 911 (lift the receiver and press 9, 1, 1; with no coin in, as an emergency call is free on any pay
    phone, or with one): it rings once and a dispatcher answers, a crackle of a voice (this is the night's easter egg,
    "Call 911.", kept in the save from the moment she answers). While the shade has still to get to its last lamp she has
-   three lines, one after another, each with its crackle and a beat between them for what you say back, which is not
-   heard: "911, what is your emergency?", "Are you sure?", "Ok, stay there. I'm sending a unit now." (shown in curly
-   quotation marks, opening and closing: the game's typeface draws the straight mark as a closing one); and with the last the
-   police are sent. Once the shade is at its last lamp, or past it, she says only that last line, at once. Hang up while
+   four lines, one after another, each with its crackle: "911, what is your emergency?", "Could you describe this
+   creature, please?", "I see.", "Ok, stay there. I'm sending a unit now." (shown in curly
+   quotation marks, opening and closing: the game's typeface draws the straight mark as a closing one). Each stays up a
+   moment and goes, and then there is a beat of quiet, a little over two seconds, for what you say back, which is not
+   heard, before the next: they begin 0, 4.4, 9.4 and 13 seconds after she answers. With the last the
+   police are sent. Once the shade is at its last lamp, or past it, she says only that last line, at once; and if it gets
+   there while she is still talking, the next thing she says is that last line, whatever she had left to ask (so the
+   police are always sent before it can get to you). Hang up while
    she is still talking and she is cut off: the rest is not said and no car is sent (call again and she starts over).
    Nothing comes
-   until the shade has got to the last lamp on its way in (called once it is past it, they come at once, and it skitters
+   until the shade has got to the last lamp on its way in, and never sooner than a second and a half after her last
+   line began (called once it is past that lamp, they come that beat after, and it skitters
    back behind that post). Then a police car comes tearing down its street, black and white with a gold star on its
    doors, its siren wailing (its first wail coming up out of silence, far off) and its light bar flashing red and blue on the wet street (with reduced flashing the bar
    swells slowly from red to blue and back instead), and screeches to a halt on the road beside that lamp post, its nose
@@ -528,7 +534,8 @@ some on the ground, so you have to turn and look down to find them.
    until it is out of sight. The shade shuts, its tentacles drawing back into it, skitters back behind its lamp post and stands
    there hidden, in the dark, for fourteen seconds (the right call, from hanging up on the dispatcher, takes seven seconds
    of ringing and the time to dial: the night can still be won there), and then comes on for you across to the glass. As
-   its lunge begins, this time or any other, it snarls that same high growl. (With reduced flashing the
+   it comes through the glass at you, this time or any other, it snarls that same high growl, from the instant the glass
+   breaks. (With reduced flashing the
    flashlight comes and goes smoothly; with reduced motion the shade does not leap, its convulsion is a slow writhe that
    comes on gently, its tentacles wave slowly and the car hardly swerves.) Should the
    right number be answered while the police are there, the shade sees them off first, and the car that comes for you
@@ -1141,7 +1148,8 @@ LEVELS.push({
 - **Feedback text** goes through `G.say(specific, vague)`: the first is shown with hints on, the
   second otherwise. It is still said when something does not work, for the captions, but what you see happen is the
   feedback (below).
-- **What you hold** (`js/hands.js`) is drawn in your right hand at the bottom right of the view: a sleeve, the hand
+- **What you hold** (`js/hands.js`) is drawn in your right hand at the bottom right of the view (your left, at the
+  bottom left, where a night sets `L.handSide = -1`: the phone booth, whose receiver is in your right): a sleeve, the hand
   closed round the thing, and the thing in its own icon, lit as the night lights a thing at your chest (a lamp-lit room,
   a dark field) and a shade darker than what lies about. It breathes, lags a moment as you turn and bobs as you look
   up or down (none of that with reduced motion), is lowered when you look down so it does not hide the floor, and dips a
@@ -1159,8 +1167,8 @@ LEVELS.push({
   swing (how freely a hanging thing swings), tip: [x, y]
   (the point it is pushed in with: a key's blade) }`; `G.heldSpec(item)` gives what is used. A night's own
   `uses[].inHands` (the bow) replaces it whenever that tool is held. `L.heldItem(item)` may return another item to draw,
-  or null to show nothing (undefined keeps the default); `L.offHand()` returns an item to draw in the left hand, at the
-  bottom left; `L.keepHeld` keeps it up once the night is won; `L.hands = { glove, skin, sleeve, lit }` dresses the hands.
+  or null to show nothing (undefined keeps the default); `L.offHand()` returns an item to draw in the other hand, on the other side
+  of the view (the left, unless `L.handSide` is -1); `L.keepHeld` keeps it up once the night is won; `L.hands = { glove, skin, sleeve, lit }` dresses the hands.
 - **When a thing will not go**, it is tried there and fails, in the world: `G.fumble(item, target, opts)` takes it from
   your hand to a spot on the target (drawn by the renderer, in the scene's order, fog and light) and fails there, by a
   preset: `'bump'` (pokes the spot, jiggles and drops: keys at a keyhole), `'slip'` (is put in place, hangs a beat, tips
