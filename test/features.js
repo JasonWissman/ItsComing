@@ -621,10 +621,10 @@ const hoverHit = lookFor;
     await ctx.close();
   }
 
-  console.log('== Scores: the easter eggs tab ==');
+  console.log('== Scores: the Secret scenes tab (the easter eggs) ==');
   {
     // one easter egg a night, for the nights that have one (LEVELS[i].text.egg); the save keeps which have been found
-    const defs = await page.evaluate(() => LEVELS.map(l => ({ id: l.id, title: l.title, egg: (l.text && l.text.egg) || '' })));
+    const defs = await page.evaluate(() => LEVELS.map(l => ({ id: l.id, title: l.title, egg: (l.text && l.text.egg) || '', name: EGG_TITLES[l.id] })));
     const withEgg = defs.filter(d => d.egg), have = ['road', 'lighthouse', 'booth'].filter(id => defs.some(d => d.id === id && d.egg));
     check(defs.length === 13 && withEgg.length >= 6 && have.length === 3 && withEgg.every(d => /\S/.test(d.egg) && !/\n/.test(d.egg)), 'the nights name their easter eggs, a line each (' + withEgg.map(d => d.id).join() + ')');
     const setSave = (o) => page.evaluate(([o, n, t]) => localStorage.setItem('itscoming.v2', JSON.stringify(Object.assign({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: { t, nights: n } }, settings: {} }, o))), [o, runNights, runT]);
@@ -635,30 +635,35 @@ const hoverHit = lookFor;
       return { list: !!list, listRole: list && list.parentElement === p, tabs: tabs.map(t => t.textContent + (t.getAttribute('aria-selected') === 'true' ? '*' : '') + '/' + t.tabIndex).join(), isBtn: tabs.every(t => t.tagName === 'BUTTON'),
         panels: panels.map((q, i) => q && q.getAttribute('role') === 'tabpanel' && q.getAttribute('aria-labelledby') === tabs[i].id ? (q.hidden || getComputedStyle(q).visibility === 'hidden' ? 'hidden' : 'shown') : 'bad').join(),
         focus: f && (f.getAttribute('role') === 'tab' ? 'tab:' + f.textContent : f.dataset.act), kind: MENU.kind, st: G.state,
-        rows: rows.map(e => ({ cls: e.className.replace(/ c[12]$/, ''), name: e.querySelector('.ename').textContent, what: e.querySelector('.ewhat').textContent, off: e.getAttribute('aria-disabled') === 'true', role: e.getAttribute('role'), dim: +getComputedStyle(e).color.split(',').pop().replace(/[^\d.]/g, '') < 0.5 })),
+        rows: rows.map(e => { const m = e.querySelector('.emark'), g = m.querySelector('svg'), cs = getComputedStyle(e), al = c => { const q = c.match(/[\d.]+/g); return q.length > 3 ? +q[3] : 1; };
+          return { cls: e.className.replace(/ c[12]$/, ''), name: e.querySelector('.ename').textContent, text: e.textContent, label: e.getAttribute('aria-label'), role: e.getAttribute('role'), dim: al(cs.color) < 0.5,
+            tick: getComputedStyle(g).display !== 'none' && r(g).width >= 9, box: r(m).width >= 12 && r(m).height >= 12 && parseFloat(getComputedStyle(m).borderTopWidth) >= 1, filled: al(getComputedStyle(m).backgroundColor) > 0.9, border: al(cs.borderTopColor), markHid: m.getAttribute('aria-hidden') === 'true' }; }),
         count: (p.querySelector('.eggcount') || {}).textContent, text: p.textContent, acts: [...p.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(),
         fits: p.scrollHeight <= p.clientHeight + 1 && p.scrollWidth <= p.clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth, inView: r(p).top >= 0 && r(p).bottom <= innerHeight && rows.every(e => r(e).left >= r(p).left && r(e).right <= r(p).right),
-        clipped: rows.filter(e => { const w = e.querySelector('.ewhat'), n = e.querySelector('.ename'); return w.scrollWidth > w.clientWidth + 1 || n.scrollWidth > n.clientWidth + 1; }).length, tabH: Math.min(...tabs.map(t => r(t).height)) };
+        clipped: rows.filter(e => { const n = e.querySelector('.ename'); return n.scrollWidth > n.clientWidth + 1; }).length, eggText: (document.getElementById('panel-eggs') || {}).textContent || '', listLabel: (p.querySelector('.eggs') || { getAttribute: () => '' }).getAttribute('aria-label'), tabH: Math.min(...tabs.map(t => r(t).height)) };
     });
     // no egg found: Scores as it was, no tabs at all
     await setSave({}); await page.goto(URL); await page.waitForTimeout(300);
     await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
-    check(await page.evaluate(() => !document.querySelector('#overlay [role="tablist"], #overlay [role="tab"], #overlay .eggs') && document.querySelectorAll('#overlay .ncard').length === 13), 'with no easter egg found yet: no tabs, no Easter eggs tab: Scores is the best run alone');
+    check(await page.evaluate(() => !document.querySelector('#overlay [role="tablist"], #overlay [role="tab"], #overlay .eggs') && document.querySelectorAll('#overlay .ncard').length === 13), 'with no easter egg found yet: no tabs, no Secret scenes tab: Scores is the best run alone');
     // three found: two tabs, Best run first and chosen; the eggs' panel there but hidden
     await setSave({ eggs: { road: true, lighthouse: true, booth: true } }); await page.goto(URL); await page.waitForTimeout(300);
     await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
     let ev = await tabsLook();
-    check(ev.list && ev.listRole && ev.isBtn && ev.tabs === 'Best run*/0,Easter eggs/-1' && ev.panels === 'shown,hidden' && ev.acts === 'back,reset' && ev.focus === 'back' && ev.fits && ev.inView,
-      'once an easter egg is found Scores has two tabs (tablist, tab, tabpanel): Best run, chosen, and Easter eggs; only the chosen one in the tab order; all of it in view (' + JSON.stringify({ tabs: ev.tabs, panels: ev.panels, acts: ev.acts, focus: ev.focus, fits: ev.fits, inView: ev.inView }) + ')');
+    check(ev.list && ev.listRole && ev.isBtn && ev.tabs === 'Best run*/0,Secret scenes/-1' && ev.panels === 'shown,hidden' && ev.acts === 'back,reset' && ev.focus === 'back' && ev.fits && ev.inView,
+      'once an easter egg is found Scores has two tabs (tablist, tab, tabpanel): Best run, chosen, and Secret scenes; only the chosen one in the tab order; all of it in view (' + JSON.stringify({ tabs: ev.tabs, panels: ev.panels, acts: ev.acts, focus: ev.focus, fits: ev.fits, inView: ev.inView }) + ')');
     await shot(page, 'scores-tabs-run');
     await page.click('#overlay [role="tab"][data-tab="eggs"]'); await page.waitForTimeout(200);
     ev = await tabsLook();
-    const want = defs.map((d, i) => ({ cls: 'egg ' + (have.includes(d.id) ? 'found' : d.egg ? 'unknown' : 'none'), name: (i + 1) + '. ' + d.title, what: have.includes(d.id) ? d.egg : d.egg ? '???' : '—', off: !d.egg, role: 'listitem' }));
-    check(ev.tabs === 'Best run/-1,Easter eggs*/0' && ev.panels === 'hidden,shown' && ev.kind === 'nights' && ev.st === 'title', 'a click on Easter eggs chooses it: its panel shown, Best run\'s hidden (' + JSON.stringify([ev.tabs, ev.panels]) + ')');
-    check(ev.rows.length === 13 && JSON.stringify(ev.rows.map(r => ({ cls: r.cls, name: r.name, what: r.what, off: r.off, role: r.role }))) === JSON.stringify(want),
-      'the thirteen nights in order: one found shows its night\'s own line; one not found yet ???; a night with no easter egg a dash, disabled (' + JSON.stringify(ev.rows.map(r => r.name + ': ' + r.what)) + ')');
-    check(withEgg.filter(d => !have.includes(d.id)).every(d => !ev.text.includes(d.egg)) && ev.rows.filter(r => r.off).every(r => r.dim) && ev.rows.filter(r => !r.off).every(r => !r.dim), 'what is not found yet is not given away anywhere in the dialog; the nights with none are dimmed');
-    check(ev.count === '3 of ' + withEgg.length + ' found' && ev.fits && ev.inView && !ev.clipped, 'and how many: "' + ev.count + '"; the list in view, nothing cut off (' + JSON.stringify({ fits: ev.fits, inView: ev.inView, clipped: ev.clipped }) + ')');
+    const want = defs.map(d => { const f = have.includes(d.id); return { cls: 'egg ' + (f ? 'found' : 'unknown'), name: d.name, text: d.name, label: d.name + (f ? ', found' : ', not found'), role: 'listitem' }; });
+    check(ev.tabs === 'Best run/-1,Secret scenes*/0' && ev.panels === 'hidden,shown' && ev.kind === 'nights' && ev.st === 'title' && ev.listLabel === 'Secret scenes' && !/easter/i.test(ev.text), 'a click on Secret scenes chooses it: its panel shown, Best run\'s hidden; nowhere in the dialog is it called easter eggs (' + JSON.stringify([ev.tabs, ev.panels]) + ')');
+    check(ev.rows.length === 13 && JSON.stringify(ev.rows.map(r => ({ cls: r.cls, name: r.name, text: r.text, label: r.label, role: r.role }))) === JSON.stringify(want) && ev.rows[2].name === 'Sugar rush' && ev.rows[8].name === 'Its an emergency',
+      'thirteen boxes in the nights\' order, each with its title and nothing else, found or not, and labelled "<title>, found" / "<title>, not found" (' + JSON.stringify(ev.rows.map(r => r.label)) + ')');
+    check(ev.eggText.length > 50 && defs.every(d => d.egg && !ev.eggText.includes(d.egg) && !ev.eggText.includes(d.title) && !ev.text.includes(d.egg)) && !/\d\./.test(ev.eggText), 'no night\'s name or number, and none of the nights\' own lines for them, anywhere in the tab');
+    const fnd = ev.rows.filter(r => r.cls === 'egg found'), unf = ev.rows.filter(r => r.cls === 'egg unknown');
+    check(fnd.length === 3 && unf.length === 10 && fnd.every(r => r.tick && r.box && r.filled && !r.dim && r.border > 0.5 && r.markHid) && unf.every(r => !r.tick && r.box && !r.filled && r.dim && r.border < 0.25 && r.markHid),
+      'one found: a check drawn in its filled box, the title bright, the border plain; one not found: an empty box, the title dimmed, the border faint (' + JSON.stringify({ found: fnd[0], not: unf[0] }) + ')');
+    check(ev.count === '3 of 13 found' && ev.fits && ev.inView && !ev.clipped, 'and how many: "' + ev.count + '"; the list in view, nothing cut off (' + JSON.stringify({ fits: ev.fits, inView: ev.inView, clipped: ev.clipped }) + ')');
     await shot(page, 'scores-eggs');
     // the keys: on the chosen tab, left and right go along the tabs choosing as they go; down goes on to the buttons, up back
     await page.evaluate(() => document.querySelector('#overlay [role="tab"][aria-selected="true"]').focus());
@@ -670,9 +675,9 @@ const hoverHit = lookFor;
     await page.keyboard.press('ArrowUp'); await page.waitForTimeout(40); const k6 = await tabsLook();
     await page.keyboard.press('Home'); await page.waitForTimeout(40); const k7 = await tabsLook();
     await page.keyboard.press('End'); await page.waitForTimeout(40); const k8 = await tabsLook();
-    check(k1.tabs === 'Best run*/0,Easter eggs/-1' && k1.focus === 'tab:Best run' && k1.panels === 'shown,hidden' && k2.tabs === k1.tabs && k2.focus === 'tab:Best run' && k3.tabs === 'Best run/-1,Easter eggs*/0' && k3.focus === 'tab:Easter eggs' && k3.panels === 'hidden,shown',
-      'by the keys: left on the chosen tab chooses Best run (the focus going with it; left again stays), right Easter eggs (' + JSON.stringify([k1.tabs, k1.focus, k3.tabs, k3.focus]) + ')');
-    check(k4.tabs === k3.tabs && k4.kind === 'nights' && k4.st === 'title' && k5.focus === 'back' && k6.focus === 'tab:Easter eggs' && k7.focus === 'tab:Best run' && k7.tabs === k1.tabs && k8.focus === 'tab:Easter eggs' && k8.tabs === k3.tabs,
+    check(k1.tabs === 'Best run*/0,Secret scenes/-1' && k1.focus === 'tab:Best run' && k1.panels === 'shown,hidden' && k2.tabs === k1.tabs && k2.focus === 'tab:Best run' && k3.tabs === 'Best run/-1,Secret scenes*/0' && k3.focus === 'tab:Secret scenes' && k3.panels === 'hidden,shown',
+      'by the keys: left on the chosen tab chooses Best run (the focus going with it; left again stays), right Secret scenes (' + JSON.stringify([k1.tabs, k1.focus, k3.tabs, k3.focus]) + ')');
+    check(k4.tabs === k3.tabs && k4.kind === 'nights' && k4.st === 'title' && k5.focus === 'back' && k6.focus === 'tab:Secret scenes' && k7.focus === 'tab:Best run' && k7.tabs === k1.tabs && k8.focus === 'tab:Secret scenes' && k8.tabs === k3.tabs,
       'Enter and Space on it change nothing; down goes on to Back, up back to the chosen tab; Home and End the first and the last (' + JSON.stringify([k4.tabs, k5.focus, k6.focus, k7.focus, k8.focus]) + ')');
     // a pad: the d-pad up from Back to the chosen tab, left and right along the tabs, B back out
     await page.evaluate(() => { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; document.querySelector('#overlay button[data-act="back"]').focus(); });
@@ -684,7 +689,7 @@ const hoverHit = lookFor;
     await padTab(1); await page.waitForTimeout(100);
     const g5 = await page.evaluate(() => MENU.kind + ' ' + G.state);
     await page.evaluate(() => { navigator.getGamepads = () => []; });
-    check(g1.focus === 'tab:Easter eggs' && g2.focus === 'tab:Best run' && g2.tabs === 'Best run*/0,Easter eggs/-1' && g3.focus === 'tab:Easter eggs' && g3.tabs === 'Best run/-1,Easter eggs*/0' && g4.tabs === g3.tabs && g4.kind === 'nights' && g5 === 'title title',
+    check(g1.focus === 'tab:Secret scenes' && g2.focus === 'tab:Best run' && g2.tabs === 'Best run*/0,Secret scenes/-1' && g3.focus === 'tab:Secret scenes' && g3.tabs === 'Best run/-1,Secret scenes*/0' && g4.tabs === g3.tabs && g4.kind === 'nights' && g5 === 'title title',
       'a pad: up from Back to the chosen tab, left and right choose along them, A changes nothing, B is Back (' + JSON.stringify([g1.focus, g2.tabs, g3.tabs, g5]) + ')');
     // an egg found, but no full run yet: no Scores on the title for it (the egg is kept); opened all the same, it is on
     // the eggs, and Best run is its empty state. With a run finished after, Scores is there and the egg is in it
@@ -694,31 +699,25 @@ const hoverHit = lookFor;
     const nr1 = await tabsLook();
     await page.click('#overlay [role="tab"][data-tab="run"]'); await page.waitForTimeout(150);
     const nr2 = await page.evaluate(() => { const q = document.getElementById('panel-run'); return { shown: !q.hidden, empty: !!q.querySelector('.runcard.empty'), hint: (q.querySelector('.rhint') || {}).textContent, cards: q.querySelectorAll('.ncard').length, time: q.querySelector('.rtime').textContent }; });
-    check(nr0 && nr1.tabs === 'Best run/-1,Easter eggs*/0' && nr1.count === '1 of ' + withEgg.length + ' found' && nr1.fits && nr2.shown && nr2.empty && /No full run yet/.test(nr2.hint) && nr2.cards === 0 && nr2.time === '—',
+    check(nr0 && nr1.tabs === 'Best run/-1,Secret scenes*/0' && nr1.count === '1 of 13 found' && nr1.fits && nr2.shown && nr2.empty && /No full run yet/.test(nr2.hint) && nr2.cards === 0 && nr2.time === '—',
       'an easter egg found before any full run: no Scores button on the title for it, the egg kept in the save; opened all the same it is on the eggs (1 found), its Best run tab saying there is no full run yet (' + JSON.stringify([nr0, nr1.tabs, nr1.count, nr2]) + ')');
     await shot(page, 'scores-eggs-norun');
     await setSave({ eggs: { road: true } }); await page.goto(URL); await page.waitForTimeout(300);
     const nr3 = await page.evaluate(() => !!document.querySelector('#overlay button[data-act="nights"]') && MENU.scoresOpen());
     await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(200);
     const nr4 = await tabsLook();
-    check(nr3 && nr4.tabs === 'Best run*/0,Easter eggs/-1' && nr4.count === '1 of ' + withEgg.length + ' found', 'and once a whole run is finished, Scores is on the title, with that egg in its Easter eggs tab (' + JSON.stringify([nr3, nr4.tabs, nr4.count]) + ')');
-    // the list is the nights' own: a night given an easter egg is ??? at once and counts; found, it shows its line
+    check(nr3 && nr4.tabs === 'Best run*/0,Secret scenes/-1' && nr4.count === '1 of 13 found', 'and once a whole run is finished, Scores is on the title, with that egg in its Secret scenes tab (' + JSON.stringify([nr3, nr4.tabs, nr4.count]) + ')');
+    // the list is the save's: a box is unchecked until its night's easter egg is found, then checked and counted; its
+    // title is the same either way, and does not come from the night's own line (text.egg, which the UI no longer shows)
     const dyn = await page.evaluate(() => {
-      // (the first night that has none of its own; every night has one now, so for this one is taken off the first night
-      // whose own is not found yet, and put back after)
-      let n = LEVELS.findIndex(d => !d.text.egg), own;
-      if (n < 0) { n = LEVELS.findIndex(d => !SAVE.data.eggs[d.id]); own = LEVELS[n].text.egg; delete LEVELS[n].text.egg; }
-      const l = LEVELS[n], had = l.text.egg, base = LEVELS.filter(d => d.text.egg).length; l.text.egg = 'Wave at the walker.';
-      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelectorAll('#overlay .eggs .egg')[n]; return e.className.replace(/ c[12]$/, '') + '|' + e.querySelector('.ewhat').textContent + '|' + document.querySelector('#overlay .eggcount').textContent; };
+      const n = LEVELS.findIndex(d => !SAVE.data.eggs[d.id]), l = LEVELS[n], own = l.text.egg; delete l.text.egg;
+      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelectorAll('#overlay .eggs .egg')[n]; return e.className.replace(/ c[12]$/, '') + '|' + e.textContent + '|' + e.getAttribute('aria-label') + '|' + document.querySelector('#overlay .eggcount').textContent; };
       const a = row(), first = SAVE.egg(l.id), b = row(), again = SAVE.egg(l.id);
-      if (had === undefined) delete l.text.egg; else l.text.egg = had;
-      delete SAVE.data.eggs[l.id]; SAVE.persist();
-      const c = row();
-      if (own !== undefined) l.text.egg = own;
-      return { a, b, first, again, c, base };
+      delete SAVE.data.eggs[l.id]; SAVE.persist(); l.text.egg = own;
+      return { a, b, first, again, c: row(), t: EGG_TITLES[l.id] };
     });
-    check(dyn.a === 'egg unknown|???|1 of ' + (dyn.base + 1) + ' found' && dyn.first && !dyn.again && dyn.b === 'egg found|Wave at the walker.|2 of ' + (dyn.base + 1) + ' found' && dyn.c === 'egg none|—|1 of ' + dyn.base + ' found' && dyn.base >= withEgg.length - 1,
-      'it is driven by the nights\' own text.egg: a night given one is ??? and counted, then shows its line once found (' + JSON.stringify(dyn) + ')');
+    check(dyn.a === 'egg unknown|' + dyn.t + '|' + dyn.t + ', not found|1 of 13 found' && dyn.first && !dyn.again && dyn.b === 'egg found|' + dyn.t + '|' + dyn.t + ', found|2 of 13 found' && dyn.c === dyn.a,
+      'it is driven by the save: a box not found shows its title unchecked, and found the same title checked and counted, with or without the night\'s own line (' + JSON.stringify(dyn) + ')');
     // a night finds its own: foundEgg() with no id is the night being played; true the first time only; saved
     await page.goto(URL + '?level=5&go'); await page.waitForTimeout(400);
     const fe = await page.evaluate(() => { const id = G.L.def.id, had = !!SAVE.data.eggs[id], a = foundEgg(), b = foundEgg(), c = foundEgg('nosuch'); return { id, had, a, b, c, saved: JSON.parse(localStorage.getItem('itscoming.v2')).eggs, open: MENU.scoresOpen() }; });
@@ -737,7 +736,7 @@ const hoverHit = lookFor;
     await page.keyboard.press('Enter'); await page.waitForTimeout(150); await page.keyboard.press('Escape'); await page.waitForTimeout(150);
     const ps5 = await page.evaluate(() => ({ st: G.state, kind: MENU.kind, focus: document.activeElement && document.activeElement.dataset.act }));
     check(ps1.st === 'paused' && ps1.acts === 'resume:Resume,controls:Controls,settings:Settings,nights:Scores,quit:Quit' && ps1.widths === 1, 'the pause menu has Scores too once the title has it (a whole run finished): Resume, Controls, Settings, Scores, Quit, all one width (' + JSON.stringify(ps1) + ')');
-    check(ps2.st === 'paused' && ps2.kind === 'nights' && ps2b.dlg && ps2b.panel && !ps2b.reset && ps2.acts === 'back' && ps2b.back === 'pause' && ps2.list && ps2.count === '2 of ' + withEgg.length + ' found' && ps3 === 'paused nights',
+    check(ps2.st === 'paused' && ps2.kind === 'nights' && ps2b.dlg && ps2b.panel && !ps2b.reset && ps2.acts === 'back' && ps2b.back === 'pause' && ps2.list && ps2.count === '2 of ' + 13 + ' found' && ps3 === 'paused nights',
       'it opens the Scores dialog over the paused night (still paused, a click in it resumes nothing), with no Erase progress (' + JSON.stringify([ps2.kind, ps2b, ps2.acts, ps2.count, ps3]) + ')');
     check(ps4.st === 'paused' && ps4.kind === 'pause' && ps4.focus === 'nights' && ps5.st === 'paused' && ps5.kind === 'pause' && ps5.focus === 'nights', 'its Back, and Esc, are the pause menu again, Scores focused (' + JSON.stringify([ps4, ps5]) + ')');
     await page.evaluate(() => { SAVE.data.bestRun = {}; SAVE.persist(); MENU.show('pause'); });
@@ -745,7 +744,7 @@ const hoverHit = lookFor;
     // a phone on its side: the eggs' tab fits, each night on a line, nothing scrolled either way; the tabs fair targets
     const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 }), mp = await ctx.newPage();
     await mp.goto(URL); await mp.waitForTimeout(300);
-    await mp.evaluate(([n, t, ids]) => { localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: { t, nights: n } }, settings: {}, eggs: Object.fromEntries(ids.map(i => [i, true])) })); }, [runNights, runT, withEgg.map(d => d.id)]);
+    await mp.evaluate(([n, t, ids]) => { localStorage.setItem('itscoming.v2', JSON.stringify({ v: 4, unlocked: { nightmare: 13 }, complete: {}, bestRun: { nightmare: { t, nights: n } }, settings: {}, eggs: Object.fromEntries(ids.map(i => [i, true])) })); }, [runNights, runT, defs.filter((d, i) => i % 2 === 0).map(d => d.id)]);
     await mp.goto(URL); await mp.waitForTimeout(300);
     await mp.tap('#overlay button[data-act="nights"]'); await mp.waitForTimeout(250);
     const m1 = await tabsLook(mp);
@@ -753,8 +752,8 @@ const hoverHit = lookFor;
     await mp.tap('#overlay [role="tab"][data-tab="eggs"]'); await mp.waitForTimeout(250);
     const m2 = await tabsLook(mp);
     await mp.screenshot({ path: path.join(__dirname, 'shots', 'phone-scores-eggs.png') });
-    check(m1.tabs === 'Best run*/0,Easter eggs/-1' && m1.fits && m1.inView && m1.tabH >= 30 && m2.tabs === 'Best run/-1,Easter eggs*/0' && m2.panels === 'hidden,shown' && m2.fits && m2.inView && !m2.clipped && m2.count === withEgg.length + ' of ' + withEgg.length + ' found' && m2.rows.filter(r => r.cls === 'egg found').length === withEgg.length,
-      'on a phone on its side (844 x 390): the tabs tapped, each a fair target; both tabs fit with nothing scrolled, down or across, every easter egg\'s line whole (' + JSON.stringify({ run: [m1.fits, m1.inView, m1.tabH], eggs: [m2.fits, m2.inView, m2.clipped, m2.count] }) + ')');
+    check(m1.tabs === 'Best run*/0,Secret scenes/-1' && m1.fits && m1.inView && m1.tabH >= 30 && m2.tabs === 'Best run/-1,Secret scenes*/0' && m2.panels === 'hidden,shown' && m2.fits && m2.inView && !m2.clipped && m2.count === '7 of 13 found' && m2.rows.filter(r => r.cls === 'egg found' && r.tick && !r.dim).length === 7 && m2.rows.filter(r => r.cls === 'egg unknown' && !r.tick && r.box && r.dim).length === 6,
+      'on a phone on its side (844 x 390): the tabs tapped, each a fair target; both tabs fit with nothing scrolled, down or across, every title whole, seven checked and six not (' + JSON.stringify({ run: [m1.fits, m1.inView, m1.tabH], eggs: [m2.fits, m2.inView, m2.clipped, m2.count] }) + ')');
     await ctx.close();
     await page.evaluate(() => localStorage.clear());
   }
@@ -2383,7 +2382,7 @@ const hoverHit = lookFor;
   await require('./settings').run(browser, check);
 
   // An easter egg found for the first time is said in a corner: "Secret discovered: " and its title (game.js EGG_TITLES,
-  // by the night's id), with a small chime ('secret', captioned). The note is in the top left under the corner controls,
+  // by the night's id), and no sound with it (no sfx is played, no caption comes up). The note is in the top left under the corner controls,
   // in the page and over nothing else, at 1280 by 760 and on a phone held sideways (844 by 390); it goes after its time;
   // the same egg found again says nothing; it shows over a death screen, and never takes a click
   console.log('== an easter egg found: the note in the corner ==');
@@ -2394,7 +2393,8 @@ const hoverHit = lookFor;
     const find = () => sp.evaluate(() => {
       SAVE.data.eggs = {}; SAVE.persist(); MENU.applySetting('captions', true);
       window.__heard = []; const sfx = AUDIO.sfx; window.__sfx = sfx; AUDIO.sfx = (name, ...a) => { window.__heard.push(name); return sfx(name, ...a); };
-      return { id: G.L.def.id, state: G.state, first: foundEgg(), caption: document.getElementById('caption').textContent };
+      const cap0 = document.getElementById('caption').textContent, first = foundEgg();
+      return { id: G.L.def.id, state: G.state, first, played: window.__heard.slice(), capSame: document.getElementById('caption').textContent === cap0, known: Object.keys(CAPTIONS.SFX || {}).includes('secret') };
     });
     const look = () => sp.evaluate(() => {
       const el = document.getElementById('secret'), cs = getComputedStyle(el), r = el.getBoundingClientRect(), W = innerWidth, H = innerHeight;
@@ -2408,8 +2408,8 @@ const hoverHit = lookFor;
     });
     const a = await find(); await sp.waitForTimeout(700);
     const v = await look();
-    check(a.id === 'graveyard' && a.state === 'play' && a.first === true && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible' && v.heard === 1 && a.caption === 'a bright chime',
-      'an easter egg found for the first time, ' + what + ': "' + v.text + '" is up, the chime played once, with its caption (' + JSON.stringify({ a, heard: v.heard }) + ')');
+    check(a.id === 'graveyard' && a.state === 'play' && a.first === true && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible' && v.heard === 0 && a.played.length === 0 && a.capSame && !a.known,
+      'an easter egg found for the first time, ' + what + ': "' + v.text + '" is up, and no sound is played with it, no caption (the chime is gone) (' + JSON.stringify({ a, heard: v.heard }) + ')');
     check(v.inside && v.corner && !v.over.length && v.pe === 'none' && v.notHit && !v.inHud && /mute|menuBtn/.test(v.seen) && /compass/.test(v.seen),
       'the note ' + what + ': in the page, in the top left corner, over none of the corner controls or the HUD, taking no click (' + JSON.stringify({ box: v.box, over: v.over, seen: v.seen }) + ')');
     await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-' + tag + '.png') });
@@ -2427,15 +2427,15 @@ const hoverHit = lookFor;
       check(still.cls && /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/.test(still.on) && /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/.test(still.off), 'with reduced motion it only fades: it is not moved, coming or going (' + JSON.stringify(still) + ')');
       // every night's easter egg has its title; one with none falls back to the night's own line
       const titles = await sp.evaluate(() => ({ ids: LEVELS.map(l => l.id), t: LEVELS.map(l => EGG_TITLES[l.id] || ''), fall: (() => { const l = LEVELS[0], k = EGG_TITLES[l.id], own = l.text.egg; delete EGG_TITLES[l.id]; l.text.egg = 'Wave at it.'; const r = eggTitle(l.id); EGG_TITLES[l.id] = k; l.text.egg = own; return r; })(), none: eggTitle('nosuch') }));
-      check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t[0] === 'Window of opportunity' && titles.t[12] === 'Take everything' && titles.fall === 'Wave at it' && titles.none === '',
+      check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t.join('|') === 'Through the window|Hit and run|Sugar rush|Staring contest|Bat shot crazy|Lifesaver|Butterfingers|Thirst quencher|Its an emergency|Cover up|Power overload|Movie night|Flip the script' && titles.fall === 'Wave at it' && titles.none === '',
         'every night\'s id has a short title for its easter egg; a night without one is named by its own line (' + JSON.stringify(titles.t) + ')');
     }
     // over a death screen: the HUD is gone, the note is there above the screen, and the screen's buttons still take the click
     await sp.evaluate(() => { document.getElementById('secret').classList.remove('show'); die(); });
     await sp.waitForFunction(() => G.state === 'dead' && +getComputedStyle(UI.overlay).opacity > 0.9, null, { timeout: 15000 }).catch(() => {});
-    await sp.evaluate(() => { SAVE.data.eggs = {}; window.__heard = []; foundEgg(); }); await sp.waitForTimeout(700);
-    const d = await look(), dd = await sp.evaluate(() => ({ state: G.state, oz: +getComputedStyle(UI.overlay).zIndex || 0, btn: !!document.querySelector('#overlay button') }));
-    check(dd.state === 'dead' && dd.btn && d.shown && d.op === 1 && d.vis === 'visible' && d.z > dd.oz && d.inside && d.notHit && d.heard === 1 && d.text === 'Secret discovered: Sugar rush' && !d.over.filter(id => id === 'mute' || id === 'menuBtn' || id === 'fsBtn').length,
+    await sp.evaluate(() => { SAVE.data.eggs = {}; window.__heard = []; foundEgg(); window.__now = window.__heard.length; }); await sp.waitForTimeout(700);
+    const d = await look(), dd = await sp.evaluate(() => ({ now: window.__now, state: G.state, oz: +getComputedStyle(UI.overlay).zIndex || 0, btn: !!document.querySelector('#overlay button') }));
+    check(dd.state === 'dead' && dd.btn && d.shown && d.op === 1 && d.vis === 'visible' && d.z > dd.oz && d.inside && d.notHit && d.heard === 0 && dd.now === 0 && d.text === 'Secret discovered: Sugar rush' && !d.over.filter(id => id === 'mute' || id === 'menuBtn' || id === 'fsBtn').length,
       'over a death screen ' + what + ': the note is up above it, in the page, clear of the corner controls, and takes no click (' + JSON.stringify({ dd, box: d.box, over: d.over, z: d.z }) + ')');
     await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-death-' + tag + '.png') });
     await ctx.close();
