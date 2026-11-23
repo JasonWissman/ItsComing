@@ -74,6 +74,7 @@ const coverAgain = k => [look(k), ['wait', 200],
 // the last bare mirror covered: the easter egg
 const lastSheet = k => [look(k), ['wait', 200],
   ['eval', `delete SAVE.data.eggs.mirrors; window._eg = { hush: 0, face: 0, hands: 0, others: 0, lungeAt: -1, shake: 0, bare: 0, early: 0, hung: 0, heaps: 0, rim0: -1, rim1: 0, near: 9, othersEnd: 0, steps: [] };
+    window._eg.sfx = []; { const sf = AUDIO.sfx; AUDIO.sfx = (n, ...a) => { if (G.L.s.egg) window._eg.sfx.push([n, G.stateT]); return sf(n, ...a); }; }
     { const fs = AUDIO.footstep; AUDIO.footstep = (kind, vol, pan) => { const g = G.L.s.egg; if (g) window._eg.steps.push({ kind, vol, pan, T: G.stateT, pressed: g.pressed, face: (g.shown[g.k] || { k: 0 }).k }); return fs(kind, vol, pan); }; }
     (function w() {
       const e = window._eg, s = G.L.s, T = G.stateT, c = G.L.creature;
@@ -110,6 +111,7 @@ const lastSheet = k => [look(k), ['wait', 200],
   ['expect', '(st => st.every((p, i) => i < 2 || p.T - st[i - 1].T < st[i - 1].T - st[i - 2].T + 0.035) && st[st.length - 1].T - st[st.length - 2].T < st[1].T - st[0].T)(window._eg.steps)', 'and quicker as they come'],
   ['expect', '(e => e.face > 0.95 && e.hands > 0.95 && e.others > 0.6)(window._eg)', 'then its face presses out through that sheet, and its two hands, and the other sheets bulge too'],
   ['expect', '(e => e.lungeAt > 2.85 && e.lungeAt < 3.1 && !e.bare && !e.early && e.rim0 > 0)(window._eg)', 'and at 2.9 s it comes at you in the sheet: the doll itself is never drawn, and nothing of it before then'],
+  ['expect', "(f => { const w = f.filter(h => h[0] === 'sheetWhoosh'), p = f.filter(h => h[0] === 'sheetPress'); return w.length === 1 && w[0][1] >= 2.9 && w[0][1] < 3.05 && p.length === 1 && p[0][1] >= 1 && p[0][1] < 1.15; })(window._eg.sfx)", 'as its lunge begins there is a rush of air (sheetWhoosh), once, with the cloth\'s creak and its wail (sheetPress) as before'],
   ['expect', '(e => !e.hung && !e.heaps && e.othersEnd > 0.6)(window._eg)', 'the sheet leaves its mirror with it (not torn down: no sheet hangs there and none lies in a heap), the other three still bulging'],
   ['expect', '(e => e.rim0 < 0.6 && e.rim1 > 1.25 && e.near < 0.7)(window._eg)', 'the sheet streams back from its face, its hem growing from the sheet\'s own size on the mirror to past every edge of the view as it reaches you'],
   ['expect', "G.state === 'dead' && G.deathCause === 'ignored' && G.deathScreen.title === 'Nice try' && G.deathScreen.text === 'It does not like to be ignored.'", 'the screen says "Nice try": "It does not like to be ignored."'],

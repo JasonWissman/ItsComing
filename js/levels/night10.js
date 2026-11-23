@@ -585,7 +585,7 @@ LEVELS.push({
     // from inside (CREATURES.other.pressed: brow, eye sockets, nose, the open mouth), a hand either side of it from
     // EGG.hands, fingers spread, the cloth stretching toward you and creaking, its sob rising to a wail (sheetPress); from
     // EGG.others the other three sheets bulge with its face too (and stay so); and at EGG.burst that same face and those
-    // hands, still in the cloth, come at you: the lunge any death here ends in, but what lunges is the sheet with it inside
+    // hands, still in the cloth, come at you, with a rush of air (sheetWhoosh): the lunge any death here ends in, but what lunges is the sheet with it inside
     // (CREATURES.other.shroud: c.shroud), the moulded face growing toward your eye, a cloth-covered hand reaching either
     // side, and the rest of the sheet dragged off the mirror's frame behind them, streaming back from the face in a ring of
     // folds, its hem flaring, until it fills the view. The doll itself is never seen. For the game it is on that mirror's
@@ -604,7 +604,7 @@ LEVELS.push({
         e.steps++;
       }
       if (!e.pressed && T >= EGG.hush) { e.pressed = true; AUDIO.sfx('sheetPress', 0); }
-      if (!e.burst && k > 0) { e.burst = true; const m = s.mirrors[e.k]; m.live = true; m.anim = null; c.shroud.hidden = false; if (!gentle()) G.shake(1.2); }   // the sheet leaves the glass with it
+      if (!e.burst && k > 0) { e.burst = true; AUDIO.sfx('sheetWhoosh', 0); const m = s.mirrors[e.k]; m.live = true; m.anim = null; c.shroud.hidden = false; if (!gentle()) G.shake(1.2); }   // the sheet leaves the glass with it
     };
     const ignored = k => {
       const c = c0();

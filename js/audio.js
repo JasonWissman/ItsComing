@@ -526,6 +526,17 @@ const AUDIO = (() => {
       // through it. The sheet creaks as it stretches, three long strains, each tighter (higher) than the last, the weave
       // rasping under them; its sob, two short hitches, and then one that rises into a wail as it comes through; and the
       // thump as it has you. About 3.3 s, and it is the whole of that death's sound after the hush (night10.js: EGG)
+      // night 10's easter egg, as the sheet comes at you: a quick rush of air, rising and swelling, cut short (0.4 s)
+      case 'sheetWhoosh': {
+        const t0 = now(), T = 0.4, src = ac.createBufferSource(), flt = ac.createBiquadFilter(), g = ac.createGain();
+        src.buffer = noiseBuf; src.loop = true; flt.type = 'bandpass'; flt.Q.value = 1.3;
+        flt.frequency.setValueAtTime(420, t0); flt.frequency.exponentialRampToValueAtTime(2800, t0 + T);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.42, t0 + T * 0.8); g.gain.linearRampToValueAtTime(0.0001, t0 + T + 0.05);
+        src.connect(flt); flt.connect(g); chain(g, pan);
+        src.start(t0, Math.random() * 1.2); src.stop(t0 + T + 0.1);
+        noise(0.3, { type: 'highpass', freq: 3500, vol: 0.1, attack: 0.2, delay: 0.1, pan });   // (the thin air over it, coming up late)
+        break;
+      }
       case 'sheetPress': {
         for (const [d, f, v] of [[0, 150, 0.6], [0.55, 190, 0.8], [1.1, 240, 1]]) {
           noise(0.5, { type: 'bandpass', freq: f * 3, q: 5, vol: 0.2 * v, attack: 0.25, delay: d, pan });
@@ -707,16 +718,21 @@ const AUDIO = (() => {
         if (name === 'dispatchSend') noise(0.04, { type: 'highpass', freq: 1800, vol: 0.12, delay: d + 0.06 });   // (a tick on the line as the voice stops)
         break;
       }
+      case 'sirenIn':   // the first wail of it, far off: the same wail coming up out of silence over the whole of it, muffled at first
       case 'siren': {   // one wail: up and down again in 1.6 s, a reedy sawtooth with a square an octave under it
-        const t0 = now(), dur = 1.6, lp = ac.createBiquadFilter(), g = ac.createGain(), g2 = ac.createGain(), oscs = [];
+        const t0 = now(), dur = 1.6, lp = ac.createBiquadFilter(), g = ac.createGain(), g2 = ac.createGain(), oscs = [], far = name === 'sirenIn';
         lp.type = 'lowpass'; lp.frequency.value = 2600; lp.Q.value = 0.7; g2.gain.value = 0.35;
+        if (far) { lp.frequency.setValueAtTime(700, t0); lp.frequency.exponentialRampToValueAtTime(2600, t0 + dur - 0.04); }
         for (const [type, k] of [['sawtooth', 1], ['square', 0.5]]) {
           const o = ac.createOscillator(); o.type = type;
           o.frequency.setValueAtTime(620 * k, t0); o.frequency.linearRampToValueAtTime(1320 * k, t0 + dur * 0.5); o.frequency.linearRampToValueAtTime(620 * k, t0 + dur);
           o.connect(k < 1 ? g2 : lp); oscs.push(o);
         }
         g2.connect(lp); lp.connect(g);
-        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.07, t0 + 0.04); g.gain.setValueAtTime(0.07, t0 + dur - 0.04); g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        g.gain.setValueAtTime(0.0001, t0);
+        if (far) for (const [at, v] of [[0.5, 0.008], [1.0, 0.03], [dur - 0.04, 0.07]]) g.gain.linearRampToValueAtTime(v, t0 + at);   // (slowly at first: an eighth of its level half a second in, under half at a second)
+        else { g.gain.linearRampToValueAtTime(0.07, t0 + 0.04); g.gain.setValueAtTime(0.07, t0 + dur - 0.04); }
+        g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
         chain(g, pan);
         for (const o of oscs) { o.start(t0); o.stop(t0 + dur + 0.05); }
         break;
@@ -761,10 +777,24 @@ const AUDIO = (() => {
         for (let i = 0; i < 10; i++) noise(0.05, { type: 'bandpass', freq: 1800 + Math.random() * 2600, q: 6, vol: 0.2, delay: 0.04 + i * 0.09, pan });
         break;
       }
-      case 'peelOut':   // away: the engine roaring up, the back tyres spinning and squealing, catching, squealing again, and the roar going off down the road
+      case 'peelOut': {   // away: the engine roaring up, the back tyres spinning and squealing, catching, squealing again, and the roar going off down the road
+        // (and the squeal of the tyres itself, plain over the roar as it pulls away: a short high note, wavering, rising as they bite: half a second of the screech's own voice)
+        const t0 = now() + 0.05, dur = 0.5, bp = ac.createBiquadFilter(), g = ac.createGain(), nodes = [];
+        bp.type = 'bandpass'; bp.frequency.value = 2000; bp.Q.value = 2.2;
+        for (const [f, type, v] of [[1240, 'sawtooth', 1], [1880, 'square', 0.45]]) {
+          const o = ac.createOscillator(), og = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+          o.type = type; o.frequency.setValueAtTime(f, t0); o.frequency.linearRampToValueAtTime(f * 1.14, t0 + dur);
+          lfo.frequency.value = 15 + Math.random() * 6; lg.gain.value = f * 0.03; lfo.connect(lg); lg.connect(o.frequency);
+          og.gain.value = v; o.connect(og); og.connect(bp); nodes.push(o, lfo);
+        }
+        bp.connect(g);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.045, t0 + 0.04); g.gain.setValueAtTime(0.045, t0 + dur - 0.15); g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+        chain(g, pan);
+        for (const n of nodes) { n.start(t0); n.stop(t0 + dur + 0.05); }
         tone(52, 2.8, { vol: 0.42, type: 'sawtooth', endFreq: 175, attack: 0.06, pan }); noise(2.6, { freq: 330, vol: 0.34, attack: 0.08, pan });
         for (const [d, l, v] of [[0, 0.55, 0.42], [0.5, 0.42, 0.34], [0.86, 0.36, 0.24]]) { noise(l, { type: 'bandpass', freq: 2250 + d * 300, q: 8, vol: v, attack: 0.02, delay: d, pan }); tone(1250 + d * 200, l, { vol: 0.04 * v / 0.42, type: 'sawtooth', endFreq: 1480 + d * 200, attack: 0.02, delay: d, pan }); }
         break;
+      }
       // the car pulling away
       case 'rev': tone(55, 2.4, { vol: 0.45, type: 'sawtooth', endFreq: 190, attack: 0.05 }); noise(1.6, { type: 'bandpass', freq: 2400, q: 6, vol: 0.35, attack: 0.02 }); noise(2.2, { freq: 300, vol: 0.35, attack: 0.1 }); break;
       // night 2, the car driven into it. carHit: the blow on the bumper, the bodywork giving and something breaking in it,

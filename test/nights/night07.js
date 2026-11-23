@@ -83,7 +83,8 @@ const toolboxDrop = [
     ['waitUntil', 'G.L.s.boxHit && G.L.s.box.struck && !!' + C7 + '.dangle', 8000],
     ['expect', '(c => G.L.s.box.hits >= ' + (k < 2 ? 2 : 0) + ' && Math.abs(c.blackEye) === 1 && c.hold === c.dist && G.state === "play" && !G.L.won)(' + C7 + ') && ' + eggSaved,
       where + ': it came all the way down the stone onto it: it hangs by one hand with a black eye, and the easter egg is saved'],
-    ['eval', '(b => { const h = 0.7 - (b.struckY + 0.5 + b.size), ff = (-1.5 + Math.sqrt(2.25 + 2 * 9.8 * Math.max(0, h))) / 9.8; (window.__fell7 = window.__fell7 || [])[' + k + '] = { h, ff, t: b.fell, y0: b.y0 }; })(G.L.s.box)'],
+    ['eval', '(b => { const h = 0.7 - b.struckY, ff = (-1.5 + Math.sqrt(2.25 + 2 * 9.8 * Math.max(0, h))) / 9.8; (window.__fell7 = window.__fell7 || [])[' + k + '] = { h, ff, t: b.fell, y0: b.y0 }; })(G.L.s.box)'],
+    ['expect', '(b => b.seen > 0.05 && b.seen < 0.5 && b.shift >= 0)(G.L.s.box)', where + ': as it lands the box is drawn on its face as that is drawn (its middle under half a metre from the middle of the face, at the thing\'s distance: the box\'s edge on its brow)'],
     ['expect', '(f => f.t >= f.ff * 0.95 - 0.02 && f.t <= f.ff * 2.5 + 0.4)(window.__fell7[' + k + '])', where + ': the fall took as long as that height needs (no quicker than a clear fall, and not much slower)'],
     ['eval', 'delete SAVE.data.eggs.lighthouse; SAVE.persist(); restartLevel()'], ['wait', 300],
   ]),
@@ -103,7 +104,7 @@ const toolboxDrop = [
   ['eval', 'window.__hit7 = (c => ({ t: G.L.t - c.dangle.t, d: c.dist, side: c.dangle.side }))(' + C7 + ')'],
   ['expect', 'G.L.s.box.hits >= 1 && G.state === "play" && !G.L.won && !G.L.isWon() && !G.L.s.turning', 'it came down the stone onto it, and that is not a win: the night goes on'],
   ['expect', eggSaved + ' && G.L.text.egg === "Hit the creature with the toolbox."', 'the easter egg is in the save the moment it lands, under the night\'s id'],
-  ['expect', 'window.__sfxN7.includes("clonk") && G.lastToast.msg === "Full in the face. It hangs there by one hand."', 'it lands with a clonk, and the night says what it did'],
+  ['expect', 'window.__sfxN7.includes("gate") && window.__sfxN7.includes("clatter") && !window.__sfxN7.includes("clonk") && G.lastToast.msg === "Full in the face. It hangs there by one hand."', 'it lands with the clang of the quarry gate (gate) and the tools jumping in the box, and the night says what it did'],
   ['expect', '(c => c.hold === c.dist && c.dist === window.__hit7.d && Math.abs(c.blackEye) === 1 && c.blackEye === c.dangle.side && ' + DANGLE + ' > 1.5 && ' + DANGLE + ' < 2.2 && CLIMB.dangle.hang === 1)(' + C7 + ')',
     'it has lost its hold with one hand: held where it is, for about two seconds in all (one of them hanging), and that side\'s eye is the black one'],
   ['waitUntil', C7 + '.dangle && ' + C7 + '.dangle.t > 0.6 && ' + C7 + '.dangle.t < 1.3', 3000],
@@ -146,25 +147,25 @@ const blownStillIn = [
   ['eval', 'restartLevel()'], ['wait', 300],
 ];
 // Lightning (WEATHER.strike brings it on now), and a second or few later its thunder: as the thunder sounds the view lifts
-// a little toward a cold blue-white, flickering with it (L.overlay, laid over the view). Its lift (L.thunderLift) is
-// there from the start of the sound and peaks with the crack in it, and is subtle: at most 0.15 (over black, the view comes
-// up no more than that far toward white). With reduced flashing it is one soft swell with no flicker, at most 0.05. The
-// thing waits meanwhile.
+// plainly toward a cold blue-white, flickering with it (L.overlay, laid over the view). Its lift (L.thunderLift) is
+// there from the start of the sound, dips, peaks with the crack in it (0.34: over black, the view comes up that far toward
+// white), dips again and comes a third time, dying away by 2.4 s. With reduced flashing it is one soft swell with no
+// flicker, at most 0.1. The thing waits meanwhile.
 const lifted = (tau, calm) => '(() => { const s = G.L.s, was = s.thunderT, rf = SAVE.data.settings.reducedFlash, cv = document.createElement("canvas"), x = cv.getContext("2d"); cv.width = cv.height = 8;' +
   ' x.fillStyle = "#000"; x.fillRect(0, 0, 8, 8); s.thunderT = G.t - ' + tau + '; SAVE.data.settings.reducedFlash = ' + calm + '; G.L.overlay(x, 8, 8); s.thunderT = was; SAVE.data.settings.reducedFlash = rf;' +
   ' return x.getImageData(4, 4, 1, 1).data[2] / 255; })()';
-const curve = calm => 'Array.from({ length: 90 }, (_, i) => G.L.thunderLift(i / 50, ' + calm + '))';
+const curve = calm => 'Array.from({ length: 130 }, (_, i) => G.L.thunderLift(i / 50, ' + calm + '))';
 const thunder = [
   ['eval', '(c => { window.__held7 = c.hold; if (c.hold === null) c.hold = c.dist; })(G.L.creature)'],
   ['eval', 'window.__thunder = []; if (!window.__sfx7) { window.__sfx7 = AUDIO.sfx; AUDIO.sfx = (n, ...r) => { if (n === "thunder") window.__thunder.push(G.t); return window.__sfx7(n, ...r); }; } WEATHER.strike();'],
   ['waitUntil', 'window.__thunder.length > 0', 7000],
   ['expect', 'G.L.s.thunderT === window.__thunder[0] && G.L.thunderLift(G.t - G.L.s.thunderT, SAVE.data.settings.reducedFlash) > 0', 'the thunder sounds, and the view is lifted with it'],
-  ['expect', '(k => k.slice(1, 4).some(v => v > 0.05) && Math.max(...k) <= 0.15 && k.indexOf(Math.max(...k)) >= 12 && k.indexOf(Math.max(...k)) <= 18 && k[7] < k[2] * 0.5 && k[89] < 0.001)(' + curve(false) + ')',
-    'the lift flickers in at once with the rumble, dips, comes again strongest with the crack (0.24-0.36 s), is gone by 1.8 s, and never passes 0.15'],
-  ['expect', lifted(0.3, false) + ' > 0.08 && ' + lifted(0.3, false) + ' <= 0.16 && ' + lifted(2, false) + ' === 0', 'laid over the view it lifts black a little toward blue-white, and then not at all'],
-  ['expect', '(k => { const m = k.indexOf(Math.max(...k)); return Math.max(...k) <= 0.05 && Math.max(...k) > 0.02 && k.every((v, i) => i === 0 || (i <= m ? v >= k[i - 1] : v <= k[i - 1])); })(' + curve(true) + ')',
-    'with reduced flashing it is one soft swell, no flicker in it, at most 0.05'],
-  ['expect', lifted(0.3, true) + ' <= 0.06', 'and laid over the view, with reduced flashing, black comes up no further than that'],
+  ['expect', '(k => k.slice(1, 4).some(v => v > 0.15) && Math.max(...k) > 0.3 && Math.max(...k) <= 0.36 && k.indexOf(Math.max(...k)) >= 12 && k.indexOf(Math.max(...k)) <= 18 && k[7] < k[2] * 0.5 && k[22] < k[14] * 0.4 && k[25] > k[14] * 0.6 && k[60] > 0.02 && k[125] < 0.001)(' + curve(false) + ')',
+    'the lift flickers in at once with the rumble, dips, comes again strongest with the crack (0.24-0.36 s, over 0.3 and never past 0.36), dips, comes a third time and hangs, and is gone by 2.4 s'],
+  ['expect', lifted(0.3, false) + ' > 0.22 && ' + lifted(0.3, false) + ' <= 0.36 && ' + lifted(2.5, false) + ' === 0', 'laid over the view it lifts black plainly toward blue-white, and then not at all'],
+  ['expect', '(k => { const m = k.indexOf(Math.max(...k)); return Math.max(...k) <= 0.1 && Math.max(...k) > 0.06 && k.every((v, i) => i === 0 || (i <= m ? v >= k[i - 1] : v <= k[i - 1])); })(' + curve(true) + ')',
+    'with reduced flashing it is one soft swell, no flicker in it, at most 0.1'],
+  ['expect', lifted(0.3, true) + ' <= 0.11', 'and laid over the view, with reduced flashing, black comes up no further than that'],
   ['eval', '(c => { if (window.__held7 === null) c.hold = null; })(G.L.creature)'],
 ];
 module.exports = {

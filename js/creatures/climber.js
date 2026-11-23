@@ -140,6 +140,19 @@ CREATURES.climber = {
   // where a hold is now, in the rig: the thing has come nearer since it bit (r: how much nearer), so the hold has closed on
   // where the wall runs away to, which keeps it in the same place on the stone as you see it
   held(g, r) { return [g.x * r, CLIMB.vp + (g.a - CLIMB.vp) * r, 0]; },
+  // how much of its length, and of its depth off the stone, shows from the rail at the distance it is at (see draw)
+  seen(c) { const nearK = smoothstep((c.dist - 2.5) / 6); return { nearK, along: lerp(0.2, CLIMB.along, nearK), out: lerp(0.7, CLIMB.out, nearK) }; },
+  // Where its head is as it is drawn, in the world, for an eye at `eye`: the point at its own distance that you see its
+  // face at. It is drawn end on (its length up the wall shown as `along` of itself whatever the wall's slope to you), so
+  // its drawn head is not where a body lying on the stone would have it: a thing meant to land on its face lands here.
+  headAt(c, eye) {
+    const fr = c.wallFrame(c), at = fr.at, v = this.seen(c);
+    const sv = [at[0] - eye[0], at[1] - eye[1], at[2] - eye[2]], sl = Math.hypot(sv[0], sv[1], sv[2]) || 1, sd = sv.map(q => q / sl);
+    const flat = u => { const d = u[0] * sd[0] + u[1] * sd[1] + u[2] * sd[2]; return u.map((q, i) => q - sd[i] * d); };   // as much of a direction as lies across the line of sight
+    const up = flat(fr.up), ul = Math.hypot(up[0], up[1], up[2]) || 1, out = flat(fr.out);
+    const a = (CLIMB.head[1] - CLIMB.mid[1]) * v.along / ul, o = (CLIMB.head[2] + 0.08 * (1 - v.nearK) - CLIMB.mid[2]) * v.out;
+    return { p: at.map((q, i) => q + up[i] * a + out[i] * o), sight: sd, frame: fr };
+  },
   draw(ctx, c, P) {
     if (c.gone) return;   // in the sea
     const lunge = c.lunge || 0, H = this.h;
@@ -151,7 +164,7 @@ CREATURES.climber = {
     const dpr = Math.hypot(m.a, m.b) / foot.scale, tx = m.e - foot.x * dpr, ty = m.f - foot.y * dpr, k = o.scale;
     // its axes on screen, in metres at its own distance: across, up (foreshortened, end on), and out from the stone. Further
     // off, more of its length shows (its back, its legs); near, it is end on, its face craned out over its hands at you
-    const nearK = smoothstep((c.dist - 2.5) / 6), along = lerp(0.2, CLIMB.along, nearK), out = lerp(0.7, CLIMB.out, nearK);
+    const { along, out } = this.seen(c);
     let bx = [1, 0], bu = [0, -along], bn = [0, -0.9 * out];
     if (fr) {
       const S = (v, s) => R.screenPos(at[0] + v[0] * s, at[1] + v[1] * s, at[2] + v[2] * s), d2 = (a, b, s) => (a && b ? [(a.x - b.x) / (s * k), (a.y - b.y) / (s * k)] : null);

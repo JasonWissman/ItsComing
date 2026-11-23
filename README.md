@@ -379,8 +379,9 @@ some on the ground, so you have to turn and look down to find them.
    anywhere on the tower below you (the hover says "Drop the toolbox on it." whenever you can point at it), the box
    comes all the way down the stone to it, the fall taking as long as the height needs (about a quarter of a second to
    it just under the rail, 1.7 s to it 15 m off, 2.5 s to it at the foot of its climb), coming across the face to it as
-   it falls if it has moved, and catches it full in its upturned face
-   with a clonk: its head snaps round, one hand and both feet come off the stone and it hangs by the other arm,
+   it falls if it has moved, and catches it full in its upturned face (the box is drawn coming down the wall onto its
+   face as you see it, and lands as its edge meets the brow, at any distance)
+   with a clang of iron on iron (the quarry gate's): its head snaps round, one hand and both feet come off the stone and it hangs by the other arm,
    swinging, for about a second; then it swings back in, hooks on again and climbs on from where it was (stopped there
    for under two seconds in all), and from then on it has a black eye, one eye swollen all but shut and purple-black
    round it, on the wall and in your face if it gets you. It is not a win: the toolbox bounces off into the sea and the
@@ -388,8 +389,9 @@ some on the ground, so you have to turn and look down to find them.
    on the horizon, each a small soft glow. A fuse tried with the blown one still in knocks against it and comes
    back to your hand; the blown fuse you pulled, pushed back into the empty clips, sits there a beat with nothing
    coming on and drops out onto the floor. A storm is on: now and then the lightning flashes, and a second or few later
-   the thunder comes; as it sounds the view lifts a little toward a cold blue-white, a flicker as the rumble comes in and
-   a stronger one with the crack, dying away in a second (with reduced flashing, one soft swell a third as strong).
+   the thunder comes; as it sounds the view lifts plainly toward a cold blue-white (up to a third of the way), a flicker
+   as the rumble comes in, the strongest with the crack and a third after it, dying away over two seconds (with reduced
+   flashing, one soft swell under a third as strong).
 8. **The Diner.** Something tall is out in the lot, taller than a man should be: a long
    belted trenchcoat in a dull dark drab, its collar turned up, grey hands hanging at its sides,
    and a hat with its brim pulled low. Under the brim there is no face, only shadow, black
@@ -501,13 +503,14 @@ some on the ground, so you have to turn and look down to find them.
    phone, or with one): it rings once and a dispatcher answers, a crackle of a voice (this is the night's easter egg,
    "Call 911.", kept in the save from the moment she answers). While the shade has still to get to its last lamp she has
    three lines, one after another, each with its crackle and a beat between them for what you say back, which is not
-   heard: "911, what is your emergency?", "a WHAT?", "Ok, stay there. I'm sending a unit now."; and with the last the
+   heard: "911, what is your emergency?", "Are you sure?", "Ok, stay there. I'm sending a unit now." (shown in curly
+   quotation marks, opening and closing: the game's typeface draws the straight mark as a closing one); and with the last the
    police are sent. Once the shade is at its last lamp, or past it, she says only that last line, at once. Hang up while
    she is still talking and she is cut off: the rest is not said and no car is sent (call again and she starts over).
    Nothing comes
    until the shade has got to the last lamp on its way in (called once it is past it, they come at once, and it skitters
    back behind that post). Then a police car comes tearing down its street, black and white with a gold star on its
-   doors, its siren wailing and its light bar flashing red and blue on the wet street (with reduced flashing the bar
+   doors, its siren wailing (its first wail coming up out of silence, far off) and its light bar flashing red and blue on the wet street (with reduced flashing the bar
    swells slowly from red to blue and back instead), and screeches to a halt on the road beside that lamp post, its nose
    dipping, black rubber left on the road. The siren winds down. A flashlight comes on at its window, sweeps in and finds
    the shade: a beam through the rain, a pool of light round its feet and on the wall behind, a pale light down its side
@@ -520,9 +523,12 @@ some on the ground, so you have to turn and look down to find them.
    it still burns), upright and leaning at it, one arm out at it and the other up over its head, its head split open into
    its petals of teeth, turned to the car, and long black tentacles unfurling out of its back and shoulders, waving: a
    fan of them behind it, one up over its head and one out low at the car. The flashlight goes off, and the car slams its foot down: its back tyres spin,
-   smoking and squealing, and it fishtails away down the road (on round the corner and off along the cross street from
+   smoking, with a short plain squeal as it pulls away, and it fishtails away down the road (on round the corner and off along the cross street from
    the main street; on past the booth and away west, wide of the parked car, along the cross street), keeping to the road,
-   until it is out of sight. The shade shuts, its tentacles drawing back into it, and comes on for you from where it stands. (With reduced flashing the
+   until it is out of sight. The shade shuts, its tentacles drawing back into it, skitters back behind its lamp post and stands
+   there hidden, in the dark, for fourteen seconds (the right call, from hanging up on the dispatcher, takes seven seconds
+   of ringing and the time to dial: the night can still be won there), and then comes on for you across to the glass. As
+   its lunge begins, this time or any other, it snarls that same high growl. (With reduced flashing the
    flashlight comes and goes smoothly; with reduced motion the shade does not leap, its convulsion is a slow writhe that
    comes on gently, its tentacles wave slowly and the car hardly swerves.) Should the
    right number be answered while the police are there, the shade sees them off first, and the car that comes for you
@@ -583,7 +589,7 @@ some on the ground, so you have to turn and look down to find them.
     cloth from inside (the swell of its head, its brow, the hollows of its eyes, its nose, its mouth opening), a hand
     either side of it, fingers spread, the cloth stretched toward you and creaking, its sob rising to a wail, the other
     three sheets bulging with its face too (and they stay so); at 2.9 s that same face and those hands come at you as
-    they are, in the cloth: the night's usual lunge (0.55 s, the same sting), but what lunges is the sheet with it
+    they are, in the cloth, with a quick rising rush of air: the night's usual lunge (0.55 s, the same sting), but what lunges is the sheet with it
     inside. The moulded face grows toward your eye, its mouth dropping open, a cloth-covered hand reaching either side,
     and the rest of the sheet is dragged along behind them: pulled out into a cone with its edges still on the frame,
     then off the mirror altogether, rounding into a ring of folds that run out from the face to the hem, the hem flaring

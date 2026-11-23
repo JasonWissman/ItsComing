@@ -338,7 +338,7 @@ LEVELS.push({
     // a tool or two. However far down the thing is, anywhere on the tower below you, the box comes all the way down the
     // stone to it (the fall takes as long as that height does: under a second to it just under the rail, three or so to
     // it at the foot of its climb), drifting across the face to where it is as it comes, so it lands on it where it has
-    // got to by then, and catches it full in its upturned face, with a clonk: its head snaps round, one hand
+    // got to by then, and catches it full in its upturned face, with a clang (the quarry gate's: gate): its head snaps round, one hand
     // and both feet come off the stone and it hangs by the other arm, swinging, for about a second; then it swings back
     // in, hooks on again and climbs on from where it was, with a black eye (CREATURES.climber.knock). That is this night's
     // easter egg (foundEgg), and all it does: the thing is stopped where it hangs for those two seconds, the toolbox
@@ -348,6 +348,10 @@ LEVELS.push({
     const HYP = Math.hypot(1, SLOPE), NRM = [1 / HYP, SLOPE / HYP], DOWN = [SLOPE / HYP, -1 / HYP];   // the stone's outward normal and the way down it, in (r, y)
     const TBW = 0.56, TBH = 0.38 * 1.4;   // the toolbox open: its lid stands up behind it
     const TRACK = 5;   // how quickly the box comes across the face to the line down to the thing (1/s)
+    // the box brought onto its face as it is drawn (see updateBox): how near to the middle of that face it is drawn as it
+    // lands (rest, metres at the thing's distance), how much further off for each metre up the wall it still is (spread),
+    // how quickly it is brought there (pull, 1/s), and how far up the wall from that face it lands (near, metres)
+    const AIM = { rest: 0.2, spread: 0.3, pull: 30, near: 0.5 };
     let toolboxItem = null;
     L.onPickup = it => {   // the fuse taken out of it: the toolbox, open and emptied of what you came for, can be taken up itself
       if (it.id !== 'fuse' || toolboxItem || !toolbox.open || !(toolbox.yielded || []).includes(it)) return;
@@ -358,6 +362,7 @@ LEVELS.push({
     // where a thing coming down the wall is, in the world: th round the tower's axis, r out from it, y up, and across the
     // face (metres to the thing's right, as you look down at it)
     const bodyAt = b => { const p = at(b.th, b.r, b.y); return L.pt(p[0] - Math.sin(b.th) * b.across, p[1], p[2] + Math.cos(b.th) * b.across); };
+    const drawnAt = b => { const p = bodyAt(b); return b.shift ? p.map((v, i) => v + b.into[i] * b.shift) : p; };   // (the toolbox, as it is drawn: AIM)
     const panOf = p => Math.sin(wrapPi(Math.atan2(p[0], p[2]) - G.cam.yaw)) * 0.85;
     // a body falling down the outside of the tower, in the plane through the axis (r, y): gravity, and the stone. On the stone
     // it is put back out of it, its speed into the stone turned back (e of it, and `kick` more: a corner catching) and its
@@ -408,6 +413,7 @@ LEVELS.push({
       if (!b || b.gone) return;
       b.t += dt;
       if (b.t < b.out) { b.spin += dt * 1.5; return; }   // out of your hand, over the rail
+      b.air = (b.air || 0) + dt;   // (how long it has been falling)
       // the thing's middle on the stone now (never reckoned below the sea: at the very start of a long climb it is drawn at
       // the water's edge), and how far to its right the box is, across the face
       const yc = Math.max(c.wallAt ? stoneFrame(c).at[1] : -99, WATER + 0.5), offNow = () => wrapPi(b.th - c.wallTh * DEG) * rad(yc) + b.across;
@@ -419,20 +425,39 @@ LEVELS.push({
         if (bb.hits === 1) spill(bb);
         if (b.t - b.clk > 0.12) { b.clk = b.t; AUDIO.sfx(v > 3 ? 'clatter' : 'woodKnock', panOf(bodyAt(bb))); }
       });
+      // It lands where you see its face. The thing is drawn end on, its length shown up the wall as you would see it from
+      // well out over the sea (CREATURES.climber.headAt: the point, at its own distance, that its head is drawn at), while
+      // you look down the wall all but along it: a box coming truly down the stone is seen to cross that face a third of
+      // the way down, pass over all of it and go on beyond its feet, and to land on nothing. So the box is drawn where it
+      // would be seen coming down onto that face: no nearer to it, as you see the two, than AIM.rest metres (at the
+      // thing's distance: the box's edge on its brow) and AIM.spread more for each metre up the wall it still is. Where
+      // the box as it truly is would be seen nearer than that, or past it, it is drawn further into the wall by as much as
+      // keeps it there (b.shift, metres, come to at AIM.pull a second), so it comes down the wall onto its face and is on
+      // it as it lands: within AIM.near of it up the wall.
+      const aim = () => {
+        const eye = [0, L.eyeH, 0], hd = CREATURES.climber.headAt(c, eye), q = bodyAt(b), d = q.map((v, i) => v - hd.p[i]), f = hd.frame, dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+        const up = dot(d, f.up), out = dot(d, f.out), rise = Math.max(0, dot(hd.sight, f.out) / (dot(hd.sight, f.up) || 1e-6));
+        const far = dot(q.map((v, i) => v - eye[i]), hd.sight) / (dot(hd.p.map((v, i) => v - eye[i]), hd.sight) || 1);   // how far to it the box has come, as you look (0 to 1)
+        // (seen(at): how far from the middle of that face a thing at `at` is seen, in metres at the thing's distance)
+        const seen = at => { const e = at.map((v, i) => v - eye[i]), k = (dot(hd.p.map((v, i) => v - eye[i]), hd.sight) || 1) / (dot(e, hd.sight) || 1); return Math.hypot(...e.map((v, i) => v * k - (hd.p[i] - eye[i]))); };
+        return { up, out, seen, into: f.out.map(v => -v), shift: Math.max(0, out - up * rise + (AIM.rest + AIM.spread * Math.max(0, up)) * clamp(far, 0, 1)) };
+      };
+      const g = c.wallAt && !b.struck && G.state === 'play' ? aim() : null;
+      if (g) { b.shift = lerp(b.shift || 0, g.shift, 1 - Math.exp(-dt * AIM.pull)); b.into = g.into; }
       // it comes down the stone onto it, however far down that is: full in its face, on the side of it the box came down,
       // and the thing loses its hold with the hand on that side and hangs by the other (the night's easter egg, found)
-      if (b.hit && !b.struck && G.state === 'play' && b.y - b.size <= yc + 0.5) {
+      if (b.hit && !b.struck && G.state === 'play' && ((g && g.up <= AIM.near) || b.y - b.size <= WATER + 1)) {
         const off = offNow();
-        b.fell = b.t - b.out; b.struckY = yc;   // how long it was falling, and how far down it landed
+        b.fell = b.air; b.struckY = b.y; b.seen = g ? g.seen(drawnAt(b)) : 0;   // how long it was falling, how far down it landed, and how far from the middle of its face it is drawn as it lands
         b.struck = true; s.boxHit = true; s.hung = true;
         b.vr = Math.max(b.vr, 0) + 2.4; b.vy = Math.max(b.vy * 0.2, -2) + 1.2; b.spinV = -b.spinV * 1.4 - 4;   // it bounces off its head, out from the wall
-        AUDIO.sfx('clonk', panOf(bodyAt(b))); AUDIO.sfx('clatter', panOf(bodyAt(b))); G.shake(0.3);
+        AUDIO.sfx('gate', panOf(bodyAt(b))); AUDIO.sfx('clatter', panOf(bodyAt(b))); G.shake(0.3);   // (iron on iron: the quarry gate's clang, and the tools jumping in the box)
         CREATURES.climber.knock(c, off >= 0 ? 1 : -1);
         foundEgg();
         G.say('The toolbox catches it full in the face. It hangs there by one hand.', 'Full in the face. It hangs there by one hand.');
       }
       if (b.y <= WATER + 0.1) {   // into the sea, far below: a little white where it went in, and it is gone
-        b.gone = true; const p = bodyAt(b);
+        b.gone = true; const p = drawnAt(b);
         s.boxSplash = { t: 0, at: [p[0], WATER, p[2]], size: 0.45 };
         AUDIO.sfx('plunge', panOf(p));
       }
@@ -449,18 +474,19 @@ LEVELS.push({
     L.onLaneSwitch = c => { s.scut = { from: c.wallTh, to: FACE[c.lane.idx] }; };
     const onLane = () => Math.abs(wrapPi(s.beamA - azOf(L.creature))) < 22.5 * DEG;
     L.isWon = () => s.power && s.turning;
-    // The lightning in the thunder: as the thunder sounds (WEATHER calls L.onThunder as it plays it) the whole view lifts a
-    // little toward a cold blue-white, laid over it so the dark comes up most: a quick flicker as the rumble comes in, a
-    // dip, and a stronger one with the crack in it (the thunder's bright noise comes in 0.3 s after it starts), dying away
-    // over half a second or so. With reduced flashing it is one soft swell, a third as strong, with no flicker in it.
+    // The lightning in the thunder: as the thunder sounds (WEATHER calls L.onThunder as it plays it) the whole view lifts
+    // toward a cold blue-white, laid over it so the dark comes up most, and plainly: a quick flicker as the rumble comes
+    // in, a dip, the strongest one with the crack in it (the thunder's bright noise comes in 0.3 s after it starts), a
+    // dip again and a third that hangs and dies away over a second or so (LIFT.len in all). With reduced flashing it is
+    // one soft swell, under a third as strong, with no flicker in it.
     // L.thunderLift(tau, calm): how far the view is lifted (0..LIFT.peak) tau seconds after the thunder began.
-    const LIFT = { peak: 0.13, calm: 0.04, color: '196,212,255' };
+    const LIFT = { peak: 0.34, calm: 0.1, len: 2.4, color: '196,212,255' };
     const pulse = (tau, t0, rise, decay) => tau < t0 ? 0 : tau < t0 + rise ? (tau - t0) / rise : Math.exp(-(tau - t0 - rise) / decay);
     L.onThunder = () => { s.thunderT = G.t; };
     L.thunderLift = (tau, calm) => {
-      if (!(tau >= 0) || tau > 1.8) return 0;
-      if (calm) return LIFT.calm * smoothstep(tau / 0.35) * (1 - smoothstep((tau - 0.35) / 0.9));
-      return LIFT.peak * Math.max(0.65 * pulse(tau, 0, 0.04, 0.07), pulse(tau, 0.24, 0.05, 0.28)) * (1 - smoothstep((tau - 1.2) / 0.6));
+      if (!(tau >= 0) || tau > LIFT.len) return 0;
+      if (calm) return LIFT.calm * smoothstep(tau / 0.4) * (1 - smoothstep((tau - 0.4) / 1.3));
+      return LIFT.peak * Math.max(0.6 * pulse(tau, 0, 0.04, 0.07), pulse(tau, 0.24, 0.04, 0.1), 0.8 * pulse(tau, 0.46, 0.04, 0.5)) * (1 - smoothstep((tau - 1.5) / 0.9));
     };
     L.overlay = (ctx, W, H) => {
       const a = s.thunderT === undefined ? 0 : L.thunderLift(G.t - s.thunderT, SAVE.data.settings.reducedFlash);
@@ -616,8 +642,9 @@ LEVELS.push({
       };
       const b = s.box;
       if (b && !b.gone) {
-        let p = bodyAt(b);
+        let p = drawnAt(b);
         if (b.t < b.out) { const k = smoothstep(b.t / b.out); p = p.map((v, i) => lerp(b.from[i], v, k)); }   // from your hand out over the rail
+        b.drawn = p;   // (where it is drawn)
         tumbling(b, p, TBW, TBH, ICONS.lighthouseToolbox);
       }
       for (const q of s.spill || []) if (!q.gone) tumbling(q, bodyAt(q), q.w, q.h, q.icon);

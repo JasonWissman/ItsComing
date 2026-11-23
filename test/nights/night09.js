@@ -130,17 +130,20 @@ const doorCases = [0, 1].flatMap(k => [
 ]);
 // 911. From the phone, lifted, 9-1-1 on its keys (with no coin, an emergency call is free; or with the coin in), stepped by
 // hand. A dispatcher answers (the night's easter egg, kept in the save from that moment) and has three lines, one after
-// another, each a crackle and its words: "911, what is your emergency?", "a WHAT?", "Ok, stay there. I'm sending a unit
+// another, each a crackle and its words, in curly quotation marks that open and close (the game's typeface draws the
+// straight mark as a closing one): "911, what is your emergency?", "Are you sure?", "Ok, stay there. I'm sending a unit
 // now."; with the last the police are sent, but nothing of them is seen or heard until it has got to the last
 // lamp on its way in (called while it is skittering between lamps further out; or, past: called once it has left the last
 // lamp, when she says only the last line, they come at once and it skitters back behind that post). Then the police car comes down its street, its light
-// bar going and its siren wailing; screeches to a halt on the road by that post (its nose dipping); its siren winds down;
+// bar going and its siren wailing (its first wail, sirenIn, coming up out of silence); screeches to a halt on the road by that post (its nose dipping); its siren winds down;
 // a flashlight comes on at its window and finds it; from the instant that light is on it, it convulses for a second, with a shriek (where it
 // stands, the flashlight on it; no tentacles drawn before, the first of them as it convulses); it jumps out in front of
 // the post, facing the car, its head split open at it and its tentacles out, with a snarl, the growl far up (the lamp
 // over it out by then, popped as it snarls if it still burned); the flashlight goes off; the car
 // spins its tyres (smoke) and fishtails off down the road, faster and faster, until it is out of sight; and it shuts its
-// head and comes on for you from there. All the while the car keeps to the road (every corner and side of it) and is
+// head, skitters back behind its post and stands there hidden for COP.hide (14 s: the right call, from hanging up on the
+// dispatcher, takes this script 7 s, all of it the ringing), and only then comes on for you; as its lunge begins it
+// snarls again (growlHigh, as every lunge of its does). All the while the car keeps to the road (every corner and side of it) and is
 // never on a parked car or on the shade. Caught (its tentacles out as it comes at you), the screen says "Nice try" and
 // "The police can't help you here."
 // calm: reduced flashing and reduced motion: the flashlight and the light bar come up and go smoothly, it does not leap
@@ -182,7 +185,7 @@ const cop = (k, coin, calm, past) => `(() => {
     if (out.answeredIn < 0 && s.line === 'emergency') { out.answeredIn = +(L.t - t0).toFixed(2); out.egg = SAVE.data.eggs.booth === true; out.sentAtAnswer = !!s.cop; }
     const K = s.cop, p = c.pos(); if (!K) continue;
     if (out.sentIn < 0) out.sentIn = +(L.t - t0).toFixed(2);
-    if (K.phase === 'wait') { out.waitFrames++; if (K.pose || heard.some(h => h[0] === 'siren')) out.waitSeen = true; continue; }
+    if (K.phase === 'wait') { out.waitFrames++; if (K.pose || heard.some(h => /^siren/.test(h[0]))) out.waitSeen = true; continue; }
     if (ev.come === undefined) { out.atLast = segs.indexOf(s.man.seg) >= walk - 1 || !!K.back; out.back = !!K.back; }
     mark('come', true);
     const P = K.pose;
@@ -231,6 +234,8 @@ const cop = (k, coin, calm, past) => `(() => {
     out.smoke = Math.max(out.smoke, s.smoke.length); out.maxHop = Math.max(out.maxHop, c.hop || 0);
     if (K.manDone && ev.resume === undefined) { resumeD = c.dist; out.tentAfter = tentNow(); }
     mark('resume', K.manDone);
+    // (back behind its post, hidden: where it stands from a second into that until it comes on)
+    if (K.hide) { out.hideFor = +(K.hide.until - K.hide.t0).toFixed(2); mark('walk', L.t >= K.hide.until); if (L.t > K.hide.t0 + 1 && L.t < K.hide.until) { const st = s.man.stops[s.man.stops.length - 1]; out.hidOff = Math.max(out.hidOff || 0, Math.hypot(s.man.d - st.d, s.man.lat - st.lat)); out.hidDark = (out.hidDark !== false) && c.dark && !c.scare && !c.reach; } }
     if (ev.resume !== undefined) out.comeOn = Math.max(out.comeOn, resumeD - c.dist);
     mark('gone', K.gone);
   }
@@ -241,11 +246,16 @@ const cop = (k, coin, calm, past) => `(() => {
   const first = n => (heard.find(h => h[0] === n) || [])[1], count = n => heard.filter(h => h[0] === n).length;
   for (const n of ['dispatch', 'dispatchAsk', 'dispatchWhat', 'dispatchSend', 'tireScreech', 'sirenOff', 'shadeShriek', 'growlHigh', 'peelOut']) ev[n] = first(n);
   // what the dispatcher said, and when (from her answering), each with its crackle as it was said
-  const LINES = ['"911, what is your emergency?"', '"a WHAT?"', '"Ok, stay there. I\\'m sending a unit now."'], answered = t0 + out.answeredIn;
+  const LINES = ['“911, what is your emergency?”', '“Are you sure?”', '“Ok, stay there. I’m sending a unit now.”'], answered = t0 + out.answeredIn;
   out.lines = said.filter(q => LINES.includes(q[0])).map(q => [LINES.indexOf(q[0]), +(q[1] - answered).toFixed(2)]);
   out.crackles = ['dispatchAsk', 'dispatchWhat', 'dispatchSend'].map(n => (first(n) === undefined ? -1 : +(first(n) - answered).toFixed(2)));
   out.once = ['dispatchAsk', 'dispatchWhat', 'dispatchSend'].map(count).join() + ' ' + [count('shadeShriek'), count('growlHigh'), count('dispatch')].join();
   out.sentAfter = +(out.sentIn - out.answeredIn).toFixed(2);
+  // every quoted line said opens with an opening mark and closes with a closing one, and none has a straight one in it
+  out.quotes = said.filter(q => /["“”]/.test(q[0])).every(q => /^“[^"“”]*”$/.test(q[0]));
+  // the siren's first wail is the one that fades in, and only the first; its snarl again as its lunge begins (after it came on)
+  out.sirenIn = (w => w.length > 2 && w[0][0] === 'sirenIn' && w.slice(1).every(h => h[0] === 'siren'))(heard.filter(h => /^siren(In)?$/.test(h[0])));
+  out.lungeGrowl = (w => w.length === 2 && w[1][1] >= ev.walk)(heard.filter(h => h[0] === 'growlHigh'));
   out.sirens = heard.filter(h => h[0] === 'siren' && h[1] < ev.halt).length; out.sirenAfter = heard.filter(h => h[0] === 'siren' && h[1] >= ev.sirenOff).length;
   out.horn = heard.some(h => h[0] === 'horn' || h[0] === 'carDoor' || h[0] === 'brake');
   out.order = ['come', 'tireScreech', 'halt', 'sirenOff', 'torch', 'shadeShriek', 'conv', 'growlHigh', 'scare', 'torchOff', 'peelOut', 'flee', 'resume', 'gone'].every((n, j, a) => ev[n] !== undefined && (!j || ev[n] >= ev[a[j - 1]])) && ev.halt > ev.tireScreech && ev.torch > ev.sirenOff && ev.torchOff > ev.scare && ev.resume > ev.peelOut;
@@ -262,10 +272,10 @@ const copCases = [[0, false, false, false], [1, true, false, false], [1, false, 
     ['expect', '__cop.dialled && __cop.answeredIn > 2 && __cop.answeredIn < 3.5', at + '9-1-1 calls, and a dispatcher answers at once'],
     ['expect', '!__cop.eggBefore && __cop.egg && SAVE.data.eggs.booth === true', at + 'the night\'s easter egg is kept in the save the moment the dispatcher answers (not before)'],
     past
-      ? ['expect', "__cop.lines.length === 1 && __cop.lines[0][0] === 2 && Math.abs(__cop.lines[0][1]) < 0.02 && __cop.crackles[0] === -1 && __cop.crackles[1] === -1 && Math.abs(__cop.crackles[2]) < 0.02 && __cop.once === '0,0,1 1,1,0' && __cop.sentAtAnswer && Math.abs(__cop.sentAfter) < 0.02", at + 'the dispatcher says only "Ok, stay there. I\'m sending a unit now.", at once, and the police are sent with it']
-      : ['expect', "(l => l.length === 3 && l.every((q, j) => q[0] === j) && Math.abs(l[0][1]) < 0.02 && l[1][1] - l[0][1] >= 1.6 && l[1][1] - l[0][1] <= 2.2 && l[2][1] - l[1][1] >= 1.6 && l[2][1] - l[1][1] <= 2.2)(__cop.lines) && __cop.crackles.every((t, j) => Math.abs(t - __cop.lines[j][1]) < 0.025) && __cop.once === '1,1,1 1,1,0' && !__cop.sentAtAnswer && Math.abs(__cop.sentAfter - __cop.lines[2][1]) < 0.025", at + 'the dispatcher\'s three lines, in order, each with its crackle, a beat between them: "911, what is your emergency?", "a WHAT?", "Ok, stay there. I\'m sending a unit now."; the police are sent with the last'],
+      ? ['expect', "__cop.lines.length === 1 && __cop.lines[0][0] === 2 && Math.abs(__cop.lines[0][1]) < 0.02 && __cop.crackles[0] === -1 && __cop.crackles[1] === -1 && Math.abs(__cop.crackles[2]) < 0.02 && __cop.once === '0,0,1 1,2,0' && __cop.quotes && __cop.sentAtAnswer && Math.abs(__cop.sentAfter) < 0.02", at + 'the dispatcher says only "Ok, stay there. I\'m sending a unit now.", at once, and the police are sent with it']
+      : ['expect', "(l => l.length === 3 && l.every((q, j) => q[0] === j) && Math.abs(l[0][1]) < 0.02 && l[1][1] - l[0][1] >= 1.6 && l[1][1] - l[0][1] <= 2.2 && l[2][1] - l[1][1] >= 1.6 && l[2][1] - l[1][1] <= 2.2)(__cop.lines) && __cop.crackles.every((t, j) => Math.abs(t - __cop.lines[j][1]) < 0.025) && __cop.once === '1,1,1 1,2,0' && __cop.quotes && !__cop.sentAtAnswer && Math.abs(__cop.sentAfter - __cop.lines[2][1]) < 0.025", at + 'the dispatcher\'s three lines, in order, each with its crackle, a beat between them: "911, what is your emergency?", "a WHAT?", "Ok, stay there. I\'m sending a unit now."; the police are sent with the last'],
     ['expect', past ? '__cop.back && __cop.atLast && __cop.waitFrames <= 1' : '__cop.waitFrames > 200 && !__cop.waitSeen && __cop.atLast && !__cop.back', at + (past ? 'the police come at once, and it skitters back behind its last lamp post' : 'nothing of the police is seen or heard until it has got to its last lamp')],
-    ['expect', '__cop.order && __cop.sirens >= 2 && __cop.sirenAfter === 0 && !__cop.horn', at + 'in order: siren, tyres screeching, halted, siren off, flashlight on, its shriek as it convulses, its snarl and its head open at the car, flashlight off, the car away, it comes on, the car gone'],
+    ['expect', '__cop.order && __cop.sirens >= 2 && __cop.sirenIn && __cop.sirenAfter === 0 && !__cop.horn', at + 'in order: siren, tyres screeching, halted, siren off, flashlight on, its shriek as it convulses, its snarl and its head open at the car, flashlight off, the car away, it comes on, the car gone'],
     ['expect', '__cop.convFor > 0.85 && __cop.convFor < 1.2 && __cop.convLit && __cop.convMoved < 0.01 && __cop.convScare === 0 && __cop.ev.conv - __cop.ev.shadeShriek < 0.15', at + 'in the flashlight it convulses for about a second where it stands, with its shriek, before it jumps'],
     ['expect', '__cop.ev.lit >= __cop.ev.torch && __cop.ev.lit - __cop.ev.torch <= 0.55 && __cop.ev.shadeShriek - __cop.ev.lit >= 0 && __cop.ev.shadeShriek - __cop.ev.lit <= 0.03 && __cop.ev.conv - __cop.ev.lit <= 0.12', at + 'it starts to convulse (and shrieks) the instant the flashlight\'s beam is on it as it sweeps in: no wait after'],
     ['expect', '__cop.shriekToSnarl > 1.05 && __cop.shriekToSnarl < 1.3 && __cop.ev.scare - __cop.ev.growlHigh >= 0 && __cop.ev.scare - __cop.ev.growlHigh < 0.4', at + 'the jump scare\'s sound is the high growl (growlHigh), as its head opens: the shriek was the convulsion\'s'],
@@ -275,6 +285,8 @@ const copCases = [[0, false, false, false], [1, true, false, false], [1, false, 
     ['expect', '__cop.maxV > 15 && __cop.smoke > 5 && __cop.farthest > 80 && __cop.ev.gone !== undefined && (' + (calm ? '__cop.fish > 1 && __cop.fish < 12' : '__cop.fish > 8') + ')', at + 'the car spun its tyres, smoking, and fishtailed away down the road out of sight'],
     ['expect', '__cop.offRoad === 0 && __cop.onParked === 0 && __cop.minSep > 0.3' + (k === 1 ? ' && __cop.nearParked < 4' : ''), at + 'all the way the car kept to the road, never on a parked car' + (k === 1 ? ' (passing close by the one along the cross street)' : '') + ' or on it'],
     ['expect', calm ? '__cop.torchJump < 0.1 && __cop.barJump < 0.02 && __cop.maxHop === 0' : '__cop.torchJump > 0.5 && __cop.red > 0.5 && __cop.blue > 0.5 && __cop.barJump > 0.3 && __cop.maxHop > 0.15', at + (calm ? 'the flashlight and the light bar come and go smoothly, and it does not leap' : 'the light bar flashes red and blue, the flashlight snaps on, and it leaps out')],
+    ['expect', '__cop.hideFor >= 14 && __cop.hideFor < 15 && __cop.hidOff < 0.01 && __cop.hidDark && __cop.ev.walk - __cop.ev.peelOut > 15.5 && __cop.ev.walk > __cop.ev.gone', at + 'the car gone, it stands hidden behind its lamp post, in the dark, for fourteen seconds before it comes on (over 15.5 s from the car pulling away)'],
+    ['expect', '__cop.lungeGrowl', at + 'as its lunge begins it snarls again (growlHigh), with the lunge\'s own sound'],
     ['expect', '__cop.comeOn > 5 && __cop.playing && __cop.dying && __cop.dead', at + 'then it came on, and no help came: caught, the night lost with "Nice try" and "The police can\'t help you here."'],
   ];
 });
@@ -306,6 +318,35 @@ const copWin = k => `(() => {
   SAVE.recordWin = save[0]; SAVE.unlock = save[1];
   return out;
 })()`;
+// the police seen off and gone, and it back behind its post: the right number dialled then, from a standing start (hung up
+// on the dispatcher, the receiver lifted again, the coin in, the seven digits), is answered while it still stands there:
+// the night is won in that wait, with time to spare
+const copHideWin = k => `(() => {
+  const L = G.L, s = L.s, c = L.creature, save = [SAVE.recordWin, SAVE.unlock]; SAVE.recordWin = SAVE.unlock = () => {};
+  c.lane = L.lanes[${k}]; L.lane = c.lane; L.laneIdx = ${k}; s.man = null; update(0.001);
+  const segs = s.man.segs, walk = segs.findIndex(g => g.kind === 'walk');
+  s.man.t0 = L.t - segs[walk - 1].t0 + 2.7; update(0.01);
+  const T = id => L.targets.find(t => t.id === id);
+  T('receiver').onClick(); for (const d of '911') T('key' + d).onClick();
+  for (let i = 0; i < 6000 && G.state === 'play' && !(s.cop && s.cop.gone); i++) update(0.01);
+  const K = s.cop, out = { gone: !!K && K.gone && !!K.hide && L.t < K.hide.until, t0: L.t };
+  T('receiver').onClick(); T('receiver').onClick(); T('slot').use();
+  for (const d of s.number) T('key' + d).onClick();
+  for (let i = 0; i < 3000 && G.state === 'play' && !L.won; i++) update(0.01);
+  out.won = !!L.won && G.state === 'won'; out.took = +(L.t - out.t0).toFixed(2); out.spare = +(K.hide.until - L.t).toFixed(2);
+  SAVE.recordWin = save[0]; SAVE.unlock = save[1];
+  return out;
+})()`;
+// its lunge, whenever it comes at you (here with no 911 at all): the sting as it has you, and its high growl as the lunge begins
+const lungeGrowl = `(() => {
+  const L = G.L, c = L.creature, heard = [], sfx0 = AUDIO.sfx; update(0.01);
+  AUDIO.sfx = (n, ...a) => { heard.push([n, +G.stateT.toFixed(2), G.state]); return sfx0(n, ...a); };
+  die(c, 'default');
+  for (let i = 0; i < 300 && G.state === 'dying'; i++) update(0.01);
+  AUDIO.sfx = sfx0;
+  const g = heard.filter(h => h[0] === 'growlHigh'), st = heard.filter(h => h[0] === 'stingGlass');
+  return { growls: g.length, at: g.length ? g[0][1] : -1, dying: !!g.length && g[0][2] === 'dying', sting: st.length === 1 && st[0][1] <= 0.02, delay: c.CR.death.delay };
+})()`;
 const copWinCases = [0, 1].flatMap(k => [
   ['eval', 'restartLevel()'], ['wait', 300],
   ['eval', 'window.__cwin = ' + copWin(k)],
@@ -324,7 +365,7 @@ const copThenWin = `(() => {
   const T = id => L.targets.find(t => t.id === id), step = (n, until) => { for (let i = 0; i < n && G.state === 'play' && !(until && until()); i++) update(0.01); };
   const out = {}, said = [], toast0 = G.toast;
   G.toast = (msg, ...a) => { said.push(msg); return toast0.call(G, msg, ...a); };
-  const lines = () => said.filter(m => /^"/.test(m)).map(m => (/what is your emergency/.test(m) ? 1 : /a WHAT/.test(m) ? 2 : /sending a unit/.test(m) ? 3 : 0)).join('');
+  const lines = () => said.filter(m => /^“.*”$/.test(m)).map(m => (/what is your emergency/.test(m) ? 1 : /Are you sure/.test(m) ? 2 : /sending a unit/.test(m) ? 3 : 0)).join('');
   T('receiver').onClick(); T('slot').use(); for (const d of '911') T('key' + d).onClick();
   step(400, () => s.line === 'emergency');
   step(60);   // (her first line said, the second not yet)
@@ -564,6 +605,14 @@ module.exports = {
     ['expect', "(() => { const L = G.L, s = L.s, T = id => L.targets.find(t => t.id === id); T('receiver').onClick(); T('key9').onClick(); const a = s.dialed === '9'; T('key5').onClick(); const b = s.dialed === '' && s.line === 'tone' && s.deadKeys === 1; T('key9').onClick(); T('key1').onClick(); T('slot').use(); const c = s.dialed === '' && s.credit > 0; for (const d of s.number) T('key' + d).onClick(); return a && b && c && s.line === 'connecting' && !s.cop; })()", 'with no coin, a 9 is taken and a 5 after it wipes it; a coin wipes a 9-1 too; and the number dialled after rings as ever'],
     ...copCases,
     ...copWinCases,
+    ...[0, 1].flatMap(k => [
+      ['eval', 'restartLevel()'], ['wait', 300],
+      ['eval', 'window.__chw = ' + copHideWin(k)],
+      ['expect', '__chw.gone && __chw.won && __chw.took >= 7 && __chw.took < 7.5 && __chw.spare > 1.5', 'street ' + k + ': the police gone and it hidden behind its post, the right number dialled from a standing start is answered (7 s) while it still stands there: the night can be won in that wait'],
+    ]),
+    ['eval', 'restartLevel()'], ['wait', 300],
+    ['eval', 'window.__lg = ' + lungeGrowl],
+    ['expect', '__lg.growls === 1 && __lg.dying && __lg.at >= __lg.delay && __lg.at < __lg.delay + 0.1 && __lg.sting', 'any lunge of its (no 911): the sting as it has you, and its high growl (growlHigh) once, as the lunge begins'],
     ['eval', 'restartLevel()'], ['wait', 300],
     ['eval', 'window.__cw = ' + copThenWin],
     ['expect', '__cw.first && __cw.hungUp && __cw.coinBack && __cw.cutOff', 'hung up on after her first line, the dispatcher is cut off: no more of her lines, no car sent, and the coin put in for the call comes back into the return'],
