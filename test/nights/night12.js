@@ -139,13 +139,14 @@ const fairyPlay = [
   ['eval', FY('fy.look(4, true)')], ['wait', 250], ['pickup', 'tooth'],
   ['eval', FY('(delete SAVE.data.eggs.bedroom, fy.reset(), fy.look(0, false))')], ['wait', 250],
   ['use', 'hand'],
-  ['expect', "SAVE.data.eggs.bedroom === true && G.L.text.egg === 'Give the tooth fairy a tooth.' && document.querySelector('#secret .st').textContent === 'Tooth fairy' && !G.inv.length && G.L.s.fairy.stage === 'take' && G.L.creature.fairy.tooth && G.state === 'play' && !G.L.won", 'the tooth put in its hand: the easter egg is found and saved ("Tooth fairy"), and the night is not over yet'],
+  ['expect', "SAVE.data.eggs.bedroom === true && G.L.text.egg === 'Give the tooth fairy a tooth.' && !secretUp() && !G.inv.length && G.L.s.fairy.stage === 'take' && G.L.creature.fairy.tooth && G.state === 'play' && !G.L.won", 'the tooth put in its hand: the easter egg is found and saved, nothing said of it yet, and the night is not over yet'],
   ['expect', FY("fy.step(4.6) === 'play' && Math.max(...fy.log.map(f => f.wings)) === 1 && G.L.creature.fairy.shut === 1 && G.L.creature.dist > 2.75 && fy.log[fy.log.length - 1].lean === 0 && fy.log[fy.log.length - 1].offer === 0 && !fy.fx.includes('wingWhoosh') && fy.clear()"), 'its hand closes on it; it straightens, steps back from the bed and unfurls its wings'],
   ['expect', FY("fy.step(2) === 'play' && G.L.creature.fairy.gone === 1 && fy.fx.filter(n => n === 'wingWhoosh').length === 1 && fy.fx.filter(n => n === 'fairyDust').length === 1 && Math.min(...fy.log.map(f => f.beat)) < 0.3 && Math.max(...fy.log.map(f => f.beat)) > 1.1 && fy.shakes === 1 && !!G.L.s.fairy.dust && fy.beats === 0"), 'one fan of them (a soft beat of wings), and it is gone in fairy dust (a shimmer of bells)'],
   ['waitUntil', "G.L.won && G.state === 'won'", 9000],
   ['expect', "G.L.s.fairy.done && !G.L.s.coversUp && G.L.t - G.L.s.fairy.given > 11.5 && G.L.t - G.L.s.fairy.given < 13", 'the dollar comes down onto the bed, and a moment after it has settled the night is won'],
   ['waitUntil', "G.state === 'survived'", 12000],
   ['expect', "(p => G.survivedScreen.text === G.L.text.fairy && !!p && p.innerText.split('\\n').map(l => l.trim()).join('|') === 'It took the tooth and left a dollar.|You do not remember losing one.')(UI.overlay.querySelector('.intro'))", 'and the card after it is the tooth fairy\'s, each of its sentences on a line of its own'],
+  ['expect', "secretUp() && document.querySelector('#secret .st').textContent === 'Tooth fairy'", 'and there, not before, the secret is named: "Tooth fairy"'],
   ['eval', 'restartLevel();'], ['wait', 250],
 ];
 // taken while it is at the bed with its hands on the covers, pulling (the lamp on): its hands are off them at once, and it
