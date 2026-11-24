@@ -66,7 +66,7 @@
           const q = clamp((T - 0.3) / 0.42, 0, 1);
           c.up.lunge = c.lunge = q; c.dist = q < 0.75 ? lerp(c.lungeFrom, 1.0, Math.pow(clamp((q - 0.35) / 0.4, 0, 1), 2)) : lerp(1.0, 0.55, (q - 0.75) / 0.25);
         } },
-      { name: 'Over the bonnet, from standing', note: 'Up, and driven at a second time (It was ready the second time.): it stops and stares, lurches at the car as fast as it can as the car comes at it, gathers itself low, and 6.5 m off hurls itself up off the road and over the bonnet in one bound, arms thrown up and out ahead of it, legs hanging under it, and comes down through the glass.', dist: 9, dur: 2, lit: 0.65, zoom: 4, still: true, fit: { h: 2.7, w: 2.6 },
+      { name: 'Over the bonnet, from standing', note: 'Up, and driven at a second time (It is too strong, even for a car.): it stops and stares, lurches at the car as fast as it can as the car comes at it, gathers itself low, and 6.5 m off hurls itself up off the road and over the bonnet in one bound, arms thrown up and out ahead of it, legs hanging under it, and comes down through the glass.', dist: 9, dur: 2, lit: 0.65, zoom: 4, still: true, fit: { h: 2.7, w: 2.6 },
         set(c) { c.up = c.CR.upright(); c.up.w = 1; c.lungeFrom = 6.5; c.CR = Object.assign({}, c.CR, { faceY: 1.5 }); },
         tick(c, k, dt, T) {   // night02 readyOn and spring: staring, the rush, the crouch, the bound
           const u = c.up, fly = 0.36, sp = 1.05;

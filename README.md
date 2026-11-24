@@ -227,7 +227,7 @@ some on the ground, so you have to turn and look down to find them.
    hind legs and staring at you in 0.3 s, lurches at the car as fast as it can as the car comes at it, gathers itself
    low, and 6.5 m off your seat it hurls itself up from standing, arms thrown up and out ahead of it, over the bonnet
    (the boot, in reverse) and through the glass, which cracks as it meets it and bursts: about 1.2 s from the gas to the
-   glass from where it lay. The card says "It got you" and only "It was ready the second time." (While it is still in
+   glass from where it lay. The card says "It got you" and only "It is too strong, even for a car." (While it is still in
    the air from the blow the wheels only spin.) With reduced motion nothing shakes, the nose does not dip, it is knocked
    back lower, turning over once, and its spring and its lunge at the glass are a little slower. The way out
    is the way straight away from it (forward with it behind, reverse with it ahead), or either way when it is squarely
