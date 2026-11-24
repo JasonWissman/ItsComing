@@ -265,6 +265,21 @@ const AUDIO = (() => {
         const lfo2 = ac.createOscillator(); lfo2.frequency.value = 2.3; const lg2 = ac.createGain(); lg2.gain.value = 0.12;
         lfo2.connect(lg2); lg2.connect(g2.gain);
         src.connect(lp); lp.connect(g); src2.connect(bp); bp.connect(g2); g2.connect(g); nodes.push(src, src2, lfo, lfo2);
+      } else if (kind === 'rumble') {
+        // night 12's tooth fairy waiting at the foot of the bed: a deep, low rumbling, more felt than heard, that swells up
+        // slowly out of nothing over its first eight seconds and its filter opening on over half a minute, and then holds,
+        // for as long as it waits. A low growl of a saw (34 Hz, so a laptop's small speakers still carry its overtones)
+        // and a sine a little apart from it that beat slowly against each other, a breath of dark noise under them, and a
+        // throb through all of it that is never even: two slow swells out of step (0.37 and 0.61 a second), nothing like
+        // a heartbeat
+        const t0 = now(), sw = ac.createGain(); sw.gain.setValueAtTime(0.0001, t0); sw.gain.exponentialRampToValueAtTime(1, t0 + 8); sw.connect(g);
+        const th = ac.createGain(); th.gain.value = 0.7; th.connect(sw);
+        for (const [f, d] of [[0.37, 0.18], [0.61, 0.12]]) { const l = ac.createOscillator(); l.frequency.value = f; const lg = ac.createGain(); lg.gain.value = d; l.connect(lg); lg.connect(th.gain); nodes.push(l); }
+        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.1; lp.frequency.setValueAtTime(70, t0); lp.frequency.linearRampToValueAtTime(190, t0 + 30); lp.connect(th);
+        const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 34; const og = ac.createGain(); og.gain.value = 0.55; o.connect(og); og.connect(lp);
+        const o2 = ac.createOscillator(); o2.type = 'sine'; o2.frequency.value = 41.3; const o2g = ac.createGain(); o2g.gain.value = 0.7; o2.connect(o2g); o2g.connect(th);
+        const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true; const nl = ac.createBiquadFilter(); nl.type = 'lowpass'; nl.frequency.value = 110; const ng = ac.createGain(); ng.gain.value = 0.9;
+        src.connect(nl); nl.connect(ng); ng.connect(lp); nodes.push(o, o2, src);
       }
       nodes.forEach(n => n.start());
       loopNode = { kind, g, nodes, pan: p };
@@ -272,11 +287,12 @@ const AUDIO = (() => {
     if (loopNode.pan && pan !== undefined) loopNode.pan.pan.setTargetAtTime(clamp(pan, -1, 1), now(), 0.1);
     loopNode.g.gain.setTargetAtTime(Math.max(0.0001, vol), now(), 0.08);
   }
-  function stopLoop() {
+  // (faded out over about half a second, or over sec seconds)
+  function stopLoop(sec) {
     if (!loopNode) return;
     const l = loopNode; loopNode = null;
-    l.g.gain.setTargetAtTime(0.0001, now(), 0.1);
-    setTimeout(() => { l.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { l.g.disconnect(); } catch (e) {} }, 600);
+    l.g.gain.setTargetAtTime(0.0001, now(), sec > 0 ? sec / 4 : 0.1);
+    setTimeout(() => { l.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { l.g.disconnect(); } catch (e) {} }, sec > 0 ? sec * 1000 + 300 : 600);
   }
 
   // ---- one-shots ----
@@ -808,6 +824,9 @@ const AUDIO = (() => {
       case 'fairyDust':
         for (let i = 0; i < 16; i++) { const f = [2093, 2349, 2637, 3136, 3520, 4186][Math.floor(Math.random() * 6)] * (i % 3 ? 1 : 2); tone(f, 0.45 + Math.random() * 0.6, { vol: 0.034 * (1 - i / 22), type: 'sine', delay: i * 0.12 + Math.random() * 0.07, pan: clamp((pan || 0) + (Math.random() - 0.5) * 0.7, -1, 1) }); }
         noise(1.8, { type: 'highpass', freq: 7200, vol: 0.016, attack: 0.5, pan }); break;
+      // night 12's tooth fairy, bowed in at the foot of the bed and waiting: a deep, low rumbling that swells up slowly and
+      // holds for as long as it waits (the loop 'rumble'; the night lets it go, fading, as its wings fan: stopLoop)
+      case 'fairyRumble': setLoop('rumble', 0.55, 0); break;
       default: break;
     }
   }
