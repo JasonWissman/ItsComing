@@ -731,59 +731,43 @@ some on the ground, so you have to turn and look down to find them.
     pulls the lamp's chain (nothing comes of it with no bulb in, and the line is "It's missing something."; nor
     with the cord out; and it sticks),
     opens the drawer, pushes the plug in and is on the covers' hem as you hold them. The
-    nightstand stands at your right, back against the wall at the head of the bed, the lamp
-    on it, its drawer facing down the room (you see it looking east and south-east, ahead or
-    down). The drawer is shut flush in its front; opened, it slides 30 cm out along the
-    bedside, an open box (its front and knob, its two sides, its bottom, the dark of the
-    nightstand behind it), and the bulb and the remote lie in it on its bottom, under its rim,
-    where you look down into it (`test/nights/night12.js` checks each is drawn within the open
+    nightstand is an ordinary bedside table at your right, its back to the wall at the head
+    of the bed and a hand's width clear of the bed's side, the lamp on it; its drawer is in
+    its front, facing down the room toward the foot of the bed (you see it looking north-east
+    and east, ahead or down). Shut, its front is a board a little proud of the nightstand's,
+    with a pale knob; opened, it slides 30 cm out toward the foot of the bed, beside the bed
+    and never over it, an open box (its front, its two sides, its bottom, the dark of the
+    nightstand behind it), and the bulb, the only thing in it (there is no wrong bulb), lies
+    on its bottom, under its rim, where you look down into it over its side
+    (`test/nights/night12.js` checks that from your eye no corner of the drawer, shut or open,
+    is ever seen against the bed, that the bulb is drawn within the open
     drawer from every view that shows it, and is what a click there takes). Then they
     come up over your eyes and the rest happens under them, the cloth hanging in long folds:
     its steps to the bed, the shadows of its two hands coming up onto the lamp-lit cloth and
     taking hold as they did on the bed, three hard pulls (one hand, the other, then both)
     that the covers hold; then its hands let go and sink away, and its steps go away.
-    The night's easter egg ("Put on a horror movie."): a small old television stands on a low
-    cabinet out past the foot of the bed, to the right of the doorway, turned to face you (a
-    rounded screen, two dials and a speaker, a rabbit-ear aerial; its glass dark, the window
-    faintly in it), and its remote control is in the drawer with the bulb (where, on Nightmare,
-    a bulb that would not fit used to be: there is no wrong bulb now; tried at the lamp, the
-    remote is only "It's missing something."). The set is scenery until you carry the remote
-    (it need not be the thing in your hand); then it is a target, "Turn on the TV", once. It
-    clicks on to a second of static and then plays a little film on its screen, black and a
-    sickly pale green, lined and flickering: a long dark corridor, the view pushing in, a door
-    at the end of it that comes open a crack; close on the door's edge, a pale hand curling
-    round it finger by finger; the corridor again, nearer, the door swinging wider on the dark
-    and two eyes in it; then nothing, and nothing moves; and at seven seconds from the click a
-    pale screaming face is suddenly all there is on the screen, with a tinny shriek. All its
-    sound is small and tinny, from where the set stands (a thin drone, the door's creak, the
-    shriek). Its picture lights what is near it a little; it is not the lamp, and the night's
-    rules know nothing of it. Whatever the thing was doing (peering round its opening, coming
-    on, going round the bed, down in the light and crawling, at the bed with its hands on the
-    covers, rising), it stops and looks round at the set, its eyes over at that side of its
-    head (half a second); scurries over to it on all fours (a second or so: out through the
-    middle of its opening first if it was still behind it, round the foot of the bed from the
-    closet's side, and from there counted along the doorway's way) and bends double over it,
-    its face up against the glass at the edge of the screen, one long hand hooked over the top
-    of the set and the other on the floor, its head following the picture a little, the
-    picture's light down the side of its head; at the fright it is thrown back a step, its
-    arms flung up and its eyes wide, with a yelp, and at once puts its fist through the
-    screen: the glass bursts out with a pop and a fizz of sparks, the picture is dead (a black
-    hole in the glass, cracks out to its edges), the aerial is bent over, and a thread of smoke
-    rises for a few seconds. Then its head comes round to you, slowly, tilting on over past
-    where a head should turn; and at just under ten seconds from the click it comes on again
-    from where it stands by the set, its head coming upright as it goes: in the dark on its
-    feet, back to its line to the foot of the bed, the night's clock where it was when the set
-    came on (so it has gained nothing: far off before, it waits there until its clock has
-    brought it that near); the lamp on at that moment, it throws an arm across its face and
-    goes down on its haunches, as the light always has it, and comes low to the foot of the bed
-    and up with its hands on the covers (their pulls begun again). It cannot catch you while
-    that lasts; the covers pulled up in the dark meanwhile do not hold and slip back ("The lamp
-    first."), and the night won meanwhile (the lamp, the covers) is won as ever: it breaks off
-    for the bed, and the set goes off of itself when its film is over. The set cannot be put on
-    again. Caught at any time after it was put on, by whichever of its ways, the card says "It
-    got you" and "Ironically it doesn't seem to like horror." With motion and flashes reduced
-    the static and the film's flicker are slow and faint, the face comes up out of the dark
-    and holds still, the view does not shake, and its lurch is gentler; the times are the same.
+    The night's easter egg, the tooth fairy ("Give the tooth fairy a tooth."): a full-sized
+    pillow lies against the headboard at your back, the one thing in the room behind you
+    (none of it shows looking ahead or to either diagonal; it is soft, plump in the middle and
+    thin at its seam). Look right round and down and click it: your hand tips it up on its
+    far edge, and there is a tooth on the sheet under it. Take the tooth and the night stops
+    where it is: whatever it was doing, it lets go of it and is at the foot of the bed (simply
+    there, unseen, if you are turned to the pillow; watched, it comes there on its feet, out
+    through the middle of its opening), bowed far in over the bed toward you, its arms
+    joined at its shoulders all the while, one long hand held out open and palm up in front
+    of you, the other down on the end of the bed. The night's sound fades away and a deep,
+    low rumbling swells up in its place, slowly, with a slow uneven throb in it, and holds
+    for as long as it waits: no heartbeat, not a breath from it; the covers will not come
+    up, and nothing can catch you. The tooth put down goes back under the pillow. Put the
+    tooth in its hand and it keeps it lying there on its open palm, to the last: it
+    straightens up and steps back from the bed, the hand held out in front of it with the
+    tooth on it, and a butterfly's wings unfurl from behind its back, the fore pair blue and
+    the hind pair rose, their own light in the room; they beat a little; then one great fan
+    of them, the rumbling fading as they go, and it is gone in a cloud of fairy dust. A
+    dollar bill comes down like a leaf onto the bed, and a moment after it has settled the
+    night is won: "You survived", and under it "And you got a dollar!" With motion reduced
+    the wings do not fan (it only fades), the dust hardly spreads and the bill comes
+    straight down; with flashes reduced nothing twinkles.
 13. **The Void.** Your hands are empty, and everything you ever held against it lies
     around you, within reach. It comes in a black hooded robe, nothing of its face to be
     seen in the dark of the hood but two small pale eyes. Take up anything and it is

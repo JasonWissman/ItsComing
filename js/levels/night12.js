@@ -11,21 +11,14 @@
 // and again, and every pull brings them further up the bed toward you: pull the covers up before they reach you, or it
 // comes up the bed after them. The covers stop it, but only with the lamp on: pulled up in the dark, it takes them and
 // pulls them away.
-// The night's easter egg: the pillow at the small of your back is a small one, and it is the one thing in the room that
-// is behind you. Look round and down at it and lift it: there is a tooth under it. Take the tooth and the night stops
-// where it is: when you turn back the thing is bowed in over the bed from the foot of it, close, one long hand held out
-// open, and it is quiet. Put the tooth in its hand: it takes it, steps back, unfurls a butterfly's wings, fans them once
-// and is gone in a cloud of fairy dust; a dollar bill floats down onto the bed, and the night is won (the tooth fairy,
-// below).
-// The wrong bulb: the same glass on a bayonet cap, two pins and no thread, so it will not screw into this lamp. The
-// tooth: a small pale molar, its two roots down
+// The night's easter egg: the pillow against the headboard at your back is the one thing in the room that is behind
+// you. Look round and down at it and lift it: there is a tooth under it. Take the tooth and the night stops where it
+// is: when you turn back the thing is bowed in over the bed from the foot of it, close, one long hand held out open,
+// and a deep, low rumbling has come up under everything. Put the tooth in its hand: it keeps it lying there on its open
+// palm, straightens, steps back, unfurls a butterfly's wings, fans them once and is gone in a cloud of fairy dust, the
+// rumbling with it; a dollar bill floats down onto the bed, and the night is won (the tooth fairy, below).
+// The tooth: a small pale molar, its two roots down
 Object.assign(ICONS, {
-  bulbPin(ctx, P) {
-    const glass = P.col([214, 212, 200]), brass = P.col([150, 130, 70]), fil = P.col([120, 110, 90]);
-    P_ell(ctx, 0, 0.62, 0.26, 0.3, glass); P_poly(ctx, [[-0.16, 0.4], [0.16, 0.4], [0.12, 0.2], [-0.12, 0.2]], glass);
-    P_rect(ctx, -0.12, 0.05, 0.24, 0.16, brass); P_rect(ctx, -0.21, 0.1, 0.1, 0.05, brass); P_rect(ctx, 0.11, 0.1, 0.1, 0.05, brass);
-    P_line(ctx, -0.06, 0.45, 0, 0.7, 0.012, fil); P_line(ctx, 0, 0.7, 0.06, 0.45, 0.012, fil);
-  },
   tooth(ctx, P) {
     const en = P.raw([214, 208, 190]), dip = P.raw([150, 142, 124]);   // (pale in any dark: it is what you are looking for)
     P_ell(ctx, -0.15, 0.3, 0.12, 0.3, en, 0.14); P_ell(ctx, 0.15, 0.3, 0.12, 0.3, en, -0.14);                              // its roots
@@ -45,7 +38,7 @@ LEVELS.push({
     death: { default: 'It leaned in closer until its face was the only thing you could see.', dark: 'It pulled the covers away. It is strong in the dark.', grabbed: 'Its hands pulled their way up the bed to you, and then it came up after them.' },
     egg: 'Give the tooth fairy a tooth.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     win: 'You pulled the covers over your head.\nIt pulled at them, but you were stronger.',
-    fairy: 'It took the tooth and left a dollar.\nYou do not remember losing one.',   // the night won by the tooth fairy: the line on its card, in place of win
+    fairy: 'And you got a dollar!',   // the night won by the tooth fairy: the line on its card under "You survived" (js/menu.js), in place of win
   },
   lanes: [
     // it starts where it peers round the edge from (WAYS below): the start is held to that, whatever the spread of the night.
@@ -59,14 +52,14 @@ LEVELS.push({
   build(L) {
     const s = L.s;
     const parts = STORY.buildBedroom(L, false);
-    const decoy = !!L.diff.decoys, unplugged = L.nightmare, sticks = L.nightmare;
+    const unplugged = L.nightmare, sticks = L.nightmare;
     Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, tick: 0, tugAt: -9, mode: null, latBias: 0, pillowAt: null, fairy: null });
     // Drawing order in this room (it is built in local coordinates, and this night faces north, so they are world ones).
     // The mattress is one long quad whose middle is further off than the nightstand beside it and the bed's own legs, so
     // it was drawn first and they over it: the nightstand stood on the covers and the legs showed through. Whatever is
-    // beside or under the bed goes behind the mattress (BED). The nightstand stands along the bed at your right hand,
-    // back against the wall at the head of it; its drawer is in the side that faces the bed (NS: where it is; LX, LZ:
-    // the lamp on it; BEDR: the bed, HEAD the head end of its mattress, WALL the wall behind your head).
+    // beside or under the bed goes behind the mattress (BED). The nightstand stands beside the bed at your right hand,
+    // clear of it, back against the wall at the head of it; its drawer is in its front, toward the foot of the bed (NS:
+    // where it is; LX, LZ: the lamp on it; BEDR: the bed, HEAD the head end of its mattress, WALL the wall behind your head).
     // The mattress's top is drawn whole, just before the covers (MATTRESS, between them and BED): left to itself it was cut
     // into pieces each sorted where it is, and the pieces nearer than the covers were drawn over them as they came up.
     const NS = parts.nightstand, LX = parts.lamp[0], LZ = parts.lamp[2], BEDR = parts.bed, HEAD = BEDR.z0, WALL = parts.headWall;
@@ -78,41 +71,40 @@ LEVELS.push({
     }
     const lampArt = STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => shown() });
     // its cord runs off the back of the nightstand (and, under the bed, to the wall on the other side)
-    SC.quad(L, [LX + 0.05, NS.top + 0.004, LZ - 0.03], [LX + 0.06, NS.top + 0.004, LZ - 0.05], [NS.x1, NS.top + 0.004, LZ - 0.17], [NS.x1, NS.top + 0.004, LZ - 0.15], [30, 26, 24], { sortDist: 1.5 });
+    SC.quad(L, [LX + 0.04, NS.top + 0.004, LZ - 0.05], [LX + 0.06, NS.top + 0.004, LZ - 0.05], [LX + 0.12, NS.top + 0.004, NS.z0], [LX + 0.1, NS.top + 0.004, NS.z0], [30, 26, 24], { sortDist: 1.5 });
     // the wall socket, low on the wall behind the bed on the closet side (SOCK: how far along it): a pale plate with its
     // two slots
     const SOCK = -1.78;
     SC.wallV(L, SOCK - 0.05, WALL + 0.006, SOCK + 0.05, WALL + 0.006, 0.22, 0.36, [120, 114, 104], { sortDist: 1.9 });
     for (const x of [SOCK - 0.015, SOCK + 0.015]) SC.wallV(L, x - 0.007, WALL + 0.008, x + 0.007, WALL + 0.008, 0.26, 0.31, [22, 20, 20], { sortDist: 1.899 });
     const c0 = () => L.creatures[0];
-    // The drawer, in the side of the nightstand that faces the bed, at your elbow, holds the bulb (and, on Nightmare, one
-    // that will not fit). It is built into the nightstand (a container's card would turn with the view and stand out from
-    // it at an angle): opened, it slides right out toward the bed, over the edge of the mattress (DR.out), an open box
-    // (its front, its two sides, its bottom, the dark of the nightstand behind), and they lie in it on its bottom, under
-    // its rim, where you look down into it over its front from the pillow.
-    // DR: where its front is in the nightstand's face (z0 to z1 along it, y0 to y1; xf: that face), how far it comes out
-    // and how long that takes, its bottom, the thickness of its sides; `in`: where each thing lies in it (along it, and
-    // how far behind its front: well back, where its front does not hide them)
-    // Both bulbs are held the same way, by the cap between finger and thumb, the glass up (js/hands.js)
-    const DR = { z0: NS.drawer.z0, z1: NS.drawer.z1, y0: NS.drawer.y0, y1: NS.drawer.y1, xf: NS.x0, out: 0.3, dur: 0.4, floor: 0.64, wall: 0.016 };
-    const BULB_HELD = { grip: 'pinch', at: [0, 0.1], angle: -0.12, tip: [0, 0.05] };
-    const bulbs = [{ id: 'bulb', name: 'Bulb', in: [decoy ? 0.11 : 0.21, 0.2], opts: { w: 0.13, h: 0.16, icon: 'bulb', material: 'glass' } }]
-      .concat(decoy ? [{ id: 'bulb2', name: 'Bulb', in: [0.3, 0.2], opts: { w: 0.13, h: 0.16, icon: 'bulbPin', decoy: true, decoyText: 'Wrong kind of bulb. It will not go in.', held: BULB_HELD, material: 'glass' } }] : []);
+    // The drawer, in the front of the nightstand, toward the foot of the bed, holds the bulb. It is built into the
+    // nightstand (a container's card would turn with the view and stand out from it at an angle): opened, it slides out
+    // toward the foot of the bed, beside the bed and never over it (DR.out), an open box (its front, its two sides, its
+    // bottom, the dark of the nightstand behind), and the bulb lies in it on its bottom, under its rim, where you look
+    // down into it over its side from the pillow.
+    // DR: where it is in the nightstand's front (x0 to x1 across it, y0 to y1; zf: that front), how far it comes out and
+    // how long that takes, its bottom, the thickness of its sides; `in`: where the bulb lies in it (across it from its
+    // side nearer you, and how far behind its front: in the part that has come out, toward its far side, where its near
+    // side does not hide it). It is held by the cap between finger and thumb, the glass up (js/hands.js)
+    const DR = { x0: NS.drawer.x0, x1: NS.drawer.x1, y0: NS.drawer.y0, y1: NS.drawer.y1, zf: NS.z1, out: 0.3, dur: 0.4, floor: NS.drawer.y0 + 0.04, wall: 0.016, proud: 0.02 };
+    const bulbs = [{ id: 'bulb', name: 'Bulb', in: [0.24, 0.14], opts: { w: 0.13, h: 0.16, icon: 'bulb', material: 'glass' } }];
+    const DMID = (DR.x0 + DR.x1) / 2;
     // how far out it is now; and the drawer's target and the things still lying in it go with it
     const drawerOut = () => (drawer.open ? DR.out * smoothstep(clamp((L.t - drawer.openAt) / DR.dur, 0, 1)) : 0);
     const rideDrawer = () => {
       const out = drawerOut(), at = (x, y, z) => L.pt(x, y, z);
-      const t = at(DR.xf - out * 0.5, DR.y0 - 0.01, (DR.z0 + DR.z1) / 2); drawer.x = t[0]; drawer.y = t[1]; drawer.z = t[2]; drawer.w = 0.42 + out * 0.3;
-      for (const it of drawer.yielded) if (!it.taken && !it.left) { const q = at(DR.xf - out + it.in[1], DR.floor + 0.004, DR.z0 + it.in[0]); it.x = q[0]; it.y = q[1]; it.z = q[2]; }
+      const t = at(DMID, DR.y0 - 0.01, DR.zf + out * 0.5); drawer.x = t[0]; drawer.y = t[1]; drawer.z = t[2]; drawer.w = 0.42 + out * 0.3;
+      for (const it of drawer.yielded) if (!it.taken && !it.left) { const q = at(DR.x0 + it.in[0], DR.floor + 0.004, DR.zf + out - it.in[1]); it.x = q[0]; it.y = q[1]; it.z = q[2]; }
       return out;
     };
     const drawer = mkTarget(L, {
-      id: 'drawer', name: 'Drawer', x: DR.xf, y: DR.y0 - 0.01, z: (DR.z0 + DR.z1) / 2, w: 0.42, h: 0.18, open: false, yielded: [],
+      id: 'drawer', name: 'Drawer', x: DMID, y: DR.y0 - 0.01, z: DR.zf, w: 0.42, h: 0.18, open: false, yielded: [],
       hint() { return drawer.open ? 'Nothing else in it.' : 'The nightstand drawer.'; },
       onClick() {   // your hand opens it (js/hands.js); clicked again, it goes into it
         if (!drawer.open) {
           drawer.open = drawer.done = true; drawer.openAt = L.t; AUDIO.sfx('drawer'); // its own sound: not the creak that warns of the doorway, nor a creature's scratching
-          for (const b of bulbs) drawer.yielded.push(Object.assign(mkItem(L, b.id, b.name, { x: DR.xf + b.in[1], y: DR.floor + 0.004, z: DR.z0 + b.in[0], flat: true, jitter: 0 }, b.opts), { in: b.in }));
+          for (const b of bulbs) drawer.yielded.push(Object.assign(mkItem(L, b.id, b.name, { x: DR.x0 + b.in[0], y: DR.floor + 0.004, z: DR.zf - b.in[1], flat: true, jitter: 0 }, b.opts), { in: b.in }));
           G.reach(drawer, 'pull');
           return true;
         }
@@ -121,14 +113,14 @@ LEVELS.push({
         return true;
       },
     });
-    // (for the night's test: the four corners of its open top, inside its rim, as it is now; and its bottom's height)
-    drawer.rim = () => { const x0 = DR.xf - drawerOut(); return [[x0 + DR.wall, DR.z0 + DR.wall], [x0 + DR.wall, DR.z1 - DR.wall], [DR.xf, DR.z1 - DR.wall], [DR.xf, DR.z0 + DR.wall]].map(([x, z]) => L.pt(x, DR.y1, z)); };
-    drawer.floorY = DR.floor; drawer.out = drawerOut;
-    const knob = SC.mkSprite(L, DR.xf - 0.014, (DR.y0 + DR.y1) / 2 - 0.018, (DR.z0 + DR.z1) / 2, 0.036, 0.036, (ctx, P) => { ctx.scale(0.036, 0.036); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([96, 92, 86])); P_ell(ctx, -0.1, 0.6, 0.3, 0.3, P.col([164, 158, 148])); }, { sortDist: 0.55 });
+    // (for the night's test: the four corners of its open top, inside its rim, as it is now; its bottom's height; and the
+    // whole of it, shut or open, x0, x1, z0, z1 in the room's own terms)
+    drawer.rim = () => { const zo = DR.zf + drawerOut(); return [[DR.x0 + DR.wall, DR.zf], [DR.x0 + DR.wall, zo - DR.wall], [DR.x1 - DR.wall, zo - DR.wall], [DR.x1 - DR.wall, DR.zf]].map(([x, z]) => L.pt(x, DR.y1, z)); };
+    drawer.floorY = DR.floor; drawer.out = drawerOut; drawer.box = () => [DR.x0 - 0.012, DR.x1 + 0.012, NS.z0, DR.zf + drawerOut() + DR.proud];
+    const knob = SC.mkSprite(L, DMID, (DR.y0 + DR.y1) / 2 - 0.022, DR.zf + 0.032, 0.044, 0.044, (ctx, P) => { ctx.scale(0.044, 0.044); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([120, 112, 96])); P_ell(ctx, -0.1, 0.6, 0.3, 0.3, P.col([188, 180, 160])); }, { sortDist: 1.42 });
     // The lamp's switch is the pull chain under its shade, and your hand pulls it (js/hands.js): the chain jerks and the switch
     // clicks as the hand gets there. With no bulb in, or the cord out, nothing comes of it; on Nightmare it sticks twice (the
-    // chain barely gives) before it goes. The light comes on as it is pulled. The wrong bulb is tried in the socket, will not
-    // go in, and drops onto the bed (soft), where it can be taken again.
+    // chain barely gives) before it goes. The light comes on as it is pulled.
     const CHAIN = [0.2, 0.31];
     const pull = (stiff, then) => {
       const was = G.hand.reach, go = () => { s.tugAt = L.t; s.stiff = stiff; AUDIO.sfx('switch'); if (then) then(); };
@@ -136,8 +128,7 @@ LEVELS.push({
       if (!r || r === was) go();   // no hand to show, or it is there already, still on the chain: at once
     };
     const lampT = mkTarget(L, {
-      id: 'lamp', name: 'Lamp', x: LX, y: NS.top, z: LZ, w: 0.4, h: 0.55, accepts: ['bulb'].concat(decoy ? ['bulb2'] : []),
-      fumble: { decoy: { preset: 'bump', at: [0, 0.5], sfx: { land: 'flop' } } },
+      id: 'lamp', name: 'Lamp', x: LX, y: NS.top, z: LZ, w: 0.4, h: 0.55, accepts: ['bulb'],
       hint() { return !s.fitted ? 'The lamp. Dead. No bulb in it.' : !s.plugged ? 'A bulb in it now. Nothing happens; the cord is loose somewhere.' : s.lampOn ? 'On.' : 'Off. Switch it on.'; },
       use(item) { if (item.id !== 'bulb') return false; s.fitted = true; lampT.accepts = []; AUDIO.sfx('fit'); G.say('The bulb goes in. Now the switch.', 'In.'); return true; },
       onEmpty() { pull(false); },   // no bulb in it yet, and nothing in hand: the chain is pulled, and nothing
@@ -447,22 +438,25 @@ LEVELS.push({
     // of it, and it is at the foot of the bed (unseen, as it nearly always is while you are turned to the pillow, it is
     // simply there; watched, it comes there on its feet, out through the middle of its opening first), bowed far in over
     // the bed toward you, one long arm held out, its hand open and palm up in front of you (FAIRY.hand: where, in the
-    // room). And it is quiet: the night's bed of sound fades out, there is no heartbeat (the game's is by how near it is,
-    // against how far it had to come: both are put out of reach, and kept in s.fairy.keep), not a breath from it, the lamp burns on
+    // room). And the night's bed of sound fades out and a deep, low rumbling swells up under everything in its place
+    // (fairyRumble: it holds as long as it waits), but there is no heartbeat (the game's is by how near it is, against how
+    // far it had to come: both are put out of reach, and kept in s.fairy.keep), not a breath from it, the lamp burns on
     // if it is on and stays out if it is out, the covers will not come up, and nothing can catch you. It waits as long as
     // you like. The tooth put down goes back under the pillow.
     // The tooth put in its hand (the hand is a target then: fairyGive) is the easter egg found, and the night's own end,
-    // in seconds from then (FAIRY): its fingers close over the tooth (shut); it straightens up and steps back from the
-    // bed (rise, to FAIRY.back); a butterfly's wings unfurl behind it (wings: the tall one's own, js/creatures/tall.js),
-    // a soft light in the room; they beat a little; then one great fan of them (fan: swept shut, and open at snap) and it
-    // is gone (gone) in a cloud of fairy dust, sparks of gold and rose and blue that burst out, drift down and die away
+    // in seconds from then (FAIRY): it keeps it lying there on its open palm, held out to you all the while; it
+    // straightens up and steps back from the bed (rise, to FAIRY.back), its hand coming with it to be held in front of it
+    // (HOLD: across, how high, how far in front of its feet), the tooth still on it; a butterfly's wings unfurl behind it
+    // (wings: the tall one's own, js/creatures/tall.js), a soft light in the room; they beat a little; then one great fan
+    // of them (fan: swept shut, and open at snap), the rumbling fading away as they fan, and it is gone (gone) in a cloud
+    // of fairy dust, sparks of gold and rose and blue that burst out, drift down and die away
     // (DUST); and out of it a dollar bill comes down like a leaf (bill, over fall seconds: swinging from side to side,
     // tilting as it swings, turning over) onto the bed in front of you (BILL), and lies there. A moment after it has
     // landed (rest) the night is won, as any night is. With motion reduced the wings do not fan (it only fades), the dust
     // hardly spreads and the bill comes straight down; with flashes reduced nothing twinkles.
     const KT = CREATURES.tall.SCALE, PIL = parts.pillow, B0 = BEDR.top, PILLOW = [110, 106, 112];
-    const TOOTH = [0.02, PIL.z1 - 0.005];   // where the tooth lies (its near end): just under the near edge of the pillow
-    const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.4, tilt: 0.8, shut: 0.55, rise: [0.7, 2.2], wings: [2.2, 3.9], fan: 5.9, snap: 6.28, gone: 6.62, bill: 6.5, fall: 4.4, rest: 1.1, after: 1.4 };
+    const TOOTH = [0.02, PIL.z1 - 0.055];   // where the tooth lies (its near end): under the pillow, a little in from its near edge
+    const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.45, tilt: 1.15, rise: [0.7, 2.2], wings: [2.2, 3.9], fan: 5.9, snap: 6.28, gone: 6.62, bill: 6.5, fall: 4.4, rest: 1.1, after: 1.4 };
     const BILL = { w: 0.26, h: 0.11, to: [0.1, 1.5], yaw: 0.35 };   // the bill; where on the bed it comes to lie, and how it is turned
     const pillowUp = () => (s.pillowAt === null ? 0 : smoothstep((L.t - s.pillowAt) / FAIRY.lift));
     const pillowT = mkTarget(L, {
@@ -477,6 +471,7 @@ LEVELS.push({
       },
     });
     Object.defineProperty(pillowT, 'hidden', { get: () => s.pillowAt !== null });   // (once it is up there is no more to do with it)
+    pillowT.pil = PIL; pillowT.head = HEAD;   // (for the night's test: how big it is, and where the head of the bed is)
     // a thing taken is no longer the drawer's to carry; the tooth taken is the tooth fairy's cue, and put down again it
     // goes back where it was
     L.onPickup = it => { it.left = true; if (it.id === 'tooth') fairyStart(); };
@@ -493,10 +488,13 @@ LEVELS.push({
     });
     Object.defineProperty(handT, 'hidden', { get: () => !fairyWaits() });
     // where that hand is seen in the plane the thing stands in, about its feet, and how many times nearer you it is than
-    // its feet are (the tall one's c.fairy.hand and handK)
-    const handAt = c => {
-      const p = c.pos(), r = Math.hypot(p.x, p.z) || 1, ux = p.x / r, uz = p.z / r, k = r / Math.max(0.3, HP[0] * ux + HP[2] * uz);
-      return { at: [((HP[0] * k - p.x) * uz - (HP[2] * k - p.z) * ux) / KT, (L.eyeH + (HP[1] - L.eyeH) * k - p.y - (c.yOff || 0)) / KT], k };
+    // its feet are (the tall one's c.fairy.hand and handK): held out over the bed, or (held, 0..1) brought back to be held
+    // in front of it as it straightens (HOLD, from where it stands)
+    const HOLD = [0.3, 1.1, 0.45];
+    const handAt = (c, held) => {
+      const p = c.pos(), r = Math.hypot(p.x, p.z) || 1, ux = p.x / r, uz = p.z / r;
+      const H = [lerp(HP[0], p.x + HOLD[0] * uz - HOLD[2] * ux, held), lerp(HP[1], HOLD[1], held), lerp(HP[2], p.z - HOLD[0] * ux - HOLD[2] * uz, held)], k = r / Math.max(0.3, H[0] * ux + H[2] * uz);
+      return { at: [((H[0] * k - p.x) * uz - (H[2] * k - p.z) * ux) / KT, (L.eyeH + (H[1] - L.eyeH) * k - p.y - (c.yOff || 0)) / KT], k };
     };
     const fairyStart = () => {
       if (s.fairy) return;
@@ -504,9 +502,9 @@ LEVELS.push({
       s.fairy = { t0: L.t, stage: 'come', given: null, done: false, way: null, i: 0, dust: null, at: null, keep: { D0: c.D0, catchDist: c.catchDist } };
       s.mode = 'fairy'; s.grab = null; s.jerk = 0; s.duck = null; s.switched = true; s.thumps = null; s.yank = null; s.yankK = 0; s.cross = null;
       G.holding = null; stopWalking(c); hold(c, c.dist);
-      AUDIO.stopAmbient(1.5);          // quiet
+      AUDIO.stopAmbient(1.5); AUDIO.sfx('fairyRumble');   // the night's sound gone, and the rumbling coming up in its place
       c.D0 = -2000; c.catchDist = -1000;   // (and no heartbeat, wherever it is: the game's goes by how far along its way it is, between where it started and where it would have you, and both are put out of all reach)
-      c.fairy = { lean: 0, offer: 0, hand: null, handK: 1, tooth: false, shut: 0, wings: 0, beat: 1, gone: 0, t: L.t };
+      c.fairy = { lean: 0, offer: 0, held: 0, hand: null, handK: 1, tooth: false, wings: 0, beat: 1, gone: 0, t: L.t };
     };
     // its way to the foot of the bed from wherever it is, watched (points in the room): out through the middle of its
     // opening first (route, as ever), and round the corner of the bed's foot from the closet's side
@@ -551,20 +549,20 @@ LEVELS.push({
         c.duck = c.flinch = c.reach = c.peer = 0;
         T.lean = Math.min(1, T.lean + dt / 1.3); if (T.lean > 0.5) T.offer = Math.min(1, T.offer + dt / 0.9);
       } else {
-        // the tooth is in its hand: it closes on it; it straightens and steps back; its wings; one fan of them, and gone
+        // the tooth is in its hand, on its open palm, and stays there: it straightens and steps back, its hand held out in
+        // front of it; its wings; one fan of them, and gone
         const q = L.t - X.given, F = FAIRY;
-        T.shut = smoothstep(q / F.shut);
-        T.lean = 1 - smoothstep((q - F.rise[0]) / (F.rise[1] - F.rise[0])); T.offer = 1 - smoothstep((q - F.rise[0]) / 0.9);
+        T.offer = 1; T.lean = 1 - smoothstep((q - F.rise[0]) / (F.rise[1] - F.rise[0])); T.held = 1 - T.lean;
         if (q >= F.rise[0] && T.gone < 1) hold(c, stepsOf(c, c.CR.pace(c, dt, F.back, 0)));
         T.wings = smoothstep((q - F.wings[0]) / (F.wings[1] - F.wings[0]));
         const idle = rm ? 1 : 0.9 + 0.1 * Math.cos((q - F.wings[1]) * 2.6), shut = smoothstep((q - F.fan) / (F.snap - F.fan)), open = smoothstep((q - F.snap) / 0.1);
         T.beat = rm ? 1 : lerp(lerp(q < F.wings[1] ? 1 : idle, 0.14, shut), 1.3, open);
         T.gone = smoothstep((q - F.snap - 0.03) / (F.gone - F.snap));
-        if (q >= F.fan && !X.whoosh) { X.whoosh = true; AUDIO.sfx('wingWhoosh', panOf(c)); }
+        if (q >= F.fan && !X.whoosh) { X.whoosh = true; AUDIO.sfx('wingWhoosh', panOf(c)); AUDIO.stopLoop(1.2); }   // (and the rumbling fades away)
         if (q >= F.snap && !X.dust) { const p = c.pos(); X.dust = L.t; X.at = { x: p.x, z: p.z }; AUDIO.sfx('fairyDust', panOf(c)); if (!rm) G.shake(0.08); }
         if (q >= F.bill + F.fall + F.rest) X.done = true;
       }
-      const h = handAt(c); T.hand = h.at; T.handK = h.k;
+      const h = handAt(c, T.held || 0); T.hand = h.at; T.handK = h.k;
     };
     // the light of its wings, and of its dust after it: where, and how much (0..1), or nothing
     const fairyGlow = () => {
@@ -688,26 +686,30 @@ LEVELS.push({
           flex([[SOCK, WALL + 0.02], [SOCK + 0.1, -0.36], [-1.4, -0.1], [-1.0, 0.04], [-0.7, 0.06]], 0.012);
         }
       }
-      // the drawer. Shut, its front is flush in the nightstand's, a dark gap round it. Open, it is a box slid out on its
-      // runners toward the bed: the dark of the nightstand behind it, its bottom, its far side; then what lies in it
-      // (drawn where it is); then its near side and its front, over them. (You look down into it over its front, from the
-      // pillow; it is over the edge of the mattress, so all of it is drawn after the bed and the covers.)
-      const out = rideDrawer(), xo = DR.xf - out, W = DR.wall, WOOD = [66, 50, 38], RIM = [84, 64, 50];
+      // the drawer. Shut, only its front shows: a board a little proud of the nightstand's front and a little wider than
+      // the opening, its knob in the middle. Open, it is a box slid out on its runners toward the foot of the bed, beside
+      // it: the dark of the nightstand behind it, its bottom, its far side and the inside of its front; then what lies in
+      // it (drawn where it is); then its near side, over them. (You look down into it over its near side, from the pillow;
+      // it is beyond the edge of the bed, so none of it is ever over the bed.) Its front's outside and its knob are seen
+      // while you are on that side of it: once it has come out past you, they are behind it
+      const out = rideDrawer(), zo = DR.zf + out, W = DR.wall, T = DR.proud, WOOD = [66, 50, 38], FRONT = [84, 64, 48], RIM = [84, 64, 50];
       const dw = (x0, z0, x1, z1, y0, y1, col, sd) => R.add(SC.mkWallV(L, x0, z0, x1, z1, y0, y1, col, { sortDist: sd }));
       const lid = (x0, x1, za, zb, y, col, sd) => R.add(SC.mkQuad(L, [x0, y, za], [x1, y, za], [x1, y, zb], [x0, y, zb], col, { sortDist: sd }));
+      const fx0 = DR.x0 - 0.012, fx1 = DR.x1 + 0.012, fy0 = DR.y0 - 0.01, fy1 = DR.y1 + 0.01, outside = zo + T < (L.eye ? L.eye.z || 0 : 0) - 0.01;
       R.glowAs(drawer);
-      dw(DR.xf - 0.002, DR.z0 - 0.012, DR.xf - 0.002, DR.z1 + 0.012, DR.y0 - 0.012, DR.y1 + 0.008, [9, 8, 8], 1.3);   // the gap round it; the hole it came out of
       if (out > 0.004) {
-        lid(xo, DR.xf, DR.z0 + W, DR.z1 - W, DR.floor, [38, 29, 23], 1.296);                        // its bottom
-        dw(xo, DR.z1 - W, DR.xf, DR.z1 - W, DR.floor, DR.y1, [50, 38, 30], 1.294);                    // its far side, from inside
-        lid(xo, DR.xf, DR.z1 - W, DR.z1, DR.y1, RIM, 1.292);                                           // and its top edge
-        dw(xo, DR.z0, DR.xf, DR.z0, DR.y0, DR.y1, scalec(WOOD, 0.8), 0.6);                            // its near side, from outside
-        lid(xo, DR.xf, DR.z0, DR.z0 + W, DR.y1, RIM, 0.59);
-        lid(xo, xo + W, DR.z0, DR.z1, DR.y1, RIM, 0.57);                                               // the top edge of its front
+        dw(DR.x0, DR.zf + 0.002, DR.x1, DR.zf + 0.002, DR.y0, DR.y1, [9, 8, 8], 1.5);                   // the hole it came out of
+        lid(DR.x0 + W, DR.x1 - W, DR.zf, zo, DR.floor, [38, 29, 23], 1.49);                           // its bottom
+        dw(DR.x1 - W, DR.zf, DR.x1 - W, zo, DR.floor, DR.y1, [50, 38, 30], 1.48);                     // its far side, from inside
+        lid(DR.x1 - W, DR.x1, DR.zf, zo, DR.y1, RIM, 1.475);                                           // and its top edge
+        dw(DR.x0, zo, DR.x1, zo, DR.floor, DR.y1, [50, 38, 30], 1.46);                                 // its front, from inside
+        dw(DR.x0, DR.zf, DR.x0, zo, DR.y0, DR.y1, scalec(WOOD, 0.8), 0.9);                             // its near side, from outside
+        lid(DR.x0, DR.x0 + W, DR.zf, zo, DR.y1, RIM, 0.89);
       }
-      dw(xo - 0.004, DR.z0, xo - 0.004, DR.z1, DR.y0, DR.y1, WOOD, 0.58);                              // its front
-      const kp = L.pt(xo - 0.014, 0, (DR.z0 + DR.z1) / 2); knob.x = kp[0]; knob.z = kp[2];
-      R.add(knob);
+      dw(fx0, zo + T, fx1, zo + T, fy0, fy1, FRONT, outside ? 1.44 : 1.465);                           // its front: the outside of it,
+      lid(fx0, fx1, zo, zo + T, fy1, scalec(FRONT, 1.15), 1.43);                                       // its top edge,
+      dw(fx0, zo, fx0, zo + T, fy0, fy1, scalec(FRONT, 0.85), 1.43);                                   // and its end
+      if (outside) { const kp = L.pt(DMID, 0, zo + T + 0.012); knob.x = kp[0]; knob.z = kp[2]; R.add(knob); }
       R.glowAs(covers);
       // the covers: bunched at the foot they are as thick all the way across; drawn up, they rise over you and lie flat on the
       // mattress at the sides
@@ -728,17 +730,19 @@ LEVELS.push({
       strip(zE, x => up(x, yE) + th(x), zE - 0.03, x => up(x, yB), mixc(scalec(BLANKET, 0.82), scalec(SHEET, 0.74), p), COV - 0.003);
       R.glowAs(null);
       R.add(lampDetail);
-      // the pillow, behind you: a small slab lying on the sheet against the headboard; lifted, it is tipped up on its far
-      // edge (and its shadow under it), and the tooth is on the sheet where its near edge lay. (at: a point of it, u
-      // along it from its far edge and v up through it. It is drawn after the tooth, which it may hide a part of)
+      // the pillow, behind you: a plump one lying on the sheet against the headboard; lifted, it is tipped up on its far
+      // edge (and its shadow under it), and the tooth is on the sheet under where it lay. (at: a point of it, u along it
+      // from its far edge and v up through it.) It is soft (STORY.pillowFaces: the morning's is the same). It is drawn
+      // after the tooth, which it may hide a part of
       {
         const k = pillowUp(), a = FAIRY.tilt * k, t = PIL.y1 - PIL.y0, len = PIL.z1 - PIL.z0, cs = Math.cos(a), sn = Math.sin(a), zH = PIL.z0 + t * sn;
         const at = (x, u, v) => [x, B0 + u * sn + v * cs, zH + u * cs - v * sn];
         const pq = (a2, b2, c2, d2, col, sd, alpha) => R.add(SC.mkQuad(L, a2, b2, c2, d2, col, alpha === undefined ? { sortDist: sd } : { sortDist: sd, alpha }));
         if (k > 0.02) pq([PIL.x0, B0 + 0.003, zH], [PIL.x1, B0 + 0.003, zH], [PIL.x1, B0 + 0.003, PIL.z1 + 0.02], [PIL.x0, B0 + 0.003, PIL.z1 + 0.02], [16, 14, 20], 0.34, 0.45 * k);
         R.glowAs(pillowT);
-        pq(at(PIL.x0, 0, t), at(PIL.x1, 0, t), at(PIL.x1, len, t), at(PIL.x0, len, t), PILLOW, 0.2);
-        pq(at(PIL.x0, len, 0), at(PIL.x1, len, 0), at(PIL.x1, len, t), at(PIL.x0, len, t), scalec(PILLOW, 0.76), 0.199);
+        // (tipped up past your line of sight, it is its underside that faces you, over the rest of it)
+        const ue = L.eye || { x: 0, y: 0, z: 0 }, mid = at(0, len / 2, 0), under = k > 0.02 && (L.eyeH + (ue.y || 0) - mid[1]) * -cs + ((ue.z || 0) - mid[2]) * sn > 0;
+        for (const f of STORY.pillowFaces(PIL, at, PILLOW, k, under)) pq(f.pts[0], f.pts[1], f.pts[2], f.pts[3], f.color, f.sd);
         R.glowAs(null);
       }
       // How low it must be to be out of sight behind the bed, where it is: the height of your line of sight there over the
@@ -769,9 +773,10 @@ LEVELS.push({
       // (its wings are far wider than it is, and a little taller)
       if (cr) { const wk = c.fairy && c.fairy.wings > 0; cr.w = wk ? 3.8 : c.CR.w; if (wk) cr.h = 2.6; }
       // its hands coming at you in its lunge: its arms on their own, over the bed (the rest of it behind the bed); and
-      // the same bowed in over the bed with a hand held out for the tooth
+      // the same bowed in over the bed with a hand held out for the tooth. They are drawn by its own picture's draw, so
+      // with the same slow breath and sway the rest of it is drawn with, and they stay on its shoulders as it breathes
       c.armsApart = !!cr && (G.state === 'dying' ? !c.close : !!c.fairy && c.fairy.lean > 0);
-      if (c.armsApart) R.add({ kind: 'sprite', x: cp.x, y: cp.y + (c.yOff || 0), z: cp.z, w: cr.w, h: cr.h, fogScale: 0.85, sortDist: 0.2, draw: (ctx, P) => { c.part = 'arms'; c.CR.draw(ctx, c, P); c.part = null; } });
+      if (c.armsApart) R.add({ kind: 'sprite', x: cp.x, y: cp.y + (c.yOff || 0), z: cp.z, w: cr.w, h: cr.h, fogScale: cr.fogScale, sortDist: 0.2, draw: (ctx, P) => { c.part = 'arms'; try { cr.draw(ctx, P); } finally { c.part = null; } } });
       // peering, its fingers are round the edge of the frame by its face (drawn over the frame, which the thing is behind):
       // at the height of its hand, seen through the opening's plane. As it steps out they slide back off the edge
       if ((c.peer || 0) > 0.05 && c.dist > w.apZ) {

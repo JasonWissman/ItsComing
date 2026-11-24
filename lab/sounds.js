@@ -134,6 +134,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'burnShriek', n: [11], d: 'A ragged rising shriek, cracking, through a stitched mouth. The carrier on fire, running about, and as it turns to charge you.', src: 'night11 (the fire)' },
   { kind: 'sting', name: 'stingBurn', n: [11], d: 'A roar of fire in your face, a shriek rising over it, the sting’s deep drop. Caught by the carrier burning.', src: 'night11 (the fire: deathSpec)' },
   { kind: 'loop', name: 'fire', n: [11], d: 'A low rushing roar breathing slowly, a brighter hiss over it, louder as more of the farm burns.', src: 'night11 (the fire)' },
+  { kind: 'loop', name: 'rumble', n: [12], d: 'The tooth fairy\u2019s rumbling, held: a low saw and a sine beating slowly against each other, dark noise under them, an uneven throb through it, the filter opening slowly over half a minute.', src: 'night12 (fairyRumble)' },
   // ---- night 12: the bedroom, and the story sounds of every night ----
   { kind: 'sfx', name: 'drawer', n: [12], d: 'A drawer sliding open.', src: 'night12' },
   { kind: 'sfx', name: 'cloth', n: [12, 13], d: 'Cloth twisting. Its hands on the covers; pulling them up (12). The demon\u2019s robe as it takes hold of you, and as it lets you go (13).', src: 'night12 · night13 grab, release' },
@@ -141,6 +142,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'growlLow', n: [12], d: 'The demon\u2019s growl (growl) tuned an octave further down and slowed: a very low, rattling growl, more felt than heard. Under the soft chord (stingHum) as the tall one\u2019s face comes in at you: its own death, in the dark.', src: 'tall.js lunge' },
   { kind: 'sfx', name: 'wingWhoosh', n: [12], d: 'One great soft beat of wide wings: the air drawn in, then let go with a low thump under it. The night\u2019s easter egg, the tooth fairy: it fans its wings once and is gone.', src: 'night12 tooth fairy' },
   { kind: 'sfx', name: 'fairyDust', n: [12], d: 'A shimmer of tiny bells, high and scattered, dying away over two seconds or so, with a breath of air over them; a little different each time. The fairy dust it leaves as it goes.', src: 'night12 tooth fairy' },
+  { kind: 'sfx', name: 'fairyRumble', n: [12], d: 'A deep, low rumbling, more felt than heard, swelling up slowly out of nothing over eight seconds and then holding, a slow uneven throb in it (never a heartbeat). The tooth fairy bowed in at the foot of the bed, its hand out, waiting for the tooth, for as long as you like; it fades away as its wings fan. It starts the rumble loop.', src: 'night12 (the tooth fairy)' },
   { kind: 'sfx', name: 'flicker', n: [12], d: 'A bulb flickering out with a buzz. The lamp goes dark.', src: 'night12' },
   { kind: 'sfx', name: 'tick', n: R12, d: 'A clock tick (one a second). For the first ten seconds of every night, from the north-west; on night 12 again once won.', src: 'story.js · night12' },
   { kind: 'sfx', name: 'knock', n: R12, d: 'Two knocks on a pipe, once, when it is halfway to you. A story thread.', src: 'story.js' },
@@ -298,6 +300,7 @@ const ORDER = ['sfx', 'sting', 'voice', 'footstep', 'loop', 'heartbeat', 'ambien
     if (s.kind === 'sfx' || s.kind === 'sting') {
       TUNE.run(t, () => AUDIO.sfx(s.name, 0));
       if (s.name === 'start') setOn('loop', SOUNDS.find(x => x.kind === 'loop' && x.name === 'engine'));   // it starts the engine loop
+      if (s.name === 'fairyRumble') setOn('loop', SOUNDS.find(x => x.kind === 'loop' && x.name === 'rumble'));   // it starts the rumble loop
     } else if (s.kind === 'voice') TUNE.run(t, () => AUDIO.voice(s.name, 0.6, 0));
     else if (s.kind === 'footstep') { const g = gap(STEP_GAP[s.name] || 400); for (let i = 0; i < 5; i++) later(i * g, T(() => AUDIO.footstep(s.name, 0.35 + i * 0.07, i % 2 ? 0.15 : -0.15))); }
     else if (s.kind === 'heartbeat') {   // the ramp as it closes in: from far (slow, faint) to at you (fast, loud)
