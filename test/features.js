@@ -2384,79 +2384,74 @@ const hoverHit = lookFor;
   // words that follow the text size): test/shell.js, in this browser
   await require('./shell').run(browser, check);
 
-  // An easter egg found for the first time is said: "Secret discovered: " and its title (game.js EGG_TITLES, by the
-  // night's id), and no sound with it (no sfx is played, no caption comes up). Not while the night is played: it is held,
-  // and said on the screen that follows (the death screen here; the win screen and the last night's last screen the
-  // same way), in the middle of the bottom edge, in the page, over nothing of that screen (which keeps a strip clear for
-  // it, however long its words) or of the corner controls, at 1280 by 760 and on a phone held sideways (844 by 390); it
-  // never takes a click, goes at once when the night goes on, and after its time; the same egg found again says nothing
-  console.log('== an easter egg found: the note on the screen after the night ==');
+  // An easter egg found for the first time is said there and then: "Secret discovered: " and its title (game.js
+  // EGG_TITLES, by the night's id), and no sound with it (no sfx is played, no caption comes up). At the top in the
+  // middle, in the page, over the compass; the line of words under the compass, a sound's caption in its corner and the
+  // corner controls all clear of it (with the line of words and a caption up), at 1280 by 760 and on a phone held
+  // sideways (844 by 390), at every text size; it never takes a click. Up about four seconds, then gone; the night ending
+  // meanwhile, it stays over the death screen until its time is done, and is not said again; the same egg found again
+  // says nothing
+  console.log('== an easter egg found: the note, there and then ==');
   for (const [what, opt, tag] of [['at 1280 by 760', { viewport: { width: 1280, height: 760 } }, '1280'], ['on a phone held sideways (844 by 390)', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true }, '844']]) {
     const ctx = await browser.newContext(opt), sp = await ctx.newPage();
     sp.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
     await sp.goto(URL + '?level=3&go&seed=1'); await sp.waitForTimeout(600);
-    const find = () => sp.evaluate(() => {
-      SAVE.data.eggs = {}; SAVE.persist(); MENU.applySetting('captions', true);
+    const find = ts => sp.evaluate(ts => {
+      SAVE.data.eggs = {}; SAVE.persist(); MENU.applySetting('captions', true); MENU.applySetting('textSize', ts); G.L.creature.hold = G.L.creature.dist;
       if (!window.__sfx) { const sfx = AUDIO.sfx; window.__sfx = sfx; AUDIO.sfx = (name, ...a) => { window.__heard.push(name); return sfx(name, ...a); }; }
       window.__heard = [];
-      const cap0 = document.getElementById('caption').textContent, first = foundEgg();
-      return { id: G.L.def.id, state: G.state, first, saved: SAVE.data.eggs[G.L.def.id] === true, played: window.__heard.slice(), capSame: document.getElementById('caption').textContent === cap0 };
-    });
+      const cap0 = document.getElementById('caption').textContent, first = foundEgg(); window.__found = performance.now();
+      const o = { id: G.L.def.id, state: G.state, first, saved: SAVE.data.eggs[G.L.def.id] === true, played: window.__heard.slice(), capSame: document.getElementById('caption').textContent === cap0 };
+      G.toast('No room to put it down here.', 60); CAPTIONS.show('something pounds on the door', 1, 1); G.step(0.016, 2);
+      return o;
+    }, ts);
     const look = () => sp.evaluate(() => {
-      const el = document.getElementById('secret'), cs = getComputedStyle(el), r = el.getBoundingClientRect(), W = innerWidth, H = innerHeight, ov = UI.overlay, oc = getComputedStyle(ov), or = ov.getBoundingClientRect();
+      const el = document.getElementById('secret'), cs = getComputedStyle(el), r = el.getBoundingClientRect(), W = innerWidth, H = innerHeight;
       const apart = (a, b) => a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5;
-      const others = ['mute', 'menuBtn', 'fsBtn', 'zoomBtn'].map(id => [id, document.getElementById(id)])
-        .filter(([, e]) => e && getComputedStyle(e).display !== 'none').map(([id, e]) => [id, e.getBoundingClientRect()]).filter(([, q]) => q.width > 0 && q.height > 0);
-      const parts = [...ov.querySelectorAll('h1, p, button, .kicker')].map(e => e.getBoundingClientRect()).filter(q => q.width > 0);
-      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-      return { text: el.textContent, shown: el.classList.contains('show'), op: +cs.opacity, vis: cs.visibility, pe: cs.pointerEvents, z: +cs.zIndex, oz: +oc.zIndex || 0, inHud: !!el.closest('#hud'), state: G.state,
-        box: [r.left, r.top, r.right, r.bottom].map(Math.round), inside: r.width > 40 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H, mid: Math.round(r.left + r.width / 2 - W / 2), low: r.top > H * 0.7 && H - r.bottom <= 30,
-        over: others.filter(([, q]) => !apart(r, q)).map(([id]) => id), seen: others.map(([id]) => id).join(), clear: parts.length >= 3 && parts.every(q => apart(r, q)),
-        // (what of the screen can be seen, scrolled or not, ends above the note: the strip the overlay keeps clear)
-        room: Math.round(or.bottom - parseFloat(oc.borderBottomWidth) - r.top), scroll: ov.scrollHeight - ov.clientHeight, notHit: at !== el && !el.contains(at), heard: window.__heard.filter(n => !/^sting/.test(n)).length };   // (the death's own sting is not the note's)
+      const others = ['mute', 'menuBtn', 'fsBtn', 'zoomBtn', 'toast', 'caption'].map(id => [id, document.getElementById(id)])
+        .filter(([, e]) => e && getComputedStyle(e).display !== 'none' && (e.id !== 'caption' && e.id !== 'toast' || e.classList.contains('show'))).map(([id, e]) => [id, e.getBoundingClientRect()]).filter(([, q]) => q.width > 0 && q.height > 0);
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2), cp = document.getElementById('compass').getBoundingClientRect();
+      return { text: el.textContent, shown: el.classList.contains('show'), op: +cs.opacity, vis: cs.visibility, pe: cs.pointerEvents, inHud: !!el.closest('#hud'), state: G.state, age: performance.now() - window.__found,
+        box: [r.left, r.top, r.right, r.bottom].map(Math.round), inside: r.width > 40 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H, mid: Math.round(r.left + r.width / 2 - W / 2), high: r.top <= 14 && r.bottom < cp.bottom + 30,
+        over: others.filter(([, q]) => !apart(r, q)).map(([id]) => id), seen: others.map(([id]) => id).join(), notHit: at !== el && !el.contains(at), heard: window.__heard.filter(n => !/^sting/.test(n)).length };   // (the death's own sting is not the note's)
     });
-    const dead = async () => { await sp.evaluate(() => die()); await sp.waitForFunction(() => G.state === 'dead' && +getComputedStyle(UI.overlay).opacity > 0.9, null, { timeout: 20000 }).catch(() => {}); await sp.waitForTimeout(700); };
-    const a = await find(); await sp.waitForTimeout(700);
-    const v0 = await look();
-    check(a.id === 'graveyard' && a.state === 'play' && a.first === true && a.saved && !v0.shown && v0.op === 0 && v0.vis === 'hidden' && a.played.length === 0 && v0.heard === 0 && a.capSame,
-      'an easter egg found for the first time, ' + what + ': kept in the save, and nothing is said while the night is played: no note, no sound, no caption (' + JSON.stringify({ a, shown: v0.shown, heard: v0.heard }) + ')');
-    await dead();
-    const v = await look();
-    check(v.state === 'dead' && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible' && v.heard === 0,
-      'on the death screen that follows ' + what + ': "' + v.text + '" is up, and no sound is played with it (' + JSON.stringify({ state: v.state, shown: v.shown, heard: v.heard }) + ')');
-    check(v.inside && Math.abs(v.mid) <= 1 && v.low && v.clear && !v.over.length && v.room <= 0 && v.pe === 'none' && v.notHit && !v.inHud && v.z > v.oz && /mute|menuBtn/.test(v.seen),
-      'the note ' + what + ': in the page, in the middle of the bottom edge, over nothing of the death screen or the corner controls, above the screen and taking no click (' + JSON.stringify({ box: v.box, mid: v.mid, over: v.over, room: v.room, seen: v.seen }) + ')');
+    const rows = [];
+    for (const ts of [1, 1.4, 1.8]) {
+      const a = await find(ts); await sp.waitForTimeout(600);
+      const v = await look(); rows.push(Object.assign({ ts }, v));
+      if (ts === 1.4) {
+        check(a.id === 'graveyard' && a.state === 'play' && a.first === true && a.saved && a.played.length === 0 && a.capSame && v.state === 'play' && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible',
+          'an easter egg found for the first time, ' + what + ': kept in the save, and said there and then, while the night is played: "' + v.text + '", with no sound and no caption (' + JSON.stringify({ a, shown: v.shown }) + ')');
+        await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-play-' + tag + '.png') });
+      }
+      await sp.evaluate(() => secretHide());
+    }
+    check(rows.every(v => v.shown && v.inside && Math.abs(v.mid) <= 1 && v.high && !v.over.length && v.pe === 'none' && v.notHit && !v.inHud && /toast/.test(v.seen) && /caption/.test(v.seen) && /mute|menuBtn/.test(v.seen)),
+      'the note ' + what + ': at the top in the middle, over the compass, in the page; the line of words under the compass, the caption in its corner and the corner controls all clear of it, at every text size; it takes no click (' + JSON.stringify(rows.map(v => [v.ts, v.box, v.over, v.seen])) + ')');
+    // the night ends while it is up: it stays, over the death screen, until its time is done; not said again
+    await find(1.4); await sp.waitForTimeout(300);
+    await sp.evaluate(() => die()); await sp.waitForFunction(() => G.state === 'dead', null, { timeout: 20000 }).catch(() => {});
+    const d0 = await look();
+    await sp.waitForFunction(() => !document.getElementById('secret').classList.contains('show'), null, { timeout: 9000 }).catch(() => {});
+    const d1 = await look(); await sp.waitForTimeout(800); const d2 = await look();
+    check(d0.state === 'dead' && d0.shown && d0.text === 'Secret discovered: Sugar rush' && d0.age < 4000 && d0.heard === 0 && !d1.shown && d1.age > 4200 && d1.age < 4900 && d2.state === 'dead' && d2.op === 0 && d2.vis === 'hidden',
+      'the night ending while it is up ' + what + ': it stays over the death screen, the same note, until about four seconds from when it was found, then fades and is gone (' + JSON.stringify({ up: [d0.state, d0.shown, Math.round(d0.age)], gone: Math.round(d1.age), after: [d2.op, d2.vis] }) + ')');
     await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-death-' + tag + '.png') });
-    // a death line long enough that the screen has to scroll: scrolled to its end, still nothing of it under the note
-    await sp.evaluate(() => { document.querySelector('#overlay .intro').textContent = 'It got you, and it took its time about it. '.repeat(14); UI.overlay.scrollTop = 99999; }); await sp.waitForTimeout(100);
-    const vl = await look();
-    check(vl.shown && vl.room <= 0 && vl.clear && (tag === '1280' || vl.scroll > 0), 'a death screen with more words than fit ' + what + ': what can be seen of it still ends above the note (' + JSON.stringify({ room: vl.room, scroll: vl.scroll }) + ')');
-    // the screen's button still takes its click, and the night going on puts the note away at once
+    // again: nothing new said
     await sp.evaluate(() => document.querySelector('#overlay button[data-act="retry"]').click()); await sp.waitForTimeout(80);
-    const go = await look();
-    check(go.state === 'play' && !go.shown, 'Try again ' + what + ': the night again, and the note gone with the screen it was on (' + JSON.stringify({ state: go.state, shown: go.shown }) + ')');
-    // again: nothing new said, in the night or on the screen after it
-    const again = await sp.evaluate(() => { window.__heard = []; return foundEgg(); });
-    await dead();
+    const again = await sp.evaluate(() => { window.__heard = []; return foundEgg(); }); await sp.waitForTimeout(100);
     const v2 = await look();
-    check(again === false && v2.state === 'dead' && !v2.shown && v2.heard === 0 && v2.room > 0, 'the same easter egg found again ' + what + ': no note on the death screen, no sound, no strip kept for one (' + JSON.stringify({ again, shown: v2.shown }) + ')');
+    check(again === false && v2.state === 'play' && !v2.shown && v2.heard === 0, 'the same easter egg found again ' + what + ': no note, no sound (' + JSON.stringify({ again, shown: v2.shown }) + ')');
     if (tag === '1280') {
-      // its time: up for about seven seconds, then gone; it is said on the win screen the same way
-      await sp.evaluate(() => { SAVE.data.eggs = {}; startLevel(2, false); foundEgg(); setState('survived'); MENU.show('survived', { title: 'The Graveyard', text: 'It is gone.' }); secretTell(); });
-      await sp.waitForTimeout(700); const won = await look();
-      await sp.waitForTimeout(5900); const mid = await look();
-      await sp.waitForTimeout(1900); const end = await look();
-      check(won.shown && won.op === 1 && won.clear && won.low && Math.abs(won.mid) <= 1 && mid.shown && mid.op === 1 && !end.shown && end.op === 0 && end.vis === 'hidden',
-        'on the win screen too, in the same place; it is still up 6.6 s on, and gone (faded out, hidden) by 8.5 s (' + JSON.stringify({ won: [won.shown, won.box], mid: [mid.shown, mid.op], end: [end.shown, end.op, end.vis] }) + ')');
       const src = require('fs').readFileSync(path.join(__dirname, '..', 'js', 'game.js'), 'utf8');
-      check(/MENU\.show\('survived', G\.survivedScreen\);\s*secretTell\(\);/.test(src) && /MENU\.show\('dead', G\.deathScreen\);\s*secretTell\(\);/.test(src) && /MENU\.show\('ending'\);\s*secretTell\(\);/.test(src) && !/secretTell\(\)/.test(src.slice(src.indexOf('function foundEgg'), src.indexOf('const EGG_TITLES'))),
-        'game.js says it as the death screen, the win screen and the last night\'s last screen come up, and never as it is found');
+      check(/if \(first\) secretSay\(id\);/.test(src.slice(src.indexOf('function foundEgg'), src.indexOf('const EGG_TITLES'))) && !/secretTell|secretHeld|secretroom/.test(src) && !/secretroom/.test(require('fs').readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')),
+        'game.js says it as it is found, and nothing is held for a later screen any more');
       // reduced motion: it does not slide (the same place shown or hidden)
-      const still = await sp.evaluate(() => { SAVE.data.eggs = {}; SAVE.data.settings.reducedMotion = true; foundEgg(); MENU.show('survived', { title: 'The Graveyard', text: 'It is gone.' }); secretTell(); const el = document.getElementById('secret'), on = getComputedStyle(el).transform; el.classList.remove('show'); const off = getComputedStyle(el).transform; SAVE.data.settings.reducedMotion = false; return { on, off, cls: el.classList.contains('still') }; });
+      const still = await sp.evaluate(() => { SAVE.data.eggs = {}; SAVE.data.settings.reducedMotion = true; foundEgg(); const el = document.getElementById('secret'), on = getComputedStyle(el).transform; el.classList.remove('show'); const off = getComputedStyle(el).transform; SAVE.data.settings.reducedMotion = false; return { on, off, cls: el.classList.contains('still') }; });
       check(still.cls && still.on === still.off && /^matrix\(1, 0, 0, 1, -?[\d.]+, 0\)$/.test(still.on), 'with reduced motion it only fades: it is not moved, coming or going (' + JSON.stringify(still) + ')');
-      // quitting to the title forgets one not yet said (it is in Scores), and the results after the ending put one away
-      const quit = await sp.evaluate(() => { SAVE.data.eggs = {}; startLevel(2, false); foundEgg(); showTitle(); startLevel(2, false); MENU.show('dead', { text: 'x' }); secretTell(); const a = document.getElementById('secret').classList.contains('show'); foundEgg(); delete SAVE.data.eggs.graveyard; foundEgg(); MENU.show('ending'); secretTell(); const b = document.getElementById('secret').classList.contains('show'); MENU.act('done'); return { a, b, c: document.getElementById('secret').classList.contains('show'), room: UI.overlay.classList.contains('secretroom'), kind: MENU.kind }; });
-      check(!quit.a && quit.b && !quit.c && !quit.room && quit.kind === 'results', 'found and then quit to the title: not said on a later screen; one up on the last screen goes as the results come, which keep no strip for it (' + JSON.stringify(quit) + ')');
+      // quitting to the title puts it away, and so do the results after the ending
+      const quit = await sp.evaluate(() => { SAVE.data.eggs = {}; startLevel(2, false); foundEgg(); const a = secretUp(); showTitle(); const b = secretUp(); startLevel(2, false); delete SAVE.data.eggs.graveyard; foundEgg(); MENU.show('ending'); const c = secretUp(); MENU.act('done'); return { a, b, c, d: secretUp(), kind: MENU.kind }; });
+      check(quit.a && !quit.b && quit.c && !quit.d && quit.kind === 'results', 'quitting to the title puts the note away; one up on the last screen goes as the results come (' + JSON.stringify(quit) + ')');
       // every night's easter egg has its title; one with none falls back to the night's own line
       const titles = await sp.evaluate(() => ({ ids: LEVELS.map(l => l.id), t: LEVELS.map(l => EGG_TITLES[l.id] || ''), fall: (() => { const l = LEVELS[0], k = EGG_TITLES[l.id], own = l.text.egg; delete EGG_TITLES[l.id]; l.text.egg = 'Wave at it.'; const r = eggTitle(l.id); EGG_TITLES[l.id] = k; l.text.egg = own; return r; })(), none: eggTitle('nosuch') }));
       check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t.join('|') === 'Through the window|Hit and run|Sugar rush|Staring contest|Bat shot crazy|Lifesaver|Butterfingers|Thirst quencher|Its an emergency|Cover up|Power overload|Tooth fairy|Flip the script' && titles.fall === 'Wave at it' && titles.none === '',

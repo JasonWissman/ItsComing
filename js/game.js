@@ -388,13 +388,13 @@ function setState(s) { G.state = s; G.stateT = 0; if (s !== 'paused') G.pausedFr
 // ---------------- overlays ----------------
 function showOverlay(html) {
   if (MENU.kind === 'results') secretHide();   // (a secret's note still up from the last screen goes: the results have their own list of them)
-  UI.overlay.innerHTML = html; UI.overlay.classList.remove('dlg', 'titlelow'); UI.overlay.classList.toggle('secretroom', secretUp()); UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350;   // a double-click cannot skip a card
+  UI.overlay.innerHTML = html; UI.overlay.classList.remove('dlg', 'titlelow'); UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350;   // a double-click cannot skip a card
 }
-function hideOverlay() { if (touchUI()) G.mouse.x = G.mouse.y = -1; secretHide(); UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+function hideOverlay() { if (touchUI()) G.mouse.x = G.mouse.y = -1; UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
   G.run = null;   // quitting ends the run: the next game begins again at night 1
-  secretHide(true);   // (and an easter egg found but not yet said is not said on the title: it is in Scores)
+  secretHide();   // (a secret's note still up goes: the title is not the night's)
   if (G.L && G.L.onEnd) G.L.onEnd();
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
   G.inv = []; HANDS.reset();   // nothing in hand or in the air behind the title
@@ -417,11 +417,13 @@ function showTitle() {
 function finishEnding() {
   const L = G.L;
   SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id);
+  // its two endings (its own; its easter egg's, L.eggEnding: foundEgg): the first ever come to is the player's own, and
+  // the other, come to after that, finds the easter egg
+  if (SAVE.ending(L.def.id, L.eggEnding ? 'egg' : 'ending', !!(G.run || G.lastRun))) secretSay(L.def.id);
   AUDIO.stopLoop(); Seq.clear();
   STORY.theme(true);
   setState('end');
   MENU.show('ending');
-  secretTell();
 }
 // Finish game (the results after the ending): home to the title, slowly, not at once. Everything (the results, the
 // dimmed morning room behind them) fades smoothly to black (HOME.fade); the title is put up under the black once it is
@@ -936,53 +938,54 @@ function die(c, cause) {
   G.deathTime = L.t; G.deathAt = G.t; // the night clock, and the global clock for the toast test (toasts are stamped with G.t)
 }
 // A night's easter egg, found (a night calls this the moment it happens, whether or not it then kills you): kept in the
-// save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time
+// save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time.
+// The last night's is one of its two endings: the night notes which ending this is (L.eggEnding), and it is settled as
+// that ending is over (finishEnding: it is found only once the player has come to both, in either order)
 function foundEgg(id) {
   id = id || (G.L && G.L.def && G.L.def.id);
+  if (G.L && G.L.def.ending && id === G.L.def.id) { G.L.eggEnding = true; return false; }
   const first = SAVE.egg(id, !!(G.run || G.lastRun));   // (in a full run, or its last night's ending: one of that run's own, for its results)
-  if (first) secretHeld.push(id);
+  if (first) secretSay(id);
   return first;
 }
-// The first time an easter egg is found it is said: "Secret discovered: " and the egg's short title (one for each night,
-// by the night's id; a night with none here is named by its own text.egg), and no sound with it (a chime took the
-// player out of the night). Not while the night is played, where there is no time to read it: it is held (secretHeld)
-// and said on the screen that follows (secretTell), the death screen or the win screen (the last night: its last
-// screen), in the middle of the bottom edge, where none of those screens has anything (the overlay keeps a strip clear
-// for it: index.html #overlay.secretroom). The note (#secret) is not part of the HUD and never takes a click; it is up
-// for SECRET_HOLD seconds, and goes at once when the night goes on (hideOverlay). With reduced motion it fades and does
-// not slide
+// The first time an easter egg is found it is said, there and then, so what was done and what came of it go together:
+// "Secret discovered: " and the egg's short title (one for each night, by the night's id; a night with none here is
+// named by its own text.egg), and no sound with it (a chime took the player out of the night). A small note at the top
+// in the middle (#secret), over the compass while it is up; the line of words under the compass (#toast) is below it,
+// and a sound's caption in the corner below it too (index.html), so all three can be read at once. It is not part of
+// the HUD and never takes a click; it is up for SECRET_HOLD seconds and then fades, whatever comes up under it meanwhile
+// (the night ends: it stays over the death screen or the win screen until its time is up, and is not said again).
+// Quitting to the title, or the results after the ending (which have their own list), put it away at once. With
+// reduced motion it fades and does not slide
 const EGG_TITLES = {
   field: 'Through the window', road: 'Hit and run', graveyard: 'Sugar rush', quarry: 'Staring contest', clearing: 'Bat shot crazy',
   boathouse: 'Lifesaver', lighthouse: 'Butterfingers', diner: 'Thirst quencher', booth: 'Its an emergency', mirrors: 'Cover up', barn: 'Power overload',
   bedroom: 'Tooth fairy', void: 'Flip the script',
 };
-const SECRET_HOLD = 7;   // seconds it is fully up (index.html: in over .35 s before, out over .6 s after)
+const SECRET_HOLD = 4;   // seconds it is fully up (index.html: in over .35 s before, out over .6 s after)
 function eggTitle(id) {
   if (EGG_TITLES[id]) return EGG_TITLES[id];
   const def = typeof LEVELS !== 'undefined' && LEVELS.find(l => l.id === id);
   return ((def && def.text && def.text.egg) || '').replace(/\.$/, '');
 }
-let secretHeld = [];   // the eggs found and not yet said (night ids)
-function secretTell() {
-  const titles = secretHeld.map(eggTitle).filter(Boolean), el = UI.secret || $('secret');
-  secretHeld = [];
-  if (!titles.length || !el) return;
-  el.querySelector('.sl').textContent = titles.length > 1 ? 'Secrets discovered' : 'Secret discovered';
-  el.querySelector('.st').textContent = titles.join(', ');
+let secretSaid = [];   // the titles in the note while it is up (another found while it is: named together)
+function secretSay(id) {
+  const t = eggTitle(id), el = UI.secret || $('secret');
+  if (!t || !el) return;
+  if (!secretUp()) secretSaid = [];
+  if (!secretSaid.includes(t)) secretSaid.push(t);
+  el.querySelector('.sl').textContent = secretSaid.length > 1 ? 'Secrets discovered' : 'Secret discovered';
+  el.querySelector('.st').textContent = secretSaid.join(', ');
   el.classList.toggle('still', !!SAVE.data.settings.reducedMotion);
   el.classList.add('show');
-  // the screen it is said on keeps clear of it: a strip along the bottom from the top of the note down (and one at the
-  // top to match, so what is in the middle stays there), for as long as that screen is up
-  UI.overlay.style.setProperty('--secret-room', (document.documentElement.clientHeight - el.offsetTop + 10) + 'px'); UI.overlay.classList.add('secretroom');
-  clearTimeout(secretTell.timer);
-  secretTell.timer = setTimeout(() => el.classList.remove('show'), (0.35 + SECRET_HOLD) * 1000);
+  clearTimeout(secretSay.timer);
+  secretSay.timer = setTimeout(() => el.classList.remove('show'), (0.35 + SECRET_HOLD) * 1000);
 }
 function secretUp() { return !!(UI.secret && UI.secret.classList.contains('show')); }
-// the note put away at once (the night goes on, or the results come); forget: and whatever was held to be said
-function secretHide(forget) {
-  if (forget) secretHeld = [];
+// the note put away at once (quitting to the title, the results after the ending)
+function secretHide() {
   if (!secretUp()) return;
-  clearTimeout(secretTell.timer); UI.secret.classList.remove('show');
+  clearTimeout(secretSay.timer); UI.secret.classList.remove('show');
 }
 // a night's easter-egg deaths (L.text.eggs: the causes that are one): the screen says "Nice try", and the line is the
 // night's own, with no toast put in front of it
@@ -1101,7 +1104,6 @@ function update(dt) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
           G.survivedScreen = { title: L.def.title, text: L.text.win };   // (kept: the pause menu puts it back, as the death screen)
           MENU.show('survived', G.survivedScreen);
-          secretTell();
         }
       }
     }
@@ -1120,7 +1122,6 @@ function update(dt) {
       setState('dead');
       G.deathScreen = { text: deathLine(L), title: isEggDeath(L) ? 'Nice try' : 'It got you' };   // the night's own line (and the toast it cut off): no count of the seconds
       MENU.show('dead', G.deathScreen);
-      secretTell();
     }
   } else if (G.state === 'title') {
     L.t += dt * 0.25; for (const cr of L.creatures) cr.t += dt * 0.25;

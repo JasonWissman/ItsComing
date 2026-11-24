@@ -140,6 +140,8 @@ const ending = [
   ['expect', "document.documentElement.getAttribute('data-theme') === 'day'", 'the light theme is on'],
   ['expect', 'G.L.s.room === 1 && G.L.s.lv === 1 && G.L.creature.fade === 0 && Math.abs(G.L.eyeH - 1.15) < 0.01', 'the meadow and it are gone and it is the bedroom, in the morning'],
   ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"done\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true", 'the last screen, The End, campaign marked complete'],
+  // (the easter egg's ending was come to first, before: this one, the other, finds it, and its note is said at once)
+  ['expect', "SAVE.data.firstEnding === 'egg' && SAVE.data.eggs.void === true && JSON.parse(localStorage.getItem('itscoming.v2')).eggs.void === true && secretUp() && document.querySelector('#secret .st').textContent === 'Flip the script'", 'and with the easter egg\'s ending come to before this, the easter egg is found now: "Flip the script"'],
 ];
 // ---- the easter egg: everything taken up (each thing in your hand at least once this attempt) ----
 // On this night the hands are never full: all sixteen things can be held at once (a thing put down again still counts,
@@ -248,7 +250,7 @@ const eggInView = `(() => { const E = G.L.s.egg, bad = [];
     for (const c of E.others.map(o => o.c).concat([G.L.creature])) { const p = c.pos(), r = R.projectRect(p.x, 0, p.z, 1.0, Math.min(2.4, c.CR.h), cam); if (!r || r.x < 0 || r.x + r.w > W || r.y < 0 || r.y + r.h > H) bad.push(c.type + '@' + W); } }
   if (bad.length) console.log('out of the view: ' + bad.join(' ')); return !bad.length; })()`;
 // (as the last night of a whole run, 431.2 s on its clock so far, 400 of them the twelve nights before: the best there is)
-const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; delete SAVE.data.eggs.void; SAVE.persist();'],
+const egg = [...fifteen, ['eval', watchSfx], ['eval', "window.__egg = null; delete SAVE.data.eggs.void; SAVE.data.firstEnding = ''; SAVE.persist();"],
   ['eval', "window.__best0 = JSON.stringify(SAVE.data.bestRun); SAVE.data.bestRun = {}; G.run = { t: 431.2, night: G.L.index, from: 400, nights: Array.from({ length: G.L.index }, () => ({ t: 400 / G.L.index })) };"],
   // (one of them put down again, to lie on the floor as the others come: it has been taken up, so it counts)
   ['eval', "window.__it = G.L.items.find(i => i.id === 'keys'); G.active = G.inv.indexOf(window.__it); G.cam.pitch = G.cam.tPitch = PITCH_DOWN; dropActive();"], ['waitUntil', '!window.__it.taken', 2000], ['wait', 900],
@@ -256,7 +258,7 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   ['pickup', 'musicbox'],   // (the last of them, with a real click)
   ['eval', 'G.noRaf = true;'], ['wait', 80],
   ['expect', "G.state === 'won' && G.L.won && !!G.L.s.egg && G.L.s.ending && G.L.s.egg.t < 1.6", 'the last thing taken up: the night is won, and the others are coming'],
-  ['expect', "SAVE.data.eggs.void === true && JSON.parse(localStorage.getItem('itscoming.v2')).eggs.void === true && G.L.text.egg === 'Take up everything.'", 'the easter egg is saved, by the night\'s id'],
+  ['expect', "!SAVE.data.eggs.void && G.L.eggEnding === true && !secretUp() && G.L.text.egg === 'Take up everything.'", 'the easter egg\'s ending begun, and noted as that: not found yet (it is settled as the ending is over)'],
   ['expect', "G.inv.length === 15 && !window.__it.taken && window.__refused === 0 && G.lastToast.msg !== 'Your hands are full.' && G.L.creature.frozen && G.L.creature.anger === 0 && G.L.items.filter(i => i.by).length === 0", 'nothing is taken yet: what you hold is still yours (and the keys on the floor), and it has stopped where it was'],
   key('r', true), ['expect', "G.state === 'won' && !!G.L.s.egg", 'R does nothing there'],
   ['expect', "(r => { window.__run0 = JSON.stringify(r); return !G.run && !!r && r.t >= 431.2 && r.t < 450 && r.best === true && r.nights.length === 13 && Math.abs(r.nights[12] - (r.t - 400)) < 0.02 && SAVE.data.bestRun[G.diff().id].t === r.t; })(G.lastRun)", 'the run is finished, and timed, the moment the last thing was taken up: this night\'s share of it, and a best run saved'],
@@ -335,6 +337,7 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   ['waitUntil', "G.state === 'end'", 12000],
   ['expect', "G.L.s.room === 1 && G.L.creature.fade === 0 && G.L.s.egg.others.every(o => o.fade === 0) && G.L.s.egg.thrown.every(th => th.fade === 0)", 'the meadow and all of them are gone, and it is the bedroom, in the morning'],
   ['expect', "MENU.kind === 'ending' && /faced your demons/i.test(UI.overlay.textContent) && !!document.querySelector('#overlay button[data-act=\"done\"]') && JSON.parse(localStorage.getItem('itscoming.v2')).complete[G.diff().id] === true && JSON.parse(localStorage.getItem('itscoming.v2')).unlocked[G.diff().id] === LEVELS.length", 'the night was won: the last screen, The End, and the campaign marked complete'],
+  ['expect', "SAVE.data.firstEnding === 'egg' && JSON.parse(localStorage.getItem('itscoming.v2')).firstEnding === 'egg' && !SAVE.data.eggs.void && !secretUp()", 'the first of the two endings come to: kept as the player\'s own, and the easter egg not found by it (no note)'],
   ['expect', "JSON.stringify(G.lastRun) === window.__run0", 'the run\'s time is as it was when the last thing was taken up: none of the gathering counted'],
   ['eval', "SAVE.data.bestRun = JSON.parse(window.__best0); SAVE.persist();"],
 ];

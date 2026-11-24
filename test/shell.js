@@ -91,11 +91,41 @@ async function run(browser, check) {
     await ctx.close();
   }
 
-  // The results after the ending. A run that found secret scenes it did not have: two tabs, This run and Secret scenes,
-  // open on the secret scenes; those found before are checked from the start, the run's own are checked off one after
-  // another (the count going up with them), then the way out; all thirteen: a stamp. The times come in when their tab is
-  // opened. A run that found none: the results as ever, no tabs. With reduced motion it is all there at once
-  console.log('== the results: the secret scenes this run found ==');
+  // The names under the things held: each whole, its descenders and all (the text's own box, not only its line's), and a
+  // few pixels clear of the bottom edge, at every text size: three things held on a night, and the Void's many (smaller
+  // slots, the held thing's name only), on a desktop at three sizes and on two phones held sideways (the lower left there)
+  console.log('== the names under the things held: whole, clear of the bottom edge ==');
+  for (const view of ['desktop', 'small desktop', 'phone', 'small phone']) {
+    const rows = [];
+    for (const lv of [3, 13]) {
+      const { ctx, page } = await open(view === 'small desktop' ? 'desktop' : view, '?level=' + lv + '&go&seed=1');
+      if (view === 'small desktop') { await page.setViewportSize({ width: 1024, height: 600 }); await page.waitForTimeout(150); }
+      for (const [name, ts] of SIZES) {
+        rows.push(Object.assign({ lv, name }, await page.evaluate(ts => {
+          MENU.applySetting('textSize', ts); const L = G.L; L.creature.hold = L.creature.dist;
+          const want = L.def.id === 'void' ? 9 : 3;
+          for (const it of L.items) { if (G.inv.length >= want) break; if (!G.inv.includes(it)) { it.taken = true; G.inv.push(it); } }
+          G.active = G.inv.length - 1; G.invSig = ''; G.step(0.016, 2);
+          const labs = [...document.querySelectorAll('#inventory .slot .label')].filter(e => getComputedStyle(e).display !== 'none' && e.textContent);
+          let gap = 99, left = 99;
+          for (const e of labs) { const g = document.createRange(); g.selectNodeContents(e); const r = g.getBoundingClientRect(), b = e.getBoundingClientRect(); gap = Math.min(gap, innerHeight - Math.max(r.bottom, b.bottom)); left = Math.min(left, r.left); }
+          return { n: labs.length, gap: +gap.toFixed(1), left: +left.toFixed(1), many: document.getElementById('inventory').classList.contains('many') };
+        }, ts)));
+      }
+      if (lv === 3) await shot(page, 'inventory-' + view.replace(/ /g, '-'));
+      await ctx.close();
+    }
+    check(rows.every(r => r.n >= 1 && r.gap >= 4 && r.gap <= 14 && r.left >= 0) && rows.some(r => r.many) && rows.some(r => r.n === 3),
+      view + ': every name under a thing held is whole and 4 to 14 pixels above the bottom edge, at every text size, the Void\'s many too (' + JSON.stringify(rows.map(r => [r.lv, r.name, r.n, r.gap])) + ')');
+  }
+
+  // The results after the ending. They always open on This run, its times coming in one after another, then its stamp.
+  // A run that found secret scenes it did not have also has two tabs, This run and Secret scenes: about 1.2 s after This
+  // run is all in, the results slide over to Secret scenes by themselves, where those found before are checked from the
+  // start and the run's own are checked off one after another (the count going up with them); all thirteen: a stamp, in
+  // the middle under the count. A tab chosen meanwhile, and they stay where they are put. A run that found none: the
+  // results as ever, no tabs. With reduced motion it is all there at once, and it goes over without the slide
+  console.log('== the results: This run, then the secret scenes this run found ==');
   const results = async (page, eggs, fresh, motion) => page.evaluate(([eggs, fresh, motion]) => {
     SAVE.data.settings.reducedMotion = SAVE.data.settings.reducedFlash = !motion;
     SAVE.data.eggs = {}; for (const l of LEVELS) if (eggs === 'all' || eggs.includes(l.id)) SAVE.data.eggs[l.id] = true;
@@ -105,17 +135,25 @@ async function run(browser, check) {
   }, [eggs, fresh, motion]);
   const rlook = page => page.evaluate(() => {
     const b = document.querySelector('#overlay .results'), tabs = [...b.querySelectorAll('[role=tab]')], e = [...b.querySelectorAll('.egg')], st = b.querySelector('.estamp'), last = b.querySelector('.rlast'), cs = st && getComputedStyle(st);
+    const sr = st && st.getBoundingClientRect(), cr = b.querySelector('.ecnt') && b.querySelector('.ecnt').getBoundingClientRect(), br = b.getBoundingClientRect();
     return { tabs: tabs.map(t => t.textContent + (t.getAttribute('aria-selected') === 'true' ? '*' : '')).join('|'), found: e.filter(x => x.classList.contains('found')).map(x => x.querySelector('.ename').textContent).join('|'), fresh: e.filter(x => x.classList.contains('fresh')).length, ticked: e.filter(x => x.classList.contains('tick')).length,
       count: (b.querySelector('.ecnt') || {}).firstChild ? b.querySelector('.ecount').textContent : null, stamp: st ? st.textContent + ':' + (st.classList.contains('in') ? cs.opacity : 'out') : null, stampLook: st ? [cs.borderTopStyle, cs.borderTopColor, cs.textTransform, cs.transform !== 'none'].join() : null,
-      way: last.classList.contains('in'), cards: b.querySelectorAll('.rcard.in').length, run: !!b.querySelector('.rrun.in'), scroll: b.scrollHeight - b.clientHeight, fits: b.getBoundingClientRect().bottom <= innerHeight && b.getBoundingClientRect().top >= 0, focus: document.activeElement && (document.activeElement.dataset.act || document.activeElement.id), kind: MENU.kind };
+      // (the stamp under the count, in the middle of the dialog)
+      under: st && st.classList.contains('in') ? Math.abs(sr.left + sr.width / 2 - (br.left + br.width / 2)) <= 2 && sr.top >= cr.bottom - 6 : null,
+      way: last.classList.contains('in'), cards: b.querySelectorAll('.rcard.in').length, run: !!b.querySelector('.rrun.in'), scroll: b.scrollHeight - b.clientHeight, wide: b.scrollWidth - b.clientWidth, fits: b.getBoundingClientRect().bottom <= innerHeight && b.getBoundingClientRect().top >= 0, focus: document.activeElement && (document.activeElement.dataset.act || document.activeElement.id), kind: MENU.kind };
   });
-  // what is checked, the count, how many have been checked off as they were watched, and whether the way out is in: each change, as it comes
+  // as it goes: when This run is all in (its way out with it), when it goes over to Secret scenes (and whether This run
+  // slid off and Secret scenes slid in), and then what is checked, the count, how many have been checked off as they
+  // were watched, and the taps heard: each change, as it comes
   const watch = (page, ms) => page.evaluate(ms => new Promise(done => {
-    const seq = [], t0 = performance.now();
+    const seq = [], t0 = performance.now(), o = { seq, slid: [], taps0: -1 };
     const iv = setInterval(() => {
-      const b = document.querySelector('#overlay .results'), k = [...b.querySelectorAll('.egg.found .ename')].map(e => e.textContent).join('|') + ' ' + b.querySelector('.ecount').textContent + ' ' + b.querySelectorAll('.egg.tick').length + ' ' + (b.querySelector('.rlast').classList.contains('in') ? 'way' : '');
-      if (seq[seq.length - 1] !== k) seq.push(k);
-      if (performance.now() - t0 > ms) { clearInterval(iv); done(seq); }
+      const b = document.querySelector('#overlay .results'), t = performance.now() - t0, eggsOn = b.querySelector('#tab-eggs').getAttribute('aria-selected') === 'true';
+      if (!o.allIn && b.querySelector('.rrun.in') && b.querySelector('.rlast.in') && b.querySelectorAll('.rcard.in').length === 13) o.allIn = t;
+      for (const c of ['slideout', 'slidein']) if (b.querySelector('.tabpanel.' + c) && !o.slid.includes(c)) o.slid.push(c);
+      if (eggsOn && !o.over) { o.over = t; o.taps0 = window.__taps; }
+      if (o.over) { const k = [...b.querySelectorAll('.egg.found .ename')].map(e => e.textContent).join('|') + ' ' + b.querySelector('.ecount').textContent + ' ' + b.querySelectorAll('.egg.tick').length; if (seq[seq.length - 1] !== k) seq.push(k); }
+      if (t > ms) { clearInterval(iv); o.taps = window.__taps - o.taps0; done(o); }
     }, 20);
   }), ms);
   for (const view of ['desktop', 'phone']) {
@@ -124,40 +162,88 @@ async function run(browser, check) {
     await page.evaluate(() => { window.__taps = 0; const f = AUDIO.sfx; AUDIO.sfx = (n, ...a) => { if (n === 'tap') window.__taps++; return f(n, ...a); }; });
     // two new ones of five found
     await results(page, ['road', 'graveyard', 'booth', 'quarry', 'barn'], ['graveyard', 'barn'], true);
-    const r0 = await rlook(page), seq = await watch(page, 3000);
-    const r2 = await rlook(page), taps = await page.evaluate(() => window.__taps);
-    await shot(page, 'results-secrets-' + tag);
-    check(r0.kind === 'results' && r0.tabs === 'This run|Secret scenes*' && r0.found === 'Hit and run|Staring contest|Its an emergency' && r0.fresh === 2 && r0.count === '3' && !r0.way && r0.stamp === null,
-      view + ': a run that found two secret scenes it did not have: the results have two tabs and open on Secret scenes, those found before checked, the run\'s two not yet, 3 of 13 (' + JSON.stringify(r0) + ')');
-    check(seq.join(' > ') === 'Hit and run|Staring contest|Its an emergency 3 0  > Hit and run|Sugar rush|Staring contest|Its an emergency 4 1  > Hit and run|Sugar rush|Staring contest|Its an emergency|Power overload 5 2  > Hit and run|Sugar rush|Staring contest|Its an emergency|Power overload 5 2 way' && r2.way && r2.focus === 'finish' && taps === 2 && r2.scroll <= 0 && r2.fits,
-      view + ': they are checked off one after the other, in the nights\' order, the count going up with them, a tap for each; then Finish game, focused; it all fits the page (' + JSON.stringify([seq, r2.focus, taps, r2.scroll]) + ')');
-    // the times: not come in until their tab is opened, then as ever; back on the secret scenes nothing starts again
-    const t0 = await rlook(page);
-    await page.click('#tab-run'); await page.waitForTimeout(1400); const t1 = await rlook(page);
-    await page.mouse.click(8, innerHeightOf(view) - 8); await page.waitForTimeout(150); const t2 = await rlook(page);
+    const r0 = await rlook(page);
+    await page.waitForFunction(() => document.querySelectorAll('#overlay .rcard.in').length === 6, null, { timeout: 8000 }).catch(() => {});
     await shot(page, 'results-run-' + tag);
-    await page.click('#tab-eggs'); await page.waitForTimeout(200); const t3 = await rlook(page);
-    check(t0.cards === 0 && !t0.run && t1.tabs === 'This run*|Secret scenes' && t1.cards > 0 && t1.cards < 13 && t2.cards === 13 && t2.run && t2.way && t2.scroll <= 0 && t3.tabs === 'This run|Secret scenes*' && t3.found === r2.found && t3.count === '5',
-      view + ': This run\'s times come in when its tab is first opened (a click hurries them), and it fits; back on Secret scenes they are as they were left (' + JSON.stringify([t0.cards, t1.cards, t2.cards, t2.run, t2.scroll, t3.count]) + ')');
-    // a tab chosen while they are still being checked off: all checked at once, and the times start
+    const w = await watch(page, 10500), r2 = await rlook(page);
+    await shot(page, 'results-secrets-' + tag);
+    check(r0.kind === 'results' && r0.tabs === 'This run*|Secret scenes' && r0.cards === 0 && !r0.way && r0.found === 'Hit and run|Staring contest|Its an emergency' && r0.fresh === 2 && r0.count === '3' && r0.stamp === null,
+      view + ': a run that found two secret scenes it did not have: two tabs, and the results open on This run, its times still to come in; on Secret scenes those found before are checked and the run\'s two not yet (' + JSON.stringify(r0) + ')');
+    const gap = w.over - w.allIn;
+    check(w.allIn > 3000 && gap > 1300 && gap < 1900 && w.slid.join() === 'slideout,slidein' && w.seq.join(' > ') === 'Hit and run|Staring contest|Its an emergency 3 0 > Hit and run|Sugar rush|Staring contest|Its an emergency 4 1 > Hit and run|Sugar rush|Staring contest|Its an emergency|Power overload 5 2' && w.taps === 2 && r2.tabs === 'This run|Secret scenes*' && r2.way && r2.focus === 'finish' && r2.scroll <= 0 && r2.wide <= 0 && r2.fits,
+      view + ': This run comes all in first; about 1.2 s after (and the slide) it goes over to Secret scenes by itself, This run sliding off and Secret scenes in, where they are checked off one after the other, in the nights\' order, the count going up with them, a tap for each; Finish game focused; it all fits, no sideways scroll (' + JSON.stringify({ allIn: Math.round(w.allIn), gap: Math.round(gap), slid: w.slid, seq: w.seq, taps: w.taps, focus: r2.focus, scroll: r2.scroll, wide: r2.wide }) + ')');
+    // a tab chosen while This run is still coming in: its times all in at once, the secret scenes checked off now, and
+    // no going over by itself after (This run chosen again, it stays there)
     await results(page, ['road', 'graveyard', 'barn'], ['road', 'graveyard', 'barn'], true);
-    await page.waitForFunction(() => document.querySelector('#overlay .ecount').textContent === '1', null, { timeout: 5000 }); const h0 = await rlook(page);
-    await page.click('#tab-run'); await page.waitForTimeout(120); const h1 = await rlook(page);
-    check(h0.count === '1' && h1.count === '3' && h1.way && h1.cards === 0 && !h1.run && h1.tabs === 'This run*|Secret scenes', view + ': the other tab chosen while they are being checked off: the rest are checked at once, and the times begin to come in (' + JSON.stringify([h0.count, h1.count, h1.way]) + ')');
-    // the last ones: all thirteen, and a stamp says so, as Best run is stamped
+    await page.waitForTimeout(900); await page.click('#tab-eggs'); await page.waitForTimeout(120); const h0 = await rlook(page);
+    await page.waitForFunction(() => document.querySelector('#overlay .ecount').textContent === '3', null, { timeout: 5000 }).catch(() => {});
+    await page.click('#tab-run'); await page.waitForTimeout(3200); const h1 = await rlook(page);
+    check(h0.tabs === 'This run|Secret scenes*' && h0.cards === 13 && h0.run && h0.count === '0' && h1.tabs === 'This run*|Secret scenes' && h1.count === '3' && h1.way,
+      view + ': Secret scenes chosen while This run is still coming in: its times are all there at once and the secret scenes are checked off; This run chosen again, it stays there (' + JSON.stringify([h0.tabs, h0.cards, h0.count, h1.tabs, h1.count]) + ')');
+    // This run chosen in the pause after it is all in (though it is on it): it stays on This run, the secret scenes not checked off
+    await results(page, ['road', 'graveyard', 'barn'], ['graveyard', 'barn'], true);
+    await page.evaluate(() => MENU.hurry()); await page.waitForTimeout(500);
+    await page.click('#tab-run');
+    const p0 = await rlook(page); await page.waitForTimeout(2600); const p1 = await rlook(page);
+    check(p0.tabs === 'This run*|Secret scenes' && p1.tabs === 'This run*|Secret scenes' && p1.cards === 13 && p1.ticked === 0,
+      view + ': This run chosen by the player in the pause after it is all in (the tab it is on): it stays there, no going over by itself (' + JSON.stringify([p0.tabs, p1.tabs, p1.ticked, p1.count]) + ')');
+    // the last ones: all thirteen, and a stamp says so, as Best run is stamped, in the middle under the count
     await results(page, 'all', ['bedroom', 'void'], true);
-    const a0 = await rlook(page), aseq = await watch(page, 3600), a1 = await rlook(page);
+    await page.evaluate(() => MENU.hurry());
+    await page.waitForFunction(() => document.querySelector('#tab-eggs').getAttribute('aria-selected') === 'true', null, { timeout: 4000 }).catch(() => {});
+    const a0 = await rlook(page); await page.waitForTimeout(450); await shot(page, 'results-switch-' + tag);
+    await page.waitForFunction(() => document.querySelector('#overlay .estamp.in'), null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(700); const a1 = await rlook(page);
     const best = await page.evaluate(() => { const s = document.querySelector('#overlay .rrun .stamp'), c = getComputedStyle(s); return s.textContent + '/' + [c.borderTopStyle, c.borderTopColor, c.textTransform, c.transform !== 'none'].join(); });
     await shot(page, 'results-secrets-all-' + tag);
-    check(a0.count === '11' && a0.stamp === 'All secrets found:out' && aseq.length === 4 && / 13 2 way$/.test(aseq[3]) && a1.count === '13' && a1.stamp === 'All secrets found:1' && best === 'Best run/' + a1.stampLook && a1.scroll <= 0 && a1.fits && a1.way,
-      view + ': the run\'s two make it all thirteen: when the last is checked off a stamp, All secrets found, in Best run\'s own style (' + JSON.stringify([a0.count, a0.stamp, a1.count, a1.stamp, a1.stampLook, best, a1.scroll]) + ')');
-    // reduced motion: all there at once, nothing animated; no new ones: no tabs at all
+    check(a0.count === '11' && a0.stamp === 'All secrets found:out' && a1.count === '13' && a1.stamp === 'All secrets found:1' && a1.under && best === 'Best run/' + a1.stampLook && a1.scroll <= 0 && a1.wide <= 0 && a1.fits && a1.way,
+      view + ': the run\'s two make it all thirteen: when the last is checked off a stamp, All secrets found, in Best run\'s own style, in the middle under the count (' + JSON.stringify([a0.count, a0.stamp, a1.count, a1.stamp, a1.under, a1.stampLook, best, a1.scroll, a1.wide]) + ')');
+    // reduced motion: all there at once, nothing animated, over without the slide; no new ones: no tabs at all
     await results(page, ['road', 'graveyard'], ['graveyard'], false);
-    await page.waitForTimeout(150); const q0 = await rlook(page);
+    await page.waitForTimeout(150); const q0 = await rlook(page); const qw = await watch(page, 1700); const q1 = await rlook(page);
     await results(page, ['road', 'graveyard'], [], true);
     await page.waitForTimeout(150); const n0 = await page.evaluate(() => ({ tabs: document.querySelectorAll('#overlay [role=tab]').length, eggs: document.querySelectorAll('#overlay .egg').length, cards: document.querySelectorAll('#overlay .rcard').length, kicker: !!document.querySelector('#overlay .results .kicker') }));
-    check(q0.count === '2' && q0.ticked === 0 && q0.way && q0.found === 'Hit and run|Sugar rush' && n0.tabs === 0 && n0.eggs === 0 && n0.cards === 13 && n0.kicker,
-      view + ': with reduced motion they are checked from the start, nothing moving; a run that found none has the results as ever, with no tabs (' + JSON.stringify([q0.count, q0.ticked, q0.way, n0]) + ')');
+    check(q0.tabs === 'This run*|Secret scenes' && q0.cards === 13 && q0.way && q1.tabs === 'This run|Secret scenes*' && qw.over > 700 && qw.over < 1400 && !qw.slid.length && q1.count === '2' && q1.ticked === 0 && q1.found === 'Hit and run|Sugar rush' && n0.tabs === 0 && n0.eggs === 0 && n0.cards === 13 && n0.kicker,
+      view + ': with reduced motion This run is all there at once, then it goes over without a slide and the secret scenes are checked from the start; a run that found none has the results as ever, with no tabs (' + JSON.stringify([q0.tabs, Math.round(qw.over), qw.slid, q1.count, q1.ticked, n0]) + ')');
+    await ctx.close();
+  }
+  // No sideways scroll in the results or in Scores, either tab, at any size of page or text, and nothing of them (a
+  // stamp, tilted, or coming down from bigger) out past their card
+  console.log('== the results and Scores: no sideways scroll ==');
+  const PAGES = { 'desktop 1280': { viewport: { width: 1280, height: 720 } }, 'desktop 1024': { viewport: { width: 1024, height: 600 } }, phone: VIEWS.phone, 'small phone': VIEWS['small phone'], 'phone upright': { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } };
+  for (const view of Object.keys(PAGES)) {
+    const ctx = await browser.newContext(PAGES[view]), page = await ctx.newPage();
+    page.on('pageerror', e => errors.push('PAGEERROR (' + view + ') ' + e.message));
+    await page.goto(T.INDEX + '?level=13&go&seed=1'); await page.waitForTimeout(500);
+    const rows = [];
+    for (const [name, ts] of SIZES) {
+      rows.push(Object.assign({ name }, await page.evaluate(ts => {
+        MENU.applySetting('textSize', ts);
+        const out = [], m = (where, box, scrollOnly) => {
+          const r = box.getBoundingClientRect();
+          const sticks = [...box.querySelectorAll('*')].filter(e => { const q = e.getBoundingClientRect(); return q.width > 0 && getComputedStyle(e).display !== 'none' && (q.right > r.right + 0.5 || q.left < r.left - 0.5); }).map(e => e.className);
+          for (const e of [box, UI.overlay, document.documentElement]) if (e.scrollWidth > e.clientWidth) out.push(where + ':' + (e.id || e.className || e.tagName) + ' ' + (e.scrollWidth - e.clientWidth));
+          if (sticks.length && !scrollOnly) out.push(where + ' out: ' + sticks.slice(0, 3).join());
+        };
+        // the results with the Best run stamp, both tabs, and All secrets found stamped (and as it comes down from bigger)
+        SAVE.data.settings.reducedMotion = false;
+        SAVE.data.eggs = {}; for (const l of LEVELS) SAVE.data.eggs[l.id] = true; SAVE.data.runEggs = ['bedroom', 'void'];
+        G.lastRun = { t: 398.4, nights: [31, 28, 40, 22, 35, 30, 27, 33, 41, 29, 36, 25, 21.4], best: true };
+        STORY.theme(true); setState('end'); MENU.show('ending'); MENU.act('done'); MENU.hurry();
+        const res = document.querySelector('#overlay > .results');
+        m('results, This run', res);
+        document.querySelector('#tab-eggs').click(); MENU.hurry();
+        // (the two stamps at the start of their coming down, twice their size, tilted: clipped at the card's sides, no scroll)
+        const sts = [[res.querySelector('.estamp'), -4], [res.querySelector('.rrun .stamp'), -9]]; for (const [st, a] of sts) { st.style.animation = 'none'; st.style.transform = 'rotate(' + a + 'deg) scale(1.9)'; }
+        m('results, the stamps coming down', res, true); document.querySelector('#tab-run').click(); m('results, the stamps coming down on This run', res, true); document.querySelector('#tab-eggs').click();
+        for (const [st] of sts) st.style.animation = st.style.transform = '';
+        m('results, Secret scenes', res);
+        SAVE.data.bestRun = { nightmare: { t: 398.4, nights: G.lastRun.nights } };
+        setState('title'); MENU.show('nights', { from: 'title' }); const p = document.querySelector('#overlay > .panel');
+        m('Scores, Best run', p); document.querySelector('#tab-eggs').click(); m('Scores, Secret scenes', p);
+        showTitle(); return { out };
+      }, ts)));
+    }
+    check(rows.every(r => !r.out.length), view + ': no sideways scroll in the results or Scores, on either tab, and nothing out past their card, at every text size (' + JSON.stringify(rows.filter(r => r.out.length)) + ')');
     await ctx.close();
   }
   {
@@ -169,7 +255,7 @@ async function run(browser, check) {
       SAVE.reset(); SAVE.egg('field'); beginRun(); o.begun = SAVE.data.runEggs.length;
       startLevel(0, false); G.run = { t: 0, night: 2, from: 0, nights: [] }; startLevel(2, false);
       o.first = foundEgg(); o.again = foundEgg(); o.inRun = SAVE.data.runEggs.join(); o.saved = JSON.parse(localStorage.getItem('itscoming.v2')).runEggs.join();
-      G.run = null; G.lastRun = { t: 1, nights: [], best: false }; startLevel(12, false); G.lastRun = { t: 1, nights: [], best: false }; foundEgg(); o.ending = SAVE.data.runEggs.join();
+      G.run = null; SAVE.data.firstEnding = 'ending'; startLevel(12, false); G.lastRun = { t: 1, nights: [], best: false }; foundEgg(); finishEnding(); o.ending = SAVE.data.runEggs.join();
       G.lastRun = null; startLevel(4, false); foundEgg(); o.outside = SAVE.data.runEggs.join();
       const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.runEggs = ['graveyard', 'graveyard', 'nosuch', 7, 'quarry', 'void']; localStorage.setItem('itscoming.v2', JSON.stringify(d)); SAVE.load(); o.loaded = SAVE.data.runEggs.join();
       delete d.runEggs; localStorage.setItem('itscoming.v2', JSON.stringify(d)); SAVE.load(); o.none = JSON.stringify(SAVE.data.runEggs);
@@ -178,6 +264,25 @@ async function run(browser, check) {
     });
     check(r.begun === 0 && r.first === true && r.again === false && r.inRun === 'graveyard' && r.saved === 'graveyard' && r.ending === 'graveyard,void' && r.outside === 'graveyard,void' && r.loaded === 'graveyard,void' && r.none === '[]' && r.rebegun === '0/0',
       'the run\'s own secret scenes: those first found in it (and in its last night\'s ending), once each, kept in the save; not one found outside a run; a save\'s list tidied as it loads; a new run begins with none (' + JSON.stringify(r) + ')');
+    // the Void's two endings, its own and its easter egg's: the first come to is the player's own and finds nothing (the
+    // game is finished all the same); the other, come to after it, finds the easter egg, its note said as it comes, in
+    // either order; the same one again finds nothing. A save from before keeps the egg it found, and one that finished the
+    // game without it came to the ending of its own first
+    const two = await page.evaluate(() => {
+      const end = egg => { startLevel(12, false); if (egg) foundEgg(); const f = G.L.eggEnding; finishEnding(); const el = document.getElementById('secret'), o = [!!f, SAVE.data.firstEnding, !!SAVE.data.eggs.void, MENU.kind, G.state, !!SAVE.data.complete.nightmare, el.classList.contains('show') ? el.querySelector('.st').textContent : ''].join(); secretHide(); showTitle(); return o; };
+      const o = {};
+      for (const [k, order] of [['realFirst', [false, false, true, true]], ['eggFirst', [true, true, false]]]) { SAVE.reset(); o[k] = order.map(end); o[k + 'Saved'] = JSON.parse(localStorage.getItem('itscoming.v2')).firstEnding + '/' + !!JSON.parse(localStorage.getItem('itscoming.v2')).eggs.void; }
+      const old = x => { localStorage.setItem('itscoming.v2', JSON.stringify(Object.assign({ v: 4, unlocked: { nightmare: 13 }, settings: {}, warned: true }, x))); SAVE.load(); return SAVE.data.firstEnding + '/' + !!SAVE.data.eggs.void; };
+      o.old = [old({ complete: { nightmare: true }, eggs: { void: true, road: true } }), old({ complete: { nightmare: true }, eggs: { road: true } }), old({ complete: {}, eggs: {} }), old({ complete: { nightmare: true }, eggs: {}, firstEnding: 'egg' }), old({ complete: {}, eggs: {}, firstEnding: 'nonsense' })];
+      SAVE.reset(); return o;
+    });
+    // (each: the easter egg's ending or not, the first ending kept, the egg found, the screen, the game finished, the note)
+    const T2 = ',ending,end,true,';
+    check(two.realFirst.join(' | ') === ['false,ending,false' + T2, 'false,ending,false' + T2, 'true,ending,true' + T2 + 'Flip the script', 'true,ending,true' + T2].join(' | ') && two.realFirstSaved === 'ending/true' &&
+      two.eggFirst.join(' | ') === ['true,egg,false' + T2, 'true,egg,false' + T2, 'false,egg,true' + T2 + 'Flip the script'].join(' | ') && two.eggFirstSaved === 'egg/true' &&
+      two.old.join(' ') === 'ending/true ending/false /false egg/false /false',
+      'the Void\'s two endings: the first come to finishes the game and finds nothing; the other after it finds Flip the script and says so, in either order; again, nothing; old saves keep what they found, a finished one its own ending first (' + JSON.stringify(two) + ')');
+
     // things named without a count: the graveyard's bags of salt and sugar (two uses each, and no ×2); the arrows keep theirs
     const lab = await page.evaluate(() => {
       const names = () => { G.invSig = ''; G.step(0.016, 1); return [...document.querySelectorAll('#inventory .slot .label')].map(e => e.textContent).join('|'); };
@@ -216,7 +321,6 @@ async function run(browser, check) {
   }
   check(!errors.length, 'no page errors in any of it (' + errors.join('; ') + ')');
 }
-const innerHeightOf = view => VIEWS[view].viewport.height;
 
 module.exports = { run };
 if (require.main === module) {
