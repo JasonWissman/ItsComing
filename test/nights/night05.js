@@ -190,7 +190,7 @@ const vampShot = ['eval', `(() => {
   r.reelT = g / 60; r.after = v.ph;
   g = 0; while (!c.reckless && g++ < 300) step(1);
   r.reckless = c.reckless; r.when = g / 60; r.toast = G.lastToast.msg; r.short = s.short; r.cause = L.deathCause(c);
-  c.reckless = false; s.short = false;   // (a harness's reset, as refill is: the runs that follow have the thing as it was)
+  c.reckless = false; s.short = false; s.spent = 0; G.inv.find(i => i.id === 'arrows').uses = 3; G.invSig = '';   // (a harness's reset, as refill is, in the same frame: the runs that follow have the thing as it was)
 })()`];
 // The thing down and a vampire coming, nothing thrown at it (the game stepped by hand): a bat is brought down 20 m out
 // past the steps and turns; the thing is put down (CREATURES.runner.kill) far off, and the night is not won while the
