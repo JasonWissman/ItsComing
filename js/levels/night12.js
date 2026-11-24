@@ -448,7 +448,7 @@ LEVELS.push({
     // simply there; watched, it comes there on its feet, out through the middle of its opening first), bowed far in over
     // the bed toward you, one long arm held out, its hand open and palm up in front of you (FAIRY.hand: where, in the
     // room). And it is quiet: the night's bed of sound fades out, there is no heartbeat (the game's is by how near it is,
-    // against how far it had to come: both are made nothing, FAIRY keeps them), not a breath from it, the lamp burns on
+    // against how far it had to come: both are put out of reach, and kept in s.fairy.keep), not a breath from it, the lamp burns on
     // if it is on and stays out if it is out, the covers will not come up, and nothing can catch you. It waits as long as
     // you like. The tooth put down goes back under the pillow.
     // The tooth put in its hand (the hand is a target then: fairyGive) is the easter egg found, and the night's own end,
@@ -505,7 +505,7 @@ LEVELS.push({
       s.mode = 'fairy'; s.grab = null; s.jerk = 0; s.duck = null; s.switched = true; s.thumps = null; s.yank = null; s.yankK = 0; s.cross = null;
       G.holding = null; stopWalking(c); hold(c, c.dist);
       AUDIO.stopAmbient(1.5);          // quiet
-      c.D0 = c.catchDist = 0.01;       // (and no heartbeat, however near it is: game.js heartbeat)
+      c.D0 = -2000; c.catchDist = -1000;   // (and no heartbeat, wherever it is: the game's goes by how far along its way it is, between where it started and where it would have you, and both are put out of all reach)
       c.fairy = { lean: 0, offer: 0, hand: null, handK: 1, tooth: false, shut: 0, wings: 0, beat: 1, gone: 0, t: L.t };
     };
     // its way to the foot of the bed from wherever it is, watched (points in the room): out through the middle of its
@@ -538,7 +538,7 @@ LEVELS.push({
       if (X.stage === 'come') {
         // with your eyes off it and off the foot of the bed (looking round at the pillow) it is simply there; watched, it
         // comes there on its feet, at its own slow pace, upright
-        if (c.visFrac < 0.02 && Math.abs(wrapPi(G.cam.yaw - L.facing)) > 72 * DEG) fairySnap(c);
+        if (L.visFrac(c) < 0.02 && Math.abs(wrapPi(G.cam.yaw - L.facing)) > 72 * DEG) fairySnap(c);
         else {
           c.flinch = Math.max(0, (c.flinch || 0) - dt * 2); c.reach = Math.max(0, (c.reach || 0) - dt * 4); c.duck = Math.max(0, (c.duck || 0) - dt * 0.8); c.peer = Math.max(0, (c.peer || 0) - dt * 0.8); c.faceAway = 0;
           if (!X.way) { X.way = fairyWay(c); X.i = 0; c.walk = null; }

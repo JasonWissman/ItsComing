@@ -219,6 +219,31 @@
     });
     ctx.restore();
   }
+  // ---- the tooth fairy (night 12's easter egg) ----
+  // night 12's FAIRY: where it stands at the foot of the bed, where it steps back to, and where its open hand is held out
+  // (in the room: across from the middle of the bed, how high, how far up the bed from you)
+  const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7] };
+  // what the tall one is told of it (c.fairy), where it stands: its hand where it is seen in the plane it stands in
+  const fairyPose = (c, o) => {
+    const k = c.dist / FAIRY.hand[2];
+    c.fairy = Object.assign({ lean: 0, offer: 0, hand: [FAIRY.hand[0] * k / CR.SCALE, (EYE + (FAIRY.hand[1] - EYE) * k) / CR.SCALE], handK: k, tooth: false, shut: 0, wings: 0, beat: 1, gone: 0, t: c.t / c.timeScale }, o);
+    hideBehindBed(c); c.gripY = c.hideBelow - 0.03; c.headroom = undefined; c.armsApart = true;
+  };
+  // the bed, and over it its arms as it holds one out to you (night 12 draws them on their own, nearer than the bed)
+  const bedOffer = (ctx, c, P) => {
+    ctx.save(); bed(ctx, c, P); ctx.restore();
+    if (c.fairy && c.fairy.lean > 0) { ctx.translate(c.lat || 0, 0); c.part = 'arms'; CR.draw(ctx, c, P); c.part = null; }
+  };
+  // its dust (a sketch of night 12's): sparks thrown out from where it stood, drifting down, twinkling, dying away
+  const dust = (ctx, c, P) => {
+    const q = c.dustT || 0;
+    if (q > 0) for (let i = 0; i < 70; i++) {
+      const a = i * 2.399, r = 0.25 + 1.1 * ((i * 37) % 100) / 100, e = 1 - Math.exp(-q * 2.4), life = 1.6 + ((i * 53) % 100) / 50;
+      const x = Math.cos(a) * r * (0.5 + 0.6 * e), y = 1.45 + Math.sin(a) * r * 0.75 * (0.5 + 0.6 * e) - 0.1 * q - 0.022 * q * q, al = (1 - smoothstep((q - life * 0.45) / (life * 0.55))) * (0.5 + 0.5 * Math.sin(q * (3 + i % 5) + i));
+      if (al > 0.02 && y > 0.02) P_ell(ctx, x, y, 0.02, 0.02, rgba([[255, 236, 170], [255, 176, 214], [156, 222, 255], [255, 255, 255]][i % 4], al));
+    }
+    ctx.save(); bed(ctx, c, P); ctx.restore();
+  };
   LAB.creature('tall', {
     night: 12, stage: 'The Bedroom', dist: DOOR.peerD, fit: { h: 2.5, w: 1.6 },
     anims: [
@@ -262,6 +287,23 @@
         set(c) { c.frozen = true; c.lungeFrom = c.dist; hideBehindBed(c); armsApart(c); } }),
       { name: 'Under the covers: it pulls, and goes', note: 'The win: the covers up over your head, the lamp a glow through them. The shadows of its two hands come up onto the cloth and take hold as they did on the bed, reaching up it, closing and pulling, one, the other, then both; then they let go and sink away.',
         dur: 5.4, still: true, draw(ctx, c, P) { underCovers(ctx, c, P, c.t / c.timeScale); } },
+      // the night's easter egg: the tooth from under the pillow
+      { name: 'The tooth fairy: bowed in, its hand out', note: 'The easter egg: the tooth taken from under the pillow, the night stops. It is at the foot of the bed, bowed far in over it toward you, its head and shoulders close, one long arm held out with the hand open and palm up, the other hand down on the end of the bed; and it waits, as long as you like.',
+        dist: FAIRY.d, dur: 6, fit: { h: 2.3, w: 2.2 }, front: bedOffer,
+        tick(c, k, dt, T) { fairyPose(c, { lean: smoothstep(T / 1.3), offer: smoothstep((T - 0.6) / 0.9) }); } },
+      { name: 'It takes the tooth, steps back, and its wings', note: 'The tooth put in its hand: its fingers close over it; it straightens up and steps back from the bed; and a butterfly\'s wings unfurl from behind its back, the fore pair blue and the hind pair rose, each with its eye, their own light in the dark; they beat a little.',
+        dist: FAIRY.d, dur: 8, fit: { h: 2.7, w: 3.8 }, front: bedOffer,
+        tick(c, k, dt, T) {
+          if (T >= 1.1) walk(c, dt, FAIRY.back, () => 0);
+          fairyPose(c, { tooth: true, shut: smoothstep((T - 0.4) / 0.55), lean: 1 - smoothstep((T - 1.1) / 1.5), offer: 1 - smoothstep((T - 1.1) / 0.9), wings: smoothstep((T - 2.6) / 1.7), beat: T < 4.3 ? 1 : 0.9 + 0.1 * Math.cos((T - 4.3) * 2.6) });
+        } },
+      { name: 'One fan of its wings, and gone', note: 'One great fan of its wings (swept shut, then open, with a soft whoosh) and it is gone in a cloud of fairy dust, which drifts down and dies away. (The night then floats a dollar bill down onto the bed.)',
+        dist: FAIRY.back, dur: 5, fit: { h: 2.7, w: 3.8 }, front: dust,
+        tick(c, k, dt, T) {
+          const shut = smoothstep((T - 1) / 0.38), open = smoothstep((T - 1.38) / 0.1);
+          fairyPose(c, { wings: 1, beat: lerp(lerp(0.9 + 0.1 * Math.cos(T * 2.6), 0.14, shut), 1.3, open), gone: smoothstep((T - 1.41) / 0.34) });
+          c.dustT = T - 1.38;
+        } },
     ],
   });
 })();

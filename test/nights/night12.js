@@ -264,12 +264,17 @@ const crawlFrom = lane => [
   ['expect', crawled(lane), 'lit early, it went along behind the wall to the middle of the ' + (lane ? 'closet\'s opening' : 'doorway') + ' and came straight out through it before it turned for the bed: never through the wall, the frame' + (lane ? ' or the door' : '')],
 ];
 // its hands on the covers pull, again and again, each pull further up the bed, and when they reach you it comes up the
-// bed after them (its own death and its own line); the fingers open as each hand reaches, and close on the cloth to pull it
+// bed after them (its own death and its own line); the fingers open as each hand reaches, and close on the cloth to pull it.
+// Each hand, once it is on the covers, is watched every time it is drawn (where the night puts its picture: handY, the
+// most its height changed in a frame, at 60 a second): crossing the edge of the covers, and as a pull jerks them, it
+// rides over them and does not jump
+const handY = "window.__hy = { worst: 0, n: 0, last: [], t: -1, i: 0 }; if (!SC.__h12) { SC.__h12 = true; const mk = SC.mkSprite; SC.mkSprite = function (L, x, y, z, w, h) { if (w === 0.24 && h === 0.24 && G.L.creature.reach >= 1) { const W = window.__hy; if (W.t !== G.L.t) { W.t = G.L.t; W.i = 0; } const i = W.i++, a = W.last[i]; if (a && G.L.t > a.t && G.L.t - a.t < 0.05) { W.worst = Math.max(W.worst, Math.abs(y - a.y) * (1 / 60) / (G.L.t - a.t)); W.n++; } W.last[i] = { t: G.L.t, y }; } return mk.apply(this, arguments); }; } ";
 const grabbed = [].concat(fresh, [
-  ['eval', "const s = G.L.s; s.fitted = s.plugged = true; s.lampOn = true; s.wasLit = true; s.onAt = G.L.t; s.lampT = 60; window.__grab = { open: false, fist: false, jerk: false, back: false, k: [0, 0], ks: [] }; (function w() { const g = G.L.s.grab; if (g) { const W = window.__grab; g.hands.forEach((h, i) => { if (h.open > 0.95) W.open = true; if (h.open < 0.05 && h.drag > 0.95 && h.bunch > 0.9) W.fist = true; if (h.k < W.k[i] - 1e-9) W.back = true; W.k[i] = h.k; }); if (G.L.s.jerk > 0.9) W.jerk = true; W.ks.push(g.k); } if (G.state === 'play') requestAnimationFrame(w); })();"],
+  ['eval', handY + "const s = G.L.s; s.fitted = s.plugged = true; s.lampOn = true; s.wasLit = true; s.onAt = G.L.t; s.lampT = 60; window.__grab = { open: false, fist: false, jerk: false, back: false, k: [0, 0], ks: [] }; (function w() { const g = G.L.s.grab; if (g) { const W = window.__grab; g.hands.forEach((h, i) => { if (h.open > 0.95) W.open = true; if (h.open < 0.05 && h.drag > 0.95 && h.bunch > 0.9) W.fist = true; if (h.k < W.k[i] - 1e-9) W.back = true; W.k[i] = h.k; }); if (G.L.s.jerk > 0.9) W.jerk = true; W.ks.push(g.k); } if (G.state === 'play') requestAnimationFrame(w); })();"],
   ['waitUntil', "G.state === 'dying' || G.state === 'dead'", 25000],
   ['expect', "G.deathCause === 'grabbed' && G.L.s.lampOn && !G.L.s.coversUp && G.L.s.grab.k === 1", 'the covers left down: its hands pulled their way up the bed to you, and it had you'],
   ['expect', 'window.__grab.open && window.__grab.fist && window.__grab.jerk && !window.__grab.back && window.__grab.k[0] === 1 && window.__grab.k[1] === 1', 'each hand reached on up the bed with its fingers spread, closed them on the cloth and pulled it, the covers jerking, and never went back'],
+  ['expect', "(W => (console.log('its hands on the covers: ' + JSON.stringify({ worst: +W.worst.toFixed(4), frames: W.n })), W.n > 300 && W.worst < 0.03))(window.__hy)", 'all the way up the bed its hands rode over the covers and their edge: neither ever jumped up or down from one frame to the next'],
   ['waitUntil', "G.state === 'dead'", 4000],
   ['expect', 'G.deathScreen.text === G.L.text.death.grabbed', 'and the card has its own line'],
   ['eval', 'restartLevel();'], ['wait', 250],
