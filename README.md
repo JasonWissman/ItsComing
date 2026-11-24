@@ -342,9 +342,14 @@ some on the ground, so you have to turn and look down to find them.
    bats flit about the night sky over the clearing, faint against it and easy to miss; one can be shot (drawn full and
    let go on or close by it: a small, restless target, taken by an aim within about its wingspan of it either way; the thing itself always comes first), and it squeaks and tumbles out of
    the sky with the arrow through it. That is this night's easter egg, and it costs the arrow. Where it comes down it
-   turns, in a puff of smoke, into a vampire, the arrow still in its chest, which staggers toward the porch with a hand
-   to the wound and collapses in the snow a few steps short of it (or two seconds after the thing takes its second
-   arrow, if that comes first): it harms nothing and changes nothing. The bow floats where
+   turns, in a puff of smoke, into a vampire, the arrow still in its chest, which limps toward the porch with a hand
+   to the wound. While the thing is up it hangs back behind it; then it comes all the way, up the steps and across
+   the boards, and if it reaches you it rears up, its cape thrown wide, and gets you ("That was not just a bat.").
+   An arrow only staggers it. With the bat shot and the thing's two arrows in it the quiver is empty, and the vampire
+   can be clicked: the empty bow is thrown end over end at its head, bonks it, and it reels back on its heels and goes
+   over backward like a felled tree, its cape billowing up and settling over it; with it down the night is won. Spend
+   an arrow too many on bats (or on the vampire) and there are not enough left for the thing: it knows at once, and
+   comes flat out. The bow floats where
    your hands would hold it. Pressed with no arrows, the bow comes up and tips to show the bare shelf,
    the string is plucked twice where an arrow should sit and twitches on nothing, and it is let down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
    and drops head first to the boards at your feet, where you have to pick it up again. When it reaches you it comes

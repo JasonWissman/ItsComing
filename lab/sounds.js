@@ -20,7 +20,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'tink', n: 'all', d: 'A light metal tick. A metal or glass thing tried somewhere it will not go (a fumble), or a fingertip on metal.', src: 'hands.js fumble (metal/glass) · nights 2, 4, 6, 7, 9, 10' },
   { kind: 'sfx', name: 'woodKnock', n: 'all', d: 'A hollow wooden clunk. A wooden thing bumps where it will not go, or a knuckle on wood.', src: 'hands.js fumble (wood), reach knock · nights 1, 6, 7' },
   { kind: 'sfx', name: 'clatter', n: 'all', d: 'A hard thing clattering down on the floor, bouncing a few times. A fumbled item falls; the one oar knocked out of the side door’s brackets comes down on the deck (6).', src: 'hands.js fumble land · nights 4, 7 (toolbox), 13 · night06 (the oar knocked out)' },
-  { kind: 'sfx', name: 'flop', n: 'all', d: 'A soft thing dropping (a bag, cloth, paper). A soft fumble lands; a body slumps (the vampire going down in the snow, 5).', src: 'hands.js fumble land · nights 1, 3, 4, 9, 10, 11, 12, 13 · night05 (the vampire)' },
+  { kind: 'sfx', name: 'flop', n: 'all', d: 'A soft thing dropping (a bag, cloth, paper). A soft fumble lands; a foot twitching once in the snow (the vampire, bonked down, 5).', src: 'hands.js fumble land · nights 1, 3, 4, 9, 10, 11, 12, 13 · night05 (the vampire)' },
   { kind: 'sfx', name: 'pat', n: 'all', d: 'A hand laid flat on something. The empty hand reaches and touches; groping an empty shelf (night 5).', src: 'hands.js reach default · nights 2, 3, 4, 5' },
   { kind: 'sfx', name: 'rattle', n: [6, 8], d: 'A short rattle of loose metal parts. The hand shaking something that will not give.', src: 'hands.js reach rattle · night06 tackle box, night08 shutters' },
   { kind: 'sfx', name: 'hiss', n: [3, 5, 10, 11, 12], d: 'A breathy hiss. Sugar blown off the line (3), the puff of smoke as a shot bat turns into a vampire (5), a sheet sliding off a mirror (10), the carrier flinching from light (11), covers pulled up (12).', src: 'night03, 05, 10, 11, 12 · game.js throw (no throwable items)' },
@@ -39,7 +39,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'lever', n: [2, 7, 8, 11], d: 'A heavy lever thrown over with a clack. Gearstick (2), the lamp starts turning (7), the main switched off (8) or on (11).', src: 'night02, 07, 08, 11' },
   { kind: 'sfx', name: 'clunk', n: [2, 4, 6, 7, 8, 9, 11, 12], d: 'A heavy click. Pedal to the floor (2), a wrong thing knocked on the gate lock (4), boxes opening (6, 7), shutter down (8), receiver hung up (9), breakers (11), plug in (12).', src: 'many nights' },
   { kind: 'sfx', name: 'carHit', n: [2], d: 'A heavy blow on the bumper, the bodywork giving, and the tyres biting for a moment. You drove straight into it (the easter egg).', src: 'night02 ram' },
-  { kind: 'sfx', name: 'bodyDrop', n: [2], d: 'Something heavy and soft coming down on a wet road and sliding a little. It lands in the road, thrown by the car.', src: 'night02 ram' },
+  { kind: 'sfx', name: 'bodyDrop', n: [2, 5], d: 'Something heavy and soft coming down on a wet road and sliding a little. It lands in the road, thrown by the car (2); the vampire, bonked, goes over full length in the snow (5).', src: 'night02 ram · night05 (the vampire)' },
   { kind: 'sfx', name: 'joints', n: [2], d: 'Two or three dry cracks close together over something wet. It gets up out of the road, a limb at a time, and stands.', src: 'night02 ram' },
   // ---- night 3: the graveyard ----
   { kind: 'sfx', name: 'pour', n: [3], d: 'A fine hiss of grains pouring. A salt (or sugar) line laid across a way in.', src: 'night03' },
@@ -63,6 +63,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'twang', n: [5, 13], d: 'A low bowstring twang. An arrow is loosed.', src: 'game.js loose · night05, 13 uses' },
   { kind: 'sfx', name: 'thunk', n: [5, 13], d: 'A heavy wet thunk. An arrow hits the creature.', src: 'night05, night13' },
   { kind: 'sfx', name: 'batSqueak', n: [5], d: 'A small tick and three thin, high squeaks, each falling. An arrow takes a bat out of the sky (the night’s easter egg).', src: 'night05 bats' },
+  { kind: 'sfx', name: 'bonk', n: [5], d: 'A comic wooden bonk: a hollow knock whose note drops, a quick ring an octave up, the click of the wood, and a lighter knock as it bounces off. The empty bow, thrown at the vampire, cracks it on the forehead and knocks it down.', src: 'night05 (the bow thrown)' },
   // ---- night 6: the boathouse ----
   { kind: 'sfx', name: 'splash', n: [6], d: 'A splash. The swimmer surfaces.', src: 'swimmer.js · night06' },
   { kind: 'sfx', name: 'dive', n: [6], d: 'A low gulp of water. It goes under.', src: 'swimmer.js · night06' },
@@ -166,7 +167,7 @@ const SOUNDS = [
   { kind: 'sfx', name: 'phoneRing', n: 'unused', d: 'An old phone’s trilling ring. Never called.', src: '—' },
   { kind: 'sfx', name: 'wetThud', n: 'unused', d: 'A wet heavy blow. Never called.', src: '—' },
   // ---- death stings (and the other uses of the same sounds) ----
-  { kind: 'sting', name: 'sting', n: [1, 11, 12, 13], d: 'A scream: white noise, a falling saw tone, glitter. Death by the walker (1, the default), the carrier (11), grabbed or in the dark (12), the demon (13). And the loudest sound in the game: Settings, Volume, Calibrate, Sound effects, “Play the loudest sound in the game” plays it once, in the middle (there with the heartbeat’s lub, the quietest).', src: 'game.js die default · carrier, demon, night12 · menu.js volume calibration (AUDIO.calibrate)' },
+  { kind: 'sting', name: 'sting', n: [1, 5, 11, 12, 13], d: 'A scream: white noise, a falling saw tone, glitter. Death by the walker (1, the default), the vampire (5), the carrier (11), grabbed or in the dark (12), the demon (13). And the loudest sound in the game: Settings, Volume, Calibrate, Sound effects, “Play the loudest sound in the game” plays it once, in the middle (there with the heartbeat’s lub, the quietest).', src: 'game.js die default · carrier, demon, night12 · menu.js volume calibration (AUDIO.calibrate)' },
   { kind: 'sting', name: 'stingShriek', n: [2, 11], d: 'A rising shriek. Death by the crawler (2); the carrier’s shriek as it falls (11).', src: 'crawler.js · night11' },
   { kind: 'sting', name: 'stingHum', n: [3, 10, 12, 13], d: 'A soft chord, then a thump. Death by the smiler (3), the other (10), the tall one (12); on 13 it catches you empty-handed and the ending begins.', src: 'smiler, other, tall · night13' },
   { kind: 'sting', name: 'stingStone', n: [4], d: 'Stone grinding and a crash. Death by the watcher.', src: 'watcher.js' },
