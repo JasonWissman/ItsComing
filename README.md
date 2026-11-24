@@ -989,21 +989,26 @@ text, and the two tabs are matched by where things are.
 
 The first time an easter egg is found (and only then) a small note says so: "Secret discovered: Sugar rush", with a
 little star. No sound is played with it (a chime took the player out of the night). The title is the one above (a night
-with none there is named by its `text.egg`). It is not said while the night is played, where there is no time to read
-it: it is held, and said on the screen that follows, the death screen or the win screen (the last night: its last
-screen), `secretTell` in js/game.js. The note (`#secret` in index.html) is in the middle of the bottom edge, where none
-of those screens has anything, and the screen keeps a strip clear for it (a clear border on the overlay as tall as the
-note, with one at the top to match on all but a short screen), so nothing of the screen is under it however long its
-words, on a desktop or a phone. It comes up from the edge and fades in over 0.35 s, stays 7 s and fades out over 0.6 s;
-with reduced motion it only fades. It goes at once when the night goes on, it is not part of the HUD, and it never takes
-a click. Quitting to the title forgets one not yet said (it is in Scores).
+with none there is named by its `text.egg`). It is said the moment the egg is found (`secretSay` in js/game.js), so
+what was done and what came of it go together: the note (`#secret` in index.html) is at the top in the middle, over the
+compass while it is up, and ends above the line of words under the compass and above a sound's caption in the corner,
+so all three can be read at once, on a desktop or a phone. It comes down from the edge and fades in over 0.35 s, stays
+4 s and fades out over 0.6 s; with reduced motion it only fades. If the night ends meanwhile it stays over the death
+screen or the win screen until its time is up, and is not said again. It is not part of the HUD and never takes a
+click; quitting to the title, or the results after the ending, put it away.
+
+The Void has two endings, its own and its easter egg's (everything taken up). Whichever is come to first, the whole way,
+is the player's own (`firstEnding` in the save) and finds nothing: the game is finished all the same. The easter egg,
+Flip the script, is found when the other one is come to after it, in either order. (A save from before this keeps the
+egg if it had it; one that had finished the game without it came to the Void's own ending first.)
 
 The results after the ending show the run's own. The easter eggs first found between Begin and those results are kept
-with the save (`runEggs`, emptied as a run begins). If there are any, the results have Scores' two tabs, This run and
-Secret scenes, and open on Secret scenes: the ones found before are checked, the run's own are checked off one after
-another as it is watched (the count going up with them; all at once with reduced motion), and if that makes all
-thirteen a stamp, All secrets found, comes down beside the count, in the style of Best run's. The times come in, as
-ever, the first time their tab is opened. A run that found none has the results as they were, with no tabs.
+with the save (`runEggs`, emptied as a run begins). The results always open on This run, whose times come in one after
+another; if the run found any secret scenes, they have Scores' two tabs, and 1.2 s after This run is all in they slide
+over to Secret scenes (no slide with reduced motion; not if a tab has been chosen meanwhile): the ones found before are
+checked, the run's own are checked off one after another as it is watched (the count going up with them; all at once
+with reduced motion), and if that makes all thirteen a stamp, All secrets found, comes down under the count, in the
+style of Best run's. A run that found none has the results as they were, with no tabs.
 
 A full run is night 1 to the end of night 13 in one go, timed: every game is one. Its clock runs only while you play:
 every attempt counts, retries after a death and restarts included, but not the cards, the death and win screens, the

@@ -32,14 +32,13 @@
   #tooltip { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%); font-size: calc(15px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 12px #000; display: none; font-style: italic; padding: 4px 30px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast { position: absolute; top: calc(var(--view-top, 0px) + 86px); left: 50%;   /* up under the compass: never across what you just used */ transform: translateX(-50%); font-size: calc(17px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 14px #000; opacity: 0; transition: opacity .35s; white-space: nowrap; padding: 6px 36px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast.show { opacity: 1; }
-  /* an easter egg found for the first time (js/game.js secretTell): a small note in the middle of the bottom edge, said on
-     the screen after the night (the death screen, the win screen), never while the night is played. Not in the HUD; it
-     never takes a click. It comes up from the edge and fades; with reduced motion it only fades. The screen it is said
-     on keeps a strip clear for it (#overlay.secretroom, as tall as the note: --secret-room), so nothing of that screen
-     is ever under it, however short the screen or long its words: a clear border, which the veil is painted under and
-     what scrolls is not (one at the top to match, so the middle stays the middle; not on a short screen, where the room
-     is wanted) */
-  #secret { position: fixed; z-index: 900; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); box-sizing: border-box; width: max-content; max-width: calc(100vw - 32px); display: flex; align-items: center; gap: 9px; padding: 7px 14px 7px 11px; background: rgba(7,7,9,.86); border: 1px solid rgba(207,200,186,.3); border-radius: 6px; color: #efe6d2; font-size: calc(14px * var(--text-scale)); line-height: 1.3; pointer-events: none; opacity: 0; visibility: hidden; transform: translate(-50%, 12px); transition: opacity .6s, transform .6s, visibility 0s .6s; }
+  /* an easter egg found for the first time (js/game.js secretSay): a small note at the top in the middle, said the moment
+     it is found, over the compass while it is up (and over whatever screen comes up under it in that time). Not in the
+     HUD; it never takes a click. It comes down from the edge and fades; with reduced motion it only fades. It ends above
+     the line of words under the compass (#toast) and above a sound's caption in the corner (#caption: top 50px, under
+     the menu button on a phone), whatever the text size (its own grows only so far: 18px), and short of the corner
+     buttons (#menuBtn, #fsBtn) */
+  #secret { position: fixed; z-index: 900; left: 50%; top: max(8px, env(safe-area-inset-top)); box-sizing: border-box; width: max-content; max-width: calc(100vw - 132px); display: flex; align-items: center; gap: 8px; padding: 5px 13px 5px 10px; background: rgba(7,7,9,.86); border: 1px solid rgba(207,200,186,.3); border-radius: 6px; color: #efe6d2; font-size: min(calc(14px * var(--text-scale)), 18px); line-height: 1.3; pointer-events: none; opacity: 0; visibility: hidden; transform: translate(-50%, -12px); transition: opacity .6s, transform .6s, visibility 0s .6s; }
   #secret.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .35s, transform .35s cubic-bezier(.2,.7,.3,1), visibility 0s; }
   #secret.still, #secret.still.show { transform: translate(-50%, 0); transition-property: opacity, visibility; }
   #secret svg { flex: none; width: 15px; height: 15px; color: #efe6d2; filter: drop-shadow(0 0 5px rgba(239,230,210,.55)); }
@@ -47,8 +46,6 @@
   #secret .sc { white-space: pre; }
   #secret .stx { min-width: 0; text-wrap: balance; }
   @media (prefers-reduced-motion: reduce) { #secret, #secret.show { transform: translate(-50%, 0); transition-property: opacity, visibility; } }
-  #overlay.secretroom { border: 0 solid transparent; border-top-width: var(--secret-room, 64px); border-bottom-width: var(--secret-room, 64px); }
-  @media (max-height: 520px) { #overlay.secretroom { border-top-width: 0; } }
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
   /* the bow's power bar, beside where it is aimed: it fills upward as you hold; at the top it is full, and goes green */
@@ -571,7 +568,7 @@
   /* a caption for a sound (js/captions.js): a small speaker and its line, in the top left corner under the sound line (on
      a phone: under the menu button), the one corner with nothing of the night in it on a desktop or a phone (the things
      held are along the bottom, at the left on a phone; the hand holding one at the bottom right, over the zoom button; the
-     note for a secret, which was here, is said after the night now). One line, which ends above the line of words under
+     note for a secret is at the top in the middle, and ends above this). One line, which ends above the line of words under
      the compass (#toast) and short of the middle (#pitch, #zoom), so it is never over either; a line too long for that
      is set smaller, not cut short (CAPTIONS put). Over everything but the turn-it-sideways screen (the volume dialog's own
      caption is seen in the warning's card too) */
