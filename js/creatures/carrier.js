@@ -1,6 +1,6 @@
 'use strict';
-// The carrier: hunched, sack-bodied, arms wrapped round the bundle it never puts down, a face you would rather not see up
-// close. It cannot stand the light.
+// The carrier: hunched, sack-bodied, its long empty arms hanging heavy, the hands low by its knees, a face you would
+// rather not see up close. It cannot stand the light.
 // A night can send it sideways, running: c.runLat metres to its right, c.runPose on, c.runDir +1 running to the right of
 // the view and -1 to the left, c.runGait its stride, c.runPace 1 for a run and less for a walk. c.recoil (0..1) rears it
 // back from the light with an arm across its face. c.shade (0..1) is how deep in shadow it stands: its colours sink toward
@@ -9,6 +9,8 @@
 // Its mouth is sewn shut, like a scarecrow's: a patch of burlap stitched over it with thick crosses of twine. It strains
 // at the stitches as it nears you, and in your face (c.lunge) the slit is pulled open tall and two of them snap, the dark
 // and its teeth showing through. In that last moment it is lit up, however dark it is, so you see it.
+// It carries nothing of its own. c.clutch ([x, y], in its own drawing) is a thing it has been given to hold: its right
+// hand is at that point, round it, whatever the other is doing (night 13 draws the thing there over it).
 CREATURES.carrier = {
   name: 'the carrier', h: 1.7, w: 1.6, faceY: 1.35, stepRate: 0.9, catchDist: 1.5, sound: 'walker',
   death: { delay: 0.2, dur: 0.4, sting: 'sting' },
@@ -80,7 +82,7 @@ CREATURES.carrier = {
     const g = c.gait, t = c.t, near = clamp(1 - c.dist / 12, 0, 1), lunge = c.lunge || 0;
     const sack = P.col([96, 80, 60]), sackD = P.col([62, 50, 36]), skin = P.col([160, 140, 122]), black = P.col([8, 6, 6]);
     // rearing back from the light: it straightens, its head goes back and aside, one arm comes up across its face and its
-    // mouth opens; the other arm never lets go of what it carries
+    // mouth opens; the other is flung out to the side, the fingers spread against it
     const rec = smoothstep(clamp(c.recoil || 0, 0, 1));
     const bob = c.moving ? Math.abs(Math.sin(g)) * 0.06 : Math.sin(t * 1.4) * 0.02, hunch = 0.25 * (1 - rec * 0.8);
     for (const s of [-1, 1]) {
@@ -94,26 +96,26 @@ CREATURES.carrier = {
     P_poly(ctx, [[-0.42, 0.7], [0.42, 0.7], [0.36, 1.25 - hunch * 0.3], [-0.36, 1.25 - hunch * 0.3]], sack);
     for (let k = 0; k < 4; k++) P_line(ctx, -0.3 + k * 0.2, 0.75, -0.25 + k * 0.2, 1.2, 0.012, sackD);
     P_rect(ctx, -0.12, 0.85, 0.22, 0.16, sackD);
-    // arms wrapped round itself; when it lunges they open (and as it charges, burning: c.charge). Burning, it beats at
-    // itself, both arms thrown up and flailing over its head (c.flail)
-    const fl = smoothstep(clamp(c.flail || 0, 0, 1)) * (1 - lunge);
+    // its arms: hanging heavy from its shoulders, the hands low by its knees, swinging a little against its legs as it
+    // trudges and drifting as it stands; from about 6 m in they come up and out toward you, the fingers spread, grasping;
+    // in its lunge they open wide (and as it charges, burning: c.charge). Burning, it beats at itself, both arms thrown up
+    // and flailing over its head (c.flail). Each pose is [elbow x, y, hand x, y, the fingers' angle, spread, length]
+    const fl = smoothstep(clamp(c.flail || 0, 0, 1)) * (1 - lunge), open = Math.max(lunge, clamp(c.charge || 0, 0, 1) * 0.8);
+    const reach = smoothstep(clamp((near - 0.5) / 0.4, 0, 1)) * (1 - open), cl = c.clutch;
+    const mix = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
     for (const s of [-1, 1]) {
+      const sw = c.moving ? Math.sin(g + (s > 0 ? 0 : Math.PI)) : 0.2 * Math.sin(t * 0.9 + s * 1.3), sa = Math.abs(sw);   // (against the leg on its side)
+      let a = [s * (0.52 - 0.02 * sw), 0.8 + 0.03 * sa, s * (0.48 - 0.06 * sw), 0.36 + 0.07 * sa, -Math.PI / 2 + s * (0.2 - 0.15 * sw), 0.28, 0.12];
+      if (reach > 0.01) a = mix(a, [s * 0.62, 0.94, s * (0.42 + 0.03 * Math.sin(t * 4.3 + s)), 1.1 + 0.03 * Math.sin(t * 3.7 + s * 2), Math.PI / 2 - s * 1.1, 0.5, 0.15], reach);
+      if (open > 0.01) a = mix(a, [s * 0.65, 1.25, s * 0.45, 1.45, Math.PI / 2 - s * 0.4, 0.4, 0.14], open);
+      if (rec > 0.01) a = mix(a, s > 0 ? [0.52, 1.36, 0.08, 1.66, Math.PI / 2 + 0.3, 0.32, 0.13] : [-0.62, 0.98, -0.78, 1.2, Math.PI + 0.5, 0.42, 0.13], rec);   // (the one over its face, the fingers spread against the light)
       if (fl > 0.02) {
         const w = Math.sin(t * 13 + s * 1.7), v = Math.sin(t * 11 + s * 2.3);
-        const ex = lerp(s * 0.1, s * (0.6 + 0.08 * w), fl), ey = lerp(0.95, 1.5 + 0.12 * v, fl), hx = lerp(-s * 0.25, s * (0.38 + 0.24 * w), fl), hy = lerp(1.05, 2.0 + 0.14 * v, fl);
-        P_limb(ctx, [[s * 0.38, 1.15], [ex, ey], [hx, hy]], 0.11, sack);
-        fingers(ctx, hx, hy, Math.PI / 2 + s * 0.4 + w * 0.3, 0.45, 0.13, 0.025, skin);
-        continue;
+        a = mix(a, [s * (0.6 + 0.08 * w), 1.5 + 0.12 * v, s * (0.38 + 0.24 * w), 2.0 + 0.14 * v, Math.PI / 2 + s * 0.4 + w * 0.3, 0.45, 0.13], fl);
       }
-      const open = Math.max(lunge, clamp(c.charge || 0, 0, 1) * 0.8), up = s > 0 ? rec : 0;
-      if (up > 0.02) {   // the arm thrown up in front of its face, the fingers spread against the light
-        const ex = s * lerp(0.1 + open * 0.55, 0.52, up), ey = lerp(0.95 + open * 0.3, 1.36, up), hx = -s * lerp(0.25 - open * 0.7, -0.08, up), hy = lerp(1.05 + open * 0.4, 1.66, up);
-        P_limb(ctx, [[s * 0.38, 1.15], [ex, ey], [hx, hy]], 0.11, sack);
-        fingers(ctx, hx, hy, Math.PI / 2 + s * 0.3, 0.32, 0.13 * up, 0.025, skin);
-        continue;
-      }
-      P_limb(ctx, [[s * 0.38, 1.15], [s * (0.1 + open * 0.55), 0.95 + open * 0.3], [-s * (0.25 - open * 0.7), 1.05 + open * 0.4]], 0.11, sack);
-      if (open > 0.2) fingers(ctx, -s * (0.25 - open * 0.7), 1.05 + open * 0.4, -s * 0.4 + Math.PI / 2, 0.4, 0.14, 0.025, skin);
+      if (cl && s > 0) a = [Math.max(0.5, cl[0] + 0.32), Math.min(cl[1], 1.0) - 0.15, cl[0], cl[1], Math.PI * 0.8, 0.34, 0.09];   // (round what it holds, the fingers curled over it)
+      P_limb(ctx, [[s * 0.38, 1.15], [a[0], a[1]], [a[2], a[3]]], 0.11, sack);
+      fingers(ctx, a[2], a[3], a[4], a[5], a[6], 0.025, skin);
     }
     // the head: low, pushed forward, hair like straw, its mouth sewn shut
     ctx.save(); ctx.translate(-rec * 0.08, 1.2 - hunch * 0.2 + rec * 0.05); ctx.rotate(headTiltJerk(t, 3.3, 0.14) * (1 - lunge) * (1 - rec) - rec * 0.38);
@@ -220,13 +222,14 @@ CREATURES.carrier = {
       ctx.restore();
     }
   },
-  // flat out, seen from the side, and still bent double round what it carries: the sack of its body tipped forward over
-  // short legs going like pistons, the bundle clutched to its front in both arms, the head thrust out low ahead with its
-  // straw hair streaming back. At a walk (c.runPace below 1) the stride shortens and it rides more upright.
+  // flat out, seen from the side, bent double: the sack of its body tipped forward over short legs going like pistons, its
+  // long arms hanging from the shoulders and swinging against them, the hands down by its knees, the head thrust out low
+  // ahead with its straw hair streaming back. At a walk (c.runPace below 1) the stride shortens and it rides more upright,
+  // the arms swinging less.
   drawRun(ctx, c, P) {
     const g = c.runGait || 0, t = c.t, pace = c.runPace === undefined ? 1 : c.runPace;
     const sack = P.col([96, 80, 60]), sackD = P.col([62, 50, 36]), sackL = P.col([126, 108, 82]), skin = P.col([160, 140, 122]), skinD = P.col([118, 100, 86]);
-    const black = P.col([8, 6, 6]), hair = P.col([120, 100, 60]), bundle = P.col([134, 114, 82]), bundleD = P.col([98, 82, 58]), twine = P.col([48, 36, 24]);
+    const black = P.col([8, 6, 6]), hair = P.col([120, 100, 60]);
     const lean = 0.32 + 0.33 * pace, thigh = 0.36, shin = 0.37, rot = Math.PI / 2 - lean;   // lean from upright; rot, the spine's angle
     const sp = [Math.sin(lean), Math.cos(lean)], fw = [Math.cos(lean), -Math.sin(lean)];       // up its spine; out of its front (forward and down)
     ctx.save(); ctx.scale(c.runDir || 1, 1);
@@ -241,6 +244,17 @@ CREATURES.carrier = {
       P_ell(ctx, hipX + l.fx + 0.05, hipY + l.fy - 0.01, 0.1, 0.04, foot);   // a broad bare foot, pale, toes forward
     };
     leg(legs[1], sackD, skinD);   // the far leg, in its own shadow
+    // an arm, hanging from the shoulder and swinging fore and aft against the leg on its side (o: its phase), the elbow
+    // bending as it comes forward, the hand low, fingers trailing; to (x, y): the hand there instead (holding a thing)
+    const shX0 = hipX + sp[0] * 0.72, shY0 = hipY + sp[1] * 0.72;
+    const arm = (o, col, hcol, to) => {
+      const q = Math.sin(g + o), a = 0.05 + (0.12 + 0.28 * pace) * q, b = a + 0.1 + 0.2 * Math.max(0, q);
+      let ex = shX0 + Math.sin(a) * 0.38, ey = shY0 - Math.cos(a) * 0.38, hx = ex + Math.sin(b) * 0.38, hy = ey - Math.cos(b) * 0.38, fa = b - Math.PI / 2;
+      if (to) { hx = to[0]; hy = to[1]; ex = (shX0 + hx) / 2 + 0.16; ey = (shY0 + hy) / 2 - 0.1; fa = Math.PI * 0.8; }
+      P_limb(ctx, [[shX0, shY0], [ex, ey], [hx, hy]], 0.1, col);
+      fingers(ctx, hx, hy, fa, 0.26, 0.11, 0.024, hcol);
+    };
+    arm(0, sackD, skinD);   // the far arm, behind the body (against the far leg)
     // the body: a sack slung forward from the hips, sagging at the belly, the light along its back, a seam or two
     const cx = hipX + sp[0] * 0.4 + 0.03, cy = hipY + sp[1] * 0.4;
     const shX = hipX + sp[0] * 0.76, shY = hipY + sp[1] * 0.76;   // the shoulders, out over its front
@@ -251,21 +265,6 @@ CREATURES.carrier = {
     P_ell(ctx, cx + fw[0] * 0.13, cy + fw[1] * 0.13, 0.38, 0.22, sackD, rot);
     P_ell(ctx, cx - fw[0] * 0.19, cy - fw[1] * 0.19, 0.36, 0.11, sackL, rot);
     for (const u of [-0.12, 0.14]) P_line(ctx, cx + sp[0] * u - fw[0] * 0.3, cy + sp[1] * u - fw[1] * 0.3, cx + sp[0] * u + fw[0] * 0.1, cy + sp[1] * u + fw[1] * 0.1, 0.014, sackD);
-    // the bundle, held to its chest: tied, lumpy, never put down. Burning, its arm has let go of it to beat at the flames
-    // over its head (below), so it is not drawn: on its own, held by nothing, it was a lump stuck on the front of its belly
-    const bx = cx + fw[0] * 0.34 + sp[0] * 0.08, by = cy + fw[1] * 0.34 + sp[1] * 0.08 + Math.sin(g * 2) * 0.012;
-    const burning = (c.burn || 0) > 0.2;
-    if (!burning) {
-      P_ell(ctx, bx, by, 0.21, 0.17, bundleD, 0.3); P_ell(ctx, bx - 0.02, by + 0.03, 0.17, 0.12, bundle, 0.3);
-      P_line(ctx, bx - 0.17, by - 0.05, bx + 0.12, by + 0.13, 0.018, twine); P_line(ctx, bx - 0.06, by + 0.15, bx + 0.08, by - 0.14, 0.018, twine);
-    }
-    // the near arm wrapped round it, the hand clawed over the top; burning, it lets go and beats at the flames over its
-    // head instead
-    if (!burning) {
-      const hx = bx - 0.02, hy = by + 0.15;
-      P_limb(ctx, [[shX - 0.04, shY - 0.04], [bx + 0.22, by - 0.06], [bx + 0.14, by + 0.12], [hx, hy]], 0.11, sack);
-      fingers(ctx, hx, hy, Math.PI + 0.6, 0.24, 0.1, 0.024, skin);
-    }
     // the head, low and thrust out ahead of the shoulders, the face in profile on its front
     for (let i = 0; i < 9; i++) {   // the straw hair, streaming back as it goes
       const a = Math.PI * (0.66 + i * 0.04) + Math.sin(t * 9 + i * 1.7) * 0.06 * pace, l = 0.22 + 0.1 * Math.sin(i * 2.1) + 0.14 * pace;
@@ -280,7 +279,10 @@ CREATURES.carrier = {
     this.sewnMouth(ctx, P, 0, 0, 0.15, 0.004 + 0.01 * pace, 0, 3, t);
     ctx.restore();
     leg(legs[0], sack, skin);   // the near leg, in front of the body
-    if (burning) {
+    // the near arm: hanging and swinging against the near leg (holding a thing, c.clutch, its hand there); burning, it
+    // beats at the flames over its head instead
+    if ((c.burn || 0) <= 0.2) arm(Math.PI, sack, skin, c.clutch ? [c.clutch[0] * (c.runDir || 1), c.clutch[1]] : null);
+    else {
       const w = Math.sin(t * 12), v = Math.cos(t * 12), hx = shX + 0.08 + 0.24 * w, hy = shY + 0.72 + 0.1 * v;
       P_limb(ctx, [[shX - 0.04, shY - 0.02], [shX + 0.16 + 0.06 * v, shY + 0.38], [hx, hy]], 0.11, sack);
       fingers(ctx, hx, hy, Math.PI / 2 + w * 0.5, 0.45, 0.12, 0.024, skin);
@@ -288,16 +290,16 @@ CREATURES.carrier = {
     if (fire) this.burnFlames(ctx, c, fire, 0.6 * pace, false);   // (and the ones on its side)
     ctx.restore();
   },
-  // Its end, in the light (c.fallT seconds in). FALL.shriek: it rears up screaming, shaking, an arm over its face. Then its
-  // knees go and it sinks, swaying, the arm coming down (FALL.sink). Then it comes apart (FALL.apart): the sack of its body
-  // drops and slumps open down the middle with the straw it was stuffed with spilling out across the ground, the head
-  // drops off and rolls away onto its side, the arms fall loose, the bundle tumbles out of them. Then it lies there, a
-  // heap of sacking and straw, a little dust going up off it in the light.
+  // Its end, in the light (c.fallT seconds in). FALL.shriek: it rears up screaming, shaking, an arm over its face and the
+  // other thrown up and out, clawing at the air. Then its knees go and it sinks, swaying, both arms coming down
+  // (FALL.sink). Then it comes apart (FALL.apart): the sack of its body drops and slumps open down the middle with the
+  // straw it was stuffed with spilling out across the ground, the head drops off and rolls away onto its side, the arms
+  // fall loose either side. Then it lies there, a heap of sacking and straw, a little dust going up off it in the light.
   FALL: { shriek: 0.9, sink: 1.0, apart: 1.3 },
   drawFall(ctx, c, P) {
     const F = this.FALL, t = c.fallT, t1 = F.shriek, t2 = t1 + F.sink;
     const sack = P.col([96, 80, 60]), sackD = P.col([62, 50, 36]), sackL = P.col([128, 110, 84]), inner = P.col([34, 26, 18]), skin = P.col([160, 140, 122]), skinD = P.col([118, 100, 86]);
-    const black = P.col([8, 6, 6]), straw = P.col([176, 150, 84]), strawD = P.col([128, 106, 56]), bundle = P.col([134, 114, 82]), twine = P.col([48, 36, 24]);
+    const black = P.col([8, 6, 6]), straw = P.col([176, 150, 84]), strawD = P.col([128, 106, 56]);
     const side = c.fallSide || 1;
     const rm = typeof SAVE !== 'undefined' && SAVE.data && SAVE.data.settings.reducedMotion ? 0.3 : 1;
     // the straw that spills out of it as it comes apart: each strand thrown out from the split and coming to rest on the
@@ -323,12 +325,13 @@ CREATURES.carrier = {
       P_poly(ctx, [[-0.42, 0.7], [0.42, 0.7], [0.36, 1.2], [-0.36, 1.2]], sack);
       for (let k = 0; k < 4; k++) P_line(ctx, -0.3 + k * 0.2, 0.75, -0.25 + k * 0.2, 1.2, 0.012, sackD);
       if (sink > 0.3) P_line(ctx, 0.02, 0.62, -0.04, 1.18, 0.02 + 0.03 * sink, inner);   // a seam splitting down its front
-      // one arm up over its face against the light; the other clutching the bundle, then both going slack
-      const up = rec;
+      // one arm up over its face against the light; the other thrown up and out, the fingers clawing, then both going slack
+      const up = rec, cw = Math.sin(t * 23) * 0.04 * shake;
       P_limb(ctx, [[0.38, 1.15], [lerp(0.6, 0.52, up), lerp(0.75, 1.36, up)], [lerp(0.66, 0.08, up), lerp(0.5, 1.66, up)]], 0.11, sack);
       fingers(ctx, lerp(0.66, 0.08, up), lerp(0.5, 1.66, up), lerp(-Math.PI / 2, Math.PI / 2 + 0.3, up), 0.32, 0.13, 0.025, skin);
-      P_ell(ctx, -0.18, 0.98 - 0.2 * sink, 0.2, 0.15, bundle); P_line(ctx, -0.32, 0.93 - 0.2 * sink, -0.06, 1.05 - 0.2 * sink, 0.016, twine);
-      P_limb(ctx, [[-0.38, 1.15], [-0.48 - 0.1 * sink, 0.95 - 0.2 * sink], [-0.05, 1.0 - 0.25 * sink]], 0.11, sack);
+      const lx = lerp(-0.62, -0.8 + cw, up), ly = lerp(0.48, 1.86, up);
+      P_limb(ctx, [[-0.38, 1.15], [lerp(-0.55, -0.66, up), lerp(0.8, 1.42, up)], [lx, ly]], 0.11, sack);
+      fingers(ctx, lx, ly, lerp(-Math.PI / 2 - 0.2, Math.PI / 2 + 0.5 + cw * 4, up), lerp(0.28, 0.42, up), 0.13, 0.025, skin);
       // the head thrown back, the mouth wide open in the scream, then lolling
       ctx.save(); ctx.translate(-0.06, 1.25); ctx.rotate(-0.4 * (1 - sink) + side * 0.7 * sink + Math.sin(t * 47) * 0.05 * shake);
       strands(ctx, 0, 0.42, 12, 0.3, P.col([120, 100, 60]), 9, c.t);
@@ -342,11 +345,6 @@ CREATURES.carrier = {
     }
     // apart: k runs 0..1 over the coming apart, and on past it the heap lies still
     const k = clamp((t - t2) / F.apart, 0, 1), ks = smoothstep(k);
-    // the bundle, out of its arms and rolled away to the other side
-    const bxk = easeOut(clamp(k * 1.4, 0, 1));
-    ctx.save(); ctx.translate(-side * (0.25 + 0.55 * bxk), 0.14 + 0.5 * (1 - bxk) * (1 - bxk)); ctx.rotate(side * bxk * 2.2);
-    P_ell(ctx, 0, 0, 0.19, 0.14, bundle); P_line(ctx, -0.15, -0.05, 0.12, 0.08, 0.016, twine); P_line(ctx, -0.05, 0.13, 0.07, -0.12, 0.016, twine);
-    ctx.restore();
     // the arms, fallen loose either side
     for (const s of [-1, 1]) {
       const a = easeOut(clamp(k * 1.6 - (s > 0 ? 0.2 : 0), 0, 1));

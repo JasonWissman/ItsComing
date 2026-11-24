@@ -649,7 +649,7 @@ some on the ground, so you have to turn and look down to find them.
     The panel and its parts are fixed flat on the front of the box, so they stay where they are drawn however you look
     (the tipped labels too: the eye never moves, so each is drawn on the panel where it is seen from the eye, and a
     click on a label is a click on its switch).
-    Something bent under a bundle stands in the dark at the foot of one place, all but black, two pale points of eyes;
+    Something hunched and sack-bodied, its long arms hanging, stands in the dark at the foot of one place, all but black, two pale points of eyes;
     its mouth is sewn shut with thick crosses of twine over a patch of burlap. It cannot stand the light:
     light its place and it throws an arm over its face and runs, side on, to a neighbouring place that is dark, at the
     same distance from you. Light both its neighbours and then its own place and it has nowhere dark to go: it shrieks,
@@ -683,7 +683,7 @@ some on the ground, so you have to turn and look down to find them.
     air from wherever you look (`test/nights/night11.js` checks every foot against the building behind it). The sky and the haze go red, the fire roars
     and crackles all round. The thing, its spark on it, goes up (the fire taking it from its middle out, scorching it
     near black), shrieking, and runs flat out about the open yard where you are looking, side on, flames streaming
-    back off it and an arm beating at them over its head (the bundle let go of, nothing on its front) (round you, never through you, and in front of the house, not
+    back off it and an arm beating at them over its head (round you, never through you, and in front of the house, not
     through it; out of sight it tears round faster to where you are looking), until you have had about 3 s of it in
     view (9 s at most). Then it stops, faces you, both arms flailing over its head (0.6 s), and charges straight in at
     8.5 m/s, arms reaching, and has you, burning (its face clear of the flames in the lunge). The flames on it have their

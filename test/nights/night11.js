@@ -290,35 +290,43 @@ const footsOnIt = () => {
   window.__feet = bad;
   return bad.length === 0;
 };
-// running alight, side on, either way, all through its stride: its arm has let go of the bundle to beat at the flames, so
-// the bundle is not drawn (on its own it was a lump stuck on the front of its belly); not burning, it is still carried
-const bundleRun = () => {
-  const c = G.L.creature, CR = c.CR, keep = {}, keys = ['burn', 'char', 'flail', 'charge', 'lunge', 'runPose', 'runDir', 'runPace', 'runGait', 'recoil', 'shade', 'fallT'];
+// it carries nothing: in no pose (standing, creeping, reaching for you, rearing from the light, running either way all
+// through its stride, burning or not, flailing, charging, in your face, coming apart) is anything drawn in the colours of
+// the bundle it once clutched; and given a thing to hold (c.clutch, as night 13 gives it the fuse), its right hand is
+// there, standing, flailing and running either way
+const bareArms = () => {
+  const c = G.L.creature, CR = c.CR, keep = {}, keys = ['burn', 'char', 'flail', 'charge', 'lunge', 'runPose', 'runDir', 'runPace', 'runGait', 'recoil', 'shade', 'fallT', 'fallSide', 'clutch', 'dist', 'moving', 'gait'];
   keys.forEach(k => { keep[k] = c[k]; });
-  // drawn with the bundle's two colours bright red and everything else black (and no flames), and looked at for red
+  // drawn with the bundle's two colours (or, looking for its hand, its skin) bright red and everything else black (and no
+  // flames), and looked at for red (anywhere, or round one point)
   const cv = document.createElement('canvas'); cv.width = 400; cv.height = 400;
-  const ctx = cv.getContext('2d', { willReadFrequently: true }), BUNDLE = ['134,114,82', '98,82,58'], flame = CR.flame;
-  const P = { fog: 0, col: k => (BUNDLE.includes(k.slice(0, 3).join()) ? 'rgb(255,0,0)' : 'rgb(0,0,0)'), cola: () => 'rgb(0,0,0)', raw: () => 'rgb(0,0,0)' };
-  const drawn = burn => {
-    Object.assign(c, { burn, char: 0, shade: 0, flail: 0, charge: 0, lunge: 0, recoil: 0, fallT: undefined });
+  const ctx = cv.getContext('2d', { willReadFrequently: true }), flame = CR.flame;
+  const pal = cols => ({ fog: 0, col: k => (cols.includes(k.slice(0, 3).join()) ? 'rgb(255,0,0)' : 'rgb(0,0,0)'), cola: () => 'rgb(0,0,0)', raw: () => 'rgb(0,0,0)' });
+  const BUNDLE = pal(['134,114,82', '98,82,58']), SKIN = pal(['160,140,122', '118,100,86']);
+  const red = (P, o, at) => {
+    Object.assign(c, { burn: 0, char: 0, shade: 0, flail: 0, charge: 0, lunge: 0, recoil: 0, fallT: undefined, runPose: false, clutch: null, dist: 8, moving: false }, o);
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 400, 400); ctx.setTransform(150, 0, 0, -150, 200, 360);
     CR.draw(ctx, c, P);
-    const px = ctx.getImageData(0, 0, 400, 400).data;
+    const [x0, y0, w] = at ? [Math.round(200 + at[0] * 150) - 9, Math.round(360 - at[1] * 150) - 9, 18] : [0, 0, 400];
+    const px = ctx.getImageData(x0, y0, w, w).data;
     for (let i = 0; i < px.length; i += 4) if (px[i] > 200 && px[i + 1] < 40 && px[i + 3] > 200) return true;
     return false;
   };
+  const poses = [{}, { moving: true, gait: 1 }, { dist: 1.8 }, { recoil: 1 }, { flail: 1, burn: 1 }, { charge: 1, burn: 1 }, { lunge: 1, dist: 1.5 }];
+  for (const f of [0.3, 1.2, 2.4, 6]) poses.push({ fallT: f, fallSide: 1 });
+  for (const dir of [1, -1]) for (let i = 0; i < 16; i++) for (const burn of [0, 1]) poses.push({ runPose: true, runDir: dir, runPace: 1, runGait: i / 16 * 2 * Math.PI, burn });
   let ok = true;
   try {
     CR.flame = () => {};
-    for (const dir of [1, -1]) for (let i = 0; i < 16; i++) {
-      Object.assign(c, { runPose: true, runDir: dir, runPace: 1, runGait: i / 16 * 2 * Math.PI });
-      if (drawn(1) || !drawn(0)) ok = false;
+    for (const o of poses) if (red(BUNDLE, o)) ok = false;
+    for (const at of [[0.1, 0.8], [0.36, 1.28]]) for (const o of [{}, { flail: 1 }, { runPose: true, runDir: 1, runPace: 1, runGait: 1 }, { runPose: true, runDir: -1, runPace: 1, runGait: 2 }]) {
+      if (!red(SKIN, Object.assign({ clutch: at }, o), at)) ok = false;   // (where night 13 draws the thing, whichever way it runs)
     }
   } finally { CR.flame = flame; Object.assign(c, keep); }
   return ok;
 };
 const feet = fresh.concat([
-  ['expect', '(' + bundleRun + ')()', 'running alight, either way, all through its stride, nothing is stuck on the front of its belly: the bundle it let go of is not drawn (and running unburnt, it still carries it)'],
+  ['expect', '(' + bareArms + ')()', 'it carries nothing: in no pose, standing, running either way, burning, in your face or coming apart, is a bundle drawn; given a thing to hold (c.clutch, night 13\'s fuse), its right hand is there'],
   ['expect', '(' + footsOnSurfaces + ')()', 'the farm alight: every flame\'s foot is on a wall, a roof, a door or the ground, none hanging off an edge into the air'],
   ['expect', '(' + footsOnIt + ')()', 'the thing alight, in every pose: every flame\'s foot is on it, none out in the air beside it or over its head'],
 ]);
