@@ -15,6 +15,8 @@
   };
   // its bursts: a scuttle, then a pause with the head coming up (CR.speedMult runs its modes)
   const bursts = (c, dt) => drive(c, dt, c.CR.speedMult(c, dt, true) * c.seenMult);
+  // up on its hind legs, after the car hit it: its hitch and drag (CR.speedMult runs its stride, c.up), no nearer than the catch
+  const comes = (c, dt) => { drive(c, dt, c.CR.speedMult(c, dt, true) * c.seenMult); c.dist = Math.max(c.dist, 1.4); };
   LAB.creature('crawler', {
     night: 2, stage: 'The Car', dist: 12, lit: 0.5,
     setup(c) { c.D0 = NIGHT.D0; c.T = NIGHT.T; c.u = 1 - c.dist / c.D0; },
@@ -44,13 +46,37 @@
           c.CR.speedMult(c, dt, true);
           if (q < 1) { c.leap = q; c.yOff = 0.9 * 4 * q * (1 - q); } else { c.leap = undefined; c.yOff = 0; }
         } },
-      { name: 'Knocked back down the road, and getting up', note: 'The easter egg: the car hits it and it is knocked back down the road, turning over, to lie in a heap 15 m off, on its side, one arm bent up into the air. A beat; the arm jerks. It gets its limbs under it one at a time and stands up on its hind legs, in jolts, its head hanging on one side. The head snaps up at you. It drops onto all fours and comes on at the car again (up 5.1 s after the blow): the car is yours meanwhile, and the other way is the way out.', dist: RAM_GAP, dur: 8, lit: 0.7, fit: { h: 2.4, w: 2.7 },
+      { name: 'Knocked back down the road, and getting up', note: 'The easter egg: the car hits it and it is knocked back down the road, turning over, to lie in a heap 15 m off, on its side, one arm bent up into the air. A beat; the arm jerks. It gets its limbs under it one at a time and stands up on its hind legs, in jolts, its head hanging on one side. The head snaps up at you. And it comes on at the car again as it is, up on its hind legs (5.1 s after the blow): the car is yours meanwhile, and the other way is the way out.', dist: RAM_GAP, dur: 8, lit: 0.7, fit: { h: 2.4, w: 2.7 },
         set(c) { c.frozen = true; },
         tick(c, k, dt, T) {
           const K = c.CR.STRUCK;
-          if (T < K.leap) { struck(c, T); return; }
-          if (c.struck) { c.struck = null; c.yOff = 0; c.frozen = false; c.dist = LIE; c.u = 1 - LIE / c.D0; c.mode = 'scuttle'; c.modeT = 0; }
-          bursts(c, dt);   // and it comes, as it always comes
+          if (T < K.go) { struck(c, T); return; }
+          if (c.struck) { c.struck = null; c.yOff = 0; c.frozen = false; c.dist = LIE; c.u = 1 - LIE / c.D0; c.up = c.CR.upright(); }
+          comes(c, dt);   // and it comes, up
+        } },
+      { name: 'Standing up in the road', note: 'Hit by the car, it got up, and it stays up: taller than a man, bow-legged, swaying, its arms hanging to its knees. Held where it is (the car coming at it again, or the car gone), its head lolls over and rolls, and every so often snaps up straight at you, mouth open, and shakes there.', dist: 9, dur: 6, lit: 0.6, fit: { h: 2.4, w: 2.2 },
+        set(c) { c.up = c.CR.upright(); c.frozen = true; },
+        tick(c, k, dt) { c.CR.speedMult(c, dt, true); } },
+      { name: 'Coming back at the car, upright', note: 'Up on its hind legs it comes back at the car, as nothing that goes on all fours should: a hitch and a drag. Its bad left leg takes its weight and buckles, the trunk lurching over, while the right is snatched up and flung down (now and then a deeper stagger); then the left is hauled after it stiff, swung out in an arc, hip hiked, toes scraping. The right arm swings with the right leg, the left hangs dead and flops out and across after the lurch. The head lolls and rolls, and snaps up at you every other stride; near the car it stops looking away, its hands come up, and the stride quickens.', dist: 12, dur: 7.5, lit: 0.6, fit: { h: 2.4, w: 2.4 },
+        set(c) { c.up = c.CR.upright(); },
+        tick(c, k, dt) { comes(c, dt); } },
+      { name: 'Through the glass, from standing', note: 'Up, and caught at the car (It got right back up.): it rears up at the glass on its toes, its arms flung up over its head and its mouth wide, then throws itself forward onto the bonnet and in through the glass, arms first, its legs kicked up behind it (0.42 s; the glass at 0.32 s).', dist: 1.3, dur: 1.4, lit: 0.65, zoom: 3, still: true, fit: { h: 2.7, w: 2.6 },
+        set(c) { c.up = c.CR.upright(); c.up.w = 1; c.up.ph = 0.9 * TAU; c.frozen = true; c.lungeFrom = c.dist; c.CR = Object.assign({}, c.CR, { faceY: 1.5 }); },
+        tick(c, k, dt, T) {   // night02 lungeUp
+          const q = clamp((T - 0.3) / 0.42, 0, 1);
+          c.up.lunge = c.lunge = q; c.dist = q < 0.75 ? lerp(c.lungeFrom, 1.0, Math.pow(clamp((q - 0.35) / 0.4, 0, 1), 2)) : lerp(1.0, 0.55, (q - 0.75) / 0.25);
+        } },
+      { name: 'Over the bonnet, from standing', note: 'Up, and driven at a second time (It was ready the second time.): it stops and stares, lurches at the car as fast as it can as the car comes at it, gathers itself low, and 6.5 m off hurls itself up off the road and over the bonnet in one bound, arms thrown up and out ahead of it, legs hanging under it, and comes down through the glass.', dist: 9, dur: 2, lit: 0.65, zoom: 4, still: true, fit: { h: 2.7, w: 2.6 },
+        set(c) { c.up = c.CR.upright(); c.up.w = 1; c.lungeFrom = 6.5; c.CR = Object.assign({}, c.CR, { faceY: 1.5 }); },
+        tick(c, k, dt, T) {   // night02 readyOn and spring: staring, the rush, the crouch, the bound
+          const u = c.up, fly = 0.36, sp = 1.05;
+          c.frozen = T < 0.45; u.stare = 1; u.rush = T >= 0.45; c.CR.speedMult(c, dt, true);
+          u.crouch = smoothstep((T - (sp - 0.14)) / 0.14);
+          if (T < sp) { c.dist = lerp(9, 6.5, smoothstep(T / sp)); c.yOff = 0; return; }
+          const v = clamp((T - sp) / fly, 0, 1);
+          c.lunge = v; c.dist = v < 1 ? lerp(6.5, 1.0, Math.pow(v, 1.6)) : lerp(1.0, 0.55, clamp((T - sp - fly) / 0.08, 0, 1));
+          c.yOff = (1.15 - 1.62) * smoothstep(v) + 0.55 * 4 * v * (1 - v);
+          u.dive = Math.min(1, v * 2.2); u.crouch = Math.max(0, 1 - v * 4);
         } },
       { name: 'Shying out of the lights', note: 'Driving away past it on the verge: side on, it scuttles flat out across the verge out of the headlights.', dist: 8, dur: 2, lit: 0.2, fit: { w: 2.2 },
         set(c) { c.runPose = true; c.runDir = 1; },

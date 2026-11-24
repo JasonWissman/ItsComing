@@ -12,13 +12,13 @@
 // the way the car was going, and lies 15 m ahead (12 m behind, in reverse); the car lurches to a halt with its engine
 // still running, the night goes on and the car answers again: the stick is clicked over to the other way and the gas
 // takes the car away from it, which wins the night as ever. Then the same in reverse with it in the road behind, and
-// this time nothing is done: it lies there, twitches, gets up, stands, looks, drops to all fours and comes on, each
-// part in its order, and when it reaches the car the card says "It got you" and only "It got right back up."; the glass
+// this time nothing is done: it lies there, twitches, gets up, stands, looks, and comes on up on its hind legs, each
+// part in its order (and stays up), and when it reaches the car it throws itself at the glass from standing; the card says "It got you" and only "It got right back up."; the glass
 // shows no crack until it is at the glass. Then from off a front corner (it leaps into the road and is hit), and driven
-// at a second time as it lies there: it is not hit again. It is on all fours and looking at once, comes at the car as
-// the car comes at it, and 6.5 m off it springs, over the bonnet and through the windshield: "It got you", and only
-// "It was ready for that." (the glass cracks as it meets it, and bursts). The same in reverse once it is up and coming
-// again: it stops, looks, and comes through the back window. Then
+// at a second time as it lies there: it is not hit again. It is up and staring at once, comes at the car as the car
+// comes at it, and 6.5 m off it hurls itself up from standing, over the bonnet and through the windshield: "It got
+// you", and only "It was ready the second time." (the glass cracks as it meets it, and bursts). The same in reverse once it is up and coming
+// again: it stops, stares, and comes through the back window. Then
 // caught with the engine running and the car not away, the card says exactly "The
 // engine was running, but you couldn't get away fast enough." (with the engine dead, the window it came through, as
 // before). Then things are put down from every way you can look, wherever in the view you click: the keys and the bottle
@@ -39,18 +39,18 @@ const GLASS = { front: 1.0, back: 1.15, passenger: 1.15, driver: 0.75 };
 const crack = win => ['expect', "(g => g.win === '" + win + "' && g.broke && g.seenAt >= g.tc - 1e-6 && g.seenDist <= " + GLASS[win] + " + 1e-6 && g.seenDist > " + (GLASS[win] - 0.4) + " && g.tb - g.tc > 0.04 && g.tb - g.tc < 0.08 && g.tc > 0.15)(G.L.s.glass)",
   'the ' + win + ' glass shows nothing until it is at the glass (' + GLASS[win] + ' m from the seat), cracks as it meets it, and bursts a moment after'];
 // driven at a second time (from where it lies, or once it is up and coming: `up`): no second blow. It gets ready, comes,
-// springs from 6.5 m (or from where it is, if it is nearer) and comes through the glass that way: the death 'ready'
+// springs from 6.5 m (or from where it is, if it is nearer), up on its hind legs, and comes through the glass that way: the death 'ready'
 const sfxHook = ['eval', "window.__sfx = []; (s0 => { AUDIO.sfx = (n, p, so) => { __sfx.push(n); return s0(n, p, so); }; })(AUDIO.sfx)"];
 const second = (R, up) => [
   ['face', 0, true], ['eval', "G.toast('Again.'); __sfx.length = 0; window.__d2 = G.L.creature.dist"], ['click', 'gas'],
   ['expect', "(r => !!r && r.again && r.hit < 0 && Math.abs(r.ready - " + (up ? 0.15 : 0.3) + ") < 1e-6 && r.T <= r.ready + 0.5 + 1e-6 && G.L.s.wasHit && !G.L.s.gone && (G.state === 'play' || G.deathCause === 'ready'))(G.L.s.ram)",
-    'the gas again, at it ' + (up ? 'as it comes: it stops and looks' : 'as it lies there: it is getting onto all fours') + ', the car leaping at it, and it will spring in under a second'],
+    'the gas again, at it ' + (up ? 'as it comes: it stops and looks' : 'as it lies there: it is getting up') + ', the car leaping at it, and it will spring in under a second'],
   ['waitUntil', "G.state === 'dying'", 4000],
-  ['expect', "(r => G.deathCause === 'ready' && r.stage === 'spring' && r.hit < 0 && !G.L.s.knock && !G.L.creature.struck && Math.abs(r.sprangFrom - Math.min(6.5, __d2)) < 0.3 && r.sprangFrom <= __d2 && G.L.creature.pounce !== undefined && !__sfx.includes('carHit') && __sfx.includes('stingShriek'))(G.L.s.ram)",
-    'it was not hit a second time: on all fours and coming, and 6.5 m off (or from where it was, nearer) it sprang at the glass'],
+  ['expect', "(r => G.deathCause === 'ready' && r.stage === 'spring' && r.hit < 0 && !G.L.s.knock && !G.L.creature.struck && Math.abs(r.sprangFrom - Math.min(6.5, __d2)) < 0.3 && r.sprangFrom <= __d2 && !!G.L.creature.up && G.L.creature.up.dive > 0 && !__sfx.includes('carHit') && __sfx.includes('stingShriek'))(G.L.s.ram)",
+    'it was not hit a second time: up and coming, and 6.5 m off (or from where it was, nearer) it sprang at the glass from standing'],
   ['waitUntil', "G.state === 'dead'", 4000],
-  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'It was ready for that.' && !G.L.text.eggs && /It got you/.test(UI.overlay.textContent) && /It was ready for that\\./.test(UI.overlay.textContent) && !/Nice try|Again\\.|got right back up/.test(UI.overlay.textContent)",
-    'the card says It got you, and only: It was ready for that.'],
+  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'It was ready the second time.' && !G.L.text.eggs && /It got you/.test(UI.overlay.textContent) && /It was ready the second time\\./.test(UI.overlay.textContent) && !/Nice try|Again\\.|got right back up/.test(UI.overlay.textContent)",
+    'the card says It got you, and only: It was ready the second time.'],
   ['expect', "__sfx.includes('stingGlass') && (G.L.eye.z - __eyeZ) * " + (R ? -1 : 1) + " > 0.2", 'the glass went with its own sound, and the car ran on under it meanwhile'],
   crack(R ? 'back' : 'front'),
 ];
@@ -76,13 +76,13 @@ const hit = (gear, end, deg) => { const R = gear === 'R', sign = R ? -1 : 1, lie
     ['eval', 'window.__eyeZ = G.L.eye.z'], ...second(R, true),
   ] : end === 'caught' ? [
     ['waitUntil', "!G.L.s.knock && G.L.s.knocked", 9000],
-    ['expect', "(c => G.state === 'play' && G.L.s.knocked.stages.join() === 'thrown,down,twitch,rise,look,leap,up' && !c.struck && !c.frozen && c.hold === null && c.dist > " + (lie - 1.5) + " && c.dist <= " + lie + " + 0.01 && G.L.s.sectorOf(G.L.s.roam.b) === '" + (R ? 'behind' : 'ahead') + "')(G.L.creature)",
-      'each part in its order (knocked back, down, a twitch, getting up, the look, onto all fours), and it is let go where it landed, squarely ' + (R ? 'behind' : 'ahead of') + ' the car'],
+    ['expect', "(c => G.state === 'play' && G.L.s.knocked.stages.join() === 'thrown,down,twitch,rise,look,up' && !c.struck && !!c.up && !c.frozen && c.hold === null && c.dist > " + (lie - 1.5) + " && c.dist <= " + lie + " + 0.01 && G.L.s.sectorOf(G.L.s.roam.b) === '" + (R ? 'behind' : 'ahead') + "')(G.L.creature)",
+      'each part in its order (knocked back, down, a twitch, getting up, the look), and it is let go up on its hind legs where it landed, squarely ' + (R ? 'behind' : 'ahead of') + ' the car'],
     ['eval', 'window.__d1 = G.L.creature.dist'], ['wait', 2500],
-    ['expect', "G.L.creature.dist < __d1 - 0.3 && Math.abs(wrapPi(G.L.s.roam.b - " + (R ? 'Math.PI' : '0') + ")) < 1e-6", 'it comes on down the road at the car, keeping to the road'],
+    ['expect', "G.L.creature.dist < __d1 - 0.3 && G.L.creature.up && G.L.creature.up.w > 0.9 && !G.L.creature.struck && Math.abs(wrapPi(G.L.s.roam.b - " + (R ? 'Math.PI' : '0') + ")) < 1e-6", 'it comes on down the road at the car, keeping to the road, still up on its hind legs'],
     ['eval', '(c => { c.u = Math.max(c.u, 1 - Math.pow(2.2 / c.D0, 1 / c.gamma)); })(G.L.creature)'],
     ['waitUntil', "G.state === 'dying'", 20000],
-    ['expect', "G.deathCause === 'gotup' && G.L.creature.lungeFrom < 1.4", 'it reaches the car: caught, having been hit'],
+    ['expect', "G.deathCause === 'gotup' && G.L.creature.lungeFrom < 1.4 && !!G.L.creature.up && !!G.L.creature.deathSpec.glassT", 'it reaches the car: caught, having been hit, and it throws itself at the glass from standing'],
     ['waitUntil', "G.state === 'dead'", 4000],
     ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'It got right back up.' && !G.L.text.eggs && !G.L.text.death.drove && !G.L.text.death.reversed && !document.body.innerText.includes('Nice try') && document.body.innerText.includes('It got you') && document.body.innerText.includes('It got right back up.')",
       'the card says It got you, and only: It got right back up.'],

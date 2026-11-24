@@ -214,17 +214,22 @@ some on the ground, so you have to turn and look down to find them.
    halt in a length or two with its engine still running and the stick where it was. The night is not over: about half
    a second after the blow, once the car has stopped, everything in the car answers again and the view is yours. It lies
    in a heap in the lights a beat, a limb jerks; it gets up a limb at a time, stands on its hind legs in jolts, its head
-   hanging, looks at you, drops onto all fours (up 5.1 s after the blow) and comes on at the car again from where it
-   landed, squarely in the road, at its usual pace (about 7 s more from 15 m while you watch it, sooner if you do not).
-   That is your chance: the stick over to the other way (two clicks) and the gas, and you are away from it, which wins the
-   night as ever. It is hit once and no more. Drive at it a second time and it is ready for that: the car leaps at it,
-   and whatever it was doing (in its heap, half up, standing, or up and coming) it is on all fours and looking at you
-   in 0.3 s, comes at the car flat out as the car comes at it, and 6.5 m off your seat it springs, arms thrown up, over
-   the bonnet (the boot, in reverse) and through the glass, which cracks as it meets it and bursts: about 1.2 s from
-   the gas to the glass from where it lay. The card says "It got you" and only "It was ready for that." (While it is
-   still in the air from the blow the wheels only spin.) Caught at all after having hit it and left it to get up, the
-   card says "It got you" and only "It got right back up." With
-   reduced motion nothing shakes, the nose does not dip, it is knocked back lower, turning over once, and its spring is a little slower. The way out
+   hanging, looks at you, and (5.1 s after the blow) comes on at the car again from where it landed, squarely in the
+   road, still up on its hind legs, and it stays up from then on: a hitch and a drag, its bad leg buckling under it and
+   then hauled after it stiff, toes scraping, its arms hanging to its knees and swinging wrong (one of them dead), its
+   head lolling and snapping up at you every other stride, quicker the nearer it gets (about 7 s from 15 m while you
+   watch it, sooner if you do not). That is your chance: the stick over to the other way (two clicks) and the gas, and
+   you are away from it, which wins the night as ever (lying there or getting up as you go, it goes on with that, and
+   comes after the car up on its hind legs). Left to reach the car, it rears up at the glass on its toes, arms flung up,
+   and throws itself forward onto the bonnet and in through the glass, arms first (0.42 s), and the card says "It got
+   you" and only "It got right back up." It is hit once and no more. Drive at it a second time and it is ready for that:
+   the car leaps at it, and whatever it was doing (in its heap, half up, standing, or up and coming) it is up on its
+   hind legs and staring at you in 0.3 s, lurches at the car as fast as it can as the car comes at it, gathers itself
+   low, and 6.5 m off your seat it hurls itself up from standing, arms thrown up and out ahead of it, over the bonnet
+   (the boot, in reverse) and through the glass, which cracks as it meets it and bursts: about 1.2 s from the gas to the
+   glass from where it lay. The card says "It got you" and only "It was ready the second time." (While it is still in
+   the air from the blow the wheels only spin.) With reduced motion nothing shakes, the nose does not dip, it is knocked
+   back lower, turning over once, and its spring and its lunge at the glass are a little slower. The way out
    is the way straight away from it (forward with it behind, reverse with it ahead), or either way when it is squarely
    beside the car. Once the engine runs it stops going round, and once the stick is in
    a gear it moves only while you watch it, so it never steps into your way behind your back. Caught, it comes through

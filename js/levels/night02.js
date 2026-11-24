@@ -55,7 +55,7 @@ LEVELS.push({
     egg: 'Hit the creature with your car.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came through the windshield.', passenger: 'It came through the passenger window.', driver: 'It came through the window beside you.', back: 'It came through the back window.',
       running: 'The engine was running, but you couldn\'t get away fast enough.',
-      gotup: 'It got right back up.', ready: 'It was ready for that.' },   // (ordinary deaths, "It got you": each said alone, the toast cleared where it is caused)
+      gotup: 'It got right back up.', ready: 'It was ready the second time.' },   // (ordinary deaths, "It got you": each said alone, the toast cleared where it is caused)
     win: 'You drove off and did not look back.',   // the same whichever way out you took and wherever it was
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
@@ -323,24 +323,28 @@ LEVELS.push({
     // car lurches to a halt in a length or two, its engine still running and the stick where it was. The night is not
     // over, and everything in the car answers again from the moment the car has stopped (about half a second after the
     // blow). It lies in a heap a beat; a limb jerks; it gets up, a limb at a time, and stands; its head comes up at
-    // you; it drops onto all fours and comes on down the road at the car, as it always comes, from where it landed,
-    // squarely ahead of the car (or behind it) and staying in the road (STRUCK: up and coming 5.1 s after the blow).
+    // you; and it comes on down the road at the car as it is, up on its hind legs, from where it landed, squarely ahead
+    // of the car (or behind it) and staying in the road (STRUCK: up and coming 5.1 s after the blow). It stays up from
+    // then on (c.up: the crawler's own hitch and drag on two legs, quicker as it nears; its steps are played here, upOn).
     // What it does, second by second, is the crawler's own (CREATURES.crawler.struck); where it is, the car and the
     // sounds are here. The eye goes with the car (as it does getting away: how far off the thing is, is measured from
     // the eye wherever the eye is; s.carZ is how far along the road the car now stands).
     // That is the chance: the stick over to the other way (two clicks of it) and the gas, and the car is away from it,
-    // which wins the night as it is always won. Left alone, it gets up and comes, and the card says "It got you" and
-    // only "It got right back up." (the cause 'gotup': no toast put before it), by whichever window.
+    // which wins the night as it is always won. Left alone, it gets up and comes, and at the car it rears up at the
+    // glass on its toes, its arms flung up, and throws itself forward onto the bonnet and in through the glass, arms
+    // first (lungeUp); the card says "It got you" and only "It got right back up." (the cause 'gotup': no toast put
+    // before it), by whichever window.
     // This is the night's easter egg (text.egg), found the moment the car hits it.
     // It is hit once, and only once (s.wasHit). Driving at it a second time, it is ready for that. The car leaps at it
-    // as before, and whatever it was doing (lying in its heap, half up, standing, or up and coming) it is down on all
-    // fours where it is and looking at you in SPRING.ready seconds (a crack of its joints, its click); it comes at
-    // the car flat out as the car comes at it, and SPRING.gap metres off the seat it springs: up off the road over
-    // the bonnet (over the boot, in reverse) in one bound and through the glass, which cracks as it meets it and
-    // bursts (shatter, below, as any window it comes through). That is a death (spring: the cause 'ready'), "It got
-    // you" and only "It was ready for that." While it is still in the air from the blow the wheels only spin (the gas).
+    // as before, and whatever it was doing (lying in its heap, half up, standing, or up and coming) it is up on its
+    // hind legs where it is and staring at you in SPRING.ready seconds (a crack of its joints, its click); it comes at
+    // the car as fast as it can lurch as the car comes at it, gathers itself low in the last SPRING.crouch seconds, and
+    // SPRING.gap metres off the seat it hurls itself up off the road over the bonnet (over the boot, in reverse) in one
+    // bound and through the glass, arms first, which cracks as it meets it and bursts (shatter, below, as any window it
+    // comes through). That is a death (spring: the cause 'ready'), "It got you" and only "It was ready the second
+    // time." While it is still in the air from the blow the wheels only spin (the gas).
     // With reduced motion nothing shakes and the nose does not dip, it is knocked back lower, turning over once, and
-    // its spring is a little slower.
+    // its spring and its lunge at the glass are a little slower.
     // It need not be in the road for the first. Driving its way at all (forward with it anywhere ahead of the car, reversing with
     // it anywhere behind: sectorOf, below) is the same end: from a verge, or off a front or rear corner of the car, it
     // springs into the road in the car's path as the car sets off (LEAP: one long low bound from where it is, 0.35 to 0.5 s
@@ -348,12 +352,16 @@ LEVELS.push({
     // before the bumper reaches it (the run at it lasts at least LEAP.lead longer than the bound), and is hit as above.
     // Only squarely beside the car is it out of both ways, and only the way straight away from it is a way out otherwise.
     // RAM_GAP: where the bumper meets it, from your seat. LIE: where it comes to rest (ahead, behind). BRAKE: how hard the
-    // car stops (m/s²). SPRING: the second time (ready: until it is on all fours and looking; gap: how far off it springs
-    // from, where it still shows over the bonnet; charge: the most its run at the car takes; fly: its time in the air,
-    // least and most, by how far it has to come; high: how far over the straight line its bound rises; glass: from the
-    // glass to your face; slow: with reduced motion, its time in the air is this much longer)
+    // car stops (m/s²). SPRING: the second time (ready: until it is up and staring; gap: how far off it springs from,
+    // where it still shows over the bonnet; charge: the most its run at the car takes; crouch: how long it gathers
+    // itself before it goes; fly: its time in the air, least and most, by how far it has to come; high: how far over the
+    // straight line its bound rises; face: how high its face is in the air, over its feet; glass: from the glass to your
+    // face; slow: with reduced motion, its time in the air is this much longer). LUNGE: caught, up (dur: the whole of it;
+    // rear: by when it is drawn up at the glass; glass: by when its hands are at it; face: how high its face is, thrown
+    // forward; slow: with reduced motion)
     const RAM_GAP = 2.6, LIE = { 1: 15, [-1]: 12 }, BRAKE = 26, LEAP = { min: 0.35, max: 0.5, per: 80, slow: 1.3, lead: 0.15, land: RAM_GAP + 2.4 };
-    const SPRING = { ready: 0.3, gap: 6.5, charge: 0.5, fly: [0.18, 0.36], high: 0.3, glass: 0.08, slow: 1.3 };
+    const SPRING = { ready: 0.3, gap: 6.5, charge: 0.5, crouch: 0.14, fly: [0.18, 0.36], high: 0.55, face: 1.62, glass: 0.08, slow: 1.3 };
+    const LUNGE = { dur: 0.42, rear: 0.35, glass: 0.75, face: 1.32, slow: 1.3 };
     // the view stays on it (a key or a swipe turns it for a frame at most), a little below level once it is down
     function watch(c, pitch) {
       G.cam.dirIdx = ((Math.round(c.yaw / (45 * DEG)) % 8) + 8) % 8; G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = pitch || 0;
@@ -362,7 +370,7 @@ LEVELS.push({
     function ram(c, dir) {
       jolt(0.5); s.floored = true;
       if (!L.eye) L.eye = { x: 0, y: 0, z: 0 };
-      if (s.wasHit) {   // the second time: it gets ready (readyOn), and springs. Up already, it only has to stop and look
+      if (s.wasHit) {   // the second time: it gets ready (readyOn), and springs. Up and coming already, it only has to stop and stare
         const ready = SPRING.ready * (s.knock ? 1 : 0.5), pan = panOf(bear());
         s.ram = { t: 0, v: 0, s: 0, dir, from: c.dist, again: true, stage: 'ready', ready, T: ready + clamp((c.dist - SPRING.gap) / 17, 0, SPRING.charge), hit: -1, z0: s.carZ };
         roam.rem = 0; c.hold = c.dist; c.runPose = false; c.frozen = true;
@@ -397,7 +405,7 @@ LEVELS.push({
       c.struck = CR.struck(0, s.knock.K);
       G.say('It is down, and it will not stay down. The other way: the stick, then the gas.', 'It is down. It will not stay down.');
     }
-    // knocked back: down the road, lying there, getting up; then it is let go, and comes on as it always does
+    // knocked back: down the road, lying there, getting up; then it is let go, and comes on, up on its hind legs
     function knockOn(dt) {
       const k = s.knock, c = L.creature, CR = CREATURES.crawler, K = k.K;
       const t0 = k.T, T = k.T += dt, at = t => t0 < t && T >= t, pan = panOf(bear());
@@ -408,44 +416,48 @@ LEVELS.push({
       if (K.jerks.some(at)) AUDIO.voice('clicks', 0.16, pan);
       if (K.cracks.some(at)) AUDIO.sfx('joints', pan);
       if (at(K.look)) AUDIO.voice('clicks', 0.6, pan);
-      if (T >= K.leap) {   // up, on all fours, and it comes
-        c.struck = null; c.yOff = roam.yOff = 0; c.CR = s.CR0; c.frozen = false;
+      if (T >= K.go) {   // up, and it comes as it is (its steps its own: upOn)
+        c.struck = null; c.yOff = roam.yOff = 0; c.CR = Object.assign({}, s.CR0, { sound: null }); c.frozen = false; c.up = CR.upright();
         c.dist = c.hold; c.u = clamp(1 - Math.pow(c.dist / c.D0, 1 / c.gamma), 0, 1); c.hold = null; c.mode = 'scuttle'; c.modeT = 0;
         k.stages.push('up'); s.knocked = k; s.knock = null; s.upAt = L.t;
       }
     }
-    // the second time, as the car comes at it: onto all fours where it is (the crawler's readied, out of whatever the blow
-    // had it doing), then flat out at the car, and SPRING.gap off (or from where it is, if it is nearer) it springs
+    // the second time, as the car comes at it: up and staring where it is (the crawler's braced, out of whatever the blow
+    // had it doing; up and coming already, it stops), then at the car as fast as it can lurch, gathered low at the last,
+    // and SPRING.gap off (or from where it is, if it is nearer) it springs
     function readyOn(dt) {
-      const r = s.ram, c = L.creature, k = s.knock;
+      const r = s.ram, c = L.creature, k = s.knock, CR = CREATURES.crawler;
       r.t += dt; r.v += 9 * dt; r.s += r.v * dt;
       jolt(0.14);
       if (k) {
         const e = smoothstep(r.t / r.ready);
-        c.struck = CREATURES.crawler.readied(CREATURES.crawler.struck(k.T, k.K), e);
-        if (e >= 1) { c.struck = null; c.CR = s.CR0; s.knock = null; }   // its own steps again, as it comes
+        c.struck = CR.braced(CR.struck(k.T, k.K), e);
+        if (e >= 1) { c.struck = null; c.CR = Object.assign({}, s.CR0, { sound: null }); s.knock = null; c.up = CR.upright(); }   // up
       }
+      if (c.up) { c.up.stare = 1; c.up.crouch = smoothstep((r.t - (r.T - SPRING.crouch)) / SPRING.crouch); }
       c.yOff = roam.yOff = 0;
       const q = r.T > r.ready ? clamp((r.t - r.ready) / (r.T - r.ready), 0, 1) : 0;
-      if (q > 0 && r.stage === 'ready') { r.stage = 'charge'; c.frozen = false; c.mode = 'scuttle'; c.modeT = -2; }
+      if (q > 0 && r.stage === 'ready') { r.stage = 'charge'; c.frozen = false; if (c.up) c.up.rush = true; }
       c.hold = Math.max(c.catchDist + 0.1, lerp(r.from - r.s, Math.min(r.from, SPRING.gap), q * q));   // (the car closes on it; then the gap closes from both ends)
       if (r.t >= r.T) spring(c);
     }
-    // and it springs: a death of its own (c.deathSpec; where it is and how high, through it, are this night's: pose). It
-    // leaves the road for the glass in one bound, rising over the straight line to your eye (so it clears the bonnet,
-    // and is seen whole in the air) and coming down into the glass; there the pane cracks (glassT: shatter), and it
-    // comes through to you. The car runs on under it meanwhile, and brakes as the glass goes.
+    // and it springs: a death of its own (c.deathSpec; where it is and how high, through it, are this night's: pose; its
+    // shape in the air is the crawler's, c.up.dive). It hurls itself off the road for the glass in one bound from where
+    // it stood, rising over the straight line to your eye (so it clears the bonnet, and is seen whole in the air) and
+    // coming down into the glass, its arms reaching ahead of it; there the pane cracks (glassT: shatter), and it comes
+    // through to you. The car runs on under it meanwhile, and brakes as the glass goes.
     function spring(c) {
       const r = s.ram, d = c.dist = c.hold, g = GLASS[windowOf(bear())], F = SPRING.fly;
       const fly = clamp(F[0] + (d - g) * (F[1] - F[0]) / (SPRING.gap - g), F[0], F[1]) * (gentle() ? SPRING.slow : 1), dur = fly + SPRING.glass, kg = fly / dur;
       Object.assign(r, { stage: 'spring', sprangFrom: d, at: 0 });
       c.struck = null; s.knock = null; c.CR = s.CR0; c.runPose = false;
+      if (!c.up) c.up = CREATURES.crawler.upright();
       c.deathSpec = { delay: 0, dur, sting: 'stingShriek', glassT: fly, pose(cr, k) {
         const u = Math.min(1, k / kg), dt = clamp(G.stateT - r.at, 0, 0.05);
         r.at = G.stateT;
         cr.dist = k < kg ? lerp(d, g, Math.pow(u, 1.6)) : lerp(g, 0.55, (k - kg) / (1 - kg));
-        cr.yOff = roam.yOff = (L.eyeH - cr.CR.faceY) * smoothstep(u) + SPRING.high * 4 * u * (1 - u);
-        cr.pounce = Math.min(1, u * 3.5);   // off the road: its arms up and out for you
+        cr.yOff = roam.yOff = (L.eyeH - SPRING.face) * smoothstep(u) + SPRING.high * 4 * u * (1 - u);
+        cr.up.dive = Math.min(1, u * 2.2); cr.up.crouch = Math.max(0, 1 - u * 4);   // off the road, out of its crouch: its arms up and out ahead of it for you
         r.v = k < kg ? r.v : Math.max(0, r.v - BRAKE * dt); r.s += r.v * dt;
         s.carZ = r.z0 + r.s * r.dir;
         const e = toWorld(0, s.carZ); L.eye.x = e.x; L.eye.z = e.z;
@@ -482,8 +494,17 @@ LEVELS.push({
       if (G.state === 'play') watch(c, pitch);
     }
     // caught with the engine running (and the car not away): the card says that, and only that
+    // caught up on its hind legs, it rears up at the glass and throws itself in through it (a death of its own: lungeUp)
+    function lungeUp(c) {
+      const from = c.dist, g = Math.min(GLASS[windowOf(bear())], from - 0.01), dur = LUNGE.dur * (gentle() ? LUNGE.slow : 1), y0 = c.yOff || 0;
+      c.deathSpec = { delay: 0, dur, sting: 'stingShriek', glassT: dur * LUNGE.glass, pose(cr, k) {
+        cr.up.lunge = k;
+        cr.dist = k < LUNGE.glass ? lerp(from, g, Math.pow(clamp((k - LUNGE.rear) / (LUNGE.glass - LUNGE.rear), 0, 1), 2)) : lerp(g, 0.55, (k - LUNGE.glass) / (1 - LUNGE.glass));
+        cr.yOff = roam.yOff = lerp(y0, L.eyeH - LUNGE.face, smoothstep((k - 0.25) / 0.75));
+      } };
+    }
     L.onCatch = c => {
-      if (s.wasHit) { G.lastToast = { msg: '', t: -10 }; die(c, 'gotup'); return true; }   // having been hit, and got up: that, whichever window
+      if (s.wasHit) { if (c.up) lungeUp(c); G.lastToast = { msg: '', t: -10 }; die(c, 'gotup'); return true; }   // having been hit, and got up: that, whichever window
       if (!s.started) return false; G.lastToast = { msg: '', t: -10 }; die(c, 'running'); return true;
     };
     L.isWon = () => s.gone;
@@ -571,7 +592,7 @@ LEVELS.push({
       }
       // close beside the car or behind it, it rears up at the glass, so it shows over the sill (the death lunge goes on from there)
       const rg = regionOf(roam.b);
-      roam.yOff = rg === 'front' ? 0 : 0.42 * smoothstep(clamp((4.5 - c.dist) / 2.5, 0, 1));
+      roam.yOff = rg === 'front' || c.up ? 0 : 0.42 * smoothstep(clamp((4.5 - c.dist) / 2.5, 0, 1));   // (up on its hind legs it shows over the sill already)
       c.yOff = roam.yOff;
       if (!c.deathSpec) c.deathSpec = Object.assign({}, c.CR.death, { pose: (cr, k) => { cr.yOff = lerp(roam.yOff, cr.yOff, smoothstep(k)); } });
     }
@@ -594,15 +615,15 @@ LEVELS.push({
       return !(hx > -0.55 && hx < 1.35 && hy < 1.02 - 0.22 * (zh - 0.95) / 1.55);   // over the hood
     }
     L.visFrac = c => {
-      const b = bear(), CR = c.CR, sb = Math.sin(L.facing + b), cb = Math.cos(L.facing + b), d = c.dist, yo = c.yOff || 0;
+      const b = bear(), CR = c.CR, hh = c.up ? 1.9 : CR.h, sb = Math.sin(L.facing + b), cb = Math.cos(L.facing + b), d = c.dist, yo = c.yOff || 0;   // (up, it stands near two metres)
       let n = 0, k = 0;
       for (const u of [-0.45, -0.22, 0, 0.22, 0.45]) for (const v of [0.2, 0.45, 0.7, 0.92]) {
         const l = rotY(sb * d + cb * u, cb * d - sb * u, -L.facing);
-        n++; if (throughGlass(l[0], v * CR.h + yo, l[1])) k++;
+        n++; if (throughGlass(l[0], v * hh + yo, l[1])) k++;
       }
       if (!k) return 0;
       const cam = G.cam.zoom > 1.001 ? { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH, eye: L.eye } : null;
-      const p = c.pos(), r = R.projectRect(p.x, p.y + yo, p.z, CR.w, CR.h, cam);
+      const p = c.pos(), r = R.projectRect(p.x, p.y + yo, p.z, CR.w, hh, cam);
       if (!r) return 0;
       const W = cam ? cam.W : R.W, H = cam ? cam.H : R.H, w = Math.min(r.x + r.w, W) - Math.max(r.x, 0), h = Math.min(r.y + r.h, H) - Math.max(r.y, 0);
       return w > 0 && h > 0 ? (k / n) * w * h / Math.max(1e-6, r.w * r.h) : 0;
@@ -619,7 +640,8 @@ LEVELS.push({
       const ahead = Math.abs(wrapPi(s.dir > 0 ? b : b - Math.PI)) < 40 * DEG;
       Object.assign(drive, { cx: loc[0], cz: loc[1], gap: Math.min(d0, Math.max(3, d0 * 0.75)), side: loc[0] > 0.4 ? 1 : -1, ahead });
       L.eye = toWorld(0, base);
-      c.frozen = false; c.hold = null; c.runPose = false; c.yOff = 0; c.struck = null; s.knock = null;   // (lying in the road, it is up as the car goes)
+      drive.knock = s.knock; s.knock = null;   // (lying in the road, or getting up, it goes on with that as the car goes: driveOn)
+      c.frozen = false; c.hold = null; c.runPose = false; c.yOff = 0;
       c.pos = () => toWorld(drive.cx, drive.cz);
       // how far it is goes by the car as it is now (its open mouth, how loud it is); its steps are its own, played from how
       // far it has moved itself (driveOn), so a thing standing in the road makes no sound as you pull away from it
@@ -628,7 +650,8 @@ LEVELS.push({
       L.visFrac = cr => { const p = cr.pos(), r = R.projectRect(p.x, p.y, p.z, cr.CR.w, cr.CR.h, null); if (!r) return 0; const w = Math.min(r.x + r.w, R.W) - Math.max(r.x, 0), h = Math.min(r.y + r.h, R.H) - Math.max(r.y, 0); return w > 0 && h > 0 ? w * h / Math.max(1e-6, r.w * r.h) : 0; };
       AUDIO.setLoop('engine', 0.6);
     }
-    function stepsOn(c, x0, z0) {   // its own footsteps while the car gets away, as loud as it is near the car now
+    function stepsOn(c, x0, z0) {   // its own footsteps while the car gets away, as loud as it is near the car now (up, its stride's: upOn)
+      if (c.up) return;
       drive.odo += Math.hypot(drive.cx - x0, drive.cz - z0);
       const n = Math.floor(drive.odo * CREATURES.crawler.stepRate);
       if (n === drive.steps) return;
@@ -650,11 +673,18 @@ LEVELS.push({
       // the thing: on a verge the car is coming to, it shies out of the lights, lets the car past, then gives chase down
       // the road behind it; anywhere else (in the road the car backs away from, beside the car, in the road behind as it
       // drives off) it scuttles after the car in bursts, gaining a little at first and never more. Either way it tires
-      // within a few seconds and stands there
+      // within a few seconds and stands there. Hit by the car, it goes on lying there or getting up as it was, and comes
+      // after the car up on its hind legs, at its lurch
       const carZ = drive.base + drive.s * dir, burst = c.mode === 'scuttle' ? 10 : 1.8;
       const toward = (x, z, v) => { const dx = x - drive.cx, dz = z - drive.cz, d = Math.hypot(dx, dz); if (d < 1e-3) return; const k = Math.min(1, v * dt / d); drive.cx += dx * k; drive.cz += dz * k; };
       if (drive.ahead && drive.passedAt < 0 && (carZ - drive.cz) * dir > -0.5) drive.passedAt = drive.t;
-      if (drive.ahead && drive.passedAt < 0) {   // out of the way of the car: side-on, scuttling flat out across the verge while it goes
+      const k = drive.knock;
+      if (k) {
+        const CR = CREATURES.crawler, t0 = k.T;
+        k.T += dt; c.struck = CR.struck(k.T, k.K);
+        if (k.K.cracks.some(t => t0 < t && k.T >= t)) AUDIO.sfx('joints', panOf(bear()) * 0.5);
+        if (k.T >= k.K.go) { c.struck = null; c.up = CR.upright(); drive.knock = null; }
+      } else if (drive.ahead && drive.passedAt < 0) {   // out of the way of the car: side-on, scuttling flat out across the verge while it goes
         const bx = drive.cx;
         toward(0.4 + drive.side * Math.max(4.6, drive.side * (bx - 0.4)), drive.cz - 0.6 * dt * dir, 9);   // only ever outward: far up the verge it is off the road already
         const moved = Math.abs(drive.cx - bx);
@@ -662,7 +692,7 @@ LEVELS.push({
       } else {   // after it, never as fast as the car
         c.runPose = false;
         const t0 = drive.ahead ? drive.passedAt + 1.4 : 1.6, tire = clamp(1 - (drive.t - t0) / 1.5, 0, 1);
-        if (drive.t > 0.3) toward(0.4, carZ - 4 * dir, Math.min(burst * 1.2, Math.max(burst * 0.6, drive.v * 0.8)) * tire);
+        if (drive.t > 0.3) toward(0.4, carZ - 4 * dir, (c.up ? 3.2 : Math.min(burst * 1.2, Math.max(burst * 0.6, drive.v * 0.8))) * tire);
         if (!drive.ahead) {   // it gains a little at first, and never more
           const dx = drive.cx, dz = drive.cz - carZ, d = Math.hypot(dx, dz);
           if (d < drive.gap && d > 1e-3) { drive.cx = dx * drive.gap / d; drive.cz = carZ + dz * drive.gap / d; }
@@ -684,7 +714,21 @@ LEVELS.push({
       if (s.ram && G.state === 'play') ramOn(dt);
       if (s.knock && !s.ram && !s.gone && G.state === 'play') knockOn(dt);
       roamOn(dt);
+      upOn();
     };
+    // up on its hind legs, its steps are its stride's (the crawler's c.up.ph): the left foot coming down hard at the end
+    // of the hitch, the dragged one scraping to a stop at the end of the drag; and a click as its head snaps up at you
+    function upOn() {
+      const c = L.creature, u = c.up;
+      if (!u || c.dead || (G.state !== 'play' && G.state !== 'won')) return;
+      const n = Math.floor(u.ph / Math.PI), look = CREATURES.crawler.upLook(u.ph, 0) > 0.5, was = u.steps;
+      u.steps = n;
+      if (was === undefined || u.w < 0.3) { u.looked = look; return; }
+      const p = c.pos(), e = L.eye || { x: 0, z: 0 }, dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz), pan = Math.sin(wrapPi(Math.atan2(dx, dz) - G.cam.yaw)) * 0.85;
+      if (n !== was) AUDIO.footstep('crawler', clamp(2.4 / (d + 1.6), 0, 0.85) * (n % 2 ? 0.8 : 0.4), pan);
+      if (look && !u.looked && G.state === 'play') AUDIO.voice('clicks', clamp(4 / (d + 4), 0.15, 0.5), pan);
+      u.looked = look;
+    }
     L.aftermath = (t, dt) => { driveOn(dt); return t >= 4.4; };   // the car keeps going while the night fades out
     // the view: in reverse it stays on the thing; going forward it follows it as the car comes up on it, then, once it is
     // off to the side (or at once, if it was beside or behind the car), goes back to the road ahead. You do not look round for it
