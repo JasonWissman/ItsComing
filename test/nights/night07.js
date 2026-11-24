@@ -125,7 +125,7 @@ const toolboxDrop = [
   ['eval', 'window.__hit7 = (c => ({ t: G.L.t - c.dangle.t, d: c.dist, side: c.dangle.side }))(' + C7 + ')'],
   ['expect', 'G.L.s.box.hits >= 1 && G.state === "play" && !G.L.won && !G.L.isWon() && !G.L.s.turning', 'it came down the stone onto it, and that is not a win: the night goes on'],
   ['expect', eggSaved + ' && G.L.text.egg === "Hit the creature with the toolbox."', 'the easter egg is in the save the moment it lands, under the night\'s id'],
-  ['expect', 'window.__sfxN7.includes("gate") && window.__sfxN7.includes("clatter") && !window.__sfxN7.includes("clonk") && G.lastToast.msg === "Full in the face. It hangs there by one hand."', 'it lands with the clang of the quarry gate (gate) and the tools jumping in the box, and the night says what it did'],
+  ['expect', 'window.__sfxN7.includes("gate") && window.__sfxN7.includes("clatter") && !window.__sfxN7.includes("clonk") && G.lastToast.msg === "Bonked, but it hangs on."', 'it lands with the clang of the quarry gate (gate) and the tools jumping in the box, and the night says what it did'],
   ['expect', '(c => c.hold === c.dist && c.dist === window.__hit7.d && Math.abs(c.blackEye) === 1 && c.blackEye === c.dangle.side && ' + DANGLE + ' > 1.5 && ' + DANGLE + ' < 2.2 && CLIMB.dangle.hang === 1)(' + C7 + ')',
     'it has lost its hold with one hand: held where it is, for about two seconds in all (one of them hanging), and that side\'s eye is the black one'],
   ['waitUntil', C7 + '.dangle && ' + C7 + '.dangle.t > 0.6 && ' + C7 + '.dangle.t < 1.3', 3000],
