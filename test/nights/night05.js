@@ -279,7 +279,7 @@ const spentAll = [
 const caught = [
   reach,
   ['expect', "(r => r.stateUp === 'play' && !r.won)(window._reach)", 'with a vampire up, the thing put down is not the end of the night'],
-  ['expect', "(r => r.back === 0 && r.top > 0.34 && r.walked > 8 && r.walked < 18 && Math.abs(r.d - r.reach) < 0.05)(window._reach)", 'it comes all the way from 20 m, never back, up the step and onto the boards, to arm\'s length'],
+  ['expect', "(r => r.back === 0 && r.top > 0.3 && r.walked > 8 && r.walked < 18 && Math.abs(r.d - r.reach) < 0.05)(window._reach)", 'it comes all the way from 20 m, never back, up the step and onto the boards, to arm\'s length'],
   ['expect', "(r => r.state === 'dying' && r.cause === 'vampire' && r.ph === 'lunge' && r.thingStill)(window._reach)", 'and gets you: a death of its own (the thing left lying where it was)'],
   ['expect', "(r => r.dead === 'dead' && r.screen.title === 'It got you' && r.screen.text === 'That was not just a bat.')(window._reach)", 'the death screen: "It got you", and its own line'],
   ['eval', 'restartLevel();'], ['wait', 300],

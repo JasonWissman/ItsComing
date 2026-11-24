@@ -1009,7 +1009,7 @@ LEVELS.push({
         }
         if (f.done) f.done();
       }
-      if ((spentAll(c) || tooFew(c)) && G.state === 'play' && L.t - s.lastLand > 1.2) { c.reckless = true; s.short = s.spent < 3 && tooFew(c); G.toast(s.spent >= 3 ? 'That was the last arrow.' : 'Not enough arrows left.'); }
+      if ((spentAll(c) || tooFew(c)) && G.state === 'play' && L.t - s.lastLand > 1.2) { s.short = s.spent < 3 && tooFew(c); c.reckless = true; G.toast(s.spent >= 3 ? 'That was the last arrow.' : 'Not enough arrows left.'); }
       // the bow in your hands: held low while you look ahead, up while it is drawn; the string snaps forward the moment it is loosed
       CLEARING_BOW.hold(L, dt, G.cam.tPitch < 0.3 && G.state === 'play' && G.hasItem('bow'));   // won, it is lowered out of the way of watching it
       s.bowLit = 0.85 + 0.15 * Math.max(0, Math.cos(wrapPi(G.cam.yaw - L.facing - Math.PI)));   // facing the lit wall, the bow is lit a little more
