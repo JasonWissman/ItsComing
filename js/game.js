@@ -176,8 +176,9 @@ function validateContent() {
 // so does a reload (the run in progress lives only here, not in the save). It is finished, and counted, the moment the
 // last night is won. As it goes it keeps each night's share of its clock (every attempt at that night, from its start
 // to its win: from: the clock when it began), so the nights add up to the whole run; finished, it is kept as G.lastRun
-// for the results after the ending (best: true if it was a new best run).
-function beginRun() { G.run = { t: 0, night: 0, from: 0, nights: [] }; }
+// for the results after the ending (best: true if it was a new best run). The easter eggs first found in it are kept
+// with the save (SAVE.data.runEggs: foundEgg), emptied here as it begins, and are checked off on those results.
+function beginRun() { G.run = { t: 0, night: 0, from: 0, nights: [] }; SAVE.runStart(); }
 // ---------- a new game: the warning, then a black screen and two lines, one after the other ----------
 // Begin first puts up the warning about flashing lights: a card like the other dialogs on black, red words, a solid red
 // Accept (focused: Enter, Space, a click or a tap, or A or Start on a pad) and beside it a quiet Adjust settings, which
@@ -372,7 +373,7 @@ function showCard(again) {
   const i = G.levelIndex, d = G.diff(), T = G.L.text, still = again || SAVE.data.settings.reducedMotion;
   const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
   const st = still ? '' : ' s2', st3 = still ? '' : ' s3';
-  showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro' + st + '">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint' + st + '">' + T.objective + '</p>' : '') + '<p class="prompt' + st3 + '">' + (touchUI() ? 'Tap when you are ready' : 'Click or press Enter when you are ready') + '</p>');
+  showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro' + st + '">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint' + st + '">' + T.objective + '</p>' : '') + '<p class="prompt' + st3 + '">' + (touchUI() ? 'Tap when ready' : 'Click or enter when ready') + '</p>');
   if (!still) G.overlayArmed = performance.now() + CARD_IN;
 }
 function beginPlay() {
@@ -385,11 +386,15 @@ function beginPlay() {
 function setState(s) { G.state = s; G.stateT = 0; if (s !== 'paused') G.pausedFrom = null; }
 
 // ---------------- overlays ----------------
-function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.remove('dlg', 'titlelow'); UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350; } // a double-click cannot skip a card
-function hideOverlay() { if (touchUI()) G.mouse.x = G.mouse.y = -1; UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+function showOverlay(html) {
+  if (MENU.kind === 'results') secretHide();   // (a secret's note still up from the last screen goes: the results have their own list of them)
+  UI.overlay.innerHTML = html; UI.overlay.classList.remove('dlg', 'titlelow'); UI.overlay.classList.toggle('secretroom', secretUp()); UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350;   // a double-click cannot skip a card
+}
+function hideOverlay() { if (touchUI()) G.mouse.x = G.mouse.y = -1; secretHide(); UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
   G.run = null;   // quitting ends the run: the next game begins again at night 1
+  secretHide(true);   // (and an easter egg found but not yet said is not said on the title: it is in Scores)
   if (G.L && G.L.onEnd) G.L.onEnd();
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
   G.inv = []; HANDS.reset();   // nothing in hand or in the air behind the title
@@ -416,6 +421,7 @@ function finishEnding() {
   STORY.theme(true);
   setState('end');
   MENU.show('ending');
+  secretTell();
 }
 // Finish game (the results after the ending): home to the title, slowly, not at once. Everything (the results, the
 // dimmed morning room behind them) fades smoothly to black (HOME.fade); the title is put up under the black once it is
@@ -476,8 +482,16 @@ function onKeyDown(e) {
   if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card' && G.pausedFrom !== 'card' && !MENU.confirming) { restartLevel(); return; }   // (not from a card, nor from under a question being asked)
   if (G.state !== 'play' && MENU.onKey(e)) return;
   // Esc: the pause menu, from a night, its card, the death screen and the win screen alike, and from it back to where it
-  // was. Never straight out to the title: the only way there is the pause menu's Quit
-  if (k === 'Escape') { if (canPause()) pauseGame(); else if (G.state === 'paused') resumeGame(); return; }
+  // was. Never straight out to the title: the only way there is the pause menu's Quit. P is the same: the pause menu
+  // wherever Esc opens it, and from the pause menu itself back; not under one of its dialogs (Controls, Settings, Scores,
+  // the question Quit asks: Esc goes back a step there, P does nothing), with Ctrl, Cmd or Alt (the browser's own: print),
+  // or in anything typed into. (An Esc just after full screen was left, and the night paused for it: fullscreenSync)
+  const pKey = (k === 'p' || k === 'P') && !e.ctrlKey && !e.metaKey && !e.altKey && !typingIn(e.target);
+  if (k === 'Escape' || pKey) {
+    if (canPause()) pauseGame();
+    else if (G.state === 'paused' && (pKey ? MENU.kind === 'pause' : performance.now() - fsPaused > FS_ESC)) resumeGame();
+    return;
+  }
   if (G.state !== 'play') {
     if (k === 'Enter' && !LIST_SCREENS.includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
     if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = true;
@@ -487,6 +501,8 @@ function onKeyDown(e) {
   if (k >= '1' && k <= '6') { const n = k.charCodeAt(0) - 49; if (n < G.inv.length) { G.active = n; AUDIO.sfx('ui'); } }
   else if (k === 'Tab') { e.preventDefault(); if (G.inv.length) { G.active = (G.active + 1) % G.inv.length; AUDIO.sfx('ui'); } }
 }
+// a field that is typed into (there is none in the game itself: a slider, a switch and a button are not)
+function typingIn(t) { return !!t && (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button'].includes(t.type))); }
 // turning to the next of the 8 directions, looking ahead or down, and holding zoom: true if the key was one of those
 function lookKey(k) {
   const c = G.cam;
@@ -536,8 +552,8 @@ function restartLevel() {
   G.toast('Again.');
 }
 // The pause menu: over a night being played, and over the screens round it too, a night's card, the death screen and
-// the win screen (PAUSABLE), since it is the only place with Quit (Esc, a pad's B or Start in play, the menu button on a
-// phone). Resume (or Esc) puts back exactly what it was over: the night goes on, or the card, the death screen or the
+// the win screen (PAUSABLE), since it is the only place with Quit (Esc or P, a pad's B or Start in play, the menu button
+// on a phone). Resume (or Esc) puts back exactly what it was over: the night goes on, or the card, the death screen or the
 // win screen is up again as it was (G.pausedFrom: the state it was opened from, while it is open)
 const PAUSABLE = ['play', 'card', 'dead', 'survived'];
 function canPause() { return PAUSABLE.includes(G.state) && !introUp(); }
@@ -923,33 +939,50 @@ function die(c, cause) {
 // save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time
 function foundEgg(id) {
   id = id || (G.L && G.L.def && G.L.def.id);
-  const first = SAVE.egg(id);
-  if (first) secretToast(id);
+  const first = SAVE.egg(id, !!(G.run || G.lastRun));   // (in a full run, or its last night's ending: one of that run's own, for its results)
+  if (first) secretHeld.push(id);
   return first;
 }
-// The first time an easter egg is found it is said, in a corner: "Secret discovered: " and the egg's short title (one for
-// each night, by the night's id; a night with none here is named by its own text.egg), and no sound with it (a
-// chime took the player out of the night). The note (#secret, index.html) is not part of the HUD: it stays up over a death screen, a win or a cutscene
-// with the HUD hidden, for SECRET_HOLD seconds, and never takes a click. With reduced motion it fades and does not slide
+// The first time an easter egg is found it is said: "Secret discovered: " and the egg's short title (one for each night,
+// by the night's id; a night with none here is named by its own text.egg), and no sound with it (a chime took the
+// player out of the night). Not while the night is played, where there is no time to read it: it is held (secretHeld)
+// and said on the screen that follows (secretTell), the death screen or the win screen (the last night: its last
+// screen), in the middle of the bottom edge, where none of those screens has anything (the overlay keeps a strip clear
+// for it: index.html #overlay.secretroom). The note (#secret) is not part of the HUD and never takes a click; it is up
+// for SECRET_HOLD seconds, and goes at once when the night goes on (hideOverlay). With reduced motion it fades and does
+// not slide
 const EGG_TITLES = {
   field: 'Through the window', road: 'Hit and run', graveyard: 'Sugar rush', quarry: 'Staring contest', clearing: 'Bat shot crazy',
   boathouse: 'Lifesaver', lighthouse: 'Butterfingers', diner: 'Thirst quencher', booth: 'Its an emergency', mirrors: 'Cover up', barn: 'Power overload',
   bedroom: 'Movie night', void: 'Flip the script',
 };
-const SECRET_HOLD = 4;   // seconds it is fully up (index.html: in over .35 s before, out over .6 s after)
+const SECRET_HOLD = 7;   // seconds it is fully up (index.html: in over .35 s before, out over .6 s after)
 function eggTitle(id) {
   if (EGG_TITLES[id]) return EGG_TITLES[id];
   const def = typeof LEVELS !== 'undefined' && LEVELS.find(l => l.id === id);
   return ((def && def.text && def.text.egg) || '').replace(/\.$/, '');
 }
-function secretToast(id) {
-  const title = eggTitle(id), el = UI.secret || $('secret');
-  if (!title || !el) return;
-  el.querySelector('.st').textContent = title;
+let secretHeld = [];   // the eggs found and not yet said (night ids)
+function secretTell() {
+  const titles = secretHeld.map(eggTitle).filter(Boolean), el = UI.secret || $('secret');
+  secretHeld = [];
+  if (!titles.length || !el) return;
+  el.querySelector('.sl').textContent = titles.length > 1 ? 'Secrets discovered' : 'Secret discovered';
+  el.querySelector('.st').textContent = titles.join(', ');
   el.classList.toggle('still', !!SAVE.data.settings.reducedMotion);
   el.classList.add('show');
-  clearTimeout(secretToast.timer);
-  secretToast.timer = setTimeout(() => el.classList.remove('show'), (0.35 + SECRET_HOLD) * 1000);
+  // the screen it is said on keeps clear of it: a strip along the bottom from the top of the note down (and one at the
+  // top to match, so what is in the middle stays there), for as long as that screen is up
+  UI.overlay.style.setProperty('--secret-room', (document.documentElement.clientHeight - el.offsetTop + 10) + 'px'); UI.overlay.classList.add('secretroom');
+  clearTimeout(secretTell.timer);
+  secretTell.timer = setTimeout(() => el.classList.remove('show'), (0.35 + SECRET_HOLD) * 1000);
+}
+function secretUp() { return !!(UI.secret && UI.secret.classList.contains('show')); }
+// the note put away at once (the night goes on, or the results come); forget: and whatever was held to be said
+function secretHide(forget) {
+  if (forget) secretHeld = [];
+  if (!secretUp()) return;
+  clearTimeout(secretTell.timer); UI.secret.classList.remove('show');
 }
 // a night's easter-egg deaths (L.text.eggs: the causes that are one): the screen says "Nice try", and the line is the
 // night's own, with no toast put in front of it
@@ -963,6 +996,9 @@ function deathLine(L) {
 }
 
 // ---------------- hover ----------------
+// how many uses a thing has left, after its name (under its slot, and under the pointer): " ×2"; nothing for one use, or
+// for a thing that is not counted out (noCount: a bag of salt is poured, not counted)
+function usesMark(it) { return it.uses > 1 && !it.noCount ? ' ×' + it.uses : ''; }
 function inPoly(x, y, pts) {
   let inside = false;
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
@@ -993,7 +1029,7 @@ function updateHover() {
   G.hover = h;
   let tip = '';
   if (h) {
-    if (h.kind === 'item') tip = h.ref.name + (h.ref.uses > 1 ? ' ×' + h.ref.uses : '');
+    if (h.kind === 'item') tip = h.ref.name + usesMark(h.ref);
     else if (h.kind === 'target') tip = (G.hints() && h.ref.hint) ? h.ref.hint() : (h.ref.hold && !h.ref.done ? h.ref.name + ' (hold)' : h.ref.name);
     else if (h.kind === 'creature') { const u = activeUse(G.L); tip = u ? (u.hoverText ? u.hoverText(h.ref, G.L) : h.ref.dist < u.range ? (u.fireText || 'Fire.') : 'Too far.') : ''; }
   }   // (the floor, looking down with something held: no line; a click there still puts it down)
@@ -1065,6 +1101,7 @@ function update(dt) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
           G.survivedScreen = { title: L.def.title, text: L.text.win };   // (kept: the pause menu puts it back, as the death screen)
           MENU.show('survived', G.survivedScreen);
+          secretTell();
         }
       }
     }
@@ -1083,6 +1120,7 @@ function update(dt) {
       setState('dead');
       G.deathScreen = { text: deathLine(L), title: isEggDeath(L) ? 'Nice try' : 'It got you' };   // the night's own line (and the toast it cut off): no count of the seconds
       MENU.show('dead', G.deathScreen);
+      secretTell();
     }
   } else if (G.state === 'title') {
     L.t += dt * 0.25; for (const cr of L.creatures) cr.t += dt * 0.25;
@@ -1358,7 +1396,7 @@ function updateHUD() {
       const wc = it.decoy ? wornc : (cc => cc);   // a thing that will not work looks it, in the hand too
       it.icon(x, { col: cc => rgba(wc(cc)), cola: (cc, a) => rgba(wc(cc), a), raw: cc => rgba(cc), fog: 0, t: 0 });
       slot.appendChild(cv);
-      const lab = document.createElement('div'); lab.className = 'label'; lab.textContent = it.name + (it.uses > 1 ? ' ×' + it.uses : '');
+      const lab = document.createElement('div'); lab.className = 'label'; lab.textContent = it.name + usesMark(it);
       slot.appendChild(lab);
       slot.addEventListener('click', e => {
         e.stopPropagation();
@@ -1569,12 +1607,29 @@ function bindTouch() {
 // The Fullscreen API on the whole page (webkit-prefixed where only that is there). Where the browser cannot put the page
 // full screen (Safari on an iPhone has it only for video), body.fsok is off and the button is not shown. Going in also
 // asks for the screen held on its side (refused on most browsers outside full screen, and by some in it: ignored).
+// Esc in full screen is the browser's: it leaves full screen with it and the page never hears of the key, so pausing
+// took a second press. Two ways round that. Where the browser can hand the page its Esc (the Keyboard Lock API:
+// Chromium on a desktop) it is asked for whenever the page is full screen (fsKeys): a tap of Esc then reaches the game
+// and pauses it, still full screen, and the browser leaves full screen on Esc held down. Everywhere else, full screen
+// left while a night is being played pauses it (fullscreenSync): the one Esc leaves full screen and pauses. Not when it
+// is left by the game's own doing (F, the button, Settings' Display: fsOwn), which pauses nothing. The two never both
+// act: a night already paused by its Esc is not in play when full screen goes, and an Esc that comes within FS_ESC ms
+// of that pause (a browser that takes the key and hands it over as well) does not resume it (fsPaused: onKeyDown).
+let fsWas = false, fsOwn = -1e9, fsPaused = -1e9;
+const FS_ESC = 500, FS_OWN = 1500;   // ms
+function fsKeys(on) {
+  try {
+    const kb = navigator.keyboard;
+    if (!kb || !kb.lock) return;
+    if (on) quietly(kb.lock(['Escape'])); else if (kb.unlock) kb.unlock();
+  } catch (e) { void e; }
+}
 function fullscreenEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
 function fullscreenAble() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
 function quietly(p) { if (p && typeof p.then === 'function') p.then(null, () => {}); return p; }
 function toggleFullscreen() {
   try {
-    if (fullscreenEl()) { const exit = document.exitFullscreen || document.webkitExitFullscreen; if (exit) quietly(exit.call(document)); return; }
+    if (fullscreenEl()) { const exit = document.exitFullscreen || document.webkitExitFullscreen; if (exit) { fsOwn = performance.now(); quietly(exit.call(document)); } return; }
     const de = document.documentElement, req = de.requestFullscreen || de.webkitRequestFullscreen;
     if (!req) return;
     const lock = () => { try { const o = window.screen.orientation; if (o && o.lock) quietly(o.lock('landscape')); } catch (e) { void e; } };
@@ -1587,6 +1642,13 @@ function fullscreenSync() {
   document.body.classList.toggle('fsok', fullscreenAble());
   UI.fsBtn.classList.toggle('on', on);
   UI.fsBtn.setAttribute('aria-label', on ? 'leave full screen' : 'full screen');
+  if (on !== fsWas) {
+    fsWas = on; fsKeys(on);
+    if (!on) {   // left: by the browser's Esc (or anything else not the game's own), a night being played is paused
+      const own = performance.now() - fsOwn < FS_OWN; fsOwn = -1e9;
+      if (!own && G.state === 'play') { pauseGame(); if (G.state === 'paused') fsPaused = performance.now(); }
+    }
+  }
   fitView();
 }
 // the view is always the whole page (the canvas is fixed over all of it, as the HUD is): its drawing sized again whenever

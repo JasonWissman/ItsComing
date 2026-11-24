@@ -129,9 +129,9 @@ LEVELS.push({
       { x: -1.3, y: 0, z: -0.45 },                      // in front of the bench
       { x: -1.4, y: 0, z: 1.15 },                       // by the west column
       { x: -1.9, y: 0.5, z: -0.3, jitter: 0.05 },       // on the bench
-    ], { w: 0.34, h: 0.42, flat: true, uses: 2, held: bagHeld });
+    ], { w: 0.34, h: 0.42, flat: true, uses: 2, noCount: true, held: bagHeld });   // (noCount: named with no ×2 after it, game.js usesMark)
     mkItem(L, 'sugar', 'Sugar', [{ x: 0.9, y: 0, z: 0.9 }, { x: -0.5, y: 0, z: -1.3 }],
-      { w: 0.34, h: 0.42, flat: true, uses: 2, icon: 'sugarbag', decoy: true, decoyText: 'Sugar. It dissolves instantly.', held: bagHeld });
+      { w: 0.34, h: 0.42, flat: true, uses: 2, noCount: true, icon: 'sugarbag', decoy: true, decoyText: 'Sugar. It dissolves instantly.', held: bagHeld });
     mkItem(L, 'matches', 'Matches', [
       { x: 2.05, y: 1.16, z: -1.15, flat: false },      // on the ledge
       { x: -1.9, y: 0.5, z: -1.0, flat: false, jitter: 0 }, // on the bench

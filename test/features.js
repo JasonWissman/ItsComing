@@ -453,7 +453,7 @@ const hoverHit = lookFor;
     borders: [...document.querySelectorAll('#overlay .hcard, #overlay .hkeys, #overlay .hwhat')].some(e => { const c = getComputedStyle(e); return parseFloat(c.borderTopWidth) || parseFloat(c.borderBottomWidth); }),
     cols: getComputedStyle(document.querySelector('#overlay .howcards')).gridTemplateColumns.split(' ').length }));
   check(tv.dlg && tv.panel && tv.step === 0 && tv.state === 'title', 'How to play opens in a dialog with the controls in it, and the night does not start (' + JSON.stringify(tv) + ')');
-  check(tv.cards === 'Look around,Zoom in,Interact,Pause' && tv.keys === '8,2,1,1' && !tv.borders && tv.cols === 2, 'How to play is four cards, two by two, with no borders: Look around, Zoom in, Interact, Pause, each drawn as its keys (' + JSON.stringify(tv) + ')');
+  check(tv.cards === 'Look around,Zoom in,Interact,Pause' && tv.keys === '8,2,1,2' && !tv.borders && tv.cols === 2, 'How to play is four cards, two by two, with no borders: Look around, Zoom in, Interact, Pause, each drawn as its keys (' + JSON.stringify(tv) + ')');
   await page.click('#overlay .panel', { position: { x: 12, y: 12 } }); await page.waitForTimeout(150);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'howto'), 'a click in the dialog is not a click to begin');
   await page.keyboard.press('Escape'); await page.waitForTimeout(150);
@@ -535,7 +535,7 @@ const hoverHit = lookFor;
   }
 
   console.log('== erasing progress asks first (in Scores) ==');
-  await page.evaluate(() => { SAVE.data.bestRun.nightmare = { t: 400, nights: LEVELS.map(() => 400 / 13) }; SAVE.egg('road'); SAVE.egg('booth'); SAVE.persist(); MENU.applySetting('captions', true); MENU.applySetting('brightness', 1.2); });
+  await page.evaluate(() => { SAVE.data.bestRun.nightmare = { t: 400, nights: LEVELS.map(() => 400 / 13) }; SAVE.egg('road'); SAVE.egg('booth'); SAVE.persist(); MENU.applySetting('captions', true); });
   check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.eggs.road === true && d.eggs.booth === true && Object.keys(d.eggs).length === 2 && SAVE.egg('road') === false; }), 'an easter egg found is kept in the save, by its night, once');
   await page.click('#overlay button[data-act="nights"]'); await page.waitForTimeout(120);
   check(await page.evaluate(() => [...document.querySelectorAll('#overlay button[data-act]')].map(b => b.dataset.act + ':' + b.textContent).join() === 'back:Back,reset:Erase progress' && document.querySelector('#overlay button[data-act="reset"]').classList.contains('danger')), 'Scores has Back and, beside it, Erase progress (in red)');
@@ -553,7 +553,7 @@ const hoverHit = lookFor;
   await page.click('#overlay .confirm button[data-act="erase"]'); await page.waitForTimeout(200);
   check(await page.evaluate(() => G.state === 'title' && MENU.kind === 'title' && G.unlocked === 0 && !document.querySelector('#overlay button[data-act="nights"]')), 'Erase erases, and the title is back with no Scores');
   check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.bestRun).length && !Object.keys(d.bestRun).length && d.unlocked.nightmare === 0 && !d.complete.nightmare && d.warned === false && d.settings.captions === false; }), 'everything it erased before goes as it did: nights reached, the best run, the warning accepted, the settings');
-  check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.eggs).length && !Object.keys(d.eggs).length && !MENU.scoresOpen() && d.settings.brightness === 1 && !document.documentElement.classList.contains('bright') && getComputedStyle(UI.canvas).filter === 'none'; }), 'and the easter eggs found go with it (nothing left for Scores to show), the brightness back at 100% with no filter on the view');
+  check(await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !Object.keys(SAVE.data.eggs).length && !Object.keys(d.eggs).length && !MENU.scoresOpen() && !('brightness' in d.settings) && getComputedStyle(UI.canvas).filter === 'none'; }), 'and the easter eggs found go with it (nothing left for Scores to show); no brightness in the settings, no filter on the view');
 
   console.log('== the Scores screen ==');
   // an older save with best times for single nights and no full run: no run is made up from them, and they are dropped
@@ -636,7 +636,7 @@ const hoverHit = lookFor;
         panels: panels.map((q, i) => q && q.getAttribute('role') === 'tabpanel' && q.getAttribute('aria-labelledby') === tabs[i].id ? (q.hidden || getComputedStyle(q).visibility === 'hidden' ? 'hidden' : 'shown') : 'bad').join(),
         focus: f && (f.getAttribute('role') === 'tab' ? 'tab:' + f.textContent : f.dataset.act), kind: MENU.kind, st: G.state,
         rows: rows.map(e => { const m = e.querySelector('.emark'), g = m.querySelector('svg'), cs = getComputedStyle(e), al = c => { const q = c.match(/[\d.]+/g); return q.length > 3 ? +q[3] : 1; };
-          return { cls: e.className.replace(/ c[12]$/, ''), name: e.querySelector('.ename').textContent, text: e.textContent, label: e.getAttribute('aria-label'), role: e.getAttribute('role'), dim: al(cs.color) < 0.5,
+          return { cls: e.className.replace(/ c[12]$/, '').replace(/^ncard /, ''), name: e.querySelector('.ename').textContent, text: e.textContent, label: e.getAttribute('aria-label'), role: e.getAttribute('role'), dim: al(cs.color) < 0.5,
             tick: getComputedStyle(g).display !== 'none' && r(g).width >= 9, box: r(m).width >= 12 && r(m).height >= 12 && parseFloat(getComputedStyle(m).borderTopWidth) >= 1, filled: al(getComputedStyle(m).backgroundColor) > 0.9, border: al(cs.borderTopColor), markHid: m.getAttribute('aria-hidden') === 'true' }; }),
         count: (p.querySelector('.eggcount') || {}).textContent, text: p.textContent, acts: [...p.querySelectorAll('button[data-act]')].map(b => b.dataset.act).join(),
         fits: p.scrollHeight <= p.clientHeight + 1 && p.scrollWidth <= p.clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth, inView: r(p).top >= 0 && r(p).bottom <= innerHeight && rows.every(e => r(e).left >= r(p).left && r(e).right <= r(p).right),
@@ -711,7 +711,7 @@ const hoverHit = lookFor;
     // title is the same either way, and does not come from the night's own line (text.egg, which the UI no longer shows)
     const dyn = await page.evaluate(() => {
       const n = LEVELS.findIndex(d => !SAVE.data.eggs[d.id]), l = LEVELS[n], own = l.text.egg; delete l.text.egg;
-      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelectorAll('#overlay .eggs .egg')[n]; return e.className.replace(/ c[12]$/, '') + '|' + e.textContent + '|' + e.getAttribute('aria-label') + '|' + document.querySelector('#overlay .eggcount').textContent; };
+      const row = () => { MENU.show('nights', { from: 'title', tab: 'eggs' }); const e = document.querySelectorAll('#overlay .eggs .egg')[n]; return e.className.replace(/ c[12]$/, '').replace(/^ncard /, '') + '|' + e.textContent + '|' + e.getAttribute('aria-label') + '|' + document.querySelector('#overlay .eggcount').textContent; };
       const a = row(), first = SAVE.egg(l.id), b = row(), again = SAVE.egg(l.id);
       delete SAVE.data.eggs[l.id]; SAVE.persist(); l.text.egg = own;
       return { a, b, first, again, c: row(), t: EGG_TITLES[l.id] };
@@ -1484,7 +1484,7 @@ const hoverHit = lookFor;
         if (i === 40) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })); turned = s.idle; }
         if (i === 52) { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); }
         said.length = 0; G.step(0.1, 1);
-        const line = said.find(x => /CLICK WHEN YOU ARE READY/.test(x[0]));
+        const line = said.find(x => /CLICK WHEN READY/.test(x[0]));
         if (line && !/,0\.0+\)$|,0\)$/.test(line[3]) && lineAt === null) lineAt = { idle: line[1], i };
         if (i < 100 && line && !/,0\.0+\)$|,0\)$/.test(line[3]) && s.idle < 4.9) quiet++;
         if (said.some(x => /Stay as long/i.test(x[0]))) quiet += 1000;
@@ -1492,7 +1492,7 @@ const hoverHit = lookFor;
     } finally { CanvasRenderingContext2D.prototype.fillText = fill; }
     return Object.assign(at, { after: { state: G.state, leaving: s.leaving, meadow: s.meadow, fade: c.fade }, quiet, lineAt, turned });
   });
-  check(meadow.quiet === 0 && meadow.turned > 3 && meadow.lineAt && meadow.lineAt.idle >= 5 && meadow.lineAt.i > 52 + 50, 'in the meadow no line says to stay; CLICK WHEN YOU ARE READY comes only after five seconds with nothing done, and a look about starts the count again (' + JSON.stringify([meadow.quiet, meadow.turned, meadow.lineAt]) + ')');
+  check(meadow.quiet === 0 && meadow.turned > 3 && meadow.lineAt && meadow.lineAt.idle >= 5 && meadow.lineAt.i > 52 + 50, 'in the meadow no line says to stay; CLICK WHEN READY comes only after five seconds with nothing done, and a look about starts the count again (' + JSON.stringify([meadow.quiet, meadow.turned, meadow.lineAt]) + ')');
   check(meadow.meadow === 1 && meadow.hug === null && meadow.mood === 11 && Math.abs(meadow.dist - 3.3) < 0.05 && meadow.yaw < 0.01 && meadow.view < 0.05 && Math.abs(meadow.pitch) < 0.05, 'it lets you go and stands, happy, a little way off in the meadow, and the view comes level on it');
   check(meadow.ground[1] > meadow.ground[0] + 40 && meadow.sky[2] > 200 && meadow.sky[2] > meadow.sky[0] + 80 && meadow.room === 0, 'green grass and a blue sky, and no room yet (' + JSON.stringify([meadow.ground, meadow.sky]) + ')');
   check(meadow.after.state === 'won' && !meadow.after.leaving && meadow.after.meadow === 1 && meadow.after.fade === 1, 'left alone, the meadow simply stays');
@@ -2141,7 +2141,7 @@ const hoverHit = lookFor;
     await m.pg.tap('button[data-act="back"]'); await m.pg.waitForTimeout(300);
     await m.pg.tap('button[data-act="begin"]'); await m.pg.waitForTimeout(500);
     r = await m.pg.evaluate(() => ({ state: G.state, prompt: (UI.overlay.querySelector('.prompt') || {}).textContent }));
-    check(r.state === 'card' && /^Tap when you are ready/.test(r.prompt || ''), 'the night\'s card on a phone says tap (' + JSON.stringify(r) + ')');
+    check(r.state === 'card' && /^Tap when ready$/.test(r.prompt || ''), 'the night\'s card on a phone says tap (' + JSON.stringify(r) + ')');
     await m.pg.touchscreen.tap(200, 200); await m.pg.waitForTimeout(200);
     const tapEarly = await m.pg.evaluate(() => ({ st: G.state, left: Math.round(G.overlayArmed - performance.now()) }));
     await m.pg.waitForTimeout(Math.max(0, tapEarly.left) + 80);
@@ -2380,64 +2380,88 @@ const hoverHit = lookFor;
 
   // Settings' Calibrate dialogs (Volume, Brightness) and their sounds: test/settings.js, in this browser
   await require('./settings').run(browser, check);
+  // the shell round the nights (the Scores' tabs box for box, the captions' corner, the results' Secret scenes tab, the
+  // words that follow the text size): test/shell.js, in this browser
+  await require('./shell').run(browser, check);
 
-  // An easter egg found for the first time is said in a corner: "Secret discovered: " and its title (game.js EGG_TITLES,
-  // by the night's id), and no sound with it (no sfx is played, no caption comes up). The note is in the top left under the corner controls,
-  // in the page and over nothing else, at 1280 by 760 and on a phone held sideways (844 by 390); it goes after its time;
-  // the same egg found again says nothing; it shows over a death screen, and never takes a click
-  console.log('== an easter egg found: the note in the corner ==');
+  // An easter egg found for the first time is said: "Secret discovered: " and its title (game.js EGG_TITLES, by the
+  // night's id), and no sound with it (no sfx is played, no caption comes up). Not while the night is played: it is held,
+  // and said on the screen that follows (the death screen here; the win screen and the last night's last screen the
+  // same way), in the middle of the bottom edge, in the page, over nothing of that screen (which keeps a strip clear for
+  // it, however long its words) or of the corner controls, at 1280 by 760 and on a phone held sideways (844 by 390); it
+  // never takes a click, goes at once when the night goes on, and after its time; the same egg found again says nothing
+  console.log('== an easter egg found: the note on the screen after the night ==');
   for (const [what, opt, tag] of [['at 1280 by 760', { viewport: { width: 1280, height: 760 } }, '1280'], ['on a phone held sideways (844 by 390)', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true }, '844']]) {
     const ctx = await browser.newContext(opt), sp = await ctx.newPage();
     sp.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
     await sp.goto(URL + '?level=3&go&seed=1'); await sp.waitForTimeout(600);
     const find = () => sp.evaluate(() => {
       SAVE.data.eggs = {}; SAVE.persist(); MENU.applySetting('captions', true);
-      window.__heard = []; const sfx = AUDIO.sfx; window.__sfx = sfx; AUDIO.sfx = (name, ...a) => { window.__heard.push(name); return sfx(name, ...a); };
+      if (!window.__sfx) { const sfx = AUDIO.sfx; window.__sfx = sfx; AUDIO.sfx = (name, ...a) => { window.__heard.push(name); return sfx(name, ...a); }; }
+      window.__heard = [];
       const cap0 = document.getElementById('caption').textContent, first = foundEgg();
-      return { id: G.L.def.id, state: G.state, first, played: window.__heard.slice(), capSame: document.getElementById('caption').textContent === cap0, known: Object.keys(CAPTIONS.SFX || {}).includes('secret') };
+      return { id: G.L.def.id, state: G.state, first, saved: SAVE.data.eggs[G.L.def.id] === true, played: window.__heard.slice(), capSame: document.getElementById('caption').textContent === cap0 };
     });
     const look = () => sp.evaluate(() => {
-      const el = document.getElementById('secret'), cs = getComputedStyle(el), r = el.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+      const el = document.getElementById('secret'), cs = getComputedStyle(el), r = el.getBoundingClientRect(), W = innerWidth, H = innerHeight, ov = UI.overlay, oc = getComputedStyle(ov), or = ov.getBoundingClientRect();
       const apart = (a, b) => a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5;
-      const others = ['mute', 'menuBtn', 'fsBtn', 'zoomBtn', 'objective', 'compass', 'pitch', 'zoom', 'toast', 'inventory', 'caption'].map(id => [id, document.getElementById(id)])
+      const others = ['mute', 'menuBtn', 'fsBtn', 'zoomBtn'].map(id => [id, document.getElementById(id)])
         .filter(([, e]) => e && getComputedStyle(e).display !== 'none').map(([id, e]) => [id, e.getBoundingClientRect()]).filter(([, q]) => q.width > 0 && q.height > 0);
+      const parts = [...ov.querySelectorAll('h1, p, button, .kicker')].map(e => e.getBoundingClientRect()).filter(q => q.width > 0);
       const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-      return { text: el.textContent, shown: el.classList.contains('show'), op: +cs.opacity, vis: cs.visibility, pe: cs.pointerEvents, z: +cs.zIndex, inHud: !!el.closest('#hud'),
-        box: [r.left, r.top, r.right, r.bottom].map(Math.round), inside: r.width > 40 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H, corner: r.right < W * 0.4 && r.bottom < H * 0.3,
-        over: others.filter(([, q]) => !apart(r, q)).map(([id]) => id), seen: others.map(([id]) => id).join(), notHit: at !== el && !el.contains(at), heard: window.__heard.filter(n => n === 'secret').length };
+      return { text: el.textContent, shown: el.classList.contains('show'), op: +cs.opacity, vis: cs.visibility, pe: cs.pointerEvents, z: +cs.zIndex, oz: +oc.zIndex || 0, inHud: !!el.closest('#hud'), state: G.state,
+        box: [r.left, r.top, r.right, r.bottom].map(Math.round), inside: r.width > 40 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H, mid: Math.round(r.left + r.width / 2 - W / 2), low: r.top > H * 0.7 && H - r.bottom <= 30,
+        over: others.filter(([, q]) => !apart(r, q)).map(([id]) => id), seen: others.map(([id]) => id).join(), clear: parts.length >= 3 && parts.every(q => apart(r, q)),
+        // (what of the screen can be seen, scrolled or not, ends above the note: the strip the overlay keeps clear)
+        room: Math.round(or.bottom - parseFloat(oc.borderBottomWidth) - r.top), scroll: ov.scrollHeight - ov.clientHeight, notHit: at !== el && !el.contains(at), heard: window.__heard.length };
     });
+    const dead = async () => { await sp.evaluate(() => die()); await sp.waitForFunction(() => G.state === 'dead' && +getComputedStyle(UI.overlay).opacity > 0.9, null, { timeout: 20000 }).catch(() => {}); await sp.waitForTimeout(700); };
     const a = await find(); await sp.waitForTimeout(700);
+    const v0 = await look();
+    check(a.id === 'graveyard' && a.state === 'play' && a.first === true && a.saved && !v0.shown && v0.op === 0 && v0.vis === 'hidden' && a.played.length === 0 && v0.heard === 0 && a.capSame,
+      'an easter egg found for the first time, ' + what + ': kept in the save, and nothing is said while the night is played: no note, no sound, no caption (' + JSON.stringify({ a, shown: v0.shown, heard: v0.heard }) + ')');
+    await dead();
     const v = await look();
-    check(a.id === 'graveyard' && a.state === 'play' && a.first === true && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible' && v.heard === 0 && a.played.length === 0 && a.capSame && !a.known,
-      'an easter egg found for the first time, ' + what + ': "' + v.text + '" is up, and no sound is played with it, no caption (the chime is gone) (' + JSON.stringify({ a, heard: v.heard }) + ')');
-    check(v.inside && v.corner && !v.over.length && v.pe === 'none' && v.notHit && !v.inHud && /mute|menuBtn/.test(v.seen) && /compass/.test(v.seen),
-      'the note ' + what + ': in the page, in the top left corner, over none of the corner controls or the HUD, taking no click (' + JSON.stringify({ box: v.box, over: v.over, seen: v.seen }) + ')');
-    await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-' + tag + '.png') });
-    // again: nothing new said, nothing played (the note still up from the first is not started over)
-    const again = await sp.evaluate(() => { window.__heard = []; const el = document.getElementById('secret'); el.classList.remove('show'); const r = foundEgg(); return { r, shown: el.classList.contains('show'), heard: window.__heard.length }; });
-    check(again.r === false && !again.shown && again.heard === 0, 'the same easter egg found again ' + what + ': no note, no sound (' + JSON.stringify(again) + ')');
+    check(v.state === 'dead' && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible' && v.heard === 0,
+      'on the death screen that follows ' + what + ': "' + v.text + '" is up, and no sound is played with it (' + JSON.stringify({ state: v.state, shown: v.shown, heard: v.heard }) + ')');
+    check(v.inside && Math.abs(v.mid) <= 1 && v.low && v.clear && !v.over.length && v.room <= 0 && v.pe === 'none' && v.notHit && !v.inHud && v.z > v.oz && /mute|menuBtn/.test(v.seen),
+      'the note ' + what + ': in the page, in the middle of the bottom edge, over nothing of the death screen or the corner controls, above the screen and taking no click (' + JSON.stringify({ box: v.box, mid: v.mid, over: v.over, room: v.room, seen: v.seen }) + ')');
+    await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-death-' + tag + '.png') });
+    // a death line long enough that the screen has to scroll: scrolled to its end, still nothing of it under the note
+    await sp.evaluate(() => { document.querySelector('#overlay .intro').textContent = 'It got you, and it took its time about it. '.repeat(14); UI.overlay.scrollTop = 99999; }); await sp.waitForTimeout(100);
+    const vl = await look();
+    check(vl.shown && vl.room <= 0 && vl.clear && (tag === '1280' || vl.scroll > 0), 'a death screen with more words than fit ' + what + ': what can be seen of it still ends above the note (' + JSON.stringify({ room: vl.room, scroll: vl.scroll }) + ')');
+    // the screen's button still takes its click, and the night going on puts the note away at once
+    await sp.evaluate(() => document.querySelector('#overlay button[data-act="retry"]').click()); await sp.waitForTimeout(80);
+    const go = await look();
+    check(go.state === 'play' && !go.shown, 'Try again ' + what + ': the night again, and the note gone with the screen it was on (' + JSON.stringify({ state: go.state, shown: go.shown }) + ')');
+    // again: nothing new said, in the night or on the screen after it
+    const again = await sp.evaluate(() => { window.__heard = []; return foundEgg(); });
+    await dead();
+    const v2 = await look();
+    check(again === false && v2.state === 'dead' && !v2.shown && v2.heard === 0 && v2.room <= 0, 'the same easter egg found again ' + what + ': no note on the death screen, no sound, no strip kept for one (' + JSON.stringify({ again, shown: v2.shown }) + ')');
     if (tag === '1280') {
-      // its time: up for about four seconds, then gone
-      await sp.evaluate(() => { SAVE.data.eggs = {}; window.__t0 = performance.now(); foundEgg(); });
-      await sp.waitForTimeout(3600); const mid = await look();
+      // its time: up for about seven seconds, then gone; it is said on the win screen the same way
+      await sp.evaluate(() => { SAVE.data.eggs = {}; startLevel(2, false); foundEgg(); setState('survived'); MENU.show('survived', { title: 'The Graveyard', text: 'It is gone.' }); secretTell(); });
+      await sp.waitForTimeout(700); const won = await look();
+      await sp.waitForTimeout(5900); const mid = await look();
       await sp.waitForTimeout(1900); const end = await look();
-      check(mid.shown && mid.op === 1 && !end.shown && end.op === 0 && end.vis === 'hidden', 'it is still up 3.6 s on, and gone (faded out, hidden) by 5.5 s (' + JSON.stringify({ mid: [mid.shown, mid.op], end: [end.shown, end.op, end.vis] }) + ')');
-      // reduced motion: it does not slide (no transform, shown or hidden)
-      const still = await sp.evaluate(() => { SAVE.data.eggs = {}; SAVE.data.settings.reducedMotion = true; foundEgg(); const el = document.getElementById('secret'), on = getComputedStyle(el).transform; el.classList.remove('show'); const off = getComputedStyle(el).transform; SAVE.data.settings.reducedMotion = false; return { on, off, cls: el.classList.contains('still') }; });
-      check(still.cls && /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/.test(still.on) && /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/.test(still.off), 'with reduced motion it only fades: it is not moved, coming or going (' + JSON.stringify(still) + ')');
+      check(won.shown && won.op === 1 && won.clear && won.low && Math.abs(won.mid) <= 1 && mid.shown && mid.op === 1 && !end.shown && end.op === 0 && end.vis === 'hidden',
+        'on the win screen too, in the same place; it is still up 6.6 s on, and gone (faded out, hidden) by 8.5 s (' + JSON.stringify({ won: [won.shown, won.box], mid: [mid.shown, mid.op], end: [end.shown, end.op, end.vis] }) + ')');
+      const src = require('fs').readFileSync(path.join(__dirname, '..', 'js', 'game.js'), 'utf8');
+      check(/MENU\.show\('survived', G\.survivedScreen\);\s*secretTell\(\);/.test(src) && /MENU\.show\('dead', G\.deathScreen\);\s*secretTell\(\);/.test(src) && /MENU\.show\('ending'\);\s*secretTell\(\);/.test(src) && !/secretTell\(\)/.test(src.slice(src.indexOf('function foundEgg'), src.indexOf('const EGG_TITLES'))),
+        'game.js says it as the death screen, the win screen and the last night\'s last screen come up, and never as it is found');
+      // reduced motion: it does not slide (the same place shown or hidden)
+      const still = await sp.evaluate(() => { SAVE.data.eggs = {}; SAVE.data.settings.reducedMotion = true; foundEgg(); MENU.show('survived', { title: 'The Graveyard', text: 'It is gone.' }); secretTell(); const el = document.getElementById('secret'), on = getComputedStyle(el).transform; el.classList.remove('show'); const off = getComputedStyle(el).transform; SAVE.data.settings.reducedMotion = false; return { on, off, cls: el.classList.contains('still') }; });
+      check(still.cls && still.on === still.off && /^matrix\(1, 0, 0, 1, -?[\d.]+, 0\)$/.test(still.on), 'with reduced motion it only fades: it is not moved, coming or going (' + JSON.stringify(still) + ')');
+      // quitting to the title forgets one not yet said (it is in Scores), and the results after the ending put one away
+      const quit = await sp.evaluate(() => { SAVE.data.eggs = {}; startLevel(2, false); foundEgg(); showTitle(); startLevel(2, false); MENU.show('dead', { text: 'x' }); secretTell(); const a = document.getElementById('secret').classList.contains('show'); foundEgg(); delete SAVE.data.eggs.graveyard; foundEgg(); MENU.show('ending'); secretTell(); const b = document.getElementById('secret').classList.contains('show'); MENU.act('done'); return { a, b, c: document.getElementById('secret').classList.contains('show'), room: UI.overlay.classList.contains('secretroom'), kind: MENU.kind }; });
+      check(!quit.a && quit.b && !quit.c && !quit.room && quit.kind === 'results', 'found and then quit to the title: not said on a later screen; one up on the last screen goes as the results come, which keep no strip for it (' + JSON.stringify(quit) + ')');
       // every night's easter egg has its title; one with none falls back to the night's own line
       const titles = await sp.evaluate(() => ({ ids: LEVELS.map(l => l.id), t: LEVELS.map(l => EGG_TITLES[l.id] || ''), fall: (() => { const l = LEVELS[0], k = EGG_TITLES[l.id], own = l.text.egg; delete EGG_TITLES[l.id]; l.text.egg = 'Wave at it.'; const r = eggTitle(l.id); EGG_TITLES[l.id] = k; l.text.egg = own; return r; })(), none: eggTitle('nosuch') }));
       check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t.join('|') === 'Through the window|Hit and run|Sugar rush|Staring contest|Bat shot crazy|Lifesaver|Butterfingers|Thirst quencher|Its an emergency|Cover up|Power overload|Movie night|Flip the script' && titles.fall === 'Wave at it' && titles.none === '',
         'every night\'s id has a short title for its easter egg; a night without one is named by its own line (' + JSON.stringify(titles.t) + ')');
     }
-    // over a death screen: the HUD is gone, the note is there above the screen, and the screen's buttons still take the click
-    await sp.evaluate(() => { document.getElementById('secret').classList.remove('show'); die(); });
-    await sp.waitForFunction(() => G.state === 'dead' && +getComputedStyle(UI.overlay).opacity > 0.9, null, { timeout: 15000 }).catch(() => {});
-    await sp.evaluate(() => { SAVE.data.eggs = {}; window.__heard = []; foundEgg(); window.__now = window.__heard.length; }); await sp.waitForTimeout(700);
-    const d = await look(), dd = await sp.evaluate(() => ({ now: window.__now, state: G.state, oz: +getComputedStyle(UI.overlay).zIndex || 0, btn: !!document.querySelector('#overlay button') }));
-    check(dd.state === 'dead' && dd.btn && d.shown && d.op === 1 && d.vis === 'visible' && d.z > dd.oz && d.inside && d.notHit && d.heard === 0 && dd.now === 0 && d.text === 'Secret discovered: Sugar rush' && !d.over.filter(id => id === 'mute' || id === 'menuBtn' || id === 'fsBtn').length,
-      'over a death screen ' + what + ': the note is up above it, in the page, clear of the corner controls, and takes no click (' + JSON.stringify({ dd, box: d.box, over: d.over, z: d.z }) + ')');
-    await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-death-' + tag + '.png') });
     await ctx.close();
   }
 
