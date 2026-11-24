@@ -7,9 +7,9 @@
 // pulled up with the lamp off are a death of their own: it takes them and pulls them away; and its hands reaching you
 // are another.
 // First, the mattress's top is one piece drawn before the covers, so no part of it is drawn over them as they come up.
-// And the night's easter egg, the tooth fairy (fairy, below): the pillow, behind you and nowhere else; the tooth under it;
-// the thing waiting, quiet, its hand out, for as long as you like; the tooth handed over, its wings, its dust, the dollar,
-// and the night won by it.
+// And the night's easter egg, the tooth fairy (fairy, below): the pillow, behind you; the tooth under it; the thing
+// waiting, its hand out, a deep rumbling under everything, for as long as you like; the tooth handed over and kept on its
+// open palm, its wings, its dust, the dollar, and the night won by it.
 const relight = ['waitUntil', "G.L.won ? true : (!G.L.s.lampOn && G.L.s.fitted && G.L.s.plugged ? (useTarget(G.L.targets.find(t => t.id === 'lamp')), false) : false)", 20000];
 const lamp = [['use', 'drawer'], ['pickup', 'bulb'], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on']];
 const mattress = ['expect', "(() => { const m = R.statics.filter(p => p.kind === 'poly' && p.pts.length >= 3 && p.pts.every(v => Math.abs(v[1] - 0.58) < 1e-6 && Math.abs(v[0]) <= 0.751) && p.pts.some(v => v[2] > 1)); return m.length === 1 && m[0].sd > 1.62; })()", 'the mattress top is one piece, drawn before the covers'];
