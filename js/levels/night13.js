@@ -1065,7 +1065,7 @@ function buildGathering(L, s, c0, K) {
     // (its long arm up, holding the notebook out to be seen; then high, waving)
     signalman(c, q, o) { const up = Math.max(q.has, q.joy); c.reach = up; c.grip = o.held ? 1 : 0; c.reachSide = 1; c.reachTo = { x: lerp(0.42, 0.5 + (q.still ? 0 : 0.3 * Math.sin(q.t * 7)), q.joy), y: lerp(2.05, 3.1, q.joy) }; },
     other(c, q, o, dt) { c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; c.danceT = (c.danceT || 0) + dt * (1 + 2 * q.joy); c.dance = 1; c.smile = 1; const it = o.held; c.carry = it ? (ctx, P) => it.icon(ctx, P) : null; },   // (the box in its arms, as it carried it off: its own drawing)
-    carrier(c, q, o) { c.flail = q.joy; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; },
+    carrier(c, q, o) { c.flail = q.joy; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; c.clutch = o.held ? holdAt(o) : null; },   // (its hand is on the fuse wherever it carries it)
     tall(c, q) { c.reach = Math.max(q.has, q.joy); c.gripY = lerp(1.62, 2.5, q.joy); },   // (its hands up in front of it, the lamp in one of them; then high)
   };
   // how hard they leap, jt seconds into the joy: all out for a while, then gentler, and now and then (each in its own
