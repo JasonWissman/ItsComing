@@ -954,7 +954,7 @@ function foundEgg(id) {
 const EGG_TITLES = {
   field: 'Through the window', road: 'Hit and run', graveyard: 'Sugar rush', quarry: 'Staring contest', clearing: 'Bat shot crazy',
   boathouse: 'Lifesaver', lighthouse: 'Butterfingers', diner: 'Thirst quencher', booth: 'Its an emergency', mirrors: 'Cover up', barn: 'Power overload',
-  bedroom: 'Movie night', void: 'Flip the script',
+  bedroom: 'Tooth fairy', void: 'Flip the script',
 };
 const SECRET_HOLD = 7;   // seconds it is fully up (index.html: in over .35 s before, out over .6 s after)
 function eggTitle(id) {

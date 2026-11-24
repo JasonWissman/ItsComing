@@ -464,20 +464,6 @@ const AUDIO = (() => {
       case 'clunk': tone(140, 0.08, { vol: 0.35, type: 'square', endFreq: 90, pan }); noise(0.06, { freq: 700, vol: 0.4, pan }); break;
       case 'lever': noise(0.12, { freq: 900, vol: 0.35 }); tone(180, 0.2, { vol: 0.3, type: 'square', endFreq: 110, delay: 0.08 }); noise(0.05, { freq: 500, vol: 0.5, delay: 0.25 }); break;
       case 'lampOn': tone(60, 1.6, { vol: 0.25, type: 'sine', endFreq: 90, attack: 0.3 }); noise(0.25, { freq: 900, vol: 0.2 }); tone(240, 0.5, { vol: 0.06, type: 'sawtooth', attack: 0.2, delay: 0.3 }); break;
-      // night 12's easter egg, the television: all of it small and tinny, from the set. It clicks on (a clunk, the tube's
-      // whine coming up); a second of static; the film's thin drone (played again as the film goes on) and its door; the
-      // shriek at its fright. Then the thing's own yelp, and its fist through the screen: the tube's pop, glass, a fizz
-      case 'tvOn': noise(0.025, { type: 'bandpass', freq: 1800, q: 2, vol: 0.3, pan }); tone(130, 0.06, { vol: 0.2, endFreq: 70, pan }); tone(5200, 0.5, { vol: 0.02, endFreq: 8800, attack: 0.12, delay: 0.03, pan }); break;
-      case 'tvStatic': for (let i = 0; i < 5; i++) { noise(0.42, { type: 'bandpass', freq: 3200, q: 0.5, vol: 0.1, attack: 0.03, delay: 0.03 + i * 0.19, pan }); noise(0.3, { type: 'highpass', freq: 6200, vol: 0.04, attack: 0.03, delay: 0.03 + i * 0.19, pan }); } break;
-      case 'tvDrone': tone(196, 2.6, { vol: 0.05, type: 'sawtooth', endFreq: 185, attack: 0.5, pan }); tone(277, 2.6, { vol: 0.03, type: 'triangle', endFreq: 262, attack: 0.8, pan }); noise(2.4, { type: 'bandpass', freq: 1300, q: 3, vol: 0.02, attack: 0.4, pan }); break;
-      case 'tvCreak': tone(620, 0.55, { vol: 0.06, type: 'sawtooth', endFreq: 340, pan }); tone(640, 0.5, { vol: 0.03, type: 'square', endFreq: 520, delay: 0.06, pan }); break;
-      case 'tvShriek': tone(1500, 0.7, { vol: 0.13, type: 'sawtooth', endFreq: 2600, attack: 0.01, pan }); tone(1900, 0.6, { vol: 0.08, type: 'square', endFreq: 1300, pan }); noise(0.6, { type: 'bandpass', freq: 2800, q: 1.2, vol: 0.14, pan }); break;
-      case 'tvYelp': tone(180, 0.22, { vol: 0.3, type: 'sawtooth', endFreq: 520, pan }); tone(260, 0.18, { vol: 0.16, type: 'square', endFreq: 700, delay: 0.02, pan }); noise(0.12, { type: 'bandpass', freq: 900, q: 1, vol: 0.12, pan }); break;
-      case 'tvSmash':
-        noise(0.06, { freq: 1200, vol: 0.55, pan }); tone(110, 0.14, { vol: 0.4, endFreq: 55, pan }); tone(60, 0.25, { vol: 0.3, endFreq: 30, delay: 0.02, pan }); noise(0.3, { type: 'highpass', freq: 4500, vol: 0.2, delay: 0.02, pan });
-        for (let i = 0; i < 9; i++) tone(2200 + Math.random() * 3600, 0.1 + Math.random() * 0.25, { vol: 0.07, type: 'triangle', delay: 0.03 + i * 0.045 + Math.random() * 0.03, pan });
-        for (let i = 0; i < 7; i++) noise(0.05, { type: 'highpass', freq: 5200, vol: 0.12, delay: 0.35 + i * 0.11 + Math.random() * 0.06, pan });
-        tone(100, 0.7, { vol: 0.05, type: 'sawtooth', endFreq: 50, delay: 0.3, pan }); break;
       case 'drawer': noise(0.45, { type: 'bandpass', freq: 700, q: 1.5, vol: 0.22, attack: 0.05, pan }); tone(150, 0.12, { vol: 0.12, type: 'triangle', endFreq: 110, delay: 0.38, pan }); break;
       case 'tug': noise(0.24, { type: 'bandpass', freq: 520, q: 0.9, vol: 0.6, attack: 0.004, pan }); noise(0.4, { type: 'bandpass', freq: 1900, q: 0.7, vol: 0.2, attack: 0.01, delay: 0.03, pan }); tone(72, 0.25, { vol: 0.35, endFreq: 44, pan }); tone(240, 0.3, { vol: 0.05, type: 'sawtooth', endFreq: 170, delay: 0.06, pan }); break;   // the covers yanked hard, the bed creaking under it
       case 'scrape': noise(0.4, { type: 'bandpass', freq: 1800, q: 4, vol: 0.4, attack: 0.02, pan }); tone(230, 0.35, { vol: 0.12, type: 'sawtooth', endFreq: 180, pan }); break;
@@ -812,6 +798,16 @@ const AUDIO = (() => {
         for (let i = 0, n = 2 + Math.floor(Math.random() * 2); i < n; i++) { const d = i * (0.07 + Math.random() * 0.06); noise(0.022, { type: 'bandpass', freq: 1500 + Math.random() * 1400, q: 3.5, vol: 0.42, attack: 0.001, delay: d, pan }); tone(210 + Math.random() * 90, 0.04, { vol: 0.12, type: 'triangle', endFreq: 120, delay: d, pan }); }
         noise(0.1, { type: 'bandpass', freq: 600, q: 1.2, vol: 0.13, attack: 0.02, delay: 0.05, pan });
         break;
+      // growlLow: the demon's growl (growl) once more, tuned far down and slowed in js/soundtune.js, more felt than heard:
+      // under the tall one's hum as its face comes in at you (night 12). It is played through the growl itself, whose own
+      // caption gives way to this one's
+      case 'growlLow': sfx('growl', pan, true); break;
+      // night 12's easter egg, the tooth fairy, both of them gentle. wingWhoosh: one great soft beat of wide wings, the air
+      // drawn in and let go; fairyDust: a shimmer of tiny bells scattering and dying away, never quite the same twice
+      case 'wingWhoosh': noise(0.34, { type: 'bandpass', freq: 520, q: 0.7, vol: 0.14, attack: 0.3, pan }); noise(0.8, { freq: 950, q: 0.5, vol: 0.3, attack: 0.07, delay: 0.36, pan }); tone(72, 0.45, { vol: 0.09, endFreq: 46, attack: 0.06, delay: 0.36, pan }); break;
+      case 'fairyDust':
+        for (let i = 0; i < 16; i++) { const f = [2093, 2349, 2637, 3136, 3520, 4186][Math.floor(Math.random() * 6)] * (i % 3 ? 1 : 2); tone(f, 0.45 + Math.random() * 0.6, { vol: 0.034 * (1 - i / 22), type: 'sine', delay: i * 0.12 + Math.random() * 0.07, pan: clamp((pan || 0) + (Math.random() - 0.5) * 0.7, -1, 1) }); }
+        noise(1.8, { type: 'highpass', freq: 7200, vol: 0.016, attack: 0.5, pan }); break;
       default: break;
     }
   }

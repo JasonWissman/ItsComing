@@ -2459,7 +2459,7 @@ const hoverHit = lookFor;
       check(!quit.a && quit.b && !quit.c && !quit.room && quit.kind === 'results', 'found and then quit to the title: not said on a later screen; one up on the last screen goes as the results come, which keep no strip for it (' + JSON.stringify(quit) + ')');
       // every night's easter egg has its title; one with none falls back to the night's own line
       const titles = await sp.evaluate(() => ({ ids: LEVELS.map(l => l.id), t: LEVELS.map(l => EGG_TITLES[l.id] || ''), fall: (() => { const l = LEVELS[0], k = EGG_TITLES[l.id], own = l.text.egg; delete EGG_TITLES[l.id]; l.text.egg = 'Wave at it.'; const r = eggTitle(l.id); EGG_TITLES[l.id] = k; l.text.egg = own; return r; })(), none: eggTitle('nosuch') }));
-      check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t.join('|') === 'Through the window|Hit and run|Sugar rush|Staring contest|Bat shot crazy|Lifesaver|Butterfingers|Thirst quencher|Its an emergency|Cover up|Power overload|Movie night|Flip the script' && titles.fall === 'Wave at it' && titles.none === '',
+      check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t.join('|') === 'Through the window|Hit and run|Sugar rush|Staring contest|Bat shot crazy|Lifesaver|Butterfingers|Thirst quencher|Its an emergency|Cover up|Power overload|Tooth fairy|Flip the script' && titles.fall === 'Wave at it' && titles.none === '',
         'every night\'s id has a short title for its easter egg; a night without one is named by its own line (' + JSON.stringify(titles.t) + ')');
     }
     await ctx.close();
