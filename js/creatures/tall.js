@@ -30,11 +30,13 @@
 //   the foot of it, its head and its shoulders drawn as near as they are: FAIRY), offer (0..1: one long arm held out to
 //   you, the hand open and palm up at `hand`: [x, y], drawn units about its feet, where that hand is seen in the plane it
 //   stands in, handK times as big as it is, being that much nearer you; its other hand down on the end of the bed),
-//   tooth (the tooth lying in its palm), shut (0..1: its fingers closed over it), wings (0..1: its butterfly wings
+//   tooth (the tooth lying in its open palm, and kept there to the last), wings (0..1: its butterfly wings
 //   unfurled from behind its back), beat (how far open they are swept just now: 1 spread flat to you, toward 0 edge on),
 //   gone (0..1: all of it fading away), t (seconds, for the sheen on its wings), still (reduced motion: the sheen stands),
 //   steady (reduced flashes: nothing on them twinkles) }. Held out to you over the bed, its arms are drawn apart from it
-//   (c.armsApart and c.part === 'arms', as in its lunge).
+//   (c.armsApart and c.part === 'arms', as in its lunge), from the same shoulders as the rest of it is drawn with: bowed
+//   in, each arm's root is tucked in under the corner of its shoulders, inside the line of its body, so the nearer layer
+//   of arms always joins the body behind it.
 CREATURES.tall = {
   name: 'the tall one', h: 2.3, w: 1.1, faceY: 2.0, stepRate: 1.3, catchDist: 1.0, sound: 'tall', timeScale: 0.12,
   voice: { kind: 'slow', every: [6, 12] },
@@ -238,7 +240,9 @@ CREATURES.tall = {
     // (right in front of you its hands are on you, out of sight either side)
     const showArms = part === 'arms' || !(c.armsApart && (grabK > 0 || bow > 0)) && !c.close;
     for (const s of [-1, 1]) {
-      const sx = s * (sw - 0.01) + sway * 0.6, sy = tp - 0.08 * bowS + hunch;
+      // (each arm's root at its shoulder: bowed in, tucked in under the corner of the shoulders and inside the slope of its
+      // side below them, so an arm drawn apart from the body, nearer, always meets it)
+      const sx = s * (sw - lerp(0.01, 0.045 * bowS, bow)) + sway * 0.6, sy = tp + hunch - lerp(0.08, 0.04, bow) * bowS;
       let ex = s * lerp(0.28, 0.62, raise), ey = lerp(1.6, 1.9, raise) - lean * 0.1 - st * 0.25;
       let px = s * lerp(0.3, 0.5, raise), py = lerp(0.85, 2.35, raise) - lean * 0.1 * raise - st * 0.2;
       let ang = lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), spread = lerp(0.16, 0.32, raise), len = 0.24 + raise * 0.06;
@@ -314,25 +318,26 @@ CREATURES.tall = {
   // The tooth fairy's arm held out to you (k: 0..1 out), from its shoulder (sx, sy: bowS times as big as it is, being as
   // near as it is) to its hand where the night has it (f.hand, f.handK times as big: nearer still), from where it hung
   // (px, py). The hand is open, palm up, seen from a little above: the long fingers toward you, a little spread, the thumb
-  // out to the side; f.tooth: the tooth lying in the palm, small and pale; f.shut: the fingers closed up over it, a fist
+  // out to the side; f.tooth: the tooth lying in the palm, small and pale with a faint glow round it, and drawn a little
+  // larger the further off the hand is, so it can still be made out lying there as it steps back
   offerArm(ctx, s, sx, sy, px, py, f, k, bowS, col, P) {
     const a = smoothstep(k), H = f.hand || [s * 0.6, 0.6], sc = lerp(1, f.handK || 3, a), X = lerp(px, H[0], a), Y = lerp(py, H[1], a);
     const msc = (bowS + sc) / 2, MX = lerp(sx, X, 0.5) + s * 0.13 * msc * a, MY = lerp(sy, Y, 0.5) - 0.08 * msc * a;   // the elbow: out to the side, and low
     this.taper(ctx, sx, sy, 0.033 * bowS, MX, MY, 0.033 * msc, col); this.taper(ctx, MX, MY, 0.033 * msc, X, Y + 0.02 * sc, 0.027 * sc, col);
-    const shut = clamp(f.shut || 0, 0, 1);
     ctx.save(); ctx.translate(X, Y); ctx.scale(sc, sc);
-    P_ell(ctx, 0, 0, 0.066, 0.044, col);                                                                   // the palm
-    P_line(ctx, s * 0.05, 0.008, s * lerp(0.125, 0.055, shut), lerp(0.03, 0, shut), 0.022, col);         // the thumb, out to the side
-    P_ell(ctx, 0, 0.004, 0.046 * (1 - shut), 0.027 * (1 - shut), P.raw([25, 23, 31]));                   // the hollow of it: the palm is up
-    if (f.tooth && shut < 0.85) {   // the tooth in it
-      const pale = P.raw([236, 230, 212]);
-      ctx.save(); ctx.globalAlpha *= 1 - smoothstep((shut - 0.45) / 0.4);
-      P_ell(ctx, 0, 0.008, 0.0105, 0.01, pale); P_ell(ctx, -0.005, -0.002, 0.004, 0.008, pale); P_ell(ctx, 0.005, -0.002, 0.004, 0.008, pale);
+    P_ell(ctx, 0, 0, 0.066, 0.044, col);                                                    // the palm
+    P_line(ctx, s * 0.05, 0.008, s * 0.125, 0.03, 0.022, col);                             // the thumb, out to the side
+    P_ell(ctx, 0, 0.004, 0.046, 0.027, P.raw([25, 23, 31]));                                // the hollow of it: the palm is up
+    // its fingers: out toward you, long, a little spread
+    fingers(ctx, 0, -0.016, -Math.PI / 2 + s * 0.08, 0.34, 0.135, 0.021, col);
+    if (f.tooth) {   // the tooth in it
+      const z = clamp(2.6 / sc, 1, 2.2), pale = P.raw([236, 230, 212]), gl = ctx.createRadialGradient(0, 0.006, 0, 0, 0.006, 0.03 * z);
+      gl.addColorStop(0, rgba([240, 234, 214], 0.28)); gl.addColorStop(1, rgba([240, 234, 214], 0));
+      ctx.fillStyle = gl; ctx.fillRect(-0.03 * z, 0.006 - 0.03 * z, 0.06 * z, 0.06 * z);
+      ctx.save(); ctx.translate(0, 0.004); ctx.scale(z, z);
+      P_ell(ctx, 0, 0.004, 0.0105, 0.01, pale); P_ell(ctx, -0.005, -0.006, 0.004, 0.008, pale); P_ell(ctx, 0.005, -0.006, 0.004, 0.008, pale);
       ctx.restore();
     }
-    // its fingers: out toward you, long, a little spread; closing, they curl up over the palm
-    fingers(ctx, 0, -0.016 + 0.014 * shut, -Math.PI / 2 + s * 0.08, lerp(0.34, 0.12, shut), lerp(0.135, 0.045, shut), 0.021, col);
-    if (shut > 0.4) P_ell(ctx, 0, -0.004, 0.066, lerp(0.044, 0.052, shut), col);
     ctx.restore();
   },
   // Its wings (the tooth fairy's): the one beautiful thing there is. A butterfly's, two each side, from between its
