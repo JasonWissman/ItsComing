@@ -1080,7 +1080,7 @@ function buildGathering(L, s, c0, K) {
     if (m.pool) return;
     if (m.stand) {   // the climber: straight back to its spot, at a walk, and there it stays
       const du = m.stand[0] - m.fu, dv = m.stand[1] - m.fv, d = Math.hypot(du, dv), sp = Math.min(d, (still ? FR.amble : m.speed * 0.6) * m.run * dt);
-      if (sp >= d) { m.fu = m.stand[0]; m.fv = m.stand[1]; } else { m.fu += du / d * sp; m.fv += dv / d * sp; }
+      if (sp >= d || d < 1e-9) { m.fu = m.stand[0]; m.fv = m.stand[1]; } else { m.fu += du / d * sp; m.fv += dv / d * sp; }
       m.went = sp;
       return;
     }
@@ -1178,7 +1178,7 @@ function buildGathering(L, s, c0, K) {
           // the climber on its spot: down into a crouch, a spring straight up with its arms flung up over its head at the
           // top, and down into the next crouch, over and over (bx: how many so far)
           const A = o.hop * 1.3 * amp / 0.8, T = Math.sqrt(8 * Math.max(A, 1e-3) / GR), G0 = 0.32, g = G0 / (T + G0);
-          o.bx = (o.bx || 0) + dt / (T + G0);
+          o.bx = (o.bx || 0) + Math.max(0, dt) / (T + G0);
           const x = o.bx % 1;
           if (x < g) o.squash = 1 - 0.22 * Math.sin(Math.PI * x / g) * Math.min(1, amp * 2);
           else { const air = (x - g) / (1 - g); hop = air; hopT = T; o.hopY = 4 * A * air * (1 - air); o.squash = 1 + 0.08 * Math.max(0, 1 - air * 4); o.cheer = Math.sin(Math.PI * air) * Math.min(1, amp * 2); }
