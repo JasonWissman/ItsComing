@@ -410,7 +410,7 @@ LEVELS.push({
       },
     });
     // the side door: close it, then bar it with both oars. A closed door on its own only slows it down, and one oar across
-    // it is not enough: it breaks it (L.onReach).
+    // it is not enough: it knocks it out of the brackets (L.onReach).
     // Open, the hand reaches out for the leaf's edge and pulls it to. While it is still swinging shut, an oar put up to the
     // brackets gets there before the leaf does (the leaf slows as it comes): the leaf comes round into it with a thud and
     // swings back a little, and the oar is knocked back into your hands; then the leaf goes on and shuts (anything else in
@@ -425,6 +425,7 @@ LEVELS.push({
       id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: OARS.slice(), reach: 'push',
       hint() { return s.sealedE ? 'Barred with both oars.' : s.doorOpen ? 'The side door stands open.' : s.doorClosing > 0 ? 'Swinging shut.' : s.oars === 1 ? 'One oar across. It needs the other.' : 'Shut. Both oars across the brackets would hold it.'; },
       onClick() {
+        if (s.doorOpen && s.fell) { G.say('It is in the doorway.', 'It is in the doorway.'); return true; }   // (the one oar knocked out and the door burst open: there is no shutting it on it now)
         if (s.doorOpen) { s.doorOpen = false; s.doorClosing = 0.9; AUDIO.sfx('creak'); G.reach(sd, { style: 'pull', at: leafEdge }); return true; }
         if (s.doorClosing > 0) {
           G.say('Wait for it to shut.', 'The door is still swinging shut.');
@@ -613,7 +614,8 @@ LEVELS.push({
     const rattle = () => { let r = 0; for (const j of s.jolts) { const tau = L.t - j.t; if (tau >= 0) r += j.k * Math.exp(-tau * 12); } return Math.min(r, 1.5); };
     L.update = dt => {
       if (s.keyGoing && keyThere()) springOpen();
-      if (s.snapAt !== undefined && L.t >= s.snapAt && !L.won) snapOar();
+      if (s.knockAt !== undefined && L.t >= s.knockAt && !L.won) knockOut();
+      if (s.fell && !s.fell.down && L.t - s.fell.t >= s.fell.T1) { s.fell.down = true; AUDIO.sfx('clatter', panOf(L.creature.yaw)); G.shake(0.06); }   // its grip end on the deck, and the rest of it after
       if (s.holdT > 0) { s.holdT -= dt; if (s.holdT <= 0 && s.heldC) { s.heldC.hold = null; s.heldC = null; } }
       s.crankA += ((winch.count || 0) * 1.3 - s.crankA) * (1 - Math.exp(-dt * 12));   // the crank goes round smoothly to where it was turned
       if (s.doorClosing > 0) { s.doorClosing -= dt * (s.leafSlow ? 0.25 : 1); s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
@@ -640,19 +642,22 @@ LEVELS.push({
     };
     // (caught after the life ring was thrown, by whichever way: the night's easter egg says so, in its own line and no
     // other: a line toasted a moment before is not put in front of it, as game.js deathLine otherwise would)
-    L.deathCause = c => { if (s.ring) { G.lastToast = { msg: '', t: -10 }; return 'ring'; } return c.lane.idx === 1 ? (s.snap ? 'oneoar' : 'side') : null; };
+    L.deathCause = c => { if (s.ring) { G.lastToast = { msg: '', t: -10 }; return 'ring'; } return c.lane.idx === 1 ? (s.fell ? 'oneoar' : 'side') : null; };
     // a shut, unbarred door really does slow it: it bangs the door open and stands in it for a moment, long enough to shut and
     // bar it. With one oar across it, it throws itself at the door once, the door jumps on the oar, and at the second blow the
-    // oar snaps and the door bursts open (L.update), and it comes on in
+    // oar is knocked up out of its brackets, whole, and the door bursts open (L.update): the oar turns over in the air,
+    // comes down on the deck inside and lies there (s.fell: FELL, below), and it comes on in
     L.onReach = c => {
       if (c.lane.idx !== 1 || !s.doorClosed || s.sealedE) return;
-      if (s.oars === 1) { AUDIO.sfx('wetPound', panOf(c.yaw)); G.shake(0.5); c.hold = c.dist; s.heldC = c; s.holdT = 0.7; s.snapAt = L.t + 0.6; return; }
+      if (s.oars === 1) { AUDIO.sfx('wetPound', panOf(c.yaw)); G.shake(0.5); c.hold = c.dist; s.heldC = c; s.holdT = 0.7; s.knockAt = L.t + 0.6; return; }
       s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); G.toast('The side door bangs open.'); c.hold = c.dist; s.heldC = c; s.holdT = 2.5;
     };
-    const snapOar = () => {
-      s.snapAt = undefined; s.snap = { t: L.t }; s.oars = 0;
+    const knockOut = () => {
+      const c = L.creature;
+      s.knockAt = undefined; s.fell = oarFall(); s.oars = 0;
       s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG;
-      AUDIO.sfx('wetPound', panOf(L.creature.yaw)); AUDIO.sfx('crack'); AUDIO.sfx('bang'); G.shake(0.8);
+      AUDIO.sfx('wetPound', panOf(c.yaw)); AUDIO.sfx('woodKnock', panOf(c.yaw)); AUDIO.sfx('bang'); G.shake(0.8);
+      c.hold = c.dist; s.heldC = c; s.holdT = FELL.wait;   // it is in the doorway while the oar comes down
     };
     const lampX = () => Math.sin(L.t * 1.9) * (0.55 + s.swing);   // the blows on the door set it swinging harder
     // the oars across the inside of the shut side door, in its brackets, the second on top of the first: a little into the
@@ -675,17 +680,43 @@ LEVELS.push({
       ];
     };
     const oarsAt = (dx, dy) => { const out = []; for (let i = 0; i < s.oars; i++) out.push(...oarAt(i, dx, dy)); return out; };
-    // the one oar, snapped: the two halves drop off the brackets onto the deck inside, the broken ends first
-    const snapped = () => {
-      const tau = L.t - s.snap.t, fall = 4.9 * tau * tau, yc = oarY(0), x = 2.24 - Math.min(0.5, tau * 0.9), out = [];
-      if (tau > 4) return out;
-      // [its outer end, the broken end, how wide it is at the outer end (the blade's half is a blade there)]
-      for (const [zo, zb, wo] of [[-GRIP, -0.02, R0], [TIPZ, 0.03, 0.07]]) {
-        const yo = Math.max(0.03, yc - fall * 0.75), yb = Math.max(0.03, yc - fall * 1.1), out1 = Math.sign(zo);
-        out.push(SC.mkQuad(L, [x, yo - wo, zo], [x, yb - R0, zb], [x, yb + R0, zb], [x, yo + wo, zo], oarC, { sortDist: 2.2 }));
-        out.push(SC.mkQuad(L, [x - 0.002, yb - R0, zb], [x - 0.002, yb + R0, zb], [x - 0.002, yb + 0.05, zb - out1 * 0.07], [x - 0.002, yb - 0.01, zb - out1 * 0.12], scalec(oarC, 1.35), { sortDist: 2.19 }));   // the splintered end
-      }
-      return out;
+    // The one oar, knocked out of its brackets by the blow that bursts the door: it jumps up out of the cradles (open at the
+    // top) and is thrown into the room, turning as it goes, its blade end kicked up and swinging in toward you; its grip
+    // end comes down on the deck first (T1 seconds on: the clatter), the rest of it slaps down flat after (slap), the
+    // blade hops once, and it lies there, askew across the boards inside the door. FELL: the speed it is thrown at (into
+    // the room, up, along the wall), how fast it tips and swings round (radians a second), how long the slap takes, and
+    // how long the thing stands in the doorway meanwhile. oarPose(tau): its middle, and the way its length runs (from
+    // grip to blade), tau seconds after the blow; it is a round loom, so that is all of it. With reduced motion it does
+    // not turn over: it drops level, and slides out a little.
+    const FELL = { vx: -1.25, vy: 2.2, vz: 0.1, tip: 1.25, swing: 0.95, slap: 0.26, wait: 1.0 };
+    const OAR_HALF = (GRIP + TIPZ) / 2, OAR_MID = (TIPZ - GRIP) / 2;
+    const oarAxis = (tip, swing) => [-Math.sin(swing) * Math.cos(tip), Math.sin(tip), Math.cos(swing) * Math.cos(tip)];
+    const oarFree = (f, tau) => ({ c: [2.24 + FELL.vx * tau, oarY(0) + FELL.vy * tau - 4.9 * tau * tau, OAR_MID + FELL.vz * tau], u: oarAxis(f.tip * tau, f.swing * tau) });
+    const oarFall = () => {
+      const calm = SAVE.data.settings.reducedMotion, f = { t: L.t, tip: calm ? 0 : FELL.tip, swing: calm ? 0.3 : FELL.swing, down: false };
+      let T1 = 0;   // when its lower end reaches the deck
+      for (; T1 < 2; T1 += 1 / 240) { const p = oarFree(f, T1); if (p.c[1] - OAR_HALF * Math.abs(p.u[1]) <= R0) break; }
+      const p = oarFree(f, T1);
+      return Object.assign(f, { T1, end: [p.c[0] - p.u[0] * OAR_HALF, R0, p.c[2] - p.u[2] * OAR_HALF] });   // (its grip end, where it comes down)
+    };
+    s.oarPose = tau => oarPose(s.fell, tau);   // (the tests read where it lies)
+    const oarPose = (f, tau) => {
+      if (tau < f.T1) return oarFree(f, tau);
+      // down at its grip end, which skids on a little: the rest of it falls flat about that end, and the blade hops
+      const q = (tau - f.T1) / FELL.slap, k = Math.min(1, q), e = 1 - Math.exp(-(tau - f.T1) * 7);
+      const hop = q > 1 && q < 2.4 ? 0.07 * Math.abs(Math.sin((q - 1) / 0.7 * Math.PI)) * Math.exp(-(q - 1) * 2.5) : 0;
+      const u = oarAxis(f.tip * f.T1 * (1 - k * k) + hop, f.swing * (f.T1 + FELL.slap * (k - k * k / 2))), end = [f.end[0] + FELL.vx * 0.1 * e, R0, f.end[2] + FELL.vz * 0.1 * e];
+      return { c: end.map((v, i) => v + u[i] * OAR_HALF), u };
+    };
+    // drawn as its length is, from whichever side you see it: the loom a round bar, the grip worn dark at its end, the
+    // blade flaring from the neck; after the door's leaf and frame and the brackets it came out of, as the oars across are
+    const fallen = () => {
+      const f = s.fell, tau = L.t - f.t, p = oarPose(f, tau), sd0 = tau < 0.07 ? 2.226 : 2.0, at = k => L.pt(p.c[0] + p.u[0] * k, p.c[1] + p.u[1] * k, p.c[2] + p.u[2] * k), neck = NECK - OAR_MID;
+      const bar = (a, b, lw, col, i, dy) => { const pts = [at(a), at(b)]; if (dy) for (const q of pts) q[1] += dy; return { kind: 'poly', stroke: true, pts, color: col, lw, sortDist: sd0 - i * 0.002 }; };   // (still down in the cradles: behind their straps)
+      return [
+        bar(neck, neck + 0.3, 0.1, scalec(oarC, 0.95), 0), bar(neck + 0.24, OAR_HALF - 0.07, 0.15, scalec(oarC, 1.05), 1), bar(neck + 0.06, OAR_HALF - 0.1, 0.012, scalec(oarC, 0.72), 2),   // the blade, and its ridge
+        bar(-OAR_HALF, neck + 0.02, 2 * R0, oarC, 3), bar(-OAR_HALF + 0.02, neck, 0.014, scalec(oarC, 1.25), 4, 0.014), bar(-OAR_HALF, -OAR_HALF + 0.16, 2 * R0 * 0.85, scalec(oarC, 0.7), 5),      // the loom, the light along it, the grip
+      ];
     };
     // a door being pounded is drawn in pieces so it can bow; each piece is lit, fogged and ordered as the whole board it is
     // part of, so no seams of light show between them and it sorts where the whole board did
@@ -767,7 +798,7 @@ LEVELS.push({
         for (const yy of [0.5, 1.5]) R.add(SC.mkWallV(L, hx + Math.sin(a) * 0.02, hz + Math.cos(a) * 0.02, ex - Math.sin(a) * 0.02, ez - Math.cos(a) * 0.02, yy, yy + 0.05, [44, 36, 28]));
         for (const q of oarsAt(0, 0)) R.add(q);
       }
-      if (s.snap) for (const q of snapped()) R.add(q);
+      if (s.fell) for (const q of fallen()) R.add(q);
       R.glowAs(null);
       for (const q of grips) R.add(q);
       // the water flying in, and where it lands

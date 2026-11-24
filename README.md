@@ -336,7 +336,10 @@ some on the ground, so you have to turn and look down to find them.
    14 m it comes straight. With all three arrows gone and it still up, it comes flat out, straight. Three small
    bats flit about the night sky over the clearing, faint against it and easy to miss; one can be shot (drawn full and
    let go on or close by it: a small, restless target, taken by an aim within about its wingspan of it either way; the thing itself always comes first), and it squeaks and tumbles out of
-   the sky with the arrow through it. That is this night's easter egg, and it costs the arrow. The bow floats where
+   the sky with the arrow through it. That is this night's easter egg, and it costs the arrow. Where it comes down it
+   turns, in a puff of smoke, into a vampire, the arrow still in its chest, which staggers toward the porch with a hand
+   to the wound and collapses in the snow a few steps short of it (or two seconds after the thing takes its second
+   arrow, if that comes first): it harms nothing and changes nothing. The bow floats where
    your hands would hold it. Pressed with no arrows, the bow comes up and tips to show the bare shelf,
    the string is plucked twice where an arrow should sit and twitches on nothing, and it is let down; an arrow clicked at it with no bow is raised to shoot, finds nothing to sit on,
    and drops head first to the boards at your feet, where you have to pick it up again. When it reaches you it comes
@@ -348,8 +351,8 @@ some on the ground, so you have to turn and look down to find them.
    of the upturned rowboat (painted white, a little worn, with a red sheer strake and a red keel), which lie about the boathouse each in a place of its own (lying on the deck or leaning
    on the wall, each as long as it is across the door): one
    across the iron brackets, then the other on top of it (the door or either bracket will do).
-   One oar alone is not enough: it throws itself at the door, the oar snaps, the door bursts
-   open and it has you ("One oar wasn't strong enough."). Shut one way first and, once it has been held
+   One oar alone is not enough: it throws itself at the door, the oar is knocked up out of the
+   brackets and clatters down on the deck inside, the door bursts open and it has you ("One oar wasn't strong enough."). Shut one way first and, once it has been held
    there a moment, it goes under, swims round and comes across into the other side on.
    With both shut it throws itself at the door it came to, harder and faster, the boards
    bowing in and the water coming in under them, until it lets go and goes under. Tried too
@@ -388,8 +391,8 @@ some on the ground, so you have to turn and look down to find them.
    the beam goes round: its first pass knocks it sliding back down the wall, and the next
    knocks it off the tower, to fall all the way down into the sea. The lamp turns with the
    crank, lit or dark. The night's easter egg: once the new fuse is out of the toolbox, the toolbox itself can be taken
-   up (heavy, held open in front of you), and with it in hand a click on the thing, looking over the rail at it, lets it
-   go over the rail on the line straight down to it. The tower flares out below the gallery, so it hits the stone and
+   up (heavy, held open in front of you), and with it in hand a click on the thing, looking over the rail at it, swings it
+   up over the rail and lets it go on the line straight down to it. The tower flares out below the gallery, so it hits the stone and
    comes down the wall, tumbling and banging, spilling a spanner and a screwdriver. However far down the thing is,
    anywhere on the tower below you (the hover says "Drop the toolbox on it." whenever you can point at it), the box
    comes all the way down the stone to it, the fall taking as long as the height needs (about a quarter of a second to

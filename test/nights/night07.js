@@ -58,6 +58,11 @@ const toolboxFree = 'G.L.targets.find(t => t.id === "toolbox").hidden && ' + ite
 // stone onto it, the fall taking as long as that height needs (b.fell: no quicker than a clear fall from the rail, and
 // longer the further down it is), and with it running round the tower meanwhile the box comes across the face after it.
 // Then from the start, near (6 m off), looked at closely: it comes down the stone onto its face.
+// How the box is seen to go, each time, stepped by hand from the click until it lands (boxPath, below): it is swung up out
+// of the hand over the rail's top bar (1.01 m), and let go outside the rail and the edge of the floor (3.25 m from the
+// tower's axis); let go, it is drawn where it truly is (nothing jumps there), and from then on comes smoothly to where it
+// lands; and wherever it is drawn below the floor, the line from your eye to it passes outside the floor's edge: it is
+// never drawn in under the gallery, where the floor would hide it.
 // That is the night's easter egg, kept in the save the moment it lands (SAVE.data.eggs.lighthouse), and it is not a win:
 // the thing loses its hold with one hand and hangs by the other (c.dangle), held where it is, for CREATURES.climber.dangleFor
 // (1.85 s: a second of it hanging, with the drop onto the arm before and the swing back in after); then it is back on
@@ -72,6 +77,19 @@ const takeToolbox = [
 ];
 const C7 = 'G.L.creature', DANGLE = 'CREATURES.climber.dangleFor';
 const eggSaved = '(SAVE.data.eggs.lighthouse === true && JSON.parse(localStorage.getItem("itscoming.v2")).eggs.lighthouse === true)';
+const boxPath = k => ['eval', `(() => {
+  const L = G.L, b = L.s.box, o = { top: -9, clear: 9, jump: 0, let: null, r0: b.r, n: 0 };
+  const floorR = p => { const q = L.eyeH / (L.eyeH - p[1]), a = rotY(p[0] * q, p[2] * q, -L.facing); return Math.hypot(a[0], a[1] + 2.9); };   // where the line from the eye to it crosses the floor's level, from the tower's axis
+  let sh = 0;
+  while (!b.struck && !b.gone && o.n++ < 600) {
+    G.step(1 / 60); const p = b.drawn;
+    if (b.t < b.out) { o.top = Math.max(o.top, p[1]); continue; }
+    if (o.let === null) o.let = Math.abs(b.shift || 0);
+    o.jump = Math.max(o.jump, Math.abs((b.shift || 0) - sh)); sh = b.shift || 0;
+    if (p[1] < 0) o.clear = Math.min(o.clear, floorR(p) - 3.25);
+  }
+  (window.__path7 = window.__path7 || [])[${k}] = o;
+})()`];
 const toolboxDrop = [
   ['eval', 'restartLevel()'], ['wait', 300],
   ['eval', 'delete SAVE.data.eggs.lighthouse; SAVE.persist();'],
@@ -80,11 +98,14 @@ const toolboxDrop = [
     ...takeToolbox, overRail(d), ['wait', 200],
     ['expect', hovered('Drop the toolbox on it.'), where + ', over the rail at it with the toolbox: the hover offers to drop it'],
     ['shoot'], ['expect', 'G.L.s.box && G.L.s.box.hit && !G.hasItem("toolbox")', where + ': the toolbox goes over the rail'],
+    boxPath(k),
+    ['expect', '(o => o.top > 1.02 && o.r0 >= 3.3 && o.let < 0.02 && o.jump < 0.12)(window.__path7[' + k + '])', where + ': it is swung up over the rail\'s top bar and let go outside the rail; nothing jumps as it is let go, nor on its way down'],
+    ['expect', '(o => o.clear > 0.05)(window.__path7[' + k + '])', where + ': below the floor it is never drawn in under the gallery (the line from the eye to it clears the floor\'s edge)'],
     ['waitUntil', 'G.L.s.boxHit && G.L.s.box.struck && !!' + C7 + '.dangle', 8000],
     ['expect', '(c => G.L.s.box.hits >= ' + (k < 2 ? 2 : 0) + ' && Math.abs(c.blackEye) === 1 && c.hold === c.dist && G.state === "play" && !G.L.won)(' + C7 + ') && ' + eggSaved,
       where + ': it came all the way down the stone onto it: it hangs by one hand with a black eye, and the easter egg is saved'],
-    ['eval', '(b => { const h = 0.7 - b.struckY, ff = (-1.5 + Math.sqrt(2.25 + 2 * 9.8 * Math.max(0, h))) / 9.8; (window.__fell7 = window.__fell7 || [])[' + k + '] = { h, ff, t: b.fell, y0: b.y0 }; })(G.L.s.box)'],
-    ['expect', '(b => b.seen > 0.05 && b.seen < 0.5 && b.shift >= 0)(G.L.s.box)', where + ': as it lands the box is drawn on its face as that is drawn (its middle under half a metre from the middle of the face, at the thing\'s distance: the box\'s edge on its brow)'],
+    ['eval', '(b => { const h = b.from0 - b.struckY, ff = (-1.2 + Math.sqrt(1.44 + 2 * 9.8 * Math.max(0, h))) / 9.8; (window.__fell7 = window.__fell7 || [])[' + k + '] = { h, ff, t: b.fell, y0: b.y0 }; })(G.L.s.box)'],
+    ['expect', '(b => b.seen ' + (k < 2 ? '> 0.05' : '>= 0') + ' && b.seen < 0.5)(G.L.s.box)', where + ': as it lands the box is drawn on its face as that is drawn (its middle under half a metre from the middle of the face, at the thing\'s distance: ' + (k < 2 ? 'the box\'s edge on its brow)' : 'lower on the face, clear of the lip of the gallery)')],
     ['expect', '(f => f.t >= f.ff * 0.95 - 0.02 && f.t <= f.ff * 2.5 + 0.4)(window.__fell7[' + k + '])', where + ': the fall took as long as that height needs (no quicker than a clear fall, and not much slower)'],
     ['eval', 'delete SAVE.data.eggs.lighthouse; SAVE.persist(); restartLevel()'], ['wait', 300],
   ]),
