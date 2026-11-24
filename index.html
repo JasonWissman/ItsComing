@@ -281,6 +281,7 @@
   /* a whole run's time, the Best run stamp beside it (an inked stamp, red, set at a tilt: it does not push the time off
      centre), and its stars under it: those earned filled, the rest outlined */
   .runcard .rline { position: relative; display: flex; align-items: center; justify-content: center; }
+  .runcard.rrun { overflow-x: clip; }   /* (the results': its stamp comes down from twice its size, never a sideways scroll) */
   .stamp { display: inline-block; transform: rotate(-9deg); white-space: nowrap; padding: 3px 9px 2px; border: 2px solid var(--red); outline: 1px solid var(--red); outline-offset: 2px; border-radius: 3px; color: var(--red); font-size: calc(13px * var(--text-scale)); font-style: normal; letter-spacing: .22em; text-transform: uppercase; line-height: 1.3; }
   .runcard .stamp { position: absolute; left: 100%; margin-left: 16px; }
   .runcard .stars { display: flex; gap: 6px; margin-top: 4px; }
@@ -292,7 +293,7 @@
   .runcard .star { width: 22px; height: 22px; fill: none; stroke: rgba(207,200,186,.5); stroke-width: 1.4; stroke-linejoin: round; }
   .runcard .star.on { fill: #efe6d2; stroke: #efe6d2; }
   .runcard.empty .rhint { margin-top: 4px; max-width: 420px; text-align: center; }
-  #overlay.dlg > .panel.nightsp { padding-top: 20px; padding-bottom: 18px; }
+  #overlay.dlg > .panel.nightsp { padding-top: 20px; padding-bottom: 18px; overflow-x: hidden; }   /* (up and down only, as the results: MENU) */
   #overlay.dlg > .panel.nightsp h1 { margin: 0 0 12px; }
   #overlay.dlg > .panel.nightsp .mrow { margin-top: 12px; }
   #overlay.dlg > .panel.nightsp .runcard.empty { flex: 1; justify-content: center; }   /* no run yet: the word on what one is fills the dialog, the buttons at its foot */
@@ -303,7 +304,9 @@
      behind it, dimmed down to a dusk by the veil over it (the last screen before it, The End, is the morning's: the pale
      veil eases to the dark one as the card fades in, MENU toDark) */
   #overlay:has(> .results) { background: rgba(0,0,0,.8); padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-  #overlay > .results { box-sizing: border-box; width: min(760px, 100%); max-width: 760px; max-height: 100%; overflow: auto; cursor: default; padding: 18px 32px 14px;
+  /* (it scrolls up and down only, if it must: a stamp's tilt, or its coming down from bigger, or the tabs sliding over
+     are never a sideways scroll) */
+  #overlay > .results { box-sizing: border-box; width: min(760px, 100%); max-width: 760px; max-height: 100%; overflow: hidden auto; cursor: default; padding: 18px 32px 14px;
     background: rgba(7,7,9,.97); border: 1px solid rgba(207,200,186,.18); box-shadow: 0 24px 90px #000; animation: resultsin .9s ease-out .1s backwards; }
   @keyframes resultsin { from { opacity: 0; } }
   .results h1 { margin: 2px 0 14px !important; }
@@ -322,6 +325,8 @@
   .rlast.in { opacity: 1; visibility: visible; transition: opacity .9s; }
   :is(.results, .tabpanel).still :is(.rcard, .rtime, .rlast, .stars, .stamp, .egg, .emark, .emark path) { transition: none; animation: none; }
   :is(.results, .tabpanel).still :is(.rcard.in, .rrun.in) { animation: none; }
+  /* (a narrow page: Best run's stamp beside the time if there is room, else under it; never out past the card) */
+  @media (max-width: 640px) { .runcard .rline { flex-wrap: wrap; gap: 6px 14px; } .runcard .stamp { position: static; margin: 0; max-width: 100%; box-sizing: border-box; font-size: calc(13px * min(var(--text-scale), 1.4)); } }
   @media (max-width: 640px) { #overlay > .results { padding: 12px 14px 10px; } .results .ncard { min-height: 33px; padding: 4px 12px; } .results .nights { gap: 4px; } .results h1 { margin-bottom: 8px !important; } .results .rlast { margin-top: 10px; } }
   /* a phone on its side is short: the thirteen nights in three columns (down each in turn), and the whole run on one
      line under them (its label, the time with its stamp, the stars), so the results and the Scores both fit without
@@ -371,6 +376,13 @@
   .tabstack { display: grid; flex: 1 0 auto; width: 100%; }
   .tabpanel { grid-area: 1 / 1; display: flex; flex-direction: column; min-width: 0; }
   .tabpanel[hidden] { visibility: hidden; }
+  /* the results going over to their secret scenes by themselves (MENU autoEggs): This run slides off to the left, then
+     Secret scenes slides in from the right (with reduced motion: none of it, it only changes) */
+  .tabpanel.slideout { animation: tabout .26s ease-in forwards; }
+  .tabpanel.slidein { animation: tabin .42s cubic-bezier(.2,.7,.3,1); }
+  @keyframes tabout { to { opacity: 0; transform: translateX(-48px); } }
+  @keyframes tabin { from { opacity: 0; transform: translateX(48px); } }
+  @media (prefers-reduced-motion: reduce) { .tabpanel.slideout, .tabpanel.slidein { animation: none; } }
   .tabpanel > .runcard.empty { flex: 1; justify-content: center; }
   .tabpanel > .runcard { margin-top: 10px; padding-top: 9px; padding-bottom: 7px; }   /* (the tabs take a line: the run's card a little closer, so it all still fits) */
   :root[data-textsize=bigger] .tabpanel > .runcard .rtime { font-size: calc(32px * var(--text-scale)); }
@@ -388,18 +400,19 @@
   .eggcount { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 10px 0 0; font-size: calc(13px * min(var(--text-scale), 1.5)); font-style: italic; letter-spacing: .04em; color: rgba(207,200,186,.62); text-align: center; }
   /* (the results after the ending: one of the run's own, checked off as it is watched (MENU reveal): its box lights as a
      night's card does, the check box fills with a little bounce and the check is drawn in; then, if that is all of them,
-     a stamp beside the count, as Best run is stamped beside the time) */
+     a stamp under the count, in the middle, in Best run's style) */
   .egg.tick { animation: rfill 1.2s ease-out; }
   .egg.tick .emark { animation: epop .45s cubic-bezier(.3, 1.6, .5, 1); }
   .egg.tick .emark path { stroke-dasharray: 15; animation: edraw .4s ease-out .12s backwards; }
   @keyframes epop { from { transform: scale(.4); } }
   @keyframes edraw { from { stroke-dashoffset: 15; } to { stroke-dashoffset: 0; } }
-  .eggcount .ecnt { position: relative; }
-  .eggcount .stamp { position: absolute; left: 100%; top: 50%; margin: -1.05em 0 0 20px; transform: rotate(-4deg); opacity: 0; }   /* (hung beside the count, which stays in the middle; less of a tilt than Best run's: it is longer, and under the boxes) */
+  /* (less of a tilt than Best run's: it is longer; its letters no bigger than the count's, and closer on a narrow page, so
+     it is never wider than the dialog) */
+  .eggcount:has(.stamp) { flex-direction: column; gap: 10px; overflow-x: clip; }   /* (as it comes down from twice its size: nothing past the card's sides, so no sideways scroll) */
+  .eggcount .stamp { max-width: 100%; box-sizing: border-box; font-size: calc(13px * min(var(--text-scale), 1.5)); transform: rotate(-4deg); opacity: 0; }
   .eggcount .stamp.in { opacity: 1; animation: estamp .45s cubic-bezier(.3, 1.6, .5, 1) backwards; }
   @keyframes estamp { 0% { opacity: 0; transform: rotate(-4deg) scale(1.9); } 100% { opacity: 1; transform: rotate(-4deg) scale(1); } }
-  .eggcount:has(.stamp) { margin-top: 24px; }
-  @media (max-width: 640px) { .eggcount:has(.stamp) { flex-direction: column; gap: 10px; } .eggcount .stamp { position: static; margin: 0; } }   /* (no room beside it: under it) */
+  @media (max-width: 640px) { .eggcount .stamp { letter-spacing: .12em; } }
   /* (the results with their two tabs: a line more than without, so the rest a little closer, and it still fits a laptop's screen) */
   .results:has(.tabs) .kicker { display: none; }
   #overlay .results:has(.tabs) h1 { margin: 0 0 6px !important; }
@@ -417,7 +430,7 @@
     .egg .emark { border-width: 1px; border-radius: 2px; } .egg .emark svg { stroke-width: 3; }
     .eggcount { margin-top: 4px; font-size: calc(11px * min(var(--text-scale), 1.5)); line-height: 1.3; }
     .eggcount .stamp { font-size: calc(11px * min(var(--text-scale), 1.5)); padding: 1px 7px 0; }
-    .eggcount:has(.stamp) { margin-top: 13px; }
+    .eggcount:has(.stamp) { gap: 5px; }
     #overlay .results:has(.tabs) h1 { margin-bottom: 2px !important; }
     #overlay > .results:has(.tabs) { padding-top: 5px; padding-bottom: 5px; }
     .results:has(.tabs) .rlast { margin-top: 6px; }

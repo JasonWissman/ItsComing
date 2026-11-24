@@ -78,7 +78,7 @@ const MENU = (() => {
     }
     const all = !!fresh && fresh.length > 0 && n === eggs.length;
     return '<div class="nights eggs" role="list" aria-label="Secret scenes" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + rows + '</div>' +
-      '<p class="eggcount"><span class="ecnt"><span class="ecount">' + (n - eggs.filter(isNew).length) + '</span> of ' + eggs.length + ' found' + (all ? '<span class="stamp estamp">All secrets found</span>' : '') + '</span></p>';
+      '<p class="eggcount"><span class="ecnt"><span class="ecount">' + (n - eggs.filter(isNew).length) + '</span> of ' + eggs.length + ' found</span>' + (all ? '<span class="stamp estamp">All secrets found</span>' : '') + '</p>';
   }
   // two tabs over their two panels (role tablist, tab, tabpanel: pickTab), the one chosen shown: [[key, label, html], ...]
   function tabsHtml(name, tabs, on) {
@@ -153,15 +153,15 @@ const MENU = (() => {
         // whole time; the Best run stamp beside that only when it is a new best (and so the one on the Scores screen now).
         // (No run, only when the last night was reached by ?level=: then dashes)
         // If the run found easter eggs it did not have before (the save's runEggs: game.js foundEgg), two tabs, as Scores
-        // has: This run (all of the above) and Secret scenes, and it opens on the secret scenes, where the new ones are
-        // checked off one after another (eggsHtml fresh; reveal), with a stamp, All secrets found, if that is all of
-        // them now. The times come in when their tab is first opened
+        // has: This run (all of the above) and Secret scenes. It opens on This run all the same, its times coming in as
+        // ever; a moment after they are all in it slides over to the secret scenes, where the new ones are checked off
+        // one after another (eggsHtml fresh; reveal), with a stamp, All secrets found, if that is all of them now
         const R0 = G.lastRun;
         const run = R0 ? runTime(R0, 'This run', R0.best) : '<div class="rlabel">This run</div><div class="rline"><div class="rtime none">&mdash;</div></div>';
         const body = runCards(R0, 'rcard') + '<div class="runcard rrun">' + run + '</div>';
         const fresh = R0 ? SAVE.data.runEggs.filter(id => SAVE.data.eggs[id]) : [];
         return '<div class="results"><div class="kicker">Morning</div><h1>Every night survived</h1>' +
-          (fresh.length ? tabsHtml('Results', [['run', 'This run', body], ['eggs', 'Secret scenes', eggsHtml(eggList(), fresh)]], 'eggs') : body) +
+          (fresh.length ? tabsHtml('Results', [['run', 'This run', body], ['eggs', 'Secret scenes', eggsHtml(eggList(), fresh)]], 'run') : body) +
           '<div class="mrow rlast">' + btn('finish', 'Finish game', undefined, 'primary') + '</div></div>';
       }
       case 'survived':
@@ -258,7 +258,7 @@ const MENU = (() => {
   // (the only one of them in the round the keys go: ring) left and right, and a pad's d-pad, go along them choosing as they
   // go (Home and End: the first and the last). The panel of the one chosen is shown, the other's hidden. True if it changed
   const isTab = f => !!(f && f.getAttribute && f.getAttribute('role') === 'tab');
-  function pickTab(root, k) {
+  function pickTab(root, k, auto) {   // (auto: the results going over to their secret scenes by themselves, not the player)
     let changed = false;
     for (const t of root.querySelectorAll('[role="tab"]')) {
       const on = t.dataset.tab === k, p = document.getElementById(t.getAttribute('aria-controls'));
@@ -267,7 +267,7 @@ const MENU = (() => {
       if (p) p.hidden = !on;
     }
     if (changed && current && current.kind === 'nights') current.data.tab = k;
-    if (changed && current && current.kind === 'results') resultsTab(k);
+    if (current && current.kind === 'results' && !auto) { if (changed) resultsTab(k); else stopAuto(true); }   // (the one it is on chosen again: it stays there all the same)
     return changed;
   }
   function tabStep(o, dir) {
@@ -357,7 +357,7 @@ const MENU = (() => {
   const tap = () => { ensureAudio(); AUDIO.sfx('tap'); };
   const tapFor = a => { if (!CALS[a]) tap(); };
   function show(kind, data) {
-    stopReveal();
+    stopReveal(); stopAuto();
     current = { kind, data: data || {} };
     const ov = UI.overlay;
     const from = current.data.from || 'title';
@@ -464,12 +464,25 @@ const MENU = (() => {
   }
   // the results after the ending: each night's card takes its time one after another, then the full run, then the way
   // out. A click or a key hurries it to the end; with reduced motion it is all there at once.
-  // With its two tabs (the run found easter eggs: html) it is the secret scenes that are watched first (what: 'eggs'):
-  // each of the run's new ones is checked off in turn, the count under them going up with it, then the stamp if that is
-  // all of them, then the way out; the times ('run') come in the same way as ever the first time their tab is opened
-  // (resultsTab), whatever was still coming in on the other all there at once
-  let timers = [], revealing = false, revealWhat = 'run';
+  // With its two tabs (the run found easter eggs: html) This run is watched first all the same; AUTO_EGGS ms after it is
+  // all in (hurried or not) it slides over to the secret scenes by itself (autoEggs; with reduced motion it only
+  // changes), and they are watched (what: 'eggs'): each of the run's new ones is checked off in turn, the count under
+  // them going up with it, then the stamp if that is all of them. A tab chosen meanwhile (resultsTab) and it stays where
+  // it is put: whatever was still coming in on the other is all there at once, and what has not yet come in on the one
+  // chosen comes in now
+  const AUTO_EGGS = 1200;
+  let timers = [], revealing = false, revealWhat = 'run', autoT = 0, autoOff = false;
   function stopReveal() { timers.forEach(clearTimeout); timers = []; revealing = false; }
+  function stopAuto(off) { clearTimeout(autoT); autoT = 0; autoOff = !!off; if (UI.overlay) UI.overlay.querySelectorAll('.slideout').forEach(p => p.classList.remove('slideout')); }
+  function autoEggs() {
+    autoT = 0;
+    const box = UI.overlay.querySelector('.results'), runP = box && box.querySelector('#panel-run'), eggs = box && box.querySelector('#panel-eggs');
+    if (!eggs || !eggs.hidden || autoOff) return;
+    const go = () => { if (autoOff || !box.isConnected) return; pickTab(box, 'eggs', true); if (!SAVE.data.settings.reducedMotion) eggs.classList.add('slidein'); reveal(false, 'eggs'); };
+    if (SAVE.data.settings.reducedMotion) { go(); return; }
+    runP.classList.add('slideout');   // (This run goes off to the left, then Secret scenes comes in from the right)
+    autoT = setTimeout(() => { autoT = 0; runP.classList.remove('slideout'); go(); }, 260);
+  }
   function reveal(now, what) {
     stopReveal();
     const box = UI.overlay.querySelector('.results'); if (!box) return;
@@ -486,25 +499,29 @@ const MENU = (() => {
       const end = () => { if (stamp) stamp.classList.add('in'); done(); };
       if (still) { quiet(eggs); fresh.forEach(check); end(); return; }
       revealing = true;
-      const GAP = 520, t0 = 1100;
+      const GAP = 520, t0 = 800;
       fresh.forEach((e, i) => at(t0 + i * GAP, () => { check(e); e.classList.add('tick'); AUDIO.sfx('tap'); }));
       at(t0 + fresh.length * GAP + 250, () => { if (stamp) AUDIO.sfx('win'); end(); });
       return;
     }
-    if (still) { quiet(runP); cards.forEach(c => c.classList.add('in')); run.classList.add('in'); done(); return; }
+    // (all in, the stamp too: then, a moment on, over to the secret scenes, if there are new ones still to be watched)
+    const over = () => { done(); if (eggs && eggs.hidden && eggs.querySelector('.egg.fresh.unknown') && !autoOff && !autoT) autoT = setTimeout(autoEggs, AUTO_EGGS); };
+    if (still) { quiet(runP); cards.forEach(c => c.classList.add('in')); run.classList.add('in'); over(); return; }
     revealing = true;
     const GAP = 230, t0 = 700;
     cards.forEach((c, i) => at(t0 + i * GAP, () => { c.classList.add('in'); AUDIO.sfx('tap'); }));
     const t1 = t0 + cards.length * GAP + 450;
     at(t1, () => { run.classList.add('in'); AUDIO.sfx('win'); });
-    at(t1 + 1400, done);
+    at(t1 + 1600, over);   // (the stamp comes down 1.1 s after the time, over .45 s)
   }
   function hurry() { if (revealing) reveal(true, revealWhat); }
-  // a tab of the results chosen: what was coming in on the other is all there; the times come in the first time they are shown
+  // a tab of the results chosen by the player: it stays there (no going over by itself any more); what was coming in on
+  // the other is all there, and what has not yet come in on this one comes in now
   function resultsTab(k) {
-    hurry();
-    const run = UI.overlay.querySelector('.results .rrun');
+    stopAuto(true); hurry();
+    const box = UI.overlay.querySelector('.results'), run = box && box.querySelector('.rrun'), eggs = box && box.querySelector('#panel-eggs');
     if (k === 'run' && run && !run.classList.contains('in')) reveal(false, 'run');
+    else if (k === 'eggs' && eggs && eggs.querySelector('.egg.fresh.unknown')) reveal(false, 'eggs');
   }
   // the text size: every size in the menus and the HUD is its own times --text-scale; and its name on the page
   // (data-textsize: smaller, normal, bigger), for the few layouts that change with it rather than only grow
@@ -599,5 +616,5 @@ const MENU = (() => {
     if (root !== UI.overlay) return true;   // a little dialog asking: no key goes past it (not Enter with nothing focused, to resume behind it)
     return false;
   }
-  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, subBack, navKey, padSlide, scoresOpen, QUIT_TEXT, get confirming() { return !!(current && (current.data.confirmReset || current.data.confirmQuit)); }, get sub() { return current && current.kind === 'settings' ? current.data.sub || null : null; }, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); current = null; AUDIO.hush(false); } };
+  return { show, act, onKey, hurry, applySetting, applyAll, settingsInto, subBack, navKey, padSlide, scoresOpen, QUIT_TEXT, get confirming() { return !!(current && (current.data.confirmReset || current.data.confirmQuit)); }, get sub() { return current && current.kind === 'settings' ? current.data.sub || null : null; }, get kind() { return current ? current.kind : null; }, clear() { stopReveal(); stopAuto(); current = null; AUDIO.hush(false); } };
 })();
