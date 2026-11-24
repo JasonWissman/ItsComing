@@ -242,6 +242,7 @@ const AUDIO = (() => {
       const p = ac.createStereoPanner ? ac.createStereoPanner() : null; if (p) p.pan.value = clamp(pan || 0, -1, 1); // always a panner, so a loop born centred can still move
       if (p) { g.connect(p); p.connect(bus.effects); } else g.connect(bus.effects);
       const nodes = [];
+      let swell = null;   // (a loop that swells up on its own: how far up it is, for loopNow)
       if (kind === 'grind') {
         const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
         const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 240; bp.Q.value = 2.5;
@@ -267,12 +268,13 @@ const AUDIO = (() => {
         src.connect(lp); lp.connect(g); src2.connect(bp); bp.connect(g2); g2.connect(g); nodes.push(src, src2, lfo, lfo2);
       } else if (kind === 'rumble') {
         // night 12's tooth fairy waiting at the foot of the bed: a deep, low rumbling, more felt than heard, that swells up
-        // slowly out of nothing over its first eight seconds and its filter opening on over half a minute, and then holds,
+        // out of nothing over its first second (the tooth taken, it is there at once) and its filter opening on over half a
+        // minute, and then holds,
         // for as long as it waits. A low growl of a saw (34 Hz, so a laptop's small speakers still carry its overtones)
         // and a sine a little apart from it that beat slowly against each other, a breath of dark noise under them, and a
         // throb through all of it that is never even: two slow swells out of step (0.37 and 0.61 a second), nothing like
         // a heartbeat
-        const t0 = now(), sw = ac.createGain(); sw.gain.setValueAtTime(0.0001, t0); sw.gain.exponentialRampToValueAtTime(1, t0 + 8); sw.connect(g);
+        const t0 = now(), sw = ac.createGain(); sw.gain.setValueAtTime(0.0001, t0); sw.gain.exponentialRampToValueAtTime(1, t0 + 1); sw.connect(g); swell = sw;
         const th = ac.createGain(); th.gain.value = 0.7; th.connect(sw);
         for (const [f, d] of [[0.37, 0.18], [0.61, 0.12]]) { const l = ac.createOscillator(); l.frequency.value = f; const lg = ac.createGain(); lg.gain.value = d; l.connect(lg); lg.connect(th.gain); nodes.push(l); }
         const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.1; lp.frequency.setValueAtTime(70, t0); lp.frequency.linearRampToValueAtTime(190, t0 + 30); lp.connect(th);
@@ -282,18 +284,23 @@ const AUDIO = (() => {
         src.connect(nl); nl.connect(ng); ng.connect(lp); nodes.push(o, o2, src);
       }
       nodes.forEach(n => n.start());
-      loopNode = { kind, g, nodes, pan: p };
+      loopNode = { kind, g, nodes, pan: p, swell };
     }
     if (loopNode.pan && pan !== undefined) loopNode.pan.pan.setTargetAtTime(clamp(pan, -1, 1), now(), 0.1);
     loopNode.g.gain.setTargetAtTime(Math.max(0.0001, vol), now(), 0.08);
   }
-  // (faded out over about half a second, or over sec seconds)
+  // (faded out over about half a second, or over sec seconds; sec 0: cut dead, at once, with only the few milliseconds
+  // that keep it from clicking)
   function stopLoop(sec) {
     if (!loopNode) return;
     const l = loopNode; loopNode = null;
-    l.g.gain.setTargetAtTime(0.0001, now(), sec > 0 ? sec / 4 : 0.1);
+    if (sec === 0) { l.g.gain.cancelScheduledValues(now()); l.g.gain.setTargetAtTime(0.0001, now(), 0.003); }
+    else l.g.gain.setTargetAtTime(0.0001, now(), sec > 0 ? sec / 4 : 0.1);
     setTimeout(() => { l.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { l.g.disconnect(); } catch (e) {} }, sec > 0 ? sec * 1000 + 300 : 600);
   }
+
+  // the loop playing now, for the tests: its kind, and how far up its own swell is (0..1), or null
+  function loopNow() { return loopNode && ac ? { kind: loopNode.kind, swell: loopNode.swell ? loopNode.swell.gain.value : 1, state: ac.state } : null; }
 
   // ---- one-shots ----
   function heartbeat(vol, fast) {
@@ -825,13 +832,28 @@ const AUDIO = (() => {
         for (let i = 0; i < 16; i++) { const f = [2093, 2349, 2637, 3136, 3520, 4186][Math.floor(Math.random() * 6)] * (i % 3 ? 1 : 2); tone(f, 0.45 + Math.random() * 0.6, { vol: 0.034 * (1 - i / 22), type: 'sine', delay: i * 0.12 + Math.random() * 0.07, pan: clamp((pan || 0) + (Math.random() - 0.5) * 0.7, -1, 1) }); }
         noise(1.8, { type: 'highpass', freq: 7200, vol: 0.016, attack: 0.5, pan }); break;
       // night 12's tooth fairy, bowed in at the foot of the bed and waiting: a deep, low rumbling that swells up slowly and
-      // holds for as long as it waits (the loop 'rumble'; the night lets it go, fading, as its wings fan: stopLoop)
+      // holds for as long as it waits (the loop 'rumble'; the night cuts it dead as the tooth is put in its hand: stopLoop(0))
       case 'fairyRumble': setLoop('rumble', 0.55, 0); break;
       // night 5: the empty bow thrown at the vampire's head. A comic wooden bonk: a hollow knock whose note drops, its ring
       // an octave up dying fast, the click of the wood, and a little lighter knock as it bounces off
       case 'bonk':
         noise(0.03, { type: 'bandpass', freq: 1900, q: 1.4, vol: 0.4, pan }); tone(540, 0.2, { vol: 0.42, type: 'triangle', endFreq: 250, pan }); tone(1080, 0.08, { vol: 0.12, endFreq: 640, pan });
         tone(460, 0.09, { vol: 0.14, type: 'triangle', endFreq: 300, delay: 0.17, pan }); noise(0.02, { type: 'bandpass', freq: 1600, q: 1.4, vol: 0.12, delay: 0.17, pan }); break;
+      // neckClick: one small, dry click of a joint, close: its head snapping down to look at the tooth in its hand, in the
+      // silence the rumbling has just left
+      case 'neckClick': noise(0.018, { type: 'bandpass', freq: 2300, q: 4, vol: 0.5, attack: 0.001, pan }); noise(0.012, { type: 'bandpass', freq: 3800, q: 6, vol: 0.22, attack: 0.001, delay: 0.022, pan }); tone(260, 0.035, { vol: 0.1, type: 'triangle', endFreq: 150, pan }); break;
+      // wingBurst: the tooth fairy's wings thrown open, all at once, out of the dark and the quiet: the jump scare of its
+      // own. A hard, bright burst of air (a crack of noise high and wide, the rush of it sweeping down) with a deep thump of
+      // displaced air under it, and over it a shimmering chord struck at once, bright and high (a major chord with its ninth,
+      // each note a pair a little apart that beat against each other, so it shimmers), ringing out with a glitter of bells
+      // running up through it
+      case 'wingBurst': {
+        noise(0.05, { type: 'highpass', freq: 3200, vol: 0.9, attack: 0.001, pan }); noise(0.5, { type: 'bandpass', freq: 1800, q: 0.45, vol: 0.85, attack: 0.002, pan });
+        noise(0.9, { type: 'bandpass', freq: 600, q: 0.6, vol: 0.5, attack: 0.004, pan }); tone(70, 0.5, { vol: 0.75, endFreq: 34, attack: 0.002, pan }); tone(140, 0.18, { vol: 0.35, type: 'triangle', endFreq: 60, attack: 0.002, pan });
+        for (const f of [1047, 1319, 1568, 2349, 2093]) for (const d of [-3, 3]) tone(f + d, 1.6 + Math.random() * 0.5, { vol: 0.055, type: 'triangle', attack: 0.004, pan: clamp((pan || 0) + d * 0.08, -1, 1) });
+        for (let i = 0; i < 9; i++) tone([2637, 3136, 3520, 4186, 4699, 5274][i % 6], 0.35 + Math.random() * 0.3, { vol: 0.04, delay: 0.03 + i * 0.045, pan: clamp((pan || 0) + (Math.random() - 0.5) * 0.8, -1, 1) });
+        break;
+      }
       default: break;
     }
   }
@@ -920,7 +942,7 @@ const AUDIO = (() => {
     if (!hushed) glide(bus.ambient.gain, volume.ambient, 0.15);
   }
   return {
-    init, on, running, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
+    init, on, running, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop, loopNow,
     startAmbient: p => tuned(p && p.tune, () => startAmbient(p)),
     titleDrone: (k, fade) => (amb && amb.title ? titleDrone(k) : tuned('ambient:title', () => titleDrone(k, fade))),
     setLoop: (kind, vol, pan) => tuned(kind ? 'loop:' + kind : null, () => setLoop(kind, vol, pan)),

@@ -9,7 +9,7 @@
 // First, the mattress's top is one piece drawn before the covers, so no part of it is drawn over them as they come up.
 // And the night's easter egg, the tooth fairy (fairy, below): the pillow, behind you; the tooth under it; the thing
 // waiting, its hand out, a deep rumbling under everything, for as long as you like; the tooth handed over and kept on its
-// open palm, its wings, its dust, the dollar, and the night won by it.
+// open palm, its eyes shut over its cupped hands, its wings bursting open, its dust, the dollar, and the night won by it.
 const relight = ['waitUntil', "G.L.won ? true : (!G.L.s.lampOn && G.L.s.fitted && G.L.s.plugged ? (useTarget(G.L.targets.find(t => t.id === 'lamp')), false) : false)", 20000];
 const lamp = [['use', 'drawer'], ['pickup', 'bulb'], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on']];
 const mattress = ['expect', "(() => { const m = R.statics.filter(p => p.kind === 'poly' && p.pts.length >= 3 && p.pts.every(v => Math.abs(v[1] - 0.58) < 1e-6 && Math.abs(v[0]) <= 0.751) && p.pts.some(v => v[2] > 1)); return m.length === 1 && m[0].sd > 1.62; })()", 'the mattress top is one piece, drawn before the covers'];
@@ -81,7 +81,28 @@ const fairyLib = '(' + function () {
     front(id, dirs) { let most = 0; for (const down of [0, 1]) for (const d of dirs || [6, 7, 0, 1, 2]) { F.look(d, down); most = Math.max(most, F.seen(id)); } return most; },
     // the pillow lifted and the tooth taken, straight (the view as it is)
     tooth() { const p = F.T('pillow'); if (!p.hidden) p.onClick(); const t = G.L.items.find(i => i.id === 'tooth'); if (!t.taken) pickup(t); G.hand.reach = null; return G.inv.some(i => i.id === 'tooth'); },
-    note() { const c = G.L.creature, p = c.pos(), T = c.fairy || {}; F.log.push({ st: G.state, p: [p.x, p.z], lean: T.lean || 0, offer: T.offer || 0, held: T.held || 0, tooth: !!T.tooth, beat: T.beat === undefined ? 1 : T.beat, wings: T.wings || 0, gone: T.gone || 0 }); },
+    note() {
+      const c = G.L.creature, p = c.pos(), T = c.fairy || {}, X = G.L.s.fairy;
+      F.log.push({ st: G.state, p: [p.x, p.z], d: c.dist, q: X && X.given !== null ? G.L.t - X.given : null, lean: T.lean || 0, offer: T.offer || 0, held: T.held || 0, tooth: !!T.tooth, beat: T.beat === undefined ? 1 : T.beat, wings: T.wings || 0, gone: T.gone || 0,
+        look: T.look || 0, cup: T.cup || 0, fling: T.fling || 0, pop: T.pop === undefined ? 1 : T.pop, eyes: T.eyes === undefined ? 1 : T.eyes, shimmer: T.shimmer || 0, flash: T.flash || 0 });
+    },
+    // seconds since the tooth was given, and the night stepped on to so many seconds after it (to the last frame before)
+    q() { return G.L.t - G.L.s.fairy.given; },
+    to(q) { return F.step(60, () => F.q() + 1 / 60 > q - 1e-6); },
+    // At the height of its dust: what of it shows through the cloud. The view drawn as it is and again with it gone (no
+    // more than that differs: the grain is the same, four frames on and laid at the same place): how many pixels differ, and
+    // by how much at most; and
+    // the same with the cloud taken away, to be sure there is something there for it to hide (shown: how many differ then)
+    covered() {
+      const T = G.L.creature.fairy, X = G.L.s.fairy, g = T.gone, d0 = X.dust, cv = UI.canvas, ctx = cv.getContext('2d'), shot = () => ctx.getImageData(0, 0, cv.width, cv.height).data;
+      const pair = () => { const rnd = Math.random; Math.random = () => 0.5; try { T.gone = 0; render(); const a = shot(); render(); render(); render(); T.gone = 1; render(); const b = shot(); return [a, b]; } finally { T.gone = g; Math.random = rnd; } };
+      const diff = ([a, b]) => { let n = 0, most = 0, at = null; for (let i = 0; i < a.length; i += 4) { const d = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])); if (d > 3) n++; if (d > most) { most = d; at = [(i / 4) % cv.width, Math.floor(i / 4 / cv.width)]; } } return { n, most, at }; };
+      const w = diff(pair());
+      X.dust = null; const wo = diff(pair()); X.dust = d0;
+      F.cover = { n: w.n, most: w.most, at: w.at, shown: wo.n };
+      console.log('through its dust: ' + JSON.stringify(F.cover));
+      return F.cover;
+    },
     // the night stepped on by hand, every frame noted, for so many seconds or until a thing is so
     step(secs, until) { F.log = []; for (let i = 0, n = Math.round(secs * 60); i < n && G.state === 'play' && !(until && until()); i++) { update(1 / 60); F.note(); } return G.state; },
     // the same, with the view kept on it (so it is watched all the way)
@@ -114,8 +135,10 @@ const atFoot = "(c => c.lane.idx === 0 && Math.abs(c.dist - 2.1) < 0.05 && Math.
 // the pillow is behind you (a full-sized one now, against the headboard: from straight ahead and from either diagonal
 // none of it shows; looking hard round to either side and down, its near corner may); lifted, a tooth; the tooth taken,
 // the thing is at the foot of the bed, bowed in, its hand out, and it waits, a deep rumbling come up in place of the
-// night's sound, and no heartbeat; the tooth put down goes back; handed over, it keeps it on its open palm to the last,
-// the rumbling fading as its wings fan; it is the night's end, and a win, with its own card
+// night's sound within a second, and no heartbeat; the tooth put down goes back; handed over, the rumbling is cut dead and
+// its head snaps down to the tooth on its palm; it steps back, cups it in its hands and shuts its eyes; its wings burst
+// open, its eyes open shimmering; one beat of them and its dust hides it whole; it is the night's end, and a win, with
+// its own card
 const fairyPlay = [
   ['eval', fairyLib + ' window.__fy.fresh(0); G.L.creature.hold = G.L.creature.dist;'], ['wait', 250],
   ['expect', FY("fy.front('pillow', [7, 0, 1]) < 16 && !G.L.items.some(i => i.id === 'tooth') && !G.L.s.fairy && (t => t.pil.x1 - t.pil.x0 > 0.5 && t.pil.z1 - t.pil.z0 >= 0.3 && t.pil.y1 - t.pil.y0 >= 0.12 && t.pil.z0 >= t.head && t.pil.z1 < -0.15)(fy.T('pillow'))"), 'the pillow, a full-sized one behind you against the headboard, is not to be seen or pointed at from straight ahead or either diagonal, level or down'],
@@ -124,10 +147,13 @@ const fairyPlay = [
   ['click', 'pillow'], ['wait', 600],
   ['expect', "(t => G.L.s.pillowAt !== null && " + T('pillow') + ".hidden && !!t && !t.taken && G.lastToast.msg === 'A tooth.' && !G.L.s.fairy && G.L.s.mode === 'peer')(G.L.items.find(i => i.id === 'tooth'))", 'clicked, it is tipped up, and there is a tooth under it; the night goes on as it was'],
   ['eval', 'G.L.creature.hold = null;'],
-  ['pickup', 'tooth'], ['wait', 200],
+  ['pickup', 'tooth'], ['eval', 'window.__swell = [AUDIO.loopNow()];'], ['wait', 200],
   ['expect', "G.L.s.mode === 'fairy' && G.L.s.fairy.stage === 'wait' && " + atFoot + " && G.L.creature.fairy.lean === 1 && G.L.creature.fairy.offer === 1 && !G.L.creature.peer", 'the tooth taken (your back to it): it is at the foot of the bed, bowed in over it, its hand held out'],
   ['expect', FY("!fy.T('hand').hidden && (fy.look(0, false), fy.seen('hand') > 6000) && (fy.look(4, true), fy.seen('hand') === 0)"), 'and its open hand is there to point at, in front of you'],
   ['expect', FY("fy.fx.filter(n => n === 'fairyRumble').length === 1 && !fy.fx.some(n => /^stopLoop/.test(n)) && G.L.s.fairy.stage === 'wait'"), 'and a deep, low rumbling has come up in place of the night\'s sound'],
+  // (it is up in a second: a second and a bit on the loop has swelled all the way up; it was near nothing as it began)
+  ['wait', 1100], ['eval', 'window.__swell.push(AUDIO.loopNow()); console.log("the rumble swelling: " + JSON.stringify(window.__swell));'],
+  ['expect', "(w => !!w[0] && !!w[1] && w[0].kind === 'rumble' && w[1].kind === 'rumble' && w[1].state === 'running' && w[0].swell < 0.1 && w[1].swell > 0.99)(window.__swell)", 'the rumbling swells up in about a second (near nothing as it starts, all the way up a second and a bit on)'],
   ['eval', FY('(fy.reset(), fy.look(0, false))')],
   ['expect', FY("fy.step(30) === 'play' && fy.alive() && fy.log.length === 1800 && fy.beats === 0 && fy.voices === 0 && fy.steps === 0 && G.danger === 0 && G.L.s.fairy.stage === 'wait' && " + atFoot + " && G.inv.some(i => i.id === 'tooth') && !G.L.won && !fy.fx.some(n => /^stopLoop|startAmbient|fairyRumble/.test(n))"), 'it waits: thirty seconds on there has been no heartbeat, not a breath or a step from it, the rumbling holds (nothing has stopped it or started it again), and nothing has happened to you'],
   ['eval', FY("(G.holding = fy.T('covers'), fy.step(0.5))")],
@@ -135,13 +161,29 @@ const fairyPlay = [
   ['eval', FY("(fy.look(0, true), G.active = G.inv.findIndex(i => i.id === 'tooth'), dropActive(), fy.step(0.3))")],
   ['expect', "(t => !t.taken && !G.inv.includes(t) && Math.abs(t.x - 0.02) < 0.01 && t.z < -0.2 && t.z > -0.3 && G.L.s.fairy.stage === 'wait' && " + T('hand') + ".hidden === false)(G.L.items.find(i => i.id === 'tooth'))", 'the tooth put down goes back under the pillow, and it waits on'],
   ['eval', FY('fy.look(4, true)')], ['wait', 250], ['pickup', 'tooth'],
-  ['eval', FY('(delete SAVE.data.eggs.bedroom, fy.reset(), fy.look(0, false))')], ['wait', 250],
+  // (each frame as the night runs on its own, from the moment the tooth is in its hand: how far its head is down)
+  ['eval', FY('(delete SAVE.data.eggs.bedroom, fy.reset(), fy.look(0, false), window.__snap = [], (function w() { const X = G.L.s.fairy; if (X && X.given !== null) window.__snap.push({ q: G.L.t - X.given, look: G.L.creature.fairy.look }); if (window.__snap.length < 40) requestAnimationFrame(w); })())')], ['wait', 250],
   ['use', 'hand'],
   ['expect', "SAVE.data.eggs.bedroom === true && G.L.text.egg === 'Give the tooth fairy a tooth.' && secretUp() && document.querySelector('#secret .st').textContent === 'Tooth fairy' && (window.__said = performance.now()) && !G.inv.length && G.L.s.fairy.stage === 'take' && G.L.creature.fairy.tooth && G.state === 'play' && !G.L.won", 'the tooth put in its hand: the easter egg is found and saved, and named there and then, "Tooth fairy"; the night is not over yet'],
-  ['expect', FY("fy.step(4.6) === 'play' && Math.max(...fy.log.map(f => f.wings)) === 1 && !('shut' in G.L.creature.fairy) && fy.log.every(f => f.offer === 1 && f.tooth) && G.L.creature.dist > 2.75 && fy.log[fy.log.length - 1].lean === 0 && fy.log[fy.log.length - 1].held === 1 && !fy.fx.includes('wingWhoosh') && !fy.fx.some(n => /^stopLoop/.test(n)) && fy.clear()"), 'it keeps the tooth lying on its open palm, held out: it straightens, steps back from the bed, its hand held in front of it, and unfurls its wings, the rumbling still there'],
-  ['expect', FY("fy.step(2) === 'play' && G.L.creature.fairy.gone === 1 && fy.log.every(f => f.offer === 1 && f.tooth) && fy.fx.filter(n => n === 'wingWhoosh').length === 1 && fy.fx.filter(n => n === 'fairyDust').length === 1 && (i => i >= 0 && fy.fx[i - 1] === 'wingWhoosh' && fy.fx.filter(n => /^stopLoop/.test(n)).length === 1)(fy.fx.indexOf('stopLoop:1.2')) && Math.min(...fy.log.map(f => f.beat)) < 0.3 && Math.max(...fy.log.map(f => f.beat)) > 1.1 && fy.shakes === 1 && !!G.L.s.fairy.dust && fy.beats === 0"), 'one fan of them (a soft beat of wings), the rumbling fading away with it, and it is gone in fairy dust (a shimmer of bells), the tooth on its open palm to the last'],
+  // the rumbling cut dead the moment the tooth is in its hand (no fade: the loop is gone at once), and a click as its head
+  // snaps down to it. Then each stage in its time (FAIRY: night12.js), stepped through frame by frame
+  ['eval', 'window.FAIRY = { look: 1.2, pull: [1.2, 2.8], cup: [2.9, 3.35], shut: [3.05, 3.25], burst: 4.85, flap: 5.7, sweep: 0.3, dust: 5.85, dense: 0.2, gone: [6.1, 6.22] };'],
+  ['expect', FY("fy.fx.join() === 'stopLoop:0,neckClick' && AUDIO.loopNow() === null"), 'the rumbling stops dead the instant the tooth is in its hand (cut, not faded), and a joint clicks'],
+  ['waitUntil', 'window.__snap.length >= 40', 3000],
+  ['expect', "(w => w.length >= 40 && w[0].q < 0.06 && w.every(f => f.q < 0.034 || f.look > 0.95) && w.some(f => f.look > 1.03) && G.L.creature.fairy.tooth)(window.__snap)", 'at that same instant its head snaps down to the tooth on its palm (there within two frames, a little past and back)'],
+  ['expect', FY("fy.to(FAIRY.look) === 'play' && fy.log.every(f => f.look > 0.97 && f.look < 1.03 && f.tooth && f.offer === 1 && f.lean === 1 && f.eyes === 1 && f.wings === 0 && Math.abs(f.d - 2.1) < 0.02) && fy.fx.length === 2"), 'it looks at it a while, still, in silence, the tooth on its open palm held out over the bed'],
+  ['expect', FY("fy.to(FAIRY.pull[1] + 0.03) === 'play' && fy.log.every(f => f.tooth && f.offer === 1 && f.look > 0.97 && f.wings === 0 && f.eyes === 1) && fy.log[fy.log.length - 1].lean === 0 && fy.log[fy.log.length - 1].held === 1 && G.L.creature.dist > 2.5"), 'it pulls back from over the bed and stands up behind the foot of it, the tooth still on its palm, its head bowed to it'],
+  ['expect', FY('fy.clear()'), 'and it goes back on its feet, never over the bed, nothing sudden'],
+  ['expect', FY("fy.to(FAIRY.cup[1] + 0.03) === 'play' && (l => l.cup === 1 && !l.tooth && l.offer === 0 && l.eyes === 0)(fy.log[fy.log.length - 1]) && fy.log.some(f => f.tooth && f.cup > 0.3) && fy.log.every(f => f.wings === 0)"), 'it closes its two hands round the tooth (the tooth gone into them) and shuts its eyes, their light gone'],
+  ['expect', FY("fy.to(FAIRY.burst - 0.01) === 'play' && fy.log.every(f => f.eyes === 0 && f.cup === 1 && f.wings === 0 && f.flash === 0) && fy.log.length >= 60 && fy.fx.length === 2"), 'and it stands there with its eyes shut, a long moment in the dark and the quiet (well over a second, not a sound)'],
+  ['expect', FY("fy.to(FAIRY.burst + 0.3) === 'play' && fy.fx.filter(n => n === 'wingBurst').length === 1 && fy.fx.length === 3 && fy.shakes === 1 && (i => i >= 0 && fy.log[i].wings > 0.3 && fy.log[i].flash > 0.8 && fy.log[i].fling > 0.2 && fy.log.findIndex(f => f.wings >= 1) - i <= 6)(fy.log.findIndex(f => f.q >= FAIRY.burst)) && Math.max(...fy.log.map(f => f.pop)) > 1.05 && Math.max(...fy.log.map(f => f.fling)) > 1.05 && (l => l.eyes > 0.99 && l.shimmer === 1 && l.look < 0.05 && l.cup < 0.01)(fy.log[fy.log.length - 1])"), 'then all at once its arms are thrown wide and its wings burst open (in the frame it starts, full open within a tenth of a second, a little past and back), a bright rush of air, a flash, the view jolted; its head comes up and its eyes open, shimmering'],
+  ['expect', FY("fy.to(FAIRY.flap) === 'play' && fy.log.every(f => f.wings === 1 && f.eyes > 0.99 && f.shimmer === 1 && f.beat > 0.9 && f.beat < 1.1) && Math.max(...fy.log.map(f => f.beat)) - Math.min(...fy.log.map(f => f.beat)) > 0.03 && fy.log.length >= 30 && fy.fx.length === 3"), 'it holds, its wings spread and trembling, for most of a second'],
+  ['expect', FY("fy.to(FAIRY.dust + FAIRY.dense + 0.03) === 'play' && fy.fx.slice(3).join() === 'wingWhoosh,fairyDust' && Math.min(...fy.log.map(f => f.beat)) < 0.3 && !!G.L.s.fairy.dust && fy.log.every(f => f.gone === 0)"), 'one great beat of its wings (a whoosh), and as they sweep its dust bursts up round it'],
+  ['eval', FY('(fy.look(0, false), fy.covered())')],
+  ['expect', FY("fy.cover.shown > 20000 && fy.cover.n === 0 && fy.cover.most <= 3"), 'at the height of its dust nothing of it shows through the cloud (drawn with it and without it, the view is the same to the pixel; without the cloud it would show plainly)'],
+  ['expect', FY("fy.to(FAIRY.gone[1] + 0.3) === 'play' && G.L.creature.fairy.gone === 1 && fy.beats === 0"), 'and it is gone behind it'],
   ['waitUntil', "G.L.won && G.state === 'won'", 9000],
-  ['expect', "G.L.s.fairy.done && !G.L.s.coversUp && G.L.t - G.L.s.fairy.given > 11.5 && G.L.t - G.L.s.fairy.given < 13", 'the dollar comes down onto the bed, and a moment after it has settled the night is won'],
+  ['expect', "G.L.s.fairy.done && !G.L.s.coversUp && G.L.t - G.L.s.fairy.given > 11.8 && G.L.t - G.L.s.fairy.given < 12.6", 'the cloud thins away, the dollar comes down onto the bed, and a moment after it has settled the night is won'],
   ['waitUntil', "G.state === 'survived'", 12000],
   ['expect', "(p => G.survivedScreen.text === G.L.text.fairy && !!p && p.innerText.trim() === 'And you got a dollar!' && UI.overlay.querySelector('h1').textContent === 'You survived')(UI.overlay.querySelector('.intro'))", 'and the card after it is the tooth fairy\'s: "You survived", and under it "And you got a dollar!"'],
   ['expect', "(d => d < 4200 ? secretUp() : d > 4500 ? !secretUp() : true)(performance.now() - window.__said)", 'and the note is not said again there: still up only while its time (4 s from when it was found) is not done'],
@@ -169,7 +211,7 @@ const fairySeen = [
 // the view does not shake
 const fairyStill = [
   ['eval', fairyLib + ' window.__fy.fresh(0); window.__fy.set = [SAVE.data.settings.reducedMotion, SAVE.data.settings.reducedFlash]; SAVE.data.settings.reducedMotion = SAVE.data.settings.reducedFlash = true;'], ['wait', 250],
-  ['expect', FY("(fy.look(4, true), fy.tooth()) && fy.step(0.2) === 'play' && (fy.look(0, false), fy.reset(), useTarget(fy.T('hand')), G.L.s.fairy.stage === 'take') && fy.step(7.4) === 'play' && Math.min(...fy.log.map(f => f.beat)) === 1 && Math.max(...fy.log.map(f => f.beat)) === 1 && fy.shakes === 0 && G.L.creature.fairy.gone === 1 && G.L.creature.fairy.still === true && G.L.creature.fairy.steady === true && fy.fx.includes('fairyDust')"), 'with motion and flashes reduced its wings do not fan (it only fades into its dust), nothing twinkles, and the view does not shake'],
+  ['expect', FY("(fy.look(4, true), fy.tooth()) && fy.step(0.2) === 'play' && (fy.look(0, false), fy.reset(), useTarget(fy.T('hand')), G.L.s.fairy.stage === 'take') && fy.step(7.4) === 'play' && Math.min(...fy.log.map(f => f.beat)) === 1 && Math.max(...fy.log.map(f => f.beat)) === 1 && fy.shakes === 0 && fy.log.every(f => f.flash === 0 && f.look <= 1 && f.fling <= 1 && f.pop === 1 && f.wings <= 1 && f.eyes <= 1) && fy.fx.includes('wingBurst') && G.L.creature.fairy.gone === 1 && G.L.creature.fairy.still === true && G.L.creature.fairy.steady === true && fy.fx.includes('fairyDust')"), 'with motion and flashes reduced nothing snaps (its head, its arms, its eyes and its wings come quickly, never past), its wings do not beat (it only fades into its dust), nothing flashes or twinkles, and the view does not shake'],
   ['eval', FY('(SAVE.data.settings.reducedMotion = fy.set[0], SAVE.data.settings.reducedFlash = fy.set[1], restartLevel())')], ['wait', 250],
 ];
 const fairy = [].concat(fairyPlay, fairyGrab, fairySeen, fairyStill);

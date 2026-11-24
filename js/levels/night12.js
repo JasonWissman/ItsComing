@@ -14,9 +14,11 @@
 // The night's easter egg: the pillow against the headboard at your back is the one thing in the room that is behind
 // you. Look round and down at it and lift it: there is a tooth under it. Take the tooth and the night stops where it
 // is: when you turn back the thing is bowed in over the bed from the foot of it, close, one long hand held out open,
-// and a deep, low rumbling has come up under everything. Put the tooth in its hand: it keeps it lying there on its open
-// palm, straightens, steps back, unfurls a butterfly's wings, fans them once and is gone in a cloud of fairy dust, the
-// rumbling with it; a dollar bill floats down onto the bed, and the night is won (the tooth fairy, below).
+// and a deep, low rumbling has come up under everything. Put the tooth in its hand: the rumbling cuts dead, its head
+// snaps down to the tooth on its palm; it straightens and steps back, closes its hands round the tooth and its eyes, and
+// in the dark and the quiet, all at once, it throws its arms wide and a butterfly's wings burst open behind it, its eyes
+// open shimmering; one great beat of them and it is gone in a cloud of fairy dust; a dollar bill floats down onto the
+// bed, and the night is won (the tooth fairy, below).
 // The tooth: a small pale molar, its two roots down
 Object.assign(ICONS, {
   tooth(ctx, P) {
@@ -69,9 +71,10 @@ LEVELS.push({
       if (within(p, BEDR.x0, BEDR.x1, HEAD, BEDR.z1) && p.pts.every(v => v[1] === BEDR.top) && Math.min(...p.pts.map(v => v[2])) === HEAD) p.sortDist = MATTRESS;
       else if (within(p, NS.x0 - 0.01, NS.x1 + 0.01, NS.z0 - 0.01, NS.z1 + 0.01) || [-0.72, 0.72].some(x => within(p, x - 0.05, x + 0.05, HEAD + 0.05, HEAD + 0.15) || within(p, x - 0.05, x + 0.05, 1.8, 1.9))) p.sortDist = BED;
     }
-    const lampArt = STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => shown() });
-    // its cord runs off the back of the nightstand (and, under the bed, to the wall on the other side)
-    SC.quad(L, [LX + 0.04, NS.top + 0.004, LZ - 0.05], [LX + 0.06, NS.top + 0.004, LZ - 0.05], [LX + 0.12, NS.top + 0.004, NS.z0], [LX + 0.1, NS.top + 0.004, NS.z0], [30, 26, 24], { sortDist: 1.5 });
+    // (the lamp is drawn after the nightstand's top, which is drawn again over the drawer's bulb as it comes out: below)
+    const lampArt = STORY.lamp(L, parts.lamp[0], parts.lamp[1], parts.lamp[2], { lit: () => shown(), opts: { sortDist: 0.95 } });
+    // its cord (drawn every frame, below: CORD_LAMP) runs out of the lamp's base across the top, over its edge on the bed's
+    // side and down into the gap between the nightstand and the bed, away under the bed to the wall on the other side
     // the wall socket, low on the wall behind the bed on the closet side (SOCK: how far along it): a pale plate with its
     // two slots
     const SOCK = -1.78;
@@ -117,7 +120,7 @@ LEVELS.push({
     // whole of it, shut or open, x0, x1, z0, z1 in the room's own terms)
     drawer.rim = () => { const zo = DR.zf + drawerOut(); return [[DR.x0 + DR.wall, DR.zf], [DR.x0 + DR.wall, zo - DR.wall], [DR.x1 - DR.wall, zo - DR.wall], [DR.x1 - DR.wall, DR.zf]].map(([x, z]) => L.pt(x, DR.y1, z)); };
     drawer.floorY = DR.floor; drawer.out = drawerOut; drawer.box = () => [DR.x0 - 0.012, DR.x1 + 0.012, NS.z0, DR.zf + drawerOut() + DR.proud];
-    const knob = SC.mkSprite(L, DMID, (DR.y0 + DR.y1) / 2 - 0.022, DR.zf + 0.032, 0.044, 0.044, (ctx, P) => { ctx.scale(0.044, 0.044); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([120, 112, 96])); P_ell(ctx, -0.1, 0.6, 0.3, 0.3, P.col([188, 180, 160])); }, { sortDist: 1.42 });
+    const knob = SC.mkSprite(L, DMID, (DR.y0 + DR.y1) / 2 - 0.022, DR.zf + 0.032, 0.044, 0.044, (ctx, P) => { ctx.scale(0.044, 0.044); P_ell(ctx, 0, 0.5, 0.5, 0.5, P.col([120, 112, 96])); P_ell(ctx, -0.1, 0.6, 0.3, 0.3, P.col([188, 180, 160])); }, { sortDist: 0.975 });
     // The lamp's switch is the pull chain under its shade, and your hand pulls it (js/hands.js): the chain jerks and the switch
     // clicks as the hand gets there. With no bulb in, or the cord out, nothing comes of it; on Nightmare it sticks twice (the
     // chain barely gives) before it goes. The light comes on as it is pulled.
@@ -159,7 +162,7 @@ LEVELS.push({
       }
       const tug = clamp(1 - (L.t - s.tugAt) / 0.35, 0, 1) * (s.stiff ? 0.018 : 0.06), chain = P.col([150, 140, 118]);
       P_line(ctx, 0.24, 0.5, 0.24, 0.35 - tug, 0.016, chain); P_ell(ctx, 0.24, 0.34 - tug, 0.03, 0.022, chain);
-    }, { sortDist: Math.hypot(LX, LZ) - 0.002 });
+    }, { sortDist: 0.949 });
     glowWith(lampT, [lampArt, lampDetail]);
     // on Nightmare the lamp's plug lies on the floor out from the wall socket, on the closet side, pulled out: beside
     // the bed, where you look down at it from the pillow
@@ -167,8 +170,17 @@ LEVELS.push({
     const socket = unplugged && mkTarget(L, {
       id: 'socket', name: 'Cord', x: SOCK + 0.2, y: 0.02, z: PLUG[1] + 0.02, w: 0.42, h: 0.32, flat: true,
       hint() { return s.plugged ? 'Plugged in.' : 'The lamp cord, out of its socket.'; },
-      onClick() { if (s.plugged) return false; s.plugged = true; socket.hidden = true; AUDIO.sfx('clunk'); G.say('Plugged in.', 'Click.'); G.reach(socket, 'push'); return true; },   // your hand pushes the plug in
+      // your hand takes the plug up off the floor, carries it to the socket (the cord coming up off the boards after it)
+      // and pushes it in: it clunks home as it gets there (s.plugAt: when the hand took hold of it)
+      onClick() {
+        if (s.plugged) return false;
+        s.plugged = true; socket.hidden = true; G.say('Plugged in.', 'Click.');
+        const r = G.reach(socket, { style: 'touch', onTouch: () => { s.plugAt = L.t; } });
+        if (r) r.hold = PLUG_GO + 0.3; else s.plugAt = L.t - PLUG_GO;   // (no hand to show: it is in at once)
+        return true;
+      },
     });
+    const PLUG_GO = 0.45;   // how long the hand takes to carry the plug to the socket
     const covers = mkTarget(L, {
       id: 'covers', name: 'Covers', x: 0, y: 0.6, z: 1.1, w: 1.4, h: 0.6, flat: true, hold: 3.0,
       hint() { return s.coversUp ? 'Up over you.' : 'The covers. Hold on to them until they are all the way up; they slip back if you let go too soon.'; },
@@ -438,25 +450,36 @@ LEVELS.push({
     // of it, and it is at the foot of the bed (unseen, as it nearly always is while you are turned to the pillow, it is
     // simply there; watched, it comes there on its feet, out through the middle of its opening first), bowed far in over
     // the bed toward you, one long arm held out, its hand open and palm up in front of you (FAIRY.hand: where, in the
-    // room). And the night's bed of sound fades out and a deep, low rumbling swells up under everything in its place
-    // (fairyRumble: it holds as long as it waits), but there is no heartbeat (the game's is by how near it is, against how
+    // room). And the night's bed of sound fades out and a deep, low rumbling swells up under everything in its place, in a
+    // second (fairyRumble: it holds as long as it waits), but there is no heartbeat (the game's is by how near it is, against how
     // far it had to come: both are put out of reach, and kept in s.fairy.keep), not a breath from it, the lamp burns on
     // if it is on and stays out if it is out, the covers will not come up, and nothing can catch you. It waits as long as
     // you like. The tooth put down goes back under the pillow.
     // The tooth put in its hand (the hand is a target then: fairyGive) is the easter egg found, and the night's own end,
-    // in seconds from then (FAIRY): it keeps it lying there on its open palm, held out to you all the while; it
-    // straightens up and steps back from the bed (rise, to FAIRY.back), its hand coming with it to be held in front of it
-    // (HOLD: across, how high, how far in front of its feet), the tooth still on it; a butterfly's wings unfurl behind it
-    // (wings: the tall one's own, js/creatures/tall.js), a soft light in the room; they beat a little; then one great fan
-    // of them (fan: swept shut, and open at snap), the rumbling fading away as they fan, and it is gone (gone) in a cloud
-    // of fairy dust, sparks of gold and rose and blue that burst out, drift down and die away
-    // (DUST); and out of it a dollar bill comes down like a leaf (bill, over fall seconds: swinging from side to side,
-    // tilting as it swings, turning over) onto the bed in front of you (BILL), and lies there. A moment after it has
-    // landed (rest) the night is won, as any night is. With motion reduced the wings do not fan (it only fades), the dust
-    // hardly spreads and the bill comes straight down; with flashes reduced nothing twinkles.
+    // in seconds from then (FAIRY). The rumbling is cut dead that instant, and its head snaps down (a click of a joint)
+    // to look at the tooth lying on its open palm, still held out to you over the bed; it looks at it a while (look), still,
+    // in the silence. It straightens up and steps back from the bed (pull, to FAIRY.back), the hand coming with it to be
+    // held in front of it (HOLD: across, how high, how far in front of its feet), the tooth on it still, its head still
+    // bowed to it. Then it brings its two hands together round the tooth, cupped in front of its chest (cup: the tooth is
+    // gone into them), and its eyes close (shut): their light goes out, and it stands there in the dark and the quiet.
+    // Then all at once (burst) it throws its arms out wide, and a butterfly's wings burst open behind it in an instant,
+    // overshooting and settling (the tall one's own, js/creatures/tall.js), with a bright rush of air and a shimmering
+    // chord (wingBurst), a flash of their light, the view jolted; its head comes up and its eyes open, shimmering blue and
+    // rose as its wings do. It holds there, wings spread and trembling; then one great beat of them (flap: swept shut,
+    // and thrown open, with a whoosh), and as they sweep a cloud of fairy dust (dust) bursts up round it, dense enough at
+    // its height (dense) that nothing of it shows through, and it is gone behind it (gone); the cloud thins and drifts
+    // away (clear), sparks of gold and rose and blue that drift down and die away (DUST), and out of it a dollar bill
+    // comes down like a leaf (bill, over fall seconds: swinging from side to side, tilting as it swings, turning over)
+    // onto the bed in front of you (BILL), and lies there. A moment after it has landed (rest) the night is won, as any
+    // night is. With motion reduced its head and arms move without the snap, the wings come up quickly but do not burst
+    // or fan, the view is not jolted, the dust hardly spreads and the bill comes straight down; with flashes reduced
+    // nothing flashes or twinkles.
     const KT = CREATURES.tall.SCALE, PIL = parts.pillow, B0 = BEDR.top, PILLOW = [110, 106, 112];
     const TOOTH = [0.02, PIL.z1 - 0.055];   // where the tooth lies (its near end): under the pillow, a little in from its near edge
-    const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.45, tilt: 1.15, rise: [0.7, 2.2], wings: [2.2, 3.9], fan: 5.9, snap: 6.28, gone: 6.62, bill: 6.5, fall: 4.4, rest: 1.1, after: 1.4 };
+    const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.45, tilt: 1.15, look: 1.2, pull: [1.2, 2.8], cup: [2.9, 3.35], shut: [3.05, 3.25], burst: 4.85,
+      flap: 5.7, sweep: 0.3, dust: 5.85, dense: 0.2, gone: [6.1, 6.22], clear: [6.45, 8.9], bill: 6.4, fall: 4.4, rest: 1.1, after: 1.4 };
+    // (a snap: there in a frame or two, a little past, and back: a damped spring over u, at 1 by u 0.17 and 12% over at 0.35)
+    const spring = u => (u <= 0 ? 0 : 1 - Math.exp(-6 * u) * Math.cos(9 * u));
     const BILL = { w: 0.26, h: 0.11, to: [0.1, 1.5], yaw: 0.35 };   // the bill; where on the bed it comes to lie, and how it is turned
     const pillowUp = () => (s.pillowAt === null ? 0 : smoothstep((L.t - s.pillowAt) / FAIRY.lift));
     const pillowT = mkTarget(L, {
@@ -504,7 +527,7 @@ LEVELS.push({
       G.holding = null; stopWalking(c); hold(c, c.dist);
       AUDIO.stopAmbient(1.5); AUDIO.sfx('fairyRumble');   // the night's sound gone, and the rumbling coming up in its place
       c.D0 = -2000; c.catchDist = -1000;   // (and no heartbeat, wherever it is: the game's goes by how far along its way it is, between where it started and where it would have you, and both are put out of all reach)
-      c.fairy = { lean: 0, offer: 0, held: 0, hand: null, handK: 1, tooth: false, wings: 0, beat: 1, gone: 0, t: L.t };
+      c.fairy = { lean: 0, offer: 0, held: 0, hand: null, handK: 1, tooth: false, wings: 0, beat: 1, gone: 0, t: L.t, look: 0, cup: 0, fling: 0, pop: 1, eyes: 1, shimmer: 0, flash: 0 };
     };
     // its way to the foot of the bed from wherever it is, watched (points in the room): out through the middle of its
     // opening first (route, as ever), and round the corner of the bed's foot from the closet's side
@@ -526,6 +549,7 @@ LEVELS.push({
     const fairyGive = () => {
       const X = s.fairy;
       X.stage = 'take'; X.given = L.t; c0().fairy.tooth = true; c0().walk = null;
+      AUDIO.stopLoop(0); AUDIO.sfx('neckClick', panOf(c0()));   // the rumbling cut dead; its head snaps down to the tooth
       foundEgg();   // the night's easter egg, found as the tooth is handed over (kept in the save: game.js)
       L.text.win = L.text.fairy;   // and the night's card, when it has gone, is the tooth fairy's
     };
@@ -549,29 +573,75 @@ LEVELS.push({
         c.duck = c.flinch = c.reach = c.peer = 0;
         T.lean = Math.min(1, T.lean + dt / 1.3); if (T.lean > 0.5) T.offer = Math.min(1, T.offer + dt / 0.9);
       } else {
-        // the tooth is in its hand, on its open palm, and stays there: it straightens and steps back, its hand held out in
-        // front of it; its wings; one fan of them, and gone
-        const q = L.t - X.given, F = FAIRY;
-        T.offer = 1; T.lean = 1 - smoothstep((q - F.rise[0]) / (F.rise[1] - F.rise[0])); T.held = 1 - T.lean;
-        if (q >= F.rise[0] && T.gone < 1) hold(c, stepsOf(c, c.CR.pace(c, dt, F.back, 0)));
-        T.wings = smoothstep((q - F.wings[0]) / (F.wings[1] - F.wings[0]));
-        const idle = rm ? 1 : 0.9 + 0.1 * Math.cos((q - F.wings[1]) * 2.6), shut = smoothstep((q - F.fan) / (F.snap - F.fan)), open = smoothstep((q - F.snap) / 0.1);
-        T.beat = rm ? 1 : lerp(lerp(q < F.wings[1] ? 1 : idle, 0.14, shut), 1.3, open);
-        T.gone = smoothstep((q - F.snap - 0.03) / (F.gone - F.snap));
-        if (q >= F.fan && !X.whoosh) { X.whoosh = true; AUDIO.sfx('wingWhoosh', panOf(c)); AUDIO.stopLoop(1.2); }   // (and the rumbling fades away)
-        if (q >= F.snap && !X.dust) { const p = c.pos(); X.dust = L.t; X.at = { x: p.x, z: p.z }; AUDIO.sfx('fairyDust', panOf(c)); if (!rm) G.shake(0.08); }
+        // the tooth in its hand (FAIRY, above): it looks down at it; straightens and steps back; cups it in its hands and
+        // shuts its eyes; then its arms flung wide and its wings burst open, its eyes open shimmering; it holds, trembling;
+        // one great beat of its wings, and it is gone in its dust
+        const q = L.t - X.given, F = FAIRY, qb = q - F.burst, qs = qb + 0.02;   // (qs: so the frame it bursts in already shows them)
+        const pull = smoothstep((q - F.pull[0]) / (F.pull[1] - F.pull[0]));
+        T.lean = 1 - pull; T.held = pull;
+        if (q >= F.pull[0] && T.gone < 1) hold(c, stepsOf(c, c.CR.pace(c, dt, F.back, 0)));
+        // its head: snapped down to the tooth at once; snapped up to you at the burst
+        T.look = qb < 0 ? (rm ? smoothstep(q / 0.15) : spring(q / 0.2)) : 1 - (rm ? smoothstep(qb / 0.15) : spring(qb / 0.2));
+        // its hands together round it (the held-out arm coming in, the tooth gone into them as they close), its eyes shut
+        const cup = smoothstep((q - F.cup[0]) / (F.cup[1] - F.cup[0]));
+        T.fling = qb < 0 ? 0 : rm ? smoothstep(qb / 0.3) : spring(qs / 0.4);
+        T.cup = cup * clamp(1 - T.fling * 1.5, 0, 1); T.offer = 1 - smoothstep(cup / 0.7); T.tooth = cup < 0.7;   // (the cup gone as its hands are flung out)
+        T.eyes = qb < 0 ? 1 - smoothstep((q - F.shut[0]) / (F.shut[1] - F.shut[0])) : rm ? smoothstep(qb / 0.3) : clamp(spring(qs / 0.25), 0, 1.15);
+        T.shimmer = qb < 0 ? 0 : 1;
+        // its wings: burst open (well inside a quarter of a second, a little past and back), trembling, one great beat
+        T.wings = qb < 0 ? 0 : rm ? smoothstep(qb / 0.3) : clamp(spring(qs / 0.4) * 1.6, 0, 1);
+        T.pop = qb < 0 || rm ? 1 : lerp(0.55, 1, clamp(spring(qs / 0.4), 0, 1.15));
+        T.flash = qb < 0 || S.reducedFlash ? 0 : Math.exp(-qb / 0.16);
+        const shiver = rm || qb < 0.3 ? 0 : 0.045 * Math.sin(qb * 47) * Math.sin(qb * 13 + 0.7);
+        const shut = smoothstep((q - F.flap) / F.sweep), open = smoothstep((q - F.flap - F.sweep) / 0.12);
+        T.beat = rm ? 1 : lerp(lerp(1 + shiver, 0.12, shut), 1.35, open);
+        T.gone = smoothstep((q - F.gone[0]) / (F.gone[1] - F.gone[0]));
+        if (qb >= 0 && !X.burst) { X.burst = true; AUDIO.sfx('wingBurst', panOf(c)); if (!rm) G.shake(0.3); }
+        if (q >= F.flap && !X.whoosh) { X.whoosh = true; AUDIO.sfx('wingWhoosh', panOf(c)); }
+        if (q >= F.dust && !X.dust) { const p = c.pos(); X.dust = L.t; X.at = { x: p.x, z: p.z }; AUDIO.sfx('fairyDust', panOf(c)); if (!rm) G.shake(0.08); }
         if (q >= F.bill + F.fall + F.rest) X.done = true;
       }
       const h = handAt(c, T.held || 0); T.hand = h.at; T.handK = h.k;
     };
-    // the light of its wings, and of its dust after it: where, and how much (0..1), or nothing
+    // the light of its wings, and of its dust after it: where, and how much (0..1), or nothing; and the flash of them as
+    // they burst open (flash: 0..1)
     const fairyGlow = () => {
       const X = s.fairy, c = c0();
       if (!X || X.given === null || !c.fairy) return null;
-      const k = Math.max((c.fairy.wings || 0) * (1 - (c.fairy.gone || 0)), X.dust ? 1 - smoothstep((L.t - X.dust - 0.8) / 3.2) : 0);
-      if (k <= 0.01) return null;
+      const k = Math.max((c.fairy.wings || 0) * (1 - (c.fairy.gone || 0)), X.dust ? 1 - smoothstep((L.t - X.dust - 0.8) / 3.2) : 0), flash = c.fairy.flash || 0;
+      if (k <= 0.01 && flash <= 0.01) return null;
       const p = X.at || c.pos();
-      return { x: p.x, z: p.z, k };
+      return { x: p.x, z: p.z, k, flash };
+    };
+    // The cloud of its dust as its wings beat: how thick it is (0..1), qd seconds after it burst up. It billows up round
+    // it as the wings sweep (dense seconds), holds a moment, and thins away (clear). At 1 nothing behind it shows through
+    const cloudK = qd => (qd < 0 ? 0 : smoothstep(qd / FAIRY.dense) * (1 - smoothstep((qd - (FAIRY.clear[0] - FAIRY.dust)) / (FAIRY.clear[1] - FAIRY.clear[0]))));
+    // The cloud itself (metres, about where it stood: x across, y up), wide and tall enough for all of it, wings and all.
+    // Under it all a soft-edged body of glittering haze, solid through the middle at its height (CLOUD: the half-width,
+    // the half-height and the middle of that, and how far out from the middle it stays solid), and over that the puffs it
+    // is made of (PUFFS, made once: where, how big, what colour, how each drifts), rolling outward as it billows and
+    // drifting as it thins; the sparks (DUST) twinkle over it all
+    const CLOUD = { rx: 3.0, ry: 1.9, y: 1.5, solid: 0.88 };
+    const PUFFS = (() => {
+      const rnd = mulberry32(4421), cols = [[236, 222, 250], [255, 226, 186], [255, 196, 228], [190, 226, 255], [214, 255, 236]], out = [];
+      for (let i = 0; i < 34; i++) { const a = rnd() * TAU, r = Math.sqrt(rnd()); out.push({ x: Math.cos(a) * r * 2.0, y: CLOUD.y + Math.sin(a) * r * 1.3, r: 0.45 + rnd() * 0.5, col: cols[i % cols.length], dx: Math.cos(a) * (0.2 + rnd() * 0.3), dy: 0.08 + rnd() * 0.15, ph: rnd() * TAU }); }
+      return out;
+    })();
+    const drawCloud = (ctx, qd, rm, steady) => {
+      const k = cloudK(qd);
+      if (k <= 0.004) return;
+      const grow = lerp(0.55, 1, smoothstep(qd / FAIRY.dense)) + (rm ? 0 : 0.06 * Math.max(0, qd - FAIRY.dense)), drift = Math.max(0, qd - FAIRY.dense);
+      ctx.save(); ctx.translate(0, CLOUD.y); ctx.scale(CLOUD.rx * grow, CLOUD.ry * grow);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      g.addColorStop(0, rgba([240, 230, 252], k)); g.addColorStop(0.5, rgba([214, 200, 242], k)); g.addColorStop(CLOUD.solid, rgba([188, 176, 230], k)); g.addColorStop(1, rgba([170, 160, 224], 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill();
+      ctx.restore();
+      for (const p of PUFFS) {
+        const x = p.x * grow + p.dx * drift * (rm ? 0.3 : 1), y = CLOUD.y + (p.y - CLOUD.y) * grow + p.dy * drift, r = p.r * grow * (1 + 0.15 * drift);
+        const gg = ctx.createRadialGradient(x, y, 0, x, y, r), a = k * (steady ? 0.7 : 0.62 + 0.14 * Math.sin(qd * 2.2 + p.ph));
+        gg.addColorStop(0, rgba(p.col, a)); gg.addColorStop(0.6, rgba(p.col, a * 0.6)); gg.addColorStop(1, rgba(p.col, 0));
+        ctx.fillStyle = gg; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
     };
     // the fairy dust: each spark where it starts in the cloud (about where it stood, metres), the way it is thrown, how
     // it twinkles, its size, how long it lasts and its colour; made once
@@ -610,7 +680,7 @@ LEVELS.push({
       const X = s.fairy;
       if (!X || !X.dust) return;
       const S = SAVE.data.settings, rm = S.reducedMotion, q = L.t - X.dust, at = X.at;
-      if (q < DUST_LIFE) R.add({ kind: 'sprite', x: at.x, y: 0, z: at.z, w: 4.6, h: 3, noLight: true, sortDist: Math.hypot(at.x, at.z) - 0.06, draw: ctx => drawDust(ctx, q, rm, S.reducedFlash) });
+      if (q < DUST_LIFE) R.add({ kind: 'sprite', x: at.x, y: 0, z: at.z, w: 7, h: 4.2, noLight: true, sortDist: Math.hypot(at.x, at.z) - 0.06, draw: ctx => { drawCloud(ctx, q, rm, S.reducedFlash); drawDust(ctx, q, rm, S.reducedFlash); } });
       const qb = L.t - X.given - FAIRY.bill;
       if (qb < 0) return;
       const u = clamp(qb / FAIRY.fall, 0, 1), [bx, bz] = BILL.to, by = Math.max(B0, topAt(bx, bz)) + 0.012;
@@ -650,6 +720,7 @@ LEVELS.push({
     L.update = dt => {
       const c = c0();
       holdCovers();
+      if (s.plugAt !== undefined && !s.plugHome && L.t - s.plugAt >= PLUG_GO) { s.plugHome = true; AUDIO.sfx('clunk', Math.sin(wrapPi(Math.atan2(SOCK, WALL) - G.cam.yaw)) * 0.7); }   // (home in the socket)
       c.unseenMult = Math.min(c.unseenMult, 2.5); // this night already charges a lot for looking away; the tiers do not stack on top
       if (s.fairy && G.holding === covers) { G.holding = null; G.say('Not now. It is waiting.', 'Not now.'); }
       if (s.lampOn && !L.won && !s.fairy) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out. It is coming up again.', 'Dark.'); } }
@@ -658,9 +729,70 @@ LEVELS.push({
       thumping();
       if (L.won) { s.tick -= dt; if (s.tick <= 0) { s.tick = 1.0; AUDIO.sfx('tick', Math.sin(wrapPi(-Math.PI / 4 - G.cam.yaw)) * 0.7, true); } } // the clock is on the dresser to the north-west, whichever way you face
     };
-    // a cord on the floor: a pale cloth flex, so it shows on the dark boards; it goes under the bed, behind the mattress
-    const CORD = [104, 98, 90];
-    const flex = (pts, y) => { for (let i = 0; i + 1 < pts.length; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1], l = Math.hypot(bx - ax, bz - az), nx = -(bz - az) / l * 0.009, nz = (bx - ax) / l * 0.009; R.add(SC.mkQuad(L, [ax - nx, y, az - nz], [bx - nx, y, bz - nz], [bx + nx, y, bz + nz], [ax + nx, y, az + nz], CORD, { sortDist: BED })); } };
+    // The lamp's cord: a pale round cloth flex, so it shows on the dark boards, soft and slack, a smooth curve through a
+    // few points as the payphone's handset cord is (night 9), never laid flat along the wall or the floor. Out of the
+    // lamp's base it runs across the nightstand's top, over its edge on the bed's side and droops down into the gap beside
+    // the bed to the floor (CORD_LAMP), and goes away under the bed; on the other side it comes out from under the bed in
+    // a loose loop over the boards to the plug (CORD_OUT: lying out from the wall, its pins toward the socket), or, plugged
+    // in, it hangs out of the back of the plug in the socket in a soft arc down to the floor (CORD_IN), and in between it
+    // comes up off the boards after the plug in your hand. Each is drawn in short lengths, so each is as thick as it is
+    // near, with a pale sheen along its top. The part on the nightstand's top is drawn after that top (and before the lamp,
+    // whose base it goes into); the rest with the things beside and under the bed, before the bed, which hides what of it
+    // is behind it.
+    const CORD = [92, 86, 78], SHEEN = [150, 142, 128], CORD_W = 0.0065;
+    const spline = ctrl => {   // a point every centimetre or so along a smooth curve through ctrl
+      const pts = [];
+      for (let i = 0; i < ctrl.length - 1; i++) {
+        const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)];
+        const n = Math.max(3, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]) / 0.012));
+        for (let k = i ? 1 : 0; k <= n; k++) { const t = k / n, t2 = t * t, t3 = t2 * t; pts.push([0, 1, 2].map(j => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3))); }
+      }
+      return pts;
+    };
+    // (sd: where a point of it is drawn in the order of things)
+    const flex = (pts, sd) => {
+      let run = [], at = null;
+      const flush = () => {
+        if (run.length >= 2) {
+          const w = run.map(p => L.pt(p[0], p[1], p[2])), hi = run.map(p => L.pt(p[0], p[1] + CORD_W * 0.3, p[2]));
+          R.add({ kind: 'poly', pts: w, color: CORD, stroke: true, lw: CORD_W, sortDist: at });
+          R.add({ kind: 'poly', pts: hi, color: SHEEN, stroke: true, lw: CORD_W * 0.3, sortDist: at - 0.00002 });
+        }
+        run = run.length ? [run[run.length - 1]] : [];
+      };
+      for (const p of pts) {
+        const d = sd(p);
+        if (at !== null && d !== at) { run.push(p); flush(); }
+        at = d; run.push(p);
+        if (run.length >= 6) flush();
+      }
+      flush();
+    };
+    const UNDER = 1.69;   // (after the nightstand and the bed's legs, before the mattress and the covers)
+    const lampSd = p => (p[0] >= NS.x0 - 0.004 && p[1] > NS.top - 0.01 ? 0.96 : UNDER);
+    const CORD_LAMP = spline([[LX - 0.035, NS.top + 0.004, LZ - 0.03], [LX - 0.1, NS.top + 0.004, LZ - 0.07], [NS.x0 + 0.06, NS.top + 0.004, NS.z0 + 0.1], [NS.x0 + 0.005, NS.top + 0.001, NS.z0 + 0.09],
+      [NS.x0 - 0.04, NS.top - 0.07, NS.z0 + 0.1], [NS.x0 - 0.1, 0.3, NS.z0 + 0.15], [NS.x0 - 0.12, 0.006, NS.z0 + 0.24], [0.6, 0.004, NS.z0 + 0.3], [0.3, 0.004, -0.2]]);
+    // the plug: a small pale block, its two brass pins out of its front (at: the middle of its front face; it lies with
+    // its pins toward the wall, and in the socket only its body shows, out of the wall), and the cord out of its back
+    const PLUG_L = 0.07, PLUG_W = 0.05, PLUG_T = 0.028;
+    const plugAt = [SOCK + 0.04, PLUG_T / 2, 0.16], socketAt = [SOCK, 0.29, WALL + 0.003];
+    const drawPlug = (f, pins) => {
+      const [x, y, z] = f, b = z + PLUG_L, hw = PLUG_W / 2, ht = PLUG_T / 2, sd = UNDER - 0.004;
+      const q = (a, b2, c, d, col, k) => R.add(SC.mkQuad(L, a, b2, c, d, col, { sortDist: sd - k * 0.0005 }));
+      q([x - hw, y + ht, z], [x + hw, y + ht, z], [x + hw, y + ht, b], [x - hw, y + ht, b], [150, 144, 134], 2);       // its top
+      q([x + hw, y - ht, b], [x + hw, y - ht, z], [x + hw, y + ht, z], [x + hw, y + ht, b], [112, 106, 98], 1);       // its side, toward the bed
+      const ez = L.eye ? L.eye.z || 0 : 0;   // (its back, or its front, whichever faces you)
+      if (ez > b) q([x - hw, y - ht, b], [x + hw, y - ht, b], [x + hw, y + ht, b], [x - hw, y + ht, b], [124, 118, 108], 1);
+      else if (ez < z) q([x - hw, y - ht, z], [x + hw, y - ht, z], [x + hw, y + ht, z], [x - hw, y + ht, z], [124, 118, 108], 1);
+      if (pins) for (const dx of [-0.013, 0.013]) q([x + dx - 0.004, y, z], [x + dx + 0.004, y, z], [x + dx + 0.004, y, z - 0.03], [x + dx - 0.004, y, z - 0.03], [176, 150, 84], 3);
+    };
+    // the cord from the back of the plug (wherever it is: b) to under the bed: lying out over the boards (k 0), hanging out
+    // of the socket (k 1), the points of one eased into the other's as it is carried
+    const cordFrom = (b, k) => {
+      const OUT = [[b[0], b[1], b[2]], [b[0] - 0.01, 0.006, b[2] + 0.1], [SOCK + 0.06, 0.004, 0.5], [-1.5, 0.004, 0.56], [-1.3, 0.004, 0.36], [-1.02, 0.004, 0.12], [-0.5, 0.004, 0.02]];
+      const IN = [[b[0], b[1], b[2]], [b[0] + 0.01, b[1] - 0.14, b[2] + 0.08], [SOCK + 0.1, 0.012, WALL + 0.3], [SOCK + 0.32, 0.004, WALL + 0.42], [-1.25, 0.004, -0.06], [-1.0, 0.004, -0.06], [-0.5, 0.004, -0.06]];
+      return spline(OUT.map((p, i) => i ? p.map((v, j) => lerp(v, IN[i][j], k)) : p));
+    };
     // the covers: kicked down to the foot of the bed, and drawn up over you as you pull, the sheet turned down along the top
     const COV = 1.62, X = 0.77, BLANKET = [80, 84, 108], SHEET = [132, 128, 134], CREASE = [70, 74, 97], MATTRESS_TOP = [66, 62, 70];
     // (pulled up in the dark, they are ripped back down off you to the foot of the bed)
@@ -668,23 +800,18 @@ LEVELS.push({
     const coversAt = () => { const p = s.yank ? 1 - (s.yankK || 0) : s.coversUp ? 1 : (covers.progress || 0); return { p, zE: lerp(1.22, 0.1, p) + (L.won ? 0 : (s.jerk || 0) * 0.05), yE: lerp(0.64, 0.84, p), roll: lerp(0.06, 0.025, p) }; };
     L.dynamic = () => {
       ready(c0());   // (on the night's card too)
-      if (unplugged) {
-        if (!s.plugged) {
-          R.glowAs(socket);   // the cord and the plug on the floor: pointed at, they glow
-          flex([[-0.7, 0.06], [-1.0, 0.09], [-1.4, 0.2], [PLUG[0] - 0.01, PLUG[1] + 0.045]], 0.012);
-          // the plug, on its side: a pale block, its two brass pins toward the socket
-          const [px, pz] = PLUG, q = (a, b, c, d, col, sd) => R.add(SC.mkQuad(L, a, b, c, d, col, { sortDist: sd }));
-          q([px - 0.035, 0.045, pz + 0.045], [px + 0.035, 0.045, pz + 0.045], [px + 0.035, 0.045, pz - 0.045], [px - 0.035, 0.045, pz - 0.045], [150, 144, 134], 1.692);
-          q([px + 0.035, 0.012, pz + 0.045], [px + 0.035, 0.012, pz - 0.045], [px + 0.035, 0.045, pz - 0.045], [px + 0.035, 0.045, pz + 0.045], [112, 106, 98], 1.694);
-          q([px - 0.035, 0.012, pz + 0.045], [px + 0.035, 0.012, pz + 0.045], [px + 0.035, 0.045, pz + 0.045], [px - 0.035, 0.045, pz + 0.045], [124, 118, 108], 1.694);
-          for (const dx of [-0.016, 0.016]) q([px + dx - 0.006, 0.03, pz - 0.045], [px + dx + 0.006, 0.03, pz - 0.045], [px + dx + 0.006, 0.03, pz - 0.085], [px + dx - 0.006, 0.03, pz - 0.085], [176, 150, 84], 1.698);
-          R.glowAs(null);
-        } else {
-          // plugged in: the plug in the socket, the flex down the wall and away under the bed
-          R.add(SC.mkWallV(L, SOCK - 0.035, WALL + 0.012, SOCK + 0.035, WALL + 0.012, 0.245, 0.325, [150, 144, 134], { sortDist: 1.898 }));
-          R.add(SC.mkWallV(L, SOCK - 0.009, WALL + 0.014, SOCK + 0.009, WALL + 0.014, 0.012, 0.25, CORD, { sortDist: 1.897 }));
-          flex([[SOCK, WALL + 0.02], [SOCK + 0.1, -0.36], [-1.4, -0.1], [-1.0, 0.04], [-0.7, 0.06]], 0.012);
-        }
+      flex(CORD_LAMP, lampSd);
+      {
+        // where the plug is: on the floor; carried up to the socket in your hand (in an arc, lifted clear of the boards,
+        // the hand on it); home in the socket. k: how far it has gone
+        const k = !s.plugged ? 0 : s.plugAt === undefined ? (G.hand.reach && G.hand.reach.target === socket ? 0 : 1) : smoothstep(clamp((L.t - s.plugAt) / PLUG_GO, 0, 1));
+        const f = plugAt.map((v, j) => lerp(v, socketAt[j], k)); f[1] += Math.sin(Math.PI * k) * 0.12;
+        const r = G.hand.reach;
+        if (r && r.target === socket) { const p = L.pt(f[0] + 0.01, f[1] + PLUG_T, f[2] + PLUG_L * 0.6); r.at = { x: p[0], y: p[1], z: p[2] }; }   // (the hand goes with it)
+        if (!s.plugged) R.glowAs(socket);   // the cord and the plug on the floor: pointed at, they glow
+        flex(cordFrom([f[0], f[1], f[2] + PLUG_L], k), () => UNDER);
+        drawPlug(f, k < 0.98);
+        R.glowAs(null);
       }
       // the drawer. Shut, only its front shows: a board a little proud of the nightstand's front and a little wider than
       // the opening, its knob in the middle. Open, it is a box slid out on its runners toward the foot of the bed, beside
@@ -705,10 +832,17 @@ LEVELS.push({
         dw(DR.x0, zo, DR.x1, zo, DR.floor, DR.y1, [50, 38, 30], 1.46);                                 // its front, from inside
         dw(DR.x0, DR.zf, DR.x0, zo, DR.y0, DR.y1, scalec(WOOD, 0.8), 0.9);                             // its near side, from outside
         lid(DR.x0, DR.x0 + W, DR.zf, zo, DR.y1, RIM, 0.89);
+        // The nightstand's top, again, over what is in the drawer: the bulb lies in it as a card, which is drawn where it
+        // is in the order of things, after the nightstand, so as the drawer began to come out the bulb was drawn whole on
+        // top of the nightstand, still under it. The top is drawn again after it (and the drawer's front after that), so
+        // whatever of the bulb is still in under the top is hidden by it until the drawer carries it out. (Your eye is
+        // above the top, so nothing under it, in the drawer or out of it, is ever in front of it; and the lamp and its cord
+        // are drawn after it, on it.)
+        lid(NS.x0, NS.x1, NS.z0, NS.z1, NS.top, scalec([50, 38, 30], 1.08), 1.0);
       }
-      dw(fx0, zo + T, fx1, zo + T, fy0, fy1, FRONT, outside ? 1.44 : 1.465);                           // its front: the outside of it,
-      lid(fx0, fx1, zo, zo + T, fy1, scalec(FRONT, 1.15), 1.43);                                       // its top edge,
-      dw(fx0, zo, fx0, zo + T, fy0, fy1, scalec(FRONT, 0.85), 1.43);                                   // and its end
+      dw(fx0, zo + T, fx1, zo + T, fy0, fy1, FRONT, outside ? 0.985 : 1.465);                          // its front: the outside of it (after the bulb, which is behind it),
+      lid(fx0, fx1, zo, zo + T, fy1, scalec(FRONT, 1.15), 0.98);                                       // its top edge,
+      dw(fx0, zo, fx0, zo + T, fy0, fy1, scalec(FRONT, 0.85), 0.98);                                   // and its end
       if (outside) { const kp = L.pt(DMID, 0, zo + T + 0.012); knob.x = kp[0]; knob.z = kp[2]; R.add(knob); }
       R.glowAs(covers);
       // the covers: bunched at the foot they are as thick all the way across; drawn up, they rise over you and lie flat on the
@@ -863,13 +997,13 @@ LEVELS.push({
     L.dynamicLights = () => {
       const out = [], f = fairyGlow();
       if (shown()) { const p = L.pt(LX, 1.05, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }); }
-      if (f) out.push({ x: f.x, y: 1.5, z: f.z - 0.5, r: 4.2, i: 0.6 * f.k, color: [176, 196, 255] });
+      if (f) out.push({ x: f.x, y: 1.5, z: f.z - 0.5, r: 4.2 + 2 * f.flash, i: 0.6 * f.k + 1.6 * f.flash, color: [176, 196, 255] });   // (and the flash of them bursting open)
       return out;
     };
     L.glows = () => {
       const out = [], f = fairyGlow();
       if (shown()) { const p = L.pt(LX, 1.0, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }); }
-      if (f) out.push({ x: f.x, y: 1.5, z: f.z, r: 1.9, color: [170, 196, 255], a: 0.2 * f.k });
+      if (f) out.push({ x: f.x, y: 1.5, z: f.z, r: 1.9 + 1.2 * f.flash, color: [170, 196, 255], a: 0.2 * f.k + 0.5 * f.flash });
       return out.length ? out : null;
     };
     // ---- the win: the covers come up over your eyes, and it plays out under them ----
@@ -963,6 +1097,9 @@ LEVELS.push({
       ctx.restore();
     };
     L.overlay = (ctx, W, H) => {
+      // the flash of its wings bursting open, over the whole view, gone in a moment (never with flashes reduced: fairying)
+      const fl = s.fairy && c0().fairy ? c0().fairy.flash || 0 : 0;
+      if (fl > 0.01) { ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = rgba([196, 206, 255], 0.55 * fl); ctx.fillRect(0, 0, W, H); ctx.restore(); }
       const k = s.over || 0;
       if (k <= 0) return;
       const t = L.aftermathT, rm = SAVE.data.settings.reducedMotion, c = c0();
