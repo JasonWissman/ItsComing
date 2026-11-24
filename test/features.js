@@ -2413,7 +2413,7 @@ const hoverHit = lookFor;
         box: [r.left, r.top, r.right, r.bottom].map(Math.round), inside: r.width > 40 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H, mid: Math.round(r.left + r.width / 2 - W / 2), low: r.top > H * 0.7 && H - r.bottom <= 30,
         over: others.filter(([, q]) => !apart(r, q)).map(([id]) => id), seen: others.map(([id]) => id).join(), clear: parts.length >= 3 && parts.every(q => apart(r, q)),
         // (what of the screen can be seen, scrolled or not, ends above the note: the strip the overlay keeps clear)
-        room: Math.round(or.bottom - parseFloat(oc.borderBottomWidth) - r.top), scroll: ov.scrollHeight - ov.clientHeight, notHit: at !== el && !el.contains(at), heard: window.__heard.length };
+        room: Math.round(or.bottom - parseFloat(oc.borderBottomWidth) - r.top), scroll: ov.scrollHeight - ov.clientHeight, notHit: at !== el && !el.contains(at), heard: window.__heard.filter(n => !/^sting/.test(n)).length };   // (the death's own sting is not the note's)
     });
     const dead = async () => { await sp.evaluate(() => die()); await sp.waitForFunction(() => G.state === 'dead' && +getComputedStyle(UI.overlay).opacity > 0.9, null, { timeout: 20000 }).catch(() => {}); await sp.waitForTimeout(700); };
     const a = await find(); await sp.waitForTimeout(700);
