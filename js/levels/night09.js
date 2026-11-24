@@ -41,6 +41,38 @@
 // and have it answered), and then comes on for you as before
 // (copBegin, copSetOff, copRun, copMan, below the car). The police come once a night; caught after calling them, it is
 // "The police can't help you here."
+// What is printed on the phone (its keys, its card, its display, the coin's figure) is put down as a picture of the words,
+// not with fillText: the canvas sets each line of text on a whole pixel, so words drawn straight onto a key that moves by
+// less than one (the view's slow sway with the zoom held, a slow turn) hop a pixel against it now and then and seem to
+// shake on it. A picture goes down where it falls, to a fraction of a pixel, and moves with the key as one with it.
+// inkText draws text just as fillText would (the context's font, textAlign, textBaseline and fill colour), from a picture
+// of it made once for each text, font and size: at about as many pixels to its unit as the view gives it now (a power of
+// two of them, so that zooming makes a new one only now and then, and it is never shown more than twice its size or
+// less than half of it), lettered again only when its colour changes (the booth's light flickers).
+const INKED = new Map();
+function inkText(ctx, text, x, y) {
+  text = String(text);
+  const font = ctx.font, align = ctx.textAlign, base = ctx.textBaseline, col = ctx.fillStyle;
+  const m = ctx.getTransform ? ctx.getTransform() : null, px = m ? Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) : 1;   // (pixels to the unit, here)
+  const lv = Math.pow(2, clamp(Math.ceil(Math.log2(px || 1)), -4, 5)), key = text + '|' + font + '|' + align + '|' + base + '|' + lv;
+  let e = INKED.get(key);
+  if (!e) {
+    if (INKED.size > 400) INKED.clear();   // (what the display shows comes and goes)
+    const cv = document.createElement('canvas'), g = cv.getContext('2d'), f = font.replace(/([\d.]+)px/, (_, n) => (n * lv) + 'px');
+    g.font = f; g.textAlign = align; g.textBaseline = base;
+    const mt = g.measureText(text), pad = 2;
+    const l = Math.ceil(mt.actualBoundingBoxLeft) + pad, a = Math.ceil(mt.actualBoundingBoxAscent) + pad;
+    cv.width = Math.max(1, l + Math.ceil(mt.actualBoundingBoxRight) + pad); cv.height = Math.max(1, a + Math.ceil(mt.actualBoundingBoxDescent) + pad);
+    e = { cv, g, f, l, a, col: null }; INKED.set(key, e);
+  }
+  if (e.col !== col) {
+    const g = e.g; g.clearRect(0, 0, e.cv.width, e.cv.height);
+    g.font = e.f; g.textAlign = align; g.textBaseline = base; g.fillStyle = col; g.fillText(text, e.l, e.a); e.col = col;
+  }
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(e.cv, x - e.l / lv, y - e.a / lv, e.cv.width / lv, e.cv.height / lv);
+  ctx.restore();
+}
 Object.assign(ICONS, {
   // a small battered notebook, spiral at the top, held shut with an elastic band (as it is carried in the void, night 13)
   notebook(ctx, P) {
@@ -63,7 +95,7 @@ Object.assign(ICONS, {
     for (let k = 0; k < 28; k++) { const a = k / 28 * TAU; P_line(ctx, Math.cos(a) * 0.4, 0.52 + Math.sin(a) * 0.4, Math.cos(a) * 0.44, 0.52 + Math.sin(a) * 0.44, 0.014, ink); }   // the milling
     P_ell(ctx, 0, 0.52, 0.36, 0.36, face2); P_ell(ctx, -0.03, 0.55, 0.33, 0.33, face);
     ctx.save(); ctx.translate(0.0, 0.42); ctx.scale(0.0125, -0.0125);
-    ctx.font = 'bold 22px Georgia, "Liberation Serif", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = ink; ctx.fillText('10', 0, 0);
+    ctx.font = 'bold 22px Georgia, "Liberation Serif", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = ink; inkText(ctx, '10', 0, 0);
     ctx.restore();
     P_line(ctx, -0.24, 0.79, 0.12, 0.84, 0.035, shine);            // the light along its top
     // lying about, it catches the light now and then: a glint at its edge (still in the hand, where the time is nought)
@@ -563,7 +595,7 @@ Object.assign(ICONS, {
         const print = (t, x, y, px, col, fit) => {
           ctx.save(); ctx.translate(x, y); ctx.scale(0.001, -0.001); ctx.font = 'bold ' + px + 'px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col;
           const w = ctx.measureText(t).width; if (fit && w > fit) ctx.scale(fit / w, 1);
-          ctx.fillText(t, 0, 0); ctx.restore();
+          inkText(ctx, t, 0, 0); ctx.restore();
         };
         print('TO CALL', 0, CH - BAND / 2 - 0.004, 11, P.col([236, 226, 210]), (CW - 2 * CM) * 1000);   // (caps about 8mm high, in the middle of the band)
         const ink = P.col([30, 34, 58]), red = P.col([150, 40, 36]), col = (CW - 2 * CM) / 3;
@@ -700,8 +732,8 @@ Object.assign(ICONS, {
         if (!dn) P_rect(ctx, -0.017, y0 + 0.0285, 0.034, 0.0035, P.col([240, 241, 243]));   // the light along its top edge
         ctx.save(); ctx.translate(0, y0 + (LETTERS[ch] ? 0.0195 : 0.016)); ctx.scale(0.00105, -0.00105);
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.col(dn ? [16, 18, 22] : [30, 32, 38]);
-        ctx.font = 'bold 20px Arial, Helvetica, sans-serif'; ctx.fillText(ch, 0, ch === '*' ? 5 : 1);
-        if (LETTERS[ch]) { ctx.font = 'bold 7px Arial, Helvetica, sans-serif'; ctx.fillText(LETTERS[ch], 0, 12.5); }
+        ctx.font = 'bold 20px Arial, Helvetica, sans-serif'; inkText(ctx, ch, 0, ch === '*' ? 5 : 1);
+        if (LETTERS[ch]) { ctx.font = 'bold 7px Arial, Helvetica, sans-serif'; inkText(ctx, LETTERS[ch], 0, 12.5); }
         ctx.restore();
       };
       for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
@@ -1371,7 +1403,7 @@ Object.assign(ICONS, {
           ctx.font = font;
           const tw = ctx.measureText(text).width;
           if (tw * k > room) k = room / tw;
-          ctx.save(); ctx.translate(-w / 2 + PAD, y); ctx.scale(k, -k); ctx.fillText(text, 0, 0); ctx.restore();
+          ctx.save(); ctx.translate(-w / 2 + PAD, y); ctx.scale(k, -k); inkText(ctx, text, 0, 0); ctx.restore();
         };
         line(txt[0], h - 0.016, 'bold 20px Arial, Helvetica, sans-serif', 0.0006);
         line(txt[1], 0.01, 'bold 20px "Courier New", "Liberation Mono", monospace', 0.00125);
