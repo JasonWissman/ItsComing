@@ -27,6 +27,10 @@ const SAVE = (() => {
       // the easter eggs first found in the run under way (night ids, in the order found), for the results after the
       // ending: emptied as a run begins (game.js: beginRun). In the save, so whatever becomes of the page they are kept
       runEggs: [],
+      // the last night's two endings (its own, and its easter egg's): which was come to first, 'ending' or 'egg' ('' for
+      // neither yet). That one is the player's own; the easter egg is found once the other has been come to as well
+      // (game.js: finishEnding; ending)
+      firstEnding: '',
     };
   }
   let data = fresh();
@@ -60,6 +64,9 @@ const SAVE = (() => {
           data.warned = d.warned === true;
           data.eggs = {}; for (const k in (d.eggs || {})) if (d.eggs[k] === true) data.eggs[k] = true;
           data.runEggs = (Array.isArray(d.runEggs) ? d.runEggs : []).filter((k, i, a) => typeof k === 'string' && data.eggs[k] === true && a.indexOf(k) === i);
+          // (a save from before the two endings were told apart: the egg found is kept; the game finished without it was
+          // finished by the ending of its own, so that was the first)
+          data.firstEnding = d.firstEnding === 'ending' || d.firstEnding === 'egg' ? d.firstEnding : data.eggs.void || data.complete[ONLY] ? 'ending' : '';
           if (folded) persist();
           return data;
         }
@@ -132,7 +139,14 @@ const SAVE = (() => {
   // a night's easter egg found (id: the night's id): kept; true if it was not known before (inRun: a full run is under
   // way, and it is one of that run's own). runStart: a run begins, with none of its own yet
   function egg(id, inRun) { if (!id || data.eggs[id]) return false; data.eggs[id] = true; if (inRun) data.runEggs.push(id); persist(); return true; }
+  // one of the last night's two endings come to, the whole way (kind: 'ending' or 'egg'; id: that night's): the first
+  // ever is kept as the player's own, and finds nothing; the other one, come to after it, finds its easter egg (egg: true
+  // if that is the first time)
+  function ending(id, kind, inRun) {
+    if (!data.firstEnding) { data.firstEnding = kind; persist(); return false; }
+    return kind !== data.firstEnding && egg(id, inRun);
+  }
   function runStart() { if (data.runEggs.length) { data.runEggs = []; persist(); } }
   function reset() { data = fresh(); persist(); }
-  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, egg, runStart, reset, nearest, TEXT_SIZES, get data() { return data; } };
+  return { load, persist, unlock, recordRun, setSetting, defaults, markComplete, markWarned, egg, ending, runStart, reset, nearest, TEXT_SIZES, get data() { return data; } };
 })();

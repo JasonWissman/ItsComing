@@ -197,7 +197,7 @@ async function run(browser, check) {
       SAVE.reset(); SAVE.egg('field'); beginRun(); o.begun = SAVE.data.runEggs.length;
       startLevel(0, false); G.run = { t: 0, night: 2, from: 0, nights: [] }; startLevel(2, false);
       o.first = foundEgg(); o.again = foundEgg(); o.inRun = SAVE.data.runEggs.join(); o.saved = JSON.parse(localStorage.getItem('itscoming.v2')).runEggs.join();
-      G.run = null; G.lastRun = { t: 1, nights: [], best: false }; startLevel(12, false); G.lastRun = { t: 1, nights: [], best: false }; foundEgg(); o.ending = SAVE.data.runEggs.join();
+      G.run = null; SAVE.data.firstEnding = 'ending'; startLevel(12, false); G.lastRun = { t: 1, nights: [], best: false }; foundEgg(); finishEnding(); o.ending = SAVE.data.runEggs.join();
       G.lastRun = null; startLevel(4, false); foundEgg(); o.outside = SAVE.data.runEggs.join();
       const d = JSON.parse(localStorage.getItem('itscoming.v2')); d.runEggs = ['graveyard', 'graveyard', 'nosuch', 7, 'quarry', 'void']; localStorage.setItem('itscoming.v2', JSON.stringify(d)); SAVE.load(); o.loaded = SAVE.data.runEggs.join();
       delete d.runEggs; localStorage.setItem('itscoming.v2', JSON.stringify(d)); SAVE.load(); o.none = JSON.stringify(SAVE.data.runEggs);
@@ -206,6 +206,25 @@ async function run(browser, check) {
     });
     check(r.begun === 0 && r.first === true && r.again === false && r.inRun === 'graveyard' && r.saved === 'graveyard' && r.ending === 'graveyard,void' && r.outside === 'graveyard,void' && r.loaded === 'graveyard,void' && r.none === '[]' && r.rebegun === '0/0',
       'the run\'s own secret scenes: those first found in it (and in its last night\'s ending), once each, kept in the save; not one found outside a run; a save\'s list tidied as it loads; a new run begins with none (' + JSON.stringify(r) + ')');
+    // the Void's two endings, its own and its easter egg's: the first come to is the player's own and finds nothing (the
+    // game is finished all the same); the other, come to after it, finds the easter egg, its note said as it comes, in
+    // either order; the same one again finds nothing. A save from before keeps the egg it found, and one that finished the
+    // game without it came to the ending of its own first
+    const two = await page.evaluate(() => {
+      const end = egg => { startLevel(12, false); if (egg) foundEgg(); const f = G.L.eggEnding; finishEnding(); const el = document.getElementById('secret'), o = [!!f, SAVE.data.firstEnding, !!SAVE.data.eggs.void, MENU.kind, G.state, !!SAVE.data.complete.nightmare, el.classList.contains('show') ? el.querySelector('.st').textContent : ''].join(); secretHide(); showTitle(); return o; };
+      const o = {};
+      for (const [k, order] of [['realFirst', [false, false, true, true]], ['eggFirst', [true, true, false]]]) { SAVE.reset(); o[k] = order.map(end); o[k + 'Saved'] = JSON.parse(localStorage.getItem('itscoming.v2')).firstEnding + '/' + !!JSON.parse(localStorage.getItem('itscoming.v2')).eggs.void; }
+      const old = x => { localStorage.setItem('itscoming.v2', JSON.stringify(Object.assign({ v: 4, unlocked: { nightmare: 13 }, settings: {}, warned: true }, x))); SAVE.load(); return SAVE.data.firstEnding + '/' + !!SAVE.data.eggs.void; };
+      o.old = [old({ complete: { nightmare: true }, eggs: { void: true, road: true } }), old({ complete: { nightmare: true }, eggs: { road: true } }), old({ complete: {}, eggs: {} }), old({ complete: { nightmare: true }, eggs: {}, firstEnding: 'egg' }), old({ complete: {}, eggs: {}, firstEnding: 'nonsense' })];
+      SAVE.reset(); return o;
+    });
+    // (each: the easter egg's ending or not, the first ending kept, the egg found, the screen, the game finished, the note)
+    const T2 = ',ending,end,true,';
+    check(two.realFirst.join(' | ') === ['false,ending,false' + T2, 'false,ending,false' + T2, 'true,ending,true' + T2 + 'Flip the script', 'true,ending,true' + T2].join(' | ') && two.realFirstSaved === 'ending/true' &&
+      two.eggFirst.join(' | ') === ['true,egg,false' + T2, 'true,egg,false' + T2, 'false,egg,true' + T2 + 'Flip the script'].join(' | ') && two.eggFirstSaved === 'egg/true' &&
+      two.old.join(' ') === 'ending/true ending/false /false egg/false /false',
+      'the Void\'s two endings: the first come to finishes the game and finds nothing; the other after it finds Flip the script and says so, in either order; again, nothing; old saves keep what they found, a finished one its own ending first (' + JSON.stringify(two) + ')');
+
     // things named without a count: the graveyard's bags of salt and sugar (two uses each, and no ×2); the arrows keep theirs
     const lab = await page.evaluate(() => {
       const names = () => { G.invSig = ''; G.step(0.016, 1); return [...document.querySelectorAll('#inventory .slot .label')].map(e => e.textContent).join('|'); };

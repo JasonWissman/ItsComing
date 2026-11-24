@@ -417,6 +417,9 @@ function showTitle() {
 function finishEnding() {
   const L = G.L;
   SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id);
+  // its two endings (its own; its easter egg's, L.eggEnding: foundEgg): the first ever come to is the player's own, and
+  // the other, come to after that, finds the easter egg
+  if (SAVE.ending(L.def.id, L.eggEnding ? 'egg' : 'ending', !!(G.run || G.lastRun))) secretHeld.push(L.def.id);
   AUDIO.stopLoop(); Seq.clear();
   STORY.theme(true);
   setState('end');
@@ -936,9 +939,12 @@ function die(c, cause) {
   G.deathTime = L.t; G.deathAt = G.t; // the night clock, and the global clock for the toast test (toasts are stamped with G.t)
 }
 // A night's easter egg, found (a night calls this the moment it happens, whether or not it then kills you): kept in the
-// save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time
+// save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time.
+// The last night's is one of its two endings: the night notes which ending this is (L.eggEnding), and it is settled as
+// that ending is over (finishEnding: it is found only once the player has come to both, in either order)
 function foundEgg(id) {
   id = id || (G.L && G.L.def && G.L.def.id);
+  if (G.L && G.L.def.ending && id === G.L.def.id) { G.L.eggEnding = true; return false; }
   const first = SAVE.egg(id, !!(G.run || G.lastRun));   // (in a full run, or its last night's ending: one of that run's own, for its results)
   if (first) secretHeld.push(id);
   return first;
