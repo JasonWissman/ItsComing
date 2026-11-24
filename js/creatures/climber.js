@@ -191,7 +191,9 @@ CREATURES.climber = {
       const hx = (hd[0] - mid[0]) * bx[0] + (hd[1] - mid[1]) * bu[0] + (hd[2] - mid[2]) * bn[0], hy = (hd[0] - mid[0]) * bx[1] + (hd[1] - mid[1]) * bu[1] + (hd[2] - mid[2]) * bn[1];
       if (fy) { ox = lerp(ox, fy.x - hx * k, q); oy = lerp(oy, fy.y - hy * k, q); }
     }
-    ctx.setTransform(dpr * k, 0, 0, dpr * k, ox * dpr + tx, oy * dpr + ty);
+    // (c.squash: squashed down onto its feet, or stretched up off them, as it leaps for joy at the last night's end)
+    const sq = c.squash || 1;
+    ctx.setTransform(dpr * k, 0, 0, dpr * k * sq, ox * dpr + tx, (foot.y + (oy - foot.y) * sq) * dpr + ty);
     const pr = v => [(v[0] - CLIMB.mid[0]) * bx[0] + (v[1] - CLIMB.mid[1]) * bu[0] + (v[2] - CLIMB.mid[2]) * bn[0], (v[0] - CLIMB.mid[0]) * bx[1] + (v[1] - CLIMB.mid[1]) * bu[1] + (v[2] - CLIMB.mid[2]) * bn[1]];
     this.body(ctx, c, P, pr, bx, bn, bu);
   },
@@ -302,6 +304,7 @@ CREATURES.climber = {
     for (const s of [-1, 1]) {
       const L = limb('h' + s, s, true), sho = shJ(s);
       let hd = L.at; if (lunge) hd = [lerp(hd[0], s * 0.42, lunge), lerp(hd[1], 0.75, lunge), lerp(hd[2], 0.6, lunge)];   // at the end it reaches for you
+      if (c.cheer) hd = [lerp(hd[0], s * 0.4, c.cheer), lerp(hd[1], 1.02, c.cheer), lerp(hd[2], 0.12, c.cheer)];   // (or, leaping for joy, flings them up over its head)
       const el = climbJoint(sho, hd, CLIMB.arm, [s * 0.8, -0.2, 0.55]);
       P_limb(ctx, [P2(sho), P2(el), P2(hd)], 0.07, grey);
       const open = clamp(Math.max(L.lift * 1.6, slip, lunge), 0, 1), hs = (1 + L.lift * 0.35) * (1 + lunge * 1.4);

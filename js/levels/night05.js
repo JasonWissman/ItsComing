@@ -292,18 +292,22 @@ const CLEARING_BATS = (() => {
 // ---- the vampire ----
 // A bat shot out of the sky was not only a bat. It lies in the snow where it came down for half a second (LIE); then a
 // puff of dark smoke goes up from it, its wings open wide and stand up into a cape, and a figure rises under them out
-// of the snow (TURN): caped, high collared, its face pale, the arrow still in its chest. It staggers toward the porch,
-// lurching from foot to foot, a hand pressed to the wound and the other out before it, stumbling, slower as it comes;
-// and STOP metres short of the porch and its steps it drops to its knees, tips over and lies in the snow in a heap, the
-// arrow standing up out of it, and stays there. If the thing is put down first (its second arrow), it gets no further:
-// AFTER seconds on it falls where it is. It is only what the arrow did: it harms nothing, stops nothing, cannot be
-// aimed at (an arrow let go at it is one that missed), and the night is won and lost as ever.
+// of the snow (TURN): caped, high collared, its face a pale skull of a face, the arrow still in its chest. It comes for the
+// porch on a limp: a quick hitch of a step on its good leg, the hurt one buckling under it while it does, then its weight
+// thrown down onto the good one and the hurt one dragged up after it, slowly; hunched and twisted over the arrow, a hand
+// clutched to it, its head low and pushed out before it, swaying, the other hand reaching for you; every few steps the
+// hurt leg all but gives and it pitches, and catches itself; its cape dragging after it, a beat behind; slower as it
+// comes. STOP metres short of the porch and its steps it drops to its knees, tips over and lies in the snow in a heap,
+// the arrow standing up out of it, and stays there. If the thing is put down first (its second arrow), it gets no
+// further: AFTER seconds on it falls where it is. It is only what the arrow did: it harms nothing, stops nothing, cannot
+// be aimed at (an arrow let go at it is one that missed), and the night is won and lost as ever.
 // Each bat shot gets one (b.vamp: ph 'lie', 'turn', 'walk', 'fall' or 'down', t the seconds it has been that, x and z
-// where it is, fellT when it began to go down); it is one sprite, and lying still it costs a few shapes. With reduced
-// motion it does not lurch or sway and there is no smoke: it rises, walks evenly, and goes down.
+// where it is, g its limp (radians, TAU a step), tw the seconds it has walked, fellT when it began to go down); it is one
+// sprite, and lying still it costs a few shapes. With reduced motion it does not lurch, sway or stumble and there is no
+// smoke: it rises, comes on hunched at an even hobble, and goes down.
 const CLEARING_VAMPIRE = (() => {
-  const LIE = 0.55, TURN = 1.5, FALL = 1.4, PACE = 2.6, STEP = 6.5, STOP = 2.6, AFTER = 2, TILT = 1.46;
-  const C = { cape: [15, 12, 19], lining: [96, 14, 22], suit: [27, 24, 31], shirt: [150, 146, 152], skin: [208, 204, 198], hair: [9, 7, 11], blood: [118, 10, 14], shaft: [176, 142, 98], fletch: [176, 46, 38], nock: [222, 212, 190], smoke: [58, 52, 68] };
+  const LIE = 0.55, TURN = 1.5, FALL = 1.4, PACE = 2.6, STEP = 5.5, SF = 0.3, STOP = 2.6, AFTER = 2, TILT = 1.46;
+  const C = { cape: [15, 12, 19], lining: [96, 14, 22], suit: [27, 24, 31], shirt: [150, 146, 152], skin: [214, 210, 204], hollow: [150, 142, 146], socket: [14, 6, 10], hair: [9, 7, 11], blood: [118, 10, 14], gullet: [22, 2, 6], fang: [240, 236, 226], shaft: [176, 142, 98], fletch: [176, 46, 38], nock: [222, 212, 190], smoke: [58, 52, 68] };
   const calm = () => SAVE.data.settings.reducedMotion;
   // how far outside the porch and its steps a place is (the deck, the steps at its front and at its open side)
   function off(L, x, z) { const q = rotY(x, z, -L.facing); return Math.hypot(Math.max(0, Math.abs(q[0] - 0.3) - 3.5), Math.max(0, q[1] > 0.3 ? q[1] - 2.2 : -1.6 - q[1])); }
@@ -313,8 +317,14 @@ const CLEARING_VAMPIRE = (() => {
     const v = b.vamp = { ph: 'lie', t: 0, x: b.x, z: b.z, g: 0, tw: 0, fellT: null, onTurn };
     v.spr = { kind: 'sprite', w: 3.4, h: 2.2, y: 0, draw: (ctx, P) => draw(ctx, P, v) };
   }
-  // every few steps it all but goes down (0 to 1)
+  // every few steps the hurt leg all but goes (0 to 1)
   const stumble = v => (calm() ? 0 : Math.pow(Math.max(0, Math.sin(v.tw * 1.7 + 0.6)), 10));
+  // The limp, through one step of it (p, 0 to 1): over the first SF of it the good leg (its right: your left) hitches a
+  // quick step on while the hurt one takes its weight and buckles; then the good foot is down, the weight thrown onto it,
+  // and the rest of the step is the hurt leg dragged up after it. go: how fast it comes at p (1 over a whole step);
+  // weight: where its weight is (1 over the good leg, below 0 over the hurt one)
+  const go = p => (p < SF ? 0.55 + 2.35 * Math.sin(Math.PI * p / SF) : 0.55);
+  const weight = p => { p -= Math.floor(p); const s = p / SF; return p < SF ? lerp(0.3, 1, smoothstep(s)) - 0.95 * Math.sin(Math.PI * s) : lerp(1, 0.3, smoothstep((p - SF) / (1 - SF))); };
   // killedAt: when the thing took its second arrow (the night's clock), or undefined
   function update(L, dt, killedAt) {
     for (const b of L.s.bats) {
@@ -326,11 +336,11 @@ const CLEARING_VAMPIRE = (() => {
       else if (v.ph === 'walk') {
         const d = Math.hypot(v.x, v.z) || 1, slow = calm();
         if (off(L, v.x, v.z) <= STOP || d < 3 || (killedAt !== undefined && L.t >= killedAt + AFTER)) { next('fall'); v.fellT = L.t; continue; }
-        // a lurch at each step, then a drag; weaker as it comes
+        // a lurch on at each step, then the drag; weaker as it comes (and all but stopped as it stumbles)
         v.tw += dt; v.g += dt * STEP * (slow ? 0.6 : 1);
-        const weak = clamp(1 - v.tw * 0.012, 0.7, 1), pace = PACE * weak * (slow ? 0.75 : 0.5 + Math.pow(Math.max(0, Math.sin(v.g)), 2)) * (1 - 0.7 * stumble(v));
-        const go = Math.min(pace * dt, Math.max(0, d - 2.9));
-        v.x -= v.x / d * go; v.z -= v.z / d * go;
+        const weak = clamp(1 - v.tw * 0.012, 0.7, 1), pace = PACE * weak * (slow ? 0.75 : go((v.g / TAU) % 1)) * (1 - 0.7 * stumble(v));
+        const step = Math.min(pace * dt, Math.max(0, d - 2.9));
+        v.x -= v.x / d * step; v.z -= v.z / d * step;
       } else if (v.t >= FALL) next('down');
       else if (!v.thud && v.t >= FALL * 0.74) { v.thud = true; AUDIO.sfx('flop', pan); }   // into the snow
     }
@@ -339,47 +349,99 @@ const CLEARING_VAMPIRE = (() => {
     for (const b of L.s.bats) { const v = b.vamp; if (!v || v.ph === 'lie') continue; const p = v.spr; p.x = v.x; p.z = v.z; p.dist = Math.hypot(v.x, v.z); R.add(p); }
   }
   // The figure, seen from in front (it comes toward you), its feet at (0, 0). o.wings: its cape thrown wide, as wings
-  // (0 hanging to 1); o.kneel: down on its knees (0 to 1); o.g: its step; o.reach: the free arm out before it (0 to 1).
-  // The arrow is in its chest on its left (your right), and that side's hand is pressed to it.
+  // (0 hanging to 1); o.kneel: down on its knees (0 to 1); o.hunch: bent over its wound (0 to 1); o.reach: the free arm
+  // out before it (0 to 1); o.limp, walking: { p: through a step, sm: stumbling, t: seconds walked, k: how much of it
+  // shows }. The arrow is in its chest on its left (your right), and that side's hand is clutched to it; that side's leg
+  // is the hurt one. Its body above the hips leans as a piece (lean: toward your left), its legs and the hem of its cape
+  // do not; the cape's hem follows the body a beat late. Strong shapes: it is seen from thirty metres to ten.
   function figure(ctx, P, o) {
     const cape = P.col(C.cape), lining = P.col(C.lining), suit = P.col(C.suit), skin = P.col(C.skin), hair = P.col(C.hair);
-    const kn = o.kneel, hipY = lerp(0.92, 0.42, kn), shY = hipY + 0.52, headY = hipY + 0.76 - 0.05 * kn, wg = o.wings, st = Math.sin(o.g);
-    const hw = lerp(0.46, 1.25, wg) + 0.22 * kn, sw = lerp(0.3, 0.85, wg), hemY = lerp(0.1, hipY + 0.05, wg) * (1 - 0.6 * kn), sway = 0.04 * Math.sin(o.g - 0.8) * (1 - kn);
-    // the cape behind it, from the points of its collar down to a scalloped hem
-    const back = [[-0.2, headY + 0.14], [-sw, shY + 0.02], [-hw + sway, hemY + 0.14]];
-    for (let i = 1; i < 6; i++) back.push([lerp(-hw, hw, i / 6) + sway, hemY + (i % 2 ? 0 : 0.1)]);
-    back.push([hw + sway, hemY + 0.14], [sw, shY + 0.02], [0.2, headY + 0.14]);
-    P_poly(ctx, back, cape);
-    for (const sd of [-1, 1]) P_poly(ctx, [[sd * 0.18, shY - 0.02], [sd * sw * 0.72, shY - 0.06], [sd * hw * 0.64 + sway, hemY + 0.17], [sd * 0.17, hemY + 0.2]], lining);   // its lining, either side of the body
-    // the legs: a step and a drag (kneeling, the thighs down to the knees in the snow)
+    const kn = o.kneel, wg = o.wings, hu = o.hunch || 0, lm = o.limp, k = lm ? lm.k : 0, t = lm ? lm.t : 0, sm = lm ? lm.sm : 0;
+    const p = lm ? lm.p : 0, s = p < SF ? p / SF : 1, d = p < SF ? 0 : (p - SF) / (1 - SF);
+    const w = lm ? weight(p) * k : 0, wl = lm ? weight(p - 0.17) * k : 0;          // its weight, and where it was a beat ago (the cape)
+    const lift = p < SF ? Math.sin(Math.PI * s) * k : 0;                           // the good foot up off the snow
+    const buckle = (p < SF ? Math.sin(Math.PI * s) * k : 0) + sm;                   // the hurt knee giving
+    const back = (p < SF ? smoothstep(s) : 1 - smoothstep(d)) * k;                  // the hurt foot left behind it, then dragged up
+    const hipY = lerp(0.92, 0.42, kn) - (0.07 * hu + 0.08 * buckle + (p >= SF ? 0.05 * Math.sin(Math.PI * clamp(d / 0.22, 0, 1)) * k : 0)) * (1 - kn);
+    const hx = -0.1 * w * (1 - kn), lean = (0.15 * w - 0.15 * hu - 0.2 * sm) * (1 - kn) - 0.05 * kn, cl = Math.cos(lean), sl = Math.sin(lean);
+    const tf = (x, h) => [hx + x * cl - h * sl, hipY + x * sl + h * cl];            // a point of its upper body (x across, h up from its hips)
+    const shH = 0.52 - 0.1 * hu, headH = shH + 0.24 - 0.11 * hu - 0.05 * sm, shY = hipY + shH;
+    const hw = lerp(0.5 + 0.05 * hu, 1.25, wg) + 0.22 * kn, sw = lerp(0.3, 0.85, wg), hemY = lerp(0.16, hipY + 0.05, wg) * (1 - 0.6 * kn);
+    const trail = (-0.2 * wl + 0.03 * Math.sin(t * 3.3) * k) * (1 - kn);         // the hem, a beat behind the body
+    // the cape behind it, from the points of its collar down to a scalloped hem that flutters as it drags
+    const back0 = [tf(-0.2, headH + 0.14), tf(-sw, shH + 0.02), [-hw + trail, hemY + 0.14]];
+    for (let i = 1; i < 6; i++) back0.push([lerp(-hw, hw, i / 6) + trail * (1 + 0.3 * Math.sin(i)), hemY + (i % 2 ? 0 : 0.1) + 0.03 * Math.sin(t * 4.1 + i * 1.7) * k]);
+    back0.push([hw + trail, hemY + 0.14], tf(sw, shH + 0.02), tf(0.2, headH + 0.14));
+    P_poly(ctx, back0, cape);
+    for (const sd of [-1, 1]) P_poly(ctx, [tf(sd * 0.18, shH - 0.02), tf(sd * sw * 0.72, shH - 0.06), [sd * hw * 0.64 + trail * 1.2, hemY + 0.17], [sd * 0.17 + trail, hemY + 0.2]], lining);   // its lining, either side of the body
+    // the legs. Kneeling, the thighs down to the knees in the snow. Walking: the good one (your left) stepping, its knee
+    // coming up; the hurt one (your right) stiff, its foot turned in, its knee caving in when the weight is on it; left
+    // behind, and then dragged up after it, swung out round the side, the hip hitched up to swing it
+    const swing = p >= SF ? Math.sin(Math.PI * d) * k : 0;
     for (const sd of [-1, 1]) {
-      const lift = Math.max(0, sd * st) * 0.08 * (1 - kn);
-      if (kn > 0.5) P_limb(ctx, [[sd * 0.1, hipY], [sd * 0.17, 0.07]], 0.14, suit);
-      else { P_limb(ctx, [[sd * 0.1, hipY], [sd * 0.13, hipY * 0.5 + lift], [sd * 0.13, 0.05 + lift]], 0.13, suit); P_ell(ctx, sd * 0.14, 0.035 + lift, 0.08, 0.04, hair); }
+      const hip = [hx + sd * 0.1, hipY - (sd > 0 ? 0.03 * buckle - 0.04 * swing : 0.02 * w)];
+      if (kn > 0.5) { P_limb(ctx, [hip, [sd * 0.17, 0.07]], 0.14, suit); continue; }
+      if (sd < 0) {
+        const ft = [-0.15 - 0.03 * lift, 0.04 + 0.16 * lift], kx = [-0.18 - 0.05 * lift, (hip[1] + ft[1]) / 2 + 0.1 * lift];
+        P_limb(ctx, [hip, kx, ft], 0.13, suit); P_ell(ctx, ft[0], ft[1], 0.08, 0.04, hair);
+      } else {
+        const ft = [0.15 + 0.03 * back + 0.11 * swing, 0.04 + 0.05 * back + 0.03 * swing], kx = [0.14 - 0.07 * buckle + 0.05 * swing, (hip[1] + ft[1]) / 2 - 0.03 * buckle];
+        P_limb(ctx, [hip, kx, ft], 0.13, suit); P_ell(ctx, ft[0] - 0.01, ft[1], 0.08 * (1 - 0.15 * back), 0.035, hair, -0.35);
+      }
     }
-    // the body: a dark coat, a little of the shirt at the throat
-    P_poly(ctx, [[-0.21, shY], [0.21, shY], [0.15, hipY - 0.04], [-0.15, hipY - 0.04]], suit);
-    P_poly(ctx, [[-0.06, shY], [0.06, shY], [0, shY - 0.2]], P.col(C.shirt));
+    // the body: a dark coat, a little of the shirt at the throat, twisted down over the wound (that shoulder lower, drawn in)
+    const shL = tf(-0.21, shH + 0.02 * hu), shR = tf(0.21 - 0.04 * hu, shH - 0.08 * hu);
+    P_poly(ctx, [shL, shR, tf(0.15, -0.04), tf(-0.15, -0.04)], suit);
+    P_poly(ctx, [tf(-0.06, shH), tf(0.05, shH - 0.02 * hu), tf(0, shH - 0.2)], P.col(C.shirt));
     // the collar, standing up behind the head
-    for (const sd of [-1, 1]) { P_poly(ctx, [[sd * 0.06, shY - 0.02], [sd * 0.27, headY + 0.17], [sd * 0.25, shY - 0.03]], cape); P_poly(ctx, [[sd * 0.09, shY], [sd * 0.23, headY + 0.1], [sd * 0.21, shY]], lining); }
-    // the free arm (your left): out before it as it comes, or thrown wide with the cape
-    const eb = [lerp(-0.4 - 0.05 * o.reach, -0.52, wg), lerp(shY - 0.28, shY + 0.04, wg)], hb = [lerp(-0.5 - 0.1 * o.reach + 0.03 * st, -0.86, wg), lerp(shY - 0.44 + 0.2 * o.reach, shY + 0.16, wg)];
-    P_limb(ctx, [[-0.21, shY - 0.04], eb, hb], 0.09, suit); P_ell(ctx, hb[0], hb[1], 0.05, 0.055, skin);
-    // the arrow in its chest: the shaft out toward you and down, its fletching at the end of it; the blood round it
-    const wx = 0.09, wy = shY - 0.22, ax = wx + 0.26, ay = wy - 0.2;
-    P_ell(ctx, wx, wy - 0.03, 0.05, 0.075, P.col(C.blood));
-    P_line(ctx, wx, wy, ax, ay, 0.024, P.col(C.shaft));
-    P_line(ctx, lerp(wx, ax, 0.62), lerp(wy, ay, 0.62), ax, ay, 0.055, P.col(C.fletch)); P_line(ctx, lerp(wx, ax, 0.93), lerp(wy, ay, 0.93), ax, ay, 0.055, P.col(C.nock));
-    // the arm on that side: bent, the hand pressed to the wound (thrown wide as it turns)
-    const ea = [lerp(0.36, 0.52, wg), lerp(shY - 0.3, shY + 0.04, wg)], ha = [lerp(wx + 0.06, 0.86, wg), lerp(wy + 0.03, shY + 0.16, wg)];
-    P_limb(ctx, [[0.21, shY - 0.04], ea, ha], 0.09, suit); P_ell(ctx, ha[0], ha[1], 0.05, 0.055, skin);
-    // the head, hung a little to one side: pale, the hair to a point on the brow, the eyes sunk, the mouth open on its teeth
-    const hx = 0.02 * st * (1 - kn) - 0.03 * kn;
-    P_ell(ctx, hx, headY, 0.105, 0.135, skin);
-    P_poly(ctx, [[hx - 0.11, headY + 0.03], [hx - 0.09, headY + 0.13], [hx, headY + 0.16], [hx + 0.09, headY + 0.13], [hx + 0.11, headY + 0.03], [hx + 0.055, headY + 0.1], [hx, headY + 0.045], [hx - 0.055, headY + 0.1]], hair);
-    for (const sd of [-1, 1]) { P_ell(ctx, hx + sd * 0.042, headY - 0.005, 0.026, 0.02, hair); P_ell(ctx, hx + sd * 0.042, headY - 0.008, 0.008, 0.008, P.col([190, 30, 26])); }
-    P_ell(ctx, hx, headY - 0.078, 0.032, 0.02 + 0.012 * o.reach, hair);
-    for (const sd of [-1, 1]) P_poly(ctx, [[hx + sd * 0.012, headY - 0.064], [hx + sd * 0.026, headY - 0.064], [hx + sd * 0.019, headY - 0.09]], P.col([232, 228, 220]));
+    for (const sd of [-1, 1]) { const dy = sd > 0 ? -0.06 * hu : 0; P_poly(ctx, [tf(sd * 0.06, shH - 0.02 + dy), tf(sd * 0.27, headH + 0.17 + dy), tf(sd * 0.25, shH - 0.03 + dy)], cape); P_poly(ctx, [tf(sd * 0.09, shH + dy), tf(sd * 0.23, headH + 0.1 + dy), tf(sd * 0.21, shH + dy)], lining); }
+    // the free arm (your left): out toward you as it comes, the clawed hand groping, low and wide as it stumbles; or thrown
+    // wide with the cape
+    const r = o.reach * (1 - 0.6 * sm), gx = 0.03 * Math.sin(t * 1.3) * k;
+    const ew = tf(-0.38 - 0.05 * sm, shH - 0.3 - 0.06 * sm), hwk = tf(-0.25 - 0.12 * (1 - r) - 0.12 * sm + gx, shH - 0.32 + 0.1 * r - 0.18 * sm);
+    const eb = [lerp(ew[0], -0.52, wg), lerp(ew[1], hipY + 0.56, wg)], hb = [lerp(hwk[0], -0.86, wg), lerp(hwk[1], hipY + 0.68, wg)];
+    P_limb(ctx, [shL, eb, hb], 0.09, suit);
+    const hs = 1 + 0.25 * r * (1 - wg);   // (reaching at you, it is nearer, and bigger)
+    for (let i = 0; i < 4; i++) { const a = -0.5 - i * 0.55 + 0.15 * Math.sin(t * 2.3 + i) * k, l = 0.1 * hs, e = [hb[0] + Math.cos(a) * l, hb[1] + Math.sin(a) * l]; P_limb(ctx, [hb, e, [e[0] + Math.cos(a + 0.9) * 0.035 * hs, e[1] + Math.sin(a + 0.9) * 0.035 * hs]], 0.022, skin); }   // its fingers, hooked
+    P_ell(ctx, hb[0], hb[1], 0.05 * hs, 0.055 * hs, skin);
+    // the arrow in its chest: the shaft out toward you and down, its fletching at the end of it; the blood round it, and
+    // run down its coat
+    const wd = tf(0.09, shH - 0.22), ar = tf(0.35, shH - 0.42), blood = P.col(C.blood);
+    P_poly(ctx, [tf(0.04, shH - 0.2), tf(0.14, shH - 0.2), tf(0.12, 0.05), tf(0.07, 0.1)], blood);
+    P_ell(ctx, wd[0], wd[1] - 0.03, 0.06, 0.08, blood);
+    P_line(ctx, wd[0], wd[1], ar[0], ar[1], 0.024, P.col(C.shaft));
+    P_line(ctx, lerp(wd[0], ar[0], 0.62), lerp(wd[1], ar[1], 0.62), ar[0], ar[1], 0.055, P.col(C.fletch)); P_line(ctx, lerp(wd[0], ar[0], 0.93), lerp(wd[1], ar[1], 0.93), ar[0], ar[1], 0.055, P.col(C.nock));
+    // the arm on that side: tucked in, the hand clutched to the wound round the shaft (thrown wide as it turns)
+    const ec = tf(0.3, shH - 0.3 - 0.04 * hu), hc = tf(0.13, shH - 0.2);
+    const ea = [lerp(ec[0], 0.52, wg), lerp(ec[1], hipY + 0.56, wg)], ha = [lerp(hc[0], 0.86, wg), lerp(hc[1], hipY + 0.68, wg)];
+    P_limb(ctx, [shR, ea, ha], 0.09, suit); P_ell(ctx, ha[0], ha[1], 0.055, 0.06, skin);
+    for (let i = 0; i < 3; i++) P_line(ctx, ha[0] - 0.01, ha[1] + 0.03 - i * 0.03, ha[0] - 0.07 * (1 - wg), ha[1] + 0.02 - i * 0.035, 0.022, skin);   // its fingers, dug in
+    // the head: low, pushed out before it between the hunched shoulders (bigger: nearer you), swaying slowly, hung over
+    // toward the wound
+    const hp = tf(0.04 * hu + 0.06 * Math.sin(t * 1.1) * k - 0.03 * kn, headH), roll = -0.14 * hu + 0.18 * Math.sin(t * 1.1 - 0.9) * k + 0.12 * sm;
+    ctx.save(); ctx.translate(hp[0], hp[1]); ctx.rotate(roll + lean); const sc = 1 + 0.1 * hu; ctx.scale(sc, sc);
+    head(ctx, P, skin, hair, lm ? 0.75 + 0.25 * Math.sin(t * 2.4) * k : 0.8);
+    ctx.restore();
+  }
+  // its face (at its middle, 0, 0): gaunt and pale, the skull showing; the eyes sunk in black sockets under a heavy
+  // scowling brow, with a small red light in each; hollow cheeks; the mouth wide open on a black gullet, long fangs
+  // hanging in it and blood run from it down its chin. open: how wide its mouth is (0 to 1)
+  function head(ctx, P, skin, hair, open) {
+    const dark = P.col(C.socket);
+    P_ell(ctx, 0, 0.025, 0.105, 0.115, skin);
+    P_poly(ctx, [[-0.1, 0.01], [-0.08, -0.08], [-0.035, -0.155], [0.035, -0.155], [0.08, -0.08], [0.1, 0.01]], skin);   // the long jaw
+    for (const sd of [-1, 1]) P_poly(ctx, [[sd * 0.04, -0.03], [sd * 0.082, -0.02], [sd * 0.07, -0.1], [sd * 0.05, -0.125]], P.col(C.hollow));   // hollow cheeks, under the cheekbones
+    P_poly(ctx, [[-0.11, 0.035], [-0.095, 0.13], [0, 0.155], [0.095, 0.13], [0.11, 0.035], [0.06, 0.105], [0, 0.06], [-0.06, 0.105]], hair);   // the hair, to a point on the brow
+    for (const sd of [-1, 1]) P_ell(ctx, sd * 0.043, -0.004, 0.036, 0.03, dark, sd * 0.25);                               // the sockets
+    P_poly(ctx, [[-0.105, 0.06], [-0.105, 0.03], [-0.014, 0.004], [0, 0.012], [0.014, 0.004], [0.105, 0.03], [0.105, 0.06]], skin);   // the brow, low over them
+    P_poly(ctx, [[-0.09, 0.03], [-0.014, 0.004], [-0.014, -0.006], [-0.09, 0.016]], dark); P_poly(ctx, [[0.09, 0.03], [0.014, 0.004], [0.014, -0.006], [0.09, 0.016]], dark);
+    for (const sd of [-1, 1]) { P_ell(ctx, sd * 0.04, -0.008, 0.02, 0.016, rgba([255, 40, 24], 0.4)); P_ell(ctx, sd * 0.04, -0.008, 0.009, 0.009, rgba([255, 72, 44], 1)); }   // the eyes, lit red
+    P_poly(ctx, [[0, -0.02], [-0.014, -0.05], [0.014, -0.05]], dark);   // the nose, a slit
+    // the mouth, wide open: red lips round a black gullet, the long fangs hanging in it
+    const my = -0.1, mh = 0.026 + 0.022 * open;
+    P_ell(ctx, 0, my, 0.05, mh + 0.008, P.col(C.blood)); P_ell(ctx, 0, my - 0.003, 0.04, mh, P.col(C.gullet));
+    for (const sd of [-1, 1]) P_poly(ctx, [[sd * 0.014, my + mh - 0.002], [sd * 0.036, my + mh - 0.006], [sd * 0.024, my + mh - 0.07]], P.col(C.fang));
+    P_line(ctx, 0.03, my - mh, 0.034, -0.17, 0.014, P.col(C.blood)); P_ell(ctx, 0.034, -0.175, 0.01, 0.012, P.col(C.blood));   // and blood down the chin
   }
   function draw(ctx, P, v) {
     const slow = calm();
@@ -390,23 +452,23 @@ const CLEARING_VAMPIRE = (() => {
         const u = clamp(k * 1.5 - i * 0.05, 0, 1), a = 0.5 * Math.sin(Math.PI * Math.min(1, u * 1.15)) * (1 - 0.5 * u), ang = i * 2.4;
         if (a > 0.01) P_ell(ctx, Math.cos(ang) * (0.12 + 0.55 * u), 0.15 + (0.3 + 0.2 * (i % 3)) * u * 2.2 + Math.sin(ang) * 0.1, 0.16 + 0.34 * u, 0.14 + 0.28 * u, P.cola(C.smoke, a));
       }
-      // the wings open and stand up into the cape, the figure rising under them
+      // the wings open and stand up into the cape, the figure rising under them; and it bends over the wound
       ctx.save(); ctx.scale(lerp(0.3, 1, smoothstep(k / 0.5)), lerp(0.06, 1, up));
-      figure(ctx, P, { wings: smoothstep(k / 0.3) * (1 - smoothstep((k - 0.52) / 0.44)), kneel: 0, g: 0, reach: 0 });
+      figure(ctx, P, { wings: smoothstep(k / 0.3) * (1 - smoothstep((k - 0.52) / 0.44)), kneel: 0, hunch: smoothstep((k - 0.6) / 0.4), reach: 0.6 * smoothstep((k - 0.7) / 0.3) });
       ctx.restore();
       return;
     }
     if (v.ph === 'walk') {
-      const st = Math.sin(v.g), sm = stumble(v), k = slow ? 0 : 1;
-      ctx.translate(0.05 * st * k, Math.abs(st) * 0.03 * k - 0.1 * sm); ctx.rotate((0.1 * st + 0.16 * sm) * k);
-      figure(ctx, P, { wings: 0, kneel: 0, g: v.g, reach: 0.5 + 0.5 * Math.sin(v.g * 0.5 + 1) * k });
+      const sm = stumble(v), k = slow ? 0 : 1;
+      ctx.translate(0, -0.06 * sm);   // (pitching down onto the hurt leg)
+      figure(ctx, P, { wings: 0, kneel: 0, hunch: 1, reach: 0.6 + 0.4 * Math.sin(v.tw * 0.9) * k, limp: { p: (v.g / TAU) % 1, sm, t: v.tw, k: slow ? 0.25 : 1 } });
       return;
     }
     // going down: onto its knees, then over onto its side (its right, your left: the arrow uppermost), where it lies
     const k = v.ph === 'down' ? 1 : v.t / FALL, kneel = smoothstep(k / 0.38), over = easeIn(clamp((k - 0.36) / 0.4, 0, 1));
     const hit = v.ph === 'down' || slow ? 0 : Math.max(0, Math.sin(clamp((k - 0.76) / 0.2, 0, 1) * Math.PI)) * 0.05;   // (it settles as it lands)
     ctx.translate(-0.2 * over, 0); ctx.rotate(TILT * over - hit); ctx.scale(lerp(1, 0.5, over), 1); ctx.translate(0.2 * over, 0);
-    figure(ctx, P, { wings: 0.12 * over, kneel, g: 0, reach: 1 - over });
+    figure(ctx, P, { wings: 0.12 * over, kneel, hunch: 1 - 0.5 * over, reach: 0.6 * (1 - over) });
   }
   return { LIE, TURN, FALL, STOP, AFTER, off, rise, update, add };
 })();
