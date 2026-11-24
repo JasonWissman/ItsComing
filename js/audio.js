@@ -242,6 +242,7 @@ const AUDIO = (() => {
       const p = ac.createStereoPanner ? ac.createStereoPanner() : null; if (p) p.pan.value = clamp(pan || 0, -1, 1); // always a panner, so a loop born centred can still move
       if (p) { g.connect(p); p.connect(bus.effects); } else g.connect(bus.effects);
       const nodes = [];
+      let swell = null;   // (a loop that swells up on its own: how far up it is, for loopNow)
       if (kind === 'grind') {
         const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
         const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 240; bp.Q.value = 2.5;
@@ -273,7 +274,7 @@ const AUDIO = (() => {
         // and a sine a little apart from it that beat slowly against each other, a breath of dark noise under them, and a
         // throb through all of it that is never even: two slow swells out of step (0.37 and 0.61 a second), nothing like
         // a heartbeat
-        const t0 = now(), sw = ac.createGain(); sw.gain.setValueAtTime(0.0001, t0); sw.gain.exponentialRampToValueAtTime(1, t0 + 1); sw.connect(g);
+        const t0 = now(), sw = ac.createGain(); sw.gain.setValueAtTime(0.0001, t0); sw.gain.exponentialRampToValueAtTime(1, t0 + 1); sw.connect(g); swell = sw;
         const th = ac.createGain(); th.gain.value = 0.7; th.connect(sw);
         for (const [f, d] of [[0.37, 0.18], [0.61, 0.12]]) { const l = ac.createOscillator(); l.frequency.value = f; const lg = ac.createGain(); lg.gain.value = d; l.connect(lg); lg.connect(th.gain); nodes.push(l); }
         const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.1; lp.frequency.setValueAtTime(70, t0); lp.frequency.linearRampToValueAtTime(190, t0 + 30); lp.connect(th);
@@ -283,7 +284,7 @@ const AUDIO = (() => {
         src.connect(nl); nl.connect(ng); ng.connect(lp); nodes.push(o, o2, src);
       }
       nodes.forEach(n => n.start());
-      loopNode = { kind, g, nodes, pan: p };
+      loopNode = { kind, g, nodes, pan: p, swell };
     }
     if (loopNode.pan && pan !== undefined) loopNode.pan.pan.setTargetAtTime(clamp(pan, -1, 1), now(), 0.1);
     loopNode.g.gain.setTargetAtTime(Math.max(0.0001, vol), now(), 0.08);
@@ -297,6 +298,9 @@ const AUDIO = (() => {
     else l.g.gain.setTargetAtTime(0.0001, now(), sec > 0 ? sec / 4 : 0.1);
     setTimeout(() => { l.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); try { l.g.disconnect(); } catch (e) {} }, sec > 0 ? sec * 1000 + 300 : 600);
   }
+
+  // the loop playing now, for the tests: its kind, and how far up its own swell is (0..1), or null
+  function loopNow() { return loopNode && ac ? { kind: loopNode.kind, swell: loopNode.swell ? loopNode.swell.gain.value : 1, state: ac.state } : null; }
 
   // ---- one-shots ----
   function heartbeat(vol, fast) {
@@ -933,7 +937,7 @@ const AUDIO = (() => {
     if (!hushed) glide(bus.ambient.gain, volume.ambient, 0.15);
   }
   return {
-    init, on, running, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop,
+    init, on, running, resume, suspend, setMuted, setVolume, stopAmbient, stopLoop, loopNow,
     startAmbient: p => tuned(p && p.tune, () => startAmbient(p)),
     titleDrone: (k, fade) => (amb && amb.title ? titleDrone(k) : tuned('ambient:title', () => titleDrone(k, fade))),
     setLoop: (kind, vol, pan) => tuned(kind ? 'loop:' + kind : null, () => setLoop(kind, vol, pan)),

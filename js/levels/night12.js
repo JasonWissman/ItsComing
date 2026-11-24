@@ -477,7 +477,7 @@ LEVELS.push({
     const KT = CREATURES.tall.SCALE, PIL = parts.pillow, B0 = BEDR.top, PILLOW = [110, 106, 112];
     const TOOTH = [0.02, PIL.z1 - 0.055];   // where the tooth lies (its near end): under the pillow, a little in from its near edge
     const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.45, tilt: 1.15, look: 1.2, pull: [1.2, 2.8], cup: [2.9, 3.35], shut: [3.05, 3.25], burst: 4.85,
-      flap: 5.7, sweep: 0.3, dust: 5.85, dense: 0.22, gone: [6.05, 6.17], clear: [6.45, 8.9], bill: 6.4, fall: 4.4, rest: 1.1, after: 1.4 };
+      flap: 5.7, sweep: 0.3, dust: 5.85, dense: 0.2, gone: [6.1, 6.22], clear: [6.45, 8.9], bill: 6.4, fall: 4.4, rest: 1.1, after: 1.4 };
     // (a snap: there in a frame or two, a little past, and back: a damped spring over u, at 1 by u 0.17 and 12% over at 0.35)
     const spring = u => (u <= 0 ? 0 : 1 - Math.exp(-6 * u) * Math.cos(9 * u));
     const BILL = { w: 0.26, h: 0.11, to: [0.1, 1.5], yaw: 0.35 };   // the bill; where on the bed it comes to lie, and how it is turned
@@ -585,7 +585,7 @@ LEVELS.push({
         // its hands together round it (the held-out arm coming in, the tooth gone into them as they close), its eyes shut
         const cup = smoothstep((q - F.cup[0]) / (F.cup[1] - F.cup[0]));
         T.fling = qb < 0 ? 0 : rm ? smoothstep(qb / 0.3) : spring(qs / 0.4);
-        T.cup = cup * (1 - clamp(T.fling, 0, 1)); T.offer = 1 - smoothstep(cup / 0.7); T.tooth = cup < 0.7;
+        T.cup = cup * clamp(1 - T.fling * 1.5, 0, 1); T.offer = 1 - smoothstep(cup / 0.7); T.tooth = cup < 0.7;   // (the cup gone as its hands are flung out)
         T.eyes = qb < 0 ? 1 - smoothstep((q - F.shut[0]) / (F.shut[1] - F.shut[0])) : rm ? smoothstep(qb / 0.3) : clamp(spring(qs / 0.25), 0, 1.15);
         T.shimmer = qb < 0 ? 0 : 1;
         // its wings: burst open (well inside a quarter of a second, a little past and back), trembling, one great beat
@@ -621,7 +621,7 @@ LEVELS.push({
     // the half-height and the middle of that, and how far out from the middle it stays solid), and over that the puffs it
     // is made of (PUFFS, made once: where, how big, what colour, how each drifts), rolling outward as it billows and
     // drifting as it thins; the sparks (DUST) twinkle over it all
-    const CLOUD = { rx: 2.6, ry: 1.75, y: 1.5, solid: 0.86 };
+    const CLOUD = { rx: 3.0, ry: 1.9, y: 1.5, solid: 0.88 };
     const PUFFS = (() => {
       const rnd = mulberry32(4421), cols = [[236, 222, 250], [255, 226, 186], [255, 196, 228], [190, 226, 255], [214, 255, 236]], out = [];
       for (let i = 0; i < 34; i++) { const a = rnd() * TAU, r = Math.sqrt(rnd()); out.push({ x: Math.cos(a) * r * 2.0, y: CLOUD.y + Math.sin(a) * r * 1.3, r: 0.45 + rnd() * 0.5, col: cols[i % cols.length], dx: Math.cos(a) * (0.2 + rnd() * 0.3), dy: 0.08 + rnd() * 0.15, ph: rnd() * TAU }); }
@@ -630,7 +630,7 @@ LEVELS.push({
     const drawCloud = (ctx, qd, rm, steady) => {
       const k = cloudK(qd);
       if (k <= 0.004) return;
-      const grow = lerp(0.55, 1, smoothstep(qd / (FAIRY.dense * 1.4))) + (rm ? 0 : 0.06 * Math.max(0, qd - FAIRY.dense)), drift = Math.max(0, qd - FAIRY.dense);
+      const grow = lerp(0.55, 1, smoothstep(qd / FAIRY.dense)) + (rm ? 0 : 0.06 * Math.max(0, qd - FAIRY.dense)), drift = Math.max(0, qd - FAIRY.dense);
       ctx.save(); ctx.translate(0, CLOUD.y); ctx.scale(CLOUD.rx * grow, CLOUD.ry * grow);
       const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
       g.addColorStop(0, rgba([240, 230, 252], k)); g.addColorStop(0.5, rgba([214, 200, 242], k)); g.addColorStop(CLOUD.solid, rgba([188, 176, 230], k)); g.addColorStop(1, rgba([170, 160, 224], 0));
