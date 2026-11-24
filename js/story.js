@@ -74,21 +74,22 @@ const STORY = (() => {
     SC.wallV(L, 2.205, 1.58, 2.205, 1.62, 0.9, 2.0, wood); SC.wallV(L, 2.205, 1.0, 2.205, 2.2, 1.43, 1.47, wood);
     SC.box(L, 2.1, 2.25, 0.86, 0.92, 0.9, 2.3, wood);
     for (const z of [0.7, 2.5]) SC.wallV(L, 2.17, z - 0.3, 2.17, z + 0.3, 0.2, 2.3, cloth);
-    // the bed: mattress, headboard, a small pillow at the small of your back; the covers are the night's business (a plain
-    // sheet in the morning), and in the night the pillow is too (it can be lifted: the night draws it)
-    const bed = { x0: -0.75, x1: 0.75, z0: S + 0.1, z1: 1.9, top: 0.58 }, pillow = { x0: -0.11, x1: 0.11, y0: bed.top, y1: bed.top + 0.08, z0: bed.z0 + 0.02, z1: bed.z0 + 0.26 };
+    // the bed: mattress, headboard, a pillow against the headboard at your back; the covers are the night's business (a
+    // plain sheet in the morning), and in the night the pillow is too (it can be lifted: the night draws it)
+    const bed = { x0: -0.75, x1: 0.75, z0: S + 0.1, z1: 1.9, top: 0.58 }, pillow = { x0: -0.27, x1: 0.27, y0: bed.top, y1: bed.top + 0.12, z0: bed.z0 + 0.02, z1: bed.z0 + 0.32 };
     SC.box(L, bed.x0, bed.x1, 0.32, bed.top, bed.z0, bed.z1, cloth); SC.box(L, -0.8, 0.8, 0.3, 1.3, S + 0.02, bed.z0, wood);
     for (const [x, z] of [[-0.72, bed.z0 + 0.1], [0.72, bed.z0 + 0.1], [-0.72, 1.85], [0.72, 1.85]]) SC.box(L, x - 0.04, x + 0.04, 0, 0.32, z - 0.04, z + 0.04, wood);
     if (day) SC.box(L, pillow.x0, pillow.x1, pillow.y0, pillow.y1, pillow.z0, pillow.z1, [236, 232, 220]);
     if (day) SC.box(L, -0.78, 0.78, 0.58, 0.66, 0.2, 1.9, [228, 222, 206]);
     // the nightstand, the lamp on it; the dresser with a mirror and the clock; a chair
-    // (a long low one against the head wall at your right hand, close by the bed and a little higher than the mattress.
-    // Its drawer is in the side of it that faces the bed, at the end by your elbow, and slides out over the edge of the
-    // mattress, where you look down into it from the pillow: the night draws the drawer itself; in the morning it is shut.
-    // The lamp stands on that end of it. The same in the morning as in the night)
-    const ns = { x0: 0.85, x1: 1.35, z0: S + 0.02, z1: 0.5, top: 0.75, drawer: { z0: 0.04, z1: 0.46, y0: 0.585, y1: 0.725 } };
+    // (an ordinary bedside table at your right hand, its back to the head wall, a hand's width clear of the side of the
+    // bed and a little higher than the mattress. Its drawer is in its front, facing down the room toward the foot of the
+    // bed, and slides out that way, beside the bed and never over it, where you look down into it from the pillow: the
+    // night draws the drawer itself; in the morning it is shut. The lamp stands on it. The same in the morning as in the
+    // night)
+    const ns = { x0: 0.92, x1: 1.4, z0: S + 0.02, z1: -0.1, top: 0.64, drawer: { x0: 0.97, x1: 1.35, y0: 0.47, y1: 0.6 } };
     SC.box(L, ns.x0, ns.x1, 0, ns.top, ns.z0, ns.z1, wood);
-    if (day) { const d = ns.drawer; SC.wallV(L, ns.x0 - 0.004, d.z0, ns.x0 - 0.004, d.z1, d.y0, d.y1, [128, 96, 64]); SC.wallV(L, ns.x0 - 0.016, (d.z0 + d.z1) / 2 - 0.018, ns.x0 - 0.016, (d.z0 + d.z1) / 2 + 0.018, 0.64, 0.675, [200, 190, 170]); }
+    if (day) { const d = ns.drawer, kx = (d.x0 + d.x1) / 2, ky = (d.y0 + d.y1) / 2; SC.box(L, d.x0 - 0.012, d.x1 + 0.012, d.y0 - 0.01, d.y1 + 0.01, ns.z1, ns.z1 + 0.02, [158, 120, 82]); SC.wallV(L, kx - 0.02, ns.z1 + 0.024, kx + 0.02, ns.z1 + 0.024, ky - 0.02, ky + 0.02, [200, 190, 170]); }   // (its front a little proud of the nightstand's, as the night draws it)
     SC.box(L, -2.9, -1.5, 0, 0.95, 3.05, 3.55, wood); SC.box(L, -2.85, -1.55, 0.95, 1.0, 3.0, 3.6, day ? [160, 124, 84] : [58, 44, 34]);
     SC.wallV(L, -2.7, 3.58, -1.7, 3.58, 1.05, 2.05, day ? [200, 212, 224] : [24, 22, 30], { noLight: !day });
     SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 1.0, 1.05, wood); SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 2.05, 2.1, wood);
@@ -100,7 +101,7 @@ const STORY = (() => {
     for (const x of [chair.x0 + 0.03, chair.x1 - 0.03]) for (const z of [chair.z0 + 0.03, chair.z1 - 0.03]) SC.box(L, x - 0.025, x + 0.025, 0, 0.42, z - 0.025, z + 0.025, wood);
     SC.wallV(L, 0.2, S + 0.01, 1.0, S + 0.01, 1.5, 2.1, day ? [180, 190, 170] : [40, 44, 40]); SC.wallV(L, 0.16, S + 0.015, 1.04, S + 0.015, 1.46, 1.5, wood); SC.wallV(L, 0.16, S + 0.015, 1.04, S + 0.015, 2.1, 2.14, wood);   // a picture over the bed
     // (furniture: where each piece stands on the floor, [x0, x1, z0, z1], for whoever must keep clear of them: the last night)
-    return { apN, apW, headWall: S, bed, pillow, nightstand: ns, lamp: [(ns.x0 + ns.x1) / 2, ns.top, 0.24],
+    return { apN, apW, headWall: S, bed, pillow, nightstand: ns, lamp: [(ns.x0 + ns.x1) / 2, ns.top, (ns.z0 + ns.z1) / 2 - 0.03],
       furniture: [[-0.8, 0.8, S, bed.z1], [ns.x0, ns.x1, ns.z0, ns.z1], [chair.x0, chair.x1, chair.z0, chair.z1], [-2.9, -1.5, 3.05, 3.55]] };
   }
   function theme(day) { if (day) document.documentElement.setAttribute('data-theme', 'day'); else document.documentElement.removeAttribute('data-theme'); }
