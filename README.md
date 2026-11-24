@@ -227,7 +227,7 @@ some on the ground, so you have to turn and look down to find them.
    hind legs and staring at you in 0.3 s, lurches at the car as fast as it can as the car comes at it, gathers itself
    low, and 6.5 m off your seat it hurls itself up from standing, arms thrown up and out ahead of it, over the bonnet
    (the boot, in reverse) and through the glass, which cracks as it meets it and bursts: about 1.2 s from the gas to the
-   glass from where it lay. The card says "It got you" and only "It was ready the second time." (While it is still in
+   glass from where it lay. The card says "It got you" and only "It is too strong, even for a car." (While it is still in
    the air from the blow the wheels only spin.) With reduced motion nothing shakes, the nose does not dip, it is knocked
    back lower, turning over once, and its spring and its lunge at the glass are a little slower. The way out
    is the way straight away from it (forward with it behind, reverse with it ahead), or either way when it is squarely
@@ -848,9 +848,12 @@ some on the ground, so you have to turn and look down to find them.
     yet taken is in your hand the night is won another way (the easter egg is saved then, and
     the run's clock stops as at any win): it stops where it is and backs off into the dark,
     the view is taken (level, to the north), and out of the dark each of the twelve others,
-    in the order of their nights, one at a time, 2.2 s apart (so the claiming takes a little under half
-    a minute), rushes up to you along its own way (0.6 s,
-    to under two metres, the low ones, the crawler and the doll, to a little over two so that they stay in the view; with its own steps and voice and a jolt of the view). While it
+    in the order of their nights, one at a time, the first two 2.2 s apart and each after them
+    a little quicker (its whole visit, and the wait for the next, its pace times the first's:
+    0.93, 0.86, 0.79, 0.73, 0.68, 0.64, 0.62 and 0.6 for the last few; only the wait with
+    your hand up is shortened less, by the root of that, so it is still up a beat; so the claiming
+    takes a little over twenty seconds), rushes up to you along its own way (0.6 s,
+    to under two metres, the doll, low, to a little over two so that it stays in the view; with its own steps and voice and a jolt of the view). While it
     is coming your hand holds nothing up. Only once it is there, stopped in front of you
     (0.1 s after), does your hand hold up what was its own: the game's own held thing
     (js/hands.js, told what to hold by the night), raised higher and further in toward the
@@ -861,8 +864,11 @@ some on the ground, so you have to turn and look down to find them.
     leaves yours, a soft pat as it lands in its hand; your hand is left open, and goes down); it
     holds it up a quarter of a second, looking at it, and is off with it, briskly (a second),
     to its place, holding it: so it is in its place 2.7 s after it set out, and well clear of
-    you (5 m off or more) before the next, set out at 2.2 s, is within 4 m. There is never
-    more than one of them near you. One thing each, the thing of its own night: the walker
+    you (5 m off or more) before the next, set out at 2.2 s, is within 4 m (quicker, all of
+    that by its pace). There is never more than one of them near you. The crawler scurries up
+    on all fours, and, low as it is, rears up there onto its hind legs as it did in the road on
+    its own night (its head up at you, mouth open, in the view), takes the keys in its mouth
+    standing, holds them a beat and drops onto all fours again as it is off with them. One thing each, the thing of its own night: the walker
     the hammer (in its raised fist), the crawler the car keys (in its mouth), the warden the
     lantern (hung on the hook of his staff, where a lantern would hang), the stone one the
     chain (never seen to move: it is nearer all at once, three times, has the chain in a
@@ -879,7 +885,7 @@ some on the ground, so you have to turn and look down to find them.
     Each is drawn by its own code, in its own poses, with what it holds at its hand. They end in two rows in
     an arc in front of you, the shorter in front and the taller behind, six either side, and
     the thing in the hood comes back, calm, two pale eyes, into the middle of them, a faint
-    cold light behind them all. They stand there (all in their places 30 s after the last thing was taken up), still and quiet, three seconds. Then all
+    cold light behind them all. They stand there (all in their places 22.6 s after the last thing was taken up), still and quiet, three seconds. Then all
     at once (a brassy "ta-da!", the sound `cheer`: two party-horn chord stabs, a short one and a
     higher one held most of a second; and the chord of a night won) they throw what they hold up into the
     air (this ending's jump scare, a happy one: that instant the view is lightened by the
@@ -892,7 +898,7 @@ some on the ground, so you have to turn and look down to find them.
     each time it comes down), as its happy face comes up out of the hood and it takes off
     its robe and dances, the music box plays, and the dark turns to the pale light and the
     meadow (this one without its wild flowers, only grass, and every other tuft of that: there is a crowd in it to draw), all thirteen of them in it, leaping. And once they have leapt there a few seconds
-    (from 41.8 s, one after another over two seconds, just after the meadow starts waiting
+    (from 35.8 s, one after another over two seconds, just after the meadow starts waiting
     for your press) they frolic, for as long as you stay: each runs about the meadow in its
     own gait and at its own speed (the runner 5 m/s, the crawler and the warden over 3, the
     doll and the walker a little over 2), in loops and darts, making for one spot and then

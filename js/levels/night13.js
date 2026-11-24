@@ -813,7 +813,8 @@ function buildMeadow(L, s, c0) {
 // ---------- the others, come for what was theirs (the easter egg) ----------
 // Everything taken up (each thing in your hand at least once this attempt), the night ends another way, and is won: the
 // thing in the hood stops and backs off into the dark, the view is taken (level, to the north), and out of the dark each
-// of the others, in the order of their nights, one at a time (`every` apart), rushes up to you along its own way. Only
+// of the others, in the order of their nights, one at a time (`every` apart, and after the first two each a little quicker,
+// `pace`), rushes up to you along its own way. Only
 // when it is there, stopped in front of you, does your hand hold up what was its own (the game's own hand, js/hands.js,
 // shown what to hold by L.heldItem, and held higher and further in than a thing is carried: VOID_EGG.up; a thing you had
 // put down again comes up off the floor into your hand first, so every one of them is handed over the same way). It takes
@@ -852,23 +853,35 @@ const VOID_EGG = {
   look: 0.25,                           // it holds it up and looks at it
   back: 1.0,                            // then it is off with it, briskly, to its place: there at rush + take + pass + look + back = 2.7 after it set
                                         // out, and four fifths of the way (well clear of you) when the next, set out at 2.2, is within four metres
+  pace: [1, 1, 0.93, 0.86, 0.79, 0.73, 0.68, 0.64, 0.62, 0.6, 0.6, 0.6],
+                                        // and so for the first two; after them each is quicker (voidSets): its whole visit, from rush to
+                                        // back (but for the wait with your hand up: voidTake), and the time until the next sets out, all of
+                                        // them its pace times the above, down to three fifths for the last few (each next one is still not
+                                        // near until the one before is well clear)
   gone: [0.15, 1.3],                    // meanwhile the thing in the hood has backed off into the dark
-  demon: [27.3, 29.9],                  // and it comes back, calm, into the middle of them (as the last of them goes to its place)
-  hold: 30.0,                           // all of them there, still (the last is in its place at first + 11 * every + 2.7 = 28.6)
-  joy: 33.2,                            // then all at once they throw it all up into the air and leap for joy
-  unveil: [33.2, 33.7],                 // its face comes up out of the hood, happy,
-  disrobe: [33.7, 36.3],                // and it takes off its robe: the hood back, the robe dropped, a hop clear; and dances
-  light: [33.5, 39.0],                  // as the dark turns to the pale light, and the meadow comes
-  wait: 39.8, arm: 40.4,                // from here the meadow is yours to look about in, and waits for a press (taken from `arm`)
-  frolic: 41.8,                         // and from here, one after another, they run about the meadow
+  demon: [21.3, 23.9],                  // and it comes back, calm, into the middle of them (as the last of them goes to its place)
+  hold: 24.0,                           // all of them there, still (the last is in its place at voidSets(11) + 2.7 * 0.6 + 0.09 = 22.6)
+  joy: 27.2,                            // then all at once they throw it all up into the air and leap for joy
+  unveil: [27.2, 27.7],                 // its face comes up out of the hood, happy,
+  disrobe: [27.7, 30.3],                // and it takes off its robe: the hood back, the robe dropped, a hop clear; and dances
+  light: [27.5, 33.0],                  // as the dark turns to the pale light, and the meadow comes
+  wait: 33.8, arm: 34.4,                // from here the meadow is yours to look about in, and waits for a press (taken from `arm`)
+  frolic: 35.8,                         // and from here, one after another, they run about the meadow
   place: [0, 6.0],                      // where the thing in the hood stands among them: its bearing from the north, and how far off
 };
+// when one at pace k takes its thing, after it arrives: the wait with your hand up is shortened less than the rest (by the
+// root of its pace), so even with the last few your hand is seen up with the thing a beat (a fifth of a second) before it goes
+const voidTake = k => VOID_EGG.show * k + (VOID_EGG.take - VOID_EGG.show) * Math.sqrt(k);
+// and when the nth of them (from 0) sets out: the first at `first`, each after it `every` times the pace of the one before
+// on, and that one's longer wait with your hand up (so the next is no nearer it than the pace has it)
+const voidSets = n => { let t = VOID_EGG.first; for (let i = 0; i < n; i++) { const k = VOID_EGG.pace[i]; t += VOID_EGG.every * k + voidTake(k) - VOID_EGG.take * k; } return t; };
 // who takes what: one thing each, the thing of its own night, in the order of their nights (the hammer that boarded the
 // field's windows, the road's car keys, the graveyard's lantern, the quarry's chain, the clearing's arrows, the boathouse's
 // life ring, the lighthouse's bulb, the diner's cup, the notebook from the phone booth, the mirror maze's music box, the
 // farm's fuse, the bedroom's lamp). The other four of the sixteen (the planks, the salt, the padlock, the bow) are no one's.
 // b, r: its place among them (its bearing from the north, radians, and how far off); near: how near it comes for its
-// thing (the low ones, the crawler and the doll, not so near: nearer, they are under the view and the take is not seen);
+// thing (the doll, low, not so near: nearer, it is under the view and the take is not seen; the crawler, as low, stands
+// up for it: CRAWLER_UP);
 // at: where it carries it, in the hand it took it with ([x, y] from its feet, in its own drawing; the turn of the thing;
 // its size, 1 by default): the walker in its fist, the crawler in its mouth, the warden hung on the hook of his staff
 // (where a lantern would hang), the stone one in a raised hand, the runner in the hand it crouches on, the climber in a
@@ -879,7 +892,7 @@ const VOID_EGG = {
 // hand as it had its soda at the diner's fountain); hop: how high it leaps (metres)
 const VOID_OTHERS = [
   { type: 'walker', takes: 'hammer', b: -0.165, r: 7, near: 1.9, up: [-0.58, 2.06, 0.3], at: [-0.38, 1.75, 0.3], hop: 0.34 },
-  { type: 'crawler', takes: 'keys', b: -0.258, r: 5.5, near: 2.5, at: [0, 0.5, 0], hop: 0.3 },
+  { type: 'crawler', takes: 'keys', b: -0.258, r: 5.5, near: 1.9, at: [0, 0.5, 0], hop: 0.3 },
   { type: 'smiler', takes: 'lantern', b: 0.258, r: 5.5, near: 1.5, at: [-0.25, 1.34, 0], hop: 0.26 },
   { type: 'watcher', takes: 'chain', b: 0.537, r: 7, near: 1.8, at: [0.6, 1.5, 0], hop: 0.3 },
   { type: 'runner', takes: 'arrows', b: -0.63, r: 5.5, near: 1.7, up: [0.5, 1.02, 1.05], at: [0.5, 0.42, 1.3], hop: 0.44 },
@@ -891,6 +904,10 @@ const VOID_OTHERS = [
   { type: 'carrier', takes: 'fuse', b: 0.63, r: 5.5, near: 1.5, up: [0.36, 1.28, 0.5], at: [0.1, 0.8, 0], hop: 0.28 },
   { type: 'tall', takes: 'lamp', b: 0.165, r: 7, near: 1.9, at: [-0.36, 1.73, 0], hop: 0.3 },
 ];
+// the crawler, there: it is up on its hind legs from rear[0] to rear[1] after it arrives (its pace times those), and down
+// on all fours again from drop[0] to drop[1] after it is off (it holds the keys up a beat before that, standing); its
+// mouth, standing, is so high (where the keys are, in its mouth, and on all fours its `at`)
+const CRAWLER_UP = { rear: [-0.05, 0.3], drop: [0, 0.35], mouth: 1.66 };
 // the frolic: where they may run (metres from you: v ahead, to the north; u to the right of that): from v0 to v1 ahead,
 // within `wedge` of that either side (so in the view, looking north); no nearer you than `you`; clear of the big tree
 // ([u, v, how far]), the swimmer's pool (`water`: how far its water reaches), the heap of the robe and one another; how fast each goes (metres a second; with
@@ -960,7 +977,7 @@ function buildGathering(L, s, c0, K) {
     const c = c0();
     E = s.egg = {
       t: 0, phase: 'rush', show: null, d0: c.dist, yaw0: c.yaw, joy: 0, glow: 0, thrown: [], stepT: 0, dm: mover(c, 'demon', 12, Math.sin(VOID_EGG.place[0]) * VOID_EGG.place[1], Math.cos(VOID_EGG.place[0]) * VOID_EGG.place[1]),
-      others: VOID_OTHERS.map((d, n) => Object.assign(mover(null, d.type, n, Math.sin(d.b) * d.r, Math.cos(d.b) * d.r), d, { n, c: make(d.type, n), skip: 0.1 + 0.14 * ((n * 0.29) % 1), item: L.items.find(i => i.id === d.takes), fly: null, held: null, threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, shown: false, lift: 0, hasK: 0, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
+      others: VOID_OTHERS.map((d, n) => Object.assign(mover(null, d.type, n, Math.sin(d.b) * d.r, Math.cos(d.b) * d.r), d, { n, c: make(d.type, n), skip: 0.1 + 0.14 * ((n * 0.29) % 1), item: L.items.find(i => i.id === d.takes), k: VOID_EGG.pace[n], s0: voidSets(n), fly: null, held: null, threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, shown: false, lift: 0, hasK: 0, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
     };
     E.movers = E.others.concat([E.dm]);
     const sw = E.others.find(o => o.pool);
@@ -997,10 +1014,21 @@ function buildGathering(L, s, c0, K) {
   }
   // how each stands, comes and leaps: its own fields (js/creatures), set every frame. q: u (seconds since it set out),
   // rush, near, back (0..1 through each), has (0..1: its thing is its own, from the moment it takes it until it throws it),
-  // joy (0..1), hop (0..1 through each leap; -1 on the ground)
+  // joy (0..1), hop (0..1 through each leap; -1 on the ground); R1, off (when it is there, and when it is off again) and k
+  // (its pace: VOID_EGG.pace), seconds
   const POSE = {
     walker(c, q, o) { o.poseDist = q.joy > 0.01 ? lerp(o.r, 2.2, q.joy * (1 - 0.6 * q.run)) : 0; },   // (its arms come up as they do when it is close)
-    crawler(c, q, o) { c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; },
+    // the crawler scurries up on all fours, and low as it is, its head would be under the view: so there it rears up (as it
+    // stood up in the road on its own night: js/creatures/crawler.js, struck, the shapes it goes through getting up, from
+    // all fours to up on its hind legs, its head up at you and its mouth open), takes the keys in its mouth standing, holds
+    // them a beat, and drops onto all fours again as it is off with them (CRAWLER_UP); the keys go up and down in its mouth
+    crawler(c, q, o) {
+      c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait;
+      const U = CRAWLER_UP, k = q.k, e = o.fro || q.joy > 0 ? 0 : span(q.u, q.R1 + U.rear[0] * k, q.R1 + U.rear[1] * k) * (1 - span(q.u, q.off + U.drop[0] * k, q.off + U.drop[1] * k));
+      c.struck = e > 0 ? { stage: 'look', along: 1, y: 0, spin: 0, fl: 0, down: 0, up: e, tw: 0, hang: 0, look: e } : null;
+      if (o.low === undefined) o.low = o.at[1];
+      o.at = [0, lerp(o.low, U.mouth, smoothstep((e - 0.2) / 0.7)), 0];
+    },
     smiler(c, q) { c.rush = q.joy; },
     watcher(c, q, o) {   // stone: it stands in one pose, and is in another each time it comes down
       if (!c.pose) c.pose = 2;
@@ -1130,18 +1158,19 @@ function buildGathering(L, s, c0, K) {
   const wants = (m, t, still) => s.leaving ? 0 : m.stand ? (m.fu !== m.stand[0] || m.fv !== m.stand[1] ? 1 : 0) : still || (t - m.at0) % m.per < m.per - FR.leap ? 1 : 0;
   function update(dt, still) {
     // (with reduced motion each comes slower, from nearer, and is off again without the flourish of holding its thing up)
-    const c = c0(), V = VOID_EGG, t = E.t = s.endT += dt, R1 = still ? 1.2 : V.rush, LK = still ? 0 : V.look, far = still ? 9 : V.far, off = R1 + V.take + V.pass + LK;
+    const c = c0(), V = VOID_EGG, t = E.t = s.endT += dt, far = still ? 9 : V.far;
     E.phase = t < VOID_EGG.hold ? 'rush' : t < VOID_EGG.joy ? 'hold' : 'joy';
     // ---- the others ----
     const joyT = t - VOID_EGG.joy;
     for (const o of E.others) {
-      const oc = o.c, u = t - (V.first + o.n * V.every);
+      // (each one's times, its pace times the first's: k)
+      const oc = o.c, u = t - o.s0, k = o.k, R1 = (still ? 1.2 : V.rush) * k, LK = still ? 0 : V.look * k, TK = voidTake(k), off = R1 + TK + V.pass * k + LK;
       oc.t += dt * oc.timeScale; oc.still = still;
       o.on = u >= 0;
       if (!o.on) continue;
       // it is there, stopped in front of you: and now your hand holds its thing up
-      if (!o.shown && u >= R1 + V.show) { o.shown = true; present(o.item); }
-      const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < off ? 1 : 0, back = span(u, off, off + V.back);
+      if (!o.shown && u >= R1 + V.show * k) { o.shown = true; present(o.item); }
+      const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < off ? 1 : 0, back = span(u, off, off + V.back * k);
       // up to you along its own way, a little in toward the middle so it is in your face; then off to its place, briskly
       // (the stone one is never seen to move: it is nearer, all at once, three times; and goes back so, a pose at a time)
       const stone = o.type === 'watcher', rk = stone ? Math.floor(rush * 3 + 1e-9) / 3 : rush, bk = stone ? Math.floor(back * 4 + 1e-9) / 4 : back;
@@ -1164,10 +1193,10 @@ function buildGathering(L, s, c0, K) {
         AUDIO.sfx(o.type === 'watcher' ? 'stoneRub' : 'cloth', pan(oc));
         if (!still) G.shake(0.14);
       }
-      if (!o.took && u >= R1 + V.take) take(o);
-      if (o.fly) { o.fly.t += dt; if (o.fly.t >= V.pass) { o.held = o.fly.it; o.fly = null; AUDIO.sfx('pat', pan(oc)); } }
+      if (!o.took && u >= R1 + TK) take(o);
+      if (o.fly) { o.fly.t += dt; if (o.fly.t >= V.pass * k) { o.held = o.fly.it; o.fly = null; AUDIO.sfx('pat', pan(oc)); } }
       // (and it holds it up a little, to look at it, as it turns to go)
-      o.lift = LK ? Math.sin(Math.PI * clamp((u - (off - LK)) / (LK + 0.25), 0, 1)) : 0;
+      o.lift = LK ? Math.sin(Math.PI * clamp((u - (off - LK)) / (LK + 0.25 * k), 0, 1)) : 0;
       // the joy: it throws what it holds up into the air, and leaps, again and again
       const jt = joyT - o.ph * 0.18;
       let hop = -1, hopT = 1;
@@ -1198,7 +1227,7 @@ function buildGathering(L, s, c0, K) {
       o.joyK += ((jt >= 0 && !s.leaving ? 1 : 0) - o.joyK) * Math.min(1, dt * 7);
       o.hasK += ((o.took && o.threw === null ? 1 : 0) - o.hasK) * Math.min(1, dt * 9);
       const q = o.q || (o.q = {});
-      q.u = u; q.rush = rush; q.near = near; q.back = back; q.has = o.hasK; q.joy = smoothstep(o.joyK); q.hop = hop; q.n = Math.floor(o.hx || 0); q.jt = jt; q.T = hopT; q.t = t; q.still = still; q.R1 = R1; q.run = o.fro ? o.run : 0;
+      q.u = u; q.rush = rush; q.near = near; q.back = back; q.has = o.hasK; q.joy = smoothstep(o.joyK); q.hop = hop; q.n = Math.floor(o.hx || 0); q.jt = jt; q.T = hopT; q.t = t; q.still = still; q.R1 = R1; q.off = off; q.k = k; q.run = o.fro ? o.run : 0;
       if (POSE[o.type]) POSE[o.type](oc, q, o, dt);
       o.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3 - o.ph * 0.5) / 1.6, 0, 1) : 1;
     }
@@ -1367,7 +1396,7 @@ function buildGathering(L, s, c0, K) {
       // a thing on its way from your raised hand to its hand
       const f = o.fly;
       if (f) {
-        const k = smoothstep(clamp(f.t / VOID_EGG.pass, 0, 1)), to = handAt(o), a = holdAt(o);
+        const k = smoothstep(clamp(f.t / (VOID_EGG.pass * o.k), 0, 1)), to = handAt(o), a = holdAt(o);
         inAir(f.it, lerp(f.from.x, to.x, k), lerp(f.from.y, to.y, k) + Math.sin(Math.PI * k) * 0.08, lerp(f.from.z, to.z, k), (a[2] || 0) * k, lerp(0.8, a[3] || 1, k));
       }
     }

@@ -17,7 +17,7 @@
 // shows no crack until it is at the glass. Then from off a front corner (it leaps into the road and is hit), and driven
 // at a second time as it lies there: it is not hit again. It is up and staring at once, comes at the car as the car
 // comes at it, and 6.5 m off it hurls itself up from standing, over the bonnet and through the windshield: "It got
-// you", and only "It was ready the second time." (the glass cracks as it meets it, and bursts). The same in reverse once it is up and coming
+// you", and only "It is too strong, even for a car." (the glass cracks as it meets it, and bursts). The same in reverse once it is up and coming
 // again: it stops, stares, and comes through the back window. Then
 // caught with the engine running and the car not away, the card says exactly "The
 // engine was running, but you couldn't get away fast enough." (with the engine dead, the window it came through, as
@@ -49,8 +49,8 @@ const second = (R, up) => [
   ['expect', "(r => G.deathCause === 'ready' && r.stage === 'spring' && r.hit < 0 && !G.L.s.knock && !G.L.creature.struck && Math.abs(r.sprangFrom - Math.min(6.5, __d2)) < 0.3 && r.sprangFrom <= __d2 && !!G.L.creature.up && G.L.creature.up.dive > 0 && !__sfx.includes('carHit') && __sfx.includes('stingShriek'))(G.L.s.ram)",
     'it was not hit a second time: up and coming, and 6.5 m off (or from where it was, nearer) it sprang at the glass from standing'],
   ['waitUntil', "G.state === 'dead'", 4000],
-  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'It was ready the second time.' && !G.L.text.eggs && /It got you/.test(UI.overlay.textContent) && /It was ready the second time\\./.test(UI.overlay.textContent) && !/Nice try|Again\\.|got right back up/.test(UI.overlay.textContent)",
-    'the card says It got you, and only: It was ready the second time.'],
+  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'It is too strong, even for a car.' && !G.L.text.eggs && /It got you/.test(UI.overlay.textContent) && /It is too strong, even for a car\\./.test(UI.overlay.textContent) && !/Nice try|Again\\.|got right back up/.test(UI.overlay.textContent)",
+    'the card says It got you, and only: It is too strong, even for a car.'],
   ['expect', "__sfx.includes('stingGlass') && (G.L.eye.z - __eyeZ) * " + (R ? -1 : 1) + " > 0.2", 'the glass went with its own sound, and the car ran on under it meanwhile'],
   crack(R ? 'back' : 'front'),
 ];

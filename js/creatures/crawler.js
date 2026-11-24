@@ -206,6 +206,16 @@ CREATURES.crawler = {
     if (p.spin) { ctx.translate(0, 0.42); ctx.rotate(p.spin); ctx.translate(0, -0.42); }
     const limb = (i, w, col, fl, fw, s) => { const r = tf(q[i], q[i + 1]); P_limb(ctx, [[r[0] + s, r[1]], [q[i + 2] + s, q[i + 3]], [q[i + 4] + s, q[i + 5]]], w, col); fingers(ctx, q[i + 4] + s, q[i + 5], q[i + 6], 0.37, fl, fw, col); };
     limb(6, 0.07, skinD, 0.13, 0.02, 0); limb(13, 0.07, skinD, 0.13, 0.02, 0);
+    // its shoulders: from each arm's root in toward the middle of the trunk and down, thick, under the trunk's edge (drawn
+    // before it), so the arm comes out of the body wherever the trunk is narrow at the top, leans, hitches or sways; the
+    // root a knob of bone. All in the trunk's own frame (tf, and the sway as the dome's top has it), so it goes with it
+    for (const i of [20, 27]) {
+      const r = tf(q[i], q[i + 1]), m = tf(q[i] * 0.3, q[i + 1] - 0.14), ax = r[0] + sx, ay = r[1], bx = m[0] + sx * 0.75, by = m[1];
+      const dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
+      ctx.fillStyle = skin; ctx.beginPath();
+      ctx.moveTo(ax + nx * 0.044, ay + ny * 0.044); ctx.lineTo(bx + nx * 0.08, by + ny * 0.08); ctx.lineTo(bx - nx * 0.08, by - ny * 0.08); ctx.lineTo(ax - nx * 0.044, ay - ny * 0.044); ctx.fill();
+      P_ell(ctx, ax, ay, 0.048, 0.048, skin); P_ell(ctx, bx, by, 0.08, 0.08, skin);
+    }
     // the back (standing, its trunk, the hips under it), the spine showing along it
     ctx.save(); ctx.translate(ox, oy + b0); ctx.rotate(tl); ctx.translate(0, -b0);
     const X = [-hw, -hw * 0.91 + sx, hw * 0.91 + sx, hw], Y = [b0, b1, b1, b0];

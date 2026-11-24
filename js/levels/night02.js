@@ -55,7 +55,7 @@ LEVELS.push({
     egg: 'Hit the creature with your car.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came through the windshield.', passenger: 'It came through the passenger window.', driver: 'It came through the window beside you.', back: 'It came through the back window.',
       running: 'The engine was running, but you couldn\'t get away fast enough.',
-      gotup: 'It got right back up.', ready: 'It was ready the second time.' },   // (ordinary deaths, "It got you": each said alone, the toast cleared where it is caused)
+      gotup: 'It got right back up.', ready: 'It is too strong, even for a car.' },   // (ordinary deaths, "It got you": each said alone, the toast cleared where it is caused)
     win: 'You drove off and did not look back.',   // the same whichever way out you took and wherever it was
   },
   // the windshield is the opening; the hood hides the last metres of road. It can come up the crown of
@@ -341,8 +341,8 @@ LEVELS.push({
     // the car as fast as it can lurch as the car comes at it, gathers itself low in the last SPRING.crouch seconds, and
     // SPRING.gap metres off the seat it hurls itself up off the road over the bonnet (over the boot, in reverse) in one
     // bound and through the glass, arms first, which cracks as it meets it and bursts (shatter, below, as any window it
-    // comes through). That is a death (spring: the cause 'ready'), "It got you" and only "It was ready the second
-    // time." While it is still in the air from the blow the wheels only spin (the gas).
+    // comes through). That is a death (spring: the cause 'ready'), "It got you" and only "It is too strong, even
+    // for a car." While it is still in the air from the blow the wheels only spin (the gas).
     // With reduced motion nothing shakes and the nose does not dip, it is knocked back lower, turning over once, and
     // its spring and its lunge at the glass are a little slower.
     // It need not be in the road for the first. Driving its way at all (forward with it anywhere ahead of the car, reversing with
