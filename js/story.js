@@ -78,8 +78,9 @@ const STORY = (() => {
     // plain sheet in the morning), and in the night the pillow is too (it can be lifted: the night draws it)
     const bed = { x0: -0.75, x1: 0.75, z0: S + 0.1, z1: 1.9, top: 0.58 }, pillow = { x0: -0.27, x1: 0.27, y0: bed.top, y1: bed.top + 0.12, z0: bed.z0 + 0.02, z1: bed.z0 + 0.32 };
     SC.box(L, bed.x0, bed.x1, 0.32, bed.top, bed.z0, bed.z1, cloth); SC.box(L, -0.8, 0.8, 0.3, 1.3, S + 0.02, bed.z0, wood);
-    for (const [x, z] of [[-0.72, bed.z0 + 0.1], [0.72, bed.z0 + 0.1], [-0.72, 1.85], [0.72, 1.85]]) SC.box(L, x - 0.04, x + 0.04, 0, 0.32, z - 0.04, z + 0.04, wood);
-    if (day) SC.box(L, pillow.x0, pillow.x1, pillow.y0, pillow.y1, pillow.z0, pillow.z1, [236, 232, 220]);
+    // (its legs are under it, drawn before it, so the mattress hides them: night 12 draws them as early, BED there)
+    for (const [x, z] of [[-0.72, bed.z0 + 0.1], [0.72, bed.z0 + 0.1], [-0.72, 1.85], [0.72, 1.85]]) SC.box(L, x - 0.04, x + 0.04, 0, 0.32, z - 0.04, z + 0.04, wood, { sortDist: 1.7 });
+    if (day) for (const f of pillowFaces(pillow, (x, u, v) => [x, pillow.y0 + v, pillow.z0 + u], [236, 232, 220], 0, false)) SC.quad(L, f.pts[0], f.pts[1], f.pts[2], f.pts[3], f.color, { sortDist: f.sd });
     if (day) SC.box(L, -0.78, 0.78, 0.58, 0.66, 0.2, 1.9, [228, 222, 206]);
     // the nightstand, the lamp on it; the dresser with a mirror and the clock; a chair
     // (an ordinary bedside table at your right hand, its back to the head wall, a hand's width clear of the side of the
@@ -88,8 +89,10 @@ const STORY = (() => {
     // night draws the drawer itself; in the morning it is shut. The lamp stands on it. The same in the morning as in the
     // night)
     const ns = { x0: 0.92, x1: 1.4, z0: S + 0.02, z1: -0.1, top: 0.64, drawer: { x0: 0.97, x1: 1.35, y0: 0.47, y1: 0.6 } };
-    SC.box(L, ns.x0, ns.x1, 0, ns.top, ns.z0, ns.z1, wood);
-    if (day) { const d = ns.drawer, kx = (d.x0 + d.x1) / 2, ky = (d.y0 + d.y1) / 2; SC.box(L, d.x0 - 0.012, d.x1 + 0.012, d.y0 - 0.01, d.y1 + 0.01, ns.z1, ns.z1 + 0.02, [158, 120, 82]); SC.wallV(L, kx - 0.02, ns.z1 + 0.024, kx + 0.02, ns.z1 + 0.024, ky - 0.02, ky + 0.02, [200, 190, 170]); }   // (its front a little proud of the nightstand's, as the night draws it)
+    // (it is beside the bed, beyond its edge, and drawn before it, so the bed hides what of it is behind the bed from where
+    // you sit; its drawer's front, a little proud of its own as the night draws it, and the knob, over it)
+    SC.box(L, ns.x0, ns.x1, 0, ns.top, ns.z0, ns.z1, wood, { sortDist: 1.7 });
+    if (day) { const d = ns.drawer, kx = (d.x0 + d.x1) / 2, ky = (d.y0 + d.y1) / 2; SC.box(L, d.x0 - 0.012, d.x1 + 0.012, d.y0 - 0.01, d.y1 + 0.01, ns.z1, ns.z1 + 0.02, [158, 120, 82], { sortDist: 1.695 }); SC.wallV(L, kx - 0.02, ns.z1 + 0.024, kx + 0.02, ns.z1 + 0.024, ky - 0.02, ky + 0.02, [200, 190, 170], { sortDist: 1.69 }); }
     SC.box(L, -2.9, -1.5, 0, 0.95, 3.05, 3.55, wood); SC.box(L, -2.85, -1.55, 0.95, 1.0, 3.0, 3.6, day ? [160, 124, 84] : [58, 44, 34]);
     SC.wallV(L, -2.7, 3.58, -1.7, 3.58, 1.05, 2.05, day ? [200, 212, 224] : [24, 22, 30], { noLight: !day });
     SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 1.0, 1.05, wood); SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 2.05, 2.1, wood);
@@ -104,6 +107,28 @@ const STORY = (() => {
     return { apN, apW, headWall: S, bed, pillow, nightstand: ns, lamp: [(ns.x0 + ns.x1) / 2, ns.top, (ns.z0 + ns.z1) / 2 - 0.03],
       furniture: [[-0.8, 0.8, S, bed.z1], [ns.x0, ns.x1, ns.z0, ns.z1], [chair.x0, chair.x1, chair.z0, chair.z1], [-2.9, -1.5, 3.05, 3.55]] };
   }
+  // The pillow's faces, soft: full in the middle, thinning to its seam all round and to a corner at each corner, top and
+  // underside alike (pressed flat underneath while it lies there: k, how far it is lifted, lets it fill out), each drawn as
+  // a grid of little faces shaded by how it is turned, the far ones first, over a plain face of it, so no hairline shows
+  // between them. at(x, u, v): where a point of it is (x across, u along it from its far edge, v up through it); under:
+  // draw its underside too (when that is what faces you). Returns { pts, color, sd } for each face, in drawing order
+  function pillowFaces(pil, at, color, k, under) {
+    const NX = 8, NU = 5, wid = pil.x1 - pil.x0, len = pil.z1 - pil.z0, t = pil.y1 - pil.y0, SEAM = 0.22 * t, out = [];
+    const shape = (i, j) => Math.pow(Math.sin(Math.PI * i / NX) * Math.sin(Math.PI * j / NU), 0.55);
+    const face = (fv, sd, dim) => {
+      const P3 = (i, j) => at(pil.x0 + wid * i / NX, len * j / NU, fv(i, j));
+      out.push({ pts: [P3(0, 0), P3(NX, 0), P3(NX, NU), P3(0, NU)], color: scalec(color, dim * 0.84), sd: sd + 0.0005 });
+      for (let j = 0; j < NU; j++) for (let i = 0; i < NX; i++) {
+        const A = P3(i, j), B = P3(i + 1, j), C = P3(i + 1, j + 1), D = P3(i, j + 1);
+        const ux = C[0] - A[0], uy = C[1] - A[1], uz = C[2] - A[2], vx = D[0] - B[0], vy = D[1] - B[1], vz = D[2] - B[2];
+        const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, nl = Math.hypot(nx, ny, nz) || 1;
+        out.push({ pts: [A, B, C, D], color: scalec(color, dim * (0.62 + 0.3 * Math.abs(ny / nl) + 0.12 * Math.abs(nz / nl) - 0.06 * Math.abs(nx / nl))), sd: sd - j * 0.0004 });
+      }
+    };
+    face((i, j) => SEAM + (t - SEAM) * shape(i, j), 0.2, 1);
+    if (under) face((i, j) => SEAM - (SEAM + 0.03 * k) * shape(i, j), 0.197, 0.88);
+    return out;
+  }
   function theme(day) { if (day) document.documentElement.setAttribute('data-theme', 'day'); else document.documentElement.removeAttribute('data-theme'); }
-  return { lamp, clock, startNight, update, buildBedroom, theme };
+  return { lamp, clock, startNight, update, buildBedroom, pillowFaces, theme };
 })();

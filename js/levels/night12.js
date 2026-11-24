@@ -732,34 +732,17 @@ LEVELS.push({
       R.add(lampDetail);
       // the pillow, behind you: a plump one lying on the sheet against the headboard; lifted, it is tipped up on its far
       // edge (and its shadow under it), and the tooth is on the sheet under where it lay. (at: a point of it, u along it
-      // from its far edge and v up through it.) It is soft: full in the middle, thinning to its seam all round and to a
-      // corner at each corner, top and underside alike (pressed flat underneath while it lies there), each drawn as a grid
-      // of little faces shaded by how it is turned, the far ones first. It is drawn after the tooth, which it may hide a
-      // part of
+      // from its far edge and v up through it.) It is soft (STORY.pillowFaces: the morning's is the same). It is drawn
+      // after the tooth, which it may hide a part of
       {
         const k = pillowUp(), a = FAIRY.tilt * k, t = PIL.y1 - PIL.y0, len = PIL.z1 - PIL.z0, cs = Math.cos(a), sn = Math.sin(a), zH = PIL.z0 + t * sn;
         const at = (x, u, v) => [x, B0 + u * sn + v * cs, zH + u * cs - v * sn];
         const pq = (a2, b2, c2, d2, col, sd, alpha) => R.add(SC.mkQuad(L, a2, b2, c2, d2, col, alpha === undefined ? { sortDist: sd } : { sortDist: sd, alpha }));
         if (k > 0.02) pq([PIL.x0, B0 + 0.003, zH], [PIL.x1, B0 + 0.003, zH], [PIL.x1, B0 + 0.003, PIL.z1 + 0.02], [PIL.x0, B0 + 0.003, PIL.z1 + 0.02], [16, 14, 20], 0.34, 0.45 * k);
         R.glowAs(pillowT);
-        const NX = 8, NU = 5, wid = PIL.x1 - PIL.x0, SEAM = 0.22 * t;
-        const shape = (i, j) => Math.pow(Math.sin(Math.PI * i / NX) * Math.sin(Math.PI * j / NU), 0.55);
-        const top = (i, j) => SEAM + (t - SEAM) * shape(i, j), under = (i, j) => SEAM - (SEAM + 0.03 * k) * shape(i, j);
-        // one face of it, a grid of little faces (fv: how high each point of it is), each shaded by how it is turned
-        const face = (fv, sd, dim) => {
-          const P3 = (i, j) => at(PIL.x0 + wid * i / NX, len * j / NU, fv(i, j));
-          pq(P3(0, 0), P3(NX, 0), P3(NX, NU), P3(0, NU), scalec(PILLOW, dim * 0.84), sd + 0.0005);   // (under them, so no hairline shows between them)
-          for (let j = 0; j < NU; j++) for (let i = 0; i < NX; i++) {
-            const A = P3(i, j), Bq = P3(i + 1, j), C = P3(i + 1, j + 1), D = P3(i, j + 1);
-            const ux = C[0] - A[0], uy = C[1] - A[1], uz = C[2] - A[2], vx = D[0] - Bq[0], vy = D[1] - Bq[1], vz = D[2] - Bq[2];
-            const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, nl = Math.hypot(nx, ny, nz) || 1;
-            pq(A, Bq, C, D, scalec(PILLOW, dim * (0.62 + 0.3 * Math.abs(ny / nl) + 0.12 * Math.abs(nz / nl) - 0.06 * Math.abs(nx / nl))), sd - j * 0.0004);
-          }
-        };
-        face(top, 0.2, 1);
-        // tipped up past your line of sight, it is its underside that faces you, over the rest of it
-        const ue = L.eye || { x: 0, y: 0, z: 0 }, mid = at(0, len / 2, 0);
-        if (k > 0.02 && (L.eyeH + (ue.y || 0) - mid[1]) * -cs + ((ue.z || 0) - mid[2]) * sn > 0) face(under, 0.197, 0.88);
+        // (tipped up past your line of sight, it is its underside that faces you, over the rest of it)
+        const ue = L.eye || { x: 0, y: 0, z: 0 }, mid = at(0, len / 2, 0), under = k > 0.02 && (L.eyeH + (ue.y || 0) - mid[1]) * -cs + ((ue.z || 0) - mid[2]) * sn > 0;
+        for (const f of STORY.pillowFaces(PIL, at, PILLOW, k, under)) pq(f.pts[0], f.pts[1], f.pts[2], f.pts[3], f.color, f.sd);
         R.glowAs(null);
       }
       // How low it must be to be out of sight behind the bed, where it is: the height of your line of sight there over the
