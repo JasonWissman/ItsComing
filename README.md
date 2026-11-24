@@ -859,32 +859,40 @@ some on the ground, so you have to turn and look down to find them.
     yet taken is in your hand the night is won another way (the easter egg is saved then, and
     the run's clock stops as at any win): it stops where it is and backs off into the dark,
     the view is taken (level, to the north), and out of the dark each of the twelve others,
-    in the order of their nights, one at a time, 2.5 s apart (so the claiming takes about half
-    a minute), rushes up to you along its own way (0.7 s,
-    to under two metres, the low ones, the crawler and the doll, to a little over two so that they stay in the view; with its own steps and voice and a jolt of the view). Half a second
-    before each sets out, your hand holds up what was its own: the game's own held thing
+    in the order of their nights, one at a time, 2.2 s apart (so the claiming takes a little under half
+    a minute), rushes up to you along its own way (0.6 s,
+    to under two metres, the low ones, the crawler and the doll, to a little over two so that they stay in the view; with its own steps and voice and a jolt of the view). While it
+    is coming your hand holds nothing up. Only once it is there, stopped in front of you
+    (0.1 s after), does your hand hold up what was its own: the game's own held thing
     (js/hands.js, told what to hold by the night), raised higher and further in toward the
     middle than a thing is carried; one hand only, the other empty. A thing you had put down
-    again comes up off the floor into your hand first, so each of the sixteen is handed over
-    the same way. The creature stops in front of you, and 0.15 s later takes the thing out of
-    your raised hand: it passes from your hand to its own over 0.35 s (the pick-up sound as it
+    again comes up off the floor into your hand first, so each is handed over
+    the same way. Half a second later (0.6 s after it arrived) it takes the thing out of
+    your raised hand: it passes from your hand to its own over 0.25 s (the pick-up sound as it
     leaves yours, a soft pat as it lands in its hand; your hand is left open, and goes down); it
-    holds it up half a second, looking at it; one with two things takes the first, your hand
-    brings up the second, and it takes that 0.9 s after the first. Then it backs
-    away slowly, facing you, holding it: the walker the hammer and the planks, the crawler
-    the car keys, the warden the salt and the lantern, the stone one the chain and the
-    padlock (never seen to move: it is nearer all at once, three times, and goes back a pose
-    at a time), the runner the bow and the arrows, the swimmer the bar (it skims in, only
-    its head above the black floor, and bursts up out of it; a pool of its own lies round
-    it), the climber the fuse, the customer the winch handle (the nearest thing to its
-    shutter crank), the shade the notebook, the doll the music box (in its arms, as it
-    carried it off), the carrier the matches, and the tall one the bulb. Each is drawn by
-    its own code, in its own poses, with what it holds at its hand. They end in two rows in
+    holds it up a quarter of a second, looking at it, and is off with it, briskly (a second),
+    to its place, holding it: so it is in its place 2.7 s after it set out, and well clear of
+    you (5 m off or more) before the next, set out at 2.2 s, is within 4 m. There is never
+    more than one of them near you. One thing each, the thing of its own night: the walker
+    the hammer (in its raised fist), the crawler the car keys (in its mouth), the warden the
+    lantern (hung on the hook of his staff, where a lantern would hang), the stone one the
+    chain (never seen to move: it is nearer all at once, three times, has the chain in a
+    raised hand all at once, and goes back a pose at a time), the runner the arrows, the
+    swimmer the life ring (it skims in, only its head above the black floor, and bursts up
+    out of it; it wears the ring round its chest and rides higher in it, as it did the one
+    thrown to it on its own night; a pool of its own lies round it), the climber the bulb,
+    the customer the paper cup (in its right hand, as it held its soda at the diner's
+    fountain), the shade the notebook (at the end of its long arm), the doll the music box
+    (in its arms, as it carried it off), the carrier the fuse (clutched to its front), and
+    the tall one the bedside lamp (in a hand held up before it). The other four of the
+    sixteen (the planks, the salt, the padlock, the bow) are no one's: they are never asked
+    for, and are gone, out of your hands and off the floor, under the flash of the throw.
+    Each is drawn by its own code, in its own poses, with what it holds at its hand. They end in two rows in
     an arc in front of you, the shorter in front and the taller behind, six either side, and
     the thing in the hood comes back, calm, two pale eyes, into the middle of them, a faint
-    cold light behind them all. They stand there (all in their places 34 s after the last thing was taken up), still and quiet, three seconds. Then all
+    cold light behind them all. They stand there (all in their places 30 s after the last thing was taken up), still and quiet, three seconds. Then all
     at once (a brassy "ta-da!", the sound `cheer`: two party-horn chord stabs, a short one and a
-    higher one held most of a second; and the chord of a night won) they throw it all up into the
+    higher one held most of a second; and the chord of a night won) they throw what they hold up into the
     air (this ending's jump scare, a happy one: that instant the view is lightened by the
     same soft flash as the other ending's scare, none with reduced flashing, with a party
     popper going off, the sound `twinkle`: a sharp crack and the confetti sprinkling down; and
@@ -895,7 +903,7 @@ some on the ground, so you have to turn and look down to find them.
     each time it comes down), as its happy face comes up out of the hood and it takes off
     its robe and dances, the music box plays, and the dark turns to the pale light and the
     meadow (this one without its wild flowers, only grass, and every other tuft of that: there is a crowd in it to draw), all thirteen of them in it, leaping. And once they have leapt there a few seconds
-    (from 45.8 s, one after another over two seconds, just after the meadow starts waiting
+    (from 41.8 s, one after another over two seconds, just after the meadow starts waiting
     for your press) they frolic, for as long as you stay: each runs about the meadow in its
     own gait and at its own speed (the runner 5 m/s, the crawler and the warden over 3, the
     doll and the walker a little over 2), in loops and darts, making for one spot and then
@@ -918,7 +926,7 @@ some on the ground, so you have to turn and look down to find them.
     stays on the grass. From there it is the ending as it always is: the view is yours, a press
     goes on (they all fade, glittering, as the bedroom comes), the last screen, The End,
     the results, the campaign complete. With reduced motion each comes slower and from
-    nearer with no jolt, the things thrown turn slowly, and a leap is only a gentle bob;
+    nearer with no jolt (1.2 s, from 9 m) and is off again without holding its thing up to look, the things thrown turn slowly, and a leap is only a gentle bob;
     and in the meadow they do not run but amble, slowly (half a metre a second), bobbing
     gently, with no leaning, no ducking under and no dance.
     The view closes in a little on a wide screen (a phone held sideways) so the whole

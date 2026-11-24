@@ -16,19 +16,23 @@
 // there you may look about as long as you like; a press and it is the bedroom. The bow still comes up and draws as it did on night 5, but it is
 // never loosed: drawn at, it comes for you, faster and faster, and is on you before the bow is full.
 const VOID_TOOLS = [
-  ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['matches', 'Matches', 0.2, 0.2],
-  ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['handle', 'Winch handle', 0.45, 0.45],
-  ['fuse', 'Fuse', 0.34, 0.34], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['beam', 'Bar', 1.4, 0.45], ['journal', 'Notebook', 0.2, 0.26], ['bulb', 'Bulb', 0.2, 0.3],
+  ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['cup', 'Paper cup', 0.2, 0.2],
+  ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['lamp', 'Lamp', 0.34, 0.5],
+  ['fuse', 'Fuse', 0.34, 0.34], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['lifering', 'Life ring', 0.7, 0.7], ['journal', 'Notebook', 0.2, 0.26], ['bulb', 'Bulb', 0.2, 0.3],
 ];
-// each looks as it did on its own night, at about the size it was there (those nights define their own icons)
-const VOID_ICONS = { keys: 'carkeys', chain: 'coiledchain', journal: 'notebook' };
+// each looks as it did on its own night, at about the size it was there (those nights define their own icons; the lamp
+// is the story's, js/icons.js)
+const VOID_ICONS = { keys: 'carkeys', chain: 'coiledchain', journal: 'notebook', cup: 'paperCup', lifering: 'lifeRing' };
 // and is held as it was there (js/hands.js: what its own icon would be held as; the void draws them all through a wrapper of
 // its own), and a few as they are carried here: the arrows in a fist round their shafts, the coil of chain a little smaller,
-// the notebook by its edge
+// the notebook by its edge; the cup and the life ring as the diner and the boathouse have them held, the lamp by its stem
 const VOID_HELD = {
   arrows: { grip: 'fist', at: [0.06, 0.5], axis: Math.PI / 2, angle: -0.55, size: 0.36 },
   chain: { size: 0.28 },
   journal: { grip: 'pinch', at: [0.36, 0.42], angle: 0.18 },
+  cup: { grip: 'fist', at: [0, 0.42], axis: 0, angle: 0.06, size: 0.17 },
+  lifering: { grip: 'fist', at: [0.2, 0.2], axis: 0.9, angle: -0.25, size: 0.33 },
+  lamp: { grip: 'fist', at: [0, 0.27], axis: 0, angle: 0.1, size: 0.3 },
 };
 // lying on the void's black floor, a thing's darkest colours (a lantern's frame, a gun's barrels, a hammer's handle grip)
 // would be lost against it: there, and only there, they are lifted a little toward grey, as the Quarry draws its chain a
@@ -130,7 +134,7 @@ LEVELS.push({
       const a = (along + room[k] / 2) / all * TAU + 0.2, r = ringR + (k % 2) * 0.5;
       along += room[k];
       const own = ICONS[VOID_ICONS[id] || id], held = Object.assign(G.heldSpec({ id, w, h, flat: true, icon: own }), VOID_HELD[id]);
-      mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(own), held, tool: id === 'bow' || id === 'matches' || id === 'hammer', uses: id === 'arrows' ? 3 : 1 });
+      mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(own), held, tool: id === 'bow' || id === 'hammer', uses: id === 'arrows' ? 3 : 1, material: id === 'lifering' ? 'soft' : undefined });   // (the ring lands as the soft thing it is: js/hands.js materialOf)
     });
     // put down, a thing lands where you put it unless it would lie over something else, when it goes the least way to the
     // side, nearer or further that clears it. Everything lies as a card facing you, so two overlap where their widths
@@ -808,13 +812,15 @@ function buildMeadow(L, s, c0) {
 // ---------- the others, come for what was theirs (the easter egg) ----------
 // Everything taken up (each thing in your hand at least once this attempt), the night ends another way, and is won: the
 // thing in the hood stops and backs off into the dark, the view is taken (level, to the north), and out of the dark each
-// of the others, in the order of their nights, one at a time (`every` apart), rushes up to you along its own way. A beat
-// before it sets out your hand holds up what was its own (the game's own hand, js/hands.js, shown what to hold by
-// L.heldItem, and held higher and further in than a thing is carried: VOID_EGG.up; a thing you had put down again comes up
-// off the floor into your hand first, so every one of them is handed over the same way). It stops in front of you, takes the
-// thing out of your raised hand (it passes from your hand to its own, `pass`; your hand is left open, and goes down), holds
-// it up a beat to look at it (`look`), and backs away slowly, facing you, holding it, to its place; one with two things takes
-// the first, your hand brings up the second, and it takes that too. Their places: two rows of them in an arc in front of
+// of the others, in the order of their nights, one at a time (`every` apart), rushes up to you along its own way. Only
+// when it is there, stopped in front of you, does your hand hold up what was its own (the game's own hand, js/hands.js,
+// shown what to hold by L.heldItem, and held higher and further in than a thing is carried: VOID_EGG.up; a thing you had
+// put down again comes up off the floor into your hand first, so every one of them is handed over the same way). It takes
+// the thing out of your raised hand (it passes from your hand to its own, `pass`; your hand is left open, and goes down),
+// holds it up a beat to look at it (`look`), and is off with it, briskly, to its place, holding it; and only once it is
+// well clear of you is the next one near: there is never more than one of them close to you. One thing to each of them
+// (VOID_OTHERS); what else you took up is no one's, and is not asked for: it is gone, out of your hands and off the floor,
+// under the flash of the throw. Their places: two rows of them in an arc in front of
 // you, the taller behind. The thing in the hood comes back, calm, into the
 // middle of them. They stand there, still, a few seconds. Then all at once they throw it all up into the air and leap
 // for joy, again and again, as its face comes up out of the hood, happy, and it takes off its robe and dances, and the
@@ -836,43 +842,53 @@ function buildMeadow(L, s, c0) {
 // holds is drawn at its hand. Times are seconds from the moment the last thing was taken up.
 const VOID_EGG = {
   far: 17,                              // each comes out of the dark from this far off
-  first: 1.7, every: 2.5,               // the first of them sets out, and each one after it: one at a time
-  raise: 0.5,                           // your hand holds its thing up this long before it sets out
+  first: 1.7, every: 2.2,               // the first of them sets out (the view has come round to the north by then, from wherever you
+                                        // were looking), and each one after it: one at a time
+  rush: 0.6,                            // each: up to you, fast
+  show: 0.1,                            // there, and not before, your hand holds its thing up (so long after it arrives)
   up: { x: -0.17, y: -0.15 },           // (held up: so far in from the corner of the view and up, as much of the view's height; js/hands.js spec.x, y)
-  rush: 0.7,                            // each: up to you, fast
-  take: 0.15, pass: 0.35, second: 0.9,  // there, it takes its thing (so long after it arrives; so long from your hand to its own); a second thing, so long after the first
-  look: 0.5,                            // it holds it up and looks at it (so `snatch` in all: take + pass + look, and `second` more with two things)
-  back: 2.9,                            // then it backs away, slowly, to its place
+  take: 0.6, pass: 0.25,                // it takes its thing (so long after it arrives: your hand has been up with it a beat by then; so long from your hand to its own)
+  look: 0.25,                           // it holds it up and looks at it
+  back: 1.0,                            // then it is off with it, briskly, to its place: there at rush + take + pass + look + back = 2.7 after it set
+                                        // out, and four fifths of the way (well clear of you) when the next, set out at 2.2, is within four metres
   gone: [0.15, 1.3],                    // meanwhile the thing in the hood has backed off into the dark
-  demon: [29.6, 33.3],                  // and it comes back, calm, into the middle of them
-  hold: 34.0,                           // all of them there, still (the last is in its place at first + 11 * every + rush + take + pass + look + back = 33.8)
-  joy: 37.2,                            // then all at once they throw it all up into the air and leap for joy
-  unveil: [37.2, 37.7],                 // its face comes up out of the hood, happy,
-  disrobe: [37.7, 40.3],                // and it takes off its robe: the hood back, the robe dropped, a hop clear; and dances
-  light: [37.5, 43.0],                  // as the dark turns to the pale light, and the meadow comes
-  wait: 43.8, arm: 44.4,                // from here the meadow is yours to look about in, and waits for a press (taken from `arm`)
-  frolic: 45.8,                         // and from here, one after another, they run about the meadow
+  demon: [27.3, 29.9],                  // and it comes back, calm, into the middle of them (as the last of them goes to its place)
+  hold: 30.0,                           // all of them there, still (the last is in its place at first + 11 * every + 2.7 = 28.6)
+  joy: 33.2,                            // then all at once they throw it all up into the air and leap for joy
+  unveil: [33.2, 33.7],                 // its face comes up out of the hood, happy,
+  disrobe: [33.7, 36.3],                // and it takes off its robe: the hood back, the robe dropped, a hop clear; and dances
+  light: [33.5, 39.0],                  // as the dark turns to the pale light, and the meadow comes
+  wait: 39.8, arm: 40.4,                // from here the meadow is yours to look about in, and waits for a press (taken from `arm`)
+  frolic: 41.8,                         // and from here, one after another, they run about the meadow
   place: [0, 6.0],                      // where the thing in the hood stands among them: its bearing from the north, and how far off
 };
-// who takes what: each thing to the creature of the night it came from, in the order of their nights. The diner's and the
-// farm's things are not among the sixteen, so the customer takes the winch handle (the nearest thing to its shutter
-// crank) and the carrier the matches; the tall one the bulb (the bedroom's as well as the lighthouse's).
+// who takes what: one thing each, the thing of its own night, in the order of their nights (the hammer that boarded the
+// field's windows, the road's car keys, the graveyard's lantern, the quarry's chain, the clearing's arrows, the boathouse's
+// life ring, the lighthouse's bulb, the diner's cup, the notebook from the phone booth, the mirror maze's music box, the
+// farm's fuse, the bedroom's lamp). The other four of the sixteen (the planks, the salt, the padlock, the bow) are no one's.
 // b, r: its place among them (its bearing from the north, radians, and how far off); near: how near it comes for its
-// things (the low ones, the crawler and the doll, not so near: nearer, they are under the view and the take is not seen); at: where it holds each of them ([x, y] from its feet, in its own drawing; the turn of the thing; its size, 1 by
-// default); hop: how high it leaps (metres)
+// thing (the low ones, the crawler and the doll, not so near: nearer, they are under the view and the take is not seen);
+// at: where it carries it, in the hand it took it with ([x, y] from its feet, in its own drawing; the turn of the thing;
+// its size, 1 by default): the walker in its fist, the crawler in its mouth, the warden hung on the hook of his staff
+// (where a lantern would hang), the stone one in a raised hand, the runner in the hand it crouches on, the climber in a
+// claw, the shade at the end of its long arm, the carrier clutched to its front, the tall one in a hand held out before
+// it; up: where it holds it while it is still close to you, where that is not where it will carry it (its hands are
+// higher there, or under the view); own: its own drawing has it (the doll carries the box in its arms, as it carried it
+// off; the swimmer wears the ring, as it wore the one thrown to it on its own night; the customer has the cup in its
+// hand as it had its soda at the diner's fountain); hop: how high it leaps (metres)
 const VOID_OTHERS = [
-  { type: 'walker', takes: ['hammer', 'planks'], b: -0.165, r: 7, near: 1.9, at: [[-0.45, 1.5, 0.3], [0.5, 1.2, 1.35]], hop: 0.34 },
-  { type: 'crawler', takes: ['keys'], b: -0.258, r: 5.5, near: 2.5, at: [[0, 0.5, 0]], hop: 0.3 },
-  { type: 'smiler', takes: ['salt', 'lantern'], b: 0.258, r: 5.5, near: 1.5, at: [[-0.3, 0.8, 0], [0.31, 0.36, 0]], hop: 0.26 },
-  { type: 'watcher', takes: ['chain', 'padlock'], b: 0.537, r: 7, near: 1.8, at: [[-0.6, 1.5, 0], [0.6, 1.62, 0]], hop: 0.3 },
-  { type: 'runner', takes: ['bow', 'arrows'], b: -0.63, r: 5.5, near: 1.7, at: [[-0.5, 0.62, 1.45], [0.5, 0.42, 1.3]], hop: 0.44 },
-  { type: 'swimmer', takes: ['beam'], b: 0.444, r: 5.5, near: 1.4, at: [[0, 0.3, 0]], hop: 0.26 },
-  { type: 'climber', takes: ['fuse'], b: -0.537, r: 7, near: 1.6, at: [[0.47, 1.86, 0]], hop: 0.36 },
-  { type: 'customer', takes: ['handle'], b: -0.351, r: 7, near: 1.7, at: [[0.34, 1.12, 0]], hop: 0.3 },
-  { type: 'signalman', takes: ['journal'], b: 0.351, r: 7, near: 1.9, at: [[0.42, 2.0, 0]], hop: 0.32 },
-  { type: 'other', takes: ['musicbox'], b: -0.444, r: 5.5, near: 2.2, at: [[0, 0.72, 0]], hop: 0.3, own: true },
-  { type: 'carrier', takes: ['matches'], b: 0.63, r: 5.5, near: 1.5, at: [[0.3, 0.8, 0]], hop: 0.28 },
-  { type: 'tall', takes: ['bulb'], b: 0.165, r: 7, near: 1.9, at: [[0.5, 1.24, 0]], hop: 0.3 },
+  { type: 'walker', takes: 'hammer', b: -0.165, r: 7, near: 1.9, up: [-0.58, 2.06, 0.3], at: [-0.38, 1.75, 0.3], hop: 0.34 },
+  { type: 'crawler', takes: 'keys', b: -0.258, r: 5.5, near: 2.5, at: [0, 0.5, 0], hop: 0.3 },
+  { type: 'smiler', takes: 'lantern', b: 0.258, r: 5.5, near: 1.5, at: [-0.25, 1.34, 0], hop: 0.26 },
+  { type: 'watcher', takes: 'chain', b: 0.537, r: 7, near: 1.8, at: [0.6, 1.5, 0], hop: 0.3 },
+  { type: 'runner', takes: 'arrows', b: -0.63, r: 5.5, near: 1.7, up: [0.5, 1.02, 1.05], at: [0.5, 0.42, 1.3], hop: 0.44 },
+  { type: 'swimmer', takes: 'lifering', b: 0.444, r: 5.5, near: 1.9, at: [0, -0.3, 0], hop: 0.26, own: true },
+  { type: 'climber', takes: 'bulb', b: -0.537, r: 7, near: 1.6, at: [0.47, 1.86, 0], hop: 0.36 },
+  { type: 'customer', takes: 'cup', b: -0.351, r: 7, near: 1.7, at: [0.255, 1.17, 0], hop: 0.3, own: true },
+  { type: 'signalman', takes: 'journal', b: 0.351, r: 7, near: 1.9, at: [0.42, 2.0, 0], hop: 0.32 },
+  { type: 'other', takes: 'musicbox', b: -0.444, r: 5.5, near: 2.2, at: [0, 0.72, 0], hop: 0.3, own: true },
+  { type: 'carrier', takes: 'fuse', b: 0.63, r: 5.5, near: 1.5, up: [0.36, 1.28, 0.5], at: [0.1, 0.8, 0], hop: 0.28 },
+  { type: 'tall', takes: 'lamp', b: 0.165, r: 7, near: 1.9, at: [-0.36, 1.73, 0], hop: 0.3 },
 ];
 // the frolic: where they may run (metres from you: v ahead, to the north; u to the right of that): from v0 to v1 ahead,
 // within `wedge` of that either side (so in the view, looking north); no nearer you than `you`; clear of the big tree
@@ -928,16 +944,18 @@ function buildGathering(L, s, c0, K) {
     if (!G.inv.includes(it)) { if (!f) HANDS.picked(it); it.taken = true; G.hover = null; }
     E.show = it;
   };
-  // where the k-th thing a creature holds is, in the world (its hand, as it stands now)
-  const handAt = (o, k) => {
-    const c = o.c, p = c.pos(), a = o.at[k] || o.at[0];
+  // where a creature holds its thing now, in its own drawing (VOID_OTHERS: `up` while it is close to you, going over to
+  // `at` as it goes off to its place), and where that is in the world (its hand, as it stands now)
+  const holdAt = o => { const a = o.at, u = o.up, k = o.q ? o.q.back : 0; return u && k < 1 ? [lerp(u[0], a[0], k), lerp(u[1], a[1], k), lerp(u[2] || 0, a[2] || 0, k), a[3] || 1] : a; };
+  const handAt = o => {
+    const c = o.c, p = c.pos(), a = holdAt(o);
     return { x: p.x + Math.cos(c.yaw) * a[0], y: (c.yOff || 0) + o.hopY + a[1], z: p.z - Math.sin(c.yaw) * a[0] };
   };
   function begin() {
     const c = c0();
     E = s.egg = {
       t: 0, phase: 'rush', show: null, d0: c.dist, yaw0: c.yaw, joy: 0, glow: 0, thrown: [], stepT: 0, dm: mover(c, 'demon', 12, Math.sin(VOID_EGG.place[0]) * VOID_EGG.place[1], Math.cos(VOID_EGG.place[0]) * VOID_EGG.place[1]),
-      others: VOID_OTHERS.map((d, n) => Object.assign(mover(null, d.type, n, Math.sin(d.b) * d.r, Math.cos(d.b) * d.r), d, { n, c: make(d.type, n), skip: 0.1 + 0.14 * ((n * 0.29) % 1), items: d.takes.map(id => L.items.find(i => i.id === id)), fly: [], held: [], threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, shown: 0, tookN: 0, lift: 0, sn: VOID_EGG.take + VOID_EGG.pass + VOID_EGG.look + (d.takes.length - 1) * VOID_EGG.second, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
+      others: VOID_OTHERS.map((d, n) => Object.assign(mover(null, d.type, n, Math.sin(d.b) * d.r, Math.cos(d.b) * d.r), d, { n, c: make(d.type, n), skip: 0.1 + 0.14 * ((n * 0.29) % 1), item: L.items.find(i => i.id === d.takes), fly: null, held: null, threw: null, age: n % 3, joyK: 0, on: false, came: false, took: false, shown: false, lift: 0, hasK: 0, hopY: 0, squash: 1, ph: (n * 0.618) % 1, fade: 1 })),
     };
     E.movers = E.others.concat([E.dm]);
     const sw = E.others.find(o => o.pool);
@@ -960,36 +978,39 @@ function buildGathering(L, s, c0, K) {
     AUDIO.sfx('stingHum'); win();
   }
   const pan = c => Math.sin(wrapPi(c.yaw - G.cam.yaw)) * 0.85;
-  // one of them takes the k-th of what was its own out of your raised hand: your hand lets go of it (open, and it goes
-  // down), and it goes across to its own hand
-  function take(o, k) {
-    const it = o.items[k], from = whereIs(it);
-    o.took = true; o.tookN = k + 1;
+  // one of them takes what was its own out of your raised hand: your hand lets go of it (open, and it goes down), and it
+  // goes across to its own hand
+  function take(o) {
+    const it = o.item, from = whereIs(it);
+    o.took = true;
     if (G.inv.includes(it)) { HANDS.dropped(it); G.removeFromInv(it); } else if (G.hand.cur === it) G.hand.gone = it;
     it.taken = true; it.by = o.type;
-    o.fly.push({ it, k, t: 0, from });
+    o.fly = { it, t: 0, from };
     if (E.show === it) E.show = null;
     G.hover = null; G.invSig = '';
     AUDIO.sfx('pickup', pan(o.c));
   }
   // how each stands, comes and leaps: its own fields (js/creatures), set every frame. q: u (seconds since it set out),
-  // rush, near, back (0..1 through each), joy (0..1), hop (0..1 through each leap; -1 on the ground)
+  // rush, near, back (0..1 through each), has (0..1: its thing is its own, from the moment it takes it until it throws it),
+  // joy (0..1), hop (0..1 through each leap; -1 on the ground)
   const POSE = {
     walker(c, q, o) { o.poseDist = q.joy > 0.01 ? lerp(o.r, 2.2, q.joy * (1 - 0.6 * q.run)) : 0; },   // (its arms come up as they do when it is close)
     crawler(c, q, o) { c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; },
     smiler(c, q) { c.rush = q.joy; },
     watcher(c, q, o) {   // stone: it stands in one pose, and is in another each time it comes down
       if (!c.pose) c.pose = 2;
-      if (q.back >= 1 && q.joy < 0.05) c.pose = 2;   // (in its place: its hands up either side of its head, the chain in one and the lock in the other)
+      if (o.held && q.joy < 0.05) c.pose = 2;   // (the chain is in its hand, all at once: its hands up either side of its head, the chain in one of them; and so it goes back)
       const n = q.hop < 0 ? -1 : q.n;
       if (n !== o.hops) { if (o.hops !== undefined && n >= 0) c.pose = 1 + (c.pose % 3); o.hops = n; }
     },
     runner(c, q, o) { c.mode = o.side ? 'dart' : q.back > 0.15 && q.joy < 0.5 ? 'crouch' : 'sprint'; c.modeT = 1; c.runDir = o.face; c.runGait = c.gait; },
     swimmer(c, q, o) {
-      // it comes skimming in, only its head above the black floor as it was above the water, and bursts up out of it at you
-      c.mode = 'up';
-      const k = clamp((q.u - q.R1 * 0.8) / 0.4, 0, 1), lift = 0.95;
-      if (k > 0 && c.burstT === undefined) { c.burstT = c.t; c.burstY = lift; if (!q.still) AUDIO.sfx('splash', pan(c)); }
+      // it comes skimming in, only its head above the black floor as it was above the water, and bursts up out of it at you;
+      // and the life ring, once it has it, it wears: round its chest, as its own night has it in the one thrown to it
+      // (and rides higher in it, as there)
+      c.mode = 'up'; c.ringOn = !!o.held;
+      const k = clamp((q.u - q.R1 * 0.8) / 0.4, 0, 1), lift = 0.95 + c.CR.RING_H * q.has;
+      if (k > 0 && c.burstT === undefined) { c.burstT = c.t; c.burstY = 0.95; if (!q.still) AUDIO.sfx('splash', pan(c)); }
       // (frolicking, it keeps to its pool: now and then it ducks under and bursts up out of it again)
       let dip = 0;
       if (q.run > 0 && !q.still) {
@@ -1000,12 +1021,19 @@ function buildGathering(L, s, c0, K) {
       c.lunge = k; c.yOff = lift * smoothstep(k) * (1 - 0.62 * dip);
     },
     climber(c, q) { c.lunge = 0.75 + 0.25 * Math.max(q.near, q.joy); },
-    customer(c, q, o) { c.runPose = !!o.side; c.runTurn = 1; c.runAmt = 1; c.runDir = o.face; c.runGait = c.gait; c.shove = q.joy > 0.01 ? { k: q.joy * (1 - 0.5 * q.run), h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null; },
+    customer(c, q, o) {
+      c.runPose = !!o.side; c.runTurn = 1; c.runAmt = 1; c.runDir = o.face; c.runGait = c.gait; c.shove = q.joy > 0.01 ? { k: q.joy * (1 - 0.5 * q.run), h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null;
+      // its cup: its right hand goes out for it, and has it, at its chest (up a little as it looks at it), as it had its
+      // soda at the diner's fountain; its hands hang, meanwhile, and are not up at the glass that is not there
+      const sd = o.soda || (o.soda = { hx: 0.3, S: o.item.w, tilt: 0, drawCup: (ctx, P) => o.item.icon(ctx, P) });
+      sd.k = q.has; sd.hy = 1.15 + 0.14 * o.lift; sd.hold = !!o.held;
+      c.soda = o.threw === null ? sd : null;
+    },
     // (its long arm up, holding the notebook out to be seen; then high, waving)
-    signalman(c, q, o) { const up = Math.max(q.back, q.joy); c.reach = up; c.grip = o.held[0] ? 1 : 0; c.reachSide = 1; c.reachTo = { x: lerp(0.42, 0.5 + (q.still ? 0 : 0.3 * Math.sin(q.t * 7)), q.joy), y: lerp(2.05, 3.1, q.joy) }; },
-    other(c, q, o, dt) { c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; c.danceT = (c.danceT || 0) + dt * (1 + 2 * q.joy); c.dance = 1; c.smile = 1; const it = o.held[0]; c.carry = it ? (ctx, P) => it.icon(ctx, P) : null; },   // (the box in its arms, as it carried it off: its own drawing)
+    signalman(c, q, o) { const up = Math.max(q.has, q.joy); c.reach = up; c.grip = o.held ? 1 : 0; c.reachSide = 1; c.reachTo = { x: lerp(0.42, 0.5 + (q.still ? 0 : 0.3 * Math.sin(q.t * 7)), q.joy), y: lerp(2.05, 3.1, q.joy) }; },
+    other(c, q, o, dt) { c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; c.danceT = (c.danceT || 0) + dt * (1 + 2 * q.joy); c.dance = 1; c.smile = 1; const it = o.held; c.carry = it ? (ctx, P) => it.icon(ctx, P) : null; },   // (the box in its arms, as it carried it off: its own drawing)
     carrier(c, q, o) { c.flail = q.joy; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait; },
-    tall(c, q) { c.reach = Math.max(q.back, q.joy); c.gripY = lerp(1.62, 2.5, q.joy); },   // (its hands up in front of it, with the bulb; then high)
+    tall(c, q) { c.reach = Math.max(q.has, q.joy); c.gripY = lerp(1.62, 2.5, q.joy); },   // (its hands up in front of it, the lamp in one of them; then high)
   };
   // how hard they leap, jt seconds into the joy: all out for a while, then gentler, and now and then (each in its own
   // time) a little more, for as long as the meadow waits
@@ -1013,17 +1041,15 @@ function buildGathering(L, s, c0, K) {
     const first = 1 - 0.62 * span(jt, 7, 10), u = (jt - 10 + (o ? o.ph * 12 : 0)) % 9;
     return jt > 10 && u < 3 ? Math.max(first, 0.38 + 0.5 * Math.min(1, u * 2, (3 - u) * 2)) : first;
   };
-  // thrown: each thing goes up from its hand, turning, a little toward you and to one side, and comes down on the ground
-  function throwAll(o, t) {
+  // thrown: its thing goes up from its hand, turning, a little toward you and to one side, and comes down on the ground
+  function throwUp(o, t) {
     o.threw = t;
-    const c = o.c, rs = mulberry32(900 + o.n * 31);
-    o.held.forEach((it, k) => {
-      if (!it) return;
-      const p0 = handAt(o, k), vy = 6.4 + rs() * 1.2, side = (rs() - 0.5) * 1.5 + (k ? 0.5 : -0.5) * (o.held.length > 1 ? 1 : 0), toYou = 0.35 + rs() * 0.5;
-      const tl = (vy + Math.sqrt(vy * vy + 2 * GR * Math.max(0, p0.y - 0.02))) / GR;
-      E.thrown.push({ it, by: o.type, t0: t + k * 0.06, p0, vy, tl, vx: Math.cos(c.yaw) * side - Math.sin(c.yaw) * toYou, vz: -Math.sin(c.yaw) * side - Math.cos(c.yaw) * toYou, rot0: (o.at[k] || o.at[0])[2] || 0, spin: (rs() < 0.5 ? -1 : 1) * (4 + rs() * 5), fade: 1 });
-    });
-    o.held = [];
+    const it = o.held, c = o.c, rs = mulberry32(900 + o.n * 31);
+    if (!it) return;
+    const p0 = handAt(o), vy = 6.4 + rs() * 1.2, side = (rs() - 0.5) * 1.5, toYou = 0.35 + rs() * 0.5;
+    const tl = (vy + Math.sqrt(vy * vy + 2 * GR * Math.max(0, p0.y - 0.02))) / GR;
+    E.thrown.push({ it, by: o.type, t0: t, p0, vy, tl, vx: Math.cos(c.yaw) * side - Math.sin(c.yaw) * toYou, vz: -Math.sin(c.yaw) * side - Math.cos(c.yaw) * toYou, rot0: holdAt(o)[2] || 0, spin: (rs() < 0.5 ? -1 : 1) * (4 + rs() * 5), fade: 1 });
+    o.held = null;
   }
   // ---- the frolic ----
   // is a spot (u, v) one of the meadow's, where one of them may be?
@@ -1088,22 +1114,23 @@ function buildGathering(L, s, c0, K) {
   // when each runs and when it leaps on the spot, from the moment it sets off (with reduced motion it only ambles)
   const wants = (m, t, still) => s.leaving ? 0 : still || (t - m.at0) % m.per < m.per - FR.leap ? 1 : 0;
   function update(dt, still) {
-    const c = c0(), t = E.t = s.endT += dt, R1 = still ? 1.3 : VOID_EGG.rush, B1 = VOID_EGG.back - (R1 - VOID_EGG.rush), far = still ? 9 : VOID_EGG.far;
+    // (with reduced motion each comes slower, from nearer, and is off again without the flourish of holding its thing up)
+    const c = c0(), V = VOID_EGG, t = E.t = s.endT += dt, R1 = still ? 1.2 : V.rush, LK = still ? 0 : V.look, far = still ? 9 : V.far, off = R1 + V.take + V.pass + LK;
     E.phase = t < VOID_EGG.hold ? 'rush' : t < VOID_EGG.joy ? 'hold' : 'joy';
     // ---- the others ----
     const joyT = t - VOID_EGG.joy;
     for (const o of E.others) {
-      const oc = o.c, u = t - (VOID_EGG.first + o.n * VOID_EGG.every);
+      const oc = o.c, u = t - (V.first + o.n * V.every);
       oc.t += dt * oc.timeScale; oc.still = still;
       o.on = u >= 0;
-      // your hand holds its thing up, a beat before it sets out (its second thing, once it has the first)
-      if (o.shown < o.items.length && u >= (o.shown ? R1 + VOID_EGG.take + (o.shown - 1) * VOID_EGG.second + 0.1 : -VOID_EGG.raise)) present(o.items[o.shown++]);
       if (!o.on) continue;
-      const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < R1 + o.sn ? 1 : 0, back = span(u, R1 + o.sn, R1 + o.sn + B1);
-      // up to you along its own way, a little in toward the middle so it is in your face; then back out to its place
+      // it is there, stopped in front of you: and now your hand holds its thing up
+      if (!o.shown && u >= R1 + V.show) { o.shown = true; present(o.item); }
+      const prev = oc.dist, rush = clamp(u / R1, 0, 1), near = u >= R1 && u < off ? 1 : 0, back = span(u, off, off + V.back);
+      // up to you along its own way, a little in toward the middle so it is in your face; then off to its place, briskly
       // (the stone one is never seen to move: it is nearer, all at once, three times; and goes back so, a pose at a time)
-      const stone = o.type === 'watcher', rk = stone ? Math.ceil(rush * 3 - 1e-9) / 3 : rush, bk = stone ? Math.floor(back * 7 + 1e-9) / 7 : back;
-      oc.dist = u < R1 ? lerp(far, o.near, still && !stone ? smoothstep(rk) : easeOut(rk)) : lerp(o.near, o.r, bk);
+      const stone = o.type === 'watcher', rk = stone ? Math.floor(rush * 3 + 1e-9) / 3 : rush, bk = stone ? Math.floor(back * 4 + 1e-9) / 4 : back;
+      oc.dist = u < R1 ? lerp(far, o.near, still ? smoothstep(rk) : easeOut(rk)) : lerp(o.near, o.r, bk);
       oc.yaw = L.facing + o.b * lerp(1, 0.6, rk * (1 - bk));
       if (stone && o.step !== rk + bk) { if (o.step !== undefined) { oc.pose = 1 + (oc.pose % 3); if (bk > 0) AUDIO.sfx('stoneRub', pan(oc)); } o.step = rk + bk; }
       // the frolic: about the meadow, each from its own moment
@@ -1122,16 +1149,16 @@ function buildGathering(L, s, c0, K) {
         AUDIO.sfx(o.type === 'watcher' ? 'stoneRub' : 'cloth', pan(oc));
         if (!still) G.shake(0.14);
       }
-      if (o.tookN < o.items.length && u >= R1 + VOID_EGG.take + o.tookN * VOID_EGG.second) take(o, o.tookN);
-      for (const f of o.fly.slice()) { f.t += dt; if (f.t >= VOID_EGG.pass) { o.fly.splice(o.fly.indexOf(f), 1); o.held[f.k] = f.it; AUDIO.sfx('pat', pan(oc)); } }
-      // (and it holds it up a little, to look at it, before it goes)
-      o.lift = Math.sin(Math.PI * clamp((u - (R1 + o.sn - VOID_EGG.look)) / (VOID_EGG.look + 0.25), 0, 1));
-      // the joy: it throws what it holds up into the air (each a moment after the other), and leaps, again and again
+      if (!o.took && u >= R1 + V.take) take(o);
+      if (o.fly) { o.fly.t += dt; if (o.fly.t >= V.pass) { o.held = o.fly.it; o.fly = null; AUDIO.sfx('pat', pan(oc)); } }
+      // (and it holds it up a little, to look at it, as it turns to go)
+      o.lift = LK ? Math.sin(Math.PI * clamp((u - (off - LK)) / (LK + 0.25), 0, 1)) : 0;
+      // the joy: it throws what it holds up into the air, and leaps, again and again
       const jt = joyT - o.ph * 0.18;
       let hop = -1, hopT = 1;
       o.hopY = 0; o.squash = 1;
       if (jt >= 0) {
-        if (o.threw === null) throwAll(o, t);
+        if (o.threw === null) throwUp(o, t);
         // (as you go on, they come down and stand; running, only little hops, and the stone one none)
         const amp = (o.fro ? (stone ? 0.8 * (1 - o.run) : lerp(0.8, o.skip, o.run)) : joyAmp(jt, o)) * (s.leaving ? o.joyK : 1);
         if (still) o.hopY = 0.05 * amp * (0.5 + 0.5 * Math.sin(jt * 2.2 + o.ph * 6));
@@ -1145,8 +1172,9 @@ function buildGathering(L, s, c0, K) {
       }
       o.age++;
       o.joyK += ((jt >= 0 && !s.leaving ? 1 : 0) - o.joyK) * Math.min(1, dt * 7);
+      o.hasK += ((o.took && o.threw === null ? 1 : 0) - o.hasK) * Math.min(1, dt * 9);
       const q = o.q || (o.q = {});
-      q.u = u; q.rush = rush; q.near = near; q.back = back; q.joy = smoothstep(o.joyK); q.hop = hop; q.n = Math.floor(o.hx || 0); q.jt = jt; q.T = hopT; q.t = t; q.still = still; q.R1 = R1; q.run = o.fro ? o.run : 0;
+      q.u = u; q.rush = rush; q.near = near; q.back = back; q.has = o.hasK; q.joy = smoothstep(o.joyK); q.hop = hop; q.n = Math.floor(o.hx || 0); q.jt = jt; q.T = hopT; q.t = t; q.still = still; q.R1 = R1; q.run = o.fro ? o.run : 0;
       if (POSE[o.type]) POSE[o.type](oc, q, o, dt);
       o.fade = s.leaving ? clamp(1 - (s.leaveT - 0.3 - o.ph * 0.5) / 1.6, 0, 1) : 1;
     }
@@ -1172,6 +1200,10 @@ function buildGathering(L, s, c0, K) {
       // (the scare of this ending, a happy one: the same soft flash as the other's, a party popper going off, `twinkle`, and a
       // brassy ta-da, `cheer`; and paper in the air: the confetti, below)
       E.cheered = true; AUDIO.sfx('cheer', 0); AUDIO.sfx('twinkle', 0); AUDIO.sfx('win');
+      // (and what was no one's, never asked for, is gone under the flash: out of your hands, and off the floor)
+      for (const it of G.inv.slice()) G.removeFromInv(it);
+      for (const it of L.items) it.taken = true;
+      G.invSig = ''; G.hover = null;
       if (!still) G.shake(0.2);
       if (!SAVE.data.settings.reducedFlash) G.flash(0.25);
     }
@@ -1260,12 +1292,10 @@ function buildGathering(L, s, c0, K) {
     const d = c.dist; if (o.poseDist) c.dist = o.poseDist;
     try { c.CR.draw(ctx, c, P); } finally { c.dist = d; }
     ctx.restore();
-    o.held.forEach((it, k) => {
-      if (!it || o.own) return;   // (own: its own drawing has it)
-      const a = o.at[k] || o.at[0], size = a[3] || 1;
-      ctx.save(); ctx.translate(a[0], a[1] * o.squash + 0.14 * o.lift); ctx.rotate((a[2] || 0) * (1 - 0.35 * o.lift)); ctx.scale(it.w * size, it.h * size); ctx.translate(0, -0.5);
-      it.icon(ctx, P); ctx.restore();
-    });
+    const it = o.held, a = holdAt(o), size = a[3] || 1;
+    if (!it || o.own) return;   // (own: its own drawing has it)
+    ctx.save(); ctx.translate(a[0], a[1] * o.squash + 0.14 * o.lift); ctx.rotate((a[2] || 0) * (1 - 0.35 * o.lift)); ctx.scale(it.w * size, it.h * size); ctx.translate(0, -0.5);
+    it.icon(ctx, P); ctx.restore();
   };
   // Going, each fades as one picture, not part by part (its parts lie over one another): it is drawn onto a small canvas
   // of its own (again every third step of the clock: it stands still then) and that is put into the view, faded. (Drawing
@@ -1311,8 +1341,9 @@ function buildGathering(L, s, c0, K) {
       R.add(sp);
       if (o.type === 'swimmer' && c.lunge > 0) pond(p, c.dist, c.lunge * o.fade);
       // a thing on its way from your raised hand to its hand
-      for (const f of o.fly) {
-        const k = smoothstep(clamp(f.t / VOID_EGG.pass, 0, 1)), to = handAt(o, f.k), a = o.at[f.k] || o.at[0];
+      const f = o.fly;
+      if (f) {
+        const k = smoothstep(clamp(f.t / VOID_EGG.pass, 0, 1)), to = handAt(o), a = holdAt(o);
         inAir(f.it, lerp(f.from.x, to.x, k), lerp(f.from.y, to.y, k) + Math.sin(Math.PI * k) * 0.08, lerp(f.from.z, to.z, k), (a[2] || 0) * k, lerp(0.8, a[3] || 1, k));
       }
     }

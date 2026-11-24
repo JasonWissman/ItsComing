@@ -12,7 +12,7 @@
 // zoom are only that, and a click goes on: the meadow and it fade into the bedroom in the morning, and the last screen says
 // you have faced your demons.
 // Before that, the easter egg (all sixteen things taken up one after another with real clicks, at a player's pace, before
-// it can reach you; fifteen held at once and then caught holding them: a death as ever; then all sixteen: the others come for what was theirs, and it is won another way: see `egg` below), and the same
+// it can reach you; fifteen held at once and then caught holding them: a death as ever; then all sixteen: the others come, one at a time, each for the one thing that was its own, and it is won another way: see `egg` below), and the same
 // with reduced motion; then afresh for the ending above.
 // (two at a time, so one is put down while another is still falling: it lies clear of where that one will lie)
 // how many of the meadow's wild flowers are drawn in a frame (the normal ending's meadow has them; the easter egg's, with a crowd in it, only grass)
@@ -64,6 +64,7 @@ const rushed = [
 ];
 const start = [
   ['expect', 'G.inv.length === 0 && G.L.items.length === 16 && G.L.items.every(i => !i.taken)', 'empty-handed: everything you ever held lies around you'],
+  ['expect', "['lifering', 'cup', 'lamp'].every(id => G.L.items.some(i => i.id === id && typeof i.icon === 'function')) && !G.L.items.some(i => /^(beam|handle|matches)$/.test(i.id)) && G.L.items.some(i => i.id === 'bow')", 'the boathouse\'s life ring, the diner\'s cup and the bedside lamp among it (and no bar, winch handle or matches); the bow still there'],
   ['wait', 400], ['expect', 'G.L.creature.rage < 0.05 && G.L.creature.lat === 0', 'holding nothing, it is calm: it only walks'],
 ];
 // the temptation: take one thing up and it is enraged at once (and stopped dead a moment, each time a thing is first
@@ -144,8 +145,8 @@ const ending = [
 // On this night the hands are never full: all sixteen things can be held at once (a thing put down again still counts,
 // and one taken up twice counts once). The harness takes up fifteen, with no refusal and no "hands full", puts one down
 // and takes it up again; the moment the last thing not yet taken is in its hand the night is won another way. The others
-// come for what was theirs,
-// one after another; stand in two rows with the thing in the hood in the middle; throw it all up and leap for joy as it
+// come, each for the one thing that was its own (the other four things are no one's),
+// one after another, never two of them near you at once; stand in two rows with the thing in the hood in the middle; throw it all up and leap for joy as it
 // takes off its robe; the meadow comes, all of them in it; and from there the ending is as it always is. Most of it is
 // stepped on the game's own clock (update(1/60) in the page, the frame loop stopped), so it takes moments, with
 // tolerances of a step or two on its times.
@@ -184,7 +185,7 @@ const fifteenDeath = [...fifteen,
 const turnTo = id => `(async () => { const it = G.L.items.find(i => i.id === '${id}'), d = ((Math.round(Math.atan2(it.x, it.z) / (45 * DEG)) % 8) + 8) % 8, fr = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   for (const down of [true, false]) { G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = down ? PITCH_DOWN : 0; await fr();
     const h = [...R.hits].reverse().find(h => h.kind === 'item' && h.ref === it); if (h && h.x >= 0 && h.y >= 0 && h.x + h.w <= R.W && h.y + h.h <= R.H) break; } })()`;
-const ALL = ['hammer', 'planks', 'keys', 'salt', 'lantern', 'chain', 'padlock', 'bow', 'arrows', 'beam', 'fuse', 'handle', 'journal', 'matches', 'bulb', 'musicbox'];
+const ALL = ['hammer', 'planks', 'keys', 'salt', 'lantern', 'chain', 'padlock', 'bow', 'arrows', 'lifering', 'fuse', 'cup', 'journal', 'lamp', 'bulb', 'musicbox'];
 const paced = [
   ['eval', 'window.__t0 = performance.now(); window.__nearest = 99; window.__fullMsg = false; (function w() { if (G.state === "play") { window.__nearest = Math.min(window.__nearest, G.L.creature.dist); if (G.lastToast.msg === "Your hands are full.") window.__fullMsg = true; requestAnimationFrame(w); } })();'],
   ...ALL.flatMap(id => [['eval', turnTo(id)], ['wait', 850], ['pickup', id]]),
@@ -192,18 +193,24 @@ const paced = [
     'all sixteen taken up one after another at a player\'s pace, with real clicks: none refused, the easter egg begun, and it never came within four metres'],
   ['eval', "delete SAVE.data.eggs.void; SAVE.data.complete = {}; SAVE.persist(); startLevel(G.levelIndex, false);"], ['wait', 400],
 ];
-// who takes what, and where each stands
-const TAKERS = { walker: ['hammer', 'planks'], crawler: ['keys'], smiler: ['salt', 'lantern'], watcher: ['chain', 'padlock'], runner: ['bow', 'arrows'], swimmer: ['beam'], climber: ['fuse'], customer: ['handle'], signalman: ['journal'], other: ['musicbox'], carrier: ['matches'], tall: ['bulb'] };
+// who takes what (one thing each; the planks, the salt, the padlock and the bow are no one's), and where each stands
+const TAKERS = { walker: 'hammer', crawler: 'keys', smiler: 'lantern', watcher: 'chain', runner: 'arrows', swimmer: 'lifering', climber: 'bulb', customer: 'cup', signalman: 'journal', other: 'musicbox', carrier: 'fuse', tall: 'lamp' };
+// near you: within NEAR metres; clear of you: CLEAR metres off or more
+const NEAR = 4, CLEAR = 4.5;
 // step the game's clock to `to` seconds of the gathering, noting as it goes: when each came up to you and how near, when it
-// took its things (and, of each thing: when it was first up in your raised hand, not yet taken, shown; when it left your
-// hand, given; and when its creature had it, got), how high each leapt and whether it came down again, how many were in the air at once (most and least),
+// took its thing (and, of each thing: when it was first up in your raised hand, not yet taken, shown; when it left your
+// hand, given; and when its creature had it, got), how many of them were near you at once at the most (crowd), how far off the
+// nearest of the rest was whenever one of them was near (clear), every step your hand was up with a thing whose creature
+// had not yet come (early), how high each leapt and whether it came down again, how many were in the air at once (most and least),
 // how much the view shook and how far it was lightened by a flash (and when, first), and what was heard
-const stepTo = to => ['eval', `(() => { const E = G.L.s.egg, W = window.__egg || (window.__egg = { came: {}, took: {}, near: {}, up: {}, down: {}, shown: {}, given: {}, got: {}, air: [99, 0], shake: 0, flash: 0, n: 0 });
+const stepTo = to => ['eval', `(() => { const E = G.L.s.egg, W = window.__egg || (window.__egg = { came: {}, took: {}, near: {}, up: {}, down: {}, shown: {}, given: {}, got: {}, crowd: 0, clear: 99, early: 0, air: [99, 0], shake: 0, flash: 0, n: 0 });
   while (E.t < ${to}) { update(1 / 60); W.n++; W.shake = Math.max(W.shake, G.shakeAmt); W.flash = Math.max(W.flash, G.flashAmt); if (G.flashAmt > 0 && W.flashAt === undefined) W.flashAt = E.t; let air = 0;
-    for (const o of E.others) { const k = o.type;
-      for (const it of o.items) { const id = it.id;
-        if (W.shown[id] === undefined && !it.by && E.show === it && G.hand.cur === it && G.hand.up > 0.9 && G.hand.gone !== it) W.shown[id] = E.t;
-        if (W.given[id] === undefined && it.by) W.given[id] = E.t; if (W.got[id] === undefined && o.held.includes(it)) W.got[id] = E.t; }
+    const on = E.others.filter(o => o.on), close = on.filter(o => o.c.dist < ${NEAR});
+    W.crowd = Math.max(W.crowd, close.length); if (close.length) for (const o of on) if (o !== close[0]) W.clear = Math.min(W.clear, o.c.dist);
+    for (const o of E.others) { const k = o.type, it = o.item, id = it.id;
+      if (!o.came && E.t > 0.6 && G.hand.cur === it && G.hand.up > 0.02) W.early++;   // (after the first moments: what you held as it began is on its way down)
+      if (W.shown[id] === undefined && !it.by && E.show === it && G.hand.cur === it && G.hand.up > 0.9 && G.hand.gone !== it) W.shown[id] = E.t;
+      if (W.given[id] === undefined && it.by) W.given[id] = E.t; if (W.got[id] === undefined && o.held === it) W.got[id] = E.t;
       if (o.on) W.near[k] = Math.min(W.near[k] === undefined ? 99 : W.near[k], o.c.dist);
       if (o.came && W.came[k] === undefined) W.came[k] = E.t; if (o.took && W.took[k] === undefined) W.took[k] = E.t;
       if (E.t > VOID_EGG.joy + 0.3) { W.up[k] = Math.max(W.up[k] || 0, o.hopY); if (o.hopY < 0.01) W.down[k] = true; if (o.hopY > 0.05) air++; } }
@@ -253,30 +260,36 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   ['expect', "(r => { window.__run0 = JSON.stringify(r); return !G.run && !!r && r.t >= 431.2 && r.t < 450 && r.best === true && r.nights.length === 13 && Math.abs(r.nights[12] - (r.t - 400)) < 0.02 && SAVE.data.bestRun[G.diff().id].t === r.t; })(G.lastRun)", 'the run is finished, and timed, the moment the last thing was taken up: this night\'s share of it, and a best run saved'],
   stepTo('VOID_EGG.first + 0.2'),
   ['expect', "(E => E.others.filter(o => o.on).map(o => o.type).join() === 'walker' && E.others[0].c.dist > 3 && E.others[0].c.dist < 12 && G.L.creature.fade < 0.1 && Math.abs(wrapPi(G.cam.yaw - G.L.facing)) < 0.25 && G.cam.pitch < 0.25)(G.L.s.egg)", 'the view is taken, level, to the north; it has backed off into the dark; and the first of them is coming, the walker'],
-  ['expect', "(E => E.show && E.show.id === 'hammer' && G.hand.cur === E.show && G.hand.up > 0.9 && G.L.heldItem() === E.show && !G.L.offHand() && !G.hand.off.cur && E.show.held.y < 0 && E.show.held.x < 0 && G.inv.length === 15)(G.L.s.egg)", 'and your hand holds up what was its own, the hammer: one hand, raised, nothing in the other'],
+  ['expect', "(E => !E.show && G.L.heldItem() === null && G.hand.up < 0.02 && !G.L.offHand() && !G.hand.off.cur && G.inv.length === 15)(G.L.s.egg)", 'and while it is still coming your hand holds nothing up'],
+  stepTo('VOID_EGG.first + VOID_EGG.rush + VOID_EGG.show + 0.3'),
+  ['expect', "(E => { const o = E.others[0]; return o.came && !o.took && Math.abs(o.c.dist - o.near) < 0.01 && E.show && E.show.id === 'hammer' && G.hand.cur === E.show && G.hand.up > 0.9 && G.L.heldItem() === E.show && !G.L.offHand() && !G.hand.off.cur && E.show.held.y < 0 && E.show.held.x < 0 && G.inv.length === 15; })(G.L.s.egg)", 'it is there, stopped in front of you: and now your hand holds up what was its own, the hammer (one hand, raised, nothing in the other)'],
   stepTo('VOID_EGG.first + VOID_EGG.rush + VOID_EGG.take + 0.1'),
-  ['expect', "(E => { const o = E.others[0], it = o.items[0]; return o.came && it.by === 'walker' && !G.inv.includes(it) && o.fly.length === 1 && o.fly[0].it === it && !o.held[0] && E.show !== it && (G.hand.gone === it || G.hand.cur !== it); })(G.L.s.egg)", 'it is there, and takes it: the hammer is out of your hand (left open) and on its way to the walker\'s'],
+  ['expect', "(E => { const o = E.others[0], it = o.item; return it.by === 'walker' && !G.inv.includes(it) && !!o.fly && o.fly.it === it && !o.held && E.show !== it && (G.hand.gone === it || G.hand.cur !== it); })(G.L.s.egg)", 'and it takes it: the hammer is out of your hand (left open) and on its way to the walker\'s'],
   stepTo('VOID_EGG.first + VOID_EGG.rush + VOID_EGG.take + VOID_EGG.pass + 0.1'),
-  ['expect', "(E => { const o = E.others[0]; return o.held[0] === o.items[0] && !o.fly.length && o.c.dist < 2 && Math.abs(o.c.dist - o.near) < 0.01; })(G.L.s.egg)", 'the walker has it in its hand, still there in front of you'],
-  stepTo('VOID_EGG.first + VOID_EGG.rush + VOID_EGG.take + VOID_EGG.second + VOID_EGG.pass + VOID_EGG.look * 0.5'),
-  ['expect', "(E => { const o = E.others[0]; return o.held[1] === o.items[1] && o.lift > 0.5 && o.c.dist < 2 && E.others.filter(q => q.on).length === 1; })(G.L.s.egg)", 'and its second thing, the planks, after it; it holds them up a beat, looking, and no other has set out yet'],
+  ['expect', "(E => { const o = E.others[0]; return o.held === o.item && !o.fly && o.lift > 0.2 && o.c.dist < 2 && Math.abs(o.c.dist - o.near) < 0.01; })(G.L.s.egg)", 'the walker has it in its hand, still there in front of you, holding it up a beat, looking'],
+  stepTo('VOID_EGG.first + VOID_EGG.rush + VOID_EGG.take + VOID_EGG.pass + VOID_EGG.look + VOID_EGG.back * 0.4'),
+  ['expect', "(E => { const o = E.others[0]; return o.held === o.item && o.c.dist > o.near + 0.8 && o.c.dist < o.r && E.others.filter(q => q.on).length === 1; })(G.L.s.egg)", 'and it is off with it, to its place, and no other has set out yet'],
   stepTo('VOID_EGG.hold + 0.1'),
-  ['expect', `(E => E.others.every(o => o.took && o.came) && G.inv.length === 0 && G.L.items.every(i => i.taken && i.by) && E.others.every(o => JSON.stringify(o.held.map(i => i.id)) === JSON.stringify(${JSON.stringify(TAKERS)}[o.type]) && o.held.every(i => i.by === o.type)))(G.L.s.egg)`, 'each of the twelve came and took what was its own: all sixteen things, out of your hands and off the floor, each held by the creature of its night'],
-  ['expect', "(W => { const k = G.L.s.egg.others.map(o => o.type), took = k.map(t => W.took[t]), came = k.map(t => W.came[t]); console.log('took at ' + took.map(v => v.toFixed(2)).join(' ')); return VOID_EGG.every >= 2.2 && VOID_EGG.every <= 2.6 && VOID_EGG.rush >= 0.6 && took.every((v, i) => Math.abs(v - (VOID_EGG.first + i * VOID_EGG.every + VOID_EGG.rush + VOID_EGG.take)) < 0.06) && came.every((v, i) => Math.abs(v - (VOID_EGG.first + i * VOID_EGG.every + VOID_EGG.rush)) < 0.06); })(window.__egg)", 'one at a time, in the order of their nights, each two and a half seconds after the one before, each up to you in 0.7 s'],
-  ['expect', `(W => { const E = G.L.s.egg, V = VOID_EGG, bad = []; for (const o of E.others) o.items.forEach((it, k) => { const id = it.id, tk = V.first + o.n * V.every + V.rush + V.take + k * V.second;
-      if (!(W.shown[id] < W.given[id] - (k ? 0.3 : 0.6) && (k > 0 || W.shown[id] < W.came[o.type] - 0.6) && Math.abs(W.given[id] - tk) < 0.06 && Math.abs(W.got[id] - W.given[id] - V.pass) < 0.06)) bad.push(id + ' ' + [W.shown[id], W.came[o.type], W.given[id], W.got[id]].map(v => v === undefined ? '-' : v.toFixed(2)).join('/')); });
-    const n = E.others.length - 1; console.log('handed over: ' + Object.keys(W.shown).length + ' shown; ' + (bad.join(', ') || 'all in order'));
-    return !bad.length && Object.keys(W.shown).length === 16 && E.others.every((o, i) => i === n || W.came[E.others[i + 1].type] > Math.max(...o.items.map(it => W.got[it.id])) + 0.4); })(window.__egg)`,
-    'each take is seen: every one of the sixteen things was up in your raised hand before its creature was there (the keys up off the floor into it too), left your hand as it took it, and was in its hand 0.35 s later, before the next one came'],
+  ['expect', `(E => E.others.every(o => o.took && o.came && o.held === o.item && o.held.id === ${JSON.stringify(TAKERS)}[o.type] && o.held.by === o.type) && new Set(E.others.map(o => o.item)).size === 12)(G.L.s.egg)`, 'each of the twelve came and took the one thing that was its own, and holds it'],
+  ['expect', "G.inv.length === 4 && G.L.items.filter(i => !i.by).map(i => i.id).sort().join() === 'bow,padlock,planks,salt' && G.L.items.filter(i => !i.by).every(i => G.inv.includes(i))", 'the other four (the planks, the salt, the padlock, the bow) are no one\'s: never asked for, still yours'],
+  ['expect', "(W => { const k = G.L.s.egg.others.map(o => o.type), took = k.map(t => W.took[t]), came = k.map(t => W.came[t]); console.log('took at ' + took.map(v => v.toFixed(2)).join(' ')); return VOID_EGG.every >= 2.0 && VOID_EGG.every <= 2.6 && VOID_EGG.rush >= 0.5 && took.every((v, i) => Math.abs(v - (VOID_EGG.first + i * VOID_EGG.every + VOID_EGG.rush + VOID_EGG.take)) < 0.06) && came.every((v, i) => Math.abs(v - (VOID_EGG.first + i * VOID_EGG.every + VOID_EGG.rush)) < 0.06); })(window.__egg)", 'one at a time, in the order of their nights, each 2.2 s after the one before, each up to you in 0.6 s'],
+  ['expect', `(W => { const E = G.L.s.egg, V = VOID_EGG, bad = []; for (const o of E.others) { const id = o.item.id, tk = V.first + o.n * V.every + V.rush + V.take;
+      if (!(W.shown[id] > W.came[o.type] && W.shown[id] < W.given[id] - 0.25 && Math.abs(W.given[id] - tk) < 0.06 && Math.abs(W.got[id] - W.given[id] - V.pass) < 0.06)) bad.push(id + ' ' + [W.came[o.type], W.shown[id], W.given[id], W.got[id]].map(v => v === undefined ? '-' : v.toFixed(2)).join('/')); }
+    const n = E.others.length - 1; console.log('handed over: ' + Object.keys(W.shown).length + ' shown; ' + (bad.join(', ') || 'all in order') + '; up early ' + W.early);
+    return !bad.length && W.early === 0 && Object.keys(W.shown).length === 12 && E.others.every((o, i) => i === n || W.came[E.others[i + 1].type] > W.got[o.item.id] + 0.4); })(window.__egg)`,
+    'each take is seen: your hand held nothing of its up while it was coming; once it was there its thing came up in your raised hand (the keys up off the floor into it too), was up a beat, left your hand as it took it, and was in its hand 0.25 s later, before the next one came'],
+  ['expect', `(W => { console.log('near you at once, at the most: ' + W.crowd + '; the rest, whenever one was near: ' + W.clear.toFixed(2) + ' m off or more'); return W.crowd === 1 && W.clear >= ${CLEAR}; })(window.__egg)`,
+    'only one of them is ever near you (within ' + NEAR + ' m): the one before has its thing and is ' + CLEAR + ' m off or more before the next comes near'],
   ['expect', "(W => G.L.s.egg.others.every(o => W.near[o.type] < o.near + 0.02 && W.near[o.type] < 2.6) && W.shake > 0.05)(window.__egg)", 'each came right up to you (two and a half metres or less), with a jolt'],
   ['expect', "(E => E.others.every(o => Math.abs(o.c.dist - o.r) < 0.01 && Math.abs(wrapPi(o.c.yaw - G.L.facing - o.b)) < 0.001 && o.hopY === 0) && E.others.filter(o => o.b < 0).length === 6 && E.others.filter(o => o.b > 0).length === 6 && new Set(E.others.map(o => o.b)).size === 12 && E.others.filter(o => o.r > 6).every(o => o.c.CR.h >= 1.9))(G.L.s.egg)", 'they backed away to their places: twelve of them in two rows facing you, six either side, the taller behind'],
   ['expect', "(c => c.fade === 1 && Math.abs(c.dist - VOID_EGG.place[1]) < 0.01 && Math.abs(wrapPi(c.yaw - G.L.facing)) < 0.001 && c.rage < 0.05 && c.mood === undefined && !c.disrobe && !c.dance && G.L.s.egg.others.every(o => Math.abs(o.b) > 0.12))(G.L.creature)", 'and the thing in the hood in the middle of them, calm, hooded: thirteen figures'],
   ['expect', eggInView, 'all thirteen within the view, on a desktop and on a phone held sideways'],
-  ['eval', "window.__at = G.L.s.egg.others.map(o => [o.c.dist, o.c.yaw, o.hopY, o.held.length]).join(); window.__sfxN = window._sfx.length;"],
+  ['eval', "window.__at = G.L.s.egg.others.map(o => [o.c.dist, o.c.yaw, o.hopY, o.held && o.held.id]).join(); window.__sfxN = window._sfx.length;"],
   stepTo('VOID_EGG.joy - 0.05'),
-  ['expect', "G.L.s.egg.phase === 'hold' && window.__at === G.L.s.egg.others.map(o => [o.c.dist, o.c.yaw, o.hopY, o.held.length]).join() && window._sfx.length === window.__sfxN && G.L.s.meadow === 0 && VOID_EGG.joy - VOID_EGG.hold >= 3", 'they hold there, still and quiet, three seconds, each with what it took'],
+  ['expect', "G.L.s.egg.phase === 'hold' && window.__at === G.L.s.egg.others.map(o => [o.c.dist, o.c.yaw, o.hopY, o.held && o.held.id]).join() && window._sfx.length === window.__sfxN && G.L.s.meadow === 0 && VOID_EGG.joy - VOID_EGG.hold >= 3", 'they hold there, still and quiet, three seconds, each with what it took'],
   stepTo('VOID_EGG.joy + 0.5'),
-  ['expect', "(E => E.thrown.length === 16 && E.others.every(o => o.held.length === 0 && o.threw !== null) && E.thrown.filter(th => { const u = E.t - th.t0; return th.vy * u - 4.9 * u * u > 0.6; }).length === 16 && new Set(E.thrown.map(th => th.it.id)).size === 16)(G.L.s.egg)", 'then all at once they throw it all up into the air: sixteen things, well over their heads'],
+  ['expect', "(E => E.thrown.length === 12 && E.others.every(o => !o.held && o.threw !== null) && E.thrown.filter(th => { const u = E.t - th.t0; return th.vy * u - 4.9 * u * u > 0.6; }).length === 12 && new Set(E.thrown.map(th => th.it.id)).size === 12)(G.L.s.egg)", 'then all at once they throw it all up into the air: twelve things, well over their heads'],
+  ['expect', "G.inv.length === 0 && G.L.items.every(i => i.taken) && G.L.items.filter(i => !i.by).length === 4", 'and what was no one\'s is gone under the flash: out of your hands, nothing left on the floor'],
   ['expect', "(v => v.some(x => x.n === 'cheer' && Math.abs(x.t - VOID_EGG.joy) < 0.05) && v.some(x => x.n === 'win' && Math.abs(x.t - VOID_EGG.joy) < 0.05))(window._sfx)", 'with a ta-da (the sound `cheer`) and the chord of a night won'],
   ['expect', "!TUNES.twinkle && !TUNES.cheer", 'neither tuned apart from how it is made (js/soundtune.js)'],
   ['expect', "(() => { render(); const E = G.L.s.egg, n = E.confN; console.log('confetti in the view 0.5 s after the throw: ' + n); return n >= 24 && n <= 60; })()", 'and confetti: a few dozen bits of paper in the air over the view'],
@@ -310,7 +323,7 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', 'window.__egg = null; dele
   ['expect', "(F => { console.log('the stone one: ' + F.jumps.watcher.length + ' jumps, of ' + F.jumps.watcher.map(d => d.toFixed(1)).join(' ')); return F.jumps.watcher.length >= 4 && F.jumps.watcher.every(d => d >= 2.5) && F.creep.watcher === 0; })(window.__fro)", 'the stone one is never seen to move: it is somewhere else, all at once, metres away, again and again'],
   ['expect', "(F => F.path.swimmer === 0 && G.L.s.egg.others.find(o => o.pool).dove !== undefined)(window.__fro)", 'the swimmer keeps to its pool, ducking under and bursting up again'],
   ['expect', "(c => c.dance > 0.5 && c.disrobe === 1 && c.noHeap === true && c.fade === 1 && Math.hypot(G.L.s.egg.dm.fu - G.L.s.egg.heapU, G.L.s.egg.dm.fv - G.L.s.egg.heapV) >= VOID_FROLIC.heap - 0.01 && window.__fro.pair > 0.4)(G.L.creature)", 'the thing in the hood, in its shirt and shorts, skips about among them, dancing, its robe left where it fell'],
-  ['expect', "(E => E.thrown.length === 16 && E.thrown.every(th => E.t - th.t0 > th.tl && th.fade === 1) && G.state === 'won' && G.L.s.wait && !G.L.s.leaving && G.L.lookFree())(G.L.s.egg)", 'what they threw still lies in the grass, and the meadow still waits for a press'],
+  ['expect', "(E => E.thrown.length === 12 && E.thrown.every(th => E.t - th.t0 > th.tl && th.fade === 1) && G.state === 'won' && G.L.s.wait && !G.L.s.leaving && G.L.lookFree())(G.L.s.egg)", 'what they threw still lies in the grass, and the meadow still waits for a press'],
   ['eval', 'G.noRaf = false; G._last = performance.now(); requestAnimationFrame(frame);'], ['wait', 200],
   key('ArrowLeft', true), ['wait', 300], ['expect', "G.state === 'won' && !G.L.s.leaving", 'a turn only turns the view'],
   ['eval', "document.getElementById('game').dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 640, clientY: 380 }))"],
@@ -330,8 +343,9 @@ const eggStill = [
   stepTo('VOID_EGG.joy + 1.2'),
   ['expect', "(() => { render(); const n = G.L.s.egg.confN; return n > 0 && n <= 12; })()", 'with reduced motion: only a few bits of paper, let fall gently'],
   stepTo('VOID_EGG.joy + 4'),
-  ['expect', "(W => { console.log('reduced motion: came at ' + W.came.walker.toFixed(2) + ', leaps ' + Math.max(...Object.values(W.up)).toFixed(3) + ', shake ' + W.shake); return W.came.walker > VOID_EGG.first + 1 && Object.values(W.up).every(v => v > 0.005 && v <= 0.06) && W.shake === 0 && G.flashAmt === 0 && W.flash === 0 && W.flashAt === undefined && G.L.s.egg.thrown.length === 16 && G.L.creature.dance === 0 && G.L.creature.disrobe === 1; })(window.__egg)", 'each comes slower, with no jolt; they throw it all up, and only bob for joy; it takes off its robe, and does not dance'],
+  ['expect', "(W => { console.log('reduced motion: came at ' + W.came.walker.toFixed(2) + ', leaps ' + Math.max(...Object.values(W.up)).toFixed(3) + ', shake ' + W.shake); return W.came.walker > VOID_EGG.first + 1 && Object.values(W.up).every(v => v > 0.005 && v <= 0.06) && W.shake === 0 && G.flashAmt === 0 && W.flash === 0 && W.flashAt === undefined && G.L.s.egg.thrown.length === 12 && G.L.creature.dance === 0 && G.L.creature.disrobe === 1; })(window.__egg)", 'each comes slower, with no jolt; they throw it all up, and only bob for joy; it takes off its robe, and does not dance'],
   ['expect', "window._sfx.some(x => x.n === 'twinkle' && Math.abs(x.t - VOID_EGG.joy) < 0.05)", 'with reduced flashing: the popper, and no flash'],
+  ['expect', `(W => { console.log('reduced motion: near you at once ' + W.crowd + ', the rest ' + W.clear.toFixed(2) + ' m off or more; up early ' + W.early); return W.crowd === 1 && W.clear >= ${CLEAR} && W.early === 0 && G.L.s.egg.others.every(o => W.shown[o.item.id] > W.came[o.type] && W.got[o.item.id] > W.shown[o.item.id]); })(window.__egg)`, 'and there too only one of them is ever near you, and its thing comes up in your hand only once it is there'],
   frolic('VOID_EGG.frolic + 24'),
   ['expect', `(F => { console.log('reduced motion, the frolic: went ' + Object.keys(F.path).map(k => k + ' ' + F.path[k].toFixed(1)).join(', ') + ' m; hops ' + F.up.toFixed(3)); return ${RUNNERS}.every(k => F.path[k] > 3 && F.step[k] < 1.6 / 60) && !F.bad.length && F.up <= 0.06 && F.lean === 0 && F.thin === 0 && !Object.keys(F.sideOn).length && F.path.swimmer === 0 && F.jumps.watcher.length >= 2 && F.creep.watcher === 0 && G.L.creature.dance === 0 && G.L.s.wait; })(window.__fro)`,
     'and in the meadow they amble, slowly, with only a gentle bob: no running, no leaning, no dance; the meadow waits'],
