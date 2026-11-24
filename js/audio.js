@@ -827,6 +827,11 @@ const AUDIO = (() => {
       // night 12's tooth fairy, bowed in at the foot of the bed and waiting: a deep, low rumbling that swells up slowly and
       // holds for as long as it waits (the loop 'rumble'; the night lets it go, fading, as its wings fan: stopLoop)
       case 'fairyRumble': setLoop('rumble', 0.55, 0); break;
+      // night 5: the empty bow thrown at the vampire's head. A comic wooden bonk: a hollow knock whose note drops, its ring
+      // an octave up dying fast, the click of the wood, and a little lighter knock as it bounces off
+      case 'bonk':
+        noise(0.03, { type: 'bandpass', freq: 1900, q: 1.4, vol: 0.4, pan }); tone(540, 0.2, { vol: 0.42, type: 'triangle', endFreq: 250, pan }); tone(1080, 0.08, { vol: 0.12, endFreq: 640, pan });
+        tone(460, 0.09, { vol: 0.14, type: 'triangle', endFreq: 300, delay: 0.17, pan }); noise(0.02, { type: 'bandpass', freq: 1600, q: 1.4, vol: 0.12, delay: 0.17, pan }); break;
       default: break;
     }
   }

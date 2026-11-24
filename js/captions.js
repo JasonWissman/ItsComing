@@ -21,6 +21,7 @@ const CAPTIONS = (() => {
     scrape: 'scratching', drawer: 'a drawer slides open', tug: 'the covers are yanked', knock: 'two knocks on a pipe', hangers: 'coat hangers clinking', musicbox: 'a music box', musicTurn: 'a few notes of a music box', birds: 'birdsong', start: 'the engine catches',
     musicSour: 'a music box plays wrong notes', sheetPress: 'cloth creaks, stretching, and a sob rises to a wail', sheetWhoosh: 'a rush of air',   // (night 10's easter egg: every mirror covered)
     growlLow: 'a very low growl', wingWhoosh: 'a great soft beat of wings', fairyDust: 'a shimmer of tiny bells', fairyRumble: 'a deep, low rumbling',   // the tall one's own death (night 12); night 12's easter egg: the tooth fairy
+    bonk: 'bonk!',   // night 5: the empty bow, thrown at the vampire's head
     crank: 'the starter turns', flicker: 'the bulb flickers', lampOn: 'a lamp hums on', thud: 'a thud', hiss: 'a hiss', pour: 'pouring', strike: 'a match', cloth: 'cloth twisting', breakerTrip: 'a breaker trips with a bang', bar: 'a bar drops into place',
     fit: 'something clicks into place', ratchet: 'a ratchet', switch: 'a switch', keys: 'keys', load: 'the gun loads', win: 'a chord', drop: 'something set down',
     tink: 'metal taps on something', woodKnock: 'wood knocks against wood', clatter: 'something clatters to the floor', flop: 'something soft drops', pat: 'a hand on it', page: 'a page turns', rattle: 'a rattle',

@@ -487,7 +487,7 @@ LEVELS.push({
         AUDIO.sfx('gate', panOf(bodyAt(b))); AUDIO.sfx('clatter', panOf(bodyAt(b))); G.shake(0.3);   // (iron on iron: the quarry gate's clang, and the tools jumping in the box)
         CREATURES.climber.knock(c, off >= 0 ? 1 : -1);
         foundEgg();
-        G.say('The toolbox catches it full in the face. It hangs there by one hand.', 'Full in the face. It hangs there by one hand.');
+        G.say('Bonked, but it hangs on.');
       }
       if (b.y <= WATER + 0.1) {   // into the sea, far below: a little white where it went in, and it is gone
         b.gone = true; const p = drawnAt(b);
