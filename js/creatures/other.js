@@ -12,7 +12,8 @@
 // red, the rims raw, dark red tears run down its cheeks, and its painted mouth is pulled down into an open, trembling
 // sob over its little teeth; it stands with its arms hanging and its head bowed over to one side, its shoulders heaving
 // with each sob. When it has you it is in that state all the way in (night 10 sets it as it catches you): the red eyes
-// and the tears stay as it lunges, the sob opening into a wail and its hands coming up to take hold.
+// and the tears stay as it lunges, the sob opening into a wail and its hands coming up to take hold; and its face weeps so
+// running at you too (night 10's charge: c.rush with c.angry), though its body runs.
 // In the glass it dances on the spot (dancePose): c.dance (0..1) is how far it is in its dance, c.danceT the dance's
 // clock (the night runs it, so every mirror shows the same moment), and c.danceMir -1 draws the mirror image of it.
 // c.tint (a light, as LIGHT.at gives) lights it by hand where the night has the renderer leave it unlit.
@@ -294,12 +295,12 @@ CREATURES.other = {
       // glass eyes, too big and too dark and blank, nothing in them, with painted lashes; the right one sits a little lower than the left.
       // Weeping (grief), the glass has gone red, the rims under them raw, and the lids droop over them at the outer corners,
       // lifting a little as it comes at you
-      const eyeY = s => 0.135 - (s > 0 ? 0.006 : 0), er = 0.027 + lunge * 0.01, grief = fury > 0.5;
+      const eyeY = s => 0.135 - (s > 0 ? 0.006 : 0), er = 0.027 + lunge * 0.01, woe = c.smile ? 0 : clamp(c.angry || 0, 0, 1), grief = woe > 0.5;   // (its face weeps whatever its body is doing: running at you too)
       // far back in the glass the red is what reads: the red glass is kept a pixel or two across, and the fog does not dull them
       const m = ctx.getTransform(), px = 1 / Math.max(1e-6, Math.hypot(m.a, m.b));
       for (const s of [-1, 1]) {
         const ey = eyeY(s);
-        if (grief) P_ell(ctx, s * 0.045, ey - 0.003, er * 1.34, er * 1.45, P.cola([198, 46, 58], 0.6 * fury));   // the rims, raw from crying
+        if (grief) P_ell(ctx, s * 0.045, ey - 0.003, er * 1.34, er * 1.45, P.cola([198, 46, 58], 0.6 * woe));   // the rims, raw from crying
         // the glass: dark, or gone red all over (a blank red, nothing in it), never less than a pixel or two across
         if (grief) P_ell(ctx, s * 0.045, ey, Math.max(er, px * 1.1), Math.max(er * 1.15, px), P.raw([214, 34, 30]));
         else P_ell(ctx, s * 0.045, ey, er, er * 1.15, K.glass);
@@ -317,7 +318,7 @@ CREATURES.other = {
       for (const s of [-1, 1]) {
         const ey = eyeY(s);
         if (grief) {
-          P_ell(ctx, s * 0.045, ey - 0.006, 0.036, 0.026, P.cola([255, 40, 24], 0.3 * fury));   // the red, glowing through the wet
+          P_ell(ctx, s * 0.045, ey - 0.006, 0.036, 0.026, P.cola([255, 40, 24], 0.3 * woe));   // the red, glowing through the wet
           // the painted brow, up in the middle in grief; lunging, it swings over into a hard angry slant, down at the middle
           const rg = smoothstep((lunge - 0.15) / 0.6);
           P_limb(ctx, [[s * 0.014, lerp(ey + 0.041, ey + 0.016, rg)], [s * 0.045, lerp(ey + 0.033, ey + 0.034, rg)], [s * 0.094, lerp(ey + 0.006, ey + 0.054, rg)]], lerp(0.0075, 0.011, rg), K.glass);

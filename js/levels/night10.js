@@ -11,8 +11,9 @@
 // like the dancer on the box, and comes out through that glass for the box, quickly, lifts it off the pedestal, and takes
 // it back in with it and away. Before any other mirror the first turn plays wrong notes and the crank sticks: in the glass
 // the doll stops dancing, its face crumples into red-eyed weeping and it hops at you (three quick steps). A click on the
-// box then lifts it back off, crank and all, to put before another mirror. Each of those hops takes a good share of the
-// night's clock (WRONG), so a couple of wrong tries can lose it. Your hand is on the crank as it turns, wrenches at it when it jams
+// box then lifts it back off, crank and all, to put before another mirror. That hop takes a good share of the night's
+// clock (WRONG), and it is the only warning: the box played wrong a second time, it comes out of that glass at you
+// (charge) and the night is lost. Your hand is on the crank as it turns, wrenches at it when it jams
 // (the box jumps), and takes the box back up off the pedestal; the crank tried on a bare pedestal feels about its top and
 // comes back to your hand (G.refuse); a dust sheet is pulled down by hand and slides off the glass.
 // The sheets go back up, too. Two mirrors start under one; pulled down, it lies in a heap at the foot of its glass and can
@@ -30,12 +31,13 @@ LEVELS.push({
   lights: [{ x: -40, y: 2, z: 5, r: 60, i: 0.5, color: [255, 120, 40], flicker: 0.4 }, { x: 2.6, y: 1.3, z: 2.6, r: 5, i: 0.4, color: [255, 200, 140], flicker: 0.15 }],
   text: {
     intro: 'You see a strange doll in the mirrors.\nThey all look the same... mostly.',
-    hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is upset with you: click the box to take it back.',
+    hint: 'Face a mirror square on to hold it. In every mirror it dances, and in the odd one it dances the other way round (the arm the others raise, it raises on the other side): put the music box on the pedestal in front of that one, then fit the crank to the box and turn it. Turned before any other mirror it plays wrong, and the thing in the glass is upset with you: click the box to take it back. It will not stand for that twice: a second wrong mirror, and it comes for you.',
     objective: 'Find the odd mirror. Put the music box on its pedestal, fit the crank, turn it.',
-    // wrong: it had you after the box played wrong before any mirror; unplayed: the box never played at all
+    // wrong: it had you after the box played wrong before any mirror; charged: the box played wrong a second time, and it
+    // came out of that glass for you; unplayed: the box never played at all
     egg: 'Cover every mirror.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     // ignored: every mirror under a dust sheet, and it came out through the cloth
-    death: { default: 'The strange doll leapt out from its mirror and grabbed you.', wrong: 'You played for an illusion. The creature surprised you from behind.', unplayed: 'It just wants to hear its song.', ignored: 'It does not like to be ignored.' },
+    death: { default: 'The strange doll leapt out from its mirror and grabbed you.', wrong: 'You played for an illusion. The creature surprised you from behind.', charged: 'It warned you once.', unplayed: 'It just wants to hear its song.', ignored: 'It does not like to be ignored.' },
     eggs: ['ignored'],   // (the easter egg: "Nice try", game.js deathLine)
     win: 'It only wanted its music box.',
   },
@@ -256,21 +258,57 @@ LEVELS.push({
     const boxWithCrank = (ctx, P) => ICONS.musicbox(ctx, P, { crank: 0 });
     // the first turn before a wrong mirror: the comb drags out wrong notes and the crank sticks; in the glass its painted face
     // crumples, weeping red, and behind you something takes three quick steps: it hops in by WRONG of the whole night's
-    // clock, never right up to you (it stops catchDist + 1.5 off, a few seconds from you), so a couple of wrong tries can
-    // lose the night. The crank stays stuck, so a box turned before the wrong mirror costs one hop, not one a click
+    // clock, never right up to you (it stops catchDist + 1.5 off, a few seconds from you), and only the once (the second
+    // time is charge, below). The crank stays stuck, so a box turned before the wrong mirror costs one hop, not one a click
     // where the crank is on the box on pedestal k (in the middle of its turn, out from the front of the box), in the world:
     // the hand goes there to turn it
     const crankAt = k => { const q = onLine(PED - MB.d / 2 - 0.03, (s.flip ? -1 : 1) * MB.cx, BOXY + MB.foot + MB.h / 2, k); return { x: q[0], y: q[1], z: q[2] }; };
     // a turn of the crank is the hand's own (the box makes the sound): G.reach, kept quiet
     const turnHand = (t, k, style) => { const r = G.reach(t, { style, at: crankAt(k) }); if (r && style === 'pull') r.touched = 99; };
-    const wrongTurn = p => {
+    const wrongTurn = (p, k) => {
+      if (s.wrongs) { charge(k); return; }   // (the second time: it comes for you)
       const c = c0(); s.wrongAt = L.t; s.wrongs++; s.sour = true; s.angryTill = L.t + 5; c.angry = 1;
       s.crankTo -= TAU * 0.6; G.shake(0.04);
       AUDIO.sfx('musicSour', panTo(p.x, p.z));
       const uMax = 1 - Math.pow((c.catchDist + 1.5) / c.D0, 1 / c.gamma); c.u = clamp(c.u + WRONG, c.u, Math.max(c.u, uMax)); c.hitched = true;
       G.shake(0.25);
       for (let i = 0; i < 3; i++) setTimeout(() => { if (G.state === 'play') AUDIO.footstep('smiler', 0.45, 0); }, 120 + i * 150);
-      G.say('Not the odd mirror: the notes come out wrong and the crank sticks, and in the glass its face has changed. Behind you something takes three quick steps.', 'The notes come out wrong. Behind you something takes three quick steps.');
+      G.say('Not the odd mirror: the notes come out wrong and the crank sticks, and in the glass its face has changed. Behind you something takes three quick steps. It will not stand for that twice.', 'The notes come out wrong. Behind you something takes three quick steps. It will not stand for that twice.');
+    };
+    // The second time the box plays wrong (before the same wrong mirror or another; on any difficulty) it has had enough,
+    // and the night is over at once: the wrong notes are the death's sting, the crank sticks and the box jumps, and in that
+    // glass its face crumples as before; a beat (CH.wait), and it comes out through the glass at you (a sheet over it slides
+    // off as it goes through), running hard on its stiff legs, the glass rippling where it breaks out, from where its
+    // reflection stood, CH.speed m a second, and the last of the way it lunges up into your face, its hands up, the sob a
+    // wail: the lunge any death here ends in, at the end of a charge. Its own death (charged), heard coming: little hard
+    // feet, faster than the fetch's, and the doll's own sting landing as it reaches you
+    const CH = { wait: 0.55, speed: 10, at: 1.7, lunge: 0.45 };   // (at: how near it runs before it lunges, over lunge seconds)
+    const chargeStep = (c, k) => {
+      const f = c.charge, sp = c.deathSpec, tt = k * sp.dur, run = sp.dur - CH.lunge, lk = smoothstep((tt - run) / CH.lunge);
+      s.now = f.at + G.stateT;   // (the night's clock stands still while you die: the sheet and the glass go on by this)
+      c.rush = k > 0 ? 1 - lk : 0; c.lunge = lk; c.angry = 1; c.smile = false; c.dance = 0;
+      c.dist = tt < run ? lerp(f.D, CH.at, tt / run) : lerp(CH.at, 0.55, lk);
+      c.runGait = tt * 18;
+      c.yOff = sill(c.dist) * (1 - lk) + lerp(0, L.eyeH - CR.faceY - c.pos().y, lk);
+      if ((f.prev - 3.48) * (c.dist - 3.48) < 0) s.ripples.push({ t0: s.now, lat: 0 });
+      f.prev = c.dist;
+      const n = Math.floor(c.runGait / Math.PI);
+      if (k > 0 && tt < run && n !== f.steps) { f.steps = n; AUDIO.footstep('smiler', clamp(4 / (c.dist + 2), 0.15, 0.85), 0); }
+      if (!f.stung && G.stateT >= sp.delay + sp.dur - 1.25) { f.stung = true; AUDIO.sfx('stingHum'); }   // (its hit 1.25 s in)
+      if (!f.shook && lk > 0.5) { f.shook = true; if (!SAVE.data.settings.reducedMotion) G.shake(1.2); }
+    };
+    const charge = k => {
+      const c = c0(), m = s.mirrors[k];
+      s.wrongAt = L.t; s.wrongs++; s.sour = true; s.angryTill = L.t + 99; s.crankTo -= TAU * 0.6;
+      if (!m.live) { m.live = true; m.heap++; s.sheetFall = { k, t0: L.t, hissed: true }; m.anim = { t0: L.t, T: SHEET.down }; AUDIO.sfx('hiss'); }
+      s.ripples = s.ripples || [];
+      const D = 7 + c.dist;   // (where its reflection stood in that glass)
+      c.retarget(1 + k); c.dist = c.hold = D; c.lat = c.runLat = 0; c.yOff = 0;
+      Object.assign(c, { back: false, smile: false, angry: 1, dance: 0, danceMir: sideOf(k), runPose: false, arms: null, carry: null, rush: 0, runDir: 0, charge: { D, at: L.t, prev: D, steps: -1, stung: false, shook: false } });
+      L.lane = c.lane; L.laneIdx = c.lane.idx;
+      c.deathSpec = { delay: CH.wait, dur: (D - CH.at) / CH.speed + CH.lunge, sting: 'musicSour', pose: chargeStep };
+      G.say('Wrong again.');   // (the death screen puts it before its own line)
+      die(c, 'charged');
     };
     // a click on the box on a pedestal lifts it back off, its crank in it if it was fitted
     const lift = k => {
@@ -319,7 +357,7 @@ LEVELS.push({
         onClick() {
           if (s.placedAt !== k) return false;   // what you carry is tried
           if (!s.crankIn) { if (G.hasItem('crank')) return false; lift(k); return true; }
-          if (k !== s.odd) { if (s.sour) lift(k); else { wrongTurn(p); turnHand(this, k, 'rattle'); } return true; }   // the hand turns it, it jams, and the hand wrenches at it
+          if (k !== s.odd) { if (s.sour) lift(k); else { turnHand(this, k, 'rattle'); wrongTurn(p, k); } return true; }   // the hand turns it, it jams, and the hand wrenches at it
           if (s.turns >= TURNS) return true;
           turnHand(this, k, 'pull');
           s.turns++; s.crankTo -= TAU; G.shake(0.04); s.angryTill = Math.min(s.angryTill, L.t);   // the right tune calms it
@@ -520,7 +558,7 @@ LEVELS.push({
       }
       c.hold = d; c.runLat = lat;
       // the glass ripples where it goes through
-      if ((f.prev - 3.48) * (d - 3.48) < 0) s.ripples.push({ t0: L.t, lat });
+      if ((f.prev - 3.48) * (d - 3.48) < 0) s.ripples.push({ t0: s.now, lat });
       f.prev = d;
       // little hard running feet, and the tune again every time it ends
       const pan = Math.sin(wrapPi(c.yaw + Math.atan2(lat, d) - G.cam.yaw)) * 0.85;
@@ -684,12 +722,12 @@ LEVELS.push({
       });
       // (the red of the death comes up with the cloth, not before it: the hush is only quiet)
       if (s.egg && G.state === 'dying') G.danger = Math.min(G.danger, 0.06 + 0.94 * smoothstep((G.stateT - EGG.hush) / (EGG.burst - EGG.hush)));
-      if (s.ripples) for (const rp of s.ripples) { const a = (L.t - rp.t0) / 0.9; if (a < 1) R.add(ripple(onLine(3.47, rp.lat, 0.35), a)); }
+      if (s.ripples) for (const rp of s.ripples) { const a = (s.now - rp.t0) / 0.9; if (a < 1) R.add(ripple(onLine(3.47, rp.lat, 0.35), a)); }
       // the music box on its pedestal (whichever it is on), or on its way off it into the doll's arms: over the pedestal's
       // cap and the doll
       // When its crank jams (before the wrong mirror) the box jumps on the pedestal and rocks back down
       if (s.placedAt >= 0 && !s.held) {
-        const j = L.t - s.wrongAt, jolt = j >= 0 && j < 0.5 ? 1 - j / 0.5 : 0, hop = 0.035 * Math.abs(Math.sin(j * 19)) * jolt * jolt, rock = 0.09 * Math.sin(j * 27) * jolt;
+        const j = s.now - s.wrongAt, jolt = j >= 0 && j < 0.5 ? 1 - j / 0.5 : 0, hop = 0.035 * Math.abs(Math.sin(j * 19)) * jolt * jolt, rock = 0.09 * Math.sin(j * 27) * jolt;
         const b = liftedBox(s.lift || 0);
         for (const q of boxParts(s.placedAt, b, b.y + hop, rock, pedTargets[s.placedAt])) R.add(q);   // (clicked, it is the pedestal it is on)
       }
