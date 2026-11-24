@@ -1,7 +1,8 @@
 // The Mirror Maze: pull the dust sheets, pick up the music box and its crank (they lie in different places), try the crank
 // first (nothing for it to turn), then put the box on a wrong pedestal (any pedestal takes it, with no penalty), fit the
 // crank there and turn it: the notes come out wrong, the crank sticks, the doll in the glass turns angry (it weeps) and
-// hops at you.
+// hops at you. That is the only warning: on a fresh night, one wrong mirror and then a second (the box played wrong again)
+// and it comes out of that glass at a run and has you ("It got you": "Wrong again. It warned you once.").
 // A click on the box lifts it back off with its crank still in it; on the odd mirror's pedestal it goes down crank and all,
 // and turning it until the tune plays brings the doll out through that glass to take the box. Like a player, it faces a
 // mirror square on (which holds the thing while that glass is live) and clicks what is in front of it, rather than looking
@@ -233,7 +234,28 @@ const wrongPedestal = k => {
     ['expect', "G.L.s.placedAt < 0 && !G.L.s.crankIn && !G.L.s.sour && G.inv.some(i => i.id === 'musicbox' && i.withCrank) && !G.inv.some(i => i.id === 'crank')", 'a click on the box lifts it back off, its crank still in it'],
   ];
 };
+// Only the once: the box played wrong a second time (here before another wrong mirror, which on a fresh night may be under
+// a sheet) and the night is over at once. The crank sticks and in that glass its face crumples, then it comes out through
+// that glass for you (a sheet over it slides off), running at you, and lunges up into your face weeping; its own death,
+// the toast that cut it off before its line, and "It got you". Then the same night again from the start
+const twice = k => {
+  const w = (k + 2) % 4;
+  return [
+    ['expect', "G.state === 'play' && G.L.s.wrongs === 1", 'one wrong mirror is a warning: the night goes on'],
+    ['eval', "window.__ch = { rush: 0, lunge: 0, far: 0, near: 99, calm: 0, lane: -1, live: null }; (function w() { const c = G.L.creature; if (G.state === 'dying') { window.__ch.rush = Math.max(window.__ch.rush, c.rush || 0); window.__ch.lunge = Math.max(window.__ch.lunge, c.lunge || 0); window.__ch.far = Math.max(window.__ch.far, c.dist); window.__ch.near = Math.min(window.__ch.near, c.dist); if (c.angry !== 1 || c.smile) window.__ch.calm++; window.__ch.lane = c.lane.idx; if (window.__ch.live === null && G.stateT > 0.3) window.__ch.live = G.L.s.mirrors[" + w + "].live; } if (G.state === 'play' || G.state === 'dying') requestAnimationFrame(w); })()"],
+    hold('musicbox'), look(w), ['click', ped(w)],
+    ['expect', 'G.L.s.placedAt === ' + w + " && G.L.s.crankIn && G.state === 'play'", 'the box, crank and all, before another wrong mirror'],
+    ['click', ped(w)],
+    ['expect', "G.state === 'dying' && G.deathCause === 'charged' && G.L.s.wrongs === 2 && G.L.creature.lane.idx === " + (1 + w), 'turned there it plays wrong again, and this time it comes for you, out of that glass'],
+    ['waitUntil', "G.state === 'dead'", 8000],
+    ['expect', 'window.__ch.far > 7 && window.__ch.near < 0.6 && window.__ch.rush > 0.9 && window.__ch.lunge === 1 && !window.__ch.calm && window.__ch.lane === ' + (1 + w) + ' && window.__ch.live === true', 'it ran at you from where its reflection stood, the sheet off its glass, weeping all the way, and lunged into your face'],
+    ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'Wrong again. It warned you once.'", 'It got you: "Wrong again. It warned you once."'],
+    ['eval', 'G.attempt = G.attempt - 1; restartLevel()'], ['wait', 300],
+    ['expect', "G.state === 'play' && G.L.s.wrongs === 0 && !G.L.creature.angry && G.L.s.placedAt < 0", 'the same night again, from the start'],
+  ];
+};
 const right = k => [
+  ['expect', "G.state === 'play' && G.L.s.wrongs === 1", 'after one wrong mirror the night goes on'],
   hold('musicbox'), look(k), ['click', ped(k)], ['expect', 'G.L.s.placedAt === ' + k + " && G.L.s.crankIn && !G.inv.some(i => i.id === 'musicbox')", 'the box, crank and all, on the odd mirror\'s pedestal'],
   watch('turn', "G.hand.reach && G.hand.reach.style === 'pull' && G.hand.reach.target.id === '" + ped(k) + "'"),
   ['click', ped(k)], ['click', ped(k)], ['click', ped(k)], ['expect', '!G.L.won && G.L.s.turns === 3 && !G.L.s.sour', 'three turns, a few notes each'],
@@ -278,5 +300,5 @@ const idle = how => [
   ['expect', "G.state === 'play' && G.L.creature.u < 0.02 && !G.L.creature.angry && G.L.s.placedAt < 0", 'the same night again, from the start'],
 ];
 module.exports = {
-  nightmare: caught.concat(egg, idle('glass'), idle('down'), sheets, reSheet, dance, emptyTouch, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
+  nightmare: caught.concat([['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => wrongPedestal(k).concat(twice(k))), egg, idle('glass'), idle('down'), sheets, reSheet, dance, emptyTouch, [['pickup', 'musicbox'], ['pickup', 'crank']], byOdd(k => crankFirst(k).concat(wrongPedestal(k), right(k))), fetched),
 };
