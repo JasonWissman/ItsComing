@@ -896,11 +896,11 @@ const VOID_OTHERS = [
 // ([u, v, how far]), the swimmer's pool (`water`: how far its water reaches), the heap of the robe and one another; how fast each goes (metres a second; with
 // reduced motion all of them `amble`); and how long each leaps on the spot (`leap`) once in every `every` seconds or so.
 // The climber does not run about (all over the meadow on its leaps it looked a fool): it goes back to its own spot
-// (`stand`, [u, v]: at the back, off to the left, clear of the tree and of the middle where the rest come and go) and
-// stays there, leaping up and down on it, and the others keep clear of it
+// (`stand`, [u, v]: at the back, off to the right, well clear of the tree, the pool and the middle where the rest come and go) and
+// stays there, leaping up and down on it, and the others keep clear of it (and do not make for the way between it and you)
 const VOID_FROLIC = {
   v0: 3.6, v1: 12, wedge: 0.74, you: 3.1, tree: [Math.sin(-0.72) * 11.5, Math.cos(-0.72) * 11.5, 1.8], water: 1.0, pool: 1.25, heap: 0.9, apart: 1.6, amble: 0.5, leap: 2.8, every: 8.5,
-  stand: { climber: [-2.6, 10.9] },
+  stand: { climber: [2.4, 10.9] },
   speed: { walker: 2.4, crawler: 3.4, smiler: 3.1, runner: 5.2, climber: 3.2, customer: 2.6, signalman: 3.0, other: 2.2, carrier: 2.5, tall: 2.8, demon: 2.7 },
 };
 // those drawn side on as they run across your view, each by its own creature's side-on run (js/creatures: the pose fields
@@ -1060,7 +1060,10 @@ function buildGathering(L, s, c0, K) {
   // is a spot (u, v) one of the meadow's, where one of them may be?
   const spot = (u, v) => v >= FR.v0 && v <= FR.v1 && Math.abs(u) <= FR.wedge * v && Math.hypot(u - FR.tree[0], v - FR.tree[1]) > FR.tree[2] + 0.4
     && Math.hypot(u - E.poolU, v - E.poolV) > FR.pool + 0.6 && Math.hypot(u - E.heapU, v - E.heapV) > FR.heap + 0.4
-    && Math.hypot(u - FR.stand.climber[0], v - FR.stand.climber[1]) > FR.apart + 0.6;
+    && !inSight(u, v);
+  // (nor on the climber's spot, nor anywhere between it and you: they cross in front of it, but do not make for there)
+  const ST = FR.stand.climber, STL = Math.hypot(ST[0], ST[1]);
+  const inSight = (u, v) => Math.abs(u * ST[1] - v * ST[0]) / STL < FR.apart && (u * ST[0] + v * ST[1]) / STL < STL + FR.apart + 0.6;
   let AX = 0, AY = 0;   // (the way it would go, summed: no objects made in a frame)
   const shy = (m, x, y, r, w) => { const ex = m.fu - x, ey = m.fv - y, e2 = ex * ex + ey * ey; if (e2 < r * r && e2 > 1e-6) { const e = Math.sqrt(e2), k = (1 - e / r) * w / e; AX += ex * k; AY += ey * k; } };
   // (one that stood nearer than that as it set off is moved out of it, not put out of it at once)
@@ -1079,7 +1082,7 @@ function buildGathering(L, s, c0, K) {
     m.went = 0;
     if (m.pool) return;
     if (m.stand) {   // the climber: straight back to its spot, at a walk, and there it stays
-      const du = m.stand[0] - m.fu, dv = m.stand[1] - m.fv, d = Math.hypot(du, dv), sp = Math.min(d, (still ? FR.amble : m.speed * 0.6) * m.run * dt);
+      const du = m.stand[0] - m.fu, dv = m.stand[1] - m.fv, d = Math.hypot(du, dv), sp = Math.min(d, (still ? FR.amble : m.speed * 0.75) * m.run * dt);
       if (sp >= d || d < 1e-9) { m.fu = m.stand[0]; m.fv = m.stand[1]; } else { m.fu += du / d * sp; m.fv += dv / d * sp; }
       m.went = sp;
       return;
