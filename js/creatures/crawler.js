@@ -251,9 +251,10 @@ CREATURES.crawler = {
   // at you, the mouth open, holds there shaking, and lolls again; near the car it no longer looks away. The closer it is,
   // the quicker the stride (UP.rate, by how near: UP.near metres out to the catch), and the faster it comes (UP.v, the
   // hitch and the drag, times 1 + UP.quick by how near). c.up.w is how far it is walking (0 standing: the night freezes
-  // it, and it eases to a stand); rush, it comes as fast as it can (the car coming at it). upright() is it, just up.
+  // it, and it eases to a stand); rush, it comes as fast as it can (the car coming at it); sink, how far below
+  // where it is it is drawn (a night lifting its face to your eye lifts it this way, so the thing's box stays in the view).
   UP: { rate: [1.6, 2.8], lurch: 1.6, drag: 0.72, v: [1.75, 0.49], quick: 1.1, near: 11, rush: 2.2, ease: 3 },
-  upright() { return { ph: 0.75 * 2 * TAU, w: 0, rush: false, stare: 0, crouch: 0, lunge: 0, dive: 0 }; },
+  upright() { return { ph: 0.75 * 2 * TAU, w: 0, rush: false, stare: 0, crouch: 0, lunge: 0, dive: 0, sink: 0 }; },
   upSpeed(c, dt) {
     const u = c.up, U = this.UP, n = clamp(1 - (c.dist - c.catchDist) / U.near, 0, 1), hitch = ((u.ph % TAU) + TAU) % TAU < Math.PI;
     u.w += ((c.frozen && !u.rush ? 0 : 1) - u.w) * Math.min(1, dt * U.ease * (u.rush ? 3 : 1));
@@ -330,6 +331,7 @@ CREATURES.crawler = {
       into(Z.rear, [E(e1, 0, 0.9), E(e1, 0, 1), E(e1, 0.1, 1), E(e1, 0.1, 1), E(e1, 0, 0.7), E(e1, 0, 0.7)]);
       into(Z.throw, [E(e2, 0.2, 0.9), E(e2, 0.25, 1), E(e2, 0.35, 1), E(e2, 0.35, 1), E(e2, 0, 0.6), E(e2, 0, 0.6)]);   // the arms first
     }
+    if (u.sink) ctx.translate(0, -u.sink);   // (drawn lower than it stands: see sink)
     this.body(ctx, q, p, c, P, o);
   }
 };

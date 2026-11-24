@@ -456,7 +456,8 @@ LEVELS.push({
         const u = Math.min(1, k / kg), dt = clamp(G.stateT - r.at, 0, 0.05);
         r.at = G.stateT;
         cr.dist = k < kg ? lerp(d, g, Math.pow(u, 1.6)) : lerp(g, 0.55, (k - kg) / (1 - kg));
-        cr.yOff = roam.yOff = (L.eyeH - SPRING.face) * smoothstep(u) + SPRING.high * 4 * u * (1 - u);
+        const f = smoothstep(u);   // its face to your eye: the thing lifted to it, and drawn as far lower as its face is higher (sink)
+        cr.yOff = roam.yOff = (L.eyeH - cr.CR.faceY) * f + SPRING.high * 4 * u * (1 - u); cr.up.sink = (SPRING.face - cr.CR.faceY) * f;
         cr.up.dive = Math.min(1, u * 2.2); cr.up.crouch = Math.max(0, 1 - u * 4);   // off the road, out of its crouch: its arms up and out ahead of it for you
         r.v = k < kg ? r.v : Math.max(0, r.v - BRAKE * dt); r.s += r.v * dt;
         s.carZ = r.z0 + r.s * r.dir;
@@ -500,7 +501,8 @@ LEVELS.push({
       c.deathSpec = { delay: 0, dur, sting: 'stingShriek', glassT: dur * LUNGE.glass, pose(cr, k) {
         cr.up.lunge = k;
         cr.dist = k < LUNGE.glass ? lerp(from, g, Math.pow(clamp((k - LUNGE.rear) / (LUNGE.glass - LUNGE.rear), 0, 1), 2)) : lerp(g, 0.55, (k - LUNGE.glass) / (1 - LUNGE.glass));
-        cr.yOff = roam.yOff = lerp(y0, L.eyeH - LUNGE.face, smoothstep((k - 0.25) / 0.75));
+        const f = smoothstep((k - 0.25) / 0.75);   // its face to your eye, as the spring's
+        cr.yOff = roam.yOff = lerp(y0, L.eyeH - cr.CR.faceY, f); cr.up.sink = (LUNGE.face - cr.CR.faceY) * f;
       } };
     }
     L.onCatch = c => {
