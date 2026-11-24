@@ -594,13 +594,14 @@ function proceed() {
   }
 }
 
-function onMouseMove(e) { if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return; G.mouse.x = e.clientX; G.mouse.y = e.clientY; }   // (the mouse a browser makes up after a tap on a menu is not a pointer over the view)
+function onMouseMove(e) { if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return; TOUCH.lift = 0; G.mouse.x = e.clientX; G.mouse.y = e.clientY; }   // (the mouse a browser makes up after a tap on a menu is not a pointer over the view)
 function onMouseDown(e) { if (e.button !== 0) { G.drawSwallow = false; return; } if (pressAt(e.clientX, e.clientY, 'mouse')) e.preventDefault(); }
 // the button (or a finger) goes down at x, y: on a thing that is held (the covers) it takes hold; with a bow, it draws.
 // src: 'mouse' or 'finger' (a touch on the view: see touch, below), both aimed where they are
 function pressAt(x, y, src) {
   G.drawSwallow = false;
   if (G.state !== 'play') return false;
+  TOUCH.lift = 0;   // (a new press: the finger lifted a moment ago no longer has the say over what is under the pointer)
   G.mouse.x = x; G.mouse.y = y;
   updateHover();
   const h = G.hover;
@@ -1491,7 +1492,7 @@ function gamepadUse(src) {
   for (const r of R.hits) { const dx = r.x + r.w / 2 - R.W / 2, dy = r.y + r.h / 2 - R.viewY - R.H / 2, d = Math.hypot(dx, dy); if (d < bestD) { best = r; bestD = d; } }
   if (!(best && bestD < Math.min(R.W, R.H) * 0.45 && best.kind !== 'creature') && drawPress(G.L, null, src || 'pad')) return;   // a bow: held, A (or Use) draws it
   if (best && bestD < Math.min(R.W, R.H) * 0.45) {
-    G.mouse.x = best.x + best.w / 2; G.mouse.y = best.y + best.h / 2; updateHover();
+    TOUCH.lift = 0; G.mouse.x = best.x + best.w / 2; G.mouse.y = best.y + best.h / 2; updateHover();   // (its aim stands, though a finger lifted a moment ago: that finger's hover running out must not wipe it)
     const h = G.hover;
     if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; setTimeout(() => { if (G.holding === h.ref && !h.ref.done) G.holding = null; }, (h.ref.hold + 0.5) * 1000); return; }
     onClick({ clientX: G.mouse.x, clientY: G.mouse.y, target: UI.canvas, button: 0 });
