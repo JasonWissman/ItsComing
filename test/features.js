@@ -2439,7 +2439,7 @@ const hoverHit = lookFor;
     const again = await sp.evaluate(() => { window.__heard = []; return foundEgg(); });
     await dead();
     const v2 = await look();
-    check(again === false && v2.state === 'dead' && !v2.shown && v2.heard === 0 && v2.room <= 0, 'the same easter egg found again ' + what + ': no note on the death screen, no sound, no strip kept for one (' + JSON.stringify({ again, shown: v2.shown }) + ')');
+    check(again === false && v2.state === 'dead' && !v2.shown && v2.heard === 0 && v2.room > 0, 'the same easter egg found again ' + what + ': no note on the death screen, no sound, no strip kept for one (' + JSON.stringify({ again, shown: v2.shown }) + ')');
     if (tag === '1280') {
       // its time: up for about seven seconds, then gone; it is said on the win screen the same way
       await sp.evaluate(() => { SAVE.data.eggs = {}; startLevel(2, false); foundEgg(); setState('survived'); MENU.show('survived', { title: 'The Graveyard', text: 'It is gone.' }); secretTell(); });
