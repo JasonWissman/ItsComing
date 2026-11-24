@@ -61,11 +61,13 @@
   #drawmin { position: absolute; left: 0; right: 0; height: 1px; background: rgba(207,200,186,.45); }
   #drawlabel { position: absolute; left: 16px; top: -6px; font-size: calc(11px * var(--text-scale)); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; color: #b6e494; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
   .linkbtn { font: inherit; background: none; border: none; color: #efe6d2; text-decoration: underline; cursor: pointer; padding: 0; letter-spacing: inherit; }
-  #inventory { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
+  /* (as high off the bottom edge as the names under the slots need: a name, descenders and all, ends 6px above the edge
+     and the home bar, however big the text. --inv-foot: the gap over a name, its one line, and the 6px) */
+  #inventory { --inv-foot: calc(4px + 11px * 1.2 * var(--text-scale) + 6px); position: absolute; bottom: calc(env(safe-area-inset-bottom) + var(--inv-foot)); left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
   .slot { width: 64px; height: 64px; border: 1px solid rgba(207,200,186,.22); background: linear-gradient(rgba(26,23,22,.8), rgba(9,8,8,.86)); position: relative; cursor: pointer; transition: border-color .15s; }
   .slot canvas { width: 64px; height: 64px; display: block; }
   .slot.active { border-color: rgba(239,230,210,.8); box-shadow: 0 0 10px rgba(239,230,210,.16), inset 0 0 14px rgba(239,230,210,.08); }
-  .slot .label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; font-size: calc(11px * var(--text-scale)); letter-spacing: .08em; white-space: nowrap; color: rgba(207,200,186,.78); text-shadow: 0 1px 2px #000, 0 0 6px #000; }
+  .slot .label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; font-size: calc(11px * var(--text-scale)); line-height: 1.2; letter-spacing: .08em; white-space: nowrap; color: rgba(207,200,186,.78); text-shadow: 0 1px 2px #000, 0 0 6px #000; }
   .slot.active .label { color: #efe6d2; }
   /* more than six held (the Void, where the hands are never full): smaller slots in one row, wrapping to a second where
      the page is narrow, and only the held thing's name under it */
@@ -645,7 +647,7 @@
     /* the things held float over the view, each on a faint backing of its own, no strip under them: the view runs
        to the bottom of the screen (and under the home bar: viewport-fit=cover), the slots above that bar */
     /* (in the lower left corner, not the middle: the middle of the bottom edge is where things to tap most often are) */
-    #inventory { gap: 8px; left: max(16px, env(safe-area-inset-left)); transform: none; bottom: calc(env(safe-area-inset-bottom) + 18px); touch-action: none; }
+    #inventory { gap: 8px; left: max(16px, env(safe-area-inset-left)); transform: none; touch-action: none; }
     .slot, .slot canvas { width: 50px; height: 50px; }
     #inventory.many { gap: 4px; max-width: calc(100% - 180px); }   /* (clear of the zoom button in the corner) */
     #inventory.many .slot, #inventory.many .slot canvas { width: 34px; height: 34px; }

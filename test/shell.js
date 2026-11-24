@@ -91,6 +91,34 @@ async function run(browser, check) {
     await ctx.close();
   }
 
+  // The names under the things held: each whole, its descenders and all (the text's own box, not only its line's), and a
+  // few pixels clear of the bottom edge, at every text size: three things held on a night, and the Void's many (smaller
+  // slots, the held thing's name only), on a desktop at three sizes and on two phones held sideways (the lower left there)
+  console.log('== the names under the things held: whole, clear of the bottom edge ==');
+  for (const view of ['desktop', 'small desktop', 'phone', 'small phone']) {
+    const rows = [];
+    for (const lv of [3, 13]) {
+      const { ctx, page } = await open(view === 'small desktop' ? 'desktop' : view, '?level=' + lv + '&go&seed=1');
+      if (view === 'small desktop') { await page.setViewportSize({ width: 1024, height: 600 }); await page.waitForTimeout(150); }
+      for (const [name, ts] of SIZES) {
+        rows.push(Object.assign({ lv, name }, await page.evaluate(ts => {
+          MENU.applySetting('textSize', ts); const L = G.L; L.creature.hold = L.creature.dist;
+          const want = L.def.id === 'void' ? 9 : 3;
+          for (const it of L.items) { if (G.inv.length >= want) break; if (!G.inv.includes(it)) { it.taken = true; G.inv.push(it); } }
+          G.active = G.inv.length - 1; G.invSig = ''; G.step(0.016, 2);
+          const labs = [...document.querySelectorAll('#inventory .slot .label')].filter(e => getComputedStyle(e).display !== 'none' && e.textContent);
+          let gap = 99, left = 99;
+          for (const e of labs) { const g = document.createRange(); g.selectNodeContents(e); const r = g.getBoundingClientRect(), b = e.getBoundingClientRect(); gap = Math.min(gap, innerHeight - Math.max(r.bottom, b.bottom)); left = Math.min(left, r.left); }
+          return { n: labs.length, gap: +gap.toFixed(1), left: +left.toFixed(1), many: document.getElementById('inventory').classList.contains('many') };
+        }, ts)));
+      }
+      if (lv === 3) await shot(page, 'inventory-' + view.replace(/ /g, '-'));
+      await ctx.close();
+    }
+    check(rows.every(r => r.n >= 1 && r.gap >= 4 && r.gap <= 14 && r.left >= 0) && rows.some(r => r.many) && rows.some(r => r.n === 3),
+      view + ': every name under a thing held is whole and 4 to 14 pixels above the bottom edge, at every text size, the Void\'s many too (' + JSON.stringify(rows.map(r => [r.lv, r.name, r.n, r.gap])) + ')');
+  }
+
   // The results after the ending. A run that found secret scenes it did not have: two tabs, This run and Secret scenes,
   // open on the secret scenes; those found before are checked from the start, the run's own are checked off one after
   // another (the count going up with them), then the way out; all thirteen: a stamp. The times come in when their tab is
