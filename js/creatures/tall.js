@@ -33,7 +33,11 @@
 //   tooth (the tooth lying in its open palm, and kept there to the last), wings (0..1: its butterfly wings
 //   unfurled from behind its back), beat (how far open they are swept just now: 1 spread flat to you, toward 0 edge on),
 //   gone (0..1: all of it fading away), t (seconds, for the sheen on its wings), still (reduced motion: the sheen stands),
-//   steady (reduced flashes: nothing on them twinkles) }. Held out to you over the bed, its arms are drawn apart from it
+//   steady (reduced flashes: nothing on them twinkles), look (0..1, a little past 1 as it snaps: its head bowed to look
+//   down at the hand it holds out, or at its hands), cup (0..1: its two hands brought together in front of its chest,
+//   cupped round the tooth), fling (0..1, past 1 as it snaps: its arms thrown out wide to its sides, the hands open), pop
+//   (how big its wings are drawn as they burst open: a little past 1 and back), eyes (0..1: open; 0 shut, their light
+//   out), shimmer (0..1: its eyes no longer pale but iridescent, blue and rose as its wings are, twinkling) }. Held out to you over the bed, its arms are drawn apart from it
 //   (c.armsApart and c.part === 'arms', as in its lunge), from the same shoulders as the rest of it is drawn with: bowed
 //   in, each arm's root is tucked in under the corner of its shoulders, inside the line of its body, so the nearer layer
 //   of arms always joins the body behind it.
@@ -164,6 +168,7 @@ CREATURES.tall = {
     const body = P.col(this.BODY, this.DARK), part = c.part;
     // the tooth fairy (c.fairy): bowed in over the bed, an arm held out; fading away at the last
     const fy = c.fairy || null, F = this.FAIRY, bow = fy ? (fy.lean || 0) * free : 0, offer = fy ? (fy.offer || 0) * free : 0, gone = fy ? clamp(fy.gone || 0, 0, 1) : 0;
+    const cupK = fy ? (fy.cup || 0) * free : 0, fling = fy ? (fy.fling || 0) * free : 0, lookK = fy ? (fy.look || 0) * free : 0;
     if (gone >= 1) return;
     // seen from where: how far off it is (its drawing is in the plane it stands in) and how high your eye is over its feet
     const R0 = Math.max(0.2, Math.hypot(c.dist, c.lat || 0)), eyeH = (typeof G !== 'undefined' && G.L && G.L.eyeH) || 1.15, E = eyeH - (c.yOff || 0);
@@ -259,11 +264,18 @@ CREATURES.tall = {
       if (reach > 0) mix(reach, s * 0.66, grip - 0.42, s * 0.4, grip, -Math.PI / 2 + s * 0.2, 0.13, 0.17);
       // the tooth fairy, bowed in: the hand that is not held out to you is down on the end of the bed
       if (bow > 0 && s !== F.side) mix(bow, s * (sw + 0.14), lerp(sy, grip, 0.55), s * 0.34, grip, -Math.PI / 2 + s * 0.2, 0.13, 0.17);
+      // its hands together, cupped round the tooth in front of its chest; and then flung out wide, the fingers spread
+      if (cupK > 0) mix(cupK, s * (sw + 0.05), tp - 0.36, s * 0.05, tp - 0.3, Math.PI / 2, 0.1, 0.12);
+      if (fling > 0) mix(fling, s * (sw + 0.34), tp + 0.06, s * 1.12, tp + 0.2, s > 0 ? 0.25 : Math.PI - 0.25, 0.42, 0.3);
       const arm = () => {
         if (grabK > 0) { this.grabArm(ctx, s, sx, sy, px, py, grabK, R0, E, body); return; }
         if (offer > 0.01 && s === F.side) { this.offerArm(ctx, s, sx, sy, px, py, fy, offer, bowS, body, P); return; }
         P_limb(ctx, [[sx, sy], [ex, ey], [px, py]], 0.065, body);
         if (drawn) drawn.hands.push([px, py], [ex, ey]);
+        if (cupK > 0.6) {   // cupped: the palm curled round, the fingers closed over toward the other hand
+          P_ell(ctx, px + s * 0.012, py, 0.062, 0.07, body); P_ell(ctx, px - s * 0.035, py + 0.035, 0.04, 0.03, body);
+          return;
+        }
         fingers(ctx, px, py, ang, spread, len, 0.02, body);
         if (reach > 0.3 || bow > 0.3) P_ell(ctx, px, py + 0.01, 0.06, 0.045, body);   // the back of the hand, knuckles up
       };
@@ -278,7 +290,9 @@ CREATURES.tall = {
     let tilt = -0.3 * Math.cos(Math.PI * t / 2.7) * still * (1 - grabK) * (1 - 0.55 * bow) + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) * free - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35;
     if (drawn) drawn.tilt = tilt;
     if (peer > 0) P_line(ctx, sway * 0.6, tp - 0.04, hx, hy + 0.06, 0.09, body);   // the neck, stretched out round the edge
-    ctx.save(); ctx.translate(hx, hy);
+    // (the tooth fairy's head bowed to look down at what it holds: down, and tipped toward the hand it holds out)
+    if (lookK) tilt -= F.side * 0.14 * lookK;
+    ctx.save(); ctx.translate(hx + F.side * 0.03 * lookK * (1 - cupK), hy - 0.07 * lookK);
     // right in front of you its head twitches, for a moment, hard and fast
     const tw = c.close && c.twitchT !== undefined ? c.twitchT : -1;
     if (tw >= 0 && tw < U.twitch - U.cut) {
@@ -297,13 +311,23 @@ CREATURES.tall = {
     if (look <= 0) { ctx.restore(); if (late) late(); ctx.restore(); return; }
     ctx.globalAlpha *= look;
     // its face is nothing but two round pale eyes in the dark of its head, a soft glow round each, the same in any light
-    // (peering up, they widen; right in front of you they are wide)
+    // (peering up, they widen; right in front of you they are wide). The tooth fairy's: looking down they are lower in
+    // its face and narrowed; shut, they are gone; shimmering, they are blue and rose by turns as its wings are, brighter,
+    // the glow round each wider, and they twinkle
     const er = 0.017 * (1 + duck * 0.2 + lerp(grabK * 0.15, 0.3, c.closeK === undefined ? (c.close ? 1 : 0) : c.closeK));
-    for (const s of [-1, 1]) {
-      const x = s * 0.046, y = 0.37, gr = er * 3.2, gl = ctx.createRadialGradient(x, y, 0, x, y, gr);
-      gl.addColorStop(0, rgba([235, 228, 210], 0.3)); gl.addColorStop(1, rgba([235, 228, 210], 0));
+    const open = fy && fy.eyes !== undefined ? Math.max(0, fy.eyes) : 1, shim = fy ? fy.shimmer || 0 : 0, T = fy ? fy.t || 0 : 0;
+    if (open > 0.02) for (const s of [-1, 1]) {
+      const x = s * 0.046, y = 0.37 - 0.085 * lookK, ry = er * Math.min(open, 1.2) * (1 - 0.45 * clamp(lookK, 0, 1));
+      const hue = fy && fy.steady ? 0.5 : 0.5 + 0.5 * Math.sin(T * 2.7 + s * 1.9), col = mixc([235, 228, 210], mixc([90, 206, 255], [255, 112, 196], hue), shim);
+      const gr = er * (3.2 + 2.4 * shim), gl = ctx.createRadialGradient(x, y, 0, x, y, gr);
+      gl.addColorStop(0, rgba(col, (0.3 + 0.3 * shim) * Math.min(1, open))); gl.addColorStop(1, rgba(col, 0));
       ctx.fillStyle = gl; ctx.fillRect(x - gr, y - gr, gr * 2, gr * 2);
-      P_ell(ctx, x, y, er, er, P.raw([235, 228, 210]));
+      P_ell(ctx, x, y, er * (1 + 0.15 * shim), ry * (1 + 0.15 * shim), P.raw(col));
+      if (shim > 0) {   // a point of white in each, and a glint off it that twinkles
+        P_ell(ctx, x - er * 0.3, y + ry * 0.3, er * 0.32, er * 0.32 * Math.min(1, open), rgba([255, 255, 255], 0.9 * shim));
+        const a = shim * Math.min(1, open) * (fy.steady ? 0.4 : Math.pow(Math.max(0, Math.sin(T * 6.3 + s * 2.2)), 2)), r = er * 2.6;
+        if (a > 0.02) { ctx.strokeStyle = rgba([255, 255, 250], a); ctx.lineWidth = 0.006; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); ctx.stroke(); }
+      }
     }
     ctx.restore();
     if (late) late();
@@ -409,8 +433,9 @@ CREATURES.tall = {
       });
       ctx.restore();
     };
+    const pop = f.pop || 1;   // (bursting open: drawn a little past their size, and back)
     for (const sd of [-1, 1]) {
-      ctx.save(); ctx.translate(x, y); ctx.scale(sd, 1);
+      ctx.save(); ctx.translate(x, y); ctx.scale(sd * pop, pop);
       wing(this.WING.hind, smoothstep((k - 0.18) / 0.82), sd > 0 ? 0.5 : 0.1);
       wing(this.WING.fore, smoothstep(k / 0.8), sd > 0 ? 0 : 0.6);
       ctx.restore();

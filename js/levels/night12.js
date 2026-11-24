@@ -14,9 +14,11 @@
 // The night's easter egg: the pillow against the headboard at your back is the one thing in the room that is behind
 // you. Look round and down at it and lift it: there is a tooth under it. Take the tooth and the night stops where it
 // is: when you turn back the thing is bowed in over the bed from the foot of it, close, one long hand held out open,
-// and a deep, low rumbling has come up under everything. Put the tooth in its hand: it keeps it lying there on its open
-// palm, straightens, steps back, unfurls a butterfly's wings, fans them once and is gone in a cloud of fairy dust, the
-// rumbling with it; a dollar bill floats down onto the bed, and the night is won (the tooth fairy, below).
+// and a deep, low rumbling has come up under everything. Put the tooth in its hand: the rumbling cuts dead, its head
+// snaps down to the tooth on its palm; it straightens and steps back, closes its hands round the tooth and its eyes, and
+// in the dark and the quiet, all at once, it throws its arms wide and a butterfly's wings burst open behind it, its eyes
+// open shimmering; one great beat of them and it is gone in a cloud of fairy dust; a dollar bill floats down onto the
+// bed, and the night is won (the tooth fairy, below).
 // The tooth: a small pale molar, its two roots down
 Object.assign(ICONS, {
   tooth(ctx, P) {
@@ -448,25 +450,36 @@ LEVELS.push({
     // of it, and it is at the foot of the bed (unseen, as it nearly always is while you are turned to the pillow, it is
     // simply there; watched, it comes there on its feet, out through the middle of its opening first), bowed far in over
     // the bed toward you, one long arm held out, its hand open and palm up in front of you (FAIRY.hand: where, in the
-    // room). And the night's bed of sound fades out and a deep, low rumbling swells up under everything in its place
-    // (fairyRumble: it holds as long as it waits), but there is no heartbeat (the game's is by how near it is, against how
+    // room). And the night's bed of sound fades out and a deep, low rumbling swells up under everything in its place, in a
+    // second (fairyRumble: it holds as long as it waits), but there is no heartbeat (the game's is by how near it is, against how
     // far it had to come: both are put out of reach, and kept in s.fairy.keep), not a breath from it, the lamp burns on
     // if it is on and stays out if it is out, the covers will not come up, and nothing can catch you. It waits as long as
     // you like. The tooth put down goes back under the pillow.
     // The tooth put in its hand (the hand is a target then: fairyGive) is the easter egg found, and the night's own end,
-    // in seconds from then (FAIRY): it keeps it lying there on its open palm, held out to you all the while; it
-    // straightens up and steps back from the bed (rise, to FAIRY.back), its hand coming with it to be held in front of it
-    // (HOLD: across, how high, how far in front of its feet), the tooth still on it; a butterfly's wings unfurl behind it
-    // (wings: the tall one's own, js/creatures/tall.js), a soft light in the room; they beat a little; then one great fan
-    // of them (fan: swept shut, and open at snap), the rumbling fading away as they fan, and it is gone (gone) in a cloud
-    // of fairy dust, sparks of gold and rose and blue that burst out, drift down and die away
-    // (DUST); and out of it a dollar bill comes down like a leaf (bill, over fall seconds: swinging from side to side,
-    // tilting as it swings, turning over) onto the bed in front of you (BILL), and lies there. A moment after it has
-    // landed (rest) the night is won, as any night is. With motion reduced the wings do not fan (it only fades), the dust
-    // hardly spreads and the bill comes straight down; with flashes reduced nothing twinkles.
+    // in seconds from then (FAIRY). The rumbling is cut dead that instant, and its head snaps down (a click of a joint)
+    // to look at the tooth lying on its open palm, still held out to you over the bed; it looks at it a while (look), still,
+    // in the silence. It straightens up and steps back from the bed (pull, to FAIRY.back), the hand coming with it to be
+    // held in front of it (HOLD: across, how high, how far in front of its feet), the tooth on it still, its head still
+    // bowed to it. Then it brings its two hands together round the tooth, cupped in front of its chest (cup: the tooth is
+    // gone into them), and its eyes close (shut): their light goes out, and it stands there in the dark and the quiet.
+    // Then all at once (burst) it throws its arms out wide, and a butterfly's wings burst open behind it in an instant,
+    // overshooting and settling (the tall one's own, js/creatures/tall.js), with a bright rush of air and a shimmering
+    // chord (wingBurst), a flash of their light, the view jolted; its head comes up and its eyes open, shimmering blue and
+    // rose as its wings do. It holds there, wings spread and trembling; then one great beat of them (flap: swept shut,
+    // and thrown open, with a whoosh), and as they sweep a cloud of fairy dust (dust) bursts up round it, dense enough at
+    // its height (dense) that nothing of it shows through, and it is gone behind it (gone); the cloud thins and drifts
+    // away (clear), sparks of gold and rose and blue that drift down and die away (DUST), and out of it a dollar bill
+    // comes down like a leaf (bill, over fall seconds: swinging from side to side, tilting as it swings, turning over)
+    // onto the bed in front of you (BILL), and lies there. A moment after it has landed (rest) the night is won, as any
+    // night is. With motion reduced its head and arms move without the snap, the wings come up quickly but do not burst
+    // or fan, the view is not jolted, the dust hardly spreads and the bill comes straight down; with flashes reduced
+    // nothing flashes or twinkles.
     const KT = CREATURES.tall.SCALE, PIL = parts.pillow, B0 = BEDR.top, PILLOW = [110, 106, 112];
     const TOOTH = [0.02, PIL.z1 - 0.055];   // where the tooth lies (its near end): under the pillow, a little in from its near edge
-    const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.45, tilt: 1.15, rise: [0.7, 2.2], wings: [2.2, 3.9], fan: 5.9, snap: 6.28, gone: 6.62, bill: 6.5, fall: 4.4, rest: 1.1, after: 1.4 };
+    const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.45, tilt: 1.15, look: 1.2, pull: [1.2, 2.8], cup: [2.9, 3.35], shut: [3.05, 3.25], burst: 4.85,
+      flap: 5.7, sweep: 0.3, dust: 5.85, dense: 0.22, gone: [6.05, 6.17], clear: [6.45, 8.9], bill: 6.4, fall: 4.4, rest: 1.1, after: 1.4 };
+    // (a snap: there in a frame or two, a little past, and back: a damped spring over u, at 1 by u 0.17 and 12% over at 0.35)
+    const spring = u => (u <= 0 ? 0 : 1 - Math.exp(-6 * u) * Math.cos(9 * u));
     const BILL = { w: 0.26, h: 0.11, to: [0.1, 1.5], yaw: 0.35 };   // the bill; where on the bed it comes to lie, and how it is turned
     const pillowUp = () => (s.pillowAt === null ? 0 : smoothstep((L.t - s.pillowAt) / FAIRY.lift));
     const pillowT = mkTarget(L, {
@@ -514,7 +527,7 @@ LEVELS.push({
       G.holding = null; stopWalking(c); hold(c, c.dist);
       AUDIO.stopAmbient(1.5); AUDIO.sfx('fairyRumble');   // the night's sound gone, and the rumbling coming up in its place
       c.D0 = -2000; c.catchDist = -1000;   // (and no heartbeat, wherever it is: the game's goes by how far along its way it is, between where it started and where it would have you, and both are put out of all reach)
-      c.fairy = { lean: 0, offer: 0, held: 0, hand: null, handK: 1, tooth: false, wings: 0, beat: 1, gone: 0, t: L.t };
+      c.fairy = { lean: 0, offer: 0, held: 0, hand: null, handK: 1, tooth: false, wings: 0, beat: 1, gone: 0, t: L.t, look: 0, cup: 0, fling: 0, pop: 1, eyes: 1, shimmer: 0, flash: 0 };
     };
     // its way to the foot of the bed from wherever it is, watched (points in the room): out through the middle of its
     // opening first (route, as ever), and round the corner of the bed's foot from the closet's side
@@ -536,6 +549,7 @@ LEVELS.push({
     const fairyGive = () => {
       const X = s.fairy;
       X.stage = 'take'; X.given = L.t; c0().fairy.tooth = true; c0().walk = null;
+      AUDIO.stopLoop(0); AUDIO.sfx('neckClick', panOf(c0()));   // the rumbling cut dead; its head snaps down to the tooth
       foundEgg();   // the night's easter egg, found as the tooth is handed over (kept in the save: game.js)
       L.text.win = L.text.fairy;   // and the night's card, when it has gone, is the tooth fairy's
     };
@@ -559,29 +573,75 @@ LEVELS.push({
         c.duck = c.flinch = c.reach = c.peer = 0;
         T.lean = Math.min(1, T.lean + dt / 1.3); if (T.lean > 0.5) T.offer = Math.min(1, T.offer + dt / 0.9);
       } else {
-        // the tooth is in its hand, on its open palm, and stays there: it straightens and steps back, its hand held out in
-        // front of it; its wings; one fan of them, and gone
-        const q = L.t - X.given, F = FAIRY;
-        T.offer = 1; T.lean = 1 - smoothstep((q - F.rise[0]) / (F.rise[1] - F.rise[0])); T.held = 1 - T.lean;
-        if (q >= F.rise[0] && T.gone < 1) hold(c, stepsOf(c, c.CR.pace(c, dt, F.back, 0)));
-        T.wings = smoothstep((q - F.wings[0]) / (F.wings[1] - F.wings[0]));
-        const idle = rm ? 1 : 0.9 + 0.1 * Math.cos((q - F.wings[1]) * 2.6), shut = smoothstep((q - F.fan) / (F.snap - F.fan)), open = smoothstep((q - F.snap) / 0.1);
-        T.beat = rm ? 1 : lerp(lerp(q < F.wings[1] ? 1 : idle, 0.14, shut), 1.3, open);
-        T.gone = smoothstep((q - F.snap - 0.03) / (F.gone - F.snap));
-        if (q >= F.fan && !X.whoosh) { X.whoosh = true; AUDIO.sfx('wingWhoosh', panOf(c)); AUDIO.stopLoop(1.2); }   // (and the rumbling fades away)
-        if (q >= F.snap && !X.dust) { const p = c.pos(); X.dust = L.t; X.at = { x: p.x, z: p.z }; AUDIO.sfx('fairyDust', panOf(c)); if (!rm) G.shake(0.08); }
+        // the tooth in its hand (FAIRY, above): it looks down at it; straightens and steps back; cups it in its hands and
+        // shuts its eyes; then its arms flung wide and its wings burst open, its eyes open shimmering; it holds, trembling;
+        // one great beat of its wings, and it is gone in its dust
+        const q = L.t - X.given, F = FAIRY, qb = q - F.burst, qs = qb + 0.02;   // (qs: so the frame it bursts in already shows them)
+        const pull = smoothstep((q - F.pull[0]) / (F.pull[1] - F.pull[0]));
+        T.lean = 1 - pull; T.held = pull;
+        if (q >= F.pull[0] && T.gone < 1) hold(c, stepsOf(c, c.CR.pace(c, dt, F.back, 0)));
+        // its head: snapped down to the tooth at once; snapped up to you at the burst
+        T.look = qb < 0 ? (rm ? smoothstep(q / 0.15) : spring(q / 0.2)) : 1 - (rm ? smoothstep(qb / 0.15) : spring(qb / 0.2));
+        // its hands together round it (the held-out arm coming in, the tooth gone into them as they close), its eyes shut
+        const cup = smoothstep((q - F.cup[0]) / (F.cup[1] - F.cup[0]));
+        T.fling = qb < 0 ? 0 : rm ? smoothstep(qb / 0.3) : spring(qs / 0.4);
+        T.cup = cup * (1 - clamp(T.fling, 0, 1)); T.offer = 1 - smoothstep(cup / 0.7); T.tooth = cup < 0.7;
+        T.eyes = qb < 0 ? 1 - smoothstep((q - F.shut[0]) / (F.shut[1] - F.shut[0])) : rm ? smoothstep(qb / 0.3) : clamp(spring(qs / 0.25), 0, 1.15);
+        T.shimmer = qb < 0 ? 0 : 1;
+        // its wings: burst open (well inside a quarter of a second, a little past and back), trembling, one great beat
+        T.wings = qb < 0 ? 0 : rm ? smoothstep(qb / 0.3) : clamp(spring(qs / 0.4) * 1.6, 0, 1);
+        T.pop = qb < 0 || rm ? 1 : lerp(0.55, 1, clamp(spring(qs / 0.4), 0, 1.15));
+        T.flash = qb < 0 || S.reducedFlash ? 0 : Math.exp(-qb / 0.16);
+        const shiver = rm || qb < 0.3 ? 0 : 0.045 * Math.sin(qb * 47) * Math.sin(qb * 13 + 0.7);
+        const shut = smoothstep((q - F.flap) / F.sweep), open = smoothstep((q - F.flap - F.sweep) / 0.12);
+        T.beat = rm ? 1 : lerp(lerp(1 + shiver, 0.12, shut), 1.35, open);
+        T.gone = smoothstep((q - F.gone[0]) / (F.gone[1] - F.gone[0]));
+        if (qb >= 0 && !X.burst) { X.burst = true; AUDIO.sfx('wingBurst', panOf(c)); if (!rm) G.shake(0.3); }
+        if (q >= F.flap && !X.whoosh) { X.whoosh = true; AUDIO.sfx('wingWhoosh', panOf(c)); }
+        if (q >= F.dust && !X.dust) { const p = c.pos(); X.dust = L.t; X.at = { x: p.x, z: p.z }; AUDIO.sfx('fairyDust', panOf(c)); if (!rm) G.shake(0.08); }
         if (q >= F.bill + F.fall + F.rest) X.done = true;
       }
       const h = handAt(c, T.held || 0); T.hand = h.at; T.handK = h.k;
     };
-    // the light of its wings, and of its dust after it: where, and how much (0..1), or nothing
+    // the light of its wings, and of its dust after it: where, and how much (0..1), or nothing; and the flash of them as
+    // they burst open (flash: 0..1)
     const fairyGlow = () => {
       const X = s.fairy, c = c0();
       if (!X || X.given === null || !c.fairy) return null;
-      const k = Math.max((c.fairy.wings || 0) * (1 - (c.fairy.gone || 0)), X.dust ? 1 - smoothstep((L.t - X.dust - 0.8) / 3.2) : 0);
-      if (k <= 0.01) return null;
+      const k = Math.max((c.fairy.wings || 0) * (1 - (c.fairy.gone || 0)), X.dust ? 1 - smoothstep((L.t - X.dust - 0.8) / 3.2) : 0), flash = c.fairy.flash || 0;
+      if (k <= 0.01 && flash <= 0.01) return null;
       const p = X.at || c.pos();
-      return { x: p.x, z: p.z, k };
+      return { x: p.x, z: p.z, k, flash };
+    };
+    // The cloud of its dust as its wings beat: how thick it is (0..1), qd seconds after it burst up. It billows up round
+    // it as the wings sweep (dense seconds), holds a moment, and thins away (clear). At 1 nothing behind it shows through
+    const cloudK = qd => (qd < 0 ? 0 : smoothstep(qd / FAIRY.dense) * (1 - smoothstep((qd - (FAIRY.clear[0] - FAIRY.dust)) / (FAIRY.clear[1] - FAIRY.clear[0]))));
+    // The cloud itself (metres, about where it stood: x across, y up), wide and tall enough for all of it, wings and all.
+    // Under it all a soft-edged body of glittering haze, solid through the middle at its height (CLOUD: the half-width,
+    // the half-height and the middle of that, and how far out from the middle it stays solid), and over that the puffs it
+    // is made of (PUFFS, made once: where, how big, what colour, how each drifts), rolling outward as it billows and
+    // drifting as it thins; the sparks (DUST) twinkle over it all
+    const CLOUD = { rx: 2.6, ry: 1.75, y: 1.5, solid: 0.86 };
+    const PUFFS = (() => {
+      const rnd = mulberry32(4421), cols = [[236, 222, 250], [255, 226, 186], [255, 196, 228], [190, 226, 255], [214, 255, 236]], out = [];
+      for (let i = 0; i < 34; i++) { const a = rnd() * TAU, r = Math.sqrt(rnd()); out.push({ x: Math.cos(a) * r * 2.0, y: CLOUD.y + Math.sin(a) * r * 1.3, r: 0.45 + rnd() * 0.5, col: cols[i % cols.length], dx: Math.cos(a) * (0.2 + rnd() * 0.3), dy: 0.08 + rnd() * 0.15, ph: rnd() * TAU }); }
+      return out;
+    })();
+    const drawCloud = (ctx, qd, rm, steady) => {
+      const k = cloudK(qd);
+      if (k <= 0.004) return;
+      const grow = lerp(0.55, 1, smoothstep(qd / (FAIRY.dense * 1.4))) + (rm ? 0 : 0.06 * Math.max(0, qd - FAIRY.dense)), drift = Math.max(0, qd - FAIRY.dense);
+      ctx.save(); ctx.translate(0, CLOUD.y); ctx.scale(CLOUD.rx * grow, CLOUD.ry * grow);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      g.addColorStop(0, rgba([240, 230, 252], k)); g.addColorStop(0.5, rgba([214, 200, 242], k)); g.addColorStop(CLOUD.solid, rgba([188, 176, 230], k)); g.addColorStop(1, rgba([170, 160, 224], 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill();
+      ctx.restore();
+      for (const p of PUFFS) {
+        const x = p.x * grow + p.dx * drift * (rm ? 0.3 : 1), y = CLOUD.y + (p.y - CLOUD.y) * grow + p.dy * drift, r = p.r * grow * (1 + 0.15 * drift);
+        const gg = ctx.createRadialGradient(x, y, 0, x, y, r), a = k * (steady ? 0.7 : 0.62 + 0.14 * Math.sin(qd * 2.2 + p.ph));
+        gg.addColorStop(0, rgba(p.col, a)); gg.addColorStop(0.6, rgba(p.col, a * 0.6)); gg.addColorStop(1, rgba(p.col, 0));
+        ctx.fillStyle = gg; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
     };
     // the fairy dust: each spark where it starts in the cloud (about where it stood, metres), the way it is thrown, how
     // it twinkles, its size, how long it lasts and its colour; made once
@@ -620,7 +680,7 @@ LEVELS.push({
       const X = s.fairy;
       if (!X || !X.dust) return;
       const S = SAVE.data.settings, rm = S.reducedMotion, q = L.t - X.dust, at = X.at;
-      if (q < DUST_LIFE) R.add({ kind: 'sprite', x: at.x, y: 0, z: at.z, w: 4.6, h: 3, noLight: true, sortDist: Math.hypot(at.x, at.z) - 0.06, draw: ctx => drawDust(ctx, q, rm, S.reducedFlash) });
+      if (q < DUST_LIFE) R.add({ kind: 'sprite', x: at.x, y: 0, z: at.z, w: 7, h: 4.2, noLight: true, sortDist: Math.hypot(at.x, at.z) - 0.06, draw: ctx => { drawCloud(ctx, q, rm, S.reducedFlash); drawDust(ctx, q, rm, S.reducedFlash); } });
       const qb = L.t - X.given - FAIRY.bill;
       if (qb < 0) return;
       const u = clamp(qb / FAIRY.fall, 0, 1), [bx, bz] = BILL.to, by = Math.max(B0, topAt(bx, bz)) + 0.012;
@@ -937,13 +997,13 @@ LEVELS.push({
     L.dynamicLights = () => {
       const out = [], f = fairyGlow();
       if (shown()) { const p = L.pt(LX, 1.05, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }); }
-      if (f) out.push({ x: f.x, y: 1.5, z: f.z - 0.5, r: 4.2, i: 0.6 * f.k, color: [176, 196, 255] });
+      if (f) out.push({ x: f.x, y: 1.5, z: f.z - 0.5, r: 4.2 + 2 * f.flash, i: 0.6 * f.k + 1.6 * f.flash, color: [176, 196, 255] });   // (and the flash of them bursting open)
       return out;
     };
     L.glows = () => {
       const out = [], f = fairyGlow();
       if (shown()) { const p = L.pt(LX, 1.0, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }); }
-      if (f) out.push({ x: f.x, y: 1.5, z: f.z, r: 1.9, color: [170, 196, 255], a: 0.2 * f.k });
+      if (f) out.push({ x: f.x, y: 1.5, z: f.z, r: 1.9 + 1.2 * f.flash, color: [170, 196, 255], a: 0.2 * f.k + 0.5 * f.flash });
       return out.length ? out : null;
     };
     // ---- the win: the covers come up over your eyes, and it plays out under them ----
@@ -1037,6 +1097,9 @@ LEVELS.push({
       ctx.restore();
     };
     L.overlay = (ctx, W, H) => {
+      // the flash of its wings bursting open, over the whole view, gone in a moment (never with flashes reduced: fairying)
+      const fl = s.fairy && c0().fairy ? c0().fairy.flash || 0 : 0;
+      if (fl > 0.01) { ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = rgba([196, 206, 255], 0.55 * fl); ctx.fillRect(0, 0, W, H); ctx.restore(); }
       const k = s.over || 0;
       if (k <= 0) return;
       const t = L.aftermathT, rm = SAVE.data.settings.reducedMotion, c = c0();

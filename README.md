@@ -730,7 +730,12 @@ some on the ground, so you have to turn and look down to find them.
     swells out over everything until the black of it is all there is. Your hand
     pulls the lamp's chain (nothing comes of it with no bulb in, and the line is "It's missing something."; nor
     with the cord out; and it sticks),
-    opens the drawer, pushes the plug in and is on the covers' hem as you hold them. The
+    opens the drawer, carries the plug up off the floor to the socket and pushes it in, and is
+    on the covers' hem as you hold them. The lamp's cord is a soft, slack flex, a smooth curve
+    as the payphone's handset cord is: out of the lamp's base across the nightstand's top,
+    over its edge and drooping into the gap beside the bed, away under the bed, and on the
+    other side in a loose loop over the boards to the plug, or, plugged in, hanging out of the
+    socket in an arc down to the floor; it comes up off the boards after the plug. The
     nightstand is an ordinary bedside table at your right, its back to the wall at the head
     of the bed and a hand's width clear of the bed's side, the lamp on it; its drawer is in
     its front, facing down the room toward the foot of the bed (you see it looking north-east
@@ -738,7 +743,8 @@ some on the ground, so you have to turn and look down to find them.
     with a pale knob; opened, it slides 30 cm out toward the foot of the bed, beside the bed
     and never over it, an open box (its front, its two sides, its bottom, the dark of the
     nightstand behind it), and the bulb, the only thing in it (there is no wrong bulb), lies
-    on its bottom, under its rim, where you look down into it over its side
+    on its bottom, under its rim, where you look down into it over its side (as the drawer
+    slides out, whatever of the bulb is still in under the nightstand's top is hidden by it)
     (`test/nights/night12.js` checks that from your eye no corner of the drawer, shut or open,
     is ever seen against the bed, that the bulb is drawn within the open
     drawer from every view that shows it, and is what a click there takes). Then they
@@ -756,18 +762,24 @@ some on the ground, so you have to turn and look down to find them.
     through the middle of its opening), bowed far in over the bed toward you, its arms
     joined at its shoulders all the while, one long hand held out open and palm up in front
     of you, the other down on the end of the bed. The night's sound fades away and a deep,
-    low rumbling swells up in its place, slowly, with a slow uneven throb in it, and holds
+    low rumbling swells up in its place within a second, with a slow uneven throb in it, and holds
     for as long as it waits: no heartbeat, not a breath from it; the covers will not come
     up, and nothing can catch you. The tooth put down goes back under the pillow. Put the
-    tooth in its hand and it keeps it lying there on its open palm, to the last: it
-    straightens up and steps back from the bed, the hand held out in front of it with the
-    tooth on it, and a butterfly's wings unfurl from behind its back, the fore pair blue and
-    the hind pair rose, their own light in the room; they beat a little; then one great fan
-    of them, the rumbling fading as they go, and it is gone in a cloud of fairy dust. A
-    dollar bill comes down like a leaf onto the bed, and a moment after it has settled the
-    night is won: "You survived", and under it "And you got a dollar!" With motion reduced
-    the wings do not fan (it only fades), the dust hardly spreads and the bill comes
-    straight down; with flashes reduced nothing twinkles.
+    tooth in its hand and the rumbling cuts dead; its head snaps down (a click of a joint) to
+    the tooth on its open palm, and it looks at it, still, in the silence. It straightens up
+    and steps back from the bed, the tooth on the hand it holds in front of it; it closes
+    both hands round the tooth in front of its chest and shuts its eyes, and their light goes
+    out: it stands there in the dark and the quiet. Then all at once it throws its arms out
+    wide and a butterfly's wings burst open behind it in an instant (the fore pair blue, the
+    hind pair rose, their own light), with a bright rush of air and a shimmering chord and a
+    flash of their light; its eyes open, shimmering blue and rose as its wings do. It holds,
+    the wings spread and trembling; then one great beat of them, and as they sweep a dense,
+    glittering cloud of fairy dust bursts up round it, so thick nothing of it shows through,
+    and it is gone; the cloud thins away. A dollar bill comes down like a leaf onto the bed,
+    and a moment after it has settled the night is won: "You survived", and under it "And you
+    got a dollar!" With motion reduced its head and arms move without the snap, its wings come
+    up quickly but neither burst nor beat, the view is not jolted, the dust hardly spreads and
+    the bill comes straight down; with flashes reduced nothing flashes or twinkles.
 13. **The Void.** Your hands are empty, and everything you ever held against it lies
     around you, within reach. It comes in a black hooded robe, nothing of its face to be
     seen in the dark of the hood but two small pale eyes. Take up anything and it is
