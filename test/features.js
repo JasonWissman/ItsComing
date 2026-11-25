@@ -2384,8 +2384,9 @@ const hoverHit = lookFor;
   // words that follow the text size): test/shell.js, in this browser
   await require('./shell').run(browser, check);
 
-  // An easter egg found for the first time is said there and then: "Secret discovered: " and its title (game.js
-  // EGG_TITLES, by the night's id), and no sound with it (no sfx is played, no caption comes up). At the top in the
+  // An easter egg found for the first time is said there and then: "Secret discovered" and its title (game.js
+  // EGG_TITLES, by the night's id), large, in a note that slides down into the view from above its top edge, with the
+  // music box's first three notes an octave down (secretFound: that one sound, once, and no caption). At the top in the
   // middle, in the page, over the compass; the line of words under the compass, a sound's caption in its corner and the
   // corner controls all clear of it (with the line of words and a caption up), at 1280 by 760 and on a phone held
   // sideways (844 by 390), at every text size; it never takes a click. Up about four seconds, then gone; the night ending
@@ -2401,7 +2402,8 @@ const hoverHit = lookFor;
       if (!window.__sfx) { const sfx = AUDIO.sfx; window.__sfx = sfx; AUDIO.sfx = (name, ...a) => { window.__heard.push(name); return sfx(name, ...a); }; }
       window.__heard = [];
       const cap0 = document.getElementById('caption').textContent, first = foundEgg(); window.__found = performance.now();
-      const o = { id: G.L.def.id, state: G.state, first, saved: SAVE.data.eggs[G.L.def.id] === true, played: window.__heard.slice(), capSame: document.getElementById('caption').textContent === cap0 };
+      const el = document.getElementById('secret'), from = Math.round(el.getBoundingClientRect().bottom), big = [parseFloat(getComputedStyle(el.querySelector('.st')).fontSize), parseFloat(getComputedStyle(el.querySelector('.sl')).fontSize), parseFloat(getComputedStyle(document.getElementById('toast')).fontSize)];
+      const o = { id: G.L.def.id, state: G.state, first, saved: SAVE.data.eggs[G.L.def.id] === true, played: window.__heard.slice(), from, big, capSame: document.getElementById('caption').textContent === cap0 };
       G.toast('No room to put it down here.', 60); CAPTIONS.show('something pounds on the door', 1, 1); G.step(0.016, 2);
       return o;
     }, ts);
@@ -2412,16 +2414,16 @@ const hoverHit = lookFor;
         .filter(([, e]) => e && getComputedStyle(e).display !== 'none' && (e.id !== 'caption' && e.id !== 'toast' || e.classList.contains('show'))).map(([id, e]) => [id, e.getBoundingClientRect()]).filter(([, q]) => q.width > 0 && q.height > 0);
       const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2), cp = document.getElementById('compass').getBoundingClientRect();
       return { text: el.textContent, shown: el.classList.contains('show'), op: +cs.opacity, vis: cs.visibility, pe: cs.pointerEvents, inHud: !!el.closest('#hud'), state: G.state, age: performance.now() - window.__found,
-        box: [r.left, r.top, r.right, r.bottom].map(Math.round), inside: r.width > 40 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H, mid: Math.round(r.left + r.width / 2 - W / 2), high: r.top <= 14 && r.bottom < cp.bottom + 30,
-        over: others.filter(([, q]) => !apart(r, q)).map(([id]) => id), seen: others.map(([id]) => id).join(), notHit: at !== el && !el.contains(at), heard: window.__heard.filter(n => !/^sting/.test(n)).length };   // (the death's own sting is not the note's)
+        box: [r.left, r.top, r.right, r.bottom].map(Math.round), inside: r.width > 40 && r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H, mid: Math.round(r.left + r.width / 2 - W / 2), high: r.top <= 14 && r.bottom < cp.bottom + 34,
+        over: others.filter(([, q]) => !apart(r, q)).map(([id]) => id), seen: others.map(([id]) => id).join(), notHit: at !== el && !el.contains(at), heard: window.__heard.filter(n => n === 'secretFound').length };   // (the note's own sound)
     });
     const rows = [];
     for (const ts of [1, 1.4, 1.8]) {
       const a = await find(ts); await sp.waitForTimeout(600);
       const v = await look(); rows.push(Object.assign({ ts }, v));
       if (ts === 1.4) {
-        check(a.id === 'graveyard' && a.state === 'play' && a.first === true && a.saved && a.played.length === 0 && a.capSame && v.state === 'play' && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible',
-          'an easter egg found for the first time, ' + what + ': kept in the save, and said there and then, while the night is played: "' + v.text + '", with no sound and no caption (' + JSON.stringify({ a, shown: v.shown }) + ')');
+        check(a.id === 'graveyard' && a.state === 'play' && a.first === true && a.saved && a.played.join() === 'secretFound' && a.capSame && a.from <= 0 && a.big[0] >= 21 && a.big[0] > a.big[1] * 1.5 && a.big[0] > a.big[2] && v.state === 'play' && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible',
+          'an easter egg found for the first time, ' + what + ': kept in the save, and said there and then, while the night is played: "' + v.text + '", its title large (larger than the line of words under the compass), the note sliding down from above the top of the view, with its three notes (secretFound) and no caption (' + JSON.stringify({ a, shown: v.shown }) + ')');
         await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-play-' + tag + '.png') });
       }
       await sp.evaluate(() => secretHide());
@@ -2434,8 +2436,8 @@ const hoverHit = lookFor;
     const d0 = await look();
     await sp.waitForFunction(() => !document.getElementById('secret').classList.contains('show'), null, { timeout: 9000 }).catch(() => {});
     const d1 = await look(); await sp.waitForTimeout(800); const d2 = await look();
-    check(d0.state === 'dead' && d0.shown && d0.text === 'Secret discovered: Sugar rush' && d0.age < 4000 && d0.heard === 0 && !d1.shown && d1.age > 4200 && d1.age < 4900 && d2.state === 'dead' && d2.op === 0 && d2.vis === 'hidden',
-      'the night ending while it is up ' + what + ': it stays over the death screen, the same note, until about four seconds from when it was found, then fades and is gone (' + JSON.stringify({ up: [d0.state, d0.shown, Math.round(d0.age)], gone: Math.round(d1.age), after: [d2.op, d2.vis] }) + ')');
+    check(d0.state === 'dead' && d0.shown && d0.text === 'Secret discovered: Sugar rush' && d0.age < 4000 && d0.heard === 1 && !d1.shown && d1.age > 4300 && d1.age < 5000 && d2.state === 'dead' && d2.op === 0 && d2.vis === 'hidden',
+      'the night ending while it is up ' + what + ': it stays over the death screen, the same note, until about four seconds from when it was found (its notes not played again), then slides away and is gone (' + JSON.stringify({ up: [d0.state, d0.shown, Math.round(d0.age)], gone: Math.round(d1.age), after: [d2.op, d2.vis] }) + ')');
     await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-death-' + tag + '.png') });
     // again: nothing new said
     await sp.evaluate(() => document.querySelector('#overlay button[data-act="retry"]').click()); await sp.waitForTimeout(80);

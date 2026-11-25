@@ -999,14 +999,16 @@ progress forgets them too. The boxes are the nights' own: the same grid and the 
 `.ncard`), so each secret scene's box is exactly where its night's box is and the size it is, at every size of page and
 text, and the two tabs are matched by where things are.
 
-The first time an easter egg is found (and only then) a small note says so: "Secret discovered: Sugar rush", with a
-little star. No sound is played with it (a chime took the player out of the night). The title is the one above (a night
-with none there is named by its `text.egg`). It is said the moment the egg is found (`secretSay` in js/game.js), so
-what was done and what came of it go together: the note (`#secret` in index.html) is at the top in the middle, over the
-compass while it is up, and ends above the line of words under the compass and above a sound's caption in the corner,
-so all three can be read at once, on a desktop or a phone. It comes down from the edge and fades in over 0.35 s, stays
-4 s and fades out over 0.6 s; with reduced motion it only fades. If the night ends meanwhile it stays over the death
-screen or the win screen until its time is up, and is not said again. It is not part of the HUD and never takes a
+The first time an easter egg is found (and only then) a note says so: "Secret discovered" small, and under it the
+egg's title, large ("Sugar rush"), with a star before them. With it the music box's first three notes are played, an
+octave down (`secretFound` in js/audio.js, tuned in js/soundtune.js; it has no caption, as the note says it). The title
+is the one above (a night with none there is named by its `text.egg`). It is said the moment the egg is found
+(`secretSay` in js/game.js), so what was done and what came of it go together: the note (`#secret` in index.html) is at
+the top in the middle, over the compass while it is up, and ends above the line of words under the compass and above a
+sound's caption in the corner, so all three can be read at once, on a desktop or a phone. It slides down into the view
+from above its top edge over 0.45 s, settling with a little give, stays 4 s and slides back up over 0.5 s; with reduced
+motion it only fades. If the night ends meanwhile it stays over the death screen or the win screen until its time is
+up, and is not said again. It is not part of the HUD and never takes a
 click; quitting to the title, or the results after the ending, put it away.
 
 The Void has two endings, its own and its easter egg's (everything taken up). Whichever is come to first, the whole way,

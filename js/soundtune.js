@@ -79,6 +79,7 @@ const TUNES = {
   'musicbox': { pitch: -11.5, speed: 0.93 },
   'musicTurn': { pitch: -11.5 },
   'musicSour': { pitch: -11.5 },
+  'secretFound': { pitch: -12 },
   'breakerTrip': { pitch: -0.5 },
   'switch': { pitch: -12 },
   'drawer': { pitch: -6.5 },

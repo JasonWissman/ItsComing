@@ -950,11 +950,12 @@ function foundEgg(id) {
   return first;
 }
 // The first time an easter egg is found it is said, there and then, so what was done and what came of it go together:
-// "Secret discovered: " and the egg's short title (one for each night, by the night's id; a night with none here is
-// named by its own text.egg), and no sound with it (a chime took the player out of the night). A small note at the top
-// in the middle (#secret), over the compass while it is up; the line of words under the compass (#toast) is below it,
+// "Secret discovered" and, under it and large, the egg's short title (one for each night, by the night's id; a night
+// with none here is named by its own text.egg), with the music box's first three notes, an octave down ('secretFound':
+// no caption, the note says it). A note at the top in the middle (#secret) that slides down into the view from above
+// it, over the compass while it is up; the line of words under the compass (#toast) is below it,
 // and a sound's caption in the corner below it too (index.html), so all three can be read at once. It is not part of
-// the HUD and never takes a click; it is up for SECRET_HOLD seconds and then fades, whatever comes up under it meanwhile
+// the HUD and never takes a click; it is up for SECRET_HOLD seconds and then slides back up, whatever comes up under it meanwhile
 // (the night ends: it stays over the death screen or the win screen until its time is up, and is not said again).
 // Quitting to the title, or the results after the ending (which have their own list), put it away at once. With
 // reduced motion it fades and does not slide
@@ -963,7 +964,7 @@ const EGG_TITLES = {
   boathouse: 'Lifesaver', lighthouse: 'Butterfingers', diner: 'Thirst quencher', booth: 'Its an emergency', mirrors: 'Cover up', barn: 'Power overload',
   bedroom: 'Tooth fairy', void: 'Flip the script',
 };
-const SECRET_HOLD = 4;   // seconds it is fully up (index.html: in over .35 s before, out over .6 s after)
+const SECRET_HOLD = 4;   // seconds it is fully up (index.html: in over .45 s before, out over .5 s after)
 function eggTitle(id) {
   if (EGG_TITLES[id]) return EGG_TITLES[id];
   const def = typeof LEVELS !== 'undefined' && LEVELS.find(l => l.id === id);
@@ -979,8 +980,9 @@ function secretSay(id) {
   el.querySelector('.st').textContent = secretSaid.join(', ');
   el.classList.toggle('still', !!SAVE.data.settings.reducedMotion);
   el.classList.add('show');
+  AUDIO.sfx('secretFound');
   clearTimeout(secretSay.timer);
-  secretSay.timer = setTimeout(() => el.classList.remove('show'), (0.35 + SECRET_HOLD) * 1000);
+  secretSay.timer = setTimeout(() => el.classList.remove('show'), (0.45 + SECRET_HOLD) * 1000);
 }
 function secretUp() { return !!(UI.secret && UI.secret.classList.contains('show')); }
 // the note put away at once (quitting to the title, the results after the ending)
