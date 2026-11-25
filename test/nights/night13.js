@@ -360,7 +360,7 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', "window.__egg = null; dele
     return G.state === 'won' && !G.L.s.leaving && Math.abs(wrapPi(G.cam.yaw - window.__yaw0 + Math.PI)) < 0.05 && polys >= 8 && them >= 1; })()`, 8000],
   ['expect', `(() => { const E = G.L.s.egg, add = R.add; let polys = 0; R.add = p => { if (p.kind === 'poly' && p.sortDist >= 500) polys++; return add(p); }; try { render(); } finally { R.add = add; }
     const cam = { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: G.cam.zoom, W: R.W, H: R.H, eyeH: G.L.eyeH }, them = E.others.map(o => o.c).concat([G.L.creature]).filter(c => { const p = c.pos(), r = Math.cos(G.cam.yaw) * p.z + Math.sin(G.cam.yaw) * p.x > 0 && R.projectRect(p.x, 0, p.z, 0.8, 1.2, cam); return r && r.x + r.w > 0 && r.x < R.W; }).length;
-    console.log('turned round: ' + polys + ' bands of the meadow\'s ground drawn, ' + them + ' of them in the view');
+    console.log('turned round: ' + polys + ' bands of meadow ground drawn, ' + them + ' of them in the view');
     return G.state === 'won' && !G.L.s.leaving && Math.abs(wrapPi(G.cam.yaw - window.__yaw0 + Math.PI)) < 0.05 && polys >= 8 && them >= 1; })()`, 'turned right round, the meadow is there behind you too, and some of them come running about in it'],
   ['eval', "document.getElementById('game').dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 640, clientY: 380 }))"],
   ['expect', 'G.L.s.leaving', 'a click and it goes on'],
