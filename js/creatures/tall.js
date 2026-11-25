@@ -492,6 +492,88 @@ CREATURES.tall = {
       ctx.restore();
     }
   },
+  // The cloud of its dust as its wings beat (the tooth fairy's: night 12 draws it, and the Creature Lab), qd seconds
+  // after it burst up, about where it stood (metres: x across, y up), wide and tall enough for all of it, wings and all:
+  // it billows up round it as the wings sweep (dense seconds: then nothing behind it shows through), holds a moment, and
+  // thins away (clear: from, to), in the time T gives (the night's), or CLOUD's.
+  // It is nothing but soft puffs of glittering haze, of many sizes and of the wings' colours made pale, each solid in
+  // its middle (or not at all) and fading out to nothing at its edge (puffOf: one drawn once for each colour and kept),
+  // laid over one another (puffs, made once): the big ones at its heart (core), whose solid middles together cover all
+  // of it at its height, so that nothing of it shows through; through them billows softly shadowed, lit and tinged, so
+  // it is uneven all through; round them the billows of its edge, lighter, rolling outward and curling as it billows;
+  // and wisps drawn out from its edge, trailing off. Each comes up a moment after the one inside it as it bursts up,
+  // and thins away in its own time, the edge first, so that it breaks up and drifts apart as it goes. With motion
+  // reduced (rm) it hardly drifts and nothing curls; with flashes reduced (steady) nothing in it flickers.
+  // (It is all soft, so it is drawn small, on a canvas of its own kept for it, CLOUD.px a metre over all the room it can
+  // drift out into (box), and laid over the view in one: a few dozen puffs drawn full size over the view each frame
+  // would cost far more. It moves slowly, so it is drawn again only every CLOUD.every seconds.)
+  CLOUD: { y: 1.5, dense: 0.2, clear: [0.6, 3.05], px: 24, box: [-7, -0.5, 14, 6.5], every: 1 / 30 },
+  puffOf(col, solid) {   // (a puff: solid out to `solid` of its radius, and fading smoothly to nothing)
+    const P = this.puffCache || (this.puffCache = {}), key = col.join() + '/' + solid;
+    if (P[key]) return P[key];
+    const N = 64, cv = document.createElement('canvas'); cv.width = cv.height = N;
+    const g = cv.getContext('2d'), gr = g.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2);
+    gr.addColorStop(0, rgba(col, 1)); if (solid > 0) gr.addColorStop(solid, rgba(col, 1));
+    for (let i = 1; i <= 8; i++) { const u = i / 8, a = Math.pow(1 - smoothstep(u), 1.6); gr.addColorStop(solid + (1 - solid) * u, rgba(col, a)); }
+    g.fillStyle = gr; g.fillRect(0, 0, N, N);
+    return (P[key] = cv);
+  },
+  puffs() {
+    if (this.puffList) return this.puffList;
+    const rnd = mulberry32(4421), out = [], Y = this.CLOUD.y;
+    const pale = [[212, 204, 238], [230, 212, 226], [202, 212, 240], [226, 220, 210], [208, 226, 230], [220, 206, 240]];
+    const tint = [[214, 196, 250], [255, 214, 232], [186, 222, 255], [255, 232, 196], [200, 246, 232], [232, 200, 255]];
+    // its heart: three rows of big puffs, solid through the middle, from the floor to over its wings
+    [[0.85, [-1.4, -0.5, 0.45, 1.35]], [1.6, [-1.35, -0.45, 0.45, 1.4]], [2.35, [-1.3, -0.4, 0.5, 1.3]]].forEach(([y, xs], j) => xs.forEach((x, i) => {
+      out.push({ kind: 'core', x: x + (rnd() - 0.5) * 0.2, y: y + (rnd() - 0.5) * 0.15, r: 1.35 + rnd() * 0.3, solid: 0.52, col: pale[(i + j * 2) % pale.length], a: 1,
+        dx: x * 0.05, dy: 0.06 + rnd() * 0.06, curl: 0.06 + rnd() * 0.05, w: 0.5 + rnd() * 0.4, ph: rnd() * TAU, at: 0.02 * Math.hypot(x, y - Y), off: rnd() * 0.8, stretch: 1, rot: 0 });
+    }));
+    // through it, billows: softly shadowed, lit, and tinged with the wings' colours
+    const shade = [[150, 140, 192], [172, 160, 206], [140, 150, 196]], lit = [[255, 248, 255], [250, 252, 255]];
+    for (let i = 0; i < 26; i++) {
+      const kd = i % 3, x = (rnd() * 2 - 1) * 2.0, y = 0.6 + rnd() * 2.1;
+      out.push({ kind: 'body', x, y, r: 0.35 + rnd() * 0.5, solid: kd === 0 ? 0.25 : 0, col: kd === 0 ? shade[i % shade.length] : kd === 1 ? lit[i % lit.length] : tint[i % tint.length], a: kd === 0 ? 0.3 + rnd() * 0.2 : 0.22 + rnd() * 0.18,
+        dx: x * 0.08, dy: 0.05 + rnd() * 0.08, curl: 0.12 + rnd() * 0.1, w: 0.5 + rnd() * 0.5, ph: rnd() * TAU, at: 0.03 + 0.05 * rnd(), off: 0.1 + rnd() * 0.7, stretch: 1, rot: 0 });
+    }
+    // its billowing edge, all the way round, and wisps trailing off it
+    for (let i = 0; i < 30; i++) {
+      const a = (i / 30) * TAU + (rnd() - 0.5) * 0.3, e = 0.85 + rnd() * 0.35, ca = Math.cos(a), sa = Math.sin(a);
+      out.push({ kind: 'edge', x: ca * 2.35 * e, y: Y + sa * 1.45 * e, r: 0.4 + rnd() * 0.5, solid: 0.38, col: i % 3 ? pale[i % pale.length] : tint[i % tint.length], a: 0.55 + rnd() * 0.35,
+        dx: ca * (0.18 + rnd() * 0.22), dy: sa * 0.12 + 0.07, curl: 0.1 + rnd() * 0.1, w: 0.6 + rnd() * 0.6, ph: rnd() * TAU, at: 0.05 + 0.08 * rnd(), off: -0.2 + rnd() * 0.6, stretch: 1, rot: 0 });
+    }
+    for (let i = 0; i < 12; i++) {
+      const a = rnd() * TAU, ca = Math.cos(a), sa = Math.sin(a);
+      out.push({ kind: 'wisp', x: ca * 2.7, y: Y + sa * 1.7, r: 0.38 + rnd() * 0.3, solid: 0, col: tint[i % tint.length], a: 0.22 + rnd() * 0.2,
+        dx: ca * (0.35 + rnd() * 0.3), dy: sa * 0.18 + 0.1, curl: 0.16 + rnd() * 0.1, w: 0.4 + rnd() * 0.4, ph: rnd() * TAU, at: 0.12 + 0.1 * rnd(), off: -0.6 + rnd() * 0.5, stretch: 2.2 + rnd(), rot: a + Math.PI / 2 + (rnd() - 0.5) * 0.6 });
+    }
+    return (this.puffList = out);
+  },
+  dustCloud(out, qd, rm, steady, T) {
+    if (qd < 0) return;
+    const C = this.CLOUD, B = C.box, key = rm + '/' + steady;
+    if (!this.cloudCv) { this.cloudCv = document.createElement('canvas'); this.cloudCv.width = B[2] * C.px; this.cloudCv.height = B[3] * C.px; }
+    const at = this.cloudAt;
+    if (!at || at.key !== key || qd < at.qd || qd - at.qd >= C.every - 1e-6) { this.cloudAt = { qd, key }; this.puffsOn(this.cloudCv, qd, rm, steady, T || C); }
+    out.save(); out.imageSmoothingEnabled = true; out.drawImage(this.cloudCv, B[0], B[1], B[2], B[3]); out.restore();
+  },
+  puffsOn(cv, qd, rm, steady, T) {
+    const C = this.CLOUD, B = C.box, S = C.px, ctx = cv.getContext('2d'), c0 = T.clear[0], cl = T.clear[1] - T.clear[0], drift = Math.max(0, qd - T.dense) * (rm ? 0.3 : 1);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const p of this.puffs()) {
+      // up out of the middle as it bursts (each a moment after the ones inside it), and thinning away in its own time
+      const up = smoothstep((qd - p.at) / Math.max(0.12, T.dense - p.at)), thin = 1 - smoothstep((qd - c0 - p.off * cl * 0.5) / (cl * (p.kind === 'core' ? 0.9 : 0.75)));
+      const a = p.a * up * thin * (steady || p.kind === 'core' ? 1 : 0.88 + 0.12 * Math.sin(qd * p.w * 2.4 + p.ph));
+      if (a <= 0.004) continue;
+      const grow = lerp(0.5, 1, up) * (1 + (p.kind === 'core' ? 0.05 : 0.14) * drift), cu = rm ? 0 : p.curl * Math.min(1, qd / 0.6);
+      const x = p.x * lerp(0.6, 1, up) + p.dx * drift + cu * Math.cos(qd * p.w + p.ph), y = C.y + (p.y - C.y) * lerp(0.6, 1, up) + p.dy * drift + cu * Math.sin(qd * p.w * 0.8 + p.ph);
+      const r = p.r * grow;
+      // (metres, y up the rows: laid over the view the right way up)
+      ctx.globalAlpha = Math.min(1, a); ctx.setTransform(S, 0, 0, S, (x - B[0]) * S, (y - B[1]) * S);
+      if (p.stretch !== 1) { ctx.rotate(p.rot + (rm ? 0 : 0.15 * Math.sin(qd * p.w + p.ph))); ctx.scale(p.stretch, 1); }
+      ctx.drawImage(this.puffOf(p.col, p.solid), -r, -r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1;
+  },
   // one arm shooting out at you, its hand open, and taking hold (k: 0..1): from its shoulder (sx, sy) and where its hand
   // was (px, py), drawn units, to a hand's breadth from your face, low at that side. The hand is drawn where it is seen in
   // the plane it stands in (r metres off, your eye E over its feet): bigger and further out the nearer it comes

@@ -613,36 +613,10 @@ LEVELS.push({
       const p = X.at || c.pos();
       return { x: p.x, z: p.z, k, flash };
     };
-    // The cloud of its dust as its wings beat: how thick it is (0..1), qd seconds after it burst up. It billows up round
-    // it as the wings sweep (dense seconds), holds a moment, and thins away (clear). At 1 nothing behind it shows through
-    const cloudK = qd => (qd < 0 ? 0 : smoothstep(qd / FAIRY.dense) * (1 - smoothstep((qd - (FAIRY.clear[0] - FAIRY.dust)) / (FAIRY.clear[1] - FAIRY.clear[0]))));
-    // The cloud itself (metres, about where it stood: x across, y up), wide and tall enough for all of it, wings and all.
-    // Under it all a soft-edged body of glittering haze, solid through the middle at its height (CLOUD: the half-width,
-    // the half-height and the middle of that, and how far out from the middle it stays solid), and over that the puffs it
-    // is made of (PUFFS, made once: where, how big, what colour, how each drifts), rolling outward as it billows and
-    // drifting as it thins; the sparks (DUST) twinkle over it all
-    const CLOUD = { rx: 3.0, ry: 1.9, y: 1.5, solid: 0.88 };
-    const PUFFS = (() => {
-      const rnd = mulberry32(4421), cols = [[236, 222, 250], [255, 226, 186], [255, 196, 228], [190, 226, 255], [214, 255, 236]], out = [];
-      for (let i = 0; i < 34; i++) { const a = rnd() * TAU, r = Math.sqrt(rnd()); out.push({ x: Math.cos(a) * r * 2.0, y: CLOUD.y + Math.sin(a) * r * 1.3, r: 0.45 + rnd() * 0.5, col: cols[i % cols.length], dx: Math.cos(a) * (0.2 + rnd() * 0.3), dy: 0.08 + rnd() * 0.15, ph: rnd() * TAU }); }
-      return out;
-    })();
-    const drawCloud = (ctx, qd, rm, steady) => {
-      const k = cloudK(qd);
-      if (k <= 0.004) return;
-      const grow = lerp(0.55, 1, smoothstep(qd / FAIRY.dense)) + (rm ? 0 : 0.06 * Math.max(0, qd - FAIRY.dense)), drift = Math.max(0, qd - FAIRY.dense);
-      ctx.save(); ctx.translate(0, CLOUD.y); ctx.scale(CLOUD.rx * grow, CLOUD.ry * grow);
-      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-      g.addColorStop(0, rgba([240, 230, 252], k)); g.addColorStop(0.5, rgba([214, 200, 242], k)); g.addColorStop(CLOUD.solid, rgba([188, 176, 230], k)); g.addColorStop(1, rgba([170, 160, 224], 0));
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill();
-      ctx.restore();
-      for (const p of PUFFS) {
-        const x = p.x * grow + p.dx * drift * (rm ? 0.3 : 1), y = CLOUD.y + (p.y - CLOUD.y) * grow + p.dy * drift, r = p.r * grow * (1 + 0.15 * drift);
-        const gg = ctx.createRadialGradient(x, y, 0, x, y, r), a = k * (steady ? 0.7 : 0.62 + 0.14 * Math.sin(qd * 2.2 + p.ph));
-        gg.addColorStop(0, rgba(p.col, a)); gg.addColorStop(0.6, rgba(p.col, a * 0.6)); gg.addColorStop(1, rgba(p.col, 0));
-        ctx.fillStyle = gg; ctx.fillRect(x - r, y - r, r * 2, r * 2);
-      }
-    };
+    // The cloud of its dust as its wings beat, qd seconds after it burst up (the tall one's own: dustCloud), in the
+    // night's time: thick by FAIRY.dense, and clearing over FAIRY.clear
+    const CLOUD_T = { dense: FAIRY.dense, clear: [FAIRY.clear[0] - FAIRY.dust, FAIRY.clear[1] - FAIRY.dust] };
+    const drawCloud = (ctx, qd, rm, steady) => CREATURES.tall.dustCloud(ctx, qd, rm, steady, CLOUD_T);
     // the fairy dust: each spark where it starts in the cloud (about where it stood, metres), the way it is thrown, how
     // it twinkles, its size, how long it lasts and its colour; made once
     const DUST_LIFE = 5.4;
