@@ -64,7 +64,8 @@ const rushed = [
 ];
 const start = [
   ['expect', 'G.inv.length === 0 && G.L.items.length === 16 && G.L.items.every(i => !i.taken)', 'empty-handed: everything you ever held lies around you'],
-  ['expect', "['lifering', 'cup', 'lamp'].every(id => G.L.items.some(i => i.id === id && typeof i.icon === 'function')) && !G.L.items.some(i => /^(beam|handle|matches)$/.test(i.id)) && G.L.items.some(i => i.id === 'bow')", 'the boathouse\'s life ring, the diner\'s cup and the bedside lamp among it (and no bar, winch handle or matches); the bow still there'],
+  ['expect', "['lifering', 'cup', 'lamp', 'toolbox'].every(id => G.L.items.some(i => i.id === id && typeof i.icon === 'function')) && !G.L.items.some(i => /^(beam|handle|matches|bulb)$/.test(i.id)) && G.L.items.some(i => i.id === 'bow')", 'the boathouse\'s life ring, the diner\'s cup, the bedside lamp and the lighthouse\'s toolbox among it (and no bar, winch handle, matches or bulb); the bow still there'],
+  ['expect', "(t => t.name === 'Toolbox' && t.w > 0.35 && t.w < 0.6 && t.h > 0.3 && t.h < t.w && t.material === 'metal' && G.heldSpec(t).grip === 'hang' && G.heldSpec(t).at[1] > 0.9 && !!ICONS.lighthouseToolboxShut)(G.L.items.find(i => i.id === 'toolbox'))", 'the toolbox is the lighthouse\'s, shut: about half a metre across lying in the void, steel, and held hanging by its handle'],
   ['wait', 400], ['expect', 'G.L.creature.rage < 0.05 && G.L.creature.lat === 0', 'holding nothing, it is calm: it only walks'],
 ];
 // the temptation: take one thing up and it is enraged at once (and stopped dead a moment, each time a thing is first
@@ -187,7 +188,7 @@ const fifteenDeath = [...fifteen,
 const turnTo = id => `(async () => { const it = G.L.items.find(i => i.id === '${id}'), d = ((Math.round(Math.atan2(it.x, it.z) / (45 * DEG)) % 8) + 8) % 8, fr = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   for (const down of [true, false]) { G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = down ? PITCH_DOWN : 0; await fr();
     const h = [...R.hits].reverse().find(h => h.kind === 'item' && h.ref === it); if (h && h.x >= 0 && h.y >= 0 && h.x + h.w <= R.W && h.y + h.h <= R.H) break; } })()`;
-const ALL = ['hammer', 'planks', 'keys', 'salt', 'lantern', 'chain', 'padlock', 'bow', 'arrows', 'lifering', 'fuse', 'cup', 'journal', 'lamp', 'bulb', 'musicbox'];
+const ALL = ['hammer', 'planks', 'keys', 'salt', 'lantern', 'chain', 'padlock', 'bow', 'arrows', 'lifering', 'fuse', 'cup', 'journal', 'lamp', 'toolbox', 'musicbox'];
 const paced = [
   ['eval', 'window.__t0 = performance.now(); window.__nearest = 99; window.__fullMsg = false; (function w() { if (G.state === "play") { window.__nearest = Math.min(window.__nearest, G.L.creature.dist); if (G.lastToast.msg === "Your hands are full.") window.__fullMsg = true; requestAnimationFrame(w); } })();'],
   ...ALL.flatMap(id => [['eval', turnTo(id)], ['wait', 850], ['pickup', id]]),
@@ -196,7 +197,7 @@ const paced = [
   ['eval', "delete SAVE.data.eggs.void; SAVE.data.complete = {}; SAVE.persist(); startLevel(G.levelIndex, false);"], ['wait', 400],
 ];
 // who takes what (one thing each; the planks, the salt, the padlock and the bow are no one's), and where each stands
-const TAKERS = { walker: 'hammer', crawler: 'keys', smiler: 'lantern', watcher: 'chain', runner: 'arrows', swimmer: 'lifering', climber: 'bulb', customer: 'cup', signalman: 'journal', other: 'musicbox', carrier: 'fuse', tall: 'lamp' };
+const TAKERS = { walker: 'hammer', crawler: 'keys', smiler: 'lantern', watcher: 'chain', runner: 'arrows', swimmer: 'lifering', climber: 'toolbox', customer: 'cup', signalman: 'journal', other: 'musicbox', carrier: 'fuse', tall: 'lamp' };
 // near you: within NEAR metres; clear of you: CLEAR metres off or more
 const NEAR = 4, CLEAR = 4.5;
 // step the game's clock to `to` seconds of the gathering, noting as it goes: when each came up to you and how near, when it
@@ -220,11 +221,12 @@ const stepTo = to => ['eval', `(() => { const E = G.L.s.egg, W = window.__egg ||
 // the frolic, stepped to `to` and watched: for each of the thirteen (by its kind), how far it went in all (path), the most
 // in one step of the clock (step) and each step over 20 cm (jumps), the corners of where it has been (lo, hi), whether it
 // leapt on the spot and hopped as it ran, which ways it was turned (1 right, 2 left), how high it hopped and how far it
-// leant; each time one of them was out of the meadow's bounds, or on you, the tree or the pool's water (bad); and the
+// leant; which of the eight ways round you the runners went through (oct) and which quarters round you each did (quad);
+// each time one of them was out of the meadow's bounds, or on you, the tree or the pool's water (bad); and the
 // nearest any two of them came to one another (pair); and how each was drawn: every step its drawing was anything but whole
 // (its mirror, face, or the demon's c.flip, not exactly 1 or -1: thin), how often it was mirrored (flips) and the least
 // time between two of those (quick), and which were drawn side on (sideOn), by their own side-on run
-const frolic = to => ['eval', `(() => { const E = G.L.s.egg, FR = VOID_FROLIC, F = window.__fro = { path: {}, step: {}, jumps: {}, creep: {}, lo: {}, hi: {}, leapt: {}, hopped: {}, faces: {}, up: 0, lean: 0, bad: [], off: 0, pair: 9, thin: 0, flips: {}, quick: 9, sideOn: {}, sideBad: 0 };
+const frolic = to => ['eval', `(() => { const E = G.L.s.egg, FR = VOID_FROLIC, F = window.__fro = { path: {}, step: {}, jumps: {}, creep: {}, lo: {}, hi: {}, leapt: {}, hopped: {}, faces: {}, up: 0, lean: 0, bad: [], off: 0, pair: 9, thin: 0, flips: {}, quick: 9, sideOn: {}, sideBad: 0, oct: new Set(), quad: {} };
   const was = E.movers.map(m => [m.face, -9]);
   const prev = E.movers.map(m => [m.fu, m.fv]);
   for (const m of E.movers) { const k = m.kind; F.path[k] = 0; F.step[k] = 0; F.jumps[k] = []; F.creep[k] = 0; F.lo[k] = [m.fu, m.fv]; F.hi[k] = [m.fu, m.fv]; F.faces[k] = 0; }
@@ -232,7 +234,9 @@ const frolic = to => ['eval', `(() => { const E = G.L.s.egg, FR = VOID_FROLIC, F
     E.movers.forEach((m, i) => { const k = m.kind, q = prev[i], d = Math.hypot(m.fu - q[0], m.fv - q[1]), c = m.c, w = c.pos();
       F.path[k] += d; F.step[k] = Math.max(F.step[k], d); if (d > 0.2) F.jumps[k].push(d); else if (d > 1e-9) F.creep[k]++;
       F.lo[k][0] = Math.min(F.lo[k][0], m.fu); F.lo[k][1] = Math.min(F.lo[k][1], m.fv); F.hi[k][0] = Math.max(F.hi[k][0], m.fu); F.hi[k][1] = Math.max(F.hi[k][1], m.fv);
-      if (m.fv < FR.v0 - 0.4 || m.fv > FR.v1 + 0.6 || Math.abs(m.fu) > FR.wedge * m.fv + 0.7 || Math.hypot(m.fu, m.fv) < FR.you - 0.01 || (!m.pool && Math.hypot(m.fu - E.poolU, m.fv - E.poolV) < FR.water)
+      const rr = Math.hypot(m.fu, m.fv), b = Math.atan2(m.fu, m.fv);
+      if (!m.pool && !m.stand) { F.oct.add(((Math.floor((b + Math.PI / 8) / (Math.PI / 4)) % 8) + 8) % 8); (F.quad[k] = F.quad[k] || new Set()).add(((Math.floor(b / (Math.PI / 2)) % 4) + 4) % 4); }
+      if (rr > FR.ring[1] + 0.35 || rr < FR.you - 0.01 || (!m.pool && Math.hypot(m.fu - E.poolU, m.fv - E.poolV) < FR.water)
         || Math.hypot(m.fu - FR.tree[0], m.fv - FR.tree[1]) < FR.tree[2] - 0.01) F.bad.push(k + '@' + E.t.toFixed(1));
       F.off = Math.max(F.off, Math.abs(Math.hypot(w.x, w.z) - Math.hypot(m.fu, m.fv)), Math.abs(wrapPi(Math.atan2(w.x, w.z) - G.L.facing - Math.atan2(m.fu, m.fv))));
       if (m !== E.dm) { if (m.run < 0.1 && m.hopY > 0.1) F.leapt[k] = true; if (m.run > 0.9 && m.hopY > 0.01) F.hopped[k] = true; F.up = Math.max(F.up, m.hopY); }
@@ -273,14 +277,23 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', "window.__egg = null; dele
   ['expect', "(E => { const o = E.others[0]; return o.held === o.item && !o.fly && o.lift > 0.2 && o.c.dist < 2 && Math.abs(o.c.dist - o.near) < 0.01; })(G.L.s.egg)", 'the walker has it in its hand, still there in front of you, holding it up a beat, looking'],
   stepTo('VOID_EGG.first + VOID_EGG.rush + VOID_EGG.take + VOID_EGG.pass + VOID_EGG.look + VOID_EGG.back * 0.4'),
   ['expect', "(E => { const o = E.others[0]; return o.held === o.item && o.c.dist > o.near + 0.8 && o.c.dist < o.r && E.others.filter(q => q.on).length === 1; })(G.L.s.egg)", 'and it is off with it, to its place, and no other has set out yet'],
-  // (the crawler, low, stands up for the keys: up on its hind legs as it takes them, its head and the keys in its mouth in
-  // the view on a desktop and on a phone held sideways; and down on all fours again, off with them)
+  // (the crawler, low, stands up for the keys: up on its hind legs, it reaches out its right hand for them, closes it on
+  // them and has them in it, its head and its hand with the keys in the view on a desktop and on a phone held sideways;
+  // nothing in its mouth; and down on all fours again, off with them in that hand, up off the ground)
+  ['eval', `window.__crHand = () => { const H = CREATURES.crawler, h0 = H.hand; let got = null; H.hand = function (ctx, x, y, a, shut, len, w, col, cl) { if (cl && cl.item) got = { x, y, shut, cl }; return h0.apply(this, arguments); }; try { render(); } finally { H.hand = h0; } return got; };`],
+  stepTo('voidSets(1) + (VOID_EGG.rush + 0.4) * VOID_EGG.pace[1]'),
+  ['expect', "(o => { const c = o.c, cl = c.clutch; return !o.took && c.struck && c.struck.up > 0.5 && !!cl && cl.k > 0 && cl.k < 1 && cl.shut === 0 && !cl.item; })(G.L.s.egg.others[1])", 'standing up, its right hand comes out, open, for the keys held up in yours'],
   stepTo('voidSets(1) + (VOID_EGG.rush + VOID_EGG.pass) * VOID_EGG.pace[1] + voidTake(VOID_EGG.pace[1]) + 0.05'),
-  ['expect', `(o => { const c = o.c, p = c.pos(), bad = []; for (const [W, H] of [[1280, 720], [844, 390]]) { const cam = { yaw: G.L.facing, pitch: 0, zoom: clamp(0.6 * (W / H) / 0.93, 1, 1.32), W, H, eyeH: G.L.eyeH }, r = R.projectRect(p.x, 1.45, p.z, 0.4, 0.5, cam); if (!r || r.y < 0 || r.y + r.h > H) bad.push(W); }
-    return o.took && o.held === o.item && c.struck && c.struck.up > 0.99 && c.struck.look > 0.99 && !c.up && Math.abs(o.at[1] - CRAWLER_UP.mouth) < 0.01 && Math.abs(c.dist - o.near) < 0.01 && o.near < 2 && !bad.length; })(G.L.s.egg.others[1])`, 'the crawler, low, stands up for the keys: up on its hind legs, as near as the others, its head and the keys in its mouth in the view'],
+  ['expect', `(o => { const c = o.c, p = c.pos(), cl = c.clutch, bad = []; for (const [W, H] of [[1280, 720], [844, 390]]) { const cam = { yaw: G.L.facing, pitch: 0, zoom: clamp(0.6 * (W / H) / 0.93, 1, 1.32), W, H, eyeH: G.L.eyeH }; for (const [y, h] of [[1.45, 0.5], [cl.y - 0.25, 0.3]]) { const r = R.projectRect(p.x + Math.cos(c.yaw) * cl.x, y, p.z - Math.sin(c.yaw) * cl.x, 0.3, h, cam); if (!r || r.y < 0 || r.y + r.h > H || r.x < 0 || r.x + r.w > W) bad.push(W + '@' + y.toFixed(2)); } }
+    const d = window.__crHand(), h = o.item.h;
+    return o.took && o.held === o.item && o.own && c.struck && c.struck.up > 0.99 && c.struck.look > 0.99 && !c.up && Math.abs(c.dist - o.near) < 0.01 && o.near < 2 && !bad.length
+      && cl.k === 1 && cl.shut === 1 && !!cl.item && Math.abs(cl.x - CRAWLER_UP.hand[0]) < 0.01 && Math.abs(cl.y - CRAWLER_UP.hand[1]) < 0.15 && cl.y < 1.45 && Math.abs(o.at[0] - cl.x) < 1e-9 && Math.abs(o.at[1] - (cl.y - 0.2 * h)) < 1e-9
+      && !!d && Math.abs(d.x - cl.x) < 0.01 && Math.abs(d.y - cl.y) < 0.01 && d.shut === 1; })(G.L.s.egg.others[1])`, 'the crawler, low, stands up for the keys: up on its hind legs, as near as the others, and has them in its right hand, shut on their ring, out at its side below its head (not in its mouth); its head and the keys in the view'],
   stepTo('voidSets(1) + (VOID_EGG.rush + VOID_EGG.pass + VOID_EGG.look + VOID_EGG.back * 0.5) * VOID_EGG.pace[1] + voidTake(VOID_EGG.pace[1])'),
-  ['expect', "(o => !o.c.struck && o.held === o.item && o.at[1] === o.low && o.c.dist > o.near + 1)(G.L.s.egg.others[1])", 'and it is down on all fours again, off with them in its mouth'],
+  ['expect', "(o => { const cl = o.c.clutch, d = window.__crHand(); return !o.c.struck && o.held === o.item && !!cl && cl.shut === 1 && !!cl.item && Math.abs(cl.x - CRAWLER_UP.fours[0]) < 1e-9 && Math.abs(cl.y - CRAWLER_UP.fours[1]) < 1e-9 && cl.y > 0.3 && o.c.dist > o.near + 1 && !!d && Math.abs(d.x - cl.x) < 0.01 && Math.abs(d.y - cl.y) < 0.01; })(G.L.s.egg.others[1])", 'and it is down on all fours again, off with them in that hand, held up off the ground'],
   stepTo('VOID_EGG.hold + 0.1'),
+  ['expect', "(o => o.own && o.held === o.item && o.item.id === 'toolbox' && !!o.c.carry && o.c.carry.w === o.item.w && o.c.carry.h === o.item.h && o.c.carry.at > 0.9)(G.L.s.egg.others.find(o => o.type === 'climber'))", 'the climber carries the toolbox by its handle, hanging from its claw (its own drawing has it)'],
+  ['expect', "(o => !!o.c.clutch && o.c.clutch.shut === 1 && !!o.c.clutch.item)(G.L.s.egg.others.find(o => o.type === 'crawler'))", 'and the crawler the keys in its hand, there in its place'],
   ['expect', `(E => E.others.every(o => o.took && o.came && o.held === o.item && o.held.id === ${JSON.stringify(TAKERS)}[o.type] && o.held.by === o.type) && new Set(E.others.map(o => o.item)).size === 12)(G.L.s.egg)`, 'each of the twelve came and took the one thing that was its own, and holds it'],
   ['expect', "G.inv.length === 4 && G.L.items.filter(i => !i.by).map(i => i.id).sort().join() === 'bow,padlock,planks,salt' && G.L.items.filter(i => !i.by).every(i => G.inv.includes(i))", 'the other four (the planks, the salt, the padlock, the bow) are no one\'s: never asked for, still yours'],
   ['expect', "(W => { const k = G.L.s.egg.others.map(o => o.type), took = k.map(t => W.took[t]), came = k.map(t => W.came[t]); console.log('took at ' + took.map(v => v.toFixed(2)).join(' ')); const V = VOID_EGG, P = V.pace, at = i => V.first + P.slice(0, i).reduce((a, k) => a + V.every * k + voidTake(k) - V.take * k, 0); return V.every >= 2.0 && V.every <= 2.6 && V.rush >= 0.5 && P.length === 12 && P[0] === 1 && P[1] === 1 && P.every((k, i) => !i || (k <= P[i - 1] && k >= P[i - 1] * 0.9)) && P[11] >= 0.55 && P[11] <= 0.65 && P.every((k, i) => Math.abs(voidSets(i) - at(i)) < 1e-9) && took.every((v, i) => Math.abs(v - (at(i) + V.rush * P[i] + voidTake(P[i]))) < 0.06) && voidTake(1) === V.take && came.every((v, i) => Math.abs(v - (at(i) + V.rush * P[i])) < 0.06); })(window.__egg)", 'one at a time, in the order of their nights: the first two 2.2 s apart, each up to you in 0.6 s; after them each one quicker, its visit and the wait for the next its pace times those, down to about three fifths for the last'],
@@ -327,7 +340,8 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', "window.__egg = null; dele
     'after the leaping they run about the meadow: each of the ten that run (and the thing in the hood among them) goes a good many metres, all over it, and never in a jump'],
   ['expect', `(F => { const s = VOID_FROLIC.stand.climber, o = G.L.s.egg.others.find(o => o.type === 'climber'), d0 = Math.hypot(Math.sin(o.b) * o.r - s[0], Math.cos(o.b) * o.r - s[1]); console.log('the climber: went ' + F.path.climber.toFixed(2) + ' m to its spot, ' + d0.toFixed(2) + ' m off'); return F.path.climber < d0 + 0.05 && F.step.climber < 4 / 60 && F.leapt.climber && ${STAND}; })(window.__fro)`,
     'the climber only goes straight back to its spot, at the back of the meadow, and stays there, leaping up and down on it'],
-  ['expect', "(F => !F.bad.length && F.off < 1e-6 && G.L.s.egg.movers.every(m => Math.hypot(m.fu, m.fv) >= VOID_FROLIC.you - 0.01))(window.__fro)", 'within the meadow in front of you all the while: never on you, the big tree or the pool; and each is drawn where it is'],
+  ['expect', "(F => !F.bad.length && F.off < 1e-6 && G.L.s.egg.movers.every(m => Math.hypot(m.fu, m.fv) >= VOID_FROLIC.you - 0.01))(window.__fro)", 'within the meadow all the while, all round you: never nearer you than three metres, never on the big tree or in the pool; and each is drawn where it is'],
+  ['expect', `(F => { const q = Object.keys(F.quad).filter(k => F.quad[k].size >= 3); console.log('the frolic, all round you: ' + F.oct.size + ' of the eight ways round seen them run through, ' + q.length + ' of them in three quarters round you or more'); return F.oct.size === 8 && q.length >= 8; })(window.__fro)`, 'and they run all round you: whichever way you turn, some of them have run through there, most of them three quarters of the way round you or more'],
   ['expect', `(F => F.step.runner > F.step.walker * 1.5 && F.step.crawler > F.step.other * 1.2 && ${RUNNERS}.filter(k => F.faces[k] === 3).length >= 9 && F.lean > 0.08)(window.__fro)`, 'at their own speeds (the runner the fastest), turned and leaning the way they go'],
   ['expect', `(F => { console.log('the frolic: mirrored ' + Object.keys(F.flips).map(k => k + ' ' + F.flips[k]).join(', ') + ' times, the least time between ' + F.quick.toFixed(2) + ' s; side on: ' + Object.keys(F.sideOn).join(' ')); return F.thin === 0 && ${RUNNERS}.filter(k => (F.flips[k] || 0) >= 1).length >= 9 && F.quick >= 0.14; })(window.__fro)`,
     'never turned about its upright: each one\'s drawing is whole all the while (its mirror exactly 1 or -1, the demon\'s too), flipped at once as it goes to the other side, and not in a flicker'],
@@ -339,6 +353,15 @@ const egg = [...fifteen, ['eval', watchSfx], ['eval', "window.__egg = null; dele
   ['expect', "(E => E.thrown.length === 12 && E.thrown.every(th => E.t - th.t0 > th.tl && th.fade === 1) && G.state === 'won' && G.L.s.wait && !G.L.s.leaving && G.L.lookFree())(G.L.s.egg)", 'what they threw still lies in the grass, and the meadow still waits for a press'],
   ['eval', 'G.noRaf = false; G._last = performance.now(); requestAnimationFrame(frame);'], ['wait', 200],
   key('ArrowLeft', true), ['wait', 300], ['expect', "G.state === 'won' && !G.L.s.leaving", 'a turn only turns the view'],
+  // (and it turns all the way round: behind you the meadow is there, and some of them are running about in it)
+  ['eval', 'window.__yaw0 = G.cam.yaw;'], key('ArrowLeft', true), ['wait', 350], key('ArrowLeft', true), ['wait', 350], key('ArrowLeft', true), ['wait', 350], key('ArrowLeft', true), ['wait', 500],
+  ['waitUntil', `(() => { const E = G.L.s.egg, add = R.add; let polys = 0; R.add = p => { if (p.kind === 'poly' && p.sortDist >= 500) polys++; return add(p); }; try { render(); } finally { R.add = add; }
+    const cam = { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: G.cam.zoom, W: R.W, H: R.H, eyeH: G.L.eyeH }, them = E.others.map(o => o.c).concat([G.L.creature]).filter(c => { const p = c.pos(), r = Math.cos(G.cam.yaw) * p.z + Math.sin(G.cam.yaw) * p.x > 0 && R.projectRect(p.x, 0, p.z, 0.8, 1.2, cam); return r && r.x + r.w > 0 && r.x < R.W; }).length;
+    return G.state === 'won' && !G.L.s.leaving && Math.abs(wrapPi(G.cam.yaw - window.__yaw0 + Math.PI)) < 0.05 && polys >= 8 && them >= 1; })()`, 8000],
+  ['expect', `(() => { const E = G.L.s.egg, add = R.add; let polys = 0; R.add = p => { if (p.kind === 'poly' && p.sortDist >= 500) polys++; return add(p); }; try { render(); } finally { R.add = add; }
+    const cam = { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: G.cam.zoom, W: R.W, H: R.H, eyeH: G.L.eyeH }, them = E.others.map(o => o.c).concat([G.L.creature]).filter(c => { const p = c.pos(), r = Math.cos(G.cam.yaw) * p.z + Math.sin(G.cam.yaw) * p.x > 0 && R.projectRect(p.x, 0, p.z, 0.8, 1.2, cam); return r && r.x + r.w > 0 && r.x < R.W; }).length;
+    console.log('turned round: ' + polys + ' bands of the meadow\'s ground drawn, ' + them + ' of them in the view');
+    return G.state === 'won' && !G.L.s.leaving && Math.abs(wrapPi(G.cam.yaw - window.__yaw0 + Math.PI)) < 0.05 && polys >= 8 && them >= 1; })()`, 'turned right round, the meadow is there behind you too, and some of them come running about in it'],
   ['eval', "document.getElementById('game').dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 640, clientY: 380 }))"],
   ['expect', 'G.L.s.leaving', 'a click and it goes on'],
   ['waitUntil', "G.state === 'end'", 12000],
