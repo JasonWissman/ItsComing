@@ -942,11 +942,13 @@ function die(c, cause) {
 // save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time.
 // The last night's is one of its two endings: the night notes which ending this is (L.eggEnding), and it is settled as
 // that ending is over (finishEnding: it is found only once the player has come to both, in either order)
-function foundEgg(id) {
+// (later: the night says it itself, a little on, with secretSay: the bedroom's, whose hush as the tooth is taken the
+// note's three notes must not break)
+function foundEgg(id, later) {
   id = id || (G.L && G.L.def && G.L.def.id);
   if (G.L && G.L.def.ending && id === G.L.def.id) { G.L.eggEnding = true; return false; }
   const first = SAVE.egg(id, !!(G.run || G.lastRun));   // (in a full run, or its last night's ending: one of that run's own, for its results)
-  if (first) secretSay(id);
+  if (first && !later) secretSay(id);
   return first;
 }
 // The first time an easter egg is found it is said, there and then, so what was done and what came of it go together:

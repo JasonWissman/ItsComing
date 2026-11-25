@@ -164,7 +164,7 @@ const fairyPlay = [
   // (each frame as the night runs on its own, from the moment the tooth is in its hand: how far its head is down)
   ['eval', FY('(delete SAVE.data.eggs.bedroom, fy.reset(), fy.look(0, false), window.__snap = [], (function w() { const X = G.L.s.fairy; if (X && X.given !== null) window.__snap.push({ q: G.L.t - X.given, look: G.L.creature.fairy.look }); if (window.__snap.length < 40) requestAnimationFrame(w); })())')], ['wait', 250],
   ['use', 'hand'],
-  ['expect', "SAVE.data.eggs.bedroom === true && G.L.text.egg === 'Give the tooth fairy a tooth.' && secretUp() && document.querySelector('#secret .st').textContent === 'Tooth fairy' && (window.__said = performance.now()) && !G.inv.length && G.L.s.fairy.stage === 'take' && G.L.creature.fairy.tooth && G.state === 'play' && !G.L.won", 'the tooth put in its hand: the easter egg is found and saved, and named there and then, "Tooth fairy"; the night is not over yet'],
+  ['expect', "SAVE.data.eggs.bedroom === true && G.L.text.egg === 'Give the tooth fairy a tooth.' && !secretUp() && !G.inv.length && G.L.s.fairy.stage === 'take' && G.L.creature.fairy.tooth && G.state === 'play' && !G.L.won", 'the tooth put in its hand: the easter egg is found and saved, but not said yet (no note, no notes of it, into this hush); the night is not over yet'],
   // the rumbling cut dead the moment the tooth is in its hand (no fade: the loop is gone at once), and a click as its head
   // snaps down to it. Then each stage in its time (FAIRY: night12.js), stepped through frame by frame
   ['eval', 'window.FAIRY = { look: 1.2, pull: [1.2, 2.8], cup: [2.9, 3.35], shut: [3.05, 3.25], burst: 4.85, flap: 5.7, sweep: 0.3, dust: 5.85, dense: 0.2, gone: [6.1, 6.22] };'],
@@ -182,6 +182,7 @@ const fairyPlay = [
   ['eval', FY('(fy.look(0, false), fy.covered())')],
   ['expect', FY("fy.cover.shown > 20000 && fy.cover.n === 0 && fy.cover.most <= 3"), 'at the height of its dust nothing of it shows through the cloud (drawn with it and without it, the view is the same to the pixel; without the cloud it would show plainly)'],
   ['expect', FY("fy.to(FAIRY.gone[1] + 0.3) === 'play' && G.L.creature.fairy.gone === 1 && fy.beats === 0"), 'and it is gone behind it'],
+  ['expect', FY("secretUp() && document.querySelector('#secret .st').textContent === 'Tooth fairy' && fy.fx.filter(n => n === 'secretFound').length === 1 && fy.fx.indexOf('secretFound') > fy.fx.indexOf('fairyDust') && !!(window.__said = performance.now())"), 'and only now, as its dust begins to thin, is the secret named, "Tooth fairy", with its three notes (once)'],
   ['waitUntil', "G.L.won && G.state === 'won'", 9000],
   ['expect', "G.L.s.fairy.done && !G.L.s.coversUp && G.L.t - G.L.s.fairy.given > 11.8 && G.L.t - G.L.s.fairy.given < 12.6", 'the cloud thins away, the dollar comes down onto the bed, and a moment after it has settled the night is won'],
   ['waitUntil', "G.state === 'survived'", 12000],

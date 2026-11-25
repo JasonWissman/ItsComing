@@ -1015,7 +1015,9 @@ is the one above (a night with none there is named by its `text.egg`). It is sai
 the top in the middle, over the compass while it is up, and ends above the line of words under the compass and above a
 sound's caption in the corner, so all three can be read at once, on a desktop or a phone. It slides down into the view
 from above its top edge over 0.45 s, settling with a little give, stays 4 s and slides back up over 0.5 s; with reduced
-motion it only fades. If the night ends meanwhile it stays over the death screen or the win screen until its time is
+motion it only fades. The bedroom's is the one that is not said the moment it is found (`foundEgg(id, true)`): the tooth
+is taken into a dead hush, so the night says it itself (`secretSay`) once the creature has gone and its dust begins to
+thin. If the night ends meanwhile it stays over the death screen or the win screen until its time is
 up, and is not said again. It is not part of the HUD and never takes a
 click; quitting to the title, or the results after the ending, put it away.
 

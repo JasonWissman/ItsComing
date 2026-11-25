@@ -2446,7 +2446,7 @@ const hoverHit = lookFor;
     check(again === false && v2.state === 'play' && !v2.shown && v2.heard === 0, 'the same easter egg found again ' + what + ': no note, no sound (' + JSON.stringify({ again, shown: v2.shown }) + ')');
     if (tag === '1280') {
       const src = require('fs').readFileSync(path.join(__dirname, '..', 'js', 'game.js'), 'utf8');
-      check(/if \(first\) secretSay\(id\);/.test(src.slice(src.indexOf('function foundEgg'), src.indexOf('const EGG_TITLES'))) && !/secretTell|secretHeld|secretroom/.test(src) && !/secretroom/.test(require('fs').readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')),
+      check(/if \(first && !later\) secretSay\(id\);/.test(src.slice(src.indexOf('function foundEgg'), src.indexOf('const EGG_TITLES'))) && !/secretTell|secretHeld|secretroom/.test(src) && !/secretroom/.test(require('fs').readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')),
         'game.js says it as it is found, and nothing is held for a later screen any more');
       // reduced motion: it does not slide (the same place shown or hidden)
       const still = await sp.evaluate(() => { SAVE.data.eggs = {}; SAVE.data.settings.reducedMotion = true; foundEgg(); const el = document.getElementById('secret'), on = getComputedStyle(el).transform; el.classList.remove('show'); const off = getComputedStyle(el).transform; SAVE.data.settings.reducedMotion = false; return { on, off, cls: el.classList.contains('still') }; });

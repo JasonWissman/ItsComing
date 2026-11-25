@@ -550,7 +550,7 @@ LEVELS.push({
       const X = s.fairy;
       X.stage = 'take'; X.given = L.t; c0().fairy.tooth = true; c0().walk = null;
       AUDIO.stopLoop(0); AUDIO.sfx('neckClick', panOf(c0()));   // the rumbling cut dead; its head snaps down to the tooth
-      foundEgg();   // the night's easter egg, found as the tooth is handed over (kept in the save: game.js)
+      X.first = foundEgg(undefined, true);   // the night's easter egg, found as the tooth is handed over (kept in the save: game.js); said once it has gone (fairying), not into this hush
       L.text.win = L.text.fairy;   // and the night's card, when it has gone, is the tooth fairy's
     };
     const fairying = (c, dt) => {
@@ -599,6 +599,7 @@ LEVELS.push({
         if (qb >= 0 && !X.burst) { X.burst = true; AUDIO.sfx('wingBurst', panOf(c)); if (!rm) G.shake(0.3); }
         if (q >= F.flap && !X.whoosh) { X.whoosh = true; AUDIO.sfx('wingWhoosh', panOf(c)); }
         if (q >= F.dust && !X.dust) { const p = c.pos(); X.dust = L.t; X.at = { x: p.x, z: p.z }; AUDIO.sfx('fairyDust', panOf(c)); if (!rm) G.shake(0.08); }
+        if (q >= F.clear[0] && X.first && !X.said) { X.said = true; secretSay(L.def.id); }   // gone, its dust thinning and the dollar coming down: now the note that this was a secret, and its three notes
         if (q >= F.bill + F.fall + F.rest) X.done = true;
       }
       const h = handAt(c, T.held || 0); T.hand = h.at; T.handK = h.k;
