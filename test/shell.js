@@ -319,6 +319,94 @@ async function run(browser, check) {
     check(up('fs') && up('pro') && rows[0].rot[0] < rows[1].rot[0] && rows[1].rot[1] < rows[2].rot[1] && rows.every(r => r.scroll <= 0 && r.fits) && (view !== 'desktop' || Math.abs(rows[1].fs - 21) < 0.6),
       view + ': the warning\'s words, the prologue\'s and the turn-it-sideways screen\'s are each bigger with the text size (the warning 21px at Normal on a desktop, as it was), and the warning fits the page at all three (' + JSON.stringify(rows) + ')');
   }
+  // The credit under the title: the whole line one underlined control, which opens the developer's note (a dialog as the
+  // others are: role dialog, modal, named by its heading), the author's words exactly as written, its two links and the
+  // two buttons out to a new tab, Back under them. The note scrolls inside its panel, never past the page nor sideways,
+  // its links and Back always in view, at the smallest and the largest text on a narrow window, a phone held sideways
+  // and a desktop. Esc closes it with the focus back on the credit, and neither the click nor the closing brings the
+  // thing a step nearer. By the keys (Enter, Space, the arrows to scroll it) and by a pad (A opens, up and down scroll,
+  // left and right go round, B closes) the same
+  console.log('== the credit: the developer\'s note ==');
+  const NOTE_WANT = "Developer's note: If you can believe it, this game does have a purpose to it, inspired by real experiences in my life. I've had powerful experiences with scary dreams like these, in which I was being pursued by mysterious beings. After several nights of such dreams, in a final dream I will actually confront the creature head-on, only to find it transform into a direct representation of something that had been weighing on me in real life: a friend I hadn't texted back, a responsibility I was neglecting, a commitment I had made, etc. I could only run, hide, or avoid these things for so long before they caught up to me, and my dreams were literally manifesting those as creatures. Needless to say, they woke me up (literally) to the need to face those things head-on. Experiences like this have made me fascinated with the power of dreams, and the importance of listening when our own mind is trying to tell us something. If you'd like to support this project as well as other free games and apps I'm working on, please feel free to support me with a coffee! And if you'd like to see what else I have in the works, you can visit my main site at jasonwissman.com Cheers! -J";
+  const NOTE_VIEWS = { 'narrow window': { viewport: { width: 390, height: 844 } }, phone: VIEWS.phone, desktop: { viewport: { width: 1280, height: 800 } } };
+  for (const view of Object.keys(NOTE_VIEWS)) {
+    const rows = [];
+    for (const [name, ts] of [SIZES[0], SIZES[2]]) {
+      const ctx = await browser.newContext(NOTE_VIEWS[view]);
+      await ctx.addInitScript(saved({}, ts));
+      const page = await ctx.newPage();
+      page.on('pageerror', e => errors.push('PAGEERROR (' + view + ') ' + e.message));
+      await page.goto(T.INDEX); await page.waitForTimeout(500);
+      const credit = await page.evaluate(() => { const b = document.querySelector('#overlay .credit .creditbtn'), c = getComputedStyle(b); return { tag: b.tagName, text: b.textContent, under: c.textDecorationLine === 'underline', fs: parseFloat(c.fontSize), link: !!document.querySelector('#overlay .credit a') }; });
+      const step0 = await page.evaluate(() => TITLE.step);
+      await page.click('#overlay .credit .creditbtn'); await page.waitForTimeout(250);
+      const r = await page.evaluate(() => {
+        const p = document.querySelector('#overlay > .panel.notep'), b = p && p.querySelector('.notebody'), pr = p.getBoundingClientRect(), h = document.getElementById(p.getAttribute('aria-labelledby'));
+        const foot = [...p.querySelectorAll('.notefoot .mbtn')], inP = e => { const x = e.getBoundingClientRect(); return x.top >= pr.top - 0.5 && x.bottom <= pr.bottom + 0.5 && x.left >= pr.left - 0.5 && x.right <= pr.right + 0.5; };
+        return { kind: MENU.kind, step: TITLE.step, dialog: p.getAttribute('role') === 'dialog' && p.getAttribute('aria-modal') === 'true' && !!h && h.textContent === "Developer's note:" && b.contains(h),
+          text: [...b.children].map(e => e.textContent).join(' ').replace(/\s+/g, ' ').trim(), kids: [...b.children].map(e => e.tagName).join(), pfs: parseFloat(getComputedStyle(b.querySelector('p')).fontSize),
+          links: [...p.querySelectorAll('a')].map(a => [a.textContent, a.getAttribute('href'), a.target, a.rel].join(' ')), foot: foot.map(e => e.textContent).join('|'),
+          sideways: document.documentElement.scrollWidth - innerWidth, bodyX: b.scrollWidth - b.clientWidth, inView: pr.top >= 0 && pr.bottom <= innerHeight + 0.5 && pr.left >= 0 && pr.right <= innerWidth + 0.5, footIn: foot.every(inP), more: b.scrollHeight - b.clientHeight, focus: document.activeElement.textContent };
+      });
+      if (r.more > 1) { await page.keyboard.press('ArrowDown'); await page.waitForTimeout(450); r.down = await page.evaluate(() => document.querySelector('.notebody').scrollTop > 0); } else r.down = true;
+      await shot(page, 'note-' + name.toLowerCase() + '-' + view.replace(/ /g, '-'));
+      await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+      r.back = await page.evaluate(() => MENU.kind === 'title' && document.activeElement.classList.contains('creditbtn') && G.state === 'title');
+      r.step1 = await page.evaluate(() => TITLE.step);
+      rows.push(Object.assign({ name, credit, step0 }, r));
+      await ctx.close();
+    }
+    const want = ["support me with a coffee https://ko-fi.com/jasonwissman _blank noopener", "jasonwissman.com https://jasonwissman.com _blank noopener", "See my other projects https://jasonwissman.com _blank noopener", "Support me with a coffee https://ko-fi.com/jasonwissman _blank noopener"].join('|');
+    check(rows.every(r => r.credit.tag === 'BUTTON' && r.credit.text === 'created by jason wissman' && r.credit.under && !r.credit.link && r.kind === 'note' && r.dialog && r.text === NOTE_WANT && r.links.join('|') === want && r.foot === 'See my other projects|Support me with a coffee|Back' && r.focus === 'Back'),
+      view + ': the whole credit is one underlined button; it opens the developer\'s note, a dialog named by its heading, the author\'s words exactly, its links and the two buttons to a new tab, Back focused (' + JSON.stringify(rows.map(r => ({ name: r.name, credit: r.credit, kind: r.kind, dialog: r.dialog, textOK: r.text === NOTE_WANT, links: r.links, foot: r.foot, focus: r.focus }))) + ')');
+    check(rows.every(r => r.sideways <= 0 && r.bodyX <= 0 && r.inView && r.footIn && r.down) && rows[0].pfs < rows[1].pfs && rows[0].credit.fs < rows[1].credit.fs,
+      view + ': the note scrolls inside its panel (the arrows scroll it), the panel in the page and nothing sideways, its links and Back in view, its words and the credit bigger with the text size (' + JSON.stringify(rows.map(r => ({ name: r.name, sideways: r.sideways, bodyX: r.bodyX, inView: r.inView, footIn: r.footIn, more: r.more, down: r.down, pfs: r.pfs, cfs: r.credit.fs }))) + ')');
+    check(rows.every(r => r.back && r.step === r.step0 && r.step1 === r.step0),
+      view + ': Esc closes it, the focus back on the credit, and the thing out there no nearer for it (' + JSON.stringify(rows.map(r => ({ back: r.back, steps: [r.step0, r.step, r.step1] }))) + ')');
+  }
+  {
+    const { ctx, page } = await open('desktop', '', saved({}, 1.4));
+    await page.evaluate(() => { const s = TITLE.step; window._noteStep = s; });
+    // the keys: Tab round to it from Begin (Begin, Scores, How to play, Settings, the credit), Enter opens it; Esc; Space opens it
+    await page.evaluate(() => document.querySelector('#overlay button[data-act="begin"]').focus());
+    for (let i = 0; i < 4; i++) await page.keyboard.press('Tab');
+    const k = { tab: await page.evaluate(() => document.activeElement.classList.contains('creditbtn')) };
+    await page.keyboard.press('Enter'); await page.waitForTimeout(200);
+    k.enter = await page.evaluate(() => MENU.kind === 'note');
+    await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+    await page.keyboard.press(' '); await page.waitForTimeout(200);
+    k.space = await page.evaluate(() => MENU.kind === 'note');
+    await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+    // a pad: A on the credit opens it; down scrolls the note (on a short page, where there is more of it); left and right
+    // go round its links and Back; B closes it, the focus back on the credit
+    await page.setViewportSize({ width: 1280, height: 560 }); await page.waitForTimeout(200);
+    await page.evaluate(() => { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; document.querySelector('#overlay .creditbtn').focus(); });
+    const press = async (i, ms) => { await page.evaluate(i => { window._pad.buttons[i].pressed = true; }, i); await page.waitForTimeout(80); await page.evaluate(i => { window._pad.buttons[i].pressed = false; }, i); await page.waitForTimeout(ms || 120); };
+    await press(0, 250);
+    k.padA = await page.evaluate(() => MENU.kind === 'note' && document.activeElement.textContent === 'Back');
+    await press(13, 450);
+    k.padDown = await page.evaluate(() => document.querySelector('.notebody').scrollTop > 0);
+    await press(14);
+    k.padLeft = await page.evaluate(() => document.activeElement.textContent === 'Support me with a coffee');
+    await press(15);
+    k.padRight = await page.evaluate(() => document.activeElement.textContent === 'Back');
+    await press(1, 250);
+    k.padB = await page.evaluate(() => MENU.kind === 'title' && document.activeElement.classList.contains('creditbtn') && TITLE.step === window._noteStep);
+    // a click on the credit, or on anything in the note, is not a click on the dark of the title (which brings it nearer)
+    await page.evaluate(() => { navigator.getGamepads = () => []; });
+    await page.click('#overlay .creditbtn'); await page.waitForTimeout(200);
+    await page.click('#overlay .notebody p'); await page.waitForTimeout(150);
+    await page.click('#overlay .notebody h1'); await page.waitForTimeout(150);
+    k.clicks = await page.evaluate(() => MENU.kind === 'note' && TITLE.step === window._noteStep);
+    await page.click('#overlay button[data-act="back"]'); await page.waitForTimeout(200);
+    k.backBtn = await page.evaluate(() => MENU.kind === 'title' && document.activeElement.classList.contains('creditbtn') && TITLE.step === window._noteStep);
+    await page.mouse.click(640, 120); await page.waitForTimeout(200);
+    k.darkStill = await page.evaluate(() => TITLE.step === window._noteStep + 1);
+    await shot(page, 'note-credit-focused');
+    check(Object.values(k).every(Boolean), 'the credit by the keys (Tab to it, Enter or Space opens the note, Esc closes it) and by a pad (A opens, down scrolls, left and right go round, B closes, the focus back on the credit); clicks on the credit and in the note do not bring the thing nearer, Back neither, a click on the dark still does (' + JSON.stringify(k) + ')');
+    await ctx.close();
+  }
+
   check(!errors.length, 'no page errors in any of it (' + errors.join('; ') + ')');
 }
 

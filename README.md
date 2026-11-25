@@ -1036,7 +1036,14 @@ The title screen is pitch black, with two pale points of eyes a long way off. Th
 with no intro text or list of controls on it: those are in How to play. How to play, Scores and Settings open as
 dialogs over the middle of the view, over what is out there, and it comes on only behind them: each time one closes
 it is a step nearer and more of it shows, until it is close enough to touch, bent down to you with its head sunk
-between its shoulders, where it stays. A faint light straight behind it, one soft round of cold light a little wider
+between its shoulders, where it stays. Under the buttons, in fine print, the credit "created by jason wissman" is one
+underlined control (a button, in the round the arrows, Tab and a pad's d-pad go, as the buttons are; Enter, Space, a
+click or A opens it): it opens the developer's note, a dialog like the others (`MENU` kind `'note'`), the author's note
+in his own words, scrolling inside the panel when it is taller than it (the arrows, Page Up and Page Down, or a pad's
+up and down scroll it while there is more that way; left and right go round its links), with two links out under it,
+See my other projects (jasonwissman.com) and Support me with a coffee (ko-fi.com/jasonwissman), and Back. Every link in
+it opens in a new tab. Esc, B or Back closes it, the focus back on the credit; the note is not the game's, so closing it
+does not bring the thing a step nearer, and the drone goes on as it was. A faint light straight behind it, one soft round of cold light a little wider
 than it is at every step, keeps its edges dark against light, so its outline holds even on a screen whose blacks
 swallow a dark figure. A click on
 the dark of the title does not begin the night: it scuttles at you to where its next step would put it, in plain sight,

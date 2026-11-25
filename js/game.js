@@ -1,6 +1,6 @@
 'use strict';
 // ---------- game state, input, interaction, HUD and the main loop ----------
-const LIST_SCREENS = ['nights', 'settings', 'howto', 'ending', 'results']; // menu screens with their own buttons: not click-anywhere
+const LIST_SCREENS = ['nights', 'settings', 'howto', 'note', 'ending', 'results']; // menu screens with their own buttons: not click-anywhere
 // looking down: enough to see the floor around you without a lurch of the view. A night may look further down (its def's
 // lookDown, in degrees: over the lighthouse rail); this is the one in play, set as each night starts
 let PITCH_DOWN = 45 * DEG;
@@ -1474,7 +1474,7 @@ function pollGamepad() {
     if (G.state === 'play') { if (!(G.L.padUse && G.L.padUse())) gamepadUse('pad'); }
     else { // A presses the focused button or flips the focused switch; only the click-anywhere screens go on with it
       const f = document.activeElement;
-      if (f && (f.tagName === 'BUTTON' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();
+      if (f && (f.tagName === 'BUTTON' || f.tagName === 'A' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();
       else if (!(f && f.tagName === 'INPUT') && !LIST_SCREENS.includes(MENU.kind)) proceed();
     }
   }

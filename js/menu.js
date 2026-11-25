@@ -96,7 +96,14 @@ const MENU = (() => {
         // easter eggs found, to look at, not to pick from) only once a whole run has been finished (scoresOpen)
         return '<div class="kicker">A short horror game</div><h1 class="big">IT\'S COMING</h1>' +
           '<div class="mrow">' + btn('begin', 'Begin', undefined, 'primary') + (scoresOpen() ? btn('nights', 'Scores') : '') + btn('howto', 'How to play') + btn('settings', 'Settings', 'title') + '</div>' +
-          '<p class="fine credit">created by <a href="https://jasonwissman.com" target="_blank" rel="noopener">jason wissman</a></p>';
+          '<p class="fine credit"><button type="button" class="creditbtn" data-act="note" aria-haspopup="dialog">created by jason wissman</button></p>';
+      }
+      case 'note': {
+        // the credit's dialog: the developer's note (its words the author's own, as written: NOTE), scrolling inside the
+        // panel when it is taller than it, and under it, always in view, the two links out and Back
+        const out = (href, label) => '<a class="mbtn mlink" href="' + href + '" target="_blank" rel="noopener">' + label + '</a>';
+        return '<div class="notebody" tabindex="0" role="region" aria-labelledby="noteH"><h1 id="noteH">Developer\'s note:</h1>' + NOTE.map(p => '<p>' + p + '</p>').join('') + '</div>' +
+          '<div class="mrow notefoot"><div class="notelinks">' + out(SITE, 'See my other projects') + out(KOFI, 'Support me with a coffee') + '</div>' + btn('back', 'Back', 'title') + '</div>';
       }
       case 'howto': {
         // the controls as four cards, each the keys you press drawn large over what they do: a keycap for each key, the
@@ -206,7 +213,29 @@ const MENU = (() => {
   // over the title, its sub-screens open as dialogs: a panel over the middle of the view, over what is coming (TITLE),
   // which comes on behind it while it is open
   // (and from the pause menu, Controls and Settings open as the same dialogs, over the night paused behind them)
-  const DIALOGS = ['nights', 'settings', 'howto'];
+  const DIALOGS = ['nights', 'settings', 'howto', 'note'];
+  // the developer's note, opened by the credit under the title (its words as the author wrote them; the two links in it
+  // open in a new tab, as the two buttons under it do)
+  const SITE = 'https://jasonwissman.com', KOFI = 'https://ko-fi.com/jasonwissman';
+  const ext = (href, label) => '<a href="' + href + '" target="_blank" rel="noopener">' + label + '</a>';
+  const NOTE = [
+    'If you can believe it, this game does have a purpose to it, inspired by real experiences in my life. I\'ve had powerful experiences with scary dreams like these, in which I was being pursued by mysterious beings. After several nights of such dreams, in a final dream I will actually confront the creature head-on, only to find it transform into a direct representation of something that had been weighing on me in real life: a friend I hadn\'t texted back, a responsibility I was neglecting, a commitment I had made, etc.',
+    'I could only run, hide, or avoid these things for so long before they caught up to me, and my dreams were literally manifesting those as creatures. Needless to say, they woke me up (literally) to the need to face those things head-on.',
+    'Experiences like this have made me fascinated with the power of dreams, and the importance of listening when our own mind is trying to tell us something.',
+    'If you\'d like to support this project as well as other free games and apps I\'m working on, please feel free to ' + ext(KOFI, 'support me with a coffee') + '!',
+    'And if you\'d like to see what else I have in the works, you can visit my main site at ' + ext(SITE, 'jasonwissman.com'),
+    'Cheers!',
+    '-J',
+  ];
+  // the note's text, scrolled by the arrows (and a pad's up and down) while there is more of it that way: dir -1 up, 1
+  // down. True if it moved
+  function noteScroll(root, dir) {
+    const b = root.querySelector('.notebody'); if (!b) return false;
+    const max = b.scrollHeight - b.clientHeight;
+    if (max <= 1 || (dir < 0 ? b.scrollTop <= 0 : b.scrollTop >= max - 1)) return false;
+    b.scrollBy({ top: dir * Math.max(48, b.clientHeight * 0.6), behavior: SAVE.data.settings.reducedMotion ? 'auto' : 'smooth' });
+    return true;
+  }
   const QUIT_TEXT = 'Are you sure you want to quit? Your progress will be lost.';   // (the pause menu's Quit asks: show)
   const pct = v => Math.round(v * 100) + '%';
   // a slider, its value as a percentage at its right (following it as it moves); name: what it is read out as, when its
@@ -367,10 +396,11 @@ const MENU = (() => {
     const confirm = kind === 'nights' && current.data.confirmReset ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-label="Erase all progress?"><h2>Erase all progress?</h2><p>Every night reached, your best run and the easter eggs found will be gone.</p><div class="mrow">' + btn('keep', 'Cancel') + btn('erase', 'Erase', undefined, 'danger') + '</div></div></div>'
       : kind === 'pause' && current.data.confirmQuit ? '<div class="confirm"><div class="cpanel" role="alertdialog" aria-modal="true" aria-describedby="quitText"><p class="cask" id="quitText">' + QUIT_TEXT + '</p><div class="mrow">' + btn('stay', 'Cancel') + btn('title', 'Quit', undefined, 'danger') + '</div></div></div>' : '';
     const sub = kind === 'settings' && current.data.sub ? ' calp cal-' + current.data.sub : '';   // (Settings' calibration dialogs, in the same panel)
-    showOverlay((dlg ? '<div class="panel ' + kind + 'p' + sub + '" role="dialog" aria-modal="true">' + html(kind, current.data) + '</div>' : html(kind, current.data)) + confirm);
+    showOverlay((dlg ? '<div class="panel ' + kind + 'p' + sub + '" role="dialog" aria-modal="true"' + (kind === 'note' ? ' aria-labelledby="noteH"' : '') + '>' + html(kind, current.data) + '</div>' : html(kind, current.data)) + confirm);
     ov.classList.toggle('dlg', dlg);
     ov.classList.toggle('titlelow', kind === 'title' && TITLE.on);
     ov.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); tapFor(b.dataset.act); act(b.dataset.act, b.dataset.arg); }));
+    ov.querySelectorAll('a[href]').forEach(l => l.addEventListener('click', e => { e.stopPropagation(); tap(); }));   // (a link out: a new tab; the title behind is not clicked)
     ov.querySelectorAll('[role="tab"]').forEach(t => t.addEventListener('click', e => { e.stopPropagation(); if (pickTab(ov, t.dataset.tab)) tap(); }));
     wire(ov);
     if (kind === 'results') toDark(ov);
@@ -380,7 +410,7 @@ const MENU = (() => {
     if (box) box.addEventListener('click', e => { e.stopPropagation(); if (e.target === box) act(kind === 'pause' ? 'stay' : 'keep'); });   // a click off the little dialog backs out of it
     // focus: the first button, or (back from a sub-screen) the button that opened it
     const first = kind === 'settings' ? settingsFocus(ov, current.data) : (!box && current.data.focus && ov.querySelector('button[data-act="' + current.data.focus + '"]')) || (box || ov).querySelector('button[data-act]');
-    if (first && kind !== 'title' && kind !== 'results') first.focus();
+    if (first && (kind !== 'title' || current.data.focus) && kind !== 'results') first.focus();   // (the title: only back to the credit from its note)
     if (kind === 'results') reveal(false);
   }
   // the results are in the dark theme, as the Scores dialog is (the morning's light one is the last screen's only, The
@@ -433,7 +463,7 @@ const MENU = (() => {
   }
   // the keys in a screen of buttons and settings: arrows (and WASD, Tab) move round them; Space and Enter flip a focused
   // switch, left and right move a focused slider or go along a focused row of choices. True if the key was taken
-  function ring(root) { return [...root.querySelectorAll('button[data-act], input[data-set], .seg [role="radio"][aria-checked="true"], [role="tab"][aria-selected="true"]')]; }
+  function ring(root) { return [...root.querySelectorAll('button[data-act], a[href], .notebody, input[data-set], .seg [role="radio"][aria-checked="true"], [role="tab"][aria-selected="true"]')]; }
   function navKey(e, root) {
     const k = e.key, btns = ring(root);
     if (!btns.length) return false;
@@ -455,6 +485,10 @@ const MENU = (() => {
   }
   // a pad's d-pad on a focused slider, row of choices or tab: left and right move it, as the arrow keys do
   function padSlide(f, dir) {
+    if (current && current.kind === 'note') {   // (the note: up and down scroll it, left and right go round its links and Back)
+      const all = ring(UI.overlay), i = all.indexOf(f); if (!all.length) return false;
+      all[(i + (dir === 1 ? -1 : 1) + all.length) % all.length].focus(); return true;
+    }
     if (isRadio(f)) { segStep(f, dir === 1 ? -1 : 1); return true; }
     if (isTab(f)) { tabStep(f, dir === 1 ? -1 : 1); return true; }
     if (!(f && f.tagName === 'INPUT' && f.type === 'range')) return false;
@@ -575,6 +609,7 @@ const MENU = (() => {
       case 'caldone': show('settings', { from: current.data.from, focus: arg }); break;
       case 'calquiet': case 'calloud': case 'ambquiet': case 'ambloud': calPlay(a, UI.overlay); break;
       case 'howto': show('howto', { from: 'title' }); break;
+      case 'note': show('note', { from: 'title' }); break;   // the credit under the title: the developer's note
       case 'resume': resumeGame(); break;
       case 'controls': show('howto', { from: 'pause' }); break;   // the pause menu's Controls: How to play, as on the title
       case 'retry': startLevel(G.levelIndex, false); break;
@@ -590,7 +625,8 @@ const MENU = (() => {
       case 'erase': SAVE.reset(); G.run = null; setMuted(false); applyAll(); showTitle(); break;
       case 'back': {
         const from = arg || 'title', was = current && current.kind;
-        if (from === 'title' && G.state === 'title') { show('title'); TITLE.advance(); }   // closing a dialog over the title: it came on while it was open
+        if (from === 'title' && G.state === 'title' && was === 'note') show('title', { focus: 'note' });   // (the note is not the game's: the title as it was, the focus back on the credit)
+        else if (from === 'title' && G.state === 'title') { show('title'); TITLE.advance(); }   // closing a dialog over the title: it came on while it was open
         else if (from === 'title') showTitle();
         else if (from === 'pause') show('pause', { focus: was === 'howto' ? 'controls' : was === 'nights' ? 'nights' : 'settings' });   // focus back on what opened it
         else showTitle();
@@ -606,12 +642,20 @@ const MENU = (() => {
     const k = e.key;
     const root = UI.overlay.querySelector('.confirm') || UI.overlay;   // sliders and switches are in the ring too; a dialog over them keeps it to its own
     if (!ring(root).length) return false;
+    if (current.kind === 'note' && root === UI.overlay) {   // the note: up and down (and Page Up, Page Down) scroll it while there is more that way
+      const d = k === 'ArrowUp' || k === 'w' || k === 'PageUp' ? -1 : k === 'ArrowDown' || k === 's' || k === 'PageDown' ? 1 : 0;
+      if (d && noteScroll(root, d)) { if (e.preventDefault) e.preventDefault(); return true; }
+      if (k === ' ' && document.activeElement && document.activeElement.classList.contains('notebody')) { if (noteScroll(root, e.shiftKey ? -1 : 1)) return true; }
+    }
+    // Space presses the credit, and the note's links and Back, as Enter does (the page keeps Space from them: game.js)
+    const fa = document.activeElement;
+    if (k === ' ' && fa && root.contains(fa) && (fa.classList.contains('creditbtn') || (current.kind === 'note' && (fa.tagName === 'BUTTON' || fa.tagName === 'A')))) { if (!e.repeat) fa.click(); return true; }
     if (navKey(e, root)) return true;
     const idx = ring(root).indexOf(document.activeElement);
     if (k === 'Escape' && current.kind === 'nights' && current.data.confirmReset) { act('keep'); return true; }
     if (k === 'Escape' && current.kind === 'pause' && current.data.confirmQuit) { act('stay'); return true; }
     if (k === 'Escape' && current.kind === 'settings' && current.data.sub) { act('caldone', current.data.sub === 'volume' ? 'calvol' : 'calbright'); return true; }
-    if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings' || current.kind === 'howto')) { act('back', current.data.from); return true; }
+    if (k === 'Escape' && (current.kind === 'nights' || current.kind === 'settings' || current.kind === 'howto' || current.kind === 'note')) { act('back', current.data.from); return true; }
     if (k === 'Enter' && idx >= 0) return true;   // the focused button handles it
     if (root !== UI.overlay) return true;   // a little dialog asking: no key goes past it (not Enter with nothing focused, to resume behind it)
     return false;
