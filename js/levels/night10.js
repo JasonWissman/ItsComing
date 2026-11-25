@@ -273,7 +273,7 @@ LEVELS.push({
       const uMax = 1 - Math.pow((c.catchDist + 1.5) / c.D0, 1 / c.gamma); c.u = clamp(c.u + WRONG, c.u, Math.max(c.u, uMax)); c.hitched = true;
       G.shake(0.25);
       for (let i = 0; i < 3; i++) setTimeout(() => { if (G.state === 'play') AUDIO.footstep('smiler', 0.45, 0); }, 120 + i * 150);
-      G.say('Not the odd mirror: the notes come out wrong and the crank sticks, and in the glass its face has changed. Behind you something takes three quick steps. It will not stand for that twice.', 'The notes come out wrong. Behind you something takes three quick steps. It will not stand for that twice.');
+      G.say('Not the odd mirror. It will not stand for that twice.', 'It will not stand for that twice.');
     };
     // The second time the box plays wrong (before the same wrong mirror or another; on any difficulty) it has had enough,
     // and the night is over at once: the wrong notes are the death's sting, the crank sticks and the box jumps, and in that

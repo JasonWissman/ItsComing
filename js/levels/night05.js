@@ -856,7 +856,7 @@ LEVELS.push({
       c.hits++; c.hurtFlash = 0.35; c.arrows.push(c.hits);
       AUDIO.sfx('thunk', panOf(c)); G.shake(0.08);
       if (c.hits === 1) {
-        CREATURES.runner.hurt(c); G.toast('It went down. It is getting back up.');
+        CREATURES.runner.hurt(c); G.toast('It went down.');
         // no second arrow while it lies there: a draw begun too soon after the first hit comes back slower, so that it is
         // full only once the thing has got up and run about a little (s.again; one already coming back is slowed the same)
         const D = CREATURES.runner.DOWN, d = G.draw;
@@ -897,7 +897,7 @@ LEVELS.push({
         const d = Math.hypot(vamp.x, vamp.z);
         fly({ from, to: () => [vamp.x, vamp.y + 1.1, vamp.z], arc: 0.01 * d, dur: 0.05 + d / 80, done: () => {
           s.vampHits++; CLEARING_VAMPIRE.struck(vamp); AUDIO.sfx('thunk', clamp(Math.sin(wrapPi(Math.atan2(vamp.x, vamp.z) - G.cam.yaw)), -0.85, 0.85)); G.shake(0.05);
-          G.say('It staggers, and comes on. An arrow will not stop it.', 'It staggers, and comes on.');
+          G.say('An arrow will not stop it.', '');
         } });
         return;
       }
