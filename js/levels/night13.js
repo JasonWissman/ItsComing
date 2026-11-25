@@ -18,15 +18,17 @@
 const VOID_TOOLS = [
   ['hammer', 'Hammer', 0.42, 0.42], ['planks', 'Planks', 1.0, 0.7], ['salt', 'Salt', 0.34, 0.42], ['lantern', 'Lantern', 0.3, 0.44], ['cup', 'Paper cup', 0.2, 0.2],
   ['chain', 'Chain', 0.6, 0.6], ['padlock', 'Padlock', 0.22, 0.26], ['bow', 'Bow', 1.25, 0.3], ['arrows', 'Arrows', 0.8, 0.24], ['lamp', 'Lamp', 0.34, 0.5],
-  ['fuse', 'Fuse', 0.34, 0.34], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['lifering', 'Life ring', 0.7, 0.7], ['journal', 'Notebook', 0.2, 0.26], ['bulb', 'Bulb', 0.2, 0.3],
+  ['fuse', 'Fuse', 0.34, 0.34], ['keys', 'Car keys', 0.2, 0.2], ['musicbox', 'Music box', 0.34, 0.34], ['lifering', 'Life ring', 0.7, 0.7], ['journal', 'Notebook', 0.2, 0.26], ['toolbox', 'Toolbox', 0.46, 0.4],
 ];
 // each looks as it did on its own night, at about the size it was there (those nights define their own icons; the lamp
-// is the story's, js/icons.js)
-const VOID_ICONS = { keys: 'carkeys', chain: 'coiledchain', journal: 'notebook', cup: 'paperCup', lifering: 'lifeRing' };
+// is the story's, js/icons.js); the lighthouse's toolbox shut, to be carried by its handle (js/levels/night07.js)
+const VOID_ICONS = { keys: 'carkeys', chain: 'coiledchain', journal: 'notebook', cup: 'paperCup', lifering: 'lifeRing', toolbox: 'lighthouseToolboxShut' };
 // and is held as it was there (js/hands.js: what its own icon would be held as; the void draws them all through a wrapper of
 // its own), and a few as they are carried here: the arrows in a fist round their shafts, the coil of chain a little smaller,
-// the notebook by its edge; the cup and the life ring as the diner and the boathouse have them held, the lamp by its stem
+// the notebook by its edge; the cup and the life ring as the diner and the boathouse have them held, the lamp by its stem,
+// the toolbox hanging from its handle
 const VOID_HELD = {
+  toolbox: { grip: 'hang', at: [0, 0.95], axis: Math.PI / 2, size: 0.25 },
   arrows: { grip: 'fist', at: [0.06, 0.5], axis: Math.PI / 2, angle: -0.55, size: 0.36 },
   chain: { size: 0.28 },
   journal: { grip: 'pinch', at: [0.36, 0.42], angle: 0.18 },
@@ -134,7 +136,7 @@ LEVELS.push({
       const a = (along + room[k] / 2) / all * TAU + 0.2, r = ringR + (k % 2) * 0.5;
       along += room[k];
       const own = ICONS[VOID_ICONS[id] || id], held = Object.assign(G.heldSpec({ id, w, h, flat: true, icon: own }), VOID_HELD[id]);
-      mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(own), held, tool: id === 'bow' || id === 'hammer', uses: id === 'arrows' ? 3 : 1, material: id === 'lifering' ? 'soft' : undefined });   // (the ring lands as the soft thing it is: js/hands.js materialOf)
+      mkItem(L, id, name, { x: Math.sin(a) * r, y: 0, z: Math.cos(a) * r, flat: true }, { w, h, flat: true, icon: onVoidFloor(own), held, tool: id === 'bow' || id === 'hammer', uses: id === 'arrows' ? 3 : 1, material: id === 'lifering' ? 'soft' : id === 'toolbox' ? 'metal' : undefined });   // (the ring lands as the soft thing it is, the toolbox as steel: js/hands.js materialOf)
     });
     // put down, a thing lands where you put it unless it would lie over something else, when it goes the least way to the
     // side, nearer or further that clears it. Everything lies as a card facing you, so two overlap where their widths
@@ -877,27 +879,27 @@ const voidTake = k => VOID_EGG.show * k + (VOID_EGG.take - VOID_EGG.show) * Math
 const voidSets = n => { let t = VOID_EGG.first; for (let i = 0; i < n; i++) { const k = VOID_EGG.pace[i]; t += VOID_EGG.every * k + voidTake(k) - VOID_EGG.take * k; } return t; };
 // who takes what: one thing each, the thing of its own night, in the order of their nights (the hammer that boarded the
 // field's windows, the road's car keys, the graveyard's lantern, the quarry's chain, the clearing's arrows, the boathouse's
-// life ring, the lighthouse's bulb, the diner's cup, the notebook from the phone booth, the mirror maze's music box, the
+// life ring, the lighthouse's toolbox, the diner's cup, the notebook from the phone booth, the mirror maze's music box, the
 // farm's fuse, the bedroom's lamp). The other four of the sixteen (the planks, the salt, the padlock, the bow) are no one's.
 // b, r: its place among them (its bearing from the north, radians, and how far off); near: how near it comes for its
 // thing (the doll, low, not so near: nearer, it is under the view and the take is not seen; the crawler, as low, stands
 // up for it: CRAWLER_UP);
 // at: where it carries it, in the hand it took it with ([x, y] from its feet, in its own drawing; the turn of the thing;
-// its size, 1 by default): the walker in its fist, the crawler in its mouth, the warden hung on the hook of his staff
+// its size, 1 by default): the walker in its fist, the crawler in its right hand, the warden hung on the hook of his staff
 // (where a lantern would hang), the stone one in a raised hand, the runner in the hand it crouches on, the climber in a
 // claw, the shade at the end of its long arm, the carrier clutched to its front, the tall one in a hand held out before
 // it; up: where it holds it while it is still close to you, where that is not where it will carry it (its hands are
 // higher there, or under the view); own: its own drawing has it (the doll carries the box in its arms, as it carried it
 // off; the swimmer wears the ring, as it wore the one thrown to it on its own night; the customer has the cup in its
-// hand as it had its soda at the diner's fountain); hop: how high it leaps (metres)
+// hand as it had its soda at the diner's fountain; the crawler has the keys in its fist, closed over their ring: c.clutch); hop: how high it leaps (metres)
 const VOID_OTHERS = [
   { type: 'walker', takes: 'hammer', b: -0.165, r: 7, near: 1.9, up: [-0.58, 2.06, 0.3], at: [-0.38, 1.75, 0.3], hop: 0.34 },
-  { type: 'crawler', takes: 'keys', b: -0.258, r: 5.5, near: 1.9, at: [0, 0.5, 0], hop: 0.3 },
+  { type: 'crawler', takes: 'keys', b: -0.258, r: 5.5, near: 1.9, at: [0.72, 0.4, 0], hop: 0.3, own: true },
   { type: 'smiler', takes: 'lantern', b: 0.258, r: 5.5, near: 1.5, at: [-0.25, 1.34, 0], hop: 0.26 },
   { type: 'watcher', takes: 'chain', b: 0.537, r: 7, near: 1.8, at: [0.6, 1.5, 0], hop: 0.3 },
   { type: 'runner', takes: 'arrows', b: -0.63, r: 5.5, near: 1.7, up: [0.5, 1.02, 1.05], at: [0.5, 0.42, 1.3], hop: 0.44 },
   { type: 'swimmer', takes: 'lifering', b: 0.444, r: 5.5, near: 1.9, at: [0, -0.3, 0], hop: 0.26, own: true },
-  { type: 'climber', takes: 'bulb', b: -0.537, r: 7, near: 1.6, at: [0.47, 1.86, 0], hop: 0.36 },
+  { type: 'climber', takes: 'toolbox', b: -0.537, r: 7, near: 1.6, up: [0.34, 1.15, 0], at: [0.34, 0.87, 0], hop: 0.36, own: true },
   { type: 'customer', takes: 'cup', b: -0.351, r: 7, near: 1.7, at: [0.255, 1.17, 0], hop: 0.3, own: true },
   { type: 'signalman', takes: 'journal', b: 0.351, r: 7, near: 1.9, at: [0.42, 2.0, 0], hop: 0.32 },
   { type: 'other', takes: 'musicbox', b: -0.444, r: 5.5, near: 2.2, at: [0, 0.72, 0], hop: 0.3, own: true },
@@ -905,9 +907,12 @@ const VOID_OTHERS = [
   { type: 'tall', takes: 'lamp', b: 0.165, r: 7, near: 1.9, at: [-0.36, 1.73, 0], hop: 0.3 },
 ];
 // the crawler, there: it is up on its hind legs from rear[0] to rear[1] after it arrives (its pace times those), and down
-// on all fours again from drop[0] to drop[1] after it is off (it holds the keys up a beat before that, standing); its
-// mouth, standing, is so high (where the keys are, in its mouth, and on all fours its `at`)
-const CRAWLER_UP = { rear: [-0.05, 0.3], drop: [0, 0.35], mouth: 1.66 };
+// on all fours again from drop[0] to drop[1] after it is off (it holds the keys up a beat before that, standing). Its
+// right hand reaches out from reach[0] after it arrives to where your hand holds them up as it takes them (`take`), and
+// is there, standing, at `hand` ([x, y] from its feet: out to its side at its chest); it closes on them as they come into
+// it, and has them there, and on all fours carries them up off the ground in that hand (its `at`, less the keys' drop
+// from the fist to their middle)
+const CRAWLER_UP = { rear: [-0.05, 0.3], drop: [0, 0.35], reach: 0.15, hand: [0.92, 1.22], fours: [0.78, 0.5] };
 // the frolic: where they may run (metres from you: v ahead, to the north; u to the right of that): from v0 to v1 ahead,
 // within `wedge` of that either side (so in the view, looking north); no nearer you than `you`; clear of the big tree
 // ([u, v, how far]), the swimmer's pool (`water`: how far its water reaches), the heap of the robe and one another; how fast each goes (metres a second; with
@@ -1020,14 +1025,21 @@ function buildGathering(L, s, c0, K) {
     walker(c, q, o) { o.poseDist = q.joy > 0.01 ? lerp(o.r, 2.2, q.joy * (1 - 0.6 * q.run)) : 0; },   // (its arms come up as they do when it is close)
     // the crawler scurries up on all fours, and low as it is, its head would be under the view: so there it rears up (as it
     // stood up in the road on its own night: js/creatures/crawler.js, struck, the shapes it goes through getting up, from
-    // all fours to up on its hind legs, its head up at you and its mouth open), takes the keys in its mouth standing, holds
-    // them a beat, and drops onto all fours again as it is off with them (CRAWLER_UP); the keys go up and down in its mouth
+    // all fours to up on its hind legs, its head up at you and its mouth open), reaches out its right hand for the keys
+    // and takes them in it, standing, holds them up a beat, and drops onto all fours again as it is off with them, carrying
+    // them in that hand up off the ground (CRAWLER_UP; c.clutch: its own drawing has its hand there, and the keys in it)
     crawler(c, q, o) {
       c.mode = q.joy > 0.5 ? 'scuttle' : 'pause'; c.modeT = 1; c.runPose = !!o.side; c.runDir = o.face; c.runGait = c.gait;
       const U = CRAWLER_UP, k = q.k, e = o.fro || q.joy > 0 ? 0 : span(q.u, q.R1 + U.rear[0] * k, q.R1 + U.rear[1] * k) * (1 - span(q.u, q.off + U.drop[0] * k, q.off + U.drop[1] * k));
       c.struck = e > 0 ? { stage: 'look', along: 1, y: 0, spin: 0, fl: 0, down: 0, up: e, tw: 0, hang: 0, look: e } : null;
-      if (o.low === undefined) o.low = o.at[1];
-      o.at = [0, lerp(o.low, U.mouth, smoothstep((e - 0.2) / 0.7)), 0];
+      // (where its hand is: out at its side standing, and low in front of it on all fours, as far over as it is up)
+      const up = smoothstep(clamp((e - 0.15) / 0.75, 0, 1)), hx = lerp(U.fours[0], U.hand[0], up), hy = lerp(U.fours[1], U.hand[1], up) + 0.14 * o.lift;
+      const it = o.item, h = it.h, f = o.fly, has = !!o.held;
+      // reaching for them from when your hand holds them up until it has them; closing on them as they come into it
+      const reach = has ? 1 : o.took || o.shown ? smoothstep(clamp((q.u - q.R1 - U.reach * k) / Math.max(0.05, voidTake(k) - U.reach * k), 0, 1)) : 0;
+      const shut = has ? 1 : f ? smoothstep(clamp(f.t / (VOID_EGG.pass * k), 0, 1)) : 0;
+      c.clutch = o.threw === null && (reach > 0 || has) ? { x: hx, y: hy, k: reach, shut, item: has ? (ctx, P) => it.icon(ctx, P) : null, h } : null;
+      o.at = [hx, hy - 0.2 * h, 0];   // (the keys' middle, hanging by their ring from the fist: where they fly to, and are thrown from)
     },
     smiler(c, q) { c.rush = q.joy; },
     watcher(c, q, o) {   // stone: it stands in one pose, and is in another each time it comes down
@@ -1053,7 +1065,12 @@ function buildGathering(L, s, c0, K) {
       }
       c.lunge = k; c.yOff = lift * smoothstep(k) * (1 - 0.62 * dip);
     },
-    climber(c, q, o) { c.lunge = 0.75 + 0.25 * Math.max(q.near, q.joy); c.cheer = o.cheer; c.squash = o.squash; },   // (its own drawing takes the squash and its arms up: js/creatures/climber.js)
+    // (its own drawing takes the squash and its arms up; and the toolbox, once it has it, hanging from its right claw shut
+    // through the handle: js/creatures/climber.js, c.carry)
+    climber(c, q, o) {
+      c.lunge = 0.75 + 0.25 * Math.max(q.near, q.joy); c.cheer = o.cheer; c.squash = o.squash;
+      const it = o.held; c.carry = it ? { item: (ctx, P) => it.icon(ctx, P), w: it.w, h: it.h, at: 0.95 } : null;
+    },
     customer(c, q, o) {
       c.runPose = !!o.side; c.runTurn = 1; c.runAmt = 1; c.runDir = o.face; c.runGait = c.gait; c.shove = q.joy > 0.01 ? { k: q.joy * (1 - 0.5 * q.run), h: 2.3, up: q.hop < 0 ? 0 : Math.sin(Math.PI * q.hop) } : null;
       // its cup: its right hand goes out for it, and has it, at its chest (up a little as it looks at it), as it had its
