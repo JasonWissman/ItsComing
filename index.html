@@ -47,7 +47,7 @@
   #secret .stx { min-width: 0; display: flex; flex-direction: column; text-wrap: balance; }
   #secret .sl { color: rgba(207,200,186,.72); font-style: italic; font-size: min(calc(12px * var(--text-scale)), 15px); letter-spacing: .04em; }
   #secret .sc { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: pre; }   /* (the ": " between them, for a reader that reads it out; the two are on lines of their own) */
-  #secret .st { font-size: min(calc(21px * var(--text-scale)), 26px); letter-spacing: .01em; }
+  #secret .st { font-size: min(calc(21px * var(--text-scale)), 29px); line-height: 1.1; letter-spacing: .01em; }
   @media (prefers-reduced-motion: reduce) { #secret, #secret.show { transform: translate(-50%, 0); transition: opacity .4s, visibility 0s; } }
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }

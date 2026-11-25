@@ -2426,7 +2426,7 @@ const hoverHit = lookFor;
           'an easter egg found for the first time, ' + what + ': kept in the save, and said there and then, while the night is played: "' + v.text + '", its title large (larger than the line of words under the compass), the note sliding down from above the top of the view, with its three notes (secretFound) and no caption (' + JSON.stringify({ a, shown: v.shown }) + ')');
         await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-play-' + tag + '.png') });
       }
-      await sp.evaluate(() => secretHide());
+      await sp.evaluate(() => secretHide()); await sp.waitForTimeout(650);   // (slid away again before the next is found)
     }
     check(rows.every(v => v.shown && v.inside && Math.abs(v.mid) <= 1 && v.high && !v.over.length && v.pe === 'none' && v.notHit && !v.inHud && /toast/.test(v.seen) && /caption/.test(v.seen) && /mute|menuBtn/.test(v.seen)),
       'the note ' + what + ': at the top in the middle, over the compass, in the page; the line of words under the compass, the caption in its corner and the corner controls all clear of it, at every text size; it takes no click (' + JSON.stringify(rows.map(v => [v.ts, v.box, v.over, v.seen])) + ')');
