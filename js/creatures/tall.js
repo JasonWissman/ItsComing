@@ -242,8 +242,26 @@ CREATURES.tall = {
     const raise = smoothstep(near * 0.8) * (1 - duck);
     const grip = (c.gripY === undefined ? 0.7 : c.gripY) / K;   // the edge of the bed, where its hands take hold
     let late = null;
+    // the head, bent under the frame and turned to you; leaning out round an edge it tips over that way; flinching it turns
+    // from the light; down there it holds still, peering up
+    const still = free * (1 - peer) * (1 - duck);
+    let tilt = -0.3 * Math.cos(Math.PI * t / 2.7) * still * (1 - grabK) * (1 - 0.55 * bow) + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) * free - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35;
+    if (drawn) drawn.tilt = tilt;
+    // (the tooth fairy's head bowed to look down at what it holds: down, and tipped toward the hand it holds out)
+    if (lookK) tilt -= F.side * 0.14 * lookK;
+    const headX = hx + F.side * 0.03 * lookK * (1 - cupK), headY = hy - 0.07 * lookK;
+    // the tooth fairy's arms, drawn apart from it (nearer than the bed), go behind its head: nothing of them is drawn
+    // over its head and its eyes
+    if (part === 'arms' && fy) {
+      ctx.beginPath(); ctx.rect(-9, -9, 18, 99);
+      ctx.save(); ctx.translate(headX, headY); ctx.rotate(tilt); ctx.scale(hs * hk, hs * hk); ctx.moveTo(0.13, 0.34); ctx.ellipse(0, 0.34, 0.13, 0.2, 0, 0, TAU); ctx.restore();
+      ctx.clip('evenodd');
+    }
     // (right in front of you its hands are on you, out of sight either side)
     const showArms = part === 'arms' || !(c.armsApart && (grabK > 0 || bow > 0)) && !c.close;
+    // (the tooth fairy's hands are its long hands as they take hold of the covers, as big: fairyHand; on the end of the
+    // bed they are that much nearer you than its feet)
+    const hcol = fy ? P.col(this.HAND, this.DARK) : body, restK = lerp(1, R0 / Math.max(0.5, R0 - 0.4), bow);
     for (const s of [-1, 1]) {
       // (each arm's root at its shoulder: bowed in, tucked in under the corner of the shoulders and inside the slope of its
       // side below them, so an arm drawn apart from the body, nearer, always meets it)
@@ -251,7 +269,10 @@ CREATURES.tall = {
       let ex = s * lerp(0.28, 0.62, raise), ey = lerp(1.6, 1.9, raise) - lean * 0.1 - st * 0.25;
       let px = s * lerp(0.3, 0.5, raise), py = lerp(0.85, 2.35, raise) - lean * 0.1 * raise - st * 0.2;
       let ang = lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), spread = lerp(0.16, 0.32, raise), len = 0.24 + raise * 0.06;
+      // (the tooth fairy's hand: how far open, which side its thumb is on, how big)
+      let hOpen = 0.6, hTh = -s, hK = 1;
       const mix = (k, e2, f2, p2, q2, a2, sp2, l2) => { ex = lerp(ex, e2, k); ey = lerp(ey, f2, k); px = lerp(px, p2, k); py = lerp(py, q2, k); ang = lerp(ang, a2, k); spread = lerp(spread, sp2, k); len = lerp(len, l2, k); };
+      const hand = (k, o2, t2, k2) => { hOpen = lerp(hOpen, o2, k); hTh = lerp(hTh, t2, k); hK = lerp(hK, k2, k); };
       if (duck > 0) mix(duck, s * 0.52, Math.max(0.3, topC * 0.75), s * 0.36, 0.05, -Math.PI / 2 + s * 0.5, 0.2, 0.2);
       // crawling: the hand on this side goes with the foot on the other, lifted, brought on and put down flat again
       if (crawlK > 0) { const cl = Math.max(0, Math.sin(crawlPh + (s > 0 ? 0 : Math.PI))), sl = Math.cos(crawlPh + (s > 0 ? 0 : Math.PI)); py += cl * 0.1 * crawlK; px += s * sl * 0.05 * crawlK; ey += cl * 0.12 * crawlK; ex += s * cl * 0.04 * crawlK; }
@@ -262,20 +283,25 @@ CREATURES.tall = {
       if (flinch > 0 && s === (c.flinchSide || 1)) mix(flinch, s * 0.46, tp + 0.05, -s * 0.06, hy + 0.36, s > 0 ? Math.PI * 0.95 : Math.PI * 0.05, 0.22, 0.26);
       // up over the edge of the bed: the hands on it, wide apart, the fingers hooked over onto the covers
       if (reach > 0) mix(reach, s * 0.66, grip - 0.42, s * 0.4, grip, -Math.PI / 2 + s * 0.2, 0.13, 0.17);
-      // the tooth fairy, bowed in: the hand that is not held out to you is down on the end of the bed
-      if (bow > 0 && s !== F.side) mix(bow, s * (sw + 0.14), lerp(sy, grip, 0.55), s * 0.34, grip, -Math.PI / 2 + s * 0.2, 0.13, 0.17);
-      // its hands together, cupped round the tooth in front of its chest; and then flung out wide, the fingers spread
-      if (cupK > 0) mix(cupK, s * (sw + 0.05), tp - 0.36, s * 0.05, tp - 0.3, Math.PI / 2, 0.1, 0.12);
-      if (fling > 0) mix(fling, s * (sw + 0.34), tp + 0.06, s * 1.12, tp + 0.2, s > 0 ? 0.25 : Math.PI - 0.25, 0.42, 0.3);
+      // the tooth fairy, bowed in: the hand that is not held out to you is down on the end of the bed, flat on it, the
+      // long fingers toward you
+      if (bow > 0 && s !== F.side) { mix(bow, s * (sw + 0.14), lerp(sy, grip, 0.55), s * 0.36, grip + 0.05, -Math.PI / 2 + s * 0.12, 0.13, 0.17); hand(bow, 0.4, -s, restK); }
+      // its hands together, cupped round the tooth in front of its chest (the fingers curled over toward each other, the
+      // thumbs up); and then flung out wide, the fingers spread, the palms to you (each hand turned in toward the other,
+      // and then up and out: the same way round on both sides)
+      if (cupK > 0) { mix(cupK, s * (sw + 0.05), tp - 0.36, s * 0.14, tp - 0.3, s > 0 ? -Math.PI * 1.15 : Math.PI * 0.15, 0.1, 0.12); hand(cupK, 0, -s, 1); }
+      if (fling > 0) { mix(fling, s * (sw + 0.34), tp + 0.06, s * 1.12, tp + 0.2, s > 0 ? 0.25 - TAU : Math.PI - 0.25, 0.42, 0.3); hand(fling, 1, s, 1); }
       const arm = () => {
         if (grabK > 0) { this.grabArm(ctx, s, sx, sy, px, py, grabK, R0, E, body); return; }
-        if (offer > 0.01 && s === F.side) { this.offerArm(ctx, s, sx, sy, px, py, fy, offer, bowS, body, P); return; }
-        P_limb(ctx, [[sx, sy], [ex, ey], [px, py]], 0.065, body);
+        if (offer > 0.01 && s === F.side) { this.offerArm(ctx, s, sx, sy, px, py, fy, offer, bowS, hcol, P, { ang, open: hOpen, th: hTh, k: hK }); return; }
         if (drawn) drawn.hands.push([px, py], [ex, ey]);
-        if (cupK > 0.6) {   // cupped: the palm curled round, the fingers closed over toward the other hand
-          P_ell(ctx, px + s * 0.012, py, 0.062, 0.07, body); P_ell(ctx, px - s * 0.035, py + 0.035, 0.04, 0.03, body);
+        if (fy) {   // the tooth fairy's: the forearm thickening a little to the wrist of its long hand
+          P_limb(ctx, [[sx, sy], [ex, ey]], 0.065, body);
+          this.taper(ctx, ex, ey, 0.0325, px, py, 0.022 * this.HAND_K / K * hK, hcol);
+          this.fairyHand(ctx, px, py, ang, hK, hTh, hOpen, hcol, 0);
           return;
         }
+        P_limb(ctx, [[sx, sy], [ex, ey], [px, py]], 0.065, body);
         fingers(ctx, px, py, ang, spread, len, 0.02, body);
         if (reach > 0.3 || bow > 0.3) P_ell(ctx, px, py + 0.01, 0.06, 0.045, body);   // the back of the hand, knuckles up
       };
@@ -284,15 +310,8 @@ CREATURES.tall = {
       if (flinch > 0.02 && s === (c.flinchSide || 1)) late = arm; else arm();
     }
     if (part === 'arms') { ctx.restore(); return; }
-    // the head, bent under the frame and turned to you; leaning out round an edge it tips over that way; flinching it turns
-    // from the light; down there it holds still, peering up
-    const still = free * (1 - peer) * (1 - duck);
-    let tilt = -0.3 * Math.cos(Math.PI * t / 2.7) * still * (1 - grabK) * (1 - 0.55 * bow) + (0.35 * 0.18 + 0.1 * lean) * (1 - peer) * (1 - duck) * free - peer * ps * 0.5 + flinch * (c.flinchSide || 1) * 0.35;
-    if (drawn) drawn.tilt = tilt;
     if (peer > 0) P_line(ctx, sway * 0.6, tp - 0.04, hx, hy + 0.06, 0.09, body);   // the neck, stretched out round the edge
-    // (the tooth fairy's head bowed to look down at what it holds: down, and tipped toward the hand it holds out)
-    if (lookK) tilt -= F.side * 0.14 * lookK;
-    ctx.save(); ctx.translate(hx + F.side * 0.03 * lookK * (1 - cupK), hy - 0.07 * lookK);
+    ctx.save(); ctx.translate(headX, headY);
     // right in front of you its head twitches, for a moment, hard and fast
     const tw = c.close && c.twitchT !== undefined ? c.twitchT : -1;
     if (tw >= 0 && tw < U.twitch - U.cut) {
@@ -333,6 +352,37 @@ CREATURES.tall = {
     if (late) late();
     ctx.restore();
   },
+  // One of its long hands: the hands that take hold of the covers (night 12 draws those, drawGrip, as does the Creature
+  // Lab), and the tooth fairy's. In metres (as big as it is), about the middle of the back of the hand, the fingers down
+  // (toward you, lying on the cloth), the wrist up: the long fingers spread straight (open 1) or bent down at the knuckle
+  // and their tips curled back under (open 0); th: the side the thumb is on (+1, -1, or between as the hand turns over).
+  // palm (0..1): how much it is turned palm up to you, its hollow a little less dark than the rest of it. It is drawn
+  // HAND_K times as big as it is (the night's hands on the covers are), and the wrist meets an arm at (WRIST) from it
+  HAND: [10, 9, 12], HAND_K: 1.3, WRIST: [0, 0.06],
+  hand(ctx, th, open, col, palm) {
+    P_line(ctx, -th * 0.006, 0.06, 0, 0.01, 0.05, col);   // the wrist
+    P_ell(ctx, 0, 0, 0.05, 0.032, col);                    // the back of the hand (or its palm)
+    for (let i = 0; i < 4; i++) {
+      const x0 = (i - 1.5) * 0.022, l = (i === 0 || i === 3 ? 0.07 : 0.088) * (1 + 0.15 * open);
+      const mid = [lerp(x0 * 1.1, x0 * 1.3, open), -0.01 - l * lerp(0.42, 0.5, open)], tip = [lerp(x0 * 1.0 - th * 0.004, x0 * 1.7, open), -0.01 - l * lerp(0.3, 1.0, open)];
+      P_limb(ctx, [[x0, -0.01], mid, tip], 0.013, col);
+      if (open < 0.5) P_ell(ctx, mid[0], mid[1], 0.009, 0.007, col);   // the bent knuckle
+    }
+    P_limb(ctx, [[th * 0.045, 0], [th * lerp(0.045, 0.08, open), -0.03], [th * lerp(0.03, 0.085, open), -lerp(0.05, 0.07, open)]], 0.013, col);   // the thumb
+    if (palm > 0.01) {   // palm up: its hollow, softly, and the creases where the fingers start
+      const g = ctx.createRadialGradient(0, -0.004, 0, 0, -0.004, 0.04);
+      g.addColorStop(0, rgba([34, 31, 40], 0.9 * palm)); g.addColorStop(0.6, rgba([26, 24, 31], 0.5 * palm)); g.addColorStop(1, rgba([26, 24, 31], 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -0.004, 0.042, 0.027, 0, 0, TAU); ctx.fill();
+    }
+  },
+  // one of its hands where the tooth fairy holds it (drawn units): its wrist at (x, y), the fingers pointing along ang,
+  // k times as big as it is drawn there for being nearer you (as the hands on the covers are drawn)
+  fairyHand(ctx, x, y, ang, k, th, open, col, palm) {
+    const g = this.HAND_K / this.SCALE * k;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang + Math.PI / 2); ctx.scale(g, g); ctx.translate(-this.WRIST[0], -this.WRIST[1]);
+    this.hand(ctx, th, open, col, palm);
+    ctx.restore();
+  },
   // a limb that is nearer you at one end than the other: w0 wide at (x0, y0), w1 at (x1, y1), its end rounded
   taper(ctx, x0, y0, w0, x1, y1, w1, col) {
     const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
@@ -344,16 +394,17 @@ CREATURES.tall = {
   // (px, py). The hand is open, palm up, seen from a little above: the long fingers toward you, a little spread, the thumb
   // out to the side; f.tooth: the tooth lying in the palm, small and pale with a faint glow round it, and drawn a little
   // larger the further off the hand is, so it can still be made out lying there as it steps back
-  offerArm(ctx, s, sx, sy, px, py, f, k, bowS, col, P) {
-    const a = smoothstep(k), H = f.hand || [s * 0.6, 0.6], sc = lerp(1, f.handK || 3, a), X = lerp(px, H[0], a), Y = lerp(py, H[1], a);
-    const msc = (bowS + sc) / 2, MX = lerp(sx, X, 0.5) + s * 0.13 * msc * a, MY = lerp(sy, Y, 0.5) - 0.08 * msc * a;   // the elbow: out to the side, and low
-    this.taper(ctx, sx, sy, 0.033 * bowS, MX, MY, 0.033 * msc, col); this.taper(ctx, MX, MY, 0.033 * msc, X, Y + 0.02 * sc, 0.027 * sc, col);
-    ctx.save(); ctx.translate(X, Y); ctx.scale(sc, sc);
-    P_ell(ctx, 0, 0, 0.066, 0.044, col);                                                    // the palm
-    P_line(ctx, s * 0.05, 0.008, s * 0.125, 0.03, 0.022, col);                             // the thumb, out to the side
-    P_ell(ctx, 0, 0.004, 0.046, 0.027, P.raw([25, 23, 31]));                                // the hollow of it: the palm is up
-    // its fingers: out toward you, long, a little spread
-    fingers(ctx, 0, -0.016, -Math.PI / 2 + s * 0.08, 0.34, 0.135, 0.021, col);
+  // (h: how that hand is held where it hung: { ang, open, th, k }, as fairyHand has them; it turns over from the one to
+  // the other as it comes in)
+  offerArm(ctx, s, sx, sy, px, py, f, k, bowS, col, P, h) {
+    const a = smoothstep(k), H = f.hand || [s * 0.6, 0.6], sc = lerp(h.k, f.handK || 3, a), X = lerp(px, H[0], a), Y = lerp(py, H[1], a);
+    // the hand: open, palm up, seen from a little above, the long fingers out toward you, a little spread, the thumb out
+    // to the side (its middle, where the tooth lies, at X, Y); its wrist behind it
+    const ang = lerp(h.ang, -Math.PI / 2 + s * 0.06, a), g = this.HAND_K / this.SCALE * sc, wr = this.WRIST[1] * g, WX = X - Math.cos(ang) * wr * a, WY = Y - Math.sin(ang) * wr * a;
+    const msc = (bowS + sc) / 2, MX = lerp(sx, WX, 0.5) + s * 0.13 * msc * a, MY = lerp(sy, WY, 0.5) - 0.08 * msc * a;   // the elbow: out to the side, and low
+    this.taper(ctx, sx, sy, 0.033 * bowS, MX, MY, 0.033 * msc, col); this.taper(ctx, MX, MY, 0.033 * msc, WX, WY, 0.022 * g, col);
+    this.fairyHand(ctx, WX, WY, ang, sc, lerp(h.th, s, a), lerp(h.open, 0.85, a), col, a);
+    ctx.save(); ctx.translate(WX + Math.cos(ang) * wr, WY + Math.sin(ang) * wr); ctx.scale(sc, sc);
     if (f.tooth) {   // the tooth in it
       const z = clamp(2.6 / sc, 1, 2.2), pale = P.raw([236, 230, 212]), gl = ctx.createRadialGradient(0, 0.006, 0, 0, 0.006, 0.03 * z);
       gl.addColorStop(0, rgba([240, 234, 214], 0.28)); gl.addColorStop(1, rgba([240, 234, 214], 0));
@@ -440,6 +491,88 @@ CREATURES.tall = {
       wing(this.WING.fore, smoothstep(k / 0.8), sd > 0 ? 0 : 0.6);
       ctx.restore();
     }
+  },
+  // The cloud of its dust as its wings beat (the tooth fairy's: night 12 draws it, and the Creature Lab), qd seconds
+  // after it burst up, about where it stood (metres: x across, y up), wide and tall enough for all of it, wings and all:
+  // it billows up round it as the wings sweep (dense seconds: then nothing behind it shows through), holds a moment, and
+  // thins away (clear: from, to), in the time T gives (the night's), or CLOUD's.
+  // It is nothing but soft puffs of glittering haze, of many sizes and of the wings' colours made pale, each solid in
+  // its middle (or not at all) and fading out to nothing at its edge (puffOf: one drawn once for each colour and kept),
+  // laid over one another (puffs, made once): the big ones at its heart (core), whose solid middles together cover all
+  // of it at its height, so that nothing of it shows through; through them billows softly shadowed, lit and tinged, so
+  // it is uneven all through; round them the billows of its edge, lighter, rolling outward and curling as it billows;
+  // and wisps drawn out from its edge, trailing off. Each comes up a moment after the one inside it as it bursts up,
+  // and thins away in its own time, the edge first, so that it breaks up and drifts apart as it goes. With motion
+  // reduced (rm) it hardly drifts and nothing curls; with flashes reduced (steady) nothing in it flickers.
+  // (It is all soft, so it is drawn small, on a canvas of its own kept for it, CLOUD.px a metre over all the room it can
+  // drift out into (box), and laid over the view in one: a few dozen puffs drawn full size over the view each frame
+  // would cost far more. It moves slowly, so it is drawn again only every CLOUD.every seconds.)
+  CLOUD: { y: 1.5, dense: 0.2, clear: [0.6, 3.05], px: 24, box: [-7, -0.5, 14, 6.5], every: 1 / 30 },
+  puffOf(col, solid) {   // (a puff: solid out to `solid` of its radius, and fading smoothly to nothing)
+    const P = this.puffCache || (this.puffCache = {}), key = col.join() + '/' + solid;
+    if (P[key]) return P[key];
+    const N = 64, cv = document.createElement('canvas'); cv.width = cv.height = N;
+    const g = cv.getContext('2d'), gr = g.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2);
+    gr.addColorStop(0, rgba(col, 1)); if (solid > 0) gr.addColorStop(solid, rgba(col, 1));
+    for (let i = 1; i <= 8; i++) { const u = i / 8, a = Math.pow(1 - smoothstep(u), 1.6); gr.addColorStop(solid + (1 - solid) * u, rgba(col, a)); }
+    g.fillStyle = gr; g.fillRect(0, 0, N, N);
+    return (P[key] = cv);
+  },
+  puffs() {
+    if (this.puffList) return this.puffList;
+    const rnd = mulberry32(4421), out = [], Y = this.CLOUD.y;
+    const pale = [[212, 204, 238], [230, 212, 226], [202, 212, 240], [226, 220, 210], [208, 226, 230], [220, 206, 240]];
+    const tint = [[214, 196, 250], [255, 214, 232], [186, 222, 255], [255, 232, 196], [200, 246, 232], [232, 200, 255]];
+    // its heart: three rows of big puffs, solid through the middle, from the floor to over its wings
+    [[0.85, [-1.4, -0.5, 0.45, 1.35]], [1.6, [-1.35, -0.45, 0.45, 1.4]], [2.35, [-1.3, -0.4, 0.5, 1.3]]].forEach(([y, xs], j) => xs.forEach((x, i) => {
+      out.push({ kind: 'core', x: x + (rnd() - 0.5) * 0.2, y: y + (rnd() - 0.5) * 0.15, r: 1.35 + rnd() * 0.3, solid: 0.52, col: pale[(i + j * 2) % pale.length], a: 1,
+        dx: x * 0.05, dy: 0.06 + rnd() * 0.06, curl: 0.06 + rnd() * 0.05, w: 0.5 + rnd() * 0.4, ph: rnd() * TAU, at: 0.02 * Math.hypot(x, y - Y), off: rnd() * 0.8, stretch: 1, rot: 0 });
+    }));
+    // through it, billows: softly shadowed, lit, and tinged with the wings' colours
+    const shade = [[150, 140, 192], [172, 160, 206], [140, 150, 196]], lit = [[255, 248, 255], [250, 252, 255]];
+    for (let i = 0; i < 26; i++) {
+      const kd = i % 3, x = (rnd() * 2 - 1) * 2.0, y = 0.6 + rnd() * 2.1;
+      out.push({ kind: 'body', x, y, r: 0.35 + rnd() * 0.5, solid: kd === 0 ? 0.25 : 0, col: kd === 0 ? shade[i % shade.length] : kd === 1 ? lit[i % lit.length] : tint[i % tint.length], a: kd === 0 ? 0.3 + rnd() * 0.2 : 0.22 + rnd() * 0.18,
+        dx: x * 0.08, dy: 0.05 + rnd() * 0.08, curl: 0.12 + rnd() * 0.1, w: 0.5 + rnd() * 0.5, ph: rnd() * TAU, at: 0.03 + 0.05 * rnd(), off: 0.1 + rnd() * 0.7, stretch: 1, rot: 0 });
+    }
+    // its billowing edge, all the way round, and wisps trailing off it
+    for (let i = 0; i < 30; i++) {
+      const a = (i / 30) * TAU + (rnd() - 0.5) * 0.3, e = 0.85 + rnd() * 0.35, ca = Math.cos(a), sa = Math.sin(a);
+      out.push({ kind: 'edge', x: ca * 2.35 * e, y: Y + sa * 1.45 * e, r: 0.4 + rnd() * 0.5, solid: 0.38, col: i % 3 ? pale[i % pale.length] : tint[i % tint.length], a: 0.55 + rnd() * 0.35,
+        dx: ca * (0.18 + rnd() * 0.22), dy: sa * 0.12 + 0.07, curl: 0.1 + rnd() * 0.1, w: 0.6 + rnd() * 0.6, ph: rnd() * TAU, at: 0.05 + 0.08 * rnd(), off: -0.2 + rnd() * 0.6, stretch: 1, rot: 0 });
+    }
+    for (let i = 0; i < 12; i++) {
+      const a = rnd() * TAU, ca = Math.cos(a), sa = Math.sin(a);
+      out.push({ kind: 'wisp', x: ca * 2.7, y: Y + sa * 1.7, r: 0.38 + rnd() * 0.3, solid: 0, col: tint[i % tint.length], a: 0.22 + rnd() * 0.2,
+        dx: ca * (0.35 + rnd() * 0.3), dy: sa * 0.18 + 0.1, curl: 0.16 + rnd() * 0.1, w: 0.4 + rnd() * 0.4, ph: rnd() * TAU, at: 0.12 + 0.1 * rnd(), off: -0.6 + rnd() * 0.5, stretch: 2.2 + rnd(), rot: a + Math.PI / 2 + (rnd() - 0.5) * 0.6 });
+    }
+    return (this.puffList = out);
+  },
+  dustCloud(out, qd, rm, steady, T) {
+    if (qd < 0) return;
+    const C = this.CLOUD, B = C.box, key = rm + '/' + steady;
+    if (!this.cloudCv) { this.cloudCv = document.createElement('canvas'); this.cloudCv.width = B[2] * C.px; this.cloudCv.height = B[3] * C.px; }
+    const at = this.cloudAt;
+    if (!at || at.key !== key || qd < at.qd || qd - at.qd >= C.every - 1e-6) { this.cloudAt = { qd, key }; this.puffsOn(this.cloudCv, qd, rm, steady, T || C); }
+    out.save(); out.imageSmoothingEnabled = true; out.drawImage(this.cloudCv, B[0], B[1], B[2], B[3]); out.restore();
+  },
+  puffsOn(cv, qd, rm, steady, T) {
+    const C = this.CLOUD, B = C.box, S = C.px, ctx = cv.getContext('2d'), c0 = T.clear[0], cl = T.clear[1] - T.clear[0], drift = Math.max(0, qd - T.dense) * (rm ? 0.3 : 1);
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const p of this.puffs()) {
+      // up out of the middle as it bursts (each a moment after the ones inside it), and thinning away in its own time
+      const up = smoothstep((qd - p.at) / Math.max(0.12, T.dense - p.at)), thin = 1 - smoothstep((qd - c0 - p.off * cl * 0.5) / (cl * (p.kind === 'core' ? 0.9 : 0.75)));
+      const a = p.a * up * thin * (steady || p.kind === 'core' ? 1 : 0.88 + 0.12 * Math.sin(qd * p.w * 2.4 + p.ph));
+      if (a <= 0.004) continue;
+      const grow = lerp(0.5, 1, up) * (1 + (p.kind === 'core' ? 0.05 : 0.14) * drift), cu = rm ? 0 : p.curl * Math.min(1, qd / 0.6);
+      const x = p.x * lerp(0.6, 1, up) + p.dx * drift + cu * Math.cos(qd * p.w + p.ph), y = C.y + (p.y - C.y) * lerp(0.6, 1, up) + p.dy * drift + cu * Math.sin(qd * p.w * 0.8 + p.ph);
+      const r = p.r * grow;
+      // (metres, y up the rows: laid over the view the right way up)
+      ctx.globalAlpha = Math.min(1, a); ctx.setTransform(S, 0, 0, S, (x - B[0]) * S, (y - B[1]) * S);
+      if (p.stretch !== 1) { ctx.rotate(p.rot + (rm ? 0 : 0.15 * Math.sin(qd * p.w + p.ph))); ctx.scale(p.stretch, 1); }
+      ctx.drawImage(this.puffOf(p.col, p.solid), -r, -r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1;
   },
   // one arm shooting out at you, its hand open, and taking hold (k: 0..1): from its shoulder (sx, sy) and where its hand
   // was (px, py), drawn units, to a hand's breadth from your face, low at that side. The hand is drawn where it is seen in

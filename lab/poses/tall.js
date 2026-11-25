@@ -91,15 +91,7 @@
       P_ell(ctx, 0, 0.074, 0.055 + 0.02 * bunch, 0.004 + 0.012 * bunch, fold);
       P_ell(ctx, 0, 0.078, 0.05 + 0.02 * bunch, 0.003 + 0.009 * bunch, ridge);
     }
-    P_line(ctx, sd * 0.006, hy + 0.06, 0, hy + 0.01, 0.05, col);
-    P_ell(ctx, 0, hy, 0.05, 0.032, col);
-    for (let i = 0; i < 4; i++) {
-      const x0 = (i - 1.5) * 0.022, l = (i === 0 || i === 3 ? 0.07 : 0.088) * (1 + 0.15 * open);
-      const mid = [lerp(x0 * 1.1, x0 * 1.3, open), hy - 0.01 - l * lerp(0.42, 0.5, open)], tip = [lerp(x0 * 1.0 + sd * 0.004, x0 * 1.7, open), hy - 0.01 - l * lerp(0.3, 1.0, open)];
-      P_limb(ctx, [[x0, hy - 0.01], mid, tip], 0.013, col);
-      if (open < 0.5) P_ell(ctx, mid[0], mid[1], 0.009, 0.007, col);
-    }
-    P_limb(ctx, [[-sd * 0.045, hy], [-sd * lerp(0.045, 0.08, open), hy - 0.03], [-sd * lerp(0.03, 0.085, open), hy - lerp(0.05, 0.07, open)]], 0.013, col);
+    ctx.save(); ctx.translate(0, hy); CR.hand(ctx, -sd, open, col, 0); ctx.restore();   // (its own long hand, as the tooth fairy's are)
   }
   const REST = { k: 0, drag: 0, open: 0, lift: 0, bunch: 0.3 };
   // the foot of the bed in front of it, and its hands up over the edge onto the covers (as night 12 draws them): reaching,
@@ -243,18 +235,12 @@
   };
   // a snap (night 12's spring): there in a frame or two, a little past, and back
   const spring = u => (u <= 0 ? 0 : 1 - Math.exp(-6 * u) * Math.cos(9 * u));
-  // its dust (a sketch of night 12's): a dense glittering cloud billowing up round it, thick enough at its height to hide
-  // all of it, thinning away; and sparks thrown out from where it stood, drifting down, twinkling, dying away
+  // its dust (night 12's own cloud, and a sketch of its sparks): a dense glittering cloud billowing up round it, thick
+  // enough at its height to hide all of it, thinning away; and sparks thrown out from where it stood, drifting down,
+  // twinkling, dying away
   const dust = (ctx, c, P) => {
     const q = c.dustT || 0;
-    const ck = q < 0 ? 0 : smoothstep(q / 0.22) * (1 - smoothstep((q - 0.6) / 2.45));
-    if (ck > 0.004) {
-      const grow = lerp(0.55, 1, smoothstep(q / 0.3));
-      ctx.save(); ctx.translate(0, 1.5); ctx.scale(2.6 * grow, 1.75 * grow);
-      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-      g.addColorStop(0, rgba([240, 230, 252], ck)); g.addColorStop(0.5, rgba([214, 200, 242], ck)); g.addColorStop(0.86, rgba([188, 176, 230], ck)); g.addColorStop(1, rgba([170, 160, 224], 0));
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.restore();
-    }
+    CR.dustCloud(ctx, q, false, false);   // (the cloud itself: night 12's, the tall one's own)
     if (q > 0) for (let i = 0; i < 70; i++) {
       const a = i * 2.399, r = 0.25 + 1.1 * ((i * 37) % 100) / 100, e = 1 - Math.exp(-q * 2.4), life = 1.6 + ((i * 53) % 100) / 50;
       const x = Math.cos(a) * r * (0.5 + 0.6 * e), y = 1.45 + Math.sin(a) * r * 0.75 * (0.5 + 0.6 * e) - 0.1 * q - 0.022 * q * q, al = (1 - smoothstep((q - life * 0.45) / (life * 0.55))) * (0.5 + 0.5 * Math.sin(q * (3 + i % 5) + i));
@@ -329,7 +315,7 @@
             wings: on ? clamp(spring(qs / 0.4) * 1.6, 0, 1) : 0, pop: on ? lerp(0.55, 1, clamp(spring(qs / 0.4), 0, 1.15)) : 1, beat: 1 + (qb > 0.3 ? 0.045 * Math.sin(qb * 47) * Math.sin(qb * 13 + 0.7) : 0) });
         } },
       { name: 'One great beat, and gone in its dust', note: 'One great beat of its wings (swept shut and thrown open, with a whoosh), and as they sweep a cloud of fairy dust bursts up round it, so thick that nothing of it shows through, and it is gone behind it; the cloud thins and drifts away, sparks of gold and rose and blue drifting down and dying away. (The night then floats a dollar bill down onto the bed.)',
-        dist: FAIRY.back, dur: 5, fit: { h: 2.7, w: 4.4 }, front: dust,
+        dist: FAIRY.back, dur: 5, fit: { h: 4.2, w: 8 }, front: dust,
         tick(c, k, dt, T) {
           const shut = smoothstep((T - 0.5) / 0.3), open = smoothstep((T - 0.8) / 0.12);
           fairyPose(c, { held: 1, fling: 1, eyes: 1, shimmer: 1, wings: 1, beat: lerp(lerp(1, 0.12, shut), 1.35, open), gone: smoothstep((T - 0.85) / 0.12) });
