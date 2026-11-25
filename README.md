@@ -884,15 +884,19 @@ some on the ground, so you have to turn and look down to find them.
     you (5 m off or more) before the next, set out at 2.2 s, is within 4 m (quicker, all of
     that by its pace). There is never more than one of them near you. The crawler scurries up
     on all fours, and, low as it is, rears up there onto its hind legs as it did in the road on
-    its own night (its head up at you, mouth open, in the view), takes the keys in its mouth
-    standing, holds them a beat and drops onto all fours again as it is off with them. One thing each, the thing of its own night: the walker
-    the hammer (in its raised fist), the crawler the car keys (in its mouth), the warden the
+    its own night (its head up at you, mouth open, in the view), reaches out its right hand
+    for the keys, closes it on them and has them in it, standing, holds them a beat and
+    drops onto all fours again as it is off with them, carrying them in that hand up off
+    the ground. One thing each, the thing of its own night: the walker
+    the hammer (in its raised fist), the crawler the car keys (in its right hand), the warden the
     lantern (hung on the hook of his staff, where a lantern would hang), the stone one the
     chain (never seen to move: it is nearer all at once, three times, has the chain in a
     raised hand all at once, and goes back a pose at a time), the runner the arrows, the
     swimmer the life ring (it skims in, only its head above the black floor, and bursts up
     out of it; it wears the ring round its chest and rides higher in it, as it did the one
-    thrown to it on its own night; a pool of its own lies round it), the climber the bulb,
+    thrown to it on its own night; a pool of its own lies round it), the climber the
+    lighthouse's toolbox (shut, as it lies in the void, and carried by its handle, hanging
+    from its claw),
     the customer the paper cup (in its right hand, as it held its soda at the diner's
     fountain), the shade the notebook (at the end of its long arm), the doll the music box
     (in its arms, as it carried it off), the carrier the fuse (clutched to its front), and
@@ -925,16 +929,20 @@ some on the ground, so you have to turn and look down to find them.
     after 0.14 s going that way so it does not flicker; and the five that have a side-on run
     of their own (the crawler, the runner, the doll, the carrier and the customer) are drawn
     by it, facing the way they go, while they run mostly across your view, and front on
-    coming toward you or going away. The walker, the warden, the climber, the shade, the
-    tall one and the thing in the hood keep their front-on drawing, mirrored (the stone one
-    and the swimmer do not run). Every eight to twelve seconds each stops to leap on the spot a few seconds
+    coming toward you or going away. The walker, the warden, the shade, the tall one and the
+    thing in the hood keep their front-on drawing, mirrored (the stone one, the swimmer and
+    the climber do not run: the climber goes back to its own spot at the back of the meadow
+    and leaps up and down on it). Every eight to twelve seconds each stops to leap on the spot a few seconds
     and is off again. The thing in the hood, in its shirt and shorts, skips about among them,
     kicking and hopping, and stops to dance; its robe stays in a heap where it fell. The
     stone one is never seen to move: every second or two it is somewhere else in the meadow,
     all at once, in another pose. The swimmer keeps to its pool, and every five seconds
-    ducks under and bursts up out of it again with a splash. They keep to the meadow in
-    front of you (3.6 to 12 m off, within the view looking north), never nearer you than
-    3 m, and clear of the big tree, the pool, the robe and one another; what they threw
+    ducks under and bursts up out of it again with a splash. They run all the way round
+    you (from one place to the next 4 to 12 m off in an arc round you, a third of the way
+    round or so at a time, now one way round and now the other, so whichever way you turn
+    some of them come running through there), never nearer you than 3 m and never across
+    where you stand, and clear of the big tree, the pool, the climber's spot, the robe and
+    one another (the stone one, too, is somewhere all round you); what they threw
     stays on the grass. From there it is the ending as it always is: the view is yours, a press
     goes on (they all fade, glittering, as the bedroom comes), the last screen, The End,
     the results, the campaign complete. With reduced motion each comes slower and from

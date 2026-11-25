@@ -44,9 +44,16 @@ CREATURES.crawler = {
     ctx.fillStyle = skin;
     ctx.beginPath(); ctx.moveTo(-0.44, 0.26); ctx.bezierCurveTo(-0.4, 1.02 + j(5), 0.4, 1.02 + j(6), 0.44, 0.26); ctx.closePath(); ctx.fill();
     for (let i = 0; i < 6; i++) { const a = -0.35 + i * 0.14; P_ell(ctx, a, 0.88 - Math.abs(a) * 1.15 + j(7 + i) * 0.5, 0.035, 0.028, skinD); }
-    // front arms: elbows above the back
+    // front arms: elbows above the back (the right one, holding something, up off the ground with it: c.clutch)
     for (const s of [-1, 1]) {
       const hx = s * 0.6 + j(10 + s);
+      if (s > 0 && c.clutch) {
+        const q = [0.28, 0.6, 0.64 + j(8 + s), 0.98 + j(9 + s), hx, 0.02, 0.35];
+        this.clutchArm(q, 0, c.clutch, (x, y) => [x, y], 0);
+        P_limb(ctx, [[q[0], q[1]], [q[2], q[3]], [q[4], q[5]]], 0.075, skin);
+        this.hand(ctx, q[4], q[5], q[6], c.clutch.shut || 0, 0.16, 0.022, skin, c.clutch, P);
+        continue;
+      }
       P_limb(ctx, [[s * 0.28, 0.6], [s * 0.64 + j(8 + s), 0.98 + j(9 + s)], [hx, 0.02]], 0.075, skin);
       fingers(ctx, hx, 0.02, s > 0 ? 0.35 : Math.PI - 0.35, 0.4, 0.16, 0.022, skin);
     }
@@ -196,15 +203,51 @@ CREATURES.crawler = {
   // a sway of the trunk, the arms and the head from side to side; and (up and walking: drawUp) ox, oy, the hips shifted,
   // and tilt, the trunk leaned over about its hips, the roots of its limbs and its head going with it, the knees, feet,
   // elbows and hands staying where q has them. p: as struck has it (up, look, hang, tw, spin; open, how wide the mouth is)
+  // A thing in its hand (night 13, the Void: the car keys, taken from yours): c.clutch = { x, y, k, shut, item, h } puts its
+  // right hand (on your right) at x, y (metres from its feet, as it is drawn: on all fours, or up on its hind legs), k of
+  // the way there from where that hand would be (0..1: reaching out for it), the hand open (shut 0) or closed on it
+  // (shut 1); item(ctx, P), if given, is drawn in that hand, h metres high and as wide, by the ring at the top of it (the
+  // fist over it). Its arm keeps its lengths (ik): the elbow goes where they put it.
+  clutchArm(q, i, cl, rootAt, s) {
+    const k = cl.k === undefined ? 1 : cl.k;
+    if (k <= 0) return;
+    const r = rootAt(q[i], q[i + 1]), l1 = Math.hypot(q[i + 2] - q[i], q[i + 3] - q[i + 1]), l2 = Math.hypot(q[i + 4] - q[i + 2], q[i + 5] - q[i + 3]);
+    // (the elbow bent the way it was: of the two places it could go, the nearer where it is)
+    const tx = lerp(q[i + 4], cl.x - s, k), ty = lerp(q[i + 5], cl.y, k), A = this.ik(r[0], r[1], tx, ty, l1, l2, 1), B = this.ik(r[0], r[1], tx, ty, l1, l2, -1);
+    const J = Math.hypot(A[0] - q[i + 2], A[1] - q[i + 3]) <= Math.hypot(B[0] - q[i + 2], B[1] - q[i + 3]) ? A : B;
+    q[i + 2] = J[0]; q[i + 3] = J[1]; q[i + 4] = J[2]; q[i + 5] = J[3];
+    q[i + 6] = Math.atan2(J[3] - J[1], J[2] - J[0]);   // (the fingers on along the forearm)
+  },
+  // its hand at x, y, the forearm coming in at angle a: open, the fingers spread on along it; shut, a fist (the knuckles,
+  // the fingers curled back round under it) round whatever is in it, drawn between its palm and its fingers
+  hand(ctx, x, y, a, shut, len, w, col, cl, P) {
+    if (shut <= 0.02 && !(cl && cl.item)) { fingers(ctx, x, y, a, 0.37, len, w, col); return; }
+    const sp = lerp(0.37, 0.16, shut), l0 = lerp(len, len * 0.5, shut);
+    P_ell(ctx, x, y, 0.05 + 0.012 * shut, 0.045 + 0.01 * shut, col);   // the palm
+    if (cl && cl.item && cl.k >= 0.999) {
+      const h = cl.h || 0.2;
+      ctx.save(); ctx.translate(x, y - 0.012); ctx.scale(h, h); ctx.translate(0, -0.7); cl.item(ctx, P); ctx.restore();   // (held by its ring, the rest hanging under the fist)
+    }
+    for (let n = 0; n < 4; n++) {   // each finger out and, shut, hooked back round over what is in the hand
+      const f = a + (n - 1.5) * sp, l = l0 * ((n === 0 || n === 3) ? 0.82 : 1), mx = x + Math.cos(f) * l, my = y + Math.sin(f) * l, b = f + Math.PI * 0.72 * shut * Math.sign(Math.cos(a) || 1);
+      P_limb(ctx, [[x, y], [mx, my], [mx + Math.cos(b) * l * 0.8 * shut, my + Math.sin(b) * l * 0.8 * shut]], w * (1 + 0.4 * shut), col);
+    }
+    if (shut > 0.4) P_ell(ctx, x + Math.cos(a) * l0 * 0.55, y + Math.sin(a) * l0 * 0.55, 0.045, 0.04, col);   // the knuckles
+  },
   body(ctx, q, p, c, P, o) {
     const t = c.t, lit = c.lit || 0;
     const skinC = mixc([84, 78, 72], [118, 111, 103], lit), skin = P.col(skinC), skinD = P.col(scalec(skinC, 0.56)), dark = P.col([34, 26, 29]), mouthC = P.col([12, 6, 8]);
     const sx = o.sx || 0, ox = o.ox || 0, oy = o.oy || 0, tl = o.tilt || 0, cs = Math.cos(tl), sn = Math.sin(tl), b0 = q[0], b1 = q[1], hw = q[2];
     const tf = (x, y) => [ox + x * cs - (y - b0) * sn, oy + b0 + x * sn + (y - b0) * cs];
     const j = (k, f) => Math.sin(t * f + k * 2.1);
+    const cl = c.clutch;
+    if (cl) this.clutchArm(q, 27, cl, tf, sx);
     ctx.save();
     if (p.spin) { ctx.translate(0, 0.42); ctx.rotate(p.spin); ctx.translate(0, -0.42); }
-    const limb = (i, w, col, fl, fw, s) => { const r = tf(q[i], q[i + 1]); P_limb(ctx, [[r[0] + s, r[1]], [q[i + 2] + s, q[i + 3]], [q[i + 4] + s, q[i + 5]]], w, col); fingers(ctx, q[i + 4] + s, q[i + 5], q[i + 6], 0.37, fl, fw, col); };
+    const limb = (i, w, col, fl, fw, s) => {
+      const r = tf(q[i], q[i + 1]); P_limb(ctx, [[r[0] + s, r[1]], [q[i + 2] + s, q[i + 3]], [q[i + 4] + s, q[i + 5]]], w, col);
+      if (cl && i === 27) this.hand(ctx, q[i + 4] + s, q[i + 5], q[i + 6], cl.shut || 0, fl, fw, col, cl, P); else fingers(ctx, q[i + 4] + s, q[i + 5], q[i + 6], 0.37, fl, fw, col);
+    };
     limb(6, 0.07, skinD, 0.13, 0.02, 0); limb(13, 0.07, skinD, 0.13, 0.02, 0);
     // its shoulders: from each arm's root in toward the middle of the trunk and down, thick, under the trunk's edge (drawn
     // before it), so the arm comes out of the body wherever the trunk is narrow at the top, leans, hitches or sways; the

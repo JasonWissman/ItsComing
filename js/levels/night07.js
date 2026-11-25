@@ -34,6 +34,22 @@ Object.assign(ICONS, {
     P_rect(ctx, -0.07, 0.36, 0.14, 0.14, metal); P_rect(ctx, -0.03, 0.4, 0.06, 0.05, dark);      // the latch, hanging open
     ctx.restore();
   },
+  // the same toolbox shut, its lid down and latched, carried by the steel handle folded up over the lid (night 13, the
+  // Void: what the climber takes): the red body with its dark bands and corner straps, the lid's ridge, the latch at
+  // the front, the handle's grip at the top of the drawing
+  lighthouseToolboxShut(ctx, P) {
+    const col = [172, 36, 30], c = P.col(col), d = P.col(scalec(col, 0.62)), metal = P.col([150, 146, 138]), metalD = P.col([96, 94, 90]), dark = P.col([10, 9, 9]);
+    const edge = P.col(mixc(col, [255, 248, 236], 0.45)), lid = P.col(mixc(col, [255, 248, 236], 0.12));
+    P_rect(ctx, -0.5, 0, 1, 0.6, c); P_rect(ctx, -0.5, 0, 1, 0.06, d); P_rect(ctx, -0.5, 0.5, 1, 0.05, d);
+    for (const x of [-0.5, 0.42]) P_rect(ctx, x, 0, 0.08, 0.6, metal);                           // corner straps
+    P_poly(ctx, [[-0.5, 0.6], [0.5, 0.6], [0.45, 0.76], [-0.45, 0.76]], lid);                    // the lid, shut
+    P_rect(ctx, -0.45, 0.72, 0.9, 0.04, d); P_rect(ctx, -0.5, 0.58, 1, 0.035, edge);              // its ridge, and the rim where it shuts
+    P_rect(ctx, -0.07, 0.44, 0.14, 0.2, metal); P_rect(ctx, -0.03, 0.5, 0.06, 0.06, dark);        // the latch, shut
+    // the handle: two steel lugs on the lid and the bar between them, its black grip at the top
+    P_rect(ctx, -0.3, 0.74, 0.06, 0.12, metalD); P_rect(ctx, 0.24, 0.74, 0.06, 0.12, metalD);
+    P_line(ctx, -0.27, 0.84, -0.22, 0.95, 0.045, metal); P_line(ctx, 0.27, 0.84, 0.22, 0.95, 0.045, metal);
+    P_line(ctx, -0.22, 0.95, 0.22, 0.95, 0.07, P.col([34, 32, 32])); P_line(ctx, -0.2, 0.97, 0.2, 0.97, 0.015, P.col([80, 78, 76]));
+  },
   // a screwdriver, spilled from the toolbox as it goes down the wall
   lighthouseScrewdriver(ctx, P) {
     P_line(ctx, -0.05, 0.45, 0.4, 0.92, 0.05, P.col([150, 150, 158]));

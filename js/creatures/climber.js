@@ -308,6 +308,15 @@ CREATURES.climber = {
       const el = climbJoint(sho, hd, CLIMB.arm, [s * 0.8, -0.2, 0.55]);
       P_limb(ctx, [P2(sho), P2(el), P2(hd)], 0.07, grey);
       const open = clamp(Math.max(L.lift * 1.6, slip, lunge), 0, 1), hs = (1 + L.lift * 0.35) * (1 + lunge * 1.4);
+      // (carrying a thing by its handle, night 13's toolbox: c.carry = { item(ctx, P), w, h, at }, the handle at `at` up
+      // the drawing of it; in its right hand, the claw turned down and shut through the handle, the thing hanging under it)
+      const cy = c.carry;
+      if (cy && s > 0) {
+        const len = 0.19 * hs * 0.62, g = P2([hd[0], hd[1] - len, hd[2]]);
+        ctx.save(); ctx.translate(g[0], g[1]); ctx.scale(cy.w, -cy.h); ctx.translate(0, -cy.at); cy.item(ctx, P); ctx.restore();
+        claw(hd, s, -1, 0, hs * 0.62, 4, 0.19, 0.03, grey);
+        continue;
+      }
       claw(hd, s, 1, open, hs, 4, 0.19, 0.024, grey);
     }
     // the head, bent right back on a stretched neck so the face is turned up to you, its brow out from the wall and its
