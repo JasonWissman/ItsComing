@@ -91,15 +91,7 @@
       P_ell(ctx, 0, 0.074, 0.055 + 0.02 * bunch, 0.004 + 0.012 * bunch, fold);
       P_ell(ctx, 0, 0.078, 0.05 + 0.02 * bunch, 0.003 + 0.009 * bunch, ridge);
     }
-    P_line(ctx, sd * 0.006, hy + 0.06, 0, hy + 0.01, 0.05, col);
-    P_ell(ctx, 0, hy, 0.05, 0.032, col);
-    for (let i = 0; i < 4; i++) {
-      const x0 = (i - 1.5) * 0.022, l = (i === 0 || i === 3 ? 0.07 : 0.088) * (1 + 0.15 * open);
-      const mid = [lerp(x0 * 1.1, x0 * 1.3, open), hy - 0.01 - l * lerp(0.42, 0.5, open)], tip = [lerp(x0 * 1.0 + sd * 0.004, x0 * 1.7, open), hy - 0.01 - l * lerp(0.3, 1.0, open)];
-      P_limb(ctx, [[x0, hy - 0.01], mid, tip], 0.013, col);
-      if (open < 0.5) P_ell(ctx, mid[0], mid[1], 0.009, 0.007, col);
-    }
-    P_limb(ctx, [[-sd * 0.045, hy], [-sd * lerp(0.045, 0.08, open), hy - 0.03], [-sd * lerp(0.03, 0.085, open), hy - lerp(0.05, 0.07, open)]], 0.013, col);
+    ctx.save(); ctx.translate(0, hy); CR.hand(ctx, -sd, open, col, 0); ctx.restore();   // (its own long hand, as the tooth fairy's are)
   }
   const REST = { k: 0, drag: 0, open: 0, lift: 0, bunch: 0.3 };
   // the foot of the bed in front of it, and its hands up over the edge onto the covers (as night 12 draws them): reaching,

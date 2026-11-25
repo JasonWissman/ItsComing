@@ -982,28 +982,20 @@ LEVELS.push({
         P_ell(ctx, 0, 0.074, 0.055 + 0.02 * bunch, 0.004 + 0.012 * bunch, fold);
         P_ell(ctx, 0, 0.078, 0.05 + 0.02 * bunch, 0.003 + 0.009 * bunch, ridge);
       }
-      P_line(ctx, sd * 0.006, hy + 0.06, 0, hy + 0.01, 0.05, col);   // the wrist
-      P_ell(ctx, 0, hy, 0.05, 0.032, col);                            // the back of the hand
-      for (let i = 0; i < 4; i++) {
-        const x0 = (i - 1.5) * 0.022, l = (i === 0 || i === 3 ? 0.07 : 0.088) * (1 + 0.15 * open);
-        // spread: long and straight, splayed; closed: bent down at the knuckle and the tips curled back under, into the cloth
-        const mid = [lerp(x0 * 1.1, x0 * 1.3, open), hy - 0.01 - l * lerp(0.42, 0.5, open)], tip = [lerp(x0 * 1.0 + sd * 0.004, x0 * 1.7, open), hy - 0.01 - l * lerp(0.3, 1.0, open)];
-        P_limb(ctx, [[x0, hy - 0.01], mid, tip], 0.013, col);
-        if (open < 0.5) P_ell(ctx, mid[0], mid[1], 0.009, 0.007, col);   // the bent knuckle
-      }
-      P_limb(ctx, [[-sd * 0.045, hy], [-sd * lerp(0.045, 0.08, open), hy - 0.03], [-sd * lerp(0.03, 0.085, open), hy - lerp(0.05, 0.07, open)]], 0.013, col);   // the thumb
+      // the hand itself, its back up, the thumb in toward the other: its own long hand (the tooth fairy's are the same)
+      ctx.save(); ctx.translate(0, hy); CREATURES.tall.hand(ctx, -sd, open, col, 0); ctx.restore();
     };
     // (the tooth fairy's wings, and its dust after it, are a soft light of their own in the room)
     L.dynamicLights = () => {
       const out = [], f = fairyGlow();
       if (shown()) { const p = L.pt(LX, 1.05, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }); }
-      if (f) out.push({ x: f.x, y: 1.5, z: f.z - 0.5, r: 4.2 + 2 * f.flash, i: 0.6 * f.k + 1.6 * f.flash, color: [176, 196, 255] });   // (and the flash of them bursting open)
+      if (f) out.push({ x: f.x, y: 1.5, z: f.z - 0.5, r: 4.2 + 1 * f.flash, i: 0.6 * f.k + 0.75 * f.flash, color: [176, 196, 255] });   // (and the flash of them bursting open)
       return out;
     };
     L.glows = () => {
       const out = [], f = fairyGlow();
       if (shown()) { const p = L.pt(LX, 1.0, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }); }
-      if (f) out.push({ x: f.x, y: 1.5, z: f.z, r: 1.9 + 1.2 * f.flash, color: [170, 196, 255], a: 0.2 * f.k + 0.5 * f.flash });
+      if (f) out.push({ x: f.x, y: 1.5, z: f.z, r: 1.9 + 0.6 * f.flash, color: [170, 196, 255], a: 0.2 * f.k + 0.25 * f.flash });
       return out.length ? out : null;
     };
     // ---- the win: the covers come up over your eyes, and it plays out under them ----
@@ -1099,7 +1091,7 @@ LEVELS.push({
     L.overlay = (ctx, W, H) => {
       // the flash of its wings bursting open, over the whole view, gone in a moment (never with flashes reduced: fairying)
       const fl = s.fairy && c0().fairy ? c0().fairy.flash || 0 : 0;
-      if (fl > 0.01) { ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = rgba([196, 206, 255], 0.55 * fl); ctx.fillRect(0, 0, W, H); ctx.restore(); }
+      if (fl > 0.01) { ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = rgba([196, 206, 255], 0.26 * fl); ctx.fillRect(0, 0, W, H); ctx.restore(); }
       const k = s.over || 0;
       if (k <= 0) return;
       const t = L.aftermathT, rm = SAVE.data.settings.reducedMotion, c = c0();
