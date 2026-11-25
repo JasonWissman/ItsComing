@@ -44,7 +44,7 @@ const refusals = [
   ['expect', `${mainT}.name === 'Main switch' && /On: pull it down/.test(${mainT}.hint())`, 'the main, on: its line says to pull it down'],
   ['eval', 'window.__tc = G.L.t'], ['use', 'main'],
   ['expect', '!G.L.s.power && !G.L.creature.drawn && G.hand.reach && G.hand.reach.target.id === "main" && G.hand.reach.style === "pull"', 'the main thrown: off at once, and the hand goes up to the lever'],
-  ['expect', '/goes out/.test(G.lastToast.msg) && /slows down/.test(G.lastToast.msg)', 'and you are told: the lights go out, and it slows down'],
+  ['expect', '/goes out/.test(G.lastToast.msg) && !/slows down/.test(G.lastToast.msg)', 'and you are told the lights go out (not that it slows down: that you hear)'],
   ['waitUntil', 'G.L.s.swung && G.L.s.lever === 0 && !G.hand.reach', 3000],
   ['expect', 'G.L.s.swAt > __tc + 0.1 && G.L.pal.ambient < 0.5 && !G.L.s.lightsOn() && G.L.dynamicLights().length === 0', 'the lever and the lights waited for the hand, and went with it'],
   ['expect', `${mainT}.name === 'Main switch: off' && /Off: push it back up/.test(${mainT}.hint())`, 'the main, off: its line says so, and that it goes back up'],
@@ -55,7 +55,7 @@ const refusals = [
   // drawn in by them until then
   ['eval', 'window.__tc = G.L.t'], ['use', 'main'],
   ['expect', 'G.L.s.power && G.L.s.throws === 2 && G.hand.reach && G.hand.reach.target.id === "main" && G.hand.reach.style === "push"', 'the main again: on, and the hand pushes the lever back up'],
-  ['expect', '/back on/.test(G.lastToast.msg) && /faster/.test(G.lastToast.msg)', 'and you are told: the lights come back on, and it comes faster'],
+  ['expect', '/back on/.test(G.lastToast.msg) && !/faster/.test(G.lastToast.msg)', 'and you are told the lights come back on (not that it comes faster)'],
   ['waitUntil', 'G.L.s.swung && G.L.s.lever === 1 && !G.hand.reach', 3000],
   ['expect', 'G.L.s.swAt > __tc + 0.1 && G.L.s.lit() && G.L.s.lightsOn() && G.L.dynamicLights().length > 0 && G.L.pal.ambient > 0.9 && G.L.creature.drawn', 'the lights came back with the lever: the tubes, the sign, the fountain\'s header (and it is drawn in by them again)'],
   ['expect', `${mainT}.name === 'Main switch' && /On: pull it down/.test(${mainT}.hint())`, 'and its line says it is on again'],

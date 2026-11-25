@@ -287,9 +287,8 @@ LEVELS.push({
           if (on) AUDIO.startAmbient(L.def.ambient);
           else AUDIO.startAmbient(Object.assign({}, L.def.ambient, { drone: 0.12, tune: 'ambient:8off' }));
         }
-        const out = !s.through && !L.won;   // (it is still out in the lot, coming)
-        if (on) G.say('Every light in the place comes back on.' + (out ? ' Out in the lot, it comes faster again.' : ''), 'The lights come back on.' + (out ? ' Out in the lot, it comes faster.' : ''));
-        else G.say('Every light in the place goes out at once.' + (out ? ' Out in the lot, it slows down.' : ''), 'Every light in the place goes out.' + (out ? ' Out in the lot, it slows down.' : ''));
+        if (on) G.say('Every light in the place comes back on.', 'The lights come back on.');
+        else G.say('Every light in the place goes out at once.', 'Every light in the place goes out.');
         return true;
       },
     });
@@ -564,8 +563,8 @@ LEVELS.push({
       // it was coming for this one: to the nearest window still open
       const p = cr().pos(), yaw = Math.atan2(p.x, p.z), gap = k => Math.abs(wrapPi(L.lanes[k].yaw - yaw));
       const best = Math.min(...open.map(gap)), near = open.filter(k => gap(k) < best + 0.01);
-      if (slideTo(near[Math.floor(cr().rand() * near.length)])) G.say('The shutter is down. It runs along the glass to a window that is still open.', 'The shutter is down. It runs along the glass to another window.');
-      else G.say('The shutter is down. Out in the lot, it runs for a window that is still open.', 'The shutter is down. Out in the lot, it runs for another window.');
+      slideTo(near[Math.floor(cr().rand() * near.length)]);
+      G.say('The shutter is down.', 'The shutter is down.');
     };
     // ---- a shutter part way down: it shoves it back up ----
     // It comes up to the steel of a window whose shutter is still being cranked (not down: a shutter that is down holds it)
@@ -606,7 +605,7 @@ LEVELS.push({
           if (e >= 1) {
             S.slamAt = a; shutters[i].count = 0; s.turnAt[i] = -9;   // every turn of the crank on it, lost
             AUDIO.sfx('shutterSlam', pan); G.shake(0.6);
-            G.say('It shoves the shutter up. It slams into its housing.', 'It shoves the shutter back up.');
+            G.say('It shoves the shutter back up.', 'It shoves the shutter back up.');
           }
         }
         if (S.slamAt >= 0) {   // up, and bouncing a little out of the slot and back
@@ -668,7 +667,6 @@ LEVELS.push({
         px = sd.x; pz = sd.z;
         return d;
       };
-      G.say('It steps in through the broken glass, and goes to the counter.', 'It comes in, and goes to the counter.');
     };
     // one fist brought down on the counter: the thump, the counter jumping (and the cup on it), its head snapping over
     const pound = (c, i) => {
@@ -747,8 +745,7 @@ LEVELS.push({
             const p = L.pt(s.cupX, COUNTER_Y, CUPZ);
             Object.assign(cup, { x: p[0], y: p[1], z: p[2], taken: false }); s.cupOn = true; sd.hold = false;
             AUDIO.sfx('cupDown', panTo(c.yaw));
-            if (sd.drinks === 1) G.say('It sets the cup down empty and pounds the counter. It wants another.', 'It wants another.');
-            else G.say('Empty again. It pounds the counter.', 'It wants another.');
+            G.say('It wants another.', 'It wants another.');
             phase('set', SODA.set);
           }
           break;
