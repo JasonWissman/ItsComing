@@ -27,7 +27,7 @@ const G = {
   diff() { return DIFFICULTIES[G.difficulty]; },
   hints() { return DIFFICULTIES[G.difficulty].hints; },
   // the one place hints-mode is consulted for feedback text
-  say(specific, vague, dur) { G.toast(G.hints() ? specific : (vague === undefined ? specific : vague), dur); },
+  say(specific, vague, dur) { const m = G.hints() ? specific : (vague === undefined ? specific : vague); if (m) G.toast(m, dur); },   // ('' in one of them: nothing is said then)
   get unlocked() { return SAVE.data.unlocked[G.diff().id] || 0; },
 };
 

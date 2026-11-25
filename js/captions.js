@@ -14,7 +14,7 @@ const CAPTIONS = (() => {
     sparkBlast: 'the box bursts in a shower of sparks', fireCatch: 'flames rush up', fireCrackle: 'fire crackling', burnShriek: 'a burning shriek', stingBurn: 'a burning scream',   // night 11's farm set alight
     thunder: 'thunder', bell: 'a bell', glassTap: 'a tap on the glass', glassGive: 'the glass gives', tubeDie: 'a tube dies with a crackle', tubeOn: 'the lights hum on',
     sodaPour: 'soda pours, fizzing', sodaSputter: 'the soda fountain sputters, empty', gulp: 'gulping', counterPound: 'a fist pounds the counter', cupDown: 'a paper cup set down',
-    shutterBang: 'fists pound on the shutter', shutterGrab: 'the shutter rattles in its rails', shutterSlam: 'a shutter slams up into its housing',
+    shutterBang: 'fists pound on the shutter', shutterGrab: 'the shutter rattles in its rails', shutterSlam: 'a shutter slams',
     clunk: 'a heavy click', lever: 'a lever goes over', creak: 'a creak', hinge: 'a hinge squeals', gate: 'iron on iron', chain: 'a chain', lock: 'a padlock', shot: 'a gunshot', empty: 'click', twang: 'a bowstring twangs', bowCreak: 'a bowstring creaks', bowFull: 'the bowstring comes tight', thunk: 'an arrow thunks home',
     batSqueak: 'a bat squeaks',   // night 5's easter egg: one shot out of the sky
     sugarPour: 'sugar pours out of a bag', sugarBuzz: 'a buzzing, rising', skid: 'boots skid on gravel', shudder: 'a shudder, keys jangling',   // night 3's easter egg: the bag of sugar, handed to it

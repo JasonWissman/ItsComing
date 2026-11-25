@@ -142,7 +142,7 @@ LEVELS.push({
         if (sticks && !s.wasLit && ++s.clicks < 3) { G.say('The switch sticks.', 'Sticks.'); pull(true); return true; }   // the first time (once it has gone, it comes back on at a pull)
         // it burns long enough for it to go down and come up at the bed and for the covers after that, with time over;
         // it flickers for its last two seconds
-        s.clicks = 0; s.lampOn = true; s.wasLit = true; s.onAt = L.t + 0.3; s.lampT = 22 + L.rand() * 6; G.say('Light. It shrinks from it.', 'Light.');
+        s.clicks = 0; s.lampOn = true; s.wasLit = true; s.onAt = L.t + 0.3; s.lampT = 22 + L.rand() * 6; G.say('Light.', 'Light.');
         pull(false, () => { s.onAt = L.t; AUDIO.sfx('lampOn'); });
         return true;
       },
@@ -379,7 +379,7 @@ LEVELS.push({
       const gk = s.grab ? s.grab.k : 0;   // as its hands come up the bed it draws itself up after them
       c.eyeTo = t < T3 ? (D.eye0 === null ? low : lerp(D.eye0, low, smoothstep(t / T2))) : lerp(low, hide + 0.07 + gk * 0.1, smoothstep((t - T3) / DUCK.up));
       c.reach = smoothstep((t - T5) / DUCK.reach); c.gripY = hide - 0.03;   // (its arms up to the edge; the hands over it are drawn on the covers)
-      if (t >= T5 && !D.cued) { D.cued = true; AUDIO.sfx('cloth', panOf(c)); if (!L.won) G.say('Its hands come up over the end of the bed, onto the covers. Pull them up before they reach you.', 'Its hands are on the covers.'); }
+      if (t >= T5 && !D.cued) { D.cued = true; AUDIO.sfx('cloth', panOf(c)); if (!L.won) G.say('Its hands are on the covers. Pull them up before they reach you.', 'Its hands are on the covers.'); }
       if (t >= T5) grabbing(c, t - T5);
     };
     // Its hands on the covers: they take hold of the cloth and pull, one and then the other, and every pull brings that hand
@@ -723,7 +723,7 @@ LEVELS.push({
       if (s.plugAt !== undefined && !s.plugHome && L.t - s.plugAt >= PLUG_GO) { s.plugHome = true; AUDIO.sfx('clunk', Math.sin(wrapPi(Math.atan2(SOCK, WALL) - G.cam.yaw)) * 0.7); }   // (home in the socket)
       c.unseenMult = Math.min(c.unseenMult, 2.5); // this night already charges a lot for looking away; the tiers do not stack on top
       if (s.fairy && G.holding === covers) { G.holding = null; G.say('Not now. It is waiting.', 'Not now.'); }
-      if (s.lampOn && !L.won && !s.fairy) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out. It is coming up again.', 'Dark.'); } }
+      if (s.lampOn && !L.won && !s.fairy) { s.lampT -= dt; if (s.lampT <= 0) { s.lampOn = false; AUDIO.sfx('flicker'); G.say('The lamp goes out.', 'Dark.'); } }
       c.inLight = s.lampOn;
       behave(c, dt);
       thumping();

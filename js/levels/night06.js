@@ -650,7 +650,7 @@ LEVELS.push({
     L.onReach = c => {
       if (c.lane.idx !== 1 || !s.doorClosed || s.sealedE) return;
       if (s.oars === 1) { AUDIO.sfx('wetPound', panOf(c.yaw)); G.shake(0.5); c.hold = c.dist; s.heldC = c; s.holdT = 0.7; s.knockAt = L.t + 0.6; return; }
-      s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); G.toast('The side door bangs open.'); c.hold = c.dist; s.heldC = c; s.holdT = 2.5;
+      s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); c.hold = c.dist; s.heldC = c; s.holdT = 2.5;
     };
     const knockOut = () => {
       const c = L.creature;
