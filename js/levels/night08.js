@@ -229,6 +229,7 @@ LEVELS.push({
       SC.wallV(L, x0, ZG, x1, ZG, BOT, TOP, [150, 170, 200], { alpha: 0.1 });
       const pane = L.props[L.props.length - 1], n0 = L.props.length;
       SC.box(L, x0, x1, TOP - 0.05, TOP, 5.04, 5.16, [40, 40, 44]);                                       // the slot the shutter comes out of
+      SC.quad(L, [x0, TOP, ZW], [x1, TOP, ZW], [x1, TOP, 5.04], [x0, TOP, 5.04], creamD);                  // the header's underside, back to the slot (without it the dark outside showed in a line between them)
       for (const gx of [x0, x1 - 0.05]) SC.box(L, gx, gx + 0.05, BOT, TOP, 5.06, 5.14, [62, 62, 66]);     // its guide rails
       // the gearbox, with the eye the crank goes into, and the rod from it up to the shutter's roll, so it is plain which
       // window it works
