@@ -108,6 +108,32 @@ LEVELS.push({
     // the crank and bring all three down at an ordinary pace.
     const TURNS = 10, TURN = 0.65, LIT_T = 17, DARK_AMB = 0.42;
     SC.stars(L, 81, 40, 0.25);
+    // a small round thing standing on end (a squeeze bottle, a coffee pot): bands of eight faces stacked up its axis at (cx,
+    // cz), each segment [y0, y1, r0, r1, colour, sides?] a band from radius r0 at y0 to r1 at y1 (r1 0: a point), with a lid
+    // where the next one is narrower. Each face is shaded by the way it faces (lit toward you, darker round the sides, the
+    // slopes and lids lighter, as a box's top is), takes the room's light as any face does, and like a box's face is
+    // skipped when it looks away from the eye.
+    const turned = (cx, cz, segs) => {
+      const o = L.pt(0, 0, 0), ux = L.pt(1, 0, 0), wz = L.pt(0, 0, 1), U = [ux[0] - o[0], ux[2] - o[2]], Wv = [wz[0] - o[0], wz[2] - o[2]];
+      const yA = segs[0][0], yB = segs[segs.length - 1][1], R = Math.max(...segs.map(g => Math.max(g[2], g[3])));
+      const box = { c: L.pt(cx, (yA + yB) / 2, cz), u: U, w: Wv, h: [R, (yB - yA) / 2, R], y0: yA };
+      const lit = Math.atan2(-cx, -cz) + 0.7;   // (toward you, and a little to one side)
+      const at = (y, r, a) => L.pt(cx + Math.sin(a) * r, y, cz + Math.cos(a) * r);
+      const nrm = (a, b, d) => { const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [d[0] - a[0], d[1] - a[1], d[2] - a[2]]; return [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]; };
+      segs.forEach(([y0, y1, r0, r1, col, n = 8], i) => {
+        const st = TAU / n, slope = clamp((r0 - r1) / Math.hypot(r0 - r1, y1 - y0), 0, 1);
+        for (let k = 0; k < n; k++) {
+          const a0 = (k + 0.5) * st, a1 = a0 + st, am = a0 + st / 2;
+          const pts = r1 > 0 ? [at(y0, r0, a0), at(y0, r0, a1), at(y1, r1, a1), at(y1, r1, a0)] : [at(y0, r0, a0), at(y0, r0, a1), at(y1, 0, 0)];
+          let nv = nrm(pts[0], pts[1], pts[2]); const m = L.pt(cx + Math.sin(am), y0, cz + Math.cos(am));
+          if (nv[0] * (m[0] - box.c[0]) + nv[2] * (m[2] - box.c[2]) < 0) nv = nv.map(q => -q);
+          const sh = 0.6 + 0.34 * (0.5 + 0.5 * Math.cos(am - lit)) + 0.2 * slope;
+          L.props.push({ kind: 'poly', pts, color: scalec(col, sh), bf: { box, n: nv } });
+        }
+        const nx = segs[i + 1];
+        if (r1 > 0 && (!nx || nx[2] < r1 - 1e-4)) L.props.push({ kind: 'poly', pts: Array.from({ length: n }, (_, k) => at(y1, r1, (k + 0.5) * st)), color: scalec(col, 1.08), bf: { box, n: [0, 1, 0] } });
+      });
+    };
     // ---- the room: tiles, walls, ceiling, the kitchen pass and the back counter ----
     for (let x = -4; x < 4; x++) for (let z = -2.5; z < 5; z++) SC.floorQ(L, x, z, x + 1, Math.min(z + 1, 5), 0.004, ((x + Math.floor(z)) & 1) ? tileA : tileB);
     SC.quad(L, [-4, 3, -2.5], [4, 3, -2.5], [4, 3, 5], [-4, 3, 5], [70, 66, 60]);
@@ -124,7 +150,13 @@ LEVELS.push({
     // the shelf on the back wall, a row of paper cups along it (the soda's, below: the one at the end nearest you can be taken, and looks no different)
     const SHELF = { y: 1.95, z: -2.41, xs: Array.from({ length: 8 }, (_, k) => 1.48 + k * 0.3) };
     SC.box(L, 1.2, 3.8, SHELF.y - 0.05, SHELF.y, -2.5, -2.3, [90, 74, 56]);
-    SC.box(L, 2.4, 3.8, 0, 0.9, -2.45, -1.85, [150, 138, 118]); SC.box(L, 3.0, 3.6, 0.9, 1.5, -2.4, -2.0, chrome); SC.box(L, 3.05, 3.55, 0.9, 1.0, -2.0, -1.9, [60, 40, 30]);
+    SC.box(L, 2.4, 3.8, 0, 0.9, -2.45, -1.85, [150, 138, 118]);
+    // the coffee machine on the back counter (in the place it always had): its tower, the hood it brews from, and under the
+    // hood a pot on its warming plate, the plate running out in front of it
+    SC.box(L, 3.0, 3.6, 0.9, 1.5, -2.4, -2.22, chrome); SC.box(L, 3.0, 3.6, 1.38, 1.5, -2.22, -2.0, chrome);
+    SC.box(L, 3.05, 3.55, 0.9, 0.95, -2.22, -1.9, [60, 40, 30]);
+    turned(3.3, -2.08, [[0.95, 1.02, 0.068, 0.085, [58, 36, 24]], [1.02, 1.12, 0.085, 0.048, [70, 52, 42]], [1.12, 1.17, 0.058, 0.056, [30, 30, 32]]]);
+    SC.box(L, 3.18, 3.21, 1.0, 1.16, -2.095, -2.065, [30, 30, 32]);   // its black handle
     // (what is fixed on a wall is drawn flat on it, its front looking into the room: the clock, the main, the gearboxes, the
     // signs; it never turns with the view)
     const BACK = 0, FRONT = Math.PI;   // the back wall's face, and the front's (looking back in at you)
@@ -141,8 +173,39 @@ LEVELS.push({
     SC.box(L, -3.6, 3.6, 0, 0.95, 0.8, 1.4, [108, 34, 34]);
     SC.box(L, -3.7, 3.7, 0.95, 1.0, 0.75, 1.45, [112, 104, 90]); reorder(5, (lo, hi) => 3.6 - hi);   // a little dim: under the tubes it is the brightest thing in the room
     for (const x of [-3, -1.5, 0, 1.5, 3]) { SC.box(L, x - 0.04, x + 0.04, 0, 0.72, 1.96, 2.04, chrome); SC.box(L, x - 0.2, x + 0.2, 0.72, 0.84, 1.8, 2.2, red); reorder(10, lo => 3.9 - lo); }
-    SC.box(L, -0.9, -0.65, 1.0, 1.16, 0.95, 1.1, chrome); SC.box(L, 0.4, 0.5, 1.0, 1.2, 1.0, 1.1, [150, 30, 20]); SC.box(L, 0.6, 0.7, 1.0, 1.14, 1.0, 1.1, [190, 170, 60]);
-    SC.box(L, -3.4, -2.8, 1.0, 1.3, 0.85, 1.35, [60, 60, 66]); SC.box(L, -3.35, -2.85, 1.3, 1.34, 0.85, 1.35, [40, 40, 44]);
+    // what stands on the counter, each in the place and the footprint it always had (the cup set down keeps clear of them:
+    // CLUTTER, below). The napkin dispenser: a chrome case with a rounded top, the napkins showing in its end toward you
+    // and one pulled part way out.
+    SC.box(L, -0.9, -0.65, 1.0, 1.13, 0.95, 1.1, chrome);
+    SC.quad(L, [-0.9, 1.13, 0.95], [-0.65, 1.13, 0.95], [-0.65, 1.16, 0.99], [-0.9, 1.16, 0.99], scalec(chrome, 0.96));   // its top, rounded over front and back
+    SC.quad(L, [-0.9, 1.13, 1.1], [-0.65, 1.13, 1.1], [-0.65, 1.16, 1.06], [-0.9, 1.16, 1.06], scalec(chrome, 0.8));
+    SC.quad(L, [-0.9, 1.16, 0.99], [-0.65, 1.16, 0.99], [-0.65, 1.16, 1.06], [-0.9, 1.16, 1.06], scalec(chrome, 1.12));
+    for (const x of [-0.9, -0.65]) SC.quad(L, [x, 1.13, 0.95], [x, 1.13, 1.1], [x, 1.16, 1.06], [x, 1.16, 0.99], scalec(chrome, 0.66));
+    SC.wallV(L, -0.88, 0.944, -0.67, 0.944, 1.02, 1.115, [150, 146, 134]);                 // the napkins in its window, in its shade
+    const roofD = Math.hypot(...[0, 2].map(k => (L.pt(-0.775, 1.145, 0.97)[k])));   // (the one pulled out stands in front of the rounded top)
+    SC.wallV(L, -0.8, 0.936, -0.74, 0.936, 1.06, 1.15, [214, 210, 200], { sortDist: roofD - 0.002 });   // one pulled part way out
+    // the squeeze bottles, round and stood on end: ketchup, tall, with a white label, a white cap and a red spout; mustard,
+    // squat, with a red band, its cap and spout its own darker yellow
+    const KET = [150, 30, 20], MUS = [190, 170, 60];
+    turned(0.45, 1.05, [[1.0, 1.05, 0.046, 0.05, KET], [1.05, 1.09, 0.05, 0.05, [178, 164, 136]], [1.09, 1.135, 0.05, 0.047, KET],
+      [1.135, 1.162, 0.047, 0.022, KET], [1.162, 1.18, 0.022, 0.022, [206, 200, 188]], [1.18, 1.2, 0.009, 0, KET, 4]]);
+    turned(0.65, 1.05, [[1.0, 1.035, 0.048, 0.05, MUS], [1.035, 1.05, 0.05, 0.05, [150, 36, 26]], [1.05, 1.088, 0.05, 0.045, MUS],
+      [1.088, 1.105, 0.045, 0.025, MUS], [1.105, 1.118, 0.025, 0.024, [160, 130, 36]], [1.118, 1.145, 0.01, 0, [160, 130, 36], 4]]);
+    // the till: its cash drawer, the keys sloping up from it toward you, the housing behind them and the readout on top
+    const TILL = [60, 60, 66];
+    SC.box(L, -3.4, -2.8, 1.0, 1.1, 0.85, 1.35, TILL);
+    SC.wallV(L, -3.36, 0.844, -2.84, 0.844, 1.036, 1.044, [34, 34, 38]);                    // the drawer's seam
+    SC.box(L, -3.4, -2.8, 1.1, 1.3, 1.13, 1.35, TILL);
+    const keys = [[-3.37, 1.1, 0.87], [-2.83, 1.1, 0.87], [-2.83, 1.22, 1.13], [-3.37, 1.22, 1.13]];
+    SC.quad(L, ...keys, [74, 74, 80]);
+    const keysD = L.props[L.props.length - 1].pts.reduce((a, v) => a + Math.hypot(v[0], v[2]), 0) / 4;
+    for (const x of [-3.37, -2.83]) L.props.push({ kind: 'poly', pts: [L.pt(x, 1.1, 0.87), L.pt(x, 1.1, 1.13), L.pt(x, 1.22, 1.13)], color: scalec(TILL, 0.66) });
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {   // two rows of keys on the slope, a red one at the end
+      const x0 = -3.33 + c * 0.12, z0 = 0.9 + r * 0.12, z1 = z0 + 0.08, y = z => 1.1 + (z - 0.87) / 0.26 * 0.12 + 0.004;
+      SC.quad(L, [x0, y(z0), z0], [x0 + 0.08, y(z0), z0], [x0 + 0.08, y(z1), z1], [x0, y(z1), z1], c === 3 && r === 0 ? [150, 44, 36] : [150, 146, 134], { sortDist: keysD - 0.003 });
+    }
+    SC.box(L, -3.32, -2.88, 1.3, 1.36, 1.18, 1.3, [40, 40, 44]);
+    SC.wallV(L, -3.28, 1.174, -2.92, 1.174, 1.31, 1.35, [58, 76, 62]);                       // the readout, unlit
     // a pie under a glass dome: the dome sits on its stand, it does not reach down through the counter
     SC.sprite(L, 2.3, 1.0, 1.1, 0.4, 0.34, (ctx, P) => {
       ctx.scale(0.4, 0.34);
