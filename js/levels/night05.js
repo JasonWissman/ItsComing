@@ -415,7 +415,7 @@ const CLEARING_VAMPIRE = (() => {
     const hipY = lerp(0.92, 0.42, kn) - (0.07 * hu + 0.08 * buckle + (p >= SF ? 0.05 * Math.sin(Math.PI * clamp(d / 0.22, 0, 1)) * k : 0)) * (1 - kn);
     const hx = -0.1 * w * (1 - kn), lean = (0.15 * w - 0.15 * hu - 0.2 * sm) * (1 - kn) - 0.05 * kn, cl = Math.cos(lean), sl = Math.sin(lean);
     const tf = (x, h) => [hx + x * cl - h * sl, hipY + x * sl + h * cl];            // a point of its upper body (x across, h up from its hips)
-    const shH = 0.52 - 0.1 * hu, headH = shH + 0.24 - 0.11 * hu - 0.05 * sm, shY = hipY + shH;
+    const shH = 0.52 - 0.1 * hu, headH = shH + 0.24 - 0.11 * hu - 0.05 * sm;
     const hw = lerp(0.5 + 0.05 * hu, 1.25, wg) + 0.22 * kn, sw = lerp(0.3, 0.85, wg), hemY = lerp(0.16, hipY + 0.05, wg) * (1 - 0.6 * kn);
     const trail = (-0.2 * wl + 0.03 * Math.sin(t * 3.3) * k) * (1 - kn);         // the hem, a beat behind the body
     // the cape behind it, from the points of its collar down to a scalloped hem that flutters as it drags
