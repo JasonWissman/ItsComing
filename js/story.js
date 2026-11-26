@@ -41,6 +41,12 @@ const STORY = (() => {
   // behind your head (HEADWALL); everything in the room is in front of you or to your side, along that wall. Night 12 and
   // the ending both build it. Returns the pieces the night needs to animate.
   const HEADWALL = -0.6;
+  // The closet: a wide open one in the wall at your left (the west wall, x 3.2 m off), brought out of the corner by the
+  // head wall and along toward the foot of the bed so the whole of its opening is in front of you from the pillow, across
+  // and a little ahead. mid: the middle of its opening along that wall (world z), half: half its opening's width; back: how
+  // deep its far wall is (x), inside: half its width inside, wider than its opening (so there is wall either side to stand
+  // behind). Night 12's way in from the closet is laid out round it.
+  const CLOSET = { mid: 0.55, half: 0.9, wall: -3.2, back: -3.95, inside: 1.3, top: 2.2 };
   function buildBedroom(L, day) {
     const wall = day ? [216, 204, 184] : [44, 38, 42], wallD = day ? [192, 178, 158] : [34, 30, 33], floor = day ? [166, 138, 100] : [42, 34, 28], wood = day ? [146, 110, 74] : [50, 38, 30], cloth = day ? [222, 216, 200] : [66, 62, 70];
     const ptex = { tex: 'planks', texScale: 1.2 }, S = HEADWALL;
@@ -49,21 +55,51 @@ const STORY = (() => {
     SC.floorQ(L, -1.3, 0.4, 1.3, 2.7, 0.008, day ? [150, 90, 80] : [56, 34, 34]);
     SC.wallV(L, -3.2, S, 2.2, S, 0, 2.5, wallD);
     const apN = SC.doorway(L, { z: 3.6, x: 0, w: 1.0, h: 2.1, wallH: 2.5, left: -3.2, right: 2.2, color: wall, frame: { color: wood, w: 0.08 } });
-    const apW = SC.doorway(L, { deg: 270, z: 3.2, x: 0, w: 1.0, h: 2.2, wallH: 2.5, left: S, right: 3.6, color: wallD, frame: { color: wood, w: 0.06 } });
+    const C = CLOSET, cz0 = C.mid - C.inside, cz1 = C.mid + C.inside;
+    const apW = SC.doorway(L, { deg: 270, z: -C.wall, x: C.mid, w: 2 * C.half, h: C.top, wallH: 2.5, left: S, right: 3.6, color: wallD, frame: { color: wood, w: 0.06 } });
     SC.window(L, { deg: 90, z: 2.2, x: -1.6, w: 1.2, y0: 0.9, y1: 2.0, wallH: 2.5, left: -3.6, right: -S, color: wallD });
-    // the closet: a dark box behind its door (straight across from your pillow, hard by the corner), a rail, hangers,
-    // clothes (empty in the morning), its door standing open
-    SC.floorQ(L, -3.95, -0.95, -3.2, 0.95, 0.006, day ? [120, 100, 80] : [22, 18, 18]);
-    SC.wallV(L, -3.95, -0.95, -3.95, 0.95, 0, 2.5, day ? [170, 158, 140] : [18, 15, 16]); SC.wallV(L, -3.95, -0.95, -3.2, -0.95, 0, 2.5, day ? [160, 148, 130] : [16, 14, 15]); SC.wallV(L, -3.95, 0.95, -3.2, 0.95, 0, 2.5, day ? [160, 148, 130] : [16, 14, 15]);
-    SC.quad(L, [-3.95, 2.5, -0.95], [-3.2, 2.5, -0.95], [-3.2, 2.5, 0.95], [-3.95, 2.5, 0.95], day ? [150, 140, 124] : [12, 10, 11]);
-    SC.box(L, -3.6, -3.55, 1.95, 2.0, -0.85, 0.85, [110, 108, 112]);
-    for (let k = 0; k < 9; k++) {
-      const z = -0.75 + k * 0.19;
-      SC.sprite(L, -3.58, 1.72, z, 0.22, 0.3, (ctx, P) => { ctx.scale(0.22, 0.3); ctx.strokeStyle = P.col([150, 150, 156]); ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(0, 1); ctx.lineTo(0, 0.86); ctx.moveTo(-0.5, 0.6); ctx.lineTo(0, 0.86); ctx.lineTo(0.5, 0.6); ctx.stroke(); });
-      if (!day && k % 3 !== 1) SC.sprite(L, -3.6, 0.45, z + 0.02, 0.36, 1.3, (ctx, P) => { ctx.scale(0.36, 1.3); P_poly(ctx, [[-0.4, 0], [0.4, 0], [0.5, 0.95], [-0.5, 0.95]], P.col(k % 2 ? [40, 34, 40] : [56, 46, 40])); });
+    // the closet (CLOSET): a wide, dark recess behind its opening, wider inside than the opening; a shelf along its back
+    // with boxes on it, the rail under the shelf, a row of hangers on the rail and the clothes hanging from them (long coats,
+    // dresses, jackets and shirts, a gap or two between them; none in the morning), shoes and a box on its floor; its two
+    // folding doors folded back either side of the opening, each a pair of leaves standing out into the room in a narrow V
+    SC.floorQ(L, C.back, cz0, C.wall, cz1, 0.006, day ? [120, 100, 80] : [22, 18, 18]);
+    SC.wallV(L, C.back, cz0, C.back, cz1, 0, 2.5, day ? [170, 158, 140] : [18, 15, 16]); SC.wallV(L, C.back, cz0, C.wall, cz0, 0, 2.5, day ? [160, 148, 130] : [16, 14, 15]); SC.wallV(L, C.back, cz1, C.wall, cz1, 0, 2.5, day ? [160, 148, 130] : [16, 14, 15]);
+    SC.quad(L, [C.back, 2.5, cz0], [C.wall, 2.5, cz0], [C.wall, 2.5, cz1], [C.back, 2.5, cz1], day ? [150, 140, 124] : [12, 10, 11]);
+    const card = day ? [176, 146, 108] : [44, 36, 30], shelfC = day ? [168, 132, 92] : [40, 32, 28];
+    SC.box(L, C.back, -3.5, 2.06, 2.09, cz0 + 0.02, cz1 - 0.02, shelfC);                                              // the shelf
+    for (const [a, b, h] of [[-0.45, -0.08, 0.2], [0.3, 0.56, 0.15], [1.18, 1.62, 0.24]]) SC.box(L, C.back + 0.06, -3.56, 2.09, 2.09 + h, C.mid + a, C.mid + b, card);   // boxes on it
+    SC.box(L, -3.6, -3.55, 1.95, 2.0, cz0 + 0.12, cz1 - 0.12, [110, 108, 112]);                                       // the rail
+    const hangers = [], clothes = [], N = 12, z0h = cz0 + 0.25, dz = (cz1 - cz0 - 0.5) / (N - 1);
+    // (each garment: its top under the hanger, how long it is, how wide, its colour, and a coat's front opening)
+    const KINDS = [{ l: 1.3, w: 0.4, open: true }, { l: 0.78, w: 0.36 }, { l: 1.08, w: 0.34 }, { l: 0.9, w: 0.4, open: true }];
+    const COLS = [[56, 46, 40], [40, 34, 40], [46, 50, 58], [62, 42, 44], [38, 44, 40], [52, 48, 54]];
+    for (let k = 0; k < N; k++) {
+      const z = z0h + k * dz;
+      hangers.push(SC.sprite(L, -3.58, 1.72, z, 0.22, 0.3, (ctx, P) => { ctx.scale(0.22, 0.3); ctx.strokeStyle = P.col([150, 150, 156]); ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(0, 1); ctx.lineTo(0, 0.86); ctx.moveTo(-0.5, 0.6); ctx.lineTo(0, 0.86); ctx.lineTo(0.5, 0.6); ctx.stroke(); }));
+      if (day || k === 3 || k === 8) continue;
+      const G2 = KINDS[(k * 5) % KINDS.length], col = COLS[(k * 7) % COLS.length], top = 1.78, y0 = top - G2.l;
+      clothes.push(SC.sprite(L, -3.6 - 0.02 * (k % 2), y0, z + 0.02, G2.w, G2.l, (ctx, P) => {
+        ctx.scale(G2.w, G2.l); const c = P.col(col), d = P.col(scalec(col, 0.62)), sy = 1 - 0.12 / G2.l;
+        P_poly(ctx, [[-0.42, 0], [0.42, 0], [0.48, sy - 0.1], [0.4, sy], [0.1, 1], [-0.1, 1], [-0.4, sy], [-0.48, sy - 0.1]], c);   // its body, the shoulders sloping to the hook
+        P_line(ctx, -0.1, 1, 0, sy - 0.02, 0.05, d); P_line(ctx, 0.1, 1, 0, sy - 0.02, 0.05, d);                              // its collar
+        if (G2.open) P_line(ctx, 0, sy - 0.02, 0.02, 0, 0.03, d);                                                                // a coat's front
+        P_line(ctx, -0.44, sy - 0.1, -0.4, 0.12, 0.04, d); P_line(ctx, 0.44, sy - 0.1, 0.4, 0.12, 0.04, d);                    // its sleeves' edges
+      }));
     }
-    // its one door swung right back, nearly flat to the wall on the far side of the opening, so it reads as a door
-    { const hx = -3.2, hz = 0.56, a = 160 * DEG; SC.wallV(L, hx, hz, hx + Math.sin(a) * 0.95, hz - Math.cos(a) * 0.95, 0, 2.15, wood); }
+    if (!day) for (const z of [-0.2, 0.25, 0.95]) for (const dx of [0, 0.11]) SC.box(L, -3.86 + dx, -3.77 + dx, 0, 0.09, C.mid + z, C.mid + z + 0.24, [30, 26, 26]);   // shoes, in pairs
+    SC.box(L, -3.92, -3.56, 0, 0.32, C.mid + 0.86, C.mid + 1.2, card);                                                  // a box on the floor
+    // its doors: a folding door either side, its two leaves folded together on their hinge into one narrow stack, hinged at
+    // the frame and swung open: on the far side right back, nearly flat to the wall; on the near side, by the corner,
+    // as far as the head wall lets it (DOOR: each leaf's width, the gap the fold leaves between them at their free end, and
+    // how far each is swung open from shut, near side and far side)
+    const DOOR = { leaf: 0.45, gap: 0.06, open: [112 * DEG, 160 * DEG] }, doors = [];
+    for (const s of [-1, 1]) {
+      const a = DOOR.open[s > 0 ? 1 : 0], hx = C.wall + 0.05, hz = C.mid + s * (C.half - 0.01), ux = Math.sin(a), uz = -s * Math.cos(a);
+      const fx = hx + DOOR.leaf * ux, fz = hz + DOOR.leaf * uz, n = uz > 0 ? [uz, -ux] : [-uz, ux], ex = hx + DOOR.gap * n[0], ez = hz + DOOR.gap * n[1];
+      SC.wallV(L, hx, hz, fx, fz, 0, C.top - 0.03, wood); SC.wallV(L, fx, fz, ex, ez, 0, C.top - 0.03, scalec(wood, 0.84));
+      SC.wallV(L, (fx + ex) / 2 + n[0] * 0.004 - ux * 0.06, (fz + ez) / 2 + n[1] * 0.004 - uz * 0.06, (fx + ex) / 2 + n[0] * 0.004 - ux * 0.09, (fz + ez) / 2 + n[1] * 0.004 - uz * 0.09, 0.98, 1.02, day ? [200, 190, 170] : [96, 90, 80]);   // its pull
+      doors.push([Math.min(hx, fx, ex), Math.max(hx, fx, ex), Math.min(hz, fz, ez), Math.max(hz, fz, ez)]);
+    }
     // the hall beyond the doorway
     SC.floorQ(L, -1.2, 3.6, 1.2, 8, 0.002, day ? [150, 128, 96] : [20, 16, 14]);
     SC.quad(L, [-1.2, 2.5, 3.6], [1.2, 2.5, 3.6], [1.2, 2.5, 8], [-1.2, 2.5, 8], day ? [228, 222, 210] : [24, 20, 22]);   // its ceiling
@@ -104,8 +140,11 @@ const STORY = (() => {
     for (const x of [chair.x0 + 0.03, chair.x1 - 0.03]) for (const z of [chair.z0 + 0.03, chair.z1 - 0.03]) SC.box(L, x - 0.025, x + 0.025, 0, 0.42, z - 0.025, z + 0.025, wood);
     SC.wallV(L, 0.2, S + 0.01, 1.0, S + 0.01, 1.5, 2.1, day ? [180, 190, 170] : [40, 44, 40]); SC.wallV(L, 0.16, S + 0.015, 1.04, S + 0.015, 1.46, 1.5, wood); SC.wallV(L, 0.16, S + 0.015, 1.04, S + 0.015, 2.1, 2.14, wood);   // a picture over the bed
     // (furniture: where each piece stands on the floor, [x0, x1, z0, z1], for whoever must keep clear of them: the last night)
+    // (the closet: as CLOSET has it, and how far it goes along the wall inside, its doors' footprints, and its hangers and
+    // clothes as they are drawn, for night 12's test)
     return { apN, apW, headWall: S, bed, pillow, nightstand: ns, lamp: [(ns.x0 + ns.x1) / 2, ns.top, (ns.z0 + ns.z1) / 2 - 0.03],
-      furniture: [[-0.8, 0.8, S, bed.z1], [ns.x0, ns.x1, ns.z0, ns.z1], [chair.x0, chair.x1, chair.z0, chair.z1], [-2.9, -1.5, 3.05, 3.55]] };
+      closet: Object.assign({ z0: cz0, z1: cz1, doors, hangers, clothes }, C),
+      furniture: [[-0.8, 0.8, S, bed.z1], [ns.x0, ns.x1, ns.z0, ns.z1], [chair.x0, chair.x1, chair.z0, chair.z1], [-2.9, -1.5, 3.05, 3.55]].concat(doors) };
   }
   // The pillow's faces, soft: full in the middle, thinning to its seam all round and to a corner at each corner, top and
   // underside alike (pressed flat underneath while it lies there: k, how far it is lifted, lets it fill out), each drawn as
@@ -130,5 +169,5 @@ const STORY = (() => {
     return out;
   }
   function theme(day) { if (day) document.documentElement.setAttribute('data-theme', 'day'); else document.documentElement.removeAttribute('data-theme'); }
-  return { lamp, clock, startNight, update, buildBedroom, pillowFaces, theme };
+  return { lamp, clock, startNight, update, buildBedroom, pillowFaces, theme, CLOSET };
 })();

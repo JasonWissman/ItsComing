@@ -698,7 +698,18 @@ some on the ground, so you have to turn and look down to find them.
     ("Overload the electrical box."): kept in the save there and then (`foundEgg`), long before it has you. Its sounds: the box bursting, each place catching, the
     crackle (its caption soft), the fire's roar (a loop, louder as more burns), its burning shrieks and its own sting.
     Reduced motion: the flames flicker slower and sway less.
-12. **The Bedroom.** You are in bed. It is already there, in the hall beyond the doorway
+12. **The Bedroom.** You are in bed, sitting up at the head of it, the wall close behind
+    you. Ahead, past the foot of the bed, is the doorway to the hall, the dresser with its
+    mirror and the clock to its left and a chair to its right; the window is on your right,
+    beyond the nightstand. On your left, out of the corner by the head wall and along toward
+    the foot of the bed, is the wide open closet (its opening 1.8 m across, wider inside): a
+    shelf along its back with boxes on it, the rail under it with a row of hangers and the
+    clothes hanging from them (long coats, dresses, jackets and shirts, a gap or two between),
+    shoes and a box on its floor, and its two folding doors folded and swung back either side,
+    the far one flat to the wall, the near one as far as the head wall lets it. From the pillow,
+    looking left, all of its opening is in view (`test/nights/night12.js` checks it is that
+    wide, clear of the head wall and of the furniture, and that its rail, hangers and clothes
+    are drawn and in view in it). It is already there, in the hall beyond the doorway
     or in the closet (in front of the clothes on the rail), behind the wall at the side of
     the opening: at first only its head leans out round the edge, its fingers curled round
     the frame (its arm stays behind the wall; having its head in view counts as watching
@@ -777,7 +788,7 @@ some on the ground, so you have to turn and look down to find them.
     out: it stands there in the dark and the quiet. Then all at once it throws its arms out
     wide and a butterfly's wings burst open behind it in an instant (the fore pair blue, the
     hind pair rose, their own light), with a bright rush of air and a shimmering chord and a
-    flash of their light; its eyes open, shimmering blue and rose as its wings do. It holds,
+    soft bloom of their light (the wings the bright thing, the room only touched by it); its eyes open, shimmering blue and rose as its wings do. It holds,
     the wings spread and trembling; then one great beat of them, and as they sweep a dense,
     glittering cloud of fairy dust bursts up round it, so thick nothing of it shows through,
     and it is gone; the cloud thins away. A dollar bill comes down like a leaf onto the bed,
