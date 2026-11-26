@@ -75,6 +75,7 @@ CREATURES.carrier = {
       P_ell(ctx, x, y, r, r * 0.8, 'rgba(226,236,190,' + (0.85 * k).toFixed(3) + ')');
     }
   },
+  SHOULDER: [0.34, 1.14],   // where its arms hang from, facing you (x either side)
   draw(ctx, c, P0) {
     if (c.fallT !== undefined) { this.drawFall(ctx, c, P0); return; }
     const P = this.shaded(c, P0);
@@ -99,22 +100,24 @@ CREATURES.carrier = {
     // its arms: hanging heavy from its shoulders, the hands low by its knees, swinging a little against its legs as it
     // trudges and drifting as it stands; from about 6 m in they come up and out toward you, the fingers spread, grasping;
     // in its lunge they open wide (and as it charges, burning: c.charge). Burning, it beats at itself, both arms thrown up
-    // and flailing over its head (c.flail). Each pose is [elbow x, y, hand x, y, the fingers' angle, spread, length]
+    // and flailing over its head (c.flail). Each pose is [elbow x, y, hand x, y, the fingers' angle, spread, length]. They
+    // hang from SHOULDER, inside the top of the sack, and hug its sides: the elbows no wider than its belly and a little
+    // (they stood well out from it, and the arms came off its shoulders like a coat-hanger's)
     const fl = smoothstep(clamp(c.flail || 0, 0, 1)) * (1 - lunge), open = Math.max(lunge, clamp(c.charge || 0, 0, 1) * 0.8);
     const reach = smoothstep(clamp((near - 0.5) / 0.4, 0, 1)) * (1 - open), cl = c.clutch;
     const mix = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
     for (const s of [-1, 1]) {
       const sw = c.moving ? Math.sin(g + (s > 0 ? 0 : Math.PI)) : 0.2 * Math.sin(t * 0.9 + s * 1.3), sa = Math.abs(sw);   // (against the leg on its side)
-      let a = [s * (0.52 - 0.02 * sw), 0.8 + 0.03 * sa, s * (0.48 - 0.06 * sw), 0.36 + 0.07 * sa, -Math.PI / 2 + s * (0.2 - 0.15 * sw), 0.28, 0.12];
-      if (reach > 0.01) a = mix(a, [s * 0.62, 0.94, s * (0.42 + 0.03 * Math.sin(t * 4.3 + s)), 1.1 + 0.03 * Math.sin(t * 3.7 + s * 2), Math.PI / 2 - s * 1.1, 0.5, 0.15], reach);
-      if (open > 0.01) a = mix(a, [s * 0.65, 1.25, s * 0.45, 1.45, Math.PI / 2 - s * 0.4, 0.4, 0.14], open);
-      if (rec > 0.01) a = mix(a, s > 0 ? [0.52, 1.36, 0.08, 1.66, Math.PI / 2 + 0.3, 0.32, 0.13] : [-0.62, 0.98, -0.78, 1.2, Math.PI + 0.5, 0.42, 0.13], rec);   // (the one over its face, the fingers spread against the light)
+      let a = [s * (0.46 - 0.02 * sw), 0.8 + 0.03 * sa, s * (0.43 - 0.06 * sw), 0.36 + 0.07 * sa, -Math.PI / 2 + s * (0.2 - 0.15 * sw), 0.28, 0.12];
+      if (reach > 0.01) a = mix(a, [s * 0.54, 0.95, s * (0.4 + 0.03 * Math.sin(t * 4.3 + s)), 1.1 + 0.03 * Math.sin(t * 3.7 + s * 2), Math.PI / 2 - s * 1.1, 0.5, 0.15], reach);
+      if (open > 0.01) a = mix(a, [s * 0.58, 1.28, s * 0.46, 1.5, Math.PI / 2 - s * 0.4, 0.4, 0.14], open);
+      if (rec > 0.01) a = mix(a, s > 0 ? [0.48, 1.38, 0.08, 1.66, Math.PI / 2 + 0.3, 0.32, 0.13] : [-0.58, 1.0, -0.78, 1.2, Math.PI + 0.5, 0.42, 0.13], rec);   // (the one over its face, the fingers spread against the light)
       if (fl > 0.02) {
         const w = Math.sin(t * 13 + s * 1.7), v = Math.sin(t * 11 + s * 2.3);
-        a = mix(a, [s * (0.6 + 0.08 * w), 1.5 + 0.12 * v, s * (0.38 + 0.24 * w), 2.0 + 0.14 * v, Math.PI / 2 + s * 0.4 + w * 0.3, 0.45, 0.13], fl);
+        a = mix(a, [s * (0.54 + 0.08 * w), 1.5 + 0.12 * v, s * (0.38 + 0.24 * w), 2.0 + 0.14 * v, Math.PI / 2 + s * 0.4 + w * 0.3, 0.45, 0.13], fl);
       }
-      if (cl && s > 0) a = [Math.max(0.5, cl[0] + 0.32), Math.min(cl[1], 1.0) - 0.15, cl[0], cl[1], Math.PI * 0.8, 0.34, 0.09];   // (round what it holds, the fingers curled over it)
-      P_limb(ctx, [[s * 0.38, 1.15], [a[0], a[1]], [a[2], a[3]]], 0.11, sack);
+      if (cl && s > 0) a = [Math.max(0.46, cl[0] + 0.14), Math.min(cl[1], 1.0) - 0.15, cl[0], cl[1], Math.PI * 0.8, 0.34, 0.09];   // (round what it holds, the fingers curled over it)
+      P_limb(ctx, [[s * this.SHOULDER[0], this.SHOULDER[1]], [a[0], a[1]], [a[2], a[3]]], 0.11, sack);
       fingers(ctx, a[2], a[3], a[4], a[5], a[6], 0.025, skin);
     }
     // the head: low, pushed forward, hair like straw, its mouth sewn shut
@@ -327,10 +330,11 @@ CREATURES.carrier = {
       if (sink > 0.3) P_line(ctx, 0.02, 0.62, -0.04, 1.18, 0.02 + 0.03 * sink, inner);   // a seam splitting down its front
       // one arm up over its face against the light; the other thrown up and out, the fingers clawing, then both going slack
       const up = rec, cw = Math.sin(t * 23) * 0.04 * shake;
-      P_limb(ctx, [[0.38, 1.15], [lerp(0.6, 0.52, up), lerp(0.75, 1.36, up)], [lerp(0.66, 0.08, up), lerp(0.5, 1.66, up)]], 0.11, sack);
-      fingers(ctx, lerp(0.66, 0.08, up), lerp(0.5, 1.66, up), lerp(-Math.PI / 2, Math.PI / 2 + 0.3, up), 0.32, 0.13, 0.025, skin);
-      const lx = lerp(-0.62, -0.8 + cw, up), ly = lerp(0.48, 1.86, up);
-      P_limb(ctx, [[-0.38, 1.15], [lerp(-0.55, -0.66, up), lerp(0.8, 1.42, up)], [lx, ly]], 0.11, sack);
+      const [shx, shy] = this.SHOULDER;
+      P_limb(ctx, [[shx, shy], [lerp(0.5, 0.48, up), lerp(0.76, 1.38, up)], [lerp(0.54, 0.08, up), lerp(0.5, 1.66, up)]], 0.11, sack);
+      fingers(ctx, lerp(0.54, 0.08, up), lerp(0.5, 1.66, up), lerp(-Math.PI / 2, Math.PI / 2 + 0.3, up), 0.32, 0.13, 0.025, skin);
+      const lx = lerp(-0.52, -0.8 + cw, up), ly = lerp(0.48, 1.86, up);
+      P_limb(ctx, [[-shx, shy], [lerp(-0.5, -0.62, up), lerp(0.8, 1.42, up)], [lx, ly]], 0.11, sack);
       fingers(ctx, lx, ly, lerp(-Math.PI / 2 - 0.2, Math.PI / 2 + 0.5 + cw * 4, up), lerp(0.28, 0.42, up), 0.13, 0.025, skin);
       // the head thrown back, the mouth wide open in the scream, then lolling
       ctx.save(); ctx.translate(-0.06, 1.25); ctx.rotate(-0.4 * (1 - sink) + side * 0.7 * sink + Math.sin(t * 47) * 0.05 * shake);

@@ -197,13 +197,21 @@ LEVELS.push({
       }, { face: 0, noLight: true, noContact: true, sortDist: glassAt - 0.01 });
       const zf = z + 0.05;
       SC.wallV(L, x0 - 0.07, zf, x0 + 0.015, zf, y0, y1 + 0.07, frame); SC.wallV(L, x1 - 0.015, zf, x1 + 0.07, zf, y0, y1 + 0.07, frame); SC.wallV(L, x0 - 0.07, zf, x1 + 0.07, zf, y1 - 0.015, y1 + 0.07, frame);
+      // lined back to the wall, as the doorways are (below): the near side of the hole showed a strip of wall inside the frame
+      SC.wallV(L, x0, zf, x0, z, y0, y1, frame); SC.wallV(L, x1, zf, x1, z, y0, y1, frame); SC.quad(L, [x0, y1, zf], [x1, y1, zf], [x1, y1, z], [x0, y1, z], frame);
       SC.box(L, x0 - 0.06, x1 + 0.06, 1.04, 1.1, z + 0.01, z + 0.15, [70, 56, 42]);
     }
     // the empty door frames, the pale scars where hinges were (nothing on them shows where the boards go), and the steps
-    // outside
+    // outside. A frame stands a little in from its wall, so it lines the doorway back to the wall as well (the inside
+    // of each post and the underside of the head, from the frame's face to the wall's): without that, the edge of the
+    // wall's hole, farther off than the frame, showed as a strip of wall inside the frame on both sides.
     const frames = [];   // (each doorway glows in its frame, and the boards across it, when you point at it)
     for (const [z, w] of [[2.55, 0.8], [-2.35, 0.7]]) {
-      frames.push(SC.grab(L, () => { SC.wallV(L, -w - 0.12, z, -w, z, 0, doorH + 0.1, frame); SC.wallV(L, w, z, w + 0.12, z, 0, doorH + 0.1, frame); SC.wallV(L, -w - 0.12, z, w + 0.12, z, doorH - 0.02, doorH + 0.1, frame); }));
+      const zw = z + Math.sign(z) * 0.05;   // the wall's face
+      frames.push(SC.grab(L, () => {
+        SC.wallV(L, -w - 0.12, z, -w, z, 0, doorH + 0.1, frame); SC.wallV(L, w, z, w + 0.12, z, 0, doorH + 0.1, frame); SC.wallV(L, -w - 0.12, z, w + 0.12, z, doorH - 0.02, doorH + 0.1, frame);
+        SC.wallV(L, -w, z, -w, zw, 0, doorH, frame); SC.wallV(L, w, z, w, zw, 0, doorH, frame); SC.quad(L, [-w, doorH, z], [w, doorH, z], [w, doorH, zw], [-w, doorH, zw], frame);
+      }));
       const zi = z - Math.sign(z) * 0.01;
       for (const y of [0.3, 1.0, 1.75]) SC.wallV(L, -w - 0.1, zi, -w - 0.02, zi, y, y + 0.14, [100, 86, 64], { sortDist: Math.hypot(w + 0.06, z) - 0.03 });
     }
