@@ -1388,7 +1388,7 @@ function updateHUD() {
   updateDrawBar();
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
-  const isig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active;
+  const isig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active + '#' + document.documentElement.style.getPropertyValue('--text-scale') + (document.fonts ? document.fonts.status : '');   // (the names' widths: below)
   if (isig !== G.invSig) {
     G.invSig = isig;
     UI.inv.innerHTML = '';
@@ -1412,6 +1412,14 @@ function updateHUD() {
       });
       UI.inv.appendChild(slot);
     });
+    // a long name and the next one must not run together ("Rotten rope" beside "Padlock"): that slot moves over just enough
+    const sl = [...UI.inv.children];
+    for (let i = 1; i < sl.length; i++) {
+      const a = sl[i - 1].lastChild, b = sl[i].lastChild;
+      if (!a.offsetWidth || !b.offsetWidth) continue;   // (unnamed: a crowded hand names only the held thing)
+      const over = a.getBoundingClientRect().right + 8 - b.getBoundingClientRect().left;
+      if (over > 0) sl[i].style.marginLeft = over + 'px';
+    }
   }
   if (G.debug) {
     const cr = L.creature;
