@@ -327,7 +327,7 @@ async function run(browser, check) {
   // thing a step nearer. By the keys (Enter, Space, the arrows to scroll it) and by a pad (A opens, up and down scroll,
   // left and right go round, B closes) the same
   console.log('== the credit: the developer\'s note ==');
-  const NOTE_WANT = "Note from Jason: This game is inspired by a real experience I had with dreams, where I was pursued multiple nights in a row by mysterious creatures. After several nights, I gained enough lucidity to turn and face the creatures within the dream, only to find them transform into representations of things I'd been avoiding in my real life: a friend I hadn't texted back, a responsibility I was avoiding, a commitment I'd neglected. I could only run for so long. Those dreams woke me up (literally) to the need to face things head-on, and left me fascinated with what our subconscious minds are trying to tell us through our dreams. If you'd like to support this project and other free games and apps I'm working on, feel free to support me with a coffee, or see what else I'm making at jasonwissman.com. Cheers! -J";
+  const NOTE_WANT = "Note from Jason: This game is inspired by a real experience I had, where I was pursued by mysterious creatures in my dreams multiple nights in a row. One night, I gained enough lucidity to turn and face the creatures in the dream, and when I did they transformed into representations of things I'd been avoiding in my real, waking life: a friend I hadn't texted back, a responsibility I was avoiding, a commitment I'd neglected. Those dreams woke me up (literally) to the need to face things head-on, and left me fascinated with the way our subconscious communicates with us through dreams. If you'd like to support this project and other free games and apps I'm working on, you can support me with a coffee, or see what else I'm making at jasonwissman.com. Hope you enjoy!";
   const NOTE_VIEWS = { 'narrow window': { viewport: { width: 390, height: 844 } }, phone: VIEWS.phone, desktop: { viewport: { width: 1280, height: 800 } } };
   for (const view of Object.keys(NOTE_VIEWS)) {
     const rows = [];
@@ -356,8 +356,8 @@ async function run(browser, check) {
       rows.push(Object.assign({ name, credit, step0 }, r));
       await ctx.close();
     }
-    const want = ["support me with a coffee https://ko-fi.com/jasonwissman _blank noopener", "jasonwissman.com https://jasonwissman.com _blank noopener", "See my other projects https://jasonwissman.com _blank noopener", "Support me with a coffee https://ko-fi.com/jasonwissman _blank noopener"].join('|');
-    check(rows.every(r => r.credit.tag === 'BUTTON' && r.credit.text === 'created by jason wissman' && r.credit.under && !r.credit.link && r.kind === 'note' && r.dialog && r.text === NOTE_WANT && r.links.join('|') === want && r.foot === 'See my other projects|Support me with a coffee|Back' && r.focus === 'Back'),
+    const want = ["support me with a coffee https://ko-fi.com/jasonwissman _blank noopener", "jasonwissman.com https://jasonwissman.com _blank noopener", "Support me with a coffee https://ko-fi.com/jasonwissman _blank noopener", "See my other projects https://jasonwissman.com _blank noopener"].join('|');
+    check(rows.every(r => r.credit.tag === 'BUTTON' && r.credit.text === 'created by jason wissman' && r.credit.under && !r.credit.link && r.kind === 'note' && r.dialog && r.text === NOTE_WANT && r.links.join('|') === want && r.foot === 'Support me with a coffee|See my other projects|Back' && r.focus === 'Back'),
       view + ': the whole credit is one underlined button; it opens the developer\'s note, a dialog named by its heading, the author\'s words exactly, its links and the two buttons to a new tab, Back focused (' + JSON.stringify(rows.map(r => ({ name: r.name, credit: r.credit, kind: r.kind, dialog: r.dialog, textOK: r.text === NOTE_WANT, links: r.links, foot: r.foot, focus: r.focus }))) + ')');
     check(rows.every(r => r.sideways <= 0 && r.bodyX <= 0 && r.inView && r.footIn && r.down) && rows[0].pfs < rows[1].pfs && rows[0].credit.fs < rows[1].credit.fs,
       view + ': the note scrolls inside its panel (the arrows scroll it), the panel in the page and nothing sideways, its links and Back in view, its words and the credit bigger with the text size (' + JSON.stringify(rows.map(r => ({ name: r.name, sideways: r.sideways, bodyX: r.bodyX, inView: r.inView, footIn: r.footIn, more: r.more, down: r.down, pfs: r.pfs, cfs: r.credit.fs }))) + ')');
@@ -387,7 +387,7 @@ async function run(browser, check) {
     await press(13, 450);
     k.padDown = await page.evaluate(() => document.querySelector('.notebody').scrollTop > 0);
     await press(14);
-    k.padLeft = await page.evaluate(() => document.activeElement.textContent === 'Support me with a coffee');
+    k.padLeft = await page.evaluate(() => document.activeElement.textContent === 'See my other projects');
     await press(15);
     k.padRight = await page.evaluate(() => document.activeElement.textContent === 'Back');
     await press(1, 250);

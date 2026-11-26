@@ -103,7 +103,7 @@ const MENU = (() => {
         // panel when it is taller than it, and under it, always in view, the two links out and Back
         const out = (href, label) => '<a class="mbtn mlink" href="' + href + '" target="_blank" rel="noopener">' + label + '</a>';
         return '<div class="notebody" tabindex="0" role="region" aria-labelledby="noteH"><h1 id="noteH">Note from Jason:</h1>' + NOTE.map(p => '<p>' + p + '</p>').join('') + '</div>' +
-          '<div class="mrow notefoot"><div class="notelinks">' + out(SITE, 'See my other projects') + out(KOFI, 'Support me with a coffee') + '</div>' + btn('back', 'Back', 'title') + '</div>';
+          '<div class="mrow notefoot"><div class="notelinks">' + out(KOFI, 'Support me with a coffee') + out(SITE, 'See my other projects') + '</div>' + btn('back', 'Back', 'title') + '</div>';
       }
       case 'howto': {
         // the controls as four cards, each the keys you press drawn large over what they do: a keycap for each key, the
@@ -219,11 +219,10 @@ const MENU = (() => {
   const SITE = 'https://jasonwissman.com', KOFI = 'https://ko-fi.com/jasonwissman';
   const ext = (href, label) => '<a href="' + href + '" target="_blank" rel="noopener">' + label + '</a>';
   const NOTE = [
-    'This game is inspired by a real experience I had with dreams, where I was pursued multiple nights in a row by mysterious creatures. After several nights, I gained enough lucidity to turn and face the creatures within the dream, only to find them transform into representations of things I\'d been avoiding in my real life: a friend I hadn\'t texted back, a responsibility I was avoiding, a commitment I\'d neglected.',
-    'I could only run for so long. Those dreams woke me up (literally) to the need to face things head-on, and left me fascinated with what our subconscious minds are trying to tell us through our dreams.',
-    'If you\'d like to support this project and other free games and apps I\'m working on, feel free to ' + ext(KOFI, 'support me with a coffee') + ', or see what else I\'m making at ' + ext(SITE, 'jasonwissman.com') + '.',
-    'Cheers!',
-    '-J',
+    'This game is inspired by a real experience I had, where I was pursued by mysterious creatures in my dreams multiple nights in a row. One night, I gained enough lucidity to turn and face the creatures in the dream, and when I did they transformed into representations of things I\'d been avoiding in my real, waking life: a friend I hadn\'t texted back, a responsibility I was avoiding, a commitment I\'d neglected.',
+    'Those dreams woke me up (literally) to the need to face things head-on, and left me fascinated with the way our subconscious communicates with us through dreams.',
+    'If you\'d like to support this project and other free games and apps I\'m working on, you can ' + ext(KOFI, 'support me with a coffee') + ', or see what else I\'m making at ' + ext(SITE, 'jasonwissman.com') + '.',
+    'Hope you enjoy!',
   ];
   // the note's text, scrolled by the arrows (and a pad's up and down) while there is more of it that way: dir -1 up, 1
   // down. True if it moved
