@@ -102,7 +102,7 @@ const MENU = (() => {
         // the credit's dialog: the developer's note (its words the author's own, as written: NOTE), scrolling inside the
         // panel when it is taller than it, and under it, always in view, the two links out and Back
         const out = (href, label) => '<a class="mbtn mlink" href="' + href + '" target="_blank" rel="noopener">' + label + '</a>';
-        return '<div class="notebody" tabindex="0" role="region" aria-labelledby="noteH"><h1 id="noteH">Note from the developer:</h1>' + NOTE.map(p => '<p>' + p + '</p>').join('') + '</div>' +
+        return '<div class="notebody" tabindex="0" role="region" aria-labelledby="noteH"><h1 id="noteH">Note from Jason:</h1>' + NOTE.map(p => '<p>' + p + '</p>').join('') + '</div>' +
           '<div class="mrow notefoot"><div class="notelinks">' + out(SITE, 'See my other projects') + out(KOFI, 'Support me with a coffee') + '</div>' + btn('back', 'Back', 'title') + '</div>';
       }
       case 'howto': {
@@ -219,7 +219,7 @@ const MENU = (() => {
   const SITE = 'https://jasonwissman.com', KOFI = 'https://ko-fi.com/jasonwissman';
   const ext = (href, label) => '<a href="' + href + '" target="_blank" rel="noopener">' + label + '</a>';
   const NOTE = [
-    'This game comes directly from real experiences I\'ve had with dreams, where I\'d be pursued multiple nights in a row by mysterious creatures. Finally after several scary nights, I had enough lucidity to turn and face the creature within the dream, only to find it transform into a representation of something I\'d been avoiding in my real life: a friend I hadn\'t texted back, a responsibility I was avoiding, a commitment I\'d neglected.',
+    'This game is inspired by a real experience I had with dreams, where I was pursued multiple nights in a row by mysterious creatures. After several nights, I gained enough lucidity to turn and face the creatures within the dream, only to find them transform into representations of things I\'d been avoiding in my real life: a friend I hadn\'t texted back, a responsibility I was avoiding, a commitment I\'d neglected.',
     'I could only run for so long. Those dreams woke me up (literally) to the need to face things head-on, and left me fascinated with what our subconscious minds are trying to tell us through our dreams.',
     'If you\'d like to support this project and other free games and apps I\'m working on, feel free to ' + ext(KOFI, 'support me with a coffee') + ', or see what else I\'m making at ' + ext(SITE, 'jasonwissman.com') + '.',
     'Cheers!',
