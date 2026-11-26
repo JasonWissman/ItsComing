@@ -69,16 +69,17 @@ const MENU = (() => {
   // card, .nights and .ncard, so the same place and size at every size of screen and text): flipping between the two
   // tabs, a night's box and its secret's are in the one spot.
   // fresh (the results after the ending): the ids of those first found in the run just finished. They start as not found
-  // and are checked off one after another as the tab is watched (reveal); if they make it all of them, a stamp says so
+  // and are checked off one after another as the tab is watched (reveal); if they make it all of them, a stamp says so.
+  // The results with none new (fresh empty): all there as they are, and if that is all thirteen the stamp is already down
   function eggsHtml(eggs, fresh) {
     let rows = '';
     const isNew = x => !!fresh && x.found && fresh.includes(x.id), n = eggs.filter(x => x.found).length;
     for (const x of eggs) {
       rows += '<div class="ncard egg ' + (x.found && !isNew(x) ? 'found' : 'unknown') + (isNew(x) ? ' fresh' : '') + col(x.i) + '" role="listitem" aria-label="' + escapeHtml(x.name) + (x.found ? ', found' : ', not found') + (isNew(x) ? ' in this run' : '') + '"><span class="emark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 8.6l3.4 3.4L13 4.4"/></svg></span><span class="nname ename" aria-hidden="true">' + escapeHtml(x.name) + '</span></div>';
     }
-    const all = !!fresh && fresh.length > 0 && n === eggs.length;
+    const all = !!fresh && n === eggs.length, down = all && !fresh.length;
     return '<div class="nights eggs" role="list" aria-label="Secret scenes" style="--rows: ' + Math.ceil(LEVELS.length / 2) + '">' + rows + '</div>' +
-      '<p class="eggcount"><span class="ecnt"><span class="ecount">' + (n - eggs.filter(isNew).length) + '</span> of ' + eggs.length + ' found</span>' + (all ? '<span class="stamp estamp">All secrets found</span>' : '') + '</p>';
+      '<p class="eggcount"><span class="ecnt"><span class="ecount">' + (n - eggs.filter(isNew).length) + '</span> of ' + eggs.length + ' found</span>' + (all ? '<span class="stamp estamp' + (down ? ' in' : '') + '">All secrets found</span>' : '') + '</p>';
   }
   // two tabs over their two panels (role tablist, tab, tabpanel: pickTab), the one chosen shown: [[key, label, html], ...]
   function tabsHtml(name, tabs, on) {
@@ -159,16 +160,19 @@ const MENU = (() => {
         // the whole run with its stars, then the way out. This run's own times (game.js: G.lastRun), adding up to its
         // whole time; the Best run stamp beside that only when it is a new best (and so the one on the Scores screen now).
         // (No run, only when the last night was reached by ?level=: then dashes)
-        // If the run found easter eggs it did not have before (the save's runEggs: game.js foundEgg), two tabs, as Scores
-        // has: This run (all of the above) and Secret scenes. It opens on This run all the same, its times coming in as
-        // ever; a moment after they are all in it slides over to the secret scenes, where the new ones are checked off
-        // one after another (eggsHtml fresh; reveal), with a stamp, All secrets found, if that is all of them now
+        // Once an easter egg has been found (in this run or before it), two tabs, as Scores has: This run (all of the
+        // above) and Secret scenes. It opens on This run all the same, its times coming in as ever. If the run found easter
+        // eggs it did not have before (the save's runEggs: game.js foundEgg), a moment after they are all in it slides
+        // over to the secret scenes, where the new ones are checked off one after another (eggsHtml fresh; reveal), with a
+        // stamp, All secrets found, if that is all of them now. If it found none new, it stays on This run: Secret scenes
+        // is there to choose, to see which are still missing, all of it already as it is (the stamp already down if that
+        // is all thirteen). None ever found: This run alone, no tabs (as Scores has none then)
         const R0 = G.lastRun;
         const run = R0 ? runTime(R0, 'This run', R0.best) : '<div class="rlabel">This run</div><div class="rline"><div class="rtime none">&mdash;</div></div>';
         const body = runCards(R0, 'rcard') + '<div class="runcard rrun">' + run + '</div>';
-        const fresh = R0 ? SAVE.data.runEggs.filter(id => SAVE.data.eggs[id]) : [];
+        const fresh = R0 ? SAVE.data.runEggs.filter(id => SAVE.data.eggs[id]) : [], eggs = eggList();
         return '<div class="results"><div class="kicker">Morning</div><h1>Every night survived</h1>' +
-          (fresh.length ? tabsHtml('Results', [['run', 'This run', body], ['eggs', 'Secret scenes', eggsHtml(eggList(), fresh)]], 'run') : body) +
+          (eggs.some(x => x.found) ? tabsHtml('Results', [['run', 'This run', body], ['eggs', 'Secret scenes', eggsHtml(eggs, fresh)]], 'run') : body) +
           '<div class="mrow rlast">' + btn('finish', 'Finish game', undefined, 'primary') + '</div></div>';
       }
       case 'survived':
@@ -499,9 +503,9 @@ const MENU = (() => {
   }
   // the results after the ending: each night's card takes its time one after another, then the full run, then the way
   // out. A click or a key hurries it to the end; with reduced motion it is all there at once.
-  // With its two tabs (the run found easter eggs: html) This run is watched first all the same; AUTO_EGGS ms after it is
-  // all in (hurried or not) it slides over to the secret scenes by itself (autoEggs; with reduced motion it only
-  // changes), and they are watched (what: 'eggs'): each of the run's new ones is checked off in turn, the count under
+  // With its two tabs (easter eggs found: html) This run is watched first all the same; if the run found new ones,
+  // AUTO_EGGS ms after it is all in (hurried or not) it slides over to the secret scenes by itself (autoEggs; with
+  // reduced motion it only changes), and they are watched (what: 'eggs'): each of the run's new ones is checked off in turn, the count under
   // them going up with it, then the stamp if that is all of them. A tab chosen meanwhile (resultsTab) and it stays where
   // it is put: whatever was still coming in on the other is all there at once, and what has not yet come in on the one
   // chosen comes in now
@@ -522,6 +526,7 @@ const MENU = (() => {
     stopReveal();
     const box = UI.overlay.querySelector('.results'); if (!box) return;
     const eggs = box.querySelector('#panel-eggs'), runP = box.querySelector('#panel-run') || box;
+    if (eggs && !eggs.querySelector('.egg.fresh')) eggs.classList.add('still');   // (none new: nothing on it comes in, the stamp is down already)
     what = revealWhat = what || (eggs && !eggs.hidden ? 'eggs' : 'run');
     const cards = [...box.querySelectorAll('.rcard')], run = box.querySelector('.rrun'), last = box.querySelector('.rlast');
     const still = now || SAVE.data.settings.reducedMotion, at = (ms, fn) => timers.push(setTimeout(fn, ms));
