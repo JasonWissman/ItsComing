@@ -708,6 +708,12 @@ LEVELS.push({
     SC.wallV(L, 1.68, -1.57, 1.72, -1.57, 1.3, 2.1, logsD); SC.wallV(L, 1.2, -1.57, 2.2, -1.57, 1.68, 1.72, logsD);
     SC.wallV(L, 1.13, -1.565, 1.2, -1.565, 1.24, 2.17, frame); SC.wallV(L, 2.2, -1.565, 2.27, -1.565, 1.24, 2.17, frame);
     SC.wallV(L, 1.13, -1.565, 2.27, -1.565, 2.1, 2.17, frame); SC.wallV(L, 1.13, -1.565, 2.27, -1.565, 1.24, 1.3, frame);
+    // each frame stands a little out from the door and the glass inside it, so it lines them back to them (the inside of
+    // each post, the underside of the head and the top of the sill): without that, seen at an angle, the wall behind
+    // showed in a sliver between the frame and the door or the glass, its log seams with it
+    SC.wallV(L, -0.55, -1.57, -0.55, -1.58, 0.35, 2.3, frame); SC.wallV(L, 0.55, -1.57, 0.55, -1.58, 0.35, 2.3, frame); SC.quad(L, [-0.55, 2.3, -1.57], [0.55, 2.3, -1.57], [0.55, 2.3, -1.58], [-0.55, 2.3, -1.58], frame);
+    SC.wallV(L, 1.2, -1.565, 1.2, -1.58, 1.3, 2.1, frame); SC.wallV(L, 2.2, -1.565, 2.2, -1.58, 1.3, 2.1, frame);
+    for (const y of [1.3, 2.1]) SC.quad(L, [1.2, y, -1.565], [2.2, y, -1.565], [2.2, y, -1.58], [1.2, y, -1.58], frame);
     for (const x of [-3.0, 3.0]) SC.box(L, x - 0.08, x + 0.08, 0.35, 2.95, 1.42, 1.58, logsD);
     SC.box(L, 3.0, 3.16, 0.35, 2.95, -1.5, -1.34, logsD);
     SC.quad(L, [-3.4, 2.95, 1.75], [3.4, 2.95, 1.75], [3.4, 3.2, -1.6], [-3.4, 3.2, -1.6], [28, 20, 15]);
