@@ -701,12 +701,13 @@ some on the ground, so you have to turn and look down to find them.
 12. **The Bedroom.** You are in bed, sitting up at the head of it, the wall close behind
     you. Ahead, past the foot of the bed, is the doorway to the hall, the dresser with its
     mirror and the clock to its left and a chair to its right; the window is on your right,
-    beyond the nightstand. On your left, out of the corner by the head wall and along toward
-    the foot of the bed, is the wide open closet (its opening 1.8 m across, wider inside): a
+    beyond the nightstand. On your left, well along the wall from the corner by the head wall
+    (three quarters of a metre of wall between), toward the foot of the bed, is the wide open
+    closet (its opening 1.8 m across, wider inside): a
     shelf along its back with boxes on it, the rail under it with a row of hangers and the
     clothes hanging from them (long coats, dresses, jackets and shirts, a gap or two between),
     shoes and a box on its floor, and its two folding doors folded and swung back either side,
-    the far one flat to the wall, the near one as far as the head wall lets it. From the pillow,
+    both nearly flat to the wall. From the pillow,
     looking left, all of its opening is in view (`test/nights/night12.js` checks it is that
     wide, clear of the head wall and of the furniture, and that its rail, hangers and clothes
     are drawn and in view in it). It is already there, in the hall beyond the doorway
@@ -1152,7 +1153,10 @@ LEVELS.push({
   picks the lane (random, or the
   night's own `laneMode`) and `validateContent()` fails a lane that is not at least 85% visible
   at every metre. `L.lane` is the chosen lane inside `build`. A lane may set its own `startDist`
-  (and a `maxStart` cap, for the back of a closet).
+  (and a `maxStart` cap, for the back of a closet), and `aimLat`, where across it the thing
+  comes when the opening it comes through is off to the side of its ray (the bedroom's closet,
+  along the wall from due west: it comes out through the middle of the opening, and is looked
+  for there).
 - **Creatures** are listed in `creatures`; each gets its own lane, timer and seeded random
   stream. `CREATURES[type]` provides `draw`, `speedMult`, optional `onSeen`, `lateral`,
   `timeScale` (slow motion), `death` ({ delay, dur, sting, pose }) and `seenFrac`, and `drawRun` (a side-on run,

@@ -47,7 +47,9 @@ LEVELS.push({
     // (Their cues are never played: it changes its way itself, gliding round the bed after a few quick, heavy footsteps
     // (crossing, below). The closet's clinking hangers keep the story's hangers on the wind out of this night.)
     { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.9, maxStart: 4.1, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
-    { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 4.2, maxStart: 3.4, cue: 'hangers', apertures: [{ z: -STORY.CLOSET.wall, x0: STORY.CLOSET.mid - STORY.CLOSET.half, x1: STORY.CLOSET.mid + STORY.CLOSET.half, y0: 0, y1: STORY.CLOSET.top }] },
+    // (the closet's opening is off to the side of the ray due west, along the wall toward the foot of the bed: it comes out
+    // through its middle, aimLat across the way, and that is where it is looked for to be seen through it)
+    { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 4.2, maxStart: 3.4, cue: 'hangers', aimLat: STORY.CLOSET.mid, apertures: [{ z: -STORY.CLOSET.wall, x0: STORY.CLOSET.mid - STORY.CLOSET.half, x1: STORY.CLOSET.mid + STORY.CLOSET.half, y0: 0, y1: STORY.CLOSET.top }] },
   ],
   creatures: [{ type: 'tall', startDist: 4.0, time: 70, unseenMult: 2.5 }],
   aftermath: { type: 'custom' },

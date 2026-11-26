@@ -42,11 +42,11 @@ const STORY = (() => {
   // the ending both build it. Returns the pieces the night needs to animate.
   const HEADWALL = -0.6;
   // The closet: a wide open one in the wall at your left (the west wall, x 3.2 m off), brought out of the corner by the
-  // head wall and along toward the foot of the bed so the whole of its opening is in front of you from the pillow, across
-  // and a little ahead. mid: the middle of its opening along that wall (world z), half: half its opening's width; back: how
+  // head wall and well along toward the foot of the bed, a metre of wall between it and the head wall, so the whole of
+  // its opening is in front of you from the pillow, across and ahead. mid: the middle of its opening along that wall (world z), half: half its opening's width; back: how
   // deep its far wall is (x), inside: half its width inside, wider than its opening (so there is wall either side to stand
   // behind). Night 12's way in from the closet is laid out round it.
-  const CLOSET = { mid: 0.55, half: 0.9, wall: -3.2, back: -3.95, inside: 1.3, top: 2.2 };
+  const CLOSET = { mid: 1.05, half: 0.9, wall: -3.2, back: -3.95, inside: 1.36, top: 2.2 };
   // A doorway's frame (its wall built by SC.doorway, which is given no frame): the post either side and the head over it,
   // a little out from the wall (FRAME_OUT), and lined back to the wall: the inside of each post and the underside of the
   // head, from the frame's face to the wall's, a shade darker. Without that the edge of the wall's hole, farther off than
@@ -104,10 +104,10 @@ const STORY = (() => {
     if (!day) for (const z of [-0.2, 0.25, 0.95]) for (const dx of [0, 0.11]) SC.box(L, -3.86 + dx, -3.77 + dx, 0, 0.09, C.mid + z, C.mid + z + 0.24, [30, 26, 26]);   // shoes, in pairs
     SC.box(L, -3.92, -3.56, 0, 0.32, C.mid + 0.86, C.mid + 1.2, card);                                                  // a box on the floor
     // its doors: a folding door either side, its two leaves folded together on their hinge into one narrow stack, hinged at
-    // the frame and swung open: on the far side right back, nearly flat to the wall; on the near side, by the corner,
-    // as far as the head wall lets it (DOOR: each leaf's width, the gap the fold leaves between them at their free end, and
+    // the frame and swung open, each right back, nearly flat to the wall (the near one clear of the head wall now the
+    // closet is out along the wall) (DOOR: each leaf's width, the gap the fold leaves between them at their free end, and
     // how far each is swung open from shut, near side and far side)
-    const DOOR = { leaf: 0.45, gap: 0.06, open: [112 * DEG, 160 * DEG] }, doors = [];
+    const DOOR = { leaf: 0.45, gap: 0.06, open: [160 * DEG, 160 * DEG] }, doors = [];
     for (const s of [-1, 1]) {
       const a = DOOR.open[s > 0 ? 1 : 0], hx = C.wall + 0.05, hz = C.mid + s * (C.half - 0.01), ux = Math.sin(a), uz = -s * Math.cos(a);
       const fx = hx + DOOR.leaf * ux, fz = hz + DOOR.leaf * uz, n = uz > 0 ? [uz, -ux] : [-uz, ux], ex = hx + DOOR.gap * n[0], ez = hz + DOOR.gap * n[1];

@@ -11,6 +11,9 @@ const APPROACH = (() => {
     return {
       idx, name: def.name || ('lane' + idx), deg, elev, yaw, y: def.y || 0,
       apertures: (def.apertures || []).slice(), blockers: (def.blockers || []).slice(),
+      // aimLat: where across the lane a thing coming by it comes (0, on the ray, for nearly every lane; off it where the
+      // opening it comes through is to the side of the ray, as the bedroom's closet is): validateLane looks for it there
+      aimLat: def.aimLat || 0,
       barrierDist: def.barrierDist, startDist: def.startDist, maxStart: def.maxStart, cue: def.cue || null, follow: def.follow || null, ramp: !!def.ramp, noSwitch: !!def.noSwitch,
       dirX: Math.sin(yaw), dirZ: Math.cos(yaw),
     };
@@ -79,8 +82,8 @@ const APPROACH = (() => {
     if (cur) cover += cur[1] - cur[0];
     return af * hx * cover;
   }
-  // "fully visible" as a machine-checked property: with the camera on the lane, the thing is at least
-  // `min` visible at every whole metre from 3 m out to where it starts, outside declared blockers
+  // "fully visible" as a machine-checked property: with the camera on the lane, the thing (where it comes across the
+  // lane: aimLat) is at least `min` visible at every whole metre from 3 m out to where it starts, outside declared blockers
   function validateLane(L, lane, opts) {
     const o = opts || {};
     const viewports = o.viewports || [{ W: 1280, H: 760 }];
@@ -91,7 +94,7 @@ const APPROACH = (() => {
       for (const vp of viewports) {
         for (let d = 3; d <= cr.D0; d += 1) {
           if (lane.blockers.some(b => d >= b[0] && d <= b[1])) continue;
-          const f = unionVisFrac(L, lane, { CR: cr.CR, dist: d, lat: 0, yOff: 0 }, vp);
+          const f = unionVisFrac(L, lane, { CR: cr.CR, dist: d, lat: lane.aimLat, yOff: 0 }, vp);
           if (f < (o.min || 0.85)) problems.push({ lane: lane.name, creature: cr.type, viewport: vp.W + 'x' + vp.H, dist: d, frac: +f.toFixed(2) });
         }
       }

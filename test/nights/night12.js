@@ -51,9 +51,10 @@ const inFront = fresh.concat([
     return ['drawer', 'lamp', 'covers', 'socket'].every(id => !!out[id]) && !/ [701]d?( |$)/.test(out.pillow || '') && !out.hand;
   })()`, 'the drawer, the lamp, the covers and the cord are each whole in view and pointed at without looking back (and the pillow is not, from ahead or either diagonal)'],
 ]);
-// The closet is the wide, open one, brought out of the corner along the wall at your left: its opening near two metres
-// wide (the closet's way in is that opening), wider still inside, with wall between it and the head wall; its two folding
-// doors swung back clear of it, of the head wall and of the furniture. From the pillow, looking left, the whole of its
+// The closet is the wide, open one, brought out of the corner well along the wall at your left: its opening near two
+// metres wide (the closet's way in is that opening, and it is looked for coming through the middle of it), wider still
+// inside, with more than half a metre of wall between it and the head wall; its two folding doors swung right back,
+// clear of it, of the head wall and of the furniture. From the pillow, looking left, the whole of its
 // opening is in view, and in it the rail with every hanger on it and the clothes hanging from them, each drawn and each
 // inside the opening; and looking ahead and to the left, the clothes are still there to see
 const closetWide = fresh.concat([
@@ -61,13 +62,15 @@ const closetWide = fresh.concat([
     const C = G.L.closet, ap = G.L.lanes[1].apertures[0], S = ${T('pillow')}.head - 0.1, bad = [];
     if (C.half * 2 < 1.7) bad.push('its opening is only ' + (C.half * 2).toFixed(2) + ' m wide');
     if (C.inside <= C.half + 0.2) bad.push('it is no wider inside than its opening');
-    if (C.mid - C.half - 0.06 < S + 0.15) bad.push('it is hard up against the head wall');
+    if (C.mid - C.half - 0.06 < S + 0.6) bad.push('it is not well along the wall from the head wall (' + (C.mid - C.half - S).toFixed(2) + ' m of wall)');
+    if (G.L.lanes[1].aimLat !== C.mid) bad.push('its way in is not looked for through the middle of its opening');
     if (Math.abs(ap.x0 - (C.mid - C.half)) > 1e-9 || Math.abs(ap.x1 - (C.mid + C.half)) > 1e-9 || Math.abs(ap.z + C.wall) > 1e-9) bad.push('its way in is not its opening');
     const furn = [[-0.8, 0.8, S, 1.9], [-2.9, -1.5, 3.05, 3.55], [1.25, 1.7, 3.1, 3.55]];   // (the bed, the dresser, the chair)
     if (C.doors.length !== 2) bad.push(C.doors.length + ' doors');
     for (const D of C.doors) {
       if (D[0] < C.wall || D[2] < S + 0.01 || D[3] > 3.6) bad.push('a door goes into a wall: ' + D.map(v => v.toFixed(2)).join());
       if (Math.min(D[3], C.mid + C.half) - Math.max(D[2], C.mid - C.half) > 0.08) bad.push('a door stands in the opening');
+      if (D[1] - D[0] > 0.25) bad.push('a door is not folded right back: it stands ' + (D[1] - D[0]).toFixed(2) + ' m out from the wall');
       for (const f of furn) if (D[0] < f[1] && D[1] > f[0] && D[2] < f[3] && D[3] > f[2]) bad.push('a door is in the furniture');
     }
     const look = d => { G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; G.mouse.x = G.mouse.y = -1; render(); };
@@ -87,7 +90,7 @@ const closetWide = fresh.concat([
     look(0);
     console.log('the closet: ' + JSON.stringify({ wide: C.half * 2, mid: C.mid, hangers: hv + '/' + C.hangers.length, clothes: cv + '/' + C.clothes.length, aheadLeft: seen }) + (bad.length ? ' ' + bad.join('; ') : ''));
     return !bad.length;
-  })()`, 'the closet is the wide one, out of the corner: its opening near two metres wide, its doors folded back clear of everything; and from the pillow its rail, its hangers and its clothes are all in view in it'],
+  })()`, 'the closet is the wide one, well along the wall from the corner: its opening near two metres wide, its doors folded right back clear of everything; and from the pillow its rail, its hangers and its clothes are all in view in it'],
 ]);
 // ---- the tooth fairy (the night's easter egg) ----
 // The night is stepped by hand (update(1 / 60)) where it must be watched: every frame noted (whether you are still alive,
@@ -178,6 +181,22 @@ const atFoot = "(c => c.lane.idx === 0 && Math.abs(c.dist - 2.1) < 0.05 && Math.
 // its head snaps down to the tooth on its palm; it steps back, cups it in its hands and shuts its eyes; its wings burst
 // open, its eyes open shimmering; one beat of them and its dust hides it whole; it is the night's end, and a win, with
 // its own card
+// The glitter thrown off its wings as they burst open (checked in the same moment as the burst, so no frame slips by
+// between): a few dozen tiny motes, not a second flash (the view no brighter for them, near enough), a third as many with
+// motion or flashes reduced, none once it has gone
+const GLITTER = `(() => {
+    const T = G.L.creature.fairy, cv = UI.canvas, ctx = cv.getContext('2d'), still = T.still, steady = T.steady, glit = T.glit, rnd = Math.random;
+    const lum = () => { const d = ctx.getImageData(0, 0, cv.width, cv.height).data; let t = 0; for (let i = 0; i < d.length; i += 16) t += d[i] + d[i + 1] + d[i + 2]; return t / (d.length / 16) / 3; };
+    Math.random = () => 0.5;
+    try {
+      fy.look(0, false); const n = T.glitterN, withIt = lum();
+      T.glit = -1; render(); const without = lum(); T.glit = glit;
+      T.still = true; render(); const nRm = T.glitterN; T.still = still; T.steady = true; render(); const nRf = T.glitterN; T.steady = steady;
+      T.glit = 1.5; render(); const after = T.glitterN; T.glit = glit; render();
+      console.log('glitter at the burst: ' + JSON.stringify({ n, nRm, nRf, after, lum: [withIt, without].map(v => +v.toFixed(2)) }));
+      return n >= 20 && n <= 40 && nRm > 0 && nRm <= n / 2 && nRf > 0 && nRf <= n / 2 && after === 0 && withIt - without < 0.6;
+    } finally { Math.random = rnd; }
+  })()`.replace(/\n\s*/g, ' ');
 const fairyPlay = [
   ['eval', fairyLib + ' window.__fy.fresh(0); G.L.creature.hold = G.L.creature.dist;'], ['wait', 250],
   ['expect', FY("fy.front('pillow', [7, 0, 1]) < 16 && !G.L.items.some(i => i.id === 'tooth') && !G.L.s.fairy && (t => t.pil.x1 - t.pil.x0 > 0.5 && t.pil.z1 - t.pil.z0 >= 0.3 && t.pil.y1 - t.pil.y0 >= 0.12 && t.pil.z0 >= t.head && t.pil.z1 < -0.15)(fy.T('pillow'))"), 'the pillow, a full-sized one behind you against the headboard, is not to be seen or pointed at from straight ahead or either diagonal, level or down'],
@@ -215,24 +234,8 @@ const fairyPlay = [
   ['expect', FY('fy.clear()'), 'and it goes back on its feet, never over the bed, nothing sudden'],
   ['expect', FY("fy.to(FAIRY.cup[1] + 0.03) === 'play' && (l => l.cup === 1 && !l.tooth && l.offer === 0 && l.eyes > 0.05 && l.eyes < 0.6)(fy.log[fy.log.length - 1]) && fy.log.some(f => f.tooth && f.cup > 0.3) && fy.log.every(f => f.wings === 0) && (a => a >= 0 && FAIRY.cup[1] - fy.log[a].q > 1.3)(fy.log.findIndex(f => f.cup > 0.02)) && (b => b >= 0 && fy.log[b].q > FAIRY.cup[0] + 0.6 && !!(window.__lids = fy.log[b].q))(fy.log.findIndex(f => f.eyes < 0.98))"), 'slowly and deliberately it closes its two hands round the tooth (over a second and a half, the tooth gone into them), its lids beginning to come down as they close'],
   ['expect', FY("fy.to(FAIRY.shut[1] + 0.03) === 'play' && fy.log[fy.log.length - 1].eyes === 0 && fy.log.every(f => f.cup === 1 && f.wings === 0) && (z => z >= 0 && fy.log[z].q > FAIRY.cup[1] && fy.log[z].q - window.__lids > 0.75)(fy.log.findIndex(f => f.eyes === 0))"), 'and its eyes close slowly (near a second), shut just after its hands, their light gone'],
-  ['expect', FY("fy.to(FAIRY.burst - 0.01) === 'play' && fy.log.every(f => f.eyes === 0 && f.cup === 1 && f.wings === 0 && f.flash === 0) && fy.log.length >= 60 && fy.fx.length === 2"), 'and it stands there with its eyes shut, a long moment in the dark and the quiet (well over a second, not a sound)'],
-  ['expect', FY("(fy.look(0, false), !G.L.creature.fairy.glitterN)"), 'no glitter yet'],
-  ['expect', FY("fy.to(FAIRY.burst + 0.3) === 'play' && fy.fx.filter(n => n === 'wingBurst').length === 1 && fy.fx.length === 3 && fy.shakes === 1 && (i => i >= 0 && fy.log[i].wings > 0.3 && fy.log[i].flash > 0.8 && fy.log[i].fling > 0.2 && fy.log.findIndex(f => f.wings >= 1) - i <= 6)(fy.log.findIndex(f => f.q >= FAIRY.burst)) && Math.max(...fy.log.map(f => f.pop)) > 1.05 && Math.max(...fy.log.map(f => f.fling)) > 1.05 && (l => l.eyes > 0.99 && l.shimmer === 1 && l.look < 0.05 && l.cup < 0.01)(fy.log[fy.log.length - 1])"), 'then all at once its arms are thrown wide and its wings burst open (in the frame it starts, full open within a tenth of a second, a little past and back), a bright rush of air, a flash, the view jolted; its head comes up and its eyes open, shimmering'],
-  // a little glitter thrown off the edges of its wings as they burst open: a few dozen tiny motes, not a second flash
-  // (the view no brighter for them, near enough), a third as many with motion or flashes reduced, gone in about a second
-  ['expect', FY(`(() => {
-    const T = G.L.creature.fairy, cv = UI.canvas, ctx = cv.getContext('2d'), still = T.still, steady = T.steady, glit = T.glit, rnd = Math.random;
-    const lum = () => { const d = ctx.getImageData(0, 0, cv.width, cv.height).data; let t = 0; for (let i = 0; i < d.length; i += 16) t += d[i] + d[i + 1] + d[i + 2]; return t / (d.length / 16) / 3; };
-    Math.random = () => 0.5;
-    try {
-      fy.look(0, false); const n = T.glitterN, withIt = lum();
-      T.glit = -1; render(); const without = lum(); T.glit = glit;
-      T.still = true; render(); const nRm = T.glitterN; T.still = still; T.steady = true; render(); const nRf = T.glitterN; T.steady = steady;
-      T.glit = 1.5; render(); const after = T.glitterN; T.glit = glit; render();
-      console.log('glitter at the burst: ' + JSON.stringify({ n, nRm, nRf, after, lum: [withIt, without].map(v => +v.toFixed(2)) }));
-      return n >= 20 && n <= 40 && nRm > 0 && nRm <= n / 2 && nRf > 0 && nRf <= n / 2 && after === 0 && withIt - without < 0.6;
-    } finally { Math.random = rnd; }
-  })()`), 'a little glitter thrown off the edges of its wings as they burst open (none before; a third as many with motion or flashes reduced; gone after; the view no brighter for it)'],
+  ['expect', FY("fy.to(FAIRY.burst - 0.01) === 'play' && fy.log.every(f => f.eyes === 0 && f.cup === 1 && f.wings === 0 && f.flash === 0) && fy.log.length >= 60 && fy.fx.length === 2 && (fy.look(0, false), !G.L.creature.fairy.glitterN)"), 'and it stands there with its eyes shut, a long moment in the dark and the quiet (well over a second, not a sound; no glitter yet)'],
+  ['expect', FY("fy.to(FAIRY.burst + 0.3) === 'play' && fy.fx.filter(n => n === 'wingBurst').length === 1 && fy.fx.length === 3 && fy.shakes === 1 && (i => i >= 0 && fy.log[i].wings > 0.3 && fy.log[i].flash > 0.8 && fy.log[i].fling > 0.2 && fy.log.findIndex(f => f.wings >= 1) - i <= 6)(fy.log.findIndex(f => f.q >= FAIRY.burst)) && Math.max(...fy.log.map(f => f.pop)) > 1.05 && Math.max(...fy.log.map(f => f.fling)) > 1.05 && (l => l.eyes > 0.99 && l.shimmer === 1 && l.look < 0.05 && l.cup < 0.01)(fy.log[fy.log.length - 1]) && " + GLITTER + ""), 'then all at once its arms are thrown wide and its wings burst open (in the frame it starts, full open within a tenth of a second, a little past and back), a bright rush of air, a flash, the view jolted; its head comes up and its eyes open, shimmering; and a little glitter is thrown off the edges of its wings (a few dozen tiny motes, the view no brighter for them; a third as many with motion or flashes reduced; gone in about a second)'],
   ['expect', FY("fy.to(FAIRY.flap) === 'play' && fy.log.every(f => f.wings === 1 && f.eyes > 0.99 && f.shimmer === 1 && f.beat > 0.9 && f.beat < 1.1) && Math.max(...fy.log.map(f => f.beat)) - Math.min(...fy.log.map(f => f.beat)) > 0.03 && fy.log.length >= 30 && fy.fx.length === 3"), 'it holds, its wings spread and trembling, for most of a second'],
   ['expect', FY("fy.to(FAIRY.dust + FAIRY.dense + 0.03) === 'play' && fy.fx.slice(3).join() === 'wingWhoosh,fairyDust' && Math.min(...fy.log.map(f => f.beat)) < 0.3 && !!G.L.s.fairy.dust && fy.log.every(f => f.gone === 0)"), 'one great beat of its wings (a whoosh), and as they sweep its dust bursts up round it'],
   ['eval', FY('(fy.look(0, false), fy.covered())')],
@@ -268,7 +271,7 @@ const fairySeen = [
 // the view does not shake
 const fairyStill = [
   ['eval', fairyLib + ' window.__fy.fresh(0); window.__fy.set = [SAVE.data.settings.reducedMotion, SAVE.data.settings.reducedFlash]; SAVE.data.settings.reducedMotion = SAVE.data.settings.reducedFlash = true;'], ['wait', 250],
-  ['expect', FY("(fy.look(4, true), fy.tooth()) && fy.step(0.2) === 'play' && (fy.look(0, false), fy.reset(), useTarget(fy.T('hand')), G.L.s.fairy.stage === 'take') && fy.step(7.4) === 'play' && Math.min(...fy.log.map(f => f.beat)) === 1 && Math.max(...fy.log.map(f => f.beat)) === 1 && fy.shakes === 0 && fy.log.every(f => f.flash === 0 && f.look <= 1 && f.fling <= 1 && f.pop === 1 && f.wings <= 1 && f.eyes <= 1) && fy.fx.includes('wingBurst') && G.L.creature.fairy.gone === 1 && G.L.creature.fairy.still === true && G.L.creature.fairy.steady === true && fy.fx.includes('fairyDust')"), 'with motion and flashes reduced nothing snaps (its head, its arms, its eyes and its wings come quickly, never past), its wings do not beat (it only fades into its dust), nothing flashes or twinkles, and the view does not shake'],
+  ['expect', FY("(fy.look(4, true), fy.tooth()) && fy.step(0.2) === 'play' && (fy.look(0, false), fy.reset(), useTarget(fy.T('hand')), G.L.s.fairy.stage === 'take') && fy.step(8.8) === 'play' && Math.min(...fy.log.map(f => f.beat)) === 1 && Math.max(...fy.log.map(f => f.beat)) === 1 && fy.shakes === 0 && fy.log.every(f => f.flash === 0 && f.look <= 1 && f.fling <= 1 && f.pop === 1 && f.wings <= 1 && f.eyes <= 1) && fy.fx.includes('wingBurst') && G.L.creature.fairy.gone === 1 && G.L.creature.fairy.still === true && G.L.creature.fairy.steady === true && fy.fx.includes('fairyDust')"), 'with motion and flashes reduced nothing snaps (its head, its arms, its eyes and its wings come quickly, never past), its wings do not beat (it only fades into its dust), nothing flashes or twinkles, and the view does not shake'],
   ['eval', FY('(SAVE.data.settings.reducedMotion = fy.set[0], SAVE.data.settings.reducedFlash = fy.set[1], restartLevel())')], ['wait', 250],
 ];
 const fairy = [].concat(fairyPlay, fairyGrab, fairySeen, fairyStill);
