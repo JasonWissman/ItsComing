@@ -48,7 +48,10 @@ const STORY = (() => {
   // behind). Night 12's way in from the closet is laid out round it.
   const CLOSET = { mid: 1.05, half: 0.9, wall: -3.2, back: -3.95, inside: 1.36, top: 2.2 };
   function buildBedroom(L, day) {
-    const wall = day ? [216, 204, 184] : [44, 38, 42], wallD = day ? [192, 178, 158] : [34, 30, 33], floor = day ? [166, 138, 100] : [42, 34, 28], wood = day ? [146, 110, 74] : [50, 38, 30], cloth = day ? [222, 216, 200] : [66, 62, 70];
+    const wall = day ? [216, 204, 184] : [44, 38, 42], wallD = day ? [192, 178, 158] : [34, 30, 33],
+      // (at night the walls with the doorway and the closet in them are a touch darker than the window's, so the room's
+      // corners can be told in the dark as they can by the lamp; by day they are as they were)
+      wallDoor = day ? wall : [35, 30, 34], wallClo = day ? wallD : [27, 23, 26], wallWin = day ? wallD : [41, 36, 40], floor = day ? [166, 138, 100] : [42, 34, 28], wood = day ? [146, 110, 74] : [50, 38, 30], cloth = day ? [222, 216, 200] : [66, 62, 70];
     const ptex = { tex: 'planks', texScale: 1.2 }, S = HEADWALL;
     SC.floorQ(L, -3.2, S, 2.2, 3.6, 0.004, floor, ptex);
     SC.quad(L, [-3.2, 2.5, S], [2.2, 2.5, S], [2.2, 2.5, 3.6], [-3.2, 2.5, 3.6], day ? [228, 222, 210] : [30, 26, 28]);
@@ -56,10 +59,10 @@ const STORY = (() => {
     SC.wallV(L, -3.2, S, 2.2, S, 0, 2.5, wallD);
     // (each doorway's frame lined back to the wall, frame.line: the frame stands a little out from the wall, and without
     // its inner faces the edge of the wall's hole showed as a strip of wall inside it, the wider the more sidelong)
-    const apN = SC.doorway(L, { z: 3.6, x: 0, w: 1.0, h: 2.1, wallH: 2.5, left: -3.2, right: 2.2, color: wall, frame: { color: wood, w: 0.08, line: true } });
+    const apN = SC.doorway(L, { z: 3.6, x: 0, w: 1.0, h: 2.1, wallH: 2.5, left: -3.2, right: 2.2, color: wallDoor, frame: { color: wood, w: 0.08, line: true } });
     const C = CLOSET, cz0 = C.mid - C.inside, cz1 = C.mid + C.inside;
-    const apW = SC.doorway(L, { deg: 270, z: -C.wall, x: C.mid, w: 2 * C.half, h: C.top, wallH: 2.5, left: S, right: 3.6, color: wallD, frame: { color: wood, w: 0.06, line: true } });
-    SC.window(L, { deg: 90, z: 2.2, x: -1.6, w: 1.2, y0: 0.9, y1: 2.0, wallH: 2.5, left: -3.6, right: -S, color: wallD });
+    const apW = SC.doorway(L, { deg: 270, z: -C.wall, x: C.mid, w: 2 * C.half, h: C.top, wallH: 2.5, left: S, right: 3.6, color: wallClo, frame: { color: wood, w: 0.06, line: true } });
+    SC.window(L, { deg: 90, z: 2.2, x: -1.6, w: 1.2, y0: 0.9, y1: 2.0, wallH: 2.5, left: -3.6, right: -S, color: wallWin });
     // the closet (CLOSET): a wide, dark recess behind its opening, wider inside than the opening; a shelf along its back
     // with boxes on it, the rail under the shelf, a row of hangers on the rail and the clothes hanging from them (long coats,
     // dresses, jackets and shirts, a gap or two between them; none in the morning), shoes and a box on its floor; its two
