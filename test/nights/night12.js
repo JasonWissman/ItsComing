@@ -182,7 +182,7 @@ const fairyPlay = [
   ['eval', FY('(fy.look(0, false), fy.covered())')],
   ['expect', FY("fy.cover.shown > 20000 && fy.cover.n === 0 && fy.cover.most <= 3"), 'at the height of its dust nothing of it shows through the cloud (drawn with it and without it, the view is the same to the pixel; without the cloud it would show plainly)'],
   ['expect', FY("fy.to(FAIRY.gone[1] + 0.3) === 'play' && G.L.creature.fairy.gone === 1 && fy.beats === 0"), 'and it is gone behind it'],
-  ['expect', FY("secretUp() && document.querySelector('#secret .st').textContent === 'Tooth fairy' && fy.fx.filter(n => n === 'secretFound').length === 1 && fy.fx.indexOf('secretFound') > fy.fx.indexOf('fairyDust') && !!(window.__said = performance.now())"), 'and only now, as its dust begins to thin, is the secret named, "Tooth fairy", with its three notes (once)'],
+  ['expect', FY("secretUp() && document.querySelector('#secret .st').textContent === 'Tooth fairy' && fy.fx.filter(n => n === 'secretFound').length === 1 && fy.fx.indexOf('secretFound') > fy.fx.indexOf('fairyDust') && !!(window.__said = performance.now())"), 'and only now, as its dust begins to thin, is the secret named, "Tooth fairy", with its two notes (once)'],
   ['waitUntil', "G.L.won && G.state === 'won'", 9000],
   ['expect', "G.L.s.fairy.done && !G.L.s.coversUp && G.L.t - G.L.s.fairy.given > 11.8 && G.L.t - G.L.s.fairy.given < 12.6", 'the cloud thins away, the dollar comes down onto the bed, and a moment after it has settled the night is won'],
   ['waitUntil', "G.state === 'survived'", 12000],

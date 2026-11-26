@@ -943,7 +943,7 @@ function die(c, cause) {
 // The last night's is one of its two endings: the night notes which ending this is (L.eggEnding), and it is settled as
 // that ending is over (finishEnding: it is found only once the player has come to both, in either order)
 // (later: the night says it itself, a little on, with secretSay: the bedroom's, whose hush as the tooth is taken the
-// note's three notes must not break)
+// note's two notes must not break)
 function foundEgg(id, later) {
   id = id || (G.L && G.L.def && G.L.def.id);
   if (G.L && G.L.def.ending && id === G.L.def.id) { G.L.eggEnding = true; return false; }
@@ -953,7 +953,7 @@ function foundEgg(id, later) {
 }
 // The first time an easter egg is found it is said, there and then, so what was done and what came of it go together:
 // "Secret discovered" and, under it and large, the egg's short title (one for each night, by the night's id; a night
-// with none here is named by its own text.egg), with the music box's first three notes, an octave down ('secretFound':
+// with none here is named by its own text.egg), with the music box's first two notes, an octave down ('secretFound':
 // no caption, the note says it). A note at the top in the middle (#secret) that slides down into the view from above
 // it, over the compass while it is up; the line of words under the compass (#toast) is below it,
 // and a sound's caption in the corner below it too (index.html), so all three can be read at once. It is not part of

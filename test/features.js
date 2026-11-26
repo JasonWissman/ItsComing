@@ -2386,7 +2386,7 @@ const hoverHit = lookFor;
 
   // An easter egg found for the first time is said there and then: "Secret discovered" and its title (game.js
   // EGG_TITLES, by the night's id), large, in a note that slides down into the view from above its top edge, with the
-  // music box's first three notes an octave down (secretFound: that one sound, once, and no caption). At the top in the
+  // music box's first two notes an octave down (secretFound: that one sound, once, and no caption). At the top in the
   // middle, in the page, over the compass; the line of words under the compass, a sound's caption in its corner and the
   // corner controls all clear of it (with the line of words and a caption up), at 1280 by 760 and on a phone held
   // sideways (844 by 390), at every text size; it never takes a click. Up about four seconds, then gone; the night ending
@@ -2423,7 +2423,7 @@ const hoverHit = lookFor;
       const v = await look(); rows.push(Object.assign({ ts }, v));
       if (ts === 1.4) {
         check(a.id === 'graveyard' && a.state === 'play' && a.first === true && a.saved && a.played.join() === 'secretFound' && a.capSame && a.from <= 0 && a.big[0] >= 21 && a.big[0] > a.big[1] * 1.5 && a.big[0] > a.big[2] && v.state === 'play' && v.text === 'Secret discovered: Sugar rush' && v.shown && v.op === 1 && v.vis === 'visible',
-          'an easter egg found for the first time, ' + what + ': kept in the save, and said there and then, while the night is played: "' + v.text + '", its title large (larger than the line of words under the compass), the note sliding down from above the top of the view, with its three notes (secretFound) and no caption (' + JSON.stringify({ a, shown: v.shown }) + ')');
+          'an easter egg found for the first time, ' + what + ': kept in the save, and said there and then, while the night is played: "' + v.text + '", its title large (larger than the line of words under the compass), the note sliding down from above the top of the view, with its two notes (secretFound) and no caption (' + JSON.stringify({ a, shown: v.shown }) + ')');
         await sp.screenshot({ path: path.join(__dirname, 'shots', 'secret-play-' + tag + '.png') });
       }
       await sp.evaluate(() => secretHide()); await sp.waitForTimeout(650);   // (slid away again before the next is found)

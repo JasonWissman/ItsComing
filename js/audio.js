@@ -854,9 +854,9 @@ const AUDIO = (() => {
         for (let i = 0; i < 9; i++) tone([2637, 3136, 3520, 4186, 4699, 5274][i % 6], 0.35 + Math.random() * 0.3, { vol: 0.04, delay: 0.03 + i * 0.045, pan: clamp((pan || 0) + (Math.random() - 0.5) * 0.8, -1, 1) });
         break;
       }
-      // a secret scene found for the first time (game.js secretSay): the music box's first three notes (musicTurn's, with
+      // a secret scene found for the first time (game.js secretSay): the music box's first two notes (musicTurn's, with
       // no click of its crank), an octave down (js/soundtune.js), in the middle
-      case 'secretFound': [[880, 0], [1175, 0.25], [1319, 0.5]].forEach(([f, d]) => tone(f, 0.55, { vol: 0.06, type: 'triangle', delay: d, pan })); break;
+      case 'secretFound': [[880, 0], [1175, 0.25]].forEach(([f, d]) => tone(f, 0.55, { vol: 0.06, type: 'triangle', delay: d, pan })); break;
       default: break;
     }
   }
