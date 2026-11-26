@@ -100,13 +100,13 @@ LEVELS.push({
     const cream = [96, 88, 72], creamD = [72, 65, 54], red = [104, 32, 32], chrome = [118, 120, 126], tileA = [82, 77, 70], tileB = [34, 31, 30], dark = [34, 34, 38], steel = [128, 126, 118];
     // the glass of each window (x from..to on the front wall), the glass and shutter planes, and how far a shutter travels
     const PANES = [[-3.85, -1.55], [-1.25, 1.25], [1.55, 3.85]], ZW = 5.0, ZG = 5.02, ZS = 5.1, TOP = 2.6, BOT = 0.1;
-    // a shutter takes ten turns, and the crank goes round no faster than once in 0.65 s: nearly 19 s for all three. Lit, it
+    // a shutter takes nine turns, and the crank goes round no faster than once in 0.65 s: nearly 17 s for all three. Lit, it
     // is at the glass LIT_T s after it sets off, whatever its start: too soon for all three even from a hand that has the
     // crank at once and never misses a turn. (Shut its window just as it gets there and it runs along to the next, but
-    // lit it runs quickly: no more than two more turns fit in before it is at the last glass, and the 28th turn cannot
-    // come before 17.5 s.) So the lights have to go first; thrown within the first ten seconds or so, there is room to find
+    // lit it runs quickly: no more than two more turns fit in before it is at the last glass, and the 27th turn cannot
+    // come before 16.9 s.) So the lights have to go first; thrown within the first ten seconds or so, there is room to find
     // the crank and bring all three down at an ordinary pace.
-    const TURNS = 10, TURN = 0.65, LIT_T = 17, DARK_AMB = 0.42;
+    const TURNS = 9, TURN = 0.65, LIT_T = 15, DARK_AMB = 0.42;
     SC.stars(L, 81, 40, 0.25);
     // a small round thing standing on end (a squeeze bottle, a coffee pot): bands of eight faces stacked up its axis at (cx,
     // cz), each segment [y0, y1, r0, r1, colour, sides?] a band from radius r0 at y0 to r1 at y1 (r1 0: a point), with a lid

@@ -141,7 +141,7 @@ const insatiable = [
 // the shelf on the back wall: a row of paper cups, all drawn alike, and only the one at its near end is the cup (an item, and a click
 // there takes it); over every other cup a click finds nothing to take
 const shelf = [
-  // (held out in the lot while the cup is looked for and filled: lit, it is at the glass in seventeen seconds)
+  // (held out in the lot while the cup is looked for and filled: lit, it is at the glass in fifteen seconds)
   ['eval', 'G.L.creature.hold = G.L.creature.dist'],
   ['eval', `(() => { const c = ${cupIt}; lookAtPoint({ x: c.x, y: c.y + 0.08, z: c.z }); G.cam.yaw = G.cam.tYaw; G.cam.pitch = G.cam.tPitch; })()`], ['wait', 250],
   ['expect', `(() => { const L = G.L, sh = L.s.shelf, c = ${cupIt}; if (!sh || sh.xs.length < 6) return false; let ok = 0;
@@ -303,7 +303,7 @@ const nightmare = [
   ['eval', 'window.__w = ' + turnWidths],
   ['expect', '__w[0] > 40 && __w[20] > 30 && Math.min(...__w) >= 0.9 * Math.min(__w[0], __w[20])', 'it turns as a solid thing turns: never squeezed thin on the way round, no narrower than it is side on'],
   ['eval', 'restartLevel()'], ['wait', 300],
-  // a shutter part way down (four turns of ten) at its window as it comes up: it takes hold of the bottom edge of it (the
+  // a shutter part way down (four turns of nine) at its window as it comes up: it takes hold of the bottom edge of it (the
   // crank will not turn against it), shoves it up into its housing with a crash that shakes the view, every turn lost, and
   // comes through the glass
   ['eval', `(() => { const L = G.L, s = L.s, c = L.creature, it = L.items.find(i => i.id === 'crank');
