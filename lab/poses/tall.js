@@ -311,7 +311,7 @@
         dist: FAIRY.back, dur: 3, fit: { h: 2.7, w: 3.8 }, front: bed,
         tick(c, k, dt, T) {
           const qb = T - 1, qs = qb + 0.02, on = qb >= 0;
-          fairyPose(c, { held: 1, cup: on ? 0 : 1, look: on ? 1 - spring(qb / 0.2) : 1, fling: on ? spring(qs / 0.4) : 0, eyes: on ? clamp(spring(qs / 0.25), 0, 1.15) : 0, shimmer: on ? 1 : 0,
+          fairyPose(c, { held: 1, cup: on ? 0 : 1, look: on ? 1 - spring(qb / 0.2) : 1, fling: on ? spring(qs / 0.4) : 0, eyes: on ? clamp(spring(qs / 0.25), 0, 1.15) : 0, shimmer: on ? 1 : 0, glit: on ? qs : -1,
             wings: on ? clamp(spring(qs / 0.4) * 1.6, 0, 1) : 0, pop: on ? lerp(0.55, 1, clamp(spring(qs / 0.4), 0, 1.15)) : 1, beat: 1 + (qb > 0.3 ? 0.045 * Math.sin(qb * 47) * Math.sin(qb * 13 + 0.7) : 0) });
         } },
       { name: 'One great beat, and gone in its dust', note: 'One great beat of its wings (swept shut and thrown open, with a whoosh), and as they sweep a cloud of fairy dust bursts up round it, so thick that nothing of it shows through, and it is gone behind it; the cloud thins and drifts away, sparks of gold and rose and blue drifting down and dying away. (The night then floats a dollar bill down onto the bed.)',

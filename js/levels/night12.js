@@ -594,7 +594,7 @@ LEVELS.push({
         T.fling = qb < 0 ? 0 : rm ? smoothstep(qb / 0.3) : spring(qs / 0.4);
         T.cup = cup * clamp(1 - T.fling * 1.5, 0, 1); T.offer = 1 - smoothstep(cup / 0.7); T.tooth = cup < 0.7;   // (the cup gone as its hands are flung out)
         T.eyes = qb < 0 ? 1 - smoothstep((q - F.shut[0]) / (F.shut[1] - F.shut[0])) : rm ? smoothstep(qb / 0.3) : clamp(spring(qs / 0.25), 0, 1.15);
-        T.shimmer = qb < 0 ? 0 : 1;
+        T.shimmer = qb < 0 ? 0 : 1; T.glit = qb < 0 ? -1 : qs;   // (the glitter thrown off its wings as they burst open: tall.js)
         // its wings: burst open (well inside a quarter of a second, a little past and back), trembling, one great beat
         T.wings = qb < 0 ? 0 : rm ? smoothstep(qb / 0.3) : clamp(spring(qs / 0.4) * 1.6, 0, 1);
         T.pop = qb < 0 || rm ? 1 : lerp(0.55, 1, clamp(spring(qs / 0.4), 0, 1.15));
@@ -644,8 +644,7 @@ LEVELS.push({
         if (y < 0.02) continue;
         const a = smoothstep(q / 0.18) * (1 - smoothstep((q - d.life * 0.45) / (d.life * 0.55))) * (steady ? 0.7 : 0.5 + 0.5 * Math.sin(q * d.rate + d.ph));
         if (a < 0.02) continue;
-        P_ell(ctx, x, y, d.r * 2.4, d.r * 2.4, rgba(d.col, a * 0.22)); P_ell(ctx, x, y, d.r, d.r, rgba(d.col, a));
-        if (d.r > 0.02) { ctx.strokeStyle = rgba([255, 255, 255], a * 0.8); ctx.lineWidth = 0.006; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - d.r * 3, y); ctx.lineTo(x + d.r * 3, y); ctx.moveTo(x, y - d.r * 3); ctx.lineTo(x, y + d.r * 3); ctx.stroke(); }
+        CREATURES.tall.sparkle(ctx, x, y, d.r, d.col, a);
       }
     };
     // the dollar bill, in a box one across and one up: green, a paler border, the oval and the head in it, a seal either

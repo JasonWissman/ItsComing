@@ -783,12 +783,15 @@ some on the ground, so you have to turn and look down to find them.
     up, and nothing can catch you. The tooth put down goes back under the pillow. Put the
     tooth in its hand and the rumbling cuts dead; its head snaps down (a click of a joint) to
     the tooth on its open palm, and it looks at it, still, in the silence. It straightens up
-    and steps back from the bed, the tooth on the hand it holds in front of it; it closes
-    both hands round the tooth in front of its chest and shuts its eyes, and their light goes
-    out: it stands there in the dark and the quiet. Then all at once it throws its arms out
-    wide and a butterfly's wings burst open behind it in an instant (the fore pair blue, the
-    hind pair rose, their own light), with a bright rush of air and a shimmering chord and a
-    soft bloom of their light (the wings the bright thing, the room only touched by it); its eyes open, shimmering blue and rose as its wings do. It holds,
+    and steps back from the bed, the tooth on the hand it holds in front of it; slowly and
+    deliberately (a second and a half) it closes both hands round the tooth in front of its
+    chest, and as they close its lids come slowly down (near a second), shut just after its
+    hands, and their light goes out: it stands there in the dark and the quiet. Then all at
+    once it throws its arms out wide and a butterfly's wings burst open behind it in an
+    instant (the fore pair blue, the hind pair rose, their own light), with a bright rush of
+    air and a shimmering chord and a soft bloom of their light (the wings the bright thing,
+    the room only touched by it), a little glitter thrown off the edges of the wings as they
+    open, twinkling as it drifts out and fades; its eyes open, shimmering blue and rose as its wings do. It holds,
     the wings spread and trembling; then one great beat of them, and as they sweep a dense,
     glittering cloud of fairy dust bursts up round it, so thick nothing of it shows through,
     and it is gone; the cloud thins away. A dollar bill comes down like a leaf onto the bed,

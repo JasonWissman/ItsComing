@@ -485,12 +485,55 @@ CREATURES.tall = {
       ctx.restore();
     };
     const pop = f.pop || 1;   // (bursting open: drawn a little past their size, and back)
+    f.glitterN = 0;
     for (const sd of [-1, 1]) {
       ctx.save(); ctx.translate(x, y); ctx.scale(sd * pop, pop);
       wing(this.WING.hind, smoothstep((k - 0.18) / 0.82), sd > 0 ? 0.5 : 0.1);
       wing(this.WING.fore, smoothstep(k / 0.8), sd > 0 ? 0 : 0.6);
+      f.glitterN += this.glitter(ctx, f, sd);
       ctx.restore();
     }
+  },
+  // One mote of glitter (the fairy dust's, and the glitter off its wings): a soft halo, a bright point, and on the bigger
+  // ones a little cross of light (x, y, r: where and how big, in whatever units the drawing is in; col, a: colour, alpha)
+  sparkle(ctx, x, y, r, col, a) {
+    P_ell(ctx, x, y, r * 2.4, r * 2.4, rgba(col, a * 0.22)); P_ell(ctx, x, y, r, r, rgba(col, a));
+    if (r > 0.02) { ctx.strokeStyle = rgba([255, 255, 255], a * 0.8); ctx.lineWidth = 0.006; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - r * 3, y); ctx.lineTo(x + r * 3, y); ctx.moveTo(x, y - r * 3); ctx.lineTo(x, y + r * 3); ctx.stroke(); }
+  },
+  // The glitter thrown off its wings as they burst open (f.glit: seconds since; below 0, none): a small spray of motes off
+  // the edges of each wing, in its colours, thrown outward and slowing, drifting down a little and twinkling as they fade,
+  // gone in about a second. A little of it, not a second flash: each is tiny. With motion reduced, a third as many and
+  // thrown less far; with flashes reduced, a third as many and none twinkles. In the frame of one side's wings (sd);
+  // returns how many it drew
+  GLITTER: null,
+  glitter(ctx, f, sd) {
+    const q = f.glit === undefined ? -1 : f.glit;
+    if (q < 0 || q > 1.4) return 0;
+    const G2 = this.GLITTER || (this.GLITTER = (() => {
+      const rnd = mulberry32(4711), out = [], bez = (p, c, u) => { const v = 1 - u; return [v * v * v * p[0] + 3 * v * v * u * c[0] + 3 * v * u * u * c[2] + u * u * u * c[4], v * v * v * p[1] + 3 * v * v * u * c[1] + 3 * v * u * u * c[3] + u * u * u * c[5]]; };
+      const cols = { fore: [[156, 222, 255], [190, 255, 220], [255, 240, 170], [255, 255, 255]], hind: [[255, 176, 214], [255, 226, 140], [255, 196, 150], [255, 255, 255]] };
+      for (const name of ['fore', 'hind']) {
+        const W = this.WING[name];
+        for (let i = 0; i < 9; i++) {
+          // a point on its outer edge (along the curves of its margin and the ones either side of it)
+          const ci = clamp(W.margin - 1 + Math.floor(rnd() * 3), 0, W.curves.length - 1), p0 = ci ? W.curves[ci - 1].slice(4) : W.from, at = bez(p0, W.curves[ci], 0.1 + 0.8 * rnd());
+          const dx = at[0] - W.mid[0], dy = at[1] - W.mid[1], d = Math.hypot(dx, dy) || 1, sp = 0.75 + 0.8 * rnd(), tw = (rnd() - 0.5) * 0.6;
+          out.push({ x: at[0], y: at[1], vx: (dx / d) * sp - (dy / d) * tw * sp, vy: (dy / d) * sp + (dx / d) * tw * sp + 0.12, r: 0.012 + 0.022 * rnd() * rnd(), life: 0.8 + 0.5 * rnd(), ph: rnd() * TAU, rate: 9 + rnd() * 9, col: cols[name][Math.floor(rnd() * 4)], few: i % 3 === 0 });
+        }
+      }
+      return out;
+    })());
+    const rm = !!f.still, steady = !!f.steady, e = (1 - Math.exp(-q * 3.2)) / 3.2 * (rm ? 0.45 : 1);
+    let n = 0;
+    for (const m of G2) {
+      if ((rm || steady) && !m.few) continue;
+      if (q > m.life) continue;
+      const a = smoothstep(q / 0.05) * (1 - smoothstep((q - m.life * 0.35) / (m.life * 0.65))) * (steady ? 0.75 : 0.45 + 0.55 * Math.abs(Math.sin(q * m.rate + m.ph)));
+      if (a < 0.02) continue;
+      this.sparkle(ctx, m.x + m.vx * e, m.y + m.vy * e - 0.25 * q * q, m.r, m.col, a * 0.9);
+      n++;
+    }
+    return n;
   },
   // The cloud of its dust as its wings beat (the tooth fairy's: night 12 draws it, and the Creature Lab), qd seconds
   // after it burst up, about where it stood (metres: x across, y up), wide and tall enough for all of it, wings and all:

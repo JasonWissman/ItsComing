@@ -216,7 +216,23 @@ const fairyPlay = [
   ['expect', FY("fy.to(FAIRY.cup[1] + 0.03) === 'play' && (l => l.cup === 1 && !l.tooth && l.offer === 0 && l.eyes > 0.05 && l.eyes < 0.6)(fy.log[fy.log.length - 1]) && fy.log.some(f => f.tooth && f.cup > 0.3) && fy.log.every(f => f.wings === 0) && (a => a >= 0 && FAIRY.cup[1] - fy.log[a].q > 1.3)(fy.log.findIndex(f => f.cup > 0.02)) && (b => b >= 0 && fy.log[b].q > FAIRY.cup[0] + 0.6 && !!(window.__lids = fy.log[b].q))(fy.log.findIndex(f => f.eyes < 0.98))"), 'slowly and deliberately it closes its two hands round the tooth (over a second and a half, the tooth gone into them), its lids beginning to come down as they close'],
   ['expect', FY("fy.to(FAIRY.shut[1] + 0.03) === 'play' && fy.log[fy.log.length - 1].eyes === 0 && fy.log.every(f => f.cup === 1 && f.wings === 0) && (z => z >= 0 && fy.log[z].q > FAIRY.cup[1] && fy.log[z].q - window.__lids > 0.75)(fy.log.findIndex(f => f.eyes === 0))"), 'and its eyes close slowly (near a second), shut just after its hands, their light gone'],
   ['expect', FY("fy.to(FAIRY.burst - 0.01) === 'play' && fy.log.every(f => f.eyes === 0 && f.cup === 1 && f.wings === 0 && f.flash === 0) && fy.log.length >= 60 && fy.fx.length === 2"), 'and it stands there with its eyes shut, a long moment in the dark and the quiet (well over a second, not a sound)'],
+  ['expect', FY("(fy.look(0, false), !G.L.creature.fairy.glitterN)"), 'no glitter yet'],
   ['expect', FY("fy.to(FAIRY.burst + 0.3) === 'play' && fy.fx.filter(n => n === 'wingBurst').length === 1 && fy.fx.length === 3 && fy.shakes === 1 && (i => i >= 0 && fy.log[i].wings > 0.3 && fy.log[i].flash > 0.8 && fy.log[i].fling > 0.2 && fy.log.findIndex(f => f.wings >= 1) - i <= 6)(fy.log.findIndex(f => f.q >= FAIRY.burst)) && Math.max(...fy.log.map(f => f.pop)) > 1.05 && Math.max(...fy.log.map(f => f.fling)) > 1.05 && (l => l.eyes > 0.99 && l.shimmer === 1 && l.look < 0.05 && l.cup < 0.01)(fy.log[fy.log.length - 1])"), 'then all at once its arms are thrown wide and its wings burst open (in the frame it starts, full open within a tenth of a second, a little past and back), a bright rush of air, a flash, the view jolted; its head comes up and its eyes open, shimmering'],
+  // a little glitter thrown off the edges of its wings as they burst open: a few dozen tiny motes, not a second flash
+  // (the view no brighter for them, near enough), a third as many with motion or flashes reduced, gone in about a second
+  ['expect', FY(`(() => {
+    const T = G.L.creature.fairy, cv = UI.canvas, ctx = cv.getContext('2d'), still = T.still, steady = T.steady, glit = T.glit, rnd = Math.random;
+    const lum = () => { const d = ctx.getImageData(0, 0, cv.width, cv.height).data; let t = 0; for (let i = 0; i < d.length; i += 16) t += d[i] + d[i + 1] + d[i + 2]; return t / (d.length / 16) / 3; };
+    Math.random = () => 0.5;
+    try {
+      fy.look(0, false); const n = T.glitterN, withIt = lum();
+      T.glit = -1; render(); const without = lum(); T.glit = glit;
+      T.still = true; render(); const nRm = T.glitterN; T.still = still; T.steady = true; render(); const nRf = T.glitterN; T.steady = steady;
+      T.glit = 1.5; render(); const after = T.glitterN; T.glit = glit; render();
+      console.log('glitter at the burst: ' + JSON.stringify({ n, nRm, nRf, after, lum: [withIt, without].map(v => +v.toFixed(2)) }));
+      return n >= 20 && n <= 40 && nRm > 0 && nRm <= n / 2 && nRf > 0 && nRf <= n / 2 && after === 0 && withIt - without < 0.6;
+    } finally { Math.random = rnd; }
+  })()`), 'a little glitter thrown off the edges of its wings as they burst open (none before; a third as many with motion or flashes reduced; gone after; the view no brighter for it)'],
   ['expect', FY("fy.to(FAIRY.flap) === 'play' && fy.log.every(f => f.wings === 1 && f.eyes > 0.99 && f.shimmer === 1 && f.beat > 0.9 && f.beat < 1.1) && Math.max(...fy.log.map(f => f.beat)) - Math.min(...fy.log.map(f => f.beat)) > 0.03 && fy.log.length >= 30 && fy.fx.length === 3"), 'it holds, its wings spread and trembling, for most of a second'],
   ['expect', FY("fy.to(FAIRY.dust + FAIRY.dense + 0.03) === 'play' && fy.fx.slice(3).join() === 'wingWhoosh,fairyDust' && Math.min(...fy.log.map(f => f.beat)) < 0.3 && !!G.L.s.fairy.dust && fy.log.every(f => f.gone === 0)"), 'one great beat of its wings (a whoosh), and as they sweep its dust bursts up round it'],
   ['eval', FY('(fy.look(0, false), fy.covered())')],
