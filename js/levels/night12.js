@@ -90,9 +90,13 @@ LEVELS.push({
     // DR: where it is in the nightstand's front (x0 to x1 across it, y0 to y1; zf: that front), how far it comes out and
     // how long that takes, its bottom, the thickness of its sides; `in`: where the bulb lies in it (across it from its
     // side nearer you, and how far behind its front: in the part that has come out, toward its far side, where its near
-    // side does not hide it). It is held by the cap between finger and thumb, the glass up (js/hands.js)
+    // side does not hide it). It is held by the cap between finger and thumb, the glass up (js/hands.js). (An item is a
+    // card standing on its spot, its foot there, tipped back from lying flat so you never see it edge on, and running on
+    // away from you: from the pillow this one rises 22 degrees, its top 0.15 m further out across the drawer than its
+    // foot. With its foot 0.24 m across, the top of it went 2.4 cm through the drawer's far side, the glass drawn over the
+    // inside of that side as if it stood up through it; its foot is 0.18 across, so all of it is within the drawer's sides)
     const DR = { x0: NS.drawer.x0, x1: NS.drawer.x1, y0: NS.drawer.y0, y1: NS.drawer.y1, zf: NS.z1, out: 0.3, dur: 0.4, floor: NS.drawer.y0 + 0.04, wall: 0.016, proud: 0.02 };
-    const bulbs = [{ id: 'bulb', name: 'Bulb', in: [0.24, 0.14], opts: { w: 0.13, h: 0.16, icon: 'bulb', material: 'glass' } }];
+    const bulbs = [{ id: 'bulb', name: 'Bulb', in: [0.18, 0.14], opts: { w: 0.13, h: 0.16, icon: 'bulb', material: 'glass' } }];
     const DMID = (DR.x0 + DR.x1) / 2;
     // how far out it is now; and the drawer's target and the things still lying in it go with it
     const drawerOut = () => (drawer.open ? DR.out * smoothstep(clamp((L.t - drawer.openAt) / DR.dur, 0, 1)) : 0);
