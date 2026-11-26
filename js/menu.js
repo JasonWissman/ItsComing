@@ -5,7 +5,7 @@ const MENU = (() => {
   const fmtTime = t => t === null || t === undefined ? '—' : (Math.round(t) + ' s');
   // a whole run is long: minutes and seconds
   // the Scores cards (and the results' after the ending) in two columns: the first half (1 to 6) down the left, the rest
-  // (7 to 13) down the right; one column on a phone
+  // (7 to 13) down the right; one column on a narrow page, three on a phone on its side (index.html)
   const col = i => (i < Math.floor(LEVELS.length / 2) ? ' c1' : ' c2');
   const fmtRun = t => { const s = Math.round(t); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   // a run's times as shown, in whole seconds: the whole run rounded, each night rounded but the last (The Void), which is
@@ -180,7 +180,7 @@ const MENU = (() => {
         return '<div class="kicker">' + d.title + '</div><h1>You survived</h1><p class="intro">' + d.text + '</p><div class="mcol">' + btn('next', 'Next night') + '</div>';
       case 'nights': {   // (the Scores dialog)
         // the best full run, to look at: a card for each night with its share of that run's time, in two columns (one on
-        // a phone; not buttons: no night is picked from here), and under them the run's whole time and stars. No run
+        // a narrow page, three on a phone on its side; not buttons: no night is picked from here), and under them the run's whole time and stars. No run
         // yet: only a word on what one is. And at the bottom, by Back, Erase progress (it asks first: show; not when
         // Scores is opened from the pause menu, a game under way).
         // Once an easter egg has been found, two tabs: Best run (that) and Secret scenes (eggsHtml); both panels are in
