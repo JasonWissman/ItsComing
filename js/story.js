@@ -47,6 +47,19 @@ const STORY = (() => {
   // deep its far wall is (x), inside: half its width inside, wider than its opening (so there is wall either side to stand
   // behind). Night 12's way in from the closet is laid out round it.
   const CLOSET = { mid: 0.55, half: 0.9, wall: -3.2, back: -3.95, inside: 1.3, top: 2.2 };
+  // A doorway's frame (its wall built by SC.doorway, which is given no frame): the post either side and the head over it,
+  // a little out from the wall (FRAME_OUT), and lined back to the wall: the inside of each post and the underside of the
+  // head, from the frame's face to the wall's, a shade darker. Without that the edge of the wall's hole, farther off than
+  // the frame, showed as a strip of wall inside the frame, wider the more sidelong you looked (as on night 1). In the
+  // doorway's own terms (deg, z: as SC.doorway has them; x: its middle across it, w, h: its opening; fw: the frame's width)
+  const FRAME_OUT = 0.05;
+  function doorFrame(L, deg, z, x, w, h, fw, color) {
+    SC.withYaw(L, deg, () => {
+      const zf = z - FRAME_OUT, x0 = x - w / 2, x1 = x + w / 2, lining = scalec(color, 0.84);
+      SC.wallV(L, x0 - fw, zf, x0, zf, 0, h + fw, color); SC.wallV(L, x1, zf, x1 + fw, zf, 0, h + fw, color); SC.wallV(L, x0 - fw, zf, x1 + fw, zf, h, h + fw, color);
+      SC.wallV(L, x0, zf, x0, z, 0, h, lining); SC.wallV(L, x1, zf, x1, z, 0, h, lining); SC.quad(L, [x0, h, zf], [x1, h, zf], [x1, h, z], [x0, h, z], scalec(color, 0.72));
+    });
+  }
   function buildBedroom(L, day) {
     const wall = day ? [216, 204, 184] : [44, 38, 42], wallD = day ? [192, 178, 158] : [34, 30, 33], floor = day ? [166, 138, 100] : [42, 34, 28], wood = day ? [146, 110, 74] : [50, 38, 30], cloth = day ? [222, 216, 200] : [66, 62, 70];
     const ptex = { tex: 'planks', texScale: 1.2 }, S = HEADWALL;
@@ -54,9 +67,11 @@ const STORY = (() => {
     SC.quad(L, [-3.2, 2.5, S], [2.2, 2.5, S], [2.2, 2.5, 3.6], [-3.2, 2.5, 3.6], day ? [228, 222, 210] : [30, 26, 28]);
     SC.floorQ(L, -1.3, 0.4, 1.3, 2.7, 0.008, day ? [150, 90, 80] : [56, 34, 34]);
     SC.wallV(L, -3.2, S, 2.2, S, 0, 2.5, wallD);
-    const apN = SC.doorway(L, { z: 3.6, x: 0, w: 1.0, h: 2.1, wallH: 2.5, left: -3.2, right: 2.2, color: wall, frame: { color: wood, w: 0.08 } });
+    const apN = SC.doorway(L, { z: 3.6, x: 0, w: 1.0, h: 2.1, wallH: 2.5, left: -3.2, right: 2.2, color: wall });
+    doorFrame(L, 0, 3.6, 0, 1.0, 2.1, 0.08, wood);
     const C = CLOSET, cz0 = C.mid - C.inside, cz1 = C.mid + C.inside;
-    const apW = SC.doorway(L, { deg: 270, z: -C.wall, x: C.mid, w: 2 * C.half, h: C.top, wallH: 2.5, left: S, right: 3.6, color: wallD, frame: { color: wood, w: 0.06 } });
+    const apW = SC.doorway(L, { deg: 270, z: -C.wall, x: C.mid, w: 2 * C.half, h: C.top, wallH: 2.5, left: S, right: 3.6, color: wallD });
+    doorFrame(L, 270, -C.wall, C.mid, 2 * C.half, C.top, 0.06, wood);
     SC.window(L, { deg: 90, z: 2.2, x: -1.6, w: 1.2, y0: 0.9, y1: 2.0, wallH: 2.5, left: -3.6, right: -S, color: wallD });
     // the closet (CLOSET): a wide, dark recess behind its opening, wider inside than the opening; a shelf along its back
     // with boxes on it, the rail under the shelf, a row of hangers on the rail and the clothes hanging from them (long coats,
@@ -105,11 +120,15 @@ const STORY = (() => {
     SC.quad(L, [-1.2, 2.5, 3.6], [1.2, 2.5, 3.6], [1.2, 2.5, 8], [-1.2, 2.5, 8], day ? [228, 222, 210] : [24, 20, 22]);   // its ceiling
     SC.wallV(L, -1.2, 8, 1.2, 8, 0, 2.5, day ? [206, 196, 180] : [14, 12, 12]); SC.wallV(L, -1.2, 3.62, -1.2, 8, 0, 2.5, day ? [190, 178, 160] : [16, 13, 13]); SC.wallV(L, 1.2, 3.62, 1.2, 8, 0, 2.5, day ? [190, 178, 160] : [16, 13, 13]);
     if (day) SC.wallV(L, -0.4, 7.98, 0.4, 7.98, 0.3, 2.2, [255, 250, 230], { noFog: true, noLight: true });
-    // the window: glass, a sill, curtains
-    SC.wallV(L, 2.21, 1.0, 2.21, 2.2, 0.9, 2.0, day ? [200, 226, 250] : [70, 90, 130], { alpha: day ? 0.5 : 0.35, noLight: true });
-    SC.wallV(L, 2.205, 1.58, 2.205, 1.62, 0.9, 2.0, wood); SC.wallV(L, 2.205, 1.0, 2.205, 2.2, 1.43, 1.47, wood);
-    SC.box(L, 2.1, 2.25, 0.86, 0.92, 0.9, 2.3, wood);
-    for (const z of [0.7, 2.5]) SC.wallV(L, 2.17, z - 0.3, 2.17, z + 0.3, 0.2, 2.3, cloth);
+    // the window: glass set back in its frame, the frame's sides and top lining the hole from the wall to the glass (the
+    // glass level with the wall's hole showed a black line down its far side, past the end of the glass, looked at
+    // sidelong), its bars, a sill, curtains
+    const GL = 2.25;
+    SC.wallV(L, GL, 1.0, GL, 2.2, 0.9, 2.0, day ? [200, 226, 250] : [70, 90, 130], { alpha: day ? 0.5 : 0.35, noLight: true });
+    SC.wallV(L, 2.2, 2.2, GL + 0.005, 2.2, 0.9, 2.0, scalec(wood, 0.84)); SC.quad(L, [2.2, 2.0, 1.0], [GL + 0.005, 2.0, 1.0], [GL + 0.005, 2.0, 2.2], [2.2, 2.0, 2.2], scalec(wood, 0.72));
+    SC.wallV(L, GL - 0.005, 1.58, GL - 0.005, 1.62, 0.9, 2.0, wood); SC.wallV(L, GL - 0.005, 1.0, GL - 0.005, 2.2, 1.43, 1.47, wood);
+    SC.box(L, 2.1, GL + 0.01, 0.86, 0.92, 0.9, 2.3, wood);
+    for (const z of [0.74, 2.46]) SC.wallV(L, 2.17, z - 0.3, 2.17, z + 0.3, 0.2, 2.3, cloth);   // (each over the edge of the window a little, so no wall shows between them and its frame)
     // the bed: mattress, headboard, a pillow against the headboard at your back; the covers are the night's business (a
     // plain sheet in the morning), and in the night the pillow is too (it can be lifted: the night draws it)
     const bed = { x0: -0.75, x1: 0.75, z0: S + 0.1, z1: 1.9, top: 0.58 }, pillow = { x0: -0.27, x1: 0.27, y0: bed.top, y1: bed.top + 0.12, z0: bed.z0 + 0.02, z1: bed.z0 + 0.32 };
@@ -130,7 +149,7 @@ const STORY = (() => {
     SC.box(L, ns.x0, ns.x1, 0, ns.top, ns.z0, ns.z1, wood, { sortDist: 1.7 });
     if (day) { const d = ns.drawer, kx = (d.x0 + d.x1) / 2, ky = (d.y0 + d.y1) / 2; SC.box(L, d.x0 - 0.012, d.x1 + 0.012, d.y0 - 0.01, d.y1 + 0.01, ns.z1, ns.z1 + 0.02, [158, 120, 82], { sortDist: 1.695 }); SC.wallV(L, kx - 0.02, ns.z1 + 0.024, kx + 0.02, ns.z1 + 0.024, ky - 0.02, ky + 0.02, [200, 190, 170], { sortDist: 1.69 }); }
     SC.box(L, -2.9, -1.5, 0, 0.95, 3.05, 3.55, wood); SC.box(L, -2.85, -1.55, 0.95, 1.0, 3.0, 3.6, day ? [160, 124, 84] : [58, 44, 34]);
-    SC.wallV(L, -2.7, 3.58, -1.7, 3.58, 1.05, 2.05, day ? [200, 212, 224] : [24, 22, 30], { noLight: !day });
+    SC.wallV(L, -2.73, 3.58, -1.67, 3.58, 1.02, 2.08, day ? [200, 212, 224] : [24, 22, 30], { noLight: !day });
     SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 1.0, 1.05, wood); SC.wallV(L, -2.75, 3.57, -1.65, 3.57, 2.05, 2.1, wood);
     SC.wallV(L, -2.75, 3.57, -2.7, 3.57, 1.0, 2.1, wood); SC.wallV(L, -1.7, 3.57, -1.65, 3.57, 1.0, 2.1, wood);   // the mirror's sides
     clock(L, -2.2, 1.0, 3.3, 0.3);
