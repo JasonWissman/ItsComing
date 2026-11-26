@@ -301,11 +301,11 @@
         dist: FAIRY.d, dur: 2.4, fit: { h: 2.3, w: 2.2 }, front: bedOffer,
         tick(c, k, dt, T) { const q = T - 0.6; fairyPose(c, { tooth: true, lean: 1, offer: 1, look: q < 0 ? 0 : spring(q / 0.2) }); } },
       { name: 'It steps back, and cups the tooth, its eyes shut', note: 'It straightens up and steps back from the bed, the hand coming with it, the tooth on it, its head still bowed to it; then it brings its two hands together round the tooth, cupped in front of its chest, and its eyes close: their light goes out, and it stands there in the dark and the quiet.',
-        dist: FAIRY.d, dur: 5.2, fit: { h: 2.5, w: 1.8 }, front: bedOffer,
+        dist: FAIRY.d, dur: 6.5, fit: { h: 2.5, w: 1.8 }, front: bedOffer,
         tick(c, k, dt, T) {
           if (T >= 0.2) walk(c, dt, FAIRY.back, () => 0);
-          const pull = smoothstep((T - 0.2) / 1.6), cup = smoothstep((T - 1.9) / 0.45);
-          fairyPose(c, { tooth: cup < 0.7, lean: 1 - pull, held: pull, look: 1, cup, offer: 1 - smoothstep(cup / 0.7), eyes: 1 - smoothstep((T - 2.05) / 0.2) });
+          const pull = smoothstep((T - 0.2) / 1.6), cup = smoothstep((T - 1.9) / 1.5);
+          fairyPose(c, { tooth: cup < 0.7, lean: 1 - pull, held: pull, look: 1, cup, offer: 1 - smoothstep(cup / 0.7), eyes: 1 - smoothstep((T - 2.7) / 0.9) });
         } },
       { name: 'Its wings burst open', note: 'All at once, out of the dark and the quiet: its arms thrown out wide and a butterfly\'s wings burst open behind it in an instant, a little past their size and back, with a bright rush of air and a shimmering chord (wingBurst) and a flash of their light; its head comes up and its eyes open, shimmering blue and rose as its wings do, twinkling. It holds there, the wings spread and trembling.',
         dist: FAIRY.back, dur: 3, fit: { h: 2.7, w: 3.8 }, front: bed,

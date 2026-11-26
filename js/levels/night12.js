@@ -481,8 +481,10 @@ LEVELS.push({
     // nothing flashes or twinkles.
     const KT = CREATURES.tall.SCALE, PIL = parts.pillow, B0 = BEDR.top, PILLOW = [110, 106, 112];
     const TOOTH = [0.02, PIL.z1 - 0.055];   // where the tooth lies (its near end): under the pillow, a little in from its near edge
-    const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.45, tilt: 1.15, look: 1.2, pull: [1.2, 2.8], cup: [2.9, 3.35], shut: [3.05, 3.25], burst: 4.85,
-      flap: 5.7, sweep: 0.3, dust: 5.85, dense: 0.2, gone: [6.1, 6.22], clear: [6.45, 8.9], bill: 6.4, fall: 4.4, rest: 1.1, after: 1.4 };
+    // (its hands close round the tooth slowly and deliberately, over a second and a half, and its lids come down slowly as
+    // they close, shut just after; then a long still moment in the dark and the quiet before the burst)
+    const FAIRY = { d: 2.1, back: 2.85, hand: [0.12, 1.0, 0.7], lift: 0.45, tilt: 1.15, look: 1.2, pull: [1.2, 2.8], cup: [2.9, 4.4], shut: [3.7, 4.6], burst: 6.2,
+      flap: 7.05, sweep: 0.3, dust: 7.2, dense: 0.2, gone: [7.45, 7.57], clear: [7.8, 10.25], bill: 7.75, fall: 4.4, rest: 1.1, after: 1.4 };
     // (a snap: there in a frame or two, a little past, and back: a damped spring over u, at 1 by u 0.17 and 12% over at 0.35)
     const spring = u => (u <= 0 ? 0 : 1 - Math.exp(-6 * u) * Math.cos(9 * u));
     const BILL = { w: 0.26, h: 0.11, to: [0.1, 1.5], yaw: 0.35 };   // the bill; where on the bed it comes to lie, and how it is turned
