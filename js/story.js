@@ -54,7 +54,7 @@ const STORY = (() => {
       wallDoor = day ? wall : [35, 30, 34], wallClo = day ? wallD : [27, 23, 26], wallWin = day ? wallD : [41, 36, 40], floor = day ? [166, 138, 100] : [42, 34, 28], wood = day ? [146, 110, 74] : [50, 38, 30], cloth = day ? [222, 216, 200] : [66, 62, 70];
     const ptex = { tex: 'planks', texScale: 1.2 }, S = HEADWALL;
     SC.floorQ(L, -3.2, S, 2.2, 3.6, 0.004, floor, ptex);
-    SC.quad(L, [-3.2, 2.5, S], [2.2, 2.5, S], [2.2, 2.5, 3.6], [-3.2, 2.5, 3.6], day ? [228, 222, 210] : [30, 26, 28]);
+    SC.quad(L, [-3.2, 2.5, S], [2.2, 2.5, S], [2.2, 2.5, 3.6], [-3.2, 2.5, 3.6], day ? [228, 222, 210] : [21, 18, 20]);
     SC.floorQ(L, -1.3, 0.4, 1.3, 2.7, 0.008, day ? [150, 90, 80] : [56, 34, 34]);
     SC.wallV(L, -3.2, S, 2.2, S, 0, 2.5, wallD);
     // (each doorway's frame lined back to the wall, frame.line: the frame stands a little out from the wall, and without
