@@ -593,7 +593,14 @@ SC.doorway = function (L, o) {
     SC.wallV(L, left, o.z, x - w / 2, o.z, y0, wallH, o.color, o.opts);
     SC.wallV(L, x + w / 2, o.z, right, o.z, y0, wallH, o.color, o.opts);
     if (wallH > y0 + h) SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, y0 + h, wallH, o.color, o.opts);
-    if (o.frame) { const f = o.frame, fw = f.w || 0.1; SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x - w / 2, o.z - 0.05, y0, y0 + h + fw, f.color); SC.wallV(L, x + w / 2, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, y0, y0 + h + fw, f.color); SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, y0 + h, y0 + h + fw, f.color); }
+    if (o.frame) {
+      const f = o.frame, fw = f.w || 0.1, zf = o.z - 0.05, xa = x - w / 2, xb = x + w / 2, yh = y0 + h;
+      SC.wallV(L, xa - fw, zf, xa, zf, y0, yh + fw, f.color); SC.wallV(L, xb, zf, xb + fw, zf, y0, yh + fw, f.color); SC.wallV(L, xa - fw, zf, xb + fw, zf, yh, yh + fw, f.color);
+      // f.line: the frame stands a little in from the wall, so it lines the opening back to it (the inside of each post
+      // and the underside of the head, from the frame's face to the wall's), or the edge of the wall's hole, farther off
+      // than the frame, shows as a strip of wall inside it
+      if (f.line) { SC.wallV(L, xa, zf, xa, o.z, y0, yh, f.color); SC.wallV(L, xb, zf, xb, o.z, y0, yh, f.color); SC.quad(L, [xa, yh, zf], [xb, yh, zf], [xb, yh, o.z], [xa, yh, o.z], f.color); if (y0 > 0) SC.quad(L, [xa, y0, zf], [xb, y0, zf], [xb, y0, o.z], [xa, y0, o.z], f.color); }
+    }
   });
   return { z: o.z, x0: x - w / 2, x1: x + w / 2, y0, y1: y0 + h };
 };
