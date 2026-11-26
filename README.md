@@ -1106,23 +1106,33 @@ which are a plain sans, and the lettering on things in the nights themselves (a 
 
 ```
 index.html              page shell, HUD and styles
+manifest.webmanifest    installed or added to the Home Screen: full screen, landscape, on black
+icons/                  the app icons (apple-touch-icon.png, icon-192.png, icon-512.png)
+fonts/                  IM Fell English, the one typeface (woff2), and its licence
 js/util.js              math, color and drawing helpers
 js/audio.js             Web Audio synthesis: wind, drones, heartbeat, footsteps, effects
 js/soundtune.js         how each sound is tuned (TUNES: pitch, speed, tone, volume per sound, set by ear in the
                         Sounds Audit), laid over js/audio.js by bending the Web Audio calls it makes
+js/light.js             dynamic light: point and cone lights that tint and brighten what is near them
+js/weather.js           weather: rain, snow, ash, mist or motes round the eye, and lightning with its thunder
 js/render.js            tiny painter's-algorithm 3D renderer on Canvas 2D (sky, ground, props, billboards, fog, post effects)
 js/approach.js          approach lanes: apertures, blockers, how much of the thing you can see, lane validation
 js/seq.js               beat sequencer for aftermaths, deaths and set pieces
 js/save.js              versioned saved progress and settings
+js/menu.js              menus and dialogs: title, pause, death, survived, results, Scores, Settings, How to play
+js/captions.js          captions for sounds: one short line in the top left corner
 js/creatures.js         drawing helpers and the CREATURES registry
 js/creatures/<name>.js  one creature each: procedural drawing plus movement behavior
 js/icons.js             item icons and scenery builders (walls, boxes, trees, fences, openings, road, moon, stars)
 js/title.js             the title screen's scene: the eyes in the dark, nearer each time a dialog over it closes
+js/story.js             the thread through the nights: the lamp, the clock, the coat hangers, the knocks on a pipe
 js/levels.js            item, target, container and recipe helpers and the LEVELS list
 js/levels/nightNN.js    one night each
 js/game.js              game state, input, interaction, HUD, main loop
 js/hands.js             your hands: what you hold drawn over the view, a thing tried where it will not go (the fumble), the reach
 test/                   headless Playwright suite (see Testing)
+lab/                    pages for working on the creatures, titles, sounds and notebook (see Labs)
+eslint.config.js        lint settings (every script's globals declared)
 ```
 
 ### Anatomy of a night
@@ -1344,6 +1354,9 @@ npm run test:play      # NIGHTS=1,3 SEEDS=1,2 narrow it
 npm run test:sounds    # no browser: every sound exists and has its caption; lane cues are footsteps
 npm run test:bench     # frame time per night at 1920x1080 (BUDGET=8 ms p95 by default)
 npm run test:spots     # screenshot every item spot into montages under test/shots
+npm run test:settings  # Settings' Calibrate dialogs (also run by features)
+npm run test:shell     # the shell round the nights: Scores, captions, results (also run by features)
+npm run lint           # ESLint over js, lab and test
 ```
 
 `test/play.js` runs each night's declared solution per tier and seed (a night's steps can `draw` a bow: let go at

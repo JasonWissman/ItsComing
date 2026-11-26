@@ -16,7 +16,9 @@
     "test:story": "node test/story.js",
     "test:bench": "node test/bench.js",
     "test:sounds": "node test/sounds.js",
-    "test:settings": "node test/settings.js"
+    "test:settings": "node test/settings.js",
+    "test:shell": "node test/shell.js",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "eslint": "10.1.0",
