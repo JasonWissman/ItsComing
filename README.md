@@ -1039,11 +1039,14 @@ egg if it had it; one that had finished the game without it came to the Void's o
 
 The results after the ending show the run's own. The easter eggs first found between Begin and those results are kept
 with the save (`runEggs`, emptied as a run begins). The results always open on This run, whose times come in one after
-another; if the run found any secret scenes, they have Scores' two tabs, and 1.2 s after This run is all in they slide
-over to Secret scenes (no slide with reduced motion; not if a tab has been chosen meanwhile): the ones found before are
-checked, the run's own are checked off one after another as it is watched (the count going up with them; all at once
-with reduced motion), and if that makes all thirteen a stamp, All secrets found, comes down under the count, in the
-style of Best run's. A run that found none has the results as they were, with no tabs.
+another. Once any secret scene has been found (in this run or before it) they have Scores' two tabs. If the run found
+new ones, 1.2 s after This run is all in they slide over to Secret scenes (no slide with reduced motion; not if a tab
+has been chosen meanwhile): the ones found before are checked, the run's own are checked off one after another as it is
+watched (the count going up with them; all at once with reduced motion), and if that makes all thirteen a stamp, All
+secrets found, comes down under the count, in the style of Best run's. A run that found none new stays on This run;
+Secret scenes is there to choose, to see which are still missing, with everything found so far already checked and the
+count already at it (nothing checked off, no taps; all thirteen: the stamp already down, still). With none ever found
+the results have no tabs, as Scores has none then.
 
 A full run is night 1 to the end of night 13 in one go, timed: every game is one. Its clock runs only while you play:
 every attempt counts, retries after a death and restarts included, but not the cards, the death and win screens, the

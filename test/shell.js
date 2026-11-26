@@ -1,7 +1,7 @@
 'use strict';
 // The shell round its nights: the Scores' two tabs (a secret scene's box where its night's box is), the captions' line (a
 // speaker, the top left corner, over nothing of the HUD; no caption for the clock's tick), the results after the ending
-// when the run found secret scenes (their tab, the new ones checked off, the stamp when that is all of them), the things
+// once secret scenes are found (their tab, the run's new ones checked off, the stamp when that is all of them), the things
 // that are named without a count, the words that follow the text size (the warning's, the prologue's), and a night's card.
 // On a desktop and on a phone held sideways.
 // Run on its own (node test/shell.js) or from test/features.js, which hands it its browser and its check.
@@ -123,8 +123,11 @@ async function run(browser, check) {
   // A run that found secret scenes it did not have also has two tabs, This run and Secret scenes: about 1.2 s after This
   // run is all in, the results slide over to Secret scenes by themselves, where those found before are checked from the
   // start and the run's own are checked off one after another (the count going up with them); all thirteen: a stamp, in
-  // the middle under the count. A tab chosen meanwhile, and they stay where they are put. A run that found none: the
-  // results as ever, no tabs. With reduced motion it is all there at once, and it goes over without the slide
+  // the middle under the count. A tab chosen meanwhile, and they stay where they are put. A run that found none new,
+  // with some found before: the two tabs all the same, but it stays on This run; Secret scenes is there to choose, all
+  // of it already as it is (no checking off, no taps; all thirteen: the stamp already down, still). None ever found: the
+  // results as ever, no tabs (as Scores has none). With reduced motion it is all there at once, and it goes over
+  // without the slide
   console.log('== the results: This run, then the secret scenes this run found ==');
   const results = async (page, eggs, fresh, motion) => page.evaluate(([eggs, fresh, motion]) => {
     SAVE.data.settings.reducedMotion = SAVE.data.settings.reducedFlash = !motion;
@@ -197,13 +200,45 @@ async function run(browser, check) {
     await shot(page, 'results-secrets-all-' + tag);
     check(a0.count === '11' && a0.stamp === 'All secrets found:out' && a1.count === '13' && a1.stamp === 'All secrets found:1' && a1.under && best === 'Best run/' + a1.stampLook && a1.scroll <= 0 && a1.wide <= 0 && a1.fits && a1.way,
       view + ': the run\'s two make it all thirteen: when the last is checked off a stamp, All secrets found, in Best run\'s own style, in the middle under the count (' + JSON.stringify([a0.count, a0.stamp, a1.count, a1.stamp, a1.under, a1.stampLook, best, a1.scroll, a1.wide]) + ')');
-    // reduced motion: all there at once, nothing animated, over without the slide; no new ones: no tabs at all
+    // reduced motion: all there at once, nothing animated, over without the slide
     await results(page, ['road', 'graveyard'], ['graveyard'], false);
     await page.waitForTimeout(150); const q0 = await rlook(page); const qw = await watch(page, 1700); const q1 = await rlook(page);
+    check(q0.tabs === 'This run*|Secret scenes' && q0.cards === 13 && q0.way && q1.tabs === 'This run|Secret scenes*' && qw.over > 700 && qw.over < 1400 && !qw.slid.length && q1.count === '2' && q1.ticked === 0 && q1.found === 'Hit and run|Sugar rush',
+      view + ': with reduced motion This run is all there at once, then it goes over without a slide and the secret scenes are checked from the start (' + JSON.stringify([q0.tabs, Math.round(qw.over), qw.slid, q1.count, q1.ticked]) + ')');
+    // none new, two found before: the two tabs, and it opens on This run, its times coming in as ever, and stays there
+    // (no slide, no going over); a click meanwhile hurries it, on This run still. Secret scenes chosen (a click, a tap or
+    // the keys): those two checked, the count at 2 from the start, nothing checked off, no tap but the tab's own; This
+    // run chosen again, back on it
     await results(page, ['road', 'graveyard'], [], true);
+    await page.waitForTimeout(150); const s0 = await rlook(page);
+    await page.waitForTimeout(750); await page.click('#overlay .results h1'); await page.waitForTimeout(150); const s1 = await rlook(page);
+    const sw = await page.evaluate(() => new Promise(done => { const o = { slid: false, over: false }, t0 = performance.now(); const iv = setInterval(() => { if (document.querySelector('.tabpanel.slideout, .tabpanel.slidein')) o.slid = true; if (document.querySelector('#tab-eggs').getAttribute('aria-selected') === 'true') o.over = true; if (performance.now() - t0 > 4000) { clearInterval(iv); done(o); } }, 20); }));
+    const s2 = await rlook(page);
+    await shot(page, 'results-run-none-new-' + tag);
+    const taps0 = await page.evaluate(() => window.__taps);
+    if (view === 'phone') await page.tap('#tab-eggs'); else await page.click('#tab-eggs');
+    await page.waitForTimeout(2600); const s3 = await rlook(page), stapped = await page.evaluate(t => window.__taps - t, taps0);
+    await shot(page, 'results-secrets-none-new-' + tag);
+    await page.click('#tab-run'); await page.waitForTimeout(200); const s4 = await rlook(page);
+    await page.focus('#tab-run'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(150); const s5 = await rlook(page);
+    await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(150); const s6 = await rlook(page);
+    check(s0.tabs === 'This run*|Secret scenes' && s0.cards === 0 && !s0.way && s0.fresh === 0 && s0.count === '2' && s1.tabs === 'This run*|Secret scenes' && s1.cards === 13 && s1.run && !sw.slid && !sw.over && s2.tabs === 'This run*|Secret scenes' && s2.way && s2.focus === 'finish',
+      view + ': a run that found none new, two found before: the two tabs, opening on This run, its times coming in; a click hurries it, on This run still; and it stays there, no slide over (' + JSON.stringify([s0.tabs, s0.cards, s1.tabs, s1.cards, sw, s2.tabs, s2.focus]) + ')');
+    check(s3.tabs === 'This run|Secret scenes*' && s3.found === 'Hit and run|Sugar rush' && s3.count === '2' && s3.ticked === 0 && s3.stamp === null && stapped === 1 && s3.scroll <= 0 && s3.wide <= 0 && s3.fits && s4.tabs === 'This run*|Secret scenes' && s4.way && s5.tabs === 'This run|Secret scenes*' && s5.focus === 'tab-eggs' && s6.tabs === 'This run*|Secret scenes',
+      view + ': Secret scenes chosen: the two found checked, 2 of 13 from the start, nothing checked off, only the tab\'s own tap; it fits, no sideways scroll; This run again by a click, and by the keys right and left (' + JSON.stringify([s3.tabs, s3.found, s3.count, s3.ticked, stapped, s3.wide, s4.tabs, s5.tabs, s5.focus, s6.tabs]) + ')');
+    // none new, all thirteen found before: on Secret scenes the stamp is already down, still (no coming down)
+    await results(page, 'all', [], true);
+    await page.evaluate(() => MENU.hurry()); await page.waitForTimeout(2600); const d0 = await rlook(page);
+    await page.click('#tab-eggs'); await page.waitForTimeout(60);
+    const d1 = await rlook(page), anim = await page.evaluate(() => getComputedStyle(document.querySelector('#overlay .estamp')).animationName);
+    await page.waitForTimeout(1200); const d2 = await rlook(page);
+    await shot(page, 'results-secrets-all-before-' + tag);
+    check(d0.tabs === 'This run*|Secret scenes' && d1.tabs === 'This run|Secret scenes*' && d1.count === '13' && d1.ticked === 0 && d1.stamp === 'All secrets found:1' && anim === 'none' && d2.stamp === d1.stamp && d2.under && d2.scroll <= 0 && d2.wide <= 0 && d2.fits,
+      view + ': none new, all thirteen found before: it stays on This run; on Secret scenes all thirteen checked, 13 from the start, the stamp already down, not coming down (' + JSON.stringify([d0.tabs, d1.tabs, d1.count, d1.stamp, anim, d2.under]) + ')');
+    // none ever found, none new: the results as ever, no tabs (as Scores has none then)
+    await results(page, [], [], true);
     await page.waitForTimeout(150); const n0 = await page.evaluate(() => ({ tabs: document.querySelectorAll('#overlay [role=tab]').length, eggs: document.querySelectorAll('#overlay .egg').length, cards: document.querySelectorAll('#overlay .rcard').length, kicker: !!document.querySelector('#overlay .results .kicker') }));
-    check(q0.tabs === 'This run*|Secret scenes' && q0.cards === 13 && q0.way && q1.tabs === 'This run|Secret scenes*' && qw.over > 700 && qw.over < 1400 && !qw.slid.length && q1.count === '2' && q1.ticked === 0 && q1.found === 'Hit and run|Sugar rush' && n0.tabs === 0 && n0.eggs === 0 && n0.cards === 13 && n0.kicker,
-      view + ': with reduced motion This run is all there at once, then it goes over without a slide and the secret scenes are checked from the start; a run that found none has the results as ever, with no tabs (' + JSON.stringify([q0.tabs, Math.round(qw.over), qw.slid, q1.count, q1.ticked, n0]) + ')');
+    check(n0.tabs === 0 && n0.eggs === 0 && n0.cards === 13 && n0.kicker, view + ': no secret scene ever found: the results as ever, with no tabs (' + JSON.stringify(n0) + ')');
     await ctx.close();
   }
   // No sideways scroll in the results or in Scores, either tab, at any size of page or text, and nothing of them (a
