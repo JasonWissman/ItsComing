@@ -51,6 +51,44 @@ const inFront = fresh.concat([
     return ['drawer', 'lamp', 'covers', 'socket'].every(id => !!out[id]) && !/ [701]d?( |$)/.test(out.pillow || '') && !out.hand;
   })()`, 'the drawer, the lamp, the covers and the cord are each whole in view and pointed at without looking back (and the pillow is not, from ahead or either diagonal)'],
 ]);
+// The closet is the wide, open one, brought out of the corner along the wall at your left: its opening near two metres
+// wide (the closet's way in is that opening), wider still inside, with wall between it and the head wall; its two folding
+// doors swung back clear of it, of the head wall and of the furniture. From the pillow, looking left, the whole of its
+// opening is in view, and in it the rail with every hanger on it and the clothes hanging from them, each drawn and each
+// inside the opening; and looking ahead and to the left, the clothes are still there to see
+const closetWide = fresh.concat([
+  ['expect', `(() => {
+    const C = G.L.closet, ap = G.L.lanes[1].apertures[0], S = ${T('pillow')}.head - 0.1, bad = [];
+    if (C.half * 2 < 1.7) bad.push('its opening is only ' + (C.half * 2).toFixed(2) + ' m wide');
+    if (C.inside <= C.half + 0.2) bad.push('it is no wider inside than its opening');
+    if (C.mid - C.half - 0.06 < S + 0.15) bad.push('it is hard up against the head wall');
+    if (Math.abs(ap.x0 - (C.mid - C.half)) > 1e-9 || Math.abs(ap.x1 - (C.mid + C.half)) > 1e-9 || Math.abs(ap.z + C.wall) > 1e-9) bad.push('its way in is not its opening');
+    const furn = [[-0.8, 0.8, S, 1.9], [-2.9, -1.5, 3.05, 3.55], [1.25, 1.7, 3.1, 3.55]];   // (the bed, the dresser, the chair)
+    if (C.doors.length !== 2) bad.push(C.doors.length + ' doors');
+    for (const D of C.doors) {
+      if (D[0] < C.wall || D[2] < S + 0.01 || D[3] > 3.6) bad.push('a door goes into a wall: ' + D.map(v => v.toFixed(2)).join());
+      if (Math.min(D[3], C.mid + C.half) - Math.max(D[2], C.mid - C.half) > 0.08) bad.push('a door stands in the opening');
+      for (const f of furn) if (D[0] < f[1] && D[1] > f[0] && D[2] < f[3] && D[3] > f[2]) bad.push('a door is in the furniture');
+    }
+    const look = d => { G.cam.dirIdx = d; G.cam.yaw = G.cam.tYaw = d * 45 * DEG; G.cam.pitch = G.cam.tPitch = 0; G.mouse.x = G.mouse.y = -1; render(); };
+    const onScreen = r => !!r && r.x >= 0 && r.x + r.w <= R.W && r.y >= 0 && r.y + r.h <= R.H;
+    look(6);
+    const corner = (y, z) => R.projectRect(C.wall, y, z, 0, 0, null), ends = [corner(0, C.mid - C.half), corner(0, C.mid + C.half), corner(C.top, C.mid - C.half), corner(C.top, C.mid + C.half)];
+    if (!ends.every(onScreen)) bad.push('looking left, the opening is not all in view');
+    const xl = Math.min(...ends.map(r => r ? r.x : 1e9)), xr = Math.max(...ends.map(r => r ? r.x : -1e9));
+    // (it is wider inside than its opening: the ends of the rail are behind the wall either side)
+    const inView = ps => ps.filter(p => { const r = R.projectRect(p.x, p.y, p.z, p.w, p.h, null); return onScreen(r) && r.x + r.w / 2 > xl && r.x + r.w / 2 < xr; });
+    if (!C.hangers.concat(C.clothes).every(p => R.statics.includes(p))) bad.push('a thing in it is not drawn');
+    const hv = inView(C.hangers).length, cv = inView(C.clothes).length;
+    if (hv < 9 || cv < 6) bad.push('looking left only ' + hv + ' hangers and ' + cv + ' clothes show in the opening');
+    look(7);
+    const seen = C.clothes.filter(p => onScreen(R.projectRect(p.x, p.y, p.z, p.w, p.h, null))).length;
+    if (seen < 4) bad.push('looking ahead and to the left only ' + seen + ' of the clothes show');
+    look(0);
+    console.log('the closet: ' + JSON.stringify({ wide: C.half * 2, mid: C.mid, hangers: hv + '/' + C.hangers.length, clothes: cv + '/' + C.clothes.length, aheadLeft: seen }) + (bad.length ? ' ' + bad.join('; ') : ''));
+    return !bad.length;
+  })()`, 'the closet is the wide one, out of the corner: its opening near two metres wide, its doors folded back clear of everything; and from the pillow its rail, its hangers and its clothes are all in view in it'],
+]);
 // ---- the tooth fairy (the night's easter egg) ----
 // The night is stepped by hand (update(1 / 60)) where it must be watched: every frame noted (whether you are still alive,
 // where the thing is, how it is posed), and every heartbeat, breath, footstep, effect and shake of the view counted.
@@ -122,7 +160,8 @@ const fairyLib = '(' + function () {
         const [x, z] = f.p, q = i ? F.log[i - 1].p : f.p;
         if (Math.abs(x) < 0.7 && z < 1.85) bad = bad || 'over the bed at ' + x.toFixed(2) + ', ' + z.toFixed(2);
         if ((q[1] - 3.6) * (z - 3.6) < 0 && Math.abs(x) > 0.25) bad = bad || 'through the wall by the doorway at x ' + x.toFixed(2);
-        if ((q[0] + 3.2) * (x + 3.2) < 0 && Math.abs(z) > 0.25) bad = bad || 'through the wall by the closet at z ' + z.toFixed(2);
+        if ((q[0] - STORY.CLOSET.wall) * (x - STORY.CLOSET.wall) < 0 && Math.abs(z - STORY.CLOSET.mid) > 0.25) bad = bad || 'through the wall by the closet at z ' + z.toFixed(2);
+        for (const D of G.L.closet.doors) if (x > D[0] - 0.12 && x < D[1] + 0.12 && z > D[2] - 0.12 && z < D[3] + 0.12) bad = bad || 'into a closet door at ' + x.toFixed(2) + ', ' + z.toFixed(2);
         if (Math.hypot(x - q[0], z - q[1]) > 0.02) bad = bad || 'a jump of ' + Math.hypot(x - q[0], z - q[1]).toFixed(2) + ' m at ' + x.toFixed(2) + ', ' + z.toFixed(2);
       });
       if (bad) console.log('its way to the foot of the bed: ' + bad);
@@ -220,12 +259,12 @@ const fairy = [].concat(fairyPlay, fairyGrab, fairySeen, fairyStill);
 // past the opening, it has stepped out into the room, its head over its shoulders and none of it hidden by the wall
 const peering = [
   ['eval', 'restartLevel();'], ['wait', 250],
-  ['expect', "(c => G.L.s.mode === 'peer' && c.peer === 1 && !!c.showX && Math.abs(c.lat) > (c.showX[1] - c.showX[0]) / 2 + 0.2 && c.hold === c.dist)(G.L.creature)", 'at first it only peers round the edge of the opening, its body behind the wall'],
+  ['expect', "(c => G.L.s.mode === 'peer' && c.peer === 1 && !!c.showX && Math.abs(c.showX[0] + c.showX[1]) / 2 > (c.showX[1] - c.showX[0]) / 2 + 0.2 && c.hold === c.dist)(G.L.creature)", 'at first it only peers round the edge of the opening, its body behind the wall'],
   ['expect', "(c => c.dist > c.lane.apertures[0].z && (c.lane.idx !== 1 || c.dist < 3.55))(G.L.creature)", 'behind the opening (in the closet, in front of the clothes on the rail)'],
   ['expect', 'G.L.creature.seen && G.L.creature.visFrac > 0.5', 'and with its head in view it counts as seen'],
   ['eval', 'G.L.s.peerTill = 0; G.L.creature.u = 1 - (G.L.creature.lane.idx ? 2.9 : 3.3) / G.L.creature.D0;'],
-  ['waitUntil', "(c => G.L.s.mode === 'come' && c.peer === 0 && Math.abs(c.lat) < 0.05 && !c.showX && c.hold === null)(G.L.creature)", 15000],   // (it glides out, slowly)
-  ['expect', "(c => G.L.s.mode === 'come' && c.peer === 0 && Math.abs(c.lat) < 0.05 && !c.showX && c.hold === null)(G.L.creature)", 'then it steps out of the opening into the room'],
+  ['waitUntil', "(c => G.L.s.mode === 'come' && c.peer === 0 && Math.abs(c.lat - (c.lane.apertures[0].x0 + c.lane.apertures[0].x1) / 2) < 0.05 && !c.showX && c.hold === null)(G.L.creature)", 15000],   // (it glides out, slowly)
+  ['expect', "(c => G.L.s.mode === 'come' && c.peer === 0 && Math.abs(c.lat - (c.lane.apertures[0].x0 + c.lane.apertures[0].x1) / 2) < 0.05 && !c.showX && c.hold === null)(G.L.creature)", 'then it steps out of the opening into the room'],
 ];
 // Coming out and on to the bed it glides: nothing of it ever jumps. Watched every frame from your eye (the view on it), as
 // a player sees it (each part as it was last drawn, and when), with the night's clock run far ahead of it (the worst case: it goes at its own top pace all the way):
@@ -272,7 +311,7 @@ const glide = [
 const pose = "(c => [c.dist, c.lat, c.peer, c.pos().x, c.pos().z].map(v => +v.toFixed(4)).join())(G.L.creature)";
 const card = [
   ['eval', 'startLevel(G.levelIndex, true);'], ['wait', 400],
-  ['expect', "(c => G.state === 'card' && G.L.s.mode === 'peer' && c.peer === 1 && !!c.showX && Math.abs(c.lat) > (c.showX[1] - c.showX[0]) / 2 + 0.2)(G.L.creature)", 'on the night\'s card it is already peering round the edge of the opening, where it starts'],
+  ['expect', "(c => G.state === 'card' && G.L.s.mode === 'peer' && c.peer === 1 && !!c.showX && Math.abs(c.showX[0] + c.showX[1]) / 2 > (c.showX[1] - c.showX[0]) / 2 + 0.2)(G.L.creature)", 'on the night\'s card it is already peering round the edge of the opening, where it starts'],
   ['eval', 'window.__cardPose = ' + pose + '; G.overlayArmed = 0; proceed();'], ['wait', 120],
   ['expect', "G.state === 'play' && " + pose + ' === window.__cardPose', 'and the night begins with it just there: it does not jump'],
 ];
@@ -289,18 +328,18 @@ const stoop = [
 // along behind the wall to the middle of the frame, then straight out through the middle of it, and only then on to the
 // bed. Watched every frame, each way in: where it goes through the wall it is in the middle of the opening, clear of the
 // frame either side by more than its own half-width; for the first 0.45 m in front of the wall it is still there (clear
-// of the frame, and in the closet of its door swung back beside it), and never into that door; and it gets to
+// of the frame, and in the closet of its folding doors swung back either side), and never into either door; and it gets to
 // its place at the bed
 const crawled = lane => "(P => { const ap = G.L.creature.lane.apertures[0], z = ap.z, mid = (ap.x1 + ap.x0) / 2, room = (ap.x1 - ap.x0) / 2 - 0.25; let bad = null;" +
   ' for (let i = 1; i < P.length; i++) { const a = P[i - 1], b = P[i];' +
   "  if ((a.d - z) * (b.d - z) <= 0 && a.d !== b.d) { const lat = a.lat + (b.lat - a.lat) * (z - a.d) / (b.d - a.d); if (Math.abs(lat - mid) > room) bad = bad || 'through the wall at ' + lat.toFixed(2); }" +
   "  if (b.d < z && b.d > z - 0.45 && Math.abs(b.lat - mid) > room) bad = bad || 'beside the frame at ' + b.d.toFixed(2) + ', ' + b.lat.toFixed(2);" +
-  '  if (' + lane + " === 1 && b.d > 2.8 && b.d < 3.25 && b.lat > 0.5 && b.lat < 1.5) bad = bad || 'into the closet door at ' + b.d.toFixed(2) + ', ' + b.lat.toFixed(2); }" +
+  '  if (' + lane + " === 1) { const p = APPROACH.position(G.L.creature.lane, b.d, b.lat, 0); for (const D of G.L.closet.doors) if (p.x > D[0] - 0.12 && p.x < D[1] + 0.12 && p.z > D[2] - 0.12 && p.z < D[3] + 0.12) bad = bad || 'into a closet door at ' + p.x.toFixed(2) + ', ' + p.z.toFixed(2); } }" +
   ' const e = P[P.length - 1], sp = ' + (lane ? '{ d: 1.04, lat: 1.35 }' : '{ d: 2.08, lat: 0 }') + "; if (Math.hypot(e.d - sp.d, e.lat - sp.lat) > 0.02) bad = bad || 'it ended at ' + e.d.toFixed(2) + ', ' + e.lat.toFixed(2);" +
   " console.log('the crawl from way " + lane + ": ' + P.length + ' frames, ' + (bad || 'clear')); return P.length > 60 && !bad; })(window.__crawl)";
 const crawlFrom = lane => [
   ['eval', 'restartLevel(); for (let i = 0; i < 60 && G.L.creature.lane.idx !== ' + lane + '; i++) restartLevel();'], ['wait', 250],
-  ['expect', '(c => c.lane.idx === ' + lane + " && G.L.s.mode === 'peer' && c.dist > c.lane.apertures[0].z && Math.abs(c.lat) > (c.lane.apertures[0].x1 - c.lane.apertures[0].x0) / 2)(G.L.creature)", (lane ? 'in the closet' : 'beyond the doorway') + ', it peers round the edge of the opening, behind the wall'],
+  ['expect', '(c => c.lane.idx === ' + lane + " && G.L.s.mode === 'peer' && c.dist > c.lane.apertures[0].z && Math.abs(c.lat - (c.lane.apertures[0].x1 + c.lane.apertures[0].x0) / 2) > (c.lane.apertures[0].x1 - c.lane.apertures[0].x0) / 2)(G.L.creature)", (lane ? 'in the closet' : 'beyond the doorway') + ', it peers round the edge of the opening, behind the wall'],
   ['eval', "const s = G.L.s; s.fitted = s.plugged = true; s.lampOn = true; s.wasLit = true; s.onAt = G.L.t; s.lampT = 60; window.__crawl = []; (function w() { const c = G.L.creature; window.__crawl.push({ d: c.dist, lat: c.lat }); if (G.state === 'play' && !(c.reach > 0)) requestAnimationFrame(w); })();"],
   ['waitUntil', "G.L.s.mode === 'duck' && G.L.creature.reach > 0", 20000],
   ['expect', crawled(lane), 'lit early, it went along behind the wall to the middle of the ' + (lane ? 'closet\'s opening' : 'doorway') + ' and came straight out through it before it turned for the bed: never through the wall, the frame' + (lane ? ' or the door' : '')],
@@ -397,5 +436,5 @@ const inDrawer = fresh.concat([
 const coverHand = ['eval', "window.__coverHand = false; (function w() { if (G.holding && G.holding.id === 'covers' && G.hand.reach && G.hand.reach.target === G.holding) window.__coverHand = true; if (G.state === 'play') requestAnimationFrame(w); })();"];
 module.exports = {
   // Nightmare charges 3.5x speed for every second spent looking away, so the harness faces each thing directly instead of sweeping
-  nightmare: fumbles.concat(inFront, inDrawer, fairy, card, peering, glide, stoop, crawlFrom(0), crawlFrom(1), dark, grabbed, [mattress, ['face', 6, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 0, true], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ['expect', 'G.L.s.grab && G.L.s.grab.k < 1', 'and the covers came up before its hands reached you'], ...under]),
+  nightmare: fumbles.concat(inFront, closetWide, inDrawer, fairy, card, peering, glide, stoop, crawlFrom(0), crawlFrom(1), dark, grabbed, [mattress, ['face', 6, true], ['use', 'socket'], ['expect', 'G.L.s.plugged', 'cord plugged in'], ['face', 2, true], ['use', 'drawer'], ['pickup', 'bulb'], ['face', 2, false], ['use', 'lamp'], ['expect', 'G.L.s.fitted', 'bulb fitted'], ducked, ['clickUntil', 'lamp', 'G.L.s.lampOn', 250, 6], ['expect', 'G.L.s.lampOn', 'lamp on'], ...duck, ['face', 0, true], coverHand, ['hold', 'covers', 9000], ['expect', 'G.L.s.coversUp', 'covers up'], ['expect', 'window.__coverHand', 'holding them, your hand was on the covers'], relight, ['expect', 'G.L.won', 'won'], ['expect', 'G.L.s.grab && G.L.s.grab.k < 1', 'and the covers came up before its hands reached you'], ...under]),
 };

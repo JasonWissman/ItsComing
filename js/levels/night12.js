@@ -47,13 +47,14 @@ LEVELS.push({
     // (Their cues are never played: it changes its way itself, gliding round the bed after a few quick, heavy footsteps
     // (crossing, below). The closet's clinking hangers keep the story's hangers on the wind out of this night.)
     { deg: 0, name: 'the doorway', barrierDist: 1.9, startDist: 4.9, maxStart: 4.1, cue: 'creak', default: true, apertures: [{ z: 3.6, x0: -0.5, x1: 0.5, y0: 0, y1: 2.1 }] },
-    { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 4.2, maxStart: 3.4, cue: 'hangers', apertures: [{ z: 3.2, x0: -0.5, x1: 0.5, y0: 0, y1: 2.2 }] },
+    { deg: 270, name: 'the closet', barrierDist: 1.6, startDist: 4.2, maxStart: 3.4, cue: 'hangers', apertures: [{ z: -STORY.CLOSET.wall, x0: STORY.CLOSET.mid - STORY.CLOSET.half, x1: STORY.CLOSET.mid + STORY.CLOSET.half, y0: 0, y1: STORY.CLOSET.top }] },
   ],
   creatures: [{ type: 'tall', startDist: 4.0, time: 70, unseenMult: 2.5 }],
   aftermath: { type: 'custom' },
   build(L) {
     const s = L.s;
     const parts = STORY.buildBedroom(L, false);
+    L.closet = parts.closet;   // (for the night's test: the closet, how wide, its doors, and its hangers and clothes)
     const unplugged = L.nightmare, sticks = L.nightmare;
     Object.assign(s, { fitted: false, plugged: !unplugged, lampOn: false, lampT: 0, clicks: 0, coversUp: false, tick: 0, tugAt: -9, mode: null, latBias: 0, pillowAt: null, fairy: null });
     // Drawing order in this room (it is built in local coordinates, and this night faces north, so they are world ones).
@@ -203,23 +204,25 @@ LEVELS.push({
       else { r.at = hem(); if (r.T > r.out + r.hold - 0.1) G.reach(covers, 'pull'); }   // (each call while it is there keeps it there a beat more)
     };
     // ---- what it does ----
-    // Each way in: where the opening is (apZ, its half-width edge, along and across the way, and the height of its top),
+    // Each way in: where the opening is (apZ, its half-width edge, along and across the way, mid: where its middle is across
+    // the way, and the height of its top),
     // where it peers round the edge from (peerD: in the closet, in front of the clothes), and its place at the bed, down out
     // of the light (spot: along the way and across it): at the foot of the bed from the doorway, at the corner of its foot
     // from the closet; where its hands take hold of the covers there (x, z in the room), where they have got to when they
     // reach you (to), and the edge of the bed their arms come over (over: 'z' at the foot, 'x' at the side, and where).
     const WAYS = [
-      { apZ: 3.6, edge: 0.5, top: 2.1, peerD: 4.1, spot: { d: 2.08, lat: 0 }, hands: [[-0.3, 1.86], [0.3, 1.86]], to: [[-0.2, 0.45], [0.2, 0.45]], over: ['z', 1.93] },
-      { apZ: 3.2, edge: 0.5, top: 2.2, peerD: 3.4, spot: { d: 1.04, lat: 1.35 }, hands: [[-0.64, 1.24], [-0.64, 1.72]], to: [[-0.38, 0.32], [-0.22, 0.72]], over: ['x', -0.79] },
+      { apZ: 3.6, edge: 0.5, mid: 0, top: 2.1, peerD: 4.1, spot: { d: 2.08, lat: 0 }, hands: [[-0.3, 1.86], [0.3, 1.86]], to: [[-0.2, 0.45], [0.2, 0.45]], over: ['z', 1.93] },
+      { apZ: -STORY.CLOSET.wall, edge: STORY.CLOSET.half, mid: STORY.CLOSET.mid, top: STORY.CLOSET.top, peerD: 3.4, spot: { d: 1.04, lat: 1.35 }, hands: [[-0.64, 1.24], [-0.64, 1.72]], to: [[-0.38, 0.32], [-0.22, 0.72]], over: ['x', -0.79] },
     ];
     const side = L.rand() < 0.5 ? -1 : 1, BEHIND = 0.3;   // which side of the opening it stands, and how far behind the edge
-    const way = c => WAYS[c.lane.idx] || WAYS[0], edgeAt = (w, d) => w.edge * d / w.apZ;
+    // (edgeAt: where the edge of the opening on side sd is seen at d, across the way, from your eye)
+    const way = c => WAYS[c.lane.idx] || WAYS[0], edgeAt = (w, d, sd) => (w.mid + sd * w.edge) * d / w.apZ;
     const hold = (c, d) => { c.hold = d; s.held = true; }, letGo = c => { if (s.held) { c.hold = null; s.held = false; } };
     const panOf = c => clamp(Math.sin(wrapPi(Math.atan2(c.pos().x, c.pos().z) - G.cam.yaw)), -0.85, 0.85);
     // coming: behind the wall at the side of the opening with only its head round the edge; stepping out into the opening
-    // as it comes on, the head coming in over its shoulders; then on into the room
+    // as it comes on, the head coming in over its shoulders; then on into the room, straight on from the middle of it
     const outOf = (c, d) => { const w = way(c); return clamp((w.peerD - d) / (w.peerD - w.apZ + 0.05), 0, 1); };
-    const latAt = (c, d) => side * (edgeAt(way(c), d) + BEHIND) * (1 - smoothstep(outOf(c, d))) + s.latBias;
+    const latAt = (c, d) => { const w = way(c); return lerp(w.mid, edgeAt(w, d, side) + side * BEHIND, 1 - smoothstep(outOf(c, d))) + s.latBias; };
     const place = (c, d = c.dist) => {   // (d: where it is this frame, once it has moved)
       c.peerSide = -side; c.peer = 1 - smoothstep(outOf(c, d) / 0.6);
       if (s.mode !== 'come') c.runLat = latAt(c, c.dist);
@@ -279,7 +282,9 @@ LEVELS.push({
       if (c.u < s.switchAt || c.seen || c.dist > way(c).apZ - 0.1) return;
       s.switched = true;
       const to = L.lanes.find(l => l !== c.lane), p = c.pos(), r0 = Math.hypot(p.x, p.z), b0 = Math.atan2(p.x, p.z);
-      const r1 = clamp(r0, CROSS.clear, WAYS[to.idx].apZ - 0.3), rA = clamp(Math.min(r0, r1), CROSS.clear, CROSS.wide), db = wrapPi(to.yaw - b0);
+      // (it comes round to the middle of the other opening, a little out from it)
+      const T = WAYS[to.idx], P = APPROACH.position(to, clamp(r0, CROSS.clear, T.apZ - 0.3), T.mid, L.eyeH), r1 = Math.hypot(P.x, P.z);
+      const rA = clamp(Math.min(r0, r1), CROSS.clear, CROSS.wide), db = wrapPi(Math.atan2(P.x, P.z) - b0);
       s.mode = 'cross'; s.cross = { to, b0, db, r0, r1, rA, k: 0, v: 0, len: Math.abs(db) * rA + Math.abs(r0 - rA) + Math.abs(r1 - rA) };
       c.distFn = crossing; c.along = null; c.glideFeet = true;
       s.thumps = { t0: L.t, n: 0, b0, b1: b0 + db, r0, r1 };
@@ -337,14 +342,14 @@ LEVELS.push({
     // The way it goes, low along the floor, to its place at the bed (or at you, pulling the covers away in the dark):
     // straight there from out in the room; but from in the opening, or from behind the wall beside it, first along behind
     // the wall to the middle of the frame, then straight out through the middle of it into the room (OUT metres past it:
-    // clear of the frame, and in the closet of its doors swung back either side), and only then on to the bed, so it never
+    // clear of the frame, and of the closet's folding doors swung back either side), and only then on to the bed, so it never
     // goes through the wall, the frame or a door. A list of points {d, lat}; along(rt, m) is the point m of the way along it.
     const OUT = 0.45;
     const route = (c, from, to) => {
       const w = way(c), pts = [from];
-      if (from.d > w.apZ - 0.05 || (from.d > w.apZ - OUT && Math.abs(from.lat) < w.edge)) {
-        if (Math.abs(from.lat) > 1e-3) pts.push({ d: from.d, lat: 0 });
-        if (from.d > w.apZ - OUT && to.d < w.apZ - OUT) pts.push({ d: w.apZ - OUT, lat: 0 });
+      if (from.d > w.apZ - 0.05 || (from.d > w.apZ - OUT && Math.abs(from.lat - w.mid) < w.edge)) {
+        if (Math.abs(from.lat - w.mid) > 1e-3) pts.push({ d: from.d, lat: w.mid });
+        if (from.d > w.apZ - OUT && to.d < w.apZ - OUT) pts.push({ d: w.apZ - OUT, lat: w.mid });
       }
       pts.push(to);
       const segs = pts.slice(1).map((q, i) => Math.hypot(q.d - pts[i].d, q.lat - pts[i].lat));
@@ -865,8 +870,8 @@ LEVELS.push({
       const topAt = (x, z) => (Math.abs(x) > X || z < HEAD || z > 1.92 ? -9 : z >= zF ? H(x, z) : z >= zE - 0.03 ? up(x, yE) + th(x) : B);
       // the wall either side of the opening, and over it, while it is still behind it; and coming through, it stoops
       // under the top of it
-      const w = way(c), e = edgeAt(w, c.dist), behind = c.dist > w.apZ + 0.01;
-      c.showX = behind ? [-e - c.lat, e - c.lat] : null;
+      const w = way(c), behind = c.dist > w.apZ + 0.01;
+      c.showX = behind ? [edgeAt(w, c.dist, -1) - c.lat, edgeAt(w, c.dist, 1) - c.lat] : null;
       c.showTop = behind ? L.eyeH + (w.top - L.eyeH) * c.dist / w.apZ - cp.y - (c.yOff || 0) : undefined;
       c.headroom = L.won || G.state === 'dying' || (s.fairy && s.fairy.stage !== 'come') ? undefined : headroom(c) - cp.y - (c.yOff || 0);   // (going down, it is still under it: no pop up)
       // Where it is drawn in the order of things. In the closet it stands in front of the clothes and the hangers (between
@@ -889,7 +894,7 @@ LEVELS.push({
       // peering, its fingers are round the edge of the frame by its face (drawn over the frame, which the thing is behind):
       // at the height of its hand, seen through the opening's plane. As it steps out they slide back off the edge
       if ((c.peer || 0) > 0.05 && c.dist > w.apZ) {
-        const hy = L.eyeH + (1.7 - L.eyeH) * w.apZ / c.dist, q = APPROACH.position(c.lane, w.apZ - 0.03, side * (w.edge + 0.02), L.eyeH), k = smoothstep((c.peer - 0.1) / 0.6);
+        const hy = L.eyeH + (1.7 - L.eyeH) * w.apZ / c.dist, q = APPROACH.position(c.lane, w.apZ - 0.03, w.mid + side * (w.edge + 0.02), L.eyeH), k = smoothstep((c.peer - 0.1) / 0.6);
         R.add(SC.mkSprite(L, q.x, hy - 0.07, q.z, 0.12, 0.14, (ctx, P) => drawFrameFingers(ctx, P, side, k), { sortDist: w.apZ - 0.08 }));
       }
       // its hands up over the edge of the bed, on the covers (over them): the backs of the long hands, the fingers down
@@ -964,13 +969,13 @@ LEVELS.push({
     L.dynamicLights = () => {
       const out = [], f = fairyGlow();
       if (shown()) { const p = L.pt(LX, 1.05, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 4.5, i: 1.0, color: [255, 210, 150], flicker: s.lampT < 2 ? 0.8 : 0.08, seed: 12 }); }
-      if (f) out.push({ x: f.x, y: 1.5, z: f.z - 0.5, r: 4.2 + 1 * f.flash, i: 0.6 * f.k + 0.75 * f.flash, color: [176, 196, 255] });   // (and the flash of them bursting open)
+      if (f) out.push({ x: f.x, y: 1.5, z: f.z - 0.5, r: 4.2 + 0.5 * f.flash, i: 0.6 * f.k + 0.34 * f.flash, color: [176, 196, 255] });   // (and the flash of them bursting open)
       return out;
     };
     L.glows = () => {
       const out = [], f = fairyGlow();
       if (shown()) { const p = L.pt(LX, 1.0, LZ); out.push({ x: p[0], y: p[1], z: p[2], r: 1.3, color: [255, 210, 150], a: 0.28 }); }
-      if (f) out.push({ x: f.x, y: 1.5, z: f.z, r: 1.9 + 0.6 * f.flash, color: [170, 196, 255], a: 0.2 * f.k + 0.25 * f.flash });
+      if (f) out.push({ x: f.x, y: 1.5, z: f.z, r: 1.9 + 0.35 * f.flash, color: [170, 196, 255], a: 0.2 * f.k + 0.11 * f.flash });
       return out.length ? out : null;
     };
     // ---- the win: the covers come up over your eyes, and it plays out under them ----
@@ -1066,7 +1071,7 @@ LEVELS.push({
     L.overlay = (ctx, W, H) => {
       // the flash of its wings bursting open, over the whole view, gone in a moment (never with flashes reduced: fairying)
       const fl = s.fairy && c0().fairy ? c0().fairy.flash || 0 : 0;
-      if (fl > 0.01) { ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = rgba([196, 206, 255], 0.26 * fl); ctx.fillRect(0, 0, W, H); ctx.restore(); }
+      if (fl > 0.01) { ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = rgba([196, 206, 255], 0.12 * fl); ctx.fillRect(0, 0, W, H); ctx.restore(); }
       const k = s.over || 0;
       if (k <= 0) return;
       const t = L.aftermathT, rm = SAVE.data.settings.reducedMotion, c = c0();
