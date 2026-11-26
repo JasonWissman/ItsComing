@@ -98,8 +98,8 @@ LEVELS.push({
     SC.wallV(L, -0.56, -2.385, -0.5, -2.385, 0, 2.16, frameC); SC.wallV(L, 0.5, -2.385, 0.56, -2.385, 0, 2.16, frameC); SC.wallV(L, -0.56, -2.385, 0.56, -2.385, 2.1, 2.16, frameC);
     SC.wallV(L, -2.4, -2.4, -2.4, 2.6, 0, 3.0, woodD, tex);
     for (let y = 0.6; y < 3; y += 0.6) { SC.wallV(L, -2.39, -2.4, -2.39, 2.6, y, y + 0.04, [30, 24, 20]); SC.wallV(L, -2.4, -2.39, 2.4, -2.39, y, y + 0.04, [30, 24, 20]); }
-    const apN = SC.doorway(L, { z: 2.6, w: 3.0, h: 2.4, wallH: 3.0, left: -2.4, right: 2.4, color: wood, opts: tex, frame: { color: frameC, w: 0.12 } });
-    const apE = SC.doorway(L, { deg: 90, z: 2.4, w: 1.1, h: 2.1, wallH: 3.0, left: -2.6, right: 2.4, color: woodD, opts: tex, frame: { color: frameC, w: 0.1 } });
+    const apN = SC.doorway(L, { z: 2.6, w: 3.0, h: 2.4, wallH: 3.0, left: -2.4, right: 2.4, color: wood, opts: tex, frame: { color: frameC, w: 0.12, line: true } });
+    const apE = SC.doorway(L, { deg: 90, z: 2.4, w: 1.1, h: 2.1, wallH: 3.0, left: -2.6, right: 2.4, color: woodD, opts: tex, frame: { color: frameC, w: 0.1, line: true } });
     L.addAperture(0, apN); L.addAperture(1, apE);
     SC.quad(L, [-2.5, 3.0, -2.5], [2.5, 3.0, -2.5], [2.5, 3.0, 2.7], [-2.5, 3.0, 2.7], [26, 21, 17]);
     for (const z of [-1.8, -0.6, 0.6, 1.8]) SC.box(L, -2.4, 2.4, 2.84, 3.0, z - 0.06, z + 0.06, [44, 36, 28]);
@@ -725,7 +725,7 @@ LEVELS.push({
       for (const p of pts) { const w = L.pt(p[0], p[1], p[2]); d += Math.hypot(w[0], w[2]); cx += w[0]; cy += w[1]; cz += w[2]; }
       return Object.assign(q, { dist: d / pts.length, cx: cx / pts.length, cy: cy / pts.length, cz: cz / pts.length });
     };
-    const slatX = [-1.5, -1.125, -0.75, -0.375, 0, 0.375, 0.75, 1.125, 1.5], leafZ = [-0.55, -0.33, -0.11, 0.11, 0.33, 0.55], leafY = [0, 0.25, 0.5, 0.75, 1.0, 1.3, 1.65, 2.08];
+    const slatX = [-1.5, -1.125, -0.75, -0.375, 0, 0.375, 0.75, 1.125, 1.5], leafZ = [-0.55, -0.33, -0.11, 0.11, 0.33, 0.55], leafY = [0, 0.25, 0.5, 0.75, 1.0, 1.3, 1.65, 2.1];
     const leafBow = y => (y < 1.08 ? 0.16 + 0.84 * Math.pow(1 - y / 1.08, 1.3) : 0.16 + 0.22 * Math.sin(Math.PI * Math.min(1, (y - 1.08) / 1.0)));   // the oars hold it at its middle
     // the water it has driven in, on the deck inside the door: a tongue spreading in from under it at each blow, its edge
     // white, and the boards darkening where it has been. foot(u) is where the door meets the deck u metres across it, as
@@ -782,7 +782,7 @@ LEVELS.push({
       R.glowAs(sd);
       if (pounding === 1 && a === 0) {
         const bowE = leafZ.map(z => 0.1 * jolt(z) * Math.cos(Math.PI * z / 1.14)), xE = (i, y) => hx - bowE[i] * leafBow(y);
-        const whole = [[hx, 0, hz], [ex, 0, ez], [ex, 2.08, ez], [hx, 2.08, hz]];
+        const whole = [[hx, 0, hz], [ex, 0, ez], [ex, 2.1, ez], [hx, 2.1, hz]];
         for (let i = 0; i < 5; i++) for (let j = 0; j < 7; j++) {
           const z1 = leafZ[i + 1] + (i < 4 ? 0.015 : 0), y0 = leafY[j], y1 = leafY[j + 1] + (j < 6 ? 0.015 : 0);
           R.add(asWhole(SC.mkQuad(L, [xE(i, y0), y0, leafZ[i]], [xE(i + 1, y0), y0, z1], [xE(i + 1, y1), y1, z1], [xE(i, y1), y1, leafZ[i]], [64, 52, 40]), whole));
@@ -794,7 +794,7 @@ LEVELS.push({
         for (const q of oarsAt(Math.min(0.04, 0.1 * jolt(0) * leafBow(1.08) * 1.6), 0.018 * rat * Math.abs(Math.sin(L.t * 41)))) R.add(q);
         R.glowAs(null); wash(1, u => Math.min(hx - 0.02 - 0.1 * jolt(u) * Math.cos(Math.PI * u / 1.14), 2.38 - Math.max(0, Math.abs(u) - 0.5) * 0.6));   // in front of the frame either side
       } else {
-        R.add(SC.mkWallV(L, hx, hz, ex, ez, 0, 2.08, [64, 52, 40]));
+        R.add(SC.mkWallV(L, hx, hz, ex, ez, 0, 2.1, [64, 52, 40]));
         for (const yy of [0.5, 1.5]) R.add(SC.mkWallV(L, hx + Math.sin(a) * 0.02, hz + Math.cos(a) * 0.02, ex - Math.sin(a) * 0.02, ez - Math.cos(a) * 0.02, yy, yy + 0.05, [44, 36, 28]));
         for (const q of oarsAt(0, 0)) R.add(q);
       }
@@ -870,7 +870,7 @@ LEVELS.push({
         const t = (hx * sz - hz * sx) / den, u = (hx * dz - hz * dx) / den;
         if (t <= 0 || t >= 1 || u < 0 || u > 1) return false;
         const yAt = L.eyeH + (y - L.eyeH) * t;
-        return yAt > 0 && yAt < 2.08;
+        return yAt > 0 && yAt < 2.1;
       };
       return { openings, hides };
     };

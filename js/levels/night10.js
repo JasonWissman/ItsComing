@@ -87,6 +87,11 @@ LEVELS.push({
       if (south) SC.doorway(L, { deg: 180, z: 3.5, x: 2.3, w: 1.2, h: 2.3, wallH: 3.2, left: 1.7, right: 3.5, color: board });
       SC.withYaw(L, m.deg, () => {
         for (const [x0, x1, y0, y1] of [[-0.92, -0.8, 0.13, 2.57], [0.8, 0.92, 0.13, 2.57], [-0.92, 0.92, 0.13, 0.25], [-0.92, 0.92, 2.45, 2.57]]) SC.wallV(L, x0, 3.47, x1, 3.47, y0, y1, gilt);
+        // the frame stands a little out from the wall, so it lines the opening back to it (the inside of each side, the
+        // underside of the top and the top of the bottom): without that, the edge of the wall's hole showed as a sliver
+        // of board inside the gilt
+        SC.wallV(L, -0.8, 3.47, -0.8, 3.5, 0.25, 2.45, gilt); SC.wallV(L, 0.8, 3.47, 0.8, 3.5, 0.25, 2.45, gilt);
+        for (const y of [0.25, 2.45]) SC.quad(L, [-0.8, y, 3.47], [0.8, y, 3.47], [0.8, y, 3.5], [-0.8, y, 3.5], gilt);
         // (the crest and the bulbs are fixed flat on the wall, looking back into the room: they never turn with the view)
         const onWall = { face: m.deg * DEG + Math.PI };
         SC.sprite(L, 0, 2.55, 3.46, 0.3, 0.3, (ctx, P) => { ctx.scale(0.3, 0.3); crest(ctx, P); }, onWall);

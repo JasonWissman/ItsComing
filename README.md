@@ -441,7 +441,7 @@ some on the ground, so you have to turn and look down to find them.
    striking, a blink, a blink, and on; the OPEN sign, the fountain's header, the main's own green lamp; the hum
    of the place, its powered bed again; with Reduced flashing the lights go and come back at once, no stutter).
    From the moment the lights are really on it is drawn in by them again, at the pace it has in the light
-   (the whole lot in seventeen seconds, wherever it has got to; a run to another window that it is in the middle
+   (the whole lot in fifteen seconds, wherever it has got to; a run to another window that it is in the middle
    of quickens there and then, as it slows there and then when the main is thrown), and if it has you with
    the lights on the card reads "It was drawn in by the light." however long they were off before. It slows
    from the click when the main is thrown, and quickens only once the lever is over and the lights are on: both
