@@ -177,11 +177,13 @@ LEVELS.push({
         if (s.plugged) return false;
         s.plugged = true; socket.hidden = true; G.say('Plugged in.', 'Click.');
         const r = G.reach(socket, { style: 'touch', onTouch: () => { s.plugAt = L.t; } });
-        if (r) r.hold = PLUG_GO + 0.3; else s.plugAt = L.t - PLUG_GO;   // (no hand to show: it is in at once)
+        if (r) { r.out = PLUG_R.out; r.hold = PLUG_GO + PLUG_R.hold; r.back = PLUG_R.back; } else s.plugAt = L.t - PLUG_GO;   // (no hand to show: it is in at once)
         return true;
       },
     });
-    const PLUG_GO = 0.45;   // how long the hand takes to carry the plug to the socket
+    // how long the hand takes to carry the plug to the socket; and its reach down to it, how long it stays on it pushed home,
+    // and its way back: brisk (0.87 s in all, a third quicker than an ordinary reach would make it), the clunk as it goes home
+    const PLUG_GO = 0.3, PLUG_R = { out: 0.17, hold: 0.2, back: 0.2 };
     const covers = mkTarget(L, {
       id: 'covers', name: 'Covers', x: 0, y: 0.6, z: 1.1, w: 1.4, h: 0.6, flat: true, hold: 3.0,
       hint() { return s.coversUp ? 'Up over you.' : 'The covers. Hold on to them until they are all the way up; they slip back if you let go too soon.'; },
