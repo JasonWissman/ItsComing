@@ -644,7 +644,7 @@ Object.assign(ICONS, {
         s.hook = 'on'; s.line = 'idle'; s.dialed = ''; s.lagN = 0; s.ringFrom = null; s.freeDial = false; s.ring911 = false; s.talk = null; s.handsetT = L.t; AUDIO.sfx('clunk');
         for (const l of s.lands) { l.digit = false; l.sfx = 'keyClick'; }   // (keys still to be pressed, pressed on a dead phone)
         if (s.credit) { s.credit = 0; s.returnAt = L.t + 0.45; AUDIO.sfx('coinReturn'); }
-        if (ringing) G.say('You hung up. The ringing stops.', 'The ringing stops.');
+        if (ringing) G.say('You hang up. The ringing stops.', 'The ringing stops.');
         else if (onCall) G.say('You hang up on the dispatcher.', 'You hang up.');
       };
       // your fingertip on the keys: the hand comes up to the key (what you hold goes down meanwhile) and, dialling, goes on

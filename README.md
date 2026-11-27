@@ -1008,7 +1008,7 @@ There is one easter egg a night (to the player they are "secret scenes": that is
 them). A night calls `foundEgg()` in js/game.js the moment its own happens, and the save keeps which have been found,
 by the night's id. Each has a short title, in `EGG_TITLES` in js/game.js by the night's id, in the nights' order:
 Through the window, Hit and run, Sugar rush, Staring contest, Bat shot crazy, Lifesaver, Butterfingers, Thirst
-quencher, Its an emergency, Cover up, Power overload, Movie night, Flip the script. (Each night's `text.egg`, a line
+quencher, It's an emergency, Cover up, Power overload, Tooth fairy, Flip the script. (Each night's `text.egg`, a line
 saying what it is, is still in `js/levels/` but is not shown anywhere.)
 
 As soon as the first is found, Scores has two tabs, Best run and Secret scenes (`role="tablist"`, `tab`, `tabpanel`: a
