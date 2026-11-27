@@ -72,7 +72,7 @@ LEVELS.push({
   lights: [{ x: 0, y: 1.6, z: -0.2, r: 4.5, i: 0.35, color: [140, 160, 220] }],
   text: {
     intro: 'You find yourself in a shed.\nSomething in the distance approaches.',
-    hint: 'There are loose planks all over the house, a hammer and nails. Board up both doorways.',
+    hint: 'There are loose planks all over the shed, a hammer and nails. Board up both doorways.',
     objective: 'Board up both doorways.',
     death: { default: 'It came through the open door.', reached: 'It tore the boards off and came in.', round: 'It came through the open door behind you.', window: 'Must we throw things?' },
     win: 'The boards held.',
@@ -462,7 +462,7 @@ LEVELS.push({
     const back = mkDoor('door', 'Back door', 0, 2.45, 1.75, 0), front = mkDoor('frontdoor', 'Front door', 180, 2.3, 1.55, 1);
     glowWith(back, frames[0]); glowWith(front, frames[1]);
     const doorOf = lane => (lane.idx === 0 ? back : front);
-    L.objectiveText = () => (back.done && front.done ? 'Boarded up. Hold on.' : 'Board up both doorways (' + (back.count + front.count) + '/' + 2 * need + ')');
+    L.objectiveText = () => (back.done && front.done ? 'Boarded up. Hold on.' : 'Board up both doorways (' + (back.count + front.count) + '/' + 2 * need + ').');
     // (with the window broken, or the bottle in the air on its way to it, boarding both is not the end of it: the easter egg, below)
     const flying = () => !!G.throwing && G.throwing.it.id === 'bottle';
     L.isWon = () => back.done && front.done && !s.broken && !flying();

@@ -170,10 +170,10 @@ async function run(browser, check) {
     await shot(page, 'results-run-' + tag);
     const w = await watch(page, 10500), r2 = await rlook(page);
     await shot(page, 'results-secrets-' + tag);
-    check(r0.kind === 'results' && r0.tabs === 'This run*|Secret scenes' && r0.cards === 0 && !r0.way && r0.found === 'Hit and run|Staring contest|Its an emergency' && r0.fresh === 2 && r0.count === '3' && r0.stamp === null,
+    check(r0.kind === 'results' && r0.tabs === 'This run*|Secret scenes' && r0.cards === 0 && !r0.way && r0.found === 'Hit and run|Staring contest|It\'s an emergency' && r0.fresh === 2 && r0.count === '3' && r0.stamp === null,
       view + ': a run that found two secret scenes it did not have: two tabs, and the results open on This run, its times still to come in; on Secret scenes those found before are checked and the run\'s two not yet (' + JSON.stringify(r0) + ')');
     const gap = w.over - w.allIn;
-    check(w.allIn > 3000 && gap > 1300 && gap < 1900 && w.slid.join() === 'slideout,slidein' && w.seq.join(' > ') === 'Hit and run|Staring contest|Its an emergency 3 0 > Hit and run|Sugar rush|Staring contest|Its an emergency 4 1 > Hit and run|Sugar rush|Staring contest|Its an emergency|Power overload 5 2' && w.taps === 2 && r2.tabs === 'This run|Secret scenes*' && r2.way && r2.focus === 'finish' && r2.scroll <= 0 && r2.wide <= 0 && r2.fits,
+    check(w.allIn > 3000 && gap > 1300 && gap < 1900 && w.slid.join() === 'slideout,slidein' && w.seq.join(' > ') === 'Hit and run|Staring contest|It\'s an emergency 3 0 > Hit and run|Sugar rush|Staring contest|It\'s an emergency 4 1 > Hit and run|Sugar rush|Staring contest|It\'s an emergency|Power overload 5 2' && w.taps === 2 && r2.tabs === 'This run|Secret scenes*' && r2.way && r2.focus === 'finish' && r2.scroll <= 0 && r2.wide <= 0 && r2.fits,
       view + ': This run comes all in first; about 1.2 s after (and the slide) it goes over to Secret scenes by itself, This run sliding off and Secret scenes in, where they are checked off one after the other, in the nights\' order, the count going up with them, a tap for each; Finish game focused; it all fits, no sideways scroll (' + JSON.stringify({ allIn: Math.round(w.allIn), gap: Math.round(gap), slid: w.slid, seq: w.seq, taps: w.taps, focus: r2.focus, scroll: r2.scroll, wide: r2.wide }) + ')');
     // a tab chosen while This run is still coming in: its times all in at once, the secret scenes checked off now, and
     // no going over by itself after (This run chosen again, it stays there)

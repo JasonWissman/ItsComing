@@ -963,7 +963,7 @@ function foundEgg(id, later) {
 // reduced motion it fades and does not slide
 const EGG_TITLES = {
   field: 'Through the window', road: 'Hit and run', graveyard: 'Sugar rush', quarry: 'Staring contest', clearing: 'Bat shot crazy',
-  boathouse: 'Lifesaver', lighthouse: 'Butterfingers', diner: 'Thirst quencher', booth: 'Its an emergency', mirrors: 'Cover up', barn: 'Power overload',
+  boathouse: 'Lifesaver', lighthouse: 'Butterfingers', diner: 'Thirst quencher', booth: 'It\'s an emergency', mirrors: 'Cover up', barn: 'Power overload',
   bedroom: 'Tooth fairy', void: 'Flip the script',
 };
 const SECRET_HOLD = 4;   // seconds it is fully up (index.html: in over .45 s before, out over .5 s after)

@@ -657,7 +657,7 @@ const hoverHit = lookFor;
     ev = await tabsLook();
     const want = defs.map(d => { const f = have.includes(d.id); return { cls: 'egg ' + (f ? 'found' : 'unknown'), name: d.name, text: d.name, label: d.name + (f ? ', found' : ', not found'), role: 'listitem' }; });
     check(ev.tabs === 'Best run/-1,Secret scenes*/0' && ev.panels === 'hidden,shown' && ev.kind === 'nights' && ev.st === 'title' && ev.listLabel === 'Secret scenes' && !/easter/i.test(ev.text), 'a click on Secret scenes chooses it: its panel shown, Best run\'s hidden; nowhere in the dialog is it called easter eggs (' + JSON.stringify([ev.tabs, ev.panels]) + ')');
-    check(ev.rows.length === 13 && JSON.stringify(ev.rows.map(r => ({ cls: r.cls, name: r.name, text: r.text, label: r.label, role: r.role }))) === JSON.stringify(want) && ev.rows[2].name === 'Sugar rush' && ev.rows[8].name === 'Its an emergency',
+    check(ev.rows.length === 13 && JSON.stringify(ev.rows.map(r => ({ cls: r.cls, name: r.name, text: r.text, label: r.label, role: r.role }))) === JSON.stringify(want) && ev.rows[2].name === 'Sugar rush' && ev.rows[8].name === 'It\'s an emergency',
       'thirteen boxes in the nights\' order, each with its title and nothing else, found or not, and labelled "<title>, found" / "<title>, not found" (' + JSON.stringify(ev.rows.map(r => r.label)) + ')');
     check(ev.eggText.length > 50 && defs.every(d => d.egg && !ev.eggText.includes(d.egg) && !ev.eggText.includes(d.title) && !ev.text.includes(d.egg)) && !/\d\./.test(ev.eggText), 'no night\'s name or number, and none of the nights\' own lines for them, anywhere in the tab');
     const fnd = ev.rows.filter(r => r.cls === 'egg found'), unf = ev.rows.filter(r => r.cls === 'egg unknown');
@@ -2456,7 +2456,7 @@ const hoverHit = lookFor;
       check(quit.a && !quit.b && quit.c && !quit.d && quit.kind === 'results', 'quitting to the title puts the note away; one up on the last screen goes as the results come (' + JSON.stringify(quit) + ')');
       // every night's easter egg has its title; one with none falls back to the night's own line
       const titles = await sp.evaluate(() => ({ ids: LEVELS.map(l => l.id), t: LEVELS.map(l => EGG_TITLES[l.id] || ''), fall: (() => { const l = LEVELS[0], k = EGG_TITLES[l.id], own = l.text.egg; delete EGG_TITLES[l.id]; l.text.egg = 'Wave at it.'; const r = eggTitle(l.id); EGG_TITLES[l.id] = k; l.text.egg = own; return r; })(), none: eggTitle('nosuch') }));
-      check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t.join('|') === 'Through the window|Hit and run|Sugar rush|Staring contest|Bat shot crazy|Lifesaver|Butterfingers|Thirst quencher|Its an emergency|Cover up|Power overload|Tooth fairy|Flip the script' && titles.fall === 'Wave at it' && titles.none === '',
+      check(titles.ids.length === 13 && titles.t.every(t => /\S/.test(t) && t.length <= 24) && new Set(titles.t).size === 13 && titles.t.join('|') === 'Through the window|Hit and run|Sugar rush|Staring contest|Bat shot crazy|Lifesaver|Butterfingers|Thirst quencher|It\'s an emergency|Cover up|Power overload|Tooth fairy|Flip the script' && titles.fall === 'Wave at it' && titles.none === '',
         'every night\'s id has a short title for its easter egg; a night without one is named by its own line (' + JSON.stringify(titles.t) + ')');
     }
     await ctx.close();
