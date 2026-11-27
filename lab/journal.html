@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notebook Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the Creature Lab's darkroom. A header of global controls (which notebook, export), how the notebook is put
+   together, the notebook one seed gives in order, then a card for every page it can hold, each drawn by the game's own
+   code with its text and a comment box. Single dark theme, as the game. */
+:root {
+  --bg: #0e0f12; --panel: #16181d; --panel-2: #1d2027; --line: #2a2e37; --line-2: #3a3f4b; --fg: #e6e2d8; --muted: #8d8b85;
+  --accent: #c9a35b; --accent-ink: #17130b; --accent-soft: rgba(201, 163, 91, 0.14); --blood: #c0453a; --blood-soft: rgba(192, 69, 58, 0.14);
+  --ink: #9fb0dc;
+  --display: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  --body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 56px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+header.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding-block: 14px 12px; display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: end; justify-content: space-between; }
+h1 { font: 500 28px/1 var(--display); letter-spacing: 0.02em; margin: 0; font-variant: small-caps; }
+h1 small { display: block; font: 12px/1.4 var(--body); color: var(--muted); letter-spacing: 0; font-variant: normal; margin-top: 6px; max-width: 62ch; }
+h2 { font: 500 22px/1.1 var(--display); margin: 30px 0 10px; font-variant: small-caps; letter-spacing: 0.02em; }
+h2 small { font: 12px var(--body); color: var(--muted); font-variant: normal; letter-spacing: 0; margin-left: 8px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.lbl { font: 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+button { font: 500 13px/1 var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 11px; cursor: pointer; }
+button:hover { border-color: var(--line-2); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+input[type=number] { font: 13px var(--mono); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; width: 96px; }
+input.short { width: 64px; }
+code { font: 12px var(--mono); color: var(--fg); background: var(--panel-2); border-radius: 3px; padding: 1px 4px; }
+#gen { font: 11px var(--mono); color: var(--muted); }
+
+.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.how section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; min-width: 0; }
+.how h3 { font: 500 17px/1.2 var(--display); margin: 0 0 6px; color: var(--accent); }
+.how p, .how ul { margin: 6px 0; color: #cfcabe; }
+.how ul { padding-left: 18px; }
+.how li + li { margin-top: 3px; }
+.mk { font: 500 12px var(--mono); color: var(--accent); }
+
+.strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
+.leaf { margin: 0; min-width: 0; }
+.leaf canvas, .card canvas { display: block; width: 100%; height: auto; aspect-ratio: 560 / 740; background: #e3d9be; border-radius: 3px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); }
+.leaf figcaption { font: 11px/1.35 var(--mono); color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+.leaf figcaption b { color: var(--fg); font-weight: 500; }
+.leaf.key figcaption b { color: var(--blood); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 12px; min-width: 0; }
+.card.noted { border-color: rgba(201, 163, 91, 0.5); }
+.card .body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.card .who { font: 500 19px/1.15 var(--display); overflow-wrap: anywhere; }
+.card .meta { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.chip { font: 500 10.5px/1 var(--mono); padding: 4px 6px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.always { color: var(--accent); border-color: rgba(201, 163, 91, 0.4); background: var(--accent-soft); }
+.chip.key { color: var(--blood); border-color: rgba(192, 69, 58, 0.45); background: var(--blood-soft); }
+.lines { margin: 2px 0 0; padding: 0; list-style: none; font: 15px/1.45 var(--display); font-style: italic; color: var(--ink); }
+.lines .h { text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
+.lines .s { text-decoration: line-through; opacity: 0.7; }
+.lines .e { text-decoration: underline double; }
+.lines .k { color: var(--blood); font-size: 22px; font-weight: 500; }
+.lines .n { font-style: normal; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.note-d { font-size: 12.5px; color: var(--muted); margin: 0; }
+textarea { display: block; width: 100%; min-height: 34px; resize: vertical; font: 12.5px/1.4 var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; overflow: hidden; margin-top: auto; }
+textarea::placeholder { color: #5b5a57; }
+.card.noted textarea { border-color: rgba(201, 163, 91, 0.45); }
+.foot { color: var(--muted); font-size: 12px; margin-top: 20px; max-width: 80ch; }
+#copyOut { display: none; width: 100%; resize: vertical; font: 12px/1.45 var(--mono); }
+#copyOut.show { display: block; margin-top: 16px; overflow: auto; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--accent); color: var(--accent-ink); padding: 9px 14px; border-radius: 6px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 20; max-width: calc(100vw - 32px); }
+.toast.show { opacity: 1; }
+#err { color: var(--blood); }
+@media (max-width: 640px) {
+  header.bar { position: static; }
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card { grid-template-columns: 96px minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>Notebook Lab<small>Night 9, the phone booth: the notebook on the shelf under the phone. Every page is drawn by the game's own code (<code>js/levels/night09.js</code>), for the notebook one run gives and for every page it can hold. Write what should change in a page's comment box, then Copy to paste it back.</small></h1>
+  <div class="controls">
+    <label class="lbl" for="runSeed">Run seed <input type="number" id="runSeed" min="0" max="999999" step="1" value="1"></label>
+    <label class="lbl" for="attempt">Attempt <input type="number" id="attempt" class="short" min="1" max="999" step="1" value="1"></label>
+    <button id="reroll" title="Another run seed">Random</button>
+    <button id="copyNoted">Copy comments</button>
+    <button id="copyAll" class="primary">Copy notes</button>
+  </div>
+</header>
+<p id="err" hidden></p>
+
+<h2>How it is put together</h2>
+<div class="how" id="how"></div>
+
+<h2>This run's notebook <small id="gen"></small></h2>
+<div class="strip" id="strip"></div>
+
+<h2>Every page it can hold <small id="poolNote"></small></h2>
+<div class="cards" id="cards"></div>
+
+<p class="foot">The handwriting is the game's font stack (Segoe Print, Bradley Hand, Noteworthy, Chalkboard SE, Comic Sans MS, then a serif), so it looks here as it does in the game on this machine. In the game the pages are laid on the notebook in perspective, lit by the booth's lamp; here they are flat. The comments stay in this browser.</p>
+<textarea id="copyOut" aria-label="The export, ready to copy"></textarea>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="../js/util.js"></script>
+<script>
+// light stubs for what js/levels/night09.js touches as it loads: it adds its icons to ICONS and pushes its night onto
+// LEVELS. Its build(L) is run with only L.s and L.rand: it writes the notebook and draws its pages before anything
+// that needs the rest of the game (the street, SC), and stops there with an error the lab expects
+var LEVELS = [], ICONS = {};
+</script>
+<script src="../js/levels/night09.js"></script>
+<script src="journal.js"></script>
+</body>
+</html>

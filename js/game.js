@@ -1,7 +1,9 @@
 'use strict';
 // ---------- game state, input, interaction, HUD and the main loop ----------
-const LIST_SCREENS = ['nights', 'settings', 'fragments']; // menu screens with their own buttons: not click-anywhere
-const PITCH_DOWN = 45 * DEG; // looking down: enough to see the floor around you without a lurch of the view
+const LIST_SCREENS = ['nights', 'settings', 'howto', 'note', 'ending', 'results']; // menu screens with their own buttons: not click-anywhere
+// looking down: enough to see the floor around you without a lurch of the view. A night may look further down (its def's
+// lookDown, in degrees: over the lighthouse rail); this is the one in play, set as each night starts
+let PITCH_DOWN = 45 * DEG;
 const DIR_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 // difficulty is a table of knobs read by buildLevel and by each night's build(L) through L.tier() and L.nightmare
 const DIFFICULTIES = [   // one game: the table stays so a night's knobs (L.tier, L.nightmare, hints) keep one place to read from
@@ -14,7 +16,9 @@ const G = {
   inv: [], active: 0, hover: null, mouse: { x: -1, y: -1 }, holding: null, throwing: null,
   t: 0, stateT: 0, shakeAmt: 0, flashAmt: 0, fade: 1, fadeTarget: 0, white: 0, whiteTarget: 0, danger: 0,
   hb: { next: 0, last: -10 }, toastT: 0, lastToast: { msg: '', t: -10 }, invSig: '', debug: false, paused: false,
-  difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
+  difficulty: 0, muted: false, seed: null, runSeed: 0, attempt: 0, lastLane: {}, overlayArmed: 0, error: null, errorCount: 0, fps: 60,
+  run: null,   // the full run under way, if one is: { t, night, nights } (see the run, below)
+  lastRun: null,   // the full run just finished, for the results after the ending: { t, nights: [seconds], best }
   shake(a) { G.shakeAmt = Math.max(G.shakeAmt, a); },
   flash(a) { G.flashAmt = Math.max(G.flashAmt, a); },
   hasItem(id) { return G.inv.some(i => i.id === id); },
@@ -23,12 +27,18 @@ const G = {
   diff() { return DIFFICULTIES[G.difficulty]; },
   hints() { return DIFFICULTIES[G.difficulty].hints; },
   // the one place hints-mode is consulted for feedback text
-  say(specific, vague, dur) { G.toast(G.hints() ? specific : (vague === undefined ? specific : vague), dur); },
+  say(specific, vague, dur) { const m = G.hints() ? specific : (vague === undefined ? specific : vague); if (m) G.toast(m, dur); },   // ('' in one of them: nothing is said then)
   get unlocked() { return SAVE.data.unlocked[G.diff().id] || 0; },
 };
 
 const UI = {};
 function $(id) { return document.getElementById(id); }
+// a phone or a tablet: its main pointer is a finger (the layout's own test, index.html: pointer: coarse). The controls are
+// swipes and taps there, the hints say tap, and held upright it asks to be turned sideways (PORTRAIT: the night pauses)
+const COARSE = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+const PORTRAIT = window.matchMedia ? window.matchMedia('(pointer: coarse) and (orientation: portrait)') : null;
+function touchUI() { return !!(COARSE && COARSE.matches); }
+function portraitHeld() { return !!(PORTRAIT && PORTRAIT.matches); }
 
 // ---------------- level construction ----------------
 // 'seeded' keeps the same way for the whole run, retry after retry; 'random' (Nightmare) rolls again every attempt.
@@ -42,8 +52,13 @@ function pickLane(def, diff, L) {
   if (n === 1) return 0;
   const mode = def.laneMode || diff.lane;
   if (mode === 'default') { const d = L.lanes.findIndex(l => l.default); return d >= 0 ? d : 0; }
-  const pool = L.lanes.filter(l => !l.noSwitch).map(l => l.idx);   // a lure or go-round destination is never where it starts
-  return pool.length ? pool[Math.floor(laneRoll(L, mode, 0) * pool.length)] : 0;
+  let pool = L.lanes.filter(l => !l.noSwitch).map(l => l.idx);   // a lure or go-round destination is never where it starts
+  // trying the same night again, it comes another way than it did last time, so a retry is not a replay
+  const last = G.lastLane[def.id];
+  if (mode !== 'seeded' && pool.length > 1 && last !== undefined) pool = pool.filter(k => k !== last);
+  const k = pool.length ? pool[Math.floor(laneRoll(L, mode, 0) * pool.length)] : 0;
+  G.lastLane[def.id] = k;
+  return k;
 }
 function makeCreature(L, cd, k) {
   const CR = CREATURES[cd.type];
@@ -75,8 +90,8 @@ function buildLevelDef(def, i) {
   G.attempt++;
   const rand = mulberry32((G.runSeed * 7919 + i * 131 + G.attempt * 17) >>> 0);
   const L = {
-    def, index: i, night: i + 1, t: 0, facing: def.facing * DEG, eyeH: def.eyeH || 1.65, pal: Object.assign({ id: def.id }, def.pal), diff,
-    props: [], items: [], targets: [], creatures: [], recipes: [], s: {}, won: false, aftermathT: 0, after: null,
+    def, index: i, night: i + 1, t: 0, facing: def.facing * DEG, eyeH: def.eyeH || 1.65, lookDown: (def.lookDown || 45) * DEG, pal: Object.assign({ id: def.id }, def.pal), diff,
+    props: [], items: [], targets: [], creatures: [], s: {}, won: false, aftermathT: 0, after: null,
     rand, usedSpots: new Set(), placed: [],
     floor: { poly: def.floor ? def.floor.poly : null, y: def.floor && def.floor.y !== undefined ? def.floor.y : (def.floorY || 0) },
   };
@@ -85,7 +100,7 @@ function buildLevelDef(def, i) {
   L.tier = (normal, nightmare) => (L.nightmare && nightmare !== undefined ? nightmare : normal);
   L.pt = (x, y, z) => { const r = rotY(x, z, L.facing); return [r[0], y, r[1]]; };
   L.at = (deg, dist, y) => L.pt(Math.sin(deg * DEG) * dist, y, Math.cos(deg * DEG) * dist);
-  L.text = Object.assign({ intro: def.intro || '', hint: def.hint || '', objective: def.objective || '', death: {}, win: '', fragment: '' }, def.text || {});
+  L.text = Object.assign({ intro: def.intro || '', hint: def.hint || '', objective: def.objective || '', death: {}, win: '' }, def.text || {});
   if (typeof L.text.death === 'string') L.text.death = { default: L.text.death };
   const laneDefs = def.lanes && def.lanes.length ? def.lanes : [{ deg: 0 }];
   L.lanes = laneDefs.map((ld, k) => APPROACH.makeLane(L, ld, k));
@@ -99,12 +114,22 @@ function buildLevelDef(def, i) {
   cds.forEach((cd, k) => L.creatures.push(makeCreature(L, cd, k)));
   L.creature = L.creatures[0];
   L.lane = L.creature.lane; L.laneIdx = L.lane.idx;   // the level's lane is the first creature's
+  laneCues(L);
   if (L.barrierDist === undefined) L.barrierDist = L.lane.barrierDist || 0;
   L.uses = def.uses || L.uses || [];
   if (def.startInv) for (const id of def.startInv) { const it = L.items.find(x => x.id === id); if (it) { it.taken = true; G.inv.push(it); } }
   // lights are declared in the local frame; cones carry a direction
   L.lights = (L.lights || []).concat((def.lights || []).map(l => worldLight(L, l)));
   return L;
+}
+// A lane's cue (the warning, wherever it is played: a change of way here, or a night's own going round) is always the
+// thing's own footsteps from that way, never any other sound: each lane that has a cue gets 'footstep:kind' (AUDIO.sfx
+// plays a few of its steps for that, panned that way), the first creature's footstep kind, or a walker's for a thing that
+// makes none. What the night gave it is kept as cueWas (story.js: the closet's hangers are not heard as a sound in the
+// room where they were its cue)
+function laneCues(L) {
+  const kind = (L.creature && L.creature.CR.sound) || 'walker';
+  for (const ln of L.lanes) if (ln.cue) { ln.cueWas = ln.cueWas || ln.cue; ln.cue = 'footstep:' + kind; }
 }
 // a level may move its eye (L.eye, a world offset from where it stands; the night 2 car drives off): lights flagged
 // attach ride with it, so they are handed to LIGHT where the eye is now. Nothing changes while there is no offset.
@@ -141,7 +166,174 @@ function validateContent() {
   return problems;
 }
 
+// ---------------- the run ----------------
+// A full run is night 1 to the end of the last night in one go, timed; the best is kept in the save (SAVE.recordRun) and
+// shown on the Scores screen. Every game is one: Begin (or Enter on the title) begins it at night 1, and there is no
+// other way into a night but going on from the one before (?level= and the other test switches start none). Its clock is
+// the time spent playing (G.state 'play', and the moment of being caught): every attempt at a night counts, retries
+// after a death and restarts too, but not the cards, the death and survived screens, the pause menu, the watching once a
+// night is won, or a hidden tab (nothing runs then). It goes on through Next night; quitting to the title ends it, and
+// so does a reload (the run in progress lives only here, not in the save). It is finished, and counted, the moment the
+// last night is won. As it goes it keeps each night's share of its clock (every attempt at that night, from its start
+// to its win: from: the clock when it began), so the nights add up to the whole run; finished, it is kept as G.lastRun
+// for the results after the ending (best: true if it was a new best run). The easter eggs first found in it are kept
+// with the save (SAVE.data.runEggs: foundEgg), emptied here as it begins, and are checked off on those results.
+function beginRun() { G.run = { t: 0, night: 0, from: 0, nights: [] }; SAVE.runStart(); }
+// ---------- a new game: the warning, then a black screen and two lines, one after the other ----------
+// Begin first puts up the warning about flashing lights: a card like the other dialogs on black, red words, a solid red
+// Accept (focused: Enter, Space, a click or a tap, or A or Start on a pad) and beside it a quiet Adjust settings, which
+// turns the card into Settings (all of it but Erase progress); its Done (Esc, B) is the warning again, Accept focused.
+// Once accepted it is remembered (SAVE.data.warned) and a later game goes straight on. Nothing else gets past it, and
+// nothing on the title behind it can be pressed. Then the prologue: the lines come up slowly in the middle of the dark,
+// one at a time (the first gone before the second comes), and fade; then night 1's card. It is short and it is watched:
+// no click or key skips it, and no stray key or click gets through it to the game. Both over everything.
+const DISCLAIMER = 'This game contains flashing imagery that may cause discomfort and/or seizures for those with photosensitive epilepsy.\nOptions for reduced motion and flashing are available in the settings dialog.\n\nPlayer discretion is advised.';
+const PROLOGUE = ['You haven’t had a good night’s sleep in ages.', 'Each night something visits you in your dreams…'];
+let prologueOn = false, disclaimerOn = false, disclaimerPad = null;
+let homing = null;   // Finish game's way home (finishHome), while it plays: 'fade' (to black), 'dark' (the title up, still dark and silent), 'words'
+const PROLOGUE_FADE = 6;   // seconds the title's drone takes to fade out under it; night 1's bed fades in when night 1 begins
+function introUp() { return disclaimerOn || prologueOn || !!homing; }   // the warning, the prologue or Finish game's way home (finishHome) is up: nothing else is pressed
+// a key while one is up goes no further (the game never sees it); the browser's own (with Ctrl, Cmd or Alt, F1..F12)
+// still do what they do there
+function swallowKey(e) {
+  e.stopImmediatePropagation();
+  if (!(e.ctrlKey || e.metaKey || e.altKey || /^F\d+$/.test(e.key))) e.preventDefault();
+}
+function swallowPointer(el) { for (const ev of ['click', 'mousedown', 'mouseup', 'pointerdown', 'touchstart', 'touchend', 'contextmenu', 'wheel']) el.addEventListener(ev, e => e.stopPropagation()); }
+function newGame() {
+  if (introUp()) return;
+  beginRun();
+  // (a browser driven by the tests goes past the warning, unless a test asks for it: window.DISCLAIMER_TEST; 'force'
+  // shows it even once it has been accepted)
+  if (navigator.webdriver && !window.DISCLAIMER_TEST) { prologue(); return; }
+  if (SAVE.data.warned && window.DISCLAIMER_TEST !== 'force') { prologue(); return; }
+  disclaimer();
+}
+function disclaimer() {
+  const still = () => SAVE.data.settings.reducedMotion;
+  const el = document.createElement('div'); el.id = 'disclaimer';
+  document.body.appendChild(el);
+  disclaimerOn = true;
+  const t0 = performance.now();
+  let done = false, card = null, accept0 = null, settingsOn = false;
+  // the warning: an eye with a line through it, the words, then Accept and Adjust settings side by side
+  const warn = () => {
+    settingsOn = false;
+    el.innerHTML = '<div class="dbox"><div class="dcard dwarn" role="alertdialog" aria-modal="true" aria-labelledby="disclaimerText">' +
+      '<svg class="deye" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M4 24c5-8.5 12-13 20-13s15 4.5 20 13c-5 8.5-12 13-20 13S9 32.5 4 24z"/><circle cx="24" cy="24" r="6.5"/><path d="M9 41L39 7"/></svg>' +
+      '<p id="disclaimerText">' + DISCLAIMER + '</p>' +
+      '<div class="dbtns"><button type="button" class="daccept" data-act="accept">Accept</button><button type="button" class="dsettings" data-act="settings">Adjust settings</button></div></div></div>';
+    card = el.querySelector('.dcard');
+    accept0 = el.querySelector('.daccept');
+    accept0.addEventListener('click', accept);
+    el.querySelector('.dsettings').addEventListener('click', openSettings);
+    accept0.focus();
+  };
+  // Settings in the same card, over the same black; Done is the warning again
+  const openSettings = () => {
+    if (done) return;
+    ensureAudio(); AUDIO.sfx('tap');
+    settingsOn = true;
+    el.innerHTML = '<div class="dbox"><div class="dcard dset" role="dialog" aria-modal="true" aria-label="Settings"></div></div>';
+    card = el.querySelector('.dcard');
+    MENU.settingsInto(card, warn);
+  };
+  const accept = () => {
+    if (done || settingsOn || performance.now() - t0 < 400) return;   // (not the double-click or the held key that pressed Begin)
+    done = true; disclaimerPad = null; ensureAudio(); AUDIO.sfx('tap');
+    SAVE.markWarned();   // a later game goes straight on
+    el.classList.add('go');   // its words go; the black stays until the prologue (or night 1's card) is up over it
+    setTimeout(() => {
+      prologue();
+      const gone = () => { document.removeEventListener('keydown', key, true); el.remove(); disclaimerOn = false; };
+      if (prologueOn) setTimeout(gone, 900);
+      else { el.classList.add('out'); setTimeout(gone, still() ? 300 : 700); }
+    }, still() ? 150 : 450);
+  };
+  const press = () => { const f = document.activeElement; if (f && card && card.contains(f) && (f.tagName === 'BUTTON' || f.type === 'checkbox')) f.click(); };
+  // the keys go no further than it (the game never sees them); in it, the arrows and Tab go round its buttons (and in
+  // Settings its sliders and switches), Enter and Space press, and in Settings Esc is Done. A focused slider or switch
+  // keeps the keys it uses (left and right, Space)
+  const key = e => {
+    e.stopImmediatePropagation();
+    if (done) { swallowKey(e); return; }
+    const f = document.activeElement, k = e.key;
+    if (settingsOn && f && f.tagName === 'INPUT' && card.contains(f) && (k === ' ' || (f.type === 'range' && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(k)))) return;
+    swallowKey(e);
+    if (settingsOn && k === 'Escape') { if (!e.repeat && !MENU.subBack(card)) { AUDIO.sfx('tap'); warn(); } return; }   // (in one of Settings' dialogs, Settings again)
+    if (MENU.navKey(e, card)) return;
+    if ((k === 'Enter' || k === ' ') && !e.repeat) press();
+  };
+  document.addEventListener('keydown', key, true);
+  swallowPointer(el);
+  el.addEventListener('mousedown', e => { if (!(e.target.closest && e.target.closest('button, input, label'))) e.preventDefault(); });   // a click off its controls leaves the focus where it is
+  // the focus stays in it: anything that takes it away gives it back (to Accept, or to Settings' Done)
+  el.addEventListener('focusout', () => setTimeout(() => {
+    if (done || !el.isConnected || (card && card.contains(document.activeElement))) return;
+    const b = settingsOn ? card.querySelector('button[data-act="back"], button[data-act="caldone"]') : accept0; if (b) b.focus();
+  }, 0));
+  // a pad: the d-pad goes round, a slider (or a row of choices) takes left and right; A presses; in Settings, B and Start
+  // are Done (in one of its Calibrate dialogs, theirs), on the warning Start accepts
+  disclaimerPad = (what, dir) => {
+    if (done) return;
+    const fake = key => ({ key, preventDefault() {}, shiftKey: false });
+    if (what === 'dir') { if (!(settingsOn && dir <= 2 && MENU.padSlide(document.activeElement, dir))) MENU.navKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'), card); }
+    else if (what === 'a') press();
+    else if (what === 'b' && settingsOn) { if (!MENU.subBack(card)) { AUDIO.sfx('tap'); warn(); } }
+    else if (what === 'start') { if (settingsOn) { if (!MENU.subBack(card)) { AUDIO.sfx('tap'); warn(); } } else accept(); }
+  };
+  warn();
+  requestAnimationFrame(() => el.classList.add('on'));
+}
+function prologue() {
+  // (a browser driven by the tests goes straight to night 1, unless a test asks for it: window.PROLOGUE_TEST)
+  if (navigator.webdriver && !window.PROLOGUE_TEST) { startLevel(0, true); return; }
+  AUDIO.stopAmbient(PROLOGUE_FADE);   // the title's drone fades slowly away under the lines (the prologue itself is silent)
+  const still = SAVE.data.settings.reducedMotion;
+  const el = document.createElement('div'); el.id = 'prologue';
+  el.innerHTML = PROLOGUE.map(t => '<p>' + t + '</p>').join('');
+  document.body.appendChild(el);
+  prologueOn = true;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // (nothing behind it is pressed by a stray key)
+  const lines = el.querySelectorAll('p'), at = (ms, fn) => setTimeout(fn, ms);
+  const finish = () => {
+    // the lines go, the black stays; night 1's card is put up under it, and only then does the black lift off it (so the
+    // title is never seen again in between)
+    lines.forEach(l => { l.classList.remove('on'); l.classList.add('gone'); });
+    setTimeout(() => {
+      startLevel(0, true);
+      el.classList.add('out');
+      setTimeout(() => { document.removeEventListener('keydown', swallowKey, true); el.remove(); prologueOn = false; }, still ? 300 : 1300);
+    }, still ? 200 : 900);
+  };
+  document.addEventListener('keydown', swallowKey, true);
+  swallowPointer(el);
+  requestAnimationFrame(() => el.classList.add('on'));
+  // one line at a time: the first fades up, holds and fades away; then the second, dimmer, like falling asleep
+  at(still ? 300 : 900, () => lines[0].classList.add('on'));
+  at(still ? 2000 : 4300, () => { lines[0].classList.remove('on'); lines[0].classList.add('gone'); });
+  at(still ? 2700 : 6300, () => lines[1].classList.add('on'));
+  at(still ? 4800 : 10200, finish);
+}
+function runTick(dt) { if (G.run && (G.state === 'play' || G.state === 'dying')) G.run.t += dt; }
+function runWon(L) {
+  const r = G.run, last = L.index === LEVELS.length - 1;
+  if (last) G.lastRun = null;
+  if (!r || r.night !== L.index) { G.run = null; return; }
+  // to the hundredth: the results and the save hold the very same numbers, so they read the same
+  const c = x => Math.round(x * 100) / 100;
+  (r.nights = r.nights || [])[L.index] = { t: c(r.t - (r.from || 0)) };
+  r.from = r.t;
+  if (last) {
+    const t = c(r.t), nights = LEVELS.map((l, i) => (r.nights[i] ? r.nights[i].t : null));
+    G.lastRun = { t, nights, best: SAVE.recordRun(L.diff.id, t, nights) };
+    G.run = null;
+  } else r.night = L.index + 1;
+}
+
 function startLevel(i, withCard) {
+  if (G.run && G.run.night !== i) G.run = null;   // any night but the one the run is on (a test's ?level=, startLevel) is no run
   if (G.L && G.L.onEnd) G.L.onEnd();
   STORY.theme(false); if (i === 0) SAVE.setSetting('theme', '');
   G.white = 0; G.whiteTarget = 0;
@@ -151,23 +343,38 @@ function startLevel(i, withCard) {
   G.draw = null; G.drawBtn = null;   // no bow half drawn from the last night
   HANDS.reset();   // empty hands, nothing in the air
   G.L = buildLevel(i);
+  PITCH_DOWN = G.L.lookDown;
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed + i);
   const c = G.cam;
-  c.dirIdx = ((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8;
+  // the view starts toward where it is coming from, or where the night says (night 11: the barn, and finding it is yours)
+  const yaw0 = G.L.def.startFacing !== undefined ? G.L.facing + G.L.def.startFacing * DEG : G.L.creature.yaw;
+  c.dirIdx = ((Math.round(yaw0 / (45 * DEG)) % 8) + 8) % 8;
   c.tYaw = c.yaw = c.dirIdx * 45 * DEG; c.tPitch = c.pitch = 0; c.zoom = 1; c.zoomHeld = false;
   G.hb.next = 0; G.hb.last = -10; G.danger = 0; G.shakeAmt = 0; G.flashAmt = 0;
   G.fade = 1; G.fadeTarget = 0;
   if (withCard) {
     setState('card');
-    const d = G.diff(), T = G.L.text;
-    const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
-    showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint">' + T.objective + '</p>' : '') + '<p class="prompt">Click or press Enter when you are ready</p>');
+    showCard(false);
   } else {
     setState('play');
     hideOverlay();
     beginPlay();
   }
+}
+// A night's card. The night and its name come up with it; its words a moment after, then the prompt (.s2, .s3:
+// index.html). It takes no press to go on (a click, a tap, Enter, a pad's A or Start: proceed) until its words have
+// faded in, CARD_IN ms (the .s2 fade's delay and its length), so a press meant for the screen before, or made before
+// there is anything to read, does not begin the night; the prompt comes in after that. With reduced motion all of it is
+// there at once, and only the usual short guard (showOverlay's) is on it. again: the card put back as it was after the
+// pause menu, all of it there, with that same short guard
+const CARD_IN = 550 + 900;
+function showCard(again) {
+  const i = G.levelIndex, d = G.diff(), T = G.L.text, still = again || SAVE.data.settings.reducedMotion;
+  const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
+  const st = still ? '' : ' s2', st3 = still ? '' : ' s3';
+  showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro' + st + '">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint' + st + '">' + T.objective + '</p>' : '') + '<p class="prompt' + st3 + '">' + (touchUI() ? 'Tap when ready' : 'Click when ready') + '</p>');
+  if (!still) G.overlayArmed = performance.now() + CARD_IN;
 }
 function beginPlay() {
   const L = G.L;
@@ -176,34 +383,88 @@ function beginPlay() {
   G.fadeTarget = 0;
   STORY.startNight(L);
 }
-function setState(s) { G.state = s; G.stateT = 0; }
+function setState(s) { G.state = s; G.stateT = 0; if (s !== 'paused') G.pausedFrom = null; }
 
 // ---------------- overlays ----------------
-function showOverlay(html) { UI.overlay.innerHTML = html; UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350; } // a double-click cannot skip a card
-function hideOverlay() { UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+function showOverlay(html) {
+  if (MENU.kind === 'results') secretHide();   // (a secret's note still up from the last screen goes: the results have their own list of them)
+  UI.overlay.innerHTML = html; UI.overlay.classList.remove('dlg', 'titlelow'); UI.overlay.classList.add('show'); UI.hud.classList.add('dim'); document.body.classList.add('menu'); G.overlayArmed = performance.now() + 350;   // a double-click cannot skip a card
+}
+function hideOverlay() { if (touchUI()) G.mouse.x = G.mouse.y = -1; UI.overlay.classList.remove('show'); UI.hud.classList.remove('dim'); document.body.classList.remove('menu'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
 function showTitle() {
+  G.run = null;   // quitting ends the run: the next game begins again at night 1
+  secretHide();   // (a secret's note still up goes: the title is not the night's)
   if (G.L && G.L.onEnd) G.L.onEnd();
   AUDIO.stopAmbient(); AUDIO.stopLoop(); Seq.clear();
   G.inv = []; HANDS.reset();   // nothing in hand or in the air behind the title
   G.L = buildLevel(0);
+  PITCH_DOWN = G.L.lookDown;
   R.prepare(G.L.props);
   WEATHER.set(G.L.def.weather, G.runSeed);
   const c = G.cam; c.tYaw = c.yaw = 0; c.tPitch = c.pitch = 0; c.zoom = 1;
   G.fade = 0.35; G.fadeTarget = 0.35; G.white = 0; G.whiteTarget = 0;
-  STORY.theme(SAVE.data.settings.theme === 'day');
+  // the title is always the dark one, with it out there: the morning is only the last screens after the last night (and
+  // a save from when the morning stayed on the title is put back)
+  STORY.theme(false); if (SAVE.data.settings.theme === 'day') SAVE.setSetting('theme', '');
+  TITLE.enter();   // eyes in the dark, a long way off
   setState('title');
   MENU.show('title'); G.overlayArmed = 0; // nothing on the title can be skipped by accident, so it takes a click or Enter at once
 }
 // the end of the last night: it has glittered away and the room is the bedroom, in the morning; the campaign is marked
-// complete for this difficulty, the light theme stays on the title until a new run, and the last screen offers one
+// complete for this difficulty. The light theme is on for the last screen only (the results after it are in the dark
+// one, as the Scores dialog is: MENU toDark); Finish game is home to the usual dark title (with Scores on it now)
 function finishEnding() {
   const L = G.L;
-  SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id); SAVE.setSetting('theme', 'day');
+  SAVE.unlock(L.diff.id, LEVELS.length); SAVE.markComplete(L.diff.id);
+  // its two endings (its own; its easter egg's, L.eggEnding: foundEgg): the first ever come to is the player's own, and
+  // the other, come to after that, finds the easter egg
+  if (SAVE.ending(L.def.id, L.eggEnding ? 'egg' : 'ending', !!(G.run || G.lastRun))) secretSay(L.def.id);
   AUDIO.stopLoop(); Seq.clear();
   STORY.theme(true);
   setState('end');
   MENU.show('ending');
+}
+// Finish game (the results after the ending): home to the title, slowly, not at once. Everything (the results, the
+// dimmed morning room behind them) fades smoothly to black (HOME.fade); the title is put up under the black once it is
+// all black, with the light behind the thing off, so the title's dark is all there is, and that is held a moment
+// (HOME.hold); then the light behind it comes slowly on, one smooth eased fade up with it standing dark against it
+// (TITLE.lightUp: no flicker, whatever the settings); then the name, the buttons, the corners' controls and the title's
+// drone fade in slowly together (HOME.words, the drone over HOME.drone), the focus on Begin as they come. No click, key
+// or pad gets through until it is all in (as the prologue): the black over everything, then a clear sheet in its
+// place, takes them
+const HOME = { fade: 1200, hold: 600, words: 1400, drone: 2 };
+function finishHome() {
+  if (homing) return;
+  homing = 'fade';
+  const el = document.createElement('div'); el.id = 'homing';
+  el.style.cssText = 'position:fixed;inset:0;z-index:1000;background:#000;opacity:0;cursor:default;transition:opacity ' + HOME.fade + 'ms ease-in-out';
+  document.body.appendChild(el);
+  document.addEventListener('keydown', swallowKey, true);
+  swallowPointer(el);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  AUDIO.stopAmbient(HOME.fade / 1000); AUDIO.stopLoop();   // the morning's sound goes with it
+  void el.offsetWidth; el.style.opacity = '1';   // (from 0, so it fades)
+  const ov = UI.overlay, words = [ov, UI.mute, UI.fsBtn].filter(Boolean);   // (the corners' sound and full screen come with the words)
+  const later = (ms, fn) => setTimeout(fn, ms);
+  later(HOME.fade + 80, () => {   // (a little past the fade's end, so it is all black before anything changes under it)
+    showTitle(); TITLE.dark(); homing = 'dark';
+    words.forEach(w => { w.style.transition = 'none'; w.style.opacity = '0'; });   // (under the black, out of sight till the light is on)
+    later(HOME.hold, () => {
+      // the title's own dark is the black now (it has been drawn, all black, under it all the hold): the sheet stays,
+      // clear, to take the presses
+      el.style.transition = 'none'; el.style.background = 'transparent';
+      later(TITLE.lightUp(), () => {
+        homing = 'words';
+        words.forEach(w => { w.style.transition = 'opacity ' + HOME.words + 'ms ease-in-out'; void w.offsetWidth; w.style.opacity = '1'; });
+        const b = ov.querySelector('button[data-act]'); if (b && G.state === 'title') b.focus({ preventScroll: true });   // (its ring, if it shows one, comes in with it)
+        later(HOME.words, () => {
+          words.forEach(w => { w.style.transition = w.style.opacity = ''; });
+          document.removeEventListener('keydown', swallowKey, true); el.remove(); homing = null;
+        });
+      });
+    });
+  });
 }
 function proceedFromSurvived() {
   const next = G.levelIndex + 1;
@@ -214,35 +475,76 @@ function proceedFromSurvived() {
 function onKeyDown(e) {
   const k = e.key;
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k) && !(e.target && e.target.tagName === 'INPUT')) e.preventDefault(); // sliders and checkboxes keep their keys
-  if (e.repeat) return;
+  if (e.repeat || introUp()) return;   // (the warning and the prologue keep the keys from the game: a pad's go round them)
+  if (G.state === 'title') ensureAudio();   // a key on the title is the first gesture its drone waits on (titleSound)
   if (k === 'm' || k === 'M') { toggleMute(); return; }
+  if ((k === 'f' || k === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && fullscreenAble()) { toggleFullscreen(); return; }   // full screen, in and out (as #fsBtn)
+  if (lookFree() && lookKey(k)) return;   // a won night that gives the view back takes turning and looking as looking, not as the press it waits on
   if (G.state === 'won' && G.L && G.L.onPress && G.L.onPress(e)) return;   // a won night may be waiting on any press (the last night's meadow)
-  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card') { restartLevel(); return; }
+  if ((k === 'r' || k === 'R') && G.state !== 'title' && G.state !== 'end' && G.state !== 'card' && G.pausedFrom !== 'card' && !MENU.confirming) { restartLevel(); return; }   // (not from a card, nor from under a question being asked)
   if (G.state !== 'play' && MENU.onKey(e)) return;
-  if (k === 'Escape') { if (G.state === 'play') pauseGame(); else if (G.state === 'paused') resumeGame(); else if (G.state === 'card') showTitle(); return; }
+  // Esc: the pause menu, from a night, its card, the death screen and the win screen alike, and from it back to where it
+  // was. Never straight out to the title: the only way there is the pause menu's Quit. P is the same: the pause menu
+  // wherever Esc opens it, and from the pause menu itself back; not under one of its dialogs (Controls, Settings, Scores,
+  // the question Quit asks: Esc goes back a step there, P does nothing), with Ctrl, Cmd or Alt (the browser's own: print),
+  // or in anything typed into. (An Esc just after full screen was left, and the night paused for it: fullscreenSync)
+  const pKey = (k === 'p' || k === 'P') && !e.ctrlKey && !e.metaKey && !e.altKey && !typingIn(e.target);
+  if (k === 'Escape' || pKey) {
+    if (canPause()) pauseGame();
+    else if (G.state === 'paused' && (pKey ? MENU.kind === 'pause' : performance.now() - fsPaused > FS_ESC)) resumeGame();
+    return;
+  }
   if (G.state !== 'play') {
     if (k === 'Enter' && !LIST_SCREENS.includes(MENU.kind)) proceed(); // on the button screens Enter only presses the focused button
-    if ((k === 'c' || k === 'C') && G.state === 'title' && G.unlocked > 0 && G.unlocked < LEVELS.length) { ensureAudio(); startLevel(G.unlocked, true); }
     if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = true;
     return;
   }
+  if (lookKey(k)) return;
+  if (k >= '1' && k <= '6') { const n = k.charCodeAt(0) - 49; if (n < G.inv.length) { G.active = n; AUDIO.sfx('ui'); } }
+  else if (k === 'Tab') { e.preventDefault(); if (G.inv.length) { G.active = (G.active + 1) % G.inv.length; AUDIO.sfx('ui'); } }
+}
+// a field that is typed into (there is none in the game itself: a slider, a switch and a button are not)
+function typingIn(t) { return !!t && (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button'].includes(t.type))); }
+// turning to the next of the 8 directions, looking ahead or down, and holding zoom: true if the key was one of those
+function lookKey(k) {
   const c = G.cam;
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') { c.dirIdx = (c.dirIdx + 7) % 8; c.tYaw = c.yaw + wrapPi(c.dirIdx * 45 * DEG - c.yaw); }
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') { c.dirIdx = (c.dirIdx + 1) % 8; c.tYaw = c.yaw + wrapPi(c.dirIdx * 45 * DEG - c.yaw); }
   else if (k === 'ArrowUp' || k === 'w' || k === 'W') c.tPitch = 0;
   else if (k === 'ArrowDown' || k === 's' || k === 'S') c.tPitch = PITCH_DOWN;
   else if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') c.zoomHeld = true;
-  else if (k >= '1' && k <= '6') { const n = k.charCodeAt(0) - 49; if (n < G.inv.length) { G.active = n; AUDIO.sfx('ui'); } }
-  else if (k === 'Tab') { e.preventDefault(); if (G.inv.length) { G.active = (G.active + 1) % G.inv.length; AUDIO.sfx('ui'); } }
+  else return false;
+  return true;
 }
+// a won night may give the view back while it waits (L.lookFree: the last night's meadow): you turn, look and zoom as in play,
+// by key, swipe and the zoom button, or pad, and none of that is taken as the press it waits on
+function lookFree() { return G.state === 'won' && !!G.L && !!G.L.lookFree && G.L.lookFree(); }
 function onKeyUp(e) { const k = e.key; if (k === 'Shift' || k === 'z' || k === 'Z' || k === ' ') G.cam.zoomHeld = false; }
 function ensureAudio() { if (!AUDIO.on()) AUDIO.init(); AUDIO.resume(); }
+// on load: the sound made (and asked to start) before anything is pressed, so the title's drone can fade in at once. A
+// browser that will not start sound before a gesture leaves it suspended; then the first gesture of any kind starts it
+// (a press, a key, a touch; a wheel or a move of the mouse too, where the browser counts it), and the drone's fade in
+// plays from there. The listeners go once it is running
+function audioOnLoad() {
+  ensureAudio();
+  const evs = ['pointerdown', 'mousedown', 'keydown', 'touchstart', 'touchend', 'click', 'wheel', 'mousemove'];
+  const kick = () => { if (G.state !== 'paused' && !document.hidden) ensureAudio(); setTimeout(check, 0); };
+  const check = () => { if (AUDIO.running()) evs.forEach(ev => window.removeEventListener(ev, kick, true)); };
+  evs.forEach(ev => window.addEventListener(ev, kick, { capture: true, passive: true }));
+  check();
+}
+// the title's drone: a faint deep drone under it, a little louder and nearer each step the thing takes (TITLE.near). The
+// sound is made as the page loads (audioOnLoad), so the drone is set going, fading in, at once; where the browser holds
+// sound back until the page has been touched (most do, on a first visit), it is held at the start of its fade and plays
+// it out from the first gesture. It goes with the title: anything that starts a night stops the ambient bed it is.
+function titleSound() { if (AUDIO.on() && TITLE.on && !prologueOn && homing !== 'dark') AUDIO.titleDrone(TITLE.near, homing ? HOME.drone : undefined); }   // (not under the prologue: it is fading away; nor on Finish game's way home till its words come, and then in with them)
 function toggleMute() { setMuted(!G.muted); }
 function setMuted(m) {
   G.muted = !!m;
   AUDIO.setMuted(G.muted);
   UI.mute.textContent = G.muted ? 'muted (M)' : 'sound on (M)';
   UI.mute.classList.toggle('off', G.muted);
+  const sw = UI.overlay.querySelector('input[data-set="muted"]'); if (sw) sw.checked = G.muted;   // Settings' switch follows M
   SAVE.setSetting('muted', G.muted);
 }
 function restartLevel() {
@@ -251,14 +553,36 @@ function restartLevel() {
   startLevel(G.levelIndex, false);
   G.toast('Again.');
 }
-function pauseGame() { setState('paused'); MENU.show('pause'); AUDIO.suspend(); }
-function resumeGame() { setState('play'); hideOverlay(); MENU.clear(); AUDIO.resume(); }
+// The pause menu: over a night being played, and over the screens round it too, a night's card, the death screen and
+// the win screen (PAUSABLE), since it is the only place with Quit (Esc or P, a pad's B or Start in play, the menu button
+// on a phone). Resume (or Esc) puts back exactly what it was over: the night goes on, or the card, the death screen or the
+// win screen is up again as it was (G.pausedFrom: the state it was opened from, while it is open)
+const PAUSABLE = ['play', 'card', 'dead', 'survived'];
+function canPause() { return PAUSABLE.includes(G.state) && !introUp(); }
+function pauseGame() {
+  if (!canPause()) return;
+  const from = G.state;
+  setState('paused'); G.pausedFrom = from;
+  MENU.show('pause'); AUDIO.suspend();
+}
+function resumeGame() {
+  if (G.state !== 'paused') return;
+  const from = G.pausedFrom || 'play';
+  MENU.clear();
+  if (from === 'play') { setState('play'); hideOverlay(); AUDIO.resume(); return; }
+  G.state = from; G.pausedFrom = null;   // (as it was: its clock is not started again)
+  if (from === 'card') showCard(true);
+  else if (from === 'dead') MENU.show('dead', G.deathScreen);
+  else MENU.show('survived', G.survivedScreen);
+  AUDIO.resume();
+}
 
 function proceed() {
+  if (introUp()) return;   // (the warning and the prologue take no press but their own)
   if (performance.now() < G.overlayArmed) return; // the arm is on the wall clock, so it is 350 ms whatever the frame rate
   ensureAudio();
   switch (G.state) {
-    case 'title': startLevel(0, true); break;
+    case 'title': newGame(); break;
     case 'card': hideOverlay(); setState('play'); beginPlay(); break;
     case 'dead': startLevel(G.levelIndex, false); break;
     case 'survived': proceedFromSurvived(); break;
@@ -270,21 +594,27 @@ function proceed() {
   }
 }
 
-function onMouseMove(e) { G.mouse.x = e.clientX; G.mouse.y = e.clientY; }
-function onMouseDown(e) {
+function onMouseMove(e) { if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return; TOUCH.lift = 0; G.mouse.x = e.clientX; G.mouse.y = e.clientY; }   // (the mouse a browser makes up after a tap on a menu is not a pointer over the view)
+function onMouseDown(e) { if (e.button !== 0) { G.drawSwallow = false; return; } if (pressAt(e.clientX, e.clientY, 'mouse')) e.preventDefault(); }
+// the button (or a finger) goes down at x, y: on a thing that is held (the covers) it takes hold; with a bow, it draws.
+// src: 'mouse' or 'finger' (a touch on the view: see touch, below), both aimed where they are
+function pressAt(x, y, src) {
   G.drawSwallow = false;
-  if (G.state !== 'play' || e.button !== 0) return;
-  G.mouse.x = e.clientX; G.mouse.y = e.clientY;
+  if (G.state !== 'play') return false;
+  TOUCH.lift = 0;   // (a new press: the finger lifted a moment ago no longer has the say over what is under the pointer)
+  G.mouse.x = x; G.mouse.y = y;
   updateHover();
   const h = G.hover;
-  if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; e.preventDefault(); }
-  else if (drawPress(G.L, h, 'mouse')) e.preventDefault();   // a bow: held, the button draws it
+  if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; return true; }
+  return drawPress(G.L, h, src);   // a bow: held, the button draws it
 }
 function onMouseUp() { G.holding = null; drawLetGo('mouse'); }
 function onClick(e) {
-  if (e.target.closest && e.target.closest('#touch')) return;
   if (G.drawSwallow) { G.drawSwallow = false; if (G.state === 'play') return; }   // the click that ends a draw is not another use
-  if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) return; proceed(); return; } // the list screens are not click-anywhere; the title and the cards are
+  // the list screens are not click-anywhere, nor is the title: a click on the dark there only brings it a step nearer,
+  // scuttling at you in plain sight (TITLE.advance); the cards are click-anywhere
+  if (G.state === 'title') { ensureAudio(); if (MENU.kind === 'title' && !(e.target.closest && e.target.closest('button, a'))) TITLE.advance(true); return; }
+  if (G.state !== 'play') { if (LIST_SCREENS.includes(MENU.kind)) { MENU.hurry(); return; } proceed(); return; }   // (the results after the ending: a click hurries them)
   ensureAudio();
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   updateHover();
@@ -304,7 +634,7 @@ function pickup(it) {
   // things that stack (single planks) join the pile already in hand instead of taking a new slot
   const pile = it.stack && G.inv.find(i => i.id === it.id && i !== it);
   if (pile) { pile.uses += it.uses; it.taken = true; G.active = G.inv.indexOf(pile); G.invSig = ''; AUDIO.sfx('pickup'); HANDS.picked(pile, it); if (G.L.onPickup) G.L.onPickup(it); G.hover = null; return; }
-  if (G.inv.length >= 6) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); G.thrust(it); return; }   // your full hand goes toward it, and back (js/hands.js)
+  if (G.inv.length >= (G.L.handMax || 6)) { G.toast('Your hands are full.'); AUDIO.sfx('nope'); G.thrust(it); return; }   // your full hand goes toward it, and back (js/hands.js)
   HANDS.picked(it);   // from where it lay, up into the hand
   it.taken = true; G.inv.push(it); G.active = G.inv.length - 1;
   AUDIO.sfx('pickup');
@@ -338,18 +668,6 @@ function newItem(L, id, name, opts) {
   if (typeof it.icon === 'string') it.icon = ICONS[it.icon];
   L.items.push(it);
   return it;
-}
-function combine(a, b) {
-  const L = G.L;
-  const r = (L.recipes || []).find(r => (r.parts[0] === a.id && r.parts[1] === b.id) || (r.parts[0] === b.id && r.parts[1] === a.id));
-  if (!r) return false;
-  G.removeFromInv(a); G.removeFromInv(b);
-  const it = newItem(L, r.result.id, r.result.name, Object.assign({ taken: true }, r.result.opts || {}));
-  G.inv.push(it); G.active = G.inv.length - 1;
-  AUDIO.sfx(r.sfx || 'load');
-  if (r.onCombine) r.onCombine(it, L);
-  G.toast(r.text || (it.name + '.'));
-  return true;
 }
 // What a click that does not work shows (js/hands.js): a thing tried where it will not go leaves your hand, fails at the
 // target and comes back or drops to the floor (G.fumble); with nothing in hand the hand goes up to it (G.reach). The short
@@ -386,7 +704,7 @@ function useTarget(t) {
   let item = G.inv[G.active];
   if (!item || !t.accepts.includes(item.id)) item = G.inv.find(i => t.accepts.includes(i.id) && !i.decoy) || G.inv.find(i => t.accepts.includes(i.id)); // the genuine thing before a decoy, unless the decoy was chosen
   if (!item) {
-    if (t.accepts.length) G.say(t.hint ? t.hint() : 'You need something for this.', 'Not with what you have.');
+    if (t.accepts.length) G.say(t.hint ? t.hint() : 'You need something for this.', 'It\'s missing something.');
     else if (t.hint) G.say(t.hint(), t.name);
     noUse(t, act); return;
   }
@@ -469,6 +787,7 @@ function activeUse(L) { return (L.uses || []).find(u => G.hasItem(u.tool)) || nu
 function useOnCreature(L, c) {
   const u = activeUse(L);
   if (!u || c.dead) return false;
+  if (u.onClick) return u.onClick(c, L) !== false;   // a use that does its own thing (night 7's toolbox, dropped over the rail onto it)
   if (u.draw) return true;   // a bow is drawn by holding the button (drawPress), never by a click
   const ammo = u.ammo ? G.inv.find(i => i.id === u.ammo) : null;
   if (u.ammo && !ammo) { AUDIO.sfx('empty'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Click. Nothing in it.'); return true; }
@@ -487,8 +806,8 @@ function fireUse(L, u, ammo) {
   AUDIO.sfx(u.sfx || 'shot'); G.flash(u.flash === undefined ? 0.5 : u.flash); G.shake(u.shake === undefined ? 0.7 : u.shake); L.s.recoil = 1;
 }
 // ---- a bow: hold to draw, let go to loose ----
-// A use with draw: { loose(outcome, c, aim, power, L), fill, min } is drawn by holding the button (or A, or the touch Use
-// button). The power bar fills over `fill` seconds to full, and it stays full for as long as it is held. All that matters is
+// A use with draw: { loose(outcome, c, aim, power, L), fill, min } is drawn by holding the button (or A, or a finger held on
+// the view). The power bar fills over `fill` seconds to full, and it stays full for as long as it is held. All that matters is
 // whether it is full when you let go: full with the aim on the thing's body is 'hit', however far off it is; full but off
 // it, 'miss'; let go before full, 'short'. Each of those spends one of the ammo and hands the outcome to loose(). Let go
 // before `min` seconds and nothing is loosed: the bow is let back down ('easing'), which is what a click shows. G.draw is
@@ -498,7 +817,7 @@ function drawUse(L) { const u = L && activeUse(L); return u && u.draw ? u : null
 function drawPress(L, h, src) {
   const u = drawUse(L);
   if (!u || G.state !== 'play' || G.cam.pitch > 0.5 || (h && h.kind !== 'creature')) return false;   // looking down, or at something to take or use: not a draw
-  if (src === 'mouse') G.drawSwallow = true;
+  if (aimedSrc(src)) G.drawSwallow = true;
   if (!G.hasItem(u.ammo)) { AUDIO.sfx('nope'); G.toast((typeof u.emptyText === 'function' ? u.emptyText(L) : u.emptyText) || 'Nothing to loose.'); return true; }
   G.drawBtn = src;
   return true;
@@ -515,10 +834,10 @@ function updateDraw(L, dt) {
   if (d && d.state !== 'drawing') { d.t += dt; if (d.t >= d.dur) G.draw = d = null; }   // letting it back down, or nocking the next
   const u = drawUse(L);
   if (d && d.state === 'easing' && G.drawBtn && G.state === 'play') G.draw = d = null;   // pressed again while it was being let down (after a click): it draws again at once
-  if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, full: false, creak: 0, u, src: G.drawBtn };
+  if (!d && G.drawBtn && u && G.state === 'play' && G.hasItem(u.ammo)) G.draw = d = { state: 'drawing', t: 0, power: 0, full: false, creak: 0, u, src: G.drawBtn, fill: (u.draw.fillFor && u.draw.fillFor(L)) || u.draw.fill || DRAW_FILL };   // (fillFor: this one draw may take longer)
   if (!d || d.state !== 'drawing') return;
   if (G.state !== 'play' || !u) { looseDraw(L, d, true); return; }
-  d.t += dt; d.power = Math.min(1, d.t / (u.draw.fill || DRAW_FILL));
+  d.t += dt; d.power = Math.min(1, d.t / d.fill);
   if (d.power >= 1 && !d.full) { d.full = true; d.creak = d.t; AUDIO.sfx('bowFull'); }   // it tops out: the string comes tight with a click, and it holds there as long as it is held
   else if (d.t - d.creak >= (d.full ? 1.2 : 0.3)) { d.creak = d.t; AUDIO.sfx('bowCreak', 0, d.full); }   // a creak as it comes back; held full, one now and then
 }
@@ -533,10 +852,12 @@ function looseDraw(L, d, cancel) {
   Object.assign(d, { state: 'loosed', outcome, from: p, t: 0, dur: 0.6, aim });
   u.draw.loose(outcome, c, aim, p, L);
 }
-// where it is aimed (page coordinates): the pointer; from a pad or the touch Use button, the middle of the view, or the
+// where it is aimed (page coordinates): the pointer or the finger; from a pad, the middle of the view, or the
 // thing itself if it is the nearest thing to the middle (where firing from a pad has always aimed)
+function aimedSrc(src) { return src === 'mouse' || src === 'finger'; }   // drawn at the pointer or the finger, not from a button
 function drawAim(src) {
   if (src === 'mouse') return { x: G.mouse.x, y: G.mouse.y };
+  if (src === 'finger') return G.mouse.x >= 0 ? { x: G.mouse.x, y: G.mouse.y } : { x: TOUCH.ax, y: TOUCH.ay };   // (where it last was, once it is lifted)
   const mid = { x: R.W / 2, y: R.viewY + R.H / 2 };
   let best = null, bestD = Infinity;
   for (const r of R.hits) { const dd = Math.hypot(r.x + r.w / 2 - mid.x, r.y + r.h / 2 - mid.y); if (dd < bestD) { best = r; bestD = dd; } }
@@ -591,30 +912,99 @@ function win() {
   for (const c of L.creatures) if (c.sealHold) { c.hold = null; c.sealHold = false; } // the aftermath decides where it stands now
   setState('won');
   SAVE.unlock(L.diff.id, L.index + 1);
-  SAVE.recordWin(L.def.id, L.diff.id, L.t);
+  runWon(L);
   startAftermath(L);
 }
 function die(c, cause) {
   const L = G.L; c = c || L.creature;
   setState('dying');
   G.deathCause = cause || 'default'; G.deathCreature = c;
-  const spec = c.CR.death || {};
+  const spec = c.deathSpec || c.CR.death || {};   // a night may give this death its own timing and sting (c.deathSpec)
   AUDIO.sfx(spec.sting || 'sting'); AUDIO.stopLoop(); AUDIO.stopAmbient(); Seq.clear();
   G.shake(1.4);
   c.lunge = 0; c.frozen = true; c.lungeFrom = c.dist;
   G.cam.tYaw = G.cam.yaw + wrapPi(c.yaw - G.cam.yaw); G.cam.tPitch = 0; G.cam.zoomHeld = false; // it rises to eye level, so the view comes up to meet it
   G.deathTime = L.t; G.deathAt = G.t; // the night clock, and the global clock for the toast test (toasts are stamped with G.t)
-  SAVE.recordTry(L.def.id, L.diff.id);
 }
+// A night's easter egg, found (a night calls this the moment it happens, whether or not it then kills you): kept in the
+// save, one for each night that has one (its text.egg says what it is, for the Scores' list). True the first time.
+// The last night's is one of its two endings: the night notes which ending this is (L.eggEnding), and it is settled as
+// that ending is over (finishEnding: it is found only once the player has come to both, in either order)
+// (later: the night says it itself, a little on, with secretSay: the bedroom's, whose hush as the tooth is taken the
+// note's two notes must not break)
+function foundEgg(id, later) {
+  id = id || (G.L && G.L.def && G.L.def.id);
+  if (G.L && G.L.def.ending && id === G.L.def.id) { G.L.eggEnding = true; return false; }
+  const first = SAVE.egg(id, !!(G.run || G.lastRun));   // (in a full run, or its last night's ending: one of that run's own, for its results)
+  if (first && !later) secretSay(id);
+  return first;
+}
+// The first time an easter egg is found it is said, there and then, so what was done and what came of it go together:
+// "Secret discovered" and, under it and large, the egg's short title (one for each night, by the night's id; a night
+// with none here is named by its own text.egg), with the music box's first two notes, an octave down ('secretFound':
+// no caption, the note says it). A note at the top in the middle (#secret) that slides down into the view from above
+// it, over the compass while it is up; the line of words under the compass (#toast) is below it,
+// and a sound's caption in the corner below it too (index.html), so all three can be read at once. It is not part of
+// the HUD and never takes a click; it is up for SECRET_HOLD seconds and then slides back up, whatever comes up under it meanwhile
+// (the night ends: it stays over the death screen or the win screen until its time is up, and is not said again).
+// Quitting to the title, or the results after the ending (which have their own list), put it away at once. With
+// reduced motion it fades and does not slide
+const EGG_TITLES = {
+  field: 'Through the window', road: 'Hit and run', graveyard: 'Sugar rush', quarry: 'Staring contest', clearing: 'Bat shot crazy',
+  boathouse: 'Lifesaver', lighthouse: 'Butterfingers', diner: 'Thirst quencher', booth: 'It\'s an emergency', mirrors: 'Cover up', barn: 'Power overload',
+  bedroom: 'Tooth fairy', void: 'Flip the script',
+};
+const SECRET_HOLD = 4;   // seconds it is fully up (index.html: in over .45 s before, out over .5 s after)
+function eggTitle(id) {
+  if (EGG_TITLES[id]) return EGG_TITLES[id];
+  const def = typeof LEVELS !== 'undefined' && LEVELS.find(l => l.id === id);
+  return ((def && def.text && def.text.egg) || '').replace(/\.$/, '');
+}
+let secretSaid = [];   // the titles in the note while it is up (another found while it is: named together)
+function secretSay(id) {
+  const t = eggTitle(id), el = UI.secret || $('secret');
+  if (!t || !el) return;
+  if (!secretUp()) secretSaid = [];
+  if (!secretSaid.includes(t)) secretSaid.push(t);
+  el.querySelector('.sl').textContent = secretSaid.length > 1 ? 'Secrets discovered' : 'Secret discovered';
+  el.querySelector('.st').textContent = secretSaid.join(', ');
+  el.classList.toggle('still', !!SAVE.data.settings.reducedMotion);
+  el.classList.add('show');
+  AUDIO.sfx('secretFound');
+  clearTimeout(secretSay.timer);
+  secretSay.timer = setTimeout(() => el.classList.remove('show'), (0.45 + SECRET_HOLD) * 1000);
+}
+function secretUp() { return !!(UI.secret && UI.secret.classList.contains('show')); }
+// the note put away at once (quitting to the title, the results after the ending)
+function secretHide() {
+  if (!secretUp()) return;
+  clearTimeout(secretSay.timer); UI.secret.classList.remove('show');
+}
+// a night's easter-egg deaths (L.text.eggs: the causes that are one): the screen says "Nice try", and the line is the
+// night's own, with no toast put in front of it
+const isEggDeath = L => !!(L && L.text && L.text.eggs && L.text.eggs.includes(G.deathCause));
 function deathLine(L) {
   const T = L.text.death || {};
   let line = T[G.deathCause] || T.default || '';
+  if (isEggDeath(L)) return line;
   if (G.lastToast.msg && G.deathAt - G.lastToast.t < 1.2 && !line.includes(G.lastToast.msg)) line = G.lastToast.msg + (line ? ' ' + line : '');
   return line;
 }
 
 // ---------------- hover ----------------
+// how many uses a thing has left, after its name (under its slot, and under the pointer): " ×2"; nothing for one use, or
+// for a thing that is not counted out (noCount: a bag of salt is poured, not counted)
+function usesMark(it) { return it.uses > 1 && !it.noCount ? ' ×' + it.uses : ''; }
+function inPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const a = pts[i], b = pts[j];
+    if ((a[1] > y) !== (b[1] > y) && x < a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1])) inside = !inside;
+  }
+  return inside;
+}
 function updateHover() {
+  if (TOUCH.lift && performance.now() > TOUCH.lift) { TOUCH.lift = 0; G.mouse.x = G.mouse.y = -1; }   // a finger lifted a moment ago: nothing under it now
   const hits = R.hits, mx = G.mouse.x, my = G.mouse.y;
   let h = null;
   if (G.state === 'play' && mx >= 0) {
@@ -623,6 +1013,7 @@ function updateHover() {
     for (let i = hits.length - 1; i >= 0; i--) {
       const r = hits[i];
       if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) continue;
+      if (r.poly && !inPoly(mx, my, r.poly)) continue;   // a panel fixed on a face: only the shape it covers (js/render.js)
       // smaller wins; among things of a size, the one whose middle is nearest the cursor
       const dd = Math.hypot(mx - (r.x + r.w / 2), my - (r.y + r.h / 2)) / Math.max(1, Math.hypot(r.w, r.h));
       const area = r.w * r.h * (1 + dd);
@@ -634,32 +1025,36 @@ function updateHover() {
   G.hover = h;
   let tip = '';
   if (h) {
-    if (h.kind === 'item') tip = h.ref.name + (h.ref.uses > 1 ? ' ×' + h.ref.uses : '');
+    if (h.kind === 'item') tip = h.ref.name + usesMark(h.ref);
     else if (h.kind === 'target') tip = (G.hints() && h.ref.hint) ? h.ref.hint() : (h.ref.hold && !h.ref.done ? h.ref.name + ' (hold)' : h.ref.name);
-    else if (h.kind === 'creature') { const u = activeUse(G.L); tip = u ? (h.ref.dist < u.range ? (u.fireText || 'Fire.') : 'Too far.') : ''; }
-  } else if (G.state === 'play' && G.cam.pitch > 0.5 && G.inv.length) tip = 'Put down the ' + G.inv[G.active].name.toLowerCase();
+    else if (h.kind === 'creature') { const u = activeUse(G.L); tip = u ? (u.hoverText ? u.hoverText(h.ref, G.L) : h.ref.dist < u.range ? (u.draw && touchUI() ? '' : u.fireText || 'Fire.') : 'Too far.') : ''; }   // (on a phone the bow's line is left out: the finger is on it, and its power bar stands where the line was)
+  }   // (the floor, looking down with something held: no line; a click there still puts it down)
   UI.tooltip.textContent = tip;
   UI.tooltip.style.display = tip ? 'block' : 'none';
   const holdT = G.L && G.L.targets.find(t => t.hold && !t.done && t.progress > 0);
   UI.holdbar.style.display = holdT ? 'block' : 'none';
   if (holdT) UI.holdfill.style.width = (holdT.progress * 100).toFixed(1) + '%';
-  UI.canvas.style.cursor = h ? 'pointer' : (G.L && activeUse(G.L) && G.cam.pitch < 0.3 ? 'crosshair' : 'default');
+  UI.canvas.style.cursor = h ? 'pointer' : (G.L && activeUse(G.L) && activeUse(G.L).sights !== false && G.cam.pitch < 0.3 ? 'crosshair' : 'default');   // (sights: false, a thing with no aim to it)
 }
 
 // ---------------- update ----------------
 function update(dt) {
   G.t += dt;
+  if (G.state === 'play' && portraitHeld()) pauseGame();   // turned upright: the night waits, paused, behind the turn-it-sideways screen
+  runTick(dt);
   const L = G.L; if (!L) return;
   const c = G.cam;
   // once the night is won the view turns slowly to follow the thing and closes in a little, so you see how it ends
-  const watching = G.state === 'won' && G.L && G.L.creature;
+  const free = lookFree(), watching = G.state === 'won' && G.L && G.L.creature && !free;
   const wp = watching && L.watchPoint && L.watchPoint();
   if (watching) { if (wp) lookAtPoint(wp); else lookAtCreature(G.L.creature); }   // a night may point the view elsewhere (the car's road ahead)
   c.yaw += wrapPi(c.tYaw - c.yaw) * (1 - Math.exp(-dt * (watching ? 1.6 : 11)));
   c.pitch += (c.tPitch - c.pitch) * (1 - Math.exp(-dt * (watching ? 1.6 : 10)));
   // a night may close in further once won (a long way off, it is small) or widen it to take in more, or bring the view in
   // close in play (facing the pay phone)
-  const tz = (c.zoomHeld && G.state === 'play') ? 2.6 : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
+  // (zoom held: 2.6, or as a night has it where it frames something itself, L.heldZoom: the farm's box, whole in view)
+  // (the last night's ending is watched as it is, unless what it points the view at says how close: the void's easter egg)
+  const tz = (c.zoomHeld && (G.state === 'play' || free)) ? ((G.state === 'play' && L.heldZoom && L.heldZoom()) || 2.6) : watching && !L.def.ending ? ((wp && wp.zoom) || (L.watchZoom ? L.watchZoom() : 1.35)) : (watching && wp && wp.zoom) || (G.state === 'play' && L.viewZoom && L.viewZoom()) || 1;
   c.zoom += (tz - c.zoom) * (1 - Math.exp(-dt * (watching ? 1.2 : 8)));
   G.shakeAmt = Math.max(0, G.shakeAmt - dt * 2.2);
   const S = SAVE.data.settings;
@@ -700,15 +1095,14 @@ function update(dt) {
         if (G.fadeTarget < 1) { G.fadeTarget = 1; AUDIO.sfx('win'); AUDIO.stopAmbient(); }
         if (G.fade > 0.97) {
           setState('survived'); AUDIO.stopLoop(); Seq.clear();
-          if (L.text.fragment) SAVE.seeFragment(L.def.id);
-          G.survivedScreen = { title: L.def.title, text: L.text.win + (L.text.fragment ? '<br><em class="fragment">' + L.text.fragment + '</em>' : '') };
+          G.survivedScreen = { title: L.def.title, text: L.text.win };   // (kept: the pause menu puts it back, as the death screen)
           MENU.show('survived', G.survivedScreen);
         }
       }
     }
   } else if (G.state === 'dying') {
     G.stateT += dt;
-    const cr = G.deathCreature, CR = cr.CR, spec = CR.death || {};
+    const cr = G.deathCreature, CR = cr.CR, spec = cr.deathSpec || CR.death || {};
     const delay = spec.delay === undefined ? 0.22 : spec.delay, dur = spec.dur === undefined ? 0.5 : spec.dur;
     const k = clamp((G.stateT - delay) / dur, 0, 1);
     cr.lunge = k; cr.lat = lerp(cr.lat, 0, 0.3); cr.t += dt * cr.timeScale;
@@ -719,7 +1113,7 @@ function update(dt) {
     if (G.stateT > delay + dur + 0.25) { G.fade = 1; G.fadeTarget = 1; }
     if (G.stateT > delay + dur + 1.2) {
       setState('dead');
-      G.deathScreen = { text: deathLine(L) };   // the night's own line (and the toast it cut off): no count of the seconds
+      G.deathScreen = { text: deathLine(L), title: isEggDeath(L) ? 'Nice try' : 'It got you' };   // the night's own line (and the toast it cut off): no count of the seconds
       MENU.show('dead', G.deathScreen);
     }
   } else if (G.state === 'title') {
@@ -759,6 +1153,7 @@ function updateCreature(L, c, dt, live) {
   c.gait += moved * CR.stepRate * Math.PI;
   c.moving = moved > 0.024 * dt; // a rate, not a per-frame distance, so the slowest walkers step at any refresh rate
   if (!c.moving && !c.dead) { const rest = Math.round(c.gait / Math.PI) * Math.PI; c.gait += (rest - c.gait) * Math.min(1, dt * 4); }
+  c.idleK = (c.idleK === undefined ? 1 : c.idleK) + ((c.moving ? 0 : 1) - (c.idleK === undefined ? 1 : c.idleK)) * Math.min(1, dt * 2.5);   // its idle lean eases in and out (a creature that steps and stops would otherwise jerk each time)
   if (CR.voice && !c.dead && live) { // muted or not: the captions still need these
     if (c.voiceT === undefined) c.voiceT = CR.voice.every[0] + c.rand() * (CR.voice.every[1] - CR.voice.every[0]);
     c.voiceT -= dt * (1 + clamp(1 - d / 40, 0, 1));
@@ -821,7 +1216,7 @@ function maybeSwitchLane(L, c) {
 // view, c.runGait is its stride) does this; every other one jumps round as above. Modelled on the run round the house in
 // night 1: it stands at the sealed way a moment (ROUND.wait), then sprints sideways (c.runLat, metres to the right of its
 // lane) out of that way's view, is heard running while it is out of sight going round, and comes in at the other way from
-// the side it went round by, ROUND.gap metres outside that way's barrier (where it arrives, with the way's cue), running
+// the side it went round by, ROUND.gap metres outside that way's barrier (where it arrives, quietly), running
 // sideways across it at that distance; then it turns to it and walks on. Won while it is going round, it comes round now.
 const ROUND = { wait: 0.8, out: [0.55, 0.85], round: 0.5, in: [0.65, 1.2], speedOut: 4.5, speedIn: 5.5, gap: 3 };
 // how far to the side it must be to be out of the way's view at distance d: wholly behind the frame of the nearest opening
@@ -870,7 +1265,7 @@ function goRound(L, c, dt) {
     yaw = r.to.yaw + Math.atan2(c.runLat, r.d2);
   }
   c.lat = c.CR.lateral ? c.CR.lateral(c) : c.runLat;   // already, so whether it is seen this frame is judged where it is
-  if (arriving && r.to.cue) AUDIO.sfx(r.to.cue, Math.sin(wrapPi(r.to.yaw - G.cam.yaw)) * 0.85);
+  // (no cue as it arrives: it went quiet round the outside, and a sound the moment it gets there only puzzled)
   if (arriving && L.onLaneSwitch) L.onLaneSwitch(c, r.to);
   const n = Math.floor(c.runGait / Math.PI);   // running feet, panned to where it is
   if (n !== r.steps) { r.steps = n; AUDIO.footstep('runner', clamp(4 / (c.dist + 4), 0.12, 0.7), Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85); }
@@ -893,6 +1288,7 @@ function heartbeat(dt) {
 // ---------------- render ----------------
 function render() {
   const L = G.L; if (!L) return;
+  if (TITLE.active()) { TITLE.draw(G.t, UI.overlay.classList.contains('dlg')); titleSound(); updateHUD(); return; }   // the title's own scene, over the game's (left undrawn)
   const c = G.cam;
   const wob = SAVE.data.settings.reducedMotion ? 0 : (c.zoom - 1) * 0.0018;
   const view = { yaw: c.yaw + Math.sin(G.t * 1.7) * wob + Math.sin(G.t * 2.9) * wob * 0.5, pitch: c.pitch + Math.cos(G.t * 1.3) * wob, zoom: c.zoom, shakeX: c.shakeX, shakeY: c.shakeY };
@@ -907,14 +1303,18 @@ function render() {
   }
   for (const t of L.targets) if (!t.hidden) {
     let p = rend.get(t);
-    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', attach: !!t.attach, noHover: !t.flat && t.w > 1.5 }; rend.set(t, p); }
+    if (!p) { p = { kind: 'sprite', hit: { kind: 'target', ref: t }, draw: () => {}, x: t.x, y: t.y, z: t.z, w: t.w, h: t.h, flat: t.flat, card: t.kind === 'container', face: t.face, attach: !!t.attach, noHover: true, hitOnly: true }; rend.set(t, p); }   // only its hit area: what glows when it is hovered is what it is drawn with (glowWith)
     p.x = t.x; p.y = t.y; p.z = t.z; p.w = t.w; p.h = t.h;   // a target can move or change size (an opened box's lid stands up)
     R.add(p);
   }
   if (G.throwing) {
     const th = G.throwing, k = th.t / th.dur, arc = Math.sin(k * Math.PI) * 0.8;
     const x = lerp(th.from.x, th.to.x, k), y = lerp(th.from.y, th.to.y, k) + arc, z = lerp(th.from.z, th.to.z, k);
-    R.add({ kind: 'sprite', x, y, z, w: th.it.w, h: th.it.h, draw: (ctx, P) => { ctx.scale(th.it.w, th.it.h); th.it.icon(ctx, P); } });
+    const sp = th.it.spin;   // (an item may tumble as it flies: { turns } end over end, { roll } about its length; night 1's bottle)
+    R.add({ kind: 'sprite', x, y, z, w: th.it.w, h: th.it.h, draw: (ctx, P) => {
+      if (sp) { const c = Math.cos(k * (sp.roll || 0) * TAU); ctx.translate(0, th.it.h / 2); ctx.rotate(-k * (sp.turns || 0) * TAU); ctx.scale(Math.sign(c || 1) * Math.max(0.78, Math.abs(c)), 1); ctx.translate(0, -th.it.h / 2); }
+      ctx.scale(th.it.w, th.it.h); th.it.icon(ctx, P);
+    } });
   }
   HANDS.add();   // a thing tried at a target, in the air or at it
   if (L.dynamic) L.dynamic();
@@ -923,12 +1323,12 @@ function render() {
   for (const cr of L.creatures) {
     const CR = cr.CR, pos = cr.pos();
     let p = rend.get(cr);
-    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); if (!cr.moving) ctx.rotate(0.008 * Math.sin(cr.t * 0.7)); } CR.draw(ctx, cr, P); } }; rend.set(cr, p); }
+    if (!p) { p = { kind: 'sprite', w: CR.w, h: CR.h, fogScale: 0.85, hitPad: 12, noHover: true, hitRef: { kind: 'creature', ref: cr }, draw: (ctx, P) => { if (!cr.dead && !cr.lunge) { ctx.scale(1, 1 + 0.014 * Math.sin(cr.t * 1.6)); ctx.rotate(0.008 * Math.sin(cr.t * 0.7) * (cr.idleK === undefined ? (cr.moving ? 0 : 1) : cr.idleK)); } CR.draw(ctx, cr, P); } }; rend.set(cr, p); }
     p.x = pos.x; p.y = pos.y + cr.yOff; p.z = pos.z; p.dist = Math.hypot(cr.dist, cr.lat || 0); p.layer = 1; p.noContact = true;   // its sideways offset counts: it sorts by how far it really is
     p.hit = (canUse && !cr.dead) ? p.hitRef : null;
     R.add(p);
   }
-  R.hover = G.hover ? G.hover.ref : null;
+  R.hover = G.hover ? (G.hover.kind === 'item' ? G.hover.ref : null) : L.highlight ? L.highlight() : null;   // only what you can pick up glows: doors, gates and the like get the pointer alone   // (a night may light a thing chosen another way: the phone's keys from a gamepad)
   R.flush();
   const S = SAVE.data.settings;
   R.post({
@@ -947,8 +1347,8 @@ function drawGunOverlay(ctx, W, H) {
   const u = activeUse(L);
   if (!u || G.state === 'dead' || G.state === 'dying') return;
   if (u.inHands) u.inHands(ctx, W, H, G.draw, L, G.draw ? (G.draw.state === 'loosed' ? G.draw.aim : drawAim(G.draw.src)) : null);   // what you hold up to use it (night 5's bow), under the crosshair; aimed where it is drawn
-  const padDraw = G.draw && G.draw.src !== 'mouse' && G.draw.state === 'drawing';   // drawn from a pad or the touch button: the sights are where it is aimed
-  if (G.cam.pitch < 0.3 && G.state === 'play' && (G.mouse.x >= 0 || padDraw) && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
+  const padDraw = G.draw && !aimedSrc(G.draw.src) && G.draw.state === 'drawing';   // drawn from a pad: the sights are where it is aimed
+  if (u.sights !== false && G.cam.pitch < 0.3 && G.state === 'play' && (G.mouse.x >= 0 || padDraw) && (!u.ammo || G.hasItem(u.ammo) || (u.dudAmmo && G.hasItem(u.dudAmmo)))) {
     ctx.strokeStyle = 'rgba(255,230,200,0.5)'; ctx.lineWidth = 1;
     const at = padDraw ? drawAim(G.draw.src) : G.mouse, mx = at.x, my = at.y - R.viewY;
     ctx.beginPath(); ctx.moveTo(mx - 12, my); ctx.lineTo(mx - 4, my); ctx.moveTo(mx + 4, my); ctx.lineTo(mx + 12, my); ctx.moveTo(mx, my - 12); ctx.lineTo(mx, my - 4); ctx.moveTo(mx, my + 4); ctx.lineTo(mx, my + 12); ctx.stroke();
@@ -958,6 +1358,7 @@ function drawGunOverlay(ctx, W, H) {
 // ---------------- HUD ----------------
 function updateHUD() {
   const L = G.L, c = G.cam;
+  touchChrome(L);
   const playing = G.state === 'play' || (G.state === 'won' && !L.def.ending);   // the ending plays without the compass
   UI.hud.style.opacity = playing ? 1 : 0;
   if (!playing) return;
@@ -971,14 +1372,15 @@ function updateHUD() {
     UI.compass.innerHTML = html;
   }
   UI.pitch.textContent = c.tPitch > PITCH_DOWN * 0.5 ? '▼ looking down' : c.tPitch < -0.05 ? '▲ looking up' : '▲ looking ahead';   // the win camera's small tilt is not looking down
-  UI.zoom.style.opacity = c.zoomHeld && G.state === 'play' && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
+  UI.zoom.style.opacity = c.zoomHeld && (G.state === 'play' || lookFree()) && c.zoom > 1.2 ? 1 : 0;   // not while the win camera closes in
   updateDrawBar();
   const obj = G.hints() ? (L.objectiveText ? L.objectiveText() : L.text.objective) : '';
   if (UI.objective.textContent !== obj) UI.objective.textContent = obj;
-  const isig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active;
+  const isig = G.inv.map(i => i.id + ':' + i.uses).join('|') + '#' + G.active + '#' + document.documentElement.style.getPropertyValue('--text-scale') + (document.fonts ? document.fonts.status : '');   // (the names' widths: below)
   if (isig !== G.invSig) {
     G.invSig = isig;
     UI.inv.innerHTML = '';
+    UI.inv.classList.toggle('many', G.inv.length > 6);   // more than a hand's six (a night with no limit: L.handMax): smaller slots, only the held thing named
     G.inv.forEach((it, idx) => {
       const slot = document.createElement('div');
       slot.className = 'slot' + (idx === G.active ? ' active' : '');
@@ -988,16 +1390,23 @@ function updateHUD() {
       const wc = it.decoy ? wornc : (cc => cc);   // a thing that will not work looks it, in the hand too
       it.icon(x, { col: cc => rgba(wc(cc)), cola: (cc, a) => rgba(wc(cc), a), raw: cc => rgba(cc), fog: 0, t: 0 });
       slot.appendChild(cv);
-      const lab = document.createElement('div'); lab.className = 'label'; lab.textContent = it.name + (it.uses > 1 ? ' ×' + it.uses : '');
+      const lab = document.createElement('div'); lab.className = 'label'; lab.textContent = it.name + usesMark(it);
       slot.appendChild(lab);
       slot.addEventListener('click', e => {
         e.stopPropagation();
-        if (idx !== G.active && G.inv[G.active] && combine(G.inv[G.active], it)) { G.invSig = ''; return; }
         if (idx === G.active && G.state === 'play' && G.cam.pitch > 0.5) { dropActive(); G.invSig = ''; return; } // tap the held thing again while looking down: put it down (touch has no empty floor to tap on a crowded night)
         G.active = idx; G.invSig = ''; AUDIO.sfx('ui');
       });
       UI.inv.appendChild(slot);
     });
+    // a long name and the next one must not run together ("Rotten rope" beside "Padlock"): that slot moves over just enough
+    const sl = [...UI.inv.children];
+    for (let i = 1; i < sl.length; i++) {
+      const a = sl[i - 1].lastChild, b = sl[i].lastChild;
+      if (!a.offsetWidth || !b.offsetWidth) continue;   // (unnamed: a crowded hand names only the held thing)
+      const over = a.getBoundingClientRect().right + 8 - b.getBoundingClientRect().left;
+      if (over > 0) sl[i].style.marginLeft = over + 'px';
+    }
   }
   if (G.debug) {
     const cr = L.creature;
@@ -1019,12 +1428,22 @@ function updateDrawBar() {
   let bx = aim.x + 34;
   if (cb && aim.x > cb.x - 24 && aim.x < cb.x + cb.w + 24 && aim.y > cb.y - 24 && aim.y < cb.y + cb.h + 24) { bx = Math.max(bx, cb.x + cb.w + 16); if (bx > window.innerWidth - 90) bx = Math.min(aim.x - 44, cb.x - 26); }
   if (d.state === 'loosed' && d.barX !== undefined) bx = d.barX; else d.barX = bx;   // once loosed it stays where it was
-  UI.drawbar.style.left = clamp(bx, 8, window.innerWidth - 90) + 'px';
-  UI.drawbar.style.top = clamp(aim.y - BH / 2, 8, window.innerHeight - BH - 120) + 'px';
+  let left = clamp(bx, 8, window.innerWidth - 90), top = clamp(aim.y - BH / 2, 8, window.innerHeight - BH - 120);
+  // never across the line of words under the compass ("It fell short."): below it, or on a phone's short view, where there
+  // is no room under it, beside it (its words, inside its padding)
+  if (UI.toast.classList.contains('show')) {
+    const t = UI.toast.getBoundingClientRect(), tl = t.left + 30, tr = t.right - 30, tb = t.bottom - 4;
+    if (top < tb && left + 14 > tl && left < tr) {
+      if (tb + 4 <= window.innerHeight - BH - 120) top = tb + 4;
+      else left = left + 6 > (tl + tr) / 2 ? tr + 8 : tl - 22;
+    }
+  }
+  UI.drawbar.style.left = left + 'px';
+  UI.drawbar.style.top = top + 'px';
   const full = p >= 1 && d.state !== 'easing';
   UI.drawfill.style.height = (p * 100).toFixed(1) + '%';
   UI.drawbar.classList.toggle('full', full);
-  UI.drawmin.style.bottom = ((d.u.draw.min || DRAW_MIN) / (d.u.draw.fill || DRAW_FILL) * 100).toFixed(1) + '%';
+  UI.drawmin.style.bottom = ((d.u.draw.min || DRAW_MIN) / (d.fill || d.u.draw.fill || DRAW_FILL) * 100).toFixed(1) + '%';
   const lab = full ? 'full' : '';
   if (UI.drawlabel.textContent !== lab) UI.drawlabel.textContent = lab;
 }
@@ -1043,30 +1462,37 @@ function pollGamepad() {
   const a = pad.buttons[0] && pad.buttons[0].pressed, b = pad.buttons[1] && pad.buttons[1].pressed, start = pad.buttons[9] && pad.buttons[9].pressed;
   const zoom = (pad.buttons[7] && pad.buttons[7].pressed) || (pad.buttons[6] && pad.buttons[6].pressed) || (pad.buttons[5] && pad.buttons[5].pressed);
   const fake = key => ({ key, preventDefault() {}, shiftKey: false });
+  if (introUp()) {   // the warning: its own (disclaimerPad: A presses, Start accepts, B backs out of its Settings); the prologue: nothing
+    if (disclaimerPad) {
+      if (dir !== PAD.dir && dir) disclaimerPad('dir', dir);
+      if (a && !PAD.a) disclaimerPad('a');
+      if (b && !PAD.b) disclaimerPad('b');
+      if (start && !PAD.start) disclaimerPad('start');
+    }
+    Object.assign(PAD, { dir, a, start, b, zoom: !!zoom }); return;
+  }
   if (dir !== PAD.dir && dir) {
-    if (G.state === 'play') { if (!(G.L.padDir && G.L.padDir(dir))) onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir])); }   // a night may take the d-pad first (the pay phone's keys)
+    if (G.state === 'play' || lookFree()) { if (!(G.state === 'play' && G.L.padDir && G.L.padDir(dir))) onKeyDown(fake(['', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'][dir])); }   // a night may take the d-pad first (the pay phone's keys)
     else {
-      const f = document.activeElement;
-      if (f && f.tagName === 'INPUT' && f.type === 'range' && dir <= 2) { if (dir === 1) f.stepDown(); else f.stepUp(); f.dispatchEvent(new Event('input')); } // left and right move a slider
-      else MENU.onKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'));
+      if (!(dir <= 2 && MENU.padSlide(document.activeElement, dir))) MENU.onKey(fake(dir === 1 || dir === 3 ? 'ArrowUp' : 'ArrowDown'));   // left and right move a slider
     }
   }
   PAD.dir = dir;
   if (!a && PAD.a) drawLetGo('pad');   // A let go: a bow drawn by holding it is loosed
   if (a && !PAD.a) {
     if (G.state === 'play') { if (!(G.L.padUse && G.L.padUse())) gamepadUse('pad'); }
-    else { // A presses the focused button or ticks the focused box; only the click-anywhere screens go on with it
+    else { // A presses the focused button or flips the focused switch; only the click-anywhere screens go on with it
       const f = document.activeElement;
-      if (f && (f.tagName === 'BUTTON' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();
+      if (f && (f.tagName === 'BUTTON' || f.tagName === 'A' || (f.tagName === 'INPUT' && f.type === 'checkbox'))) f.click();
       else if (!(f && f.tagName === 'INPUT') && !LIST_SCREENS.includes(MENU.kind)) proceed();
     }
   }
   PAD.a = a;
-  if (start && !PAD.start) { if (G.state === 'play') pauseGame(); else if (LIST_SCREENS.includes(MENU.kind)) MENU.onKey(fake('Escape')); else proceed(); }
+  if (start && !PAD.start) { if (G.state === 'play') pauseGame(); else if (LIST_SCREENS.includes(MENU.kind) || MENU.confirming) MENU.onKey(fake('Escape')); else proceed(); }   // (a question being asked: Start is its Cancel, as B)
   PAD.start = start;
-  if (b && !PAD.b) { if (G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); } else if (G.state !== 'play') onKeyDown(fake('Escape')); } // B goes back, as Escape does
+  if (b && !PAD.b) { if (G.state === 'play' && G.inv.length) { G.cam.tPitch = PITCH_DOWN; dropActive(); } else if (G.state !== 'play') onKeyDown(fake('Escape')); } // B goes back, as Escape does (on a card, the death screen or the win screen: the pause menu)
   PAD.b = b;
-  if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play') G.cam.zoomHeld = PAD.zoom; }
+  if (!!zoom !== PAD.zoom) { PAD.zoom = !!zoom; if (G.state === 'play' || lookFree()) G.cam.zoomHeld = PAD.zoom; }
 }
 // use whatever is nearest the middle of the view; with nothing there, put the held thing down when looking down
 function gamepadUse(src) {
@@ -1075,7 +1501,7 @@ function gamepadUse(src) {
   for (const r of R.hits) { const dx = r.x + r.w / 2 - R.W / 2, dy = r.y + r.h / 2 - R.viewY - R.H / 2, d = Math.hypot(dx, dy); if (d < bestD) { best = r; bestD = d; } }
   if (!(best && bestD < Math.min(R.W, R.H) * 0.45 && best.kind !== 'creature') && drawPress(G.L, null, src || 'pad')) return;   // a bow: held, A (or Use) draws it
   if (best && bestD < Math.min(R.W, R.H) * 0.45) {
-    G.mouse.x = best.x + best.w / 2; G.mouse.y = best.y + best.h / 2; updateHover();
+    TOUCH.lift = 0; G.mouse.x = best.x + best.w / 2; G.mouse.y = best.y + best.h / 2; updateHover();   // (its aim stands, though a finger lifted a moment ago: that finger's hover running out must not wipe it)
     const h = G.hover;
     if (h && h.kind === 'target' && h.ref.hold) { G.holding = h.ref; setTimeout(() => { if (G.holding === h.ref && !h.ref.done) G.holding = null; }, (h.ref.hold + 0.5) * 1000); return; }
     onClick({ clientX: G.mouse.x, clientY: G.mouse.y, target: UI.canvas, button: 0 });
@@ -1084,21 +1510,164 @@ function gamepadUse(src) {
   if (G.cam.pitch > 0.5 && G.inv.length) dropActive();
 }
 
-// ---------------- touch controls ----------------
+// ---------------- touch ----------------
+// On a phone or a tablet the view is the controls. Swipe across it to turn a step (one 45 degree step a swipe, as an arrow
+// key) and up or down it to look down or back ahead. A swipe drags the scene, as a photo is dragged: the finger going left
+// pulls in what is on the right (you turn right), the finger going up pulls up what is below (you look down); the setting
+// swipeReverse turns both round. Lifted without having swiped, it is a click there: whatever it is on is taken, used or
+// put down, as the mouse does, with the hover, the hold and the bow as the mouse has them (pressAt, onClick). Pressed and
+// held on a thing that is held (the covers) or with a bow, the finger holds it; once a hold has gone on a moment, moving
+// the finger aims (the bow's sights follow it) instead of swiping. Only the first finger on the view counts. The touch on
+// the view is the whole of it (preventDefault): the browser makes no mouse events or click of its own, and does not scroll
+// or zoom the page. Two buttons stand in for the keys: zoom (#zoomBtn: a tap zooms in and it stays in, lit, the fingers
+// free to swipe and tap on the view; a tap again zooms back out), and the menu (#menuBtn: the pause menu);
+// a third, top right, puts the page full screen (#fsBtn).
+const TOUCH = { id: null, x0: 0, y0: 0, t0: 0, swiped: false, ax: -1, ay: -1, lift: 0 };
+const SWIPE_HOLD = 250;   // ms: a press held this long on a hold or a draw before the finger moves aims instead of swiping
+function swipeMin() { return Math.max(22, Math.min(window.innerWidth, window.innerHeight) * 0.06); }
+function ownTouch(e) { for (const t of e.changedTouches) if (t.identifier === TOUCH.id) return t; return null; }
+function onTouchStart(e) {
+  if (e.cancelable) e.preventDefault();
+  if (TOUCH.id !== null) return;   // a second finger: only the first counts
+  const t = e.changedTouches[0];
+  Object.assign(TOUCH, { id: t.identifier, x0: t.clientX, y0: t.clientY, t0: performance.now(), swiped: false, ax: t.clientX, ay: t.clientY, lift: 0 });
+  pressAt(t.clientX, t.clientY, 'finger');
+}
+function onTouchMove(e) {
+  const t = ownTouch(e); if (!t) return;
+  if (e.cancelable) e.preventDefault();
+  if (TOUCH.swiped) return;
+  G.mouse.x = TOUCH.ax = t.clientX; G.mouse.y = TOUCH.ay = t.clientY;   // (a hold follows the finger, and the bow's aim)
+  const dx = t.clientX - TOUCH.x0, dy = t.clientY - TOUCH.y0;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < swipeMin()) return;
+  if ((G.holding || G.drawBtn === 'finger') && performance.now() - TOUCH.t0 > SWIPE_HOLD) return;   // holding on: it aims
+  TOUCH.swiped = true;
+  G.holding = null; drawLetGo('finger', true); G.drawSwallow = false;   // a swipe is not a press: whatever it took hold of, let go
+  G.mouse.x = G.mouse.y = -1;
+  swipe(dx, dy);
+}
+function onTouchEnd(e) {
+  const t = ownTouch(e); if (!t) return;
+  if (e.cancelable) e.preventDefault();
+  TOUCH.id = null;
+  if (TOUCH.swiped) return;
+  G.mouse.x = TOUCH.ax = t.clientX; G.mouse.y = TOUCH.ay = t.clientY;
+  onMouseUp(); drawLetGo('finger');   // as the button coming up, then the click
+  onClick({ clientX: t.clientX, clientY: t.clientY, target: UI.canvas, button: 0 });
+  TOUCH.lift = performance.now() + 1200;   // what it was on keeps its name up a moment, then there is nothing under a finger
+}
+function onTouchCancel(e) {
+  if (!ownTouch(e)) return;
+  TOUCH.id = null; G.holding = null; drawLetGo('finger', true); G.drawSwallow = false; G.mouse.x = G.mouse.y = -1;
+}
+// a swipe by dx, dy (pixels): the arrow key it stands for
+function swipeKey(dx, dy) {
+  const rev = !!SAVE.data.settings.swipeReverse;
+  if (Math.abs(dx) >= Math.abs(dy)) return (dx < 0) !== rev ? 'ArrowRight' : 'ArrowLeft';
+  return (dy < 0) !== rev ? 'ArrowDown' : 'ArrowUp';
+}
+// taken as the key is: in play, or where a won night gives the view back or waits on a press (the last night's meadow,
+// sitting crying: looking up goes to it, as the up key does)
+function swipe(dx, dy) {
+  if (!(G.state === 'play' || (G.state === 'won' && (lookFree() || (G.L && G.L.onPress))))) return;
+  onKeyDown({ key: swipeKey(dx, dy), preventDefault() {}, target: UI.canvas });
+}
+// the two buttons, shown (index.html, on a coarse pointer) only round a night: the menu while it is played and on its
+// card, the death screen and the win screen (wherever the pause menu can be opened: it is the way to Quit); zoom while
+// it is played, and where a won night gives the view back or waits on a press (the last night's meadow: zoom goes to
+// it, as the key does)
+let chromeSig = '';
+function touchChrome(L) {
+  const menu = canPause(), zoom = G.state === 'play' || (G.state === 'won' && !!L && (lookFree() || !!L.onPress));
+  const sig = (menu ? 'm' : '') + (zoom ? 'z' : '');
+  if (sig !== chromeSig) {
+    chromeSig = sig;
+    document.body.classList.toggle('tplay', menu); document.body.classList.toggle('tzoom', zoom);
+    if (!zoom && UI.zoomBtn.classList.contains('on')) G.cam.zoomHeld = false;
+  }
+  // the zoom button lit while the zoom is on (it is let go of however it goes: a new night, the window left, a key let up)
+  const on = zoom && G.cam.zoomHeld;
+  if (UI.zoomBtn.classList.contains('on') !== on) { UI.zoomBtn.classList.toggle('on', on); UI.zoomBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+}
 function bindTouch() {
-  const press = (id, down, up) => {
-    const el = $(id); if (!el) return;
-    const d = e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); if (G.state !== 'play') { if (!LIST_SCREENS.includes(MENU.kind)) proceed(); return; } down(); };
-    const u = e => { e.preventDefault(); if (up) up(); };
-    el.addEventListener('pointerdown', d); el.addEventListener('pointerup', u); el.addEventListener('pointercancel', u); el.addEventListener('pointerleave', u);
-  };
-  press('tLeft', () => onKeyDown({ key: 'ArrowLeft', preventDefault() {} }));
-  press('tRight', () => onKeyDown({ key: 'ArrowRight', preventDefault() {} }));
-  press('tUp', () => onKeyDown({ key: 'ArrowUp', preventDefault() {} }));
-  press('tDown', () => onKeyDown({ key: 'ArrowDown', preventDefault() {} }));
-  press('tZoom', () => { G.cam.zoomHeld = true; }, () => { G.cam.zoomHeld = false; });
-  press('tUse', () => gamepadUse('touch'), () => drawLetGo('touch'));
-  press('tPause', () => pauseGame());
+  const c = UI.canvas, o = { passive: false };
+  c.addEventListener('touchstart', onTouchStart, o); c.addEventListener('touchmove', onTouchMove, o);
+  c.addEventListener('touchend', onTouchEnd, o); c.addEventListener('touchcancel', onTouchCancel, o);
+  document.addEventListener('gesturestart', e => e.preventDefault());   // (Safari's pinch: the page does not zoom)
+  const z = UI.zoomBtn;
+  z.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation(); ensureAudio();
+    if (G.state === 'play' || lookFree()) {   // a toggle: on, and it stays on until tapped again
+      G.cam.zoomHeld = !G.cam.zoomHeld; z.classList.toggle('on', G.cam.zoomHeld); z.setAttribute('aria-pressed', G.cam.zoomHeld ? 'true' : 'false');
+    } else if (G.state === 'won') proceed();   // a won night waiting on a press: zoom is one (sitting crying: zoom goes to it)
+  });
+  z.addEventListener('click', e => e.stopPropagation());
+  z.addEventListener('contextmenu', e => e.preventDefault());
+  UI.menuBtn.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); AUDIO.sfx('tap'); pauseGame(); });   // (wherever it can be: canPause)
+  if (PORTRAIT && PORTRAIT.addEventListener) PORTRAIT.addEventListener('change', () => { if (PORTRAIT.matches && G.state === 'play') pauseGame(); });
+  // full screen (#fsBtn, top right on a touch screen): a tap goes in, and out again. Its own click only: never a tap on the
+  // view or a swipe (it is not the view), nor a click on the card or the title behind it
+  const f = UI.fsBtn;
+  f.addEventListener('pointerdown', e => e.stopPropagation());
+  f.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); ensureAudio(); AUDIO.sfx('tap'); toggleFullscreen(); f.blur(); });
+  f.addEventListener('contextmenu', e => e.preventDefault());
+  for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, fullscreenSync);
+  fullscreenSync();
+}
+// ---------------- full screen ----------------
+// The Fullscreen API on the whole page (webkit-prefixed where only that is there). Where the browser cannot put the page
+// full screen (Safari on an iPhone has it only for video), body.fsok is off and the button is not shown. Going in also
+// asks for the screen held on its side (refused on most browsers outside full screen, and by some in it: ignored).
+// Esc in full screen is the browser's: it leaves full screen with it and the page never hears of the key, so pausing
+// took a second press. Two ways round that. Where the browser can hand the page its Esc (the Keyboard Lock API:
+// Chromium on a desktop) it is asked for whenever the page is full screen (fsKeys): a tap of Esc then reaches the game
+// and pauses it, still full screen, and the browser leaves full screen on Esc held down. Everywhere else, full screen
+// left while a night is being played pauses it (fullscreenSync): the one Esc leaves full screen and pauses. Not when it
+// is left by the game's own doing (F, the button, Settings' Display: fsOwn), which pauses nothing. The two never both
+// act: a night already paused by its Esc is not in play when full screen goes, and an Esc that comes within FS_ESC ms
+// of that pause (a browser that takes the key and hands it over as well) does not resume it (fsPaused: onKeyDown).
+let fsWas = false, fsOwn = -1e9, fsPaused = -1e9;
+const FS_ESC = 500, FS_OWN = 1500;   // ms
+function fsKeys(on) {
+  try {
+    const kb = navigator.keyboard;
+    if (!kb || !kb.lock) return;
+    if (on) quietly(kb.lock(['Escape'])); else if (kb.unlock) kb.unlock();
+  } catch (e) { void e; }
+}
+function fullscreenEl() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function fullscreenAble() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
+function quietly(p) { if (p && typeof p.then === 'function') p.then(null, () => {}); return p; }
+function toggleFullscreen() {
+  try {
+    if (fullscreenEl()) { const exit = document.exitFullscreen || document.webkitExitFullscreen; if (exit) { fsOwn = performance.now(); quietly(exit.call(document)); } return; }
+    const de = document.documentElement, req = de.requestFullscreen || de.webkitRequestFullscreen;
+    if (!req) return;
+    const lock = () => { try { const o = window.screen.orientation; if (o && o.lock) quietly(o.lock('landscape')); } catch (e) { void e; } };
+    const p = req.call(de, { navigationUI: 'hide' });
+    if (p && typeof p.then === 'function') p.then(lock, () => {}); else lock();
+  } catch (e) { void e; }
+}
+function fullscreenSync() {
+  const on = !!fullscreenEl();
+  document.body.classList.toggle('fsok', fullscreenAble());
+  UI.fsBtn.classList.toggle('on', on);
+  UI.fsBtn.setAttribute('aria-label', on ? 'leave fullscreen' : 'fullscreen');
+  if (on !== fsWas) {
+    fsWas = on; fsKeys(on);
+    if (!on) {   // left: by the browser's Esc (or anything else not the game's own), a night being played is paused
+      const own = performance.now() - fsOwn < FS_OWN; fsOwn = -1e9;
+      if (!own && G.state === 'play') { pauseGame(); if (G.state === 'paused') fsPaused = performance.now(); }
+    }
+  }
+  fitView();
+}
+// the view is always the whole page (the canvas is fixed over all of it, as the HUD is): its drawing sized again whenever
+// the page is not the size it was drawn for (a turn of the phone, full screen, Safari's bars sliding in or away), checked
+// every frame as well, since a phone's resize can come before its new size has settled
+function fitView() {
+  const [w, h] = R.pageSize();
+  if (w !== R.pageW || h !== R.pageH) R.resize();
 }
 
 // ---------------- boot ----------------
@@ -1106,12 +1675,14 @@ function frame(now) {
   const dt = Math.min(0.05, (now - G._last) / 1000); G._last = now;
   G.fps = lerp(G.fps, 1 / Math.max(dt, 1e-3), 0.05);
   if (G.state === 'error') { try { pollGamepad(); } catch (e2) { void e2; } } // a pad can still restart
+  fitView();
   if (!document.hidden && G.state !== 'error') {
     try { const t0 = G.benching ? performance.now() : 0; pollGamepad(); update(dt); render(); CAPTIONS.update(); if (G.benching) G.benching.push(performance.now() - t0); }
     catch (e) {
       G.errorCount++;
       console.error(e);
       G.error = e; setState('error'); MENU.clear(); // whatever screen was up, the error overlay is click-anywhere
+      touchChrome(G.L);   // (nothing is drawn while it is up: the touch buttons put away now)
       showOverlay('<h1 class="red">Something broke</h1><p class="intro">' + escapeHtml(e.message) + '<br>seed ' + G.runSeed + '</p><p class="prompt">Press R, click or tap to start the night over</p>');
       G.overlayArmed = 0; // the clock does not run in the error state, so the overlay must not wait on it
     }
@@ -1122,11 +1693,13 @@ function frame(now) {
 G.step = function (dt, n) { for (let i = 0; i < (n || 1); i++) { update(dt); render(); } };
 function init() {
   UI.canvas = $('game'); UI.hud = $('hud'); UI.compass = $('compass'); UI.objective = $('objective'); UI.pitch = $('pitch');
-  UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.debug = $('debug'); UI.mute = $('mute');
+  UI.zoom = $('zoom'); UI.tooltip = $('tooltip'); UI.inv = $('inventory'); UI.overlay = $('overlay'); UI.toast = $('toast'); UI.secret = $('secret'); UI.debug = $('debug'); UI.mute = $('mute'); UI.zoomBtn = $('zoomBtn'); UI.menuBtn = $('menuBtn'); UI.fsBtn = $('fsBtn');
   UI.holdbar = $('holdbar'); UI.holdfill = $('holdfill');
   UI.drawbar = $('drawbar'); UI.drawfill = $('drawfill'); UI.drawmin = $('drawmin'); UI.drawlabel = $('drawlabel');
   R.attach(UI.canvas); R.resize();
   window.addEventListener('resize', R.resize);
+  window.addEventListener('orientationchange', () => setTimeout(fitView, 250));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitView);
   window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp);
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);
@@ -1134,7 +1707,7 @@ function init() {
   UI.canvas.addEventListener('mousedown', onMouseDown);
   UI.canvas.addEventListener('click', onClick);
   UI.overlay.addEventListener('click', onClick);
-  UI.mute.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); toggleMute(); });
+  UI.mute.addEventListener('click', e => { e.stopPropagation(); ensureAudio(); AUDIO.sfx('tap'); toggleMute(); });
   bindTouch();
   SAVE.load();
   G.difficulty = 0;
@@ -1149,6 +1722,7 @@ function init() {
   G.seed = isNaN(sd) ? null : sd;
   G.runSeed = G.seed !== null ? G.seed : (Date.now() % 1000000);
   showTitle();
+  audioOnLoad();
   if (q.has('bench')) startBench(parseInt(q.get('bench'), 10) || 1);
   if (q.has('level')) { const n = parseInt(q.get('level'), 10); if (!isNaN(n)) startLevel(clamp(n - 1, 0, LEVELS.length - 1), !q.has('go')); }
   if (G.debug) { const probs = validateContent(); if (probs.length) console.warn('content problems:\n' + probs.join('\n')); else console.log('content ok'); }

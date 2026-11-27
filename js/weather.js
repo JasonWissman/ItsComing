@@ -1,6 +1,14 @@
 'use strict';
 // ---------- weather: a pool of particles living in a cylinder around the eye ----------
 // spec: { kind: 'rain'|'snow'|'ash'|'mist'|'motes', density, wind, lightning: [minGap, maxGap] }
+// With lightning, each flash is followed a second or few later by the thunder, and the night's L.onThunder() is called as
+// it sounds. WEATHER.strike() brings the next flash on now (the tests use it).
+// A night that puts you under a roof (the boathouse) gives L.weatherShelter(): { openings: [[[x, y, z], ...], ...], the
+// world polygons the outside is seen through (a doorway as it stands open), and hides(x, y, z): true for a particle in
+// the sheltered space, or kept from view by something out there (a door leaf swung open), and covers?: more world polygons,
+// of what stands indoors between the eye and the openings (the pay phone across the corner of a glass booth) }. Then the
+// weather is drawn only through the openings, never over what covers them, and none of it falls indoors: under a roof it
+// does not rain
 const WEATHER = (() => {
   let parts = [], kind = null, wind = 0, spec = null, rng = null;
   let nextBolt = 0, thunderAt = 0;
@@ -30,6 +38,7 @@ const WEATHER = (() => {
     const n = Math.round((COUNT[kind] || 150) * (s.density || 1));
     for (let i = 0; i < n; i++) parts.push(spawn({}, true));
   }
+  function strike() { if (spec && spec.lightning) nextBolt = 0; }
   function update(dt, t) {
     if (!kind) return;
     for (const p of parts) {
@@ -48,16 +57,37 @@ const WEATHER = (() => {
         LIGHT.flash(reduced ? 0.35 : 0.9); G.flash(reduced ? 0.15 : 0.32);
         thunderAt = t + 1 + Math.random() * 3;
       }
-      if (thunderAt && t >= thunderAt) { thunderAt = 0; AUDIO.sfx('thunder'); G.shake(0.25); }
+      if (thunderAt && t >= thunderAt) { thunderAt = 0; AUDIO.sfx('thunder'); G.shake(0.25); if (G.L && G.L.onThunder) G.L.onThunder(); }   // (a night may answer the thunder: night 7 lifts the view with it)
     }
   }
   function draw(ctx) {
     if (!kind || !parts.length) return;
+    const sh = G.L && G.L.weatherShelter ? G.L.weatherShelter() : null;
+    if (sh) {
+      const polys = sh.openings.map(R.screenPoly).filter(Boolean);
+      if (!polys.length) return;   // shut in: no weather at all
+      ctx.save(); ctx.beginPath();
+      for (const q of polys) { ctx.moveTo(q[0][0], q[0][1]); for (let i = 1; i < q.length; i++) ctx.lineTo(q[i][0], q[i][1]); ctx.closePath(); }
+      ctx.clip();
+      // each cover cut out of that: the whole view less the cover, kept (even-odd) and clipped to in turn
+      for (const q of sh.covers ? sh.covers.map(R.screenPoly) : []) {
+        if (!q) continue;
+        ctx.beginPath(); ctx.rect(-1e4, -1e4, 2e4 + R.W, 2e4 + R.H);
+        ctx.moveTo(q[0][0], q[0][1]); for (let i = 1; i < q.length; i++) ctx.lineTo(q[i][0], q[i][1]); ctx.closePath();
+        ctx.clip('evenodd');
+      }
+      const e = G.L.eye || {}, ex = e.x || 0, ez = e.z || 0;   // (the particles live round the eye)
+      drawParts(ctx, (x, y, z) => sh.hides(x + ex, y, z + ez));
+      ctx.restore();
+    } else drawParts(ctx, null);
+  }
+  function drawParts(ctx, hid) {
     const slant = wind * 0.5;
     if (kind === 'rain') {
       ctx.strokeStyle = 'rgba(200,210,230,0.28)'; ctx.lineWidth = 1; ctx.beginPath();
       for (const p of parts) {
         const x = Math.sin(p.a) * p.r, z = Math.cos(p.a) * p.r;
+        if (hid && hid(x, p.y, z)) continue;
         const sp = R.screenPos(x, p.y, z); if (!sp) continue;
         const len = p.len * sp.scale;
         ctx.moveTo(sp.x, sp.y); ctx.lineTo(sp.x + slant * len * 0.3, sp.y - len);
@@ -67,6 +97,7 @@ const WEATHER = (() => {
       ctx.fillStyle = 'rgba(235,240,250,0.85)';
       for (const p of parts) {
         const x = Math.sin(p.a) * p.r, z = Math.cos(p.a) * p.r;
+        if (hid && hid(x, p.y, z)) continue;
         const sp = R.screenPos(x, p.y, z); if (!sp) continue;
         const s = Math.max(1, Math.min(4, sp.scale * 0.012 * p.s));
         ctx.fillRect(sp.x, sp.y, s, s);
@@ -74,6 +105,7 @@ const WEATHER = (() => {
     } else if (kind === 'ash') {
       for (const p of parts) {
         const x = Math.sin(p.a) * p.r, z = Math.cos(p.a) * p.r;
+        if (hid && hid(x, p.y, z)) continue;
         const sp = R.screenPos(x, p.y, z); if (!sp) continue;
         const s = Math.max(1, Math.min(4, sp.scale * 0.01 * p.s));
         ctx.fillStyle = p.glow ? 'rgba(255,' + (120 + 80 * Math.abs(Math.sin(G.t * 6 + p.ph))) + ',60,0.9)' : 'rgba(90,86,84,0.8)';
@@ -84,6 +116,7 @@ const WEATHER = (() => {
       const spr = mistSprite();
       for (const p of parts) {
         const x = Math.sin(p.a) * p.r, z = Math.cos(p.a) * p.r;
+        if (hid && hid(x, p.y, z)) continue;
         const sp = R.screenPos(x, p.y, z); if (!sp) continue;
         const w = Math.min(p.w * sp.scale, R.W * 1.5), h = w * 0.22;
         ctx.globalAlpha = 0.11 * p.s;
@@ -94,6 +127,7 @@ const WEATHER = (() => {
       ctx.fillStyle = 'rgba(255,245,220,0.55)';
       for (const p of parts) {
         const x = Math.sin(p.a) * p.r, z = Math.cos(p.a) * p.r;
+        if (hid && hid(x, p.y, z)) continue;
         const sp = R.screenPos(x, p.y, z); if (!sp) continue;
         const s = Math.max(1, Math.min(3, sp.scale * 0.006 * p.s));
         ctx.globalAlpha = 0.3 + 0.4 * Math.abs(Math.sin(G.t * 1.5 + p.ph));
@@ -102,5 +136,5 @@ const WEATHER = (() => {
       ctx.globalAlpha = 1;
     }
   }
-  return { set, update, draw, get kind() { return kind; } };
+  return { set, update, draw, strike, get kind() { return kind; } };
 })();

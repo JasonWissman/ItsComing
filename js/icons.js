@@ -257,11 +257,15 @@ const ICONS = {
     ctx.strokeStyle = d; ctx.lineWidth = 0.025;
     for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(0.18 + i * 0.07, 0.78 - i * 0.12, 0.045, 0.03, 0.6, 0, TAU); ctx.stroke(); }
   },
+  // an oar: the worn grip at the bottom, the long round loom, and the flat blade flaring out at the top, a ridge up its middle
   oar(ctx, P) {
-    const w = P.col([120, 96, 62]), d = P.col([80, 60, 36]);
+    const w = P.col([120, 96, 62]), d = P.col([80, 60, 36]), l = P.col([150, 122, 82]);
     ctx.save(); ctx.rotate(0.5);
-    P_line(ctx, 0, 0.05, 0, 0.7, 0.06, w);
-    ctx.fillStyle = d; ctx.beginPath(); ctx.ellipse(0, 0.82, 0.1, 0.18, 0, 0, TAU); ctx.fill();
+    P_line(ctx, 0, 0.05, 0, 0.66, 0.06, w);
+    P_line(ctx, -0.012, 0.12, -0.012, 0.6, 0.015, l);
+    P_line(ctx, 0, 0.03, 0, 0.15, 0.07, d);
+    ctx.fillStyle = w; ctx.beginPath(); ctx.moveTo(-0.03, 0.62); ctx.lineTo(-0.1, 0.76); ctx.quadraticCurveTo(-0.11, 0.98, 0, 1.0); ctx.quadraticCurveTo(0.11, 0.98, 0.1, 0.76); ctx.lineTo(0.03, 0.62); ctx.closePath(); ctx.fill();
+    P_line(ctx, 0, 0.66, 0, 0.94, 0.018, d);
     ctx.restore();
   },
   // fuses: a good one, a blown one (dark glass), and a coil of wire
@@ -305,9 +309,9 @@ const ICONS = {
   },
   // a music box, seen from the front and a little above: a walnut case on brass feet with a brass heart inlaid in its front,
   // the lid standing open (red velvet and a little round mirror inside it), and in the open top the brass cylinder with
-  // its pins against the steel comb, and a tiny dancer, arms up, on a mirror disc. On its right side is the square socket
-  // its crank fits. Night 10 also draws it on its pedestal and in the doll's arms: o.crank (an angle) draws the crank
-  // fitted and turned that far round, and o.spin turns the dancer.
+  // its pins against the steel comb, and a tiny dancer, arms up, on a mirror disc. On the right of its front is the square
+  // socket its crank fits. Night 10 also draws it in the doll's arms: o.crank (an angle) draws the crank fitted and turned
+  // that far round, and o.spin turns the dancer.
   musicbox(ctx, P, o) {
     o = o || {};
     const wood = P.col([124, 74, 40]), woodD = P.col([84, 48, 26]), woodL = P.col([166, 112, 66]), grain = P.col([100, 58, 30]), edge = P.col([30, 16, 10]);
@@ -351,19 +355,19 @@ const ICONS = {
     P_rect(ctx, X0, Y0, X1 - X0, Y1 - Y0, wood);
     P_rect(ctx, X0, Y1 - 0.035, X1 - X0, 0.035, woodL); P_rect(ctx, X0 - 0.012, Y0, X1 - X0 + 0.024, 0.04, woodD);
     for (const y of [0.15, 0.26]) P_line(ctx, X0 + 0.04, y, X1 - 0.05, y + 0.012, 0.007, grain);
-    heartShape(ctx, (X0 + X1) / 2, 0.215, 0.055, brass, brassD);
+    heartShape(ctx, -0.22, 0.215, 0.055, brass, brassD);
     for (const x of [X0 + 0.03, X1 - 0.03]) P_ell(ctx, x, Y0 - 0.012, 0.028, 0.022, brass);
     P_ell(ctx, X1 + DX - 0.025, Y0 + DY - 0.02, 0.022, 0.018, brassD);
-    // the side: a brass boss with the square socket in it, and the crank in it if it is fitted, its arm going round in the
-    // plane of the side (so it swings up and down and to and fro) and its ivory knob standing out from the end of the arm
-    const hx = X1 + DX / 2, hy = (Y0 + Y1) / 2 + DY / 2;
-    P_ell(ctx, hx, hy, 0.03, 0.036, brassD); P_ell(ctx, hx, hy, 0.022, 0.028, brass);
-    if (o.crank === undefined) { P_rect(ctx, hx - 0.01, hy - 0.01, 0.02, 0.02, edge); return; }
-    const a = o.crank, R = 0.13, ox = hx + 0.04, ex = ox + Math.cos(a) * R * 0.5, ey = hy + Math.cos(a) * R * 0.5 + Math.sin(a) * R;
-    P_line(ctx, hx, hy, ox, hy, 0.034, brassD); P_line(ctx, hx, hy, ox, hy, 0.022, brass);
-    P_line(ctx, ox, hy, ex, ey, 0.04, brassD); P_line(ctx, ox, hy, ex, ey, 0.026, brass);
-    P_line(ctx, ex, ey, ex + 0.05, ey, 0.028, brassD);
-    P_ell(ctx, ex + 0.075, ey, 0.04, 0.034, brassD); P_ell(ctx, ex + 0.075, ey, 0.032, 0.027, pale);
+    // on the front, right of the heart: a brass boss with the square socket in it, and the crank in it if it is fitted,
+    // its arm going round in the plane of the front and its ivory knob standing out toward you from the end of the arm
+    const hx = 0.065, hy = (Y0 + Y1) / 2;
+    P_ell(ctx, hx, hy, 0.034, 0.034, brassD); P_ell(ctx, hx, hy, 0.026, 0.026, brass);
+    if (o.crank === undefined) { P_rect(ctx, hx - 0.011, hy - 0.011, 0.022, 0.022, edge); return; }
+    const a = o.crank, R = 0.085, ex = hx + Math.cos(a) * R, ey = hy + Math.sin(a) * R;
+    P_line(ctx, hx, hy, ex, ey, 0.04, brassD); P_line(ctx, hx, hy, ex, ey, 0.024, brass);
+    P_ell(ctx, hx, hy, 0.016, 0.016, brassD);
+    P_ell(ctx, ex + 0.008, ey - 0.008, 0.034, 0.034, brassD); P_ell(ctx, ex, ey, 0.028, 0.028, pale);
+    P_ell(ctx, ex - 0.008, ey + 0.009, 0.009, 0.009, P.cola([255, 255, 255], 0.7));
   },
   // its crank: a small brass handle bent in an L, a turned ivory knob standing up from one end of the arm and the square
   // socket that fits the box's side in the other
@@ -382,7 +386,7 @@ const ICONS = {
     P_ell(ctx, -0.24, 0.865, 0.03, 0.018, brass);
     ctx.restore();
   },
-  // a wrench, a water pail and a feed sack: heavy things for the barn
+  // a wrench (the lighthouse's toolbox spills one)
   wrench(ctx, P) {
     const st = P.col([130, 130, 138]), stD = P.col([80, 80, 88]);
     ctx.save(); ctx.rotate(-0.7);
@@ -390,24 +394,21 @@ const ICONS = {
     P_ell(ctx, 0, 0.78, 0.16, 0.14, st); P_rect(ctx, -0.06, 0.74, 0.12, 0.18, P.col([40, 40, 46]));
     ctx.restore();
   },
-  pail(ctx, P) {
-    const tin = P.col([110, 112, 118]), tinD = P.col([70, 72, 78]), water = P.col([60, 90, 120]);
-    P_poly(ctx, [[-0.3, 0.05], [0.3, 0.05], [0.36, 0.6], [-0.36, 0.6]], tin); P_rect(ctx, -0.36, 0.58, 0.72, 0.05, tinD);
-    P_ell(ctx, 0, 0.6, 0.33, 0.07, water);
-    ctx.strokeStyle = tinD; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.arc(0, 0.62, 0.34, Math.PI, 0, false); ctx.stroke();
-  },
-  sack(ctx, P) {
-    const cloth = P.col([150, 128, 92]), clothD = P.col([104, 86, 60]);
-    ctx.fillStyle = cloth; ctx.beginPath(); ctx.moveTo(-0.3, 0.05); ctx.quadraticCurveTo(-0.42, 0.5, -0.2, 0.78); ctx.lineTo(0.2, 0.78); ctx.quadraticCurveTo(0.42, 0.5, 0.3, 0.05); ctx.closePath(); ctx.fill();
-    P_line(ctx, -0.22, 0.78, 0.22, 0.78, 0.05, clothD); P_line(ctx, -0.1, 0.9, 0.1, 0.9, 0.06, clothD);
-    P_line(ctx, -0.15, 0.3, 0.15, 0.3, 0.012, clothD); P_line(ctx, -0.12, 0.45, 0.12, 0.45, 0.012, clothD);
-  },
   // a light bulb
   bulb(ctx, P) {
     const glass = P.col([214, 212, 200]), brass = P.col([150, 130, 70]), fil = P.col([120, 110, 90]);
     P_ell(ctx, 0, 0.62, 0.26, 0.3, glass); P_poly(ctx, [[-0.16, 0.4], [0.16, 0.4], [0.12, 0.2], [-0.12, 0.2]], glass);
     P_rect(ctx, -0.12, 0.05, 0.24, 0.16, brass); P_line(ctx, -0.12, 0.1, 0.12, 0.1, 0.015, P.col([90, 76, 40])); P_line(ctx, -0.12, 0.16, 0.12, 0.16, 0.015, P.col([90, 76, 40]));
     P_line(ctx, -0.06, 0.45, 0, 0.7, 0.012, fil); P_line(ctx, 0, 0.7, 0.06, 0.45, 0.012, fil);
+  },
+  // the bedside lamp, as a thing to be taken up (night 13): the story's own drawing of it (js/story.js STORY.lamp, made
+  // once here as a prop of no night, for its drawing: so it is the lamp of the bedroom, whatever that comes to look like),
+  // unlit, and the pull chain under its shade as night 12 hangs it
+  lamp(ctx, P) {
+    const art = ICONS.lamp.art || (ICONS.lamp.art = STORY.lamp({ props: [], pt: (x, y, z) => [x, y, z] }, 0, 0, 0));
+    ctx.save(); ctx.scale(1 / art.w, 1 / art.h); art.draw(ctx, P); ctx.restore();
+    const chain = P.col([150, 140, 118]);
+    P_line(ctx, 0.24, 0.5, 0.24, 0.35, 0.016, chain); P_ell(ctx, 0.24, 0.34, 0.03, 0.022, chain);
   }
 };
 
@@ -438,9 +439,10 @@ const SC = {
     SC.quad(L, [x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0], side2, face([U[0] * sx, 0, U[1] * sx]));
     SC.quad(L, [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1], top, y1 >= y0 ? face([0, 1, 0]) : opts);
   },
+  // opts.face: a panel fixed flat on an upright face, its front looking toward that yaw (radians, in the level's frame;
+  // Math.PI looks back at you from in front): drawn where it is, in perspective, and never turned toward you (js/render.js)
   sprite(L, x, y, z, w, h, draw, opts) {
-    const p = L.pt(x, y, z);
-    const s = Object.assign({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w, h, draw }, opts || {});
+    const s = SC.mkSprite(L, x, y, z, w, h, draw, opts);
     L.props.push(s); return s;
   },
   // trees: 'bare' (winter deciduous), 'fir', 'round'
@@ -591,7 +593,14 @@ SC.doorway = function (L, o) {
     SC.wallV(L, left, o.z, x - w / 2, o.z, y0, wallH, o.color, o.opts);
     SC.wallV(L, x + w / 2, o.z, right, o.z, y0, wallH, o.color, o.opts);
     if (wallH > y0 + h) SC.wallV(L, x - w / 2, o.z, x + w / 2, o.z, y0 + h, wallH, o.color, o.opts);
-    if (o.frame) { const f = o.frame, fw = f.w || 0.1; SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x - w / 2, o.z - 0.05, y0, y0 + h + fw, f.color); SC.wallV(L, x + w / 2, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, y0, y0 + h + fw, f.color); SC.wallV(L, x - w / 2 - fw, o.z - 0.05, x + w / 2 + fw, o.z - 0.05, y0 + h, y0 + h + fw, f.color); }
+    if (o.frame) {
+      const f = o.frame, fw = f.w || 0.1, zf = o.z - 0.05, xa = x - w / 2, xb = x + w / 2, yh = y0 + h;
+      SC.wallV(L, xa - fw, zf, xa, zf, y0, yh + fw, f.color); SC.wallV(L, xb, zf, xb + fw, zf, y0, yh + fw, f.color); SC.wallV(L, xa - fw, zf, xb + fw, zf, yh, yh + fw, f.color);
+      // f.line: the frame stands a little in from the wall, so it lines the opening back to it (the inside of each post
+      // and the underside of the head, from the frame's face to the wall's), or the edge of the wall's hole, farther off
+      // than the frame, shows as a strip of wall inside it
+      if (f.line) { SC.wallV(L, xa, zf, xa, o.z, y0, yh, f.color); SC.wallV(L, xb, zf, xb, o.z, y0, yh, f.color); SC.quad(L, [xa, yh, zf], [xb, yh, zf], [xb, yh, o.z], [xa, yh, o.z], f.color); if (y0 > 0) SC.quad(L, [xa, y0, zf], [xb, y0, zf], [xb, y0, o.z], [xa, y0, o.z], f.color); }
+    }
   });
   return { z: o.z, x0: x - w / 2, x1: x + w / 2, y0, y1: y0 + h };
 };
@@ -665,11 +674,15 @@ SC.detail = function (L, base, a, b, c, d) {
     } else push(0, 1, k0, k1, shade(jit()));
   }
 };
+// the props fn puts in the scene (to say which of them a target is drawn with: glowWith)
+SC.grab = function (L, fn) { const n = L.props.length; fn(); return L.props.slice(n); };
 SC.mkQuad = function (L, a, b, c, d, color, opts) {
   return Object.assign({ kind: 'poly', pts: [L.pt(a[0], a[1], a[2]), L.pt(b[0], b[1], b[2]), L.pt(c[0], c[1], c[2]), L.pt(d[0], d[1], d[2])], color }, opts || {});
 };
 SC.mkWallV = function (L, x0, z0, x1, z1, y0, y1, color, opts) { return SC.mkQuad(L, [x0, y0, z0], [x1, y0, z1], [x1, y1, z1], [x0, y1, z0], color, opts); };
 SC.mkSprite = function (L, x, y, z, w, h, draw, opts) {
   const p = L.pt(x, y, z);
-  return Object.assign({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w, h, draw }, opts || {});
+  const s = Object.assign({ kind: 'sprite', x: p[0], y: p[1], z: p[2], w, h, draw }, opts || {});
+  if (s.face !== undefined) s.face += L.facing;   // (from the level's frame to the world's, as its place is)
+  return s;
 };

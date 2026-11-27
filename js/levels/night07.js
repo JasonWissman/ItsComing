@@ -14,20 +14,61 @@ Object.assign(ICONS, {
     P_limb(ctx, [[-0.1, 0.6], [-0.04, 0.53], [-0.09, 0.47], [0.0, 0.41], [-0.03, 0.36]], 0.025, split);
     P_rect(ctx, -0.42, 0.33, 0.14, 0.3, brass); P_rect(ctx, 0.28, 0.33, 0.14, 0.3, brass);
   },
+  // the keeper's red toolbox, open and taken up once the fuse is out of it: drawn as the open box stands on the floor (its
+  // lid up behind it), and in its dark mouth the rags, the handle of a screwdriver and the head of a spanner
+  lighthouseToolbox(ctx, P) {
+    const col = [172, 36, 30], c = P.col(col), d = P.col(scalec(col, 0.62)), metal = P.col([150, 146, 138]), dark = P.col([10, 9, 9]);
+    const edge = P.col(mixc(col, [255, 248, 236], 0.45)), inner = P.col(scalec(col, 0.4)), rag = P.col([92, 104, 122]), ragD = P.col([64, 72, 88]);
+    ctx.save(); ctx.scale(1, 1 / 1.4);
+    P_rect(ctx, -0.5, 0, 1, 0.66, c); P_rect(ctx, -0.5, 0, 1, 0.06, d); P_rect(ctx, -0.5, 0.6, 1, 0.06, d);
+    for (const x of [-0.5, 0.42]) P_rect(ctx, x, 0, 0.08, 0.66, metal);                          // corner straps
+    P_poly(ctx, [[-0.47, 0.68], [0.47, 0.68], [0.43, 1.4], [-0.43, 1.4]], d);                    // the lid, standing up behind
+    P_poly(ctx, [[-0.41, 0.72], [0.41, 0.72], [0.38, 1.35], [-0.38, 1.35]], P.col(mixc(col, [255, 248, 236], 0.28)));
+    P_rect(ctx, -0.41, 0.72, 0.82, 0.04, d);
+    P_rect(ctx, -0.12, 0.66, 0.06, 0.06, metal); P_rect(ctx, 0.06, 0.66, 0.06, 0.06, metal);     // the hinges
+    P_rect(ctx, -0.48, 0.5, 0.96, 0.2, dark); P_rect(ctx, -0.46, 0.62, 0.92, 0.06, inner);       // its mouth
+    P_line(ctx, 0.16, 0.52, 0.27, 0.86, 0.05, P.col([130, 130, 138])); P_ell(ctx, 0.28, 0.9, 0.08, 0.06, P.col([130, 130, 138]));   // a spanner
+    P_line(ctx, -0.02, 0.55, -0.1, 0.84, 0.07, P.col([206, 160, 40]));                            // a screwdriver's handle
+    P_ell(ctx, -0.24, 0.58, 0.17, 0.08, rag); P_ell(ctx, 0.04, 0.55, 0.13, 0.06, ragD); P_ell(ctx, -0.32, 0.62, 0.08, 0.05, ragD);   // the rags
+    P_rect(ctx, -0.42, 0.47, 0.84, 0.04, edge);                                                  // the front rim
+    P_rect(ctx, -0.07, 0.36, 0.14, 0.14, metal); P_rect(ctx, -0.03, 0.4, 0.06, 0.05, dark);      // the latch, hanging open
+    ctx.restore();
+  },
+  // the same toolbox shut, its lid down and latched, carried by the steel handle folded up over the lid (night 13, the
+  // Void: what the climber takes): the red body with its dark bands and corner straps, the lid's ridge, the latch at
+  // the front, the handle's grip at the top of the drawing
+  lighthouseToolboxShut(ctx, P) {
+    const col = [172, 36, 30], c = P.col(col), d = P.col(scalec(col, 0.62)), metal = P.col([150, 146, 138]), metalD = P.col([96, 94, 90]), dark = P.col([10, 9, 9]);
+    const edge = P.col(mixc(col, [255, 248, 236], 0.45)), lid = P.col(mixc(col, [255, 248, 236], 0.12));
+    P_rect(ctx, -0.5, 0, 1, 0.6, c); P_rect(ctx, -0.5, 0, 1, 0.06, d); P_rect(ctx, -0.5, 0.5, 1, 0.05, d);
+    for (const x of [-0.5, 0.42]) P_rect(ctx, x, 0, 0.08, 0.6, metal);                           // corner straps
+    P_poly(ctx, [[-0.5, 0.6], [0.5, 0.6], [0.45, 0.76], [-0.45, 0.76]], lid);                    // the lid, shut
+    P_rect(ctx, -0.45, 0.72, 0.9, 0.04, d); P_rect(ctx, -0.5, 0.58, 1, 0.035, edge);              // its ridge, and the rim where it shuts
+    P_rect(ctx, -0.07, 0.44, 0.14, 0.2, metal); P_rect(ctx, -0.03, 0.5, 0.06, 0.06, dark);        // the latch, shut
+    // the handle: two steel lugs on the lid and the bar between them, its black grip at the top
+    P_rect(ctx, -0.3, 0.74, 0.06, 0.12, metalD); P_rect(ctx, 0.24, 0.74, 0.06, 0.12, metalD);
+    P_line(ctx, -0.27, 0.84, -0.22, 0.95, 0.045, metal); P_line(ctx, 0.27, 0.84, 0.22, 0.95, 0.045, metal);
+    P_line(ctx, -0.22, 0.95, 0.22, 0.95, 0.07, P.col([34, 32, 32])); P_line(ctx, -0.2, 0.97, 0.2, 0.97, 0.015, P.col([80, 78, 76]));
+  },
+  // a screwdriver, spilled from the toolbox as it goes down the wall
+  lighthouseScrewdriver(ctx, P) {
+    P_line(ctx, -0.05, 0.45, 0.4, 0.92, 0.05, P.col([150, 150, 158]));
+    P_line(ctx, -0.4, 0.08, -0.05, 0.45, 0.16, P.col([206, 160, 40])); P_line(ctx, -0.36, 0.12, -0.12, 0.38, 0.04, P.col([236, 196, 80]));
+  },
 });
 
 LEVELS.push({
-  id: 'lighthouse', title: 'The Lighthouse', facing: 315, eyeH: 1.65,
+  id: 'lighthouse', title: 'The Lighthouse', facing: 315, eyeH: 1.65, lookDown: 56,
   pal: { skyTop: [10, 12, 22], fog: [50, 56, 70], ground: [44, 50, 62], fogDist: 70 },
-  ambient: { wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 },
+  ambient: { tune: 'ambient:7', wind: 1.6, drone: 0.5, droneFreq: 48, windFreq: 520, rain: 1.0 },
   weather: { kind: 'rain', density: 1.0, wind: 0.8, lightning: [7, 15] },
   text: {
-    intro: 'The lamp went out an hour ago. Since then something has been climbing the outside of the tower.<br>You can hear it when you are not looking. Look over the rail.',
-    hint: 'The bulb in the big lamp behind you has blown, and so has the fuse. Put the spare bulb in, change the fuse (there is a new one in the toolbox), then turn the crank until the light goes round.',
+    intro: 'The lighthouse has gone dark.\nYou hear something, and look down over the rail.',
+    hint: 'The bulb in the big lamp behind you has blown, and so has the fuse. Put the new bulb in, change the fuse (there is a new one in the toolbox), then turn the crank until the light goes around.',
     objective: 'New bulb in the lamp. New fuse in the fuse box. Turn the crank.',
-    death: { default: 'It came over the rail with its face already turned up to you.' },
-    win: 'The beam went round and round. The first time it came past, the thing slid down the wet stone; the second time, it let go and fell. In the morning it was still in the water, looking up.',
-    fragment: 'There were scratches on the wardrobe door in the morning, high up, where nobody could reach.',
+    egg: 'Hit the creature with the toolbox.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
+    death: { default: 'It came over the rail and grabbed you.' },
+    win: 'It fell, and you haven\'t seen it again.',
   },
   lanes: [
     { deg: 0, name: 'below the rail', elev: -65, barrierDist: 0, cue: 'scrape', default: true },
@@ -70,8 +111,16 @@ LEVELS.push({
       L.props.push({ kind: 'poly', pts: blob(1.3, -24.59, sx, sz), color: [160, 170, 178], alpha: 0.14, dist: d + 0.2, sortDist: 100 + d + 0.2 });   // the surf, breaking on it from the sea
       L.props.push({ kind: 'poly', pts: blob(1, -24.56, 0, 0), color: [42 + v, 46 + v, 50 + v], dist: d, sortDist: 100 + d });                // the rock
     }
-    // a town across the water: a scatter of lights low on the horizon
-    for (let i = 0; i < 16; i++) { const th = (150 + rng() * 60) * DEG, d = 180 + rng() * 60, p = at(th, d, -22 + rng() * 2), w = 0.8 + rng() * 1.2; SC.sprite(L, p[0], p[1], p[2], w, w * 0.7, (ctx, P) => { ctx.scale(w, w * 0.7); P_rect(ctx, -0.5, 0, 1, 1, P.raw([230, 200, 140])); }, { noFog: true, noLight: true, dist: d }); }
+    // a town across the water: a scatter of lights low on the horizon, each a small soft glow, warm and dim, fading to
+    // nothing with no edge to it. r is how far out one fades, in metres, so each is the size its distance makes it (its
+    // faint skirt never under a few pixels across, so none shrinks to a hard dot); the further ones are fainter, through
+    // the rain; each wavers a very little, as lights over water do (not with reduced motion)
+    const farLight = (x, y, z, r, col, a, d, ph) => SC.sprite(L, x, y - r, z, 2 * r, 2 * r, (ctx, P, px) => {
+      const R0 = Math.max(r, 3 / (px || 1)), g = ctx.createRadialGradient(0, r, 0, 0, r, R0), k = a * (SAVE.data.settings.reducedMotion ? 1 : 0.9 + 0.1 * Math.sin(P.t * 1.7 + ph));
+      g.addColorStop(0, rgba(col, k)); g.addColorStop(0.2, rgba(col, k * 0.55)); g.addColorStop(0.5, rgba(col, k * 0.14)); g.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, r, R0, 0, TAU); ctx.fill();
+    }, { noFog: true, noLight: true, dist: d });
+    for (let i = 0; i < 16; i++) { const th = (150 + rng() * 60) * DEG, d = 180 + rng() * 60, p = at(th, d, -22 + rng() * 2), w = 0.8 + rng() * 1.2; farLight(p[0], p[1] + w * 0.35, p[2], 1.2 + w * 0.9, [236, 198, 138], (0.42 + w * 0.16) * (1.15 - (d - 180) / 200), d, i * 2.4); }
     // the tower wall below the gallery, in bands. Nothing is ever behind the wall but the sea and the rocks, and the thing
     // is always on it: the whole wall is drawn before it, wherever on it it is (its hands reach up the wall over bands
     // nearer you than it is), in the bands' own order by their true distance from the eye
@@ -112,38 +161,57 @@ LEVELS.push({
       const p = at(a0, RR, 0), az = Math.atan2(p[0], p[2]);
       if (i % 3 === 0 && [0, 45, -45].every(l => Math.abs(wrapPi(az - l * DEG)) > 22 * DEG)) SC.sprite(L, p[0], 0, p[2], 0.06, 1.01, (ctx, P) => { ctx.scale(0.06, 1.01); P_rect(ctx, -0.5, 0, 1, 1, P.col(ironL)); });
     }
-    // two stanchions on the lamp room: the fuse box on one at chest height, the crank on the other at the waist. Each is
-    // fixed to the face of its stanchion that looks your way, and drawn after the stanchion and before its own outline,
-    // so neither the iron hides it nor it hides the outline when you point at it.
+    // two stanchions on the lamp room: the fuse box on one at chest height, the crank on the other at the chest too (all of
+    // it well inside the view looking ahead, turned to it: at the waist it lay across the bottom edge of that view and the
+    // top edge of the one looking down). Each is
+    // fixed to the face of its stanchion that looks your way, and drawn after the stanchion, so the iron does not hide it
+    // (nor the glow round it when you point at it). The crank is drawn flat on that face (MFACE: its front looks out across
+    // the gallery); the fuse box is bolted to it on an iron wedge that turns it most of the way round toward you (FFACE),
+    // so its front is not seen so far side on. Each never turns with the view, and what you click is the shape it covers.
     const FB = 60 * DEG, WD = 120 * DEG;
     const post = th => { const p = at(th, 2.0, 0); SC.box(L, p[0] - 0.19, p[0] + 0.19, 0, 2.75, p[2] - 0.19, p[2] + 0.19, iron); return p; };
     const fbP = post(FB), wdP = post(WD);
-    const FBW = 0.44, FBH = 0.52, fb = [fbP[0], 1.1, fbP[2] + 0.22];   // the fuse box: its foot at 1.1 m, on the face toward you
-    const WDS = 0.5, wd = [wdP[0], 0.7, wdP[2] + 0.22];                // the crank: its foot at 0.7 m, so nothing on the floor is behind it
-    const mounted = (x, z) => Math.hypot(x, z) + 0.012;   // just behind its outline (at its own distance), well in front of the iron
+    const FFACE = -38 * DEG, FBW = 0.44, FBH = 0.52;
+    // the fuse box: its foot at 1.1 m, turned on its wedge so its edge nearer the lamp room's middle is just off the
+    // stanchion's face and the other stands out from it
+    const fb = [fbP[0] - 0.05, 1.1, fbP[2] + 0.2 + Math.sin(-FFACE) * FBW / 2];
+    const WDS = 0.5, wd = [wdP[0], 1.2, wdP[2] + 0.22];                // the crank: its foot at 1.2 m, clear above what you hold at the foot of the view
+    const mounted = (x, z) => Math.hypot(x, z) + 0.012;   // just behind its own spot, well in front of the iron
+    const MFACE = 0;
+    // the wedge: an iron block between the stanchion's face and the back of the box, its top, bottom and outer side
+    { const ex = Math.cos(FFACE) * FBW / 2, ez = Math.sin(-FFACE) * FBW / 2, zf = fbP[2] + 0.19, wedge = [52, 52, 58];
+      const near = [fb[0] - ex, fb[2] - ez], far = [fb[0] + ex, fb[2] + ez], back = [fb[0] + ex, zf];
+      for (const y of [fb[1] + 0.03, fb[1] + FBH - 0.03]) SC.quad(L, [near[0], y, near[1]], [far[0], y, far[1]], [back[0], y, back[1]], [near[0], y, zf], scalec(wedge, y > 1.4 ? 1.2 : 0.8));
+      SC.quad(L, [far[0], fb[1] + 0.03, far[1]], [back[0], fb[1] + 0.03, back[1]], [back[0], fb[1] + FBH - 0.03, back[1]], [far[0], fb[1] + FBH - 0.03, far[1]], scalec(wedge, 0.7)); }
+    // a point on a target fixed on that face, u across it (-0.5..0.5 of its width, left to right as you look at it) and v up
+    // it (0..1 of its height), brought toward the eye by standoff: where the hand goes on it
+    const onFace = (t, u, v, standoff) => {
+      const x = t.x - Math.cos(t.face) * u * t.w, y = t.y + v * t.h, z = t.z + Math.sin(t.face) * u * t.w;
+      const dx = -x, dy = L.eyeH - y, dz = -z, dl = Math.hypot(dx, dy, dz) || 1, so = standoff || 0;
+      return { x: x + dx / dl * so, y: y + dy / dl * so, z: z + dz / dl * so };
+    };
     const LW = 1.1, LH = 1.5;                             // the lamp's lens, standing on its pedestal
     // the lens on its pedestal, inside the glass
     SC.box(L, AX - 0.45, AX + 0.45, 0, 0.9, AZ - 0.45, AZ + 0.45, [50, 50, 56]);
-    // the keeper's crate, against the lamp room in the corner by the fuse box's stanchion, and on it a bedside lamp, of all
-    // things: below the fuse box as you look at it, behind you to the right, clear of every spot an item may lie in
-    { const cp = at(75 * DEG, 2.17, 0); SC.box(L, cp[0] - 0.18, cp[0] + 0.18, 0, 0.4, cp[2] - 0.15, cp[2] + 0.15, [84, 64, 44], { tex: 'planks', texScale: 0.7 }); STORY.lamp(L, cp[0], 0.4, cp[2], { scale: 0.8 }); }
+    // the keeper's crate, against the lamp room in the corner by the fuse box's stanchion (it
+    // stands below the fuse box as you look at it, behind you to the right, clear of every spot an item may lie in
+    { const cp = at(75 * DEG, 2.17, 0); SC.box(L, cp[0] - 0.18, cp[0] + 0.18, 0, 0.4, cp[2] - 0.15, cp[2] + 0.15, [84, 64, 44], { tex: 'planks', texScale: 0.7 }); }
     // items: on the gallery floor where you can see them, none of them round behind a stanchion or under the crank
     const floorAt = (deg, r) => { const p = at(deg * DEG, r, 0); return { x: p[0], y: 0, z: p[2] }; };
     const spots = [floorAt(60, 2.7), floorAt(120, 2.7), floorAt(45, 2.9), floorAt(135, 2.9), floorAt(75, 3.0), floorAt(108, 3.0)];
-    // the lamp's bulb has blown and so has the fuse: a spare bulb lies about, the new fuse is in the toolbox, and a
-    // blown one that looks like it might do lies about as well
+    // the lamp's bulb has blown and so has the fuse: a spare bulb lies about, and the new fuse is in the toolbox
     Object.assign(s, { open: false, blownIn: true, bulb: false, fuse: false, power: false, turning: false, beamA: 0, beamSpeed: 1, crossing: false, lensA: 0 });
     // in the hand: the bulb by its brass cap, a fuse between finger and thumb by one end, small, as they really are
     const fuseHeld = { grip: 'pinch', at: [-0.38, 0.47], angle: -0.36, size: 0.17, tip: [0.42, 0.48] };
     mkItem(L, 'bulb', 'Bulb', spots, { w: 0.2, h: 0.3, flat: false, held: { size: 0.15, angle: -0.2 } });
     const toolbox = mkContainer(L, {
       id: 'toolbox', name: 'Toolbox', w: 0.56, h: 0.38, color: [172, 36, 30], spot: spots.slice(0, 4), sfx: 'clunk', liftY: 0.13,
-      closedText: 'A toolbox.', emptyText: 'Rags and a tin of grease.',
+      closedText: 'A toolbox.', emptyText: 'Rags, a wrench and a screwdriver.',
       yields: [{ id: 'fuse', name: 'Fuse', opts: { w: 0.34, h: 0.34, flat: false, held: fuseHeld } }],
-      onOpen() { G.say('A new fuse, in among the rags.', 'Rags, a tin of grease. A fuse.'); },
+      onOpen() { G.say('A new fuse, in among the rags.', 'Rags, a wrench. A fuse.'); },
     });
-    mkItem(L, 'oldfuse', 'Fuse', spots, { w: 0.3, h: 0.3, flat: false, icon: 'fuse', decoy: true, decoyText: 'This one is blown as well.', held: fuseHeld });
-    const lit = () => G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go round.');
+    const boxSprite = L.props[L.props.length - 1];   // (the drawing of it mkContainer made: the last thing it put in the scene)
+    const lit = () => G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go around.');
     const powerUp = () => { if (!(s.bulb && s.fuse) || s.power) return false; s.power = true; lamp.done = true; setTimeout(() => AUDIO.sfx('lampOn'), 250); return true; };
     // A click that does nothing, shown where it was tried: the thing in hand goes to the spot (at: [across, up] the target),
     // knocks there and comes back to the hand; with nothing in hand the hand goes to it and touches it. o.touch is called as
@@ -180,18 +248,17 @@ LEVELS.push({
       },
     });
     // the fuse box: open its door, pull out the blown fuse, put the new one in
-    // Where the fuse lies in its clips (the middle of the box). A blown fuse pushed into the empty clips (the one that came
-    // out, or the worn one lying about) is put in place there, sits a beat with nothing coming on, and drops out of the clips
-    // to the floor; anything else tried there, or a fuse while the blown one is still in, knocks at it and comes back.
+    // Where the fuse lies in its clips (the middle of the box). The blown fuse pushed back into the empty clips (the one that
+    // came out) is put in place there, sits a beat with nothing coming on, and drops out of the clips to the floor; anything else tried there, or a fuse while the blown one is still in, knocks at it and comes back.
     const CLIPS = [0, 0.5], fuseJig = () => { s.fuseJig = L.t; };
     const intoClips = { preset: 'slip', at: CLIPS, angle: 0, scale: 0.8, hold: 0.4, sfx: { hit: 'fit' } };
     const box = mkTarget(L, {
-      id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1], z: fb[2], w: FBW, h: FBH, accepts: [],
+      id: 'fusebox', name: 'Fuse box', x: fb[0], y: fb[1], z: fb[2], w: FBW, h: FBH, face: FFACE, accepts: [],
       hint() { return s.fuse ? 'A good fuse in it.' : !s.open ? 'The fuse box. Shut.' : s.blownIn ? 'Open. The fuse in it is blown. Take it out.' : 'Open. The fuse holder is empty.'; },
       onClick() {
         if (!s.open) {   // the hand takes the handle and pulls, and the door swings open on its hinges
           s.open = true; s.openAt = L.t + 0.3; G.say('Inside, the fuse is black and split. Blown.', 'The fuse inside is black and split.');   // (the fuse in it and the open door are there to point at once it has swung: L.update)
-          s.opening = G.reach(box, { style: 'pull', at: [0.31, 0.5], onTouch() { s.openAt = Math.min(s.openAt, L.t); } });
+          s.opening = G.reach(box, { style: 'pull', at: onFace(box, 0.31, 0.5, 0.05), onTouch() { s.openAt = Math.min(s.openAt, L.t); } });
           if (!s.opening) s.openAt = L.t;
           return true;
         }
@@ -199,8 +266,8 @@ LEVELS.push({
         if (G.fumbling && G.fumbling.target === box && G.fumbling.phase !== 'fall' && G.fumbling.phase !== 'bounce') return true;   // a fuse of yours at the clips already
         if (s.fuse) { G.say('A good fuse in it.', 'A new fuse in it.'); tryAt(box, CLIPS, { touch: fuseJig, fumble: { scale: 0.8 } }); return true; }
         if (s.blownIn) { G.say('Take the blown fuse out first.', 'The blown fuse is still in it.'); tryAt(box, CLIPS, { touch: fuseJig, fumble: { scale: 0.8, sfx: { hit: 'tink' } } }); return true; }
-        // only the blown fuse in hand is "the one that blew", and it is the one tried, though the worn one is about you too (the
-        // new one, if you have it, is put in for you); anything else, or nothing, finds the holder empty
+        // the blown fuse in hand is "the one that blew", and it is the one tried (the new one, if you have it, is put in for
+        // you); anything else, or nothing, finds the holder empty
         const act = G.inv[G.active], old = !!act && act.id === 'blownfuse';
         if ((old && !G.hasItem('fuse')) || !G.inv.some(i => box.accepts.includes(i.id))) {
           G.say(old ? 'That is the one that blew.' : 'The holder is empty. There is a new fuse in the toolbox.', old ? 'That is the one that blew.' : 'The fuse holder is empty.');
@@ -209,7 +276,6 @@ LEVELS.push({
         }
         return false;
       },
-      onDecoy: it => G.fumble(it, box, intoClips),   // the worn one lying about: blown as well, and it drops out of the clips
       use(item) {
         if (item.id !== 'fuse') return false;
         s.fuse = true; box.accepts = []; box.done = true; AUDIO.sfx('fit');
@@ -218,24 +284,23 @@ LEVELS.push({
       },
     });
     // its door, swung open to the left of it: part of the fuse box, so pointing at it or clicking it is the fuse box. Its hit
-    // box stands a touch nearer you along your line of sight (the same size on screen), so its outline draws over the door.
+    // area is the door's, on the same face beside the box, and the fuse box glows with it.
     const door = (() => {
-      const fd = Math.hypot(fb[0], fb[2]), off = -0.68 * FBW, k = 0.97;
-      const x = fb[0] + fb[2] / fd * off, z = fb[2] - fb[0] / fd * off;
+      const off = -0.68 * FBW, x = fb[0] - Math.cos(FFACE) * off, z = fb[2] + Math.sin(FFACE) * off;
       return mkTarget(L, {
-        id: 'fusedoor', name: 'Fuse box', x: x * k, y: L.eyeH + (fb[1] - L.eyeH) * k, z: z * k, w: 0.36 * FBW * k, h: FBH * k, hidden: true,
-        hint: () => box.hint(), onClick: () => box.onClick(), use: item => box.use(item), onDecoy: item => box.onDecoy(item),
+        id: 'fusedoor', name: 'Fuse box', x, y: fb[1], z, w: 0.36 * FBW, h: FBH, face: FFACE, hidden: true,
+        hint: () => box.hint(), onClick: () => box.onClick(), use: item => box.use(item),
       });
     })();
     Object.defineProperty(door, 'accepts', { get: () => box.accepts, set() {} });
     Object.defineProperty(door, 'done', { get: () => box.done, set() {} });
     // the blown fuse in its clips: only there once the door is open; it comes out into your hand, and looks it
     const blown = mkTarget(L, {
-      id: 'blownfuse', name: 'Blown fuse', x: fb[0], y: fb[1] + FBH * 0.39, z: fb[2], w: 0.26, h: FBH * 0.22, hidden: true,
+      id: 'blownfuse', name: 'Blown fuse', x: fb[0], y: fb[1] + FBH * 0.39, z: fb[2], w: 0.26, h: FBH * 0.22, face: FFACE, hidden: true,
       hint() { return 'Blown. Take it out.'; },
       onClick() {
         if (!s.blownIn) return true;
-        s.blownIn = false; blown.hidden = true; blown.done = true; box.accepts = ['fuse', 'oldfuse'];
+        s.blownIn = false; blown.hidden = true; blown.done = true; box.accepts = ['fuse'];
         // it comes out of the clips up into your hand, as anything picked up does
         const it = newItem(L, 'blownfuse', 'Blown fuse', { w: 0.3, h: 0.3, decoy: true, decoyText: 'That is the one that blew.', held: fuseHeld, x: blown.x, y: blown.y, z: blown.z });
         HANDS.picked(it); G.inv.push(it); G.active = G.inv.length - 1; G.hover = null; AUDIO.sfx('pickup');
@@ -245,8 +310,8 @@ LEVELS.push({
     });
     const need = 8;
     const winder = mkTarget(L, {
-      id: 'winder', name: 'Crank', x: wd[0], y: wd[1], z: wd[2], w: WDS, h: WDS,
-      crank: { n: need, sfx: 'ratchet', onTurn() { G.shake(0.04); }, onComplete() { s.turning = true; s.beamA = azOf(L.creature) + Math.PI; AUDIO.sfx('lever'); G.say(s.power ? 'The light begins to go round.' : 'The lamp goes round, dark.', s.power ? 'The light goes round.' : 'The lamp goes round, dark.'); } },
+      id: 'winder', name: 'Crank', x: wd[0], y: wd[1], z: wd[2], w: WDS, h: WDS, face: MFACE,
+      crank: { n: need, sfx: 'ratchet', onTurn() { G.shake(0.04); }, onComplete() { s.turning = true; s.beamA = azOf(L.creature) + Math.PI; AUDIO.sfx('lever'); G.say(s.power ? 'The light begins to go around.' : 'The lamp goes around, dark.', s.power ? 'The light goes around.' : 'The lamp goes around, dark.'); } },
       hint() { return s.turning ? 'Turning.' : 'The crank that turns the lamp. Turn it. ' + Math.max(0, need - Math.floor(winder.count || 0)) + ' more.'; },
     });
     // ---- where it is on the wall ----
@@ -282,6 +347,170 @@ LEVELS.push({
     const wallAt = c => { const p = wallFrame(c).at; return { x: p[0], y: p[1] - H2, z: p[2] }; };
     // its bearing from the tower's axis (the beam's own reckoning), in the world
     const azOf = c => { const th = (c.wallTh === undefined ? FACE[c.lane.idx] : c.wallTh) * DEG, v = rotY(Math.cos(th), Math.sin(th), L.facing); return Math.atan2(v[0], v[1]); };
+    // ---- the toolbox, dropped over the rail onto it ----
+    // Once the fuse is out of it the toolbox is only a box, and heavy: it can be taken up itself, and with it in hand a click
+    // on the thing (looking over the rail at it) swings it up over the rail and lets it go, straight down onto it. The tower flares out below
+    // the gallery, so the box does not fall clear: it hits the stone and comes down the wall, tumbling and banging, spilling
+    // a tool or two. However far down the thing is, anywhere on the tower below you, the box comes all the way down the
+    // stone to it (the fall takes as long as that height does: under a second to it just under the rail, three or so to
+    // it at the foot of its climb), drifting across the face to where it is as it comes, so it lands on it where it has
+    // got to by then, and catches it full in its upturned face, with a clang (the quarry gate's: gate): its head snaps round, one hand
+    // and both feet come off the stone and it hangs by the other arm, swinging, for about a second; then it swings back
+    // in, hooks on again and climbs on from where it was, with a black eye (CREATURES.climber.knock). That is this night's
+    // easter egg (foundEgg), and all it does: the thing is stopped where it hangs for those two seconds, the toolbox
+    // bounces off out from the wall and into the sea, and the night goes on. (It had a reach once, 8 m below the gallery
+    // floor: dropped on it further down than that, the box kicked out off the stone and went past it. No longer.)
+    // It misses only if the night is over before it gets there (won, or the thing has you).
+    const HYP = Math.hypot(1, SLOPE), NRM = [1 / HYP, SLOPE / HYP], DOWN = [SLOPE / HYP, -1 / HYP];   // the stone's outward normal and the way down it, in (r, y)
+    const TBW = 0.56, TBH = 0.38 * 1.4;   // the toolbox open: its lid stands up behind it
+    const TRACK = 5;   // how quickly the box comes across the face to the line down to the thing (1/s)
+    // where the box is drawn landing, from its face as that is drawn (see updateBox): how near to the middle of that face
+    // (rest, metres at the thing's distance), how much further off for each metre up the wall it still is as it lands
+    // (spread), and how far up the wall from that face it lands (near, metres)
+    const AIM = { rest: 0.2, spread: 0.3, near: 0.5 };
+    // let go of: held out over the rail at arm's length on the line straight down to the thing, clear of the rail's top bar
+    // and of the edge of the floor by more than the box's own half width (r from the tower's axis, y above the floor),
+    // and let go there with a small push out (vr) and down (vy). With the thing all but at the rail, its brow under your
+    // hands, it is let go straight over that instead: no further out than where it will land (never nearer than `near`),
+    // and `over` above it (never higher than `top`). lift, how high it is swung up over the rail on its way out of your
+    // hand, and out, how long that takes
+    const DROP = { r: 3.55, y: 0.75, vr: 0.3, vy: -1.2, near: 3.32, over: 0.55, top: 1.0, lift: 0.26, out: 0.34 };
+    const dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+    // where the box is drawn landing: AIM.near up the wall from its face as that is drawn (hd, and its frame f), and `land`
+    // out from the stone there (rise: how much further out a thing a metre up the wall is seen, at the face)
+    const landing = c => {
+      const eye = [0, L.eyeH, 0], hd = CREATURES.climber.headAt(c, eye), f = hd.frame;
+      const rise = Math.max(0, dot(hd.sight, f.out) / (dot(hd.sight, f.up) || 1e-6)), land = AIM.near * rise - (AIM.rest + AIM.spread * AIM.near);
+      return { eye, hd, f, land, p: hd.p.map((v, i) => v + f.up[i] * AIM.near + f.out[i] * land) };
+    };
+    let toolboxItem = null;
+    L.onPickup = it => {   // the fuse taken out of it: the toolbox, open and emptied of what you came for, can be taken up itself
+      if (it.id !== 'fuse' || toolboxItem || !toolbox.open || !(toolbox.yielded || []).includes(it)) return;
+      toolbox.hidden = true; boxSprite.alpha = 0;
+      toolboxItem = mkItem(L, 'toolbox', 'Toolbox', { x: toolbox.local[0], y: toolbox.local[1], z: toolbox.local[2], jitter: 0, flat: false },
+        { w: TBW, h: TBH, icon: 'lighthouseToolbox', material: 'metal', held: { grip: 'flat', at: [0, 0.02], size: 0.3, angle: -0.05, y: 0.03 } });
+    };
+    // where a thing coming down the wall is, in the world: th round the tower's axis, r out from it, y up, and across the
+    // face (metres to the thing's right, as you look down at it)
+    const bodyAt = b => { const p = at(b.th, b.r, b.y); return L.pt(p[0] - Math.sin(b.th) * b.across, p[1], p[2] + Math.cos(b.th) * b.across); };
+    // (and the other way: where on the tower a point of the world is)
+    const onWall = p => { const q = rotY(p[0], p[2], -L.facing), dx = q[0] - AX, dz = q[1] - AZ; return { th: Math.atan2(dz, dx), r: Math.hypot(dx, dz), y: p[1] }; };
+    const drawnAt = b => { const p = bodyAt(b); return b.shift ? p.map((v, i) => v + b.into[i] * b.shift) : p; };   // (the toolbox, as it is drawn: AIM)
+    const panOf = p => Math.sin(wrapPi(Math.atan2(p[0], p[2]) - G.cam.yaw)) * 0.85;
+    // a body falling down the outside of the tower, in the plane through the axis (r, y): gravity, and the stone. On the stone
+    // it is put back out of it, its speed into the stone turned back (e of it, and `kick` more: a corner catching) and its
+    // speed along the stone a little less; onHit(b, v) is told how hard it hit
+    const fallStep = (b, dt, e, kick, onHit) => {
+      for (let i = 0; i < 4; i++) {
+        const h = dt / 4;
+        b.vy -= GRAV * h; b.r += b.vr * h; b.y += b.vy * h; b.across += b.va * h; b.spin += b.spinV * h;
+        const off = ((b.r - 3.25) + SLOPE * b.y) / HYP;   // how far out from the stone (the plane of the wall below the gallery)
+        if (b.y < 0 && off < b.size) {
+          b.r += (b.size - off) * NRM[0]; b.y += (b.size - off) * NRM[1];
+          const vn = b.vr * NRM[0] + b.vy * NRM[1], vt = b.vr * DOWN[0] + b.vy * DOWN[1];
+          if (vn < 0) {
+            const k = typeof kick === 'function' ? kick(b, -vn, vt) : kick, n2 = -vn * e + k, t2 = vt * 0.86;
+            b.vr = n2 * NRM[0] + t2 * DOWN[0]; b.vy = n2 * NRM[1] + t2 * DOWN[1];
+            b.spinV = (L.rand() < 0.5 ? -1 : 1) * (3 + Math.abs(vt) * 0.6); b.va *= 0.7;
+            if (onHit) onHit(b, -vn);
+          }
+        }
+      }
+    };
+    const dropBox = c => {
+      if (s.box || G.state !== 'play') return true;
+      const it = G.inv.find(i => i.id === 'toolbox');
+      if (!it) return false;
+      G.active = G.inv.indexOf(it);
+      const hw = G.hand.cur === it && G.hand.up > 0.5 ? HANDS.handWorld(it, 0.7) : null;   // from where it is in your hand
+      G.removeFromInv(it); HANDS.dropped(it);
+      const th = c.wallTh * DEG, from = hw ? [hw.p.x, hw.p.y, hw.p.z] : L.pt(Math.sin(G.cam.yaw) * 0.4, L.eyeH - 0.4, Math.cos(G.cam.yaw) * 0.4);
+      // up out of your hand, over the rail's top bar and out past the edge of the floor to the line straight down to it
+      // (DROP), and let go there. (It went out between the rail's bars once, to a place just outside them and under
+      // the top one, and was drawn behind them: it read as going through the rail.)
+      const to = onWall(landing(c).p), r = clamp(to.r, DROP.near, DROP.r), y = clamp(to.y + DROP.over, DROP.y, DROP.top);
+      s.box = { it, th, r, y, vr: DROP.vr, vy: DROP.vy, across: 0, va: (L.rand() - 0.5) * 0.2, spin: 0, spinV: 2, size: 0.2, t: 0, out: DROP.out, from, scale0: hw ? Math.min(1, hw.scale) : 1, hit: true, hits: 0, clk: -1, y0: stoneFrame(c).at[1], from0: y };
+      AUDIO.sfx('woodKnock', panOf(bodyAt(s.box)));   // (it scrapes over the rail)
+      return true;
+    };
+    L.uses = [{ tool: 'toolbox', range: Infinity, sights: false, onClick: dropBox, hoverText: () => 'Drop the toolbox on it.' }];
+    // the tools that come out of it at the first knock on the stone: from where the box is drawn, not from where it truly is
+    const spill = b => {
+      const w = onWall(drawnAt(b));
+      s.spill = [['wrench', 0.24, 0.24], ['lighthouseScrewdriver', 0.26, 0.26]].map(([icon, w0, h], k) => ({
+        icon: ICONS[icon], w: w0, h, th: w.th, r: w.r + 0.05, y: w.y + 0.1, vr: b.vr + 0.8 + L.rand() * 0.8, vy: b.vy + 1 + L.rand(), across: 0, va: (k ? 1 : -1) * (0.5 + L.rand() * 0.5),
+        spin: L.rand() * TAU, spinV: (k ? -1 : 1) * (6 + L.rand() * 4), size: 0.06,
+      }));
+    };
+    const updateBox = dt => {
+      const b = s.box, c = L.creature;
+      if (s.boxSplash) s.boxSplash.t += dt;
+      for (const q of s.spill || []) if (!q.gone) { fallStep(q, dt, 0.4, 0.3); if (q.y < WATER) q.gone = true; }
+      if (!b || b.gone) return;
+      b.t += dt;
+      if (b.t < b.out) { b.spin += dt * 1.5; return; }   // out of your hand, over the rail
+      b.air = (b.air || 0) + dt;   // (how long it has been falling)
+      // the thing's middle on the stone now (never reckoned below the sea: at the very start of a long climb it is drawn at
+      // the water's edge), and how far to its right the box is, across the face
+      const yc = Math.max(c.wallAt ? stoneFrame(c).at[1] : -99, WATER + 0.5), offNow = () => wrapPi(b.th - c.wallTh * DEG) * rad(yc) + b.across;
+      // until it lands on it, it comes across the face to the line down to it, wherever it has got to (it runs round the
+      // tower at 1.6 m a second at most: the box keeps within a third of a metre of that line)
+      if (!b.struck && G.state === 'play') b.across -= offNow() * (1 - Math.exp(-dt * TRACK));
+      fallStep(b, dt, 0.32, () => 0.35 + L.rand() * 0.35, (bb, v) => {
+        bb.hits++;
+        if (bb.hits === 1) spill(bb);
+        if (b.t - b.clk > 0.12) { b.clk = b.t; AUDIO.sfx(v > 3 ? 'clatter' : 'woodKnock', panOf(bodyAt(bb))); }
+      });
+      // It lands where you see its face. The thing is drawn end on, its length shown up the wall as you would see it from
+      // well out over the sea (CREATURES.climber.headAt: the point, at its own distance, that its head is drawn at), while
+      // you look down the wall all but along it: a box coming truly down the stone is seen over that face a third of the
+      // way down, to pass over all of it and go on beyond its feet, and to land on nothing. So the box is drawn falling
+      // straight from where it was let go, out over the rail, to that face: at each height up the wall from the face, as
+      // far out from the stone as the straight line between the two is there (b.up0 and b.out0, where it was let go, as
+      // the face's own frame has it; it lands AIM.near up the wall from the face, drawn AIM.rest and AIM.spread for that
+      // half metre from the middle of it: the box's edge on its brow). b.shift is how far into the wall from where it
+      // truly is that puts it (metres; out from it, under 0). It is nothing as it is let go, so nothing jumps there, and
+      // the line is outside the stone and outside the edge of the gallery floor all the way down, as you see it: the box
+      // is never drawn in under the floor or in the wall. (It was once drawn up the wall from the face by AIM.spread for
+      // every metre it still had to fall, brought there in a tenth of a second: let go, it was pulled back in over the
+      // floor, sank through it, and came most of the way down hidden under the gallery.)
+      const aim = () => {
+        const { eye, hd, f, land } = landing(c), q = bodyAt(b), d = q.map((v, i) => v - hd.p[i]), into = f.out.map(v => -v);
+        const up = dot(d, f.up), out = dot(d, f.out);
+        if (b.up0 === undefined) { b.up0 = Math.max(up, AIM.near + 0.05); b.out0 = out; }
+        // (seen(at): how far from the middle of that face a thing at `at` is seen, in metres at the thing's distance)
+        const seen = at => { const e = at.map((v, i) => v - eye[i]), k = (dot(hd.p.map((v, i) => v - eye[i]), hd.sight) || 1) / (dot(e, hd.sight) || 1); return Math.hypot(...e.map((v, i) => v * k - (hd.p[i] - eye[i]))); };
+        let shift = out - lerp(land, b.out0, clamp((up - AIM.near) / (b.up0 - AIM.near), 0, 1));
+        // With the thing just under the rail its brow is in under the lip of the gallery, as you see it. The box is not put
+        // there: at the floor's level and below it is drawn no further in than where the line from your eye to it clears
+        // the floor's edge by the box's own half width (under(sh) is by how much it does not; it lands lower on the face
+        // instead), coming to that over the last of its way down to the floor, so it does not jump as it passes it
+        const at = sh => q.map((v, i) => v + into[i] * sh);
+        const under = sh => { const p = at(sh), k = L.eyeH / (L.eyeH - p[1]), a = rotY(p[0] * k, p[2] * k, -L.facing); return 3.25 + TBW * 0.45 * k - Math.hypot(a[0] - AX, a[1] - AZ); };
+        const low = clamp(1 - at(shift)[1] / 0.3, 0, 1);
+        if (low > 0 && under(shift) > 0) { let lo = shift - 1.2, hi = shift; for (let i = 0; i < 8; i++) { const m = (lo + hi) / 2; if (under(m) > 0) hi = m; else lo = m; } shift = lerp(shift, lo, low); }
+        return { up, out, seen, into, shift };
+      };
+      const g = c.wallAt && !b.struck && G.state === 'play' ? aim() : null;
+      if (g) { b.shift = g.shift; b.into = g.into; }
+      // it comes down the stone onto it, however far down that is: full in its face, on the side of it the box came down,
+      // and the thing loses its hold with the hand on that side and hangs by the other (the night's easter egg, found)
+      if (b.hit && !b.struck && G.state === 'play' && ((g && g.up <= AIM.near) || b.y - b.size <= WATER + 1)) {
+        const off = offNow();
+        b.fell = b.air; b.struckY = b.y; b.seen = g ? g.seen(drawnAt(b)) : 0;   // how long it was falling, how far down it landed, and how far from the middle of its face it is drawn as it lands
+        b.struck = true; s.boxHit = true; s.hung = true;
+        b.vr = Math.max(b.vr, 0) + 2.4; b.vy = Math.max(b.vy * 0.2, -2) + 1.2; b.spinV = -b.spinV * 1.4 - 4;   // it bounces off its head, out from the wall
+        AUDIO.sfx('gate', panOf(bodyAt(b))); AUDIO.sfx('clatter', panOf(bodyAt(b))); G.shake(0.3);   // (iron on iron: the quarry gate's clang, and the tools jumping in the box)
+        CREATURES.climber.knock(c, off >= 0 ? 1 : -1);
+        foundEgg();
+        G.say('Bonked, but it hangs on.');
+      }
+      if (b.y <= WATER + 0.1) {   // into the sea, far below: a little white where it went in, and it is gone
+        b.gone = true; const p = drawnAt(b);
+        s.boxSplash = { t: 0, at: [p[0], WATER, p[2]], size: 0.45 };
+        AUDIO.sfx('plunge', panOf(p));
+      }
+    };
     // seen or not is judged where it is drawn, with the view unzoomed
     L.visFrac = c => {
       const p = c.pos(), r = R.projectRect(p.x, p.y + (c.yOff || 0), p.z, c.CR.w, c.CR.h, { yaw: G.cam.yaw, pitch: G.cam.pitch, zoom: 1, W: R.W, H: R.H, eyeH: L.eyeH });
@@ -294,17 +523,38 @@ LEVELS.push({
     L.onLaneSwitch = c => { s.scut = { from: c.wallTh, to: FACE[c.lane.idx] }; };
     const onLane = () => Math.abs(wrapPi(s.beamA - azOf(L.creature))) < 22.5 * DEG;
     L.isWon = () => s.power && s.turning;
+    // The lightning in the thunder: as the thunder sounds (WEATHER calls L.onThunder as it plays it) the whole view lifts
+    // toward a cold blue-white, laid over it so the dark comes up most, and plainly: a quick flicker as the rumble comes
+    // in, a dip, the strongest one with the crack in it (the thunder's bright noise comes in 0.3 s after it starts), a
+    // dip again and a third that hangs and dies away over a second or so (LIFT.len in all). With reduced flashing it is
+    // one soft swell, under a third as strong, with no flicker in it.
+    // L.thunderLift(tau, calm): how far the view is lifted (0..LIFT.peak) tau seconds after the thunder began.
+    const LIFT = { peak: 0.34, calm: 0.1, len: 2.4, color: '196,212,255' };
+    const pulse = (tau, t0, rise, decay) => tau < t0 ? 0 : tau < t0 + rise ? (tau - t0) / rise : Math.exp(-(tau - t0 - rise) / decay);
+    L.onThunder = () => { s.thunderT = G.t; };
+    L.thunderLift = (tau, calm) => {
+      if (!(tau >= 0) || tau > LIFT.len) return 0;
+      if (calm) return LIFT.calm * smoothstep(tau / 0.4) * (1 - smoothstep((tau - 0.4) / 1.3));
+      return LIFT.peak * Math.max(0.6 * pulse(tau, 0, 0.04, 0.07), pulse(tau, 0.24, 0.04, 0.1), 0.8 * pulse(tau, 0.46, 0.04, 0.5)) * (1 - smoothstep((tau - 1.5) / 0.9));
+    };
+    L.overlay = (ctx, W, H) => {
+      const a = s.thunderT === undefined ? 0 : L.thunderLift(G.t - s.thunderT, SAVE.data.settings.reducedFlash);
+      if (a < 0.002) return;
+      ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = 'rgba(' + LIFT.color + ',' + a.toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); ctx.restore();
+    };
     L.objectiveText = () => (s.power ? 'Lit. ' : (s.bulb ? '' : 'Put the new bulb in the lamp. ') + (s.fuse ? '' : s.blownIn ? 'Take the blown fuse out of the fuse box. ' : 'Put a new fuse in the fuse box. ')) + (s.turning ? 'Turning.' : 'Turn the crank (' + Math.min(need, Math.floor(winder.count || 0)) + '/' + need + ').');
     L.update = dt => {
       const c = L.creature;
       if (!c.wallAt) { c.wallTh = FACE[c.lane.idx]; c.wallAt = wallAt; c.wallFrame = wallFrame; }
       c.wallYOff = c.yOff || 0;
-      if (s.scut) {   // across the stone at a run, 1.6 m a second round the tower at the height it is at
+      if (s.hung && !c.dangle) { s.hung = false; if (G.state === 'play') AUDIO.sfx('scrape', Math.sin(wrapPi(azOf(c) - G.cam.yaw)) * 0.85); }   // the toolbox's knock is over: its hooks bite into the stone again
+      if (s.scut && !c.dangle) {   // across the stone at a run, 1.6 m a second round the tower at the height it is at (not while it hangs by one hand)
         const r = rad(L.eyeH + c.dist * Math.sin(c.lane.elev)), dir = Math.sign(s.scut.to - s.scut.from), step = dt * 1.6 / r / DEG;
         c.wallTh += dir * Math.min(step, Math.abs(s.scut.to - c.wallTh));
         c.scuttle = dir;
         if (Math.abs(s.scut.to - c.wallTh) < 1e-6) { c.wallTh = s.scut.to; c.scuttle = 0; s.scut = null; }
       }
+      updateBox(dt);
       if (s.turning) s.beamA += dt * TAU / 12 * s.beamSpeed;
       // the lamp goes round with the crank: a little at each turn of it, and all the time once it is going, lit or dark
       s.lensKick = (s.lensKick || 0) + ((winder.count || 0) * 0.16 - (s.lensKick || 0)) * Math.min(1, dt * 9);
@@ -313,7 +563,7 @@ LEVELS.push({
       if (s.open && !s.creaked && L.t >= s.openAt) { s.creaked = true; AUDIO.sfx('creak'); }   // the door swings as the hand pulls it
       if (s.open && door.hidden && L.t >= s.openAt + 0.2) { door.hidden = false; blown.hidden = !s.blownIn; }   // and what is inside shows
       // and the hand on its handle goes round with it
-      if (s.opening && G.hand.reach === s.opening && L.t >= s.openAt) s.opening.at = HANDS.pointOn(box, [-0.5 + 0.81 * Math.cos(smoothstep((L.t - s.openAt) / 0.38) * 1.96), 0.5], 0.02);
+      if (s.opening && G.hand.reach === s.opening && L.t >= s.openAt) s.opening.at = onFace(box, -0.5 + 0.81 * Math.cos(smoothstep((L.t - s.openAt) / 0.38) * 1.96), 0.5, 0.02);
     };
     const lensW = L.pt(AX, 1.9, AZ);
     // the fuse box, as it stands: a grey cabinet with a yellow lightning-bolt label and a handle; open, its door swings
@@ -323,6 +573,7 @@ LEVELS.push({
       const e = L.t - (s.fuseJig === undefined ? -9 : s.fuseJig), j = e < 0.7 ? Math.sin(e * 38) * Math.exp(-e * 6) * (SAVE.data.settings.reducedMotion ? 0.4 : 1) : 0;   // (less with reduced motion)
       ctx.save(); ctx.translate(j * 0.03, 0.5 - 0.48 * 0.72 + Math.abs(j) * 0.01); ctx.rotate(j * 0.06); ctx.scale(0.62, 0.72); ICONS[icon](ctx, P); ctx.restore();
     };
+    const blownArt = SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, (ctx, P) => { ctx.scale(FBW, FBH); fuseAt(ctx, P, 'blownfuse'); }, { sortDist: mounted(fb[0], fb[2]) - 0.001, hoverOnly: true, glowOf: blown, face: FFACE });
     const drawFuseBox = (ctx, P) => {
       ctx.scale(FBW, FBH);
       const rim = P.col([92, 96, 102]), metal = P.col([150, 154, 160]), dark = P.col([14, 14, 18]), ink = P.col([22, 20, 18]);
@@ -393,7 +644,7 @@ LEVELS.push({
       if (on) { const g = ctx.createRadialGradient(0, 0.5, 0.02, 0, 0.5, 0.5); g.addColorStop(0, 'rgba(255,252,232,1)'); g.addColorStop(0.35, 'rgba(255,234,180,0.7)'); g.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = g; ctx.fillRect(-0.5, 0, 1, 1); }
     };
     // the crank: a spoked wheel on a gearbox bolted to its stanchion, the wooden grip on its rim; all of it inside its own box,
-    // however it turns, so the outline you point at holds it
+    // however it turns, so what you point at holds it
     const drawCrank = (ctx, P) => {
       ctx.scale(WDS, WDS);
       const box = P.col([62, 64, 70]), boxD = P.col([36, 38, 42]), steel = P.col([132, 134, 142]), brass = P.col([168, 138, 72]), wood = P.col([128, 88, 50]), woodD = P.col([86, 58, 34]);
@@ -406,7 +657,7 @@ LEVELS.push({
       P_line(ctx, 0.31, 0, 0.44, 0, 0.11, wood); P_ell(ctx, 0.44, 0, 0.055, 0.055, woodD);           // the grip, out on the rim
     };
     L.dynamic = () => {
-      R.add(SC.mkSprite(L, AX, 0.9, AZ, LW, LH, drawLens));
+      R.add(SC.mkSprite(L, AX, 0.9, AZ, LW, LH, drawLens, { glowOf: lamp }));
       // the beam itself, a long faint wedge, drawn over everything
       if (s.power && s.turning) {
         const A = s.beamA, reach = 55, drop = 30;
@@ -417,22 +668,47 @@ LEVELS.push({
       // where it went in, far below: a burst of white on the dark water, spray thrown up and out and falling back, and a
       // ring of foam spreading from it. All of it is drawn after the sea and the rocks and before the tower, so the foot of
       // the tower hides whatever of it lies behind the stone.
-      if (s.splash) {
-        const k = s.splash.t, x = s.splash.at[0], z = s.splash.at[2], o = { dist: Math.hypot(x, z, WATER - L.eyeH), sortDist: 60, noLight: true };
-        const rim = (th, r) => { const w = r * (1 + 0.07 * Math.sin(th * 3 + 1.3) + 0.05 * Math.sin(th * 7 + 0.4) + 0.03 * Math.sin(th * 11)); return [x + Math.cos(th) * w, WATER + 0.04, z + Math.sin(th) * w]; };
+      // (the toolbox's, if it went in, is the same, smaller: sp.size)
+      for (const sp of [s.splash, s.boxSplash]) if (sp) {
+        const k = sp.t, x = sp.at[0], z = sp.at[2], o = { dist: Math.hypot(x, z, WATER - L.eyeH), sortDist: 60, noLight: true }, sz = sp.size || 1;
+        const rim = (th, r) => { const w = sz * r * (1 + 0.07 * Math.sin(th * 3 + 1.3) + 0.05 * Math.sin(th * 7 + 0.4) + 0.03 * Math.sin(th * 11)); return [x + Math.cos(th) * w, WATER + 0.04, z + Math.sin(th) * w]; };
         const ring = 0.8 + 2 * easeOut(Math.min(1, k / 1.6)), ringA = 0.55 * (1 - smoothstep((k - 0.4) / 1.6)), burst = 0.4 + 1.1 * easeOut(Math.min(1, k / 0.35)), burstA = 0.9 * (1 - smoothstep(k / 1.1));
         if (ringA > 0.01) for (let i = 0; i < 28; i++) { const a0 = i / 28 * TAU, a1 = (i + 1) / 28 * TAU; R.add(Object.assign({ kind: 'poly', pts: [rim(a0, ring - 0.45), rim(a1, ring - 0.45), rim(a1, ring), rim(a0, ring)], color: [196, 206, 212], alpha: ringA }, o)); }   // the foam, spreading
         if (burstA > 0.01) { const pts = []; for (let i = 0; i < 20; i++) pts.push(rim(i / 20 * TAU, burst)); R.add(Object.assign({ kind: 'poly', pts, color: [238, 242, 244], alpha: burstA }, o)); }   // the white where it went in
         for (let i = 0; i < 24; i++) {   // the spray: most of it thrown up and out, a few jets straight up, all of it falling back
           const jet = i >= 18, th = i / 18 * TAU + Math.sin(i * 7.3) * 0.3, h = jet ? 0.3 : 1.6 + 1.2 * (0.5 + 0.5 * Math.sin(i * 3.7)), v = jet ? 9 + 2 * Math.sin(i * 2.9) : 5 + 4 * (0.5 + 0.5 * Math.sin(i * 5.1));
-          const pt = tt => { const q = Math.max(0, tt); return [x + Math.cos(th) * h * q, WATER + v * q - GRAV * q * q / 2, z + Math.sin(th) * h * q]; }, p1 = pt(k);
+          const pt = tt => { const q = Math.max(0, tt); return [x + Math.cos(th) * h * sz * q, WATER + (v * q - GRAV * q * q / 2) * sz, z + Math.sin(th) * h * sz * q]; }, p1 = pt(k);
           if (p1[1] < WATER) continue;
-          R.add(Object.assign({ kind: 'poly', pts: [pt(k - 0.07), p1], color: [228, 234, 238], alpha: 0.8, stroke: true, lw: jet ? 0.2 : 0.14 }, o));
+          R.add(Object.assign({ kind: 'poly', pts: [pt(k - 0.07), p1], color: [228, 234, 238], alpha: 0.8, stroke: true, lw: (jet ? 0.2 : 0.14) * sz }, o));
         }
       }
+      // the toolbox on its way down the wall, turning over and over, and what fell out of it. Each is out from the stone,
+      // between you and the thing on it: never drawn behind the thing, however far below it they have fallen
+      const cr = L.creature, front = Math.hypot(cr.dist, cr.lat || 0) - 0.05;
+      const tumbling = (q, p, w, h, icon, o) => {
+        const S = Math.max(w, h) * 1.25, d = Math.hypot(p[0], p[1] - L.eyeH, p[2]), k = (o && o.scale) || 1;
+        R.add({ kind: 'sprite', x: p[0], y: p[1] - S / 2, z: p[2], w: S, h: S, card: true, layer: 1, dist: d, sortDist: (o && o.sortDist) || Math.min(d, front), noContact: true, draw: (ctx, P) => {
+          ctx.translate(0, S / 2); ctx.rotate(q.spin); ctx.scale(w * k, h * k); ctx.translate(0, -0.5); icon(ctx, P);
+        } });
+      };
+      const b = s.box;
+      if (b && !b.gone) {
+        let p = drawnAt(b), o = null;
+        if (b.t < b.out) {
+          // out of your hand: swung up over the rail's top bar and out to where it is let go, the size it was in the hand
+          // at first. Until it is let go it is in your hands, and drawn as what you hold is: over the rail and the floor
+          const k = smoothstep(b.t / b.out);
+          p = p.map((v, i) => lerp(b.from[i], v, k)); p[1] += Math.sin(Math.PI * k) * DROP.lift;
+          o = { sortDist: 0.05, scale: lerp(b.scale0, 1, k) };
+        } else if (p[1] > 0) o = { sortDist: 0.05 };   // let go, and still above the floor: held out over the rail it is seen over it, bars and all
+        b.drawn = p;   // (where it is drawn)
+        tumbling(b, p, TBW, TBH, ICONS.lighthouseToolbox, o);
+      }
+      for (const q of s.spill || []) if (!q.gone) tumbling(q, bodyAt(q), q.w, q.h, q.icon);
       // the fuse box and the crank, showing their state
-      R.add(SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, drawFuseBox, { sortDist: mounted(fb[0], fb[2]) }));
-      R.add(SC.mkSprite(L, wd[0], wd[1], wd[2], WDS, WDS, drawCrank, { sortDist: mounted(wd[0], wd[2]) }));
+      R.add(SC.mkSprite(L, fb[0], fb[1], fb[2], FBW, FBH, drawFuseBox, { sortDist: mounted(fb[0], fb[2]), glowOf: [box, door], face: FFACE }));
+      if (!blown.hidden) R.add(blownArt);   // (the blown fuse in its clips is drawn in the box; this is it over the box, only while it is pointed at, to glow)
+      R.add(SC.mkSprite(L, wd[0], wd[1], wd[2], WDS, WDS, drawCrank, { sortDist: mounted(wd[0], wd[2]), glowOf: winder, face: MFACE }));
     };
     L.dynamicLights = () => {
       if (!s.power) return [];
@@ -501,6 +777,7 @@ LEVELS.push({
       const on = onLane();
       if (on && !s.crossing && a.hits < 2) {
         const last = a.hits === 1;   // the second pass is the last it takes
+        CREATURES.climber.recover(c);   // (hanging by one hand from the toolbox still: the light has all of it off the stone)
         a.mode = last ? 'slip' : 'slide'; c.slideV = 0.6; c.slideTo = last ? Infinity : c.dist + AFTER.knock; a.slip = AFTER.slip; a.hits++; c.struck = 1;   // white in the beam
         AUDIO.sfx('scrape', Math.sin(wrapPi(azOf(c) - G.cam.yaw)) * 0.85); G.shake(0.2);
       }

@@ -1,9 +1,10 @@
 'use strict';
 // The smiler: the graveyard's old warden, a crypt keeper bent nearly double. A hump rises behind his left shoulder and his
 // bald head juts forward low out of the collar, white wisps of hair lifting off the skull; a gaunt face, sunken cheeks, deep
-// sockets, a long hooked nose, and the grin. A long ragged coat, a tattered cape over the shoulders and the hump, a rope belt
-// with a ring of iron keys on it, a hooked staff with nothing hanging from its hook, and long bony hands held dead still. His
-// head tilts further the nearer he comes. A night can also show him
+// sockets, a long hooked nose, and the grin: thin lips stretched far too wide over long yellowed teeth, a few of them gone.
+// A long ragged coat, a tattered cape over the shoulders and the hump, a rope belt with a ring of iron keys on it, a hooked
+// staff with nothing hanging from its hook, and long bony hands held dead still. His head tilts further the nearer he comes.
+// A night can also show him
 //  - running flat out, side on (drawRun: c.runPose, c.runDir +1 to the right of the view, c.runGait its stride): bent further
 //    over, the legs reach, the coat and its tatters stream out behind, the arms stay pinned to his sides with the staff
 //    slanting in his fist, and the head stays turned to you, grinning. game.js sends him round a sealed way on his feet this
@@ -14,7 +15,19 @@
 //  - turning away (c.turn 0..1, toward c.turnDir): side on, leaning on the staff, the face still turned to you, then the face
 //    goes too;
 //  - walking off (c.away, or c.turn at 1): from behind, the hump, the back of the bald head low beside it, the staff;
-//  - reaching for you (c.lunge 0..1, his death lunge): he lets the staff fall and both hands come up at you.
+//  - reaching for you (c.lunge 0..1, his death lunge): he lets the staff fall and both hands come at you, the long fingers
+//    hooked, to either side of his face; the head jerks one way and the other, the grin stretches and gapes, the eyes stare wider.
+// And, handed a bag of sugar (night 3's easter egg), each of these a field the night sets:
+//  - taking it and looking at it (c.bag 0..1: his free hand comes out and up, the bag hanging from his fist beside his face
+//    once he has it, c.bagHas; c.cock -1..1: his head cocked to the bag, or away from it);
+//  - pouring it in (c.tip 0..1: his head goes back, his mouth open to the sky, the bag upended over it; c.pour 0..1: how
+//    much of it has gone, the stream running meanwhile and the bag going slack; c.gulp 0..1: the lump in his throat);
+//  - the sugar in him (c.wired 0..1: the eyes wide, a pinprick in each, the wisps of hair on end; c.buzz 0..1: all of him
+//    trembling; c.flail 0..1: both arms in the air, waving, the staff with them, running side on or straight at you);
+//  - skidding to a stop (c.skid 0..1: heels dug in, sitting back, the arms flung out; c.dust 0..1: the dust he raised, as it
+//    spreads and thins).
+// The sugar stays in him to the end of the night: c.wired and c.buzz are drawn in every view of him (bowed over the salt,
+// reaching for you, side on, in profile and from behind).
 CREATURES.smiler = {
   name: 'the smiler', h: 1.75, w: 1.0, faceY: 1.32, stepRate: 1.3, catchDist: 1.4, sound: 'smiler',
   runW: 1.7,   // how wide the side-on run is drawn, the trailing heel to the leading toe and the staff's hook
@@ -34,26 +47,35 @@ CREATURES.smiler = {
     return {
       coat: P.col([30, 27, 24]), coatL: P.col([58, 52, 45]), coatF: P.col([15, 14, 13]), coatD: P.col([9, 8, 8]), cape: P.col([38, 34, 30]),
       skin: P.col([210, 202, 182]), skinS: P.col([172, 162, 143]), skinD: P.col([104, 92, 80]), shade: P.col([160, 150, 134]),
-      hair: P.col([228, 226, 218]), hairA: P.cola([228, 226, 218], 0.72), sock: P.cola([92, 80, 68], 0.9), sock0: P.cola([150, 140, 124], 0), white: P.col([244, 238, 220]), black: P.col([4, 4, 6]),
+      hair: P.col([228, 226, 218]), hairA: P.cola([228, 226, 218], 0.72), sock: P.cola([92, 80, 68], 0.9), sock0: P.cola([150, 140, 124], 0), hollow: P.cola([150, 138, 120], 0.85), hollow0: P.cola([170, 160, 142], 0), white: P.col([244, 238, 220]),
       wood: P.col([80, 62, 44]), woodD: P.col([44, 34, 25]), iron: P.col([110, 104, 92]), rope: P.col([88, 76, 56]),
       leg: P.col([24, 22, 20]), boot: P.col([12, 10, 9]),
     };
   },
+  // how he shakes, with the sugar in him: a different way every frame (k: which part of him)
+  jit(t, k) { return Math.sin(t * 191.3 + k * 2.7) * 0.6 + Math.sin(t * 113.7 + k * 5.1) * 0.4; },
   draw(ctx, c, P) {
-    if (c.runPose) { this.drawRun(ctx, c, P); return; }
-    if (c.away || c.turn >= 1) { this.drawBack(ctx, c, P); return; }
-    if (c.turn > 0) { this.drawSide(ctx, c, P, false, c.turn); return; }
+    const bz = c.buzz || 0;
+    if (bz) { ctx.save(); ctx.translate(this.jit(c.t, 0) * 0.022 * bz, Math.abs(this.jit(c.t, 1)) * 0.014 * bz); ctx.rotate(this.jit(c.t, 2) * 0.014 * bz); }
+    if (c.runPose) this.drawRun(ctx, c, P);
+    else if (c.away || c.turn >= 1) this.drawBack(ctx, c, P);
+    else if (c.turn > 0) this.drawSide(ctx, c, P, false, c.turn);
+    else this.drawFront(ctx, c, P);
+    if (bz) ctx.restore();
+  },
+  drawFront(ctx, c, P) {
     const g = c.gait, t = c.t, K = this.pal(P);
     const near = clamp(1 - c.dist / 22, 0, 1);
     const rush = c.rush || 0, bow = smoothstep(c.bow || 0), lunge = c.lunge || 0;
-    const bob = Math.abs(Math.sin(g)) * (0.026 + rush * 0.05);
+    const bag = smoothstep(c.bag || 0), tip = smoothstep(c.tip || 0), fl = c.flail || 0, skid = smoothstep(c.skid || 0), bz = c.buzz || 0, aloft = Math.max(fl, skid);
+    const bob = Math.abs(Math.sin(g)) * (0.026 + rush * 0.05) * (1 - skid);
     const jx = c.hitchFlash > 0 ? (c.rand() - 0.5) * 0.09 : 0;
-    const hb = bob - bow * 0.09 + lunge * 0.05;   // the shoulders: down as he bows over the salt, up as he reaches
+    const hb = bob - bow * 0.09 + lunge * 0.05 - skid * 0.07;   // the shoulders: down as he bows over the salt, up as he reaches (skidding, he sits back)
     ctx.save(); ctx.translate(jx, 0);
     // the staff, in his right hand (the left of the view), its foot lifted and set down with his right foot. Reaching for
     // you, he lets it go: it tips away from him and is gone
     const sg = Math.max(0, Math.sin(g + Math.PI)) * 0.05 * (1 - lunge);
-    if (lunge < 0.62) {
+    if (lunge < 0.62 && aloft < 0.5) {   // (flailing, it is in the air with his arms: below)
       ctx.save(); ctx.globalAlpha *= 1 - smoothstep(lunge / 0.62);
       ctx.translate(-0.39, sg); ctx.rotate(lunge * 0.9);
       this.staff(ctx, K, 0, 0, 0.02, 1.62, 1, near);
@@ -61,9 +83,9 @@ CREATURES.smiler = {
     }
     // legs, bowed, the knees bent under the coat (rushing at you, they come right up)
     for (const s of [-1, 1]) {
-      const ph = g + (s > 0 ? Math.PI : 0), lift = Math.max(0, Math.sin(ph)) * (0.12 + rush * 0.22);
-      P_limb(ctx, [[s * 0.08, 0.7 + bob], [s * 0.15, 0.38 + lift * 0.7], [s * 0.115, lift + 0.05]], 0.07, K.leg);
-      P_ell(ctx, s * 0.135, lift + 0.035, 0.066, 0.034, K.boot, s * 0.12);
+      const ph = g + (s > 0 ? Math.PI : 0), lift = Math.max(0, Math.sin(ph)) * (0.12 + rush * 0.22) * (1 - skid);
+      P_limb(ctx, [[s * 0.08, 0.7 + bob], [s * (0.15 + skid * 0.07), 0.38 + lift * 0.7], [s * (0.115 + skid * 0.13), lift + 0.05]], 0.07, K.leg);
+      P_ell(ctx, s * (0.135 + skid * 0.14), lift + 0.035 + skid * 0.02, 0.066 + skid * 0.02, 0.034 + skid * 0.036, K.boot, s * 0.12);   // (skidding: the feet wide, the soles toward you)
     }
     // the long coat, wider at the hem, the hem in tatters
     const hy = 0.46 + bob * 0.5;
@@ -74,11 +96,24 @@ CREATURES.smiler = {
     // the rope belt, and the ring of keys at his left hip
     P_line(ctx, -0.3, 0.85 + bob, 0.31, 0.87 + bob, 0.026, K.rope);
     P_limb(ctx, [[-0.06, 0.855 + bob], [-0.075, 0.76 + bob], [-0.065, 0.7 + bob]], 0.014, K.rope);
-    this.keys(ctx, K, 0.17, 0.82 + bob, Math.sin(g * 2) * (c.moving ? 0.28 : 0.04), near);
-    // the arms, out from under the cape: the right one bent to the staff, the left hanging long. Reaching, they come up at you
-    const rh = [lerp(-0.37, -0.32, lunge), lerp(0.94 + sg * 0.6 + bob * 0.5, 1.38, lunge)], lh = [lerp(0.3, 0.31, lunge), lerp(0.64 + bob, 1.4, lunge)];
-    P_limb(ctx, [[-0.25, 1.18 + hb], [lerp(-0.34, -0.36, lunge), lerp(1.02, 1.1, lunge) + hb], rh], 0.068, K.coat);
-    P_limb(ctx, [[0.27, 1.2 + hb], [lerp(0.33, 0.36, lunge), lerp(0.92, 1.08, lunge) + bob], lh], 0.068, K.coat);
+    this.keys(ctx, K, 0.17, 0.82 + bob, Math.sin(g * 2) * (c.moving ? 0.28 : 0.04) + this.jit(t, 3) * 0.5 * bz, near);
+    // the arms, out from under the cape: the right one bent to the staff, the left hanging long. Reaching, they come at you,
+    // the elbows going out and the hands coming in, either side of his face and below it, to take you by the throat
+    const reach = smoothstep(clamp(lunge / 0.7, 0, 1));
+    let rh = [lerp(-0.37, -0.3, reach), lerp(0.94 + sg * 0.6 + bob * 0.5, 1.06, reach)], lh = [lerp(0.3, 0.31, reach), lerp(0.64 + bob, 0.99, reach)];
+    let re = [lerp(-0.34, -0.47, reach), lerp(1.02, 0.92, reach) + hb], le = [lerp(0.33, 0.49, reach), lerp(0.92, 0.86, reach) + bob];   // the elbows
+    const mix = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
+    if (bag) { lh = mix(lh, [0.3, 1.2 + hb], bag); le = mix(le, [0.47, 0.96 + hb], bag); }   // the bag, held up beside his face
+    if (tip) { lh = mix(lh, [0.045, 1.83 + hb], tip); le = mix(le, [0.43, 1.5 + hb], tip); }   // and upended over his mouth
+    if (fl) {   // both arms in the air, waving
+      const wv = k => Math.sin(t * 21 + k);
+      rh = mix(rh, [-0.43 + wv(0) * 0.17, 1.7 + wv(1.3) * 0.08], fl); re = mix(re, [-0.47 + wv(0) * 0.06, 1.36], fl);
+      lh = mix(lh, [0.45 + wv(2.1) * 0.17, 1.68 + wv(3.2) * 0.08], fl); le = mix(le, [0.48 + wv(2.1) * 0.06, 1.34], fl);
+    }
+    if (skid) { rh = mix(rh, [-0.76, 1.2], skid); re = mix(re, [-0.5, 1.16], skid); lh = mix(lh, [0.76, 1.12], skid); le = mix(le, [0.5, 1.14], skid); }   // flung out, for balance
+    if (bz) { rh = [rh[0] + this.jit(t, 4) * 0.012 * bz, rh[1] + this.jit(t, 5) * 0.012 * bz]; lh = [lh[0] + this.jit(t, 6) * 0.012 * bz, lh[1] + this.jit(t, 7) * 0.012 * bz]; }
+    P_limb(ctx, [[-0.25, 1.18 + hb], re, rh], lerp(0.068, 0.085, reach), K.coat);
+    P_limb(ctx, [[0.27, 1.2 + hb], le, lh], lerp(0.068, 0.085, reach), K.coat);
     // the cape, over the shoulders and up over the hump, its edge in tatters; the top of the hump catches what light there is
     const cb = 1.0 + hb;
     const capeTop = [[0.335, 1.24 + hb]].concat(this.hump(0.1, 1.36 + hb, 1), [[-0.13, 1.34 + hb], [-0.28, 1.24 + hb]]);
@@ -86,19 +121,69 @@ CREATURES.smiler = {
     P_limb(ctx, capeTop.slice(1, -2), 0.02, K.coatL);
     // the hands: bony, the knuckles standing out. Reaching for you they are nearer than his face, and drawn over it
     const fist = (x, y) => { P_ell(ctx, x, y, 0.04, 0.05, K.skin); if (near > 0.2) for (let k = 0; k < 3; k++) P_ell(ctx, x + 0.026, y + 0.03 - k * 0.026, 0.012, 0.01, K.skinS); };
-    const hands = () => {
+    // the bag in his left fist: hanging from it by its neck, or, his head back, turned right over above his mouth, the fist
+    // at the bottom of it now and the neck down (where the neck is, and how far over it is turned)
+    const sackA = tip * (Math.PI - 0.1), sackG = 0.31 * tip, neck = [lh[0] - Math.sin(sackA) * sackG, lh[1] + Math.cos(sackA) * sackG];
+    const hands = () => {   // (reaching, nearer than he is, so larger, the long fingers splayed and hooked)
+      const big = (x, y, f) => { ctx.save(); ctx.translate(x, y); ctx.scale(1 + 0.4 * reach, 1 + 0.4 * reach); ctx.translate(-x, -y); f(); ctx.restore(); };
+      if (aloft >= 0.5) {   // the staff in the air with his arm, held near its foot
+        const a = Math.sin(t * 21) * 0.5 * fl - 0.25 - skid * 1.1, sx = Math.sin(a), sy = Math.cos(a);
+        this.staff(ctx, K, rh[0] - sx * 0.3, rh[1] - sy * 0.3, rh[0] + sx * 1.0, rh[1] + sy * 1.0, 1, near);
+      }
       if (lunge < 0.05) fist(rh[0], rh[1]);
-      else this.hand(ctx, K, rh[0], rh[1], lerp(-Math.PI / 2, Math.PI * 0.64, Math.min(1, lunge * 1.4)), 0.16, -0.25, 1);
-      this.hand(ctx, K, lh[0], lh[1], lerp(-Math.PI / 2 - 0.06, Math.PI * 0.36, Math.min(1, lunge * 1.4)), 0.12 + near * 0.06 + lunge * 0.04, lerp(0.35, -0.25, lunge), near + lunge);
+      else big(rh[0], rh[1], () => this.hand(ctx, K, rh[0], rh[1], lerp(-Math.PI / 2, 0.8, reach), lerp(0.16, 0.18, reach), lerp(-0.25, -1.0, reach), 1));
+      if (c.bagHas) { if (tip < 0.5) { this.sack(ctx, P, neck[0], neck[1], sackA, 1); fist(lh[0], lh[1]); } }   // (upended, it is drawn over his head: below)
+      else if (aloft > 0.5) this.hand(ctx, K, lh[0], lh[1], Math.PI / 2 - 0.5 + Math.sin(t * 21 + 2.1) * 0.4 * fl - skid * 0.9, 0.15, 0.25, near);   // the fingers spread
+      else big(lh[0], lh[1], () => this.hand(ctx, K, lh[0], lh[1], lerp(lerp(-Math.PI / 2 - 0.06, 0.2, bag), -Math.PI - 0.85, reach), lerp(0.12 + near * 0.06, 0.18, reach), lerp(0.35, 1.0, reach), near + lunge));
     };
-    if (lunge < 0.5) hands();
+    if (lunge < 0.3) hands();
     // the head, jutting forward out of the collar, low between the shoulders, craned up at you (bowed, it drops further)
-    P_ell(ctx, -0.01, 1.15 + hb, 0.1, 0.035, K.coatD);   // its shadow on his chest
-    const tilt = (0.06 + near * 0.5 + lunge * 0.3) * (Math.floor(t / 7) % 2 ? -1 : 1) * (1 - bow * 0.4);
-    ctx.save(); ctx.translate(-0.01, 1.13 + hb - bow * 0.05 + lunge * 0.02); ctx.rotate(tilt);
-    this.face(ctx, c, P, near, lunge, bow);
+    // Reaching, it jerks: it snaps one way and the other at odd moments, over and over further, trembling
+    const side = Math.floor(t / 7) % 2 ? -1 : 1;
+    let jerk = 0;
+    if (lunge > 0) for (const [k, d] of [[0.1, -0.55], [0.27, 0.8], [0.46, -0.4], [0.66, 0.5], [0.82, -0.15]]) jerk += d * smoothstep((lunge - k) / 0.035);
+    const cock = c.cock || 0, own = (1 - Math.max(bag, tip)) * (1 - skid);   // (with the bag, the tilt of his head is all for the bag)
+    const tilt = ((0.06 + near * 0.5) * (1 - bow * 0.4) * own + jerk) * side + Math.sin(t * 53) * 0.02 * lunge - cock * 0.36 * (1 - tip) + this.jit(t, 8) * 0.05 * bz;
+    const hx = -0.01 + jerk * side * 0.02 + cock * 0.025 * (1 - tip), hy0 = 1.13 + hb - bow * 0.05 + lunge * 0.02 + tip * 0.035;
+    ctx.save(); ctx.translate(hx, hy0); ctx.rotate(tilt);
+    if (tip > 0.5) { ctx.scale(1, 0.7 + 0.3 * (tip - 0.5) * 2); this.faceUp(ctx, c, P, near); }
+    else { if (tip) ctx.scale(1, 1 - tip * 0.6); this.face(ctx, c, P, near, lunge, bow); }
     ctx.restore();
-    if (lunge >= 0.5) hands();
+    if (c.bagHas && tip >= 0.5) {   // the bag over his head, and the sugar running out of it into his mouth
+      const pour = c.pour || 0, mx = hx, my = hy0 + 0.19;
+      if (pour > 0.01 && pour < 0.99) {
+        const w0 = 0.014, w1 = 0.022 + Math.sin(t * 31) * 0.004, sw = Math.sin(t * 43) * 0.004, white = P.col([244, 240, 230]);
+        P_poly(ctx, [[neck[0] - w0, neck[1]], [neck[0] + w0, neck[1]], [mx + w1 + sw, my], [mx - w1 + sw, my]], white);
+        for (let i = 0; i < 7; i++) {   // and what misses, bouncing off his teeth and his chin
+          const r = (Math.abs(Math.sin(i * 12.9898 + 4.1) * 43758.5453) + t * (2.2 + i * 0.23)) % 1, a = (i - 3) * 0.45;
+          P_ell(ctx, mx + Math.sin(a) * (0.03 + r * 0.13), my + 0.01 + Math.cos(a) * r * 0.1 - r * r * 0.16, 0.0065, 0.0065, white);
+        }
+      }
+      this.sack(ctx, P, neck[0], neck[1], sackA, 1 - pour);
+      fist(lh[0], lh[1]);
+    }
+    if (lunge >= 0.3) hands();
+    const dust = c.dust || 0;
+    if (dust > 0 && dust < 1) {   // the dust of his skid, rolling out from his heels toward you, spreading and thinning
+      for (let i = 0; i < 7; i++) {
+        const r = Math.abs(Math.sin(i * 78.233 + 1.7) * 437.585) % 1, s = i % 2 ? 1 : -1, k = clamp(dust * 1.25 - r * 0.25, 0, 1);
+        P_ell(ctx, s * (0.16 + r * 0.2 + k * (0.18 + r * 0.3)), 0.05 + k * (0.1 + r * 0.22), 0.07 + k * 0.13, 0.05 + k * 0.09, P.cola([150, 142, 130], (1 - k) * 0.5 * Math.min(1, dust * 10)));
+      }
+    }
+    ctx.restore();
+  },
+  // a paper bag of sugar, red with a pale band, hanging by its gathered neck from (x, y) and turned over by rot (at PI it
+  // is upside down, its neck at the bottom); full 1..0: emptied, it goes slack and thin
+  sack(ctx, P, x, y, rot, full) {
+    const paper = P.col([196, 30, 26]), band = P.col([214, 204, 188]), dark = P.col([120, 16, 14]);
+    const w = 0.108 * (0.62 + 0.38 * full), h = 0.37, sag = (1 - full) * 0.035;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+    ctx.fillStyle = paper; ctx.beginPath();
+    ctx.moveTo(-0.03, 0.03); ctx.lineTo(0.03, 0.03); ctx.lineTo(0.036, -0.035); ctx.quadraticCurveTo(w, -0.06, w, -0.14);
+    ctx.lineTo(w * 0.94 - sag, -h + 0.03); ctx.quadraticCurveTo(0, -h - 0.02 + sag, -w * 0.94 + sag, -h + 0.03);
+    ctx.lineTo(-w, -0.14); ctx.quadraticCurveTo(-w, -0.06, -0.036, -0.035); ctx.closePath(); ctx.fill();
+    P_rect(ctx, -w, -0.255, 2 * w, 0.075, band); P_rect(ctx, -0.026, -0.238, 0.052, 0.04, paper);
+    P_line(ctx, -w * 0.8, -0.3, w * 0.8, -0.3, 0.008, dark); P_line(ctx, -0.034, -0.036, 0.034, -0.036, 0.01, dark);
     ctx.restore();
   },
   // the top of the cape over the hump, from the high shoulder (side +1: on the right of the view) round to the other: an
@@ -161,17 +246,51 @@ CREATURES.smiler = {
     P_limb(ctx, [[x, y], [tx, ty], [tx + Math.cos(th - 0.35) * len * 0.22, ty + Math.sin(th - 0.35) * len * 0.22]], 0.016, K.skin);
   },
   // wisps of white hair off the sides and back of the bald skull, lifting and stirring (in the frame of the chin)
-  wisps(ctx, K, t, front) {
+  // (up 0..1: wired, every one of them stands straight out from his head, quivering)
+  wisps(ctx, K, t, front, up) {
+    up = up || 0;
     ctx.strokeStyle = K.hairA; ctx.lineWidth = 0.005; ctx.lineCap = 'round'; ctx.beginPath();
     for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {   // over each ear: the top one lifts, the others hang
-      const y0 = 0.2 + i * 0.03, sw = Math.sin(t * 1.6 + i * 2.3 + s) * 0.014, end = i === 2 ? 0.075 : -0.025 - i * 0.03;
-      ctx.moveTo(s * 0.098, y0); ctx.quadraticCurveTo(s * (0.16 + i * 0.012), y0 + 0.045, s * (0.185 + i * 0.014) + sw, y0 + end);
+      const y0 = 0.2 + i * 0.03, sw = Math.sin(t * 1.6 + i * 2.3 + s) * 0.014 + Math.sin(t * 67 + i * 1.9 + s) * 0.008 * up, end = lerp(i === 2 ? 0.075 : -0.025 - i * 0.03, 0.03 + i * 0.045, up);
+      ctx.moveTo(s * 0.098, y0); ctx.quadraticCurveTo(s * (0.16 + i * 0.012), y0 + lerp(0.045, 0.02 + i * 0.02, up), s * (0.185 + i * 0.014 + up * 0.05) + sw, y0 + end);
     }
     if (front) for (const s of [-1, 1]) {   // and two long ones lifting off the crown and curling over
-      const sw = Math.sin(t * 1.3 + s) * 0.015, x0 = s * 0.035;
-      ctx.moveTo(x0, 0.325); ctx.quadraticCurveTo(x0 + s * 0.05, 0.41, x0 + s * 0.1 + sw, 0.375);
+      const sw = Math.sin(t * 1.3 + s) * 0.015 + Math.sin(t * 59 + s) * 0.008 * up, x0 = s * 0.035;
+      ctx.moveTo(x0, 0.325); ctx.quadraticCurveTo(x0 + s * lerp(0.05, 0.015, up), lerp(0.41, 0.42, up), x0 + s * lerp(0.1, 0.03, up) + sw, lerp(0.375, 0.5, up));
     }
     ctx.stroke();
+  },
+  // the head tipped right back, in the frame of the chin: the throat stretched up out of the collar (the lump in it riding
+  // up as he swallows, c.gulp), the underside of the jaw toward you, and over it the mouth open to the sky, as wide as it
+  // goes, both rows of teeth round it; past that the nose from below, and the eyes, two slivers under the brow
+  faceUp(ctx, c, P, near) {
+    const K = this.pal(P), t = c.t, gulp = c.gulp || 0;
+    P_poly(ctx, [[-0.05, -0.07], [0.05, -0.07], [0.066, 0.1], [-0.066, 0.1]], K.shade);
+    P_ell(ctx, 0.002, 0.012 + gulp * 0.05, 0.02, 0.024 + gulp * 0.006, K.skinS);
+    ctx.strokeStyle = K.hairA; ctx.lineWidth = 0.005; ctx.lineCap = 'round'; ctx.beginPath();
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {   // the wisps hang straight down behind him
+      const sw = Math.sin(t * 1.6 + i * 2.3 + s) * 0.01;
+      ctx.moveTo(s * 0.098, 0.15 + i * 0.02); ctx.quadraticCurveTo(s * (0.15 + i * 0.012), 0.1, s * (0.135 + i * 0.016) + sw, 0.0 - i * 0.025);
+    }
+    ctx.stroke();
+    for (const s of [-1, 1]) P_ell(ctx, s * 0.108, 0.12, 0.025, 0.04, K.skinS, -s * 0.2);
+    P_ell(ctx, 0, 0.175, 0.108, 0.118, K.skin);
+    P_poly(ctx, [[-0.102, 0.15], [-0.075, 0.08], [-0.03, 0.058], [0.03, 0.058], [0.075, 0.08], [0.102, 0.15], [0.07, 0.112], [0, 0.098], [-0.07, 0.112]], K.shade);   // under the jaw
+    const my = 0.19, rx = 0.074, ry = 0.056;
+    const mouth = () => { ctx.beginPath(); ctx.ellipse(0, my, rx, ry, 0, 0, TAU); };
+    mouth(); ctx.fillStyle = P.col([38, 12, 14]); ctx.fill();
+    ctx.save(); mouth(); ctx.clip();
+    const tooth = P.col([222, 210, 172]), n = 9, w = 2 * rx / n;
+    for (let i = 0; i < n; i++) {
+      const x = -rx + (i + 0.5) * w, e = ry * Math.sqrt(Math.max(0, 1 - (x / rx) * (x / rx))), r = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
+      if (i !== 2 && i !== 6) P_rect(ctx, x - w * 0.43, my + e - 0.019 - 0.008 * r, w * 0.86, 0.04, tooth);   // the top row, at the far side of it
+      if (i !== 4) P_rect(ctx, x - w * 0.42, my - e - 0.02, w * 0.84, 0.036 + 0.006 * r, tooth);   // the bottom row, nearest you
+    }
+    ctx.restore();
+    ctx.strokeStyle = K.skinD; ctx.lineWidth = 0.008; mouth(); ctx.stroke();
+    P_poly(ctx, [[-0.024, my + ry + 0.002], [0.024, my + ry + 0.002], [0.012, my + ry + 0.034], [-0.012, my + ry + 0.034]], K.shade);   // the nose, from below
+    for (const s of [-1, 1]) P_ell(ctx, s * 0.01, my + ry + 0.012, 0.007, 0.006, K.skinD);
+    for (const s of [-1, 1]) { P_ell(ctx, s * 0.058, 0.262, 0.021, 0.0085, K.white); P_line(ctx, s * 0.086, 0.268, s * 0.03, 0.278, 0.01, K.skinD); }
   },
   // the head from the front, in the frame of the chin (the head's base, where it comes out of the collar). Bowed (bow 0..1)
   // the bald crown comes into view, the face drops and shortens, and the eyes look down under lids half shut; the grin stays.
@@ -180,25 +299,31 @@ CREATURES.smiler = {
     const fy = bow * 0.07;   // how far the features drop
     if (bow) { ctx.translate(0, 0.07); ctx.scale(1, 1 - bow * 0.14); ctx.translate(0, -0.07); }   // foreshortened, tipped toward you
     for (const s of [-1, 1]) P_ell(ctx, s * 0.11, 0.17 - fy * 0.6, 0.026, 0.047, K.skinS, -s * 0.2);   // the ears, big, set out from the skull
-    this.wisps(ctx, K, t, true);
+    const wired = c.wired || 0;
+    this.wisps(ctx, K, t, true, wired);
     // the skull, high and narrow, the jaw coming down to a point
     P_ell(ctx, 0, 0.2, 0.106, 0.13, K.skin);
-    P_poly(ctx, [[-0.104, 0.19], [-0.1, 0.1], [-0.064, 0.035], [-0.022, 0.004], [0, 0], [0.022, 0.004], [0.064, 0.035], [0.1, 0.1], [0.104, 0.19]], K.skin);
-    for (const s of [-1, 1]) P_ell(ctx, s * 0.07, 0.112 - fy * 0.5, 0.024, 0.036, K.shade);   // the cheeks, sunk in
+    const drop = lunge * 0.045;   // (gaping, the jaw drops)
+    P_poly(ctx, [[-0.104, 0.19], [-0.1, 0.1], [-0.066, 0.035 - drop], [-0.022, 0.004 - drop], [0, -drop], [0.022, 0.004 - drop], [0.066, 0.035 - drop], [0.1, 0.1], [0.104, 0.19]], K.skin);
+    for (const s of [-1, 1]) {   // the cheeks, sunk in under the cheekbones (a soft hollow, darkest in the middle)
+      const x = s * 0.07, y = 0.14 - fy * 0.5, hg = ctx.createRadialGradient(x, y, 0, x, y, 0.034);
+      hg.addColorStop(0, K.hollow); hg.addColorStop(1, K.hollow0); ctx.fillStyle = hg;
+      ctx.beginPath(); ctx.ellipse(x, y, 0.024, 0.036, -s * 0.25, 0, TAU); ctx.fill();
+    }
     if (bow > 0.02) {   // the bald crown, tipped toward you, two long hairs combed across it
       P_ell(ctx, 0, 0.3 - fy * 0.3, 0.098, 0.055 * bow, K.skin);
       ctx.save(); ctx.globalAlpha *= bow;
       P_limb(ctx, [[-0.08, 0.29], [-0.02, 0.32], [0.07, 0.3]], 0.005, K.hair); P_limb(ctx, [[-0.07, 0.31], [0.01, 0.33], [0.08, 0.31]], 0.005, K.hair);
       ctx.restore();
     }
-    // the eyes, deep in their sockets under a heavy brow: wide, whites showing, looking up at you from under it
-    const er = 0.022 + near * 0.012 + lunge * 0.01, ey = 0.2 - fy;
+    // the eyes, deep in their sockets under a heavy brow: wide and blank, all white, staring at you from under it
+    const er = 0.022 + near * 0.012 + lunge * 0.01 + wired * 0.009, ey = 0.2 - fy;   // (wired, wider yet, a pinprick in the middle of each, jumping about)
     for (const s of [-1, 1]) {
       const sg = ctx.createRadialGradient(s * 0.044, ey + er * 0.35, er * 0.6, s * 0.044, ey + er * 0.2, er * 2);   // the socket, sunk in, darkest under the brow
       sg.addColorStop(0, K.sock); sg.addColorStop(1, K.sock0); ctx.fillStyle = sg;
       ctx.beginPath(); ctx.ellipse(s * 0.044, ey + er * 0.2, er * 2, er * 1.8, 0, 0, TAU); ctx.fill();
       P_ell(ctx, s * 0.044, ey, er, er * 1.05, K.white);
-      P_ell(ctx, s * 0.044, ey + 0.004 - bow * er * 0.65, 0.0075, 0.0085, K.black);
+      if (wired > 0.05) P_ell(ctx, s * 0.044 + this.jit(t, 9 + s) * er * 0.22, ey + this.jit(t, 12 + s) * er * 0.22, er * 0.16 * wired, er * 0.16 * wired, P.col([26, 18, 18]));
       if (bow > 0.01) {   // the lids come down over the top of the eyes
         ctx.save(); ctx.beginPath(); ctx.ellipse(s * 0.044, ey, er * 1.02, er * 1.08, 0, 0, TAU); ctx.clip();
         P_ell(ctx, s * 0.044, ey + er * 1.05 * (2 - bow * 0.95), er * 1.25, er * 1.05, K.skinS);
@@ -211,19 +336,28 @@ CREATURES.smiler = {
     P_poly(ctx, [[-0.01, ey + 0.004], [0.01, ey + 0.004], [0.018, ny], [0.0, ny - 0.016], [-0.018, ny]], K.shade);
     P_line(ctx, 0.0, ey, 0.004, ny, 0.008, K.skin);
     for (const s of [-1, 1]) P_ell(ctx, s * 0.011, ny - 0.006, 0.006, 0.004, K.skinD);
-    // the grin, right across the narrow face: long teeth, some of them gone
-    const gd = (0.036 + near * 0.024 + lunge * 0.026) * (1 - bow * 0.35), my = 0.085 - fy * 0.5;
-    const gw = Math.min(0.092, 0.07 + near * 0.016 + lunge * 0.012) * (1 - bow * 0.08);
-    if (near > 0.3) for (const s of [-1, 1]) P_line(ctx, s * 0.022, ny - 0.004, s * (gw + 0.006), my + 0.004, 0.005, K.skinD);   // the lines down to its corners
-    ctx.fillStyle = K.white; ctx.beginPath();
-    ctx.moveTo(-gw, my); ctx.quadraticCurveTo(0, my - gd * 0.25, gw, my);
-    ctx.quadraticCurveTo(0, my - gd * 2.2, -gw, my); ctx.closePath(); ctx.fill();
-    if (near > 0.15 || lunge > 0) {
-      ctx.save(); ctx.beginPath(); ctx.moveTo(-gw, my); ctx.quadraticCurveTo(0, my - gd * 0.25, gw, my); ctx.quadraticCurveTo(0, my - gd * 2.2, -gw, my); ctx.closePath(); ctx.clip();
-      for (const i of [-2, 1]) P_rect(ctx, i * gw * 0.26 + gw * 0.03, my - gd * 1.2, gw * 0.2, gd * 1.2, P.cola([40, 18, 18], 0.9));   // gaps
-      ctx.restore();
-      ctx.strokeStyle = P.cola([60, 40, 40], 0.8); ctx.lineWidth = 0.006; ctx.beginPath();
-      for (let i = -3; i <= 3; i++) { const x = i * gw * 0.26; const d = gd * (1 - Math.abs(i) / 4.2); ctx.moveTo(x, my - d * 0.1); ctx.lineTo(x, my - d * 1.1); }
+    // the grin: a thin-lipped mouth stretched far too wide, its corners drawn right up into the hollow cheeks and the lips
+    // pulled back off two rows of long yellowed teeth, a few of them gone. It parts as he nears, and reaching for you it
+    // stretches wider still and gapes. (Each lip is a curve from corner to corner, so a point along it is a quadratic.)
+    const my = 0.078 - fy * 0.5;
+    const gw = (0.06 + near * 0.008 + lunge * 0.02) * (1 - bow * 0.08), up = 0.03 + near * 0.008 + lunge * 0.022;
+    const th = 0.021 + near * 0.006, open = (0.006 + near * 0.012 + lunge * 0.034) * (1 - bow * 0.5);
+    const E = my + up, cu = my + 0.006 - up, cl = 2 * (my - 2 * th - open) - E;   // the corners; the lips' control points
+    const lip = (x, cy) => { const k = (x + gw) / (2 * gw); return E + 2 * k * (1 - k) * (cy - E); };
+    const mouth = () => { ctx.beginPath(); ctx.moveTo(-gw, E); ctx.quadraticCurveTo(0, cu, gw, E); ctx.quadraticCurveTo(0, cl, -gw, E); ctx.closePath(); };
+    mouth(); ctx.fillStyle = P.col([38, 12, 14]); ctx.fill();
+    ctx.save(); mouth(); ctx.clip();
+    const tooth = P.col([222, 210, 172]), n = 9, w = 2 * gw / n;
+    for (let i = 0; i < n; i++) {
+      const x = -gw + (i + 0.5) * w, r = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
+      if (i !== 2 && i !== 6) { const y = lip(x, cu); P_rect(ctx, x - w * 0.43, y - th * (0.85 + 0.35 * r), w * 0.86, th * (0.85 + 0.35 * r) + 0.02, tooth); }   // the top row, hanging
+      if (i !== 4) { const y = lip(x, cl); P_rect(ctx, x - w * 0.42, y - 0.02, w * 0.84, th * (0.75 + 0.3 * (1 - r)) + 0.02, tooth); }   // the bottom row
+    }
+    ctx.restore();
+    ctx.strokeStyle = K.skinD; ctx.lineWidth = 0.007 + (1 - near) * 0.005; ctx.lineCap = 'round'; ctx.beginPath(); mouth(); ctx.stroke();   // the thin lips (a little heavier far off, so the shape of the grin carries)
+    if (near > 0.2 || lunge) {   // the creases at the corners, curling up into the cheeks
+      ctx.lineWidth = 0.005; ctx.beginPath();
+      for (const s of [-1, 1]) { ctx.moveTo(s * (gw - 0.004), E - 0.012); ctx.quadraticCurveTo(s * (gw + 0.016), E - 0.002, s * (gw + 0.01), E + 0.024); }
       ctx.stroke();
     }
     if (near > 0.35 && bow < 0.5) {   // the forehead creased
@@ -235,17 +369,18 @@ CREATURES.smiler = {
   // the head in profile, facing +x, in the frame of the chin: the bald dome, the wisps off the back of it, the brow over a
   // deep socket and one wide eye, the hooked nose, the cheek sunk in, and the grin right back under the ear
   profile(ctx, c, P, near) {
-    const K = this.pal(P), t = c.t;
+    const K = this.pal(P), t = c.t, up = c.wired || 0;   // (wired: the wisps straight out behind his head, quivering, and a pinprick in the eye)
     ctx.strokeStyle = K.hairA; ctx.lineWidth = 0.005; ctx.lineCap = 'round'; ctx.beginPath();
-    for (let i = 0; i < 4; i++) { const sw = Math.sin(t * 1.7 + i * 1.9) * 0.014, y0 = 0.17 + i * 0.035; ctx.moveTo(-0.09, y0); ctx.quadraticCurveTo(-0.16, y0 + 0.04, -0.2 - i * 0.012 + sw, y0 + (i === 3 ? 0.07 : -0.03 - i * 0.015)); }
+    for (let i = 0; i < 4; i++) { const sw = Math.sin(t * 1.7 + i * 1.9) * 0.014 + Math.sin(t * 63 + i * 2.1) * 0.008 * up, y0 = 0.17 + i * 0.035; ctx.moveTo(-0.09, y0); ctx.quadraticCurveTo(-0.16, y0 + lerp(0.04, 0.015 + i * 0.012, up), -0.2 - i * 0.012 - up * 0.05 + sw, y0 + lerp(i === 3 ? 0.07 : -0.03 - i * 0.015, 0.01 + i * 0.03, up)); }
     ctx.stroke();
     P_ell(ctx, -0.015, 0.205, 0.122, 0.122, K.skin);
     P_poly(ctx, [[0.098, 0.21], [0.108, 0.13], [0.1, 0.06], [0.07, 0.004], [0.025, -0.004], [-0.04, 0.05], [-0.07, 0.12]], K.skin);
     P_ell(ctx, 0.035, 0.115, 0.03, 0.036, K.shade);   // the cheek, sunk in
     P_poly(ctx, [[0.07, 0.27], [0.122, 0.245], [0.118, 0.222], [0.078, 0.228]], K.skin);   // the brow
-    const er = 0.022 + near * 0.012;
+    const er = 0.022 + near * 0.012 + up * 0.009;
     P_ell(ctx, 0.078, 0.205, 0.03, 0.028, K.skinD);
-    P_ell(ctx, 0.088, 0.205, er * 0.72, er * 1.05, K.white); P_ell(ctx, 0.101, 0.207, 0.008, 0.009, K.black);
+    P_ell(ctx, 0.088, 0.205, er * 0.72, er * 1.05, K.white);
+    if (up > 0.05) P_ell(ctx, 0.094 + this.jit(t, 9) * er * 0.15, 0.205 + this.jit(t, 12) * er * 0.2, er * 0.16 * up, er * 0.16 * up, P.col([26, 18, 18]));
     P_poly(ctx, [[0.108, 0.212], [0.15, 0.155], [0.162, 0.125], [0.15, 0.108], [0.128, 0.118], [0.108, 0.13]], K.skin);   // the nose
     P_ell(ctx, 0.132, 0.122, 0.008, 0.005, K.skinD);
     P_ell(ctx, -0.035, 0.18, 0.027, 0.048, K.skinS); P_ell(ctx, -0.032, 0.18, 0.012, 0.03, K.skinD);   // the ear
@@ -282,10 +417,16 @@ CREATURES.smiler = {
     // the arms: running, held rigid at his sides and angled back past the hip, he does not swing them; standing, the far one
     // hangs and the near one holds the staff out in front of him
     const armTo = run ? (a => { const ex = sx - Math.sin(a) * 0.3, ey = sy - 0.04 - Math.cos(a) * 0.3; return [[ex, ey], [ex - Math.sin(a) * 0.3, ey - Math.cos(a) * 0.3]]; }) : null;
-    const runA = lean + 0.3;
-    const far = run ? armTo(runA) : [[sx + 0.03, sy - 0.3], [sx + 0.06, sy - 0.58]];
+    // (flailing, c.flail: both of them up in the air and waving, the far one out ahead of him, and the staff waved with the near one)
+    const fl = run ? (c.flail || 0) : 0;
+    const runA = lean + 0.3, farA = lerp(runA, Math.PI + 0.8 + Math.sin(t * 21 + 2.1) * 0.5, fl), nearA = lerp(runA, Math.PI + 0.1 + Math.sin(t * 21) * 0.5, fl);
+    const far = run ? armTo(farA) : [[sx + 0.03, sy - 0.3], [sx + 0.06, sy - 0.58]];
     P_limb(ctx, [[sx - 0.04, sy - 0.04]].concat(far), 0.066, K.coatF);
-    this.hand(ctx, { skin: K.shade, skinS: K.skinD }, far[1][0], far[1][1], run ? -Math.PI / 2 - runA : -Math.PI / 2 + 0.1, 0.1 + near * 0.05, 0.3, near);
+    this.hand(ctx, { skin: K.shade, skinS: K.skinD }, far[1][0], far[1][1], run ? -Math.PI / 2 - farA : -Math.PI / 2 + 0.1, 0.1 + near * 0.05 + fl * 0.04, 0.3, near);
+    if (fl) for (let i = 0; i < 3; i++) {   // and the dust his heels kick up, left behind him
+      const k = ((g / TAU + i * 0.37) % 1 + 1) % 1;
+      P_ell(ctx, -0.4 - k * 0.75 - i * 0.08, 0.05 + k * 0.17, 0.05 + k * 0.1, 0.04 + k * 0.07, P.cola([150, 142, 130], (1 - k) * 0.42 * fl));
+    }
     leg(legs[1], K.coatF);   // the far side first
     leg(legs[0], K.leg);
     // the long coat, side on: up over the hump, the front of it pushed out by the leading knee, the hem streaming out behind
@@ -307,10 +448,10 @@ CREATURES.smiler = {
     // the near arm and the staff in its fist
     let nh;
     if (run) {
-      const arm = armTo(runA); nh = arm[1];
+      const arm = armTo(nearA); nh = arm[1];
       P_limb(ctx, [[sx, sy - 0.04]].concat(arm), 0.068, K.coat);
-      const b = lean + 0.6, su = Math.sin(b), cu = Math.cos(b);   // slanting up across his chest, the hook out under his chin (steeper, the face covered it)
-      this.staff(ctx, K, nh[0] - su * 0.6, nh[1] - cu * 0.6, nh[0] + su * 0.62, nh[1] + cu * 0.62, 1, near);
+      const b = lerp(lean + 0.6, nearA - Math.PI - 0.4, fl), su = Math.sin(b), cu = Math.cos(b);   // slanting up across his chest, the hook out under his chin (steeper, the face covered it); flailing, in the air, held near its foot
+      this.staff(ctx, K, nh[0] - su * lerp(0.6, 0.3, fl), nh[1] - cu * lerp(0.6, 0.3, fl), nh[0] + su * lerp(0.62, 0.95, fl), nh[1] + cu * lerp(0.62, 0.95, fl), 1, near);
     } else {
       nh = [sx + 0.2, sy - 0.32];
       this.staff(ctx, K, nh[0] + 0.035, 0, nh[0] + 0.01, 1.6, 1, near);
@@ -342,7 +483,7 @@ CREATURES.smiler = {
     // the head, in front of him and so behind everything else from here: only the top of it shows, past his right shoulder
     const tilt = (0.06 + near * 0.5) * (Math.floor(t / 7) % 2 ? 1 : -1);   // the same tilt, seen from the other side
     ctx.save(); ctx.translate(0.05, 1.15 + bob); ctx.rotate(tilt);
-    this.wisps(ctx, K, t, true);
+    this.wisps(ctx, K, t, true, c.wired || 0);   // (wired, they stand on end from behind as well)
     for (const s of [-1, 1]) P_ell(ctx, s * 0.11, 0.17, 0.026, 0.046, K.shade);
     P_ell(ctx, 0, 0.2, 0.108, 0.13, K.shade);
     ctx.restore();

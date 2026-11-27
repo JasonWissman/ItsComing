@@ -18,22 +18,29 @@ const R = (() => {
   let statics = [];   // the level's static props, sorted once, culled by view angle per frame
   let hits = [];
   let detailOn = true; // surface detail on or off (Settings)
-  let hoverRef = null;
+  let hoverRef = null; // what the pointer is on (an item, a target, the thing): it, and every piece it is drawn with, glows
+  let glowAs = null;   // while set, every renderable added is a piece of this target's drawing (glowAs)
   let time = 0, frame = 0;
   let vignette = null, grains = [], grainIdx = 0;
   let skyCache = null, dangerCv = null, dangerCvSize = 0;
 
   function attach(cv) { canvas = cv; ctx = cv.getContext('2d'); }
+  // the page as the canvas covers it (index.html: fixed, the whole viewport, as the HUD over it is): measured, not taken
+  // from innerWidth/innerHeight, which a phone's browser can report for a moment as a size its bars have since changed,
+  // leaving the view a smaller box with black round it and the HUD off its edges
+  function pageSize() {
+    const r = canvas ? canvas.getBoundingClientRect() : null;
+    return [Math.max(1, Math.round((r && r.width) || window.innerWidth)), Math.max(1, Math.round((r && r.height) || window.innerHeight))];
+  }
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 1.5);
-    pageW = Math.max(1, window.innerWidth); pageH = Math.max(1, window.innerHeight);
+    const vp = pageSize(); pageW = vp[0]; pageH = vp[1];
     // portrait screens get a letterboxed 3:2 view so a 45° turn still overlaps the last view
     W = pageW; H = pageH; viewY = 0;
     if (pageW / pageH < 1.25) { H = Math.round(pageW / 1.5); viewY = Math.round((pageH - H) / 2); }
     document.documentElement.style.setProperty('--view-top', viewY + 'px');
     document.documentElement.style.setProperty('--view-bottom', (pageH - viewY - H) + 'px');
     canvas.width = Math.round(pageW * DPR); canvas.height = Math.round(pageH * DPR);
-    canvas.style.width = pageW + 'px'; canvas.style.height = pageH + 'px';
     buildVignette();
     if (!grains.length) buildGrain();
   }
@@ -77,7 +84,7 @@ const R = (() => {
     if (pending) settleStatics(eyeH + ey);
     if (wasMoving && !moving) for (const p of statics) p.sd = p.sd0;   // back where it started: the prepared order holds again
     wasMoving = moving;
-    list.length = 0; hits.length = 0;
+    list.length = 0; hits.length = 0; glowAs = null;
     // shake: applied as a translation of the whole scene
     if (cam.shakeX || cam.shakeY) ctx.translate(cam.shakeX, cam.shakeY);
     drawSkyGround();
@@ -98,7 +105,9 @@ const R = (() => {
     for (let y = -4; y < H + 4; y += step) {
       const ang = Math.atan2(H / 2 - (y + step / 2), f) - pitch; // >0 above horizon
       let col;
-      if (ang > 0) {
+      // a row centred exactly on the horizon (ang 0: looking level at some heights of the view) is the fog colour, which
+      // both sides meet there; taken as ground its distance came out -Infinity and the row was painted black
+      if (ang >= 0) {
         const k = clamp(ang / (Math.PI / 2.6), 0, 1);
         col = mixc(fog, skyTop, Math.pow(k, 0.6));
         if (LIGHT.global > 0.01) col = mixc(col, [225, 228, 245], Math.min(0.85, LIGHT.global * 0.9));
@@ -161,11 +170,27 @@ const R = (() => {
     return out;
   }
 
+  // a world polygon (its corners [x, y, z], where the world is, wherever the eye has gone) on the view: the part in front of
+  // the eye, as screen points, or null when none of it is (the weather clipped to the openings of a shelter: weather.js)
+  function screenPoly(pts) {
+    const sx = ox, sy = oy, sz = oz; ox = ex; oy = ey; oz = ez;
+    const c = clipNear(pts.map(p => toCam(p[0], p[1], p[2])));
+    ox = sx; oy = sy; oz = sz;
+    return c.length >= 3 ? c.map(proj) : null;
+  }
+
   // ---- renderables ----
   // poly: {kind:'poly', pts:[[x,y,z]...], color:[r,g,b], alpha?, stroke?, lw?, noFog?, layer?, hit?, dist?}
-  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
+  // sprite: {kind:'sprite', x,y,z, w,h, draw(ctx,P), flat?, card?, face?, worn? (a decoy's drained, rusty colours), noFog?, layer?, hit?, dist?, fogScale?, onRect?, alpha?}
+  // face? a panel fixed flat on an upright face (a wall, a door, the front of a box): the world yaw its front looks
+  // toward. It is drawn in true perspective where it is, as the face it is on is, and never turns toward you; seen from
+  // behind it is not drawn. Its hit area is the shape it covers on the view (hit.poly), not only the rect round it.
+  // With flat as well, it lies on a level surface instead (a plate on top of a console): face is then the yaw the top of
+  // its drawing points along the floor, and it is seen only from above.
+  // hitOnly? a hit area that draws nothing (a target's: what it is drawn with is its own props)
   // sortDist? overrides dist for drawing order only (fog still uses dist): a mirror's backing hides what is behind its wall
   // attach? rides with the eye (see the top): its coordinates and dist are taken from where the eye started
+  // glowOf? the target (or targets) this is a piece of: it glows while that is hovered; hoverOnly? drawn only then
   function measure(p) {
     if (p.dist === undefined) {
       if (p.kind === 'poly') {
@@ -180,7 +205,7 @@ const R = (() => {
     if (p.layer === undefined) p.layer = 1;
     p.sd = p.sortDist === undefined ? p.dist : p.sortDist;
   }
-  function add(p) { measure(p); if (moving) fromEye(p); list.push(p); }
+  function add(p) { measure(p); if (moving) fromEye(p); if (glowAs) p.glowOf = glowAs; list.push(p); }
   // while the eye is away from where it started, fog and drawing order go by each renderable's own distance from it
   // (sortDist keeps its offset from dist); an attached one keeps the distance it was measured with. Surface detail
   // pieces are not kept with their quad here: a night that moves the eye builds its ground without them.
@@ -458,32 +483,50 @@ const R = (() => {
     after(p, touching(contacts, p));
   }
 
-  function drawPoly(p) {
-    if (p.detail && !detailOn) return; // surface detail (boards, stone) can be switched off in Settings
-    if (p.alpha !== undefined && p.alpha <= 0.004) return; // faded out entirely (the last night's room, before the light)
-    if (p.bf && culledFace(p, ox, eyeH + oy, oz)) return;   // a box's face that looks away from the eye
+  // the hover glow: what is hovered is drawn once more under itself, added to what is there and softly blurred, so a warm
+  // halo shows round its own shape (whatever is drawn after it, in front, covers the halo as it covers the thing). Its
+  // pieces are first drawn plain on a canvas of their own (glowCv), and that is blurred onto the view once: one blur
+  // however many pieces and strokes it is drawn with (a blur for each made a busy target, a winch or a gate, slow to draw)
+  const GLOW = 'rgba(255,236,190,0.9)', GLOW_PAD = 30, GLOW_K = 3;
+  let glowCv = null, glowCtx = null, glowBox = null, halfCv = null, halfCtx = null;
+  function glowGrow(x0, y0, x1, y1) {   // the part of the view the glow's pieces cover, in the view's own units
+    const g = glowBox; if (x0 < g[0]) g[0] = x0; if (y0 < g[1]) g[1] = y0; if (x1 > g[2]) g[2] = x1; if (y1 > g[3]) g[3] = y1;
+  }
+  // is p part of what is hovered: a thing's own drawing (an item), or one of the pieces a target is drawn with (p.glowOf:
+  // the target, or a list of them, when one piece belongs to more than one). A target's own hit area draws nothing.
+  function lit(p) {
+    const g = p.glowOf;
+    if (g && (g === hoverRef || (Array.isArray(g) && g.includes(hoverRef)))) return true;
+    return !!(p.hit && p.hit.ref === hoverRef && !p.noHover && !p.invisible);
+  }
+  // the outline of a poly on the view, added to the current path; null when it is not drawn this frame
+  function tracePoly(p) {
+    if (p.detail && !detailOn) return null; // surface detail (boards, stone) can be switched off in Settings
+    if (p.alpha !== undefined && p.alpha <= 0.004) return null; // faded out entirely (the last night's room, before the light)
+    if (p.bf && culledFace(p, ox, eyeH + oy, oz)) return null;   // a box's face that looks away from the eye
     let cs = new Array(p.pts.length);
     let anyIn = false;
     for (let i = 0; i < p.pts.length; i++) { const v = p.pts[i]; cs[i] = toCam(v[0], v[1], v[2]); if (cs[i][2] >= NEAR) anyIn = true; }
-    if (!anyIn) return;
+    if (!anyIn) return null;
     cs = clipNear(cs);
-    if (cs.length < 2) return;
+    if (cs.length < 2) return null;
     let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
-    ctx.beginPath();
     for (let i = 0; i < cs.length; i++) {
       const s = proj(cs[i]);
       if (s[0] < minx) minx = s[0]; if (s[0] > maxx) maxx = s[0];
       if (s[1] < miny) miny = s[1]; if (s[1] > maxy) maxy = s[1];
       i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]);
     }
-    if (maxx < -20 || minx > W + 20 || maxy < -20 || miny > H + 20) return;
-    if (p.hit) hits.push({ x: minx, y: miny + viewY, w: maxx - minx, h: maxy - miny, kind: p.hit.kind, ref: p.hit.ref });
-    if (p.invisible) {
-      if (hoverRef && p.hit && p.hit.ref === hoverRef) {
-        ctx.closePath(); ctx.strokeStyle = 'rgba(255,240,210,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
-      }
-      return;
-    }
+    if (maxx < -20 || minx > W + 20 || maxy < -20 || miny > H + 20) return null;
+    return { cs, minx, maxx, miny, maxy };
+  }
+  const strokeW = (p, cs) => Math.max(0.6, (p.lw || 0.02) * f / Math.max(NEAR, cs[0][2]));
+  function drawPoly(p) {
+    ctx.beginPath();
+    const r = tracePoly(p);
+    if (!r) return;
+    if (p.hit) hits.push({ x: r.minx, y: r.miny + viewY, w: r.maxx - r.minx, h: r.maxy - r.miny, kind: p.hit.kind, ref: p.hit.ref });
+    if (p.invisible) return;   // a hit area only: what it stands for is drawn by other pieces, and they glow
     const li = (LIGHT.list.length || LIGHT.global) && !p.noLight ? LIGHT.at(p.cx + ex - ox, p.cy + ey - oy, p.cz + ez - oz) : null;   // lit where it really is: an attached poly has come along with the eye
     const pc = detailOn && p.seam ? p.seam : p.color; // with detail on, a textured quad shows as the seams between its pieces
     const base0 = ambient !== 1 && !p.noLight ? scalec(pc, ambient) : pc;
@@ -491,13 +534,61 @@ const R = (() => {
     const col = p.noFog ? base : fogged(base, moving ? p.fd : p.dist);
     if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
     if (p.stroke) {
-      ctx.strokeStyle = rgba(col); ctx.lineWidth = Math.max(0.6, (p.lw || 0.02) * f / Math.max(NEAR, cs[0][2]));
+      ctx.strokeStyle = rgba(col); ctx.lineWidth = strokeW(p, r.cs);
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
     } else {
       ctx.closePath(); ctx.fillStyle = rgba(col); ctx.fill();
     }
     if (p.alpha !== undefined) ctx.globalAlpha = 1;
-    if (hoverRef && p.hit && p.hit.ref === hoverRef) { ctx.strokeStyle = 'rgba(255,240,210,0.35)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
+  // the glow under every piece of what is hovered, drawn where the first of them comes in the drawing order: the filled
+  // polys as one shape (one soft edge round the lot, none along the seams between them), then the lines and the sprites
+  function drawGlows(groups, cur) {
+    const main = ctx, cw = canvas.width, ch = canvas.height;
+    if (!glowCv || glowCv.width !== cw || glowCv.height !== ch) { glowCv = document.createElement('canvas'); glowCv.width = cw; glowCv.height = ch; glowCtx = glowCv.getContext('2d'); }
+    const g = glowCtx;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, cw, ch);   // (all of it: a sprite may draw outside its box)
+    const m = main.getTransform();
+    g.setTransform(m);
+    ctx = g; glowBox = [1e9, 1e9, -1e9, -1e9];
+    ctx.fillStyle = 'rgb(64,58,48)'; ctx.strokeStyle = 'rgb(64,58,48)'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    let any = false;
+    for (const src of groups) for (const q of src) if (q.kind === 'poly' && !q.stroke && !q.invisible && !(q.alpha < 1) && lit(q)) {   // (glass would show the glow through it)
+      if (moving) offsetFor(q.attach);
+      const r = tracePoly(q);
+      if (r) { ctx.closePath(); any = true; glowGrow(r.minx, r.miny, r.maxx, r.maxy); }
+    }
+    if (any) ctx.fill();
+    for (const src of groups) for (const q of src) {
+      if (q.invisible || !lit(q)) continue;
+      if (q.kind === 'poly' && !q.stroke) continue;
+      if (moving) offsetFor(q.attach);
+      if (q.kind === 'poly') { ctx.beginPath(); const r = tracePoly(q); if (r) { ctx.lineWidth = strokeW(q, r.cs); ctx.stroke(); glowGrow(r.minx, r.miny, r.maxx, r.maxy); } }
+      else drawSprite(q, true);
+    }
+    ctx = main;
+    if (moving) offsetFor(cur.attach);
+    // the part of the canvas it covers, in device pixels, with room for the blur
+    const b = glowBox;
+    if (b[0] > b[2]) return;
+    const x0 = Math.max(0, Math.floor(m.a * b[0] + m.e - GLOW_PAD)), y0 = Math.max(0, Math.floor(m.d * b[1] + m.f - GLOW_PAD));
+    const x1 = Math.min(cw, Math.ceil(m.a * b[2] + m.e + GLOW_PAD)), y1 = Math.min(ch, Math.ceil(m.d * b[3] + m.f + GLOW_PAD));
+    if (x1 <= x0 || y1 <= y0) return;
+    // blurred at a third of the size (a ninth of the work), then laid over the view at full size, added to what is there
+    const K = GLOW_K, w = x1 - x0, h = y1 - y0, hw = Math.ceil(w / K), hh = Math.ceil(h / K);
+    if (!halfCv || halfCv.width < hw || halfCv.height < hh) { halfCv = document.createElement('canvas'); halfCv.width = Math.max(hw, halfCv ? halfCv.width : 0); halfCv.height = Math.max(hh, halfCv ? halfCv.height : 0); halfCtx = halfCv.getContext('2d'); }
+    const hc = halfCtx;
+    hc.clearRect(0, 0, halfCv.width, halfCv.height);
+    hc.shadowColor = GLOW; hc.shadowBlur = 16 / K; hc.shadowOffsetX = 0; hc.shadowOffsetY = 0;
+    hc.drawImage(glowCv, x0, y0, w, h, 0, 0, w / K, h / K);
+    hc.drawImage(glowCv, x0, y0, w, h, 0, 0, w / K, h / K);   // twice: as strong close round it as a blur of each of its parts, added up, was
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 0.45; ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(halfCv, 0, 0, w / K, h / K, x0, y0, w, h);
+    ctx.restore();
   }
 
   function spriteP(p) {
@@ -505,85 +596,359 @@ const R = (() => {
     const li = (LIGHT.list.length || LIGHT.global) && !p.noFog && !p.noLight ? LIGHT.at(p.x + ex - ox, p.y + (p.h || 0) * 0.5 + ey - oy, p.z + ez - oz) : null;
     return {
       fog: fa, fogColor, t: time, lit: li ? Math.min(1, li.lit) : 0,
-      col: c => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa)); },
+      // (k: how much of the light it takes, 1 by default; a black thing that should stay black under a coloured light takes less)
+      col: (c, k) => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, k === undefined ? li : { lit: li.lit * k, color: li.color }) : c, fogColor, fa)); },
       cola: (c, a) => { if (p.worn) c = wornc(c); if (ambient !== 1 && !p.noLight) c = scalec(c, ambient); return rgba(mixc(li ? LIGHT.apply(c, li) : c, fogColor, fa), a); },
       raw: c => rgba(c),
     };
   }
 
-  // a card's axes: across (the screen's horizontal, so the card is never skewed at the edge of the view) and up the card,
-  // which leans from lying flat (or standing) just far enough that the line of sight meets it at CARD_MIN or more
+  // a card's axes: across (square to the line from the eye to it, so it faces where you stand and stays put in the world
+  // as the view turns) and up the card, which leans from lying flat (or standing) just far enough that the line of sight
+  // meets it at CARD_MIN or more
   const CARD_MIN = 50 * DEG;
+  // (always square to the line from the eye, wherever it is in the view: it never turns as the view turns)
+  function towardEye(x, z) {
+    const a = Math.atan2(x - ox, z - oz);
+    return [Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a)];
+  }
   function cardAxes(x, y, z, flat) {
     const e = Math.atan2(eyeH + oy - y, Math.hypot(x - ox, z - oz));   // how far below the eye it sits, as an angle
     const phi = clamp(flat ? 0 : Math.PI / 2, CARD_MIN - e, Math.PI - CARD_MIN - e);
-    const c = Math.cos(phi);
-    return [cosY, -sinY, c * sinY, Math.sin(phi), c * cosY];
+    const c = Math.cos(phi), t = towardEye(x, z);
+    return [t[0], t[1], c * t[2], Math.sin(phi), c * t[3]];
   }
-  function drawSprite(p) {
-    if (p.alpha !== undefined && p.alpha <= 0.004) { if (p.onRect) p.onRect(null); return; }
+  // A card (an item, a box) or a decal lying on the ground is a flat thing fixed in the world, drawn in true perspective.
+  // Seen nearly square on, one flat (affine) map puts every part of it within a pixel of where perspective puts it, and
+  // it is drawn on that map, as any sprite is. Seen at a slant close by, no one flat map will do (what is nearer the eye
+  // comes out too small and what is further off runs on across the view: at your feet off to one side it was smeared right
+  // across it). Then it is drawn through PERSP, which stands in for the canvas: every point of every path it draws is put
+  // exactly where perspective puts it (curves are followed closely enough that no one can tell), so its shapes come out
+  // as one whole, as they would on one map, only true; what is too near the eye is cut off just in front of it. A line's
+  // width, a gradient, a pattern, text and a picture, which have no points to put, are drawn on the flat map that is
+  // true where they are. It goes from one map to PERSP where the one map is less than a pixel off, so nothing jumps.
+  // (Before, such a card was cut into triangles, each drawing it all again on its own map, and the triangles were cut
+  // afresh at every turn of the view: a box close by came out in wobbling triangles with a seam round each.)
+  const ONE_MAP_ERR = 0.75;   // how far (device pixels) one flat map may put any part of a card from where it is seen
+  const CUT_Z = 0.08;         // nothing nearer the eye than this is drawn
+  const CARD_PAD = 0.2;       // how far its drawing may run on past the card's edges (as a share of its size): the handle on a box
+  function clipUV(poly, z0, zu, zv) {   // the part of a polygon in the card's (u, v) where the depth is CUT_Z or more
+    const out = [], n = poly.length, z = q => z0 + q[0] * zu + q[1] * zv;
+    for (let i = 0; i < n; i++) {
+      const a = poly[i], c = poly[(i + 1) % n], za = z(a), zc = z(c), ain = za >= CUT_Z, cin = zc >= CUT_Z;
+      if (ain) out.push(a);
+      if (ain !== cin) { const t = (CUT_Z - za) / (zc - za); out.push([a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t]); }
+    }
+    return out;
+  }
+  // one flat map for the whole card, fitted to nine points on it (its corners, the middles of its edges and its middle):
+  // [a, b, c, d, e, f] from meters across and up it to the view; and how far off it is (device pixels) at the worst of the
+  // nine points of the room round it that its drawing may use
+  function fitMap(scr, hw, h) {
+    const pts = [];
+    let mx = 0, my = 0;
+    for (const u of [-hw, 0, hw]) for (const v of [0, h / 2, h]) { const q = scr(u, v); pts.push([u, v - h / 2, q[0], q[1]]); mx += q[0] / 9; my += q[1] / 9; }
+    let a = 0, b = 0, c = 0, d = 0;
+    for (const [u, v, x, y] of pts) { a += u * x; b += u * y; c += v * x; d += v * y; }
+    const su = 6 * hw * hw, sv = 6 * (h / 2) * (h / 2);
+    a /= su; b /= su; c /= sv; d /= sv;
+    const m = [a, b, c, d, mx - c * h / 2, my - d * h / 2], pu = hw * (1 + 2 * CARD_PAD), pv = h * CARD_PAD;
+    let err = 0;
+    for (const u of [-pu, 0, pu]) for (const v of [-pv, h / 2, h + pv]) { const q = scr(u, v); err = Math.max(err, Math.hypot(m[0] * u + m[2] * v + m[4] - q[0], m[1] * u + m[3] * v + m[5] - q[1])); }
+    return { m, err: err * DPR };
+  }
+  // PERSP: a stand-in for the canvas that a card draws itself on, in its own units, as it would on any canvas. It keeps
+  // the card's transform (M, its units to meters across and up the card) itself and hands everything on to the real
+  // canvas, which stays on the view's own pixels (T0): the points of a path go through M and then through the perspective
+  // (G), each where it is seen; what has no points (a line's width and dashes, a gradient, a pattern, text, a picture)
+  // goes on the real canvas under the flat map that is true at it (local). A drawing that sets the transform outright
+  // (one that draws in the view's pixels) is handed on as it is until it restores.
+  const PERSP = (() => {
+    let real = null, T0 = null, G = null, Jg = null, zOf = null, cut = false;
+    let M = [1, 0, 0, 1, 0, 0], lw = 1, raw = false, fillS = '#000', strokeS = '#000', dash = [], stack = [];
+    let subs = [], cur = null, cu = 0, cv = 0, cn = 0;   // the path not yet on the real canvas, in meters on the card, and the middle of all of it
+    const TAU2 = Math.PI * 2;
+    const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3], a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
+    const onCard = (x, y) => [M[0] * x + M[2] * y + M[4], M[1] * x + M[3] * y + M[5]];
+    // the flat map from the drawing's units to the view's pixels that is true at (x, y) in them
+    function local(x, y) {
+      const p = onCard(x, y), z = zOf[0] + p[0] * zOf[1] + p[1] * zOf[2];
+      if (z < 2 * CUT_Z) {   // (behind the eye, or all but: taken where it is just in front, along the way the depth grows)
+        const g2 = zOf[1] * zOf[1] + zOf[2] * zOf[2] || 1e-12, k = (2 * CUT_Z - z) / g2;
+        p[0] += zOf[1] * k; p[1] += zOf[2] * k;
+      }
+      const s = G(p[0], p[1]), j = Jg(p[0], p[1]);
+      const a = j[0] * M[0] + j[2] * M[1], b = j[1] * M[0] + j[3] * M[1], c = j[0] * M[2] + j[2] * M[3], d = j[1] * M[2] + j[3] * M[3];
+      return [a, b, c, d, s[0] - a * x - c * y, s[1] - b * x - d * y];
+    }
+    const under = m => { real.setTransform(T0); real.transform(m[0], m[1], m[2], m[3], m[4], m[5]); };
+    const add = p => { cur.pts.push(p); cu += p[0]; cv += p[1]; cn++; };
+    function moveTo(x, y) { cur = { pts: [], closed: false }; subs.push(cur); add(onCard(x, y)); }
+    function lineTo(x, y) { if (!cur) moveTo(x, y); else add(onCard(x, y)); }
+    // the path so far onto the real canvas
+    function emit(pts, closed, cont) {
+      for (let i = 0; i < pts.length; i++) { const s = G(pts[i][0], pts[i][1]); if (i === 0 && !cont) real.moveTo(s[0], s[1]); else real.lineTo(s[0], s[1]); }
+      if (closed) real.closePath();
+    }
+    function flush() {
+      for (const sb of subs) {
+        if (sb.pts.length < (sb.cont ? 2 : 1)) continue;
+        if (!cut) { emit(sb.pts, sb.closed, sb.cont); continue; }
+        // cut off in front of the eye: a closed shape as a shape, an open line piece by piece
+        if (sb.closed) { const q = clipUV(sb.pts, zOf[0], zOf[1], zOf[2]); if (q.length >= 2) emit(q, true, false); continue; }
+        let run = [];
+        const z = q => zOf[0] + q[0] * zOf[1] + q[1] * zOf[2];
+        for (let i = 0; i < sb.pts.length; i++) {
+          const a = sb.pts[i];
+          if (i > 0) {
+            const b = sb.pts[i - 1], za = z(a), zb = z(b);
+            if ((za >= CUT_Z) !== (zb >= CUT_Z)) { const t = (CUT_Z - zb) / (za - zb); run.push([b[0] + (a[0] - b[0]) * t, b[1] + (a[1] - b[1]) * t]); if (za < CUT_Z) { emit(run, false, false); run = []; } }
+          }
+          if (z(a) >= CUT_Z) run.push(a);
+        }
+        if (run.length) emit(run, false, false);
+      }
+      // what comes next carries on from where the path got to, as on a canvas
+      const last = cur && !cur.closed && cur.pts.length ? cur.pts[cur.pts.length - 1] : null;
+      subs = []; cur = null;
+      if (last) { cur = { pts: [last], closed: false, cont: !cut }; subs.push(cur); }
+    }
+    // a gradient or a pattern made on PERSP: made on the real canvas in the drawing's units, when it is used, under the
+    // map that is true at it
+    function Paint(kind, args) { this.kind = kind; this.args = args; this.stops = []; }
+    Paint.prototype.addColorStop = function (o, c) { this.stops.push([o, c]); };
+    Paint.prototype.make = function () {
+      if (this.kind === 'pattern') return this.args;
+      const g = this.kind === 'radial' ? real.createRadialGradient(...this.args) : real.createLinearGradient(...this.args);
+      for (const [o, c] of this.stops) g.addColorStop(o, c);
+      return g;
+    };
+    Paint.prototype.at = function () { const a = this.args; return this.kind === 'radial' ? [a[3], a[4]] : this.kind === 'linear' ? [(a[0] + a[2]) / 2, (a[1] + a[3]) / 2] : [0, 0]; };
+    // the middle of the path, in the drawing's units now
+    function middle() {
+      if (!cn) return [0, 0];
+      const u = cu / cn - M[4], v = cv / cn - M[5], det = M[0] * M[3] - M[1] * M[2] || 1e-12;
+      return [(M[3] * u - M[2] * v) / det, (M[0] * v - M[1] * u) / det];
+    }
+    function paint(style, at, fn, stroke) {
+      real.save();
+      under(local(at[0], at[1]));
+      if (style instanceof Paint) real[stroke ? 'strokeStyle' : 'fillStyle'] = style.make();
+      if (stroke) { real.lineWidth = lw; real.setLineDash(dash); }
+      fn();
+      real.restore();
+    }
+    function rectPath(x, y, w, h) {
+      const keep = [subs, cur, cu, cv, cn];
+      subs = []; cur = null;
+      moveTo(x, y); lineTo(x + w, y); lineTo(x + w, y + h); lineTo(x, y + h); cur.closed = true;
+      const p2 = new Path2D(), r = real;
+      real = p2; flush(); real = r;
+      [subs, cur, cu, cv, cn] = keep;
+      return p2;
+    }
+    const pc = {
+      begin(ctx, g, jg, z, needCut) {
+        real = ctx; T0 = ctx.getTransform(); G = g; Jg = jg; zOf = z; cut = needCut;
+        M = [1, 0, 0, 1, 0, 0]; lw = ctx.lineWidth; raw = false; fillS = ctx.fillStyle; strokeS = ctx.strokeStyle; dash = []; stack.length = 0;
+        subs = []; cur = null; cu = cv = cn = 0;
+        return pc;
+      },
+      get canvas() { return real.canvas; },
+      save() { stack.push([M, lw, raw, fillS, strokeS, dash]); real.save(); },
+      restore() { real.restore(); if (stack.length) [M, lw, raw, fillS, strokeS, dash] = stack.pop(); },
+      translate(x, y) { if (raw) real.translate(x, y); else M = mul(M, [1, 0, 0, 1, x, y]); },
+      scale(x, y) { if (raw) real.scale(x, y); else M = mul(M, [x, 0, 0, y, 0, 0]); },
+      rotate(a) { if (raw) real.rotate(a); else { const c = Math.cos(a), s = Math.sin(a); M = mul(M, [c, s, -s, c, 0, 0]); } },
+      transform(a, b, c, d, e, f2) { if (raw) real.transform(a, b, c, d, e, f2); else M = mul(M, [a, b, c, d, e, f2]); },
+      setTransform(...a) { if (!raw) flush(); raw = true; real.setTransform(...a); },
+      resetTransform() { if (!raw) flush(); raw = true; real.resetTransform(); },
+      getTransform() { if (raw) return real.getTransform(); const m = local(0, 0); return T0.multiply(new DOMMatrix(m)); },
+      beginPath() { real.beginPath(); subs = []; cur = null; cu = cv = cn = 0; },
+      moveTo(x, y) { if (raw) real.moveTo(x, y); else moveTo(x, y); },
+      lineTo(x, y) { if (raw) real.lineTo(x, y); else lineTo(x, y); },
+      closePath() {
+        if (raw) { real.closePath(); return; }
+        if (!cur) return;
+        cur.closed = true;
+        const p = cur.pts[0]; cur = { pts: [p], closed: false }; subs.push(cur);   // (a new piece begins where that one did)
+      },
+      rect(x, y, w, h) { if (raw) { real.rect(x, y, w, h); return; } moveTo(x, y); lineTo(x + w, y); lineTo(x + w, y + h); lineTo(x, y + h); pc.closePath(); },
+      arc(x, y, r, a0, a1, ccw) { if (raw) real.arc(x, y, r, a0, a1, ccw); else pc.ellipse(x, y, r, r, 0, a0, a1, ccw); },
+      ellipse(x, y, rx, ry, rot, a0, a1, ccw) {
+        if (raw) { real.ellipse(x, y, rx, ry, rot, a0, a1, ccw); return; }
+        let sweep = a1 - a0;
+        if (!ccw) sweep = sweep >= TAU2 ? TAU2 : ((sweep % TAU2) + TAU2) % TAU2;
+        else sweep = -sweep >= TAU2 ? -TAU2 : -((((a0 - a1) % TAU2) + TAU2) % TAU2);
+        // enough pieces that none strays a quarter of a pixel from the curve
+        const m = local(x, y), k = Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) * Math.max(Math.abs(rx), Math.abs(ry)) * DPR;
+        const n = clamp(Math.ceil(Math.abs(sweep) * Math.sqrt(k / 2)), 2, 128), cr = Math.cos(rot), sr = Math.sin(rot);
+        for (let i = 0; i <= n; i++) {
+          const t = a0 + sweep * i / n, ex2 = rx * Math.cos(t), ey2 = ry * Math.sin(t), px = x + ex2 * cr - ey2 * sr, py = y + ex2 * sr + ey2 * cr;
+          if (i === 0) lineTo(px, py); else add(onCard(px, py));
+        }
+      },
+      quadraticCurveTo(x1, y1, x, y) { if (raw) real.quadraticCurveTo(x1, y1, x, y); else pc.bezierCurveTo(null, null, x1, y1, x, y); },
+      bezierCurveTo(x1, y1, x2, y2, x, y) {
+        if (raw) { real.bezierCurveTo(x1, y1, x2, y2, x, y); return; }
+        if (!cur) moveTo(x1 === null ? x2 : x1, x1 === null ? y2 : y1);
+        // on the card, where a curve stays a curve of the same kind, then a piece at a time
+        const p0 = cur.pts[cur.pts.length - 1], p3 = onCard(x, y);
+        let p1, p2;
+        if (x1 === null) { const q = onCard(x2, y2); p1 = [p0[0] + (q[0] - p0[0]) * 2 / 3, p0[1] + (q[1] - p0[1]) * 2 / 3]; p2 = [p3[0] + (q[0] - p3[0]) * 2 / 3, p3[1] + (q[1] - p3[1]) * 2 / 3]; }
+        else { p1 = onCard(x1, y1); p2 = onCard(x2, y2); }
+        const s0 = G(p0[0], p0[1]), s1 = G(p1[0], p1[1]), s2 = G(p2[0], p2[1]), s3 = G(p3[0], p3[1]);
+        const len = DPR * (Math.hypot(s1[0] - s0[0], s1[1] - s0[1]) + Math.hypot(s2[0] - s1[0], s2[1] - s1[1]) + Math.hypot(s3[0] - s2[0], s3[1] - s2[1]));
+        const n = clamp(Math.ceil(Math.sqrt(len) * 1.5), 2, 64);
+        for (let i = 1; i <= n; i++) {
+          const t = i / n, s = 1 - t, a = s * s * s, b = 3 * s * s * t, c = 3 * s * t * t, d = t * t * t;
+          add([a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]]);
+        }
+      },
+      fill(...a) {
+        if (raw) { real.fill(...a); return; }
+        if (a[0] instanceof Path2D) { paint(fillS, [0, 0], () => real.fill(...a)); return; }
+        flush();
+        if (fillS instanceof Paint) paint(fillS, fillS.at(), () => real.fill(...a)); else real.fill(...a);
+      },
+      stroke(...a) {
+        if (raw) { real.stroke(...a); return; }
+        if (!(a[0] instanceof Path2D)) flush();
+        paint(strokeS, strokeS instanceof Paint ? strokeS.at() : middle(), () => real.stroke(...a), true);
+      },
+      clip(...a) { if (raw || a[0] instanceof Path2D) { real.clip(...a); return; } flush(); real.clip(...a); },
+      fillRect(x, y, w, h) {
+        if (raw) { real.fillRect(x, y, w, h); return; }
+        const p2 = rectPath(x, y, w, h);
+        if (fillS instanceof Paint) paint(fillS, fillS.at(), () => real.fill(p2)); else real.fill(p2);
+      },
+      strokeRect(x, y, w, h) { if (raw) { real.strokeRect(x, y, w, h); return; } const p2 = rectPath(x, y, w, h); paint(strokeS, [x + w / 2, y + h / 2], () => real.stroke(p2), true); },
+      clearRect(x, y, w, h) { if (raw) real.clearRect(x, y, w, h); else { real.save(); under(local(x + w / 2, y + h / 2)); real.clearRect(x, y, w, h); real.restore(); } },
+      fillText(t, x, y, mw) { if (raw) real.fillText(t, x, y, mw); else paint(fillS, [x, y], () => (mw === undefined ? real.fillText(t, x, y) : real.fillText(t, x, y, mw))); },
+      strokeText(t, x, y, mw) { if (raw) real.strokeText(t, x, y, mw); else paint(strokeS, [x, y], () => (mw === undefined ? real.strokeText(t, x, y) : real.strokeText(t, x, y, mw)), true); },
+      measureText(t) { return real.measureText(t); },
+      drawImage(img, ...a) {
+        if (raw) { real.drawImage(img, ...a); return; }
+        const d = a.length >= 8 ? a.slice(4) : a, w = d.length >= 4 ? d[2] : (img.width || 0), h = d.length >= 4 ? d[3] : (img.height || 0);
+        paint(null, [d[0] + w / 2, d[1] + h / 2], () => real.drawImage(img, ...a));
+      },
+      createLinearGradient(...a) { return new Paint('linear', a); },
+      createRadialGradient(...a) { return new Paint('radial', a); },
+      createPattern(...a) { return new Paint('pattern', real.createPattern(...a)); },
+      setLineDash(d) { if (raw) real.setLineDash(d); else dash = d.slice(); },
+      getLineDash() { return raw ? real.getLineDash() : dash.slice(); },
+      get fillStyle() { return raw ? real.fillStyle : fillS; },
+      set fillStyle(v) { if (raw) { real.fillStyle = v instanceof Paint ? v.make() : v; return; } fillS = v; if (!(v instanceof Paint)) real.fillStyle = v; },
+      get strokeStyle() { return raw ? real.strokeStyle : strokeS; },
+      set strokeStyle(v) { if (raw) { real.strokeStyle = v instanceof Paint ? v.make() : v; return; } strokeS = v; if (!(v instanceof Paint)) real.strokeStyle = v; },
+      get lineWidth() { return raw ? real.lineWidth : lw; },
+      set lineWidth(v) { if (raw) real.lineWidth = v; else if (v > 0 && isFinite(v)) lw = v; },
+    };
+    // the rest are the real canvas's own
+    for (const k of ['globalAlpha', 'globalCompositeOperation', 'lineCap', 'lineJoin', 'miterLimit', 'lineDashOffset', 'font', 'textAlign', 'textBaseline', 'direction', 'letterSpacing', 'shadowColor', 'shadowBlur', 'shadowOffsetX', 'shadowOffsetY', 'imageSmoothingEnabled', 'imageSmoothingQuality', 'filter']) {
+      Object.defineProperty(pc, k, { get() { return real[k]; }, set(v) { real[k] = v; } });
+    }
+    return pc;
+  })();
+  // glow: draw only its glow (drawGlows), with no hit area
+  function drawSprite(p, glow) {
+    const onRect = glow ? null : p.onRect;
+    if (p.alpha !== undefined && p.alpha <= 0.004) { if (onRect) onRect(null); return; }
     const base = toCam(p.x, p.y, p.z);
-    if (base[2] < NEAR) { if (p.onRect) p.onRect(null); return; }
-    const b = proj(base);
-    const s = f / base[2];
-    let rect;
-    if (p.flat || p.card) {
+    const fixed = p.face !== undefined, lying = p.flat || p.card || fixed;
+    if (base[2] < (lying ? -Math.max(p.w, p.h) : NEAR)) { if (onRect) onRect(null); return; }   // (a card may begin behind the lens and run on in front of it)
+    let rect, poly = null;
+    if (lying) {
       // a decal lying on the ground, its "up" pointing away from the viewer; or a card (an item), which stands on its
-      // spot facing the eye and tips back toward it so it is never seen edge-on, however near or high it sits
-      let rx = cosY, rz = -sinY, fx = sinY, fz = cosY, fy = 0;
-      if (p.card) {
+      // spot facing the eye and tips back toward it so it is never seen edge-on, however near or high it sits; or a
+      // panel fixed on an upright face, across it and straight up it, whatever the view
+      const t = towardEye(p.x, p.z);   // a decal's "up" runs away from where you stand, not along the view
+      let rx = t[0], rz = t[1], fx = t[2], fz = t[3], fy = 0;
+      if (fixed && p.flat) {
+        // a panel lying on a level surface (the top of a console): what is drawn up it runs along the floor toward the
+        // yaw p.face, its across to the right of that; seen only from above
+        if (eyeH + oy <= p.y) { if (onRect) onRect(null); return; }
+        rx = Math.cos(p.face); rz = -Math.sin(p.face); fx = Math.sin(p.face); fy = 0; fz = Math.cos(p.face);
+      } else if (fixed) {
+        const nx = Math.sin(p.face), nz = Math.cos(p.face);
+        if ((ox - p.x) * nx + (oz - p.z) * nz <= 0) { if (onRect) onRect(null); return; }   // the eye is behind the face it is on
+        rx = -nz; rz = nx; fx = 0; fy = 1; fz = 0;   // across it, left to right as you look at its front, and up it
+      } else if (p.card) {
+        // behind you (only in front of the lens at all because the view is tipped down): not drawn
+        if (Math.abs(wrapPi(Math.atan2(p.x - ox, p.z - oz) - yaw)) > 100 * DEG) { if (onRect) onRect(null); return; }
         const c = cardAxes(p.x, p.y, p.z, p.flat);
         rx = c[0]; rz = c[1]; fx = c[2]; fy = c[3]; fz = c[4];
       }
-      const cu = toCam(p.x + rx * p.w, p.y, p.z + rz * p.w);
-      const cv = toCam(p.x + fx * p.h, p.y + fy * p.h, p.z + fz * p.h);
-      if (cu[2] < NEAR || cv[2] < NEAR) { if (p.onRect) p.onRect(null); return; }
-      const pu = proj(cu), pv = proj(cv);
-      const ax = (pu[0] - b[0]) / p.w, ay = (pu[1] - b[1]) / p.w;   // screen delta per meter along u
-      let bx = (pv[0] - b[0]) / p.h, by = (pv[1] - b[1]) / p.h;   // per meter along v
-      // a card keeps its apparent height but stands straight up on screen: at the edge of a downward view perspective
-      // would otherwise shear it into a slanted parallelogram
-      if (p.card) {
-        // a card whose top would project below its base is behind or under the eye, against the near plane: not drawn
-        if (by >= 0 || cv[2] < base[2] * 0.5) { if (p.onRect) p.onRect(null); return; }
-        by = -Math.hypot(bx, by); bx = 0;
+      // it is fixed in the world, facing where you stand, and drawn in plain perspective wherever it is in the view: the
+      // eye-frame change per meter across it (cu) and up it (cv), and where a point (u, v) on it is seen
+      const cu = toCam(p.x + rx, p.y, p.z + rz), cv = toCam(p.x + fx, p.y + fy, p.z + fz);
+      for (let k = 0; k < 3; k++) { cu[k] -= base[k]; cv[k] -= base[k]; }
+      const hw = p.w / 2, h = p.h, z0 = base[2], zu = cu[2], zv = cv[2];
+      const scr = (u, v) => { const z = z0 + u * zu + v * zv; return [W / 2 + f * (base[0] + u * cu[0] + v * cv[0]) / z, H / 2 - f * (base[1] + u * cu[1] + v * cv[1]) / z]; };
+      const s = f / Math.max(z0, CUT_Z);
+      // the part of it in front of the eye, and the rect that covers on the view (what is clicked)
+      const card = clipUV([[-hw, 0], [hw, 0], [hw, h], [-hw, h]], z0, zu, zv);
+      if (card.length < 3) { if (onRect) onRect(null); return; }
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const q of card) { const c = scr(q[0], q[1]); x0 = Math.min(x0, c[0]); y0 = Math.min(y0, c[1]); x1 = Math.max(x1, c[0]); y1 = Math.max(y1, c[1]); }
+      rect = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      if (fixed && p.hit) poly = card.map(q => { const c = scr(q[0], q[1]); return [c[0], c[1] + viewY]; });
+      if (x0 > W + 20 || x1 < -20 || y0 > H + 20 || y1 < -20) { if (onRect) onRect(rect); return; }
+      const one = z0 - Math.abs(zu) * hw + Math.min(0, zv * h) >= NEAR ? fitMap(scr, hw, h) : null;
+      if (one && one.err <= ONE_MAP_ERR) {
+        // seen nearly square on: drawn straight onto the view on one flat map. A card whose top would come out below its
+        // base is behind or under the eye: not drawn
+        const m = one.m;
+        if (p.card && m[3] >= 0) { if (onRect) onRect(null); return; }
+        if (glow) glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5);
+        ctx.save();
+        ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+        if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
+        p.draw(ctx, spriteP(p), s);
+        ctx.restore();
+      } else {
+        // seen at a slant close by: through PERSP, in true perspective (its rect kept to the view)
+        x0 = Math.max(x0, -20); y0 = Math.max(y0, -20); x1 = Math.min(x1, W + 20); y1 = Math.min(y1, H + 20);
+        rect = { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
+        if (glow) glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5);
+        if (!p.hitOnly) {
+          // how the view moves per meter across and up it, at (u, v) on it; and whether any of it (with the room its
+          // drawing may use) comes near enough the eye to be cut
+          const jac = (u, v) => {
+            const z = z0 + u * zu + v * zv, X = base[0] + u * cu[0] + v * cv[0], Y = base[1] + u * cu[1] + v * cv[1], k = f / (z * z);
+            return [k * (cu[0] * z - X * zu), -k * (cu[1] * z - Y * zu), k * (cv[0] * z - X * zv), -k * (cv[1] * z - Y * zv)];
+          };
+          const pu = p.w * (0.5 + CARD_PAD), near = z0 - Math.abs(zu) * pu + Math.min(-zv * h * CARD_PAD, zv * h * (1 + CARD_PAD));
+          ctx.save();
+          if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
+          p.draw(PERSP.begin(ctx, scr, jac, [z0, zu, zv], near < 2 * CUT_Z), spriteP(p), s);
+          ctx.restore();
+        }
       }
-      // corners of the box centered at x (u from -w/2..w/2), v from 0..h
-      const xs = [], ys = [];
-      for (const [u, v] of [[-p.w / 2, 0], [p.w / 2, 0], [p.w / 2, p.h], [-p.w / 2, p.h]]) { xs.push(b[0] + ax * u + bx * v); ys.push(b[1] + ay * u + by * v); }
-      rect = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-      if (rect.x > W + 20 || rect.x + rect.w < -20 || rect.y > H + 20 || rect.y + rect.h < -20) { if (p.onRect) p.onRect(rect); return; }
-      const hov = hoverRef && p.hit && p.hit.ref === hoverRef && !p.noHover;
-      if (hov) { ctx.save(); ctx.transform(ax, ay, bx, by, b[0], b[1]); ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 16; ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'lighter'; p.draw(ctx, spriteP(p), s); ctx.restore(); }
-      ctx.save();
-      ctx.transform(ax, ay, bx, by, b[0], b[1]);
-      if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
-      p.draw(ctx, spriteP(p), s);
-      ctx.restore();
-      if (hov && p.hit.kind === 'target') { ctx.save(); ctx.transform(ax, ay, bx, by, b[0], b[1]); ctx.strokeStyle = 'rgba(255,236,190,0.55)'; ctx.lineWidth = 0.02; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 10; ctx.strokeRect(-p.w / 2, 0, p.w, p.h); ctx.restore(); }
+      if (glow) return;
     } else {
+      const b = proj(base);
+      const s = f / base[2];
       const top = toCam(p.x, p.y + p.h, p.z);
       let hpx = p.h * s;
       if (top[2] >= NEAR) { const tp = proj(top); hpx = Math.max(0.5, b[1] - tp[1]); }
       const wpx = p.w * s;
       rect = { x: b[0] - wpx / 2, y: b[1] - hpx, w: wpx, h: hpx };
-      if (rect.x > W + 40 || rect.x + rect.w < -40 || rect.y > H + 40 || rect.y + rect.h < -40) { if (p.onRect) p.onRect(rect); return; }
-      if (hpx < 0.7 && wpx < 0.7) { if (p.onRect) p.onRect(rect); return; }
-      const hov = hoverRef && p.hit && p.hit.ref === hoverRef && !p.noHover;
-      if (hov && p.hit.kind === 'item') { ctx.save(); ctx.translate(b[0], b[1]); ctx.scale(s, -(hpx / p.h)); ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 16; ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'lighter'; p.draw(ctx, spriteP(p), s); ctx.restore(); }
+      if (rect.x > W + 40 || rect.x + rect.w < -40 || rect.y > H + 40 || rect.y + rect.h < -40) { if (onRect) onRect(rect); return; }
+      if (hpx < 0.7 && wpx < 0.7) { if (onRect) onRect(rect); return; }
+      if (glow) { glowGrow(rect.x - rect.w / 2, rect.y - rect.h / 2, rect.x + rect.w * 1.5, rect.y + rect.h * 1.5); ctx.save(); if (p.alpha !== undefined) ctx.globalAlpha = p.alpha; ctx.translate(b[0], b[1]); ctx.scale(s, -(hpx / p.h)); p.draw(ctx, spriteP(p), s); ctx.restore(); return; }
       ctx.save();
       ctx.translate(b[0], b[1]);
       ctx.scale(s, -(hpx / p.h));
       if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
       p.draw(ctx, spriteP(p), s);
       ctx.restore();
-      if (hov && p.hit.kind === 'target') { ctx.save(); ctx.strokeStyle = 'rgba(255,236,190,0.5)'; ctx.lineWidth = 1.5; ctx.shadowColor = 'rgba(255,236,190,0.9)'; ctx.shadowBlur = 12; ctx.strokeRect(rect.x + 2, rect.y + 2, rect.w - 4, rect.h - 4); ctx.restore(); }
     }
     if (p.hit) {
       const m = p.hitPad || 0;
-      hits.push({ x: rect.x - m, y: rect.y - m + viewY, w: rect.w + 2 * m, h: rect.h + 2 * m, kind: p.hit.kind, ref: p.hit.ref });
+      hits.push({ x: rect.x - m, y: rect.y - m + viewY, w: rect.w + 2 * m, h: rect.h + 2 * m, kind: p.hit.kind, ref: p.hit.ref, poly });
     }
-    if (p.onRect) p.onRect(rect);
+    if (onRect) onRect(rect);
   }
 
   function flush() {
@@ -594,7 +959,7 @@ const R = (() => {
     // ones can be culled by angle (the culling extents are measured from where it started)
     let src = statics;
     if (moving) { moved.length = 0; for (const p of statics) { fromEye(p); moved.push(p); } moved.sort(order); src = moved; }
-    let i = 0, j = 0;
+    let i = 0, j = 0, glowed = !hoverRef;
     while (i < src.length || j < list.length) {
       let p;
       if (j >= list.length || (i < src.length && order(src[i], list[j]) <= 0)) {
@@ -602,6 +967,9 @@ const R = (() => {
         if (!p.noCull && (!moving || p.attach) && culled(p, k, sp, cp)) continue;
       } else p = list[j++];
       if (moving) offsetFor(p.attach);
+      const on = !!hoverRef && lit(p);
+      if (p.hoverOnly && !on) continue;   // a piece drawn only while what it belongs to is hovered (the fuse in its box)
+      if (on && !glowed) { glowed = true; drawGlows([src, list], p); }
       if (p.kind === 'poly') drawPoly(p); else drawSprite(p);
     }
     if (moving) offsetFor(false);
@@ -657,13 +1025,24 @@ const R = (() => {
     if (fx.white > 0.001) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, fx.white) + ')'; ctx.fillRect(0, 0, W, H); }
   }
 
+  // a whole other scene drawn somewhere else between two frames (the last night draws the nights before it, to show them
+  // again), at k times the view's resolution (cv is k times the game canvas's size): the canvas, the resolution and the
+  // statics drawn with are set aside for it, and the function returned puts them back
+  function aside(cv, props, k) {
+    const was = { canvas, ctx, statics, pending, contacts, wasMoving, DPR, viewY };
+    attach(cv); prepare(props); contacts = new Map(); DPR *= k || 1; viewY = 0;
+    return () => { canvas = was.canvas; ctx = was.ctx; statics = was.statics; pending = was.pending; contacts = was.contacts; wasMoving = was.wasMoving; DPR = was.DPR; viewY = was.viewY; moved.length = 0; };
+  }
+
   return {
-    attach, resize, begin, add, prepare, flush, post, screenPos, projectRect, fogAmt,
-    get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageH() { return pageH; },
+    attach, resize, begin, add, prepare, flush, post, screenPos, screenPoly, projectRect, fogAmt, aside,
+    get W() { return W; }, get H() { return H; }, get f() { return f; }, get ctx() { return ctx; }, get viewY() { return viewY; }, get pageW() { return pageW; }, get pageH() { return pageH; }, pageSize,
     get hits() { return hits; },
     get detail() { return detailOn; }, set detail(v) { detailOn = !!v; },
     get statics() { return statics; }, isCulledFace: culledFace,   // for scripts that check the drawing order: the prepared statics, and whether a box face is turned away
     set hover(v) { hoverRef = v; },
+    // the renderables added until glowAs(null) are pieces of t's drawing: they glow with it when it is hovered
+    glowAs(t) { glowAs = t || null; },
     get yaw() { return yaw; },
   };
 })();

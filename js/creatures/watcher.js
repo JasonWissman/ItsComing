@@ -4,6 +4,29 @@
 // at c.runGait, which only moves while it does; caught by a look it is a statue caught mid-stride. At a gate it can
 // hold the bars (pose 4: both hands on bars either side of its face, at c.grip [left, right] from its middle; 5: the left
 // one there, the other reaching through the gap at c.reach).
+// Stared at for long enough it loses (a night's easter egg: The Quarry's staring contest). c.blink { t, slow } is on while
+// it does, t seconds in: stone lids come down over its eyes twice, then a third time and stay shut, its fists come up
+// and rub at them, and it snaps back as it was. All of it is drawn over whichever pose it holds (1, 2 or 3: the ones whose
+// face shows), which it never leaves, so when c.blink goes it is as it was (BLINK and blinkAt below: the timings; slow:
+// reduced motion, slower blinks and a gentler rub).
+// an eye: a round pale point with a faint glow round it of its own (it shows in the dark of the hood, as the carrier's do).
+// shut 0..1: a stone lid down over it (lid: the lid's colour)
+function watcherEye(ctx, x, y, r, pale, shut, lid) {
+  const open = 1 - (shut || 0);
+  if (open > 0.04) {
+    P_ell(ctx, x, y, r * 2.6, r * 2.6 * open, 'rgba(214,226,204,0.13)');
+    P_ell(ctx, x, y, r * 1.6, r * 1.6 * open, 'rgba(226,236,214,0.18)');
+    P_ell(ctx, x, y, r, r * open, pale);
+  }
+  if (shut > 0.3) P_ell(ctx, x, y, r * 1.9, r * 0.75 * shut, lid);
+}
+// where its arms are in the poses whose face shows (each arm's elbow and hand, left then right, as draw has them): what
+// they come up from, and go back to, when it rubs its eyes
+const WATCHER_ARMS = {
+  1: [[[-0.5, 1.25], [-0.36, 1.05]], [[0.5, 1.25], [0.36, 1.05]]],
+  2: [[[-0.55, 1.3], [-0.62, 1.7]], [[0.55, 1.3], [0.62, 1.7]]],
+  3: [[[-0.45, 1.15], [-0.36, 0.85]], [[0.5, 1.35], [0.28, 1.3]]],
+};
 CREATURES.watcher = {
   name: 'the watcher', h: 2.15, w: 1.5, faceY: 1.8, stepRate: 0.8, catchDist: 1.6, sound: null, silentWhenSeen: true,
   death: { delay: 0.05, dur: 0.04, sting: 'stingStone' },
@@ -15,12 +38,34 @@ CREATURES.watcher = {
     c.pose = p;
   },
   speedMult(c, dt, seen) { return seen ? 0 : 1; },
+  // losing a staring contest (c.blink): when each part of it comes, in seconds, full and for reduced motion. blinks: each
+  // [start, length]; shut: its eyes close and stay shut; up: its fists come up to them; rub: they rub (strokes of them,
+  // amp how hard); down: it snaps back as it was, and its eyes are open again; dur: all of it
+  BLINK: {
+    full: { blinks: [[0.06, 0.18], [0.36, 0.18]], shut: [0.78, 1.0], up: [1.0, 1.28], rub: [1.28, 2.48], strokes: 4, amp: 1, down: [2.48, 2.6], dur: 2.9 },
+    slow: { blinks: [[0.1, 0.36], [0.7, 0.36]], shut: [1.25, 1.55], up: [1.4, 1.9], rub: [1.9, 2.9], strokes: 2, amp: 0.4, down: [2.9, 3.25], dur: 3.5 },
+  },
+  eyesShow(c) { return !c.runPose && !c.lunge && !!WATCHER_ARMS[c.pose]; },   // a pose that faces you with its eyes uncovered
+  // how it is, t seconds into losing: shut (its lids, 0 open to 1 shut), up (its fists, 0 where the pose has its hands
+  // to 1 at its eyes), ph (how far through the rubbing, in turns of the fist; null when it is not rubbing), amp
+  blinkAt(b) {
+    const B = b.slow ? this.BLINK.slow : this.BLINK.full, t = b.t, span = (r, e) => e(clamp((t - r[0]) / (r[1] - r[0]), 0, 1));
+    if (t >= B.dur || t < 0) return { shut: 0, up: 0, ph: null, amp: B.amp };
+    let shut = 0;
+    for (const [t0, len] of B.blinks) { const u = (t - t0) / len; if (u > 0 && u < 1) shut = Math.max(shut, Math.sin(u * Math.PI)); }
+    const back = span(B.down, b.slow ? smoothstep : easeIn);
+    shut = Math.max(shut, span(B.shut, smoothstep)) * (t >= B.down[0] ? 1 - back : 1);
+    const rubbing = t >= B.rub[0] && t < B.rub[1];
+    return { shut, up: span(B.up, smoothstep) * (1 - back), ph: rubbing ? (t - B.rub[0]) / (B.rub[1] - B.rub[0]) * B.strokes : null, amp: B.amp };
+  },
   draw(ctx, c, P) {
     if (c.runPose && !c.lunge) { this.drawRun(ctx, c, P); return; }
     const stone = P.col([104, 106, 108]), stoneD = P.col([58, 60, 64]), stoneL = P.col([132, 134, 136]);
     const hole = P.col([8, 8, 10]);
     const pale = P.col([200, 200, 196]);
     const pose = c.lunge ? 2 : c.pose;
+    // losing a staring contest: only as it is looked at, in a pose whose face shows
+    const bl = c.blink && c.seen && this.eyesShow(c) ? this.blinkAt(c.blink) : null, shut = bl ? bl.shut : 0, up = bl ? bl.up : 0, lid = stone;
     // at the bars (the night has told it where they are), screaming with its head cocked it stands a little over, so its
     // face is in the gap in the middle of them and not behind a bar
     if (pose === 2 && c.grip && !c.lunge) ctx.translate(0.09, 0);
@@ -40,21 +85,21 @@ CREATURES.watcher = {
       }
     } else if (pose === 1) {
       // reaching for you
-      for (const s of [-1, 1]) {
+      if (!up) for (const s of [-1, 1]) {
         P_limb(ctx, [shoulder(s), [s * 0.5, 1.25], [s * 0.36, 1.05]], 0.1, stone);
         P_ell(ctx, s * 0.36, 1.05, 0.07, 0.06, stoneL);
         fingers(ctx, s * 0.36, 1.05, -Math.PI / 2 + s * 0.3, 0.35, 0.16, 0.03, stoneL);
       }
-      P_ell(ctx, -0.055, 1.83, 0.02, 0.014, pale); P_ell(ctx, 0.055, 1.83, 0.02, 0.014, pale);
+      watcherEye(ctx, -0.055, 1.83, 0.017, pale, shut, lid); watcherEye(ctx, 0.055, 1.83, 0.017, pale, shut, lid);
     } else if (pose === 2) {
       // screaming, head cocked
-      for (const s of [-1, 1]) {
+      if (!up) for (const s of [-1, 1]) {
         P_limb(ctx, [shoulder(s), [s * 0.55, 1.3], [s * 0.62, 1.7]], 0.1, stone);
         fingers(ctx, s * 0.62, 1.7, Math.PI / 2 + s * 0.2, 0.35, 0.15, 0.03, stoneL);
       }
       ctx.save(); ctx.translate(0, 1.5); ctx.rotate(0.35);
       P_poly(ctx, [[-0.2, 0], [0.2, 0], [0.15, 0.5], [0, 0.56], [-0.15, 0.5]], hole);
-      P_ell(ctx, -0.055, 0.33, 0.022, 0.016, pale); P_ell(ctx, 0.055, 0.33, 0.022, 0.016, pale);
+      watcherEye(ctx, -0.055, 0.33, 0.019, pale, shut, lid); watcherEye(ctx, 0.055, 0.33, 0.019, pale, shut, lid);
       P_ell(ctx, 0, 0.15, 0.06, 0.09 + (c.lunge || 0) * 0.05, stoneD);
       P_ell(ctx, 0, 0.15, 0.045, 0.075 + (c.lunge || 0) * 0.05, hole);
       ctx.restore();
@@ -75,14 +120,31 @@ CREATURES.watcher = {
         P_ell(ctx, rx, 1.08, 0.08, 0.075, stoneL);
         fingers(ctx, rx, 1.08, -Math.PI / 2 - 0.5, 0.42, 0.17, 0.032, stoneL);
       }
-      P_ell(ctx, -0.055, 1.82, 0.022, 0.015, pale); P_ell(ctx, 0.055, 1.82, 0.022, 0.015, pale);
+      watcherEye(ctx, -0.055, 1.82, 0.018, pale); watcherEye(ctx, 0.055, 1.82, 0.018, pale);
     } else {
       // pointing at you
-      P_limb(ctx, [shoulder(-1), [-0.45, 1.15], [-0.36, 0.85]], 0.1, stone);
-      P_limb(ctx, [shoulder(1), [0.5, 1.35], [0.28, 1.3]], 0.1, stone);
-      P_ell(ctx, 0.28, 1.3, 0.07, 0.06, stoneL);
-      P_line(ctx, 0.28, 1.3, 0.2, 1.27, 0.035, stoneL);
-      P_ell(ctx, -0.055, 1.83, 0.02, 0.014, pale); P_ell(ctx, 0.055, 1.83, 0.02, 0.014, pale);
+      if (!up) {
+        P_limb(ctx, [shoulder(-1), [-0.45, 1.15], [-0.36, 0.85]], 0.1, stone);
+        P_limb(ctx, [shoulder(1), [0.5, 1.35], [0.28, 1.3]], 0.1, stone);
+        P_ell(ctx, 0.28, 1.3, 0.07, 0.06, stoneL);
+        P_line(ctx, 0.28, 1.3, 0.2, 1.27, 0.035, stoneL);
+      }
+      watcherEye(ctx, -0.055, 1.83, 0.017, pale, shut, lid); watcherEye(ctx, 0.055, 1.83, 0.017, pale, shut, lid);
+    }
+    // its arms on their way to its eyes, there, and on their way back (losing a staring contest): each from where the pose
+    // has it to a fist on the eye of its own side (ey up the hood from its neck; in pose 2 its head is cocked, and its eyes
+    // with it), drawn over its face.
+    // Rubbing, each fist turns back and forth on its eye and shifts a little with it
+    if (up) {
+      const cock = pose === 2 ? 0.35 : 0, cs = Math.cos(cock), sn = Math.sin(cock), ey = 0.33, tw = bl.ph === null ? 0 : Math.sin(bl.ph * TAU) * bl.amp;
+      WATCHER_ARMS[pose].forEach(([el, hand], i) => {
+        const s = i ? 1 : -1, fx = s * 0.08 + s * tw * 0.02, fy = ey - 0.004 + tw * 0.02;
+        const to = [fx * cs - fy * sn, 1.5 + fx * sn + fy * cs], e = [lerp(el[0], s * 0.4, up), lerp(el[1], 1.34, up)], h = [lerp(hand[0], to[0], up), lerp(hand[1], to[1], up)];
+        P_limb(ctx, [shoulder(s), e, h], 0.1, stone);
+        const a = cock + s * (0.3 + tw * 0.55), ca = Math.cos(a), sa = Math.sin(a);
+        P_ell(ctx, h[0], h[1], 0.066, 0.07, stoneL, a);
+        for (let k = -1; k <= 1; k++) P_line(ctx, h[0] + ca * k * 0.03 - sa * 0.012, h[1] + sa * k * 0.03 + ca * 0.012, h[0] + ca * k * 0.03 + sa * 0.04, h[1] + sa * k * 0.03 - ca * 0.04, 0.009, stoneD);   // between its knuckles
+      });
     }
     // cracks
     ctx.strokeStyle = stoneD; ctx.lineWidth = 0.012; ctx.beginPath();
@@ -115,7 +177,7 @@ CREATURES.watcher = {
     // the hood, pushed forward, its opening toward where it runs, one eye in the dark of it
     P_poly(ctx, [[-0.22, 0.5], [0.2, 0.52], [0.34, 0.86], [0.2, 1.12], [-0.06, 1.12], [-0.24, 0.84]], stone);
     P_poly(ctx, [[0.12, 0.6], [0.3, 0.7], [0.32, 0.9], [0.2, 1.04], [0.1, 0.92]], hole);
-    P_ell(ctx, 0.25, 0.86, 0.022, 0.015, pale);
+    watcherEye(ctx, 0.25, 0.86, 0.018, pale);
     // the near arm, forward, the hand clawing at the air ahead of it
     const hx = 0.5 + sw * 0.1, hy = 0.42 + sw * 0.06;
     P_limb(ctx, [[0.02, 0.48], [0.3, 0.3 + sw * 0.04], [hx, hy]], 0.1, stone);

@@ -12,14 +12,23 @@ const SEEDS = (process.env.SEEDS || '1,2').split(',').map(Number);
 // a bow (night 5): press and hold, then let go. `when`: 'click' (let go at once), 'short' (just past the least draw, well
 // short of full), 'full' (as soon as the bar is full), or a number of ms (held that long, past full if it is long enough);
 // `where`: on the thing (its body, followed while drawing, as a player keeps it in the sights) or 'off' (well to one side
-// of it); `via`: 'mouse' (default), 'touch' (the Use button) or 'pad' (A), which both aim at the middle of the view
+// of it); `via`: 'mouse' (default), 'touch' (a finger held on the view where the mouse would be: touch events on it, as
+// a phone sends them) or 'pad' (A, which aims at the middle of the view)
 async function drawBow(page, when, where, via) {
   via = via || 'mouse';
   const body = () => page.evaluate(() => { const b = creatureBox(G.L.creature); return b && { x: b.x + b.w / 2, y: b.y + b.h / 2 }; });
   const aim = async () => { const r = await body(); if (!r) return null; return where === 'off' ? { x: r.x + (r.x > 640 ? -260 : 260), y: r.y } : r; };
   const press = async down => {
     if (via === 'mouse') { if (down) await page.mouse.down(); else await page.mouse.up(); return; }
-    if (via === 'touch') { await page.evaluate(dn => document.getElementById('tUse').dispatchEvent(new PointerEvent(dn ? 'pointerdown' : 'pointerup', { bubbles: true, cancelable: true })), down); return; }
+    if (via === 'touch') {
+      const p = down ? await aim() : null;
+      await page.evaluate(([dn, p]) => {
+        const at = dn ? p : window._finger, t = new Touch({ identifier: 7, target: UI.canvas, clientX: at.x, clientY: at.y });
+        window._finger = at;
+        UI.canvas.dispatchEvent(new TouchEvent(dn ? 'touchstart' : 'touchend', { bubbles: true, cancelable: true, touches: dn ? [t] : [], changedTouches: [t] }));
+      }, [down, p]);
+      return;
+    }
     await page.evaluate(dn => {
       if (!window._pad) { window._pad = { connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false })) }; navigator.getGamepads = () => [window._pad]; }
       window._pad.buttons[0].pressed = dn;
@@ -34,7 +43,7 @@ async function drawBow(page, when, where, via) {
       const st = await page.evaluate(w => {
         const d = G.draw, box = creatureBox(G.L.creature), at = box && { x: box.x + box.w / 2, y: box.y + box.h / 2 };
         if (!d || d.state !== 'drawing') return { done: false, at };
-        const m = (d.u.draw.min || 0.18) / (d.u.draw.fill || 1.5);
+        const m = (d.u.draw.min || 0.18) / (d.fill || d.u.draw.fill || 1.5);
         return { done: w === 'short' ? d.power > m + 0.03 : w === 'full' ? d.power >= 1 : false, at };
       }, when);
       if (st.done) break;
@@ -70,7 +79,6 @@ async function runStep(page, step) {
     case 'draw': await drawBow(page, a, b, c); break;
     case 'eval': await page.evaluate(a); break;
     case 'click': { const r = await findHit(page, 'target', a); check(!!r, a + ' is in view'); if (r) await clickAt(page, r); break; }
-    case 'combine': { const ok = await page.evaluate(([x, y]) => { const i = G.inv.findIndex(k => k.id === x), j = G.inv.find(k => k.id === y); if (i < 0 || !j) return false; G.active = i; return combine(G.inv[i], j); }, [a, b]); check(ok, 'combined ' + a + ' + ' + b); break; }
     case 'branch': { const which = await page.evaluate(a); for (const s of (which ? b : (c || []))) await runStep(page, s); break; }
     case 'expect': check(await page.evaluate(a), b || a); break;
     default: fail('unknown step ' + op);
@@ -88,6 +96,9 @@ async function runStep(page, step) {
       const steps = sol[tier];
       for (const seed of SEEDS) {
         console.log('== night ' + n + ' (' + tier + ', seed ' + seed + ') ==');
+        // every night starts with the reduction settings off, whatever the night before left in the save: a night's test may
+        // turn them on for a stretch, and anything saved meanwhile (an easter egg found) would carry them into the next
+        await page.evaluate(() => { try { const d = JSON.parse(localStorage.getItem('itscoming.v2')); if (d && d.settings) { d.settings.reducedMotion = d.settings.reducedFlash = false; localStorage.setItem('itscoming.v2', JSON.stringify(d)); } } catch (e) {} }).catch(() => {});
         await page.goto(T.INDEX + '?level=' + n + '&go&seed=' + seed); await page.waitForTimeout(300);
         const s0 = await st(page);
         check(s0.state === 'play' && s0.level === n - 1, 'night ' + n + ' playing on ' + tier);
@@ -99,7 +110,7 @@ async function runStep(page, step) {
           while (Date.now() - t0 < 30000 && (await st(page)).state !== 'end') await page.waitForTimeout(200);
           const s = await st(page);
           check(s.state === 'end', 'the ending played out -> end (' + s.state + ')');
-          const done = await page.evaluate(tier => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.complete && d.complete[tier] === true && d.best[LEVELS[LEVELS.length - 1].id] && d.best[LEVELS[LEVELS.length - 1].id][tier].wins >= 1; }, tier);
+          const done = await page.evaluate(tier => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.complete && d.complete[tier] === true && d.unlocked[tier] === LEVELS.length; }, tier);
           check(done, 'campaign marked complete in the save');
           continue;
         }
@@ -109,8 +120,9 @@ async function runStep(page, step) {
         while (Date.now() - t0 < 12000 && (await st(page)).state !== 'survived') await page.waitForTimeout(200);
         s = await st(page);
         check(s.state === 'survived', 'aftermath finished -> survived (' + s.state + ')');
-        const saved = await page.evaluate(([id, tier]) => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return d.best[id] && d.best[id][tier] && d.best[id][tier].wins >= 1 && d.unlocked[tier] >= 1; }, [id, tier]);
-        check(saved, 'win recorded in the save');
+        // (only whole runs are scores: a single night won records how far you have come, no time of its own)
+        const saved = await page.evaluate(([n, tier]) => { const d = JSON.parse(localStorage.getItem('itscoming.v2')); return !('best' in d) && d.unlocked[tier] >= n; }, [n, tier]);
+        check(saved, 'win recorded in the save (the next night reached)');
       }
     }
   }

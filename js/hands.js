@@ -1,6 +1,7 @@
 'use strict';
 // ---------- your hands: what you hold, drawn over the view; a thing tried where it will not go (a fumble); the reach ----------
-// Whatever is active in the inventory is drawn held in your right hand at the bottom right of the view, lit by the night's
+// Whatever is active in the inventory is drawn held in your right hand at the bottom right of the view (your left, at the
+// bottom left, on a night that has your right hand for something else: L.handSide), lit by the night's
 // own light, swaying as you breathe and lagging as you turn. A thing tried where it will not go leaves the hand, goes to
 // the spot in the world (drawn by the renderer, in the scene's order, fog and light), fails there and comes back or falls
 // to the floor, where it lies to be picked up again. With nothing useful in hand, a click on a target brings the empty hand
@@ -46,8 +47,8 @@ const HANDS = (() => {
     if (!shapes) shapes = SHAPES().filter(s => typeof s[0] === 'function');
     const w = it.w || 0.4, h = it.h || 0.4, long = Math.max(w, h);
     let d;
-    if (long >= 0.85) d = w >= h ? { hands: 2, grip: 'fist', at: [0.3, 0.5], off: [-0.16, 0.5], axis: Math.PI / 2, angle: -0.3 }   // a long thing: two hands, carried low at your side
-      : { hands: 2, grip: 'fist', at: [0, 0.2], off: [0, 0.6], axis: 0, angle: -1.1 };
+    if (long >= 0.85) d = w >= h ? { grip: 'fist', at: [0.3, 0.5], axis: Math.PI / 2, angle: -0.3 }   // a long thing: in one fist, carried low at your side
+      : { grip: 'fist', at: [0, 0.2], axis: 0, angle: -1.1 };
     else if (/key/i.test(it.id)) d = { grip: 'pinch', at: [0, 0.7], angle: -0.2, tip: [0, 0.06] };   // a key: by its bow, led by its blade
     else if (/chain|rope/i.test(it.id)) d = { grip: 'hang', at: [0, 0.94], axis: Math.PI / 2 };   // a chain or a rope: hanging from the fist
     else if (long <= 0.24) d = { grip: 'pinch', at: [0, 0.12], angle: -0.18 };                 // small: between finger and thumb
@@ -56,7 +57,8 @@ const HANDS = (() => {
     else d = { grip: 'fist', at: [0, 0.3], angle: 0.08 };
     // the icon itself, or a night's own wrapping of it under the same name (the last night draws them all on its floor)
     const known = shapes.find(s => s[0] === it.icon) || (BY_ID.includes(it.id) && shapes.find(s => s[0] === ICONS[it.id]));
-    return Object.assign({ hands: 1, grip: 'fist', at: [0, 0.3], axis: 0, angle: 0, size: 0, scale: 1, x: 0, y: 0, swing: 1 }, d, known ? known[1] : null, it.held || null);
+    // one hand to a thing, always: a second thing goes in the other hand, on the other side of the view (L.offHand)
+    return Object.assign({ hands: 1, grip: 'fist', at: [0, 0.3], axis: 0, angle: 0, size: 0, scale: 1, x: 0, y: 0, swing: 1 }, d, known ? known[1] : null, it.held || null, { hands: 1, off: null });
   }
   // the size it is drawn at, in px of the view's height: modest, and a long thing less than its length would make it
   function sizeOf(spec, it, Hv) {
@@ -73,6 +75,10 @@ const HANDS = (() => {
     G.fumbling = null; falling.length = 0;
   }
   const toward = (v, t, d) => (v < t ? Math.min(t, v + d) : Math.max(t, v - d));
+  // which side of the view the hand that holds things is on: the right, unless the night keeps that hand for what it
+  // offers the other one (L.handSide = -1: the phone booth, its receiver in your right hand, so what you hold is in your
+  // left; L.offHand's thing is always on the other side)
+  const mainSide = L => (L && L.handSide === -1 ? -1 : 1);
   // what the hand should hold now: the active thing, unless the night says otherwise (L.heldItem(item) may return another
   // item, or null to show nothing), or a night's own drawing of it in your hands (uses[].inHands: the bow) takes its place
   function wanted(L) {
@@ -135,10 +141,11 @@ const HANDS = (() => {
 
   // ---------------- where it is drawn ----------------
   // The hand and what it holds keep to the bottom right, clear of the middle of the view (the aim), the hover line, the
-  // inventory and the touch buttons: it moves in, up or shrinks to fit, measured from where those really are on the page.
+  // inventory and the zoom button on a phone: it moves in, up or shrinks to fit, measured from where those really are on the page.
   let keep = null, keepAt = -10, keepSig = '';
   function keepOuts(W, Hv) {
-    const sig = G.invSig + '|' + W + 'x' + Hv + '|' + R.viewY + '|' + (document.documentElement.hasAttribute('data-touch-left') ? 'L' : 'R');
+    const zb = document.getElementById('zoomBtn'), touchOn = !!zb && window.getComputedStyle(zb).display !== 'none';
+    const sig = G.invSig + '|' + W + 'x' + Hv + '|' + R.viewY + '|' + (touchOn ? 'T' : '');
     if (keep && sig === keepSig && G.t - keepAt < 1) return keep;
     keepSig = sig; keepAt = G.t;
     const vy = R.viewY, rects = [], rect = (el, pad, below) => {
@@ -147,10 +154,9 @@ const HANDS = (() => {
       rects.push({ x0: r.left - pad, y0: r.top - vy - pad, x1: r.right + pad, y1: r.bottom - vy + pad + (below || 0) });
     };
     rect(document.getElementById('inventory'), 10, 20);
-    const touch = document.getElementById('touch'), touchOn = touch && window.getComputedStyle(touch).display !== 'none';
-    if (touchOn) rect(touch, 10);
+    if (touchOn) rect(zb, 10);   // the zoom button, in the bottom right corner on a phone
     const obstacles = rects.slice();   // what may sit in the corner it would be in
-    const tipB = touchOn ? 150 : 118, pageH = R.pageH;
+    const tipB = 118, pageH = R.pageH;
     rects.push({ x0: W / 2 - 190, y0: pageH - tipB - 40 - vy, x1: W / 2 + 190, y1: pageH - tipB + 6 - vy });   // the hover line
     const m = Math.min(W, Hv) * 0.2;
     rects.push({ x0: W / 2 - m, y0: Hv / 2 - m, x1: W / 2 + m, y1: Hv / 2 + m });                       // the aim
@@ -195,7 +201,7 @@ const HANDS = (() => {
       if (best) break;
     }
     if (!best) best = { gx: W - b.x1 * 0.5 - Hv * 0.04, gy: Hv - b.y1 * 0.5 - Hv * 0.015, s: 0.5 };   // nowhere it fits whole: small, in the corner
-    const lay = { gx: mirror ? W - best.gx : best.gx, gy: best.gy, s: best.s, box: b, touch: ko.touchOn, arm: best.over ? 0.3 : ko.touchOn ? 1.25 : 0.85 };   // up over the touch buttons, the arm goes off the side, not down behind them
+    const lay = { gx: mirror ? W - best.gx : best.gx, gy: best.gy, s: best.s, box: b, touch: ko.touchOn, arm: best.over ? 0.3 : ko.touchOn ? 1.25 : 0.85 };   // up over the zoom button, the arm goes off the side, not down behind them
     H.layCache.map.set(key, lay);
     return lay;
   }
@@ -203,8 +209,8 @@ const HANDS = (() => {
   // ---------------- drawing ----------------
   // colours: lit as the night lights a thing at your chest (its lamps, the moon's ambient, a flash of lightning), a little
   // darker than what lies about (it is close, under you), and drawn a shade toward the night's own fog
-  const SKIN = [172, 132, 108], SKIN_D = [112, 80, 64], SKIN_L = [214, 176, 148], NAIL = [206, 172, 152], PALM = [196, 152, 128];
-  const SLEEVE = [44, 38, 37], SLEEVE_L = [68, 60, 57], SLEEVE_D = [24, 21, 21], GLOVE = [34, 30, 30], GLOVE_L = [70, 63, 60];
+  const SKIN = [172, 132, 108];
+  const SLEEVE = [44, 38, 37], SLEEVE_L = [68, 60, 57], SLEEVE_D = [24, 21, 21], GLOVE = [34, 30, 30];
   function lighting(L) {
     const e = L.eye || { x: 0, y: 0, z: 0 }, yaw = G.cam.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
     const px = (e.x || 0) + fx * 0.5 + rx * 0.25, py = L.eyeH + (e.y || 0) - 0.4, pz = (e.z || 0) + fz * 0.5 + rz * 0.25;
@@ -224,7 +230,10 @@ const HANDS = (() => {
     }
   }
   // the forearm in its sleeve, from the wrist off the edge of the view (dir: its way out, as an angle)
+  // SHOW_HANDS false: the held things float where the hand would hold them, with no hand or arm drawn
+  const SHOW_HANDS = false;
   function arm(ctx, C, wx, wy, dir, u) {
+    if (!SHOW_HANDS) return;
     const ex = wx + Math.cos(dir) * u * 16, ey = wy + Math.sin(dir) * u * 16;   // (long enough to leave the view from a hand reaching up to the top of it)
     ctx.lineCap = 'round';
     ctx.strokeStyle = C.sleeveD; ctx.lineWidth = u * 0.86; ctx.beginPath(); ctx.moveTo(wx + Math.cos(dir) * u * 0.3, wy + Math.sin(dir) * u * 0.3); ctx.lineTo(ex, ey); ctx.stroke();
@@ -243,8 +252,8 @@ const HANDS = (() => {
     const o = L.hands || {}, glove = !!o.glove, sk = o.skin || (glove ? GLOVE : SKIN), sl = o.sleeve || SLEEVE;
     const c = (x, k) => rgba(lit(k ? scalec(x, k) : x));
     return {
-      skin: c(sk), skinM: c(scalec(sk, 0.9)), skinD: c(glove ? scalec(sk, 0.6) : SKIN_D), skinL: c(glove ? GLOVE_L : SKIN_L), nail: c(glove ? GLOVE_L : NAIL), palm: c(glove ? sk : PALM),
-      crease: c(glove ? scalec(sk, 0.45) : scalec(SKIN_D, 0.8)), sleeve: c(sl), sleeveL: c(o.sleeve ? scalec(sl, 1.45) : SLEEVE_L), sleeveD: c(o.sleeve ? scalec(sl, 0.6) : SLEEVE_D),
+      // one flat colour for the whole hand (or glove): no highlights, nails, creases or shading between the fingers
+      skin: c(sk), skinM: c(sk), skinD: c(sk), skinL: c(sk), nail: c(sk), palm: c(sk), crease: c(sk), sleeve: c(sl), sleeveL: c(o.sleeve ? scalec(sl, 1.45) : SLEEVE_L), sleeveD: c(o.sleeve ? scalec(sl, 0.6) : SLEEVE_D),
     };
   }
   // A right hand, in a frame whose origin is where it closes, the thing it closes round running up and down through it,
@@ -253,6 +262,7 @@ const HANDS = (() => {
   // thumb, in front, and the side of the forefinger, behind), 'flat' (palm up, under it), 'open' (reaching: the back of the
   // hand, the fingers out straight up and to the left). part: 'back' (what is behind the thing), 'front' (what is in front).
   function hand(ctx, C, pose, part, u, curl) {
+    if (!SHOW_HANDS) return;
     const k = curl === undefined ? 1 : curl;   // 0: open, 1: closed (a fist opening to let go)
     if (pose === 'fist') {
       if (part === 'back') {
@@ -393,9 +403,9 @@ const HANDS = (() => {
     ctx.save();
     let box = null;
     // the main hand
-    const it = H.cur, rch = H.reach;
+    const it = H.cur, rch = H.reach, ms = mainSide(L);
     if (it && H.up > 0.001) {
-      const spec = heldSpec(it), p = pose(L, it, spec, W, Hv, 1, H.up);
+      const spec = heldSpec(it), p = pose(L, it, spec, W, Hv, ms, H.up);
       const fx = G.fumbling, out = (fx && fx.it === it && fx.phase !== 'wait' && fx.phase !== 'done') || (G.throwing && G.throwing.it === it) || H.gone === it;
       let { x, y, s } = p.g, alpha = 1, curl = 1;
       // a short push toward what it was used on; given up there (release), it goes from the hand into it
@@ -408,23 +418,24 @@ const HANDS = (() => {
       }
       // the fumble going out: the hand goes with it a little way, open, and comes back
       if (fx && fx.from === it && fx.handK) { const to = fx.handTo; if (to) { x = lerp(x, to.x, 0.22 * fx.handK); y = lerp(y, to.y, 0.22 * fx.handK); } s *= 1 - 0.12 * fx.handK; if (fx.it === it) curl = 1 - 0.7 * fx.handK; }
-      const o = { box: p.lay.box, tilt: p.tilt, swing: H.swing * spec.swing, alpha, curl, empty: out || alpha <= 0.01 || (!!H.fly && H.fly.it === it) };
+      const o = { side: ms, box: p.lay.box, tilt: p.tilt, swing: ms * H.swing * spec.swing, alpha, curl, empty: out || alpha <= 0.01 || (!!H.fly && H.fly.it === it) };
       if (out) { o.pose = 'open'; o.curl = fx && fx.it === it && !fx.drop ? Math.min(o.curl, 0.55) : o.curl; }   // the hand it left, open (half open, waiting for it to come back)
       group(ctx, L, it, spec, { x, y, s, arm: p.g.arm }, lit, C, o);
-      box = { x0: x + p.lay.box.x0 * s, y0: y + p.lay.box.y0 * s, x1: x + p.lay.box.x1 * s, y1: y + p.lay.box.y1 * s, dodge: p.dodge };
+      const bx = p.lay.box;   // (its box is laid out for the right hand: the other way across in the left)
+      box = { x0: x + (ms > 0 ? bx.x0 : -bx.x1) * s, y0: y + bx.y0 * s, x1: x + (ms > 0 ? bx.x1 : -bx.x0) * s, y1: y + bx.y1 * s, dodge: p.dodge };
     }
     // just picked up: it comes from where it lay up into the hand, growing to its size there, as the hand comes up to take
     // it (whatever was in the hand going down first)
     if (H.fly) {
-      const f = H.fly, fi = f.it, spec = heldSpec(fi), p = pose(L, fi, spec, W, Hv, 1, 1), b = p.lay.box, k = easeOut(f.t / f.dur), sc = lerp(f.px / Math.max(b.pw, b.ph), p.g.s, k);
-      ctx.save(); ctx.translate(lerp(f.x, p.g.x, k), lerp(f.y, p.g.y, k)); drawItem(ctx, fi, spec, b.pw * sc, b.ph * sc, (spec.angle + p.tilt) * k, lit, 1); ctx.restore();   // (both on the view, as the overlay is drawn)
+      const f = H.fly, fi = f.it, spec = heldSpec(fi), p = pose(L, fi, spec, W, Hv, ms, 1), b = p.lay.box, k = easeOut(f.t / f.dur), sc = lerp(f.px / Math.max(b.pw, b.ph), p.g.s, k);
+      ctx.save(); ctx.translate(lerp(f.x, p.g.x, k), lerp(f.y, p.g.y, k)); drawItem(ctx, fi, spec, b.pw * sc, b.ph * sc, ms * (spec.angle + p.tilt) * k, lit, 1); ctx.restore();   // (both on the view, as the overlay is drawn)
     }
     // the empty hand reaching for something
     if (rch && !(it && H.up > 0.001)) drawReach(ctx, L, rch, W, Hv, C, lit);
     // the off hand
     if (H.off.cur && H.off.up > 0.001) {
-      const o2 = H.off.cur, spec = heldSpec(o2), p = pose(L, o2, spec, W, Hv, -1, H.off.up);
-      group(ctx, L, o2, spec, p.g, lit, C, { side: -1, box: p.lay.box, tilt: p.tilt, swing: -H.swing * spec.swing });
+      const o2 = H.off.cur, spec = heldSpec(o2), p = pose(L, o2, spec, W, Hv, -ms, H.off.up);
+      group(ctx, L, o2, spec, p.g, lit, C, { side: -ms, box: p.lay.box, tilt: p.tilt, swing: -ms * H.swing * spec.swing });
     }
     ctx.restore();
     // is it in front of the middle of something you could take, or a small thing you could use (a lock, a switch)? then
@@ -670,8 +681,8 @@ const HANDS = (() => {
   }
   // the item's middle on the view in the hand now, and how big it is drawn there (px per metre)
   function handPoint(it) {
-    const L = G.L, spec = heldSpec(it), p = pose(L, it, spec, R.W, R.H, 1, 1), b = p.lay.box, s = p.g.s;
-    const pw = b.pw * s, ph = b.ph * s, ang = spec.angle + p.tilt;
+    const L = G.L, spec = heldSpec(it), p = pose(L, it, spec, R.W, R.H, mainSide(L), 1), b = p.lay.box, s = p.g.s;
+    const pw = b.pw * s, ph = b.ph * s, ang = mainSide(L) * (spec.angle + p.tilt);
     const dx = (0 - spec.at[0]) * pw, dy = -(0.5 - spec.at[1]) * ph;
     return { x: p.g.x + dx * Math.cos(ang) - dy * Math.sin(ang), y: p.g.y + dx * Math.sin(ang) + dy * Math.cos(ang), ppm: Math.max(pw, ph) / Math.max(it.w || 0.4, it.h || 0.4), ang };
   }
@@ -881,14 +892,14 @@ const HANDS = (() => {
   function drawReach(ctx, L, rc, W, Hv, C, lit) {
     const to = screenOf(rc.at); if (!to) return;
     const st = STYLE[rc.style], spec = { grip: 'fist', at: [0, 0.5], angle: 0, axis: 0, scale: 1, x: 0, y: 0, size: 0.2, hands: 1 };
-    const lay = layoutFor(spec, null, W, Hv, 1), u = Hv * 0.1;
+    const sd = mainSide(L), lay = layoutFor(spec, null, W, Hv, sd), u = Hv * 0.1;
     const rest = { x: lay.gx, y: Hv + u * 1.4 }, T = rc.T, into = T - rc.out;
     // it goes all the way to a thing in reach of a step; further off, the hand only goes out toward it
     const e = eyePos(L), far = clamp(1.8 / Math.max(0.3, Math.hypot(rc.at.x - e.x, rc.at.y - e.y, rc.at.z - e.z)), 0.6, 1);
     const k = far * (T < rc.out ? smoothstep(T / rc.out) : into < rc.hold ? 1 : 1 - smoothstep((into - rc.hold) / rc.back));
     const open = rc.style === 'touch' || rc.style === 'push';
     // the hand stops with its fingertips (or its knuckles) on the spot
-    const tip = open ? { x: -0.5 * u, y: -0.55 * u } : { x: -0.1 * u, y: -0.1 * u };
+    const tip = open ? { x: -0.5 * u * sd, y: -0.55 * u } : { x: -0.1 * u * sd, y: -0.1 * u };   // (the left hand's: the other way across)
     let x = lerp(rest.x, to.x - tip.x * 0.7, k), y = lerp(rest.y, to.y - tip.y * 0.7, k), s = lerp(1, 0.7, k), jx = 0, jy = 0;
     if (into >= 0 && into < rc.hold) {
       const ph = into / (st.hold / st.n);
@@ -897,13 +908,13 @@ const HANDS = (() => {
       else { const q = Math.max(0, Math.sin(Math.PI * Math.min(1, (ph % 1) / 0.6))); jx = -q * u * 0.06; jy = -q * u * 0.06; s *= 1 - q * 0.05; }
     }
     if (SAVE.data.settings.reducedMotion) { jx *= 0.3; jy *= 0.3; }
-    x += jx; y += jy;
+    x += jx * sd; y += jy;
     const g = { x, y, s, arm: lerp(lay.arm, 1.0, k) };
-    group(ctx, L, null, spec, g, lit, C, { box: { S: 0, pw: 0, ph: 0, hu: u }, pose: open ? 'open' : 'fist', empty: true });
+    group(ctx, L, null, spec, g, lit, C, { side: sd, box: { S: 0, pw: 0, ph: 0, hu: u }, pose: open ? 'open' : 'fist', empty: true });
   }
 
   // the hand's state, for nights and tests
-  return { update, draw, add, reset, picked, dropped, threw, thrust, fumble, settle, reach, landSpot, heldSpec, handPoint, handWorld, pointOn, state: H, PRESETS, materialOf };
+  return { update, draw, add, reset, picked, dropped, threw, thrust, fumble, settle, reach, landSpot, heldSpec, handPoint, handWorld, pointOn, state: H, PRESETS, materialOf, showHands: SHOW_HANDS };   // showHands: whether hands are drawn at all (a night's own, the bow, asks too)
 })();
 // the calls a night makes (README, Anatomy of a night)
 Object.assign(G, {

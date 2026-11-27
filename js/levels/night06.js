@@ -20,26 +20,43 @@ Object.assign(ICONS, {
     P_rect(ctx, -0.16, 0.06, 0.12, 0.06, brass); P_rect(ctx, -0.16, 0.16, 0.08, 0.05, brass);
     ctx.restore();
   },
+  // the life ring, face on: a fat hoop, white with four red bands, and nothing round the outside of it (it had a grab
+  // line there once, a thin pale yellow ring round its rim: on the wall it read as an outline, and was taken off)
+  lifeRing(ctx, P) {
+    const cx = 0, cy = 0.5, r = 0.365, w = 0.2;   // the middle of the tube, and how fat it is
+    const arc = (a0, a1, rr, lw, col) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(cx, cy, rr, a0, a1); ctx.stroke(); };
+    ctx.lineCap = 'butt';
+    arc(0, TAU, r, w, P.col([156, 154, 148])); arc(0, TAU, r + 0.008, w * 0.72, P.col([230, 226, 214]));
+    for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; arc(a - 0.3, a + 0.3, r, w + 0.012, P.col([124, 30, 28])); arc(a - 0.3, a + 0.3, r + 0.008, w * 0.72, P.col([196, 46, 38])); }
+  },
 });
 LEVELS.push({
   id: 'boathouse', title: 'The Boathouse', facing: 0, eyeH: 1.65,
   pal: { skyTop: [8, 10, 18], fog: [40, 48, 58], ground: [24, 32, 40], fogDist: 60 },
-  ambient: { wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 },
+  ambient: { tune: 'ambient:6', wind: 0.6, drone: 0.7, droneFreq: 44, windFreq: 260, rain: 0.5 },
   weather: { kind: 'rain', density: 0.45, wind: 0.25, fogRoll: { period: 37, depth: 0.35, phase: 1 } },
   text: {
-    intro: 'The water door has been open all night, and the water has not been still.<br>Something is swimming in toward the boathouse. It goes under for a while, and when it comes up it is closer.',
-    hint: 'Unlock the winch, put the handle on and crank the water door down; then shut the side door and bar it.',
-    objective: 'Shut both ways in: crank the water door down, and shut and bar the side door.',
-    death: { default: 'It came up over the sill with its hand first.', reached: 'The door was not down. It came up under it.', side: 'The bar was not across. It came in with the door.' },
-    win: 'It threw itself at the slats until the tide turned, and they held. When you looked again the water was flat all the way out.',
-    fragment: 'Your knees were wet until noon. Nothing else in the house was.',
+    intro: 'Something is in the water.',
+    hint: 'Unlock the winch, put the handle on and crank the water door down; then shut the side door and bar it with both oars.',
+    objective: 'Shut both ways in: crank the water door down, and shut the side door and bar it with both oars.',
+    // (ring: caught, by whichever way, after the life ring was thrown to it: the night's easter egg. Not one of text.eggs:
+    // the screen still says "It got you")
+    death: { default: 'It splashed into the boathouse and pulled you under.', reached: 'It came through the water door and pulled you under.', side: 'It came in the side, and pulled you under.', oneoar: 'One oar wasn\'t strong enough.', ring: 'It really didn\'t need saving, but that was nice of you.' },
+    win: 'It threw itself at the doors, but they held.',
+    egg: 'Throw it the life ring.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },
-  // the thing swims: its feet are at the water line, a little below the deck
+  // the thing swims: its feet are at the water line, a little below the deck. It never swims in over the boards: the
+  // water ends at each doorway's sill (the deck's edge: 2.6 m off at the water door, 2.4 m at the side door), and it
+  // comes no nearer than 0.85 m outside that (its catchDist on each way, set in build: STOP), which is where all of it
+  // as it is drawn, its rings on the water and the life ring round it and its paws paddling, is still over water from
+  // where you stand (measured: 3.45 m and 3.2 m in the ring, 2.95 m and 2.75 m without). Its death lunge comes up out of
+  // the water from there. A shut way holds it a little further out again (barrierDist). Its time is the longer by what
+  // those last metres took it, so it gets to you when it always did
   lanes: [
-    { deg: 0, name: 'water door', barrierDist: 2.9, y: -0.15, cue: 'splash', default: true },
-    { deg: 90, name: 'side door', barrierDist: 2.7, y: -0.15, cue: 'splash' },
+    { deg: 0, name: 'water door', barrierDist: 3.55, y: -0.15, cue: 'splash', default: true },
+    { deg: 90, name: 'side door', barrierDist: 3.35, y: -0.15, cue: 'splash' },
   ],
-  creatures: [{ type: 'swimmer', startDist: 70, time: 105, unseenMult: 1.3 }],
+  creatures: [{ type: 'swimmer', startDist: 70, time: 108, unseenMult: 1.3, catchDist: 3.45 }],
   // the aftermath is the night's own (L.aftermath in build): it comes on to the door it was coming for and pounds on it
   aftermath: { type: 'custom' },
   build(L) {
@@ -65,7 +82,15 @@ LEVELS.push({
     const rng = mulberry32(66);
     for (let i = 0; i < 44; i++) { const x = (rng() - 0.5) * 170, z = 56 + rng() * 28; SC.tree(L, x, z, 8 + rng() * 7, 'fir', (rng() * 1e6) | 0); }
     for (let i = 0; i < 26; i++) { const side = rng() < 0.5 ? -1 : 1, x = side * (46 + rng() * 30), z = -30 + rng() * 70; SC.tree(L, x, z, 7 + rng() * 7, rng() < 0.6 ? 'fir' : 'bare', (rng() * 1e6) | 0); }
-    SC.sprite(L, -34, 1.2, 66, 0.9, 0.7, (ctx, P) => { ctx.scale(0.9, 0.7); P_rect(ctx, -0.5, 0, 1, 1, P.raw([214, 176, 108])); }, { noFog: true, noLight: true });
+    // a lamp on the far shore, among the trees: a small soft glow, warm and dim, fading to nothing with no edge to it. r
+    // is how far out it fades, in metres, so it is the size its distance makes it; its faint skirt is never under a few
+    // pixels across, so it does not shrink to a hard dot
+    const farLight = (x, y, z, r, col, a) => SC.sprite(L, x, y - r, z, 2 * r, 2 * r, (ctx, P, px) => {
+      const R0 = Math.max(r, 3 / (px || 1)), g = ctx.createRadialGradient(0, r, 0, 0, r, R0);
+      g.addColorStop(0, rgba(col, a)); g.addColorStop(0.2, rgba(col, a * 0.55)); g.addColorStop(0.5, rgba(col, a * 0.14)); g.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, r, R0, 0, TAU); ctx.fill();
+    }, { noFog: true, noLight: true });
+    farLight(-34, 1.55, 66, 0.85, [236, 188, 118], 0.7);
     // the deck and the walls
     SC.floorQ(L, -2.4, -2.4, 2.4, 2.6, 0.006, deck, { tex: 'planks', texScale: 1.3 });
     SC.wallV(L, -2.4, -2.4, 2.4, -2.4, 0, 3.0, wood, tex);
@@ -73,48 +98,75 @@ LEVELS.push({
     SC.wallV(L, -0.56, -2.385, -0.5, -2.385, 0, 2.16, frameC); SC.wallV(L, 0.5, -2.385, 0.56, -2.385, 0, 2.16, frameC); SC.wallV(L, -0.56, -2.385, 0.56, -2.385, 2.1, 2.16, frameC);
     SC.wallV(L, -2.4, -2.4, -2.4, 2.6, 0, 3.0, woodD, tex);
     for (let y = 0.6; y < 3; y += 0.6) { SC.wallV(L, -2.39, -2.4, -2.39, 2.6, y, y + 0.04, [30, 24, 20]); SC.wallV(L, -2.4, -2.39, 2.4, -2.39, y, y + 0.04, [30, 24, 20]); }
-    const apN = SC.doorway(L, { z: 2.6, w: 3.0, h: 2.4, wallH: 3.0, left: -2.4, right: 2.4, color: wood, opts: tex, frame: { color: frameC, w: 0.12 } });
-    const apE = SC.doorway(L, { deg: 90, z: 2.4, w: 1.1, h: 2.1, wallH: 3.0, left: -2.6, right: 2.4, color: woodD, opts: tex, frame: { color: frameC, w: 0.1 } });
+    const apN = SC.doorway(L, { z: 2.6, w: 3.0, h: 2.4, wallH: 3.0, left: -2.4, right: 2.4, color: wood, opts: tex, frame: { color: frameC, w: 0.12, line: true } });
+    const apE = SC.doorway(L, { deg: 90, z: 2.4, w: 1.1, h: 2.1, wallH: 3.0, left: -2.6, right: 2.4, color: woodD, opts: tex, frame: { color: frameC, w: 0.1, line: true } });
     L.addAperture(0, apN); L.addAperture(1, apE);
     SC.quad(L, [-2.5, 3.0, -2.5], [2.5, 3.0, -2.5], [2.5, 3.0, 2.7], [-2.5, 3.0, 2.7], [26, 21, 17]);
     for (const z of [-1.8, -0.6, 0.6, 1.8]) SC.box(L, -2.4, 2.4, 2.84, 3.0, z - 0.06, z + 0.06, [44, 36, 28]);
-    // furniture: an upturned rowboat, a workbench, a shelf, the winch, rope and nets
+    // furniture: an upturned rowboat, a workbench, a shelf, the winch, a life ring on the wall (a thing you can take: below)
     // the rowboat lies upturned along the west wall, its bow toward the water: plank sides narrowing to a stem, its flat
-    // bottom uppermost (things can lie on it), and the keel along the middle
-    const hullC = [72, 62, 50], hx0 = -2.3, hx1 = -1.4, hmx = -1.85, hz0 = -1.9, hz1 = 0.9, stem = 1.5, HH = 0.45, strakes = { tex: 'planks', texScale: 0.6 };
-    SC.quad(L, [hx0, 0, hz0], [hx1, 0, hz0], [hx1, HH, hz0], [hx0, HH, hz0], scalec(hullC, 0.78));                  // the transom
-    SC.quad(L, [hx0, 0, hz0], [hx0, 0, hz1], [hx0, HH, hz1], [hx0, HH, hz0], scalec(hullC, 0.66), strakes);         // the sides
-    SC.quad(L, [hx1, 0, hz0], [hx1, 0, hz1], [hx1, HH, hz1], [hx1, HH, hz0], scalec(hullC, 0.66), strakes);
-    SC.quad(L, [hx0, 0, hz1], [hmx, 0, stem], [hmx, HH, stem], [hx0, HH, hz1], scalec(hullC, 0.6));                 // the bow
-    SC.quad(L, [hx1, 0, hz1], [hmx, 0, stem], [hmx, HH, stem], [hx1, HH, hz1], scalec(hullC, 0.74), strakes);
-    // the bottom, uppermost, and the keel along it: the bow's part of the bottom, the rest of it, then the keel, one straight
-    // after another and before anything lying on the boat (all of which is nearer than 2.3)
-    SC.quad(L, [hx0, HH, hz1], [hx1, HH, hz1], [hmx, HH, stem], [hmx, HH, stem], scalec(hullC, 1.08), { sortDist: 2.38 });
-    SC.quad(L, [hx0, HH, hz0], [hx1, HH, hz0], [hx1, HH, hz1], [hx0, HH, hz1], scalec(hullC, 1.08), { sortDist: 2.37 });
-    SC.box(L, hmx - 0.05, hmx + 0.05, HH, HH + 0.1, hz0, stem - 0.14, [50, 42, 34], { sortDist: 2.36 });
-    // the workbench. Its top is drawn before whatever stands on it, all of which is nearer than this: drawn by its own middle
-    // it covered the far end of the bench, where the tackle box and the key that comes out of it can lie
+    // bottom uppermost (things can lie on it), and the keel along the middle. It is painted: white, gone a little grey and
+    // yellow, with a red sheer strake (the lowest plank of each side as it lies, next the deck) and a red keel, the paint
+    // worn through to the wood where it has been dragged up a beach: along the chine, and in scrapes on the bottom.
+    // White under what lies on it (the green tackle box, the key on its orange float, the iron handle): each shows on it
+    const hullW = [170, 164, 150], hullR = [146, 44, 36], bare = [108, 92, 72];
+    const hx0 = -2.3, hx1 = -1.4, hmx = -1.85, hz0 = -1.9, hz1 = 0.9, stem = 1.5, HH = 0.45, SHEER = HH / 4, strakes = { tex: 'planks', texScale: 0.6 };
+    // Only the hull's near side and its near bow plank are drawn: its far side, its far bow plank and the transom are always
+    // behind the bottom (or the near side) from where you stand, and are left out. Drawn, they were cut into pieces on
+    // the renderer's grid like any long face, and the pieces of the far side nearest you came out nearer than the bottom
+    // and were drawn over it: its planks showed through the middle of the bottom
+    // (each in two: the red sheer strake, one plank, and the three white ones above it)
+    for (const [y0, y1, col] of [[0, SHEER, hullR], [SHEER, HH, hullW]]) {
+      SC.quad(L, [hx1, y0, hz0], [hx1, y0, hz1], [hx1, y1, hz1], [hx1, y1, hz0], scalec(col, 0.66), strakes);         // the near side
+      SC.quad(L, [hx1, y0, hz1], [hmx, y0, stem], [hmx, y1, stem], [hx1, y1, hz1], scalec(col, 0.74), strakes);       // the bow
+    }
+    // the bottom, uppermost, and the keel along it: the bow's part of the bottom, the rest of it, what is on the paint (the
+    // seams between its boards, and where it is worn), then the keel, one straight after another and before anything
+    // lying on the boat (all of which is nearer than 2.3), each drawn whole, so what lies on it keeps its own order (the
+    // key in front of the tackle box it came out of)
+    SC.quad(L, [hx0, HH, hz1], [hx1, HH, hz1], [hmx, HH, stem], [hmx, HH, stem], scalec(hullW, 1.08), { sortDist: 2.38 });
+    SC.quad(L, [hx0, HH, hz0], [hx1, HH, hz0], [hx1, HH, hz1 + 0.012], [hx0, HH, hz1 + 0.012], scalec(hullW, 1.08), { sortDist: 2.37 });   // (a little over the bow's part, so no line shows between them)
+    { const on = { sortDist: 2.365 }, bowZ = x => hz1 + (stem - hz1) * (1 - Math.abs(x - hmx) / (hx1 - hmx)), y = HH + 0.001;
+      const strip = (x0, x1, z0, z1, col, alpha) => SC.quad(L, [x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], col, Object.assign({ alpha }, on));
+      // a scrape: a ragged sliver, its ends drawn out to nothing
+      const scrape = (x, z0, z1, w, alpha) => { const l = z1 - z0; SC.quad(L, [x, y, z0], [x + w, y, z0 + l * 0.3], [x + w * 0.7, y, z1], [x - w * 0.15, y, z1 - l * 0.4], bare, Object.assign({ alpha }, on)); };
+      // the seams between the bottom boards, running the length of it and on to where the bow cuts them off
+      for (const o of [-0.3, -0.15, 0.15, 0.3]) strip(hmx + o - 0.006, hmx + o + 0.006, hz0, bowZ(hmx + o), scalec(hullW, 0.74), 1);
+      // worn to the wood: along the chine nearest you, in lengths, and scrapes on the bottom running the way it was dragged
+      for (const [z0, z1, w] of [[-1.72, -1.1, 0.022], [-0.85, -0.3, 0.03], [0.1, 0.84, 0.024]]) scrape(hx1 - w, z0, z1, w, 0.6);
+      for (const [x, z0, z1, w, al] of [[-1.62, -0.55, 0.05, 0.03, 0.42], [-1.7, 0.45, 0.8, 0.02, 0.38], [-2.08, -1.3, -0.5, 0.032, 0.42], [-2.0, 0.2, 0.62, 0.018, 0.35], [-1.56, -1.75, -1.45, 0.022, 0.4]]) scrape(x, z0, z1, w, al);
+    }
+    SC.box(L, hmx - 0.05, hmx + 0.05, HH, HH + 0.1, hz0, stem - 0.14, hullR, { sortDist: 2.36 });
+    // (the keel's paint worn off along its top, where it took the ground)
+    for (const [z0, z1] of [[-1.55, -0.9], [-0.35, 0.3], [0.62, 1.05]]) SC.quad(L, [hmx - 0.028, HH + 0.101, z0], [hmx + 0.03, HH + 0.101, z0 + 0.12], [hmx + 0.022, HH + 0.101, z1], [hmx - 0.03, HH + 0.101, z1 - 0.15], bare, { sortDist: 2.355, alpha: 0.5 });
+    // the workbench. Its top is not pinned to a drawing distance: the renderer cuts it on the same grid as the back
+    // wall behind it, draws each piece of it after the piece of wall behind, and whatever stands on it (the tackle box, the
+    // key that comes out of it, the winch handle) after the piece it stands on. (Pinned whole at 2.8 m, it came out further
+    // than the pieces of the back wall nearest you, which were drawn over it: the wall's boards showed through the top.)
     const benchC = [78, 64, 48], bx0 = 0.6, bx1 = 2.3, by0 = 0.86, by1 = 0.92, bz0 = -2.35, bz1 = -1.7;
-    for (const z of [bz0, bz1]) SC.quad(L, [bx0, by0, z], [bx1, by0, z], [bx1, by1, z], [bx0, by1, z], scalec(benchC, 0.78));
-    for (const x of [bx0, bx1]) SC.quad(L, [x, by0, bz0], [x, by0, bz1], [x, by1, bz1], [x, by1, bz0], scalec(benchC, 0.66));
-    SC.quad(L, [bx0, by1, bz0], [bx1, by1, bz0], [bx1, by1, bz1], [bx0, by1, bz1], scalec(benchC, 1.08), { sortDist: 2.8 });
-    STORY.lamp(L, 0.8, 0.92, -2.15, { scale: 0.85 });
+    // the edge of the top: its front and its near end. Its back, against the wall, and its far end, by the side wall, are
+    // never seen from where you stand (the top is always in front of them) and are not drawn: put just in front of the
+    // wall, the back was drawn after the nearest piece of wall it overlapped, over the tackle box standing on the bench
+    SC.quad(L, [bx0, by0, bz1], [bx1, by0, bz1], [bx1, by1, bz1], [bx0, by1, bz1], scalec(benchC, 0.78));
+    SC.quad(L, [bx0, by0, bz0], [bx0, by0, bz1], [bx0, by1, bz1], [bx0, by1, bz0], scalec(benchC, 0.66));
+    SC.quad(L, [bx0, by1, bz0], [bx1, by1, bz0], [bx1, by1, bz1], [bx0, by1, bz1], scalec(benchC, 1.08));
     for (const [x, z] of [[0.65, -2.3], [2.25, -2.3], [0.65, -1.75], [2.25, -1.75]]) SC.box(L, x - 0.04, x + 0.04, 0, 0.86, z - 0.04, z + 0.04, [60, 48, 36]);
     SC.box(L, -2.38, -2.05, 1.5, 1.55, -0.2, 1.4, [66, 54, 42]);
     // the pulley over the water door, the cable from the winch drum up to it and across to the door
     SC.box(L, 1.8, 2.1, 2.42, 2.58, 2.5, 2.62, iron);
     SC.quad(L, [1.94, 1.5, 2.5], [1.96, 1.5, 2.5], [1.96, 2.42, 2.5], [1.94, 2.42, 2.5], [28, 28, 30]);
     SC.quad(L, [0, 2.44, 2.61], [1.95, 2.44, 2.61], [1.95, 2.47, 2.61], [0, 2.47, 2.61], [28, 28, 30]);
-    SC.sprite(L, -1.6, 1.4, -2.36, 0.5, 0.5, (ctx, P) => { ctx.scale(0.5, 0.5); ICONS.rope(ctx, P); });
-    SC.sprite(L, -2.36, 1.85, -1.5, 0.7, 0.7, (ctx, P) => { ctx.scale(0.7, 0.7); ctx.lineWidth = 0.16; ctx.strokeStyle = P.col([200, 196, 186]); ctx.beginPath(); ctx.arc(0, 0.5, 0.36, 0, TAU); ctx.stroke(); ctx.strokeStyle = P.col([150, 50, 40]); for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(0, 0.5, 0.36, k * Math.PI / 2 + 0.2, k * Math.PI / 2 + 0.6); ctx.stroke(); } });
-    SC.sprite(L, 1.2, 1.3, -2.36, 1.6, 1.6, (ctx, P) => { ctx.scale(1.6, 1.6); ctx.strokeStyle = P.col([60, 58, 50]); ctx.lineWidth = 0.006; ctx.beginPath(); for (let k = 0; k <= 8; k++) { ctx.moveTo(-0.5 + k / 8, 1); ctx.lineTo(-0.4 + k / 8 * 0.8, 0); ctx.moveTo(-0.5, 1 - k / 8); ctx.lineTo(0.5, 1 - k / 8 * 0.9); } ctx.stroke(); }, { sortDist: 3.3 }); // the net hangs on the wall: drawn with it, behind what stands on the bench
-    // the iron brackets either side of the side door that take its bar: each a cradle open at the top, bolted to the wall, two
-    // arms out from the wall plate and a strap across their ends, so that from the room it shows as a U the bar drops into.
-    // They and the bar carry sort distances that draw them over the door leaf and frame (sorted by their own middles, a bar a
-    // little into the room still came out further from the eye than the leaf's middle, and the leaf hid it), and draw the
-    // cradle round the bar: the plate and the arms behind it, the strap in front
+    // a life ring hung flat on the west wall, on a peg through the top of its hole: white, with four red bands. It is a
+    // thing you can take (the item, below): the peg stays
+    const RING = { x: -2.365, y: 2.1, z: -1.5, w: 0.7 };   // its middle on the wall, and how wide it is
+    SC.box(L, RING.x - 0.03, RING.x + 0.05, RING.y + RING.w * 0.265 - 0.035, RING.y + RING.w * 0.265 - 0.005, RING.z - 0.015, RING.z + 0.015, [40, 32, 26]);   // the peg, the ring's top resting on it
+    // the iron brackets either side of the side door that take the oars that bar it: each a cradle open at the top, bolted
+    // to the wall, two arms out from the wall plate and a strap across their ends, so that from the room it shows as a U the
+    // oars drop into, one on the other. They and the oars carry sort distances that draw them over the door leaf and frame
+    // (sorted by their own middles, a thing a little into the room still came out further from the eye than the leaf's
+    // middle, and the leaf hid it), and draw the cradle round the oars: the plate and the arms behind them, the strap in front
     const cradle = [96, 96, 104];
-    for (const zc of [-0.74, 0.74]) {
+    const brackets = SC.grab(L, () => { for (const zc of [-0.74, 0.74]) {
       const z0 = zc - 0.08, z1 = zc + 0.08, zn = Math.abs(z0) < Math.abs(z1) ? z0 : z1, zf = zn === z0 ? z1 : z0;   // the arm nearer the door, the far one
       SC.wallV(L, 2.37, z0, 2.37, z1, 0.9, 1.26, [50, 50, 56], { sortDist: 2.3 });
       SC.wallV(L, 2.366, zc - 0.014, 2.366, zc + 0.014, 1.212, 1.24, [120, 120, 126], { sortDist: 2.29 }); // a bolt head
@@ -122,30 +174,48 @@ LEVELS.push({
       SC.wallV(L, 2.2, zn, 2.37, zn, 0.9, 1.1, scalec(cradle, 0.8), { sortDist: 2.25 });
       SC.wallV(L, 2.2, z0, 2.2, z1, 0.9, 0.95, cradle, { sortDist: 2.1 });                                            // the strap across, and the arms' ends
       for (const z of [z0, z1]) SC.wallV(L, 2.2, z - Math.sign(z - zc) * 0.025, 2.2, z, 0.9, 1.1, cradle, { sortDist: 2.1 });
-    }
-    // items
-    const decoy = !!L.diff.decoys;
-    mkItem(L, 'handle', 'Winch handle', [
-      { x: 1.2, y: 0.92, z: -2.0 },                     // on the workbench
-      { x: 1.6, y: 0, z: -2.1 },                        // on the deck under the bench
-      { x: -2.33, y: 1.25, z: -0.7, flat: false },      // hanging on a nail on the west wall, clear of the shelf
-      { x: -1.6, y: 0.46, z: 0.3 },                     // on the rowboat's upturned bottom, beside the keel
-      { x: -1.9, y: 0, z: 2.2 },                        // in the corner by the water door
-    ], { w: 0.45, h: 0.45, flat: true });
-    mkItem(L, 'beam', 'Door bar', [
-      { x: -1.0, y: 0, z: -0.6 },                       // on the deck by the boat
-      { x: -0.6, y: 0, z: -2.05 },                      // along the back wall
-      { x: 1.5, y: 0.92, z: -2.0 },                     // across the workbench
-      { x: 1.6, y: 0, z: 1.0 },                         // near the side door
-    ], { w: 1.6, h: 0.5, flat: true });
-    // the oar: on the deck inside the water door, clear of the rowboat (behind its end, the boat hid it) and of the corner
-    // where the handle can lie, or leaning in the corner by the winch
-    // held in both hands along its loom, the lower hand near its grip end and the other further up toward the blade (the
+    } });
+    // items. Every place the winch handle can be is on something that bears it (HANDLE_SPOTS, checked by the night's test):
+    // the workbench, the deck, the shelf, the rowboat's bottom. (It hung on a nail on the west wall once, with no nail
+    // drawn there, and showed floating against the boards.) On the shelf it stands on its socket at the near end, toward
+    // you, where it is in front of the shelf's top as it is drawn
+    const HANDLE_SPOTS = [
+      { x: 1.2, y: 0.92, z: -2.0, on: 'bench' },                         // on the workbench
+      { x: 1.6, y: 0, z: -2.1, on: 'deck' },                             // on the deck under the bench
+      { x: -2.16, y: 1.525, z: 0.0, flat: false, jitter: 0, on: 'shelf' },  // standing on the shelf, at its near end (its socket, drawn a little up its card, on the top)
+      { x: -1.6, y: 0.46, z: 0.3, on: 'boat' },                          // on the rowboat's upturned bottom, beside the keel
+      { x: -1.9, y: 0, z: 2.2, on: 'deck' },                             // in the corner by the water door
+    ];
+    mkItem(L, 'handle', 'Winch handle', HANDLE_SPOTS, { w: 0.45, h: 0.45, flat: true });
+    L.handleSpots = HANDLE_SPOTS;
+    // the two oars of the upturned rowboat, which bar the side door between them: each laid across its brackets, one on the
+    // other (one alone is not enough to hold it). Each lies in a place of its own: one on the deck by the boat's bow, on
+    // the deck toward the water door, or leaning in the corner by the winch; the other on the deck toward the back wall,
+    // on the deck under the side door's bracket, or leaning on the boat's stern. An oar is as long wherever it is as it is
+    // across the door (OAR_H: its card, the icon drawn on it about 2.1 m from grip to blade; across the brackets it is a
+    // little longer, its ends past them). Lying, it lies from near your feet straight out along the deck (a card on the
+    // floor runs away from where you stand), clear of the walls, the boat and the bench; leaning, it stands near upright.
+    // Held in both hands along the loom, the lower hand near the grip end and the other further up toward the blade (the
     // icon draws it slanting, so the hands go where its shaft is)
-    if (decoy) mkItem(L, 'oar', 'Oar', [{ x: -0.4, y: 0, z: 1.4 }, { x: 2.3, y: 0, z: 1.7, flat: false }], { w: 0.5, h: 1.2, flat: true, decoy: true, decoyText: 'It does not fit the winch.',
-      held: { hands: 2, grip: 'fist', at: [-0.08, 0.15], off: [-0.25, 0.47], axis: -0.22, angle: -0.5 } });
+    const OAR_W = 0.5, OAR_H = 2.4;
+    const onDeck = (deg, r) => ({ x: Math.sin(deg * DEG) * r, y: 0, z: Math.cos(deg * DEG) * r, jitter: 0.04 });
+    const oarHeld = { hands: 2, grip: 'fist', at: [-0.08, 0.15], off: [-0.25, 0.47], axis: -0.22, angle: -0.5 };
+    mkItem(L, 'oar', 'Oar', [onDeck(-30, 0.4), onDeck(20, 0.35), { x: 2.3, y: 0, z: 1.7, flat: false }], { w: OAR_W, h: OAR_H, flat: true, icon: 'oar', held: oarHeld });
+    mkItem(L, 'oar2', 'Oar', [onDeck(185, 0.3), onDeck(105, 0.3), { x: -1.3, y: 0, z: -2.3, flat: false }], { w: OAR_W, h: OAR_H, flat: true, icon: 'oar', held: oarHeld });
+    const OARS = ['oar', 'oar2'];
+    // the life ring off the wall: taken up by its rim. On the wall it lies flat on the boards (L.dynamic fixes its card to
+    // the wall's face); put down, it lies on the deck as anything does
+    const ring = mkItem(L, 'lifering', 'Life ring', { x: RING.x, y: RING.y - RING.w / 2, z: RING.z, flat: false, jitter: 0 },
+      { w: RING.w, h: RING.w, icon: 'lifeRing', onWall: true, held: { grip: 'fist', at: [0.2, 0.2], axis: 0.9, angle: -0.25, size: 0.33 } });
+    // where an oar knocked off the winch comes down: on the deck from near your feet out toward the winch (an oar that
+    // long lies nowhere nearer it), or a little to the left of that if the other oar already lies there
+    const oarLand = it => {
+      const other = L.items.find(o => OARS.includes(o.id) && o !== it && !o.taken), at = deg => { const q = onDeck(deg, 0.3), p = L.pt(q.x, 0, q.z); return { x: p[0], y: 0, z: p[2] }; };
+      const a = at(25);
+      return other && other.flat && Math.hypot(other.x - a.x, other.z - a.z) < 0.6 ? at(-12) : a;
+    };
     // the winch is chained and padlocked, and the key is in the tackle box
-    Object.assign(s, { handleIn: false, locked: true, sealedN: false, sealedE: false, doorOpen: true, doorClosing: 0, doorClosed: false, doorA: 72 * DEG, crankA: 0 });
+    Object.assign(s, { handleIn: false, locked: true, sealedN: false, sealedE: false, oars: 0, doorOpen: true, doorClosing: 0, doorClosed: false, doorA: 72 * DEG, crankA: 0 });
     // a green tackle box: shut, a solid box with its lid down; open, the lid thrown back and the trays folded out either side,
     // and the key on its orange float lying in front of it
     const boxC = [44, 116, 80], boxW = 0.52, boxH = 0.32;
@@ -218,11 +288,13 @@ LEVELS.push({
     // the wall, a drum with the cable wound on it going up to the pulley, and under it the wheel that turns it, with the square
     // boss in its middle that the handle fits. Locked, a chain runs round the drum and down through the wheel to a padlock;
     // unlocked, the chain hangs loose off the side, the padlock open on it and the key's float hanging from the padlock; with
-    // the handle on, the crank turns the wheel round a step at every turn. What you click is the drawing: the same size and place
-    const need = 7, WS = 0.62, WX = 1.95, WY = 0.9, WZ = 2.5;
-    SC.sprite(L, WX, WY, WZ, WS, WS, (ctx, P) => { ctx.scale(WS, WS); drawWinch(ctx, P); });
+    // the handle on, the crank turns the wheel round a step at every turn. What you click is the drawing: the same size and place.
+    // It is fixed flat on the wall (face: its front looks back into the boathouse), so it never turns with the view, and
+    // what you click is the shape it covers.
+    const need = 7, WS = 0.62, WX = 1.95, WY = 0.9, WZ = 2.5, WFACE = Math.PI;
+    const winchArt = SC.sprite(L, WX, WY, WZ, WS, WS, (ctx, P) => { ctx.scale(WS, WS); drawWinch(ctx, P); }, { face: WFACE });
     // Tried before it will go, the winch answers in its own iron. A turn forced against the chain (the handle put on the
-    // padlocked winch, or the bar knocked against it) snaps the chain taut: the padlock jumps on it and the wheel rocks a
+    // padlocked winch, or an oar knocked against it) snaps the chain taut: the padlock jumps on it and the wheel rocks a
     // little and back. A hand on the padlock rattles it on its chain. A hand on the wheel with no handle moves it a hair
     // and no further. joltT, rattleT and nudgeT are when each began (the night's clock); snapTaut() snaps it.
     Object.assign(s, { joltT: -9, rattleT: -9, nudgeT: -9 });
@@ -279,12 +351,11 @@ LEVELS.push({
       }
     }
     // where things go on it, across and up the drawing: the padlock, and the square boss in the middle of the wheel; and the
-    // point each thing leads with, in its icon: the handle's socket, the oar's grip end, the bar's near end (the one toward
-    // the middle of the view as it is carried, so it is jabbed at it, not turned end over end on the way)
-    const AT = { lock: [0, 0.1], boss: [0, 0.36] }, TIP = { handle: [-0.35, 0.145], oar: [-0.02, 0.06], beam: [-0.47, 0.41] };
+    // point each thing leads with, in its icon: the handle's socket, the oar's grip end
+    const AT = { lock: [0, 0.1], boss: [0, 0.36] }, TIP = { handle: [-0.35, 0.145], oar: [-0.02, 0.06] };
     const lockPt = (() => { const p = L.pt(WX, WY + WS * 0.1, WZ); return { x: p[0], y: p[1], z: p[2], w: 0, h: 0 }; })();
     const unlock = () => {
-      s.locked = false; winch.accepts = ['handle'].concat(decoy ? ['oar'] : []);
+      s.locked = false; winch.accepts = ['handle'];
       // the key stays in the padlock (the hand puts it in and lets go of it there); the slot it leaves goes to the handle
       // if you have it, not to whatever came after the key
       const k = G.inv.find(i => i.id === 'winchkey');
@@ -297,16 +368,22 @@ LEVELS.push({
     const keyThere = () => { const th = G.hand.thrust, g = s.keyGoing; return !(th && th.item === g.k && (th.wait !== undefined || th.t < th.dur * 0.45)) || L.t - g.t > 1.2; };
     // clicked again while the hand is still there, it goes again (the reach only stays on for another go)
     const again = (rc, key) => { if (rc && rc.more) s[key] = L.t; };
-    // a thing it does not take, knocked against it: it comes back to the hand (the bar, end first, at the wheel)
+    // a thing it does not take, knocked against it: it comes back to the hand (end first, at the wheel)
     const knock = (item, onHit) => G.fumble(item, winch, { preset: 'return', at: AT.boss, tip: TIP[item.id], sfx: { hit: s.locked ? 'chain' : 'tink' }, onHit });
     const winch = mkTarget(L, {
-      id: 'winch', name: 'Winch', x: WX, y: WY, z: WZ, w: WS, h: WS, accepts: ['handle', 'winchkey'].concat(decoy ? ['oar'] : []),
+      id: 'winch', name: 'Winch', x: WX, y: WY, z: WZ, w: WS, h: WS, face: WFACE, accepts: ['handle', 'winchkey'],
       hint() { return winch.done ? 'The door is down.' : s.locked ? 'The winch. A chain through the drum, and a padlock on it.' : !s.handleIn ? 'The winch. Its handle is gone.' : 'Crank it. ' + Math.max(0, need - Math.floor(winch.count || 0)) + ' more.'; },
-      // the oar, its grip end jammed at the boss: it will not go in, slips and clatters to the deck
-      fumble: { decoy: { preset: 'bump', at: AT.boss, tip: TIP.oar } },
       onClick() {
         // with the key on you, the padlock comes first, whatever is in your hand
         if (s.locked && G.hasItem('winchkey')) { unlock(); return true; }
+        // an oar, its grip end jammed at the boss: it will not go in, slips and clatters to the deck, to be picked up again
+        const held = G.inv[G.active];
+        if (!s.handleIn && held && OARS.includes(held.id)) {
+          if (G.fumbling && G.fumbling.from === held) return true;   // (on its way there already)
+          G.toast('It does not fit the winch.');
+          if (!G.fumble(held, winch, { preset: 'bump', at: AT.boss, tip: TIP.oar, land: oarLand(held), sfx: { hit: 'woodKnock', land: 'clatter' } })) AUDIO.sfx('nope');
+          return true;
+        }
         // with nothing it takes, say what is wrong with it, and show it: locked, the hand rattles the padlock on its chain
         // (or what you hold knocks the chain taut); unlocked, the hand takes the wheel and it will not turn without its handle
         if (!s.handleIn && !winch.accepts.some(id => G.hasItem(id))) {
@@ -332,46 +409,116 @@ LEVELS.push({
         AUDIO.sfx('fit'); G.say('The handle fits. Crank it.', 'The handle is on the winch.'); return true;
       },
     });
-    // the side door: close it, then bar it. A closed door on its own only slows it down.
-    // Open, the hand reaches out for the leaf's edge and pulls it to. While it is still swinging shut, the bar put up to the
+    // the side door: close it, then bar it with both oars. A closed door on its own only slows it down, and one oar across
+    // it is not enough: it knocks it out of the brackets (L.onReach).
+    // Open, the hand reaches out for the leaf's edge and pulls it to. While it is still swinging shut, an oar put up to the
     // brackets gets there before the leaf does (the leaf slows as it comes): the leaf comes round into it with a thud and
-    // swings back a little, and the bar is knocked back into your hands; then the leaf goes on and shuts (anything else in
-    // hand, the hand only helps it shut). Shut and not barred, or barred, an empty hand pushes on it and it holds.
+    // swings back a little, and the oar is knocked back into your hands; then the leaf goes on and shuts (anything else in
+    // hand, the hand only helps it shut). Shut, an oar goes across the brackets, then the other on top of it. Shut and not
+    // barred, or barred, an empty hand pushes on it and it holds.
     const leafEdge = (() => { const p = L.pt(3.25, 1.05, -0.27); return { x: p[0], y: p[1], z: p[2] }; })();
-    const knockedBack = () => ({ preset: 'bounce', drop: false, at: [0, 0.51], angle: 0, sfx: { hit: 'woodKnock' },   // held level, across the brackets
+    const LEVEL = -1.3;   // the turn that brings the oar's icon (drawn slanting, on its tall card) level, across the brackets
+    const knockedBack = () => ({ preset: 'bounce', drop: false, at: [0, 0.51], angle: LEVEL, sfx: { hit: 'woodKnock' },   // held level, across the brackets
       onHit: () => { if (s.doorClosing > 0) { s.doorClosing = Math.min(0.9, s.doorClosing + 0.2); AUDIO.sfx('thud'); G.shake(0.1); } s.leafSlow = false; },
       onDone: () => { s.leafSlow = false; } });
     const sd = mkTarget(L, {
-      id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: ['beam'], reach: 'push',
-      hint() { return s.sealedE ? 'Barred.' : s.doorOpen ? 'The side door stands open.' : s.doorClosing > 0 ? 'Swinging shut.' : 'Shut. The bar would hold it.'; },
+      id: 'sidedoor', name: 'Side door', x: 2.36, y: 0, z: 0, w: 1.25, h: 2.1, accepts: OARS.slice(), reach: 'push',
+      hint() { return s.sealedE ? 'Barred with both oars.' : s.doorOpen ? 'The side door stands open.' : s.doorClosing > 0 ? 'Swinging shut.' : s.oars === 1 ? 'One oar across. It needs the other.' : 'Shut. Both oars across the brackets would hold it.'; },
       onClick() {
+        if (s.doorOpen && s.fell) { G.say('It is in the doorway.', 'It is in the doorway.'); return true; }   // (the one oar knocked out and the door burst open: there is no shutting it on it now)
         if (s.doorOpen) { s.doorOpen = false; s.doorClosing = 0.9; AUDIO.sfx('creak'); G.reach(sd, { style: 'pull', at: leafEdge }); return true; }
         if (s.doorClosing > 0) {
           G.say('Wait for it to shut.', 'The door is still swinging shut.');
           const act = G.inv[G.active];
-          if (act && act.id === 'beam') { if (G.fumble(act, sd, knockedBack())) s.leafSlow = true; } else G.reach(sd, 'push');   // (a click more while it is on its way leaves the leaf slowed)
+          if (act && OARS.includes(act.id)) { if (G.fumble(act, sd, knockedBack())) s.leafSlow = true; } else G.reach(sd, 'push');   // (a click more while it is on its way leaves the leaf slowed)
           return true;
         }
         return false;
       },
       use(item) {
         if (s.doorOpen || s.doorClosing > 0) { G.say('Shut it first.', 'The side door is standing open.'); return G.refuse(knockedBack()); }
-        s.sealedE = true; sd.done = true; sd.accepts = []; AUDIO.sfx('bar'); G.say('The bar is across.', 'The bar is across the side door.'); return true;
+        s.oars++; sd.accepts = sd.accepts.filter(id => id !== item.id); AUDIO.sfx('bar');
+        if (s.oars < 2) { G.say('The oar drops into the brackets. One will not hold it: it needs the other on top.', 'One oar is across the side door.'); return true; }
+        s.sealedE = true; sd.done = true; sd.accepts = []; G.say('The second oar goes across on top of the first. That will hold.', 'Both oars are across the side door.'); return true;
       },
     });
-    // the brackets are part of the door: clicking either does what clicking the door does (shuts it, or puts the bar
-    // across), and pointing at one lights the door as the target, the brackets with it. An invisible face over each cradle,
-    // a little proud of it, drawn after it so the outline it gets when lit shows over the iron
+    glowWith(winch, [winchArt]);
+    // the brackets are part of the door: clicking either does what clicking the door does (shuts it, or puts an oar
+    // across), and pointing at one lights the door as the target, the brackets with it: an invisible face over each
+    // cradle, a little proud of it (the leaf and the oars glow with them, L.dynamic)
+    glowWith(sd, brackets);
     const grips = [-0.74, 0.74].map(zc => SC.mkWallV(L, 2.2, zc - 0.12, 2.2, zc + 0.12, 0.86, 1.31, [0, 0, 0], { invisible: true, hit: { kind: 'target', ref: sd }, sortDist: 2.05 }));
     // both ways must be shut
     L.sealed = lane => (lane.idx === 0 ? s.sealedN : s.sealedE);
     L.isWon = () => s.sealedN && s.sealedE;
     L.objectiveText = () => {
       const n = s.sealedN ? 'Water door down.' : (s.locked ? 'Unlock the winch. ' : '') + (!s.handleIn ? (G.hasItem('handle') ? 'Put the handle on the winch.' : 'Find the winch handle.') : 'Crank the water door down (' + Math.min(need, Math.floor(winch.count || 0)) + '/' + need + ').');
-      const e = s.sealedE ? 'Side door barred.' : s.doorOpen ? 'Shut the side door and bar it.' : 'Bar the side door.';
+      const e = s.sealedE ? 'Side door barred.' : s.doorOpen ? 'Shut the side door and bar it with both oars.' : s.oars === 1 ? 'Put the other oar across the side door.' : 'Bar the side door with both oars.';
       return n + ' ' + e;
     };
     const panOf = yaw => Math.sin(wrapPi(yaw - G.cam.yaw)) * 0.85;
+    // ---- the life ring, thrown to it (the night's easter egg) ----
+    // With the ring in hand, a click on the thing where it shows out on the water throws it the ring: it leaves the hand
+    // and flies out through the doorway in an arc, spinning flat, and lands on the water with a plop. The thing goes under
+    // the moment you click, as it does, wherever it was; the ring floats, bobbing, where it will next come up; it comes up
+    // through it (CREATURES.swimmer: c.ringPend, then c.ringOn) and from then on paddles in wearing it, never going
+    // under, and arrives when it would have. Caught after that, the death screen says so (text.death.ring); the night is
+    // won as it always is. s.ring is the ring once it has left the hand: phase 'fly', 'float' or 'on' (it wears it); t,
+    // when it was thrown; dur, how long it flies; its path (below); d, how far out it floats, on the lane `lane`; land,
+    // when it landed; y, its height now.
+    // It can only be thrown at what you can see. With the water door's slats down across the line to it, the side door's
+    // leaf shut or swinging, or the thing under the water, a click is whatever it would have been: the use (L.uses, below)
+    // names its tool only while the ring is in your hand and the thing in sight, so the game does not offer the thing
+    // as something to click at any other time, and carrying the ring changes nothing.
+    const SW = CREATURES.swimmer, THROW = 0.9, DOORWAY = [2.6, 2.4];   // how far off each way's doorway is
+    // the water's edge on each way is its doorway's sill; it stops, and lunges from, STOP_OUT outside it (see the lanes)
+    const STOP_OUT = 0.85, STOP = DOORWAY.map(d => d + STOP_OUT);
+    L.waterEdge = DOORWAY; L.stopDist = STOP;
+    const doorTop = () => 2.4 - 2.4 * clamp((winch.count || 0) / need, 0, 1);   // the water door's opening: up to the lowest slat
+    const ringSeen = c => {
+      if (c.dead || c.lunge || L.won || SW.hidden(c) || APPROACH.apertureFrac(c.lane, c.dist, c.lat, SW.w, SW.h, L.eyeH) < 0.3) return false;
+      if (c.lane.idx === 1) return s.doorOpen;
+      return L.eyeH + (c.lane.y + 0.2 - L.eyeH) * Math.min(1, DOORWAY[0] / c.dist) < doorTop() - 0.03;   // the line to its eyes passes under the slats
+    };
+    const canThrow = () => G.state === 'play' && !s.ring && G.inv[G.active] === ring && ringSeen(L.creature);
+    const throwRing = c => {
+      if (!canThrow()) return false;
+      foundEgg();   // the night's easter egg, found the moment it is thrown (kept in the save: game.js)
+      // from where it is in your hand: the place out in the room where it is the size it shows there
+      const hw = G.hand.cur === ring && G.hand.up > 0.5 ? HANDS.handWorld(ring, 1.5) : null;
+      G.removeFromInv(ring); HANDS.threw(ring);
+      const from = hw ? [hw.p.x, hw.p.y, hw.p.z] : [Math.sin(G.cam.yaw + 0.4) * 1.2, L.eyeH - 0.55, Math.cos(G.cam.yaw + 0.4) * 1.2];
+      // it goes under at once, as it does (swimming across into a doorway, it goes down where it is and comes up on the way in)
+      if (s.swim) { c.runPose = false; c.runLat = 0; s.swim = null; c.hold = null; c.u = clamp(1 - Math.pow(c.dist / c.D0, 1 / c.gamma), 0, 0.995); }
+      c.mode = 'down'; c.modeT = 0; c.downFor = 2 + c.rand() * 2; c.diveDist = c.dist; c.diveT = L.t; AUDIO.sfx('dive', panOf(c.yaw));
+      // where it will come up, after that long under at its usual pace there: the ring lands at that spot (never nearer
+      // than just outside the doorway; held where it is, it comes up where it is)
+      const lane = c.lane, uUp = Math.min(0.995, c.u + c.downFor * 2.5 * c.unseenMult / c.T), near = Math.min(c.dist, (lane.barrierDist || 0) + 0.6);
+      const d = c.hold !== null ? c.dist : Math.max(c.D0 * Math.pow(1 - uUp, c.gamma), near);
+      Object.assign(c, { ringPend: true, ringReady: false, ringD: d });
+      // (on Nightmare its one early change of way, made unseen, waits until it is up and in the ring: it does not come up
+      // somewhere else than where the ring is)
+      if (!c.switched) c.switchAt = Math.max(c.switchAt === undefined ? 0.12 + c.rand() * 0.28 : c.switchAt, uUp + 0.004);
+      // its flight, along the lane: z metres out and x to the right of it, from the hand to the water d metres off
+      const rx = Math.cos(lane.yaw), rz = -Math.sin(lane.yaw), z0 = Math.max(0.5, from[0] * lane.dirX + from[2] * lane.dirZ), x0 = from[0] * rx + from[2] * rz;
+      const y1 = lane.y + SW.RING_H + SW.RING_Y, zd = DOORWAY[lane.idx], top = lane.idx === 0 ? doorTop() : 2.1;
+      // the arc: as high as the throw is long, and never so high that it does not pass under the top of the opening
+      const kd = clamp((1 / z0 - 1 / zd) / Math.max(1e-6, 1 / z0 - 1 / d), 0.02, 0.98), room = (top - 0.3 - lerp(from[1], y1, kd)) / (4 * kd * (1 - kd));
+      s.ring = { phase: 'fly', t: L.t, dur: THROW, lane: lane.idx, d, z0, x0, y0: from[1], y1, zd, arc: clamp(Math.min(0.35 + d * 0.05, room), 0, 1.6), scale: hw ? Math.min(1, hw.scale) : 1, y: from[1] };
+      AUDIO.sfx('ringThrow', panOf(c.yaw));
+      return true;
+    };
+    // where the ring is in the air, k of the way through its flight (0..1): [x, y, z] in the world, and how far out along
+    // the lane. It shrinks away steadily as you see it (its distance goes as 1 / k), comes in to the middle of the lane
+    // before it reaches the doorway, and rises and falls on its arc
+    const ringFlight = (r, k) => {
+      const lane = L.lanes[r.lane], z = 1 / lerp(1 / r.z0, 1 / r.d, k), x = r.x0 * (1 - smoothstep((z - r.z0) / Math.max(0.05, r.zd - 0.3 - r.z0)));
+      return [lane.dirX * z + Math.cos(lane.yaw) * x, lerp(r.y0, r.y1, k) + r.arc * 4 * k * (1 - k), lane.dirZ * z - Math.sin(lane.yaw) * x, z];
+    };
+    // how it rides on the water: knocked under as it lands and up again, then bobbing (gentler with reduced motion)
+    const ringBob = r => { const q = L.t - r.land, soft = SAVE.data.settings.reducedMotion ? 0.45 : 1; return (-0.06 * Math.exp(-q * 4) * Math.cos(q * 13) + 0.018 * Math.sin(L.t * 2.1)) * soft; };
+    L.uses = [Object.defineProperty({ range: Infinity, sights: false, onClick: throwRing, hoverText: () => 'Throw it the life ring.' }, 'tool', { enumerable: true, get: () => (canThrow() ? 'lifering' : null) })];
+    L.onPickup = it => { if (it === ring) ring.onWall = false; };
     // ---- the way round ----
     // Held at a way you have shut, after a moment it goes round to one still open (the game moves it there, 3 m out). It
     // goes under at the shut one, swims round out of sight, comes up off to one side of the open one and swims across into
@@ -380,7 +527,7 @@ LEVELS.push({
     // turns to the door and comes on. Its early change of mind, unseen, is only a dive: it comes up on the new way.
     L.onLaneSwitch = (c, ln) => {
       c.diveT = -10;   // no rings on the new way, where it did not go under
-      if (!s.wasHeld) { if (c.mode === 'up') { c.mode = 'down'; c.modeT = 0; } return; }
+      if (!s.wasHeld) { if (c.mode === 'up' && !c.ringOn) { c.mode = 'down'; c.modeT = 0; } return; }   // (in the life ring it does not dive: unseen, it is on the new way)
       const ap = ln.apertures[0], out = Math.max(Math.abs(ap.x0), Math.abs(ap.x1)) * c.dist / ap.z + 0.9;   // wholly out of the doorway's view, wake and all
       s.swim = { t: 0, side: ln.idx === 1 ? -1 : 1, out, across: 0.55 + out * 0.22, d0: c.dist, strokes: 0, up: false };
       c.hold = c.dist; c.mode = 'down'; c.modeT = 0; c.runLat = s.swim.side * out;
@@ -406,7 +553,7 @@ LEVELS.push({
     // ---- after the win: it throws itself at the door ----
     // It comes on to the door it was coming for, fast now and under the water, and throws itself at it: blow on blow,
     // quicker and quicker, the boards jumping and bowing in at the bottom where it hits, water bursting in under them and
-    // through the gaps, the bar jumping in its brackets, the lamp swinging; then one last blow, and it lets go and goes
+    // through the gaps, the oars jumping in their brackets, the lamp swinging; then one last blow, and it lets go and goes
     // under. [time after it reaches the door, how hard]
     const BLOWS = [[0, 1], [0.48, 0.8], [0.9, 0.95], [1.24, 0.8], [1.52, 0.9], [1.78, 0.8], [2.02, 1], [2.24, 0.85], [2.44, 0.95], [2.64, 0.9], [3.22, 1.35]];
     const LETGO = 3.75, DONE = 4.4, fx = mulberry32(64);
@@ -432,7 +579,7 @@ LEVELS.push({
       if (!a) {
         // the first blow waits for the view to come round to the door, if it has far to turn
         a = s.after = { door: c.lane.idx, n: 0, wait: 0.35 + 0.55 * clamp(Math.abs(wrapPi(c.yaw - G.cam.yaw)) / (Math.PI / 2), 0, 1) };
-        if (a.door === 1) L.text.win = 'It threw itself at the side door until the tide turned, and the bar held. When you looked again the water was flat all the way out.';
+        if (a.door === 1) L.text.win = 'It threw itself at the side door until the tide turned, and the oars held. When you looked again the water was flat all the way out.';
         // still out on the water: it comes on fast now, under it, so the blows start in a second or two
         const barrier = c.lane.barrierDist, far = c.dist - barrier;
         // a close finish, with it already under the door's line as the last slat came down or the door shut on it (the game
@@ -467,11 +614,20 @@ LEVELS.push({
     const rattle = () => { let r = 0; for (const j of s.jolts) { const tau = L.t - j.t; if (tau >= 0) r += j.k * Math.exp(-tau * 12); } return Math.min(r, 1.5); };
     L.update = dt => {
       if (s.keyGoing && keyThere()) springOpen();
+      if (s.knockAt !== undefined && L.t >= s.knockAt && !L.won) knockOut();
+      if (s.fell && !s.fell.down && L.t - s.fell.t >= s.fell.T1) { s.fell.down = true; AUDIO.sfx('clatter', panOf(L.creature.yaw)); G.shake(0.06); }   // its grip end on the deck, and the rest of it after
       if (s.holdT > 0) { s.holdT -= dt; if (s.holdT <= 0 && s.heldC) { s.heldC.hold = null; s.heldC = null; } }
       s.crankA += ((winch.count || 0) * 1.3 - s.crankA) * (1 - Math.exp(-dt * 12));   // the crank goes round smoothly to where it was turned
       if (s.doorClosing > 0) { s.doorClosing -= dt * (s.leafSlow ? 0.25 : 1); s.doorA = 72 * DEG * Math.pow(clamp(s.doorClosing / 0.9, 0, 1), 1.3); if (s.doorClosing <= 0) { s.doorA = 0; s.doorClosed = true; AUDIO.sfx('thud'); G.shake(0.12); } }
       const c = L.creature;
+      c.catchDist = STOP[c.lane.idx];   // the way it is on now: no nearer than its water's edge
       if (s.swim) swimRound(c, dt);
+      // the life ring: it lands (and from then the thing may come up through it), floats, and is worn
+      const r = s.ring;
+      if (r) {
+        if (r.phase === 'fly') { if (L.t - r.t >= r.dur) { r.phase = 'float'; r.land = L.t; c.ringReady = true; AUDIO.sfx('ringPlop', panOf(L.lanes[r.lane].yaw)); } else r.y = ringFlight(r, (L.t - r.t) / r.dur)[1]; }
+        if (r.phase === 'float') { if (c.ringOn) r.phase = 'on'; else r.y = r.y1 + ringBob(r); }
+      }
       s.wasHeld = !!c.sealHold;   // read by L.onLaneSwitch, which the game calls after this, when it sends it round
       // the water it throws in: flying, then splashing down on the deck
       for (let i = s.drops.length - 1; i >= 0; i--) {
@@ -484,22 +640,84 @@ LEVELS.push({
       s.surges = s.surges.filter(j => L.t - j.t < 1.8);
       s.swing += (s.swingT - s.swing) * (1 - Math.exp(-dt * 3)); s.swingT *= Math.exp(-dt * 0.4);
     };
-    L.deathCause = c => (c.lane.idx === 1 ? 'side' : null);
-    // a shut, unbarred door really does slow it: it bangs the door open and stands in it for a moment, long enough to shut and bar it
-    L.onReach = c => { if (c.lane.idx === 1 && s.doorClosed && !s.sealedE) { s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); G.toast('The side door bangs open.'); c.hold = c.dist; s.heldC = c; s.holdT = 2.5; } };
+    // (caught after the life ring was thrown, by whichever way: the night's easter egg says so, in its own line and no
+    // other: a line toasted a moment before is not put in front of it, as game.js deathLine otherwise would)
+    L.deathCause = c => { if (s.ring) { G.lastToast = { msg: '', t: -10 }; return 'ring'; } return c.lane.idx === 1 ? (s.fell ? 'oneoar' : 'side') : null; };
+    // a shut, unbarred door really does slow it: it bangs the door open and stands in it for a moment, long enough to shut and
+    // bar it. With one oar across it, it throws itself at the door once, the door jumps on the oar, and at the second blow the
+    // oar is knocked up out of its brackets, whole, and the door bursts open (L.update): the oar turns over in the air,
+    // comes down on the deck inside and lies there (s.fell: FELL, below), and it comes on in
+    L.onReach = c => {
+      if (c.lane.idx !== 1 || !s.doorClosed || s.sealedE) return;
+      if (s.oars === 1) { AUDIO.sfx('wetPound', panOf(c.yaw)); G.shake(0.5); c.hold = c.dist; s.heldC = c; s.holdT = 0.7; s.knockAt = L.t + 0.6; return; }
+      s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG; AUDIO.sfx('bang'); G.shake(0.5); c.hold = c.dist; s.heldC = c; s.holdT = 2.5;
+    };
+    const knockOut = () => {
+      const c = L.creature;
+      s.knockAt = undefined; s.fell = oarFall(); s.oars = 0;
+      s.doorOpen = true; s.doorClosed = false; s.doorA = 72 * DEG;
+      AUDIO.sfx('wetPound', panOf(c.yaw)); AUDIO.sfx('woodKnock', panOf(c.yaw)); AUDIO.sfx('bang'); G.shake(0.8);
+      c.hold = c.dist; s.heldC = c; s.holdT = FELL.wait;   // it is in the doorway while the oar comes down
+    };
     const lampX = () => Math.sin(L.t * 1.9) * (0.55 + s.swing);   // the blows on the door set it swinging harder
-    // the bar across the inside of the shut side door, in its brackets: a little into the room from the leaf (x 2.4) and
-    // the frame (2.35), and drawn after both and before the brackets' lips (see the brackets above). A blow on the door
-    // drives it in against the brackets' straps (dx) and makes it jump in them (dy)
-    const barC = [108, 82, 50];
-    const barAt = (dx, dy) => [
-      SC.mkQuad(L, [2.24 - dx, 1.19 + dy, -0.88], [2.34 - dx, 1.19 + dy, -0.88], [2.34 - dx, 1.19 + dy, 0.88], [2.24 - dx, 1.19 + dy, 0.88], scalec(barC, 1.18), { sortDist: 2.21 }), // its top
-      SC.mkWallV(L, 2.24 - dx, -0.88, 2.24 - dx, 0.88, 0.97 + dy, 1.19 + dy, barC, { sortDist: 2.2 }),                                                           // its face
-      SC.mkWallV(L, 2.238 - dx, -0.88, 2.238 - dx, 0.88, 0.97 + dy, 0.99 + dy, scalec(barC, 0.6), { sortDist: 2.19 }),                                            // its lower edge
-      SC.mkWallV(L, 2.238 - dx, -0.7, 2.238 - dx, 0.5, 1.09 + dy, 1.098 + dy, scalec(barC, 0.74), { sortDist: 2.19 }),                                             // the grain
-      SC.mkWallV(L, 2.238 - dx, -0.3, 2.238 - dx, 0.8, 1.13 + dy, 1.136 + dy, scalec(barC, 0.78), { sortDist: 2.19 }),
-    ];
-    const bar = barAt(0, 0);
+    // the oars across the inside of the shut side door, in its brackets, the second on top of the first: a little into the
+    // room from the leaf (x 2.4) and the frame (2.35), and drawn after both and before the brackets' lips (see the brackets
+    // above), the upper one after the lower. Each is a round loom with its grip at one end and its flat blade at the other,
+    // laid against the wall past a bracket, the second the other way round. A blow on the door drives them in against the
+    // brackets' straps (dx) and makes them jump in them (dy)
+    const oarC = [126, 98, 62], R0 = 0.03, GRIP = 1.1, NECK = 0.86, TIPZ = 1.45;
+    const oarY = i => 0.955 + R0 + i * 2 * R0;
+    const oarAt = (i, dx, dy) => {
+      const dir = i ? -1 : 1, yc = oarY(i) + dy, x = 2.24 - dx, sd0 = 2.226 - i * 0.02, zg = -dir * GRIP, zn = dir * NECK, zt = dir * TIPZ;
+      return [
+        SC.mkQuad(L, [x, yc + R0, zg], [x + 0.07, yc + R0, zg], [x + 0.07, yc + R0, zn], [x, yc + R0, zn], scalec(oarC, 1.2), { sortDist: sd0 }),   // the top of the loom
+        SC.mkWallV(L, x, zg, x, zn, yc - R0, yc + R0, oarC, { sortDist: sd0 - 0.002 }),                                                                 // its face
+        SC.mkWallV(L, x - 0.002, zg, x - 0.002, zn, yc - R0, yc - R0 + 0.012, scalec(oarC, 0.6), { sortDist: sd0 - 0.004 }),                            // its shadowed underside
+        SC.mkWallV(L, x - 0.003, zg, x - 0.003, zg + dir * 0.16, yc - R0 * 0.8, yc + R0 * 0.8, scalec(oarC, 0.7), { sortDist: sd0 - 0.006 }),          // the worn grip
+        SC.mkQuad(L, [x + 0.02, yc - R0, zn], [x + 0.02, yc - 0.085, zn + dir * 0.3], [x + 0.02, yc + 0.085, zn + dir * 0.3], [x + 0.02, yc + R0, zn], scalec(oarC, 1.05), { sortDist: sd0 - 0.003 }),   // the blade, flaring
+        SC.mkQuad(L, [x + 0.02, yc - 0.085, zn + dir * 0.3], [x + 0.02, yc - 0.07, zt], [x + 0.02, yc + 0.07, zt], [x + 0.02, yc + 0.085, zn + dir * 0.3], scalec(oarC, 1.05), { sortDist: sd0 - 0.003 }),
+        SC.mkWallV(L, x + 0.018, zn, x + 0.018, zt - dir * 0.03, yc - 0.006, yc + 0.006, scalec(oarC, 0.72), { sortDist: sd0 - 0.005 }),                 // its ridge
+      ];
+    };
+    const oarsAt = (dx, dy) => { const out = []; for (let i = 0; i < s.oars; i++) out.push(...oarAt(i, dx, dy)); return out; };
+    // The one oar, knocked out of its brackets by the blow that bursts the door: it jumps up out of the cradles (open at the
+    // top) and is thrown into the room, turning as it goes, its blade end kicked up and swinging in toward you; its grip
+    // end comes down on the deck first (T1 seconds on: the clatter), the rest of it slaps down flat after (slap), the
+    // blade hops once, and it lies there, askew across the boards inside the door. FELL: the speed it is thrown at (into
+    // the room, up, along the wall), how fast it tips and swings round (radians a second), how long the slap takes, and
+    // how long the thing stands in the doorway meanwhile. oarPose(tau): its middle, and the way its length runs (from
+    // grip to blade), tau seconds after the blow; it is a round loom, so that is all of it. With reduced motion it does
+    // not turn over: it drops level, and slides out a little.
+    const FELL = { vx: -1.25, vy: 2.2, vz: 0.1, tip: 1.25, swing: 0.95, slap: 0.26, wait: 1.0 };
+    const OAR_HALF = (GRIP + TIPZ) / 2, OAR_MID = (TIPZ - GRIP) / 2;
+    const oarAxis = (tip, swing) => [-Math.sin(swing) * Math.cos(tip), Math.sin(tip), Math.cos(swing) * Math.cos(tip)];
+    const oarFree = (f, tau) => ({ c: [2.24 + FELL.vx * tau, oarY(0) + FELL.vy * tau - 4.9 * tau * tau, OAR_MID + FELL.vz * tau], u: oarAxis(f.tip * tau, f.swing * tau) });
+    const oarFall = () => {
+      const calm = SAVE.data.settings.reducedMotion, f = { t: L.t, tip: calm ? 0 : FELL.tip, swing: calm ? 0.3 : FELL.swing, down: false };
+      let T1 = 0;   // when its lower end reaches the deck
+      for (; T1 < 2; T1 += 1 / 240) { const p = oarFree(f, T1); if (p.c[1] - OAR_HALF * Math.abs(p.u[1]) <= R0) break; }
+      const p = oarFree(f, T1);
+      return Object.assign(f, { T1, end: [p.c[0] - p.u[0] * OAR_HALF, R0, p.c[2] - p.u[2] * OAR_HALF] });   // (its grip end, where it comes down)
+    };
+    s.oarPose = tau => oarPose(s.fell, tau);   // (the tests read where it lies)
+    const oarPose = (f, tau) => {
+      if (tau < f.T1) return oarFree(f, tau);
+      // down at its grip end, which skids on a little: the rest of it falls flat about that end, and the blade hops
+      const q = (tau - f.T1) / FELL.slap, k = Math.min(1, q), e = 1 - Math.exp(-(tau - f.T1) * 7);
+      const hop = q > 1 && q < 2.4 ? 0.07 * Math.abs(Math.sin((q - 1) / 0.7 * Math.PI)) * Math.exp(-(q - 1) * 2.5) : 0;
+      const u = oarAxis(f.tip * f.T1 * (1 - k * k) + hop, f.swing * (f.T1 + FELL.slap * (k - k * k / 2))), end = [f.end[0] + FELL.vx * 0.1 * e, R0, f.end[2] + FELL.vz * 0.1 * e];
+      return { c: end.map((v, i) => v + u[i] * OAR_HALF), u };
+    };
+    // drawn as its length is, from whichever side you see it: the loom a round bar, the grip worn dark at its end, the
+    // blade flaring from the neck; after the door's leaf and frame and the brackets it came out of, as the oars across are
+    const fallen = () => {
+      const f = s.fell, tau = L.t - f.t, p = oarPose(f, tau), sd0 = tau < 0.07 ? 2.226 : 2.0, at = k => L.pt(p.c[0] + p.u[0] * k, p.c[1] + p.u[1] * k, p.c[2] + p.u[2] * k), neck = NECK - OAR_MID;
+      const bar = (a, b, lw, col, i, dy) => { const pts = [at(a), at(b)]; if (dy) for (const q of pts) q[1] += dy; return { kind: 'poly', stroke: true, pts, color: col, lw, sortDist: sd0 - i * 0.002 }; };   // (still down in the cradles: behind their straps)
+      return [
+        bar(neck, neck + 0.3, 0.1, scalec(oarC, 0.95), 0), bar(neck + 0.24, OAR_HALF - 0.07, 0.15, scalec(oarC, 1.05), 1), bar(neck + 0.06, OAR_HALF - 0.1, 0.012, scalec(oarC, 0.72), 2),   // the blade, and its ridge
+        bar(-OAR_HALF, neck + 0.02, 2 * R0, oarC, 3), bar(-OAR_HALF + 0.02, neck, 0.014, scalec(oarC, 1.25), 4, 0.014), bar(-OAR_HALF, -OAR_HALF + 0.16, 2 * R0 * 0.85, scalec(oarC, 0.7), 5),      // the loom, the light along it, the grip
+      ];
+    };
     // a door being pounded is drawn in pieces so it can bow; each piece is lit, fogged and ordered as the whole board it is
     // part of, so no seams of light show between them and it sorts where the whole board did
     const asWhole = (q, pts) => {
@@ -507,8 +725,8 @@ LEVELS.push({
       for (const p of pts) { const w = L.pt(p[0], p[1], p[2]); d += Math.hypot(w[0], w[2]); cx += w[0]; cy += w[1]; cz += w[2]; }
       return Object.assign(q, { dist: d / pts.length, cx: cx / pts.length, cy: cy / pts.length, cz: cz / pts.length });
     };
-    const slatX = [-1.5, -1.125, -0.75, -0.375, 0, 0.375, 0.75, 1.125, 1.5], leafZ = [-0.55, -0.33, -0.11, 0.11, 0.33, 0.55], leafY = [0, 0.25, 0.5, 0.75, 1.0, 1.3, 1.65, 2.08];
-    const leafBow = y => (y < 1.08 ? 0.16 + 0.84 * Math.pow(1 - y / 1.08, 1.3) : 0.16 + 0.22 * Math.sin(Math.PI * Math.min(1, (y - 1.08) / 1.0)));   // the bar holds it at its middle
+    const slatX = [-1.5, -1.125, -0.75, -0.375, 0, 0.375, 0.75, 1.125, 1.5], leafZ = [-0.55, -0.33, -0.11, 0.11, 0.33, 0.55], leafY = [0, 0.25, 0.5, 0.75, 1.0, 1.3, 1.65, 2.1];
+    const leafBow = y => (y < 1.08 ? 0.16 + 0.84 * Math.pow(1 - y / 1.08, 1.3) : 0.16 + 0.22 * Math.sin(Math.PI * Math.min(1, (y - 1.08) / 1.0)));   // the oars hold it at its middle
     // the water it has driven in, on the deck inside the door: a tongue spreading in from under it at each blow, its edge
     // white, and the boards darkening where it has been. foot(u) is where the door meets the deck u metres across it, as
     // it bows; at(u, d) the point on the deck d metres in from there, and along(a, b) the door's foot from a to b, which
@@ -558,12 +776,13 @@ LEVELS.push({
         else for (let i = 0; i < 8; i++) R.add(asWhole(SC.mkQuad(L, [slatX[i], yb, zN(i, yb) - 0.005], [slatX[i + 1], yb, zN(i + 1, yb) - 0.005], [slatX[i + 1], yb + 0.06, zN(i + 1, yb + 0.06) - 0.005], [slatX[i], yb + 0.06, zN(i, yb + 0.06) - 0.005], [40, 40, 44]), [[-1.52, yb, 2.575], [1.52, yb, 2.575], [1.52, yb + 0.06, 2.575], [-1.52, yb + 0.06, 2.575]]));
       }
       if (pounding === 0) wash(0, u => 2.57 - 0.17 * jolt(u) * Math.cos(Math.PI * u / 3.04));
-      // the side door leaf, swung out over the water or shut in its frame, and the bar. Pounded, the leaf bows in at the
-      // bottom where it hits and above the bar, the bar holding it at its middle, and the bar is driven in and jumps
+      // the side door leaf, swung out over the water or shut in its frame, and the oars. Pounded, the leaf bows in at the
+      // bottom where it hits and above the oars, the oars holding it at its middle, and they are driven in and jump
       const hx = 2.4, hz = -0.55, a = s.doorA, ex = hx + Math.sin(a) * 1.1, ez = hz + Math.cos(a) * 1.1;
+      R.glowAs(sd);
       if (pounding === 1 && a === 0) {
         const bowE = leafZ.map(z => 0.1 * jolt(z) * Math.cos(Math.PI * z / 1.14)), xE = (i, y) => hx - bowE[i] * leafBow(y);
-        const whole = [[hx, 0, hz], [ex, 0, ez], [ex, 2.08, ez], [hx, 2.08, hz]];
+        const whole = [[hx, 0, hz], [ex, 0, ez], [ex, 2.1, ez], [hx, 2.1, hz]];
         for (let i = 0; i < 5; i++) for (let j = 0; j < 7; j++) {
           const z1 = leafZ[i + 1] + (i < 4 ? 0.015 : 0), y0 = leafY[j], y1 = leafY[j + 1] + (j < 6 ? 0.015 : 0);
           R.add(asWhole(SC.mkQuad(L, [xE(i, y0), y0, leafZ[i]], [xE(i + 1, y0), y0, z1], [xE(i + 1, y1), y1, z1], [xE(i, y1), y1, leafZ[i]], [64, 52, 40]), whole));
@@ -572,13 +791,15 @@ LEVELS.push({
           const z0 = Math.max(leafZ[i], -0.53), z1 = Math.min(leafZ[i + 1] + (i < 4 ? 0.015 : 0), 0.53), ym = yy + 0.025;
           R.add(asWhole(SC.mkQuad(L, [xE(i, ym) - 0.003, yy, z0], [xE(i + 1, ym) - 0.003, yy, z1], [xE(i + 1, ym) - 0.003, yy + 0.05, z1], [xE(i, ym) - 0.003, yy + 0.05, z0], [44, 36, 28]), [[hx, yy, -0.53], [hx, yy, 0.53], [hx, yy + 0.05, 0.53], [hx, yy + 0.05, -0.53]]));
         }
-        if (s.sealedE) for (const q of barAt(Math.min(0.04, 0.1 * jolt(0) * leafBow(1.08) * 1.6), 0.018 * rat * Math.abs(Math.sin(L.t * 41)))) R.add(q);
-        wash(1, u => Math.min(hx - 0.02 - 0.1 * jolt(u) * Math.cos(Math.PI * u / 1.14), 2.38 - Math.max(0, Math.abs(u) - 0.5) * 0.6));   // in front of the frame either side
+        for (const q of oarsAt(Math.min(0.04, 0.1 * jolt(0) * leafBow(1.08) * 1.6), 0.018 * rat * Math.abs(Math.sin(L.t * 41)))) R.add(q);
+        R.glowAs(null); wash(1, u => Math.min(hx - 0.02 - 0.1 * jolt(u) * Math.cos(Math.PI * u / 1.14), 2.38 - Math.max(0, Math.abs(u) - 0.5) * 0.6));   // in front of the frame either side
       } else {
-        R.add(SC.mkWallV(L, hx, hz, ex, ez, 0, 2.08, [64, 52, 40]));
+        R.add(SC.mkWallV(L, hx, hz, ex, ez, 0, 2.1, [64, 52, 40]));
         for (const yy of [0.5, 1.5]) R.add(SC.mkWallV(L, hx + Math.sin(a) * 0.02, hz + Math.cos(a) * 0.02, ex - Math.sin(a) * 0.02, ez - Math.cos(a) * 0.02, yy, yy + 0.05, [44, 36, 28]));
-        if (s.sealedE) for (const q of bar) R.add(q);
+        for (const q of oarsAt(0, 0)) R.add(q);
       }
+      if (s.fell) for (const q of fallen()) R.add(q);
+      R.glowAs(null);
       for (const q of grips) R.add(q);
       // the water flying in, and where it lands
       for (const d of s.drops) {
@@ -605,10 +826,53 @@ LEVELS.push({
           ctx.lineWidth = 0.035; ctx.beginPath(); ctx.ellipse(0, 0.5, 0.3, 0.3, 0, 0, TAU); ctx.stroke();
         } });
       }
+      // the life ring. On the wall it lies flat on the boards (its card fixed to the wall's face, looking into the room);
+      // in the air it spins flat, wobbling, on its arc out through the doorway; on the water it floats where it landed,
+      // a small splash round it as it lands, rings going out from it, bobbing, until the thing comes up through it
+      const rp = L.rend && L.rend.get(ring);
+      if (rp) rp.face = ring.onWall ? Math.PI / 2 + (L.facing || 0) : undefined;
+      const fr = s.ring;
+      if (fr && fr.phase === 'fly') {
+        const k = clamp((L.t - fr.t) / fr.dur, 0, 1), p = ringFlight(fr, k), sc = lerp(fr.scale, 1, smoothstep(k * 5)), open = clamp(Math.abs(L.eyeH - p[1]) / Math.max(0.5, p[3]) + 0.13 * Math.sin(L.t * 13), 0.1, 0.8);
+        const w = 1.0 * sc;
+        R.add({ kind: 'sprite', x: p[0], y: p[1] - w / 2, z: p[2], w, h: w, noContact: true, draw: (ctx, P) => { ctx.translate(0, w / 2); ctx.scale(sc, sc); ctx.rotate(0.12 * Math.sin(L.t * 9)); SW.lifeRing(ctx, P, 0, 0, SW.RING_R, open, L.t * 15, null, SW.RING_TUBE); } });
+      } else if (fr && fr.phase === 'float' && !L.creature.ringOn) {
+        const p = APPROACH.position(L.lanes[fr.lane], fr.d, 0, L.eyeH), q = L.t - fr.land, k = SW.ringK(fr.d), soft = SAVE.data.settings.reducedMotion ? 0.6 : 1;
+        R.add({ kind: 'sprite', x: p.x, y: p.y, z: p.z, w: 1.0, h: 0.5, noContact: true, draw: (ctx, P) => {
+          for (let i = 0; i < 2; i++) { const u = (i * 0.5 + L.t * 0.22) % 1, rr = SW.RING_R + 0.12 + u * 0.5; ctx.strokeStyle = P.cola([150, 165, 175], 0.4 * (1 - u)); ctx.lineWidth = 0.02; ctx.beginPath(); ctx.ellipse(0, 0, rr, rr * k, 0, 0, TAU); ctx.stroke(); }
+          const splash = front => { if (q < 1.2) { ctx.save(); ctx.scale(0.42 * soft, 0.34 * soft); SW.burst(ctx, P, 0, q, 0.5, front); ctx.restore(); } };
+          splash(false);
+          ctx.save(); ctx.rotate(0.05 * Math.sin(L.t * 1.7) * soft); SW.lifeRing(ctx, P, 0, fr.y - p.y, SW.RING_R, k, 0.3, null, SW.RING_TUBE); ctx.restore();
+          splash(true);
+        } });
+      }
       // out beyond the water door it is behind the slats, which by their middles come out nearer than it does: while it
       // is out there and any are down it is drawn before them, so they hide it
       const cp = L.rend && L.rend.get(c);
       if (cp) cp.sortDist = c.lane.idx === 0 && covered > 0.05 && c.dist > 2.62 && !c.lunge ? Math.max(Math.hypot(c.dist, c.lat || 0), 3.05) : undefined;
+    };
+    // the rain: under the roof it does not rain. It is seen only out through the water door, above the slats that are down,
+    // and through the side door while it stands open (and not through its leaf, swung out over the water). Local
+    // coordinates: the house is -2.4..2.4 across, -2.4..2.6 from back to front, its roof at 3
+    const toLocal = (x, z) => rotY(x, z, -(L.facing || 0));
+    L.weatherShelter = () => {
+      const openings = [], covered = 2.4 * clamp((winch.count || 0) / need, 0, 1), P = q => L.pt(q[0], q[1], q[2]);
+      if (covered < 2.39) openings.push([[-1.5, 0, 2.6], [1.5, 0, 2.6], [1.5, 2.4 - covered, 2.6], [-1.5, 2.4 - covered, 2.6]].map(P));
+      const a = s.doorA, hx = 2.4, hz = -0.55, lx = hx + Math.sin(a) * 1.1, lz = hz + Math.cos(a) * 1.1;
+      if (a > 0.01) openings.push([[2.4, 0, -0.55], [2.4, 0, 0.55], [2.4, 2.1, 0.55], [2.4, 2.1, -0.55]].map(P));
+      const hides = (x, y, z) => {
+        const [px, pz] = toLocal(x, z);
+        if (y < 3.05 && px > -2.45 && px < 2.45 && pz > -2.45 && pz < 2.65) return true;   // indoors
+        if (a <= 0.01) return false;
+        // behind the open leaf, from the eye (at the middle of the floor): where the line to it crosses the leaf
+        const dx = px, dz = pz, sx = lx - hx, sz = lz - hz, den = dx * sz - dz * sx;
+        if (Math.abs(den) < 1e-6) return false;
+        const t = (hx * sz - hz * sx) / den, u = (hx * dz - hz * dx) / den;
+        if (t <= 0 || t >= 1 || u < 0 || u > 1) return false;
+        const yAt = L.eyeH + (y - L.eyeH) * t;
+        return yAt > 0 && yAt < 2.1;
+      };
+      return { openings, hides };
     };
     L.dynamicLights = () => { const p = L.pt(lampX(), 2.05, 0.3); return [{ x: p[0], y: p[1], z: p[2], r: 5.5, i: 0.42, color: [255, 210, 160], flicker: 0.3, seed: 2 }]; };
     L.glows = () => { const p = L.pt(lampX(), 2.15, 0.3); return [{ x: p[0], y: p[1], z: p[2], r: 1.6 + Math.sin(L.t * 11) * 0.08, color: [255, 190, 110], a: 0.2 }]; };

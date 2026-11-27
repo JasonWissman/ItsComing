@@ -2,13 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>It's Coming</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23000%27/%3E%3Cellipse cx=%2716%27 cy=%2712%27 rx=%275%27 ry=%277%27 fill=%27%23d8d0c0%27/%3E%3Ccircle cx=%2714%27 cy=%2711%27 r=%271%27/%3E%3Ccircle cx=%2718%27 cy=%2711%27 r=%271%27/%3E%3Cellipse cx=%2716%27 cy=%2715.5%27 rx=%271.4%27 ry=%272%27/%3E%3Cpath d=%27M11 30 L13 19 L19 19 L21 30 Z%27 fill=%27%23111%27/%3E%3C/svg%3E">
+<!-- added to the Home Screen (an iPhone's only way to full screen) or installed: full screen, on its side, on black -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="It's Coming">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="description" content="A first-person browser horror game. Something is coming straight at you. Look away to survive; look back and it is closer.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="It's Coming">
+<meta property="og:description" content="A first-person browser horror game. Something is coming straight at you. Look away to survive; look back and it is closer.">
+<!-- a link's preview (absolute URLs only): the base, where the game is published, is
+     https://its-coming.vercel.app/ in the two lines below; change it there if it moves -->
+<meta property="og:url" content="https://its-coming.vercel.app/">
+<meta property="og:image" content="https://its-coming.vercel.app/icons/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="It's Coming: a tall thin figure with glowing eyes stands far off in the dark, above the game's title">
+<meta name="twitter:card" content="summary_large_image">
 <style>
-  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: #cfc8ba; font-family: Georgia, 'Times New Roman', serif; -webkit-user-select: none; user-select: none; }
-  #game { position: fixed; inset: 0; display: block; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: #cfc8ba; font-family: 'IM Fell English', Georgia, serif; -webkit-user-select: none; user-select: none; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
   #hud { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
   #hud.dim { opacity: 0 !important; }
   #compass { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 18px; font-size: 13px; letter-spacing: .18em; color: rgba(207,200,186,.35); }
@@ -20,10 +39,27 @@
   #objective { position: absolute; top: 16px; right: 20px; max-width: 34vw; text-align: right; font-size: calc(14px * var(--text-scale)); line-height: 1.4; color: rgba(207,200,186,.7); font-style: italic; }
   #mute { position: fixed; top: 16px; left: 20px; z-index: 6; font-size: 11px; letter-spacing: .12em; color: rgba(207,200,186,.45); cursor: pointer; text-transform: uppercase; padding: 4px 6px; }
   #mute:hover { color: #efe6d2; }
-  #mute.off { color: #b3161e; }
+  #mute.off { color: var(--red); }
   #tooltip { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%); font-size: calc(15px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 12px #000; display: none; font-style: italic; padding: 4px 30px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast { position: absolute; top: calc(var(--view-top, 0px) + 86px); left: 50%;   /* up under the compass: never across what you just used */ transform: translateX(-50%); font-size: calc(17px * var(--text-scale)); color: #efe6d2; text-shadow: 0 1px 2px #000, 0 0 14px #000; opacity: 0; transition: opacity .35s; white-space: nowrap; padding: 6px 36px; background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0)); }
   #toast.show { opacity: 1; }
+  /* an easter egg found for the first time (js/game.js secretSay): a note at the top in the middle, said the moment it
+     is found, over the compass while it is up (and over whatever screen comes up under it in that time). Not in the
+     HUD; it never takes a click. "Secret discovered" small over its title, large, a star before them. It slides down
+     into the view from above its top edge, settling with a little give, and slides back up out of it; with reduced
+     motion it only fades. It ends above the line of words under the compass (#toast) and above a sound's caption in
+     the corner (#caption: top 50px, under the menu button on a phone), whatever the text size (its own grows only so
+     far), and short of the corner buttons (#menuBtn, #fsBtn) */
+  #secret { position: fixed; z-index: 900; left: 50%; top: max(8px, env(safe-area-inset-top)); box-sizing: border-box; width: max-content; max-width: calc(100vw - 132px); display: flex; align-items: center; gap: 12px; padding: 6px 20px 7px 14px; background: rgba(7,7,9,.9); border: 1px solid rgba(207,200,186,.42); border-radius: 8px; box-shadow: 0 4px 22px rgba(0,0,0,.55), 0 0 18px rgba(239,230,210,.08); color: #efe6d2; line-height: 1.15; pointer-events: none; opacity: 0; visibility: hidden; transform: translate(-50%, calc(-100% - 24px)); transition: transform .5s cubic-bezier(.5,0,.8,.4), opacity .2s .3s, visibility 0s .5s; }
+  #secret.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: transform .45s cubic-bezier(.2,1.3,.4,1), opacity .12s, visibility 0s; }
+  #secret.still, #secret.still.show { transform: translate(-50%, 0); transition: opacity .5s, visibility 0s .5s; }
+  #secret.still.show { transition: opacity .35s, visibility 0s; }
+  #secret svg { flex: none; width: 26px; height: 26px; color: #efe6d2; filter: drop-shadow(0 0 7px rgba(239,230,210,.6)); }
+  #secret .stx { min-width: 0; display: flex; flex-direction: column; text-wrap: balance; }
+  #secret .sl { color: rgba(207,200,186,.72); font-style: italic; font-size: min(calc(12px * var(--text-scale)), 15px); letter-spacing: .04em; }
+  #secret .sc { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: pre; }   /* (the ": " between them, for a reader that reads it out; the two are on lines of their own) */
+  #secret .st { font-size: min(calc(21px * var(--text-scale)), 29px); line-height: 1.1; letter-spacing: .01em; }
+  @media (prefers-reduced-motion: reduce) { #secret, #secret.show { transform: translate(-50%, 0); transition: opacity .4s, visibility 0s; } }
   #holdbar { display: none; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); width: 180px; height: 4px; background: rgba(207,200,186,.18); }
   #holdfill { height: 100%; width: 0; background: #efe6d2; transition: width .05s linear; }
   /* the bow's power bar, beside where it is aimed: it fills upward as you hold; at the top it is full, and goes green */
@@ -34,94 +70,673 @@
   #drawtop { position: absolute; left: -5px; right: -5px; top: -1px; height: 3px; background: rgba(207,200,186,.4); }
   #drawbar.full #drawtop { background: #d4f5b4; box-shadow: 0 0 8px #8fca6c; }
   #drawmin { position: absolute; left: 0; right: 0; height: 1px; background: rgba(207,200,186,.45); }
-  #drawlabel { position: absolute; left: 16px; top: -6px; font-size: calc(10px * var(--text-scale)); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; color: #b6e494; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
+  #drawlabel { position: absolute; left: 16px; top: -6px; font-size: calc(11px * var(--text-scale)); letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; color: #b6e494; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
   .linkbtn { font: inherit; background: none; border: none; color: #efe6d2; text-decoration: underline; cursor: pointer; padding: 0; letter-spacing: inherit; }
-  .fragment { display: block; margin-top: 10px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.6); }
-  #inventory { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
+  /* (as high off the bottom edge as the names under the slots need: a name, descenders and all, ends 6px above the edge
+     and the home bar, however big the text. --inv-foot: the gap over a name, its one line, and the 6px) */
+  #inventory { --inv-foot: calc(4px + 11px * 1.2 * var(--text-scale) + 6px); position: absolute; bottom: calc(env(safe-area-inset-bottom) + var(--inv-foot)); left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
   .slot { width: 64px; height: 64px; border: 1px solid rgba(207,200,186,.22); background: linear-gradient(rgba(26,23,22,.8), rgba(9,8,8,.86)); position: relative; cursor: pointer; transition: border-color .15s; }
   .slot canvas { width: 64px; height: 64px; display: block; }
   .slot.active { border-color: rgba(239,230,210,.8); box-shadow: 0 0 10px rgba(239,230,210,.16), inset 0 0 14px rgba(239,230,210,.08); }
-  .slot .label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; font-size: calc(10px * var(--text-scale)); letter-spacing: .08em; white-space: nowrap; color: rgba(207,200,186,.78); text-shadow: 0 1px 2px #000, 0 0 6px #000; }
+  .slot .label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; font-size: calc(11px * var(--text-scale)); line-height: 1.2; letter-spacing: .08em; white-space: nowrap; color: rgba(207,200,186,.78); text-shadow: 0 1px 2px #000, 0 0 6px #000; }
   .slot.active .label { color: #efe6d2; }
+  /* more than six held (the Void, where the hands are never full): smaller slots in one row, wrapping to a second where
+     the page is narrow, and only the held thing's name under it */
+  #inventory.many { gap: 6px; width: max-content; max-width: calc(100% - 32px); flex-wrap: wrap; justify-content: center; }
+  #inventory.many .slot, #inventory.many .slot canvas { width: 44px; height: 44px; }
+  #inventory.many .slot .label { display: none; }
+  #inventory.many .slot.active .label { display: block; z-index: 1; }
   #debug { display: none; position: absolute; bottom: 6px; left: 8px; font: 11px monospace; color: #7c7; }
+  /* the one face, for the headings and the rest alike (the keycaps in How to play stay a plain sans: keys, not words) */
+  @font-face { font-family: 'IM Fell English'; src: url(fonts/IMFellEnglish-Regular.woff2) format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
+  #titleScene { position: fixed; inset: 0; width: 100%; height: 100%; display: none; }
+  body.titlescene #titleScene { display: block; }
+  body.titlescene #overlay:not(.dlg) { background: transparent; }
+  #overlay.titlelow { justify-content: flex-end; padding-bottom: max(9vh, 24px); }
+  /* the title's buttons (three, or four with Scores) always on the one line: wide as ever where there is room; where there
+     is not (a phone on its side), the gaps and the padding at their sides come in with the width of the view, each button
+     no narrower than its word; and only past that, at the larger text sizes, the words themselves a little smaller (and on
+     a view too short for them, so the thing above them has room) */
+  #overlay.titlelow > .mrow { flex-wrap: nowrap; gap: min(10px, 1.25vw); width: 100%; max-width: 1100px; }
+  #overlay.titlelow > .mrow > .mbtn { flex: 0 1 200px; min-width: min-content; white-space: nowrap; padding-left: clamp(6px, 3vw - 12px, 22px); padding-right: clamp(6px, 3vw - 12px, 22px);
+    font-size: min(calc(15px * var(--text-scale)), calc((100vw - 132px) / 25), 6vh); }
+  #overlay.titlelow > .mrow:not(:has(> :nth-child(4))) > .mbtn { font-size: min(calc(15px * var(--text-scale)), calc((100vw - 116px) / 19), 6vh); }
+  @media (max-width: 700px) { #overlay.titlelow > .mrow > .mbtn { letter-spacing: .09em; } }
+  #overlay.dlg { background: rgba(0,0,0,.3); }
+  #overlay.dlg > .panel { box-sizing: border-box; width: min(760px, 100%); max-width: 760px; min-height: min(62vh, 100%); max-height: calc(100vh - 48px); overflow: auto; display: flex; flex-direction: column; justify-content: flex-start; padding: 28px 32px; }
+  /* the dialogs' card (and the warning's, before a new game: #disclaimer .dcard) */
+  #overlay.dlg > .panel, #disclaimer .dcard { background: rgba(7,7,9,.97); border: 1px solid rgba(207,200,186,.18); box-shadow: 0 24px 90px #000; }
+  /* centred in the panel while it fits, and scrolled from its top when it does not (justify-content: center would cut the top off) */
+  #overlay.dlg > .panel > :first-child { margin-top: auto; }
+  #overlay.dlg > .panel > :last-child { margin-bottom: auto; }
+  @media (max-width: 640px) { #overlay.dlg { padding: 12px; } #overlay.dlg > .panel { max-height: calc(100vh - 24px); padding: 22px 16px; } }
+  /* the menus' scrollbars, where a dialog has to scroll (a phone): thin and dark, in with the panel */
+  #overlay, #overlay * { scrollbar-width: thin; scrollbar-color: rgba(207,200,186,.22) transparent; }
+  #overlay ::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
+  #overlay ::-webkit-scrollbar-thumb { background: rgba(207,200,186,.22); border-radius: 4px; }
+  #overlay ::-webkit-scrollbar-track, #overlay ::-webkit-scrollbar-corner { background: transparent; }
+  /* How to play: four cards, two by two, each the keys drawn large over what they do; no borders, no rules between */
+  #overlay .howcards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; width: 100%; max-width: 680px; margin: 14px auto 6px; }
+  .hcard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 22px 12px 18px; background: rgba(207,200,186,.035); border-radius: 10px; }
+  .hkeys { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 104px; }
+  .hwhat { font-size: calc(22px * var(--text-scale)); color: #efe6d2; letter-spacing: .04em; }
+  .kcluster { display: inline-grid; grid-template-columns: repeat(3, auto); gap: 5px; }
+  .kcluster .ku { grid-column: 2; grid-row: 1; } .kcluster .kl { grid-column: 1; grid-row: 2; } .kcluster .kd { grid-column: 2; grid-row: 2; } .kcluster .kr { grid-column: 3; grid-row: 2; }
+  kbd.key { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 46px; height: 46px; padding: 0 9px; border-radius: 7px; font: 600 calc(19px * var(--text-scale))/1 system-ui, -apple-system, 'Segoe UI', sans-serif; color: #241f1a; background: linear-gradient(#f1ead9, #d9d0bc); border: 1px solid #8b8170; box-shadow: 0 3px 0 #6e6555, 0 4px 8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.7); margin-bottom: 3px; text-shadow: none; }
+  kbd.key.wide { font-size: calc(15px * var(--text-scale)); letter-spacing: .04em; padding: 0 16px; }
+  kbd.key.mouse { width: 66px; height: 92px; padding: 0; border-radius: 33px; }
+  kbd.key.mouse svg { width: 34px; height: 50px; color: #3a332c; }
+  .kcluster kbd.key { min-width: 40px; height: 40px; font-size: calc(17px * var(--text-scale)); }
+  .kplus { font-size: calc(12px * var(--text-scale)); letter-spacing: .12em; text-transform: uppercase; color: rgba(207,200,186,.5); padding: 0 4px; }
+  @media (max-width: 640px) {
+    #overlay .howcards { grid-template-columns: 1fr; gap: 8px; margin-top: 8px; }
+    .hcard { flex-direction: row; justify-content: space-between; gap: 10px; padding: 10px 14px; }
+    .hkeys { min-height: 0; gap: 6px; }
+    .hwhat { font-size: calc(18px * var(--text-scale)); text-align: right; }
+    kbd.key { min-width: 32px; height: 32px; font-size: 14px; padding: 0 6px; border-radius: 5px; }
+    .kcluster { gap: 3px; } .kcluster kbd.key { min-width: 26px; height: 26px; font-size: 12px; padding: 0 4px; }
+    kbd.key.wide { font-size: 12px; padding: 0 10px; }
+    kbd.key.mouse { width: 40px; height: 56px; border-radius: 20px; }
+    kbd.key.mouse svg { width: 20px; height: 30px; }
+    .kplus { font-size: 10px; padding: 0 1px; }
+  }
+  /* How to play on a phone: the gestures on keycaps (a fingertip, the way it goes), and the two buttons as they look */
+  kbd.key.gest { width: 62px; height: 62px; padding: 0; border-radius: 14px; }
+  kbd.key.gest svg { width: 40px; height: 40px; color: #3a332c; }
+  .kzoom, .kmenu { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; color: rgba(239,230,210,.85); background: rgba(0,0,0,.42); border: 1px solid rgba(207,200,186,.4); }
+  .kzoom { width: 62px; height: 62px; border-radius: 50%; gap: 1px; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
+  .kzoom svg { width: 24px; height: 24px; }
+  .kmenu { width: 46px; height: 40px; border-radius: 6px; }
+  .kmenu span, .kmenu span::before, .kmenu span::after { display: block; width: 20px; height: 2px; background: currentColor; border-radius: 1px; }
+  .kmenu span { position: relative; } .kmenu span::before, .kmenu span::after { content: ''; position: absolute; left: 0; } .kmenu span::before { top: -6px; } .kmenu span::after { top: 6px; }
+  /* a phone on its side is short: the four cards in two rows of two, each its picture beside its words, so it all fits */
+  @media (max-height: 520px) {
+    #overlay.dlg { padding: 10px; } #overlay.dlg > .panel { max-height: calc(100vh - 20px); min-height: 0; padding: 14px 22px; }
+    #overlay.dlg > .panel h1 { margin: 0 0 6px; font-size: 26px; }
+    #overlay .howcards { gap: 8px; margin: 6px auto 2px; }
+    .hcard { flex-direction: row; justify-content: space-between; gap: 10px; padding: 8px 16px; }
+    .hkeys { min-height: 0; gap: 6px; }
+    .hwhat { font-size: calc(18px * min(var(--text-scale), 1.5)); text-align: right; }   /* (with Bigger text grown less: the four still fit) */
+    kbd.key.gest, .kzoom { width: 48px; height: 48px; } kbd.key.gest svg { width: 32px; height: 32px; } .kzoom svg { width: 20px; height: 20px; } .kzoom { font-size: 8px; }
+    #overlay.dlg .fine { margin-top: 8px; font-size: calc(11px * min(var(--text-scale), 1.5)); }
+    #overlay.dlg .mrow { margin-top: 8px; }
+    /* and every screen: scrolled from its top when it does not fit (centred, the top would be cut off); the pause menu's
+       six buttons in two columns of three */
+    #overlay:not(.titlelow) { justify-content: flex-start; overflow-y: auto; padding-top: 14px; padding-bottom: 14px; }
+    #overlay:not(.titlelow) > :first-child { margin-top: auto; } #overlay:not(.titlelow) > :last-child { margin-bottom: auto; }
+    body #overlay h1 { margin: 2px 0 10px; }
+    #overlay .mcol.even { display: grid; grid-template-columns: 1fr 1fr; width: min(460px, 100%); gap: 8px 10px; margin-top: 8px; margin-left: auto; margin-right: auto; }
+    #overlay .mcol.even > .mbtn:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 5px); }   /* (five of them, with Scores: Quit alone under the middle) */
+    #overlay .mbtn { padding: 8px 18px; }
+  }
+  :root[data-theme="day"] .kzoom, :root[data-theme="day"] .kmenu { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
+  :root[data-theme="day"] .hwhat, :root[data-theme="day"] .kplus { color: #3a332c; }
+  :root[data-theme="day"] .hcard, :root[data-theme="day"] .runcard { background: rgba(58,51,44,.06); }
+  /* the warning before a new game (flashing lights): on black, a card like the dialogs', red words under an eye struck
+     through, a solid red Accept and beside it a quiet Adjust settings (which turns the card into Settings: .dset) */
+  #disclaimer { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; box-sizing: border-box; padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); text-align: center; color: var(--red); cursor: default; }
+  #disclaimer .dbox { display: flex; justify-content: center; width: 100%; margin: auto 0; opacity: 0; transition: opacity .5s; }   /* (its auto margins centre it; taller than the screen, its top where a scroll reaches it) */
+  #disclaimer.on .dbox { opacity: 1; }
+  #disclaimer.go .dbox { opacity: 0; transition: opacity .35s; }
+  #disclaimer.out { opacity: 0; transition: opacity .6s; }
+  #disclaimer .dcard { box-sizing: border-box; width: min(640px, 100%); display: flex; flex-direction: column; align-items: center; gap: clamp(14px, 3vh, 24px); padding: clamp(22px, 4.5vh, 34px) clamp(20px, 4vw, 40px); }
+  #disclaimer .deye { width: clamp(30px, 6vh, 44px); height: clamp(30px, 6vh, 44px); flex: none; }
+  #disclaimer p { margin: 0; font: 400 calc(clamp(12.2px, 1.5vw, 15px) * var(--text-scale))/1.55 'IM Fell English', Georgia, serif; letter-spacing: .01em; color: var(--red); white-space: pre-line; }   /* its lines break where DISCLAIMER says \n; the size of the text is the setting's, as everywhere (17 to 21px at Normal) */
+  :root[data-textsize=bigger] #disclaimer .dcard.dwarn { width: min(780px, 100%); }
+  #disclaimer .dbtns { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px 18px; }
+  #disclaimer .daccept { font-family: inherit; font-size: calc(15px * var(--text-scale)); letter-spacing: .16em; text-transform: uppercase; background: var(--red); color: #000; border: 1px solid var(--red); padding: 11px 36px; min-width: 170px; min-height: 44px; cursor: pointer; transition: background .15s, box-shadow .15s; -webkit-tap-highlight-color: transparent; }
+  #disclaimer .daccept:hover, #disclaimer .daccept:focus-visible { background: var(--red-hi); border-color: var(--red-hi); box-shadow: 0 0 18px rgba(240,74,84,.35); outline: none; }
+  #disclaimer .daccept:focus-visible { outline: 1px solid var(--red); outline-offset: 4px; }
+  #disclaimer .dsettings { font-family: inherit; font-size: calc(14px * var(--text-scale)); letter-spacing: .14em; text-transform: uppercase; background: none; border: none; color: var(--text2); padding: 11px 14px; min-height: 44px; cursor: pointer; transition: color .15s; -webkit-tap-highlight-color: transparent; }
+  #disclaimer .dsettings:hover, #disclaimer .dsettings:focus-visible { color: #efe6d2; }
+  #disclaimer .dsettings:focus-visible { outline: 1px solid rgba(239,230,210,.6); outline-offset: 2px; }
+  /* Settings from the warning: as the Settings dialog, in the same card */
+  #disclaimer .dcard.dset { width: min(760px, 100%); display: block; color: #cfc8ba; padding: 26px 32px 22px; }
+  #disclaimer .dset h1 { font-weight: normal; font-size: 40px; letter-spacing: .08em; margin: 0 0 14px; color: #efe6d2; }
+  @media (prefers-reduced-motion: reduce) { #disclaimer .dbox, #disclaimer.go .dbox { transition: opacity .2s; } }
+  @media (max-height: 520px) {
+    #disclaimer .dcard { gap: 10px; padding: 16px 24px; }
+    #disclaimer .deye { width: 28px; height: 28px; }
+    #disclaimer p { font-size: calc(11.4px * min(var(--text-scale), 1.6)); line-height: 1.42; }   /* (with Bigger text grown less: it still fits) */
+    #disclaimer .dcard.dset { padding: 12px 22px 10px; }
+    #disclaimer:has(.dset) { padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: max(10px, env(safe-area-inset-bottom)); }   /* (Settings in its card: as the dialogs are over the title) */
+    #disclaimer:has(.cal-volume) { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: max(4px, env(safe-area-inset-bottom)); } #disclaimer .dcard.dset.cal-volume { padding-top: 8px; padding-bottom: 8px; } #disclaimer .dset.cal-volume h1 { margin-bottom: 2px; }
+    #disclaimer .dset h1 { font-size: 26px; margin: 0 0 6px; }
+    #disclaimer .dset .mrow { margin-top: 8px; }
+  }
+  /* the prologue before a new game: black, two lines fading up one after the other in the middle, then all of it out */
+  #prologue { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1em; padding: 24px; box-sizing: border-box; text-align: center; opacity: 0; transition: opacity .6s; cursor: default; }
+  #prologue.on { opacity: 1; }
+  #prologue.out { opacity: 0; transition: opacity 1.2s; }
+  #prologue p { margin: 0; max-width: 34em; font: 400 calc(clamp(13.6px, 1.86vw, 20px) * var(--text-scale))/1.5 'IM Fell English', Georgia, serif; color: #e8dfcb; letter-spacing: .01em; opacity: 0; transform: translateY(4px); transition: opacity 2.4s ease, transform 2.4s ease; }
+  #prologue p.on { opacity: 1; transform: none; }
+  #prologue p + p { color: #9b9384; }   /* the second line dimmer: falling asleep */
+  #prologue p.gone { opacity: 0; transform: translateY(-3px); transition: opacity 1.6s ease, transform 1.6s ease; }
+  @media (prefers-reduced-motion: reduce) { #prologue p { transform: none; transition: opacity 1s; } }
   #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .5s; padding: 24px; box-sizing: border-box; }
   #overlay.show { opacity: 1; pointer-events: auto; cursor: pointer; }
   #overlay > * { max-width: 720px; }
   #overlay h1 { font-weight: normal; font-size: 40px; letter-spacing: .08em; margin: 8px 0 18px; color: #efe6d2; text-shadow: 0 0 30px rgba(0,0,0,.9); }
   #overlay h1.big { font-size: 64px; letter-spacing: .22em; }
-  #overlay h1.red { color: #b3161e; }
+  #overlay h1.red { color: var(--red); }
   #overlay .kicker { font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: rgba(207,200,186,.5); }
-  :root { --text-scale: 1; }
-  #overlay .intro { font-size: calc(18px * var(--text-scale)); line-height: 1.6; color: #cfc8ba; margin: 0 auto 14px; }
+  /* --red: the accent red of the words and controls (the warning, It got you, muted, Erase progress); --text2: the
+     secondary, a little darker than the buttons' own (Quit, Adjust settings) */
+  :root { --text-scale: 1.4; --red: #f04a54; --red-hi: #ff6a72; --text2: #a9a294; }
+  #overlay .intro { font-size: calc(18px * var(--text-scale)); line-height: 1.6; color: #cfc8ba; margin: 0 auto 14px; white-space: pre-line; }   /* a night's text breaks its lines where it says \n */
   .mrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 18px auto 6px; }
   .mcol { display: flex; flex-direction: column; gap: 8px; align-items: center; margin: 18px auto 6px; }
+  .mcol.even { width: 220px; align-items: stretch; }   /* the pause menu: one narrow column, every button the same width */
+  .mcol.even .mbtn { min-width: 0; width: 100%; box-sizing: border-box; }
   .mbtn { font-family: inherit; font-size: calc(15px * var(--text-scale)); letter-spacing: .12em; text-transform: uppercase; background: rgba(0,0,0,.45); border: 1px solid rgba(207,200,186,.3); color: #efe6d2; padding: 10px 22px; min-width: 200px; cursor: pointer; transition: border-color .15s, background .15s; }
   .mbtn:hover, .mbtn:focus-visible { border-color: rgba(239,230,210,.9); background: rgba(40,36,32,.6); outline: none; box-shadow: 0 0 12px rgba(239,230,210,.15); }
-  .mbtn.danger { border-color: rgba(179,22,30,.5); color: #d08a8e; }
-  .mbtn.danger:hover, .mbtn.danger:focus-visible { border-color: #b3161e; }
-  .frags { display: flex; flex-direction: column; gap: 10px; max-width: 560px; margin: 8px auto 4px; text-align: left; max-height: 52vh; overflow-y: auto; padding: 4px; }
-  .frag { font-size: calc(15px * var(--text-scale)); line-height: 1.5; color: #cfc8bc; }
-  .frag .fn { color: #8d8579; margin-right: 6px; }
-  .frag.unseen .fdots { color: #5c5650; letter-spacing: 4px; }
+  /* the one way on (Begin; Done in Settings and its dialogs; at the end, The End and Finish game): inverted, the light of the text for its ground */
+  .mbtn.primary { background: #efe6d2; border-color: #efe6d2; color: #0b0a0a; }
+  .mbtn.primary:hover, .mbtn.primary:focus-visible { background: #fffaee; border-color: #fffaee; color: #000; box-shadow: 0 0 18px rgba(239,230,210,.35); }
+  .mbtn.primary:focus-visible { outline: 1px solid rgba(239,230,210,.9); outline-offset: 3px; }
+  .mbtn.danger { border-color: rgba(240,74,84,.5); color: var(--red); }
+  .mbtn.danger:hover, .mbtn.danger:focus-visible { border-color: var(--red); }
+  /* Quit (the pause menu's: the only one): no border, the secondary colour; lit as the rest are when it has the pointer or the focus */
+  .mbtn.quiet { background: none; border-color: transparent; color: var(--text2); }
+  .mbtn.quiet:hover, .mbtn.quiet:focus-visible { background: none; border-color: transparent; box-shadow: none; color: #efe6d2; }
+  .mbtn.quiet:focus-visible { outline: 1px solid rgba(239,230,210,.45); outline-offset: -3px; }
   :root[data-theme="day"] html, :root[data-theme="day"] body { background: #e9e4da; color: #3a332c; }
   :root[data-theme="day"] #overlay { background: rgba(240,236,228,.86); }
   :root[data-theme="day"] #overlay h1 { color: #2e2823; text-shadow: none; }
   :root[data-theme="day"] #overlay h1.big { color: #2e2823; }
   :root[data-theme="day"] #overlay .kicker { color: rgba(58,51,44,.55); }
-  :root[data-theme="day"] #overlay .intro, :root[data-theme="day"] .frag, :root[data-theme="day"] #overlay .controls, :root[data-theme="day"] #overlay .fine { color: #3a332c; }
+  :root[data-theme="day"] #overlay .intro, :root[data-theme="day"] #overlay .controls, :root[data-theme="day"] #overlay .fine { color: #3a332c; }
   :root[data-theme="day"] button:focus-visible { outline-color: #2e2823; }
   :root[data-theme="day"] .opt input { accent-color: #2e2823; }
   :root[data-theme="day"] .mbtn { background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); color: #2e2823; }
   :root[data-theme="day"] .mbtn:hover, :root[data-theme="day"] .mbtn:focus-visible { border-color: #2e2823; background: rgba(255,255,255,.85); box-shadow: 0 0 12px rgba(58,51,44,.12); }
-  :root[data-theme="day"] .frag .fn { color: #8a8072; }
-  :root[data-theme="day"] .frag.unseen .fdots { color: #b8b0a4; }
-  :root[data-theme="day"] .nrow .times, :root[data-theme="day"] .nrow .bt small { color: rgba(58,51,44,.6); }
-  :root[data-theme="day"] .nrow.locked .nlock { color: rgba(58,51,44,.3); border-color: rgba(58,51,44,.15); }
+  :root[data-theme="day"] .mbtn.primary { background: #2e2823; border-color: #2e2823; color: #f4f0e8; }
+  :root[data-theme="day"] .mbtn.primary:hover, :root[data-theme="day"] .mbtn.primary:focus-visible { background: #1a1612; border-color: #1a1612; color: #fff; box-shadow: 0 0 14px rgba(58,51,44,.3); }
+  :root[data-theme="day"] .mbtn.primary:focus-visible { outline-color: #2e2823; }
+  :root[data-theme="day"] .ncard .nbest, :root[data-theme="day"] .runcard .rhint, :root[data-theme="day"] .runcard .rlabel { color: rgba(58,51,44,.6); }
+  :root[data-theme="day"] .ncard.shown { background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.3); color: #2e2823; }
+  :root[data-theme="day"] .ncard.locked { color: rgba(58,51,44,.3); border-color: rgba(58,51,44,.15); }
+  :root[data-theme="day"] .runcard .rtime { color: #2e2823; }
+  /* the dialogs in the morning theme (Scores, How to play, Settings; the title is never in it now, nor the results: only The End, the last screen): a pale sheet of paper, dark ink */
+  :root[data-theme="day"] #overlay.dlg > .panel { background: rgba(247,244,238,.97); border-color: rgba(58,51,44,.2); box-shadow: 0 24px 80px rgba(46,40,35,.28); }
+  :root[data-theme="day"] .ncard .nbest { color: rgba(46,40,35,.82); }
+  :root[data-theme="day"] .ncard .nbest small { color: rgba(58,51,44,.55); }
+  :root[data-theme="day"] .runcard .rtime.none { color: rgba(58,51,44,.45); }
+  :root[data-theme="day"] #overlay .hint { color: #3a332c; }
+  :root[data-theme="day"] .opt input[type=range] { accent-color: #2e2823; }
+  :root[data-theme="day"] #overlay .confirm { background: rgba(233,228,218,.6); }
+  :root[data-theme="day"] .confirm p { color: #3a332c; }
+  :root[data-theme="day"] #overlay, :root[data-theme="day"] #overlay * { scrollbar-color: rgba(58,51,44,.3) transparent; }
+  :root[data-theme="day"] #overlay ::-webkit-scrollbar-thumb { background: rgba(58,51,44,.3); }
+  :root[data-theme="day"] .confirm .cpanel { background: rgba(244,240,232,.98); border-color: rgba(58,51,44,.25); box-shadow: 0 24px 90px rgba(0,0,0,.3); }
+  :root[data-theme="day"] .confirm h2, :root[data-theme="day"] .confirm p { color: #2e2823; }
   :root[data-theme="day"] #mute { color: rgba(58,51,44,.5); }
   :root[data-theme="day"] #toast, :root[data-theme="day"] #tooltip { color: #2e2823; text-shadow: 0 1px 2px #fff, 0 0 12px #fff; background: radial-gradient(closest-side, rgba(255,255,255,.5), rgba(255,255,255,0)); }
   :root[data-theme="day"] .slot { border-color: rgba(58,51,44,.28); background: linear-gradient(rgba(255,255,255,.72), rgba(234,229,220,.8)); }
   :root[data-theme="day"] .slot.active { border-color: rgba(46,40,35,.75); box-shadow: 0 0 10px rgba(58,51,44,.14), inset 0 0 14px rgba(58,51,44,.06); }
   :root[data-theme="day"] .slot .label { color: rgba(46,40,35,.8); text-shadow: 0 1px 2px #fff, 0 0 6px #fff; }
   :root[data-theme="day"] .slot.active .label { color: #2e2823; }
-  .nights { display: flex; flex-direction: column; gap: 6px; margin: 8px auto; max-height: 52vh; overflow-y: auto; padding: 4px; }
-  .nrow { display: flex; align-items: center; gap: 14px; justify-content: center; }
-  .nrow .nbtn { min-width: 260px; text-align: left; text-transform: none; letter-spacing: .04em; }
-  .nrow .times { display: flex; gap: 10px; font-size: calc(12px * var(--text-scale)); color: rgba(207,200,186,.6); min-width: 240px; text-align: left; }
-  .nrow .bt small { display: block; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: rgba(207,200,186,.4); }
-  .nrow.locked .nlock { display: inline-block; min-width: 260px; text-align: left; padding: 10px 22px; color: rgba(207,200,186,.3); border: 1px solid rgba(207,200,186,.1); }
-  .settings { display: flex; flex-direction: column; gap: 10px; margin: 10px auto; text-align: left; width: max-content; max-width: 100%; }
-  .opt { display: flex; align-items: center; gap: 12px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.85); cursor: pointer; }
-  .opt span { min-width: 90px; }
-  .opt input[type=range] { width: 180px; accent-color: #efe6d2; }
-  .opt input[type=checkbox] { accent-color: #efe6d2; width: 16px; height: 16px; }
+  /* Nights: a card for each, its best time inside it at the right; two columns, 1 to 6 down the first and 7 to 13 down
+     the second (c1, c2: MENU; one column on a phone); then the best full run, large, across both */
+  .nights { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--rows, 7), auto); grid-auto-flow: row dense; gap: 6px 10px; width: 100%; margin: 4px auto 0; }
+  .nights > .c1 { grid-column: 1; } .nights > .c2 { grid-column: 2; }
+  .ncard { box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; width: 100%; min-height: 42px; padding: 8px 16px; text-align: left; text-transform: none; letter-spacing: .04em; font-size: calc(15px * var(--text-scale)); }
+  .ncard .nname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ncard .nbest { flex: none; display: flex; align-items: baseline; gap: 6px; font-size: calc(14px * var(--text-scale)); color: rgba(207,200,186,.75); font-variant-numeric: tabular-nums; }
+  .ncard .nbest small { font-size: calc(10px * var(--text-scale)); letter-spacing: .14em; text-transform: uppercase; color: rgba(207,200,186,.42); }
+  /* a night reached: shown, not pressed (no night is picked from the list), so drawn like a button at rest, never lit */
+  .ncard.shown { background: rgba(0,0,0,.45); border: 1px solid rgba(207,200,186,.22); color: #efe6d2; cursor: default; }
+  .ncard.locked { display: flex; color: rgba(207,200,186,.3); border: 1px solid rgba(207,200,186,.1); }
+  .runcard { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; box-sizing: border-box; margin: 14px auto 0; padding: 14px 18px 12px; background: rgba(207,200,186,.035); border-radius: 10px; }
+  .runcard .rlabel { font-size: calc(11px * var(--text-scale)); letter-spacing: .3em; text-transform: uppercase; color: rgba(207,200,186,.55); }
+  .runcard .rtime { font-size: calc(42px * var(--text-scale)); line-height: 1.15; color: #efe6d2; font-variant-numeric: tabular-nums; }
+  .runcard .rtime.none { color: rgba(207,200,186,.45); }
+  .runcard .rhint { font-size: calc(13px * var(--text-scale)); font-style: italic; color: rgba(207,200,186,.55); }
+  /* a whole run's time, the Best run stamp beside it (an inked stamp, red, set at a tilt: it does not push the time off
+     centre), and its stars under it: those earned filled, the rest outlined */
+  .runcard .rline { position: relative; display: flex; align-items: center; justify-content: center; }
+  .runcard.rrun { overflow-x: clip; }   /* (the results': its stamp comes down from twice its size, never a sideways scroll) */
+  .stamp { display: inline-block; transform: rotate(-9deg); white-space: nowrap; padding: 3px 9px 2px; border: 2px solid var(--red); outline: 1px solid var(--red); outline-offset: 2px; border-radius: 3px; color: var(--red); font-size: calc(13px * var(--text-scale)); font-style: normal; letter-spacing: .22em; text-transform: uppercase; line-height: 1.3; }
+  .runcard .stamp { position: absolute; left: 100%; margin-left: 16px; }
+  .runcard .stars { display: flex; gap: 6px; margin-top: 4px; }
+  /* what each number of stars takes: a tooltip (the stars' title) on a hover, and this, shown over them by a tap or a click */
+  .runcard .stars { position: relative; cursor: help; -webkit-tap-highlight-color: transparent; }
+  .runcard .startip { position: absolute; right: calc(100% + 14px); top: 50%; transform: translateY(-50%); z-index: 3; box-sizing: border-box; display: flex; flex-direction: column; width: max-content; padding: 6px 12px; background: rgba(7,7,9,.97); border: 1px solid rgba(207,200,186,.32); border-radius: 6px; font-size: calc(13px * var(--text-scale)); line-height: 1.4; letter-spacing: .02em; color: #efe6d2; text-align: left; white-space: nowrap; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .15s, visibility 0s .15s; }
+  @media (max-width: 640px) { .runcard .startip { left: 50%; right: auto; top: auto; bottom: calc(100% + 8px); transform: translateX(-50%); } }
+  .runcard .stars.tip .startip { opacity: 1; visibility: visible; transition: opacity .15s; }
+  .runcard .star { width: 22px; height: 22px; fill: none; stroke: rgba(207,200,186,.5); stroke-width: 1.4; stroke-linejoin: round; }
+  .runcard .star.on { fill: #efe6d2; stroke: #efe6d2; }
+  .runcard.empty .rhint { margin-top: 4px; max-width: 420px; text-align: center; }
+  #overlay.dlg > .panel.nightsp { padding-top: 20px; padding-bottom: 18px; overflow-x: hidden; }   /* (up and down only, as the results: MENU) */
+  #overlay.dlg > .panel.nightsp h1 { margin: 0 0 12px; }
+  #overlay.dlg > .panel.nightsp .mrow { margin-top: 12px; }
+  #overlay.dlg > .panel.nightsp .runcard.empty { flex: 1; justify-content: center; }   /* no run yet: the word on what one is fills the dialog, the buttons at its foot */
+  :root[data-textsize=bigger] .ncard { min-height: 0; padding-top: 4px; padding-bottom: 4px; }   /* (bigger text: the cards no taller than their line, so the thirteen fit) */
+  @media (max-width: 640px) { .nights { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; gap: 5px; } .nights > .c1, .nights > .c2 { grid-column: auto; } .ncard { min-height: 38px; padding: 6px 14px; } .runcard { margin-top: 10px; padding: 10px 14px; } .runcard .rtime { font-size: calc(34px * var(--text-scale)); } }
+  /* after the ending: the nights again, as on the Scores dialog, each card taking its time in turn (MENU reveal), then the
+     full run, then Finish game. In the dark theme, as the Scores dialog is, and in its card: the morning room still there
+     behind it, dimmed down to a dusk by the veil over it (the last screen before it, The End, is the morning's: the pale
+     veil eases to the dark one as the card fades in, MENU toDark) */
+  #overlay:has(> .results) { background: rgba(0,0,0,.8); padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  /* (it scrolls up and down only, if it must: a stamp's tilt, or its coming down from bigger, or the tabs sliding over
+     are never a sideways scroll) */
+  #overlay > .results { box-sizing: border-box; width: min(760px, 100%); max-width: 760px; max-height: 100%; overflow: hidden auto; cursor: default; padding: 18px 32px 14px;
+    background: rgba(7,7,9,.97); border: 1px solid rgba(207,200,186,.18); box-shadow: 0 24px 90px #000; animation: resultsin .9s ease-out .1s backwards; }
+  @keyframes resultsin { from { opacity: 0; } }
+  .results h1 { margin: 2px 0 14px !important; }
+  .rcard { background: rgba(0,0,0,.45); border: 1px solid rgba(207,200,186,.22); color: #efe6d2; opacity: 0; transform: translateY(6px); transition: opacity .6s ease-out, transform .6s ease-out; }   /* nothing there until it comes */
+  .rcard.in { opacity: 1; transform: none; animation: rfill 1.2s ease-out; }
+  @keyframes rfill { 0% { box-shadow: 0 0 0 rgba(239,230,210,0); } 20% { box-shadow: 0 0 22px rgba(239,230,210,.28); } 100% { box-shadow: 0 0 0 rgba(239,230,210,0); } }
+  .rrun .rtime { opacity: 0; transform: scale(.94); transition: opacity 1.1s ease-out, transform 1.1s ease-out; }
+  .rrun.in .rtime { opacity: 1; transform: none; }
+  .rrun.in { animation: rfill 1.8s ease-out; }
+  .rrun .stars { opacity: 0; transition: opacity 1.1s ease-out .5s; }
+  .rrun.in .stars { opacity: 1; }
+  .rrun .stamp { opacity: 0; }
+  .rrun.in .stamp { opacity: 1; animation: rstamp .45s cubic-bezier(.3, 1.6, .5, 1) 1.1s backwards; }
+  @keyframes rstamp { 0% { opacity: 0; transform: rotate(-9deg) scale(1.9); } 100% { opacity: 1; transform: rotate(-9deg) scale(1); } }
+  .rlast { opacity: 0; visibility: hidden; transition: opacity .9s, visibility 0s .9s; }
+  .rlast.in { opacity: 1; visibility: visible; transition: opacity .9s; }
+  :is(.results, .tabpanel).still :is(.rcard, .rtime, .rlast, .stars, .stamp, .egg, .emark, .emark path) { transition: none; animation: none; }
+  :is(.results, .tabpanel).still :is(.rcard.in, .rrun.in) { animation: none; }
+  /* (a narrow page: Best run's stamp beside the time if there is room, else under it; never out past the card) */
+  @media (max-width: 640px) { .runcard .rline { flex-wrap: wrap; gap: 6px 14px; } .runcard .stamp { position: static; margin: 0; max-width: 100%; box-sizing: border-box; font-size: calc(13px * min(var(--text-scale), 1.4)); } }
+  @media (max-width: 640px) { #overlay > .results { padding: 12px 14px 10px; } .results .ncard { min-height: 33px; padding: 4px 12px; } .results .nights { gap: 4px; } .results h1 { margin-bottom: 8px !important; } .results .rlast { margin-top: 10px; } }
+  /* a phone on its side is short: the thirteen nights in three columns (down each in turn), and the whole run on one
+     line under them (its label, the time with its stamp, the stars), so the results and the Scores both fit without
+     scrolling */
+  @media (max-height: 520px) and (min-width: 560px) {
+    .nights { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, auto); grid-auto-flow: column; gap: 3px 8px; }
+    .nights > .c1, .nights > .c2 { grid-column: auto; }
+    .ncard, .results .ncard { min-height: 0; padding: 3px 10px; font-size: calc(13px * min(var(--text-scale), 1.55)); }   /* (with Bigger text grown less: the thirteen still fit) */
+    .ncard .nbest { font-size: calc(12px * min(var(--text-scale), 1.55)); }
+    .runcard { flex-direction: row; justify-content: center; gap: 18px; margin-top: 6px; padding: 3px 16px; }
+    .runcard .rtime { font-size: calc(26px * min(var(--text-scale), 1.55)); line-height: 1.1; }
+    .runcard .stars { margin-top: 0; }
+    .runcard .startip { left: auto; right: 0; top: auto; bottom: calc(100% + 10px); transform: none; }   /* (the stars at the end of the line: over them) */
+    .runcard .star { width: 19px; height: 19px; }
+    .runcard .stamp { position: static; margin-left: 14px; }
+    .runcard.empty { flex-direction: column; gap: 2px; }
+    #overlay > .results { width: min(840px, 100%); max-width: 840px; padding: 6px 28px; }
+    .results .kicker { display: none; }
+    #overlay .results h1 { font-size: 28px; margin: 0 0 8px !important; }
+    .results .rlast { margin-top: 8px; }
+    #overlay.dlg > .panel.nightsp { width: min(840px, 100%); max-width: 840px; padding-top: 10px; padding-bottom: 10px; }
+    .runcard .rlabel { font-size: calc(11px * min(var(--text-scale), 1.55)); }
+    #overlay .nightsp .mbtn, #overlay .results .mbtn { font-size: calc(15px * min(var(--text-scale), 1.55)); padding-top: 6px; padding-bottom: 6px; }
+    .runcard .stamp { font-size: calc(13px * min(var(--text-scale), 1.55)); }
+    #overlay.dlg > .panel.nightsp h1 { margin: 0 0 8px; }
+    #overlay.dlg > .panel.nightsp .mrow { margin-top: 8px; }
+  }
+  /* a small dialog over a dialog: erasing progress asks first */
+  #overlay .confirm { position: fixed; inset: 0; z-index: 2; max-width: none; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.6); cursor: default; }
+  .confirm .cpanel { box-sizing: border-box; width: min(380px, 100%); padding: 24px 28px 18px; background: rgba(7,7,9,.98); border: 1px solid rgba(207,200,186,.22); box-shadow: 0 24px 90px #000; text-align: center; }
+  .confirm h2 { font-weight: normal; font-size: 28px; letter-spacing: .04em; margin: 0 0 8px; color: #efe6d2; }
+  .confirm p { margin: 0 0 6px; font-size: calc(14px * var(--text-scale)); line-height: 1.5; color: rgba(207,200,186,.7); }
+  .confirm .mrow { margin-top: 16px; }
+  .confirm .mbtn { min-width: 0; flex: 1; }
+  /* (quitting asks too, over the pause menu: its one line, larger, in place of a heading) */
+  .confirm .cpanel:has(.cask) { width: min(440px, 100%); padding-top: 26px; }
+  .confirm p.cask { margin: 0 0 4px; font-size: calc(16px * var(--text-scale)); line-height: 1.45; color: #efe6d2; text-wrap: balance; }
+  /* Scores' two tabs (there once an easter egg has been found): Best run | Secret scenes, the chosen one lit and underlined;
+     their two panels one over the other in the same place (.tabstack), only the chosen one seen, so the dialog is the
+     same size whichever it is on */
+  .tabs { display: flex; justify-content: center; gap: 6px; box-sizing: border-box; width: 100%; margin: 0 auto 10px; border-bottom: 1px solid rgba(207,200,186,.16); }
+  #overlay.dlg > .panel.nightsp:has(.tabs) h1 { margin-bottom: 6px; }
+  .tabs [role=tab] { font: inherit; font-size: calc(13px * min(var(--text-scale), 1.5)); letter-spacing: .16em; text-transform: uppercase; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; color: rgba(207,200,186,.55); padding: 7px 20px 6px; min-height: 36px; cursor: pointer; transition: color .15s, border-color .15s; -webkit-tap-highlight-color: transparent; }
+  .tabs [role=tab]:hover { color: #efe6d2; }
+  .tabs [role=tab][aria-selected=true] { color: #efe6d2; border-bottom-color: #efe6d2; }
+  .tabs [role=tab]:focus-visible { outline: 2px solid rgba(239,230,210,.9); outline-offset: -3px; }
+  .tabstack { display: grid; flex: 1 0 auto; width: 100%; }
+  .tabpanel { grid-area: 1 / 1; display: flex; flex-direction: column; min-width: 0; }
+  .tabpanel[hidden] { visibility: hidden; }
+  /* the results going over to their secret scenes by themselves (MENU autoEggs): This run slides off to the left, then
+     Secret scenes slides in from the right (with reduced motion: none of it, it only changes) */
+  .tabpanel.slideout { animation: tabout .26s ease-in forwards; }
+  .tabpanel.slidein { animation: tabin .42s cubic-bezier(.2,.7,.3,1); }
+  @keyframes tabout { to { opacity: 0; transform: translateX(-48px); } }
+  @keyframes tabin { from { opacity: 0; transform: translateX(48px); } }
+  @media (prefers-reduced-motion: reduce) { .tabpanel.slideout, .tabpanel.slidein { animation: none; } }
+  .tabpanel > .runcard.empty { flex: 1; justify-content: center; }
+  .tabpanel > .runcard { margin-top: 10px; padding-top: 9px; padding-bottom: 7px; }   /* (the tabs take a line: the run's card a little closer, so it all still fits) */
+  :root[data-textsize=bigger] .tabpanel > .runcard .rtime { font-size: calc(32px * var(--text-scale)); }
+  /* the secret scenes: a box for each night, and they are the nights' own grid and the nights' own card (.nights, .ncard:
+     MENU eggsHtml), so each is where its night's is and the size its night's is, at every size of page and text: a
+     player going between the two tabs matches them by where they are. In it nothing but its short title (game.js
+     EGG_TITLES) after a check box, no bigger than its line. One found: the box filled, a check drawn in it, the title
+     bright, the border plain; one not found yet: the same title dimmed, the box empty, the border faint */
+  .egg { justify-content: flex-start; background: none; border: 1px solid rgba(207,200,186,.13); color: rgba(207,200,186,.48); cursor: default; }
+  .egg .emark { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: min(20px, 1.1em); height: min(20px, 1.1em); border: 1.5px solid rgba(207,200,186,.34); border-radius: 3px; }
+  .egg .emark svg { display: none; width: 72%; height: 72%; fill: none; stroke: #14110f; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .egg.found { background: rgba(0,0,0,.5); border-color: rgba(239,230,210,.62); color: #efe6d2; }
+  .egg.found .emark { background: #efe6d2; border-color: #efe6d2; box-shadow: 0 0 8px rgba(239,230,210,.35); }
+  .egg.found .emark svg { display: block; }
+  .eggcount { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 10px 0 0; font-size: calc(13px * min(var(--text-scale), 1.5)); font-style: italic; letter-spacing: .04em; color: rgba(207,200,186,.62); text-align: center; }
+  /* (the results after the ending: one of the run's own, checked off as it is watched (MENU reveal): its box lights as a
+     night's card does, the check box fills with a little bounce and the check is drawn in; then, if that is all of them,
+     a stamp under the count, in the middle, in Best run's style) */
+  .egg.tick { animation: rfill 1.2s ease-out; }
+  .egg.tick .emark { animation: epop .45s cubic-bezier(.3, 1.6, .5, 1); }
+  .egg.tick .emark path { stroke-dasharray: 15; animation: edraw .4s ease-out .12s backwards; }
+  @keyframes epop { from { transform: scale(.4); } }
+  @keyframes edraw { from { stroke-dashoffset: 15; } to { stroke-dashoffset: 0; } }
+  /* (less of a tilt than Best run's: it is longer; its letters no bigger than the count's, and closer on a narrow page, so
+     it is never wider than the dialog) */
+  .eggcount:has(.stamp) { flex-direction: column; gap: 10px; overflow-x: clip; }   /* (as it comes down from twice its size: nothing past the card's sides, so no sideways scroll) */
+  .eggcount .stamp { max-width: 100%; box-sizing: border-box; font-size: calc(13px * min(var(--text-scale), 1.5)); transform: rotate(-4deg); opacity: 0; }
+  .eggcount .stamp.in { opacity: 1; animation: estamp .45s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+  @keyframes estamp { 0% { opacity: 0; transform: rotate(-4deg) scale(1.9); } 100% { opacity: 1; transform: rotate(-4deg) scale(1); } }
+  @media (max-width: 640px) { .eggcount .stamp { letter-spacing: .12em; } }
+  /* (the results with their two tabs: a line more than without, so the rest a little closer, and it still fits a laptop's screen) */
+  .results:has(.tabs) .kicker { display: none; }
+  #overlay .results:has(.tabs) h1 { margin: 0 0 6px !important; }
+  .results:has(.tabs) .rlast { margin-top: 10px; }
+  #overlay > .results:has(.tabs) { padding-top: 12px; padding-bottom: 10px; }
+  @media (prefers-reduced-motion: reduce) { .egg.tick, .egg.tick .emark, .egg.tick .emark path, .eggcount .stamp.in { animation: none; } }
+  @media (max-width: 640px) { .tabs [role=tab] { padding-left: 12px; padding-right: 12px; letter-spacing: .1em; } }
+  /* a phone on its side is short: the tabs and the run's card closer, the count smaller */
+  @media (max-height: 520px) and (min-width: 560px) {
+    .tabs { margin-bottom: 5px; } .tabs [role=tab] { min-height: 30px; padding: 3px 16px 2px; font-size: calc(12px * min(var(--text-scale), 1.5)); }
+    #overlay.dlg > .panel.nightsp:has(.tabs) h1 { margin-bottom: 2px; }
+    .tabpanel > .runcard, :root[data-textsize=bigger] .tabpanel > .runcard { margin-top: 5px; padding-top: 2px; padding-bottom: 2px; }
+    :root[data-textsize=bigger] .tabpanel > .runcard .rtime { font-size: calc(26px * min(var(--text-scale), 1.55)); }
+    .tabpanel .ncard { padding-top: 2px; padding-bottom: 2px; }
+    .egg .emark { border-width: 1px; border-radius: 2px; } .egg .emark svg { stroke-width: 3; }
+    .eggcount { margin-top: 4px; font-size: calc(11px * min(var(--text-scale), 1.5)); line-height: 1.3; }
+    .eggcount .stamp { font-size: calc(11px * min(var(--text-scale), 1.5)); padding: 1px 7px 0; }
+    .eggcount:has(.stamp) { gap: 5px; }
+    #overlay .results:has(.tabs) h1 { margin-bottom: 2px !important; }
+    #overlay > .results:has(.tabs) { padding-top: 5px; padding-bottom: 5px; }
+    .results:has(.tabs) .rlast { margin-top: 6px; }
+  }
+  /* a small phone on its side (667 by 375 and smaller): three columns are narrow, so the cards' words a little smaller
+     and the room round them tighter, every night's name whole */
+  @media (max-height: 520px) and (min-width: 560px) and (max-width: 800px) {
+    #overlay.dlg > .panel.nightsp, #overlay > .results { padding-left: 12px; padding-right: 12px; }
+    #overlay:has(> .results) { padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+    .nights { column-gap: 5px; }
+    #overlay .ncard { gap: 6px; padding-left: 7px; padding-right: 7px; letter-spacing: .01em; font-size: calc(12px * min(var(--text-scale), 1.4)); }
+    #overlay .ncard .nbest { gap: 3px; font-size: calc(11px * min(var(--text-scale), 1.4)); }
+    .ncard .nbest small { letter-spacing: .06em; }
+    .egg { gap: 6px; }
+  }
+  @media (max-height: 520px) and (min-width: 560px) and (max-width: 620px) {   /* (568 by 320: smaller again) */
+    #overlay .ncard { gap: 4px; padding-left: 5px; padding-right: 5px; letter-spacing: 0; font-size: calc(10.5px * min(var(--text-scale), 1.4)); }
+    #overlay .ncard .nbest { font-size: calc(10px * min(var(--text-scale), 1.4)); }
+    .egg { gap: 5px; }
+  }
+  :root[data-theme="day"] .egg { border-color: rgba(58,51,44,.16); color: rgba(58,51,44,.48); }
+  :root[data-theme="day"] .egg .emark { border-color: rgba(58,51,44,.36); }
+  :root[data-theme="day"] .egg.found { background: rgba(255,255,255,.6); border-color: rgba(58,51,44,.62); color: #2e2823; }
+  :root[data-theme="day"] .egg.found .emark { background: #2e2823; border-color: #2e2823; box-shadow: none; }
+  :root[data-theme="day"] .egg.found .emark svg { stroke: #f4eee0; }
+  :root[data-theme="day"] .eggcount, :root[data-theme="day"] .tabs [role=tab] { color: rgba(58,51,44,.7); }
+  :root[data-theme="day"] .tabs [role=tab][aria-selected=true] { color: #2e2823; border-bottom-color: #2e2823; }
+  /* Settings: the sliders, each its percentage at its right; then the switches. Each row its name at the left and its
+     control at the right. On a short screen (a phone on its side) the two groups side by side */
+  .settings { display: flex; flex-direction: column; gap: 14px; margin: 10px auto; text-align: left; width: min(440px, 100%); }
+  @media (min-height: 521px) { :root[data-textsize=bigger] .settings { width: min(560px, 100%); } }   /* (Bigger text: wider, so its rows of choices stay beside their names) */
+  .sgrp { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .opt { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 30px; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.85); cursor: pointer; }
+  .rngwrap { display: flex; align-items: center; gap: 10px; flex: none; }
+  .opt input[type=range] { width: 170px; margin: 0; accent-color: #efe6d2; cursor: pointer; }
+  .opt input[type=range]:focus-visible { outline: 1px solid rgba(239,230,210,.9); outline-offset: 5px; }
+  .opt .pct { min-width: 3.1em; text-align: right; font-size: calc(15px * var(--text-scale)); color: rgba(207,200,186,.8); font-variant-numeric: lining-nums tabular-nums; }
+  /* a switch: the checkbox itself (role switch) laid unseen over its drawing, so a click, a tap, Space, Enter or A flips it */
+  .swwrap { position: relative; flex: none; width: 44px; height: 24px; }
+  .swi { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
+  .sw { position: absolute; inset: 0; box-sizing: border-box; border-radius: 12px; background: rgba(207,200,186,.1); border: 1px solid rgba(207,200,186,.38); transition: background .15s, border-color .15s; }
+  .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: rgba(207,200,186,.7); transition: transform .15s, background .15s; }
+  .swi:checked + .sw { background: #efe6d2; border-color: #efe6d2; }
+  .swi:checked + .sw::after { transform: translateX(20px); background: #0b0a0a; }
+  .opt:hover .sw { border-color: rgba(239,230,210,.8); }
+  .swi:focus-visible + .sw { outline: 2px solid rgba(239,230,210,.9); outline-offset: 3px; }
+  :root[data-theme="day"] .sw { background: rgba(58,51,44,.08); border-color: rgba(58,51,44,.4); }
+  :root[data-theme="day"] .sw::after { background: rgba(58,51,44,.6); }
+  :root[data-theme="day"] .swi:checked + .sw { background: #2e2823; border-color: #2e2823; }
+  :root[data-theme="day"] .swi:checked + .sw::after { background: #f4f0e8; }
+  :root[data-theme="day"] .opt .pct { color: rgba(58,51,44,.7); }
+  /* a row of choices (Display: Windowed | Fullscreen; Text size: Smaller | Normal | Bigger): one outlined bar, the chosen one
+     filled with the light of the text, as a switch is when on; and a Calibrate button (Volume, Brightness) drawn the same */
+  .optseg .olabel { white-space: nowrap; }
+  .optseg { flex-wrap: wrap; row-gap: 4px; } .optseg .seg { margin-left: auto; }   /* (too wide beside its name, with bigger text: under it) */
+  /* Display where the page cannot go full screen (an iPhone): how to, in place of the choice */
+  .optnote { cursor: default; } .optnote .onote { flex: 0 1 62%; font-size: calc(13px * var(--text-scale)); line-height: 1.35; font-style: italic; color: rgba(207,200,186,.72); text-align: right; }
+  .seg { display: inline-flex; flex: none; border: 1px solid rgba(207,200,186,.38); border-radius: 7px; }
+  .seg [role=radio], .calbtn { font: inherit; font-size: calc(14px * var(--text-scale)); letter-spacing: .04em; background: none; border: none; color: rgba(207,200,186,.8); padding: 4px 13px; min-height: 30px; min-width: 64px; cursor: pointer; transition: background .15s, color .15s; -webkit-tap-highlight-color: transparent; }
+  .seg [role=radio]:first-child { border-radius: 6px 0 0 6px; } .seg [role=radio]:last-child { border-radius: 0 6px 6px 0; }
+  .seg [role=radio] + [role=radio] { border-left: 1px solid rgba(207,200,186,.38); }
+  .seg [role=radio]:hover, .calbtn:hover { color: #efe6d2; background: rgba(239,230,210,.08); }
+  .seg [role=radio][aria-checked=true] { background: #efe6d2; color: #0b0a0a; }
+  .seg [role=radio]:focus-visible, .calbtn:focus-visible { outline: 2px solid rgba(239,230,210,.9); outline-offset: 2px; position: relative; z-index: 1; }
+  .calbtn { flex: none; border: 1px solid rgba(207,200,186,.38); border-radius: 7px; color: #efe6d2; letter-spacing: .1em; text-transform: uppercase; font-size: calc(12px * var(--text-scale)); }
+  :root[data-theme="day"] .seg, :root[data-theme="day"] .calbtn, :root[data-theme="day"] .seg [role=radio] + [role=radio] { border-color: rgba(58,51,44,.4); }
+  :root[data-theme="day"] .seg [role=radio], :root[data-theme="day"] .calbtn { color: #2e2823; }
+  :root[data-theme="day"] .seg [role=radio][aria-checked=true] { background: #2e2823; color: #f4f0e8; }
+  /* Settings' calibration dialogs (Volume, Brightness: .calp, in the same panel or the warning's card): the words over it.
+     Volume's: its two sections side by side (one over the other on a narrow screen), Sound effects and Ambience, each
+     its name, its slider (the name says what it is: no label beside it), and its two sounds one over the other, each a
+     button with a round play mark at its left, a stop mark (lit) while it plays. Brightness's: the shape on black, and
+     Done under it */
+  :is(#overlay, #disclaimer) .calp .caltext { max-width: 600px; margin: 0 auto 12px; font-size: calc(17px * var(--text-scale)); line-height: 1.45; color: #cfc8ba; text-align: center; letter-spacing: normal; white-space: normal; }
+  :is(#overlay, #disclaimer) .calp .calmute { margin: 0 auto 8px; font-size: calc(14px * var(--text-scale)); color: var(--red); text-align: center; }
+  :is(#overlay, #disclaimer) .calp .calmute[hidden] { display: none; }
+  #overlay.dlg > .panel.cal-volume { width: min(940px, 100%); max-width: 940px; }   /* (wider: the two sections side by side) */
+  :is(#overlay, #disclaimer) .cal-volume .caltext, #disclaimer .calp .caltext { max-width: 780px; }
+  .calp .calsecs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; width: 100%; margin: 4px auto 0; text-align: left; }
+  .calp .calsec { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px 16px 14px; border: 1px solid rgba(207,200,186,.16); border-radius: 10px; background: rgba(207,200,186,.03); }
+  :is(#overlay, #disclaimer) .calp .calsec h2 { margin: 0; font-weight: normal; font-size: calc(13px * var(--text-scale)); line-height: 1.3; letter-spacing: .24em; text-transform: uppercase; color: #efe6d2; text-align: left; }
+  .calp .calvol { width: 100%; }
+  .calp .calvol .olabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* (its section's name says what it is) */
+  .calp .calvol .opt, .calp .calvol .rngwrap { flex: 1; min-width: 0; }
+  .calp .calsec .calvol .opt input[type=range] { flex: 1; width: auto; min-width: 60px; }
+  .calp .calplays { flex: 1; display: grid; grid-auto-rows: 1fr; align-self: stretch; gap: 10px; }   /* (the two of a height, filling their section: the four alike, whichever of their words wrap) */
+  .calp .calplay { box-sizing: border-box; min-width: 0; width: 100%; text-transform: none; letter-spacing: .03em; font-size: calc(15px * var(--text-scale)); line-height: 1.3; padding: 9px 14px 9px 11px; display: flex; align-items: center; gap: 12px; text-align: left; }
+  /* its play mark, at its left: a triangle in a ring; while its sound plays, a square, the ring filled with the light of the text */
+  .calp .calico { flex: none; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(207,200,186,.5); transition: background .12s, border-color .12s, color .12s; }
+  .calp .calico svg { display: block; width: 14px; height: 14px; fill: currentColor; }
+  .calp .calico .icostop, .calp .calplay.playing .icoplay { display: none; }
+  .calp .calplay.playing .icostop { display: block; }
+  .calp .calplay.playing .calico { background: #efe6d2; border-color: #efe6d2; color: #0b0a0a; }
+  .calp .callabel { flex: 1; min-width: 0; }
+  .calp .calshape { display: block; width: 100%; height: clamp(160px, 100vh - 332px - 70px * (var(--text-scale) - 1), 440px); margin: 4px auto 0; background: #000; }   /* (less of it the more the bigger text takes) */
+  .calp .mrow { margin-top: 16px; }
+  #disclaimer .dcard.dset.cal-volume { width: min(940px, 100%); }
+  #disclaimer .dcard.dset.calp { text-align: center; }   /* (the warning's own words are red, and its p says so: not these) */
+  /* Bigger text: wider still, and each section's name and slider on one line, so it fits on a laptop's screen */
+  :root[data-textsize=bigger] #overlay.dlg > .panel.cal-volume, :root[data-textsize=bigger] #disclaimer .dcard.dset.cal-volume { width: min(1060px, 100%); max-width: 1060px; }
+  :root[data-textsize=bigger] :is(#overlay, #disclaimer) .cal-volume .caltext { max-width: 960px; font-size: calc(15px * var(--text-scale)); }
+  :root[data-textsize=bigger] .calp .calsec { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto 1fr; align-items: center; align-content: start; gap: 8px 14px; }
+  :root[data-textsize=bigger] .calp .calplay { font-size: calc(14px * var(--text-scale)); }
+  :root[data-textsize=bigger] .calp .calsec .calplays { grid-column: 1 / -1; }
+  :root[data-textsize=bigger] :is(#overlay, #disclaimer) .calp .calsec h2 { letter-spacing: .14em; white-space: nowrap; }
+  @media (max-width: 600px) { .calp .calsecs { grid-template-columns: 1fr; gap: 12px; } }
+  @media (max-height: 520px) {
+    :is(#overlay, #disclaimer) .calp .caltext { max-width: 760px; margin-bottom: 6px; font-size: calc(14px * var(--text-scale)); line-height: 1.35; }
+    :is(#overlay, #disclaimer) .cal-volume .caltext { font-size: calc(12.5px * var(--text-scale)); max-width: none; }
+    .calp .calsecs { gap: 10px; margin-top: 2px; }
+    .calp .calsec { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto 1fr; align-items: center; align-content: start; gap: 5px 12px; padding: 6px 10px 7px; }   /* its name and its slider on one line */
+    .calp .calsec .calplays { grid-column: 1 / -1; }
+    :root[data-textsize=bigger] .calp .calsec { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 1fr; }   /* (too big for its name and slider on one line) */
+    :root[data-textsize=bigger] :is(#overlay, #disclaimer) .cal-volume .caltext { font-size: calc(12.5px * var(--text-scale)); }
+    :root[data-textsize=bigger] .calp .calplay { font-size: calc(13.5px * var(--text-scale)); }
+    :is(#overlay, #disclaimer) .calp .calsec h2 { letter-spacing: .16em; white-space: nowrap; }
+    .calp .calplays { gap: 8px; }
+    .calp .calplay { padding: 6px 12px 6px 9px; gap: 10px; font-size: calc(13.5px * var(--text-scale)); letter-spacing: .01em; }
+    .calp .calico { width: 26px; height: 26px; } .calp .calico svg { width: 12px; height: 12px; }
+    .calp .calvol .opt { min-height: 24px; }
+    .calp .calshape { height: max(140px, 100vh - 170px - 80px * (var(--text-scale) - 1)); margin-top: 0; }   /* (less of it the more the bigger text takes) */
+    .calp .mrow, #disclaimer .dset.calp .mrow { margin-top: 8px; }
+  }
+  @media (max-height: 520px) and (min-width: 700px) {
+    .settings { flex-direction: row; justify-content: center; gap: 24px; width: 100%; margin: 4px auto; }
+    .sgrp { flex: 0 1 360px; gap: 4px; }
+    .opt { min-height: 28px; }
+    .opt input[type=range] { width: 130px; }
+    .seg [role=radio] { min-width: 0; padding: 4px 8px; font-size: calc(12.5px * var(--text-scale)); } .optseg { gap: 8px; }
+  }
+  /* the smaller phones on their side (an iPhone 13 or SE, 340 or so high): what grows with the text grows less, so How to
+     play, the volume dialog and the results still fit at the Normal size */
+  @media (max-height: 360px) {
+    .hwhat { font-size: calc(16px * min(var(--text-scale), 1.4)); }
+    #overlay.dlg .mrow { margin-top: 6px; }
+    .ncard, .results .ncard { font-size: calc(12px * min(var(--text-scale), 1.5)); padding-top: 2px; padding-bottom: 2px; }
+    .ncard .nbest { font-size: calc(11px * min(var(--text-scale), 1.5)); }
+    .runcard .rtime { font-size: calc(24px * min(var(--text-scale), 1.5)); }
+    #overlay .results h1 { font-size: 24px; }
+    :is(#overlay, #disclaimer) .cal-volume .caltext, :root[data-textsize=bigger] :is(#overlay, #disclaimer) .cal-volume .caltext { font-size: calc(12px * min(var(--text-scale), 1.25)); }
+    :is(#overlay, #disclaimer) .calp .calsec h2 { font-size: calc(11px * min(var(--text-scale), 1.3)); }
+    .calp .calplay, :root[data-textsize=bigger] .calp .calplay { font-size: calc(12.5px * min(var(--text-scale), 1.3)); }
+    .calp .calsec .calvol .opt input[type=range] { min-width: 40px; }
+    #overlay.dlg > .panel.cal-volume { padding-top: 8px; padding-bottom: 8px; }
+    #overlay.dlg > .panel.cal-volume h1, #disclaimer .dset.cal-volume h1 { font-size: 22px; margin-bottom: 2px; }
+    :is(#overlay, #disclaimer) .cal-volume .mrow .mbtn { padding-top: 5px; padding-bottom: 5px; font-size: calc(15px * min(var(--text-scale), 1.3)); }
+  }
   button:focus-visible { outline: 1px solid rgba(239,230,210,.9); outline-offset: 2px; }
   #overlay .hint { font-style: italic; color: rgba(239,230,210,.85); font-size: calc(17px * var(--text-scale)); }
   #overlay .prompt { margin-top: 28px; font-size: calc(13px * var(--text-scale)); letter-spacing: .2em; text-transform: uppercase; color: rgba(207,200,186,.55); animation: breathe 3s ease-in-out infinite; }
+  /* a night's card: the night and its name come up with it, its words a moment later (.s2), then the prompt (.s3), which
+     goes on breathing from the top of a breath (its breathing starts half a breath before it is in) */
+  #overlay .s2 { animation: cardin .9s ease-out .55s backwards; }
+  #overlay .prompt.s3 { animation: breathe 3s ease-in-out .9s infinite, cardin .9s ease-out 1.5s backwards; }
+  @keyframes cardin { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   #overlay .prompt .alt { display: inline-block; margin-top: 10px; text-transform: none; letter-spacing: .06em; font-size: 13px; color: rgba(207,200,186,.7); }
   #overlay .fine { font-size: calc(11px * var(--text-scale)); color: rgba(207,200,186,.35); margin-top: 28px; letter-spacing: .06em; }
+  /* the credit under the title: the whole line one control (it opens the developer's note: MENU 'note'), fine print
+     underlined as a link is */
+  #overlay .credit .creditbtn { font: inherit; letter-spacing: inherit; color: inherit; background: none; border: none; margin: 0; padding: 4px 2px; cursor: pointer; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .22em; -webkit-tap-highlight-color: transparent; }
+  #overlay .credit .creditbtn:hover, #overlay .credit .creditbtn:focus-visible { color: #efe6d2; }
+  #overlay .credit .creditbtn:focus-visible { outline: 1px solid rgba(239,230,210,.9); outline-offset: 2px; }
+  :root[data-theme="day"] #overlay .credit .creditbtn:hover { color: #1a1612; }
+  /* the developer's note: its words scroll inside the panel (at a reading width, left-aligned), its links and Back
+     always in view under them */
+  #overlay.dlg > .panel.notep { overflow: hidden; min-height: 0; padding-bottom: 20px; }
+  #overlay.dlg > .panel.notep > .notebody { flex: 0 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; margin: 0 -12px; padding: 0 12px 4px; text-align: left; overscroll-behavior: contain; }
+  #overlay.dlg > .panel.notep > .mrow { flex: none; margin-top: 14px; margin-bottom: 0; border-top: 1px solid rgba(207,200,186,.12); padding-top: 16px; }
+  #overlay .notebody.more { -webkit-mask-image: linear-gradient(#000 calc(100% - 56px), transparent); mask-image: linear-gradient(#000 calc(100% - 56px), transparent); }   /* (more of it below: its last lines fade out) */
+  #overlay .notebody:focus { outline: none; }
+  #overlay .notebody:focus-visible { outline: 1px solid rgba(239,230,210,.35); outline-offset: -1px; }
+  #overlay .notebody h1 { font-size: 32px; margin: 0 0 12px; text-align: center; }
+  #overlay .notebody p { max-width: 36em; margin: 0 auto .9em; font-size: calc(16px * var(--text-scale)); line-height: 1.6; color: #cfc8ba; overflow-wrap: break-word; }
+  #overlay .notebody a { color: #efe6d2; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; }
+  #overlay .notebody a:hover { color: #fffaee; }
+  #overlay .notebody a:focus-visible { outline: 1px solid rgba(239,230,210,.9); outline-offset: 2px; }
+  #overlay .notebody a { scroll-margin: 8px 0 64px; }   /* (a link tabbed to is scrolled up clear of the fade at the bottom, its ring whole) */
+  /* its foot: the two links out side by side (one over the other on a phone), Back under them */
+  #overlay .mbtn.mlink { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; text-decoration: none; }
+  .notefoot { flex-direction: column; align-items: center; }
+  .notelinks { display: flex; gap: 10px; width: 100%; }
+  .notelinks .mbtn { flex: 1 1 0; min-width: 0; }
+  .notefoot .mbtn { font-size: calc(15px * min(var(--text-scale), 1.4)); }   /* (with Bigger text grown less: each label on its one line) */
+  .notefoot .mbtn { line-height: calc(19px * min(var(--text-scale), 1.4)); }   /* (one line height for the three: the links' smaller words still at Back's height) */
+  .notefoot { width: 100%; } .notelinks .mbtn { font-size: calc(12.5px * min(var(--text-scale), 1.4)); letter-spacing: .08em; padding-left: 12px; padding-right: 12px; }   /* (each link's label on its one line, the two across the whole dialog) */
+  @media (max-width: 640px) { #overlay .notebody h1 { font-size: 28px; } .notelinks { flex-direction: column; gap: 8px; } .notefoot .mbtn { padding-top: 9px; padding-bottom: 9px; } .notefoot > .mbtn { width: 100%; } }
+  @media (max-height: 520px) { #overlay .notebody h1 { font-size: 24px; margin: 0 0 8px; } #overlay .notebody p { font-size: calc(14px * min(var(--text-scale), 1.6)); line-height: 1.5; } #overlay.dlg > .panel.notep { padding-bottom: 10px; } #overlay.dlg > .panel.notep > .mrow { margin-top: 8px; padding-top: 10px; gap: 8px; } .notefoot .mbtn { padding-top: 6px; padding-bottom: 6px; font-size: calc(15px * min(var(--text-scale), 1.3)); }
+    .notefoot { flex-direction: row; } .notelinks { flex: 2 1 0; flex-direction: row; } .notelinks .mbtn { flex: 1 1 auto; padding-left: 14px; padding-right: 14px; } .notefoot > .mbtn { flex: 0 1 auto; width: auto; min-width: 120px; } }
+  @media (max-height: 520px) { .notefoot .mbtn { line-height: calc(19px * min(var(--text-scale), 1.3)); } .notelinks .mbtn { padding-left: 10px; padding-right: 10px; font-size: calc(11px * min(var(--text-scale), 1.3)); letter-spacing: .06em; } }
+  :root[data-theme="day"] #overlay .notebody p { color: #3a332c; }
+  :root[data-theme="day"] #overlay .notebody a { color: #1a1612; }
   #overlay .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; font-size: calc(14px * var(--text-scale)); color: rgba(207,200,186,.7); margin: 8px auto 0; text-align: left; width: max-content; max-width: 100%; }
   #overlay .controls b { color: #efe6d2; font-weight: normal; }
   @keyframes breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
-  #touch { display: none; position: fixed; right: 14px; bottom: 14px; grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(2, 52px); gap: 6px; z-index: 5; }
-  #touch #tUse { grid-column: 4; grid-row: 1; font-size: 11px; letter-spacing: .1em; }
-  #touch #tPause { grid-column: 4; grid-row: 2; font-size: 14px; }
-  #caption { position: fixed; z-index: 6; pointer-events: none; bottom: 190px; left: 50%; transform: translateX(-50%); font-size: calc(14px * var(--text-scale)); font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+  /* a caption for a sound (js/captions.js): a small speaker and its line, in the top left corner under the sound line (on
+     a phone: under the menu button), the one corner with nothing of the night in it on a desktop or a phone (the things
+     held are along the bottom, at the left on a phone; the hand holding one at the bottom right, over the zoom button; the
+     note for a secret is at the top in the middle, and ends above this). One line, which ends above the line of words under
+     the compass (#toast) and short of the middle (#pitch, #zoom), so it is never over either; a line too long for that
+     is set smaller, not cut short (CAPTIONS put). Over everything but the turn-it-sideways screen (the volume dialog's own
+     caption is seen in the warning's card too) */
+  #caption { position: fixed; z-index: 1001; pointer-events: none; top: 50px; left: 20px; box-sizing: border-box; max-width: calc(50vw - 95px); display: flex; align-items: center; gap: .45em; font-size: min(calc(14px * var(--text-scale)), 2vw); line-height: 1.25; font-style: italic; color: rgba(239,230,210,.85); text-shadow: 0 1px 2px #000, 0 0 10px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
   #caption.show { opacity: 1; }
+  #caption svg { flex: none; width: 1em; height: 1em; opacity: .8; filter: drop-shadow(0 1px 2px #000); }
+  #caption .ctx { min-width: 0; overflow: hidden; text-overflow: ellipsis; padding-right: .2em; }   /* (the padding: an italic's last letter leans out of its box) */
   :root[data-theme="day"] #caption { color: #2e2823; text-shadow: 0 1px 2px #fff; }
+  :root[data-theme="day"] #caption svg { filter: none; }
   :root[data-theme="day"] .opt, :root[data-theme="day"] #overlay .controls b { color: #2e2823; }
   :root[data-theme="day"] #overlay .prompt, :root[data-theme="day"] #overlay .prompt .alt { color: rgba(58,51,44,.7); }
-  :root[data-theme="day"] .mbtn.danger { color: #8f1a20; border-color: rgba(143,26,32,.5); }
+  :root[data-theme="day"] .mbtn.danger { color: #8f1a20; border-color: rgba(143,26,32,.5); }   /* (on the pale sheet a darker red: the bright one is too faint on it) */
+  :root[data-theme="day"] .mbtn.quiet { background: none; border-color: transparent; color: rgba(58,51,44,.7); }
   :root[data-theme="day"] #overlay .kicker { color: rgba(58,51,44,.75); }
-  :root[data-touch-left] #touch { left: 14px; right: auto; }
-  body.menu #touch { display: none; }
-  #touch button { background: rgba(0,0,0,.5); border: 1px solid rgba(207,200,186,.3); color: #efe6d2; font-size: 18px; border-radius: 6px; touch-action: none; -webkit-tap-highlight-color: transparent; }
-  #touch #tZoom { grid-column: 3; grid-row: 1 / span 2; font-size: 11px; letter-spacing: .1em; }
-  @media (pointer: coarse) { #touch { display: grid; } #inventory { left: 18px; width: min(172px, calc(100vw - 266px)); transform: none; flex-wrap: wrap-reverse; column-gap: 6px; row-gap: 18px; } :root[data-touch-left] #inventory { left: auto; right: 18px; } .slot, .slot canvas { width: 50px; height: 50px; } #tooltip { bottom: 150px; } #caption { bottom: 200px; } }
+  /* a phone or a tablet (a coarse pointer): swipe on the view to look, tap to use (js/game.js: touch). Two small buttons
+     instead of the keys: zoom (a tap: on, lit, its plus a minus; a tap again: off) in the bottom right corner, and the menu, top left where the sound line is on a
+     desktop (the pause menu has Mute in it). Zoom only while a night is being played; the menu then, and over a night's
+     card, the death screen and the win screen too (the pause menu is the way to Quit). A third, full screen, top right
+     from the title on (#fsBtn, below) */
+  #zoomBtn, #menuBtn, #fsBtn { display: none; position: fixed; z-index: 6; box-sizing: border-box; align-items: center; justify-content: center; padding: 0; color: rgba(239,230,210,.8); background: rgba(0,0,0,.42); border: 1px solid rgba(207,200,186,.28); touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; cursor: pointer; }
+  #zoomBtn { right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 62px; height: 62px; border-radius: 50%; flex-direction: column; gap: 1px; font: inherit; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
+  #zoomBtn svg { width: 24px; height: 24px; }
+  #zoomBtn span { margin-right: -.18em; }
+  #zoomBtn.on { color: #0b0a0a; background: rgba(239,230,210,.86); border-color: #efe6d2; box-shadow: 0 0 14px rgba(239,230,210,.3); }
+  #zoomBtn.on .zplus { display: none; }   /* on: the plus turns to a minus (a tap zooms back out) */
+  #menuBtn { top: 12px; left: max(14px, env(safe-area-inset-left)); width: 40px; height: 36px; border-radius: 6px; }
+  #menuBtn span, #menuBtn span::before, #menuBtn span::after { display: block; width: 18px; height: 2px; background: currentColor; border-radius: 1px; }
+  #menuBtn span { position: relative; }
+  #menuBtn span::before, #menuBtn span::after { content: ''; position: absolute; left: 0; }
+  #menuBtn span::before { top: -6px; } #menuBtn span::after { top: 6px; }
+  #menuBtn:active { color: #efe6d2; border-color: rgba(239,230,210,.8); }
+  /* full screen (the Fullscreen API, where the browser has it for the page: body.fsok): top right, clear of the compass in
+     the middle and of the notch; the same button leaves it again, its corners turned in (.on) */
+  #fsBtn { z-index: 7; top: max(12px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); width: 40px; height: 36px; border-radius: 6px; }
+  #fsBtn svg { width: 20px; height: 20px; }
+  #fsBtn .fsout, #fsBtn.on .fsin { display: none; }
+  #fsBtn.on .fsout { display: block; }
+  #fsBtn:active { color: #efe6d2; border-color: rgba(239,230,210,.8); }
+  /* on a desktop as well (F does the same), on the title and in play: smaller and fainter, brighter under the mouse; the
+     objective at the top right keeps clear of it */
+  body.fsok #fsBtn { display: flex; }
+  body.fsok #objective { right: 66px; }
+  @media (pointer: fine) {
+    #fsBtn { top: 14px; right: 16px; width: 34px; height: 30px; color: rgba(207,200,186,.5); background: rgba(0,0,0,.25); border-color: rgba(207,200,186,.18); }
+    #fsBtn svg { width: 16px; height: 16px; }
+    #fsBtn:hover, #fsBtn:focus-visible { color: #efe6d2; border-color: rgba(239,230,210,.55); }
+  }
+  :root[data-theme="day"] #zoomBtn, :root[data-theme="day"] #menuBtn, :root[data-theme="day"] #fsBtn { color: #2e2823; background: rgba(255,255,255,.55); border-color: rgba(58,51,44,.35); }
+  :root[data-theme="day"] #zoomBtn.on { color: #f4efe6; background: rgba(46,40,35,.86); border-color: #2e2823; }
+  /* held in portrait: a screen over everything asking for it turned sideways, and the night paused behind it */
+  #rotate { display: none; position: fixed; inset: 0; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; box-sizing: border-box; text-align: center; background: radial-gradient(ellipse at 50% 42%, #14110f, #000 70%); color: #efe6d2; touch-action: none; }
+  #rotate svg { width: 120px; height: 120px; margin-bottom: 14px; color: #efe6d2; }
+  #rotate .rphone { transform-origin: 60px 54px; animation: rturn 2.8s ease-in-out infinite; }
+  #rotate h2 { margin: 0; font-weight: normal; font-size: calc(18.6px * var(--text-scale)); letter-spacing: .06em; }
+  #rotate p { margin: 6px 0 0; max-width: 18em; font-size: calc(10.7px * var(--text-scale)); line-height: 1.5; font-style: italic; color: rgba(207,200,186,.6); }
+  @keyframes rturn { 0%, 20% { transform: none; } 50%, 80% { transform: rotate(-90deg); } 100% { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #rotate .rphone { animation: none; transform: none; } }   /* (still: the phone upright, the arrow by its corner, as the turn begins: turned, the arrow would cross it) */
+  @media (pointer: coarse) {
+    html, body { touch-action: manipulation; -webkit-touch-callout: none; }
+    #game, #hud { touch-action: none; }
+    #mute { display: none; }
+    body.tplay #menuBtn, body.tzoom #zoomBtn { display: flex; }
+    body.menu #zoomBtn { display: none; }   /* (the menu button stays over a night's card, the death screen and the win screen: body.tplay is on only where the pause menu can be opened, js/game.js touchChrome) */
+    #menuBtn { top: max(12px, env(safe-area-inset-top)); }
+    /* a sound's caption under the menu button, a little smaller: its one line ends above the words under the compass */
+    #caption.cal { top: max(8px, env(safe-area-inset-top)); }   /* (the volume dialog's: no menu button there, and the dialog fills a phone: in the corner by its heading, over none of its words) */
+    #caption { top: calc(max(12px, env(safe-area-inset-top)) + 42px); left: max(14px, env(safe-area-inset-left)); max-width: calc(50vw - 48px - max(14px, env(safe-area-inset-left))); font-size: min(calc(13px * var(--text-scale)), 2.1vw, 19px); }
+    #objective { right: max(20px, calc(env(safe-area-inset-right) + 6px)); }
+    body.fsok #objective { right: calc(max(14px, env(safe-area-inset-right)) + 52px); }
+    #overlay { padding: 24px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left)); }
+    /* (opened from the Home Screen the page runs under the notch and the rounded corners: the dialogs kept clear of them) */
+    #overlay.dlg { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    /* the things held float over the view, each on a faint backing of its own, no strip under them: the view runs
+       to the bottom of the screen (and under the home bar: viewport-fit=cover), the slots above that bar */
+    /* (in the lower left corner, not the middle: the middle of the bottom edge is where things to tap most often are) */
+    #inventory { gap: 8px; left: max(16px, env(safe-area-inset-left)); transform: none; touch-action: none; }
+    .slot, .slot canvas { width: 50px; height: 50px; }
+    #inventory.many { gap: 4px; max-width: calc(100% - 180px); }   /* (clear of the zoom button in the corner) */
+    #inventory.many .slot, #inventory.many .slot canvas { width: 34px; height: 34px; }
+    .slot { border-radius: 7px; border-color: rgba(207,200,186,.2); background: radial-gradient(closest-side, rgba(8,7,7,.38), rgba(8,7,7,.2)); box-shadow: 0 2px 10px rgba(0,0,0,.35); -webkit-tap-highlight-color: transparent; }
+    .slot.active { border-color: rgba(239,230,210,.75); background: radial-gradient(closest-side, rgba(8,7,7,.48), rgba(8,7,7,.3)); box-shadow: 0 2px 10px rgba(0,0,0,.35), 0 0 10px rgba(239,230,210,.16); }
+    :root[data-theme="day"] .slot { background: radial-gradient(closest-side, rgba(255,255,255,.42), rgba(255,255,255,.24)); box-shadow: 0 2px 10px rgba(58,51,44,.18); }
+    :root[data-theme="day"] .slot.active { background: radial-gradient(closest-side, rgba(255,255,255,.55), rgba(255,255,255,.34)); }
+    #compass { top: 18px; } #pitch { top: 40px; } #zoom { top: 58px; } #toast { top: calc(var(--view-top, 0px) + 80px); } #objective { top: 14px; }
+  }
+  @media (pointer: coarse) and (orientation: portrait) { #rotate { display: flex; } }
+  /* (a narrow page: the compass is lower, and the words under it; the caption under the compass's line, on two lines if it must) */
+  @media (max-width: 700px) { #caption { top: 66px; max-width: calc(50vw - 95px); white-space: normal; font-size: min(calc(13px * var(--text-scale)), 2.1vw, 16px); } #caption .ctx { overflow: visible; } }
   @media (max-width: 700px) { #compass { top: 44px; } #pitch { top: 74px; } #zoom { top: 94px; } #toast { top: calc(var(--view-top, 0px) + 116px); } #objective { top: 44px; } #overlay h1.big { font-size: 42px; } #overlay h1 { font-size: 30px; } #overlay .intro { font-size: calc(15px * var(--text-scale)); } #objective { max-width: 48vw; font-size: calc(12px * var(--text-scale)); } #compass { gap: 10px; font-size: 11px; } }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<canvas id="titleScene" aria-hidden="true"></canvas>
 <div id="hud">
   <div id="compass"></div>
   <div id="pitch"></div>
@@ -134,19 +749,20 @@
   <div id="inventory"></div>
   <div id="debug"></div>
 </div>
-<div id="caption" aria-live="polite"></div>
-<div id="touch">
-  <button id="tLeft" aria-label="turn left">◀</button>
-  <button id="tUp" aria-label="look ahead">▲</button>
-  <button id="tZoom" aria-label="zoom">ZOOM</button>
-  <button id="tUse" aria-label="use">USE</button>
-  <button id="tPause" aria-label="pause">II</button>
-  <button id="tDown" aria-label="look down">▼</button>
-  <button id="tRight" aria-label="turn right">▶</button>
-</div>
+<div id="caption" aria-live="polite"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.8 6h2.7L8 3v10L4.5 10H1.8z" fill="currentColor"/><path d="M10.3 5.7a3.3 3.3 0 0 1 0 4.6M12.2 3.8a6 6 0 0 1 0 8.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="ctx"></span></div>
+<div id="secret" role="status"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0.5C8.5 5 11 7.5 15.5 8C11 8.5 8.5 11 8 15.5C7.5 11 5 8.5 0.5 8C5 7.5 7.5 5 8 0.5Z" fill="currentColor"/></svg><span class="stx"><span class="sl">Secret discovered</span><span class="sc">: </span><span class="st"></span></span></div>
+<button type="button" id="zoomBtn" aria-label="zoom (tap: on, tap again: off)" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14.6 14.6 20.5 20.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M7 10h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path class="zplus" d="M10 7v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>zoom</span></button>
 <div id="overlay"></div>
 <div id="mute">sound on (M)</div>
+<button type="button" id="menuBtn" aria-label="menu"><span></span></button>
+<button type="button" id="fsBtn" aria-label="fullscreen"><svg class="fsin" viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 7.5v-5h5M12.5 2.5h5v5M17.5 12.5v5h-5M7.5 17.5h-5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="fsout" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 2.5v5h-5M17.5 7.5h-5v-5M12.5 17.5v-5h5M2.5 12.5h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div id="rotate" role="alert" aria-live="assertive">
+  <svg viewBox="0 0 120 120" aria-hidden="true"><g class="rphone"><rect x="40" y="18" width="40" height="72" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M54 25h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="60" cy="81" r="3" fill="currentColor"/></g><path class="rarrow" d="M93 70a36 36 0 0 1-26 33" fill="none" stroke="#b3161e" stroke-width="3" stroke-linecap="round"/><path class="rarrow" d="M64 96l3 7.5-7.5 3" fill="none" stroke="#b3161e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <h2>Turn your device sideways</h2>
+  <p>It is played in landscape. The night waits until you do.</p>
+</div>
 <script src="js/util.js"></script>
+<script src="js/soundtune.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/light.js"></script>
 <script src="js/weather.js"></script>
@@ -171,6 +787,7 @@
 <script src="js/creatures/tall.js"></script>
 <script src="js/creatures/demon.js"></script>
 <script src="js/icons.js"></script>
+<script src="js/title.js"></script>
 <script src="js/story.js"></script>
 <script src="js/levels.js"></script>
 <script src="js/levels/night01.js"></script>

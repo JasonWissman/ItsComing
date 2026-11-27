@@ -49,20 +49,146 @@ const resolves = k => [
   ['waitUntil', '(G.L.s.bangs || 0) >= 2 && G.L.creature.peer >= 1', 3000],
   ['expect', 'G.fadeTarget < 1 && ' + DOOR.map(id => target(id) + '.done && ' + target(id) + '.count === 3').join(' && '), 'it stooped to the gap and pounded on them, and every board held, before the fade'],
 ];
-const both = k => board(k).concat([
+// the other doorway's cue (its footsteps from there) is heard once it has come round in front of that doorway and walks
+// again, never while it is still going round or running in from the side
+const cueHook = ['eval', "window.__cueAt = []; (s0 => { AUDIO.sfx = (n, p, so) => { if (/^footstep:/.test(n)) __cueAt.push(G.L.s.run ? (G.L.s.run.arrived ? 'in' : 'round') : G.L.creature.runPose ? 'run' : 'walk'); return s0(n, p, so); }; })(AUDIO.sfx)"];
+const cueHeard = ['expect', "!__cueAt.some(w => w !== 'walk') && (G.L.s.cutShort || __cueAt.length >= 1)", 'its footsteps from the other doorway came once it was walking there, not while it ran round'];
+const both = k => [cueHook].concat(board(k), [
   running(k), ...knock(k),
   ['waitUntil', 'G.L.creature.lane.idx === ' + (1 - k), 4000],
   ['expect', 'G.state === "play" && Math.abs(G.L.creature.dist - Math.max(G.L.s.ranFrom.dist, G.L.lane.barrierDist + 10)) < 4', 'it came round to the other doorway at about the same distance'],
-], board(1 - k), [['expect', 'G.L.won', 'both doorways boarded: it is held']], resolves(1 - k));
+], board(1 - k), [['expect', 'G.L.won', 'both doorways boarded: it is held'], cueHeard], resolves(1 - k));
 const quick = k => [['eval', 'G.L.creature.u = 1 - 15 / G.L.creature.D0']].concat(board(k), [running(k)], board(1 - k), [
   ['expect', 'G.L.won && G.L.s.cutShort', 'both doorways boarded while it was still going round: won'],
   ['waitUntil', '!G.L.s.run && !G.L.creature.runPose && G.L.creature.lane.idx === ' + (1 - k) + ' && Math.abs(G.L.creature.dist - G.L.lanes[' + (1 - k) + '].barrierDist) < 0.05', 5000],
 ], resolves(1 - k));
+// ---- the window, the bottle and the easter egg ----
+// Before the night is played as above: where things lie is as it was (seeds 1 to 10, a sum of each layout); the window is
+// no target until the bottle is the thing in hand; the bottle is thrown through it and the glass breaks (the bottle gone,
+// the sound, the window no target any more). With the window broken and a doorway open the night goes on as ever (boarding
+// the doorway it comes for sends it round the house; it comes in by the other and that is the death, with its own line).
+// Then, the same night again: the window broken and both doorways boarded, the egg plays out by itself, in order (it
+// charges the boards and pounds on them, stops, turns its head, runs to the window, climbs in through it, and lunges straight from its crouch under it, with no wait),
+// the view on the window as it comes through, the egg kept in the save from the moment it starts through, and the death
+// screen says "It got you" and the night's line alone, though something was said just before the last board went up. And
+// the night again from the start, with the window whole, is won as it always was (the steps above).
+// All the while it is outside by the front wall (running to the window, standing in it, half through it), the picture
+// itself is looked at (leak, below): with what is outside drawn as a plain marker, none of the marker shows on the floor
+// under the foot of the wall, nor, once it is at the window, anywhere but in the hole of the window.
+const LAYOUTS = [3670514754, 3182466661, 666963135, 1014729768, 2157629576, 3291411627, 3930209026, 497375984, 3611011127, 392029248];
+const layouts = ['expect', `(() => {
+  const keep = [G.runSeed, G.attempt, JSON.stringify(G.lastLane)], out = [];
+  for (let S = 1; S <= 10; S++) {
+    G.runSeed = S; G.attempt = 0;
+    const sig = buildLevelDef(LEVELS[0], 0).items.map(i => i.id + ':' + i.x.toFixed(3) + ',' + i.y.toFixed(2) + ',' + i.z.toFixed(3)).join('|');
+    let h = 0; for (let i = 0; i < sig.length; i++) h = (h * 31 + sig.charCodeAt(i)) >>> 0;
+    out.push(h);
+  }
+  G.runSeed = keep[0]; G.attempt = keep[1]; G.lastLane = JSON.parse(keep[2]);
+  return out.join() === '${LAYOUTS.join()}';
+})()`, 'where things lie is unchanged, seeds 1 to 10'];
+const WINDOW = 3;   // the window is to the south-east
+const inHand = id => ['eval', "G.active = G.inv.findIndex(i => i.id === '" + id + "')"];
+const take = ids => ['eval', '(() => { for (const id of ' + JSON.stringify(ids) + ") for (const it of G.L.items.filter(i => i.id === id && !i.taken)) pickup(it); })()"];
+// pointed at, where the window is: is it a target (in the hit list, and what the pointer is over)?
+const windowIs = "(() => { const q = R.screenPos(1.85, 1.6, -2.4), hit = R.hits.some(r => r.kind === 'target' && r.ref.id === 'window'); G.mouse.x = q.x; G.mouse.y = q.y; updateHover(); const over = !!G.hover && G.hover.ref.id === 'window'; G.mouse.x = G.mouse.y = -1; updateHover(); return hit && over ? 'target' : !hit && !over ? 'none' : 'mixed'; })()";
+const sfxHook = ['eval', "window.__sfx = []; (s0 => { AUDIO.sfx = (n, p, so) => { __sfx.push(n); return s0(n, p, so); }; })(AUDIO.sfx)"];
+const again = [['eval', 'G.attempt = __att0 - 1; restartLevel()'], ['wait', 300],
+  ['expect', "G.state === 'play' && !G.L.s.broken && !G.L.s.egg && !G.L.won && G.inv.length === 0", 'the same night again, from the start, the window whole']];
+const throwIt = [
+  ['face', WINDOW], ['expect', windowIs + " === 'none'", 'with nothing in hand the window is no target'],
+  take(['hammer']), ['face', WINDOW], ['expect', windowIs + " === 'none'", 'nor with the hammer in hand'],
+  take(['bottle']), inHand('hammer'), ['face', WINDOW], ['expect', windowIs + " === 'none'", 'nor with the bottle carried and the hammer in hand'],
+  inHand('bottle'), ['face', WINDOW], ['expect', windowIs + " === 'target'", 'with the bottle in hand the window is a target'],
+  ['click', 'window'],
+  ['expect', "!!G.throwing && G.throwing.it.id === 'bottle' && G.throwing.it.spin.turns >= 1 && G.throwing.it.spin.roll > 0 && !G.hasItem('bottle') && !G.L.s.broken", 'a click on it throws the bottle, which tumbles as it flies'],
+  ['waitUntil', 'G.L.s.broken', 3000],
+  ['expect', "!G.throwing && !G.hasItem('bottle') && !G.L.items.some(i => i.id === 'bottle' && !i.taken) && __sfx.includes('stingGlass') && G.L.s.crumbs.filter(c => c.shard).length > 20 && G.state === 'play' && !G.L.won",
+    'it goes through the glass, which breaks: the sound of it, a burst of glass, and the bottle is gone'],
+  ['wait', 150], ['expect', windowIs + " === 'none' && " + target('window') + '.hidden', 'broken, the window is no target any more'],
+];
+// broken, and a doorway open: the night as ever
+const openDoor = k => [take(['nails', 'planks'])].concat(board(k), [
+  ['expect', "G.state === 'play' && !G.L.won && !G.L.s.egg && G.L.s.ran && G.L.s.ranFrom.lane === " + k, 'the window broken and one doorway boarded: it runs round the house to the other, as ever'],
+  ['waitUntil', '!G.L.s.run && G.L.creature.lane.idx === ' + (1 - k), 6000],
+  ['eval', 'G.L.creature.u = 1 - 5 / G.L.creature.D0'],
+  ['waitUntil', "G.state === 'dead'", 12000],
+  ['expect', "G.deathCause === 'round' && !G.L.s.egg && G.deathScreen.title === 'It got you' && G.deathScreen.text === 'It came through the open door behind you.' && !SAVE.data.eggs.field",
+    'and comes in by the open doorway: the death it always was, and no easter egg'],
+]);
+const stage = st => "G.L.s.egg && G.L.s.egg.stage === '" + st + "'";
+// What is outside the front wall, drawn in one flat colour (its running self, and the half of it still outside as it comes
+// through the window), and the picture read back: a marked pixel on the floor of the room, under the foot of the front
+// wall between the doorway and the corner, is some of it showing through the wall; and at the window or coming through
+// it, so is one anywhere but in the hole of the window (2 px of grace at the edges). __leak: how many looks, how much of
+// the marker was seen in all (so the look is known to see it), and how much of it was where it must not be
+const LEAK = `window.__leak = { looks: 0, seen: 0, n: 0, at: [], last: 0 }; window.__look = () => {
+  const c = G.L.creature, e = G.L.s.egg, W = CREATURES.walker, m = 'rgb(255,0,255)', MARK = { col: () => m, cola: () => m, raw: () => m };
+  const climb0 = W.drawClimb, run0 = W.drawRun;
+  W.drawClimb = function (ctx, cr, P, pass) { if (pass === 'out') climb0.call(this, ctx, cr, MARK, pass); };
+  W.drawRun = function (ctx, cr) { run0.call(this, ctx, cr, MARK); };
+  try { render(); } finally { W.drawClimb = climb0; W.drawRun = run0; }
+  const cv = UI.canvas, k = cv.width / R.W, px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+  const at = (x, y) => { const q = R.screenPos(x, y, -2.4); return q && [q.x, q.y]; };
+  const hole = [at(2.4, 1.08), at(1.3, 1.08), at(1.3, 2.16), at(2.4, 2.16)], a = at(0.7, 0), b = at(2.8, 0);
+  render();
+  if (!hole.every(Boolean) || !a || !b) return;
+  const mx = (hole[0][0] + hole[1][0] + hole[2][0] + hole[3][0]) / 4, my = (hole[0][1] + hole[1][1] + hole[2][1] + hole[3][1]) / 4;
+  const grown = hole.map(p => [p[0] + Math.sign(p[0] - mx) * 2, p[1] + Math.sign(p[1] - my) * 2]);
+  let seen = 0, n = 0;
+  for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
+    const i = (y * cv.width + x) * 4;
+    if (!(px[i] > 80 && px[i + 2] > 80 && px[i + 1] < px[i] * 0.45 && Math.abs(px[i] - px[i + 2]) < 70)) continue;
+    seen++;
+    const sx = x / k, sy = y / k - R.viewY;
+    if (c.climbParts ? !inPoly(sx, sy, grown) : sx > Math.min(a[0], b[0]) && sx < Math.max(a[0], b[0]) && sy > a[1] + (b[1] - a[1]) * (sx - a[0]) / (b[0] - a[0]) + 2) n++;
+  }
+  __leak.looks++; __leak.seen += seen; __leak.n += n;
+  if (n) __leak.at.push(e.stage + (c.climb === undefined ? '' : ' ' + c.climb.toFixed(2)) + ': ' + n);
+}`;
+const egg = k => [
+  ['eval', LEAK],
+  ['eval', "window.__stages = []; window.__at = {}; clearInterval(window.__eggT); window.__eggT = setInterval(() => { const e = G.L && G.L.s.egg; if (e && __stages[__stages.length - 1] !== e.stage) { __stages.push(e.stage); __at[e.stage] = G.stateT; if (e.stage === 'lunge') __at.crouch = G.L.creature.climb; } " +
+    "if (e && G.state === 'dying' && G.L.creature.lane.idx === 1 && (e.stage === 'run' || e.stage === 'face' || e.stage === 'climb') && performance.now() - __leak.last > 90) { __look(); __leak.last = performance.now(); } }, 10)"],
+  take(['hammer', 'nails', 'planks', 'bottle']), inHand('bottle'), ['face', WINDOW], ['click', 'window'], ['waitUntil', 'G.L.s.broken', 3000],
+].concat(board(k), [running(k), ['waitUntil', 'G.L.creature.lane.idx === ' + (1 - k), 4000],
+  ['face', DIR[1 - k]], ['click', DOOR[1 - k]], ['wait', 150], ['click', DOOR[1 - k]], ['wait', 150],
+  ['eval', "G.toast('Nearly there.')"],   // said just before the last board: it is not put in front of the death line
+  ['click', DOOR[1 - k]],
+  ['expect', "G.state === 'dying' && G.deathCause === 'window' && !G.L.won && " + stage('door') + ' && ' + DOOR.map(id => target(id) + '.done').join(' && '), 'the window broken and both doorways boarded: not won, and the rest plays by itself'],
+  ['waitUntil', stage('pound'), 6000],
+  ['expect', 'G.L.creature.lane.idx === ' + (1 - k) + ' && Math.abs(G.L.creature.dist - G.L.lanes[' + (1 - k) + '].barrierDist) < 0.05', 'it charged the boarded doorway and hit the boards'],
+  ['waitUntil', '(G.L.s.bangs || 0) >= 3 && G.L.creature.peer >= 1', 4000],
+  ['expect', "G.state === 'dying' && !SAVE.data.eggs.field && " + DOOR.map(id => target(id) + '.count === 3').join(' && '), 'it stooped to the gap and pounded on them, and they held'],
+  ['waitUntil', stage('turn') + ' && Math.abs(G.L.creature.look) > 0.9', 4000],
+  ['expect', 'G.L.s.bangs === 4 && Math.sign(G.L.creature.look) === ' + (k === 0 ? -1 : 1), 'after four blows it stopped, and its head turned toward the window'],
+  ['waitUntil', stage('run') + ' && G.L.creature.runPose', 3000],
+  ['waitUntil', stage('climb'), 6000],
+  ['expect', "SAVE.data.eggs.field === true && JSON.parse(localStorage.getItem('itscoming.v2')).eggs.field === true", 'it ran to the window, and as it starts through it the easter egg is found, and kept in the save'],
+  ['expect', 'G.L.s.barsOut && G.L.creature.climb !== undefined && Math.abs(G.L.creature.pos().x - 1.85) < 0.05 && Math.abs(G.L.creature.pos().z + 2.4) < 0.05', 'it is at the window, the bars torn out of it'],
+  ['waitUntil', 'G.L.creature.climb > 0.5', 6000],
+  ['expect', "G.state === 'dying' && Math.abs(wrapPi(G.cam.yaw - Math.atan2(1.85, -2.4))) < 0.2 && !!R.screenPos(1.85, 1.6, -2.4)", 'the view has turned to the window as it comes through'],
+  ['waitUntil', stage('lunge'), 6000],
+  ['expect', 'G.L.creature.climb !== undefined && __at.crouch >= 0.82 && __at.crouch < 0.9', 'it is down on all fours under the window, and the lunge has begun at once, from that crouch'],
+  ['waitUntil', "G.state === 'dead'", 6000],
+  ['expect', "__stages.join() === 'door,pound,still,turn,run,face,climb,lunge'", 'in order: the boards, the pounding, its head turning, the run, the window, the climb, the lunge (it never stands)'],
+  ['expect', "(SAVE.data.settings.reducedMotion ? [1.35, 1.75] : [0.75, 1.15]).every((v, i) => i ? __at.lunge - __at.climb <= v : __at.lunge - __at.climb >= v) && G.deathCreature.deathSpec.delay <= __at.lunge + 0.05 && G.deathCreature.deathSpec.dur <= 0.3 + 1e-9 && G.deathCreature.climb === 1",
+    'the bars torn out and the climb in are a scramble (about 0.9 s; 1.5 s with reduced motion), and the lunge follows with no delay, rising out of the crouch in 0.3 s'],
+  ['expect', "__leak.looks >= 4 && __leak.seen > 400 && __leak.n === 0",
+    'while it was outside by the front wall (running to the window, standing in it, coming through) none of it showed through the wall: nothing on the floor under the wall, and at the window nothing but in the hole of it'],
+  ['expect', "G.deathScreen.title === 'It got you' && G.deathScreen.text === 'Must we throw things?' && /It got you/.test(UI.overlay.textContent) && /Must we throw things\\?/.test(UI.overlay.textContent) && !/Nearly there/.test(UI.overlay.textContent)",
+    'the death screen: "It got you", and "Must we throw things?" alone'],
+  ['eval', 'clearInterval(window.__eggT)'],
+]);
+const windowEgg = [layouts, ['eval', 'window.__att0 = G.attempt; delete SAVE.data.eggs.field; SAVE.persist()'], sfxHook].concat(throwIt,   // (the egg not found yet, whatever an earlier seed left in the save)
+  [['branch', 'G.L.lane.idx === 0', openDoor(0), openDoor(1)]], again,
+  [['branch', 'G.L.lane.idx === 0', egg(0), egg(1)]], again);
 module.exports = {
-  nightmare: [['branch', 'G.L.lane.idx === 0', tryLoose(0), tryLoose(1)],
+  nightmare: windowEgg.concat([['branch', 'G.L.lane.idx === 0', tryLoose(0), tryLoose(1)],
     ['pickup', 'hammer'], ['pickup', 'nails'], ['pickup', 'rotten'],
     ['branch', 'G.L.lane.idx === 0', tryRotten(0), tryRotten(1)]].concat(planks(5, 6), [
     ['branch', 'G.seed % 2 === 0',
       [['branch', 'G.L.lane.idx === 0', quick(0), quick(1)]],
-      [['branch', 'G.L.lane.idx === 0', both(0), both(1)]]]]),
+      [['branch', 'G.L.lane.idx === 0', both(0), both(1)]]],
+    ['expect', "G.L.won && G.state === 'won' && !G.L.s.broken && !G.L.s.egg && !G.L.s.barsOut", 'the window whole: the night is won as ever']])),
 };

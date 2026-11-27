@@ -9,65 +9,339 @@ CREATURES.walker = {
   // its eyes are at the height of yours: at the boards across a doorway, it looks in through the gap left between them,
   // its hands on the board under the gap. c.handLift ([left, right], 0..1) raises a hand off the board to strike it, and
   // c.blow (1 at a blow, falling away) throws its head and shoulders in at the boards.
+  // c.look (-1..1) turns its head to one side (+1: to the right of the view): the face slides round the head and narrows.
+  // c.climb (0..1) is it coming in through a window (drawClimb, below).
+  // c.clip (a polygon, in its own metres from its feet) is all of it that can be seen where it stands outside a wall: none
+  // of it is drawn outside that. It is drawn on a card square to the view, and a wall it stands close against is not, so
+  // the end of the card comes out past the foot of the wall; the night that stands it there says what the wall leaves in
+  // sight (The Field, at its window).
   lateral(c) { return c.runLat || 0; },
+  // c.headroom (metres above its feet as drawn, or undefined) is a height it must keep under: the lintel of a doorway it is
+  // coming in through (The Field's are a head too low for it). It ducks under it, as far as it must (duckFor): the
+  // head and shoulders bent down and forward at you, the hips dropped and the knees bent out, the elbows down and the
+  // hands up by its shoulders, reaching for you, and it straightens as the headroom comes back. c.duck is how far down it is (0..1).
+  // DUCK is the pose all the way down: the hips, the shoulders, the head brought down in front of them (and nearer, so
+  // bigger; it goes down ahead of the rest), the hands, and how far its back rounds up behind its head.
+  DUCK: { hip: 0.92, top: 1.58, head: -0.36, headK: 0.12, hand: -0.15, back: 0.12, rise: 3 },
+  // where it is at stoop dk, for the stoop and the peer (pk, bl) together: the shoulders, the hips, the head's own drop and
+  // scale, and how high its hands are; and peak, the highest of all of it (the top of its head or its back, or a fingertip)
+  stance(c, dk, pk, bl, bob, raise) {
+    const D = this.DUCK, lifts = c.handLift || [0, 0];
+    const hipY = lerp(lerp(1.22, 0.86, pk), D.hip, dk) + bob, top = lerp(lerp(2.0, 1.39, pk), D.top, dk) + bob - bl * 0.03;
+    const hk = Math.min(1, dk * 1.5), headDy = -0.1 * pk + D.head * hk, headK = 1 + 0.12 * pk + 0.08 * bl + D.headK * hk;
+    const handY = s => { const lift = smoothstep(lifts[s > 0 ? 1 : 0] || 0); return lerp(lerp(lerp(0.72, 1.95, raise), 1.53 + lift * 0.47, pk), top + D.hand, dk); };
+    const reach = 0.17 + raise * 0.05 + 0.012;   // the longest finger, and its width
+    return { hipY, top, headDy, headK, handY, peak: Math.max(top + headDy + 0.475 * headK, top + D.back * dk, handY(-1) + reach, handY(1) + reach) };
+  },
+  // the least stoop that keeps it under c.headroom (allowing for its breathing, which stretches it up to 1.4% taller)
+  duckFor(c, pk, bl, bob, raise) {
+    const room = c.headroom === undefined ? Infinity : c.headroom / 1.015;
+    if (this.stance(c, 0, pk, bl, bob, raise).peak <= room) return 0;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 14; i++) { const m = (lo + hi) / 2; if (this.stance(c, m, pk, bl, bob, raise).peak <= room) hi = m; else lo = m; }
+    return hi;
+  },
+  // Starved: a black figure with its skin pulled tight over the bones. Its outline is the walker's own (the same height,
+  // reach, shoulders and hips, and every pose), but the limbs are thin, narrowing to the joints and swelling at the knobs of
+  // the knees and the elbows, the wrists and the ankles thinner still; the shoulders are points of bone, the torso narrow
+  // and sunk in under a ribcage that flares out over a hollow belly, the neck a stalk of tendons, the fingers long bones
+  // knotted at the knuckles. Close to, the bone under the skin catches the light: subtle greys on the black (GREY), the
+  // collarbones, the breastbone, each rib and the arch of the ribcage over the belly, the hip bones, the kneecaps and the
+  // points of the elbows, the shins, the knuckles. Far off none of that shows (boneA), and it is a black figure.
+  GREY: { ridge: [27, 26, 31], hollow: [54, 49, 53], lite: [118, 111, 115] },
+  // how much of the bone shows at d metres: none far off, all of it from 6 m
+  boneA(d) { return clamp((18 - d) / 12, 0, 1); },
+  // widths of its limbs (metres): the root (hip or shoulder), above the joint, the joint's knob (a radius), below the
+  // joint, the wrist or ankle, and its own small knob (a radius)
+  LEG: [0.066, 0.046, 0.034, 0.05, 0.028, 0.019],
+  ARM: [0.05, 0.034, 0.027, 0.036, 0.021, 0.015],
+  // a tapered stroke from p (w0 wide) to q (w1 wide), rounded at both ends
+  seg(ctx, p, q, w0, w1, color) {
+    const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1e-6, nx = -dy / L, ny = dx / L;
+    P_poly(ctx, [[p[0] + nx * w0 / 2, p[1] + ny * w0 / 2], [q[0] + nx * w1 / 2, q[1] + ny * w1 / 2], [q[0] - nx * w1 / 2, q[1] - ny * w1 / 2], [p[0] - nx * w0 / 2, p[1] - ny * w0 / 2]], color);
+    P_ell(ctx, p[0], p[1], w0 / 2, w0 / 2, color); P_ell(ctx, q[0], q[1], w1 / 2, w1 / 2, color);
+  },
+  // with alpha a (times whatever it is drawn at) for the bone that shows through
+  faint(ctx, a, fn) { if (a <= 0) return; const a0 = ctx.globalAlpha; ctx.globalAlpha = a0 * a; fn(); ctx.globalAlpha = a0; },
+  // a starved limb from its root (a hip or a shoulder) to a joint (the knee or the elbow) to its end (the ankle or the
+  // wrist), W its widths (LEG or ARM, times k): the bone narrowing to a knob of a joint and on to a thin wrist or ankle,
+  // the joint's cap and the bone of the shin or the forearm catching the light close to
+  limb(ctx, a, j, e, W, body, ridge, ba, k) {
+    const s = k || 1;
+    this.seg(ctx, a, j, W[0] * s, W[1] * s, body);
+    this.seg(ctx, j, e, W[3] * s, W[4] * s, body);
+    const ang = Math.atan2(e[1] - a[1], e[0] - a[0]) + Math.PI / 2;   // the knob of the joint, longer than it is wide
+    P_ell(ctx, j[0], j[1], W[2] * s * 0.86, W[2] * s, body, ang);
+    P_ell(ctx, e[0], e[1], W[5] * s, W[5] * s, body);
+    this.faint(ctx, ba, () => {
+      P_ell(ctx, j[0], j[1] + W[2] * s * 0.25, W[2] * s * 0.42, W[2] * s * 0.32, ridge);   // the kneecap, the point of the elbow
+      this.faint(ctx, 0.7, () => P_line(ctx, lerp(j[0], e[0], 0.25), lerp(j[1], e[1], 0.25), lerp(j[0], e[0], 0.8), lerp(j[1], e[1], 0.8), 0.006, ridge));   // the shin, the forearm
+    });
+  },
+  // a point of bone at a shoulder
+  shoulder(ctx, x, y, body, ridge, ba) {
+    P_ell(ctx, x, y, 0.032, 0.028, body);
+    this.faint(ctx, ba, () => P_ell(ctx, x, y + 0.01, 0.012, 0.009, ridge));
+  },
+  // the torso over the quad bl, br, tr, tl (bottom left and right, top right and left), drawn in its own black: narrow,
+  // the ribcage flaring out over a belly sunk in under it, the hips jutting below that; and close to, the bone under the
+  // skin. front: seen from the front (collarbones, breastbone, ribs either side, the arch of the ribcage, the hip bones);
+  // otherwise side on, facing the br/tr side (the ribs curving round and down to the front, the knobs of its spine
+  // along its back, the belly sunk in under the ribs)
+  chest(ctx, body, ridge, ba, bl, br, tr, tl, front) {
+    const at = (u, v) => { const q = (u + 1) / 2; return [lerp(lerp(bl[0], br[0], q), lerp(tl[0], tr[0], q), v), lerp(lerp(bl[1], br[1], q), lerp(tl[1], tr[1], q), v)]; };
+    const line = (pts, w) => P_limb(ctx, pts.map(p => at(p[0], p[1])), w, ridge);
+    if (front) {
+      P_poly(ctx, [[-0.66, 0], [0.66, 0], [0.9, 0.1], [0.64, 0.27], [0.8, 0.4], [1, 0.54], [1, 1], [-1, 1], [-1, 0.54], [-0.8, 0.4], [-0.64, 0.27], [-0.9, 0.1]].map(p => at(p[0], p[1])), body);
+      this.faint(ctx, ba, () => {
+        for (const s of [-1, 1]) {
+          line([[s * 0.08, 0.93], [s * 0.45, 0.905], [s * 0.86, 0.955]], 0.012);   // the collarbone
+          for (let i = 0; i < 4; i++) {   // the ribs either side, longer and dropping further down the cage
+            const v = 0.8 - i * 0.075, r = 0.72 + i * 0.06;
+            line([[s * 0.3, v], [s * r * 0.75, v - 0.025], [s * r, v - 0.075 - i * 0.012]], 0.009);
+          }
+          line([[s * 0.08, 0.6], [s * 0.45, 0.535], [s * 0.82, 0.44]], 0.01);   // the arch of the ribcage, over the hollow belly
+          line([[s * 0.66, 0.16], [s * 0.86, 0.09]], 0.012);  // the hip bone
+          this.faint(ctx, 0.6, () => line([[s * 0.72, 0.42], [s * 0.54, 0.3], [s * 0.6, 0.18]], 0.008));   // the belly, sunk in under the ribs
+        }
+        line([[0, 0.88], [0, 0.64]], 0.01);   // the breastbone
+      });
+    } else {
+      P_poly(ctx, [[-1, 0], [0.9, 0], [0.62, 0.16], [0.5, 0.3], [0.78, 0.46], [1, 0.62], [1, 1], [-1, 1]].map(p => at(p[0], p[1])), body);
+      for (let i = 0; i < 6; i++) { const p = at(-1, 0.3 + i * 0.12); P_ell(ctx, p[0], p[1], 0.022, 0.022, body); }   // the knobs of its spine
+      this.faint(ctx, ba, () => {
+        for (let i = 0; i < 4; i++) { const v = 0.86 - i * 0.08; line([[-0.6, v], [0, v - 0.03], [0.66, v - 0.1 - i * 0.02]], 0.009); }
+        line([[0.95, 0.58], [0.6, 0.47], [0.4, 0.4]], 0.012);   // the bottom of the ribcage
+        line([[-0.2, 0.14], [0.3, 0.12], [0.62, 0.05]], 0.013);  // the hip bone
+        line([[0.4, 0.97], [0.95, 0.95]], 0.014);   // the collarbone
+      });
+    }
+  },
+  // its neck, from (0, y0) up to (0, y1): a thin stalk, its tendons standing out
+  neck(ctx, y0, y1, body, ridge, ba) {
+    P_line(ctx, 0, y0, 0, y1, 0.056, body);
+    this.faint(ctx, ba, () => { for (const s of [-1, 1]) P_line(ctx, s * 0.021, y1 + 0.01, s * 0.007, y0, 0.007, ridge); });
+  },
+  // its face, the pale grey of it on its black head, gaunt: the temples and the cheeks sunk in under the cheekbones,
+  // the jaw showing, the eyes in sunken sockets; the eyes round and blank, pale, no pupils (eye height ey, radius er);
+  // the mouth (mrx by mry) opening as it nears
+  face(ctx, P, skin, eye, body, ey, er, mrx, mry) {
+    const G = this.GREY, hol = P.col(G.hollow), lite = P.col(G.lite);
+    P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(0, 0.285, 0.085, 0.13, 0, 0, TAU); ctx.clip();
+    for (const s of [-1, 1]) {
+      P_ell(ctx, s * 0.084, 0.33, 0.02, 0.045, hol);                  // the temple, sunk in
+      P_ell(ctx, s * 0.058, 0.218, 0.024, 0.05, hol, s * 0.22);       // the cheek, sunk in under the cheekbone
+      P_ell(ctx, s * 0.036, ey, er * 1.9, er * 1.9, hol);             // the socket
+      P_line(ctx, s * 0.08, 0.2, s * 0.03, 0.163, 0.007, lite);        // the jaw
+    }
+    ctx.restore();
+    for (const s of [-1, 1]) P_ell(ctx, s * 0.036, ey, er, er, eye);   // blank and round: no pupils
+    P_ell(ctx, 0, 0.205, mrx, mry, body);
+  },
+  // its long fingers (as fingers() spreads them), bones knotted at the knuckles, the last of each one a black nail:
+  // blacker than the rest of it, which the light and the fog lift toward grey, so the hooked ends of them read as nails
+  // in every pose
+  claws(ctx, x, y, angle, spread, len, w, body, P, ba) {
+    const nail = P.col([0, 0, 0]), ridge = P.col(this.GREY.ridge);
+    for (let i = 0; i < 4; i++) {
+      const a = angle + (i - 1.5) * spread, l = len * ((i === 0 || i === 3) ? 0.82 : 1), ca = Math.cos(a), sa = Math.sin(a);
+      P_line(ctx, x, y, x + ca * l, y + sa * l, w * 0.8, body);
+      for (const [f, r] of [[0.3, 0.72], [0.56, 0.6]]) P_ell(ctx, x + ca * l * f, y + sa * l * f, w * r, w * r, body);   // the knuckles
+      P_line(ctx, x + ca * l * 0.7, y + sa * l * 0.7, x + ca * l * 1.06, y + sa * l * 1.06, w * 1.05, nail);
+      this.faint(ctx, ba, () => { for (const f of [0.3, 0.56]) P_ell(ctx, x + ca * l * f, y + sa * l * f, w * 0.3, w * 0.3, ridge); });
+    }
+  },
+  // its fingers hooked over the top of a board (the board's top edge at oy + 0.1), drawn over it: long bones knotted at
+  // the knuckle where they bend over the edge and again halfway down, the nails black, leaning in toward its face (side
+  // is +1 for the hand on the right of the view), the hand at ox
+  grip(ctx, P, side, ox, oy) {
+    const body = P.col([6, 6, 10]), nail = P.col([0, 0, 0]), ridge = P.col(this.GREY.ridge);
+    for (let i = 0; i < 4; i++) {
+      const x = ox + side * (i - 1.5) * 0.026, len = [0.07, 0.085, 0.078, 0.056][i], lean = -side * 0.01;
+      const kn = [x + lean * 0.4, oy + 0.107], mid = [x + lean * 0.75, oy + 0.1 - len * 0.5], tip = [x + lean, oy + 0.1 - len];
+      P_limb(ctx, [[x, oy + 0.13], kn, mid, tip], 0.014, body);
+      P_ell(ctx, kn[0], kn[1], 0.0125, 0.012, body);   // the knuckle, over the edge
+      P_ell(ctx, mid[0], mid[1], 0.0095, 0.0095, body);
+      P_ell(ctx, kn[0], kn[1] + 0.002, 0.0045, 0.004, ridge); P_ell(ctx, mid[0], mid[1], 0.0035, 0.0035, ridge);
+      P_ell(ctx, tip[0], tip[1] + 0.008, 0.006, 0.008, nail);
+    }
+  },
   draw(ctx, c, P) {
-    if (c.runPose) { this.drawRun(ctx, c, P); return; }
-    if (c.charge) { this.drawCharge(ctx, c, P); return; }
+    if (c.climb !== undefined) { if (!c.climbParts) this.drawClimb(ctx, c, P, 'out'); return; }   // (climbParts: a night draws the two halves of it itself)
+    if (c.clip) this.clipTo(ctx, c.clip);
+    if (c.runPose || c.charge) { c.duck = 0; (c.runPose ? this.drawRun : this.drawCharge).call(this, ctx, c, P); return; }   // upright again after either
     const g = c.gait, t = c.t;
     const near = clamp(1 - c.dist / 22, 0, 1);
     const body = P.col([6, 6, 10]);
     const skin = P.col([92, 84, 88]);
     const eye = P.col([225, 218, 205]);
+    const ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
     const bob = Math.abs(Math.sin(g)) * 0.05;
     const sway = Math.sin(g) * 0.035;
     const pk = smoothstep(c.peer || 0), bl = (c.blow || 0) * pk;   // stooping to look in: the hips drop, the knees splay, the body leans in at you
-    const hipY = lerp(1.22, 0.86, pk) + bob, top = lerp(2.0, 1.39, pk) + bob - bl * 0.03, sw = lerp(0.22, 0.26, pk);
+    const raise = smoothstep(Math.max(near, c.lunge || 0));   // the arms rise toward you when close
+    // ducking under a lintel: at once as far as it must, and straightening no faster than DUCK.rise (a night that lets it
+    // stand, as The Field does the moment it is won, does not jerk it upright)
+    const since = clamp(c.t - (c.duckAt === undefined ? c.t : c.duckAt), 0, 0.1);
+    const dk = c.duck = Math.max(this.duckFor(c, pk, bl, bob, raise), (c.duck || 0) - since * this.DUCK.rise);
+    c.duckAt = c.t;
+    const st = this.stance(c, dk, pk, bl, bob, raise), hipY = st.hipY, top = st.top, sw = lerp(0.22, 0.26, pk) + 0.04 * dk;
     // legs (front view: feet lift alternately)
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? Math.PI : 0);
       const lift = Math.max(0, Math.sin(ph)) * 0.24;
-      const hx = s * 0.08 + sway, kx = s * (0.12 + 0.12 * pk) + sway * 0.6, fx = s * 0.15 + sway * 0.3;
-      P_limb(ctx, [[hx, hipY], [kx, hipY * 0.5 + lift * 0.75], [fx, lift + 0.03]], 0.075, body);
-      P_line(ctx, fx - 0.03, lift + 0.03, fx + s * 0.09, lift + 0.03, 0.07, body);
+      const hx = s * 0.08 + sway, kx = s * (0.12 + 0.12 * pk + 0.1 * dk) + sway * 0.6, fx = s * 0.15 + sway * 0.3;
+      this.limb(ctx, [hx, hipY], [kx, hipY * 0.5 + lift * 0.75], [fx, lift + 0.03], this.LEG, body, ridge, ba);
+      P_line(ctx, fx - 0.03, lift + 0.03, fx + s * 0.09, lift + 0.03, 0.045, body);   // the foot, bone and tendon
     }
-    // torso: far too narrow
-    P_poly(ctx, [[-0.15 + sway, hipY - 0.06], [0.15 + sway, hipY - 0.06], [sw + sway * 0.6, top], [-sw + sway * 0.6, top]], body);
+    // torso: far too narrow, sunk in under the ribs; bent at you under a lintel, its back rounds up behind its head between the shoulders
+    if (dk > 0.02) P_ell(ctx, sway * 0.6, top - 0.02, sw + 0.02, this.DUCK.back * dk + 0.02, body);
+    this.chest(ctx, body, ridge, ba, [-0.15 + sway, hipY - 0.06], [0.15 + sway, hipY - 0.06], [sw + sway * 0.6, top], [-sw + sway * 0.6, top], true);
     // arms: hang to the knees; rise toward you when close
-    const raise = smoothstep(Math.max(near, c.lunge || 0));
     for (const s of [-1, 1]) {
       const ph = g + (s > 0 ? 0 : Math.PI);
       const swing = Math.sin(ph) * 0.05 * (1 - raise);
       const sx = s * (sw - 0.01) + sway * 0.6, sy = top - 0.05;
       // stooping, the elbows go out and the hands come down on the board under the gap, the fingers over its edge; a
-      // hand raised to strike goes up out of sight behind the board above
+      // hand raised to strike goes up out of sight behind the board above. Ducking, the elbows come down and out and the
+      // hands up by its shoulders, reaching for you.
       const lift = smoothstep((c.handLift && c.handLift[s > 0 ? 1 : 0]) || 0);
-      const ex = s * lerp(lerp(0.24, 0.52, raise), lerp(0.62, 0.58, lift), pk) + swing, ey = lerp(lerp(1.38, 1.55, raise), lerp(1.3, 1.66, lift), pk);
-      const hx = s * lerp(lerp(0.27, 0.4, raise), lerp(0.36, 0.42, lift), pk) + swing * 2, hy = lerp(lerp(0.72, 1.95, raise), 1.53 + lift * 0.47, pk);
-      P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
+      const ex = s * lerp(lerp(lerp(0.24, 0.52, raise), lerp(0.62, 0.58, lift), pk), 0.5, dk) + swing, ey = lerp(lerp(lerp(1.38, 1.55, raise), lerp(1.3, 1.66, lift), pk), top - 0.42, dk);
+      const hx = s * lerp(lerp(lerp(0.27, 0.4, raise), lerp(0.36, 0.42, lift), pk), 0.36, dk) + swing * 2, hy = st.handY(s);
+      this.limb(ctx, [sx, sy], [ex, ey], [hx, hy], this.ARM, body, ridge, ba);
+      this.shoulder(ctx, sx, sy, body, ridge, ba);
       const ang = lerp(lerp(-Math.PI / 2, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, raise), lerp(s > 0 ? -Math.PI * 0.56 : -Math.PI * 0.44, s > 0 ? Math.PI * 0.42 : Math.PI * 0.58, lift), pk);
-      fingers(ctx, hx, hy, ang, lerp(lerp(0.16, 0.3, raise), lerp(0.1, 0.3, lift), pk), 0.17 + raise * 0.05, 0.018, body);
+      this.claws(ctx, hx, hy, ang, lerp(lerp(0.16, 0.3, raise), lerp(0.1, 0.3, lift), pk), 0.17 + raise * 0.05, 0.018, body, P, ba);
     }
-    // neck and head with a snapping tilt
-    const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0));
+    // neck and head with a snapping tilt (ducking, the head is thrust out at you, low between the shoulders)
+    const lk = c.look || 0;
+    const tilt = headTiltJerk(t, 2.7, 0.33) * (1 - (c.lunge || 0)) * (1 - 0.6 * dk) * (1 - Math.abs(lk));
     ctx.save();
     ctx.translate(sway * 0.6, top);
     ctx.rotate(tilt);
-    P_line(ctx, 0, 0, 0, 0.12, 0.07, body);
-    if (pk) { const k = 1 + 0.12 * pk + 0.08 * bl; ctx.translate(0, -0.1 * pk); ctx.scale(k, k); }   // leaning in: the neck foreshortened, the head nearer
+    this.neck(ctx, 0, 0.12, body, ridge, ba);
+    if (pk || dk) { ctx.translate(0, st.headDy); ctx.scale(st.headK, st.headK); }   // leaning in: the neck foreshortened, the head nearer
     P_ell(ctx, 0, 0.3, 0.115, 0.175, body);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
     if (faceA > 0) {
       ctx.globalAlpha = faceA;
-      P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
-      P_ell(ctx, -0.036, 0.315, 0.016, 0.012, eye);
-      P_ell(ctx, 0.036, 0.315, 0.016, 0.012, eye);
-      P_ell(ctx, -0.036, 0.315, 0.006, 0.006, body);
-      P_ell(ctx, 0.036, 0.315, 0.006, 0.006, body);
-      const mouth = 0.012 + near * 0.03 + (c.lunge || 0) * 0.045;
-      P_ell(ctx, 0, 0.205, 0.028 + near * 0.012, mouth, body);
+      if (lk) { ctx.translate(lk * 0.05, 0); ctx.scale(1 - 0.45 * Math.abs(lk), 1); }   // its head turned: the face round to that side of it
+      this.face(ctx, P, skin, eye, body, 0.315, 0.014, 0.028 + near * 0.012, 0.012 + near * 0.03 + (c.lunge || 0) * 0.045);
       ctx.globalAlpha = 1;
     }
     ctx.restore();
+  },
+  clipTo(ctx, poly) { ctx.beginPath(); poly.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); ctx.clip(); },
+  // ---- in through a window ----
+  // c.climb (0..1) takes it through a window frame too small for it, limb by limb. It stands outside, close against the
+  // frame, its head above the top of it; a hand comes up and its long fingers hook over the sill, then the other; it
+  // bends, and its head comes down into the frame turned on its side, one thin arm reaching in ahead of it and feeling
+  // down the wall under the sill; the head and shoulders come through and hang there, the other elbow jutting up in the
+  // frame; the body pours over the sill head first, the hands walking down to the floor; one long leg is lifted over,
+  // folded, knee high, and reaches down to the floor wide of it, then the other; it crouches under the window on all
+  // fours, knees above its back, and unfolds to its full height, the arms coming up for you (as draw() has it standing).
+  // (That last part, from the crouch, is played by The Field as its lunge: see CROUCH.)
+  // It is drawn in two halves, for what is still outside the wall and what has come in: pass 'out' is drawn behind the
+  // wall (which hides all of it but what shows in the frame; with c.clip, the hole of the window as its card has it,
+  // nothing of that half is drawn outside the hole at all) and 'in' in front of it. c.frame is the frame as the thing's
+  // own drawing sees it (metres from its feet: l and r the sides, sl and sr the sill's height at each), FRAME where none
+  // is given; c.gentle moves it evenly, without the starts and stops or the twitch of its head. CLIMB_T maps time through
+  // the climb (0..1) to c.climb, so the slow parts are slow (climbAt). The Field plays it only as far as the crouch
+  // (CROUCH, which CLIMB_T reaches at CROUCH_T), in 0.9 s (1.5 s, evenly, with c.gentle), and it lunges from there: the
+  // rest of c.climb, from CROUCH to 1, is then the lunge rising out of the crouch at you (c.lunge opens its mouth).
+  FRAME: { l: -0.44, r: 0.44, sl: 1.08, sr: 1.08 },
+  CLIMB_T: [[0, 0], [0.07, 0.05], [0.14, 0.10], [0.2, 0.14], [0.34, 0.22], [0.5, 0.38], [0.64, 0.54], [0.69, 0.58], [0.78, 0.68], [0.82, 0.72], [0.89, 0.82], [1, 1]],
+  CROUCH: 0.82, CROUCH_T: 0.89,
+  climbAt(u) {
+    const T = this.CLIMB_T; let i = 1;
+    while (i < T.length - 1 && T[i][0] < u) i++;
+    return lerp(T[i - 1][1], T[i][1], clamp((u - T[i - 1][0]) / (T[i][0] - T[i - 1][0]), 0, 1));
+  },
+  // when each part of it is through the frame (c.climb): from then it is drawn in front of the wall
+  CLIMB_IN: { armA: 0.14, head: 0.2, chest: 0.36, armB: 0.4, legA: 0.58, legB: 0.72 },
+  // where every joint of it is at c.climb = k. A is its arm and leg on the left of the view, B on the right; x is from
+  // the middle of the frame, y from the ground, or from the sill (s).
+  climbPose(c, k) {
+    const F = c.frame || this.FRAME, PI = Math.PI, gentle = !!c.gentle;
+    const up = smoothstep((k - 0.82) / 0.18), cx = (F.l + F.r) / 2 * (1 - up);   // standing, it is where it stands
+    const sillAt = x => lerp(F.sl, F.sr, clamp((cx + x - F.l) / (F.r - F.l), 0, 1));
+    const s = (at, x, d) => [at, x, sillAt(x) + d];
+    const at = keys => {
+      let i = 1;
+      while (i < keys.length - 1 && keys[i][0] < k) i++;
+      const a = keys[i - 1], b = keys[i], u = clamp((k - a[0]) / (b[0] - a[0]), 0, 1), e = gentle ? lerp(u, smoothstep(u), 0.4) : smoothstep(u);
+      return a.length === 2 ? lerp(a[1], b[1], e) : [lerp(a[1], b[1], e) + cx, lerp(a[2], b[2], e)];
+    };
+    // standing inside at the end, as draw() has it: the arms up toward you by how near it is
+    const raise = smoothstep(clamp(1 - c.dist / 22, 0, 1)), EX = lerp(0.24, 0.52, raise), EY = lerp(1.38, 1.55, raise), HX = lerp(0.27, 0.4, raise), HY = lerp(0.72, 1.95, raise);
+    return {
+      raise, up, sillAt: x => sillAt(x - cx),
+      bl: at([[0, -0.15, 1.16], [0.10, -0.15, 1.18], [0.22, -0.15, 1.22], s(0.38, -0.13, 0.78), s(0.54, -0.14, 0.16), s(0.68, -0.14, 0.1), [0.82, -0.15, 0.98], [1, -0.15, 1.16]]),
+      br: at([[0, 0.15, 1.16], [0.10, 0.15, 1.18], [0.22, 0.15, 1.22], s(0.38, 0.17, 0.78), s(0.54, 0.14, 0.14), s(0.68, 0.14, 0.12), [0.82, 0.15, 0.98], [1, 0.15, 1.16]]),
+      tl: at([[0, -0.22, 2.0], [0.10, -0.22, 1.96], [0.22, -0.27, 1.72], s(0.38, -0.22, 0.42), [0.54, -0.2, 0.86], [0.68, -0.2, 0.74], [0.82, -0.21, 0.8], [1, -0.22, 2.0]]),
+      tr: at([[0, 0.22, 2.0], [0.10, 0.22, 1.96], [0.22, 0.17, 1.52], s(0.38, 0.2, 0.36), [0.54, 0.18, 0.8], [0.68, 0.18, 0.7], [0.82, 0.21, 0.8], [1, 0.22, 2.0]]),
+      hc: at([[0, 0, 2.3], [0.10, 0, 2.26], s(0.22, 0.12, 0.5), s(0.38, 0.06, 0.12), [0.54, 0, 0.52], [0.68, 0, 0.45], [0.82, 0, 0.58], [1, 0, 2.3]]),
+      hr: at([[0, 0], [0.10, 0], [0.22, -1.25], [0.38, -1.5], [0.54, -0.8], [0.68, -0.45], [0.82, -0.15], [1, 0]]),
+      hs: at([[0, 1], [0.10, 1], [0.22, 1.08], [0.38, 1.16], [0.54, 1.2], [0.68, 1.24], [0.82, 1.24], [1, 1]]),
+      eA: at([[0, -0.26, 1.45], [0.05, -0.4, 1.42], [0.14, -0.4, 1.42], s(0.22, -0.42, 0.75), s(0.38, -0.46, 0.1), [0.54, -0.5, 0.62], [0.68, -0.5, 0.55], [0.82, -0.48, 0.5], [1, -EX, EY]]),
+      hA: at([[0, -0.27, 0.9], s(0.05, -0.3, 0.02), s(0.14, -0.3, 0.02), s(0.22, -0.2, 0.45), [0.38, -0.38, 0.62], [0.54, -0.42, 0.04], [0.68, -0.4, 0.04], [0.82, -0.36, 0.04], [1, -HX, HY]]),
+      aA: at([[0, -0.5 * PI], [0.14, -0.5 * PI], [0.22, -0.3 * PI], [0.38, -0.5 * PI], [0.54, -0.75 * PI], [0.82, -0.75 * PI], [1, lerp(-0.5, 0.65, raise) * PI - 2 * PI]]),
+      eB: at([[0, 0.26, 1.45], [0.05, 0.26, 1.45], [0.10, 0.4, 1.42], [0.22, 0.42, 1.5], s(0.38, 0.46, 0.55), [0.54, 0.5, 0.66], [0.68, 0.5, 0.58], [0.82, 0.48, 0.5], [1, EX, EY]]),
+      hB: at([[0, 0.27, 0.9], [0.05, 0.27, 0.9], s(0.10, 0.3, 0.02), s(0.4, 0.32, 0.02), [0.54, 0.4, 0.04], [0.68, 0.4, 0.04], [0.82, 0.36, 0.04], [1, HX, HY]]),
+      aB: at([[0, -0.5 * PI], [0.4, -0.5 * PI], [0.54, -0.25 * PI], [0.82, -0.25 * PI], [1, lerp(-0.5, 0.35, raise) * PI]]),
+      sp: at([[0, 0.16], [0.14, 0.16], [0.22, 0.34], [0.82, 0.3], [1, lerp(0.16, 0.3, raise)]]),   // how far its fingers spread
+      len: 0.17 + raise * 0.05 * up,
+      kA: at([[0, -0.12, 0.61], [0.22, -0.13, 0.63], s(0.38, -0.2, 0.2), s(0.54, -0.24, 0.72), s(0.58, -0.3, 0.75), s(0.68, -0.42, 0.62), [0.82, -0.5, 1.3], [1, -0.12, 0.61]]),
+      fA: at([[0, -0.15, 0.03], [0.22, -0.15, 0.03], [0.38, -0.18, 0.45], s(0.54, -0.2, -0.1), s(0.58, -0.25, 0.1), [0.68, -0.62, 0.03], [0.82, -0.62, 0.03], [1, -0.15, 0.03]]),
+      kB: at([[0, 0.12, 0.61], [0.22, 0.13, 0.63], s(0.38, 0.2, 0.2), s(0.54, 0.26, 0.66), s(0.68, 0.26, 0.7), s(0.72, 0.3, 0.72), [0.82, 0.5, 1.28], [1, 0.12, 0.61]]),
+      fB: at([[0, 0.15, 0.03], [0.22, 0.15, 0.03], [0.38, 0.18, 0.45], s(0.54, 0.22, -0.1), s(0.68, 0.22, -0.1), s(0.72, 0.25, 0.1), [0.82, 0.64, 0.03], [1, 0.15, 0.03]]),
+    };
+  },
+  drawClimb(ctx, c, P, pass) {
+    const k = clamp(c.climb || 0, 0, 1), J = this.climbPose(c, k), IN = this.CLIMB_IN;
+    const body = P.col([6, 6, 10]), skin = P.col([92, 84, 88]), eye = P.col([225, 218, 205]), ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
+    const on = part => (k >= IN[part] ? pass === 'in' : pass === 'out');
+    if (pass === 'out' && c.clip) this.clipTo(ctx, c.clip);
+    const mid = (a, b, u) => [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
+    const hip = mid(J.bl, J.br, 0.5), sh = mid(J.tl, J.tr, 0.5), ax = Math.hypot(sh[0] - hip[0], sh[1] - hip[1]) || 1, ux = (sh[0] - hip[0]) / ax, uy = (sh[1] - hip[1]) / ax;
+    const leg = (s, kn, ft) => {
+      const r = mid(J.bl, J.br, s < 0 ? 0.233 : 0.767), root = [r[0] + ux * 0.06, r[1] + uy * 0.06];
+      this.limb(ctx, root, kn, ft, this.LEG, body, ridge, ba);
+      P_line(ctx, ft[0] - 0.03, ft[1], ft[0] + s * 0.09, ft[1], 0.045, body);
+    };
+    const arm = (s, el, hd, ang, grips) => {
+      const root = mid(s < 0 ? J.tl : J.tr, s < 0 ? J.bl : J.br, 0.06);
+      this.limb(ctx, root, el, hd, this.ARM, body, ridge, ba);
+      this.shoulder(ctx, root[0], root[1], body, ridge, ba);
+      if (!grips) this.claws(ctx, hd[0], hd[1], ang, J.sp, J.len, 0.018, body, P, ba);
+    };
+    // a hand that has hold of the sill from outside: the arm is behind the wall, the fingers over the sill on this side
+    const gripA = k >= 0.05 && k < IN.armA, gripB = k >= 0.10 && k < IN.armB;
+    if (on('legB')) leg(1, J.kB, J.fB);
+    if (on('legA')) leg(-1, J.kA, J.fA);
+    if (on('chest')) this.chest(ctx, body, ridge, ba, J.bl, J.br, J.tr, J.tl, true);
+    if (on('armB')) arm(1, J.eB, J.hB, J.aB, gripB);
+    if (on('armA')) arm(-1, J.eA, J.hA, J.aA, gripA);
+    if (pass === 'in') {
+      if (gripA) this.grip(ctx, P, -1, J.hA[0], J.sillAt(J.hA[0]) - 0.11);
+      if (gripB) this.grip(ctx, P, 1, J.hB[0], J.sillAt(J.hB[0]) - 0.11);
+    }
+    if (on('head')) {
+      // its head twitches as it comes; standing up, it takes the tilt it stands with (draw's, about the foot of its neck)
+      const tilt = headTiltJerk(c.t, 2.7, 0.33) * J.up, hr = J.hr + tilt + (c.gentle ? 0 : headTiltJerk(c.t, 1.9, 0.09) * (1 - J.up)), hs = J.hs;
+      const hc = [J.hc[0] - Math.sin(tilt) * 0.3, J.hc[1] + (Math.cos(tilt) - 1) * 0.3];
+      const base = [hc[0] + Math.sin(hr) * 0.17 * hs, hc[1] - Math.cos(hr) * 0.17 * hs];   // where the neck meets it
+      P_line(ctx, sh[0], sh[1], base[0], base[1], 0.056, body);
+      this.faint(ctx, ba, () => P_line(ctx, lerp(sh[0], base[0], 0.15) + 0.012, lerp(sh[1], base[1], 0.15), lerp(sh[0], base[0], 0.9) + 0.006, lerp(sh[1], base[1], 0.9), 0.007, ridge));   // a tendon
+      ctx.save();
+      ctx.translate(hc[0], hc[1]); ctx.rotate(hr); ctx.scale(hs, hs); ctx.translate(0, -0.3);
+      P_ell(ctx, 0, 0.3, 0.115, 0.175, body);
+      const near = clamp(1 - c.dist / 22, 0, 1);
+      this.face(ctx, P, skin, eye, body, 0.315, 0.014, 0.028 + near * 0.012, 0.012 + near * 0.03 + 0.02 * Math.sin(Math.PI * k) + (c.lunge || 0) * 0.045);
+      ctx.restore();
+    }
   },
   // flat out, straight at you, seen from the front: bent forward so the shoulders come down and the head is thrust out
   // ahead of them, a knee driving up at you with each stride while the other leg is down and pushing off, the long arms
@@ -75,6 +349,7 @@ CREATURES.walker = {
   // Its legs go by c.gait, which the night strides out to the speed it is going.
   drawCharge(ctx, c, P) {
     const g = c.gait, body = P.col([6, 6, 10]), skin = P.col([92, 84, 88]), eye = P.col([225, 218, 205]);
+    const ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
     const reach = smoothstep((6.5 - c.dist) / 3.5);
     const bob = Math.abs(Math.sin(g)) * 0.08;   // in the air between footfalls
     const roll = Math.sin(g) * 0.05 * (1 - reach);   // the shoulders roll with the stride
@@ -93,8 +368,8 @@ CREATURES.walker = {
         kr = lerp(a[1], b[1], k); fy = lerp(a[2], b[2], k);
       }
       const lift = (kr - 0.5) / 0.36, hx = s * 0.08, kx = s * (0.12 + 0.05 * lift), ky = hipY * kr, fx = s * (0.13 - 0.04 * lift);
-      P_limb(ctx, [[hx, hipY], [kx, ky], [fx, fy]], 0.075 + 0.025 * lift, body);
-      if (fy < 0.2) P_line(ctx, fx - 0.045, fy, fx + 0.045, fy, 0.065, body);   // the foot, toes at you
+      this.limb(ctx, [hx, hipY], [kx, ky], [fx, fy], this.LEG, body, ridge, ba, 1 + lift / 3);
+      if (fy < 0.2) P_line(ctx, fx - 0.04, fy, fx + 0.04, fy, 0.045, body);   // the foot, toes at you
     }
     // the arms swing against the legs, bent hard at the elbow: fwd 1 is the upper arm swung forward at you and the hand up
     // by its chin, 0 hanging with the forearm pointing at you (so the hand is by the elbow), -1 swung back, the elbow up
@@ -105,23 +380,22 @@ CREATURES.walker = {
       const th = fwd * 1.1, sx = s * 0.21, sy = top - 0.04;
       const ex = s * lerp(0.3 - 0.05 * Math.abs(fwd), 0.5, reach), ey = lerp(sy - 0.56 * Math.cos(th), top - 0.15, reach);
       const hx = s * lerp(0.27 - 0.13 * Math.max(0, fwd) + 0.03 * Math.max(0, -fwd), 0.42, reach), hy = lerp(ey - 0.52 * Math.cos(th + 1.6), top + 0.2, reach);
-      P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
+      this.limb(ctx, [sx, sy], [ex, ey], [hx, hy], this.ARM, body, ridge, ba);
+      this.shoulder(ctx, sx, sy, body, ridge, ba);
       const ang = lerp(Math.atan2(hy - ey, hx - ex) + s * 0.25, s > 0 ? Math.PI * 0.35 : Math.PI * 0.65, reach);
-      fingers(ctx, hx, hy, ang, lerp(0.14, 0.3, reach), lerp(0.08 + 0.09 * Math.abs(fwd), 0.22, reach), 0.018, body);   // pointing at you, the fingers are foreshortened too
+      this.claws(ctx, hx, hy, ang, lerp(0.14, 0.3, reach), lerp(0.08 + 0.09 * Math.abs(fwd), 0.22, reach), 0.018, body, P, ba);   // pointing at you, the fingers are foreshortened too
     };
     for (const s of [-1, 1]) arm(s, false);
-    P_poly(ctx, [[-0.14, hipY - 0.06], [0.14, hipY - 0.06], [0.22, top], [-0.22, top]], body);   // the torso, bent at you: shorter, and still far too narrow
+    this.chest(ctx, body, ridge, ba, [-0.14, hipY - 0.06], [0.14, hipY - 0.06], [0.22, top], [-0.22, top], true);   // the torso, bent at you: shorter, and still far too narrow
     for (const s of [-1, 1]) arm(s, true);
     // the head, low and thrust out ahead of the shoulders, nearer and so a little bigger; the mouth open
     ctx.translate(0, top - 0.24); ctx.scale(1.15, 1.15);
-    P_line(ctx, 0, 0.08, 0, 0.2, 0.07, body);
+    this.neck(ctx, 0.08, 0.2, body, ridge, ba);
     P_ell(ctx, 0, 0.3, 0.115, 0.175, body);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
     if (faceA > 0) {
       ctx.globalAlpha = faceA;
-      P_ell(ctx, 0, 0.285, 0.085, 0.13, skin);
-      for (const x of [-0.036, 0.036]) { P_ell(ctx, x, 0.318, 0.017, 0.014, eye); P_ell(ctx, x, 0.316, 0.006, 0.007, body); }
-      P_ell(ctx, 0, 0.205, 0.034, 0.042 + 0.012 * reach, body);
+      this.face(ctx, P, skin, eye, body, 0.318, 0.0155, 0.034, 0.042 + 0.012 * reach);
       ctx.globalAlpha = 1;
     }
     ctx.restore();
@@ -129,7 +403,7 @@ CREATURES.walker = {
   // flat out, seen from the side: leaning far forward, the long legs reaching and kicking up behind, the arms pumping,
   // the head pushed out ahead. c.runDir is +1 running to the right of the view, -1 to the left; c.runGait its stride.
   drawRun(ctx, c, P) {
-    const g = c.runGait || 0, body = P.col([6, 6, 10]), eye = P.col([225, 218, 205]);
+    const g = c.runGait || 0, body = P.col([6, 6, 10]), eye = P.col([225, 218, 205]), ridge = P.col(this.GREY.ridge), ba = this.boneA(c.dist);
     const lean = 0.42, thigh = 0.62, shin = 0.64, upper = 0.56, fore = 0.52;
     ctx.save(); ctx.scale(c.runDir || 1, 1);
     const legs = [0, Math.PI].map(o => {
@@ -140,24 +414,34 @@ CREATURES.walker = {
     const hipY = 0.03 - Math.min(legs[0].fy, legs[1].fy), hipX = 0;   // whichever foot is lowest is on the ground
     const sx = hipX + Math.sin(lean) * 0.82, sy = hipY + Math.cos(lean) * 0.82;
     const limb = l => {
-      P_limb(ctx, [[hipX, hipY], [hipX + l.kx, hipY + l.ky], [hipX + l.fx, hipY + l.fy]], 0.075, body);
-      P_line(ctx, hipX + l.fx - 0.02, hipY + l.fy, hipX + l.fx + 0.11, hipY + l.fy - 0.01, 0.065, body);   // the foot, toes forward
+      this.limb(ctx, [hipX, hipY], [hipX + l.kx, hipY + l.ky], [hipX + l.fx, hipY + l.fy], this.LEG, body, ridge, ba);
+      P_line(ctx, hipX + l.fx - 0.02, hipY + l.fy, hipX + l.fx + 0.11, hipY + l.fy - 0.01, 0.045, body);   // the foot, toes forward
       // the arm on the other side swings against this leg
       const aa = -Math.sin(l.ph) * 1.0, ex = sx + Math.sin(aa) * upper, ey = sy - Math.cos(aa) * upper, fa = aa + 1.0;
       const hx = ex + Math.sin(fa) * fore, hy = ey - Math.cos(fa) * fore;
-      P_limb(ctx, [[sx, sy], [ex, ey], [hx, hy]], 0.055, body);
-      fingers(ctx, hx, hy, Math.atan2(hy - ey, hx - ex), 0.14, 0.17, 0.018, body);
+      this.limb(ctx, [sx, sy], [ex, ey], [hx, hy], this.ARM, body, ridge, ba);
+      this.shoulder(ctx, sx, sy, body, ridge, ba);
+      this.claws(ctx, hx, hy, Math.atan2(hy - ey, hx - ex), 0.14, 0.17, 0.018, body, P, ba);
     };
     limb(legs[1]);   // the far side first
-    P_poly(ctx, [[hipX - 0.12, hipY - 0.05], [hipX + 0.1, hipY - 0.05], [sx + 0.13, sy], [sx - 0.15, sy - 0.02]], body);   // the torso, side on: still far too narrow
+    this.chest(ctx, body, ridge, ba, [hipX - 0.12, hipY - 0.05], [hipX + 0.1, hipY - 0.05], [sx + 0.13, sy], [sx - 0.15, sy - 0.02], false);   // the torso, side on: still far too narrow
     limb(legs[0]);
     // the neck and the head, thrust forward of the shoulders
     const nx = sx + Math.sin(lean + 0.5) * 0.16, ny = sy + Math.cos(lean + 0.5) * 0.16;
-    P_line(ctx, sx, sy, nx, ny, 0.07, body);
+    P_line(ctx, sx, sy, nx, ny, 0.056, body);
+    this.faint(ctx, ba, () => P_line(ctx, lerp(sx, nx, 0.1) + 0.012, lerp(sy, ny, 0.1), lerp(sx, nx, 0.9) + 0.006, lerp(sy, ny, 0.9), 0.007, ridge));   // a tendon
     const hx = nx + Math.sin(lean + 0.3) * 0.17, hy = ny + Math.cos(lean + 0.3) * 0.17;
     P_ell(ctx, hx, hy, 0.12, 0.16, body, -lean * 0.6);
     const faceA = clamp((26 - c.dist) / 22, 0, 1);
-    if (faceA > 0) { ctx.globalAlpha = faceA; P_ell(ctx, hx + 0.07, hy + 0.03, 0.018, 0.013, eye); ctx.globalAlpha = 1; }
+    if (faceA > 0) {   // side on: the eye in its socket and the line of the jaw
+      const hol = P.col(this.GREY.hollow);
+      ctx.globalAlpha = faceA;
+      P_ell(ctx, hx + 0.07, hy + 0.03, 0.027, 0.027, hol);
+      P_ell(ctx, hx + 0.07, hy + 0.03, 0.015, 0.015, eye);
+      ctx.globalAlpha = faceA * ba;
+      P_line(ctx, hx - 0.02, hy - 0.05, hx + 0.08, hy - 0.11, 0.008, ridge);
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
   },
 };

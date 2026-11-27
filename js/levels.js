@@ -36,8 +36,16 @@ function mkTarget(L, o) {
   const local = o.x !== undefined ? [o.x, o.y, o.z] : [Math.sin(o.deg * DEG) * o.dist, o.y, Math.cos(o.deg * DEG) * o.dist];
   const p = L.pt(local[0], local[1], local[2]);
   const t = Object.assign({ w: 1, h: 1, flat: false, accepts: [], requires: [], needed: 1, count: 0, done: false }, o, { x: p[0], y: p[1], z: p[2], local });
+  if (o.face !== undefined) t.face = o.face + L.facing;   // fixed flat on an upright face, as SC.sprite's opts.face (its hit area is the shape it covers)
   L.targets.push(t);
   return t;
+}
+// the pieces a target is drawn with (props, or renderables it adds each frame): pointed at, the target glows in their shape,
+// as an item does in its own (js/render.js). A piece may belong to more than one target. Surface detail is left out: it
+// lies on its quad, inside its shape.
+function glowWith(t, props) {
+  for (const p of props) if (p && !p.detail) p.glowOf = !p.glowOf || p.glowOf === t ? t : [].concat(p.glowOf, t);
+  return props;
 }
 // a container: a drawer, box or cabinet that yields items when opened (optionally with a key item)
 function mkContainer(L, o) {
@@ -112,10 +120,9 @@ function mkContainer(L, o) {
     }
   }, { flat: !!o.flat, card: true });   // a card, as items are: it faces you and never goes edge-on
   L.props.push(box);
+  glowWith(t, [box]);
   return t;
 }
-// two held items become one: select one, click the other in the inventory
-function mkRecipe(L, o) { L.recipes.push(o); return o; }
 function iconSprite(L, id, x, y, z, w, h, opts) {
   return SC.mkSprite(L, x, y, z, w, h, (ctx, P) => { ctx.scale(w, h); ICONS[id](ctx, P); }, opts);
 }

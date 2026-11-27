@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Title Screen Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=Cormorant+SC:wght@500&family=Special+Elite&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono&display=swap">
+<style>
+/* Layout: the whole window is the title screen, as the game shows it (its own overlay styles, copied from index.html).
+   The lab's own controls sit in one small panel in a corner that can be hidden. Single dark theme, as the game. */
+:root {
+  --bg: #000; --fg: #cfc8ba; --hi: #efe6d2; --dim: rgba(207,200,186,.5); --line: rgba(207,200,186,.3);
+  --panel: rgba(16,17,20,.94); --pline: #2c2f37; --pfg: #e3dfd6; --pmuted: #8f8c86; --accent: #c9a35b; --ink: #17130b;
+  --title-font: Georgia, 'Times New Roman', serif;
+  --ui: 'IBM Plex Sans', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --text-scale: 1;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden; }
+body { font-family: Georgia, 'Times New Roman', serif; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---- the game's title overlay (index.html), with a layout per concept ---- */
+#overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px max(24px, env(safe-area-inset-right, 0px)) 24px max(24px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+#overlay > * { max-width: 720px; pointer-events: auto; }
+#overlay .kicker { font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); }
+#overlay h1 { font-weight: normal; margin: 8px 0 18px; color: var(--hi); text-shadow: 0 0 30px rgba(0,0,0,.9); font-family: var(--title-font); font-size: clamp(38px, 8vw, 64px); letter-spacing: .22em; line-height: 1.05; }
+#overlay .intro { font-size: calc(18px * var(--text-scale)); line-height: 1.6; color: var(--fg); margin: 0 auto 14px; text-shadow: 0 0 12px #000, 0 0 3px #000; }
+#overlay .controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 22px; font-size: 13px; color: rgba(207,200,186,.75); text-align: left; margin: 6px auto 0; max-width: 620px; text-shadow: 0 0 8px #000; }
+#overlay .controls b { color: var(--hi); font-weight: normal; }
+#overlay .controls[hidden] { display: none; }
+.mrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 18px auto 6px; }
+.mbtn { font-family: inherit; font-size: calc(15px * var(--text-scale)); letter-spacing: .12em; text-transform: uppercase; background: rgba(0,0,0,.45); border: 1px solid var(--line); color: var(--hi); padding: 10px 22px; min-width: 160px; cursor: pointer; transition: border-color .15s, background .15s; }
+.mbtn:hover, .mbtn:focus-visible { border-color: rgba(239,230,210,.75); background: rgba(0,0,0,.65); outline: none; }
+#overlay .fine { font-size: 12px; color: rgba(207,200,186,.45); margin-top: 10px; }
+/* layouts */
+#overlay.left { align-items: flex-start; text-align: left; padding-left: max(7vw, env(safe-area-inset-left, 0px)); }
+#overlay.left .mrow { justify-content: flex-start; margin-left: 0; }
+#overlay.left .intro, #overlay.left .controls { margin-left: 0; }
+#overlay.left > * { max-width: min(520px, 100%); }
+#overlay.low { justify-content: flex-end; padding-bottom: max(7vh, env(safe-area-inset-bottom, 0px)); }
+#overlay.high { justify-content: flex-start; padding-top: max(9vh, env(safe-area-inset-top, 0px)); }
+#overlay.bare .intro { display: none; }
+
+/* ---- the lab panel ---- */
+#lab { position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; background: var(--panel); border: 1px solid var(--pline); border-radius: 10px; color: var(--pfg); font: 13px/1.4 var(--ui); padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 11px; z-index: 5; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+#lab[data-min="true"] > :not(.lhead) { display: none; }
+.lhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.lhead strong { font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+#lab button, #lab select { font: 500 12.5px/1 var(--ui); color: var(--pfg); background: #1c1e24; border: 1px solid var(--pline); border-radius: 6px; padding: 7px 9px; cursor: pointer; }
+#lab button:hover { border-color: #444a56; }
+#lab button:focus-visible, #lab select:focus-visible, #lab textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#lab button.on { border-color: var(--accent); color: var(--accent); }
+#lab button.primary { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+.concepts { display: grid; grid-template-columns: 1fr; gap: 5px; }
+.concepts button { text-align: left; padding: 8px 10px !important; display: flex; justify-content: space-between; gap: 8px; }
+.concepts button em { font-style: normal; font: 11px var(--mono); color: var(--pmuted); }
+.desc { color: var(--pmuted); margin: 0; font-size: 12.5px; }
+.lrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lrow label { font: 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--pmuted); }
+.meter { font: 11px var(--mono); color: var(--pmuted); font-variant-numeric: tabular-nums; }
+#lab textarea { width: 100%; min-height: 70px; resize: vertical; font: 13px/1.4 var(--ui); color: var(--pfg); background: #0d0e11; border: 1px solid var(--pline); border-radius: 6px; padding: 8px; }
+#copyOut { display: none; } #copyOut.show { display: block; }
+.toast { position: fixed; left: 50%; top: max(16px, env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: var(--accent); color: var(--ink); padding: 8px 14px; border-radius: 6px; font: 500 13px var(--ui); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 9; }
+.toast.show { opacity: 1; }
+@media (max-width: 640px) {
+  #overlay .controls { grid-template-columns: 1fr; }
+  #overlay.left { padding-left: max(20px, env(safe-area-inset-left, 0px)); }
+  #lab { max-height: 46vh; }
+}
+@media (prefers-reduced-motion: reduce) { .mbtn, .toast { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div id="overlay">
+  <div class="kicker">A short horror game</div>
+  <h1>IT'S COMING</h1>
+  <p class="intro">Something is coming straight at you from a long way off. Every time you look away and look back, it is closer.<br>You have to look away to find what will keep it out.</p>
+  <div class="mrow" id="menu">
+    <button type="button" class="mbtn">Begin</button>
+    <button type="button" class="mbtn">Nights</button>
+    <button type="button" class="mbtn" id="howBtn">How to play</button>
+    <button type="button" class="mbtn">Settings</button>
+  </div>
+  <div class="controls" id="controls" hidden><div><b>← →</b> turn (8 directions)</div><div><b>↑ ↓</b> look ahead / look down</div><div><b>hold Shift</b> zoom in</div><div><b>click</b> pick up, place, use</div><div><b>look down, click the floor</b> put down what you hold</div><div><b>with one held thing chosen, click another</b> use them together</div><div><b>R</b> restart the night</div><div><b>Esc</b> pause &nbsp; <b>M</b> mute</div></div>
+  <p class="fine">Headphones recommended. Sound is synthesized in your browser.</p>
+</div>
+
+<aside id="lab" aria-label="Title lab controls" data-min="false">
+  <div class="lhead"><strong>Title lab</strong><button id="minB" aria-expanded="true">Hide</button></div>
+  <div class="concepts" id="concepts"></div>
+  <p class="desc" id="desc"></p>
+  <div class="lrow"><span class="meter" id="meter"></span><button id="stepB">Look away</button><button id="resetB">Start over</button><button id="autoB" class="on" aria-pressed="true">Auto</button></div>
+  <div class="lrow"><label for="font">Title type</label><select id="font"></select></div>
+  <div class="lrow"><label>Menu</label><button id="introB" class="on" aria-pressed="true">Intro text</button><button id="ctrlB" aria-pressed="false">Controls shown</button></div>
+  <div><label class="desc" for="note" style="display:block;margin-bottom:5px">Notes on this concept</label><textarea id="note" placeholder="What works, what doesn't, what to try"></textarea></div>
+  <div class="lrow"><button id="copyB" class="primary">Copy notes</button></div>
+  <textarea id="copyOut" aria-label="Your notes, ready to copy"></textarea>
+</aside>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="../js/util.js"></script>
+<script src="../js/light.js"></script>
+<script src="../js/creatures.js"></script>
+<script src="../js/creatures/walker.js"></script>
+<script src="../js/creatures/crawler.js"></script>
+<script src="../js/creatures/smiler.js"></script>
+<script src="../js/creatures/watcher.js"></script>
+<script src="../js/creatures/runner.js"></script>
+<script src="../js/creatures/customer.js"></script>
+<script src="../js/creatures/signalman.js"></script>
+<script src="../js/creatures/other.js"></script>
+<script src="../js/creatures/carrier.js"></script>
+<script src="../js/creatures/tall.js"></script>
+<script src="lab.js"></script>
+<script src="titles.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 'use strict';
-// The thread through the nights: the lamp is somewhere on every night before the last; the clock ticks for the
-// first ten seconds of each; and no text before the bedroom (the last two nights) uses the words that would give it away.
+// The thread through the nights: the bedroom's lamp is only in the bedroom (no longer scattered through the other
+// nights); the clock ticks for the first ten seconds of each; and no text before the bedroom (the last two nights) uses the words that would give it away.
 const T = require('./lib');
 const { check } = T;
 (async () => {
@@ -11,7 +11,7 @@ const { check } = T;
   for (let i = 0; i < n; i++) {
     const info = await page.evaluate(i => {
       const def = LEVELS[i], T = def.text || {};
-      const words = [T.intro, T.hint, T.objective, T.win, T.fragment].concat(Object.values(T.death || {})).join(' | ');
+      const words = [T.intro, T.hint, T.objective, T.win].concat(Object.values(T.death || {})).join(' | ');
       G.inv = []; G.difficulty = 0;
       const L = buildLevel(i);
       // the lamp is a sprite drawn by STORY.lamp: it is tagged by its draw function's source
@@ -20,7 +20,7 @@ const { check } = T;
       return { id: def.id, words, lamps, ending: !!def.ending };
     }, i);
     if (i < n - 2) check(!words.test(info.words), 'night ' + (i + 1) + ' (' + info.id + '): its text never says the quiet part' + (words.test(info.words) ? ' (found: ' + info.words.match(words)[0] + ')' : ''));
-    if (!info.ending) check(info.lamps >= 1, 'night ' + (i + 1) + ' (' + info.id + '): the lamp is somewhere in the room');
+    if (info.id !== 'bedroom' && !info.ending) check(info.lamps === 0, 'night ' + (i + 1) + ' (' + info.id + '): no bedside lamp out of place');
   }
   // the clock ticks for the first ten seconds of a night, then stops
   await page.goto(T.INDEX + '?level=3&go&seed=1&nofr'); await page.waitForTimeout(200);

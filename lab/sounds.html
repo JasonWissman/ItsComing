@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sounds Audit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a darkroom ledger, the Creature Lab's look. A header of global controls (volume, stop, export), a filter bar,
+   then one dense table row per sound; under 760px each row stacks into a small card. Single dark theme, as the game. */
+:root {
+  --bg: #0e0f12; --panel: #16181d; --panel-2: #1d2027; --line: #2a2e37; --line-2: #3a3f4b; --fg: #e6e2d8; --muted: #8d8b85;
+  --accent: #c9a35b; --accent-ink: #17130b; --accent-soft: rgba(201, 163, 91, 0.14); --warn: #e07a6a; --warn-soft: rgba(224, 122, 106, 0.14);
+  --k-sfx: #8fa7c4; --k-sting: #e07a6a; --k-voice: #b59bd6; --k-footstep: #9cc28e; --k-loop: #d8b46a; --k-heartbeat: #e08aa0; --k-ambient: #7fc2c0;
+  --display: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  --body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 13px/1.4 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 56px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+header.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding-block: 14px 12px; display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: end; justify-content: space-between; }
+h1 { font: 500 28px/1 var(--display); letter-spacing: 0.02em; margin: 0; font-variant: small-caps; }
+h1 small { display: block; font: 12px/1.4 var(--body); color: var(--muted); letter-spacing: 0; font-variant: normal; margin-top: 6px; max-width: 62ch; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+label.lbl, .lbl { font: 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+button { font: 500 13px/1 var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 11px; cursor: pointer; }
+button:hover { border-color: var(--line-2); }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--panel-2); color: var(--accent); border-color: var(--line-2); }
+select, input[type=search] { font: 13px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; }
+input[type=search] { width: 220px; max-width: 100%; }
+input[type=range] { accent-color: var(--accent); width: 110px; }
+output { font: 11px var(--mono); color: var(--muted); min-width: 3.2em; font-variant-numeric: tabular-nums; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 12px 0 10px; }
+.strip { display: inline-flex; flex-wrap: wrap; gap: 3px; }
+.strip button { font: 500 12px/1 var(--mono); padding: 6px 7px; min-width: 28px; border-radius: 4px; }
+.strip button[data-n="unused"][aria-pressed="true"] { color: var(--warn); }
+#count { font: 11px var(--mono); color: var(--muted); margin-left: auto; }
+.chk { font: 12px var(--body); color: var(--muted); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.chk input { accent-color: var(--accent); margin: 0; }
+
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead th { font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); background: var(--bg); }
+col.c-play { width: 44px; } col.c-name { width: 158px; } col.c-nights { width: 148px; } col.c-note { width: 22%; } col.c-adj { width: 178px; }
+tbody tr { border-bottom: 1px solid var(--line); }
+tbody tr:hover { background: rgba(255, 255, 255, 0.018); }
+tbody tr.live { background: var(--accent-soft); }
+tbody tr.noted td.c-play { box-shadow: inset 3px 0 0 var(--accent); }
+tbody tr.flash { animation: flash 0.9s ease-out; }
+@keyframes flash { from { background: rgba(201, 163, 91, 0.22); } to { background: transparent; } }
+td { padding: 6px 8px; vertical-align: top; min-width: 0; }
+td.c-play { padding-right: 0; }
+.play { width: 32px; height: 30px; padding: 0; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.play.toggle { border-radius: 6px; }
+tr.live .play { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.c-name code { font: 500 13px/1.3 var(--mono); color: var(--fg); overflow-wrap: anywhere; display: block; padding-top: 6px; }
+.kind { display: inline-block; font: 10px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; color: var(--kc, var(--muted)); }
+.k-sfx { --kc: var(--k-sfx); } .k-sting { --kc: var(--k-sting); } .k-voice { --kc: var(--k-voice); } .k-footstep { --kc: var(--k-footstep); }
+.k-loop { --kc: var(--k-loop); } .k-heartbeat { --kc: var(--k-heartbeat); } .k-ambient { --kc: var(--k-ambient); }
+.c-desc { padding-top: 8px; }
+.c-desc .d { display: block; }
+.c-desc .params { display: block; font: 11px/1.4 var(--mono); color: var(--k-ambient); margin-top: 3px; }
+.c-desc .src { display: block; font: 10.5px/1.4 var(--mono); color: var(--muted); margin-top: 3px; opacity: 0.85; }
+.c-nights { padding-top: 9px; }
+.chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.chip { font: 500 11px/1 var(--mono); padding: 4px 0; min-width: 22px; text-align: center; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line); color: var(--fg); cursor: default; }
+.chip.wide { padding: 4px 6px; }
+.chip.all { padding: 4px 7px; color: var(--accent); border-color: rgba(201, 163, 91, 0.4); background: var(--accent-soft); }
+.chip.unused { padding: 4px 7px; color: var(--warn); border-color: rgba(224, 122, 106, 0.45); background: var(--warn-soft); }
+tr.is-unused .c-name code { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(224, 122, 106, 0.6); }
+textarea { display: block; width: 100%; min-height: 32px; resize: vertical; font: 12.5px/1.4 var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; overflow: hidden; }
+textarea::placeholder { color: #5b5a57; }
+tr.noted textarea { border-color: rgba(201, 163, 91, 0.45); }
+#empty { color: var(--muted); padding: 24px 8px; text-align: center; }
+.foot { color: var(--muted); font-size: 12px; margin-top: 16px; max-width: 80ch; }
+.foot code { font: 11.5px var(--mono); color: var(--fg); }
+#copyOut { display: none; width: 100%; resize: vertical; font: 12px/1.45 var(--mono); }
+#copyOut.show { display: block; margin-top: 16px; overflow: auto; }
+#caption { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100vw - 32px); background: rgba(0, 0, 0, 0.82); color: #f1ebdc; border: 1px solid var(--line); padding: 7px 14px; border-radius: 6px; font: 15px/1.3 var(--display); font-style: italic; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 19; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#caption.show { opacity: 1; }
+.toast { position: fixed; left: 50%; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--accent); color: var(--accent-ink); padding: 9px 14px; border-radius: 6px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 20; max-width: calc(100vw - 32px); }
+.toast.show { opacity: 1; }
+
+/* the little adjusters: four hairline sliders, a label and a readout each; a changed one lights up */
+.c-adj { padding-top: 7px; }
+.adj { display: grid; grid-template-columns: 12px minmax(0, 1fr) 46px; gap: 1px 5px; align-items: center; }
+.adj .al { font: 500 9.5px/1 var(--mono); color: var(--muted); text-transform: uppercase; }
+.adj output { font: 10px/1 var(--mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.adj output.on { color: var(--accent); }
+.adj input[type=range] { width: 100%; height: 14px; margin: 0; accent-color: var(--accent); }
+.adj .reset { grid-column: 1 / -1; justify-self: end; font: 10px/1 var(--mono); padding: 3px 6px; margin-top: 2px; display: none; }
+tr.tweaked .adj .reset { display: block; }
+tr.tweaked td.c-play { box-shadow: inset 3px 0 0 var(--k-loop); }
+.done { color: var(--accent); font-weight: 500; }
+.thhint { text-transform: none; letter-spacing: 0; opacity: 0.7; }
+@media (max-width: 760px) {
+  header.bar { position: static; }
+  input[type=search] { width: 100%; }
+  .filters > label.lbl:first-child { flex: 1 1 100%; }
+  #count { margin-left: 0; flex: 1 1 100%; }
+  table, tbody { display: block; }
+  thead, colgroup { display: none; }
+  tbody tr { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "play name nights" "play desc desc" "play adj adj" "play note note"; gap: 2px 8px; padding: 8px 0; }
+  td { padding: 0; }
+  td.c-play { grid-area: play; }
+  td.c-name { grid-area: name; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+  .c-name code { padding-top: 6px; }
+  td.c-desc { grid-area: desc; padding-top: 2px; }
+  td.c-nights { grid-area: nights; padding-top: 5px; }
+  .chips { justify-content: flex-end; }
+  td.c-note { grid-area: note; padding-top: 5px; }
+  td.c-adj { grid-area: adj; padding-top: 6px; }
+  .adj { grid-template-columns: 12px minmax(0, 1fr) 46px 12px minmax(0, 1fr) 46px; }
+}
+@media (prefers-reduced-motion: reduce) { .toast, #caption { transition: none; } tbody tr.flash { animation: none; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>Sounds Audit<small><b class="done">Complete.</b> The first round of adjustments is in the game (js/soundtune.js), so every sound here plays as the game now has it; the sliders nudge on top of that. Every sound in the game, played by its own synthesiser (js/audio.js). ▶ plays it (loops and ambient beds toggle); nudge it with the P (pitch), S (speed), T (tone) and V (volume) sliders, double-click one to reset it; write what should change in its comment box, then Copy to paste it back.</small></h1>
+  <div class="controls">
+    <label class="lbl" for="vol">Volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.8"><output id="volOut">80%</output></label>
+    <button id="mute" aria-pressed="false">Mute</button>
+    <button id="stop" title="Stop the loop, the ambient bed and any steps still to come">Stop all</button>
+    <button id="copyNoted">Copy comments</button>
+    <button id="copyAll" class="primary">Copy all</button>
+  </div>
+</header>
+<div class="filters">
+  <label class="lbl" for="q">Find <input type="search" id="q" placeholder="name, sound, night, comment…" autocomplete="off"></label>
+  <label class="lbl" for="kind">Kind <select id="kind"><option value="">All kinds</option></select></label>
+  <span class="lbl">Night <span class="strip" id="nightStrip" role="group" aria-label="Night"></span></span>
+  <label class="chk"><input type="checkbox" id="noted"> With comments or changes</label>
+  <span id="count" role="status"></span>
+</div>
+<table>
+  <colgroup><col class="c-play"><col class="c-name"><col class="c-desc"><col class="c-nights"><col class="c-adj"><col class="c-note"></colgroup>
+  <thead><tr><th scope="col" aria-label="Play"></th><th scope="col">Sound</th><th scope="col">What it is · where from</th><th scope="col">Nights</th><th scope="col">Adjust <span class="thhint">(release to hear)</span></th><th scope="col">Comment</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<p id="empty" hidden>No sound matches.</p>
+<p class="foot">The menus make no sound of their own but the soft tap on their buttons (<code>js/menu.js</code>); the title has its drone (the two title rows). “All nights” means generic code plays it wherever it comes up (picking up, putting down, a fumble, the heartbeat). The comments stay in this browser.</p>
+<textarea id="copyOut" aria-label="The export, ready to copy"></textarea>
+<div id="caption" aria-live="polite"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="../js/util.js"></script>
+<script src="../js/captions.js"></script>
+<script src="../js/soundtune.js"></script>
+<script src="../js/audio.js"></script>
+<script src="sounds.js"></script>
+</body>
+</html>
