@@ -1039,7 +1039,7 @@ function updateHover() {
   if (h) {
     if (h.kind === 'item') tip = h.ref.name + usesMark(h.ref);
     else if (h.kind === 'target') tip = (G.hints() && h.ref.hint) ? h.ref.hint() : (h.ref.hold && !h.ref.done ? h.ref.name + ' (hold)' : h.ref.name);
-    else if (h.kind === 'creature') { const u = activeUse(G.L); tip = u ? (u.hoverText ? u.hoverText(h.ref, G.L) : h.ref.dist < u.range ? (u.fireText || 'Fire.') : 'Too far.') : ''; }
+    else if (h.kind === 'creature') { const u = activeUse(G.L); tip = u ? (u.hoverText ? u.hoverText(h.ref, G.L) : h.ref.dist < u.range ? (u.draw && touchUI() ? '' : u.fireText || 'Fire.') : 'Too far.') : ''; }   // (on a phone the bow's line is left out: the finger is on it, and its power bar stands where the line was)
   }   // (the floor, looking down with something held: no line; a click there still puts it down)
   UI.tooltip.textContent = tip;
   UI.tooltip.style.display = tip ? 'block' : 'none';
@@ -1441,8 +1441,18 @@ function updateDrawBar() {
   let bx = aim.x + 34;
   if (cb && aim.x > cb.x - 24 && aim.x < cb.x + cb.w + 24 && aim.y > cb.y - 24 && aim.y < cb.y + cb.h + 24) { bx = Math.max(bx, cb.x + cb.w + 16); if (bx > window.innerWidth - 90) bx = Math.min(aim.x - 44, cb.x - 26); }
   if (d.state === 'loosed' && d.barX !== undefined) bx = d.barX; else d.barX = bx;   // once loosed it stays where it was
-  UI.drawbar.style.left = clamp(bx, 8, window.innerWidth - 90) + 'px';
-  UI.drawbar.style.top = clamp(aim.y - BH / 2, 8, window.innerHeight - BH - 120) + 'px';
+  let left = clamp(bx, 8, window.innerWidth - 90), top = clamp(aim.y - BH / 2, 8, window.innerHeight - BH - 120);
+  // never across the line of words under the compass ("It fell short."): below it, or on a phone's short view, where there
+  // is no room under it, beside it (its words, inside its padding)
+  if (UI.toast.classList.contains('show')) {
+    const t = UI.toast.getBoundingClientRect(), tl = t.left + 30, tr = t.right - 30, tb = t.bottom - 4;
+    if (top < tb && left + 14 > tl && left < tr) {
+      if (tb + 4 <= window.innerHeight - BH - 120) top = tb + 4;
+      else left = left + 6 > (tl + tr) / 2 ? tr + 8 : tl - 22;
+    }
+  }
+  UI.drawbar.style.left = left + 'px';
+  UI.drawbar.style.top = top + 'px';
   const full = p >= 1 && d.state !== 'easing';
   UI.drawfill.style.height = (p * 100).toFixed(1) + '%';
   UI.drawbar.classList.toggle('full', full);
