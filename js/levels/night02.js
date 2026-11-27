@@ -812,6 +812,11 @@ LEVELS.push({
     L.dynamic = () => {
       rainOn();
       R.add(lock);
+      // caught at the passenger window, it comes in at once: drawn over the pillars and the door there from the moment it
+      // is caught, not with the front pillar's diagonal cutting across its legs for the first moments (still behind the
+      // seat, which is nearer than the window)
+      { const c = L.creature, p = L.rend && L.rend.get(c);
+        if (p) { if ((G.state === 'dying' || G.state === 'dead') && G.deathCreature === c && windowOf(bear()) === 'passenger') p.sortDist = Math.min(Math.hypot(c.dist, c.lat || 0), 1.24); else delete p.sortDist; } }
       if (s.started && L.t >= s.turnAt) dials();   // (once the key has turned)
       // the gearstick: its plate lying flat on the console, a pale bezel round a black face with the four letters along
       // it, the one it is in lit, and the slot along its far side; the plate's edges toward you; the stick standing up out
