@@ -861,7 +861,18 @@ LEVELS.push({
         const k = pillowUp(), a = FAIRY.tilt * k, t = PIL.y1 - PIL.y0, len = PIL.z1 - PIL.z0, cs = Math.cos(a), sn = Math.sin(a), zH = PIL.z0 + t * sn;
         const at = (x, u, v) => [x, B0 + u * sn + v * cs, zH + u * cs - v * sn];
         const pq = (a2, b2, c2, d2, col, sd, alpha) => R.add(SC.mkQuad(L, a2, b2, c2, d2, col, alpha === undefined ? { sortDist: sd } : { sortDist: sd, alpha }));
-        if (k > 0.02) pq([PIL.x0, B0 + 0.003, zH], [PIL.x1, B0 + 0.003, zH], [PIL.x1, B0 + 0.003, PIL.z1 + 0.02], [PIL.x0, B0 + 0.003, PIL.z1 + 0.02], [16, 14, 20], 0.34, 0.45 * k);
+        // its shadow: soft, a rounded patch in layers, each a little smaller, darkest in the middle and fading out at the edge
+        if (k > 0.02) {
+          const cx = (PIL.x0 + PIL.x1) / 2, cz = (zH + PIL.z1) / 2, hx = (PIL.x1 - PIL.x0) / 2 + 0.02, hz = (PIL.z1 - zH) / 2 + 0.02;
+          for (let i = 0; i < 8; i++) {
+            const sc = 1 - i * 0.1, mz = cz - hz * (1 - sc) * 0.4, pts = [];   // (the smaller ones toward the pillow, deepest under it)
+            for (let n = 0; n < 24; n++) {
+              const an = n / 24 * Math.PI * 2, c = Math.cos(an), sn2 = Math.sin(an);
+              pts.push(L.pt(cx + hx * sc * Math.sign(c) * Math.pow(Math.abs(c), 0.6), B0 + 0.003, mz + hz * sc * Math.sign(sn2) * Math.pow(Math.abs(sn2), 0.6)));
+            }
+            R.add({ kind: 'poly', pts, color: [16, 14, 20], sortDist: 0.34 - i * 0.0001, alpha: 0.075 * k });
+          }
+        }
         R.glowAs(pillowT);
         // (tipped up past your line of sight, it is its underside that faces you, over the rest of it)
         const ue = L.eye || { x: 0, y: 0, z: 0 }, mid = at(0, len / 2, 0), under = k > 0.02 && (L.eyeH + (ue.y || 0) - mid[1]) * -cs + ((ue.z || 0) - mid[2]) * sn > 0;
