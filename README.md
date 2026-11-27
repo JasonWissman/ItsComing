@@ -1107,7 +1107,9 @@ which are a plain sans, and the lettering on things in the nights themselves (a 
 ```
 index.html              page shell, HUD and styles
 manifest.webmanifest    installed or added to the Home Screen: full screen, landscape, on black
-icons/                  the app icons (apple-touch-icon.png, icon-192.png, icon-512.png)
+icons/                  the app icons (apple-touch-icon.png, icon-192.png, icon-512.png; icon-maskable-192.png and
+                        icon-maskable-512.png, the same smaller on black for masked launchers) and og-image.png,
+                        the link preview (1200 x 630)
 fonts/                  IM Fell English, the one typeface (woff2), and its licence
 js/util.js              math, color and drawing helpers
 js/audio.js             Web Audio synthesis: wind, drones, heartbeat, footsteps, effects
