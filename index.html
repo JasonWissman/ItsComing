@@ -166,8 +166,8 @@
   :root[data-theme="day"] .hcard, :root[data-theme="day"] .runcard { background: rgba(58,51,44,.06); }
   /* the warning before a new game (flashing lights): on black, a card like the dialogs', red words under an eye struck
      through, a solid red Accept and beside it a quiet Adjust settings (which turns the card into Settings: .dset) */
-  #disclaimer { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; box-sizing: border-box; padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); text-align: center; color: var(--red); cursor: default; }
-  #disclaimer .dbox { display: flex; justify-content: center; width: 100%; margin: auto 0; opacity: 0; transition: opacity .5s; }
+  #disclaimer { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; box-sizing: border-box; padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); text-align: center; color: var(--red); cursor: default; }
+  #disclaimer .dbox { display: flex; justify-content: center; width: 100%; margin: auto 0; opacity: 0; transition: opacity .5s; }   /* (its auto margins centre it; taller than the screen, its top where a scroll reaches it) */
   #disclaimer.on .dbox { opacity: 1; }
   #disclaimer.go .dbox { opacity: 0; transition: opacity .35s; }
   #disclaimer.out { opacity: 0; transition: opacity .6s; }
