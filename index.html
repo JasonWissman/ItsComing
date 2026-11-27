@@ -441,6 +441,22 @@
     #overlay > .results:has(.tabs) { padding-top: 5px; padding-bottom: 5px; }
     .results:has(.tabs) .rlast { margin-top: 6px; }
   }
+  /* a small phone on its side (667 by 375 and smaller): three columns are narrow, so the cards' words a little smaller
+     and the room round them tighter, every night's name whole */
+  @media (max-height: 520px) and (min-width: 560px) and (max-width: 800px) {
+    #overlay.dlg > .panel.nightsp, #overlay > .results { padding-left: 12px; padding-right: 12px; }
+    #overlay:has(> .results) { padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+    .nights { column-gap: 5px; }
+    #overlay .ncard { gap: 6px; padding-left: 7px; padding-right: 7px; letter-spacing: .01em; font-size: calc(12px * min(var(--text-scale), 1.4)); }
+    #overlay .ncard .nbest { gap: 3px; font-size: calc(11px * min(var(--text-scale), 1.4)); }
+    .ncard .nbest small { letter-spacing: .06em; }
+    .egg { gap: 6px; }
+  }
+  @media (max-height: 520px) and (min-width: 560px) and (max-width: 620px) {   /* (568 by 320: smaller again) */
+    #overlay .ncard { gap: 4px; padding-left: 5px; padding-right: 5px; letter-spacing: 0; font-size: calc(10.5px * min(var(--text-scale), 1.4)); }
+    #overlay .ncard .nbest { font-size: calc(10px * min(var(--text-scale), 1.4)); }
+    .egg { gap: 5px; }
+  }
   :root[data-theme="day"] .egg { border-color: rgba(58,51,44,.16); color: rgba(58,51,44,.48); }
   :root[data-theme="day"] .egg .emark { border-color: rgba(58,51,44,.36); }
   :root[data-theme="day"] .egg.found { background: rgba(255,255,255,.6); border-color: rgba(58,51,44,.62); color: #2e2823; }
