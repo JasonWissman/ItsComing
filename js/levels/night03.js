@@ -40,7 +40,7 @@ LEVELS.push({
     intro: 'Someone has been walking in the graveyard since dusk.',
     hint: 'The old rules: a line of salt across the doorway and another across the side gate, and a lantern hung by each and lit. The bag holds just enough salt for the two lines.',
     objective: 'Salt both ways in. Light a lantern by each.',
-    death: { default: 'It was still smiling when it stepped over the threshold.', open: 'It came through the open entrance.', unlit: 'The salt alone did not stop it. It loves the darkness.' },
+    death: { default: 'It was still smiling when it stepped over the threshold.', open: 'It came through the open doorway.', unlit: 'The salt alone did not stop it. It loves the darkness.' },
     win: 'It dared not cross.',
     egg: 'Give it a sugar rush.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },

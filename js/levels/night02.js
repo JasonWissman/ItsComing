@@ -247,10 +247,10 @@ LEVELS.push({
           if (!(act ? G.fumble(act, ign, 'return') : handTo(ign, { style: 'touch', at: KEYHOLE, sfx: 'tink' })) && !G.fumbling) AUDIO.sfx('nope');
           return true;
         }
-        if (s.started) { G.say('It is running. Now the gearstick, and the gas.', 'The engine is running.'); handTo(ign, { style: 'touch', at: KEYHEAD, sfx: 'keys' }); return true; }
+        if (s.started) { G.say('It is running. Now the gearshift, and the gas.', 'The engine is running.'); handTo(ign, { style: 'touch', at: KEYHEAD, sfx: 'keys' }); return true; }
         if (s.cranking > 0) return true;
         if (inGearNow()) {   // the key will not turn: it strains a few degrees in the hand and goes back
-          G.say('Nothing, not even a click. It will only start in park or neutral.', 'Nothing. Not even a click. The gearstick is in ' + GEAR_NAME[s.gear] + '.');
+          G.say('Nothing, not even a click. It will only start in park or neutral.', 'Nothing. Not even a click. The gearshift is in ' + GEAR_NAME[s.gear] + '.');
           handTo(ign, { style: 'rattle', at: KEYHEAD }, () => { s.jigAt = L.t; });
           return true;
         }
@@ -282,7 +282,7 @@ LEVELS.push({
       return { x: p[0] + (e.x || 0), y: p[1] + (e.y || 0), z: p[2] + (e.z || 0) };
     };
     const gear = mkTarget(L, {
-      id: 'gear', name: 'Gearstick', x: GX, y: GY, z: GZ, w: GW, h: GH, attach: true, flat: true, face: GTOP,   // (the plate; the stick and its knob are clicked too: L.dynamic)
+      id: 'gear', name: 'Gearshift', x: GX, y: GY, z: GZ, w: GW, h: GH, attach: true, flat: true, face: GTOP,   // (the plate; the stick and its knob are clicked too: L.dynamic)
       hint() { return 'In ' + GEAR_NAME[s.gear] + '.'; },
       onClick() {
         if (s.gone || s.ram) return true;

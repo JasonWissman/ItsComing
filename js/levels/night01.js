@@ -298,7 +298,7 @@ LEVELS.push({
       { x: 1.9, y: 0, z: 1.85 },                        // in the corner by the back doorway
       { x: -2.55, y: 1.28, z: -0.05, flat: false, jitter: 0 },   // on the shelf
     ], { w: 0.42, h: 0.42, flat: true, tool: true });
-    lay('rotten', 'Plank', [{ x: 0.0, y: 0, z: -0.95 }, { x: 0.05, y: 0, z: 1.0 }],
+    lay('rotten', 'Rotten plank', [{ x: 0.0, y: 0, z: -0.95 }, { x: 0.05, y: 0, z: 1.0 }],
       { w: 1.1, h: 0.36, flat: true, icon: 'rottenPlank', decoy: true, decoyText: 'Rotten through. This one would never hold.' });
     const plankSpots = [
       { x: -1.24, y: 0, z: -1.24 },                     // south-west corner

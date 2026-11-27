@@ -41,7 +41,7 @@ LEVELS.push({
     objective: 'Shut both ways in: crank the water door down, and shut the side door and bar it with both oars.',
     // (ring: caught, by whichever way, after the life ring was thrown to it: the night's easter egg. Not one of text.eggs:
     // the screen still says "It got you")
-    death: { default: 'It splashed into the boathouse and pulled you under.', reached: 'It came through the main opening, and pulled you down.', side: 'It came in the side, and pulled you under.', oneoar: 'One oar wasn\'t strong enough.', ring: 'It really didn\'t need saving, but that was nice of you.' },
+    death: { default: 'It splashed into the boathouse and pulled you under.', reached: 'It came through the water door and pulled you under.', side: 'It came in the side, and pulled you under.', oneoar: 'One oar wasn\'t strong enough.', ring: 'It really didn\'t need saving, but that was nice of you.' },
     win: 'It threw itself at the doors, but they held.',
     egg: 'Throw it the life ring.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
   },

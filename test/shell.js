@@ -331,7 +331,7 @@ async function run(browser, check) {
       'the graveyard\'s salt and sugar, two uses each, are named with no count, held and under the pointer; a thing counted out elsewhere keeps its count (' + JSON.stringify(lab) + ')');
     // a night's card: its prompt, short
     const card = await page.evaluate(() => { startLevel(0, true); const p = document.querySelector('#overlay .prompt').textContent; showTitle(); return p; });
-    check(card === 'Click or enter when ready', 'a night\'s card says: ' + card);
+    check(card === 'Click when ready', 'a night\'s card says: ' + card);
     await ctx.close();
   }
 

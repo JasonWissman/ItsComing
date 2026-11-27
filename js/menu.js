@@ -134,7 +134,7 @@ const MENU = (() => {
             card(tapG + say('tap'), 'Interact') +
             card(menuG + say('top left'), 'Pause') +
             '</div>' +
-            '<p class="fine">Hold where a thing must be held (pulling the covers up, drawing a bow): let go to loose.</p>' +
+            '<p class="fine">Hold where a thing must be held (pulling the covers up, drawing a bow): let go to release.</p>' +
             '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
         }
         return '<h1>How to play</h1>' +
@@ -144,6 +144,7 @@ const MENU = (() => {
           card(click, 'Interact') +
           card(k('Esc') + or + k('P'), 'Pause') +
           '</div>' +
+          '<p class="fine">Hold the button where needed (pulling the covers up, drawing a bow): let go to release.</p>' +
           '<div class="mrow">' + btn('back', 'Back', d.from || 'title') + '</div>';
       }
       case 'pause':
@@ -272,7 +273,7 @@ const MENU = (() => {
   const standalone = () => !!(navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches));
   function displayRow() {
     if (fsAble()) return seg('display', 'Display', DISPLAY, fsOn());
-    if (iOS() && !standalone()) return '<div class="opt optnote"><span class="olabel">Display</span><span class="onote">On iPhone, add this page to your Home Screen to play full screen.</span></div>';
+    if (iOS() && !standalone()) return '<div class="opt optnote"><span class="olabel">Display</span><span class="onote">On iPhone, add this page to your Home Screen to play fullscreen.</span></div>';
     return '';
   }
   function displaySync() { document.querySelectorAll('.seg[data-set="display"]').forEach(g => segShow(g, fsOn())); }

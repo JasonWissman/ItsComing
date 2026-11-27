@@ -29,7 +29,7 @@
 // felt with the fingers.
 // And there is 911 (free, coin or none): a dispatcher answers (the night's easter egg, found: foundEgg), with four lines
 // while the shade has still to get to its last lamp ("911, what is your emergency?", "Could you describe this creature,
-// please?", "I see.", "Ok, stay there. I'm sending a unit now."), a beat of quiet after each for what you say back, and
+// please?", "I see.", "Okay, stay there. I'm sending a unit now."), a beat of quiet after each for what you say back, and
 // only the last of them once it has (cutting to it if it gets there while she is talking), and a police car is sent,
 // though it is not seen until the shade has got to the last lamp on its way in. Then it comes tearing down that street, siren wailing and its light bar
 // going, screeches to a halt by that lamp post, shuts off its siren and shines a flashlight out of its window at it. In
@@ -126,17 +126,17 @@ Object.assign(ICONS, {
   // ---------------- the notebook ----------------
   // lines of handwriting: '#' a heading, '~' crossed out, '!' underlined twice, '%' scrawled across a page of its own in
   // blood; {n} an ordinary number, {k} the one to ring
-  const NAMES = ['Danny: {n}, on vacation this week', 'Mrs Pell nursing home: {n}', 'DMV: {n}', 'try again tomorrow'];   // always in the notebook
+  const NAMES = ['Danny: {n}, on vacation this week', 'Mrs. Pell nursing home: {n}', 'DMV: {n}', 'try again tomorrow'];   // always in the notebook
   const NUMBERED = [   // pages with someone ordinary's number on them: at least one more of these is always in it
-    ['#dentist', 'Dr Okafor, Tuesday the 14th', 'twenty to ten', 'if you can\'t make it ring {n}', 'open 9am - 5pm'],
-    ['#night bus', 'from the corner, :15 and :45', 'last one 12.45, not Sundays', 'Full schedule: {n}'],
+    ['#dentist', 'Dr. Okafor, Tuesday the 14th', 'twenty to ten', 'if you can\'t make it call {n}', 'open 9am - 5pm'],
+    ['#night bus', 'from the corner, :15 and :45', 'last one 12:45, not Sundays', 'Full schedule: {n}'],
     ['#yoga', 'Mon, Tue 7pm', 'Wed off', 'ask Kristy about the spare keys', 'Studio phone {n}'],
-    ['#surgery', 'Dr Marsh: {n}', 'repeat prescription', 'Fridays, before six'],
+    ['#doctor', 'Dr. Marsh: {n}', 'prescription refill', 'Fridays, before six'],
   ];
   const PLAIN = [
     ['milk', '~bread', 'batteries, the square kind', 'bulbs, 60w', '~stamps', 'flashlight. I can\'t see'],
-    ['#Ruth\'s old address', '22 Corder Lane, top flat', 'the bell doesn\'t work,', 'go around the back', 'she moved.', 'she\'s not there.'],
-    ['pay the gas', '~library books (3)', 'bins Thursday', '~ring Mum back', 'fix the street lamp'],
+    ['#Ruth\'s old address', '22 Corder Lane, top floor', 'the bell doesn\'t work,', 'go around the back', 'she moved.', 'she\'s not there.'],
+    ['pay the gas', '~library books (3)', 'trash Thursday', '~call Mom back', 'fix the street lamp'],
     ['#soup', '2 onions, carrots', 'bone broth', 'mystery meat', 'an hour, low', 'salt at the end'],
     ['#birthdays', 'Carla, March 3rd', 'Danny, May 19th', 'Ruth ?', 'Shadow person ?'],
   ];
@@ -686,7 +686,7 @@ Object.assign(ICONS, {
       // 4.4, 9.4 and 13 s from her answering), only the last once it has (L.update)
       // (in curly quotation marks, opening and closing: the game's typeface draws the straight one as a closing mark, at either end)
       const DISPATCH = [['dispatchAsk', '\u201c911, what is your emergency?\u201d', 2.2, 2.2], ['dispatchDescribe', '\u201cCould you describe this creature, please?\u201d', 2.6, 2.4],
-        ['dispatchSee', '\u201cI see.\u201d', 1.4, 2.2], ['dispatchSend', '\u201cOk, stay there. I\u2019m sending a unit now.\u201d', 3.5, 0]];
+        ['dispatchSee', '\u201cI see.\u201d', 1.4, 2.2], ['dispatchSend', '\u201cOkay, stay there. I\u2019m sending a unit now.\u201d', 3.5, 0]];
       const unFree = () => {
         if (!s.freeDial) return;
         s.freeDial = false;
@@ -1162,7 +1162,7 @@ Object.assign(ICONS, {
         while (s.glides.length && L.t >= s.glides[0].t0) { const q = s.glides.shift(); glideTo(rc, q.to, q.target); }
         if (rc && rc.glide) { const k = smoothstep((L.t - rc.glide.t0) / GLIDE), a = rc.glide.from, b = rc.glide.to; rc.at = { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), z: lerp(a.z, b.z, k) }; if (k >= 1) rc.glide = null; }
         nbUpdate();
-        if (s.line === 'checking' && L.t - s.doneAt > 0.7) { s.line = 'dead'; AUDIO.sfx('noService'); G.say('The number you have dialled is not in service.', 'The number you have dialled is not in service.', 3.2); }
+        if (s.line === 'checking' && L.t - s.doneAt > 0.7) { s.line = 'dead'; AUDIO.sfx('noService'); G.say('The number you have dialed is not in service.', 'The number you have dialed is not in service.', 3.2); }
         if (s.line === 'connecting' && L.t - s.doneAt > 0.9) { s.line = 'ringing'; s.ringFrom = s.doneAt; s.nextRing = L.t + 3; AUDIO.sfx('ringback'); G.say('It is ringing.', 'It is ringing.'); }
         if (s.line === 'ringing' && L.t >= s.nextRing) { s.nextRing = L.t + 3; AUDIO.sfx('ringback'); }   // one ring every 3 s, only while it rings: hanging up stops it
         if (s.line === 'ringing' && L.t - s.ringFrom >= 7) {

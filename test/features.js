@@ -338,7 +338,7 @@ const hoverHit = lookFor;
     out.back = !!document.querySelector('#overlay .seg[data-set="display"]');
     return out;
   });
-  check(v.ios === 'On iPhone, add this page to your Home Screen to play full screen.' && !v.other && v.back, 'no full screen for the page (an iPhone): the Display row says to add it to the Home Screen; on anything else with none, no Display row (' + JSON.stringify(v) + ')');
+  check(v.ios === 'On iPhone, add this page to your Home Screen to play fullscreen.' && !v.other && v.back, 'no full screen for the page (an iPhone): the Display row says to add it to the Home Screen; on anything else with none, no Display row (' + JSON.stringify(v) + ')');
   await page.click('#overlay .seg[data-set="display"] [data-v="1"]'); await page.waitForTimeout(400);   // (full screen, for Set to default below to leave be)
   await page.click('#overlay .seg[data-set="textSize"] [data-v="1"]'); await page.waitForTimeout(40);
   await page.click('#overlay input[data-set="reduceMotionFlash"]'); await page.waitForTimeout(100);
@@ -1056,7 +1056,7 @@ const hoverHit = lookFor;
       'night 3 easter egg (seed ' + seed + '): nothing salted, after its run it comes straight up its way at the pace of its run and takes you, and not before the run is over (' + J([k.phases, k.state, k.cause, k.T, k.vin]) + ')');
     check(k.wired && k.buzz > 0.9 && k.lunge && k.wiredDead && k.death === 'It was still smiling when it stepped over the threshold.' && k.shake < 1e-3, 'night 3 easter egg (seed ' + seed + '): it is wired from the tremble to the end, its lunge too, and the death is the usual one (' + J([k.wired, k.buzz, k.shake, k.lunge, k.wiredDead, k.death]) + ')');
     const own = await egg3(seed, 'own', 11);
-    check(own.phases.join() === 'take,look,pour,still,buzz,run,in,at,round,in' && own.lanes[9] === 1 - own.lane && own.state === 'dying' && own.cause === 'open' && own.death === 'It came through the open entrance.' && own.wired && own.wiredDead && own.atPose && own.bow > 0.9 && Math.abs(own.atDist - (own.lane === 0 ? 2.6 : 2.5)) < 0.01 && own.T < sec(own) + 3.2,
+    check(own.phases.join() === 'take,look,pour,still,buzz,run,in,at,round,in' && own.lanes[9] === 1 - own.lane && own.state === 'dying' && own.cause === 'open' && own.death === 'It came through the open doorway.' && own.wired && own.wiredDead && own.atPose && own.bow > 0.9 && Math.abs(own.atDist - (own.lane === 0 ? 2.6 : 2.5)) < 0.01 && own.T < sec(own) + 3.2,
       'night 3 easter egg (seed ' + seed + '): its way salted and the other bare, it is stopped at the salt, looks down, runs round wired and comes in by the bare way (' + J([own.phases, own.lanes, own.cause, own.atDist, own.T]) + ')');
     check(near.phases.join() === 'take,look,pour,still,buzz,run,in,at,in' && near.state === 'dying' && near.cause === 'unlit' && near.crossed === near.lane && near.death === 'The salt alone did not stop it. It loves the darkness.' && near.wired && near.wiredDead && near.T >= sec(near) && near.T < sec(near) + 2.2,
       'night 3 easter egg (seed ' + seed + '): both ways salted and no lantern lit, it is stopped at the salt, looks down, and steps over it (' + J([near.phases, near.cause, near.crossed, near.T]) + ')');

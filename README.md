@@ -1,7 +1,7 @@
 # It's Coming
 
 A short first-person horror game that runs in a browser tab. No build step, no
-dependencies, no asset files: the world, the creatures and every sound are
+dependencies, and no assets beyond a font and the app icons: the world, the creatures and every sound are
 generated in code.
 
 Something is coming straight at you from a long way off. You can watch it come,
@@ -44,7 +44,7 @@ matter most as cards (Look around, Zoom in, Interact, Pause). The pause menu has
 dialog as on the title; closing it is the pause menu again), Settings, Scores (once the title has it, a whole run finished: the same dialog,
 over the paused night, without Erase progress; its Back is the pause menu again) and Quit, its buttons all one width;
 there is no Restart or Mute in it, but `R`, `M`, `Esc` and `P` work there as anywhere (and Mute is in Settings). Quit is
-quieter than the rest (no border, in the secondary, slightly darker, text colour), and it is the only way out to the
+quieter than the rest (no border, in the secondary, slightly darker, text color), and it is the only way out to the
 title: it asks first, in a small dialog over the pause menu, "Are you sure you want to quit? Your progress will be
 lost.", with Cancel (focused; Esc, B, Start or a click off it too) and Quit. `Esc` never goes straight to the title: in
 a night, on a night's card, on the death screen and on the win screen alike it opens the pause menu (a pad's B on those
@@ -52,11 +52,11 @@ screens too), and Resume (or `Esc` again) puts back exactly what it was over: th
 the win screen. `P` is the same key: the pause menu wherever `Esc` opens it, and from the pause menu itself back; under
 one of the pause menu's dialogs (where `Esc` goes back a step) it does nothing, and Ctrl+P is the browser's.
 
-In full screen the browser takes `Esc` to leave full screen and the page never hears of it. Where the browser can hand
+In fullscreen the browser takes `Esc` to leave fullscreen and the page never hears of it. Where the browser can hand
 the page the key (the Keyboard Lock API, Chromium on a desktop: `navigator.keyboard.lock(['Escape'])`, asked for whenever
-the page is full screen and given back when it is not), a tap of `Esc` pauses and the page stays full screen; the
-browser then leaves full screen on `Esc` held down. Everywhere else, full screen left while a night is being played
-pauses it, so the one press both leaves full screen and pauses. Leaving by the game's own doing (`F`, the corner's
+the page is fullscreen and given back when it is not), a tap of `Esc` pauses and the page stays fullscreen; the
+browser then leaves fullscreen on `Esc` held down. Everywhere else, fullscreen left while a night is being played
+pauses it, so the one press both leaves fullscreen and pauses. Leaving by the game's own doing (`F`, the corner's
 button, Settings' Display) pauses nothing, and the two never both act (`fullscreenSync` in js/game.js).
 
 On phones and tablets (a touch screen as the main pointer) the game is played on its side: held upright, a screen asks
@@ -71,8 +71,8 @@ pad's trigger still zoom while held). A menu button top left, where the sound li
 there on a night's card, the death screen and the win screen too, since the pause menu is the only place with Quit. The
 view fills the whole screen, and the things held float over its bottom edge in the lower left corner (not the middle, where things to tap most often are), each slot on a faint backing of its own
 (no strip under them); a tap on a slot switches to it (never a tap on the scene behind), and tapping the held item
-again while looking down puts it down. Where the browser can put the page full screen (not Safari on an iPhone), a
-small button in the top right corner, on the title and in a night, goes full screen (and asks for the screen held
+again while looking down puts it down. Where the browser can put the page fullscreen (not Safari on an iPhone), a
+small button in the top right corner, on the title and in a night, goes fullscreen (and asks for the screen held
 sideways); the same button comes out again. On a desktop it is there too, smaller and fainter (brighter under the
 mouse), and F does the same; a click on it is never a click in the scene, and the objective keeps clear of it. The page itself does not
 scroll or zoom. A gamepad works too: d-pad or left stick turns and
@@ -88,9 +88,9 @@ the shelf under the phone is read where it lies: click or tap it (or press A) to
 
 Settings has, first, Volume and Brightness, each with a Calibrate button beside it, then rows of choices (radio groups:
 the arrows, or a pad's d-pad, go along a row choosing as they go; Enter, Space, A, a click or a tap choose): Display,
-Windowed or Fullscreen (the same as the full screen button in the corner, and following it however the page goes in or
-out of full screen; not saved, so Set to default leaves it be; where the page cannot go full screen, as on an iPhone, the
-row says instead to add the page to the Home Screen, which opens it full screen from there: `manifest.webmanifest`), and
+Windowed or Fullscreen (the same as the fullscreen button in the corner, and following it however the page goes in or
+out of fullscreen; not saved, so Set to default leaves it be; where the page cannot go fullscreen, as on an iPhone, the
+row says instead to add the page to the Home Screen, which opens it fullscreen from there: `manifest.webmanifest`), and
 Text size, Smaller (1), Normal (1.4, the default) or Bigger (1.8). Every sound goes through one of two volumes, the
 effects (every one-shot, sting, footstep, voice, the heartbeat, the creature loops and the menus' taps) or the ambience
 (the nights' beds of wind, rain and drone, and the title's drone); there is no main volume over them, Mute aside.
@@ -109,7 +109,7 @@ the dialog is open whatever ambience was playing (the title's drone, a paused ni
 it closes; in a paused night they still play. With captions for sounds on, each is captioned as the game captions it,
 and the quietest (which has no caption in the game) as "footsteps" for as long as it plays, the side it is on marked.
 Brightness's Calibrate shows the title's creature, the shape of it alone
-in the demon's robe colour unlit on The Void's black, to be barely made out ("Increase your device brightness until you
+in the demon's robe color unlit on The Void's black, to be barely made out ("Increase your device brightness until you
 can barely perceive the outline of this creature."), and Done. It is the device's brightness that is set by it: the
 game has none of its own (there was a slider, a CSS filter on the view; it washed the scenes out or lost what is in
 their dark, and is gone: an older save's brightness is dropped as it loads). Done
@@ -142,7 +142,7 @@ There is no difficulty to pick: the game is one hard game.
 - There are no hints. The card gives only the situation, there is no objective line, and hovering a target shows only its name.
 - When something does not work, the line you get says what is wrong without saying what to do.
 - It can come from any way a night allows, with no compass mark, and on some nights it changes its mind once while you are not looking.
-- Lying about are things that look right and are not: a rotten plank, a set of house keys, a bag of sugar, a rusted padlock, a blown fuse. They look worn and off-colour (drained toward rust-brown, the plank grey-green with rot, the house keys' cover red where the car keys' is green, the sugar in a red bag), so a careful eye can tell them apart.
+- Lying about are things that look right and are not: a rotten plank, a set of house keys, a bag of sugar, a rusted padlock, a blown fuse. They look worn and off-color (drained toward rust-brown, the plank gray-green with rot, the house keys' cover red where the car keys' is green, the sugar in a red bag), so a careful eye can tell them apart.
 - Every task is something you would do in a real place on a bad night: board a doorway with a hammer and planks, chain and padlock a gate, put a new bulb in a lamp, crank a shutter down, make a phone call.
 
 Every way it can come is fully visible from where you stand: the approach lanes are checked by
@@ -168,7 +168,7 @@ some on the ground, so you have to turn and look down to find them.
    knobbed at the knees and the elbows, the wrists and ankles thinner still, points of bone for shoulders, a narrow torso
    sunk in under a ribcage that flares over a hollow belly, a neck of tendons, and long bony fingers knotted at the
    knuckles, with black nails. From far off it is only a tall black figure; as it nears, the bone shows through in faint
-   greys (the collarbones, the breastbone, the ribs, the hip bones, the kneecaps), and its pale grey face comes up out of
+   grays (the collarbones, the breastbone, the ribs, the hip bones, the kneecaps), and its pale gray face comes up out of
    the dark oval of its head, gaunt, the cheeks and temples sunk in under the cheekbones, the round blank eyes deep in
    their sockets, and the mouth opening. Find the hammer, the nails and the loose planks, and board
    up both: board the one it is coming for and it runs round the house to the other (its footsteps from that doorway
@@ -221,12 +221,12 @@ some on the ground, so you have to turn and look down to find them.
    watch it, sooner if you do not). That is your chance: the stick over to the other way (two clicks) and the gas, and
    you are away from it, which wins the night as ever (lying there or getting up as you go, it goes on with that, and
    comes after the car up on its hind legs). Left to reach the car, it rears up at the glass on its toes, arms flung up,
-   and throws itself forward onto the bonnet and in through the glass, arms first (0.42 s), and the card says "It got
+   and throws itself forward onto the hood and in through the glass, arms first (0.42 s), and the card says "It got
    you" and only "It got right back up." It is hit once and no more. Drive at it a second time and it is ready for that:
    the car leaps at it, and whatever it was doing (in its heap, half up, standing, or up and coming) it is up on its
    hind legs and staring at you in 0.3 s, lurches at the car as fast as it can as the car comes at it, gathers itself
-   low, and 6.5 m off your seat it hurls itself up from standing, arms thrown up and out ahead of it, over the bonnet
-   (the boot, in reverse) and through the glass, which cracks as it meets it and bursts: about 1.2 s from the gas to the
+   low, and 6.5 m off your seat it hurls itself up from standing, arms thrown up and out ahead of it, over the hood
+   (the trunk, in reverse) and through the glass, which cracks as it meets it and bursts: about 1.2 s from the gas to the
    glass from where it lay. The card says "It got you" and only "It is too strong, even for a car." (While it is still in
    the air from the blow the wheels only spin.) With reduced motion nothing shakes, the nose does not dip, it is knocked
    back lower, turning over once, and its spring and its lunge at the glass are a little slower. The way out
@@ -395,7 +395,7 @@ some on the ground, so you have to turn and look down to find them.
    ring is a plain hoop, white and red, with nothing round its rim.
 7. **The Lighthouse.** The lamp is out and something is clinging to the outside of
    the tower, climbing the wet stone hand over hand; you see it by looking over the rail,
-   and it climbs faster while you do not. Put the spare bulb in the lamp, open the fuse
+   and it climbs faster while you do not. Put the new bulb in the lamp, open the fuse
    box (bolted to its stanchion on an iron wedge, turned toward you), pull the blown fuse and put in the new one from
    the toolbox (the only good fuse there is), and turn the crank so
    the beam goes round: its first pass knocks it sliding back down the wall, and the next
@@ -403,7 +403,7 @@ some on the ground, so you have to turn and look down to find them.
    crank, lit or dark. The night's easter egg: once the new fuse is out of the toolbox, the toolbox itself can be taken
    up (heavy, held open in front of you), and with it in hand a click on the thing, looking over the rail at it, swings it
    up over the rail and lets it go on the line straight down to it. The tower flares out below the gallery, so it hits the stone and
-   comes down the wall, tumbling and banging, spilling a spanner and a screwdriver. However far down the thing is,
+   comes down the wall, tumbling and banging, spilling a wrench and a screwdriver. However far down the thing is,
    anywhere on the tower below you (the hover says "Drop the toolbox on it." whenever you can point at it), the box
    comes all the way down the stone to it, the fall taking as long as the height needs (about a quarter of a second to
    it just under the rail, 1.7 s to it 15 m off, 2.5 s to it at the foot of its climb), coming across the face to it as
@@ -421,9 +421,9 @@ some on the ground, so you have to turn and look down to find them.
    as the rumble comes in, the strongest with the crack and a third after it, dying away over two seconds (with reduced
    flashing, one soft swell under a third as strong).
 8. **The Diner.** Something tall is out in the lot, taller than a man should be: a long
-   belted trenchcoat in a dull dark drab, its collar turned up, grey hands hanging at its sides,
+   belted trenchcoat in a dull dark drab, its collar turned up, gray hands hanging at its sides,
    and a hat with its brim pulled low. Under the brim there is no face, only shadow, black
-   whatever light is on it: all that shows is the bottom of a grey face and a thin grin of
+   whatever light is on it: all that shows is the bottom of a gray face and a thin grin of
    small white teeth, chewing, slowly and a little, and quicker whenever it is on the move.
    It stands bolt upright and dead still, nothing swinging; it comes
    on in stiff steps, and now and then its feet stop and it slides on anyway, while its
@@ -485,7 +485,7 @@ some on the ground, so you have to turn and look down to find them.
    it is insatiable ("Nice try"). Its first gulp is the night's easter egg found ("Serve the customer a drink."):
    kept in the save there and then (`foundEgg`), whatever happens after.
 9. **The Phone Booth.** It is raining and something is coming toward the booth, up the main street or along the far
-   pavement of the cross street from the east: a shade, far too tall and far too thin, all one dark, its body and its long
+   sidewalk of the cross street from the east: a shade, far too tall and far too thin, all one dark, its body and its long
    arms and legs one shadow with no clothes and no edges to it, so that most of the time all you see of it is two small
    pale points, its eyes. It carries no light. The street lamps stand along its way, and it starts at the very last of
    them, the furthest down its street, and goes from one to the next, every one: it stands behind a lamp, peering round
@@ -510,7 +510,7 @@ some on the ground, so you have to turn and look down to find them.
    that has run, as if in blood, in a hurry) and a coin (in the coin return, on the shelf or on the
    floor by the panes near the phone), then do what the card under the keys says, in big bold words you can read from
    where you stand (LIFT PHONE, INSERT COIN, DIAL NUMBER): lift the receiver, put
-   the coin in and dial on the phone's own keys. Lifted, the receiver is in your right hand (the side its hook is on), its armoured cord running from
+   the coin in and dial on the phone's own keys. Lifted, the receiver is in your right hand (the side its hook is on), its armored cord running from
    the bottom of the phone down that side of the shelf in a loop, clear of the notebook, and up into the bottom of the
    receiver (wherever you look, it meets it); the coin is in your left, and
    that hand presses each key with a fingertip, going from key to key as you dial (what it held goes
@@ -523,7 +523,7 @@ some on the ground, so you have to turn and look down to find them.
    down its street and pulls up at the curb for you; the moment it starts coming, the shade scurries off
    the road, low and fast, behind the nearest lamp post on its street, and stands there still, looking back
    at you, until the car has pulled up and its door swings open; only then does it turn its back and walk off down the
-   pavement the way it came, never in the car's way. The rain falls outside the booth only: it is seen out through the
+   sidewalk the way it came, never in the car's way. The rain falls outside the booth only: it is seen out through the
    glass and never inside it, nor over the pay phone across the corner. If it gets to you
    first, the pane between you goes as it hits: cracks run out across it to the frame, then as it
    comes through the middle bursts in with a flash and the pieces fly in at you, turning, and
@@ -532,7 +532,7 @@ some on the ground, so you have to turn and look down to find them.
    phone, or with one): it rings once and a dispatcher answers, a crackle of a voice (this is the night's easter egg,
    "Call 911.", kept in the save from the moment she answers). While the shade has still to get to its last lamp she has
    four lines, one after another, each with its crackle: "911, what is your emergency?", "Could you describe this
-   creature, please?", "I see.", "Ok, stay there. I'm sending a unit now." (shown in curly
+   creature, please?", "I see.", "Okay, stay there. I'm sending a unit now." (shown in curly
    quotation marks, opening and closing: the game's typeface draws the straight mark as a closing one). Each stays up a
    moment and goes, and then there is a beat of quiet, a little over two seconds, for what you say back, which is not
    heard, before the next: they begin 0, 4.4, 9.4 and 13 seconds after she answers. With the last the
@@ -556,7 +556,7 @@ some on the ground, so you have to turn and look down to find them.
    growl of the last night, far up: popping the lamp over it if
    it still burns), upright and leaning at it, one arm out at it and the other up over its head, its head split open into
    its petals of teeth, turned to the car, and long black tentacles unfurling out of its back and shoulders, waving: a
-   fan of them behind it, one up over its head and one out low at the car. The flashlight goes off, and the car slams its foot down: its back tyres spin,
+   fan of them behind it, one up over its head and one out low at the car. The flashlight goes off, and the car slams its foot down: its back tires spin,
    smoking, with a short plain squeal as it pulls away, and it fishtails away down the road (on round the corner and off along the cross street from
    the main street; on past the booth and away west, wide of the parked car, along the cross street), keeping to the road,
    until it is out of sight. The shade shuts, its tentacles drawing back into it, skitters back behind its lamp post and stands
@@ -572,7 +572,7 @@ some on the ground, so you have to turn and look down to find them.
    and the right number still brings the car. The police come once a night; 911 again, once they have been sent, gets a dispatcher who says a car
    has already been sent. Caught after calling them, the screen says "Nice try": "The police can't help
    you here." A 9 pressed with no coin in is taken; any key that is not the rest of 911 wipes it (and clicks as a key with no
-   credit does), as does a coin put in, so the right number dialled after is never spoiled.
+   credit does), as does a coin put in, so the right number dialed after is never spoiled.
 10. **The Mirror Maze.** A porcelain doll is always behind you and you only ever see
     it in the glass. The night has a clock: it comes on all night, steadily while the mirror you face does not show it,
     and more slowly held in the glass, where it comes a step nearer in the snap of each move of its dance and is dead still
@@ -608,8 +608,8 @@ some on the ground, so you have to turn and look down to find them.
     box on it feels about the bare top for something to fit and comes back to your hand; with nothing in hand, the hand
     goes out to the empty top. A dust sheet is pulled down by hand and slides off the glass into a heap.
     If it reaches you, it comes at you weeping, whatever it was before: the red eyes and the red tears all the way in to
-    your face, the sob opening into a wail and its hands coming up as it lunges. After a wrong mirror the card reads "You
-    played for an illusion. The creature surprised you from behind."; caught without the box ever having played, "It
+    your face, the sob opening into a wail and its hands coming up as it lunges. After a wrong mirror the card reads "That
+    wasn't her. The creature surprised you from behind."; caught without the box ever having played, "It
     just wants to hear its song."
     The dust sheets go back up. A sheet pulled down lies in a heap at the foot of its glass; a click on the heap (either
     side of the pedestal) takes it up, a bundle of pale cloth in your hand, and two more lie folded on top of the
@@ -625,7 +625,7 @@ some on the ground, so you have to turn and look down to find them.
     either side of it, fingers spread, the cloth stretched toward you and creaking, its sob rising to a wail, the other
     three sheets bulging with its face too (and they stay so); at 2.9 s that same face and those hands come at you as
     they are, in the cloth, with a quick rising rush of air: the night's usual lunge (0.55 s, the same sting), but what lunges is the sheet with it
-    inside. The moulded face grows toward your eye, its mouth dropping open, a cloth-covered hand reaching either side,
+    inside. The molded face grows toward your eye, its mouth dropping open, a cloth-covered hand reaching either side,
     and the rest of the sheet is dragged along behind them: pulled out into a cone with its edges still on the frame,
     then off the mirror altogether, rounding into a ring of folds that run out from the face to the hem, the hem flaring
     and rippling like a shroud, until the cloth is past every edge of the view. The doll itself is never seen, and no
@@ -636,7 +636,7 @@ some on the ground, so you have to turn and look down to find them.
     facing the barn: the night always starts that way, wherever the thing is, and finding it is part of it (the card
     does not say where it is coming from). Round you in a ring, at the compass points, are the farm's places, each with
     a floodlight of its own and all of them dark: the tractor shed (SW), the shed (W), the stables (NW), the barn (N), the
-    silo (NE), the coop (E) and the driveway (SE); each has a neighbour either side, and the driveway and the tractor shed
+    silo (NE), the coop (E) and the driveway (SE); each has a neighbor either side, and the driveway and the tractor shed
     meet behind the house. The yard is grass all round, and the porch light lays a smooth pool of warm light on it. The
     box is on its post at your left hand, its top at your chest: turn left from the barn to face the stables and it is
     right there in the middle of the view, under the stables (too low to hide them), its front square to you, its main
@@ -656,8 +656,8 @@ some on the ground, so you have to turn and look down to find them.
     click on a label is a click on its switch).
     Something hunched and sack-bodied, its long arms hanging, stands in the dark at the foot of one place, all but black, two pale points of eyes;
     its mouth is sewn shut with thick crosses of twine over a patch of burlap. It cannot stand the light:
-    light its place and it throws an arm over its face and runs, side on, to a neighbouring place that is dark, at the
-    same distance from you. Light both its neighbours and then its own place and it has nowhere dark to go: it shrieks,
+    light its place and it throws an arm over its face and runs, side on, to a neighboring place that is dark, at the
+    same distance from you. Light both its neighbors and then its own place and it has nowhere dark to go: it shrieks,
     the stitches of its mouth tearing, its knees go, and it comes apart in the light, sacking and straw. The box takes
     three lights at once: a fourth trips the main with a bang and sparks, the main snaps over to OFF, every switch drops to
     off and every light on the farm goes out (the porch light too). Nothing comes on again until the main is pushed back
@@ -665,7 +665,7 @@ some on the ground, so you have to turn and look down to find them.
     "The power tripped, and it came for you in the dark."). With the main off the switches can
     still be set, up or down (each lever stands where it is set; no pilot lamp lights and nothing comes on): pushed back
     on, the main brings on whatever is set with it, as if each had been switched on there and then, so three or fewer
-    come on (and with its place and both its neighbours set, it is caught the moment they do: a way to win), and more
+    come on (and with its place and both its neighbors set, it is caught the moment they do: a way to win), and more
     than three trip it straight back off again, sparks, every switch dropping and every light going out, as before.
     You can push the main over to OFF yourself, too, whenever you like (a click on it while it is on): every light on
     the farm goes out, the porch light with them, but the switches stay where they are set (no sparks, nothing drops),
@@ -702,7 +702,7 @@ some on the ground, so you have to turn and look down to find them.
     you. Ahead, past the foot of the bed, is the doorway to the hall, the dresser with its
     mirror and the clock to its left and a chair to its right; the window is on your right,
     beyond the nightstand. On your left, well along the wall from the corner by the head wall
-    (three quarters of a metre of wall between), toward the foot of the bed, is the wide open
+    (three quarters of a meter of wall between), toward the foot of the bed, is the wide open
     closet (its opening 1.8 m across, wider inside): a
     shelf along its back with boxes on it, the rail under it with a row of hangers and the
     clothes hanging from them (long coats, dresses, jackets and shirts, a gap or two between),
@@ -821,7 +821,7 @@ some on the ground, so you have to turn and look down to find them.
     no angrier for a seventh than for six) and it
     calms. Each thing taken up for the first time in an attempt stops it dead where it is for 1.0 s
     before it comes on again, as enraged as ever. Let it come, and face it when it does: empty-handed, it bends down to you over the
-    last few metres (its head stays in the view) and the view lifts to its face.
+    last few meters (its head stays in the view) and the view lifts to its face.
     Turned away from it, or looking at the floor, when it reaches you is a death too; doing
     nothing at all, facing it as the night starts, is always the ending (on Nightmare it may
     change its way once, unseen, far out, but never once it is within 12 m). Faced
@@ -852,7 +852,7 @@ some on the ground, so you have to turn and look down to find them.
     first faces, from its own night built again, whether or not you played it; a face that
     could not be drawn is simply not there). It was this one all along. Nearly two seconds
     later it takes them back: one after another they fly into the opening of its hood, turning and
-    shrinking to nothing, with a rush of air drawn in, and its face is its grey neutral face
+    shrinking to nothing, with a rush of air drawn in, and its face is its gray neutral face
     again, a few seconds, in the dark. Confused, and confused the other way (as before, the
     one going smoothly into the other, each held as long) as the dark opens into a pale light; it is
     content, and happy, and the meadow (wild flowers, trees, clouds, birdsong and a breeze)
@@ -885,7 +885,7 @@ some on the ground, so you have to turn and look down to find them.
     0.93, 0.86, 0.79, 0.73, 0.68, 0.64, 0.62 and 0.6 for the last few; only the wait with
     your hand up is shortened less, by the root of that, so it is still up a beat; so the claiming
     takes a little over twenty seconds), rushes up to you along its own way (0.6 s,
-    to under two metres, the doll, low, to a little over two so that it stays in the view; with its own steps and voice and a jolt of the view). While it
+    to under two meters, the doll, low, to a little over two so that it stays in the view; with its own steps and voice and a jolt of the view). While it
     is coming your hand holds nothing up. Only once it is there, stopped in front of you
     (0.1 s after), does your hand hold up what was its own: the game's own held thing
     (js/hands.js, told what to hold by the night), raised higher and further in toward the
@@ -927,7 +927,7 @@ some on the ground, so you have to turn and look down to find them.
     air (this ending's jump scare, a happy one: that instant the view is lightened by the
     same soft flash as the other ending's scare, none with reduced flashing, with a party
     popper going off, the sound `twinkle`: a sharp crack and the confetti sprinkling down; and
-    confetti in the picture, 44 bits of coloured paper bursting up into the view from its two
+    confetti in the picture, 44 bits of colored paper bursting up into the view from its two
     bottom corners, fluttering down and gone in 2.6 s, drawn flat over the view; with reduced
     motion no burst, only ten let fall slowly from above), where it turns, and falls, and lies where it lands; and they leap up and down for
     joy, each in its own time, arms up where they have them (the stone one in a new pose
@@ -962,7 +962,7 @@ some on the ground, so you have to turn and look down to find them.
     goes on (they all fade, glittering, as the bedroom comes), the last screen, The End,
     the results, the campaign complete. With reduced motion each comes slower and from
     nearer with no jolt (1.2 s, from 9 m) and is off again without holding its thing up to look, the things thrown turn slowly, and a leap is only a gentle bob;
-    and in the meadow they do not run but amble, slowly (half a metre a second), bobbing
+    and in the meadow they do not run but amble, slowly (half a meter a second), bobbing
     gently, with no leaning, no ducking under and no dance.
     The view closes in a little on a wide screen (a phone held sideways) so the whole
     gathering fills it, and eases back out as the meadow comes.
@@ -1016,7 +1016,7 @@ click or a tap chooses one; with the focus on the chosen tab, left and right, or
 scenes is thirteen boxes in the nights' order, and the only text in each is its title: no night's name or number, and
 not what it was, so the titles are a list to guess from. The title is there whether it has been found or not. One
 found has a check drawn in a filled check box, its title bright and its border plain; one not found yet has an empty
-check box, its title dimmed and its border faint (so the mark says which, not the colour alone; read aloud, each is
+check box, its title dimmed and its border faint (so the mark says which, not the color alone; read aloud, each is
 "Sugar rush, found" or "Sugar rush, not found"). Under the boxes is how many have been found ("3 of 13 found"). Erase
 progress forgets them too. The boxes are the nights' own: the same grid and the same card as Best run's (`.nights`,
 `.ncard`), so each secret scene's box is exactly where its night's box is and the size it is, at every size of page and
@@ -1096,7 +1096,7 @@ focused, so it still takes Accept to go on. Nothing else gets past it. Once acce
 prologue (silent: the title's drone fades slowly away under it, and night 1's bed fades in as night 1 begins): black, and two lines, one at a time, each fading up and away (the second dimmer) ("You haven't had a good night's sleep in ages." /
 "Each night something visits you in your dreams..."), then all of it fades into night 1's card. It is short and it is not skippable: no click or key gets past it, or through it
 to the game (`newGame` in js/game.js). A night's card comes in a little at a time: the night and its name, then a
-moment later its words, then "Click or enter when ready" (on a phone "Tap when ready"; all together with reduced motion); a click or
+moment later its words, then "Click when ready" (on a phone "Tap when ready"; all together with reduced motion); a click or
 Enter goes on at once, as ever. Begin is the one button drawn inverted,
 light with dark letters. Every button and control in the menus answers with a soft tap. All the game's text is set in
 IM Fell English (`fonts/`, under the SIL Open Font License, `fonts/OFL.txt`), except the keycaps drawn in How to play,
@@ -1106,9 +1106,9 @@ which are a plain sans, and the lettering on things in the nights themselves (a 
 
 ```
 index.html              page shell, HUD and styles
-manifest.webmanifest    installed or added to the Home Screen: full screen, landscape, on black
+manifest.webmanifest    installed or added to the Home Screen: fullscreen, landscape, on black
 icons/                  the app icons (apple-touch-icon.png, icon-192.png, icon-512.png)
-fonts/                  IM Fell English, the one typeface (woff2), and its licence
+fonts/                  IM Fell English, the one typeface (woff2), and its license
 js/util.js              math, color and drawing helpers
 js/audio.js             Web Audio synthesis: wind, drones, heartbeat, footsteps, effects
 js/soundtune.js         how each sound is tuned (TUNES: pitch, speed, tone, volume per sound, set by ear in the
@@ -1165,7 +1165,7 @@ LEVELS.push({
   `SC.window` and `SC.gap` build the wall pieces and return the matching aperture. `buildLevel`
   picks the lane (random, or the
   night's own `laneMode`) and `validateContent()` fails a lane that is not at least 85% visible
-  at every metre. `L.lane` is the chosen lane inside `build`. A lane may set its own `startDist`
+  at every meter. `L.lane` is the chosen lane inside `build`. A lane may set its own `startDist`
   (and a `maxStart` cap, for the back of a closet), and `aimLat`, where across it the thing
   comes when the opening it comes through is off to the side of its ray (the bedroom's closet,
   along the wall from due west: it comes out through the middle of the opening, and is looked
@@ -1198,7 +1198,7 @@ LEVELS.push({
   door) takes `face` instead: the yaw its front looks toward, in the night's frame (`Math.PI` looks back at you from in
   front). It is drawn flat on that face in true perspective, as the face itself is, never turning toward you and not
   drawn from behind; a target given the same `face` has a hit area of exactly the shape it covers on the view, so what
-  you click stays on what is drawn however you turn or look down (night 11's breaker box, night 2's gearstick, pedal
+  you click stays on what is drawn however you turn or look down (night 11's breaker box, night 2's gearshift, pedal
   and ignition, night 9's pay phone, night 6's winch, night 7's fuse box and crank, night 8's main switch and
   shutters). A plain billboard on a wall or a console turns with the view as you look round,
   so anything fixed to a surface takes `face` (or is built of polys, as night 10's fallen dust sheet is). With `flat`
@@ -1238,7 +1238,7 @@ LEVELS.push({
   footsteps from that way: `laneCues` in game.js; a thing with none of its own uses a walker's); below Nightmare it never changes its way. `L.roundOpen(lane, c)`
   lets a night judge for itself which ways it goes round to (night 3: one weaker than the way it is held
   at); the night is then asked every frame while the thing is held, until it has somewhere to go. A creature whose type defines
-  `drawRun` goes round on its feet instead (`goRound` in game.js, modelled on night 1's run round the house): it
+  `drawRun` goes round on its feet instead (`goRound` in game.js, modeled on night 1's run round the house): it
   sprints sideways out of the way's opening, is heard running while out of sight, and comes in 3 m outside the open
   way's barrier from the side it went round by.
 - **Changing ways**: on Nightmare the thing may switch ways once, early and unseen, and goes round
@@ -1314,7 +1314,7 @@ LEVELS.push({
   the animation for its case), `t.fumble` (a preset's name, or options for every case, with per-case entries `wrong`,
   `missing`, `decoy` and `refuse`, each a preset's name, options or false; false for none at all) and `t.reach` (a style,
   or options; false for none). A click a target's own `onClick` takes (returning true: the ignition with no key to hand,
-  a gearstick, a gate) shows nothing of this by itself: the night calls `G.fumble`, `G.reach` or `G.thrust` there.
+  a gearshift, a gate) shows nothing of this by itself: the night calls `G.fumble`, `G.reach` or `G.thrust` there.
 - Every night has a solution in `test/nights/nightNN.js` so the suite can play it.
 
 ## Labs
@@ -1366,7 +1366,7 @@ title; Quit asking first), pause, mute, drops and the error overlay. `test/featu
 the one game (no picker, no hints), the warning (its card, Adjust settings and back, remembered once accepted), a
 night's card held until its words are in, restart, mute, menus (the pause menu, its Controls, its Scores and its Quit
 with the question it asks, Settings' rows of choices and switches, How to play's cards, Set to default, the Scores screen (the best run, its
-breakdown adding up, its stars; the Secret scenes tab, its tabs by click, keys, pad and tap, its thirteen boxes (title only, checked or not, labelled) and count, driven by the save; the note for an easter egg found the first time, with no sound, in its corner on a desktop and a phone and over a death screen), erasing progress from it (eggs too), the results after the ending (the Best run stamp only for a
+breakdown adding up, its stars; the Secret scenes tab, its tabs by click, keys, pad and tap, its thirteen boxes (title only, checked or not, labeled) and count, driven by the save; the note for an easter egg found the first time, with no sound, in its corner on a desktop and a phone and over a death screen), erasing progress from it (eggs too), the results after the ending (the Best run stamp only for a
 new best), the win screen between nights, the title's click, and the light behind the thing lagging its scuttle and gliding after it), the full run's clock, captions, the gamepad, a phone (emulated: turn it sideways, swipes, taps, the zoom and menu buttons, the menu button on the death screen, the win screen and a card, How to play's touch cards, the bow and the covers held by a finger, the pay phone tapped), sealed ways, the death
 camera, save migration, the last night's two endings, and your hands: what you hold (shown, swapped, lowered, still with
 reduced motion, clear of the zoom button on a phone), a wrong thing coming back, a plank falling to the floor where a
@@ -1376,14 +1376,14 @@ unseen, early, without a jump in distance, and never on nights that opt out.
 `test/hittest.js` checks every item (each one, where several share an id) is visible and clickable from some direction across many layouts.
 `test/story.js` checks the bedside lamp is only in the bedroom, the clock ticks, and no text before the bedroom uses
 the words that would give the ending away. `test/sounds.js` reads the sources and checks that every sound
-the game asks for exists in the synthesiser, that every lane cue is played as footsteps, and that every death
+the game asks for exists in the synthesizer, that every lane cue is played as footsteps, and that every death
 sting, footstep and voice has a caption (and that the volume calibration's loudest sound is the sting itself, played
 once and not panned, and that its four play buttons make no click). `test/settings.js` (run by `test/features.js` too, or on its own) covers Settings' Calibrate dialogs:
 from the title, a paused night and the warning, by keys, a pad and touch, on a phone on its side, the five pans left to
 right, the loudest once in the middle, each button's play mark turning to a stop mark and back, stopping one by
 pressing it again, no click from the four, the focus coming back, the quietest captioned "footsteps"; the brightness
 dialog (the creature, no slider, no filter on anything, an older save's brightness dropped); and renders the
-two sounds offline through the game's own chain, against the heartbeat and the sting as the game plays them. `test/shell.js` (run by `test/features.js` too, or on its own) covers the shell round the nights: the Secret scenes' boxes against Best run's box for box, the captions' corner (every line, whole, over nothing of the HUD), the results' Secret scenes tab and its stamp, the run's own secret scenes in the save, the labels with no count, and the warning's and the prologue's words following the text size; `test/flow.js` has P and Esc in full screen. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
+two sounds offline through the game's own chain, against the heartbeat and the sting as the game plays them. `test/shell.js` (run by `test/features.js` too, or on its own) covers the shell round the nights: the Secret scenes' boxes against Best run's box for box, the captions' corner (every line, whole, over nothing of the HUD), the results' Secret scenes tab and its stamp, the run's own secret scenes in the save, the labels with no count, and the warning's and the prologue's words following the text size; `test/flow.js` has P and Esc in fullscreen. `test/hittest.js` takes `NIGHTS=` and `N=` (layouts per night) to narrow it.
 
 ## Debugging
 

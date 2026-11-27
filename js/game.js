@@ -373,7 +373,7 @@ function showCard(again) {
   const i = G.levelIndex, d = G.diff(), T = G.L.text, still = again || SAVE.data.settings.reducedMotion;
   const dirName = DIR_NAMES[((Math.round(G.L.creature.yaw / (45 * DEG)) % 8) + 8) % 8];
   const st = still ? '' : ' s2', st3 = still ? '' : ' s3';
-  showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro' + st + '">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint' + st + '">' + T.objective + '</p>' : '') + '<p class="prompt' + st3 + '">' + (touchUI() ? 'Tap when ready' : 'Click or enter when ready') + '</p>');
+  showOverlay('<div class="kicker">Night ' + (i + 1) + ' of ' + LEVELS.length + '</div><h1>' + G.L.def.title + '</h1><p class="intro' + st + '">' + T.intro + (d.hints && T.hint ? '<br>' + T.hint : '') + (d.hints ? (T.where ? '<br>' + T.where : G.L.lane.follow ? '<br>It is behind you. It is always behind you.' : '<br>It is coming from the ' + ({ N: 'north', NE: 'north-east', E: 'east', SE: 'south-east', S: 'south', SW: 'south-west', W: 'west', NW: 'north-west' }[dirName]) + (G.L.lane.elev < -0.3 ? ', below you' : '') + '.') : '') + '</p>' + (d.hints && T.objective ? '<p class="hint' + st + '">' + T.objective + '</p>' : '') + '<p class="prompt' + st3 + '">' + (touchUI() ? 'Tap when ready' : 'Click when ready') + '</p>');
   if (!still) G.overlayArmed = performance.now() + CARD_IN;
 }
 function beginPlay() {
@@ -1655,7 +1655,7 @@ function fullscreenSync() {
   const on = !!fullscreenEl();
   document.body.classList.toggle('fsok', fullscreenAble());
   UI.fsBtn.classList.toggle('on', on);
-  UI.fsBtn.setAttribute('aria-label', on ? 'leave full screen' : 'full screen');
+  UI.fsBtn.setAttribute('aria-label', on ? 'leave fullscreen' : 'fullscreen');
   if (on !== fsWas) {
     fsWas = on; fsKeys(on);
     if (!on) {   // left: by the browser's Esc (or anything else not the game's own), a night being played is paused

@@ -133,7 +133,7 @@ const doorCases = [0, 1].flatMap(k => [
 // hand. A dispatcher answers (the night's easter egg, kept in the save from that moment) and has four lines, one after
 // another, each a crackle and its words, in curly quotation marks that open and close (the game's typeface draws the
 // straight mark as a closing one): "911, what is your emergency?", "Could you describe this creature, please?", "I see.",
-// "Ok, stay there. I'm sending a unit now."; each stays up a moment and goes, and then there is a beat of quiet (2 to 2.5 s,
+// "Okay, stay there. I'm sending a unit now."; each stays up a moment and goes, and then there is a beat of quiet (2 to 2.5 s,
 // for what you say back) before the next, so the last begins 13 s after she answers; with the last the police are sent,
 // but nothing of them is seen or heard until it has got to the last
 // lamp on its way in (called while it is skittering from its first lamp to its second; or, past: called once it has left the last
@@ -145,7 +145,7 @@ const doorCases = [0, 1].flatMap(k => [
 // stands, the flashlight on it; no tentacles drawn before, the first of them as it convulses); it jumps out in front of
 // the post, facing the car, its head split open at it and its tentacles out, with a snarl, the growl far up (the lamp
 // over it out by then, popped as it snarls if it still burned); the flashlight goes off; the car
-// spins its tyres (smoke) and fishtails off down the road, faster and faster, until it is out of sight; and it shuts its
+// spins its tires (smoke) and fishtails off down the road, faster and faster, until it is out of sight; and it shuts its
 // head, skitters back behind its post and stands there hidden for COP.hide (14 s: the right call, from hanging up on the
 // dispatcher, takes this script 7 s, all of it the ringing), and only then comes on for you; as it has you it
 // snarls again (growlHigh, as every lunge of its does, with the glass breaking). All the while the car keeps to the road (every corner and side of it) and is
@@ -252,7 +252,7 @@ const cop = (k, coin, calm, past) => `(() => {
   const CRACKLES = ['dispatchAsk', 'dispatchDescribe', 'dispatchSee', 'dispatchSend'];
   for (const n of ['dispatch', ...CRACKLES, 'tireScreech', 'sirenOff', 'shadeShriek', 'growlHigh', 'peelOut']) ev[n] = first(n);
   // what the dispatcher said, when (from her answering) and for how long it stayed up, each with its crackle as it was said
-  const LINES = ['“911, what is your emergency?”', '“Could you describe this creature, please?”', '“I see.”', '“Ok, stay there. I’m sending a unit now.”'], answered = t0 + out.answeredIn;
+  const LINES = ['“911, what is your emergency?”', '“Could you describe this creature, please?”', '“I see.”', '“Okay, stay there. I’m sending a unit now.”'], answered = t0 + out.answeredIn;
   out.lines = said.filter(q => LINES.includes(q[0])).map(q => [LINES.indexOf(q[0]), +(q[1] - answered).toFixed(2), q[2]]);
   out.crackles = CRACKLES.map(n => (first(n) === undefined ? -1 : +(first(n) - answered).toFixed(2)));
   out.once = CRACKLES.map(count).join() + ' ' + [count('shadeShriek'), count('growlHigh'), count('dispatch')].join();

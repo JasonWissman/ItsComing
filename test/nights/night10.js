@@ -225,7 +225,7 @@ const wrongPedestal = k => {
     ['expect', 'G.L.s.sour && G.L.s.wrongAt > 0 && G.L.creature.angry === 1 && G.L.s.turns === 0', 'turning it before a wrong mirror plays wrong notes and the doll in the glass is angry'],
     ...saw('jam', 'the crank jams, and the hand wrenches at it'),
     ['expect', '!G.L.won && (G.L.creature.dist < window._d0 - 0.29 * G.L.creature.D0 || G.L.creature.dist <= G.L.creature.catchDist + 1.51)', 'and it hops closer, three tenths of its whole way (never right up to you)'],
-    ['expect', "G.L.deathCause() === 'wrong' && G.L.text.death.wrong === 'You played for an illusion. The creature surprised you from behind.'", 'caught now, it is the illusion that did it'],
+    ['expect', "G.L.deathCause() === 'wrong' && G.L.text.death.wrong === 'That wasn\\'t her. The creature surprised you from behind.'", 'caught now, it is the illusion that did it'],
     ['eval', 'window._dt = G.L.creature.danceT'], ['wait', 450],
     ['expect', 'G.L.creature.danceT === window._dt && G.L.creature.dance === 0', 'angry, it has stopped dancing dead and eased out of it'],
     watch('fly', "G.hand.fly && G.hand.fly.it.id === 'musicbox'"),

@@ -64,7 +64,7 @@ LEVELS.push({
   weather: { kind: 'rain', density: 1.0, wind: 0.8, lightning: [7, 15] },
   text: {
     intro: 'The lighthouse has gone dark.\nYou hear something, and look down over the rail.',
-    hint: 'The bulb in the big lamp behind you has blown, and so has the fuse. Put the spare bulb in, change the fuse (there is a new one in the toolbox), then turn the crank until the light goes round.',
+    hint: 'The bulb in the big lamp behind you has blown, and so has the fuse. Put the new bulb in, change the fuse (there is a new one in the toolbox), then turn the crank until the light goes around.',
     objective: 'New bulb in the lamp. New fuse in the fuse box. Turn the crank.',
     egg: 'Hit the creature with the toolbox.',   // this night's easter egg, as the Scores' list names it once found (game.js: foundEgg)
     death: { default: 'It came over the rail and grabbed you.' },
@@ -206,12 +206,12 @@ LEVELS.push({
     mkItem(L, 'bulb', 'Bulb', spots, { w: 0.2, h: 0.3, flat: false, held: { size: 0.15, angle: -0.2 } });
     const toolbox = mkContainer(L, {
       id: 'toolbox', name: 'Toolbox', w: 0.56, h: 0.38, color: [172, 36, 30], spot: spots.slice(0, 4), sfx: 'clunk', liftY: 0.13,
-      closedText: 'A toolbox.', emptyText: 'Rags, a spanner and a screwdriver.',
+      closedText: 'A toolbox.', emptyText: 'Rags, a wrench and a screwdriver.',
       yields: [{ id: 'fuse', name: 'Fuse', opts: { w: 0.34, h: 0.34, flat: false, held: fuseHeld } }],
-      onOpen() { G.say('A new fuse, in among the rags.', 'Rags, a spanner. A fuse.'); },
+      onOpen() { G.say('A new fuse, in among the rags.', 'Rags, a wrench. A fuse.'); },
     });
     const boxSprite = L.props[L.props.length - 1];   // (the drawing of it mkContainer made: the last thing it put in the scene)
-    const lit = () => G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go round.');
+    const lit = () => G.say(s.turning ? 'The lamp comes on.' : 'The lamp comes on. Now turn the crank.', s.turning ? 'Light.' : 'Light. It does not go around.');
     const powerUp = () => { if (!(s.bulb && s.fuse) || s.power) return false; s.power = true; lamp.done = true; setTimeout(() => AUDIO.sfx('lampOn'), 250); return true; };
     // A click that does nothing, shown where it was tried: the thing in hand goes to the spot (at: [across, up] the target),
     // knocks there and comes back to the hand; with nothing in hand the hand goes to it and touches it. o.touch is called as
@@ -311,7 +311,7 @@ LEVELS.push({
     const need = 8;
     const winder = mkTarget(L, {
       id: 'winder', name: 'Crank', x: wd[0], y: wd[1], z: wd[2], w: WDS, h: WDS, face: MFACE,
-      crank: { n: need, sfx: 'ratchet', onTurn() { G.shake(0.04); }, onComplete() { s.turning = true; s.beamA = azOf(L.creature) + Math.PI; AUDIO.sfx('lever'); G.say(s.power ? 'The light begins to go round.' : 'The lamp goes round, dark.', s.power ? 'The light goes round.' : 'The lamp goes round, dark.'); } },
+      crank: { n: need, sfx: 'ratchet', onTurn() { G.shake(0.04); }, onComplete() { s.turning = true; s.beamA = azOf(L.creature) + Math.PI; AUDIO.sfx('lever'); G.say(s.power ? 'The light begins to go around.' : 'The lamp goes around, dark.', s.power ? 'The light goes around.' : 'The lamp goes around, dark.'); } },
       hint() { return s.turning ? 'Turning.' : 'The crank that turns the lamp. Turn it. ' + Math.max(0, need - Math.floor(winder.count || 0)) + ' more.'; },
     });
     // ---- where it is on the wall ----
