@@ -79,7 +79,6 @@ async function runStep(page, step) {
     case 'draw': await drawBow(page, a, b, c); break;
     case 'eval': await page.evaluate(a); break;
     case 'click': { const r = await findHit(page, 'target', a); check(!!r, a + ' is in view'); if (r) await clickAt(page, r); break; }
-    case 'combine': { const ok = await page.evaluate(([x, y]) => { const i = G.inv.findIndex(k => k.id === x), j = G.inv.find(k => k.id === y); if (i < 0 || !j) return false; G.active = i; return combine(G.inv[i], j); }, [a, b]); check(ok, 'combined ' + a + ' + ' + b); break; }
     case 'branch': { const which = await page.evaluate(a); for (const s of (which ? b : (c || []))) await runStep(page, s); break; }
     case 'expect': check(await page.evaluate(a), b || a); break;
     default: fail('unknown step ' + op);

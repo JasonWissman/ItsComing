@@ -91,7 +91,7 @@ function buildLevelDef(def, i) {
   const rand = mulberry32((G.runSeed * 7919 + i * 131 + G.attempt * 17) >>> 0);
   const L = {
     def, index: i, night: i + 1, t: 0, facing: def.facing * DEG, eyeH: def.eyeH || 1.65, lookDown: (def.lookDown || 45) * DEG, pal: Object.assign({ id: def.id }, def.pal), diff,
-    props: [], items: [], targets: [], creatures: [], recipes: [], s: {}, won: false, aftermathT: 0, after: null,
+    props: [], items: [], targets: [], creatures: [], s: {}, won: false, aftermathT: 0, after: null,
     rand, usedSpots: new Set(), placed: [],
     floor: { poly: def.floor ? def.floor.poly : null, y: def.floor && def.floor.y !== undefined ? def.floor.y : (def.floorY || 0) },
   };
@@ -668,18 +668,6 @@ function newItem(L, id, name, opts) {
   if (typeof it.icon === 'string') it.icon = ICONS[it.icon];
   L.items.push(it);
   return it;
-}
-function combine(a, b) {
-  const L = G.L;
-  const r = (L.recipes || []).find(r => (r.parts[0] === a.id && r.parts[1] === b.id) || (r.parts[0] === b.id && r.parts[1] === a.id));
-  if (!r) return false;
-  G.removeFromInv(a); G.removeFromInv(b);
-  const it = newItem(L, r.result.id, r.result.name, Object.assign({ taken: true }, r.result.opts || {}));
-  G.inv.push(it); G.active = G.inv.length - 1;
-  AUDIO.sfx(r.sfx || 'load');
-  if (r.onCombine) r.onCombine(it, L);
-  G.toast(r.text || (it.name + '.'));
-  return true;
 }
 // What a click that does not work shows (js/hands.js): a thing tried where it will not go leaves your hand, fails at the
 // target and comes back or drops to the floor (G.fumble); with nothing in hand the hand goes up to it (G.reach). The short
@@ -1406,7 +1394,6 @@ function updateHUD() {
       slot.appendChild(lab);
       slot.addEventListener('click', e => {
         e.stopPropagation();
-        if (idx !== G.active && G.inv[G.active] && combine(G.inv[G.active], it)) { G.invSig = ''; return; }
         if (idx === G.active && G.state === 'play' && G.cam.pitch > 0.5) { dropActive(); G.invSig = ''; return; } // tap the held thing again while looking down: put it down (touch has no empty floor to tap on a crowded night)
         G.active = idx; G.invSig = ''; AUDIO.sfx('ui');
       });

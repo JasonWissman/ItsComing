@@ -165,7 +165,7 @@ const SOUNDS = [
   // ---- defined but never played ----
   { kind: 'sfx', name: 'shot', n: 'unused', d: 'A gunshot with a long tail. Only the default for a click-to-fire weapon; no night has one.', src: 'game.js fireUse default' },
   { kind: 'sfx', name: 'empty', n: 'unused', d: 'Click-click of an empty gun. Only for a click-to-fire weapon with no ammo; no night has one.', src: 'game.js useOnCreature' },
-  { kind: 'sfx', name: 'load', n: 'unused', d: 'A gun being loaded. Default for combining two items; no night has a recipe.', src: 'game.js combine default' },
+  { kind: 'sfx', name: 'load', n: 'unused', d: 'A gun being loaded. Never called.', src: '—' },
   { kind: 'sfx', name: 'bell', n: 'unused', d: 'A small bright bell, twice. Never called.', src: '—' },
   { kind: 'sfx', name: 'phoneRing', n: 'unused', d: 'An old phone’s trilling ring. Never called.', src: '—' },
   { kind: 'sfx', name: 'wetThud', n: 'unused', d: 'A wet heavy blow. Never called.', src: '—' },
