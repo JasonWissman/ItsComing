@@ -691,7 +691,7 @@
   #rotate h2 { margin: 0; font-weight: normal; font-size: calc(18.6px * var(--text-scale)); letter-spacing: .06em; }
   #rotate p { margin: 6px 0 0; max-width: 18em; font-size: calc(10.7px * var(--text-scale)); line-height: 1.5; font-style: italic; color: rgba(207,200,186,.6); }
   @keyframes rturn { 0%, 20% { transform: none; } 50%, 80% { transform: rotate(-90deg); } 100% { transform: none; } }
-  @media (prefers-reduced-motion: reduce) { #rotate .rphone { animation: none; transform: rotate(-90deg); } }
+  @media (prefers-reduced-motion: reduce) { #rotate .rphone { animation: none; transform: none; } }   /* (still: the phone upright, the arrow by its corner, as the turn begins: turned, the arrow would cross it) */
   @media (pointer: coarse) {
     html, body { touch-action: manipulation; -webkit-touch-callout: none; }
     #game, #hud { touch-action: none; }
