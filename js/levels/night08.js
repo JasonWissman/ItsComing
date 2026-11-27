@@ -171,6 +171,7 @@ LEVELS.push({
       ps.forEach((p, i) => { p.sortDist = ds[i] + k; });
     };
     SC.box(L, -3.6, 3.6, 0, 0.95, 0.8, 1.4, [108, 34, 34]);
+    L.props.pop();   // (the body's top: the counter's top covers it on every side, so it is never seen; drawn, it showed as a red sliver over the middle of the counter's front edge)
     SC.box(L, -3.7, 3.7, 0.95, 1.0, 0.75, 1.45, [112, 104, 90]); reorder(5, (lo, hi) => 3.6 - hi);   // a little dim: under the tubes it is the brightest thing in the room
     for (const x of [-3, -1.5, 0, 1.5, 3]) { SC.box(L, x - 0.04, x + 0.04, 0, 0.72, 1.96, 2.04, chrome); SC.box(L, x - 0.2, x + 0.2, 0.72, 0.84, 1.8, 2.2, red); reorder(10, lo => 3.9 - lo); }
     // what stands on the counter, each in the place and the footprint it always had (the cup set down keeps clear of them:
