@@ -123,8 +123,6 @@ function mkContainer(L, o) {
   glowWith(t, [box]);
   return t;
 }
-// two held items become one: select one, click the other in the inventory
-function mkRecipe(L, o) { L.recipes.push(o); return o; }
 function iconSprite(L, id, x, y, z, w, h, opts) {
   return SC.mkSprite(L, x, y, z, w, h, (ctx, P) => { ctx.scale(w, h); ICONS[id](ctx, P); }, opts);
 }

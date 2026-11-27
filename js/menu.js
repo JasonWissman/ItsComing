@@ -378,6 +378,13 @@ const MENU = (() => {
   function settingsFocus(root, d) {
     return (d.focus && root.querySelector('button[data-act="' + d.focus + '"]')) || root.querySelector(d.sub === 'volume' ? 'button[data-act="calquiet"]' : d.sub ? 'button[data-act="caldone"]' : 'button[data-act="back"]');
   }
+  // a dialog just opened: its first control focused, and the dialog (and whatever scrolls round it) at its top, so a
+  // short screen opens on its heading rather than scrolled down to a Done at its foot. Back to the control that opened
+  // a sub-screen (again): that control scrolled into view. The keys and a pad still scroll to what they move to
+  function focusTop(b, again) {
+    for (let e = b.parentElement; e && e !== document.body; e = e.parentElement) if (e.scrollTop) e.scrollTop = 0;
+    b.focus(again ? undefined : { preventScroll: true });
+  }
   // Esc (or a pad's B) in one of Settings' dialogs: Settings again, as Done. True if it was one
   function subBack(root) { const b = root.querySelector('button[data-act="caldone"]'); if (!b) return false; b.click(); return true; }
   // the one switch for reduced motion and reduced flashing: both flags the game reads go with it (save.js keeps them alike)
@@ -416,7 +423,7 @@ const MENU = (() => {
     if (box) box.addEventListener('click', e => { e.stopPropagation(); if (e.target === box) act(kind === 'pause' ? 'stay' : 'keep'); });   // a click off the little dialog backs out of it
     // focus: the first button, or (back from a sub-screen) the button that opened it
     const first = kind === 'settings' ? settingsFocus(ov, current.data) : (!box && current.data.focus && ov.querySelector('button[data-act="' + current.data.focus + '"]')) || (box || ov).querySelector('button[data-act]');
-    if (first && (kind !== 'title' || current.data.focus) && kind !== 'results') first.focus();   // (the title: only back to the credit from its note)
+    if (first && (kind !== 'title' || current.data.focus) && kind !== 'results') focusTop(first, !!(current.data.focus || box));   // (the title: only back to the credit from its note)
     if (kind === 'results') reveal(false);
   }
   // the results are in the dark theme, as the Scores dialog is (the morning's light one is the last screen's only, The
@@ -465,7 +472,7 @@ const MENU = (() => {
     }));
     wire(root);
     settled(root, d);
-    const first = settingsFocus(root, d); if (first) first.focus();
+    const first = settingsFocus(root, d); if (first) focusTop(first, !!d.focus);
   }
   // the keys in a screen of buttons and settings: arrows (and WASD, Tab) move round them; Space and Enter flip a focused
   // switch, left and right move a focused slider or go along a focused row of choices. True if the key was taken

@@ -17,6 +17,14 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="It's Coming">
 <meta property="og:description" content="A first-person browser horror game. Something is coming straight at you. Look away to survive; look back and it is closer.">
+<!-- a link's preview (absolute URLs only): the base, where the game is published (GitHub Pages), is
+     https://jasonwissman.github.io/ItsComing/ in the two lines below; change it there if it moves -->
+<meta property="og:url" content="https://jasonwissman.github.io/ItsComing/">
+<meta property="og:image" content="https://jasonwissman.github.io/ItsComing/icons/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="It's Coming: a tall thin figure with glowing eyes stands far off in the dark, above the game's title">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: #cfc8ba; font-family: 'IM Fell English', Georgia, serif; -webkit-user-select: none; user-select: none; }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
@@ -166,8 +174,8 @@
   :root[data-theme="day"] .hcard, :root[data-theme="day"] .runcard { background: rgba(58,51,44,.06); }
   /* the warning before a new game (flashing lights): on black, a card like the dialogs', red words under an eye struck
      through, a solid red Accept and beside it a quiet Adjust settings (which turns the card into Settings: .dset) */
-  #disclaimer { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto; box-sizing: border-box; padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); text-align: center; color: var(--red); cursor: default; }
-  #disclaimer .dbox { display: flex; justify-content: center; width: 100%; margin: auto 0; opacity: 0; transition: opacity .5s; }
+  #disclaimer { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; box-sizing: border-box; padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); text-align: center; color: var(--red); cursor: default; }
+  #disclaimer .dbox { display: flex; justify-content: center; width: 100%; margin: auto 0; opacity: 0; transition: opacity .5s; }   /* (its auto margins centre it; taller than the screen, its top where a scroll reaches it) */
   #disclaimer.on .dbox { opacity: 1; }
   #disclaimer.go .dbox { opacity: 0; transition: opacity .35s; }
   #disclaimer.out { opacity: 0; transition: opacity .6s; }
@@ -441,6 +449,22 @@
     #overlay > .results:has(.tabs) { padding-top: 5px; padding-bottom: 5px; }
     .results:has(.tabs) .rlast { margin-top: 6px; }
   }
+  /* a small phone on its side (667 by 375 and smaller): three columns are narrow, so the cards' words a little smaller
+     and the room round them tighter, every night's name whole */
+  @media (max-height: 520px) and (min-width: 560px) and (max-width: 800px) {
+    #overlay.dlg > .panel.nightsp, #overlay > .results { padding-left: 12px; padding-right: 12px; }
+    #overlay:has(> .results) { padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+    .nights { column-gap: 5px; }
+    #overlay .ncard { gap: 6px; padding-left: 7px; padding-right: 7px; letter-spacing: .01em; font-size: calc(12px * min(var(--text-scale), 1.4)); }
+    #overlay .ncard .nbest { gap: 3px; font-size: calc(11px * min(var(--text-scale), 1.4)); }
+    .ncard .nbest small { letter-spacing: .06em; }
+    .egg { gap: 6px; }
+  }
+  @media (max-height: 520px) and (min-width: 560px) and (max-width: 620px) {   /* (568 by 320: smaller again) */
+    #overlay .ncard { gap: 4px; padding-left: 5px; padding-right: 5px; letter-spacing: 0; font-size: calc(10.5px * min(var(--text-scale), 1.4)); }
+    #overlay .ncard .nbest { font-size: calc(10px * min(var(--text-scale), 1.4)); }
+    .egg { gap: 5px; }
+  }
   :root[data-theme="day"] .egg { border-color: rgba(58,51,44,.16); color: rgba(58,51,44,.48); }
   :root[data-theme="day"] .egg .emark { border-color: rgba(58,51,44,.36); }
   :root[data-theme="day"] .egg.found { background: rgba(255,255,255,.6); border-color: rgba(58,51,44,.62); color: #2e2823; }
@@ -604,9 +628,12 @@
   .notelinks { display: flex; gap: 10px; width: 100%; }
   .notelinks .mbtn { flex: 1 1 0; min-width: 0; }
   .notefoot .mbtn { font-size: calc(15px * min(var(--text-scale), 1.4)); }   /* (with Bigger text grown less: each label on its one line) */
+  .notefoot .mbtn { line-height: calc(19px * min(var(--text-scale), 1.4)); }   /* (one line height for the three: the links' smaller words still at Back's height) */
+  .notefoot { width: 100%; } .notelinks .mbtn { font-size: calc(12.5px * min(var(--text-scale), 1.4)); letter-spacing: .08em; padding-left: 12px; padding-right: 12px; }   /* (each link's label on its one line, the two across the whole dialog) */
   @media (max-width: 640px) { #overlay .notebody h1 { font-size: 28px; } .notelinks { flex-direction: column; gap: 8px; } .notefoot .mbtn { padding-top: 9px; padding-bottom: 9px; } .notefoot > .mbtn { width: 100%; } }
   @media (max-height: 520px) { #overlay .notebody h1 { font-size: 24px; margin: 0 0 8px; } #overlay .notebody p { font-size: calc(14px * min(var(--text-scale), 1.6)); line-height: 1.5; } #overlay.dlg > .panel.notep { padding-bottom: 10px; } #overlay.dlg > .panel.notep > .mrow { margin-top: 8px; padding-top: 10px; gap: 8px; } .notefoot .mbtn { padding-top: 6px; padding-bottom: 6px; font-size: calc(15px * min(var(--text-scale), 1.3)); }
     .notefoot { flex-direction: row; } .notelinks { flex: 2 1 0; flex-direction: row; } .notelinks .mbtn { flex: 1 1 auto; padding-left: 14px; padding-right: 14px; } .notefoot > .mbtn { flex: 0 1 auto; width: auto; min-width: 120px; } }
+  @media (max-height: 520px) { .notefoot .mbtn { line-height: calc(19px * min(var(--text-scale), 1.3)); } .notelinks .mbtn { padding-left: 10px; padding-right: 10px; font-size: calc(11px * min(var(--text-scale), 1.3)); letter-spacing: .06em; } }
   :root[data-theme="day"] #overlay .notebody p { color: #3a332c; }
   :root[data-theme="day"] #overlay .notebody a { color: #1a1612; }
   #overlay .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; font-size: calc(14px * var(--text-scale)); color: rgba(207,200,186,.7); margin: 8px auto 0; text-align: left; width: max-content; max-width: 100%; }
@@ -672,7 +699,7 @@
   #rotate h2 { margin: 0; font-weight: normal; font-size: calc(18.6px * var(--text-scale)); letter-spacing: .06em; }
   #rotate p { margin: 6px 0 0; max-width: 18em; font-size: calc(10.7px * var(--text-scale)); line-height: 1.5; font-style: italic; color: rgba(207,200,186,.6); }
   @keyframes rturn { 0%, 20% { transform: none; } 50%, 80% { transform: rotate(-90deg); } 100% { transform: none; } }
-  @media (prefers-reduced-motion: reduce) { #rotate .rphone { animation: none; transform: rotate(-90deg); } }
+  @media (prefers-reduced-motion: reduce) { #rotate .rphone { animation: none; transform: none; } }   /* (still: the phone upright, the arrow by its corner, as the turn begins: turned, the arrow would cross it) */
   @media (pointer: coarse) {
     html, body { touch-action: manipulation; -webkit-touch-callout: none; }
     #game, #hud { touch-action: none; }

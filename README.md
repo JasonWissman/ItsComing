@@ -1107,7 +1107,9 @@ which are a plain sans, and the lettering on things in the nights themselves (a 
 ```
 index.html              page shell, HUD and styles
 manifest.webmanifest    installed or added to the Home Screen: fullscreen, landscape, on black
-icons/                  the app icons (apple-touch-icon.png, icon-192.png, icon-512.png)
+icons/                  the app icons (apple-touch-icon.png, icon-192.png, icon-512.png; icon-maskable-192.png and
+                        icon-maskable-512.png, the same smaller on black for masked launchers) and og-image.png,
+                        the link preview (1200 x 630)
 fonts/                  IM Fell English, the one typeface (woff2), and its license
 js/util.js              math, color and drawing helpers
 js/audio.js             Web Audio synthesis: wind, drones, heartbeat, footsteps, effects
@@ -1126,7 +1128,7 @@ js/creatures/<name>.js  one creature each: procedural drawing plus movement beha
 js/icons.js             item icons and scenery builders (walls, boxes, trees, fences, openings, road, moon, stars)
 js/title.js             the title screen's scene: the eyes in the dark, nearer each time a dialog over it closes
 js/story.js             the thread through the nights: the lamp, the clock, the coat hangers, the knocks on a pipe
-js/levels.js            item, target, container and recipe helpers and the LEVELS list
+js/levels.js            item, target and container helpers and the LEVELS list
 js/levels/nightNN.js    one night each
 js/game.js              game state, input, interaction, HUD, main loop
 js/hands.js             your hands: what you hold drawn over the view, a thing tried where it will not go (the fumble), the reach
@@ -1190,9 +1192,8 @@ LEVELS.push({
 - **Items and targets** are placed in `build(L)`: `mkItem(L, id, name, spot | [spots], opts)`
   picks one of several spots per load (never the same spot twice, never within 0.8 m of another
   item); `mkTarget(L, { accepts, requires, needed, use(item), hint(), onClick(), hold, crank })`
-  for anything you use things on (`face`: one fixed flat on an upright face, as below); `mkContainer(L, { opens, yields, spot })` for drawers and boxes;
-  `mkRecipe(L, { parts, result })` for combining two held items. Items can be `tool` (never
-  consumed), `throwable`, or `decoy`.
+  for anything you use things on (`face`: one fixed flat on an upright face, as below); `mkContainer(L, { opens, yields, spot })` for drawers and boxes.
+  Items can be `tool` (never consumed), `throwable`, or `decoy`.
 - **Sprites and panels**: a sprite (`SC.sprite`) is a billboard that stands upright on the view; `flat` lays it on the
   ground and `card` stands it facing you (an item). A part fixed to a wall or a box (a panel of switches, a label on a
   door) takes `face` instead: the yaw its front looks toward, in the night's frame (`Math.PI` looks back at you from in
