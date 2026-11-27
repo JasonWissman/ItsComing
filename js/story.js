@@ -122,7 +122,9 @@ const STORY = (() => {
     // the bed: mattress, headboard, a pillow against the headboard at your back; the covers are the night's business (a
     // plain sheet in the morning), and in the night the pillow is too (it can be lifted: the night draws it)
     const bed = { x0: -0.75, x1: 0.75, z0: S + 0.1, z1: 1.9, top: 0.58 }, pillow = { x0: -0.27, x1: 0.27, y0: bed.top, y1: bed.top + 0.12, z0: bed.z0 + 0.02, z1: bed.z0 + 0.32 };
-    SC.box(L, bed.x0, bed.x1, 0.32, bed.top, bed.z0, bed.z1, cloth); SC.box(L, -0.8, 0.8, 0.3, 1.3, S + 0.02, bed.z0, wood);
+    // (the headboard from the mattress's top up: drawn after the mattress, its face below that line was drawn over the
+    // sheet at the head of the bed, and the pillow, lifted, hung in the air in front of it)
+    SC.box(L, bed.x0, bed.x1, 0.32, bed.top, bed.z0, bed.z1, cloth); SC.box(L, -0.8, 0.8, bed.top, 1.3, S + 0.02, bed.z0, wood);
     // (its legs are under it, drawn before it, so the mattress hides them: night 12 draws them as early, BED there)
     for (const [x, z] of [[-0.72, bed.z0 + 0.1], [0.72, bed.z0 + 0.1], [-0.72, 1.85], [0.72, 1.85]]) SC.box(L, x - 0.04, x + 0.04, 0, 0.32, z - 0.04, z + 0.04, wood, { sortDist: 1.7 });
     if (day) for (const f of pillowFaces(pillow, (x, u, v) => [x, pillow.y0 + v, pillow.z0 + u], [236, 232, 220], 0, false)) SC.quad(L, f.pts[0], f.pts[1], f.pts[2], f.pts[3], f.color, { sortDist: f.sd });
@@ -170,7 +172,9 @@ const STORY = (() => {
         const A = P3(i, j), B = P3(i + 1, j), C = P3(i + 1, j + 1), D = P3(i, j + 1);
         const ux = C[0] - A[0], uy = C[1] - A[1], uz = C[2] - A[2], vx = D[0] - B[0], vy = D[1] - B[1], vz = D[2] - B[2];
         const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, nl = Math.hypot(nx, ny, nz) || 1;
-        out.push({ pts: [A, B, C, D], color: scalec(color, dim * (0.62 + 0.3 * Math.abs(ny / nl) + 0.12 * Math.abs(nz / nl) - 0.06 * Math.abs(nx / nl))), sd: sd - j * 0.0004 });
+        // (lifted, it is shaded round: dimmer toward its seam, and toward its far edge, down on the sheet)
+        const lift = k * (0.26 * (1 - shape(i + 0.5, j + 0.5)) + 0.14 * (1 - (j + 0.5) / NU));
+        out.push({ pts: [A, B, C, D], color: scalec(color, dim * (0.62 + 0.3 * Math.abs(ny / nl) + 0.12 * Math.abs(nz / nl) - 0.06 * Math.abs(nx / nl)) * (1 - lift)), sd: sd - j * 0.0004 });
       }
     };
     face((i, j) => SEAM + (t - SEAM) * shape(i, j), 0.2, 1);
